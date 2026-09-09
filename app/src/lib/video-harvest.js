@@ -112,6 +112,32 @@ const BOOK_ALT = [...BIBLE_BOOKS].sort((a, b) => b.length - a.length)
 // "6:2-4" whole; extractScriptureRefs below still keys on the first verse.
 const REF_RE = new RegExp(`\\b(${BOOK_ALT})\\.?\\s+(\\d{1,3}):(\\d{1,3})(?:\\s*[-–]\\s*(\\d{1,3}))?\\b`, 'gi');
 
+// JOB THE MAN, NOT A JOB (Darrell, 2026-09-08: "train the Ari to read Job and
+// job, differentiating the work from the person"). The shape "<Book> <ch>:<vs>"
+// already keeps "a job" or "the job" out — no chapter:verse, no match. What
+// slips through is a TIME beside a common noun: "meet at the job 9:30" is a
+// real Job 9:30. Two deterministic rules close it, and they are the same rule
+// for the harvest scanner and the reader's chips (one matcher, one judgement):
+//   1. A book whose name is also an everyday word (job, mark, acts, numbers,
+//      judges) counts only when written as a NAME — an initial capital ("Job",
+//      "JOB"), the way a person's name is written. Every other book still
+//      matches in any case, because transcripts and titles arrive lowercase
+//      ("psalm 46:10") and those words are nobody's job.
+//   2. Any match followed by am / pm is a time of day, not a verse.
+// Chapter and verse must also be real numbers (no "0", no leading zero) — a
+// clock says 9:05, the Word does not.
+const COMMON_NOUN_BOOKS = new Set(['job', 'mark', 'acts', 'numbers', 'judges']);
+const TIME_AFTER_RE = /^\s*(?:a\.?m\.?|p\.?m\.?)\b/i;
+function isNotAVerse(m, text) {
+  const rawBook = m[1];
+  const key = rawBook.toLowerCase().replace(/\s+/g, ' ');
+  if (COMMON_NOUN_BOOKS.has(key) && !/^[A-Z]/.test(rawBook)) return true;  // "job", not "Job"
+  if (TIME_AFTER_RE.test(text.slice(m.index + m[0].length))) return true;   // "9:30 am"
+  const nums = [m[2], m[3], m[4]].filter((n) => n !== undefined);
+  if (nums.some((n) => /^0/.test(n))) return true;                           // "2:00", "9:05"
+  return false;
+}
+
 // Tidy one matched book name to its canonical spelling (collapse whitespace,
 // title-case via the registry so "1  john" -> "1 John").
 const CANON_BOOK = new Map(BIBLE_BOOKS.map((b) => [b.toLowerCase().replace(/\s+/g, ' '), b]));
@@ -125,6 +151,7 @@ export function extractScriptureRefs(texts) {
     let m;
     REF_RE.lastIndex = 0;
     while ((m = REF_RE.exec(raw)) !== null) {
+      if (isNotAVerse(m, raw)) continue;
       const bookKey = m[1].toLowerCase().replace(/\s+/g, ' ');
       const book = CANON_BOOK.get(bookKey) || m[1].replace(/\s+/g, ' ');
       const ref = `${book} ${m[2]}:${m[3]}`;
@@ -147,6 +174,7 @@ export function findScriptureRefs(text) {
   let m;
   REF_RE.lastIndex = 0;
   while ((m = REF_RE.exec(s)) !== null) {
+    if (isNotAVerse(m, s)) continue;
     const bookKey = m[1].toLowerCase().replace(/\s+/g, ' ');
     const book = CANON_BOOK.get(bookKey) || m[1].replace(/\s+/g, ' ');
     const ref = m[4] ? `${book} ${m[2]}:${m[3]}-${m[4]}` : `${book} ${m[2]}:${m[3]}`;

@@ -50,6 +50,7 @@ import { loadHighlights, saveHighlights, getMark, setMark, cssForHighlight } fro
 import BibleReader from './BibleReader.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import VerseChips from './VerseChips.jsx';
+import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -500,6 +501,7 @@ function StudyEdition() {
         <p className="text-xs text-[#5A5751] mb-2" style={serif}>
           Our own freely-usable edition: public-domain Scripture (modern English + KJV, shown side by side) with our clarification beside it. The two are always kept visibly separate — the Word is the Word; the notes are notes.
         </p>
+        <div className="mb-2"><ShowTheWordToggle /></div>
         <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1" role="tablist" aria-label="Study Edition references">
           {refs.map((r) => (
             <button key={r} type="button" role="tab" aria-selected={active === r} onClick={() => setActive(r)}

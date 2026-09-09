@@ -64,6 +64,24 @@ describe('the pure cut', () => {
     expect(referencesIn('Conviction is a Genesis doctrine.')).toEqual([]);
   });
 
+  it('reads Job the man and job the work as different things (Darrell: "train the Ari")', () => {
+    // A name is written as a name. The work is never a verse.
+    expect(referencesIn('Job 19:25 says my redeemer liveth')).toEqual(['Job 19:25']);
+    expect(referencesIn('JOB 19:25 in the transcript')).toEqual(['Job 19:25']);
+    expect(referencesIn('meet at the job 9:30 sharp')).toEqual([]);
+    expect(referencesIn('Corion finished the job 2 days early')).toEqual([]);
+    // A time of day beside a name is still a time.
+    expect(referencesIn('Job 9:30 am at the site')).toEqual([]);
+    expect(referencesIn('Mark 9:05 pm')).toEqual([]);
+    expect(referencesIn('mark 5:30 on the wall')).toEqual([]);
+    expect(referencesIn('Mark 5:30 records it')).toEqual(['Mark 5:30']);
+    // Books that are nobody's job still read in any case — transcripts arrive lowercase.
+    expect(referencesIn('drawn from psalm 46:10 and 1 john 4:9-10')).toEqual(['Psalm 46:10', '1 John 4:9-10']);
+    // A clock's leading zero is not a verse number.
+    expect(referencesIn('Genesis 2:05')).toEqual([]);
+    expect(findScriptureRefs('the job 9:30 and Job 9:30')).toHaveLength(1);
+  });
+
   it('lists the distinct references once each, first appearance first', () => {
     expect(referencesIn('John 1:1 then John 1:1 again, then Genesis 1:1')).toEqual(['John 1:1', 'Genesis 1:1']);
   });

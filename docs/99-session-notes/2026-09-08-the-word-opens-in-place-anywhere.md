@@ -45,3 +45,17 @@ Required reading opened before the design (the hook asked, rightly): EXCELLENCE-
 ## Remainder, dated
 
 - LessonFlow, PracticeLearn, the living-lessons bodies, the Godhead study onto `WordInline`; and whether a source scan can gate an inert reference without noise — `re-review: 2026-09-22`.
+
+---
+
+## Same day, four more words from Darrell — DR-0341
+
+*"make all scriptures open with one click... collectively... and close collectively... also work independently... both"* · *"have them chronological... as much as they can be"* · *"Make sure the users know also"* · *"train the Ari to read Job and job."*
+
+- **`lib/show-the-word.js` + `components/ShowTheWordToggle.jsx`** — one app-wide switch (house `useSyncExternalStore` pattern, remembered on the device, fail-soft); `useOpenRefs` in `VerseChips.jsx` is the one open-state model both primitives share: the switch decides the page, a tap overrides one reference, flipping the switch clears the overrides. A page-wide open passes `reveal={false}` so nothing nudges.
+- **`lib/scripture-order.js`** — era bands (order, never dates), then shelf, then chapter:verse; `OPEN_PLACEMENTS` names Job, Joel, Obadiah, James, Hebrews. Chip rows and opened verses sort; prose never does.
+- **The hint** — one sentence beside the switch; pinned.
+- **Job / job** — `isNotAVerse` in `video-harvest.js`, applied by both `extractScriptureRefs` and `findScriptureRefs`: everyday-word books need a capital initial; am/pm and a leading zero mean a clock. The harvest's own lowercase pins (`psalm 46:10`, `1 john 4:9-10`) still hold.
+- **Guards:** the consistency guard caught a `max-w-prose` on the new hint (width-cap over baseline) — removed; the toggle's row wraps instead.
+
+**Evidence:** `npx vitest run` — 12,776 passed, 0 failed, 871 files. Lint clean. `ui-standards-guard` 0 regressions; consistency, monolith, module-boundary, contrast, legibility OK. `legibility-health.json` regenerated.
