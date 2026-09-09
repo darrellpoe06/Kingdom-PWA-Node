@@ -368,6 +368,57 @@ export async function patchRoom(id, patch, client = supabase) {
   } catch (e) { return no('unexpected', e); }
 }
 
+// ---------------------------------------------------------------------------
+// THE LIST NEVER CARRIES THE BYTES (DR-0303 / migration 0185).
+// ---------------------------------------------------------------------------
+// storage_path holds the whole compressed image as a data URL. Selecting it in
+// a LIST — every picture on every door, on every boot, to pick one cover per
+// door — is the exact shape that locked everyone out on 2026-08-14 (6.2 MB of
+// base64 pulled once per sign-in). So a list reads the small thumbnail written
+// at upload (thumb_path) and never storage_path; the full image is fetched by
+// id, a few at a time, only when somebody opens it (loadPhotoImages). The
+// column list is a named constant so a test can pin what goes over the wire.
+export const PHOTO_LIST_COLUMNS = [
+  'id', 'instance_id', 'rental_ref', 'tenancy_id', 'room_id', 'request_id',
+  'kind', 'caption', 'thumb_path', 'taken_at', 'uploaded_at', 'uploaded_by',
+  'author_label', 'archived_at', 'archived_by', 'sort_order',
+].join(', ');
+
+/** The most full images one call may carry. A door's gallery opens one at a time. */
+export const PHOTO_IMAGE_BATCH = 24;
+
+/**
+ * The full image for a few pictures, by id — the ONLY read of storage_path in
+ * this module. Bounded: more ids than the batch are refused, not silently
+ * truncated, so a caller cannot rebuild the unbounded list by accident.
+ */
+export async function loadPhotoImages(ids = [], client = supabase) {
+  const want = Array.from(new Set((ids || []).filter(Boolean)));
+  if (!want.length) return ok({ images: {} });
+  if (want.length > PHOTO_IMAGE_BATCH) return no('too-many-at-once');
+  try {
+    const { data, error } = await client
+      .from('property_photos').select('id, storage_path').in('id', want);
+    if (error) return no('read-failed', error);
+    const images = {};
+    for (const row of data || []) images[row.id] = row.storage_path;
+    return ok({ images });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * Give the pictures that have no thumbnail (rows from before 0185) their full
+ * image, bounded to one batch. Pictures written since carry thumb_path and
+ * cost nothing here. Returns a new list; never touches the one it was given.
+ */
+export async function hydrateLegacyImages(photos = [], client = supabase) {
+  const missing = (photos || []).filter((p) => p && !p.thumb_path && !p.storage_path).map((p) => p.id);
+  if (!missing.length) return photos;
+  const r = await loadPhotoImages(missing.slice(0, PHOTO_IMAGE_BATCH), client);
+  if (!r.ok) return photos;
+  return photos.map((p) => (r.images[p.id] ? { ...p, storage_path: r.images[p.id] } : p));
+}
+
 /**
  * The door's photos. RLS decides what comes back — a tenant sees only their own
  * tenancy's, and never the door-level turn between households.
@@ -376,7 +427,7 @@ export async function loadDoorPhotos(rentalRef, client = supabase) {
   if (!rentalRef) return ok({ photos: [] });
   try {
     const { data, error } = await client
-      .from('property_photos').select('*').eq('rental_ref', rentalRef)
+      .from('property_photos').select(PHOTO_LIST_COLUMNS).eq('rental_ref', rentalRef)
       // The landlord's arrangement first (0160), newest as the tie-break for
       // pictures he has not placed. photo-order.js reproduces this exactly so a
       // reload cannot reorder what a nudge just moved.
@@ -493,7 +544,7 @@ export async function loadAllPhotos(client = supabase) {
   try {
     const { data, error } = await client
       .from('property_photos')
-      .select('id, rental_ref, tenancy_id, room_id, kind, caption, storage_path, taken_at, uploaded_at, archived_at, sort_order')
+      .select(PHOTO_LIST_COLUMNS)
       .is('archived_at', null)
       // sort_order so the board's cover is the picture the landlord placed
       // first, not merely the newest (0160). taken_at breaks a tie.

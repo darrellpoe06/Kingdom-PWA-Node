@@ -296,6 +296,34 @@ describe('the faces people actually meet', () => {
     expect(granted.tabs.filter((t) => t.locked)).toHaveLength(0);
   });
 
+  it('the LANDLORD is never locked out of his own tabs — he holds every capability by being the owner', () => {
+    // 2026-09-08, Darrell's phone: "WORK BOARD · LOCKED", "DISPATCH · LOCKED",
+    // "MESSAGES · LOCKED", "RENT · LOCKED" above his twelve doors. His grant
+    // list is empty because the database grants him everything as an instance
+    // member, never as a delegate; an empty list is not "not turned on".
+    const face = resolveFace('owner', []);
+    expect(face.tabs.filter((t) => t.locked)).toEqual([]);
+    for (const id of ['board', 'dispatch', 'thread', 'rent', 'gallery', 'people']) {
+      expect(face.tabs.some((t) => t.id === id && !t.locked)).toBe(true);
+    }
+    // A manager without the grant is still, honestly, locked.
+    expect(resolveFace('manager', []).tabs.find((t) => t.id === 'board').locked).toBe(true);
+  });
+
+  it('a 1099 worker with "Add job documentation" gets the doors he is sent to and their pictures (0185)', () => {
+    const granted = resolveFace('field_worker', ['docs.add']);
+    expect(granted.tabs.find((t) => t.id === 'doors').locked).toBe(false);
+    expect(granted.tabs.find((t) => t.id === 'gallery').locked).toBe(false);
+    // Without it, both are there and say why they are shut — never missing.
+    const bare = resolveFace('field_worker', []);
+    expect(bare.tabs.find((t) => t.id === 'doors').locked).toBe(true);
+    expect(bare.tabs.find((t) => t.id === 'gallery').lockReason).toMatch(/Add job documentation/);
+    // And no worker face ever carries the landlord's desk.
+    for (const id of ['rent', 'people', 'documents', 'dispatch', 'board']) {
+      expect(granted.tabs.some((t) => t.id === id)).toBe(false);
+    }
+  });
+
   it('nobody but the landlord can post to the books', () => {
     for (const role of ['tenant', 'household', 'field_worker', 'manager']) {
       expect(resolveFace(role, ['rent.confirm', 'rent.adjust']).canPostToBooks, `${role} could post to the books`).toBe(false);

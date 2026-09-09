@@ -119,3 +119,50 @@ export function makeCover(photos = [], id) {
     reason: 'made-cover',
   };
 }
+
+// ---------------------------------------------------------------------------
+// One cover per door, from a LIST THAT CARRIES NO BYTES (DR-0303 / 0185).
+// ---------------------------------------------------------------------------
+// The Doors board used to receive every picture's full data URL just to choose
+// one per door. The choice is pure and needs only the metadata, so it lives
+// here, and the caller fetches bytes for the chosen few afterwards.
+//
+// The rule, unchanged from the board (0160): a PLACED picture (sort_order set)
+// is the cover over any unplaced one, lowest position first; when nothing is
+// placed, a listing shot beats any other kind, and the newest wins a tie.
+// Archived pictures and pictures with no door are never covers.
+const stamp = (p) => Date.parse(p.taken_at || p.uploaded_at || 0) || 0;
+
+/** Is `p` a better cover than the current `cur`? */
+function betterCover(p, cur) {
+  if (!cur) return true;
+  const ps = orderOf(p);
+  const cs = orderOf(cur);
+  if (ps !== null && cs === null) return true;
+  if (ps !== null && cs !== null) return ps < cs;
+  if (ps === null && cs !== null) return false;
+  const pl = p.kind === 'listing';
+  const cl = cur.kind === 'listing';
+  if (pl !== cl) return pl;
+  return stamp(p) > stamp(cur);
+}
+
+/** Map of rental_ref -> the one picture that is that door's cover. */
+export function pickCovers(photos = []) {
+  const m = new Map();
+  for (const p of Array.isArray(photos) ? photos : []) {
+    if (!p || !p.rental_ref || p.archived_at) continue;
+    if (betterCover(p, m.get(p.rental_ref))) m.set(p.rental_ref, p);
+  }
+  return m;
+}
+
+/**
+ * The image a LIST may show for a picture: the thumbnail when one was written
+ * (every upload since 0185), else whatever bytes the caller has hydrated by id.
+ * Never invents a source — a picture with neither reads as having none.
+ */
+export function listImage(p) {
+  if (!p) return '';
+  return p.thumb_path || p.storage_path || '';
+}

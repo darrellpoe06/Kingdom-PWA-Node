@@ -8,6 +8,8 @@ import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
 import { DispatchPanel } from './DispatchPanel.jsx';
 import { parseChatHistory, toConversationEntries } from '../lib/chat-import.js';
 import { compressImageFile } from '../lib/image.js';
+import { loadDoorPhotos as loadCloudDoorPhotos, loadPhotoImages as loadCloudPhotoImages } from '../modules/properties/cloud.js';
+import { listImage as cloudListImage } from '../modules/properties/photo-order.js';
 import { hasBridgeToken, chatChannelFor, fetchChannelPhotos, propertyPhotosUrl } from '../lib/nas-photos.js';
 import { provisionBridgeToken, publishBridgeToken } from '../lib/bridge-provision.js';
 import Lightbox from './Lightbox.jsx';
@@ -167,6 +169,21 @@ function PropertyGallery({ rental, nasTotal = null }) {
   const [nas, setNas] = useState({ status: 'idle', photos: [], total: 0 });
   const [nasLimit, setNasLimit] = useState(24);
   const channel = chatChannelFor(rental);
+  // ONE STORE, TWO SURFACES (Darrell 2026-09-08: "upload these into the app
+  // inside of the property section as well as inside of the other section for
+  // rentals"). The pictures taken on the Poe Properties door (property_photos,
+  // keyed by the rentals uuid this record syncs as remoteUuid) are the same
+  // pictures here. The list carries thumbnails only (0185 / DR-0303); the full
+  // image is fetched by id when one is opened.
+  const cloudRef = rental.remoteUuid || null;
+  const [cloud, setCloud] = useState([]);
+  const [cloudFull, setCloudFull] = useState({});
+  useEffect(() => {
+    let cancelled = false;
+    if (!cloudRef) { setCloud([]); return undefined; }
+    loadCloudDoorPhotos(cloudRef).then((r) => { if (!cancelled) setCloud(r.ok ? r.photos.filter((p) => !p.archived_at) : []); });
+    return () => { cancelled = true; };
+  }, [cloudRef]);
 
   useEffect(() => {
     let cancelled = false;
@@ -201,8 +218,28 @@ function PropertyGallery({ rental, nasTotal = null }) {
       if (seen.has(`ph-chat-${p.id}`)) continue; // already filed to a room
       out.push({ id: `nas-${p.id}`, src: p.thumb, date: p.date || '', caption: p.text || '', source: 'NAS archive' });
     }
+    for (const p of cloud) {
+      const src = cloudFull[p.id] || cloudListImage(p);
+      if (!src) continue;
+      out.push({
+        id: `cloud-${p.id}`, cloudId: p.id, src,
+        date: String(p.taken_at || p.uploaded_at || '').slice(0, 10),
+        caption: p.caption || '',
+        source: `Poe Properties · ${String(p.kind || '').replace(/-/g, ' ')}`,
+      });
+    }
     return out.sort((a, b) => (a.date || '').localeCompare(b.date || '') || String(a.id).localeCompare(String(b.id)));
-  }, [rental, nas.photos]);
+  }, [rental, nas.photos, cloud, cloudFull]);
+
+  // Opening a Poe Properties picture fetches its full image once; the strip
+  // and the lightbox re-render from `items` when it lands.
+  const openCloud = (p) => {
+    if (!p?.cloudId || cloudFull[p.cloudId]) return;
+    loadCloudPhotoImages([p.cloudId]).then((r) => {
+      if (r.ok && r.images[p.cloudId]) setCloudFull((m) => ({ ...m, [p.cloudId]: r.images[p.cloudId] }));
+    });
+  };
+  const lightboxItems = useMemo(() => items.map(x => ({ src: x.src, alt: x.caption || 'Property photo', caption: [x.caption, x.source].filter(Boolean).join(' · '), date: x.date || '' })), [items]);
 
   const totalKnown = (typeof nasTotal === 'number' ? nasTotal : nas.total) || 0;
   const nasUnloaded = Math.max(0, (nas.total || 0) - (nas.photos || []).length);
@@ -215,7 +252,7 @@ function PropertyGallery({ rental, nasTotal = null }) {
             ? 'No photos filed yet on this device — room and maintenance photos land here, and connecting the NAS bridge (Dev/Ops → bridge token) brings this property’s whole chat archive in live.'
             : nas.status === 'error'
               ? 'No local photos yet, and the NAS archive is not reachable right now — it reconnects on its own next visit.'
-              : 'No photos yet for this property. Room photos, maintenance shots, and the NAS chat archive all land here, oldest to latest.'}
+              : 'No photos yet for this property. Room photos, maintenance shots, the pictures taken on its Poe Properties door, and the NAS chat archive all land here, oldest to latest.'}
         </p>
       </div>
     );
@@ -229,7 +266,7 @@ function PropertyGallery({ rental, nasTotal = null }) {
       <div className="flex flex-wrap gap-2 mt-2">
         {items.map((p, pi) => (
           <div key={p.id} className="w-24">
-            <button type="button" onClick={() => setLightbox({ items: items.map(x => ({ src: x.src, alt: x.caption || 'Property photo', caption: [x.caption, x.source].filter(Boolean).join(' · '), date: x.date || '' })), index: pi })} title="Open full size" className="block">
+            <button type="button" onClick={() => { openCloud(p); setLightbox({ index: pi }); }} title="Open full size" className="block">
               <img src={p.src} alt={p.caption || 'Property photo'} loading="lazy" className="w-24 h-24 object-cover border border-[#E8E4DC] hover:border-[#1A1815] cursor-zoom-in" />
             </button>
             <div className="text-[0.5625rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date || 'undated'}</div>
@@ -243,9 +280,9 @@ function PropertyGallery({ rental, nasTotal = null }) {
         </button>
       )}
       <p className="text-[0.5625rem] text-[#5A5751] italic mt-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
-        Room photos, maintenance shots, and the live NAS chat archive, in time order — the property&apos;s transformation, ending at the latest picture. File any archive photo to a room in “Property Photos from Chat” below.
+        Room photos, maintenance shots, the pictures on this door in Poe Properties, and the live NAS chat archive, in time order — the property&apos;s transformation, ending at the latest picture. File any archive photo to a room in “Property Photos from Chat” below.
       </p>
-      <Lightbox items={lightbox?.items} index={lightbox?.index || 0} onClose={() => setLightbox(null)} />
+      <Lightbox items={lightbox ? lightboxItems : undefined} index={lightbox?.index || 0} onClose={() => setLightbox(null)} />
     </div>
   );
 }

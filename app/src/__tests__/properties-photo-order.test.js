@@ -135,8 +135,11 @@ describe('the gallery, the loaders, and the database all honour the order', () =
   });
 
   it('the cover picker honours sort_order, not merely the newest', () => {
-    // coverByRental must prefer a placed picture over an unplaced one.
-    expect(read('modules/properties/DoorTabs.jsx')).toMatch(/ps !== null && cs === null/);
+    // The picker must prefer a placed picture over an unplaced one. It moved
+    // from the board into photo-order.js on 2026-09-08 (0185) so the board can
+    // choose covers from a list that carries no image bytes.
+    expect(read('modules/properties/photo-order.js')).toMatch(/ps !== null && cs === null/);
+    expect(read('modules/properties/DoorTabs.jsx')).toMatch(/pickCovers\(photos\)/);
   });
 
   it('both photo loaders order by sort_order so a reload cannot un-arrange it', () => {

@@ -28,8 +28,10 @@ import { buildEdit } from './staging.js';
 import { applyUrl, applyUrlDisplay, cardCaption } from './apply-link.js';
 import { isOwnHome } from './homes.js';
 import { shelfOrder } from './showcase.js';
-import { photoOrder, movePhoto, makeCover } from './photo-order.js';
+import { photoOrder, movePhoto, makeCover, pickCovers, listImage } from './photo-order.js';
 import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
+import { useVoiceDictation } from '../../lib/voice-dictation.js';
+import Lightbox from '../../components/Lightbox.jsx';
 
 const ACCENT = '#2F5D50';
 
@@ -468,27 +470,9 @@ export function DoorsBoard({
   // One cover per door: the picture the landlord placed FIRST if he has arranged
   // the gallery (0160, sort_order), else the newest LISTING shot, else the newest
   // of any kind. Photos are keyed by the rentals ID (uuid), not the slug.
-  const coverByRental = useMemo(() => {
-    const m = new Map();
-    const so = (x) => (x.sort_order === null || x.sort_order === undefined ? null : Number(x.sort_order));
-    for (const p of photos) {
-      if (!p.rental_ref || p.archived_at) continue;
-      const cur = m.get(p.rental_ref);
-      const ps = so(p);
-      const cs = cur ? so(cur) : null;
-      const better = !cur
-        // A placed picture is the cover over any unplaced one; the lowest placed wins.
-        || (ps !== null && cs === null)
-        || (ps !== null && cs !== null && ps < cs)
-        // Neither placed: the old rule — a listing shot, then the newest.
-        || (ps === null && cs === null && (
-          (p.kind === 'listing' && cur.kind !== 'listing')
-          || ((p.kind === 'listing') === (cur.kind === 'listing')
-              && Date.parse(p.taken_at || p.uploaded_at || 0) > Date.parse(cur.taken_at || cur.uploaded_at || 0))));
-      if (better) m.set(p.rental_ref, p);
-    }
-    return m;
-  }, [photos]);
+  // The choice is pure (photo-order.js pickCovers) and needs only metadata, so
+  // the list this receives carries thumbnails, never full images (0185).
+  const coverByRental = useMemo(() => pickCovers(photos), [photos]);
 
   // Two keys, not interchangeable: tenancies carry the rentals SLUG, the newer
   // door tables carry the rentals ID. Match on slug here, because that is what
@@ -604,8 +588,8 @@ export function DoorsBoard({
                 className="w-full text-left"
               >
                 <div className="aspect-square w-full bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
-                  {x.cover?.storage_path ? (
-                    <img src={x.cover.storage_path} alt={x.cover.caption || x.label} loading="lazy" className="w-full h-full object-cover" />
+                  {listImage(x.cover) ? (
+                    <img src={listImage(x.cover)} alt={x.cover.caption || x.label} loading="lazy" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A867E]">No photo</span>
                   )}
@@ -650,9 +634,9 @@ export function DoorsBoard({
                   spreadsheet. A door with none says so rather than showing a
                   stand-in photograph of somewhere else. */}
               <div className="w-20 h-20 shrink-0 border border-[#E8E4DC] bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
-                {x.cover?.storage_path ? (
+                {listImage(x.cover) ? (
                   <img
-                    src={x.cover.storage_path} alt={x.cover.caption || x.label}
+                    src={listImage(x.cover)} alt={x.cover.caption || x.label}
                     loading="lazy" className="w-full h-full object-cover"
                   />
                 ) : (
@@ -776,8 +760,8 @@ function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRe
           <li key={x.rental.id} className="border-b border-[#F0EDE6] py-2 last:border-0">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="w-20 h-20 shrink-0 border border-[#E8E4DC] bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
-                {x.cover?.storage_path ? (
-                  <img src={x.cover.storage_path} alt={x.cover.caption || x.label} loading="lazy" className="w-full h-full object-cover" />
+                {listImage(x.cover) ? (
+                  <img src={listImage(x.cover)} alt={x.cover.caption || x.label} loading="lazy" className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A867E] text-center px-1">No photo</span>
                 )}
@@ -1149,18 +1133,71 @@ export function dataUrlBytes(dataUrl = '') {
  * lives in the row and inherits its policies for free. The cost is real and
  * bounded: ~80-250KB per photo after compression (C13).
  *
+ * THE LIST NEVER CARRIES THE BYTES (2026-09-08, DR-0303 / migration 0185).
+ * Every picture now lands with a small thumbnail beside it. The grid draws the
+ * thumbnail; the full image is fetched by id, one at a time, only when a
+ * picture is opened. The board, the gallery and the Real Estate strip all read
+ * the same thumbnails, so taking fifty pictures on a walk-through costs a
+ * gallery open fifty thumbnails, not fifty images.
+ *
+ * WALKING A UNIT WITH A PHONE (Darrell, 2026-09-08, on his way to 805 North
+ * Prospect Apt 2 while Corion installs a microwave and ductwork): "I can take a
+ * picture and then say a voice note of some sort, and it captures the
+ * information." So: a TAKE A PHOTO button that opens the camera directly,
+ * every queued picture gets its own caption, and every caption has a Speak
+ * button (the one shared push-to-end dictation primitive) where the browser
+ * supports it. A picture taken through the camera here is stamped taken_at =
+ * now, because that is when the shutter fired; a picture picked from the
+ * phone's storage is left undated, because the app does not know.
+ *
  * "Remove" archives. There is no DELETE grant, because a condition set exists
  * to settle an argument that can arrive long after somebody decided the picture
  * was clutter.
+ *
+ * canAdd vs canManage: a 1099 worker delegated "Add job documentation" may
+ * FILE pictures to the door he is working (0185), but the arrangement, the
+ * captions of others' pictures and the archive stay the landlord's.
  */
+export const THUMB_MAX_WIDTH = 320;
+export const THUMB_QUALITY = 0.6;
+
+/** Type-or-speak for one caption box: the mic appears only where the browser can hear. */
+function CaptionField({ value, onChange, placeholder, label, className = '' }) {
+  const mic = useVoiceDictation({
+    onTranscript: (t) => onChange(value ? `${value} ${t}` : t),
+  });
+  return (
+    <div className={`flex items-start gap-1 ${className}`}>
+      <input
+        type="text" value={value} onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder} aria-label={label}
+        className="flex-1 min-w-0 border border-[#E8E4DC] px-2 py-2 text-[0.875rem] focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+      />
+      {mic.supported && (
+        <button
+          type="button" onClick={mic.toggle} aria-pressed={mic.listening}
+          aria-label={mic.listening ? `Stop speaking ${label}` : `Speak ${label}`}
+          className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-[#2F5D50] ${
+            mic.listening ? 'bg-[#8C2F2F] text-white border-[#8C2F2F]' : 'border-[#1A1815] text-[#1A1815] bg-white'}`}
+        >{mic.listening ? 'Stop' : 'Speak'}</button>
+      )}
+      {mic.error && <span role="status" className="text-[0.6875rem] text-[#8C2F2F] self-center">{mic.error}</span>}
+    </div>
+  );
+}
+
 export function GalleryTab({
-  door, rooms = [], photos = [], canManage = false, busy = false, onAdd, onPatch, onAddRoom,
+  door, rooms = [], photos = [], canManage = false, canAdd = canManage, busy = false,
+  onAdd, onPatch, onAddRoom, loadImage = null,
 }) {
   const [f, setF] = useState({ caption: '', kind: 'listing', roomId: '' });
   const [pending, setPending] = useState([]);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(null);
   const [newRoom, setNewRoom] = useState('');
+  // The full images fetched so far, by id — only what somebody has opened.
+  const [full, setFull] = useState({});
+  const [open, setOpen] = useState(null);
   const live = useMemo(() => liveRooms(rooms), [rooms]);
   // In the landlord's arranged order (0160) — the first picture is the cover.
   const shown = useMemo(() => photoOrder(photos.filter((p) => !p.archived_at)), [photos]);
@@ -1177,15 +1214,13 @@ export function GalleryTab({
 
   // MANY AT ONCE (2026-08-28). Darrell: "we have multiple pictures upload etc...
   // all these features need to be applied as we build without needing to keep
-  // saying it." He was right and the proof was already in the repo — five other
-  // image pickers we shipped carry `multiple`, and this one, the newest, took a
-  // single file. Photographing an apartment is a plural act; making him repeat
-  // the whole form per picture was never a considered decision, just an omission.
+  // saying it." Photographing an apartment is a plural act.
   //
-  // Each file is compressed and queued with its own name, one bad file is named
-  // and skipped rather than killing the batch, and the queue is reviewable and
-  // removable BEFORE anything is written.
-  const pick = async (fileList) => {
+  // Each file is compressed twice — the image and its thumbnail — and queued
+  // with its own name and its own caption; one bad file is named and skipped
+  // rather than killing the batch, and the queue is reviewable and removable
+  // BEFORE anything is written.
+  const pick = async (fileList, { captured = false } = {}) => {
     setError('');
     const files = Array.from(fileList || []);
     if (!files.length) return;
@@ -1195,9 +1230,11 @@ export function GalleryTab({
       if (!isLikelyImageFile(file)) { refused.push(`${file.name} (not an image)`); continue; }
       try {
         const dataUrl = await compressImageFile(file);
+        const thumbUrl = await compressImageFile(file, THUMB_MAX_WIDTH, THUMB_QUALITY);
         added.push({
           key: `${file.name}-${added.length}-${Date.now()}`,
-          dataUrl, bytes: dataUrlBytes(dataUrl), name: file.name,
+          dataUrl, thumbUrl, bytes: dataUrlBytes(dataUrl), name: file.name, caption: '',
+          takenAt: captured ? new Date().toISOString() : null,
         });
       } catch (e) {
         // image.js rejects with a real Error, so this says what actually
@@ -1210,44 +1247,88 @@ export function GalleryTab({
   };
 
   const drop = (key) => setPending((q) => q.filter((x) => x.key !== key));
+  const captionOf = (key, caption) => setPending((q) => q.map((x) => (x.key === key ? { ...x, caption } : x)));
 
   const submit = () => {
     if (!pending.length) { setError('Choose at least one picture first.'); return; }
-    // The caption is the CAPTION OF THE SET when several land together — the
-    // honest reading of one box above many files. A single picture behaves
-    // exactly as it did before.
-    const caption = f.caption.trim();
+    // A picture's OWN caption wins. The set caption is the honest reading of
+    // one box above many files: it names the set, numbered, for any picture
+    // that was not given its own words.
+    const setCaption = f.caption.trim();
     pending.forEach((pic, i) => {
+      const own = (pic.caption || '').trim();
+      const caption = own
+        || (setCaption && pending.length > 1 ? `${setCaption} (${i + 1} of ${pending.length})` : setCaption);
       onAdd?.({
         instance_id: door?.instance_id,
         rental_ref: door?.id,
         room_id: f.roomId || null,
         kind: f.kind,
-        caption: caption && pending.length > 1 ? `${caption} (${i + 1} of ${pending.length})` : caption,
+        caption,
         storage_path: pic.dataUrl,
-        taken_at: null,     // unknown unless a scanner read it from the EXIF
+        thumb_path: pic.thumbUrl,
+        taken_at: pic.takenAt,   // the shutter, if it fired here; else unknown
       });
     });
     setPending([]);
     setF({ caption: '', kind: 'listing', roomId: '' });
   };
 
+  // Open a picture: draw what we have at once, then swap in the full image the
+  // moment it arrives. A picture whose bytes cannot be fetched stays at its
+  // thumbnail rather than going blank.
+  const openAt = async (idx) => {
+    setOpen(idx);
+    const p = shown[idx];
+    if (!p || full[p.id] || p.storage_path || typeof loadImage !== 'function') return;
+    try {
+      const src = await loadImage(p.id);
+      if (src) setFull((m) => ({ ...m, [p.id]: src }));
+    } catch { /* the thumbnail stays up */ }
+  };
+
   const field = 'w-full border border-[#E8E4DC] px-2 py-2 text-[0.875rem] focus:outline focus:outline-2 focus:outline-[#2F5D50]';
   const lbl = 'block text-[0.625rem] uppercase tracking-wider text-[#6B665E] mb-1';
+  const pickBtn = 'inline-flex items-center justify-center text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[44px] border cursor-pointer focus-within:outline focus-within:outline-2 focus-within:outline-[#2F5D50]';
   const roomName = (id) => rooms.find((r) => r.id === id)?.name || null;
 
   return (
     <>
-      {canManage && (
+      {canAdd && (
         <Card title="Add a picture">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <label className="sm:col-span-2"><span className={lbl}>Pictures</span>
-              <input type="file" accept="image/*" multiple className="text-[0.8125rem]" onChange={(e) => { pick(e.target.files); e.target.value = ''; }} />
-              <span className="block text-[0.75rem] text-[#6B665E] mt-1">Pick as many as you like — they queue up below.</span>
-            </label>
-            <label className="sm:col-span-2"><span className={lbl}>Caption</span>
-              <input type="text" className={field} value={f.caption} onChange={(e) => setF((p) => ({ ...p, caption: e.target.value }))} placeholder="What this shows" />
-            </label>
+            <div className="sm:col-span-2">
+              <span className={lbl}>Pictures</span>
+              <div className="flex flex-wrap gap-2">
+                {/* THE CAMERA, DIRECTLY. capture="environment" opens the back
+                    camera on a phone instead of a chooser; a desktop browser
+                    ignores it and offers files, which is the right fallback. */}
+                <label className={`${pickBtn} bg-[#2F5D50] text-white border-[#2F5D50]`}>
+                  Take a photo
+                  <input
+                    type="file" accept="image/*" capture="environment" className="sr-only"
+                    aria-label="Take a photo with the camera"
+                    onChange={(e) => { pick(e.target.files, { captured: true }); e.target.value = ''; }}
+                  />
+                </label>
+                <label className={`${pickBtn} border-[#1A1815] text-[#1A1815] bg-white`}>
+                  Choose from this phone
+                  <input
+                    type="file" accept="image/*" multiple className="sr-only"
+                    aria-label="Choose pictures already on this device"
+                    onChange={(e) => { pick(e.target.files); e.target.value = ''; }}
+                  />
+                </label>
+              </div>
+              <span className="block text-[0.75rem] text-[#6B665E] mt-1">Take as many as you like — they queue up below, each with its own caption.</span>
+            </div>
+            <div className="sm:col-span-2">
+              <span className={lbl}>Caption for the set</span>
+              <CaptionField
+                value={f.caption} onChange={(v) => setF((p) => ({ ...p, caption: v }))}
+                placeholder="What these show, if one line covers them all" label="the caption for the set"
+              />
+            </div>
             <label><span className={lbl}>What is it</span>
               <select className={field} value={f.kind} onChange={(e) => setF((p) => ({ ...p, kind: e.target.value }))}>
                 {PHOTO_KINDS.map((k) => <option key={k} value={k}>{k.replace(/-/g, ' ')}</option>)}
@@ -1300,11 +1381,17 @@ export function GalleryTab({
             )}
           </div>
           {pending.length > 0 && (
-            <ul className="mt-2 space-y-1">
+            <ul className="mt-2 space-y-2">
               {pending.map((pic) => (
-                <li key={pic.key} className="flex items-center gap-2 text-[0.8125rem] text-[#6B665E]">
-                  <img src={pic.dataUrl} alt="" className="h-10 w-10 object-cover border border-[#E8E4DC]" />
-                  <span className="flex-1 leading-snug">{pic.name} — about {Math.round(pic.bytes / 1024)}KB</span>
+                <li key={pic.key} className="flex items-start gap-2 text-[0.8125rem] text-[#6B665E]">
+                  <img src={pic.thumbUrl || pic.dataUrl} alt="" className="h-12 w-12 object-cover border border-[#E8E4DC] shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <CaptionField
+                      value={pic.caption} onChange={(v) => captionOf(pic.key, v)}
+                      placeholder="Say or type what this one shows" label={`the caption for ${pic.name}`}
+                    />
+                    <span className="block leading-snug mt-0.5">{pic.name} — about {Math.round(pic.bytes / 1024)}KB{pic.takenAt ? ' · taken just now' : ''}</span>
+                  </div>
                   <button
                     type="button" onClick={() => drop(pic.key)}
                     aria-label={`Remove ${pic.name}`}
@@ -1328,7 +1415,7 @@ export function GalleryTab({
             {/* A DISABLED CONTROL SAYS WHY. A greyed button with no sentence
                 beside it is the app refusing without explaining itself. */}
             {!pending.length && (
-              <span className="text-[0.8125rem] text-[#6B665E]">Choose at least one picture to enable this.</span>
+              <span className="text-[0.8125rem] text-[#6B665E]">Take or choose at least one picture to enable this.</span>
             )}
           </div>
         </Card>
@@ -1342,7 +1429,9 @@ export function GalleryTab({
             {shown.map((p, idx) => (
               <li key={p.id} className="border border-[#E8E4DC] bg-white p-2">
                 <div className="relative">
-                  <img src={p.storage_path} alt={p.caption || p.kind} loading="lazy" className="aspect-square w-full object-cover" />
+                  <button type="button" onClick={() => openAt(idx)} className="block w-full cursor-zoom-in" aria-label={`Open ${p.caption || p.kind}`}>
+                    <img src={listImage(p)} alt={p.caption || p.kind} loading="lazy" className="aspect-square w-full object-cover" />
+                  </button>
                   {idx === 0 && (
                     <span className="absolute top-1 left-1 bg-[#2F5D50] text-white text-[0.625rem] uppercase tracking-wider px-1.5 py-0.5">Cover</span>
                   )}
@@ -1387,6 +1476,19 @@ export function GalleryTab({
           </ul>
         )}
       </Card>
+
+      {open !== null && shown.length > 0 && (
+        <Lightbox
+          items={shown.map((p) => ({
+            src: full[p.id] || p.storage_path || listImage(p),
+            alt: p.caption || p.kind,
+            caption: [p.caption, p.kind.replace(/-/g, ' '), roomName(p.room_id)].filter(Boolean).join(' · '),
+            date: p.taken_at ? p.taken_at.slice(0, 10) : '',
+          }))}
+          index={open}
+          onClose={() => setOpen(null)}
+        />
+      )}
     </>
   );
 }

@@ -74,10 +74,19 @@ describe('a picker for something plural takes more than one', () => {
     expect(imagePickers.length).toBeGreaterThan(4);
   });
 
+  // A CAMERA returns one shot by nature; it is not a picker that forgot
+  // `multiple`. It counts as many when a `multiple` image picker stands beside
+  // it in the same file (the walk-through form, DR-0339) — checked here, and the
+  // pairing itself is enforced by upload-inputs.test.js.
+  const camerasBesideMany = (all) => (p) =>
+    /\bcapture=/.test(p.tag) && all.some((q) => q.file === p.file && isImageOnly(q.tag) && /\bmultiple\b/.test(q.tag));
+
   it('every image picker either accepts many or is named as singular by design', () => {
-    const offenders = filePickers()
+    const all = filePickers();
+    const offenders = all
       .filter((p) => isImageOnly(p.tag))
       .filter((p) => !/\bmultiple\b/.test(p.tag))
+      .filter((p) => !camerasBesideMany(all)(p))
       .filter((p) => !SINGULAR_BY_DESIGN[p.file])
       .map((p) => p.file);
     expect(
@@ -88,8 +97,9 @@ describe('a picker for something plural takes more than one', () => {
 
   it('the Properties gallery is one of the many — the case that prompted this', () => {
     const src = readFileSync(join(SRC, 'modules/properties/DoorTabs.jsx'), 'utf8');
-    const tag = (src.match(/<input\b[^>]*accept="image\/\*"[^>]*>/s) || [''])[0];
-    expect(tag).toContain('multiple');
+    const tags = [...src.matchAll(/<input\b[^>]*accept="image\/\*"[^>]*>/gs)].map((m) => m[0]);
+    // The chooser takes many; the camera beside it (DR-0339) takes one shot.
+    expect(tags.some((t) => /\bmultiple\b/.test(t) && !/\bcapture=/.test(t))).toBe(true);
   });
 });
 

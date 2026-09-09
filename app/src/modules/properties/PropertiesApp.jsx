@@ -40,12 +40,14 @@ import { VacancyCard } from './Storefront.jsx';
 import {
   loadRooms, addRoom, patchRoom, loadDoorPhotos, loadDoorTenancies,
   loadMyRentals, updateTenancy, updateRental, loadAllPhotos,
+  loadPhotoImages, hydrateLegacyImages,
   addPhoto, patchPhoto, loadDocuments, addDocument, patchDocument,
   loadPublicVacancies,
   loadSystems, loadSystemEvents, addSystem, patchSystem, addSystemEvent, loadDoorNotes,
 } from './cloud.js';
 import { announceRentalChange } from '../../lib/rental-write.js';
 import { buildRoom } from './rooms.js';
+import { pickCovers } from './photo-order.js';
 import { tenancyRowForDoor } from './staging.js';
 import { phoneLoginEmail } from '../../lib/supabase.js';
 import { boundedRead, deadlineIn, OPTIONAL_TIMEOUT_MS as CLAIM_TIMEOUT_MS } from '../../lib/bounded-read.js';
@@ -292,7 +294,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     const [ph, vac] = await Promise.all([
       boundedRead(loadAllPhotos(), extras()), boundedRead(loadPublicVacancies(), extras()),
     ]);
-    setDoorPhotos(ph.ok ? ph.photos : []);
+    // The list carries thumbnails, never images (0185 / DR-0303). Only the
+    // pictures that will actually be COVERS are hydrated, and only those from
+    // before thumbnails existed — a bounded read, sized to the doors, not to
+    // every picture ever taken.
+    const allPhotos = ph.ok ? ph.photos : [];
+    const coverList = [...pickCovers(allPhotos).values()];
+    const covers = await boundedRead(hydrateLegacyImages(coverList), extras(), coverList);
+    const hydrated = new Map(covers.map((c) => [c.id, c]));
+    setDoorPhotos(allPhotos.map((p) => hydrated.get(p.id) || p));
     setVacancies(vac.ok ? vac.vacancies : []);
     // WHAT the database actually said, kept and shown. The first version of
     // this card guessed a cause in its copy ("close your other tabs — a frozen
@@ -355,7 +365,9 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     ]);
     setDoorData({
       rooms: rm.ok ? rm.rooms : [],
-      photos: ph.ok ? ph.photos : [],
+      // Thumbnails for the grid; rows from before 0185 get their image in one
+      // bounded read so an older gallery does not go blank.
+      photos: ph.ok ? await boundedRead(hydrateLegacyImages(ph.photos), deadlineIn()(), ph.photos) : [],
       tenancies: tn.ok ? tn.tenancies : [],
       documents: dc.ok ? dc.documents : [],
       systems: sy.ok ? sy.systems : [],
@@ -393,7 +405,16 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   }, [grants, household, activeDoor, surface, rentals]);
 
   const face = useMemo(() => resolveFace(role, grants), [role, grants]);
-  const activeTab = tab || face.tabs.find((t) => !t.locked)?.id || face.tabs[0]?.id || '';
+  // THE FIRST SCREEN IS THE DOORS. The landing tab used to be "the first tab
+  // that is not locked", which put the landlord on his Doors only BECAUSE the
+  // Work board above it was wrongly locked (model.js, 2026-09-08). With the
+  // owner's tabs unlocked, "first unlocked" would land him on an empty work
+  // board. A person with doors lands on them; everyone else lands on the first
+  // tab they can open.
+  const activeTab = tab
+    || face.tabs.find((t) => t.id === 'doors' && !t.locked)?.id
+    || face.tabs.find((t) => !t.locked)?.id
+    || face.tabs[0]?.id || '';
 
   // The door's own notes join the chronology, and they join it whether or not a
   // TENANCY exists — a landlord's note about the building predates his tenant
@@ -723,6 +744,11 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
               rooms={doorData.rooms} photos={doorData.photos} busy={Boolean(busy)}
               canManage={role === 'owner' || role === 'manager'}
+              // A 1099 worker delegated "Add job documentation" files pictures
+              // to the door he is sent to (0185); he does not arrange or archive.
+              canAdd={role === 'owner' || role === 'manager' || (role === 'field_worker' && grants.includes('docs.add'))}
+              // The full image, one at a time, only when a picture is opened.
+              loadImage={async (id) => { const r = await loadPhotoImages([id]); return r.ok ? r.images[id] || null : null; }}
               onAdd={async (row) => { const r = await addPhoto(row); say(r.ok ? 'Added.' : `Not saved: ${r.reason}`); loadDoorData(); boot(); }}
               onPatch={async (id, patch) => { const r = await patchPhoto(id, patch); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); boot(); }}
               // A room can be made from INSIDE the picture form, so a dropdown
@@ -792,11 +818,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                 onEditRental={editRental}
                 onArrange={arrangeDoor}
               />
-              <DoorsTab
-                doors={doors} staged={staged}
-                onPick={(id) => { setActiveId(id); setTab('history'); }}
-                onConfirmDraft={confirmStaged}
-              />
+              {/* The tenancy list and the staged drafts are the landlord's
+                  desk; a worker sees the doors above and nothing of the leases. */}
+              {(role === 'owner' || role === 'manager') && (
+                <DoorsTab
+                  doors={doors} staged={staged}
+                  onPick={(id) => { setActiveId(id); setTab('history'); }}
+                  onConfirmDraft={confirmStaged}
+                />
+              )}
             </>
           );
           case 'work': case 'jobs': case 'board':

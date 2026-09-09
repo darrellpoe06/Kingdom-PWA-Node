@@ -76,8 +76,15 @@ const TENANT_TABS = [
 ];
 
 const WORKER_TABS = [
+  // THE DOORS HE IS SENT TO, TENANT OR NO TENANT (2026-09-08, migration 0185).
+  // A worker's whole face used to hang on a tenancy row, and the turn — the
+  // microwave, the ductwork, the stairs — happens exactly when there is none.
+  // "Add job documentation" now reaches the door itself, so the doors he is
+  // delegated to are listed and their pictures can be filed from his phone.
+  TAB('doors', 'My doors', 'The doors I am sent to, with their pictures.', 'docs.add'),
   TAB('jobs', 'My jobs', 'The work orders assigned to me.', 'property.history'),
   TAB('document', 'Document it', 'Fixed, or not fixed and why — two taps and a photo.', 'docs.add'),
+  TAB('gallery', 'Pictures', 'Before and after, room by room — take a photo and say what it shows.', 'docs.add'),
   TAB('history', 'Property history', 'What this door has needed before.', 'property.history'),
   TAB('thread', 'Job messages', 'The thread for a job the landlord opened to me.'),
 ];
@@ -114,10 +121,19 @@ export function resolveFace(role, grants = []) {
   const base = role === 'tenant' || role === 'household' ? TENANT_TABS
     : role === 'field_worker' ? WORKER_TABS
     : MANAGER_TABS;
+  // THE OWNER HOLDS EVERY CAPABILITY BY BEING THE OWNER. His ceiling in
+  // ROLE_CEILING is [] because he is an instance member, not a delegate — the
+  // database grants him everything through user_role_in_instance, never
+  // through a delegated_capabilities row. Reading his empty grant list as
+  // "not turned on" locked Work board, Dispatch, Messages and Rent on the
+  // landlord's own screen (Darrell's phone, 2026-09-08: "WORK BOARD · LOCKED"
+  // above his twelve doors). A lock is for a delegate whose landlord has not
+  // said yes; the landlord is the one who says it.
+  const owner = role === 'owner';
   const tabs = base.map((t) => {
     // Household members share the tenant's face minus the rent WRITE path; the
     // read stays (it is their household's rent) — 0150 encodes exactly this.
-    const locked = t.needs ? !held.has(t.needs) : false;
+    const locked = t.needs && !owner ? !held.has(t.needs) : false;
     return { ...t, locked, lockReason: locked ? `Your landlord has not turned on "${CAPABILITY_LABELS[t.needs] || t.needs}" yet.` : '' };
   });
   return {

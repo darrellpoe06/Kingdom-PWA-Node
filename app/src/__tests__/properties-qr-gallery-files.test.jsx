@@ -204,6 +204,63 @@ describe('a property\'s pictures', () => {
     expect(byText(host, /^Remove$/)).toBeUndefined();
   });
 
+  it('lets a 1099 worker who may ADD file pictures without handing him the landlord\'s controls (0185)', () => {
+    const host = render(<GalleryTab door={door} rooms={rooms} photos={[photo(), photo({ id: 'p2', caption: 'Bath' })]} canManage={false} canAdd />);
+    expect(txt(host)).toMatch(/Add a picture/);
+    expect(txt(host)).toMatch(/Take a photo/);
+    expect(byText(host, /^Remove$/)).toBeUndefined();
+    expect(byText(host, /^Cover$/)).toBeUndefined();
+    expect(byText(host, /^Edit$/)).toBeUndefined();
+  });
+
+  it('opens the camera directly on a phone, and still takes a whole batch from storage', () => {
+    const host = render(<GalleryTab door={door} rooms={rooms} photos={[]} canManage />);
+    const inputs = [...host.querySelectorAll('input[type="file"]')];
+    const camera = inputs.find((i) => i.getAttribute('capture') === 'environment');
+    const files = inputs.find((i) => i.hasAttribute('multiple'));
+    expect(camera).toBeTruthy();
+    expect(camera.getAttribute('accept')).toBe('image/*');
+    expect(camera.hasAttribute('multiple')).toBe(false);   // a camera returns one shot
+    expect(files).toBeTruthy();
+    expect(files.hasAttribute('capture')).toBe(false);
+  });
+
+  it('offers to SPEAK a caption where the browser can hear, and stays type-only where it cannot', () => {
+    const typeOnly = render(<GalleryTab door={door} rooms={rooms} photos={[]} canManage />);
+    expect(byText(typeOnly, /^Speak$/)).toBeUndefined();
+    expect(typeOnly.querySelector('input[aria-label="the caption for the set"]')).toBeTruthy();
+
+    // A browser with speech recognition — the one shared dictation primitive.
+    class FakeSR { start() {} stop() {} }
+    window.SpeechRecognition = FakeSR;
+    try {
+      const canHear = render(<GalleryTab door={door} rooms={rooms} photos={[]} canManage />);
+      const speak = byText(canHear, /^Speak$/);
+      expect(speak).toBeTruthy();
+      expect(speak.getAttribute('aria-label')).toMatch(/Speak the caption for the set/);
+    } finally {
+      delete window.SpeechRecognition;
+    }
+  });
+
+  it('draws the thumbnail in the grid and fetches the full image only when a picture is opened', async () => {
+    const loadImage = vi.fn(async () => 'data:image/jpeg;base64,FULLFULL');
+    const host = render(<GalleryTab
+      door={door} rooms={rooms} canManage loadImage={loadImage}
+      photos={[photo({ storage_path: undefined, thumb_path: 'data:image/jpeg;base64,THUMB' })]}
+    />);
+    const img = host.querySelector('li img');
+    expect(img.getAttribute('src')).toBe('data:image/jpeg;base64,THUMB');
+    expect(loadImage).not.toHaveBeenCalled();
+    click(img.closest('button'));
+    await act(async () => { await Promise.resolve(); });
+    expect(loadImage).toHaveBeenCalledWith('p1');
+    // The lightbox is up and, once the bytes land, shows the full image.
+    await act(async () => { await Promise.resolve(); });
+    const srcs = [...host.querySelectorAll('img')].map((i) => i.getAttribute('src'));
+    expect(srcs).toContain('data:image/jpeg;base64,FULLFULL');
+  });
+
   it('will not save with no file chosen', () => {
     const host = render(<GalleryTab door={door} rooms={rooms} photos={[]} canManage />);
     expect(byText(host, /Add to the gallery/).disabled).toBe(true);
