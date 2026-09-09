@@ -18,7 +18,7 @@
 // so every VerseChips / WordInline on the page re-renders from ONE store when
 // the switch flips, with no provider to thread. Fail-soft on storage: a private
 // window or blocked site data just means the switch starts off.
-import { useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 
 export const SHOW_THE_WORD_KEY = 'poetech-show-the-word';
 
@@ -56,4 +56,24 @@ export function __resetShowTheWord() {
 /** The hook every reference reads. */
 export function useShowTheWord() {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
+
+// -----------------------------------------------------------------------------
+// A FOLD THAT HOLDS THE WORD FOLLOWS THE SWITCH.
+// Darrell, 2026-09-09, on the study page: "The Word does not drop down on all
+// pages?!!!" — the switch opened the verses INSIDE folds that stayed shut
+// ("Go deeper", the deep layer, the covenant review, a pattern card), so
+// nothing showed. The Torah map was fixed first; this is the same model for
+// every content fold: the switch decides, a tap flips this one fold on top of
+// it, and flipping the switch clears the flip so the page reads whole again.
+// Navigation accordions (pick a lesson, open a tutor) are not folds of the
+// Word and keep their own state; a fold that hides part of the TEACHING or a
+// verse is, and uses this.
+// -----------------------------------------------------------------------------
+export function useOpenWithTheWord() {
+  const all = useShowTheWord();
+  const [flip, setFlip] = useState(false);
+  useEffect(() => { setFlip(false); }, [all]);
+  const toggle = useCallback(() => setFlip((f) => !f), []);
+  return [flip ? !all : all, toggle];
 }

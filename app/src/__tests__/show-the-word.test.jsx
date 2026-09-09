@@ -16,7 +16,7 @@
 import React, { act } from 'react';
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { createRoot } from 'react-dom/client';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import VerseChips from '../components/VerseChips.jsx';
@@ -224,4 +224,64 @@ describe('on the real Torah pattern map', () => {
     expect(read('../components/ShowTheWordToggle.jsx')).not.toMatch(/hover:text-white/);
     expect(read('../components/ShowTheWordToggle.jsx')).not.toMatch(/hover:bg-\[#5A6E3D\]/);
   });
+});
+
+// -----------------------------------------------------------------------------
+// Darrell, 2026-09-09, on the Study series page: "The Word does not drop down
+// on all pages?!!!" — the switch opened verses INSIDE folds that stayed shut.
+// Two gates so it can never come back: the real study, and a source scan of
+// every component that both folds and renders the Word.
+// -----------------------------------------------------------------------------
+describe('on the real Eternal Algorithms study', () => {
+  it('Show the Word opens every content fold — Go deeper, the deep layer, the review, the entries — so the Word is actually visible', async () => {
+    const { default: EternalAlgorithmsStudy } = await import('../components/EternalAlgorithmsStudy.jsx');
+    const host = render(<EternalAlgorithmsStudy email="visitor@example.com" view="church" churchView="eternal-algorithms" />);
+    await settle();
+    // Every fold that holds the Word: the "About this" fold is the one exception (no Word inside).
+    const folds = () => [...host.querySelectorAll('button[aria-expanded]')].filter((b) => !/About this/i.test(b.textContent || '') && !/^(Open|Close) /.test(b.getAttribute('aria-label') || ''));
+    expect(folds().length).toBeGreaterThan(3);
+    expect(folds().every((b) => b.getAttribute('aria-expanded') === 'false')).toBe(true);
+    click(byText(host, /Show the Word/));
+    await settle();
+    await settle();
+    expect(folds().every((b) => b.getAttribute('aria-expanded') === 'true')).toBe(true);
+    // The deep layer's prose is now on the page.
+    expect(host.textContent).toMatch(/Close/);
+    // One fold still closes on its own on top of the switch.
+    click(folds()[0]);
+    expect(folds()[0].getAttribute('aria-expanded')).toBe('false');
+    expect(folds()[1].getAttribute('aria-expanded')).toBe('true');
+    // Hide closes them all, the override included.
+    click(byText(host, /Hide the Word/));
+    expect(folds().every((b) => b.getAttribute('aria-expanded') === 'false')).toBe(true);
+  });
+});
+
+describe('every fold that holds the Word follows the switch (source scan, proven-to-catch)', () => {
+  // A component that both folds (aria-expanded) and renders the Word
+  // (WordInline / VerseChips / VerseBlock) must bind each fold's open state to
+  // useOpenWithTheWord — except the folds named here, with their reason.
+  const EXEMPT = {
+    'VerseChips.jsx': ['open'],                 // the chip IS the reference's own open state
+    'WordInline.jsx': ['isOpen(seg.value)'],    // same — the chip inline in prose
+    'EternalAlgorithmsStudy.jsx': ['aboutOpen'], // "About this" holds no Word
+    'PracticeLearn.jsx': ['open', 'mOpen'],     // navigation accordions: pick a lesson, not a fold of the Word
+    'ChurchLearn.jsx': ['tutorOpen'],           // the tutor panel, not the Word
+    'ScriptureLibrary.jsx': ['open'],           // other translations / the check: per-verse tools, not hidden references
+  };
+  const dir = join(HERE, '..', 'components');
+  const files = readdirSync(dir).filter((f) => f.endsWith('.jsx'));
+  for (const f of files) {
+    const src = readFileSync(join(dir, f), 'utf8');
+    if (!/aria-expanded=\{/.test(src)) continue;
+    if (!/WordInline|VerseChips|VerseBlock/.test(src)) continue;
+    it(`${f}: every aria-expanded state comes from useOpenWithTheWord (or is named exempt)`, () => {
+      const states = [...src.matchAll(/aria-expanded=\{([^}]+)\}/g)].map((m) => m[1].trim());
+      const exempt = EXEMPT[f] || [];
+      const lines = src.split('\n');
+      const bound = (s) => lines.some((ln) => ln.includes(`const [${s}, `) && ln.includes('] = useOpenWithTheWord('));
+      const bad = states.filter((s) => !exempt.includes(s) && !bound(s));
+      expect(bad, `${f}: folds holding the Word that ignore the switch: ${bad.join(', ')}`).toEqual([]);
+    });
+  }
 });

@@ -43,6 +43,7 @@ import ShareButton from './ShareButton.jsx';
 import TorahPatternMap from './TorahPatternMap.jsx';
 import WordInline from './WordInline.jsx';
 import ShowTheWordToggle from './ShowTheWordToggle.jsx';
+import { useOpenWithTheWord } from '../lib/show-the-word.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -92,7 +93,7 @@ export function Verse({ refStr, translationCited = 'ESV' }) {
 // One teaching section: plain layer first, the deeper layer + extra anchors one
 // click beneath (the two-tier self-explain motion).
 function Section({ section }) {
-  const [deep, setDeep] = useState(false);
+  const [deep, toggleDeep] = useOpenWithTheWord();
   const extra = (section.anchors || []).filter((a) => a.ref !== section.primaryRef);
   return (
     <div className={CARD}>
@@ -101,7 +102,7 @@ function Section({ section }) {
       {section.primaryRef && <Verse refStr={section.primaryRef} translationCited={(section.anchors?.[0]?.translation) || 'ESV'} />}
       {/* Full-width tap target (Darrell 2026-07-04: reachable by a right thumb,
           not just the left link) — the text stays small + left so it looks the same. */}
-      <button type="button" onClick={() => setDeep((v) => !v)} aria-expanded={deep}
+      <button type="button" onClick={toggleDeep} aria-expanded={deep}
         className="w-full text-left mt-1.5 py-1.5 text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:bg-[#FAF8F4] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
         {deep ? '↑ Close' : '↓ Go deeper'}
       </button>
@@ -169,7 +170,7 @@ function TeachAloud({ study }) {
 // render through the same KJV-verbatim / link-don't-reproduce Verse.
 // -----------------------------------------------------------------------------
 function ForgeFramework({ alg }) {
-  const [openDeep, setOpenDeep] = useState(false);
+  const [openDeep, toggleOpenDeep] = useOpenWithTheWord();
   const refs = String(alg.scripture || '').split(';').map((r) => r.trim()).filter(Boolean);
   return (
     <div className={CARD}>
@@ -187,7 +188,7 @@ function ForgeFramework({ alg }) {
       {refs.map((r) => <Verse key={r} refStr={r} />)}
       {alg.fourD && (
         <div className="mt-1.5">
-          <button type="button" onClick={() => setOpenDeep((v) => !v)} aria-expanded={openDeep}
+          <button type="button" onClick={toggleOpenDeep} aria-expanded={openDeep}
             className="w-full text-left py-1.5 text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:bg-[#FAF8F4] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
             {openDeep ? '↑ Close the deep layer' : '↓ Go deeper (the eternal expression)'}
           </button>
@@ -214,10 +215,10 @@ function ForgeFramework({ alg }) {
 // from the beginning." The Outcome you win with it LEADS the card, visible even
 // collapsed; the IF/THEN mechanism, verses, and practice follow on expand.
 function GodheadEntry({ entry }) {
-  const [open, setOpen] = useState(false);
+  const [open, toggleOpen] = useOpenWithTheWord();
   return (
     <div className={CARD}>
-      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
+      <button type="button" onClick={toggleOpen} aria-expanded={open}
         className="w-full text-left focus:outline focus:outline-2 focus:outline-[#B85838]">
         <div className="flex items-baseline justify-between gap-2 flex-wrap">
           <span className="text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>✦ {entry.name}</span>
@@ -271,14 +272,14 @@ function GodheadEntry({ entry }) {
 // taught from the verbatim Word, the abiding checklist (each point anchored to
 // a verified verse), and the covenant's algorithm list walked in order.
 function CovenantReview() {
-  const [open, setOpen] = useState(false);
+  const [open, toggleOpen] = useOpenWithTheWord();
   const r = JUDGMENT_COVENANT_REVIEW;
   return (
     <div className="mb-3">
       <div className="bg-[#1A1815] text-[#FAF8F4] p-3">
         <p className="text-[0.6875rem] uppercase tracking-[0.25em] text-[#B89838] mb-1">Featured review · {r.title}</p>
         <blockquote className="text-sm leading-relaxed italic" style={serif}>{r.declared}</blockquote>
-        <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
+        <button type="button" onClick={toggleOpen} aria-expanded={open}
           className={`mt-2 px-3 py-1.5 text-[0.6875rem] uppercase tracking-wider border border-[#5A6E3D] focus:outline focus:outline-2 focus:outline-[#B85838] ${open ? 'bg-[#5A6E3D] text-[#FAF8F4] font-semibold' : 'text-[#D8D4CC] hover:text-[#FAF8F4]'}`}>
           {open ? '↑ Close the covenant review' : '↓ Open the covenant review'}
         </button>
@@ -390,10 +391,10 @@ function GodheadStudyView() {
 // Word is the authority. Pastoral, not clinical.
 // -----------------------------------------------------------------------------
 function WitnessPair({ pair }) {
-  const [open, setOpen] = useState(false);
+  const [open, toggleOpen] = useOpenWithTheWord();
   return (
     <div className={CARD}>
-      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
+      <button type="button" onClick={toggleOpen} aria-expanded={open}
         className="w-full text-left focus:outline focus:outline-2 focus:outline-[#B85838]">
         <div className="flex items-baseline justify-between gap-2 flex-wrap">
           <span className="text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>✦ {pair.refs.join(' · ')}</span>

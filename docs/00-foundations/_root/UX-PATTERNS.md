@@ -389,6 +389,9 @@ Carried today: the Torah pattern map (chips and prose), Study (plain layer, deep
 
 **The one-line test for any new surface:** *"When this names a verse, can the reader open the Word without leaving the sentence — and open them all, in order, with one tap?"* If not, it is missing `WordInline` / `VerseChips`, or `ShowTheWordToggle`. ~~**re-review: 2026-09-22** — the remaining prose surfaces (LessonFlow, PracticeLearn, living-lessons bodies, the Godhead study)~~ **DONE 2026-09-09** — LessonFlow (the engine every course and the living lessons ride), PracticeLearn, and the Godhead study / Eternal Algorithms series now carry `WordInline` and the toggle; pinned. Whether a source scan can gate an inert reference without noise — **re-review: 2026-10-09**.
 
+**A fold that holds the Word follows the switch (2026-09-09, DR-0341 §5).** Any collapsible that hides part of the teaching or a verse — "Go deeper", a deep layer, a review, an entry card — binds its open state to `useOpenWithTheWord()` from `lib/show-the-word.js`: the switch decides, a tap flips that one fold on top, and flipping the switch clears the flips. Navigation accordions and tool panels that hold no Word keep their own state. Gate: the real-study render and the source scan in `show-the-word.test.jsx`; a fold left on `useState(false)` fails the scan by name.
+
+
 ## Pattern 3: Progressive Disclosure
 ### When to Use
 Anywhere SKOS has both a simple essential view AND deeper informational/comparative content:
