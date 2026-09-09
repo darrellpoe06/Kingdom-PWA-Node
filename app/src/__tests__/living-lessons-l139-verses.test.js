@@ -23,6 +23,10 @@
 //      Judah the people still in the ending.
 //   7. THE LION IS THE LAMB — Revelation 5:5-6 beside Genesis 44:33;
 //      the priesthood by a changed law (Hebrews 7:14, 7:17).
+//   8. THE DEVIL AND THE SCEPTRE (Genesis 3:15 → Revelation 12:4-5, 12:12);
+//      ONE Lawgiver who wants His Ways (Isaiah 33:22; James 4:12; Deuteronomy
+//      10:12-13); a whole tribe that CARRIES His law (Exodus 19:6; 2 Corinthians
+//      3:3; Acts 17:6) — never authors it.
 //
 // Typography (DR-0210): Yahweh in our voice; the KJV untouched inside quotes.
 import { describe, it, expect } from 'vitest';
@@ -269,6 +273,109 @@ describe('SEVEN — the Lion is the Lamb; the priesthood by a changed law', () =
   });
   it('the whole answer is gathered on the one sentence', () => {
     expect(l).toMatch(/the sceptre reached the hand it was made for, and it is not leaving/i);
+  });
+});
+
+describe('EIGHT — the devil and the sceptre; the one Lawgiver; a whole tribe that carries His law', () => {
+  it('the war on the sceptre is recorded by name, and the dragon behind it', () => {
+    expect(l).toContain('I will put enmity between thee and the woman, and between thy seed and her seed; it shall bruise thy head');
+    expect(l).toContain('Every son that is born ye shall cast into the river');
+    expect(l).toContain('she arose and destroyed all the seed royal');
+    expect(l).toContain('hid in the house of the LORD six years');
+    expect(l).toContain('Haman sought to destroy all the Jews that were throughout the whole kingdom');
+    expect(l).toContain('slew all the children that were in Bethlehem, and in all the coasts thereof, from two years old and under');
+    expect(l).toContain('the dragon stood before the woman which was ready to be delivered, for to devour her child as soon as it was born. And she brought forth a man child, who was to rule all nations with a rod of iron');
+    expect(l).toMatch(/THE ROD OF IRON IS THE SCEPTRE/);
+  });
+  it('the counterfeit sceptre refused; the cross his loss; a short time', () => {
+    expect(l).toContain('If thou therefore wilt worship me, all shall be thine.');
+    expect(l).toContain('Get thee behind me, satan: for it is written, Thou shalt worship the Lord thy God, and him only shalt thou serve.');
+    expect(l).toContain('had they known it, they would not have crucified the Lord of glory.');
+    expect(l).toContain('that through death he might destroy him that had the power of death, that is, the devil');
+    expect(l).toContain('because he knoweth that he hath but a short time.');
+  });
+  it('the Lawgiver is ONE, and He wants His Ways walked, for our good', () => {
+    expect(l).toContain('For the LORD is our judge, the LORD is our lawgiver, the LORD is our king; he will save us.');
+    expect(l).toContain('There is one lawgiver, who is able to save and to destroy');
+    expect(l).toContain('to walk in all his ways, and to love him, and to serve the LORD thy God with all thy heart and with all thy soul, To keep the commandments of the LORD, and his statutes, which I command thee this day for thy good?');
+    expect(l).toContain('If ye love me, keep my commandments.');
+    expect(l).toContain('his commandments are not grievous.');
+    expect(l).toMatch(/FOR THY GOOD/);
+  });
+  it('PROVEN-TO-CATCH: the whole tribe CARRIES His law; it does not author it', () => {
+    expect(l).toContain('ye shall be unto me a kingdom of priests, and an holy nation.');
+    expect(l).toContain('for this is your wisdom and your understanding in the sight of the nations');
+    expect(l).toContain('written not with ink, but with the Spirit of the living God; not in tables of stone, but in fleshy tables of the heart.');
+    expect(l).toContain('These that have turned the world upside down are come hither also');
+    expect(l).toMatch(/the tribe does not make law; it CARRIES His/);
+    expect(l).not.toMatch(/(each|every) (member|believer) (writes|makes|authors) (the )?law/i);
+  });
+  it('a certain percentage — the Word’s numbers, and the correction: alignment, not percentage', () => {
+    expect(l).toContain('Peradventure ten shall be found there. And he said, I will not destroy it for ten’s sake.');
+    expect(l).toContain('if ye can find a man, if there be any that executeth judgment, that seeketh the truth; and I will pardon it.');
+    expect(l).toContain('stand in the gap before me for the land, that I should not destroy it: but I found none.');
+    expect(l).toContain('By the three hundred men that lapped will I save you');
+    expect(l).toContain('there is no restraint to the LORD to save by many or by few.');
+    expect(l).toContain('hid in three measures of meal, till the whole was leavened.');
+    expect(l).toContain('to be rulers of thousands, and rulers of hundreds, rulers of fifties, and rulers of tens');
+    expect(l).toContain('the same commit thou to faithful men, who shall be able to teach others also.');
+    expect(l).toMatch(/The Word does not give a percentage/);
+    expect(l).toMatch(/the leverage is never the percentage; it is the alignment/);
+  });
+  it('the god of this world versus the Law — the civil rights movement as established history, no leader quoted', () => {
+    expect(l).toContain('the god of this world hath blinded the minds of them which believe not');
+    expect(l).toContain('the lust of the flesh, and the lust of the eyes, and the pride of life, is not of the Father, but is of the world.');
+    expect(l).toContain('And the world passeth away, and the lust thereof: but he that doeth the will of God abideth for ever.');
+    expect(l).toContain('Let my people go');
+    expect(l).toContain('let judgment run down as waters, and righteousness as a mighty stream');
+    expect(l).toContain('Every valley shall be exalted, and every mountain and hill shall be made low: and the crooked shall be made straight');
+    expect(l).toMatch(/civil rights movement/);
+    expect(l).toMatch(/1964/);
+    expect(l).toMatch(/1965/);
+    expect(l).not.toMatch(/King (said|wrote), "/);
+  });
+  it('media and music are tools; not ours yet His; stars defined by the Word; the millstone guards the children', () => {
+    expect(l).toContain('David took an harp, and played with his hand: so Saul was refreshed, and was well, and the evil spirit departed from him.');
+    expect(l).toContain('ye fall down and worship the golden image');
+    expect(l).toContain('neither is it in our power to redeem them; for other men have our lands and vineyards.');
+    expect(l).toContain('The silver is mine, and the gold is mine, saith the LORD of hosts.');
+    expect(l).toContain('they that turn many to righteousness as the stars for ever and ever.');
+    expect(l).toContain('wandering stars, to whom is reserved the blackness of darkness for ever.');
+    expect(l).toContain('it were better for him that a millstone were hanged about his neck');
+    expect(l).toContain('he shall turn the heart of the fathers to the children, and the heart of the children to their fathers');
+    expect(l).toMatch(/the tool is not the problem; the hand is/);
+  });
+  it('the church that shut the door is judged by the Word; the unseen church praised Him anyhow; black and beautiful', () => {
+    expect(l).toContain('with respect of persons. For if there come unto your assembly a man with a gold ring');
+    expect(l).toContain('For there is no respect of persons with God.');
+    expect(l).toContain('My house shall be called of all nations the house of prayer? but ye have made it a den of thieves.');
+    expect(l).toContain('behold, Miriam became leprous, white as snow');
+    expect(l).toContain('I have reserved to myself seven thousand men, who have not bowed the knee to the image of baal.');
+    expect(l).toContain('the general assembly and church of the firstborn, which are written in heaven');
+    expect(l).toContain('at midnight Paul and Silas prayed, and sang praises unto God: and the prisoners heard them.');
+    expect(l).toContain('How shall we sing the LORD’s song in a strange land?');
+    expect(l).toContain('I am black, but comely, O ye daughters of Jerusalem');
+    expect(l).toContain('his feet like unto fine brass, as if they burned in a furnace');
+    expect(l).toContain('ruddy, and withal of a beautiful countenance, and goodly to look to');
+    expect(l).toContain('hath made of one blood all nations of men');
+    expect(l).toMatch(/1787/);
+    expect(l).toMatch(/1816/);
+    expect(l).toMatch(/no colour is a rank/);
+    // The Word's own description of David is carried as written, never overwritten.
+    expect(l).not.toMatch(/David (was|had) (black|dark|brown) skin/i);
+  });
+  it('unseen because the Word is not their guide — the chariots were there; the eyes were the problem', () => {
+    expect(l).toContain('LORD, I pray thee, open his eyes, that he may see. And the LORD opened the eyes of the young man; and he saw: and, behold, the mountain was full of horses and chariots of fire round about Elisha.');
+    expect(l).toContain('Where there is no vision, the people perish: but he that keepeth the law, happy is he.');
+    expect(l).toContain('Open thou mine eyes, that I may behold wondrous things out of thy law.');
+    expect(l).toContain('now ye say, We see; therefore your sin remaineth.');
+    expect(l).toMatch(/not absent, but unperceived/);
+  });
+  it('the door that stayed open — Black churches open to all, the Word’s own house of prayer for all people', () => {
+    expect(l).toContain('mine house shall be called an house of prayer for all people.');
+    expect(l).toContain('compel them to come in, that my house may be filled.');
+    expect(l).toContain('whosoever will, let him take the water of life freely.');
+    expect(l).toMatch(/The door that was shut on them, they did not shut on anyone/);
   });
 });
 
