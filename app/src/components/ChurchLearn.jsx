@@ -87,6 +87,7 @@ import { useHistoryValue } from '../lib/nav-history.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import UiIcon from './UiIcon.jsx';
 import WordInline from './WordInline.jsx';
+import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 
 const fmtDate = formatClassDate;
 
@@ -786,6 +787,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
                 Jesus taught (Matthew 13:34); the teacher drops these to land the point. */}
             {Array.isArray(seg.audience.stories) && seg.audience.stories.length > 0 && (
               <div className="mt-3 space-y-2">
+                <ShowTheWordToggle />
                 {seg.audience.stories.map((s, i) => (
                   <div key={i} className="border border-[#5A6E3D] bg-[#FAF8F4] p-3">
                     {/* The label is a truth commitment: a parable is openly illustrative

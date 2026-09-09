@@ -24,6 +24,7 @@
 import React, { useState } from 'react';
 import VerseChips from './VerseChips.jsx';
 import WordInline from './WordInline.jsx';
+import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 import {
   TORAH_PATTERNS, FAMILIES, PERSONS,
   patternsInFamily, familyCoverage, bookCoverage, personCoverage,
@@ -218,7 +219,10 @@ export default function TorahPatternMap() {
           </button>
         ))}
       </div>
-      <div className="mb-3">
+      <div className="mb-3 flex flex-wrap gap-2">
+        {/* One tap opens every verse on the map, or hides them all (DR-0341);
+            each chip still toggles on its own on top of it. */}
+        <ShowTheWordToggle />
         <button type="button" onClick={() => setOnlyJoint((v) => !v)} aria-pressed={onlyJoint}
           className={`${BTN} border ${onlyJoint ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
           {onlyJoint ? 'Showing only where two or more work together' : 'Show only where two or more work together'}

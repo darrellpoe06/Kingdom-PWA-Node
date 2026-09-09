@@ -33,6 +33,7 @@ import Presenter from './Presenter.jsx';
 import { studyPresentable } from '../lib/presentable.js';
 import { unfinalizedThoughts } from '../lib/thought-finalizer.js';
 import WordInline from './WordInline.jsx';
+import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 import {
   KINDS, KIND_ORDER, DEFAULT_LABEL,
   loadStudy, saveStudy, seedIfEmpty, mergeMissingSeeds,
@@ -454,6 +455,7 @@ export default function Study({ email }) {
 
       {/* Add / search */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <ShowTheWordToggle />
         {editing === null && (
           <button type="button" onClick={() => setEditing({})} className={`${BTN} text-[#B85838] hover:text-[#1A1815] border border-[#B85838]`}>+ New {KINDS[kind].label.toLowerCase()}</button>
         )}
