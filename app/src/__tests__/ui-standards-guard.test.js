@@ -66,6 +66,7 @@ const SINGULAR_BY_DESIGN = Object.freeze({
   'components/BooksTransactions.jsx': 'one receipt belongs to one transaction',
   'components/ChefCorner.jsx': 'one photo per recipe',
   'components/Choir.jsx': 'one attachment per song sheet',
+  'components/MyProfile.jsx': 'one person, one profile picture (DR-0342)',
 });
 
 describe('a picker for something plural takes more than one', () => {

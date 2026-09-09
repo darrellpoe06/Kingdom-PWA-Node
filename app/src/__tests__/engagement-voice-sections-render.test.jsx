@@ -42,7 +42,7 @@ const clickTab = async (label) => {
 };
 
 describe('Engagement — trivia + thread behind section tabs', () => {
-  it('defaults to Trivia with the title pinned, and Messages swaps in on its tab', async () => {
+  it('defaults to Trivia with the title pinned, and the Family thread swaps in on its tab', async () => {
     await mount(Engagement);
     expect(container.querySelector('[role="tablist"]')).toBeTruthy();
     // Pinned title + default section (the anchor trivia set, signed out).
@@ -50,7 +50,7 @@ describe('Engagement — trivia + thread behind section tabs', () => {
     expect(container.textContent).toMatch(/Featured Trivia/i);
     expect(container.textContent).not.toMatch(/Two-way messages/i);
 
-    await clickTab('Messages');
+    await clickTab('Family thread');
     expect(container.textContent).toMatch(/Two-way messages/i);
     // Signed out, the thread shows its honest sign-in note — never a dead panel.
     expect(container.textContent).toMatch(/Sign in .* to read and post/i);

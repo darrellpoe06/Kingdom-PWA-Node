@@ -20,6 +20,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import { onAuthChange } from '../lib/supabase.js';
+import DirectMessages from './DirectMessages.jsx';
+import MyProfile from './MyProfile.jsx';
+import { publishDmPublicKey, loadDmContacts, loadDmInvited } from '../lib/direct-messages-sync.js';
 import {
   uploadTriviaAnswer, sendMessage, subscribeMessages,
   getActiveQuestion, getRecentQuestions, chooseTriviaSource,
@@ -414,7 +417,7 @@ function MessageThread({ signedIn }) {
             <div className="border-l-2 border-[#5A6E3D] bg-white px-2.5 py-2">
               <span className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">The Church of the Living God · welcome</span>
               <p className="text-sm text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
-                Welcome to the family thread — we&apos;re glad you&apos;re here. This is the church family&apos;s living room: say hello, share a praise report, ask for prayer, or pass a word along. Everyone signed in sees it live.
+                Welcome to the family thread — we&apos;re glad you&apos;re here. This is the church family&apos;s living room: say hello, share a praise report, ask for prayer, or pass a word along. Everyone signed in sees it live. To reach one person privately, use the Message a member tab.
               </p>
               <p className="text-[0.6875rem] text-[#5A5751] mt-1 italic" style={{ fontFamily: '"Fraunces", serif' }}>
                 A few ways to start: introduce yourself and your house · share what Yahweh did this week · ask the family to stand with you in prayer · invite someone to Sunday.
@@ -489,6 +492,74 @@ function formatTime(iso) {
 }
 
 // -----------------------------------------------------------------------------
+// Direct — message ONE member, privately (Darrell 2026-09-09, from the church
+// door: "why can't I send a message to a user?!"). The family thread above is
+// the living room — everyone signed in sees it. This is the 1:1 the app has
+// carried since DR-0181 (`direct_messages`, RLS + users_can_dm) but had only
+// surfaced in the bus ministry, the choir and the app-wide Messages view —
+// never on the church's own Engagement tab, where he went looking for it.
+// The roster is the server's word, not ours: list_dm_contacts mirrors
+// users_can_dm (a leader may message anyone in the church; anyone may message
+// a leader; roster to roster), and list_dm_invited shows the people on their
+// way. The panel never decides who may talk to whom.
+// -----------------------------------------------------------------------------
+function DirectPanel({ signedIn }) {
+  const [contacts, setContacts] = useState([]);
+  const [invited, setInvited] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [editingMe, setEditingMe] = useState(false);
+
+  useEffect(() => {
+    if (!signedIn) { setContacts([]); setInvited([]); setLoaded(false); return undefined; }
+    let alive = true;
+    publishDmPublicKey().catch(() => {});
+    Promise.all([
+      loadDmContacts().catch(() => []),
+      loadDmInvited().catch(() => []),
+    ]).then(([c, i]) => { if (!alive) return; setContacts(c); setInvited(i); setLoaded(true); });
+    return () => { alive = false; };
+  }, [signedIn]);
+
+  return (
+    <section aria-labelledby="direct-heading" className="bg-white border border-[#1A1815] p-5">
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">
+        One member &middot; Private
+      </div>
+      <h3 id="direct-heading" className="text-xl mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
+        Message a member
+      </h3>
+      <p className="text-sm text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
+        Between you and one person — &ldquo;between thee and him alone&rdquo; (Matthew 18:15). Pick a name to start, or open a conversation you already have.
+      </p>
+      {!signedIn ? (
+        <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+          Sign in (top of the page) to message a member.
+        </p>
+      ) : (
+        <>
+          {loaded && contacts.length === 0 && invited.length === 0 && (
+            <p className="text-sm text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+              No one to message here yet. A leader of the church can add members; once someone shares this church with you, their name appears below.
+            </p>
+          )}
+          <DirectMessages roster={contacts} invited={invited} title="Message a member 1:1" />
+          {/* The person's own profile (DR-0342): name, picture, house, ministries,
+              a verse, a testimony, and who may see it — edited here, shown to the
+              people who may message them. */}
+          <div className="mt-4 border-t border-[#E8E4DC] pt-3">
+            <button type="button" onClick={() => setEditingMe((v) => !v)} aria-expanded={editingMe}
+              className="w-full text-left text-[0.625rem] uppercase tracking-wider text-[#B85838] py-1.5 hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
+              {editingMe ? '↑ Close my profile' : '↓ My profile — name, picture, house, ministries, testimony'}
+            </button>
+            {editingMe && <div className="mt-2"><MyProfile /></div>}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+// -----------------------------------------------------------------------------
 // Surface
 // -----------------------------------------------------------------------------
 export default function Engagement() {
@@ -502,7 +573,8 @@ export default function Engagement() {
   // subscription starts only when its tab is actually opened.
   const sections = [
     { id: 'trivia', label: 'Trivia', icon: 'dice', render: () => <TriviaCard signedIn={signedIn} /> },
-    { id: 'thread', label: 'Messages', icon: 'chat', render: () => <MessageThread signedIn={signedIn} /> },
+    { id: 'thread', label: 'Family thread', icon: 'chat', render: () => <MessageThread signedIn={signedIn} /> },
+    { id: 'direct', label: 'Message a member', icon: 'users', render: () => <DirectPanel signedIn={signedIn} /> },
   ];
 
   return (

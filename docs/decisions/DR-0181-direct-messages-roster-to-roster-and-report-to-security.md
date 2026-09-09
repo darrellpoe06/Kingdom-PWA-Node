@@ -36,3 +36,12 @@ Security ↔ Observation is data-connected (reports exist; the security team rea
 ## Encoded / verified
 
 Migration 0096 (`users_can_dm`, `user_in_security`, `user_on_any_roster`, RLS on `direct_messages`/`security_reports`/`security_team`); libs `direct-messages.js` (+ 8 tests) and `direct-messages-sync.js`; `components/DirectMessages.jsx` + `components/SecurityPanel.jsx`, surfaced in the bus ministry's Messages tab. Full suite green, lint + build clean, all guards pass.
+
+## Amendment 2026-09-09 — surfaced on the church's own Engagement tab
+
+**Trigger.** Darrell, from Church → Engagement on his phone, signed in on the latest build: *"why can't I send a message to a user?!"* The tab carried only the family thread (a broadcast every signed-in member sees). The 1:1 this record created had been surfaced in the bus ministry, the choir, and the app-wide Messages view — never on the church door's own Engagement tab, where he went looking for it. The data, the RLS and `users_can_dm` were complete; the surface was missing (LESSONS P15: the gap between a surface and its real data is the work).
+
+**Decision.** Engagement gains a third section, **Message a member**, mounting the shared `DirectMessages` panel over the server's own contact list (`list_dm_contacts` mirrors `users_can_dm`; `list_dm_invited` shows people on their way). The panel never decides who may talk to whom. The broadcast tab is renamed **Family thread** and its welcome copy names the private door, so the two are never confused again.
+
+**Proven-to-catch (DR-0076 §3).** `engagement-direct-render.test.jsx` mounts the real Engagement with a signed-in session and the sync seam stubbed: the tab exists, the member the server returned is startable, tapping the name opens a private thread with its composer; the family thread names the private door; a source pin keeps the roster the server's word (no hand-typed roster). Guards green (ui-standards, consistency, contrast, tab-overflow, fab-overlap, module-boundary, monolith-budget).
+

@@ -34,6 +34,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { liveStatus, worshipPlayerSrc } from '../lib/church-live.js';
 import { resolveChurch } from '../lib/resolve-church.js';
+import { useLivePlayerPrefs, setLiveBarCollapsed, barFrameStyle } from '../lib/live-player-prefs.js';
 
 const DISMISS_KEY = 'poe.liveWorshipBar.dismissedSession';
 
@@ -60,7 +61,12 @@ function churchDisplayName(c) {
 }
 
 export function LiveWorshipBar({ church, view, churchView, onOpenChurch, now }) {
-  const [collapsed, setCollapsed] = useState(false);
+  // The viewer's remembered choices (lib/live-player-prefs.js): the scale they
+  // chose on the Church home player is honoured HERE, on the automatic first
+  // open, before any tap (Darrell 2026-09-09); show/hide video holds for the
+  // session so a remount never flips it back.
+  const { scale, barCollapsed: collapsed } = useLivePlayerPrefs();
+  const setCollapsed = (next) => setLiveBarCollapsed(typeof next === 'function' ? next(collapsed) : next);
   const [dismissed, setDismissed] = useState(() => {
     try { return sessionStorage.getItem(DISMISS_KEY) === '1'; } catch (_) { return false; }
   });
@@ -184,7 +190,7 @@ export function LiveWorshipBar({ church, view, churchView, onOpenChurch, now }) 
           without eating the screen. Kept mounted while collapsed (display:none)
           so collapsing never interrupts playback. */}
       <div className={`bg-black flex justify-center ${collapsed ? 'hidden' : ''}`}>
-        <div className="relative w-full max-w-4xl" style={{ maxHeight: '45vh', aspectRatio: '16 / 9' }}>
+        <div className="relative" data-live-scale={scale} style={barFrameStyle(scale)}>
           <iframe
             src={src}
             title={`${name} — live worship service`}

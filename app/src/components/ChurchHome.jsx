@@ -18,6 +18,7 @@
 // =============================================================================
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { liveStatus, worshipPlayerSrc } from '../lib/church-live.js';
+import { useLivePlayerPrefs, setLivePlayerScale } from '../lib/live-player-prefs.js';
 import { parseYoutubeFeed } from '../lib/youtube-feed.js';
 import { resolveChurch } from '../lib/resolve-church.js';
 import { ChurchOneVoice } from './ChurchOneVoice.jsx';
@@ -50,7 +51,11 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // player (s/m/l); floating pops it to a corner MINI-player so the Word reads
   // full-width underneath. Both are pure layout on the SAME iframe — never a
   // remount, so the stream keeps playing while you resize/float.
-  const [playerScale, setPlayerScale] = useState('m'); // 's' | 'm' | 'l'
+  // The scale is the viewer's REMEMBERED choice (lib/live-player-prefs.js) —
+  // honoured on every first open, here and on the pinned LiveWorshipBar
+  // (Darrell 2026-09-09: the player opens on its own, before any tap).
+  const { scale: playerScale } = useLivePlayerPrefs();
+  const setPlayerScale = setLivePlayerScale;
   const [floating, setFloating] = useState(false);
   // The floating mini-player is DRAGGABLE anywhere (Darrell 2026-07-18: "why cant
   // the video only size like small MOVE ANYWHERE we want and go back whenever").
