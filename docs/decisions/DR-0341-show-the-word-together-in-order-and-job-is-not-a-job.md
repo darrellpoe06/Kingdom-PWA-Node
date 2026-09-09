@@ -30,3 +30,14 @@ The shared matcher (`video-harvest.js`, used by the harvest, the sermon points, 
 ## Consequences
 
 A reader chooses in one tap to read with the Word open or closed, and still opens or closes any one verse. What opens reads in the order it happened, honestly bounded. Ari never mistakes a worker's job for the man from Uz.
+
+## Amendment 2026-09-09 — a fold that holds the Word follows the switch (§5)
+
+**Trigger.** Darrell, on the Study series page, from his phone: *"The Word does not drop down on all pages?!!!"* The switch opened the verses INSIDE folds that stayed shut — "Go deeper", the deep layer, the covenant review, the Godhead entries, the witness pairs, the Study deep source — so nothing showed. The Torah map's cards were fixed for this on 2026-09-09 (#1490); the same defect lived in every other content fold, and a per-component fix was never going to hold.
+
+**Decision.** One shared hook, `useOpenWithTheWord()` in `app/src/lib/show-the-word.js`: a fold's open state follows the switch (on → open, off → closed); a tap flips that one fold on top of it; flipping the switch clears the flips so the page reads whole. Every fold that hides part of the teaching or a verse binds to it. Navigation accordions (pick a lesson, open the tutor, "About this", per-verse tools) are not folds of the Word and keep their own state — named, with their reason, in the gate's exempt list.
+
+**Proven-to-catch (DR-0076 §3).** `show-the-word.test.jsx` gains (1) a real render of `EternalAlgorithmsStudy`: every content fold reads `aria-expanded="false"` before, `"true"` after the switch, one fold still closes on its own, Hide closes all; and (2) a source scan over every component that both folds and renders the Word: each `aria-expanded` state must be bound by `useOpenWithTheWord` or be named exempt. The scan was run against a fold reverted to `useState(false)` and failed on it by name. A real Chromium against the real bundle at phone size: one tap → label flips to Hide, five folds open, five Close buttons, six verse regions, zero page errors.
+
+**Also observed, not this defect.** The live-service bar (`LiveWorshipBar`, fixed, up to 45vh) covers the top third of a phone while a service window is open; a headless tap under it never reached the button. It is collapsible and dismissible by design; noted here so the next driver dismisses it first.
+

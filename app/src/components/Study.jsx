@@ -34,6 +34,7 @@ import { studyPresentable } from '../lib/presentable.js';
 import { unfinalizedThoughts } from '../lib/thought-finalizer.js';
 import WordInline from './WordInline.jsx';
 import ShowTheWordToggle from './ShowTheWordToggle.jsx';
+import { useOpenWithTheWord } from '../lib/show-the-word.js';
 import {
   KINDS, KIND_ORDER, DEFAULT_LABEL,
   loadStudy, saveStudy, seedIfEmpty, mergeMissingSeeds,
@@ -163,7 +164,7 @@ function EntryEditor({ initial, kind, onSave, onCancel }) {
 // one click beneath (progressive disclosure, the exact briefing motion).
 // -----------------------------------------------------------------------------
 function EntryCard({ entry, onEdit, onDelete, onPin, onDeriveFrom }) {
-  const [openDeep, setOpenDeep] = useState(false);
+  const [openDeep, toggleOpenDeep] = useOpenWithTheWord();
   const ds = distillState(entry);
   const badge = DISTILL_BADGE[ds];
   const serif = { fontFamily: '"Fraunces", serif' };
@@ -188,7 +189,7 @@ function EntryCard({ entry, onEdit, onDelete, onPin, onDeriveFrom }) {
       {/* Deep source — one click deeper. */}
       {entry.deep && (
         <div className="mt-2">
-          <button type="button" onClick={() => setOpenDeep((v) => !v)} aria-expanded={openDeep} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
+          <button type="button" onClick={toggleOpenDeep} aria-expanded={openDeep} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
             {openDeep ? '↑ Hide the deep source' : '↓ Open the deep source (4th-dimensional)'}
           </button>
           {openDeep && (

@@ -21,11 +21,11 @@
 // ours, in its own marked block. A reader can always tell what Scripture states
 // from what we read into it (DR-0076 §8).
 // =============================================================================
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import VerseChips from './VerseChips.jsx';
 import WordInline from './WordInline.jsx';
 import ShowTheWordToggle from './ShowTheWordToggle.jsx';
-import { useShowTheWord } from '../lib/show-the-word.js';
+import { useOpenWithTheWord } from '../lib/show-the-word.js';
 import {
   TORAH_PATTERNS, FAMILIES, PERSONS,
   patternsInFamily, familyCoverage, bookCoverage, personCoverage,
@@ -73,16 +73,13 @@ function Pattern({ pattern }) {
   // follow the same switch: on, every pattern is open; off, closed; a tap on
   // one card still flips that card on its own, and flipping the switch clears
   // those individual choices — the model the chips already run on.
-  const all = useShowTheWord();
-  const [flip, setFlip] = useState(false);
-  useEffect(() => { setFlip(false); }, [all]);
-  const open = flip ? !all : all;
+  const [open, toggleOpen] = useOpenWithTheWord();
   const books = booksOf(pattern);
   return (
     <li className="border border-[#E8E4DC] bg-white">
       <button
         type="button"
-        onClick={() => setFlip((f) => !f)}
+        onClick={toggleOpen}
         aria-expanded={open}
         className="w-full text-left px-3 py-2 hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
       >
