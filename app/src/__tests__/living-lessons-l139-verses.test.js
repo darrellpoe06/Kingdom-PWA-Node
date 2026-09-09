@@ -345,6 +345,32 @@ describe('EIGHT — the devil and the sceptre; the one Lawgiver; a whole tribe t
     expect(l).toContain('he shall turn the heart of the fathers to the children, and the heart of the children to their fathers');
     expect(l).toMatch(/the tool is not the problem; the hand is/);
   });
+  it('the church that shut the door is judged by the Word; the unseen church praised Him anyhow; black and beautiful', () => {
+    expect(l).toContain('with respect of persons. For if there come unto your assembly a man with a gold ring');
+    expect(l).toContain('For there is no respect of persons with God.');
+    expect(l).toContain('My house shall be called of all nations the house of prayer? but ye have made it a den of thieves.');
+    expect(l).toContain('behold, Miriam became leprous, white as snow');
+    expect(l).toContain('I have reserved to myself seven thousand men, who have not bowed the knee to the image of baal.');
+    expect(l).toContain('the general assembly and church of the firstborn, which are written in heaven');
+    expect(l).toContain('at midnight Paul and Silas prayed, and sang praises unto God: and the prisoners heard them.');
+    expect(l).toContain('How shall we sing the LORD’s song in a strange land?');
+    expect(l).toContain('I am black, but comely, O ye daughters of Jerusalem');
+    expect(l).toContain('his feet like unto fine brass, as if they burned in a furnace');
+    expect(l).toContain('ruddy, and withal of a beautiful countenance, and goodly to look to');
+    expect(l).toContain('hath made of one blood all nations of men');
+    expect(l).toMatch(/1787/);
+    expect(l).toMatch(/1816/);
+    expect(l).toMatch(/no colour is a rank/);
+    // The Word's own description of David is carried as written, never overwritten.
+    expect(l).not.toMatch(/David (was|had) (black|dark|brown) skin/i);
+  });
+  it('unseen because the Word is not their guide — the chariots were there; the eyes were the problem', () => {
+    expect(l).toContain('LORD, I pray thee, open his eyes, that he may see. And the LORD opened the eyes of the young man; and he saw: and, behold, the mountain was full of horses and chariots of fire round about Elisha.');
+    expect(l).toContain('Where there is no vision, the people perish: but he that keepeth the law, happy is he.');
+    expect(l).toContain('Open thou mine eyes, that I may behold wondrous things out of thy law.');
+    expect(l).toContain('now ye say, We see; therefore your sin remaineth.');
+    expect(l).toMatch(/not absent, but unperceived/);
+  });
 });
 
 describe('typography — Yahweh in our voice, the KJV untouched inside quotes (DR-0210)', () => {
