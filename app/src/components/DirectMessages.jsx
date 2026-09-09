@@ -27,6 +27,7 @@ import PushNotifications from './PushNotifications.jsx';
 import { pushSupported } from '../lib/push-subscribe.js';
 import { useVapidPublicKey } from '../lib/push-key.js';
 import UiIcon from './UiIcon.jsx';
+import ProfileCard from './ProfileCard.jsx';
 
 // Long inputs grow with the writer (Darrell 2026-07-27: "also long inputs"):
 // the composer rises with its content up to a screen-friendly cap, then
@@ -58,6 +59,9 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
   const [signedIn, setSignedIn] = useState(false);
   const [rows, setRows] = useState([]);
   const [openWith, setOpenWith] = useState(null); // otherUserId
+  // The person's full profile (DR-0342) opens from their name in the thread
+  // header — one tap, in place, closed by the same tap.
+  const [showProfile, setShowProfile] = useState(false);
   const [draft, setDraft] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -172,8 +176,16 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
     <div className="space-y-3">
       <div className="flex items-baseline justify-between gap-2">
         <h4 className="text-sm font-medium text-[#1A1815]">{title}</h4>
-        {openWith && <button type="button" onClick={() => setOpenWith(null)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>← Inbox</button>}
+        {openWith && (
+          <div className="flex items-center gap-1.5">
+            <button type="button" onClick={() => setShowProfile((v) => !v)} aria-expanded={showProfile} aria-label={`${showProfile ? 'Hide' : 'See'} ${nameFor(openWith)}'s profile`} className={`${BTN} border border-[#C9BFA8] text-[#1A1815] hover:border-[#1A1815]`}>
+              {nameFor(openWith)} {showProfile ? '▾' : '▸'}
+            </button>
+            <button type="button" onClick={() => { setOpenWith(null); setShowProfile(false); }} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>← Inbox</button>
+          </div>
+        )}
       </div>
+      {openWith && showProfile && <ProfileCard userId={openWith} fallbackName={nameFor(openWith)} />}
 
       {/* Notifications the reader chooses (2026-08-22 "do the users get
           notifications?").

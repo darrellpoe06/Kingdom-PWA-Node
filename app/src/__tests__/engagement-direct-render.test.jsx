@@ -46,6 +46,7 @@ vi.mock('../lib/direct-messages-sync.js', () => ({
 vi.mock('../lib/push-key.js', () => ({ useVapidPublicKey: () => '' }));
 vi.mock('../lib/push-subscribe.js', () => ({ pushSupported: () => false, pushStatus: async () => ({ supported: false, subscribed: false, permission: 'default' }), subscribeToPush: async () => ({ ok: false }), unsubscribeFromPush: async () => ({ ok: false }) }));
 vi.mock('../lib/dm-notify.js', () => ({ requestDmNotificationPermission: async () => 'default' }));
+vi.mock('../lib/profiles-sync.js', async (orig) => ({ ...(await orig()), loadProfile: async () => ({ userId: 'u-ann', displayName: 'Sister Ann', photoThumb: null, house: 'the Ann house', ministries: ['Choir'], favoriteVerse: '', testimony: 'He kept me.', visibility: 'members', fullView: true }), loadMyProfile: async () => null, saveMyProfile: async () => ({ saved: true }) }));
 vi.mock('../lib/voice-dictation.js', () => ({ useVoiceDictation: () => ({ supported: false, listening: false, start: () => {}, stop: () => {} }) }));
 
 import Engagement from '../components/Engagement.jsx';
@@ -87,6 +88,25 @@ describe('Engagement — Message a member (1:1) on the church door', () => {
     expect(container.textContent).toMatch(/No messages yet — say hello/);
     expect(container.querySelector('textarea')).toBeTruthy();
     expect(container.textContent).toMatch(/Sister Ann/);
+    // Her name in the thread header opens her full profile, in place (DR-0342).
+    const nameBtn = container.querySelector('button[aria-label$="profile"]');
+    expect(nameBtn).toBeTruthy();
+    await click(nameBtn);
+    await settle();
+    expect(container.querySelector('section[aria-label="Profile — Sister Ann"]')).toBeTruthy();
+    expect(container.textContent).toMatch(/the Ann house/);
+    expect(container.textContent).toMatch(/He kept me/);
+  });
+
+  it('My profile opens on the same tab, with the editor', async () => {
+    await mount();
+    await clickTab('Message a member');
+    await settle();
+    const btn = [...container.querySelectorAll('button')].find((b) => /My profile/.test(b.textContent || ''));
+    expect(btn).toBeTruthy();
+    await click(btn);
+    await settle();
+    expect(container.querySelector('form[aria-label="My profile"]')).toBeTruthy();
   });
 
   it('the family thread tells the reader where the private door is', async () => {

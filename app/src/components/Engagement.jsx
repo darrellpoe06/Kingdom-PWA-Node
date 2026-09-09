@@ -21,6 +21,7 @@ import { SectionTitle } from './shared.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import DirectMessages from './DirectMessages.jsx';
+import MyProfile from './MyProfile.jsx';
 import { publishDmPublicKey, loadDmContacts, loadDmInvited } from '../lib/direct-messages-sync.js';
 import {
   uploadTriviaAnswer, sendMessage, subscribeMessages,
@@ -506,6 +507,7 @@ function DirectPanel({ signedIn }) {
   const [contacts, setContacts] = useState([]);
   const [invited, setInvited] = useState([]);
   const [loaded, setLoaded] = useState(false);
+  const [editingMe, setEditingMe] = useState(false);
 
   useEffect(() => {
     if (!signedIn) { setContacts([]); setInvited([]); setLoaded(false); return undefined; }
@@ -541,6 +543,16 @@ function DirectPanel({ signedIn }) {
             </p>
           )}
           <DirectMessages roster={contacts} invited={invited} title="Message a member 1:1" />
+          {/* The person's own profile (DR-0342): name, picture, house, ministries,
+              a verse, a testimony, and who may see it — edited here, shown to the
+              people who may message them. */}
+          <div className="mt-4 border-t border-[#E8E4DC] pt-3">
+            <button type="button" onClick={() => setEditingMe((v) => !v)} aria-expanded={editingMe}
+              className="w-full text-left text-[0.625rem] uppercase tracking-wider text-[#B85838] py-1.5 hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
+              {editingMe ? '↑ Close my profile' : '↓ My profile — name, picture, house, ministries, testimony'}
+            </button>
+            {editingMe && <div className="mt-2"><MyProfile /></div>}
+          </div>
         </>
       )}
     </section>
