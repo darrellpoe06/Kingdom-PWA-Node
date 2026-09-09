@@ -17,6 +17,9 @@
 //   5. INCREASE FOLLOWS USE (Luke 16:10; Matthew 25:21; Matthew 13:12).
 //   6. WHAT HE KEEPS AND WHAT HE GAVE: Deuteronomy 29:29 and the Spirit given;
 //      a real lack is REJECTED (Hosea 4:6), not withheld.
+//   7. DILIGENCE IS EVALUATED BY YAHWEH (added the same day) — a rewarder of
+//      the diligent (Hebrews 11:6), measured by HIS perspective (Isaiah 55:8),
+//      aimed at His Word first (2 Timothy 2:15): we must be educated, to do.
 //
 // Typography (DR-0210): Yahweh in our voice; the KJV untouched inside quotes.
 import { describe, it, expect } from 'vitest';
@@ -222,6 +225,47 @@ describe('SIX — what He keeps, what He gave, and whose the lack is', () => {
   });
   it('where the Word stops, the lesson stops', () => {
     expect(l).toMatch(/ask for the verse/i);
+  });
+});
+
+describe('SEVEN — diligence is evaluated by Yahweh, and it is diligence in His Word (added the same day)', () => {
+  it('Darrell’s two added lines are carried, for meaning (DR-0331)', () => {
+    expect(l).toMatch(/diligence is evaluated by Yahweh/i);
+    expect(l).toMatch(/we must be educated/i);
+    expect(l).toMatch(/Yahweh’s perspective and understanding of the Word/);
+  });
+  it('He evaluates diligence — a REWARDER, with outcomes attached', () => {
+    expect(l).toContain('he that cometh to God must believe that he is, and that he is a rewarder of them that diligently seek him.');
+    expect(l).toContain('Seest thou a man diligent in his business? he shall stand before kings; he shall not stand before mean men.');
+    expect(l).toContain('The hand of the diligent shall bear rule');
+    expect(l).toContain('give diligence to make your calling and election sure');
+    expect(l).toMatch(/A REWARDER OF THEM THAT DILIGENTLY SEEK/);
+  });
+  it('the measure is HIS perspective, not ours — and haste without knowledge is named', () => {
+    expect(l).toContain('For my thoughts are not your thoughts, neither are your ways my ways, saith the LORD.');
+    expect(l).toContain('Also, that the soul be without knowledge, it is not good; and he that hasteth with his feet sinneth.');
+  });
+  it('the diligence is aimed at His Word first — study, a workman, rightly dividing', () => {
+    expect(l).toContain('Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth.');
+    expect(l).toMatch(/STUDY. A WORKMAN. RIGHTLY DIVIDING./);
+    expect(l).toContain('If thou seekest her as silver, and searchest for her as for hid treasures; Then shalt thou understand the fear of the LORD, and find the knowledge of God. For the LORD giveth wisdom: out of his mouth cometh knowledge and understanding.');
+  });
+  it('we must be educated — the Word names ignorance of the Word as the cause of error', () => {
+    expect(l).toContain('Ye do err, not knowing the scriptures, nor the power of God.');
+    expect(l).toContain('thou shalt teach them diligently unto thy children');
+    expect(l).toContain('Ezra had prepared his heart to seek the law of the LORD, and to do it, and to teach in Israel statutes and judgments.');
+    expect(l).toMatch(/SEEK, DO, TEACH/);
+    expect(l).toContain('searched the scriptures daily, whether those things were so.');
+    expect(l).toContain('gave the sense, and caused them to understand the reading.');
+    expect(l).toContain('no more children, tossed to and fro, and carried about with every wind of doctrine');
+    expect(l).toContain('we have the mind of Christ.');
+  });
+  it('PROVEN-TO-CATCH: the counterfeit is named — learning that never becomes doing', () => {
+    expect(l).toContain('Ever learning, and never able to come to the knowledge of the truth.');
+    expect(l).toContain('But be ye doers of the word, and not hearers only, deceiving your own selves.');
+    // The lesson may never teach diligence as self-directed busyness graded by our own measure.
+    expect(l).not.toMatch(/diligence (is|means) (being busy|working hard for yourself)/i);
+    expect(l).toMatch(/by reason of use/);
   });
 });
 
