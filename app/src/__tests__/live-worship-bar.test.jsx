@@ -15,6 +15,7 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { LiveWorshipBar, livePlayerSrc } from '../components/LiveWorshipBar.jsx';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
+import { __resetLivePlayerPrefs, setLivePlayerScale, setLiveBarCollapsed, LIVE_PLAYER_SCALE_KEY, barFrameStyle } from '../lib/live-player-prefs.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -24,6 +25,8 @@ beforeEach(() => {
   document.body.appendChild(container);
   root = createRoot(container);
   try { sessionStorage.clear(); } catch (_) { /* ignore */ }
+  try { localStorage.clear(); } catch (_) { /* ignore */ }
+  __resetLivePlayerPrefs();
 });
 afterEach(() => { act(() => root.unmount()); container.remove(); });
 
@@ -92,5 +95,61 @@ describe('LiveWorshipBar — honest service-window gate', () => {
     expect(openBtn).toBeTruthy();
     act(() => openBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     expect(opened).toBe(1);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// Darrell, 2026-09-09: "the player doesn't open in full view when we choose for
+// it to when it first opens... the player automation is live... before any
+// amount of interaction from users." The bar opens on its own inside the
+// window; the viewer's chosen size must be honoured AT THAT FIRST OPEN, from
+// the device, with no tap. Proven-to-catch: the frame's style is read from the
+// rendered DOM, not asserted from the store.
+// -----------------------------------------------------------------------------
+describe('LiveWorshipBar — the viewer\'s remembered choice is honoured on the automatic first open', () => {
+  const frame = () => container.querySelector('[data-live-scale]');
+
+  it('opens in FULL VIEW on first mount when the device remembers Large — no interaction needed', () => {
+    try { localStorage.setItem(LIVE_PLAYER_SCALE_KEY, 'l'); } catch (_) { /* ignore */ }
+    // A fresh session reads the device on module load; simulate that read.
+    setLivePlayerScale('l');
+    mount({ now: IN_WINDOW });
+    expect(frame()).toBeTruthy();
+    expect(frame().getAttribute('data-live-scale')).toBe('l');
+    expect(frame().style.width).toBe('100%');
+    expect(frame().style.maxWidth).toBe('');
+    expect(frame().style.maxHeight).toBe('60vh');
+  });
+
+  it('keeps the original medium shape when nothing was chosen', () => {
+    mount({ now: IN_WINDOW });
+    expect(frame().getAttribute('data-live-scale')).toBe('m');
+    expect(frame().style.maxWidth).toBe('56rem');
+    expect(frame().style.maxHeight).toBe('45vh');
+  });
+
+  it('a choice made on the Church home player changes the pinned bar live, with no remount', () => {
+    mount({ now: IN_WINDOW });
+    const before = container.querySelector('iframe');
+    act(() => setLivePlayerScale('l'));
+    expect(frame().style.maxHeight).toBe('60vh');
+    expect(container.querySelector('iframe')).toBe(before); // same frame: the stream never restarted
+  });
+
+  it('show/hide video holds for the session across a remount', () => {
+    mount({ now: IN_WINDOW });
+    act(() => setLiveBarCollapsed(true));
+    expect(container.querySelector('button[aria-label="Expand the live service player"]')).toBeTruthy();
+    act(() => root.unmount());
+    root = createRoot(container);
+    mount({ now: IN_WINDOW });
+    expect(container.querySelector('button[aria-label="Expand the live service player"]')).toBeTruthy();
+  });
+
+  it('barFrameStyle: large is full width; small is capped narrow; medium is the original', () => {
+    expect(barFrameStyle('l')).toMatchObject({ width: '100%', maxHeight: '60vh' });
+    expect(barFrameStyle('l').maxWidth).toBeUndefined();
+    expect(barFrameStyle('s')).toMatchObject({ maxWidth: '28rem' });
+    expect(barFrameStyle('m')).toMatchObject({ maxWidth: '56rem', maxHeight: '45vh' });
   });
 });
