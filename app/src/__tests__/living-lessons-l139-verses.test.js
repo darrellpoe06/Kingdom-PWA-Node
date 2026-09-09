@@ -371,6 +371,12 @@ describe('EIGHT — the devil and the sceptre; the one Lawgiver; a whole tribe t
     expect(l).toContain('now ye say, We see; therefore your sin remaineth.');
     expect(l).toMatch(/not absent, but unperceived/);
   });
+  it('the door that stayed open — Black churches open to all, the Word’s own house of prayer for all people', () => {
+    expect(l).toContain('mine house shall be called an house of prayer for all people.');
+    expect(l).toContain('compel them to come in, that my house may be filled.');
+    expect(l).toContain('whosoever will, let him take the water of life freely.');
+    expect(l).toMatch(/The door that was shut on them, they did not shut on anyone/);
+  });
 });
 
 describe('typography — Yahweh in our voice, the KJV untouched inside quotes (DR-0210)', () => {
