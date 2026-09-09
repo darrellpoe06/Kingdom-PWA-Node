@@ -42,13 +42,38 @@ describe('file inputs never force camera-only', () => {
     }
   });
 
-  it('no capture attribute on any file input anywhere in app/src', () => {
+  // THE ONE DELIBERATE EXCEPTION (2026-09-08, DR-0339). The Properties picture
+  // form carries a "Take a photo" input with capture="environment" so a
+  // landlord or a 1099 worker walking a unit reaches the camera in one tap.
+  // It is allowed ONLY because it stands BESIDE a plain picker in the same
+  // form ("Choose from this phone": accept="image/*", multiple, no capture),
+  // so no source is hidden — the harm this gate exists for cannot occur.
+  // The pairing is checked structurally below, not merely allowlisted by name:
+  // a file that carries capture with no sibling chooser still fails.
+  const CAMERA_BESIDE_A_CHOOSER = Object.freeze({
+    'modules/properties/DoorTabs.jsx': 'the walk-through camera button, beside "Choose from this phone" (DR-0339)',
+  });
+
+  it('no capture attribute on any file input anywhere in app/src, except a camera that stands beside a chooser', () => {
     // JSX attribute form only (capture=" / capture={) — object keys like
     // `capture: {...}` (ClientGrowth stage map, addEventListener options)
     // are unrelated and stay out of the net.
     const offenders = files
       .filter((f) => /\bcapture=["'{]/.test(readFileSync(f, 'utf8')))
-      .map((f) => f.replace(`${srcRoot}/`, ''));
+      .map((f) => f.replace(`${srcRoot}/`, ''))
+      .filter((f) => !CAMERA_BESIDE_A_CHOOSER[f]);
     expect(offenders).toEqual([]);
+  });
+
+  it('every allowed camera input has a plain image chooser beside it in the same file, and takes one shot', () => {
+    for (const rel of Object.keys(CAMERA_BESIDE_A_CHOOSER)) {
+      const src = readFileSync(join(srcRoot, rel), 'utf8');
+      const inputs = [...src.matchAll(/<input\b[^>]*type="file"[^>]*>/gs)].map((m) => m[0]);
+      const cameras = inputs.filter((t) => /\bcapture=/.test(t));
+      const choosers = inputs.filter((t) => !/\bcapture=/.test(t) && /accept="image\/\*"/.test(t));
+      expect(cameras.length, `${rel} is allowlisted but carries no capture input — drop it from the list`).toBeGreaterThan(0);
+      expect(choosers.length, `${rel}: a camera with no plain chooser beside it hides the photo library`).toBeGreaterThan(0);
+      for (const c of cameras) expect(c).not.toMatch(/\bmultiple\b/);   // a camera returns one shot
+    }
   });
 });

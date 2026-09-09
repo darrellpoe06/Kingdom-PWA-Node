@@ -43,6 +43,8 @@ vi.mock('../modules/properties/cloud.js', () => {
     loadPublicVacancies: async () => ({ ok: true, vacancies: H.vacancies }),
     loadVacancyPhotos: async () => ({ ok: true, photos: H.listingPhotos || [] }),
     loadAllPhotos: async () => ({ ok: true, photos: H.photos }),
+    loadPhotoImages: async () => ({ ok: true, images: {} }),
+    hydrateLegacyImages: async (photos) => photos,
     loadDoorRecord: async () => (H.record
       ? { ok: true, ...H.record }
       : { ok: true, requests: [], messages: [], notes: [], docs: [], rent: [], notices: [] }),
