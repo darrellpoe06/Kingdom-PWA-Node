@@ -372,6 +372,21 @@ tree is asserted clean — and destructive-confirm was proven on six REAL
 defects, which it caught and whose fixes it verified the day it was written. `node scripts/ui-standards-guard.mjs` prints regressions,
 tracked debt, and **healed** — the number that should fall over time (DR-0075).
 
+## Pattern 2h: A Scripture reference opens the Word in place — anywhere it is named (PoeTech Standard)
+
+**Declared by Darrell 2026-09-08 (DR-0340):** *"Make the bible verses clickable for seeing the Word when pressed... don't leave the page... just open right there... open at the location it's clicked... inline."* And: *"really anywhere should have this ability... so the scriptures can always be read... anywhere at anytime... simple functions just to show the Word."*
+
+Principle 6 and Pattern 2e applied to Scripture. On every PoeTech surface a reference is a **button**, never a link: pressing it opens the verbatim King James text (hosted in the app, `lib/bible-kjv.js`) directly beneath where the reference sits — the same card, the same scroll position, the pressed chip marked; pressing again closes it. A verse the device cannot reach says so and is never filled in (DR-0076).
+
+Two primitives, one import each — **reuse, do not reinvent:**
+
+- **`components/VerseChips.jsx`** — a row of references (`<VerseChips refs={[...]} />`). The open verses render under the row, in chip order; several can be open at once.
+- **`components/WordInline.jsx`** — prose (`<WordInline text={paragraph} />`). Every reference named mid-sentence becomes a chip in its place, showing the author's own words; the open verses render under the paragraph. The cut is the pure `lib/verse-refs.js`, on the ONE shared matcher (`video-harvest.js findScriptureRefs`). A paragraph naming no verse renders as the plain element it was.
+
+Carried today: the Torah pattern map (chips and prose), Study (plain layer, deep source, scripture line), Learn (stories and their verse line), the Scripture Library (cross-references). `BibleReader`'s chips open the reader because it *is* the reader. Pinned in `verse-chips.test.jsx` and `word-inline.test.jsx` (proven-to-catch: an `href`, invented text, a changed character of prose, or a surface reverting to a plain `<p>`/`<span>` each fails).
+
+**The one-line test for any new surface:** *"When this names a verse, can the reader open the Word without leaving the sentence?"* If not, it is missing `WordInline` or `VerseChips`. **re-review: 2026-09-22** — the remaining prose surfaces (LessonFlow, PracticeLearn, living-lessons bodies, the Godhead study), and whether a source scan can gate an inert reference without noise.
+
 ## Pattern 3: Progressive Disclosure
 ### When to Use
 Anywhere SKOS has both a simple essential view AND deeper informational/comparative content:

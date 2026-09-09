@@ -32,6 +32,7 @@ import UiIcon from './UiIcon.jsx';
 import Presenter from './Presenter.jsx';
 import { studyPresentable } from '../lib/presentable.js';
 import { unfinalizedThoughts } from '../lib/thought-finalizer.js';
+import WordInline from './WordInline.jsx';
 import {
   KINDS, KIND_ORDER, DEFAULT_LABEL,
   loadStudy, saveStudy, seedIfEmpty, mergeMissingSeeds,
@@ -175,12 +176,12 @@ function EntryCard({ entry, onEdit, onDelete, onPin, onDeriveFrom }) {
         </div>
         <span className={`text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 ${badge.cls}`}>{badge.text}</span>
       </div>
-      {entry.scripture && <p className="text-[0.6875rem] text-[#5A6E3D] mt-0.5" style={serif}>{entry.scripture}</p>}
+      {entry.scripture && <WordInline text={entry.scripture} className="text-[0.6875rem] text-[#5A6E3D] mt-0.5" style={serif} />}
       {entry.culture && <p className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={serif}><span className="uppercase tracking-wider text-[0.5625rem]">For:</span> {entry.culture}</p>}
 
       {/* Plain layer — the wider-audience version reads first. */}
       {entry.plain
-        ? <p className="text-sm text-[#1A1815] whitespace-pre-wrap mt-1.5" style={serif}>{entry.plain}</p>
+        ? <WordInline text={entry.plain} className="text-sm text-[#1A1815] whitespace-pre-wrap mt-1.5" style={serif} />
         : <p className="text-xs text-[#5A5751] italic mt-1.5" style={serif}>No plain version yet — the distillation is the next step.</p>}
 
       {/* Deep source — one click deeper. */}
@@ -191,7 +192,7 @@ function EntryCard({ entry, onEdit, onDelete, onPin, onDeriveFrom }) {
           </button>
           {openDeep && (
             <div className="mt-1.5 bg-[#FAF8F4] border-l-2 border-[#1A1815] pl-3 pr-2 py-2">
-              <p className="text-sm text-[#1A1815] whitespace-pre-wrap" style={serif}>{entry.deep}</p>
+              <WordInline text={entry.deep} className="text-sm text-[#1A1815] whitespace-pre-wrap" style={serif} />
             </div>
           )}
         </div>

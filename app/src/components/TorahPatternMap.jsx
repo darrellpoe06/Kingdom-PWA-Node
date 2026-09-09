@@ -22,6 +22,8 @@
 // from what we read into it (DR-0076 §8).
 // =============================================================================
 import React, { useState } from 'react';
+import VerseChips from './VerseChips.jsx';
+import WordInline from './WordInline.jsx';
 import {
   TORAH_PATTERNS, FAMILIES, PERSONS,
   patternsInFamily, familyCoverage, bookCoverage, personCoverage,
@@ -84,12 +86,13 @@ function Pattern({ pattern }) {
       </button>
       {open && (
         <div className="px-3 pb-3 space-y-2">
-          <p className="text-sm text-[#1A1815] leading-relaxed" style={serif}>{pattern.shows}</p>
-          <div className="flex flex-wrap gap-1">
-            {pattern.refs.map((r) => (
-              <span key={r} className="px-1.5 py-0.5 text-[0.625rem] border border-[#C9C2B6] bg-[#FAF8F4] text-[#1A1815]">{r}</span>
-            ))}
-          </div>
+          {/* Prose too: a reference named in the sentence opens right there. */}
+          <WordInline text={pattern.shows} className="text-sm text-[#1A1815] leading-relaxed" style={serif} />
+          {/* TAP A REFERENCE, THE WORD OPENS HERE (Darrell, 2026-09-08: "don't
+              leave the page... open at the location it's clicked... inline").
+              The verse renders beneath these chips, in this card; nothing
+              scrolls or navigates. VerseChips.jsx is the one primitive. */}
+          <VerseChips refs={pattern.refs} />
           <p className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
             {pattern.basis === 'named'
               ? 'The text NAMES this — nothing is read in.'
@@ -98,13 +101,13 @@ function Pattern({ pattern }) {
           {pattern.confession && (
             <div className="border-l-2 border-[#B85838] pl-2">
               <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-semibold">Our confession, not the text’s claim</div>
-              <p className="text-[0.8rem] text-[#1A1815] leading-relaxed" style={serif}>{pattern.confession}</p>
+              <WordInline text={pattern.confession} className="text-[0.8rem] text-[#1A1815] leading-relaxed" style={serif} />
             </div>
           )}
           {pattern.reticence && (
             <div className="border-l-2 border-[#5A5751] pl-2">
               <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">Where the text stops, we stop</div>
-              <p className="text-[0.8rem] text-[#1A1815] leading-relaxed" style={serif}>{pattern.reticence}</p>
+              <WordInline text={pattern.reticence} className="text-[0.8rem] text-[#1A1815] leading-relaxed" style={serif} />
             </div>
           )}
         </div>
