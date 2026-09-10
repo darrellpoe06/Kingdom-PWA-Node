@@ -169,3 +169,7 @@ DR-0076 (verify; measure, do not claim; proven-to-catch), DR-0060 + DR-0241
 the SMS-bridge non-goal this respects), Reality-Trace P15 (a surface is a live
 view of real state), LEGAL-PRIVACY-BOUNDARY (the lock-screen decision),
 COMMUNITY-FIRST-MISSION (the congregation is who this is for).
+
+## Amendment 2026-09-09 — the sender had no database, and the phone that said ON heard nothing (DR-0343)
+
+The first real attempt after DR-0336 installed the VAPID pair: Darrell's phone, "Notifications on", a message from mrspoe06 at 8:57 PM, and an empty shade. The trace (DR-0343) found the sender's `SUPABASE_URL` / `SUPABASE_SERVICE_KEY` were never installed on the Pages project — this record's pipeline stopped at the first `503 not-configured`, which the fire-and-forget design swallows — and that the database it would have read is the hosted one while the app has read the sovereign stack since REPOINT-ARMED. Both are closed by `push-sender-credentials.yml`, and the audience rule above is amended: a `message` is read by **person**, not by the message's instance. The 2026-09-13 re-review stays open until a real phone receives a real notification; DR-0343 is what makes that attempt possible.

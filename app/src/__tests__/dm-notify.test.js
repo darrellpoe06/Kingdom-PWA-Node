@@ -9,7 +9,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { notifyDecision, applyTitleBadge } from '../lib/dm-notify.js';
+import { notifyDecision, applyTitleBadge, applyAppBadge } from '../lib/dm-notify.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -62,5 +62,39 @@ describe('wiring — the doorbell is mounted app-wide and asked for by a tap', (
     const src = readFileSync(join(HERE, '..', 'lib', 'dm-notify.js'), 'utf8');
     expect(src).toMatch(/HIDDEN_HEARTBEAT_MS = 60000/);
     expect(src).toMatch(/visibilityState === 'hidden'\) stopSub\?\.refresh\?\.\(\)/);
+  });
+});
+
+// The number on the APP ICON (Darrell, 2026-09-09: "on the app and in the
+// notification list"). Follows the unread count exactly; zero clears it; a
+// browser without the Badging API is a no-op rather than a fault.
+describe('applyAppBadge — the launcher icon carries the unread count', () => {
+  const nav = () => {
+    const calls = { set: [], cleared: 0 };
+    return { calls, setAppBadge(n) { calls.set.push(n); return Promise.resolve(); }, clearAppBadge() { calls.cleared += 1; return Promise.resolve(); } };
+  };
+  it('a count sets the badge', () => {
+    const n = nav();
+    expect(applyAppBadge(n, 3)).toBe('set');
+    expect(n.calls.set).toEqual([3]);
+  });
+  it('zero clears it (read messages drop the number)', () => {
+    const n = nav();
+    expect(applyAppBadge(n, 0)).toBe('cleared');
+    expect(n.calls.cleared).toBe(1);
+    expect(n.calls.set).toEqual([]);
+  });
+  it('no Badging API is honest and harmless', () => {
+    expect(applyAppBadge({}, 2)).toBe('unsupported');
+    expect(applyAppBadge(undefined, 2)).toBe('unsupported');
+  });
+  it('a launcher that rejects never throws into the app', () => {
+    const n = { setAppBadge() { throw new Error('nope'); } };
+    expect(() => applyAppBadge(n, 1)).not.toThrow();
+  });
+  it('the watcher wires it beside the title badge (source pin)', () => {
+    const src = readFileSync(join(HERE, '..', 'lib', 'dm-notify.js'), 'utf8');
+    expect(src).toContain('applyAppBadge(win.navigator, next)');
+    expect(src).toContain('applyAppBadge(win.navigator, 0)');
   });
 });

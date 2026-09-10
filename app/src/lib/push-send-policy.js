@@ -134,3 +134,34 @@ export function messageAnnouncement({ senderName } = {}) {
     body: 'Open the app to read it.',
   };
 }
+
+/**
+ * WHO is read from `push_subscriptions` for this send — as PostgREST query
+ * params, built in one tested place.
+ *
+ * A `live` announcement is a CONGREGATION: every device in the church's
+ * instance that opted into `live`. A `message` is a PERSON: the recipient's
+ * devices wherever they turned notifications on. That second half is the
+ * 2026-09-09 fix — a phone is filed under whichever instance was active when
+ * its owner tapped ON (the family space, the church door, a ministry), and the
+ * message's tenant is whichever space the two people share. Filtering a
+ * person's phone by the message's instance found nothing and buzzed nobody,
+ * with every layer reporting success. The person IS the authorization here
+ * (the row's user_id is theirs; `users_can_dm` already gated the message), so
+ * the instance is dropped whenever an explicit audience is named.
+ *
+ * @returns {URLSearchParams}
+ */
+export function audienceQuery({ topic, instanceId, userIds }) {
+  const params = new URLSearchParams();
+  params.set('select', 'id,endpoint,p256dh,auth,user_id,disabled_at');
+  params.set('topics', `cs.{${topic}}`);
+  params.set('disabled_at', 'is.null');
+  const people = Array.isArray(userIds) ? userIds.filter((u) => typeof u === 'string' && u) : [];
+  if (people.length) {
+    params.set('user_id', `in.(${people.join(',')})`);
+  } else {
+    params.set('instance_id', `eq.${instanceId}`);
+  }
+  return params;
+}
