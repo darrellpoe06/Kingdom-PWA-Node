@@ -28,10 +28,6 @@ export function AgreementBody({ agreement }) {
 export function HandbookBody() {
   return (
     <div className="space-y-3 text-xs text-[#1A1815] leading-relaxed">
-      <p className="text-[#5A5751]">{TLC_HANDBOOK.welcome}</p>
-      <p><b>Mission.</b> {TLC_HANDBOOK.mission}</p>
-      <p><b>Vision.</b> {TLC_HANDBOOK.vision}</p>
-      <p>{TLC_HANDBOOK.contractorStatus}</p>
       {TLC_HANDBOOK.sections.map((s) => (
         <section key={s.id}>
           <h5 className="font-semibold">{s.title}</h5>
