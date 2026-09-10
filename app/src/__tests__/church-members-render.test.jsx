@@ -1,5 +1,5 @@
 // =============================================================================
-// ChurchMembers — the Love Corner door governs itself, rendered (DR-0346)
+// ChurchMembers — the Love Corner door governs itself, rendered (DR-0347)
 // =============================================================================
 // Mounts the real tab with the server's answers stubbed at the sync seams
 // (list_my_admin_instances, list_instance_members, list_member_capabilities,

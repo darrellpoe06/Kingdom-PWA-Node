@@ -172,7 +172,7 @@ export const FEEDBACK_AREAS = [
     ['church-projects', 'Church · Projects (the Love Corner project board — video wall · ministries · Assembly · infra · door · outreach)'],
     ['church-engagement', 'Church · Engagement (trivia + messages)'],
     ['church-bus', 'Church · Bus Ministry (drivers · routes · schedule · reminders · messages · meetings)'],
-    ['church-members', 'Church · Members (the way in · people by standing with faces · may / may-not · invite · remove — DR-0346)'],
+    ['church-members', 'Church · Members (the way in · people by standing with faces · may / may-not · invite · remove — DR-0347)'],
     ['church-program', 'Church · Order of Service (master program → per-sector derived views · timing reflow)'],
     ['church-learn', 'Church · Learn (Learning A.I. The Way class)'],
     ['church-eternal-algorithms', 'Church · Eternal Algorithms (if/then studies · self-examination → game)'],
