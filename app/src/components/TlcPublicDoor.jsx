@@ -22,6 +22,7 @@ import { onAuthChange } from '../lib/supabase.js';
 import { useOfficeInstanceRole, canManageTeam } from '../lib/instance-role.js';
 import AppShareQR from './AppShareQR.jsx';
 import PasswordAuth from './PasswordAuth.jsx';
+import TTSControl from './TTSControl.jsx';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import HeaderAuthButton from './HeaderAuthButton.jsx';
 import SectionTabs from './SectionTabs.jsx';
@@ -51,7 +52,7 @@ import { TLC_APP_PATH } from '../lib/tlc-onboarding.js';
 // never shown under an invite — the person came to join the team, not to book.
 function OnboardingDoor({ token, signedIn }) {
   return (
-    <main className="w-full px-4 sm:px-6 py-6 space-y-4">
+    <div className="w-full px-4 sm:px-6 py-6 space-y-4">
       <section className="bg-white border border-[#1A1815] p-4">
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Join the clinical team</div>
         <h2 className="text-xl mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>You have been invited to onboard with TLC Therapy Solutions.</h2>
@@ -67,7 +68,7 @@ function OnboardingDoor({ token, signedIn }) {
             <p className="text-xs text-[#5A5751]">Once your packet is approved, the TLC app opens your Training and Team sections: <a href={`${TLC_APP_PATH}?tlc=1`} className="underline text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">open the TLC app</a>.</p>
           </>
         : <div className="border border-[#E8E4DC] bg-white p-3 sm:w-96"><PasswordAuth mode="signup" embedded brand={{ name: 'TLC Therapy Solutions', eyebrow: 'TLC Therapy Solutions' }} /></div>}
-    </main>
+    </div>
   );
 }
 
@@ -75,7 +76,7 @@ function OnboardingDoor({ token, signedIn }) {
 function ClientDoor() {
   const team = useTlcRoster(); // seed cards + approved colleagues (DR-0344)
   return (
-    <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
       {/* Match a Preferred Provider — FIRST (Darrell: "the first thing we see"). */}
       <section>
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Clinical Team</div>
@@ -130,7 +131,7 @@ function ClientDoor() {
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1.5">Insurance Accepted</div>
         <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{TLC_INSURANCE}</p>
       </section>
-    </main>
+    </div>
   );
 }
 
@@ -177,7 +178,7 @@ export default function TlcPublicDoor() {
   const visitorSections = [
     { id: 'find', label: 'Find your therapist', icon: 'users', render: () => <ClientDoor /> },
     // "Maybe a mental skill building place tab" (Darrell 2026-09-10).
-    { id: 'learn', label: 'Mental skills', icon: 'bookOpen', render: () => <div className="pt-3 pb-6"><PracticeLearn email="" isStaff={false} deepLink={deepLink} guest onFindTherapist={() => setVisitorTab('find')} onCreateAccount={() => openAuth('signup')} /></div> },
+    { id: 'learn', label: 'Mental skills', icon: 'bookOpen', render: () => <div className="pt-3 pb-6"><PracticeLearn email="" isStaff={false} deepLink={deepLink} guest readAloud={false} onFindTherapist={() => setVisitorTab('find')} onCreateAccount={() => openAuth('signup')} /></div> },
     { id: 'jobs', label: 'Join the team', icon: 'pencil', render: () => <div className="pt-3 pb-6"><JoinTheTeam lead={jobsLink.jobs} jobId={jobsLink.jobId} interest={jobsLink.interest} /></div> },
   ]; // the one slider, controlled so Team can send you to a sister tab
   const [showShare, setShowShare] = useState(false);
@@ -263,7 +264,7 @@ export default function TlcPublicDoor() {
     // A new colleague (a packet exists, not yet approved) reads the office
     // documents on Team while they sign them, and trains; the workspace
     // waits for approval (doorTabsFor('newhire')).
-    { id: 'training', label: staff || newHire ? 'Training' : 'Mental skills', icon: 'bookOpen', render: () => <div className="pt-3"><PracticeLearn email={sessionEmail} isStaff={!!staff} deepLink={deepLink} /></div> },
+    { id: 'training', label: staff || newHire ? 'Training' : 'Mental skills', icon: 'bookOpen', render: () => <div className="pt-3"><PracticeLearn email={sessionEmail} isStaff={!!staff} deepLink={deepLink} readAloud={false} /></div> },
     ...(staff || newHire ? [
       { id: 'team', label: 'Team', icon: 'book', render: () => <TlcTeamResources staff={!!staff} onOpen={(id) => setActiveTab(id)} roleState={roleState} userId={sessionUserId} /> },
     ] : []),
@@ -448,17 +449,26 @@ export default function TlcPublicDoor() {
 
       {/* Signed-in staff get the office menu (Find + Assistant); a client gets
           just the booking page. */}
-      {onboardToken ? (
-        <OnboardingDoor token={onboardToken} signedIn={signedIn} />
-      ) : signedIn ? (
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4">
-          <SectionTabs sections={sections} ariaLabel="TLC app sections" idBase="tlc-app" defaultId="find" activeId={activeTab} onActiveChange={setActiveTab} />
-        </div>
-      ) : (
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4">
-          <SectionTabs sections={visitorSections} ariaLabel="TLC door sections" idBase="tlc-door" defaultId="find" activeId={visitorTab} onActiveChange={setVisitorTab} />
-        </div>
-      )}
+      {/* ONE main for whatever the door shows: the READER (Darrell 2026-09-10,
+          on Team: "we want the reader function to be added") reads from here —
+          the documents, the launch board, a packet, a posting — never the bar. */}
+      <main>
+        {onboardToken ? (
+          <OnboardingDoor token={onboardToken} signedIn={signedIn} />
+        ) : signedIn ? (
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4">
+            <SectionTabs sections={sections} ariaLabel="TLC app sections" idBase="tlc-app" defaultId="find" activeId={activeTab} onActiveChange={setActiveTab} />
+          </div>
+        ) : (
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4">
+            <SectionTabs sections={visitorSections} ariaLabel="TLC door sections" idBase="tlc-door" defaultId="find" activeId={visitorTab} onActiveChange={setVisitorTab} />
+          </div>
+        )}
+      </main>
+
+      {/* The single floating read-aloud control for the whole door — every
+          tab, signed in or out; the same reader every PoeTech surface carries. */}
+      <TTSControl />
 
       <footer className="border-t border-[#E8E4DC] mt-4">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 text-center">
