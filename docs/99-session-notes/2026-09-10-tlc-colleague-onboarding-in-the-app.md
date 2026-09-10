@@ -33,3 +33,25 @@
 - The live round trip (mint on Christina's phone, open on a colleague's, upload, submit, approve, card on all three surfaces) is not exercised in the sandbox: no session can sign in to the live office from here. `re-review: 2026-09-17` with the first real onboarding.
 - The website (tlctherapysolutions.me) has no write door the app holds; the app publishes to its own three surfaces and hands Christina the card text for the site editor. This is a named gap, not a claim.
 - The existing Google Sheet still holds the five earlier responses, including the plaintext password and bank numbers. That sheet is Christina's to clean; the app does not read it. Recommended, in Drive by her hand (a dashboard step): remove the CAQH password cell, then restrict the sheet's sharing to herself.
+
+## Same session, four more directives (the Drive sweep, training, the flatten)
+
+Darrell pasted the whole *Training Notes for Therapists-in-Training* document, then: *"intuitive integration for easy on-boarding and user experiences"* · *"We have lessons etc can we make sure those workflows are inside the TLC Therapy Solutions App comb our drive for documentation of systems we need or should add here"* · *"Training etc..."* · with four screenshots of the operator TLC tab: *"we need sliding tabs like the others so there are only one or two levels"* · *"learn space... is different from the church learn space."*
+
+**The Drive sweep — every TLC systems document found, and its in-app carry**
+
+| Drive document | Owner | In the app now | Remaining |
+|---|---|---|---|
+| Therapist Onboarding \| Hiring Form + Responses + File responses | Darrell | The Onboarding intake packet (this delivery) | Christina cleans the old sheet (a Drive step by her hand: remove the password cell, restrict sharing) |
+| Independent Contractor Handbook | TLC | Readable in place on Team, section for section (`lib/tlc-handbook.js`) | The Drive doc stays the source; a change there is a one-file edit here |
+| Independent Contractor Agreement; Confidentiality Agreement (NDA) | TLC | Signed in the intake packet; linked on Team | none |
+| Training Notes for Therapists-in-Training (six scripts) | TLC | Six courses in Training (`lib/tlc-session-scripts.js`), her words, verbatim KJV, four strands | Christina's in-app Agree on each |
+| TLCTS LAUNCH (task tracker) | Christina | Linked on Team; the Assistant workspace carries the working schedule | A launch board in the Assistant workspace — `re-review: 2026-09-24` |
+| Finding Peace: Biblical Wisdom for Life's Stressors (manuscript, 11 chapters) | Christina | Linked on Team | A client-facing lesson track; her quotations are NIV, the app hosts KJV/WEB, so verses open in place by reference — `re-review: 2026-09-24` |
+| TLC Therapy Data (2025 prototype sheet) | Darrell | superseded by the app | none |
+
+Not TLC Therapy: Streaming Instructions for TLC 2020 and *TLC Infrastructure* (the church), the career class (church youth), trucking and real-estate sheets.
+
+**Built.** `lib/tlc-session-scripts.js` (six courses registered in the training library) · `lib/tlc-handbook.js` (handbook + office documents as data) · `components/TlcTeamResources.jsx` (Team) · `myPacketStatus()` in the seam · the TLC door gains **Training** (the TLC Learn space, `PracticeLearn`, never the church Learn space) and **Team** for every signed-in colleague; the invite flow points an approved colleague at them · the operator TLC tab is one strip — Practice · Client Growth · Learn · Intake · Assistant · Onboarding — `Practice` takes a `section` prop and renders the destination without its own strip (shell line count unchanged at 5345).
+
+**Proof.** `tlc-session-scripts.test.js` (10) green, including every quoted verse against `app/public/bible/kjv` word for word; `tlc-training-library`, `tlc-course-strands`, `tlc-practice`, the door tests and the onboarding render tests re-run green; guards unchanged.

@@ -4434,7 +4434,7 @@ ${THEME_CSS}
             {/* TLC sub-nav — three views of the one TLC office, routed through the
                 shared <TabScroll> primitive (same fluid scroll as the main nav). */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
-                {[['practice', <><UiIcon name="heart" /> Practice</>],['intake', <><UiIcon name="phone" /> Intake</>],['assistant', <><UiIcon name="users" /> Assistant</>],['onboard', <><UiIcon name="pencil" /> Onboarding</>]].map(([id, label]) => (
+                {[['practice', <><UiIcon name="heart" /> Practice</>],['growth', <><UiIcon name="chart" /> Client Growth</>],['learn', <><UiIcon name="bookOpen" /> Learn</>],['intake', <><UiIcon name="phone" /> Intake</>],['assistant', <><UiIcon name="users" /> Assistant</>],['onboard', <><UiIcon name="pencil" /> Onboarding</>]].map(([id, label]) => (
                   <button key={id} onClick={() => setTlcSub(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${tlcSub === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
             </TabScroll>
@@ -5100,8 +5100,8 @@ ${THEME_CSS}
         {view === 'tlc' && ((isFamilyMember || tierMeets(data.userTier, 'business'))
           ? (
             <SectionBoundary name="TLC">
-              {tlcSub === 'practice' && (
-                <Practice inquiries={data.inquiries} contractors={data.contractors1099} addInquiry={addInquiry} updateInquiry={updateInquiry} deleteInquiry={deleteInquiry} practiceLeads={data.practiceLeads} addLead={addLead} updateLead={updateLead} deleteLead={deleteLead} email={authSession?.user?.email || ''} isStaff={isFamilyMember} />
+              {['practice', 'growth', 'learn'].includes(tlcSub) && (
+                <Practice inquiries={data.inquiries} contractors={data.contractors1099} addInquiry={addInquiry} updateInquiry={updateInquiry} deleteInquiry={deleteInquiry} practiceLeads={data.practiceLeads} addLead={addLead} updateLead={updateLead} deleteLead={deleteLead} email={authSession?.user?.email || ''} isStaff={isFamilyMember} section={tlcSub === 'practice' ? 'operations' : tlcSub} />
               )}
               {tlcSub === 'intake' && (
                 <Inbound voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} />

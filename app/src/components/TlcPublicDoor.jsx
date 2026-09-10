@@ -30,6 +30,10 @@ import { useAutoHideHeader } from '../lib/use-auto-hide-header.js';
 import { readOnboardTokenFromUrl } from '../lib/tlc-onboarding.js';
 import TlcOnboardingForm from './TlcOnboardingForm.jsx';
 import TlcOnboarding from './TlcOnboarding.jsx';
+import TlcTeamResources from './TlcTeamResources.jsx';
+import { PracticeLearn } from './PracticeLearn.jsx';
+import { myPacketStatus } from '../lib/tlc-onboarding-sync.js';
+import { TLC_APP_PATH } from '../lib/tlc-onboarding.js';
 
 // A colleague arriving on Christina's one-time link (?onboard=TOKEN, DR-0343):
 // signed out, they meet a sign-in / create-login card that says what the link
@@ -48,7 +52,10 @@ function OnboardingDoor({ token, signedIn }) {
         </p>
       </section>
       {signedIn
-        ? <TlcOnboardingForm token={token} />
+        ? <>
+            <TlcOnboardingForm token={token} />
+            <p className="text-xs text-[#5A5751]">Once your packet is approved, the TLC app opens your Training and Team sections: <a href={`${TLC_APP_PATH}?tlc=1`} className="underline text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">open the TLC app</a>.</p>
+          </>
         : <div className="border border-[#E8E4DC] bg-white p-3 sm:w-96"><PasswordAuth mode="signup" embedded brand={{ name: 'TLC Therapy Solutions', eyebrow: 'TLC Therapy Solutions' }} /></div>}
     </main>
   );
@@ -155,7 +162,9 @@ export default function TlcPublicDoor() {
   }, []);
 
   // Track sign-in so staff get the office menu; clients get the booking page.
-  useEffect(() => onAuthChange((s) => setSignedIn(!!s)), []);
+  const [sessionEmail, setSessionEmail] = useState('');
+  const [colleague, setColleague] = useState(null); // the signed-in person's own intake packet, if any
+  useEffect(() => onAuthChange((s) => { setSignedIn(!!s); setSessionEmail(s?.user?.email || ''); if (s) myPacketStatus().then(setColleague); else setColleague(null); }), []);
 
   const signOut = async () => { try { await supabase.auth.signOut(); } catch (e) { /* ignore */ } };
 
@@ -166,8 +175,16 @@ export default function TlcPublicDoor() {
   // way, so this prop is presentation, not security (DR-0074).
   const roleState = useInstanceRole();
   const operatorRole = ['owner', 'admin', 'member'].includes(roleState.role || '');
+  // An approved colleague is staff for the TLC Learn space (the therapist +
+  // training audiences) even before any membership grant — their packet says so.
+  const staff = operatorRole || (colleague && colleague.status === 'approved');
   const sections = [
     { id: 'find', label: 'Find your therapist', icon: 'users', render: () => <ClientDoor /> },
+    // The TLC Learn space (PracticeLearn) — TLC's own, not the church Learn
+    // space (Darrell 2026-09-10). Clients see psychoeducation; staff see the
+    // therapist + training audiences with the session scripts and courses.
+    { id: 'training', label: 'Training', icon: 'bookOpen', render: () => <div className="pt-3"><PracticeLearn email={sessionEmail} isStaff={!!staff} /></div> },
+    { id: 'team', label: 'Team', icon: 'book', render: () => <TlcTeamResources /> },
     { id: 'assistant', label: 'Assistant', icon: 'chat', render: () => <TlcAssistant isGovernor={operatorRole} /> },
     // The office owner/admin brings colleagues on board from the TLC app
     // itself (DR-0343); the panel re-checks the role from the database.

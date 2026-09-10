@@ -97,7 +97,11 @@ const insuranceLabel = (val) => {
   return m ? m.label + (m.accepted ? ' ✓' : '') : val;
 };
 
-function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInquiry, practiceLeads = [], addLead, updateLead, deleteLead, email = '', isStaff = false }) {
+// `section` (Darrell 2026-09-10: "we need sliding tabs like the others so there
+// are only one or two levels"): when the TLC sub-nav names a destination
+// ('operations' | 'growth' | 'learn'), that section renders directly — no
+// third strip. The banner + live inquiry KPIs stay pinned on Operations only.
+function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInquiry, practiceLeads = [], addLead, updateLead, deleteLead, email = '', isStaff = false, section = null }) {
   // The live roster over the seed cards (DR-0343): an approved colleague
   // appears here the same way the seven current therapists do.
   const team = useTlcRoster();
@@ -515,6 +519,8 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
     },
   ];
 
+  const direct = section ? (sections.find((x) => x.id === section) || null) : null;
+  if (direct && direct.id !== 'operations') return <div className="space-y-5">{direct.render()}</div>;
   return (
     <div className="space-y-5">
       {/* Pinned above the section strip: the TLC identity banner + the live
@@ -553,7 +559,7 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
         <MetricCell label="Conversion" value={stats.closed > 0 ? `${stats.conversionRate.toFixed(0)}%` : '—'} sub="of closed" small />
       </section>
 
-      <SectionTabs sections={sections} ariaLabel="Practice sections" idBase="practice" defaultId="operations" />
+      {direct ? direct.render() : <SectionTabs sections={sections} ariaLabel="Practice sections" idBase="practice" defaultId="operations" />}
     </div>
   );
 }

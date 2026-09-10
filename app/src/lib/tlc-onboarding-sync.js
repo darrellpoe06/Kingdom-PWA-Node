@@ -109,6 +109,21 @@ export async function deletePacket(view) {
 
 // ---- The colleague's side ---------------------------------------------------
 
+// The signed-in person's OWN packet, if any — RLS lets an applicant read their
+// own row directly (0187 tlc_onboarding_packets_applicant_read). Lets the TLC
+// door recognize an approved colleague without a token. Null when none.
+export async function myPacketStatus() {
+  const userId = await currentUserId();
+  if (!userId) return null;
+  try {
+    const { data, error } = await withTimeout(
+      supabase.from('tlc_onboarding_packets').select('id,status,reviewed_at,submitted_at').eq('applicant_user_id', userId).order('updated_at', { ascending: false }).limit(1),
+      RPC_TIMEOUT_MS, 'reading your packet');
+    if (error || !Array.isArray(data) || !data.length) return null;
+    return { packetId: data[0].id, status: data[0].status, reviewedAt: data[0].reviewed_at, submittedAt: data[0].submitted_at };
+  } catch { return null; }
+}
+
 export async function openPacket(token) {
   const t = String(token || '').trim();
   if (!t) return fail('no-token', 'This link is missing its invitation code.');

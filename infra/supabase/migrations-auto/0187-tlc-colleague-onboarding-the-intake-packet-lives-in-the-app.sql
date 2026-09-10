@@ -285,7 +285,7 @@ DECLARE
 BEGIN
   IF auth.uid() IS NULL THEN RAISE EXCEPTION 'sign in first'; END IF;
   SELECT * INTO v_office FROM public.tlc_onboarding_my_office();
-  IF v_office.instance_id IS NULL OR v_office.role NOT IN ('owner','admin') THEN
+  IF v_office.instance_id IS NULL OR coalesce(v_office.role, '') NOT IN ('owner','admin') THEN
     RAISE EXCEPTION 'only the office owner or admin can edit the roster';
   END IF;
   IF row_in IS NULL OR jsonb_typeof(row_in) <> 'object' THEN RAISE EXCEPTION 'a roster card must be an object'; END IF;
@@ -339,7 +339,7 @@ BEGIN
   IF auth.uid() IS NULL THEN RAISE EXCEPTION 'sign in first'; END IF;
   SELECT * INTO v_row FROM public.tlc_roster WHERE id = id_in;
   IF v_row.id IS NULL THEN RETURN false; END IF;
-  IF public.user_role_in_instance(v_row.instance_id) NOT IN ('owner','admin') THEN
+  IF coalesce(public.user_role_in_instance(v_row.instance_id), '') NOT IN ('owner','admin') THEN
     RAISE EXCEPTION 'only the office owner or admin can edit the roster';
   END IF;
   DELETE FROM public.tlc_roster WHERE id = v_row.id;
@@ -362,7 +362,7 @@ DECLARE
 BEGIN
   IF auth.uid() IS NULL THEN RAISE EXCEPTION 'sign in first'; END IF;
   SELECT * INTO v_office FROM public.tlc_onboarding_my_office();
-  IF v_office.instance_id IS NULL OR v_office.role NOT IN ('owner','admin') THEN RETURN '[]'::jsonb; END IF;
+  IF v_office.instance_id IS NULL OR coalesce(v_office.role, '') NOT IN ('owner','admin') THEN RETURN '[]'::jsonb; END IF;
   RETURN coalesce((
     SELECT jsonb_agg(jsonb_build_object(
              'id', r.id, 'name', r.name, 'role', r.role, 'specialty', r.specialty, 'url', r.url,
@@ -411,7 +411,7 @@ DECLARE
 BEGIN
   IF auth.uid() IS NULL THEN RAISE EXCEPTION 'sign in first'; END IF;
   SELECT * INTO v_office FROM public.tlc_onboarding_my_office();
-  IF v_office.instance_id IS NULL OR v_office.role NOT IN ('owner','admin') THEN
+  IF v_office.instance_id IS NULL OR coalesce(v_office.role, '') NOT IN ('owner','admin') THEN
     RAISE EXCEPTION 'only the office owner or admin can invite a colleague';
   END IF;
   IF v_email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' THEN
@@ -451,7 +451,7 @@ BEGIN
   IF auth.uid() IS NULL THEN RAISE EXCEPTION 'sign in first'; END IF;
   SELECT * INTO v_inv FROM public.tlc_onboarding_invites WHERE id = invite_id_in;
   IF v_inv.id IS NULL THEN RETURN false; END IF;
-  IF public.user_role_in_instance(v_inv.instance_id) NOT IN ('owner','admin') THEN
+  IF coalesce(public.user_role_in_instance(v_inv.instance_id), '') NOT IN ('owner','admin') THEN
     RAISE EXCEPTION 'only the office owner or admin can revoke an invite';
   END IF;
   IF v_inv.revoked_at IS NULL THEN
@@ -643,7 +643,7 @@ DECLARE
 BEGIN
   IF auth.uid() IS NULL THEN RAISE EXCEPTION 'sign in first'; END IF;
   SELECT * INTO v_office FROM public.tlc_onboarding_my_office();
-  IF v_office.instance_id IS NULL OR v_office.role NOT IN ('owner','admin') THEN
+  IF v_office.instance_id IS NULL OR coalesce(v_office.role, '') NOT IN ('owner','admin') THEN
     RETURN jsonb_build_object('office_name', v_office.office_name, 'manager', false, 'invites', '[]'::jsonb, 'packets', '[]'::jsonb);
   END IF;
   RETURN jsonb_build_object(
@@ -692,7 +692,7 @@ BEGIN
   SELECT * INTO v_pkt FROM public.tlc_onboarding_packets WHERE id = packet_id_in;
   IF v_pkt.id IS NULL THEN RETURN NULL; END IF;
   IF v_pkt.applicant_user_id <> auth.uid() THEN
-    IF public.user_role_in_instance(v_pkt.instance_id) NOT IN ('owner','admin') THEN
+    IF coalesce(public.user_role_in_instance(v_pkt.instance_id), '') NOT IN ('owner','admin') THEN
       RAISE EXCEPTION 'that packet is not yours to read';
     END IF;
     INSERT INTO audit_log (instance_id, user_id, action, entity_type, entity_id, from_value, to_value, note)
@@ -722,7 +722,7 @@ BEGIN
   IF auth.uid() IS NULL THEN RAISE EXCEPTION 'sign in first'; END IF;
   SELECT * INTO v_pkt FROM public.tlc_onboarding_packets WHERE id = packet_id_in;
   IF v_pkt.id IS NULL THEN RETURN NULL; END IF;
-  IF public.user_role_in_instance(v_pkt.instance_id) NOT IN ('owner','admin') THEN
+  IF coalesce(public.user_role_in_instance(v_pkt.instance_id), '') NOT IN ('owner','admin') THEN
     RAISE EXCEPTION 'only the office owner or admin may read banking details';
   END IF;
   SELECT * INTO v_b FROM public.tlc_onboarding_banking WHERE packet_id = v_pkt.id;
@@ -763,7 +763,7 @@ BEGIN
   IF auth.uid() IS NULL THEN RAISE EXCEPTION 'sign in first'; END IF;
   SELECT * INTO v_pkt FROM public.tlc_onboarding_packets WHERE id = packet_id_in;
   IF v_pkt.id IS NULL THEN RAISE EXCEPTION 'no such packet'; END IF;
-  IF public.user_role_in_instance(v_pkt.instance_id) NOT IN ('owner','admin') THEN
+  IF coalesce(public.user_role_in_instance(v_pkt.instance_id), '') NOT IN ('owner','admin') THEN
     RAISE EXCEPTION 'only the office owner or admin can review a packet';
   END IF;
   IF decision_in NOT IN ('approve','return') THEN RAISE EXCEPTION 'decision must be approve or return'; END IF;
@@ -886,7 +886,7 @@ BEGIN
   IF auth.uid() IS NULL THEN RAISE EXCEPTION 'sign in first'; END IF;
   SELECT * INTO v_pkt FROM public.tlc_onboarding_packets WHERE id = packet_id_in;
   IF v_pkt.id IS NULL THEN RETURN false; END IF;
-  IF public.user_role_in_instance(v_pkt.instance_id) NOT IN ('owner','admin') THEN
+  IF coalesce(public.user_role_in_instance(v_pkt.instance_id), '') NOT IN ('owner','admin') THEN
     RAISE EXCEPTION 'only the office owner or admin can remove a packet';
   END IF;
   DELETE FROM public.tlc_onboarding_packets WHERE id = v_pkt.id;
