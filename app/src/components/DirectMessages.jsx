@@ -22,13 +22,14 @@ import {
   groupDmThreads, threadMessages, isSendableBody, markThreadReadLocal,
 } from '../lib/direct-messages-sync.js';
 import { receiptLabels } from '../lib/direct-messages.js';
+import { useProfiles, preferredName } from '../lib/use-profiles.js';
 import { useVoiceDictation } from '../lib/voice-dictation.js';
 import { requestDmNotificationPermission } from '../lib/dm-notify.js';
 import PushNotifications from './PushNotifications.jsx';
 import { pushSupported } from '../lib/push-subscribe.js';
 import { useVapidPublicKey } from '../lib/push-key.js';
 import UiIcon from './UiIcon.jsx';
-import ProfileCard from './ProfileCard.jsx';
+import ProfileCard, { ProfileAvatar } from './ProfileCard.jsx';
 
 // Long inputs grow with the writer (Darrell 2026-07-27: "also long inputs"):
 // the composer rises with its content up to a screen-friendly cap, then
@@ -112,12 +113,23 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
     return (roster || []).filter((p) => p && p.userId && !known.has(p.userId));
   }, [roster, threads]);
 
+  // Every person on this surface — threads and the roster — carries their
+  // chosen name and picture (DR-0342; Darrell 2026-09-09: "users like to see
+  // their picture"). One cached read per person; a person without a profile
+  // falls back to the roster's name, then the name their messages carried.
+  const peopleIds = useMemo(() => [
+    ...threads.map((t) => t.otherUserId),
+    ...(roster || []).map((p) => p && p.userId),
+  ], [threads, roster]);
+  const profiles = useProfiles(peopleIds);
   const nameFor = (otherUserId) => {
     const t = threads.find((x) => x.otherUserId === otherUserId);
-    if (t && t.otherName) return t.otherName;
     const r = (roster || []).find((p) => p.userId === otherUserId);
-    return r?.displayName || 'Member';
+    return preferredName(profiles[otherUserId], r?.displayName, t?.otherName);
   };
+  const avatarFor = (otherUserId, size) => (
+    <ProfileAvatar profile={profiles[otherUserId] || { displayName: nameFor(otherUserId) }} size={size} />
+  );
 
   const openThread = (otherUserId) => {
     setOpenWith(otherUserId);
@@ -183,8 +195,8 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
         <h4 className="text-sm font-medium text-[#1A1815]">{title}</h4>
         {openWith && (
           <div className="flex items-center gap-1.5">
-            <button type="button" onClick={() => setShowProfile((v) => !v)} aria-expanded={showProfile} aria-label={`${showProfile ? 'Hide' : 'See'} ${nameFor(openWith)}'s profile`} className={`${BTN} border border-[#C9BFA8] text-[#1A1815] hover:border-[#1A1815]`}>
-              {nameFor(openWith)} {showProfile ? '▾' : '▸'}
+            <button type="button" onClick={() => setShowProfile((v) => !v)} aria-expanded={showProfile} aria-label={`${showProfile ? 'Hide' : 'See'} ${nameFor(openWith)}'s profile`} className={`${BTN} border border-[#C9BFA8] text-[#1A1815] hover:border-[#1A1815] inline-flex items-center gap-1.5`}>
+              {avatarFor(openWith, 22)} {nameFor(openWith)} {showProfile ? '▾' : '▸'}
             </button>
             <button type="button" onClick={() => { setOpenWith(null); setShowProfile(false); }} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>← Inbox</button>
           </div>
@@ -228,16 +240,20 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
               key={t.otherUserId}
               type="button"
               onClick={() => openThread(t.otherUserId)}
-              className="w-full text-left border border-[#E8E4DC] bg-white p-3 hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
+              className="w-full text-left border border-[#E8E4DC] bg-white p-3 hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838] flex items-center gap-3"
+              data-thread={t.otherUserId}
             >
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="text-sm font-medium text-[#1A1815]">{nameFor(t.otherUserId)}</span>
-                <span className="text-[0.625rem] text-[#5A5751]">{fmtTime(t.lastAt)}</span>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs text-[#5A5751] truncate">{t.last?.body || ''}</span>
-                {t.unread > 0 && <span className="text-[0.625rem] px-1.5 py-0.5 bg-[#B85838] text-white rounded-full">{t.unread}</span>}
-              </div>
+              <span className="shrink-0">{avatarFor(t.otherUserId, 40)}</span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="text-sm font-medium text-[#1A1815] truncate">{nameFor(t.otherUserId)}</span>
+                  <span className="text-[0.625rem] text-[#5A5751] shrink-0">{fmtTime(t.lastAt)}</span>
+                </span>
+                <span className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-[#5A5751] truncate">{t.last?.body || ''}</span>
+                  {t.unread > 0 && <span className="text-[0.625rem] px-1.5 py-0.5 bg-[#B85838] text-white rounded-full shrink-0">{t.unread}</span>}
+                </span>
+              </span>
             </button>
           ))}
           {startable.length > 0 && (
@@ -245,8 +261,8 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
               <span className={LABEL}>Start a message</span>
               <div className="flex flex-wrap gap-1.5">
                 {startable.map((p) => (
-                  <button key={p.userId} type="button" onClick={() => openThread(p.userId)} className={`${BTN} border border-[#C9BFA8] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815]`}>
-                    {p.displayName}
+                  <button key={p.userId} type="button" onClick={() => openThread(p.userId)} className={`${BTN} border border-[#C9BFA8] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815] inline-flex items-center gap-1.5`}>
+                    {avatarFor(p.userId, 20)} {nameFor(p.userId)}
                   </button>
                 ))}
               </div>
@@ -271,6 +287,7 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
             {convo.length === 0 && <p className="text-xs text-[#5A5751]">No messages yet — say hello.</p>}
             {convo.map((m) => (
               <div key={m.id} className={`text-sm ${m.mine ? 'text-right' : 'text-left'}`}>
+                {!m.mine && <span className="inline-block align-bottom mr-1.5">{avatarFor(openWith, 20)}</span>}
                 <div className={`inline-block px-3 py-1.5 max-w-[85%] ${m.locked ? 'italic text-[#5A5751] bg-white border border-dashed border-[#C9BFA8]' : m.mine ? 'bg-[#1A1815] text-white' : 'bg-white border border-[#E8E4DC] text-[#1A1815]'}`}>
                   {m.body}
                 </div>

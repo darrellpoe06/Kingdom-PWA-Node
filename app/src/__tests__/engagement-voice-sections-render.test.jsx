@@ -42,19 +42,24 @@ const clickTab = async (label) => {
 };
 
 describe('Engagement — trivia + thread behind section tabs', () => {
-  it('defaults to Trivia with the title pinned, and the Family thread swaps in on its tab', async () => {
+  it('opens on Message a member (Darrell 2026-09-09: messages first, then family, then trivia); the others swap in on their tabs', async () => {
     await mount(Engagement);
     expect(container.querySelector('[role="tablist"]')).toBeTruthy();
-    // Pinned title + default section (the anchor trivia set, signed out).
+    const order = [...container.querySelectorAll('[role="tab"]')].map((b) => (b.textContent || '').trim());
+    expect(order).toEqual(['Message a member', 'Family thread', 'Trivia']);
+    // Pinned title + default section (the private door, signed out: its honest sign-in note).
     expect(container.textContent).toMatch(/Engagement/);
-    expect(container.textContent).toMatch(/Featured Trivia/i);
-    expect(container.textContent).not.toMatch(/Two-way messages/i);
+    expect(container.textContent).toMatch(/Sign in \(top of the page\) to message a member/i);
+    expect(container.textContent).not.toMatch(/Featured Trivia/i);
 
     await clickTab('Family thread');
     expect(container.textContent).toMatch(/Two-way messages/i);
     // Signed out, the thread shows its honest sign-in note — never a dead panel.
     expect(container.textContent).toMatch(/Sign in .* to read and post/i);
     expect(container.textContent).not.toMatch(/Featured Trivia/i);
+
+    await clickTab('Trivia');
+    expect(container.textContent).toMatch(/Featured Trivia/i);
     // The pinned title is still there on a non-default section.
     expect(container.textContent).toMatch(/Engagement/);
   });
