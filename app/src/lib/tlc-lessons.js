@@ -45,6 +45,7 @@
 // wellness) are OFFERED to the client (Darrell 2026-07-04: inform, don't guard
 // — the only access gate is the clinician CE track, not client information).
 import { witnessClientModules } from './third-witness.js';
+import { findingPeaceModules } from './tlc-finding-peace.js';
 
 // Validation + reading-support flags carried by every track. Honest by default:
 // validated=false means "not yet specialist-signed-off — do not publish."
@@ -125,6 +126,9 @@ export const TLC_LESSON_TRACKS = {
       // setback lesson AND the metabolic-wellness digest are offered here —
       // informing the client, gating only the clinician CE track.
       ...witnessClientModules(),
+      // Christina's "Finding Peace" — eleven chapters as client lessons, the
+      // Word verbatim from the app's KJV (DR-0344; lib/tlc-finding-peace.js).
+      ...findingPeaceModules(),
     ],
   },
 

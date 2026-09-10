@@ -22,6 +22,14 @@ async function mount(props = {}) {
 }
 
 beforeEach(() => { try { localStorage.clear(); } catch { /* no storage */ } });
+// Training is areas on a second-row chip strip (Darrell 2026-09-10: "training
+// tab is too deep... another tab slider for each section"); a reader taps an
+// audience, then an area. These walk the surface the way the reader does.
+const click = (el) => act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+async function audience(re) { const b = [...container.querySelectorAll('button')].find((x) => re.test(x.textContent)); expect(b, `audience ${re}`).toBeTruthy(); await click(b); }
+function chip(label) { return [...container.querySelectorAll('[role="tablist"][aria-label="Training areas"] [role="tab"]')].find((t) => t.textContent.trim() === label); }
+async function area(label) { const t = chip(label); expect(t, `area ${label}`).toBeTruthy(); await click(t); }
+const areas = () => [...container.querySelectorAll('[role="tablist"][aria-label="Training areas"] [role="tab"]')].map((t) => t.textContent.trim());
 afterEach(() => {
   if (root) act(() => root.unmount());
   if (container) container.remove();
@@ -29,18 +37,25 @@ afterEach(() => {
 });
 
 describe('PracticeLearn — the Practice-scoped Learn space', () => {
-  it('leads with outcomes, reading support, and client content — no moralizing caveats', async () => {
+  it('leads with the lessons and reading support; every area is one chip away; no moralizing caveats', async () => {
     await mount();
-    const text = container.textContent;
+    let text = container.textContent;
     expect(text).toContain('A Learn space that builds real skill');
-    expect(text).toContain('What you’ll gain');
-    expect(text).toContain('Coping skills');
     expect(text).toContain('Reading support');
-    expect(text).toContain('Understanding & Coping'); // client track
+    expect(text).toContain('Understanding & Coping'); // client track, the default area
     expect(text).toMatch(/not treatment or diagnosis/i);
+    // The areas a client sees, side by side — nothing staff-only.
+    expect(areas()).toEqual(['Lessons', 'What you’ll gain', 'Certificates']);
+    expect(container.querySelectorAll('[role="tablist"]').length).toBe(1);
+    await area('What you’ll gain');
+    text = container.textContent;
+    expect(text).toContain('Coping skills');
+    expect(text).toContain('Skills you’ll build');
+    await area('Certificates');
+    expect(container.textContent).toMatch(/No certificate earned on this device yet/);
     // The old moralizing accreditation framing is gone.
-    expect(text).not.toMatch(/NOT YET ACCREDITED/);
-    expect(text).not.toMatch(/bright line/i);
+    expect(container.textContent).not.toMatch(/NOT YET ACCREDITED/);
+    expect(container.textContent).not.toMatch(/bright line/i);
   });
 
   it('PROVEN-TO-CATCH: a non-staff viewer sees NO clinician/training audience, ledger, or staff panels', async () => {
@@ -55,28 +70,31 @@ describe('PracticeLearn — the Practice-scoped Learn space', () => {
     expect(text).not.toContain('CEU renewal tracker');
   });
 
-  it('a staff viewer on Training & Hours sees the supervised-hours ledger toward the IL pathway', async () => {
+  it('a staff viewer on Training & Hours sees every area on the strip, and the supervised-hours ledger toward the IL pathway', async () => {
     await mount({ isStaff: true });
-    const tab = [...container.querySelectorAll('button')].find((b) => /Training & Hours/.test(b.textContent));
-    expect(tab).toBeTruthy();
-    await act(async () => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-    const text = container.textContent;
+    await audience(/Training & Hours/);
+    expect(areas()).toEqual(['Lessons', 'What you’ll gain', 'Course library', 'Training map', 'Pathways', 'Certificates', 'Hours', 'CE renewal', 'Catalog & required']);
+    await area('Hours');
+    let text = container.textContent;
     expect(text).toContain('Supervised hours ledger');
     expect(text).toMatch(/Illinois supervised clinical experience/);
-    expect(text).toContain('Certificate catalog');
-    expect(text).toContain('Required trainings');
     // A real "Log hours" control exists.
     expect([...container.querySelectorAll('button')].some((b) => /Log hours/.test(b.textContent))).toBe(true);
+    await area('Catalog & required');
+    text = container.textContent;
+    expect(text).toContain('Certificate catalog');
+    expect(text).toContain('Required trainings');
   });
 
   it('a staff viewer on Training & Hours sees the CEU renewal tracker — distinct from the supervised-hours ledger, driven by the Illinois ruleset', async () => {
     await mount({ isStaff: true });
-    const tab = [...container.querySelectorAll('button')].find((b) => /Training & Hours/.test(b.textContent));
-    await act(async () => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    await audience(/Training & Hours/);
+    // The post-license CE tracker is its own area, separate from the supervised-hours ledger (its own area too).
+    expect(areas()).toContain('Hours');
+    await area('CE renewal');
     const text = container.textContent;
-    // The post-license CE tracker renders, separate from the supervised-hours ledger.
     expect(text).toContain('CEU renewal tracker');
-    expect(text).toContain('Supervised hours ledger'); // both coexist
+    expect(text).not.toContain('Supervised hours ledger');
     // Reads the Illinois ruleset: total hours, renewal countdown, mandated topics.
     expect(text).toMatch(/Illinois/);
     expect(text).toContain('of 30');                      // 30 CE hours required
@@ -93,8 +111,8 @@ describe('PracticeLearn — the Practice-scoped Learn space', () => {
 
   it('the CEU tracker honors the first-renewal exemption when renewal # is set to 1st', async () => {
     await mount({ isStaff: true });
-    const tab = [...container.querySelectorAll('button')].find((b) => /Training & Hours/.test(b.textContent));
-    await act(async () => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    await audience(/Training & Hours/);
+    await area('CE renewal');
     // Find the "Renewal #" select and choose 1st (newly licensed).
     const selects = [...container.querySelectorAll('select')];
     const renewalSelect = selects.find((s) => [...s.options].some((o) => /newly licensed/i.test(o.textContent)));
@@ -109,27 +127,28 @@ describe('PracticeLearn — the Practice-scoped Learn space', () => {
 
   it('staff can switch to Therapists and see the clinician track + hours ledger', async () => {
     await mount({ isStaff: true });
-    const tab = [...container.querySelectorAll('button')].find((b) => b.textContent.trim().endsWith('Therapists'));
-    expect(tab).toBeTruthy();
-    await act(async () => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-    const text = container.textContent;
-    expect(text).toContain('Clinician CE & onboarding');
-    expect(text).toContain('Supervised hours ledger');
+    await audience(/Therapists$/);
+    expect(container.textContent).toContain('Clinician CE & onboarding');
+    await area('Hours');
+    expect(container.textContent).toContain('Supervised hours ledger');
   });
 
   it('staff on Training & Hours sees the built-out course library + the multi-year plan', async () => {
     await mount({ isStaff: true });
-    const tab = [...container.querySelectorAll('button')].find((b) => /Training & Hours/.test(b.textContent));
-    await act(async () => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-    const text = container.textContent;
+    await audience(/Training & Hours/);
+    await area('Course library');
+    let text = container.textContent;
     // The course library renders, grouped by the clinical fields.
     expect(text).toContain('Course library');
     expect(text).toMatch(/Assessment & diagnosis/);
     expect(text).toMatch(/Crisis & risk/);
-    // The 24-hours/month, multi-year plan renders with its honest runway language.
+    // The 24-hours/month, multi-year plan is its own area, with its honest runway language.
+    await area('Training map');
+    text = container.textContent;
     expect(text).toContain('Multi-year training plan');
     expect(text).toMatch(/24 hours \/ month/);
     expect(text).toMatch(/runway/i);
+    await area('Course library');
     // Christina's SME gate is present (Agree / Disagree).
     const buttons = [...container.querySelectorAll('button')].map((b) => b.textContent);
     expect(buttons.some((t) => /Agree \(approve\)/.test(t))).toBe(true);
@@ -147,13 +166,15 @@ describe('PracticeLearn — the Practice-scoped Learn space', () => {
 
   it('staff see the four-strand spine (Yahweh-centred) and the multi-track / UIUC panel', async () => {
     await mount({ isStaff: true });
-    const tab = [...container.querySelectorAll('button')].find((b) => /Training & Hours/.test(b.textContent));
-    await act(async () => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-    const text = container.textContent;
+    await audience(/Training & Hours/);
+    await area('Course library');
+    let text = container.textContent;
     // Four-strand spine, with Yahweh's perspective & Will at the centre.
     expect(text).toContain('four-strand spine');
     expect(text).toMatch(/Yahweh’s perspective/);
-    // The audiences/tracks panel with grounded hours + SME-confirm honesty.
+    // The audiences/tracks panel with grounded hours + SME-confirm honesty — the Pathways area.
+    await area('Pathways');
+    text = container.textContent;
     expect(text).toContain('Who this serves');
     expect(text).toMatch(/MSW student/);
     expect(text).toMatch(/supervised clinical/i);

@@ -29,6 +29,8 @@
 // practice_training table) is the named next step, not a painted promise.
 // =============================================================================
 import React, { useState, useMemo, useEffect } from 'react';
+import SectionTabs from './SectionTabs.jsx';
+import SectionBoundary from './SectionBoundary.jsx';
 import WordInline from './WordInline.jsx';
 import { SectionTitle, MetricCell } from './shared.jsx';
 import TextSizeControl from './TextSizeControl.jsx';
@@ -195,6 +197,129 @@ function PracticeLearn({ email = '', isStaff = false }) {
     setLibLogged((prev) => (prev.includes(course.id) ? prev : [...prev, course.id]));
   };
 
+  // The areas of this audience's Training, each its own chip. Order: the
+  // lessons first (the thing to do), then what they gain, the library and
+  // its map, the pathways, the record (certificates / hours / CE), the
+  // office's catalog. Nulls drop; SectionTabs filters them.
+  const outcomesArea = (
+    <section className="bg-white border-2 border-[#5A6E3D] p-4 sm:p-5">
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-2">What you’ll gain</div>
+      <p className="text-sm text-[#1A1815] mb-3 max-w-prose" style={SERIF}><strong>Understand:</strong> {outcomes.understand}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Skills you’ll build</div>
+          <ul className="list-disc pl-5 space-y-0.5">
+            {outcomes.skills.map((s, i) => <li key={i} className="text-xs text-[#1A1815]" style={SERIF}>{s}</li>)}
+          </ul>
+        </div>
+        <div>
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Coping skills</div>
+          <ul className="list-disc pl-5 space-y-0.5">
+            {outcomes.coping.map((s, i) => <li key={i} className="text-xs text-[#1A1815]" style={SERIF}>{s}</li>)}
+          </ul>
+        </div>
+      </div>
+      <p className="text-[0.6875rem] text-[#5A5751] italic mt-3" style={SERIF}><strong className="text-[#5A6E3D] not-italic">How you’ll improve:</strong> {outcomes.improve}</p>
+    </section>
+  );
+  const readingSupport = (
+    <section className="bg-white border border-[#E8E4DC] p-4">
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">Reading support</div>
+      <div className="flex flex-wrap items-center gap-4">
+        <TextSizeControl variant="panel" />
+        <div>
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1">Reading level</div>
+          <div role="group" aria-label="Reading level" className="flex flex-wrap gap-1.5">
+            {LEARN_LEVELS.map((l) => (
+              <button
+                key={l.id}
+                type="button"
+                aria-pressed={level === l.id}
+                title={l.hint}
+                onClick={() => setLevel(l.id)}
+                className={`px-2.5 py-1.5 min-h-[34px] text-[0.625rem] uppercase tracking-wider border focus:outline focus:outline-2 focus:outline-[#B85838] ${level === l.id ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#5A6E3D]'}`}
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={SERIF}>Large-print scaling, plain-language levels, and read-aloud so the full meaning lands for every reader.</p>
+    </section>
+  );
+  const showStaffCatalog = isStaff && (audience === 'therapist' || audience === 'training');
+  const learnAreas = [
+    {
+      id: 'lessons', label: 'Lessons', icon: 'bookOpen',
+      render: () => (
+        <div className="space-y-5">
+          {readingSupport}
+          {tracks.map((track) => (
+            <TrackCard
+              key={track.key}
+              track={track}
+              level={level}
+              progress={progress}
+              quizState={quizState}
+              openModuleId={openModuleId}
+              setOpenModuleId={setOpenModuleId}
+              onRecordQuiz={recordQuiz}
+              onMarkRead={markRead}
+              certTemplates={audCatalog.filter((c) => c.trackKey === track.key)}
+              onEarn={(tpl) => earnCertificate(tpl, track)}
+              alreadyEarned={(certId) => certs.some((c) => c.certId === certId)}
+            />
+          ))}
+        </div>
+      ),
+    },
+    { id: 'gain', label: 'What you’ll gain', icon: 'sparkle', render: () => outcomesArea },
+    showLibrary ? {
+      id: 'courses', label: 'Course library', icon: 'book',
+      render: () => (
+        <CourseLibrary
+          groups={libGroups}
+          totals={libTotals}
+          approvalTally={libApprovalTally}
+          approval={libApproval}
+          isStaff={isStaff}
+          level={level}
+          progress={progress}
+          quizState={quizState}
+          libTests={libTests}
+          libLogged={libLogged}
+          openModuleId={openModuleId}
+          setOpenModuleId={setOpenModuleId}
+          onRecordQuiz={recordQuiz}
+          onMarkRead={markRead}
+          onDecide={decideCourse}
+          onRecordTest={recordCourseTest}
+          onComplete={completeCourse}
+        />
+      ),
+    } : null,
+    showLibrary ? { id: 'map', label: 'Training map', icon: 'pin', render: () => <TrainingPlanPanel plan={trainingPlan} /> } : null,
+    showLibrary ? { id: 'pathways', label: 'Pathways', icon: 'globe', render: () => <TracksPanel libraryHours={libTotals.totalHours} /> } : null,
+    {
+      id: 'certificates', label: 'Certificates', icon: 'check',
+      render: () => (certs.length
+        ? <EarnedCertificates certs={certs} onRemove={(id) => setCerts((prev) => prev.filter((c) => c.id !== id))} />
+        : <p className="text-xs text-[#5A5751]" style={SERIF}>No certificate earned on this device yet. Finish every lesson in a track under Lessons and its certificate is issued here.</p>),
+    },
+    showHoursLedger ? { id: 'hours', label: 'Hours', icon: 'calendar', render: () => <HoursLedger entries={myHours} onLog={logHours} onRemove={removeHours} /> } : null,
+    showHoursLedger ? { id: 'ce', label: 'CE renewal', icon: 'sliders', render: () => <CeuTracker entries={myCeus} cfg={ceuCfg} setCfg={setCeuCfg} onLog={logCeu} onRemove={removeCeu} /> } : null,
+    showStaffCatalog ? {
+      id: 'catalog', label: 'Catalog & required', icon: 'pencil',
+      render: () => (
+        <div className="space-y-5">
+          <CertCatalogPanel catalog={audCatalog} setCatalog={setCatalog} />
+          <RequiredTrainings reqs={audReqs} completions={reqCompletions} setCompletions={setReqCompletions} />
+        </div>
+      ),
+    } : null,
+  ];
+
   return (
     <div className="space-y-5">
       {/* Header + audience switcher */}
@@ -234,117 +359,15 @@ function PracticeLearn({ email = '', isStaff = false }) {
         </div>
       </section>
 
-      {/* OUTCOMES — what you'll gain. Leads the experience. */}
-      <section className="bg-white border-2 border-[#5A6E3D] p-4 sm:p-5">
-        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-2">What you’ll gain</div>
-        <p className="text-sm text-[#1A1815] mb-3 max-w-prose" style={SERIF}><strong>Understand:</strong> {outcomes.understand}</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Skills you’ll build</div>
-            <ul className="list-disc pl-5 space-y-0.5">
-              {outcomes.skills.map((s, i) => <li key={i} className="text-xs text-[#1A1815]" style={SERIF}>{s}</li>)}
-            </ul>
-          </div>
-          <div>
-            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Coping skills</div>
-            <ul className="list-disc pl-5 space-y-0.5">
-              {outcomes.coping.map((s, i) => <li key={i} className="text-xs text-[#1A1815]" style={SERIF}>{s}</li>)}
-            </ul>
-          </div>
-        </div>
-        <p className="text-[0.6875rem] text-[#5A5751] italic mt-3" style={SERIF}><strong className="text-[#5A6E3D] not-italic">How you’ll improve:</strong> {outcomes.improve}</p>
-      </section>
-
-      {/* Reading support (the shared accessibility primitives) */}
-      <section className="bg-white border border-[#E8E4DC] p-4">
-        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">Reading support</div>
-        <div className="flex flex-wrap items-center gap-4">
-          <TextSizeControl variant="panel" />
-          <div>
-            <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1">Reading level</div>
-            <div role="group" aria-label="Reading level" className="flex flex-wrap gap-1.5">
-              {LEARN_LEVELS.map((l) => (
-                <button
-                  key={l.id}
-                  type="button"
-                  aria-pressed={level === l.id}
-                  title={l.hint}
-                  onClick={() => setLevel(l.id)}
-                  className={`px-2.5 py-1.5 min-h-[34px] text-[0.625rem] uppercase tracking-wider border focus:outline focus:outline-2 focus:outline-[#B85838] ${level === l.id ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#5A6E3D]'}`}
-                >
-                  {l.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={SERIF}>Large-print scaling, plain-language levels, and read-aloud so the full meaning lands for every reader.</p>
-      </section>
-
-      {/* Tracks + lessons for this audience */}
-      {tracks.map((track) => (
-        <TrackCard
-          key={track.key}
-          track={track}
-          level={level}
-          progress={progress}
-          quizState={quizState}
-          openModuleId={openModuleId}
-          setOpenModuleId={setOpenModuleId}
-          onRecordQuiz={recordQuiz}
-          onMarkRead={markRead}
-          certTemplates={audCatalog.filter((c) => c.trackKey === track.key)}
-          onEarn={(tpl) => earnCertificate(tpl, track)}
-          alreadyEarned={(certId) => certs.some((c) => c.certId === certId)}
-        />
-      ))}
-
-      {/* The built-out clinician COURSE LIBRARY across the ten training fields */}
-      {showLibrary && (
-        <CourseLibrary
-          groups={libGroups}
-          totals={libTotals}
-          approvalTally={libApprovalTally}
-          approval={libApproval}
-          isStaff={isStaff}
-          level={level}
-          progress={progress}
-          quizState={quizState}
-          libTests={libTests}
-          libLogged={libLogged}
-          openModuleId={openModuleId}
-          setOpenModuleId={setOpenModuleId}
-          onRecordQuiz={recordQuiz}
-          onMarkRead={markRead}
-          onDecide={decideCourse}
-          onRecordTest={recordCourseTest}
-          onComplete={completeCourse}
-        />
-      )}
-
-      {/* The 24-hours/month, multi-year training MAP across the ten fields */}
-      {showLibrary && <TrainingPlanPanel plan={trainingPlan} />}
-
-      {/* Who this serves — audiences/tracks with grounded IL/CSWE hour requirements */}
-      {showLibrary && <TracksPanel libraryHours={libTotals.totalHours} />}
-
-      {/* Certificates earned (this device) */}
-      <EarnedCertificates certs={certs} onRemove={(id) => setCerts((prev) => prev.filter((c) => c.id !== id))} />
-
-      {/* Training-hours ledger (staff, clinician + training audiences) */}
-      {showHoursLedger && <HoursLedger entries={myHours} onLog={logHours} onRemove={removeHours} />}
-
-      {/* CEU renewal tracker — post-license continuing education (distinct from the
-          pre-licensure supervised-hours ledger above) */}
-      {showHoursLedger && <CeuTracker entries={myCeus} cfg={ceuCfg} setCfg={setCeuCfg} onLog={logCeu} onRemove={removeCeu} />}
-
-      {/* Certificate catalog + required trainings (staff) */}
-      {isStaff && (audience === 'therapist' || audience === 'training') && (
-        <>
-          <CertCatalogPanel catalog={audCatalog} setCatalog={setCatalog} />
-          <RequiredTrainings reqs={audReqs} completions={reqCompletions} setCompletions={setReqCompletions} />
-        </>
-      )}
+      {/* Every area of Training is ONE chip away on a second row (Darrell
+          2026-09-10: "training tab is too deep... we need another tab slider
+          for each section... users need to see the areas easier"). The
+          audience switcher above stays pinned; the row below names the areas
+          side by side and shows exactly one. Two levels in the TLC app: the
+          app slider, then this row — never a long scroll. */}
+      <SectionBoundary name="Training areas">
+        <SectionTabs variant="sub" sections={learnAreas} ariaLabel="Training areas" idBase={`tlc-learn-${audience}`} defaultId="lessons" />
+      </SectionBoundary>
 
       {/* The single floating read-aloud control for the whole surface */}
       <TTSControl />

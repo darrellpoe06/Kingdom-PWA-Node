@@ -20,6 +20,7 @@ import { rosterCardFromPacket, ROSTER_ROLE_DEFAULT } from '../lib/tlc-roster-car
 import { listRoster, upsertRosterCard, removeRosterCard } from '../lib/tlc-roster.js';
 import TlcOnboardingReadout from './TlcOnboardingReadout.jsx';
 import UiIcon from './UiIcon.jsx';
+import SectionTabs from './SectionTabs.jsx';
 
 // The public card, drawn the way the door draws it — so what Christina sees
 // here is what a client will see on "Match a Preferred Provider".
@@ -274,12 +275,16 @@ export default function TlcOnboarding() {
 
   if (open) return <PacketDetail row={open} onChanged={refresh} onClose={() => setOpen(null)} />;
 
-  return (
-    <div className="space-y-4">
+  // The areas of Onboarding, side by side on a second row (Darrell
+  // 2026-09-10: "another tab slider for each section... any long scrolling
+  // tabs"): invite (mint a link + the links still out), the packets, the roster.
+  const areas = [
+    { id: 'invite', label: 'Invite', icon: 'mail', render: () => (
+      <div className="space-y-4">
       <div className="border border-[#1A1815] bg-white p-4">
         <div className="text-sm font-bold text-[#1A1815] mb-1">Invite a new colleague</div>
         <p className="text-xs text-[#5A5751] leading-relaxed mb-3">
-          Enter their email to mint a one-time link. They open it in the TLC app, sign in (or create a login), and fill in the same intake the office has always used — license, insurance, paperwork, direct deposit, availability, clinical profile, and the three signed agreements. Their packet shows up below as they go.
+          Enter their email to mint a one-time link. They open it in the TLC app, sign in (or create a login), and fill in the same intake the office has always used — license, insurance, paperwork, direct deposit, availability, clinical profile, and the three signed agreements. Their packet shows up under Packets as they go.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
           <input value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); mint(); } }}
@@ -313,7 +318,9 @@ export default function TlcOnboarding() {
           </ul>
         )}
       </div>
-
+      </div>
+    ) },
+    { id: 'packets', label: `Packets${office.packets.length ? ` · ${office.packets.length}` : ''}`, icon: 'pencil', render: () => (
       <div className="border border-[#E8E4DC] bg-white p-4">
         <div className="text-sm font-bold text-[#1A1815] mb-2">Packets</div>
         {office.packets.length === 0 ? <p className="text-xs text-[#5A5751]">No one has opened a link yet. A packet appears here the moment a colleague starts.</p> : (
@@ -330,13 +337,17 @@ export default function TlcOnboarding() {
           </ul>
         )}
       </div>
-
-      <RosterPanel />
+    ) },
+    { id: 'roster', label: 'Roster', icon: 'users', render: () => <RosterPanel /> },
+  ];
+  return (
+    <div className="space-y-4">
+      <SectionTabs variant="sub" sections={areas} ariaLabel="Onboarding areas" idBase="tlc-onboard" defaultId="invite" />
 
       <p className="text-[0.6875rem] text-[#8A857C] leading-relaxed flex items-start gap-1.5">
         <UiIcon name="lock" className="w-3 h-3 mt-0.5 shrink-0" />
         <span>
-          Built from the office&apos;s own Drive form (<a href={TLC_ONBOARDING_SOURCE.formUrl} target="_blank" rel="noopener noreferrer" className="underline focus:outline focus:outline-2 focus:outline-[#B85838]">{TLC_ONBOARDING_SOURCE.formTitle}</a>). Direct-deposit numbers sit apart from the packet and every reveal is logged; no password is ever asked for; documents live in a private vault and open only for you and the colleague. Colleague files are not client records — no PHI passes through here.
+          Built from the office&apos;s own hiring form ({TLC_ONBOARDING_SOURCE.formTitle}), now entirely in the app. Direct-deposit numbers sit apart from the packet and every reveal is logged; no password is ever asked for; documents live in a private vault and open only for you and the colleague. Colleague files are not client records — no PHI passes through here.
         </span>
       </p>
     </div>
