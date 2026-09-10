@@ -1,6 +1,6 @@
 // =============================================================================
 // tlc-session-scripts — Christina's "Training Notes for Therapists-in-Training"
-// as six engine-shaped courses (DR-0343, amended 2026-09-10)
+// as six engine-shaped courses (DR-0344, amended 2026-09-10)
 // =============================================================================
 // Darrell, 2026-09-10, pasting the whole document into the channel: "Training
 // Notes for Therapists-in-Training…" and then: "We have lessons etc can we make

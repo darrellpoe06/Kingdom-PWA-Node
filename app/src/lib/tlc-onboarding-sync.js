@@ -1,5 +1,5 @@
 // =============================================================================
-// tlc-onboarding-sync — the client's honest seam to migration 0187 (DR-0343)
+// tlc-onboarding-sync — the client's honest seam to migration 0187 (DR-0344)
 // =============================================================================
 // Every write goes through one of the SECURITY DEFINER functions in 0187;
 // every read comes back masked the way the server masks it (banking as last

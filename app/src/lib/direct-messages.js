@@ -84,6 +84,26 @@ export function threadMessages(rows = [], otherUserId) {
     .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
 }
 
+// Receipts on MY messages (Darrell, 2026-09-09: "see when and if someone saw
+// your text like other messaging apps"). The reader's device stamps `read_at`
+// the moment the thread is on their screen (markThreadRead + the open-thread
+// effect), and the SENDER can read that column under the participant policy —
+// so the receipt is a real row value, never a guess. Rendered the way the
+// messengers people know do it: one word under the LAST of my messages —
+// "Seen <time>" once they looked, "Delivered" while it waits on the server —
+// and never a receipt under theirs (I know I saw it; a badge told them).
+// Pure: rows in, { messageId: label } out; `fmt` renders the time.
+export function receiptLabels(convo = [], fmt = (iso) => String(iso || '')) {
+  const mine = (convo || []).filter((m) => m && m.mine && m.id);
+  const out = {};
+  if (!mine.length) return out;
+  const last = mine[mine.length - 1];
+  const lastSeen = [...mine].reverse().find((m) => m.readAt);
+  if (lastSeen) out[lastSeen.id] = `Seen ${fmt(lastSeen.readAt)}`;
+  if (!last.readAt) out[last.id] = 'Delivered';
+  return out;
+}
+
 // Mark a thread's incoming messages read LOCALLY — the optimistic twin of the
 // server-side markThreadRead, so the badge clears the instant the reader looks
 // (Darrell 2026-08-22: "once I view the message I should not have it look like

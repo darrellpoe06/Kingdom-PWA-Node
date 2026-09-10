@@ -1,5 +1,5 @@
 // =============================================================================
-// tlc-handbook — the TLC Independent Contractor Handbook, as data (DR-0343)
+// tlc-handbook — the TLC Independent Contractor Handbook, as data (DR-0344)
 // =============================================================================
 // Darrell, 2026-09-10: "comb our drive for documentation of systems we need or
 // should add here inside the TLC Therapy Solutions App." The Drive document
@@ -76,7 +76,7 @@ export const TLC_HANDBOOK = Object.freeze({
 });
 
 // The office's other systems documents found in Drive on 2026-09-10 — what
-// the app links today, and what it carries inside (DR-0343 §Drive sweep).
+// the app links today, and what it carries inside (DR-0344 §Drive sweep).
 export const TLC_OFFICE_DOCUMENTS = Object.freeze([
   { id: 'handbook', title: 'Independent Contractor Handbook', kind: 'policy', url: TLC_HANDBOOK.sourceUrl, inApp: 'readable here, section for section' },
   { id: 'contractor-agreement', title: 'Independent Contractor Agreement', kind: 'agreement', url: 'https://docs.google.com/document/d/1EhwsODMEpUxnCRHmFScz4VIdTWorAcYTI-OZeL8PaM8/edit', inApp: 'signed in the intake packet' },

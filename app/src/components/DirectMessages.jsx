@@ -21,6 +21,7 @@ import {
   subscribeDirectMessages, sendDirectMessage, markThreadRead,
   groupDmThreads, threadMessages, isSendableBody, markThreadReadLocal,
 } from '../lib/direct-messages-sync.js';
+import { receiptLabels } from '../lib/direct-messages.js';
 import { useVoiceDictation } from '../lib/voice-dictation.js';
 import { requestDmNotificationPermission } from '../lib/dm-notify.js';
 import PushNotifications from './PushNotifications.jsx';
@@ -129,6 +130,10 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
   };
 
   const convo = useMemo(() => (openWith ? threadMessages(rows, openWith) : []), [rows, openWith]);
+  // "Seen 8:57 PM" / "Delivered" under the last of MY messages — a real row
+  // value (read_at, stamped by the reader's device), refreshed by the same
+  // three triggers the thread rides (stream, 15s heartbeat, visibility).
+  const receipts = useMemo(() => receiptLabels(convo, fmtTime), [convo]);
   useEffect(() => { try { endRef.current?.scrollIntoView({ block: 'end' }); } catch { /* noop */ } }, [convo.length, openWith]);
 
   // A message that arrives WHILE the thread is open is read the moment it
@@ -274,6 +279,11 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
                   {/* Honest per-message state: sealed end-to-end vs legacy plaintext. */}
                   {m.encrypted ? ' · encrypted' : ''}
                 </div>
+                {receipts[m.id] && (
+                  <div className="text-[0.5625rem] text-[#5A5751]" data-receipt={m.id} aria-label={`${receipts[m.id]} — ${receipts[m.id].startsWith('Seen') ? `${nameFor(openWith)} opened this` : 'on the server, not yet opened'}`}>
+                    {receipts[m.id].startsWith('Seen') ? '✓✓ ' : '✓ '}{receipts[m.id]}
+                  </div>
+                )}
               </div>
             ))}
             <div ref={endRef} />

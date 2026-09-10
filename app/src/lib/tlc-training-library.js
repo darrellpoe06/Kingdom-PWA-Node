@@ -755,7 +755,7 @@ const COURSES = [
 
   // ===========================================================================
   // CHRISTINA'S SESSION SCRIPTS — "Training Notes for Therapists-in-Training"
-  // (lib/tlc-session-scripts.js; DR-0343). Her words, engine-shaped; validated
+  // (lib/tlc-session-scripts.js; DR-0344). Her words, engine-shaped; validated
   // by her in-app like every other course.
   // ===========================================================================
   ...SESSION_SCRIPT_COURSES.map(makeCourse),

@@ -44,7 +44,7 @@ describe('the TLC clinical-team record', () => {
     // (tlc-public-door-render.test.jsx); this pins the operator tab too.
     const here = dirname(fileURLToPath(import.meta.url));
     const src = readFileSync(join(here, '../components/Practice.jsx'), 'utf8');
-    const team = src.indexOf('team.map'); // the live roster over the seed (DR-0343)
+    const team = src.indexOf('team.map'); // the live roster over the seed (DR-0344)
     const services = src.indexOf('TLC_SERVICES.map');
     expect(team).toBeGreaterThan(-1);
     expect(services).toBeGreaterThan(-1);

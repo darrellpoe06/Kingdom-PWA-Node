@@ -37,7 +37,7 @@
 //            409 and the function STOPS, having sent nothing.
 //   STOP   — per-device opt-in (`topics`), `disabled_at`, and a subscriber's
 //            own delete. Absence of consent is the default state.
-import { validateSendRequest } from '../../src/lib/push-send-policy.js';
+import { validateSendRequest, audienceQuery } from '../../src/lib/push-send-policy.js';
 import { fanOut, buildPushPayload } from '../../src/lib/push-fanout.js';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
@@ -161,15 +161,12 @@ export async function onRequestPost(context) {
 
   // ── 3. READ THE AUDIENCE ─────────────────────────────────────────────────
   // Only devices that opted into THIS topic and are not disabled. Absence of
-  // an opt-in is a no, always.
+  // an opt-in is a no, always. A congregation is read by instance; a PERSON
+  // (an explicit userIds audience, the DM case) by user alone — their phone is
+  // theirs whichever space they turned it on in (audienceQuery, 2026-09-09).
   let subs = [];
   try {
-    const params = new URLSearchParams();
-    params.set('select', 'id,endpoint,p256dh,auth,user_id,disabled_at');
-    params.set('instance_id', `eq.${req.instanceId}`);
-    params.set('topics', `cs.{${req.topic}}`);
-    params.set('disabled_at', 'is.null');
-    if (req.userIds && req.userIds.length) params.set('user_id', `in.(${req.userIds.join(',')})`);
+    const params = audienceQuery({ topic: req.topic, instanceId: req.instanceId, userIds: req.userIds });
     const res = await fetch(`${rest(supabaseUrl, 'push_subscriptions')}?${params}`, {
       headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
     });

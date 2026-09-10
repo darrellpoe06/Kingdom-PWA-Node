@@ -102,7 +102,7 @@ const insuranceLabel = (val) => {
 // ('operations' | 'growth' | 'learn'), that section renders directly — no
 // third strip. The banner + live inquiry KPIs stay pinned on Operations only.
 function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInquiry, practiceLeads = [], addLead, updateLead, deleteLead, email = '', isStaff = false, section = null }) {
-  // The live roster over the seed cards (DR-0343): an approved colleague
+  // The live roster over the seed cards (DR-0344): an approved colleague
   // appears here the same way the seven current therapists do.
   const team = useTlcRoster();
   const [statusFilter, setStatusFilter] = useState('active');

@@ -35,7 +35,7 @@ import { PracticeLearn } from './PracticeLearn.jsx';
 import { myPacketStatus } from '../lib/tlc-onboarding-sync.js';
 import { TLC_APP_PATH } from '../lib/tlc-onboarding.js';
 
-// A colleague arriving on Christina's one-time link (?onboard=TOKEN, DR-0343):
+// A colleague arriving on Christina's one-time link (?onboard=TOKEN, DR-0344):
 // signed out, they meet a sign-in / create-login card that says what the link
 // is for; signed in, the intake packet itself. The client booking page is
 // never shown under an invite — the person came to join the team, not to book.
@@ -63,7 +63,7 @@ function OnboardingDoor({ token, signedIn }) {
 
 // The client-facing booking page (the sendable front door a prospect meets).
 function ClientDoor() {
-  const team = useTlcRoster(); // seed cards + approved colleagues (DR-0343)
+  const team = useTlcRoster(); // seed cards + approved colleagues (DR-0344)
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
       {/* Match a Preferred Provider — FIRST (Darrell: "the first thing we see"). */}
@@ -129,7 +129,7 @@ export default function TlcPublicDoor() {
   const [showLogin, setShowLogin] = useState(false);
   // Captured ONCE at first render, before nav-history rewrites the URL (the
   // same rule the ?tlc=1 door context follows). Non-empty = a colleague
-  // arriving on Christina's onboarding link (DR-0343).
+  // arriving on Christina's onboarding link (DR-0344).
   const [onboardToken] = useState(() => readOnboardTokenFromUrl());
   const [showShare, setShowShare] = useState(false);
   // Comfort controls — the SAME theme + text-size the whole PoeTech app uses
@@ -187,7 +187,7 @@ export default function TlcPublicDoor() {
     { id: 'team', label: 'Team', icon: 'book', render: () => <TlcTeamResources /> },
     { id: 'assistant', label: 'Assistant', icon: 'chat', render: () => <TlcAssistant isGovernor={operatorRole} /> },
     // The office owner/admin brings colleagues on board from the TLC app
-    // itself (DR-0343); the panel re-checks the role from the database.
+    // itself (DR-0344); the panel re-checks the role from the database.
     ...(canManageTeam(roleState) ? [{ id: 'onboarding', label: 'Onboarding', icon: 'pencil', render: () => <TlcOnboarding /> }] : []),
   ];
 

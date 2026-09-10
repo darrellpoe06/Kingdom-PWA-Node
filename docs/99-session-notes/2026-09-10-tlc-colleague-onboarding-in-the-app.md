@@ -1,6 +1,6 @@
 # TLC colleague onboarding — the intake packet lives in the TLC app
 
-**Date:** 2026-09-10 · **Branch:** `claude/tlc-intake-form-xr7jhw` · **Rule:** DR-0343 (new), DR-0271, DR-0187, DR-0303, DR-0076, USER-ACCOUNTS-AND-HISTORIES-STANDARD, DATA-AS-EMPOWERMENT
+**Date:** 2026-09-10 · **Branch:** `claude/tlc-intake-form-xr7jhw` · **Rule:** DR-0344 (new), DR-0271, DR-0187, DR-0303, DR-0076, USER-ACCOUNTS-AND-HISTORIES-STANDARD, DATA-AS-EMPOWERMENT
 
 **Trigger.** Darrell: *"We need the TLC Therapy Solutions intake form inside the TLC Therapy Solutions App... so Christina can on-board new colleagues inside the TLC Therapy Solutions App... go look at our Google drive and use that to build the system from as our scaling process or scaffolding."* Mid-build, with a screenshot of the door's "Match a Preferred Provider": *"On-boarding should also update the Apps and other online locations with new Therapists using the same format as the current ones."*
 
@@ -26,7 +26,7 @@
 ## Proof
 
 - `tlc-onboarding.test.js` (30) and `tlc-onboarding-render.test.jsx` (11), both green; `tlc-door.test.js` re-pinned to the roster hook. Each source pin was broken once on purpose while writing and failed by name.
-- Guards green: eslint, module-boundary, monolith-budget, migration return-type / replay-order / replay-completeness, rls-isolation-matrix, no-prompt, interconnect, infra-transport, business-systems (ledger whole at DR-0343), tenancy, assistant-scope, assistant-wall.
+- Guards green: eslint, module-boundary, monolith-budget, migration return-type / replay-order / replay-completeness, rls-isolation-matrix, no-prompt, interconnect, infra-transport, business-systems (ledger whole at DR-0344), tenancy, assistant-scope, assistant-wall.
 
 ## Honest limits (DR-0100)
 

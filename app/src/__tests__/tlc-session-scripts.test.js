@@ -1,6 +1,6 @@
 // @vitest-environment node
 // =============================================================================
-// Christina's session scripts in the TLC training library (DR-0343): six
+// Christina's session scripts in the TLC training library (DR-0344): six
 // courses, her structure, four strands each, every verse verbatim against the
 // app's own KJV corpus, and the handbook carried as data. DR-0076 §3.
 // =============================================================================

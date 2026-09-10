@@ -152,7 +152,7 @@ describe('NO-LEAK: a signed-OUT client sees only public marketing facts', () => 
     expect(doorJsx).not.toMatch(/Inbound|inquir|Pre-Intake/i); // intake data never here
   });
   it('the door renders the public roster + insurance + booking', () => {
-    // The roster is the seed cards + the live approved colleagues (DR-0343):
+    // The roster is the seed cards + the live approved colleagues (DR-0344):
     // the door reads useTlcRoster(), and THAT lib is what carries TLC_TEAM.
     expect(doorJsx).toMatch(/useTlcRoster/);
     expect(readFileSync(join(here, '../lib/tlc-roster.js'), 'utf8')).toMatch(/TLC_TEAM/);

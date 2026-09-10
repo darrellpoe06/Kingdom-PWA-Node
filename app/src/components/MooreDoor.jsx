@@ -381,7 +381,7 @@ function MooreTab() {
 // TLC_TEAM record the main app's Practice tab renders (one source, no drift).
 // Public marketing facts only; the capture form stays contact-info-only.
 function PracticeTab() {
-  const team = useTlcRoster(); // seed cards + approved colleagues (DR-0343)
+  const team = useTlcRoster(); // seed cards + approved colleagues (DR-0344)
   return (
     <div className="space-y-3">
       <h2 className="text-lg font-bold text-[#1A1815]" style={SERIF}>TLC Therapy Solutions</h2>
