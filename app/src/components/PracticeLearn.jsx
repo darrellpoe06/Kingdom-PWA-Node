@@ -112,7 +112,7 @@ const fmtDate = (iso) => { if (!iso) return '—'; try { return new Date(iso).to
 // mode (Darrell 2026-09-10: "so people can taste and see what type of therapy
 // and training TLC ... has to offer"): ONLY the linked track or course renders,
 // with the lesson open; no areas, no ledger, no SME gate, no assignments.
-function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = false, onFindTherapist = null, onCreateAccount = null }) {
+function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = false, onFindTherapist = null, onCreateAccount = null, readAloud = true }) {
   const vis = useMemo(() => visibleAudiences({ isStaff }), [isStaff]);
   const [audience, setAudience] = useState(() => {
     if (deepLink && deepLink.audience) return deepLink.audience;
@@ -511,8 +511,9 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
       </SectionBoundary>
       )}
 
-      {/* The single floating read-aloud control for the whole surface */}
-      <TTSControl />
+      {/* The single floating read-aloud control for the whole surface — unless
+          the surface around it already carries one (the TLC door does). */}
+      {readAloud && <TTSControl />}
     </div>
   );
 }

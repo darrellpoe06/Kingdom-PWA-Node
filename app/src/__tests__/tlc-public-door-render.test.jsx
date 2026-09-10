@@ -9,6 +9,9 @@ vi.mock('../lib/tlc-assignments.js', async (orig) => ({ ...(await orig()), listM
 vi.mock('../lib/tlc-office-data.js', async (orig) => ({ ...(await orig()), useTlcOfficeData: () => ({ inquiries: [], practiceLeads: [], loaded: true, signedIn: false }), startTlcOfficeData: async () => ({}) }));
 vi.mock('../lib/tlc-roster.js', async (orig) => { const real = await orig(); return { ...real, fetchPublicRoster: async () => [] }; });
 import { createElement, act } from 'react';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createRoot } from 'react-dom/client';
 import TlcPublicDoor from '../components/TlcPublicDoor.jsx';
 import { TLC_TEAM, TLC_BRAND } from '../lib/tlc-practice.js';
@@ -17,6 +20,7 @@ import { allCourses } from '../lib/tlc-training-library.js';
 import { tlcLessonQuery } from '../lib/tlc-lesson-links.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+const here = dirname(fileURLToPath(import.meta.url));
 
 let container, root;
 async function mount() {
@@ -115,6 +119,21 @@ describe('TlcPublicDoor — the sendable client door', () => {
     await act(async () => { header.querySelector('button[aria-label^="Hide the top space"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     expect(header.textContent).toContain('Clients and staff sign in here');
     try { localStorage.removeItem('poe-header-collapsed'); } catch { /* no storage */ }
+  });
+});
+
+describe('the reader on every tab of the door (Darrell 2026-09-10, on Team: "we want the reader function to be added")', () => {
+  it('one main wraps whatever the door shows, so the read-aloud reads the content and never the bar; the door mounts the single reader and the lessons surface inside it does not mount a second', async () => {
+    await mount();
+    const mains = container.querySelectorAll('main');
+    expect(mains.length).toBe(1);
+    expect(mains[0].textContent).toContain('Match a Preferred Provider');
+    expect(container.querySelector('header').closest('main')).toBeNull();
+    const src = readFileSync(join(here, '../components/TlcPublicDoor.jsx'), 'utf8');
+    expect(src).toMatch(/<\/main>\s*\n\s*\{\/\* The single floating read-aloud control for the whole door/);
+    expect((src.match(/readAloud=\{false\}/g) || []).length).toBe(2);
+    const pl = readFileSync(join(here, '../components/PracticeLearn.jsx'), 'utf8');
+    expect(pl).toContain('{readAloud && <TTSControl />}');
   });
 });
 
