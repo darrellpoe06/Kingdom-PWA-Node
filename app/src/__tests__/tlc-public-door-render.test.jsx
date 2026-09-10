@@ -12,6 +12,9 @@ import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
 import TlcPublicDoor from '../components/TlcPublicDoor.jsx';
 import { TLC_TEAM, TLC_BRAND } from '../lib/tlc-practice.js';
+import { allTracks } from '../lib/tlc-lessons.js';
+import { allCourses } from '../lib/tlc-training-library.js';
+import { tlcLessonQuery } from '../lib/tlc-lesson-links.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -72,5 +75,87 @@ describe('TlcPublicDoor — the sendable client door', () => {
     // stays gated behind sign-in, so it is NOT rendered for a signed-out client.
     const buttons = Array.from(container.querySelectorAll('button')).map((b) => (b.textContent || '').toLowerCase());
     expect(buttons.some((t) => t.includes('log in')), 'no staff login control on the door').toBe(true);
+  });
+
+  it('controls its top space like the PoeTech header: a compact bar always, the welcome tucked away by the chevron per device (2026-09-10)', async () => {
+    try { localStorage.removeItem('poe-header-collapsed'); } catch { /* no storage */ }
+    await mount();
+    const header = container.querySelector('header');
+    expect(header).toBeTruthy();
+    expect(header.className).toContain('ts-safe-sticky');
+    // the bar: the brand as the h1, Book, the staff login, the chevron
+    expect(header.querySelector('h1').textContent).toBe(TLC_BRAND.name);
+    const chevron = header.querySelector('button[aria-label^="Hide the top space"]');
+    expect(chevron, 'no hideaway chevron').toBeTruthy();
+    expect(chevron.getAttribute('aria-expanded')).toBe('true');
+    expect(header.textContent).toContain(TLC_BRAND.tagline);
+    expect(header.textContent).toContain(TLC_BRAND.blurb);
+    expect(header.querySelector('[aria-label="Comfort controls"]')).toBeTruthy();
+    // tuck it away: the welcome, comfort controls and share leave; the bar stays
+    await act(async () => { chevron.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    expect(header.textContent).not.toContain(TLC_BRAND.blurb);
+    expect(header.querySelector('[aria-label="Comfort controls"]')).toBeNull();
+    expect(header.querySelector('h1').textContent).toBe(TLC_BRAND.name);
+    const hrefs = Array.from(header.querySelectorAll('a')).map((a) => a.getAttribute('href'));
+    expect(hrefs, 'Book left the bar').toContain(TLC_BRAND.bookingUrl);
+    const buttons = Array.from(header.querySelectorAll('button')).map((b) => (b.textContent || '').toLowerCase());
+    expect(buttons.some((x) => x.includes('log in')), 'staff login left the bar').toBe(true);
+    const shown = header.querySelector('button[aria-label^="Show the full header"]');
+    expect(shown.getAttribute('aria-expanded')).toBe('false');
+    // the choice persists per device under the SAME key the PoeTech shell uses
+    expect(localStorage.getItem('poe-header-collapsed')).toBe('1');
+    // and comes back
+    await act(async () => { shown.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    expect(header.textContent).toContain(TLC_BRAND.blurb);
+    expect(localStorage.getItem('poe-header-collapsed')).toBe('0');
+    // the staff login form is pinned open in the bar even when the top space is tucked away
+    const login = Array.from(header.querySelectorAll('button')).find((b) => /staff log in/i.test(b.textContent));
+    await act(async () => { login.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    await act(async () => { header.querySelector('button[aria-label^="Hide the top space"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    expect(header.textContent).toContain('TLC staff sign in');
+    try { localStorage.removeItem('poe-header-collapsed'); } catch { /* no storage */ }
+  });
+});
+
+describe('a lesson served by link — taste and see (Darrell 2026-09-10)', () => {
+  const setSearch = (search) => window.history.replaceState({}, '', `${window.location.pathname}${search}`);
+  afterEach(() => setSearch(''));
+  const OPERATOR = ['Hours', 'CE renewal', 'SME review', 'Who is learning', 'For Christina to evaluate', 'Assign to a client', 'Awaiting review', 'Pre-Intake Inquiry', 'Big Picture'];
+
+  it('signed out, a client-track link serves that one lesson, open, above the booking door — and nothing of the office', async () => {
+    const track = allTracks().find((t) => t.key === 'client-psychoeducation');
+    const m = track.modules[0];
+    setSearch(tlcLessonQuery({ courseId: track.key, lessonId: m.id }));
+    await mount();
+    const text = container.textContent;
+    expect(text).toContain('Shared with you');
+    expect(text).toMatch(/taste and see/);
+    expect(text).toContain(track.title);
+    expect(text).toContain(m.title);
+    expect(text).toContain(m.bigIdea);
+    // the door itself still follows
+    expect(text).toContain('Match a Preferred Provider');
+    for (const bad of OPERATOR) expect(text, `leaked to a visitor: "${bad}"`).not.toContain(bad);
+    // every lesson can be handed on again
+    expect(Array.from(container.querySelectorAll('button')).some((b) => /share this lesson/i.test(b.textContent))).toBe(true);
+  });
+
+  it('signed out, a library-course link serves the course with that lesson open — the internal review stays inside', async () => {
+    const course = allCourses().find((c) => c.review);
+    const m = course.modules[0];
+    setSearch(tlcLessonQuery({ courseId: course.id, lessonId: m.id }));
+    await mount();
+    const text = container.textContent;
+    expect(text).toContain('Shared with you');
+    expect(text).toContain(course.title);
+    expect(text).toContain(m.bigIdea);
+    for (const bad of OPERATOR) expect(text, `leaked to a visitor: "${bad}"`).not.toContain(bad);
+  });
+
+  it('a stale link opens the door normally', async () => {
+    setSearch('?tlc=1&course=gone&lesson=gone');
+    await mount();
+    expect(container.textContent).not.toContain('Shared with you');
+    expect(container.textContent).toContain('Match a Preferred Provider');
   });
 });

@@ -125,3 +125,16 @@ Darrell, reading the handbook fold on his phone: *"where is number 1?"* Section 
 Darrell, on the Training map: *"These lessons should be laid out over the 24 month period the state expects or whatever number of months."* The map is now `buildStatePlan`: every course across the 24-month LCSW window as 104 weeks, evenly, open weeks honest, hours by month, the 30-hour CE minimum per cycle shown. The 36-month runway panel is retired from the screen (DR-0345 amendment).
 
 Live proof: db-migrate run 493 applied 0190; rls-isolation run 128 on `daf7f53` green on every leg, the viewer-readonly leg (red since 0181) and the new tlc-office leg included; the choir policy in production carries `has_capability` again. DR-0347's re-review closed.
+
+## Then: full lessons, the Word as a drop-down, the review for Christina, the top space (DR-0345 amendment, evening)
+
+Darrell: *"Where is the Word on some of these lessons? Also what happened to the whole courses build out?"* · *"I don't want starter lessons one paragraph... 1 level comprehensive review of the known understanding and lessons to discuss with stakeholders... full lessons."* · *"a robust version for Christina to evaluate against her knowledge of the workflows so we can finalize her App... From MVP to Hard Coded workflows."* · *"not either!?!... drop down of the Word for the same information like we have been doing already."* · *"control of the top space like PoeTech for the Header."*
+
+Built: 35 full lesson bodies in six parts (`lib/tlc-course-bodies/`, ≥350 words each, no reference in the body), merged into the library as the standard and senior levels with the starter kept as the teen level; the Word as a drop-down fold inside every lesson, following the page-wide switch, opening with the Hebrews 4:12 note; the Word authored for the five lessons that lacked it; a review for Christina under every course and script (known understanding, sources, her questions, the workflow as steps); the door's top space as a compact sticky bar plus a hideaway the chevron tucks away per device under PoeTech's own key, the escape hatch kept in both states. Proof: curriculum (+5), practice-learn-render re-pinned, door render (+1).
+
+## Then: a lesson served by link — taste and see (DR-0349)
+
+Darrell: *"how do we assign or share outside the app? Like a link to serve the lessons like the Love Corner App does... so people can taste and see what type of therapy and training TLC Therapy Solutions App has to offer."*
+
+Built the Love Corner's mechanism on TLC's own door: `lib/tlc-lesson-links.js` (the link `poetech.us/tlc/app/?tlc=1&course=…&lesson=…`, parsed and resolved against the mounted curriculum, stale → the door opens normally); Share on every lesson, track and course; signed out the door serves the linked lesson open above the booking page in guest mode with nothing of the office; signed in it opens Training on the lesson. Proof: `tlc-lesson-links.test.js` (10), door render (+3), practice-learn-render (+1). Live proof waits on the first tap from a phone (re-review 2026-09-17).
+

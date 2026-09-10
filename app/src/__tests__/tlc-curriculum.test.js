@@ -13,11 +13,14 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
 import { parseRef } from '../lib/bible-kjv.js';
-import { wordForModule, hasWord, plainIsPlain } from '../lib/lesson-word.js';
+import { referencesIn } from '../lib/verse-refs.js';
+import { wordForModule, hasWord, plainIsPlain, TWO_RENDERINGS_VERSE, TWO_RENDERINGS_NOTE } from '../lib/lesson-word.js';
+import { COURSE_BODIES, wordCount, hasEveryPart, LESSON_PARTS } from '../lib/tlc-course-bodies.js';
+import { COURSE_REVIEWS } from '../lib/tlc-course-reviews.js';
 import { ILLINOIS_RULES, ILLINOIS_RULE_KEYS, ILLINOIS_SOURCES, ILLINOIS_POLICY_AS_OF, FIELD_TOPICS, illinoisTopicsFor, illinoisModuleFor, sourcesFor, illinoisRules } from '../lib/tlc-illinois-policy.js';
 import { allCourses, TRAINING_FIELDS, getCourse } from '../lib/tlc-training-library.js';
 import { buildWeeklyPlan, buildTrainingPlan, buildStatePlan, statePlanNote, DEFAULT_PLAN_WEEKS } from '../lib/tlc-training-plan.js';
-import { TLC_LESSON_TRACKS, isEngineRenderable } from '../lib/tlc-lessons.js';
+import { TLC_LESSON_TRACKS, isEngineRenderable, allTracks } from '../lib/tlc-lessons.js';
 import { FINDING_PEACE_CHAPTERS, FINDING_PEACE_VERSES } from '../lib/tlc-finding-peace.js';
 import { STATE_RULESETS } from '../lib/ceu-tracker.js';
 import { validAssignment, normalizeEmail, splitAssignments } from '../lib/tlc-assignments-core.js';
@@ -46,7 +49,9 @@ const WORD_INLINE_BY_AUTHOR = (m) => /^tl-script-/.test(m.id) || /^tl-couple-des
 
 describe('two renderings: plain by default, the Word on click', () => {
   const library = allCourses();
-  it('every client lesson and every library lesson has a Word rendering, except the Illinois lesson (the state’s rule carries no Scripture)', () => {
+  it('every lesson on every track and every library lesson has a Word rendering, except the Illinois lesson (the state’s rule carries no Scripture)', () => {
+    // Darrell 2026-09-10, on the therapist track: "Where is the Word on some of these lessons?" — the gate now walks EVERY track.
+    for (const t of allTracks()) for (const m of t.modules) expect(hasWord(m), `${t.key}/${m.id}`).toBe(true);
     for (const m of TLC_LESSON_TRACKS.client.modules) expect(hasWord(m), m.id).toBe(true);
     for (const c of library) for (const m of c.modules) {
       if (m.illinois) expect(wordForModule(m, c), m.id).toBeNull();
@@ -55,13 +60,13 @@ describe('two renderings: plain by default, the Word on click', () => {
   });
   it('every reference a Word rendering names exists in the app’s KJV corpus (loaded verbatim at read time — never typed)', () => {
     const refs = new Set();
-    for (const m of TLC_LESSON_TRACKS.client.modules) for (const r of wordForModule(m).verses) refs.add(r);
+    for (const t of allTracks()) for (const m of t.modules) for (const r of wordForModule(m).verses) refs.add(r);
     for (const c of library) for (const m of c.modules) { const w = wordForModule(m, c); if (w) for (const r of w.verses) refs.add(r); }
     expect(refs.size).toBeGreaterThan(60);
     for (const r of refs) expect(corpusHas(r), r).toBe(true);
   });
   it('the plain rendering is plain: no Scripture reference in any level of a client lesson or a library lesson (the author-inline set named)', () => {
-    for (const m of TLC_LESSON_TRACKS.client.modules) expect(plainIsPlain(m), m.id).toBe(true);
+    for (const t of allTracks()) for (const m of t.modules) expect(plainIsPlain(m), `${t.key}/${m.id}`).toBe(true);
     for (const c of library) for (const m of c.modules) {
       if (WORD_INLINE_BY_AUTHOR(m)) continue;
       expect(plainIsPlain(m), `${c.id}/${m.id}`).toBe(true);
@@ -88,6 +93,44 @@ describe('two renderings: plain by default, the Word on click', () => {
     const cl = TLC_LESSON_TRACKS.client.modules.find((m) => m.id === 'cl1-what-is-anxiety');
     expect(wordForModule(cl).source).toBe('lesson');
     expect(wordForModule({ id: 'x', levels: { standard: 'plain' } })).toBeNull();
+  });
+});
+
+describe('the build-out: full lessons, not starters (Darrell: "I don’t want starter lessons one paragraph")', () => {
+  const library = allCourses();
+  const built = (m) => !m.illinois && !WORD_INLINE_BY_AUTHOR(m);
+  it('every library lesson that is not author-inline carries a full body of at least 350 words in the six parts, keeps its starter as the plain level, and is paced by the engine', () => {
+    let count = 0;
+    for (const c of library) for (const m of c.modules) {
+      if (!built(m)) continue;
+      count += 1;
+      expect(m.depth, `${c.id}/${m.id} has no body`).toBe(true);
+      expect(wordCount(m.levels.standard), `${c.id}/${m.id} words`).toBeGreaterThanOrEqual(350);
+      expect(hasEveryPart(m.levels.standard), `${c.id}/${m.id} parts`).toBe(true);
+      expect(m.levels.teen).toBe(m.starter);
+      expect(wordCount(m.starter)).toBeLessThan(wordCount(m.levels.standard));
+      expect(m.levels.senior).toBe(m.levels.standard);
+      expect(isEngineRenderable(m)).toBe(true);
+    }
+    expect(count).toBe(Object.keys(COURSE_BODIES).length);
+    expect(count).toBeGreaterThanOrEqual(35);
+    expect(LESSON_PARTS).toHaveLength(6);
+  });
+  it('every course carries its review for Christina: known understanding, sources, her questions, the workflow as steps', () => {
+    for (const c of library) {
+      expect(c.review, c.id).toBeTruthy();
+      expect(c.review.knownUnderstanding.length, c.id).toBeGreaterThanOrEqual(1);
+      expect(c.review.sources.length, c.id).toBeGreaterThanOrEqual(1);
+      expect(c.review.forChristina.length, c.id).toBeGreaterThanOrEqual(2);
+      expect(c.review.workflow.length, c.id).toBeGreaterThanOrEqual(3);
+    }
+    expect(Object.keys(COURSE_REVIEWS)).toHaveLength(library.length);
+  });
+  it('the full bodies stay plain (no Scripture reference) so the Word drops down only where it is opened; Darrell’s framing verse exists in the corpus', () => {
+    for (const [id, body] of Object.entries(COURSE_BODIES)) expect(referencesIn(body), id).toEqual([]);
+    expect(corpusHas(TWO_RENDERINGS_VERSE)).toBe(true);
+    expect(TWO_RENDERINGS_NOTE).toMatch(/sharper than any two-edged sword/);
+    expect(TWO_RENDERINGS_NOTE).toMatch(/Yahweh/);
   });
 });
 

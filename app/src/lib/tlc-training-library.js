@@ -42,6 +42,8 @@
 // =============================================================================
 import { courseAssessment, gradeQuiz, QUIZ_PASS_RATIO } from './learn-framework.js';
 import { illinoisModuleFor } from './tlc-illinois-policy.js';
+import { courseBody } from './tlc-course-bodies.js';
+import { courseReview } from './tlc-course-reviews.js';
 import { CLINICAL_COMPETENCIES } from './practice-academy.js';
 import { SESSION_SCRIPT_COURSES } from './tlc-session-scripts.js';
 
@@ -772,7 +774,21 @@ function withIllinois(course) {
   const il = illinoisModuleFor(course);
   return il ? { ...course, modules: [...course.modules, il] } : course;
 }
-export const TRAINING_LIBRARY = COURSES.map(withIllinois);
+// The build-out (DR-0345): a lesson with a full body carries it as the
+// standard level and keeps its starter paragraph as the teen level; a course
+// carries its review block for Christina (known understanding, sources, her
+// questions, the TLC workflow).
+function withDepth(course) {
+  if (!course) return course;
+  const modules = course.modules.map((m) => {
+    const body = courseBody(m.id);
+    if (!body) return m;
+    const levels = { ...m.levels, teen: m.levels.teen || m.levels.standard, standard: body, senior: body };
+    return { ...m, levels, depth: true, starter: m.levels.standard };
+  });
+  return { ...course, modules, review: courseReview(course.id) };
+}
+export const TRAINING_LIBRARY = COURSES.map(withIllinois).map(withDepth);
 
 // ---------------------------------------------------------------------------
 // Accessors — pure, derived. The surface + the plan + the tests share these.

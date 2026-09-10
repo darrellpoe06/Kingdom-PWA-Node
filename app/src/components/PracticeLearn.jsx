@@ -30,6 +30,9 @@
 // =============================================================================
 import React, { useState, useMemo, useEffect, useContext, createContext } from 'react';
 import SectionTabs from './SectionTabs.jsx';
+import ShareButton from './ShareButton.jsx';
+import { getTrack } from '../lib/tlc-lessons.js';
+import { tlcLessonUrl, tlcLessonSharePayload, tlcCourseSharePayload, TLC_TASTE_NOTE } from '../lib/tlc-lesson-links.js';
 import SectionBoundary from './SectionBoundary.jsx';
 import WordInline from './WordInline.jsx';
 import { SectionTitle, MetricCell } from './shared.jsx';
@@ -59,7 +62,8 @@ import {
 } from '../lib/tlc-training-library.js';
 import { buildStatePlan, statePlanNote } from '../lib/tlc-training-plan.js';
 import { wordForModule } from '../lib/lesson-word.js';
-import { isShowTheWord } from '../lib/show-the-word.js';
+import { useOpenWithTheWord } from '../lib/show-the-word.js';
+import { TWO_RENDERINGS_NOTE } from '../lib/lesson-word.js';
 import { VerseBlock } from './VerseChips.jsx';
 import { assignLesson, listMyAssignments, listAssignedToMe, markReviewed, removeAssignment, splitAssignments } from '../lib/tlc-assignments.js';
 import { ILLINOIS_POLICY_AS_OF } from '../lib/tlc-illinois-policy.js';
@@ -102,9 +106,15 @@ const nowISO = () => new Date().toISOString();
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const fmtDate = (iso) => { if (!iso) return '—'; try { return new Date(iso).toLocaleDateString(); } catch { return '—'; } };
 
-function PracticeLearn({ email = '', isStaff = false }) {
+// deepLink: a lesson served by link (lib/tlc-lesson-links.js, resolved by the
+// door) — opens Training on that lesson. guest: the signed-out taste-and-see
+// mode (Darrell 2026-09-10: "so people can taste and see what type of therapy
+// and training TLC ... has to offer"): ONLY the linked track or course renders,
+// with the lesson open; no areas, no ledger, no SME gate, no assignments.
+function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = false }) {
   const vis = useMemo(() => visibleAudiences({ isStaff }), [isStaff]);
   const [audience, setAudience] = useState(() => {
+    if (deepLink && deepLink.audience) return deepLink.audience;
     const saved = loadLS(LS.audience, null);
     return saved && canSeeAudience(saved, { isStaff }) ? saved : defaultAudience({ isStaff });
   });
@@ -120,10 +130,10 @@ function PracticeLearn({ email = '', isStaff = false }) {
   const [libTests, setLibTests] = useState(() => loadLS(LS.libTests, {}));
   const [libApproval, setLibApproval] = useState(() => loadLS(LS.libApproval, {}));
   const [libLogged, setLibLogged] = useState(() => loadLS(LS.libLogged, []));
-  const [openModuleId, setOpenModuleId] = useState(null);
+  const [openModuleId, setOpenModuleId] = useState(deepLink && deepLink.module ? deepLink.module.id : null);
   // The area strip is controlled so "Open lesson" on an assignment can land
   // the reader on Lessons with that lesson open (DR-0345).
-  const [area, setArea] = useState('lessons');
+  const [area, setArea] = useState(deepLink && deepLink.kind === 'library' ? 'courses' : 'lessons');
   // Lessons a therapist assigned (staff) / lessons assigned to me (everyone
   // signed in). Read once per sign-in; refreshed after each write.
   const [assigned, setAssigned] = useState({ mine: [], forMe: [], loaded: false, message: '' });
@@ -353,7 +363,7 @@ function PracticeLearn({ email = '', isStaff = false }) {
           Learning that actually helps — psychoeducation and coping skills for clients and families, clinical growth for therapists, and a real record of the work. Built on the same paced, age-adaptive, read-aloud-ready Learn engine the rest of the app uses.
         </p>
 
-        <div className="mt-4">
+        {!guest && <div className="mt-4">
           <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1.5">Who is learning</div>
           <div role="group" aria-label="Learn audience" className="flex flex-wrap gap-1.5">
             {vis.map((a) => (
@@ -379,8 +389,54 @@ function PracticeLearn({ email = '', isStaff = false }) {
               You can switch audiences to preview / run any track. A real client or therapist sign-in pins the audience from membership (Phase 2, roles layer).
             </p>
           )}
-        </div>
+        </div>}
       </section>
+
+      {/* TASTE AND SEE — a lesson served by link to a visitor (Darrell
+          2026-09-10). One card, the lesson open, the practice named; the
+          door's booking page follows below. Nothing else of Training shows. */}
+      {guest && deepLink && (
+        <section aria-label="Shared with you" className="space-y-3">
+          <div className="border-l-4 border-[#B85838] bg-white p-3">
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Shared with you</div>
+            <p className="text-xs text-[#5A5751]" style={SERIF}>{TLC_TASTE_NOTE}</p>
+          </div>
+          {deepLink.kind === 'track' ? (
+            <TrackCard
+              track={deepLink.track}
+              level={level}
+              progress={progress}
+              quizState={quizState}
+              openModuleId={openModuleId}
+              setOpenModuleId={setOpenModuleId}
+              onRecordQuiz={recordQuiz}
+              onMarkRead={markRead}
+              certTemplates={[]}
+              onEarn={() => {}}
+              alreadyEarned={() => false}
+            />
+          ) : (
+            <CourseCard
+              course={deepLink.course}
+              decision={courseApprovalStatus(libApproval, deepLink.course.id)}
+              isStaff={false}
+              level={level}
+              progress={progress}
+              quizState={quizState}
+              libTests={libTests}
+              logged={false}
+              openModuleId={openModuleId}
+              setOpenModuleId={setOpenModuleId}
+              onRecordQuiz={recordQuiz}
+              onMarkRead={markRead}
+              onDecide={() => {}}
+              onRecordTest={recordCourseTest}
+              onComplete={() => {}}
+              defaultOpen
+            />
+          )}
+        </section>
+      )}
 
       {/* Every area of Training is ONE chip away on a second row (Darrell
           2026-09-10: "training tab is too deep... we need another tab slider
@@ -388,11 +444,13 @@ function PracticeLearn({ email = '', isStaff = false }) {
           audience switcher above stays pinned; the row below names the areas
           side by side and shows exactly one. Two levels in the TLC app: the
           app slider, then this row — never a long scroll. */}
+      {!(guest && deepLink) && (
       <SectionBoundary name="Training areas">
         <LearnContext.Provider value={{ isStaff, email, onAssign: isStaff ? onAssign : null }}>
           <SectionTabs variant="sub" sections={learnAreas} ariaLabel="Training areas" idBase={`tlc-learn-${audience}`} defaultId="lessons" activeId={area} onActiveChange={setArea} />
         </LearnContext.Provider>
       </SectionBoundary>
+      )}
 
       {/* The single floating read-aloud control for the whole surface */}
       <TTSControl />
@@ -414,8 +472,17 @@ function TrackCard({ track, level, progress, quizState, openModuleId, setOpenMod
     <section className="bg-white border border-[#E8E4DC] p-4 sm:p-5">
       <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
         <h3 className="text-lg" style={{ ...SERIF, fontWeight: 600 }}>{track.title}</h3>
-        <span className={`text-[0.625rem] uppercase tracking-wider ${published ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>
-          {published ? '✓ validated' : 'needs SME validation'}
+        <span className="flex items-center gap-2 flex-wrap">
+          <span className={`text-[0.625rem] uppercase tracking-wider ${published ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>
+            {published ? '✓ validated' : 'needs SME validation'}
+          </span>
+          {/* SHARE OUTSIDE THE APP (Darrell 2026-09-10): the whole track, by a
+              link the door serves to anyone — the Love Corner's own mechanism. */}
+          <ShareButton
+            label="Share this track"
+            title="Share a link that opens this track, using your usual apps"
+            payload={() => tlcCourseSharePayload(track, { url: tlcLessonUrl({ courseId: track.key }), lessonCount: track.modules.length })}
+          />
         </span>
       </div>
       <p className="text-xs text-[#5A5751] mb-2 max-w-prose" style={SERIF}>{track.purpose}</p>
@@ -491,16 +558,22 @@ function LessonRunner({ module, level, quizState, onRecordQuiz, onMarkRead, cour
   const arc = useMemo(() => buildLessonArc(module, { levelOverride: level }), [module, level]);
   // Two renderings (DR-0345): the arc above is the plain lesson; the Word
   // rendering opens on click (or by the page-wide Show-the-Word switch).
+  // The Word drops down INSIDE the lesson (Darrell 2026-09-10: "not either!?!
+  // drop down of the Word for the same information like we have been doing
+  // already"): one lesson, plain to read, and under its anchor a fold that
+  // follows the page-wide Show-the-Word switch and flips on a tap (DR-0341).
   const word = useMemo(() => wordForModule(module, course), [module, course]);
-  const [showWord, setShowWord] = useState(() => isShowTheWord());
   const { isStaff, onAssign } = useContext(LearnContext);
 
   const renderStage = (seg) => {
     switch (seg.kind) {
       case 'open':
-        return seg.audience.bigIdea ? (
-          <WordInline text={seg.audience.bigIdea} className="text-sm text-[#1A1815]" style={SERIF} />
-        ) : null;
+        return (
+          <div className="space-y-2">
+            {seg.audience.bigIdea ? <WordInline text={seg.audience.bigIdea} className="text-sm text-[#1A1815]" style={SERIF} /> : null}
+            {word && <WordDropdown word={word} />}
+          </div>
+        );
       case 'teach': {
         const segs = (seg.audience.lessonPlan && seg.audience.lessonPlan.segments) || [];
         return (
@@ -527,32 +600,53 @@ function LessonRunner({ module, level, quizState, onRecordQuiz, onMarkRead, cour
           {' '}Sources: {module.illinois.sources.map((x) => x.label).join(' · ')}.
         </p>
       )}
-      {word && (
-        <div>
-          <button
-            type="button"
-            aria-pressed={showWord}
-            onClick={() => setShowWord((v) => !v)}
-            className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-[#B85838] ${showWord ? 'bg-[#5A6E3D] border-[#5A6E3D] text-white' : 'border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white'}`}
-          >
-            {showWord ? 'Hide the Word' : 'Show the Word'}
-          </button>
-          {showWord && (
-            <div className="mt-2 border border-[#5A6E3D] bg-[#5A6E3D]/[0.04] p-3 space-y-2" role="region" aria-label="This lesson with the Word">
-              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">This lesson with the Word</div>
-              {word.principle && <p className="text-sm text-[#1A1815]" style={SERIF}>{word.principle}</p>}
-              {word.verses.map((ref) => (
-                <div key={ref}>
-                  <div className="text-[0.625rem] text-[#5A5751]" style={MONO}>{ref}</div>
-                  <VerseBlock refStr={ref} reveal={false} />
-                </div>
-              ))}
-              {word.reflection && <p className="text-xs text-[#1A1815] leading-relaxed" style={SERIF}>{word.reflection}</p>}
+      {/* SHARE OUTSIDE THE APP (Darrell 2026-09-10: "a link to serve the
+          lessons like the Love Corner App does... so people can taste and see").
+          One tap into the device's own share sheet; the link opens exactly this
+          lesson on the TLC door, signed in or not. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <ShareButton
+          label="Share this lesson"
+          title="Share a link that opens exactly this lesson, using your usual apps"
+          payload={() => tlcLessonSharePayload(module, {
+            url: tlcLessonUrl({ courseId: course ? course.id : track, lessonId: module.id }),
+            courseTitle: course ? course.title : ((getTrack(track) || {}).title || ''),
+          })}
+        />
+      </div>
+      {isStaff && onAssign && <AssignLessonForm lesson={{ id: module.id, title: module.title }} track={track} onAssign={onAssign} />}
+    </div>
+  );
+}
+
+// The Word, dropped down inside the lesson: the course's (or the lesson's own)
+// principle, every verse verbatim from the corpus, the reflection. Closed, the
+// lesson reads plain; the page-wide switch opens it, a tap flips it.
+function WordDropdown({ word }) {
+  const [open, toggle] = useOpenWithTheWord();
+  return (
+    <div className="border-l-2 border-[#5A6E3D] pl-2">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={open}
+        className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815] min-h-[32px] flex items-center gap-1.5 focus:outline focus:outline-2 focus:outline-[#B85838]"
+      >
+        <span aria-hidden="true">{open ? '▾' : '▸'}</span> The Word on this lesson
+      </button>
+      {open && (
+        <div className="mt-1 space-y-2" role="region" aria-label="The Word on this lesson">
+          <p className="text-[0.625rem] text-[#5A5751] italic" style={SERIF}>{TWO_RENDERINGS_NOTE}</p>
+          {word.principle && <p className="text-sm text-[#1A1815]" style={SERIF}>{word.principle}</p>}
+          {word.verses.map((ref) => (
+            <div key={ref}>
+              <div className="text-[0.625rem] text-[#5A5751]" style={MONO}>{ref}</div>
+              <VerseBlock refStr={ref} reveal={false} />
             </div>
-          )}
+          ))}
+          {word.reflection && <p className="text-xs text-[#1A1815] leading-relaxed" style={SERIF}>{word.reflection}</p>}
         </div>
       )}
-      {isStaff && onAssign && <AssignLessonForm lesson={{ id: module.id, title: module.title }} track={track} onAssign={onAssign} />}
     </div>
   );
 }
@@ -1214,8 +1308,10 @@ function CourseLibrary({
 function CourseCard({
   course, decision, isStaff, level, progress, quizState, libTests, logged,
   openModuleId, setOpenModuleId, onRecordQuiz, onMarkRead, onDecide, onRecordTest, onComplete,
+  defaultOpen = false,
 }) {
-  const [open, setOpen] = useState(false);
+  // Open at mount when asked, or when it holds the lesson a link opened.
+  const [open, setOpen] = useState(() => defaultOpen || (!!openModuleId && course.modules.some((m) => m.id === openModuleId)));
   const modAssess = useMemo(() => courseModuleAssessment(course, progress, quizState), [course, progress, quizState]);
   const complete = useMemo(() => courseComplete(course, progress, quizState, libTests), [course, progress, quizState, libTests]);
   const growth = growthDelta(libTests, course.id);
@@ -1236,10 +1332,17 @@ function CourseCard({
             {course.origin === 'youtube-distilled' && <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] border border-[#B85838] px-1">Source-distilled · draft</span>}
           </div>
           <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-0.5">
-            {courseTrainingHours(course)} training hours · {course.modules.length} lesson{course.modules.length === 1 ? '' : 's'} · <span className={dec.color}>{dec.label}</span>
+            {courseTrainingHours(course)} training hours · {course.modules.length} lesson{course.modules.length === 1 ? '' : 's'}{isStaff && <> · <span className={dec.color}>{dec.label}</span></>}
           </div>
         </button>
         <span className="text-[#5A5751] shrink-0">{open ? '−' : '+'}</span>
+      </div>
+      <div className="px-3 pb-3">
+        <ShareButton
+          label="Share this course"
+          title="Share a link that opens this course, using your usual apps"
+          payload={() => tlcCourseSharePayload(course, { url: tlcLessonUrl({ courseId: course.id }), lessonCount: course.modules.length })}
+        />
       </div>
 
       {/* Staff (Christina) Agree / Disagree gate — her clinical judgment publishes it */}
@@ -1320,6 +1423,28 @@ function CourseCard({
               );
             })}
           </div>
+
+          {isStaff && course.review && (
+            <div className="mt-3 border border-[#1A1815] p-3 space-y-2" role="region" aria-label="For Christina to evaluate">
+              <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">For Christina to evaluate · from MVP to the hard-coded workflow</div>
+              <div>
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Known understanding</div>
+                <ul className="list-disc pl-4 text-xs text-[#1A1815]" style={SERIF}>{course.review.knownUnderstanding.map((x) => <li key={x}>{x}</li>)}</ul>
+              </div>
+              <div>
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Sources</div>
+                <p className="text-[0.6875rem] text-[#5A5751]" style={SERIF}>{course.review.sources.join(' · ')}</p>
+              </div>
+              <div>
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Questions for Christina</div>
+                <ol className="list-decimal pl-4 text-xs text-[#1A1815]" style={SERIF}>{course.review.forChristina.map((x) => <li key={x}>{x}</li>)}</ol>
+              </div>
+              <div>
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">The TLC workflow, as steps</div>
+                <ol className="list-decimal pl-4 text-xs text-[#1A1815]" style={SERIF}>{course.review.workflow.map((x) => <li key={x}>{x}</li>)}</ol>
+              </div>
+            </div>
+          )}
 
           {/* Post-test (graded gate) */}
           {course.postTest && course.postTest.questions && course.postTest.questions.length > 0 && (
