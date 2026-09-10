@@ -153,7 +153,7 @@ import {
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
   CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library,
   Inventory, Forecast, AdminConsole, ChefCorner, RoadTo150, Games, TVTime, Messages, AdvocacyCases, DataLiberation,
-  EternalAlgorithmsStudy, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Relationships, ChurchMembers,
+  EternalAlgorithmsStudy, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, ChurchMembers, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { useInstanceRole } from './lib/instance-role.js';
