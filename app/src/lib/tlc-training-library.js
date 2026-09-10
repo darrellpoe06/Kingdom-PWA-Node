@@ -42,6 +42,7 @@
 // =============================================================================
 import { courseAssessment, gradeQuiz, QUIZ_PASS_RATIO } from './learn-framework.js';
 import { CLINICAL_COMPETENCIES } from './practice-academy.js';
+import { SESSION_SCRIPT_COURSES } from './tlc-session-scripts.js';
 
 // The ten training FIELDS = the clinical competencies already in the app. Re-exported
 // so the library and its surface share ONE source of truth (no second list to drift).
@@ -751,6 +752,13 @@ const COURSES = [
       { q: 'Feedback in supervision is best understood as…', options: ['A personal verdict', 'A professional skill serving better client care', 'Punishment'], answer: 1, explain: 'A skill in service of clients.' },
     ] },
   }),
+
+  // ===========================================================================
+  // CHRISTINA'S SESSION SCRIPTS — "Training Notes for Therapists-in-Training"
+  // (lib/tlc-session-scripts.js; DR-0344). Her words, engine-shaped; validated
+  // by her in-app like every other course.
+  // ===========================================================================
+  ...SESSION_SCRIPT_COURSES.map(makeCourse),
 ];
 
 // The frozen, normalized library. Every entry is already makeCourse-shaped.
