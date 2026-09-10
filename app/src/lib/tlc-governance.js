@@ -35,6 +35,11 @@ export const TLC_RESOURCES = Object.freeze([
 ]);
 
 const EVERYONE = ['find', 'training', 'team', 'assistant', 'door:jobs', 'learn:public'];
+// A client (a signed-in person with no office role): their lessons, the
+// people, the open positions — never the office documents or its workspace
+// (Darrell 2026-09-10: "when a user creates an account they can see?" /
+// "only what is necessary").
+const CLIENT = ['find', 'training', 'door:jobs', 'learn:public'];
 const STAFF = [...EVERYONE, 'inquiries', 'growth', 'revenue', 'training:library', 'training:assign', 'team:launch'];
 const MANAGERS = [...STAFF, 'onboarding', 'team:governance', 'onboarding:hiring'];
 // Before membership (DR-0350): a stranger on the door, and a hire mid-packet.
@@ -81,8 +86,8 @@ export const TLC_POSITIONS = Object.freeze([
     may: ['Read the public roster, the training a client sees, the office documents'] },
   { key: 'client', role: null, title: 'Client', holder: 'Anyone who signs in without an office role', reportsTo: null,
     governs: 'Their own learning: the lessons their therapist assigns, their reading choices.',
-    resources: EVERYONE,
-    may: ['Find a therapist and book', 'Read the client lessons, with or without the Word', 'See lessons assigned to them and mark them reviewed'] },
+    resources: CLIENT,
+    may: ['Find a therapist and book', 'Read the client lessons (Mental skills), with or without the Word', 'See lessons assigned to them and mark them reviewed', 'Read the open positions and apply', 'Never the office documents, the launch board, or the Assistant workspace'] },
   // The two standings BEFORE membership that the hiring workflow needs
   // (Darrell 2026-09-10: "Do we have all the types of users we need for these
   // workflows to work"). Neither holds an office role; the database reaches
@@ -137,25 +142,29 @@ export function resourceMatrix() {
 // Member / assistant / viewer / admin / owner: the office slider per their
 // resources (Assistant for the assistant; the office tabs for members;
 // Onboarding for the owner/admin).
+// `who`: which standings the tab exists for — 'out' (signed out), 'client'
+// (signed in, no office role, no packet), 'newhire' (a packet exists, not yet
+// approved: the documents to sign, the training), 'staff' (an office role or
+// an approved packet). A tab shows only where the seat's resources reach it, too.
 export const DOOR_TABS = Object.freeze([
-  { id: 'find', label: 'Find your therapist', resource: 'find', signedOut: true },
-  { id: 'learn', label: 'Mental skills', resource: 'learn:public', signedOut: true },
-  { id: 'jobs', label: 'Join the team', resource: 'door:jobs', signedOut: true },
-  { id: 'inquiries', label: 'Inquiries', resource: 'inquiries', signedOut: false },
-  { id: 'growth', label: 'Client Growth', resource: 'growth', signedOut: false },
-  { id: 'revenue', label: 'Revenue', resource: 'revenue', signedOut: false },
-  { id: 'training', label: 'Training', resource: 'training', signedOut: false },
-  { id: 'team', label: 'Team', resource: 'team', signedOut: false },
-  { id: 'assistant', label: 'Assistant', resource: 'assistant', signedOut: false },
-  { id: 'onboarding', label: 'Onboarding', resource: 'onboarding', signedOut: false },
+  { id: 'find', label: 'Find your therapist', resource: 'find', who: ['out', 'client', 'newhire', 'staff'] },
+  { id: 'learn', label: 'Mental skills', resource: 'learn:public', who: ['out'] },
+  { id: 'inquiries', label: 'Inquiries', resource: 'inquiries', who: ['staff'] },
+  { id: 'growth', label: 'Client Growth', resource: 'growth', who: ['staff'] },
+  { id: 'revenue', label: 'Revenue', resource: 'revenue', who: ['staff'] },
+  { id: 'training', label: 'Training (a client reads it as Mental skills)', resource: 'training', who: ['client', 'newhire', 'staff'] },
+  { id: 'team', label: 'Team', resource: 'team', who: ['newhire', 'staff'] },
+  { id: 'assistant', label: 'Assistant', resource: 'assistant', who: ['staff'] },
+  { id: 'jobs', label: 'Join the team', resource: 'door:jobs', who: ['out', 'client'] },
+  { id: 'onboarding', label: 'Onboarding', resource: 'onboarding', who: ['staff'] },
 ]);
 
-/** The door's tabs for one standing: signed out, the three public tabs; signed in, the office slider per the seat's resources. */
+/** The door's tabs for one standing, in the door's own order: what the seat reaches AND the tab exists for. */
 export function doorTabsFor(key) {
   const p = TLC_POSITIONS.find((x) => x.key === key);
   if (!p) return [];
-  const signedOut = key === 'applicant';
-  return DOOR_TABS.filter((t) => t.signedOut === signedOut && p.resources.includes(t.resource)).map((t) => t.id);
+  const standing = key === 'applicant' ? 'out' : key === 'client' ? 'client' : key === 'newhire' ? 'newhire' : 'staff';
+  return DOOR_TABS.filter((t) => t.who.includes(standing) && p.resources.includes(t.resource)).map((t) => t.id);
 }
 
 export const GOVERNANCE_NOTE = 'The database decides (RLS and the guarded role functions); this table is the office’s reading of the same rule, kept in step by the tests. An owner is never changed here; only an owner makes or unmakes an admin; no one changes their own seat.';

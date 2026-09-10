@@ -39,7 +39,12 @@ describe('the seats, top down', () => {
     for (const r of member) expect(admin).toContain(r);
     for (const r of assistant) expect(member).toContain(r);
     expect(viewer).toEqual(assistant);
-    expect(client).toEqual(assistant);
+    // a client reaches LESS than the assistant: never the office documents or its workspace (DR-0350 §17)
+    for (const r of client) expect(assistant, r).toContain(r);
+    expect(client).not.toContain('team');
+    expect(client).not.toContain('assistant');
+    expect(canReach(null, 'training')).toBe(true);
+    expect(canReach(null, 'door:jobs')).toBe(true);
     for (const r of ['inquiries', 'revenue', 'growth', 'onboarding', 'team:governance', 'training:assign']) expect(canReach('assistant', r), r).toBe(false);
     expect(canReach('assistant', 'assistant')).toBe(true);
     expect(canReach('member', 'onboarding')).toBe(false);
@@ -78,12 +83,14 @@ describe('the door’s gates say what the chart says', () => {
 describe('the tabs each group sees (Darrell 2026-09-10: "what tabs do each group need to see and or not?")', () => {
   it('is derived from the same resources as the matrix, per standing', () => {
     expect(doorTabsFor('applicant')).toEqual(['find', 'learn', 'jobs']);
-    expect(doorTabsFor('client')).toEqual(['training', 'team', 'assistant']);
-    expect(doorTabsFor('reviewer')).toEqual(['training', 'team', 'assistant']);
-    expect(doorTabsFor('assistant')).toEqual(['training', 'team', 'assistant']);
-    expect(doorTabsFor('aispecialist')).toEqual(['training', 'team', 'assistant']);
-    expect(doorTabsFor('therapist')).toEqual(['inquiries', 'growth', 'revenue', 'training', 'team', 'assistant']);
-    expect(doorTabsFor('admin')).toEqual(['inquiries', 'growth', 'revenue', 'training', 'team', 'assistant', 'onboarding']);
+    // a client account: their lessons, the people, the open positions — never the office
+    expect(doorTabsFor('client')).toEqual(['find', 'training', 'jobs']);
+    expect(doorTabsFor('newhire')).toEqual(['find', 'training', 'team']);
+    expect(doorTabsFor('reviewer')).toEqual(['find', 'training', 'team', 'assistant']);
+    expect(doorTabsFor('assistant')).toEqual(['find', 'training', 'team', 'assistant']);
+    expect(doorTabsFor('aispecialist')).toEqual(['find', 'training', 'team', 'assistant']);
+    expect(doorTabsFor('therapist')).toEqual(['find', 'inquiries', 'growth', 'revenue', 'training', 'team', 'assistant']);
+    expect(doorTabsFor('admin')).toEqual(['find', 'inquiries', 'growth', 'revenue', 'training', 'team', 'assistant', 'onboarding']);
     expect(doorTabsFor('owner')).toEqual(doorTabsFor('admin'));
     expect(doorTabsFor('nope')).toEqual([]);
     for (const tab of DOOR_TABS) expect(TLC_RESOURCES.some((r) => r.id === tab.resource), tab.id).toBe(true);

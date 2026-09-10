@@ -13,6 +13,7 @@ import { createRoot } from 'react-dom/client';
 
 const sent = { saves: [], reviews: [], invites: [], rosterUpserts: [], launch: [], roles: [], spaceInvites: [] };
 let openStatus = 'draft';
+let packetStatus = null; // the signed-in person's own packet, if any (null = a client, no packet)
 let roleState = { instanceId: 'i1', instanceSlug: 'poe-family', instanceType: 'family', role: 'admin', loaded: true };
 
 const basePacket = () => ({
@@ -28,6 +29,7 @@ vi.mock('../lib/tlc-onboarding-sync.js', async (orig) => {
   const real = await orig();
   return {
     ...real,
+    myPacketStatus: async () => ({ ok: true, status: packetStatus }),
     openPacket: async (token) => (token === 'good' ? { ok: true, view: view() } : { ok: false, reason: 'unknown', message: real.openMessage('unknown') }),
     savePacket: async (args) => { sent.saves.push(args); if (args.submit) return { ok: true, submitted: true, missing: [], view: view({ status: 'submitted', submitted_at: '2026-09-10T12:00:00Z' }) }; return { ok: true, submitted: false, missing: [], view: view() }; },
     uploadDocument: async () => ({ ok: true, pointer: { path: 'u1/p1/w9-w9.pdf', fileName: 'w9.pdf' } }),
@@ -96,7 +98,7 @@ import { TLC_TEAM } from '../lib/tlc-practice.js';
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let container, root;
 async function mount(el) { container = document.createElement('div'); document.body.appendChild(container); await act(async () => { root = createRoot(container); root.render(el); }); }
-afterEach(async () => { if (root) await act(async () => root.unmount()); if (container) container.remove(); root = null; container = null; sent.saves.length = 0; sent.reviews.length = 0; sent.invites.length = 0; sent.rosterUpserts.length = 0; sent.launch.length = 0; sent.roles.length = 0; sent.spaceInvites.length = 0; openStatus = 'draft'; window.history.replaceState(null, '', '/'); });
+afterEach(async () => { if (root) await act(async () => root.unmount()); if (container) container.remove(); root = null; container = null; sent.saves.length = 0; sent.reviews.length = 0; sent.invites.length = 0; sent.rosterUpserts.length = 0; sent.launch.length = 0; sent.roles.length = 0; sent.spaceInvites.length = 0; openStatus = 'draft'; roleState = { instanceId: 'i1', instanceSlug: 'poe-family', instanceType: 'family', role: 'admin', loaded: true }; packetStatus = null; window.history.replaceState(null, '', '/'); });
 const settle = () => act(async () => { for (let i = 0; i < 6; i += 1) await Promise.resolve(); });
 const click = (el) => act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
 const byText = (re, tag = 'button') => Array.from(container.querySelectorAll(tag)).find((b) => re.test(b.textContent));
@@ -241,6 +243,23 @@ describe('the TLC door', () => {
   });
 });
 
+describe('a client account sees only what a client needs (DR-0350; Darrell: "when a user creates an account they can see?")', () => {
+  it('signed in with no office role and no packet: Find your therapist · Mental skills · Join the team — no Team, no Assistant, no office', async () => {
+    const keep = roleState;
+    roleState = { ...roleState, role: null, instanceId: null };
+    openStatus = null; // no packet: a client, not a colleague in onboarding
+    try {
+      session = { user: { email: 'newclient@example.com' } };
+      await mount(createElement(TlcPublicDoor));
+      await settle();
+      const tabs = Array.from(container.querySelectorAll('[role="tablist"][aria-label="TLC app sections"] [role="tab"]')).map((t) => t.textContent.trim());
+      expect(tabs).toEqual(['Find your therapist', 'Mental skills', 'Join the team']);
+      for (const bad of ['Inquiries', 'Client Growth', 'Revenue', 'Team', 'Assistant', 'Onboarding', 'Training']) expect(tabs).not.toContain(bad);
+      for (const bad of ['Pre-Intake Inquiry', 'Independent Contractor Handbook', 'Launch board', 'Governance']) expect(container.textContent).not.toContain(bad);
+    } finally { roleState = keep; }
+  });
+});
+
 describe('the TLC app carries the office workflows on ONE slider (DR-0344)', () => {
   it('a signed-in office admin sees Find · Inquiries · Client Growth · Revenue · Training · Team · Assistant · Onboarding, side by side', async () => {
     session = { user: { email: 'christina@tlctherapysolutions.com' } };
@@ -261,16 +280,13 @@ describe('the TLC app carries the office workflows on ONE slider (DR-0344)', () 
     expect(container.textContent).toContain('Maya R.');
     session = null;
   });
-  it('a signed-in person who is not staff gets no office tabs', async () => {
+  it('a signed-in person who is not staff gets no office tabs — a client sees Find · Mental skills · Join the team (DR-0350 §17)', async () => {
     session = { user: { email: 'client@example.com' } };
     roleState = { ...roleState, role: null, instanceId: null };
     await mount(createElement(TlcPublicDoor));
     await settle();
     const tabs = Array.from(container.querySelectorAll('[role="tab"]')).map((t) => t.textContent.trim());
-    expect(tabs).not.toContain('Inquiries');
-    expect(tabs).not.toContain('Revenue');
-    expect(tabs).toContain('Training');
-    expect(tabs).toContain('Team');
+    expect(tabs).toEqual(['Find your therapist', 'Mental skills', 'Join the team']);
     roleState = { ...roleState, role: 'admin', instanceId: 'i1' };
     session = null;
   });
@@ -329,9 +345,10 @@ describe('the office documents live on the Team tab, in the app (DR-0344 — "wh
     expect(Array.from(container.querySelectorAll('[role="tablist"]')).map((t) => t.getAttribute('aria-label'))).toEqual(['TLC app sections', 'Training areas']);
     session = null;
   });
-  it('a colleague who is not staff reads the documents but gets no Onboarding button and no launch board', async () => {
-    session = { user: { email: 'client@example.com' } };
+  it('a colleague who is not staff (a packet in progress) reads the documents on Team but gets no Onboarding button, no launch board, no Assistant', async () => {
+    session = { user: { email: 'colleague@example.com' } };
     roleState = { ...roleState, role: null, instanceId: null };
+    packetStatus = 'submitted';
     await mount(createElement(TlcPublicDoor));
     await settle();
     await click(byText(/^Team$/, '[role="tab"]'));
@@ -339,6 +356,8 @@ describe('the office documents live on the Team tab, in the app (DR-0344 — "wh
     expect(container.textContent).toContain('Independent Contractor Handbook');
     expect(areaChip('Team areas', /Launch board/)).toBeUndefined();
     expect(byText(/^Open Onboarding$/, 'button')).toBeUndefined();
+    const tabs = Array.from(container.querySelectorAll('[role="tablist"][aria-label="TLC app sections"] [role="tab"]')).map((x) => x.textContent.trim());
+    expect(tabs).toEqual(['Find your therapist', 'Training', 'Team']);
     roleState = { ...roleState, role: 'admin', instanceId: 'i1' };
     session = null;
   });
