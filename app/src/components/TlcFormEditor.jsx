@@ -31,6 +31,14 @@ const BTN_RUST = 'min-h-[36px] px-4 py-2 bg-[#B85838] text-white text-sm font-se
 const CHIP = (on) => `text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[36px] border ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'} focus:outline focus:outline-2 focus:outline-[#B85838]`;
 
 const isFloor = (f) => f.type === 'acknowledgment' || FLOOR_REQUIRED.includes(f.key);
+// How a colleague ANSWERS each kind, in plain words (Darrell 2026-09-10, at
+// this editor: the label cell reads as if the answer went there — it does
+// not; the answer is a calendar, a list, two buttons, on the form itself).
+const ANSWERED_WITH = {
+  text: 'a short answer box', email: 'an email box', tel: 'a phone box', date: 'a calendar', textarea: 'a paragraph box',
+  select: 'one choice from a list', multiselect: 'any choices from a list', yesno: 'Yes / No buttons', file: 'a file upload',
+  availability: 'the week, hour by hour', acknowledgment: 'the checkbox and a typed signature',
+};
 
 // ---------------------------------------------------------------------------
 // The questions
@@ -42,7 +50,7 @@ function FieldRow({ field, onChange, onRemove }) {
   return (
     <li className="border border-[#E8E4DC] p-2 space-y-1.5" aria-label={`Question: ${field.label}`}>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{field.custom ? 'Your question' : 'Original question'} · {field.type}{floor ? ' · required by the process' : ''}</span>
+        <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{field.custom ? 'Your question' : 'Original question'} · answered with {ANSWERED_WITH[field.type] || field.type}{floor ? ' · required by the process' : ''}</span>
         {field.custom && <button type="button" onClick={onRemove} className={`${BTN_WARN} ml-auto min-h-[36px] py-1 text-xs`}>Remove</button>}
       </div>
       <label htmlFor={`${id}-label`} className="block text-xs text-[#5A5751]">Label
@@ -250,6 +258,11 @@ export default function TlcFormEditor({ load = readOfficeDocuments, save = saveO
       {active === 'intake-form' && (
         <div className="mb-3">
           <button type="button" onClick={() => setPreview((v) => !v)} aria-pressed={preview} className={`${BTN}`}>{preview ? 'Back to editing' : 'Preview the form as a colleague sees it'}</button>
+          {!preview && (
+            <p className="text-xs text-[#5A5751] mt-2 leading-relaxed" style={SERIF}>
+              You are editing the <b>questions</b>, not answering them. Each card holds one question&apos;s wording, its help line and its rules; the answer cells are on the form itself, where a date is a calendar, a choice is a list and a yes/no is two buttons. Nothing typed here is ever an answer.
+            </p>
+          )}
         </div>
       )}
       {active === 'intake-form'

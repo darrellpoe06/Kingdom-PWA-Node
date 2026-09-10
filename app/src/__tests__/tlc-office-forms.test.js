@@ -24,6 +24,8 @@ const S196 = read('../../../infra/supabase/tests/0196-tlc-office-forms-smoke.sql
 const S197 = read('../../../infra/supabase/tests/0197-tlc-prefilled-invite-smoke.sql');
 const M198 = read('../../../infra/supabase/migrations-auto/0198-a-cell-for-every-item-on-the-intake-form-the-office-and-the-colleague-fill-any-cell-later.sql');
 const S198 = read('../../../infra/supabase/tests/0198-tlc-cells-smoke.sql');
+const M199 = read('../../../infra/supabase/migrations-auto/0199-a-check-at-the-bottom-of-every-document-the-colleague-acknowledges-in-place-the-office-stamps-the-time.sql');
+const S199 = read('../../../infra/supabase/tests/0199-tlc-acknowledge-in-place-smoke.sql');
 const LEG = read('../../../.github/workflows/rls-isolation.yml');
 
 describe('the intake form as data: the original, a body normalized onto it, what renders', () => {
@@ -181,8 +183,8 @@ describe('migration 0197 and its smoke: a prefilled invite claimed by email', ()
     for (const rung of ['a prefill with a password was accepted', 'a prefill with a bank number was accepted', 'a stranger claimed a packet', 'the answers are not in the packet', 'a signature was prefilled', 'did not reach the walled table', 'still sit on the invite', 'a second claim made a new packet', 'a colleague without an invite claimed a packet', 'does not say the packet was prefilled']) expect(S197, rung).toContain(rung);
   });
   it('both ride the tlc-office leg after 0195, with their smokes', () => {
-    expect(LEG).toMatch(/0195-join-the-team[^"\n]*\.sql 0196-the-office-edits-its-own-forms[^"\n]*\.sql 0197-colleagues-already-on-the-form[^"\n]*\.sql 0198-a-cell-for-every-item[^"\n]*\.sql"/);
-    expect(LEG).toMatch(/smokes: "[^"\n]*0196-tlc-office-forms-smoke\.sql 0197-tlc-prefilled-invite-smoke\.sql 0198-tlc-cells-smoke\.sql"/);
+    expect(LEG).toMatch(/0195-join-the-team[^"\n]*\.sql 0196-the-office-edits-its-own-forms[^"\n]*\.sql 0197-colleagues-already-on-the-form[^"\n]*\.sql 0198-a-cell-for-every-item[^"\n]*\.sql[^"\n]*"/);
+    expect(LEG).toMatch(/smokes: "[^"\n]*0196-tlc-office-forms-smoke\.sql 0197-tlc-prefilled-invite-smoke\.sql 0198-tlc-cells-smoke\.sql[^"\n]*"/);
   });
 });
 
@@ -208,7 +210,29 @@ describe('migration 0198 and its smoke: a cell for every item, filled later by t
   });
   it('the smoke proves each wall and each way in, and rides the tlc-office leg', () => {
     for (const must of ['tlc_onboarding_patch', 'tlc_onboarding_invite_read', 'tlc_onboarding_invite_patch', 'acknowledgments', 'routingNumber', 'patched_by', 'approved']) expect(S198, must).toContain(must);
-    expect(LEG).toMatch(/0198-a-cell-for-every-item[^"\n]*\.sql"/);
-    expect(LEG).toMatch(/0198-tlc-cells-smoke\.sql"/);
+    expect(LEG).toMatch(/0198-a-cell-for-every-item[^"\n]*\.sql[^"\n]*"/);
+    expect(LEG).toMatch(/0198-tlc-cells-smoke\.sql[^"\n]*"/);
   });
 });
+
+describe('migration 0199 and its smoke: the colleague acknowledges a document in place, the office stamps the time', () => {
+  it('self only, any status, the three keys, a typed name and the checked sentence; the same signing keeps its stamp, a new version is stamped anew; audited', () => {
+    expect(M199).toMatch(/FUNCTION public\.tlc_onboarding_acknowledge\(\s*packet_id_in uuid,\s*key_in text,\s*signature_in text,\s*doc_version_in text DEFAULT NULL,\s*attestation_in text DEFAULT NULL,\s*agreed_at_in text DEFAULT NULL/);
+    expect(M199).toMatch(/key_in NOT IN \('policies','confidentiality','contractorAgreement'\)/);
+    expect(M199).toMatch(/IF v_sig = '' THEN RAISE EXCEPTION 'sign by typing your full legal name'/);
+    expect(M199).toMatch(/IF v_att = '' THEN RAISE EXCEPTION 'the acknowledgment sentence must be checked'/);
+    expect(M199).toMatch(/applicant_user_id IS DISTINCT FROM auth\.uid\(\)/);
+    expect(M199).not.toMatch(/user_role_in_instance/); // the office never signs for a colleague
+    expect(M199).not.toMatch(/status NOT IN/); // any status
+    expect(M199).toMatch(/'signedAtServer', CASE/);
+    expect(M199).toMatch(/clock_timestamp\(\)/);
+    expect(M199).toMatch(/'tlc_onboarding_acknowledge'\);/);
+    expect(M199).toMatch(/apply_assistant_scope_overlay\(\);\s*SELECT public\.apply_viewer_readonly_overlay\(\);/);
+  });
+  it('the smoke proves each wall and rides the tlc-office leg', () => {
+    for (const must of ['tlc_onboarding_acknowledge', 'signedAtServer', 'the owner signed for a colleague', 'a stranger signed for a colleague', 'an unknown key was accepted', 'an empty signature was accepted', 'an unchecked sentence was accepted', 'approved', 'expected 4 audited signings']) expect(S199, must).toContain(must);
+    expect(LEG).toMatch(/0198-a-cell-for-every-item[^"\n]*\.sql 0199-a-check-at-the-bottom-of-every-document[^"\n]*\.sql"/);
+    expect(LEG).toMatch(/0198-tlc-cells-smoke\.sql 0199-tlc-acknowledge-in-place-smoke\.sql"/);
+  });
+});
+

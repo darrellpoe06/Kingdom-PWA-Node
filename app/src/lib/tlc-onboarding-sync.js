@@ -161,6 +161,16 @@ export async function patchInvitePrefill(inviteId, patch, note = '') {
   return { ok: true, view: res.data };
 }
 
+/** A CHECK AT THE BOTTOM OF EVERY DOCUMENT (0199, DR-0356): the colleague themself acknowledges one document from wherever it is read, at any status; the office's clock stamps it. */
+export async function acknowledgeDocument(packetId, key, { signature, docVersion = '', attestation, agreedAt = '' } = {}) {
+  if (!packetId) return fail('no-packet', 'No packet to sign on.');
+  if (!String(signature || '').trim()) return fail('no-signature', 'Sign by typing your full legal name.');
+  if (!String(attestation || '').trim()) return fail('no-attestation', 'Check the box to acknowledge the document.');
+  const res = await rpc('tlc_onboarding_acknowledge', { packet_id_in: packetId, key_in: key, signature_in: String(signature).trim(), doc_version_in: docVersion || null, attestation_in: attestation, agreed_at_in: agreedAt || null });
+  if (!res.ok) return res;
+  return { ok: true, view: res.data };
+}
+
 /** The office mints an invite that already carries what it knows (0197): the packet body, the banking apart, and where it came from. */
 export async function mintPrefilledInvite(email, note, prefill, banking = null, source = null) {
   const res = await rpc('tlc_onboarding_invite_prefilled', { email_in: String(email || '').trim().toLowerCase(), note_in: note || null, prefill_in: prefill || null, banking_in: banking || null, source_in: source || null });

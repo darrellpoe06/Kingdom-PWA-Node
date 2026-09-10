@@ -16,6 +16,8 @@ import { TLC_CONTRACTOR_AGREEMENT, TLC_CONFIDENTIALITY_AGREEMENT } from '../lib/
 import { PACKET_STATUSES, TLC_APP_PATH } from '../lib/tlc-onboarding.js';
 import { myPacketStatus, readPacket, patchPacket } from '../lib/tlc-onboarding-sync.js';
 import TlcRecordEditor from './TlcRecordEditor.jsx';
+import TlcDocumentAcknowledge from './TlcDocumentAcknowledge.jsx';
+import { liveDocuments } from '../lib/tlc-office-forms.js';
 import { liveSections } from '../lib/tlc-office-forms.js';
 import { AgreementBody } from './TlcAgreementReader.jsx';
 import TlcLaunchBoard from './TlcLaunchBoard.jsx';
@@ -81,6 +83,22 @@ export default function TlcTeamResources({ onOpen = null, staff = false, roleSta
     const res = await readPacket(mine.packetId);
     setRecord(res.ok ? { view: res.view } : { error: res.message });
   };
+  // A CHECK AT THE BOTTOM OF EVERY DOCUMENT (DR-0356): a colleague's own
+  // packet is read once so each document below can show the green check, or
+  // the checkbox and signature that write it (migration 0199).
+  const [packetView, setPacketView] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    if (!mine || !mine.packetId) { setPacketView(null); return () => { alive = false; }; }
+    readPacket(mine.packetId).then((res) => { if (alive && res.ok) setPacketView(res.view); });
+    return () => { alive = false; };
+  }, [mine]);
+  const liveDocs = useMemo(() => liveDocuments(docs), [docs]);
+  const ack = (key, name) => (
+    <TlcDocumentAcknowledge docKey={key} docName={name} live={liveDocs} packetId={mine && mine.packetId ? mine.packetId : null}
+      record={packetView && packetView.packet && packetView.packet.acknowledgments ? packetView.packet.acknowledgments[key] : null}
+      onAcknowledged={(v) => { setPacketView(v); if (record && record.view) setRecord({ view: v }); }} />
+  );
   const go = (id) => (onOpen ? <button type="button" onClick={() => onOpen(id)} className={BTN}>Open {id === 'training' ? 'Training' : id === 'onboarding' ? 'Onboarding' : id}</button> : null);
 
   const documents = (
@@ -89,12 +107,15 @@ export default function TlcTeamResources({ onOpen = null, staff = false, roleSta
       <Fold title="Independent Contractor Handbook" kind="Policies & procedures · read here">
         <HandbookSections handbook={handbook} />
         <p className="text-[0.6875rem] text-[#8A857C] leading-relaxed mt-2">{handbook.acknowledgment}</p>
+        {ack('policies', 'Independent Contractor Handbook')}
       </Fold>
-      <Fold title={contractor.title} kind="Agreement · read here; signed in the intake packet">
+      <Fold title={contractor.title} kind="Agreement · read here; acknowledge and sign below">
         <AgreementBody agreement={contractor} />
+        {ack('contractorAgreement', contractor.title)}
       </Fold>
-      <Fold title={confidentiality.title} kind="Agreement · read here; signed in the intake packet">
+      <Fold title={confidentiality.title} kind="Agreement · read here; acknowledge and sign below">
         <AgreementBody agreement={confidentiality} />
+        {ack('confidentiality', confidentiality.title)}
       </Fold>
       <Fold title="Training Notes for Therapists-in-Training" kind="Six session-script courses on Training">
         <p className="text-xs text-[#5A5751] leading-relaxed mb-2">Christina’s six session scripts — finding herself, learning to say no, managing anger, family conflict, household imbalance, healing after an unhealthy relationship — are courses on the Training tab, with her wording and the Word verbatim.</p>
