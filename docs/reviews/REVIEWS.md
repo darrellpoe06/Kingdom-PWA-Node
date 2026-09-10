@@ -14,6 +14,14 @@
 
 ## Records
 
+### REV-0254 · Comprehensive review — every member workflow to its end: why "Notifications on" buzzed nobody, a text says Seen, every button on the church door tapped
+
+- **type:** comprehensive (DR-0239, eight dimensions) + Ways review (DR-0108)
+- **date:** 2026-09-09 · **decision:** DR-0343 · **note:** `docs/99-session-notes/2026-09-09-notifications-everywhere-and-every-member-workflow-walked.md`
+- **finding:** the push sender had no database credentials on the Pages project (only the VAPID three were ever installed), would have read the hosted project while the app has been sovereign since REPOINT-ARMED, and filtered a message's audience by instance instead of person; no app-icon badge; an SVG status-bar glyph; `read_at` never shown.
+- **closed:** `push-sender-credentials.yml` (NAS → Pages, three proofs, the last on the live site); `audienceQuery()` by person; worker + page app badge; `badge-96.png`; `receiptLabels()` Seen / Delivered; standing gate that every control on 21 member surfaces acts (118 buttons, zero dead); journey walk in a real Chromium over the Church-home folds and the twelve door tabs — zero page errors, zero dead links.
+- **open, dated:** the phone is the last witness (DR-0334 `re-review: 2026-09-13`); live DM/profile round-trip `2026-09-16`; presence `2026-09-30`.
+
 ### REV-0252 · The backlog instrument could not be read, and its brake was choosing which findings you saw
 - **Date:** 2026-09-08
 - **Surface:** app/src/lib/review-watcher.js (`formatWatchReport`, the budget spend loop) · app/src/__tests__/review-watcher.test.js · read against app/src/lib/re-reviews.js + scripts/review-watcher.mjs · docs/decisions/DR-0338
