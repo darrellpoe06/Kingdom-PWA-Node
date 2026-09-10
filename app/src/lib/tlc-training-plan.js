@@ -208,3 +208,58 @@ export function planToRequirementNote(plan) {
   if (!s) return '';
   return `The library currently supplies ${s.libraryHours} training hours — about ${s.runwayMonths} full month(s) at ${plan.hoursPerMonth}/month. The plan lays out ${plan.months} months toward the multi-year target; the remaining ${s.shortfallTotal} hours are the runway to author next (YouTube-distilled + Christina-authored courses extend it).`;
 }
+
+// ---------------------------------------------------------------------------
+// THE WEEKLY PLAN (DR-0345). Darrell 2026-09-10: "We also want the 24
+// trainings for therapists to be for the week." One training a week, in the
+// field-rotated order, each with its hours and its Illinois lesson; the
+// month-based runway above stays as the multi-year record. Pure + deterministic
+// (week labels derive from startISO; no Date.now()).
+// ---------------------------------------------------------------------------
+export const DEFAULT_PLAN_WEEKS = 24;
+
+function weekLabel(startISO, index) {
+  let calendar = '';
+  if (startISO) {
+    const d = new Date(startISO);
+    if (!isNaN(d.getTime())) {
+      const w = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + index * 7));
+      calendar = ` (week of ${MONTH_NAMES[w.getUTCMonth()]} ${w.getUTCDate()}, ${w.getUTCFullYear()})`;
+    }
+  }
+  return `Week ${index + 1}${calendar}`;
+}
+
+export function buildWeeklyPlan(courses = allCourses(), opts = {}) {
+  const { weeks = DEFAULT_PLAN_WEEKS, startISO = null, isApproved = null } = opts;
+  const n = Math.max(1, Math.round(Number(weeks) || DEFAULT_PLAN_WEEKS));
+  const pool = (isApproved ? (courses || []).filter((c) => isApproved(c)) : (courses || [])).slice();
+  const ordered = rotateByField(pool);
+  const plan = [];
+  for (let i = 0; i < n; i += 1) {
+    const course = ordered[i] || null;
+    plan.push({
+      index: i,
+      label: weekLabel(startISO, i),
+      course,
+      hours: course ? courseTrainingHours(course) : 0,
+      field: course ? course.field : null,
+      lessons: course ? course.modules.length : 0,
+      illinois: !!(course && course.modules.some((m) => m && m.illinois)),
+      open: !course, // an honest gap: no course exists yet for this week
+    });
+  }
+  const scheduled = plan.filter((w) => w.course);
+  return {
+    weeks: n,
+    plan,
+    summary: {
+      scheduledCourses: scheduled.length,
+      scheduledHours: round1(scheduled.reduce((t, w) => t + w.hours, 0)),
+      openWeeks: n - scheduled.length,
+      unscheduledCourses: Math.max(0, pool.length - scheduled.length),
+      withIllinois: scheduled.filter((w) => w.illinois).length,
+      fields: [...new Set(scheduled.map((w) => w.field))].length,
+    },
+  };
+}

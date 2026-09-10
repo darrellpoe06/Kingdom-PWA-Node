@@ -81,7 +81,9 @@ describe('Finding Peace — Christina’s eleven chapters are client lessons in 
       expect(c.quiz.length).toBeGreaterThanOrEqual(2);
       for (const ref of c.verses) {
         expect(FINDING_PEACE_VERSES[ref], `${c.id} cites ${ref} without text`).toBeTruthy();
-        expect(c.standard, `${c.id} quotes ${ref}`).toContain(FINDING_PEACE_VERSES[ref]);
+        // DR-0345: the plain level carries no verse; her chapter (the Word rendering) carries each verbatim.
+        expect(c.standard, `${c.id} plain quotes ${ref}`).not.toContain(FINDING_PEACE_VERSES[ref]);
+        expect(c.word.reflection, `${c.id} Word lacks ${ref}`).toContain(FINDING_PEACE_VERSES[ref]);
       }
     }
     expect(FINDING_PEACE_SOURCE.author).toMatch(/Christina Poe/);
