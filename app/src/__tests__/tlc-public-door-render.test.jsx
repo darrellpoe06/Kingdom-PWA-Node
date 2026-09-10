@@ -127,17 +127,25 @@ describe('a lesson served by link — taste and see (Darrell 2026-09-10)', () =>
     const m = track.modules[0];
     setSearch(tlcLessonQuery({ courseId: track.key, lessonId: m.id }));
     await mount();
-    const text = container.textContent;
+    let text = container.textContent;
+    // the link lands on the Learn tab of the visitor's slider (Darrell: "The
+    // lessons should be on another tab for those who are not signed in")
+    const tabs = Array.from(container.querySelectorAll('[role="tablist"][aria-label="TLC door sections"] [role="tab"]'));
+    expect(tabs.map((t) => t.textContent.trim())).toEqual(['Find your therapist', 'Mental skills', 'Join the team']);
+    expect(tabs[1].getAttribute('aria-selected')).toBe('true');
     expect(text).toContain('Shared with you');
     expect(text).toMatch(/taste and see/);
     expect(text).toContain(track.title);
     expect(text).toContain(m.title);
     expect(text).toContain(m.bigIdea);
-    // the door itself still follows
-    expect(text).toContain('Match a Preferred Provider');
     for (const bad of OPERATOR) expect(text, `leaked to a visitor: "${bad}"`).not.toContain(bad);
     // every lesson can be handed on again
     expect(Array.from(container.querySelectorAll('button')).some((b) => /share this lesson/i.test(b.textContent))).toBe(true);
+    // the booking door is one tap away, on its own tab
+    await act(async () => { tabs[0].dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    text = container.textContent;
+    expect(text).toContain('Match a Preferred Provider');
+    expect(text).not.toContain('Shared with you');
   });
 
   it('signed out, a library-course link serves the course with that lesson open — the internal review stays inside', async () => {
@@ -175,5 +183,31 @@ describe('a lesson served by link — taste and see (Darrell 2026-09-10)', () =>
     await mount();
     expect(container.textContent).not.toContain('Shared with you');
     expect(container.textContent).toContain('Match a Preferred Provider');
+  });
+
+  it('signed out, the Learn tab serves the client lessons free to read, with none of the office', async () => {
+    await mount();
+    const learn = Array.from(container.querySelectorAll('[role="tablist"][aria-label="TLC door sections"] [role="tab"]')).find((t) => /^Mental skills$/.test(t.textContent.trim()));
+    await act(async () => { learn.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    const text = container.textContent;
+    expect(text).toContain('A mental skill building place');
+    expect(text).toContain('Understanding is the principal thing');
+    expect(text).toContain('Proverbs 4:7');
+    expect(text).toContain('Free to read, any hour, with or without the Word');
+    expect(text).toContain('Understanding & Coping');
+    expect(text).toContain('What to expect & support resources');
+    for (const bad of OPERATOR) expect(text, `leaked to a visitor: "${bad}"`).not.toContain(bad);
+    expect(container.querySelectorAll('[role="tablist"]').length, 'one slider, no areas strip for a visitor').toBe(1);
+    // 24/7 (Darrell: "information about subjects available 24/7"): a subject finder over every client lesson
+    expect(text).toContain('Free to read, any hour');
+    const finder = container.querySelector('input[aria-label="Find a subject"]');
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(finder, 'anxiety');
+      finder.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    const after = container.textContent;
+    expect(after).toMatch(/\d+ lessons? on “anxiety”/);
+    expect(after).toContain('What anxiety is');
+    expect(after).not.toContain('Two grounding skills');
   });
 });

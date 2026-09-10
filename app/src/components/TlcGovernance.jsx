@@ -12,6 +12,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { TLC_POSITIONS, TLC_RESOURCES, resourceMatrix, positionForRole, GOVERNANCE_NOTE } from '../lib/tlc-governance.js';
 import { listInstanceMembersStrict, setMemberRole, grantableRoles, roleLabel, removeInstanceMember, inviteToSpace, isInviteEmail } from '../lib/member-roles.js';
 import UiIcon from './UiIcon.jsx';
+import { useProfiles } from '../lib/use-profiles.js';
+import { ProfileAvatar } from './ProfileCard.jsx';
 
 const BTN = 'min-h-[36px] px-3 py-2 text-xs font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-40';
 const WARN = 'min-h-[36px] px-3 py-2 text-xs font-semibold border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-40';
@@ -58,6 +60,7 @@ function Matrix() {
 
 export default function TlcGovernance({ instanceId, myRole, myUserId = null }) {
   const [members, setMembers] = useState({ status: 'loading', list: [], error: '' });
+  const faces = useProfiles((members.list || []).map((x) => x.userId));
   const [invite, setInvite] = useState({ email: '', role: 'member', busy: false, result: null });
   const [msg, setMsg] = useState('');
   const load = useCallback(async () => {
@@ -116,9 +119,13 @@ export default function TlcGovernance({ instanceId, myRole, myUserId = null }) {
               const options = grantableRoles(myRole, m.role, { isSelf: !!myUserId && m.userId === myUserId });
               return (
                 <li key={m.userId} className="py-2 flex items-start justify-between gap-2 flex-wrap">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex items-center gap-2">
+                    {/* The person's picture from their profile (DR-0342), initials until they add one. */}
+                    <ProfileAvatar profile={faces[m.userId] || { displayName: m.displayName || m.email }} size={36} />
+                    <div className="min-w-0">
                     <div className="text-sm text-[#1A1815] font-semibold">{m.displayName || m.email || m.userId}</div>
                     <div className="text-[0.6875rem] text-[#5A5751]">{m.email}{seat ? ` · ${seat.title}` : ''} · {roleLabel(m.role)}</div>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1.5">
                     {options.length > 0 ? (

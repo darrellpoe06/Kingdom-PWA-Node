@@ -249,6 +249,12 @@ describe('the TLC app carries the office workflows on ONE slider (DR-0344)', () 
     const tabs = Array.from(container.querySelectorAll('[role="tab"]')).map((t) => t.textContent.trim());
     for (const t of ['Find your therapist', 'Inquiries', 'Client Growth', 'Revenue', 'Training', 'Team', 'Assistant', 'Onboarding']) expect(tabs, `tab ${t}`).toContain(t);
     expect(container.querySelectorAll('[role="tablist"]').length).toBe(1);
+    // USER PHOTO (Darrell 2026-09-10): the signed-in bar wears the person's
+    // picture — initials and "+ photo" until they add one — and opens My profile
+    const me = container.querySelector('header button[aria-label$="open my profile"]');
+    expect(me, 'the avatar button on the bar').toBeTruthy();
+    expect(me.textContent).toContain('+ photo');
+    expect(Array.from(container.querySelectorAll('header button')).some((b) => /^Log out$/.test(b.textContent.trim()))).toBe(true);
     await click(byText(/^Inquiries$/, '[role="tab"]'));
     await settle();
     expect(container.textContent).toMatch(/Pre-Intake Inquiry Tracking/);
@@ -401,6 +407,10 @@ describe('owners and managers govern from the same app (DR-0346)', () => {
     expect(container.querySelector('table[aria-label="Which seat reaches which part of the app"]')).toBeTruthy();
     expect(text).toContain('Members of the office · live');
     expect(text).toContain('Ann Lee');
+    // every member row carries their picture (initials until they add one)
+    const memberRows = Array.from(container.querySelectorAll('li')).filter((li) => /Ann Lee|Owner O|Therapist T|Assistant A|Viewer V/.test(li.textContent));
+    expect(memberRows.length).toBeGreaterThan(0);
+    for (const li of memberRows) expect(li.querySelector('.rounded-full'), `no picture beside ${li.textContent.slice(0, 30)}`).toBeTruthy();
     expect(text).toContain('Therapist (independent contractor)');
     // the signed-in admin cannot edit themself or the owner
     expect(text).toMatch(/owner · untouchable/);

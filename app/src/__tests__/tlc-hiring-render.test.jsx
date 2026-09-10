@@ -88,13 +88,17 @@ describe('the door: Join the team', () => {
     const { default: TlcPublicDoor } = await import('../components/TlcPublicDoor.jsx');
     await mount(createElement(TlcPublicDoor));
     await settle();
+    // the door leads with the clinical team; Join the team is its own tab on the visitor's slider
+    expect(container.textContent).toContain('Match a Preferred Provider');
+    const tabs = Array.from(container.querySelectorAll('[role="tablist"][aria-label="TLC door sections"] [role="tab"]'));
+    expect(tabs.map((t) => t.textContent.trim())).toEqual(['Find your therapist', 'Mental skills', 'Join the team']);
+    await click(tabs[2]);
+    await settle();
     const text = container.textContent;
-    expect(text).toContain('Join the team');
+    expect(text).toContain('Open positions');
     expect(text).toContain('Telehealth therapist (LCSW / LPC)');
     expect(text).not.toContain('Intake coordinator');
     expect(text).toContain('Illinois license');
-    // the door still leads with the clinical team; jobs close the door
-    expect(text.indexOf('Match a Preferred Provider')).toBeLessThan(text.indexOf('Join the team'));
     await click(byText(/^Apply$/));
     await settle();
     await click(byText(/Send application/));
@@ -120,8 +124,9 @@ describe('the door: Join the team', () => {
     const { default: TlcPublicDoor } = await import('../components/TlcPublicDoor.jsx');
     await mount(createElement(TlcPublicDoor));
     await settle();
-    const text = container.textContent;
-    expect(text.indexOf('Join the team')).toBeLessThan(text.indexOf('Match a Preferred Provider'));
+    const jobsTab = Array.from(container.querySelectorAll('[role="tablist"][aria-label="TLC door sections"] [role="tab"]')).find((t) => /Join the team/.test(t.textContent));
+    expect(jobsTab.getAttribute('aria-selected')).toBe('true');
+    expect(container.textContent).toContain('Open positions');
     // the asked-for posting opens its Apply form straight away
     expect(container.querySelector('form[aria-label="Apply for Telehealth therapist (LCSW / LPC)"]')).toBeTruthy();
   });

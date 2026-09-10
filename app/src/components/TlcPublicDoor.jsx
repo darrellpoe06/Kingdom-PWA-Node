@@ -18,10 +18,11 @@ import React, { useEffect, useState } from 'react';
 import { TLC_INSURANCE, TLC_BRAND, TLC_SERVICES } from '../lib/tlc-practice.js';
 import { useTlcRoster } from '../lib/tlc-roster.js';
 import { TLC_DOOR_BRAND, TLC_SHARE_URL } from '../lib/tlc-door.js';
-import supabase, { onAuthChange } from '../lib/supabase.js';
+import { onAuthChange } from '../lib/supabase.js';
 import { useInstanceRole, canManageTeam } from '../lib/instance-role.js';
 import AppShareQR from './AppShareQR.jsx';
 import PasswordAuth from './PasswordAuth.jsx';
+import HeaderAuthButton from './HeaderAuthButton.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import TlcAssistant from './TlcAssistant.jsx';
 import { useTextSize } from '../lib/text-size.js';
@@ -70,13 +71,10 @@ function OnboardingDoor({ token, signedIn }) {
 }
 
 // The client-facing booking page (the sendable front door a prospect meets).
-function ClientDoor({ jobs = { jobs: false, jobId: null } }) {
+function ClientDoor() {
   const team = useTlcRoster(); // seed cards + approved colleagues (DR-0344)
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
-      {/* JOIN THE TEAM leads when the link asked for it (?jobs=1, the website's
-          careers link); otherwise it closes the door under Insurance. */}
-      {jobs.jobs && <JoinTheTeam lead jobId={jobs.jobId} />}
       {/* Match a Preferred Provider — FIRST (Darrell: "the first thing we see"). */}
       <section>
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Clinical Team</div>
@@ -131,9 +129,6 @@ function ClientDoor({ jobs = { jobs: false, jobId: null } }) {
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1.5">Insurance Accepted</div>
         <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{TLC_INSURANCE}</p>
       </section>
-
-      {/* HIRE THROUGH THE APP (DR-0350): the open postings, apply here. */}
-      {!jobs.jobs && <JoinTheTeam />}
     </main>
   );
 }
@@ -155,7 +150,19 @@ export default function TlcPublicDoor() {
   )));
   const [activeTab, setActiveTab] = useState(deepLink ? 'training' : 'find');
   // The website's careers link lands on Join the team (DR-0350).
-  const [jobsLink] = useState(() => parseJobsLink((typeof window !== 'undefined' && window.location && window.location.search) || '')); // the one slider, controlled so Team can send you to a sister tab
+  const [jobsLink] = useState(() => parseJobsLink((typeof window !== 'undefined' && window.location && window.location.search) || ''));
+  // THE VISITOR'S SLIDER (Darrell 2026-09-10: "The lessons should be on
+  // another tab for those who are not signed in... we like the sliders"):
+  // signed out, the door is the same one-row slider as signed in — Find your
+  // therapist · Learn (the client lessons, free to read; a shared lesson lands
+  // here) · Join the team (the open positions). A link picks the tab.
+  const [visitorTab, setVisitorTab] = useState(deepLink ? 'learn' : jobsLink.jobs ? 'jobs' : 'find');
+  const visitorSections = [
+    { id: 'find', label: 'Find your therapist', icon: 'users', render: () => <ClientDoor /> },
+    // "Maybe a mental skill building place tab" (Darrell 2026-09-10).
+    { id: 'learn', label: 'Mental skills', icon: 'bookOpen', render: () => <div className="pt-3 pb-6"><PracticeLearn email="" isStaff={false} deepLink={deepLink} guest /></div> },
+    { id: 'jobs', label: 'Join the team', icon: 'pencil', render: () => <div className="pt-3 pb-6"><JoinTheTeam lead={jobsLink.jobs} jobId={jobsLink.jobId} /></div> },
+  ]; // the one slider, controlled so Team can send you to a sister tab
   const [showShare, setShowShare] = useState(false);
   // Comfort controls — the SAME theme + text-size the whole PoeTech app uses
   // (shared libs; a per-device choice that follows the user between shells).
@@ -198,7 +205,6 @@ export default function TlcPublicDoor() {
   const [colleague, setColleague] = useState(null); // the signed-in person's own intake packet, if any
   useEffect(() => onAuthChange((s) => { setSignedIn(!!s); setSessionEmail(s?.user?.email || ''); setSessionUserId(s?.user?.id || null); if (s) myPacketStatus().then(setColleague); else setColleague(null); }), []);
 
-  const signOut = async () => { try { await supabase.auth.signOut(); } catch (e) { /* ignore */ } };
 
   // The signed-in person's REAL role, from the database (DR-0271 / DR-0220 P3)
   // — never a hardcoded grant. An owner/admin/member of their space operates
@@ -222,7 +228,7 @@ export default function TlcPublicDoor() {
   ) }] : []);
   // ONE slider, side by side, no second row (Darrell 2026-09-10).
   const sections = [
-    { id: 'find', label: 'Find your therapist', icon: 'users', render: () => <ClientDoor jobs={jobsLink} /> },
+    { id: 'find', label: 'Find your therapist', icon: 'users', render: () => <ClientDoor /> },
     ...officeSection('inquiries', 'Inquiries', 'phone', 'inquiries'),
     ...officeSection('growth', 'Client Growth', 'chart', 'growth'),
     ...officeSection('revenue', 'Revenue', 'coins', 'revenue'),
@@ -279,24 +285,31 @@ export default function TlcPublicDoor() {
               </a>
               {/* Staff log in / out — lets TLC staff sign in from the door itself,
                   before or without installing (Darrell's ask). */}
+              {/* USER PHOTO (Darrell 2026-09-10: "User photo for all apps
+                  especially this one"): signed in, the bar wears the person's
+                  picture (or their initials with "+ photo" until they add one);
+                  tapping it opens My profile — picture, name — the same one
+                  every app reads (DR-0342). Log out rides with it. */}
               {signedIn ? (
-                <button type="button" onClick={signOut} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">
-                  Log out
-                </button>
+                <HeaderAuthButton />
               ) : (
                 <button type="button" onClick={() => setShowLogin((v) => !v)} aria-expanded={showLogin} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">
                   Staff log in
                 </button>
               )}
               {/* The hideaway chevron — UP to tuck the top space away, DOWN to
-                  bring it back; the choice persists per device. */}
+                  bring it back; the choice persists per device. No hover FILL:
+                  on a touch screen hover sticks after a tap, and a filled box
+                  with a same-tone icon read as an empty cream square on the
+                  midnight theme (Darrell's tablet, 2026-09-10). Ink on the bar,
+                  rust on hover, in every theme. */}
               <button
                 type="button"
                 onClick={toggleHeaderChrome}
                 aria-expanded={!headerCollapsed}
                 aria-label={headerCollapsed ? 'Show the full header (tagline, comfort controls, share)' : 'Hide the top space — keep only the bar for more room'}
                 title={headerCollapsed ? 'Show the full header' : 'Hide the top space (keep the bar)'}
-                className="shrink-0 min-h-[2.25rem] min-w-[2.25rem] flex items-center justify-center border border-[#E8E4DC] text-[#5A5751] hover:text-[#1A1815] hover:bg-[#E8E4DC] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                className="shrink-0 min-h-[2.25rem] min-w-[2.25rem] flex items-center justify-center border border-[#1A1815] bg-transparent text-[#1A1815] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
               >
                 <UiIcon name={headerCollapsed ? 'chevronDown' : 'chevronUp'} className="text-base" />
                 <span className="sr-only">{headerCollapsed ? 'Show header' : 'Hide header'}</span>
@@ -406,14 +419,9 @@ export default function TlcPublicDoor() {
           <SectionTabs sections={sections} ariaLabel="TLC app sections" idBase="tlc-app" defaultId="find" activeId={activeTab} onActiveChange={setActiveTab} />
         </div>
       ) : (
-        <>
-          {deepLink && (
-            <section className="max-w-4xl mx-auto px-4 sm:px-6 pt-6" aria-label="A lesson shared with you">
-              <PracticeLearn email="" isStaff={false} deepLink={deepLink} guest />
-            </section>
-          )}
-          <ClientDoor jobs={jobsLink} />
-        </>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4">
+          <SectionTabs sections={visitorSections} ariaLabel="TLC door sections" idBase="tlc-door" defaultId="find" activeId={visitorTab} onActiveChange={setVisitorTab} />
+        </div>
       )}
 
       <footer className="border-t border-[#E8E4DC] mt-4">

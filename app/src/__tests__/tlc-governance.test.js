@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
-import { TLC_POSITIONS, TLC_RESOURCES, positionForRole, resourcesFor, canReach, chainOfCommand, resourceMatrix } from '../lib/tlc-governance.js';
+import { TLC_POSITIONS, TLC_RESOURCES, positionForRole, resourcesFor, canReach, chainOfCommand, resourceMatrix, doorTabsFor, DOOR_TABS } from '../lib/tlc-governance.js';
 import { grantableRoles, ROLE_LABELS } from '../lib/member-roles.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -71,3 +71,18 @@ describe('the door’s gates say what the chart says', () => {
     expect(learn).toMatch(/isStaff && onAssign && <AssignLessonForm/);
   });
 });
+
+describe('the tabs each group sees (Darrell 2026-09-10: "what tabs do each group need to see and or not?")', () => {
+  it('is derived from the same resources as the matrix, per standing', () => {
+    expect(doorTabsFor('applicant')).toEqual(['find', 'learn', 'jobs']);
+    expect(doorTabsFor('client')).toEqual(['training', 'team', 'assistant']);
+    expect(doorTabsFor('reviewer')).toEqual(['training', 'team', 'assistant']);
+    expect(doorTabsFor('assistant')).toEqual(['training', 'team', 'assistant']);
+    expect(doorTabsFor('therapist')).toEqual(['inquiries', 'growth', 'revenue', 'training', 'team', 'assistant']);
+    expect(doorTabsFor('admin')).toEqual(['inquiries', 'growth', 'revenue', 'training', 'team', 'assistant', 'onboarding']);
+    expect(doorTabsFor('owner')).toEqual(doorTabsFor('admin'));
+    expect(doorTabsFor('nope')).toEqual([]);
+    for (const tab of DOOR_TABS) expect(TLC_RESOURCES.some((r) => r.id === tab.resource), tab.id).toBe(true);
+  });
+});
+

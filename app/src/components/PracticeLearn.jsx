@@ -168,6 +168,16 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
   const aud = getAudience(audience) || ACADEMY_AUDIENCES[0];
   const outcomes = useMemo(() => outcomesFor(audience), [audience]);
   const tracks = useMemo(() => audienceTracks(audience), [audience]);
+  // The subject finder on the signed-out Learn tab (24/7): every client lesson
+  // whose title, big idea or text carries the words typed.
+  const [subject, setSubject] = useState('');
+  const subjectHits = useMemo(() => {
+    const q = subject.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const text = (m) => [m.title, m.bigIdea, ...Object.values(m.levels || {})].join(' ').toLowerCase();
+    return tracks
+      .map((track) => ({ track, modules: q.length ? track.modules.filter((m) => q.every((w) => text(m).includes(w))) : track.modules }))
+      .filter((x) => x.modules.length > 0);
+  }, [tracks, subject]);
   const audCatalog = useMemo(() => catalogForAudience(catalog, audience), [catalog, audience]);
   const audReqs = useMemo(
     () => DEFAULT_REQUIRED_TRAININGS.filter((r) => r.audienceKey === audience || audience === 'training'),
@@ -359,8 +369,10 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
     <div className="space-y-5">
       {/* Header + audience switcher */}
       <section className="bg-white border-2 border-[#1A1815] p-5 sm:p-6">
-        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">TLC Therapy Solutions · Learn</div>
-        <h2 className="text-2xl mb-1" style={{ ...SERIF, fontWeight: 600, letterSpacing: '-0.02em' }}>A Learn space that builds real skill</h2>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">TLC Therapy Solutions · {guest && !deepLink ? 'Mental skills' : 'Learn'}</div>
+        {/* Signed out, the space wears Darrell's name for it (2026-09-10):
+            "Maybe a mental skill building place tab". */}
+        <h2 className="text-2xl mb-1" style={{ ...SERIF, fontWeight: 600, letterSpacing: '-0.02em' }}>{guest && !deepLink ? 'A mental skill building place' : 'A Learn space that builds real skill'}</h2>
         <p className="text-sm text-[#5A5751] leading-relaxed max-w-prose" style={SERIF}>
           Learning that actually helps — psychoeducation and coping skills for clients and families, clinical growth for therapists, and a real record of the work. Built on the same paced, age-adaptive, read-aloud-ready Learn engine the rest of the app uses.
         </p>
@@ -448,7 +460,37 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
           audience switcher above stays pinned; the row below names the areas
           side by side and shows exactly one. Two levels in the TLC app: the
           app slider, then this row — never a long scroll. */}
-      {!(guest && deepLink) && (
+      {/* A GUEST WITHOUT A LINK (the door's Learn tab, signed out): the client
+          audience's tracks, free to read — the same lead-magnet lessons a
+          client sees, with no areas, ledger, assignments or SME gate. */}
+      {guest && !deepLink && (
+        <LearnContext.Provider value={{ isStaff: false, email: '', onAssign: null, linkedWord: null }}>
+          <section aria-label="Free to read" className="space-y-5">
+            {/* 24/7 (Darrell 2026-09-10: "We want clients to have information
+                about subjects available 24/7"): the client lessons, signed out,
+                any hour, and a subject finder over every one of them. */}
+            <div className="bg-white border border-[#E8E4DC] p-3 space-y-2">
+              {/* Darrell 2026-09-10, on why a client needs this at any hour:
+                  "understanding is the principle thing." Rendered for meaning
+                  (DR-0331); the verse itself is read from the corpus on tap. */}
+              <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Understanding is the principal thing</div>
+              <WordInline text="Get wisdom, and with all thy getting get understanding (Proverbs 4:7)." className="text-sm text-[#1A1815]" style={SERIF} />
+              <p className="text-xs text-[#5A5751]" style={SERIF}>Free to read, any hour, with or without the Word. A client who signs in also sees the lessons their therapist assigns. Educational support, not treatment; in an emergency call or text 988.</p>
+              <label className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                Find a subject
+                <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="anxiety, sleep, grief, a loved one, forgiveness…" aria-label="Find a subject" className="mt-1 w-full min-h-[36px] p-2 border border-[#1A1815] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" />
+              </label>
+              {subject.trim() && <p className="text-[0.6875rem] text-[#5A5751]" style={SERIF}>{subjectHits.reduce((n, t) => n + t.modules.length, 0)} lesson{subjectHits.reduce((n, t) => n + t.modules.length, 0) === 1 ? '' : 's'} on “{subject.trim()}”.</p>}
+            </div>
+            {subjectHits.map(({ track, modules }) => (
+              <TrackCard key={track.key} track={track} modules={modules} level={level} progress={progress} quizState={quizState} openModuleId={openModuleId} setOpenModuleId={setOpenModuleId} onRecordQuiz={recordQuiz} onMarkRead={markRead} certTemplates={[]} onEarn={() => {}} alreadyEarned={() => false} />
+            ))}
+            {subject.trim() && subjectHits.length === 0 && <p className="text-xs text-[#5A5751]" style={SERIF}>Nothing on that subject yet. Book a consult and ask; the next lesson may come from your question.</p>}
+          </section>
+        </LearnContext.Provider>
+      )}
+
+      {!guest && (
       <SectionBoundary name="Training areas">
         <LearnContext.Provider value={{ isStaff, email, onAssign: isStaff ? onAssign : null, linkedWord }}>
           <SectionTabs variant="sub" sections={learnAreas} ariaLabel="Training areas" idBase={`tlc-learn-${audience}`} defaultId="lessons" activeId={area} onActiveChange={setArea} />
@@ -467,7 +509,8 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
 // module expanding into the shared lesson-flow runner. Offers the matching
 // certificate(s) once the track is complete.
 // -----------------------------------------------------------------------------
-function TrackCard({ track, level, progress, quizState, openModuleId, setOpenModuleId, onRecordQuiz, onMarkRead, certTemplates, onEarn, alreadyEarned }) {
+function TrackCard({ track, level, progress, quizState, openModuleId, setOpenModuleId, onRecordQuiz, onMarkRead, certTemplates, onEarn, alreadyEarned, modules = null }) {
+  const shown = modules || track.modules;
   const completion = useMemo(() => trackCompletion(track, progress, quizState), [track, progress, quizState]);
   const ce = ceCreditsToConfirm(track);
   const published = isTrackPublishable(track);
@@ -496,7 +539,7 @@ function TrackCard({ track, level, progress, quizState, openModuleId, setOpenMod
       <div className="h-1.5 bg-[#E8E4DC] mb-3"><div className="h-full bg-[#5A6E3D]" style={{ width: `${completion.progressPct}%` }} /></div>
 
       <ul className="space-y-2">
-        {track.modules.map((module) => {
+        {shown.map((module) => {
           const done = moduleComplete(module, progress, quizState);
           const open = openModuleId === module.id;
           return (
