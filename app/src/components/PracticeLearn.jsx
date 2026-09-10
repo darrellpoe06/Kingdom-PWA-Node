@@ -57,7 +57,7 @@ import {
   courseModuleAssessment, courseComplete, gradeCourseTest, growthDelta,
   courseHourEntry, courseTrainingHours,
 } from '../lib/tlc-training-library.js';
-import { buildTrainingPlan, buildWeeklyPlan, planToRequirementNote } from '../lib/tlc-training-plan.js';
+import { buildStatePlan, statePlanNote } from '../lib/tlc-training-plan.js';
 import { wordForModule } from '../lib/lesson-word.js';
 import { isShowTheWord } from '../lib/show-the-word.js';
 import { VerseBlock } from './VerseChips.jsx';
@@ -194,14 +194,9 @@ function PracticeLearn({ email = '', isStaff = false }) {
   const libGroups = useMemo(() => libraryByField(libCourses), [libCourses]);
   const libTotals = useMemo(() => libraryTotals(libCourses), [libCourses]);
   const libApprovalTally = useMemo(() => approvalSummary(libCourses, libApproval), [libCourses, libApproval]);
-  const weeklyPlan = useMemo(
-    () => buildWeeklyPlan(libCourses, { weeks: Math.max(24, libCourses.length), startISO: nowISO() }),
-    [libCourses],
-  );
-  const trainingPlan = useMemo(
-    () => buildTrainingPlan(libCourses, { hoursPerMonth: 24, months: 36, startISO: nowISO() }),
-    [libCourses],
-  );
+  // The Training map: the courses laid across the state's own window
+  // (Illinois: 24 months minimum for the LCSW supervised experience).
+  const statePlan = useMemo(() => buildStatePlan(libCourses, { startISO: nowISO() }), [libCourses]);
 
   const decideCourse = (courseId, decision) =>
     setLibApproval((prev) => applyApproval(prev, courseId, { decision, by: email || 'Christina (LCSW)', at: nowISO() }));
@@ -326,7 +321,7 @@ function PracticeLearn({ email = '', isStaff = false }) {
         />
       ),
     } : null,
-    showLibrary ? { id: 'map', label: 'Training map', icon: 'pin', render: () => <TrainingPlanPanel plan={trainingPlan} weekly={weeklyPlan} /> } : null,
+    showLibrary ? { id: 'map', label: 'Training map', icon: 'pin', render: () => <TrainingPlanPanel plan={statePlan} /> } : null,
     showLibrary ? { id: 'pathways', label: 'Pathways', icon: 'globe', render: () => <TracksPanel libraryHours={libTotals.totalHours} /> } : null,
     {
       id: 'certificates', label: 'Certificates', icon: 'check',
@@ -1420,90 +1415,52 @@ function CourseTest({ course, which, saved, onRecord, label }) {
 }
 
 // -----------------------------------------------------------------------------
-// TrainingPlanPanel — the 24-hours/month, multi-year MAP across the ten fields.
-// Honest about the runway: real library hours, months fully covered, and the gap to
-// author next (the YouTube-distill + Christina-authored path fills it).
+// TrainingPlanPanel — the Training map: the courses laid across the state's
+// own window (DR-0345 amendment; Darrell: "laid out over the 24 month period
+// the state expects"). Month by month, week by week; open weeks are honest.
 // -----------------------------------------------------------------------------
-function TrainingPlanPanel({ plan, weekly = null }) {
+function TrainingPlanPanel({ plan }) {
   const [showAll, setShowAll] = useState(false);
-  const [showWeeks, setShowWeeks] = useState(false);
   const s = plan.summary;
-  const preview = showAll ? plan.plan : plan.plan.slice(0, 6);
-  const weekRows = weekly ? (showWeeks ? weekly.plan : weekly.plan.slice(0, 8)) : [];
+  const months = showAll ? plan.plan : plan.plan.slice(0, 6);
   return (
     <section className="bg-white border border-[#E8E4DC] p-4 sm:p-5">
-      {weekly && (
-        <div className="mb-4">
-          <div className="flex items-baseline justify-between gap-2 flex-wrap">
-            <SectionTitle eyebrow={`${weekly.summary.scheduledCourses} trainings · one a week`}>Weekly training plan</SectionTitle>
-            <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{weekly.summary.withIllinois} carry the Illinois lesson · rules as of {ILLINOIS_POLICY_AS_OF}</span>
-          </div>
-          <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF}>One training each week, rotating across the ten fields; every training closes with Illinois: policy, program and procedure for its field. Open the course under Course library.</p>
-          <ol className="divide-y divide-[#E8E4DC] border border-[#E8E4DC]">
-            {weekRows.map((w) => (
-              <li key={w.index} className="p-2 flex items-baseline justify-between gap-2 flex-wrap">
-                <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] shrink-0">{w.label}</span>
-                {w.course ? (
-                  <span className="text-sm text-[#1A1815] min-w-0" style={SERIF}>{w.course.title} <span className="text-[0.625rem] text-[#5A5751] uppercase tracking-wider">· {w.field} · {w.hours}h · {w.lessons} lessons</span></span>
-                ) : (
-                  <span className="text-[0.625rem] text-[#B85838]" style={SERIF}>Open — no course authored for this week yet.</span>
-                )}
-              </li>
-            ))}
-          </ol>
-          {weekly.plan.length > 8 && (
-            <button type="button" onClick={() => setShowWeeks(!showWeeks)} className="mt-2 text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] min-h-[32px]">
-              {showWeeks ? '− Show fewer weeks' : `+ Show all ${weekly.weeks} weeks`}
-            </button>
-          )}
-        </div>
-      )}
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
-        <SectionTitle eyebrow={`${plan.hoursPerMonth} hours / month · ${plan.months} months`}>Multi-year training plan</SectionTitle>
-        <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{s.runwayMonths} month runway today</span>
+        <SectionTitle eyebrow={`${plan.window.state} ${plan.window.credential} window · ${plan.months} months minimum · ${plan.weeks} weeks`}>Training map</SectionTitle>
+        <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Illinois rules as of {ILLINOIS_POLICY_AS_OF}{plan.window.confirmed ? '' : ' · window confirmed by Christina (LCSW)'}</span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC] mb-2">
-        <MetricCell label="Library hours" value={`${s.libraryHours}`} small accent="green" />
-        <MetricCell label="Months covered" value={`${s.monthsFullyCovered}`} small />
-        <MetricCell label="Multi-year target" value={`${s.targetHours}`} sub="hours" small />
-        <MetricCell label="To author next" value={`${s.shortfallTotal}`} sub="hours" small accent="rust" />
+        <MetricCell label="Trainings" value={`${s.courses}`} sub={`${s.libraryHours} hours`} small accent="green" />
+        <MetricCell label="Weeks with a training" value={`${s.weeksWithTraining}`} sub={`of ${plan.weeks}`} small />
+        <MetricCell label="Open weeks" value={`${s.openWeeks}`} sub="to author next" small accent="rust" />
+        <MetricCell label="CE minimum / cycle" value={`${s.ceHoursPerCycle}h`} sub={s.libraryCoversCeMinimum ? 'library covers it in hours' : 'library short'} small accent={s.libraryCoversCeMinimum ? 'green' : 'rust'} />
       </div>
-      <p className="text-[0.6875rem] text-[#5A5751] mb-3 max-w-prose" style={SERIF}>{planToRequirementNote(plan)}</p>
+      <p className="text-[0.6875rem] text-[#5A5751] mb-3" style={SERIF}>{statePlanNote(plan)} Every training closes with Illinois: policy, program and procedure for its field; open a course under Course library.</p>
 
-      {/* Per-field spread */}
-      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1.5">By field</div>
-      <div className="flex flex-wrap gap-1.5 mb-3">
-        {s.byField.map((f) => (
-          <span key={f.field} className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border ${f.available > 0 ? 'border-[#E8E4DC] text-[#5A5751] bg-[#FAF8F4]' : 'border-[#B85838] text-[#B85838]'}`}>
-            {f.field}: {f.hours}h
-          </span>
-        ))}
-      </div>
-
-      {/* Month-by-month map (non-repeating, field-rotating) */}
-      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1.5">Month-by-month</div>
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1.5">Month by month</div>
       <ol className="space-y-1.5">
-        {preview.map((m) => (
+        {months.map((m) => (
           <li key={m.index} className="border border-[#E8E4DC] p-2.5">
             <div className="flex items-baseline justify-between gap-2 flex-wrap">
-              <span className="text-xs" style={{ ...SERIF, fontWeight: 600 }}>{m.label}</span>
-              <span className={`text-[0.625rem] uppercase tracking-wider ${m.full ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>
-                {m.hours}/{plan.hoursPerMonth}h{m.shortfallHours > 0 ? ` · ${m.shortfallHours}h to author` : ''}
-              </span>
+              <span className="text-sm" style={{ ...SERIF, fontWeight: 600 }}>{m.label}</span>
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{m.hours}h this month · {m.cumulativeHours}h so far</span>
             </div>
-            {m.courses.length > 0 ? (
-              <div className="text-[0.625rem] text-[#5A5751] mt-0.5" style={SERIF}>
-                {m.courses.map((c) => `${c.title} (${courseTrainingHours(c)}h · ${c.field})`).join(' · ')}
-              </div>
-            ) : (
-              <div className="text-[0.625rem] text-[#B85838] mt-0.5" style={SERIF}>Open — to be filled by new authored / distilled courses.</div>
-            )}
+            <ul className="mt-1 divide-y divide-[#F0ECE4]">
+              {m.weeks.map((w) => (
+                <li key={w.index} className="py-1 flex items-baseline gap-2 flex-wrap">
+                  <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] w-16 shrink-0">{w.label}</span>
+                  {w.course
+                    ? <span className="text-xs text-[#1A1815]" style={SERIF}>{w.course.title} <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">· {w.field} · {w.hours}h</span></span>
+                    : <span className="text-[0.625rem] uppercase tracking-wider text-[#C9BFA8]">open</span>}
+                </li>
+              ))}
+            </ul>
           </li>
         ))}
       </ol>
       {plan.plan.length > 6 && (
         <button type="button" onClick={() => setShowAll(!showAll)} className="mt-2 text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] min-h-[32px]">
-          {showAll ? '− Show fewer' : `+ Show all ${plan.months} months`}
+          {showAll ? '− Show fewer months' : `+ Show all ${plan.months} months`}
         </button>
       )}
     </section>

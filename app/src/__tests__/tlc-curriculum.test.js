@@ -16,7 +16,7 @@ import { parseRef } from '../lib/bible-kjv.js';
 import { wordForModule, hasWord, plainIsPlain } from '../lib/lesson-word.js';
 import { ILLINOIS_RULES, ILLINOIS_RULE_KEYS, ILLINOIS_SOURCES, ILLINOIS_POLICY_AS_OF, FIELD_TOPICS, illinoisTopicsFor, illinoisModuleFor, sourcesFor, illinoisRules } from '../lib/tlc-illinois-policy.js';
 import { allCourses, TRAINING_FIELDS, getCourse } from '../lib/tlc-training-library.js';
-import { buildWeeklyPlan, buildTrainingPlan, DEFAULT_PLAN_WEEKS } from '../lib/tlc-training-plan.js';
+import { buildWeeklyPlan, buildTrainingPlan, buildStatePlan, statePlanNote, DEFAULT_PLAN_WEEKS } from '../lib/tlc-training-plan.js';
 import { TLC_LESSON_TRACKS, isEngineRenderable } from '../lib/tlc-lessons.js';
 import { FINDING_PEACE_CHAPTERS, FINDING_PEACE_VERSES } from '../lib/tlc-finding-peace.js';
 import { STATE_RULESETS } from '../lib/ceu-tracker.js';
@@ -174,6 +174,37 @@ describe('the weekly plan: one training a week', () => {
     expect(w.plan.filter((x) => x.open)).toHaveLength(2);
     expect(w.summary.scheduledCourses).toBe(3);
     expect(w.plan[4].course).toBeNull();
+  });
+});
+
+describe('the state plan: the courses laid across the window Illinois expects', () => {
+  const courses = allCourses();
+  it('24 months (the LCSW minimum) as 104 weeks, every course once, evenly spread, open weeks honest, the CE minimum shown', () => {
+    const p = buildStatePlan(courses, { startISO: '2026-09-14' });
+    expect(p.months).toBe(24);
+    expect(p.weeks).toBe(104);
+    expect(p.window).toMatchObject({ state: 'IL', credential: 'LCSW', minMonths: 24, supervisedClinicalHours: 3000 });
+    expect(p.plan).toHaveLength(24);
+    const scheduled = p.plan.flatMap((m) => m.courses);
+    expect(scheduled).toHaveLength(courses.length);
+    expect(new Set(scheduled.map((c) => c.id)).size).toBe(courses.length);
+    expect(p.summary.weeksWithTraining).toBe(courses.length);
+    expect(p.summary.openWeeks).toBe(104 - courses.length);
+    expect(p.plan.flatMap((m) => m.weeks)).toHaveLength(104);
+    // evenly spread: every month carries at least one training
+    expect(p.summary.monthsWithTraining).toBe(24);
+    expect(p.plan[23].cumulativeHours).toBe(p.summary.libraryHours);
+    expect(p.summary.ceHoursPerCycle).toBe(30);
+    expect(p.summary.libraryCoversCeMinimum).toBe(true);
+    expect(p.plan[0].label).toBe('Year 1 · Month 1 (Sep 2026)');
+    expect(statePlanNote(p)).toMatch(/24-month window Illinois sets as the minimum/);
+    expect(statePlanNote(p)).toMatch(/only hours earned from an IDFPR-approved sponsor count/);
+  });
+  it('an honest gap: three courses over the window leave 101 open weeks; another window length is respected', () => {
+    const p = buildStatePlan(courses.slice(0, 3), { months: 12 });
+    expect(p.weeks).toBe(52);
+    expect(p.summary.openWeeks).toBe(49);
+    expect(p.summary.libraryCoversCeMinimum).toBe(false);
   });
 });
 

@@ -176,17 +176,17 @@ describe('PracticeLearn — the Practice-scoped Learn space', () => {
     expect(text).toContain('Course library');
     expect(text).toMatch(/Assessment & diagnosis/);
     expect(text).toMatch(/Crisis & risk/);
-    // The 24-hours/month, multi-year plan is its own area, with its honest runway language.
+    // The Training map lays the courses across the state's own window (Darrell:
+    // "laid out over the 24 month period the state expects").
     await area('Training map');
     text = container.textContent;
-    expect(text).toContain('Multi-year training plan');
-    expect(text).toMatch(/24 hours \/ month/);
-    expect(text).toMatch(/runway/i);
-    // The weekly plan leads the map (Darrell: "the 24 trainings... for the week").
-    expect(text).toContain('Weekly training plan');
-    expect(text).toMatch(/\d+ trainings · one a week/);
+    expect(text).toContain('Training map');
+    expect(text).toMatch(/IL LCSW window · 24 months minimum · 104 weeks/);
+    expect(text).toMatch(/Year 1 · Month 1/);
     expect(text).toMatch(/Week 1/);
-    expect(text).toMatch(/carry the Illinois lesson · rules as of 2026-09-10/);
+    expect(text).toMatch(/only hours earned from an IDFPR-approved sponsor count/);
+    expect(text).not.toContain('Multi-year training plan');
+    expect(text).not.toMatch(/to author next\s*hours/i);
     await area('Course library');
     // Christina's SME gate is present (Agree / Disagree).
     const buttons = [...container.querySelectorAll('button')].map((b) => b.textContent);
@@ -198,7 +198,7 @@ describe('PracticeLearn — the Practice-scoped Learn space', () => {
     await mount({ isStaff: false });
     const text = container.textContent;
     expect(text).not.toContain('Course library');
-    expect(text).not.toContain('Multi-year training plan');
+    expect(text).not.toContain('Training map');
     const buttons = [...container.querySelectorAll('button')].map((b) => b.textContent);
     expect(buttons.some((t) => /Agree \(approve\)/.test(t))).toBe(false);
   });

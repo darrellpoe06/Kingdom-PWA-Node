@@ -285,6 +285,13 @@ describe('the office documents live on the Team tab, in the app (DR-0344 — "wh
     }
     expect(text).toContain('all in the app');
     expect(Array.from(container.querySelectorAll('a[href]')).filter((a) => /google\.com|drive/i.test(a.href))).toHaveLength(0);
+    // the handbook opens at section 1, then 2 (Darrell: "where is number 1?")
+    await click(byText(/Independent Contractor Handbook/, 'button'));
+    await settle();
+    const hb = container.textContent;
+    expect(hb.indexOf('1. Introduction')).toBeGreaterThan(-1);
+    expect(hb.indexOf('1. Introduction')).toBeLessThan(hb.indexOf('2. Professional Standards'));
+    expect(hb).toContain('Welcome to TLC Therapy Solutions');
     // the contractor agreement opens in place: its first section reads here
     await click(byText(/Independent Contractor Agreement/, 'button'));
     await settle();

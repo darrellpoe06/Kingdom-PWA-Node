@@ -94,8 +94,8 @@ describe('the Word, verbatim (DR-0076)', () => {
 });
 
 describe('the handbook and the office documents, as data', () => {
-  it('carries the seven policy sections of the Drive handbook with its own text', () => {
-    expect(TLC_HANDBOOK.sections.map((s) => s.id)).toEqual(['standards', 'clinical', 'scheduling', 'billing', 'communication', 'compliance', 'termination']);
+  it('carries the eight sections of the Drive handbook with its own text, opening at 1', () => {
+    expect(TLC_HANDBOOK.sections.map((s) => s.id)).toEqual(['introduction', 'standards', 'clinical', 'scheduling', 'billing', 'communication', 'compliance', 'termination']);
     for (const s of TLC_HANDBOOK.sections) for (const it of s.items) expect(it.text.length).toBeGreaterThan(20);
     expect(TLC_HANDBOOK.mission).toMatch(/faith-informed therapy/);
     expect(TLC_HANDBOOK.services).toContain('Clinical supervision for pre-licensed therapists');

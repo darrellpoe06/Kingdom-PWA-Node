@@ -26,7 +26,18 @@ export const TLC_HANDBOOK = Object.freeze({
     'Psychoeducation, self-care resources, and wellness programs',
   ],
   contractorStatus: 'All therapists working with TLC Therapy Solutions are independent contractors. You are responsible for maintaining your licensure, ethical practice, and client care. TLC Therapy Solutions provides administrative support and resources but contractors are not employees and manage their own schedules and caseloads.',
+  // Section 1 is the handbook's own opening: welcome, mission, vision, what
+  // we provide, contractor status. Darrell 2026-09-10, reading the fold on his
+  // phone: "where is number 1?" — it had been carried only as the fields
+  // above and shown under Who we are, so the handbook opened at 2.
   sections: [
+    { id: 'introduction', title: '1. Introduction', items: [
+      { label: 'Welcome', text: 'Welcome to TLC Therapy Solutions. We are thrilled to have you join our network of compassionate and professional therapists. Our mission is to create a supportive environment where therapists and clients can thrive, providing flexible, high-quality, and client-centered care.' },
+      { label: 'Mission', text: 'To provide private, convenient, and faith-informed therapy that empowers individuals and families to heal, thrive, and live with greater peace, balance, and confidence.' },
+      { label: 'Vision', text: 'To be a leading therapy practice that transforms lives by combining clinical excellence with compassion, cultural awareness, and innovative approaches, creating healthier individuals, families, and communities.' },
+      { label: 'What we provide', text: 'Individual therapy; couples and family therapy; online and phone-based therapy sessions; group therapy and support groups; clinical supervision for pre-licensed therapists; psychoeducation, self-care resources, and wellness programs.' },
+      { label: 'Independent contractor status', text: 'All therapists working with TLC Therapy Solutions are independent contractors. You are responsible for maintaining your licensure, ethical practice, and client care. TLC Therapy Solutions provides administrative support and resources but contractors are not employees and manage their own schedules and caseloads.' },
+    ] },
     { id: 'standards', title: '2. Professional Standards', items: [
       { label: 'Licensing Requirements', text: 'Therapists must maintain an active license in their state and provide proof to TLC Therapy Solutions. Licenses must be renewed before expiration. Failure to maintain a license may result in suspension from the practice.' },
       { label: 'Continuing Education Expectations', text: 'Therapists are expected to complete all CEUs required by their licensing board and submit proof annually. TLC Therapy Solutions may provide resources or recommendations for continuing education.' },

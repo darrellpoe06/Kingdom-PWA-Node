@@ -29,6 +29,8 @@
 import {
   TRAINING_FIELDS, allCourses, courseTrainingHours, libraryByField,
 } from './tlc-training-library.js';
+import { IL_LCSW_REQUIREMENT } from './practice-academy.js';
+import { STATE_RULESETS } from './ceu-tracker.js';
 
 export const DEFAULT_HOURS_PER_MONTH = 24;
 export const DEFAULT_PLAN_MONTHS = 36; // three years
@@ -262,4 +264,77 @@ export function buildWeeklyPlan(courses = allCourses(), opts = {}) {
       fields: [...new Set(scheduled.map((w) => w.field))].length,
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// THE STATE PLAN (DR-0345 amendment). Darrell 2026-09-10, on the 36-month
+// "795.5 hours to author" screen: "These lessons should be laid out over the
+// 24 month period the state expects or whatever number of months." The
+// window is the state's own minimum for the LCSW supervised experience
+// (IL_LCSW_REQUIREMENT.minMonths, 24; 225 ILCS 20 / 68 Ill. Adm. Code
+// 1470.20), and the courses are spread evenly across it, one a week where a
+// course exists: every course lands once, the field rotation holds, and the
+// weeks with no course yet are open — never painted. The CE minimum the
+// state asks per two-year cycle (STATE_RULESETS.IL.totalHours, 30) is shown
+// against the library's hours, with the honest note that only hours from an
+// approved sponsor count. Pure + deterministic (startISO drives the labels).
+// ---------------------------------------------------------------------------
+export function buildStatePlan(courses = allCourses(), opts = {}) {
+  const {
+    months = IL_LCSW_REQUIREMENT.minMonths,
+    startISO = null,
+    isApproved = null,
+    ceHoursPerCycle = STATE_RULESETS.IL.totalHours,
+  } = opts;
+  const monthCount = Math.max(1, Math.round(Number(months) || IL_LCSW_REQUIREMENT.minMonths));
+  const weekCount = Math.round(monthCount * 52 / 12);
+  const pool = (isApproved ? (courses || []).filter((c) => isApproved(c)) : (courses || [])).slice();
+  const ordered = rotateByField(pool);
+  const n = ordered.length;
+  // Spread evenly: course i lands on week floor(i * weeks / n); never two on a week.
+  const byWeek = new Map();
+  ordered.forEach((course, i) => {
+    let w = n > 0 ? Math.floor((i * weekCount) / n) : 0;
+    while (byWeek.has(w) && w < weekCount - 1) w += 1;
+    byWeek.set(w, course);
+  });
+  const monthsOut = [];
+  for (let m = 0; m < monthCount; m += 1) {
+    const w0 = Math.round((m * weekCount) / monthCount);
+    const w1 = Math.round(((m + 1) * weekCount) / monthCount);
+    const weeks = [];
+    for (let w = w0; w < w1; w += 1) {
+      const course = byWeek.get(w) || null;
+      weeks.push({ index: w, label: `Week ${w + 1}`, course, hours: course ? courseTrainingHours(course) : 0, field: course ? course.field : null, open: !course });
+    }
+    const hours = round1(weeks.reduce((t, x) => t + x.hours, 0));
+    monthsOut.push({ index: m, label: monthLabel(startISO, m), weeks, courses: weeks.filter((x) => x.course).map((x) => x.course), hours, fields: [...new Set(weeks.filter((x) => x.field).map((x) => x.field))] });
+  }
+  let running = 0;
+  for (const m of monthsOut) { running = round1(running + m.hours); m.cumulativeHours = running; }
+  const libraryHours = round1(pool.reduce((t, c) => t + courseTrainingHours(c), 0));
+  return {
+    months: monthCount,
+    weeks: weekCount,
+    window: { state: IL_LCSW_REQUIREMENT.state, credential: IL_LCSW_REQUIREMENT.credential, minMonths: IL_LCSW_REQUIREMENT.minMonths, supervisedClinicalHours: IL_LCSW_REQUIREMENT.supervisedClinicalHours, confirmed: IL_LCSW_REQUIREMENT.confirmed },
+    plan: monthsOut,
+    summary: {
+      courses: n,
+      libraryHours,
+      weeksWithTraining: byWeek.size,
+      openWeeks: weekCount - byWeek.size,
+      monthsWithTraining: monthsOut.filter((m) => m.courses.length).length,
+      fields: [...new Set(pool.map((c) => c.field))].length,
+      ceHoursPerCycle,
+      // The library's hours against the state's CE minimum per two-year cycle;
+      // true only in hours, since only an approved sponsor's hours count.
+      libraryCoversCeMinimum: libraryHours >= ceHoursPerCycle,
+    },
+  };
+}
+
+export function statePlanNote(plan) {
+  const s = plan && plan.summary;
+  if (!s) return '';
+  return `${s.courses} trainings (${s.libraryHours} hours) laid across the ${plan.months}-month window Illinois sets as the minimum for the LCSW supervised experience: ${s.weeksWithTraining} of ${plan.weeks} weeks carry a training, ${s.openWeeks} are open for the courses authored next. The state asks ${s.ceHoursPerCycle} CE hours per two-year renewal cycle; the library holds ${s.libraryHours}, and only hours earned from an IDFPR-approved sponsor count toward it.`;
 }

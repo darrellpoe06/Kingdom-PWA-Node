@@ -16,7 +16,7 @@ import { join, dirname } from 'node:path';
 import { TLC_CONTRACTOR_AGREEMENT, TLC_CONFIDENTIALITY_AGREEMENT, TLC_AGREEMENTS, agreementByKey } from '../lib/tlc-agreements.js';
 import { FINDING_PEACE_CHAPTERS, FINDING_PEACE_VERSES, FINDING_PEACE_SOURCE, findingPeaceModules } from '../lib/tlc-finding-peace.js';
 import { LAUNCH_TASKS, LAUNCH_PHASES, LAUNCH_STATUSES, launchTasksByPhase, launchProgress, normalizeStatus } from '../lib/tlc-launch-plan.js';
-import { TLC_OFFICE_DOCUMENTS } from '../lib/tlc-handbook.js';
+import { TLC_OFFICE_DOCUMENTS, TLC_HANDBOOK } from '../lib/tlc-handbook.js';
 import { TLC_LESSON_TRACKS, isEngineRenderable } from '../lib/tlc-lessons.js';
 import { SECTIONS } from '../lib/tlc-onboarding.js';
 
@@ -128,6 +128,18 @@ describe('the TLCTS Launch tracker is a live board, not a sheet', () => {
     expect(normalizeStatus('in-progress')).toBe('in-progress');
     const byPhase = launchTasksByPhase({ 'marketing-social-pages': 'in-progress' });
     expect(byPhase.find((p) => p.phase === 'Marketing').tasks.find((t) => t.key === 'marketing-social-pages').status).toBe('in-progress');
+  });
+});
+
+describe('the handbook opens at 1 (Darrell: "where is number 1?")', () => {
+  it('eight numbered sections in order, section 1 carrying welcome, mission, vision, what we provide, contractor status', () => {
+    const titles = TLC_HANDBOOK.sections.map((s) => s.title);
+    expect(titles.map((t) => t.split('.')[0])).toEqual(['1', '2', '3', '4', '5', '6', '7', '8']);
+    expect(titles[0]).toBe('1. Introduction');
+    expect(TLC_HANDBOOK.sections[0].items.map((i) => i.label)).toEqual(['Welcome', 'Mission', 'Vision', 'What we provide', 'Independent contractor status']);
+    expect(TLC_HANDBOOK.sections[0].items[1].text).toBe(TLC_HANDBOOK.mission);
+    // both readers render the sections, so neither can skip 1
+    for (const f of ['app/src/components/TlcTeamResources.jsx', 'app/src/components/TlcAgreementReader.jsx']) expect(src(f)).toMatch(/TLC_HANDBOOK\.sections\.map/);
   });
 });
 
