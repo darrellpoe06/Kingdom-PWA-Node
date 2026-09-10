@@ -199,17 +199,21 @@ export async function sendDirectMessage(recipientUserId, body, displayName, cont
   //
   // The push carries the SENDER'S NAME and never the message text: these bodies
   // are end-to-end encrypted above, and a lock screen is public.
+  // The report rides the result (2026-09-09: "I text my self and never got
+  // it... why?" — the screen that sent it must be able to say what the push
+  // did). Still never awaited into `sent`, still never throws.
+  let push = null;
   if (inserted && inserted.id) {
-    Promise.resolve()
+    push = Promise.resolve()
       .then(() => notifyNewMessage({
         instanceId: tenantId,
         recipientUserId,
         messageId: inserted.id,
         senderName,
       }))
-      .catch(() => {});
+      .catch(() => ({ ok: false, reason: 'unreachable' }));
   }
-  return { sent: true, encrypted };
+  return { sent: true, encrypted, push };
 }
 
 // Pure dedupe for list_dm_contacts rows: one entry per user, preferring the

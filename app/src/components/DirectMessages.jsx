@@ -23,6 +23,7 @@ import {
 } from '../lib/direct-messages-sync.js';
 import { receiptLabels } from '../lib/direct-messages.js';
 import { useProfiles, preferredName } from '../lib/use-profiles.js';
+import { pushReportText } from '../lib/push-announce.js';
 import { useVoiceDictation } from '../lib/voice-dictation.js';
 import { requestDmNotificationPermission } from '../lib/dm-notify.js';
 import PushNotifications from './PushNotifications.jsx';
@@ -66,6 +67,8 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
   const [showProfile, setShowProfile] = useState(false);
   const [draft, setDraft] = useState('');
   const [err, setErr] = useState('');
+  // What the push did for the last send — measured by the sender, one line.
+  const [pushNote, setPushNote] = useState('');
   const [busy, setBusy] = useState(false);
   // Browser-notification permission — asked ONLY on the reader's own tap.
   // Push renders its own control when it is BOTH supported and configured;
@@ -134,6 +137,7 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
   const openThread = (otherUserId) => {
     setOpenWith(otherUserId);
     setErr('');
+    setPushNote('');
     // Viewed = read, INSTANTLY: clear the badge locally the moment the reader
     // looks (Darrell 2026-08-22: "once I view the message I should not have it
     // look like I didn't view it yet"), persist server-side, and pull fresh.
@@ -168,6 +172,10 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
     if (r?.sent) {
       setDraft('');
       setErr('');
+      setPushNote('Sent.');
+      if (r.push && typeof r.push.then === 'function') {
+        r.push.then((p) => setPushNote(pushReportText(p))).catch(() => setPushNote('Sent.'));
+      }
       // The message shows in the thread IMMEDIATELY (optimistic row), then the
       // refresh replaces it with the server's truth — no waiting on realtime.
       const nowIso = new Date().toISOString();
@@ -327,6 +335,7 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
             />
           </label>
           {mic.error && <p className="text-[0.625rem] text-[#B85838]" role="status">{mic.error}</p>}
+          {pushNote && <p className="text-[0.625rem] text-[#5A5751]" role="status" data-push-report>{pushNote}</p>}
           <div className="flex items-center justify-between gap-2">
             {mic.supported ? (
               <button

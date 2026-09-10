@@ -129,3 +129,24 @@ export async function notifyNewMessage({
     url: LANDING.message,
   }, { supabase, fetchImpl });
 }
+
+/**
+ * What the sender is told about the push, in one short line — measured, not
+ * assumed (DR-0076; Darrell 2026-09-09: "I text my self and never got it...
+ * why?" had no answer on the screen that sent it). Pure over the sender's
+ * result; the surface shows it under the thread after a send.
+ */
+export function pushReportText(result) {
+  const r = result || {};
+  if (r.ok && r.deduped) return 'Sent.';
+  if (r.ok && Number(r.attempted) > 0) {
+    const n = Number(r.succeeded ?? r.attempted);
+    if (n > 0) return `Sent · their phone was told${Number(r.attempted) > 1 ? ` (${n} device${n === 1 ? '' : 's'})` : ''}.`;
+    return 'Sent · their phone could not be reached this time.';
+  }
+  if (r.ok) return 'Sent · no phone is set to be notified for them yet.';
+  if (r.reason === 'not-configured') return 'Sent · phone notifications are not set up on this site yet.';
+  if (r.reason === 'signed-out') return 'Sent · sign in again to notify their phone.';
+  if (r.reason === 'missing-target' || r.reason === 'no-fetch') return 'Sent.';
+  return 'Sent · the notifier could not be reached; their phone was not told.';
+}

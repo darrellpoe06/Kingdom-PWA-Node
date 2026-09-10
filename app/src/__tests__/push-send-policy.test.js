@@ -26,7 +26,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 import {
   validateSendRequest, dedupeKeyFor, liveAnnouncement, messageAnnouncement,
   SENDABLE_TOPICS, MAX_TITLE, MAX_BODY,
-  audienceQuery,
+  audienceQuery, expandAudience,
 } from '../lib/push-send-policy.js';
 
 describe('validateSendRequest — a send must say what it claims', () => {
@@ -195,7 +195,35 @@ describe('audienceQuery — a message finds the person, a live announcement find
   });
   it('source pin: the sender reads its audience through audienceQuery and builds no instance filter of its own', () => {
     const fn = readFileSync(join(HERE, '..', '..', 'functions', 'api', 'push-send.js'), 'utf8');
-    expect(fn).toContain('audienceQuery({ topic: req.topic, instanceId: req.instanceId, userIds: req.userIds })');
+    expect(fn).toContain('audienceQuery({ topic: req.topic, instanceId: req.instanceId, userIds: audience })');
     expect(fn).not.toMatch(/params\.set\('instance_id'/);
+  });
+});
+
+// Darrell 2026-09-09: "I text my self and never got it... why?" — signed in as
+// his phone account, he messaged his email account (a second user id, linked
+// by person_links 0141). His phone opted in under the phone id; the message
+// named the email id. The audience is every id that IS the person.
+describe('expandAudience — one person, two doors, every phone', () => {
+  it('widens a named recipient to every id person_links joins to them, either direction', () => {
+    const rows = [{ primary_user: 'email-id', door_user: 'phone-id' }];
+    expect(expandAudience(['email-id'], rows).sort()).toEqual(['email-id', 'phone-id']);
+    expect(expandAudience(['phone-id'], rows).sort()).toEqual(['email-id', 'phone-id']);
+  });
+  it('never drops the ids it was given, never adds a stranger\'s link', () => {
+    const rows = [{ primary_user: 'x', door_user: 'y' }];
+    expect(expandAudience(['a'], rows)).toEqual(['a']);
+    expect(expandAudience(['a'], [])).toEqual(['a']);
+    expect(expandAudience(['a'], null)).toEqual(['a']);
+  });
+  it('deduplicates and ignores junk rows', () => {
+    const rows = [{ primary_user: 'a', door_user: 'b' }, null, { primary_user: 7 }, { primary_user: 'a', door_user: 'b' }];
+    expect(expandAudience(['a', 'a'], rows).sort()).toEqual(['a', 'b']);
+  });
+  it('source pin: the sender widens the audience through person_links before reading phones', () => {
+    const fn = readFileSync(join(HERE, '..', '..', 'functions', 'api', 'push-send.js'), 'utf8');
+    expect(fn).toContain("rest(supabaseUrl, 'person_links')");
+    expect(fn).toContain('expandAudience(audience, await lr.json())');
+    expect(fn).toContain('userIds: audience });');
   });
 });

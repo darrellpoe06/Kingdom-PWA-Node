@@ -37,7 +37,7 @@
 //            409 and the function STOPS, having sent nothing.
 //   STOP   — per-device opt-in (`topics`), `disabled_at`, and a subscriber's
 //            own delete. Absence of consent is the default state.
-import { validateSendRequest, audienceQuery } from '../../src/lib/push-send-policy.js';
+import { validateSendRequest, audienceQuery, expandAudience } from '../../src/lib/push-send-policy.js';
 import { fanOut, buildPushPayload } from '../../src/lib/push-fanout.js';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
@@ -166,7 +166,24 @@ export async function onRequestPost(context) {
   // theirs whichever space they turned it on in (audienceQuery, 2026-09-09).
   let subs = [];
   try {
-    const params = audienceQuery({ topic: req.topic, instanceId: req.instanceId, userIds: req.userIds });
+    // One person, two doors, every phone: a named recipient is widened to
+    // every user id person_links (0141) joins to them, so a message to the
+    // email account still reaches the phone that opted in under the phone
+    // account (2026-09-09, "I text my self and never got it").
+    let audience = req.userIds;
+    if (audience && audience.length) {
+      try {
+        const ids = audience.map((u) => `"${u}"`).join(',');
+        const lp = new URLSearchParams();
+        lp.set('select', 'primary_user,door_user');
+        lp.set('or', `(primary_user.in.(${ids}),door_user.in.(${ids}))`);
+        const lr = await fetch(`${rest(supabaseUrl, 'person_links')}?${lp}`, {
+          headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+        });
+        if (lr.ok) audience = expandAudience(audience, await lr.json());
+      } catch { /* no links read: the named ids still stand */ }
+    }
+    const params = audienceQuery({ topic: req.topic, instanceId: req.instanceId, userIds: audience });
     const res = await fetch(`${rest(supabaseUrl, 'push_subscriptions')}?${params}`, {
       headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
     });

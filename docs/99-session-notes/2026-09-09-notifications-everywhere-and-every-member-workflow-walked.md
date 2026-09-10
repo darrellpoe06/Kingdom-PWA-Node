@@ -122,3 +122,7 @@ Darrell, three more screenshots (his saved profile; the thread list with bare us
 ## 7. 11:07 PM — the Origin DNS error page printed itself into My profile (DR-0342 amendment 2)
 
 Live on 3D2417D: the header chip with his face and LOG OUT beneath; the My profile dialog from it; initials avatars on the thread rows (the other two people have no profile yet); the tab order — all as built. And one defect: the form's status line showed a raw Cloudflare 1016 page. Trace: Pages Function `fetch()` to the Funnel failed to resolve at that moment → Cloudflare's HTML error → streamed by `funnel-proxy.js` → supabase-js `error.message` → printed. Closed at the transport (HTML 5xx from the edge → JSON 502 with a readable `message`; NAS JSON untouched) and under it (`humanizeServerError`, used on the save path). site-health dispatched at the time of the fix to measure the backend now (DR-0125). Client sweep of the 12 other raw `error.message` renders: `re-review: 2026-09-16`.
+
+## 8. 11:10 PM — "I text my self and never got it... why?" (DR-0343 amendment)
+
+Phone account → email account (two user ids, one person, `person_links` 0141). The push looked for the email id's phones; his phone opted in under the phone id. Closed: the sender widens a named recipient through `person_links` (`expandAudience`), and the sending screen now reports what the push did (`pushReportText`), so the next self-test answers itself on the screen: *their phone was told* or *no phone is set to be notified for them yet*.

@@ -16,7 +16,7 @@
 //      whether or not the push lands. A failure here must not become a failure
 //      of the thing the person actually did.
 import { describe, it, expect, vi } from 'vitest';
-import { announceLive, notifyNewMessage, PUSH_SEND_URL, LANDING } from '../lib/push-announce.js';
+import { announceLive, notifyNewMessage, PUSH_SEND_URL, LANDING , pushReportText } from '../lib/push-announce.js';
 
 const supabaseWith = (token = 'jwt-abc') => ({
   auth: { getSession: async () => ({ data: token ? { session: { access_token: token } } : {} }) },
@@ -220,5 +220,24 @@ describe('a sent message survives a broken notifier (the fire-and-forget contrac
     vi.doUnmock('../lib/supabase.js');
     vi.doUnmock('../lib/push-announce.js');
     vi.resetModules();
+  });
+});
+
+// The sender is told what the push did, in one measured line (2026-09-09:
+// "I text my self and never got it... why?" had no answer on the sending screen).
+describe('pushReportText — the sender is told what the push did', () => {
+  it('a phone was told', () => {
+    expect(pushReportText({ ok: true, attempted: 1, succeeded: 1 })).toBe('Sent · their phone was told.');
+    expect(pushReportText({ ok: true, attempted: 2, succeeded: 2 })).toBe('Sent · their phone was told (2 devices).');
+  });
+  it('no phone is set up for them yet — the honest answer to a self-test', () => {
+    expect(pushReportText({ ok: true, attempted: 0, succeeded: 0 })).toBe('Sent · no phone is set to be notified for them yet.');
+  });
+  it('a phone that could not be reached, a dedupe, the site not configured, the notifier down', () => {
+    expect(pushReportText({ ok: true, attempted: 1, succeeded: 0 })).toBe('Sent · their phone could not be reached this time.');
+    expect(pushReportText({ ok: true, deduped: true })).toBe('Sent.');
+    expect(pushReportText({ ok: false, reason: 'not-configured' })).toBe('Sent · phone notifications are not set up on this site yet.');
+    expect(pushReportText({ ok: false, reason: 'unreachable' })).toBe('Sent · the notifier could not be reached; their phone was not told.');
+    expect(pushReportText(undefined)).toBe('Sent · the notifier could not be reached; their phone was not told.');
   });
 });
