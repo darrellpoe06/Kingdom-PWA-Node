@@ -11,7 +11,7 @@
 --   O posts a job (draft) and opens it                 -> allowed          ✔
 --   T (member) reads the posting                       -> 1                ✔
 --   T / A / V insert a job                             -> DENIED           ✘
---   anon reads the open jobs through tlc_public_jobs   -> 1, the open one   ✔
+--   anon reads the open jobs through tlc_public_jobs   -> this office's open one, never its draft ✔
 --   anon applies through tlc_apply                     -> allowed, 1 row    ✔
 --   anon applies again to the same job                 -> REFUSED          ✘
 --   anon applies to a draft job                        -> REFUSED          ✘
@@ -141,9 +141,13 @@ BEGIN
   IF pg_temp.as_user(v, 'v0191@test.local', format(ins_job, instF)) THEN RAISE EXCEPTION 'TLC HIRING SMOKE FAIL: a viewer posted a job'; END IF;
 
   -- ── The door, anonymous ──────────────────────────────────────────────────
+  -- The door lists every open posting of office 'tlc' (the live office's own
+  -- standing interest card among them since 0195), so this smoke reads only
+  -- ITS instance's rows out of the list: the open one present, the draft not.
   j := pg_temp.json_as(NULL, NULL, 'SELECT public.tlc_public_jobs(''tlc'')');
+  SELECT coalesce(jsonb_agg(x), '[]'::jsonb) INTO j FROM jsonb_array_elements(j) x WHERE (x->>'id')::uuid IN (job_id, draft_id);
   IF jsonb_array_length(j) <> 1 OR j->0->>'title' <> 'Telehealth therapist' THEN
-    RAISE EXCEPTION 'TLC HIRING SMOKE FAIL: anon sees % open postings (%), expected the one open one', jsonb_array_length(j), j;
+    RAISE EXCEPTION 'TLC HIRING SMOKE FAIL: anon sees % open postings of this office (%), expected the one open one', jsonb_array_length(j), j;
   END IF;
 
   j := pg_temp.json_as(NULL, NULL, format('SELECT public.tlc_apply(''tlc'', %L, %L::jsonb)', job_id,
