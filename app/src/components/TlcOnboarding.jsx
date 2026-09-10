@@ -22,6 +22,9 @@ import TlcOnboardingReadout from './TlcOnboardingReadout.jsx';
 import UiIcon from './UiIcon.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import { HiringDesk } from './TlcHiring.jsx';
+import TlcFormEditor from './TlcFormEditor.jsx';
+import { liveSections } from '../lib/tlc-office-forms.js';
+import { readOfficeDocuments } from '../lib/tlc-office-forms-sync.js';
 
 // The public card, drawn the way the door draws it — so what Christina sees
 // here is what a client will see on "Match a Preferred Provider".
@@ -140,6 +143,14 @@ function CopyLink({ link }) {
 
 function PacketDetail({ row, onChanged, onClose }) {
   const [view, setView] = useState(null);
+  // The readout reads the office's LIVE form (0196): the labels the colleague
+  // saw, and every question the office added.
+  const [office, setOffice] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    readOfficeDocuments().then((res) => { if (alive) setOffice(res.resolved); });
+    return () => { alive = false; };
+  }, []);
   const [error, setError] = useState('');
   const [banking, setBanking] = useState(null);
   const [note, setNote] = useState('');
@@ -201,7 +212,7 @@ function PacketDetail({ row, onChanged, onClose }) {
                 : <p className="text-xs text-[#5A5751]">No direct-deposit details were given.</p>)
               : <button type="button" onClick={reveal} disabled={busy} className={`${BTN}`}>Reveal banking details (this is logged)</button>}
           </div>
-          <TlcOnboardingReadout view={view} />
+          <TlcOnboardingReadout view={view} sections={liveSections(office ? office.intakeForm.form : null)} />
           {view.status !== 'approved' && (
             <div className="border border-[#E8E4DC] bg-white p-3 space-y-2">
               {card && (
@@ -345,6 +356,9 @@ export default function TlcOnboarding() {
     { id: 'jobs', label: 'Jobs', icon: 'book', render: () => <HiringDesk area="jobs" instanceId={roleState.instanceId || null} packets={office.packets} /> },
     { id: 'applicants', label: 'Applicants', icon: 'users', render: () => <HiringDesk area="applicants" instanceId={roleState.instanceId || null} packets={office.packets} /> },
     { id: 'report', label: 'Hiring report', icon: 'chart', render: () => <HiringDesk area="report" instanceId={roleState.instanceId || null} packets={office.packets} /> },
+    // THE OFFICE EDITS ITS OWN FORMS (DR-0352): the intake questions and the
+    // three documents, versioned, from here — never a deploy.
+    { id: 'form', label: 'Form & documents', icon: 'pencil', render: () => <TlcFormEditor /> },
   ];
   return (
     <div className="space-y-4">

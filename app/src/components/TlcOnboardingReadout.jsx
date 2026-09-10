@@ -57,7 +57,7 @@ function valueOf(field, packet) {
   return s ? <span className="whitespace-pre-wrap">{s}</span> : <span className="text-[#8A857C]">not given</span>;
 }
 
-export default function TlcOnboardingReadout({ view }) {
+export default function TlcOnboardingReadout({ view, sections = SECTIONS }) {
   if (!view || !view.packet) return null;
   const p = view.packet;
   const docs = p.documents || {};
@@ -76,7 +76,7 @@ export default function TlcOnboardingReadout({ view }) {
         </div>
       </div>
 
-      {SECTIONS.map((s) => (
+      {sections.map((s) => (
         <section key={s.id} className="border border-[#E8E4DC] bg-white p-3" aria-labelledby={`ro-${s.id}`}>
           <h4 id={`ro-${s.id}`} className="text-sm font-bold text-[#1A1815] mb-1">{s.title}</h4>
           {s.id === 'banking' && (

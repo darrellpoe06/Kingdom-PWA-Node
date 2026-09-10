@@ -1,16 +1,16 @@
 {
-  "totalLines": 612468,
-  "totalFiles": 3880,
-  "persistentPct": 18.05,
-  "persistentLines": 110552,
+  "totalLines": 613687,
+  "totalFiles": 3888,
+  "persistentPct": 18.19,
+  "persistentLines": 111622,
   "sub": {
-    "sql": 5.86,
-    "python": 7.08,
+    "sql": 6.02,
+    "python": 7.07,
     "shellPs": 1.53,
-    "ci": 3.58
+    "ci": 3.57
   },
-  "frontendPct": 58.99,
-  "configDocsPct": 22.96,
+  "frontendPct": 58.89,
+  "configDocsPct": 22.92,
   "baselinePct": 12.6,
   "targetPct": 20.0,
   "moduleLedger": {
@@ -18,6 +18,6 @@
     "frozenBudget": 5346,
     "surfaces": 54
   },
-  "previousPct": 18.07,
-  "generatedAt": "2026-09-10T16:28:31Z"
+  "previousPct": 18.05,
+  "generatedAt": "2026-09-10T18:24:35Z"
 }
