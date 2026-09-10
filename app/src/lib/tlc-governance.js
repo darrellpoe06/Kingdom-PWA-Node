@@ -29,15 +29,16 @@ export const TLC_RESOURCES = Object.freeze([
   { id: 'assistant', label: 'Assistant workspace', kind: 'tab' },
   { id: 'onboarding', label: 'Onboarding (invites, packets, roster)', kind: 'tab' },
   // HIRE THROUGH THE APP (DR-0350): the door's open positions, and the desk.
-  { id: 'door:jobs', label: 'Join the team · open positions, apply, share', kind: 'area' },
+  { id: 'door:jobs', label: 'Join the team · open positions, apply, share', kind: 'tab' },
+  { id: 'learn:public', label: 'Mental skills · the client lessons, free to read at any hour (signed out)', kind: 'tab' },
   { id: 'onboarding:hiring', label: 'Onboarding · jobs and applicants (hire)', kind: 'area' },
 ]);
 
-const EVERYONE = ['find', 'training', 'team', 'assistant', 'door:jobs'];
+const EVERYONE = ['find', 'training', 'team', 'assistant', 'door:jobs', 'learn:public'];
 const STAFF = [...EVERYONE, 'inquiries', 'growth', 'revenue', 'training:library', 'training:assign', 'team:launch'];
 const MANAGERS = [...STAFF, 'onboarding', 'team:governance', 'onboarding:hiring'];
 // Before membership (DR-0350): a stranger on the door, and a hire mid-packet.
-const BEFORE_LOGIN = ['find', 'door:jobs'];
+const BEFORE_LOGIN = ['find', 'learn:public', 'door:jobs'];
 
 // The seats, top down. `role` is the database role that carries the seat.
 export const TLC_POSITIONS = Object.freeze([
@@ -65,6 +66,15 @@ export const TLC_POSITIONS = Object.freeze([
     governs: 'The assistant workspace only: referral organizations, content posts, ideas, the working schedule (0130).',
     resources: EVERYONE,
     may: ['Work the Assistant workspace', 'Read the office documents and the public roster', 'Never client inquiries, revenue, packets, or roles'] },
+  // ALL APPS NEED THE AI SPECIALIST ROLE (Darrell 2026-09-10). The seat in
+  // TLC's chart: the practice's systems and automations, the app, its data
+  // flows and the sovereign tools — with the ASSISTANT standing in the
+  // database (the office workspace only), so client inquiries, revenue,
+  // packets and roles stay out of reach by construction.
+  { key: 'aispecialist', role: 'assistant', title: 'AI & Systems Specialist', holder: 'Named by the owner', reportsTo: 'admin',
+    governs: 'The systems: the TLC app and its automations, the data flows between the website, the door and the office, the training library’s plumbing, the sovereign tools we run ourselves; support and development report here.',
+    resources: EVERYONE,
+    may: ['Work the Assistant workspace and keep the systems honest', 'Read the office documents and the public roster', 'Never client inquiries, revenue, packets, or roles (the assistant standing walls them)'] },
   { key: 'reviewer', role: 'viewer', title: 'Reviewer (read-only)', holder: 'A guest the owner admits', reportsTo: 'admin',
     governs: 'Nothing; reads what the office chooses to show.',
     resources: EVERYONE,
@@ -77,10 +87,10 @@ export const TLC_POSITIONS = Object.freeze([
   // (Darrell 2026-09-10: "Do we have all the types of users we need for these
   // workflows to work"). Neither holds an office role; the database reaches
   // them only through the functions named here.
-  { key: 'applicant', role: null, title: 'Applicant (no login yet)', holder: 'Anyone who applies to a posting on the door', reportsTo: 'admin',
+  { key: 'applicant', role: null, title: 'Visitor or applicant (no login)', holder: 'Anyone on the door, signed out; an applicant to a posting', reportsTo: 'admin',
     governs: 'Nothing in the office: one application, written once through tlc_apply, read by the owner/admin only; never a member until hired, packeted and approved.',
     resources: BEFORE_LOGIN,
-    may: ['Read the open positions and share a posting', 'Apply once per posting (text only, no documents, never client information)', 'Hear back from the office at the email they gave'] },
+    may: ['Find a therapist and book', 'Read the client lessons on the Learn tab, with or without the Word', 'Read the open positions and share a posting', 'Apply once per posting (text only, no documents, never client information)', 'Hear back from the office at the email they gave'] },
   { key: 'newhire', role: null, title: 'New colleague (hired, in onboarding)', holder: 'A hired applicant with a login, before the packet is approved', reportsTo: 'admin',
     governs: 'Their own packet: the intake answers, the documents as pointers, the three signed acknowledgments; they may withdraw it. Not a member until the owner approves.',
     resources: EVERYONE,
@@ -117,6 +127,35 @@ export function chainOfCommand(key) {
 // The matrix the Governance area renders: one row per resource, one column per seat.
 export function resourceMatrix() {
   return TLC_RESOURCES.map((r) => ({ resource: r, seats: TLC_POSITIONS.map((p) => ({ key: p.key, reaches: p.resources.includes(r.id) })) }));
+}
+
+// THE TABS EACH GROUP SEES (Darrell 2026-09-10: "what tabs do each group need
+// to see and or not?"). The door's one-row slider, per standing, derived from
+// the same resources above so the chart and the door cannot drift.
+// Signed out: Find your therapist · Mental skills · Join the team.
+// Signed in without an office role (a client): Find · Training · Team.
+// Member / assistant / viewer / admin / owner: the office slider per their
+// resources (Assistant for the assistant; the office tabs for members;
+// Onboarding for the owner/admin).
+export const DOOR_TABS = Object.freeze([
+  { id: 'find', label: 'Find your therapist', resource: 'find', signedOut: true },
+  { id: 'learn', label: 'Mental skills', resource: 'learn:public', signedOut: true },
+  { id: 'jobs', label: 'Join the team', resource: 'door:jobs', signedOut: true },
+  { id: 'inquiries', label: 'Inquiries', resource: 'inquiries', signedOut: false },
+  { id: 'growth', label: 'Client Growth', resource: 'growth', signedOut: false },
+  { id: 'revenue', label: 'Revenue', resource: 'revenue', signedOut: false },
+  { id: 'training', label: 'Training', resource: 'training', signedOut: false },
+  { id: 'team', label: 'Team', resource: 'team', signedOut: false },
+  { id: 'assistant', label: 'Assistant', resource: 'assistant', signedOut: false },
+  { id: 'onboarding', label: 'Onboarding', resource: 'onboarding', signedOut: false },
+]);
+
+/** The door's tabs for one standing: signed out, the three public tabs; signed in, the office slider per the seat's resources. */
+export function doorTabsFor(key) {
+  const p = TLC_POSITIONS.find((x) => x.key === key);
+  if (!p) return [];
+  const signedOut = key === 'applicant';
+  return DOOR_TABS.filter((t) => t.signedOut === signedOut && p.resources.includes(t.resource)).map((t) => t.id);
 }
 
 export const GOVERNANCE_NOTE = 'The database decides (RLS and the guarded role functions); this table is the office’s reading of the same rule, kept in step by the tests. An owner is never changed here; only an owner makes or unmakes an admin; no one changes their own seat.';

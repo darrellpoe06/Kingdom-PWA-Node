@@ -19,10 +19,11 @@
 // =============================================================================
 import React, { useCallback, useEffect, useState } from 'react';
 import ShareButton from './ShareButton.jsx';
+import { TLC_POSITIONS } from '../lib/tlc-governance.js';
 import { buildOnboardLink, formatDate } from '../lib/tlc-onboarding.js';
 import {
   APPLICATION_STATUSES, applicationStatus, canMoveApplication, applicationsByStatus, hirePipeline,
-  validateApplication, validateJob, EMPLOYMENT_TYPES, MODALITIES,
+  validateApplication, validateJob, EMPLOYMENT_TYPES, MODALITIES, JOB_TEMPLATES, jobTemplate,
   TLC_TELEHEALTH, TELEHEALTH_STATUSES, telehealthStatus, telehealthHandoffMessage, jobsDoorUrl, jobSharePayload,
 } from '../lib/tlc-hiring.js';
 import {
@@ -151,7 +152,7 @@ export function JoinTheTeam({ lead = false, jobId = null, load = listPublicJobs,
       <p className="text-xs text-[#5A5751] mb-3" style={SERIF}>Apply here; the office reads every application in the app. A hire opens your onboarding packet on this same door.</p>
       {!state.loaded && <p className="text-xs text-[#5A5751]">Checking open positions…</p>}
       {state.loaded && state.message && <p className="text-xs text-[#B85838]" role="alert">Open positions could not be loaded: {state.message}</p>}
-      {state.loaded && !state.message && state.jobs.length === 0 && <p className="text-xs text-[#5A5751]" style={SERIF}>No open positions right now. Check back, or share your interest through Book an appointment’s contact page.</p>}
+      {state.loaded && !state.message && state.jobs.length === 0 && <p className="text-xs text-[#5A5751]" style={SERIF}>No open positions right now. Check back, or share your interest through Book an appointment’s contact page. (The office posts openings under Onboarding · Jobs, signed in.)</p>}
       <ul className="space-y-3">
         {state.jobs.map((job) => {
           const open = openId === job.id;
@@ -183,6 +184,9 @@ export function JoinTheTeam({ lead = false, jobId = null, load = listPublicJobs,
 // -----------------------------------------------------------------------------
 // THE JOBS AREA — post, edit, open, close, remove (owner/admin).
 // -----------------------------------------------------------------------------
+// The seats an office hires for, from the governance chart (never the owner, admin, reviewer or client).
+const HIREABLE_SEATS = TLC_POSITIONS.filter((p) => ['supervisor', 'therapist', 'trainee', 'assistant', 'aispecialist'].includes(p.key));
+
 const EMPTY_JOB = { title: '', summary: '', requirements: '', employment_type: 'contractor', modality: 'telehealth', location: '', pay_note: '', status: 'draft' };
 
 function JobEditor({ job, instanceId, onSaved, onCancel }) {
@@ -191,6 +195,18 @@ function JobEditor({ job, instanceId, onSaved, onCancel }) {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  // START FROM A SEAT (Darrell 2026-09-10: "How do we create the openings for
+  // the specific roles when needed?"): pick the seat from the governance
+  // chart and the posting fills itself — the title, what the seat governs as
+  // the summary, what it may do as the requirements — then edit and post.
+  const fromSeat = (e) => {
+    const v = e.target.value;
+    if (v === 'blank') { setForm((f) => ({ ...f, title: '', summary: '', requirements: '' })); return; }
+    const seat = HIREABLE_SEATS.find((s) => s.key === v);
+    if (seat) { setForm((f) => ({ ...f, title: seat.title, summary: seat.governs, requirements: seat.may.join('\n'), employment_type: seat.key === 'assistant' ? 'employee' : 'contractor', modality: seat.key === 'aispecialist' ? 'telehealth' : f.modality })); return; }
+    const tpl = jobTemplate(v);
+    if (tpl) setForm((f) => ({ ...f, title: tpl.title, summary: tpl.summary, requirements: tpl.requirements.join('\n'), employment_type: tpl.employment_type, modality: tpl.modality }));
+  };
   const save = async (status) => {
     const next = { ...form, status };
     const v = validateJob(next);
@@ -205,6 +221,18 @@ function JobEditor({ job, instanceId, onSaved, onCancel }) {
   return (
     <div className="border border-[#1A1815] bg-white p-4 space-y-2" aria-label={job && job.id ? 'Edit the posting' : 'Post a job'}>
       <div className="text-sm font-bold text-[#1A1815]">{job && job.id ? 'Edit the posting' : 'Post a job'}</div>
+      <label className="block text-xs text-[#5A5751]">Start from a role (fills the posting; edit anything after)
+        <select onChange={fromSeat} defaultValue="" aria-label="Start from a seat" className={`${INPUT} mt-1`}>
+          <option value="">Choose a role…</option>
+          <optgroup label="Clinical seats (the governance chart)">
+            {HIREABLE_SEATS.map((s) => <option key={s.key} value={s.key}>{s.title}</option>)}
+          </optgroup>
+          <optgroup label="Office roles">
+            {JOB_TEMPLATES.map((t) => <option key={t.key} value={t.key}>{t.title}</option>)}
+          </optgroup>
+          <option value="blank">Something else (start blank)</option>
+        </select>
+      </label>
       <label className="block text-xs text-[#5A5751]">Title<input value={form.title} onChange={set('title')} className={`${INPUT} mt-1`} aria-invalid={!!errors.title} />{errors.title && <span className="block text-[0.6875rem] text-[#B85838]">{errors.title}</span>}</label>
       <label className="block text-xs text-[#5A5751]">Summary<textarea value={form.summary} onChange={set('summary')} rows={3} className={`${INPUT} mt-1`} aria-invalid={!!errors.summary} />{errors.summary && <span className="block text-[0.6875rem] text-[#B85838]">{errors.summary}</span>}</label>
       <label className="block text-xs text-[#5A5751]">Requirements, one per line<textarea value={form.requirements} onChange={set('requirements')} rows={3} className={`${INPUT} mt-1`} /></label>

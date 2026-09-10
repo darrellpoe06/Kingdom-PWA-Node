@@ -120,7 +120,7 @@ jobs:
           # by the team, open ones public; applications only through tlc_apply
           # (anon), read by owner/admin only; hire mints the 0187 invite atomically.
           - feature: tlc-office
-            migrations: "0187-tlc-colleague-onboarding-the-intake-packet-lives-in-the-app.sql 0188-tlc-office-tasks-the-launch-board-lives-in-the-app.sql 0189-tlc-lesson-assignments-a-therapist-schedules-a-lesson-for-a-client.sql 0190-the-viewer-overlay-keeps-the-checklist-a-redefinition-carries-every-earlier-exception.sql 0191-tlc-hiring-jobs-posted-on-the-door-applicants-hired-into-onboarding.sql"
+            migrations: "0187-tlc-colleague-onboarding-the-intake-packet-lives-in-the-app.sql 0188-tlc-office-tasks-the-launch-board-lives-in-the-app.sql 0189-tlc-lesson-assignments-a-therapist-schedules-a-lesson-for-a-client.sql 0190-the-viewer-overlay-keeps-the-checklist-a-redefinition-carries-every-earlier-exception.sql 0191-tlc-hiring-jobs-posted-on-the-door-applicants-hired-into-onboarding.sql 0192-tlc-hiring-audit-actions-within-the-allow-list-the-smoke-caught-it.sql"
             smokes: "0189-tlc-office-smoke.sql 0191-tlc-hiring-smoke.sql"
           - feature: books-role-wall
             migrations: "0082-successor-role-and-books-rls.sql 0100-assistant-role-and-books-rls.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql"

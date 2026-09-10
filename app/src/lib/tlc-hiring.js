@@ -100,6 +100,42 @@ export function telehealthHandoffMessage({ name = '', platform = TLC_TELEHEALTH 
 }
 
 // ---------------------------------------------------------------------------
+// POSTING TEMPLATES (Darrell 2026-09-10: "How do we create the openings for
+// the specific roles when needed?" / "What about other roles like manager or
+// AI specialist"). The clinical seats come from the governance chart; these
+// are the office roles beyond it. A template only fills the editor — every
+// field stays editable, and "Something else" starts blank.
+// ---------------------------------------------------------------------------
+export const JOB_TEMPLATES = Object.freeze([
+  { key: 'operations-manager', title: 'Operations Manager', employment_type: 'employee', modality: 'hybrid',
+    summary: 'Run the office day to day: onboarding invites and packets, the launch board, scheduling and the platforms the practice runs on, so the clinicians can stay with their clients.',
+    requirements: ['Three or more years running a small office or practice', 'Comfortable with scheduling and telehealth platforms and with the TLC app', 'Discretion with confidential information; HIPAA awareness', 'Reports to the owner; sits as the admin seat in the app'] },
+  { key: 'ai-specialist', title: 'AI & Systems Specialist', employment_type: 'contractor', modality: 'telehealth',
+    summary: 'Keep the practice’s systems honest and useful: the TLC app and its automations, the data flows between the website, the door and the office, the training library, and the sovereign tools we run ourselves — always with client information walled off.',
+    requirements: ['Hands-on with modern web apps, APIs and automation', 'Understands data privacy and the line between office data and client health information', 'Can explain what a system does in plain words and prove it with a test', 'Reports to the Operations Manager'] },
+  { key: 'intake-coordinator', title: 'Intake Coordinator', employment_type: 'employee', modality: 'hybrid',
+    summary: 'Answer inquiries, schedule consults, keep the roster and the booking page current, and walk a new client from first contact to first session.',
+    requirements: ['Warm, clear on the phone and in writing', 'Organized across a queue of inquiries', 'Discretion with confidential information'] },
+  { key: 'billing-credentialing', title: 'Billing & Credentialing Specialist', employment_type: 'contractor', modality: 'telehealth',
+    summary: 'Keep clinicians credentialed with the payers we accept and claims moving: CAQH, payer enrollment, claims and follow-up.',
+    requirements: ['Experience with behavioral-health billing and payer credentialing', 'Familiar with CAQH and the major Illinois payers', 'Accurate and persistent with follow-up'] },
+  // The support roles for the work and the development of the product and the
+  // systems we support (Darrell 2026-09-10).
+  { key: 'product-support', title: 'Product & Systems Support Specialist', employment_type: 'contractor', modality: 'telehealth',
+    summary: 'Be the person a colleague or a client reaches when the app, the door, a link or a device does not do what it should: answer, reproduce, fix what can be fixed, and hand the rest to development with a clear report.',
+    requirements: ['Patient and clear with people who are not technical', 'Can reproduce a problem step by step and write it down', 'Knows the TLC app and the platforms the office runs on', 'Reports to the AI & Systems Specialist'] },
+  { key: 'app-developer', title: 'App Developer (PWA)', employment_type: 'contractor', modality: 'telehealth',
+    summary: 'Build and keep the TLC app and the PoeTech platform it lives in: React, the database and its row-level security, the tests and gates every change must pass, and the sovereign services on our own hardware.',
+    requirements: ['Modern JavaScript and React; SQL and row-level security', 'Ships with tests; every claim proven, never “it should work”', 'Cares about privacy: client health information never enters the app', 'Reports to the AI & Systems Specialist'] },
+  { key: 'curriculum-content', title: 'Curriculum & Content Specialist', employment_type: 'contractor', modality: 'telehealth',
+    summary: 'Write and keep the lessons and trainings: the client lessons, the therapist trainings and their Illinois rules, every verse verbatim, every claim sourced, plain by default with the Word on click.',
+    requirements: ['Writes clearly for clients and for clinicians', 'Cites sources and quotes Scripture exactly, never from memory', 'Works with Christina (LCSW) for clinical sign-off', 'Reports to the Operations Manager'] },
+]);
+export function jobTemplate(key) {
+  return JOB_TEMPLATES.find((t) => t.key === key) || null;
+}
+
+// ---------------------------------------------------------------------------
 // VALIDATION, mirroring 0191 (the same bounds, the same words).
 // ---------------------------------------------------------------------------
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
