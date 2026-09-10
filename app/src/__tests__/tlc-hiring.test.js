@@ -19,7 +19,9 @@ import {
   APPLICATION_STATUSES, canMoveApplication, applicationStatus, validateJob, normalizeJob,
   validateApplication, normalizeApplication, hirePipeline, applicationsByStatus,
   TLC_TELEHEALTH, TELEHEALTH_STATUSES, telehealthHandoffMessage, jobsDoorUrl, parseJobsLink, jobSharePayload, JOB_TEMPLATES, jobTemplate,
+  JOB_KINDS, isInterestCard, INTEREST_ROLE_OPTIONS, interestRoleLabel, normalizeInterestRoles, reportRows, reportRoles,
 } from '../lib/tlc-hiring.js';
+import { TLC_POSITIONS } from '../lib/tlc-governance.js';
 import { isTlcDoorContext } from '../lib/tlc-door.js';
 import { TLC_HANDBOOK } from '../lib/tlc-handbook.js';
 
@@ -28,6 +30,8 @@ const MIG = readFileSync(join(here, '../../../infra/supabase/migrations-auto/019
 const FIX = readFileSync(join(here, '../../../infra/supabase/migrations-auto/0192-tlc-hiring-audit-actions-within-the-allow-list-the-smoke-caught-it.sql'), 'utf8');
 const SCHEMA_AUDIT = readFileSync(join(here, '../../../infra/supabase/schema-v2.10-ai-workflow-state.sql'), 'utf8');
 const LEG = readFileSync(join(here, '../../../.github/workflows/rls-isolation.yml'), 'utf8');
+const M195 = readFileSync(join(here, '../../../infra/supabase/migrations-auto/0195-join-the-team-the-interest-form-roles-of-interest-and-who-looks-at-what.sql'), 'utf8');
+const SMOKE195 = readFileSync(join(here, '../../../infra/supabase/tests/0195-tlc-interest-and-views-smoke.sql'), 'utf8');
 
 describe('the stations', () => {
   it('an application moves forward, back to review, or to declined; hired is reached only through hire', () => {
@@ -68,7 +72,7 @@ describe('validation mirrors 0191 in the same words', () => {
   });
   it('what tlc_apply receives is trimmed text only: no bytes, no health information', () => {
     const a = normalizeApplication({ name: ' Jane ', email: 'JANE@x.io ', phone: ' 555 ', statement: ' s ', years_experience: ' 6 ', link: '' });
-    expect(a).toEqual({ name: 'Jane', email: 'jane@x.io', phone: '555', license_type: '', license_state: '', years_experience: '6', statement: 's', availability: '', link: '' });
+    expect(a).toEqual({ name: 'Jane', email: 'jane@x.io', phone: '555', license_type: '', license_state: '', years_experience: '6', statement: 's', availability: '', link: '', website: '', interest_roles: [] });
     for (const k of Object.keys(a)) expect(/diagnos|client|health|record/i.test(k)).toBe(false);
   });
 });
@@ -115,10 +119,13 @@ describe('the jobs link: the website links the door, the door carries the jobs',
     const url = jobsDoorUrl();
     expect(url).toBe('https://poetech.us/tlc/app/?tlc=1&jobs=1');
     expect(isTlcDoorContext(url.slice(url.indexOf('?')))).toBe(true);
-    expect(parseJobsLink('?tlc=1&jobs=1')).toEqual({ jobs: true, jobId: null });
-    expect(parseJobsLink(jobsDoorUrl({ jobId: 'abc' }).split('?')[1])).toEqual({ jobs: true, jobId: 'abc' });
-    expect(parseJobsLink('?tlc=1')).toEqual({ jobs: false, jobId: null });
-    expect(parseJobsLink(null)).toEqual({ jobs: false, jobId: null });
+    expect(parseJobsLink('?tlc=1&jobs=1')).toEqual({ jobs: true, jobId: null, interest: false });
+    expect(parseJobsLink(jobsDoorUrl({ jobId: 'abc' }).split('?')[1])).toEqual({ jobs: true, jobId: 'abc', interest: false });
+    expect(parseJobsLink('?tlc=1')).toEqual({ jobs: false, jobId: null, interest: false });
+    expect(parseJobsLink(null)).toEqual({ jobs: false, jobId: null, interest: false });
+    // the interest form has its own link (0195)
+    expect(jobsDoorUrl({ interest: true })).toBe('https://poetech.us/tlc/app/?tlc=1&jobs=1&interest=1');
+    expect(parseJobsLink('?tlc=1&jobs=1&interest=1')).toEqual({ jobs: true, jobId: null, interest: true });
     const p = jobSharePayload({ title: 'Therapist', summary: 'Part-time', modality: 'telehealth' }, { url });
     expect(p.text).toContain('Telehealth · TLC Therapy Solutions is hiring');
     expect(p.url).toBe(url);
@@ -200,7 +207,78 @@ describe('0192 — the audit actions within the allow-list (rls-isolation run 13
     for (const guard of ["'that position is not open'", 'you have already applied for this position', "interval '1 day') >= 5", "NOT IN ('owner','admin')", 'public.tlc_onboarding_invite(v_app.email', "'already', true"]) expect(FIX).toContain(guard);
     expect(FIX).toMatch(/GRANT EXECUTE ON FUNCTION public\.tlc_apply\(text, uuid, jsonb\) TO anon, authenticated;/);
     expect(FIX).toMatch(/REVOKE ALL ON FUNCTION public\.tlc_application_hire\(uuid, text\) FROM PUBLIC, anon;/);
-    expect(LEG).toMatch(/0191-tlc-hiring-jobs[^"\n]*\.sql 0192-tlc-hiring-audit-actions-within-the-allow-list-the-smoke-caught-it\.sql"/);
+    expect(LEG).toMatch(/0191-tlc-hiring-jobs[^"\n]*\.sql 0192-tlc-hiring-audit-actions-within-the-allow-list-the-smoke-caught-it\.sql 0193-[^"\n]*\.sql 0194-[^"\n]*\.sql 0195-join-the-team[^"\n]*\.sql"/);
   });
 });
 
+
+describe('0195 — join the team: the interest form, roles of interest, the honeypot, who looks at what, the report (Darrell: "HOW DOES ONE JOIN THE TEAM" / "data driven reporting")', () => {
+  it('a posting has a kind; the interest card is the standing one; the roles a person may name come from the chart\u2019s hireable seats and the office templates', () => {
+    expect(JOB_KINDS).toEqual(['posting', 'interest']);
+    expect(isInterestCard({ kind: 'interest' })).toBe(true);
+    expect(isInterestCard({ kind: 'posting' })).toBe(false);
+    expect(isInterestCard(null)).toBe(false);
+    const keys = INTEREST_ROLE_OPTIONS.map((o) => o.key);
+    for (const k of ['supervisor', 'therapist', 'trainee', 'assistant', 'aispecialist']) expect(keys).toContain(k);
+    for (const t of JOB_TEMPLATES) if (t.key !== 'ai-specialist') expect(keys).toContain(t.key);
+    expect(keys).not.toContain('ai-specialist'); // the seat carries it, not twice
+    expect(keys).not.toContain('owner');
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(interestRoleLabel('therapist')).toBe(TLC_POSITIONS.find((p) => p.key === 'therapist').title);
+    expect(interestRoleLabel('nope')).toBe('nope');
+  });
+  it('roles of interest normalize (trimmed, deduplicated, at most 40 chars each) and an interest card needs at least one, at most twelve', () => {
+    expect(normalizeInterestRoles([' therapist ', 'therapist', '', 'aispecialist'])).toEqual(['therapist', 'aispecialist']);
+    expect(normalizeInterestRoles('therapist, trainee')).toEqual(['therapist', 'trainee']);
+    expect(normalizeInterestRoles(null)).toEqual([]);
+    const base = { name: 'Sam Seeker', email: 'sam@example.com', statement: 'I would love to be part of the team in whatever role fits.' };
+    expect(validateApplication(base).ok).toBe(true); // a posting needs no role
+    const none = validateApplication(base, { kind: 'interest' });
+    expect(none.ok).toBe(false);
+    expect(none.errors.interest_roles).toBe('Choose at least one role you are interested in.');
+    expect(validateApplication({ ...base, interest_roles: ['therapist'] }, { kind: 'interest' }).ok).toBe(true);
+    const many = validateApplication({ ...base, interest_roles: Array.from({ length: 13 }, (_, i) => `r${i}`) });
+    expect(many.errors.interest_roles).toBe('Choose at most 12 roles.');
+    expect(normalizeApplication({ ...base, interest_roles: ['therapist', 'therapist'], website: ' http://spam ' }).interest_roles).toEqual(['therapist']);
+    expect(normalizeApplication({ ...base, website: 'x' }).website).toBe('x'); // passed through so the server can refuse it
+  });
+  it('the migration: kind on the posting, roles pinned by the guard, the honeypot refused before any lookup, views counted only for an open posting, the report for owner/admin, the standing card seeded on the office instance', () => {
+    expect(M195).toContain("ADD CONSTRAINT tlc_jobs_kind_check CHECK (kind IN ('posting','interest'))");
+    expect(M195).toContain('NEW.interest_roles := OLD.interest_roles;');
+    expect(M195).toMatch(/IF coalesce\(applicant_in->>'website', ''\) <> '' THEN\s+RAISE EXCEPTION 'application refused';/);
+    expect(M195.indexOf("'application refused'")).toBeLessThan(M195.indexOf('SELECT * INTO v_job FROM public.tlc_jobs WHERE id = job_id_in'));
+    expect(M195).toContain("IF v_job.kind = 'interest' AND jsonb_array_length(v_roles) = 0 THEN");
+    expect(M195).toContain("IF jsonb_array_length(v_roles) > 12 THEN RAISE EXCEPTION 'choose at most 12 roles'; END IF;");
+    expect(M195).toContain('CREATE TABLE IF NOT EXISTS public.tlc_job_views');
+    expect(M195).toContain('UNIQUE (job_id, day)');
+    expect(M195).toMatch(/tlc_job_viewed[\s\S]*status = 'open';[\s\S]*IF v_job\.id IS NULL THEN RETURN jsonb_build_object\('counted', false\); END IF;/);
+    expect(M195).toMatch(/CREATE POLICY tlc_job_views_staff_read[\s\S]*coalesce\(public\.user_role_in_instance\(instance_id\), ''\) IN \('owner','admin','member'\)/);
+    expect(M195).not.toMatch(/CREATE POLICY tlc_job_views_\w+_(insert|update|delete)/); // only the RPC writes
+    expect(M195).toContain("NOT IN ('owner','admin') THEN\n    RAISE EXCEPTION 'only the office owner or admin reads the hiring report';");
+    expect(M195).toContain("REVOKE ALL ON FUNCTION public.tlc_hiring_report() FROM PUBLIC, anon;");
+    expect(M195).toMatch(/INSERT INTO public\.tlc_jobs \(instance_id, office_id, kind, title[\s\S]*WHERE i\.slug = 'tlc-therapy-solutions'[\s\S]*AND NOT EXISTS \(SELECT 1 FROM public\.tlc_jobs j WHERE j\.instance_id = i\.id AND j\.kind = 'interest'\)/);
+    // the audit action stays on the allow-list (0192's lesson)
+    const actions = [...M195.matchAll(/INSERT INTO audit_log[\s\S]*?VALUES \([^,]+, [^,]+, '([a-z-]+)'/g)].map((m) => m[1]);
+    expect(actions).toEqual(['create']);
+    expect(M195).toMatch(/SELECT public\.apply_assistant_scope_overlay\(\);\s*SELECT public\.apply_viewer_readonly_overlay\(\);/);
+    // the smoke rides the leg and proves each rung
+    expect(LEG).toMatch(/smokes: "[^"\n]*0195-tlc-interest-and-views-smoke\.sql"/);
+    for (const rung of ['hidden field filled', 'thirteen roles', 'a draft posting counted a view', 'anon wrote a view row directly', 'a member read the hiring report', 'interest cards, expected 1', 'expected deduplicated and sorted']) expect(SMOKE195, rung).toContain(rung);
+  });
+  it('the report rows and roles are numbers from the database, labeled from the chart', () => {
+    const report = { jobs: [
+      { id: 'j1', title: 'Telehealth therapist', kind: 'posting', status: 'open', views_7d: '3', views_total: 9, applications_total: 2, applications: { new: 1, hired: 1 } },
+      { id: 'j2', title: 'Tell us which roles interest you', kind: 'interest', status: 'open', views_7d: 1, views_total: 1, applications_total: 1, applications: { reviewing: 1 } },
+    ], roles: [{ role: 'therapist', interested: 2 }, { role: 'aispecialist', interested: '1' }] };
+    const rows = reportRows(report);
+    expect(rows.map((r) => [r.id, r.kind, r.views7d, r.viewsTotal, r.applications])).toEqual([['j1', 'posting', 3, 9, 2], ['j2', 'interest', 1, 1, 1]]);
+    expect(rows[0].byStation.map((s) => `${s.label} ${s.n}`)).toEqual(['New 1', 'Hired 1']);
+    expect(reportRoles(report)).toEqual([
+      { key: 'therapist', label: interestRoleLabel('therapist'), interested: 2 },
+      { key: 'aispecialist', label: interestRoleLabel('aispecialist'), interested: 1 },
+    ]);
+    expect(reportRows(null)).toEqual([]);
+    expect(reportRoles({})).toEqual([]);
+    expect(jobSharePayload({ kind: 'interest', title: 'Tell us which roles interest you', summary: 'Say which roles fit you.' }, { url: jobsDoorUrl({ interest: true }) })).toEqual({ title: 'TLC Therapy Solutions: tell us which roles interest you', text: 'Say which roles fit you.', url: 'https://poetech.us/tlc/app/?tlc=1&jobs=1&interest=1' });
+  });
+});

@@ -261,8 +261,8 @@ describe('what a typed signature pins (DR-0350; Darrell: "how do the users ackno
   it('the packet carries the time and the document version with the signature; missing ones normalize to empty, never invented', async () => {
     const { normalizePacket } = await import('../lib/tlc-onboarding.js');
     const p = normalizePacket({ acknowledgments: { policies: { agreed: true, signature: 'Ann Lee', signedOn: '2026-09-10', signedAt: '2026-09-10T15:00:00.000Z', docVersion: 'vabc12345' } } });
-    expect(p.acknowledgments.policies).toEqual({ agreed: true, signature: 'Ann Lee', signedOn: '2026-09-10', signedAt: '2026-09-10T15:00:00.000Z', docVersion: 'vabc12345' });
-    expect(p.acknowledgments.confidentiality).toEqual({ agreed: false, signature: '', signedOn: '', signedAt: '', docVersion: '' });
+    expect(p.acknowledgments.policies).toEqual({ agreed: true, signature: 'Ann Lee', signedOn: '2026-09-10', signedAt: '2026-09-10T15:00:00.000Z', docVersion: 'vabc12345', attestation: '', agreedAt: '', signedAtServer: '' });
+    expect(p.acknowledgments.confidentiality).toEqual({ agreed: false, signature: '', signedOn: '', signedAt: '', docVersion: '', attestation: '', agreedAt: '', signedAtServer: '' });
   });
   it('the document version is a content hash of the text as the app renders it: stable, and different once the text changes', async () => {
     const { documentVersion, documentVersions, contentHash, signatureRecord, ESIGN_CONSENT } = await import('../lib/tlc-signing.js');
@@ -286,3 +286,95 @@ describe('what a typed signature pins (DR-0350; Darrell: "how do the users ackno
   });
 });
 
+
+describe('"By checking here, you agree" — the sentence and the office\u2019s clock (0194; Darrell 2026-09-10: "let\u2019s use the time stamps however say by checking here you agree")', () => {
+  const M194 = readFileSync(join(here, '../../../infra/supabase/migrations-auto/0194-by-checking-here-you-agree-the-office-stamps-the-time.sql'), 'utf8');
+  const SMOKE194 = readFileSync(join(here, '../../../infra/supabase/tests/0194-tlc-acknowledgment-stamp-smoke.sql'), 'utf8');
+  it('the checkbox carries a sentence that names the document and what is agreed; the form stores it with the moment it was checked', async () => {
+    const { acknowledgmentAttestation } = await import('../lib/tlc-signing.js');
+    expect(acknowledgmentAttestation('Employee Handbook')).toBe('By checking this box, I acknowledge that I have read the Employee Handbook in full and I agree to be bound by it.');
+    expect(acknowledgmentAttestation('')).toContain('read the document in full');
+    const form = readFileSync(join(here, '../components/TlcOnboardingForm.jsx'), 'utf8');
+    expect(form).toContain('{acknowledgmentAttestation(field.docName)}');
+    expect(form).toContain("attestation: acknowledgmentAttestation(field.docName), agreedAt: new Date().toISOString()");
+    expect(form).not.toContain('I have read this and I agree.');
+    expect(form).toContain('received by the office');
+    const readout = readFileSync(join(here, '../components/TlcOnboardingReadout.jsx'), 'utf8');
+    expect(readout).toContain('Acknowledged:');
+    expect(readout).toContain('by the office');
+  });
+  it('a normalized packet carries the sentence, the checked moment and the server stamp through untouched (a resubmit must carry the stamp back)', () => {
+    const p = normalizePacket({ acknowledgments: { policies: { agreed: true, signature: 'Ann Lee', attestation: 'By checking this box, I acknowledge…', agreedAt: '2026-09-10T15:00:00.000Z', signedAtServer: '2026-09-10T15:00:03.120Z' } } });
+    expect(p.acknowledgments.policies.attestation).toBe('By checking this box, I acknowledge…');
+    expect(p.acknowledgments.policies.agreedAt).toBe('2026-09-10T15:00:00.000Z');
+    expect(p.acknowledgments.policies.signedAtServer).toBe('2026-09-10T15:00:03.120Z');
+  });
+  it('the migration stamps signedAtServer with wall time on every signed acknowledgment at submit, keeps an unchanged one, re-stamps a re-signed one, and audits the versions + stamps; the smoke proves each', () => {
+    expect(M194).toContain('CREATE OR REPLACE FUNCTION public.tlc_onboarding_save(');
+    expect(M194).toContain("clock_timestamp() AT TIME ZONE 'UTC'");
+    expect(M194).toContain("packet_in := jsonb_set(packet_in, ARRAY['acknowledgments', v_key, 'signedAtServer'], to_jsonb(v_stamp), true);");
+    expect(M194).toContain("coalesce(packet_in->'acknowledgments'->v_key->>'signedAtServer', '') = ''");
+    expect(M194).toContain("(v_pkt.packet->'acknowledgments'->v_key->>'signature') IS DISTINCT FROM (packet_in->'acknowledgments'->v_key->>'signature')");
+    expect(M194).toContain("'signedAtServer', packet_in->'acknowledgments'->k->>'signedAtServer'");
+    // every 0187 guard survives the redefinition
+    for (const guard of ["'that packet is not yours'", "'a password is never stored in an intake packet'", "'banking is saved separately, never inside the packet'", "acknowledgments.' || v_key"]) expect(M194).toContain(guard);
+    expect(M194).not.toContain('tlc_apply'); // one directive per file: the apply changes are 0195's
+    for (const rung of ['carries no server stamp', 'an unchanged signature was re-stamped', 'a re-signed document kept its old stamp', 'lacks the versions and stamps', 'an unchecked acknowledgment submitted']) expect(SMOKE194, rung).toContain(rung);
+    expect(nsql).not.toContain('signedatserver'); // 0187 never stamped; the stamp is 0194's
+  });
+});
+
+describe('TLC runs in its own instance (0193, DR-0351; Darrell 2026-09-10: "yes TLC gets it\u2019s own database")', () => {
+  const M193 = readFileSync(join(here, '../../../infra/supabase/migrations-auto/0193-tlc-therapy-solutions-runs-in-its-own-instance.sql'), 'utf8');
+  const n193 = norm(M193);
+  const SMOKE193 = readFileSync(join(here, '../../../infra/supabase/tests/0193-tlc-own-instance-smoke.sql'), 'utf8');
+  const LEG = readFileSync(join(here, '../../../.github/workflows/rls-isolation.yml'), 'utf8');
+  it('one therapy-practice instance, seeded idempotently; Christina owns it (both sign-ins), Darrell administers it (gmail + phone identity); nobody else', () => {
+    expect(n193).toContain("select 'tlc-therapy-solutions', 'tlc therapy solutions', 'therapy-practice' where not exists (select 1 from public.instances where slug = 'tlc-therapy-solutions')");
+    expect(n193).toContain("lower(u.email) in ('christina@tlctherapysolutions.com', 'mrspoe06@gmail.com')");
+    expect(n193).toContain("on conflict (instance_id, user_id) do update set role = 'owner'");
+    expect(n193).toContain("lower(u.email) in ('darrellpoe06@gmail.com', '15636502416@phone.poetech.us')");
+    expect(n193).toContain("on conflict (instance_id, user_id) do update set role = 'admin' where public.instance_members.role <> 'owner'");
+    expect((M193.match(/INSERT INTO public\.instance_members/g) || []).length).toBe(2);
+  });
+  it('every office table moves from the family instance (the application guard stepped around and re-armed), and the resolvers answer ONLY from a therapy-practice membership while the shell\u2019s stays family-first', () => {
+    for (const t of ['tlc_office_tasks', 'tlc_lesson_assignments', 'tlc_onboarding_invites', 'tlc_onboarding_packets', 'tlc_onboarding_banking', 'tlc_roster', 'tlc_jobs', 'tlc_job_applications']) {
+      expect(n193, t).toContain(`update public.${t} set instance_id = v_tlc where instance_id = v_fam;`);
+    }
+    expect(n193).toContain('alter table public.tlc_job_applications disable trigger tlc_job_applications_guard_trg;');
+    expect(n193).toContain('alter table public.tlc_job_applications enable trigger tlc_job_applications_guard_trg;');
+    expect(n193).toContain("create or replace function public.tlc_onboarding_my_office() returns table (instance_id uuid, role text, office_name text)");
+    expect(n193).toContain("where im.user_id = auth.uid() and i.instance_type = 'therapy-practice' order by im.joined_at asc, i.id asc limit 1;");
+    expect(n193).not.toContain("case when i.instance_type = 'family' then 0 else 1 end"); // the family-first fallback is gone
+    expect(n193).toContain("create or replace function public.my_office_instance_role() returns jsonb");
+    expect(n193).not.toContain('my_default_instance_role()'); // the shell\u2019s resolver is untouched
+    expect(n193).toContain('select public.apply_assistant_scope_overlay(); select public.apply_viewer_readonly_overlay();');
+    expect(n193).not.toContain('office_records'); // not moved: the next increment, dated in DR-0351
+  });
+  it('the app reads the office role through its own hook and the office instance id through its own resolver; the TLC surfaces never read the family-first one', () => {
+    const role = readFileSync(join(here, '../lib/instance-role.js'), 'utf8');
+    expect(role).toContain("createRoleStore('my_office_instance_role')");
+    expect(role).toContain("createRoleStore('my_default_instance_role')");
+    expect(role).toContain('export const useOfficeInstanceRole = officeStore.use;');
+    const sync = readFileSync(join(here, '../lib/table-sync.js'), 'utf8');
+    expect(sync).toContain("supabase.rpc('my_office_instance_role')");
+    expect(sync).toContain('export async function getOfficeInstanceId()');
+    for (const f of ['../components/TlcPublicDoor.jsx', '../components/TlcOnboarding.jsx', '../components/TlcTeamAccess.jsx', '../components/TlcAssistant.jsx']) {
+      const src = readFileSync(join(here, f), 'utf8');
+      expect(src, f).toContain('useOfficeInstanceRole()');
+      expect(src, f).not.toMatch(/\buseInstanceRole\(/);
+    }
+    for (const f of ['../lib/tlc-assignments.js', '../lib/tlc-launch-sync.js']) {
+      const src = readFileSync(join(here, f), 'utf8');
+      expect(src, f).toContain('getOfficeInstanceId()');
+      expect(src, f).not.toMatch(/\bgetInstanceId\(/);
+    }
+  });
+  it('the smoke rides the tlc-office leg after 0192 and proves the office-only resolver, the shell untouched, and the live office with its people and no office row left on the family', () => {
+    expect(LEG).toMatch(/0192-tlc-hiring-audit-actions[^"\n]*\.sql 0193-tlc-therapy-solutions-runs-in-its-own-instance\.sql 0194-/);
+    expect(LEG).toMatch(/smokes: "[^"\n]*0193-tlc-own-instance-smoke\.sql/);
+    for (const rung of ['a family-only owner got an office role', 'the shell\u2019s resolver moved for U'.replace('\u2019', "''"), 'a family-only owner minted an office invite', 'the live office has no owner', 'office rows still sit on the family instance']) expect(SMOKE193, rung).toContain(rung);
+    // the earlier office smokes now stand up a therapy-practice office
+    for (const f of ['0189-tlc-office-smoke.sql', '0191-tlc-hiring-smoke.sql']) expect(readFileSync(join(here, '../../../infra/supabase/tests', f), 'utf8'), f).toMatch(/'therapy-practice'\);/);
+  });
+});

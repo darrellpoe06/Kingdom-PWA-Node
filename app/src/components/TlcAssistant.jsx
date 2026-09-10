@@ -22,11 +22,11 @@ import React from 'react';
 import OfficeAssistant from '../modules/office-assistant/OfficeAssistant.jsx';
 import { TLC_CONFIG } from '../modules/office-assistant/configs/tlc.js';
 import { tlcStore } from '../lib/use-referral-ops.js';
-import { useInstanceRole, isAssistantRole, canManageTeam } from '../lib/instance-role.js';
+import { useOfficeInstanceRole, isAssistantRole, canManageTeam } from '../lib/instance-role.js';
 import TlcTeamAccess from './TlcTeamAccess.jsx';
 
 export default function TlcAssistant({ isGovernor = false } = {}) {
-  const roleState = useInstanceRole();
+  const roleState = useOfficeInstanceRole(); // the office's own instance (0193, DR-0351), never the family
   const operate = isGovernor || isAssistantRole(roleState);
   const extraSections = canManageTeam(roleState)
     ? [{ id: 'team', label: 'Team access', icon: 'lock', render: () => <TlcTeamAccess /> }]

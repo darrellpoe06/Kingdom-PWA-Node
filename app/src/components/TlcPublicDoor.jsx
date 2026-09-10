@@ -4,7 +4,7 @@
 // poetech.us/tlc → ?tlc=1. A prospective CLIENT meets "Find your therapist"
 // (clinical-team match + services + insurance + Book). But TLC STAFF need to
 // LOG IN from this door — before/without installing — and then reach the office
-// (the Assistant + workspace). So the door carries a menu with a Staff log in
+// (the Assistant + workspace). So the door carries a menu with a Sign in
 // (Darrell, repeatedly: "a menu so we can login before downloading"), mirroring
 // the Moore door's Admin/User login. Signed-out = the client booking page only;
 // signed-in staff = a menu with the Assistant. The install manifest swap stays
@@ -14,14 +14,15 @@
 // (public marketing facts). The Assistant tab renders only after a real login;
 // RLS + the Assistant's own governor gate are the real enforcement.
 // =============================================================================
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { TLC_INSURANCE, TLC_BRAND, TLC_SERVICES } from '../lib/tlc-practice.js';
 import { useTlcRoster } from '../lib/tlc-roster.js';
 import { TLC_DOOR_BRAND, TLC_SHARE_URL } from '../lib/tlc-door.js';
 import { onAuthChange } from '../lib/supabase.js';
-import { useInstanceRole, canManageTeam } from '../lib/instance-role.js';
+import { useOfficeInstanceRole, canManageTeam } from '../lib/instance-role.js';
 import AppShareQR from './AppShareQR.jsx';
 import PasswordAuth from './PasswordAuth.jsx';
+import { motionBehavior } from '../lib/gentle-motion.js';
 import HeaderAuthButton from './HeaderAuthButton.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import TlcAssistant from './TlcAssistant.jsx';
@@ -136,6 +137,22 @@ function ClientDoor() {
 export default function TlcPublicDoor() {
   const [signedIn, setSignedIn] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  // A CLIENT CREATES AN ACCOUNT FROM THE DOOR (Darrell 2026-09-10: "A client
+  // should be able to create an account!!!! that's the point!!!!"). One
+  // button on the bar, "Sign in", opens the same entry every PoeTech door
+  // uses, with its own "New here? Create a profile" switch; "Create an
+  // account" under a lesson opens it straight on sign-up. The account is a
+  // client's until the office grants a seat (0193: the office role comes only
+  // from a therapy-practice membership).
+  const [authMode, setAuthMode] = useState('signin');
+  const authPanelRef = useRef(null);
+  const openAuth = (mode) => { setAuthMode(mode); setShowLogin(true); setAuthScrollPending(true); };
+  const [authScrollPending, setAuthScrollPending] = useState(false);
+  useEffect(() => {
+    if (!authScrollPending || !showLogin) return;
+    setAuthScrollPending(false);
+    try { authPanelRef.current && authPanelRef.current.scrollIntoView({ block: 'start', behavior: motionBehavior() }); } catch { /* non-browser */ }
+  }, [authScrollPending, showLogin]);
   // Captured ONCE at first render, before nav-history rewrites the URL (the
   // same rule the ?tlc=1 door context follows). Non-empty = a colleague
   // arriving on Christina's onboarding link (DR-0344).
@@ -160,8 +177,8 @@ export default function TlcPublicDoor() {
   const visitorSections = [
     { id: 'find', label: 'Find your therapist', icon: 'users', render: () => <ClientDoor /> },
     // "Maybe a mental skill building place tab" (Darrell 2026-09-10).
-    { id: 'learn', label: 'Mental skills', icon: 'bookOpen', render: () => <div className="pt-3 pb-6"><PracticeLearn email="" isStaff={false} deepLink={deepLink} guest onFindTherapist={() => setVisitorTab('find')} /></div> },
-    { id: 'jobs', label: 'Join the team', icon: 'pencil', render: () => <div className="pt-3 pb-6"><JoinTheTeam lead={jobsLink.jobs} jobId={jobsLink.jobId} /></div> },
+    { id: 'learn', label: 'Mental skills', icon: 'bookOpen', render: () => <div className="pt-3 pb-6"><PracticeLearn email="" isStaff={false} deepLink={deepLink} guest onFindTherapist={() => setVisitorTab('find')} onCreateAccount={() => openAuth('signup')} /></div> },
+    { id: 'jobs', label: 'Join the team', icon: 'pencil', render: () => <div className="pt-3 pb-6"><JoinTheTeam lead={jobsLink.jobs} jobId={jobsLink.jobId} interest={jobsLink.interest} /></div> },
   ]; // the one slider, controlled so Team can send you to a sister tab
   const [showShare, setShowShare] = useState(false);
   // Comfort controls — the SAME theme + text-size the whole PoeTech app uses
@@ -211,7 +228,7 @@ export default function TlcPublicDoor() {
   // their office workspace; a granted 'assistant' operates Christina's shared
   // one (TlcAssistant resolves that itself); RLS is the wall underneath either
   // way, so this prop is presentation, not security (DR-0074).
-  const roleState = useInstanceRole();
+  const roleState = useOfficeInstanceRole(); // the office's own instance (0193, DR-0351), never the family
   const operatorRole = ['owner', 'admin', 'member'].includes(roleState.role || '');
   // An approved colleague is staff for the TLC Learn space (the therapist +
   // training audiences) even before any membership grant — their packet says so.
@@ -254,7 +271,7 @@ export default function TlcPublicDoor() {
       { id: 'assistant', label: 'Assistant', icon: 'chat', render: () => <TlcAssistant isGovernor={operatorRole} /> },
     ] : []),
     ...(!staff && !newHire ? [
-      { id: 'jobs', label: 'Join the team', icon: 'pencil', render: () => <div className="pt-3 pb-6"><JoinTheTeam lead={jobsLink.jobs} jobId={jobsLink.jobId} /></div> },
+      { id: 'jobs', label: 'Join the team', icon: 'pencil', render: () => <div className="pt-3 pb-6"><JoinTheTeam lead={jobsLink.jobs} jobId={jobsLink.jobId} interest={jobsLink.interest} /></div> },
     ] : []),
     // The office owner/admin brings colleagues on board from the TLC app
     // itself (DR-0344); the panel re-checks the role from the database.
@@ -311,8 +328,8 @@ export default function TlcPublicDoor() {
               {signedIn ? (
                 <HeaderAuthButton />
               ) : (
-                <button type="button" onClick={() => setShowLogin((v) => !v)} aria-expanded={showLogin} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">
-                  Staff log in
+                <button type="button" onClick={() => (showLogin ? setShowLogin(false) : openAuth('signin'))} aria-expanded={showLogin} aria-label="Sign in or create an account" className="text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">
+                  Sign in
                 </button>
               )}
               {/* The hideaway chevron — UP to tuck the top space away, DOWN to
@@ -418,9 +435,10 @@ export default function TlcPublicDoor() {
               shows in BOTH header states: a tucked-away top space never hides
               the way in. */}
           {loginOpen && (
-            <div className="mb-4 max-w-sm border border-[#E8E4DC] bg-[#FAF8F4] p-3">
-              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-2">TLC staff sign in</div>
-              <PasswordAuth mode="signin" embedded onSignedIn={() => { setShowLogin(false); }} />
+            <div ref={authPanelRef} className="mb-4 max-w-sm border border-[#E8E4DC] bg-[#FAF8F4] p-3">
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">{authMode === 'signup' ? 'Create your account' : 'Sign in'}</div>
+              <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{authMode === 'signup' ? 'Clients keep their place in Mental skills and receive the lessons their therapist assigns. Staff sign in with the account the office gave them.' : 'Clients and staff sign in here. New here? Create a profile below.'}</p>
+              <PasswordAuth key={authMode} mode={authMode} embedded brand={{ name: 'TLC Therapy Solutions', eyebrow: 'TLC Therapy Solutions' }} onSignedIn={() => { setShowLogin(false); }} />
             </div>
           )}
         </div>

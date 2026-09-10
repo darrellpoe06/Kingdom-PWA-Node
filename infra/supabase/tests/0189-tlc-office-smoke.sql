@@ -45,7 +45,7 @@ VALUES
   ('00000000-0000-0000-0000-000000000000', :'s', 'authenticated','authenticated','s0189@test.local','', now(), now());
 
 INSERT INTO instances (id, slug, display_name, instance_type) VALUES
-  (:'instF', 'office-0189', 'TLC office smoke', 'family');
+  (:'instF', 'office-0189', 'TLC office smoke', 'therapy-practice'); -- 0193: the office resolver answers only from a therapy-practice membership
 INSERT INTO instance_members (instance_id, user_id, role, display_name) VALUES
   (:'instF', :'o', 'owner',     'Owner O'),
   (:'instF', :'t', 'member',    'Therapist T'),

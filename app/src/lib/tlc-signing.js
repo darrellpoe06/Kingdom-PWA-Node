@@ -11,7 +11,9 @@
 // (the agreements are data in the app and will be revised), a precise time,
 // and the consent to sign electronically that ESIGN / UETA expect. This module
 // supplies the first and the third as pure data; the time is stamped by the
-// form at signing and bounded by the server's own submitted_at.
+// form at signing (the device) AND by the office at submit (0194,
+// acknowledgments.<key>.signedAtServer); the checkbox carries its own
+// sentence (acknowledgmentAttestation) so the record says what was agreed.
 //
 // The version is a content hash of the document as the app renders it, so a
 // signature made on 2026-09-10 says "v9f3a21c0" and a later edit to the
@@ -19,6 +21,16 @@
 // =============================================================================
 import { TLC_AGREEMENTS } from './tlc-agreements.js';
 import { TLC_HANDBOOK } from './tlc-handbook.js';
+
+/**
+ * The checkbox sentence (Darrell 2026-09-10: "say 'by checking here you agree'
+ * — something that says they acknowledged it"). Stored with the signature at
+ * the moment it is checked, so the record says what was agreed to, not only
+ * that a box was ticked. The office's clock stamps the submit (0194).
+ */
+export function acknowledgmentAttestation(docName) {
+  return `By checking this box, I acknowledge that I have read the ${String(docName || 'document').trim()} in full and I agree to be bound by it.`;
+}
 
 /** The consent line under every signature box. */
 export const ESIGN_CONSENT = 'By typing my full legal name I sign this document electronically, and I agree that this electronic signature has the same force as my handwritten signature.';

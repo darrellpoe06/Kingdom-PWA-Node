@@ -7,7 +7,7 @@
 // assigned to them. Bounded by a timeout, fail-soft, no PHI.
 import supabase from './supabase.js';
 import { tlcError } from './tlc-error.js';
-import { getInstanceId } from './table-sync.js';
+import { getOfficeInstanceId } from './table-sync.js'; // the office's own instance (0193), never the family
 import { normalizeEmail, validAssignment, splitAssignments } from './tlc-assignments-core.js';
 export { normalizeEmail, validAssignment, splitAssignments };
 
@@ -24,7 +24,7 @@ export async function assignLesson({ clientEmail, lesson, track = 'client', dueO
   const problems = validAssignment({ clientEmail, lesson, dueOn, note });
   if (problems.length) return fail('invalid', `Still needed: ${problems.join(', ')}.`);
   try {
-    const instanceId = await getInstanceId();
+    const instanceId = await getOfficeInstanceId();
     if (!instanceId) return fail('no-instance', 'Sign in to the office to assign a lesson.');
     const row = { instance_id: instanceId, office_id: 'tlc', client_email: normalizeEmail(clientEmail), lesson_id: lesson.id, lesson_title: lesson.title, track, note: note || null, due_on: dueOn || null };
     const { data, error } = await bounded(supabase.from('tlc_lesson_assignments').insert(row).select(COLS).single(), ASSIGN_TIMEOUT_MS, 'assigning the lesson');
@@ -36,7 +36,7 @@ export async function assignLesson({ clientEmail, lesson, track = 'client', dueO
 // What this therapist has assigned, newest first.
 export async function listMyAssignments() {
   try {
-    const instanceId = await getInstanceId();
+    const instanceId = await getOfficeInstanceId();
     if (!instanceId) return { ok: false, reason: 'no-instance', rows: [] };
     const { data, error } = await bounded(supabase.from('tlc_lesson_assignments').select(COLS).eq('instance_id', instanceId).order('created_at', { ascending: false }).limit(200), ASSIGN_TIMEOUT_MS, 'reading assignments');
     if (error) return { ok: false, reason: 'read-error', message: tlcError(error), rows: [] };

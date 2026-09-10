@@ -6,7 +6,7 @@
 // is data (lib/tlc-launch-plan.js); this only carries the office's status.
 import supabase from './supabase.js';
 import { tlcError } from './tlc-error.js';
-import { getInstanceId } from './table-sync.js';
+import { getOfficeInstanceId } from './table-sync.js'; // the office's own instance (0193), never the family
 import { normalizeStatus } from './tlc-launch-plan.js';
 
 export const LAUNCH_TIMEOUT_MS = 10000;
@@ -18,7 +18,7 @@ function bounded(p, ms, what) {
 // { ok, statuses: { [taskKey]: { status, note, updatedAt } } }
 export async function loadLaunchStatuses(officeId = 'tlc') {
   try {
-    const instanceId = await getInstanceId();
+    const instanceId = await getOfficeInstanceId();
     if (!instanceId) return { ok: false, reason: 'no-instance', statuses: {} };
     const { data, error } = await bounded(
       supabase.from('tlc_office_tasks').select('task_key,status,note,updated_at').eq('instance_id', instanceId).eq('office_id', officeId),
@@ -32,7 +32,7 @@ export async function loadLaunchStatuses(officeId = 'tlc') {
 
 export async function setLaunchStatus(taskKey, status, { note = null, officeId = 'tlc' } = {}) {
   try {
-    const instanceId = await getInstanceId();
+    const instanceId = await getOfficeInstanceId();
     if (!instanceId) return { ok: false, reason: 'no-instance', message: 'Sign in to the office to update the board.' };
     const { data: sess } = await supabase.auth.getSession();
     const row = { instance_id: instanceId, office_id: officeId, task_key: taskKey, status: normalizeStatus(status), note, updated_by: sess?.session?.user?.id || null, updated_at: new Date().toISOString(), done_at: status === 'done' ? new Date().toISOString() : null };

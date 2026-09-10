@@ -96,6 +96,16 @@ export async function getInstanceId() {
   return getTenantId();
 }
 
+// The OFFICE instance id (0193, DR-0351): the caller's therapy-practice
+// membership, or null when they have none — the TLC seams (assignments, the
+// launch board) write office rows here, never to the family instance that
+// getInstanceId() resolves. Never joins or creates anything.
+export async function getOfficeInstanceId() {
+  const { data, error } = await supabase.rpc('my_office_instance_role');
+  if (error) throw error;
+  return (data && data.instance_id) || null;
+}
+
 export function createTableSync(spec) {
   const {
     localKey,

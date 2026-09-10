@@ -13,7 +13,7 @@
 // clinicians row, it does not make anyone a member — that stays the two-party
 // Team access handshake (DR-0187 / DR-0271), by design.
 import React, { useCallback, useEffect, useState } from 'react';
-import { useInstanceRole, canManageTeam } from '../lib/instance-role.js';
+import { useOfficeInstanceRole, canManageTeam } from '../lib/instance-role.js';
 import { PACKET_STATUSES, buildOnboardLink, formatDate, TLC_ONBOARDING_SOURCE } from '../lib/tlc-onboarding.js';
 import { mintInvite, revokeInvite, listOffice, readPacket, readBanking, reviewPacket, deletePacket } from '../lib/tlc-onboarding-sync.js';
 import { rosterCardFromPacket, ROSTER_ROLE_DEFAULT } from '../lib/tlc-roster-cards.js';
@@ -236,7 +236,7 @@ function PacketDetail({ row, onChanged, onClose }) {
 }
 
 export default function TlcOnboarding() {
-  const roleState = useInstanceRole();
+  const roleState = useOfficeInstanceRole(); // the office's own instance (0193, DR-0351), never the family
   const manager = canManageTeam(roleState);
   const [email, setEmail] = useState('');
   const [note, setNote] = useState('');
@@ -344,6 +344,7 @@ export default function TlcOnboarding() {
     // station; Hire mints the invite above and the packet follows here.
     { id: 'jobs', label: 'Jobs', icon: 'book', render: () => <HiringDesk area="jobs" instanceId={roleState.instanceId || null} packets={office.packets} /> },
     { id: 'applicants', label: 'Applicants', icon: 'users', render: () => <HiringDesk area="applicants" instanceId={roleState.instanceId || null} packets={office.packets} /> },
+    { id: 'report', label: 'Hiring report', icon: 'chart', render: () => <HiringDesk area="report" instanceId={roleState.instanceId || null} packets={office.packets} /> },
   ];
   return (
     <div className="space-y-4">

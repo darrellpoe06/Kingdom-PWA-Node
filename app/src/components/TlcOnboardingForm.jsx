@@ -19,7 +19,7 @@ import {
   normalizePacket, validatePacket, validateBanking, packetProgress, labelFor, wordCount,
   exportPacketRecord, formatDate,
 } from '../lib/tlc-onboarding.js';
-import { signatureRecord, documentVersion, ESIGN_CONSENT } from '../lib/tlc-signing.js';
+import { signatureRecord, documentVersion, ESIGN_CONSENT, acknowledgmentAttestation } from '../lib/tlc-signing.js';
 import { openPacket, savePacket, uploadDocument, headshotThumbFromFile, withdrawPacket } from '../lib/tlc-onboarding-sync.js';
 import SectionTabs from './SectionTabs.jsx';
 import TlcOnboardingReadout from './TlcOnboardingReadout.jsx';
@@ -173,8 +173,12 @@ function Acknowledgment({ field, value, onChange, pointer, packetId, onPointer, 
       {reading && <div className="mb-3"><TlcAgreementReader docKey={field.key} agreement={agreementByKey(field.key)} title={field.docName} /></div>}
       <p className="text-xs text-[#5A5751] leading-relaxed mb-2">{field.statement}</p>
       <label className="flex items-start gap-2 min-h-[36px] cursor-pointer mb-2">
-        <input type="checkbox" checked={a.agreed === true} disabled={!editable} onChange={(e) => onChange({ ...a, agreed: e.target.checked })} className="mt-1 h-4 w-4 focus:outline focus:outline-2 focus:outline-[#B85838]" />
-        <span className="text-sm text-[#1A1815]">I have read this and I agree.</span>
+        <input type="checkbox" checked={a.agreed === true} disabled={!editable} aria-label={acknowledgmentAttestation(field.docName)}
+          onChange={(e) => onChange(e.target.checked
+            ? { ...a, agreed: true, attestation: acknowledgmentAttestation(field.docName), agreedAt: new Date().toISOString() }
+            : { ...a, agreed: false, attestation: '', agreedAt: '' })}
+          className="mt-1 h-4 w-4 focus:outline focus:outline-2 focus:outline-[#B85838]" />
+        <span className="text-sm text-[#1A1815]">{acknowledgmentAttestation(field.docName)}</span>
       </label>
       <Label htmlFor={id} field={field}>Sign by typing your full legal name</Label>
       <input id={id} value={a.signature || ''} disabled={!editable} autoComplete="name" className={INPUT}
@@ -186,7 +190,7 @@ function Acknowledgment({ field, value, onChange, pointer, packetId, onPointer, 
           onChange({ ...a, signature: name, signedOn: stamped.signedOn, signedAt: stamped.signedAt, docVersion: stamped.docVersion });
         }} />
       <p className="text-[0.6875rem] text-[#5A5751] mt-1 leading-relaxed">{ESIGN_CONSENT}</p>
-      {a.signedOn && <p className="text-xs text-[#5A5751] mt-1">Dated {formatDate(a.signedOn)}{a.docVersion ? ` · document version ${a.docVersion}` : ''}</p>}
+      {a.signedOn && <p className="text-xs text-[#5A5751] mt-1">Dated {formatDate(a.signedOn)}{a.docVersion ? ` · document version ${a.docVersion}` : ''}{a.signedAtServer ? ` · received by the office ${a.signedAtServer.replace('T', ' ').slice(0, 16)} UTC` : ''}</p>}
       {!a.signedOn && version && <p className="text-[0.625rem] text-[#8A857C] mt-1">Document version {version}</p>}
       {field.attach && (
         <div className="mt-2">
