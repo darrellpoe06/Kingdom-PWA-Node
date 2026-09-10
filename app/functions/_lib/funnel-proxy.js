@@ -71,6 +71,37 @@ export function makeFunnelProxy({ upstreamPrefix, label }) {
       );
     }
 
+    // AN UPSTREAM THAT FAILED BEFORE THE NAS ANSWERED SPEAKS JSON, NOT HTML
+    // (2026-09-09, Darrell's phone at 11:07 PM: Cloudflare's 1016 "Origin DNS
+    // error" page — what this runtime's fetch() returns when the Funnel
+    // hostname does not resolve — streamed through here into supabase-js,
+    // whose error.message is the raw body, and printed itself into the My
+    // profile status line). Every client of these routes speaks JSON; an
+    // HTML error page is Cloudflare talking to a browser that is not there.
+    // So a 5xx whose body is HTML becomes one honest JSON 502 carrying the
+    // page's <title> as the class of failure, and a `message` a person can
+    // read. The NAS's own JSON errors (PostgREST 4xx/5xx) pass through
+    // untouched — those ARE words.
+    const ctype = upstream.headers.get('content-type') || '';
+    if (upstream.status >= 500 && /text\/html/i.test(ctype)) {
+      let title = '';
+      try {
+        const text = await upstream.text();
+        const m = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(text);
+        title = m ? m[1].replace(/\s+/g, ' ').replace(/\s*\|.*$/, '').trim().slice(0, 80) : '';
+      } catch { /* the body is not the point */ }
+      return new Response(
+        JSON.stringify({
+          error: `${label} proxy upstream unreachable`,
+          code: 'upstream-unreachable',
+          upstreamStatus: upstream.status,
+          detail: title || `HTTP ${upstream.status} from the edge`,
+          message: `The church server could not be reached${title ? ` (${title})` : ''}. Nothing was changed — try again in a moment.`,
+        }),
+        { status: 502, headers: { 'content-type': 'application/json' } }
+      );
+    }
+
     // Stream the upstream response back unchanged (status + headers + body).
     return new Response(upstream.body, {
       status: upstream.status,

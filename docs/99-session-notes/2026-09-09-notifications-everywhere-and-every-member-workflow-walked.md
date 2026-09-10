@@ -118,3 +118,7 @@ Darrell, three more screenshots (his saved profile; the thread list with bare us
 - Engagement sections reordered: Message a member → Family thread → Trivia; opens on the first.
 - Tests +6 across three suites; lint clean; consistency guard caught two width-cap classes in the chip (fixed: inline bound, Modal default width); every other guard OK. Real Chromium at 412×915: the Engagement tabs read in the new order and the page opens on Message a member (screenshot `50-engagement-order.png`).
 - Honest limit: the header chip with a real face needs a sign-in the sandbox cannot make; proven in jsdom against the real components.
+
+## 7. 11:07 PM — the Origin DNS error page printed itself into My profile (DR-0342 amendment 2)
+
+Live on 3D2417D: the header chip with his face and LOG OUT beneath; the My profile dialog from it; initials avatars on the thread rows (the other two people have no profile yet); the tab order — all as built. And one defect: the form's status line showed a raw Cloudflare 1016 page. Trace: Pages Function `fetch()` to the Funnel failed to resolve at that moment → Cloudflare's HTML error → streamed by `funnel-proxy.js` → supabase-js `error.message` → printed. Closed at the transport (HTML 5xx from the edge → JSON 502 with a readable `message`; NAS JSON untouched) and under it (`humanizeServerError`, used on the save path). site-health dispatched at the time of the fix to measure the backend now (DR-0125). Client sweep of the 12 other raw `error.message` renders: `re-review: 2026-09-16`.
