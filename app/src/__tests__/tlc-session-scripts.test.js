@@ -100,9 +100,9 @@ describe('the handbook and the office documents, as data', () => {
     expect(TLC_HANDBOOK.mission).toMatch(/faith-informed therapy/);
     expect(TLC_HANDBOOK.services).toContain('Clinical supervision for pre-licensed therapists');
   });
-  it('names every systems document the Drive sweep found, each with its in-app carry', () => {
+  it('names every systems document the Drive sweep found, each carried IN the app — no url (Darrell: "why would you use Google?!")', () => {
     const ids = TLC_OFFICE_DOCUMENTS.map((d) => d.id);
     for (const id of ['handbook', 'contractor-agreement', 'confidentiality', 'training-notes', 'intake-form', 'launch', 'finding-peace']) expect(ids).toContain(id);
-    for (const d of TLC_OFFICE_DOCUMENTS) { expect(d.url).toMatch(/^https:\/\/docs\.google\.com\//); expect(d.inApp.length).toBeGreaterThan(5); }
+    for (const d of TLC_OFFICE_DOCUMENTS) { expect(d.url).toBeUndefined(); expect(d.inApp.length).toBeGreaterThan(5); expect(['team', 'training', 'onboarding']).toContain(d.tab); }
   });
 });

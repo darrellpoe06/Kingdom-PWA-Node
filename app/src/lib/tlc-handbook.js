@@ -75,14 +75,14 @@ export const TLC_HANDBOOK = Object.freeze({
   acknowledgment: 'I acknowledge that I have received, read, and understand the Therapy Practice Policies of TLC Therapy Solutions. I agree to comply with these policies as a condition of my independent contractor relationship.',
 });
 
-// The office's other systems documents found in Drive on 2026-09-10 — what
-// the app links today, and what it carries inside (DR-0344 §Drive sweep).
+// The office's systems documents, found in Drive on 2026-09-10 and now INSIDE
+// the app (DR-0344): each names where it lives in the TLC app. No link out.
 export const TLC_OFFICE_DOCUMENTS = Object.freeze([
-  { id: 'handbook', title: 'Independent Contractor Handbook', kind: 'policy', url: TLC_HANDBOOK.sourceUrl, inApp: 'readable here, section for section' },
-  { id: 'contractor-agreement', title: 'Independent Contractor Agreement', kind: 'agreement', url: 'https://docs.google.com/document/d/1EhwsODMEpUxnCRHmFScz4VIdTWorAcYTI-OZeL8PaM8/edit', inApp: 'signed in the intake packet' },
-  { id: 'confidentiality', title: 'Confidentiality Agreement (NDA)', kind: 'agreement', url: 'https://docs.google.com/document/d/1kt2L5cd_SJVF_G8Ca3s8eLx3DxavJ_wUdT_q2oOzr8k/edit', inApp: 'signed in the intake packet' },
-  { id: 'training-notes', title: 'Training Notes for Therapists-in-Training', kind: 'training', url: 'https://docs.google.com/document/d/1GmBgxJbwxmAkBjdDksnhSUWmJjNuIXMCVQcEHfI4xQ8/edit', inApp: 'six session-script courses in Training' },
-  { id: 'intake-form', title: 'Therapist Onboarding | Hiring Form', kind: 'intake', url: 'https://docs.google.com/forms/d/1WROLqw2XTnjTAktf-FHat-L4uZxgPT9s0PMsaz9TmsE/edit', inApp: 'the Onboarding intake packet' },
-  { id: 'launch', title: 'TLCTS LAUNCH (launch task tracker)', kind: 'operations', url: 'https://docs.google.com/spreadsheets/d/12A3XdwTI_zbslWl_R1CObvCrJk5uYvAzsPzYYefhWPY/edit', inApp: 'linked; the Assistant workspace holds the working schedule' },
-  { id: 'finding-peace', title: 'Finding Peace: Biblical Wisdom for Life’s Stressors (manuscript)', kind: 'psychoeducation', url: 'https://docs.google.com/document/d/14Y685eWbSp_xXYjhvOu0mr2A_-n7LgcrFWQv3R5BeMM/edit', inApp: 'linked; a client-facing lesson track is the next capture' },
+  { id: 'handbook', title: 'Independent Contractor Handbook', kind: 'policy', inApp: 'read in place on Team', tab: 'team' },
+  { id: 'contractor-agreement', title: 'Independent Contractor Agreement', kind: 'agreement', inApp: 'read in place on Team; signed in the intake packet', tab: 'team' },
+  { id: 'confidentiality', title: 'Confidentiality Agreement (NDA)', kind: 'agreement', inApp: 'read in place on Team; signed in the intake packet', tab: 'team' },
+  { id: 'training-notes', title: 'Training Notes for Therapists-in-Training', kind: 'training', inApp: 'six session-script courses on Training', tab: 'training' },
+  { id: 'intake-form', title: 'Therapist Onboarding | Hiring Form', kind: 'intake', inApp: 'the Onboarding intake packet', tab: 'onboarding' },
+  { id: 'launch', title: 'TLCTS LAUNCH (launch task tracker)', kind: 'operations', inApp: 'a live board on Team (tlc_office_tasks)', tab: 'team' },
+  { id: 'finding-peace', title: 'Finding Peace: Biblical Wisdom for Life’s Stressors', kind: 'psychoeducation', inApp: 'eleven client lessons on Training', tab: 'training' },
 ]);

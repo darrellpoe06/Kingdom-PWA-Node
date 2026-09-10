@@ -22,6 +22,8 @@ import {
 import { openPacket, savePacket, uploadDocument, headshotThumbFromFile, withdrawPacket } from '../lib/tlc-onboarding-sync.js';
 import SectionTabs from './SectionTabs.jsx';
 import TlcOnboardingReadout from './TlcOnboardingReadout.jsx';
+import TlcAgreementReader from './TlcAgreementReader.jsx';
+import { agreementByKey } from '../lib/tlc-agreements.js';
 import UiIcon from './UiIcon.jsx';
 
 const AUTOSAVE_MS = 2500;
@@ -158,13 +160,15 @@ function Availability({ value, onChange, editable }) {
 
 function Acknowledgment({ field, value, onChange, pointer, packetId, onPointer, editable }) {
   const a = value || { agreed: false, signature: '', signedOn: '' };
+  const [reading, setReading] = useState(false);
   const id = `f-${field.key}`;
   return (
     <div className="mb-4 border border-[#E8E4DC] bg-[#FAF8F4] p-3">
       <div className="text-sm font-bold text-[#1A1815] mb-1">{field.label}</div>
-      <a href={field.docUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs underline text-[#B85838] mb-2 focus:outline focus:outline-2 focus:outline-[#B85838]">
-        <UiIcon name="link" className="w-3 h-3" /> Read the {field.docName}
-      </a>
+      <button type="button" onClick={() => setReading((v) => !v)} aria-expanded={reading} className="inline-flex items-center gap-1 min-h-[36px] text-xs underline text-[#B85838] mb-2 focus:outline focus:outline-2 focus:outline-[#B85838]">
+        <UiIcon name="bookOpen" className="w-3 h-3" /> {reading ? 'Hide' : 'Read'} the {field.docName} (in the app)
+      </button>
+      {reading && <div className="mb-3"><TlcAgreementReader docKey={field.key} agreement={agreementByKey(field.key)} title={field.docName} /></div>}
       <p className="text-xs text-[#5A5751] leading-relaxed mb-2">{field.statement}</p>
       <label className="flex items-start gap-2 min-h-[36px] cursor-pointer mb-2">
         <input type="checkbox" checked={a.agreed === true} disabled={!editable} onChange={(e) => onChange({ ...a, agreed: e.target.checked })} className="mt-1 h-4 w-4 focus:outline focus:outline-2 focus:outline-[#B85838]" />

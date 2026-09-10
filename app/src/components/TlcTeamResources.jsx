@@ -1,46 +1,53 @@
 // =============================================================================
-// TlcTeamResources — the TLC team's own documents, inside the TLC app
+// TlcTeamResources — the TLC team's own documents, INSIDE the app (DR-0344)
 // =============================================================================
-// (DR-0344) Darrell, 2026-09-10: "We have lessons etc can we make sure those
-// workflows are inside the TLC Therapy Solutions App… comb our drive for
-// documentation of systems we need or should add here." This is the Team
-// section of the TLC door for a signed-in colleague: the handbook readable in
-// place (lib/tlc-handbook.js, TLC's own words), the agreements, the office's
-// other systems documents with what the app carries of each, and the
-// colleague's own intake packet status with the next step. No PHI, no client
-// data; policy and training only.
+// Darrell, 2026-09-10, on seeing Drive links here: "I want this built into
+// the App!" / "why would you use Google?! fix it build the whole process
+// workflows!" Nothing here links out. The handbook and both agreements are
+// read in place (their text is data); the training notes are the six courses
+// on Training; the intake form is the Onboarding tab; the launch tracker is a
+// live board here; the "Finding Peace" manuscript is the client lesson track
+// on Training. `onOpen(tabId)` moves the slider to a sister tab.
 import React, { useEffect, useState } from 'react';
-import { TLC_HANDBOOK, TLC_OFFICE_DOCUMENTS } from '../lib/tlc-handbook.js';
+import { TLC_HANDBOOK } from '../lib/tlc-handbook.js';
+import { TLC_CONTRACTOR_AGREEMENT, TLC_CONFIDENTIALITY_AGREEMENT } from '../lib/tlc-agreements.js';
 import { PACKET_STATUSES, TLC_APP_PATH } from '../lib/tlc-onboarding.js';
 import { myPacketStatus } from '../lib/tlc-onboarding-sync.js';
+import { AgreementBody } from './TlcAgreementReader.jsx';
+import TlcLaunchBoard from './TlcLaunchBoard.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import UiIcon from './UiIcon.jsx';
 
-const LINK = 'inline-flex items-center gap-1 text-xs underline text-[#B85838] min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
+const BTN = 'min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]';
 
-function HandbookSection({ section }) {
-  const [open, setOpen] = useState(false);
+function Fold({ title, kind, children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="border-b border-[#F0ECE4] last:border-b-0">
       <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
-        className="w-full min-h-[36px] py-2 flex items-center justify-between gap-2 text-left text-sm font-semibold text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
-        <span>{section.title}</span>
+        className="w-full min-h-[36px] py-2 flex items-center justify-between gap-2 text-left focus:outline focus:outline-2 focus:outline-[#B85838]">
+        <span className="min-w-0"><span className="text-sm font-semibold text-[#1A1815] block">{title}</span>{kind && <span className="text-[0.6875rem] text-[#5A5751]">{kind}</span>}</span>
         <UiIcon name={open ? 'chevronUp' : 'chevronDown'} className="w-4 h-4 shrink-0" />
       </button>
-      {open && (
-        <dl className="pb-2 space-y-2">
-          {section.items.map((it) => (
-            <div key={it.label}>
-              <dt className="text-xs font-semibold text-[#1A1815]">{it.label}</dt>
-              <dd className="text-xs text-[#5A5751] leading-relaxed">{it.text}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
+      {open && <div className="pb-3">{children}</div>}
     </div>
   );
 }
 
-export default function TlcTeamResources({ onOpenTraining = null }) {
+function HandbookSections() {
+  return (
+    <dl className="space-y-2">
+      {TLC_HANDBOOK.sections.map((s) => (
+        <div key={s.id}>
+          <dt className="text-xs font-semibold text-[#1A1815]">{s.title}</dt>
+          {s.items.map((it) => <dd key={it.label} className="text-xs text-[#5A5751] leading-relaxed"><b className="text-[#1A1815]">{it.label}.</b> {it.text}</dd>)}
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+export default function TlcTeamResources({ onOpen = null, staff = false }) {
   const [mine, setMine] = useState(null);
   useEffect(() => {
     let alive = true;
@@ -48,6 +55,51 @@ export default function TlcTeamResources({ onOpenTraining = null }) {
     return () => { alive = false; };
   }, []);
   const st = mine && mine.status ? (PACKET_STATUSES[mine.status] || PACKET_STATUSES.draft) : null;
+  const go = (id) => (onOpen ? <button type="button" onClick={() => onOpen(id)} className={BTN}>Open {id === 'training' ? 'Training' : id === 'onboarding' ? 'Onboarding' : id}</button> : null);
+
+  const documents = (
+    <section className="bg-white border border-[#E8E4DC] p-3">
+      <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Office documents · all in the app</div>
+      <Fold title="Independent Contractor Handbook" kind="Policies & procedures · read here">
+        <HandbookSections />
+        <p className="text-[0.6875rem] text-[#8A857C] leading-relaxed mt-2">{TLC_HANDBOOK.acknowledgment}</p>
+      </Fold>
+      <Fold title={TLC_CONTRACTOR_AGREEMENT.title} kind="Agreement · read here; signed in the intake packet">
+        <AgreementBody agreement={TLC_CONTRACTOR_AGREEMENT} />
+      </Fold>
+      <Fold title={TLC_CONFIDENTIALITY_AGREEMENT.title} kind="Agreement · read here; signed in the intake packet">
+        <AgreementBody agreement={TLC_CONFIDENTIALITY_AGREEMENT} />
+      </Fold>
+      <Fold title="Training Notes for Therapists-in-Training" kind="Six session-script courses on Training">
+        <p className="text-xs text-[#5A5751] leading-relaxed mb-2">Christina’s six session scripts — finding herself, learning to say no, managing anger, family conflict, household imbalance, healing after an unhealthy relationship — are courses on the Training tab, with her wording and the Word verbatim.</p>
+        {go('training')}
+      </Fold>
+      <Fold title="Therapist Onboarding | Hiring Form" kind="The Onboarding intake packet">
+        <p className="text-xs text-[#5A5751] leading-relaxed mb-2">Every question the hiring form asked is the intake packet a colleague completes from Christina’s invite link{staff ? '; the office manages invites and reviews packets on the Onboarding tab' : ''}.</p>
+        {staff ? go('onboarding') : null}
+      </Fold>
+      <Fold title="Finding Peace: Biblical Wisdom for Life’s Stressors" kind="Christina’s book · eleven client lessons on Training">
+        <p className="text-xs text-[#5A5751] leading-relaxed mb-2">The eleven chapters are lessons on the client side of Training — the Psalms and prayer, Proverbs for a sound mind, the healing stories, Philippians on anxiety, Corinthians on love, surrender, Romans 12, Thessalonians on gratitude, the Psalms of lament, Ecclesiastes on change, and perfect peace — each with the Word verbatim and her practical tips.</p>
+        {go('training')}
+      </Fold>
+    </section>
+  );
+  const whoWeAre = (
+    <section className="bg-white border border-[#E8E4DC] p-3">
+      <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Who we are</div>
+      <p className="text-sm text-[#1A1815] leading-relaxed mb-2">{TLC_HANDBOOK.welcome}</p>
+      <div className="text-xs text-[#1A1815]"><b>Mission.</b> <span className="text-[#5A5751]">{TLC_HANDBOOK.mission}</span></div>
+      <div className="text-xs text-[#1A1815] mt-1"><b>Vision.</b> <span className="text-[#5A5751]">{TLC_HANDBOOK.vision}</span></div>
+      <div className="text-xs font-semibold text-[#1A1815] mt-2 mb-1">What we provide</div>
+      <ul className="list-disc pl-4 text-xs text-[#5A5751]">{TLC_HANDBOOK.services.map((s) => <li key={s}>{s}</li>)}</ul>
+      <p className="text-xs text-[#5A5751] leading-relaxed mt-2">{TLC_HANDBOOK.contractorStatus}</p>
+    </section>
+  );
+  const areas = [
+    { id: 'documents', label: 'Documents', icon: 'book', render: () => documents },
+    staff ? { id: 'launch', label: 'Launch board', icon: 'check', render: () => <section className="bg-white border border-[#E8E4DC] p-3"><TlcLaunchBoard /></section> } : null,
+    { id: 'who', label: 'Who we are', icon: 'users', render: () => whoWeAre },
+  ];
 
   return (
     <div className="space-y-4 pt-3">
@@ -62,45 +114,15 @@ export default function TlcTeamResources({ onOpenTraining = null }) {
                 ? 'Christina is reviewing it. You will see her answer on your packet.'
                 : 'Your packet is still open. Reopen the invitation link Christina sent you to continue it.'}
           </p>
-          {mine.status === 'approved' && onOpenTraining && (
-            <button type="button" onClick={onOpenTraining} className="mt-2 min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Open Training</button>
-          )}
+          {mine.status === 'approved' && <div className="mt-2">{go('training')}</div>}
         </section>
       )}
 
-      <section className="bg-white border border-[#E8E4DC] p-3">
-        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Who we are</div>
-        <p className="text-sm text-[#1A1815] leading-relaxed mb-2">{TLC_HANDBOOK.welcome}</p>
-        <div className="text-xs text-[#1A1815]"><b>Mission.</b> <span className="text-[#5A5751]">{TLC_HANDBOOK.mission}</span></div>
-        <div className="text-xs text-[#1A1815] mt-1"><b>Vision.</b> <span className="text-[#5A5751]">{TLC_HANDBOOK.vision}</span></div>
-        <div className="text-xs font-semibold text-[#1A1815] mt-2 mb-1">What we provide</div>
-        <ul className="list-disc pl-4 text-xs text-[#5A5751]">{TLC_HANDBOOK.services.map((s) => <li key={s}>{s}</li>)}</ul>
-        <p className="text-xs text-[#5A5751] leading-relaxed mt-2">{TLC_HANDBOOK.contractorStatus}</p>
-      </section>
-
-      <section className="bg-white border border-[#E8E4DC] p-3">
-        <div className="flex items-baseline justify-between gap-2 mb-1">
-          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Handbook · policies & procedures</div>
-          <a href={TLC_HANDBOOK.sourceUrl} target="_blank" rel="noopener noreferrer" className={LINK}><UiIcon name="link" className="w-3 h-3" /> Source document</a>
-        </div>
-        {TLC_HANDBOOK.sections.map((s) => <HandbookSection key={s.id} section={s} />)}
-        <p className="text-[0.6875rem] text-[#8A857C] leading-relaxed mt-2">{TLC_HANDBOOK.acknowledgment}</p>
-      </section>
-
-      <section className="bg-white border border-[#E8E4DC] p-3">
-        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Office documents</div>
-        <ul className="divide-y divide-[#F0ECE4]">
-          {TLC_OFFICE_DOCUMENTS.map((d) => (
-            <li key={d.id} className="py-1.5 flex flex-wrap items-baseline justify-between gap-2">
-              <div className="min-w-0">
-                <div className="text-sm text-[#1A1815]">{d.title}</div>
-                <div className="text-[0.6875rem] text-[#5A5751]">{d.kind} · in the app: {d.inApp}</div>
-              </div>
-              <a href={d.url} target="_blank" rel="noopener noreferrer" className={LINK} aria-label={`Open ${d.title} in Drive`}><UiIcon name="link" className="w-3 h-3" /> Drive</a>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {/* The areas of Team, side by side on a second row (Darrell 2026-09-10:
+          "another tab slider for each section... and any long scrolling
+          tabs... users need to see the areas easier"): the documents, the
+          office's launch board (staff), who we are. One shows at a time. */}
+      <SectionTabs variant="sub" sections={areas} ariaLabel="Team areas" idBase="tlc-team" defaultId="documents" />
 
       <p className="text-[0.6875rem] text-[#8A857C] leading-relaxed">
         Colleague resources only. Client records never pass through this app; the clinical record lives in the practice&apos;s clinical system. To install this app on your phone, open <span className="font-mono">poetech.us{TLC_APP_PATH}</span> and add it to your home screen.

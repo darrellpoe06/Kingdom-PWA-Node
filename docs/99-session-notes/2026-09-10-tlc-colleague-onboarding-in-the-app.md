@@ -73,3 +73,23 @@ Darrell: *"there are tabs inside the PoeTech App that are not inside the TLC The
 | Handbook, agreements, office documents | (via Onboarding packet) | Team |
 
 Built: `lib/tlc-office-data.js` (the standalone office store over the same two syncs), `Practice` renders an operations sub-id directly (no chips) and takes `findRelatedAuto` from the lib, the door mounts Inquiries / Client Growth / Revenue for staff. Proof: `tlc-office-data.test.js` (8), door render (+2), guards green.
+
+## Then: no Google link anywhere, and areas on a second row
+
+Darrell: *"drive?! I want this built into the App!"* · *"why would you use Google?! fix it build the whole process workflows!"* · *"training tab is too deep... another tab slider for each section... any long scrolling tabs"* · *"users need to see the areas easier."*
+
+| Document | Was | Now |
+|---|---|---|
+| Independent Contractor Agreement | Drive link | `lib/tlc-agreements.js`, read in place at the signature and on Team |
+| Confidentiality Agreement (NDA) | Drive link | same |
+| Independent Contractor Handbook | data, but the acknowledgment linked out | read in place at the signature (`TlcAgreementReader`) |
+| Training Notes | six courses; Team linked the doc | Team fold → "Open Training" moves the slider |
+| Hiring form | the intake; Team linked the form | Team fold → "Open Onboarding" (staff) |
+| TLCTS LAUNCH tracker | Drive link | live board, `tlc_office_tasks` (0188), 15 rows in five phases |
+| Finding Peace manuscript | Drive link | eleven client lessons, `lib/tlc-finding-peace.js`, 39 verses verbatim |
+
+Areas (second-row chips, one shows at a time): Training = Lessons · What you'll gain · Course library · Training map · Pathways · Certificates · Hours · CE renewal · Catalog & required (per audience). Team = Documents · Launch board · Who we are. Onboarding = Invite · Packets · Roster.
+
+Proof: `tlc-office-documents.test.js` (14), `tlc-onboarding-render.test.jsx` (16), `practice-learn-render.test.jsx` (9); full suite 13,071 passing; every CI guard green; build green.
+
+Open, from Darrell in the same hour (next increment): every course as two lesson versions (with the Word, without it) so the curriculum serves every client; the 24 therapist trainings weekly and comprehensive on current Illinois policy; therapists schedule lessons for a client to review before the next session; every hand-off between tabs proven end to end.

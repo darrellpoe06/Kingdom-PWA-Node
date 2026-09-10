@@ -41,12 +41,19 @@ export default function SectionTabs({
   defaultId = null,
   idBase = 'sect',
   variant = 'section', // 'section' (2nd row, underline) | 'sub' (3rd row, chips)
+  // Optional CONTROLLED mode (DR-0344): a parent may drive the active tab
+  // (activeId) and hear changes (onActiveChange) so a panel can send the
+  // reader to a sister tab ("Open Training"). Uncontrolled by default.
+  activeId = null,
+  onActiveChange = null,
 }) {
   const valid = sections.filter(Boolean);
-  const [active, setActive] = useState(() => {
+  const [activeState, setActiveState] = useState(() => {
     if (defaultId && valid.some((s) => s.id === defaultId)) return defaultId;
     return valid.length ? valid[0].id : null;
   });
+  const active = activeId != null && valid.some((s) => s.id === activeId) ? activeId : activeState;
+  const setActive = useCallback((id) => { setActiveState(id); if (onActiveChange) onActiveChange(id); }, [onActiveChange]);
   const btnRefs = useRef({});
 
   // Arrow / Home / End move focus AND selection along the strip (roving tabindex).
@@ -65,7 +72,7 @@ export default function SectionTabs({
       const el = btnRefs.current[next.id];
       if (el && el.focus) el.focus();
     }
-  }, [active, valid]);
+  }, [active, valid, setActive]);
 
   if (!valid.length) return null;
   const current = valid.find((s) => s.id === active) || valid[0];

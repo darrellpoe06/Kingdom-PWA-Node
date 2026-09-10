@@ -133,6 +133,7 @@ export default function TlcPublicDoor() {
   // same rule the ?tlc=1 door context follows). Non-empty = a colleague
   // arriving on Christina's onboarding link (DR-0344).
   const [onboardToken] = useState(() => readOnboardTokenFromUrl());
+  const [activeTab, setActiveTab] = useState('find'); // the one slider, controlled so Team can send you to a sister tab
   const [showShare, setShowShare] = useState(false);
   // Comfort controls — the SAME theme + text-size the whole PoeTech app uses
   // (shared libs; a per-device choice that follows the user between shells).
@@ -200,7 +201,7 @@ export default function TlcPublicDoor() {
     // space (Darrell 2026-09-10). Clients see psychoeducation; staff see the
     // therapist + training audiences with the session scripts and courses.
     { id: 'training', label: 'Training', icon: 'bookOpen', render: () => <div className="pt-3"><PracticeLearn email={sessionEmail} isStaff={!!staff} /></div> },
-    { id: 'team', label: 'Team', icon: 'book', render: () => <TlcTeamResources /> },
+    { id: 'team', label: 'Team', icon: 'book', render: () => <TlcTeamResources staff={!!staff} onOpen={(id) => setActiveTab(id)} /> },
     { id: 'assistant', label: 'Assistant', icon: 'chat', render: () => <TlcAssistant isGovernor={operatorRole} /> },
     // The office owner/admin brings colleagues on board from the TLC app
     // itself (DR-0344); the panel re-checks the role from the database.
@@ -335,7 +336,7 @@ export default function TlcPublicDoor() {
         <OnboardingDoor token={onboardToken} signedIn={signedIn} />
       ) : signedIn ? (
         <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4">
-          <SectionTabs sections={sections} ariaLabel="TLC app sections" idBase="tlc-app" defaultId="find" />
+          <SectionTabs sections={sections} ariaLabel="TLC app sections" idBase="tlc-app" defaultId="find" activeId={activeTab} onActiveChange={setActiveTab} />
         </div>
       ) : (
         <ClientDoor />

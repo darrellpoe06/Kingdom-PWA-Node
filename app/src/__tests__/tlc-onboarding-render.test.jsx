@@ -11,7 +11,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
 
-const sent = { saves: [], reviews: [], invites: [], rosterUpserts: [] };
+const sent = { saves: [], reviews: [], invites: [], rosterUpserts: [], launch: [] };
 let openStatus = 'draft';
 let roleState = { instanceId: 'i1', instanceSlug: 'poe-family', instanceType: 'family', role: 'admin', loaded: true };
 
@@ -58,6 +58,10 @@ vi.mock('../lib/tlc-office-data.js', async (orig) => {
   const real = await orig();
   return { ...real, useTlcOfficeData: () => ({ inquiries: [{ id: 'inq-1', firstName: 'Maya R.', contactMethod: 'phone', phone: '217', status: 'new', receivedAt: '2026-09-01T00:00:00Z', statusHistory: [], interestArea: 'individual', source: 'church' }], practiceLeads: [], loaded: true, signedIn: true }), startTlcOfficeData: async () => ({}) };
 });
+vi.mock('../lib/tlc-launch-sync.js', async (orig) => {
+  const real = await orig();
+  return { ...real, loadLaunchStatuses: async () => ({ ok: true, statuses: {} }), setLaunchStatus: async (key, status) => { sent.launch.push({ key, status }); return { ok: true }; } };
+});
 vi.mock('../lib/instance-role.js', async (orig) => {
   const real = await orig();
   return { ...real, useInstanceRole: () => roleState, fetchInstanceRole: async () => roleState };
@@ -77,10 +81,13 @@ import { TLC_TEAM } from '../lib/tlc-practice.js';
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let container, root;
 async function mount(el) { container = document.createElement('div'); document.body.appendChild(container); await act(async () => { root = createRoot(container); root.render(el); }); }
-afterEach(async () => { if (root) await act(async () => root.unmount()); if (container) container.remove(); root = null; container = null; sent.saves.length = 0; sent.reviews.length = 0; sent.invites.length = 0; sent.rosterUpserts.length = 0; openStatus = 'draft'; window.history.replaceState(null, '', '/'); });
+afterEach(async () => { if (root) await act(async () => root.unmount()); if (container) container.remove(); root = null; container = null; sent.saves.length = 0; sent.reviews.length = 0; sent.invites.length = 0; sent.rosterUpserts.length = 0; sent.launch.length = 0; openStatus = 'draft'; window.history.replaceState(null, '', '/'); });
 const settle = () => act(async () => { for (let i = 0; i < 6; i += 1) await Promise.resolve(); });
 const click = (el) => act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
 const byText = (re, tag = 'button') => Array.from(container.querySelectorAll(tag)).find((b) => re.test(b.textContent));
+// A second-row area chip (Darrell 2026-09-10: "another tab slider for each section").
+const areaChip = (strip, re) => Array.from(container.querySelectorAll(`[role="tablist"][aria-label="${strip}"] [role="tab"]`)).find((t) => re.test(t.textContent));
+const area = async (strip, re) => { const t = areaChip(strip, re); expect(t, `${strip} → ${re}`).toBeTruthy(); await click(t); await settle(); };
 
 describe('TlcOnboardingForm — the colleague', () => {
   it('opens the packet, shows every section as a sliding tab, and the progress line', async () => {
@@ -144,9 +151,10 @@ describe('TlcOnboarding — Christina', () => {
     expect(container.textContent).toMatch(/run by the office owner/);
     roleState = { ...roleState, role: 'admin' };
   });
-  it('mints a link that lands on the TLC app with the token, and lists invites + packets + the live roster', async () => {
+  it('mints a link that lands on the TLC app with the token, and lists invites + packets + the live roster, each its own area', async () => {
     await mount(createElement(TlcOnboarding));
     await settle();
+    expect(Array.from(container.querySelectorAll('[role="tablist"][aria-label="Onboarding areas"] [role="tab"]')).map((t) => t.textContent.trim())).toEqual(['Invite', 'Packets · 1', 'Roster']);
     const input = container.querySelector('input[type="email"]');
     await act(async () => { const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; setter.call(input, 'new2@example.com'); input.dispatchEvent(new Event('input', { bubbles: true })); });
     await click(byText(/Create invite link/));
@@ -154,14 +162,17 @@ describe('TlcOnboarding — Christina', () => {
     expect(sent.invites[0].email).toBe('new2@example.com');
     expect(container.textContent).toContain('/tlc/app/?tlc=1&onboard=tok9');
     expect(container.textContent).toContain('new@example.com');
+    await area('Onboarding areas', /^Packets/);
     expect(container.textContent).toContain('Ann Lee');
     expect(container.textContent).toMatch(/Submitted · awaiting review/);
+    await area('Onboarding areas', /^Roster$/);
     expect(container.textContent).toMatch(/Live roster · Match a Preferred Provider/);
     expect(container.textContent).toContain('Brand New, LSW');
   });
   it('opens a packet, previews the public card from it, reveals banking on demand, and approves WITH the card', async () => {
     await mount(createElement(TlcOnboarding));
     await settle();
+    await area('Onboarding areas', /^Packets/);
     await click(byText(/^Open$/));
     await settle();
     expect(container.textContent).toMatch(/Their card, as clients will see it/);
@@ -182,6 +193,7 @@ describe('TlcOnboarding — Christina', () => {
   it('Return needs a note; the note travels with the decision', async () => {
     await mount(createElement(TlcOnboarding));
     await settle();
+    await area('Onboarding areas', /^Packets/);
     await click(byText(/^Open$/));
     await settle();
     const ret = byText(/Return with note/);
@@ -238,6 +250,67 @@ describe('the TLC app carries the office workflows on ONE slider (DR-0344)', () 
     expect(tabs).not.toContain('Revenue');
     expect(tabs).toContain('Training');
     expect(tabs).toContain('Team');
+    roleState = { ...roleState, role: 'admin', instanceId: 'i1' };
+    session = null;
+  });
+});
+
+describe('the office documents live on the Team tab, in the app (DR-0344 — "why would you use Google?!")', () => {
+  it('Team shows the handbook, both agreements, the training notes, the hiring form, Finding Peace, and the live launch board — with no link out', async () => {
+    session = { user: { email: 'christina@tlctherapysolutions.com' } };
+    await mount(createElement(TlcPublicDoor));
+    await settle();
+    await click(byText(/^Team$/, '[role="tab"]'));
+    await settle();
+    // Team's areas, side by side: Documents · Launch board · Who we are.
+    expect(Array.from(container.querySelectorAll('[role="tablist"][aria-label="Team areas"] [role="tab"]')).map((t) => t.textContent.trim())).toEqual(['Documents', 'Launch board', 'Who we are']);
+    const text = container.textContent;
+    for (const t of ['Independent Contractor Handbook', 'Independent Contractor Agreement', 'Confidentiality Agreement', 'Training Notes for Therapists-in-Training', 'Therapist Onboarding | Hiring Form', 'Finding Peace']) {
+      expect(text, t).toContain(t);
+    }
+    expect(text).toContain('all in the app');
+    expect(Array.from(container.querySelectorAll('a[href]')).filter((a) => /google\.com|drive/i.test(a.href))).toHaveLength(0);
+    // the contractor agreement opens in place: its first section reads here
+    await click(byText(/Independent Contractor Agreement/, 'button'));
+    await settle();
+    expect(container.textContent).toMatch(/1\. /);
+    expect(container.textContent).toContain('TLC Therapy Solutions, with a principal place of business');
+    // the launch board is live in its own area: its rows render and a status chip saves through the seam
+    await area('Team areas', /^Launch board$/);
+    expect(container.textContent).toMatch(/TLCTS Launch · 1 of 15 done/);
+    expect(container.textContent).toContain('Create social media pages (FB, IG, LinkedIn)');
+    const group = Array.from(container.querySelectorAll('[role="group"]')).find((g) => /Create social media pages/.test(g.getAttribute('aria-label')));
+    await click(Array.from(group.querySelectorAll('button')).find((b) => /In progress/.test(b.textContent)));
+    await settle();
+    expect(sent.launch).toEqual([{ key: 'marketing-social-pages', status: 'in-progress' }]);
+    session = null;
+  });
+  it('"Open Training" on a Team fold moves the ONE slider to Training (controlled SectionTabs)', async () => {
+    session = { user: { email: 'christina@tlctherapysolutions.com' } };
+    await mount(createElement(TlcPublicDoor));
+    await settle();
+    await click(byText(/^Team$/, '[role="tab"]'));
+    await settle();
+    await click(byText(/Training Notes for Therapists-in-Training/, 'button'));
+    await settle();
+    await click(byText(/^Open Training$/, 'button'));
+    await settle();
+    const selected = Array.from(container.querySelectorAll('[role="tablist"][aria-label="TLC app sections"] [role="tab"][aria-selected="true"]')).map((t) => t.textContent.trim());
+    expect(selected).toEqual(['Training']);
+    // Two levels, never more: the app slider, then Training's own area row.
+    expect(Array.from(container.querySelectorAll('[role="tablist"]')).map((t) => t.getAttribute('aria-label'))).toEqual(['TLC app sections', 'Training areas']);
+    session = null;
+  });
+  it('a colleague who is not staff reads the documents but gets no Onboarding button and no launch board', async () => {
+    session = { user: { email: 'client@example.com' } };
+    roleState = { ...roleState, role: null, instanceId: null };
+    await mount(createElement(TlcPublicDoor));
+    await settle();
+    await click(byText(/^Team$/, '[role="tab"]'));
+    await settle();
+    expect(container.textContent).toContain('Independent Contractor Handbook');
+    expect(areaChip('Team areas', /Launch board/)).toBeUndefined();
+    expect(byText(/^Open Onboarding$/, 'button')).toBeUndefined();
     roleState = { ...roleState, role: 'admin', instanceId: 'i1' };
     session = null;
   });
