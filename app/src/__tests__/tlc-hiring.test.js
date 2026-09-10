@@ -25,6 +25,9 @@ import { TLC_HANDBOOK } from '../lib/tlc-handbook.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const MIG = readFileSync(join(here, '../../../infra/supabase/migrations-auto/0191-tlc-hiring-jobs-posted-on-the-door-applicants-hired-into-onboarding.sql'), 'utf8');
+const FIX = readFileSync(join(here, '../../../infra/supabase/migrations-auto/0192-tlc-hiring-audit-actions-within-the-allow-list-the-smoke-caught-it.sql'), 'utf8');
+const SCHEMA_AUDIT = readFileSync(join(here, '../../../infra/supabase/schema-v2.10-ai-workflow-state.sql'), 'utf8');
+const LEG = readFileSync(join(here, '../../../.github/workflows/rls-isolation.yml'), 'utf8');
 
 describe('the stations', () => {
   it('an application moves forward, back to review, or to declined; hired is reached only through hire', () => {
@@ -175,6 +178,29 @@ describe('posting templates for the roles beyond the clinical chart (Darrell: "W
     expect(jobTemplate('ai-specialist').title).toBe('AI & Systems Specialist');
     expect(jobTemplate('ai-specialist').summary).toMatch(/client information walled off/);
     expect(jobTemplate('nope')).toBeNull();
+  });
+});
+
+describe('0192 — the audit actions within the allow-list (rls-isolation run 130 caught 0191 writing "apply" and "hire")', () => {
+  const allowList = SCHEMA_AUDIT.match(/ADD CONSTRAINT audit_log_action_check[\s\S]*?\)\);/)[0];
+  const allowed = [...allowList.matchAll(/'([a-z-]+)'/g)].map((m) => m[1]);
+  it('0191 wrote two actions the allow-list does not hold — the bug the smoke caught', () => {
+    expect(allowed).toContain('create');
+    expect(allowed).not.toContain('apply');
+    expect(allowed).not.toContain('hire');
+    expect(MIG).toMatch(/'apply', 'tlc_job_application'/);
+    expect(MIG).toMatch(/'hire', 'tlc_job_application'/);
+  });
+  it('0192 redefines both functions with allow-listed actions only, keeps every guard, and follows 0191 in the tlc-office leg', () => {
+    const actions = [...FIX.matchAll(/INSERT INTO audit_log[\s\S]*?VALUES \([^,]+, [^,]+, '([a-z-]+)'/g)].map((m) => m[1]);
+    expect(actions).toEqual(['create', 'status-change']);
+    for (const a of actions) expect(allowed, a).toContain(a);
+    expect(FIX).toContain('CREATE OR REPLACE FUNCTION public.tlc_apply(office_in text, job_id_in uuid, applicant_in jsonb)');
+    expect(FIX).toContain('CREATE OR REPLACE FUNCTION public.tlc_application_hire(application_id_in uuid, note_in text DEFAULT NULL)');
+    for (const guard of ["'that position is not open'", 'you have already applied for this position', "interval '1 day') >= 5", "NOT IN ('owner','admin')", 'public.tlc_onboarding_invite(v_app.email', "'already', true"]) expect(FIX).toContain(guard);
+    expect(FIX).toMatch(/GRANT EXECUTE ON FUNCTION public\.tlc_apply\(text, uuid, jsonb\) TO anon, authenticated;/);
+    expect(FIX).toMatch(/REVOKE ALL ON FUNCTION public\.tlc_application_hire\(uuid, text\) FROM PUBLIC, anon;/);
+    expect(LEG).toMatch(/0191-tlc-hiring-jobs[^"\n]*\.sql 0192-tlc-hiring-audit-actions-within-the-allow-list-the-smoke-caught-it\.sql"/);
   });
 });
 
