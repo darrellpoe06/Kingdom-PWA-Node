@@ -21,6 +21,7 @@
 import { CANONICAL_APP_ORIGIN } from './app-share.js';
 import { TLC_APP_PATH } from './tlc-onboarding.js';
 import { TLC_BRAND } from './tlc-practice.js';
+import { TLC_POSITIONS } from './tlc-governance.js';
 
 export const JOB_STATUSES = Object.freeze(['draft', 'open', 'closed']);
 export const EMPLOYMENT_TYPES = Object.freeze([
@@ -173,8 +174,11 @@ export function normalizeJob(job = {}) {
   };
 }
 
-export function validateApplication(a = {}) {
+export function validateApplication(a = {}, { kind = 'posting' } = {}) {
   const errors = {};
+  const roles = normalizeInterestRoles(a.interest_roles);
+  if (roles.length > 12) errors.interest_roles = 'Choose at most 12 roles.';
+  else if (kind === 'interest' && roles.length === 0) errors.interest_roles = 'Choose at least one role you are interested in.';
   const name = line(a.name);
   const email = line(a.email).toLowerCase();
   const statement = line(a.statement);
@@ -205,7 +209,59 @@ export function normalizeApplication(a = {}) {
     statement: line(a.statement),
     availability: line(a.availability),
     link: line(a.link),
+    // The honeypot (0195): a field no person sees; the server refuses a filled one.
+    website: line(a.website),
+    interest_roles: normalizeInterestRoles(a.interest_roles),
   };
+}
+
+// ---------------------------------------------------------------------------
+// ROLES OF INTEREST + THE INTEREST CARD (0195; Darrell 2026-09-10: "HOW DOES
+// ONE JOIN THE TEAM" / "options for roles they can show they are interested
+// in"). A posting has a kind: 'posting' (a vacancy) or 'interest' (the
+// standing "tell us which roles interest you" card the office instance is
+// seeded with, so the door is never a dead end). A person picks roles from
+// the chart's hireable seats and the office/support templates.
+// ---------------------------------------------------------------------------
+export const JOB_KINDS = Object.freeze(['posting', 'interest']);
+export const isInterestCard = (job) => !!job && job.kind === 'interest';
+
+export const INTEREST_ROLE_OPTIONS = Object.freeze([
+  ...TLC_POSITIONS.filter((p) => ['supervisor', 'therapist', 'trainee', 'assistant', 'aispecialist'].includes(p.key)).map((p) => ({ key: p.key, label: p.title })),
+  ...JOB_TEMPLATES.filter((t) => t.key !== 'ai-specialist').map((t) => ({ key: t.key, label: t.title })),
+]);
+
+export function interestRoleLabel(key) {
+  const hit = INTEREST_ROLE_OPTIONS.find((o) => o.key === key);
+  return hit ? hit.label : String(key || '');
+}
+
+/** Short keys, trimmed, deduplicated, in the order given (the server sorts). */
+export function normalizeInterestRoles(v) {
+  const list = Array.isArray(v) ? v : typeof v === 'string' && v ? v.split(',') : [];
+  const out = [];
+  for (const x of list) {
+    const k = line(x).slice(0, 40);
+    if (k && !out.includes(k)) out.push(k);
+  }
+  return out;
+}
+
+/** The hiring report's rows for the desk: one per posting, with the numbers as numbers. */
+export function reportRows(report) {
+  const jobs = report && Array.isArray(report.jobs) ? report.jobs : [];
+  return jobs.map((j) => ({
+    id: j.id, title: j.title, kind: j.kind || 'posting', status: j.status,
+    views7d: Number(j.views_7d || 0), viewsTotal: Number(j.views_total || 0),
+    applications: Number(j.applications_total || 0),
+    byStation: APPLICATION_STATUSES.map((s) => ({ key: s.key, label: s.label, n: Number((j.applications || {})[s.key] || 0) })).filter((x) => x.n > 0),
+  }));
+}
+
+/** The roles people said they are interested in, counted, labeled. */
+export function reportRoles(report) {
+  const roles = report && Array.isArray(report.roles) ? report.roles : [];
+  return roles.map((r) => ({ key: r.role, label: interestRoleLabel(r.role), interested: Number(r.interested || 0) }));
 }
 
 // ---------------------------------------------------------------------------
@@ -235,28 +291,34 @@ export function applicationsByStatus(apps = []) {
 // jobs, so one list serves both: `?tlc=1&jobs=1` opens the door on Join the
 // team, and `&job=<id>` on one posting.
 // ---------------------------------------------------------------------------
-export const JOBS_LINK_PARAMS = Object.freeze({ door: 'tlc', jobs: 'jobs', job: 'job' });
+export const JOBS_LINK_PARAMS = Object.freeze({ door: 'tlc', jobs: 'jobs', job: 'job', interest: 'interest' });
 
-export function jobsDoorUrl({ jobId = null, origin = CANONICAL_APP_ORIGIN, path = TLC_APP_PATH } = {}) {
+export function jobsDoorUrl({ jobId = null, interest = false, origin = CANONICAL_APP_ORIGIN, path = TLC_APP_PATH } = {}) {
   const parts = [`${JOBS_LINK_PARAMS.door}=1`, `${JOBS_LINK_PARAMS.jobs}=1`];
   if (jobId) parts.push(`${JOBS_LINK_PARAMS.job}=${encodeURIComponent(String(jobId))}`);
+  if (interest) parts.push(`${JOBS_LINK_PARAMS.interest}=1`); // opens the interest form (0195)
   return `${origin || ''}${path || '/'}?${parts.join('&')}`;
 }
 
 export function parseJobsLink(search) {
-  const out = { jobs: false, jobId: null };
+  const out = { jobs: false, jobId: null, interest: false };
   try {
     const sp = new URLSearchParams(search || '');
     const j = sp.get(JOBS_LINK_PARAMS.jobs);
     out.jobs = j !== null && j !== '' && j !== '0';
     const id = (sp.get(JOBS_LINK_PARAMS.job) || '').trim();
     if (id) { out.jobId = id; out.jobs = true; }
+    const i = sp.get(JOBS_LINK_PARAMS.interest);
+    if (i !== null && i !== '' && i !== '0') { out.interest = true; out.jobs = true; }
   } catch (_) { /* malformed query -> nothing linked */ }
   return out;
 }
 
 /** What the share sheet gets for one posting. */
 export function jobSharePayload(job = {}, { url = '' } = {}) {
+  if (isInterestCard(job)) {
+    return { title: `${TLC_BRAND.name}: tell us which roles interest you`, text: line(job.summary), url: String(url || '') };
+  }
   const title = line(job.title) || `A position at ${TLC_BRAND.name}`;
   const mode = MODALITIES.find((m) => m.key === job.modality);
   const text = [line(job.summary), `${mode ? `${mode.label} · ` : ''}${TLC_BRAND.name} is hiring`].filter(Boolean).join('\n');

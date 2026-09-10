@@ -25,9 +25,11 @@ import {
   APPLICATION_STATUSES, applicationStatus, canMoveApplication, applicationsByStatus, hirePipeline,
   validateApplication, validateJob, EMPLOYMENT_TYPES, MODALITIES, JOB_TEMPLATES, jobTemplate,
   TLC_TELEHEALTH, TELEHEALTH_STATUSES, telehealthStatus, telehealthHandoffMessage, jobsDoorUrl, jobSharePayload,
+  isInterestCard, INTEREST_ROLE_OPTIONS, interestRoleLabel, reportRows, reportRoles,
 } from '../lib/tlc-hiring.js';
 import {
   listPublicJobs, applyToJob, listJobs, saveJob, deleteJob, listApplications, reviewApplication, hireApplicant, markTelehealth,
+  recordJobView, hiringReport,
 } from '../lib/tlc-hiring-sync.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -71,7 +73,7 @@ function JobFacts({ job }) {
 // Text only: no upload, no health information; the packet (0187) comes after
 // the hire and carries documents as pointers.
 // -----------------------------------------------------------------------------
-const EMPTY_APPLICATION = { name: '', email: '', phone: '', license_type: '', license_state: '', years_experience: '', availability: '', link: '', statement: '' };
+const EMPTY_APPLICATION = { name: '', email: '', phone: '', license_type: '', license_state: '', years_experience: '', availability: '', link: '', statement: '', interest_roles: [], website: '' };
 
 export function ApplyForm({ job, onApply = applyToJob }) {
   const [form, setForm] = useState(EMPTY_APPLICATION);
@@ -82,11 +84,11 @@ export function ApplyForm({ job, onApply = applyToJob }) {
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const submit = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
-    const v = validateApplication(form);
+    const v = validateApplication(form, { kind: job.kind || 'posting' });
     setErrors(v.errors);
     if (!v.ok) { setMessage(Object.values(v.errors)[0]); return; }
     setBusy(true); setMessage('');
-    const res = await onApply(job.id, form);
+    const res = await onApply(job.id, form, undefined, { kind: job.kind || 'posting' });
     setBusy(false);
     if (!res.ok) { setMessage(res.message); if (res.errors) setErrors(res.errors); return; }
     setReceipt(res.receipt);
@@ -95,7 +97,7 @@ export function ApplyForm({ job, onApply = applyToJob }) {
     return (
       <div className="border border-[#5A6E3D] bg-[#F0F4EA] p-3" role="status">
         <div className="text-sm font-semibold text-[#3F5226]">Received. Thank you, {form.name.trim()}.</div>
-        <p className="text-xs text-[#5A5751] mt-1" style={SERIF}>Your application for {receipt.job_title || job.title} is with the office. We will reach you at {form.email.trim().toLowerCase()}.</p>
+        <p className="text-xs text-[#5A5751] mt-1" style={SERIF}>{isInterestCard(job) ? `Your interest in ${form.interest_roles.map(interestRoleLabel).join(', ')} is with the office.` : `Your application for ${receipt.job_title || job.title} is with the office.`} We will reach you at {form.email.trim().toLowerCase()}.</p>
       </div>
     );
   }
@@ -106,8 +108,29 @@ export function ApplyForm({ job, onApply = applyToJob }) {
       {errors[k] && <span className="block text-[0.6875rem] text-[#B85838] mt-0.5">{errors[k]}</span>}
     </label>
   );
+  const toggleRole = (key) => setForm((f) => ({ ...f, interest_roles: f.interest_roles.includes(key) ? f.interest_roles.filter((k) => k !== key) : [...f.interest_roles, key] }));
   return (
-    <form onSubmit={submit} className="space-y-2" aria-label={`Apply for ${job.title}`}>
+    <form onSubmit={submit} className="space-y-2" aria-label={isInterestCard(job) ? 'Tell us which roles interest you' : `Apply for ${job.title}`}>
+      {/* THE HONEYPOT (0195): a field no person sees or tabs to; a script that
+          fills every input fills this one, and the server refuses it before
+          any lookup. Never autofilled, never announced. */}
+      <div className="hidden" aria-hidden="true">
+        <label>Website<input name="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={set('website')} /></label>
+      </div>
+      {isInterestCard(job) && (
+        <fieldset className="border border-[#E8E4DC] p-2" aria-invalid={!!errors.interest_roles}>
+          <legend className="text-xs text-[#5A5751] px-1">Roles you are interested in (choose any)</legend>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+            {INTEREST_ROLE_OPTIONS.map((o) => (
+              <label key={o.key} className="flex items-center gap-2 min-h-[36px] text-sm text-[#1A1815] cursor-pointer">
+                <input type="checkbox" checked={form.interest_roles.includes(o.key)} onChange={() => toggleRole(o.key)} className="h-4 w-4 focus:outline focus:outline-2 focus:outline-[#B85838]" />
+                <span>{o.label}</span>
+              </label>
+            ))}
+          </div>
+          {errors.interest_roles && <span className="block text-[0.6875rem] text-[#B85838] mt-0.5">{errors.interest_roles}</span>}
+        </fieldset>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {field('name', 'Full name', { autoComplete: 'name' })}
         {field('email', 'Email', { type: 'email', autoComplete: 'email' })}
@@ -119,13 +142,13 @@ export function ApplyForm({ job, onApply = applyToJob }) {
         {field('link', 'A link to your resume or profile (optional)', { type: 'url', placeholder: 'https://' })}
       </div>
       <label className="block text-xs text-[#5A5751]">
-        About you, and why TLC
+        {isInterestCard(job) ? 'About you, and what you would bring' : 'About you, and why TLC'}
         <textarea value={form.statement} onChange={set('statement')} rows={4} className={`${INPUT} mt-1`} aria-invalid={!!errors.statement} />
         {errors.statement && <span className="block text-[0.6875rem] text-[#B85838] mt-0.5">{errors.statement}</span>}
       </label>
       <p className="text-[0.6875rem] text-[#5A5751]" style={SERIF}>Text only here; documents come later, inside the onboarding packet, once the office says yes. Never include client information.</p>
       {message && <p className="text-xs text-[#B85838]" role="alert">{message}</p>}
-      <button type="submit" disabled={busy} className={`${BTN_RUST}`}>{busy ? 'Sending…' : 'Send application'}</button>
+      <button type="submit" disabled={busy} className={`${BTN_RUST}`}>{busy ? 'Sending…' : isInterestCard(job) ? 'Send my interest' : 'Send application'}</button>
     </form>
   );
 }
@@ -134,17 +157,29 @@ export function ApplyForm({ job, onApply = applyToJob }) {
 // JOIN THE TEAM — the door's public section. One list, from one source; the
 // website links here.
 // -----------------------------------------------------------------------------
-export function JoinTheTeam({ lead = false, jobId = null, load = listPublicJobs, onApply = applyToJob }) {
+export function JoinTheTeam({ lead = false, jobId = null, interest = false, load = listPublicJobs, onApply = applyToJob, onView = recordJobView }) {
   const [state, setState] = useState({ loaded: false, jobs: [], message: '' });
   const [openId, setOpenId] = useState(jobId);
+  // WHO LOOKS AT WHAT (0195; Darrell: "how many people look at this role vs
+  // this one"): a posting counts one view when it is opened here, once per
+  // mount per posting — a link that lands on one counts it too.
+  const [viewed] = useState(() => new Set());
+  const noteView = useCallback((id) => { if (!id || viewed.has(id)) return; viewed.add(id); Promise.resolve(onView(id)).catch(() => {}); }, [viewed, onView]);
+  const open = useCallback((id) => { setOpenId(id); noteView(id); }, [noteView]);
   useEffect(() => {
     let alive = true;
     (async () => {
       const res = await load();
-      if (alive) setState({ loaded: true, jobs: res.jobs || [], message: res.ok ? '' : res.message || '' });
+      if (!alive) return;
+      const jobs = res.jobs || [];
+      setState({ loaded: true, jobs, message: res.ok ? '' : res.message || '' });
+      // A link to the interest form opens it; a link to one posting counts it.
+      const card = interest ? jobs.find(isInterestCard) : null;
+      if (card) open(card.id);
+      else if (jobId && jobs.some((j) => j.id === jobId)) noteView(jobId);
     })();
     return () => { alive = false; };
-  }, [load]);
+  }, [load, interest, jobId, noteView, open]);
   return (
     <section className={`bg-white border ${lead ? 'border-[#1A1815] border-2' : 'border-[#E8E4DC]'} p-4`} aria-label="Join the team">
       <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Join the team</div>
@@ -152,27 +187,30 @@ export function JoinTheTeam({ lead = false, jobId = null, load = listPublicJobs,
       <p className="text-xs text-[#5A5751] mb-3" style={SERIF}>Apply here; the office reads every application in the app. A hire opens your onboarding packet on this same door.</p>
       {!state.loaded && <p className="text-xs text-[#5A5751]">Checking open positions…</p>}
       {state.loaded && state.message && <p className="text-xs text-[#B85838]" role="alert">Open positions could not be loaded: {state.message}</p>}
-      {state.loaded && !state.message && state.jobs.length === 0 && <p className="text-xs text-[#5A5751]" style={SERIF}>No open positions right now. Check back, or share your interest through Book an appointment’s contact page. (The office posts openings under Onboarding · Jobs, signed in.)</p>}
+      {state.loaded && !state.message && state.jobs.length === 0 && <p className="text-xs text-[#5A5751]" style={SERIF}>Nothing is open right now. The office posts every opening from its own app (sign in · Onboarding · Jobs) and it shows here the moment it is opened; check back, or book a consult and ask.</p>}
+      {state.loaded && !state.message && state.jobs.length > 0 && !state.jobs.some((j) => !isInterestCard(j)) && <p className="text-xs text-[#5A5751]" style={SERIF}>No vacancy is posted right now. Tell us which roles interest you below; the office reads every note and reaches out when a seat opens.</p>}
       <ul className="space-y-3">
         {state.jobs.map((job) => {
-          const open = openId === job.id;
+          const isOpen = openId === job.id;
+          const card = isInterestCard(job);
           return (
-            <li key={job.id} className="border border-[#E8E4DC] p-3">
+            <li key={job.id} className={`border p-3 ${card ? 'border-[#5A6E3D] bg-[#F0F4EA]' : 'border-[#E8E4DC]'}`}>
               <div className="flex items-start justify-between gap-2 flex-wrap">
                 <div className="min-w-0">
+                  {card && <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#3F5226] font-semibold">Not seeing your role?</div>}
                   <h3 className="text-base" style={{ ...SERIF, fontWeight: 600 }}>{job.title}</h3>
-                  <JobFacts job={job} />
+                  {!card && <JobFacts job={job} />}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <ShareButton label="Share" title="Share this posting using your usual apps" payload={() => jobSharePayload(job, { url: jobsDoorUrl({ jobId: job.id }) })} />
-                  <button type="button" onClick={() => setOpenId(open ? null : job.id)} aria-expanded={open} className={`${BTN}`}>{open ? 'Close' : 'Apply'}</button>
+                  <ShareButton label={card ? 'Share this form' : 'Share'} title={card ? 'Share the interest form using your usual apps' : 'Share this posting using your usual apps'} payload={() => jobSharePayload(job, { url: card ? jobsDoorUrl({ interest: true }) : jobsDoorUrl({ jobId: job.id }) })} />
+                  <button type="button" onClick={() => (isOpen ? setOpenId(null) : open(job.id))} aria-expanded={isOpen} className={`${BTN}`}>{isOpen ? 'Close' : card ? 'Tell us' : 'Apply'}</button>
                 </div>
               </div>
               <p className="text-sm text-[#1A1815] mt-2 leading-relaxed" style={SERIF}>{job.summary}</p>
               {Array.isArray(job.requirements) && job.requirements.length > 0 && (
                 <ul className="list-disc pl-4 text-xs text-[#5A5751] mt-1" style={SERIF}>{job.requirements.map((r) => <li key={r}>{r}</li>)}</ul>
               )}
-              {open && <div className="mt-3 border-t border-[#E8E4DC] pt-3"><ApplyForm job={job} onApply={onApply} /></div>}
+              {isOpen && <div className="mt-3 border-t border-[#E8E4DC] pt-3"><ApplyForm job={job} onApply={onApply} /></div>}
             </li>
           );
         })}
@@ -288,7 +326,7 @@ function JobsArea({ instanceId }) {
             <li key={job.id} className="py-2 space-y-1">
               <div className="flex items-start justify-between gap-2 flex-wrap">
                 <div className="min-w-0">
-                  <div className="text-sm text-[#1A1815]" style={{ ...SERIF, fontWeight: 600 }}>{job.title} <span className={`${CHIP} ml-1 ${job.status === 'open' ? 'border-[#5A6E3D] text-[#3F5226]' : ''}`}>{job.status}</span></div>
+                  <div className="text-sm text-[#1A1815]" style={{ ...SERIF, fontWeight: 600 }}>{job.title} <span className={`${CHIP} ml-1 ${job.status === 'open' ? 'border-[#5A6E3D] text-[#3F5226]' : ''}`}>{job.status}</span>{isInterestCard(job) && <span className={`${CHIP} ml-1`}>interest form</span>}</div>
                   <JobFacts job={job} />
                 </div>
                 <div className="flex flex-wrap gap-1.5 shrink-0">
@@ -361,6 +399,9 @@ function ApplicantCard({ app, packet, onMove, onHire, onMark, busy, hired }) {
       </div>
       {showAll && (
         <div className="text-xs text-[#1A1815] space-y-1" style={SERIF}>
+          {Array.isArray(app.interest_roles) && app.interest_roles.length > 0 && (
+            <p><span className="text-[#5A5751]">Interested in:</span> {app.interest_roles.map(interestRoleLabel).join(', ')}</p>
+          )}
           <p className="whitespace-pre-wrap">{app.statement}</p>
           {app.availability && <p><span className="text-[#5A5751]">Availability:</span> {app.availability}</p>}
           {app.link && <p><a href={app.link} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838]">Their link</a></p>}
@@ -431,8 +472,80 @@ function ApplicantsArea({ packets = [] }) {
   );
 }
 
+// -----------------------------------------------------------------------------
+// THE HIRING REPORT — data, not impressions (0195; Darrell: "how many people
+// look at this role vs this one... data driven reporting"). Every posting with
+// its views (last seven days, all time) and its applications by station; the
+// roles people said they are interested in, counted. Read from the database
+// on open (tlc_hiring_report, owner/admin).
+// -----------------------------------------------------------------------------
+function ReportArea({ load = hiringReport }) {
+  const [state, setState] = useState({ loaded: false, report: null, message: '' });
+  const refresh = useCallback(async () => {
+    const res = await load();
+    setState({ loaded: true, report: res.report || null, message: res.ok ? '' : res.message || '' });
+  }, [load]);
+  useEffect(() => { refresh(); }, [refresh]);
+  const rows = reportRows(state.report);
+  const roles = reportRoles(state.report);
+  return (
+    <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5" aria-label="Hiring report">
+      <div className="flex items-start justify-between gap-2 flex-wrap mb-2">
+        <div>
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Hiring report</div>
+          <h2 className="text-xl" style={{ ...SERIF, fontWeight: 600, letterSpacing: '-0.02em' }}>Who looks, who applies, which roles</h2>
+        </div>
+        <button type="button" onClick={refresh} className={`${BTN}`}>Refresh</button>
+      </div>
+      {!state.loaded && <p className="text-xs text-[#5A5751]">Reading the report…</p>}
+      {state.loaded && state.message && <p className="text-xs text-[#B85838]" role="alert">The report could not be read: {state.message}</p>}
+      {state.loaded && !state.message && rows.length === 0 && <p className="text-xs text-[#5A5751]" style={SERIF}>Nothing posted yet. Post a job under Jobs; every open posting counts its views on the door from then on.</p>}
+      {rows.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs border-collapse">
+            <caption className="sr-only">Views and applications per posting</caption>
+            <thead>
+              <tr className="text-left text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                <th scope="col" className="py-1 pr-2">Posting</th>
+                <th scope="col" className="py-1 pr-2">Status</th>
+                <th scope="col" className="py-1 pr-2 text-right">Views · 7 days</th>
+                <th scope="col" className="py-1 pr-2 text-right">Views · all</th>
+                <th scope="col" className="py-1 pr-2 text-right">Applications</th>
+                <th scope="col" className="py-1">By station</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id} className="border-t border-[#E8E4DC]">
+                  <td className="py-1.5 pr-2 text-[#1A1815]" style={SERIF}>{r.title}{r.kind === 'interest' ? <span className={`${CHIP} ml-1`}>interest form</span> : null}</td>
+                  <td className="py-1.5 pr-2">{r.status}</td>
+                  <td className="py-1.5 pr-2 text-right tabular-nums">{r.views7d}</td>
+                  <td className="py-1.5 pr-2 text-right tabular-nums">{r.viewsTotal}</td>
+                  <td className="py-1.5 pr-2 text-right tabular-nums">{r.applications}</td>
+                  <td className="py-1.5">{r.byStation.length ? r.byStation.map((s) => `${s.label} ${s.n}`).join(' · ') : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {roles.length > 0 && (
+        <div className="mt-3">
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Roles people are interested in</div>
+          <ul className="flex flex-wrap gap-1.5" aria-label="Roles of interest, counted">
+            {roles.map((r) => <li key={r.key} className={CHIP}>{r.label} · {r.interested}</li>)}
+          </ul>
+        </div>
+      )}
+      <p className="text-[0.6875rem] text-[#5A5751] mt-3" style={SERIF}>A view is a posting opened on the door, counted per day, no one identified. Applications and roles come from what people sent.</p>
+    </section>
+  );
+}
+
 export function HiringDesk({ area = 'jobs', instanceId = null, packets = [] }) {
-  return area === 'applicants' ? <ApplicantsArea packets={packets} /> : <JobsArea instanceId={instanceId} />;
+  if (area === 'applicants') return <ApplicantsArea packets={packets} />;
+  if (area === 'report') return <ReportArea />;
+  return <JobsArea instanceId={instanceId} />;
 }
 
 export default HiringDesk;

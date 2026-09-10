@@ -112,7 +112,7 @@ const fmtDate = (iso) => { if (!iso) return '—'; try { return new Date(iso).to
 // mode (Darrell 2026-09-10: "so people can taste and see what type of therapy
 // and training TLC ... has to offer"): ONLY the linked track or course renders,
 // with the lesson open; no areas, no ledger, no SME gate, no assignments.
-function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = false, onFindTherapist = null }) {
+function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = false, onFindTherapist = null, onCreateAccount = null }) {
   const vis = useMemo(() => visibleAudiences({ isStaff }), [isStaff]);
   const [audience, setAudience] = useState(() => {
     if (deepLink && deepLink.audience) return deepLink.audience;
@@ -461,7 +461,7 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
               defaultOpen
             />
           )}
-          <NextStepTherapist onFindTherapist={onFindTherapist} />
+          <NextStepTherapist onFindTherapist={onFindTherapist} onCreateAccount={onCreateAccount} />
         </section>
         </LearnContext.Provider>
       )}
@@ -498,7 +498,7 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
               <TrackCard key={track.key} track={track} modules={modules} level={level} progress={progress} quizState={quizState} openModuleId={openModuleId} setOpenModuleId={setOpenModuleId} onRecordQuiz={recordQuiz} onMarkRead={markRead} certTemplates={[]} onEarn={() => {}} alreadyEarned={() => false} />
             ))}
             {subject.trim() && subjectHits.length === 0 && <p className="text-xs text-[#5A5751]" style={SERIF}>Nothing on that subject yet. Book a consult and ask; the next lesson may come from your question.</p>}
-          <NextStepTherapist onFindTherapist={onFindTherapist} />
+          <NextStepTherapist onFindTherapist={onFindTherapist} onCreateAccount={onCreateAccount} />
           </section>
         </LearnContext.Provider>
       )}
@@ -693,11 +693,14 @@ function LessonRunner({ module, level, quizState, onRecordQuiz, onMarkRead, cour
 // etc shouldn't over shadow the therapist... we want good flow"): under every
 // lesson a visitor reads, the way to the people and to a booking — the lesson
 // walks them to the door, never past it.
-function NextStepTherapist({ onFindTherapist }) {
+function NextStepTherapist({ onFindTherapist, onCreateAccount = null }) {
   return (
     <div className="border-2 border-[#1A1815] bg-white p-3 flex flex-wrap items-center gap-2 justify-between" aria-label="Next step">
-      <div className="text-sm text-[#1A1815]" style={SERIF}>The next step is a person. Meet the therapists, then book.</div>
+      <div className="text-sm text-[#1A1815]" style={SERIF}>The next step is a person. Meet the therapists, then book.{onCreateAccount ? ' An account keeps your place here and brings you the lessons your therapist assigns.' : ''}</div>
       <div className="flex flex-wrap gap-2">
+        {onCreateAccount && (
+          <button type="button" onClick={onCreateAccount} className="min-h-[36px] px-3 py-2 text-[0.625rem] font-semibold uppercase tracking-wider border border-[#5A6E3D] text-[#3F5226] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Create an account</button>
+        )}
         {onFindTherapist && (
           <button type="button" onClick={onFindTherapist} className="min-h-[36px] px-3 py-2 text-[0.625rem] font-semibold uppercase tracking-wider border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Meet the therapists</button>
         )}

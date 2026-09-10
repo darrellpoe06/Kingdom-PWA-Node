@@ -70,11 +70,12 @@ describe('TlcPublicDoor — the sendable client door', () => {
     for (const bad of ['Pre-Intake Inquiry', 'Big Picture', 'Dev/Ops', 'Client Growth']) {
       expect(text, `operator surface leaked: "${bad}"`).not.toContain(bad);
     }
-    // The staff-login control IS present — the menu Darrell asked for, so staff
-    // can log in from the door (before/without installing). The Assistant itself
+    // The sign-in control IS present — for staff AND clients (Darrell 2026-09-10:
+    // "A client should be able to create an account"); the entry it opens carries
+    // its own create-a-profile switch. The Assistant itself
     // stays gated behind sign-in, so it is NOT rendered for a signed-out client.
     const buttons = Array.from(container.querySelectorAll('button')).map((b) => (b.textContent || '').toLowerCase());
-    expect(buttons.some((t) => t.includes('log in')), 'no staff login control on the door').toBe(true);
+    expect(buttons.some((t) => t.includes('sign in')), 'no sign-in control on the door').toBe(true);
   });
 
   it('controls its top space like the PoeTech header: a compact bar always, the welcome tucked away by the chevron per device (2026-09-10)', async () => {
@@ -99,7 +100,7 @@ describe('TlcPublicDoor — the sendable client door', () => {
     const hrefs = Array.from(header.querySelectorAll('a')).map((a) => a.getAttribute('href'));
     expect(hrefs, 'Book left the bar').toContain(TLC_BRAND.bookingUrl);
     const buttons = Array.from(header.querySelectorAll('button')).map((b) => (b.textContent || '').toLowerCase());
-    expect(buttons.some((x) => x.includes('log in')), 'staff login left the bar').toBe(true);
+    expect(buttons.some((x) => x.includes('sign in')), 'sign in left the bar').toBe(true);
     const shown = header.querySelector('button[aria-label^="Show the full header"]');
     expect(shown.getAttribute('aria-expanded')).toBe('false');
     // the choice persists per device under the SAME key the PoeTech shell uses
@@ -108,12 +109,45 @@ describe('TlcPublicDoor — the sendable client door', () => {
     await act(async () => { shown.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     expect(header.textContent).toContain(TLC_BRAND.blurb);
     expect(localStorage.getItem('poe-header-collapsed')).toBe('0');
-    // the staff login form is pinned open in the bar even when the top space is tucked away
-    const login = Array.from(header.querySelectorAll('button')).find((b) => /staff log in/i.test(b.textContent));
+    // the sign-in form is pinned open in the bar even when the top space is tucked away
+    const login = Array.from(header.querySelectorAll('button')).find((b) => /^sign in$/i.test(b.textContent.trim()));
     await act(async () => { login.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     await act(async () => { header.querySelector('button[aria-label^="Hide the top space"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-    expect(header.textContent).toContain('TLC staff sign in');
+    expect(header.textContent).toContain('Clients and staff sign in here');
     try { localStorage.removeItem('poe-header-collapsed'); } catch { /* no storage */ }
+  });
+});
+
+describe('a client creates an account from the door (Darrell 2026-09-10: "A client should be able to create an account!!!! that\u2019s the point")', () => {
+  const setSearch = (search) => window.history.replaceState({}, '', `${window.location.pathname}${search}`);
+  afterEach(() => setSearch(''));
+  const click = (el) => act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+
+  it('the bar\u2019s Sign in opens the TLC-branded entry with its own create-a-profile switch; it is for clients and staff alike', async () => {
+    await mount();
+    const bar = Array.from(container.querySelectorAll('header button')).find((b) => /Sign in/.test(b.textContent));
+    expect(bar.getAttribute('aria-label')).toBe('Sign in or create an account');
+    expect(container.textContent).not.toContain('Staff log in');
+    await click(bar);
+    const header = container.querySelector('header');
+    expect(header.textContent).toContain('Clients and staff sign in here');
+    expect(header.textContent).toContain('New here? Create a profile');
+    expect(header.textContent).toContain('TLC Therapy Solutions');
+  });
+
+  it('under a lesson served by link, Create an account opens the same entry straight on sign-up', async () => {
+    const track = allTracks().find((t) => t.key === 'client-psychoeducation');
+    const m = track.modules[0];
+    setSearch(tlcLessonQuery({ courseId: track.key, lessonId: m.id }));
+    await mount();
+    expect(container.textContent).toContain('An account keeps your place here and brings you the lessons your therapist assigns.');
+    const create = Array.from(container.querySelectorAll('button')).find((b) => /^Create an account$/.test(b.textContent.trim()));
+    expect(create, 'no Create an account under the lesson').toBeTruthy();
+    await click(create);
+    const header = container.querySelector('header');
+    expect(header.textContent).toContain('Create your account');
+    expect(header.textContent).toContain('Clients keep their place in Mental skills');
+    expect(header.textContent).toContain('Already have a profile? Sign in');
   });
 });
 

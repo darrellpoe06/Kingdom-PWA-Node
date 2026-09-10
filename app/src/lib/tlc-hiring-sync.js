@@ -43,16 +43,29 @@ export async function listPublicJobs(office = OFFICE_ID) {
 }
 
 /** Apply to one posting. Validated on the device first, in the server's own words. */
-export async function applyToJob(jobId, applicant, office = OFFICE_ID) {
+export async function applyToJob(jobId, applicant, office = OFFICE_ID, { kind = 'posting' } = {}) {
   if (!jobId) return fail('no-job', 'Choose a position first.');
-  const v = validateApplication(applicant);
+  const v = validateApplication(applicant, { kind });
   if (!v.ok) return { ok: false, reason: 'invalid', message: Object.values(v.errors)[0], errors: v.errors };
   const res = await rpc('tlc_apply', { office_in: office, job_id_in: jobId, applicant_in: normalizeApplication(applicant) });
   if (!res.ok) return res;
   return { ok: true, receipt: res.data };
 }
 
+/** A posting was opened on the door: one more view, counted per day (0195). Fire-and-forget; never blocks the reader. */
+export async function recordJobView(jobId, office = OFFICE_ID) {
+  if (!jobId) return fail('no-job', 'No posting to count.');
+  return rpc('tlc_job_viewed', { office_in: office, job_id_in: jobId });
+}
+
 // ---- The office owner / admin ----------------------------------------------
+
+/** The hiring report: every posting with its views and applications, and the roles of interest counted (0195). */
+export async function hiringReport() {
+  const res = await rpc('tlc_hiring_report');
+  if (!res.ok) return { ...res, report: null };
+  return { ok: true, report: res.data || null };
+}
 
 async function query(label, build) {
   try {

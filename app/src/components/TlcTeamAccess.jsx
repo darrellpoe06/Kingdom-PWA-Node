@@ -21,11 +21,11 @@
 import React, { useEffect, useState } from 'react';
 import { inviteToInstance, listPendingClaims, confirmInvite } from '../lib/family-invite.js';
 import { listInstanceMembers, removeInstanceMember, roleLabel } from '../lib/member-roles.js';
-import { useInstanceRole, canManageTeam } from '../lib/instance-role.js';
+import { useOfficeInstanceRole, canManageTeam } from '../lib/instance-role.js';
 import UiIcon from './UiIcon.jsx';
 
 export default function TlcTeamAccess() {
-  const roleState = useInstanceRole();
+  const roleState = useOfficeInstanceRole(); // the office's own instance (0193, DR-0351), never the family
   const manager = canManageTeam(roleState);
   const [email, setEmail] = useState('');
   const [minted, setMinted] = useState(null);      // { email, link } after a grant

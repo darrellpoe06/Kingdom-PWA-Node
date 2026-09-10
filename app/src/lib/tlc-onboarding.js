@@ -218,7 +218,7 @@ export function emptyPacket() {
     else if (f.type === 'file' || f.type === 'availability' || f.type === 'acknowledgment') continue;
     else p[f.key] = '';
   }
-  for (const k of ACKNOWLEDGMENT_KEYS) p.acknowledgments[k] = { agreed: false, signature: '', signedOn: '', signedAt: '', docVersion: '' };
+  for (const k of ACKNOWLEDGMENT_KEYS) p.acknowledgments[k] = { agreed: false, signature: '', signedOn: '', signedAt: '', docVersion: '', attestation: '', agreedAt: '', signedAtServer: '' };
   return p;
 }
 
@@ -233,7 +233,10 @@ export function normalizePacket(raw) {
     const a = raw.acknowledgments && raw.acknowledgments[k];
     // signedAt (a precise device time) and docVersion (the content hash of the
     // text signed, lib/tlc-signing.js) ride with the signature (DR-0350).
-    if (a && typeof a === 'object') out.acknowledgments[k] = { agreed: a.agreed === true, signature: String(a.signature || ''), signedOn: String(a.signedOn || ''), signedAt: String(a.signedAt || ''), docVersion: String(a.docVersion || '') };
+    // attestation + agreedAt: the checkbox sentence and the moment it was
+    // checked; signedAtServer: the office's clock at submit (0194). All ride
+    // through a normalize untouched -- a resubmit must carry the stamp back.
+    if (a && typeof a === 'object') out.acknowledgments[k] = { agreed: a.agreed === true, signature: String(a.signature || ''), signedOn: String(a.signedOn || ''), signedAt: String(a.signedAt || ''), docVersion: String(a.docVersion || ''), attestation: String(a.attestation || ''), agreedAt: String(a.agreedAt || ''), signedAtServer: String(a.signedAtServer || '') };
   }
   out.availability = emptyAvailability();
   if (raw.availability && typeof raw.availability === 'object') {
