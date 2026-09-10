@@ -27,7 +27,11 @@ import TlcAssistant from './TlcAssistant.jsx';
 import { useTextSize } from '../lib/text-size.js';
 import { THEME_CSS, THEMES, readThemePref, saveThemePref } from '../lib/theme-css.js';
 import { useAutoHideHeader } from '../lib/use-auto-hide-header.js';
+import { readHeaderCollapsed, writeHeaderCollapsed, nextCollapsed } from '../lib/header-hideaway.js';
+import { TextSizeEscapeHatch } from './TextSizeControl.jsx';
+import UiIcon from './UiIcon.jsx';
 import { readOnboardTokenFromUrl } from '../lib/tlc-onboarding.js';
+import { parseTlcLessonLink, resolveTlcLesson } from '../lib/tlc-lesson-links.js';
 import TlcOnboardingForm from './TlcOnboardingForm.jsx';
 import TlcOnboarding from './TlcOnboarding.jsx';
 import TlcTeamResources from './TlcTeamResources.jsx';
@@ -133,7 +137,15 @@ export default function TlcPublicDoor() {
   // same rule the ?tlc=1 door context follows). Non-empty = a colleague
   // arriving on Christina's onboarding link (DR-0344).
   const [onboardToken] = useState(() => readOnboardTokenFromUrl());
-  const [activeTab, setActiveTab] = useState('find'); // the one slider, controlled so Team can send you to a sister tab
+  // A LESSON SERVED BY LINK (Darrell 2026-09-10: "a link to serve the lessons
+  // like the Love Corner App does... so people can taste and see"). Read ONCE
+  // at first render, resolved against the mounted curriculum; a stale link is
+  // null and the door opens normally. Signed out it is served as a taste on
+  // the door; signed in it opens Training on that lesson.
+  const [deepLink] = useState(() => resolveTlcLesson(parseTlcLessonLink(
+    (typeof window !== 'undefined' && window.location && window.location.search) || '',
+  )));
+  const [activeTab, setActiveTab] = useState(deepLink ? 'training' : 'find'); // the one slider, controlled so Team can send you to a sister tab
   const [showShare, setShowShare] = useState(false);
   // Comfort controls — the SAME theme + text-size the whole PoeTech app uses
   // (shared libs; a per-device choice that follows the user between shells).
@@ -144,6 +156,12 @@ export default function TlcPublicDoor() {
   // The standard PoeTech collapsing top bar: the header drops up out of the way
   // while you read down the page, and comes back down the moment you scroll up.
   const headerHidden = useAutoHideHeader();
+  // The header HIDEAWAY (the PoeTech shell's own control of the top space):
+  // tucked away or shown per device, the same key the shell writes, so one
+  // choice follows the reader between shells.
+  const [headerCollapsed, setHeaderCollapsed] = useState(() => readHeaderCollapsed());
+  const toggleHeaderChrome = () => setHeaderCollapsed((prev) => { const next = nextCollapsed(prev); writeHeaderCollapsed(next); return next; });
+  const loginOpen = showLogin && !signedIn;
 
   // Title + theme-color carry TLC's brand while the door is mounted. The
   // manifest-link swap that used to live here is RETIRED (DR-0261/DR-0258):
@@ -201,7 +219,7 @@ export default function TlcPublicDoor() {
     // The TLC Learn space (PracticeLearn) — TLC's own, not the church Learn
     // space (Darrell 2026-09-10). Clients see psychoeducation; staff see the
     // therapist + training audiences with the session scripts and courses.
-    { id: 'training', label: 'Training', icon: 'bookOpen', render: () => <div className="pt-3"><PracticeLearn email={sessionEmail} isStaff={!!staff} /></div> },
+    { id: 'training', label: 'Training', icon: 'bookOpen', render: () => <div className="pt-3"><PracticeLearn email={sessionEmail} isStaff={!!staff} deepLink={deepLink} /></div> },
     { id: 'team', label: 'Team', icon: 'book', render: () => <TlcTeamResources staff={!!staff} onOpen={(id) => setActiveTab(id)} roleState={roleState} userId={sessionUserId} /> },
     { id: 'assistant', label: 'Assistant', icon: 'chat', render: () => <TlcAssistant isGovernor={operatorRole} /> },
     // The office owner/admin brings colleagues on board from the TLC app
@@ -212,36 +230,45 @@ export default function TlcPublicDoor() {
   return (
     <div data-theme={theme === 'cream' ? undefined : theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]">
       <style>{THEME_CSS}</style>
-      {/* Header — the TLC brand + the staff login menu. No PoeTech chrome.
-          Sticky + auto-hide (the standard PoeTech collapsing bar): it slides up
-          off-screen as you read down, and slides back the instant you scroll up.
-          When the login form is open we keep it pinned so it can't vanish mid-type. */}
+      {/* THE TOP SPACE, controlled like PoeTech's header (Darrell 2026-09-10:
+          "want to have the control of the top space like PoeTech for the
+          Header"). Two layers, both the platform's own primitives:
+            1. The COMPACT BAR — brand name (the h1), Book, Staff log in / Log
+               out, and the hideaway chevron. Always present.
+            2. The HIDEAWAY — tagline, blurb, comfort controls, Learn more and
+               Share · QR, the QR card. The chevron tucks it away per device
+               (lib/header-hideaway.js, the SAME key PoeTech's shell uses, so
+               one choice follows the reader between shells) and brings it back.
+          Sticky + auto-hide on top of that (the collapsing bar): the whole
+          header slides up as you read down and back the instant you scroll up.
+          When the login form is open it stays pinned and never collapses, so it
+          cannot vanish mid-type. */}
       {/* ts-safe-sticky: at big text sizes the header caps to the viewport and
           scrolls within itself, so the size controls (the escape hatch back to
           Normal) are ALWAYS reachable — a reader can never be trapped in big
-          text (2026-08-05 incident; measured by chrome-layout-probe). */}
+          text (2026-08-05 incident; measured by chrome-layout-probe in BOTH
+          header states). Collapsed above Normal, TextSizeEscapeHatch keeps the
+          way out on screen exactly as the PoeTech shell does. */}
       <header
-        className={`ts-safe-sticky sticky top-0 z-40 bg-white border-b-2 border-[#1A1815] transition-transform duration-300 will-change-transform ${headerHidden && !(showLogin && !signedIn) ? '-translate-y-full' : 'translate-y-0'}`}
+        className={`ts-safe-sticky sticky top-0 z-40 bg-white border-b-2 border-[#1A1815] transition-transform duration-300 will-change-transform ${headerHidden && !loginOpen ? '-translate-y-full' : 'translate-y-0'}`}
       >
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              {/* Display TITLE is CHROME, not content: .ts-chrome-region caps it
-                  (font + box) so raising text size grows the BODY copy, never the
-                  big H1 — the PoeTech Standard (a giant H1 overran the screen).
-                  The blurb stays outside the cap so it scales for low-vision. */}
-              <div className="ts-chrome-region">
-                <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">{TLC_DOOR_BRAND.name}</div>
-                <h1 className="text-3xl sm:text-4xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{TLC_DOOR_BRAND.tagline}</h1>
-                {/* The blurb is door chrome too (2026-08-05): un-capped it alone
-                    filled a phone screen at Big Print and pushed the size
-                    controls out of reach. The CONTENT below scales fully. */}
-                <p className="text-sm sm:text-base text-[#5A5751] max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>{TLC_DOOR_BRAND.blurb}</p>
-              </div>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          {/* 1 · the compact bar */}
+          <div className="flex items-center justify-between gap-2 py-2.5 sm:py-3">
+            {/* The brand is CHROME: .ts-chrome-region caps it (font + box) so
+                raising text size grows the BODY copy, never the wordmark. The
+                name never cuts off mid-word (whitespace-nowrap + truncate). */}
+            <div className="min-w-0 ts-chrome-region">
+              <h1 className="text-lg sm:text-xl leading-none whitespace-nowrap truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{TLC_DOOR_BRAND.name}</h1>
             </div>
-            {/* Staff log in / out — lets TLC staff sign in from the door itself,
-                before or without installing (Darrell's ask). */}
-            <div className="shrink-0 ts-chrome-region">
+            <div className="shrink-0 flex items-center gap-1.5 sm:gap-2 ts-chrome-region">
+              {/* Book stays in the bar: for a client it is THE action, reachable
+                  from every scroll position. */}
+              <a href={TLC_BRAND.bookingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-3 py-2 bg-[#B85838] text-white text-[0.625rem] font-semibold uppercase tracking-wider hover:bg-[#1A1815] transition-colors whitespace-nowrap focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+                Book
+              </a>
+              {/* Staff log in / out — lets TLC staff sign in from the door itself,
+                  before or without installing (Darrell's ask). */}
               {signedIn ? (
                 <button type="button" onClick={signOut} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">
                   Log out
@@ -251,84 +278,113 @@ export default function TlcPublicDoor() {
                   Staff log in
                 </button>
               )}
+              {/* The hideaway chevron — UP to tuck the top space away, DOWN to
+                  bring it back; the choice persists per device. */}
+              <button
+                type="button"
+                onClick={toggleHeaderChrome}
+                aria-expanded={!headerCollapsed}
+                aria-label={headerCollapsed ? 'Show the full header (tagline, comfort controls, share)' : 'Hide the top space — keep only the bar for more room'}
+                title={headerCollapsed ? 'Show the full header' : 'Hide the top space (keep the bar)'}
+                className="shrink-0 min-h-[2.25rem] min-w-[2.25rem] flex items-center justify-center border border-[#E8E4DC] text-[#5A5751] hover:text-[#1A1815] hover:bg-[#E8E4DC] focus:outline focus:outline-2 focus:outline-[#B85838]"
+              >
+                <UiIcon name={headerCollapsed ? 'chevronDown' : 'chevronUp'} className="text-base" />
+                <span className="sr-only">{headerCollapsed ? 'Show header' : 'Hide header'}</span>
+              </button>
             </div>
           </div>
 
-          {/* Comfort controls — theme + text size, the platform staples. Same
-              shared libs (theme-css / text-size) the whole PoeTech app uses. */}
-          {/* ts-chrome-region: the comfort controls are CHROME — they must not
-              compound with their own setting (the TextSizeControl rule). rem
-              min-sizes so the cap grows, never shrinks, the touch targets. */}
-          <div className="mt-4 flex flex-wrap items-center gap-1.5 ts-chrome-region" role="group" aria-label="Comfort controls">
-            {THEMES.map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                aria-label={`${t.label} theme`}
-                title={t.label}
-                aria-pressed={theme === t.key}
-                className="flex h-9 w-9 items-center justify-center rounded-full focus:outline focus:outline-2 focus:outline-[#B85838]"
-                onClick={() => setTheme(t.key)}
-              >
-                <span
-                  aria-hidden="true"
-                  className={`h-5 w-5 rounded-full ${theme === t.key ? 'ring-2 ring-[#B85838] ring-offset-1' : 'opacity-70'}`}
-                  style={{ backgroundColor: t.color, border: `1.5px solid ${t.border}`, display: 'inline-block' }}
-                />
-              </button>
-            ))}
-            <span className="mx-1 h-4 border-l border-[#E8E2D8]" aria-hidden="true" />
-            {sizeSteps.map((s) => (
-              <button
-                key={s.key}
-                type="button"
-                aria-label={`Text size ${s.name}`}
-                aria-pressed={sizeKey === s.key}
-                className={`min-h-[2.25rem] min-w-[2.25rem] rounded border px-1.5 text-xs focus:outline focus:outline-2 focus:outline-[#B85838] ${sizeKey === s.key ? 'border-[#B85838] text-[#B85838] font-semibold' : 'border-[#E8E2D8] text-[#5A5751]'}`}
-                onClick={() => setSizeKey(s.key)}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
+          {/* 2 · the hideaway: the door's welcome, tucked away on demand */}
+          {!headerCollapsed && (
+            <div className="pb-4 sm:pb-5">
+              {/* Display tagline + blurb are chrome too (2026-08-05): un-capped
+                  they filled a phone screen at Big Print and pushed the size
+                  controls out of reach. The CONTENT below the header scales fully. */}
+              <div className="ts-chrome-region">
+                <p className="text-2xl sm:text-3xl mb-1.5 leading-tight" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{TLC_DOOR_BRAND.tagline}</p>
+                <p className="text-sm sm:text-base text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{TLC_DOOR_BRAND.blurb}</p>
+              </div>
 
-          <div className="mt-4 flex flex-wrap gap-2.5 ts-chrome-region">
-            <a href={TLC_BRAND.bookingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2.5 bg-[#B85838] text-white text-sm font-semibold uppercase tracking-wider hover:bg-[#1A1815] transition-colors focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
-              Book an appointment
-            </a>
-            <a href={TLC_BRAND.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2.5 border border-[#1A1815] text-sm font-semibold uppercase tracking-wider hover:border-[#B85838] hover:text-[#B85838] transition-colors focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
-              Learn more
-            </a>
-            {/* Show a scannable QR right on screen — for a screen-share or an
-                in-person "point your phone at this" (Darrell 2026-07-14). It
-                shares the way in; it never grants access. */}
-            <button type="button" onClick={() => setShowShare((v) => !v)} aria-expanded={showShare} className="inline-flex items-center px-4 py-2.5 border border-[#1A1815] text-sm font-semibold uppercase tracking-wider hover:border-[#B85838] hover:text-[#B85838] transition-colors focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
-              {showShare ? 'Hide QR' : 'Share · QR'}
-            </button>
-          </div>
+              {/* Comfort controls — theme + text size, the platform staples. Same
+                  shared libs (theme-css / text-size) the whole PoeTech app uses.
+                  ts-chrome-region: chrome must not compound with its own setting;
+                  ts-escape-hatch: pinned on screen at big sizes (index.css). */}
+              <div className="mt-3 flex flex-wrap items-center gap-1.5 ts-chrome-region ts-escape-hatch bg-white" role="group" aria-label="Comfort controls">
+                {THEMES.map((t) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    aria-label={`${t.label} theme`}
+                    title={t.label}
+                    aria-pressed={theme === t.key}
+                    className="flex h-9 w-9 items-center justify-center rounded-full focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    onClick={() => setTheme(t.key)}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`h-5 w-5 rounded-full ${theme === t.key ? 'ring-2 ring-[#B85838] ring-offset-1' : 'opacity-70'}`}
+                      style={{ backgroundColor: t.color, border: `1.5px solid ${t.border}`, display: 'inline-block' }}
+                    />
+                  </button>
+                ))}
+                <span className="mx-1 h-4 border-l border-[#E8E2D8]" aria-hidden="true" />
+                {sizeSteps.map((s) => (
+                  <button
+                    key={s.key}
+                    type="button"
+                    aria-label={`Text size ${s.name}`}
+                    aria-pressed={sizeKey === s.key}
+                    className={`min-h-[2.25rem] min-w-[2.25rem] rounded border px-1.5 text-xs focus:outline focus:outline-2 focus:outline-[#B85838] ${sizeKey === s.key ? 'border-[#B85838] text-[#B85838] font-semibold' : 'border-[#E8E2D8] text-[#5A5751]'}`}
+                    onClick={() => setSizeKey(s.key)}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
 
-          {/* The QR share card — encodes the TLC public door URL so anyone can
-              scan it to open the TLC app (no long address to type). */}
-          {showShare && (
-            <div className="mt-4 max-w-xl">
-              <AppShareQR
-                url={TLC_SHARE_URL}
-                shown="poetech.us/tlc"
-                title="Share TLC Therapy Solutions"
-                blurb="Point a phone camera at this code (or share your screen) to open the TLC Therapy Solutions app — no long address to type."
-                ariaLabel="QR code to open the TLC Therapy Solutions app"
-              />
+              <div className="mt-3 flex flex-wrap gap-2.5 ts-chrome-region">
+                <a href={TLC_BRAND.bookingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2.5 bg-[#B85838] text-white text-sm font-semibold uppercase tracking-wider hover:bg-[#1A1815] transition-colors focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+                  Book an appointment
+                </a>
+                <a href={TLC_BRAND.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2.5 border border-[#1A1815] text-sm font-semibold uppercase tracking-wider hover:border-[#B85838] hover:text-[#B85838] transition-colors focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+                  Learn more
+                </a>
+                {/* Show a scannable QR right on screen — for a screen-share or an
+                    in-person "point your phone at this" (Darrell 2026-07-14). It
+                    shares the way in; it never grants access. */}
+                <button type="button" onClick={() => setShowShare((v) => !v)} aria-expanded={showShare} className="inline-flex items-center px-4 py-2.5 border border-[#1A1815] text-sm font-semibold uppercase tracking-wider hover:border-[#B85838] hover:text-[#B85838] transition-colors focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
+                  {showShare ? 'Hide QR' : 'Share · QR'}
+                </button>
+              </div>
+
+              {/* The QR share card — encodes the TLC public door URL so anyone can
+                  scan it to open the TLC app (no long address to type). */}
+              {showShare && (
+                <div className="mt-4 max-w-xl">
+                  <AppShareQR
+                    url={TLC_SHARE_URL}
+                    shown="poetech.us/tlc"
+                    title="Share TLC Therapy Solutions"
+                    blurb="Point a phone camera at this code (or share your screen) to open the TLC Therapy Solutions app — no long address to type."
+                    ariaLabel="QR code to open the TLC Therapy Solutions app"
+                  />
+                </div>
+              )}
             </div>
           )}
 
-          {/* The login form opens right on the door — no download needed. */}
-          {showLogin && !signedIn && (
-            <div className="mt-4 max-w-sm border border-[#E8E4DC] bg-[#FAF8F4] p-3">
+          {/* The login form opens right on the door — no download needed. It
+              shows in BOTH header states: a tucked-away top space never hides
+              the way in. */}
+          {loginOpen && (
+            <div className="mb-4 max-w-sm border border-[#E8E4DC] bg-[#FAF8F4] p-3">
               <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-2">TLC staff sign in</div>
               <PasswordAuth mode="signin" embedded onSignedIn={() => { setShowLogin(false); }} />
             </div>
           )}
         </div>
+        {/* Collapsed above Normal: the text-size way out stays on screen. */}
+        <TextSizeEscapeHatch collapsed={headerCollapsed} />
       </header>
 
       {/* Signed-in staff get the office menu (Find + Assistant); a client gets
@@ -340,7 +396,14 @@ export default function TlcPublicDoor() {
           <SectionTabs sections={sections} ariaLabel="TLC app sections" idBase="tlc-app" defaultId="find" activeId={activeTab} onActiveChange={setActiveTab} />
         </div>
       ) : (
-        <ClientDoor />
+        <>
+          {deepLink && (
+            <section className="max-w-4xl mx-auto px-4 sm:px-6 pt-6" aria-label="A lesson shared with you">
+              <PracticeLearn email="" isStaff={false} deepLink={deepLink} guest />
+            </section>
+          )}
+          <ClientDoor />
+        </>
       )}
 
       <footer className="border-t border-[#E8E4DC] mt-4">

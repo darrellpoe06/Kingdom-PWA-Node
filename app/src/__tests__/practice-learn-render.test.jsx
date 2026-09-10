@@ -27,6 +27,7 @@ import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
 import PracticeLearn from '../components/PracticeLearn.jsx';
 import { __setBibleFetcher } from '../lib/bible-kjv.js';
+import { __resetShowTheWord } from '../lib/show-the-word.js';
 import { FINDING_PEACE_VERSES } from '../lib/tlc-finding-peace.js';
 
 // The Word is read from the app's own corpus on disk (never typed into a lesson).
@@ -52,7 +53,7 @@ async function mount(props = {}) {
   });
 }
 
-beforeEach(() => { try { localStorage.clear(); } catch { /* no storage */ } sent.assigned.length = 0; sent.reviewed.length = 0; sent.removed.length = 0; forMe = []; mine = []; });
+beforeEach(() => { try { localStorage.clear(); } catch { /* no storage */ } __resetShowTheWord(); sent.assigned.length = 0; sent.reviewed.length = 0; sent.removed.length = 0; forMe = []; mine = []; });
 const settle = () => act(async () => { for (let i = 0; i < 8; i += 1) await Promise.resolve(); });
 const byText = (re, tag = 'button') => [...container.querySelectorAll(tag)].find((b) => re.test(b.textContent));
 const setValue = async (el, value) => { const proto = el.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype; await act(async () => { Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, value); el.dispatchEvent(new Event('input', { bubbles: true })); }); };
@@ -235,17 +236,27 @@ describe('two renderings, the Illinois lesson, and scheduling a lesson (DR-0345)
     let text = container.textContent;
     expect(text).toContain('worry box');
     expect(text).not.toContain(FINDING_PEACE_VERSES['Psalms 46:10']);
-    const btn = byText(/^Show the Word$/);
-    expect(btn).toBeTruthy();
-    expect(btn.getAttribute('aria-pressed')).toBe('false');
-    await click(btn);
+    // back to the anchor: the Word drops down INSIDE the lesson, closed by default
+    await click(byText(/Previous part/));
+    await settle();
+    const fold = byText(/The Word on this lesson/);
+    expect(fold).toBeTruthy();
+    expect(fold.getAttribute('aria-expanded')).toBe('false');
+    await click(fold);
     await settle();
     await settle();
     text = container.textContent;
-    expect(text).toContain('This lesson with the Word');
+    expect(text).toContain('sharper than any two-edged sword');
     expect(text).toContain(FINDING_PEACE_VERSES['Psalms 46:10']);
     expect(text).toContain(FINDING_PEACE_VERSES['Psalms 55:22']);
-    expect(byText(/^Hide the Word$/).getAttribute('aria-pressed')).toBe('true');
+    expect(byText(/The Word on this lesson/).getAttribute('aria-expanded')).toBe('true');
+    // the page-wide switch opens every fold too (DR-0341): flip it on, then the fold reads open
+    await click(fold);
+    await settle();
+    expect(byText(/The Word on this lesson/).getAttribute('aria-expanded')).toBe('false');
+    await click(byText(/^Show the Word — open every verse on this page/));
+    await settle();
+    expect(byText(/The Word on this lesson/).getAttribute('aria-expanded')).toBe('true');
   });
   it('a library lesson’s Word is the course’s Yahweh strand, verbatim from the corpus; the closing Illinois lesson teaches the state’s rules with its sources and no Word button', async () => {
     await mount({ isStaff: true, email: 'christina@example.com' });
@@ -255,10 +266,17 @@ describe('two renderings, the Illinois lesson, and scheduling a lesson (DR-0345)
     await settle();
     await click(byText(/^○?\s*The three domains$|The three domains/));
     await settle();
-    await click(byText(/^Show the Word$/));
-    await settle();
-    await settle();
+    // the full lesson: the six parts, paced; the review block for Christina under the course
     let text = container.textContent;
+    expect(text).toContain('For Christina to evaluate');
+    expect(text).toContain('Known understanding');
+    expect(text).toContain('Questions for Christina');
+    expect(text).toContain('The TLC workflow, as steps');
+    expect(text).toMatch(/Engel, 1977/);
+    await click(byText(/The Word on this lesson/));
+    await settle();
+    await settle();
+    text = container.textContent;
     expect(text).toMatch(/Yahweh made and knows the WHOLE person/);
     expect(text).toContain('1 Thessalonians 5:23');
     expect(text).toMatch(/spirit and soul and body be preserved blameless/);
@@ -271,9 +289,8 @@ describe('two renderings, the Illinois lesson, and scheduling a lesson (DR-0345)
     expect(text).toMatch(/Mandated reporting of child abuse and neglect/);
     expect(text).toMatch(/Illinois rules as of 2026-09-10/);
     expect(text).toMatch(/68 Ill\. Adm\. Code 1470\.95/);
-    // the Illinois lesson is open now and carries no Word button of its own
-    const wordButtons = [...container.querySelectorAll('button')].filter((b) => /Show the Word|Hide the Word/.test(b.textContent));
-    expect(wordButtons.length).toBeLessThanOrEqual(1);
+    // the Illinois lesson is open now and carries no Word drop-down of its own
+    expect(byText(/The Word on this lesson/)).toBeUndefined();
   });
   it('a therapist schedules a lesson for a client from the lesson itself; it goes through the seam once, validated on the device', async () => {
     await mount({ isStaff: true, email: 'christina@example.com' });
@@ -320,5 +337,39 @@ describe('two renderings, the Illinois lesson, and scheduling a lesson (DR-0345)
     await settle();
     expect(byText(/Assign to a client/)).toBeUndefined();
     expect(areas()).not.toContain('Assigned');
+  });
+});
+
+describe('share a lesson outside the app (Darrell 2026-09-10: "a link to serve the lessons like the Love Corner App does")', () => {
+  it('every lesson, track and course hands a link to the device’s own share sheet — the link opens exactly that lesson on the TLC door', async () => {
+    const shared = [];
+    const orig = navigator.share;
+    Object.defineProperty(navigator, 'share', { configurable: true, writable: true, value: async (p) => { shared.push(p); } });
+    try {
+      await mount({ isStaff: true, email: 'christina@example.com' });
+      await audience(/Training & Hours/);
+      await area('Course library');
+      await click(byText(/Biopsychosocial Assessment — the whole person/));
+      await settle();
+      await click(byText(/Share this course/));
+      await settle();
+      expect(shared.length).toBe(1);
+      expect(shared[0].title).toBe('Biopsychosocial Assessment — the whole person');
+      expect(shared[0].url).toMatch(/^https:\/\/poetech\.us\/tlc\/app\/\?tlc=1&course=tl-assessment-and-diagnosis-biopsychosocial-assessment-the-whole-person$/);
+      expect(shared[0].text).toContain('3 lessons, free to read');
+      expect(shared[0].text).toContain('TLC Therapy Solutions');
+      await click(byText(/^○?\s*The three domains$|The three domains/));
+      await settle();
+      await click(byText(/Share this lesson/));
+      await settle();
+      expect(shared.length).toBe(2);
+      expect(shared[1].title).toBe('The three domains');
+      expect(shared[1].url).toContain('&lesson=');
+      expect(shared[1].url).toContain('course=tl-assessment-and-diagnosis-biopsychosocial-assessment-the-whole-person');
+      expect(shared[1].text).toContain('Biopsychosocial Assessment — the whole person, TLC Therapy Solutions');
+      expect(byText(/Shared ✓/)).toBeTruthy();
+    } finally {
+      Object.defineProperty(navigator, 'share', { configurable: true, writable: true, value: orig });
+    }
   });
 });

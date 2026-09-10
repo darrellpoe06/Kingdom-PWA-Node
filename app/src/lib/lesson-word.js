@@ -14,6 +14,16 @@
 import { courseStrands } from './tlc-course-strands.js';
 import { referencesIn } from './verse-refs.js';
 
+// Darrell 2026-09-10, the reason the Word drops down inside every lesson:
+// "The Word is sharper than any two edged sword... we want to be able to keep
+// the Word and other known knowledge systems in context from Yahweh's
+// perspective... however we want to respect those who want to hear... the same
+// truth without spiritual knowledge; some can't understand why." Rendered for
+// meaning, in his voice (DR-0331); the verse is Hebrews 4:12, loaded from the
+// corpus wherever it is shown.
+export const TWO_RENDERINGS_NOTE = 'The Word is sharper than any two-edged sword (Hebrews 4:12). The lesson reads plain for anyone; here the same truth is kept in its context, from Yahweh’s perspective, for anyone who wants to hear Him in it.';
+export const TWO_RENDERINGS_VERSE = 'Hebrews 4:12';
+
 // The Word rendering for a module, or null when it has none. A course's
 // Illinois lesson has none by design (the state's rule carries no Scripture).
 export function wordForModule(module, course = null) {

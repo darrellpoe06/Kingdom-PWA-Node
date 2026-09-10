@@ -214,7 +214,12 @@ try {
       // full 3 viewports down (the ballooned-header failure) and the body is
       // forced wider than the phone (the card-grid blowout). Both new
       // invariants MUST trip or the pass is theater.
-      await page.addStyleTag({ content: '[aria-label="Comfort controls"] { margin-top: 300vh !important } body::after { content: ""; display: block; width: 3000px; height: 2px }' });
+      // The break must also DEFEAT the protection (2026-09-10): the door's
+      // comfort row now carries .ts-escape-hatch, which pins it to the viewport
+      // at Big Print (index.css), so a margin alone no longer moves it — the
+      // app is immune to that failure by construction. The self-test proves
+      // the INSTRUMENT can see a lost control, so it un-pins the row first.
+      await page.addStyleTag({ content: '[aria-label="Comfort controls"] { position: static !important; margin-top: 300vh !important } body::after { content: ""; display: block; width: 3000px; height: 2px }' });
       await page.evaluate(() => new Promise((r) => setTimeout(r, 100)));
     }
     const m = await page.evaluate(() => {
