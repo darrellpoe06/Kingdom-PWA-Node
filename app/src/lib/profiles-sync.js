@@ -10,6 +10,7 @@
 // only picture is a small thumbnail (the list never carries the bytes,
 // DR-0303), and a card is cached once fetched so a thread never re-asks.
 import supabase from './supabase.js';
+import { humanizeServerError } from './server-error-text.js';
 import { compressImageFile } from './image.js';
 
 export const VISIBILITY = ['members', 'leaders', 'private'];
@@ -104,7 +105,9 @@ export async function saveMyProfile(fields) {
     testimony_in: f.testimony || null,
     visibility_in: f.visibility,
   });
-  if (error) return { saved: false, errors: [error.message || 'could not save'] };
+  // Never the raw body: a Cloudflare error page once printed itself into the
+  // form's status line (2026-09-09). Words, and what did not happen.
+  if (error) return { saved: false, errors: [humanizeServerError(error, { did: 'Nothing was saved' })] };
   const p = profileShape(Array.isArray(data) ? data[0] : data);
   if (p) cache.set(p.userId, { ...p, fullView: true });
   return { saved: true, profile: p };

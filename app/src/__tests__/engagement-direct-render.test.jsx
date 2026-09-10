@@ -34,7 +34,7 @@ vi.mock('../lib/direct-messages-sync.js', () => ({
   loadDmContacts: async () => [{ userId: 'u-ann', displayName: 'Sister Ann', role: 'member', instanceId: 'inst-church' }],
   loadDmInvited: async () => [],
   subscribeDirectMessages: (cb) => { cb([]); const off = () => {}; off.refresh = () => {}; return off; },
-  sendDirectMessage: async () => ({ uploaded: true }),
+  sendDirectMessage: async () => ({ sent: true, encrypted: false, push: Promise.resolve({ ok: true, attempted: 0, succeeded: 0 }) }),
   markThreadRead: async () => {},
   markThreadReadLocal: (rows) => rows,
   groupDmThreads: () => [],
@@ -143,5 +143,27 @@ describe('Engagement — faces and order', () => {
     const img = chip.querySelector('img');
     expect(img, 'the chip carries the picture the person saved').toBeTruthy();
     expect(img.getAttribute('src')).toMatch(/^data:image\/jpeg/);
+  });
+});
+
+describe('Engagement — the sender is told what the push did', () => {
+  it('after a send, the thread shows the measured report (here: no phone set up for them yet)', async () => {
+    await mount();
+    await settle(); await settle();
+    const chip = [...container.querySelectorAll('button')].find((b) => /Sister Ann/.test(b.textContent || ''));
+    await click(chip);
+    const ta = container.querySelector('textarea');
+    expect(ta).toBeTruthy();
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+      setter.call(ta, 'Hello');
+      ta.dispatchEvent(new window.Event('input', { bubbles: true }));
+    });
+    const send = [...container.querySelectorAll('button')].find((b) => /^Send$/.test((b.textContent || '').trim()));
+    await click(send);
+    await settle(); await settle();
+    const note = container.querySelector('[data-push-report]');
+    expect(note, 'the report line renders').toBeTruthy();
+    expect(note.textContent).toBe('Sent · no phone is set to be notified for them yet.');
   });
 });

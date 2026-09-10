@@ -165,3 +165,28 @@ export function audienceQuery({ topic, instanceId, userIds }) {
   }
   return params;
 }
+
+/**
+ * ONE PERSON, TWO DOORS, EVERY PHONE (2026-09-09, Darrell: "I text my self and
+ * never got it... why?"). He was signed in as his phone account and messaged
+ * "darrellpoe06" — his email account, a second auth.users row linked to the
+ * same person by `person_links` (0141, DR-0311). His phone's subscription is
+ * filed under the account that tapped ON; the message named the other. A
+ * person's audience is every user id that IS that person: the ids named plus
+ * every id `person_links` joins to them, either direction. Pure over the rows
+ * the sender read; order-free; never drops the ids it was given.
+ *
+ * @param {string[]} userIds   the recipients named by the send
+ * @param {Array<{primary_user:string, door_user:string}>} linkRows  person_links rows touching any of them
+ * @returns {string[]} the union, deduplicated
+ */
+export function expandAudience(userIds, linkRows) {
+  const out = new Set((userIds || []).filter((u) => typeof u === 'string' && u));
+  for (const r of linkRows || []) {
+    if (!r) continue;
+    const a = typeof r.primary_user === 'string' ? r.primary_user : '';
+    const b = typeof r.door_user === 'string' ? r.door_user : '';
+    if ((a && out.has(a)) || (b && out.has(b))) { if (a) out.add(a); if (b) out.add(b); }
+  }
+  return [...out];
+}
