@@ -4,10 +4,41 @@
 // outcomes-led experience, the audience scoping, and the training-hours ledger
 // actually render — and that a non-staff viewer never sees staff-gated audiences.
 // =============================================================================
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { join, dirname } from 'node:path';
+// The assignment seam (DR-0345): captured, never the network.
+const sent = { assigned: [], reviewed: [], removed: [] };
+let forMe = [];
+let mine = [];
+vi.mock('../lib/tlc-assignments.js', async (orig) => {
+  const real = await orig();
+  return {
+    ...real,
+    assignLesson: async (args) => { const problems = real.validAssignment(args); if (problems.length) return { ok: false, reason: 'invalid', message: `Still needed: ${problems.join(', ')}.` }; sent.assigned.push(args); return { ok: true, row: { id: 'a1', ...args } }; },
+    listMyAssignments: async () => ({ ok: true, rows: mine }),
+    listAssignedToMe: async () => ({ ok: true, rows: forMe }),
+    markReviewed: async (id, on) => { sent.reviewed.push({ id, on }); return { ok: true }; },
+    removeAssignment: async (id) => { sent.removed.push(id); return { ok: true, removed: true }; },
+  };
+});
 import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
 import PracticeLearn from '../components/PracticeLearn.jsx';
+import { __setBibleFetcher } from '../lib/bible-kjv.js';
+import { FINDING_PEACE_VERSES } from '../lib/tlc-finding-peace.js';
+
+// The Word is read from the app's own corpus on disk (never typed into a lesson).
+const here = dirname(fileURLToPath(import.meta.url));
+const KJV_DIR = join(here, '../../public/bible');
+__setBibleFetcher(async (url) => {
+  const rel = String(url).replace(/^.*\/bible\//, '');
+  const data = JSON.parse(readFileSync(join(KJV_DIR, rel), 'utf8'));
+  // the loader reads chapters as arrays of verse text
+  const chapters = data.chapters.map((ch) => (ch.verses ? ch.verses.map((v) => (typeof v === 'string' ? v : v.text)) : ch));
+  return { ok: true, json: async () => ({ ...data, chapters }) };
+});
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let container, root;
@@ -21,7 +52,10 @@ async function mount(props = {}) {
   });
 }
 
-beforeEach(() => { try { localStorage.clear(); } catch { /* no storage */ } });
+beforeEach(() => { try { localStorage.clear(); } catch { /* no storage */ } sent.assigned.length = 0; sent.reviewed.length = 0; sent.removed.length = 0; forMe = []; mine = []; });
+const settle = () => act(async () => { for (let i = 0; i < 8; i += 1) await Promise.resolve(); });
+const byText = (re, tag = 'button') => [...container.querySelectorAll(tag)].find((b) => re.test(b.textContent));
+const setValue = async (el, value) => { const proto = el.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype; await act(async () => { Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, value); el.dispatchEvent(new Event('input', { bubbles: true })); }); };
 // Training is areas on a second-row chip strip (Darrell 2026-09-10: "training
 // tab is too deep... another tab slider for each section"); a reader taps an
 // audience, then an area. These walk the surface the way the reader does.
@@ -44,8 +78,8 @@ describe('PracticeLearn — the Practice-scoped Learn space', () => {
     expect(text).toContain('Reading support');
     expect(text).toContain('Understanding & Coping'); // client track, the default area
     expect(text).toMatch(/not treatment or diagnosis/i);
-    // The areas a client sees, side by side — nothing staff-only.
-    expect(areas()).toEqual(['Lessons', 'What you’ll gain', 'Certificates']);
+    // The areas a signed-in client sees, side by side — nothing staff-only (For you is theirs).
+    expect(areas()).toEqual(['Lessons', 'For you', 'What you’ll gain', 'Certificates']);
     expect(container.querySelectorAll('[role="tablist"]').length).toBe(1);
     await area('What you’ll gain');
     text = container.textContent;
@@ -73,7 +107,7 @@ describe('PracticeLearn — the Practice-scoped Learn space', () => {
   it('a staff viewer on Training & Hours sees every area on the strip, and the supervised-hours ledger toward the IL pathway', async () => {
     await mount({ isStaff: true });
     await audience(/Training & Hours/);
-    expect(areas()).toEqual(['Lessons', 'What you’ll gain', 'Course library', 'Training map', 'Pathways', 'Certificates', 'Hours', 'CE renewal', 'Catalog & required']);
+    expect(areas()).toEqual(['Lessons', 'What you’ll gain', 'Course library', 'Training map', 'Pathways', 'Certificates', 'Assigned', 'Hours', 'CE renewal', 'Catalog & required']);
     await area('Hours');
     let text = container.textContent;
     expect(text).toContain('Supervised hours ledger');
@@ -148,6 +182,11 @@ describe('PracticeLearn — the Practice-scoped Learn space', () => {
     expect(text).toContain('Multi-year training plan');
     expect(text).toMatch(/24 hours \/ month/);
     expect(text).toMatch(/runway/i);
+    // The weekly plan leads the map (Darrell: "the 24 trainings... for the week").
+    expect(text).toContain('Weekly training plan');
+    expect(text).toMatch(/\d+ trainings · one a week/);
+    expect(text).toMatch(/Week 1/);
+    expect(text).toMatch(/carry the Illinois lesson · rules as of 2026-09-10/);
     await area('Course library');
     // Christina's SME gate is present (Agree / Disagree).
     const buttons = [...container.querySelectorAll('button')].map((b) => b.textContent);
@@ -182,5 +221,104 @@ describe('PracticeLearn — the Practice-scoped Learn space', () => {
     // UIUC pipeline + the Christiana connection.
     expect(text).toMatch(/UIUC student pipeline/);
     expect(text).toContain('Christiana Poe');
+  });
+});
+
+describe('two renderings, the Illinois lesson, and scheduling a lesson (DR-0345)', () => {
+  it('a client lesson is plain by default; "Show the Word" opens the verses verbatim from the corpus on one click; the Illinois lesson has no Word button', async () => {
+    await mount({ email: 'client@example.com' });
+    await settle();
+    await click(byText(/Finding Peace · Finding Peace: Psalms, Prayer, and the Pursuit of Serenity/));
+    await settle();
+    await click(byText(/Next part/));
+    await settle();
+    let text = container.textContent;
+    expect(text).toContain('worry box');
+    expect(text).not.toContain(FINDING_PEACE_VERSES['Psalms 46:10']);
+    const btn = byText(/^Show the Word$/);
+    expect(btn).toBeTruthy();
+    expect(btn.getAttribute('aria-pressed')).toBe('false');
+    await click(btn);
+    await settle();
+    await settle();
+    text = container.textContent;
+    expect(text).toContain('This lesson with the Word');
+    expect(text).toContain(FINDING_PEACE_VERSES['Psalms 46:10']);
+    expect(text).toContain(FINDING_PEACE_VERSES['Psalms 55:22']);
+    expect(byText(/^Hide the Word$/).getAttribute('aria-pressed')).toBe('true');
+  });
+  it('a library lesson’s Word is the course’s Yahweh strand, verbatim from the corpus; the closing Illinois lesson teaches the state’s rules with its sources and no Word button', async () => {
+    await mount({ isStaff: true, email: 'christina@example.com' });
+    await audience(/Training & Hours/);
+    await area('Course library');
+    await click(byText(/Biopsychosocial Assessment — the whole person/));
+    await settle();
+    await click(byText(/^○?\s*The three domains$|The three domains/));
+    await settle();
+    await click(byText(/^Show the Word$/));
+    await settle();
+    await settle();
+    let text = container.textContent;
+    expect(text).toMatch(/Yahweh made and knows the WHOLE person/);
+    expect(text).toContain('1 Thessalonians 5:23');
+    expect(text).toMatch(/spirit and soul and body be preserved blameless/);
+    await click(byText(/Illinois: policy, program and procedure/));
+    await settle();
+    await click(byText(/Next part/));
+    await settle();
+    text = container.textContent;
+    expect(text).toMatch(/What Illinois requires: Thirty hours of continuing education/);
+    expect(text).toMatch(/Mandated reporting of child abuse and neglect/);
+    expect(text).toMatch(/Illinois rules as of 2026-09-10/);
+    expect(text).toMatch(/68 Ill\. Adm\. Code 1470\.95/);
+    // the Illinois lesson is open now and carries no Word button of its own
+    const wordButtons = [...container.querySelectorAll('button')].filter((b) => /Show the Word|Hide the Word/.test(b.textContent));
+    expect(wordButtons.length).toBeLessThanOrEqual(1);
+  });
+  it('a therapist schedules a lesson for a client from the lesson itself; it goes through the seam once, validated on the device', async () => {
+    await mount({ isStaff: true, email: 'christina@example.com' });
+    await settle();
+    expect(areas()).toContain('Assigned');
+    await click(byText(/What anxiety is/));
+    await settle();
+    await click(byText(/^Assign to a client$/));
+    await settle();
+    const email = container.querySelector('input[type="email"]');
+    await setValue(email, 'Client@Example.com');
+    await setValue(container.querySelector('input[type="date"]'), '2026-09-17');
+    await click(byText(/^Schedule this lesson$/));
+    await settle();
+    expect(sent.assigned).toHaveLength(1);
+    expect(sent.assigned[0]).toMatchObject({ clientEmail: 'Client@Example.com', lesson: { id: 'cl1-what-is-anxiety', title: 'What anxiety is (and what it isn’t)' }, dueOn: '2026-09-17', track: 'client-psychoeducation' });
+    expect(container.textContent).toMatch(/Scheduled for client@example.com · due 2026-09-17/);
+  });
+  it('the client sees it under For you, opens it onto Lessons with that lesson open, and marks it reviewed through the seam', async () => {
+    forMe = [{ id: 'a1', lesson_id: 'cl2-grounding-skills', lesson_title: 'Two grounding skills you can use today', client_email: 'client@example.com', therapist_email: 'christina@example.com', due_on: '2026-09-17', note: 'Try the breathing before bed.', status: 'assigned' }];
+    await mount({ email: 'client@example.com' });
+    await settle();
+    expect(areas()).toContain('For you · 1');
+    await area('For you · 1');
+    let text = container.textContent;
+    expect(text).toContain('lessons to review before your next session');
+    expect(text).toContain('Two grounding skills you can use today');
+    expect(text).toContain('Review by 2026-09-17');
+    expect(text).toContain('Try the breathing before bed.');
+    await click(byText(/^Open lesson$/));
+    await settle();
+    expect(chip('Lessons').getAttribute('aria-selected')).toBe('true');
+    const open = [...container.querySelectorAll('[aria-expanded="true"]')].map((b) => b.textContent);
+    expect(open.some((t) => /Two grounding skills/.test(t))).toBe(true);
+    await area('For you · 1');
+    await click(byText(/^Mark reviewed$/));
+    await settle();
+    expect(sent.reviewed).toEqual([{ id: 'a1', on: true }]);
+  });
+  it('a non-staff reader never sees Assign to a client', async () => {
+    await mount({ email: 'client@example.com' });
+    await settle();
+    await click(byText(/What anxiety is/));
+    await settle();
+    expect(byText(/Assign to a client/)).toBeUndefined();
+    expect(areas()).not.toContain('Assigned');
   });
 });

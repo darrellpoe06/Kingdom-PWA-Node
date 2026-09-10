@@ -54,6 +54,7 @@ vi.mock('../lib/tlc-roster.js', async (orig) => {
     useTlcRoster: () => real.mergeRoster(seed, [{ id: 'r1', name: 'Brand New, LSW', role: 'Specialist', specialty: 'Trauma-Informed Care', url: null, photo: null }]),
   };
 });
+vi.mock('../lib/tlc-assignments.js', async (orig) => ({ ...(await orig()), listMyAssignments: async () => ({ ok: true, rows: [] }), listAssignedToMe: async () => ({ ok: true, rows: [] }) }));
 vi.mock('../lib/tlc-office-data.js', async (orig) => {
   const real = await orig();
   return { ...real, useTlcOfficeData: () => ({ inquiries: [{ id: 'inq-1', firstName: 'Maya R.', contactMethod: 'phone', phone: '217', status: 'new', receivedAt: '2026-09-01T00:00:00Z', statusHistory: [], interestArea: 'individual', source: 'church' }], practiceLeads: [], loaded: true, signedIn: true }), startTlcOfficeData: async () => ({}) };
@@ -312,6 +313,53 @@ describe('the office documents live on the Team tab, in the app (DR-0344 — "wh
     expect(areaChip('Team areas', /Launch board/)).toBeUndefined();
     expect(byText(/^Open Onboarding$/, 'button')).toBeUndefined();
     roleState = { ...roleState, role: 'admin', instanceId: 'i1' };
+    session = null;
+  });
+});
+
+describe('the tabs that work together, end to end (Darrell: "Each tab that should work together make sure they work end to end")', () => {
+  it('Team → Open Onboarding lands on Onboarding’s Invite area; Onboarding → approve → Roster area lists the card → Find your therapist shows the same card', async () => {
+    session = { user: { email: 'christina@tlctherapysolutions.com' } };
+    await mount(createElement(TlcPublicDoor));
+    await settle();
+    await click(byText(/^Team$/, '[role="tab"]'));
+    await settle();
+    await click(byText(/Therapist Onboarding \| Hiring Form/, 'button'));
+    await settle();
+    await click(byText(/^Open Onboarding$/, 'button'));
+    await settle();
+    const selected = () => Array.from(container.querySelectorAll('[role="tablist"][aria-label="TLC app sections"] [role="tab"][aria-selected="true"]')).map((t) => t.textContent.trim());
+    expect(selected()).toEqual(['Onboarding']);
+    expect(container.textContent).toContain('Invite a new colleague');
+    await area('Onboarding areas', /^Packets/);
+    await click(byText(/^Open$/));
+    await settle();
+    await click(byText(/Approve · add to roster/));
+    await settle();
+    expect(sent.reviews[0].decision).toBe('approve');
+    await click(byText(/Back to list/));
+    await settle();
+    await area('Onboarding areas', /^Roster$/);
+    expect(container.textContent).toContain('Brand New, LSW');
+    await click(byText(/^Find your therapist$/, '[role="tab"]'));
+    await settle();
+    expect(selected()).toEqual(['Find your therapist']);
+    expect(container.textContent).toContain('Brand New, LSW');
+    session = null;
+  });
+  it('Team → Open Training lands on Training with its Lessons area selected and the therapist’s Assigned area on the strip', async () => {
+    session = { user: { email: 'christina@tlctherapysolutions.com' } };
+    await mount(createElement(TlcPublicDoor));
+    await settle();
+    await click(byText(/^Team$/, '[role="tab"]'));
+    await settle();
+    await click(byText(/Training Notes for Therapists-in-Training/, 'button'));
+    await settle();
+    await click(byText(/^Open Training$/, 'button'));
+    await settle();
+    const lessons = areaChip('Training areas', /^Lessons$/);
+    expect(lessons.getAttribute('aria-selected')).toBe('true');
+    expect(areaChip('Training areas', /^Assigned/)).toBeTruthy();
     session = null;
   });
 });

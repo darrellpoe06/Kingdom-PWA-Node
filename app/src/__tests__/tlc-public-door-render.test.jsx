@@ -5,6 +5,7 @@
 // no nav). Uses the repo's react-dom/client + act convention (no @testing-lib).
 import { describe, it, expect, afterEach, vi } from 'vitest';
 // The office store reads the network on start; a signed-out door never shows it.
+vi.mock('../lib/tlc-assignments.js', async (orig) => ({ ...(await orig()), listMyAssignments: async () => ({ ok: true, rows: [] }), listAssignedToMe: async () => ({ ok: true, rows: [] }) }));
 vi.mock('../lib/tlc-office-data.js', async (orig) => ({ ...(await orig()), useTlcOfficeData: () => ({ inquiries: [], practiceLeads: [], loaded: true, signedIn: false }), startTlcOfficeData: async () => ({}) }));
 vi.mock('../lib/tlc-roster.js', async (orig) => { const real = await orig(); return { ...real, fetchPublicRoster: async () => [] }; });
 import { createElement, act } from 'react';

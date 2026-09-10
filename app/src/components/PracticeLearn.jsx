@@ -28,7 +28,7 @@
 // pattern the sibling Client Growth surface uses. Cross-device sync (a
 // practice_training table) is the named next step, not a painted promise.
 // =============================================================================
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useContext, createContext } from 'react';
 import SectionTabs from './SectionTabs.jsx';
 import SectionBoundary from './SectionBoundary.jsx';
 import WordInline from './WordInline.jsx';
@@ -57,7 +57,16 @@ import {
   courseModuleAssessment, courseComplete, gradeCourseTest, growthDelta,
   courseHourEntry, courseTrainingHours,
 } from '../lib/tlc-training-library.js';
-import { buildTrainingPlan, planToRequirementNote } from '../lib/tlc-training-plan.js';
+import { buildTrainingPlan, buildWeeklyPlan, planToRequirementNote } from '../lib/tlc-training-plan.js';
+import { wordForModule } from '../lib/lesson-word.js';
+import { isShowTheWord } from '../lib/show-the-word.js';
+import { VerseBlock } from './VerseChips.jsx';
+import { assignLesson, listMyAssignments, listAssignedToMe, markReviewed, removeAssignment, splitAssignments } from '../lib/tlc-assignments.js';
+import { ILLINOIS_POLICY_AS_OF } from '../lib/tlc-illinois-policy.js';
+
+// What every lesson runner needs from the surface without threading props
+// through the track and course cards: who is reading, and how to assign.
+const LearnContext = createContext({ isStaff: false, email: '', onAssign: null });
 import {
   DECISIONS, applyApproval, courseApprovalStatus, approvalSummary,
 } from '../lib/tlc-course-approval.js';
@@ -112,6 +121,19 @@ function PracticeLearn({ email = '', isStaff = false }) {
   const [libApproval, setLibApproval] = useState(() => loadLS(LS.libApproval, {}));
   const [libLogged, setLibLogged] = useState(() => loadLS(LS.libLogged, []));
   const [openModuleId, setOpenModuleId] = useState(null);
+  // The area strip is controlled so "Open lesson" on an assignment can land
+  // the reader on Lessons with that lesson open (DR-0345).
+  const [area, setArea] = useState('lessons');
+  // Lessons a therapist assigned (staff) / lessons assigned to me (everyone
+  // signed in). Read once per sign-in; refreshed after each write.
+  const [assigned, setAssigned] = useState({ mine: [], forMe: [], loaded: false, message: '' });
+  const refreshAssignments = async () => {
+    const [mine, forMe] = await Promise.all([isStaff ? listMyAssignments() : Promise.resolve({ ok: true, rows: [] }), email ? listAssignedToMe() : Promise.resolve({ ok: true, rows: [] })]);
+    setAssigned({ mine: mine.rows || [], forMe: forMe.rows || [], loaded: true, message: (!mine.ok && mine.reason !== 'no-instance' && mine.message) || (!forMe.ok && forMe.message) || '' });
+  };
+  useEffect(() => { let alive = true; (async () => { if (!email) { setAssigned({ mine: [], forMe: [], loaded: true, message: '' }); return; } const r = await Promise.all([isStaff ? listMyAssignments() : { ok: true, rows: [] }, listAssignedToMe()]); if (alive) setAssigned({ mine: r[0].rows || [], forMe: r[1].rows || [], loaded: true, message: (!r[0].ok && r[0].reason !== 'no-instance' && r[0].message) || (!r[1].ok && r[1].message) || '' }); })(); return () => { alive = false; }; }, [email, isStaff]);
+  const onAssign = async (args) => { const res = await assignLesson(args); if (res.ok) refreshAssignments(); return res; };
+  const openAssigned = (row) => { setAudience('client'); setOpenModuleId(row.lesson_id); setArea('lessons'); };
 
   useEffect(() => { saveLS(LS.audience, audience); }, [audience]);
   useEffect(() => { saveLS(LS.level, level); }, [level]);
@@ -172,6 +194,10 @@ function PracticeLearn({ email = '', isStaff = false }) {
   const libGroups = useMemo(() => libraryByField(libCourses), [libCourses]);
   const libTotals = useMemo(() => libraryTotals(libCourses), [libCourses]);
   const libApprovalTally = useMemo(() => approvalSummary(libCourses, libApproval), [libCourses, libApproval]);
+  const weeklyPlan = useMemo(
+    () => buildWeeklyPlan(libCourses, { weeks: Math.max(24, libCourses.length), startISO: nowISO() }),
+    [libCourses],
+  );
   const trainingPlan = useMemo(
     () => buildTrainingPlan(libCourses, { hoursPerMonth: 24, months: 36, startISO: nowISO() }),
     [libCourses],
@@ -274,6 +300,7 @@ function PracticeLearn({ email = '', isStaff = false }) {
         </div>
       ),
     },
+    email && !isStaff ? { id: 'foryou', label: `For you${assigned.forMe.filter((r) => r.status !== 'reviewed').length ? ` · ${assigned.forMe.filter((r) => r.status !== 'reviewed').length}` : ''}`, icon: 'mail', render: () => <ForYouPanel rows={assigned.forMe} onOpen={openAssigned} onReviewed={async (row, on) => { await markReviewed(row.id, on); refreshAssignments(); }} message={assigned.message} /> } : null,
     { id: 'gain', label: 'What you’ll gain', icon: 'sparkle', render: () => outcomesArea },
     showLibrary ? {
       id: 'courses', label: 'Course library', icon: 'book',
@@ -299,7 +326,7 @@ function PracticeLearn({ email = '', isStaff = false }) {
         />
       ),
     } : null,
-    showLibrary ? { id: 'map', label: 'Training map', icon: 'pin', render: () => <TrainingPlanPanel plan={trainingPlan} /> } : null,
+    showLibrary ? { id: 'map', label: 'Training map', icon: 'pin', render: () => <TrainingPlanPanel plan={trainingPlan} weekly={weeklyPlan} /> } : null,
     showLibrary ? { id: 'pathways', label: 'Pathways', icon: 'globe', render: () => <TracksPanel libraryHours={libTotals.totalHours} /> } : null,
     {
       id: 'certificates', label: 'Certificates', icon: 'check',
@@ -307,6 +334,7 @@ function PracticeLearn({ email = '', isStaff = false }) {
         ? <EarnedCertificates certs={certs} onRemove={(id) => setCerts((prev) => prev.filter((c) => c.id !== id))} />
         : <p className="text-xs text-[#5A5751]" style={SERIF}>No certificate earned on this device yet. Finish every lesson in a track under Lessons and its certificate is issued here.</p>),
     },
+    isStaff && email ? { id: 'assigned', label: `Assigned${assigned.mine.length ? ` · ${assigned.mine.length}` : ''}`, icon: 'mail', render: () => <AssignedPanel rows={assigned.mine} forMe={assigned.forMe} onOpen={openAssigned} onRemove={async (row) => { await removeAssignment(row.id); refreshAssignments(); }} message={assigned.message} /> } : null,
     showHoursLedger ? { id: 'hours', label: 'Hours', icon: 'calendar', render: () => <HoursLedger entries={myHours} onLog={logHours} onRemove={removeHours} /> } : null,
     showHoursLedger ? { id: 'ce', label: 'CE renewal', icon: 'sliders', render: () => <CeuTracker entries={myCeus} cfg={ceuCfg} setCfg={setCeuCfg} onLog={logCeu} onRemove={removeCeu} /> } : null,
     showStaffCatalog ? {
@@ -366,7 +394,9 @@ function PracticeLearn({ email = '', isStaff = false }) {
           side by side and shows exactly one. Two levels in the TLC app: the
           app slider, then this row — never a long scroll. */}
       <SectionBoundary name="Training areas">
-        <SectionTabs variant="sub" sections={learnAreas} ariaLabel="Training areas" idBase={`tlc-learn-${audience}`} defaultId="lessons" />
+        <LearnContext.Provider value={{ isStaff, email, onAssign: isStaff ? onAssign : null }}>
+          <SectionTabs variant="sub" sections={learnAreas} ariaLabel="Training areas" idBase={`tlc-learn-${audience}`} defaultId="lessons" activeId={area} onActiveChange={setArea} />
+        </LearnContext.Provider>
       </SectionBoundary>
 
       {/* The single floating read-aloud control for the whole surface */}
@@ -419,7 +449,7 @@ function TrackCard({ track, level, progress, quizState, openModuleId, setOpenMod
               </button>
               {open && (
                 <div className="p-3 pt-0 border-t border-[#E8E4DC]">
-                  <LessonRunner module={module} level={level} quizState={quizState} onRecordQuiz={onRecordQuiz} onMarkRead={onMarkRead} />
+                  <LessonRunner module={module} level={level} quizState={quizState} onRecordQuiz={onRecordQuiz} onMarkRead={onMarkRead} track={track.key} />
                 </div>
               )}
             </li>
@@ -462,8 +492,13 @@ function TrackCard({ track, level, progress, quizState, openModuleId, setOpenMod
 // for-understanding quiz. Reuses buildLessonArc + LessonFlowAudience; renderStage
 // supplies the learner-safe body for each arc stage (no facilitator notes — no-leak).
 // -----------------------------------------------------------------------------
-function LessonRunner({ module, level, quizState, onRecordQuiz, onMarkRead }) {
+function LessonRunner({ module, level, quizState, onRecordQuiz, onMarkRead, course = null, track = 'client' }) {
   const arc = useMemo(() => buildLessonArc(module, { levelOverride: level }), [module, level]);
+  // Two renderings (DR-0345): the arc above is the plain lesson; the Word
+  // rendering opens on click (or by the page-wide Show-the-Word switch).
+  const word = useMemo(() => wordForModule(module, course), [module, course]);
+  const [showWord, setShowWord] = useState(() => isShowTheWord());
+  const { isStaff, onAssign } = useContext(LearnContext);
 
   const renderStage = (seg) => {
     switch (seg.kind) {
@@ -488,7 +523,144 @@ function LessonRunner({ module, level, quizState, onRecordQuiz, onMarkRead }) {
     }
   };
 
-  return <LessonFlowAudience arc={arc} renderStage={renderStage} unitNoun="lesson" />;
+  return (
+    <div className="space-y-3">
+      <LessonFlowAudience arc={arc} renderStage={renderStage} unitNoun="lesson" />
+      {module.illinois && (
+        <p className="text-[0.625rem] text-[#5A5751] italic" style={SERIF}>
+          Illinois rules as of {module.illinois.asOf}, paraphrased from the sources below and ratified by Christina (LCSW) where flagged; never the statute’s own wording.
+          {' '}Sources: {module.illinois.sources.map((x) => x.label).join(' · ')}.
+        </p>
+      )}
+      {word && (
+        <div>
+          <button
+            type="button"
+            aria-pressed={showWord}
+            onClick={() => setShowWord((v) => !v)}
+            className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-[#B85838] ${showWord ? 'bg-[#5A6E3D] border-[#5A6E3D] text-white' : 'border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white'}`}
+          >
+            {showWord ? 'Hide the Word' : 'Show the Word'}
+          </button>
+          {showWord && (
+            <div className="mt-2 border border-[#5A6E3D] bg-[#5A6E3D]/[0.04] p-3 space-y-2" role="region" aria-label="This lesson with the Word">
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">This lesson with the Word</div>
+              {word.principle && <p className="text-sm text-[#1A1815]" style={SERIF}>{word.principle}</p>}
+              {word.verses.map((ref) => (
+                <div key={ref}>
+                  <div className="text-[0.625rem] text-[#5A5751]" style={MONO}>{ref}</div>
+                  <VerseBlock refStr={ref} reveal={false} />
+                </div>
+              ))}
+              {word.reflection && <p className="text-xs text-[#1A1815] leading-relaxed" style={SERIF}>{word.reflection}</p>}
+            </div>
+          )}
+        </div>
+      )}
+      {isStaff && onAssign && <AssignLessonForm lesson={{ id: module.id, title: module.title }} track={track} onAssign={onAssign} />}
+    </div>
+  );
+}
+
+// A therapist schedules THIS lesson for a client to review before the next
+// session (DR-0345). Validated on the device; one insert through the seam.
+function AssignLessonForm({ lesson, track, onAssign }) {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [dueOn, setDueOn] = useState('');
+  const [note, setNote] = useState('');
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const send = async () => {
+    setBusy(true);
+    const res = await onAssign({ clientEmail: email, lesson, track, dueOn: dueOn || null, note });
+    setBusy(false);
+    if (res.ok) { setMsg(`Scheduled for ${email.trim().toLowerCase()}${dueOn ? ` · due ${dueOn}` : ''}.`); setEmail(''); setDueOn(''); setNote(''); }
+    else setMsg(res.message || 'That did not save.');
+  };
+  const field = 'w-full min-h-[36px] px-2 py-1.5 text-sm border border-[#E8E4DC] bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
+  return (
+    <div className="border-t border-[#E8E4DC] pt-2">
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
+        {open ? '− Close' : 'Assign to a client'}
+      </button>
+      {open && (
+        <div className="mt-2 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-start">
+          <div className="space-y-2">
+            <label className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Client’s email
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="client@email.com" className={field} />
+            </label>
+            <label className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Review by
+              <input type="date" value={dueOn} onChange={(e) => setDueOn(e.target.value)} className={field} />
+            </label>
+            <label className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751]">A note for them (optional)
+              <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder="What to notice before we meet" className={field} />
+            </label>
+          </div>
+          <button type="button" onClick={send} disabled={busy || !email} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#3a352f] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]">Schedule this lesson</button>
+          {msg && <p className="text-xs text-[#5A5751] sm:col-span-2" role="status" style={SERIF}>{msg}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// The client's "For you" area: what their therapist scheduled, due first.
+function ForYouPanel({ rows, onOpen, onReviewed, message }) {
+  const { due, done } = splitAssignments(rows);
+  const Row = ({ r }) => (
+    <li className="py-2 flex items-start justify-between gap-2 flex-wrap">
+      <div className="min-w-0">
+        <div className="text-sm text-[#1A1815]" style={{ ...SERIF, fontWeight: 600 }}>{r.lesson_title}</div>
+        <div className="text-[0.6875rem] text-[#5A5751]">{r.due_on ? `Review by ${r.due_on}` : 'No date'}{r.therapist_email ? ` · from ${r.therapist_email}` : ''}{r.status === 'reviewed' ? ' · reviewed' : ''}</div>
+        {r.note && <p className="text-xs text-[#1A1815] mt-1" style={SERIF}>“{r.note}”</p>}
+      </div>
+      <div className="flex gap-1.5">
+        <button type="button" onClick={() => onOpen(r)} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Open lesson</button>
+        <button type="button" onClick={() => onReviewed(r, r.status !== 'reviewed')} aria-pressed={r.status === 'reviewed'} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">{r.status === 'reviewed' ? '✓ Reviewed' : 'Mark reviewed'}</button>
+      </div>
+    </li>
+  );
+  return (
+    <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
+      <SectionTitle eyebrow="From your therapist">For you · lessons to review before your next session</SectionTitle>
+      {message && <p className="text-xs text-[#B85838]" role="status">{message}</p>}
+      {rows.length === 0 ? (
+        <p className="text-xs text-[#5A5751]" style={SERIF}>Nothing scheduled yet. When your therapist assigns a lesson, it appears here with the date to review it by.</p>
+      ) : (
+        <>
+          <ul className="divide-y divide-[#E8E4DC]">{due.map((r) => <Row key={r.id} r={r} />)}</ul>
+          {done.length > 0 && <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-3 mb-1">Reviewed</div>}
+          <ul className="divide-y divide-[#E8E4DC]">{done.map((r) => <Row key={r.id} r={r} />)}</ul>
+        </>
+      )}
+    </section>
+  );
+}
+
+// The therapist's list of what they have scheduled, with the client's review state.
+function AssignedPanel({ rows, forMe, onOpen, onRemove, message }) {
+  return (
+    <section className="bg-white border border-[#E8E4DC] p-4 sm:p-5">
+      <SectionTitle eyebrow="Scheduled for clients">Assigned lessons</SectionTitle>
+      <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF}>Open any lesson under Lessons or Course library and tap “Assign to a client”; the client sees it under For you, and their “Mark reviewed” shows here.</p>
+      {message && <p className="text-xs text-[#B85838]" role="status">{message}</p>}
+      {rows.length === 0 ? <p className="text-xs text-[#5A5751]" style={SERIF}>Nothing scheduled yet.</p> : (
+        <ul className="divide-y divide-[#E8E4DC]">
+          {rows.map((r) => (
+            <li key={r.id} className="py-2 flex items-start justify-between gap-2 flex-wrap">
+              <div className="min-w-0">
+                <div className="text-sm text-[#1A1815]" style={{ ...SERIF, fontWeight: 600 }}>{r.lesson_title}</div>
+                <div className="text-[0.6875rem] text-[#5A5751]">{r.client_email}{r.due_on ? ` · review by ${r.due_on}` : ''} · <span className={r.status === 'reviewed' ? 'text-[#5A6E3D]' : 'text-[#B85838]'}>{r.status === 'reviewed' ? `reviewed ${String(r.reviewed_at || '').slice(0, 10)}` : 'not yet reviewed'}</span></div>
+              </div>
+              <button type="button" onClick={() => onRemove(r)} aria-label={`Remove the assignment of ${r.lesson_title} for ${r.client_email}`} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Remove</button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {forMe.length > 0 && <p className="text-[0.6875rem] text-[#5A5751] mt-2" style={SERIF}>Assigned to you: {forMe.length}. <button type="button" onClick={() => onOpen(forMe[0])} className="underline">Open the first</button></p>}
+    </section>
+  );
 }
 
 // -----------------------------------------------------------------------------
@@ -1146,7 +1318,7 @@ function CourseCard({
                   </button>
                   {mOpen && (
                     <div className="p-2.5 pt-0 border-t border-[#E8E4DC]">
-                      <LessonRunner module={module} level={level} quizState={quizState} onRecordQuiz={onRecordQuiz} onMarkRead={onMarkRead} />
+                      <LessonRunner module={module} level={level} quizState={quizState} onRecordQuiz={onRecordQuiz} onMarkRead={onMarkRead} course={course} track="library" />
                     </div>
                   )}
                 </div>
@@ -1252,12 +1424,40 @@ function CourseTest({ course, which, saved, onRecord, label }) {
 // Honest about the runway: real library hours, months fully covered, and the gap to
 // author next (the YouTube-distill + Christina-authored path fills it).
 // -----------------------------------------------------------------------------
-function TrainingPlanPanel({ plan }) {
+function TrainingPlanPanel({ plan, weekly = null }) {
   const [showAll, setShowAll] = useState(false);
+  const [showWeeks, setShowWeeks] = useState(false);
   const s = plan.summary;
   const preview = showAll ? plan.plan : plan.plan.slice(0, 6);
+  const weekRows = weekly ? (showWeeks ? weekly.plan : weekly.plan.slice(0, 8)) : [];
   return (
     <section className="bg-white border border-[#E8E4DC] p-4 sm:p-5">
+      {weekly && (
+        <div className="mb-4">
+          <div className="flex items-baseline justify-between gap-2 flex-wrap">
+            <SectionTitle eyebrow={`${weekly.summary.scheduledCourses} trainings · one a week`}>Weekly training plan</SectionTitle>
+            <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{weekly.summary.withIllinois} carry the Illinois lesson · rules as of {ILLINOIS_POLICY_AS_OF}</span>
+          </div>
+          <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF}>One training each week, rotating across the ten fields; every training closes with Illinois: policy, program and procedure for its field. Open the course under Course library.</p>
+          <ol className="divide-y divide-[#E8E4DC] border border-[#E8E4DC]">
+            {weekRows.map((w) => (
+              <li key={w.index} className="p-2 flex items-baseline justify-between gap-2 flex-wrap">
+                <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] shrink-0">{w.label}</span>
+                {w.course ? (
+                  <span className="text-sm text-[#1A1815] min-w-0" style={SERIF}>{w.course.title} <span className="text-[0.625rem] text-[#5A5751] uppercase tracking-wider">· {w.field} · {w.hours}h · {w.lessons} lessons</span></span>
+                ) : (
+                  <span className="text-[0.625rem] text-[#B85838]" style={SERIF}>Open — no course authored for this week yet.</span>
+                )}
+              </li>
+            ))}
+          </ol>
+          {weekly.plan.length > 8 && (
+            <button type="button" onClick={() => setShowWeeks(!showWeeks)} className="mt-2 text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] min-h-[32px]">
+              {showWeeks ? '− Show fewer weeks' : `+ Show all ${weekly.weeks} weeks`}
+            </button>
+          )}
+        </div>
+      )}
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <SectionTitle eyebrow={`${plan.hoursPerMonth} hours / month · ${plan.months} months`}>Multi-year training plan</SectionTitle>
         <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{s.runwayMonths} month runway today</span>

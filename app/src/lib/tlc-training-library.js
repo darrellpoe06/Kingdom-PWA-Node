@@ -41,6 +41,7 @@
 // `now`); ids are authored, not generated, so the library is stable + testable.
 // =============================================================================
 import { courseAssessment, gradeQuiz, QUIZ_PASS_RATIO } from './learn-framework.js';
+import { illinoisModuleFor } from './tlc-illinois-policy.js';
 import { CLINICAL_COMPETENCIES } from './practice-academy.js';
 import { SESSION_SCRIPT_COURSES } from './tlc-session-scripts.js';
 
@@ -762,7 +763,16 @@ const COURSES = [
 ];
 
 // The frozen, normalized library. Every entry is already makeCourse-shaped.
-export const TRAINING_LIBRARY = COURSES;
+// Every training carries Illinois (DR-0345): the state's policy, program and
+// procedure for its field as its closing lesson, composed from the one
+// registry in lib/tlc-illinois-policy.js — so the 24 weekly trainings teach
+// the rules a TLC clinician works under, dated and cited, inside the course.
+function withIllinois(course) {
+  if (!course || course.modules.some((m) => m && m.illinois)) return course;
+  const il = illinoisModuleFor(course);
+  return il ? { ...course, modules: [...course.modules, il] } : course;
+}
+export const TRAINING_LIBRARY = COURSES.map(withIllinois);
 
 // ---------------------------------------------------------------------------
 // Accessors — pure, derived. The surface + the plan + the tests share these.

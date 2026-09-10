@@ -93,3 +93,19 @@ Areas (second-row chips, one shows at a time): Training = Lessons · What you'll
 Proof: `tlc-office-documents.test.js` (14), `tlc-onboarding-render.test.jsx` (16), `practice-learn-render.test.jsx` (9); full suite 13,071 passing; every CI guard green; build green.
 
 Open, from Darrell in the same hour (next increment): every course as two lesson versions (with the Word, without it) so the curriculum serves every client; the 24 therapist trainings weekly and comprehensive on current Illinois policy; therapists schedule lessons for a client to review before the next session; every hand-off between tabs proven end to end.
+
+## Then: two renderings, Illinois on every training, one a week, a lesson scheduled for a client (DR-0345)
+
+Darrell, within the hour: *"build two lessons one with the Word and the other without it so our curriculum is capable of working for all clients"* · *"on click for the Word versions"* · *"the 24 trainings for therapists to be for the week... comprehensive... latest... Illinois policy and program and procedures"* · *"Therapist should be able to schedule lessons for their clients to review before their next session... all low hanging fruit"* · *"Each tab that should work together make sure they work end to end."*
+
+| Built | Where | Proof |
+|---|---|---|
+| Plain rendering + the Word on click for every lesson | `lib/lesson-word.js`; `word` on the client modules; Finding Peace split into plain tips + her chapter; library lessons draw on the course's Yahweh strand; `LessonRunner` button + `VerseBlock` (verbatim from the corpus) | `tlc-curriculum.test.js`, `practice-learn-render.test.jsx` |
+| Illinois: policy, program and procedure on every course | `lib/tlc-illinois-policy.js` (11 rules, dated 2026-09-10, cited, `verbatim:false`, `smeConfirm` on the open points); `withIllinois` in the library | same |
+| One training a week | `buildWeeklyPlan`; the Training map leads with it | same |
+| A therapist schedules a lesson | migration 0189 `tlc_lesson_assignments`; `lib/tlc-assignments.js` (+ `-core`); Assign-to-a-client on every lesson; For you / Assigned areas | same |
+| Hand-offs end to end | Team → Onboarding → approve → Roster → Find; Team → Training → Lessons + Assigned | `tlc-onboarding-render.test.jsx` |
+
+The Illinois wording is a paraphrase verified by web search (the primary IDFPR / ILGA / LII / Justia pages are egress-blocked from the sandbox); every rule names its primary page for Christina's ratification, re-review 2026-09-17.
+
+Open, from Darrell in the same hour (next increment): *"Assistants and others need hierarchy for making sure we have appropriate governance and resources for our business."*

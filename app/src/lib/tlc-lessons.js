@@ -89,6 +89,7 @@ export const TLC_LESSON_TRACKS = {
           standard: 'Anxiety is the body’s threat-response system doing its job — sometimes too well. It becomes a problem when the alarm fires without real danger, or won’t switch off. Understanding the mechanism reduces secondary fear ("the fear of the fear") and opens the door to skills and, when needed, professional support.',
           senior: 'Anxiety is an adaptive arousal response that can become dysregulated. Psychoeducation reframes symptoms as an over-firing alarm rather than personal failure, which itself lowers reactivity; the lesson points toward evidence-based coping and a consult, without diagnosing the reader.',
         },
+        word: { principle: 'Yahweh does not leave a fearful heart alone; He says “fear not” and holds the right hand, and He invites every care to be cast on Him because He cares for you.', verses: ['Isaiah 41:10', '1 Peter 5:7', 'Psalms 94:19'], reflection: 'The alarm is real and the body is honest; the Word meets the alarm with presence, not shame. The same practices this lesson teaches — naming the fear, steadying the body, asking for help — are how a person casts a care rather than carrying it alone.' },
         quiz: { questions: [
           { q: 'Anxiety is best understood as…', options: ['A character flaw', 'An alarm system that can become oversensitive', 'Something only weak people feel'], answer: 1, explain: 'It’s a normal protective response that can mis-fire — not a flaw.' },
           { q: 'This lesson is…', options: ['Treatment / a diagnosis', 'Psychoeducation that invites a next step', 'A guarantee you’ll feel better'], answer: 1, explain: 'Psychoeducation educates and invites a consult; it never diagnoses or guarantees outcomes.' },
@@ -104,6 +105,7 @@ export const TLC_LESSON_TRACKS = {
           standard: 'Paced breathing (longer exhale than inhale) nudges the parasympathetic system toward calm; the 5-4-3-2-1 sensory scan interrupts a spiral by anchoring attention in the present. Both are coping supports to practice between sessions — not a replacement for therapy.',
           senior: 'These are portable self-regulation skills with a physiological rationale (vagal tone via extended exhale; attentional re-anchoring via multisensory orienting). Framed as adjuncts to care, not as treatment, and offered without any outcome promise.',
         },
+        word: { principle: 'Stillness is a command with a promise: be still and know that He is God; a longer breath out is the body learning to be still.', verses: ['Psalms 46:10', 'Isaiah 26:3', 'Philippians 4:6-7'], reflection: 'Paced breathing and the five-senses scan bring the body back to the present; the Word names the present as the place He keeps in perfect peace the mind that stays on Him. The skill and the trust work together.' },
         quiz: { questions: [
           { q: 'These grounding skills are…', options: ['A cure for anxiety', 'Coping supports to practice, not a replacement for care', 'Only for emergencies'], answer: 1, explain: 'They’re supports — helpful, but not treatment or a cure.' },
         ] },
@@ -117,6 +119,7 @@ export const TLC_LESSON_TRACKS = {
           standard: 'Caregivers help most by validating rather than problem-solving, maintaining their own regulation (co-regulation works both ways), holding routine, and encouraging professional support without coercion. The lesson includes when to seek help and how to look after the caregiver — family support is part of the patient-outcomes picture.',
           senior: 'Family psychoeducation improves outcomes: validation over advice, co-regulation, boundary-with-warmth, and recognizing escalation thresholds. The caregiver’s own support is named explicitly, with a clear, non-alarmist path to professional help.',
         },
+        word: { principle: 'Bear one another’s burdens; weep with those who weep; and a loving word in season is health to the one who hears it.', verses: ['Galatians 6:2', 'Romans 12:15', 'Proverbs 25:11'], reflection: 'Listening without fixing is what weeping-with looks like in a kitchen at midnight. Encouraging professional help without coercion is burden-bearing that respects the other person’s will, as He respects ours.' },
         quiz: { questions: [
           { q: 'The most helpful first move for a caregiver is to…', options: ['Fix the problem for them', 'Listen and validate, and encourage support', 'Take over their decisions'], answer: 1, explain: 'Listening + validating + gently encouraging support helps most.' },
         ] },
