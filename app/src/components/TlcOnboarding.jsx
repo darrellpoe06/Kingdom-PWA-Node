@@ -12,10 +12,10 @@
 // Access to the APP is a separate act: approving a packet writes the
 // clinicians row, it does not make anyone a member — that stays the two-party
 // Team access handshake (DR-0187 / DR-0271), by design.
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useOfficeInstanceRole, canManageTeam } from '../lib/instance-role.js';
 import { PACKET_STATUSES, buildOnboardLink, formatDate, TLC_ONBOARDING_SOURCE } from '../lib/tlc-onboarding.js';
-import { mintInvite, revokeInvite, listOffice, readPacket, readBanking, reviewPacket, deletePacket } from '../lib/tlc-onboarding-sync.js';
+import { mintInvite, revokeInvite, listOffice, readPacket, readBanking, reviewPacket, deletePacket, patchPacket, readInvitePrefill, patchInvitePrefill } from '../lib/tlc-onboarding-sync.js';
 import { rosterCardFromPacket, ROSTER_ROLE_DEFAULT } from '../lib/tlc-roster-cards.js';
 import { listRoster, upsertRosterCard, removeRosterCard } from '../lib/tlc-roster.js';
 import TlcOnboardingReadout from './TlcOnboardingReadout.jsx';
@@ -23,6 +23,7 @@ import UiIcon from './UiIcon.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import { HiringDesk } from './TlcHiring.jsx';
 import TlcFormEditor from './TlcFormEditor.jsx';
+import TlcRecordEditor from './TlcRecordEditor.jsx';
 import { liveSections } from '../lib/tlc-office-forms.js';
 import { readOfficeDocuments } from '../lib/tlc-office-forms-sync.js';
 
@@ -151,6 +152,7 @@ function PacketDetail({ row, onChanged, onClose }) {
     readOfficeDocuments().then((res) => { if (alive) setOffice(res.resolved); });
     return () => { alive = false; };
   }, []);
+  const sections = useMemo(() => liveSections(office ? office.intakeForm.form : null), [office]);
   const [error, setError] = useState('');
   const [banking, setBanking] = useState(null);
   const [note, setNote] = useState('');
@@ -212,7 +214,11 @@ function PacketDetail({ row, onChanged, onClose }) {
                 : <p className="text-xs text-[#5A5751]">No direct-deposit details were given.</p>)
               : <button type="button" onClick={reveal} disabled={busy} className={`${BTN}`}>Reveal banking details (this is logged)</button>}
           </div>
-          <TlcOnboardingReadout view={view} sections={liveSections(office ? office.intakeForm.form : null)} />
+          <TlcOnboardingReadout view={view} sections={sections} />
+          {/* A CELL FOR EVERY ITEM (DR-0354): the office fills or corrects any
+              cell of this packet, at any status — what it knows, later. */}
+          <TlcRecordEditor sections={sections} record={view.packet} who="office" title="Fill or correct the cells"
+            onSave={async (patch, n) => { const res = await patchPacket(row.packet_id, patch, n); if (res.ok) { setView(res.view); onChanged(); } return res; }} />
           {view.status !== 'approved' && (
             <div className="border border-[#E8E4DC] bg-white p-3 space-y-2">
               {card && (
@@ -246,6 +252,45 @@ function PacketDetail({ row, onChanged, onClose }) {
   );
 }
 
+// A PREFILLED INVITE, before the colleague opens it (0197 + 0198, DR-0354):
+// the office reads and fills the cells it holds for them; they find the
+// answers waiting when they sign in. Bank numbers are never shown here —
+// only that they are on file.
+function InviteDetail({ row, onChanged, onClose }) {
+  const [view, setView] = useState(null);
+  const [error, setError] = useState('');
+  const [office, setOffice] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    readOfficeDocuments().then((res) => { if (alive) setOffice(res.resolved); });
+    return () => { alive = false; };
+  }, []);
+  const sections = useMemo(() => liveSections(office ? office.intakeForm.form : null), [office]);
+  useEffect(() => {
+    let alive = true;
+    readInvitePrefill(row.id).then((res) => { if (!alive) return; if (res.ok) setView(res.view); else setError(res.message); });
+    return () => { alive = false; };
+  }, [row.id]);
+  return (
+    <div className="border border-[#1A1815] bg-white p-3 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-sm font-bold text-[#1A1815]">{row.applicant_name || row.email} <span className="inline-block text-[0.6875rem] px-2 py-0.5 border border-[#E8E4DC] text-[#5A5751] bg-white">Invited · not yet opened</span></div>
+        <button type="button" onClick={onClose} className={`${BTN}`}>Back to list</button>
+      </div>
+      <p className="text-xs text-[#5A5751] leading-relaxed">{row.email}{row.source ? ` · from ${row.source}` : ''}{row.note ? ` · ${row.note}` : ''}. These answers are held for them until they sign in with this email; the packet then starts from them.</p>
+      {error && <p className="text-xs text-[#B85838]" role="alert">{error}</p>}
+      {!view && !error && <p className="text-xs text-[#5A5751]">Opening…</p>}
+      {view && (
+        <>
+          <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-3 text-xs text-[#1A1815] flex items-center gap-1.5"><UiIcon name="lock" className="w-3 h-3" /> Direct deposit: {view.banking_on_file ? 'on file behind the wall; it moves to their packet when they sign in.' : 'none held.'}</div>
+          <TlcRecordEditor sections={sections} record={view.packet} who="office" title="The cells held for them"
+            onSave={async (patch, n) => { const res = await patchInvitePrefill(row.id, patch, n); if (res.ok) { setView(res.view); onChanged(); } return res; }} />
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function TlcOnboarding() {
   const roleState = useOfficeInstanceRole(); // the office's own instance (0193, DR-0351), never the family
   const manager = canManageTeam(roleState);
@@ -256,6 +301,7 @@ export default function TlcOnboarding() {
   const [office, setOffice] = useState({ officeName: '', invites: [], packets: [] });
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(null);
+  const [openInvite, setOpenInvite] = useState(null);
 
   const refresh = useCallback(async () => {
     if (!manager) return;
@@ -286,6 +332,7 @@ export default function TlcOnboarding() {
   const revoke = async (id) => { setBusy(true); await revokeInvite(id); setBusy(false); refresh(); };
 
   if (open) return <PacketDetail row={open} onChanged={refresh} onClose={() => setOpen(null)} />;
+  if (openInvite) return <InviteDetail row={openInvite} onChanged={refresh} onClose={() => setOpenInvite(null)} />;
 
   // The areas of Onboarding, side by side on a second row (Darrell
   // 2026-09-10: "another tab slider for each section... any long scrolling
@@ -321,8 +368,14 @@ export default function TlcOnboarding() {
             {office.invites.map((i) => (
               <li key={i.id} className="py-2 space-y-1">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0"><div className="text-sm text-[#1A1815] truncate">{i.email}</div><div className="text-[0.6875rem] text-[#5A5751]">{i.note ? `${i.note} · ` : ''}sent {formatDate(i.created_at)} · expires {formatDate(i.expires_at)}</div></div>
-                  <button type="button" onClick={() => revoke(i.id)} disabled={busy} aria-label={`Withdraw the invite for ${i.email}`} className={`${BTN_WARN}`}>Withdraw</button>
+                  <div className="min-w-0">
+                    <div className="text-sm text-[#1A1815] truncate">{i.applicant_name ? <>{i.applicant_name} <span className="text-xs text-[#5A5751]">· {i.email}{i.license_type ? ` · ${i.license_type}` : ''}</span></> : i.email}</div>
+                    <div className="text-[0.6875rem] text-[#5A5751]">{i.note ? `${i.note} · ` : ''}sent {formatDate(i.created_at)} · expires {formatDate(i.expires_at)}{i.prefilled ? ' · answers on file' : ''}</div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 justify-end">
+                    {i.prefilled && <button type="button" onClick={() => setOpenInvite(i)} aria-label={`Open the answers on file for ${i.applicant_name || i.email}`} className={`${BTN}`}>Answers on file</button>}
+                    <button type="button" onClick={() => revoke(i.id)} disabled={busy} aria-label={`Withdraw the invite for ${i.email}`} className={`${BTN_WARN}`}>Withdraw</button>
+                  </div>
                 </div>
                 <CopyLink link={buildOnboardLink(i.token)} />
               </li>

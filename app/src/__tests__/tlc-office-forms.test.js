@@ -22,6 +22,8 @@ const M196 = read('../../../infra/supabase/migrations-auto/0196-the-office-edits
 const M197 = read('../../../infra/supabase/migrations-auto/0197-colleagues-already-on-the-form-a-prefilled-invite-claimed-by-email-at-sign-in.sql');
 const S196 = read('../../../infra/supabase/tests/0196-tlc-office-forms-smoke.sql');
 const S197 = read('../../../infra/supabase/tests/0197-tlc-prefilled-invite-smoke.sql');
+const M198 = read('../../../infra/supabase/migrations-auto/0198-a-cell-for-every-item-on-the-intake-form-the-office-and-the-colleague-fill-any-cell-later.sql');
+const S198 = read('../../../infra/supabase/tests/0198-tlc-cells-smoke.sql');
 const LEG = read('../../../.github/workflows/rls-isolation.yml');
 
 describe('the intake form as data: the original, a body normalized onto it, what renders', () => {
@@ -179,7 +181,34 @@ describe('migration 0197 and its smoke: a prefilled invite claimed by email', ()
     for (const rung of ['a prefill with a password was accepted', 'a prefill with a bank number was accepted', 'a stranger claimed a packet', 'the answers are not in the packet', 'a signature was prefilled', 'did not reach the walled table', 'still sit on the invite', 'a second claim made a new packet', 'a colleague without an invite claimed a packet', 'does not say the packet was prefilled']) expect(S197, rung).toContain(rung);
   });
   it('both ride the tlc-office leg after 0195, with their smokes', () => {
-    expect(LEG).toMatch(/0195-join-the-team[^"\n]*\.sql 0196-the-office-edits-its-own-forms[^"\n]*\.sql 0197-colleagues-already-on-the-form[^"\n]*\.sql"/);
-    expect(LEG).toMatch(/smokes: "[^"\n]*0196-tlc-office-forms-smoke\.sql 0197-tlc-prefilled-invite-smoke\.sql"/);
+    expect(LEG).toMatch(/0195-join-the-team[^"\n]*\.sql 0196-the-office-edits-its-own-forms[^"\n]*\.sql 0197-colleagues-already-on-the-form[^"\n]*\.sql 0198-a-cell-for-every-item[^"\n]*\.sql"/);
+    expect(LEG).toMatch(/smokes: "[^"\n]*0196-tlc-office-forms-smoke\.sql 0197-tlc-prefilled-invite-smoke\.sql 0198-tlc-cells-smoke\.sql"/);
+  });
+});
+
+describe('migration 0198 and its smoke: a cell for every item, filled later by the office or the colleague', () => {
+  it('the guard refuses signatures, documents, passwords and bank numbers in any patch; the patch merges cells at any status and audits who (self | office) and which cells', () => {
+    expect(M198).toMatch(/FUNCTION public\.tlc_onboarding_patch_guard\(patch_in jsonb\)/);
+    expect(M198).toMatch(/patch_in \? 'acknowledgments' OR patch_in \? 'documents'/);
+    expect(M198).toMatch(/patch_in \? 'caqhPassword' OR patch_in \? 'password'/);
+    expect(M198).toMatch(/patch_in \? 'routingNumber' OR patch_in \? 'accountNumber' OR patch_in \? 'bankName' OR patch_in \? 'accountType'/);
+    expect(M198).toMatch(/FUNCTION public\.tlc_onboarding_patch\(packet_id_in uuid, patch_in jsonb, note_in text/);
+    expect(M198).toMatch(/SET packet = coalesce\(packet, '\{\}'::jsonb\) \|\| patch_in/);
+    expect(M198).toMatch(/jsonb_build_object\('by', v_who\)/);
+    expect(M198).toMatch(/jsonb_build_object\('cells', \(SELECT jsonb_agg\(k\) FROM jsonb_object_keys\(patch_in\) k\)\)/);
+    expect(M198).not.toMatch(/status = 'draft'/); // any status
+  });
+  it('the office reads and fills a not-yet-opened prefilled invite; the read never returns bank numbers; the list says prefilled', () => {
+    expect(M198).toMatch(/FUNCTION public\.tlc_onboarding_invite_read\(invite_id_in uuid\)/);
+    expect(M198).toMatch(/'banking_on_file', v_inv\.prefill_banking IS NOT NULL/);
+    expect(M198).not.toMatch(/'prefill_banking', v_inv\.prefill_banking/);
+    expect(M198).toMatch(/FUNCTION public\.tlc_onboarding_invite_patch\(invite_id_in uuid, patch_in jsonb, note_in text/);
+    expect(M198).toMatch(/'prefilled', i\.prefill IS NOT NULL/);
+    expect(M198).toMatch(/apply_assistant_scope_overlay\(\);\s*SELECT public\.apply_viewer_readonly_overlay\(\);/);
+  });
+  it('the smoke proves each wall and each way in, and rides the tlc-office leg', () => {
+    for (const must of ['tlc_onboarding_patch', 'tlc_onboarding_invite_read', 'tlc_onboarding_invite_patch', 'acknowledgments', 'routingNumber', 'patched_by', 'approved']) expect(S198, must).toContain(must);
+    expect(LEG).toMatch(/0198-a-cell-for-every-item[^"\n]*\.sql"/);
+    expect(LEG).toMatch(/0198-tlc-cells-smoke\.sql"/);
   });
 });
