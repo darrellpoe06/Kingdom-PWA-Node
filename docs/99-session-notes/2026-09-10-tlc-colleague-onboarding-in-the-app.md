@@ -123,3 +123,5 @@ Darrell: *"not fake test... also documenting the best workflows behavior."* Adde
 Darrell, reading the handbook fold on his phone: *"where is number 1?"* Section 1 (welcome, mission, vision, what we provide, contractor status) had been carried only as fields shown under Who we are, so the handbook opened at 2. It is now the handbook's own first section in both readers; pinned in `tlc-office-documents.test.js` and the door render.
 
 Darrell, on the Training map: *"These lessons should be laid out over the 24 month period the state expects or whatever number of months."* The map is now `buildStatePlan`: every course across the 24-month LCSW window as 104 weeks, evenly, open weeks honest, hours by month, the 30-hour CE minimum per cycle shown. The 36-month runway panel is retired from the screen (DR-0345 amendment).
+
+Live proof: db-migrate run 493 applied 0190; rls-isolation run 128 on `daf7f53` green on every leg, the viewer-readonly leg (red since 0181) and the new tlc-office leg included; the choir policy in production carries `has_capability` again. DR-0347's re-review closed.
