@@ -166,8 +166,9 @@ export default function TlcPublicDoor() {
 
   // Track sign-in so staff get the office menu; clients get the booking page.
   const [sessionEmail, setSessionEmail] = useState('');
+  const [sessionUserId, setSessionUserId] = useState(null);
   const [colleague, setColleague] = useState(null); // the signed-in person's own intake packet, if any
-  useEffect(() => onAuthChange((s) => { setSignedIn(!!s); setSessionEmail(s?.user?.email || ''); if (s) myPacketStatus().then(setColleague); else setColleague(null); }), []);
+  useEffect(() => onAuthChange((s) => { setSignedIn(!!s); setSessionEmail(s?.user?.email || ''); setSessionUserId(s?.user?.id || null); if (s) myPacketStatus().then(setColleague); else setColleague(null); }), []);
 
   const signOut = async () => { try { await supabase.auth.signOut(); } catch (e) { /* ignore */ } };
 
@@ -201,7 +202,7 @@ export default function TlcPublicDoor() {
     // space (Darrell 2026-09-10). Clients see psychoeducation; staff see the
     // therapist + training audiences with the session scripts and courses.
     { id: 'training', label: 'Training', icon: 'bookOpen', render: () => <div className="pt-3"><PracticeLearn email={sessionEmail} isStaff={!!staff} /></div> },
-    { id: 'team', label: 'Team', icon: 'book', render: () => <TlcTeamResources staff={!!staff} onOpen={(id) => setActiveTab(id)} /> },
+    { id: 'team', label: 'Team', icon: 'book', render: () => <TlcTeamResources staff={!!staff} onOpen={(id) => setActiveTab(id)} roleState={roleState} userId={sessionUserId} /> },
     { id: 'assistant', label: 'Assistant', icon: 'chat', render: () => <TlcAssistant isGovernor={operatorRole} /> },
     // The office owner/admin brings colleagues on board from the TLC app
     // itself (DR-0344); the panel re-checks the role from the database.

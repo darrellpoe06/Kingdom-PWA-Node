@@ -16,6 +16,8 @@ import { myPacketStatus } from '../lib/tlc-onboarding-sync.js';
 import { AgreementBody } from './TlcAgreementReader.jsx';
 import TlcLaunchBoard from './TlcLaunchBoard.jsx';
 import SectionTabs from './SectionTabs.jsx';
+import TlcGovernance from './TlcGovernance.jsx';
+import { canManageTeam } from '../lib/instance-role.js';
 import UiIcon from './UiIcon.jsx';
 
 const BTN = 'min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -47,7 +49,7 @@ function HandbookSections() {
   );
 }
 
-export default function TlcTeamResources({ onOpen = null, staff = false }) {
+export default function TlcTeamResources({ onOpen = null, staff = false, roleState = null, userId = null }) {
   const [mine, setMine] = useState(null);
   useEffect(() => {
     let alive = true;
@@ -99,6 +101,9 @@ export default function TlcTeamResources({ onOpen = null, staff = false }) {
     { id: 'documents', label: 'Documents', icon: 'book', render: () => documents },
     staff ? { id: 'launch', label: 'Launch board', icon: 'check', render: () => <section className="bg-white border border-[#E8E4DC] p-3"><TlcLaunchBoard /></section> } : null,
     { id: 'who', label: 'Who we are', icon: 'users', render: () => whoWeAre },
+    // Owners and managers govern from the same app (DR-0346): the hierarchy,
+    // the live members with guarded seat changes, invites, removal.
+    roleState && canManageTeam(roleState) ? { id: 'governance', label: 'Governance', icon: 'crown', render: () => <TlcGovernance instanceId={roleState.instanceId} myRole={roleState.role} myUserId={userId} /> } : null,
   ];
 
   return (
