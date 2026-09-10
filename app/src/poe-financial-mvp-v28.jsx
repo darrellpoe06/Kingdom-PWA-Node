@@ -153,7 +153,7 @@ import {
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
   CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library,
   Inventory, Forecast, AdminConsole, ChefCorner, RoadTo150, Games, TVTime, Messages, AdvocacyCases, DataLiberation,
-  EternalAlgorithmsStudy, ChurchHome, MooreDivahs, TlcAssistant, ChurchProjects, CohortPrograms, FamilyPlan, Relationships,
+  EternalAlgorithmsStudy, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { useInstanceRole } from './lib/instance-role.js';
@@ -4434,7 +4434,7 @@ ${THEME_CSS}
             {/* TLC sub-nav — three views of the one TLC office, routed through the
                 shared <TabScroll> primitive (same fluid scroll as the main nav). */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
-                {[['practice', <><UiIcon name="heart" /> Practice</>],['intake', <><UiIcon name="phone" /> Intake</>],['assistant', <><UiIcon name="users" /> Assistant</>]].map(([id, label]) => (
+                {[['practice', <><UiIcon name="heart" /> Practice</>],['intake', <><UiIcon name="phone" /> Intake</>],['assistant', <><UiIcon name="users" /> Assistant</>],['onboard', <><UiIcon name="pencil" /> Onboarding</>]].map(([id, label]) => (
                   <button key={id} onClick={() => setTlcSub(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${tlcSub === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
             </TabScroll>
@@ -5109,6 +5109,7 @@ ${THEME_CSS}
               {tlcSub === 'assistant' && (
                 <TlcAssistant isGovernor={!reviewerMode && (isFamilyMember || tierMeets(data.userTier, 'business'))} />
               )}
+              {tlcSub === 'onboard' && <TlcOnboarding />}
             </SectionBoundary>
           )
           : (

@@ -14,7 +14,8 @@ import { ClientGrowth } from './ClientGrowth.jsx';
 import { PracticeLearn } from './PracticeLearn.jsx';
 import SectionBoundary from './SectionBoundary.jsx';
 import SectionTabs from './SectionTabs.jsx';
-import { TLC_TEAM, TLC_INSURANCE, TLC_SERVICES, TLC_BRAND } from '../lib/tlc-practice.js';
+import { TLC_INSURANCE, TLC_SERVICES, TLC_BRAND } from '../lib/tlc-practice.js';
+import { useTlcRoster } from '../lib/tlc-roster.js';
 
 // Local helper (avoid main-monolith dep).
 const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a = Math.abs(n); const sign = n < 0 ? '-' : ''; if (a >= 1000000000) return `${sign}$${(a/1000000000).toFixed(2)}B`; if (a >= 1000000) return `${sign}$${(a/1000000).toFixed(1)}M`; if (a >= 1000) return `${sign}$${Math.round(a/1000)}k`; return `${sign}$${Math.round(a)}`; };
@@ -97,6 +98,9 @@ const insuranceLabel = (val) => {
 };
 
 function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInquiry, practiceLeads = [], addLead, updateLead, deleteLead, email = '', isStaff = false }) {
+  // The live roster over the seed cards (DR-0343): an approved colleague
+  // appears here the same way the seven current therapists do.
+  const team = useTlcRoster();
   const [statusFilter, setStatusFilter] = useState('active');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyInquiry());
@@ -382,9 +386,11 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
       <section>
         <SectionTitle eyebrow="Clinical Team">Match a Preferred Provider</SectionTitle>
         <div className="ts-grid-collapse grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {TLC_TEAM.map(c => (
+          {team.map(c => (
             <a key={c.name} href={c.url} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] p-3 hover:border-[#B85838] transition-colors flex gap-3 items-start">
-              <img src={c.photo} alt={c.name} loading="lazy" className="w-16 h-16 sm:w-20 sm:h-20 object-cover border border-[#E8E4DC] shrink-0" />
+              {c.photo
+                ? <img src={c.photo} alt={c.name} loading="lazy" className="w-16 h-16 sm:w-20 sm:h-20 object-cover border border-[#E8E4DC] shrink-0" />
+                : <div aria-hidden="true" className="w-16 h-16 sm:w-20 sm:h-20 bg-[#E8E4DC] border border-[#E8E4DC] shrink-0" />}
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2 mb-0.5">
                   <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }} className="text-sm">{c.name}</span>

@@ -15,10 +15,11 @@
 // RLS + the Assistant's own governor gate are the real enforcement.
 // =============================================================================
 import React, { useEffect, useState } from 'react';
-import { TLC_TEAM, TLC_INSURANCE, TLC_BRAND, TLC_SERVICES } from '../lib/tlc-practice.js';
+import { TLC_INSURANCE, TLC_BRAND, TLC_SERVICES } from '../lib/tlc-practice.js';
+import { useTlcRoster } from '../lib/tlc-roster.js';
 import { TLC_DOOR_BRAND, TLC_SHARE_URL } from '../lib/tlc-door.js';
 import supabase, { onAuthChange } from '../lib/supabase.js';
-import { useInstanceRole } from '../lib/instance-role.js';
+import { useInstanceRole, canManageTeam } from '../lib/instance-role.js';
 import AppShareQR from './AppShareQR.jsx';
 import PasswordAuth from './PasswordAuth.jsx';
 import SectionTabs from './SectionTabs.jsx';
@@ -26,9 +27,36 @@ import TlcAssistant from './TlcAssistant.jsx';
 import { useTextSize } from '../lib/text-size.js';
 import { THEME_CSS, THEMES, readThemePref, saveThemePref } from '../lib/theme-css.js';
 import { useAutoHideHeader } from '../lib/use-auto-hide-header.js';
+import { readOnboardTokenFromUrl } from '../lib/tlc-onboarding.js';
+import TlcOnboardingForm from './TlcOnboardingForm.jsx';
+import TlcOnboarding from './TlcOnboarding.jsx';
+
+// A colleague arriving on Christina's one-time link (?onboard=TOKEN, DR-0343):
+// signed out, they meet a sign-in / create-login card that says what the link
+// is for; signed in, the intake packet itself. The client booking page is
+// never shown under an invite — the person came to join the team, not to book.
+function OnboardingDoor({ token, signedIn }) {
+  return (
+    <main className="w-full px-4 sm:px-6 py-6 space-y-4">
+      <section className="bg-white border border-[#1A1815] p-4">
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Join the clinical team</div>
+        <h2 className="text-xl mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>You have been invited to onboard with TLC Therapy Solutions.</h2>
+        <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+          {signedIn
+            ? 'Work through each section at your pace; your answers save as you go. Submit when it is complete.'
+            : 'Create a login (or sign in if you already have one) so your packet is yours to come back to. Then the intake opens right here.'}
+        </p>
+      </section>
+      {signedIn
+        ? <TlcOnboardingForm token={token} />
+        : <div className="border border-[#E8E4DC] bg-white p-3 sm:w-96"><PasswordAuth mode="signup" embedded brand={{ name: 'TLC Therapy Solutions', eyebrow: 'TLC Therapy Solutions' }} /></div>}
+    </main>
+  );
+}
 
 // The client-facing booking page (the sendable front door a prospect meets).
 function ClientDoor() {
+  const team = useTlcRoster(); // seed cards + approved colleagues (DR-0343)
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
       {/* Match a Preferred Provider — FIRST (Darrell: "the first thing we see"). */}
@@ -38,7 +66,7 @@ function ClientDoor() {
         {/* ts-grid-collapse: one readable column at Largest/Big Print — two
             clipped columns is not large print (index.css, 2026-08-05). */}
         <div className="ts-grid-collapse grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {TLC_TEAM.map((t) => (
+          {team.map((t) => (
             <a
               key={t.name}
               href={t.url}
@@ -46,14 +74,9 @@ function ClientDoor() {
               rel="noopener noreferrer"
               className="bg-white border border-[#E8E4DC] p-3 flex items-start gap-3 hover:border-[#B85838] transition-colors focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
             >
-              <img
-                src={t.photo}
-                alt={t.name}
-                loading="lazy"
-                width="72"
-                height="72"
-                className="w-[72px] h-[72px] object-cover bg-[#E8E4DC] flex-shrink-0"
-              />
+              {t.photo
+                ? <img src={t.photo} alt={t.name} loading="lazy" width="72" height="72" className="w-[72px] h-[72px] object-cover bg-[#E8E4DC] flex-shrink-0" />
+                : <div aria-hidden="true" className="w-[72px] h-[72px] bg-[#E8E4DC] flex-shrink-0" />}
               <div className="min-w-0">
                 <div className="flex items-baseline justify-between gap-2">
                   <h3 className="text-sm min-w-0 break-words" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{t.name}</h3>
@@ -97,6 +120,10 @@ function ClientDoor() {
 export default function TlcPublicDoor() {
   const [signedIn, setSignedIn] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  // Captured ONCE at first render, before nav-history rewrites the URL (the
+  // same rule the ?tlc=1 door context follows). Non-empty = a colleague
+  // arriving on Christina's onboarding link (DR-0343).
+  const [onboardToken] = useState(() => readOnboardTokenFromUrl());
   const [showShare, setShowShare] = useState(false);
   // Comfort controls — the SAME theme + text-size the whole PoeTech app uses
   // (shared libs; a per-device choice that follows the user between shells).
@@ -142,6 +169,9 @@ export default function TlcPublicDoor() {
   const sections = [
     { id: 'find', label: 'Find your therapist', icon: 'users', render: () => <ClientDoor /> },
     { id: 'assistant', label: 'Assistant', icon: 'chat', render: () => <TlcAssistant isGovernor={operatorRole} /> },
+    // The office owner/admin brings colleagues on board from the TLC app
+    // itself (DR-0343); the panel re-checks the role from the database.
+    ...(canManageTeam(roleState) ? [{ id: 'onboarding', label: 'Onboarding', icon: 'pencil', render: () => <TlcOnboarding /> }] : []),
   ];
 
   return (
@@ -268,7 +298,9 @@ export default function TlcPublicDoor() {
 
       {/* Signed-in staff get the office menu (Find + Assistant); a client gets
           just the booking page. */}
-      {signedIn ? (
+      {onboardToken ? (
+        <OnboardingDoor token={onboardToken} signedIn={signedIn} />
+      ) : signedIn ? (
         <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4">
           <SectionTabs sections={sections} ariaLabel="TLC app sections" idBase="tlc-app" defaultId="find" />
         </div>

@@ -33,7 +33,8 @@ import { getBusiness } from '../lib/business-registry.js';
 let BIZ = getBusiness('moore-divahs');
 import AppInterestCapture from './AppInterestCapture.jsx';
 import UiIcon from './UiIcon.jsx';
-import { TLC_TEAM, TLC_INSURANCE } from '../lib/tlc-practice.js';
+import { TLC_INSURANCE } from '../lib/tlc-practice.js';
+import { useTlcRoster } from '../lib/tlc-roster.js';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
 import { liveStatus, liveStreamEmbedUrl, latestUploadEmbedUrl } from '../lib/church-live.js';
 import { osmLink } from './AddressField.jsx';
@@ -380,6 +381,7 @@ function MooreTab() {
 // TLC_TEAM record the main app's Practice tab renders (one source, no drift).
 // Public marketing facts only; the capture form stays contact-info-only.
 function PracticeTab() {
+  const team = useTlcRoster(); // seed cards + approved colleagues (DR-0343)
   return (
     <div className="space-y-3">
       <h2 className="text-lg font-bold text-[#1A1815]" style={SERIF}>TLC Therapy Solutions</h2>
@@ -390,10 +392,12 @@ function PracticeTab() {
       <div>
         <h3 className="font-semibold text-[#1A1815]" style={SERIF}>Meet the therapists</h3>
         <div className="ts-grid-collapse mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {TLC_TEAM.map((t) => (
+          {team.map((t) => (
             <a key={t.name} href={t.url} target="_blank" rel="noopener noreferrer"
               className="flex items-start gap-3 rounded-xl border border-[#E8E2D8] bg-white p-3">
-              <img src={t.photo} alt={t.name} loading="lazy" className="h-16 w-16 shrink-0 rounded-lg border border-[#E8E2D8] object-cover" />
+              {t.photo
+                ? <img src={t.photo} alt={t.name} loading="lazy" className="h-16 w-16 shrink-0 rounded-lg border border-[#E8E2D8] object-cover" />
+                : <div aria-hidden="true" className="h-16 w-16 shrink-0 rounded-lg border border-[#E8E2D8] bg-[#E8E4DC]" />}
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-sm font-semibold text-[#1A1815] min-w-0 break-words" style={SERIF}>{t.name}</span>
