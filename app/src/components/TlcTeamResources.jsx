@@ -11,6 +11,7 @@
 import React, { useEffect, useState } from 'react';
 import { TLC_HANDBOOK } from '../lib/tlc-handbook.js';
 import { readOfficeDocuments } from '../lib/tlc-office-forms-sync.js';
+import TlcFormPreview from './TlcFormPreview.jsx';
 import { TLC_CONTRACTOR_AGREEMENT, TLC_CONFIDENTIALITY_AGREEMENT } from '../lib/tlc-agreements.js';
 import { PACKET_STATUSES, TLC_APP_PATH } from '../lib/tlc-onboarding.js';
 import { myPacketStatus } from '../lib/tlc-onboarding-sync.js';
@@ -88,9 +89,13 @@ export default function TlcTeamResources({ onOpen = null, staff = false, roleSta
         <p className="text-xs text-[#5A5751] leading-relaxed mb-2">Christina’s six session scripts — finding herself, learning to say no, managing anger, family conflict, household imbalance, healing after an unhealthy relationship — are courses on the Training tab, with her wording and the Word verbatim.</p>
         {go('training')}
       </Fold>
-      <Fold title="Therapist Onboarding | Hiring Form" kind="The Onboarding intake packet">
+      <Fold title="Therapist Onboarding | Hiring Form" kind="The Onboarding intake packet · read it here">
         <p className="text-xs text-[#5A5751] leading-relaxed mb-2">Every question the hiring form asked is the intake packet a colleague completes from Christina’s invite link{staff ? '; the office manages invites and reviews packets on the Onboarding tab' : ''}.</p>
-        {staff ? go('onboarding') : null}
+        {/* THE FORM ITSELF (Darrell 2026-09-10: "Where is the intake form, and
+            why can't we see it?"): every question, in order, from the office's
+            live definition — the same one the packet renders. */}
+        <TlcFormPreview form={docs ? docs.intakeForm.form : null} version={docs ? docs.intakeForm.version : 0} compact />
+        {staff ? <div className="mt-2">{go('onboarding')}</div> : null}
       </Fold>
       <Fold title="Finding Peace: Biblical Wisdom for Life’s Stressors" kind="Christina’s book · eleven client lessons on Training">
         <p className="text-xs text-[#5A5751] leading-relaxed mb-2">The eleven chapters are lessons on the client side of Training — the Psalms and prayer, Proverbs for a sound mind, the healing stories, Philippians on anxiety, Corinthians on love, surrender, Romans 12, Thessalonians on gratitude, the Psalms of lament, Ecclesiastes on change, and perfect peace — each with the Word verbatim and her practical tips.</p>

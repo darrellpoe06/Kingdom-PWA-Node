@@ -24,6 +24,10 @@ Missing information: whether the questions, the documents, or both (built: both,
 6. **A signature pins the live text.** `documentVersion(key, live)` hashes the document as served; the readout shows the version signed. An edit after a signing never rewrites what was agreed.
 7. **The surface.** Onboarding gains **Form & documents** (`TlcFormEditor`): four tabs with the version on each, the questions section by section, the documents word by word, "Save as a new version" with the note, "Reset to the original" (a new version, never a delete), "Discard my edits". Governance names the right: `onboarding:forms`, owner/admin.
 
+## Amendment (2026-09-10, evening) — the form itself, to SEE
+
+Darrell, looking at a copy of the old Google form: *"Where is the intake form, and why can't we see it?"* The editor showed the questions as editable rows; the packet showed them only to the invited colleague; Team's fold only described the form. **`TlcFormPreview`** renders the form as a colleague meets it — every section, every question numbered with its kind, help line, choices, required mark, the signature sentences and the direct-deposit fields — from the office's live definition: on **Team → Documents** under "Therapist Onboarding | Hiring Form" for every staff member, and beside the editor as "Preview the form as a colleague sees it". Pinned in `tlc-form-preview-render.test.jsx` (3).
+
 ## Proof
 
 `0196-tlc-office-forms-smoke.sql` in the rls-isolation tlc-office leg (a save without a note refused; two saves = two versions kept whole; member/assistant cannot save; a row cannot be changed by hand; a member reads the rows and not the history; a packet holder reads the live form; a stranger reads nothing; a submit missing the office's required question is refused, with it lands; the audit row). `tlc-office-forms.test.js` (10), `tlc-form-editor-render.test.jsx` (2), onboarding suites re-pinned.

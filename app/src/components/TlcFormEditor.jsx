@@ -20,6 +20,7 @@ import {
 } from '../lib/tlc-office-forms.js';
 import { readOfficeDocuments, saveOfficeDocument } from '../lib/tlc-office-forms-sync.js';
 import { formatDate } from '../lib/tlc-onboarding.js';
+import TlcFormPreview from './TlcFormPreview.jsx';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const INPUT = 'w-full min-h-[36px] p-2 border border-[#1A1815] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -197,6 +198,9 @@ export default function TlcFormEditor({ load = readOfficeDocuments, save = saveO
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState('');
   const [errors, setErrors] = useState([]);
+  // SEE IT (Darrell: "why can't we see it?"): the form as a colleague meets
+  // it, read from the draft, beside the rows that edit it.
+  const [preview, setPreview] = useState(false);
 
   const refresh = useCallback(async () => {
     const res = await load();
@@ -243,8 +247,13 @@ export default function TlcFormEditor({ load = readOfficeDocuments, save = saveO
         {meta.version === 0 ? 'The original, as the app shipped it; nothing saved by the office yet.' : `Version ${meta.version}${meta.updatedAt ? `, saved ${formatDate(meta.updatedAt)}` : ''}${meta.note ? ` — “${meta.note}”` : ''}.`}
       </p>
 
+      {active === 'intake-form' && (
+        <div className="mb-3">
+          <button type="button" onClick={() => setPreview((v) => !v)} aria-pressed={preview} className={`${BTN}`}>{preview ? 'Back to editing' : 'Preview the form as a colleague sees it'}</button>
+        </div>
+      )}
       {active === 'intake-form'
-        ? <QuestionsEditor form={draft} onChange={setDraft} />
+        ? (preview ? <TlcFormPreview form={draft} version={meta.version} /> : <QuestionsEditor form={draft} onChange={setDraft} />)
         : active === 'policies'
           ? <HandbookEditor doc={draft} onChange={setDraft} />
           : <AgreementEditor doc={draft} onChange={setDraft} />}
