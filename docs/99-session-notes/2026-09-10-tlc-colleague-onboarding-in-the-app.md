@@ -109,3 +109,7 @@ Darrell, within the hour: *"build two lessons one with the Word and the other wi
 The Illinois wording is a paraphrase verified by web search (the primary IDFPR / ILGA / LII / Justia pages are egress-blocked from the sandbox); every rule names its primary page for Christina's ratification, re-review 2026-09-17.
 
 Open, from Darrell in the same hour (next increment): *"Assistants and others need hierarchy for making sure we have appropriate governance and resources for our business."*
+
+## Then: the office governs itself from the TLC app (DR-0346)
+
+Darrell: *"Assistants and others need hierarchy for making sure we have appropriate governance and resources for our business"* · *"Owners and managers etc need to be able to govern using the same app."* Built: `lib/tlc-governance.js` (eight seats, reports-to, governs, may, reaches) and a Governance area on Team for the office owner/admin (`TlcGovernance`: chart, matrix, live members with guarded seat changes, removal, invite with a seat). Proof: `tlc-governance.test.js` (4), onboarding render (+2).
