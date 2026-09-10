@@ -107,3 +107,14 @@ Three things the walk flagged, each read before it was counted: (1) **LOG IN on 
 - The sandbox cannot sign in, cannot reach poetech.us, and cannot see the sovereign database; hosted-database reads above are stated as hosted.
 - The credentials workflow cannot be dispatched until the file is on `main` (GitHub resolves a workflow by name on the default branch); the check-in dispatches it the moment #1495 merges.
 - Presence (typing / online) is deferred, `re-review: 2026-09-30` — the realtime leg it would ride is the stack's one sick container (measured 2026-08-22).
+
+## 6. Same night, after the merge — the picture is seen, the header carries the person, messages first (DR-0342 amendment)
+
+Darrell, three more screenshots (his saved profile; the thread list with bare usernames; the header's bare LOG OUT): *"Make sure the picture is visible on the apps... users like to see their picture... move messages to the first tab spot... then family then trivia... All apps users profile shows and has login or out under it... so it is looked at... or seen... And upload a photo spot."*
+
+- `lib/use-profiles.js` — `useProfiles(userIds)` (one cached `get_profile` per person) and `preferredName()`.
+- Faces + chosen names on: 1:1 list rows, the open-thread header, start chips, incoming bubbles, family-thread rows, the My-profile fold.
+- `HeaderAuthButton`: picture (or initials + `+ photo`) + name, Log out beneath; the face opens My profile in the Modal on every app; re-reads the row on close.
+- Engagement sections reordered: Message a member → Family thread → Trivia; opens on the first.
+- Tests +6 across three suites; lint clean; consistency guard caught two width-cap classes in the chip (fixed: inline bound, Modal default width); every other guard OK. Real Chromium at 412×915: the Engagement tabs read in the new order and the page opens on Message a member (screenshot `50-engagement-order.png`).
+- Honest limit: the header chip with a real face needs a sign-in the sandbox cannot make; proven in jsdom against the real components.

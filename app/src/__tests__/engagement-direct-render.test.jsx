@@ -46,7 +46,7 @@ vi.mock('../lib/direct-messages-sync.js', () => ({
 vi.mock('../lib/push-key.js', () => ({ useVapidPublicKey: () => '' }));
 vi.mock('../lib/push-subscribe.js', () => ({ pushSupported: () => false, pushStatus: async () => ({ supported: false, subscribed: false, permission: 'default' }), subscribeToPush: async () => ({ ok: false }), unsubscribeFromPush: async () => ({ ok: false }) }));
 vi.mock('../lib/dm-notify.js', () => ({ requestDmNotificationPermission: async () => 'default' }));
-vi.mock('../lib/profiles-sync.js', async (orig) => ({ ...(await orig()), loadProfile: async () => ({ userId: 'u-ann', displayName: 'Sister Ann', photoThumb: null, house: 'the Ann house', ministries: ['Choir'], favoriteVerse: '', testimony: 'He kept me.', visibility: 'members', fullView: true }), loadMyProfile: async () => null, saveMyProfile: async () => ({ saved: true }) }));
+vi.mock('../lib/profiles-sync.js', async (orig) => ({ ...(await orig()), loadProfile: async () => ({ userId: 'u-ann', displayName: 'Sister Ann', photoThumb: 'data:image/jpeg;base64,/9j/4AAQ', house: 'the Ann house', ministries: ['Choir'], favoriteVerse: '', testimony: 'He kept me.', visibility: 'members', fullView: true }), loadMyProfile: async () => null, saveMyProfile: async () => ({ saved: true }) }));
 vi.mock('../lib/voice-dictation.js', () => ({ useVoiceDictation: () => ({ supported: false, listening: false, start: () => {}, stop: () => {} }) }));
 
 import Engagement from '../components/Engagement.jsx';
@@ -121,5 +121,27 @@ describe('Engagement — Message a member (1:1) on the church door', () => {
     expect(src).toMatch(/loadDmInvited\(\)/);
     expect(src).toMatch(/<DirectMessages roster=\{contacts\} invited=\{invited\}/);
     expect(src).not.toMatch(/roster=\{\[\s*\{/); // no hand-typed roster
+  });
+});
+
+// Darrell 2026-09-09, his saved profile beside a thread list of bare usernames:
+// "Make sure the picture is visible on the apps... users like to see their
+// picture" — and "move messages to the first tab spot... then family then trivia."
+describe('Engagement — faces and order', () => {
+  it('the tabs run Message a member, Family thread, Trivia, and the page opens on the first', async () => {
+    await mount();
+    const order = [...container.querySelectorAll('[role="tab"]')].map((b) => (b.textContent || '').trim());
+    expect(order).toEqual(['Message a member', 'Family thread', 'Trivia']);
+    expect(container.textContent).toMatch(/Message a member 1:1/);
+  });
+
+  it('a person I may message carries their picture and their chosen name on the start chip', async () => {
+    await mount();
+    await settle(); await settle();
+    const chip = [...container.querySelectorAll('button')].find((b) => /Sister Ann/.test(b.textContent || ''));
+    expect(chip, 'the start chip names the person by their chosen profile name').toBeTruthy();
+    const img = chip.querySelector('img');
+    expect(img, 'the chip carries the picture the person saved').toBeTruthy();
+    expect(img.getAttribute('src')).toMatch(/^data:image\/jpeg/);
   });
 });

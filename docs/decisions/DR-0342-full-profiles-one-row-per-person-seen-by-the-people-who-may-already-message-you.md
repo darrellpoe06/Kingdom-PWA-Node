@@ -36,3 +36,16 @@ The sandbox cannot sign in to the live church, so the live round-trip (save → 
 
 - Increment 2 (not yet built, dated): the card opens from every place a person is named — the family thread, choir and bus rosters, the presence readout, the stewardship view (`MemberInspect` reads the profile beside its observations). `re-review: 2026-09-16`.
 - Increment 3: house = a real link to the family instance rather than free text, once the family door exposes a readable house name. `re-review: 2026-09-30`.
+
+## Amendment 2026-09-09 — the picture is seen everywhere a person appears, and the header carries the person (Darrell, three screenshots)
+
+*"Make sure the picture is visible on the apps... users like to see their picture... also... move messages to the first tab spot... then family then trivia... All apps users profile shows and has login or out under it... so it is looked at... or seen... And upload a photo spot."*
+
+His saved profile — Darrell Poe, Poe Family, IT, Media, a picture — sat on one screen while the thread list beside it showed `mrspoe06` and `darrellpoejr` with no face, and the header showed a bare LOG OUT box. A profile shown only on its own card is a profile nobody sees. Decided and built:
+
+1. **One hook hands a surface the profiles of everyone on it** — `lib/use-profiles.js` (`useProfiles(userIds)`, one cached `get_profile` read per person, DR-0303's thumbnail-by-id) and `preferredName(profile, ...fallbacks)` (the chosen name first, then the roster's, then the name a message carried).
+2. **Faces on the church surfaces:** the 1:1 thread list rows (40px), the open-thread header (22px), the Start-a-message chips (20px), the incoming bubbles (20px), every family-thread message (22px), and the My-profile fold itself (28px, with the person's name in its label). A person without a profile shows initials and the name the surface already had — never a blank.
+3. **The header carries the person, on every app** — `HeaderAuthButton` signed in: picture (or initials plus a `+ photo` spot), chosen name, and the obvious bordered **Log out** beneath, exactly where DR-0134's TLC-style box sat. Tapping the face or the name opens **My profile** in the quiet Modal — the upload spot on whichever app they are in — and the header re-reads the row when the dialog closes, so a new picture shows the moment it is saved. The frozen shell still mounts it with one line.
+4. **Engagement opens on Message a member,** then Family thread, then Trivia — his order.
+
+Proven-to-catch: `engagement-direct-render.test.jsx` (+2: the tab order and default; a start chip carries the saved picture and the chosen name), `engagement-voice-sections-render.test.jsx` (order pin rewritten to the new truth), `header-auth-button.test.jsx` (+4: picture + name above Log out; initials + `+ photo` without one; the face opens the editor; signed out shows only Log in). Consistency guard: the header chip bounds its name inline, not with a width-cap class (CONSISTENCY-STANDARD rule 1). Honest limit: the sandbox cannot sign in, so the header chip and the faces on real rows are proven in jsdom against the real components; the live look is the next sign-in.
