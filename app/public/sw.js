@@ -162,10 +162,31 @@ self.addEventListener('fetch', (event) => {
 // a push event: on some platforms a handler that rejects costs the origin its
 // push permission. So every failure path still shows something honest rather
 // than nothing, and nothing here can throw.
+// `badge` is the STATUS-BAR glyph Android paints when the shade is closed. It
+// must be a monochrome raster (Chrome masks it to white on the bar's colour);
+// the seal SVG used to sit here and Android quietly substituted a generic bell
+// for it (Darrell's shade, 2026-09-09). badge-96.png is a white cross on
+// transparency, generated in-repo, so the church's own mark is what shows.
 const NOTIFY_DEFAULTS = {
   icon: BASE + '/icon.svg',
-  badge: BASE + '/icon.svg',
+  badge: BASE + '/badge-96.png',
 };
+
+// THE APP-ICON BADGE (Darrell, 2026-09-09: notifications "on the app and in
+// the notification list"). The shade is one place; the number on the launcher
+// icon is the other, and ConnectBot's badge beside a bare church icon was the
+// picture that named the gap. The Badging API is available in this worker
+// scope (`navigator.setAppBadge`), so the count follows the notifications this
+// worker is showing: recounted after every show and every tap, cleared when
+// none remain. Never throws — a launcher without badges is a no-op, not a fault.
+function syncAppBadge() {
+  var nav = self.navigator;
+  if (!nav || typeof nav.setAppBadge !== 'function') return Promise.resolve();
+  return self.registration.getNotifications().then(function (list) {
+    var n = list ? list.length : 0;
+    return n > 0 ? nav.setAppBadge(n) : (nav.clearAppBadge ? nav.clearAppBadge() : nav.setAppBadge(0));
+  }).catch(function () { /* a launcher that cannot badge is not a fault */ });
+}
 
 function parsePushPayload(raw) {
   // Returns a normalized notification, never throws, never invents a claim.
@@ -219,7 +240,7 @@ self.addEventListener('push', function (event) {
       tag: n.tag,
       renotify: n.renotify,
       data: { url: n.url },
-    })
+    }).then(syncAppBadge, syncAppBadge)
   );
 });
 
@@ -229,7 +250,9 @@ self.addEventListener('notificationclick', function (event) {
   event.notification.close();
   var target = (event.notification.data && event.notification.data.url) || BASE + '/';
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+    syncAppBadge().then(function () {
+      return self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    }).then(function (list) {
       for (var i = 0; i < list.length; i += 1) {
         var c = list[i];
         if (c.url.indexOf(BASE) !== -1 && 'focus' in c) {

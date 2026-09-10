@@ -37,14 +37,21 @@ function loadServiceWorker() {
   const posted = [];
   const clientList = [];
 
+  const badge = { set: [], cleared: 0 };
   const self = {
     addEventListener(type, fn) { handlers[type] = fn; },
     skipWaiting() {},
+    navigator: {
+      setAppBadge(n) { badge.set.push(n); return Promise.resolve(); },
+      clearAppBadge() { badge.cleared += 1; return Promise.resolve(); },
+    },
     registration: {
       showNotification(title, options) {
         shown.push({ title, options });
         return Promise.resolve();
       },
+      // The notifications currently in the shade — what the app badge counts.
+      getNotifications() { return Promise.resolve(shown.slice()); },
     },
     clients: {
       claim() { return Promise.resolve(); },
@@ -58,7 +65,7 @@ function loadServiceWorker() {
     delete: () => Promise.resolve(true),
   };
   new Function('self', 'caches', 'fetch', SW_SRC)(self, caches, () => Promise.resolve(new Response('')));
-  return { handlers, shown, opened, posted, clientList, self };
+  return { handlers, shown, opened, posted, clientList, self, badge };
 }
 
 /** A push event whose data.text() returns `raw`; `waitUntil` collects the promise. */
@@ -147,7 +154,10 @@ describe('a live-service push becomes the right notification', () => {
     sw.handlers.push(ev);
     await Promise.all(ev.waited);
     expect(sw.shown[0].options.icon).toBe(`${BASE}/icon.svg`);
-    expect(sw.shown[0].options.badge).toBe(`${BASE}/icon.svg`);
+    // The status-bar glyph must be a monochrome RASTER: Android masks it to
+    // white and cannot use the seal SVG (a generic bell showed instead,
+    // Darrell's shade 2026-09-09). badge-96.png is the church's cross.
+    expect(sw.shown[0].options.badge).toBe(`${BASE}/badge-96.png`);
   });
 });
 
@@ -306,5 +316,56 @@ describe('a rotated subscription tells the page to re-register', () => {
     sw.handlers.pushsubscriptionchange(ev);
     await Promise.all(ev.waited);
     expect(got).toEqual([{ type: 'PUSH_SUBSCRIPTION_CHANGED' }]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// THE APP-ICON BADGE (Darrell, 2026-09-09: "on the app and in the notification
+// list"). ConnectBot wore a "1" beside a bare church icon: the shade was one
+// place, the launcher the other. The worker sets the badge to the number of
+// notifications it is showing, and clears it when a tap empties the shade.
+// ---------------------------------------------------------------------------
+describe('the app-icon badge follows the notifications in the shade', () => {
+  it('a push sets the badge to the count of notifications showing', async () => {
+    const sw = loadServiceWorker();
+    const ev = pushEvent(JSON.stringify({ title: 'mrspoe06 sent you a message', kind: 'message', tag: 'message:1' }));
+    sw.handlers.push(ev);
+    await Promise.all(ev.waited);
+    expect(sw.badge.set).toEqual([1]);
+    const ev2 = pushEvent(JSON.stringify({ title: 'darrellpoejr sent you a message', kind: 'message', tag: 'message:2' }));
+    sw.handlers.push(ev2);
+    await Promise.all(ev2.waited);
+    expect(sw.badge.set).toEqual([1, 2]);
+  });
+
+  it('a tap that empties the shade clears the badge', async () => {
+    const sw = loadServiceWorker();
+    // Nothing left showing after the tap closes the notification.
+    sw.self.registration.getNotifications = () => Promise.resolve([]);
+    const waited = [];
+    sw.handlers.notificationclick({
+      notification: { close() {}, data: { url: `${BASE}/?tab=messages` } },
+      waitUntil(p) { waited.push(p); },
+    });
+    await Promise.all(waited);
+    expect(sw.badge.cleared).toBe(1);
+    expect(sw.opened).toEqual([`${BASE}/?tab=messages`]);
+  });
+
+  it('a worker scope without the Badging API is a no-op, never a throw', async () => {
+    const sw = loadServiceWorker();
+    delete sw.self.navigator;
+    const ev = pushEvent(JSON.stringify({ title: 'x' }));
+    sw.handlers.push(ev);
+    await expect(Promise.all(ev.waited)).resolves.toBeTruthy();
+    expect(sw.shown).toHaveLength(1);
+  });
+
+  it('the badge glyph the worker names is a real 96x96 PNG in public/', () => {
+    const png = readFileSync(join(HERE, '..', '..', 'public', 'badge-96.png'));
+    expect(png.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+    expect(png.readUInt32BE(16)).toBe(96);
+    expect(png.readUInt32BE(20)).toBe(96);
+    expect(SW_SRC).toContain("badge: BASE + '/badge-96.png'");
   });
 });

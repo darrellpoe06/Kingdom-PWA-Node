@@ -6,6 +6,7 @@ import {
   toDmShape, groupDmThreads, unreadDmCount, threadMessages,
   toSecurityReportShape, openSecurityReports, openSecurityCount, securityStatusLabel,
   isSendableBody,
+  receiptLabels,
 } from '../lib/direct-messages.js';
 
 describe('toDmShape — perspective (who is "the other")', () => {
@@ -131,5 +132,45 @@ describe('the stream is never the only path (source gates, proven-to-catch)', ()
     expect(surface).toMatch(/local-\$\{nowIso\}/);
     expect(surface).toMatch(/taRef\.current\?\.focus\(\)/);
     expect(surface).toMatch(/e\.key === 'Enter' && !e\.shiftKey/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// RECEIPTS (Darrell, 2026-09-09: "see when and if someone saw your text like
+// other messaging apps"). read_at is stamped by the reader's device and read
+// back by the sender under the participant policy — a real row value. One
+// word under the LAST of my messages: Seen <time> once they looked, Delivered
+// while it waits; never a receipt under theirs.
+// ---------------------------------------------------------------------------
+describe('receiptLabels — Seen / Delivered under the last of my messages', () => {
+  const fmt = (iso) => `@${iso}`;
+  it('Delivered under my latest message while it is unread', () => {
+    const convo = [
+      { id: 'a', mine: true, readAt: null, createdAt: '1' },
+    ];
+    expect(receiptLabels(convo, fmt)).toEqual({ a: 'Delivered' });
+  });
+  it('Seen <time> once they opened it', () => {
+    const convo = [{ id: 'a', mine: true, readAt: 'T1', createdAt: '1' }];
+    expect(receiptLabels(convo, fmt)).toEqual({ a: 'Seen @T1' });
+  });
+  it('Seen on the last one they saw AND Delivered on the newest unread — like the messengers people know', () => {
+    const convo = [
+      { id: 'a', mine: true, readAt: 'T1', createdAt: '1' },
+      { id: 'b', mine: false, readAt: null, createdAt: '2' },
+      { id: 'c', mine: true, readAt: null, createdAt: '3' },
+    ];
+    expect(receiptLabels(convo, fmt)).toEqual({ a: 'Seen @T1', c: 'Delivered' });
+  });
+  it('never a receipt under THEIR messages, and nothing when I have sent nothing', () => {
+    expect(receiptLabels([{ id: 'x', mine: false, readAt: 'T', createdAt: '1' }], fmt)).toEqual({});
+    expect(receiptLabels([], fmt)).toEqual({});
+  });
+  it('only the newest seen message carries Seen — one receipt, not a column of them', () => {
+    const convo = [
+      { id: 'a', mine: true, readAt: 'T1', createdAt: '1' },
+      { id: 'b', mine: true, readAt: 'T2', createdAt: '2' },
+    ];
+    expect(receiptLabels(convo, fmt)).toEqual({ b: 'Seen @T2' });
   });
 });

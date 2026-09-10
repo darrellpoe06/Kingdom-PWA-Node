@@ -18,9 +18,15 @@
 //      encrypted; putting plaintext on a lock screen would undo that for the
 //      last three feet, in public, over someone's shoulder.
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
 import {
   validateSendRequest, dedupeKeyFor, liveAnnouncement, messageAnnouncement,
   SENDABLE_TOPICS, MAX_TITLE, MAX_BODY,
+  audienceQuery,
 } from '../lib/push-send-policy.js';
 
 describe('validateSendRequest — a send must say what it claims', () => {
@@ -152,5 +158,44 @@ describe('the words people actually see', () => {
 
   it('handles a missing sender name without leaking an empty title', () => {
     expect(messageAnnouncement({}).title).toBe('Someone sent you a message');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// WHO is read for a send (2026-09-09). Darrell's phone said "Notifications on"
+// and mrspoe06's "Hello" buzzed nothing: a phone is filed under whichever
+// instance was active when its owner tapped ON, and the message's tenant is
+// whichever space the two share — filtered by instance, the person was never
+// found. A message audience is the PERSON; a live audience is the congregation.
+// ---------------------------------------------------------------------------
+describe('audienceQuery — a message finds the person, a live announcement finds the church', () => {
+  it('a message with a named recipient is read by user_id alone — no instance filter', () => {
+    const q = audienceQuery({ topic: 'message', instanceId: 'church-1', userIds: ['u-darrell'] });
+    expect(q.get('user_id')).toBe('in.(u-darrell)');
+    expect(q.get('instance_id')).toBeNull();
+    expect(q.get('topics')).toBe('cs.{message}');
+    expect(q.get('disabled_at')).toBe('is.null');
+  });
+  it('a live announcement is the whole instance that opted in', () => {
+    const q = audienceQuery({ topic: 'live', instanceId: 'church-1', userIds: null });
+    expect(q.get('instance_id')).toBe('eq.church-1');
+    expect(q.get('user_id')).toBeNull();
+    expect(q.get('topics')).toBe('cs.{live}');
+  });
+  it('an empty or junk audience falls back to the instance, never to everyone everywhere', () => {
+    expect(audienceQuery({ topic: 'message', instanceId: 'i', userIds: [] }).get('instance_id')).toBe('eq.i');
+    expect(audienceQuery({ topic: 'message', instanceId: 'i', userIds: [null, 7, ''] }).get('instance_id')).toBe('eq.i');
+  });
+  it('opt-in and not-disabled are always part of the read', () => {
+    for (const userIds of [['a'], null]) {
+      const q = audienceQuery({ topic: 'message', instanceId: 'i', userIds });
+      expect(q.get('topics')).toBe('cs.{message}');
+      expect(q.get('disabled_at')).toBe('is.null');
+    }
+  });
+  it('source pin: the sender reads its audience through audienceQuery and builds no instance filter of its own', () => {
+    const fn = readFileSync(join(HERE, '..', '..', 'functions', 'api', 'push-send.js'), 'utf8');
+    expect(fn).toContain('audienceQuery({ topic: req.topic, instanceId: req.instanceId, userIds: req.userIds })');
+    expect(fn).not.toMatch(/params\.set\('instance_id'/);
   });
 });

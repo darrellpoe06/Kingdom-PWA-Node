@@ -31,6 +31,21 @@ export function notifyDecision(prevUnread, nextUnread, { hidden = false, permiss
   };
 }
 
+// The number on the APP ICON (Badging API). Darrell, 2026-09-09: notifications
+// must show "on the app and in the notification list" — the launcher badge is
+// the on-the-app half. Installed PWAs on Android and desktop honour it; a
+// browser without it is a no-op, never a fault. Pure over the injected
+// navigator so it is testable: a count sets, zero clears.
+export function applyAppBadge(nav, count) {
+  if (!nav || typeof nav.setAppBadge !== 'function') return 'unsupported';
+  const n = Number(count) > 0 ? Math.floor(Number(count)) : 0;
+  try {
+    const p = n > 0 ? nav.setAppBadge(n) : (typeof nav.clearAppBadge === 'function' ? nav.clearAppBadge() : nav.setAppBadge(0));
+    if (p && typeof p.catch === 'function') p.catch(() => {});
+  } catch { /* a launcher that cannot badge is not a fault */ }
+  return n > 0 ? 'set' : 'cleared';
+}
+
 // Prefix the document title with the badge, restoring the clean base title
 // when the badge clears. Idempotent; remembers the base on first touch.
 export function applyTitleBadge(doc, badge) {
@@ -53,7 +68,7 @@ export function startDmNotifications(win = typeof window !== 'undefined' ? windo
   const offAuth = onAuthChange((session) => {
     teardown();
     prev = 0;
-    if (!session) { applyTitleBadge(win.document, ''); return; }
+    if (!session) { applyTitleBadge(win.document, ''); applyAppBadge(win.navigator, 0); return; }
     stopSub = subscribeDirectMessages((rows) => {
       const next = unreadDmCount(rows);
       const d = notifyDecision(prev, next, {
@@ -61,6 +76,8 @@ export function startDmNotifications(win = typeof window !== 'undefined' ? windo
         permission: (win.Notification && win.Notification.permission) || 'denied',
       });
       applyTitleBadge(win.document, d.titleBadge);
+      // The icon badge follows the unread count exactly: read = it drops.
+      applyAppBadge(win.navigator, next);
       if (d.notify) {
         try {
           const n = new win.Notification('PoeTech — new message', {
