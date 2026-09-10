@@ -121,3 +121,5 @@ The `viewer-readonly` leg's 0126 smoke ("write:choir grant did not unlock the ch
 Darrell: *"not fake test... also documenting the best workflows behavior."* Added the `tlc-office` matrix leg (`0189-tlc-office-smoke.sql`, the real policies for 0188/0189, rolled back on the real database) and §9 of the operating model, the proof ladder. Live proof for both legs: the rls-isolation run db-migrate dispatches after this merges.
 
 Darrell, reading the handbook fold on his phone: *"where is number 1?"* Section 1 (welcome, mission, vision, what we provide, contractor status) had been carried only as fields shown under Who we are, so the handbook opened at 2. It is now the handbook's own first section in both readers; pinned in `tlc-office-documents.test.js` and the door render.
+
+Darrell, on the Training map: *"These lessons should be laid out over the 24 month period the state expects or whatever number of months."* The map is now `buildStatePlan`: every course across the 24-month LCSW window as 104 weeks, evenly, open weeks honest, hours by month, the 30-hour CE minimum per cycle shown. The 36-month runway panel is retired from the screen (DR-0345 amendment).

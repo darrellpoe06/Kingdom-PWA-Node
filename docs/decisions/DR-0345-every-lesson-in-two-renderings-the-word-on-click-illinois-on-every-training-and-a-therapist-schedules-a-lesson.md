@@ -33,3 +33,9 @@ The client track carried lessons with the Word woven into the prose (Finding Pea
 ## Honest limits (DR-0100)
 
 The Illinois wording is a paraphrase verified by search, not the statute read verbatim; the primary pages are named on every rule for Christina's ratification. Live assignment writes wait on 0189 being applied and a real sign-in. `re-review: 2026-09-17` (with the onboarding round trip): Christina ratifies the eleven rules and the Finding Peace plain distillation in-app.
+
+## Amendment (2026-09-10, later the same day) — the map is laid across the state's window
+
+Darrell, on the Training map's "24 hours / month · 36 months · 795.5 hours to author" screen: *"These lessons should be laid out over the 24 month period the state expects or whatever number of months... etc..."*
+
+9. **The Training map is the state's window.** `buildStatePlan` lays every course once across the minimum period Illinois sets for the LCSW supervised experience (`IL_LCSW_REQUIREMENT.minMonths`, 24 months, 104 weeks; 225 ILCS 20 / 68 Ill. Adm. Code 1470.20), evenly, one training a week where a course exists, the field rotation kept, open weeks honest, a running total of hours by month, and the state's CE minimum per two-year cycle (`STATE_RULESETS.IL.totalHours`, 30) shown against the library's hours with the note that only an approved sponsor's hours count. The 36-month, 24-hours-a-month runway panel is no longer rendered (its builder and tests stay as the multi-year record). Proof: `tlc-curriculum.test.js` (+2), `practice-learn-render.test.jsx` re-pinned.
