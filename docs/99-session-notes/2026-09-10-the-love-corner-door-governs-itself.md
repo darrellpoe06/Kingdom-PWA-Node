@@ -41,3 +41,15 @@
 ## 5. Also this session, before this build
 
 - PR #1500 merged (0534d5e) at 04:30 UTC: honest server errors at the transport; one person two doors every phone; the sending screen reports what the push did. Deploy run 1005 dispatched by the lane for that SHA.
+
+## 6. Real Chromium, 412×915, the built preview (DR-0239 form-factor, measured)
+
+| Walk | Result |
+|---|---|
+| Visitor on the church door | no **Members** tab in the strip (signed-out), Bus Ministry present; zero page errors |
+| `?view=church&sub=members` as a visitor | the Members card with its sign-in note renders (screenshot `60-members-visitor.png`) |
+| First walk, before the fix | the same link fell through to Church home: `nav-history.js`'s hand-kept `VALID_CHURCH_SUBS` did not carry `members`; the `shell-church-deep-link` gate names exactly this. One entry added, its 54 tests green. |
+
+## 7. PR #1500 — deploy proven (DR-0107)
+
+Deploy run 1006 completed green for `0534d5e` (main's tip after the squash). Task closed.
