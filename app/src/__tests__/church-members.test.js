@@ -1,5 +1,5 @@
 // =============================================================================
-// church-members — the pure half of the Love Corner Members tab (DR-0347)
+// church-members — the pure half of the Love Corner Members tab (DR-0348)
 // =============================================================================
 // Every count is derived from rows; every may / may-not from the catalog the
 // server enforces. These pin that the derivations never paint: a missing

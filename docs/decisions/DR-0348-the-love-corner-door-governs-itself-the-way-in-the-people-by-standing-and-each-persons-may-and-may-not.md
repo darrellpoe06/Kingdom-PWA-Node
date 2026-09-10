@@ -1,4 +1,4 @@
-# DR-0347 — The Love Corner door governs itself: the way in, the people by standing, and each person's may / may-not
+# DR-0348 — The Love Corner door governs itself: the way in, the people by standing, and each person's may / may-not
 
 - **date:** 2026-09-10
 - **status:** accepted

@@ -1,4 +1,4 @@
-# 2026-09-10 — The Love Corner door governs itself (DR-0347)
+# 2026-09-10 — The Love Corner door governs itself (DR-0348)
 
 **Scope, in Darrell's words:** *"focus on PoeTech App only... not TLC Therapy Solutions... the other channel has that task"* — *"or Love Corner App."* The TLC onboarding governance work-in-progress from this session was removed uncommitted; the same three asks are applied here to the church door:
 
