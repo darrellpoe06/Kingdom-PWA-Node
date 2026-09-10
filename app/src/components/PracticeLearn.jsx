@@ -33,6 +33,7 @@ import SectionTabs from './SectionTabs.jsx';
 import ShareButton from './ShareButton.jsx';
 import { getTrack } from '../lib/tlc-lessons.js';
 import { tlcLessonUrl, tlcLessonSharePayload, tlcCourseSharePayload, TLC_TASTE_NOTE } from '../lib/tlc-lesson-links.js';
+import { TLC_BRAND } from '../lib/tlc-practice.js';
 import SectionBoundary from './SectionBoundary.jsx';
 import WordInline from './WordInline.jsx';
 import { SectionTitle, MetricCell } from './shared.jsx';
@@ -111,7 +112,7 @@ const fmtDate = (iso) => { if (!iso) return '—'; try { return new Date(iso).to
 // mode (Darrell 2026-09-10: "so people can taste and see what type of therapy
 // and training TLC ... has to offer"): ONLY the linked track or course renders,
 // with the lesson open; no areas, no ledger, no SME gate, no assignments.
-function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = false }) {
+function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = false, onFindTherapist = null }) {
   const vis = useMemo(() => visibleAudiences({ isStaff }), [isStaff]);
   const [audience, setAudience] = useState(() => {
     if (deepLink && deepLink.audience) return deepLink.audience;
@@ -367,15 +368,24 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
 
   return (
     <div className="space-y-5">
-      {/* Header + audience switcher */}
-      <section className="bg-white border-2 border-[#1A1815] p-5 sm:p-6">
-        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">TLC Therapy Solutions · {guest && !deepLink ? 'Mental skills' : 'Learn'}</div>
+      {/* Header + audience switcher. THE THERAPIST FIRST (Darrell 2026-09-10:
+          "the training or lessons etc shouldn't over shadow the therapist...
+          we want good flow"): a lesson that arrived by link gets NO banner
+          above it (the Shared-with-you note is its header), and a guest's
+          Mental skills tab gets a compact one, never the long Learn blurb. */}
+      {!(guest && deepLink) && (
+      <section className={`bg-white border-2 border-[#1A1815] ${guest ? 'p-4' : 'p-5 sm:p-6'}`}>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">TLC Therapy Solutions · {guest ? 'Mental skills' : 'Learn'}</div>
         {/* Signed out, the space wears Darrell's name for it (2026-09-10):
             "Maybe a mental skill building place tab". */}
-        <h2 className="text-2xl mb-1" style={{ ...SERIF, fontWeight: 600, letterSpacing: '-0.02em' }}>{guest && !deepLink ? 'A mental skill building place' : 'A Learn space that builds real skill'}</h2>
+        <h2 className="text-2xl mb-1" style={{ ...SERIF, fontWeight: 600, letterSpacing: '-0.02em' }}>{guest ? 'A mental skill building place' : 'A Learn space that builds real skill'}</h2>
+        {guest ? (
+          <p className="text-sm text-[#5A5751] leading-relaxed" style={SERIF}>Lessons that walk beside the work you do with your therapist. Educational support, not treatment.</p>
+        ) : (
         <p className="text-sm text-[#5A5751] leading-relaxed max-w-prose" style={SERIF}>
           Learning that actually helps — psychoeducation and coping skills for clients and families, clinical growth for therapists, and a real record of the work. Built on the same paced, age-adaptive, read-aloud-ready Learn engine the rest of the app uses.
         </p>
+        )}
 
         {!guest && <div className="mt-4">
           <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1.5">Who is learning</div>
@@ -405,6 +415,7 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
           )}
         </div>}
       </section>
+      )}
 
       {/* TASTE AND SEE — a lesson served by link to a visitor (Darrell
           2026-09-10). One card, the lesson open, the practice named; the
@@ -450,6 +461,7 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
               defaultOpen
             />
           )}
+          <NextStepTherapist onFindTherapist={onFindTherapist} />
         </section>
         </LearnContext.Provider>
       )}
@@ -486,6 +498,7 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
               <TrackCard key={track.key} track={track} modules={modules} level={level} progress={progress} quizState={quizState} openModuleId={openModuleId} setOpenModuleId={setOpenModuleId} onRecordQuiz={recordQuiz} onMarkRead={markRead} certTemplates={[]} onEarn={() => {}} alreadyEarned={() => false} />
             ))}
             {subject.trim() && subjectHits.length === 0 && <p className="text-xs text-[#5A5751]" style={SERIF}>Nothing on that subject yet. Book a consult and ask; the next lesson may come from your question.</p>}
+          <NextStepTherapist onFindTherapist={onFindTherapist} />
           </section>
         </LearnContext.Provider>
       )}
@@ -676,6 +689,24 @@ function LessonRunner({ module, level, quizState, onRecordQuiz, onMarkRead, cour
 // The Word, dropped down inside the lesson: the course's (or the lesson's own)
 // principle, every verse verbatim from the corpus, the reflection. Closed, the
 // lesson reads plain; the page-wide switch opens it, a tap flips it.
+// THE NEXT STEP IS THE THERAPIST (Darrell 2026-09-10: "the training or lessons
+// etc shouldn't over shadow the therapist... we want good flow"): under every
+// lesson a visitor reads, the way to the people and to a booking — the lesson
+// walks them to the door, never past it.
+function NextStepTherapist({ onFindTherapist }) {
+  return (
+    <div className="border-2 border-[#1A1815] bg-white p-3 flex flex-wrap items-center gap-2 justify-between" aria-label="Next step">
+      <div className="text-sm text-[#1A1815]" style={SERIF}>The next step is a person. Meet the therapists, then book.</div>
+      <div className="flex flex-wrap gap-2">
+        {onFindTherapist && (
+          <button type="button" onClick={onFindTherapist} className="min-h-[36px] px-3 py-2 text-[0.625rem] font-semibold uppercase tracking-wider border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Meet the therapists</button>
+        )}
+        <a href={TLC_BRAND.bookingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center min-h-[36px] px-3 py-2 bg-[#B85838] text-white text-[0.625rem] font-semibold uppercase tracking-wider hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Book an appointment</a>
+      </div>
+    </div>
+  );
+}
+
 function WordDropdown({ word, open, toggle }) {
   return (
     <div className="border-l-2 border-[#5A6E3D] pl-2">

@@ -143,6 +143,10 @@ describe('Onboarding: Jobs and Applicants (owner/admin)', () => {
     expect(container.textContent).toContain('Intake coordinator');
     await click(byText(/New posting/));
     await settle();
+    // start from a seat (Darrell: "How do we create the openings for the specific roles when needed?")
+    await type(container.querySelector('select[aria-label="Start from a seat"]'), 'therapist');
+    expect(inputByLabel(/^Title/).value).toBe('Therapist (independent contractor)');
+    expect(inputByLabel(/Requirements/).value).toMatch(/Work the inquiries/);
     await type(inputByLabel(/^Title/), 'Group facilitator');
     await type(inputByLabel(/^Summary/), 'Run two psychoeducational groups a week.');
     await type(inputByLabel(/Requirements/), 'Illinois license\nGroup experience');

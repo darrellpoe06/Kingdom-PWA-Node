@@ -141,11 +141,17 @@ describe('a lesson served by link — taste and see (Darrell 2026-09-10)', () =>
     for (const bad of OPERATOR) expect(text, `leaked to a visitor: "${bad}"`).not.toContain(bad);
     // every lesson can be handed on again
     expect(Array.from(container.querySelectorAll('button')).some((b) => /share this lesson/i.test(b.textContent))).toBe(true);
-    // the booking door is one tap away, on its own tab
-    await act(async () => { tabs[0].dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    // the therapist first (Darrell: "shouldn't over shadow the therapist... good flow"):
+    // no Learn banner above a linked lesson, and under it the way to the people and to a booking
+    expect(text).not.toContain('A Learn space that builds real skill');
+    expect(text).toContain('The next step is a person');
+    expect(Array.from(container.querySelectorAll('a')).some((a) => a.getAttribute('href') === TLC_BRAND.bookingUrl && /Book an appointment/.test(a.textContent))).toBe(true);
+    const meet = Array.from(container.querySelectorAll('button')).find((b) => /Meet the therapists/.test(b.textContent));
+    await act(async () => { meet.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     text = container.textContent;
     expect(text).toContain('Match a Preferred Provider');
     expect(text).not.toContain('Shared with you');
+    expect(tabs[0].getAttribute('aria-selected')).toBe('true');
   });
 
   it('signed out, a library-course link serves the course with that lesson open — the internal review stays inside', async () => {

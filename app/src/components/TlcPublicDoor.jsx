@@ -160,7 +160,7 @@ export default function TlcPublicDoor() {
   const visitorSections = [
     { id: 'find', label: 'Find your therapist', icon: 'users', render: () => <ClientDoor /> },
     // "Maybe a mental skill building place tab" (Darrell 2026-09-10).
-    { id: 'learn', label: 'Mental skills', icon: 'bookOpen', render: () => <div className="pt-3 pb-6"><PracticeLearn email="" isStaff={false} deepLink={deepLink} guest /></div> },
+    { id: 'learn', label: 'Mental skills', icon: 'bookOpen', render: () => <div className="pt-3 pb-6"><PracticeLearn email="" isStaff={false} deepLink={deepLink} guest onFindTherapist={() => setVisitorTab('find')} /></div> },
     { id: 'jobs', label: 'Join the team', icon: 'pencil', render: () => <div className="pt-3 pb-6"><JoinTheTeam lead={jobsLink.jobs} jobId={jobsLink.jobId} /></div> },
   ]; // the one slider, controlled so Team can send you to a sister tab
   const [showShare, setShowShare] = useState(false);
