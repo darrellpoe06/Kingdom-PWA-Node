@@ -66,6 +66,12 @@ Driver: scratchpad `walk.cjs` (Church-home folds) and `walk-door.cjs` / `walk-do
 | door tab · Engagement | 40 | 37 | 1 | 0 | inert: Normal text size (current), Church; 1 disabled (history at start) |
 | door tab · Choir | 40 | 38 | 1 | 0 | inert: Church; 1 disabled (history at start) |
 | door tab · Bus Ministry | 40 | 38 | 1 | 0 | inert: Church; 1 disabled (history at start) |
+| door tab · Order of Service | 40 | 38 | 1 | 0 | inert: Church; 1 disabled (history at start) |
+| door tab · Learn | 40 | 38 | 1 | 0 | inert: Church; 1 disabled (history at start) |
+| door tab · Eternal Algorithms | 40 | 38 | 11 | 0 | inert: Church; 1 disabled (history at start) |
+| door tab · Conference | 40 | 38 | 3 | 0 | inert: Church; 1 disabled (history at start) |
+| door tab · Venues | 40 | 38 | 1 | 0 | inert: Church; 1 disabled (history at start) |
+| door tab · Projects | 40 | 36 | 1 | 0 | inert: LOG IN, Projects; click failed: CLOSE; 1 disabled (history at start) |
 | Church home fold · Worship | 32 | 29 | 5 | 0 | inert: Normal text size (current); 2 disabled (history at start) |
 | Church home fold · Speak | 32 | 30 | 5 | 0 | 2 disabled (history at start) |
 | Church home fold · Prayer | 32 | 30 | 5 | 0 | 2 disabled (history at start) |
@@ -73,9 +79,9 @@ Driver: scratchpad `walk.cjs` (Church-home folds) and `walk-door.cjs` / `walk-do
 | Church home fold · Times | 32 | 30 | 5 | 0 | 2 disabled (history at start) |
 | Church home fold · About | 32 | 30 | 5 | 0 | 2 disabled (history at start) |
 
-Totals: 432 buttons tapped, 404 acted, 40 links listed, 0 page errors.
+Totals: 672 buttons tapped, 630 acted, 58 links listed, 0 page errors.
 
-*Interim (this commit): the door walk had covered Church, The Word, Scripture, Engagement, Choir and Bus Ministry when this note was first committed; Order of Service, Learn, Eternal Algorithms, Conference, Venues and Projects were still being walked. The completed table replaces this paragraph in the follow-up commit.*
+Three things the walk flagged, each read before it was counted: (1) **LOG IN on Projects is inert for a visitor** in this sandbox because the walk aborts every off-box request — the sign-in hand-off leaves the origin, which the driver cannot follow; not a dead control. (2) **Projects is inert** because it was already the current tab. (3) **CLOSE on Projects: "element is outside of the viewport"** at 412×915. Traced from the screenshot (`42-door-8-projects.png`): the driver's `Projects` label matched the app-level Projects tab (the family shell's paywalled "Unlock Projects" view), not the church door's Projects sub-tab of the same name, so that row measured a surface outside this review's scope and the church Projects sub-tab was **not walked**. Two dated items, `re-review: 2026-09-16`: walk church Projects with a scoped selector; and find the CLOSE control on the locked app-level Projects view that sits off-screen at phone width (a form-factor defect wherever it lives).
 
 ### 3c. The other dimensions
 
