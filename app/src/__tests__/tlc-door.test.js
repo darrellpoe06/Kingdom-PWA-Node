@@ -149,7 +149,13 @@ describe('NO-LEAK: a signed-OUT client sees only public marketing facts', () => 
     // gets <ClientDoor/> only.
     expect(doorJsx).toMatch(/signedIn\s*\?/);
     expect(doorJsx).toMatch(/TlcAssistant/);          // present, but gated
-    expect(doorJsx).not.toMatch(/Inbound|inquir|Pre-Intake/i); // intake data never here
+    // Office data (inquiries, leads, revenue) reaches the door ONLY through the
+    // staff-gated office sections (DR-0344): a signed-out client gets
+    // <ClientDoor/> alone, and the family inbound router (Inbound) never here.
+    expect(doorJsx).not.toMatch(/Inbound/);
+    expect(doorJsx).toMatch(/const officeSection = \(id, label, icon, section\) => \(staff \?/);
+    expect(doorJsx).toMatch(/officeSection\('inquiries'/);
+    expect(doorJsx).not.toMatch(/use-financial|financial-store|app-store/);
   });
   it('the door renders the public roster + insurance + booking', () => {
     // The roster is the seed cards + the live approved colleagues (DR-0344):
