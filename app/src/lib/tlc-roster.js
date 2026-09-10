@@ -14,6 +14,7 @@
 // replacing a seed card that names the same person. Offline or before the
 // migration lands, the seed alone renders; nothing spins, nothing blanks.
 import { useEffect, useState } from 'react';
+import { tlcError } from './tlc-error.js';
 import supabase from './supabase.js';
 import { TLC_TEAM } from './tlc-practice.js';
 
@@ -38,25 +39,25 @@ export async function fetchPublicRoster(officeId = 'tlc') {
 export async function listRoster() {
   try {
     const { data, error } = await withTimeout(supabase.rpc('tlc_roster_list'), ROSTER_FETCH_TIMEOUT_MS);
-    if (error) return { ok: false, message: error.message, rows: [] };
+    if (error) return { ok: false, message: tlcError(error), rows: [] };
     return { ok: true, rows: Array.isArray(data) ? data : [] };
-  } catch (e) { return { ok: false, message: (e && e.message) || 'the connection failed', rows: [] }; }
+  } catch (e) { return { ok: false, message: tlcError(e), rows: [] }; }
 }
 export async function upsertRosterCard(card) {
   try {
     const { data, error } = await withTimeout(supabase.rpc('tlc_roster_upsert', { row_in: card }), ROSTER_FETCH_TIMEOUT_MS);
-    if (error) return { ok: false, message: error.message };
+    if (error) return { ok: false, message: tlcError(error) };
     invalidateRoster();
     return { ok: true, row: data };
-  } catch (e) { return { ok: false, message: (e && e.message) || 'the connection failed' }; }
+  } catch (e) { return { ok: false, message: tlcError(e) }; }
 }
 export async function removeRosterCard(id) {
   try {
     const { data, error } = await withTimeout(supabase.rpc('tlc_roster_remove', { id_in: id }), ROSTER_FETCH_TIMEOUT_MS);
-    if (error) return { ok: false, message: error.message };
+    if (error) return { ok: false, message: tlcError(error) };
     invalidateRoster();
     return { ok: true, removed: data === true };
-  } catch (e) { return { ok: false, message: (e && e.message) || 'the connection failed' }; }
+  } catch (e) { return { ok: false, message: tlcError(e) }; }
 }
 
 // One fetch per page load, shared by every surface; invalidated by an edit.
