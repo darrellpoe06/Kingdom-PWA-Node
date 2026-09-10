@@ -148,7 +148,7 @@ export default function TlcPublicDoor() {
   const [deepLink] = useState(() => resolveTlcLesson(parseTlcLessonLink(
     (typeof window !== 'undefined' && window.location && window.location.search) || '',
   )));
-  const [activeTab, setActiveTab] = useState(deepLink ? 'training' : 'find');
+  const [activeTab, setActiveTab] = useState(deepLink ? 'training' : 'find'); // a jobs link lands a client on Join the team below, once the role is known
   // The website's careers link lands on Join the team (DR-0350).
   const [jobsLink] = useState(() => parseJobsLink((typeof window !== 'undefined' && window.location && window.location.search) || ''));
   // THE VISITOR'S SLIDER (Darrell 2026-09-10: "The lessons should be on
@@ -216,6 +216,7 @@ export default function TlcPublicDoor() {
   // An approved colleague is staff for the TLC Learn space (the therapist +
   // training audiences) even before any membership grant — their packet says so.
   const staff = operatorRole || (colleague && colleague.status === 'approved');
+  const newHire = !staff && !!(colleague && colleague.status); // hired, in onboarding (DR-0350 §6)
   // The office's own records (Darrell 2026-09-10: "there are tabs inside the
   // PoeTech App that are not inside the TLC Therapy Solutions App?!"): the
   // SAME inquiries + leads rows the PoeTech TLC tab edits, read through the
@@ -235,9 +236,26 @@ export default function TlcPublicDoor() {
     // The TLC Learn space (PracticeLearn) — TLC's own, not the church Learn
     // space (Darrell 2026-09-10). Clients see psychoeducation; staff see the
     // therapist + training audiences with the session scripts and courses.
-    { id: 'training', label: 'Training', icon: 'bookOpen', render: () => <div className="pt-3"><PracticeLearn email={sessionEmail} isStaff={!!staff} deepLink={deepLink} /></div> },
-    { id: 'team', label: 'Team', icon: 'book', render: () => <TlcTeamResources staff={!!staff} onOpen={(id) => setActiveTab(id)} roleState={roleState} userId={sessionUserId} /> },
-    { id: 'assistant', label: 'Assistant', icon: 'chat', render: () => <TlcAssistant isGovernor={operatorRole} /> },
+    // A CLIENT ACCOUNT SEES ONLY WHAT A CLIENT NEEDS (Darrell 2026-09-10:
+    // "when a user creates an account they can see?" / "only what is
+    // necessary"): signed in without an office role or an approved packet,
+    // the slider is Find your therapist · Mental skills (their lessons and
+    // For you) · Join the team. Team (the office documents, the launch board)
+    // and the Assistant workspace are the office's, for staff only — the same
+    // rule the governance chart's client seat reads (doorTabsFor('client')).
+    // A new colleague (a packet exists, not yet approved) reads the office
+    // documents on Team while they sign them, and trains; the workspace
+    // waits for approval (doorTabsFor('newhire')).
+    { id: 'training', label: staff || newHire ? 'Training' : 'Mental skills', icon: 'bookOpen', render: () => <div className="pt-3"><PracticeLearn email={sessionEmail} isStaff={!!staff} deepLink={deepLink} /></div> },
+    ...(staff || newHire ? [
+      { id: 'team', label: 'Team', icon: 'book', render: () => <TlcTeamResources staff={!!staff} onOpen={(id) => setActiveTab(id)} roleState={roleState} userId={sessionUserId} /> },
+    ] : []),
+    ...(staff ? [
+      { id: 'assistant', label: 'Assistant', icon: 'chat', render: () => <TlcAssistant isGovernor={operatorRole} /> },
+    ] : []),
+    ...(!staff && !newHire ? [
+      { id: 'jobs', label: 'Join the team', icon: 'pencil', render: () => <div className="pt-3 pb-6"><JoinTheTeam lead={jobsLink.jobs} jobId={jobsLink.jobId} /></div> },
+    ] : []),
     // The office owner/admin brings colleagues on board from the TLC app
     // itself (DR-0344); the panel re-checks the role from the database.
     ...(canManageTeam(roleState) ? [{ id: 'onboarding', label: 'Onboarding', icon: 'pencil', render: () => <TlcOnboarding /> }] : []),
