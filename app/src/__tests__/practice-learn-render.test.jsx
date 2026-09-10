@@ -368,6 +368,16 @@ describe('share a lesson outside the app (Darrell 2026-09-10: "a link to serve t
       expect(shared[1].url).toContain('course=tl-assessment-and-diagnosis-biopsychosocial-assessment-the-whole-person');
       expect(shared[1].text).toContain('Biopsychosocial Assessment — the whole person, TLC Therapy Solutions');
       expect(byText(/Shared ✓/)).toBeTruthy();
+      // shared plain: no word flag; open the Word, share again: word=1 rides along
+      expect(shared[1].url).not.toContain('word=');
+      await click(byText(/The Word on this lesson/));
+      await settle();
+      // the button reads "Shared ✓" for 1.6s after a share; let it settle back
+      await act(async () => { await new Promise((r) => setTimeout(r, 1700)); });
+      await click(byText(/Share this lesson/));
+      await settle();
+      expect(shared.length).toBe(3);
+      expect(shared[2].url).toMatch(/&word=1$/);
     } finally {
       Object.defineProperty(navigator, 'share', { configurable: true, writable: true, value: orig });
     }

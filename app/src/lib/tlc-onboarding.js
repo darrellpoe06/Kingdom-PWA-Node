@@ -218,7 +218,7 @@ export function emptyPacket() {
     else if (f.type === 'file' || f.type === 'availability' || f.type === 'acknowledgment') continue;
     else p[f.key] = '';
   }
-  for (const k of ACKNOWLEDGMENT_KEYS) p.acknowledgments[k] = { agreed: false, signature: '', signedOn: '' };
+  for (const k of ACKNOWLEDGMENT_KEYS) p.acknowledgments[k] = { agreed: false, signature: '', signedOn: '', signedAt: '', docVersion: '' };
   return p;
 }
 
@@ -231,7 +231,9 @@ export function normalizePacket(raw) {
   out.acknowledgments = { ...base.acknowledgments };
   for (const k of ACKNOWLEDGMENT_KEYS) {
     const a = raw.acknowledgments && raw.acknowledgments[k];
-    if (a && typeof a === 'object') out.acknowledgments[k] = { agreed: a.agreed === true, signature: String(a.signature || ''), signedOn: String(a.signedOn || '') };
+    // signedAt (a precise device time) and docVersion (the content hash of the
+    // text signed, lib/tlc-signing.js) ride with the signature (DR-0350).
+    if (a && typeof a === 'object') out.acknowledgments[k] = { agreed: a.agreed === true, signature: String(a.signature || ''), signedOn: String(a.signedOn || ''), signedAt: String(a.signedAt || ''), docVersion: String(a.docVersion || '') };
   }
   out.availability = emptyAvailability();
   if (raw.availability && typeof raw.availability === 'object') {

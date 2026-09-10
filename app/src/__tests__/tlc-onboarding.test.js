@@ -256,3 +256,33 @@ describe('migration 0187 keeps its walls (source pins)', () => {
     expect(nsql).toContain("order by case when i.instance_type = 'family' then 0 else 1 end, im.joined_at asc, i.id asc limit 1");
   });
 });
+
+describe('what a typed signature pins (DR-0350; Darrell: "how do the users acknowledge they read and agree")', () => {
+  it('the packet carries the time and the document version with the signature; missing ones normalize to empty, never invented', async () => {
+    const { normalizePacket } = await import('../lib/tlc-onboarding.js');
+    const p = normalizePacket({ acknowledgments: { policies: { agreed: true, signature: 'Ann Lee', signedOn: '2026-09-10', signedAt: '2026-09-10T15:00:00.000Z', docVersion: 'vabc12345' } } });
+    expect(p.acknowledgments.policies).toEqual({ agreed: true, signature: 'Ann Lee', signedOn: '2026-09-10', signedAt: '2026-09-10T15:00:00.000Z', docVersion: 'vabc12345' });
+    expect(p.acknowledgments.confidentiality).toEqual({ agreed: false, signature: '', signedOn: '', signedAt: '', docVersion: '' });
+  });
+  it('the document version is a content hash of the text as the app renders it: stable, and different once the text changes', async () => {
+    const { documentVersion, documentVersions, contentHash, signatureRecord, ESIGN_CONSENT } = await import('../lib/tlc-signing.js');
+    const v = documentVersions();
+    for (const k of ['policies', 'confidentiality', 'contractorAgreement']) expect(v[k]).toMatch(/^v[0-9a-f]{8}$/);
+    expect(new Set(Object.values(v)).size).toBe(3);
+    expect(documentVersion('policies')).toBe(v.policies);
+    expect(documentVersion('nope')).toBeNull();
+    expect(contentHash('a')).not.toBe(contentHash('b'));
+    const r = signatureRecord({ signature: ' Ann Lee ', key: 'confidentiality', now: new Date('2026-09-10T15:00:00Z') });
+    expect(r).toEqual({ signature: 'Ann Lee', signedOn: '2026-09-10', signedAt: '2026-09-10T15:00:00.000Z', docVersion: v.confidentiality });
+    expect(signatureRecord({ signature: '', key: 'confidentiality' }).signedAt).toBe('');
+    expect(ESIGN_CONSENT).toMatch(/same force as my handwritten signature/);
+  });
+  it('the form shows the consent line and stamps version + time at signing; the readout shows the version', () => {
+    const form = readFileSync(join(here, '../components/TlcOnboardingForm.jsx'), 'utf8');
+    const readout = readFileSync(join(here, '../components/TlcOnboardingReadout.jsx'), 'utf8');
+    expect(form).toContain('{ESIGN_CONSENT}');
+    expect(form).toContain('signatureRecord({ signature: name, key: field.key })');
+    expect(readout).toContain('document version ${a.docVersion}');
+  });
+});
+

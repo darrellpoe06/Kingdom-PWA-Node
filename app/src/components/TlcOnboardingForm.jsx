@@ -19,6 +19,7 @@ import {
   normalizePacket, validatePacket, validateBanking, packetProgress, labelFor, wordCount,
   exportPacketRecord, formatDate,
 } from '../lib/tlc-onboarding.js';
+import { signatureRecord, documentVersion, ESIGN_CONSENT } from '../lib/tlc-signing.js';
 import { openPacket, savePacket, uploadDocument, headshotThumbFromFile, withdrawPacket } from '../lib/tlc-onboarding-sync.js';
 import SectionTabs from './SectionTabs.jsx';
 import TlcOnboardingReadout from './TlcOnboardingReadout.jsx';
@@ -159,8 +160,9 @@ function Availability({ value, onChange, editable }) {
 }
 
 function Acknowledgment({ field, value, onChange, pointer, packetId, onPointer, editable }) {
-  const a = value || { agreed: false, signature: '', signedOn: '' };
+  const a = value || { agreed: false, signature: '', signedOn: '', signedAt: '', docVersion: '' };
   const [reading, setReading] = useState(false);
+  const version = documentVersion(field.key);
   const id = `f-${field.key}`;
   return (
     <div className="mb-4 border border-[#E8E4DC] bg-[#FAF8F4] p-3">
@@ -176,8 +178,16 @@ function Acknowledgment({ field, value, onChange, pointer, packetId, onPointer, 
       </label>
       <Label htmlFor={id} field={field}>Sign by typing your full legal name</Label>
       <input id={id} value={a.signature || ''} disabled={!editable} autoComplete="name" className={INPUT}
-        onChange={(e) => onChange({ ...a, signature: e.target.value, signedOn: e.target.value.trim() ? (a.signedOn || new Date().toISOString().slice(0, 10)) : '' })} />
-      {a.signedOn && <p className="text-xs text-[#5A5751] mt-1">Dated {formatDate(a.signedOn)}</p>}
+        onChange={(e) => {
+          const name = e.target.value;
+          // The first keystroke of a name stamps the time and the document
+          // version once; clearing the name clears them (lib/tlc-signing.js).
+          const stamped = name.trim() && a.signedAt ? { signedOn: a.signedOn, signedAt: a.signedAt, docVersion: a.docVersion || version || '' } : signatureRecord({ signature: name, key: field.key });
+          onChange({ ...a, signature: name, signedOn: stamped.signedOn, signedAt: stamped.signedAt, docVersion: stamped.docVersion });
+        }} />
+      <p className="text-[0.6875rem] text-[#5A5751] mt-1 leading-relaxed">{ESIGN_CONSENT}</p>
+      {a.signedOn && <p className="text-xs text-[#5A5751] mt-1">Dated {formatDate(a.signedOn)}{a.docVersion ? ` · document version ${a.docVersion}` : ''}</p>}
+      {!a.signedOn && version && <p className="text-[0.625rem] text-[#8A857C] mt-1">Document version {version}</p>}
       {field.attach && (
         <div className="mt-2">
           <FileField field={{ key: `${field.key}Signed`, label: `Attach the signed ${field.docName}` }} pointer={pointer} packetId={packetId} onPointer={onPointer} editable={editable} />

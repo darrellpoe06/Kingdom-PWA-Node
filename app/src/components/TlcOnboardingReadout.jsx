@@ -105,7 +105,7 @@ export default function TlcOnboardingReadout({ view }) {
               return (
                 <Row key={f.key} label={f.label}>
                   {a.agreed && a.signature
-                    ? <>Signed <b>{a.signature}</b>{a.signedOn ? ` on ${formatDate(a.signedOn)}` : ''}</>
+                    ? <>Signed <b>{a.signature}</b>{a.signedOn ? ` on ${formatDate(a.signedOn)}` : ''}{a.docVersion ? ` · document version ${a.docVersion}` : ''}{a.signedAt ? ` · ${a.signedAt.replace('T', ' ').slice(0, 16)} on their device` : ''}</>
                     : <span className="text-[#B85838]">not signed</span>}
                   {f.attach && <div className="mt-1"><DocumentLink pointer={docs[`${f.key}Signed`]} label={`signed ${f.docName}`} /></div>}
                 </Row>

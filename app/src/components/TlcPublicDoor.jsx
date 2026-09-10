@@ -32,6 +32,8 @@ import { TextSizeEscapeHatch } from './TextSizeControl.jsx';
 import UiIcon from './UiIcon.jsx';
 import { readOnboardTokenFromUrl } from '../lib/tlc-onboarding.js';
 import { parseTlcLessonLink, resolveTlcLesson } from '../lib/tlc-lesson-links.js';
+import { parseJobsLink } from '../lib/tlc-hiring.js';
+import { JoinTheTeam } from './TlcHiring.jsx';
 import TlcOnboardingForm from './TlcOnboardingForm.jsx';
 import TlcOnboarding from './TlcOnboarding.jsx';
 import TlcTeamResources from './TlcTeamResources.jsx';
@@ -68,10 +70,13 @@ function OnboardingDoor({ token, signedIn }) {
 }
 
 // The client-facing booking page (the sendable front door a prospect meets).
-function ClientDoor() {
+function ClientDoor({ jobs = { jobs: false, jobId: null } }) {
   const team = useTlcRoster(); // seed cards + approved colleagues (DR-0344)
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
+      {/* JOIN THE TEAM leads when the link asked for it (?jobs=1, the website's
+          careers link); otherwise it closes the door under Insurance. */}
+      {jobs.jobs && <JoinTheTeam lead jobId={jobs.jobId} />}
       {/* Match a Preferred Provider — FIRST (Darrell: "the first thing we see"). */}
       <section>
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Clinical Team</div>
@@ -126,6 +131,9 @@ function ClientDoor() {
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1.5">Insurance Accepted</div>
         <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{TLC_INSURANCE}</p>
       </section>
+
+      {/* HIRE THROUGH THE APP (DR-0350): the open postings, apply here. */}
+      {!jobs.jobs && <JoinTheTeam />}
     </main>
   );
 }
@@ -145,7 +153,9 @@ export default function TlcPublicDoor() {
   const [deepLink] = useState(() => resolveTlcLesson(parseTlcLessonLink(
     (typeof window !== 'undefined' && window.location && window.location.search) || '',
   )));
-  const [activeTab, setActiveTab] = useState(deepLink ? 'training' : 'find'); // the one slider, controlled so Team can send you to a sister tab
+  const [activeTab, setActiveTab] = useState(deepLink ? 'training' : 'find');
+  // The website's careers link lands on Join the team (DR-0350).
+  const [jobsLink] = useState(() => parseJobsLink((typeof window !== 'undefined' && window.location && window.location.search) || '')); // the one slider, controlled so Team can send you to a sister tab
   const [showShare, setShowShare] = useState(false);
   // Comfort controls — the SAME theme + text-size the whole PoeTech app uses
   // (shared libs; a per-device choice that follows the user between shells).
@@ -212,7 +222,7 @@ export default function TlcPublicDoor() {
   ) }] : []);
   // ONE slider, side by side, no second row (Darrell 2026-09-10).
   const sections = [
-    { id: 'find', label: 'Find your therapist', icon: 'users', render: () => <ClientDoor /> },
+    { id: 'find', label: 'Find your therapist', icon: 'users', render: () => <ClientDoor jobs={jobsLink} /> },
     ...officeSection('inquiries', 'Inquiries', 'phone', 'inquiries'),
     ...officeSection('growth', 'Client Growth', 'chart', 'growth'),
     ...officeSection('revenue', 'Revenue', 'coins', 'revenue'),
@@ -402,7 +412,7 @@ export default function TlcPublicDoor() {
               <PracticeLearn email="" isStaff={false} deepLink={deepLink} guest />
             </section>
           )}
-          <ClientDoor />
+          <ClientDoor jobs={jobsLink} />
         </>
       )}
 

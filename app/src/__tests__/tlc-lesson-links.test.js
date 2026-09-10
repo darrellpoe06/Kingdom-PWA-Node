@@ -18,11 +18,23 @@ describe('the link', () => {
     const q = tlcLessonQuery({ courseId: 'client-psychoeducation', lessonId: 'cl1-what-anxiety-is' });
     expect(q.startsWith('?tlc=1&')).toBe(true);
     expect(isTlcDoorContext(q), 'the shell must route it to the TLC door').toBe(true);
-    expect(parseTlcLessonLink(q)).toEqual({ courseId: 'client-psychoeducation', lessonId: 'cl1-what-anxiety-is' });
-    expect(parseTlcLessonLink(tlcLessonQuery({ courseId: 'client-psychoeducation' }))).toEqual({ courseId: 'client-psychoeducation', lessonId: null });
+    expect(parseTlcLessonLink(q)).toEqual({ courseId: 'client-psychoeducation', lessonId: 'cl1-what-anxiety-is', word: false });
+    expect(parseTlcLessonLink(tlcLessonQuery({ courseId: 'client-psychoeducation' }))).toEqual({ courseId: 'client-psychoeducation', lessonId: null, word: false });
     expect(tlcLessonQuery({})).toBe('');
-    expect(parseTlcLessonLink('?tlc=1')).toEqual({ courseId: null, lessonId: null });
-    expect(parseTlcLessonLink(null)).toEqual({ courseId: null, lessonId: null });
+    expect(parseTlcLessonLink('?tlc=1')).toEqual({ courseId: null, lessonId: null, word: false });
+    expect(parseTlcLessonLink(null)).toEqual({ courseId: null, lessonId: null, word: false });
+  });
+  it('carries whether the Word was open when it was shared, and the recipient’s lesson resolves the same way (Darrell: "with or without the Word depending on if the Word is open")', () => {
+    const plain = tlcLessonQuery({ courseId: 'client-psychoeducation', lessonId: 'cl1-what-is-anxiety' });
+    const open = tlcLessonQuery({ courseId: 'client-psychoeducation', lessonId: 'cl1-what-is-anxiety', word: true });
+    expect(plain).not.toContain('word=');
+    expect(open.endsWith('&word=1')).toBe(true);
+    expect(parseTlcLessonLink(plain).word).toBe(false);
+    expect(parseTlcLessonLink(open).word).toBe(true);
+    expect(parseTlcLessonLink('?tlc=1&course=client-psychoeducation&word=1').word, 'a course link has no fold to open').toBe(false);
+    expect(resolveTlcLesson(parseTlcLessonLink(open)).word).toBe(true);
+    expect(resolveTlcLesson(parseTlcLessonLink(plain)).word).toBe(false);
+    expect(tlcLessonUrl({ courseId: 'x', lessonId: 'y', word: true })).toBe('https://poetech.us/tlc/app/?tlc=1&course=x&lesson=y&word=1');
   });
   it('is absolute, on the canonical origin and TLC’s own installable entry — the path the onboarding link already uses', () => {
     const url = tlcLessonUrl({ courseId: 'whole-situation-support', lessonId: 'wh1-what-to-expect' });

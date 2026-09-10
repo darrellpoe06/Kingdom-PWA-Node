@@ -25,15 +25,21 @@ import { allTracks } from './tlc-lessons.js';
 import { allCourses } from './tlc-training-library.js';
 import { TLC_BRAND } from './tlc-practice.js';
 
-export const TLC_LINK_PARAMS = Object.freeze({ door: 'tlc', course: 'course', lesson: 'lesson' });
+// `word=1` rides along when the sharer had the Word open (Darrell 2026-09-10,
+// sharing from his phone: "The link should be with or without the Word
+// depending on if the Word is open"): the recipient's lesson opens the same
+// way the sharer was reading it — the fold open, or plain. It opens ONE
+// lesson's fold; it never flips the recipient's own page-wide switch.
+export const TLC_LINK_PARAMS = Object.freeze({ door: 'tlc', course: 'course', lesson: 'lesson', word: 'word' });
 
 /** The query string for one lesson (or a whole course / track when `lessonId` is omitted). */
-export function tlcLessonQuery({ courseId, lessonId } = {}) {
+export function tlcLessonQuery({ courseId, lessonId, word = false } = {}) {
   const c = String(courseId || '').trim();
   if (!c) return '';
   const parts = [`${TLC_LINK_PARAMS.door}=1`, `${TLC_LINK_PARAMS.course}=${encodeURIComponent(c)}`];
   const l = String(lessonId || '').trim();
   if (l) parts.push(`${TLC_LINK_PARAMS.lesson}=${encodeURIComponent(l)}`);
+  if (l && word) parts.push(`${TLC_LINK_PARAMS.word}=1`);
   return `?${parts.join('&')}`;
 }
 
@@ -42,21 +48,23 @@ export function tlcLessonQuery({ courseId, lessonId } = {}) {
  * entry (`poetech.us/tlc/app/?tlc=1`, the same path the onboarding link uses,
  * DR-0344), injectable so a test builds it with no browser.
  */
-export function tlcLessonUrl({ courseId, lessonId, origin = CANONICAL_APP_ORIGIN, path = TLC_APP_PATH } = {}) {
-  const q = tlcLessonQuery({ courseId, lessonId });
+export function tlcLessonUrl({ courseId, lessonId, word = false, origin = CANONICAL_APP_ORIGIN, path = TLC_APP_PATH } = {}) {
+  const q = tlcLessonQuery({ courseId, lessonId, word });
   if (!q) return '';
   return `${origin || ''}${path || '/'}${q}`;
 }
 
 /** Read a lesson link back out of a query string. Tolerant; never throws. */
 export function parseTlcLessonLink(search) {
-  const out = { courseId: null, lessonId: null };
+  const out = { courseId: null, lessonId: null, word: false };
   try {
     const sp = new URLSearchParams(search || '');
     const c = (sp.get(TLC_LINK_PARAMS.course) || '').trim();
     const l = (sp.get(TLC_LINK_PARAMS.lesson) || '').trim();
+    const w = sp.get(TLC_LINK_PARAMS.word);
     if (c) out.courseId = c;
     if (l) out.lessonId = l;
+    out.word = !!l && w !== null && w !== '' && w !== '0';
   } catch (_) { /* malformed query -> nothing linked */ }
   return out;
 }
@@ -73,21 +81,22 @@ const AUDIENCE_FOR_SIDE = { client: 'client', whole: 'client', therapist: 'thera
  * or null when nothing matches — a stale link opens the door normally.
  * A lesson id alone (no course) is found by searching every track and course.
  */
-export function resolveTlcLesson({ courseId, lessonId } = {}, { tracks = allTracks(), courses = allCourses() } = {}) {
+export function resolveTlcLesson({ courseId, lessonId, word = false } = {}, { tracks = allTracks(), courses = allCourses() } = {}) {
   const c = String(courseId || '').trim();
   const l = String(lessonId || '').trim();
+  const withWord = (r) => (r && r.module ? { ...r, word: !!word } : r);
   const byModule = (list) => (l ? list.find((m) => m.id === l) || null : null);
   const track = tracks.find((t) => t.key === c) || (l ? tracks.find((t) => (t.modules || []).some((m) => m.id === l)) : null);
   if (track) {
     const module = byModule(track.modules || []);
     if (l && !module) return null;
-    return { kind: 'track', audience: AUDIENCE_FOR_SIDE[track.sideKey] || 'client', track, module, title: track.title };
+    return withWord({ kind: 'track', audience: AUDIENCE_FOR_SIDE[track.sideKey] || 'client', track, module, title: track.title, word: false });
   }
   const course = courses.find((x) => x.id === c) || (l ? courses.find((x) => (x.modules || []).some((m) => m.id === l)) : null);
   if (course) {
     const module = byModule(course.modules || []);
     if (l && !module) return null;
-    return { kind: 'library', audience: 'training', course, module, title: course.title };
+    return withWord({ kind: 'library', audience: 'training', course, module, title: course.title, word: false });
   }
   return null;
 }
