@@ -164,6 +164,20 @@ export function wayInSteps({ counts, invites, claims } = {}) {
   ];
 }
 
+/**
+ * May this actor remove this person from the door? The exact mirror of
+ * remove_instance_member's guards (0130): only an owner/admin removes; never
+ * an owner; only an owner removes an admin; never yourself. Pure — the RPC is
+ * the real gate.
+ */
+export function canRemove(actorRole, targetRole, { isSelf = false } = {}) {
+  if (isSelf) return false;
+  if (!['owner', 'admin'].includes(actorRole)) return false;
+  if (targetRole === 'owner') return false;
+  if (targetRole === 'admin') return actorRole === 'owner';
+  return true;
+}
+
 /** The church space the signed-in person may govern, if any (owner/admin). */
 export function pickChurchSpace(spaces = []) {
   return spaces.find((s) => s && s.instanceType === 'church' && ['owner', 'admin'].includes(s.role)) || null;

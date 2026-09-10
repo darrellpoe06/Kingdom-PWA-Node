@@ -36,7 +36,7 @@
 
 - The sandbox cannot sign in; the live tab is proven in jsdom against the real component. **Witness: Church → Members on Darrell's phone** — `re-review: 2026-09-13`.
 - The 0014 leader allowlist is code; the tab states it, cannot edit it. A table an owner edits is a schema change — `re-review: 2026-09-24`.
-- Remove a person is not on the tab (RPC 0130 exists) — `re-review: 2026-09-17`.
+- ~~Remove a person is not on the tab~~ — built before merge (section 8), the DR-0236 closing test applied.
 
 ## 5. Also this session, before this build
 
@@ -53,3 +53,7 @@
 ## 7. PR #1500 — deploy proven (DR-0107)
 
 Deploy run 1006 completed green for `0534d5e` (main's tip after the squash). Task closed.
+
+## 8. Before merge — Remove, because it was buildable now (DR-0236)
+
+The 2026-09-17 date was a "later" for work the tools already allowed. `canRemove()` (pure, the mirror of `remove_instance_member` 0130) + a two-tap Remove in the Rights fold: the first tap asks and offers Keep, the second calls the RPC with the church id and re-reads the roster. Never on an owner or yourself; an admin is removed only by an owner. Tests +2; lint, ui-standards (0 regressions), consistency, contrast green.

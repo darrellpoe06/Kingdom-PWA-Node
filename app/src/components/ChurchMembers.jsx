@@ -28,6 +28,10 @@
 //                for members and viewers (canEditCapabilities).
 //   Invite     — email + standing → access on next sign-in; claim links
 //                waiting on confirmation.
+// Remove rides the same fold: a first tap asks, a second tap removes
+// (remove_instance_member 0130 — never an owner, only an owner removes an
+// admin, never yourself; canRemove mirrors it so the button never offers
+// what the server refuses).
 // Every count is a row the server returned; an error says it is one (the
 // STRICT roster read, DR-0100). Signed out → a sign-in note, never a blank.
 // =============================================================================
@@ -39,11 +43,11 @@ import { ProfileAvatar } from './ProfileCard.jsx';
 import { useProfiles, preferredName } from '../lib/use-profiles.js';
 import {
   grantableRoles, roleLabel, setMemberRole, CAPABILITIES, canEditCapabilities,
-  setMemberCapability, listMemberCapabilities, inviteToSpace, isInviteEmail,
+  setMemberCapability, listMemberCapabilities, inviteToSpace, isInviteEmail, removeInstanceMember,
 } from '../lib/member-roles.js';
 import { confirmInvite } from '../lib/family-invite.js';
 import {
-  loadChurchGovernance, rightsFor, countsByRole, groupByRole, wayInSteps,
+  loadChurchGovernance, rightsFor, countsByRole, groupByRole, wayInSteps, canRemove,
 } from '../lib/church-members.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -103,13 +107,15 @@ function WayIn({ gov }) {
 }
 
 // ── People ──────────────────────────────────────────────────────────────────
-function Person({ m, myRole, myUserId, grants, onRole, onRight, profile }) {
+function Person({ m, myRole, myUserId, grants, onRole, onRight, onRemove, profile }) {
   const [open, setOpen] = useState(false);
+  const [askRemove, setAskRemove] = useState(false);
   const isSelf = !!(myUserId && m.userId === myUserId);
   const options = grantableRoles(myRole, m.role, { isSelf });
   const editable = canEditCapabilities(myRole, m.role, { isSelf });
   const rights = rightsFor(m.role, grants, m.userId);
   const name = preferredName(profile, m.displayName, m.email, 'Member');
+  const removable = canRemove(myRole, m.role, { isSelf });
   return (
     <li className="border border-[#E8E4DC] p-2.5" data-person={m.userId}>
       <div className="flex items-center gap-3">
@@ -176,13 +182,30 @@ function Person({ m, myRole, myUserId, grants, onRole, onRight, profile }) {
               </ul>
             </div>
           )}
+          {removable && (
+            <div className="sm:col-span-2 flex items-center justify-between gap-2 flex-wrap border border-[#E8E4DC] p-2" data-remove>
+              <span className="text-[0.6875rem] text-[#5A5751]" style={serif}>
+                {askRemove ? `Remove ${name} from this door? Their records stay; their access ends now.` : 'Take this person off the door entirely.'}
+              </span>
+              <span className="flex items-center gap-1.5">
+                {askRemove && (
+                  <button type="button" className={`${CHIP_BTN} shrink-0`} onClick={() => setAskRemove(false)}>Keep</button>
+                )}
+                <button type="button" data-remove-button
+                  className="text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[36px] border border-[#7A1F1F] text-[#7A1F1F] hover:bg-[#7A1F1F] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  onClick={() => { if (askRemove) { setAskRemove(false); onRemove(m.userId); } else setAskRemove(true); }}>
+                  {askRemove ? 'Yes, remove' : 'Remove'}
+                </button>
+              </span>
+            </div>
+          )}
         </div>
       )}
     </li>
   );
 }
 
-function People({ gov, myUserId, onRole, onRight }) {
+function People({ gov, myUserId, onRole, onRight, onRemove }) {
   const ids = useMemo(() => (gov.members || []).map((m) => m.userId), [gov.members]);
   const profiles = useProfiles(ids);
   const groups = groupByRole(gov.members);
@@ -190,7 +213,7 @@ function People({ gov, myUserId, onRole, onRight }) {
     <Card>
       <div className="text-sm font-semibold text-[#1A1815]" style={serif}>The people on this door, by standing</div>
       <p className="text-xs text-[#5A5751] mt-0.5 leading-relaxed" style={serif}>
-        Top down: owner, admin, member, assistant, successor, child, viewer. Tap <strong>Rights</strong> to see what a person may and may not do; change a standing from its box. You cannot change an owner or yourself.
+        Top down: owner, admin, member, assistant, successor, child, viewer. Tap <strong>Rights</strong> to see what a person may and may not do, and to remove them; change a standing from its box. You cannot change, or remove, an owner or yourself.
       </p>
       {groups.length === 0 && <p className="text-xs mt-2 text-[#5A5751]" style={serif}>No one is on this door yet.</p>}
       {groups.map((g) => (
@@ -199,7 +222,7 @@ function People({ gov, myUserId, onRole, onRight }) {
           <ul className="mt-1.5 space-y-1.5">
             {g.people.map((m) => (
               <Person key={m.userId || m.email} m={m} myRole={gov.myRole} myUserId={myUserId} grants={gov.grants}
-                onRole={onRole} onRight={onRight} profile={profiles[m.userId] || null} />
+                onRole={onRole} onRight={onRight} onRemove={onRemove} profile={profiles[m.userId] || null} />
             ))}
           </ul>
         </div>
@@ -307,6 +330,11 @@ export default function ChurchMembers() {
     const grants = await listMemberCapabilities(spaceId);
     setState((p) => (p.gov ? { ...p, gov: { ...p.gov, grants } } : p));
   };
+  const onRemove = async (userId) => {
+    const r = await removeInstanceMember(spaceId, userId);
+    if (r && r.skipped) { setState((p) => ({ ...p, error: (r.error && r.error.message) || r.skipped })); return; }
+    await load();
+  };
   const onInvite = async (email, role) => {
     setNote('Inviting…');
     const r = await inviteToSpace('church', email, role, spaceId);
@@ -332,7 +360,7 @@ export default function ChurchMembers() {
 
   const sections = [
     { id: 'way-in', label: 'The way in', icon: 'lock', render: () => <WayIn gov={gov} /> },
-    governs && { id: 'people', label: 'People', icon: 'users', render: () => <People gov={gov} myUserId={myUserId} onRole={onRole} onRight={onRight} /> },
+    governs && { id: 'people', label: 'People', icon: 'users', render: () => <People gov={gov} myUserId={myUserId} onRole={onRole} onRight={onRight} onRemove={onRemove} /> },
     governs && { id: 'invite', label: 'Invite', icon: 'sparkle', render: () => <Invite gov={gov} onInvite={onInvite} onConfirm={onConfirm} note={note} /> },
   ];
 

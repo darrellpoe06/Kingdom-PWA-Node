@@ -16,7 +16,7 @@ import { createRoot } from 'react-dom/client';
 
 let session = null;
 let spaces = [];
-const calls = { setRole: [], setCap: [], invite: [], confirm: [] };
+const calls = { setRole: [], setCap: [], invite: [], confirm: [], remove: [] };
 let grants = [];
 
 vi.mock('../lib/supabase.js', () => ({
@@ -42,6 +42,7 @@ vi.mock('../lib/member-roles.js', async (orig) => ({
   setMemberRole: async (inst, user, role) => { calls.setRole.push([inst, user, role]); return { status: 'changed', role }; },
   setMemberCapability: async (inst, user, cap, on) => { calls.setCap.push([inst, user, cap, on]); grants = on ? [...grants, { userId: user, capability: cap }] : grants.filter((g) => !(g.userId === user && g.capability === cap)); return { status: on ? 'granted' : 'revoked' }; },
   inviteToSpace: async (type, email, role, inst) => { calls.invite.push([type, email, role, inst]); return { ok: true, kind: 'church', email, role }; },
+  removeInstanceMember: async (inst, user) => { calls.remove.push([inst, user]); return { status: 'removed' }; },
 }));
 vi.mock('../lib/family-invite.js', async (orig) => ({
   ...(await orig()),
@@ -67,7 +68,7 @@ const settle = () => act(async () => { for (let i = 0; i < 6; i += 1) await Prom
 const click = (el) => act(async () => { el.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
 const chip = (label) => [...container.querySelectorAll('[role="tab"]')].find((b) => (b.textContent || '').includes(label));
 
-beforeEach(() => { calls.setRole = []; calls.setCap = []; calls.invite = []; calls.confirm = []; grants = [{ userId: 'u-ann', capability: 'write:choir' }]; });
+beforeEach(() => { calls.setRole = []; calls.setCap = []; calls.invite = []; calls.confirm = []; calls.remove = []; grants = [{ userId: 'u-ann', capability: 'write:choir' }]; });
 afterEach(async () => { if (root) await act(async () => root.unmount()); if (container) container.remove(); root = null; container = null; });
 
 describe('ChurchMembers — signed out and a plain member', () => {
@@ -130,6 +131,28 @@ describe('ChurchMembers — an owner governs from the door', () => {
     await settle();
     expect(calls.setCap).toEqual([['c1', 'u-ann', 'write:bus', true]]);
     expect(container.querySelector('[data-person="u-ann"] input[data-right="write:bus"]').checked).toBe(true);
+  });
+
+  it('Remove: two taps, never on an owner or yourself; the RPC is called with the church id', async () => {
+    await mount();
+    await click(chip('People'));
+    await settle();
+    // the owner's own row and the owner never carry Remove
+    await click([...container.querySelectorAll('[data-person="me"] button')].find((b) => b.textContent === 'Rights'));
+    expect(container.querySelector('[data-person="me"] [data-remove]')).toBeNull();
+    const ann = container.querySelector('[data-person="u-ann"]');
+    await click([...ann.querySelectorAll('button')].find((b) => b.textContent === 'Rights'));
+    const btn = ann.querySelector('[data-remove-button]');
+    expect(btn.textContent).toBe('Remove');
+    await click(btn);
+    expect(calls.remove).toEqual([]);                          // the first tap only asks
+    expect(ann.textContent).toMatch(/Remove Ann of the Choir from this door\?/);
+    await click([...ann.querySelectorAll('button')].find((b) => b.textContent === 'Keep'));
+    expect(ann.querySelector('[data-remove-button]').textContent).toBe('Remove');
+    await click(ann.querySelector('[data-remove-button]'));
+    await click(ann.querySelector('[data-remove-button]'));
+    await settle();
+    expect(calls.remove).toEqual([['c1', 'u-ann']]);
   });
 
   it('Invite: email + standing → invite_to_church on this door; open invites and a claim to confirm', async () => {

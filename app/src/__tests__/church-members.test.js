@@ -19,7 +19,7 @@ vi.mock('../lib/member-roles.js', async (orig) => ({
 vi.mock('../lib/family-invite.js', async (orig) => ({ ...(await orig()), listPendingClaims: async () => ({ ok: true, claims: [] }) }));
 
 import {
-  rightsFor, countsByRole, groupByRole, openInvites, wayInSteps, pickChurchSpace, loadChurchGovernance, ROLE_ORDER,
+  rightsFor, countsByRole, groupByRole, openInvites, wayInSteps, pickChurchSpace, loadChurchGovernance, ROLE_ORDER, canRemove,
 } from '../lib/church-members.js';
 import { CAPABILITIES } from '../lib/member-roles.js';
 
@@ -112,6 +112,18 @@ describe('pickChurchSpace / loadChurchGovernance — the gate is the real standi
     const gov = await loadChurchGovernance();
     expect(gov.governs).toBe(false);
     expect(gov.members).toEqual([]);
+  });
+});
+
+describe('canRemove — the mirror of remove_instance_member (0130)', () => {
+  it('never an owner, never yourself, only an owner removes an admin, a member never removes', () => {
+    expect(canRemove('owner', 'owner')).toBe(false);
+    expect(canRemove('owner', 'admin')).toBe(true);
+    expect(canRemove('admin', 'admin')).toBe(false);
+    expect(canRemove('admin', 'member')).toBe(true);
+    expect(canRemove('admin', 'viewer')).toBe(true);
+    expect(canRemove('owner', 'member', { isSelf: true })).toBe(false);
+    expect(canRemove('member', 'viewer')).toBe(false);
   });
 });
 
