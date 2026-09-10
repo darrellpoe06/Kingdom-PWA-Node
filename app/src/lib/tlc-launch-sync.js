@@ -5,6 +5,7 @@
 // status per task key, bounded by a timeout, fail-soft. The task list itself
 // is data (lib/tlc-launch-plan.js); this only carries the office's status.
 import supabase from './supabase.js';
+import { tlcError } from './tlc-error.js';
 import { getInstanceId } from './table-sync.js';
 import { normalizeStatus } from './tlc-launch-plan.js';
 
@@ -22,11 +23,11 @@ export async function loadLaunchStatuses(officeId = 'tlc') {
     const { data, error } = await bounded(
       supabase.from('tlc_office_tasks').select('task_key,status,note,updated_at').eq('instance_id', instanceId).eq('office_id', officeId),
       LAUNCH_TIMEOUT_MS, 'reading the launch board');
-    if (error) return { ok: false, reason: 'read-error', message: error.message, statuses: {} };
+    if (error) return { ok: false, reason: 'read-error', message: tlcError(error), statuses: {} };
     const statuses = {};
     for (const r of data || []) statuses[r.task_key] = { status: normalizeStatus(r.status), note: r.note || '', updatedAt: r.updated_at };
     return { ok: true, statuses };
-  } catch (e) { return { ok: false, reason: 'network-error', message: (e && e.message) || 'the connection failed', statuses: {} }; }
+  } catch (e) { return { ok: false, reason: 'network-error', message: tlcError(e), statuses: {} }; }
 }
 
 export async function setLaunchStatus(taskKey, status, { note = null, officeId = 'tlc' } = {}) {
@@ -36,7 +37,7 @@ export async function setLaunchStatus(taskKey, status, { note = null, officeId =
     const { data: sess } = await supabase.auth.getSession();
     const row = { instance_id: instanceId, office_id: officeId, task_key: taskKey, status: normalizeStatus(status), note, updated_by: sess?.session?.user?.id || null, updated_at: new Date().toISOString(), done_at: status === 'done' ? new Date().toISOString() : null };
     const { error } = await bounded(supabase.from('tlc_office_tasks').upsert(row, { onConflict: 'instance_id,office_id,task_key' }), LAUNCH_TIMEOUT_MS, 'saving the board');
-    if (error) return { ok: false, reason: 'write-error', message: error.message };
+    if (error) return { ok: false, reason: 'write-error', message: tlcError(error) };
     return { ok: true };
-  } catch (e) { return { ok: false, reason: 'network-error', message: (e && e.message) || 'the connection failed' }; }
+  } catch (e) { return { ok: false, reason: 'network-error', message: tlcError(e) }; }
 }

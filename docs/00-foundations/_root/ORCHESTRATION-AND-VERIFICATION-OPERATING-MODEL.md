@@ -122,7 +122,29 @@ state of the work is **motion**, not waiting on Darrell to push each step
   parked / land order / merged SHAs, read live from the repo) beside a short
   statement of this model — the model and its proof in one place (DR-0065).
 
-## 9. Cross-references
+## 9. The proof ladder — what "not a fake test" means here (added 2026-09-10, DR-0347)
+
+Darrell, 2026-09-10, after two findings in one hour (a database function silently rewritten; a Cloudflare error page printed as a message): *"we need to be creating tests that catch these failures... did we?"* and *"not fake test... also documenting the best workflows behavior."* The answer is a ladder, and every rung has a rule.
+
+| Rung | What it proves | What it can NOT prove | The rule |
+|---|---|---|---|
+| **1. Pure unit** (node, no DOM) | The data and the arithmetic: a plan, a rule registry, a verse against the corpus | Anything that touches a screen or a database | Every figure a surface shows has a pure test that computes it from the real data file, never from a fixture that copies the answer |
+| **2. Source pin** | A file still says what a decision says (a gate string, an import, an absent url, a NULL-safe guard) | Behaviour | A source pin names the exact line it guards and fails on the exact breaking edit (proven-to-catch, DR-0076 §3); it is never the only rung for behaviour |
+| **3. Real component render** (jsdom, the seam mocked) | The surface the person meets: the tab exists, the click lands, the words are right, the write goes through the seam once with the right arguments | The database's answer | The mock is the seam's contract, captured (`sent.*`), never a stand-in for the policy; the mocked seam must have a rung-4 twin |
+| **4. Database smoke on the real database** (`infra/supabase/tests/*-smoke.sql`, the rls-isolation matrix, rolled back) | The policy itself: who may write, who may read, what a trigger keeps, what an overlay denies | The app's wiring | Every migration that creates an instance-scoped table or redefines a shared function gets a leg or joins one; the smoke asserts the deny as well as the allow; it runs after every db-migrate, and a red leg on `main` is work now, never "pre-existing" |
+| **5. Live verification** | What production actually holds: a policy's text (`pg_policies`), a deploy's head sha, the site's own answer (site-health) | Tomorrow | A claim of "applied", "deployed", "live" is a query or a run id in the record, never a sentence |
+
+**The two failures of 2026-09-10, on the ladder.** The overlay drop lived at rung 4 (the smoke was red for four days) with no rung-2 gate for the class; `viewer-overlay-lineage.test.js` is that gate, proven against 0181's own body. The 502 page lived at rung 3 with no pin on the artifact; `tlc-error-text.test.js` pins the exact body from the screen and the seams' source. The TLC office tables lived at rungs 1–3 and 5 with no rung 4; `0189-tlc-office-smoke.sql` is the leg.
+
+**The incident workflow that worked, written as the way (DR-0108):**
+1. A red check on `main` is pulled as the next item the moment the current increment ships; it is never left as "flagged".
+2. Trace on the real database first (`pg_policies`, `pg_proc`), then in the migrations in order; name the exact commit that broke it and the exact reason the gate did not catch it.
+3. One PR carries the fix, the gate for the class (proven-to-catch against the real breaking body, not a synthetic one only), the matrix leg that proves it on the database, the DR, the LESSONS principle, and the ledger row.
+4. The record states the live proof still pending, with a date, and the check-in is armed before the turn ends.
+
+**The delivery behaviours that worked today, kept:** ship in increments of one directive each, roughly every forty minutes, each with its own DR or amendment, INDEX row and session-note section in the same commit; merge `main` by merge commit and resolve by taking the branch's files, never rewriting history; the PR body carries the proof and the honest limits; the deploy is proven by run id after every merge; a screenshot from Darrell is treated as a failing test on the real artifact and pinned before it is fixed.
+
+## 10. Cross-references
 
 DR-0076 (Verification Doctrine), DR-0075 (perpetual improvement), DR-0073
 (capability-aware routing), DR-0063 (learn-from-experience), DR-0062/0066

@@ -13,6 +13,7 @@
 // OWN record, held inside the office. They read it back, export it, and can
 // withdraw it (a hard delete, files first). The office reads it audited.
 import supabase from './supabase.js';
+import { tlcError } from './tlc-error.js';
 import { compressImageFile } from './image.js';
 import { HEADSHOT_THUMB_MAX_CHARS, HEADSHOT_THUMB_PX, documentPath, validateDocumentFile, normalizePacket } from './tlc-onboarding.js';
 
@@ -28,7 +29,7 @@ function withTimeout(promise, ms, what) {
 }
 
 function fail(reason, error) {
-  const message = (error && error.message) || String(error || reason);
+  const message = (error && tlcError(error)) || String(error || reason);
   return { ok: false, reason, message };
 }
 
@@ -192,11 +193,11 @@ export async function uploadDocument({ packetId, docKey, file }) {
       supabase.storage.from(BUCKET).upload(path, file, { upsert: true, contentType: file.type || undefined }),
       UPLOAD_TIMEOUT_MS, 'the upload');
     if (error) {
-      const msg = String(error.message || '').toLowerCase();
+      const msg = String(tlcError(error) || '').toLowerCase();
       if (msg.includes('bucket') && msg.includes('not found')) return fail('no-bucket', 'The document vault is not set up on this backend yet (migration 0187). Nothing was stored; tell Christina.');
-      return fail('upload-failed', `The file could not be stored: ${error.message}`);
+      return fail('upload-failed', `The file could not be stored: ${tlcError(error)}`);
     }
-  } catch (e) { return fail('network-error', `The file could not be stored: ${(e && e.message) || 'the connection failed'}`); }
+  } catch (e) { return fail('network-error', `The file could not be stored: ${tlcError(e)}`); }
   return { ok: true, pointer: { path, fileName: file.name, fileSize: Number(file.size) || null, contentType: file.type || '', uploadedAt: new Date().toISOString() } };
 }
 
@@ -226,7 +227,7 @@ export async function removePacketFiles(view) {
   if (!paths.length) return { ok: true, removed: 0, failed: [] };
   try {
     const { error } = await withTimeout(supabase.storage.from(BUCKET).remove(paths), RPC_TIMEOUT_MS, 'removing the files');
-    if (error) return { ok: false, removed: 0, failed: paths, message: error.message };
+    if (error) return { ok: false, removed: 0, failed: paths, message: tlcError(error) };
     return { ok: true, removed: paths.length, failed: [] };
-  } catch (e) { return { ok: false, removed: 0, failed: paths, message: (e && e.message) || 'the connection failed' }; }
+  } catch (e) { return { ok: false, removed: 0, failed: paths, message: tlcError(e) }; }
 }

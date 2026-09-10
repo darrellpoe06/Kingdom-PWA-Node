@@ -28,7 +28,12 @@ export function looksLikeHtml(message) {
 export function htmlTitle(html) {
   const m = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(String(html || ''));
   if (!m) return '';
-  return m[1].replace(/\s+/g, ' ').replace(/\s*\|.*$/, '').trim().slice(0, 80);
+  // Cloudflare titles read "Origin DNS error | poetech.us" or "poetech.us |
+  // 502: Bad gateway": the host is not the fact, the other side is.
+  const parts = m[1].replace(/\s+/g, ' ').split('|').map((x) => x.trim()).filter(Boolean);
+  if (!parts.length) return '';
+  const host = /^[a-z0-9.-]+\.[a-z]{2,}$/i;
+  return (host.test(parts[0]) && parts.length > 1 ? parts.slice(1).join(' | ') : parts[0]).slice(0, 80);
 }
 
 /**
@@ -36,13 +41,15 @@ export function htmlTitle(html) {
  * @param {string|Error|{message?:string}} err  what the seam returned
  * @param {object} [o]
  * @param {string} [o.did]  what did not happen, e.g. "Nothing was saved" (default)
+ * @param {string} [o.server]  the server as the reader knows it (default "the church server";
+ *   the TLC seams say "the office server", DR-0347 sweep)
  */
-export function humanizeServerError(err, { did = 'Nothing was saved' } = {}) {
+export function humanizeServerError(err, { did = 'Nothing was saved', server = 'the church server' } = {}) {
   const raw = typeof err === 'string' ? err : (err && err.message) || '';
   if (!raw.trim()) return `${did} — the server did not answer. Try again in a moment.`;
   if (looksLikeHtml(raw)) {
     const title = htmlTitle(raw);
-    return `${did} — the church server could not be reached${title ? ` (${title})` : ''}. Try again in a moment.`;
+    return `${did} — ${server} could not be reached${title ? ` (${title})` : ''}. Try again in a moment.`;
   }
   // A real message from the database or the seam: keep it, capped, one line.
   return `${did} — ${raw.replace(/\s+/g, ' ').trim().slice(0, 200)}`;
