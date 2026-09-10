@@ -16,12 +16,15 @@
 // inputs, and aria-live regions for the verdict + the live thread.
 // =============================================================================
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import DirectMessages from './DirectMessages.jsx';
 import MyProfile from './MyProfile.jsx';
+import { ProfileAvatar } from './ProfileCard.jsx';
+import { useProfiles, preferredName } from '../lib/use-profiles.js';
+import { loadMyProfile } from '../lib/profiles-sync.js';
 import { publishDmPublicKey, loadDmContacts, loadDmInvited } from '../lib/direct-messages-sync.js';
 import {
   uploadTriviaAnswer, sendMessage, subscribeMessages,
@@ -350,6 +353,10 @@ function MessageThread({ signedIn }) {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState(null);
+  // The face beside every family message (Darrell 2026-09-09: "users like to
+  // see their picture") — one cached read per person who has spoken.
+  const speakerIds = useMemo(() => messages.map((m) => m && m.userId), [messages]);
+  const threadProfiles = useProfiles(speakerIds);
   const listRef = useRef(null);
 
   useEffect(() => {
@@ -430,11 +437,14 @@ function MessageThread({ signedIn }) {
             ) : (
               messages.map((m) => (
                 <div key={m.id} className="text-sm">
+                  <span className="inline-block align-middle mr-1.5">
+                    <ProfileAvatar profile={threadProfiles[m.userId] || { displayName: m.displayName }} size={22} />
+                  </span>
                   <span
                     className="font-semibold text-[#1A1815]"
                     style={{ fontFamily: '"Fraunces", serif' }}
                   >
-                    {m.displayName}
+                    {preferredName(threadProfiles[m.userId], m.displayName)}
                     {m.mine && (
                       <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] ml-1">
                         (you)
@@ -508,6 +518,15 @@ function DirectPanel({ signedIn }) {
   const [invited, setInvited] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [editingMe, setEditingMe] = useState(false);
+  // My own face on the fold that edits it — the picture a person saved is the
+  // first thing they look for (Darrell 2026-09-09).
+  const [me, setMe] = useState(null);
+  useEffect(() => {
+    if (!signedIn) { setMe(null); return undefined; }
+    let alive = true;
+    loadMyProfile().then((p) => { if (alive) setMe(p || null); }).catch(() => {});
+    return () => { alive = false; };
+  }, [signedIn, editingMe]);
 
   useEffect(() => {
     if (!signedIn) { setContacts([]); setInvited([]); setLoaded(false); return undefined; }
@@ -548,8 +567,9 @@ function DirectPanel({ signedIn }) {
               people who may message them. */}
           <div className="mt-4 border-t border-[#E8E4DC] pt-3">
             <button type="button" onClick={() => setEditingMe((v) => !v)} aria-expanded={editingMe}
-              className="w-full text-left text-[0.625rem] uppercase tracking-wider text-[#B85838] py-1.5 hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
-              {editingMe ? '↑ Close my profile' : '↓ My profile — name, picture, house, ministries, testimony'}
+              className="w-full text-left text-[0.625rem] uppercase tracking-wider text-[#B85838] py-1.5 hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-2">
+              {me && <ProfileAvatar profile={me} size={28} />}
+              <span>{editingMe ? '↑ Close my profile' : `↓ ${me?.displayName ? `${me.displayName} — my profile` : 'My profile'} — name, picture, house, ministries, testimony`}</span>
             </button>
             {editingMe && <div className="mt-2"><MyProfile /></div>}
           </div>
@@ -571,16 +591,19 @@ export default function Engagement() {
   // "sliding tabs for all tabs instead of a long scroll"). The title stays
   // pinned above the strip. Each card mounts lazily — the thread's realtime
   // subscription starts only when its tab is actually opened.
+  // Order (Darrell 2026-09-09): "move messages to the first tab spot... then
+  // family then trivia" — the private door first, the family second, the game
+  // third; and the page opens on the first.
   const sections = [
-    { id: 'trivia', label: 'Trivia', icon: 'dice', render: () => <TriviaCard signedIn={signedIn} /> },
-    { id: 'thread', label: 'Family thread', icon: 'chat', render: () => <MessageThread signedIn={signedIn} /> },
     { id: 'direct', label: 'Message a member', icon: 'users', render: () => <DirectPanel signedIn={signedIn} /> },
+    { id: 'thread', label: 'Family thread', icon: 'chat', render: () => <MessageThread signedIn={signedIn} /> },
+    { id: 'trivia', label: 'Trivia', icon: 'dice', render: () => <TriviaCard signedIn={signedIn} /> },
   ];
 
   return (
     <div className="max-w-2xl">
       <SectionTitle eyebrow="Church · daily">Engagement</SectionTitle>
-      <SectionTabs sections={sections} ariaLabel="Engagement sections" idBase="engage" defaultId="trivia" />
+      <SectionTabs sections={sections} ariaLabel="Engagement sections" idBase="engage" defaultId="direct" />
     </div>
   );
 }

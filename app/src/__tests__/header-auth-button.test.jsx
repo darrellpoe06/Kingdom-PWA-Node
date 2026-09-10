@@ -25,6 +25,19 @@ vi.mock('../lib/supabase.js', () => ({
 vi.mock('../components/AuthModal.jsx', () => ({
   default: ({ open }) => (open ? createElement('div', { 'data-testid': 'auth-modal' }) : null),
 }));
+// The person's own row (DR-0342): the header reads it to show the face + name.
+let myProfile = null;
+vi.mock('../lib/profiles-sync.js', () => ({
+  loadMyProfile: async () => myProfile,
+  initialsOf: (n) => String(n || '?').split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase(),
+}));
+// The quiet Modal + the editor are heavy; markers keep this about the header.
+vi.mock('../components/Modal.jsx', () => ({
+  default: ({ open, children }) => (open ? createElement('div', { 'data-testid': 'profile-dialog' }, children) : null),
+}));
+vi.mock('../components/MyProfile.jsx', () => ({
+  default: () => createElement('div', { 'data-testid': 'my-profile-editor' }, 'Take or choose a picture'),
+}));
 
 const { default: HeaderAuthButton } = await import('../components/HeaderAuthButton.jsx');
 
@@ -35,7 +48,8 @@ const mount = () => {
   root = createRoot(container);
   act(() => root.render(createElement(HeaderAuthButton)));
 };
-afterEach(() => { act(() => root.unmount()); container.remove(); signOutSpy.mockClear(); });
+afterEach(() => { act(() => root.unmount()); container.remove(); signOutSpy.mockClear(); myProfile = null; });
+const settle = () => act(async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); });
 
 const button = (re) => [...container.querySelectorAll('button')].find((b) => re.test(b.textContent || ''));
 
@@ -65,5 +79,55 @@ describe('HeaderAuthButton — obvious top-right Log in / Log out', () => {
     expect(button(/^log in$/i)).toBeFalsy();
     act(() => btn.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     expect(signOutSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Darrell 2026-09-09: "All apps users profile shows and has login or out under
+// it... so it is looked at... or seen... And upload a photo spot." The box
+// carries the person: picture (or initials + a "+ photo" spot), chosen name,
+// Log out beneath; tapping the face opens My profile on any app.
+describe('HeaderAuthButton — the person is seen: face + name above Log out, and a photo spot', () => {
+  it('signed IN with a saved picture: shows the picture and the chosen name, Log out under it', async () => {
+    currentSession = { user: { id: 'u1', email: 'darrellpoe06@gmail.com' } };
+    myProfile = { userId: 'u1', displayName: 'Darrell Poe', photoThumb: 'data:image/jpeg;base64,/9j/4AAQ' };
+    mount(); await settle();
+    const chip = container.querySelector('[data-header-account] button[aria-haspopup="dialog"]');
+    expect(chip).toBeTruthy();
+    expect(chip.textContent).toMatch(/Darrell Poe/);
+    expect(chip.querySelector('img')?.getAttribute('src')).toMatch(/^data:image\/jpeg/);
+    expect(chip.textContent).not.toMatch(/\+ photo/);
+    // Log out sits under it, still the obvious bordered box.
+    const out = button(/Log out/);
+    expect(out).toBeTruthy();
+    expect(out.className).toMatch(/border/);
+    expect(chip.compareDocumentPosition(out) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('signed IN without a picture: initials, the sign-in handle, and a "+ photo" spot', async () => {
+    currentSession = { user: { id: 'u1', email: 'darrellpoe06@gmail.com' } };
+    myProfile = null;
+    mount(); await settle();
+    const chip = container.querySelector('[data-header-account] button[aria-haspopup="dialog"]');
+    expect(chip.textContent).toMatch(/darrellpoe06/);
+    expect(chip.textContent).toMatch(/\+ photo/);
+    expect(chip.querySelector('img')).toBeFalsy();
+    expect(chip.getAttribute('aria-label')).toMatch(/add your picture/i);
+  });
+
+  it('tapping the face opens My profile — the upload spot — on whatever app this is', async () => {
+    currentSession = { user: { id: 'u1', email: 'darrellpoe06@gmail.com' } };
+    mount(); await settle();
+    expect(container.querySelector('[data-testid="profile-dialog"]')).toBeFalsy();
+    const chip = container.querySelector('[data-header-account] button[aria-haspopup="dialog"]');
+    act(() => { chip.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
+    expect(container.querySelector('[data-testid="profile-dialog"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="my-profile-editor"]')?.textContent).toMatch(/Take or choose a picture/);
+  });
+
+  it('signed OUT: no chip, only the Log in box', () => {
+    currentSession = null;
+    mount();
+    expect(container.querySelector('[data-header-account]')).toBeFalsy();
+    expect(button(/Log in/)).toBeTruthy();
   });
 });
