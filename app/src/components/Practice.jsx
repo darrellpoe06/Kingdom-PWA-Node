@@ -8,7 +8,7 @@
 // Acuity, never in SKOS.
 import React, { useState, useMemo } from 'react';
 import { MetricCell, SectionTitle } from './shared.jsx';
-import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
+import { findRelatedAuto } from '../lib/lifecycle-and-flow.js';
 import { Queue } from './Queue.jsx';
 import { ClientGrowth } from './ClientGrowth.jsx';
 import { PracticeLearn } from './PracticeLearn.jsx';
@@ -519,8 +519,12 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
     },
   ];
 
-  const direct = section ? (sections.find((x) => x.id === section) || null) : null;
-  if (direct && direct.id !== 'operations') return <div className="space-y-5">{direct.render()}</div>;
+  // One slider, no second row (Darrell 2026-09-10: "The tabs need to be only
+  // side by side... slider"): an Operations sub-id ('inquiries' | 'services' |
+  // 'revenue') renders under the pinned banner + KPIs; 'growth' / 'learn' bare.
+  const opsDirect = section ? (operationsSections.find((x) => x.id === section) || null) : null;
+  const direct = section ? (opsDirect || sections.find((x) => x.id === section) || null) : null;
+  if (direct && !opsDirect) return <div className="space-y-5">{direct.render()}</div>;
   return (
     <div className="space-y-5">
       {/* Pinned above the section strip: the TLC identity banner + the live

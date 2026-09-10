@@ -54,13 +54,18 @@ vi.mock('../lib/tlc-roster.js', async (orig) => {
     useTlcRoster: () => real.mergeRoster(seed, [{ id: 'r1', name: 'Brand New, LSW', role: 'Specialist', specialty: 'Trauma-Informed Care', url: null, photo: null }]),
   };
 });
+vi.mock('../lib/tlc-office-data.js', async (orig) => {
+  const real = await orig();
+  return { ...real, useTlcOfficeData: () => ({ inquiries: [{ id: 'inq-1', firstName: 'Maya R.', contactMethod: 'phone', phone: '217', status: 'new', receivedAt: '2026-09-01T00:00:00Z', statusHistory: [], interestArea: 'individual', source: 'church' }], practiceLeads: [], loaded: true, signedIn: true }), startTlcOfficeData: async () => ({}) };
+});
 vi.mock('../lib/instance-role.js', async (orig) => {
   const real = await orig();
   return { ...real, useInstanceRole: () => roleState, fetchInstanceRole: async () => roleState };
 });
+let session = null;
 vi.mock('../lib/supabase.js', async (orig) => {
   const real = await orig();
-  return { ...real, onAuthChange: (cb) => { cb(null); return () => {}; } };
+  return { ...real, onAuthChange: (cb) => { cb(session); return () => {}; } };
 });
 
 import TlcOnboardingForm from '../components/TlcOnboardingForm.jsx';
@@ -206,5 +211,34 @@ describe('the TLC door', () => {
     expect(container.textContent).toContain('Brand New, LSW');
     const cards = Array.from(container.querySelectorAll('a[target="_blank"]')).filter((a) => /Specialist|Founder/.test(a.textContent));
     expect(cards.length).toBe(TLC_TEAM.length + 1);
+  });
+});
+
+describe('the TLC app carries the office workflows on ONE slider (DR-0344)', () => {
+  it('a signed-in office admin sees Find · Inquiries · Client Growth · Revenue · Training · Team · Assistant · Onboarding, side by side', async () => {
+    session = { user: { email: 'christina@tlctherapysolutions.com' } };
+    await mount(createElement(TlcPublicDoor));
+    await settle();
+    const tabs = Array.from(container.querySelectorAll('[role="tab"]')).map((t) => t.textContent.trim());
+    for (const t of ['Find your therapist', 'Inquiries', 'Client Growth', 'Revenue', 'Training', 'Team', 'Assistant', 'Onboarding']) expect(tabs, `tab ${t}`).toContain(t);
+    expect(container.querySelectorAll('[role="tablist"]').length).toBe(1);
+    await click(byText(/^Inquiries$/, '[role="tab"]'));
+    await settle();
+    expect(container.textContent).toMatch(/Pre-Intake Inquiry Tracking/);
+    expect(container.textContent).toContain('Maya R.');
+    session = null;
+  });
+  it('a signed-in person who is not staff gets no office tabs', async () => {
+    session = { user: { email: 'client@example.com' } };
+    roleState = { ...roleState, role: null, instanceId: null };
+    await mount(createElement(TlcPublicDoor));
+    await settle();
+    const tabs = Array.from(container.querySelectorAll('[role="tab"]')).map((t) => t.textContent.trim());
+    expect(tabs).not.toContain('Inquiries');
+    expect(tabs).not.toContain('Revenue');
+    expect(tabs).toContain('Training');
+    expect(tabs).toContain('Team');
+    roleState = { ...roleState, role: 'admin', instanceId: 'i1' };
+    session = null;
   });
 });

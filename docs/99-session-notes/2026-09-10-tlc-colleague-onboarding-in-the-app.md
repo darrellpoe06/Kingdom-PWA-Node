@@ -55,3 +55,21 @@ Not TLC Therapy: Streaming Instructions for TLC 2020 and *TLC Infrastructure* (t
 **Built.** `lib/tlc-session-scripts.js` (six courses registered in the training library) · `lib/tlc-handbook.js` (handbook + office documents as data) · `components/TlcTeamResources.jsx` (Team) · `myPacketStatus()` in the seam · the TLC door gains **Training** (the TLC Learn space, `PracticeLearn`, never the church Learn space) and **Team** for every signed-in colleague; the invite flow points an approved colleague at them · the operator TLC tab is one strip — Practice · Client Growth · Learn · Intake · Assistant · Onboarding — `Practice` takes a `section` prop and renders the destination without its own strip (shell line count unchanged at 5345).
 
 **Proof.** `tlc-session-scripts.test.js` (10) green, including every quoted verse against `app/public/bible/kjv` word for word; `tlc-training-library`, `tlc-course-strands`, `tlc-practice`, the door tests and the onboarding render tests re-run green; guards unchanged.
+
+## Then: every TLC workflow inside the TLC app, on one slider
+
+Darrell: *"there are tabs inside the PoeTech App that are not inside the TLC Therapy Solutions App?!"* · *"The tabs need to be only side by side... slider..."* · *"only two levels... make sure they make sense..."*
+
+| Workflow | PoeTech TLC tab (one slider under the top nav) | TLC app (one slider) |
+|---|---|---|
+| Team & services / roster | Practice | Find your therapist |
+| Pre-intake inquiries | Inquiries | Inquiries (staff) |
+| Revenue estimate (from inquiries) | Revenue | Revenue (staff) |
+| Client acquisition CRM | Client Growth | Client Growth (staff) |
+| TLC Learn space (training, scripts, hours) | Learn | Training |
+| Family inbound router (voice ops, incidents) | Intake | not carried: family ops, not TLC's; TLC intake is Inquiries |
+| Referral / assistant workspace | Assistant | Assistant |
+| Colleague onboarding | Onboarding | Onboarding (owner/admin) |
+| Handbook, agreements, office documents | (via Onboarding packet) | Team |
+
+Built: `lib/tlc-office-data.js` (the standalone office store over the same two syncs), `Practice` renders an operations sub-id directly (no chips) and takes `findRelatedAuto` from the lib, the door mounts Inquiries / Client Growth / Revenue for staff. Proof: `tlc-office-data.test.js` (8), door render (+2), guards green.

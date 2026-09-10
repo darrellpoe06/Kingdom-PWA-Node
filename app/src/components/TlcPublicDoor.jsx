@@ -32,6 +32,8 @@ import TlcOnboardingForm from './TlcOnboardingForm.jsx';
 import TlcOnboarding from './TlcOnboarding.jsx';
 import TlcTeamResources from './TlcTeamResources.jsx';
 import { PracticeLearn } from './PracticeLearn.jsx';
+import { Practice } from './Practice.jsx';
+import { useTlcOfficeData, addInquiry, updateInquiry, deleteInquiry, addLead, updateLead, deleteLead } from '../lib/tlc-office-data.js';
 import { myPacketStatus } from '../lib/tlc-onboarding-sync.js';
 import { TLC_APP_PATH } from '../lib/tlc-onboarding.js';
 
@@ -178,8 +180,22 @@ export default function TlcPublicDoor() {
   // An approved colleague is staff for the TLC Learn space (the therapist +
   // training audiences) even before any membership grant — their packet says so.
   const staff = operatorRole || (colleague && colleague.status === 'approved');
+  // The office's own records (Darrell 2026-09-10: "there are tabs inside the
+  // PoeTech App that are not inside the TLC Therapy Solutions App?!"): the
+  // SAME inquiries + leads rows the PoeTech TLC tab edits, read through the
+  // standalone office store — never the family books store. Staff only.
+  const office = useTlcOfficeData();
+  const roster = useTlcRoster();
+  const providers = roster.map((t, i) => ({ id: t.id || `seed-${i}`, name: t.name, direction: 'outbound' }));
+  const officeSection = (id, label, icon, section) => (staff ? [{ id, label, icon, render: () => (
+    <div className="pt-3"><Practice inquiries={office.inquiries} contractors={providers} addInquiry={addInquiry} updateInquiry={updateInquiry} deleteInquiry={deleteInquiry} practiceLeads={office.practiceLeads} addLead={addLead} updateLead={updateLead} deleteLead={deleteLead} email={sessionEmail} isStaff section={section} /></div>
+  ) }] : []);
+  // ONE slider, side by side, no second row (Darrell 2026-09-10).
   const sections = [
     { id: 'find', label: 'Find your therapist', icon: 'users', render: () => <ClientDoor /> },
+    ...officeSection('inquiries', 'Inquiries', 'phone', 'inquiries'),
+    ...officeSection('growth', 'Client Growth', 'chart', 'growth'),
+    ...officeSection('revenue', 'Revenue', 'coins', 'revenue'),
     // The TLC Learn space (PracticeLearn) — TLC's own, not the church Learn
     // space (Darrell 2026-09-10). Clients see psychoeducation; staff see the
     // therapist + training audiences with the session scripts and courses.
