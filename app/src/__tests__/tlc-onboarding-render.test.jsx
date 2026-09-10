@@ -11,7 +11,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
 
-const sent = { saves: [], reviews: [], invites: [], rosterUpserts: [], launch: [], roles: [], spaceInvites: [] };
+const sent = { saves: [], reviews: [], invites: [], rosterUpserts: [], launch: [], roles: [], spaceInvites: [], patches: [], invitePatches: [] };
 let openStatus = 'draft';
 let packetStatus = null; // the signed-in person's own packet, if any (null = a client, no packet)
 let roleState = { instanceId: 'i1', instanceSlug: 'poe-family', instanceType: 'family', role: 'admin', loaded: true };
@@ -37,11 +37,14 @@ vi.mock('../lib/tlc-onboarding-sync.js', async (orig) => {
     withdrawPacket: async () => ({ ok: true, removed: true }),
     mintInvite: async (email, note) => { sent.invites.push({ email, note }); return { ok: true, invite: { id: 'inv9', token: 'tok9', email, expires_at: '2026-10-10T00:00:00Z' } }; },
     revokeInvite: async () => ({ ok: true }),
-    listOffice: async () => ({ ok: true, officeName: 'TLC Therapy Solutions', manager: true, invites: [{ id: 'inv2', email: 'new@example.com', note: 'LSW', token: 'tok2', created_at: '2026-09-09', expires_at: '2026-10-09', opened: false }], packets: [{ packet_id: 'p1', invite_id: 'inv1', email: 'ann@example.com', status: 'submitted', applicant_name: 'Ann Lee', license_type: 'LCSW', submitted_at: '2026-09-10T12:00:00Z', updated_at: '2026-09-10T12:00:00Z' }] }),
+    listOffice: async () => ({ ok: true, officeName: 'TLC Therapy Solutions', manager: true, invites: [{ id: 'inv2', email: 'new@example.com', note: 'LSW', token: 'tok2', created_at: '2026-09-09', expires_at: '2026-10-09', opened: false }, { id: 'inv3', email: 'held@example.com', note: null, token: 'tok3', created_at: '2026-09-10', expires_at: '2026-10-10', opened: false, prefilled: true, source: 'the hiring form', applicant_name: 'Held Person', license_type: 'LPC' }], packets: [{ packet_id: 'p1', invite_id: 'inv1', email: 'ann@example.com', status: 'submitted', applicant_name: 'Ann Lee', license_type: 'LCSW', submitted_at: '2026-09-10T12:00:00Z', updated_at: '2026-09-10T12:00:00Z' }] }),
     readPacket: async () => ({ ok: true, view: view({ status: 'submitted', submitted_at: '2026-09-10T12:00:00Z', headshot_thumb: 'data:image/jpeg;base64,zz' }) }),
     readBanking: async () => ({ ok: true, banking: { present: true, bank_name: 'Busey', account_type: 'checking', routing_number: '071102568', account_number: '13198025', updated_at: '2026-09-10' } }),
     reviewPacket: async (id, decision, note, card) => { sent.reviews.push({ id, decision, note, card }); return { ok: true, clinicianCreated: true, view: view({ status: 'approved', roster: { id: 'r1' } }) }; },
     deletePacket: async () => ({ ok: true, removed: true }),
+    patchPacket: async (id, patch, note) => { sent.patches.push({ id, patch, note }); return { ok: true, view: view({ status: 'submitted', packet: { ...basePacket(), ...patch } }) }; },
+    readInvitePrefill: async (id) => ({ ok: true, view: { invite_id: id, email: 'held@example.com', status: 'invited', packet: { firstName: 'Held', lastName: 'Person', licenseType: 'LPC' }, banking_on_file: true } }),
+    patchInvitePrefill: async (id, patch, note) => { sent.invitePatches.push({ id, patch, note }); return { ok: true, view: { invite_id: id, email: 'held@example.com', status: 'invited', packet: { firstName: 'Held', lastName: 'Person', licenseType: 'LPC', ...patch } } }; },
   };
 });
 vi.mock('../lib/tlc-roster.js', async (orig) => {
@@ -98,7 +101,7 @@ import { TLC_TEAM } from '../lib/tlc-practice.js';
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let container, root;
 async function mount(el) { container = document.createElement('div'); document.body.appendChild(container); await act(async () => { root = createRoot(container); root.render(el); }); }
-afterEach(async () => { if (root) await act(async () => root.unmount()); if (container) container.remove(); root = null; container = null; sent.saves.length = 0; sent.reviews.length = 0; sent.invites.length = 0; sent.rosterUpserts.length = 0; sent.launch.length = 0; sent.roles.length = 0; sent.spaceInvites.length = 0; openStatus = 'draft'; roleState = { instanceId: 'i1', instanceSlug: 'poe-family', instanceType: 'family', role: 'admin', loaded: true }; packetStatus = null; window.history.replaceState(null, '', '/'); });
+afterEach(async () => { if (root) await act(async () => root.unmount()); if (container) container.remove(); root = null; container = null; sent.saves.length = 0; sent.reviews.length = 0; sent.invites.length = 0; sent.rosterUpserts.length = 0; sent.launch.length = 0; sent.roles.length = 0; sent.spaceInvites.length = 0; sent.patches.length = 0; sent.invitePatches.length = 0; openStatus = 'draft'; roleState = { instanceId: 'i1', instanceSlug: 'poe-family', instanceType: 'family', role: 'admin', loaded: true }; packetStatus = null; window.history.replaceState(null, '', '/'); });
 const settle = () => act(async () => { for (let i = 0; i < 6; i += 1) await Promise.resolve(); });
 const click = (el) => act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
 const byText = (re, tag = 'button') => Array.from(container.querySelectorAll(tag)).find((b) => re.test(b.textContent));
@@ -220,6 +223,42 @@ describe('TlcOnboarding — Christina', () => {
     await click(byText(/Return with note/));
     await settle();
     expect(sent.reviews[0]).toMatchObject({ decision: 'return', note: 'Please attach your W-9.', card: null });
+  });
+  it('a cell for every item (DR-0354): the office fills a cell on a packet at any status; only the changed cell travels, with the note', async () => {
+    await mount(createElement(TlcOnboarding));
+    await settle();
+    await area('Onboarding areas', /^Packets/);
+    await click(byText(/^Open$/));
+    await settle();
+    expect(container.textContent).toContain('Fill or correct the cells');
+    await click(byText(/^About you/));
+    const el = container.querySelector('#c-phone');
+    await act(async () => { Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(el, '309-555-0100'); el.dispatchEvent(new Event('input', { bubbles: true })); });
+    const note = container.querySelector('#cells-note');
+    await act(async () => { Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(note, 'she called'); note.dispatchEvent(new Event('input', { bubbles: true })); });
+    await click(byText(/^Save 1 cell$/));
+    await settle();
+    expect(sent.patches).toEqual([{ id: 'p1', patch: { phone: '309-555-0100' }, note: 'she called' }]);
+    expect(container.textContent).toContain('Saved 1 cell.');
+  });
+  it('a prefilled invite shows its name and "answers on file"; the office opens the held cells, sees banking is on file (never the numbers), and fills a cell', async () => {
+    await mount(createElement(TlcOnboarding));
+    await settle();
+    expect(container.textContent).toContain('Held Person');
+    expect(container.textContent).toContain('answers on file');
+    await click(byText(/^Answers on file$/));
+    await settle();
+    expect(container.textContent).toContain('Invited · not yet opened');
+    expect(container.textContent).toContain('on file behind the wall');
+    expect(container.textContent).not.toMatch(/\d{9}/);
+    await click(byText(/^License & credentials/));
+    const el = container.querySelector('#c-npiNumber');
+    await act(async () => { Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(el, '1234567893'); el.dispatchEvent(new Event('input', { bubbles: true })); });
+    await click(byText(/^Save 1 cell$/));
+    await settle();
+    expect(sent.invitePatches).toEqual([{ id: 'inv3', patch: { npiNumber: '1234567893' }, note: '' }]);
+    await click(byText(/Back to list/));
+    expect(container.textContent).toContain('Links out, not yet opened');
   });
 });
 

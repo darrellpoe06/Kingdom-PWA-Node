@@ -15,8 +15,8 @@
 // (USER-ACCOUNTS-AND-HISTORIES-STANDARD; DATA-AS-EMPOWERMENT).
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  BANKING_FIELDS, DAYS, AVAILABILITY_SLOTS, NO_CLIENTS, PACKET_STATUSES,
-  normalizePacket, validatePacket, validateBanking, packetProgress, labelFor, wordCount,
+  BANKING_FIELDS, PACKET_STATUSES,
+  normalizePacket, validatePacket, validateBanking, packetProgress, labelFor,
   exportPacketRecord, formatDate,
 } from '../lib/tlc-onboarding.js';
 import { signatureRecord, documentVersion, documentFor, ESIGN_CONSENT, acknowledgmentAttestation } from '../lib/tlc-signing.js';
@@ -27,21 +27,11 @@ import TlcAgreementReader from './TlcAgreementReader.jsx';
 import { liveSections, liveDocuments } from '../lib/tlc-office-forms.js';
 import { readOfficeDocuments } from '../lib/tlc-office-forms-sync.js';
 import UiIcon from './UiIcon.jsx';
+import { INPUT, Label, TextField, YesNo, MultiSelect, Availability } from './TlcFieldInputs.jsx';
 
 const AUTOSAVE_MS = 2500;
-const INPUT = 'w-full min-h-[36px] p-2 border border-[#1A1815] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
 const BTN = 'min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]';
 const BTN_PRIMARY = 'min-h-[36px] px-4 py-2 text-sm font-semibold bg-[#B85838] text-white hover:bg-[#1A1815] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
-const CHIP = (on) => `min-h-[36px] px-2.5 py-1 text-xs border focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#1A1815] border-[#E8E4DC] hover:border-[#1A1815]'}`;
-
-function Label({ htmlFor, field, children }) {
-  return (
-    <label htmlFor={htmlFor} className="block text-xs font-semibold text-[#1A1815] mb-1">
-      {children || field.label}{field && field.required && <span className="text-[#B85838]" aria-hidden="true"> *</span>}
-      {field && field.help ? <span className="block font-normal text-[#5A5751]">{field.help}</span> : null}
-    </label>
-  );
-}
 
 function FileField({ field, pointer, packetId, onPointer, onThumb, editable }) {
   const [busy, setBusy] = useState(false);
@@ -76,87 +66,6 @@ function FileField({ field, pointer, packetId, onPointer, onThumb, editable }) {
         {busy && <span className="text-xs text-[#5A5751]">Uploading…</span>}
       </div>
       {msg && <p className="text-xs text-[#5A5751] mt-1" role="status">{msg}</p>}
-    </div>
-  );
-}
-
-function TextField({ field, value, onChange, editable }) {
-  const id = `f-${field.key}`;
-  const common = { id, value: value || '', disabled: !editable, onChange: (e) => onChange(e.target.value), className: INPUT };
-  const words = field.words ? wordCount(value) : null;
-  return (
-    <div className="mb-3">
-      <Label htmlFor={id} field={field} />
-      {field.type === 'textarea'
-        ? <textarea rows={field.words ? 8 : 3} {...common} />
-        : field.type === 'select'
-          ? <select {...common}><option value="">Choose…</option>{field.options.map((o) => <option key={o} value={o}>{o}</option>)}</select>
-          : <input type={field.type === 'tel' ? 'tel' : field.type === 'email' ? 'email' : field.type === 'date' ? 'date' : 'text'} autoComplete={field.type === 'tel' ? 'tel' : field.type === 'email' ? 'email' : 'off'} {...common} />}
-      {field.words && <p className={`text-xs mt-1 ${words > field.words[1] ? 'text-[#B85838]' : 'text-[#5A5751]'}`}>{words} words · TLC asks for {field.words[0]}–{field.words[1]}</p>}
-    </div>
-  );
-}
-
-function YesNo({ field, value, onChange, editable }) {
-  return (
-    <fieldset className="mb-3" disabled={!editable}>
-      <legend className="text-xs font-semibold text-[#1A1815] mb-1">{field.label}{field.required && <span className="text-[#B85838]" aria-hidden="true"> *</span>}{field.help ? <span className="block font-normal text-[#5A5751]">{field.help}</span> : null}</legend>
-      <div className="flex gap-2">
-        {[['Yes', true], ['No', false]].map(([l, v]) => (
-          <label key={l} className={CHIP(value === v) + ' inline-flex items-center gap-1.5 cursor-pointer'}>
-            <input type="radio" name={`f-${field.key}`} checked={value === v} onChange={() => onChange(v)} className="sr-only" />{l}
-          </label>
-        ))}
-      </div>
-    </fieldset>
-  );
-}
-
-function MultiSelect({ field, value, onChange, editable }) {
-  const list = Array.isArray(value) ? value : [];
-  const toggle = (id) => onChange(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
-  return (
-    <fieldset className="mb-3" disabled={!editable}>
-      <legend className="text-xs font-semibold text-[#1A1815] mb-1">{field.label}{field.required && <span className="text-[#B85838]" aria-hidden="true"> *</span>}{field.help ? <span className="block font-normal text-[#5A5751]">{field.help}</span> : null}</legend>
-      <ul className="space-y-1">
-        {field.options.map((o) => (
-          <li key={o.id}>
-            <label className="flex items-start gap-2 min-h-[36px] cursor-pointer">
-              <input type="checkbox" checked={list.includes(o.id)} onChange={() => toggle(o.id)} className="mt-1 h-4 w-4 focus:outline focus:outline-2 focus:outline-[#B85838]" />
-              <span className="text-sm text-[#1A1815]"><b>{o.label}</b>{o.detail ? <span className="text-[#5A5751]"> — {o.detail}</span> : null}</span>
-            </label>
-          </li>
-        ))}
-      </ul>
-    </fieldset>
-  );
-}
-
-function Availability({ value, onChange, editable }) {
-  const avail = value || {};
-  const set = (day, slots) => onChange({ ...avail, [day]: slots });
-  const toggle = (day, slot) => {
-    const cur = Array.isArray(avail[day]) ? avail[day] : [];
-    if (slot === NO_CLIENTS) return set(day, cur.includes(NO_CLIENTS) ? [] : [NO_CLIENTS]);
-    const without = cur.filter((s) => s !== NO_CLIENTS);
-    set(day, without.includes(slot) ? without.filter((s) => s !== slot) : [...without, slot]);
-  };
-  return (
-    <div className="space-y-3">
-      {DAYS.map((day) => {
-        const cur = Array.isArray(avail[day]) ? avail[day] : [];
-        return (
-          <fieldset key={day} disabled={!editable}>
-            <legend className="text-xs font-semibold text-[#1A1815] mb-1">{day}</legend>
-            <div className="flex flex-wrap gap-1.5">
-              <button type="button" onClick={() => toggle(day, NO_CLIENTS)} aria-pressed={cur.includes(NO_CLIENTS)} className={CHIP(cur.includes(NO_CLIENTS))}>{NO_CLIENTS}</button>
-              {AVAILABILITY_SLOTS.map((slot) => (
-                <button key={slot} type="button" onClick={() => toggle(day, slot)} aria-pressed={cur.includes(slot)} className={CHIP(cur.includes(slot))}>{slot}</button>
-              ))}
-            </div>
-          </fieldset>
-        );
-      })}
     </div>
   );
 }

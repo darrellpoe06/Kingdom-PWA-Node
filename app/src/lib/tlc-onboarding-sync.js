@@ -133,6 +133,34 @@ export async function myPacketStatus() {
   } catch { return null; }
 }
 
+/** A CELL FOR EVERY ITEM (0198, DR-0354): the office (owner/admin) or the colleague themself fills named cells on a packet, at any status. Signatures, documents, passwords and bank numbers are refused by the server. */
+export async function patchPacket(packetId, patch, note = '') {
+  if (!packetId) return fail('no-packet', 'No packet to fill.');
+  const clean = patch && typeof patch === 'object' ? patch : {};
+  if (!Object.keys(clean).length) return fail('empty', 'Nothing changed.');
+  const res = await rpc('tlc_onboarding_patch', { packet_id_in: packetId, patch_in: clean, note_in: note || null });
+  if (!res.ok) return res;
+  return { ok: true, view: res.data };
+}
+
+/** The office reads the cells of a not-yet-opened prefilled invite (never the bank numbers, only that they are there). */
+export async function readInvitePrefill(inviteId) {
+  if (!inviteId) return fail('no-invite', 'No invite to open.');
+  const res = await rpc('tlc_onboarding_invite_read', { invite_id_in: inviteId });
+  if (!res.ok) return res;
+  return { ok: true, view: res.data };
+}
+
+/** The office fills cells on a not-yet-opened prefilled invite; the colleague finds them when they sign in. */
+export async function patchInvitePrefill(inviteId, patch, note = '') {
+  if (!inviteId) return fail('no-invite', 'No invite to fill.');
+  const clean = patch && typeof patch === 'object' ? patch : {};
+  if (!Object.keys(clean).length) return fail('empty', 'Nothing changed.');
+  const res = await rpc('tlc_onboarding_invite_patch', { invite_id_in: inviteId, patch_in: clean, note_in: note || null });
+  if (!res.ok) return res;
+  return { ok: true, view: res.data };
+}
+
 /** The office mints an invite that already carries what it knows (0197): the packet body, the banking apart, and where it came from. */
 export async function mintPrefilledInvite(email, note, prefill, banking = null, source = null) {
   const res = await rpc('tlc_onboarding_invite_prefilled', { email_in: String(email || '').trim().toLowerCase(), note_in: note || null, prefill_in: prefill || null, banking_in: banking || null, source_in: source || null });

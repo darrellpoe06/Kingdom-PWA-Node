@@ -8,13 +8,15 @@
 // on Training; the intake form is the Onboarding tab; the launch tracker is a
 // live board here; the "Finding Peace" manuscript is the client lesson track
 // on Training. `onOpen(tabId)` moves the slider to a sister tab.
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { TLC_HANDBOOK } from '../lib/tlc-handbook.js';
 import { readOfficeDocuments } from '../lib/tlc-office-forms-sync.js';
 import TlcFormPreview from './TlcFormPreview.jsx';
 import { TLC_CONTRACTOR_AGREEMENT, TLC_CONFIDENTIALITY_AGREEMENT } from '../lib/tlc-agreements.js';
 import { PACKET_STATUSES, TLC_APP_PATH } from '../lib/tlc-onboarding.js';
-import { myPacketStatus } from '../lib/tlc-onboarding-sync.js';
+import { myPacketStatus, readPacket, patchPacket } from '../lib/tlc-onboarding-sync.js';
+import TlcRecordEditor from './TlcRecordEditor.jsx';
+import { liveSections } from '../lib/tlc-office-forms.js';
 import { AgreementBody } from './TlcAgreementReader.jsx';
 import TlcLaunchBoard from './TlcLaunchBoard.jsx';
 import SectionTabs from './SectionTabs.jsx';
@@ -70,6 +72,15 @@ export default function TlcTeamResources({ onOpen = null, staff = false, roleSta
     return () => { alive = false; };
   }, []);
   const st = mine && mine.status ? (PACKET_STATUSES[mine.status] || PACKET_STATUSES.draft) : null;
+  // MY RECORD (DR-0354): a colleague fills or corrects any cell of their own
+  // packet, at any status — opened on demand, saved cell by cell.
+  const [record, setRecord] = useState(null); // null = closed; { view } | { error }
+  const sections = useMemo(() => liveSections(docs ? docs.intakeForm.form : null), [docs]);
+  const openRecord = async () => {
+    if (record) { setRecord(null); return; }
+    const res = await readPacket(mine.packetId);
+    setRecord(res.ok ? { view: res.view } : { error: res.message });
+  };
   const go = (id) => (onOpen ? <button type="button" onClick={() => onOpen(id)} className={BTN}>Open {id === 'training' ? 'Training' : id === 'onboarding' ? 'Onboarding' : id}</button> : null);
 
   const documents = (
@@ -136,7 +147,17 @@ export default function TlcTeamResources({ onOpen = null, staff = false, roleSta
                 ? 'Christina is reviewing it. You will see her answer on your packet.'
                 : 'Your packet is still open. Reopen the invitation link Christina sent you to continue it.'}
           </p>
-          {mine.status === 'approved' && <div className="mt-2">{go('training')}</div>}
+          <div className="mt-2 flex flex-wrap gap-2">
+            {mine.status === 'approved' && go('training')}
+            <button type="button" onClick={openRecord} aria-expanded={!!record} className={`${BTN}`}>{record ? 'Close my record' : 'My record · fill or correct any cell'}</button>
+          </div>
+          {record && record.error && <p className="text-xs text-[#B85838] mt-2" role="alert">{record.error}</p>}
+          {record && record.view && (
+            <div className="mt-3">
+              <TlcRecordEditor sections={sections} record={record.view.packet} who="self" title="My record"
+                onSave={async (patch, n) => { const res = await patchPacket(mine.packetId, patch, n); if (res.ok) setRecord({ view: res.view }); return res; }} />
+            </div>
+          )}
         </section>
       )}
 
