@@ -57,3 +57,7 @@ Deploy run 1006 completed green for `0534d5e` (main's tip after the squash). Tas
 ## 8. Before merge — Remove, because it was buildable now (DR-0236)
 
 The 2026-09-17 date was a "later" for work the tools already allowed. `canRemove()` (pure, the mirror of `remove_instance_member` 0130) + a two-tap Remove in the Rights fold: the first tap asks and offers Keep, the second calls the RPC with the church id and re-reads the roster. Never on an owner or yourself; an admin is removed only by an owner. Tests +2; lint, ui-standards (0 regressions), consistency, contrast green.
+
+## 9. What CI caught that the local pass did not (DR-0076 — the gates are the review)
+
+The first push (3b3d71f) went red four ways, each a real gate: the deep-link allow-list (fixed before the run finished), the persistent-share freshness gate (the ledger must carry the re-frozen budget — regenerated), the Relationships-closes-the-import pin, and feedback-area coverage (every church sub-tab must be selectable in the feedback form). All four closed on 2c6eabb; the full suite (889 files / 13,135 tests) was run locally before that push. Lesson kept: run the full suite, not the touched suites, before the first push of a new surface.
