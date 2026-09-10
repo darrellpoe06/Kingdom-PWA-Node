@@ -139,7 +139,7 @@ describe('the handbook opens at 1 (Darrell: "where is number 1?")', () => {
     expect(TLC_HANDBOOK.sections[0].items.map((i) => i.label)).toEqual(['Welcome', 'Mission', 'Vision', 'What we provide', 'Independent contractor status']);
     expect(TLC_HANDBOOK.sections[0].items[1].text).toBe(TLC_HANDBOOK.mission);
     // both readers render the sections, so neither can skip 1
-    for (const f of ['app/src/components/TlcTeamResources.jsx', 'app/src/components/TlcAgreementReader.jsx']) expect(src(f)).toMatch(/TLC_HANDBOOK\.sections\.map/);
+    for (const f of ['app/src/components/TlcTeamResources.jsx', 'app/src/components/TlcAgreementReader.jsx']) expect(src(f)).toMatch(/handbook\.sections\.map/); // the office's LIVE handbook (0196), the code one as the original
   });
 });
 
@@ -172,7 +172,7 @@ describe('no document links out of the app', () => {
   it('the intake’s acknowledgment opens the document in the app before the signature', () => {
     const code = src('app/src/components/TlcOnboardingForm.jsx');
     expect(code).toMatch(/TlcAgreementReader/);
-    expect(code).toMatch(/agreementByKey\(field\.key\)/);
+    expect(code).toMatch(/documentFor\(field\.key, live\)/); // the office's live text (0196), read in place before the signature
   });
 });
 

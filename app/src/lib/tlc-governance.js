@@ -32,6 +32,7 @@ export const TLC_RESOURCES = Object.freeze([
   { id: 'door:jobs', label: 'Join the team · open positions, apply, share', kind: 'tab' },
   { id: 'learn:public', label: 'Mental skills · the client lessons, free to read at any hour (signed out)', kind: 'tab' },
   { id: 'onboarding:hiring', label: 'Onboarding · jobs and applicants (hire)', kind: 'area' },
+  { id: 'onboarding:forms', label: 'Onboarding · the intake form and the documents (edit, versioned)', kind: 'area' },
 ]);
 
 const EVERYONE = ['find', 'training', 'team', 'assistant', 'door:jobs', 'learn:public'];
@@ -41,7 +42,7 @@ const EVERYONE = ['find', 'training', 'team', 'assistant', 'door:jobs', 'learn:p
 // "only what is necessary").
 const CLIENT = ['find', 'training', 'door:jobs', 'learn:public'];
 const STAFF = [...EVERYONE, 'inquiries', 'growth', 'revenue', 'training:library', 'training:assign', 'team:launch'];
-const MANAGERS = [...STAFF, 'onboarding', 'team:governance', 'onboarding:hiring'];
+const MANAGERS = [...STAFF, 'onboarding', 'team:governance', 'onboarding:hiring', 'onboarding:forms'];
 // Before membership (DR-0350): a stranger on the door, and a hire mid-packet.
 const BEFORE_LOGIN = ['find', 'learn:public', 'door:jobs'];
 

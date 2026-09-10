@@ -46,28 +46,33 @@ export function contentHash(s) {
   return h.toString(16).padStart(8, '0');
 }
 
-/** The document a packet acknowledgment key points at, as the app renders it. */
-export function documentFor(key) {
+/**
+ * The document a packet acknowledgment key points at, as the app renders it.
+ * `live` (0196, DR-0352) is the office's own set — { policies, confidentiality,
+ * contractorAgreement } — read from the database; without it the original.
+ */
+export function documentFor(key, live = null) {
+  if (live && live[key]) return live[key];
   if (key === 'policies') return TLC_HANDBOOK;
   return TLC_AGREEMENTS[key] || null;
 }
 
-/** "v" + the content hash of the document text; null when the key names nothing. */
-export function documentVersion(key) {
-  const doc = documentFor(key);
+/** "v" + the content hash of the document text AS SIGNED; null when the key names nothing. */
+export function documentVersion(key, live = null) {
+  const doc = documentFor(key, live);
   return doc ? `v${contentHash(JSON.stringify(doc))}` : null;
 }
 
 /** Every acknowledgment key with its current version, for the readout and the tests. */
-export function documentVersions(keys = ['policies', 'confidentiality', 'contractorAgreement']) {
-  return Object.fromEntries(keys.map((k) => [k, documentVersion(k)]));
+export function documentVersions(keys = ['policies', 'confidentiality', 'contractorAgreement'], live = null) {
+  return Object.fromEntries(keys.map((k) => [k, documentVersion(k, live)]));
 }
 
 /** What a signature pins: name, when (device time), which text. Pure; the form calls it once at signing. */
-export function signatureRecord({ signature, key, now = new Date() } = {}) {
+export function signatureRecord({ signature, key, live = null, now = new Date() } = {}) {
   const name = String(signature || '').trim();
   const at = now instanceof Date ? now.toISOString() : String(now || '');
   return name
-    ? { signature: name, signedOn: at.slice(0, 10), signedAt: at, docVersion: documentVersion(key) || '' }
+    ? { signature: name, signedOn: at.slice(0, 10), signedAt: at, docVersion: documentVersion(key, live) || '' }
     : { signature: '', signedOn: '', signedAt: '', docVersion: '' };
 }

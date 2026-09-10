@@ -15,16 +15,17 @@
 // (USER-ACCOUNTS-AND-HISTORIES-STANDARD; DATA-AS-EMPOWERMENT).
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  SECTIONS, BANKING_FIELDS, DAYS, AVAILABILITY_SLOTS, NO_CLIENTS, PACKET_STATUSES,
+  BANKING_FIELDS, DAYS, AVAILABILITY_SLOTS, NO_CLIENTS, PACKET_STATUSES,
   normalizePacket, validatePacket, validateBanking, packetProgress, labelFor, wordCount,
   exportPacketRecord, formatDate,
 } from '../lib/tlc-onboarding.js';
-import { signatureRecord, documentVersion, ESIGN_CONSENT, acknowledgmentAttestation } from '../lib/tlc-signing.js';
+import { signatureRecord, documentVersion, documentFor, ESIGN_CONSENT, acknowledgmentAttestation } from '../lib/tlc-signing.js';
 import { openPacket, savePacket, uploadDocument, headshotThumbFromFile, withdrawPacket } from '../lib/tlc-onboarding-sync.js';
 import SectionTabs from './SectionTabs.jsx';
 import TlcOnboardingReadout from './TlcOnboardingReadout.jsx';
 import TlcAgreementReader from './TlcAgreementReader.jsx';
-import { agreementByKey } from '../lib/tlc-agreements.js';
+import { liveSections, liveDocuments } from '../lib/tlc-office-forms.js';
+import { readOfficeDocuments } from '../lib/tlc-office-forms-sync.js';
 import UiIcon from './UiIcon.jsx';
 
 const AUTOSAVE_MS = 2500;
@@ -37,6 +38,7 @@ function Label({ htmlFor, field, children }) {
   return (
     <label htmlFor={htmlFor} className="block text-xs font-semibold text-[#1A1815] mb-1">
       {children || field.label}{field && field.required && <span className="text-[#B85838]" aria-hidden="true"> *</span>}
+      {field && field.help ? <span className="block font-normal text-[#5A5751]">{field.help}</span> : null}
     </label>
   );
 }
@@ -98,7 +100,7 @@ function TextField({ field, value, onChange, editable }) {
 function YesNo({ field, value, onChange, editable }) {
   return (
     <fieldset className="mb-3" disabled={!editable}>
-      <legend className="text-xs font-semibold text-[#1A1815] mb-1">{field.label}</legend>
+      <legend className="text-xs font-semibold text-[#1A1815] mb-1">{field.label}{field.required && <span className="text-[#B85838]" aria-hidden="true"> *</span>}{field.help ? <span className="block font-normal text-[#5A5751]">{field.help}</span> : null}</legend>
       <div className="flex gap-2">
         {[['Yes', true], ['No', false]].map(([l, v]) => (
           <label key={l} className={CHIP(value === v) + ' inline-flex items-center gap-1.5 cursor-pointer'}>
@@ -115,13 +117,13 @@ function MultiSelect({ field, value, onChange, editable }) {
   const toggle = (id) => onChange(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
   return (
     <fieldset className="mb-3" disabled={!editable}>
-      <legend className="text-xs font-semibold text-[#1A1815] mb-1">{field.label}</legend>
+      <legend className="text-xs font-semibold text-[#1A1815] mb-1">{field.label}{field.required && <span className="text-[#B85838]" aria-hidden="true"> *</span>}{field.help ? <span className="block font-normal text-[#5A5751]">{field.help}</span> : null}</legend>
       <ul className="space-y-1">
         {field.options.map((o) => (
           <li key={o.id}>
             <label className="flex items-start gap-2 min-h-[36px] cursor-pointer">
               <input type="checkbox" checked={list.includes(o.id)} onChange={() => toggle(o.id)} className="mt-1 h-4 w-4 focus:outline focus:outline-2 focus:outline-[#B85838]" />
-              <span className="text-sm text-[#1A1815]"><b>{o.label}</b> <span className="text-[#5A5751]">— {o.detail}</span></span>
+              <span className="text-sm text-[#1A1815]"><b>{o.label}</b>{o.detail ? <span className="text-[#5A5751]"> — {o.detail}</span> : null}</span>
             </label>
           </li>
         ))}
@@ -159,10 +161,12 @@ function Availability({ value, onChange, editable }) {
   );
 }
 
-function Acknowledgment({ field, value, onChange, pointer, packetId, onPointer, editable }) {
+function Acknowledgment({ field, value, onChange, pointer, packetId, onPointer, editable, live = null }) {
   const a = value || { agreed: false, signature: '', signedOn: '', signedAt: '', docVersion: '' };
   const [reading, setReading] = useState(false);
-  const version = documentVersion(field.key);
+  // The office's LIVE text (0196): what the colleague reads, and what the
+  // signature's version hashes — an edit after this signing never rewrites it.
+  const version = documentVersion(field.key, live);
   const id = `f-${field.key}`;
   return (
     <div className="mb-4 border border-[#E8E4DC] bg-[#FAF8F4] p-3">
@@ -170,7 +174,7 @@ function Acknowledgment({ field, value, onChange, pointer, packetId, onPointer, 
       <button type="button" onClick={() => setReading((v) => !v)} aria-expanded={reading} className="inline-flex items-center gap-1 min-h-[36px] text-xs underline text-[#B85838] mb-2 focus:outline focus:outline-2 focus:outline-[#B85838]">
         <UiIcon name="bookOpen" className="w-3 h-3" /> {reading ? 'Hide' : 'Read'} the {field.docName} (in the app)
       </button>
-      {reading && <div className="mb-3"><TlcAgreementReader docKey={field.key} agreement={agreementByKey(field.key)} title={field.docName} /></div>}
+      {reading && <div className="mb-3"><TlcAgreementReader docKey={field.key} agreement={documentFor(field.key, live)} handbook={documentFor('policies', live)} title={field.docName} /></div>}
       <p className="text-xs text-[#5A5751] leading-relaxed mb-2">{field.statement}</p>
       <label className="flex items-start gap-2 min-h-[36px] cursor-pointer mb-2">
         <input type="checkbox" checked={a.agreed === true} disabled={!editable} aria-label={acknowledgmentAttestation(field.docName)}
@@ -186,7 +190,7 @@ function Acknowledgment({ field, value, onChange, pointer, packetId, onPointer, 
           const name = e.target.value;
           // The first keystroke of a name stamps the time and the document
           // version once; clearing the name clears them (lib/tlc-signing.js).
-          const stamped = name.trim() && a.signedAt ? { signedOn: a.signedOn, signedAt: a.signedAt, docVersion: a.docVersion || version || '' } : signatureRecord({ signature: name, key: field.key });
+          const stamped = name.trim() && a.signedAt ? { signedOn: a.signedOn, signedAt: a.signedAt, docVersion: a.docVersion || version || '' } : signatureRecord({ signature: name, key: field.key, live });
           onChange({ ...a, signature: name, signedOn: stamped.signedOn, signedAt: stamped.signedAt, docVersion: stamped.docVersion });
         }} />
       <p className="text-[0.6875rem] text-[#5A5751] mt-1 leading-relaxed">{ESIGN_CONSENT}</p>
@@ -235,6 +239,15 @@ export default function TlcOnboardingForm({ token }) {
   const [problems, setProblems] = useState([]);
   const [withdrawing, setWithdrawing] = useState(false);
   const [gone, setGone] = useState(false);
+  // THE OFFICE'S LIVE FORM (0196, DR-0352): the questions and documents as
+  // the office saved them; the original until the read lands or if it fails.
+  const [office, setOffice] = useState(null);
+  useEffect(() => {
+    if (!view) return undefined;
+    let alive = true;
+    readOfficeDocuments().then((res) => { if (alive) setOffice(res.resolved); });
+    return () => { alive = false; };
+  }, [view]);
   const timer = useRef(null);
   const latest = useRef({});
 
@@ -320,7 +333,8 @@ export default function TlcOnboardingForm({ token }) {
   const st = PACKET_STATUSES[status] || PACKET_STATUSES.draft;
   const docs = packet.documents || {};
 
-  const sections = SECTIONS.map((s) => ({
+  const live = office ? liveDocuments(office) : null;
+  const sections = liveSections(office ? office.intakeForm.form : null).map((s) => ({
     id: s.id, label: s.title,
     render: () => (
       <div className="pt-3">
@@ -331,7 +345,7 @@ export default function TlcOnboardingForm({ token }) {
           if (f.type === 'yesno') return <YesNo key={f.key} field={f} value={packet[f.key]} onChange={(v) => setField(f.key, v)} editable={editable} />;
           if (f.type === 'multiselect') return <MultiSelect key={f.key} field={f} value={packet[f.key]} onChange={(v) => setField(f.key, v)} editable={editable} />;
           if (f.type === 'availability') return <Availability key={f.key} value={packet.availability} onChange={(v) => setField('availability', v)} editable={editable} />;
-          if (f.type === 'acknowledgment') return <Acknowledgment key={f.key} field={f} value={packet.acknowledgments[f.key]} onChange={(v) => setAck(f.key, v)} pointer={docs[`${f.key}Signed`]} packetId={view.packet_id} onPointer={(ptr) => setDoc(`${f.key}Signed`, ptr)} editable={editable} />;
+          if (f.type === 'acknowledgment') return <Acknowledgment key={f.key} field={f} value={packet.acknowledgments[f.key]} onChange={(v) => setAck(f.key, v)} pointer={docs[`${f.key}Signed`]} packetId={view.packet_id} onPointer={(ptr) => setDoc(`${f.key}Signed`, ptr)} editable={editable} live={live} />;
           return <TextField key={f.key} field={f} value={packet[f.key]} onChange={(v) => setField(f.key, v)} editable={editable} />;
         })}
       </div>

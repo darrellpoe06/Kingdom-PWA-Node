@@ -281,7 +281,7 @@ describe('what a typed signature pins (DR-0350; Darrell: "how do the users ackno
     const form = readFileSync(join(here, '../components/TlcOnboardingForm.jsx'), 'utf8');
     const readout = readFileSync(join(here, '../components/TlcOnboardingReadout.jsx'), 'utf8');
     expect(form).toContain('{ESIGN_CONSENT}');
-    expect(form).toContain('signatureRecord({ signature: name, key: field.key })');
+    expect(form).toContain('signatureRecord({ signature: name, key: field.key, live })');
     expect(readout).toContain('document version ${a.docVersion}');
   });
 });

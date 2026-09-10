@@ -262,7 +262,7 @@ describe('0195 — join the team: the interest form, roles of interest, the hone
     expect(actions).toEqual(['create']);
     expect(M195).toMatch(/SELECT public\.apply_assistant_scope_overlay\(\);\s*SELECT public\.apply_viewer_readonly_overlay\(\);/);
     // the smoke rides the leg and proves each rung
-    expect(LEG).toMatch(/smokes: "[^"\n]*0195-tlc-interest-and-views-smoke\.sql"/);
+    expect(LEG).toMatch(/smokes: "[^"\n]*0195-tlc-interest-and-views-smoke\.sql[^"\n]*"/);
     for (const rung of ['hidden field filled', 'thirteen roles', 'a draft posting counted a view', 'anon wrote a view row directly', 'a member read the hiring report', 'interest cards, expected 1', 'expected deduplicated and sorted']) expect(SMOKE195, rung).toContain(rung);
   });
   it('the report rows and roles are numbers from the database, labeled from the chart', () => {

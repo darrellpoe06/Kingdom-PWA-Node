@@ -120,9 +120,24 @@ export async function myPacketStatus() {
     const { data, error } = await withTimeout(
       supabase.from('tlc_onboarding_packets').select('id,status,reviewed_at,submitted_at').eq('applicant_user_id', userId).order('updated_at', { ascending: false }).limit(1),
       RPC_TIMEOUT_MS, 'reading your packet');
-    if (error || !Array.isArray(data) || !data.length) return null;
-    return { packetId: data[0].id, status: data[0].status, reviewedAt: data[0].reviewed_at, submittedAt: data[0].submitted_at };
+    if (!error && Array.isArray(data) && data.length) {
+      return { packetId: data[0].id, status: data[0].status, reviewedAt: data[0].reviewed_at, submittedAt: data[0].submitted_at };
+    }
+    // No packet bound to this login yet: an invite for this email (a
+    // colleague already on the office's old form, 0197) starts one now, so
+    // the person signs in and their answers are simply there.
+    const claimed = await withTimeout(supabase.rpc('tlc_onboarding_claim'), RPC_TIMEOUT_MS, 'finding your packet');
+    const v = claimed && claimed.data;
+    if (claimed.error || !v || !v.packet_id) return null;
+    return { packetId: v.packet_id, status: v.status, reviewedAt: v.reviewed_at, submittedAt: v.submitted_at, claimed: v.claimed === true };
   } catch { return null; }
+}
+
+/** The office mints an invite that already carries what it knows (0197): the packet body, the banking apart, and where it came from. */
+export async function mintPrefilledInvite(email, note, prefill, banking = null, source = null) {
+  const res = await rpc('tlc_onboarding_invite_prefilled', { email_in: String(email || '').trim().toLowerCase(), note_in: note || null, prefill_in: prefill || null, banking_in: banking || null, source_in: source || null });
+  if (!res.ok) return res;
+  return { ok: true, invite: res.data };
 }
 
 export async function openPacket(token) {

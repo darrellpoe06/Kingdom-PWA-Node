@@ -25,10 +25,10 @@ export function AgreementBody({ agreement }) {
   );
 }
 
-export function HandbookBody() {
+export function HandbookBody({ handbook = TLC_HANDBOOK }) {
   return (
     <div className="space-y-3 text-xs text-[#1A1815] leading-relaxed">
-      {TLC_HANDBOOK.sections.map((s) => (
+      {handbook.sections.map((s) => (
         <section key={s.id}>
           <h5 className="font-semibold">{s.title}</h5>
           <dl>{s.items.map((it) => <div key={it.label}><dt className="font-semibold inline">{it.label}. </dt><dd className="inline text-[#5A5751]">{it.text}</dd></div>)}</dl>
@@ -40,11 +40,11 @@ export function HandbookBody() {
 
 // One reader for the three acknowledgments: 'policies' is the handbook,
 // the other two are the agreements.
-export default function TlcAgreementReader({ agreement = null, docKey = null, title = null }) {
+export default function TlcAgreementReader({ agreement = null, docKey = null, title = null, handbook = null }) {
   return (
     <div className="border border-[#E8E4DC] bg-white p-3 max-h-[60vh] overflow-y-auto" role="region" aria-label={title || (agreement && agreement.title) || 'Document'}>
       {title && <div className="text-sm font-bold text-[#1A1815] mb-2">{title}</div>}
-      {docKey === 'policies' ? <HandbookBody /> : <AgreementBody agreement={agreement} />}
+      {docKey === 'policies' ? <HandbookBody handbook={handbook || TLC_HANDBOOK} /> : <AgreementBody agreement={agreement} />}
     </div>
   );
 }

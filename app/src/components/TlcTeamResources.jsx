@@ -10,6 +10,7 @@
 // on Training. `onOpen(tabId)` moves the slider to a sister tab.
 import React, { useEffect, useState } from 'react';
 import { TLC_HANDBOOK } from '../lib/tlc-handbook.js';
+import { readOfficeDocuments } from '../lib/tlc-office-forms-sync.js';
 import { TLC_CONTRACTOR_AGREEMENT, TLC_CONFIDENTIALITY_AGREEMENT } from '../lib/tlc-agreements.js';
 import { PACKET_STATUSES, TLC_APP_PATH } from '../lib/tlc-onboarding.js';
 import { myPacketStatus } from '../lib/tlc-onboarding-sync.js';
@@ -36,10 +37,10 @@ function Fold({ title, kind, children, defaultOpen = false }) {
   );
 }
 
-function HandbookSections() {
+function HandbookSections({ handbook = TLC_HANDBOOK }) {
   return (
     <dl className="space-y-2">
-      {TLC_HANDBOOK.sections.map((s) => (
+      {handbook.sections.map((s) => (
         <div key={s.id}>
           <dt className="text-xs font-semibold text-[#1A1815]">{s.title}</dt>
           {s.items.map((it) => <dd key={it.label} className="text-xs text-[#5A5751] leading-relaxed"><b className="text-[#1A1815]">{it.label}.</b> {it.text}</dd>)}
@@ -51,6 +52,17 @@ function HandbookSections() {
 
 export default function TlcTeamResources({ onOpen = null, staff = false, roleState = null, userId = null }) {
   const [mine, setMine] = useState(null);
+  // The office's LIVE documents (0196): what a colleague reads here is what
+  // they sign in the packet, at the version the office last saved.
+  const [docs, setDocs] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    readOfficeDocuments().then((res) => { if (alive) setDocs(res.resolved); });
+    return () => { alive = false; };
+  }, []);
+  const handbook = docs ? docs.documents.policies.doc : TLC_HANDBOOK;
+  const contractor = docs ? docs.documents.contractorAgreement.doc : TLC_CONTRACTOR_AGREEMENT;
+  const confidentiality = docs ? docs.documents.confidentiality.doc : TLC_CONFIDENTIALITY_AGREEMENT;
   useEffect(() => {
     let alive = true;
     myPacketStatus().then((res) => { if (alive) setMine(res); });
@@ -63,14 +75,14 @@ export default function TlcTeamResources({ onOpen = null, staff = false, roleSta
     <section className="bg-white border border-[#E8E4DC] p-3">
       <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-1">Office documents · all in the app</div>
       <Fold title="Independent Contractor Handbook" kind="Policies & procedures · read here">
-        <HandbookSections />
-        <p className="text-[0.6875rem] text-[#8A857C] leading-relaxed mt-2">{TLC_HANDBOOK.acknowledgment}</p>
+        <HandbookSections handbook={handbook} />
+        <p className="text-[0.6875rem] text-[#8A857C] leading-relaxed mt-2">{handbook.acknowledgment}</p>
       </Fold>
-      <Fold title={TLC_CONTRACTOR_AGREEMENT.title} kind="Agreement · read here; signed in the intake packet">
-        <AgreementBody agreement={TLC_CONTRACTOR_AGREEMENT} />
+      <Fold title={contractor.title} kind="Agreement · read here; signed in the intake packet">
+        <AgreementBody agreement={contractor} />
       </Fold>
-      <Fold title={TLC_CONFIDENTIALITY_AGREEMENT.title} kind="Agreement · read here; signed in the intake packet">
-        <AgreementBody agreement={TLC_CONFIDENTIALITY_AGREEMENT} />
+      <Fold title={confidentiality.title} kind="Agreement · read here; signed in the intake packet">
+        <AgreementBody agreement={confidentiality} />
       </Fold>
       <Fold title="Training Notes for Therapists-in-Training" kind="Six session-script courses on Training">
         <p className="text-xs text-[#5A5751] leading-relaxed mb-2">Christina’s six session scripts — finding herself, learning to say no, managing anger, family conflict, household imbalance, healing after an unhealthy relationship — are courses on the Training tab, with her wording and the Word verbatim.</p>
