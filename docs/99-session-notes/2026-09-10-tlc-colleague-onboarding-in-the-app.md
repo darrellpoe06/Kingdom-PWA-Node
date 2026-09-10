@@ -117,3 +117,5 @@ Darrell: *"Assistants and others need hierarchy for making sure we have appropri
 ## Then: the pre-existing rls-isolation red, root-caused and closed (DR-0347)
 
 The `viewer-readonly` leg's 0126 smoke ("write:choir grant did not unlock the choir area") was red since 0181 (2026-09-06): 0181's redefinition of `apply_viewer_readonly_overlay()` dropped 0126's capability predicate, and every later re-run rebuilt the pure deny in production (verified live). Migration 0190 carries both the predicate and the full participation list; `viewer-overlay-lineage.test.js` gates the class (proven-to-catch against 0181's own body); 0190 joins the matrix leg. Live proof: the next rls-isolation run after merge.
+
+Darrell: *"not fake test... also documenting the best workflows behavior."* Added the `tlc-office` matrix leg (`0189-tlc-office-smoke.sql`, the real policies for 0188/0189, rolled back on the real database) and §9 of the operating model, the proof ladder. Live proof for both legs: the rls-isolation run db-migrate dispatches after this merges.

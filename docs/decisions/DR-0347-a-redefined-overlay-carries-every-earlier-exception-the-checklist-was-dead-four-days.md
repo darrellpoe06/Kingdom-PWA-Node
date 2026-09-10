@@ -26,3 +26,8 @@ A `CREATE OR REPLACE` of a shared function is a rewrite of everything the functi
 ## Honest limit
 
 The live proof is the next rls-isolation run after 0190 is applied by db-migrate on merge; until it is green this record stays open. `re-review: 2026-09-11`.
+
+## Amendment, same hour — "not fake test... also documenting the best workflows behavior" (Darrell)
+
+4. **The TLC office tables get their database half.** `infra/supabase/tests/0189-tlc-office-smoke.sql` joins the rls-isolation matrix as the `tlc-office` leg (0187 → 0190): a therapist assigns a lesson; the assistant, a viewer and a client cannot; the client reads only the rows addressed to the email on their session and a stranger reads none; the client marks it reviewed and the trigger stamps it, while an attempt to change the lesson or the address is kept as it was; a stranger's update touches nothing; a member updates the launch board, the viewer and assistant cannot, a member cannot delete a board row and the owner can. The app's render tests mock these seams; the leg is the real policy, rolled back on the real database.
+5. **The proof ladder is written down** — `ORCHESTRATION-AND-VERIFICATION-OPERATING-MODEL.md` §9: five rungs (pure unit, source pin, real render with the seam mocked, database smoke on the real database, live verification), each with what it proves, what it cannot, and its rule; the two failures of this day placed on it; the incident workflow and the delivery behaviours that worked today, kept as the way (DR-0108).

@@ -111,6 +111,14 @@ jobs:
           # a no-regression guard (0100). Proven-to-catch: a books read/write
           # policy that stops excluding child/assistant, or narrows successor
           # read / member write, RAISEs -> the leg goes RED.
+          # Added 2026-09-10 (DR-0345 / DR-0347, Darrell: "not fake test"): the
+          # TLC office board and lesson assignments, proven on the real policies —
+          # a therapist assigns, the client reads only their own rows by the email
+          # on their session and may only mark reviewed, the assistant and viewer
+          # never write, a member cannot delete the board, the owner can.
+          - feature: tlc-office
+            migrations: "0187-tlc-colleague-onboarding-the-intake-packet-lives-in-the-app.sql 0188-tlc-office-tasks-the-launch-board-lives-in-the-app.sql 0189-tlc-lesson-assignments-a-therapist-schedules-a-lesson-for-a-client.sql 0190-the-viewer-overlay-keeps-the-checklist-a-redefinition-carries-every-earlier-exception.sql"
+            smokes: "0189-tlc-office-smoke.sql"
           - feature: books-role-wall
             migrations: "0082-successor-role-and-books-rls.sql 0100-assistant-role-and-books-rls.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql"
             smokes: "0082-successor-books-smoke.sql 0100-assistant-books-smoke.sql"
