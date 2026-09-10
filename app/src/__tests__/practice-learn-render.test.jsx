@@ -120,6 +120,20 @@ describe('PracticeLearn — the Practice-scoped Learn space', () => {
     expect(text).toContain('Certificate catalog');
     expect(text).toContain('Required trainings');
   });
+  it('every area of the therapist strip is explained under the strip — what it is, what to do, when complete — and none is marked complete on an empty record (DR-0355)', async () => {
+    await mount({ isStaff: true });
+    await audience(/Training & Hours/);
+    const { learnAreaExplain } = await import('../lib/learn-areas.js');
+    const byId = { 'Lessons': 'lessons', 'What you’ll gain': 'gain', 'Course library': 'courses', 'Training map': 'map', 'Pathways': 'pathways', 'Certificates': 'certificates', 'Assigned': 'assigned', 'Hours': 'hours', 'CE renewal': 'ce', 'Catalog & required': 'catalog' };
+    for (const label of areas()) {
+      await area(label);
+      const explain = learnAreaExplain(byId[label]);
+      expect(explain, label).not.toBe('');
+      expect(container.textContent, label).toContain(explain);
+    }
+    expect(container.textContent).toContain('0 of ');
+    expect(container.querySelectorAll('[role="tab"] [role="img"][aria-label="complete"]').length).toBe(0);
+  });
 
   it('a staff viewer on Training & Hours sees the CEU renewal tracker — distinct from the supervised-hours ledger, driven by the Illinois ruleset', async () => {
     await mount({ isStaff: true });

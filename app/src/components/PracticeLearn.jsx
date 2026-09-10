@@ -62,6 +62,7 @@ import {
   courseHourEntry, courseTrainingHours,
 } from '../lib/tlc-training-library.js';
 import { buildStatePlan, statePlanNote } from '../lib/tlc-training-plan.js';
+import { learnAreaExplain, learnAreaDone } from '../lib/learn-areas.js';
 import { wordForModule } from '../lib/lesson-word.js';
 import { useOpenWithTheWord } from '../lib/show-the-word.js';
 import { TWO_RENDERINGS_NOTE } from '../lib/lesson-word.js';
@@ -366,6 +367,17 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
     } : null,
   ];
 
+  // EXPLAIN EACH AREA, SHOW IT COMPLETE (Darrell 2026-09-10: "explain each
+  // one possible on this tab... then just show it as complete when they
+  // do"): every area carries what it is, what to do there and when it is
+  // complete; done is derived from the learner's own records, never painted.
+  const areaState = { tracks, progress, quizState, certs, audCatalog, assigned, myHours, myCeus, ceuCfg, audReqs, reqCompletions, libCourses, libLogged, now: nowISO() };
+  const guidedAreas = learnAreas.map((a) => {
+    if (!a) return a;
+    const { done, detail } = learnAreaDone(a.id, areaState);
+    return { ...a, explain: learnAreaExplain(a.id), done, detail };
+  });
+
   return (
     <div className="space-y-5">
       {/* Header + audience switcher. THE THERAPIST FIRST (Darrell 2026-09-10:
@@ -506,7 +518,7 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
       {!guest && (
       <SectionBoundary name="Training areas">
         <LearnContext.Provider value={{ isStaff, email, onAssign: isStaff ? onAssign : null, linkedWord }}>
-          <SectionTabs variant="sub" sections={learnAreas} ariaLabel="Training areas" idBase={`tlc-learn-${audience}`} defaultId="lessons" activeId={area} onActiveChange={setArea} />
+          <SectionTabs variant="sub" sections={guidedAreas} ariaLabel="Training areas" idBase={`tlc-learn-${audience}`} defaultId="lessons" activeId={area} onActiveChange={setArea} />
         </LearnContext.Provider>
       </SectionBoundary>
       )}

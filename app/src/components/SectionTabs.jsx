@@ -20,6 +20,11 @@
 // so a heavy section (a fetch, a chart) does its work only when you open it.
 //
 // Reusable by design: pass a `sections` array of { id, label, icon?, render }. The
+// optional `explain` (what the area is, what to do there, when it is
+// complete) shows under the strip for the open area, and `done: true` marks
+// the tab complete with a check (an image with a name, never text — a tab's
+// text stays its label). `detail` is the honest count beside the explain
+// line ("3 of 30 hours"). (DR-0355: explain each area; show it complete.)
 // Admin report is the first surface to adopt it; other long tabs follow the same call.
 //
 // THE THIRD ROW (Darrell 2026-07-05: "we need a 3rd row of sliding tabs if that
@@ -104,10 +109,19 @@ export default function SectionTabs({
             >
               {s.icon ? <UiIcon name={s.icon} /> : null}
               {s.label}
+              {s.done === true ? <span role="img" aria-label="complete" title="Complete" className={`inline-flex items-center justify-center w-4 h-4 rounded-full ${on ? 'bg-white text-[#1A1815]' : 'bg-[#5A6E3D] text-white'}`}><UiIcon name="check" className="w-3 h-3" /></span> : null}
             </button>
           );
         })}
       </TabScroll>
+      {current.explain ? (
+        <p id={`${idBase}-explain-${current.id}`} className="text-[0.6875rem] text-[#5A5751] leading-relaxed flex flex-wrap items-baseline gap-x-2" aria-live="polite">
+          <span>{current.explain}</span>
+          {current.done === true
+            ? <span className="font-semibold text-[#3F5226]">Complete{current.detail ? ` · ${current.detail}` : ''}</span>
+            : current.detail ? <span className="text-[#8A857C]">{current.detail}</span> : null}
+        </p>
+      ) : null}
       <div
         role="tabpanel"
         id={`${idBase}-panel-${current.id}`}

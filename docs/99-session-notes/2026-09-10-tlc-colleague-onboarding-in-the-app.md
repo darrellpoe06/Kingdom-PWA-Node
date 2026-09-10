@@ -189,3 +189,10 @@ Darrell: *"at least create a place for all items on the intake form even if Chri
 - **The editor:** `TlcRecordEditor` — every cell of the live form, section folds, only the changed cells sent, a note for the record, what it does not fill named. On a packet (Onboarding · Packets → *Fill or correct the cells*), on a prefilled invite (Onboarding · Invite → *Answers on file*), and on Team (*My record · fill or correct any cell*) for a colleague at any status. The packet form's inputs moved to `TlcFieldInputs.jsx` so both surfaces render one set; the pure middle is `lib/tlc-record-cells.js`.
 - **Proof:** smoke 0198 in the tlc-office leg; `tlc-record-cells.test.js` (8), `tlc-record-editor-render.test.jsx` (4), `tlc-onboarding-render.test.jsx` (+2), the 0198 pins in `tlc-office-forms.test.js`; lint; every guard; the standards gates; build. Live proof after merge: db-migrate 0198, then the rls-isolation run it dispatches.
 
+## Then: every area of Training explained, and shown complete (DR-0355)
+
+Darrell, on the therapist strip at "Assigned lessons · Nothing scheduled yet": *"explain each one possible on this tab... then just show it as complete when they do... etc..."*
+
+- **SHOULD/ARE/GAP:** each area had a panel; the strip said nothing about what an area was for and nothing marked one complete, though every panel already carried its own completion math. **CLOSE:** `lib/learn-areas.js` — a guide per area (what it is · what to do there · when complete) and `learnAreaDone` from the learner's own records only (an empty record is never done; What you'll gain and Pathways are informational and never marked); `SectionTabs` grows `explain` / `done` / `detail` — the line under the strip for the open area with the honest count, a named check on a done tab (an image, never text, so every label pin holds).
+- **Proof:** `learn-areas.test.js` (6), `section-tabs.test.jsx` (+1), `practice-learn-render.test.jsx` (+1); lint; standards; guards; gates.
+
