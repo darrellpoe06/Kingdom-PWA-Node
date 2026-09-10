@@ -12,7 +12,7 @@
 --   anon lists the open jobs                        -> 2, each with a kind, J before I ✔
 --   anon views J three times, I once, D once         -> J 3, I 1, D not counted ✔
 --   T (member) reads the view rows                   -> 2 ✔
---   anon reads / inserts tlc_job_views directly       -> 0 / DENIED ✘
+--   anon reads / inserts tlc_job_views directly       -> DENIED / DENIED ✘
 --   anon applies to J with the hidden field filled    -> REFUSED, no row ✘
 --   anon applies to J with it empty                   -> received ✔
 --   anon applies to I with no roles                   -> REFUSED ✘
@@ -142,8 +142,13 @@ BEGIN
   IF n <> 1 THEN RAISE EXCEPTION 'TLC INTEREST SMOKE FAIL: I has % views, expected 1', n; END IF;
   n := pg_temp.count_as(t, 't0195@test.local', format('SELECT count(*)::int FROM tlc_job_views WHERE instance_id = %L', instP));
   IF n <> 2 THEN RAISE EXCEPTION 'TLC INTEREST SMOKE FAIL: the therapist reads % view rows, expected 2', n; END IF;
-  n := pg_temp.count_as(NULL, NULL, format('SELECT count(*)::int FROM tlc_job_views WHERE instance_id = %L', instP));
-  IF n <> 0 THEN RAISE EXCEPTION 'TLC INTEREST SMOKE FAIL: anon reads % view rows', n; END IF;
+  -- anon has no SELECT grant on the counts at all (0195 grants authenticated
+  -- only), so the read is refused outright -- stronger than an empty answer.
+  -- rls-isolation run 136 read this as "permission denied" when the smoke
+  -- expected 0 rows; the wall is right, the assertion now says so.
+  IF pg_temp.as_anon(format('SELECT count(*) FROM tlc_job_views WHERE instance_id = %L', instP)) THEN
+    RAISE EXCEPTION 'TLC INTEREST SMOKE FAIL: anon could read the view counts (no grant should exist)';
+  END IF;
   IF pg_temp.as_anon(format('INSERT INTO tlc_job_views (instance_id, job_id, day, views) VALUES (%L, %L, current_date - 1, 999)', instP, jJ)) THEN
     RAISE EXCEPTION 'TLC INTEREST SMOKE FAIL: anon wrote a view row directly';
   END IF;
