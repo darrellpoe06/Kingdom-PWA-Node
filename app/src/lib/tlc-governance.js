@@ -66,6 +66,15 @@ export const TLC_POSITIONS = Object.freeze([
     governs: 'The assistant workspace only: referral organizations, content posts, ideas, the working schedule (0130).',
     resources: EVERYONE,
     may: ['Work the Assistant workspace', 'Read the office documents and the public roster', 'Never client inquiries, revenue, packets, or roles'] },
+  // ALL APPS NEED THE AI SPECIALIST ROLE (Darrell 2026-09-10). The seat in
+  // TLC's chart: the practice's systems and automations, the app, its data
+  // flows and the sovereign tools — with the ASSISTANT standing in the
+  // database (the office workspace only), so client inquiries, revenue,
+  // packets and roles stay out of reach by construction.
+  { key: 'aispecialist', role: 'assistant', title: 'AI & Systems Specialist', holder: 'Named by the owner', reportsTo: 'admin',
+    governs: 'The systems: the TLC app and its automations, the data flows between the website, the door and the office, the training library’s plumbing, the sovereign tools we run ourselves; support and development report here.',
+    resources: EVERYONE,
+    may: ['Work the Assistant workspace and keep the systems honest', 'Read the office documents and the public roster', 'Never client inquiries, revenue, packets, or roles (the assistant standing walls them)'] },
   { key: 'reviewer', role: 'viewer', title: 'Reviewer (read-only)', holder: 'A guest the owner admits', reportsTo: 'admin',
     governs: 'Nothing; reads what the office chooses to show.',
     resources: EVERYONE,

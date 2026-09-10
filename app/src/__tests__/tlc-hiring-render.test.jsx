@@ -147,6 +147,10 @@ describe('Onboarding: Jobs and Applicants (owner/admin)', () => {
     await type(container.querySelector('select[aria-label="Start from a seat"]'), 'therapist');
     expect(inputByLabel(/^Title/).value).toBe('Therapist (independent contractor)');
     expect(inputByLabel(/Requirements/).value).toMatch(/Work the inquiries/);
+    // and a role beyond the chart (Darrell: "What about other roles like manager or AI specialist")
+    await type(container.querySelector('select[aria-label="Start from a seat"]'), 'ai-specialist');
+    expect(inputByLabel(/^Title/).value).toBe('AI & Systems Specialist');
+    expect(inputByLabel(/Engagement/).value).toBe('contractor');
     await type(inputByLabel(/^Title/), 'Group facilitator');
     await type(inputByLabel(/^Summary/), 'Run two psychoeducational groups a week.');
     await type(inputByLabel(/Requirements/), 'Illinois license\nGroup experience');

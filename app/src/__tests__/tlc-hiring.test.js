@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 import {
   APPLICATION_STATUSES, canMoveApplication, applicationStatus, validateJob, normalizeJob,
   validateApplication, normalizeApplication, hirePipeline, applicationsByStatus,
-  TLC_TELEHEALTH, TELEHEALTH_STATUSES, telehealthHandoffMessage, jobsDoorUrl, parseJobsLink, jobSharePayload,
+  TLC_TELEHEALTH, TELEHEALTH_STATUSES, telehealthHandoffMessage, jobsDoorUrl, parseJobsLink, jobSharePayload, JOB_TEMPLATES, jobTemplate,
 } from '../lib/tlc-hiring.js';
 import { isTlcDoorContext } from '../lib/tlc-door.js';
 import { TLC_HANDBOOK } from '../lib/tlc-handbook.js';
@@ -164,3 +164,17 @@ describe('migration 0191, pinned from its text', () => {
     expect(MIG).toContain("NOTIFY pgrst, 'reload schema';");
   });
 });
+
+describe('posting templates for the roles beyond the clinical chart (Darrell: "What about other roles like manager or AI specialist")', () => {
+  it('each template is a valid posting as it stands, names its engagement and modality, and can be fetched by key', () => {
+    expect(JOB_TEMPLATES.map((t) => t.key)).toEqual(['operations-manager', 'ai-specialist', 'intake-coordinator', 'billing-credentialing', 'product-support', 'app-developer', 'curriculum-content']);
+    for (const t of JOB_TEMPLATES) {
+      expect(validateJob(t).ok, t.key).toBe(true);
+      expect(normalizeJob({ ...t, requirements: t.requirements }).requirements.length).toBeGreaterThan(0);
+    }
+    expect(jobTemplate('ai-specialist').title).toBe('AI & Systems Specialist');
+    expect(jobTemplate('ai-specialist').summary).toMatch(/client information walled off/);
+    expect(jobTemplate('nope')).toBeNull();
+  });
+});
+
