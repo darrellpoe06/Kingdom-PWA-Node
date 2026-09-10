@@ -70,7 +70,7 @@ import { ILLINOIS_POLICY_AS_OF } from '../lib/tlc-illinois-policy.js';
 
 // What every lesson runner needs from the surface without threading props
 // through the track and course cards: who is reading, and how to assign.
-const LearnContext = createContext({ isStaff: false, email: '', onAssign: null });
+const LearnContext = createContext({ isStaff: false, email: '', onAssign: null, linkedWord: null });
 import {
   DECISIONS, applyApproval, courseApprovalStatus, approvalSummary,
 } from '../lib/tlc-course-approval.js';
@@ -134,6 +134,8 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
   // The area strip is controlled so "Open lesson" on an assignment can land
   // the reader on Lessons with that lesson open (DR-0345).
   const [area, setArea] = useState(deepLink && deepLink.kind === 'library' ? 'courses' : 'lessons');
+  // The lesson a link opened WITH the Word open (word=1): that one fold opens.
+  const linkedWord = deepLink && deepLink.word && deepLink.module ? deepLink.module.id : null;
   // Lessons a therapist assigned (staff) / lessons assigned to me (everyone
   // signed in). Read once per sign-in; refreshed after each write.
   const [assigned, setAssigned] = useState({ mine: [], forMe: [], loaded: false, message: '' });
@@ -396,6 +398,7 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
           2026-09-10). One card, the lesson open, the practice named; the
           door's booking page follows below. Nothing else of Training shows. */}
       {guest && deepLink && (
+        <LearnContext.Provider value={{ isStaff: false, email: '', onAssign: null, linkedWord }}>
         <section aria-label="Shared with you" className="space-y-3">
           <div className="border-l-4 border-[#B85838] bg-white p-3">
             <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Shared with you</div>
@@ -436,6 +439,7 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
             />
           )}
         </section>
+        </LearnContext.Provider>
       )}
 
       {/* Every area of Training is ONE chip away on a second row (Darrell
@@ -446,7 +450,7 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
           app slider, then this row — never a long scroll. */}
       {!(guest && deepLink) && (
       <SectionBoundary name="Training areas">
-        <LearnContext.Provider value={{ isStaff, email, onAssign: isStaff ? onAssign : null }}>
+        <LearnContext.Provider value={{ isStaff, email, onAssign: isStaff ? onAssign : null, linkedWord }}>
           <SectionTabs variant="sub" sections={learnAreas} ariaLabel="Training areas" idBase={`tlc-learn-${audience}`} defaultId="lessons" activeId={area} onActiveChange={setArea} />
         </LearnContext.Provider>
       </SectionBoundary>
@@ -563,7 +567,14 @@ function LessonRunner({ module, level, quizState, onRecordQuiz, onMarkRead, cour
   // already"): one lesson, plain to read, and under its anchor a fold that
   // follows the page-wide Show-the-Word switch and flips on a tap (DR-0341).
   const word = useMemo(() => wordForModule(module, course), [module, course]);
-  const { isStaff, onAssign } = useContext(LearnContext);
+  const { isStaff, onAssign, linkedWord } = useContext(LearnContext);
+  // The fold's state lives HERE so the share can carry it: a link shared with
+  // the Word open opens the Word for the recipient; shared plain, it opens
+  // plain (Darrell 2026-09-10). A link that arrived with word=1 opens this one
+  // lesson's fold on mount, never the reader's own page-wide switch.
+  const [wordOpen, toggleWord] = useOpenWithTheWord();
+  const linkedOpen = linkedWord === module.id;
+  useEffect(() => { if (linkedOpen && !wordOpen) toggleWord(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderStage = (seg) => {
     switch (seg.kind) {
@@ -571,7 +582,7 @@ function LessonRunner({ module, level, quizState, onRecordQuiz, onMarkRead, cour
         return (
           <div className="space-y-2">
             {seg.audience.bigIdea ? <WordInline text={seg.audience.bigIdea} className="text-sm text-[#1A1815]" style={SERIF} /> : null}
-            {word && <WordDropdown word={word} />}
+            {word && <WordDropdown word={word} open={wordOpen} toggle={toggleWord} />}
           </div>
         );
       case 'teach': {
@@ -609,7 +620,7 @@ function LessonRunner({ module, level, quizState, onRecordQuiz, onMarkRead, cour
           label="Share this lesson"
           title="Share a link that opens exactly this lesson, using your usual apps"
           payload={() => tlcLessonSharePayload(module, {
-            url: tlcLessonUrl({ courseId: course ? course.id : track, lessonId: module.id }),
+            url: tlcLessonUrl({ courseId: course ? course.id : track, lessonId: module.id, word: !!word && wordOpen }),
             courseTitle: course ? course.title : ((getTrack(track) || {}).title || ''),
           })}
         />
@@ -622,8 +633,7 @@ function LessonRunner({ module, level, quizState, onRecordQuiz, onMarkRead, cour
 // The Word, dropped down inside the lesson: the course's (or the lesson's own)
 // principle, every verse verbatim from the corpus, the reflection. Closed, the
 // lesson reads plain; the page-wide switch opens it, a tap flips it.
-function WordDropdown({ word }) {
-  const [open, toggle] = useOpenWithTheWord();
+function WordDropdown({ word, open, toggle }) {
   return (
     <div className="border-l-2 border-[#5A6E3D] pl-2">
       <button

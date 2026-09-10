@@ -15,8 +15,8 @@ const here = dirname(fileURLToPath(import.meta.url));
 const src = (rel) => readFileSync(join(here, '..', rel), 'utf8');
 
 describe('the seats, top down', () => {
-  it('eight seats; every reportsTo names a seat above; the owner is the top; every seat’s role is a database role or none (the client)', () => {
-    expect(TLC_POSITIONS).toHaveLength(8);
+  it('ten seats (eight office seats and the two standings before membership); every reportsTo names a seat above; the owner is the top; every seat’s role is a database role or none (the client)', () => {
+    expect(TLC_POSITIONS).toHaveLength(10);
     const keys = TLC_POSITIONS.map((p) => p.key);
     for (const p of TLC_POSITIONS) {
       if (p.reportsTo) expect(keys.indexOf(p.reportsTo), p.key).toBeLessThan(keys.indexOf(p.key));

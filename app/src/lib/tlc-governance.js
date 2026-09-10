@@ -28,11 +28,16 @@ export const TLC_RESOURCES = Object.freeze([
   { id: 'team:governance', label: 'Team · governance (members, roles, invites)', kind: 'area' },
   { id: 'assistant', label: 'Assistant workspace', kind: 'tab' },
   { id: 'onboarding', label: 'Onboarding (invites, packets, roster)', kind: 'tab' },
+  // HIRE THROUGH THE APP (DR-0350): the door's open positions, and the desk.
+  { id: 'door:jobs', label: 'Join the team · open positions, apply, share', kind: 'area' },
+  { id: 'onboarding:hiring', label: 'Onboarding · jobs and applicants (hire)', kind: 'area' },
 ]);
 
-const EVERYONE = ['find', 'training', 'team', 'assistant'];
+const EVERYONE = ['find', 'training', 'team', 'assistant', 'door:jobs'];
 const STAFF = [...EVERYONE, 'inquiries', 'growth', 'revenue', 'training:library', 'training:assign', 'team:launch'];
-const MANAGERS = [...STAFF, 'onboarding', 'team:governance'];
+const MANAGERS = [...STAFF, 'onboarding', 'team:governance', 'onboarding:hiring'];
+// Before membership (DR-0350): a stranger on the door, and a hire mid-packet.
+const BEFORE_LOGIN = ['find', 'door:jobs'];
 
 // The seats, top down. `role` is the database role that carries the seat.
 export const TLC_POSITIONS = Object.freeze([
@@ -68,6 +73,18 @@ export const TLC_POSITIONS = Object.freeze([
     governs: 'Their own learning: the lessons their therapist assigns, their reading choices.',
     resources: EVERYONE,
     may: ['Find a therapist and book', 'Read the client lessons, with or without the Word', 'See lessons assigned to them and mark them reviewed'] },
+  // The two standings BEFORE membership that the hiring workflow needs
+  // (Darrell 2026-09-10: "Do we have all the types of users we need for these
+  // workflows to work"). Neither holds an office role; the database reaches
+  // them only through the functions named here.
+  { key: 'applicant', role: null, title: 'Applicant (no login yet)', holder: 'Anyone who applies to a posting on the door', reportsTo: 'admin',
+    governs: 'Nothing in the office: one application, written once through tlc_apply, read by the owner/admin only; never a member until hired, packeted and approved.',
+    resources: BEFORE_LOGIN,
+    may: ['Read the open positions and share a posting', 'Apply once per posting (text only, no documents, never client information)', 'Hear back from the office at the email they gave'] },
+  { key: 'newhire', role: null, title: 'New colleague (hired, in onboarding)', holder: 'A hired applicant with a login, before the packet is approved', reportsTo: 'admin',
+    governs: 'Their own packet: the intake answers, the documents as pointers, the three signed acknowledgments; they may withdraw it. Not a member until the owner approves.',
+    resources: EVERYONE,
+    may: ['Open the one-time invite and bind the packet to their own login', 'Read each document in the app and sign it by typed name (version and time recorded)', 'Withdraw the packet (a hard delete, files first)'] },
 ]);
 
 export function positionForRole(role, { approvedColleague = false } = {}) {

@@ -138,3 +138,13 @@ Darrell: *"how do we assign or share outside the app? Like a link to serve the l
 
 Built the Love Corner's mechanism on TLC's own door: `lib/tlc-lesson-links.js` (the link `poetech.us/tlc/app/?tlc=1&course=…&lesson=…`, parsed and resolved against the mounted curriculum, stale → the door opens normally); Share on every lesson, track and course; signed out the door serves the linked lesson open above the booking page in guest mode with nothing of the office; signed in it opens Training on the lesson. Proof: `tlc-lesson-links.test.js` (10), door render (+3), practice-learn-render (+1). Live proof waits on the first tap from a phone (re-review 2026-09-17).
 
+## Then: the first share from a phone, and the link carries the Word (DR-0349 amendment)
+
+Deploy run 1012 on `8c7ab73` proven (DR-0107). Darrell shared "What is anxiety" from his phone; the share text arrived as designed. His word: *"The link should be with or without the Word depending on if the Word is open."* Built: `word=1` on the link when the fold was open; the recipient's fold opens the same way; the page-wide switch is never flipped by a link. Proof: lesson-links (+1), practice-learn-render (share plain, then with the Word), door render (+1).
+
+## Then: hire through the app (DR-0350)
+
+Darrell: *"need to have the ability to hire people for jobs we post so we can hire through the app and onboarding goes to the telehealth app we use"* · *"The website is already linked however opportunities and constraints"* · *"Do we have all the types of users we need for these workflows to work and how do the users acknowledge they read and agree to the documents we need signatures for?"*
+
+Built: migration 0191 (jobs; applications written only by anon `tlc_apply`, read by owner/admin only; `tlc_application_hire` mints the DR-0344 invite atomically; the telehealth hand-off stamped on the row); `lib/tlc-hiring.js` + seam; Join the team on the door (the website's careers link lands on it with `?jobs=1`); Jobs and Applicants on Onboarding with the pipeline, Hire and the hand-off (SimplePractice from the handbook, flagged for Christina). The user-types question answered from the code: eight office seats plus two standings before membership now in the matrix (applicant, new colleague). The signature question answered from the code and one gap closed: every typed signature now pins a content-hash document version, a precise time and the ESIGN consent (`lib/tlc-signing.js`). Constraints stated in the DR: no platform API; the shared instance and one-role-three-titles (re-review 2026-09-24). Proof: hiring (12) + render (5); governance and onboarding re-pinned; `0191-tlc-hiring-smoke.sql` in the rls-isolation leg. Live proof: the next rls-isolation run after db-migrate applies 0191.
+

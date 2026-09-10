@@ -169,7 +169,7 @@ describe('TlcOnboarding — Christina', () => {
   it('mints a link that lands on the TLC app with the token, and lists invites + packets + the live roster, each its own area', async () => {
     await mount(createElement(TlcOnboarding));
     await settle();
-    expect(Array.from(container.querySelectorAll('[role="tablist"][aria-label="Onboarding areas"] [role="tab"]')).map((t) => t.textContent.trim())).toEqual(['Invite', 'Packets · 1', 'Roster']);
+    expect(Array.from(container.querySelectorAll('[role="tablist"][aria-label="Onboarding areas"] [role="tab"]')).map((t) => t.textContent.trim())).toEqual(['Invite', 'Packets · 1', 'Roster', 'Jobs', 'Applicants']);
     const input = container.querySelector('input[type="email"]');
     await act(async () => { const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; setter.call(input, 'new2@example.com'); input.dispatchEvent(new Event('input', { bubbles: true })); });
     await click(byText(/Create invite link/));

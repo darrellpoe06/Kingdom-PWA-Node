@@ -152,6 +152,24 @@ describe('a lesson served by link — taste and see (Darrell 2026-09-10)', () =>
     for (const bad of OPERATOR) expect(text, `leaked to a visitor: "${bad}"`).not.toContain(bad);
   });
 
+  it('a link shared with the Word open serves the lesson with its Word open, verbatim; shared plain, it opens plain', async () => {
+    const track = allTracks().find((t) => t.key === 'client-psychoeducation');
+    const m = track.modules.find((x) => x.word && x.word.verses && x.word.verses.length) || track.modules[0];
+    setSearch(tlcLessonQuery({ courseId: track.key, lessonId: m.id, word: true }));
+    await mount();
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    const fold = Array.from(container.querySelectorAll('button')).find((b) => /The Word on this lesson/.test(b.textContent));
+    expect(fold, 'the lesson has a Word fold').toBeTruthy();
+    expect(fold.getAttribute('aria-expanded')).toBe('true');
+    expect(container.textContent).toMatch(/sharper than any two-edged sword/);
+    act(() => root.unmount()); container.remove(); root = container = null;
+    setSearch(tlcLessonQuery({ courseId: track.key, lessonId: m.id }));
+    await mount();
+    const fold2 = Array.from(container.querySelectorAll('button')).find((b) => /The Word on this lesson/.test(b.textContent));
+    expect(fold2.getAttribute('aria-expanded')).toBe('false');
+    expect(container.textContent).not.toMatch(/sharper than any two-edged sword/);
+  });
+
   it('a stale link opens the door normally', async () => {
     setSearch('?tlc=1&course=gone&lesson=gone');
     await mount();

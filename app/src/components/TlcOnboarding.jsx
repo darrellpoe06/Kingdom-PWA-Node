@@ -21,6 +21,7 @@ import { listRoster, upsertRosterCard, removeRosterCard } from '../lib/tlc-roste
 import TlcOnboardingReadout from './TlcOnboardingReadout.jsx';
 import UiIcon from './UiIcon.jsx';
 import SectionTabs from './SectionTabs.jsx';
+import { HiringDesk } from './TlcHiring.jsx';
 
 // The public card, drawn the way the door draws it — so what Christina sees
 // here is what a client will see on "Match a Preferred Provider".
@@ -339,6 +340,10 @@ export default function TlcOnboarding() {
       </div>
     ) },
     { id: 'roster', label: 'Roster', icon: 'users', render: () => <RosterPanel /> },
+    // HIRE THROUGH THE APP (DR-0350): post jobs for the door; applicants by
+    // station; Hire mints the invite above and the packet follows here.
+    { id: 'jobs', label: 'Jobs', icon: 'book', render: () => <HiringDesk area="jobs" instanceId={roleState.instanceId || null} packets={office.packets} /> },
+    { id: 'applicants', label: 'Applicants', icon: 'users', render: () => <HiringDesk area="applicants" instanceId={roleState.instanceId || null} packets={office.packets} /> },
   ];
   return (
     <div className="space-y-4">

@@ -27,3 +27,10 @@
 ## Honest limits (DR-0100)
 
 The URL is proven by test against the same entry the onboarding link uses in production; the first real share from a phone is the live proof, and it is Christina's or Darrell's tap. `re-review: 2026-09-17` with DR-0345's: confirm a shared link opens the lesson on a phone that has never installed the app.
+
+## Amendment (2026-09-10, the first share from a phone) — the link carries whether the Word was open
+
+Darrell, sharing "What is anxiety" from his phone (the live proof of §2): *"The link should be with or without the Word depending on if the Word is open..."*
+
+6. **`word=1` rides along when the sharer had the Word open.** `tlcLessonQuery` / `parseTlcLessonLink` / `resolveTlcLesson` carry it; the lesson's fold state lives in the lesson so the share can read it; a link that arrives with `word=1` opens that one lesson's fold on mount (the corpus text verbatim), and never flips the recipient's own page-wide switch. Shared plain, it opens plain. Proof: `tlc-lesson-links.test.js` (+1), `practice-learn-render` (share plain, open the Word, share again: `&word=1`), door render (+1: served with the Word open, verbatim; plain otherwise). Live: deploy run 1012 on `8c7ab73` served the first shared link; the share text arrived exactly as designed.
+
