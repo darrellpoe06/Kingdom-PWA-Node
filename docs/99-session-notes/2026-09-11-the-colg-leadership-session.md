@@ -88,7 +88,15 @@ Three things wore overlapping names and only two of them were tabs. Traced to wh
 | **Event Center** | The **building** — South Campus, 1109 N 4th St (`lib/venue-rental.js`). Its room/session/capacity operations are a **staff panel inside Conference**, never a tab of its own. | inside Church → Conference |
 | **Venues** | The **community renting either campus** — North (the church) and South (the Event Center). Requests, calendar, responsibilities, revenue. | Church → Venues |
 
-There is no "conference center." The feedback list had been naming "Event Center" as though it were somewhere you could navigate to; the labels now say which is which and where each lives. Keys are unchanged. Whether the *surfaces* should be renamed to match is Darrell's call, not a change made on his behalf.
+There is no "conference center." The collision was real and it is now settled: **"Event Center" means exactly one thing in this app — the building.** Everything else was renamed to say what it is.
+
+| Was | Is now | Why |
+|---|---|---|
+| `🏛 Event Center` (panel inside Conference) | **Rooms & Sessions** | It is the rooms, capacity and registration roll for the conference. It was never a tab, so a label echoing the building's name pointed at a place you could not navigate to. |
+| `Venues` (church sub-tab) | **Campus Rentals** | It is the community renting either campus. "Venues" was a noun that told you nothing. |
+| `Events` (surfaces.js label) | **Campus Rentals** | Same surface, same name everywhere. |
+
+Conference keeps its name — it *is* the event. The building keeps "South Campus Event Center" in the venue data, which is its real name. Feedback keys are unchanged (stored rows point at them); the labels follow the new names. The settlement is pinned in `church-ministries.test.jsx` with a proven-to-catch: any heading that re-uses the building's name outside the venue data fails the build. The module file name stays `EventCenterModule.jsx` on purpose — renaming a file is churn with no reader benefit and every import already resolves.
 
 ---
 

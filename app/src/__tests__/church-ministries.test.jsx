@@ -22,6 +22,9 @@ import {
 import { FEEDBACK_AREAS } from '../components/FeedbackCenter.jsx';
 import { SURFACES } from '../surfaces.js';
 import { ChurchMinistries } from '../components/ChurchMinistries.jsx';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const feedbackKeys = FEEDBACK_AREAS.flatMap((g) => g.items.map(([k]) => k));
@@ -161,5 +164,56 @@ describe('proven-to-catch (anti-theater)', () => {
 
   it('CATCHES a ministry whose feedback button would file into nowhere', () => {
     expect(feedbackKeys).not.toContain('church-not-a-real-area');
+  });
+});
+
+// =============================================================================
+// Conference vs Event Center vs Venues — one name, one meaning.
+//
+// Darrell, 2026-09-11: "conference center vs event center for the church".
+// Three things wore two names, and one of those names pointed at a place you
+// could not navigate to. The settlement, pinned here so it cannot drift back:
+//
+//   Conference    = the EVENT (the National Assembly)        Church > Conference
+//   Rooms & Sessions = the operational panel INSIDE Conference (was "Event Center")
+//   Event Center  = the BUILDING, South Campus 1109 N 4th St  (venue data only)
+//   Campus Rentals = the community renting either campus      Church > Campus Rentals
+// =============================================================================
+describe('one name, one meaning (Darrell 2026-09-11)', () => {
+  const SRC = join(dirname(fileURLToPath(import.meta.url)), '..');
+  const read = (rel) => readFileSync(join(SRC, rel), 'utf8');
+
+  it('"Event Center" survives ONLY as the building, never as a panel heading', () => {
+    const src = read('components/EventCenterModule.jsx');
+    // Every remaining mention must be the building's own name.
+    const mentions = src.split('\n').filter((l) => /Event Center/.test(l) && !l.trim().startsWith('//'));
+    for (const line of mentions) {
+      expect(line, line.trim()).toMatch(/South Campus Event Center/);
+    }
+  });
+
+  it('names the panel for what it actually holds', () => {
+    const src = read('components/EventCenterModule.jsx');
+    expect(src).toMatch(/Rooms &amp; Sessions/);
+    expect(src).toMatch(/ariaLabel="Rooms and Sessions"/);
+  });
+
+  it('calls renting the campuses what it is, in the nav and the registry', () => {
+    expect(read('poe-financial-mvp-v28.jsx')).toMatch(/\['events','Campus Rentals'\]/);
+    expect(read('surfaces.js')).toMatch(/id: 'events',\s+label: 'Campus Rentals'/);
+    expect(read('components/EventManagement.jsx')).toMatch(/>Campus Rentals</);
+  });
+
+  it('the feedback list says where each one lives', () => {
+    const items = Object.fromEntries(FEEDBACK_AREAS.flatMap((g) => g.items));
+    expect(items['church-conference']).toMatch(/the event itself/);
+    expect(items['church-event-center']).toMatch(/Rooms & Sessions/);
+    expect(items['church-event-center']).toMatch(/within Conference/);
+    expect(items['church-events']).toMatch(/^└ Campus Rentals/);
+  });
+
+  it('PROVEN-TO-CATCH: a heading that re-uses the building name fails here', () => {
+    const fake = '  <div className="x">Event Center</div>';
+    expect(fake).not.toMatch(/South Campus Event Center/);
   });
 });

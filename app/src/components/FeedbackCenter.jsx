@@ -184,8 +184,8 @@ export const FEEDBACK_AREAS = [
     // Keys are stable (stored rows point at them); the labels now say which is
     // which and where it lives.
     ['church-conference', '└ Conference · the COLG National Assembly, the event itself (identity · registration · schedule · meals)'],
-    ['church-event-center', '└ Conference · Event Center operations — rooms, sessions and capacity in the South Campus building (staff panel inside Conference)'],
-    ['church-events', '└ Venues · community use of the two campuses — North (the church) and South (the Event Center) (requests · calendar · responsibilities · revenue)'],
+    ['church-event-center', '└ Conference · Rooms & Sessions — the rooms, capacity and registration roll inside the South Campus Event Center (staff panel within Conference)'],
+    ['church-events', '└ Campus Rentals · community use of the two campuses — North (the church) and South (the Event Center) (requests · calendar · responsibilities · revenue)'],
     ['church-projects', 'Church · Projects (the Love Corner project board — video wall · ministries · Assembly · infra · door · outreach)'],
     ['church-engagement', 'Church · Engagement (trivia + messages)'],
     ['church-bus', 'Church · Bus Ministry (rides to service · drivers · routes · schedule · reminders)'],

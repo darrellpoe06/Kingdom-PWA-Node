@@ -1,6 +1,16 @@
 // =============================================================================
-// EventCenterModule — the Conference as a REAL multi-attendee system
+// EventCenterModule — Conference > Rooms & Sessions (the operational layer)
 // =============================================================================
+// NAMED "Rooms & Sessions", not "Event Center" (2026-09-11). Darrell, working
+// the app with the COLG leadership: "conference center vs event center for the
+// church". Three things wore two names. In this app "Event Center" now means
+// exactly ONE thing — the BUILDING, South Campus at 1109 N 4th St
+// (lib/venue-rental.js). This panel is the rooms, sessions, capacity and
+// registration roll INSIDE that building while the conference runs; it lives
+// under Church > Conference and was never a tab of its own, so a label that
+// echoed the building's name pointed at a place you could not navigate to.
+// The file name is unchanged on purpose: renaming the module is churn with no
+// reader benefit, and every import already resolves.
 // The operational layer above ConferenceModule's front door: shared, instance-
 // scoped, realtime ROOMS + SESSIONS (with type/room/capacity + Service<->Choir)
 // + REGISTRATIONS, so every leader and attendee sees the SAME state on every
@@ -379,7 +389,7 @@ function EventCenterModuleInner() {
   if (mode === 'loading') {
     return (
       <section className={card} aria-labelledby="eventcenter-h">
-        <h2 id="eventcenter-h" className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🏛 Event Center</h2>
+        <h2 id="eventcenter-h" className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Rooms &amp; Sessions</h2>
         <p className="text-sm text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>Loading the shared conference system…</p>
       </section>
     );
@@ -392,7 +402,7 @@ function EventCenterModuleInner() {
   if (!isOrganizer) {
     return (
       <section className={card} aria-labelledby="eventcenter-h">
-        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🏛 Event Center</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Rooms &amp; Sessions</div>
         <p className="text-sm text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
           Rooms, sessions, capacity, and the registration roll are managed by church leadership. To register, use the form above.
         </p>
@@ -791,7 +801,7 @@ function EventCenterModuleInner() {
     <section className={card} aria-labelledby="eventcenter-h">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
-          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">🏛 Event Center · Rooms &amp; Breakouts</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Rooms &amp; Breakouts</div>
           <h2 id="eventcenter-h" className="text-lg sm:text-xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
             {conference ? conference.name : 'Multi-attendee conference system'}
           </h2>
@@ -820,7 +830,7 @@ function EventCenterModuleInner() {
       )}
 
       <div className="mt-4">
-        <SectionTabs sections={sections} ariaLabel="Event Center" idBase="events" defaultId="setup" />
+        <SectionTabs sections={sections} ariaLabel="Rooms and Sessions" idBase="events" defaultId="setup" />
       </div>
     </section>
   );
@@ -828,7 +838,7 @@ function EventCenterModuleInner() {
 
 export function EventCenterModule() {
   return (
-    <SectionBoundary name="Event Center">
+    <SectionBoundary name="Rooms & Sessions">
       <EventCenterModuleInner />
     </SectionBoundary>
   );

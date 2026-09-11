@@ -1,5 +1,5 @@
 // =============================================================================
-// EventManagement — Church > Venues: COMMUNITY use of the two campuses
+// EventManagement — Church > Campus Rentals: COMMUNITY use of the two campuses
 // =============================================================================
 // DISTINCT from Conference (the church's OWN event). This houses the data +
 // responsibilities + revenue for OUTSIDE community use of both campuses (North,
@@ -602,7 +602,7 @@ export default function EventManagement({ isChurchStaff = false }) {
   return (
     <div className="w-full">
       <div className="mb-4">
-        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Venues</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Campus Rentals</div>
         <h2 className="text-xl sm:text-2xl text-[#1A1815] mt-0.5" style={{ ...serif, fontWeight: 600, letterSpacing: '-0.01em' }}>Community Event Management</h2>
         <p className="text-sm text-[#5A5751] mt-1" style={serif}>
           The church’s two campuses, open to the community for funerals, weddings, and gatherings — across {CAMPUSES.map((c) => c.name).join(' and ')}.
