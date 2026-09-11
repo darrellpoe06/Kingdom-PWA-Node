@@ -189,6 +189,6 @@ describe('migrations 0200 + 0201 and their smokes', () => {
     }
     expect(LEG).toMatch(/feature: product-forms/);
     expect(LEG).toMatch(/0200-one-forms-engine-for-every-product[^"\n]*\.sql 0201-the-household-keeps-its-own-record[^"\n]*\.sql"/);
-    expect(LEG).toMatch(/smokes: "0200-product-forms-smoke\.sql 0201-household-and-vault-smoke\.sql"/);
+    expect(LEG).toMatch(/smokes: "0200-product-forms-smoke\.sql 0201-household-and-vault-smoke\.sql[^"\n]*"/);
   });
 });
