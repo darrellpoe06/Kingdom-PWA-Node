@@ -128,12 +128,38 @@ describe('BigPictureDashboard — the overview survived the extraction', () => {
     expect(container.textContent).not.toMatch(/Things to try/i);
   });
 
+  // Darrell 2026-09-11: "dashboard debt tracker all subtabs!!!!!!!" — Now was a
+  // 265-line read-down, so it carries a third row (SectionTabs variant="sub").
+  // The capacity meter therefore lives in its own lazily-mounted panel: this
+  // test OPENS it before asserting, because the strip's "Capacity" LABEL would
+  // otherwise satisfy a /capacity/i match with the meter nowhere on the page.
+  function openSub(label) {
+    const tab = [...container.querySelectorAll('[role="tab"]')].find((b) => b.textContent.trim() === label);
+    if (!tab) throw new Error(`no tab "${label}" — tabs: ${[...container.querySelectorAll('[role="tab"]')].map((b) => b.textContent.trim()).join(', ')}`);
+    act(() => tab.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+  }
+
+  it('Now carries a third row, so neither half is a long read-down', () => {
+    mount({ welcomeDismissed: true });
+    const labels = [...container.querySelectorAll('[role="tab"]')].map((b) => b.textContent.trim());
+    expect(labels).toContain('What needs you');
+    expect(labels).toContain('Capacity');
+    // The Action Queue opens by default — it is what "Now" means.
+    expect(container.textContent).toMatch(/Action Queue/i);
+  });
+
   it('capacity meter reads from real project + skill-profile hours', () => {
     mount({
+      welcomeDismissed: true,
       projects: [{ id: 'p1', title: 'Deck rebuild', status: 'active', hoursPerWeek: 10, startDate: '2026-06-01', endDate: '2026-08-01' }],
       skillProfiles: [{ id: 's1', person: 'Adam', hoursPerWeek: 20 }],
     });
-    expect(container.textContent).toMatch(/capacity/i);
-    expect(container.textContent).toMatch(/10/);
+    openSub('Capacity');
+    // The METER, not the tab label: the heading, the hrs/wk read-out and the
+    // real numbers computed from the rows above.
+    expect(container.textContent).toMatch(/Family Capacity/i);
+    expect(container.textContent).toMatch(/hrs\/wk/);
+    expect(container.textContent).toMatch(/10 \/ 20/);
+    expect(container.querySelector('[role="progressbar"]')).toBeTruthy();
   });
 });
