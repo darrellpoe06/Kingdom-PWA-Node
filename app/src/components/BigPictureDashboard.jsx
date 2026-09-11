@@ -240,271 +240,298 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
             label: 'Now',
             icon: 'check',
             render: () => (
-              <>
-      {/* v28+ MVP v1.5 round 10 — ACTION QUEUE
-          One-glance triage panel: Changes (broken now), Incidents (3-day fix),
-          Projects (planned work). Anything across the app that needs attention
-          surfaces here so you don't have to bounce between tabs to see "what's
-          on fire today." Each row jumps to the source view when clicked. */}
-      {/* Round 13 — Always render the Action Queue panel. The "+ Add item"
-          button stays accessible even when the queue is empty so the family
-          can log a Change / Incident / Project at any time. Empty-state copy
-          appears in place of the queue rows when nothing's open. */}
-      {(
-        <section aria-labelledby="action-queue-h" className="bg-white border border-[#1A1815] p-4 sm:p-5">
-          <div className="flex items-baseline justify-between gap-2 flex-wrap mb-3">
-            <div>
-              <h2 id="action-queue-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Action Queue · what needs you</h2>
-              <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
-                Changes are broken NOW (fix today). Incidents need resolution within 3 days. Projects are multi-day planned work.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex gap-1 text-[0.625rem] uppercase tracking-wider">
-                {URGENCY_BANDS.map(u => (
-                  <span key={u.key} className={`px-2 py-1 border ${counts[u.key] > 0 ? (URGENCY_ACCENT_CLS[u.key] || 'text-[#5A5751] border-[#E8E4DC]') : 'text-[#5A5751] border-[#E8E4DC]'}`}>
-                    <span aria-hidden="true">{u.symbol} </span>{u.label} · {counts[u.key]}
-                  </span>
-                ))}
-              </div>
-              <button type="button" onClick={() => { setShowAddQueue(s => !s); if (!showAddQueue) setQueueForm({ ...blankQueueItem(), dueDate: dueDateFor('incident') }); }} className="text-xs uppercase tracking-wider px-3 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">{showAddQueue ? '× Cancel' : '+ Add item'}</button>
-            </div>
-          </div>
-
-          {/* Round 12 — Manual creator with parameter rules inline */}
-          {showAddQueue && (
-            <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 mb-4 space-y-3">
-              <div>
-                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">What kind of item is this?</div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {URGENCY_BANDS.map(u => (
-                    <button key={u.key} type="button" onClick={() => pickUrgency(u.key)} className="text-left p-3 border min-h-[64px] focus:outline focus:outline-2 focus:outline-[#B85838]" style={queueForm.urgency === u.key ? { backgroundColor: u.accent, color: 'white', borderColor: u.accent } : { color: u.accent, borderColor: u.accent }}>
-                      <div className="text-xs uppercase tracking-wider font-semibold"><span aria-hidden="true">{u.symbol}</span> {u.label}</div>
-                      <div className="text-[0.625rem] mt-1 opacity-90" style={{ fontFamily: '"Fraunces", serif' }}>
-                        {u.key === 'change' && 'Broken NOW. Acted on today. Same-day due. Routes to Incidents.'}
-                        {u.key === 'incident' && 'Needs resolution within ~3 days. Routes to Incidents.'}
-                        {u.key === 'project' && 'Takes longer than 3 days. Routes to Projects (capacity check; TBD if family is over).'}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label htmlFor="aq-desc" className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">What's the issue or work?</label>
-                <input id="aq-desc" autoFocus className="w-full p-2 border border-[#1A1815] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="e.g., Furnace died at 240 Cedar Ln Apt 4 · Replace front door lock · File quarterly taxes" value={queueForm.description} onChange={e => setQueueForm({ ...queueForm, description: e.target.value })} />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              // Darrell 2026-09-11: "dashboard debt tracker all subtabs!!!!!!!"
+              // Now was a 265-line read-down — the whole Action Queue, its add
+              // form, and the capacity meter stacked in one scroll. Same Way as
+              // the strip above it, one row further in (variant="sub").
+              <SectionTabs
+                variant="sub"
+                idBase="now"
+                ariaLabel="Now sections"
+                defaultId="queue"
+                sections={[
+                  {
+                    id: 'queue',
+                    label: 'What needs you',
+                    icon: 'alert',
+                    render: () => (
+                      <>
+          {/* v28+ MVP v1.5 round 10 — ACTION QUEUE
+              One-glance triage panel: Changes (broken now), Incidents (3-day fix),
+              Projects (planned work). Anything across the app that needs attention
+              surfaces here so you don't have to bounce between tabs to see "what's
+              on fire today." Each row jumps to the source view when clicked. */}
+          {/* Round 13 — Always render the Action Queue panel. The "+ Add item"
+              button stays accessible even when the queue is empty so the family
+              can log a Change / Incident / Project at any time. Empty-state copy
+              appears in place of the queue rows when nothing's open. */}
+          {(
+            <section aria-labelledby="action-queue-h" className="bg-white border border-[#1A1815] p-4 sm:p-5">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap mb-3">
                 <div>
-                  <label htmlFor="aq-link" className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">Linked to (optional)</label>
-                  <select id="aq-link" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={queueForm.linkType} onChange={e => setQueueForm({ ...queueForm, linkType: e.target.value, linkId: '' })}>
-                    <option value="">— nothing specific —</option>
-                    <option value="rental">A property</option>
-                    <option value="project">An existing project</option>
-                    <option value="entity">An entity (LLC / household)</option>
-                  </select>
+                  <h2 id="action-queue-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Action Queue · what needs you</h2>
+                  <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                    Changes are broken NOW (fix today). Incidents need resolution within 3 days. Projects are multi-day planned work.
+                  </p>
                 </div>
-                {queueForm.linkType && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex gap-1 text-[0.625rem] uppercase tracking-wider">
+                    {URGENCY_BANDS.map(u => (
+                      <span key={u.key} className={`px-2 py-1 border ${counts[u.key] > 0 ? (URGENCY_ACCENT_CLS[u.key] || 'text-[#5A5751] border-[#E8E4DC]') : 'text-[#5A5751] border-[#E8E4DC]'}`}>
+                        <span aria-hidden="true">{u.symbol} </span>{u.label} · {counts[u.key]}
+                      </span>
+                    ))}
+                  </div>
+                  <button type="button" onClick={() => { setShowAddQueue(s => !s); if (!showAddQueue) setQueueForm({ ...blankQueueItem(), dueDate: dueDateFor('incident') }); }} className="text-xs uppercase tracking-wider px-3 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">{showAddQueue ? '× Cancel' : '+ Add item'}</button>
+                </div>
+              </div>
+
+              {/* Round 12 — Manual creator with parameter rules inline */}
+              {showAddQueue && (
+                <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 mb-4 space-y-3">
                   <div>
-                    <label htmlFor="aq-linkid" className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">Which one?</label>
-                    <select id="aq-linkid" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={queueForm.linkId} onChange={e => setQueueForm({ ...queueForm, linkId: e.target.value })}>
-                      <option value="">— pick one —</option>
-                      {queueForm.linkType === 'rental' && rentals.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                      {queueForm.linkType === 'project' && projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
-                      {queueForm.linkType === 'entity' && entities.map(e => <option key={e.id} value={e.id}>{e.name.split('(')[0].trim()}</option>)}
-                    </select>
+                    <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">What kind of item is this?</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {URGENCY_BANDS.map(u => (
+                        <button key={u.key} type="button" onClick={() => pickUrgency(u.key)} className="text-left p-3 border min-h-[64px] focus:outline focus:outline-2 focus:outline-[#B85838]" style={queueForm.urgency === u.key ? { backgroundColor: u.accent, color: 'white', borderColor: u.accent } : { color: u.accent, borderColor: u.accent }}>
+                          <div className="text-xs uppercase tracking-wider font-semibold"><span aria-hidden="true">{u.symbol}</span> {u.label}</div>
+                          <div className="text-[0.625rem] mt-1 opacity-90" style={{ fontFamily: '"Fraunces", serif' }}>
+                            {u.key === 'change' && 'Broken NOW. Acted on today. Same-day due. Routes to Incidents.'}
+                            {u.key === 'incident' && 'Needs resolution within ~3 days. Routes to Incidents.'}
+                            {u.key === 'project' && 'Takes longer than 3 days. Routes to Projects (capacity check; TBD if family is over).'}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="aq-desc" className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">What's the issue or work?</label>
+                    <input id="aq-desc" autoFocus className="w-full p-2 border border-[#1A1815] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="e.g., Furnace died at 240 Cedar Ln Apt 4 · Replace front door lock · File quarterly taxes" value={queueForm.description} onChange={e => setQueueForm({ ...queueForm, description: e.target.value })} />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div>
+                      <label htmlFor="aq-link" className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">Linked to (optional)</label>
+                      <select id="aq-link" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={queueForm.linkType} onChange={e => setQueueForm({ ...queueForm, linkType: e.target.value, linkId: '' })}>
+                        <option value="">— nothing specific —</option>
+                        <option value="rental">A property</option>
+                        <option value="project">An existing project</option>
+                        <option value="entity">An entity (LLC / household)</option>
+                      </select>
+                    </div>
+                    {queueForm.linkType && (
+                      <div>
+                        <label htmlFor="aq-linkid" className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">Which one?</label>
+                        <select id="aq-linkid" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={queueForm.linkId} onChange={e => setQueueForm({ ...queueForm, linkId: e.target.value })}>
+                          <option value="">— pick one —</option>
+                          {queueForm.linkType === 'rental' && rentals.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                          {queueForm.linkType === 'project' && projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+                          {queueForm.linkType === 'entity' && entities.map(e => <option key={e.id} value={e.id}>{e.name.split('(')[0].trim()}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    <div>
+                      <label htmlFor="aq-due" className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">Due date (auto from urgency, editable)</label>
+                      <input id="aq-due" type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={queueForm.dueDate} onChange={e => setQueueForm({ ...queueForm, dueDate: e.target.value })} />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="aq-cost" className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">Estimated cost (optional)</label>
+                    <input id="aq-cost" type="number" step="0.01" min="0" inputMode="decimal" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={queueForm.cost} onChange={e => setQueueForm({ ...queueForm, cost: e.target.value })} />
+                  </div>
+                  <div className="flex gap-2 flex-wrap pt-1">
+                    <button type="button" onClick={submitQueueItem} className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Save {URGENCY_INDEX[queueForm.urgency]?.label}</button>
+                    <button type="button" onClick={() => setShowAddQueue(false)} className="border border-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
+                  </div>
+                </div>
+              )}
+              <div className="bg-white border border-[#E8E4DC]">
+                {queue.length === 0 && (
+                  <div className="p-6 text-center">
+                    <div className="text-2xl mb-1" aria-hidden="true">✓</div>
+                    <div className="text-sm text-[#5A6E3D] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>Nothing open. Clean queue.</div>
+                    <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Need to log something new? Tap <strong>+ Add item</strong> above.</p>
                   </div>
                 )}
-                <div>
-                  <label htmlFor="aq-due" className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">Due date (auto from urgency, editable)</label>
-                  <input id="aq-due" type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={queueForm.dueDate} onChange={e => setQueueForm({ ...queueForm, dueDate: e.target.value })} />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="aq-cost" className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">Estimated cost (optional)</label>
-                <input id="aq-cost" type="number" step="0.01" min="0" inputMode="decimal" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={queueForm.cost} onChange={e => setQueueForm({ ...queueForm, cost: e.target.value })} />
-              </div>
-              <div className="flex gap-2 flex-wrap pt-1">
-                <button type="button" onClick={submitQueueItem} className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Save {URGENCY_INDEX[queueForm.urgency]?.label}</button>
-                <button type="button" onClick={() => setShowAddQueue(false)} className="border border-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
-              </div>
-            </div>
-          )}
-          <div className="bg-white border border-[#E8E4DC]">
-            {queue.length === 0 && (
-              <div className="p-6 text-center">
-                <div className="text-2xl mb-1" aria-hidden="true">✓</div>
-                <div className="text-sm text-[#5A6E3D] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>Nothing open. Clean queue.</div>
-                <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Need to log something new? Tap <strong>+ Add item</strong> above.</p>
-              </div>
-            )}
-            {queue.slice(0, 8).map((q, i, arr) => {
-              const band = URGENCY_INDEX[q.urgency] || URGENCY_INDEX.incident;
-              const age = ageInDays(q.date);
-              // Resolve the underlying source record to read its lifecycle log
-              // and full description. Incidents live in `incidents[]`; projects
-              // live in `projects[]`.
-              const sourceItem = q.kind === 'incident'
-                ? (incidents.find(it => it.id === q.id) || null)
-                : (projects.find(p => p.id === q.id) || null);
-              const lifecycleLog = (sourceItem && sourceItem.lifecycle && sourceItem.lifecycle.log) || [];
-              const fullDescription = sourceItem ? (sourceItem.description || '') : '';
-              const expanded = expandedItemId === q.id;
-              // Human-friendly destination tab labels for the "Open in X tab" link.
-              const jumpLabelMap = { 'real-estate': 'Real Estate', 'projects': 'Projects', 'practice': 'Practice', 'books': 'Books', 'inbound': 'Inbound', 'capex': 'Projects · Inventory' };
-              const jumpLabel = jumpLabelMap[q.jump] || (q.jump ? q.jump.replace(/-/g, ' ') : 'source');
-              return (
-                <div key={q.id} className={`${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''} ${q.overdue ? 'bg-[#FAF8F4]' : ''}`}>
-                  <div className="p-3 flex items-center gap-3 flex-wrap">
-                    <span aria-hidden="true" className="inline-block w-6 text-center text-base font-bold" style={{ color: band.accent }} title={band.label}>{band.symbol}</span>
-                    {/* The whole left side is one big button — tap anywhere on it
-                        to expand the row inline. No navigation, no context loss. */}
-                    <button
-                      type="button"
-                      onClick={() => setExpandedItemId(expanded ? null : q.id)}
-                      aria-expanded={expanded}
-                      aria-label={expanded ? `Collapse details for ${q.title}` : `Show details and history for ${q.title}`}
-                      className="flex-1 min-w-0 text-left hover:bg-[#FAF8F4] -mx-1 px-1 py-0.5 focus:outline focus:outline-2 focus:outline-[#B85838]"
-                    >
-                      <div className="flex items-baseline gap-2 flex-wrap">
-                        <span className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: band.accent }}>{band.label}</span>
-                        <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{q.title}</span>
-                        {q.overdue && <span className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold"><UiIcon name="alert" /> overdue</span>}
-                        <span className="text-[0.625rem] text-[#5A5751] ml-auto font-semibold" aria-hidden="true">{expanded ? '▲' : '▼'} details</span>
-                      </div>
-                      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                        {q.kind} · opened {age}d ago{q.dueDate ? ` · due ${q.dueDate}` : ''}{q.meta ? ` · ${q.meta}` : ''}{(() => { const s = summarizeAssignments(getAssignments(sourceItem)); return s ? ` · crew ${s}` : ''; })()}{lifecycleLog.length > 1 ? ` · ${lifecycleLog.length} log entries` : ''}
-                      </div>
-                    </button>
-                    {/* Primary action (Resolve for incidents) stays visible on the
-                        collapsed row — most-common action, one tap away. */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      {q.kind === 'incident' && resolveIncident && (
+                {queue.slice(0, 8).map((q, i, arr) => {
+                  const band = URGENCY_INDEX[q.urgency] || URGENCY_INDEX.incident;
+                  const age = ageInDays(q.date);
+                  // Resolve the underlying source record to read its lifecycle log
+                  // and full description. Incidents live in `incidents[]`; projects
+                  // live in `projects[]`.
+                  const sourceItem = q.kind === 'incident'
+                    ? (incidents.find(it => it.id === q.id) || null)
+                    : (projects.find(p => p.id === q.id) || null);
+                  const lifecycleLog = (sourceItem && sourceItem.lifecycle && sourceItem.lifecycle.log) || [];
+                  const fullDescription = sourceItem ? (sourceItem.description || '') : '';
+                  const expanded = expandedItemId === q.id;
+                  // Human-friendly destination tab labels for the "Open in X tab" link.
+                  const jumpLabelMap = { 'real-estate': 'Real Estate', 'projects': 'Projects', 'practice': 'Practice', 'books': 'Books', 'inbound': 'Inbound', 'capex': 'Projects · Inventory' };
+                  const jumpLabel = jumpLabelMap[q.jump] || (q.jump ? q.jump.replace(/-/g, ' ') : 'source');
+                  return (
+                    <div key={q.id} className={`${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''} ${q.overdue ? 'bg-[#FAF8F4]' : ''}`}>
+                      <div className="p-3 flex items-center gap-3 flex-wrap">
+                        <span aria-hidden="true" className="inline-block w-6 text-center text-base font-bold" style={{ color: band.accent }} title={band.label}>{band.symbol}</span>
+                        {/* The whole left side is one big button — tap anywhere on it
+                            to expand the row inline. No navigation, no context loss. */}
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); resolveIncident(q.id); }}
-                          aria-label={`Mark "${q.title}" resolved`}
-                          className="text-xs uppercase tracking-wider px-3 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                          onClick={() => setExpandedItemId(expanded ? null : q.id)}
+                          aria-expanded={expanded}
+                          aria-label={expanded ? `Collapse details for ${q.title}` : `Show details and history for ${q.title}`}
+                          className="flex-1 min-w-0 text-left hover:bg-[#FAF8F4] -mx-1 px-1 py-0.5 focus:outline focus:outline-2 focus:outline-[#B85838]"
                         >
-                          ✓ Resolve
+                          <div className="flex items-baseline gap-2 flex-wrap">
+                            <span className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: band.accent }}>{band.label}</span>
+                            <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{q.title}</span>
+                            {q.overdue && <span className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold"><UiIcon name="alert" /> overdue</span>}
+                            <span className="text-[0.625rem] text-[#5A5751] ml-auto font-semibold" aria-hidden="true">{expanded ? '▲' : '▼'} details</span>
+                          </div>
+                          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                            {q.kind} · opened {age}d ago{q.dueDate ? ` · due ${q.dueDate}` : ''}{q.meta ? ` · ${q.meta}` : ''}{(() => { const s = summarizeAssignments(getAssignments(sourceItem)); return s ? ` · crew ${s}` : ''; })()}{lifecycleLog.length > 1 ? ` · ${lifecycleLog.length} log entries` : ''}
+                          </div>
                         </button>
+                        {/* Primary action (Resolve for incidents) stays visible on the
+                            collapsed row — most-common action, one tap away. */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {q.kind === 'incident' && resolveIncident && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); resolveIncident(q.id); }}
+                              aria-label={`Mark "${q.title}" resolved`}
+                              className="text-xs uppercase tracking-wider px-3 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                            >
+                              ✓ Resolve
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {/* Inline expansion — full description + lifecycle log +
+                          explicit "Open in <tab>" jump link. The user sees
+                          everything in place; they only navigate away if they
+                          explicitly choose to. Per CONNECTED-CONTEXT.md + the
+                          r17 UX fix: "click Open and I lose what I clicked." */}
+                      {expanded && (
+                        <div className="px-3 pb-3 pt-2 bg-[#FAF8F4] border-t border-[#E8E4DC] space-y-3">
+                          {fullDescription && fullDescription !== q.title && (
+                            <p className="text-sm text-[#1A1815] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{fullDescription}</p>
+                          )}
+                          {/* Dispatch — the path from "needs fixed" to a 1099 worker's
+                              phone. Renders for any incident; pulls the linked
+                              property so the job text carries the full address. */}
+                          {q.kind === 'incident' && sourceItem && workerOps.onAssign && (
+                            <div className="bg-white border border-[#E8E4DC] p-2.5">
+                              <DispatchPanel
+                                incident={sourceItem}
+                                property={sourceItem.linkedTo?.type === 'rental' ? (rentals.find(r => r.id === sourceItem.linkedTo.id) || null) : null}
+                                contractors={contractors}
+                                {...workerOps}
+                                onResolve={resolveIncident}
+                              />
+                            </div>
+                          )}
+                          {lifecycleLog.length > 0 && (
+                            <div>
+                              <div className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">Lifecycle history · {lifecycleLog.length} {lifecycleLog.length === 1 ? 'entry' : 'entries'}</div>
+                              <ol className="space-y-1.5">
+                                {lifecycleLog.map((entry, idx) => (
+                                  <li key={idx} className="text-xs text-[#1A1815] flex flex-wrap items-baseline gap-x-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                                    <span className="text-[0.625rem] text-[#5A5751]">{(entry.at || '').slice(0, 16).replace('T', ' ')}</span>
+                                    <span className="text-[0.625rem]">
+                                      {entry.fromPhase ? <><span className="text-[#5A5751]">{entry.fromPhase}</span><span className="text-[#5A5751]"> → </span></> : null}
+                                      <span className="font-semibold" style={{ color: band.accent }}>{entry.toPhase}</span>
+                                    </span>
+                                    <span className="text-[0.625rem] text-[#5A5751]">by {entry.by || 'user'}</span>
+                                    {entry.note && <span className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>— {entry.note}</span>}
+                                  </li>
+                                ))}
+                              </ol>
+                            </div>
+                          )}
+                          <div className="flex gap-2 flex-wrap pt-1">
+                            <button
+                              type="button"
+                              onClick={() => setView(q.jump)}
+                              className="text-xs uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                            >
+                              Open in {jumpLabel} tab ↗
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setExpandedItemId(null)}
+                              className="text-xs uppercase tracking-wider px-3 py-1.5 text-[#5A5751] hover:text-[#1A1815] min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                            >
+                              Collapse
+                            </button>
+                          </div>
+                        </div>
                       )}
                     </div>
+                  );
+                })}
+                {queue.length > 8 && (
+                  <div className="p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751] text-center border-t border-[#E8E4DC]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    + {queue.length - 8} more · open the source tab to see them all
                   </div>
-                  {/* Inline expansion — full description + lifecycle log +
-                      explicit "Open in <tab>" jump link. The user sees
-                      everything in place; they only navigate away if they
-                      explicitly choose to. Per CONNECTED-CONTEXT.md + the
-                      r17 UX fix: "click Open and I lose what I clicked." */}
-                  {expanded && (
-                    <div className="px-3 pb-3 pt-2 bg-[#FAF8F4] border-t border-[#E8E4DC] space-y-3">
-                      {fullDescription && fullDescription !== q.title && (
-                        <p className="text-sm text-[#1A1815] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{fullDescription}</p>
-                      )}
-                      {/* Dispatch — the path from "needs fixed" to a 1099 worker's
-                          phone. Renders for any incident; pulls the linked
-                          property so the job text carries the full address. */}
-                      {q.kind === 'incident' && sourceItem && workerOps.onAssign && (
-                        <div className="bg-white border border-[#E8E4DC] p-2.5">
-                          <DispatchPanel
-                            incident={sourceItem}
-                            property={sourceItem.linkedTo?.type === 'rental' ? (rentals.find(r => r.id === sourceItem.linkedTo.id) || null) : null}
-                            contractors={contractors}
-                            {...workerOps}
-                            onResolve={resolveIncident}
-                          />
-                        </div>
-                      )}
-                      {lifecycleLog.length > 0 && (
-                        <div>
-                          <div className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">Lifecycle history · {lifecycleLog.length} {lifecycleLog.length === 1 ? 'entry' : 'entries'}</div>
-                          <ol className="space-y-1.5">
-                            {lifecycleLog.map((entry, idx) => (
-                              <li key={idx} className="text-xs text-[#1A1815] flex flex-wrap items-baseline gap-x-2" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                                <span className="text-[0.625rem] text-[#5A5751]">{(entry.at || '').slice(0, 16).replace('T', ' ')}</span>
-                                <span className="text-[0.625rem]">
-                                  {entry.fromPhase ? <><span className="text-[#5A5751]">{entry.fromPhase}</span><span className="text-[#5A5751]"> → </span></> : null}
-                                  <span className="font-semibold" style={{ color: band.accent }}>{entry.toPhase}</span>
-                                </span>
-                                <span className="text-[0.625rem] text-[#5A5751]">by {entry.by || 'user'}</span>
-                                {entry.note && <span className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>— {entry.note}</span>}
-                              </li>
-                            ))}
-                          </ol>
-                        </div>
-                      )}
-                      <div className="flex gap-2 flex-wrap pt-1">
-                        <button
-                          type="button"
-                          onClick={() => setView(q.jump)}
-                          className="text-xs uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
-                        >
-                          Open in {jumpLabel} tab ↗
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setExpandedItemId(null)}
-                          className="text-xs uppercase tracking-wider px-3 py-1.5 text-[#5A5751] hover:text-[#1A1815] min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
-                        >
-                          Collapse
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            {queue.length > 8 && (
-              <div className="p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751] text-center border-t border-[#E8E4DC]" style={{ fontFamily: '"Fraunces", serif' }}>
-                + {queue.length - 8} more · open the source tab to see them all
+                )}
               </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Round 11 — Family capacity meter. At-a-glance "do we have time?"
-          Shown only when skill profiles + projects both exist. Color-banded:
-          green <80%, amber 80-100%, rust >100% (over-committed). */}
-      {capacity.hasProfiles && (capacity.available > 0) && (
-        <section aria-labelledby="capacity-h" className="bg-white border border-[#1A1815] p-4 sm:p-5">
-          <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2">
-            <div>
-              <h2 id="capacity-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Family Capacity · this week</h2>
-              <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
-                Sum of all active projects' hrs/wk vs sum of skill-profile hrs/wk. Healthy zone: under 80%. New projects past this line get parked as TBD by default.
-              </p>
-            </div>
-            <div className="text-right">
-              <div className={`text-2xl ${capacity.pct >= 100 ? 'text-[#B85838]' : capacity.pct >= 80 ? 'text-[#D97706]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 700 }}>
-                {capacity.pct}%
-              </div>
-              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                {capacity.committed} / {capacity.available} hrs/wk · {capacity.remaining} free
-              </div>
-            </div>
-          </div>
-          <div role="progressbar" aria-labelledby="capacity-h" aria-valuenow={capacity.pct} aria-valuemin="0" aria-valuemax="100">
-            <div className="w-full bg-[#FAF8F4] h-3 border border-[#E8E4DC]">
-              <div
-                className="h-full transition-all"
-                style={{
-                  width: `${Math.min(100, capacity.pct)}%`,
-                  backgroundColor: capacity.pct >= 100 ? '#B85838' : capacity.pct >= 80 ? '#D97706' : '#5A6E3D',
-                }}
-              />
-            </div>
-            <div className="flex justify-between text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mt-1">
-              <span>0%</span><span>healthy ≤80%</span><span>tight ≤100%</span><span>over</span>
-            </div>
-          </div>
-          {capacity.pct >= 80 && (
-            <p className={`text-xs mt-2 ${capacity.pct >= 100 ? 'text-[#B85838]' : 'text-[#D97706]'}`} style={{ fontFamily: '"Fraunces", serif' }}>
-              <strong>{capacity.pct >= 100 ? 'Over-committed.' : 'Tight.'}</strong> New projects from Dev/Ops &quot;Wrap me&quot; or Tenant-as-Project will prompt before adding. {projects.filter(p => p.status === 'tbd').length > 0 && <> {projects.filter(p => p.status === 'tbd').length} project{projects.filter(p => p.status === 'tbd').length === 1 ? '' : 's'} already parked as TBD.</>}
-            </p>
+            </section>
           )}
-        </section>
-      )}
-              </>
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'capacity',
+                    label: 'Capacity',
+                    icon: 'users',
+                    render: () => (
+                      <>
+          {/* Round 11 — Family capacity meter. At-a-glance "do we have time?"
+              Shown only when skill profiles + projects both exist. Color-banded:
+              green <80%, amber 80-100%, rust >100% (over-committed). */}
+          {capacity.hasProfiles && (capacity.available > 0) && (
+            <section aria-labelledby="capacity-h" className="bg-white border border-[#1A1815] p-4 sm:p-5">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2">
+                <div>
+                  <h2 id="capacity-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Family Capacity · this week</h2>
+                  <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                    Sum of all active projects' hrs/wk vs sum of skill-profile hrs/wk. Healthy zone: under 80%. New projects past this line get parked as TBD by default.
+                  </p>
+                </div>
+                <div className="text-right">
+                  <div className={`text-2xl ${capacity.pct >= 100 ? 'text-[#B85838]' : capacity.pct >= 80 ? 'text-[#D97706]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 700 }}>
+                    {capacity.pct}%
+                  </div>
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                    {capacity.committed} / {capacity.available} hrs/wk · {capacity.remaining} free
+                  </div>
+                </div>
+              </div>
+              <div role="progressbar" aria-labelledby="capacity-h" aria-valuenow={capacity.pct} aria-valuemin="0" aria-valuemax="100">
+                <div className="w-full bg-[#FAF8F4] h-3 border border-[#E8E4DC]">
+                  <div
+                    className="h-full transition-all"
+                    style={{
+                      width: `${Math.min(100, capacity.pct)}%`,
+                      backgroundColor: capacity.pct >= 100 ? '#B85838' : capacity.pct >= 80 ? '#D97706' : '#5A6E3D',
+                    }}
+                  />
+                </div>
+                <div className="flex justify-between text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mt-1">
+                  <span>0%</span><span>healthy ≤80%</span><span>tight ≤100%</span><span>over</span>
+                </div>
+              </div>
+              {capacity.pct >= 80 && (
+                <p className={`text-xs mt-2 ${capacity.pct >= 100 ? 'text-[#B85838]' : 'text-[#D97706]'}`} style={{ fontFamily: '"Fraunces", serif' }}>
+                  <strong>{capacity.pct >= 100 ? 'Over-committed.' : 'Tight.'}</strong> New projects from Dev/Ops &quot;Wrap me&quot; or Tenant-as-Project will prompt before adding. {projects.filter(p => p.status === 'tbd').length > 0 && <> {projects.filter(p => p.status === 'tbd').length} project{projects.filter(p => p.status === 'tbd').length === 1 ? '' : 's'} already parked as TBD.</>}
+                </p>
+              )}
+            </section>
+          )}
+                      </>
+                    ),
+                  },
+                ]}
+              />
             ),
           },
           {
