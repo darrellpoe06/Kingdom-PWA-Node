@@ -76,8 +76,8 @@ jobs:
           # RLS on instance_id (DR-0060), which is what "each has their own
           # database" means in this system.
           - feature: product-forms
-            migrations: "0200-one-forms-engine-for-every-product-the-office-of-each-instance-edits-its-own-questions-and-documents.sql 0201-the-household-keeps-its-own-record-and-its-own-shelf-of-documents.sql 0202-what-is-owed-what-was-paid-and-the-document-that-proves-it.sql 0203-a-mortgage-in-line-items-and-what-each-door-costs-against-what-it-collects.sql 0204-the-days-post-and-the-child-who-sorts-it.sql 0205-the-sum-rule-refuses-inside-the-function-not-at-commit.sql 0206-the-plan-becomes-rows-the-dated-bills-import-into-the-ledger.sql"
-            smokes: "0200-product-forms-smoke.sql 0201-household-and-vault-smoke.sql 0202-obligations-smoke.sql 0203-door-economics-smoke.sql 0204-the-days-post-smoke.sql 0206-plan-import-smoke.sql"
+            migrations: "0200-one-forms-engine-for-every-product-the-office-of-each-instance-edits-its-own-questions-and-documents.sql 0201-the-household-keeps-its-own-record-and-its-own-shelf-of-documents.sql 0202-what-is-owed-what-was-paid-and-the-document-that-proves-it.sql 0203-a-mortgage-in-line-items-and-what-each-door-costs-against-what-it-collects.sql 0204-the-days-post-and-the-child-who-sorts-it.sql 0205-the-sum-rule-refuses-inside-the-function-not-at-commit.sql 0206-the-plan-becomes-rows-the-dated-bills-import-into-the-ledger.sql 0208-the-bus-runs-on-sunday-and-wednesday.sql 0209-the-church-keeps-each-persons-record-and-their-own-shelf.sql"
+            smokes: "0200-product-forms-smoke.sql 0201-household-and-vault-smoke.sql 0202-obligations-smoke.sql 0203-door-economics-smoke.sql 0204-the-days-post-smoke.sql 0206-plan-import-smoke.sql 0209-church-record-and-shelf-smoke.sql"
           - feature: choir-claim
             migrations: "0110-choir-member-self-claim.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql"
             smokes: "0110-choir-claim-smoke.sql"
