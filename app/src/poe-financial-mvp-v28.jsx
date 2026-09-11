@@ -109,6 +109,7 @@ import { FreshnessDot } from './components/FreshnessDot.jsx';
 import SelfServeWelcome from './components/SelfServeWelcome.jsx';
 import PinGate from './components/PinGate.jsx';
 import { decideAccess, decidePersonaSelect, shouldIssueDeviceTrust, isPersonaGated, NEXT_STEP } from './lib/multi-point-auth.js';
+import { useIdleLock } from './lib/use-idle-lock.jsx';
 import { hasUserPin, setUserPin, verifyUserPin, listPersonaPins, verifyPersonaPin } from './lib/pin.js';
 import { markPinResetIntent, hasPinResetIntent, clearPinResetIntent } from './lib/pin-reset-intent.js';
 import { isDeviceTrusted, trustThisDevice, forgetLocalDeviceTrust } from './lib/device-trust.js';
@@ -1297,13 +1298,15 @@ export default function PoeFinancialSystem() {
   // The presence gate renders for SET_PIN / ENTER_PIN / ENTER_BIOMETRIC. The PIN
   // gate IS the surface for all three (it carries the biometric button on top in
   // the ENTER cases), so the new step joins the same render condition.
+  const [idleLockNotice, setIdleLockNotice] = useState('');
+  useIdleLock({ isStaff: isChurchStaff || isFamilyMember, signedIn: !!authSession, canLock: mpEnforce && mpHasPin, view, churchView, onLock: (n) => { setIdleLockNotice(n); setMpPinVerified(false); } });
   const showPinGate = mpEnforce && !churchLinkVisit
     && (accessDecision.nextStep === NEXT_STEP.SET_PIN
       || accessDecision.nextStep === NEXT_STEP.ENTER_PIN
       || accessDecision.nextStep === NEXT_STEP.ENTER_BIOMETRIC);
 
   const markPinVerified = () => {
-    setMpPinVerified(true);
+    setMpPinVerified(true); setIdleLockNotice('');
     try {
       if (typeof sessionStorage !== 'undefined') {
         sessionStorage.setItem(mpPinOkKey(authSession?.user?.id), String(new Date().toISOString()));
@@ -4021,9 +4024,9 @@ ${THEME_CSS}
             ? (mpPinResetPending
               ? 'You signed back in, so the old PIN is gone. Choose a new 4–8 digit PIN — it replaces the one you couldn’t enter.'
               : 'One more step: choose a 4–8 digit PIN. It’s your second key — used with your email sign-in or this trusted device.')
-            : (mpHasBiometric
+            : (idleLockNotice || (mpHasBiometric
               ? 'Use your fingerprint / Face to unlock — or enter your PIN.'
-              : 'Enter your PIN to unlock your space.')}
+              : 'Enter your PIN to unlock your space.'))}
           submitLabel={accessDecision.nextStep === NEXT_STEP.SET_PIN ? 'Set PIN & continue' : 'Unlock'}
           onSubmit={accessDecision.nextStep === NEXT_STEP.SET_PIN ? handleSetPin : handleEnterPin}
           onForgot={accessDecision.nextStep !== NEXT_STEP.SET_PIN ? handleForgotPin : undefined}

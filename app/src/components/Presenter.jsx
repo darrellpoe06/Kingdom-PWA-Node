@@ -209,6 +209,11 @@ function SceneEditor({ initial = null, onSave, onCancel }) {
   );
 }
 
+// data-reading="true" on every root below is the marker the idle lock reads
+// (lib/use-idle-lock.jsx). The Presenter can be opened from ANY surface, so the
+// shell cannot know it is up; rather than thread a flag through the whole tree,
+// the full-screen reader says so where it already lives in the DOM. Somebody
+// being read to is never locked out mid-sentence.
 export default function Presenter({
   presentable,
   onClose = null,
@@ -577,7 +582,7 @@ export default function Presenter({
 
   if (!cur) {
     return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#FAF8F4', color: '#1A1815', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center', fontFamily: '"Fraunces", Georgia, serif' }} role="dialog" aria-label={`Present — ${title}`}>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#FAF8F4', color: '#1A1815', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center', fontFamily: '"Fraunces", Georgia, serif' }} data-reading="true" role="dialog" aria-label={`Present — ${title}`}>
         <div>
           <p style={{ fontSize: '1.125rem', marginBottom: 16 }}>There’s nothing to present here yet.</p>
           {onClose && <button type="button" onClick={onClose} style={btn.ghost}>Close ✕</button>}
@@ -596,7 +601,7 @@ export default function Presenter({
     const chip = (on) => ({ cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.75rem', minHeight: 40, padding: '8px 14px', border: `1px solid ${on ? '#C9D9A6' : '#4A453D'}`, background: on ? '#C9D9A6' : 'transparent', color: on ? '#14110E' : '#CFC9BD' });
     const navBtn = { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', minHeight: 44, minWidth: 52, padding: '8px 16px', border: '1px solid #4A453D', background: 'transparent', color: '#FAF8F4', fontSize: '1.25rem', lineHeight: 1 };
     return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 70, background: '#14110E', color: '#FAF8F4', display: 'flex', flexDirection: 'column', fontFamily: '"Fraunces", Georgia, serif' }} role="dialog" aria-label={`Presenting — ${title}`}>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 70, background: '#14110E', color: '#FAF8F4', display: 'flex', flexDirection: 'column', fontFamily: '"Fraunces", Georgia, serif' }} data-reading="true" role="dialog" aria-label={`Presenting — ${title}`}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: 'clamp(24px, 5vw, 72px)', overflowY: 'auto' }} onClick={() => go(1)} title="Tap to advance">
           <div id="presenter-slide"><AudienceSlide slide={cleanSlide} invite={followCode ? { code: followCode, url: followLink(followCode) } : null} /></div>
         </div>
@@ -626,7 +631,7 @@ export default function Presenter({
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#FAF8F4', color: '#1A1815', overflowY: 'auto', fontFamily: '"Fraunces", Georgia, serif' }} role="dialog" aria-label={`Present — ${title}`}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#FAF8F4', color: '#1A1815', overflowY: 'auto', fontFamily: '"Fraunces", Georgia, serif' }} data-reading="true" role="dialog" aria-label={`Present — ${title}`}>
       {/* sticky control bar — controls-in-context: scene nav + timer reachable at any scroll */}
       <div style={{ position: 'sticky', top: 0, zIndex: 2, background: '#1A1815', color: '#FAF8F4', padding: '10px clamp(12px, 3vw, 28px)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <span style={{ fontSize: '0.6875rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#EBA77E', fontFamily: '"JetBrains Mono", monospace' }}>Presenting</span>
