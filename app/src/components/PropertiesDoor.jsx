@@ -25,6 +25,13 @@ import { readApplyTarget, resolveScan } from '../modules/properties/apply-link.j
 import { loadPublicVacancies, submitApplication } from '../modules/properties/cloud.js';
 import { VacancyCard } from '../modules/properties/Storefront.jsx';
 import { APPLICATION_SECTIONS, validateApplication } from '../modules/properties/intake.js';
+// WHAT AN APPLICANT IS OWED IN WRITING (DR-0357): the criteria every
+// application is judged by and the fair-housing commitment it is read under.
+// Read live where the reader's instance can be resolved (a signed-in
+// landlord); the originals the code ships otherwise, which is what an
+// anonymous applicant sees until the office saves its own words.
+import { originalProduct } from '../lib/product-forms.js';
+import { readProductForms } from '../lib/product-forms-sync.js';
 
 const { brand } = POE_PROPERTIES;
 const serif = { fontFamily: '"Fraunces", Georgia, serif' };
@@ -257,6 +264,7 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
         <p className="text-xs text-[#5A5751] mt-3 mb-2" style={serif}>
           The exact address is given by a person, not published here.
         </p>
+        <BeforeYouApply />
         <ApplyForm vacancies={vacancies || []} preselect={scan.matched ? scan.unit.id : ''} />
       </div>
     );
@@ -287,6 +295,57 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * The two pages an applicant reads BEFORE the form: what this office looks at,
+ * and how it chooses. DR-0101 requires the criteria be documented and
+ * consistent and the decision carry its reason; this is where the applicant
+ * gets to read them first. Folded shut by default so the door stays a door.
+ */
+function BeforeYouApply() {
+  const [forms, setForms] = useState(() => originalProduct('properties'));
+  const [openKey, setOpenKey] = useState('');
+  useEffect(() => {
+    let alive = true;
+    readProductForms('properties').then((res) => { if (alive && res.ok) setForms(res.resolved); });
+    return () => { alive = false; };
+  }, []);
+  const pages = ['rental-criteria', 'fair-housing'].map((k) => ({ key: k, entry: forms[k] })).filter((p) => p.entry && p.entry.doc);
+  if (!pages.length) return null;
+  return (
+    <div className="border border-[#E8E4DC] p-3 mb-3">
+      <p className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold mb-2" style={{ color: brand.accent }}>Before you apply</p>
+      {pages.map(({ key, entry }) => {
+        const open = openKey === key;
+        return (
+          <div key={key} className="border-t border-[#F0ECE4] first:border-t-0 py-1">
+            <button
+              type="button" onClick={() => setOpenKey(open ? '' : key)} aria-expanded={open}
+              className="w-full min-h-[36px] flex items-center justify-between gap-2 text-left text-sm text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+              style={serif}
+            >
+              <span>{entry.doc.title}</span>
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#8A867E]">{open ? 'hide' : 'read'}</span>
+            </button>
+            {open && (
+              <div className="space-y-2 text-xs text-[#1A1815] leading-relaxed pb-2" style={serif}>
+                <p className="text-[#5A5751]">{entry.doc.preamble}</p>
+                {entry.doc.sections.map((sec) => (
+                  <section key={sec.n}>
+                    <h4 className="font-semibold">{sec.n}. {sec.title}</h4>
+                    {sec.text && <p>{sec.text}</p>}
+                    {sec.items && <ul className="list-disc pl-4">{sec.items.map((it) => <li key={it}>{it}</li>)}</ul>}
+                    {sec.after && <p className="text-[#5A5751]">{sec.after}</p>}
+                  </section>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

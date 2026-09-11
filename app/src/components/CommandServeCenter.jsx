@@ -40,6 +40,10 @@ import SectionTabs from './SectionTabs.jsx';
 import QualityProof from './QualityProof.jsx';
 import QualityThroughput from './QualityThroughput.jsx';
 import FamilyRoster from './FamilyRoster.jsx';
+// THE HOUSEHOLD'S OWN RECORD, SHELF AND FINDINGS (DR-0357). The roster names
+// the people; this names the household itself — what the app needs to serve
+// it, the documents it keeps, and what its own rows honestly say.
+import HouseholdSpace from './HouseholdSpace.jsx';
 import ConflictLoop from './ConflictLoop.jsx';
 import WakeOrchestrator from './WakeOrchestrator.jsx';
 import ProjectMgmtPulse from './ProjectMgmtPulse.jsx';
@@ -211,6 +215,7 @@ export function CommandServeCenter({ isGovernor = false, persona = null, email =
       render: () => (
         <div className="space-y-3">
           {facultyHeader('serve')}
+          <HouseholdSpace />
           <FamilyRoster currentUserId={currentUserId} familyData={familyData} />
           <section className="bg-white border border-[#1A1815] p-4">
             <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">🕊 Command in order to serve</div>

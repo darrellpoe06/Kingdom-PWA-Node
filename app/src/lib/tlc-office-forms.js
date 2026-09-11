@@ -29,6 +29,17 @@
 import { SECTIONS } from './tlc-onboarding.js';
 import { TLC_AGREEMENTS } from './tlc-agreements.js';
 import { TLC_HANDBOOK } from './tlc-handbook.js';
+// ONE ENGINE FOR EVERY PRODUCT (DR-0357): the merge-onto-the-original way this
+// file proved is now lib/forms-engine.js, product-free. TLC keeps its own
+// names, its own floor and its own documents; the machinery is shared with
+// PoeTech's household intake and Poe Properties' application.
+import {
+  defaultForm, normalizeForm, validateForm, liveSections as engineLiveSections,
+  requiredCustomKeys as engineRequiredCustomKeys, formKeys as engineFormKeys,
+  newCustomKey as engineNewCustomKey, newCustomField as engineNewCustomField,
+  CUSTOM_FIELD_TYPES as ENGINE_FIELD_TYPES, CUSTOM_KEY_RE as ENGINE_KEY_RE,
+  line, text, lines, clone,
+} from './forms-engine.js';
 
 export const OFFICE_DOCUMENT_KEYS = Object.freeze(['intake-form', 'policies', 'confidentiality', 'contractorAgreement']);
 export const OFFICE_DOCUMENT_LABELS = Object.freeze({
@@ -43,182 +54,39 @@ export const DOCUMENT_KEYS_ONLY = Object.freeze(['policies', 'confidentiality', 
 export const FLOOR_REQUIRED = Object.freeze(['firstName', 'lastName', 'phone', 'preferredEmail', 'licenseType', 'employmentStatus']);
 
 /** The kinds of question the office may add. */
-export const CUSTOM_FIELD_TYPES = Object.freeze([
-  { key: 'text', label: 'Short answer' },
-  { key: 'textarea', label: 'Paragraph' },
-  { key: 'select', label: 'Choose one' },
-  { key: 'multiselect', label: 'Choose any' },
-  { key: 'yesno', label: 'Yes / no' },
-  { key: 'date', label: 'Date' },
-]);
-const CUSTOM_TYPE_KEYS = CUSTOM_FIELD_TYPES.map((t) => t.key);
-export const CUSTOM_KEY_RE = /^x_[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
-const line = (v) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
-const text = (v) => String(v == null ? '' : v).trim();
-const lines = (v) => (Array.isArray(v) ? v : String(v == null ? '' : v).split('\n')).map((x) => line(x)).filter(Boolean);
-const clone = (v) => JSON.parse(JSON.stringify(v));
+export const CUSTOM_FIELD_TYPES = ENGINE_FIELD_TYPES;
+export const CUSTOM_KEY_RE = ENGINE_KEY_RE;
 
 // ---------------------------------------------------------------------------
 // THE INTAKE FORM
 // ---------------------------------------------------------------------------
-const isFixedRequired = (f) => f.type === 'acknowledgment' || FLOOR_REQUIRED.includes(f.key);
+const OPTS = { floor: FLOOR_REQUIRED };
 
 /** The original, as an editable body. */
-export function defaultIntakeForm() {
-  return {
-    sections: SECTIONS.map((s) => ({
-      id: s.id, title: s.title, blurb: s.blurb || '',
-      fields: s.fields.map((f) => ({
-        key: f.key, type: f.type, label: f.label, help: '',
-        required: !!f.required, hidden: false, base: true,
-        ...(f.type === 'select' ? { options: [...f.options] } : {}),
-        ...(f.type === 'acknowledgment' ? { statement: f.statement || '' } : {}),
-      })),
-    })),
-  };
-}
-
-function baseFieldByKey(key) {
-  for (const s of SECTIONS) for (const f of s.fields) if (f.key === key) return f;
-  return null;
-}
-
-function normalizeCustomField(raw, taken) {
-  if (!raw || typeof raw !== 'object') return null;
-  const key = line(raw.key);
-  const type = CUSTOM_TYPE_KEYS.includes(raw.type) ? raw.type : null;
-  const label = line(raw.label);
-  if (!CUSTOM_KEY_RE.test(key) || !type || !label || taken.has(key)) return null;
-  const f = { key, type, label, help: line(raw.help), required: raw.required === true, hidden: raw.hidden === true, custom: true };
-  if (type === 'select' || type === 'multiselect') f.options = [...new Set(lines(raw.options))];
-  return f;
-}
+export function defaultIntakeForm() { return defaultForm(SECTIONS, OPTS); }
 
 /** A body (from the database, or from an editor) merged onto the original: never less than the original, never a broken field. */
-export function normalizeIntakeForm(body) {
-  const def = defaultIntakeForm();
-  const src = body && typeof body === 'object' && Array.isArray(body.sections) ? body.sections : [];
-  const taken = new Set();
-  const out = { sections: def.sections.map((ds) => {
-    const bs = src.find((x) => x && x.id === ds.id) || null;
-    const bFields = bs && Array.isArray(bs.fields) ? bs.fields : [];
-    const fields = ds.fields.map((df) => {
-      taken.add(df.key);
-      const bf = bFields.find((x) => x && x.key === df.key) || null;
-      if (!bf) return df;
-      const fixed = isFixedRequired(df);
-      const f = {
-        ...df,
-        label: line(bf.label) || df.label,
-        help: line(bf.help),
-        required: fixed ? true : bf.required === true,
-        hidden: fixed ? false : bf.hidden === true,
-      };
-      if (df.type === 'select') {
-        const opts = [...new Set(lines(bf.options))];
-        f.options = opts.length >= 2 ? opts : df.options;
-      }
-      if (df.type === 'acknowledgment') f.statement = text(bf.statement) || df.statement;
-      return f;
-    });
-    for (const bf of bFields) {
-      if (fields.some((x) => x.key === (bf && bf.key))) continue;
-      const cf = normalizeCustomField(bf, taken);
-      if (cf) { taken.add(cf.key); fields.push(cf); }
-    }
-    return { id: ds.id, title: line(bs && bs.title) || ds.title, blurb: bs && typeof bs.blurb === 'string' ? line(bs.blurb) : ds.blurb, fields };
-  }) };
-  return out;
-}
+export function normalizeIntakeForm(body) { return normalizeForm(SECTIONS, body, OPTS); }
 
 /** What is wrong with a form the office is about to save. Empty = nothing. */
-export function validateIntakeForm(body) {
-  const errors = [];
-  const src = body && typeof body === 'object' && Array.isArray(body.sections) ? body.sections : null;
-  if (!src) return ['the form must carry its sections'];
-  const seen = new Set();
-  for (const s of src) {
-    if (!s || !line(s.title)) errors.push(`section ${s && s.id ? s.id : '?'} needs a title`);
-    for (const f of (s && Array.isArray(s.fields) ? s.fields : [])) {
-      if (!f || !line(f.label)) { errors.push(`a question in ${s.title || s.id} has no label`); continue; }
-      const base = baseFieldByKey(f.key);
-      if (base) {
-        if (isFixedRequired(base) && f.hidden) errors.push(`"${base.label}" is required by the office's own process and cannot be hidden`);
-        if (isFixedRequired(base) && f.required === false) errors.push(`"${base.label}" cannot be made optional`);
-        if (base.type === 'select' && lines(f.options).length < 2) errors.push(`"${f.label}" needs at least two choices`);
-      } else {
-        if (!CUSTOM_KEY_RE.test(line(f.key))) errors.push(`"${f.label}" has a malformed key`);
-        if (!CUSTOM_TYPE_KEYS.includes(f.type)) errors.push(`"${f.label}" has a kind the form cannot render`);
-        if ((f.type === 'select' || f.type === 'multiselect') && lines(f.options).length < 2) errors.push(`"${f.label}" needs at least two choices`);
-      }
-      if (seen.has(f.key)) errors.push(`two questions share the key ${f.key}`);
-      seen.add(f.key);
-    }
-  }
-  return errors;
-}
+export function validateIntakeForm(body) { return validateForm(SECTIONS, body, OPTS); }
 
-/** A key for a new question: x_ + the label, unique among the keys given. */
-export function newCustomKey(label, existing = []) {
-  const base = `x_${line(label).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30) || 'question'}`.replace(/-+$/, '');
-  let key = base;
-  let n = 2;
-  const taken = new Set(existing);
-  while (taken.has(key)) key = `${base}-${n++}`;
-  return key;
-}
+/** A key for a new question from its label: x_the-label-words, unique among `existing`. */
+export function newCustomKey(label, existing = []) { return engineNewCustomKey(label, existing); }
 
-export function newCustomField(type, label, existing = []) {
-  const t = CUSTOM_TYPE_KEYS.includes(type) ? type : 'text';
-  const f = { key: newCustomKey(label, existing), type: t, label: line(label), help: '', required: false, hidden: false, custom: true };
-  if (t === 'select' || t === 'multiselect') f.options = [];
-  return f;
-}
+export function newCustomField(type, label, existing = []) { return engineNewCustomField(type, label, existing); }
 
-/** Every key a form carries (base and custom), for uniqueness. */
-export function formKeys(form) {
-  const out = [];
-  for (const s of (form && form.sections) || []) for (const f of s.fields || []) out.push(f.key);
-  return out;
-}
+export function formKeys(form) { return engineFormKeys(form); }
 
 /**
  * The sections the packet form and the readout RENDER: the code field
  * (with its file/image/word rules) under the office's words, hidden ones
  * dropped, custom ones as the form components expect them.
  */
-export function liveSections(body) {
-  const form = normalizeIntakeForm(body);
-  return form.sections.map((s) => {
-    const code = SECTIONS.find((x) => x.id === s.id);
-    return {
-      id: s.id, title: s.title, blurb: s.blurb,
-      fields: s.fields.filter((f) => !f.hidden).map((f) => {
-        const base = code && code.fields.find((x) => x.key === f.key);
-        if (base) {
-          const out = { ...base, label: f.label, help: f.help || '', required: f.required };
-          if (base.type === 'select') out.options = f.options;
-          if (base.type === 'acknowledgment') out.statement = f.statement;
-          return out;
-        }
-        const out = { key: f.key, type: f.type, label: f.label, help: f.help || '', required: f.required, custom: true };
-        if (f.type === 'select') out.options = f.options;
-        if (f.type === 'multiselect') out.options = f.options.map((o) => ({ id: o, label: o, detail: '' }));
-        return out;
-      }),
-    };
-  });
-}
+export function liveSections(body) { return engineLiveSections(SECTIONS, body, OPTS); }
 
 /** The keys the office marked required beyond the floor (what the server enforces at submit, 0196). */
-export function requiredCustomKeys(body) {
-  const out = [];
-  for (const s of liveSections(body)) for (const f of s.fields) {
-    if (f.required && !FLOOR_REQUIRED.includes(f.key) && !['file', 'acknowledgment', 'availability'].includes(f.type)) out.push(f.key);
-  }
-  return out;
-}
+export function requiredCustomKeys(body) { return engineRequiredCustomKeys(SECTIONS, body, OPTS); }
 
 // ---------------------------------------------------------------------------
 // THE DOCUMENTS
