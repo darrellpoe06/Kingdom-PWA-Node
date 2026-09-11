@@ -15,6 +15,7 @@ import React, { useEffect, useState } from 'react';
 import supabase from '../lib/supabase.js';
 import LegacyProvisions from './LegacyProvisions.jsx';
 import { aboutFor } from '../lib/surface-help.js';
+import SectionTabs from './SectionTabs.jsx';
 
 // LIGHT inline self-explanation — declared centrally in surface-help.js so the
 // Help-freshness gate can verify the DEEP Help entry (help-content.js
@@ -114,7 +115,14 @@ function PlanTable({ columns, rows, caption, totals }) {
   );
 }
 
-function PlanDocument() {
+// -----------------------------------------------------------------------------
+// The plan is read ONCE here and handed to the sections (Darrell 2026-09-11:
+// "the plan tab needs the sub-tab scroll feature so the information doesn't get
+// lost on the death scroll"). Before this, every worksheet was stacked down one
+// page and the bill calendar — the part you actually need on a Tuesday — sat
+// past eight screens of scrolling. Now each worksheet is its own tab.
+// -----------------------------------------------------------------------------
+function usePlan() {
   const [state, setState] = useState({ loading: true, plan: null, title: '', updatedAt: null, error: null });
 
   useEffect(() => {
@@ -138,6 +146,13 @@ function PlanDocument() {
     return () => { alive = false; };
   }, []);
 
+  return state;
+}
+
+// Loading, failed, or nothing published yet — the three states that are ABOUT
+// the document rather than in it. Returns an element, or null when there is a
+// real plan to show.
+function planNotice(state) {
   if (state.loading) {
     return <div className="text-xs text-[#5A5751] p-4" style={serif}>Loading the family plan…</div>;
   }
@@ -169,55 +184,85 @@ function PlanDocument() {
       </Section>
     );
   }
+  return null;
+}
 
-  const p = state.plan;
+function PlanFooter({ updatedAt, sources }) {
+  if (!updatedAt) return null;
+  return (
+    <p className="text-[0.625rem] text-[#5A5751]" style={serif}>
+      Plan last updated {new Date(updatedAt).toLocaleString()}{Array.isArray(sources) && sources.length ? ` · sources: ${sources.join('; ')}` : ''}.
+    </p>
+  );
+}
+
+// Only the worksheets the row ACTUALLY carries become tabs. A section the plan
+// does not have never appears as an empty tab — the strip shows what IS, and
+// only that (DR-0076), exactly as the stacked version did.
+function planSections(state) {
+  const p = state.plan || {};
   const n = p.narrative || {};
   const mb = p.monthlyBudget || {};
   const bc = p.billCalendar || {};
   const dash = p.dashboard || {};
+  const foot = <PlanFooter updatedAt={state.updatedAt} sources={p.sources} />;
+  const out = [];
 
-  return (
-    <div className="space-y-4">
-      {/* The wording — her plan, in her words, before any table. */}
-      <Section label={`${state.title}${p.preparedBy ? ` · prepared by ${p.preparedBy}` : ''}`}>
-        {n.title && <h2 className="text-xl" style={{ ...serif, fontWeight: 600 }}>{n.title}</h2>}
-        {n.subtitle && <p className="text-xs text-[#5A5751]" style={serif}>{n.subtitle}</p>}
-        {n.whatIsGoingOn && (
-          <div>
-            <h3 className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-3 mb-1">What is going on financially</h3>
-            <p className="text-sm leading-relaxed" style={serif}>{n.whatIsGoingOn}</p>
-          </div>
-        )}
-        {Array.isArray(n.monthlyPicture) && n.monthlyPicture.length > 0 && (
-          <PlanTable caption="Current monthly picture"
-            columns={[['Current item', 'item', 'text'], ['Amount', 'amount', 'money']]}
-            rows={n.monthlyPicture} />
-        )}
-        {Array.isArray(n.goals) && n.goals.length > 0 && (
-          <div>
-            <h3 className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-3 mb-1">What we are trying to accomplish</h3>
-            <ul className="list-disc pl-5 space-y-1 text-sm" style={serif}>
-              {n.goals.map((g, i) => <li key={i}>{g}</li>)}
-            </ul>
-          </div>
-        )}
-        {n.taxRefund && <p className="text-sm" style={serif}>{n.taxRefund}</p>}
-        {n.bottomLine && (
-          <div className="border-2 border-[#1A1815] bg-[#FAF8F4] p-3 text-sm" style={serif}>
-            <strong>{n.bottomLine}</strong>
-          </div>
-        )}
-        {Array.isArray(n.oneMonthAhead) && n.oneMonthAhead.length > 0 && (
-          <div>
-            <h3 className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-3 mb-1">Becoming one month ahead on the rental mortgages</h3>
-            <div className="space-y-2 text-sm leading-relaxed" style={serif}>
-              {n.oneMonthAhead.map((para, i) => <p key={i}>{para}</p>)}
+  // The wording — her plan, in her words, before any table.
+  out.push({
+    id: 'plan',
+    label: 'The plan',
+    icon: 'book',
+    render: () => (
+      <div className="space-y-4">
+        <Section label={`${state.title}${p.preparedBy ? ` · prepared by ${p.preparedBy}` : ''}`}>
+          {n.title && <h2 className="text-xl" style={{ ...serif, fontWeight: 600 }}>{n.title}</h2>}
+          {n.subtitle && <p className="text-xs text-[#5A5751]" style={serif}>{n.subtitle}</p>}
+          {n.whatIsGoingOn && (
+            <div>
+              <h3 className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-3 mb-1">What is going on financially</h3>
+              <p className="text-sm leading-relaxed" style={serif}>{n.whatIsGoingOn}</p>
             </div>
-          </div>
-        )}
-      </Section>
+          )}
+          {Array.isArray(n.monthlyPicture) && n.monthlyPicture.length > 0 && (
+            <PlanTable caption="Current monthly picture"
+              columns={[['Current item', 'item', 'text'], ['Amount', 'amount', 'money']]}
+              rows={n.monthlyPicture} />
+          )}
+          {Array.isArray(n.goals) && n.goals.length > 0 && (
+            <div>
+              <h3 className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-3 mb-1">What we are trying to accomplish</h3>
+              <ul className="list-disc pl-5 space-y-1 text-sm" style={serif}>
+                {n.goals.map((g, i) => <li key={i}>{g}</li>)}
+              </ul>
+            </div>
+          )}
+          {n.taxRefund && <p className="text-sm" style={serif}>{n.taxRefund}</p>}
+          {n.bottomLine && (
+            <div className="border-2 border-[#1A1815] bg-[#FAF8F4] p-3 text-sm" style={serif}>
+              <strong>{n.bottomLine}</strong>
+            </div>
+          )}
+          {Array.isArray(n.oneMonthAhead) && n.oneMonthAhead.length > 0 && (
+            <div>
+              <h3 className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-3 mb-1">Becoming one month ahead on the rental mortgages</h3>
+              <div className="space-y-2 text-sm leading-relaxed" style={serif}>
+                {n.oneMonthAhead.map((para, i) => <p key={i}>{para}</p>)}
+              </div>
+            </div>
+          )}
+        </Section>
+        {foot}
+      </div>
+    ),
+  });
 
-      {Array.isArray(dash.metrics) && dash.metrics.length > 0 && (
+  if (Array.isArray(dash.metrics) && dash.metrics.length > 0) {
+    out.push({
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: 'chart',
+      render: () => (
         <Section label="Dashboard">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {dash.metrics.map((m, i) => (
@@ -234,9 +279,16 @@ function PlanDocument() {
           )}
           {dash.system && <p className="text-xs text-[#5A5751]" style={serif}>{dash.system}</p>}
         </Section>
-      )}
+      ),
+    });
+  }
 
-      {Array.isArray(p.debtTracker) && p.debtTracker.length > 0 && (
+  if (Array.isArray(p.debtTracker) && p.debtTracker.length > 0) {
+    out.push({
+      id: 'debts',
+      label: 'Debt tracker',
+      icon: 'alert',
+      render: () => (
         <Section label="Debt tracker and payoff estimates">
           <p className="text-xs text-[#5A5751]" style={serif}>
             Every debt as the workbook states it — a blank means the workbook does not have that number yet, not that it is zero,
@@ -247,9 +299,16 @@ function PlanDocument() {
             columns={[['Debt', 'debt', 'text'], ['Balance', 'balance', 'money'], ['Payoff (timeline)', 'payoff', 'text'], ['Planned/mo', 'payment', 'money'], ['APR', 'apr', 'pct'], ['Priority', 'priority', 'text'], ['Notes', 'note', 'text']]}
             rows={p.debtTracker} />
         </Section>
-      )}
+      ),
+    });
+  }
 
-      {(Array.isArray(mb.income) || Array.isArray(mb.housing) || Array.isArray(mb.debtPayments)) && (
+  if (Array.isArray(mb.income) || Array.isArray(mb.housing) || Array.isArray(mb.debtPayments)) {
+    out.push({
+      id: 'budget',
+      label: 'Monthly budget',
+      icon: 'coins',
+      render: () => (
         <Section label="Monthly operating budget">
           {mb.totals && (
             <div className="grid grid-cols-3 gap-2">
@@ -279,25 +338,46 @@ function PlanDocument() {
             </div>
           )}
         </Section>
-      )}
+      ),
+    });
+  }
 
-      {Array.isArray(p.cashPlan) && p.cashPlan.length > 0 && (
+  if (Array.isArray(p.cashPlan) && p.cashPlan.length > 0) {
+    out.push({
+      id: 'cash',
+      label: 'Cash & catch-up',
+      icon: 'landmark',
+      render: () => (
         <Section label="Cash reserve, catch-up and school plan">
           <PlanTable caption="Cash plan" totals
             columns={[['Item', 'item', 'text'], ['Amount', 'amount', 'money'], ['Timing', 'timing', 'text'], ['Strategy', 'strategy', 'text'], ['Notes', 'note', 'text']]}
             rows={p.cashPlan} />
         </Section>
-      )}
+      ),
+    });
+  }
 
-      {Array.isArray(p.payoffSchedule) && p.payoffSchedule.length > 0 && (
+  if (Array.isArray(p.payoffSchedule) && p.payoffSchedule.length > 0) {
+    out.push({
+      id: 'payoff',
+      label: 'Payoff checkpoints',
+      icon: 'check',
+      render: () => (
         <Section label="Payoff checkpoints — September 2026 to August 2027">
           <PlanTable caption="Payoff schedule"
             columns={[['Month', 'month', 'text'], ['BG payment', 'bgPayment', 'money'], ['BG priority balance', 'bgPriorityBalance', 'money'], ['Chase payment', 'chasePayment', 'money'], ['Chase balance', 'chaseBalance', 'money']]}
             rows={p.payoffSchedule} />
         </Section>
-      )}
+      ),
+    });
+  }
 
-      {Array.isArray(bc.dated) && bc.dated.length > 0 && (
+  if (Array.isArray(bc.dated) && bc.dated.length > 0) {
+    out.push({
+      id: 'calendar',
+      label: 'Bill calendar',
+      icon: 'calendar',
+      render: () => (
         <Section label="Recurring monthly bill calendar — reconciled">
           <PlanTable caption="Dated bills"
             columns={[['Day', 'day', 'text'], ['Payee / bill', 'payee', 'text'], ['Amount', 'amount', 'money'], ['Account / note', 'note', 'text']]}
@@ -337,22 +417,29 @@ function PlanDocument() {
             </div>
           )}
         </Section>
-      )}
+      ),
+    });
+  }
 
-      {state.updatedAt && (
-        <p className="text-[0.625rem] text-[#5A5751]" style={serif}>
-          Plan last updated {new Date(state.updatedAt).toLocaleString()}{Array.isArray(p.sources) && p.sources.length ? ` · sources: ${p.sources.join('; ')}` : ''}.
-        </p>
-      )}
-    </div>
-  );
+  return out;
+}
+
+// The document on its own, still a single export for anywhere that wants the
+// plan without the trust system beside it.
+function PlanDocument() {
+  const state = usePlan();
+  const notice = planNotice(state);
+  if (notice) return notice;
+  return <SectionTabs variant="sub" idBase="plan-doc" ariaLabel="Plan sections" sections={planSections(state)} />;
 }
 
 // The Plan tab carries BOTH: the written plan (whatever the newest family_plans
 // row holds) AND the Legacy Provisions system — the family trust's three
 // provisions as a working surface (Darrell 2026-09-02). The provisions render
-// whether or not a plan row exists, because PlanDocument's early returns are
-// about the DOCUMENT, and the trust system is not the document.
+// whether or not a plan row exists, because the plan's loading / failed / not
+// yet published states are about the DOCUMENT, and the trust system is not the
+// document — so provisions is always its own tab on the strip, reachable in one
+// tap instead of at the bottom of everything.
 function PlanAbout() {
   const [open, setOpen] = useState(false);
   if (!PLAN_ABOUT) return null;
@@ -366,7 +453,7 @@ function PlanAbout() {
         style={serif}
       >
         <span className="uppercase tracking-[0.2em]">About this{open ? '' : ' — what it is, where the data comes from, how it works'}</span>
-        <span className="ml-auto">{open ? '\u25BE' : '\u25B8'}</span>
+        <span className="ml-auto">{open ? '▾' : '▸'}</span>
       </button>
       {open && (
         <div className="px-3 pb-3 space-y-2 text-xs leading-relaxed text-[#1A1815]" style={serif}>
@@ -380,11 +467,18 @@ function PlanAbout() {
 }
 
 function FamilyPlan() {
+  const state = usePlan();
+  const notice = planNotice(state);
+  // When there is no document to show, the strip still stands: one tab holding
+  // the honest word about the plan, and the trust system beside it.
+  const sections = notice
+    ? [{ id: 'plan', label: 'The plan', icon: 'book', render: () => notice }]
+    : planSections(state);
+  sections.push({ id: 'provisions', label: 'Legacy provisions', icon: 'crown', render: () => <LegacyProvisions /> });
   return (
     <div className="space-y-4">
       <PlanAbout />
-      <PlanDocument />
-      <LegacyProvisions />
+      <SectionTabs variant="sub" idBase="plan" ariaLabel="Plan sections" sections={sections} />
     </div>
   );
 }

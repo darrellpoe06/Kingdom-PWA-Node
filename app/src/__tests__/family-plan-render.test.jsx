@@ -93,6 +93,18 @@ async function mount() {
   });
   return container;
 }
+// Darrell 2026-09-11: "the plan tab needs the sub-tab scroll feature so the
+// information doesn't get lost on the death scroll". Each worksheet is now its
+// own tab, so only the OPEN panel is mounted (SectionTabs mounts lazily on
+// purpose). These tests therefore click to a section before asserting what is
+// in it — which is the stronger proof: every worksheet is still REACHABLE, and
+// reachable in one tap rather than eight screens of scrolling.
+function openTab(c, label) {
+  const tab = [...c.querySelectorAll('[role="tab"]')].find((b) => b.textContent.trim() === label);
+  if (!tab) throw new Error(`no tab labelled "${label}" — tabs are: ${[...c.querySelectorAll('[role="tab"]')].map((b) => b.textContent.trim()).join(', ')}`);
+  return act(async () => { tab.click(); });
+}
+
 afterEach(async () => {
   if (root) await act(async () => root.unmount());
   if (container) container.remove();
@@ -101,24 +113,58 @@ afterEach(async () => {
 });
 
 describe('FamilyPlan (Books → Plan)', () => {
-  it('renders the narrative wording AND the worksheet numbers from the plan row', async () => {
+  it('opens on her wording — the plan is what you read first, not a table', async () => {
     armed.data = [PLAN_ROW];
     const c = await mount();
     const t = c.textContent;
-    // Her wording leads
     expect(t).toContain('POE FAMILY FINANCIAL PLAN');
     expect(t).toContain('money Christy received from her accident');
     expect(t).toContain('BOTTOM LINE');
-    // The worksheets are on screen with their real numbers
-    expect(t).toContain('Christina Capital One');
-    expect(t).toContain('28.99%');
-    expect(t).toContain('$2,622.83');           // Wells Fargo dated bill
-    expect(t).toContain('$21,110.19');          // working monthly outflow
-    expect(t).toContain('$26,628.72');          // income low total
+  });
+
+  it('every worksheet is reachable by its own tab, carrying the workbook numbers', async () => {
+    armed.data = [PLAN_ROW];
+    const c = await mount();
+
+    await openTab(c, 'Debt tracker');
+    expect(c.textContent).toContain('Christina Capital One');
+    expect(c.textContent).toContain('28.99%');
     // A blank in the workbook stays a dash, never a painted zero (DR-0076)
     const elanRow = [...c.querySelectorAll('tr')].find((r) => /Elan business card/.test(r.textContent));
     expect(elanRow.textContent).toContain('—');
     expect(elanRow.textContent).not.toContain('$0');
+
+    await openTab(c, 'Monthly budget');
+    expect(c.textContent).toContain('$26,628.72');          // income low total
+
+    await openTab(c, 'Bill calendar');
+    expect(c.textContent).toContain('$2,622.83');           // Wells Fargo dated bill
+    expect(c.textContent).toContain('$21,110.19');          // working monthly outflow
+  });
+
+  // The whole point of the change: the bill calendar — the part you need on a
+  // Tuesday — used to sit eight screens down. It is now one tap from the top.
+  it('names every section on the strip, with the trust system beside the plan', async () => {
+    armed.data = [PLAN_ROW];
+    const c = await mount();
+    const labels = [...c.querySelectorAll('[role="tab"]')].map((b) => b.textContent.trim());
+    for (const must of ['The plan', 'Debt tracker', 'Monthly budget', 'Bill calendar', 'Legacy provisions']) {
+      expect(labels, must).toContain(must);
+    }
+    // Lazy panels: a section you have not opened is not in the document, which
+    // is what makes this cheaper than the stack it replaces.
+    expect(c.textContent).not.toContain('Christina Capital One');
+  });
+
+  // A plan row that carries no cash plan must not grow an empty tab for one
+  // (DR-0076 — the surface shows what IS).
+  it('a worksheet the plan does not carry never becomes an empty tab', async () => {
+    armed.data = [{ ...PLAN_ROW, plan: { ...PLAN_ROW.plan, cashPlan: [], payoffSchedule: [] } }];
+    const c = await mount();
+    const labels = [...c.querySelectorAll('[role="tab"]')].map((b) => b.textContent.trim());
+    expect(labels).not.toContain('Cash & catch-up');
+    expect(labels).not.toContain('Payoff checkpoints');
+    expect(labels).toContain('The plan');
   });
 
   // Darrell 2026-08-20, reading the live tracker: "where are the total amount
@@ -127,6 +173,7 @@ describe('FamilyPlan (Books → Plan)', () => {
   it('sums the debt tracker into a Total row — numeric rows only, never a painted $0', async () => {
     armed.data = [PLAN_ROW];
     const c = await mount();
+    await openTab(c, 'Debt tracker');
     const debtTable = [...c.querySelectorAll('table')].find((t) => /Christina Capital One/.test(t.textContent));
     const totalRow = debtTable.querySelector('tfoot tr');
     expect(totalRow.textContent).toContain('Total');
@@ -141,6 +188,7 @@ describe('FamilyPlan (Books → Plan)', () => {
   it('puts each debt timeline beside its balance, ahead of the APR', async () => {
     armed.data = [PLAN_ROW];
     const c = await mount();
+    await openTab(c, 'Debt tracker');
     const debtTable = [...c.querySelectorAll('table')].find((t) => /Christina Capital One/.test(t.textContent));
     expect(debtTable.textContent).toContain('Apr 2028');
     const headers = [...debtTable.querySelectorAll('th')].map((th) => th.textContent);
@@ -150,6 +198,7 @@ describe('FamilyPlan (Books → Plan)', () => {
   it('a wide table names that it scrolls sideways on a narrow screen', async () => {
     armed.data = [PLAN_ROW];
     const c = await mount();
+    await openTab(c, 'Debt tracker');
     expect(c.textContent).toContain('swipe the table sideways');
   });
 
