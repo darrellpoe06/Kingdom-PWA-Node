@@ -1,6 +1,9 @@
-# DR-0360 — A provider switched off is never offered, and the cutover dropped Google
+# DR-0361 — A provider switched off is never offered, and the cutover dropped Google
 
 **Date:** 2026-09-11 · **Status:** accepted · **Tier:** B · **Area:** platform · **Principles:** VERIFICATION-DOCTRINE, APP-IS-PRIMARY, EXCELLENCE-STANDARD, DETERMINISTIC-FIRST, DECISION-RECORDS
+
+> **Renumbered on merge.** Minted as DR-0360 on a concurrent branch (DR-0011's branch-per-session convention, DR-0052's renumber rule). PR #1526 merged first and keeps DR-0360, so both records on that branch shifted up one. No decision was lost; the INDEX pointer records the shift.
+
 
 ## What happened, in the room
 

@@ -1,6 +1,6 @@
 // `npm run verify` must actually verify what CI verifies (2026-09-11).
 //
-// THE FALSE GREEN. Building DR-0360 I ran the whole vitest suite locally -- 910
+// THE FALSE GREEN. Building DR-0361 I ran the whole vitest suite locally -- 910
 // files, 13388 tests, green -- and pushed. CI went red in 45 seconds on
 // `lessons-gate-coverage`, a gate that had never been part of my local run at
 // all: CI executes 13 guard SCRIPTS as separate job steps between lint and

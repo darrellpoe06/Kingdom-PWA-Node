@@ -4,7 +4,7 @@
 "Continue with Google" answered with GoTrue's raw 400 JSON --
 `Unsupported provider: provider is not enabled`. On hosted Supabase, Google was
 enabled in the **dashboard**, and a dashboard setting is not a file, so it never
-travelled with the cutover. Full account: **DR-0360**.
+travelled with the cutover. Full account: **DR-0361**.
 
 ## The DR-0108 channel challenge (run BEFORE anything here was called a hand-step)
 
@@ -16,7 +16,7 @@ travelled with the cutover. Full account: **DR-0360**.
 | **Deploy lane** | No -- nothing in the built app changes. |
 
 So the human tail is exactly two lawful items, and neither blocks anything else
-in DR-0360: a **secret value onto a device** (the client secret, a value only
+in DR-0361: a **secret value onto a device** (the client secret, a value only
 Darrell holds), and one **console** click in Google Cloud that no channel of
 ours reaches. Everything else is already delivered.
 

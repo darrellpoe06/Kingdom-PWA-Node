@@ -130,7 +130,7 @@ describe('AuthModal — the quiet in-app sign-in dialog', () => {
   // a popup containing GoTrue's raw 400 JSON -- "Unsupported provider:
   // provider is not enabled" -- and the dialog itself showed nothing at all.
   // These mount the REAL dialog against the REAL provider probe (only the
-  // network is stubbed) and prove what a member now sees instead. DR-0360.
+  // network is stubbed) and prove what a member now sees instead. DR-0361.
   // ---------------------------------------------------------------------
   describe('a provider GoTrue has switched off is never navigated to', () => {
     const stubSettings = (external) => {

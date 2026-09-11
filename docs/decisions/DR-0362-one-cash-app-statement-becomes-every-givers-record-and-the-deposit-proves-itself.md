@@ -1,6 +1,9 @@
-# DR-0361 — One Cash App statement becomes every giver's record, and the deposit proves itself
+# DR-0362 — One Cash App statement becomes every giver's record, and the deposit proves itself
 
 **Date:** 2026-09-11 · **Status:** accepted · **Tier:** B · **Area:** money · **Principles:** VERIFICATION-DOCTRINE, APP-IS-PRIMARY, DATA-AS-EMPOWERMENT, DETERMINISTIC-FIRST, DECISION-RECORDS
+
+> **Renumbered on merge.** Minted as DR-0361 on a concurrent branch (DR-0011's branch-per-session convention, DR-0052's renumber rule). PR #1526 merged first and keeps DR-0360, so both records on that branch shifted up one. No decision was lost; the INDEX pointer records the shift.
+
 
 ## Directive — spoken in the meeting, by the people who do the work
 
@@ -95,7 +98,7 @@ Fixed by normalising once at the read, and gated by a contract test that reads *
 
 ### And the same shape one level up: `npm run verify` did not verify what CI verifies
 
-DR-0360's push went red in 45 seconds on `lessons-gate-coverage` **after** a local run of 910 test files and 13,388 tests came back green. `npm run verify` was `npm run lint && vitest run`, while CI's `app — lint + vitest` job runs **13 guard scripts as separate steps** between lint and vitest. The command this repo documents as the sanctioned lane check — DR-0077 §2, quoted as "the real gate" in `REVIEWS.md`, the resume contract and the orchestrator handoff — skipped 13 of the checks that decide whether a push is red.
+DR-0361's push went red in 45 seconds on `lessons-gate-coverage` **after** a local run of 910 test files and 13,388 tests came back green. `npm run verify` was `npm run lint && vitest run`, while CI's `app — lint + vitest` job runs **13 guard scripts as separate steps** between lint and vitest. The command this repo documents as the sanctioned lane check — DR-0077 §2, quoted as "the real gate" in `REVIEWS.md`, the resume contract and the orchestrator handoff — skipped 13 of the checks that decide whether a push is red.
 
 `verify` now chains `verify:gates` (all 13, in CI's own order) between lint and the suite, and `verify-covers-ci-guards.test.js` fails the build if CI gains a guard step that `verify` cannot reach. Proven to catch against the pre-fix script (all 13 reported missing, with `lessons-gate-coverage` named) and against a guard added to the CI job. A local green that does not predict CI is worse than no local check, because it is trusted.
 

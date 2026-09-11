@@ -5,7 +5,7 @@
 # 2026-09-11, 11:58am: a Love Corner meeting tapped "Continue with Google" and
 # got GoTrue's raw 400 JSON -- "Unsupported provider: provider is not enabled".
 # On hosted Supabase, Google was enabled in the DASHBOARD, and a dashboard
-# setting is not a file, so it never travelled with the cutover (DR-0360).
+# setting is not a file, so it never travelled with the cutover (DR-0361).
 #
 # The compose file now carries the provider (delivered by services-sync like
 # everything else here). What no channel of ours may carry is the client
