@@ -109,3 +109,66 @@ in one tap.
 - The typed split of the three composite intake questions — still his call.
   *re-review: 2026-09-17.*
 - Darrell still needs to delete the CAQH password cell from the responses sheet.
+
+---
+
+## Later the same day — the surface both decision records said was owed
+
+DR-0358 and DR-0359 each ended with "**No surface yet**" and a dated re-review
+(2026-09-14 and 2026-09-15). The ledger, the walls, the arithmetic and the
+per-door gap engine were all live in the database and **nothing showed them** —
+Darrell had asked for gap/profit analytics and it was queryable but invisible.
+
+**Books → Owed** (`components/Obligations.jsx`), registry-mounted, four sections
+on a strip (the same Way just swept across the app):
+
+- **What is owed** — the two columns, each carrying its plain sentence and the
+  one a child gets; the net position with **both halves beside it**, never one
+  number that hides its direction; and what falls due in the next fourteen days.
+- **Aging** — the standard ladder, every bucket total a sum of rows, with
+  due-today explicitly not late.
+- **Each door** — cost, billed, collected, and the gap **measured against money
+  that actually arrived**, with the mortgage broken into the parts a statement
+  names.
+- **The words** — every term three ways: the business phrase, the household
+  phrase, and the sentence a child is told, against this household's own bills.
+
+**The empty path is the main path, and it is built that way.** There are zero
+obligations in the live database and 11 of the 12 doors carry no numbers, so the
+surface's most-used state is "nothing entered" — and it says what is missing and
+what would fill it, rather than drawing a `$0.00` that would read as a fact about
+the money. The door panel says so in as many words: a zero there "would read as
+'this door costs nothing'."
+
+A refused read is named, not blanked: the books wall denies a child and an
+assistant by design, so the surface says *"These are the books. They are kept by
+the owner and the admins of this household."*
+
+**One real bug caught by its own test before it shipped:** the due-soon list
+rendered `STATUS_WORDS[status]` directly, which is an object — React threw
+"Objects are not valid as a React child". Fixed to `.business`.
+
+**Proven-to-catch (DR-0076 §3), twice:** forcing the empty state to draw totals
+fails the "never draws a zero" test; changing the door gap to measure against
+what was *billed* instead of what *arrived* fails the gap test. Both restored.
+
+**The monolith budget was raised 5346 → 5347 by hand, with the reason recorded**
+in `scripts/monolith-budget.json` — +1 is the render-switch line only; the nav
+entry rides the existing Books sub-nav array line and the import rides the
+existing surfaces import line. Every line of the feature lives in its own module.
+That is the freeze working as intended, and the guard refusing the shortcut is
+the reason it is written down.
+
+### Still open after this
+
+- **The numbers are not entered.** The shape exists and refuses to invent
+  content. Entering the 12 doors' real figures is Darrell's and Christina's; the
+  next slice is making that entry easy from this surface rather than guessing.
+- **The day's post has no panel yet.** `document_route` and the `family_documents`
+  routing columns are live; the sorting tray is the next commit. *re-review:
+  2026-09-16.*
+- **A child sorting the post** (Darrell's "Yes", 2026-09-11) rides that tray:
+  a child sorts what a guardian releases, and never meets the ledger or the
+  amounts — the sorting is the lesson, the books stay behind the wall (DR-0094).
+- `debts` still has no due date; recurring bills are still a JSON array;
+  `rent_payments` is not folded in.

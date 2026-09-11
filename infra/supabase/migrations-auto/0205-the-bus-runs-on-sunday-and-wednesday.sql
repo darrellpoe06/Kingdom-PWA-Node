@@ -1,5 +1,5 @@
 -- ===========================================================================
--- 0204 — the bus runs on SUNDAY *AND* WEDNESDAY
+-- 0205 — the bus runs on SUNDAY *AND* WEDNESDAY
 -- ===========================================================================
 -- Declared by Darrell 2026-09-11, with the COLG leadership looking at the Bus
 -- Ministry surface: "You say which Sunday? We need to say Sunday and

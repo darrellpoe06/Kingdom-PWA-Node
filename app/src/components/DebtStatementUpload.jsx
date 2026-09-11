@@ -63,9 +63,20 @@ export default function DebtStatementUpload({
       const targetId = (debt && debt.accountId) || null;
       const prov = provisionFromStatement(fp, { accounts, summary, entityId: debt ? debt.entityId : null });
       const accountId = targetId || prov.existingAccountId || null;
+      // ONE shape, whichever branch produced it (fixed 2026-09-11). This read
+      // `read.plan.toAdd` while planAccountImport returns `{ txns, duplicates:
+      // Number }` -- so whenever an account DID resolve (the normal case, and
+      // the only case that dedupes) commit handed the parent an EMPTY array and
+      // imported nothing, while the panel reported "0 new" and a duplicate
+      // count of `undefined`. Silent, and it looked like an empty statement.
+      // Normalising here rather than at both call sites keeps the two branches
+      // from drifting apart again.
       const plan = accountId
-        ? planAccountImport(parsed.rows || [], accountId, transactions || [])
-        : { toAdd: parsed.rows || [], duplicates: [] };
+        ? (() => {
+          const p = planAccountImport(parsed.rows || [], accountId, transactions || []);
+          return { toAdd: p.txns || [], duplicateCount: p.duplicates || 0 };
+        })()
+        : { toAdd: parsed.rows || [], duplicateCount: 0 };
       setRead({ file: file.name, rows: parsed.rows || [], fp, summary, recall, prov, plan, accountId });
     } catch (e) {
       setError(`Could not read that file: ${(e && e.message) || 'unknown error'}`);
@@ -86,7 +97,7 @@ export default function DebtStatementUpload({
 
   const s = read && read.summary;
   const newRows = read ? (read.plan.toAdd || []).length : 0;
-  const dupes = read ? (read.plan.duplicates || []).length : 0;
+  const dupes = read ? (read.plan.duplicateCount || 0) : 0;
 
   return (
     <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-3 mt-2" data-testid="debt-statement-upload">
