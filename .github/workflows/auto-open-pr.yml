@@ -48,7 +48,7 @@ jobs:
     name: open a PR to main (token-only) and enable auto-merge
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Open a PR if none exists, then enable auto-merge unless held
