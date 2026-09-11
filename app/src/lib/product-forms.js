@@ -35,6 +35,8 @@ import {
 } from './forms-engine.js';
 import { HOUSEHOLD_SECTIONS, HOUSEHOLD_FLOOR } from './household-intake.js';
 import { HOUSEHOLD_COVENANT } from './household-covenant.js';
+import { CHURCH_MEMBER_SECTIONS, MEMBER_FLOOR } from './church-member-intake.js';
+import { CHURCH_COVENANT } from './church-covenant.js';
 import { RENTAL_CRITERIA, FAIR_HOUSING_STATEMENT } from './properties-documents.js';
 import { APPLICATION_SECTIONS } from '../modules/properties/intake.js';
 
@@ -114,6 +116,26 @@ export const PRODUCTS = Object.freeze({
         kind: 'document', label: 'Household Covenant',
         purpose: 'What the record is, who sees it, what we will never do with it, and what we have not built.',
         original: HOUSEHOLD_COVENANT,
+      },
+    },
+  },
+  lovecorner: {
+    key: 'lovecorner',
+    label: 'The Love Corner · the church',
+    // The church's own instance. A church record lives where that church runs,
+    // and RLS on instance_id is the wall (DR-0060) — so a second congregation
+    // adopting this app gets its own forms with nothing here to edit.
+    instanceTypes: ['church'],
+    forms: {
+      'member-intake': {
+        kind: 'form', label: 'Member record · the questions',
+        purpose: 'What the church needs to know to serve this person — and nothing that would sort them.',
+        sections: CHURCH_MEMBER_SECTIONS, floor: MEMBER_FLOOR,
+      },
+      'church-covenant': {
+        kind: 'document', label: 'What the church holds about you',
+        purpose: 'What the record holds, who sees it, what is refused outright (what you give), and what is not built.',
+        original: CHURCH_COVENANT,
       },
     },
   },

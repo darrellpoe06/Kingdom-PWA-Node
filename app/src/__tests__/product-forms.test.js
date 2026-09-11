@@ -6,6 +6,7 @@
 // the isolation matrix. DR-0076: every wall asserted, both ways.
 // =============================================================================
 import { describe, it, expect } from 'vitest';
+import { CHURCH_MEMBER_SECTIONS, MEMBER_FLOOR } from '../lib/church-member-intake.js';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,6 +16,7 @@ import {
 import {
   PRODUCTS, PRODUCT_KEYS, originalFor, normalizeFor, validateFor, liveSectionsFor,
   originalProduct, resolveProduct, RENTAL_APPLICATION_SECTIONS, RENTAL_APPLICATION_FLOOR,
+  productDef,
 } from '../lib/product-forms.js';
 import { APPLICATION_SECTIONS, LEGAL_REVIEW_REQUIRED, OUT_OF_BAND } from '../modules/properties/intake.js';
 import { HOUSEHOLD_SECTIONS, HOUSEHOLD_FLOOR } from '../lib/household-intake.js';
@@ -72,8 +74,11 @@ describe('the engine is product-free', () => {
 });
 
 describe('every product is registered with its own originals', () => {
-  it('two products, each with a form and its documents, all validating clean', () => {
-    expect(PRODUCT_KEYS).toEqual(['poetech', 'properties']);
+  it('every product has a form and its documents, all validating clean', () => {
+    // The Love Corner joined 2026-09-11 (Darrell: "Create the same type of
+    // intake forms for the Love Corner App that we did for the PoeTech and Poe
+    // Properties Apps"). Order is registration order.
+    expect(PRODUCT_KEYS).toEqual(['poetech', 'lovecorner', 'properties']);
     for (const key of PRODUCT_KEYS) {
       const resolved = originalProduct(key);
       expect(Object.keys(resolved).length, key).toBeGreaterThan(1);
@@ -190,5 +195,40 @@ describe('migrations 0200 + 0201 and their smokes', () => {
     expect(LEG).toMatch(/feature: product-forms/);
     expect(LEG).toMatch(/0200-one-forms-engine-for-every-product[^"\n]*\.sql 0201-the-household-keeps-its-own-record[^"\n]*\.sql"/);
     expect(LEG).toMatch(/smokes: "0200-product-forms-smoke\.sql 0201-household-and-vault-smoke\.sql[^"\n]*"/);
+  });
+});
+
+describe('the Love Corner rides the same engine — and keeps its own walls', () => {
+  it('registers the member record and the covenant against the church instance', () => {
+    const def = productDef('lovecorner');
+    expect(def.instanceTypes).toEqual(['church']);
+    expect(Object.keys(def.forms)).toEqual(['member-intake', 'church-covenant']);
+  });
+
+  it('carries every authored question, and its floor holds', () => {
+    const form = originalFor('lovecorner', 'member-intake');
+    expect(form.sections.map((s) => s.id)).toEqual(CHURCH_MEMBER_SECTIONS.map((s) => s.id));
+    for (const k of MEMBER_FLOOR) expect(formKeys(form)).toContain(k);
+  });
+
+  it('the office CANNOT un-require or hide a floor question', () => {
+    const body = { sections: [{ id: 'you', title: 'You', fields: [{ key: 'fullName', label: 'Name', required: false, hidden: true }] }] };
+    expect(validateFor('lovecorner', 'member-intake', body).join(' ')).toMatch(/cannot be/);
+  });
+
+  it('the covenant refuses what a church must refuse, in its own words', () => {
+    const doc = originalFor('lovecorner', 'church-covenant');
+    const text = JSON.stringify(doc);
+    expect(text).toMatch(/no giving amount/i);
+    expect(text).toMatch(/do not sell this/i);
+    expect(text).toMatch(/do not train anything on a congregant/i);
+    // DR-0357 records that no decision authorizing model training exists, so the
+    // covenant promises the ABSENCE rather than describing a safeguard.
+    expect(text).toMatch(/no decision permitting it/i);
+  });
+
+  it('signs like every other product — the acknowledgment is appended by the engine', () => {
+    const live = liveSectionsFor('lovecorner', 'member-intake', null);
+    expect(live.find((s) => s.id === 'agreements').fields[0].type).toBe('acknowledgment');
   });
 });

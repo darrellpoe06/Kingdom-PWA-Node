@@ -148,8 +148,22 @@ describe('DERIVED, not re-typed', () => {
 
 describe('the record itself', () => {
   it('starts with a place for every item', () => {
+    // An acknowledgment lives under `acknowledgments` (the shape the engine
+    // signs against), everything else at the top level — same as the household.
     const e = emptyMemberRecord();
-    for (const f of CHURCH_MEMBER_ALL_FIELDS) expect(e).toHaveProperty(f.key);
+    for (const f of CHURCH_MEMBER_ALL_FIELDS) {
+      if (f.type === 'acknowledgment') expect(e.acknowledgments, f.key).toHaveProperty(f.key);
+      else expect(e, f.key).toHaveProperty(f.key);
+    }
+  });
+
+  it('carries a SIGNING POINT — a covenant nobody can sign is a promise nobody made', () => {
+    const ack = CHURCH_MEMBER_ALL_FIELDS.find((f) => f.type === 'acknowledgment');
+    expect(ack, 'the intake must end in an agreement').toBeTruthy();
+    expect(ack.required).toBe(true);
+    expect(ack.statement).toMatch(/no giving amount/i);
+    expect(ack.statement).toMatch(/only as far as I said/i);
+    expect(ack.statement).toMatch(/never used to train anything/i);
   });
 
   it('asks for only three things before it can stand', () => {

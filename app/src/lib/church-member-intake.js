@@ -135,6 +135,20 @@ export const CHURCH_MEMBER_SECTIONS = Object.freeze([
       { key: 'accessNeeds', type: 'textarea', label: 'Anything that would make it easier to be here', help: 'Seating, hearing, a ramp, large print, a quiet space.', feeds: 'the ushers and the accessibility settings — never a medical record' },
     ],
   },
+  {
+    id: 'agreements', title: 'The agreement', blurb: 'Read it, then sign by typing your full name.',
+    fields: [
+      // WITHOUT THIS THE COVENANT IS UNSIGNABLE. The engine does not append an
+      // agreements section — each product AUTHORS its own (household-intake.js
+      // does the same), and a covenant nobody can sign is a promise nobody
+      // made. Caught by the product-forms suite rather than by reading, which
+      // is the point of pinning it there.
+      { key: 'churchCovenant', type: 'acknowledgment', required: true, docName: 'What the church holds about you',
+        label: 'What the church holds about you, and what it refuses to hold (Signature/Date)',
+        statement: 'I have read what the church holds about me. I understand that this record is mine to read, correct, take a copy of and have removed at any time; that it holds no giving amount and no giving total; that a prayer request goes only as far as I said; and that it is never sold, never sent to an employer, a lender or an advertiser, never used to decide who is welcome, and never used to train anything.',
+        feeds: 'the signed agreement, version-pinned and server-stamped (DR-0356)' },
+    ],
+  },
 ]);
 
 export const CHURCH_MEMBER_ALL_FIELDS = CHURCH_MEMBER_SECTIONS.flatMap((s) => s.fields);
