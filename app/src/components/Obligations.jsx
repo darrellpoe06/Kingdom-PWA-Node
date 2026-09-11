@@ -32,12 +32,16 @@ import {
   daysPastDue, ACCOUNTING_TERMS,
 } from '../lib/obligations.js';
 import { LINE_KINDS, DOOR_TERMS } from '../lib/door-economics.js';
+import { listPost, sortDocument, releaseForSorting } from '../lib/days-post-sync.js';
+import { MEANINGS, PRODUCTS, theDaysPost, THE_CHORE } from '../lib/days-post.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const MONO = { fontFamily: '"JetBrains Mono", monospace' };
 const CARD = 'bg-white border border-[#1A1815] p-4 sm:p-5';
 const SUBCARD = 'bg-white border border-[#E8E4DC] p-3';
 const LABEL = 'text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold';
+const BTN = 'min-h-[36px] px-3 py-2 text-xs uppercase tracking-wider border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]';
+const CHIP = (on) => `min-h-[36px] px-2.5 py-1 text-xs border focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#1A1815] border-[#E8E4DC] hover:border-[#1A1815]'}`;
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -312,6 +316,129 @@ function Words() {
 }
 
 // ---------------------------------------------------------------------------
+// The day's post — what arrived, what it means, where it belongs.
+// ---------------------------------------------------------------------------
+// Darrell: "people can review their documents that came in that day and sort
+// them to their respective products and locations for users to see a now or
+// later whenever they want". UNSORTED IS A REAL STATE: nothing here nags and
+// nothing auto-files, because "later" only works if the pile supports it.
+function DaysPost() {
+  const [state, setState] = useState({ loading: true, rows: [], error: null });
+  const [busy, setBusy] = useState(null);
+  const [note, setNote] = useState('');
+  const today = todayIso();
+
+  const load = async () => {
+    const res = await listPost();
+    setState(res.ok
+      ? { loading: false, rows: res.rows, error: null }
+      : { loading: false, rows: [], error: res.message });
+  };
+  useEffect(() => { load(); }, []);
+
+  const post = useMemo(() => theDaysPost(state.rows, { today }), [state.rows, today]);
+
+  async function act(id, fn) {
+    setBusy(id); setNote('');
+    const res = await fn();
+    setBusy(null);
+    if (!res.ok) { setNote(res.message); return; }
+    await load();
+  }
+
+  if (state.loading) return <div className="text-xs text-[#5A5751] p-4" style={SERIF}>Reading the post…</div>;
+  if (state.error) {
+    return (
+      <section className={CARD}>
+        <p className="text-sm text-[#B85838]" style={SERIF}>The post could not be read: {state.error}</p>
+      </section>
+    );
+  }
+
+  const Piece = ({ d }) => (
+    <li className="py-3">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <span className="text-sm" style={SERIF}>
+          {d.label || d.category}
+          {d.arrivedOn ? <span className="text-xs text-[#5A5751]"> · arrived {d.arrivedOn}</span> : null}
+          {d.releasedForSorting ? <span className="text-[0.5625rem] uppercase tracking-wider text-[#3F5226] ml-2">in the tray</span> : null}
+        </span>
+        <button type="button" disabled={busy === d.id}
+          onClick={() => act(d.id, () => releaseForSorting(d.id, !d.releasedForSorting))}
+          className={`${BTN}`}>
+          {d.releasedForSorting ? 'Take back' : 'Put in the tray'}
+        </button>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {MEANINGS.map((mn) => (
+          <button key={mn.id} type="button" disabled={busy === d.id}
+            onClick={() => act(d.id, () => sortDocument(d.id, { means: mn.id, product: d.product, place: d.place, arrivedOn: d.arrivedOn || today }))}
+            className={`${CHIP(d.means === mn.id)}`} title={mn.childExplains}>
+            {mn.plain}
+          </button>
+        ))}
+      </div>
+      <div className="mt-1 flex flex-wrap gap-1">
+        {PRODUCTS.map((pr) => (
+          <button key={pr.id} type="button" disabled={busy === d.id || !d.means}
+            onClick={() => act(d.id, () => sortDocument(d.id, { means: d.means, product: pr.id, place: d.place, arrivedOn: d.arrivedOn || today }))}
+            className={`${CHIP(d.product === pr.id)}`}>
+            {pr.label}
+          </button>
+        ))}
+        {(d.means || d.product) && (
+          <button type="button" disabled={busy === d.id}
+            onClick={() => act(d.id, () => sortDocument(d.id, {}))}
+            className={`${BTN}`}>Unsort</button>
+        )}
+      </div>
+      {!d.means && <p className="text-[0.625rem] text-[#5A5751] mt-1" style={SERIF}>Say what it is first; then where it goes.</p>}
+    </li>
+  );
+
+  return (
+    <div className="space-y-3">
+      <section className={SUBCARD}>
+        <h3 className={LABEL}>{THE_CHORE.title}</h3>
+        <p className="text-sm mt-1" style={SERIF}>{THE_CHORE.what}</p>
+        <p className="text-xs text-[#5A5751] mt-1" style={SERIF}>{THE_CHORE.how}</p>
+        <p className="text-xs text-[#3F5226] mt-1" style={SERIF}><strong>Why it matters:</strong> {THE_CHORE.why}</p>
+        <p className="text-xs text-[#5A5751] mt-1" style={SERIF}>{THE_CHORE.notYours}</p>
+      </section>
+
+      {note && <p className="text-xs text-[#B85838]" style={SERIF}>{note}</p>}
+
+      <section className={CARD}>
+        <h3 className={LABEL}>Still to sort · {post.counts.unsorted}</h3>
+        {post.unsorted.length === 0 ? (
+          <p className="text-sm mt-2" style={SERIF}>
+            {post.counts.total === 0
+              ? 'No post has been filed here yet.'
+              : 'Everything that has come in is sorted. Nothing is waiting on you.'}
+          </p>
+        ) : (
+          <ul className="mt-1 divide-y divide-[#E8E4DC]">
+            {post.unsorted.map((d) => <Piece key={d.id} d={d} />)}
+          </ul>
+        )}
+        <p className="text-[0.625rem] text-[#5A5751] mt-2" style={SERIF}>
+          Unsorted is a real state. Nothing here files itself, so &ldquo;later&rdquo; is a choice the pile supports.
+        </p>
+      </section>
+
+      {post.sorted.length > 0 && (
+        <section className={CARD}>
+          <h3 className={LABEL}>Filed · {post.counts.sorted}</h3>
+          <ul className="mt-1 divide-y divide-[#E8E4DC]">
+            {post.sorted.map((d) => <Piece key={d.id} d={d} />)}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 export default function Obligations() {
   const [state, setState] = useState({ loading: true, rows: [], lines: {}, error: null });
   const today = todayIso();
@@ -349,6 +476,7 @@ export default function Obligations() {
     { id: 'owed', label: 'What is owed', icon: 'coins', render: () => <TwoColumns rows={state.rows} today={today} /> },
     { id: 'aging', label: 'Aging', icon: 'calendar', render: () => <Aging rows={state.rows} today={today} /> },
     { id: 'doors', label: 'Each door', icon: 'home', render: () => <Doors rows={state.rows} lines={state.lines} today={today} /> },
+    { id: 'post', label: "The day's post", icon: 'mail', render: () => <DaysPost /> },
     { id: 'words', label: 'The words', icon: 'book', render: () => <Words /> },
   ];
 

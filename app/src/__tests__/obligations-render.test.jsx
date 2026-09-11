@@ -22,6 +22,13 @@ vi.mock('../lib/obligations-sync.js', () => ({
   ),
 }));
 
+const post = { ok: true, rows: [], message: null };
+vi.mock('../lib/days-post-sync.js', () => ({
+  listPost: () => Promise.resolve(post.ok ? { ok: true, rows: post.rows } : { ok: false, message: post.message, rows: [] }),
+  sortDocument: () => Promise.resolve({ ok: true, document: {} }),
+  releaseForSorting: () => Promise.resolve({ ok: true, document: {} }),
+}));
+
 import Obligations from '../components/Obligations.jsx';
 
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -68,6 +75,7 @@ afterEach(async () => {
   if (container) container.remove();
   container = root = null;
   armed.ok = true; armed.rows = []; armed.message = null;
+  post.ok = true; post.rows = []; post.message = null;
 });
 
 describe('Obligations (Books → Owed)', () => {
@@ -127,6 +135,30 @@ describe('Obligations (Books → Owed)', () => {
     expect(c.textContent).toContain('In business:');
     expect(c.textContent).toContain('Here:');
     expect(c.textContent).toContain('A child is told:');
+  });
+
+  // The day's post (DR-0360). Unsorted is a real state: nothing files itself,
+  // so "later" has to be a choice the pile supports.
+  it("the day's post separates what needs a decision from what is filed", async () => {
+    post.rows = [
+      { id: 'p1', label: 'Ameren envelope', arrivedOn: '2026-09-11', means: null, product: null, place: '', releasedForSorting: false },
+      { id: 'p2', label: 'Paid receipt', arrivedOn: '2026-09-10', means: 'proof-of-payment', product: 'poetech', place: 'the house', releasedForSorting: false },
+    ];
+    const c = await mount();
+    await openTab("The day's post");
+    expect(c.textContent).toContain('Sorting the post');
+    expect(c.textContent).toContain('Still to sort · 1');
+    expect(c.textContent).toContain('Filed · 1');
+    expect(c.textContent).toContain('Ameren envelope');
+    // The rule this surface exists to hold.
+    expect(c.textContent).toContain('Unsorted is a real state');
+  });
+
+  it("tells a child what the chore is AND what stays the grown-ups'", async () => {
+    const c = await mount();
+    await openTab("The day's post");
+    expect(c.textContent).toContain('first step of how money is handled here');
+    expect(c.textContent).toContain('You will not see amounts or the books');
   });
 
   it('a refused read says these are the books — it does not render blank', async () => {
