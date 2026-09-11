@@ -20,7 +20,7 @@ Darrell speaks build input into this channel on purpose (Layer 0, *Spoken Teachi
 Two details worth keeping:
 
 - **Arrive time is derived, not invented.** Deacon Anderson's declared pair is arrive 9:45 for an 11:00 AM service — a 75-minute lead. That lead, applied to the record, reproduces `09:45` exactly (pinned in the test), and offers `16:45` for the 6:00 PM study as a default the coordinator can change. We did not make up a pickup time for a service nobody has told us about.
-- **No existing row is orphaned.** A Wednesday now holds two services, so a date alone is no longer a unique run; `service_slot` (migration 0207, nullable) names which one. Every row written before today carries no slot and resolves as that date's primary run — which is exactly what those rows have always meant.
+- **No existing row is orphaned.** A Wednesday now holds two services, so a date alone is no longer a unique run; `service_slot` (migration 0208, nullable) names which one. Every row written before today carries no slot and resolves as that date's primary run — which is exactly what those rows have always meant.
 
 ## 2. The ministries of the house, and organizing around them
 
