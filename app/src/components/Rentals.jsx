@@ -2663,177 +2663,222 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       label: 'Portfolio & payoff',
       icon: 'coins',
       render: () => (
-        <>
-      <section>
-        <SectionTitle>{doorCount} {doorCount === 1 ? 'Door' : 'Doors'} · {portfolioLabel}</SectionTitle>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC] mb-4">
-          <MetricCell label="Mortgage debt" value={fmtCompact(rollup.mortgageDebt)} sub={rollup.missingDebt > 0 ? `${portfolioCount - rollup.missingDebt} of ${portfolioCount}` : 'est.'} small accent="rust" />
-          <MetricCell label="Monthly P&I" value={fmt(rollup.monthlyPI)} small />
-          <MetricCell label="Monthly rent" value={fmt(rollup.monthlyRent)} sub={`${collectionRate.toFixed(0)}%`} small accent="green" />
-          <MetricCell label="Rent gap" value={fmt(rentGap)} small accent={rentGap > 0 ? 'rust' : 'green'} />
-        </div>
-        {/* REAL this-month collected — from the rent_payments ledger, not the
-            device-local status above (build step c). Only shows once a door's
-            lease has synced and there's something DUE to collect against. */}
-        {paidPortfolio.rollup.doors > 0 && (
-          <div className="bg-white border border-[#E8E4DC] p-3 mb-4">
-            <div className="flex items-baseline justify-between gap-2 mb-1.5">
-              <span className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">Collected this month</span>
-              <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{paidPortfolio.rollup.doorsPaid} of {paidPortfolio.rollup.doors} doors paid</span>
+              // Darrell 2026-09-11: "dashboard debt tracker all subtabs!!!!!!!"
+              // Portfolio & payoff stacked five unrelated reads: the door rollup,
+              // the snowball, the 7-year feasibility, the strategy comparison and
+              // the cascade. Third row, so each is one tap rather than a scroll.
+              <SectionTabs
+                variant="sub"
+                idBase="rentals-portfolio"
+                ariaLabel="Portfolio sections"
+                defaultId="doors"
+                sections={[
+                  {
+                    id: 'doors',
+                    label: 'The doors',
+                    icon: 'home',
+                    render: () => (
+                      <>
+          <section>
+            <SectionTitle>{doorCount} {doorCount === 1 ? 'Door' : 'Doors'} · {portfolioLabel}</SectionTitle>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC] mb-4">
+              <MetricCell label="Mortgage debt" value={fmtCompact(rollup.mortgageDebt)} sub={rollup.missingDebt > 0 ? `${portfolioCount - rollup.missingDebt} of ${portfolioCount}` : 'est.'} small accent="rust" />
+              <MetricCell label="Monthly P&I" value={fmt(rollup.monthlyPI)} small />
+              <MetricCell label="Monthly rent" value={fmt(rollup.monthlyRent)} sub={`${collectionRate.toFixed(0)}%`} small accent="green" />
+              <MetricCell label="Rent gap" value={fmt(rentGap)} small accent={rentGap > 0 ? 'rust' : 'green'} />
             </div>
-            <PaidBar received={paidPortfolio.rollup.received} expected={paidPortfolio.rollup.expected} />
-            <div className="text-[0.625rem] text-[#5A5751] mt-1">
-              {fmt(paidPortfolio.rollup.received)} of {fmt(paidPortfolio.rollup.expected)} due
-              {paidPortfolio.rollup.doorsPartial > 0 && <> · {paidPortfolio.rollup.doorsPartial} partial</>}
-              {paidPortfolio.rollup.doorsUnpaid > 0 && <> · {paidPortfolio.rollup.doorsUnpaid} not yet</>}
-            </div>
-          </div>
-        )}
-        {(rollup.missingDebt > 0 || rollup.missingRent > 0) && (
-          <p className="text-[0.6875rem] text-[#5A5751] -mt-3 mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
-            {rollup.missingDebt > 0 && <>{rollup.missingDebt} {rollup.missingDebt === 1 ? 'property needs a mortgage figure' : 'properties need mortgage figures'}</>}
-            {rollup.missingDebt > 0 && rollup.missingRent > 0 && ' · '}
-            {rollup.missingRent > 0 && <>{rollup.missingRent} {rollup.missingRent === 1 ? 'needs rent entered' : 'need rent entered'}</>}
-            {' '}— excluded from the totals above, not zeroed in.
-          </p>
-        )}
-        {/* Portfolio room-income opportunity — sums the per-room occupancy
-            model across every property so the total money-on-the-table from
-            vacant rooms is one glance away. Only shows when rooms are tracked. */}
-        {(() => {
-          const port = (rentals || []).reduce((acc, r) => {
-            const o = occupancyRollup(r.rooms || []);
-            acc.actual += o.actual; acc.potential += o.potential; acc.opportunity += o.opportunity; acc.vacantSpots += o.vacantSpots;
-            return acc;
-          }, { actual: 0, potential: 0, opportunity: 0, vacantSpots: 0 });
-          if (port.potential <= 0) return null;
-          return (
-            <div className="bg-[#FAF8F4] border-2 border-[#5A6E3D] p-3 mb-4 flex items-center justify-between gap-3 flex-wrap">
-              <div>
-                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">💵 Room-income opportunity · portfolio</div>
-                <div className="text-xs text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
-                  Collecting <strong>{fmt(port.actual)}</strong>/mo of <strong>{fmt(port.potential)}</strong> possible.
+            {/* REAL this-month collected — from the rent_payments ledger, not the
+                device-local status above (build step c). Only shows once a door's
+                lease has synced and there's something DUE to collect against. */}
+            {paidPortfolio.rollup.doors > 0 && (
+              <div className="bg-white border border-[#E8E4DC] p-3 mb-4">
+                <div className="flex items-baseline justify-between gap-2 mb-1.5">
+                  <span className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">Collected this month</span>
+                  <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{paidPortfolio.rollup.doorsPaid} of {paidPortfolio.rollup.doors} doors paid</span>
+                </div>
+                <PaidBar received={paidPortfolio.rollup.received} expected={paidPortfolio.rollup.expected} />
+                <div className="text-[0.625rem] text-[#5A5751] mt-1">
+                  {fmt(paidPortfolio.rollup.received)} of {fmt(paidPortfolio.rollup.expected)} due
+                  {paidPortfolio.rollup.doorsPartial > 0 && <> · {paidPortfolio.rollup.doorsPartial} partial</>}
+                  {paidPortfolio.rollup.doorsUnpaid > 0 && <> · {paidPortfolio.rollup.doorsUnpaid} not yet</>}
                 </div>
               </div>
-              {port.opportunity > 0 ? (
-                <div className="text-right">
-                  <div className="text-lg text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(port.opportunity)}/mo</div>
-                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">open across {port.vacantSpots} {port.vacantSpots === 1 ? 'spot' : 'spots'} — market them</div>
+            )}
+            {(rollup.missingDebt > 0 || rollup.missingRent > 0) && (
+              <p className="text-[0.6875rem] text-[#5A5751] -mt-3 mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+                {rollup.missingDebt > 0 && <>{rollup.missingDebt} {rollup.missingDebt === 1 ? 'property needs a mortgage figure' : 'properties need mortgage figures'}</>}
+                {rollup.missingDebt > 0 && rollup.missingRent > 0 && ' · '}
+                {rollup.missingRent > 0 && <>{rollup.missingRent} {rollup.missingRent === 1 ? 'needs rent entered' : 'need rent entered'}</>}
+                {' '}— excluded from the totals above, not zeroed in.
+              </p>
+            )}
+            {/* Portfolio room-income opportunity — sums the per-room occupancy
+                model across every property so the total money-on-the-table from
+                vacant rooms is one glance away. Only shows when rooms are tracked. */}
+            {(() => {
+              const port = (rentals || []).reduce((acc, r) => {
+                const o = occupancyRollup(r.rooms || []);
+                acc.actual += o.actual; acc.potential += o.potential; acc.opportunity += o.opportunity; acc.vacantSpots += o.vacantSpots;
+                return acc;
+              }, { actual: 0, potential: 0, opportunity: 0, vacantSpots: 0 });
+              if (port.potential <= 0) return null;
+              return (
+                <div className="bg-[#FAF8F4] border-2 border-[#5A6E3D] p-3 mb-4 flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">💵 Room-income opportunity · portfolio</div>
+                    <div className="text-xs text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                      Collecting <strong>{fmt(port.actual)}</strong>/mo of <strong>{fmt(port.potential)}</strong> possible.
+                    </div>
+                  </div>
+                  {port.opportunity > 0 ? (
+                    <div className="text-right">
+                      <div className="text-lg text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(port.opportunity)}/mo</div>
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">open across {port.vacantSpots} {port.vacantSpots === 1 ? 'spot' : 'spots'} — market them</div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-[#5A6E3D] font-semibold">Every spot filled 🎯</div>
+                  )}
                 </div>
-              ) : (
-                <div className="text-sm text-[#5A6E3D] font-semibold">Every spot filled 🎯</div>
-              )}
-            </div>
-          );
-        })()}
-      </section>
-
-      <section>
-        <SectionTitle>Snowball Strategy</SectionTitle>
-        <div className="bg-white border border-[#1A1815] p-5 space-y-5">
-          <div>
-            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Payoff order</div>
-            <div className="grid grid-cols-3 gap-1">
-              {[['smallest-balance','Smallest','Momentum'],['highest-rate','Highest rate','Math optimum'],['best-cashflow','Best cash flow','Strong earners']].map(([id, label, sub]) => (
-                <button key={id} onClick={() => setSnowballSort(id)} className={`px-2 py-2 text-left border ${snowballSort === id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
-                  <div className="text-xs" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{label}</div>
-                  <div className="text-[0.5625rem] uppercase tracking-wider opacity-75">{sub}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <div className="flex items-baseline justify-between mb-2 flex-wrap gap-2">
+              );
+            })()}
+          </section>
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'snowball',
+                    label: 'Snowball & 7-year',
+                    icon: 'coins',
+                    render: () => (
+                      <>
+          <section>
+            <SectionTitle>Snowball Strategy</SectionTitle>
+            <div className="bg-white border border-[#1A1815] p-5 space-y-5">
               <div>
-                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">Monthly snowball</div>
-                <div className="text-[0.625rem] text-[#5A5751] mt-0.5">Total mortgage debt: <strong>{fmtCompact(rentals.reduce((s, r) => s + r.mortgage.balance, 0))}</strong> across {rentals.length} properties · P&I: <strong>{fmt(rentals.reduce((s, r) => s + r.mortgage.monthlyPI, 0))}/mo</strong></div>
+                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Payoff order</div>
+                <div className="grid grid-cols-3 gap-1">
+                  {[['smallest-balance','Smallest','Momentum'],['highest-rate','Highest rate','Math optimum'],['best-cashflow','Best cash flow','Strong earners']].map(([id, label, sub]) => (
+                    <button key={id} onClick={() => setSnowballSort(id)} className={`px-2 py-2 text-left border ${snowballSort === id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
+                      <div className="text-xs" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{label}</div>
+                      <div className="text-[0.5625rem] uppercase tracking-wider opacity-75">{sub}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(snowballExtra)}</div>
+              <div>
+                <div className="flex items-baseline justify-between mb-2 flex-wrap gap-2">
+                  <div>
+                    <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">Monthly snowball</div>
+                    <div className="text-[0.625rem] text-[#5A5751] mt-0.5">Total mortgage debt: <strong>{fmtCompact(rentals.reduce((s, r) => s + r.mortgage.balance, 0))}</strong> across {rentals.length} properties · P&I: <strong>{fmt(rentals.reduce((s, r) => s + r.mortgage.monthlyPI, 0))}/mo</strong></div>
+                  </div>
+                  <div className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(snowballExtra)}</div>
+                </div>
+                <input type="range" min="0" max="20000" step="250" value={snowballExtra} onChange={(e) => setSnowballExtra(parseInt(e.target.value))} className="w-full accent-[#B85838]" />
+                <details className="mt-2">
+                  <summary className="text-[0.625rem] uppercase tracking-wider text-[#B85838] cursor-pointer hover:text-[#1A1815]">▸ Show individual property balances</summary>
+                  <div className="mt-2 space-y-1 text-xs">
+                    {[...rentals].sort((a, b) => b.mortgage.balance - a.mortgage.balance).map(r => (
+                      <div key={r.id} className="flex justify-between border-b border-[#E8E4DC] pb-1">
+                        <span style={{ fontFamily: '"Fraunces", serif' }}>{r.address} <span className="text-[#5A5751]">· {r.mortgage.rate}%</span></span>
+                        <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(r.mortgage.balance)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              </div>
+              <div className="grid grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+                <MetricCell label="All paid in" value={yearsAndMonths(rentalSnowball.allClearedMonth)} small />
+                <MetricCell label="Interest" value={fmt(rentalSnowball.totalInterest)} small />
+                <MetricCell label="Final freed" value={fmt(rentalSnowball.finalFreedCashFlow)} small accent="green" />
+              </div>
             </div>
-            <input type="range" min="0" max="20000" step="250" value={snowballExtra} onChange={(e) => setSnowballExtra(parseInt(e.target.value))} className="w-full accent-[#B85838]" />
-            <details className="mt-2">
-              <summary className="text-[0.625rem] uppercase tracking-wider text-[#B85838] cursor-pointer hover:text-[#1A1815]">▸ Show individual property balances</summary>
-              <div className="mt-2 space-y-1 text-xs">
-                {[...rentals].sort((a, b) => b.mortgage.balance - a.mortgage.balance).map(r => (
-                  <div key={r.id} className="flex justify-between border-b border-[#E8E4DC] pb-1">
-                    <span style={{ fontFamily: '"Fraunces", serif' }}>{r.address} <span className="text-[#5A5751]">· {r.mortgage.rate}%</span></span>
-                    <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(r.mortgage.balance)}</span>
+          </section>
+          <section>
+            <SectionTitle>7-Year Goal · Feasibility</SectionTitle>
+            <div className="bg-white border border-[#1A1815] p-5">
+              {sevenYrFeasible ? <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo snowball, all {doorCount} doors pay off in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>.</p> : sevenYrAchievable ? <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo: cascade completes in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>. 7-year goal needs <strong>{fmt(sevenYrExtra)}/mo</strong> — gap of <strong>{fmt(gapMonthly)}/mo</strong>.</p> : <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo: cascade completes in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>. The 7-year goal is <strong>not reachable</strong> even at {fmt(sevenYearTarget?.cap || 0)}/mo extra — the honest levers are rent, principal, or the target year, not a bigger snowball.</p>}
+            </div>
+          </section>
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'compare',
+                    label: 'Compare strategies',
+                    icon: 'chart',
+                    render: () => (
+                      <>
+          <section>
+            <SectionTitle>Strategy Comparison</SectionTitle>
+            <div className="bg-white border border-[#1A1815] p-5">
+              <p className="text-xs text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+                All three strategies side by side at your current ${'{'}fmt(snowballExtra){'}'}/mo snowball. Differences show up most in <em>payoff order</em> (which property clears first) and <em>cash flow timing</em>, less so in total interest when mortgage rates are similar.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+                {strategyComparison.map(s => (
+                  <div key={s.id} className={`p-4 ${s.id === snowballSort ? 'bg-[#FAF8F4]' : 'bg-white'}`}>
+                    <div className="flex items-baseline justify-between gap-2 mb-2">
+                      <div>
+                        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">{s.label}</div>
+                        <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] opacity-75">{s.sub}</div>
+                      </div>
+                      {s.id === snowballSort && <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold">Selected</span>}
+                    </div>
+                    <div className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(s.totalInterest)}</div>
+                    <div className="text-[0.625rem] text-[#5A5751] mt-0.5">total interest</div>
+                    <div className={`text-[0.625rem] mt-1 ${s.isCheapest ? 'text-[#5A6E3D] font-semibold' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      {s.isCheapest ? '✓ cheapest' : `+${fmt(s.delta)}`}
+                    </div>
+                    <div className="text-[0.625rem] text-[#5A5751] mt-2 pt-2 border-t border-[#E8E4DC]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      All clear: {s.allClearedYears.toFixed(1)} yrs
+                    </div>
                   </div>
                 ))}
               </div>
-            </details>
-          </div>
-          <div className="grid grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
-            <MetricCell label="All paid in" value={yearsAndMonths(rentalSnowball.allClearedMonth)} small />
-            <MetricCell label="Interest" value={fmt(rentalSnowball.totalInterest)} small />
-            <MetricCell label="Final freed" value={fmt(rentalSnowball.finalFreedCashFlow)} small accent="green" />
-          </div>
-        </div>
-      </section>
-      <section>
-        <SectionTitle>7-Year Goal · Feasibility</SectionTitle>
-        <div className="bg-white border border-[#1A1815] p-5">
-          {sevenYrFeasible ? <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo snowball, all {doorCount} doors pay off in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>.</p> : sevenYrAchievable ? <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo: cascade completes in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>. 7-year goal needs <strong>{fmt(sevenYrExtra)}/mo</strong> — gap of <strong>{fmt(gapMonthly)}/mo</strong>.</p> : <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo: cascade completes in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>. The 7-year goal is <strong>not reachable</strong> even at {fmt(sevenYearTarget?.cap || 0)}/mo extra — the honest levers are rent, principal, or the target year, not a bigger snowball.</p>}
-        </div>
-      </section>
-      <section>
-        <SectionTitle>Strategy Comparison</SectionTitle>
-        <div className="bg-white border border-[#1A1815] p-5">
-          <p className="text-xs text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
-            All three strategies side by side at your current ${'{'}fmt(snowballExtra){'}'}/mo snowball. Differences show up most in <em>payoff order</em> (which property clears first) and <em>cash flow timing</em>, less so in total interest when mortgage rates are similar.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
-            {strategyComparison.map(s => (
-              <div key={s.id} className={`p-4 ${s.id === snowballSort ? 'bg-[#FAF8F4]' : 'bg-white'}`}>
-                <div className="flex items-baseline justify-between gap-2 mb-2">
-                  <div>
-                    <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">{s.label}</div>
-                    <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] opacity-75">{s.sub}</div>
-                  </div>
-                  {s.id === snowballSort && <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold">Selected</span>}
-                </div>
-                <div className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(s.totalInterest)}</div>
-                <div className="text-[0.625rem] text-[#5A5751] mt-0.5">total interest</div>
-                <div className={`text-[0.625rem] mt-1 ${s.isCheapest ? 'text-[#5A6E3D] font-semibold' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                  {s.isCheapest ? '✓ cheapest' : `+${fmt(s.delta)}`}
-                </div>
-                <div className="text-[0.625rem] text-[#5A5751] mt-2 pt-2 border-t border-[#E8E4DC]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                  All clear: {s.allClearedYears.toFixed(1)} yrs
-                </div>
-              </div>
-            ))}
-          </div>
-          {allRatesEqual && (
-            <p className="text-[0.6875rem] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
-              All {rentals.length} rentals are seeded at the same mortgage rate ({rentals[0].mortgage.rate}%), so "Highest rate" doesn't differentiate from the others. Once you enter the actual per-property rates the spread widens — strategy choice will matter more.
-            </p>
-          )}
-        </div>
-      </section>
-      <section>
-        <SectionTitle>Payoff Cascade</SectionTitle>
-        <div className="bg-white border border-[#1A1815]">
-          {orderedByPayoff.map((r, i) => {
-            const freedSoFar = orderedByPayoff.slice(0, i + 1).reduce((s, x) => s + x.mortgage.monthlyPI, 0);
-            return (
-              <div key={r.id} className={`p-4 ${i < orderedByPayoff.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
-                <div className="flex items-start gap-3">
-                  <div className="text-[#B85838] shrink-0 w-8 text-center" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{i + 1}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                      <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.name}</div>
-                      <div className="text-sm text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{monthLabel(currentDate, r.clearedAtMonth)}</div>
+              {allRatesEqual && (
+                <p className="text-[0.6875rem] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
+                  All {rentals.length} rentals are seeded at the same mortgage rate ({rentals[0].mortgage.rate}%), so "Highest rate" doesn't differentiate from the others. Once you enter the actual per-property rates the spread widens — strategy choice will matter more.
+                </p>
+              )}
+            </div>
+          </section>
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'cascade',
+                    label: 'Payoff cascade',
+                    icon: 'check',
+                    render: () => (
+                      <>
+          <section>
+            <SectionTitle>Payoff Cascade</SectionTitle>
+            <div className="bg-white border border-[#1A1815]">
+              {orderedByPayoff.map((r, i) => {
+                const freedSoFar = orderedByPayoff.slice(0, i + 1).reduce((s, x) => s + x.mortgage.monthlyPI, 0);
+                return (
+                  <div key={r.id} className={`p-4 ${i < orderedByPayoff.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
+                    <div className="flex items-start gap-3">
+                      <div className="text-[#B85838] shrink-0 w-8 text-center" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{i + 1}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                          <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.name}</div>
+                          <div className="text-sm text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{monthLabel(currentDate, r.clearedAtMonth)}</div>
+                        </div>
+                        <div className="text-xs text-[#5A5751] mt-1">Paid in {yearsAndMonths(r.clearedAtMonth)} · {fmt(r.mortgage.balance)} · Frees {fmt(r.mortgage.monthlyPI)}/mo</div>
+                        <div className="text-xs text-[#5A6E3D] mt-1">Snowball after: <strong>{fmt(snowballExtra + freedSoFar)}/mo</strong></div>
+                      </div>
                     </div>
-                    <div className="text-xs text-[#5A5751] mt-1">Paid in {yearsAndMonths(r.clearedAtMonth)} · {fmt(r.mortgage.balance)} · Frees {fmt(r.mortgage.monthlyPI)}/mo</div>
-                    <div className="text-xs text-[#5A6E3D] mt-1">Snowball after: <strong>{fmt(snowballExtra + freedSoFar)}/mo</strong></div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-        </>
+                );
+              })}
+            </div>
+          </section>
+                      </>
+                    ),
+                  },
+                ]}
+              />
       ),
     },
     {

@@ -79,11 +79,23 @@ describe('ChurchHome — every inline section survived the extraction', () => {
     expect(container.querySelector('[role="tablist"]')).toBeTruthy();
     expect(container.textContent).toMatch(/default church home/i);
 
-    // WORSHIP tab (default active): Live Worship + Pastoral Content + Media.
+    // WORSHIP tab (default active). Darrell 2026-09-11 ("dashboard debt tracker
+    // all subtabs!!!!!!!"): Worship stacked six unrelated sections in one
+    // read-down, so it now carries a third row — Live now / Past sermons /
+    // Stay connected. Panels mount lazily, so the inventory is proven by
+    // WALKING the strip, which keeps the guarantee this test exists for: every
+    // pre-extraction section is still reachable, none was quietly dropped.
     expect(container.querySelector('#live-worship-h')).toBeTruthy();
     expect(container.querySelector('iframe')).toBeTruthy();
+    clickTab('Past sermons');
     expect(container.querySelector('#sermons-h')).toBeTruthy();
+    clickTab('Stay connected');
+    expect(container.querySelector('#msg-h')).toBeTruthy();
     expect(container.querySelector('#media-h')).toBeTruthy();
+    expect(container.querySelector('#shareapp-h')).toBeTruthy();
+    // Back to the default panel so the assertions below start where a visitor does.
+    clickTab('Live now');
+    expect(container.querySelector('#live-worship-h')).toBeTruthy();
 
     // SPEAK tab: THE ONE input surface (DR-0131 — "only have one input surface
     // from PoeTech on any and all tabs") + Testimony Diary door. The former
