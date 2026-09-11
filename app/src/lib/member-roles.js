@@ -259,5 +259,15 @@ function mapMemberRows(data) {
     role: r.role ?? null,
     classification: r.classification ?? null,
     relationship: r.relationship ?? null,
+    // WHO *AND WHEN*, plus a phone where one honestly exists (0210). Every one
+    // of these may be null, and a null is never a problem to solve: Darrell,
+    // 2026-09-11, "just not allowing it to be a constraint". Older deployments
+    // that have not replayed 0210 simply return undefined here and the surface
+    // says what it knows — it does not break and it does not invent.
+    joinedAt: r.joined_at ?? null,
+    lastSignInAt: r.last_sign_in_at ?? null,
+    accountCreatedAt: r.created_at ?? null,
+    phone: r.phone ?? null,
+    emailIsPhoneDoor: r.email_is_phone_door === true,
   }));
 }

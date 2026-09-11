@@ -140,9 +140,16 @@ describe('the seam refuses before the database has to', () => {
 
   it('refuses an acknowledgments CELL — a signature is made on the document', () => {
     expect(sync).toMatch(/A signature is made on the document itself, never through a cell/);
-    // And the server says the same thing, which is what makes it a wall.
+    // The server says the same thing — 0209's patch guard refuses the cell —
+    // which is what makes it a wall rather than a preference.
     expect(read('../../infra/supabase/migrations-auto/0209-the-church-keeps-each-persons-record-and-their-own-shelf.sql'))
-      .toMatch(/church_member_record_acknowledge/);
+      .toMatch(/patch_in \? 'acknowledgments'/);
+    // And the door the signature IS made through lives in 0210: 0209 shipped
+    // the covenant as required with no way to sign it, and had already merged
+    // and replayed by the time that was found, so the function could not be
+    // added to it. This pin is the reason that story cannot be forgotten.
+    expect(read('../../infra/supabase/migrations-auto/0210-the-signature-door-and-a-roster-that-says-when.sql'))
+      .toMatch(/CREATE OR REPLACE FUNCTION public\.church_member_record_acknowledge/);
   });
 
   it('goes through the four named doors and no fifth', () => {
