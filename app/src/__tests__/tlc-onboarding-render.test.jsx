@@ -102,8 +102,21 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let container, root;
 async function mount(el) { container = document.createElement('div'); document.body.appendChild(container); await act(async () => { root = createRoot(container); root.render(el); }); }
 afterEach(async () => { if (root) await act(async () => root.unmount()); if (container) container.remove(); root = null; container = null; sent.saves.length = 0; sent.reviews.length = 0; sent.invites.length = 0; sent.rosterUpserts.length = 0; sent.launch.length = 0; sent.roles.length = 0; sent.spaceInvites.length = 0; sent.patches.length = 0; sent.invitePatches.length = 0; openStatus = 'draft'; roleState = { instanceId: 'i1', instanceSlug: 'poe-family', instanceType: 'family', role: 'admin', loaded: true }; packetStatus = null; window.history.replaceState(null, '', '/'); });
-const settle = () => act(async () => { for (let i = 0; i < 6; i += 1) await Promise.resolve(); });
-const click = (el) => act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+// Six microtask ticks is not enough under a loaded full-suite run: this file
+// went red twice on 2026-09-11, at two DIFFERENT call sites, because a panel
+// had not rendered when the next click looked for it. The mocked sync seams
+// resolve promises AND the component schedules work behind them, so settling
+// has to drain macrotasks too, not just the microtask queue. One helper, so
+// every call site is fixed rather than the one that happened to fail.
+const settle = () => act(async () => {
+  for (let i = 0; i < 20; i += 1) await Promise.resolve();
+  await new Promise((r) => { setTimeout(r, 0); });
+  for (let i = 0; i < 20; i += 1) await Promise.resolve();
+});
+// A click target that has not rendered yet used to surface as a cryptic
+// "Cannot read properties of undefined (reading 'dispatchEvent')". Under a
+// loaded full-suite run that happens; name it instead (seen 2026-09-11).
+const click = (el) => { expect(el, 'click target not found — did the panel render?').toBeTruthy(); return act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }); };
 const byText = (re, tag = 'button') => Array.from(container.querySelectorAll(tag)).find((b) => re.test(b.textContent));
 // A second-row area chip (Darrell 2026-09-10: "another tab slider for each section").
 const areaChip = (strip, re) => Array.from(container.querySelectorAll(`[role="tablist"][aria-label="${strip}"] [role="tab"]`)).find((t) => re.test(t.textContent));

@@ -16,6 +16,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const read = (p) => readFileSync(resolve(here, p), 'utf8');
 const M203 = read('../../../infra/supabase/migrations-auto/0203-a-mortgage-in-line-items-and-what-each-door-costs-against-what-it-collects.sql');
 const LEG = read('../../../.github/workflows/rls-isolation.yml');
+const M205 = read('../../../infra/supabase/migrations-auto/0205-the-sum-rule-refuses-inside-the-function-not-at-commit.sql');
 
 // A real PITI payment: the parts of one mortgage bill.
 const PITI = [
@@ -234,8 +235,30 @@ describe('migration 0203 keeps the promises in the database, not only here', () 
     expect(M203).toMatch(/'gapCents',\s+v_collected - v_cost/);
   });
 
+  // The defect the isolation leg caught that the local probe did not (runs 149
+  // and 150, 2026-09-11). DEFERRABLE INITIALLY DEFERRED means the trigger fires
+  // at COMMIT, so obligation_set_lines returned success on a breakdown that did
+  // not add up. The local probe had forced SET CONSTRAINTS ALL IMMEDIATE, which
+  // is precisely the condition the real function never creates — arranging the
+  // world so a check fires is not proof that it fires.
+  it('0205 checks the sum INSIDE the function, so a bad set is refused on the spot', () => {
+    expect(M205).toMatch(/IF v_count > 0 AND v_total <> v_amount THEN/);
+    expect(M205).toMatch(/line items must add up to the total/);
+    // The check sits AFTER the inserts and BEFORE the return.
+    const body = M205.slice(M205.indexOf('FOR v_line IN'));
+    expect(body.indexOf('v_total <> v_amount')).toBeGreaterThan(-1);
+    expect(body.indexOf('v_total <> v_amount')).toBeLessThan(body.indexOf('RETURN coalesce(v_out'));
+  });
+
+  it('0205 keeps the deferred trigger as the backstop rather than dropping it', () => {
+    // Removing the trigger would leave any other path into the table unguarded.
+    expect(M205).not.toMatch(/DROP TRIGGER[^\n]*obligation_lines_sum_trg/);
+    expect(M203).toMatch(/CREATE CONSTRAINT TRIGGER obligation_lines_sum_trg/);
+  });
+
   it('rides the product-forms isolation leg with its smoke', () => {
     expect(LEG).toMatch(/migrations: "[^"\n]*0203-a-mortgage-in-line-items[^"\n]*\.sql/);
     expect(LEG).toMatch(/smokes: "[^"\n]*0203-door-economics-smoke\.sql/);
+    expect(LEG).toMatch(/migrations: "[^"\n]*0205-the-sum-rule-refuses-inside-the-function-not-at-commit\.sql/);
   });
 });
