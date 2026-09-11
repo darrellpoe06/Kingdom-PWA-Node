@@ -196,6 +196,7 @@ export const FEEDBACK_AREAS = [
     ['church-band', 'Church · Church Band (the musicians — no page yet; tell us what it needs)'],
     ['church-ministries', 'Church · Ministries directory (ushers · security · hospitality · outreach · new members)'],
     ['church-members', 'Church · Members (the way in · people by standing with faces · may / may-not · invite · remove — DR-0348)'],
+    ['church-my-record', 'Church · My Record (your own answers · your shelf of documents · and, for the office, the roll and what it says)'],
     ['church-program', 'Church · Order of Service (master program → per-sector derived views · timing reflow)'],
     ['church-learn', 'Church · Learn (Learning A.I. The Way class)'],
     ['church-eternal-algorithms', 'Church · Eternal Algorithms (if/then studies · self-examination → game)'],

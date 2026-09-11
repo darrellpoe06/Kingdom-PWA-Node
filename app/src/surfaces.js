@@ -92,6 +92,7 @@ export const SURFACES = [
   { id: 'church-projects',  label: 'Projects',      nav: 'church', view: 'church', sub: 'projects',   gate: 'isChurchStaff (read-only otherwise)', load: () => import('./components/ChurchProjects.jsx') },
   { id: 'ministries',       label: 'Ministries',    nav: 'church', view: 'church', sub: 'ministries', gate: 'any church viewer — the directory of the house', load: pick(() => import('./components/ChurchMinistries.jsx'), 'ChurchMinistries') },
   { id: 'bus',              label: 'Bus Ministry',  nav: 'church', view: 'church', sub: 'bus',        gate: 'bus-ministry member (owner/admin OR bus_drivers row)', load: () => import('./components/BusMinistry.jsx') },
+  { id: 'my-record',        label: 'My Record',     nav: 'church', view: 'church', sub: 'my-record',  gate: 'any signed-in member reads and fills THEIR OWN record; the roll area inside is church owner/admin and the DB is the wall (0209)', load: () => import('./components/ChurchMemberSpace.jsx') },
   { id: 'church-members',   label: 'Members',       nav: 'church', view: 'church', sub: 'members',    gate: 'signed-in sees the way in; church owner/admin (list_my_admin_instances) governs — the DB is the wall (DR-0348)', load: () => import('./components/ChurchMembers.jsx') },
 
   // ── books sub-surfaces (view === 'books', booksView === sub) ────────────
@@ -168,6 +169,7 @@ export const ChurchProjects   = surfaceById['church-projects'].component;
 export const ChurchMinistriesTab = surfaceById['ministries'].component;
 export const BusMinistry      = surfaceById['bus'].component;
 export const ChurchMembers    = surfaceById['church-members'].component;
+export const ChurchMemberSpace = surfaceById['my-record'].component;
 export const BooksTransactions = surfaceById['transactions'].component;
 export const Cart             = surfaceById['cart'].component;
 export const Contractors1099  = surfaceById['k1099'].component;

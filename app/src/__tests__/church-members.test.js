@@ -131,7 +131,13 @@ describe('source pins — the door mounts the tab and the registry names it', ()
   it('the shell mounts ChurchMembers on churchView === members and offers the tab to a signed-in person', () => {
     const shell = readFileSync(join(SRC, 'poe-financial-mvp-v28.jsx'), 'utf8');
     expect(shell).toContain("{view === 'church' && churchView === 'members' && <ChurchMembers />}");
-    expect(shell).toMatch(/\.\.\.\(authSession \? \[\['members', <><UiIcon name="users" \/> Members<\/>\]\] : \[\]\)/);
+    // Pinned as the INTENT, not as the neighbours: the Members entry must sit
+    // inside the authSession-gated group, so a signed-out visitor is never
+    // offered it. Pinning the whole array froze the tab beside it too — the
+    // next church tab to land there broke this test while the door was fine.
+    const gated = shell.match(/\.\.\.\(authSession \? \[(.*?)\] : \[\]\)/);
+    expect(gated, 'the authSession-gated church tab group is gone').toBeTruthy();
+    expect(gated[1]).toContain('[\'members\', <><UiIcon name="users" /> Members</>]');
   });
   it('the registry carries the surface with its real gate named', () => {
     const reg = readFileSync(join(SRC, 'surfaces.js'), 'utf8');

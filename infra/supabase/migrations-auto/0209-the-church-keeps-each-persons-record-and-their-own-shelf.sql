@@ -192,6 +192,90 @@ $$;
 REVOKE ALL ON FUNCTION public.church_member_record_patch(jsonb, text, uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.church_member_record_patch(jsonb, text, uuid) TO authenticated;
 
+-- Sign the church covenant, in place, with the server's own clock (0199's rule).
+-- The patch guard above REFUSES an 'acknowledgments' key on purpose: a
+-- signature is made on the document, never typed into a cell. So this is the
+-- only door, and without it the covenant this intake requires would be
+-- unsignable. Unlike the household's version there is NO seat test — the
+-- record belongs to the person, and a person signs for themselves.
+CREATE OR REPLACE FUNCTION public.church_member_record_acknowledge(
+  key_in         text,
+  signature_in   text,
+  doc_version_in text DEFAULT NULL,
+  attestation_in text DEFAULT NULL,
+  agreed_at_in   text DEFAULT NULL,
+  instance_in    uuid DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+  v_instance uuid;
+  v_row      public.church_member_records%ROWTYPE;
+  v_stamp    text := to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"');
+  v_prev     jsonb;
+  v_rec      jsonb;
+  v_sig      text := left(btrim(coalesce(signature_in, '')), 200);
+  v_att      text := left(btrim(coalesce(attestation_in, '')), 500);
+  v_ver      text := left(btrim(coalesce(doc_version_in, '')), 40);
+  v_when     text := left(btrim(coalesce(agreed_at_in, '')), 40);
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'sign in first'; END IF;
+  IF key_in IS NULL OR key_in <> 'churchCovenant' THEN RAISE EXCEPTION 'no such document to acknowledge'; END IF;
+  IF v_sig = '' THEN RAISE EXCEPTION 'sign by typing your full legal name'; END IF;
+  IF v_att = '' THEN RAISE EXCEPTION 'the acknowledgment sentence must be checked'; END IF;
+
+  v_instance := coalesce(instance_in, nullif(public.my_default_instance_role()->>'instance_id','')::uuid);
+  IF v_instance IS NULL THEN RAISE EXCEPTION 'no church to sign for'; END IF;
+  IF NOT public.user_in_instance(v_instance) THEN RAISE EXCEPTION 'that is not your church'; END IF;
+
+  SELECT * INTO v_row FROM public.church_member_records
+   WHERE instance_id = v_instance AND user_id = auth.uid();
+  IF v_row.id IS NULL THEN
+    INSERT INTO public.church_member_records (instance_id, user_id, record)
+    VALUES (v_instance, auth.uid(), '{}'::jsonb) RETURNING * INTO v_row;
+  END IF;
+
+  v_prev := coalesce(v_row.record->'acknowledgments'->key_in, '{}'::jsonb);
+  v_rec := jsonb_build_object(
+    'agreed', true,
+    'signature', v_sig,
+    'signedOn', left(v_stamp, 10),
+    'signedAt', CASE WHEN v_when <> '' THEN v_when ELSE v_stamp END,
+    'docVersion', v_ver,
+    'attestation', v_att,
+    'agreedAt', CASE WHEN v_when <> '' THEN v_when ELSE v_stamp END,
+    -- Re-reading a document you already signed, unchanged, does not re-date the
+    -- signature. A NEW version does (0199 keep-or-renew).
+    'signedAtServer', CASE
+      WHEN coalesce(v_prev->>'signedAtServer', '') <> ''
+       AND (v_prev->>'signature') IS NOT DISTINCT FROM v_sig
+       AND (v_prev->>'docVersion') IS NOT DISTINCT FROM v_ver
+      THEN v_prev->>'signedAtServer'
+      ELSE v_stamp END);
+
+  UPDATE public.church_member_records
+     SET record = jsonb_set(
+           jsonb_set(coalesce(record, '{}'::jsonb), ARRAY['acknowledgments'], coalesce(record->'acknowledgments', '{}'::jsonb), true),
+           ARRAY['acknowledgments', key_in], v_rec, true),
+         updated_at = now()
+   WHERE id = v_row.id
+   RETURNING * INTO v_row;
+
+  INSERT INTO audit_log (instance_id, user_id, action, entity_type, entity_id, from_value, to_value, note)
+  VALUES (v_instance, auth.uid(), 'update', 'church_member_record', v_row.id,
+          jsonb_build_object('acknowledged', key_in, 'previousVersion', v_prev->>'docVersion'),
+          jsonb_build_object('docVersion', v_ver, 'signedAtServer', v_rec->>'signedAtServer'),
+          'church_member_record_acknowledge');
+
+  RETURN jsonb_build_object('record_id', v_row.id, 'instance_id', v_row.instance_id,
+                            'record', v_row.record, 'acknowledged', key_in, 'updated_at', v_row.updated_at);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.church_member_record_acknowledge(text, text, text, text, text, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.church_member_record_acknowledge(text, text, text, text, text, uuid) TO authenticated;
+
 -- ---------------------------------------------------------------------------
 -- 4. THE OFFICE READ — the roll, and NOT a window into a person's life
 -- ---------------------------------------------------------------------------
