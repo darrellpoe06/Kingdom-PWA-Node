@@ -126,9 +126,9 @@ const flush = () => act(async () => {
   await new Promise((r) => { setTimeout(r, 0); });
   for (let i = 0; i < 20; i += 1) await Promise.resolve();
 });
-// Kept for the steps that just need pending work to land before an assertion
-// about TEXT (where there is no element to wait on).
-const settle = () => flush();
+// waitFor — poll for a THING. The right tool when there is something to look
+// for (a button, a panel): stillness can mean "not started", but a found
+// element means found.
 const waitFor = async (get, timeoutMs = 5000) => {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
@@ -136,6 +136,32 @@ const waitFor = async (get, timeoutMs = 5000) => {
     if (el) return el;
     if (Date.now() > deadline) return null;
     await flush();
+  }
+};
+// waitForSome — the same, for a LIST. Several assertions read a whole tablist
+// straight out of the DOM and compare it; an empty list is the un-rendered
+// state, not a real answer, so wait until something is there.
+const waitForSome = async (getAll, timeoutMs = 5000) => {
+  const found = await waitFor(() => { const xs = getAll(); return xs && xs.length ? xs : null; }, timeoutMs);
+  return found || [];
+};
+// settle — wait until the render STOPS, for the steps that then assert on TEXT
+// with no element to wait on.
+//
+// This was briefly reduced to a single flush() when click() gained polling, and
+// that was a REGRESSION I introduced: click got stronger, settle got weaker, and
+// the assertions that read the DOM off settle alone started seeing an empty
+// tablist under CI load (2026-09-11, runs on 3fd6146 and 2b36d78). Quiescence is
+// not sufficient on its own — that was the earlier lesson — but paired with
+// polling for the specific thing, it is the right tool for "let the work land".
+const settle = async (timeoutMs = 5000) => {
+  const deadline = Date.now() + timeoutMs;
+  let prev = null;
+  for (;;) {
+    await flush();
+    const now = container ? container.innerHTML : '';
+    if (now === prev || Date.now() > deadline) return;
+    prev = now;
   }
 };
 // click takes a GETTER (preferred — it can be retried) or an element.
@@ -331,7 +357,7 @@ describe('a client account sees only what a client needs (DR-0350; Darrell: "whe
       session = { user: { email: 'newclient@example.com' } };
       await mount(createElement(TlcPublicDoor));
       await settle();
-      const tabs = Array.from(container.querySelectorAll('[role="tablist"][aria-label="TLC app sections"] [role="tab"]')).map((t) => t.textContent.trim());
+      const tabs = (await waitForSome(() => Array.from(container.querySelectorAll('[role="tablist"][aria-label="TLC app sections"] [role="tab"]')))).map((t) => t.textContent.trim());
       expect(tabs).toEqual(['Find your therapist', 'Mental skills', 'Join the team']);
       for (const bad of ['Inquiries', 'Client Growth', 'Revenue', 'Team', 'Assistant', 'Onboarding', 'Training']) expect(tabs).not.toContain(bad);
       for (const bad of ['Pre-Intake Inquiry', 'Independent Contractor Handbook', 'Launch board', 'Governance']) expect(container.textContent).not.toContain(bad);
@@ -344,7 +370,7 @@ describe('the TLC app carries the office workflows on ONE slider (DR-0344)', () 
     session = { user: { email: 'christina@tlctherapysolutions.com' } };
     await mount(createElement(TlcPublicDoor));
     await settle();
-    const tabs = Array.from(container.querySelectorAll('[role="tab"]')).map((t) => t.textContent.trim());
+    const tabs = (await waitForSome(() => Array.from(container.querySelectorAll('[role="tab"]')))).map((t) => t.textContent.trim());
     for (const t of ['Find your therapist', 'Inquiries', 'Client Growth', 'Revenue', 'Training', 'Team', 'Assistant', 'Onboarding']) expect(tabs, `tab ${t}`).toContain(t);
     expect(container.querySelectorAll('[role="tablist"]').length).toBe(1);
     // USER PHOTO (Darrell 2026-09-10): the signed-in bar wears the person's
@@ -364,7 +390,7 @@ describe('the TLC app carries the office workflows on ONE slider (DR-0344)', () 
     roleState = { ...roleState, role: null, instanceId: null };
     await mount(createElement(TlcPublicDoor));
     await settle();
-    const tabs = Array.from(container.querySelectorAll('[role="tab"]')).map((t) => t.textContent.trim());
+    const tabs = (await waitForSome(() => Array.from(container.querySelectorAll('[role="tab"]')))).map((t) => t.textContent.trim());
     expect(tabs).toEqual(['Find your therapist', 'Mental skills', 'Join the team']);
     roleState = { ...roleState, role: 'admin', instanceId: 'i1' };
     session = null;
