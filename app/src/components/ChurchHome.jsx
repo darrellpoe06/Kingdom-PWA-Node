@@ -271,286 +271,323 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
       label: 'Worship',
       icon: 'volume',
       render: () => (
-        <>
-      {/* LIVE WORSHIP (2026-06-14; service-window-gated 2026-06-17; ROLLING-LATEST
-          2026-06-17) — TOP of the Church tab by Darrell's direction: worship is
-          the most prominent thing on the unchurched on-ramp. Embedded by CHANNEL
-          (never a single video id) so it auto-follows every future stream with
-          no weekly edits. Rolling-latest: inside a plausible service window the
-          LIVE broadcast plays; the rest of the time the channel's MOST RECENT
-          upload plays (after a stream ends, that IS the finished stream), and
-          rolls forward on its own as new streams land — never a dead/waiting
-          frame. The honest service window comes from the church's real published
-          schedule (lib/church-live.js); we do not paint our own "LIVE NOW" badge
-          (the client cannot truthfully detect live state without the YouTube
-          Data API — Reality-Trace P15). A real live/offline detector
-          (same-origin n8n proxy, no key) is the follow-up. */}
-      {hasWorshipPlayer && (
-        // When "Follow along" is open, the player PINS to the top (sticky) and goes
-        // compact — so it stays watchable while you scroll + work the Word below it,
-        // both together (Darrell 2026-07-15). Otherwise it's the normal full card.
-        <section aria-labelledby="live-worship-h" className="bg-white border border-[#E8E4DC] p-4">
-          <div className="flex items-baseline justify-between gap-2 flex-wrap">
-            <h3 id="live-worship-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
-              Live Worship · {c.nickname && /love corner/i.test(c.nickname) ? 'The Love Corner' : (c.name || 'Church')}
-            </h3>
-            <span className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
-              <span className="w-2 h-2 rounded-full bg-[#B85838]" aria-hidden="true" />
-              {showLive ? 'Live service' : 'Latest message'}
-            </span>
-          </div>
-          {!followAlong && (
-            <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
-              When {c.name || 'the church'} is streaming, the live service plays right here automatically. Between services the most recent message keeps playing — and the next live stream rolls in on its own when it starts.
-            </p>
-          )}
-
-          {playerSrc ? (
-            <>
-              {/* Size + float controls — pure layout on the SAME iframe (no reload).
-                  Shown whenever there's a player; float pops it to a corner mini so
-                  the Word reads full-width. */}
-              <div className="mt-3 flex items-center gap-1.5 flex-wrap text-[0.5625rem] uppercase tracking-wider">
-                <span className="text-[#5A5751] font-semibold mr-0.5">Player</span>
-                {!floating && !followAlong && ['s', 'm', 'l'].map((sz) => (
-                  <button
-                    key={sz}
-                    type="button"
-                    onClick={() => setPlayerScale(sz)}
-                    aria-pressed={playerScale === sz}
-                    className={`px-2 py-1 min-h-[32px] border font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] ${playerScale === sz ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#CFC9BD] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838]'}`}
-                  >
-                    {sz === 's' ? 'Small' : sz === 'm' ? 'Medium' : 'Large'}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => setFloating((f) => !f)}
-                  aria-pressed={floating}
-                  className={`px-2 py-1 min-h-[32px] border font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] ${floating ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#CFC9BD] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838]'}`}
-                >
-                  {floating ? '⤡ Dock' : '⤢ Pop out'}
-                </button>
+              // Darrell 2026-09-11: "dashboard debt tracker all subtabs!!!!!!!"
+              // Worship stacked six unrelated sections in one read-down: the live
+              // player, Follow Along, past sermons, messages, media and the app QR.
+              // Same Way, one row further in (SectionTabs variant="sub").
+              <SectionTabs
+                variant="sub"
+                idBase="church-worship"
+                ariaLabel="Worship sections"
+                defaultId="live"
+                sections={[
+                  {
+                    id: 'live',
+                    label: 'Live now',
+                    icon: 'volume',
+                    render: () => (
+                      <>
+          {/* LIVE WORSHIP (2026-06-14; service-window-gated 2026-06-17; ROLLING-LATEST
+              2026-06-17) — TOP of the Church tab by Darrell's direction: worship is
+              the most prominent thing on the unchurched on-ramp. Embedded by CHANNEL
+              (never a single video id) so it auto-follows every future stream with
+              no weekly edits. Rolling-latest: inside a plausible service window the
+              LIVE broadcast plays; the rest of the time the channel's MOST RECENT
+              upload plays (after a stream ends, that IS the finished stream), and
+              rolls forward on its own as new streams land — never a dead/waiting
+              frame. The honest service window comes from the church's real published
+              schedule (lib/church-live.js); we do not paint our own "LIVE NOW" badge
+              (the client cannot truthfully detect live state without the YouTube
+              Data API — Reality-Trace P15). A real live/offline detector
+              (same-origin n8n proxy, no key) is the follow-up. */}
+          {hasWorshipPlayer && (
+            // When "Follow along" is open, the player PINS to the top (sticky) and goes
+            // compact — so it stays watchable while you scroll + work the Word below it,
+            // both together (Darrell 2026-07-15). Otherwise it's the normal full card.
+            <section aria-labelledby="live-worship-h" className="bg-white border border-[#E8E4DC] p-4">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                <h3 id="live-worship-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
+                  Live Worship · {c.nickname && /love corner/i.test(c.nickname) ? 'The Love Corner' : (c.name || 'Church')}
+                </h3>
+                <span className="inline-flex items-center gap-1.5 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                  <span className="w-2 h-2 rounded-full bg-[#B85838]" aria-hidden="true" />
+                  {showLive ? 'Live service' : 'Latest message'}
+                </span>
               </div>
-              <div
-                className={floating
-                  ? 'fixed z-[60] w-[46vw] max-w-[300px] bg-[#1A1815] shadow-2xl rounded-md overflow-hidden'
-                  : 'mt-2 aspect-video bg-[#1A1815]'}
-                style={floating
-                  ? (floatPos ? { left: `${floatPos.x}px`, top: `${floatPos.y}px` } : { right: '0.75rem', bottom: '5rem' })
-                  : { width: playerScale === 's' ? '56%' : playerScale === 'l' ? '100%' : '80%' }}
-              >
-                {/* Drag grip — ONLY when floating. Lets you move the mini-player
-                    ANYWHERE on screen (touch + mouse). It is a sibling BAR in the
-                    SAME wrapper as the keyed iframe, so dragging/floating never
-                    remounts the iframe — the stream keeps playing (Darrell 2026-07-18). */}
-                {floating && (
-                  <div
-                    onPointerDown={onFloatPointerDown}
-                    onPointerMove={onFloatPointerMove}
-                    onPointerUp={onFloatPointerUp}
-                    onPointerCancel={onFloatPointerUp}
-                    className="flex items-center justify-between gap-2 px-2 h-7 bg-[#26211d] cursor-move touch-none select-none"
-                  >
-                    <span className="text-[0.5625rem] uppercase tracking-wider text-[#CFC9BD] flex items-center gap-1 pointer-events-none" aria-hidden="true">⠿ Drag</span>
-                    <button
-                      type="button"
-                      onClick={() => { setFloating(false); setFloatPos(null); }}
-                      aria-label="Dock the player back into the page"
-                      className="text-[0.5625rem] uppercase tracking-wider text-[#EBA77E] hover:text-white font-semibold px-1.5 py-0.5 focus:outline focus:outline-2 focus:outline-white"
-                    >
-                      ⤡ Dock
-                    </button>
-                  </div>
-                )}
-                {/* iframe stays keyed + in the SAME wrapper so toggling size/float/drag
-                    never remounts it (a remount would restart the stream). */}
-                <div className={floating ? 'aspect-video' : 'contents'}>
-                  <iframe
-                    key={playerSrc}
-                    src={playerSrc}
-                    title={showLive ? `${c.name || 'Church'} — live worship broadcast` : `${c.name || 'Church'} — latest message`}
-                    className="w-full h-full border-0"
-                    allow="encrypted-media; picture-in-picture; fullscreen"
-                    allowFullScreen
-                    loading="lazy"
-                  />
-                </div>
-              </div>
-              {floating && !floatPos && (
-                <p className="mt-2 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-                  Playing in a small window — drag it anywhere by its grip, and tap <span className="font-semibold text-[#B85838]">Dock</span> to bring it back.
+              {!followAlong && (
+                <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                  When {c.name || 'the church'} is streaming, the live service plays right here automatically. Between services the most recent message keeps playing — and the next live stream rolls in on its own when it starts.
                 </p>
               )}
-            </>
-          ) : (
-            /* Fallback ONLY when no embeddable source resolves (e.g. a
-               non-standard channel id with no derivable uploads playlist):
-               never a dead frame — link straight out to the channel. */
-            <div className="mt-3 aspect-video bg-[#1A1815] text-white flex flex-col items-center justify-center text-center gap-3 p-4">
-              <p className="text-sm font-semibold">Watch {c.name || 'the church'} on YouTube</p>
-              {channelUrl && (
-                <a
-                  href={channelUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 bg-[#B85838] text-white px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#9A4729] focus:outline focus:outline-2 focus:outline-white"
-                >
-                  Open the channel
-                </a>
-              )}
-            </div>
-          )}
 
-          {/* Follow along in the Word (Darrell 2026-07-14): open the Scripture
-              reader INLINE — below the player, on THIS page — so you watch the
-              service AND read the Word together. It used to navigate to the
-              Scripture tab, which moved you off the live video. */}
-          <button
-            type="button"
-            onClick={() => (followAlong ? setFollowAlong(false) : openFollowAlong())}
-            aria-expanded={followAlong}
-            className="mt-3 inline-flex items-center gap-1.5 border border-[#B85838] text-[#B85838] px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
-          >
-            <UiIcon name="book" /> {followAlong ? 'Close the Word' : 'Follow along in the Word'}
-          </button>
-
-          {!followAlong && (
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-            {onlineServices.length > 0 && (
-              <p className="text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-                <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold mr-1.5">Service times</span>
-                {onlineServices.map(s => `${s.day} ${s.time}`).join(' · ')}
-              </p>
-            )}
-            {channelUrl && (
-              <a
-                href={channelUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[#B85838] hover:text-[#1A1815] underline focus:outline focus:outline-2 focus:outline-[#B85838]"
-              >
-                Watch on YouTube
-              </a>
-            )}
-          </div>
-          )}
-          {/* Recent livestreams — the last 5 below the one now playing, pulled
-              straight from the channel so they're always here (Darrell 2026-07-19). */}
-          {!followAlong && priorStreams.length > 0 && (
-            <div className="mt-4">
-              <div className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold mb-2">Recent livestreams</div>
-              <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 list-none p-0 m-0">
-                {priorStreams.map((v) => (
-                  <li key={v.videoId}>
+              {playerSrc ? (
+                <>
+                  {/* Size + float controls — pure layout on the SAME iframe (no reload).
+                      Shown whenever there's a player; float pops it to a corner mini so
+                      the Word reads full-width. */}
+                  <div className="mt-3 flex items-center gap-1.5 flex-wrap text-[0.5625rem] uppercase tracking-wider">
+                    <span className="text-[#5A5751] font-semibold mr-0.5">Player</span>
+                    {!floating && !followAlong && ['s', 'm', 'l'].map((sz) => (
+                      <button
+                        key={sz}
+                        type="button"
+                        onClick={() => setPlayerScale(sz)}
+                        aria-pressed={playerScale === sz}
+                        className={`px-2 py-1 min-h-[32px] border font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] ${playerScale === sz ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#CFC9BD] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838]'}`}
+                      >
+                        {sz === 's' ? 'Small' : sz === 'm' ? 'Medium' : 'Large'}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setFloating((f) => !f)}
+                      aria-pressed={floating}
+                      className={`px-2 py-1 min-h-[32px] border font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] ${floating ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#CFC9BD] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838]'}`}
+                    >
+                      {floating ? '⤡ Dock' : '⤢ Pop out'}
+                    </button>
+                  </div>
+                  <div
+                    className={floating
+                      ? 'fixed z-[60] w-[46vw] max-w-[300px] bg-[#1A1815] shadow-2xl rounded-md overflow-hidden'
+                      : 'mt-2 aspect-video bg-[#1A1815]'}
+                    style={floating
+                      ? (floatPos ? { left: `${floatPos.x}px`, top: `${floatPos.y}px` } : { right: '0.75rem', bottom: '5rem' })
+                      : { width: playerScale === 's' ? '56%' : playerScale === 'l' ? '100%' : '80%' }}
+                  >
+                    {/* Drag grip — ONLY when floating. Lets you move the mini-player
+                        ANYWHERE on screen (touch + mouse). It is a sibling BAR in the
+                        SAME wrapper as the keyed iframe, so dragging/floating never
+                        remounts the iframe — the stream keeps playing (Darrell 2026-07-18). */}
+                    {floating && (
+                      <div
+                        onPointerDown={onFloatPointerDown}
+                        onPointerMove={onFloatPointerMove}
+                        onPointerUp={onFloatPointerUp}
+                        onPointerCancel={onFloatPointerUp}
+                        className="flex items-center justify-between gap-2 px-2 h-7 bg-[#26211d] cursor-move touch-none select-none"
+                      >
+                        <span className="text-[0.5625rem] uppercase tracking-wider text-[#CFC9BD] flex items-center gap-1 pointer-events-none" aria-hidden="true">⠿ Drag</span>
+                        <button
+                          type="button"
+                          onClick={() => { setFloating(false); setFloatPos(null); }}
+                          aria-label="Dock the player back into the page"
+                          className="text-[0.5625rem] uppercase tracking-wider text-[#EBA77E] hover:text-white font-semibold px-1.5 py-0.5 focus:outline focus:outline-2 focus:outline-white"
+                        >
+                          ⤡ Dock
+                        </button>
+                      </div>
+                    )}
+                    {/* iframe stays keyed + in the SAME wrapper so toggling size/float/drag
+                        never remounts it (a remount would restart the stream). */}
+                    <div className={floating ? 'aspect-video' : 'contents'}>
+                      <iframe
+                        key={playerSrc}
+                        src={playerSrc}
+                        title={showLive ? `${c.name || 'Church'} — live worship broadcast` : `${c.name || 'Church'} — latest message`}
+                        className="w-full h-full border-0"
+                        allow="encrypted-media; picture-in-picture; fullscreen"
+                        allowFullScreen
+                        loading="lazy"
+                      />
+                    </div>
+                  </div>
+                  {floating && !floatPos && (
+                    <p className="mt-2 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                      Playing in a small window — drag it anywhere by its grip, and tap <span className="font-semibold text-[#B85838]">Dock</span> to bring it back.
+                    </p>
+                  )}
+                </>
+              ) : (
+                /* Fallback ONLY when no embeddable source resolves (e.g. a
+                   non-standard channel id with no derivable uploads playlist):
+                   never a dead frame — link straight out to the channel. */
+                <div className="mt-3 aspect-video bg-[#1A1815] text-white flex flex-col items-center justify-center text-center gap-3 p-4">
+                  <p className="text-sm font-semibold">Watch {c.name || 'the church'} on YouTube</p>
+                  {channelUrl && (
                     <a
-                      href={v.url}
+                      href={channelUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block group focus:outline focus:outline-2 focus:outline-[#B85838]"
-                      title={v.title}
+                      className="inline-flex items-center gap-1.5 bg-[#B85838] text-white px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#9A4729] focus:outline focus:outline-2 focus:outline-white"
                     >
-                      <div className="relative aspect-video bg-[#1A1815] overflow-hidden border border-[#E8E4DC]">
-                        {v.thumbnail && (
-                          <img src={v.thumbnail} alt="" loading="lazy" className="w-full h-full object-cover opacity-95 group-hover:opacity-100" />
-                        )}
-                        <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center text-white text-2xl drop-shadow">▶</span>
-                      </div>
-                      <div className="mt-1 text-[0.6875rem] leading-tight text-[#1A1815] line-clamp-2 group-hover:text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
-                        {v.title || 'Livestream'}
-                      </div>
+                      Open the channel
                     </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </section>
-      )}
+                  )}
+                </div>
+              )}
 
-      {/* The Word, INLINE — the Scripture reader opens right here on the same page
-          as the live player above, so watching + following along happen together
-          (never a navigate-away). Public: works signed in or not. */}
-      {followAlong && (
-        <section ref={followRef} aria-label="Follow along in the Word" className="bg-white border border-[#E8E4DC] p-3 sm:p-4">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Follow Along · The Word</h3>
+              {/* Follow along in the Word (Darrell 2026-07-14): open the Scripture
+                  reader INLINE — below the player, on THIS page — so you watch the
+                  service AND read the Word together. It used to navigate to the
+                  Scripture tab, which moved you off the live video. */}
+              <button
+                type="button"
+                onClick={() => (followAlong ? setFollowAlong(false) : openFollowAlong())}
+                aria-expanded={followAlong}
+                className="mt-3 inline-flex items-center gap-1.5 border border-[#B85838] text-[#B85838] px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+              >
+                <UiIcon name="book" /> {followAlong ? 'Close the Word' : 'Follow along in the Word'}
+              </button>
+
+              {!followAlong && (
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                {onlineServices.length > 0 && (
+                  <p className="text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold mr-1.5">Service times</span>
+                    {onlineServices.map(s => `${s.day} ${s.time}`).join(' · ')}
+                  </p>
+                )}
+                {channelUrl && (
+                  <a
+                    href={channelUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[#B85838] hover:text-[#1A1815] underline focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  >
+                    Watch on YouTube
+                  </a>
+                )}
+              </div>
+              )}
+              {/* Recent livestreams — the last 5 below the one now playing, pulled
+                  straight from the channel so they're always here (Darrell 2026-07-19). */}
+              {!followAlong && priorStreams.length > 0 && (
+                <div className="mt-4">
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold mb-2">Recent livestreams</div>
+                  <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 list-none p-0 m-0">
+                    {priorStreams.map((v) => (
+                      <li key={v.videoId}>
+                        <a
+                          href={v.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block group focus:outline focus:outline-2 focus:outline-[#B85838]"
+                          title={v.title}
+                        >
+                          <div className="relative aspect-video bg-[#1A1815] overflow-hidden border border-[#E8E4DC]">
+                            {v.thumbnail && (
+                              <img src={v.thumbnail} alt="" loading="lazy" className="w-full h-full object-cover opacity-95 group-hover:opacity-100" />
+                            )}
+                            <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center text-white text-2xl drop-shadow">▶</span>
+                          </div>
+                          <div className="mt-1 text-[0.6875rem] leading-tight text-[#1A1815] line-clamp-2 group-hover:text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
+                            {v.title || 'Livestream'}
+                          </div>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* The Word, INLINE — the Scripture reader opens right here on the same page
+              as the live player above, so watching + following along happen together
+              (never a navigate-away). Public: works signed in or not. */}
+          {followAlong && (
+            <section ref={followRef} aria-label="Follow along in the Word" className="bg-white border border-[#E8E4DC] p-3 sm:p-4">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Follow Along · The Word</h3>
+                <button
+                  type="button"
+                  onClick={() => setFollowAlong(false)}
+                  className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline-offset-2 hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
+                >
+                  × Close
+                </button>
+              </div>
+              <ScriptureLibrary email={email} canStudy={canStudy} setChurchView={setChurchView} />
+            </section>
+          )}
+
+          {/* PASTORAL CONTENT — Bishop Gwin (D21). The Sermon-to-Content pipeline is
+              LIVE (choir_sermons + video_transcripts + the Harvest Ledger); this
+              entry point names the real progress and the real next action, never a
+              dead end (audit: no-dead-ends, DR-0075). */}
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'sermons',
+                    label: 'Past sermons',
+                    icon: 'book',
+                    render: () => (
+                      <>
+          <section aria-labelledby="sermons-h" className="bg-white border border-[#1A1815] p-4">
+            <h3 id="sermons-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Pastoral Content · Bishop Gwin</h3>
+            <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+              Bishop Gwin's messages are being captioned, archived, and made searchable by the Sermon-to-Content pipeline — its real progress is on the Harvest Ledger (Church → Harvest), and recorded services play today from the Worship section above. The church owns every master file.
+            </p>
             <button
               type="button"
-              onClick={() => setFollowAlong(false)}
-              className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline-offset-2 hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
+              onClick={openFollowAlong}
+              className="mt-2 inline-flex items-center gap-1.5 text-xs uppercase tracking-wider font-semibold text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
             >
-              × Close
+              <UiIcon name="book" /> Follow along in the Word
             </button>
-          </div>
-          <ScriptureLibrary email={email} canStudy={canStudy} setChurchView={setChurchView} />
-        </section>
-      )}
+          </section>
 
-      {/* PASTORAL CONTENT — Bishop Gwin (D21). The Sermon-to-Content pipeline is
-          LIVE (choir_sermons + video_transcripts + the Harvest Ledger); this
-          entry point names the real progress and the real next action, never a
-          dead end (audit: no-dead-ends, DR-0075). */}
-      <section aria-labelledby="sermons-h" className="bg-white border border-[#1A1815] p-4">
-        <h3 id="sermons-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1">Pastoral Content · Bishop Gwin</h3>
-        <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-          Bishop Gwin's messages are being captioned, archived, and made searchable by the Sermon-to-Content pipeline — its real progress is on the Harvest Ledger (Church → Harvest), and recorded services play today from the Worship section above. The church owns every master file.
-        </p>
-        <button
-          type="button"
-          onClick={openFollowAlong}
-          className="mt-2 inline-flex items-center gap-1.5 text-xs uppercase tracking-wider font-semibold text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
-        >
-          <UiIcon name="book" /> Follow along in the Word
-        </button>
-      </section>
+          {/* MESSAGES — start a chat from the obvious place (Darrell 2026-07-27:
+              "Put the ability to start chats or dms in obvious locations."). The
+              rail already exists (?view=messages, E2E DMs + group threads); this
+              puts the DOOR where members actually stand. Deep link, full reload OK. */}
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'connect',
+                    label: 'Stay connected',
+                    icon: 'mail',
+                    render: () => (
+                      <>
+          <section aria-labelledby="msg-h">
+            <h3 id="msg-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Messages — reach someone privately</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <a href="?view=messages" className="bg-white border-2 border-[#5A6E3D] hover:border-[#1A1815] p-3 focus:outline focus:outline-2 focus:outline-[#B85838]">
+                <div className="text-xs uppercase tracking-wider font-semibold text-[#1A1815] flex items-center gap-1.5"><UiIcon name="mail" /> Start a direct message</div>
+                <div className="text-[0.625rem] text-[#5A5751] mt-1">One-to-one, end-to-end encrypted — &ldquo;between thee and him alone&rdquo; (Matthew 18:15). Type it or speak it.</div>
+              </a>
+              <a href="?view=messages" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 focus:outline focus:outline-2 focus:outline-[#B85838]">
+                <div className="text-xs uppercase tracking-wider font-semibold text-[#1A1815] flex items-center gap-1.5"><UiIcon name="users" /> Message a group</div>
+                <div className="text-[0.625rem] text-[#5A5751] mt-1">Everyone · Choir · Bus Ministry · Security — private to the roster, no phone numbers.</div>
+              </a>
+            </div>
+          </section>
 
-      {/* MESSAGES — start a chat from the obvious place (Darrell 2026-07-27:
-          "Put the ability to start chats or dms in obvious locations."). The
-          rail already exists (?view=messages, E2E DMs + group threads); this
-          puts the DOOR where members actually stand. Deep link, full reload OK. */}
-      <section aria-labelledby="msg-h">
-        <h3 id="msg-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Messages — reach someone privately</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <a href="?view=messages" className="bg-white border-2 border-[#5A6E3D] hover:border-[#1A1815] p-3 focus:outline focus:outline-2 focus:outline-[#B85838]">
-            <div className="text-xs uppercase tracking-wider font-semibold text-[#1A1815] flex items-center gap-1.5"><UiIcon name="mail" /> Start a direct message</div>
-            <div className="text-[0.625rem] text-[#5A5751] mt-1">One-to-one, end-to-end encrypted — &ldquo;between thee and him alone&rdquo; (Matthew 18:15). Type it or speak it.</div>
-          </a>
-          <a href="?view=messages" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 focus:outline focus:outline-2 focus:outline-[#B85838]">
-            <div className="text-xs uppercase tracking-wider font-semibold text-[#1A1815] flex items-center gap-1.5"><UiIcon name="users" /> Message a group</div>
-            <div className="text-[0.625rem] text-[#5A5751] mt-1">Everyone · Choir · Bus Ministry · Security — private to the roster, no phone numbers.</div>
-          </a>
-        </div>
-      </section>
+          {/* MEDIA / BROADCAST */}
+          {c.media && (
+            <section aria-labelledby="media-h">
+              <h3 id="media-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Watch · Listen · Follow</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {c.media.youtube && <a href={c.media.youtube} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true">▶</div><div className="text-xs uppercase tracking-wider font-semibold">YouTube</div><div className="text-[0.625rem] text-[#5A5751]">Recorded services</div></a>}
+                {c.media.facebook && <a href={c.media.facebook} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true">f</div><div className="text-xs uppercase tracking-wider font-semibold">Facebook</div><div className="text-[0.625rem] text-[#5A5751]">Love Corner Live</div></a>}
+                {c.media.instagram && <a href={c.media.instagram} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true">◉</div><div className="text-xs uppercase tracking-wider font-semibold">Instagram</div><div className="text-[0.625rem] text-[#5A5751]">@tlcexperience</div></a>}
+                {c.media.broadcast && <a href={c.media.broadcast} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true"><UiIcon name="radio" /></div><div className="text-xs uppercase tracking-wider font-semibold">Broadcast</div><div className="text-[0.625rem] text-[#5A5751]">All channels</div></a>}
+              </div>
+            </section>
+          )}
 
-      {/* MEDIA / BROADCAST */}
-      {c.media && (
-        <section aria-labelledby="media-h">
-          <h3 id="media-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Watch · Listen · Follow</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {c.media.youtube && <a href={c.media.youtube} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true">▶</div><div className="text-xs uppercase tracking-wider font-semibold">YouTube</div><div className="text-[0.625rem] text-[#5A5751]">Recorded services</div></a>}
-            {c.media.facebook && <a href={c.media.facebook} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true">f</div><div className="text-xs uppercase tracking-wider font-semibold">Facebook</div><div className="text-[0.625rem] text-[#5A5751]">Love Corner Live</div></a>}
-            {c.media.instagram && <a href={c.media.instagram} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true">◉</div><div className="text-xs uppercase tracking-wider font-semibold">Instagram</div><div className="text-[0.625rem] text-[#5A5751]">@tlcexperience</div></a>}
-            {c.media.broadcast && <a href={c.media.broadcast} target="_blank" rel="noopener noreferrer" className="bg-white border border-[#E8E4DC] hover:border-[#B85838] p-3 text-center focus:outline focus:outline-2 focus:outline-[#B85838]"><div className="text-2xl mb-1" aria-hidden="true"><UiIcon name="radio" /></div><div className="text-xs uppercase tracking-wider font-semibold">Broadcast</div><div className="text-[0.625rem] text-[#5A5751]">All channels</div></a>}
-          </div>
-        </section>
-      )}
-
-      {/* GET / SHARE OUR APP (DR-0174) — the church's own door as a scannable
-          code the congregation can pass on: project it, print it for the
-          bulletin, or show a phone. Encodes SHARE_DOOR_URL (poetech.us/lovecorner
-          → installs "The Love Corner"), one source with the door + manifest. */}
-      <section aria-labelledby="shareapp-h">
-        <h3 id="shareapp-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Get our app · Share it</h3>
-        <AppShareQR
-          url={SHARE_DOOR_URL}
-          shown="poetech.us/lovecorner"
-          title="The Love Corner app"
-          blurb="Point a phone camera at this code to install our church app — services, live worship, sermons, giving, and prayer, all in one place. Project it, print it for the bulletin, or just show your phone."
-          ariaLabel="QR code to install The Love Corner church app"
-        />
-      </section>
-        </>
+          {/* GET / SHARE OUR APP (DR-0174) — the church's own door as a scannable
+              code the congregation can pass on: project it, print it for the
+              bulletin, or show a phone. Encodes SHARE_DOOR_URL (poetech.us/lovecorner
+              → installs "The Love Corner"), one source with the door + manifest. */}
+          <section aria-labelledby="shareapp-h">
+            <h3 id="shareapp-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Get our app · Share it</h3>
+            <AppShareQR
+              url={SHARE_DOOR_URL}
+              shown="poetech.us/lovecorner"
+              title="The Love Corner app"
+              blurb="Point a phone camera at this code to install our church app — services, live worship, sermons, giving, and prayer, all in one place. Project it, print it for the bulletin, or just show your phone."
+              ariaLabel="QR code to install The Love Corner church app"
+            />
+          </section>
+                      </>
+                    ),
+                  },
+                ]}
+              />
       ),
     },
     {
