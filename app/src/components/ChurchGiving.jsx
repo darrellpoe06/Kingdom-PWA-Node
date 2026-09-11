@@ -552,12 +552,23 @@ export function ChurchGivePanel({ church, onClose }) {
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-[#5A6E3D] text-white text-sm uppercase tracking-wider font-semibold border-2 border-[#5A6E3D] hover:bg-[#1A1815] hover:border-[#1A1815] min-h-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815]"
               >
-                <GiftIcon /> More ways to give — church website
+                <GiftIcon /> {dest.confirmed ? 'Give on the church website' : 'Church website — giving page is one step in'}
               </a>
               <p className="text-[0.6875rem] text-[#5A5751] mt-2 leading-relaxed">{dest.note}</p>
+              {/* Landing someone on a homepage with no directions is what cost
+                  Darrell the flow in front of the COLG leadership, 2026-09-11:
+                  "is this the pay page? No... we wanted the actual Menu, Tithes
+                  and Offering guest page." Until the office hands over that
+                  deep-link, the app says the two taps rather than guessing a URL
+                  (never invent a giving address — lib/giving.js). */}
+              {!dest.confirmed && dest.hint && (
+                <p className="text-[0.6875rem] text-[#1A1815] mt-1 leading-relaxed font-medium border-l-2 border-[#5A6E3D] pl-2">
+                  {dest.hint}
+                </p>
+              )}
               {!dest.confirmed && (
                 <p className="text-[0.6875rem] text-[#B85838] mt-1 leading-relaxed">
-                  A dedicated giving page link can be set so “Give now” opens it directly. Until then this opens the church website where the giving link is published.
+                  This opens the church website, not the giving page itself. Once the office gives us the direct link to that page, this button will open it in one tap.
                 </p>
               )}
             </>

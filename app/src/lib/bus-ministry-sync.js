@@ -187,6 +187,7 @@ export async function saveScheduleRow(item, displayName) {
   if (ctx.error) return { skipped: ctx.error };
   const row = {
     service_date: item.serviceDate,
+    service_slot: item.serviceSlot ?? null,
     route_id: item.routeId ?? null,
     route_name: item.routeName ?? null,
     van_id: item.vanId ?? null,
@@ -318,6 +319,7 @@ export async function submitRideRequest(form, displayName) {
     pickup_area: area || null,
     pickup_address: address || null,
     service_date: form.serviceDate || null,
+    service_slot: form.serviceSlot || null,
     passengers: Number.isFinite(passengers) && passengers >= 1 ? Math.floor(passengers) : 1,
     accessible_needed: !!form.accessibleNeeded,
     notes: (form.notes || '').trim() || null,

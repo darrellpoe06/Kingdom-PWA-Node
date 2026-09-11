@@ -32,7 +32,10 @@ describe('catalog', () => {
     expect(CAMPUS_IDS).toEqual(['north', 'south']);
     expect(findCampus('north').tier).toBe('premium');
     expect(findCampus('south').tier).toBe('standard');
-    expect(findCampus('south').address).toContain('1109 N 4th');
+    // The church's own page prints it as "1109 N. Fourth Street" (verified
+    // 2026-09-11), so the record now matches the church rather than an
+    // abbreviation we chose.
+    expect(findCampus('south').address).toContain('1109 N. Fourth Street');
   });
   it('resolves a space to its campus (ids are unique across campuses)', () => {
     expect(findSpace('north-sanctuary').campusId).toBe('north');

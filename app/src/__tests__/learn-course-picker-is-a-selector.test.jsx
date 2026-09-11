@@ -94,8 +94,10 @@ describe('a device that has never chosen sees the PROMPT, not a course dressed a
     expect(picker().dataset.chosen).toBe('false');
     const n = picker().querySelectorAll('option:not([value=""])').length;
     expect(n).toBeGreaterThan(1);
-    expect(shownText()).toBe(`Select a course · ${n} to choose from`);
-    expect(prompt().disabled, 'the prompt is not a choice').toBe(true);
+    expect(shownText()).toBe(`Choose another course · ${n} to choose from`);
+    // The way-out option is SELECTABLE now, not a disabled placeholder: it is
+    // the control's resting state, not a thing you have to get past.
+    expect(prompt().disabled).toBe(false);
   });
 
   it('the label says what the control does, and the lesson index names its course', () => {
@@ -110,14 +112,22 @@ describe('a device that has never chosen sees the PROMPT, not a course dressed a
 });
 
 describe('choosing a course shows it and REMEMBERS it — "then leave it on the last one"', () => {
-  it('after a choice the select shows that course, and the device remembers the key', () => {
+  it('after a choice the device REMEMBERS the key — and the control stays a switcher', () => {
+    // Darrell 2026-09-11: "have the choose a course blank or say choose another
+    // course and leave the current static name above the listed lessons inside
+    // the course area." A select displaying the open course reads as a TITLE for
+    // the lessons under it, which is exactly what hid the other courses ("the
+    // staff couldn't tell that they have other courses"). So the memory still
+    // works; the control just stops pretending to be a heading.
     mount();
     const key = [...picker().options].map((o) => o.value).find((v) => v && v !== 'ai');
     choose(key);
-    expect(picker().value).toBe(key);
     expect(picker().dataset.chosen).toBe('true');
-    expect(shownText()).not.toMatch(/^Select a course/);
+    expect(picker().value, 'the control always offers the way OUT, never the current course').toBe('');
+    expect(shownText()).toMatch(/^Choose another course/);
     expect(window.localStorage.getItem(COURSE_MEMORY_KEY)).toBe(key);
+    // ...and the open course is named statically, above the lessons.
+    expect(container.querySelector('#learn-h').textContent.length).toBeGreaterThan(0);
   });
 
   it('a fresh mount reopens on the remembered course, not on the prompt', () => {
@@ -127,7 +137,16 @@ describe('choosing a course shows it and REMEMBERS it — "then leave it on the 
     act(() => root.unmount());
     root = createRoot(container);
     mount();
-    expect(picker().value).toBe(key);
+    // The memory still decides WHICH COURSE OPENS. Since 2026-09-11 the picker
+    // no longer displays it (Darrell: "leave the current static name above the
+    // listed lessons inside the course area"), so the course that reopened is
+    // read off the static heading and the lesson index — where a reader looks —
+    // not off the control.
+    expect(picker().value, 'the control always offers the way OUT').toBe('');
+    expect(picker().dataset.chosen).toBe('true');
+    const opened = container.querySelector('#learn-h').textContent;
+    expect(opened.length).toBeGreaterThan(0);
+    expect(index().textContent).toContain(opened);
     expect(index().textContent).not.toMatch(/Learning A\.I\. The Way · pick/);
   });
 
@@ -139,8 +158,10 @@ describe('choosing a course shows it and REMEMBERS it — "then leave it on the 
     recordPlace({ courseKey: key, lessonId: 'll1' });
     root = createRoot(container);
     mount();
-    expect(picker().value).toBe(key);
+    // Same rule: the place still chooses the course; the heading is what says so.
+    expect(picker().value).toBe('');
     expect(picker().dataset.chosen).toBe('true');
+    expect(index().textContent).toContain(container.querySelector('#learn-h').textContent);
     clearPlace();
   });
 

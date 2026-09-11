@@ -10,8 +10,10 @@ export const CONFERENCE_IDENTITY = {
   // service (community announcements) — the church's own published word.
   theme: 'Positioned for Purpose',
   host: 'The Church of the Living God',
-  // South Campus Event Center is the named venue for the Assembly (1109 N 4th St);
-  // the Main Campus (312 E. Bradley) is the church home.
+  // The E-MEG Christian Center — the church's South Campus, 1109 N. Fourth St —
+  // is the venue for the Assembly (named by Darrell 2026-09-11; see
+  // lib/venue-rental.js for the provenance and what is still unconfirmed).
+  // The Main Campus (312 E. Bradley) is the church home.
   location: '1109 N 4th Street, Champaign, IL',
   dates: 'July 14–16, 2026', // announced in the 2026-07 service
   livestreamUrl: 'https://www.youtube.com/channel/UC821pJh7YR5llBNnWUJj-ZA',

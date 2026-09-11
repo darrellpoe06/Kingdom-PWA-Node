@@ -114,7 +114,7 @@ export function initialBooksView(search) {
 // exist and do their OWN staff gating, so a deep-link resolves to a real branch
 // and the gate — not to a blank screen).
 export const VALID_CHURCH_SUBS = [
-  'home', 'pulpit', 'scripture', 'engagement', 'choir', 'bus', 'program',
+  'home', 'ministries', 'pulpit', 'scripture', 'engagement', 'choir', 'bus', 'program',
   'learn', 'eternal-algorithms', 'conference', 'events', 'projects',
   'harvest', 'videowall', 'devices', 'infra-plan', 'observe', 'members',
 ];

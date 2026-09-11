@@ -14,6 +14,7 @@ import { Queue } from './Queue.jsx';
 import { queueFreshness, QUEUE_STALE_DAYS } from '../lib/queue-freshness.js';
 import { compressImageFile, isLikelyImageFile } from '../lib/image.js';
 import { filesFromClipboardEvent } from '../lib/paste-input.js';
+import { receiptMessage, receiptCode, receiptStatus, mineOnly } from '../lib/feedback-receipt.js';
 import { extractRequirementsFromThoughts } from '../lib/requirements-intake.js';
 import { saveExtraction } from '../lib/use-discovery.js';
 // The library count derives from the registry itself (DR-0121 — the hand-typed
@@ -156,7 +157,12 @@ export const FEEDBACK_AREAS = [
     ['tlc-assistant', 'Assistant · TLC referral database + admin/marketing assistant (referral network · outreach · content calendar · weekly goals · Ari path)'],
   ]},
   { group: 'Access & Usage (steward · access governance)', items: [
-    ['access', 'Access & Usage · who has access (role · scope) + counts/activity + build-freshness (rollout management)'],
+    // The standalone Access tab was retired into Admin (2026-07-04) but this
+    // entry kept saying "Access & Usage" as if it were still its own place —
+    // Darrell, 2026-09-11, hunting for a tab in this very list: "this already
+    // says access... I know I gotta change it." The KEY is stable (stored
+    // feedback rows point at it); only the label tells the truth now.
+    ['access', 'Admin · Access & Usage report — who has access (role · scope) + counts/activity + build-freshness'],
   ]},
   { group: "Chef's Corner — Kitchen Inventory (steward · homed in Chef's Corner)", items: [
     ['kitchen', "Kitchen Inventory · Chef Mario's inventory, in Chef's Corner (count by weight/unit · par alerts · value)"],
@@ -166,12 +172,29 @@ export const FEEDBACK_AREAS = [
   ]},
   { group: 'Church', items: [
     ['church', 'Church · service times / media / prayer / ministry'],
-    ['church-conference', '└ Conference · COLG National Assembly (schedule · meals · sessions)'],
-    ['church-event-center', '└ Event Center · room / event requests'],
-    ['church-events', '└ Venues · community use of the two campuses (requests · calendar · responsibilities · revenue)'],
+    // Three things wore overlapping names and only two of them are tabs, which
+    // is the confusion Darrell named on 2026-09-11 ("conference center vs event
+    // center for the church"). Traced to what the code actually does:
+    //   · the Assembly is an EVENT the church holds (Church > Conference);
+    //   · the Event Center is the BUILDING it is held in — South Campus,
+    //     1109 N 4th St (lib/venue-rental.js) — and in the app its room/session
+    //     operations are a staff panel INSIDE Conference, not a tab of its own,
+    //     so the old label pointed at a place you could not navigate to;
+    //   · Venues is the community renting either campus (Church > Venues).
+    // Keys are stable (stored rows point at them); the labels now say which is
+    // which and where it lives.
+    ['church-conference', '└ Conference · the COLG National Assembly, the event itself (identity · registration · schedule · meals)'],
+    ['church-event-center', '└ Conference · Rooms & Sessions — the rooms, capacity and registration roll inside the E-MEG Christian Center (South Campus) (staff panel within Conference)'],
+    ['church-events', '└ Campus Rentals · community use of the two campuses — North (the church) and South (the Event Center) (requests · calendar · responsibilities · revenue)'],
     ['church-projects', 'Church · Projects (the Love Corner project board — video wall · ministries · Assembly · infra · door · outreach)'],
     ['church-engagement', 'Church · Engagement (trivia + messages)'],
-    ['church-bus', 'Church · Bus Ministry (drivers · routes · schedule · reminders · messages · meetings)'],
+    ['church-bus', 'Church · Bus Ministry (rides to service · drivers · routes · schedule · reminders)'],
+    // A ministry the church really has, with no page of its own yet — named by
+    // Darrell 2026-09-11 while hunting this list: "I don't see the church band."
+    // A ministry you cannot even FILE ON is a ministry the app is pretending
+    // does not exist; the entry comes first, the surface follows.
+    ['church-band', 'Church · Church Band (the musicians — no page yet; tell us what it needs)'],
+    ['church-ministries', 'Church · Ministries directory (ushers · security · hospitality · outreach · new members)'],
     ['church-members', 'Church · Members (the way in · people by standing with faces · may / may-not · invite · remove — DR-0348)'],
     ['church-program', 'Church · Order of Service (master program → per-sector derived views · timing reflow)'],
     ['church-learn', 'Church · Learn (Learning A.I. The Way class)'],
@@ -185,7 +208,14 @@ export const FEEDBACK_AREAS = [
     ['church-scripture', 'Church · Scripture (themed, depth-adaptive KJV library — His perspective + His love, for the soul)'],
     ['pulpit-library', '└ The Word — Migdal · Message library (watch · document · reuse)'],
     ['pulpit-prep', '└ The Word — Migdal · Prep from your corpus'],
-    ['church-choir', 'Church · Choir (director hub)'],
+  ]},
+  // Choir is its OWN group now. Ten of the Church group's entries were Choir
+  // sub-tabs, so someone looking for the church itself had to read past the
+  // whole worship team to find it — Darrell, 2026-09-11, doing exactly that:
+  // "which one is it — the church, and his choir, and his choir? We don't want
+  // the choir. We want the church." Keys are unchanged; only where they sit is.
+  { group: 'Choir (the worship team)', items: [
+    ['church-choir', 'Choir · director hub'],
     ['choir-week', '└ Choir · This week'],
     ['choir-songs', '└ Choir · Songs (Song Workshop)'],
     ['choir-songbook', '└ Choir · Songbook (cross-referenced)'],
@@ -224,6 +254,38 @@ export const FEEDBACK_AREAS = [
     ['other', 'Other'],
   ]},
 ];
+// filterAreas — type-to-find over the "Which area?" list.
+//
+// The list is 138 entries deep and grouped, which is right for completeness and
+// hopeless for finding one thing. Darrell, 2026-09-11, with the COLG leadership
+// watching him try: "Okay. Now where is it at?... you can literally find which
+// tab it is and say that specific" — and then, hunting: "Do you see it in there
+// yet? I don't. I don't see the church band."
+//
+// Every word in the query must appear somewhere in the group name or the item
+// label (order-free), so "bus" finds the Bus Ministry and "church bus" still
+// does. `keepKey` is the currently-selected area: it always survives the filter,
+// because a <select> whose value vanished from its own options silently resets
+// the user's answer.
+export function filterAreas(groups, query, keepKey) {
+  const q = String(query || '').trim().toLowerCase();
+  if (!q) return groups;
+  const words = q.split(/\s+/).filter(Boolean);
+  return groups
+    .map((grp) => ({
+      group: grp.group,
+      items: grp.items.filter(([k, label]) => {
+        if (k === keepKey) return true;
+        const hay = `${grp.group} ${k} ${label}`.toLowerCase();
+        return words.every((w) => hay.includes(w));
+      }),
+    }))
+    .filter((grp) => grp.items.length > 0);
+}
+
+// The receipt the sender keeps, and the status of the notes they already sent.
+// There is no mail transport out of this app; the code IS the reference.
+// (Darrell, 2026-09-11: "I'm not getting the link in my email.")
 export const FEEDBACK_CATEGORIES = [
   { key: 'bug',          label: 'Bug',           accent: '#B85838' },
   { key: 'confusion',    label: '❓ Confusion',     accent: '#D97706' },
@@ -234,10 +296,14 @@ export const FEEDBACK_CATEGORIES = [
   { key: 'praise',       label: '✨ Praise',         accent: '#5A6E3D' },
 ];
 
-export function FeedbackModal({ onClose, onSubmit, currentView }) {
+export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey = null, myFeedback = [] }) {
   const [rating, setRating] = useState('');
   // Pre-fill area from the currently-active view if it maps to an area key.
+  // `initialAreaKey` wins: a surface that KNOWS what this note is about (the
+  // Ministries directory naming the ministry) hands the answer over, so nobody
+  // hunts the list for something the app already knew.
   const initialArea = (() => {
+    if (initialAreaKey) return initialAreaKey;
     if (currentView === 'rentals') return 'rentals';
     if (currentView === 'books') return 'books-accounts';
     if (currentView === 'debts') return 'debts';
@@ -254,6 +320,7 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
     return 'overview';
   })();
   const [area, setArea] = useState(initialArea);
+  const [areaQuery, setAreaQuery] = useState('');
   const [categories, setCategories] = useState([]);
   const [whatsWorking, setWhatsWorking] = useState('');
   const [whatsNot, setWhatsNot] = useState('');
@@ -264,6 +331,9 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
   // a new pick APPENDS so several batches accumulate.
   const [screenshots, setScreenshots] = useState([]);
   const [formError, setFormError] = useState('');
+  // The receipt shown after a successful submit — the sender's reference code
+  // and where to check its status. Null until they actually send something.
+  const [receipt, setReceipt] = useState(null);
   // Images still compressing. Submit WAITS on this — without it, submitting
   // while a big photo was still reading sent the feedback with screenshots:[]
   // and the image silently vanished (Darrell 2026-07-07: "couldn't upload an
@@ -314,8 +384,21 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
       setFormError('Pick a rating, a category, jot a note, or attach an image — anything is helpful.');
       return;
     }
-    onSubmit({ rating, area, categories, whatsWorking, whatsNot, whatsMissing, screenshots });
+    const saved = onSubmit({ rating, area, categories, whatsWorking, whatsNot, whatsMissing, screenshots });
+    // Hand the sender their reference instead of closing on them. If the host
+    // did not give us back a stored row there is no honest code to show, so we
+    // close as before rather than inventing one.
+    if (saved && saved.id) setReceipt(receiptMessage(saved.id));
+    else onClose();
   };
+
+  // The filtered list the picker actually renders, plus the count the hint
+  // reads from. `area` is always kept so a search can never blank the answer.
+  const areaGroups = filterAreas(FEEDBACK_AREAS, areaQuery, area);
+  // Counted WITHOUT the always-kept selection, so "3 matches" means three things
+  // the search actually found — not two plus whatever was already picked.
+  const areaMatches = filterAreas(FEEDBACK_AREAS, areaQuery, null)
+    .reduce((n, g) => n + g.items.length, 0);
 
   const ratings = [
     { key: 'love', label: '✨ Love it', color: '#5A6E3D' },
@@ -324,6 +407,66 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
     { key: 'rough', label: 'Rough', color: '#B85838' },
     { key: 'broken', label: 'Broken', color: '#B85838' },
   ];
+
+  // ── The receipt ───────────────────────────────────────────────────────────
+  // Shown the moment a note is sent. It hands over a reference the sender can
+  // read aloud or screenshot, says plainly that no email is coming, and lists
+  // their earlier notes with an HONEST status — including the "this is a known
+  // issue, N people reported it, we're working on it" sentence Darrell
+  // described giving people by hand, now said by the app itself.
+  if (receipt) {
+    const mine = mineOnly(myFeedback);
+    return (
+      <div data-read-skip className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-6 print:hidden" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }} onClick={onClose}>
+        <div className="bg-white border-2 border-[#1A1815] w-full max-h-[90vh] overflow-y-auto" style={{ maxWidth: '32rem' }} onClick={(e) => e.stopPropagation()}>
+          <div className="p-5 sm:p-6 space-y-4">
+            <div>
+              <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold mb-1">Feedback sent</div>
+              <h3 className="text-xl sm:text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{receipt.headline}</h3>
+            </div>
+
+            <div className="border-2 border-[#1A1815] bg-[#FAF8F4] p-4 text-center">
+              <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Your reference</div>
+              <div className="text-2xl sm:text-3xl font-semibold tracking-[0.15em] text-[#1A1815] mt-1 tabular-nums">{receipt.code}</div>
+            </div>
+
+            <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{receipt.body}</p>
+
+            {mine.length > 0 && (
+              <div>
+                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">Your feedback</div>
+                <ul className="divide-y divide-[#E8E4DC] border-t border-[#E8E4DC]">
+                  {mine.slice(0, 8).map((f) => {
+                    const st = receiptStatus(f, myFeedback);
+                    return (
+                      <li key={f.id} className="py-2">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] tabular-nums">{receiptCode(f.id)}</span>
+                          <span className={`text-[0.625rem] uppercase tracking-wider font-semibold ${st.key === 'fixed' ? 'text-[#5A6E3D]' : st.key === 'received' ? 'text-[#5A5751]' : 'text-[#B85838]'}`}>{st.label}</span>
+                        </div>
+                        <p className="text-xs text-[#5A5751] mt-0.5">{st.detail}</p>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-2 border-t border-[#E8E4DC]">
+              <button type="button" onClick={() => { setReceipt(null); setRating(''); setCategories([]); setWhatsWorking(''); setWhatsNot(''); setWhatsMissing(''); setScreenshots([]); setFormError(''); }}
+                className="border border-[#1A1815] text-[#1A1815] px-5 py-2.5 text-xs uppercase tracking-wider hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">
+                Send another
+              </button>
+              <button type="button" onClick={onClose}
+                className="bg-[#1A1815] text-[#FAF8F4] px-6 py-2.5 text-xs uppercase tracking-wider hover:bg-[#B85838] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div data-read-skip className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-6 print:hidden" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }} onClick={onClose}>
@@ -340,7 +483,7 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
             <button type="button" onClick={onClose} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
           </div>
           <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
-            Anything you share helps. Skip any section — partial feedback is more useful than no feedback. Saved locally; nothing leaves your device until you choose to share it.
+            Anything you share helps. Skip any section — partial feedback is more useful than no feedback. When you send it you get a reference code to keep; we don&apos;t send email about feedback, so the status lives here in the app.
           </p>
 
           <div className="space-y-4">
@@ -357,13 +500,28 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
 
             <div>
               <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">Which area? (sub-features indented)</div>
-              <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={area} onChange={e => setArea(e.target.value)}>
-                {FEEDBACK_AREAS.map(grp => (
+              {/* Type to find it. The list is long on purpose — this is how you
+                  stop scrolling it (Darrell, 2026-09-11: "now where is it at?"). */}
+              <input
+                type="search" value={areaQuery} onChange={e => setAreaQuery(e.target.value)}
+                aria-label="Find an area by name"
+                placeholder="Type to find it — e.g. bus, choir, giving, band"
+                className="w-full p-2 mb-1 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" />
+              <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={area} onChange={e => setArea(e.target.value)}
+                size={areaQuery.trim() ? 8 : undefined}>
+                {areaGroups.map(grp => (
                   <optgroup key={grp.group} label={grp.group}>
                     {grp.items.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
                   </optgroup>
                 ))}
               </select>
+              {areaQuery.trim() && (
+                <p className="mt-1 text-[0.625rem] text-[#5A5751]" aria-live="polite">
+                  {areaMatches === 0
+                    ? 'Nothing matches that — clear the search, or just describe it below and we\u2019ll route it.'
+                    : `${areaMatches} match${areaMatches === 1 ? '' : 'es'} \u00b7 pick one, or clear the search to see everything.`}
+                </p>
+              )}
             </div>
 
             <div>

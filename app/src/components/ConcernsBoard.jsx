@@ -23,6 +23,7 @@ import {
   daysLate, orderConcerns, composeConcerns,
 } from '../lib/concerns.js';
 import { deriveDataConcerns } from '../lib/derive-concerns.js';
+import { clusterFeedback, summarizeClusters } from '../lib/feedback-clusters.js';
 
 // Auto-triage severity chip styling — reuses the board's themeable palette (no
 // new color, so the per-theme contrast guard keeps holding). Critical is a
@@ -174,6 +175,62 @@ function ConcernRow({ c, isLast, canEdit, onUpdate, onDelete }) {
   );
 }
 
+
+// -----------------------------------------------------------------------------
+// MostReported — the LOW-HANGING FRUIT strip (Darrell, 2026-09-11, demonstrating
+// the app to the COLG leadership): "it may be ten people saying the same thing.
+// There may be twenty people saying the exact same issue. So when we fix that
+// issue... that shows us our low hanging fruit."
+//
+// The board below lists every concern one card at a time, which is right for
+// working a single item and wrong for seeing WHAT THE ROOM IS SAYING. This strip
+// sits above it and answers that instead: same complaint, however it was worded,
+// collapsed into one line with the number of PEOPLE behind it, ordered so the
+// biggest fix-once-clear-many is first and a small-but-severe issue still cuts
+// the line (lib/feedback-clusters). Only repeats are shown — a list where every
+// row says "1" is the pile this strip exists to replace.
+// -----------------------------------------------------------------------------
+function MostReported({ feedback }) {
+  const clusters = useMemo(() => clusterFeedback(feedback), [feedback]);
+  const summary = useMemo(() => summarizeClusters(clusters), [clusters]);
+  const repeats = clusters.filter((c) => c.count > 1).slice(0, 6);
+  if (repeats.length === 0) return null;
+
+  return (
+    <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
+      <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">◎ Most reported — fix these first</div>
+      <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+        The same thing, said by more than one person — counted once instead of answered fifty times. Order is people-behind-it weighted by how bad it is, so a serious issue two people hit still comes before a small one twenty people mention.
+      </p>
+      <div className="text-[0.625rem] uppercase tracking-wider font-semibold mt-2 text-[#5A5751]">
+        {summary.total} notes · {summary.issues} distinct issues · {summary.duplicateRate}% were a repeat of something already said
+      </div>
+      <ol className="mt-3 divide-y divide-[#E8E4DC] border-t border-[#E8E4DC]">
+        {repeats.map((c) => (
+          <li key={`${c.area}::${c.signature}`} className="py-2 flex items-start gap-3">
+            <span className="shrink-0 mt-0.5 inline-flex items-center justify-center min-w-[2.25rem] h-7 px-1.5 bg-[#1A1815] text-white text-xs font-semibold tabular-nums"
+              aria-label={`${c.count} people reported this`}>
+              {c.count}
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{c.label}</span>
+              <span className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-0.5">
+                {c.area}
+                {c.reports > c.count ? ` · ${c.reports} notes` : ''}
+                {' · '}
+                <span className={c.severity === 'critical' || c.severity === 'high' ? 'text-[#B85838]' : ''}>{c.severityLabel}</span>
+              </span>
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+        Every one of these is still its own card on the board below — this is the reading order, not a second list to keep.
+      </p>
+    </section>
+  );
+}
+
 export function ConcernsBoard({ concerns = [], feedback = [], transactions = [], rentals = [], debts = [], addConcern = null, updateConcern = null, deleteConcern = null, isGovernor = false, currentUserId = null }) {
   const [tab, setTab] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -287,6 +344,8 @@ export function ConcernsBoard({ concerns = [], feedback = [], transactions = [],
           </div>
         )}
       </section>
+
+      <MostReported feedback={feedback} />
 
       {/* Status sub-tabs — Past Due leads when anything slipped */}
       <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Concern status">

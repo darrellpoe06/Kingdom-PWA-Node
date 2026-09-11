@@ -67,13 +67,30 @@ export function organizeCourses(courses, sortKey = 'authored') {
 // Flatten every mounted course's live schedule into one searchable index.
 // Each entry carries what the results list renders and what search matches:
 // course identity, lesson identity, and a lowercase haystack of title +
+// unitNounOf — the singular noun for a course's unit, from either shape.
+// Exported so the fix is testable on its own and can never silently regress to
+// String(anObject).
+export function unitNounOf(unit) {
+  if (unit && typeof unit === 'object') {
+    return String(unit.noun || unit.cap || 'week');
+  }
+  return String(unit || 'week');
+}
+
 // big idea + anchor ref/theme + tags.
 export function buildLessonIndex(courses) {
   const list = Array.isArray(courses) ? courses.filter(Boolean) : [];
   const out = [];
   for (const c of list) {
     const courseTitle = String(c.meta?.title || c.key || '');
-    const unitNoun = String(c.meta?.unit || 'week');
+    // A course's `unit` comes in TWO real shapes: a plain noun ('week'), and the
+    // richer descriptor the Deep Processing courses carry
+    // ({ noun: 'pattern', cap: 'Pattern', … } — eternal-algorithms-course.js).
+    // String()-ing the object produced "[object Object] 1 · Deuteronomy 30:19"
+    // on every one of those rows — and they are the MAJORITY of the shelf
+    // (six Deep Processing courses, ~149 of 169 lessons). Caught 2026-09-11 in
+    // the rendered text of a Learn render test, not by reading the code.
+    const unitNoun = unitNounOf(c.meta?.unit);
     for (const m of (c.schedule || [])) {
       if (!m || !m.id) continue;
       const title = String(m.title || '');

@@ -102,25 +102,78 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let container, root;
 async function mount(el) { container = document.createElement('div'); document.body.appendChild(container); await act(async () => { root = createRoot(container); root.render(el); }); }
 afterEach(async () => { if (root) await act(async () => root.unmount()); if (container) container.remove(); root = null; container = null; sent.saves.length = 0; sent.reviews.length = 0; sent.invites.length = 0; sent.rosterUpserts.length = 0; sent.launch.length = 0; sent.roles.length = 0; sent.spaceInvites.length = 0; sent.patches.length = 0; sent.invitePatches.length = 0; openStatus = 'draft'; roleState = { instanceId: 'i1', instanceSlug: 'poe-family', instanceType: 'family', role: 'admin', loaded: true }; packetStatus = null; window.history.replaceState(null, '', '/'); });
-// Six microtask ticks is not enough under a loaded full-suite run: this file
-// went red twice on 2026-09-11, at two DIFFERENT call sites, because a panel
-// had not rendered when the next click looked for it. The mocked sync seams
-// resolve promises AND the component schedules work behind them, so settling
-// has to drain macrotasks too, not just the microtask queue. One helper, so
-// every call site is fixed rather than the one that happened to fail.
-const settle = () => act(async () => {
+// WAIT FOR THE THING YOU NEED — not for a tick count, and not for stillness.
+//
+// Four failures of one shape on this file, each "fixed" by a bigger guess:
+//   6 microtask ticks            -> red under a loaded full-suite run
+//   20 ticks + a macrotask turn  -> red at a third call site
+//   flush until the DOM is stable twice -> red again (CI + local run 3)
+//
+// The last one is the instructive failure, because it explains all of them. A
+// DOM that is IDENTICAL across two flushes does not mean the component finished
+// — it equally means nothing has resolved YET. Stillness before the first
+// response looks exactly like stillness after the last one, so the loop exits
+// early and the next query runs against a panel that was never going to be
+// there at that instant.
+//
+// So stop inferring readiness and wait for the actual condition: poll for the
+// ELEMENT, flushing between attempts, until it exists or a deadline passes. A
+// panel that renders in 10ms costs one pass; one that takes 3s under load is
+// waited for; one that never comes still FAILS, with the same named message,
+// instead of hanging. There is nothing left to tune because nothing is guessed.
+const flush = () => act(async () => {
   for (let i = 0; i < 20; i += 1) await Promise.resolve();
   await new Promise((r) => { setTimeout(r, 0); });
   for (let i = 0; i < 20; i += 1) await Promise.resolve();
 });
-// A click target that has not rendered yet used to surface as a cryptic
-// "Cannot read properties of undefined (reading 'dispatchEvent')". Under a
-// loaded full-suite run that happens; name it instead (seen 2026-09-11).
-const click = (el) => { expect(el, 'click target not found — did the panel render?').toBeTruthy(); return act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }); };
+// waitFor — poll for a THING. The right tool when there is something to look
+// for (a button, a panel): stillness can mean "not started", but a found
+// element means found.
+const waitFor = async (get, timeoutMs = 5000) => {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const el = get();
+    if (el) return el;
+    if (Date.now() > deadline) return null;
+    await flush();
+  }
+};
+// waitForSome — the same, for a LIST. Several assertions read a whole tablist
+// straight out of the DOM and compare it; an empty list is the un-rendered
+// state, not a real answer, so wait until something is there.
+const waitForSome = async (getAll, timeoutMs = 5000) => {
+  const found = await waitFor(() => { const xs = getAll(); return xs && xs.length ? xs : null; }, timeoutMs);
+  return found || [];
+};
+// settle — wait until the render STOPS, for the steps that then assert on TEXT
+// with no element to wait on.
+//
+// This was briefly reduced to a single flush() when click() gained polling, and
+// that was a REGRESSION I introduced: click got stronger, settle got weaker, and
+// the assertions that read the DOM off settle alone started seeing an empty
+// tablist under CI load (2026-09-11, runs on 3fd6146 and 2b36d78). Quiescence is
+// not sufficient on its own — that was the earlier lesson — but paired with
+// polling for the specific thing, it is the right tool for "let the work land".
+const settle = async (timeoutMs = 5000) => {
+  const deadline = Date.now() + timeoutMs;
+  let prev = null;
+  for (;;) {
+    await flush();
+    const now = container ? container.innerHTML : '';
+    if (now === prev || Date.now() > deadline) return;
+    prev = now;
+  }
+};
+// click takes a GETTER (preferred — it can be retried) or an element.
+const click = async (target) => {
+  const el = typeof target === 'function' ? await waitFor(target) : target;
+  expect(el, 'click target not found — did the panel render?').toBeTruthy();
+  return act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+};
 const byText = (re, tag = 'button') => Array.from(container.querySelectorAll(tag)).find((b) => re.test(b.textContent));
 // A second-row area chip (Darrell 2026-09-10: "another tab slider for each section").
 const areaChip = (strip, re) => Array.from(container.querySelectorAll(`[role="tablist"][aria-label="${strip}"] [role="tab"]`)).find((t) => re.test(t.textContent));
-const area = async (strip, re) => { const t = areaChip(strip, re); expect(t, `${strip} → ${re}`).toBeTruthy(); await click(t); await settle(); };
+const area = async (strip, re) => { const t = await waitFor(() => areaChip(strip, re)); expect(t, `${strip} → ${re}`).toBeTruthy(); await click(t); await settle(); };
 
 describe('TlcOnboardingForm — the colleague', () => {
   it('opens the packet, shows every section as a sliding tab, and the progress line', async () => {
@@ -142,8 +195,8 @@ describe('TlcOnboardingForm — the colleague', () => {
   it('a submit with an unsigned agreement is refused on the device — nothing is sent', async () => {
     await mount(createElement(TlcOnboardingForm, { token: 'good' }));
     await settle();
-    await click(byText(/Review & submit/));
-    await click(byText(/^Submit to/));
+    await click(() => byText(/Review & submit/));
+    await click(() => byText(/^Submit to/));
     await settle();
     expect(sent.saves).toHaveLength(0);
     expect(container.textContent).toMatch(/Still needed/);
@@ -152,8 +205,8 @@ describe('TlcOnboardingForm — the colleague', () => {
   it('Save draft goes through the one write with the packet and no submit flag', async () => {
     await mount(createElement(TlcOnboardingForm, { token: 'good' }));
     await settle();
-    await click(byText(/Review & submit/));
-    await click(byText(/Save draft/));
+    await click(() => byText(/Review & submit/));
+    await click(() => byText(/Save draft/));
     await settle();
     expect(sent.saves).toHaveLength(1);
     expect(sent.saves[0].packetId).toBe('p1');
@@ -190,7 +243,7 @@ describe('TlcOnboarding — Christina', () => {
     expect(Array.from(container.querySelectorAll('[role="tablist"][aria-label="Onboarding areas"] [role="tab"]')).map((t) => t.textContent.trim())).toEqual(['Invite', 'Packets · 1', 'Roster', 'Jobs', 'Applicants', 'Hiring report', 'Form & documents']);
     const input = container.querySelector('input[type="email"]');
     await act(async () => { const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; setter.call(input, 'new2@example.com'); input.dispatchEvent(new Event('input', { bubbles: true })); });
-    await click(byText(/Create invite link/));
+    await click(() => byText(/Create invite link/));
     await settle();
     expect(sent.invites[0].email).toBe('new2@example.com');
     expect(container.textContent).toContain('/tlc/app/?tlc=1&onboard=tok9');
@@ -206,16 +259,16 @@ describe('TlcOnboarding — Christina', () => {
     await mount(createElement(TlcOnboarding));
     await settle();
     await area('Onboarding areas', /^Packets/);
-    await click(byText(/^Open$/));
+    await click(() => byText(/^Open$/));
     await settle();
     expect(container.textContent).toMatch(/Their card, as clients will see it/);
     expect(container.querySelector('#rc-name').value).toBe('Ann Lee, LCSW');
     expect(container.querySelector('#rc-spec').value).toBe('Trauma-Informed Care');
     expect(container.textContent).not.toMatch(/071102568/);
-    await click(byText(/Reveal banking details/));
+    await click(() => byText(/Reveal banking details/));
     await settle();
     expect(container.textContent).toMatch(/071102568/);
-    await click(byText(/Approve · add to roster/));
+    await click(() => byText(/Approve · add to roster/));
     await settle();
     expect(sent.reviews).toHaveLength(1);
     expect(sent.reviews[0].decision).toBe('approve');
@@ -227,13 +280,13 @@ describe('TlcOnboarding — Christina', () => {
     await mount(createElement(TlcOnboarding));
     await settle();
     await area('Onboarding areas', /^Packets/);
-    await click(byText(/^Open$/));
+    await click(() => byText(/^Open$/));
     await settle();
     const ret = byText(/Return with note/);
     expect(ret.disabled).toBe(true);
     const ta = container.querySelector('#review-note');
     await act(async () => { const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set; setter.call(ta, 'Please attach your W-9.'); ta.dispatchEvent(new Event('input', { bubbles: true })); });
-    await click(byText(/Return with note/));
+    await click(() => byText(/Return with note/));
     await settle();
     expect(sent.reviews[0]).toMatchObject({ decision: 'return', note: 'Please attach your W-9.', card: null });
   });
@@ -241,15 +294,15 @@ describe('TlcOnboarding — Christina', () => {
     await mount(createElement(TlcOnboarding));
     await settle();
     await area('Onboarding areas', /^Packets/);
-    await click(byText(/^Open$/));
+    await click(() => byText(/^Open$/));
     await settle();
     expect(container.textContent).toContain('Fill or correct the cells');
-    await click(byText(/^About you/));
+    await click(() => byText(/^About you/));
     const el = container.querySelector('#c-phone');
     await act(async () => { Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(el, '309-555-0100'); el.dispatchEvent(new Event('input', { bubbles: true })); });
     const note = container.querySelector('#cells-note');
     await act(async () => { Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(note, 'she called'); note.dispatchEvent(new Event('input', { bubbles: true })); });
-    await click(byText(/^Save 1 cell$/));
+    await click(() => byText(/^Save 1 cell$/));
     await settle();
     expect(sent.patches).toEqual([{ id: 'p1', patch: { phone: '309-555-0100' }, note: 'she called' }]);
     expect(container.textContent).toContain('Saved 1 cell.');
@@ -259,18 +312,18 @@ describe('TlcOnboarding — Christina', () => {
     await settle();
     expect(container.textContent).toContain('Held Person');
     expect(container.textContent).toContain('answers on file');
-    await click(byText(/^Answers on file$/));
+    await click(() => byText(/^Answers on file$/));
     await settle();
     expect(container.textContent).toContain('Invited · not yet opened');
     expect(container.textContent).toContain('on file behind the wall');
     expect(container.textContent).not.toMatch(/\d{9}/);
-    await click(byText(/^License & credentials/));
+    await click(() => byText(/^License & credentials/));
     const el = container.querySelector('#c-npiNumber');
     await act(async () => { Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(el, '1234567893'); el.dispatchEvent(new Event('input', { bubbles: true })); });
-    await click(byText(/^Save 1 cell$/));
+    await click(() => byText(/^Save 1 cell$/));
     await settle();
     expect(sent.invitePatches).toEqual([{ id: 'inv3', patch: { npiNumber: '1234567893' }, note: '' }]);
-    await click(byText(/Back to list/));
+    await click(() => byText(/Back to list/));
     expect(container.textContent).toContain('Links out, not yet opened');
   });
 });
@@ -304,7 +357,7 @@ describe('a client account sees only what a client needs (DR-0350; Darrell: "whe
       session = { user: { email: 'newclient@example.com' } };
       await mount(createElement(TlcPublicDoor));
       await settle();
-      const tabs = Array.from(container.querySelectorAll('[role="tablist"][aria-label="TLC app sections"] [role="tab"]')).map((t) => t.textContent.trim());
+      const tabs = (await waitForSome(() => Array.from(container.querySelectorAll('[role="tablist"][aria-label="TLC app sections"] [role="tab"]')))).map((t) => t.textContent.trim());
       expect(tabs).toEqual(['Find your therapist', 'Mental skills', 'Join the team']);
       for (const bad of ['Inquiries', 'Client Growth', 'Revenue', 'Team', 'Assistant', 'Onboarding', 'Training']) expect(tabs).not.toContain(bad);
       for (const bad of ['Pre-Intake Inquiry', 'Independent Contractor Handbook', 'Launch board', 'Governance']) expect(container.textContent).not.toContain(bad);
@@ -317,7 +370,7 @@ describe('the TLC app carries the office workflows on ONE slider (DR-0344)', () 
     session = { user: { email: 'christina@tlctherapysolutions.com' } };
     await mount(createElement(TlcPublicDoor));
     await settle();
-    const tabs = Array.from(container.querySelectorAll('[role="tab"]')).map((t) => t.textContent.trim());
+    const tabs = (await waitForSome(() => Array.from(container.querySelectorAll('[role="tab"]')))).map((t) => t.textContent.trim());
     for (const t of ['Find your therapist', 'Inquiries', 'Client Growth', 'Revenue', 'Training', 'Team', 'Assistant', 'Onboarding']) expect(tabs, `tab ${t}`).toContain(t);
     expect(container.querySelectorAll('[role="tablist"]').length).toBe(1);
     // USER PHOTO (Darrell 2026-09-10): the signed-in bar wears the person's
@@ -326,7 +379,7 @@ describe('the TLC app carries the office workflows on ONE slider (DR-0344)', () 
     expect(me, 'the avatar button on the bar').toBeTruthy();
     expect(me.textContent).toContain('+ photo');
     expect(Array.from(container.querySelectorAll('header button')).some((b) => /^Log out$/.test(b.textContent.trim()))).toBe(true);
-    await click(byText(/^Inquiries$/, '[role="tab"]'));
+    await click(() => byText(/^Inquiries$/, '[role="tab"]'));
     await settle();
     expect(container.textContent).toMatch(/Pre-Intake Inquiry Tracking/);
     expect(container.textContent).toContain('Maya R.');
@@ -337,7 +390,7 @@ describe('the TLC app carries the office workflows on ONE slider (DR-0344)', () 
     roleState = { ...roleState, role: null, instanceId: null };
     await mount(createElement(TlcPublicDoor));
     await settle();
-    const tabs = Array.from(container.querySelectorAll('[role="tab"]')).map((t) => t.textContent.trim());
+    const tabs = (await waitForSome(() => Array.from(container.querySelectorAll('[role="tab"]')))).map((t) => t.textContent.trim());
     expect(tabs).toEqual(['Find your therapist', 'Mental skills', 'Join the team']);
     roleState = { ...roleState, role: 'admin', instanceId: 'i1' };
     session = null;
@@ -349,7 +402,7 @@ describe('the office documents live on the Team tab, in the app (DR-0344 — "wh
     session = { user: { email: 'christina@tlctherapysolutions.com' } };
     await mount(createElement(TlcPublicDoor));
     await settle();
-    await click(byText(/^Team$/, '[role="tab"]'));
+    await click(() => byText(/^Team$/, '[role="tab"]'));
     await settle();
     // Team's areas, side by side: Documents · Launch board · Who we are.
     expect(Array.from(container.querySelectorAll('[role="tablist"][aria-label="Team areas"] [role="tab"]')).map((t) => t.textContent.trim())).toEqual(['Documents', 'Launch board', 'Who we are', 'Governance']);
@@ -360,14 +413,14 @@ describe('the office documents live on the Team tab, in the app (DR-0344 — "wh
     expect(text).toContain('all in the app');
     expect(Array.from(container.querySelectorAll('a[href]')).filter((a) => /google\.com|drive/i.test(a.href))).toHaveLength(0);
     // the handbook opens at section 1, then 2 (Darrell: "where is number 1?")
-    await click(byText(/Independent Contractor Handbook/, 'button'));
+    await click(() => byText(/Independent Contractor Handbook/, 'button'));
     await settle();
     const hb = container.textContent;
     expect(hb.indexOf('1. Introduction')).toBeGreaterThan(-1);
     expect(hb.indexOf('1. Introduction')).toBeLessThan(hb.indexOf('2. Professional Standards'));
     expect(hb).toContain('Welcome to TLC Therapy Solutions');
     // the contractor agreement opens in place: its first section reads here
-    await click(byText(/Independent Contractor Agreement/, 'button'));
+    await click(() => byText(/Independent Contractor Agreement/, 'button'));
     await settle();
     expect(container.textContent).toMatch(/1\. /);
     expect(container.textContent).toContain('TLC Therapy Solutions, with a principal place of business');
@@ -385,11 +438,11 @@ describe('the office documents live on the Team tab, in the app (DR-0344 — "wh
     session = { user: { email: 'christina@tlctherapysolutions.com' } };
     await mount(createElement(TlcPublicDoor));
     await settle();
-    await click(byText(/^Team$/, '[role="tab"]'));
+    await click(() => byText(/^Team$/, '[role="tab"]'));
     await settle();
-    await click(byText(/Training Notes for Therapists-in-Training/, 'button'));
+    await click(() => byText(/Training Notes for Therapists-in-Training/, 'button'));
     await settle();
-    await click(byText(/^Open Training$/, 'button'));
+    await click(() => byText(/^Open Training$/, 'button'));
     await settle();
     const selected = Array.from(container.querySelectorAll('[role="tablist"][aria-label="TLC app sections"] [role="tab"][aria-selected="true"]')).map((t) => t.textContent.trim());
     expect(selected).toEqual(['Training']);
@@ -403,7 +456,7 @@ describe('the office documents live on the Team tab, in the app (DR-0344 — "wh
     packetStatus = 'submitted';
     await mount(createElement(TlcPublicDoor));
     await settle();
-    await click(byText(/^Team$/, '[role="tab"]'));
+    await click(() => byText(/^Team$/, '[role="tab"]'));
     await settle();
     expect(container.textContent).toContain('Independent Contractor Handbook');
     expect(areaChip('Team areas', /Launch board/)).toBeUndefined();
@@ -420,26 +473,26 @@ describe('the tabs that work together, end to end (Darrell: "Each tab that shoul
     session = { user: { email: 'christina@tlctherapysolutions.com' } };
     await mount(createElement(TlcPublicDoor));
     await settle();
-    await click(byText(/^Team$/, '[role="tab"]'));
+    await click(() => byText(/^Team$/, '[role="tab"]'));
     await settle();
-    await click(byText(/Therapist Onboarding \| Hiring Form/, 'button'));
+    await click(() => byText(/Therapist Onboarding \| Hiring Form/, 'button'));
     await settle();
-    await click(byText(/^Open Onboarding$/, 'button'));
+    await click(() => byText(/^Open Onboarding$/, 'button'));
     await settle();
     const selected = () => Array.from(container.querySelectorAll('[role="tablist"][aria-label="TLC app sections"] [role="tab"][aria-selected="true"]')).map((t) => t.textContent.trim());
     expect(selected()).toEqual(['Onboarding']);
     expect(container.textContent).toContain('Invite a new colleague');
     await area('Onboarding areas', /^Packets/);
-    await click(byText(/^Open$/));
+    await click(() => byText(/^Open$/));
     await settle();
-    await click(byText(/Approve · add to roster/));
+    await click(() => byText(/Approve · add to roster/));
     await settle();
     expect(sent.reviews[0].decision).toBe('approve');
-    await click(byText(/Back to list/));
+    await click(() => byText(/Back to list/));
     await settle();
     await area('Onboarding areas', /^Roster$/);
     expect(container.textContent).toContain('Brand New, LSW');
-    await click(byText(/^Find your therapist$/, '[role="tab"]'));
+    await click(() => byText(/^Find your therapist$/, '[role="tab"]'));
     await settle();
     expect(selected()).toEqual(['Find your therapist']);
     expect(container.textContent).toContain('Brand New, LSW');
@@ -449,11 +502,11 @@ describe('the tabs that work together, end to end (Darrell: "Each tab that shoul
     session = { user: { email: 'christina@tlctherapysolutions.com' } };
     await mount(createElement(TlcPublicDoor));
     await settle();
-    await click(byText(/^Team$/, '[role="tab"]'));
+    await click(() => byText(/^Team$/, '[role="tab"]'));
     await settle();
-    await click(byText(/Training Notes for Therapists-in-Training/, 'button'));
+    await click(() => byText(/Training Notes for Therapists-in-Training/, 'button'));
     await settle();
-    await click(byText(/^Open Training$/, 'button'));
+    await click(() => byText(/^Open Training$/, 'button'));
     await settle();
     const lessons = areaChip('Training areas', /^Lessons$/);
     expect(lessons.getAttribute('aria-selected')).toBe('true');
@@ -467,7 +520,7 @@ describe('owners and managers govern from the same app (DR-0346)', () => {
     session = { user: { email: 'christina@tlctherapysolutions.com', id: 'u-me' } };
     await mount(createElement(TlcPublicDoor));
     await settle();
-    await click(byText(/^Team$/, '[role="tab"]'));
+    await click(() => byText(/^Team$/, '[role="tab"]'));
     await settle();
     expect(Array.from(container.querySelectorAll('[role="tablist"][aria-label="Team areas"] [role="tab"]')).map((t) => t.textContent.trim())).toEqual(['Documents', 'Launch board', 'Who we are', 'Governance']);
     await area('Team areas', /^Governance$/);
@@ -495,7 +548,7 @@ describe('owners and managers govern from the same app (DR-0346)', () => {
     await act(async () => { const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; setter.call(email, 'helper@example.com'); email.dispatchEvent(new Event('input', { bubbles: true })); });
     const seat = container.querySelector('select[aria-label="Seat for the invite"]');
     await act(async () => { seat.value = 'assistant'; seat.dispatchEvent(new Event('change', { bubbles: true })); });
-    await click(byText(/^Create invite link$/));
+    await click(() => byText(/^Create invite link$/));
     await settle();
     expect(sent.spaceInvites).toEqual([{ instanceType: 'family', email: 'helper@example.com', role: 'assistant', instanceId: 'i1' }]);
     expect(container.textContent).toContain('/?join=tok-gov');
@@ -506,7 +559,7 @@ describe('owners and managers govern from the same app (DR-0346)', () => {
     roleState = { ...roleState, role: 'member' };
     await mount(createElement(TlcPublicDoor));
     await settle();
-    await click(byText(/^Team$/, '[role="tab"]'));
+    await click(() => byText(/^Team$/, '[role="tab"]'));
     await settle();
     expect(areaChip('Team areas', /Governance/)).toBeUndefined();
     roleState = { ...roleState, role: 'admin' };
