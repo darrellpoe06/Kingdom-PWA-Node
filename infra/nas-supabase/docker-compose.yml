@@ -91,6 +91,24 @@ services:
       GOTRUE_SMTP_PASS: ${SMTP_PASS}
       GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL}
       GOTRUE_MAILER_AUTOCONFIRM: ${MAILER_AUTOCONFIRM}
+      # GOOGLE SIGN-IN. The cutover's silent casualty: on hosted, Google was
+      # enabled in the dashboard, and a dashboard setting is not a file -- so
+      # it did not travel with the stack. Self-hosted GoTrue reads the provider
+      # from ITS OWN env, and this block did not exist, so every
+      # /sb/auth/v1/authorize?provider=google answered 400 "Unsupported
+      # provider: provider is not enabled" (measured live 2026-09-11, 11:58am,
+      # in front of the church -- the popup showed that raw JSON with no way
+      # back). Same shape as SMTP above: credential-gated, so an unset secret
+      # leaves the stack healthy and Google simply off, never a lockout.
+      GOTRUE_EXTERNAL_GOOGLE_ENABLED: ${GOOGLE_ENABLED}
+      GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOTRUE_EXTERNAL_GOOGLE_SECRET: ${GOOGLE_SECRET}
+      # The callback Google sends the browser back to MUST be the same-origin
+      # /sb door, NOT API_EXTERNAL_URL -- that is still loopback
+      # (http://127.0.0.1:8800), which Google would reject and which could
+      # never return the family's browser to poetech.us. Explicit beats
+      # derived here, so the loopback default stays safe for everything else.
+      GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9999/health || exit 1"]
       interval: 15s

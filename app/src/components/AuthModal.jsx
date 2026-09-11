@@ -18,16 +18,24 @@
 // popup/redirect error
 // degrades to a readable message, never a dead end.
 // =============================================================================
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Modal from './Modal.jsx';
 import PasswordAuth from './PasswordAuth.jsx';
 import { signInWithGoogle } from '../lib/supabase.js';
 import { signInWithGooglePopup } from '../lib/oauth-popup.js';
+import { primeAuthProviders, guardProviderCached, guardProvider, resetAuthProvidersCache } from '../lib/auth-providers.js';
 
 export default function AuthModal({ open, onClose, onSignedIn = null, mode = 'signup' }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const googleRef = useRef(null);
+
+  // Ask GoTrue which providers are live the moment the dialog opens, so the
+  // answer is already in hand when the member taps. Fire-and-forget on
+  // purpose: it must never delay the dialog, and its failure means "unknown",
+  // which proceeds. See lib/auth-providers.js for why this is not done in the
+  // click handler (the user gesture a popup needs).
+  useEffect(() => { if (open) primeAuthProviders(); }, [open]);
 
   const handleSignedIn = (session) => {
     if (onSignedIn) onSignedIn(session);
@@ -37,6 +45,21 @@ export default function AuthModal({ open, onClose, onSignedIn = null, mode = 'si
   const handleGoogle = async () => {
     setError('');
     setBusy(true);
+
+    // CHECK WHAT GoTrue SAID (2026-09-11). supabase-js builds the /authorize
+    // URL client-side and never errors, so without this the app cheerfully
+    // sends the browser to a dead endpoint — which on 2026-09-11 put GoTrue's
+    // raw 400 JSON in front of a church meeting with no way back. Read
+    // SYNCHRONOUSLY from the probe primed on open: awaiting here would spend
+    // the user gesture window.open needs. Not yet known means proceed, exactly
+    // as before — never a lockout for a flaky network.
+    const gate = guardProviderCached('google');
+    if (!gate.ok) {
+      setBusy(false);
+      setError(gate.message);
+      return;
+    }
+
     let res;
     try {
       res = await signInWithGooglePopup();
@@ -45,8 +68,7 @@ export default function AuthModal({ open, onClose, onSignedIn = null, mode = 'si
     }
     if (res && res.ok) { setBusy(false); handleSignedIn(null); return; }
     // Popup blocked / unsupported / failed to start → fall back to the classic
-    // full-page redirect so Google still works. (Cancelled = user closed it; just
-    // re-enable the button.)
+    // full-page redirect so Google still works.
     if (res && (res.blocked || res.unsupported || res.error)) {
       const fb = await signInWithGoogle();
       if (fb && fb.error) {
@@ -56,7 +78,15 @@ export default function AuthModal({ open, onClose, onSignedIn = null, mode = 'si
       // On a successful redirect start the page navigates away; nothing more to do.
       return;
     }
-    setBusy(false); // cancelled
+
+    // Cancelled: the popup closed with no session. Usually that IS a cancel —
+    // but it is also what a dead provider looks like when the pre-flight probe
+    // could not reach GoTrue. Ask once more with a fresh cache so a real
+    // outage explains itself instead of leaving the dialog silent.
+    setBusy(false);
+    resetAuthProvidersCache();
+    const recheck = await guardProvider('google');
+    if (!recheck.ok) setError(recheck.message);
   };
 
   return (

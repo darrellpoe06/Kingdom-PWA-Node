@@ -74,6 +74,51 @@ set_kv SMTP_USER ""
 set_kv SMTP_PASS ""
 set_kv SMTP_ADMIN_EMAIL "darrellpoe06@gmail.com"
 set_kv MAILER_AUTOCONFIRM "true"
+# GOOGLE SIGN-IN (2026-09-11). Seeded EMPTY and disabled on purpose: this is
+# the SMTP pattern, not a new dependency. GOOGLE_ENABLED stays "false" until
+# the client id + secret are in this file, so a stack that has never been told
+# about Google comes up healthy with Google simply off -- exactly as it has
+# been -- and switching it on is a two-value edit plus a restart, no deploy.
+# The redirect URI is the same-origin /sb door the family's browsers already
+# ride; it is NOT derived from API_EXTERNAL_URL, which is still loopback.
+set_kv GOOGLE_ENABLED "false"
+set_kv GOOGLE_CLIENT_ID ""
+set_kv GOOGLE_SECRET ""
+set_kv GOOGLE_REDIRECT_URI "https://poetech.us/sb/auth/v1/callback"
+
+# The allow-list had to converge, and set_kv cannot do it -- it refuses to
+# touch a key that already exists, which is right for an operator's edit and
+# wrong for a list that is missing a member. The two seeded entries name the
+# ROOT and /poetech-app/ only, so a Google return to any other route (the
+# church lives at /love-corner) fails the check and GoTrue silently bounces
+# the browser to SITE_URL instead -- which for the popup flow also drops the
+# ?oauth_popup=1 marker the handshake reads, so sign-in would "work" and the
+# app would never notice. One glob covers every present and future route.
+# Append-only: an operator's own entries are kept, never rewritten.
+add_csv_kv() {
+  key="$1"; member="$2"
+  cur=$(grep "^${key}=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2-)
+  if [ -z "$cur" ]; then
+    printf '%s=%s\n' "$key" "$member" >> "$ENV_FILE"
+    return 0
+  fi
+  case ",$cur," in
+    *",$member,"*) return 0 ;;   # already a member
+  esac
+  python3 - "$ENV_FILE" "$key" "$cur,$member" <<'PYEOF'
+import io, sys
+path, key, val = sys.argv[1], sys.argv[2], sys.argv[3]
+lines = io.open(path, encoding='utf-8').read().splitlines(True)
+out = []
+for ln in lines:
+    if ln.startswith(key + '='):
+        out.append('%s=%s\n' % (key, val))
+    else:
+        out.append(ln)
+io.open(path, 'w', encoding='utf-8').writelines(out)
+PYEOF
+}
+add_csv_kv ADDITIONAL_REDIRECT_URLS "https://poetech.us/**"
 # Realtime encrypts its tenant secrets with AES-128 and requires DB_ENC_KEY to
 # be EXACTLY 16 bytes. The first standup wired the 32-char VAULT_ENC_KEY into
 # it and realtime crashed seeding with "Bad key size" (285 restarts, measured
