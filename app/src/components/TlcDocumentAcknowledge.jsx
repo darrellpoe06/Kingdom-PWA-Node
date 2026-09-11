@@ -45,15 +45,21 @@ export function acknowledgmentState(record, version) {
  * @param {string|null} props.packetId  the colleague's own packet; null = nothing to show
  * @param {object|null} props.record  packet.acknowledgments[docKey]
  * @param {(view: object) => void} [props.onAcknowledged]  the packet view after the write
+ * @param {(args: {signature, docVersion, attestation, agreedAt}) => Promise<object>} [props.onSign]
+ *        another product's writer. PoeTech's household covenant signs through
+ *        household_record_acknowledge, not through a TLC packet; the control,
+ *        the sentence, the stamp and the green check are identical (DR-0357).
+ * @param {string|null} [props.version]  the document version to pin, when the
+ *        caller resolves its own documents rather than TLC's.
  */
-export default function TlcDocumentAcknowledge({ docKey, docName, live = null, packetId = null, record = null, onAcknowledged = null }) {
+export default function TlcDocumentAcknowledge({ docKey, docName, live = null, packetId = null, record = null, onAcknowledged = null, onSign = null, version: versionIn = null }) {
   const [checked, setChecked] = useState(false);
   const [checkedAt, setCheckedAt] = useState('');
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  if (!packetId) return null;
-  const version = documentVersion(docKey, live) || '';
+  if (!packetId && !onSign) return null;
+  const version = versionIn != null ? String(versionIn) : (documentVersion(docKey, live) || '');
   const st = acknowledgmentState(record, version);
   const attestation = acknowledgmentAttestation(docName);
   const id = `ack-${docKey}`;
@@ -61,7 +67,9 @@ export default function TlcDocumentAcknowledge({ docKey, docName, live = null, p
   const sign = async () => {
     if (!checked || !name.trim() || busy) return;
     setBusy(true); setError('');
-    const res = await acknowledgeDocument(packetId, docKey, { signature: name, docVersion: version, attestation, agreedAt: checkedAt });
+    const res = onSign
+      ? await onSign({ signature: name, docVersion: version, attestation, agreedAt: checkedAt })
+      : await acknowledgeDocument(packetId, docKey, { signature: name, docVersion: version, attestation, agreedAt: checkedAt });
     setBusy(false);
     if (!res.ok) { setError(res.message || 'That could not be recorded.'); return; }
     setChecked(false); setCheckedAt(''); setName('');

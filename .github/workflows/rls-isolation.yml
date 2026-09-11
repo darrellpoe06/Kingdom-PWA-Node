@@ -70,6 +70,14 @@ jobs:
             pre: "DROP FUNCTION IF EXISTS public.public_vacancies();"
             migrations: "0075-delegated-property-management.sql 0150-poe-properties-app-invite-claim-and-household.sql 0151-invite-by-phone-and-linked-identity.sql 0152-vacancies-and-no-account-applications.sql 0153-property-timeline-photos.sql 0154-photo-captions-editable-and-archivable.sql 0155-what-a-door-is-offered-as.sql 0156-our-own-home-is-not-a-rental-door.sql 0157-the-landlord-orders-his-own-shelf.sql 0158-the-address-is-shown-when-he-says-so.sql 0159-nothing-a-landlord-types-lives-only-on-his-phone.sql 0160-a-door-says-what-it-is-unit-room-or-bed.sql 0161-the-landlord-orders-a-doors-pictures.sql"
             smokes: "0150-poe-properties-isolation-smoke.sql 0152-public-vacancy-smoke.sql"
+          # ONE FORMS ENGINE FOR EVERY PRODUCT (DR-0357): the household's own
+          # record and shelf, and the product-keyed forms both PoeTech and Poe
+          # Properties edit. Nothing here names an instance_type — the wall is
+          # RLS on instance_id (DR-0060), which is what "each has their own
+          # database" means in this system.
+          - feature: product-forms
+            migrations: "0200-one-forms-engine-for-every-product-the-office-of-each-instance-edits-its-own-questions-and-documents.sql 0201-the-household-keeps-its-own-record-and-its-own-shelf-of-documents.sql"
+            smokes: "0200-product-forms-smoke.sql 0201-household-and-vault-smoke.sql"
           - feature: choir-claim
             migrations: "0110-choir-member-self-claim.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql"
             smokes: "0110-choir-claim-smoke.sql"
