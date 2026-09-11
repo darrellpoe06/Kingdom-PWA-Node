@@ -62,6 +62,23 @@ export const COLG_DEFAULT_CHURCH = {
     give: COLG_SITE,
     about: COLG_SITE,
   },
+  // WHERE THE GIVING PAGE LIVES ON THE SITE.
+  //
+  // Darrell, 2026-09-11, opening this very button in front of the COLG
+  // leadership and landing on the homepage: "And, actually, this should go
+  // straight to the pay page... is this the pay page? No. That's not the pay
+  // page. So we wanted to go to the actual Menu, and then Tithes and Offering
+  // guest page. This is the link we need."
+  //
+  // The exact URL is not in this record yet — he had it on his screen, not in
+  // the transcript, and this repo's binding rule is that we NEVER invent a
+  // giving URL (lib/giving.js). So what ships is the part that IS verified: his
+  // own words for the two taps that get there. Until the office hands over the
+  // deep-link, the app stops dropping someone on a homepage with no directions
+  // and tells them exactly where to go. When the URL arrives it goes in
+  // `links.give` above and the hint retires itself (resolveGiveDestination
+  // suppresses it the moment a real deep-link is set).
+  givingPageHint: 'On the church website: Menu → Tithes and Offering',
   tagline: 'Reviving Faith · Restoring Hope · Rebuilding Communities',
   // Announced events — the church's own published announcements (identity-class
   // data like the service times; announced from the pulpit in the 2026-07

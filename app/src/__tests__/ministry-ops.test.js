@@ -18,7 +18,10 @@ describe('access + labels', () => {
   });
   it('label maps resolve known + pass unknown', () => {
     expect(opsStatusLabel('in-progress')).toBe('In progress');
-    expect(opsMinistryLabel('bus')).toBe('Bus / Van');
+    // The label now comes from the one shared registry (lib/church-ministries),
+    // which names the ministry the way a member would say it.
+    expect(opsMinistryLabel('bus')).toBe('Bus / Van Ministry');
+    expect(opsMinistryLabel('band')).toBe('Church Band');
     expect(opsMinistryLabel('mystery')).toBe('mystery');
     expect(OPS_STATUS.length).toBeGreaterThanOrEqual(4);
     expect(OPS_MINISTRIES.some(([k]) => k === 'general')).toBe(true);
@@ -86,7 +89,7 @@ describe('memberDigest — the paid-content boundary (never leaks private ops)',
   it('groups by ministry, newest first within a ministry, with labels + done count', () => {
     const digest = memberDigest(items);
     const bus = digest.find((g) => g.ministry === 'bus');
-    expect(bus.ministryLabel).toBe('Bus / Van');
+    expect(bus.ministryLabel).toBe('Bus / Van Ministry');
     expect(bus.items.map((i) => i.id)).toEqual(['pub2', 'pub1']); // newer created_at first
     expect(bus.done).toBe(1);
   });

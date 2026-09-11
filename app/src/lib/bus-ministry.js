@@ -122,6 +122,135 @@ export function upcomingSundays(fromIso, count = 6) {
   for (let i = 0; i < count; i += 1) { out.push(s); s = addDays(s, 7); }
   return out;
 }
+
+// -----------------------------------------------------------------------------
+// SERVICE SLOTS — the bus runs on SUNDAY *AND* WEDNESDAY.
+// -----------------------------------------------------------------------------
+// Declared by Darrell 2026-09-11, with the COLG leadership looking at this very
+// surface: "You say which Sunday? We need to say Sunday and Wednesday." And
+// again, after a leader tapped into the ministry: "just clicked on bus ministry,
+// and it just showed me the Sunday sign... Sunday and Wednesday."
+//
+// The surface was built Sunday-only (`upcomingSundays` above, and a "Which
+// Sunday" picker), which quietly told a Wednesday rider the bus does not run for
+// them. The fix is not a second hardcoded day — it is to stop hardcoding the day
+// at all and read the church's OWN service record, which already carries the
+// truth (lib/default-church.js: Sunday Worship 11:00 AM; Bible Study Wednesday
+// 1:00 PM and 6:00 PM). Real data, named and traced (DR-0061 reality-trace);
+// every other congregation that sets its own service times gets its own slots
+// for free, with nothing here to edit.
+//
+// ARRIVE TIME is DERIVED, not invented. Deacon Anderson's declared Sunday pair
+// is arrive 9:45 for an 11:00 AM service — a 75-minute lead. That same lead is
+// offered as the DEFAULT for any other service and the coordinator can change it
+// on the row; we do not make up a pickup time for a service nobody has told us
+// about (DR-0076 — never fabricate; a default the human confirms is not a claim).
+// -----------------------------------------------------------------------------
+export const ARRIVE_LEAD_MINUTES = 75; // 9:45 arrive for an 11:00 AM service
+
+const DOW_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+export const dowIndex = (name) => DOW_NAMES.findIndex((d) => d.toLowerCase() === String(name || '').trim().toLowerCase());
+
+// '11:00 AM' | '11:00' -> minutes past midnight, or null when unparseable.
+function minutesOf(time) {
+  const m = /^(\d{1,2}):(\d{2})\s*(am|pm)?$/i.exec(String(time || '').trim());
+  if (!m) return null;
+  let h = Number(m[1]);
+  const min = Number(m[2]);
+  const mer = (m[3] || '').toLowerCase();
+  if (h > 23 || min > 59) return null;
+  if (mer === 'pm' && h < 12) h += 12;
+  if (mer === 'am' && h === 12) h = 0;
+  return h * 60 + min;
+}
+const hhmmOf = (mins) => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+
+// serviceSlots(church) — the weekly services the bus can be scheduled against,
+// read off the church's own record. Falls back to the Sunday the surface has
+// always had when a congregation carries no service list yet, so an instance
+// with no data is never left with an empty picker.
+export function serviceSlots(church) {
+  const services = (church && Array.isArray(church.services)) ? church.services : [];
+  const slots = services
+    .map((svc) => {
+      if (!svc) return null;
+      const dow = dowIndex(svc.day);
+      if (dow < 0) return null;
+      const startMins = minutesOf(svc.time);
+      return {
+        id: svc.id || `svc-${dow}-${String(svc.time || '').replace(/\W+/g, '')}`,
+        dow,
+        dayLabel: DOW_NAMES[dow],
+        time: svc.time || '',
+        label: svc.label || `${DOW_NAMES[dow]} service`,
+        // The default the coordinator sees pre-filled — overridable on the row.
+        arriveDefault: startMins == null ? DEFAULT_ARRIVE : hhmmOf(Math.max(0, startMins - ARRIVE_LEAD_MINUTES)),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.dow - b.dow || (minutesOf(a.time) ?? 0) - (minutesOf(b.time) ?? 0));
+
+  if (slots.length > 0) return slots;
+  return [{ id: 'svc-sun', dow: 0, dayLabel: 'Sunday', time: '11:00 AM', label: 'Sunday Worship', arriveDefault: DEFAULT_ARRIVE }];
+}
+
+// The coming date on/after `fromIso` that falls on `dow` (same day when fromIso
+// is itself that weekday) — the general form of nextSunday.
+export function nextDayOfWeek(fromIso, dow) {
+  const cur = dayOfWeek(fromIso);
+  return addDays(fromIso, ((Number(dow) - cur) % 7 + 7) % 7);
+}
+
+// upcomingServices — the next `count` bus runs across ALL of the church's
+// services, in true chronological order, so Sunday and Wednesday interleave in
+// one picker instead of the rider having to know which list to look in.
+// Each entry is the full identity of a run: date + which service on that date.
+export function upcomingServices(fromIso, slots, count = 6) {
+  const list = (slots && slots.length) ? slots : serviceSlots(null);
+  const next = new Map(list.map((slot) => [slot.id, nextDayOfWeek(fromIso, slot.dow)]));
+  const out = [];
+  while (out.length < count) {
+    // Pick the soonest pending run; ties (two services the same day) break on
+    // the earlier start time, which the slot order already encodes.
+    let pick = null;
+    for (const slot of list) {
+      const date = next.get(slot.id);
+      if (!pick || date < pick.date) pick = { slot, date };
+    }
+    if (!pick) break;
+    out.push({
+      key: `${pick.date}::${pick.slot.id}`,
+      date: pick.date,
+      slotId: pick.slot.id,
+      dow: pick.slot.dow,
+      dayLabel: pick.slot.dayLabel,
+      time: pick.slot.time,
+      label: pick.slot.label,
+      arriveDefault: pick.slot.arriveDefault,
+    });
+    next.set(pick.slot.id, addDays(pick.date, 7));
+  }
+  return out;
+}
+
+// How a run reads in a picker: "Sun, Nov 2 · 11:00 AM Sunday Worship".
+export function serviceRunLabel(run, fmtDate) {
+  if (!run) return '';
+  const when = typeof fmtDate === 'function' ? fmtDate(run.date) : run.date;
+  const time = run.time ? `${run.time} ` : '';
+  return `${when} · ${time}${run.label}`.trim();
+}
+
+// A schedule row written before service slots existed carries only a date. It
+// belongs to that date's FIRST service (Sunday, in every row we have), so
+// back-compat is "no slot means the primary run", never "belongs to nothing".
+export function rowMatchesRun(row, run) {
+  if (!row || !run) return false;
+  if (row.serviceDate !== run.date) return false;
+  const slot = row.serviceSlot || row.service_slot || null;
+  if (!slot) return true;
+  return slot === run.slotId;
+}
 // The date a driver should be reminded for a given service (Thursday before).
 export function remindSendOn(serviceDateIso, offsetDays = DEFAULT_REMIND_OFFSET_DAYS) {
   return addDays(serviceDateIso, -Math.abs(offsetDays));
@@ -186,6 +315,9 @@ export function toScheduleShape(row, myUserId) {
   return {
     id: row.id,
     serviceDate: row.service_date ?? null,
+    // Which service on that date (null = the date's primary run — every row
+    // written before Sunday-and-Wednesday landed). See rowMatchesRun.
+    serviceSlot: row.service_slot ?? null,
     routeId: row.route_id ?? null,
     routeName: row.route_name ?? null,
     vanId: row.van_id ?? null,
@@ -250,6 +382,9 @@ export function toRideRequestShape(row, myUserId) {
     pickupArea: row.pickup_area ?? null,
     pickupAddress: row.pickup_address ?? null,
     serviceDate: row.service_date ?? null,
+    // Which service they need the bus for — a Wednesday rider can ask for the
+    // 1:00 PM or the 6:00 PM Bible Study. Null = the date's primary run.
+    serviceSlot: row.service_slot ?? null,
     passengers: row.passengers ?? 1,
     accessibleNeeded: !!row.accessible_needed,
     notes: row.notes ?? null,
@@ -283,8 +418,12 @@ export function validateRideRequest(form = {}) {
 // active route, is a driver assigned, and have they confirmed? Returns a stable,
 // sorted view plus tallies the surface renders as real numbers (never painted).
 // -----------------------------------------------------------------------------
-export function coverageForDate(schedule = [], routes = [], dateIso) {
-  const onDate = (schedule || []).filter((s) => s && s.serviceDate === dateIso);
+export function coverageForDate(schedule = [], routes = [], dateIso, slotId = null) {
+  // `slotId` narrows to ONE service on a date that holds more than one (COLG's
+  // Wednesday carries a 1:00 PM and a 6:00 PM Bible Study). Rows written before
+  // slots existed carry no slot and belong to the date's primary run.
+  const onDate = (schedule || []).filter((s) => s && s.serviceDate === dateIso
+    && (!slotId || !(s.serviceSlot || s.service_slot) || (s.serviceSlot || s.service_slot) === slotId));
   const activeRoutes = (routes || [])
     .filter((r) => r && r.active !== false)
     .slice()
@@ -328,6 +467,7 @@ export function coverageForDate(schedule = [], routes = [], dateIso) {
   const openCount = routeCoverage.filter((c) => !c.assigned).length;
   return {
     date: dateIso,
+    slotId,
     routes: all,
     totalRoutes: activeRoutes.length,
     assignedCount,

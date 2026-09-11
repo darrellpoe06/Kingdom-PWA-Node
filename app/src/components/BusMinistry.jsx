@@ -23,6 +23,7 @@ import SectionTabs from './SectionTabs.jsx';
 import DirectMessages from './DirectMessages.jsx';
 import SecurityPanel from './SecurityPanel.jsx';
 import { onAuthChange } from '../lib/supabase.js';
+import { resolveChurch } from '../lib/resolve-church.js';
 import {
   getBusAccess,
   subscribeDrivers, subscribeRoutes, subscribeVans, subscribeSchedule, subscribeReminders, subscribeBusMessages, subscribeRequests,
@@ -30,7 +31,8 @@ import {
   saveScheduleRow, removeScheduleRow, setScheduleStatus, scheduleReminders, markReminderSent, acknowledgeReminder,
   sendBusMessage, submitRequest, updateRequest,
   subscribeRideRequests, submitRideRequest, updateRideRequest,
-  coverageForDate, buildReminderPlan, dueReminders, overdueReminders, upcomingSundays, remindSendOn,
+  coverageForDate, buildReminderPlan, dueReminders, overdueReminders, remindSendOn,
+  serviceSlots, upcomingServices, serviceRunLabel, rowMatchesRun,
   serviceWindow, driverRoleLabel, scheduleStatusLabel, requestStatusLabel, DRIVER_ROLES, REQUEST_STATUS,
   validateRideRequest, rideRequestStatusLabel, rideRequestOpen, RIDE_REQUEST_STATUS,
   DEFAULT_ARRIVE, DEFAULT_END,
@@ -51,7 +53,13 @@ const fmtDate = (d) => { if (!d) return ''; try { return new Date(d + 'T00:00:00
 const fmtDateShort = (d) => { if (!d) return ''; try { return new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); } catch { return d; } };
 
 // -----------------------------------------------------------------------------
-export default function BusMinistry() {
+// The bus runs on SUNDAY *AND* WEDNESDAY (Darrell, 2026-09-11, with the COLG
+// leadership on this screen: "You say which Sunday? We need to say Sunday and
+// Wednesday"). The days are not hardcoded here — they come off the church's own
+// service record through resolveChurch, so a rider sees every service the bus
+// can carry them to, and another congregation's days follow their own record.
+export default function BusMinistry({ church = null }) {
+  const slots = useMemo(() => serviceSlots(resolveChurch(church)), [church]);
   const [signedIn, setSignedIn] = useState(false);
   const [access, setAccess] = useState({ signedIn: false, canSee: false, canEdit: false });
   const [drivers, setDrivers] = useState([]);
@@ -117,7 +125,7 @@ export default function BusMinistry() {
           "Bear ye one another's burdens, and so fulfil the law of Christ." — Galatians 6:2 (KJV)
         </p>
         {err && <p className="text-xs text-[#991B1B]" role="alert">{err}</p>}
-        <RiderRequestPanel myRequests={rideRequests.filter((r) => r.mine)} reportSkip={reportSkip} />
+        <RiderRequestPanel slots={slots} myRequests={rideRequests.filter((r) => r.mine)} reportSkip={reportSkip} />
         <p className="text-xs text-[#5A5751] mt-2">
           Drive with the ministry? Ask Deacon Anderson (the coordinator) to add you to the driver roster, and the schedule, reminders, and messages will show here.
         </p>
@@ -126,8 +134,8 @@ export default function BusMinistry() {
   }
 
   const sections = [
-    { id: 'sunday', label: 'This Sunday', icon: 'calendar', render: () => <SundayPanel {...{ schedule, routes, reminders, canEdit, setErr, reportSkip }} /> },
-    { id: 'schedule', label: 'Schedule', icon: 'calendar', render: () => <SchedulePanel {...{ schedule, routes, vans, drivers, canEdit, reportSkip }} /> },
+    { id: 'sunday', label: 'Next service', icon: 'calendar', render: () => <SundayPanel {...{ slots, schedule, routes, reminders, canEdit, setErr, reportSkip }} /> },
+    { id: 'schedule', label: 'Schedule', icon: 'calendar', render: () => <SchedulePanel {...{ slots, schedule, routes, vans, drivers, canEdit, reportSkip }} /> },
     { id: 'roster', label: 'Drivers', icon: 'users', render: () => <RosterPanel {...{ drivers, canEdit, reportSkip, dmRoster }} /> },
     { id: 'fleet', label: 'Routes & Vans', icon: 'pin', render: () => <FleetPanel {...{ routes, vans, canEdit, reportSkip }} /> },
     { id: 'reminders', label: 'Reminders', icon: 'phone', render: () => <RemindersPanel {...{ reminders, canEdit, reportSkip }} /> },
@@ -150,19 +158,24 @@ export default function BusMinistry() {
 }
 
 // -----------------------------------------------------------------------------
-// This Sunday — coverage + the driver's confirm + reminders that are due
+// Next service — coverage + the driver's confirm + reminders that are due.
+// Every service the church holds, in one chronological picker (Sunday Worship
+// and both Wednesday Bible Studies interleave), so the deacon's question is
+// "is this RUN covered", not "is Sunday covered".
 // -----------------------------------------------------------------------------
-function SundayPanel({ schedule, routes, reminders, canEdit, setErr, reportSkip }) {
-  const sundays = useMemo(() => upcomingSundays(todayIso(), 6), []);
-  const [date, setDate] = useState(sundays[0]);
-  const cov = useMemo(() => coverageForDate(schedule, routes, date), [schedule, routes, date]);
-  const myRows = useMemo(() => schedule.filter((s) => s.serviceDate === date && s.mine), [schedule, date]);
+function SundayPanel({ slots, schedule, routes, reminders, canEdit, setErr, reportSkip }) {
+  const runs = useMemo(() => upcomingServices(todayIso(), slots, 8), [slots]);
+  const [runKey, setRunKey] = useState(runs[0]?.key || '');
+  const run = useMemo(() => runs.find((r) => r.key === runKey) || runs[0] || null, [runs, runKey]);
+  const date = run?.date || '';
+  const cov = useMemo(() => coverageForDate(schedule, routes, date, run?.slotId), [schedule, routes, date, run]);
+  const myRows = useMemo(() => schedule.filter((s) => rowMatchesRun(s, run) && s.mine), [schedule, run]);
   const due = useMemo(() => dueReminders(reminders, todayIso()), [reminders]);
   const overdue = useMemo(() => overdueReminders(reminders, todayIso()), [reminders]);
   const [busy, setBusy] = useState(false);
 
   const publishReminders = async () => {
-    const rows = schedule.filter((s) => s.serviceDate === date);
+    const rows = schedule.filter((s) => rowMatchesRun(s, run));
     const plan = buildReminderPlan(rows);
     if (!plan.length) { setErr('No assigned drivers to remind yet — assign drivers on the Schedule tab first.'); return; }
     setBusy(true);
@@ -173,10 +186,10 @@ function SundayPanel({ schedule, routes, reminders, canEdit, setErr, reportSkip 
 
   return (
     <div className="space-y-4">
-      <label className="block max-w-xs">
-        <span className={LABEL}>Sunday</span>
-        <select value={date} onChange={(e) => setDate(e.target.value)} className={FIELD}>
-          {sundays.map((s) => <option key={s} value={s}>{fmtDate(s)}</option>)}
+      <label className="block max-w-sm">
+        <span className={LABEL}>Service</span>
+        <select value={run?.key || ''} onChange={(e) => setRunKey(e.target.value)} className={FIELD}>
+          {runs.map((r) => <option key={r.key} value={r.key}>{serviceRunLabel(r, fmtDate)}</option>)}
         </select>
       </label>
 
@@ -241,11 +254,13 @@ function SundayPanel({ schedule, routes, reminders, canEdit, setErr, reportSkip 
 // -----------------------------------------------------------------------------
 // Schedule — assign a driver + van per route for a chosen Sunday
 // -----------------------------------------------------------------------------
-function SchedulePanel({ schedule, routes, vans, drivers, canEdit, reportSkip }) {
-  const sundays = useMemo(() => upcomingSundays(todayIso(), 8), []);
-  const [date, setDate] = useState(sundays[0]);
+function SchedulePanel({ slots, schedule, routes, vans, drivers, canEdit, reportSkip }) {
+  const runs = useMemo(() => upcomingServices(todayIso(), slots, 10), [slots]);
+  const [runKey, setRunKey] = useState(runs[0]?.key || '');
+  const run = useMemo(() => runs.find((r) => r.key === runKey) || runs[0] || null, [runs, runKey]);
+  const date = run?.date || '';
   const activeRoutes = useMemo(() => routes.filter((r) => r.active !== false).slice().sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)), [routes]);
-  const rowsForDate = useMemo(() => schedule.filter((s) => s.serviceDate === date), [schedule, date]);
+  const rowsForDate = useMemo(() => schedule.filter((s) => rowMatchesRun(s, run)), [schedule, run]);
   const rowForRoute = (routeId) => rowsForDate.find((s) => s.routeId === routeId);
 
   const assign = async (route, driverId, vanId) => {
@@ -255,6 +270,9 @@ function SchedulePanel({ schedule, routes, vans, drivers, canEdit, reportSkip })
     const row = {
       id: existing?.id,
       serviceDate: date,
+      // Which service on that date — a Wednesday holds two (1:00 PM and 6:00 PM
+      // Bible Study), so the date alone no longer identifies the run.
+      serviceSlot: run?.slotId || null,
       routeId: route.id,
       routeName: route.name,
       vanId: vanId || existing?.vanId || null,
@@ -262,7 +280,9 @@ function SchedulePanel({ schedule, routes, vans, drivers, canEdit, reportSkip })
       driverId: driverId || null,
       driverUserId: driver?.userId || null,
       driverName: driver?.displayName || null,
-      arriveTime: existing?.arriveTime || DEFAULT_ARRIVE,
+      // Pre-filled from the service start (a 75-minute lead, the same shape as
+      // Deacon Anderson's declared 9:45-for-11:00). The coordinator can change it.
+      arriveTime: existing?.arriveTime || run?.arriveDefault || DEFAULT_ARRIVE,
       endTime: existing?.endTime || DEFAULT_END,
       status: driverId ? 'scheduled' : 'open',
     };
@@ -271,13 +291,13 @@ function SchedulePanel({ schedule, routes, vans, drivers, canEdit, reportSkip })
 
   return (
     <div className="space-y-4">
-      <label className="block max-w-xs">
-        <span className={LABEL}>Sunday</span>
-        <select value={date} onChange={(e) => setDate(e.target.value)} className={FIELD}>
-          {sundays.map((s) => <option key={s} value={s}>{fmtDate(s)}</option>)}
+      <label className="block max-w-sm">
+        <span className={LABEL}>Service</span>
+        <select value={run?.key || ''} onChange={(e) => setRunKey(e.target.value)} className={FIELD}>
+          {runs.map((r) => <option key={r.key} value={r.key}>{serviceRunLabel(r, fmtDate)}</option>)}
         </select>
       </label>
-      {!canEdit && <p className="text-xs text-[#5A5751]">Only the coordinator can change the schedule. This is {fmtDate(date)}.</p>}
+      {!canEdit && <p className="text-xs text-[#5A5751]">Only the coordinator can change the schedule. This is {serviceRunLabel(run, fmtDate)}.</p>}
       {activeRoutes.length === 0 && <p className="text-sm text-[#5A5751]">Add routes first (Routes &amp; Vans tab).</p>}
       {activeRoutes.map((route) => {
         const row = rowForRoute(route.id);
@@ -661,11 +681,12 @@ function RequestsPanel({ requests, canEdit, reportSkip }) {
 // anyone who isn't on the ministry roster. Files a structured request the
 // coordinator + drivers see; the rider tracks their own below.
 // -----------------------------------------------------------------------------
-function RiderRequestPanel({ myRequests, reportSkip }) {
-  const sundays = useMemo(() => upcomingSundays(todayIso(), 6), []);
+function RiderRequestPanel({ slots, myRequests, reportSkip }) {
+  const runs = useMemo(() => upcomingServices(todayIso(), slots, 8), [slots]);
   const [form, setForm] = useState({
     riderName: '', riderPhone: '', pickupArea: '', pickupAddress: '',
-    serviceDate: sundays[0] || '', passengers: 1, accessibleNeeded: false, notes: '',
+    serviceDate: runs[0]?.date || '', serviceSlot: runs[0]?.slotId || null,
+    passengers: 1, accessibleNeeded: false, notes: '',
   });
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
@@ -712,9 +733,13 @@ function RiderRequestPanel({ myRequests, reportSkip }) {
             <input className={FIELD} value={form.pickupAddress} onChange={(e) => set('pickupAddress', e.target.value)} placeholder="Street address (optional)" />
           </div>
           <div>
-            <label className={LABEL}>Which Sunday</label>
-            <select className={FIELD} value={form.serviceDate} onChange={(e) => set('serviceDate', e.target.value)}>
-              {sundays.map((d) => <option key={d} value={d}>{fmtDate(d)}</option>)}
+            <label className={LABEL}>Which service</label>
+            <select className={FIELD} value={`${form.serviceDate}::${form.serviceSlot || ''}`}
+              onChange={(e) => {
+                const r = runs.find((x) => x.key === e.target.value);
+                setForm((f) => ({ ...f, serviceDate: r?.date || '', serviceSlot: r?.slotId || null }));
+              }}>
+              {runs.map((r) => <option key={r.key} value={r.key}>{serviceRunLabel(r, fmtDate)}</option>)}
             </select>
           </div>
           <div>

@@ -126,13 +126,20 @@ export function resolveGiveDestination(church) {
   try { host = new URL(url).hostname.replace(/^www\./, ''); } catch { host = ''; }
 
   const confirmed = isDeepLink(url);
+  // The two taps that get there once the site opens. Only meaningful while the
+  // link lands on the site root: a real deep-link already IS the giving page, so
+  // directions to it would be noise (and, worse, wrong).
+  const hint = confirmed ? null : ((church && church.givingPageHint) || '').trim() || null;
   return {
     url,
     host,
     confirmed,
+    hint,
     note: confirmed
       ? `Opens ${host} — the church’s own secure giving page. No payment information is collected by this app.`
-      : `Opens ${host} — the church’s website, where their secure giving page is published. No payment information is collected by this app.`,
+      : hint
+        ? `Opens ${host} — the church’s website. Their giving page is one step in: ${hint}. No payment information is collected by this app.`
+        : `Opens ${host} — the church’s website, where their secure giving page is published. No payment information is collected by this app.`,
   };
 }
 

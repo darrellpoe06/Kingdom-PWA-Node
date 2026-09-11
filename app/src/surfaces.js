@@ -90,6 +90,7 @@ export const SURFACES = [
   { id: 'event-center',     label: 'Event Center',  nav: 'church', view: 'church', sub: 'conference', load: pick(() => import('./components/EventCenterModule.jsx'), 'EventCenterModule') },
   { id: 'events',           label: 'Events',        nav: 'church', view: 'church', sub: 'events',     load: () => import('./components/EventManagement.jsx') },
   { id: 'church-projects',  label: 'Projects',      nav: 'church', view: 'church', sub: 'projects',   gate: 'isChurchStaff (read-only otherwise)', load: () => import('./components/ChurchProjects.jsx') },
+  { id: 'ministries',       label: 'Ministries',    nav: 'church', view: 'church', sub: 'ministries', gate: 'any church viewer — the directory of the house', load: pick(() => import('./components/ChurchMinistries.jsx'), 'ChurchMinistries') },
   { id: 'bus',              label: 'Bus Ministry',  nav: 'church', view: 'church', sub: 'bus',        gate: 'bus-ministry member (owner/admin OR bus_drivers row)', load: () => import('./components/BusMinistry.jsx') },
   { id: 'church-members',   label: 'Members',       nav: 'church', view: 'church', sub: 'members',    gate: 'signed-in sees the way in; church owner/admin (list_my_admin_instances) governs — the DB is the wall (DR-0348)', load: () => import('./components/ChurchMembers.jsx') },
 
@@ -163,6 +164,7 @@ export const ConferenceVariance = surfaceById['conference-var'].component;
 export const EventCenterModule = surfaceById['event-center'].component;
 export const EventManagement  = surfaceById['events'].component;
 export const ChurchProjects   = surfaceById['church-projects'].component;
+export const ChurchMinistriesTab = surfaceById['ministries'].component;
 export const BusMinistry      = surfaceById['bus'].component;
 export const ChurchMembers    = surfaceById['church-members'].component;
 export const BooksTransactions = surfaceById['transactions'].component;

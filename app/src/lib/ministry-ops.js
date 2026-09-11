@@ -10,6 +10,8 @@
 // ministry spine (MINISTRY-SUPPORT-PATTERN.md).
 // =============================================================================
 
+import { opsMinistryOptions } from './church-ministries.js';
+
 export const OPS_STATUS = [
   ['todo', 'To do'],
   ['in-progress', 'In progress'],
@@ -19,16 +21,17 @@ export const OPS_STATUS = [
 export const opsStatusLabel = (s) => (OPS_STATUS.find(([k]) => k === s)?.[1]) || s;
 
 // The ministries ops items can belong to. 'general' = cross-ministry / platform.
-export const OPS_MINISTRIES = [
-  ['general', 'General / Platform'],
-  ['bus', 'Bus / Van'],
-  ['choir', 'Choir'],
-  ['ushers', 'Ushers'],
-  ['security', 'Security'],
-  ['media', 'Media / Sound'],
-  ['hospitality', 'Hospitality'],
-  ['outreach', 'Outreach'],
-];
+//
+// DERIVED, not re-typed (2026-09-11). This used to be its own hand-kept list and
+// it had already drifted — no church band in it, while the band is a real
+// ministry of the house (Darrell, 2026-09-11: "I don't see the church band").
+// Two lists of the same thing is exactly how the feedback-area list went stale
+// twice, which is why scripts/feedback-area-guard.mjs exists. So the member-
+// facing directory and this staff picker now read ONE registry
+// (lib/church-ministries.js) and cannot drift apart again. Existing rows keep
+// resolving: every key that was here is still here, and opsMinistryLabel falls
+// back to the stored key for anything it does not recognize.
+export const OPS_MINISTRIES = opsMinistryOptions();
 export const opsMinistryLabel = (m) => (OPS_MINISTRIES.find(([k]) => k === m)?.[1]) || m;
 
 // Only staff (owner/admin) manage ops; everyone else who can see the surface
