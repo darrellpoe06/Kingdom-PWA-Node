@@ -95,14 +95,20 @@ describe('Learn resume-your-place', () => {
   it('opening a lesson guide records the place, so the NEXT visit can resume', () => {
     mount();
     expect(getPlace()).toBeNull();
-    // Default course is the youth A.I. class; open week 1's guide.
-    const start = buttonByText('Start this week →');
+    // Learn opens on the DEFAULT course (Living Lessons since 2026-09-11);
+    // open its first lesson's guide. This test is about RESUME, so it asserts
+    // that the place recorded matches the course actually on screen rather than
+    // pinning whichever course happens to be the default.
+    const openCourse = container.querySelector('#learn-h').textContent;
+    expect(openCourse).toBe('Living Lessons from the Word');
+    // Living Lessons counts in LESSONS, not weeks (its unit descriptor).
+    const start = buttonByText('Start this lesson →');
     expect(start).toBeTruthy();
     click(start);
     const p = getPlace();
     expect(p).toBeTruthy();
-    expect(p.courseKey).toBe('ai');
-    expect(p.lessonId).toBe('wk1-what-is-ai');
+    expect(p.courseKey).toBe('living-lessons');
+    expect(p.lessonId).toBeTruthy();
     clearPlace();
   });
 });

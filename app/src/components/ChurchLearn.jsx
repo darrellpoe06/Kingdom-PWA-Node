@@ -1168,7 +1168,13 @@ function CourseView({
     return () => clearTimeout(t);
   }, [resumeLessonId, resumeOpenGuide]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const prog = courseProgressSummary(progress);
+  // A course descriptor is data from the catalog, and a course that carries no
+  // progressSummary is a real shape (not every course tracks progress). Calling
+  // it unconditionally threw "courseProgressSummary is not a function" and took
+  // the WHOLE Learn surface down — a white screen for one missing optional
+  // field. Surfaced by making Living Lessons the default (2026-09-11): the
+  // crash had been hiding behind the A.I. course always carrying one.
+  const prog = typeof courseProgressSummary === 'function' ? courseProgressSummary(progress) : null;
   const canSendInterest = !!onSendInterest;
   // Real assessment from the learner's record (progress + quiz passes).
   const assessment = courseAssessment(schedule, progress, quizState);
@@ -1303,20 +1309,30 @@ function CourseView({
           >
             {showFacilitator ? '✓ Facilitator guide showing' : 'Show facilitator guide'}
           </button>
-          {/* Every course can teach live now (was A.I.-only) — the shared Presenter
-              builds its slides from this course's own schedule. Darrell 2026-06-23. */}
-          <button
-            type="button"
-            onClick={() => setTeaching(true)}
-            className="ml-2 text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-          >
-            ▶ Series overview (all {meta.weeks} at a glance)
-          </button>
-          <p className="mt-2 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-            To teach a single session, use <strong className="text-[#5A6E3D]">▶ Present this {U.noun}</strong> on any {U.noun} below — it opens the presenter on that {U.noun} alone, timed to itself (up to 45–60 min), at the pace you’ve set. The {meta.weeks}-{U.noun} total is the whole series, not one sitting.
-          </p>
         </div>
       )}
+      {/* ▶ PLAY — the big reader, from the list, for EVERYONE (Darrell 2026-09-11,
+          with a screenshot of the reader open): "We want the lessons and overviews
+          to have a play button next to each one that will pop up this slide for it
+          to be read and be big enough to cover the screen... easier and clearer to
+          access from the list to choose from."
+          The screen he photographed is <Presenter> (Read aloud · Full screen ·
+          Speaker view). It already existed — and BOTH play controls sat inside the
+          Governor-only block above, so from a staff or member account the whole
+          affordance was invisible. That gate was the bug; the reader is not a
+          privileged tool, it is how a person reads. */}
+      <div className="mb-4">
+        <button
+          type="button"
+          onClick={() => setTeaching(true)}
+          className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+        >
+          ▶ Play the overview (all {meta.weeks} at a glance)
+        </button>
+        <p className="mt-2 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+          Opens the big full-screen view — read it yourself in large type, or press <strong>Read aloud</strong> and let it read to you. Every {U.noun} below has its own <strong className="text-[#5A6E3D]">▶ Play</strong>; this one plays the whole series at a glance.
+        </p>
+      </div>
       {/* The lesson's own space: a sticky bar naming where you are, the way
           back, and previous/next — the reader can never fall into the full
           list by accident. Rendered only while a lesson is open alone. */}
@@ -1409,18 +1425,24 @@ function CourseView({
                 >
                   {tutorOpen ? 'Close the guide' : `Start this ${U.noun} →`}
                 </button>
-                {/* Present THIS lesson — the presenter opens on the chosen lesson,
-                    timed to itself, at the pace already set. Governor-only (same gate
-                    as the whole-series overview). Darrell 2026-07-16. */}
-                {isGovernor && (
-                  <button
-                    type="button"
-                    onClick={() => setPresentLesson(m)}
-                    className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-                  >
-                    ▶ Present this {U.noun}
-                  </button>
-                )}
+                {/* ▶ PLAY THIS ONE — opens the big full-screen reader on this
+                    {U.noun} alone (Read aloud · Full screen · Speaker view), timed
+                    to itself, at the pace already set.
+                    UNGATED 2026-09-11. It was Governor-only, which meant the one
+                    control that makes a lesson READABLE — big type, or read to you —
+                    was invisible to every member and staff account. Darrell, with the
+                    reader open on screen: "easier and clearer to access from the list
+                    to choose from... the reader reading for you or you read it in the
+                    big nice easy to read views." Placed FIRST in the row so it is the
+                    first thing the eye lands on, not the last. */}
+                <button
+                  type="button"
+                  onClick={() => { recordUse(m.id); savePlace({ lessonId: m.id }); setPresentLesson(m); }}
+                  title={`Open this ${U.noun} in the big full-screen view — read it yourself or have it read aloud`}
+                  className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                >
+                  ▶ Play
+                </button>
                 {m.launch && onLaunch && !tutorOpen && (
                   <button
                     type="button"
@@ -1876,8 +1898,10 @@ function CourseView({
       </p>
       </>)}
 
-      {/* Your progress — real, from the signed-in record */}
-      {toggleModule && !focusModule && (
+      {/* Your progress — real, from the signed-in record. Absent (not zeroed)
+          when the course carries no progressSummary: a painted 0% would be a
+          number with nothing behind it (DR-0061). */}
+      {toggleModule && !focusModule && prog && (
         <div className="border border-[#E8E4DC] p-4 mb-5">
           <div className="flex items-baseline justify-between gap-2 mb-2">
             <h3 className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Your progress</h3>
@@ -2113,7 +2137,18 @@ export default function ChurchLearn({
   const courses = [aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras, ...eternalCourses];
   const chosenCourse = activeKey != null ? courses.find((c) => c.key === activeKey) : null;
   const courseChosen = !!chosenCourse;
-  const active = chosenCourse || aiCourse;
+  // THE DEFAULT COURSE IS LIVING LESSONS (Darrell 2026-09-11: "let the default
+  // courses be... Living Lessons not Ai etc"). Learn opened on the A.I. course
+  // purely because it was the first one ever built and the fallback was written
+  // as its name; a visitor met "Learning A.I. The Way" as though it were what
+  // this church teaches. Living Lessons is the Word course and belongs first.
+  // Resolved by KEY against the MOUNTED catalog, with the old fallback kept
+  // behind it, so an instance that does not carry Living Lessons still opens on
+  // something real instead of a blank (never assume a course exists — DR-0061).
+  // A device that has already CHOSEN keeps its choice; this only decides where
+  // someone lands who has not picked yet.
+  const defaultCourse = courses.find((c) => c.key === 'living-lessons') || aiCourse;
+  const active = chosenCourse || defaultCourse;
 
   // Open what the link asked for, once, and only when it really exists.
   const linkAppliedRef = React.useRef(false);
@@ -2206,26 +2241,39 @@ export default function ChurchLearn({
               {/* A SELECTOR, not a section title (Darrell 2026-09-06: "even more
                   obvious that this is a selection of courses... not a titled
                   section with only those lessons below"). The label says what
-                  the control DOES; the first option is the prompt he asked for,
-                  shown until this device has chosen; the chosen course is then
-                  remembered (lib/learn-organize.js) so it reopens on the last
-                  one. Never a heading over the lessons underneath. */}
+                  the control DOES. The chosen course is still remembered
+                  (lib/learn-organize.js) so Learn reopens on the last one — but
+                  the control itself always shows the prompt, never that course,
+                  so it can never be mistaken for a heading over the lessons
+                  underneath. Which course is open is stated ONCE, statically,
+                  in the <h2> below. */}
               <label htmlFor="learn-course-pick" className="block text-xs uppercase tracking-wider text-[#B85838] font-semibold mb-1">
                 Courses · select one of {courses.length}
               </label>
               <select
                 id="learn-course-pick"
-                value={courseChosen ? active.key : ''}
+                // ALWAYS the prompt, never the current course (Darrell
+                // 2026-09-11: "have the choose a course blank or say choose
+                // another course and leave the current static name above the
+                // listed lessons inside the course area"). A select that
+                // displays the open course reads like a TITLE for the lessons
+                // under it, which is what hid the fact that other courses
+                // existed at all. The open course is named once, statically,
+                // in the <h2> above the lessons; this control's only job is to
+                // go somewhere else.
+                value={''}
                 data-chosen={courseChosen ? 'true' : 'false'}
                 onChange={(e) => { if (e.target.value) setActiveKey(e.target.value); }}
                 className={`w-full min-h-[48px] px-3 py-2 bg-white border-2 text-sm font-semibold focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${courseChosen ? 'border-[#1A1815]' : 'border-[#B85838]'}`}
                 style={{ fontFamily: '"Fraunces", serif' }}
               >
-                <option value="" disabled>Select a course · {courses.length} to choose from</option>
+                <option value="">Choose another course · {courses.length} to choose from</option>
                 {organizeCourses(courses, courseSort).map((g) => (
                   <optgroup key={g.label} label={g.label}>
                     {g.courses.map((c) => (
-                      <option key={c.key} value={c.key}>{c.meta.title} · {courseLessonCount(c)} lessons</option>
+                      <option key={c.key} value={c.key}>
+                        {c.key === active.key ? '● ' : ''}{c.meta.title} · {courseLessonCount(c)} lessons
+                      </option>
                     ))}
                   </optgroup>
                 ))}

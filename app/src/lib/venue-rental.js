@@ -32,6 +32,39 @@ import {
 // Bathrooms are intentionally NOT bookable spaces. Capacity is only asserted where
 // it is actually known (the North main sanctuary, 600 — the figure already used by
 // the Observation board); elsewhere it is null (truthful — staff confirm per event).
+// THE SOUTH CAMPUS BUILDING HAS A NAME, AND IT IS A PERSON'S.
+//
+// VERIFIED 2026-09-11 against the church's own page, which Darrell sent and
+// then screenshotted when this session's network egress policy blocked the
+// domain outright (the proxy answers 403 to CONNECT, so it could not be
+// fetched; the screenshots ARE the primary source here):
+//
+//     https://www.thechurchofthelivinggod.com/e-meg-christian-center1.html
+//
+// The page heading reads "E-MEG CHRISTIAN CENTER / EVALUATE · MEET · ENRICH ·
+// GLORIFY", and the contact block spells the full name out:
+// "EVANGELIST MARY E. GWIN CHRISTIAN CENTER".
+//
+// This corrected the first recollection twice over — Darrell had said
+// "Evangelists Mary Gwin Event Center I believe it's called", and it is neither
+// an Event Center nor without the middle initial. The app had been calling it
+// only by its geography, "South Campus Event Center", which is where it is
+// rather than what it is called.
+//
+// It is a MEMORIAL. The page is headed "IN HONOR OF EVANGELIST MARY E. GWIN" —
+// Minister of Music at The Church of the Living God for more than 35 years, an
+// Urbana School District teacher for more than 20, Director of Church
+// Ministries, and Bishop Gwin's wife. Which is why this is one constant with
+// its provenance attached rather than a string typed into five files.
+export const EVENT_CENTER_NAME = 'Evangelist Mary E. Gwin Christian Center';
+// The short form the church itself uses in the page heading and the URL.
+export const EVENT_CENTER_SHORT_NAME = 'E-MEG Christian Center';
+// The acronym, expanded on the church's own banner.
+export const EVENT_CENTER_MOTTO = 'Evaluate · Meet · Enrich · Glorify';
+export const EVENT_CENTER_PAGE = 'https://www.thechurchofthelivinggod.com/e-meg-christian-center1.html';
+// Confirmed against the church's published page (see above).
+export const EVENT_CENTER_NAME_CONFIRMED = true;
+
 export const CAMPUSES = [
   {
     id: 'north',
@@ -49,15 +82,40 @@ export const CAMPUSES = [
   },
   {
     id: 'south',
-    name: 'South Campus Event Center',
+    // Named and described from the church's own E-MEG page (see
+    // EVENT_CENTER_NAME above for the provenance). Everything below is quoted
+    // from that page rather than assumed: the capacity, the amenities and the
+    // kinds of events it is offered for were all blank or invented-looking
+    // before, which is a rental surface making promises nobody had checked.
+    name: EVENT_CENTER_NAME,
+    shortName: EVENT_CENTER_SHORT_NAME,
+    motto: EVENT_CENTER_MOTTO,
     tier: 'standard',
-    address: '1109 N 4th St',
-    blurb: 'South Campus Event Center. Standard rate.',
+    // The page prints "1109 N. Fourth Street Champaign, IL 62820". The church's
+    // main campus record carries 61820, and 62820 is not a Champaign ZIP — so
+    // the published ZIP looks like a typo on the church's own page. The street
+    // address is used here and the ZIP is deliberately NOT asserted; the office
+    // can confirm which is right (DR-0076 — do not launder someone else's typo
+    // into our data as though we had checked it).
+    address: '1109 N. Fourth Street, Champaign, IL',
+    page: EVENT_CENTER_PAGE,
+    phone: '217-359-6920',
+    // Named on the page.
+    eventDirector: 'Assistant Pastor Evelyn Moore',
+    ceo: 'Senior Bishop Lloyd E. Gwin',
+    blurb: 'A new venue serving the Champaign–Urbana community, in the refurbished church on the north end of Champaign: ample parking, basic sound, and tables and chairs for up to 200 guests. Standard rate.',
+    capacity: 200,
+    amenities: ['Ample parking', 'Basic sound application', 'Tables and chairs for up to 200 guests'],
+    // The event types the church itself advertises, in its own two groupings.
+    eventTypes: {
+      'Family celebrations': ['Anniversaries', 'Birthdays', 'Family reunions', 'Fellowships', 'Graduations'],
+      'Other events': ['Funerals (services & repast)', 'Conferences', 'Concerts', 'Community engagement'],
+    },
     spaces: [
-      { id: 'south-whole',      name: 'Whole Event Center (exclusive use)', wholeCampus: true, capacity: null },
-      { id: 'south-sanctuary',  name: 'Main Sanctuary',                     capacity: null },
-      { id: 'south-fellowship', name: 'Fellowship Hall',                    capacity: null },
-      { id: 'south-kitchen',    name: 'Kitchen',                            capacity: null },
+      { id: 'south-whole',      name: 'Whole Christian Center (exclusive use)', wholeCampus: true, capacity: 200 },
+      { id: 'south-sanctuary',  name: 'Main Sanctuary',                        capacity: 200 },
+      { id: 'south-fellowship', name: 'Fellowship Hall',                       capacity: null },
+      { id: 'south-kitchen',    name: 'Kitchen',                               capacity: null },
     ],
   },
 ];

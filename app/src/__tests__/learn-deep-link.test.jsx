@@ -63,11 +63,14 @@ describe('the recipient opens the link and the lesson is there', () => {
     expect(container.querySelector('#learn-h').textContent).toBe(HEALTHY_LIVING_META.title);
   });
 
-  it('with no link at all, Learn opens exactly as before — the default course', () => {
+  it('with no link at all, Learn opens on the DEFAULT course', () => {
     mount();
     // The picker still LISTS every course; what a link changes is which one is
     // ACTIVE, so the heading is the honest assertion.
-    expect(container.querySelector('#learn-h').textContent).toBe('Learning A.I. The Way');
+    // The default moved to Living Lessons on 2026-09-11 (Darrell: "let the
+    // default courses be... Living Lessons not Ai etc") — a visitor was meeting
+    // "Learning A.I. The Way" as though it were what this church teaches.
+    expect(container.querySelector('#learn-h').textContent).toBe('Living Lessons from the Word');
   });
 });
 
@@ -76,7 +79,7 @@ describe('a stale link never lands on a dead screen', () => {
     setSearch(lessonQuery({ courseKey: 'a-course-we-retired', lessonId: 'x' }));
     mount();
     expect(text()).toContain('Church · Learn');
-    expect(container.querySelector('#learn-h').textContent).toBe('Learning A.I. The Way');
+    expect(container.querySelector('#learn-h').textContent).toBe('Living Lessons from the Word');
   });
 
   it('a lesson that no longer exists still opens its course', () => {

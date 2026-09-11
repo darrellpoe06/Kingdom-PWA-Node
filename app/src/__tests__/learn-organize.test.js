@@ -5,7 +5,7 @@
 // family, counts come from live schedules, empty groups vanish. Pins the
 // 2026-07-10 "sorts and dropdowns" organizing layer.
 import { describe, it, expect } from 'vitest';
-import { organizeCourses, courseLessonCount, isDeepProcessing, COURSE_SORTS, buildLessonIndex, searchLessons } from '../lib/learn-organize.js';
+import { organizeCourses, courseLessonCount, isDeepProcessing, COURSE_SORTS, buildLessonIndex, searchLessons, unitNounOf } from '../lib/learn-organize.js';
 
 const c = (key, title, lessons) => ({ key, meta: { title }, schedule: Array.from({ length: lessons }, (_, i) => ({ i })) });
 const COURSES = [
@@ -97,5 +97,45 @@ describe('lesson finder — cross-course index + search', () => {
     expect(searchLessons(INDEX, '')).toEqual([]);
     expect(searchLessons(INDEX, '   ')).toEqual([]);
     expect(searchLessons([], 'x')).toEqual([]);
+  });
+});
+
+describe('unitNounOf — a course\u2019s unit comes in two real shapes', () => {
+  // Caught 2026-09-11 in the RENDERED TEXT of a Learn test, not by reading code:
+  // every Deep Processing row on the browse shelf read "[object Object] 1 ·
+  // Deuteronomy 30:19". The Deep Processing courses carry unit as a descriptor
+  // object ({ noun: 'pattern', cap: 'Pattern' } — eternal-algorithms-course.js)
+  // while the rest carry a plain noun, and String() on the object produced the
+  // literal "[object Object]". Those courses are the MAJORITY of the shelf.
+  it('reads the plain-noun shape', () => {
+    expect(unitNounOf('week')).toBe('week');
+    expect(unitNounOf('lesson')).toBe('lesson');
+  });
+
+  it('reads the descriptor shape instead of stringifying the object', () => {
+    expect(unitNounOf({ noun: 'pattern', cap: 'Pattern', nounPlural: 'patterns' })).toBe('pattern');
+    expect(unitNounOf({ cap: 'Pattern' })).toBe('Pattern');
+  });
+
+  it('falls back to week for nothing usable', () => {
+    expect(unitNounOf(null)).toBe('week');
+    expect(unitNounOf(undefined)).toBe('week');
+    expect(unitNounOf({})).toBe('week');
+  });
+
+  it('PROVEN-TO-CATCH: no unit shape can ever render "[object Object]" again', () => {
+    for (const shape of ['week', { noun: 'pattern' }, { cap: 'Pattern' }, {}, null, undefined]) {
+      expect(unitNounOf(shape)).not.toMatch(/\[object/);
+    }
+  });
+
+  it('the built index labels a descriptor-unit lesson readably', () => {
+    const idx = buildLessonIndex([{
+      key: 'deep',
+      meta: { title: 'Torah & History — Deep Processing', unit: { noun: 'pattern', cap: 'Pattern' } },
+      schedule: [{ id: 'd1', week: 3, title: 'Choose This Day', anchor: { ref: 'Deuteronomy 30:19' } }],
+    }]);
+    expect(idx[0].unitLabel).toBe('Pattern 3');
+    expect(idx[0].unitLabel).not.toMatch(/\[object/);
   });
 });

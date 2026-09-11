@@ -84,7 +84,7 @@ export const COLG_DEFAULT_CHURCH = {
   // data like the service times; announced from the pulpit in the 2026-07
   // "Celebration" service). Each renders in Parish Life with save-to-calendar.
   announcedEvents: [
-    { id: 'evt-77th-assembly', name: '77th National Assembly — Positioned for Purpose', date: '2026-07-14', endDate: '2026-07-16', detail: 'South Campus Event Center, 1109 N 4th St, Champaign' },
+    { id: 'evt-77th-assembly', name: '77th National Assembly — Positioned for Purpose', date: '2026-07-14', endDate: '2026-07-16', detail: 'E-MEG Christian Center (South Campus), 1109 N. Fourth St, Champaign' },
     { id: 'evt-gospel-fest', name: 'Gospel Fest', date: '2026-08-29', detail: 'Featuring Leandrea Johnson' },
   ],
   verse: { ref: 'Psalm 34:3', text: 'O magnify the LORD with me, and let us exalt his name together.' },

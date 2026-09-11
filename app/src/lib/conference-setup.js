@@ -1,3 +1,4 @@
+import { EVENT_CENTER_NAME } from './venue-rental.js';
 // =============================================================================
 // conference-setup — the SETUP CHECKLIST / config skeleton (organizer guidance)
 // =============================================================================
@@ -29,8 +30,12 @@ export function conferenceSetupSteps({ conference, venues, rooms, sessions, regi
   const ss = (sessions || []).filter((s) => s && s.status !== 'archived');
   const regs = (registrations || []).filter((r) => r && r.status !== 'cancelled');
 
-  // South Campus is the named venue for the Assembly (known fact, seeded by 0024).
-  const south = vs.find((v) => /south campus/i.test(v.name || ''));
+  // The Assembly's building. Matched on ANY of its names: rows seeded before
+  // 2026-09-11 carry the geographic "South Campus Event Center"; rows seeded
+  // after carry the real name from venue-rental.js (the E-MEG Christian
+  // Center). Renaming without widening this would have quietly reported the
+  // venue step as "not set" on every existing instance.
+  const south = vs.find((v) => /south campus|gwin|e\.?m\.?e\.?g/i.test(v.name || ''));
   // Bookable rooms (service/class/food) that still have no real seat count.
   const bookable = rs.filter((r) => !(r.useTypes || []).includes('facility'));
   const roomsMissingCap = bookable.filter((r) => !Number.isFinite(r.capacity) || r.capacity == null);
@@ -62,7 +67,7 @@ export function conferenceSetupSteps({ conference, venues, rooms, sessions, regi
     key: 'venue', title: 'Venue (building)',
     status: south ? 'done' : (vs.length ? 'partial' : 'todo'),
     value: south ? `${south.name}${south.address ? ` — ${south.address}` : ''}` : (vs[0]?.name || '— not set —'),
-    hint: south ? null : 'Add the South Campus Event Center (1109 N 4th Street) as a building.',
+    hint: south ? null : `Add the ${EVENT_CENTER_NAME} — the church's South Campus, 1109 N 4th Street — as a building.`,
   });
 
   const roomNames = rs.map((r) => r.name).join(', ');

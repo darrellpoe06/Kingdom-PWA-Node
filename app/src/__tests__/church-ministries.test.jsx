@@ -21,6 +21,7 @@ import {
 } from '../lib/church-ministries.js';
 import { FEEDBACK_AREAS } from '../components/FeedbackCenter.jsx';
 import { SURFACES } from '../surfaces.js';
+import { EVENT_CENTER_NAME, EVENT_CENTER_NAME_CONFIRMED } from '../lib/venue-rental.js';
 import { ChurchMinistries } from '../components/ChurchMinistries.jsx';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -185,11 +186,32 @@ describe('one name, one meaning (Darrell 2026-09-11)', () => {
 
   it('"Event Center" survives ONLY as the building, never as a panel heading', () => {
     const src = read('components/EventCenterModule.jsx');
-    // Every remaining mention must be the building's own name.
+    // Every remaining mention must be the building's own name — which is now
+    // carried by ONE constant (EVENT_CENTER_NAME), so the assertion follows a
+    // correction to the spelling instead of pinning a stale string.
     const mentions = src.split('\n').filter((l) => /Event Center/.test(l) && !l.trim().startsWith('//'));
     for (const line of mentions) {
-      expect(line, line.trim()).toMatch(/South Campus Event Center/);
+      expect(line, line.trim()).toMatch(/EVENT_CENTER_NAME|Whole Event Center/);
     }
+  });
+
+  it('the building is named for the person it honors, from ONE constant', () => {
+    // VERIFIED against the church's own page (screenshotted by Darrell when
+    // this session's egress blocked the domain): the banner reads "E-MEG
+    // CHRISTIAN CENTER" and the contact block spells out "EVANGELIST MARY E.
+    // GWIN CHRISTIAN CENTER". It corrected the first recollection twice — the
+    // middle initial, and Christian Center rather than Event Center.
+    expect(EVENT_CENTER_NAME).toBe('Evangelist Mary E. Gwin Christian Center');
+    // And it IS confirmed now — the page was read, so the flag says so.
+    expect(EVENT_CENTER_NAME_CONFIRMED).toBe(true);
+  });
+
+  it('the geography survives too — it is still the South Campus', () => {
+    // Renaming the building must not lose where it is; the conference setup
+    // checklist finds the venue by EITHER name, so existing instances keep
+    // resolving instead of silently reading "venue not set".
+    expect(read('lib/conference-setup.js')).toMatch(/south campus\|gwin/i);
+    expect(read('lib/default-church.js')).toMatch(/E-MEG Christian Center \(South Campus\)/);
   });
 
   it('names the panel for what it actually holds', () => {
@@ -214,6 +236,6 @@ describe('one name, one meaning (Darrell 2026-09-11)', () => {
 
   it('PROVEN-TO-CATCH: a heading that re-uses the building name fails here', () => {
     const fake = '  <div className="x">Event Center</div>';
-    expect(fake).not.toMatch(/South Campus Event Center/);
+    expect(fake).not.toMatch(/EVENT_CENTER_NAME/);
   });
 });
