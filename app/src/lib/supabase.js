@@ -43,7 +43,16 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     // Persist the session so signed-in users stay signed in across reloads
     // and across PWA app launches. Family + church users sign in once.
     persistSession: true,
-    storage: window.localStorage,
+    // Guarded like every other window read in this file (there are four more
+    // below). Reaching for window.localStorage at MODULE EVALUATION means this
+    // module cannot be imported anywhere window is absent — a node-environment
+    // test, an SSR render, or, the way it actually bit: a lazily-imported
+    // component whose import promise resolved AFTER vitest tore the jsdom
+    // environment down, which failed the whole CI job with 13,754 tests green
+    // and nothing red. Undefined here is not a downgrade: supabase-js falls
+    // back to its own in-memory store, which is the right thing in every
+    // context that has no browser to persist to.
+    storage: (typeof window !== 'undefined' && window.localStorage) ? window.localStorage : undefined,
 
     // Refresh the access token automatically in the background so a phone
     // left signed-in for a week still has a valid token when picked up.

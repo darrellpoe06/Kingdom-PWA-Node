@@ -33,38 +33,61 @@ const pick = (loader, name) =>
 //   nav : 'top' | 'church' | 'books'  — which nav group mounts it
 //   view: the top-level `view ===` id  (for nav:'top' this IS the route id)
 //   sub : the sub-view id within church/books (churchView/booksView), else null
-//   gate: human-readable note on the gate the render switch applies today
-//         (declarative `requires` is migrated onto the registry in Stage 2 —
-//          left descriptive here rather than fabricated; DR-0076)
+//   gate: human-readable note on the gate the render switch applies today —
+//         the prose, for a reader
+//   requires    : the MACHINE-READABLE requirement (lib/surface-access.js
+//                 REQUIREMENTS). Stage 2's declarative gate, no longer deferred.
+//   whenDenied  : 'hide' (the tab is not in the nav at all) or 'lock' (the tab
+//                 is there, dark, saying what it is and who to ask).
+//
+// WHICH OF THE TWO, AND WHY (Darrell 2026-09-11: "not showing tabs unless they
+// are staff or it's black with instructions for access"). The rule applied
+// across the 29 gated surfaces below, so the next one to land has a precedent
+// instead of a coin toss:
+//
+//   'hide'  when the surface's EXISTENCE is not the viewer's business — the
+//           family's own books, CRM, Forecast, Admin, the private Study circle,
+//           the church Observation board. A member of the congregation seeing
+//           "Observation (locked)" learns something about the house that is not
+//           theirs to learn, and there is no version of asking that ends in yes.
+//
+//   'lock'  when a person could legitimately want it and legitimately ask —
+//           Devices, the Infra Plan, the Video Wall, Harvest, church Projects,
+//           and everything that only wants a sign-in. A hidden tab teaches
+//           nothing: somebody who SHOULD have access cannot tell "not for me"
+//           from "broken", and never learns the door was there.
+//
+// `requires` describes the SCREEN. RLS is the wall and holds either way
+// (DR-0060); where the two disagree, the database is right and this is a bug.
 export const SURFACES = [
   // ── top-level surfaces ──────────────────────────────────────────────────
   { id: 'about',        label: 'About',            nav: 'top', view: 'about',        sub: null,          load: () => import('./components/About.jsx') },
   { id: 'rentals',      label: 'Rentals',          nav: 'top', view: 'rentals',      sub: null,          load: pick(() => import('./components/Rentals.jsx'), 'Rentals') },
-  { id: 'properties',   label: 'Properties',       nav: 'top', view: 'properties',   sub: null,          gate: 'any signed-in person — RLS decides which doors they see (DR-0313)', load: pick(() => import('./modules/properties/index.js'), 'PropertiesApp') },
+  { id: 'properties',   label: 'Properties',       nav: 'top', view: 'properties',   sub: null,          requires: 'signed-in', whenDenied: 'lock', gate: 'any signed-in person — RLS decides which doors they see (DR-0313)', load: pick(() => import('./modules/properties/index.js'), 'PropertiesApp') },
   { id: 'markets',      label: 'Markets',          nav: 'top', view: 'markets',      sub: null,          load: pick(() => import('./components/Markets.jsx'), 'Markets') },
-  { id: 'practice',     label: 'Practice',         nav: 'top', view: 'practice',     sub: null,          gate: 'tier: VIEW_TIER_REQUIREMENTS.practice',     load: pick(() => import('./components/Practice.jsx'), 'Practice') },
-  { id: 'opportunities',label: 'Opportunities',    nav: 'top', view: 'opportunities',sub: null,          gate: 'tier: VIEW_TIER_REQUIREMENTS.opportunities', load: pick(() => import('./components/DevOps.jsx'), 'Opportunities') },
+  { id: 'practice',     label: 'Practice',         nav: 'top', view: 'practice',     sub: null,          requires: 'family', whenDenied: 'hide', gate: 'tier: VIEW_TIER_REQUIREMENTS.practice',     load: pick(() => import('./components/Practice.jsx'), 'Practice') },
+  { id: 'opportunities',label: 'Opportunities',    nav: 'top', view: 'opportunities',sub: null,          requires: 'family', whenDenied: 'hide', gate: 'tier: VIEW_TIER_REQUIREMENTS.opportunities', load: pick(() => import('./components/DevOps.jsx'), 'Opportunities') },
   { id: 'notes',        label: 'Notes',            nav: 'top', view: 'notes',        sub: null,          load: pick(() => import('./components/ThinkingSpace.jsx'), 'ThinkingSpace') },
   { id: 'create',       label: 'Create',           nav: 'top', view: 'create',       sub: null,          load: () => import('./components/CreationWorkspace.jsx') },
   { id: 'voice',        label: 'Voice',            nav: 'top', view: 'voice',        sub: null,          load: () => import('./components/VoiceStudio.jsx') },
-  { id: 'scribe',       label: 'Scribe',           nav: 'top', view: 'scribe',       sub: null,          gate: 'family/governor',                            load: () => import('./components/WorkflowScribe.jsx') },
-  { id: 'library',      label: 'Library',          nav: 'top', view: 'library',      sub: null,          gate: 'reader: any signed-in; Studio (build): family/governor', load: () => import('./components/Library.jsx') },
-  { id: 'study',        label: 'Study',            nav: 'top', view: 'study',        sub: null,          gate: 'isStudyCircle',                              load: () => import('./components/Study.jsx') },
-  { id: 'center',       label: 'Command & Serve',  nav: 'top', view: 'center',       sub: null,          gate: 'family/governor',                            load: () => import('./components/CommandServeCenter.jsx') },
-  { id: 'crm',          label: 'CRM',              nav: 'top', view: 'crm',          sub: null,          gate: 'family/governor',                            load: pick(() => import('./components/CRM.jsx'), 'CRM') },
-  { id: 'relationships',label: 'Relationships',    nav: 'top', view: 'relationships',sub: null,          gate: 'family/governor OR business tier (DR-0128)', load: pick(() => import('./components/Relationships.jsx'), 'Relationships') },
-  { id: 'inventory',    label: 'Inventory',        nav: 'top', view: 'inventory',    sub: null,          gate: 'family/governor',                            load: () => import('./components/Inventory.jsx') },
-  { id: 'forecast',     label: 'Forecast',         nav: 'top', view: 'forecast',     sub: null,          gate: 'family/governor',                            load: () => import('./components/Forecast.jsx') },
+  { id: 'scribe',       label: 'Scribe',           nav: 'top', view: 'scribe',       sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor',                            load: () => import('./components/WorkflowScribe.jsx') },
+  { id: 'library',      label: 'Library',          nav: 'top', view: 'library',      sub: null,          requires: 'signed-in', whenDenied: 'lock', gate: 'reader: any signed-in; Studio (build): family/governor', load: () => import('./components/Library.jsx') },
+  { id: 'study',        label: 'Study',            nav: 'top', view: 'study',        sub: null,          requires: 'study-circle', whenDenied: 'hide', gate: 'isStudyCircle',                              load: () => import('./components/Study.jsx') },
+  { id: 'center',       label: 'Command & Serve',  nav: 'top', view: 'center',       sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor',                            load: () => import('./components/CommandServeCenter.jsx') },
+  { id: 'crm',          label: 'CRM',              nav: 'top', view: 'crm',          sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor',                            load: pick(() => import('./components/CRM.jsx'), 'CRM') },
+  { id: 'relationships',label: 'Relationships',    nav: 'top', view: 'relationships',sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor OR business tier (DR-0128)', load: pick(() => import('./components/Relationships.jsx'), 'Relationships') },
+  { id: 'inventory',    label: 'Inventory',        nav: 'top', view: 'inventory',    sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor',                            load: () => import('./components/Inventory.jsx') },
+  { id: 'forecast',     label: 'Forecast',         nav: 'top', view: 'forecast',     sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor',                            load: () => import('./components/Forecast.jsx') },
   // Admin absorbed the users/usage report (the former 'access' surface) into ONE
   // report and retired the separate Access tab (Darrell 2026-07-04). AdminConsole
   // now renders AccessUsageMetrics directly; there is no standalone 'access' route.
-  { id: 'admin',        label: 'Admin',            nav: 'top', view: 'admin',        sub: null,          gate: 'family/governor',                            load: () => import('./components/AdminConsole.jsx') },
-  { id: 'moore',        label: 'Moore Divahs',     nav: 'top', view: 'moore',        sub: null,          gate: 'family/governor',                            load: () => import('./components/MooreDivahs.jsx') },
-  { id: 'cohorts',      label: 'Academy',          nav: 'top', view: 'cohorts',      sub: null,          gate: 'family/governor OR business tier',           load: () => import('./components/CohortPrograms.jsx') },
-  { id: 'tlc-assistant',label: 'Assistant',        nav: 'top', view: 'tlc-assistant',sub: null,          gate: 'family/governor OR business tier',           load: () => import('./components/TlcAssistant.jsx') },
-  { id: 'tlc-onboarding',label: 'Onboarding',      nav: 'top', view: 'tlc',          sub: 'onboard',     gate: 'family/governor OR business tier; office owner/admin inside (DR-0344)', load: () => import('./components/TlcOnboarding.jsx') },
+  { id: 'admin',        label: 'Admin',            nav: 'top', view: 'admin',        sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor',                            load: () => import('./components/AdminConsole.jsx') },
+  { id: 'moore',        label: 'Moore Divahs',     nav: 'top', view: 'moore',        sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor',                            load: () => import('./components/MooreDivahs.jsx') },
+  { id: 'cohorts',      label: 'Academy',          nav: 'top', view: 'cohorts',      sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor OR business tier',           load: () => import('./components/CohortPrograms.jsx') },
+  { id: 'tlc-assistant',label: 'Assistant',        nav: 'top', view: 'tlc-assistant',sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor OR business tier',           load: () => import('./components/TlcAssistant.jsx') },
+  { id: 'tlc-onboarding',label: 'Onboarding',      nav: 'top', view: 'tlc',          sub: 'onboard',     requires: 'family', whenDenied: 'hide', gate: 'family/governor OR business tier; office owner/admin inside (DR-0344)', load: () => import('./components/TlcOnboarding.jsx') },
   { id: 'recipes',      label: "Chef's Corner",    nav: 'top', view: 'recipes',      sub: null,          load: () => import('./components/ChefCorner.jsx') },
-  { id: 'health',       label: 'Road to 150',      nav: 'top', view: 'health',       sub: null,          gate: 'steward, or enrolled in a program (canSeeHealthTab)', load: () => import('./components/RoadTo150.jsx') },
+  { id: 'health',       label: 'Road to 150',      nav: 'top', view: 'health',       sub: null,          requires: 'signed-in', whenDenied: 'lock', gate: 'steward, or enrolled in a program (canSeeHealthTab)', load: () => import('./components/RoadTo150.jsx') },
   { id: 'games',        label: 'Games',            nav: 'top', view: 'games',        sub: null,          load: () => import('./components/Games.jsx') },
   { id: 'messages',     label: 'Messages',         nav: 'top', view: 'messages',     sub: null,          load: () => import('./components/Messages.jsx') },
   { id: 'tvtime',       label: 'TV Time',          nav: 'top', view: 'tvtime',       sub: null,          load: () => import('./components/TVTime.jsx') },
@@ -78,29 +101,29 @@ export const SURFACES = [
   { id: 'program',          label: 'Service Program', nav: 'church', view: 'church', sub: 'program',  load: () => import('./components/ServiceProgram.jsx') },
   { id: 'pulpit',           label: 'Pulpit',        nav: 'church', view: 'church', sub: 'pulpit',     load: () => import('./components/Pulpit.jsx') },
   { id: 'scripture',        label: 'Scripture',     nav: 'church', view: 'church', sub: 'scripture',  load: () => import('./components/ScriptureLibrary.jsx') },
-  { id: 'videowall',        label: 'Video Wall',    nav: 'church', view: 'church', sub: 'videowall',  gate: 'isChurchStaff', load: () => import('./components/ChurchVideoWall.jsx') },
-  { id: 'devices',          label: 'Devices',       nav: 'church', view: 'church', sub: 'devices',    gate: 'isChurchStaff', load: () => import('./components/DeviceInventory.jsx') },
-  { id: 'infra-plan',       label: 'Infra Plan',    nav: 'church', view: 'church', sub: 'infra-plan', gate: 'isChurchStaff', load: () => import('./components/ChurchInfraPlan.jsx') },
-  { id: 'harvest',          label: 'Harvest',       nav: 'church', view: 'church', sub: 'harvest',    gate: 'isChurchStaff', load: () => import('./components/HarvestLedger.jsx') },
-  { id: 'observe',          label: 'Observation',   nav: 'church', view: 'church', sub: 'observe',    gate: 'isChurchStaff', load: pick(() => import('./components/ChurchObservation.jsx'), 'ChurchObservation') },
+  { id: 'videowall',        label: 'Video Wall',    nav: 'church', view: 'church', sub: 'videowall',  requires: 'church-staff', whenDenied: 'lock', gate: 'isChurchStaff', load: () => import('./components/ChurchVideoWall.jsx') },
+  { id: 'devices',          label: 'Devices',       nav: 'church', view: 'church', sub: 'devices',    requires: 'church-staff', whenDenied: 'lock', gate: 'isChurchStaff', load: () => import('./components/DeviceInventory.jsx') },
+  { id: 'infra-plan',       label: 'Infra Plan',    nav: 'church', view: 'church', sub: 'infra-plan', requires: 'church-staff', whenDenied: 'lock', gate: 'isChurchStaff', load: () => import('./components/ChurchInfraPlan.jsx') },
+  { id: 'harvest',          label: 'Harvest',       nav: 'church', view: 'church', sub: 'harvest',    requires: 'church-staff', whenDenied: 'lock', gate: 'isChurchStaff', load: () => import('./components/HarvestLedger.jsx') },
+  { id: 'observe',          label: 'Observation',   nav: 'church', view: 'church', sub: 'observe',    requires: 'church-staff', whenDenied: 'hide', gate: 'isChurchStaff', load: pick(() => import('./components/ChurchObservation.jsx'), 'ChurchObservation') },
   { id: 'learn',            label: 'Learn',         nav: 'church', view: 'church', sub: 'learn',      load: () => import('./components/ChurchLearn.jsx') },
   { id: 'eternal-algorithms', label: 'Eternal Algorithms', nav: 'church', view: 'church', sub: 'eternal-algorithms', load: () => import('./components/EternalAlgorithmsStudy.jsx') },
   { id: 'conference',       label: 'Conference',    nav: 'church', view: 'church', sub: 'conference', load: pick(() => import('./components/ConferenceModule.jsx'), 'ConferenceModule') },
   { id: 'conference-var',   label: 'Conference Variance', nav: 'church', view: 'church', sub: 'conference', load: pick(() => import('./components/ConferenceVariance.jsx'), 'ConferenceVariance') },
   { id: 'event-center',     label: 'Event Center',  nav: 'church', view: 'church', sub: 'conference', load: pick(() => import('./components/EventCenterModule.jsx'), 'EventCenterModule') },
   { id: 'events',           label: 'Campus Rentals', nav: 'church', view: 'church', sub: 'events',     load: () => import('./components/EventManagement.jsx') },
-  { id: 'church-projects',  label: 'Projects',      nav: 'church', view: 'church', sub: 'projects',   gate: 'isChurchStaff (read-only otherwise)', load: () => import('./components/ChurchProjects.jsx') },
-  { id: 'ministries',       label: 'Ministries',    nav: 'church', view: 'church', sub: 'ministries', gate: 'any church viewer — the directory of the house', load: pick(() => import('./components/ChurchMinistries.jsx'), 'ChurchMinistries') },
-  { id: 'bus',              label: 'Bus Ministry',  nav: 'church', view: 'church', sub: 'bus',        gate: 'bus-ministry member (owner/admin OR bus_drivers row)', load: () => import('./components/BusMinistry.jsx') },
-  { id: 'my-record',        label: 'My Record',     nav: 'church', view: 'church', sub: 'my-record',  gate: 'any signed-in member reads and fills THEIR OWN record; the roll area inside is church owner/admin and the DB is the wall (0209)', load: () => import('./components/ChurchMemberSpace.jsx') },
-  { id: 'church-members',   label: 'Members',       nav: 'church', view: 'church', sub: 'members',    gate: 'signed-in sees the way in; church owner/admin (list_my_admin_instances) governs — the DB is the wall (DR-0348)', load: () => import('./components/ChurchMembers.jsx') },
+  { id: 'church-projects',  label: 'Projects',      nav: 'church', view: 'church', sub: 'projects',   requires: 'church-staff', whenDenied: 'lock', gate: 'isChurchStaff (read-only otherwise)', load: () => import('./components/ChurchProjects.jsx') },
+  { id: 'ministries',       label: 'Ministries',    nav: 'church', view: 'church', sub: 'ministries', requires: 'anyone', whenDenied: 'lock', gate: 'any church viewer — the directory of the house', load: pick(() => import('./components/ChurchMinistries.jsx'), 'ChurchMinistries') },
+  { id: 'bus',              label: 'Bus Ministry',  nav: 'church', view: 'church', sub: 'bus',        requires: 'signed-in', whenDenied: 'lock', gate: 'bus-ministry member (owner/admin OR bus_drivers row)', load: () => import('./components/BusMinistry.jsx') },
+  { id: 'my-record',        label: 'My Record',     nav: 'church', view: 'church', sub: 'my-record',  requires: 'signed-in', whenDenied: 'lock', gate: 'any signed-in member reads and fills THEIR OWN record; the roll area inside is church owner/admin and the DB is the wall (0209)', load: () => import('./components/ChurchMemberSpace.jsx') },
+  { id: 'church-members',   label: 'Members',       nav: 'church', view: 'church', sub: 'members',    requires: 'signed-in', whenDenied: 'lock', gate: 'signed-in sees the way in; church owner/admin (list_my_admin_instances) governs — the DB is the wall (DR-0348)', load: () => import('./components/ChurchMembers.jsx') },
 
   // ── books sub-surfaces (view === 'books', booksView === sub) ────────────
   { id: 'transactions', label: 'Transactions', nav: 'books', view: 'books', sub: 'transactions', load: () => import('./components/BooksTransactions.jsx') },
   { id: 'cart',  label: 'Subscriptions', nav: 'books', view: 'books', sub: 'cart',  load: pick(() => import('./components/Cart.jsx'), 'Cart') },
   { id: 'k1099', label: '1099',          nav: 'books', view: 'books', sub: 'k1099', load: pick(() => import('./components/Contractors1099.jsx'), 'Contractors1099') },
-  { id: 'owed',  label: 'Owed',          nav: 'books', view: 'books', sub: 'owed',  gate: 'owner or admin (books wall, 0082/0100 + 0202/0203)', load: pick(() => import('./components/Obligations.jsx'), 'Obligations') },
-  { id: 'plan',  label: 'Plan',          nav: 'books', view: 'books', sub: 'plan',  gate: 'instance member (family_plans RLS)', load: pick(() => import('./components/FamilyPlan.jsx'), 'FamilyPlan') },
+  { id: 'owed',  label: 'Owed',          nav: 'books', view: 'books', sub: 'owed',  requires: 'instance-owner-admin', whenDenied: 'lock', gate: 'owner or admin (books wall, 0082/0100 + 0202/0203)', load: pick(() => import('./components/Obligations.jsx'), 'Obligations') },
+  { id: 'plan',  label: 'Plan',          nav: 'books', view: 'books', sub: 'plan',  requires: 'signed-in', whenDenied: 'lock', gate: 'instance member (family_plans RLS)', load: pick(() => import('./components/FamilyPlan.jsx'), 'FamilyPlan') },
 ];
 
 // Derive each lazy component ONCE from its loader and hang it on the entry.

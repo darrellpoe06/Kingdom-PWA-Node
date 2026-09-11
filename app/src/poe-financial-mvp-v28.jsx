@@ -4,6 +4,7 @@ import { SectionTitle, MetricCell, TabScroll, NavControls } from './components/s
 // voice) + the optional first-run roadmap tour. lib/help-content.js is the one
 // help registry every surface reads from. Small + always-present chrome, so it
 // rides the initial bundle rather than a lazy chunk.
+import LockedSurface from './components/LockedSurface.jsx';
 import HelpButton from './components/HelpButton.jsx';
 import HelpWalkthrough from './components/HelpWalkthrough.jsx';
 import { UpdatePrompt, InstallPrompt } from './components/PwaPrompts.jsx';
@@ -153,7 +154,7 @@ import {
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
   CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library,
   Inventory, Forecast, AdminConsole, ChefCorner, RoadTo150, Games, TVTime, Messages, AdvocacyCases, DataLiberation,
-  EternalAlgorithmsStudy, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, Relationships,
+  surfaceById, EternalAlgorithmsStudy, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { useInstanceRole } from './lib/instance-role.js';
@@ -1234,6 +1235,7 @@ export default function PoeFinancialSystem() {
   // any other view (deep-links included) steers back to the workspace.
   const instanceRoleState = useInstanceRole();
   const isAssistantAcct = !reviewerMode && !isFamilyMember && !!authSession && instanceRoleState.role === 'assistant';
+  const surfaceViewer = { signedIn: !!authSession, isFamilyMember, isChurchStaff, isStudyCircle, instanceRole: instanceRoleState.role || '', reviewerMode };  // lib/surface-access.js
   useEffect(() => {
     if (isAssistantAcct && !['tlc-assistant', 'messages', 'about'].includes(view)) setView('tlc-assistant');
   }, [isAssistantAcct, view]);
@@ -4539,23 +4541,23 @@ ${THEME_CSS}
             (one-source-many-harvests). Staff-gated; RLS read = choir (0050). */}
         {view === 'church' && churchView === 'harvest' && (isChurchStaff
           ? <HarvestLedger />
-          : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Harvest Ledger is for church staff. Sign in with a church staff account to view it.</div>)}
+          : <LockedSurface surface={surfaceById['harvest']} viewer={surfaceViewer} what="Every recording the church has ingested, and everything that has been mined out of it — so no video is lost." />)}
         {view === 'church' && churchView === 'videowall' && (isChurchStaff
           ? <ChurchVideoWall />
-          : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Video Wall capital project holds church financial data. Sign in with a church staff account to view it.</div>)}
+          : <LockedSurface surface={surfaceById['videowall']} viewer={surfaceViewer} what="The video wall capital project: what it costs, what is bought, and what is still needed. It carries church financial figures." />)}
         {/* Device Inventory: the asset register for church infrastructure +
             the idle-GPU compute pool (capability index). Staff-gated; RLS
             scopes church_devices (0056). The capability fields feed the
             deterministic, brake-gated gpu-scheduler (ships inert). */}
         {view === 'church' && churchView === 'devices' && (isChurchStaff
           ? <DeviceInventory />
-          : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Device Inventory is church infrastructure data. Sign in with a church staff account to view it.</div>)}
+          : <LockedSurface surface={surfaceById['devices']} viewer={surfaceViewer} what="The register of what the church owns and runs — cameras, screens, machines — and what each one can do." />)}
         {view === 'church' && churchView === 'infra-plan' && (isChurchStaff
           ? <ChurchInfraPlan />
-          : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Infrastructure Plan is church staff data. Sign in with a church staff account to view it.</div>)}
+          : <LockedSurface surface={surfaceById['infra-plan']} viewer={surfaceViewer} what="The plan for the church's own systems: what is standing, what is next, and what each step depends on." />)}
         {view === 'church' && churchView === 'observe' && (isChurchStaff
           ? <ChurchObservation observation={data.churchObservation} updateChurchObservation={updateChurchObservation} />
-          : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Observation board is for church staff only. Sign in with a church staff account to view it.</div>)}
+          : <LockedSurface surface={surfaceById['observe']} viewer={surfaceViewer} />)}
         {view === 'church' && churchView === 'learn' && (() => {
           // Resolve the cohort a learner SEES: the Governor's live in-instance
           // value when present, else the PUBLISHED confirmed date every build
