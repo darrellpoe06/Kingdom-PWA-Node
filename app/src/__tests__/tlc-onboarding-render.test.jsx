@@ -102,17 +102,37 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let container, root;
 async function mount(el) { container = document.createElement('div'); document.body.appendChild(container); await act(async () => { root = createRoot(container); root.render(el); }); }
 afterEach(async () => { if (root) await act(async () => root.unmount()); if (container) container.remove(); root = null; container = null; sent.saves.length = 0; sent.reviews.length = 0; sent.invites.length = 0; sent.rosterUpserts.length = 0; sent.launch.length = 0; sent.roles.length = 0; sent.spaceInvites.length = 0; sent.patches.length = 0; sent.invitePatches.length = 0; openStatus = 'draft'; roleState = { instanceId: 'i1', instanceSlug: 'poe-family', instanceType: 'family', role: 'admin', loaded: true }; packetStatus = null; window.history.replaceState(null, '', '/'); });
-// Six microtask ticks is not enough under a loaded full-suite run: this file
-// went red twice on 2026-09-11, at two DIFFERENT call sites, because a panel
-// had not rendered when the next click looked for it. The mocked sync seams
-// resolve promises AND the component schedules work behind them, so settling
-// has to drain macrotasks too, not just the microtask queue. One helper, so
-// every call site is fixed rather than the one that happened to fail.
-const settle = () => act(async () => {
+// settle — wait until the render has actually STOPPED, not for a fixed count.
+//
+// The history here is the whole argument. Six microtask ticks went red under a
+// loaded full-suite run; twenty ticks plus a macrotask turn went red too, at a
+// third call site, once this branch's extra test files pushed concurrency
+// further still (2026-09-11). Every one of those failures was the same shape —
+// a panel had not rendered when the next click looked for it — and every fix
+// was a bigger magic number. A bigger number is not a fix; it is a bet that the
+// machine will not be busier tomorrow, and that bet keeps losing.
+//
+// So stop guessing. Flush micro- and macrotasks in a loop and stop when the
+// rendered DOM is IDENTICAL two passes running — the component is done doing
+// work — with a deadline so a genuinely stuck render still fails the test
+// instead of hanging it. On a quiet machine this costs one extra pass; on a
+// loaded one it simply loops until the work lands. Deterministic either way,
+// and there is no number left to tune.
+const flush = () => act(async () => {
   for (let i = 0; i < 20; i += 1) await Promise.resolve();
   await new Promise((r) => { setTimeout(r, 0); });
   for (let i = 0; i < 20; i += 1) await Promise.resolve();
 });
+const settle = async (timeoutMs = 5000) => {
+  const deadline = Date.now() + timeoutMs;
+  let prev = null;
+  for (;;) {
+    await flush();
+    const now = container ? container.innerHTML : '';
+    if (now === prev || Date.now() > deadline) return;
+    prev = now;
+  }
+};
 // A click target that has not rendered yet used to surface as a cryptic
 // "Cannot read properties of undefined (reading 'dispatchEvent')". Under a
 // loaded full-suite run that happens; name it instead (seen 2026-09-11).
