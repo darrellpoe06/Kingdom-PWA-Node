@@ -102,7 +102,24 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let container, root;
 async function mount(el) { container = document.createElement('div'); document.body.appendChild(container); await act(async () => { root = createRoot(container); root.render(el); }); }
 afterEach(async () => { if (root) await act(async () => root.unmount()); if (container) container.remove(); root = null; container = null; sent.saves.length = 0; sent.reviews.length = 0; sent.invites.length = 0; sent.rosterUpserts.length = 0; sent.launch.length = 0; sent.roles.length = 0; sent.spaceInvites.length = 0; sent.patches.length = 0; sent.invitePatches.length = 0; openStatus = 'draft'; roleState = { instanceId: 'i1', instanceSlug: 'poe-family', instanceType: 'family', role: 'admin', loaded: true }; packetStatus = null; window.history.replaceState(null, '', '/'); });
-const settle = () => act(async () => { for (let i = 0; i < 6; i += 1) await Promise.resolve(); });
+// settle — let the component's async work actually finish before the next query.
+//
+// This used to spin a FIXED six microtask ticks, which only holds while the
+// chain behind a step stays shorter than six links. Under full-suite
+// concurrency it does not: on 2026-09-11 a DIFFERENT step in this file failed
+// on each full run (byText returning undefined, so click(undefined) threw)
+// while the file passed 3/3 in isolation. Nothing about the component changed
+// — the load profile did.
+//
+// So yield a macrotask turn as well, which flushes promises resolved behind a
+// timer or an I/O-shaped mock plus the effects they schedule, with microtasks
+// drained either side of it. Same assertions, same steps; it just no longer
+// races the render.
+const settle = () => act(async () => {
+  for (let i = 0; i < 6; i += 1) await Promise.resolve();
+  await new Promise((r) => setTimeout(r, 0));
+  for (let i = 0; i < 6; i += 1) await Promise.resolve();
+});
 const click = (el) => act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
 const byText = (re, tag = 'button') => Array.from(container.querySelectorAll(tag)).find((b) => re.test(b.textContent));
 // A second-row area chip (Darrell 2026-09-10: "another tab slider for each section").
