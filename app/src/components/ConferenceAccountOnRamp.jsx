@@ -20,6 +20,7 @@
 import React, { useEffect, useState } from 'react';
 import supabase, { signInWithGoogle, signUpWithPassword, validateCredentials } from '../lib/supabase.js';
 import { signInWithGooglePopup } from '../lib/oauth-popup.js';
+import { primeAuthProviders, guardProviderCached } from '../lib/auth-providers.js';
 import { setPendingConferenceLink, resolvePendingConferenceLink, claimConferenceRegistration } from '../lib/conference-link.js';
 
 const labelCls = 'block text-xs font-semibold text-[#1A1815] mb-1';
@@ -35,6 +36,9 @@ export default function ConferenceAccountOnRamp({ regId = null, name = '', email
   // just-made registration straight to their account — no need to offer sign-up.
   useEffect(() => {
     let cancelled = false;
+    // Which social providers are actually live — primed here so the Google
+    // button's gate can read it synchronously later (lib/auth-providers.js).
+    primeAuthProviders();
     (async () => {
       try {
         const { data } = await supabase.auth.getSession();
@@ -56,6 +60,15 @@ export default function ConferenceAccountOnRamp({ regId = null, name = '', email
 
   const startGoogle = async () => {
     setError('');
+
+    // Check what GoTrue said about Google before sending anyone to it
+    // (2026-09-11) — see lib/auth-providers.js. Read from the probe primed on
+    // mount, synchronously, so the popup keeps its user gesture. Checked
+    // BEFORE the link is parked, so a provider that is switched off leaves no
+    // orphaned pending claim behind. Not yet known means proceed.
+    const gate = guardProviderCached('google');
+    if (!gate.ok) { setError(gate.message); return; }
+
     // Park the link FIRST so it resolves whether we sign in via the in-place
     // popup OR fall back to a full-page redirect.
     setPendingConferenceLink(regId);

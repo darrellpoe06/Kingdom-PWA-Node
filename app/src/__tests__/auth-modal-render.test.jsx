@@ -35,6 +35,7 @@ vi.mock('../lib/oauth-popup.js', () => ({
 import AuthModal from '../components/AuthModal.jsx';
 import { signInWithGooglePopup } from '../lib/oauth-popup.js';
 import { signInWithGoogle } from '../lib/supabase.js';
+import { primeAuthProviders, resetAuthProvidersCache } from '../lib/auth-providers.js';
 
 let container, root;
 async function mount(props) {
@@ -122,5 +123,63 @@ describe('AuthModal — the quiet in-app sign-in dialog', () => {
   it('renders nothing when closed', async () => {
     await mount({ open: false });
     expect(document.body.querySelector('[role="dialog"]')).toBeNull();
+  });
+
+  // ---------------------------------------------------------------------
+  // 2026-09-11, 11:58am, in a church meeting: "Continue with Google" opened
+  // a popup containing GoTrue's raw 400 JSON -- "Unsupported provider:
+  // provider is not enabled" -- and the dialog itself showed nothing at all.
+  // These mount the REAL dialog against the REAL provider probe (only the
+  // network is stubbed) and prove what a member now sees instead. DR-0360.
+  // ---------------------------------------------------------------------
+  describe('a provider GoTrue has switched off is never navigated to', () => {
+    const stubSettings = (external) => {
+      globalThis.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ external }) }));
+    };
+    let realFetch;
+    beforeEach(() => { realFetch = globalThis.fetch; resetAuthProvidersCache(); });
+    afterEach(() => { globalThis.fetch = realFetch; resetAuthProvidersCache(); });
+
+    it('google:false => a readable message, and NOTHING navigates', async () => {
+      stubSettings({ google: false, email: true });
+      await primeAuthProviders();            // what the dialog does on open
+      h.popupResult = { ok: true };          // would succeed if it were reached
+      await mount({});
+      await act(async () => { q(/Continue with Google/i).click(); });
+
+      // The two dead ends, both closed:
+      expect(signInWithGooglePopup, 'must not open a popup on a dead provider').not.toHaveBeenCalled();
+      expect(signInWithGoogle, 'must not full-page redirect to a dead provider').not.toHaveBeenCalled();
+
+      // And the member is told, in words, with somewhere to go.
+      const alert = document.body.querySelector('[role="alert"]');
+      expect(alert, 'a blocked sign-in must say so').not.toBeNull();
+      expect(alert.textContent).toMatch(/Google/);
+      expect(alert.textContent).toMatch(/email/i);
+      expect(alert.textContent, 'never show a person a raw error code').not.toMatch(/validation_failed|Unsupported provider/);
+
+      // The way in that works is still on screen beneath it.
+      expect(document.body.querySelector('input[type="password"]')).not.toBeNull();
+    });
+
+    it('google:true => the popup opens exactly as before', async () => {
+      stubSettings({ google: true, email: true });
+      await primeAuthProviders();
+      h.popupResult = { ok: true };
+      let signedIn = false;
+      await mount({ onSignedIn: () => { signedIn = true; } });
+      await act(async () => { q(/Continue with Google/i).click(); });
+      expect(signInWithGooglePopup).toHaveBeenCalled();
+      expect(signedIn).toBe(true);
+    });
+
+    it('an unreachable probe must NOT take the button away (no lockout)', async () => {
+      globalThis.fetch = vi.fn(async () => { throw new Error('offline'); });
+      await primeAuthProviders();
+      h.popupResult = { ok: true };
+      await mount({});
+      await act(async () => { q(/Continue with Google/i).click(); });
+      expect(signInWithGooglePopup, 'unknown must behave exactly as before the guard existed').toHaveBeenCalled();
+    });
   });
 });
