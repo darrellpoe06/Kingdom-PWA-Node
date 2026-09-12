@@ -124,10 +124,13 @@ export function lessonCopyBlock(module, { url = '', level = 'standard' } = {}) {
   // Shared text carries the same numbered-section structure as the screen
   // (Darrell 2026-08-25: "the text when sharing needs the same clean up so
   // there are breaks in the flow of words") — breaks only, never a changed word.
+  // The big idea is the THESIS, unnumbered; the body carries the lesson's one
+  // chronological run of points, so the block never restarts its count
+  // (Darrell 2026-08-25: "never starting over inside the same lesson").
   const out = [
     line(module.title),
     '',
-    lessonShareText(line(module.bigIdea)),
+    lessonShareText(line(module.bigIdea), { numbered: false }),
     '',
     lessonShareText(line(body)),
   ];

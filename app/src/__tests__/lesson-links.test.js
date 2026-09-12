@@ -128,6 +128,18 @@ describe('a copied lesson is the lesson', () => {
     expect(flat(teen)).toContain(flat(lesson.levels.teen));
   });
 
+  it('the block carries ONE chronological run of points — never restarting (Darrell 2026-08-25)', () => {
+    // "1-3 and restarting 1-3 again in the same lesson is very confusing...
+    // never starting over inside the same lesson." The big idea is the
+    // unnumbered thesis; the body owns the block's single 1..N sequence.
+    const block = lessonCopyBlock(lesson);
+    const ns = block.split('\n')
+      .map((r) => { const m = /^(\d+)\. /.exec(r); return m ? Number(m[1]) : null; })
+      .filter((n) => n != null);
+    expect(ns.length).toBeGreaterThanOrEqual(3);
+    expect(ns).toEqual(Array.from({ length: ns.length }, (_, k) => k + 1));
+  });
+
   it('no module, no block', () => {
     expect(lessonCopyBlock(null)).toBe('');
   });
