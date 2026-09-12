@@ -269,5 +269,13 @@ function mapMemberRows(data) {
     accountCreatedAt: r.created_at ?? null,
     phone: r.phone ?? null,
     emailIsPhoneDoor: r.email_is_phone_door === true,
+    // WHAT THE PERSON THEMSELVES WROTE (0213). contactOf() already preferred
+    // these over anything derived and labelled them "they told us"; until 0213
+    // the server simply never sent them. Only a record that belongs to THIS
+    // person in THIS instance feeds these — never the household's one shared
+    // record, which has no user_id and whose "Best phone" belongs to the
+    // household, not to anybody on this roster.
+    declaredEmail: r.declared_email ?? null,
+    declaredPhone: r.declared_phone ?? null,
   }));
 }

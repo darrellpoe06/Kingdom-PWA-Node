@@ -71,12 +71,26 @@ export function stripComments(sql = '') {
 }
 
 /**
- * Every `CREATE OR REPLACE FUNCTION public.<name>` in one migration, with the
+ * Every `CREATE [OR REPLACE] FUNCTION public.<name>` in one migration, with the
  * dollar-quoted body Postgres will store verbatim.
+ *
+ * `OR REPLACE` IS OPTIONAL, and that is the whole point (widened 2026-09-12).
+ * This witness exists to catch a live definition older than the repo's, and it
+ * was blind to the one case that most needs catching: a migration that changes
+ * a function's RETURN TYPE cannot say CREATE OR REPLACE — Postgres refuses —
+ * so it is forced to write DROP FUNCTION + plain CREATE FUNCTION. 0210 did
+ * exactly that for list_instance_members, five isolation legs reverted it on
+ * the live database, and this witness reported nothing because it never saw
+ * the definition at all.
+ *
+ * It is the same miss as migration-replay-order-guard's, and that is the part
+ * worth remembering: the second instrument inherited the first's idea of what
+ * a redefinition LOOKS like, so one blind spot became two. Both are fixed
+ * together (P55).
  */
 export function functionBodies(sql = '') {
   const out = [];
-  const re = /create\s+or\s+replace\s+function\s+(?:public\.)?([a-z0-9_]+)\s*\(/gi;
+  const re = /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?([a-z0-9_]+)\s*\(/gi;
   let m;
   while ((m = re.exec(sql)) !== null) {
     const name = m[1].toLowerCase();

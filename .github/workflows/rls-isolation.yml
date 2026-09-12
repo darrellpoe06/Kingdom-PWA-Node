@@ -76,10 +76,10 @@ jobs:
           # RLS on instance_id (DR-0060), which is what "each has their own
           # database" means in this system.
           - feature: product-forms
-            migrations: "0200-one-forms-engine-for-every-product-the-office-of-each-instance-edits-its-own-questions-and-documents.sql 0201-the-household-keeps-its-own-record-and-its-own-shelf-of-documents.sql 0202-what-is-owed-what-was-paid-and-the-document-that-proves-it.sql 0203-a-mortgage-in-line-items-and-what-each-door-costs-against-what-it-collects.sql 0204-the-days-post-and-the-child-who-sorts-it.sql 0205-the-sum-rule-refuses-inside-the-function-not-at-commit.sql 0206-the-plan-becomes-rows-the-dated-bills-import-into-the-ledger.sql 0208-the-bus-runs-on-sunday-and-wednesday.sql 0209-the-church-keeps-each-persons-record-and-their-own-shelf.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0211-ask-for-a-tab-and-the-office-decides.sql 0212-a-congregant-could-not-open-their-own-record.sql"
-            smokes: "0200-product-forms-smoke.sql 0201-household-and-vault-smoke.sql 0202-obligations-smoke.sql 0203-door-economics-smoke.sql 0204-the-days-post-smoke.sql 0206-plan-import-smoke.sql 0209-church-record-and-shelf-smoke.sql 0210-signature-door-and-roster-smoke.sql 0211-access-request-smoke.sql"
+            migrations: "0200-one-forms-engine-for-every-product-the-office-of-each-instance-edits-its-own-questions-and-documents.sql 0201-the-household-keeps-its-own-record-and-its-own-shelf-of-documents.sql 0202-what-is-owed-what-was-paid-and-the-document-that-proves-it.sql 0203-a-mortgage-in-line-items-and-what-each-door-costs-against-what-it-collects.sql 0204-the-days-post-and-the-child-who-sorts-it.sql 0205-the-sum-rule-refuses-inside-the-function-not-at-commit.sql 0206-the-plan-becomes-rows-the-dated-bills-import-into-the-ledger.sql 0208-the-bus-runs-on-sunday-and-wednesday.sql 0209-the-church-keeps-each-persons-record-and-their-own-shelf.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0211-ask-for-a-tab-and-the-office-decides.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
+            smokes: "0200-product-forms-smoke.sql 0201-household-and-vault-smoke.sql 0202-obligations-smoke.sql 0203-door-economics-smoke.sql 0204-the-days-post-smoke.sql 0206-plan-import-smoke.sql 0209-church-record-and-shelf-smoke.sql 0210-signature-door-and-roster-smoke.sql 0211-access-request-smoke.sql 0213-roster-declared-contact-smoke.sql"
           - feature: choir-claim
-            migrations: "0110-choir-member-self-claim.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql"
+            migrations: "0110-choir-member-self-claim.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
             smokes: "0110-choir-claim-smoke.sql"
           # 2026-08-24: 0143/0144 legitimately RE-CREATED list_instance_members
           # with new columns (classification, relationship), and CREATE OR
@@ -91,13 +91,13 @@ jobs:
           # holds across the shape change.
           - feature: role-control
             pre: "DROP FUNCTION IF EXISTS public.list_instance_members(uuid);"
-            migrations: "0111-set-member-role.sql 0112-list-my-admin-instances.sql 0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0143-member-worker-classification.sql 0144-standings-at-will-and-the-sons-wall.sql"
+            migrations: "0111-set-member-role.sql 0112-list-my-admin-instances.sql 0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0143-member-worker-classification.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
             smokes: "0111-role-control-smoke.sql"
           - feature: support-door
-            migrations: "0114-governed-support-door.sql 0115-support-user-initiated-self-grant.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql"
+            migrations: "0114-governed-support-door.sql 0115-support-user-initiated-self-grant.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
             smokes: "0114-support-door-smoke.sql 0115-support-self-grant-smoke.sql"
           - feature: viewer-readonly
-            migrations: "0125-viewer-true-readonly-and-invite-target.sql 0126-member-capability-checklist.sql 0181-push-subscriptions-and-the-live-signal.sql 0190-the-viewer-overlay-keeps-the-checklist-a-redefinition-carries-every-earlier-exception.sql 0211-ask-for-a-tab-and-the-office-decides.sql"
+            migrations: "0125-viewer-true-readonly-and-invite-target.sql 0126-member-capability-checklist.sql 0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0181-push-subscriptions-and-the-live-signal.sql 0190-the-viewer-overlay-keeps-the-checklist-a-redefinition-carries-every-earlier-exception.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0211-ask-for-a-tab-and-the-office-decides.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
             smokes: "0125-viewer-readonly-smoke.sql 0126-capability-checklist-smoke.sql 0211-access-request-smoke.sql"
           # Folded in 2026-07-30 (access evaluation): 0127 briefly lived in its
           # own sovereign-noise-thought-isolation.yml — the exact per-feature
@@ -138,7 +138,7 @@ jobs:
             migrations: "0187-tlc-colleague-onboarding-the-intake-packet-lives-in-the-app.sql 0188-tlc-office-tasks-the-launch-board-lives-in-the-app.sql 0189-tlc-lesson-assignments-a-therapist-schedules-a-lesson-for-a-client.sql 0190-the-viewer-overlay-keeps-the-checklist-a-redefinition-carries-every-earlier-exception.sql 0191-tlc-hiring-jobs-posted-on-the-door-applicants-hired-into-onboarding.sql 0192-tlc-hiring-audit-actions-within-the-allow-list-the-smoke-caught-it.sql 0193-tlc-therapy-solutions-runs-in-its-own-instance.sql 0194-by-checking-here-you-agree-the-office-stamps-the-time.sql 0195-join-the-team-the-interest-form-roles-of-interest-and-who-looks-at-what.sql 0196-the-office-edits-its-own-forms-the-intake-questions-and-the-documents-versioned-in-the-app.sql 0197-colleagues-already-on-the-form-a-prefilled-invite-claimed-by-email-at-sign-in.sql 0198-a-cell-for-every-item-on-the-intake-form-the-office-and-the-colleague-fill-any-cell-later.sql 0199-a-check-at-the-bottom-of-every-document-the-colleague-acknowledges-in-place-the-office-stamps-the-time.sql"
             smokes: "0189-tlc-office-smoke.sql 0191-tlc-hiring-smoke.sql 0193-tlc-own-instance-smoke.sql 0194-tlc-acknowledgment-stamp-smoke.sql 0195-tlc-interest-and-views-smoke.sql 0196-tlc-office-forms-smoke.sql 0197-tlc-prefilled-invite-smoke.sql 0198-tlc-cells-smoke.sql 0199-tlc-acknowledge-in-place-smoke.sql"
           - feature: books-role-wall
-            migrations: "0082-successor-role-and-books-rls.sql 0100-assistant-role-and-books-rls.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql"
+            migrations: "0082-successor-role-and-books-rls.sql 0100-assistant-role-and-books-rls.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
             smokes: "0082-successor-books-smoke.sql 0100-assistant-books-smoke.sql"
           # Added 2026-08-04 (DR-0271, Christina's assistant-rights request):
           # the ASSISTANT becomes grantable (invite/role/remove RPCs) and is
@@ -150,7 +150,7 @@ jobs:
           # (inquiries) read as ZERO rows for the assistant. Static shape proof
           # runs every merge in scripts/assistant-scope-guard.mjs.
           - feature: assistant-scope
-            migrations: "0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql"
+            migrations: "0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
             smokes: "0130-assistant-scope-smoke.sql"
     name: isolate — ${{ matrix.feature }}
     steps:
