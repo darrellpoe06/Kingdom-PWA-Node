@@ -73,3 +73,62 @@ While wiring this, `pg_get_function_result` on the live `public.list_instance_me
 - `migration-replay-order.test.js` — 10 tests, including the role-control leg exactly as it stood while production was broken.
 - `member-contact.test.js` — 33 tests, including the household-wall pin.
 - The live restore, verified by reading the function's result type back.
+
+
+---
+
+## CORRECTION, same session (2026-09-12) — three things this record got wrong
+
+Recorded here rather than quietly edited, because the original text is what a
+reader may already have acted on.
+
+**1. "Absent from poetech.us" was NOT established, and I should not have written
+it.** What was measured — repeatedly and correctly — is the **hosted** Supabase
+project (`SUPABASE_DB_URL`). Since 2026-08-19 the app is built against the
+**sovereign** backend: `infra/nas-supabase/REPOINT-ARMED` makes
+`deploy-cloudflare-pages.yml` build with `VITE_SUPABASE_URL=https://poetech.us/sb`
+and an anon key read off the NAS at build time (DR-0310, read in full for this
+correction). `rls-isolation.yml` writes only to `SUPABASE_DB_URL`. So the drift
+was on a database **the app does not read**.
+
+The right severity is therefore: **a regression in the PROOF plane, not a
+demonstrated product outage.** That is still serious — the hosted database is
+what every smoke and `live-definition-witness` judge, so a drifting judge
+undermines every proof built on it — but it is a different claim than the one
+this record made, and the stronger claim was the unverified one.
+
+**2. The trigger was never my manual dispatches.** `db-migrate.yml`'s final
+step is a literal `curl` to `rls-isolation.yml/dispatches` ("Dispatch the
+isolation proofs (all features, one matrix)"). **Every db-migrate run
+re-triggers the whole matrix.** That is why the function reverted twice *after*
+it was restored by hand with no dispatch of mine in between — and it means the
+revert was automatic on every merge touching a migration, which is worse than
+the original account, not better.
+
+**3. The 02:20 matrix legs had all finished by 02:25**, before the 02:26
+restore. The second and third reverts came from the db-migrate-triggered runs at
+02:39 and 03:01. The original text attributed them to leftover legs.
+
+### What the fix actually proved
+
+Migration 0213 applied to hosted through the lane with no hand restore
+(13 columns ending `declared_email, declared_phone`). The widened witness passed
+against the real database. `0213-roster-declared-contact-smoke.sql` executed for
+the first time and printed **ROSTER DECLARED CONTACT SMOKE: PASS** at line 139 —
+the whole file, household-leak wall included. And the legs that had been
+reverting it — `role-control`, `choir-claim`, `support-door`, `viewer-readonly` —
+all ran green and **left the function at 13 columns**. The closure holds.
+
+### Still not verified (DR-0329: say it)
+
+**Whether the sovereign database carries 0210/0213 correctly is UNKNOWN.** This
+sandbox has no route to poetech.us (LESSONS P31), and the sovereign replay step
+reported `applied 0 this run, ledger 219/215, frontier: none` with figures
+(`ledger rows BEFORE: 151`, `AFTER: unknown`) that do not reconcile in a way this
+record can explain. Its closing line — "The sovereign database now carries every
+migration this checkout holds" — is the script's CLAIM, not an observation of
+the function. DR-0310 decision 5 names the instrument that can observe it:
+`site-health.yml`'s keyless probe of `poetech.us/sb`, run from a runner that can
+reach the site. *re-review: 2026-09-13 — read the sovereign
+`pg_get_function_result` from a runner and record which of the two databases each
+proof in this repo is actually judging.*
