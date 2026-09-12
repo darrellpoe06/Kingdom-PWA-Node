@@ -1,0 +1,47 @@
+# sovereign-read — ask the database the app actually reads (2026-09-12)
+#
+# Dispatch-only ON PURPOSE. This is not the timer-driven class, so it carries
+# no schedule and raises no brakes question: a person asks, it answers, it
+# stops. If it ever earns a schedule that is its own decision.
+#
+# WHY IT EXISTS. Since REPOINT-ARMED the app reads the sovereign backend
+# (DR-0310) and every agent-side tool here reads the hosted project. Measured
+# 2026-09-12: the newest row in the HOSTED feedback table is 2026-08-19 — the
+# repoint day — so for 24 days the AI that DR-0067 decision 2 puts FIRST in the
+# feedback loop has been reading a fossil while the real feedback landed
+# somewhere it could not see. Same blind spot as DR-0368's re-review, which
+# asks which of the two databases each proof in this repo is actually judging.
+name: sovereign-read
+
+on:
+  workflow_dispatch:
+    inputs:
+      what:
+        description: 'feedback (what people said) or definitions (what the schema holds)'
+        type: choice
+        options: [feedback, definitions]
+        default: feedback
+      days:
+        description: 'how many days back to read (feedback only)'
+        type: string
+        default: '30'
+
+concurrency:
+  group: sovereign-read
+  cancel-in-progress: false
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Ask the sovereign database
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: bash scripts/sovereign-read-over-tailnet.sh "${{ inputs.what }}" "${{ inputs.days }}"
