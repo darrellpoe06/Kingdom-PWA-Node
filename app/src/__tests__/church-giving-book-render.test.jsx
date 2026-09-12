@@ -276,3 +276,40 @@ describe('nothing is written by looking', () => {
     expect(container.textContent).toMatch(/Nothing is saved when you pick a file/);
   });
 });
+
+describe('it survives a phone', () => {
+  // jsdom cannot measure geometry, so this asserts the STRUCTURE that makes the
+  // layout safe rather than claiming a measurement it did not take. A six-column
+  // money table is wider than a phone by construction; the house rule is that a
+  // table may exceed the viewport ONLY inside its own overflow-x container, so
+  // the page body never scrolls sideways. A real measured pass belongs on the
+  // live build (DR-0104); this keeps the container from being deleted meanwhile.
+  it('every report table sits inside its own horizontal-scroll container', async () => {
+    state.claims = { ok: true, claims: [claim()] };
+    await mount();
+    await clickText('[role="tab"]', 'Reports');
+    const tables = [...container.querySelectorAll('table')];
+    expect(tables.length, 'the reports tab should render tables').toBeGreaterThan(0);
+    for (const t of tables) {
+      const wrapper = t.parentElement;
+      expect(wrapper, 'a table must have a wrapper').toBeTruthy();
+      expect(
+        wrapper.className,
+        `a ${t.querySelectorAll('thead th').length}-column table must be in an overflow-x container`,
+      ).toMatch(/overflow-x-auto/);
+    }
+  });
+
+  it('no element declares a min-width wider than a narrow phone', async () => {
+    // A min-width in px on anything but the scroll container reintroduces the
+    // sideways scroll the wrapper exists to prevent.
+    state.claims = { ok: true, claims: [claim()] };
+    state.batches = { ok: true, batches: [] };
+    await mount();
+    const offenders = [...container.querySelectorAll('*')].filter((el) => {
+      const mw = el.style && el.style.minWidth;
+      return mw && mw.endsWith('px') && parseFloat(mw) > 360;
+    });
+    expect(offenders.map((e) => e.tagName + '.' + e.className)).toEqual([]);
+  });
+});
