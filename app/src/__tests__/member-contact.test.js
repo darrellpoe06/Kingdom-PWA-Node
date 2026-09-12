@@ -237,3 +237,48 @@ describe('proven-to-catch (anti-theater)', () => {
     expect(declaredPersonOf('nobody@nowhere.example')).toBe('');
   });
 });
+
+// ── THE PERSON'S OWN ANSWER ACTUALLY ARRIVES NOW (0213) ─────────────────────
+// contactOf() has read `declaredEmail` / `declaredPhone` since the day it was
+// written, and preferred them over anything derived, labelled "they told us".
+// The SERVER never sent them: 0210's roster read auth.users and stopped. So
+// the best-labelled branch in this module was, until 0213, unreachable from
+// the real surface — right code, no supply.
+describe('what they wrote themselves, from the roster row', () => {
+  it('the client mapper carries the two declared cells', () => {
+    const src = read('lib/member-roles.js');
+    expect(src).toContain('declaredEmail: r.declared_email');
+    expect(src).toContain('declaredPhone: r.declared_phone');
+  });
+
+  it('their own answer outranks the account, and says so', () => {
+    const row = { email: 'signin@test.local', phone: '15635550000',
+                  declaredEmail: 'reach.me@test.local', declaredPhone: '(563) 555-0213' };
+    const c = contactOf(row);
+    expect(c.email).toBe('reach.me@test.local');
+    expect(c.emailSource).toBe('they told us');
+    expect(c.phoneSource).toBe('they told us');
+    expect(c.phone).toBe('(563) 555-0213');
+  });
+
+  it('and a row with no record still reads exactly as it did before', () => {
+    const row = { email: 'signin@test.local', declaredEmail: null, declaredPhone: null };
+    const c = contactOf(row);
+    expect(c.email).toBe('signin@test.local');
+    expect(c.emailSource).toBe('how they sign in');
+    expect(c.hasPhone).toBe(false);
+    expect(c.missing).toContain('phone');
+  });
+
+  it('CATCHES a household number hung on a person — the whole reason 0213 reads no household record', () => {
+    // household_records has NO user_id: one row for the whole instance. If the
+    // migration had joined it, every member would carry the household's "Best
+    // phone" as though they had given it. The wall is in the SQL; this pins
+    // that nothing on the client puts it back.
+    const src = read('../../infra/supabase/migrations-auto/0213-the-roster-shows-what-the-person-told-us.sql');
+    const code = src.split('\n').filter((l) => !l.trim().startsWith('--')).join('\n');
+    expect(code).not.toMatch(/household_records/);
+    expect(code).toMatch(/church_member_records/);
+    expect(code).toMatch(/tlc_onboarding_packets/);
+  });
+});

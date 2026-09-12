@@ -72,4 +72,34 @@ describe('what counts as a silent replacer', () => {
     expect([...objs.get(151).objects]).toContain('function:claim_property_access');
     expect([...objs.get(144).objects]).toContain('function:set_member_role');
   });
+
+  // ── THE BLIND SPOT, FOUND THE THIRD TIME THIS CLASS BIT (2026-09-12) ──────
+  // This guard ran green while production was broken. Measured on the live
+  // database: list_instance_members had REVERTED to 0144's six columns, so
+  // 0210's joined_at / last_sign_in_at / phone — shipped the night before —
+  // were simply absent from poetech.us. Five legs replayed an older definer.
+  //
+  // The reason the pattern missed it is the sharp part: a migration that
+  // changes a function's RETURN TYPE *cannot* say CREATE OR REPLACE, because
+  // Postgres refuses ("cannot change return type of existing function"). It is
+  // FORCED to write DROP FUNCTION + plain CREATE FUNCTION. So the one shape a
+  // replacement is obliged to take was the one shape the guard could not see —
+  // and a widening migration is exactly the kind you least want reverted.
+  it('sees a plain CREATE FUNCTION, not only CREATE OR REPLACE', () => {
+    const objs = replacedObjects();
+    // 0210 and 0213 both DROP + CREATE this function; 0144 uses OR REPLACE.
+    expect([...objs.get(144).objects]).toContain('function:list_instance_members');
+    expect([...objs.get(210).objects]).toContain('function:list_instance_members');
+    expect([...objs.get(213).objects]).toContain('function:list_instance_members');
+  });
+
+  it('CATCHES the exact production regression: a leg replaying 0144 and stopping', () => {
+    // The role-control leg as it actually stood while the roster was broken.
+    const objs = replacedObjects();
+    const shaped = new Map([...objs.entries()].map(([n, v]) => [n, v]));
+    const r = check(shaped, [{ feature: 'role-control', migrations: [111, 112, 130, 131, 143, 144] }]);
+    expect(r.ok).toBe(false);
+    expect(r.problems.join('\n')).toMatch(/function:list_instance_members/);
+    expect(r.problems.join('\n')).toMatch(/0210-the-signature-door/);
+  });
 });

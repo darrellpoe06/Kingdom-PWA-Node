@@ -32,7 +32,15 @@ const WORKFLOW = join(ROOT, '.github/workflows/rls-isolation.yml');
 // Objects whose re-definition SILENTLY overwrites the previous one. A table
 // (CREATE TABLE IF NOT EXISTS) is not in this class; a function or a policy is.
 const REPLACERS = [
-  [/CREATE\s+OR\s+REPLACE\s+FUNCTION\s+(?:public\.)?([a-z0-9_]+)\s*\(/gi, (m) => `function:${m[1].toLowerCase()}`],
+  // `OR REPLACE` is OPTIONAL on purpose (widened 2026-09-12, after this guard
+  // ran green while production was broken). A migration that changes a
+  // function's RETURN TYPE cannot use CREATE OR REPLACE at all — Postgres
+  // refuses it — so it must write DROP FUNCTION + plain CREATE FUNCTION. 0210
+  // did exactly that for list_instance_members, and this guard could not see
+  // it: five legs replayed 0144's older definition and silently reverted the
+  // live roster to six columns. The one case where a replacement is FORCED to
+  // look different was the one case the pattern missed.
+  [/CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?([a-z0-9_]+)\s*\(/gi, (m) => `function:${m[1].toLowerCase()}`],
   [/CREATE\s+POLICY\s+([a-z0-9_]+)\s+ON\s+([a-z0-9_.]+)/gi, (m) => `policy:${m[2].toLowerCase()}.${m[1].toLowerCase()}`],
   [/CREATE\s+(?:OR\s+REPLACE\s+)?TRIGGER\s+([a-z0-9_]+)/gi, (m) => `trigger:${m[1].toLowerCase()}`],
 ];
