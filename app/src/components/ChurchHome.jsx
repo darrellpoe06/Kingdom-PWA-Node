@@ -211,6 +211,47 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   };
 
 
+  // ANNOUNCED EVENTS -> THE CALENDAR. Reported 2026-09-11 18:06 and 18:07, twice
+  // in ninety seconds: "The add to calendar feature isn't working and I can only
+  // pick on at a time" and "The calendar feature isn't addding the event to my
+  // calendar".
+  //
+  // Four real defects in the old one-liner, and the first is the whole reported
+  // symptom:
+  //   1. IT SAID NOTHING. The service-times button beside it alerts on success;
+  //      this one returned silently, so a tap looked identical to a dead button.
+  //   2. IT ADDED TWICE. It passed `id: church-<id>`, but addEvent spreads the
+  //      item and THEN overwrites id (`{ ...item, id: 'ev-' + Date.now() }`), so
+  //      the id was discarded and nothing ever deduped. Two taps, two rows.
+  //   3. NO REMINDER. saveServiceToCalendar sets reminders; this set none, so
+  //      even a row that landed never spoke up — indistinguishable from "it
+  //      didn't add it".
+  //   4. MULTI-DAY EVENTS LOST THEIR SPAN. An announced event carrying an
+  //      endDate spans several days; only its first day was ever carried.
+  //      (The events themselves are owned by lib/family-ministries.js — this
+  //      file must never re-type one, which its duplication guard enforces.)
+  const [savedEventIds, setSavedEventIds] = useState([]);
+  const saveAnnouncedEvent = (ev) => {
+    if (!addEvent || savedEventIds.includes(ev.id)) return;
+    addEvent({
+      title: `${c.nickname || c.name || 'Church'} · ${ev.name}`,
+      description: [ev.detail, ev.endDate ? `Runs ${ev.date} through ${ev.endDate}.` : null]
+        .filter(Boolean).join(' — ') || 'Saved from the Church tab.',
+      notes: ev.detail || '',
+      date: ev.date,
+      time: '',
+      allDay: true,
+      category: 'family',
+      reminders: ['1d-before', 'at-time'],
+    });
+    setSavedEventIds((ids) => [...ids, ev.id]);
+  };
+
+  // "I can only pick on at a time" — so let the whole list go at once.
+  const saveAllAnnouncedEvents = () => {
+    (c.announcedEvents || []).forEach((ev) => saveAnnouncedEvent(ev));
+  };
+
   // Save a one-tap event to the family calendar from a service entry.
   const saveServiceToCalendar = (svc) => {
     if (!addEvent) return;
@@ -729,15 +770,28 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
                   {addEvent && (
                     <button
                       type="button"
-                      onClick={() => addEvent({ id: `church-${ev.id}`, title: ev.name, date: ev.date, time: '', notes: ev.detail || '' })}
-                      className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+                      onClick={() => saveAnnouncedEvent(ev)}
+                      disabled={savedEventIds.includes(ev.id)}
+                      className="text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[36px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white disabled:opacity-60 disabled:hover:bg-transparent disabled:hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
                     >
-                      + Calendar
+                      {savedEventIds.includes(ev.id) ? '✓ On your calendar' : '+ Calendar'}
                     </button>
                   )}
                 </li>
               ))}
             </ul>
+          )}
+          {addEvent && Array.isArray(c.announcedEvents) && c.announcedEvents.length > 1 && (
+            <button
+              type="button"
+              onClick={saveAllAnnouncedEvents}
+              disabled={c.announcedEvents.every((ev) => savedEventIds.includes(ev.id))}
+              className="mb-2 text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-60 focus:outline focus:outline-2 focus:outline-[#B85838]"
+            >
+              {c.announcedEvents.every((ev) => savedEventIds.includes(ev.id))
+                ? '✓ All on your calendar'
+                : `+ Add all ${c.announcedEvents.length} to my calendar`}
+            </button>
           )}
           <ul className="text-xs space-y-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
             {c.links?.calendar && <li><UiIcon name="calendar" /> <a href={c.links.calendar} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">Church calendar</a></li>}
