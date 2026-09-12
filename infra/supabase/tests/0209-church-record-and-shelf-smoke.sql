@@ -9,6 +9,20 @@
 -- — that a church cannot learn what a person gives — is exactly the kind of
 -- promise that quietly stops being true.
 --
+-- AND THIS FILE PROVED NOTHING FOR ITS FIRST DAY. It opened with two top-level
+-- PERFORM statements. PERFORM is plpgsql-only; at the psql top level it is a
+-- syntax error, so psql stopped at line 52 on every single run and every
+-- assertion below it — the giving wall, the prayer wall, the roll, the shelf —
+-- was never reached. The leg was RED the whole time and nobody read it, because
+-- rls-isolation is not a required check on the pull request.
+--
+-- Two lessons, kept here where the next person writing a smoke will see them:
+--   * a smoke that has never been WATCHED pass is not a proof, it is a hope.
+--     Read the leg's own log once, on the first run, before believing it.
+--   * inside DO $$ ... $$ the language is plpgsql and PERFORM is right; at the
+--     top level it is SQL and the call is a SELECT. Mixing them is silent until
+--     it is fatal.
+--
 -- Assertions
 --   a member reads and fills their OWN record                               ✔
 --   a giving amount is refused by the PATCH GUARD             -> REFUSED    ✘
@@ -49,7 +63,10 @@ INSERT INTO instance_members (instance_id, user_id, role, display_name) VALUES
 SET LOCAL ROLE authenticated;
 SET LOCAL "request.jwt.claims" TO '{"sub":"a0000000-0000-4000-a000-000000000209","role":"authenticated"}';
 
-PERFORM public.church_member_record_patch(jsonb_build_object(
+-- SELECT, not PERFORM. PERFORM is plpgsql-only; at the psql top level it is a
+-- syntax error that stops the script dead — which is exactly what it did, on
+-- every run, from the day this file was written. See the header note.
+SELECT public.church_member_record_patch(jsonb_build_object(
   'fullName', 'Sister Ruth', 'contactEmail', 'ruth@test.local',
   'standing', 'A member', 'studyInterest', 'The book of Ruth',
   'childrenCount', '2',
@@ -105,7 +122,7 @@ END $$;
 
 -- A second member, whose request IS aimed at the prayer team.
 SET LOCAL "request.jwt.claims" TO '{"sub":"b0000000-0000-4000-a000-000000000209","role":"authenticated"}';
-PERFORM public.church_member_record_patch(jsonb_build_object(
+SELECT public.church_member_record_patch(jsonb_build_object(
   'fullName', 'Brother Amos', 'contactEmail', 'amos@test.local', 'standing', 'A member',
   'prayerRequest', 'for work', 'prayerShareable', 'The prayer team'));
 
