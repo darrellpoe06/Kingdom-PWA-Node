@@ -618,8 +618,16 @@ export function applyOverlay(scenes, overlay) {
 // `course` = { meta, schedule } as ChurchLearn already assembles per course (the
 // schedule rows carry the real computed `date`, `week`, learner copy, and the
 // facilitator guide). Works for ANY course in the picker, not just the A.I. one.
-function courseNotes(m) {
+function courseNotes(m, projectedLead = null) {
   const out = [];
+  // The week's big idea IN FULL. The slide now shows a main idea + bullets
+  // (weekSlide), so the speaker's copy has to carry the whole paragraph or the
+  // outlining would be a quiet deletion. Skipped when the slide already IS the
+  // whole thing (a one-sentence big idea outlines to itself).
+  const big = (m?.bigIdea || '').trim();
+  if (big && big !== (projectedLead || '').trim()) {
+    out.push({ kind: 'body', heading: 'The big idea — in full', body: big });
+  }
   if (m?.lesson) out.push({ kind: 'body', heading: 'The deeper idea', body: m.lesson });
   const f = m?.facilitator || {};
   // NOTE: the run-of-show is NO LONGER a static 'steps' note here — it is parsed into
@@ -661,6 +669,56 @@ export function parseRunOfShow(howToRun) {
   }).filter(Boolean);
 }
 
+// bandTextsForModule — the FULL teaching text a lesson carries per presenter register.
+// `everyone` = the general big idea (a mixed room); child/teen/adult = the authored
+// rewrites (adult -> the mature "senior" one). Every register falls back to the big
+// idea when its rewrite is absent, so a lesson with only a big idea still presents at
+// every choice. ONE definition, shared by both adapters below: the series deck and the
+// single-lesson deck must pitch the same words at the same band, and two copies of
+// this map is how that quietly stops being true.
+export function bandTextsForModule(m) {
+  const mod = m || {};
+  const lv = mod.levels || {};
+  return {
+    everyone: mod.bigIdea || lv.senior || lv.teen || '',
+    child: lv.child || mod.bigIdea || '',
+    teen: lv.teen || mod.bigIdea || '',
+    adult: lv.senior || mod.bigIdea || '',
+  };
+}
+
+// weekSlide — ONE week of the series, shaped like a slide instead of a paragraph.
+//
+// THE DEFECT THIS CLOSES (Darrell 2026-09-12, with the series deck on screen: "it's
+// supposed to open to the power points... the play button"). The series deck put the
+// module's `bigIdea` on the wall RAW as the slide's lead — for ll3 that is 887
+// characters of unbroken prose, which is an essay, not a slide. slideOutline has
+// existed since 2026-07-19 for exactly this ("some of the audience slides look too
+// wordy for an audience... add points as bullet or numbered under the main idea"), but
+// it was only ever wired into lessonPresentable. The series deck — the one the
+// overview's play button opens — never went through it.
+//
+// AND THE SECOND HALF OF THE SAME GAP: without leadByAge/pointsByAge the presenter's
+// Everyone/Children/Teens/Adults buttons are inert on this deck (Presenter's
+// `canRepitch` reads leadByAge). The bands rendered, and pressing one changed nothing.
+// Darrell 2026-09-12: "adjusting to the age etc and time clock are good kpi's" — so
+// the band has to actually adjust here, not just appear. The per-band text is the
+// lesson's OWN authored child/teen/senior rewrite (bandTextsForModule); nothing is
+// generated, summarized or invented (DR-0076) — the full prose still rides in notes.
+function weekSlide(m) {
+  const byBand = bandTextsForModule(m);
+  const bands = Object.keys(byBand);
+  const outByAge = Object.fromEntries(bands.map((b) => [b, slideOutline(byBand[b])]));
+  const leadByAge = Object.fromEntries(bands.map((b) => [b, outByAge[b].lead]));
+  const pointsByAge = Object.fromEntries(bands.map((b) => [b, outByAge[b].points]));
+  return {
+    lead: leadByAge.everyone || m?.bigIdea || '',
+    leadByAge,
+    points: pointsByAge.everyone || [],
+    pointsByAge,
+  };
+}
+
 export function coursePresentable(course) {
   const meta = course?.meta || {};
   const schedule = Array.isArray(course?.schedule) ? course.schedule : [];
@@ -676,6 +734,7 @@ export function coursePresentable(course) {
     targetMin: meta.sessionMinutes || 75,
     scenes: backfillTiming(schedule.map((m, i) => {
       const runOfShow = parseRunOfShow(m.facilitator?.howToRun);
+      const slide = weekSlide(m);
       const rosMin = runOfShow.reduce((t, s) => t + (Number.isFinite(s.estimatedMin) ? s.estimatedMin : 0), 0);
       return {
       id: m.id || `wk${i + 1}`,
@@ -691,13 +750,13 @@ export function coursePresentable(course) {
       importance: m.importance,
       audience: {
         title: m.title || '',
-        lead: m.bigIdea || '',
+        ...slide,
         detail: m.inApp || null,
         detailLabel,
         anchorRef: m.anchor?.ref || null,
         anchorTheme: m.anchor?.theme || null,
       },
-      notes: courseNotes(m),
+      notes: courseNotes(m, slide.lead),
       // the session's reflowable run-of-show (this week's timed segments)
       runOfShow,
     };
@@ -722,13 +781,71 @@ export function coursePresentable(course) {
 // opts.level is a module.levels KEY ('child'|'teen'|'senior', or null for the general
 // big idea) — the pace already chosen in the lesson, so the presenter does not
 // re-introduce it. handsOnLabel labels the in-app detail line.
+// splitSentences — sentence boundaries that a NUMBER does not fake.
+//
+// Both slide builders below used /[^.!?]+[.!?]*\s*/g, which treats EVERY period as a
+// full stop. Caught on the real deck (ll3, 2026-09-12): "roughly 1.5 billion years
+// ago" became the sentence "Science tells an origin story: roughly 1." — so the slide's
+// headline was a fragment ending in a decimal point, and the rest of the clause became
+// bullet one. Same break for "Dr.", "e.g.", "vs.", "U.S.". The fix masks the periods
+// that are NOT full stops, splits, then restores them, so the text that comes back out
+// carries every word that went in, unaltered — only run-together whitespace between
+// sentences is normalized to one space (DR-0076: reshaping what the room sees never
+// edits a word). Pure + deterministic.
+const DOT = '\u0001';  // a character no lesson contains, used only between mask/unmask
+const TERMINATOR = /[.!?]/;
+const CLOSERS = '"\'\u201D\u2019\u00BB)]';
+const ABBREVIATIONS = ['Mr', 'Mrs', 'Ms', 'Dr', 'St', 'Rev', 'Jr', 'Sr', 'vs', 'etc', 'approx', 'Gen', 'Col'];
+export function splitSentences(text) {
+  const clean = typeof text === 'string' ? text.trim() : '';
+  if (!clean) return [];
+  let masked = clean
+    .replace(/\.\.\.+/g, (run) => DOT.repeat(run.length))  // an elision is not a full stop
+    .replace(/(\d)\.(\d)/g, `$1${DOT}$2`)                 // 1.5 billion, $4.99
+    .replace(/\b([A-Za-z])\.([A-Za-z])\./g, `$1${DOT}$2${DOT}`); // e.g. i.e. U.S.
+  for (const ab of ABBREVIATIONS) {
+    masked = masked.replace(new RegExp(`\\b${ab}\\.`, 'g'), `${ab}${DOT}`);
+  }
+  // Cut at every terminator, consuming the WHOLE string as we go — the terminator,
+  // any closing quotes/brackets riding on it, and the whitespace after it. Scanning
+  // by slice rather than by regex match is what makes this lossless BY CONSTRUCTION:
+  // a match-based scan silently skips characters it cannot start a match on, which is
+  // how the period in '...who are ye?"). Chemical entry...' disappeared.
+  const raw = [];
+  let from = 0;
+  for (let i = 0; i < masked.length; i += 1) {
+    if (!TERMINATOR.test(masked[i])) continue;
+    let j = i + 1;
+    while (j < masked.length && (TERMINATOR.test(masked[j]) || CLOSERS.includes(masked[j]))) j += 1;
+    while (j < masked.length && /\s/.test(masked[j])) j += 1;
+    raw.push(masked.slice(from, j));
+    from = j;
+    i = j - 1;
+  }
+  if (from < masked.length) raw.push(masked.slice(from));
+  const restored = raw.map((x) => x.split(DOT).join('.'));
+  // A break is only a real sentence break when what FOLLOWS starts like a sentence —
+  // a capital, a digit, or an opening quote. '"...know right now?", which is...' breaks
+  // on the ? but continues in the same sentence, and ll11's quoted Scripture elision
+  // is the same shape. Anything else is re-joined to the piece before it, using the
+  // ORIGINAL characters (never a re-inserted space), so the text is reassembled and
+  // never rewritten (DR-0076 — and a quoted Scripture may not be edited at all).
+  const startsSentence = (t) => /^["'\u201C\u2018([]?[\p{Lu}\p{N}]/u.test(t.trim());
+  const merged = [];
+  for (const piece of restored) {
+    if (merged.length && !startsSentence(piece)) merged[merged.length - 1] += piece;
+    else merged.push(piece);
+  }
+  return merged.map((x) => x.trim()).filter(Boolean);
+}
+
 // Split a block of teaching text into two balanced halves on a sentence boundary,
 // so a lesson's big-idea + go-deeper parts EACH carry real content at the age level
 // (not one scaled slide and four unscaled ones). Never drops content.
 export function splitTeachingText(text) {
   const clean = typeof text === 'string' ? text.trim() : '';
   if (!clean) return ['', ''];
-  const sentences = clean.match(/[^.!?]+[.!?]*\s*/g) || [clean];
+  const sentences = splitSentences(clean);
   if (sentences.length < 2) return [clean, ''];
   const totalLen = clean.length;
   let acc = 0; let cut = 1;
@@ -737,7 +854,7 @@ export function splitTeachingText(text) {
     if (acc >= totalLen / 2) { cut = i + 1; break; }
   }
   cut = Math.min(Math.max(cut, 1), sentences.length - 1);
-  return [sentences.slice(0, cut).join('').trim(), sentences.slice(cut).join('').trim()];
+  return [sentences.slice(0, cut).join(' ').trim(), sentences.slice(cut).join(' ').trim()];
 }
 
 // slideOutline — turn a block of teaching prose into a projectable slide: ONE concise
@@ -751,7 +868,7 @@ export function splitTeachingText(text) {
 export function slideOutline(text, opts = {}) {
   const clean = typeof text === 'string' ? text.trim() : '';
   if (!clean) return { lead: '', points: [] };
-  const sentences = (clean.match(/[^.!?]+[.!?]*\s*/g) || [clean]).map((s) => s.trim()).filter(Boolean);
+  const sentences = splitSentences(clean);
   if (sentences.length <= 1) return { lead: clean, points: [] };
   const maxPoints = Number(opts.maxPoints) > 0 ? Number(opts.maxPoints) : 6;
   return { lead: sentences[0], points: sentences.slice(1, 1 + maxPoints) };
@@ -798,17 +915,11 @@ const LEVEL_KEY_TO_BAND = { child: 'child', teen: 'teen', senior: 'adult', stand
 export function lessonPresentable(module, opts = {}) {
   const m = module || {};
   const handsOnLabel = opts.handsOnLabel || 'In the app';
-  const lv = m.levels || {};
   // The FULL text per presenter register. `everyone` = the general big idea (a mixed
   // room); child/teen/adult = the authored rewrites (adult -> the mature "senior"
   // one). Every register falls back to the big idea when its rewrite is absent, so a
   // lesson with only a big idea still presents at every choice.
-  const textByBand = {
-    everyone: m.bigIdea || lv.senior || lv.teen || '',
-    child: lv.child || m.bigIdea || '',
-    teen: lv.teen || m.bigIdea || '',
-    adult: lv.senior || m.bigIdea || '',
-  };
+  const textByBand = bandTextsForModule(m);
   const BANDS = Object.keys(textByBand);
   // Each register's text split across the two teaching beats (big idea -> go deeper),
   // so BOTH scale to the room and both re-pitch when the register is switched live.

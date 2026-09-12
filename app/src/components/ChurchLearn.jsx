@@ -49,6 +49,7 @@ import {
 import { askTutor } from '../lib/class-tutor.js';
 import { ARI } from '../lib/ari.js';
 import {
+  partForSegment,
   LEARN_LEVELS, DEFAULT_LEVEL, normalizeMedia, gradeQuiz, courseAssessment,
   AGE_BANDS, DEFAULT_AGE_BAND, ageBandProfile,
 } from '../lib/learn-framework.js';
@@ -480,7 +481,16 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
   const [idx, setIdx] = useState(() => Math.max(0, initialIndex));
   const firedRef = useRef(false);
   if (!plan || !plan.segments || plan.segments.length === 0) return null;
-  const { segments, totalSegments, segmentMinutes, breakAfterSegments, checkAfterSegments, band } = plan;
+  const {
+    segments, totalSegments, segmentMinutes, breakAfterSegments, checkAfterSegments, band,
+  } = plan;
+  // PARTS — "part 2's for the ones that need it" (Darrell 2026-09-12). A lesson
+  // longer than one sitting at this band is split into Part 1 / Part 2 / Part 3
+  // (learn-framework lessonPartsForAge). Nothing is shortened: the split lands on
+  // segment boundaries that were already sentence boundaries. `parts` is null-safe
+  // — a lesson that fits one sitting, and every band with no sitting ceiling
+  // (teen, adult, senior), gets exactly one part and reads exactly as before.
+  const parts = Array.isArray(plan.parts) ? plan.parts : [];
 
   // READ-ALONG READS THE WHOLE CORE, NOT STEP ONE OF IT.
   //
@@ -540,22 +550,38 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
     moveTo(cur + 1);
   };
   // Break nudge after every breakAfterSegments steps (young bands only).
-  const showBreak = breakAfterSegments > 0 && (cur + 1) % breakAfterSegments === 0 && !atLast;
+  // Where this step sits inside its sitting (null when the lesson is one sitting).
+  const here = partForSegment(parts, cur);
+  const showBreak = breakAfterSegments > 0 && (cur + 1) % breakAfterSegments === 0 && !atLast && !(here && here.endsPart);
   const showCheckHint = (cur + 1) >= checkAfterSegments;
 
   return (
     <div className="mb-2 border border-[#E8E4DC] bg-white p-2">
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
-          Step {cur + 1} of {totalSegments} · ~{segmentMinutes} min · {band.label} pace
+          {here
+            ? `${here.label} · Step ${here.stepInPart} of ${here.stepsInPart} · ~${segmentMinutes} min · ${band.label} pace`
+            : `Step ${cur + 1} of ${totalSegments} · ~${segmentMinutes} min · ${band.label} pace`}
         </span>
-        <div className="h-1.5 w-24 bg-[#E8E4DC]" role="progressbar" aria-valuenow={cur + 1} aria-valuemin={1} aria-valuemax={totalSegments} aria-label="Lesson step">
-          <div className="h-full bg-[#5A6E3D]" style={{ width: `${Math.round(((cur + 1) / totalSegments) * 100)}%` }} />
+        <div
+          className="h-1.5 w-24 bg-[#E8E4DC]"
+          role="progressbar"
+          aria-valuenow={here ? here.stepInPart : cur + 1}
+          aria-valuemin={1}
+          aria-valuemax={here ? here.stepsInPart : totalSegments}
+          aria-label={here ? `${here.label} step` : 'Lesson step'}
+        >
+          <div className="h-full bg-[#5A6E3D]" style={{ width: `${Math.round((((here ? here.stepInPart : cur + 1)) / (here ? here.stepsInPart : totalSegments)) * 100)}%` }} />
         </div>
       </div>
       <div aria-live="polite"><LessonProse text={segments[cur]} /></div>
       {showBreak && (
         <p className="text-[0.6875rem] text-[#B85838] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>🙆 Quick stretch break — then keep going!</p>
+      )}
+      {here && here.endsPart && (
+        <p className="text-[0.6875rem] text-[#5A6E3D] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          ✓ That’s the end of {here.label.replace(/ of \d+$/, '')}. A good place to stop — Part {here.part + 1} is waiting whenever you come back.
+        </p>
       )}
       {showCheckHint && (
         <p className="text-[0.6875rem] text-[#5A6E3D] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>👇 When you’re ready, try the quick check below.</p>
@@ -574,7 +600,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
           onClick={advance}
           className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${atLast ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white' : 'border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#3a352f]'}`}
         >
-          {atLast ? 'Got it! ✓' : 'Next →'}
+          {atLast ? 'Got it! ✓' : (here && here.endsPart ? `Start Part ${here.part + 1} →` : 'Next →')}
         </button>
       </div>
     </div>

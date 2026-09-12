@@ -86,7 +86,16 @@ describe('coursePresentable — any Learn course becomes presentable', () => {
   it('carries learner copy to the audience and facilitator copy to presenter notes', () => {
     const sc = p.scenes[0];
     expect(sc.audience.title).toBe(MODULES[0].title);
-    expect(sc.audience.lead).toBe(MODULES[0].bigIdea);
+    // The lead is the big idea's FIRST SENTENCE, with the rest as bullets — a slide,
+    // not a paragraph on the wall (changed 2026-09-12; this used to assert the lead
+    // WAS the whole bigIdea, which is the defect Darrell photographed). Nothing is
+    // dropped: lead + points reassemble the big idea, and the full text is in notes.
+    const big = MODULES[0].bigIdea;
+    expect(big.startsWith(sc.audience.lead)).toBe(true);
+    expect(sc.audience.lead.length).toBeLessThan(big.length);
+    expect([sc.audience.lead, ...sc.audience.points].join(' ').replace(/\s+/g, ' '))
+      .toBe(big.replace(/\s+/g, ' '));
+    expect(sc.notes.some((n) => n.body === big)).toBe(true);
     expect(sc.audience.anchorRef).toBe(MODULES[0].anchor.ref);
     // facilitator guide flows into presenter-only notes (never the audience payload)
     const headings = sc.notes.map((n) => n.heading);

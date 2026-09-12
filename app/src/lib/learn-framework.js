@@ -185,6 +185,8 @@ export const AGE_BANDS = [
     id: 'child', label: 'Child', range: '6–10',
     depth: 'child', // preferred levels key; falls back child → teen → standard → base
     segmentMinutes: 5, breakEveryMin: 10, contentBeforeCheck: 1,
+    // One SITTING for a 6-10 year old. See SESSION_MINUTES note below.
+    sessionMinutes: 30,
     visual: 'high', handsOn: 'high', tone: 'playful',
     hint: 'Short bursts, lots of pictures, touch the real thing, a quick win every few minutes.',
     pacing: 'One small idea at a time, then a quick win. Move and touch real things. Take a stretch break often.',
@@ -192,6 +194,7 @@ export const AGE_BANDS = [
   {
     id: 'youth', label: 'Youth', range: '11–14',
     depth: 'teen', segmentMinutes: 10, breakEveryMin: 20, contentBeforeCheck: 2,
+    sessionMinutes: 40,
     visual: 'high', handsOn: 'high', tone: 'encouraging',
     hint: 'Plain language, real examples, hands-on, a check after a couple of ideas.',
     pacing: 'A couple of ideas, then check understanding. Keep it concrete and hands-on.',
@@ -199,6 +202,8 @@ export const AGE_BANDS = [
   {
     id: 'teen', label: 'Teen', range: '15–17',
     depth: 'teen', segmentMinutes: 15, breakEveryMin: 30, contentBeforeCheck: 2,
+    // A teen 'can hold a longer thread' (hint below), so no sitting ceiling.
+    sessionMinutes: null,
     visual: 'normal', handsOn: 'high', tone: 'encouraging',
     hint: 'Plainer language and more encouragement; can hold a longer thread.',
     pacing: 'Teach a fuller idea, then check; tie it to something they can build.',
@@ -206,6 +211,8 @@ export const AGE_BANDS = [
   {
     id: 'adult', label: 'Adult', range: '18–64',
     depth: 'standard', segmentMinutes: 25, breakEveryMin: 0, contentBeforeCheck: 4,
+    // 'the full lesson at once' (hint below) — no sitting ceiling, unchanged.
+    sessionMinutes: null,
     visual: 'normal', handsOn: 'normal', tone: 'plain',
     hint: 'A clear, balanced depth for most learners; the full lesson at once.',
     pacing: 'Read the full lesson, then check understanding. Self-paced.',
@@ -213,6 +220,8 @@ export const AGE_BANDS = [
   {
     id: 'senior', label: 'Senior / founding', range: '65+',
     depth: 'senior', segmentMinutes: 15, breakEveryMin: 0, contentBeforeCheck: 3,
+    // 'Unhurried' and self-paced — no sitting ceiling, unchanged.
+    sessionMinutes: null,
     visual: 'normal', handsOn: 'normal', tone: 'respectful',
     hint: 'Honors deep experience; gets to the why and the edge cases, at a patient pace.',
     pacing: 'Unhurried; gets to the why and the edge cases; honors experience.',
@@ -332,15 +341,113 @@ export function lessonPlanForAge(module, ageBandId = DEFAULT_AGE_BAND, levelOver
   const breakAfter = band.breakEveryMin > 0 && band.segmentMinutes > 0
     ? Math.max(1, Math.round(band.breakEveryMin / band.segmentMinutes))
     : 0;
+  const parts = lessonPartsForAge(module, ageBandId, levelOverride);
   return {
     band,
     levelId: resolved.levelId,
     branched: resolved.branched,
     segments,
+    // The sittings this lesson takes at this band (always at least one).
+    parts,
+    totalParts: parts.length,
+    sessionMinutes: sessionCeilingFor(band.id),
     totalSegments: segments.length,
     segmentMinutes: band.segmentMinutes,
     breakAfterSegments: breakAfter,
     checkAfterSegments: Math.max(1, band.contentBeforeCheck),
     estimatedMinutes: segments.length * band.segmentMinutes,
   };
+}
+
+// -----------------------------------------------------------------------------
+// PARTS — "part 2's for the ones that need it" (Darrell, 2026-09-12)
+// -----------------------------------------------------------------------------
+// THE PREMISE THAT WAS WRONG, AND WHY THIS EXISTS INSTEAD. Measuring child lesson
+// LENGTH on 2026-09-12 (Darrell: "children... will need to be able to read these
+// lessons at the length of the time and words that make sense to them"), the first
+// instrument treated the child band's `segmentMinutes: 5` as the budget for the
+// WHOLE lesson — 500 words at 100 wpm — and reported nine lessons over it. That
+// read the spec wrong. segmentMinutes is the time for ONE on-screen segment (45
+// words for a child: read it, ask a question, touch the real thing), not for the
+// lesson. By the framework's own plan the median child lesson is a 20-minute
+// SESSION of four such segments, and the longest is 125 minutes of twenty-five.
+//
+// So the defect was never "too many words" — it was too many words FOR ONE
+// SITTING, and the fix is not to cut the Word down. Darrell named the right one:
+// "part 2's for the ones that need it... per the Ways and documentation." A long
+// lesson becomes Part 1 and Part 2 (and 3), each a sitting a child can finish.
+// Nothing is shortened, summarized or dropped — the split lands on segment
+// boundaries the chunker already computed, which are sentence boundaries.
+//
+// SESSION_MINUTES IS A DECLARED ASSUMPTION, NOT A MEASUREMENT (DR-0076 §8). The
+// band specs document segmentMinutes and breakEveryMin; none of them documented
+// how long one sitting may run, and undocumented intent is itself a finding
+// (DR-0219). The ceiling is now written down per band rather than implied:
+// 30 minutes for ages 6-10 and 40 for 11-14 — the bands whose own spec says
+// "short bursts" and carries a break rhythm. Teen, adult and senior are NULL on
+// purpose: their specs say the opposite ("can hold a longer thread", "the full
+// lesson at once", "unhurried"), so they are not split and nothing about how they
+// read today changes.
+export function sessionCeilingFor(ageBandId = DEFAULT_AGE_BAND) {
+  const band = ageBandProfile(ageBandId);
+  const ceiling = band.sessionMinutes;
+  return Number.isFinite(ceiling) && ceiling > 0 ? ceiling : null;
+}
+
+/**
+ * Split one lesson, at one band, into the sittings it actually takes.
+ * Returns [{ part, of, label, segments, minutes }]. A band with no ceiling — or a
+ * lesson that already fits — returns exactly ONE part, so every caller can render
+ * the same shape without branching.
+ */
+export function lessonPartsForAge(module, ageBandId = DEFAULT_AGE_BAND, levelOverride = null) {
+  const band = ageBandProfile(ageBandId);
+  const resolved = resolveForAge(module, ageBandId, levelOverride);
+  const segments = chunkLessonForAge(resolved.text, ageBandId);
+  const ceiling = sessionCeilingFor(band.id);
+  const perPart = ceiling ? Math.max(1, Math.floor(ceiling / band.segmentMinutes)) : segments.length;
+  const groups = [];
+  for (let i = 0; i < segments.length; i += perPart) groups.push(segments.slice(i, i + perPart));
+  const of = Math.max(1, groups.length);
+  return (groups.length ? groups : [segments]).map((segs, i) => ({
+    part: i + 1,
+    of,
+    // "Part 1 of 3" only when there IS more than one — a lone part is just the
+    // lesson, and labelling it "Part 1 of 1" would invent a structure that is not
+    // there and make every short lesson look unfinished.
+    label: of > 1 ? `Part ${i + 1} of ${of}` : null,
+    segments: segs,
+    minutes: segs.length * band.segmentMinutes,
+  }));
+}
+
+/**
+ * Which part a given segment index belongs to, and where it sits inside it.
+ * The reader steps through a flat list of segments, so this is the seam that lets
+ * it say "Part 2 of 3 · Step 1 of 6" and know when a sitting has just ended.
+ * Returns null when there is only one part — there is no part to name.
+ */
+export function partForSegment(parts, index) {
+  const list = Array.isArray(parts) ? parts : [];
+  if (list.length <= 1) return null;
+  let seen = 0;
+  for (const p of list) {
+    const size = p.segments.length;
+    if (index < seen + size) {
+      const within = index - seen;
+      return {
+        part: p.part,
+        of: p.of,
+        label: p.label,
+        stepInPart: within + 1,
+        stepsInPart: size,
+        minutes: p.minutes,
+        // The last step of a sitting that is NOT the last sitting: a real, earned
+        // stopping point, which is the whole reason parts exist.
+        endsPart: within === size - 1 && p.part < p.of,
+      };
+    }
+    seen += size;
+  }
+  return null;
 }
