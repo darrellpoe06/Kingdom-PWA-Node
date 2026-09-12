@@ -51,7 +51,14 @@ Read carelessly these two look like a prohibition on the very thing the meeting 
 
 ## Not verified, stated plainly
 
-**Migration 0214 has not been executed.** It is structurally checked (balanced parens, quotes and dollar-blocks; three tables, three policies, the overlays re-run) and it passes the replay-order, return-type and SQL-language gates — but this sandbox has no Postgres, so nothing has run it. `db-migrate.yml` executes it with `psql -v ON_ERROR_STOP=1` on merge; that run is the real verification and is watched, not assumed.
+~~**Migration 0214 has not been executed.**~~ **CLOSED 2026-09-12, the same day, by observation rather than by the workflow's word.** It merged as `e301091` and `db-migrate` run `34718145238` completed **success**. Because "the workflow exited 0" and "the security property exists in the database" are two different claims, the database itself was then read (DR-0076 §7, independent verification):
+
+- **The three tables exist with RLS enabled** — `church_giving_batches`, `church_giving_claims`, `church_giving_aliases`.
+- **The policies are as written**, read back from `pg_policies`: one `<table>_office` policy per table, `ALL` to `authenticated`, with both `USING` and `WITH CHECK` as `COALESCE(user_role_in_instance(instance_id), '') = ANY (ARRAY['owner','admin'])`. **No member clause exists to be widened, and no anon grant exists at all** — which is decision 2 confirmed in the database rather than in a comment.
+- **Both standing overlays applied to all three tables** (`viewer_readonly_*`, `assistant_scope_*`), so an assistant cannot read the congregation's giving. That is what re-running them was for.
+- **Both integrity walls are live, not merely asserted in a test** — `CHECK (parishioner_user_id IS NULL OR match_confirmed_by IS NOT NULL)` (decision 4: no gift attaches to a person without recording who said so) and `UNIQUE (instance_id, source, source_ref)` (decision 7: a statement re-imported cannot double-count).
+
+The deploy was proven too, per DR-0107: `deploy-cloudflare-pages.yml` run `34718145424`, `head_sha e301091`, conclusion success.
 
 **The screen has not been driven in a REAL browser against REAL data.** It is now mounted: `church-giving-book-render.test.jsx` (19 tests) renders the actual component in jsdom against a mocked sync layer and drives the steward's path — every honest state distinguishable on screen, sub-dollar and negative amounts rendering rather than `NaN`, the review list offering a choice with nothing preselected, and no write path firing from reading. Two of those are proven-to-catch: preselecting the best match, and letting an unchecked batch claim it balances, each fails the suite.
 
