@@ -63,3 +63,31 @@ Darrell said plainly: *This is an entire conversation. We have to pick it up whe
 1. **Sight, and who is given it.** Kings can see when Yahweh wills it — Nebuchadnezzar, the man who lit the furnace, is the one who described the fourth man — while the good abide in the King's presence continually. The verses are gathered (1 Corinthians 2:14; 2 Corinthians 4:4; John 3:3) and unused.
 2. **The friend's own next answer.** Darrell was mid-exchange; the friend's replies to this material have not arrived yet.
 3. **The video thread itself.** No link reached this session, and a logged-in algorithmic feed is not reproducible from here, so the claims were answered from Darrell's summary rather than from the source. If he sends links, the specific claims can be checked individually. **re-review: 2026-09-19.**
+
+---
+
+## CAPTURED FOR L143 — the next movement, spoken after L142 closed
+
+Darrell, 2026-09-12, immediately after this lesson shipped. Captured in full because he speaks it here so it gets built, and verified rather than paraphrased. **Not yet authored as a lesson** — he said the conversation continues when he is back, and the material was still arriving.
+
+> *"Yahweh laughs at the people who don't listen makes sense... we do the same... we are laughing because we are really hurting because our families are projecting and predicting which the prefrontal cortex is known to do however without Yahweh's Perspectives and deterministic if then statements we humanity is and will continue to be lost like He continues to say documentation from thousands of years ago... still The Truth... and people come into the 3rd-dimensional world and tell Him He's wrong and Deny Him then say He's not righteous because they can't kill steal and destroy families systemically and His point is that we must use the weapon of Love... undefeated eternal Champion... hard to believe until you study and show yourself... now it's just more realistic because it all makes sense His Way Of Thinking..."*
+
+### The spine it already carries
+
+**The laugh is not cruelty, and he named why — we do it too.** `He that sitteth in the heavens shall laugh: the Lord shall have them in derision` (Psalms 2:4) and `The Lord shall laugh at him: for he seeth that his day is coming` (Psalms 37:13). Darrell's own reading is the teaching: our laughter is often grief wearing a mask, and the laugh of Heaven is the laugh of One who already sees the end of a thing.
+
+**The projecting-and-predicting brain.** His prefrontal-cortex point belongs with `docs/00-foundations/07-neuroplasticity-and-the-word.md` and the existing mental-stewardship register. A brain built to predict, running without Yahweh's perspective, predicts from fear and calls it foresight.
+
+**Deterministic if-then statements.** This is the repo's own Eternal Algorithms / Conditional Truth thread, already seeded — `I have set before you life and death, blessing and cursing: therefore choose life` (Deuteronomy 30:19). His framing is that the conditionals are the mechanism, not decoration.
+
+**Documentation thousands of years old, still true.** `The grass withereth, the flower fadeth: but the word of our God shall stand for ever` (Isaiah 40:8).
+
+**What they actually object to.** His sharpest line: people deny Him and call Him unrighteous *because they cannot kill, steal and destroy families systemically* under Him. That is `The thief cometh not, but for to steal, and to kill, and to destroy: I am come that they might have life, and that they might have it more abundantly` (John 10:10) — the objection turns out to name the thief's own job description.
+
+**The weapon is love, and it is undefeated.** `Charity never faileth` (1 Corinthians 13:8) — his *undefeated eternal Champion*, in the KJV's own word. With `Be not overcome of evil, but overcome evil with good` (Romans 12:21), `Love your enemies` (Matthew 5:44), `avenge not yourselves` (Romans 12:19), and `thanks be to God, which giveth us the victory` (1 Corinthians 15:57).
+
+**Why it only becomes believable later.** `Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth` (2 Timothy 2:15) — which is L141's own subject, so L143 would sit directly on top of it.
+
+### Status
+
+Twelve verses verified verbatim against `app/public/bible/kjv`. Placement is not ambiguous — this is a lesson — so it is queued rather than questioned, and it is held only because Darrell was still speaking and asked to pick the conversation up in person. **re-review: 2026-09-19.**
