@@ -109,7 +109,7 @@ import { FreshnessDot } from './components/FreshnessDot.jsx';
 import SelfServeWelcome from './components/SelfServeWelcome.jsx';
 import PinGate from './components/PinGate.jsx';
 import { decideAccess, decidePersonaSelect, shouldIssueDeviceTrust, isPersonaGated, NEXT_STEP } from './lib/multi-point-auth.js';
-import { useChurchAccess } from './lib/church-access-store.js';
+import { useChurchAccess, isChurchOfficeRole } from './lib/church-access-store.js';
 import { useIdleLock } from './lib/use-idle-lock.jsx';
 import { hasUserPin, setUserPin, verifyUserPin, listPersonaPins, verifyPersonaPin } from './lib/pin.js';
 import { markPinResetIntent, hasPinResetIntent, clearPinResetIntent } from './lib/pin-reset-intent.js';
@@ -156,7 +156,7 @@ import {
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
   CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library,
   Inventory, Forecast, AdminConsole, ChefCorner, RoadTo150, Games, TVTime, Messages, AdvocacyCases, DataLiberation,
-  surfaceById, AccessRequests, EternalAlgorithmsStudy, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, Relationships,
+  surfaceById, AccessRequests, EternalAlgorithmsStudy, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, ChurchGivingBook, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { useInstanceRole } from './lib/instance-role.js';
@@ -4431,7 +4431,7 @@ ${THEME_CSS}
           <div className="border-t border-[#E8E4DC] bg-white">
             {/* Church sub-nav rides <TabScroll>; chrome caps the row via zoom. */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
-                {[['home','Church'],['ministries', <><UiIcon name="heart" /> Ministries</>],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>],['engagement','Engagement'],['choir','Choir'],['bus', <><UiIcon name="users" /> Bus Ministry</>],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['eternal-algorithms', <><UiIcon name="sparkle" /> Eternal Algorithms</>],['conference','Conference'],['events','Campus Rentals'],['projects', <><UiIcon name="sliders" /> Projects</>], ...(authSession ? [['my-record', <><UiIcon name="pencil" /> My Record</>],['access', <><UiIcon name="lock" /> Access</>],['members', <><UiIcon name="users" /> Members</>]] : []), ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['devices', <><UiIcon name="tools" /> Devices</>],['infra-plan', <><UiIcon name="sliders" /> Infra Plan</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
+                {[['home','Church'],['ministries', <><UiIcon name="heart" /> Ministries</>],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>],['engagement','Engagement'],['choir','Choir'],['bus', <><UiIcon name="users" /> Bus Ministry</>],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['eternal-algorithms', <><UiIcon name="sparkle" /> Eternal Algorithms</>],['conference','Conference'],['events','Campus Rentals'],['projects', <><UiIcon name="sliders" /> Projects</>], ...(authSession ? [['my-record', <><UiIcon name="pencil" /> My Record</>],['access', <><UiIcon name="lock" /> Access</>],['members', <><UiIcon name="users" /> Members</>]] : []), ...(!reviewerMode && isChurchOfficeRole(churchAccess.role) ? [['giving-book', <><UiIcon name="coins" /> Giving Book</>]] : []), ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['devices', <><UiIcon name="tools" /> Devices</>],['infra-plan', <><UiIcon name="sliders" /> Infra Plan</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
             </TabScroll>
@@ -4814,6 +4814,7 @@ ${THEME_CSS}
         {view === 'church' && churchView === 'ministries' && <ChurchMinistriesTab onOpen={(s) => s && s.sub && setChurchView(s.sub)} onFeedback={(k) => setFeedbackOpen(k)} />}
         {view === 'church' && churchView === 'bus' && <BusMinistry church={data.church} />}
         {view === 'church' && churchView === 'members' && <ChurchMembers />}
+        {view === 'church' && churchView === 'giving-book' && !reviewerMode && isChurchOfficeRole(churchAccess.role) && <ChurchGivingBook churchName={data.church?.name || ''} instanceId={churchAccess.instanceId} />}
         {view === 'church' && churchView === 'my-record' && <ChurchMemberSpace church={data.church} myUserId={authSession?.user?.id || null} onOpen={(t) => t && t.sub && setChurchView(t.sub)} />}
         {view === 'church' && churchView === 'access' && <AccessRequests instanceId={churchAccess.instanceId} isOffice={['owner','admin'].includes(churchAccess.role)} />}
         {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}
