@@ -44,8 +44,8 @@ Read carelessly these two look like a prohibition on the very thing the meeting 
 
 ## What was measured
 
-- `npm run verify` green: **944 files, 14,064 tests, exit 0.**
-- **31 tests** in `church-giving-book.test.js`, two of them proven-to-catch by doctoring the real source and requiring failure: the private-ledger wall, and the route's office guard.
+- `npm run verify` green: **945 files, 14,083 tests, exit 0.**
+- **50 tests** across `church-giving-book.test.js` (31) and `church-giving-book-render.test.jsx` (19), four of them proven-to-catch by doctoring the real source and requiring failure: the private-ledger wall, the route's office guard, an auto-selected donor match, and an unchecked batch reporting itself balanced.
 - Five repo gates caught real defects in this work and were fixed rather than worked around: missing focus rings on three buttons (a keyboard user could not see where they were), the surface missing from `VALID_CHURCH_SUBS` (not deep-linkable), missing from the feedback-area list (unreportable), and two regenerated ledgers.
 - The monolith freeze held at the documented minimum: **+1 line, the render-switch line only.** The office-gate comment moved into `church-access-store.js` beside the predicate, which is where a reader looks and which is also what makes decision 2 structural.
 
@@ -53,7 +53,9 @@ Read carelessly these two look like a prohibition on the very thing the meeting 
 
 **Migration 0214 has not been executed.** It is structurally checked (balanced parens, quotes and dollar-blocks; three tables, three policies, the overlays re-run) and it passes the replay-order, return-type and SQL-language gates — but this sandbox has no Postgres, so nothing has run it. `db-migrate.yml` executes it with `psql -v ON_ERROR_STOP=1` on merge; that run is the real verification and is watched, not assumed.
 
-**The screen has not been driven in a browser.** The tests read the DOM and the source, which is not the same as looking at it. A live pass against a real statement is owed. **re-review: 2026-09-19.**
+**The screen has not been driven in a REAL browser against REAL data.** It is now mounted: `church-giving-book-render.test.jsx` (19 tests) renders the actual component in jsdom against a mocked sync layer and drives the steward's path — every honest state distinguishable on screen, sub-dollar and negative amounts rendering rather than `NaN`, the review list offering a choice with nothing preselected, and no write path firing from reading. Two of those are proven-to-catch: preselecting the best match, and letting an unchecked batch claim it balances, each fails the suite.
+
+That closes the "does it even render" question, which every other test in this feature would have missed — all 31 of them read source text or exercised the pure libraries, so a component that threw on mount would have passed them all. It does NOT close the remaining one: jsdom is not a browser, a mocked sync layer is not the database, and nobody has yet opened this screen signed in as the office with a real Cash App export in hand. The sandbox has no route to poetech.us (LESSONS P31), so that pass belongs on the live build after deploy, per DR-0104. **re-review: 2026-09-19.**
 
 ## Related
 
