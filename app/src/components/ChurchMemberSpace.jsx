@@ -24,6 +24,7 @@ import SectionTabs from './SectionTabs.jsx';
 import UiIcon from './UiIcon.jsx';
 import TlcRecordEditor from './TlcRecordEditor.jsx';
 import TlcDocumentAcknowledge from './TlcDocumentAcknowledge.jsx';
+import ProductFormEditor from './ProductFormEditor.jsx';
 import { memberProgress } from '../lib/church-member-intake.js';
 import {
   readMyChurchRecord, patchMyChurchRecord, signChurchCovenant, readChurchRoll,
@@ -417,6 +418,15 @@ export default function ChurchMemberSpace({ church = COLG_DEFAULT_CHURCH, myUser
   if (isOffice) {
     areas.push({ id: 'roll', label: 'The roll', icon: 'users', render: () => (
       <OfficeRoll instanceId={view.instanceId} church={church} onOpen={onOpen} />
+    ) });
+    // THE QUESTIONS THEMSELVES. DR-0357 generalized the forms engine to every
+    // product and left the EDITOR bound to TLC — so the church office could
+    // read the answers on the roll beside this, and could not change a single
+    // question it was asking. It sits here, next to the roll, because the
+    // questions and the answers to them are one job.
+    areas.push({ id: 'questions', label: 'The questions', icon: 'pencil', render: () => (
+      <ProductFormEditor product="lovecorner" instanceId={view.instanceId}
+        title="What the church asks, and the covenant it asks people to sign" />
     ) });
   }
 
