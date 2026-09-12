@@ -49,6 +49,32 @@ const LABEL = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb
 const CARD = 'border border-[#E8E4DC] bg-white p-3';
 
 const todayIso = () => { try { return new Date().toISOString().slice(0, 10); } catch { return '2026-01-01'; } };
+
+// WHAT A RIDER IS TOLD WHEN THE REQUEST DOES NOT SAVE.
+// A congregant filed a ride request on 2026-09-11 and wrote, with three
+// screenshots: "I filled out the ride request and I didn't go through." The
+// app DID know — submitRideRequest returns { skipped: 'no-church' } and the
+// like — but it said so twice-wrongly: in its own internal vocabulary
+// ("Could not save (no-church). Try again."), and in a banner rendered ABOVE
+// the form, which on a phone sits off the top of the screen while you are
+// looking at the button you just pressed.
+//
+// "Try again" is also the wrong instruction for every one of these: none of
+// them get better by pressing the button a second time.
+export function riderProblem(skipped) {
+  switch (skipped) {
+    case 'signed-out':
+      return 'You are signed out, so the request could not be sent. Sign in and send it again — nothing you typed is lost.';
+    case 'no-church':
+      return 'Your account is not linked to the church yet, so there is nowhere to send this. Ask the office to add you, then send it again.';
+    case 'incomplete':
+      return 'The request needs your name and either a pickup area or an address before it can be sent.';
+    case 'insert-error':
+      return 'The church could not be reached just now. Your request was NOT sent — please tell the bus coordinator directly so you are not left waiting.';
+    default:
+      return 'The request was NOT sent. Please tell the bus coordinator directly so you are not left waiting.';
+  }
+}
 const fmtDate = (d) => { if (!d) return ''; try { return new Date(d + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }); } catch { return d; } };
 const fmtDateShort = (d) => { if (!d) return ''; try { return new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); } catch { return d; } };
 
@@ -100,7 +126,7 @@ export default function BusMinistry({ church = null }) {
     return () => { try { unsub && unsub(); } catch { /* noop */ } };
   }, [signedIn]);
 
-  const reportSkip = (r) => { if (r && r.skipped) setErr(`Could not save (${r.skipped}). Try again.`); else setErr(''); };
+  const reportSkip = (r) => { if (r && r.skipped) setErr(riderProblem(r.skipped)); else setErr(''); };
   const canEdit = access.canEdit;
 
   // Roster people I can DM (linked app accounts only).
@@ -691,9 +717,11 @@ function RiderRequestPanel({ slots, myRequests, reportSkip }) {
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const [problem, setProblem] = useState('');
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const submit = async () => {
+    setProblem('');
     const v = validateRideRequest(form);
     setErrors(v.errors);
     if (!v.ok) return;
@@ -701,8 +729,10 @@ function RiderRequestPanel({ slots, myRequests, reportSkip }) {
     const r = await submitRideRequest(form);
     setBusy(false);
     reportSkip(r);
+    if (r && r.skipped) setProblem(riderProblem(r.skipped));
     if (r && r.saved) {
       setSent(true);
+      setProblem('');
       setForm((f) => ({ ...f, pickupAddress: '', notes: '' }));
     }
   };
@@ -756,6 +786,11 @@ function RiderRequestPanel({ slots, myRequests, reportSkip }) {
           <label className={LABEL}>Anything else</label>
           <textarea className={FIELD} rows={2} value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Number of steps, a helper coming, timing… (optional)" />
         </div>
+        {problem && (
+          <p className="mt-3 text-xs text-[#991B1B] border border-[#991B1B] p-2" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>
+            {problem}
+          </p>
+        )}
         <button type="button" disabled={busy} onClick={submit} className={`${BTN} mt-3 bg-[#B85838] text-white hover:bg-[#1A1815] disabled:opacity-60`}>
           {busy ? 'Sending…' : 'Send ride request'}
         </button>
