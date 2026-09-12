@@ -92,6 +92,17 @@ Darrell, 2026-09-12, immediately after this lesson shipped. Captured in full bec
 
 So L143 lands undefeated AND honest: the weapon never fails, the arm holding it does, and Yahweh already knew that when He handed it over.
 
+**Why nobody reads the whole page, which is the practical obstacle under all of L142.** Darrell, continuing: *"Don’t want to spend time comprehending Yahweh’s Perspectives... that seems to be too much for people who don’t understand what is written in the Word... not having time because the devil and his team are undermining and we also lack knowledge of the Truth."*
+
+This names the mechanism L142 assumes but never explains: the clipped verse wins because the whole page costs time and attention, and both are under attack. Scripture says all three halves of it outright.
+
+- **The lack of knowledge is named as the cause of the ruin, not as an excuse for it.** `My people are destroyed for lack of knowledge: because thou hast rejected knowledge` (Hosea 4:6), and `Therefore my people are gone into captivity, because they have no knowledge` (Isaiah 5:13). Both put captivity downstream of not knowing.
+- **Time is named as contested ground in eight words.** `Redeeming the time, because the days are evil` (Ephesians 5:16). The days being evil is exactly why the time has to be bought back rather than found.
+- **And Jesus already described "no time" as a soil type.** `the care of this world, and the deceitfulness of riches, choke the word, and he becometh unfruitful` (Matthew 13:22). The seed was real and the hearing was real. The schedule strangled it.
+- **The undermining has a named author and a named method** — `your adversary the devil, as a roaring lion, walketh about, seeking whom he may devour` (1 Peter 5:8), working `as the serpent beguiled Eve through his subtilty, so your minds should be corrupted from the simplicity that is in Christ` (2 Corinthians 11:3). That is the same word used of the serpent in Genesis 3:1, which is where L142 opens, so the two lessons close a loop.
+- **The remedy is not more hours but a different appetite.** `Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding` (Proverbs 4:7), `Thy word is a lamp unto my feet` (Psalms 119:105), and the outcome Darrell keeps naming, `ye shall know the truth, and the truth shall make you free` (John 8:32).
+
+
 ### Status
 
-Nineteen verses verified verbatim against `app/public/bible/kjv`. Placement is not ambiguous — this is a lesson — so it is queued rather than questioned, and it is held only because Darrell was still speaking and asked to pick the conversation up in person. **re-review: 2026-09-19.**
+Twenty-eight verses verified verbatim against `app/public/bible/kjv`. Placement is not ambiguous — this is a lesson — so it is queued rather than questioned, and it is held only because Darrell was still speaking and asked to pick the conversation up in person. **re-review: 2026-09-19.**
