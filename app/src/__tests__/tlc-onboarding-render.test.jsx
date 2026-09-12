@@ -121,6 +121,39 @@ afterEach(async () => { if (root) await act(async () => root.unmount()); if (con
 // panel that renders in 10ms costs one pass; one that takes 3s under load is
 // waited for; one that never comes still FAILS, with the same named message,
 // instead of hanging. There is nothing left to tune because nothing is guessed.
+// ── THE BUDGETS, AND WHY THEY ARE NOT 5000 (2026-09-12) ──────────────────────
+// Every helper below defaulted to 5000ms, which is EXACTLY vitest's default
+// per-test timeout. So the first wait that reached its deadline consumed the
+// whole test budget, and the test died at 5002ms with a bare "test timed out"
+// instead of the helper's own named message — and a single test makes many
+// such waits, so under load they cannot all fit inside one 5s test.
+//
+// Measured: this file passes ALONE in 1.7s for 23 tests (~75ms each). Under a
+// loaded full suite, 11 then 12 of them hit 5002ms. The varying count with a
+// constant deadline is the signature of a timing failure, not a logic break.
+//
+// The fix is the relationship, not a bigger number: the test budget is now
+// comfortably larger than what the helpers can spend, so a genuine failure
+// reports WHICH wait gave up and on what, and a slow machine simply waits.
+vi.setConfig({ testTimeout: 30000, hookTimeout: 30000 });
+const WAIT_MS = 8000;
+
+// ── AND THE UNBOUNDED WAIT ITSELF (the real root cause) ─────────────────────
+// The sync modules are mocked below, but the component tree still reaches the
+// supabase client directly (a `get_profile` lookup), and vitest.config points
+// VITE_SUPABASE_URL at https://test-stub.supabase.co — a host that does not
+// resolve. So every render waited on a DNS FAILURE, whose latency is unbounded:
+// milliseconds on an idle machine, seconds under a loaded suite. That is why
+// the same 23 tests passed alone in 1.7s and timed out 11 and then 12 at a time
+// in a full run. The log said so plainly the whole time:
+//     getaddrinfo ENOTFOUND test-stub.supabase.co
+//
+// A test has no business doing DNS. This makes the call fail INSTANTLY, which
+// is the same outcome the code already handles (it logs and degrades) minus the
+// wait. Nothing about what is asserted changes.
+const NO_NETWORK = () => Promise.reject(new Error('network disabled in tests'));
+vi.stubGlobal('fetch', NO_NETWORK);
+
 const flush = () => act(async () => {
   for (let i = 0; i < 20; i += 1) await Promise.resolve();
   await new Promise((r) => { setTimeout(r, 0); });
@@ -129,7 +162,7 @@ const flush = () => act(async () => {
 // waitFor — poll for a THING. The right tool when there is something to look
 // for (a button, a panel): stillness can mean "not started", but a found
 // element means found.
-const waitFor = async (get, timeoutMs = 5000) => {
+const waitFor = async (get, timeoutMs = WAIT_MS) => {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     const el = get();
@@ -141,7 +174,7 @@ const waitFor = async (get, timeoutMs = 5000) => {
 // waitForSome — the same, for a LIST. Several assertions read a whole tablist
 // straight out of the DOM and compare it; an empty list is the un-rendered
 // state, not a real answer, so wait until something is there.
-const waitForSome = async (getAll, timeoutMs = 5000) => {
+const waitForSome = async (getAll, timeoutMs = WAIT_MS) => {
   const found = await waitFor(() => { const xs = getAll(); return xs && xs.length ? xs : null; }, timeoutMs);
   return found || [];
 };
@@ -154,7 +187,7 @@ const waitForSome = async (getAll, timeoutMs = 5000) => {
 // tablist under CI load (2026-09-11, runs on 3fd6146 and 2b36d78). Quiescence is
 // not sufficient on its own — that was the earlier lesson — but paired with
 // polling for the specific thing, it is the right tool for "let the work land".
-const settle = async (timeoutMs = 5000) => {
+const settle = async (timeoutMs = WAIT_MS) => {
   const deadline = Date.now() + timeoutMs;
   let prev = null;
   for (;;) {
