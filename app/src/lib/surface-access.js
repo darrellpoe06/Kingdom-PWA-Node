@@ -67,7 +67,13 @@ export const REQUIREMENTS = Object.freeze({
     // church-staff allowlist in the shell, and the person Darrell named as the
     // gate for access requests.
     ask: 'the church office, or Bishop Gwin',
-    holds: (v) => !!v.isChurchStaff,
+    // TWO WAYS IN, and the second one is the point of 0211. The email allowlist
+    // is the original and stays; `see:church-staff` is a capability GRANTED by
+    // the office, in the app, to a named person, with a row to show for it — so
+    // approving a request opens something instead of only marking it approved.
+    holds: (v) => !!v.isChurchStaff || (v.capabilities || []).includes('see:church-staff'),
+    // The one key a request for any of these tabs asks for.
+    grantedBy: 'see:church-staff',
   },
   'instance-owner-admin': {
     id: 'instance-owner-admin',
@@ -111,6 +117,10 @@ function viewerOf(raw = {}) {
     isChurchStaff: !reviewer && !!raw.isChurchStaff,
     isStudyCircle: !reviewer && !!raw.isStudyCircle,
     instanceRole: reviewer ? '' : String(raw.instanceRole || ''),
+    // Reviewer mode drops granted capabilities too. A reviewer is meant to see
+    // the build as a user meets it, and a reviewer carrying somebody's grant
+    // would be reviewing the wrong app.
+    capabilities: reviewer ? [] : (Array.isArray(raw.capabilities) ? raw.capabilities : []),
     reviewerMode: reviewer,
   };
 }
@@ -132,7 +142,7 @@ export function surfaceAccess(surface = {}, rawViewer = {}) {
   const mode = surface.whenDenied === 'hide' ? 'hide' : DEFAULT_WHEN_DENIED;
 
   if (allowed) {
-    return { allowed: true, listed: true, locked: false, requirement: req.id, plain: req.plain, ask: req.ask, why: '' };
+    return { allowed: true, listed: true, locked: false, requirement: req.id, plain: req.plain, ask: req.ask, grantedBy: req.grantedBy || '', why: '' };
   }
   return {
     allowed: false,
@@ -141,6 +151,9 @@ export function surfaceAccess(surface = {}, rawViewer = {}) {
     requirement: req.id,
     plain: req.plain,
     ask: req.ask,
+    // The capability an approval would actually write. Empty means there is no
+    // key for this one and asking would be theatre — the tile says so instead.
+    grantedBy: req.grantedBy || '',
     why: viewer.signedIn
       ? `${surface.label || 'This'} is ${req.plain.replace(/^For /, 'for ').replace(/\.$/, '')}.`
       : 'Sign in first — this app cannot tell who you are yet.',
@@ -170,14 +183,22 @@ export function isLocked(surfaces = [], id = '', viewer = {}) {
 }
 
 /**
- * WHAT IS NOT BUILT, said plainly rather than implied by a button that does
- * nothing (DR-0329). A locked tile tells a person who to ask; it does not yet
- * carry an in-app request that reaches that person. Building that chain — a
- * request row, an approval by the church office or Bishop Gwin, and the grant
- * written to instance_members — is the next piece of this work.
+ * The request chain, and what it does NOT cover.
+ *
+ * It IS built now (0211): a person asks from the tile, the ask lands in the
+ * office queue, and an approval GRANTS through 0126's guarded door rather than
+ * only marking a row. What it does not cover is a surface with no key —
+ * `grantedBy` empty means nothing an office could write would open it, and the
+ * tile says so rather than drawing a button that files into nowhere (DR-0329).
  */
 export const ACCESS_REQUEST_IS_NOT_BUILT = Object.freeze({
-  built: false,
-  today: 'A locked tile names who holds the key. Asking them is a conversation, not a button.',
-  next: 'A request row, an approval by the church office or Bishop Gwin, and the grant written to the roster.',
+  built: true,
+  today: 'Ask from the tile and it reaches the church office. Approving it grants the key on the spot — nobody has to remember a second step.',
+  noKey: 'There is no key for this one. Asking here would file into nowhere, so the app does not offer it — speak to the person named above.',
 });
+
+/** Can a request for this surface actually be granted by somebody? */
+export function canBeRequested(surface = {}, viewer = {}) {
+  const a = surfaceAccess(surface, viewer);
+  return a.locked && !!a.grantedBy && !!viewer.signedIn;
+}

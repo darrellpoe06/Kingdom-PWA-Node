@@ -26,9 +26,10 @@
 // The DATABASE is the wall (DR-0060). This tile is the app being honest about
 // its own shape; it protects nothing by itself and never claims to.
 // =============================================================================
-import React from 'react';
+import React, { useState } from 'react';
 import UiIcon from './UiIcon.jsx';
-import { surfaceAccess, ACCESS_REQUEST_IS_NOT_BUILT } from '../lib/surface-access.js';
+import { surfaceAccess, canBeRequested, ACCESS_REQUEST_IS_NOT_BUILT } from '../lib/surface-access.js';
+import { askForAccess, GRANT_IS_ALL_STAFF_TABS } from '../lib/access-requests.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 
@@ -41,10 +42,28 @@ const SERIF = { fontFamily: '"Fraunces", serif' };
  * @param {object} viewer  { signedIn, isFamilyMember, isChurchStaff, isStudyCircle, instanceRole, reviewerMode }
  * @param {string} [what]  one line on what this surface is, for a reader who has never seen it
  * @param {function} [onSignIn] shown only when the viewer is signed out
+ * @param {string} [instanceId] the church this person belongs to, for the ask
  */
-export default function LockedSurface({ surface: entry = null, viewer = {}, what = '', onSignIn = null }) {
+export default function LockedSurface({ surface: entry = null, viewer = {}, what = '', onSignIn = null, instanceId = null }) {
   const surface = (entry && entry.id) ? entry : { id: 'unknown', label: 'This surface' };
   const access = surfaceAccess(surface, viewer);
+  // The ask. Deliberately a small amount of state in the tile itself rather
+  // than a modal: somebody who has just met a shut door should not have to
+  // navigate somewhere else to knock on it.
+  const askable = canBeRequested(surface, viewer) && !!instanceId;
+  const [asking, setAsking] = useState(false);
+  const [reason, setReason] = useState('');
+  const [said, setSaid] = useState('');
+  const [busy, setBusy] = useState(false);
+  const send = async () => {
+    setBusy(true);
+    const res = await askForAccess({ instanceId, surfaceId: surface.id, surfaceLabel: surface.label, reason });
+    setBusy(false);
+    setSaid(res.ok
+      ? 'Sent. The church office has it, and this tab opens the moment they say yes — you will not have to ask twice.'
+      : res.message);
+    if (res.ok) setAsking(false);
+  };
 
   return (
     <section
@@ -82,11 +101,48 @@ export default function LockedSurface({ surface: entry = null, viewer = {}, what
             </button>
           )}
 
-          {/* 4. WHAT IS NOT BUILT. A button that filed nothing would be worse
-                 than this sentence. */}
-          {viewer.signedIn && !ACCESS_REQUEST_IS_NOT_BUILT.built && (
+          {/* 4. THE ASK. It reaches the office, and an approval grants the key
+                 on the spot — there is no second step for anybody to forget
+                 (0211). Where no key exists, no button is drawn and the tile
+                 says why instead of filing into nowhere. */}
+          {viewer.signedIn && askable && !asking && (
+            <div className="mt-3">
+              <button type="button" onClick={() => { setAsking(true); setSaid(''); }}
+                className="min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#C9BFA8] text-[#F3EFE7] hover:border-[#F3EFE7] hover:bg-[#2A2724] focus:outline focus:outline-2 focus:outline-[#B85838]">
+                Ask for access
+              </button>
+              {said && <p className="text-[0.6875rem] text-[#C9BFA8] mt-2 leading-relaxed">{said}</p>}
+            </div>
+          )}
+
+          {viewer.signedIn && askable && asking && (
+            <div className="mt-3 space-y-2">
+              <label className="block text-[0.6875rem] text-[#C9BFA8]">
+                Why do you need it? (optional — it helps the office answer)
+                <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2}
+                  placeholder="I look after the cameras on Sunday."
+                  className="w-full min-h-[36px] mt-1 px-2 py-1 text-sm bg-[#2A2724] border border-[#4A453E] text-[#F3EFE7] focus:outline focus:outline-2 focus:outline-[#B85838]" />
+              </label>
+              <p className="text-[0.625rem] text-[#A39C8E] leading-relaxed">{GRANT_IS_ALL_STAFF_TABS}</p>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={send} disabled={busy}
+                  className="min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#C9BFA8] text-[#F3EFE7] hover:border-[#F3EFE7] hover:bg-[#2A2724] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]">
+                  {busy ? 'Sending…' : 'Send it'}
+                </button>
+                <button type="button" onClick={() => setAsking(false)}
+                  className="min-h-[36px] px-3 py-2 text-sm border border-[#4A453E] text-[#C9BFA8] hover:border-[#C9BFA8] focus:outline focus:outline-2 focus:outline-[#B85838]">
+                  Not now
+                </button>
+              </div>
+              {said && <p className="text-[0.6875rem] text-[#C9BFA8] leading-relaxed">{said}</p>}
+            </div>
+          )}
+
+          {/* No key exists for this one. Said plainly rather than drawn as a
+              button that would file into nowhere (DR-0329). */}
+          {viewer.signedIn && !askable && !access.grantedBy && (
             <p className="text-[0.6875rem] text-[#A39C8E] mt-3 leading-relaxed">
-              {ACCESS_REQUEST_IS_NOT_BUILT.today}
+              {ACCESS_REQUEST_IS_NOT_BUILT.noKey}
             </p>
           )}
 

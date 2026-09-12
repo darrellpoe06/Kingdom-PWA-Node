@@ -143,12 +143,20 @@ describe('the locked tile instructs — the whole point of the second half', () 
     expect(t).toMatch(/for church staff/i);                      // why
   });
 
-  it('says plainly that there is no request button yet, instead of drawing one', () => {
+  it('draws NO ask button when there is no church to ask — and never a dead one', () => {
+    // The chain IS built now (0211), but a button still only appears where a
+    // real key exists AND this person belongs somewhere that could grant it.
+    // Without an instanceId there is nowhere to send the ask, so none is drawn.
     mount({ surface: byId('devices'), viewer: MEMBER });
-    expect(ACCESS_REQUEST_IS_NOT_BUILT.built).toBe(false);
-    expect(container.textContent).toContain(ACCESS_REQUEST_IS_NOT_BUILT.today);
+    expect(ACCESS_REQUEST_IS_NOT_BUILT.built).toBe(true);
     const labels = Array.from(container.querySelectorAll('button')).map((b) => b.textContent);
-    expect(labels.join(' ')).not.toMatch(/request|ask for access/i);
+    expect(labels.join(' ')).not.toMatch(/ask for access/i);
+  });
+
+  it('draws it once the person has a church behind them', () => {
+    mount({ surface: byId('devices'), viewer: MEMBER, instanceId: 'inst-1' });
+    const labels = Array.from(container.querySelectorAll('button')).map((b) => b.textContent);
+    expect(labels.join(' ')).toMatch(/Ask for access/);
   });
 
   it('offers a signed-out person the one thing that would actually help', () => {
@@ -193,7 +201,14 @@ describe('the shell wiring — the five hand-written boxes are gone', () => {
   });
 
   it('the viewer is assembled from predicates the shell already had', () => {
-    expect(shell).toMatch(/const surfaceViewer = \{ signedIn: !!authSession, isFamilyMember, isChurchStaff, isStudyCircle, instanceRole: instanceRoleState\.role \|\| '', reviewerMode \}/);
+    // Pinned as the SHAPE, not the exact spelling: `capabilities` joined it
+    // with 0211 and the next fact will join it too. What must hold is that
+    // every field comes from something the shell already computes.
+    const m = shell.match(/const surfaceViewer = \{([^}]*)\}/);
+    expect(m, 'the surface viewer is gone').toBeTruthy();
+    for (const key of ['signedIn', 'isFamilyMember', 'isChurchStaff', 'isStudyCircle', 'capabilities', 'instanceRole', 'reviewerMode']) {
+      expect(m[1], `${key} must be on the viewer`).toContain(key);
+    }
   });
 });
 

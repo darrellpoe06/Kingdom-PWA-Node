@@ -109,6 +109,7 @@ import { FreshnessDot } from './components/FreshnessDot.jsx';
 import SelfServeWelcome from './components/SelfServeWelcome.jsx';
 import PinGate from './components/PinGate.jsx';
 import { decideAccess, decidePersonaSelect, shouldIssueDeviceTrust, isPersonaGated, NEXT_STEP } from './lib/multi-point-auth.js';
+import { useChurchAccess } from './lib/church-access-store.js';
 import { useIdleLock } from './lib/use-idle-lock.jsx';
 import { hasUserPin, setUserPin, verifyUserPin, listPersonaPins, verifyPersonaPin } from './lib/pin.js';
 import { markPinResetIntent, hasPinResetIntent, clearPinResetIntent } from './lib/pin-reset-intent.js';
@@ -155,7 +156,7 @@ import {
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
   CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library,
   Inventory, Forecast, AdminConsole, ChefCorner, RoadTo150, Games, TVTime, Messages, AdvocacyCases, DataLiberation,
-  surfaceById, EternalAlgorithmsStudy, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, Relationships,
+  surfaceById, AccessRequests, EternalAlgorithmsStudy, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { useInstanceRole } from './lib/instance-role.js';
@@ -1226,7 +1227,8 @@ export default function PoeFinancialSystem() {
   const isFamilyMember = !reviewerMode && isFamilyEmail(authSession?.user?.email);
   // Church staff get the church staff-only surfaces (Observation) and nothing
   // more — never the family/Governor scope. Family are staff too (superset).
-  const isChurchStaff = !reviewerMode && (isFamilyMember || isChurchStaffEmail(authSession?.user?.email));
+  const churchAccess = useChurchAccess();  // what the OFFICE granted (0211) — lib/church-access-store.js
+  const isChurchStaff = !reviewerMode && (isFamilyMember || isChurchStaffEmail(authSession?.user?.email) || churchAccess.capabilities.includes('see:church-staff'));
   // The private Study circle (Darrell + Christina + BG). Gates both the nav entry
   // (so the wider team never sees it) and the view render (defense in depth).
   const isStudyCircle = !reviewerMode && isStudyCircleEmail(authSession?.user?.email);
@@ -1236,7 +1238,7 @@ export default function PoeFinancialSystem() {
   // any other view (deep-links included) steers back to the workspace.
   const instanceRoleState = useInstanceRole();
   const isAssistantAcct = !reviewerMode && !isFamilyMember && !!authSession && instanceRoleState.role === 'assistant';
-  const surfaceViewer = { signedIn: !!authSession, isFamilyMember, isChurchStaff, isStudyCircle, instanceRole: instanceRoleState.role || '', reviewerMode };  // lib/surface-access.js
+  const surfaceViewer = { signedIn: !!authSession, isFamilyMember, isChurchStaff, isStudyCircle, capabilities: churchAccess.capabilities, instanceRole: instanceRoleState.role || '', reviewerMode };  // lib/surface-access.js
   useEffect(() => {
     if (isAssistantAcct && !['tlc-assistant', 'messages', 'about'].includes(view)) setView('tlc-assistant');
   }, [isAssistantAcct, view]);
@@ -4429,7 +4431,7 @@ ${THEME_CSS}
           <div className="border-t border-[#E8E4DC] bg-white">
             {/* Church sub-nav rides <TabScroll>; chrome caps the row via zoom. */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
-                {[['home','Church'],['ministries', <><UiIcon name="heart" /> Ministries</>],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>],['engagement','Engagement'],['choir','Choir'],['bus', <><UiIcon name="users" /> Bus Ministry</>],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['eternal-algorithms', <><UiIcon name="sparkle" /> Eternal Algorithms</>],['conference','Conference'],['events','Campus Rentals'],['projects', <><UiIcon name="sliders" /> Projects</>], ...(authSession ? [['my-record', <><UiIcon name="pencil" /> My Record</>],['members', <><UiIcon name="users" /> Members</>]] : []), ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['devices', <><UiIcon name="tools" /> Devices</>],['infra-plan', <><UiIcon name="sliders" /> Infra Plan</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
+                {[['home','Church'],['ministries', <><UiIcon name="heart" /> Ministries</>],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>],['engagement','Engagement'],['choir','Choir'],['bus', <><UiIcon name="users" /> Bus Ministry</>],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['eternal-algorithms', <><UiIcon name="sparkle" /> Eternal Algorithms</>],['conference','Conference'],['events','Campus Rentals'],['projects', <><UiIcon name="sliders" /> Projects</>], ...(authSession ? [['my-record', <><UiIcon name="pencil" /> My Record</>],['access', <><UiIcon name="lock" /> Access</>],['members', <><UiIcon name="users" /> Members</>]] : []), ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['devices', <><UiIcon name="tools" /> Devices</>],['infra-plan', <><UiIcon name="sliders" /> Infra Plan</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
             </TabScroll>
@@ -4544,23 +4546,23 @@ ${THEME_CSS}
             (one-source-many-harvests). Staff-gated; RLS read = choir (0050). */}
         {view === 'church' && churchView === 'harvest' && (isChurchStaff
           ? <HarvestLedger />
-          : <LockedSurface surface={surfaceById['harvest']} viewer={surfaceViewer} what="Every recording the church has ingested, and everything that has been mined out of it — so no video is lost." />)}
+          : <LockedSurface surface={surfaceById['harvest']} viewer={surfaceViewer} instanceId={churchAccess.instanceId} what="Every recording the church has ingested, and everything that has been mined out of it — so no video is lost." />)}
         {view === 'church' && churchView === 'videowall' && (isChurchStaff
           ? <ChurchVideoWall />
-          : <LockedSurface surface={surfaceById['videowall']} viewer={surfaceViewer} what="The video wall capital project: what it costs, what is bought, and what is still needed. It carries church financial figures." />)}
+          : <LockedSurface surface={surfaceById['videowall']} viewer={surfaceViewer} instanceId={churchAccess.instanceId} what="The video wall capital project: what it costs, what is bought, and what is still needed. It carries church financial figures." />)}
         {/* Device Inventory: the asset register for church infrastructure +
             the idle-GPU compute pool (capability index). Staff-gated; RLS
             scopes church_devices (0056). The capability fields feed the
             deterministic, brake-gated gpu-scheduler (ships inert). */}
         {view === 'church' && churchView === 'devices' && (isChurchStaff
           ? <DeviceInventory />
-          : <LockedSurface surface={surfaceById['devices']} viewer={surfaceViewer} what="The register of what the church owns and runs — cameras, screens, machines — and what each one can do." />)}
+          : <LockedSurface surface={surfaceById['devices']} viewer={surfaceViewer} instanceId={churchAccess.instanceId} what="The register of what the church owns and runs — cameras, screens, machines — and what each one can do." />)}
         {view === 'church' && churchView === 'infra-plan' && (isChurchStaff
           ? <ChurchInfraPlan />
-          : <LockedSurface surface={surfaceById['infra-plan']} viewer={surfaceViewer} what="The plan for the church's own systems: what is standing, what is next, and what each step depends on." />)}
+          : <LockedSurface surface={surfaceById['infra-plan']} viewer={surfaceViewer} instanceId={churchAccess.instanceId} what="The plan for the church's own systems: what is standing, what is next, and what each step depends on." />)}
         {view === 'church' && churchView === 'observe' && (isChurchStaff
           ? <ChurchObservation observation={data.churchObservation} updateChurchObservation={updateChurchObservation} />
-          : <LockedSurface surface={surfaceById['observe']} viewer={surfaceViewer} />)}
+          : <LockedSurface surface={surfaceById['observe']} viewer={surfaceViewer} instanceId={churchAccess.instanceId} />)}
         {view === 'church' && churchView === 'learn' && (() => {
           // Resolve the cohort a learner SEES: the Governor's live in-instance
           // value when present, else the PUBLISHED confirmed date every build
@@ -4813,6 +4815,7 @@ ${THEME_CSS}
         {view === 'church' && churchView === 'bus' && <BusMinistry church={data.church} />}
         {view === 'church' && churchView === 'members' && <ChurchMembers />}
         {view === 'church' && churchView === 'my-record' && <ChurchMemberSpace church={data.church} myUserId={authSession?.user?.id || null} onOpen={(t) => t && t.sub && setChurchView(t.sub)} />}
+        {view === 'church' && churchView === 'access' && <AccessRequests instanceId={churchAccess.instanceId} isOffice={['owner','admin'].includes(churchAccess.role)} />}
         {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}
         {/* Create — the document / image creation workspace. Wrapped in its own
             SectionBoundary so a thrown error degrades just this surface (no
