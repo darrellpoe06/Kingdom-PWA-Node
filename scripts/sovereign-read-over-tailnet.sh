@@ -33,6 +33,7 @@
 #
 # Usage:  sovereign-read-over-tailnet.sh feedback [days]
 #         sovereign-read-over-tailnet.sh definitions
+#         sovereign-read-over-tailnet.sh mail        (is auth able to send at all?)
 # Requires NAS_SSH_KEY and a tailnet already joined by the calling workflow.
 # =============================================================================
 set -uo pipefail
@@ -43,8 +44,8 @@ NAS_HOST="${NAS_HOST:-dpoe@poetech.tail5a2f35.ts.net}"
 NAS_ENV="${NAS_ENV:-/volume1/docker/supabase/.env}"
 
 case "$MODE" in
-  feedback|definitions) ;;
-  *) echo "::error::unknown mode '$MODE' (feedback|definitions)"; exit 2 ;;
+  feedback|definitions|mail) ;;
+  *) echo "::error::unknown mode '$MODE' (feedback|definitions|mail)"; exit 2 ;;
 esac
 case "$DAYS" in
   ''|*[!0-9]*) echo "::error::days must be a whole number, got '$DAYS'"; exit 2 ;;
@@ -128,6 +129,43 @@ if [ "$MODE" = "feedback" ]; then
                  ' confidential_withheld='||count(*) FILTER (WHERE coalesce(is_confidential,false))||
                  ' newest='||coalesce(max(submitted_at)::text,'none')
             FROM public.feedback"
+elif [ "$MODE" = "mail" ]; then
+  # CAN THE SOVEREIGN AUTH STACK SEND MAIL AT ALL?
+  # A congregant wrote on 2026-09-11: "I'm not getting a link back when I enter
+  # my email." The client is not at fault — it returns on error and only then
+  # says "sent" — so the request was ACCEPTED and nothing arrived. A
+  # self-hosted Supabase with no SMTP configured does exactly that: GoTrue
+  # accepts signInWithOtp and silently sends nothing.
+  #
+  # This prints WHICH settings are present and whether each is empty. It NEVER
+  # prints a value: a password would be the one thing worth stealing here, and
+  # presence is the whole question anyway.
+  echo "---MAIL CONFIG (names and presence only, never values)---"
+  for k in SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS SMTP_SENDER_NAME SMTP_ADMIN_EMAIL \
+           GOTRUE_SMTP_HOST GOTRUE_SMTP_PORT GOTRUE_SMTP_USER GOTRUE_SMTP_PASS \
+           GOTRUE_SMTP_ADMIN_EMAIL GOTRUE_MAILER_AUTOCONFIRM ENABLE_EMAIL_AUTOCONFIRM \
+           ENABLE_EMAIL_SIGNUP SITE_URL API_EXTERNAL_URL ADDITIONAL_REDIRECT_URLS; do
+    line=$(grep -E "^${k}=" "$ENV_FILE" 2>/dev/null | head -1)
+    [ -n "$line" ] || line=$(sudo -n grep -E "^${k}=" "$ENV_FILE" 2>/dev/null | head -1)
+    if [ -z "$line" ]; then
+      echo "$k = ABSENT"
+    else
+      val="${line#*=}"
+      case "$k" in
+        SMTP_PASS|GOTRUE_SMTP_PASS) [ -n "$val" ] && echo "$k = set (value withheld)" || echo "$k = EMPTY" ;;
+        SITE_URL|API_EXTERNAL_URL|ADDITIONAL_REDIRECT_URLS|*AUTOCONFIRM|ENABLE_EMAIL_SIGNUP|SMTP_PORT|GOTRUE_SMTP_PORT)
+          # These are configuration, not credentials, and the actual string is
+          # the answer — a redirect list that omits the church's door is the
+          # bug, and "set" would hide that.
+          [ -n "$val" ] && echo "$k = $val" || echo "$k = EMPTY" ;;
+        *) [ -n "$val" ] && echo "$k = set (value withheld)" || echo "$k = EMPTY" ;;
+      esac
+    fi
+  done
+  echo "---AUTH CONTAINER---"
+  "$DOCKER" ps --filter name=auth --format '{{.Names}} {{.Status}}' 2>/dev/null \
+    || sudo -n "$DOCKER" ps --filter name=auth --format '{{.Names}} {{.Status}}' 2>/dev/null \
+    || echo "could not list the auth container"
 else
   echo "---DEFINITIONS---"
   psql_q "SELECT coalesce(json_agg(json_build_object(

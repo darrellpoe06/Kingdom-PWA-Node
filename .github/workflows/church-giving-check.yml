@@ -1,0 +1,31 @@
+# church-giving-check — read the church's OWN published giving links (2026-09-12)
+#
+# Dispatch-only. A congregant reported PayPal not connecting while Cashapp and
+# Givelify worked; lib/giving.js carries a `?token=` PayPal URL, which PayPal
+# mints per session and which is not a durable address. The church's website is
+# the authority on its own giving links. The agent sandbox cannot reach that
+# site (egress proxy) — a runner can.
+#
+# Reads only. It never edits giving.js: money routing is the Governor's call.
+name: church-giving-check
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Church site to read'
+        type: string
+        default: 'https://thechurchofthelivinggod.com'
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Read the published giving links
+        run: |
+          node scripts/church-giving-links.mjs "${{ inputs.url }}" | tee -a "$GITHUB_STEP_SUMMARY"

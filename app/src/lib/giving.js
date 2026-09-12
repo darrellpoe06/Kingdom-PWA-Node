@@ -182,9 +182,19 @@ export const GIVING_CHANNELS = [
   {
     id: 'paypal',
     label: 'PayPal',
-    url: 'https://www.paypal.com/donate?token=g0iw2P0m9kXccU0tUhWhMzyVH6is35xkfYyIQwzX6Fapmm2VOFY37cRqim3y_TPvZKpTjVi_3MO9cpfk',
-    display: 'PayPal donate',
-    how: 'Opens the church’s PayPal donation page.',
-    provenance: 'decoded from the church’s GIVE ONLINE slide (Darrell, 2026-07-10)',
+    // CORRECTED 2026-09-12 from the church's live link, after a congregant
+    // reported "My PayPal account won't connect" while Cashapp and Givelify
+    // both worked. The old token was a DIFFERENT one from the church's current
+    // donate button, so PayPal had nothing to resolve. Verified by the page it
+    // opens: "Donate to The Church Of The Living God".
+    url: 'https://www.paypal.com/donate?token=iyeOyg09iKRNn77z1WPYCgfX7qzX-w4ubHQdeWkeogz6fX2xFdtDdZkMLGSVIgLWKfADkAbz5CtM6Yme',
+    display: 'PayPal, Venmo, or a card',
+    // WHAT THE PAGE ACTUALLY OFFERS, seen on it rather than assumed: three
+    // buttons — Donate with PayPal, Venmo Donate, and Donate with Debit or
+    // Credit Card — plus a "make this monthly" box. The old copy named only
+    // PayPal, so anyone without a PayPal account had no reason to tap it and
+    // no way to know a card would work. Undersold is a kind of untrue.
+    how: 'Opens the church’s donation page — give with PayPal, with Venmo, or with a debit or credit card. No PayPal account needed for the card option, and you can set it to repeat monthly.',
+    provenance: 'link verified against the church’s live donate page (Darrell, 2026-09-12); originally decoded from the church’s GIVE ONLINE slide (2026-07-10)',
   },
 ];

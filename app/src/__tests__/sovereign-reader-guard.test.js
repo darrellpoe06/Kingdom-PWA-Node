@@ -101,6 +101,41 @@ describe('proven-to-catch: the masking actually masks (run, not read)', () => {
   });
 });
 
+describe('the mail probe — presence, never a password', () => {
+  const mail = code.slice(code.indexOf('MAIL CONFIG'));
+
+  it('asks the questions that decide whether a link can ever arrive', () => {
+    for (const k of ['SMTP_HOST', 'SMTP_PASS', 'GOTRUE_MAILER_AUTOCONFIRM', 'SITE_URL', 'ADDITIONAL_REDIRECT_URLS']) {
+      expect(mail, k).toContain(k);
+    }
+  });
+
+  it('NEVER prints a password value — presence is the whole question', () => {
+    // A withheld secret is the point; "set (value withheld)" answers
+    // "can it send?" without handing anyone the credential.
+    expect(mail).toMatch(/SMTP_PASS\|GOTRUE_SMTP_PASS\).*value withheld/s);
+  });
+
+  it('DOES print the URL settings, because their content is the bug', () => {
+    // A redirect list that omits the church's own door is exactly the kind of
+    // defect "set" would hide. The PROPERTY: there is a branch that prints the
+    // actual value, and the URL keys are the ones routed into it — asserted as
+    // two facts rather than as one brittle shape.
+    expect(mail).toContain('echo "$k = $val"');
+    const valueBranch = mail.slice(mail.indexOf('SITE_URL|API_EXTERNAL_URL'));
+    expect(valueBranch.slice(0, 400)).toContain('$val');
+    // ... and the password keys are NOT in that branch.
+    const passBranch = mail.slice(mail.indexOf('SMTP_PASS|GOTRUE_SMTP_PASS'), mail.indexOf('SITE_URL|API_EXTERNAL_URL'));
+    expect(passBranch).not.toContain('echo "$k = $val"');
+  });
+
+  it('reads no user table in mail mode', () => {
+    for (const t of ['feedback', 'church_member_records', 'auth.users']) {
+      expect(mail, t).not.toContain(t);
+    }
+  });
+});
+
 describe('the shape of the lane', () => {
   const wf = readFileSync(join(ROOT, '.github/workflows/sovereign-read.yml'), 'utf8');
   const wfCode = wf.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
