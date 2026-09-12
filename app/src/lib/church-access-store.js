@@ -65,6 +65,19 @@ function wireAuth() {
  * Re-fetch after a grant so the person does not have to reload to see the tab
  * the office just opened for them.
  */
+// THE OFFICE -- owner or admin of the church space, and nothing broader.
+//
+// This is the SAME pair of roles migration 0214's RLS policies name, and it
+// lives here rather than inline in a surface so the app and the database cannot
+// drift apart. Deliberately NOT the same thing as "church staff", which is
+// wider (family, a staff email, a granted capability): a surface gated on staff
+// but backed by an office-only policy shows a door that opens onto a refusal,
+// which reads to the user as the app being broken rather than as a boundary
+// being kept.
+export function isChurchOfficeRole(role) {
+  return role === 'owner' || role === 'admin';
+}
+
 export function useChurchAccess() {
   wireAuth();
   if (!state.loaded && !inFlight) fetchChurchAccess();

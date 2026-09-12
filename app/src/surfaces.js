@@ -118,6 +118,7 @@ export const SURFACES = [
   { id: 'access',           label: 'Access',        nav: 'church', view: 'church', sub: 'access',     requires: 'signed-in', whenDenied: 'lock', gate: 'any signed-in member sees THEIR OWN requests; the queue inside is church owner/admin and the DB is the wall (0211)', load: () => import('./components/AccessRequests.jsx') },
   { id: 'my-record',        label: 'My Record',     nav: 'church', view: 'church', sub: 'my-record',  requires: 'signed-in', whenDenied: 'lock', gate: 'any signed-in member reads and fills THEIR OWN record; the roll area inside is church owner/admin and the DB is the wall (0209)', load: () => import('./components/ChurchMemberSpace.jsx') },
   { id: 'church-members',   label: 'Members',       nav: 'church', view: 'church', sub: 'members',    requires: 'signed-in', whenDenied: 'lock', gate: 'signed-in sees the way in; church owner/admin (list_my_admin_instances) governs — the DB is the wall (DR-0348)', load: () => import('./components/ChurchMembers.jsx') },
+  { id: 'giving-book',      label: 'Giving Book',   nav: 'church', view: 'church', sub: 'giving-book', requires: 'signed-in', whenDenied: 'lock', gate: 'the church OFFICE only (owner/admin) — the office\'s own contribution book; 0214 RLS is the wall, and it is never the member\'s private ledger (0184) nor the pastoral roll (0209)', load: () => import('./components/ChurchGivingBook.jsx') },
 
   // ── books sub-surfaces (view === 'books', booksView === sub) ────────────
   { id: 'transactions', label: 'Transactions', nav: 'books', view: 'books', sub: 'transactions', load: () => import('./components/BooksTransactions.jsx') },
@@ -194,6 +195,7 @@ export const ChurchMinistriesTab = surfaceById['ministries'].component;
 export const BusMinistry      = surfaceById['bus'].component;
 export const ChurchMembers    = surfaceById['church-members'].component;
 export const ChurchMemberSpace = surfaceById['my-record'].component;
+export const ChurchGivingBook = surfaceById['giving-book'].component;
 export const AccessRequests   = surfaceById['access'].component;
 export const BooksTransactions = surfaceById['transactions'].component;
 export const Cart             = surfaceById['cart'].component;

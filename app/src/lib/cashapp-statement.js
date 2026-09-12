@@ -442,4 +442,47 @@ export function payoutsOf(parsed) {
     .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.index - b.index));
 }
 
-export default { parseCashAppStatement, giftsOf, payoutsOf, classifyKind, parseSignedCents, parseStatementMoment, KIND, REJECT };
+/**
+ * Find which line of a file is actually the header.
+ *
+ * WHY THIS IS NOT "line 0". A Cash App export can open with a title, an account
+ * line, a date range, or a blank -- and a steward may hand us a file she already
+ * opened and re-saved in Excel, which adds its own. Reading line 0 blindly maps
+ * zero roles and reports "we cannot read this statement" for a file that is
+ * perfectly readable two lines down.
+ *
+ * It scores each candidate by how many roles map, and REQUIRES the roles that
+ * make a gift legible rather than taking the best of a bad set: a line that
+ * maps nothing but `date` is not a header, it is a date. Ties go to the
+ * EARLIEST line, because a data row can accidentally resemble a header (a note
+ * reading "amount") and the real header always precedes its data.
+ *
+ * @param {Array<string[]>} lines  parsed cell arrays, in file order
+ * @param {number} scan  how many lines to consider
+ * @returns {{ headerRow: number, header: string[], rows: Array<string[]>, roles: string[] }}
+ */
+export function findCashAppHeader(lines = [], { scan = 12 } = {}) {
+  const limit = Math.min((lines || []).length, scan);
+  let best = null;
+  for (let i = 0; i < limit; i += 1) {
+    const cells = lines[i] || [];
+    if (!cells.length) continue;
+    const cols = mapCashAppColumns(cells);
+    // The same bar parseCashAppStatement itself applies. A candidate that would
+    // be refused as unreadable is not a header worth choosing.
+    if (REQUIRED_ROLES.some((r) => cols[r] == null)) continue;
+    const score = Object.keys(cols).length;
+    if (!best || score > best.score) best = { i, score };
+  }
+  if (!best) {
+    return { headerRow: -1, header: (lines && lines[0]) || [], rows: (lines || []).slice(1), roles: [] };
+  }
+  return {
+    headerRow: best.i,
+    header: lines[best.i],
+    rows: lines.slice(best.i + 1),
+    roles: Object.keys(mapCashAppColumns(lines[best.i])),
+  };
+}
+
+export default { parseCashAppStatement, giftsOf, payoutsOf, classifyKind, parseSignedCents, parseStatementMoment, findCashAppHeader, KIND, REJECT };
