@@ -1042,6 +1042,15 @@ function CourseView({
   // shelf) forced every arrival into the resume state, so a browsed lesson
   // skipped the very affordance Darrell named as the convenient one.
   resumeOpenGuide = true,
+  // ▶ PLAY FROM THE INDEX (Darrell 2026-09-12, with the by-title list on screen:
+  // "play button was for the link list so it can produce the same thing").
+  // The card list's ▶ Play calls setPresentLesson directly — but that state
+  // lives HERE, in CourseView, while the by-title index lives one component up
+  // in ChurchLearn. So the index cannot reach it, and its titles could only
+  // navigate. This prop is the seam: { lessonId, nonce }. A NONCE and not a
+  // boolean on purpose — tapping ▶ on the SAME lesson twice must open the
+  // reader twice, and an unchanged value would make the second tap do nothing.
+  presentRequest = null,
   onFocusChange = null,  // tells the wrapper a lesson space is open (it hides the course picker)
 }) {
   const [showFacilitator, setShowFacilitator] = useState(false);
@@ -1167,6 +1176,19 @@ function CourseView({
     }, 80);
     return () => clearTimeout(t);
   }, [resumeLessonId, resumeOpenGuide]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ▶ Play, arriving from the by-title index (or the finder) one component up.
+  // Separate from the resume effect above rather than folded into it: that
+  // effect's deps govern how a returning reader lands, and widening them to
+  // carry a second intent is how one of the two quietly changes.
+  React.useEffect(() => {
+    if (!presentRequest || !presentRequest.lessonId) return;
+    const m = schedule.find((x) => x.id === presentRequest.lessonId);
+    if (!m) return;   // a hit from another course: that course's view answers it
+    recordUse(m.id);
+    savePlace({ lessonId: m.id });
+    setPresentLesson(m);
+  }, [presentRequest]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A course descriptor is data from the catalog, and a course that carries no
   // progressSummary is a real shape (not every course tracks progress). Calling
@@ -2064,6 +2086,17 @@ export default function ChurchLearn({
   // The lesson CourseView should open + scroll to after a resume tap.
   const [resumeLessonId, setResumeLessonId] = useState(null);
   const [resumeOpenGuide, setResumeOpenGuide] = useState(true);
+  // ▶ Play from any LIST of titles. The card list already had one; the by-title
+  // index, the "Recently opened" chips and the finder's hits are the same act —
+  // pick a lesson from a list — and only the card list could open the reader.
+  // The nonce makes a second tap on the same title work.
+  const [presentRequest, setPresentRequest] = useState(null);
+  const playLesson = (courseKey, lessonId) => {
+    setActiveKey(courseKey);
+    setResumeOpenGuide(false);
+    setResumeLessonId(lessonId);
+    setPresentRequest({ lessonId, nonce: Date.now() });
+  };
 
   // The youth A.I. course, assembled from this component's existing flat props so
   // nothing about its wiring changes — it just becomes one entry in the picker.
@@ -2338,15 +2371,25 @@ export default function ChurchLearn({
                       const m = schedule.find((x) => x.id === id);
                       const t = m.title.length > 34 ? `${m.title.slice(0, 32)}…` : m.title;
                       return (
-                        <button
-                          key={id}
-                          type="button"
-                          onClick={() => open(id)}
-                          className="text-[0.6875rem] px-2 py-1 min-h-[36px] border border-[#E8E4DC] text-[#1A1815] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
-                          style={{ fontFamily: '"Fraunces", serif' }}
-                        >
-                          {t}
-                        </button>
+                        <span key={id} className="inline-flex items-stretch">
+                          <button
+                            type="button"
+                            onClick={() => open(id)}
+                            className="text-[0.6875rem] px-2 py-1 min-h-[36px] border border-[#E8E4DC] text-[#1A1815] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                            style={{ fontFamily: '"Fraunces", serif' }}
+                          >
+                            {t}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => playLesson(active.key, id)}
+                            aria-label={`Play ${m.title} in the big full-screen view`}
+                            title={`Open ${m.title} in the big full-screen view`}
+                            className="text-[0.6875rem] px-2 py-1 min-h-[36px] border border-l-0 border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+                          >
+                            ▶
+                          </button>
+                        </span>
                       );
                     })}
                   </div>
@@ -2354,15 +2397,28 @@ export default function ChurchLearn({
               )}
               <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1">
                 {schedule.map((m) => (
-                  <li key={m.id}>
+                  <li key={m.id} className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => open(m.id)}
-                      className="w-full text-left py-2 min-h-[44px] text-sm text-[#1A1815] hover:text-[#B85838] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
+                      className="flex-1 text-left py-2 min-h-[44px] text-sm text-[#1A1815] hover:text-[#B85838] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
                       style={{ fontFamily: '"Fraunces", serif' }}
                     >
                       <span className="text-[#5A5751] text-[0.6875rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{U.cap} {m.week}</span>
                       {' · '}{m.title}
+                    </button>
+                    {/* The SAME action the card list's ▶ Play performs — the big
+                        full-screen reader on this one, read yourself or read to
+                        you. The title still opens the lesson's space; this opens
+                        it to be READ. Two doors, because they are two intents. */}
+                    <button
+                      type="button"
+                      onClick={() => playLesson(active.key, m.id)}
+                      aria-label={`Play ${m.title} in the big full-screen view`}
+                      title={`Open ${m.title} in the big full-screen view — read it yourself or have it read aloud`}
+                      className="shrink-0 text-[0.625rem] uppercase tracking-wider px-2 py-2 min-h-[44px] border-2 border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                    >
+                      ▶ Play
                     </button>
                   </li>
                 ))}
@@ -2397,11 +2453,11 @@ export default function ChurchLearn({
                 hits.length ? (
                   <ul className="mt-2 border border-[#E8E4DC] divide-y divide-[#E8E4DC]" aria-label="Matching lessons">
                     {hits.map((h) => (
-                      <li key={`${h.courseKey}:${h.lessonId}`}>
+                      <li key={`${h.courseKey}:${h.lessonId}`} className="flex items-center gap-2 bg-white">
                         <button
                           type="button"
                           onClick={() => { setActiveKey(h.courseKey); setResumeOpenGuide(false); setResumeLessonId(h.lessonId); setLessonQuery(''); }}
-                          className="w-full text-left px-3 py-2 min-h-[44px] bg-white hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                          className="flex-1 text-left px-3 py-2 min-h-[44px] bg-white hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
                         >
                           {/* COURSE BEFORE THE LESSON (Darrell 2026-09-05). A hit
                               used to lead with the lesson and bury its course on the
@@ -2413,6 +2469,15 @@ export default function ChurchLearn({
                           <span className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
                             {h.unitLabel}{h.ref ? ` · ${h.ref}` : ''}
                           </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { playLesson(h.courseKey, h.lessonId); setLessonQuery(''); }}
+                          aria-label={`Play ${h.title} in the big full-screen view`}
+                          title={`Open ${h.title} in the big full-screen view`}
+                          className="shrink-0 mr-2 text-[0.625rem] uppercase tracking-wider px-2 py-2 min-h-[44px] border-2 border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                        >
+                          ▶ Play
                         </button>
                       </li>
                     ))}
@@ -2639,6 +2704,7 @@ export default function ChurchLearn({
         helped={!!helped[active.key]}
         resumeLessonId={resumeLessonId}
         resumeOpenGuide={resumeOpenGuide}
+        presentRequest={presentRequest}
         onFocusChange={setLessonFocus}
       />
     </section>
