@@ -250,10 +250,24 @@ export function groupTasks(tasks, groupOrder = []) {
 // the user load its real items) and a board the user created from scratch shows
 // the moment its first task lands.
 // -----------------------------------------------------------------------------
+// A board_tasks row can belong to a PROPERTY's checklist rather than to a
+// program the family runs (properties/readiness writes `airbnb-ready:<door>`).
+// Those live on their door, in the Properties app, and listing 1003 Koehn's
+// towel count beside the Modular Cutover board would bury the program boards
+// under one per door. The prefix is declared here rather than imported from the
+// feature so core keeps depending on nothing downstream of it.
+export const NON_PROGRAM_BOARD_PREFIXES = Object.freeze(['airbnb-ready:']);
+
+export function isProgramBoard(boardSlug) {
+  const slug = String(boardSlug || '');
+  return !NON_PROGRAM_BOARD_PREFIXES.some((p) => slug.startsWith(p));
+}
+
 export function boardsFromTasks(tasks) {
   const map = new Map();
   for (const t of Array.isArray(tasks) ? tasks : []) {
     if (!t || !t.boardSlug) continue;
+    if (!isProgramBoard(t.boardSlug)) continue;
     if (!map.has(t.boardSlug)) {
       map.set(t.boardSlug, { slug: t.boardSlug, title: t.boardTitle || t.boardSlug, tasks: [] });
     }

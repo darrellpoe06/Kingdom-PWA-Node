@@ -102,6 +102,38 @@ export async function addTask({ boardSlug, boardTitle, group, title, owner = nul
   }
 }
 
+// ensureTask — insert a row whose slug the CALLER owns (idempotent by slug).
+// addTask above mints its own slug for a person typing into a board; a surface
+// built on a fixed TEMPLATE needs the opposite: a stable slug it can compute,
+// so the same checklist item is the same row on every device and a re-touch
+// updates instead of duplicating (board_tasks is UNIQUE on instance_id+slug).
+// Returns the local row either way — already present is a no-op, not an error.
+export async function ensureTask(item) {
+  const slug = item && item.slug;
+  if (!slug) return null;
+  const existing = state.find((t) => t.slug === slug);
+  if (existing) return existing;
+  const row = {
+    id: slug, slug,
+    boardSlug: item.boardSlug, boardTitle: item.boardTitle,
+    title: (item.title || '').trim(),
+    status: item.status || 'not-started',
+    owner: item.owner ?? null,
+    group: item.group || null,
+    startDate: item.startDate ?? null,
+    dueDate: item.dueDate ?? null,
+    sortRank: item.sortRank ?? null,
+    notes: item.notes ?? null,
+    links: item.links && typeof item.links === 'object' ? item.links : {},
+  };
+  setState((cur) => [...cur, row]);
+  const res = await boardTasksSync.upload(row);
+  if (res && res.uploaded && res.remoteId) {
+    setState((cur) => cur.map((t) => (t.slug === slug ? { ...t, remoteUuid: res.remoteId } : t)));
+  }
+  return state.find((t) => t.slug === slug) || row;
+}
+
 export function patchTask(task, patch) {
   // The finish ripple (DR-0120): a status patch that completes the LAST open
   // item of a phase (board group / swim lane) records the completion as an
