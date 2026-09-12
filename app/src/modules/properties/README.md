@@ -17,6 +17,8 @@ can fall behind.
 | `config.js` | The door identity + the launch plan + opportunities and constraints. `validateLaunchPlan()` fails a phase that claims "built" with no evidence or defers with no re-review date. |
 | `cloud.js` | RLS-scoped I/O. **No instance filter** — the database scopes every read, which is what lets a non-member (a tenant, a family member, a 1099 worker) use the app at all. |
 | `PropertiesApp.jsx` | The role-resolved workspace both doors render. |
+| `readiness.js` | Pure engine for the guest-ready checklist: the 181-item template, the merge of template + real rows, the tallies and the row/patch builders. No I/O. |
+| `ReadinessTab.jsx` | The checklist surface — dashboard, per-area progress, the three views, add/edit/delete, reset. |
 
 ## Who sees what
 
@@ -32,6 +34,25 @@ can fall behind.
 
 The database enforces every row of that table (migrations 0075 + 0150); this module decides what the
 UI *offers*, and `properties-model.test.js` fails if the two ever disagree.
+
+## Guest ready — the readiness checklist
+
+Turning a unit into a listing is its own body of work, so it lives on the door: **Guest ready** in the
+manager/landlord face. Nine areas, 181 tasks plus 16 per bedroom, each with a status, an optional cost
+and a note; the header rolls up completion and what the remaining work still costs.
+
+Two things about it are worth knowing before changing it:
+
+- **Nothing is seeded.** The task list is a TEMPLATE in `readiness.js`; a `board_tasks` row (0059 — the
+  same table, RLS and realtime sync the Project Boards ride) is written the moment a task is actually
+  touched. An untouched door holds zero rows and still reads correctly, because Not Started is exactly
+  what an untouched task is. The cost rides `links.readiness.cost`, which is why this needed no migration.
+- **Bedrooms are not invented.** The bedroom groups are the door's real `property_rooms` rows
+  (`kind === 'bedroom'`), named as the landlord named them. A door with no bedrooms recorded says so and
+  sends him to the Rooms tab — it never paints a "Bedroom 1" nobody entered.
+
+One board per door (`board_slug = airbnb-ready:<rental id>`), kept out of the Projects hub's program-board
+list by `isProgramBoard()` in `lib/board.js`.
 
 ## Honest status (DR-0076)
 

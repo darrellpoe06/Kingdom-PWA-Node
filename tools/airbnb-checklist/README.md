@@ -66,6 +66,15 @@ all passing):
 The only console error in the sandbox is `fonts.googleapis.com` being refused by
 the egress proxy, which does not apply where the page is actually served.
 
+## It also lives in the app
+
+This page is the standalone version. The same checklist is now a real surface inside the PWA —
+**Poe Properties -> a door -> Guest ready** — where it is backed by `board_tasks` rows instead of
+`localStorage`, scoped by RLS, shared with everyone who manages the door, and expanded against the
+door's real bedrooms. See `app/src/modules/properties/readiness.js`.
+
+Keep this file for what it is good at: no sign-in, no door record, opens from a phone or a USB stick.
+
 ## Running it
 
 Open `index.html` in any browser, or publish it as an Artifact to get the

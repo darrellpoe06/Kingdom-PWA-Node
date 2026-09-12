@@ -33,6 +33,8 @@ import { stageFromRecord, confirmDraft, tenancyRowFromDraft } from './staging.js
 import { availableDocuments, buildDocument } from './documents.js';
 import { TimelineTab, RoomsTab, DoorsBoard, GalleryTab, FilesTab } from './DoorTabs.jsx';
 import { SystemsTab } from './SystemsTab.jsx';
+import { ReadinessTab } from './ReadinessTab.jsx';
+import { readinessBoardSlug } from './readiness.js';
 import { toTimelineEvents } from './systems.js';
 import { isOwnHome, offerRefusal } from './homes.js';
 import { moveDoor, showFirst } from './showcase.js';
@@ -61,6 +63,7 @@ const ACCENT = '#2F5D50';
  */
 const DOOR_SCOPED = new Set([
   'timeline', 'rooms', 'gallery', 'files', 'systems', 'documents', 'door', 'history', 'rent', 'thread',
+  'readiness',
 ]);
 
 /**
@@ -728,6 +731,16 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
         }
         switch (activeTab) {
           case 'door': return <DoorCard door={activeDoor} />;
+          // The readiness list is keyed by the rental's UUID where there is one
+          // (a slug can be renamed; the row's id cannot), and its bedroom groups
+          // are the door's REAL rooms — see readiness.js for the full trace.
+          case 'readiness': return (
+            <ReadinessTab
+              boardSlug={readinessBoardSlug(rentalId || rentalRef)}
+              boardTitle={activeRental?.display_name || activeRental?.address || rentalRef || 'This door'}
+              rooms={doorData.rooms}
+            />
+          );
           case 'timeline': return (
             <TimelineTab
               // The mechanical record joins the door's chronology rather than

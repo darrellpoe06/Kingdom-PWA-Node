@@ -103,6 +103,10 @@ const MANAGER_TABS = [
   // Every property, our own home included \u2014 "keeping a mechanical history of
   // the system's and issues like all our properties" (Darrell, 2026-08-28).
   TAB('systems', 'Systems', 'The furnace, the roof, the water heater \u2014 how old each one is and everything that has happened to it.'),
+  // Turning a unit into a listing is its own body of work — construction,
+  // furnishing, supplies, safety, the listing itself — and it belongs to the
+  // door, not to a side note. Darrell, 2026-09-12.
+  TAB('readiness', 'Guest ready', 'Everything left before this unit can be listed and take a guest \u2014 and what it still costs.'),
   TAB('people', 'People', 'Invite a tenant, a family member, or a 1099 worker.'),
   TAB('documents', 'Documents', 'The lease, the rules, the notices and the letters — filled from this door’s own records.'),
   TAB('plan', 'Rollout', 'Where this app is in its build, what is gated, and what waits on a hand.'),
