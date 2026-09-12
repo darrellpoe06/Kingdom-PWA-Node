@@ -88,6 +88,10 @@ Darrell, 2026-09-12, immediately after this lesson shipped. Captured in full bec
 
 **Why it only becomes believable later.** `Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth` (2 Timothy 2:15) — which is L141's own subject, so L143 would sit directly on top of it.
 
+**And the honest part, which he added last and which the lesson must not lose.** *"Still hard to do because our flesh is weak!!!!"* This is not a footnote; it is the thing that keeps the weapon of love from becoming a demand nobody can meet. The words are the Lord’s own, spoken about His closest friends on the worst night of His life, while they slept through His agony — `Watch and pray, that ye enter not into temptation: the spirit indeed is willing, but the flesh is weak` (Matthew 26:41). He diagnosed them sympathetically rather than condemning them. Paul says the same about himself without flinching: `for to will is present with me; but how to perform that which is good I find not` (Romans 7:18), and `For the good that I would I do not: but the evil which I would not, that I do` (Romans 7:19), and `so that ye cannot do the things that ye would` (Galatians 5:17). The answer is not more pressure but a different supply — `My grace is sufficient for thee: for my strength is made perfect in weakness` (2 Corinthians 12:9) — offered by a High Priest who `was in all points tempted like as we are` (Hebrews 4:15), from a Father who `knoweth our frame; he remembereth that we are dust` (Psalms 103:14).
+
+So L143 lands undefeated AND honest: the weapon never fails, the arm holding it does, and Yahweh already knew that when He handed it over.
+
 ### Status
 
-Twelve verses verified verbatim against `app/public/bible/kjv`. Placement is not ambiguous — this is a lesson — so it is queued rather than questioned, and it is held only because Darrell was still speaking and asked to pick the conversation up in person. **re-review: 2026-09-19.**
+Nineteen verses verified verbatim against `app/public/bible/kjv`. Placement is not ambiguous — this is a lesson — so it is queued rather than questioned, and it is held only because Darrell was still speaking and asked to pick the conversation up in person. **re-review: 2026-09-19.**
