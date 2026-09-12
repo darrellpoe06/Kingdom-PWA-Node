@@ -54,6 +54,7 @@ import {
 } from '../lib/admin-console.js';
 import { listInstanceMembersStrict, setMemberRole, grantableRoles, roleLabel, listMyAdminInstances, inviteToSpace, isInviteEmail, CAPABILITIES, canEditCapabilities, listMemberCapabilities, setMemberCapability, CLASSIFICATIONS, setMemberClassification, RELATIONSHIP_SUGGESTIONS, setMemberRelationship } from '../lib/member-roles.js';
 import { listPendingClaims, confirmInvite } from '../lib/family-invite.js';
+import { contactOf, reachLabel, whenLabel, samePersonHints, contactCoverage } from '../lib/member-contact.js';
 import MemberInspect from './MemberInspect.jsx';
 import ChatPane from './ChatPane.jsx';
 
@@ -148,6 +149,10 @@ export default function AdminConsole({
   const [inspecting, setInspecting] = useState(null);               // member userId whose stewardship record is open (0122)
   const [checklistFor, setChecklistFor] = useState(null);           // member userId whose capability checklist is open (DR-0242)
   const [capGrants, setCapGrants] = useState([]);                   // [{ userId, capability }] for the scoped space (0126)
+  // Today, read once per render rather than per row — the "last here" phrasing
+  // needs a day to count back from, and a surface with its own clock per row
+  // would read differently at the top and bottom of a long roster.
+  const todayIso = new Date().toISOString().slice(0, 10);
 
   // No-leak defense-in-depth. The nav entry is already absent from the DOM for
   // non-stewards; this backstops any ?view=admin deep-link.
@@ -435,6 +440,29 @@ export default function AdminConsole({
             {members.status === 'no-instance' && <p className="text-xs mt-2 text-[#5A5751]" style={serif}>Not connected to the backend on this device.</p>}
             {members.status === 'error' && <p className="text-xs mt-2 text-[#7A1F1F]" style={serif}>{members.error}</p>}
             {members.status === 'ok' && members.list.length === 0 && <p className="text-xs mt-2 text-[#5A5751]" style={serif}>No members to manage (owner/admin access required).</p>}
+            {members.status === 'ok' && members.list.length > 0 && (() => {
+              const c = contactCoverage(members.list);
+              return (
+                <p className="text-[0.625rem] text-[#8A857C] mt-1" style={serif}>
+                  {c.people} {c.people === 1 ? 'person' : 'people'} · {c.withEmail} with an email · {c.withPhone} with a phone · {c.withBoth} with both. {c.note}
+                </p>
+              );
+            })()}
+            {/* TWO DOORS, ONE PERSON. The Governor signs in through gmail AND
+                through the phone door, so he appears twice on his own roster
+                (measured on the live roster 2026-09-11: poe-family and
+                tlc-therapy-solutions both carry both rows). This SAYS so, with
+                the reason attached — and changes nothing. Merging two accounts
+                is irreversible and is the Governor's word to give, not a
+                heuristic's, so both rows stay exactly as the database has them. */}
+            {members.status === 'ok' && samePersonHints(members.list).map((h) => (
+              <p key={`${h.a.userId}-${h.b.userId}`} className="text-[0.625rem] text-[#5A5751] mt-1.5 border-l-2 border-[#C9BFA8] pl-2" style={serif}>
+                <b>{h.a.displayName || h.a.email || 'a member'}</b> and <b>{h.b.displayName || h.b.email || 'a member'}</b> look like the same person — {h.why}.
+                {h.confidence === 'declared'
+                  ? ' Shown together here; nothing is merged, and both sign-in doors keep working.'
+                  : ' Nothing has been changed. If they are, the roles are set per door.'}
+              </p>
+            ))}
             {members.status === 'ok' && members.list.length > 0 && (
               <ul className="mt-2 space-y-1.5">
                 {members.list.map((m) => {
@@ -443,7 +471,23 @@ export default function AdminConsole({
                   return (
                     <li key={m.userId || m.email} className="text-xs text-[#1A1815]" style={serif}>
                       <div className="flex items-baseline justify-between gap-2">
-                        <span className="break-all min-w-0">{m.displayName || m.email || 'member'}{isSelf && <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold ml-1">you</span>}</span>
+                        <span className="break-all min-w-0">
+                          {m.displayName || m.email || 'member'}{isSelf && <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold ml-1">you</span>}
+                          {/* WHO, and HOW TO REACH THEM (Darrell 2026-09-11:
+                              "also see the email and try to get email and
+                              cellphone together if they have them"). A display
+                              name used to HIDE the email entirely; now both
+                              show, and a phone-door account reads as the phone
+                              it actually is rather than a synthetic address.
+                              Missing either one is stated, never flagged — it
+                              is "not allowing it to be a constraint" in the
+                              one place that could have become one. */}
+                          <span className="block text-[0.625rem] text-[#5A5751] font-normal normal-case">{reachLabel(contactOf(m))}</span>
+                          {/* ...and WHEN: when they came into this space, and
+                              when they were last here. Unknown reads as
+                              unknown, never as today (DR-0076 rule 8). */}
+                          <span className="block text-[0.625rem] text-[#8A857C] font-normal normal-case">{whenLabel(m, todayIso)}</span>
+                        </span>
                         <span className="flex items-center gap-1.5 shrink-0">
                           {options.length ? (
                             <select className="text-xs p-1 border border-[#E8E4DC] bg-white" value={m.role}

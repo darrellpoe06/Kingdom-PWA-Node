@@ -96,7 +96,7 @@ const SHELL_WIRING = [
   'const reviewerMode = isReviewerModeOn();',
   // role derivations NARROW (family / staff / study / Governor / owner)
   'const isFamilyMember = !reviewerMode && isFamilyEmail(authSession?.user?.email);',
-  'const isChurchStaff = !reviewerMode && (isFamilyMember || isChurchStaffEmail(authSession?.user?.email));',
+  'const isChurchStaff = !reviewerMode && (isFamilyMember || isChurchStaffEmail(',
   'const isStudyCircle = !reviewerMode && isStudyCircleEmail(authSession?.user?.email);',
   'const isGov = !!authSession && !reviewerMode && isFamilyEmail(',
   // the family-PII Imported gate treats a reviewer like a demo/outside state
@@ -127,6 +127,26 @@ describe('shell wiring — every narrowing + suppression point is present', () =
 
   it.each(SHELL_WIRING.map((w) => [w]))('shell contains: %s', (fragment) => {
     expect(shell.includes(fragment), `missing wiring: ${fragment}`).toBe(true);
+  });
+
+  it('EVERY role derivation still OPENS with the reviewer narrowing, however it grows', () => {
+    // The pins above hold the shape of each line. This holds the PROPERTY they
+    // exist for, which is the thing that must survive a rewrite: whatever else
+    // a role predicate learns to read, `!reviewerMode &&` comes first, so the
+    // whole expression is false in the lens.
+    //
+    // It earned its place on 2026-09-12: isChurchStaff gained a third way in
+    // (the office-granted see:church-staff capability, DR-0367) and the exact
+    // string pin fired — correctly. The narrowing was intact; the spelling was
+    // not. A pin that can only say "this line changed" cannot tell those apart.
+    for (const name of ['isFamilyMember', 'isChurchStaff', 'isStudyCircle']) {
+      const m = shell.match(new RegExp(`const ${name} = ([^;]*);`));
+      expect(m, `${name} is gone`).toBeTruthy();
+      expect(m[1].startsWith('!reviewerMode &&'), `${name} no longer narrows for a reviewer: ${m[1]}`).toBe(true);
+    }
+    // isGov narrows too, with the session test first.
+    const gov = shell.match(/const isGov = ([^;]*);/);
+    expect(gov[1]).toContain('!reviewerMode');
   });
 
   it('the reviewer strip rides EVERY shell return path — the app shell AND the TLC door takeover (Exit is never hidable, DR-0104)', () => {

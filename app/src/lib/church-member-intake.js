@@ -230,6 +230,14 @@ export function memberProgress(record, church) {
   const p = normalizeMemberRecord(record, church);
   const total = CHURCH_MEMBER_ALL_FIELDS.length;
   const done = CHURCH_MEMBER_ALL_FIELDS.filter((f) => {
+    // A signed agreement is an answered question. It does not live in a cell —
+    // it lives under acknowledgments, signed on the document itself — so
+    // reading p[f.key] for it would count a signed covenant as unanswered and
+    // quietly hold the percentage below 100 forever.
+    if (f.type === 'acknowledgment') {
+      const a = p.acknowledgments && p.acknowledgments[f.key];
+      return !!(a && a.agreed === true);
+    }
     const v = p[f.key];
     if (Array.isArray(v)) return v.length > 0;
     if (v === null) return false;

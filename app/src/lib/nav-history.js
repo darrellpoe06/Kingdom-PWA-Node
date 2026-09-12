@@ -116,7 +116,7 @@ export function initialBooksView(search) {
 export const VALID_CHURCH_SUBS = [
   'home', 'ministries', 'pulpit', 'scripture', 'engagement', 'choir', 'bus', 'program',
   'learn', 'eternal-algorithms', 'conference', 'events', 'projects',
-  'harvest', 'videowall', 'devices', 'infra-plan', 'observe', 'members',
+  'harvest', 'videowall', 'devices', 'infra-plan', 'observe', 'members', 'my-record', 'access',
 ];
 
 // initialChurchView — the Church sub-tab a URL deep-links to, validated.
