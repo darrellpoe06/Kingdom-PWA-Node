@@ -18,7 +18,7 @@
     "legibility:baseline": "node ../scripts/legibility-guard.mjs --generate",
     "icons": "node ../scripts/gen-icons.mjs",
     "verify": "npm run lint && npm run verify:gates && vitest run",
-    "verify:gates": "node ../scripts/module-boundary-guard.mjs && node ../scripts/monolith-budget-guard.mjs && node ../scripts/interconnect-guard.mjs && node ../scripts/source-adapter-guard.mjs && node ../scripts/business-systems-guard.mjs && node ../scripts/infra-transport-guard.mjs && node ../scripts/his-hand-guard.mjs && node ../scripts/lessons-gate-coverage.mjs && node ../scripts/rls-isolation-matrix-guard.mjs && node ../scripts/migration-replay-order-guard.mjs && node ../scripts/replay-completeness-guard.mjs && node ../scripts/migration-return-type-guard.mjs && node ../scripts/no-prompt-guard.mjs"
+    "verify:gates": "node ../scripts/module-boundary-guard.mjs && node ../scripts/monolith-budget-guard.mjs && node ../scripts/interconnect-guard.mjs && node ../scripts/source-adapter-guard.mjs && node ../scripts/business-systems-guard.mjs && node ../scripts/infra-transport-guard.mjs && node ../scripts/his-hand-guard.mjs && node ../scripts/lessons-gate-coverage.mjs && node ../scripts/rls-isolation-matrix-guard.mjs && node ../scripts/migration-replay-order-guard.mjs && node ../scripts/replay-completeness-guard.mjs && node ../scripts/migration-return-type-guard.mjs && node ../scripts/no-prompt-guard.mjs && node ../scripts/smoke-sql-language-guard.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.1",

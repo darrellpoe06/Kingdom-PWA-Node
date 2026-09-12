@@ -116,6 +116,16 @@ jobs:
       # "the app's database is BEHIND the repo" about a database that was fully
       # up to date. Proven-to-catch in replay-completeness-guard.test.js.
       - run: node ../scripts/replay-completeness-guard.mjs
+      # A smoke that stops at its first statement proves nothing. Measured
+      # 2026-09-12: 0209's smoke opened with two top-level PERFORM statements
+      # (plpgsql-only — a syntax error at the psql top level), so psql died at
+      # line 52 on every run and its fourteen listed assertions were never
+      # reached. The rls-isolation leg was RED from the day it was written and
+      # merged anyway, because that workflow is not a required check on the PR.
+      # This makes the same mistake RED here, where it is required.
+      # Proven-to-catch in smoke-sql-language-guard.test.js, against the exact
+      # line that shipped.
+      - run: node ../scripts/smoke-sql-language-guard.mjs
       # Widening a RETURNS TABLE with a plain CREATE OR REPLACE is refused by
       # Postgres, and because db-migrate applies each file in its own
       # transaction it rolls the WHOLE migration back (measured live
