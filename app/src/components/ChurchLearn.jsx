@@ -51,7 +51,7 @@ import { ARI } from '../lib/ari.js';
 import {
   partForSegment,
   LEARN_LEVELS, DEFAULT_LEVEL, normalizeMedia, gradeQuiz, courseAssessment,
-  AGE_BANDS, DEFAULT_AGE_BAND, ageBandProfile,
+  AGE_BANDS, DEFAULT_AGE_BAND, ageBandProfile, lessonPlanForAge,
 } from '../lib/learn-framework.js';
 import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-algorithms-course.js';
@@ -83,6 +83,7 @@ const AGEBAND_TO_LEVEL_KEY = { child: 'child', youth: 'teen', teen: 'teen', adul
 import SectionTabs from './SectionTabs.jsx';
 import { organizeCourses, courseLessonCount, COURSE_SORTS, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey } from '../lib/learn-organize.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
+import { availableLessonSorts, sortLessons, sortNote } from '../lib/lesson-sorts.js';
 import { getPlace, recordPlace, clearPlace, getTimeFit, recordTimeFit } from '../lib/learn-resume.js';
 import { useHistoryValue } from '../lib/nav-history.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
@@ -2099,6 +2100,11 @@ export default function ChurchLearn({
   });
   const setActiveKey = useCallback((key) => { setActiveKeyState(key); rememberCourseKey(key); }, []);
   const [courseSort, setCourseSort] = useState('authored'); // picker order (DR-0121: derived groups, live counts)
+  // How the VISIBLE lesson list is ordered. Separate from courseSort on purpose:
+  // that one orders the collapsed course <select>, this one orders the 141 rows
+  // filling the screen. Darrell 2026-09-12: "the sort does nothing either" — it
+  // was sorting the dropdown he could not see.
+  const [lessonSort, setLessonSort] = useState('authored');
   // The lesson finder (Darrell 2026-08-18: "not obvious how to find a lesson
   // unless you already know the course it is in") — one search box over EVERY
   // mounted course's live schedule. Results jump through the SAME real path
@@ -2380,15 +2386,57 @@ export default function ChurchLearn({
           const U = unitLabels(active.meta);
           const recentIds = recentUsed(3).filter((id) => schedule.some((m) => m.id === id));
           const open = (id) => { setActiveKey(active.key); setResumeOpenGuide(false); setResumeLessonId(id); };
+          // Every sort option this list can actually honour. Reading time is
+          // MEASURED through the framework's own plan at the pace already chosen,
+          // so "shortest read first" is the same number the parts split on — not
+          // a character count standing in for one. The opened-history is this
+          // device's, read here rather than passed down so the list can offer
+          // "not opened yet" without the wrapper holding learner progress.
+          const band = ageBandProfile(ageBand);
+          // Measured ONCE per lesson, not inside the comparator: a sort calls its
+          // comparator O(n log n) times, and each call here re-chunks a whole
+          // lesson. For 141 lessons that is roughly a thousand chunkings per
+          // keystroke. One pass, cached in a Map, then the comparator is a lookup.
+          const minutesById = new Map(
+            schedule.map((m) => [m.id, lessonPlanForAge(m, ageBand).estimatedMinutes]),
+          );
+          const sortCtx = {
+            minutesOf: (m) => minutesById.get(m.id) ?? 0,
+            openedIds: recentUsed(500).filter((id) => schedule.some((m) => m.id === id)),
+            bandLabel: band.label,
+          };
+          const showMinutes = lessonSort === 'time-asc' || lessonSort === 'time-desc';
+          const sortOptions = availableLessonSorts(sortCtx);
+          const ordered = sortLessons(schedule, lessonSort, sortCtx);
+          const note = sortNote(lessonSort, sortCtx);
           return (
             <nav
               aria-label={`This course's ${U.noun}s by title`}
               data-testid="course-lessons-first"
               className="mb-4 border border-[#E8E4DC] bg-[#FAF8F4] p-3"
             >
-              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-2">
-                {active.meta.title} · pick a {U.noun} by title · {schedule.length}
+              <div className="flex items-end justify-between gap-2 flex-wrap mb-2">
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">
+                  {active.meta.title} · pick a {U.noun} by title · {schedule.length}
+                </div>
+                <div>
+                  <label htmlFor="learn-lesson-sort" className="block text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-0.5">
+                    Sort these {U.noun}s
+                  </label>
+                  <select
+                    id="learn-lesson-sort"
+                    value={lessonSort}
+                    onChange={(e) => setLessonSort(e.target.value)}
+                    className="min-h-[44px] px-2 py-2 bg-white border border-[#E8E4DC] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                    style={{ fontFamily: '"Fraunces", serif' }}
+                  >
+                    {sortOptions.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+                  </select>
+                </div>
               </div>
+              {note && (
+                <p className="text-[0.5625rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{note}</p>
+              )}
               {recentIds.length > 0 && (
                 <div className="mb-2 pb-2 border-b border-[#E8E4DC]">
                   <div className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold mb-1">Recently opened</div>
@@ -2422,7 +2470,7 @@ export default function ChurchLearn({
                 </div>
               )}
               <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1">
-                {schedule.map((m) => (
+                {ordered.map((m) => (
                   <li key={m.id} className="flex items-center gap-2">
                     <button
                       type="button"
@@ -2432,6 +2480,14 @@ export default function ChurchLearn({
                     >
                       <span className="text-[#5A5751] text-[0.6875rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{U.cap} {m.week}</span>
                       {' · '}{m.title}
+                      {/* The number the order is actually built on, shown beside
+                          the row it belongs to — so "shortest first" is something
+                          the reader can check rather than take on trust. */}
+                      {showMinutes && (
+                        <span className="ml-1 text-[#5A6E3D] text-[0.625rem] whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                          ~{minutesById.get(m.id)} min
+                        </span>
+                      )}
                     </button>
                     {/* The SAME action the card list's ▶ Play performs — the big
                         full-screen reader on this one, read yourself or read to
