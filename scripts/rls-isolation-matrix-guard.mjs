@@ -20,7 +20,7 @@
 // matrix leg naming a nonexistent smoke and REQUIRES a finding; the real
 // workflow must produce none.
 // =============================================================================
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -63,7 +63,7 @@ export function parseLegs(workflowText) {
 
 // checkMatrix(workflowText) -> string[] of problems (empty = clean). Pure so the
 // unit test can feed a crafted workflow without touching disk for the parse.
-export function checkMatrix(workflowText, { migExists, smokeExists } = {}) {
+export function checkMatrix(workflowText, { migExists, smokeExists, smokesOnDisk } = {}) {
   const problems = [];
   const legs = parseLegs(workflowText);
   if (legs.length === 0) {
@@ -82,6 +82,34 @@ export function checkMatrix(workflowText, { migExists, smokeExists } = {}) {
       if (!smokeCheck(s)) problems.push(`leg "${feature}": smoke not found — infra/supabase/tests/${s}`);
     }
   }
+
+  // ── THE INVERSE, and it is the half that bit (LESSONS P53) ────────────────
+  // The check above asks: does every file a leg NAMES exist? The one below asks
+  // the question that actually goes wrong: does every smoke that EXISTS get
+  // run by some leg? A smoke nobody runs is not a weak proof, it is no proof —
+  // and it is indistinguishable, from the repo, from a thorough one. It sits
+  // there with a header full of assertions, and the assertions never execute.
+  //
+  // Locked at ZERO on 2026-09-12, when there were zero: the cheapest possible
+  // moment to make a standard permanent is before the first regression (the
+  // icon-label precedent in ui-standards-guard). Every one of the 33 smokes in
+  // the repo was named by a leg at that moment.
+  // Read the real directory ONLY on a real run. A caller that injected
+  // smokeExists is feeding a CRAFTED matrix, and scanning the repo's 33 real
+  // smokes against a two-line fixture would report 32 orphans that are not —
+  // which is what happened the first time this was written, caught by the two
+  // tests that already existed.
+  let files = [];
+  if (smokesOnDisk) files = typeof smokesOnDisk === 'function' ? smokesOnDisk() : smokesOnDisk;
+  else if (!smokeExists) {
+    try { files = readdirSync(TEST_DIR).filter((f) => f.endsWith('.sql')); } catch { files = []; }
+  }
+  const named = new Set(legs.flatMap((l) => l.smokes));
+  for (const f of [...files].sort()) {
+    if (!named.has(f)) {
+      problems.push(`ORPHAN SMOKE — infra/supabase/tests/${f} exists and NO leg runs it, so it proves nothing`);
+    }
+  }
   return problems;
 }
 
@@ -93,5 +121,5 @@ if (process.argv[1] && process.argv[1].endsWith('rls-isolation-matrix-guard.mjs'
     for (const p of problems) console.error(`  - ${p}`);
     process.exit(1);
   }
-  console.log('rls-isolation matrix guard: every referenced migration + smoke file exists.');
+  console.log('rls-isolation matrix guard: every referenced migration + smoke file exists, and every smoke on disk is run by a leg.');
 }

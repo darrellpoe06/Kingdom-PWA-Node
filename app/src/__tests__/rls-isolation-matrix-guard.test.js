@@ -57,11 +57,43 @@ describe('rls-isolation-matrix-guard — every referenced file exists (DR-0239 g
   });
 
   it('PASSES the crafted matrix when every named file "exists"', () => {
-    expect(checkMatrix(MATRIX, { migExists: () => true, smokeExists: () => true })).toEqual([]);
+    expect(checkMatrix(MATRIX, { migExists: () => true, smokeExists: () => true, smokesOnDisk: [] })).toEqual([]);
   });
 
   it('the REAL rls-isolation.yml has every referenced migration + smoke on disk', () => {
     expect(checkMatrix(WORKFLOW)).toEqual([]);
+  });
+
+  // ── THE INVERSE (LESSONS P53, 2026-09-12) ─────────────────────────────────
+  // The checks above ask whether every file a leg NAMES exists. This asks the
+  // question that actually went wrong: does every smoke that EXISTS get run?
+  // An orphan smoke is indistinguishable, from the repo, from a thorough one —
+  // it sits there with a header full of assertions that never execute.
+  describe('an orphan smoke is no proof at all', () => {
+    it('CATCHES a smoke on disk that no leg runs', () => {
+      const problems = checkMatrix(MATRIX, {
+        migExists: () => true,
+        smokeExists: () => true,
+        smokesOnDisk: ['0082-successor-books-smoke.sql', '9999-nobody-runs-me-smoke.sql'],
+      });
+      expect(problems.length).toBe(1);
+      expect(problems[0]).toMatch(/ORPHAN SMOKE/);
+      expect(problems[0]).toMatch(/9999-nobody-runs-me-smoke\.sql/);
+      expect(problems[0]).toMatch(/proves nothing/);
+    });
+
+    it('does NOT flag a smoke that some leg names', () => {
+      const named = parseLegs(MATRIX).flatMap((l) => l.smokes);
+      expect(named.length).toBeGreaterThan(0);
+      expect(checkMatrix(MATRIX, { migExists: () => true, smokeExists: () => true, smokesOnDisk: named }))
+        .toEqual([]);
+    });
+
+    it('the REAL repo has ZERO orphan smokes, and is locked there', () => {
+      // Locked at zero on the day there were zero — the cheapest possible
+      // moment to make a standard permanent (the icon-label precedent).
+      expect(checkMatrix(WORKFLOW).filter((p) => /ORPHAN SMOKE/.test(p))).toEqual([]);
+    });
   });
 
   it('the REAL workflow includes the books-role-wall leg (0082/0100 live proof discharged)', () => {

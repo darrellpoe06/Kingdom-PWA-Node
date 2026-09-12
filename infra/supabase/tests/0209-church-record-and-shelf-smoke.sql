@@ -23,8 +23,19 @@
 --     top level it is SQL and the call is a SELECT. Mixing them is silent until
 --     it is fatal.
 --
+-- AND WHAT IT FOUND ON ITS FIRST REAL RUN (2026-09-12, 0212). With the syntax
+-- fixed, psql reached line 73 and raised "no church to fill". Not a test bug:
+-- 0209's functions resolved the church through my_default_instance_role(),
+-- which EXCLUDES church instances by design. Every member of the church who is
+-- not also in a family instance — the entire intended audience — could not open
+-- or fill their own record. It had been live since 0209 applied. The assertions
+-- below now run against public.my_church_instance_id() (0212), and this file
+-- deliberately passes NO instance argument so it keeps walking the path a real
+-- congregant walks rather than a convenient one.
+--
 -- Assertions
---   a member reads and fills their OWN record                               ✔
+--   a member reads and fills their OWN record, WITH NO instance argument —
+--     the exact path a congregant takes, and the one that was broken   ✔
 --   a giving amount is refused by the PATCH GUARD             -> REFUSED    ✘
 --   a giving total is refused by the TABLE CONSTRAINT too     -> REFUSED    ✘
 --     (two independent walls: no path, and no row)
