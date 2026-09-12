@@ -140,17 +140,18 @@ const WAIT_MS = 8000;
 
 // ── AND THE UNBOUNDED WAIT ITSELF (the real root cause) ─────────────────────
 // The sync modules are mocked below, but the component tree still reaches the
-// supabase client directly (a `get_profile` lookup), and vitest.config points
-// VITE_SUPABASE_URL at https://test-stub.supabase.co — a host that does not
-// resolve. So every render waited on a DNS FAILURE, whose latency is unbounded:
-// milliseconds on an idle machine, seconds under a loaded suite. That is why
-// the same 23 tests passed alone in 1.7s and timed out 11 and then 12 at a time
-// in a full run. The log said so plainly the whole time:
-//     getaddrinfo ENOTFOUND test-stub.supabase.co
+// supabase client directly (a `get_profile` lookup), and vitest.config used to
+// point VITE_SUPABASE_URL at a hostname that does not resolve. So every render
+// waited on a DNS FAILURE, whose latency is unbounded: milliseconds on an idle
+// machine, seconds under a loaded suite. That is why the same 23 tests passed
+// alone in 1.7s and timed out 11 and then 12 at a time in a full run. The log
+// had been saying `getaddrinfo ENOTFOUND` the whole time.
 //
-// A test has no business doing DNS. This makes the call fail INSTANTLY, which
-// is the same outcome the code already handles (it logs and degrades) minus the
-// wait. Nothing about what is asserted changes.
+// The CLASS is fixed in vitest.config.js now — the stub URL is a loopback port
+// the kernel refuses immediately, so no test anywhere pays a resolver. Measured
+// on the full suite: 18 files were paying it, now zero. This file-local stub
+// STAYS anyway: it is the stricter promise (no fetch at all, not merely a fast
+// failure), and it is what the assertions below were pinned against.
 const NO_NETWORK = () => Promise.reject(new Error('network disabled in tests'));
 vi.stubGlobal('fetch', NO_NETWORK);
 
