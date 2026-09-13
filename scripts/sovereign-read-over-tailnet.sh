@@ -32,7 +32,8 @@
 # Each of those is asserted by sovereign-reader-guard.test.js against this file.
 #
 # Usage:  sovereign-read-over-tailnet.sh feedback [days]
-#         sovereign-read-over-tailnet.sh definitions [functions]
+#         sovereign-read-over-tailnet.sh definitions [days] [functions]
+#         sovereign-read-over-tailnet.sh tables [days] [functions] [tables]
 # Requires NAS_SSH_KEY and a tailnet already joined by the calling workflow.
 #
 # ASKING ABOUT A FUNCTION THIS FILE DOES NOT ALREADY NAME (added 2026-09-13,
@@ -59,15 +60,23 @@ set -uo pipefail
 MODE="${1:-feedback}"
 DAYS="${2:-30}"
 FUNCTIONS="${3:-}"
+TABLES="${4:-}"
 NAS_HOST="${NAS_HOST:-dpoe@poetech.tail5a2f35.ts.net}"
 NAS_ENV="${NAS_ENV:-/volume1/docker/supabase/.env}"
 
 # The standing list. Asking for nothing in particular still asks these.
 DEFAULT_FUNCTIONS='list_instance_members,my_church_instance_id,church_member_record_read,church_roll_read,my_church_access,claim_property_access,set_member_role'
 
+# The standing TABLE list. A function can exist while the table it reads does
+# not, and a feature whose table is missing on the sovereign side fails on the
+# first write with no error the user ever sees -- which is how the Guest ready
+# checklist could have shipped writing into nothing. Asking for nothing in
+# particular still asks these.
+DEFAULT_TABLES='board_tasks,rentals,rental_tenancies,property_rooms,feedback'
+
 case "$MODE" in
-  feedback|definitions) ;;
-  *) echo "::error::unknown mode '$MODE' (feedback|definitions)"; exit 2 ;;
+  feedback|definitions|tables) ;;
+  *) echo "::error::unknown mode '$MODE' (feedback|definitions|tables)"; exit 2 ;;
 esac
 case "$DAYS" in
   ''|*[!0-9]*) echo "::error::days must be a whole number, got '$DAYS'"; exit 2 ;;
@@ -83,8 +92,19 @@ if ! [[ "$FUNCTIONS" =~ ^[a-z0-9_]+(,[a-z0-9_]+)*$ ]]; then
   echo "::error::functions must be comma-separated lowercase names matching [a-z0-9_], got '$FUNCTIONS' - nothing was read"
   exit 2
 fi
+# Same rule for tables: REJECT rather than escape. [a-z0-9_] cannot express a
+# quote, a space, a semicolon or a comment marker, so no caller input can close
+# the IN list and start a statement. Anchored in [[ =~ ]], not grep, so an
+# argument carrying a newline cannot smuggle a second line past the first.
+[ -n "$TABLES" ] || TABLES="$DEFAULT_TABLES"
+if ! [[ "$TABLES" =~ ^[a-z0-9_]+(,[a-z0-9_]+)*$ ]]; then
+  echo "::error::tables must be comma-separated lowercase names matching [a-z0-9_], got '$TABLES' - nothing was read"
+  exit 2
+fi
+
 # 'a,b' -> "'a','b'" for the IN list, built from the validated string only.
 FUNC_IN="'$(printf '%s' "$FUNCTIONS" | sed "s/,/','/g")'"
+TABLE_IN="'$(printf '%s' "$TABLES" | sed "s/,/','/g")'"
 
 say() {
   echo "$1"
@@ -128,6 +148,7 @@ ENV_FILE="${NAS_ENV:?NAS_ENV not passed through}"
 MODE="${MODE:?MODE not passed through}"
 DAYS="${DAYS:?DAYS not passed through}"
 FUNC_IN="${FUNC_IN:?FUNC_IN not passed through}"
+TABLE_IN="${TABLE_IN:?TABLE_IN not passed through}"
 
 PW=$(sed -n 's/^POSTGRES_PASSWORD=//p' "$ENV_FILE" 2>/dev/null | tr -d '[:space:]')
 [ -n "$PW" ] || PW=$(sudo -n sed -n 's/^POSTGRES_PASSWORD=//p' "$ENV_FILE" 2>/dev/null | tr -d '[:space:]')
@@ -165,6 +186,33 @@ if [ "$MODE" = "feedback" ]; then
                  ' confidential_withheld='||count(*) FILTER (WHERE coalesce(is_confidential,false))||
                  ' newest='||coalesce(max(submitted_at)::text,'none')
             FROM public.feedback"
+elif [ "$MODE" = "tables" ]; then
+  echo "---TABLES---"
+  # Does the table EXIST here, is RLS on, and does it carry policies? A table
+  # present with RLS off, or on with zero policies, is a different and worse
+  # answer than absent -- so all three are reported rather than a bare boolean.
+  # No row CONTENTS are read in this mode; a count is not a record.
+  psql_q "SELECT coalesce(json_agg(json_build_object(
+                   'name', c.relname,
+                   'columns', (SELECT count(*) FROM pg_attribute a
+                                WHERE a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped),
+                   'rls_enabled', c.relrowsecurity,
+                   'policies', (SELECT count(*) FROM pg_policy pol WHERE pol.polrelid = c.oid),
+                   'rows', (SELECT n_live_tup FROM pg_stat_user_tables st WHERE st.relid = c.oid)
+                 ) ORDER BY c.relname), '[]'::json)::text
+            FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+           WHERE n.nspname = 'public' AND c.relkind = 'r'
+             AND c.relname IN (${TABLE_IN})"
+  echo "---MISSING---"
+  # Names the caller asked about that this database does not have. Silence would
+  # otherwise read as "fine" -- the exact failure this mode exists to prevent.
+  psql_q "SELECT coalesce(string_agg(w.name, ' '), 'none')
+            FROM (SELECT unnest(ARRAY[${TABLE_IN}]) AS name) w
+           WHERE NOT EXISTS (
+             SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+              WHERE n.nspname = 'public' AND c.relkind = 'r' AND c.relname = w.name)"
+  echo "---LEDGER---"
+  psql_q "SELECT 'sovereign_replay='||count(*) FROM public._sovereign_replay"
 else
   echo "---DEFINITIONS---"
   # 'source_md5' is the drift check: identical md5 on hosted and sovereign
@@ -189,7 +237,7 @@ else
 fi
 REMOTE
 
-OUT="$($SSH "NAS_ENV='$NAS_ENV' MODE='$MODE' DAYS='$DAYS' FUNC_IN=\"$FUNC_IN\" bash -s" < "$REMOTE_SCRIPT" 2>&1)"
+OUT="$($SSH "NAS_ENV='$NAS_ENV' MODE='$MODE' DAYS='$DAYS' FUNC_IN=\"$FUNC_IN\" TABLE_IN=\"$TABLE_IN\" bash -s" < "$REMOTE_SCRIPT" 2>&1)"
 RC=$?
 rm -f "$REMOTE_SCRIPT"
 

@@ -17,9 +17,9 @@ on:
   workflow_dispatch:
     inputs:
       what:
-        description: 'feedback (what people said) or definitions (what the schema holds)'
+        description: 'feedback (what people said), definitions (which functions), or tables (which tables exist, with RLS)'
         type: choice
-        options: [feedback, definitions]
+        options: [feedback, definitions, tables]
         default: feedback
       days:
         description: 'how many days back to read (feedback only)'
@@ -27,6 +27,10 @@ on:
         default: '30'
       functions:
         description: 'definitions only - comma-separated public function names, [a-z0-9_] only (blank = the standing church/property list)'
+        type: string
+        default: ''
+      tables:
+        description: 'tables only - comma-separated public table names, [a-z0-9_] only (blank = the standing list incl. board_tasks)'
         type: string
         default: ''
 
@@ -48,4 +52,4 @@ jobs:
       - name: Ask the sovereign database
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
-        run: bash scripts/sovereign-read-over-tailnet.sh "${{ inputs.what }}" "${{ inputs.days }}" "${{ inputs.functions }}"
+        run: bash scripts/sovereign-read-over-tailnet.sh "${{ inputs.what }}" "${{ inputs.days }}" "${{ inputs.functions }}" "${{ inputs.tables }}"
