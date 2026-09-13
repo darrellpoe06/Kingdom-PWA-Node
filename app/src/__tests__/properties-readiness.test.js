@@ -189,6 +189,38 @@ describe('a door’s checklist stays out of the Projects hub', () => {
   });
 });
 
+describe('a bedroom renamed on the Rooms tab', () => {
+  // PROVEN-TO-CATCH: restore `group: row.group ? row.group : item.group` in the
+  // merge and this fails — the bedroom splits into the old name and the new one.
+  it('moves ALL its tasks to the new name, touched ones included', () => {
+    const before = templateFor(SLUG, ROOMS);
+    const front = before.filter((t) => t.group === 'Front bedroom');
+    // the landlord ticked two tasks while the room was still "Front bedroom"
+    const rows = [
+      row(front[0], { status: 'done', group: 'Front bedroom' }),
+      row(front[1], { status: 'in-progress', group: 'Front bedroom' }),
+    ];
+    // ...then renamed the room. property_rooms is the record; the row's stale
+    // group_label is not.
+    const renamed = [{ id: 'r1', name: 'Guest room', kind: 'bedroom' }, ROOMS[1], ROOMS[2]];
+    const beds = readinessBoard(SLUG, rows, renamed).sections.find((s) => s.id === 'bedrooms');
+    expect(beds.groups.map((g) => g.name)).toEqual(['Guest room', 'Back bedroom']);
+    expect(beds.groups[0].tasks.length).toBe(16);
+    expect(beds.groups[0].tally).toMatchObject({ done: 1, started: 1, total: 16 });
+  });
+
+  it('keeps a task the landlord added under the group it was added to', () => {
+    const custom = {
+      slug: `${SLUG}:x:zz`, boardSlug: SLUG, title: 'Blackout curtain', status: 'not-started',
+      group: 'Front bedroom', notes: null, sortRank: 900,
+      links: { readiness: { section: 'bedrooms', custom: true } },
+    };
+    const beds = readinessBoard(SLUG, [custom], ROOMS).sections.find((s) => s.id === 'bedrooms');
+    const front = beds.groups.find((g) => g.name === 'Front bedroom');
+    expect(front.tasks.map((t) => t.title)).toContain('Blackout curtain');
+  });
+});
+
 describe('the tally', () => {
   it('rounds honestly and survives an empty list', () => {
     expect(readinessTally([])).toMatchObject({ total: 0, pct: 0, left: 0 });

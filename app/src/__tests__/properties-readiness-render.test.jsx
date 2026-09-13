@@ -13,13 +13,14 @@ import { createRoot } from 'react-dom/client';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-const store = { tasks: [], ensured: [], patched: [], removed: [] };
+const store = { tasks: [], ensured: [], patched: [], removed: [], write: { ok: true, reason: null } };
 
 vi.mock('../lib/use-board-tasks.js', () => ({
   useBoardTasks: () => store.tasks,
+  useWriteState: () => store.write,
   ensureTask: (item) => { store.ensured.push(item); return Promise.resolve(item); },
   patchTask: (task, patch) => { store.patched.push({ task, patch }); },
-  removeTask: (task) => { store.removed.push(task); },
+  removeTask: (task) => { store.removed.push(task); return Promise.resolve(); },
 }));
 
 const { ReadinessTab } = await import('../modules/properties/ReadinessTab.jsx');
@@ -32,7 +33,7 @@ const ROOMS = [
 ];
 
 let mounted = [];
-beforeEach(() => { store.tasks = []; store.ensured = []; store.patched = []; store.removed = []; });
+beforeEach(() => { store.tasks = []; store.ensured = []; store.patched = []; store.removed = []; store.write = { ok: true, reason: null }; });
 afterEach(() => {
   mounted.forEach(({ root, host }) => { act(() => root.unmount()); host.remove(); });
   mounted = [];
@@ -176,6 +177,99 @@ describe('reset', () => {
     click(btn(host, /Reset checklist/));
     click(btn(host, /Reset this checklist/));
     expect(store.removed.length).toBe(1);
+  });
+});
+
+describe('a door with no bedrooms recorded', () => {
+  // MEASURED 2026-09-13 on the sovereign database: property_rooms holds 0 rows
+  // across all 13 doors. So this is not an edge case — it is what EVERY door
+  // looked like the day the tab shipped, and the section could only point at
+  // another tab. PROVEN-TO-CATCH: remove the onAddRoom branch and the first
+  // three of these fail.
+  const DOOR = { id: 'rental-uuid', instance_id: 'inst-uuid' };
+
+  const mountEmpty = (onAddRoom) => {
+    store.tasks = [];
+    return render(<ReadinessTab boardSlug={SLUG} boardTitle="1003 Koehn" rooms={[]} door={DOOR} onAddRoom={onAddRoom} />);
+  };
+
+  it('lets the landlord name a bedroom without leaving the checklist', () => {
+    const added = [];
+    const host = mountEmpty((row) => added.push(row));
+    const input = all(host, 'input[type="text"]').find((i) => i.getAttribute('aria-label') === 'Name a bedroom in this unit');
+    expect(input).toBeTruthy();
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+      setter.call(input, 'Front bedroom');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    click(btn(host, /Add bedroom/));
+    expect(added.length).toBe(1);
+    expect(added[0]).toMatchObject({ name: 'Front bedroom', kind: 'bedroom', rental_ref: 'rental-uuid', instance_id: 'inst-uuid' });
+  });
+
+  it('says the room becomes real, not just a checklist group', () => {
+    const host = mountEmpty(() => {});
+    expect(host.textContent).toMatch(/becomes a real room on the/);
+    expect(host.textContent).toMatch(/Rooms/);
+  });
+
+  it('will not add an empty name', () => {
+    const added = [];
+    const host = mountEmpty((row) => added.push(row));
+    const add = btn(host, /Add bedroom/);
+    expect(add.disabled).toBe(true);
+    click(add);
+    expect(added).toEqual([]);
+  });
+
+  it('falls back to pointing at Rooms when the viewer cannot add one', () => {
+    const host = mountEmpty(null);
+    expect(host.textContent).toMatch(/Add them on the/);
+    expect(all(host, 'button').some((b) => /Add bedroom/.test(b.textContent))).toBe(false);
+  });
+
+  it('still renders the 165 fixed tasks either way', () => {
+    const host = mountEmpty(() => {});
+    expect(all(host, '[role="checkbox"]').length).toBe(165);
+  });
+});
+
+describe('the surface says what is TRUE about saving', () => {
+  // The line under the dashboard is the whole trust claim of this tab. It used
+  // to promise "saved to this door for everyone" no matter what the database
+  // said. PROVEN-TO-CATCH: make that string unconditional again and all four
+  // of these fail.
+  it('claims shared saving only when the write actually landed', () => {
+    const host = mount();
+    expect(host.textContent).toMatch(/Saved to this door for everyone who manages it/);
+  });
+
+  it('says it is device-only when signed out, and does not claim sharing', () => {
+    store.write = { ok: false, reason: 'signed-out' };
+    const host = mount();
+    expect(host.textContent).toMatch(/held on this device only/);
+    expect(host.textContent).not.toMatch(/Saved to this door for everyone/);
+  });
+
+  it('says a failed write did NOT save, rather than showing success', () => {
+    store.write = { ok: false, reason: 'failed' };
+    const host = mount();
+    expect(host.textContent).toMatch(/did NOT save to the door/);
+    expect(host.textContent).not.toMatch(/Saved to this door for everyone/);
+  });
+
+  it('explains an RLS-refused delete instead of pretending it worked', () => {
+    store.write = { ok: false, reason: 'blocked' };
+    const host = mount();
+    expect(host.textContent).toMatch(/refused by the database/);
+    expect(host.textContent).toMatch(/Nothing was lost/);
+  });
+
+  it('names the missing instance rather than saying nothing', () => {
+    store.write = { ok: false, reason: 'no-tenant' };
+    const host = mount();
+    expect(host.textContent).toMatch(/not attached to a property instance/);
   });
 });
 

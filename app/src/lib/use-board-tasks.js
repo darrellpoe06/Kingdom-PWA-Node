@@ -85,6 +85,38 @@ function getSnapshot() {
   return state;
 }
 
+// ---- write outcomes (DR-0076: a failed write is never silent) -------------
+// table-sync returns an HONEST result for every write — {skipped:'signed-out'},
+// {skipped:'insert-error'}, and a deleteRow that detects an RLS-blocked 0-row
+// delete. This store threw all of it away and every consumer rendered success
+// unconditionally, which is how a surface comes to CLAIM "saved for everyone"
+// while nothing left the device. Consumers subscribe to the last outcome and
+// say what is actually true.
+let lastWrite = { ok: true, reason: null, at: 0 };
+const writeListeners = new Set();
+
+function noteWrite(res) {
+  const reason = !res ? null
+    : res.skipped === 'signed-out' ? 'signed-out'
+      : res.skipped === 'no-tenant' ? 'no-tenant'
+        : res.skipped === 'no-op' ? 'blocked'
+          : res.skipped ? 'failed' : null;
+  lastWrite = { ok: !reason, reason, at: Date.now() };
+  for (const l of writeListeners) l();
+  return lastWrite;
+}
+
+export function subscribeWrites(listener) {
+  writeListeners.add(listener);
+  return () => writeListeners.delete(listener);
+}
+export function lastWriteState() {
+  return lastWrite;
+}
+export function useWriteState() {
+  return useSyncExternalStore(subscribeWrites, lastWriteState, lastWriteState);
+}
+
 // ---- CRUD (shared by every consumer) --------------------------------------
 export async function addTask({ boardSlug, boardTitle, group, title, owner = null }) {
   const slug = newTaskSlug(boardSlug);
@@ -128,6 +160,7 @@ export async function ensureTask(item) {
   };
   setState((cur) => [...cur, row]);
   const res = await boardTasksSync.upload(row);
+  noteWrite(res);
   if (res && res.uploaded && res.remoteId) {
     setState((cur) => cur.map((t) => (t.slug === slug ? { ...t, remoteUuid: res.remoteId } : t)));
   }
@@ -145,16 +178,32 @@ export function patchTask(task, patch) {
   setState((cur) => cur.map((t) => (t.slug === task.slug ? { ...t, ...full } : t)));
   if (task.remoteUuid) {
     boardTasksSync.updateRow(task.remoteUuid, toColumnPatch(full))
-      .catch((e) => console.warn('[board-tasks-sync] update failed', e));
+      .then(noteWrite, (e) => { console.warn('[board-tasks-sync] update failed', e); noteWrite({ skipped: 'update-error' }); });
   }
 }
 
+// A delete the database refuses (0059's DELETE policy is owner/admin — a
+// 'member' cannot) removed the row LOCALLY and then let the next cloud merge
+// resurrect it. deleteRow already detects that 0-row case; now the row goes
+// back where it was and the outcome is reported, so the screen never shows a
+// deletion that did not happen.
 export function removeTask(task) {
+  const restore = state.find((t) => t.slug === task.slug) || task;
   setState((cur) => cur.filter((t) => t.slug !== task.slug));
-  if (task.remoteUuid) {
-    boardTasksSync.deleteRow(task.remoteUuid)
-      .catch((e) => console.warn('[board-tasks-sync] delete failed', e));
-  }
+  if (!task.remoteUuid) return Promise.resolve(noteWrite(null));
+  return boardTasksSync.deleteRow(task.remoteUuid).then(
+    (res) => {
+      if (res && (res.skipped === 'no-op' || res.skipped === 'delete-error')) {
+        setState((cur) => (cur.some((t) => t.slug === restore.slug) ? cur : [...cur, restore]));
+      }
+      return noteWrite(res);
+    },
+    (e) => {
+      console.warn('[board-tasks-sync] delete failed', e);
+      setState((cur) => (cur.some((t) => t.slug === restore.slug) ? cur : [...cur, restore]));
+      return noteWrite({ skipped: 'delete-error' });
+    },
+  );
 }
 
 export function cycleStatus(task) {

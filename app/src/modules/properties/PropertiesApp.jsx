@@ -739,6 +739,10 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               boardSlug={readinessBoardSlug(rentalId || rentalRef)}
               boardTitle={activeRental?.display_name || activeRental?.address || rentalRef || 'This door'}
               rooms={doorData.rooms}
+              door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
+              onAddRoom={role === 'owner' || role === 'manager'
+                ? async (row) => { await addRoom(row); loadDoorData(); }
+                : null}
             />
           );
           case 'timeline': return (

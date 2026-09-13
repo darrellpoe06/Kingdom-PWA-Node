@@ -257,7 +257,12 @@ export function readinessBoard(boardSlug, rows = [], rooms = []) {
       ...item,
       row,
       title: row && row.title ? row.title : item.title,
-      group: row && row.group ? row.group : item.group,
+      // The GROUP comes from the template, never from the stored row. A bedroom
+      // group is the room's CURRENT name (property_rooms is the record); taking
+      // the row's group_label would keep the name the room had when the task was
+      // last touched, and renaming "Front bedroom" to "Guest room" would split
+      // one bedroom into two groups on screen — half under each name.
+      group: item.group,
       status: row ? normalizeReadyStatus(row.status) : 'not-started',
       note: (row && row.notes) || '',
       cost: costOf(row),
