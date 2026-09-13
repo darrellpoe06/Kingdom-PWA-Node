@@ -1716,9 +1716,22 @@ function CourseView({
               </div>
               {m.anchor?.ref && (
                 <div className="flex items-start justify-between gap-2 mt-2">
-                  <p className="text-[0.6875rem] text-[#5A6E3D] flex-1" style={{ fontFamily: '"Fraunces", serif' }}>
-                    <strong>Anchor — {m.anchor.ref}:</strong> {m.anchor.theme}
-                  </p>
+                  {/* THE REFERENCES HERE ARE TAPPABLE, BECAUSE THEY LOOK IT.
+                      Darrell 2026-09-13, from this exact screen: "Links don't
+                      work in last played." They were plain text inside a green
+                      paragraph -- green because the PARAGRAPH is green, not
+                      because anything was a link -- so the anchor line
+                      advertised an affordance it did not have. That is the
+                      hollow-surface class (DR-0381) wearing a different coat: a
+                      surface that appears interactive and is not. WordInline
+                      opens each reference in place, which is the promise the
+                      rest of the app already makes ("Tap any verse reference to
+                      read it right here"). */}
+                  <WordInline
+                    text={`Anchor — ${m.anchor.ref}: ${m.anchor.theme || ''}`}
+                    className="text-[0.6875rem] text-[#5A6E3D] flex-1"
+                    style={{ fontFamily: '"Fraunces", serif' }}
+                  />
                   {sec(`Anchor — ${m.anchor.ref}`, m.anchor.theme || '')}
                 </div>
               )}
