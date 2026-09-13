@@ -9,3 +9,19 @@ prerequisite met: DR-0309 baseline re-dump (nonce 20260819a) receipt verified
     before this file merged.
 off-switch: revert this file and dispatch deploy-cloudflare-pages — the build
     returns to the hosted secrets. Full rollback is that one revert.
+
+WHILE THIS FILE EXISTS, THE HOSTED PROJECT IS NOT THE LIVE DATABASE.
+    Added 2026-09-13 after a real miss (DR-0374). The Supabase MCP tooling an
+    agent reaches for by default connects to the HOSTED project
+    (mjjlevhdufpaplypnqrv) and answers happily. That is the mirror, not the
+    database the app writes to. A row count, an empty table or a "nobody has
+    ever done this" taken from there and reported as the live state is a FALSE
+    MEASUREMENT, and one was published in a merged decision record before
+    anyone noticed.
+    The two are kept in step for SCHEMA by db-migrate (hosted apply, then
+    sovereign-replay-over-tailnet.sh onto the NAS), so a function or policy
+    definition read from hosted is sound. DATA is not replicated and rows on
+    hosted say nothing about rows on the sovereign database.
+    So: definitions, yes. Counts, history, "has this ever happened" — no.
+    Measure those on the sovereign database or say plainly that they are
+    unmeasured.

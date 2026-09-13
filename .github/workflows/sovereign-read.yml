@@ -25,6 +25,10 @@ on:
         description: 'how many days back to read (feedback only)'
         type: string
         default: '30'
+      functions:
+        description: 'definitions only - comma-separated public function names, [a-z0-9_] only (blank = the standing church/property list)'
+        type: string
+        default: ''
 
 concurrency:
   group: sovereign-read
@@ -44,4 +48,4 @@ jobs:
       - name: Ask the sovereign database
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
-        run: bash scripts/sovereign-read-over-tailnet.sh "${{ inputs.what }}" "${{ inputs.days }}"
+        run: bash scripts/sovereign-read-over-tailnet.sh "${{ inputs.what }}" "${{ inputs.days }}" "${{ inputs.functions }}"
