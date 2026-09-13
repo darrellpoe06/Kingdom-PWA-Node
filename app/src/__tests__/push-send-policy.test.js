@@ -26,7 +26,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 import {
   validateSendRequest, dedupeKeyFor, liveAnnouncement, messageAnnouncement,
   SENDABLE_TOPICS, MAX_TITLE, MAX_BODY,
-  audienceQuery, expandAudience,
+  audienceQuery, expandAudience, faultAnnouncement,
 } from '../lib/push-send-policy.js';
 
 describe('validateSendRequest — a send must say what it claims', () => {
@@ -56,7 +56,11 @@ describe('validateSendRequest — a send must say what it claims', () => {
   it('refuses an unknown topic — no open-ended broadcast channel', () => {
     expect(validateSendRequest({ ...live, topic: 'marketing' }).ok).toBe(false);
     expect(validateSendRequest({ ...live, topic: '' }).ok).toBe(false);
-    expect(SENDABLE_TOPICS).toEqual(['live', 'message']);
+    // The list stays CLOSED and enumerated on purpose — this assertion exists
+    // so a new broadcast channel cannot be added without someone looking at it.
+    // 'fault' was added deliberately (DR-0378) and is NOT a broadcast: it
+    // refuses to send without an explicit office audience, asserted below.
+    expect(SENDABLE_TOPICS).toEqual(['live', 'message', 'fault']);
   });
 
   it('refuses a send with no title — a push with no claim is just a buzz', () => {
@@ -225,5 +229,102 @@ describe('expandAudience — one person, two doors, every phone', () => {
     expect(fn).toContain("rest(supabaseUrl, 'person_links')");
     expect(fn).toContain('expandAudience(audience, await lr.json())');
     expect(fn).toContain('userIds: audience });');
+  });
+});
+
+// =============================================================================
+// 'fault' — the office hears that its own door is failing
+// =============================================================================
+// DR-0378, closing the last of DR-0374's chain. 0217 made a breaking door write
+// its own row, but a row still waits for somebody to open the board. Sterling's
+// order failed for months precisely because nothing reached anyone who could
+// act.
+//
+// The security decision this suite exists to hold: a fault is ADDRESSED to the
+// office, never BROADCAST to a tenant. `live` fans out to every opted-in device
+// in an instance — correct for a congregation, wrong for "this business's shop
+// is broken." Relying on "only the steward screen offers the toggle" would be a
+// UI gate pretending to be an access gate.
+// =============================================================================
+describe("'fault' is addressed, never broadcast", () => {
+  const fault = {
+    topic: 'fault',
+    instanceId: 'inst-1',
+    faultId: 'f-1',
+    title: 'Moore Divahs is reporting a problem',
+    userIds: ['office-1', 'office-2'],
+  };
+
+  it('accepts a fault addressed to a named office', () => {
+    const r = validateSendRequest(fault);
+    expect(r.ok).toBe(true);
+    expect(r.value.userIds).toEqual(['office-1', 'office-2']);
+  });
+
+  it('REFUSES a fault with no audience — there is no broadcast path', () => {
+    expect(validateSendRequest({ ...fault, userIds: [] }).ok).toBe(false);
+    expect(validateSendRequest({ ...fault, userIds: undefined }).ok).toBe(false);
+    const r = validateSendRequest({ ...fault, userIds: [] });
+    expect(r.error).toMatch(/never broadcast/i);
+  });
+
+  it('REFUSES a fault with no faultId — the dedupe key is not optional', () => {
+    expect(validateSendRequest({ ...fault, faultId: '' }).ok).toBe(false);
+  });
+
+  it('routes to the PERSON path, not the instance path', () => {
+    const q = audienceQuery({ topic: 'fault', instanceId: 'inst-1', userIds: ['office-1'] });
+    expect(q.get('user_id')).toBe('in.(office-1)');
+    expect(q.get('instance_id')).toBeNull(); // never fans out to the tenant
+    expect(q.get('topics')).toBe('cs.{fault}');
+  });
+});
+
+describe("a storm buzzes once, because 0217 already folded it", () => {
+  it('the fault id IS the key — a fold returns the same id, so the same key', () => {
+    expect(dedupeKeyFor({ topic: 'fault', faultId: 'f-1' })).toBe('fault:f-1');
+    expect(dedupeKeyFor({ topic: 'fault', faultId: 'f-1', at: '2026-01-01' }))
+      .toBe(dedupeKeyFor({ topic: 'fault', faultId: 'f-1', at: '2026-06-01' }));
+  });
+
+  it('a genuinely different fault is a different key', () => {
+    expect(dedupeKeyFor({ topic: 'fault', faultId: 'f-2' }))
+      .not.toBe(dedupeKeyFor({ topic: 'fault', faultId: 'f-1' }));
+  });
+
+  it('validate derives the key from the faultId when none is given', () => {
+    const r = validateSendRequest({
+      topic: 'fault', instanceId: 'i', faultId: 'f-9', title: 't', userIds: ['o'],
+    });
+    expect(r.value.dedupeKey).toBe('fault:f-9');
+  });
+});
+
+describe('what the office reads on a lock screen', () => {
+  it('names the business and carries the COUNT, which is the severity', () => {
+    const a = faultAnnouncement({ brandLabel: 'Moore Divahs', occurrences: 47 });
+    expect(a.title).toBe('Moore Divahs is reporting a problem');
+    expect(a.body).toMatch(/47 times/);
+  });
+
+  it('reads correctly for a single first hit', () => {
+    expect(faultAnnouncement({ brandLabel: 'Moore Divahs', occurrences: 1 }).body)
+      .toMatch(/just now/);
+    expect(faultAnnouncement({ brandLabel: 'Moore Divahs' }).body).not.toMatch(/undefined|NaN/);
+  });
+
+  it('carries NO error text and NO customer text — a lock screen is public', () => {
+    const a = faultAnnouncement({ brandLabel: 'Moore Divahs', occurrences: 2 });
+    const all = `${a.title} ${a.body}`;
+    for (const leak of ['unknown pipeline', 'crm_capture_lead', 'SELECT', '@']) {
+      expect(all).not.toContain(leak);
+    }
+    expect(a.body).toMatch(/Open the app/);
+  });
+
+  it('stays inside the lock-screen caps', () => {
+    const a = faultAnnouncement({ brandLabel: 'x'.repeat(500), occurrences: 999999 });
+    expect(a.title.length).toBeLessThanOrEqual(MAX_TITLE);
+    expect(a.body.length).toBeLessThanOrEqual(MAX_BODY);
   });
 });

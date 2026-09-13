@@ -15,7 +15,10 @@
 // A request that cannot answer all three is refused here, before any device is
 // touched.
 
-export const SENDABLE_TOPICS = ['live', 'message'];
+// 'fault' added 2026-09-13 (DR-0378). A door that breaks now writes its own row
+// (0217), but a row still waits for somebody to open the board. This is the
+// topic that reaches the office when it does not.
+export const SENDABLE_TOPICS = ['live', 'message', 'fault'];
 
 /** Titles/bodies are shown on a lock screen; keep them short and unsurprising. */
 export const MAX_TITLE = 80;
@@ -34,7 +37,7 @@ function str(v) {
  * later that day is a new one. (Minute rather than second, because two clicks
  * two seconds apart are the case this is defending against.)
  */
-export function dedupeKeyFor({ topic, churchId, videoId, messageId, at }) {
+export function dedupeKeyFor({ topic, churchId, videoId, messageId, faultId, at }) {
   if (topic === 'live') {
     const minute = new Date(at || Date.now()).toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
     return `live:${churchId || 'church'}:${videoId || 'none'}:${minute}`;
@@ -43,6 +46,13 @@ export function dedupeKeyFor({ topic, churchId, videoId, messageId, at }) {
     // A message is a unique row; its id IS the natural key.
     return `message:${messageId}`;
   }
+  // A fault's id IS the dedupe key, and that is load-bearing: 0217 FOLDS a
+  // repeat into the same row (occurrences + 1) and returns the SAME id. So a
+  // door failing four hundred times buzzes the office exactly once, and only a
+  // genuinely NEW open fault -- a different break, or the same one after the
+  // office closed it -- earns a second buzz. The storm is already one row; this
+  // makes it one notification.
+  if (topic === 'fault') return `fault:${str(faultId)}`;
   return `${topic}:${str(churchId) || 'x'}:${new Date(at || Date.now()).toISOString()}`;
 }
 
@@ -76,6 +86,30 @@ export function validateSendRequest(body) {
     return { ok: false, error: 'messageId is required for a message notification (it is the dedupe key)' };
   }
 
+  // A FAULT IS ADDRESSED TO THE OFFICE, NEVER BROADCAST TO AN INSTANCE.
+  //
+  // This is a security decision and it is the reason `fault` does not simply
+  // inherit the `live` shape. `live` fans out to every device in a tenant that
+  // opted into the topic -- correct for a congregation, wrong here. A fault
+  // says a business's door is broken; the people entitled to hear that are the
+  // office (owner/admin), the same predicate 0216's RLS uses. Relying on "only
+  // the steward screen offers the toggle" would be a UI gate pretending to be
+  // an access gate, and a curious customer who subscribed to the topic would be
+  // told when Shay's shop is failing.
+  //
+  // So an explicit audience is REQUIRED, which routes this through the
+  // per-person path in audienceQuery() rather than the per-instance one. There
+  // is no code path that broadcasts a fault.
+  if (topic === 'fault') {
+    if (!str(b.faultId)) {
+      return { ok: false, error: 'faultId is required for a fault notification (it is the dedupe key)' };
+    }
+    const office = Array.isArray(b.userIds) ? b.userIds.filter((u) => typeof u === 'string' && u) : [];
+    if (office.length === 0) {
+      return { ok: false, error: 'a fault notification requires an explicit office audience — it is never broadcast to an instance' };
+    }
+  }
+
   const url = str(b.url);
   const sameOrigin = url && url.charAt(0) === '/' && url.charAt(1) !== '/' && url.charAt(1) !== '\\';
 
@@ -87,6 +121,7 @@ export function validateSendRequest(body) {
       churchId: str(b.churchId) || null,
       videoId: str(b.videoId) || null,
       messageId: str(b.messageId) || null,
+      faultId: str(b.faultId) || null,
       isLive: b.isLive === true,
       title: title.slice(0, MAX_TITLE),
       body: str(b.body).slice(0, MAX_BODY),
@@ -95,7 +130,7 @@ export function validateSendRequest(body) {
       userIds: Array.isArray(b.userIds) ? b.userIds.filter((u) => typeof u === 'string' && u) : null,
       dedupeKey: str(b.dedupeKey) || dedupeKeyFor({
         topic, churchId: str(b.churchId), videoId: str(b.videoId),
-        messageId: str(b.messageId), at: b.at,
+        messageId: str(b.messageId), faultId: str(b.faultId), at: b.at,
       }),
     },
   };
@@ -132,6 +167,29 @@ export function messageAnnouncement({ senderName } = {}) {
   return {
     title: `${who} sent you a message`.slice(0, MAX_TITLE),
     body: 'Open the app to read it.',
+  };
+}
+
+/**
+ * The words the office sees when their own door is failing.
+ *
+ * NO ERROR TEXT AND NO CUSTOMER TEXT, for the same reason messageAnnouncement
+ * withholds a message body: this renders on a lock screen, in public. A fault
+ * body can contain whatever a caller put in it, and the office board is the
+ * place to read it. The push says THAT something is wrong and how widely; the
+ * app says what.
+ *
+ * The count is carried because it is the difference between "someone hit a
+ * snag" and "your shop has been closed all morning."
+ */
+export function faultAnnouncement({ brandLabel, occurrences } = {}) {
+  const who = str(brandLabel) || 'Your door';
+  const n = Number.isFinite(occurrences) && occurrences > 1 ? Math.trunc(occurrences) : 0;
+  return {
+    title: `${who} is reporting a problem`.slice(0, MAX_TITLE),
+    body: (n
+      ? `Customers have hit it ${n} times. Open the app to see what is failing.`
+      : 'A customer hit it just now. Open the app to see what is failing.').slice(0, MAX_BODY),
   };
 }
 
