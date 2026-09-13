@@ -10,13 +10,13 @@
     "trackedDebtPages": 13,
     "regressionPages": 0,
     "regressions": 0,
-    "debtViolations": 81
+    "debtViolations": 86
   },
   "pages": [
     {
       "page": "components/Presenter.jsx",
       "status": "TRACKED-DEBT",
-      "violations": 45,
+      "violations": 50,
       "regressions": 0,
       "kinds": [
         "inline-dark-text"
