@@ -500,15 +500,34 @@ export default function Presenter({
   useEffect(() => {
     if (!cur) return undefined;
     const aud = cur.audience || {};
-    const spoken = [
+    const slideText = [
       aud.title || '',
       resolveAudienceLead(aud, age) || '',
       ...resolveAudiencePoints(aud, age),
     ].filter(Boolean).join('. ').replace(/\.\.+/g, '.');
-    if (!spoken.trim()) return undefined;
+    // WHAT PLAY MEANS HAS TO BE ON THE BUTTON (Darrell 2026-09-13: "Why is the
+    // play button showing no actual meaning in that view of the lesson?!
+    // Context and competence is needed"). The label used to read "this part of
+    // the message" on every part of every lesson, which told a speaker holding
+    // the device nothing about what he was about to hear. It now names the part
+    // he is on and what the reading is.
+    //
+    // THE READING ITSELF IS STILL EXACTLY WHAT THE ROOM SEES. A first cut of
+    // this fix also fed the presenter's own notes to the voice whenever no
+    // audience surface was alive, on the reasoning that the audio was then
+    // private. `presenter-read-aloud.test.jsx` rejected it, and the test is
+    // right: the no-leak law is that what is read aloud IS what is projected,
+    // full stop, and a condition clever enough to hold today is a condition
+    // that can be wrong later — on a console plugged into the house PA, or on a
+    // state this component does not model. Loosening that law is Darrell's
+    // call to make, not a side effect of a label fix. What he reported was a
+    // button with no meaning; the meaning is the label, and the message itself
+    // now lives in the notes panel below it, which is where it belongs.
+    const spoken = slideText;
+    const partLabel = cur.indexLabel ? `${cur.indexLabel} — ${aud.title || 'this part'}` : (aud.title || 'this part of the message');
     const owner = `presenter-${presentableId}-${idx}`;
     setReadTarget(owner, {
-      label: 'this part of the message',
+      label: `${partLabel} — what the room sees`,
       text: spoken,
       // `presenter-slide` is rendered by BOTH views — the full-screen presenting
       // mode and, since 2026-08-31, the console's class mirror — so the reader
