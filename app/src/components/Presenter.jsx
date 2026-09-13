@@ -41,6 +41,10 @@ import {
 } from '../lib/presentable.js';
 import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
 import { requestRead } from '../lib/read-request.js';
+import {
+  READ_MODES, DEFAULT_READ_MODE, isReadMode, NOTE_LAYOUTS, DEFAULT_NOTE_LAYOUT, isNoteLayout,
+  audienceLive, effectiveReadMode, scriptSuppressed, notesToSpeech, readingTextFor, readingLabel,
+} from '../lib/presenter-read-mode.js';
 import AudienceSlide from './AudienceSlide.jsx';
 import {
   FOLLOW_ALONG_ENABLED, makeFollowCode, createFollowBroadcaster, followLink,
@@ -260,6 +264,26 @@ export default function Presenter({
   const [elapsed, setElapsed] = useState(0);      // seconds
   const [running, setRunning] = useState(false);
   const [showNotes, setShowNotes] = useState(true);
+  // WHAT the reading reads, and HOW the notes are laid out — both the speaker's
+  // own choice, both remembered on his device (Darrell 2026-09-13: "maybe a
+  // toggle that has all options?" and "long scroll or per section depending on
+  // the choice the user makes"). Per-viewer conveniences, so localStorage is
+  // the right home; a throwing accessor (private mode) just yields the default.
+  const [readMode, setReadMode] = useState(() => {
+    try { const v = defaultStorage()?.getItem('presenter.readMode'); return isReadMode(v) ? v : DEFAULT_READ_MODE; } catch { return DEFAULT_READ_MODE; }
+  });
+  const [noteLayout, setNoteLayout] = useState(() => {
+    try { const v = defaultStorage()?.getItem('presenter.noteLayout'); return isNoteLayout(v) ? v : DEFAULT_NOTE_LAYOUT; } catch { return DEFAULT_NOTE_LAYOUT; }
+  });
+  const chooseReadMode = (id) => {
+    setReadMode(id);
+    try { defaultStorage()?.setItem('presenter.readMode', id); } catch { /* private mode: the choice just does not persist */ }
+  };
+  const chooseNoteLayout = (id) => {
+    setNoteLayout(id);
+    try { defaultStorage()?.setItem('presenter.noteLayout', id); } catch { /* as above */ }
+  };
+  const [openNote, setOpenNote] = useState(0);
   const [age, setAge] = useState(PRESENT_AGE_BANDS.some((b) => b.id === initialAge) ? initialAge : DEFAULT_PRESENT_AGE);
   const [audienceState, setAudienceState] = useState('closed'); // closed | open | blocked | live | blank
   // Clean present-on-THIS-screen mode: the room's slide fills this device (a tablet
@@ -505,29 +529,26 @@ export default function Presenter({
       resolveAudienceLead(aud, age) || '',
       ...resolveAudiencePoints(aud, age),
     ].filter(Boolean).join('. ').replace(/\.\.+/g, '.');
-    // WHAT PLAY MEANS HAS TO BE ON THE BUTTON (Darrell 2026-09-13: "Why is the
-    // play button showing no actual meaning in that view of the lesson?!
-    // Context and competence is needed"). The label used to read "this part of
-    // the message" on every part of every lesson, which told a speaker holding
-    // the device nothing about what he was about to hear. It now names the part
-    // he is on and what the reading is.
+    // WHAT PLAY MEANS HAS TO BE ON THE BUTTON, AND THE SPEAKER CHOOSES WHAT IT
+    // READS — but a live room outranks his choice every time.
     //
-    // THE READING ITSELF IS STILL EXACTLY WHAT THE ROOM SEES. A first cut of
-    // this fix also fed the presenter's own notes to the voice whenever no
-    // audience surface was alive, on the reasoning that the audio was then
-    // private. `presenter-read-aloud.test.jsx` rejected it, and the test is
-    // right: the no-leak law is that what is read aloud IS what is projected,
-    // full stop, and a condition clever enough to hold today is a condition
-    // that can be wrong later — on a console plugged into the house PA, or on a
-    // state this component does not model. Loosening that law is Darrell's
-    // call to make, not a side effect of a label fix. What he reported was a
-    // button with no meaning; the meaning is the label, and the message itself
-    // now lives in the notes panel below it, which is where it belongs.
-    const spoken = slideText;
+    // Darrell 2026-08-10 asked to listen to the full message from the console;
+    // 2026-09-13 he asked for "the options for both one or the other... maybe a
+    // toggle that has all options?" Both are honoured here, with the no-leak law
+    // kept STRUCTURAL rather than clever: lib/presenter-read-mode.js decides, on
+    // EVERY render, and `audienceLive` fails CLOSED — an audience state it does
+    // not recognise counts as live. So casting mid-reading drops the script at
+    // the moment the screen goes up, and the speaker never has to remember to
+    // switch back before he presents, because forgetting is the failure a room
+    // would hear.
+    const live = audienceLive({ onScreen, audienceState, followCode });
+    const mode = effectiveReadMode(readMode, live);
+    const scriptText = mode === 'room' ? '' : notesToSpeech(cur.notes);
+    const spoken = readingTextFor(mode, slideText, scriptText);
     const partLabel = cur.indexLabel ? `${cur.indexLabel} — ${aud.title || 'this part'}` : (aud.title || 'this part of the message');
     const owner = `presenter-${presentableId}-${idx}`;
     setReadTarget(owner, {
-      label: `${partLabel} — what the room sees`,
+      label: readingLabel(partLabel, mode),
       text: spoken,
       // `presenter-slide` is rendered by BOTH views — the full-screen presenting
       // mode and, since 2026-08-31, the console's class mirror — so the reader
@@ -562,9 +583,18 @@ export default function Presenter({
       },
     });
     return () => clearReadTarget(owner);
-  }, [cur, idx, age, presentableId, last]);
+  }, [cur, idx, age, presentableId, last, readMode, onScreen, audienceState, followCode]);
   const notes = Array.isArray(cur?.notes) ? cur.notes : [];
   const hasNotes = notes.length > 0;
+  // The same three facts the read-target effect uses, surfaced for the controls
+  // so the UI and the registration can never disagree about what is in force.
+  const roomIsLive = audienceLive({ onScreen, audienceState, followCode });
+  const readModeInForce = effectiveReadMode(readMode, roomIsLive);
+  const scriptIsSuppressed = scriptSuppressed(readMode, roomIsLive);
+  // Advancing the deck opens the first note of the new part. Without this a
+  // speaker moving on would land with section four expanded and section one
+  // collapsed, which is the opposite of where he is about to teach.
+  useEffect(() => { setOpenNote(0); }, [idx]);
 
   // --- budget + override + curriculum-edit handlers ---
   const applyBudget = useCallback((raw) => {
@@ -683,6 +713,36 @@ export default function Presenter({
               through the whole message — no panel to find, nothing to set up. */}
           <button type="button" onClick={() => requestRead({ from: 'presenter-console' })} style={btn.ghost} title="Read the message aloud from here, part by part">▶ Read it aloud</button>
           <span style={{ fontSize: '0.75rem', color: '#5A5751', fontFamily: '"Fraunces", serif' }}>fills this screen — cast or hold it up; the age toggle stays with you. Read it aloud plays the message in your chosen voice and keeps going, part by part.</span>
+          {/* WHAT it reads — the speaker's choice, overridden by a live room.
+              The script options are not merely disabled while a room can hear:
+              lib/presenter-read-mode.js collapses the mode on every render, so
+              the guard holds even if this control were bypassed. */}
+          <div style={{ flexBasis: '100%', marginTop: 4 }}>
+            <div role="radiogroup" aria-label="What Read it aloud reads" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.625rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>Read aloud</span>
+              {READ_MODES.map((m) => {
+                const blocked = m.id !== DEFAULT_READ_MODE && roomIsLive;
+                const on = readModeInForce === m.id;
+                return (
+                  <button key={m.id} type="button" role="radio" aria-checked={on} disabled={blocked}
+                    onClick={() => chooseReadMode(m.id)}
+                    title={blocked ? 'A screen is live — the reading stays on what the room sees' : m.hint}
+                    style={{
+                      cursor: blocked ? 'not-allowed' : 'pointer', opacity: blocked ? 0.45 : 1,
+                      fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.06em',
+                      fontSize: '0.6875rem', minHeight: 40, padding: '8px 12px',
+                      border: `1px solid ${on ? '#5A6E3D' : '#CFC9BD'}`,
+                      background: on ? '#5A6E3D' : '#fff', color: on ? '#fff' : '#1A1815',
+                    }}>{m.label}</button>
+                );
+              })}
+            </div>
+            <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: scriptIsSuppressed ? '#7A1F1F' : '#5A5751', lineHeight: 1.5 }}>
+              {scriptIsSuppressed
+                ? 'A screen is live, so the reading is the room\u2019s slide only — your script is never spoken where a room can hear it. Close the class screen to hear your notes.'
+                : (READ_MODES.find((m) => m.id === readModeInForce) || READ_MODES[0]).hint}
+            </p>
+          </div>
           <strong style={{ flexBasis: '100%', fontFamily: '"Fraunces", serif', fontSize: '0.875rem', marginTop: 4 }}>Two screens? Class screen (projector):</strong>
           {audienceState === 'closed' && <button type="button" onClick={openAudience} style={btn.ghost}>Open class screen →</button>}
           {audienceState !== 'closed' && audienceState !== 'blocked' && (
@@ -879,7 +939,30 @@ export default function Presenter({
         {/* presenter-only notes */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '20px 0 12px' }}>
           <h3 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: '1.125rem', margin: 0 }}>Your notes <span style={{ fontSize: '0.75rem', color: '#5A5751', fontWeight: 400 }}>(only you see these)</span></h3>
-          <button type="button" onClick={() => setShowNotes((s) => !s)} style={btn.ghost}>{showNotes ? 'Hide notes' : 'Show notes'}</button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* HOW the notes sit — the speaker's choice (Darrell 2026-09-13:
+                "long scroll or per section depending on the choice the user
+                makes"). Routing the whole lesson into the deck made these
+                panels long on purpose; a speaker mid-sermon should not have to
+                scroll past four points to reach the one he is teaching. */}
+            {showNotes && hasNotes && (
+              <div role="radiogroup" aria-label="Notes layout" style={{ display: 'flex', gap: 6 }}>
+                {NOTE_LAYOUTS.map((l) => {
+                  const on = noteLayout === l.id;
+                  return (
+                    <button key={l.id} type="button" role="radio" aria-checked={on} onClick={() => chooseNoteLayout(l.id)} title={l.hint}
+                      style={{
+                        cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase',
+                        letterSpacing: '0.06em', fontSize: '0.6875rem', minHeight: 36, padding: '6px 10px',
+                        border: `1px solid ${on ? '#5A6E3D' : '#CFC9BD'}`,
+                        background: on ? '#5A6E3D' : '#fff', color: on ? '#fff' : '#1A1815',
+                      }}>{l.label}</button>
+                  );
+                })}
+              </div>
+            )}
+            <button type="button" onClick={() => setShowNotes((s) => !s)} style={btn.ghost}>{showNotes ? 'Hide notes' : 'Show notes'}</button>
+          </div>
         </div>
 
         {showNotes && (
@@ -891,7 +974,26 @@ export default function Presenter({
                 </p>
               </div>
             )}
-            {notes.map((n, i) => <NoteSection key={i} note={n} />)}
+            {noteLayout === 'scroll'
+              ? notes.map((n, i) => <NoteSection key={i} note={n} />)
+              : notes.map((n, i) => {
+                const open = openNote === i;
+                return (
+                  <div key={i} style={{ border: '1px solid #E8E4DC', marginBottom: 8, background: '#fff' }}>
+                    <button type="button" aria-expanded={open} onClick={() => setOpenNote(open ? -1 : i)}
+                      style={{
+                        display: 'flex', width: '100%', gap: 10, alignItems: 'center', justifyContent: 'space-between',
+                        cursor: 'pointer', textAlign: 'left', minHeight: 48, padding: '10px 14px',
+                        border: 'none', background: open ? '#F4F1EA' : '#fff', color: '#1A1815',
+                        fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: '0.9375rem',
+                      }}>
+                      <span>{n.heading || `Note ${i + 1}`}</span>
+                      <span aria-hidden="true" style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem', color: '#5A5751' }}>{open ? '\u2212' : '+'}</span>
+                    </button>
+                    {open && <div style={{ padding: '0 4px' }}><NoteSection note={n} /></div>}
+                  </div>
+                );
+              })}
           </>
         )}
 
