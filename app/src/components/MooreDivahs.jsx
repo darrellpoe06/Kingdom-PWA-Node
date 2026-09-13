@@ -27,6 +27,7 @@ import { fetchShowcase, showcaseImageUrl, sortPieces, addPiece, setPin, removePi
 import { parseBackfillLines, customersCsv, ordersCsv } from '../lib/moore-backfill.js';
 import { QRCodeSVG } from 'qrcode.react';
 import { MOORE_SHARE_URL, MOORE_SHARE_URL_DISPLAY } from '../lib/moore-door.js';
+import { fetchDoorFeedback, setDoorFeedbackStatus, triageOrder, unhandledCount, DOOR_FEEDBACK_AREAS } from '../lib/door-feedback-sync.js';
 
 const fmt$ = (cents) => (cents == null ? '—' : `$${(cents / 100).toFixed(2)}`);
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -564,6 +565,86 @@ function KpiSection({ orders }) {
 }
 
 // ---- Messages — Shay's inbox: every customer thread, one board (0091) -------
+// ---- Reports from the door (DR-0376) ---------------------------------------
+// The READ side of the feedback path. Shipping the submit form without this
+// would be a write-only hole -- the exact "library with zero consumers"
+// failure DR-0371 named. A report nobody can read is not a feedback process.
+//
+// Sterling's order failed for the whole life of the door and the only reason
+// anyone learned of it was a customer doing Shay a favour. This is the screen
+// that replaces the favour.
+function DoorReportsSection() {
+  const [state, setState] = useState({ phase: 'loading', rows: [], error: null });
+  const load = () => fetchDoorFeedback('moore-divahs').then(
+    (r) => setState({ phase: r.ok ? 'ready' : 'error', rows: r.rows, error: r.error || null })
+  );
+  useEffect(() => { load(); }, []);
+  const rows = useMemo(() => triageOrder(state.rows), [state.rows]);
+  const open = unhandledCount(state.rows);
+  const areaLabel = (id) => (DOOR_FEEDBACK_AREAS.find((a) => a.id === id) || {}).label || id;
+  const move = async (id, status) => { await setDoorFeedbackStatus(id, status); load(); };
+
+  return (
+    <div className="mt-8">
+      <h2 className="text-xl font-bold text-[#1A1815]" style={SERIF}>Reports from the door</h2>
+      <p className="text-xs text-[#5A5751]">
+        What customers said was broken on your page. Anyone can send one without an account, so a
+        person who cannot even sign in still reaches you.
+      </p>
+      {state.phase === 'loading' ? null : state.phase === 'error' ? (
+        <div role="alert" className="mt-2 rounded-xl border border-[#B85838] bg-white p-4 text-sm text-[#B85838]">
+          <strong>These could not be loaded.</strong> That is a connection problem on this device —
+          it does <em>not</em> mean nobody reported anything.
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="mt-2 rounded-xl border border-dashed border-[#E8E2D8] p-4 text-center text-sm text-[#5A5751]">
+          Nothing reported yet. When a customer hits something broken, it lands here.
+        </div>
+      ) : (
+        <>
+          <p className="mt-2 text-sm text-[#1A1815]">
+            <strong>{open}</strong> still need you, of {rows.length}.
+          </p>
+          <div className="mt-2 space-y-1.5">
+            {rows.map((r) => (
+              <div key={r.id} className="rounded-xl border border-[#E8E2D8] bg-white p-2.5 text-sm">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-[#5A5751]">
+                  <span className="rounded-full border border-[#E8E2D8] px-2 py-0.5">{areaLabel(r.area)}</span>
+                  <span>{r.created_at ? new Date(r.created_at).toLocaleString() : ''}</span>
+                  {!r.submitted_by && <span className="text-[#5A5751]">· not signed in</span>}
+                  {r.app_version && <span>· build {String(r.app_version).slice(0, 7)}</span>}
+                  {/* Themeable classes, never an inline color: the legibility
+                      gate caught an inline #B85838/#5A5751 here rendering at
+                      3.94:1 and 2.56:1 on the midnight card surface. */}
+                  <span className={`ml-auto rounded-full border px-2 py-0.5 ${r.status === 'new' ? 'border-[#B85838] text-[#B85838]' : 'border-[#E8E2D8] text-[#5A5751]'}`}>
+                    {r.status}
+                  </span>
+                </div>
+                <p className="mt-1.5 whitespace-pre-wrap text-[#1A1815]">{r.body}</p>
+                {r.contact
+                  ? <p className="mt-1 text-xs text-[#1A1815]">Reach them: <strong>{r.contact}</strong></p>
+                  : <p className="mt-1 text-xs text-[#5A5751]">They left no way to reply.</p>}
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {['reading', 'answered', 'closed'].filter((st) => st !== r.status).map((st) => (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => move(r.id, st)}
+                      className="rounded-lg border border-[#E8E2D8] px-2.5 py-1.5 text-xs text-[#5A5751] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B85838] focus-visible:ring-offset-2"
+                    >
+                      Mark {st}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function MessagesSection() {
   const [state, setState] = useState({ phase: 'loading', rows: [] });
   const [openThread, setOpenThread] = useState(null);
@@ -813,6 +894,7 @@ export default function MooreDivahs() {
     },
     { id: 'classes', label: 'Classes', icon: 'calendar', render: () => <ClassesSection /> },
     { id: 'messages', label: 'Messages', icon: 'chat', render: () => <MessagesSection /> },
+    { id: 'reports', label: 'Door reports', icon: 'chat', render: () => <DoorReportsSection /> },
     { id: 'share', label: 'Share the app', icon: 'link', render: () => <ShareAppSection /> },
     { id: 'gallery', label: 'Gallery', icon: 'palette', render: () => <GalleryManager /> },
     { id: 'materials', label: 'Materials', icon: 'tools', render: () => <MaterialsSection /> },

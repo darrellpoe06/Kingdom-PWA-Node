@@ -42,6 +42,7 @@ import { isInAppBrowser, IN_APP_BROWSER_HINT } from '../lib/session-handoff.js';
 import { fetchMessages, sendMessage } from '../lib/business-messages.js';
 import { fetchShowcase, showcaseImageUrl, sortPieces } from '../lib/showcase.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
+import DoorFeedback from './DoorFeedback.jsx';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const fmt$ = (cents) => `$${(cents / 100).toFixed(2)}`;
@@ -745,6 +746,17 @@ export default function MooreDoor({ business = null }) {
           {tab === 'church' && <ChurchTab />}
           {tab === 'poetech' && <PoeTechTab />}
         </main>
+        {/* The way to say "this is broken", on every tab, signed in or not
+            (DR-0376). It sits BELOW the content and above the sibling nav: a
+            safety net, never a call to action competing with her order form.
+            Before this, a customer who hit a dead form -- as Sterling did --
+            had no route at all except telling the owner in person. */}
+        <DoorFeedback
+          doorSlug={BIZ.slug}
+          instanceSlug={BIZ.instanceSlug}
+          brandLabel={BIZ.brand.label}
+          accent={BIZ.brand.accent}
+        />
         {/* Each sibling carries its own blurb (DOOR_TABS) — at the bottom there
             is room to say what a business IS, which a one-word tab never did. */}
         <nav className="mt-10 border-t border-[#E8E2D8] pt-5" aria-label="More from the family">
