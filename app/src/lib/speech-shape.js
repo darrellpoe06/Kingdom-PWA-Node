@@ -41,6 +41,7 @@
 // Initialisms that should stay upper case because they ARE letters to a reader:
 // translation badges and the like. Everything else in caps is prose being
 // shouted by our own house style.
+import { segmentByReferences } from './verse-refs.js';
 const KEEP_CAPS = new Set([
   'ESV', 'KJV', 'NIV', 'AMP', 'NASB', 'NLT', 'CSB', 'LXX',
   'AI', 'PWA', 'SOP', 'USA', 'US', 'OK', 'TV', 'CEO', 'DNA', 'PHD',
@@ -125,6 +126,64 @@ export function unshoutBookNames(text) {
 }
 
 /** The full shaping pass: what we hand the engine instead of the raw page text. */
+// A LONG RUN OF BARE REFERENCES IS A LIST, NOT A SENTENCE — DO NOT READ IT.
+//
+// Darrell 2026-09-13, listening to a lesson's Anchor block: "don't read long
+// list of references together... especially in these.... just when the word or
+// a point is needed."
+//
+// He is right, and the failure is the same CLASS as the chrome the reader used
+// to speak (CONTROLS ARE NOT CONTENT, TTSControl). An anchor line can carry
+// eighty references separated by semicolons. Read aloud one by one that becomes
+// four minutes of "Matthew chapter four verse ten, Isaiah chapter forty-two
+// verse eight, Exodus chapter twenty verse three..." before a single word of
+// teaching arrives, and a listener has no way to skip it. It is an INDEX being
+// performed as prose.
+//
+// A reference inside a sentence is the opposite — it is the point, and it is
+// exactly what he wants spoken ("just when the word or a point is needed"). So
+// the rule is about RUNS, not about references: three or more back to back,
+// separated by nothing but punctuation, are collapsed to one short sentence
+// that says how many and where they are. One or two stay spoken in full,
+// because that is a citation doing work in a line of teaching.
+//
+// The matcher is the shared scanner (verse-refs -> video-harvest findScriptureRefs),
+// so what counts as a reference is still decided in exactly one place.
+const RUN_SEPARATOR = /^[\s;,.·—–-]*$/;
+
+export function collapseReferenceRuns(text, min = 3) {
+  const s = typeof text === 'string' ? text : '';
+  if (!s) return '';
+  const segs = segmentByReferences(s);
+  if (!segs.length) return s;
+  const raw = (seg) => (seg.type === 'ref' ? (seg.raw ?? seg.value) : seg.value);
+  const out = [];
+  let i = 0;
+  while (i < segs.length) {
+    if (segs[i].type !== 'ref') { out.push(raw(segs[i])); i += 1; continue; }
+    // How far does this run go? References, and only punctuation between them.
+    let j = i;
+    let count = 0;
+    while (j < segs.length) {
+      if (segs[j].type === 'ref') { count += 1; j += 1; continue; }
+      const bridgesToAnotherRef = RUN_SEPARATOR.test(segs[j].value)
+        && j + 1 < segs.length && segs[j + 1].type === 'ref';
+      if (bridgesToAnotherRef) { j += 1; continue; }
+      break;
+    }
+    if (count >= min) {
+      // Say how many and where, so a listener knows something is there rather
+      // than wondering what was skipped. Never silently drop content.
+      out.push(`${count} Scripture references are listed on the screen`);
+      i = j;
+    } else {
+      out.push(raw(segs[i]));
+      i += 1;
+    }
+  }
+  return out.join('');
+}
+
 export function shapeForSpeech(text) {
   return plainTypography(softenShouting(text));
 }

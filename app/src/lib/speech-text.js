@@ -22,7 +22,7 @@
 
 // Every numbered book of the canon, plus the abbreviations that show up in
 // citations. Longest-first is not needed — the boundary anchors handle it.
-import { softenShouting, plainTypography, unshoutBookNames } from './speech-shape.js';
+import { softenShouting, plainTypography, unshoutBookNames, collapseReferenceRuns } from './speech-shape.js';
 
 const NUMBERED_BOOKS = [
   'Samuel', 'Sam', 'Kings', 'Kgs', 'Chronicles', 'Chron', 'Chr',
@@ -88,7 +88,14 @@ export function toSpokenForm(text) {
   if (!s) return '';
   // A shouted book name is un-shouted FIRST, or the matchers below never see
   // it (measured: 6 in the corpus, e.g. "HEBREWS 2:14").
-  const withRefs = unshoutBookNames(s)
+  // A LONG RUN OF BARE REFERENCES IS COLLAPSED BEFORE ANY OF THEM IS EXPANDED
+  // (Darrell 2026-09-13: "don't read long list of references together... just
+  // when the word or a point is needed"). Order matters twice over: the book
+  // names are un-shouted first so the scanner can see them, and the runs are
+  // collapsed BEFORE REF_RE turns each survivor into "chapter X verse Y" —
+  // collapsing afterwards would mean expanding eighty references only to throw
+  // the expansion away.
+  const withRefs = collapseReferenceRuns(unshoutBookNames(s))
     .replace(DIGIT_RE, (m, n, book) => `${ORDINAL[n] || n} ${book}`)
     .replace(ROMAN_RE, (m, roman, book) => `${ORDINAL[ROMAN[roman]] || roman} ${book}`)
     .replace(REF_RE, (m, book, chapter, verse, verseEnd) => {
