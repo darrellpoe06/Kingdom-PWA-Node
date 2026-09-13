@@ -22,6 +22,8 @@
 
 // Every numbered book of the canon, plus the abbreviations that show up in
 // citations. Longest-first is not needed — the boundary anchors handle it.
+import { softenShouting, plainTypography, unshoutBookNames } from './speech-shape.js';
+
 const NUMBERED_BOOKS = [
   'Samuel', 'Sam', 'Kings', 'Kgs', 'Chronicles', 'Chron', 'Chr',
   'Corinthians', 'Corinth', 'Cor', 'Thessalonians', 'Thess', 'Thes',
@@ -84,7 +86,9 @@ export function toSpokenForm(text) {
   if (text == null) return '';
   const s = String(text);
   if (!s) return '';
-  return s
+  // A shouted book name is un-shouted FIRST, or the matchers below never see
+  // it (measured: 6 in the corpus, e.g. "HEBREWS 2:14").
+  const withRefs = unshoutBookNames(s)
     .replace(DIGIT_RE, (m, n, book) => `${ORDINAL[n] || n} ${book}`)
     .replace(ROMAN_RE, (m, roman, book) => `${ORDINAL[ROMAN[roman]] || roman} ${book}`)
     .replace(REF_RE, (m, book, chapter, verse, verseEnd) => {
@@ -93,6 +97,22 @@ export function toSpokenForm(text) {
       const head = /^Ps/i.test(book) ? `${book} ${chapter}` : `${book} chapter ${chapter}`;
       return verseEnd ? `${head} verses ${verse} through ${verseEnd}` : `${head} verse ${verse}`;
     });
+
+  // SHOUTING AND TYPOGRAPHY, run AFTER the references (DR-0381).
+  //
+  // Order is load-bearing: the reference patterns above look for a capitalised
+  // book name, so lowering the shouting first would turn "1 JOHN 1:8" into
+  // "1 john 1:8" and it would never be recognised as a reference at all.
+  //
+  // Why this is here: the house style writes lead clauses in capitals — 313 of
+  // them across the corpus, measured, not guessed. Engines treat an ALL-CAPS
+  // run inconsistently and several spell it letter by letter, so "THE
+  // DIRECTIVE." is read "T-H-E D-I-R-E-C-T-I-V-E". That is a TEXT fault, and no
+  // amount of better synthesis fixes it. The SCREEN keeps its capitals; only
+  // the utterance is lowered. Em-dashes, curly quotes and ellipses are
+  // flattened for the same reason — the engine either names them or lets them
+  // flatten the prosody.
+  return plainTypography(softenShouting(withRefs));
 }
 
 export default toSpokenForm;
