@@ -55,7 +55,9 @@ import {
 import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-algorithms-course.js';
 import { buildLessonArc, sessionMinutesFromFlow, readAloudTextFromArc } from '../lib/lesson-flow.js';
-import { formatLessonText } from '../lib/lesson-format.js';
+import { formatLessonText, lessonPoints } from '../lib/lesson-format.js';
+import { walkState, stepParagraph, stepPoint } from '../lib/lesson-walk.js';
+import { useOpenWithTheWord } from '../lib/show-the-word.js';
 import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
 import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload, courseSharePayload, sectionSharePayload } from '../lib/lesson-links.js';
 import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture-matrix.js';
@@ -445,6 +447,136 @@ function SopLibrary({ sequences, pipeline }) {
 // (FIRST/SECOND..., I./II., SOIL n) by lib/lesson-format.js — not one word is
 // altered, so the verse-pin gates hold untouched. Lessons without markers
 // still gain sentence-grouped breathing room.
+// -----------------------------------------------------------------------------
+// LessonPoints — THE SPEAKER'S INDEX, and the reason it exists.
+//
+// Darrell 2026-09-13, from behind a pulpit rather than behind a screen: "we
+// need the speaker to be able to keep their place while looking away from the
+// text to look people in their eyes... we also want the number of points to be
+// known and for them to be available in a list somehow."
+//
+// A preacher glancing down for half a second cannot re-read a paragraph to find
+// where they were. They need three things in that half second: HOW MANY points
+// there are, WHICH one they are on, and a target big enough to hit without
+// looking. So the count is stated in words, every point is one row carrying its
+// own number badge, and the current one is marked.
+//
+// A lesson with no points says so plainly rather than showing an empty list:
+// 60 of the 144 lessons are flowing narrative whose author wrote no point
+// structure, and inventing an outline for those would be fabricating one.
+export function LessonPoints({ text, activeIndex = -1, onJump = null }) {
+  const points = useMemo(() => lessonPoints(text), [text]);
+  // FOLLOWS THE HOUSE SWITCH rather than carrying its own state. The fold gate
+  // caught a local useState here and was right to: "Open with the Word" is how
+  // a reader says show me everything, and a speaker who flips it wants the
+  // outline open too. A tap still flips this one fold on top of the switch.
+  const [open, setOpen] = useOpenWithTheWord();
+  if (!points.length) {
+    return (
+      <p className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">
+        One continuous reading — no numbered points in this lesson.
+      </p>
+    );
+  }
+  return (
+    <div className="mb-2 border border-[#1A1815] bg-[#FAF8F4]">
+      <button
+        type="button"
+        onClick={setOpen}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-2 px-2 py-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5A6E3D] focus-visible:ring-offset-2"
+      >
+        <span className="text-[0.6875rem] uppercase tracking-wider font-semibold text-[#1A1815]">
+          {points.length} {points.length === 1 ? 'point' : 'points'} in this lesson
+        </span>
+        <span aria-hidden="true" className="text-[0.6875rem] text-[#5A5751]">{open ? '\u25B4 hide' : '\u25BE show'}</span>
+      </button>
+      {open && (
+        <ol className="border-t border-[#E8E4DC] px-2 py-1.5 space-y-1">
+          {points.map((pt) => {
+            const here = activeIndex >= 0 && pt.itemIndex === activeIndex;
+            return (
+              <li key={pt.n}>
+                <button
+                  type="button"
+                  onClick={onJump ? () => onJump(pt.itemIndex) : undefined}
+                  aria-current={here ? 'true' : undefined}
+                  className={`flex w-full items-start gap-2 py-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5A6E3D] focus-visible:ring-offset-2 ${here ? 'font-semibold text-[#1A1815]' : 'text-[#5A5751]'}`}
+                >
+                  <span aria-hidden="true" className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 border border-[#1A1815] bg-[#1A1815] text-white text-[0.625rem] font-bold">{pt.n}</span>
+                  <span className="text-xs leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>{pt.label}</span>
+                  {here && <span className="ml-auto text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D]">here</span>}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </div>
+  );
+}
+
+// LessonReader — the prose PLUS the speaker's controls (DR-0380).
+//
+// Wraps LessonProse with the two strides Darrell asked for and a live "point 3
+// of 7" read-out. The arrows are deliberately large and always in the same
+// place: a speaker reaching for them is not looking at them.
+export function LessonReader({ text, className = 'text-xs text-[#1A1815]' }) {
+  const { items } = useMemo(() => formatLessonText(text), [text]);
+  const [at, setAt] = useState(0);
+  const boxRef = useRef(null);
+
+  const go = (i) => {
+    setAt(i);
+    const el = boxRef.current && boxRef.current.querySelector(`[data-point-index="${i}"], [data-para-index="${i}"]`);
+    if (el) {
+      try { el.scrollIntoView({ behavior: motionBehavior ? motionBehavior() : 'smooth', block: 'start' }); } catch { /* no-op */ }
+      try { el.focus({ preventScroll: true }); } catch { /* not focusable, fine */ }
+    }
+  };
+
+  if (!items.length) return null;
+  const st = walkState(items, at);
+
+  return (
+    <div>
+      <LessonPoints text={text} activeIndex={st.point ? st.point.itemIndex : -1} onJump={go} />
+      <div ref={boxRef}><LessonProse text={text} className={className} /></div>
+      {items.length > 1 && (
+        <div className="sticky bottom-0 mt-2 flex items-center gap-1.5 border-t border-[#E8E4DC] bg-[#FAF8F4] py-2">
+          <button
+            type="button" disabled={!st.canBack} onClick={() => go(stepParagraph(items, at, -1))}
+            aria-label="Back one paragraph"
+            className="min-h-[44px] flex-1 border border-[#1A1815] px-2 text-[0.6875rem] font-semibold text-[#1A1815] disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5A6E3D] focus-visible:ring-offset-2"
+          >&#9664; Paragraph</button>
+          {st.hasPoints && (
+            <button
+              type="button" onClick={() => go(stepPoint(items, at, -1))}
+              aria-label="Back one point"
+              className="min-h-[44px] flex-1 border border-[#1A1815] px-2 text-[0.6875rem] font-semibold text-[#1A1815] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5A6E3D] focus-visible:ring-offset-2"
+            >&#9664;&#9664; Point</button>
+          )}
+          <span aria-live="polite" className="px-1 text-center text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+            {st.point ? `Point ${st.point.ordinal} of ${st.point.total}` : 'Opening'}
+          </span>
+          {st.hasPoints && (
+            <button
+              type="button" onClick={() => go(stepPoint(items, at, 1))}
+              aria-label="Forward one point"
+              className="min-h-[44px] flex-1 border border-[#1A1815] px-2 text-[0.6875rem] font-semibold text-[#1A1815] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5A6E3D] focus-visible:ring-offset-2"
+            >Point &#9654;&#9654;</button>
+          )}
+          <button
+            type="button" disabled={!st.canForward} onClick={() => go(stepParagraph(items, at, 1))}
+            aria-label="Forward one paragraph"
+            className="min-h-[44px] flex-1 border border-[#1A1815] px-2 text-[0.6875rem] font-semibold text-[#1A1815] disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5A6E3D] focus-visible:ring-offset-2"
+          >Paragraph &#9654;</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function LessonProse({ text, className = 'text-xs text-[#1A1815]' }) {
   const { items } = formatLessonText(text);
   if (!items.length) return null;
@@ -452,12 +584,22 @@ export function LessonProse({ text, className = 'text-xs text-[#1A1815]' }) {
     <div className={className} style={{ fontFamily: '"Fraunces", serif' }}>
       {items.map((it, i) => (
         it.kind === 'heading' ? (
-          <p key={i} className={`font-semibold ${i === 0 ? '' : 'mt-3'}`}>
+          // data-point-index is the jump target the speaker's index scrolls to,
+          // and the paragraph stepper's landmark. tabIndex -1 so a jump can move
+          // FOCUS there too, not just the scroll position — a speaker using a
+          // switch or a keyboard needs the caret to follow their eyes.
+          <p
+            key={i}
+            data-point-index={i}
+            data-point-n={it.n}
+            tabIndex={-1}
+            className={`font-semibold ${i === 0 ? '' : 'mt-3'} scroll-mt-24`}
+          >
             <span aria-hidden="true" className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 mr-1.5 border border-[#1A1815] bg-[#1A1815] text-white text-[0.625rem] font-bold align-middle">{it.n}</span>
             {it.text}
           </p>
         ) : (
-          <p key={i} className="mt-1.5">{it.text}</p>
+          <p key={i} data-para-index={i} className="mt-1.5 scroll-mt-24">{it.text}</p>
         )
       ))}
     </div>

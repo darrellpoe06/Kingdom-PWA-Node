@@ -72,7 +72,12 @@ describe('the surfaces are wired — screen and share carry the same structure',
     const src = readFileSync(join(HERE, '..', 'components', 'ChurchLearn.jsx'), 'utf8');
     expect(src).toMatch(/export function LessonProse/);
     expect((src.match(/<LessonProse text=\{/g) || []).length).toBeGreaterThanOrEqual(3);
-    expect(src).toMatch(/import \{ formatLessonText \} from '\.\.\/lib\/lesson-format\.js'/);
+    // The assertion is that ChurchLearn gets its structure FROM the formatter,
+    // not that the import line has one name on it. It was pinned to the exact
+    // single-name spelling and broke the moment the speaker's index (DR-0380)
+    // imported lessonPoints alongside it -- a false failure about punctuation
+    // rather than about wiring. Now it checks the real property.
+    expect(src).toMatch(/import \{[^}]*\bformatLessonText\b[^}]*\} from '\.\.\/lib\/lesson-format\.js'/);
   });
   it('the copy/share block runs both bigIdea and body through lessonShareText', () => {
     const src = readFileSync(join(HERE, '..', 'lib', 'lesson-links.js'), 'utf8');
