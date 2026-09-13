@@ -43,6 +43,7 @@ import { fetchMessages, sendMessage } from '../lib/business-messages.js';
 import { fetchShowcase, showcaseImageUrl, sortPieces } from '../lib/showcase.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import DoorFeedback from './DoorFeedback.jsx';
+import { reportDoorFault, faultSentence } from '../lib/door-feedback-sync.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const fmt$ = (cents) => `$${(cents / 100).toFixed(2)}`;
@@ -74,6 +75,15 @@ function ContactCaptureForm({ pipeline, instanceSlug, promptLabel, notePlacehold
     // reach her -- and the raw reason goes to the console for whoever reads a
     // screenshot, the same posture lib/auth-error-message.js takes.
     console.warn('[capture] inquiry not sent:', pipeline, res && res.error);
+    // THE DOOR REPORTS ITSELF (0217). A console line on the customer's own
+    // phone is what let Sterling's order vanish for months. This files the
+    // fault into the book the office already reads, whether or not he then
+    // chooses to type anything -- and it is awaited only for its own sake:
+    // the customer's error state below does not depend on it.
+    reportDoorFault(BIZ.slug, BIZ.instanceSlug, {
+      area: 'order',
+      body: faultSentence(`The ${promptLabel.toLowerCase()} form`, res && res.error && res.error.message),
+    });
     setState('error');
   };
   if (state === 'ok') {

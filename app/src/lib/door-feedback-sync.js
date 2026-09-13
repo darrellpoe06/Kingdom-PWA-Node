@@ -66,6 +66,55 @@ export async function submitDoorFeedback(doorSlug, instanceSlug, { area, body, c
   return { ok: true, id: data };
 }
 
+// ---------------------------------------------------------------------------
+// The door reporting ITSELF (0217 / DR-0377).
+// ---------------------------------------------------------------------------
+// 0216 gave the customer a voice. This is the half that does not wait for one.
+// Sterling's order was refused every time and the client's whole response was a
+// console.warn on his own phone -- seen by nobody, kept by nothing. Most people
+// who hit a dead form just leave, so a form alone still means the office finds
+// out by luck.
+//
+// Deliberately NEVER throws and never surfaces: a fault report failing must not
+// turn one broken thing into two in front of a customer who is already stuck.
+export async function reportDoorFault(doorSlug, instanceSlug, { area, body } = {}) {
+  const text = String(body || '').trim();
+  if (!doorSlug || !instanceSlug || !text) return { ok: false, error: { message: 'incomplete' } };
+  try {
+    const { data, error } = await supabase.rpc('door_fault_report', {
+      p_door_slug: doorSlug,
+      p_instance_slug: instanceSlug,
+      p_payload: { area: isValidArea(area) ? area : 'other', body: text, appVersion: buildVersion() },
+    });
+    if (error) { console.warn('[door-fault] not filed:', error); return { ok: false, error }; }
+    return { ok: true, id: data };
+  } catch (e) {
+    console.warn('[door-fault] not filed:', e);
+    return { ok: false, error: e };
+  }
+}
+
+// What the office is actually told. The raw error is NOT pasted in: a customer
+// -supplied string reaching a steward's screen verbatim is an injection surface
+// and a Postgres error is noise to her anyway. A short, stable, human sentence
+// plus the machine detail, in that order.
+export function faultSentence(what, detail) {
+  const head = `${what} is failing for customers.`;
+  const tail = String(detail || '').trim().slice(0, 300);
+  return tail ? `${head} The app reported: ${tail}` : head;
+}
+
+// Pure. System faults the office has not handled, loudest (most recent, then
+// most frequent) first -- the board's "what is broken NOW" question.
+export function openFaults(rows = []) {
+  return (rows || [])
+    .filter((r) => r && r.source === 'system' && (r.status === 'new' || r.status === 'reading'))
+    .sort((a, b) => {
+      const t = String(b.last_seen_at || '').localeCompare(String(a.last_seen_at || ''));
+      return t !== 0 ? t : (b.occurrences || 1) - (a.occurrences || 1);
+    });
+}
+
 // The office side. RLS is the real gate (owner/admin of THAT instance); this
 // read carries no role check of its own, because a client-side one would be
 // decoration and a second place to drift.
@@ -75,7 +124,7 @@ export async function fetchDoorFeedback(instanceSlug, { limit = 100 } = {}) {
   if (instErr || !inst) return { ok: false, rows: [], error: instErr || { message: 'unknown instance' } };
   const { data, error } = await supabase
     .from('door_feedback')
-    .select('id, door_slug, area, body, contact, submitted_by, app_version, status, office_note, created_at')
+    .select('id, door_slug, area, body, contact, submitted_by, app_version, status, office_note, created_at, source, occurrences, last_seen_at')
     .eq('instance_id', inst.id)
     .order('created_at', { ascending: false })
     .limit(limit);
