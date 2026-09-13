@@ -1,4 +1,4 @@
-# DR-0374 — The family rent roll syncs before the ledger verify, and an unlinked edit self-heals
+# DR-0379 — The family rent roll syncs before the ledger verify, and an unlinked edit self-heals
 
 **Date:** 2026-09-13 · **Status:** accepted · **Tier:** B · **Area:** system · **Principles:** REALITY-TRACE, VERIFICATION-DOCTRINE, APP-IS-PRIMARY, PERPETUAL-IMPROVEMENT, DECISION-RECORDS
 

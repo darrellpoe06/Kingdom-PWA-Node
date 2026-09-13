@@ -3082,7 +3082,7 @@ export default function PoeFinancialSystem() {
     // addRental) get distinct ids instead of colliding into one door.
     const seeded = { ...item, id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}` };
     setData(d => ({ ...d, inflows: { ...d.inflows, rentals: [...(d.inflows.rentals || []), seeded] } }));
-    // Rentals sync is NOT gated on numericSyncVerifiedAt (DR-0374) — the family
+    // Rentals sync is NOT gated on numericSyncVerifiedAt (DR-0379) — the family
     // rent roll syncs for a signed-in member even before the ledger verify.
     if (authSession && !isAnyDemoMode && !reviewerMode) {
       // Stamp remoteUuid as soon as the insert lands — without it, an edit or
@@ -3099,7 +3099,7 @@ export default function PoeFinancialSystem() {
     setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === id ? { ...r, ...updates } : r) } }));
     if (authSession && !isAnyDemoMode && !reviewerMode) {
       const local = (data.inflows.rentals || []).find(r => r.id === id);
-      // updateRow when linked, self-heal upsert-by-slug when not (DR-0374); the
+      // updateRow when linked, self-heal upsert-by-slug when not (DR-0379); the
       // routing + heal lives in rental-write.js, not this budget-frozen file.
       syncRentalEdit(rentalsSync, { local, updates, warn: syncWarn,
         onLink: (remoteId) => setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === id ? { ...r, remoteUuid: remoteId } : r) } })) });

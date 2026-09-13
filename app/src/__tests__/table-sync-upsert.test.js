@@ -2,7 +2,7 @@
 // table-sync-upsert — a write to a row that MAY already exist heals by slug,
 // it does not blindly INSERT a duplicate.
 // =============================================================================
-// The trapped-edits bug (Christina, 2026-09; DR-0374): a family member whose
+// The trapped-edits bug (Christina, 2026-09; DR-0379): a family member whose
 // device never linked its rental rows to the cloud had every property edit
 // silently dropped — updateRental required a pre-existing remoteUuid and skipped
 // otherwise. upsert() is the self-heal: resolve the existing row by the

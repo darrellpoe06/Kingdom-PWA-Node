@@ -1,6 +1,6 @@
 // @vitest-environment node
 // rental-write-selfheal — an edit routes to updateRow when linked, and SELF-HEALS
-// by upsert when the local row never linked to the cloud (DR-0374).
+// by upsert when the local row never linked to the cloud (DR-0379).
 // =============================================================================
 // The trapped-edits bug (Christina, 2026-09): a family member whose device never
 // completed the balance-verify gate had every property edit silently dropped —

@@ -200,7 +200,7 @@ export function localPatchToCloud(updates = {}) {
 // -----------------------------------------------------------------------------
 // syncRentalEdit — route a rental edit to the cloud, healing a missing link.
 //
-// DR-0374: an edit whose LOCAL row never linked to the cloud (its device never
+// DR-0379: an edit whose LOCAL row never linked to the cloud (its device never
 // completed the balance-verify gate that used to block all rentals sync, or the
 // link was lost) was SILENTLY dropped — updateRental required a remoteUuid and
 // skipped otherwise. So a family member's property/tenant/rent edits never left
