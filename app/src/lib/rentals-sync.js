@@ -68,6 +68,10 @@ export function fromRemoteStatus(s) {
 export const rentalsSync = createTableSync({
   localKey: 'rentals',
   remoteTable: 'rentals',
+  // The live table's UNIQUE (instance_id, slug) index (partial: WHERE slug IS
+  // NOT NULL). Lets upsert() heal an edit to a door whose local row never linked
+  // to the cloud — resolve by slug and UPDATE, instead of silently skipping.
+  conflictKey: 'instance_id,slug',
 
   toRow(item, { tenantId, userId }) {
     return {

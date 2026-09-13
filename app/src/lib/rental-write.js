@@ -196,3 +196,33 @@ export function localPatchToCloud(updates = {}) {
   if (u.notes !== undefined)          patch.notes = u.notes;
   return patch;
 }
+
+// -----------------------------------------------------------------------------
+// syncRentalEdit — route a rental edit to the cloud, healing a missing link.
+//
+// DR-0374: an edit whose LOCAL row never linked to the cloud (its device never
+// completed the balance-verify gate that used to block all rentals sync, or the
+// link was lost) was SILENTLY dropped — updateRental required a remoteUuid and
+// skipped otherwise. So a family member's property/tenant/rent edits never left
+// their device (Christina, 2026-09; the cloud rent roll frozen since Aug 7).
+//
+// Here: a linked row UPDATEs by uuid (patch only); an unlinked one UPSERTs by
+// (instance_id, slug) so the edit lands and the row links for next time. A pure
+// device-local edit (rooms/logs/sub-objects → empty patch) makes no network
+// call. Injectable sync + callbacks so a test drives every branch (DR-0076 §3).
+// This lives in the module, not the budget-frozen monolith (DR-0078).
+// -----------------------------------------------------------------------------
+export function syncRentalEdit(rentalsSync, { local, updates = {}, onLink, warn = () => {} } = {}) {
+  if (!rentalsSync || !local) return { skipped: 'no-target' };
+  const patch = localPatchToCloud(updates);
+  if (isEmptyPatch(patch)) return { skipped: 'device-local-only' };
+  if (local.remoteUuid) {
+    Promise.resolve(rentalsSync.updateRow(local.remoteUuid, patch))
+      .catch((e) => warn('[rentals-sync] update failed', e));
+    return { routed: 'update' };
+  }
+  Promise.resolve(rentalsSync.upsert({ ...local, ...updates }))
+    .then((res) => { if (res && res.remoteId && typeof onLink === 'function') onLink(res.remoteId); })
+    .catch((e) => warn('[rentals-sync] self-heal upsert failed', e));
+  return { routed: 'upsert' };
+}

@@ -94,7 +94,7 @@ import { inquiriesSync } from './lib/inquiries-sync.js';
 import { practiceLeadsSync, mergeRemoteLeads, LEAD_COLUMN_OF } from './lib/practice-leads-sync.js';
 import { rentalsSync, mergeRemoteRentals } from './lib/rentals-sync.js';
 import { useRentalBridge } from './lib/use-rental-bridge.js';
-import { localPatchToCloud } from './lib/rental-write.js';
+import { syncRentalEdit } from './lib/rental-write.js';
 import { incidentsSync, incidentColumns } from './lib/incidents-sync.js';
 import { inventoryItemsSync, mergeRemoteInventoryItems, INVENTORY_ITEM_COLUMN_OF } from './lib/inventory-items-sync.js';
 import { inventoryMovementsSync, mergeRemoteMovements } from './lib/inventory-movements-sync.js';
@@ -3082,7 +3082,9 @@ export default function PoeFinancialSystem() {
     // addRental) get distinct ids instead of colliding into one door.
     const seeded = { ...item, id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}` };
     setData(d => ({ ...d, inflows: { ...d.inflows, rentals: [...(d.inflows.rentals || []), seeded] } }));
-    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+    // Rentals sync is NOT gated on numericSyncVerifiedAt (DR-0374) — the family
+    // rent roll syncs for a signed-in member even before the ledger verify.
+    if (authSession && !isAnyDemoMode && !reviewerMode) {
       // Stamp remoteUuid as soon as the insert lands — without it, an edit or
       // delete in the window before the next realtime refresh can't reach the
       // remote row (a delete would even resurrect on the next merge).
@@ -3095,16 +3097,12 @@ export default function PoeFinancialSystem() {
   };
   const updateRental = (id, updates) => {
     setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === id ? { ...r, ...updates } : r) } }));
-    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+    if (authSession && !isAnyDemoMode && !reviewerMode) {
       const local = (data.inflows.rentals || []).find(r => r.id === id);
-      if (local && local.remoteUuid) {
-        const patch = localPatchToCloud(updates);
-        // Device-local edits (rooms, equipment, logs, lease/tenant/market
-        // sub-objects) produce an empty patch — skip the network round-trip.
-        if (Object.keys(patch).length) {
-          rentalsSync.updateRow(local.remoteUuid, patch).catch(e => syncWarn('[rentals-sync] update failed', e));
-        }
-      }
+      // updateRow when linked, self-heal upsert-by-slug when not (DR-0374); the
+      // routing + heal lives in rental-write.js, not this budget-frozen file.
+      syncRentalEdit(rentalsSync, { local, updates, warn: syncWarn,
+        onLink: (remoteId) => setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === id ? { ...r, remoteUuid: remoteId } : r) } })) });
     }
   };
   // The Properties tab writes the Postgres row; this list is the device's own
@@ -3114,7 +3112,7 @@ export default function PoeFinancialSystem() {
   useRentalBridge(setData);
 
   const deleteRental = (id) => {
-    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+    if (authSession && !isAnyDemoMode && !reviewerMode) {
       const local = (data.inflows.rentals || []).find(r => r.id === id);
       if (local && local.remoteUuid) {
         rentalsSync.deleteRow(local.remoteUuid).catch(e => syncWarn('[rentals-sync] delete failed', e));
