@@ -54,7 +54,26 @@ The seam is anon-callable, so anyone who can reach the door can file a row claim
 
 ## Not done / open
 
-- **0217 has not executed.** It runs on merge; afterwards `door_fault_report` is read back on **both** databases comparing `md5(prosrc)` with the DR-0375 instrument, not trusted from an exit code.
+## Executed and witnessed, after merge
+
+Merged as `d591bc2b`. Read back on **both** databases per DR-0374's correction:
+
+| Property | Method | Result |
+|---|---|---|
+| `door_fault_report` on **hosted** | Direct `pg_proc` query | `md5` `f8f4382d4f2bf37200d6aa065758b654` |
+| `door_fault_report` on **sovereign** (live) | `sovereign-read` run 34743949911 | `md5` **`f8f4382d4f2bf37200d6aa065758b654` — identical** |
+| **`door_feedback_submit`** on **both** | Both methods | `md5` **`63cf89507ec6cc0bf35253e461198c3c` — byte-for-byte what it was BEFORE 0217 existed** |
+| anon can call `door_fault_report` | `has_function_privilege` | true — a fault can be filed from the browser where it happened |
+| anon reads / writes the table | `has_table_privilege` | **false / false**, unchanged by the `ALTER` |
+| New columns + `source` CHECK | `information_schema` / `pg_constraint` | `source`, `occurrences`, `last_seen_at`; constraint present |
+| Policies after the `ALTER` | `pg_policies` | still **8** — office + both overlays intact |
+| `---MISSING---` / ledger | `sovereign-read` | `none` / `sovereign_replay=223` |
+
+**Decision 4 is now measured rather than asserted.** The claim was that a *separate function* leaves the customer path "not touched, re-tested, or put at risk." `door_feedback_submit`'s md5 is identical on both databases to what it was before this migration existed — so that is a fact, not a design intention.
+
+**The `ALTER TABLE` regression risk was the specific thing worth checking rather than assuming**, and it held: the office policy and both standing overlays survived it.
+
+## Not done / open
 - **Only the Moore Divahs order form reports itself so far.** The other RPC seams that same door depends on (classes, messages, showcase) still fail quietly. The pattern is now one function call, so widening it is small — but it is not done, and claiming the door is instrumented would overstate it. **re-review: 2026-09-27.**
 - **Still nothing reaches the office while they are away from the board.** This makes a fault *findable*, not *pushed*. Whether it should page anyone is the decision point 6 defers.
 - **No live fault has been observed end to end.** The sandbox has no route to poetech.us (P31); a real refused capture landing as a real system row is the confirmation. **re-review: 2026-09-20**, with DR-0376's live pass.
