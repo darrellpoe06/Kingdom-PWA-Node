@@ -33,6 +33,30 @@ const MARKER_RES = [
   { re: /^SOIL\s+(\d+)\b/, num: (m) => Number(m[1]) },
 ];
 
+// THE HOUSE STYLE IS ITSELF A MARKER (Darrell 2026-09-13, from the pulpit's
+// point of view: "All lessons need to be using these highlighted numbers for
+// the points in the lessons... we need the speaker to be able to keep their
+// place while looking away from the text to look people in their eyes").
+//
+// MEASURED BEFORE BUILDING, not assumed: of 144 lessons only 31 carried any
+// numbered point at all -- 113 had none, because the explicit markers above
+// (FIRST/SECOND, I./II., SOIL n) are used by a minority of authors. A tally of
+// how sentences actually START across the corpus found the real convention:
+// 313 ALL-CAPS LEAD CLAUSES ("THE DIRECTIVE.", "SO THE PRACTICAL ANSWER:",
+// "AND IT ANSWERS WHY PEOPLE QUESTION HIM AT ALL."). That is where the points
+// live, and it was going unnumbered.
+//
+// So a capitalised lead clause is a point. Deliberately narrow:
+//   * at least two words, so "I AM" or a shouted single word is not a point;
+//   * letters/space/apostrophe/hyphen/comma only, so a verse reference or a
+//     figure cannot start one;
+//   * closed by . : — or , so it is a LEAD-IN to prose, not a whole shouted
+//     sentence;
+//   * 70 chars max, because a long shout is a sentence, not a heading.
+// Not one character is altered -- the clause is the author's own words and the
+// number is rendered beside it (pinned by the reconstruction test).
+const CAPS_LEAD = /^([A-Z][A-Z'’\- ]{4,68}?)([.:,—])\s/;
+
 const MAX_LINE = 260; // chars per breath line — one or two sentences, phone-comfortable
 
 // Split normalized text into sentences WITHOUT losing a character: cut after
@@ -90,6 +114,17 @@ function markerAt(sentence) {
   return null;
 }
 
+// Does this sentence open with a capitalised lead clause? Must contain a real
+// lower-case remainder, so a sentence that is ENTIRELY upper case (a shouted
+// line, not a heading over prose) is left as ordinary text.
+function capsLeadAt(sentence) {
+  const m = CAPS_LEAD.exec(sentence);
+  if (!m) return false;
+  if (!/[a-z]/.test(sentence.slice(m[0].length))) return false;   // all-caps sentence
+  if (!/[A-Z]{2,}\s+[A-Z]/.test(m[1])) return false;              // needs 2+ caps words
+  return true;
+}
+
 /**
  * formatLessonText(text) -> { items, sectionCount }
  * items: [{ kind: 'heading', n, text } | { kind: 'line', text }]
@@ -104,12 +139,30 @@ export function formatLessonText(text) {
   let buf = '';
   const flush = () => { if (buf) { items.push({ kind: 'line', text: buf }); buf = ''; } };
   let sectionCount = 0;
-  for (const sent of sentences(clean)) {
+
+  // EXPLICIT MARKERS WIN OUTRIGHT. Where the author numbered their own points
+  // (FIRST/SECOND, I./II., SOIL n) those numbers are theirs and the caps-lead
+  // pass is switched off entirely -- otherwise a lesson would count 1,2,3 from
+  // its shouted lead-ins and then hit "FIRST" and restart at 1. This also means
+  // the 31 lessons that already carried numbers render byte-identically to
+  // before; only the 113 that had none gain any.
+  const sents = sentences(clean);
+  const hasExplicit = sents.some((x) => markerAt(x));
+  let auto = 0;
+
+  for (const sent of sents) {
     const mark = markerAt(sent);
     if (mark) {
       flush();
       sectionCount += 1;
       items.push({ kind: 'heading', n: mark.n, text: sent });
+      continue;
+    }
+    if (!hasExplicit && capsLeadAt(sent)) {
+      flush();
+      auto += 1;
+      sectionCount += 1;
+      items.push({ kind: 'heading', n: auto, text: sent });
       continue;
     }
     for (const s of splitLong(sent, 320)) {
@@ -140,4 +193,56 @@ export function lessonShareText(text) {
     }
   }
   return rows.join('\n');
+}
+
+/**
+ * lessonPoints(text) -> [{ n, text, label, itemIndex }]
+ *
+ * THE SPEAKER'S INDEX (Darrell 2026-09-13: "we also want the number of points
+ * to be known and for them to be available in a list somehow").
+ *
+ * A preacher standing in front of people cannot scan a wall of prose to find
+ * where they were. They need to know there are seven points, see the seven,
+ * and land on one. This returns exactly that, derived from the same headings
+ * the renderer numbers -- so the list and the body can never disagree.
+ *
+ * `label` is the short form for a chip or a row: the lead clause up to its
+ * first terminator, never the whole paragraph. Words are not altered; the
+ * label is a PREFIX of the author's own sentence, cut at a punctuation mark.
+ * `itemIndex` is the position in formatLessonText().items, which is what a
+ * jump target uses.
+ */
+export function lessonPoints(text) {
+  const { items } = formatLessonText(text);
+  const out = [];
+  items.forEach((it, itemIndex) => {
+    if (it.kind !== 'heading') return;
+    // A LABEL MUST CARRY THE POINT, NOT THE MARKER. Cutting at the first
+    // terminator gave "FIRST", "SECOND", "THIRD" -- which tells a speaker
+    // scanning the list absolutely nothing. So the author's marker token is
+    // stepped over first and the label is taken from what follows it, which is
+    // where the author actually named the point ("FIRST, the trouble lab: ..."
+    // -> "the trouble lab"). Still a prefix of their own words, still uncut
+    // mid-word.
+    const body = it.text.replace(
+      /^(?:(?:FIRST|SECOND|THIRD|FOURTH|FIFTH|SIXTH|SEVENTH|EIGHTH|NINTH|TENTH)\b[,—:]?|(?:I{1,3}|IV|V|VI{0,3}|IX|X)\.|SOIL\s+\d+\b[,—:]?)\s*/,
+      '',
+    );
+    const cut = /^(.{4,80}?)([.:,—])(\s|$)/.exec(body);
+    const label = ((cut ? cut[1] : body.slice(0, 80)).replace(/^[\s—–\-:,]+/, '').trim())
+      || it.text.slice(0, 80).trim();
+    out.push({ n: it.n, text: it.text, label, itemIndex });
+  });
+  return out;
+}
+
+/**
+ * lessonPointCount(text) — how many points this lesson makes. Zero is a real
+ * and honest answer: 60 of the 144 lessons are flowing narrative with no point
+ * structure their author wrote, and inventing numbers for those would be
+ * fabricating an outline rather than showing one (DR-0076). A surface that
+ * gets 0 should say the lesson runs as one continuous reading, not pretend.
+ */
+export function lessonPointCount(text) {
+  return lessonPoints(text).length;
 }
