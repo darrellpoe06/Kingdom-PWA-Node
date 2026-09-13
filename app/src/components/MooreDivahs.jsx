@@ -27,7 +27,7 @@ import { fetchShowcase, showcaseImageUrl, sortPieces, addPiece, setPin, removePi
 import { parseBackfillLines, customersCsv, ordersCsv } from '../lib/moore-backfill.js';
 import { QRCodeSVG } from 'qrcode.react';
 import { MOORE_SHARE_URL, MOORE_SHARE_URL_DISPLAY } from '../lib/moore-door.js';
-import { fetchDoorFeedback, setDoorFeedbackStatus, triageOrder, unhandledCount, DOOR_FEEDBACK_AREAS } from '../lib/door-feedback-sync.js';
+import { fetchDoorFeedback, setDoorFeedbackStatus, triageOrder, unhandledCount, openFaults, DOOR_FEEDBACK_AREAS } from '../lib/door-feedback-sync.js';
 
 const fmt$ = (cents) => (cents == null ? '—' : `$${(cents / 100).toFixed(2)}`);
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -580,6 +580,7 @@ function DoorReportsSection() {
   );
   useEffect(() => { load(); }, []);
   const rows = useMemo(() => triageOrder(state.rows), [state.rows]);
+  const faults = useMemo(() => openFaults(state.rows), [state.rows]);
   const open = unhandledCount(state.rows);
   const areaLabel = (id) => (DOOR_FEEDBACK_AREAS.find((a) => a.id === id) || {}).label || id;
   const move = async (id, status) => { await setDoorFeedbackStatus(id, status); load(); };
@@ -602,6 +603,31 @@ function DoorReportsSection() {
         </div>
       ) : (
         <>
+          {/* The door's OWN reports, first and unmissable (0217). These do not
+              wait for a customer to type anything -- most people who hit a dead
+              form just leave. The occurrence count is the alert: "47 times"
+              says something one row never could. */}
+          {faults.length > 0 && (
+            <div role="alert" className="mt-2 rounded-xl border-2 border-[#B85838] bg-white p-3">
+              <p className="text-sm font-semibold text-[#B85838]">
+                Your door is reporting {faults.length === 1 ? 'a problem' : `${faults.length} problems`} on its own.
+              </p>
+              <ul className="mt-1.5 space-y-1">
+                {faults.map((f) => (
+                  <li key={f.id} className="text-sm text-[#1A1815]">
+                    {f.body}
+                    <span className="block text-xs text-[#5A5751]">
+                      {f.occurrences > 1 ? `${f.occurrences} times` : 'once'}
+                      {f.last_seen_at ? ` · last ${new Date(f.last_seen_at).toLocaleString()}` : ''}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1.5 text-xs text-[#5A5751]">
+                Nobody had to report these — the app noticed and wrote them down.
+              </p>
+            </div>
+          )}
           <p className="mt-2 text-sm text-[#1A1815]">
             <strong>{open}</strong> still need you, of {rows.length}.
           </p>
@@ -611,7 +637,10 @@ function DoorReportsSection() {
                 <div className="flex flex-wrap items-center gap-2 text-xs text-[#5A5751]">
                   <span className="rounded-full border border-[#E8E2D8] px-2 py-0.5">{areaLabel(r.area)}</span>
                   <span>{r.created_at ? new Date(r.created_at).toLocaleString() : ''}</span>
-                  {!r.submitted_by && <span className="text-[#5A5751]">· not signed in</span>}
+                  {r.source === 'system'
+                    ? <span className="rounded-full border border-[#B85838] px-2 py-0.5 text-[#B85838]">the app noticed this</span>
+                    : !r.submitted_by && <span className="text-[#5A5751]">· not signed in</span>}
+                  {r.source === 'system' && r.occurrences > 1 && <span>· {r.occurrences} times</span>}
                   {r.app_version && <span>· build {String(r.app_version).slice(0, 7)}</span>}
                   {/* Themeable classes, never an inline color: the legibility
                       gate caught an inline #B85838/#5A5751 here rendering at
@@ -621,9 +650,11 @@ function DoorReportsSection() {
                   </span>
                 </div>
                 <p className="mt-1.5 whitespace-pre-wrap text-[#1A1815]">{r.body}</p>
-                {r.contact
-                  ? <p className="mt-1 text-xs text-[#1A1815]">Reach them: <strong>{r.contact}</strong></p>
-                  : <p className="mt-1 text-xs text-[#5A5751]">They left no way to reply.</p>}
+                {r.source === 'system'
+                  ? <p className="mt-1 text-xs text-[#5A5751]">Written by the app, not a person — there is nobody to reply to.</p>
+                  : r.contact
+                    ? <p className="mt-1 text-xs text-[#1A1815]">Reach them: <strong>{r.contact}</strong></p>
+                    : <p className="mt-1 text-xs text-[#5A5751]">They left no way to reply.</p>}
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {['reading', 'answered', 'closed'].filter((st) => st !== r.status).map((st) => (
                     <button
