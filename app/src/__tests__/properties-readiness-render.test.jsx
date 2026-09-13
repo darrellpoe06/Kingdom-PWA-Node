@@ -13,13 +13,14 @@ import { createRoot } from 'react-dom/client';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-const store = { tasks: [], ensured: [], patched: [], removed: [] };
+const store = { tasks: [], ensured: [], patched: [], removed: [], write: { ok: true, reason: null } };
 
 vi.mock('../lib/use-board-tasks.js', () => ({
   useBoardTasks: () => store.tasks,
+  useWriteState: () => store.write,
   ensureTask: (item) => { store.ensured.push(item); return Promise.resolve(item); },
   patchTask: (task, patch) => { store.patched.push({ task, patch }); },
-  removeTask: (task) => { store.removed.push(task); },
+  removeTask: (task) => { store.removed.push(task); return Promise.resolve(); },
 }));
 
 const { ReadinessTab } = await import('../modules/properties/ReadinessTab.jsx');
@@ -32,7 +33,7 @@ const ROOMS = [
 ];
 
 let mounted = [];
-beforeEach(() => { store.tasks = []; store.ensured = []; store.patched = []; store.removed = []; });
+beforeEach(() => { store.tasks = []; store.ensured = []; store.patched = []; store.removed = []; store.write = { ok: true, reason: null }; });
 afterEach(() => {
   mounted.forEach(({ root, host }) => { act(() => root.unmount()); host.remove(); });
   mounted = [];
@@ -176,6 +177,44 @@ describe('reset', () => {
     click(btn(host, /Reset checklist/));
     click(btn(host, /Reset this checklist/));
     expect(store.removed.length).toBe(1);
+  });
+});
+
+describe('the surface says what is TRUE about saving', () => {
+  // The line under the dashboard is the whole trust claim of this tab. It used
+  // to promise "saved to this door for everyone" no matter what the database
+  // said. PROVEN-TO-CATCH: make that string unconditional again and all four
+  // of these fail.
+  it('claims shared saving only when the write actually landed', () => {
+    const host = mount();
+    expect(host.textContent).toMatch(/Saved to this door for everyone who manages it/);
+  });
+
+  it('says it is device-only when signed out, and does not claim sharing', () => {
+    store.write = { ok: false, reason: 'signed-out' };
+    const host = mount();
+    expect(host.textContent).toMatch(/held on this device only/);
+    expect(host.textContent).not.toMatch(/Saved to this door for everyone/);
+  });
+
+  it('says a failed write did NOT save, rather than showing success', () => {
+    store.write = { ok: false, reason: 'failed' };
+    const host = mount();
+    expect(host.textContent).toMatch(/did NOT save to the door/);
+    expect(host.textContent).not.toMatch(/Saved to this door for everyone/);
+  });
+
+  it('explains an RLS-refused delete instead of pretending it worked', () => {
+    store.write = { ok: false, reason: 'blocked' };
+    const host = mount();
+    expect(host.textContent).toMatch(/refused by the database/);
+    expect(host.textContent).toMatch(/Nothing was lost/);
+  });
+
+  it('names the missing instance rather than saying nothing', () => {
+    store.write = { ok: false, reason: 'no-tenant' };
+    const host = mount();
+    expect(host.textContent).toMatch(/not attached to a property instance/);
   });
 });
 

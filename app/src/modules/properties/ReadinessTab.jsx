@@ -14,7 +14,7 @@
 // Started is exactly what an untouched task is.
 // =============================================================================
 import React, { useMemo, useState } from 'react';
-import { useBoardTasks, ensureTask, patchTask, removeTask } from '../../lib/use-board-tasks.js';
+import { useBoardTasks, useWriteState, ensureTask, patchTask, removeTask } from '../../lib/use-board-tasks.js';
 import {
   READY_STATUS, READY_STATUS_ORDER,
   readinessBoard, rowForTask, patchForTask, buildCustomTask, bedroomsOf,
@@ -91,6 +91,7 @@ function Check({ status, onToggle, label }) {
 
 export function ReadinessTab({ boardSlug, boardTitle, rooms = [] }) {
   const tasks = useBoardTasks();
+  const write = useWriteState();
   const [view, setView] = useState('all');
   const [openSlug, setOpenSlug] = useState(null);
   const [draft, setDraft] = useState(null);
@@ -200,8 +201,21 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [] }) {
           <strong style={{ color: INK }}>{tally.done} of {tally.total}</strong> tasks completed
           {tally.left ? <> · <strong style={{ color: INK }}>{tally.left}</strong> still to go</> : ' · every area is clear'}
         </p>
-        <p className="text-[0.75rem] mt-2" style={{ color: MUTED }}>
-          Saved to this door for everyone who manages it — the same list on your phone and at your desk.
+        {/* SURFACE-SAYS-TRUTH. This line used to promise "saved for everyone"
+            unconditionally. It is only true when the write actually reached
+            board_tasks — signed out, or blocked by RLS, it was a false
+            statement on the one surface whose whole value is being trusted. It
+            now reports the LAST REAL WRITE OUTCOME. */}
+        <p className="text-[0.75rem] mt-2" style={{ color: write.ok ? MUTED : '#9B2C1E' }}>
+          {write.reason === 'signed-out'
+            ? 'Not signed in — changes are held on this device only and are not shared with anyone else yet.'
+            : write.reason === 'no-tenant'
+              ? 'Signed in, but this account is not attached to a property instance yet, so nothing is being saved to the door.'
+              : write.reason === 'blocked'
+                ? 'That change was refused by the database — your account can edit this door but not delete from it. Nothing was lost.'
+                : write.reason === 'failed'
+                  ? 'The last change did NOT save to the door. It is still on this device; check the connection and try again.'
+                  : 'Saved to this door for everyone who manages it — the same list on your phone and at your desk.'}
         </p>
       </Card>
 
