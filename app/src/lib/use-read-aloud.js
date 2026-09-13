@@ -22,7 +22,7 @@ import {
 import { mergeVoiceCatalog, canCloneVoice, isVoiceEntitled, resolveVoiceProvider, KIND, SYSTEM_VOICE } from './voice-registry.js';
 import { buildStandInAssignments, resolveVoiceURIForId, standInPitch } from './voice-assignment.js';
 import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
-import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint } from './voice-service.js';
+import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport } from './voice-service.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
 import { createBackgroundAudio } from './background-audio.js';
@@ -262,6 +262,51 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
       if (!sovereignVoiceReady) {
         setNotice('Reading in a stand-in voice — your real voice turns on when the church’s own voice studio is armed (sovereign, no vendor).');
       }
+    }
+
+    // THE SYSTEM VOICE REACHES THE SOVEREIGN STUDIO TOO (DR-0382).
+    //
+    // Darrell 2026-09-13: "can we get close to humans when talking or do we
+    // still have to sound like a computer". Shaping the text fixed the RHYTHM;
+    // this is the TIMBRE. Until now the studio was reachable only by a person's
+    // CLONED voice, because voice-service hardcoded needsReference — so the
+    // System voice, which is the default nobody changes, always fell to the
+    // device engine even on a church running its own voice studio. That one
+    // word is why every lesson sounded like Android.
+    //
+    // Fail-soft by construction: if the studio is not configured, refuses a
+    // built-in request, or errors, this falls straight through to exactly the
+    // device-voice path below. It can only ever sound better, never worse, and
+    // a refusal is remembered so the round trip is paid once.
+    if (isSystemVoiceId(voiceId) && sovereignVoiceReady && builtInVoiceSupport() !== 'no') {
+      const { url, error } = await synthesizeSpeech({
+        text: toSpokenForm(clean), voiceId: SYSTEM_VOICE.id, allowBuiltIn: true,
+      });
+      if (!error && url) {
+        const ep = activeVoiceEndpoint();
+        if (ep && ep.kind === 'bridge') {
+          setNotice('Read via the vendor bridge — a recorded gap; arming the church’s own voice studio closes it.');
+        }
+        try {
+          const a = new Audio(url); audioRef.current = a; setCloudPlaying(true); setCloudProgress(0);
+          a.ontimeupdate = () => {
+            const d = a.duration;
+            if (Number.isFinite(d) && d > 0) setCloudProgress(Math.min(1, a.currentTime / d));
+          };
+          a.onended = () => { setCloudPlaying(false); setCloudProgress(0); try { URL.revokeObjectURL(url); } catch (_) {} };
+          // A mid-clip failure is NOT silence: hand the same text to the device
+          // engine so the reader keeps hearing the lesson.
+          a.onerror = () => {
+            setCloudPlaying(false); setCloudProgress(0);
+            if (tts.supported) tts.speak(clean, resolveSpeakURI(voiceId));
+          };
+          await a.play();
+          return;
+        } catch (_) { setCloudPlaying(false); setCloudProgress(0); }
+      }
+      // Nothing is said to the reader here on purpose. A built-in miss is not a
+      // failure they can act on — the device voice is about to speak, and the
+      // sovereignty notice above already covers the case that matters.
     }
 
     if (!tts.supported) { setNotice('This device can’t read aloud — try a different browser.'); return; }
