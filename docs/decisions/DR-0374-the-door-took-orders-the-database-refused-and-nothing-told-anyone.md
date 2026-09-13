@@ -20,7 +20,13 @@ Sterling Moore made an account on poetech.us, opened the Moore Divahs door, fill
 crm_capture_lead: unknown pipeline moore-orders
 ```
 
-**Measured, not assumed** (DR-0076 §4): `crm_leads` holds **zero rows and has never held one**, and the `poe-family` instance the form targets **does exist** — so the tenant lookup was never implicated. The conclusion is not that the form broke; **the form has never once worked since the door shipped.** Every customer who ever tried to order from Shay through this app was turned away, and Sterling is simply the first one who told somebody.
+**Measured, not assumed** (DR-0076 §4): `crm_leads` holds **zero rows**, and the `poe-family` instance the form targets **does exist** — so the tenant lookup was never implicated. The conclusion is not that the form broke; **the form has never once worked since the door shipped.**
+
+> **CORRECTION, same day, against my own evidence (DR-0076 §8 — provenance).** The sentence above originally read *"zero rows and has never held one"* and was presented as a measurement of the live database. **It was not.** It was measured through the Supabase MCP against the HOSTED project `mjjlevhdufpaplypnqrv`. `infra/nas-supabase/REPOINT-ARMED` is committed, so a `poetech.us` build points the app at the **sovereign NAS stack** at `poetech.us/sb` (`deploy-cloudflare-pages.yml:108,123`). I measured a mirror and wrote it up as the live database, and said "has never held one" — a claim about history that a `count(*)` cannot support at all.
+>
+> **What the error does NOT touch: the root cause.** It was never a row-count inference. `db-migrate` applies each migration to hosted and then replays the same checkout onto the sovereign database, both gated on that same `REPOINT-ARMED` record (`db-migrate.yml:155-167`, `scripts/sovereign-replay-over-tailnet.sh`) — precisely so the two cannot diverge. Both databases therefore carried the identical seven-branch allowlist, and `'moore-orders'` was refused on both by construction. That reads off the function definition, not off a count.
+>
+> **What it does touch:** the strength of the corroboration. Zero rows on the hosted mirror is *consistent with* the live database never having taken an order; it is not proof of it. This sandbox has no route to the sovereign database (P31), so the live row count is **unmeasured and stays unmeasured here.** Stated rather than smoothed over. Every customer who ever tried to order from Shay through this app was turned away, and Sterling is simply the first one who told somebody.
 
 **Why the suite was green the whole time, which is the part worth keeping.** `moore-door.test.js` calls `getPipeline('moore-orders')` and `validateCapture('moore-orders', …)` and passes — both read the **JavaScript** registry. The database's allowlist is a **second registry, hand-written in SQL**, and nothing in the repo ever compared the two. Migration 0085 built this door and its own header says it *"Mirrors the crm_capture_lead posture."* The posture was mirrored. The allowlist was not. A class of bug where two hand-maintained registries must agree and no machine checks that they do.
 
@@ -52,9 +58,19 @@ crm_capture_lead: unknown pipeline moore-orders
 - The failure path is tested by **mounting the door and submitting the form** — not by unit-testing the handler — using the real result shapes from `crm-sync.js` (`{ skipped, error }` and `{ captured: true, id }`), because "the component renders a failure" is a claim only a mount can settle. 9 tests in `moore-order-failure-tells-the-truth.test.jsx`.
 - The fallback button is pinned `type="button"` (never a stray submit) and carries a `focus-visible:ring`, after an earlier draft of the panel broke the contrast/legibility guards with a light-on-light background and was corrected to `bg-white`.
 
-## Not done / open
+## Executed and witnessed, after merge
 
-- **Migration 0215 has not been executed against the database yet.** It runs on merge via `db-migrate`. Per DR-0371's own lesson, "the workflow exited 0" and "the branch exists in the function" are two different claims: after merge, the function's source is read back directly to confirm the `moore-orders` branch is live, and the deploy is proven per DR-0107.
+Merged as `84971bf7` at 04:40:46. What is verified, and by which method, kept separate because they are not the same strength of claim:
+
+| Claim | Method | Result |
+|---|---|---|
+| 0215 live on the **hosted** mirror | **Direct query** of `pg_proc.prosrc` | `moore-orders` present; allowlist now **8** branches (was 7) |
+| 0215 live on the **sovereign** database (the one the app uses) | **Workflow report only** — `db-migrate` run 34738456493, replay step from checkout `84971bf7`: `applied 1 this run, ledger 221/217, frontier: none` | Reported applied. **Not independently read back** — no route from this sandbox |
+| The served build advanced | Deploy run 34738458352, `head_sha` 84971bf7, success (DR-0107) | Deployed |
+
+The middle row is exactly the gap DR-0371 named: *"the workflow exited 0"* and *"the branch is live in the function"* are two different claims, and for the sovereign side I only have the first. It is the more important of the two databases and the less verified. **re-review: 2026-09-20**, together with the live-form pass below — one real inquiry landing as a real row settles both at once.
+
+## Not done / open
 - **Nobody has submitted the form on the live site.** jsdom is not a browser and a mocked `crm-sync` is not the database; the sandbox has no route to poetech.us (P31). The real confirmation is one inquiry sent from the live door landing as a real row in `crm_leads`. Belongs on the live build per DR-0104 — **re-review: 2026-09-20.**
 - **Her door still has no feedback process of its own.** Point 4 gives the *order failure* a way out; it does not give her customers a general way to report that anything else is broken. The discovery path for the next defect is still "a customer happens to tell Shay." A proper feedback affordance on her door — and on every business door, since they all share this gap — is real work and is not in this change. **re-review: 2026-09-27.**
 - **Nothing told us either.** No alert fired on a capture that raised for months. A refused `crm_capture_lead` is a silent business loss; the only witness was a customer's goodwill. Wiring capture failures into a signal the team actually sees is the structural close and is deliberately out of scope here — **re-review: 2026-09-27.**
