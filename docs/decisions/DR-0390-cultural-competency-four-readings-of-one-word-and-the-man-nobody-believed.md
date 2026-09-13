@@ -18,6 +18,24 @@ Then, in pieces: *"It was all a game until Him and the her!!!"* · *"Then her!!!
 
 **L146 flattened the word.** It treated *game* as purely pejorative — talk a man cannot back — and said so: *"Game is the word for the other thing."* That reading is honest, but it is one of four, and building a lesson on a single reading of a word that carries several is the exact failure this new lesson is about. L149 does not retract L146's use; it supplies the other three and names the general discipline.
 
+## THE THESIS, AND THE GUARD IT SUPPLIES
+
+Darrell's own sentence, and it is the spine rather than an ornament:
+
+> **"Everybody don't know the game the same way... there are different ways to play it but one Way to Win..."**
+
+**Hold both halves or the lesson collapses into one of two failures.** Drop the first half and you get a man who cannot hear anyone unlike him and calls that conviction. Drop the second and you get the far more fashionable failure — every reading equally true, nobody ever wrong, nothing to be saved from. **A lesson about respecting other readings slides into relativism unless something stops it, and this sentence is what stops it.** The discipline that follows is about the PLAYING — the vocabularies, the cultures, the mouths a word arrives in — and never about the winning, which has exactly one road: *"strait is the gate, and narrow is the way, which leadeth unto life"*, and the Son in the first person, *"I am the way, the truth, and the life: no man cometh unto the Father, but by me."*
+
+**Paul demonstrates both halves at once, on trial, in a single sentence:** *"But this I confess unto thee, that after the way which they call heresy, so worship I the God of my fathers."* He USES their word — the way which THEY CALL heresy — so they know he has heard them and is not pretending their vocabulary does not exist. And in the same breath he refuses their verdict. Their reading acknowledged, their conclusion declined, no apology offered for either. **Competency with a spine.**
+
+And sitting in the same chapter as the man nobody believed: Saul went hunting with letters *"that if he found any of this way, whether they were men or women, he might bring them bound unto Jerusalem."* **Of this Way** — what the believers were called before anyone said Christian, and the name this house still uses. The man arresting people for being of the Way became one, and then nobody believed him.
+
+## And integrity is on the same list
+
+*"Integrity... and other spiritual... etc..."* — the Book that gives subtilty to the simple hands over the character to carry it, in the same breath. *"The integrity of the upright shall guide them"* — **GUIDE THEM.** Integrity is not the brake on a man's game; it is the steering. And it is the safe road, not the slow one: *"He that walketh uprightly walketh surely."* Wisdom brings her whole staff into the house — *"Discretion shall preserve thee, understanding shall keep thee"* — and those are bodyguard words, not decorations.
+
+**And one verse ties all of it to the children he said came out of His Ways:** *"The just man walketh in his integrity: his children are blessed after him."* **AFTER HIM.** The walking IS the inheritance — a man playing it straight is not only surviving his own life, he is putting something down that arrives for people who were not born when he decided it. The register being grown is named outright so nobody has to guess what the game is FOR: *"the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith, Meekness, temperance: against such there is no law."*
+
 ## The decision: four readings, a method, and an order
 
 1. **READING ONE — talk a man cannot back.** The gap between a sentence and a receipt. Honest, and why the word is usually an insult.
@@ -41,10 +59,10 @@ Then, in pieces: *"It was all a game until Him and the her!!!"* · *"Then her!!!
 
 ## Proof
 
-- **134 double-quoted spans, every one verbatim KJV.** The gate forced 12 punctuation repairs and caught three of our own: the word *game* itself in quotation marks (our subject, not Scripture), the word *unkind*, and a truncated Paul quotation missing its opening *"yet have I"*.
+- **152 double-quoted spans, every one verbatim KJV.** The gate forced repairs throughout and caught three of our own: the word *game* itself in quotation marks (our subject, not Scripture), the word *unkind*, and a truncated Paul quotation missing its opening *"yet have I"*.
 - **Zero generic "God" in our own voice**; 30 uses of Yahweh.
-- **The reading-level gate caught a real inversion and it was fixed rather than baselined** — the TEEN band measured 6.6 against a senior band of 5.8, so the teenagers' version read harder than the adults'. Rewritten to short sentences: **child 1.8 · teen 2.3 · senior 5.8 · adult 5.8**, correctly ordered, **zero new debt**.
-- `living-lessons-l149-verses.test.js` — 41 tests. The **four readings are asserted as a count**, so a shortening edit that drops reading four (which arrives last and would be cut first) fails rather than passes. The told-in-advance turn and the Him-then-her order are pinned separately as the heart rather than the trim.
+- **The reading-level gate caught a real inversion and it was fixed rather than baselined** — the TEEN band measured 6.6 against a senior band of 5.8, so the teenagers' version read harder than the adults'. Rewritten to short sentences: **child 1.8 · teen 2.3 · senior 5.8 · adult 6.1**, correctly ordered, **zero new debt**.
+- `living-lessons-l149-verses.test.js` — **52 tests**. The **four readings are asserted as a count**, so a shortening edit that drops reading four (which arrives last and would be cut first) fails rather than passes. The told-in-advance turn and the Him-then-her order are pinned separately as the heart rather than the trim.
 - Ten-segment run-of-show.
 
 ## Pairs with

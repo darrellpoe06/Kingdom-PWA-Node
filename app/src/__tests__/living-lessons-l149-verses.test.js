@@ -333,3 +333,63 @@ describe('L149 — the instruction the whole lesson reduces to', () => {
     expect(mod().inApp).toMatch(/both of them are free/i);
   });
 });
+
+describe('L149 — THE THESIS, and the guard that keeps this from becoming relativism', () => {
+  // "Everybody don't know the game the same way... there are different ways to
+  // play it but one Way to Win." Both halves, or the lesson collapses into one
+  // of two failures — a man who cannot hear anyone unlike him, or a lesson in
+  // which every reading is equally true and there is nothing to be saved from.
+  it('states both halves in his own sentence', () => {
+    expect(l).toMatch(/different ways to play it/i);
+    expect(l).toMatch(/one Way to win/i);
+    expect(l).toMatch(/Hold both halves/i);
+  });
+  it('and names BOTH failure modes, not just the fashionable one', () => {
+    expect(l).toMatch(/cannot hear anyone unlike him/i);
+    expect(l).toMatch(/every reading is equally true/i);
+  });
+  it('the narrow way is quoted, not softened', () => {
+    expect(verse('Matthew', 7, 14)).toContain('strait is the gate, and narrow is the way, which leadeth unto life');
+    expect(l).toContain('strait is the gate, and narrow is the way, which leadeth unto life');
+  });
+  it('and the Son says it in the first person', () => {
+    expect(verse('John', 14, 6)).toContain('I am the way, the truth, and the life: no man cometh unto the Father, but by me');
+    expect(l).toContain('I am the way, the truth, and the life: no man cometh unto the Father, but by me');
+  });
+  it('Paul holds both halves at once, on trial, in one sentence', () => {
+    expect(verse('Acts', 24, 14)).toContain('after the way which they call heresy, so worship I the God of my fathers');
+    expect(l).toContain('after the way which they call heresy, so worship I the God of my fathers');
+    expect(l).toMatch(/their conclusion declined/i);
+  });
+  it('and the believers were called of this Way in the SAME chapter as the man nobody believed', () => {
+    expect(verse('Acts', 9, 2)).toContain('if he found any of this way, whether they were men or women');
+    expect(l).toContain('if he found any of this way, whether they were men or women');
+  });
+});
+
+describe('L149 — integrity is on the same list, and it reaches the children', () => {
+  it('integrity GUIDES rather than brakes', () => {
+    expect(verse('Proverbs', 11, 3)).toContain('The integrity of the upright shall guide them');
+    expect(l).toContain('The integrity of the upright shall guide them');
+    expect(l).toMatch(/not the brake on your game; it is the steering/i);
+  });
+  it('and walking straight is the SAFE way, not the slow way', () => {
+    expect(verse('Proverbs', 10, 9)).toContain('He that walketh uprightly walketh surely');
+    expect(l).toContain('He that walketh uprightly walketh surely');
+  });
+  it('discretion and understanding are bodyguards', () => {
+    expect(verse('Proverbs', 2, 11)).toContain('Discretion shall preserve thee, understanding shall keep thee');
+    expect(l).toContain('Discretion shall preserve thee, understanding shall keep thee');
+  });
+  it('and one verse ties the walking to the children as an INHERITANCE', () => {
+    expect(verse('Proverbs', 20, 7)).toBe('The just man walketh in his integrity: his children are blessed after him.');
+    expect(l).toContain('The just man walketh in his integrity: his children are blessed after him');
+    expect(l).toMatch(/AFTER HIM/);
+    expect(l).toMatch(/walking IS the inheritance|walking is the inheritance/i);
+  });
+  it('and names what is actually being grown, so nobody guesses what the game is FOR', () => {
+    expect(verse('Galatians', 5, 22)).toContain('the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith');
+    expect(l).toContain('the fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith');
+    expect(l).toMatch(/against such there is no law/i);
+  });
+});
