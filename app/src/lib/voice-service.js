@@ -43,13 +43,40 @@ export function voiceBridgeEnabled() {
 }
 
 /** The active POST endpoint + whether the recorded reference must accompany it.
- *  Sovereign ALWAYS outranks the vendor bridge (DR-0138). */
+ *  Sovereign ALWAYS outranks the vendor bridge (DR-0138).
+ *
+ *  `needsReference` USED TO BE HARDCODED TRUE on both, and that one word was the
+ *  reason every lesson read in the device's robot voice (DR-0382). It made the
+ *  service clone-only by construction: the System voice — the default nobody
+ *  changes — could never reach it, so a church running its own voice studio
+ *  still heard Android's built-in engine. The flag is now about the REQUEST,
+ *  not the endpoint: a cloned voice needs its sample, a built-in voice does
+ *  not, and whether this particular deployment can serve a built-in speaker is
+ *  DISCOVERED by asking rather than assumed (see synthesizeSpeech). */
 export function activeVoiceEndpoint() {
   const sovereign = voiceServiceUrl();
   if (sovereign) return { url: `${sovereign}/speak`, kind: 'sovereign', needsReference: true };
   if (voiceBridgeEnabled()) return { url: BRIDGE_PATH, kind: 'bridge', needsReference: true };
   return null;
 }
+
+// WHAT THIS DEPLOYMENT CAN ACTUALLY DO, learned at runtime rather than declared.
+//
+// Some /speak backends (XTTS, Piper and friends) happily synthesize with a
+// built-in speaker when no reference sample is sent; others refuse. Which one
+// is on the NAS today is NOT something this file can know, and guessing either
+// way is how a feature ships broken. So the first built-in request is an
+// experiment: if it returns audio, built-in is supported and every later read
+// uses it; if it fails, the answer is remembered and we never pay for that
+// round trip again — we fall straight through to the device voice, which is
+// exactly the behaviour before this change. Strictly better, never worse.
+let builtInSupport = 'unknown'; // 'unknown' | 'yes' | 'no'
+
+/** For tests and for a deliberate re-probe after the service is upgraded. */
+export function resetBuiltInVoiceProbe() { builtInSupport = 'unknown'; }
+
+/** What we have learned so far. Honest third state — never reported as yes. */
+export function builtInVoiceSupport() { return builtInSupport; }
 
 /** True when SOME voice endpoint (bridge or sovereign studio) is configured. */
 export function isVoiceServiceReady() {
@@ -62,12 +89,22 @@ export function isVoiceServiceReady() {
  * few-shot clone. Returns { url } on success or { error } on any failure so the
  * caller can fall back to the browser stand-in.
  */
-export async function synthesizeSpeech({ text, voiceId, personKey, referenceDataUri, language, signal } = {}) {
+export async function synthesizeSpeech({
+  text, voiceId, personKey, referenceDataUri, language, signal,
+  // The caller is asking for the service's OWN voice rather than a clone of a
+  // person. Set by the System-voice read path; never set for a person's voice,
+  // where a missing sample is a real error the reader must be told about.
+  allowBuiltIn = false,
+} = {}) {
   const endpoint = activeVoiceEndpoint();
   if (!endpoint) return { error: 'voice-service-not-configured' };
   const body = String(text || '').trim();
   if (!body) return { error: 'empty-text' };
-  if (endpoint.needsReference && !referenceDataUri) return { error: 'no-voice-sample' };
+  if (!referenceDataUri) {
+    if (!allowBuiltIn) return { error: 'no-voice-sample' };
+    // Already asked once and been refused — do not spend the round trip again.
+    if (builtInSupport === 'no') return { error: 'no-builtin-voice' };
+  }
   try {
     const res = await fetch(endpoint.url, {
       method: 'POST',
@@ -81,11 +118,19 @@ export async function synthesizeSpeech({ text, voiceId, personKey, referenceData
       }),
       signal,
     });
-    if (!res || !res.ok) return { error: `voice-service-${res ? res.status : 'no-response'}` };
+    if (!res || !res.ok) {
+      if (!referenceDataUri && allowBuiltIn) builtInSupport = 'no';
+      return { error: `voice-service-${res ? res.status : 'no-response'}` };
+    }
     const blob = await res.blob();
-    if (!blob || !blob.size) return { error: 'voice-service-empty' };
+    if (!blob || !blob.size) {
+      if (!referenceDataUri && allowBuiltIn) builtInSupport = 'no';
+      return { error: 'voice-service-empty' };
+    }
+    if (!referenceDataUri && allowBuiltIn) builtInSupport = 'yes';
     return { url: URL.createObjectURL(blob) };
   } catch (e) {
+    if (!referenceDataUri && allowBuiltIn) builtInSupport = 'no';
     return { error: (e && e.message) || 'voice-service-error' };
   }
 }
