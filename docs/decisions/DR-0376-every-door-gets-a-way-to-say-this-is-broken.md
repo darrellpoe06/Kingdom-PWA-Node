@@ -45,7 +45,25 @@ DR-0374's own open item, pulled forward rather than left on its date (DR-0236: "
 
 ## Not done / open
 
-- **0216 has not executed.** It runs on merge via `db-migrate` (hosted, then the sovereign replay). Per DR-0374's correction: hosted is a mirror, and the sovereign database is what the app uses — so after merge the function is read back on **both**, comparing `md5(prosrc)` with the DR-0375 instrument rather than trusting the workflow's exit code.
+## Executed and witnessed, after merge
+
+Merged as `5cbde600`. Verified on **both** databases, per DR-0374's correction — hosted is a mirror, and the sovereign stack is what the app actually uses:
+
+| Property | Method | Result |
+|---|---|---|
+| `door_feedback_submit` on **hosted** | Direct query of `pg_proc` | present · `md5` `63cf89507ec6cc0bf35253e461198c3c` |
+| `door_feedback_submit` on **sovereign** (live) | `sovereign-read` run 34742113110, `functions=door_feedback_submit` | `md5` **`63cf89507ec6cc0bf35253e461198c3c` — identical**; `---MISSING--- none`; `sovereign_replay=222` |
+| anon can call the seam | `has_function_privilege('anon', …, 'EXECUTE')` | **true** — a signed-out customer can report |
+| anon can read or write the **table** | `has_table_privilege('anon', …)` | **false / false** — the anon path is the function, never the table |
+| RLS | `pg_class.relrowsecurity` | on |
+| Policies | `pg_policies` | 8 — `door_feedback_office[ALL]` **plus** `assistant_scope_*` ×4 and `viewer_readonly_*` ×3 |
+| Deploy | run 34741979843, `head_sha` 5cbde600 (DR-0107) | success |
+
+**The policy row is the one that matters.** The overlays the three gates forced into 0216 are *provably applied in the database*, not merely written in the migration file — so a read-only viewer genuinely cannot write `door_feedback`, and an assistant genuinely cannot read what customers told a business privately about its own door.
+
+**A limit of the measurement, stated rather than glossed:** the `definitions` probe reports functions only, so the table's RLS and policies were verified on **hosted** and are carried on the sovereign side by the replay plus the identical function md5 — not read back directly there. Extending the probe to tables and policies is the obvious next turn of DR-0375's instrument.
+
+## Not done / open
 - **Nobody has filed a report on the live site.** jsdom is not a browser; the sandbox has no route to poetech.us (P31). **re-review: 2026-09-20.**
 - **Only Moore Divahs has a door today**, so only her door carries this. The registry is the seam (DR-0114), so client #2 inherits it — but that is asserted from the registry's shape, not observed, since no second row exists.
 - **Still nothing alerts anyone.** This gives a customer a way to *report*; it does not page the office when a report lands, and it does not notice a capture RPC failing silently. That is the other half of DR-0374's finding and remains its own work — **re-review: 2026-09-27.**
