@@ -65,10 +65,12 @@ Merged as `84971bf7` at 04:40:46. What is verified, and by which method, kept se
 | Claim | Method | Result |
 |---|---|---|
 | 0215 live on the **hosted** mirror | **Direct query** of `pg_proc.prosrc` | `moore-orders` present; allowlist now **8** branches (was 7) |
-| 0215 live on the **sovereign** database (the one the app uses) | **Workflow report only** — `db-migrate` run 34738456493, replay step from checkout `84971bf7`: `applied 1 this run, ledger 221/217, frontier: none` | Reported applied. **Not independently read back** — no route from this sandbox |
+| 0215 live on the **sovereign** database (the one the app uses) | **Read back from the database itself** — `sovereign-read` run 34739384541, `definitions` with `functions=crm_capture_lead` over the tailnet | `source_md5` = `d22ffd311f16111e75f070f1314a51c5`, **byte-identical to hosted**; `---MISSING--- none`; `sovereign_replay=221` |
 | The served build advanced | Deploy run 34738458352, `head_sha` 84971bf7, success (DR-0107) | Deployed |
 
-The middle row is exactly the gap DR-0371 named: *"the workflow exited 0"* and *"the branch is live in the function"* are two different claims, and for the sovereign side I only have the first. It is the more important of the two databases and the less verified. **re-review: 2026-09-20**, together with the live-form pass below — one real inquiry landing as a real row settles both at once.
+**CLOSED the same day, by measurement rather than by the workflow's word.** This row was first written as *workflow report only* — `db-migrate`'s replay step said `applied 1 this run, ledger 221/217, frontier: none`, which is the weaker of the two claims DR-0371 distinguishes: *"the workflow exited 0"* is not *"the branch is live in the function."* The instrument built in DR-0375 was then dispatched against the live database and asked it directly. **An identical `md5(prosrc)` on both databases proves the definitions byte-identical**, so the `moore-orders` branch verified by direct query on hosted is provably the same function the sovereign database runs — the one Shay's customers actually reach. First real use of that instrument, and it answered.
+
+What remains open is no longer the migration; it is the end-to-end pass below.
 
 ## Not done / open
 - **Nobody has submitted the form on the live site.** jsdom is not a browser and a mocked `crm-sync` is not the database; the sandbox has no route to poetech.us (P31). The real confirmation is one inquiry sent from the live door landing as a real row in `crm_leads`. Belongs on the live build per DR-0104 — **re-review: 2026-09-20.**
