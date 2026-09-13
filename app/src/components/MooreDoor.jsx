@@ -47,7 +47,7 @@ const SERIF = { fontFamily: '"Fraunces", serif' };
 const fmt$ = (cents) => `$${(cents / 100).toFixed(2)}`;
 
 // ---- shared: a public capture form that lands a forced-safe CRM lead --------
-function ContactCaptureForm({ pipeline, instanceSlug, promptLabel, notePlaceholder, okMessage, prefillNotes = '' }) {
+function ContactCaptureForm({ pipeline, instanceSlug, promptLabel, notePlaceholder, okMessage, prefillNotes = '', fallback = null }) {
   const [f, setF] = useState({ name: '', contactValue: '', notes: '' });
   const [state, setState] = useState('idle'); // idle | sending | ok | error
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
@@ -65,7 +65,15 @@ function ContactCaptureForm({ pipeline, instanceSlug, promptLabel, notePlacehold
       source: BIZ.captureSource, sourceDetail: `${BIZ.brand.label} app`, notes: f.notes,
       consentOutreachOk: true, consentChannels: ['email'], consentNote: `Asked to be contacted via the ${BIZ.brand.label} app`,
     });
-    setState(res && res.captured ? 'ok' : 'error');
+    if (res && res.captured) { setState('ok'); return; }
+    // A customer was told to "try again in a moment" for a cause that could
+    // never improve by waiting (0215: the pipeline was refused by the database
+    // for as long as this door has existed, and a real order was lost to it).
+    // So the failure now says the one thing that actually matters -- it did NOT
+    // reach her -- and the raw reason goes to the console for whoever reads a
+    // screenshot, the same posture lib/auth-error-message.js takes.
+    console.warn('[capture] inquiry not sent:', pipeline, res && res.error);
+    setState('error');
   };
   if (state === 'ok') {
     return <div className="rounded-xl border border-[#5A6E3D] bg-white p-3 text-sm text-[#5A6E3D]">✓ {okMessage}</div>;
@@ -81,7 +89,24 @@ function ContactCaptureForm({ pipeline, instanceSlug, promptLabel, notePlacehold
       <button type="submit" disabled={state === 'sending'} className="rounded-lg bg-[#B85838] px-3 py-2.5 font-semibold text-white sm:col-span-3">
         {state === 'sending' ? 'Sending…' : promptLabel}
       </button>
-      {state === 'error' && <p className="text-xs text-[#B85838] sm:col-span-3">Could not send right now — please try again in a moment.</p>}
+      {state === 'error' && (
+        <div role="alert" className="rounded-lg border border-[#B85838] bg-white p-2.5 text-xs text-[#B85838] sm:col-span-3">
+          <strong>This did not send — she has not received it.</strong>{' '}
+          Your details are still on this screen, so nothing you typed is lost.
+          {fallback
+            ? ' There is a second way in that does work, and it goes straight to her board:'
+            : ` Please reach ${BIZ.brand.label} the way you normally would and mention what you wrote here, rather than waiting on a reply that is not coming.`}
+          {fallback && (
+            <button
+              type="button"
+              onClick={fallback.onClick}
+              className="mt-2 block w-full rounded-lg bg-[#B85838] px-3 py-2.5 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B85838] focus-visible:ring-offset-2"
+            >
+              {fallback.label}
+            </button>
+          )}
+        </div>
+      )}
       <p className="text-xs text-[#5A5751] sm:col-span-3">Contact info only — you choose how we reach you. Never sold, ever.</p>
     </form>
   );
@@ -291,12 +316,21 @@ function MooreTab() {
   const [reorderNote, setReorderNote] = useState('');
   const { phase, pieces } = useShowcase();
   const orderRef = useRef(null);
+  // The order form can fail (0215 proved it had, silently, for the whole life of
+  // this door). When it does, the customer is walked to the channel that works
+  // -- her own message thread -- instead of being left to guess. Sterling is the
+  // reason this ref exists.
+  const messagesRef = useRef(null);
   // Take her TO the form it just filled in. This used to scrollTo(top), which
   // threw the customer to the top of the page — away from the very form the tap
   // had prefilled. The order block is no longer at the bottom, so the honest
   // move is to scroll to it by ref.
   const scrollToOrder = () => {
     try { orderRef.current?.scrollIntoView({ behavior: motionBehavior(), block: 'start' }); }
+    catch { /* no-op */ }
+  };
+  const scrollToMessages = () => {
+    try { messagesRef.current?.scrollIntoView({ behavior: motionBehavior(), block: 'start' }); }
     catch { /* no-op */ }
   };
   const onInspired = (p) => {
@@ -343,6 +377,7 @@ function MooreTab() {
             notePlaceholder="What do you want made?"
             okMessage="Sent! Shay will reach out to talk through your piece."
             prefillNotes={reorderNote}
+            fallback={{ label: 'Message Shay directly instead', onClick: scrollToMessages }}
           />
         </div>
         {/* Her house rules — her own flyer's words, agreed at the point of order. */}
@@ -364,7 +399,7 @@ function MooreTab() {
         <h3 className="font-semibold text-[#1A1815]" style={SERIF}>Sewing classes</h3>
         <div className="mt-2"><PublicClasses /></div>
       </div>
-      <div>
+      <div ref={messagesRef}>
         <h3 className="font-semibold text-[#1A1815]" style={SERIF}>Messages</h3>
         <div className="mt-2"><MyMessages /></div>
       </div>
