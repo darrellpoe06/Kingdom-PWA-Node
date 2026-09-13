@@ -19,6 +19,7 @@ import {
   READY_STATUS, READY_STATUS_ORDER,
   readinessBoard, rowForTask, patchForTask, buildCustomTask, bedroomsOf,
 } from './readiness.js';
+import { buildRoom } from './rooms.js';
 
 const ACCENT = '#2F5D50';
 const LINE = '#E8E4DC';
@@ -89,7 +90,7 @@ function Check({ status, onToggle, label }) {
 
 // ---------------------------------------------------------------------------
 
-export function ReadinessTab({ boardSlug, boardTitle, rooms = [] }) {
+export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, onAddRoom = null }) {
   const tasks = useBoardTasks();
   const write = useWriteState();
   const [view, setView] = useState('all');
@@ -98,6 +99,8 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [] }) {
   const [adding, setAdding] = useState(null);      // `${sectionId}|${group}`
   const [addText, setAddText] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
+  const [bedName, setBedName] = useState('');
+  const [roomError, setRoomError] = useState('');
   const [collapsed, setCollapsed] = useState({});
 
   const board = useMemo(
@@ -155,6 +158,29 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [] }) {
     setConfirmReset(false);
     setOpenSlug(null);
     setDraft(null);
+  };
+
+  // MEASURED 2026-09-13 on the sovereign database: property_rooms holds 0 rows
+  // across all 13 doors, so the Bedrooms section was dark on every one of them
+  // and its empty state could only point at another tab. A person standing in
+  // the apartment should not have to leave the checklist to say "there are two
+  // bedrooms". This builds the SAME row RoomsTab builds and hands it to the
+  // SAME parent handler that writes it — one write path, not a second one.
+  const addBedroom = () => {
+    const name = bedName.trim();
+    if (!name || !onAddRoom) return;
+    try {
+      const row = buildRoom(
+        { instanceId: door?.instance_id, rentalRef: door?.id, name, kind: 'bedroom' },
+        rooms,
+      );
+      setRoomError('');
+      setBedName('');
+      onAddRoom(row);
+    } catch (e) {
+      // buildRoom throws a sentence written for a person — show it, don't eat it.
+      setRoomError(e && e.message ? e.message : 'That bedroom could not be added.');
+    }
   };
 
   const openEditor = (task) => {
@@ -267,10 +293,33 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [] }) {
             }
           >
             {!isShut && sec.grouped && !bedroomsOf(rooms).length && (
-              <p className="text-[0.875rem]" style={{ color: MUTED }}>
-                No bedrooms are recorded for this door yet. Add them on the <strong style={{ color: INK }}>Rooms</strong> tab
-                and each one gets its own {sec.tasks.length}-item list here — named the way you named the room.
-              </p>
+              <div>
+                <p className="text-[0.875rem]" style={{ color: MUTED }}>
+                  No bedrooms are recorded for this door yet. Name one and it gets its own
+                  {' '}{sec.tasks.length}-item list here — and it becomes a real room on the
+                  {' '}<strong style={{ color: INK }}>Rooms</strong> tab, where its photos live.
+                </p>
+                {onAddRoom && door?.id && door?.instance_id ? (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    <input
+                      type="text"
+                      className={`${field} flex-1 min-w-[12rem] w-auto`} value={bedName}
+                      placeholder="Front bedroom"
+                      onChange={(e) => { setBedName(e.target.value); setRoomError(''); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addBedroom(); } }}
+                      aria-label="Name a bedroom in this unit"
+                    />
+                    <Btn tone="primary" onClick={addBedroom} disabled={!bedName.trim()}>Add bedroom</Btn>
+                  </div>
+                ) : (
+                  <p className="text-[0.875rem] mt-2" style={{ color: MUTED }}>
+                    Add them on the <strong style={{ color: INK }}>Rooms</strong> tab.
+                  </p>
+                )}
+                {roomError && (
+                  <p className="text-[0.8125rem] mt-2" style={{ color: '#9B2C1E' }}>{roomError}</p>
+                )}
+              </div>
             )}
 
             {!isShut && sec.groups.map((grp) => {
