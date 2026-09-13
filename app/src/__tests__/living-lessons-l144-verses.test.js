@@ -248,6 +248,89 @@ describe('L144 — THE CORRECTION, pinned hardest because it is the likeliest to
   });
 });
 
+describe('L144 — the record of erasure, told to its actual end', () => {
+  it('names the executive order and the court order by their real particulars', () => {
+    expect(l).toContain('14253');
+    expect(l).toMatch(/Angel Kelley/);
+    expect(l).toMatch(/twenty-one days|21 days/);
+  });
+  it('keeps the panel swap, which is the whole device', () => {
+    // The replacement panel is not false. That is the point: quote accurately,
+    // drop the clause — the same method L142 exhibits from Psalm 91.
+    expect(l).toMatch(/The Dirty Business of Slavery/);
+    expect(l).toMatch(/Celebrating Independence Throughout the Years/);
+    expect(l).toMatch(/Nothing on that new panel is false/);
+  });
+  it('Scripture is cited on removing markers, literally', () => {
+    expect(verse('Proverbs', 22, 28)).toBe('Remove not the ancient landmark, which thy fathers have set.');
+    expect(l).toContain('Remove not the ancient landmark, which thy fathers have set');
+    expect(verse('Deuteronomy', 27, 17)).toContain('Cursed be he that removeth his neighbour’s landmark');
+    expect(l).toContain('Cursed be he that removeth his neighbour’s landmark');
+    // The one that binds the marker to the field and to the Redeemer.
+    expect(verse('Proverbs', 23, 11)).toContain('their redeemer is mighty; he shall plead their cause with thee');
+    expect(l).toContain('their redeemer is mighty; he shall plead their cause with thee');
+  });
+
+  // THE TWO HONESTY CONSTRAINTS. Both cut against the lesson's own argument,
+  // and both are the first things a later edit would be tempted to remove.
+  it('tells the Wilcox case to its ACTUAL end, including the ruling that went against her', () => {
+    expect(l).toMatch(/UPHELD it|upheld the removal/);
+    expect(l).toMatch(/The courts did not vindicate her/);
+    // Quoting only the favourable first ruling is precisely the clause-dropping
+    // device this lesson condemns, so doing it here would be self-refuting.
+    expect(l).toMatch(/would be doing the very thing this lesson is against/);
+  });
+  it('states the distribution of harm WITHOUT asserting a proven motive', () => {
+    expect(l).toMatch(/They do not by themselves establish WHY/);
+    expect(l).toMatch(/not a proven motive/);
+    // And it must still refuse to soften the measured fact into nothing.
+    expect(l).toMatch(/needs no motive to be a fact worth naming/);
+  });
+  it('includes the other side’s stated position rather than omitting it', () => {
+    expect(l).toMatch(/performance and competence rather than race/);
+    expect(l).toMatch(/belongs in the record here rather than being left out/);
+  });
+});
+
+describe('L144 — it ends on the two ways, because the evidence was never the lesson', () => {
+  // Darrell, correcting the lesson mid-build: the point is the evil will and
+  // that what they are doing is against the Lord's will — and there are two
+  // ways according to the Word. Without this the lesson is a political brief.
+  it('says outright that the documented material is evidence, not the lesson', () => {
+    expect(l).toMatch(/It is EVIDENCE|the evidence was never the lesson/i);
+    expect(l).toMatch(/which of two ways is being walked/i);
+  });
+  it('sets the two ways from the Word rather than as a figure of speech', () => {
+    expect(verse('Deuteronomy', 30, 15)).toBe('See, I have set before thee this day life and good, and death and evil;');
+    expect(l).toContain('See, I have set before thee this day life and good, and death and evil');
+    expect(verse('Jeremiah', 21, 8)).toContain('I set before you the way of life, and the way of death');
+    expect(l).toContain('I set before you the way of life, and the way of death');
+    expect(verse('Matthew', 7, 14)).toContain('strait is the gate, and narrow is the way');
+    expect(l).toContain('strait is the gate, and narrow is the way');
+  });
+  it('warns about the way that does not feel like one — the merchant with a margin', () => {
+    expect(verse('Proverbs', 14, 12)).toBe('There is a way which seemeth right unto a man, but the end thereof are the ways of death.');
+    expect(l).toContain('There is a way which seemeth right unto a man');
+    expect(l).toMatch(/felt like a man with a margin/);
+  });
+  it('names the renaming by its own verse', () => {
+    expect(verse('Isaiah', 5, 20)).toContain('that put bitter for sweet, and sweet for bitter');
+    expect(l).toContain('that put bitter for sweet, and sweet for bitter');
+  });
+  it('answers the removed markers with the One who keeps the record', () => {
+    expect(verse('Deuteronomy', 30, 19)).toContain('I call heaven and earth to record this day against you');
+    expect(l).toContain('I call heaven and earth to record this day against you');
+    expect(l).toMatch(/erasure is not working where it counts/i);
+  });
+  it('ends in a CHOICE offered to everyone present, not a verdict on some of them', () => {
+    // A room that leaves accused will not act. This is the difference between
+    // a lesson and an indictment, and it is the thing most easily lost.
+    expect(l).toMatch(/choose you this day whom ye will serve/);
+    expect(l).toMatch(/including those who voted for what is described here/i);
+    expect(mod().facilitator.talkingPoints.join(' ')).toMatch(/leaves accused will not act/i);
+  });
+});
+
 describe('L144 — the remedy has arithmetic, and vengeance stays where it belongs', () => {
   it('Nehemiah required restoration the same day, itemised', () => {
     expect(verse('Nehemiah', 5, 7)).toContain('Ye exact usury, every one of his brother');
