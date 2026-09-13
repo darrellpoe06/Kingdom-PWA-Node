@@ -38,6 +38,7 @@
 // hook reports `supported: false` rather than throwing (unbreakable).
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toSpokenForm } from './speech-text.js';
+import { clauseSegments } from './speech-shape.js';
 
 const STORAGE_KEY = 'poe-tts-prefs';
 
@@ -117,25 +118,20 @@ export function waitForVoices(synth, { timeoutMs = 1200, stepMs = 100 } = {}) {
  * is too long. Whitespace is collapsed; empties dropped.
  */
 export function segmentText(text, maxLen = 180) {
-  if (text == null) return [];
-  const clean = String(text).replace(/\s+/g, ' ').trim();
-  if (!clean) return [];
-  // Sentence enders kept with their sentence; fall back to the whole string.
-  const sentences = clean.match(/[^.!?]+[.!?]*/g) || [clean];
-  const out = [];
-  for (const raw of sentences) {
-    const s = raw.trim();
-    if (!s) continue;
-    if (s.length <= maxLen) { out.push(s); continue; }
-    // Long sentence — wrap on word boundaries so no utterance exceeds maxLen.
-    let buf = '';
-    for (const w of s.split(' ')) {
-      if (buf && buf.length + 1 + w.length > maxLen) { out.push(buf); buf = w; }
-      else buf = buf ? `${buf} ${w}` : w;
-    }
-    if (buf) out.push(buf);
-  }
-  return out;
+  // CUT WHERE A PERSON BREATHES (DR-0381). This used to split on . ! ? and then
+  // word-wrap anything longer than maxLen at whatever word happened to cross
+  // the limit — a hard stop in the middle of a clause, which is the single most
+  // robotic thing a reader can do, because nobody breathes mid-phrase. Darrell
+  // 2026-09-13: "can we get close to humans when talking or do we still have to
+  // sound like a computer".
+  //
+  // clauseSegments prefers a real boundary (; : , and/but/so/because/which) and
+  // only falls back to the old word wrap when no boundary is in range. Every
+  // segment is still an EXACT SUBSTRING of the normalized text, which
+  // read-follow.js depends on for the follow-along highlight — it locates each
+  // segment with indexOf, so a shaped segment would silently stop highlighting.
+  // Shaping happens later, per-utterance, in toSpokenForm.
+  return clauseSegments(text, maxLen);
 }
 
 /**
