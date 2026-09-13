@@ -43,6 +43,7 @@ import { TEACH_CHANNEL, formatClock } from './teach-present.js';
 import { formatClassDate } from './church-classes.js';
 import { kjvText } from './scriptures.js';
 import { serviceKindLabel } from './service-day.js';
+import { lessonSections } from './lesson-format.js';
 
 // Re-export the shared, versioned channel + clock so callers import one module.
 export { TEACH_CHANNEL, formatClock };
@@ -795,6 +796,100 @@ export function resolveAudiencePoints(audience, age) {
 // level, every part, not just the opener.
 const LEVEL_KEY_TO_BAND = { child: 'child', teen: 'teen', senior: 'adult', standard: 'adult' };
 
+// -----------------------------------------------------------------------------
+// THE LESSON'S OWN WORDS, ROUTED TO THE PART THAT TEACHES THEM
+// -----------------------------------------------------------------------------
+// Darrell 2026-09-13, standing behind the pulpit looking at Part 3 of 9:
+// "How can there be no presenters notes with all this content?! ... Context and
+// competence is needed!"
+//
+// He was right, and it was measurable rather than a matter of taste. The old
+// build attached notes to a scene ONLY when the run-of-show segment's NAME
+// matched one of four regexes (big idea / deeper / reflect / takeaway). On L142
+// that meant six of nine parts rendered the empty-state card while the lesson
+// itself held ~14,000 characters of authored teaching -- and `module.lesson`,
+// the single largest asset a lesson has, was never read by this adapter at all.
+// A speaker advancing to "The method" got a one-line slide and a blank panel.
+//
+// So the lesson is split into its own points-with-prose (lessonSections) and
+// each section is routed to the part that teaches it. Matching is by the
+// author's words in both places -- the run-of-show segment name against the
+// section's lead clause -- and everything unmatched flows to the most recent
+// matched part, which keeps document order and guarantees that NOT ONE section
+// is dropped. A lesson with no headings yields one section, which lands on the
+// first teaching part rather than vanishing.
+const STOPWORDS = new Set(['the', 'a', 'an', 'and', 'or', 'of', 'to', 'in', 'on', 'it', 'is',
+  'for', 'with', 'that', 'this', 'they', 'we', 'us', 'you', 'his', 'her', 'their', 'our',
+  'be', 'as', 'at', 'by', 'from', 'so', 'but', 'not', 'any', 'all', 'why', 'how', 'what']);
+
+function keyWords(text) {
+  return new Set(String(text || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/).filter((w) => w.length > 2 && !STOPWORDS.has(w)));
+}
+
+// How well a run-of-show segment name and a section lead clause name the same
+// thing: shared significant words over the smaller of the two vocabularies.
+export function nameAffinity(a, b) {
+  const A = keyWords(a); const B = keyWords(b);
+  if (!A.size || !B.size) return 0;
+  let shared = 0;
+  A.forEach((w) => { if (B.has(w)) shared += 1; });
+  return shared / Math.min(A.size, B.size);
+}
+
+/**
+ * allocateSections(sections, segmentNames) -> array (one entry per segment) of
+ * the sections that part should teach. Order preserving, total, deterministic:
+ * every section lands on exactly one segment and none is lost.
+ */
+export function allocateSections(sections, segmentNames) {
+  const segs = Array.isArray(segmentNames) ? segmentNames : [];
+  const out = segs.map(() => []);
+  const list = Array.isArray(sections) ? sections : [];
+  if (!segs.length || !list.length) return out;
+  // Pass 1 — pin a section to a segment when both name the same thing. Each
+  // segment claims at most one anchor, and anchors must move forward through
+  // the lesson, so a later part can never claim an earlier section.
+  const anchorOf = new Array(segs.length).fill(-1);
+  let from = 0;
+  for (let i = 0; i < segs.length; i += 1) {
+    let best = -1; let bestScore = 0.5; // needs a real overlap, not one stray word
+    for (let j = from; j < list.length; j += 1) {
+      const score = nameAffinity(segs[i], list[j].label || list[j].heading);
+      if (score > bestScore) { bestScore = score; best = j; }
+    }
+    if (best >= 0) { anchorOf[i] = best; from = best + 1; }
+  }
+  // Pass 2 — spread everything else EVENLY between the anchors. Flowing each
+  // unmatched section to the nearest earlier anchor was the obvious rule and it
+  // was wrong in practice: on L142 it put nine of eleven sections on two parts
+  // and left five parts empty, which is the same blank panel in a new costume.
+  // So the anchors are fixed points and the sections BETWEEN two anchors are
+  // dealt evenly across the parts between them, in order. Every section still
+  // lands exactly once; now every part that can have content does.
+  const pairs = [];
+  anchorOf.forEach((secIdx, segIdx) => { if (secIdx >= 0) pairs.push([segIdx, secIdx]); });
+  const bounds = [[-1, -1], ...pairs, [segs.length, list.length]];
+  for (let b = 0; b < bounds.length - 1; b += 1) {
+    const [aSeg, aSec] = bounds[b];
+    const [zSeg, zSec] = bounds[b + 1];
+    if (aSec >= 0 && aSec < list.length) out[aSeg].push(list[aSec]);   // the anchor itself
+    const gapSecs = [];
+    for (let j = aSec + 1; j < zSec; j += 1) gapSecs.push(j);
+    if (!gapSecs.length) continue;
+    const gapSegs = [];
+    for (let i = Math.max(0, aSeg + 1); i < Math.min(zSeg, segs.length); i += 1) gapSegs.push(i);
+    const targets = gapSegs.length ? gapSegs : [aSeg >= 0 ? aSeg : Math.min(zSeg, segs.length - 1)];
+    gapSecs.forEach((j, k) => {
+      const t = targets[Math.min(targets.length - 1, Math.floor((k * targets.length) / gapSecs.length))];
+      out[t].push(list[j]);
+    });
+  }
+  // Document order inside each part, whatever route a section took to get here.
+  out.forEach((g) => g.sort((x, y) => list.indexOf(x) - list.indexOf(y)));
+  return out;
+}
+
 export function lessonPresentable(module, opts = {}) {
   const m = module || {};
   const handsOnLabel = opts.handsOnLabel || 'In the app';
@@ -850,6 +945,17 @@ export function lessonPresentable(module, opts = {}) {
   };
 
   const ros = parseRunOfShow(m.facilitator?.howToRun);
+  // THE LESSON'S OWN TEACHING, ROUTED TO THE PART THAT TEACHES IT. `m.lesson`
+  // is the largest thing a lesson has and this adapter never read it, which is
+  // why most parts rendered "No presenter notes for this one" while the lesson
+  // held thousands of words (Darrell 2026-09-13). Split into the author's own
+  // points-with-prose, then dealt across the run-of-show — total and in order,
+  // so nothing is summarized, invented, or dropped (DR-0076).
+  const lessonSecs = lessonSections(m.lesson || '');
+  const secsBySeg = allocateSections(lessonSecs, ros.map((seg) => seg.name));
+  const benefits = Array.isArray(m.benefits) ? m.benefits : [];
+  const quizQs = Array.isArray(m.quiz?.questions) ? m.quiz.questions : [];
+  const stories = Array.isArray(m.stories) ? m.stories : [];
   // Which segment carries the actual teaching / go-deeper / discussion, by name.
   const isBigIdea = (name) => /big idea|the core|main|^teach/i.test(name || '');
   const isDeeper = (name) => /deeper|dig|explore|unpack/i.test(name || '');
@@ -891,6 +997,33 @@ export function lessonPresentable(module, opts = {}) {
       }
       // Talking points ride as presenter-only notes on the big-idea beat.
       if (big && tp.length) notes.push({ kind: 'list', heading: 'Say this', items: tp });
+      // THE PART'S OWN TEACHING — the lesson's words for exactly this beat.
+      (secsBySeg[i] || []).forEach((sec) => {
+        const body = [sec.heading, sec.body].filter(Boolean).join(' ').trim();
+        if (body) notes.push({ kind: 'body', heading: sec.label || 'The lesson', body });
+      });
+      // The illustration a speaker actually reaches for, on the beat that teaches.
+      if (big && stories.length) {
+        stories.forEach((st) => {
+          const body = String(st?.body || '').trim();
+          if (body) notes.push({ kind: 'body', heading: `Picture this — ${st.title || st.heading || 'the story'}`, body });
+        });
+      }
+      if (isReflect(seg.name) && quizQs.length) {
+        notes.push({ kind: 'list', heading: 'Check understanding', items: quizQs.map((q) => q.q).filter(Boolean) });
+      }
+      if (isTakeaway(seg.name) && benefits.length) {
+        notes.push({ kind: 'list', heading: 'What they walk out with', items: benefits });
+      }
+      // NO PART IS EVER BLANK. Every run-of-show segment carries the author's
+      // own detail for that beat; when nothing else routed here, that detail IS
+      // the note. The empty-state card is for a lesson with no content at all,
+      // not for a part the router happened to skip.
+      if (!notes.length) {
+        const fallback = String(seg.detail || '').trim();
+        if (fallback) notes.push({ kind: 'body', heading: `This beat — ${seg.name || 'the part'}`, body: fallback });
+        else if (tp.length) notes.push({ kind: 'list', heading: 'Say this', items: tp });
+      }
       // The Scriptures this beat CITES -> shown verbatim on the slide (resolved from the
       // sovereign KJV corpus in AudienceSlide), so the room reads the Word directly.
       const citedRefs = teachingFull ? scriptureRefsInText(teachingFull[baseBand] || '') : [];
@@ -955,6 +1088,17 @@ export function lessonPresentable(module, opts = {}) {
       notes.push({ kind: 'body', heading: 'The teaching — say it in your own words', body: fullText });
     }
     if (tp.length) notes.push({ kind: 'list', heading: 'Say this', items: tp });
+    // THE SAME LAW ON THE NO-RUN-OF-SHOW PATH. Six lessons author no timed
+    // segments, and this branch never read `m.lesson` either — so their whole
+    // teaching (ll132 alone holds 31 sections) was dropped from the deck
+    // exactly like the routed path dropped it. Found by surface-hollow-guard on
+    // its second run, which is the entire point of writing the gate.
+    lessonSecs.forEach((sec) => {
+      const body = [sec.heading, sec.body].filter(Boolean).join(' ').trim();
+      if (body) notes.push({ kind: 'body', heading: sec.label || 'The lesson', body });
+    });
+    if (dp.length) notes.push({ kind: 'list', heading: 'Ask the room', items: dp });
+    if (benefits.length) notes.push({ kind: 'list', heading: 'What they walk out with', items: benefits });
     scenes = [
       titleScene, // the standing title background, then the lesson
       {

@@ -57,6 +57,36 @@ const MARKER_RES = [
 // number is rendered beside it (pinned by the reconstruction test).
 const CAPS_LEAD = /^([A-Z][A-Z'’\- ]{4,68}?)([.:,—])\s/;
 
+// AND THE SAME CLAUSE WHEN IT STANDS ALONE AS ITS OWN SENTENCE.
+//
+// The pass above only ever fired on a lead clause that keeps its prose in the
+// SAME sentence -- "SO THE PRACTICAL ANSWER: the thing to do is" -- because it
+// needs the punctuation to be followed by a space. The house's most common
+// form closes with a FULL STOP ("THE OCCASION. A friend of this house set out
+// his position..."), and sentences() cuts exactly there, handing the detector
+// the bare fragment "THE OCCASION." with nothing after the period to match.
+// So the commonest heading in the corpus was the one form that could never be
+// seen, which is why a 4,777-character lesson reported a single point (Darrell
+// 2026-09-13, from the pulpit: "1 point for the whole lesson?! Very
+// unlikely!!!"). Measured, not assumed: 60 of 145 lessons scored ZERO points
+// and 93 scored one or none before this.
+//
+// Same narrowness as above, plus two guards that keep a SHOUTED line out: the
+// clause must be 2-9 words, and it must actually HEAD something -- the next
+// sentence has to be ordinary prose with lower-case in it. A shout that ends a
+// passage heads nothing and stays a line.
+const CAPS_ALONE = /^([A-Z][A-Z'’\-, ]{4,68})([.:])$/;
+
+function capsHeadingAlone(sentence, next) {
+  const m = CAPS_ALONE.exec(String(sentence).trim());
+  if (!m) return false;
+  const clause = m[1];
+  if (!/[A-Z]{2,}\s+[A-Z]/.test(clause)) return false;          // two capitalised words
+  const words = clause.trim().split(/\s+/).filter(Boolean);
+  if (words.length < 2 || words.length > 9) return false;        // a heading, not a shout
+  return /[a-z]/.test(String(next || ''));                       // it must head real prose
+}
+
 const MAX_LINE = 260; // chars per breath line — one or two sentences, phone-comfortable
 
 // Split normalized text into sentences WITHOUT losing a character: cut after
@@ -150,7 +180,8 @@ export function formatLessonText(text) {
   const hasExplicit = sents.some((x) => markerAt(x));
   let auto = 0;
 
-  for (const sent of sents) {
+  for (let si = 0; si < sents.length; si += 1) {
+    const sent = sents[si];
     const mark = markerAt(sent);
     if (mark) {
       flush();
@@ -158,7 +189,7 @@ export function formatLessonText(text) {
       items.push({ kind: 'heading', n: mark.n, text: sent });
       continue;
     }
-    if (!hasExplicit && capsLeadAt(sent)) {
+    if (!hasExplicit && (capsLeadAt(sent) || capsHeadingAlone(sent, sents[si + 1]))) {
       flush();
       auto += 1;
       sectionCount += 1;
@@ -245,4 +276,46 @@ export function lessonPoints(text) {
  */
 export function lessonPointCount(text) {
   return lessonPoints(text).length;
+}
+
+/**
+ * lessonSections(text) — the lesson broken into its POINTS WITH THEIR PROSE.
+ *
+ * lessonPoints() returns the headings alone, which is all a chip row or a jump
+ * list needs. A presenter needs the other half: the words that belong UNDER
+ * each heading, so the part of the deck called "The method" can hand the
+ * speaker the lesson's own paragraphs on the method instead of an empty panel
+ * (Darrell 2026-09-13, from the pulpit: "How can there be no presenters notes
+ * with all this content?!"). Measured before building: on L142 six of nine
+ * parts carried ZERO notes while the lesson itself held ~14,000 characters.
+ *
+ * Returns [{ n, label, heading, body }] in document order, where `body` is the
+ * joined prose between this heading and the next. Any prose BEFORE the first
+ * heading is returned as a leading section with n = 0 and no heading, so not
+ * one character of the lesson is dropped — pinned by a reconstruction test the
+ * same way formatLessonText is.
+ */
+export function lessonSections(text) {
+  const { items } = formatLessonText(text);
+  if (!items.length) return [];
+  const out = [];
+  let cur = { n: 0, label: '', heading: '', lines: [] };
+  const push = () => {
+    if (!cur.heading && !cur.lines.length) return;
+    out.push({ n: cur.n, label: cur.label, heading: cur.heading, body: cur.lines.join(' ').trim() });
+  };
+  const labelOf = (heading) => {
+    const pts = lessonPoints(heading);
+    return pts.length ? pts[0].label : heading.replace(/[.:,—\s]+$/, '').trim();
+  };
+  items.forEach((it) => {
+    if (it.kind === 'heading') {
+      push();
+      cur = { n: it.n, label: labelOf(it.text), heading: it.text, lines: [] };
+      return;
+    }
+    cur.lines.push(it.text);
+  });
+  push();
+  return out;
 }
