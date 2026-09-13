@@ -156,6 +156,15 @@ export function createTableSync(spec) {
     mutableDelta = false,
     // record_events.record_kind used for deletion reconciliation ('transaction').
     eventsKind = null,
+    // conflictKey — comma-separated columns of a UNIQUE index (e.g.
+    // 'instance_id,slug'). When set, upsert() can heal a write whose local row
+    // never linked to the cloud: it resolves the existing row by these columns
+    // and UPDATEs it, or INSERTs when none exists. Left null, upsert() is a
+    // plain insert. RESOLVE-then-write, deliberately NOT PostgREST ON CONFLICT:
+    // rentals' unique index is PARTIAL (WHERE slug IS NOT NULL), which the
+    // on_conflict arbiter cannot target — a resolve+update sidesteps that and
+    // is exact.
+    conflictKey = null,
   } = spec;
 
   async function upload(item) {
@@ -182,6 +191,52 @@ export function createTableSync(spec) {
       return { skipped: 'insert-error', error };
     }
     return { uploaded: true, remoteId: data.id, row: data };
+  }
+
+  // upsert(item) — write a row that MAY already exist in the cloud under the
+  // conflictKey (e.g. a family member edits a door whose row another device
+  // created, or whose local copy never linked). Resolves by the conflict
+  // columns and UPDATEs the existing row, else INSERTs. This is the self-heal
+  // path: an edit to a never-linked row no longer silently vanishes. No-op to a
+  // plain insert when the table declares no conflictKey.
+  async function upsert(item) {
+    if (!conflictKey) return upload(item);
+    const session = await currentSession();
+    if (!session) return { skipped: 'signed-out' };
+    let tenantId;
+    try {
+      tenantId = await getTenantId();
+    } catch (e) {
+      console.warn(`[table-sync:${remoteTable}] tenant lookup failed:`, e);
+      return { skipped: 'no-tenant', error: e };
+    }
+    const row = toRow(item, { tenantId, userId: session.user.id });
+    const cols = conflictKey.split(',').map((c) => c.trim()).filter(Boolean);
+    let q = supabase.from(remoteTable).select('id');
+    for (const c of cols) q = q.eq(c, row[c]);
+    const { data: found, error: selErr } = await q.limit(1).maybeSingle();
+    if (selErr) {
+      console.warn(`[table-sync:${remoteTable}] upsert resolve failed:`, selErr);
+      return { skipped: 'resolve-error', error: selErr };
+    }
+    if (found && found.id) {
+      const { error } = await supabase
+        .from(remoteTable)
+        .update({ ...row, updated_at: new Date().toISOString() })
+        .eq('id', found.id);
+      if (error) {
+        console.warn(`[table-sync:${remoteTable}] upsert update failed:`, error);
+        return { skipped: 'update-error', error };
+      }
+      return { upserted: true, updated: true, remoteId: found.id };
+    }
+    const { data, error } = await withUploadRetry(() =>
+      supabase.from(remoteTable).insert(row).select().single());
+    if (error) {
+      console.warn(`[table-sync:${remoteTable}] upsert insert failed:`, error);
+      return { skipped: 'insert-error', error };
+    }
+    return { upserted: true, inserted: true, remoteId: data.id, row: data };
   }
 
   async function updateRow(id, patch) {
@@ -555,7 +610,7 @@ export function createTableSync(spec) {
     return { merged: [...base, ...preserved], uploadFailures: failedUploads.length };
   }
 
-  return { localKey, remoteTable, upload, updateRow, deleteRow, deleteRows, fetchAll, subscribe, initialSync };
+  return { localKey, remoteTable, upload, upsert, updateRow, deleteRow, deleteRows, fetchAll, subscribe, initialSync };
 }
 
 // -----------------------------------------------------------------------------
