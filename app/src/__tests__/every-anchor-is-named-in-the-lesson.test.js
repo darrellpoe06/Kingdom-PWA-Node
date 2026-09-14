@@ -77,7 +77,7 @@ const OWED = {
   // This week's lessons (L141+), measured 2026-09-14 after the naming pass:
   'll141-separate-and-connect-working-through-issues-studying-to-be-approved-tempted-versus-tried-and-how-we-handle-each-other-and-enemies': 1,
   'll145-i-will-not-go-out-free-the-bondservant-the-price-and-the-ear-at-the-door': 11,
-  'll146-he-said-it-first-what-it-sounds-like-when-yahweh-tells-you-how-he-feels': 29,
+  'll146-he-said-it-first-what-it-sounds-like-when-yahweh-tells-you-how-he-feels': 26,
   'll147-the-due-he-is-owed-every-place-the-word-shows-jesus-worshipped-and-the-one-thing-that-never-happens': 23,
   'll148-remember-is-a-verb-what-the-word-says-about-his-knowing-his-withholding-and-the-sea': 15,
   'll149-cultural-competency-the-same-word-in-three-mouths-and-the-man-nobody-believed': 32,
