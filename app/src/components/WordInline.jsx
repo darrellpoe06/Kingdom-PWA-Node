@@ -22,11 +22,25 @@
 //
 // A chip in running text keeps the line rhythm (negative vertical margin) while
 // its hit area still clears the 36px house floor (Pattern 2g.2).
+//
+// REFS BELOW — THE LESSON PROSE READS CLEAN (Darrell, 2026-09-14, on the
+// living lessons with his elderly readers in mind: "Don't block the lesson
+// words... just have them below each section they refer to like in the
+// storyline section... scripture stays green goes to the bottom of that
+// section that it was referring to." And: "No tabs, none ever — it's not good,
+// undermines readers."). The boxed chip mid-sentence WAS the tab. With
+// `refsBelow` the paragraph renders as plain flowing text — the reference stays
+// in the sentence as the author's own words, untouched — and every reference
+// it named becomes a GREEN chip in a strip beneath the paragraph (VerseChips,
+// tone "word"), each openable on its own, all opened by the page-top Show the
+// Word switch. Same open model, same verbatim KJV, same still screen; only the
+// control moved out of the sentence. `alsoRefs` lets a caller add references
+// the prose stands on but did not spell out (a story's own verse line).
 // =============================================================================
 import React, { useId } from 'react';
 import { verseText } from '../lib/bible-kjv.js';
 import { segmentByReferences } from '../lib/verse-refs.js';
-import { VerseBlock, useOpenRefs } from './VerseChips.jsx';
+import VerseChips, { VerseBlock, useOpenRefs } from './VerseChips.jsx';
 import { sortRefs } from '../lib/scripture-order.js';
 
 const CHIP = 'inline-flex items-center align-baseline min-h-[36px] -my-2 px-1.5 border text-[0.8em] leading-none focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -40,7 +54,8 @@ const CHIP = 'inline-flex items-center align-baseline min-h-[36px] -my-2 px-1.5 
 // keyboard jump moves focus to tabIndex -1. Dropping them while adding chips
 // would trade one working surface for another.
 export default function WordInline({
-  text, as: Tag = 'p', className = '', style, load = verseText, children, prefix = null, ...rest
+  text, as: Tag = 'p', className = '', style, load = verseText, children, prefix = null,
+  refsBelow = false, alsoRefs = null, ...rest
 }) {
   const source = typeof text === 'string' ? text : (typeof children === 'string' ? children : '');
   const segments = segmentByReferences(source);
@@ -50,8 +65,23 @@ export default function WordInline({
   // open beneath it read in timeline-then-flow order (lib/scripture-order.js).
   const named = [];
   for (const seg of segments) if (seg.type === 'ref' && !named.includes(seg.value)) named.push(seg.value);
+  if (refsBelow && Array.isArray(alsoRefs)) {
+    for (const r of alsoRefs) if (typeof r === 'string' && r.trim() && !named.includes(r.trim())) named.push(r.trim());
+  }
   const refs = sortRefs(named);
   const blockId = (r) => `${base}-${refs.indexOf(r)}`;
+
+  if (refsBelow) {
+    // Clean prose, then the strip. Nothing interactive inside the sentence.
+    return (
+      <>
+        <Tag className={className} style={style} {...rest}>{prefix}{source}</Tag>
+        {refs.length > 0 && (
+          <VerseChips refs={refs} load={load} tone="word" lead className="mt-1.5" data-testid="section-refs" />
+        )}
+      </>
+    );
+  }
 
   if (!segments.some((s) => s.type === 'ref')) {
     return <Tag className={className} style={style} {...rest}>{prefix}{source}</Tag>;

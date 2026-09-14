@@ -110,19 +110,43 @@ export function useOpenRefs() {
   return [isOpen, toggle, all];
 }
 
+// TWO TONES, ONE BEHAVIOUR. `paper` is the original chip (the map, the
+// library). `word` is the GREEN chip Darrell pointed at on the storyline's
+// "— Genesis 1:1" line (2026-09-14: "scripture stays green goes to the bottom
+// of that section that it was referring to") — the same button, same 36px
+// floor, same open model, coloured as the Word is coloured everywhere else on
+// the page (#5A6E3D). `lead` draws the storyline's em dash ahead of the row so
+// a strip under a section reads as "— these are the verses it stood on".
+const TONES = {
+  paper: {
+    open: 'bg-[#5A6E3D] text-white border-[#5A6E3D]',
+    closed: 'bg-[#FAF8F4] text-[#1A1815] border-[#C9C2B6] hover:border-[#1A1815]',
+  },
+  word: {
+    open: 'bg-[#5A6E3D] text-white border-[#5A6E3D]',
+    closed: 'bg-[#FAF8F4] text-[#5A6E3D] border-[#5A6E3D] hover:bg-[#5A6E3D]/[0.12]',
+  },
+};
+
 /**
  * A row of reference chips. Each is a toggle; each open one renders its verse
- * beneath the row, in chip order. `load` is injectable for tests.
+ * beneath the row, in chip order. `load` is injectable for tests. `tone` picks
+ * paper (default) or word (green); `lead` draws the storyline's "—" first;
+ * any `data-*` attribute passes through to the wrapper.
  */
-export default function VerseChips({ refs = [], load = verseText, className = '' }) {
+export default function VerseChips({ refs = [], load = verseText, className = '', tone = 'paper', lead = false, ...rest }) {
   const [isOpen, toggle, all] = useOpenRefs();
   const base = useId();
   const list = sortRefs((refs || []).filter(Boolean));
   const blockId = (i) => `${base}-verse-${i}`;
+  const look = TONES[tone] || TONES.paper;
 
   return (
-    <div className={className}>
-      <div className="flex flex-wrap gap-1">
+    <div className={className} {...rest}>
+      <div className="flex flex-wrap items-center gap-1">
+        {lead && list.length > 0 && (
+          <span aria-hidden="true" className="text-[0.6875rem] text-[#5A6E3D] mr-0.5" style={serif}>—</span>
+        )}
         {list.map((r, i) => {
           const open = isOpen(r);
           const resolvable = Boolean(parseRef(r));
@@ -133,10 +157,7 @@ export default function VerseChips({ refs = [], load = verseText, className = ''
               aria-expanded={open}
               aria-controls={open ? blockId(i) : undefined}
               aria-label={`${open ? 'Close' : 'Open'} ${r}${resolvable ? '' : ' (not a reference this app can open)'}`}
-              className={`px-2 py-1 min-h-[36px] text-[0.625rem] border focus:outline focus:outline-2 focus:outline-[#B85838] ${
-                open
-                  ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]'
-                  : 'bg-[#FAF8F4] text-[#1A1815] border-[#C9C2B6] hover:border-[#1A1815]'}`}
+              className={`px-2 py-1 min-h-[36px] text-[0.625rem] border focus:outline focus:outline-2 focus:outline-[#B85838] ${open ? look.open : look.closed}`}
             >{r}</button>
           );
         })}
