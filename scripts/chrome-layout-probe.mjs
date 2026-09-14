@@ -173,7 +173,7 @@ try {
     if (failures === before) console.log(`layout ok  ${view}@${width}px — h1 ${m.h1.w}x${m.h1.h}px, no overflow, no overlap`);
   }
   // ---------------------------------------------------------------------------
-  // LESSON READING pass (DR-0404) — the lesson column is MEASURED at the width
+  // LESSON READING pass (DR-0405) — the lesson column is MEASURED at the width
   // a reader gets, and nothing is boxed inside a sentence.
   //
   // Darrell 2026-09-14, building for elderly church founders: "The width of the

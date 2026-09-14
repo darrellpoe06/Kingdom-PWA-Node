@@ -40,7 +40,7 @@ describe('chrome-layout-probe output is readable', () => {
   });
 
   it('every pass decides per case, against a snapshot taken before its checks', () => {
-    // Three passes (chrome + lesson reading [DR-0404] + text-scale), so three
+    // Three passes (chrome + lesson reading [DR-0405] + text-scale), so three
     // snapshot/compare pairs. A fourth pass added without its own pair fails here.
     const snapshots = [...SRC.matchAll(/const before = failures;/g)];
     const compares = [...SRC.matchAll(/if \(failures === before\)/g)];
