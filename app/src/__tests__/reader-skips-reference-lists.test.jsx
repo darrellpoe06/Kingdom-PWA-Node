@@ -129,11 +129,27 @@ describe('WordInline — a reference that LOOKS tappable actually opens', () => 
   });
 });
 
+const readSrc = () => {
+  const { readFileSync } = require('node:fs');
+  const { join, dirname } = require('node:path');
+  const { fileURLToPath } = require('node:url');
+  const here = dirname(fileURLToPath(import.meta.url));
+  return readFileSync(join(here, '..', 'components', 'ChurchLearn.jsx'), 'utf8');
+};
+
 describe('the Anchor line in the full-screen lesson view is wired to WordInline', () => {
   // Source-pinned, because the defect was that this ONE call site rendered the
   // references as plain text while every other surface made them tappable. A
   // render test on ChurchLearn would need the whole Learn tree mounted; what
   // actually regressed was the wiring, so the wiring is what is pinned.
+  // RE-POINTED 2026-09-14, not weakened. The original pinned that the anchor's
+  // references were wired to WordInline rather than printed as plain text, which
+  // was right. Darrell then moved the LIST itself: "Put the list of links at the
+  // end of lessons... so it doesn't take away from the lessons." So the refs are
+  // still tappable — they are just tappable at the FOOT of the lesson now, under
+  // "The Word we stood on", the same name the presented deck uses. The property
+  // being guarded (a reference that looks tappable IS tappable) is unchanged;
+  // only where it holds has moved.
   it('does not render the anchor references as bare interpolated text', async () => {
     const { readFileSync } = await import('node:fs');
     const { join, dirname } = await import('node:path');
@@ -141,6 +157,24 @@ describe('the Anchor line in the full-screen lesson view is wired to WordInline'
     const here = dirname(fileURLToPath(import.meta.url));
     const src = readFileSync(join(here, '..', 'components', 'ChurchLearn.jsx'), 'utf8');
     expect(src).not.toContain('<strong>Anchor — {m.anchor.ref}:</strong>');
-    expect(src).toMatch(/WordInline[\s\S]{0,200}Anchor — \$\{m\.anchor\.ref\}/);
+    // The list is rendered through WordInline at the foot of the lesson.
+    expect(src).toMatch(/The Word we stood on[\s\S]{0,900}<WordInline[\s\S]{0,120}text=\{m\.anchor\.ref\}/);
+  });
+
+  it('does NOT print the long list up in the teaching block any more', () => {
+    // The defect he reported on 2026-09-14: the list still sat fourth of six
+    // blocks, before the teaching, in the reading view — the deck had been
+    // fixed in #1567 and the lesson had not. The anchor line keeps the THEME,
+    // which is teaching; the eighty semicolons go to the end.
+    const src = readSrc();
+    expect(src).not.toMatch(/text=\{`Anchor — \$\{m\.anchor\.ref\}/);
+    expect(src).toMatch(/text=\{`Anchor — \$\{m\.anchor\.theme/);
+  });
+
+  it('says how many references are down there, derived rather than typed', () => {
+    // "Say 30 scripture references at the end... Or whatever number."
+    const src = readSrc();
+    expect(src).toMatch(/referencesIn\(m\.anchor\.ref\)\.length/);
+    expect(src).toContain("Scripture {anchorRefCount === 1 ? 'reference' : 'references'}");
   });
 });

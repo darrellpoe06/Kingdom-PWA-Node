@@ -59,6 +59,7 @@ import { formatLessonText, lessonPoints } from '../lib/lesson-format.js';
 import { walkState, stepParagraph, stepPoint } from '../lib/lesson-walk.js';
 import { useOpenWithTheWord } from '../lib/show-the-word.js';
 import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
+import { referencesIn } from '../lib/verse-refs.js';
 import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload, courseSharePayload, sectionSharePayload } from '../lib/lesson-links.js';
 import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture-matrix.js';
 import CopyButton from './CopyButton.jsx';
@@ -1746,12 +1747,25 @@ function CourseView({
                       opens each reference in place, which is the promise the
                       rest of the app already makes ("Tap any verse reference to
                       read it right here"). */}
+                  {/* THE LONG LIST MOVED TO THE END (Darrell 2026-09-14).
+                      "Put the list of links at the end of lessons for reference
+                      purposes... so it doesn't take away from the lessons....
+                      keep referring to the Word and even keep the Word in the
+                      lessons like we do -- just the long list of links that are
+                      together." A lesson's anchor carries every reference the
+                      WHOLE lesson stands on (L149's is eighty), and printed here
+                      -- fourth of six blocks, before the teaching -- it is a wall
+                      of green semicolons standing between the reader and the
+                      point. So the THEME stays (that is teaching) and the LIST
+                      goes to "The Word we stood on" at the foot of the lesson,
+                      where it competes with nothing. In-line Scripture
+                      throughout is untouched, exactly as he asked. */}
                   <WordInline
-                    text={`Anchor — ${m.anchor.ref}: ${m.anchor.theme || ''}`}
+                    text={`Anchor — ${m.anchor.theme || ''}`}
                     className="text-[0.6875rem] text-[#5A6E3D] flex-1"
                     style={{ fontFamily: '"Fraunces", serif' }}
                   />
-                  {sec(`Anchor — ${m.anchor.ref}`, m.anchor.theme || '')}
+                  {sec('Anchor', m.anchor.theme || '')}
                 </div>
               )}
                 </>);
@@ -1852,6 +1866,37 @@ function CourseView({
                   />
                 </div>
               )}
+
+              {/* THE WORD WE STOOD ON — the full reference list, at the END.
+                  The reading view's half of the move Darrell asked for on
+                  2026-09-14; the presented deck got the same closing slide in
+                  #1567 under the same name, so one concept lands on both
+                  surfaces rather than two that drift. Every reference is
+                  tappable here (the DR-0391 promise), and this is the only
+                  place the whole list appears. */}
+              {m.anchor?.ref && (() => {
+                const anchorRefCount = referencesIn(m.anchor.ref).length;
+                return (
+                <div className="mt-3 border-t border-[#E6E1D7] pt-2">
+                  <div className="mb-1">
+                    {/* THE COUNT IS SAID OUT LOUD (Darrell 2026-09-14: "Say 30
+                        scripture references at the end... Or whatever number").
+                        DERIVED from the list, never typed: referencesIn()
+                        de-duplicates, so the number is what a reader would get
+                        counting them, and it cannot drift from what is shown.
+                        Singular reads correctly for a one-reference lesson. */}
+                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">
+                      The Word we stood on — {anchorRefCount} Scripture {anchorRefCount === 1 ? 'reference' : 'references'}
+                    </div>
+                  </div>
+                  <WordInline
+                    text={m.anchor.ref}
+                    className="text-[0.6875rem] text-[#5A6E3D]"
+                    style={{ fontFamily: '"Fraunces", serif' }}
+                  />
+                </div>
+                );
+              })()}
 
               {/* Facilitator run-of-show (Governor-revealed) — the lesson-flow
                   standard: the same five-stage arc the learner walks, but TIMED
