@@ -31,8 +31,16 @@ import { sortRefs } from '../lib/scripture-order.js';
 
 const CHIP = 'inline-flex items-center align-baseline min-h-[36px] -my-2 px-1.5 border text-[0.8em] leading-none focus:outline focus:outline-2 focus:outline-[#B85838]';
 
+// `prefix` is rendered INSIDE the tag ahead of the prose — a numbered-section
+// badge, a label — so a caller that already owns chrome around its paragraph
+// does not have to choose between that chrome and the Word opening in place.
+// Everything else (`data-*`, `tabIndex`, `id`) passes straight through, because
+// those attributes are load-bearing at the call sites: the speaker index scrolls
+// to data-point-index, the paragraph stepper reads data-para-index, and a
+// keyboard jump moves focus to tabIndex -1. Dropping them while adding chips
+// would trade one working surface for another.
 export default function WordInline({
-  text, as: Tag = 'p', className = '', style, load = verseText, children,
+  text, as: Tag = 'p', className = '', style, load = verseText, children, prefix = null, ...rest
 }) {
   const source = typeof text === 'string' ? text : (typeof children === 'string' ? children : '');
   const segments = segmentByReferences(source);
@@ -46,11 +54,12 @@ export default function WordInline({
   const blockId = (r) => `${base}-${refs.indexOf(r)}`;
 
   if (!segments.some((s) => s.type === 'ref')) {
-    return <Tag className={className} style={style}>{source}</Tag>;
+    return <Tag className={className} style={style} {...rest}>{prefix}{source}</Tag>;
   }
   return (
     <>
-      <Tag className={className} style={style}>
+      <Tag className={className} style={style} {...rest}>
+        {prefix}
         {segments.map((seg, i) => (seg.type === 'text' ? (
           <React.Fragment key={i}>{seg.value}</React.Fragment>
         ) : (

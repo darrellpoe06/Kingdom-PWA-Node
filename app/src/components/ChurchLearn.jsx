@@ -90,6 +90,7 @@ import { useHistoryValue } from '../lib/nav-history.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import UiIcon from './UiIcon.jsx';
 import WordInline from './WordInline.jsx';
+import { anchorIsRun } from '../lib/verse-refs.js';
 import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 
 const fmtDate = formatClassDate;
@@ -599,18 +600,18 @@ export function LessonProse({ text, className = 'text-xs text-[#1A1815]' }) {
           // and the paragraph stepper's landmark. tabIndex -1 so a jump can move
           // FOCUS there too, not just the scroll position — a speaker using a
           // switch or a keyboard needs the caret to follow their eyes.
-          <p
+          <WordInline
             key={i}
+            as="p"
+            text={it.text}
             data-point-index={i}
             data-point-n={it.n}
             tabIndex={-1}
             className={`font-semibold ${i === 0 ? '' : 'mt-3'} scroll-mt-24`}
-          >
-            <span aria-hidden="true" className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 mr-1.5 border border-[#1A1815] bg-[#1A1815] text-white text-[0.625rem] font-bold align-middle">{it.n}</span>
-            {it.text}
-          </p>
+            prefix={<span aria-hidden="true" className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 mr-1.5 border border-[#1A1815] bg-[#1A1815] text-white text-[0.625rem] font-bold align-middle">{it.n}</span>}
+          />
         ) : (
-          <p key={i} data-para-index={i} className="mt-1.5 scroll-mt-24">{it.text}</p>
+          <WordInline key={i} as="p" text={it.text} data-para-index={i} className="mt-1.5 scroll-mt-24" />
         )
       ))}
     </div>
@@ -916,9 +917,12 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
             {seg.audience.bigIdea && (
               <p className="text-sm text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{seg.audience.bigIdea}</p>
             )}
-            {seg.audience.anchorRef && (
+            {(seg.audience.anchorRef || seg.audience.anchorTheme) && (
               <p className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>
-                <strong>Anchor — {seg.audience.anchorRef}:</strong> {seg.audience.anchorTheme}
+                {seg.audience.anchorRef && !anchorIsRun(seg.audience.anchorRef)
+                  && <strong>Anchor — {seg.audience.anchorRef}:</strong>}
+                {seg.audience.anchorRef && !anchorIsRun(seg.audience.anchorRef) ? ' ' : null}
+                {seg.audience.anchorTheme}
               </p>
             )}
           </>
@@ -1927,28 +1931,6 @@ function CourseView({
                     onPlace={savePlace}
                     onAdvance={advanceFrom(m.id)}
                   />
-                </div>
-              )}
-
-              {/* QUESTIONS ARE FOR BOTH (Darrell 2026-09-14: "Questions are for
-                  both!!!!?!!!!!"). The reflection questions were first written
-                  into the facilitator block, which is Governor-gated -- so the
-                  learner, who is who they are FOR, could never see them. The
-                  facilitator keeps discussionPrompts for running a room; these
-                  are the learner's own, rendered for everyone, right before the
-                  reference list. */}
-              {Array.isArray(m.questions) && m.questions.length > 0 && (
-                <div className="mt-3 border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2">
-                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">
-                    Questions to sit with — {m.questions.length}
-                  </div>
-                  <ol className="list-decimal pl-4 space-y-1">
-                    {m.questions.map((qq, qi) => (
-                      <li key={qi} className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-                        <WordInline text={qq} />
-                      </li>
-                    ))}
-                  </ol>
                 </div>
               )}
 
