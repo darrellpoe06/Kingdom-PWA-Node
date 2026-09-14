@@ -192,13 +192,38 @@ elif [ "$MODE" = "tables" ]; then
   # present with RLS off, or on with zero policies, is a different and worse
   # answer than absent -- so all three are reported rather than a bare boolean.
   # No row CONTENTS are read in this mode; a count is not a record.
+  #
+  # WHY 'rows' IS NOT ENOUGH (added 2026-09-14, after a real data-loss report).
+  # Darrell reported his wife's rental doors and tenant information gone. Asked
+  # of this database, every tenant table answered 'rows: 0' -- and n_live_tup
+  # ALONE CANNOT TELL THE TWO CASES APART:
+  #
+  #   nothing was ever written here      -> 0 live, 0 inserted, 0 deleted
+  #   rows were written, then deleted    -> 0 live, N inserted, N deleted
+  #
+  # Those are opposite findings. One is a feature that never saved; the other is
+  # data loss. Reporting only the live count leaves the question a person asked
+  # unanswerable, and an unanswerable question gets answered by guessing -- which
+  # is what DR-0076 exists to stop. So the counters come too: ever_inserted,
+  # ever_updated, ever_deleted, from the same stats view.
+  #
+  # Their honest limit, stated because it changes how they are read: these are
+  # cumulative counters that a statistics RESET or a fresh replica sets back to
+  # zero, and TRUNCATE empties a table without incrementing ever_deleted. So
+  # nonzero ever_inserted is PROOF a write reached the table; zero is strong but
+  # not absolute evidence that none ever did. stats_reset is reported alongside
+  # so nobody reads a reset counter as history (unknown provenance never reads
+  # as fact -- DR-0125's freshness rule, one layer down).
   psql_q "SELECT coalesce(json_agg(json_build_object(
                    'name', c.relname,
                    'columns', (SELECT count(*) FROM pg_attribute a
                                 WHERE a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped),
                    'rls_enabled', c.relrowsecurity,
                    'policies', (SELECT count(*) FROM pg_policy pol WHERE pol.polrelid = c.oid),
-                   'rows', (SELECT n_live_tup FROM pg_stat_user_tables st WHERE st.relid = c.oid)
+                   'rows', (SELECT n_live_tup FROM pg_stat_user_tables st WHERE st.relid = c.oid),
+                   'ever_inserted', (SELECT n_tup_ins FROM pg_stat_user_tables st WHERE st.relid = c.oid),
+                   'ever_updated', (SELECT n_tup_upd FROM pg_stat_user_tables st WHERE st.relid = c.oid),
+                   'ever_deleted', (SELECT n_tup_del FROM pg_stat_user_tables st WHERE st.relid = c.oid)
                  ) ORDER BY c.relname), '[]'::json)::text
             FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
            WHERE n.nspname = 'public' AND c.relkind = 'r'
@@ -211,6 +236,10 @@ elif [ "$MODE" = "tables" ]; then
            WHERE NOT EXISTS (
              SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
               WHERE n.nspname = 'public' AND c.relkind = 'r' AND c.relname = w.name)"
+  echo "---STATS-RESET---"
+  # When these counters last started from zero. 'never' means they are the full
+  # history of the database; a date means ever_inserted counts only since then.
+  psql_q "SELECT coalesce(max(stats_reset)::text, 'never') FROM pg_stat_database WHERE datname = current_database()"
   echo "---LEDGER---"
   psql_q "SELECT 'sovereign_replay='||count(*) FROM public._sovereign_replay"
 else
