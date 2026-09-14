@@ -20,7 +20,7 @@
 import React, { useState } from 'react';
 import { authErrorMessage } from '../lib/auth-error-message.js';
 import {
-  signUpWithPassword, signInWithPassword, validateCredentials, sendRoyaltyLink,
+  signUpWithPassword, signInWithPassword, validateCredentials, validateSignIn, sendRoyaltyLink,
   signUpWithPhonePin, signInWithPhonePin, validatePhonePin,
 } from '../lib/supabase.js';
 
@@ -99,8 +99,13 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
   const submit = async (e) => {
     e.preventDefault();
     setError(''); setErrorDetail('');
-    // Shared email + password rules (8-char min) live in validateCredentials.
-    const v = validateCredentials(form.email, form.password);
+    // Signing UP sets a credential and may demand 8 characters; signing IN
+    // checks one that already exists and may not second-guess its length.
+    // Christina's six-character password was refused here before any network
+    // call, which locked her out of her own account (see lib/supabase.js).
+    const v = isSignup
+      ? validateCredentials(form.email, form.password)
+      : validateSignIn(form.email, form.password);
     if (v.error) { setError(v.error.message); return; }
     if (isSignup) {
       if (!form.name.trim()) { setError('Please add your name.'); return; }

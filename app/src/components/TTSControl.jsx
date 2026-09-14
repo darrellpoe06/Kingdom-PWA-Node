@@ -13,7 +13,7 @@
 // renders nothing — no crash (unbreakable). Status is announced for screen
 // readers; every control is keyboard reachable; the panel is a high-contrast
 // (WCAG AA) white card regardless of app theme.
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { RATE_STEPS } from '../lib/tts.js';
 import { useReadAloud } from '../lib/use-read-aloud.js';
 import {
@@ -24,7 +24,9 @@ import {
 } from '../lib/read-follow.js';
 import { segmentText } from '../lib/tts.js';
 import { readFromPoint } from '../lib/read-from-here.js';
-import { getReadTarget, subscribeReadTarget } from '../lib/read-target.js';
+import { getReadTarget, subscribeReadTarget, pendingRead, takeRead, subscribeRead } from '../lib/read-target.js';
+import { useShowTheWord, toggleShowTheWord } from '../lib/show-the-word.js';
+import { getPlace, recordPlace, sentenceKeyOf, findSentence } from '../lib/learn-resume.js';
 import { subscribeReadRequest } from '../lib/read-request.js';
 import { revealAllForReading, settled, afterRender } from '../lib/read-reveal.js';
 import UiIcon from './UiIcon.jsx';
@@ -102,6 +104,8 @@ function readablePageText() {
 
 export default function TTSControl({ isOwner = false, view, churchView, booksView }) {
   const [isOpen, setIsOpen] = useState(false);
+  // Same switch as the in-lesson bar: one module store, never two states.
+  const showWord = useShowTheWord();
   // WHILE READING, THE PANEL GETS OUT OF THE WAY (Darrell 2026-08-03: "the
   // read along blocks the readers page with the data being read"): once
   // reading starts, the full card collapses to a slim pill (pause/stop/
@@ -130,6 +134,26 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // mapping where the mode supports it), wordable }.
   const followRef = useRef(null);
   const lastCloudIdxRef = useRef(-1);
+  // DECLARED ABOVE THE EFFECT THAT LISTS IT. A dependency array is evaluated
+  // DURING RENDER, so this const sitting below the effect put it in the
+  // temporal dead zone and every mount of the reader threw
+  // "Cannot access 'rememberSentence' before initialization" -- 67 render
+  // failures across 12 files, on a change whose own unit tests were green.
+  // STABLE BY CONSTRUCTION: this runs inside the per-sentence effect, so a new
+  // identity every render would re-fire that effect on every render instead of
+  // only when the sentence changes. It closes over nothing from this render --
+  // the guard is re-read from the registry each call -- so the empty dep list
+  // is honest rather than a lint silencer.
+  const rememberSentence = useCallback((absIndex, text) => {
+    if (!text) return;
+    try {
+      const t = getReadTarget();
+      const place = getPlace();
+      if (!t || !t.owner || !place || !place.lessonId || t.owner !== place.lessonId) return;
+      recordPlace({ sentence: absIndex, sentenceKey: sentenceKeyOf(text) });
+    } catch { /* a place that cannot be written never breaks a read */ }
+  }, []);
+
   useEffect(() => {
     if (!isReading || !deviceRead || !followRef.current) {
       if (!isReading) { clearReadingHighlights(); highlightWord(null); lastCloudIdxRef.current = -1; }
@@ -139,7 +163,12 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     highlightSegment(r);
     highlightWord(null); // a new sentence clears the previous word
     followRange(r);
-  }, [segmentIndex, isReading, deviceRead]);
+    // The sentence just reached IS the place. `base` is the offset this run
+    // started at, so the stored index is absolute within the lesson.
+    const st = followRef.current;
+    const seg = st.follow && st.follow.segments ? st.follow.segments[st.base + segmentIndex] : null;
+    if (seg && seg.text) rememberSentence(st.base + segmentIndex, seg.text);
+  }, [segmentIndex, isReading, deviceRead, rememberSentence]);
   // CLOUD (cloned-voice) sentence-follow (DR-0265): the clip has no word
   // timings, but playback fraction → character position → sentence works at
   // sentence granularity. Only re-highlights when the sentence changes.
@@ -151,9 +180,37 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     const r = followRef.current.ranges[idx] || null;
     highlightSegment(r);
     followRange(r);
-  }, [cloudProgress, isReading, deviceRead]);
+    // THE CLOUD VOICE KEEPS THE PLACE TOO (Darrell 2026-09-14: "Lessons keep
+    // being interrupted and I'm loosing my exact location"). The sentence write
+    // shipped only in the DEVICE-voice effect above, so listening in the
+    // sovereign/cloned voice -- which is what the voice picker defaults people
+    // into -- recorded nothing at all. Same absolute index convention as the
+    // device path: base + local.
+    const st = followRef.current;
+    const seg = st.follow && st.follow.segments ? st.follow.segments[st.base + idx] : null;
+    if (seg && seg.text) rememberSentence(st.base + idx, seg.text);
+  }, [cloudProgress, isReading, deviceRead, rememberSentence]);
   // Reading over (or never started) → the full card comes back next open.
   useEffect(() => { if (!isReading) setMinimized(false); }, [isReading]);
+  // PLAY MEANS READ IT. A Play press records a want (read-target.js) and this
+  // starts that lesson's reading the moment its target registers -- which is
+  // usually a frame or two later, because pressing Play also opens the lesson
+  // whose component does the registering. Both the want arriving and the target
+  // arriving are watched, since either can be second.
+  useEffect(() => {
+    const tryStart = () => {
+      const t = getReadTarget();
+      const w = pendingRead();
+      if (!t || !w || t.owner !== w.owner) return;
+      if (!takeRead(t.owner)) return;
+      if (readTargetRef.current) readTargetRef.current(t);
+    };
+    tryStart();
+    const offWant = subscribeRead(tryStart);
+    const offTarget = subscribeReadTarget(tryStart);
+    return () => { offWant(); offTarget(); };
+  }, []);
+
   useEffect(() => {
     if (!setBoundaryHandler) return undefined;
     setBoundaryHandler((segIdx, charIndex) => {
@@ -166,6 +223,46 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   }, [setBoundaryHandler]);
 
   // Builders for the three followable read modes (DR-0264/DR-0265).
+  // RESUME AT THE SENTENCE (Darrell 2026-09-14: "Also need the lessons to begin
+  // exactly where they left off at least the sentence....").
+  //
+  // The learner's place record already held the lesson and the paragraph
+  // (`step`); what it could not hold was the SENTENCE, so reopening a lesson
+  // restarted the paragraph you were in the middle of. Read aloud, on a long
+  // teaching paragraph, that is most of a minute of hearing what you already
+  // heard.
+  //
+  // The reader is the right place to write it from, because the reader is the
+  // thing that knows which sentence is being spoken. It does NOT need the lesson
+  // component to hand it down: recordPlace MERGES, so writing only
+  // {sentence, sentenceKey} lands on the lesson the place already names — no
+  // prop threaded through the app shell, and nothing added to the frozen
+  // monolith.
+  //
+  // THE GUARD THAT KEEPS IT HONEST: only write when the registered reading's
+  // owner IS the lesson the place names. Without that, reading a Bible chapter
+  // or a public door would stamp a sentence onto whatever lesson happened to be
+  // open last, and the next resume would jump somewhere the reader never was.
+  const placeLessonIfMine = () => {
+    try {
+      const t = getReadTarget();
+      const place = getPlace();
+      if (!t || !t.owner || !place || !place.lessonId) return null;
+      return t.owner === place.lessonId ? place : null;
+    } catch { return null; }
+  };
+
+
+  /** Where a lesson read should START, or -1 for the top. */
+  const savedStartIndex = (segments) => {
+    const place = placeLessonIfMine();
+    if (!place) return -1;
+    const found = findSentence((segments || []).map((g) => (g && g.text) || ''), place);
+    // `gone` / `unknown` deliberately fall through to the top rather than guess.
+    return found.how === 'exact' || found.how === 'moved' || found.how === 'index-only'
+      ? found.index : -1;
+  };
+
   const pageFollowState = (follow, base = 0) => ({
     follow,
     base,
@@ -454,6 +551,17 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     }
     const follow = el ? buildFollowMap(el) : null;
     if (follow && follow.text) {
+      // BEGIN WHERE HE LEFT OFF. A CONTINUING piece is a different lesson the
+      // run advanced into, so it starts at its top; only a read the listener
+      // themselves started resumes. Unresolvable saved sentence -> the top,
+      // never a guess.
+      const at = continuing ? -1 : savedStartIndex(follow.segments);
+      if (at > 0 && follow.segments[at]) {
+        followRef.current = pageFollowState(follow, at);
+        setMinimized(true);
+        read(follow.text.slice(follow.segments[at].start));
+        return;
+      }
       followRef.current = pageFollowState(follow);
       setMinimized(true);
       read(follow.text);
@@ -695,6 +803,27 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
               </>
             )}
           </div>
+
+          {/* SHOW / HIDE THE WORD LIVES WITH THE PLAY CONTROLS (Darrell
+              2026-09-14, from the lesson with this panel open: "I want that bar
+              to be where the play button is or have the same impact").
+              It was a bar in the lesson BODY -- and it is a READING preference,
+              so it belongs where the reading is controlled, at the same weight
+              as the read buttons rather than buried in the prose above them.
+              The STORE is reused, not the component: show-the-word.js is a
+              module store, so this button and the in-lesson bar are the same
+              switch and can never disagree. It is re-rendered here rather than
+              imported because ShowTheWordToggle sizes in rem, and this panel is
+              deliberately em-sized so its chrome scales with the capped chrome
+              multiplier (see the panel comment above) -- importing it would
+              break at A+++/A44, which is the exact defect that comment records. */}
+          <button
+            type="button" onClick={toggleShowTheWord} aria-pressed={showWord}
+            className={`w-full mb-[0.5em] px-[0.75em] py-[0.625em] text-[0.6875em] uppercase tracking-wider font-semibold border focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${
+              showWord ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'bg-white text-[#5A6E3D] border-[#5A6E3D] hover:text-[#1A1815] hover:border-[#1A1815]'}`}
+          >
+            {showWord ? 'Hide the Word — read without the verses open' : 'Show the Word — open every verse'}
+          </button>
 
           <div className="mb-[0.5em]">
             <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Speed: {rate.toFixed(1)}×</div>

@@ -107,20 +107,22 @@ describe('the real corpus — no slide carries a wall of references', () => {
   });
 });
 
-describe('Play starts the lesson', () => {
-  it('Presenter accepts startOnScreen and lands on the lesson, not a console', async () => {
+describe('Play READS the lesson (it does not open the deck)', () => {
+  // RE-POINTED 2026-09-14. This pinned the previous attempt: Play opening the
+  // presenter already-presenting via setPresentAutoStart. Darrell, in capitals:
+  // "Play Button reads the lesson!!!!! Does not open the PowerPoint!!!" Proven
+  // by DRIVING the built app -- pressing Play gave 0 speech calls and opened the
+  // presenter; after the fix it gives real speech and the presenter stays shut.
+  it('both Play routes ask for a reading rather than presenting', async () => {
     const { readFileSync } = await import('node:fs');
     const { join, dirname } = await import('node:path');
     const { fileURLToPath } = await import('node:url');
     const here = dirname(fileURLToPath(import.meta.url));
-    const presenter = readFileSync(join(here, '..', 'components', 'Presenter.jsx'), 'utf8');
-    expect(presenter).toMatch(/startOnScreen = false,/);
-    expect(presenter).toMatch(/useState\(\(\) => !!startOnScreen\)/);
     const learn = readFileSync(join(here, '..', 'components', 'ChurchLearn.jsx'), 'utf8');
-    // Play sets it; closing clears it, so a later non-Play arrival is unaffected.
-    expect(learn).toMatch(/setPresentAutoStart\(true\)/);
-    expect(learn).toMatch(/startOnScreen=\{presentAutoStart\}/);
-    expect(learn).toMatch(/setPresentAutoStart\(false\); setPresentLesson\(null\)/);
+    // the card's Play and the by-title index's Play both request a read
+    expect((learn.match(/requestRead\(m\.id\)/g) || []).length).toBeGreaterThanOrEqual(2);
+    // and neither opens the presenter any more
+    expect(learn).not.toMatch(/setPresentAutoStart\(true\)/);
   });
 });
 

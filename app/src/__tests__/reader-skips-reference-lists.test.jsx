@@ -129,18 +129,99 @@ describe('WordInline — a reference that LOOKS tappable actually opens', () => 
   });
 });
 
+const readSrc = () => {
+  const { readFileSync } = require('node:fs');
+  const { join, dirname } = require('node:path');
+  const { fileURLToPath } = require('node:url');
+  const here = dirname(fileURLToPath(import.meta.url));
+  return readFileSync(join(here, '..', 'components', 'ChurchLearn.jsx'), 'utf8');
+};
+
 describe('the Anchor line in the full-screen lesson view is wired to WordInline', () => {
   // Source-pinned, because the defect was that this ONE call site rendered the
   // references as plain text while every other surface made them tappable. A
   // render test on ChurchLearn would need the whole Learn tree mounted; what
   // actually regressed was the wiring, so the wiring is what is pinned.
+  // RE-POINTED 2026-09-14, not weakened. The original pinned that the anchor's
+  // references were wired to WordInline rather than printed as plain text, which
+  // was right. Darrell then moved the LIST itself: "Put the list of links at the
+  // end of lessons... so it doesn't take away from the lessons." So the refs are
+  // still tappable — they are just tappable at the FOOT of the lesson now, under
+  // "The Word we stood on", the same name the presented deck uses. The property
+  // being guarded (a reference that looks tappable IS tappable) is unchanged;
+  // only where it holds has moved.
   it('does not render the anchor references as bare interpolated text', async () => {
-    const { readFileSync } = await import('node:fs');
-    const { join, dirname } = await import('node:path');
-    const { fileURLToPath } = await import('node:url');
-    const here = dirname(fileURLToPath(import.meta.url));
-    const src = readFileSync(join(here, '..', 'components', 'ChurchLearn.jsx'), 'utf8');
+    const src = readSrc();
     expect(src).not.toContain('<strong>Anchor — {m.anchor.ref}:</strong>');
-    expect(src).toMatch(/WordInline[\s\S]{0,200}Anchor — \$\{m\.anchor\.ref\}/);
+  });
+
+  it('THE RAW REFERENCE STRING IS NOT PRINTED IN THE LESSON AT ALL', () => {
+    // CORRECTED 2026-09-14 after he saw it: "all the lesson actual Word has been
+    // stripped and listed instead of naturally inside the lessons" and "now we
+    // humans get a computer list".
+    //
+    // The first fix moved the anchor's reference string from the middle of the
+    // lesson to the end. That was still WRONG, and the end was not the point:
+    // `m.anchor.ref` is a semicolon-joined machine string (eighty entries on
+    // L149) and rendering it ANYWHERE in a lesson gives a person a computer
+    // list. His instruction was to keep the Word IN the lesson -- which it
+    // already is, quoted inline in the prose -- and to stop the LIST being
+    // performed or displayed. So the list is gone from the reading view
+    // entirely. The reader still collapses runs (above), and the presented deck
+    // still carries its closing reference slide for a speaker who wants it.
+    const src = readSrc();
+    expect(src).not.toMatch(/text=\{m\.anchor\.ref\}/);
+    expect(src).not.toMatch(/The Word we stood on/);
+  });
+
+  it('but the anchor THEME still teaches, and inline Scripture is untouched', () => {
+    // The half he explicitly asked to keep.
+    const src = readSrc();
+    expect(src).toMatch(/text=\{`Anchor — \$\{m\.anchor\.theme/);
+    expect(src).toMatch(/WordInline/);
+  });
+});
+
+describe('Show/Hide the Word sits with the play controls', () => {
+  // Darrell 2026-09-14, from the lesson with the Read Aloud panel open: "I want
+  // that bar to be where the play button is or have the same impact."
+  //
+  // It was a bar in the lesson BODY. It is a READING preference, so it belongs
+  // where reading is controlled. Source-pinned on two properties that a future
+  // edit could quietly break, both of which have bitten this panel before.
+  const readTts = () => {
+    const { readFileSync } = require('node:fs');
+    const { join, dirname } = require('node:path');
+    const { fileURLToPath } = require('node:url');
+    return readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'TTSControl.jsx'),
+      'utf8',
+    );
+  };
+
+  it('the reader panel carries the toggle', () => {
+    const src = readTts();
+    expect(src).toMatch(/onClick=\{toggleShowTheWord\}/);
+    expect(src).toMatch(/Hide the Word — read without the verses open/);
+  });
+
+  it('reuses the STORE so the two controls can never disagree', () => {
+    // If this were local state, the panel button and the in-lesson bar would
+    // drift apart and the verses would be open on one and shut on the other.
+    const src = readTts();
+    expect(src).toMatch(/useShowTheWord, toggleShowTheWord \} from '\.\.\/lib\/show-the-word\.js'/);
+    expect(src).toMatch(/const showWord = useShowTheWord\(\);/);
+  });
+
+  it('is sized in em, not rem, because the panel is capped-chrome scaled', () => {
+    // The panel comment records the real defect this prevents: rem-sized labels
+    // ballooned at A+++/A44 and clipped the controls off-screen. Importing
+    // ShowTheWordToggle (which sizes in rem) would reintroduce exactly that.
+    const src = readTts();
+    const btn = src.slice(src.indexOf('onClick={toggleShowTheWord}') - 400,
+      src.indexOf('onClick={toggleShowTheWord}') + 700);
+    expect(btn).toMatch(/text-\[0\.6875em\]/);
+    expect(btn).not.toMatch(/text-\[0\.\d+rem\]/);
+    expect(src).not.toMatch(/import ShowTheWordToggle/);
   });
 });

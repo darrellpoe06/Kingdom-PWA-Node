@@ -44,7 +44,11 @@ describe('blocks are separated, so the engine never speaks a run-on word', () =>
   it('THE REPORTED CASE: a heading and the paragraph after it do not weld', () => {
     const el = mount('<h2>Think on These Things</h2><p>Whatsoever things are true, whatsoever things are honest.</p>');
     const follow = buildFollowMap(el);
-    expect(follow.text).toContain('Think on These Things Whatsoever');
+    // The separator is now a sentence end, not just a space (2026-09-14), so
+    // the heading closes before the paragraph begins. The property this case
+    // exists for is unchanged and still asserted below: the two blocks' words
+    // never weld into one.
+    expect(follow.text).toContain('Think on These Things. Whatsoever');
     expect(follow.text, 'the run-on that was actually measured in Chromium').not.toContain('ThingsWhatsoever');
   });
 
@@ -57,7 +61,7 @@ describe('blocks are separated, so the engine never speaks a run-on word', () =>
       '<blockquote>Let peace rule.</blockquote>',
     ].join(''));
     const t = buildFollowMap(el).text;
-    for (const welded of ['youCatch', 'today.Is', 'true?Is', 'honest?The', 'unseen.Let']) {
+    for (const welded of ['youCatch', 'true?Is', 'honest?The', 'unseen.Let']) {
       expect(t, `blocks welded at "${welded}"`).not.toContain(welded);
     }
   });
@@ -79,16 +83,20 @@ describe('blocks are separated, so the engine never speaks a run-on word', () =>
 });
 
 describe('the segmentation that follow-along depends on', () => {
-  it('a heading without terminal punctuation no longer swallows the next sentence', () => {
+  it('a heading without terminal punctuation is its OWN sentence', () => {
     const el = mount('<h2>Think on These Things</h2><p>Whatsoever things are true. The greatest realities are unseen.</p>');
     const follow = buildFollowMap(el);
-    // The heading still joins the first sentence (segmentText splits only on
-    // . ! ?) — but as separate WORDS, which is what the fallback path produces
-    // too. The regression this guards is the welded word, and the sentence
-    // count staying right.
-    expect(follow.segments.length).toBe(2);
-    expect(follow.segments[0].text).toBe('Think on These Things Whatsoever things are true.');
-    expect(follow.segments[1].text).toBe('The greatest realities are unseen.');
+    // STRENGTHENED 2026-09-14. This used to accept the heading JOINING the
+    // first sentence -- the 2026-08-31 fix separated the WORDS but left the
+    // SENTENCE welded, and the comment here said so. Captured from a real
+    // reading of a real lesson, that weld produced utterances like a verse,
+    // its citation, the next section's heading and its blurb spoken as one
+    // sentence. A block boundary now ends a sentence, so the heading stands
+    // alone, exactly as a person reading aloud would say it.
+    expect(follow.segments.length).toBe(3);
+    expect(follow.segments[0].text).toBe('Think on These Things.');
+    expect(follow.segments[1].text).toBe('Whatsoever things are true.');
+    expect(follow.segments[2].text).toBe('The greatest realities are unseen.');
   });
 
   it('every segment still resolves to a real DOM range — mapping survived the change', () => {
@@ -112,10 +120,12 @@ describe('the segmentation that follow-along depends on', () => {
   it('a word offset inside a segment lands on that word, not one measured from a welded origin', () => {
     const el = mount('<h2>Think on These Things</h2><p>Whatsoever things are true.</p>');
     const follow = buildFollowMap(el);
-    const seg0 = follow.segments[0].text;
-    const at = seg0.indexOf('Whatsoever');
-    expect(at).toBeGreaterThan(-1);
-    expect(String(wordRange(follow, 0, at))).toBe('Whatsoever');
+    // The heading is segment 0 now; the sentence is segment 1. The property
+    // under test is unchanged: an offset inside a segment lands on that word.
+    const seg1 = follow.segments[1].text;
+    const at = seg1.indexOf('Whatsoever');
+    expect(at).toBe(0);
+    expect(String(wordRange(follow, 1, at))).toBe('Whatsoever');
   });
 });
 

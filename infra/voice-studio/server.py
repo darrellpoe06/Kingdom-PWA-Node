@@ -73,23 +73,58 @@ async def speak(req: Request):
     language = body.get("language") or "en"
     if not text:
         return JSONResponse({"error": "text-required"}, status_code=400)
+    # THE BUILT-IN VOICE IS SERVED, NOT REFUSED (2026-09-14, DR-0394).
+    #
+    # Until now this returned 400 the moment no reference sample arrived, which
+    # made the studio CLONE-ONLY by construction. DR-0382 had taught the client
+    # to ask for the service's own voice -- `allowBuiltIn`, with a runtime probe
+    # that remembers the answer -- and shipped it as the DEFAULT read path for
+    # the System voice. But no server was ever taught to answer: this endpoint
+    # and the vendor bridge BOTH refused, so the probe's first result was
+    # guaranteed to be 'no' and every lesson fell to the device robot forever.
+    # The client asked a question nothing could say yes to.
+    #
+    # A reference is required only for a CLONE. A multi-speaker model (XTTS-v2
+    # ships a speaker bank) can synthesize from a built-in speaker with no
+    # sample at all, which is exactly what the System voice wants.
+    #
+    # HONEST FAILURE IS PRESERVED. If the loaded model exposes no speaker bank,
+    # this still returns the same 400 -- so the probe's 'no' stays TRUE for a
+    # deployment that genuinely cannot do it, rather than being papered over.
+    # We do not claim a capability we have not asked the model for (DR-0076).
+    speaker_wav = None
+    builtin_speaker = None
     if not reference:
-        return JSONResponse({"error": "reference-required"}, status_code=400)
-
-    try:
-        speaker_wav = _decode_reference(reference)
-    except Exception as e:  # noqa: BLE001
-        return JSONResponse({"error": "bad-reference", "detail": str(e)}, status_code=400)
+        try:
+            tts = get_tts()
+        except Exception as e:  # noqa: BLE001
+            return JSONResponse({"error": "synthesis-failed", "detail": str(e)}, status_code=500)
+        speakers = getattr(tts, "speakers", None) or []
+        if not speakers:
+            return JSONResponse({"error": "reference-required"}, status_code=400)
+        want = os.environ.get("VOICE_BUILTIN_SPEAKER", "").strip()
+        builtin_speaker = want if want in speakers else speakers[0]
+    else:
+        try:
+            speaker_wav = _decode_reference(reference)
+        except Exception as e:  # noqa: BLE001
+            return JSONResponse({"error": "bad-reference", "detail": str(e)}, status_code=400)
 
     try:
         tts = get_tts()
         out_fd, out_path = tempfile.mkstemp(suffix=".wav")
         os.close(out_fd)
         # Few-shot: XTTS conditions on speaker_wav at inference, no training.
-        tts.tts_to_file(text=text, speaker_wav=speaker_wav, language=language, file_path=out_path)
+        # With no sample, the model's own speaker carries it instead.
+        if builtin_speaker is not None:
+            tts.tts_to_file(text=text, speaker=builtin_speaker, language=language, file_path=out_path)
+        else:
+            tts.tts_to_file(text=text, speaker_wav=speaker_wav, language=language, file_path=out_path)
         with open(out_path, "rb") as f:
             audio = f.read()
         for p in (speaker_wav, out_path):
+            if not p:
+                continue
             try:
                 os.remove(p)
             except OSError:

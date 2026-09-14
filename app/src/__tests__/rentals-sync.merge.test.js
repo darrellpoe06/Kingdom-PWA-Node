@@ -93,16 +93,40 @@ describe('mergeRemoteRentals', () => {
     expect(merged.map((r) => r.id)).toEqual(['r-176000', 'r-remote-uuid-9']);
   });
 
-  it('drops a previously-synced local item whose remote row was deleted', () => {
+  it('drops a previously-synced PLAIN door whose remote row was deleted', () => {
     // 2026-06-12 contract change: deletion propagates only via a NON-EMPTY
     // read (the read returns the remaining rows). An all-empty read is
     // treated as a failed read, not a mass deletion — see the empty-read
     // guard test below and the sync-data-safety suite.
+    //
+    // NARROWED 2026-09-14, after real loss. This case used to be asserted with
+    // localSeed as the dropped door — and localSeed carries
+    // `rooms: [{ name: 'Kitchen' }]`, a field with NO cloud column. So the old
+    // contract said: a door absent from one read is deleted locally along with
+    // the only copy of its room list, lease and tenant sub-objects. That is
+    // exactly what happened to Christina's doors on a MacBook with a broken
+    // login, and the database proved nothing was ever deleted there (rentals:
+    // 13 rows, 0 ever deleted; property_rooms and rental_tenancies: 0 rows, 0
+    // ever INSERTED). Deletion still propagates — for a door whose every field
+    // is in the cloud, which is what this now asserts. The door holding
+    // local-only detail is covered by the case below.
+    const plainGone = { id: 'r-plain', remoteUuid: 'uuid-gone', name: 'Plain Door', mortgage: {} };
+    const survivor = { id: 'r-other', remoteUuid: 'uuid-stays', name: 'Other Property', mortgage: {} };
+    const merged = mergeRemoteRentals([plainGone, { ...survivor }], [survivor]);
+    expect(merged.some((r) => r.remoteUuid === 'uuid-gone')).toBe(false);
+    expect(merged.some((r) => r.remoteUuid === 'uuid-stays')).toBe(true);
+  });
+
+  it('KEEPS a door absent from the read when this device holds the only copy', () => {
+    // localSeed's Kitchen exists in no database. Kept, and marked so a surface
+    // can say it is not in the cloud instead of implying it is synced.
     const syncedLocal = { ...localSeed, remoteUuid: 'uuid-gone' };
     const survivor = { id: 'r-other', remoteUuid: 'uuid-stays', name: 'Other Property', mortgage: {} };
-    const localPair = [syncedLocal, { ...survivor }];
-    const merged = mergeRemoteRentals(localPair, [survivor]);
-    expect(merged.some((r) => r.remoteUuid === 'uuid-gone')).toBe(false);
+    const merged = mergeRemoteRentals([syncedLocal, { ...survivor }], [survivor]);
+    const kept = merged.find((r) => r.remoteUuid === 'uuid-gone');
+    expect(kept, 'a door holding the only copy of its rooms must never be dropped').toBeTruthy();
+    expect(kept.rooms).toEqual([{ id: 'rm-1', name: 'Kitchen' }]);
+    expect(kept.remoteMissing).toBe(true);
     expect(merged.some((r) => r.remoteUuid === 'uuid-stays')).toBe(true);
   });
 

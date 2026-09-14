@@ -191,19 +191,97 @@ function cmpUpdatedAt(a, b) {
 //   - local item never uploaded (no remoteUuid, no match) → keep it;
 //     initialSync / addRental will push it.
 //   - local item with a remoteUuid whose row is gone → deleted on another
-//     device → drop it. EXCEPT when the remote list is empty while local
-//     synced items exist: RLS returns 200 with 0 rows on a membership or
-//     visibility hiccup (LESSONS-LEARNED 2026-06-11: "treat 0-rows-returned
-//     as failure, not success"), and interpreting that as "every property
-//     was deleted elsewhere" would destroy rooms, photo galleries, and
-//     maintenance/conversation logs that exist nowhere else. An empty read
-//     against a non-empty synced local list aborts the merge unchanged —
-//     real single-property deletions still propagate (the read returns the
-//     remaining rows, not zero rows).
+//     device → drop it, but ONLY when dropping it cannot destroy anything.
+//
+//     THE LOSS THIS NOW PREVENTS (2026-09-14). Christina's rental doors and
+//     tenant information went missing on her MacBook, which had a broken
+//     login. Asked of the database the app reads, with statistics never reset:
+//     rentals held 13 rows with 0 ever deleted, and rental_tenancies,
+//     tenancy_household, tenancy_notes, rent_records and property_rooms each
+//     held 0 rows with 0 EVER INSERTED. Nothing was deleted anywhere; the
+//     tenant fields had never reached a database at all, because — as the
+//     header of this file says — rooms, equipment, maintenanceLog,
+//     conversationLog, lat/lon and the market/lease/tenant sub-objects have no
+//     cloud columns. For those fields the device IS the database.
+//
+//     The old guard covered ONE case: a read returning ZERO rows. A read
+//     returning SOME rows but not hers — an instance mismatch, a partial RLS
+//     visibility hiccup, a half-applied membership after the sovereign repoint
+//     — walked straight into the drop branch and deleted those doors locally,
+//     along with the only copy of every field above. Silently, with nothing in
+//     any database to restore from.
+//
+//     So absence is no longer treated as proof of deletion when the cost of
+//     being wrong is unrecoverable:
+//
+//       · a door carrying local-only detail is KEPT and marked
+//         `remoteMissing`, never dropped. A stale row is a nuisance a person
+//         can delete in one tap; a destroyed room list, lease and tenant
+//         record cannot be recovered by anyone. The asymmetry decides it.
+//       · a read missing MOST of the synced local doors aborts the merge
+//         unchanged — the 0-row guard generalized, because 1 row back out of
+//         13 is the same failure as 0 rows back, and the old test for it
+//         passed only at exactly zero.
+//       · a plain door with nothing local-only still drops, so a genuine
+//         deletion on another device still propagates.
+//
+//     (LESSONS-LEARNED 2026-06-11: "treat 0-rows-returned as failure, not
+//     success" — this is that lesson applied to a partial read as well.)
 //   - remote row with no local match → new from another device → adopt the
 //     fromRow shape as-is.
+// A door whose only copy of something lives on this device. These fields have
+// no cloud columns (see the file header), so dropping such a door destroys
+// them outright. Kept deliberately broad: a field that MIGHT be local-only
+// counts, because a false "keep" costs a stale row and a false "drop" costs
+// the record itself.
+export function hasLocalOnlyDetail(rental) {
+  if (!rental || typeof rental !== 'object') return false;
+  for (const key of ['rooms', 'equipment', 'maintenanceLog', 'conversationLog', 'photos']) {
+    if (Array.isArray(rental[key]) && rental[key].length > 0) return true;
+  }
+  for (const key of ['lease', 'tenant', 'market']) {
+    const v = rental[key];
+    if (v && typeof v === 'object' && Object.keys(v).length > 0) return true;
+  }
+  // Typed coordinates exist nowhere else either.
+  if (Number.isFinite(rental.lat) && Number.isFinite(rental.lon)) return true;
+  return false;
+}
+
+// How many synced doors may vanish from one read before the READ, not the
+// data, is what is in doubt. A person deletes doors one at a time on another
+// device; a membership or visibility failure takes out everything it touches at
+// once. So two shapes are treated as a failed read:
+//
+//   · NONE of this device's synced doors came back. This is the old 0-row
+//     guard generalized from "the read was empty" to "none of mine are in it",
+//     which is the shape an instance mismatch actually produces -- the read is
+//     not empty, it just contains somebody else's rows, or none of hers.
+//   · THREE OR MORE vanished at once. Below that a real multi-door cleanup is
+//     plausible; at three the balance tips to a failure, and the cost of being
+//     wrong is unrecoverable.
+const MISSING_READ_BURST = 3;
+
+// readLooksBroken(localItems, remoteItems) — true when a read is missing so
+// much of what this device has already synced that treating the absences as
+// deletions is more likely to destroy data than to reflect one. Exported so
+// the decision is testable on its own rather than only through the merge.
+export function readLooksBroken(localItems = [], remoteItems = []) {
+  const synced = (localItems || []).filter((l) => l && l.remoteUuid);
+  if (synced.length === 0) return false;
+  const present = new Set();
+  for (const r of remoteItems || []) {
+    if (r && r.remoteUuid) present.add(r.remoteUuid);
+    if (r && r.id) present.add(r.id);
+  }
+  const missing = synced.filter((l) => !present.has(l.remoteUuid) && !present.has(l.id)).length;
+  if (missing === 0) return false;
+  return missing === synced.length || missing >= MISSING_READ_BURST;
+}
+
 export function mergeRemoteRentals(localItems = [], remoteItems = []) {
-  if ((remoteItems || []).length === 0 && (localItems || []).some((l) => l.remoteUuid)) {
+  // The 0-row case, and every partial read bad enough to be the same failure.
+  if (readLooksBroken(localItems, remoteItems)) {
     return localItems;
   }
   const remoteById = new Map();
@@ -251,6 +329,11 @@ export function mergeRemoteRentals(localItems = [], remoteItems = []) {
       merged.push(next);
     } else if (!local.remoteUuid) {
       merged.push(local);
+    } else if (hasLocalOnlyDetail(local)) {
+      // Absent from the read, but this device holds the only copy of part of
+      // it. Kept, and marked so a surface can say so honestly rather than
+      // implying it is synced.
+      merged.push({ ...local, remoteMissing: true });
     }
   }
   for (const r of remoteItems) {

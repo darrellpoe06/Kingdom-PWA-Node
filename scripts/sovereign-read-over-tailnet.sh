@@ -34,6 +34,17 @@
 # Usage:  sovereign-read-over-tailnet.sh feedback [days]
 #         sovereign-read-over-tailnet.sh definitions [days] [functions]
 #         sovereign-read-over-tailnet.sh tables [days] [functions] [tables]
+#         sovereign-read-over-tailnet.sh instances [days] [functions] [tables]
+#
+# WHICH INSTANCE HOLDS THE ROWS (added 2026-09-14, after real data loss). Every
+# sync in the app filters `.eq('instance_id', <the instance it resolves>)`, so a
+# row in the WRONG instance is invisible to the surface that owns it -- and
+# indistinguishable, on screen, from a row that does not exist. A row count
+# cannot see this: 13 rentals rows read as healthy whether or not the family
+# instance can reach any of them. `instances` mode reports each instance's slug
+# beside how many rows of the asked-about tables point at it, so "the doors are
+# no longer where the books are" is a measurement rather than a deduction from
+# a migration file. Slugs and counts only; no row contents.
 # Requires NAS_SSH_KEY and a tailnet already joined by the calling workflow.
 #
 # ASKING ABOUT A FUNCTION THIS FILE DOES NOT ALREADY NAME (added 2026-09-13,
@@ -75,8 +86,8 @@ DEFAULT_FUNCTIONS='list_instance_members,my_church_instance_id,church_member_rec
 DEFAULT_TABLES='board_tasks,rentals,rental_tenancies,property_rooms,feedback'
 
 case "$MODE" in
-  feedback|definitions|tables) ;;
-  *) echo "::error::unknown mode '$MODE' (feedback|definitions|tables)"; exit 2 ;;
+  feedback|definitions|tables|instances) ;;
+  *) echo "::error::unknown mode '$MODE' (feedback|definitions|tables|instances)"; exit 2 ;;
 esac
 case "$DAYS" in
   ''|*[!0-9]*) echo "::error::days must be a whole number, got '$DAYS'"; exit 2 ;;
@@ -162,9 +173,29 @@ if [ -z "$DOCKER" ]; then
 fi
 [ -n "$DOCKER" ] || { echo "docker binary not found (PATH, /usr/local/bin, /usr/bin)" >&2; exit 4; }
 
+# A FAILED QUERY MUST NOT LOOK LIKE AN EMPTY ANSWER (2026-09-14). Both attempts
+# sent stderr to /dev/null and returned whatever they had, so a query with a
+# syntax error printed NOTHING under its own section heading -- and nothing,
+# under a heading, reads exactly like "asked, and the database holds none."
+# That is the failure this whole script exists to prevent, living inside the
+# script itself: it was caught the first time the new instances mode ran and
+# printed an empty ---INSTANCES--- block. A query that did not run now says so.
 psql_q() {
-  "$DOCKER" exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$1" 2>/dev/null && return 0
-  sudo -n "$DOCKER" exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$1" 2>/dev/null
+  local out err rc
+  err=$(mktemp)
+  out=$("$DOCKER" exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$1" 2>"$err")
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    out=$(sudo -n "$DOCKER" exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$1" 2>"$err")
+    rc=$?
+  fi
+  if [ "$rc" -ne 0 ]; then
+    echo "---QUERY-FAILED--- $(head -c 400 "$err" | tr '\n' ' ')"
+    rm -f "$err"
+    return 1
+  fi
+  rm -f "$err"
+  printf '%s\n' "$out"
 }
 
 if [ "$MODE" = "feedback" ]; then
@@ -186,19 +217,76 @@ if [ "$MODE" = "feedback" ]; then
                  ' confidential_withheld='||count(*) FILTER (WHERE coalesce(is_confidential,false))||
                  ' newest='||coalesce(max(submitted_at)::text,'none')
             FROM public.feedback"
+elif [ "$MODE" = "instances" ]; then
+  echo "---INSTANCES---"
+  # Each instance, with how many rows of each asked-about table point at it.
+  # This is the question a row count cannot answer: rentals held 13 rows while
+  # the family-OS sync -- which filters on the FAMILY instance -- could reach
+  # none of them, because 0207 moved every door into a landlord instance of its
+  # own. On screen that is identical to having no doors.
+  # A FIXED set of instance-scoped tables, not the `tables` argument: the point
+  # is WHERE the family's own records live, and that set is known. Counts and
+  # slugs only -- no row contents, same withholding as tables mode.
+  psql_q "SELECT coalesce(json_agg(s ORDER BY s.slug), '[]'::json)::text FROM (
+            SELECT i.slug,
+                   i.name,
+                   i.instance_type,
+                   (SELECT count(*) FROM public.instance_members m WHERE m.instance_id = i.id) AS members,
+                   (SELECT count(*) FROM public.rentals r      WHERE r.instance_id  = i.id) AS rentals,
+                   (SELECT count(*) FROM public.transactions t WHERE t.instance_id  = i.id) AS transactions,
+                   (SELECT count(*) FROM public.accounts a     WHERE a.instance_id  = i.id) AS accounts,
+                   (SELECT count(*) FROM public.entities e     WHERE e.instance_id  = i.id) AS entities,
+                   (SELECT count(*) FROM public.leases l       WHERE l.instance_id  = i.id) AS leases,
+                   (SELECT count(*) FROM public.renters rn     WHERE rn.instance_id = i.id) AS renters
+              FROM public.instances i) s"
+  echo "---DEFAULT-INSTANCE-FN---"
+  # Which instance the app's own resolver hands a caller. Every family-OS sync
+  # filters on this, so it is half of the answer -- the other half is the rows
+  # above. Reported as the function's existence + md5, never executed here:
+  # running it would join or create an instance as whoever this ssh session is.
+  psql_q "SELECT coalesce(string_agg(p.proname||' md5='||md5(p.prosrc), ' '), 'absent')
+            FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+           WHERE n.nspname = 'public' AND p.proname = 'join_default_instance'"
+  echo "---LEDGER---"
+  psql_q "SELECT 'sovereign_replay='||count(*) FROM public._sovereign_replay"
 elif [ "$MODE" = "tables" ]; then
   echo "---TABLES---"
   # Does the table EXIST here, is RLS on, and does it carry policies? A table
   # present with RLS off, or on with zero policies, is a different and worse
   # answer than absent -- so all three are reported rather than a bare boolean.
   # No row CONTENTS are read in this mode; a count is not a record.
+  #
+  # WHY 'rows' IS NOT ENOUGH (added 2026-09-14, after a real data-loss report).
+  # Darrell reported his wife's rental doors and tenant information gone. Asked
+  # of this database, every tenant table answered 'rows: 0' -- and n_live_tup
+  # ALONE CANNOT TELL THE TWO CASES APART:
+  #
+  #   nothing was ever written here      -> 0 live, 0 inserted, 0 deleted
+  #   rows were written, then deleted    -> 0 live, N inserted, N deleted
+  #
+  # Those are opposite findings. One is a feature that never saved; the other is
+  # data loss. Reporting only the live count leaves the question a person asked
+  # unanswerable, and an unanswerable question gets answered by guessing -- which
+  # is what DR-0076 exists to stop. So the counters come too: ever_inserted,
+  # ever_updated, ever_deleted, from the same stats view.
+  #
+  # Their honest limit, stated because it changes how they are read: these are
+  # cumulative counters that a statistics RESET or a fresh replica sets back to
+  # zero, and TRUNCATE empties a table without incrementing ever_deleted. So
+  # nonzero ever_inserted is PROOF a write reached the table; zero is strong but
+  # not absolute evidence that none ever did. stats_reset is reported alongside
+  # so nobody reads a reset counter as history (unknown provenance never reads
+  # as fact -- DR-0125's freshness rule, one layer down).
   psql_q "SELECT coalesce(json_agg(json_build_object(
                    'name', c.relname,
                    'columns', (SELECT count(*) FROM pg_attribute a
                                 WHERE a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped),
                    'rls_enabled', c.relrowsecurity,
                    'policies', (SELECT count(*) FROM pg_policy pol WHERE pol.polrelid = c.oid),
-                   'rows', (SELECT n_live_tup FROM pg_stat_user_tables st WHERE st.relid = c.oid)
+                   'rows', (SELECT n_live_tup FROM pg_stat_user_tables st WHERE st.relid = c.oid),
+                   'ever_inserted', (SELECT n_tup_ins FROM pg_stat_user_tables st WHERE st.relid = c.oid),
+                   'ever_updated', (SELECT n_tup_upd FROM pg_stat_user_tables st WHERE st.relid = c.oid),
+                   'ever_deleted', (SELECT n_tup_del FROM pg_stat_user_tables st WHERE st.relid = c.oid)
                  ) ORDER BY c.relname), '[]'::json)::text
             FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
            WHERE n.nspname = 'public' AND c.relkind = 'r'
@@ -211,6 +299,10 @@ elif [ "$MODE" = "tables" ]; then
            WHERE NOT EXISTS (
              SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
               WHERE n.nspname = 'public' AND c.relkind = 'r' AND c.relname = w.name)"
+  echo "---STATS-RESET---"
+  # When these counters last started from zero. 'never' means they are the full
+  # history of the database; a date means ever_inserted counts only since then.
+  psql_q "SELECT coalesce(max(stats_reset)::text, 'never') FROM pg_stat_database WHERE datname = current_database()"
   echo "---LEDGER---"
   psql_q "SELECT 'sovereign_replay='||count(*) FROM public._sovereign_replay"
 else

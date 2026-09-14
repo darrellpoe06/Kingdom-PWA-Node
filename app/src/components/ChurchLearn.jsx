@@ -58,7 +58,8 @@ import { buildLessonArc, sessionMinutesFromFlow, readAloudTextFromArc } from '..
 import { formatLessonText, lessonPoints } from '../lib/lesson-format.js';
 import { walkState, stepParagraph, stepPoint } from '../lib/lesson-walk.js';
 import { useOpenWithTheWord } from '../lib/show-the-word.js';
-import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
+import { setReadTarget, clearReadTarget, requestRead } from '../lib/read-target.js';
+import { useReadingResume } from '../lib/reading-position.js';
 import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload, courseSharePayload, sectionSharePayload } from '../lib/lesson-links.js';
 import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture-matrix.js';
 import CopyButton from './CopyButton.jsx';
@@ -351,7 +352,17 @@ function QuizBlock({ module, saved, onRecord }) {
           <li key={qi}>
             <fieldset>
               <legend className="text-xs text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>{q.q}</legend>
-              <div className="space-y-1">
+              {/* THE READER MUST NOT SPEAK THE ANSWER OPTIONS (2026-09-14).
+                  Captured from a real reading: the reader recited all four
+                  options of every question as if they were teaching, WRONG
+                  ANSWERS INCLUDED -- "Whatever the world puts in front of you",
+                  "Mostly your problems, so you stay prepared", "It is still
+                  undecided". A listener who cannot see the screen has no way to
+                  know those are decoys, so the reading was teaching error in
+                  Yahweh's name. The QUESTION (the legend) is still read, because
+                  hearing the question is the point; the options are a control to
+                  be tapped, not content to be recited. */}
+              <div data-read-skip className="space-y-1">
                 {q.options.map((opt, oi) => {
                   const checked = answers[qi] === oi;
                   const showCorrect = graded && oi === q.answer;
@@ -1261,6 +1272,23 @@ function CourseView({
   // reload lands one "Resume →" tap from the same spot.
   const [focusId, setFocusId] = useState(null);
   useHistoryValue(focusId, setFocusId, { base: null, key: 'learn-lesson-focus' });
+
+  // THE EXACT LOCATION IS KEPT AND RESTORED (Darrell 2026-09-14: "Lessons keep
+  // being interrupted and I'm loosing my exact location!!! Fix it!!!").
+  //
+  // THE PRIMITIVE FOR THIS ALREADY EXISTED AND LESSONS WERE NEVER WIRED TO IT.
+  // lib/reading-position.js was built 2026-06-25 for exactly this -- "the user
+  // should start reading wherever they are reading from... not have to start
+  // from the top" -- and it persists on scroll (debounced), on
+  // visibilitychange and on unmount, then restores after two frames via a
+  // stable anchor with a scrollY fallback. The book Reader (Library) and the
+  // Pulpit both use it. LESSONS DID NOT, which is why the place survived in
+  // those surfaces and was lost here.
+  //
+  // So this is three lines against a proven primitive rather than a second
+  // implementation of it. The lesson is the ITEM, so each lesson keeps its own
+  // place and moving between them does not blur them together.
+  useReadingResume({ userKey: 'learn', surface: 'lesson', itemId: focusId || '', enabled: !!focusId });
   const focusModule = focusId ? (schedule.find((m) => m.id === focusId) || null) : null;
   const lastFocusRef = React.useRef(null);
   const openLesson = (id) => {
@@ -1330,6 +1358,16 @@ function CourseView({
     // lesson reached that way was one a reader could lose again on reload.
     savePlace({ lessonId: resumeLessonId });
     recordUse(resumeLessonId);
+    // ARRIVAL NO LONGER JUMPS TO THE TOP WHEN THERE IS A PLACE TO RETURN TO.
+    // `scrollTo({top: 0})` here was the most-felt half of "I'm losing my exact
+    // location": the record could be perfect and the view still threw it away
+    // on every return. useReadingPosition above restores the sentence, so the
+    // top-scroll is now only for a lesson with NO saved sentence -- a genuinely
+    // fresh open, where the top IS the right place.
+    const saved = getPlace();
+    const hasPlace = saved && saved.lessonId === resumeLessonId
+      && (saved.sentenceKey || saved.sentence > 0);
+    if (hasPlace) return undefined;
     const t = setTimeout(() => {
       try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { /* no-op */ }
     }, 80);
@@ -1346,8 +1384,16 @@ function CourseView({
     if (!m) return;   // a hit from another course: that course's view answers it
     recordUse(m.id);
     savePlace({ lessonId: m.id });
-    setPresentAutoStart(true);
-    setPresentLesson(m);
+    // THE SECOND PLAY ROUTE ALSO READS (Darrell 2026-09-14, found by DRIVING
+    // the app rather than reading it: pressing Play produced ZERO speech calls
+    // and opened the presenter anyway). The card's Play was changed; THIS one --
+    // Play from the by-title index, which is the list with one entry per lesson
+    // and therefore most of the Play buttons on screen -- still called
+    // setPresentLesson with autoStart. One ask, two call sites, and only one of
+    // them was fixed twice over. Both now do the same thing.
+    openLesson(m.id);
+    setOpenTutorId(m.id);
+    requestRead(m.id);
   }, [presentRequest]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A course descriptor is data from the catalog, and a course that carries no
@@ -1618,10 +1664,25 @@ function CourseView({
                     to choose from... the reader reading for you or you read it in the
                     big nice easy to read views." Placed FIRST in the row so it is the
                     first thing the eye lands on, not the last. */}
+                {/* PLAY READS THE LESSON. Darrell 2026-09-14, in capitals and
+                    for the third time: "Play Button reads the lesson!!!!! Does
+                    not open the PowerPoint!!! Reads the lesson front to back".
+                    It used to call setPresentLesson, which opens the deck --
+                    and the two previous attempts at this only changed WHICH
+                    deck view it opened (console, then already-presenting),
+                    which was never the ask. Play now opens the lesson and
+                    records a want; the reader starts its full reading as soon
+                    as the lesson registers it. The DECK still has its own
+                    control (Present), so nothing is lost. */}
                 <button
                   type="button"
-                  onClick={() => { recordUse(m.id); savePlace({ lessonId: m.id }); setPresentLesson(m); }}
-                  title={`Open this ${U.noun} in the big full-screen view — read it yourself or have it read aloud`}
+                  onClick={() => {
+                    recordUse(m.id); savePlace({ lessonId: m.id });
+                    // The guide must be OPEN for the lesson to register its
+                    // reading, so Play opens it and then asks for the read.
+                    openLesson(m.id); setOpenTutorId(m.id); requestRead(m.id);
+                  }}
+                  title={`Read this ${U.noun} aloud, start to finish`}
                   className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
                 >
                   ▶ Play
@@ -1746,12 +1807,28 @@ function CourseView({
                       opens each reference in place, which is the promise the
                       rest of the app already makes ("Tap any verse reference to
                       read it right here"). */}
+                  {/* THE RAW REFERENCE LIST IS NOT SHOWN TO A HUMAN AT ALL.
+                      Darrell 2026-09-14, after seeing the first two attempts:
+                      "all the lesson actual Word has been stripped and listed
+                      instead of naturally inside the lessons" and "now we humans
+                      get a computer list".
+                      `m.anchor.ref` is a semicolon-joined MACHINE string -- every
+                      reference the whole lesson stands on, eighty of them on
+                      L149. Printing it mid-lesson was a wall of green semicolons
+                      between the reader and the point; moving it to the foot was
+                      still a computer list, just later. It is gone from the
+                      reading view. What stays is what he asked for: the anchor's
+                      THEME, which is teaching, and the Word quoted INLINE
+                      throughout the prose, which is what "naturally inside the
+                      lessons" means. The reader still collapses spoken runs
+                      (DR-0391) and the presented deck keeps its closing
+                      reference slide for a speaker who wants one. */}
                   <WordInline
-                    text={`Anchor — ${m.anchor.ref}: ${m.anchor.theme || ''}`}
+                    text={`Anchor — ${m.anchor.theme || ''}`}
                     className="text-[0.6875rem] text-[#5A6E3D] flex-1"
                     style={{ fontFamily: '"Fraunces", serif' }}
                   />
-                  {sec(`Anchor — ${m.anchor.ref}`, m.anchor.theme || '')}
+                  {sec('Anchor', m.anchor.theme || '')}
                 </div>
               )}
                 </>);
@@ -1850,6 +1927,28 @@ function CourseView({
                     onPlace={savePlace}
                     onAdvance={advanceFrom(m.id)}
                   />
+                </div>
+              )}
+
+              {/* QUESTIONS ARE FOR BOTH (Darrell 2026-09-14: "Questions are for
+                  both!!!!?!!!!!"). The reflection questions were first written
+                  into the facilitator block, which is Governor-gated -- so the
+                  learner, who is who they are FOR, could never see them. The
+                  facilitator keeps discussionPrompts for running a room; these
+                  are the learner's own, rendered for everyone, right before the
+                  reference list. */}
+              {Array.isArray(m.questions) && m.questions.length > 0 && (
+                <div className="mt-3 border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2">
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">
+                    Questions to sit with — {m.questions.length}
+                  </div>
+                  <ol className="list-decimal pl-4 space-y-1">
+                    {m.questions.map((qq, qi) => (
+                      <li key={qi} className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                        <WordInline text={qq} />
+                      </li>
+                    ))}
+                  </ol>
                 </div>
               )}
 
@@ -2416,8 +2515,14 @@ export default function ChurchLearn({
     ? () => { submitHelper(active.key, active.meta.title, (currentUserName || '').trim() || 'A learner'); setHelped((h) => ({ ...h, [active.key]: true })); }
     : null;
 
+  // FULL WIDTH, LIKE EVERY OTHER PAGE (Darrell 2026-09-14: "the lessons are
+  // supposed to be the full width of the window... like all pages").
+  // MEASURED in a real browser at 1440px rather than guessed: window 1440,
+  // <main> 1440, and the lesson card 768 -- constrained by exactly this one
+  // `max-w-3xl` on the section below. It was the ONLY limiter in the whole
+  // ancestor chain, so that single class was the entire cause.
   return (
-    <section className="max-w-3xl" aria-labelledby="learn-h">
+    <section className="w-full" aria-labelledby="learn-h">
       <div className="print:hidden">
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Church · Learn</div>
 

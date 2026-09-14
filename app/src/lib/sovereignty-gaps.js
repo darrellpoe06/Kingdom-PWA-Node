@@ -35,13 +35,16 @@ export const SOVEREIGNTY_GAPS = [
   {
     id: 'gap-voice-clone',
     capability: 'Real cloned voices (Darrell, Bishop Gwin, the family) for read-aloud',
-    localToday: 'Browser device voices only — gender-correct stand-ins work on every device, offline. The XTTS studio code is written for our RTX 4070 (infra/voice-studio, :8770) but has never been armed or probed.',
+    localToday: 'Browser device voices only — gender-correct stand-ins work on every device, offline. The XTTS studio code is written for our RTX 4070 (infra/voice-studio, :8770) but has never been armed or probed. CORRECTED 2026-09-14 (DR-0401): the studio was also CLONE-ONLY by construction — /speak returned 400 reference-required with no sample — so DR-0382\'s built-in-voice routing could never have succeeded even once armed. Fixed: a multi-speaker model now serves its own speaker, and a model with no speaker bank still refuses honestly.',
     vendorMeanwhile: 'The /api/voice-speak bridge (XTTS-v2 via Replicate) MAY be armed as the recorded fallback (VITE_VOICE_BRIDGE=1 + server token). Not armed today — so today the stand-in speaks, honestly labeled.',
     buildPath: 'Arm infra/voice-studio on tlcmediadpt (the LEFT 4070): run the studio container, set VITE_VOICE_SERVICE_URL to it. The standup steps are already written (2026-06-25 session notes). No new hardware needed — the 4070 runs XTTS-v2.',
     purchasePath: 'None — the device is already owned.',
     status: 'open',
     neededSince: '2026-06-24',
-    reReview: '2026-07-24',
+    // OVERDUE BY 52 DAYS when this was found (2026-09-14) — nothing surfaced
+    // it, which is the DR-0075 failure the date exists to prevent. Re-dated to
+    // the arming, not to a guess: the remaining step is his hand on the 4070.
+    reReview: '2026-10-14',
     drRef: 'DR-0138',
   },
   {
