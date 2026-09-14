@@ -105,6 +105,20 @@ state of the work is **motion**, not waiting on Darrell to push each step
   could land it. `claude/**` was added to the CI push trigger, the auto-open-PR
   trigger, and the auto-merge eligibility. That exclusion was the stall; keep it
   fixed.
+- **`npm run ship`, never a bare `git push` (DR-0393).** The lane's speed is the
+  point, and it creates one hazard: `verify` takes ~4 minutes, and the lane can
+  squash-merge another PR inside that window. A squash commit does not contain the
+  branch's own commits as ancestors, so a push afterwards puts freshly-verified
+  work on history `main` no longer has — and **the push succeeds**, silently. It
+  happened twice on 2026-09-13 (#1565 stranded `fcdc9253`; #1566 stranded
+  `60f627a7`), costing two recovery cycles. `ship` chains
+  **stamp → verify → check → push**: `scripts/push-stranding-guard.mjs` records
+  `origin/main` when verification starts and re-reads it before the push, failing
+  with both shas and the replay remedy if the base moved. It is not in
+  `verify:gates` and cannot be — CI runs *after* the push, so no CI gate can catch
+  this by construction. It does **not** fire merely because a branch is behind
+  `main`; that is the normal state of nearly every branch.
+
 - **The gate is the brake; `hold` is the governor's hand.** A red PR never merges
   (DR-0076). The `hold` label parks a PR out of the lane to soak or await Governor
   review (Tier B/C; RELEASE-TIERS). Reverting the three workflows is the
