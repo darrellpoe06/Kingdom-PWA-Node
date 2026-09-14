@@ -70,6 +70,10 @@ This record covers the three merges rather than backfilling three separate ones:
 
 **Confirmed, not changed:** the "button up top that opens all of them together or closes them" he described from the Godhead study is `ShowTheWordToggle` (DR-0341 D1), and it is already mounted in the lesson reading view (`ChurchLearn.jsx:947`) and both LessonFlow views (`LessonFlow.jsx:113`, `:147`). The per-section grouping of references (2–4 at a section's end, as the study's `refs: [...]` arrays do) remains the one un-built piece — see Limits.
 
+## Amendment 2026-09-14 (evening) — the card's anchor was a flex item, and an opened verse split it into columns
+
+Minutes after #1582 deployed, Darrell sent the lesson **card** (not the paced view): *"What is this how can a human do anything with this?"* — the Anchor theme crushed to one word per line down the left edge, Psalms 73:26 filling the rest. Cause, from the source: `ChurchLearn.jsx:1832` gave `WordInline` its own `flex-1` inside the `flex` row it shares with "Share this part". `WordInline` renders two siblings (the paragraph, then the opened verses), so inside a flex row they became two columns. It only appears once a verse is open — Show the Word on, or a tap — which is why every closed-state look passed. **Decision:** the pair is wrapped in one block item (`div.flex-1.min-w-0`); `WordInline` never carries a flex-item class itself. **Gate:** `word-inline-is-never-a-flex-item.test.js` scans every component's `<WordInline>` for a flex-item class and fails by file:line; run against `main@0c3c2fb0` it fails on exactly this site. Measured: this was the only such site in the app.
+
 ## Verification
 
 - **Proven-to-catch, both halves.** `the-word-is-in-the-sentence.test.jsx`: its two central assertions were run against the previous render and both FAILED — no control existed anywhere in the body, and the opener printed all 41 references. `decision-record-guard.mjs` was run against the real push it was written for and **refused it**, naming the four product files and no record — not a synthetic case chosen because it passes (the sharpening DR-0393 put on DR-0076 §3).

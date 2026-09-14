@@ -1827,11 +1827,23 @@ function CourseView({
                       lessons" means. The reader still collapses spoken runs
                       (DR-0391) and the presented deck keeps its closing
                       reference slide for a speaker who wants one. */}
-                  <WordInline
-                    text={`Anchor — ${m.anchor.theme || ''}`}
-                    className="text-[0.6875rem] text-[#5A6E3D] flex-1"
-                    style={{ fontFamily: '"Fraunces", serif' }}
-                  />
+                  {/* ONE FLEX ITEM, NOT TWO. WordInline renders the paragraph AND,
+                      beneath it, the verses a reader opens -- two siblings. Placed
+                      directly in this flex row those two became side-by-side
+                      COLUMNS: the anchor crushed to one word per line down the
+                      left edge while Psalms 73:26 took the width (Darrell
+                      2026-09-14, 4:34pm: "What is this how can a human do
+                      anything with this?"). The wrapper makes the pair one
+                      block-flow item, so an opened verse stacks under its
+                      sentence the way it does everywhere else. min-w-0 lets the
+                      prose wrap instead of pushing the share control off. */}
+                  <div className="flex-1 min-w-0">
+                    <WordInline
+                      text={`Anchor — ${m.anchor.theme || ''}`}
+                      className="text-[0.6875rem] text-[#5A6E3D]"
+                      style={{ fontFamily: '"Fraunces", serif' }}
+                    />
+                  </div>
                   {sec('Anchor', m.anchor.theme || '')}
                 </div>
               )}
