@@ -337,6 +337,40 @@ jobs:
             note "- gallery blob probe: **NOT MEASURED** (backend secrets unset)"
           fi
 
+          # 9. THE ORDER PATH HAS A LIVE WITNESS (DR-0398). crm-pipeline-parity
+          # .test.js catches an allowlist drift at BUILD time; nothing caught a
+          # LIVE/deploy regression — the sovereign backend missing the migration,
+          # a grant/RLS change, the RPC unreachable — the class that cost Sterling
+          # months (DR-0374). door_capture_selfcheck runs the REAL crm_capture_lead
+          # round-trip and self-deletes, so this asks the live backend "would a
+          # Moore order be captured right now?" and leaves nothing behind. Gated on
+          # the backend being UP (step 7 owns a down backend) and given one retry,
+          # so it never cries wolf when the NAS is off. An auth/unreachable answer
+          # is NOT MEASURED (a probe-config/backend issue), never an order incident;
+          # only a clean capture-stage refusal is the real regression.
+          if [ -n "${SB_ANON:-}" ] && [ "$LIVE_SB" != "false" ] && { [ "${SB_SOV:-000}" = "200" ] || [ "${SB_SOV:-000}" = "401" ]; }; then
+            selfcheck() {
+              curl -sS --max-time 20 -X POST \
+                -H "apikey: $SB_ANON" -H "Authorization: Bearer $SB_ANON" \
+                -H 'Content-Type: application/json' \
+                -d '{"p_instance_slug":"moore-divahs","p_pipeline":"moore-orders"}' \
+                "https://poetech.us/sb/rest/v1/rpc/door_capture_selfcheck" 2>/dev/null || echo ""
+            }
+            OJ="$(selfcheck)"
+            case "$OJ" in *'"ok":true'*) : ;; *) sleep 5; OJ="$(selfcheck)" ;; esac
+            case "$OJ" in
+              *'"ok":true'*)
+                note "- order path (Moore Divahs): **capture OK** — a real order would land (self-cleaning round-trip)" ;;
+              *'"stage":"capture"'*|*'"stage":"cleanup"'*)
+                add_fail "ORDER PATH REFUSED — a Moore Divahs order would NOT be captured on the live backend: door_capture_selfcheck returned $OJ (DR-0374 class — orders silently lost). crm-pipeline-parity is green in CI, so this is a LIVE/deploy regression: the sovereign DB may be missing migration 0218/0215, or a grant/RLS changed" ;;
+              *)
+                note "- order path: **NOT MEASURED** (selfcheck returned '${OJ:-no response}' — RPC absent on this backend or anon-key mismatch, not an order refusal)"
+                echo "::warning::order-path selfcheck not measured — door_capture_selfcheck did not answer ok/refused on poetech.us/sb" ;;
+            esac
+          else
+            note "- order path: **NOT MEASURED** (backend not confirmed up — step 7 owns that)"
+          fi
+
           echo "backend_code=$BACKEND_CODE" >> "$GITHUB_OUTPUT"
           echo "fail_reasons=$fail_reasons" >> "$GITHUB_OUTPUT"
           echo "stale=$stale" >> "$GITHUB_OUTPUT"
