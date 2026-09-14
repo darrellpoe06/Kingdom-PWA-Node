@@ -104,6 +104,24 @@ export function faultSentence(what, detail) {
   return tail ? `${head} The app reported: ${tail}` : head;
 }
 
+// Route ANY door RPC result through here and a failed one files itself. DR-0377
+// instrumented only the order form; classes/messages/showcase still failed
+// quietly. Rather than sprinkle reportDoorFault at each call site (which rots --
+// the next seam added forgets it), every seam wraps its result here: ok:false
+// files a system fault (fire-and-forget, never throws) and the result passes
+// through UNCHANGED, so the caller's own error handling is untouched. One place,
+// so a seam is instrumented by wrapping and a gate can hold every seam to it --
+// the same "one registry, not two" discipline as 0216 / DR-0376.
+export function reportIfFailed(doorSlug, instanceSlug, area, what, result) {
+  if (result && result.ok === false) {
+    reportDoorFault(doorSlug, instanceSlug, {
+      area,
+      body: faultSentence(what, result.error && result.error.message),
+    });
+  }
+  return result;
+}
+
 // Pure. System faults the office has not handled, loudest (most recent, then
 // most frequent) first -- the board's "what is broken NOW" question.
 export function openFaults(rows = []) {
