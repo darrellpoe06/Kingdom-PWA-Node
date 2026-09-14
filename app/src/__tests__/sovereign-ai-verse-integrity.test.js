@@ -860,3 +860,126 @@ describe('sov16 — trust the counsel you can actually trust quotes its Word spi
   });
 });
 
+
+// =============================================================================
+// sov17 — the judge and the just weight (captured 2026-09-14 by the
+// Gmail-lesson-intake Way, DR-0312, from a ByteByteGo article the Governor
+// forwarded, "LLMs as a Judge"; the sequel to sov9, narrowed to JUDGING).
+// Word-first per the sov9/sov10 standard; article carried as reported
+// (DR-0076 §8); every quoted verse verbatim + pinned, a drift fails the build.
+// =============================================================================
+const sov17 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov17-the-judge-and-the-just-weight');
+
+const SOV17_FRAGMENTS = {
+  'John 7:24': 'Judge not according to the appearance, but judge righteous judgment.',
+  'Genesis 18:25': 'Shall not the Judge of all the earth do right?',
+  'James 4:12': 'There is one lawgiver, who is able to save and to destroy: who art thou that judgest another?',
+  '1 Samuel 16:7': 'man looketh on the outward appearance, but the LORD looketh on the heart',
+  'Proverbs 16:2': 'All the ways of a man are clean in his own eyes; but the LORD weigheth the spirits.',
+  'Isaiah 11:3': 'shall not judge after the sight of his eyes, neither reprove after the hearing of his ears',
+  'Exodus 25:40': 'look that thou make them after their pattern, which was shewed thee in the mount',
+  'Amos 7:8': 'Behold, I will set a plumbline in the midst of my people Israel',
+  'Deuteronomy 25:15': 'thou shalt have a perfect and just weight, a perfect and just measure shalt thou have',
+  'Leviticus 19:15a': 'Ye shall do no unrighteousness in judgment',
+  'Leviticus 19:15b': 'in righteousness shalt thou judge thy neighbour',
+  '2 Corinthians 3:6': 'the letter killeth, but the spirit giveth life',
+  'Proverbs 18:13': 'He that answereth a matter before he heareth it, it is folly and shame unto him.',
+  'Deuteronomy 1:17a': 'Ye shall not respect persons in judgment',
+  'Deuteronomy 1:17b': 'for the judgment is God’s',
+  'Proverbs 24:23': 'It is not good to have respect of persons in judgment.',
+  'James 2:1': 'have not the faith of our Lord Jesus Christ, the Lord of glory, with respect of persons',
+  'James 2:9': 'if ye have respect to persons, ye commit sin, and are convinced of the law as transgressors',
+  'Proverbs 11:1': 'A false balance is abomination to the LORD: but a just weight is his delight.',
+  'Proverbs 16:11': 'A just weight and balance are the LORD’s: all the weights of the bag are his work.',
+  'Proverbs 20:23': 'Divers weights are an abomination unto the LORD; and a false balance is not good.',
+  'Romans 14:10': 'we shall all stand before the judgment seat of Christ',
+  '1 Corinthians 4:3': 'yea, I judge not mine own self',
+  '1 Corinthians 4:4': 'he that judgeth me is the Lord',
+  'Hebrews 4:13': 'all things are naked and opened unto the eyes of him with whom we have to do',
+  'Deuteronomy 19:15': 'at the mouth of two witnesses, or at the mouth of three witnesses, shall the matter be established',
+  'Matthew 7:2': 'For with what judgment ye judge, ye shall be judged: and with what measure ye mete, it shall be measured to you again.',
+  '1 Thessalonians 5:21': 'Prove all things; hold fast that which is good.',
+  'Matthew 7:16': 'Ye shall know them by their fruits',
+  'Matthew 7:20': 'Wherefore by their fruits ye shall know them.',
+  'Matthew 12:33': 'the tree is known by his fruit',
+  'Jeremiah 17:10': 'I the LORD search the heart, I try the reins, even to give every man according to his ways',
+};
+
+describe('sov17 — the judge and the just weight quotes its whole spine verbatim, Word first', () => {
+  it('the week exists, anchored on righteous judgment + the just weight', () => {
+    expect(sov17).toBeTruthy();
+    expect(sov17.anchor.ref).toContain('John 7:24');
+    expect(sov17.anchor.ref).toContain('Proverbs 11:1');
+    expect(sov17.anchor.theme).toContain('Judge not according to the appearance, but judge righteous judgment.');
+  });
+  it('every quoted fragment appears letter-for-letter in the deep lesson', () => {
+    for (const [ref, fragment] of Object.entries(SOV17_FRAGMENTS)) {
+      expect(sov17.lesson, `${ref} must be quoted verbatim`).toContain(fragment);
+    }
+  });
+  it('every fragment matches the repo KJV corpus, not memory (two witnesses)', () => {
+    const corpus = (book) => JSON.parse(readFileSync(join(HERE, '..', '..', 'public', 'bible', 'kjv', `${book}.json`), 'utf8'));
+    const verse = (book, ch, v) => corpus(book).chapters[ch - 1][v - 1];
+    expect(verse('John', 7, 24)).toBe(SOV17_FRAGMENTS['John 7:24']);
+    expect(verse('Genesis', 18, 25)).toContain(SOV17_FRAGMENTS['Genesis 18:25']);
+    expect(verse('James', 4, 12)).toBe(SOV17_FRAGMENTS['James 4:12']);
+    expect(verse('1Samuel', 16, 7)).toContain(SOV17_FRAGMENTS['1 Samuel 16:7']);
+    expect(verse('Proverbs', 16, 2)).toBe(SOV17_FRAGMENTS['Proverbs 16:2']);
+    expect(verse('Isaiah', 11, 3)).toContain(SOV17_FRAGMENTS['Isaiah 11:3']);
+    expect(verse('Exodus', 25, 40)).toContain(SOV17_FRAGMENTS['Exodus 25:40']);
+    expect(verse('Amos', 7, 8)).toContain(SOV17_FRAGMENTS['Amos 7:8']);
+    expect(verse('Deuteronomy', 25, 15)).toContain(SOV17_FRAGMENTS['Deuteronomy 25:15']);
+    expect(verse('Leviticus', 19, 15)).toContain(SOV17_FRAGMENTS['Leviticus 19:15a']);
+    expect(verse('Leviticus', 19, 15)).toContain(SOV17_FRAGMENTS['Leviticus 19:15b']);
+    expect(verse('2Corinthians', 3, 6)).toContain(SOV17_FRAGMENTS['2 Corinthians 3:6']);
+    expect(verse('Proverbs', 18, 13)).toBe(SOV17_FRAGMENTS['Proverbs 18:13']);
+    expect(verse('Deuteronomy', 1, 17)).toContain(SOV17_FRAGMENTS['Deuteronomy 1:17a']);
+    expect(verse('Deuteronomy', 1, 17)).toContain(SOV17_FRAGMENTS['Deuteronomy 1:17b']);
+    expect(verse('Proverbs', 24, 23)).toContain(SOV17_FRAGMENTS['Proverbs 24:23']);
+    expect(verse('James', 2, 1)).toContain(SOV17_FRAGMENTS['James 2:1']);
+    expect(verse('James', 2, 9)).toContain(SOV17_FRAGMENTS['James 2:9']);
+    expect(verse('Proverbs', 11, 1)).toBe(SOV17_FRAGMENTS['Proverbs 11:1']);
+    expect(verse('Proverbs', 16, 11)).toBe(SOV17_FRAGMENTS['Proverbs 16:11']);
+    expect(verse('Proverbs', 20, 23)).toBe(SOV17_FRAGMENTS['Proverbs 20:23']);
+    expect(verse('Romans', 14, 10)).toContain(SOV17_FRAGMENTS['Romans 14:10']);
+    expect(verse('1Corinthians', 4, 3)).toContain(SOV17_FRAGMENTS['1 Corinthians 4:3']);
+    expect(verse('1Corinthians', 4, 4)).toContain(SOV17_FRAGMENTS['1 Corinthians 4:4']);
+    expect(verse('Hebrews', 4, 13)).toContain(SOV17_FRAGMENTS['Hebrews 4:13']);
+    expect(verse('Deuteronomy', 19, 15)).toContain(SOV17_FRAGMENTS['Deuteronomy 19:15']);
+    expect(verse('Matthew', 7, 2)).toBe(SOV17_FRAGMENTS['Matthew 7:2']);
+    expect(verse('1Thessalonians', 5, 21)).toBe(SOV17_FRAGMENTS['1 Thessalonians 5:21']);
+    expect(verse('Matthew', 7, 16)).toContain(SOV17_FRAGMENTS['Matthew 7:16']);
+    expect(verse('Matthew', 7, 20)).toBe(SOV17_FRAGMENTS['Matthew 7:20']);
+    expect(verse('Matthew', 12, 33)).toContain(SOV17_FRAGMENTS['Matthew 12:33']);
+    expect(verse('Jeremiah', 17, 10)).toContain(SOV17_FRAGMENTS['Jeremiah 17:10']);
+  });
+  it('the Word LEADS and the ten movements run in order', () => {
+    expect(sov17.lesson.indexOf('FIRST, THE WORD SET THE STANDARD')).toBe(0);
+    // The command precedes the article's name (Word first, DR-0312/DR-0331).
+    expect(sov17.lesson.indexOf('judge righteous judgment')).toBeLessThan(sov17.lesson.indexOf('ByteByteGo'));
+    const order = ['FIRST,', 'SECOND,', 'THIRD,', 'FOURTH,', 'FIFTH,', 'SIXTH,', 'SEVENTH,', 'EIGHTH,', 'NINTH,', 'TENTH,'];
+    let last = -1;
+    for (const m of order) {
+      const at = sov17.lesson.indexOf(m);
+      expect(at, `${m} must appear in order`).toBeGreaterThan(last);
+      last = at;
+    }
+  });
+  it('the load-bearing teaching is carried: position bias = respect of persons, and the rubric is a just weight', () => {
+    // Position bias mapped to the Word's respect-of-persons law.
+    expect(sov17.lesson).toContain('POSITION BIAS');
+    expect(sov17.lesson).toContain('respect of persons');
+    // The whole method rests on the rubric being a just weight (the distinct thesis vs sov9).
+    expect(sov17.lesson).toContain('THE JUST WEIGHT');
+    expect(sov17.lesson).toContain('a divers weight');
+  });
+  it('provenance honesty: the article is carried as reported (DR-0076 §8)', () => {
+    expect(sov17.lesson).toContain('not independently re-verified');
+    expect(sov17.levels.senior).toContain('not independently re-verified');
+  });
+  it('tamper-catch: the pinned ground-truth lines are themselves exact', () => {
+    expect(SOV17_FRAGMENTS['John 7:24']).toBe('Judge not according to the appearance, but judge righteous judgment.');
+    expect(SOV17_FRAGMENTS['Proverbs 11:1']).toBe('A false balance is abomination to the LORD: but a just weight is his delight.');
+    expect(SOV17_FRAGMENTS['Matthew 7:20']).toBe('Wherefore by their fruits ye shall know them.');
+  });
+});
