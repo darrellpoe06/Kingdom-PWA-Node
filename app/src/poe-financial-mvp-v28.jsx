@@ -3564,7 +3564,6 @@ ${THEME_CSS}
         Projections, not promises · Verify with licensed professionals
       </div>
 
-      <AuthBanner />
       <ClaimInviteBanner />
       {persistIssue && (
         <div className="bg-[#7A1F1F] text-[#FAF8F4] text-[0.75rem] py-2 px-4 flex items-center justify-between gap-3 print:hidden" data-read-skip>
@@ -4154,6 +4153,7 @@ ${THEME_CSS}
               {(churchBrand || view === 'church') && <ChurchGiveHeaderButton church={data.church} />}
               {/* Obvious top-right Log in / Log out box, like TLC, on every app (Darrell 2026-07-14). */}
               <HeaderAuthButton />
+              <AuthBanner />
               {/* Tier PREVIEW — steward/demo only: a real user must never hop the paid tier wall with it (REV-0239). Hidden on the Love Corner door. */}
               {!churchDoorOnly && (isFamilyMember || isAnyDemoMode) && <TierSwitcher userTier={data.userTier} setUserTier={setUserTier} />}
               {/* 2026-06-14 — the profile switcher is the family device-sharing
