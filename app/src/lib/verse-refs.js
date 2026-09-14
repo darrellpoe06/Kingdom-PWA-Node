@@ -51,3 +51,26 @@ export function referencesIn(text) {
   }
   return out;
 }
+
+// A LIST AT THE TOP OF A LESSON IS NOT CONTEXT — IT IS AN INDEX.
+//
+// Darrell 2026-09-14, looking at lesson 151's Open block printing forty-one
+// references before a word of teaching: "not any lists inside at the beginning
+// of the lessons without context anyways doesn't help us humans anyway... one
+// or two with points and the full scripture they are discussing in context".
+//
+// A lesson's `anchor.ref` carries every reference the WHOLE lesson stands on,
+// so printing it verbatim at the opener is a bibliography wearing a teaching
+// slot. One or two IS a citation doing work in a line — that stays. Three or
+// more back to back is a run, and the run is dropped in favour of the theme it
+// was supposed to introduce; nothing is lost, because every one of those
+// references is named again inside the prose that discusses it, where
+// WordInline opens it in place.
+//
+// Same threshold and same matcher as speech-shape collapseReferenceRuns, so the
+// reader and the page agree on what counts as a list (DR-0391 decision 1).
+export const ANCHOR_RUN_MIN = 3;
+
+export function anchorIsRun(refText, min = ANCHOR_RUN_MIN) {
+  return referencesIn(typeof refText === 'string' ? refText : '').length >= min;
+}

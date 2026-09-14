@@ -27,6 +27,7 @@
 // stage rail is an aria progress context; aria-live on the active stage.
 // =============================================================================
 import WordInline from './WordInline.jsx';
+import { anchorIsRun } from '../lib/verse-refs.js';
 import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 import React, { useState } from 'react';
 import { buildLessonArc } from '../lib/lesson-flow.js';
@@ -336,7 +337,9 @@ export function LessonRunOfShow({
             {/* What the audience sees this stage (so the leader has context) */}
             {s.kind === 'open' && (s.audience.anchorRef || s.audience.bigIdea) && (
               <p className="text-[0.6875rem] text-[#5A5751] mb-1" style={SERIF}>
-                {s.audience.anchorRef && <><strong className="text-[#5A6E3D]">Anchor — {s.audience.anchorRef}:</strong> {s.audience.anchorTheme} </>}
+                {s.audience.anchorRef && !anchorIsRun(s.audience.anchorRef)
+                  && <><strong className="text-[#5A6E3D]">Anchor — {s.audience.anchorRef}:</strong> </>}
+                {s.audience.anchorRef ? <>{s.audience.anchorTheme} </> : null}
               </p>
             )}
             {s.kind === 'apply' && s.audience.inApp && (
