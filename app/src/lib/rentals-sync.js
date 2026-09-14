@@ -169,6 +169,21 @@ const STRUCTURE_FIELDS = ['unitLabel', 'building', 'roomLabel', 'rentableLevel']
 // erases locally-typed detail.
 const FILL_FIELDS = ['city', 'state', 'zip'];
 
+// A value that carries no information — treated as "unset" so it can never
+// ERASE a real local value during a merge. Numeric 0 counts as blank for this
+// guard (a stale remote rent of 0 must not overwrite a local $1,150).
+function isBlankValue(v) {
+  return v === '' || v === null || v === undefined || v === 0 || v === '0' || v === '0.00';
+}
+
+// Compare two ISO timestamps: 1 = a newer, -1 = b newer, 0 = equal OR unknown
+// (either missing). ISO-8601 strings sort chronologically, so a lexical compare
+// is a time compare. Unknown collapses to 0 so the blank-guard decides instead.
+function cmpUpdatedAt(a, b) {
+  if (!a || !b) return 0;
+  return a > b ? 1 : a < b ? -1 : 0;
+}
+
 // Merge remote rows into the local list, preserving device-local detail:
 //   - local item matched remotely (by slug or remoteUuid) → overlay the
 //     synced columns + the full mortgage object; keep rooms, equipment,
@@ -282,15 +297,35 @@ export function mergeRemoteRentals(localItems = [], remoteItems = []) {
       || (local.remoteUuid ? remoteByUuid.get(local.remoteUuid) : null);
     if (remote) {
       claimed.add(remote.remoteUuid);
-      const next = { ...local, remoteUuid: remote.remoteUuid, updatedAt: remote.updatedAt };
-      for (const f of SYNCED_FIELDS) next[f] = remote[f];
+      // RECENCY-AWARE OVERLAY (DR-0394). The old code overwrote every synced
+      // field with the remote value unconditionally AND discarded the local
+      // updatedAt — so a STALE cloud row (blank rent, no notes, from weeks ago)
+      // silently erased a fresher local edit the moment a device pulled. That is
+      // how a family member's rent/notes/fix-ups were wiped (Christina 2026-09;
+      // the cloud was frozen while her device held the real values). A local
+      // edit stamps updatedAt=now (see updateRental), so we can tell who is
+      // newer: a fresher LOCAL edit is never clobbered by an older remote, and
+      // even at equal/unknown age a BLANK remote never erases a real local value.
+      const cmp = cmpUpdatedAt(local.updatedAt, remote.updatedAt);
+      const localNewer = cmp > 0;
+      const next = { ...local, remoteUuid: remote.remoteUuid };
+      next.updatedAt = localNewer ? local.updatedAt : remote.updatedAt;
+      for (const f of SYNCED_FIELDS) {
+        if (localNewer) continue;                                        // fresher local edit wins
+        if (cmp === 0 && isBlankValue(remote[f]) && !isBlankValue(local[f])) continue; // blank remote never erases a real local value
+        next[f] = remote[f];                                             // remote is newer, or has a real value to apply
+      }
       for (const f of FILL_FIELDS) if (remote[f]) next[f] = remote[f];
       for (const f of STRUCTURE_FIELDS) if (remote[f]) next[f] = remote[f];
       // The whole mortgage object syncs now (v2.13 added rate / P&I /
-      // escrow columns); only the local 'estimated' flag is preserved.
-      next.mortgage = local.mortgage
-        ? { ...remote.mortgage, estimated: local.mortgage.estimated }
-        : remote.mortgage;
+      // escrow columns); only the local 'estimated' flag is preserved. A
+      // fresher local edit keeps its own mortgage object rather than being
+      // overwritten by a stale remote one.
+      next.mortgage = (localNewer && local.mortgage)
+        ? local.mortgage
+        : (local.mortgage
+          ? { ...remote.mortgage, estimated: local.mortgage.estimated }
+          : remote.mortgage);
       merged.push(next);
     } else if (!local.remoteUuid) {
       merged.push(local);

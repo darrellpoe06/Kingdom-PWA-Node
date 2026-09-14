@@ -29,8 +29,9 @@ describe('the Moore row — the first registry client, faithful to what shipped'
     expect(row.brand.email).toBeUndefined();
   });
   it('names the real seams: steward instance, door data home, capture lane', () => {
-    expect(row.instanceSlug).toBe('moore-divahs');       // role check, showcase, messages
-    expect(row.doorDataInstanceSlug).toBe('poe-family'); // legacy class rows (re-point pending)
+    expect(row.instanceSlug).toBe('moore-divahs');           // role check, showcase, messages
+    expect(row.doorDataInstanceSlug).toBe('moore-divahs');   // re-pointed to her own instance (DR-0399 / migration 0219)
+    expect(row.captureInstanceSlug).toBe('moore-divahs');    // new orders land in her instance, not the family's
     expect(row.capturePipeline).toBe('moore-orders');
     expect(row.captureSource).toBe('moore-divahs-app');
     expect(row.manifest).toBe('/manifest-moore.webmanifest');

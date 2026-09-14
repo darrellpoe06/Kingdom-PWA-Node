@@ -1,6 +1,6 @@
 // THE STUDIO MUST SERVE THE BUILT-IN VOICE, NOT REFUSE IT.
 // =============================================================================
-// 2026-09-14 (DR-0394). Darrell, asked whether the built-in voice should reach
+// 2026-09-14 (DR-0400). Darrell, asked whether the built-in voice should reach
 // the church's own studio by default: "Yes."
 //
 // The honest answer was that it never could, and the reason was not

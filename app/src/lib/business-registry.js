@@ -23,11 +23,12 @@ export const BUSINESS_REGISTRY = {
     tabs: DOOR_TABS,
     // Steward gates + steward-owned content (role check, showcase, messages).
     instanceSlug: 'moore-divahs',
-    // Legacy home of her class/order rows (the cf-instance re-point rides a
-    // later data increment; until then the door reads where the data IS).
-    doorDataInstanceSlug: 'poe-family',
+    // Her class/order data lives in her OWN instance now (DR-0399 re-point;
+    // migration 0219 moved any rows stranded under poe-family and asserted none
+    // remain). One business, one instance — the DR-0365 principle.
+    doorDataInstanceSlug: 'moore-divahs',
     capturePipeline: 'moore-orders',
-    captureInstanceSlug: 'poe-family',
+    captureInstanceSlug: 'moore-divahs',
     captureSource: DOOR_SOURCE,
     shareUrl: MOORE_SHARE_URL,
     manifest: '/manifest-moore.webmanifest',

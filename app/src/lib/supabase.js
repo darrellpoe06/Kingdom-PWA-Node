@@ -161,10 +161,36 @@ export async function sendRoyaltyLink(email, { name } = {}) {
 // password itself is the credential; RLS + roles are the real gate.
 // -----------------------------------------------------------------------------
 
+// SIGNING UP sets a new credential, so it may demand a strong one.
 export function validateCredentials(email, password) {
   const e = (email || '').trim();
   if (!e || !e.includes('@')) return { error: { message: 'Please enter a valid email address.' } };
   if (!password || password.length < 8) return { error: { message: 'Password must be at least 8 characters.' } };
+  return { email: e };
+}
+
+// SIGNING IN CHECKS AN EXISTING CREDENTIAL, AND MAY NOT SECOND-GUESS IT
+// (2026-09-14, reported by Christina: "I can't get into the app on my Mac book").
+//
+// Her screen said "Password must be at least 8 characters." over a password she
+// was typing correctly. Both sign-in and sign-up ran validateCredentials, so the
+// SIGNUP minimum was being applied to a sign-in -- and her account's password is
+// six characters, set when the minimum was lower (the phone+PIN path documents
+// that same history below: Supabase's own default minimum is 6). The check ran
+// BEFORE the network call, so the server was never asked. She was not failing to
+// authenticate; she was being refused the chance to try, by her own app,
+// permanently, with a message that read as her mistake.
+//
+// A client-side rule about credential STRENGTH belongs where a credential is
+// CREATED. On sign-in the only thing the client can honestly judge is whether
+// there is something to send; whether it is right is the server's answer to give.
+// So this validates the address shape and a non-empty secret, and nothing else.
+//
+// Raising a password minimum must never lock out the accounts that predate it.
+export function validateSignIn(email, password) {
+  const e = (email || '').trim();
+  if (!e || !e.includes('@')) return { error: { message: 'Please enter a valid email address.' } };
+  if (!password) return { error: { message: 'Please enter your password.' } };
   return { email: e };
 }
 
@@ -183,9 +209,13 @@ export async function signUpWithPassword(email, password, displayName) {
   });
 }
 
-/** Sign in an existing account with email + password. Returns { data, error }. */
+/**
+ * Sign in an existing account with email + password. Returns { data, error }.
+ * Uses validateSignIn, NOT validateCredentials: the signup minimum must never
+ * decide whether an existing password is allowed to be tried (see above).
+ */
 export async function signInWithPassword(email, password) {
-  const v = validateCredentials(email, password);
+  const v = validateSignIn(email, password);
   if (v.error) return v;
   return supabase.auth.signInWithPassword({ email: v.email, password });
 }

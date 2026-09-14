@@ -1,4 +1,4 @@
-# DR-0394 — The client asked a question no server could answer
+# DR-0400 — The client asked a question no server could answer
 
 - **Date:** 2026-09-14
 - **Status:** accepted

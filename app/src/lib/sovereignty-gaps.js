@@ -35,7 +35,7 @@ export const SOVEREIGNTY_GAPS = [
   {
     id: 'gap-voice-clone',
     capability: 'Real cloned voices (Darrell, Bishop Gwin, the family) for read-aloud',
-    localToday: 'Browser device voices only — gender-correct stand-ins work on every device, offline. The XTTS studio code is written for our RTX 4070 (infra/voice-studio, :8770) but has never been armed or probed. CORRECTED 2026-09-14 (DR-0394): the studio was also CLONE-ONLY by construction — /speak returned 400 reference-required with no sample — so DR-0382\'s built-in-voice routing could never have succeeded even once armed. Fixed: a multi-speaker model now serves its own speaker, and a model with no speaker bank still refuses honestly.',
+    localToday: 'Browser device voices only — gender-correct stand-ins work on every device, offline. The XTTS studio code is written for our RTX 4070 (infra/voice-studio, :8770) but has never been armed or probed. CORRECTED 2026-09-14 (DR-0400): the studio was also CLONE-ONLY by construction — /speak returned 400 reference-required with no sample — so DR-0382\'s built-in-voice routing could never have succeeded even once armed. Fixed: a multi-speaker model now serves its own speaker, and a model with no speaker bank still refuses honestly.',
     vendorMeanwhile: 'The /api/voice-speak bridge (XTTS-v2 via Replicate) MAY be armed as the recorded fallback (VITE_VOICE_BRIDGE=1 + server token). Not armed today — so today the stand-in speaks, honestly labeled.',
     buildPath: 'Arm infra/voice-studio on tlcmediadpt (the LEFT 4070): run the studio container, set VITE_VOICE_SERVICE_URL to it. The standup steps are already written (2026-06-25 session notes). No new hardware needed — the 4070 runs XTTS-v2.',
     purchasePath: 'None — the device is already owned.',

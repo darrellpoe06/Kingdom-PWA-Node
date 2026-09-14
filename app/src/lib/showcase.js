@@ -18,7 +18,7 @@ const BUCKET = 'moore-showcase';
 // the session.
 export async function fetchShowcase(instanceSlug) {
   const { data, error } = await publicRpc('moore_showcase', { p_instance_slug: instanceSlug });
-  if (error) return { ok: false, pieces: [] };
+  if (error) return { ok: false, pieces: [], error };
   return { ok: true, pieces: data || [] };
 }
 

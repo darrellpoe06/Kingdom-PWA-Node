@@ -43,7 +43,7 @@ import { fetchMessages, sendMessage } from '../lib/business-messages.js';
 import { fetchShowcase, showcaseImageUrl, sortPieces } from '../lib/showcase.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import DoorFeedback from './DoorFeedback.jsx';
-import { reportDoorFault, faultSentence } from '../lib/door-feedback-sync.js';
+import { reportDoorFault, faultSentence, reportIfFailed } from '../lib/door-feedback-sync.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const fmt$ = (cents) => `$${(cents / 100).toFixed(2)}`;
@@ -229,7 +229,10 @@ function MyOrders({ onReorder = null }) {
 function MyMessages() {
   const [state, setState] = useState({ phase: 'checking', rows: [] });
   const [draft, setDraft] = useState('');
-  const load = () => fetchMessages(BIZ.instanceSlug).then((r) => setState({ phase: r.ok ? 'ready' : 'error', rows: r.rows }));
+  const load = () => fetchMessages(BIZ.instanceSlug).then((r) => {
+    reportIfFailed(BIZ.slug, BIZ.instanceSlug, 'messages', 'The message thread', r);
+    setState({ phase: r.ok ? 'ready' : 'error', rows: r.rows });
+  });
   useEffect(() => {
     let on = true;
     supabase.auth.getSession().then(({ data }) => {
@@ -247,6 +250,7 @@ function MyMessages() {
     e.preventDefault();
     if (!draft.trim()) return;
     const r = await sendMessage(BIZ.instanceSlug, draft);
+    reportIfFailed(BIZ.slug, BIZ.instanceSlug, 'messages', 'Sending a message', r);
     if (r.ok) { setDraft(''); load(); }
   };
   return (
@@ -278,7 +282,10 @@ function useShowcase() {
   const [state, setState] = useState({ phase: 'loading', pieces: [] });
   useEffect(() => {
     let on = true;
-    fetchShowcase(BIZ.instanceSlug).then((r) => { if (on) setState({ phase: 'ready', pieces: sortPieces(r.pieces) }); });
+    fetchShowcase(BIZ.instanceSlug).then((r) => {
+      reportIfFailed(BIZ.slug, BIZ.instanceSlug, 'gallery', 'The gallery', r);
+      if (on) setState({ phase: 'ready', pieces: sortPieces(r.pieces) });
+    });
     return () => { on = false; };
   }, []);
   return state;

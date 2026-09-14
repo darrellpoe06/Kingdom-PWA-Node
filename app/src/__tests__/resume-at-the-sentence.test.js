@@ -154,7 +154,7 @@ describe('the record carries the sentence, and drops it when the reader moves on
 describe('the reader is actually wired to write and restore the sentence', () => {
   // Source-pinned, because the CORE above is pure and would pass happily while
   // nothing called it — which is exactly the inert-but-correct class that bit
-  // this repo three times in one night (DR-0381, DR-0393, DR-0394). A render
+  // this repo three times in one night (DR-0381, DR-0393, DR-0400). A render
   // test would need the whole TTS engine and a live DOM; what can regress here
   // is the wiring, so the wiring is what is pinned.
   const src = () => {
