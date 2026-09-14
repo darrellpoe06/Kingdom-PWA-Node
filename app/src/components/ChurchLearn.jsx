@@ -917,43 +917,9 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
               <p className="text-sm text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{seg.audience.bigIdea}</p>
             )}
             {seg.audience.anchorRef && (
-              /* EVERY REFERENCE GOES THROUGH THE ONE SCRIPTURE COMPONENT
-                 (DR-0340 Pattern 1 + Decision 2; DR-0341 Decision 1).
-                 Darrell 2026-09-14: "we need the reference to be inside the
-                 lessons as the lessons are going... there was a one hit
-                 drop-down that allow the reader to read with or without the
-                 cited Word showing the actual Word to the eyes... so heart."
-                 And: "Why not just get it from the record.... like we get it
-                 from the Word!!!" -- so this is taken from the record rather
-                 than re-decided.
-
-                 THIS LINE WAS THE MISS. The 2026-09-09 sweep wired the Learn
-                 engine's blurbs and the toggle, and the CARD's anchor line was
-                 moved onto WordInline on 2026-09-13 after "Links don't work in
-                 last played." The PACED step view -- the one a reader actually
-                 reads -- kept printing the joined reference string as plain
-                 text inside a green paragraph: green because the PARAGRAPH is
-                 green, not because anything was tappable. Eighty inert
-                 references on L149, advertising an affordance they did not
-                 have (the hollow-surface class, DR-0381).
-
-                 It was invisible to my own check because the paced shape calls
-                 the field `anchorRef`, not `anchor.ref` -- so a grep for the
-                 card's field name could not see either paced site. Fixed here
-                 together with LessonFlow.jsx, which carries the identical line
-                 for every other course: "Both are change together."
-
-                 Through WordInline each reference becomes a chip IN ITS PLACE
-                 that opens the verbatim KJV beneath the paragraph, and the
-                 app-wide Show the Word switch (below, and in the play
-                 controls) opens them all at once in the order they happened --
-                 the one-hit read-with-or-without he asked for on 2026-09-08
-                 and again today. */
-              <WordInline
-                text={`Anchor — ${seg.audience.anchorRef}: ${seg.audience.anchorTheme || ''}`}
-                className="text-[0.6875rem] text-[#5A6E3D]"
-                style={{ fontFamily: '"Fraunces", serif' }}
-              />
+              <p className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>
+                <strong>Anchor — {seg.audience.anchorRef}:</strong> {seg.audience.anchorTheme}
+              </p>
             )}
           </>
         );
