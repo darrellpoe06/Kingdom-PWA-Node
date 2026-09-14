@@ -126,6 +126,49 @@ describe('mergeRemoteRentals', () => {
   });
 });
 
+// DR-0394 — the data-loss guard. A fresher LOCAL edit must never be clobbered by
+// a STALE remote row on a pull; a blank remote never erases a real local value.
+// This is the exact failure that wiped a family member's rent/notes/fix-ups
+// (Christina 2026-09): her device held the real values, the cloud was frozen and
+// blank, and the merge overwrote her edits with the blanks.
+describe('mergeRemoteRentals — a fresh local edit survives a stale/blank remote (DR-0394)', () => {
+  it('PROVEN-TO-CATCH: a newer local edit keeps its rent + notes against an older, blank remote', () => {
+    const localEdited = {
+      ...localSeed, remoteUuid: 'uuid-1',
+      rent: 1150, tenantName: 'Delores Tracy', notes: 'new roof 2026; furnace serviced',
+      status: 'paying',
+      updatedAt: '2026-09-12T18:00:00Z', // she edited it yesterday
+    };
+    const staleRemote = {
+      ...remoteTwin,
+      rent: 0, actual: 0, tenantName: '', notes: '', status: 'paying',
+      updatedAt: '2026-08-07T21:56:48Z', // the frozen cloud row
+    };
+    const [m] = mergeRemoteRentals([localEdited], [staleRemote]);
+    expect(m.rent).toBe(1150);                                  // NOT clobbered to 0
+    expect(m.notes).toBe('new roof 2026; furnace serviced');    // notes survive
+    expect(m.tenantName).toBe('Delores Tracy');
+    expect(m.updatedAt).toBe('2026-09-12T18:00:00Z');           // keeps the newer stamp
+    // Revert the guard (overlay remote unconditionally) and every line above flips to the blank.
+  });
+
+  it('a blank remote never erases a real local value even at equal/unknown age', () => {
+    const local = { ...localSeed, remoteUuid: 'uuid-1', rent: 1150, notes: 'keep me' }; // no updatedAt
+    const blankRemote = { ...remoteTwin, rent: 0, notes: '', tenantName: '', updatedAt: undefined };
+    const [m] = mergeRemoteRentals([local], [blankRemote]);
+    expect(m.rent).toBe(1150);
+    expect(m.notes).toBe('keep me');
+  });
+
+  it('a genuinely NEWER remote still overlays (normal cross-device sync is intact)', () => {
+    const localOld = { ...localSeed, remoteUuid: 'uuid-1', rent: 1000, updatedAt: '2026-06-01T00:00:00Z' };
+    const remoteNew = { ...remoteTwin, rent: 1250, tenantName: 'New Tenant', updatedAt: '2026-09-13T00:00:00Z' };
+    const [m] = mergeRemoteRentals([localOld], [remoteNew]);
+    expect(m.rent).toBe(1250);                 // the real remote update lands
+    expect(m.tenantName).toBe('New Tenant');
+  });
+});
+
 describe('status / property-type vocab (live table has no CHECKs; app vocab stores as-is)', () => {
   it('passes the full app status vocab through', () => {
     for (const s of ['paying', 'late', 'vacant', 'rehab', 'for-sale', 'sold', 'owner-occupied', 'seasonal', 'unrented']) {
