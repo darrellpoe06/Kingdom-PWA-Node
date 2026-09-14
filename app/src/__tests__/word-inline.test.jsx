@@ -142,10 +142,13 @@ describe('the surfaces that carry it (each reverting to a plain <p> fails here)'
     expect(src).toMatch(/<WordInline text=\{entry\.deep\}/);
     expect(src).toMatch(/<WordInline text=\{entry\.scripture\}/);
   });
-  it('Learn: a story and its verse line', () => {
+  it('Learn: a story, with its verse line folded into the green strip beneath it', () => {
+    // Re-pointed 2026-09-14 (DR-0406): the story body reads CLEAN — refsBelow
+    // — and its "— verse" line rides the same strip via alsoRefs, so the Word
+    // still opens in place without a boxed chip in the sentence.
     const src = read('../components/ChurchLearn.jsx');
-    expect(src).toMatch(/<WordInline text=\{s\.body\}/);
-    expect(src).toMatch(/<WordInline text=\{`— \$\{s\.verse\}`\}/);
+    expect(src).toMatch(/<WordInline\s+text=\{s\.body\}\s+refsBelow\s+alsoRefs=\{s\.verse \? referencesIn\(s\.verse\) : null\}/);
+    expect(src).not.toMatch(/<WordInline text=\{`— \$\{s\.verse\}`\}/);
   });
   it('LessonFlow (every course and the living lessons): the part blurbs', () => {
     const src = read('../components/LessonFlow.jsx');

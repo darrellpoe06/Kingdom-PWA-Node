@@ -39,16 +39,18 @@ describe('chrome-layout-probe output is readable', () => {
     ).toEqual([]);
   });
 
-  it('both passes decide per case, against a snapshot taken before their checks', () => {
-    // Two passes (chrome + text-scale), so two snapshot/compare pairs.
+  it('every pass decides per case, against a snapshot taken before its checks', () => {
+    // Three passes (chrome + lesson reading [DR-0406] + text-scale), so three
+    // snapshot/compare pairs. A fourth pass added without its own pair fails here.
     const snapshots = [...SRC.matchAll(/const before = failures;/g)];
     const compares = [...SRC.matchAll(/if \(failures === before\)/g)];
-    expect(snapshots.length, 'each pass snapshots the count before its checks').toBe(2);
-    expect(compares.length, 'each pass compares against its own snapshot').toBe(2);
+    expect(snapshots.length, 'each pass snapshots the count before its checks').toBe(3);
+    expect(compares.length, 'each pass compares against its own snapshot').toBe(3);
   });
 
   it('still reports both an ok line and a fail line for each pass', () => {
     expect(SRC).toMatch(/layout ok /);
+    expect(SRC).toMatch(/lesson ok /);
     expect(SRC).toMatch(/textscale ok /);
     expect(SRC).toMatch(/LAYOUT FAIL/);
   });

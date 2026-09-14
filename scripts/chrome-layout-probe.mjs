@@ -100,6 +100,8 @@ catch { browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chro
 
 let failures = 0;
 let tsFailuresBefore = 0;
+let lessonFailuresBefore = 0;
+let lessonMeasured = 0;
 // COVERAGE, counted — not assumed (DR-0323). This probe reported `exit 0` on
 // 2026-09-03 having measured only 8 of its 11 views: no failure was raised, so
 // the run read as a clean pass while a third of the surfaces — including the
@@ -169,6 +171,79 @@ try {
     if (m.h1.w <= m.h1.h) fail(`${view}@${width}px: brand reads vertically — h1 "${m.h1.text}" is ${m.h1.w}x${m.h1.h}px (letter-stack collapse)`);
     if (m.overlaps.length) fail(`${view}@${width}px: controls overlap the name: ${m.overlaps.join(', ')}`);
     if (failures === before) console.log(`layout ok  ${view}@${width}px — h1 ${m.h1.w}x${m.h1.h}px, no overflow, no overlap`);
+  }
+  // ---------------------------------------------------------------------------
+  // LESSON READING pass (DR-0406) — the lesson column is MEASURED at the width
+  // a reader gets, and nothing is boxed inside a sentence.
+  //
+  // Darrell 2026-09-14, building for elderly church founders: "The width of the
+  // pages need the full width of the page to be used!!!! Old required
+  // procedures!!!" and "Don't block the lesson words." Measured before the fix
+  // in a real Chromium: NO max-width remained, yet the prose was 262px of a
+  // 390px phone — five nested bordered boxes each taking padding down the
+  // reading path. jsdom cannot see that; only this instrument can. Two
+  // invariants, per width, on the real Lesson 1 in its own space with the arc
+  // stepped to TEACH:
+  //   6. THE PROSE MEETS THE PAGE — the paragraph column reaches <main>'s
+  //      content edge on both sides within 2px (the same gutter every page has).
+  //   7. NOTHING IS BOXED IN A SENTENCE — no button/link inside a prose
+  //      paragraph; the references live in the green strip at the section foot.
+  // Rides --sweep (real assertions) and --selftest-break (a 60% max-width on
+  // the paragraphs plus a button injected into one MUST trip both).
+  // ---------------------------------------------------------------------------
+  const LESSON_WIDTHS = SELFTEST ? [360] : (SWEEP ? WIDTHS : []);
+  const LESSON_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons&lesson=ll1-the-perfect-yahweh-expects`;
+  lessonFailuresBefore = failures;
+  for (const width of LESSON_WIDTHS) {
+    const page = await browser.newPage({ viewport: { width, height: 900 } });
+    // The first-visit tour is chrome, not the lesson; a returning reader has seen it.
+    await page.addInitScript(() => { try { localStorage.setItem('poetech.help.tour.v1', 'seen'); } catch { /* private mode */ } });
+    await page.goto(LESSON_URL, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+    await page.waitForSelector('[data-testid="lesson-space-bar"]', { timeout: 20000 }).catch(() => {});
+    // Step the arc to TEACH, where the lesson body lives — the stage rail's own
+    // button. Scoped to the rail and matched loosely on purpose: the built
+    // button's textContent is "📖Teach7m" (icon + title + minutes, no spaces),
+    // so a word-boundary match finds nothing and the pass measures nothing.
+    await page.evaluate(() => {
+      const b = [...document.querySelectorAll('[aria-label="Lesson stages"] button')].find((x) => /teach/i.test(x.textContent || ''));
+      if (b) b.click();
+    });
+    await page.waitForSelector('[data-para-index], [data-point-index]', { timeout: 20000 }).catch(() => {});
+    if (SELFTEST) {
+      await page.addStyleTag({ content: '[data-para-index], [data-point-index] { max-width: 60% !important }' });
+      await page.evaluate(() => {
+        const p = document.querySelector('[data-para-index], [data-point-index]');
+        if (p) { const b = document.createElement('button'); b.textContent = 'Genesis 17:1'; p.appendChild(b); }
+      });
+      await page.evaluate(() => new Promise((r) => setTimeout(r, 100)));
+    }
+    const m = await page.evaluate(() => {
+      const main = document.querySelector('main');
+      const paras = [...document.querySelectorAll('[data-para-index], [data-point-index]')];
+      if (!main || !paras.length) return { none: true, paras: paras.length };
+      const cs = getComputedStyle(main);
+      const mr = main.getBoundingClientRect();
+      const contentLeft = mr.left + parseFloat(cs.paddingLeft);
+      const contentRight = mr.right - parseFloat(cs.paddingRight);
+      const pr = paras[0].getBoundingClientRect();
+      return {
+        paras: paras.length,
+        prose: Math.round(pr.width),
+        content: Math.round(contentRight - contentLeft),
+        gapLeft: Math.round(pr.left - contentLeft),
+        gapRight: Math.round(contentRight - pr.right),
+        inside: paras.reduce((n, p) => n + p.querySelectorAll('button, a').length, 0),
+        strips: document.querySelectorAll('[data-testid="section-refs"]').length,
+      };
+    });
+    await page.close();
+    const where = `lesson@${width}px`;
+    if (m.none) { fail(`${where}: the lesson prose never rendered (${m.paras} paragraphs) — nothing was measured`); continue; }
+    const before = failures;
+    lessonMeasured += 1;
+    if (m.gapLeft > 2 || m.gapRight > 2) fail(`${where}: the prose column stops short of the page — ${m.prose}px of ${m.content}px content width (left gap ${m.gapLeft}px, right gap ${m.gapRight}px)`);
+    if (m.inside > 0) fail(`${where}: ${m.inside} control(s) boxed inside the lesson prose — the reference belongs at the foot of its section, not in the sentence`);
+    if (failures === before) console.log(`lesson ok  ${where} — prose ${m.prose}px of ${m.content}px content width, ${m.strips} section strips, nothing boxed in a sentence`);
   }
   // ---------------------------------------------------------------------------
   // TEXT-SCALE pass — the layout is measured AT Big Print, not assumed to hold.
@@ -276,23 +351,30 @@ try {
 if (SELFTEST) {
   // BOTH passes must prove they can fail: the chrome pass's collapse AND the
   // text-scale pass's trap + blowout (>=2 textscale trips: overflow, hatch).
+  // And the lesson pass's width-short + boxed-control break (>=2 lesson trips).
   const tsTripped = failures - tsFailuresBefore;
-  if (failures > 0 && tsFailuresBefore > 0 && tsTripped >= 2) {
-    console.log(`SELFTEST-BREAK OK — the probe CAN fail (${failures} tripped: ${tsFailuresBefore} chrome, ${tsTripped} textscale)`);
+  const lessonTripped = tsFailuresBefore - lessonFailuresBefore;
+  const chromeTripped = lessonFailuresBefore;
+  if (failures > 0 && chromeTripped > 0 && lessonTripped >= 2 && tsTripped >= 2) {
+    console.log(`SELFTEST-BREAK OK — the probe CAN fail (${failures} tripped: ${chromeTripped} chrome, ${lessonTripped} lesson, ${tsTripped} textscale)`);
     process.exit(0);
   }
-  console.error(`SELFTEST-BREAK FAILED — a deliberate break tripped nothing (chrome: ${tsFailuresBefore}, textscale: ${failures - tsFailuresBefore}); the probe is theater`);
+  console.error(`SELFTEST-BREAK FAILED — a deliberate break tripped nothing (chrome: ${chromeTripped}, lesson: ${lessonTripped}, textscale: ${tsTripped}); the probe is theater`);
   process.exit(1);
 }
 // The coverage assertion. A short run is a FAILED run, however clean its
 // verdicts: "nothing went wrong" is not the same claim as "everything was
 // checked," and only this line can tell them apart.
 const expectedChrome = VIEWS.length * WIDTHS.length;
+const expectedLesson = SWEEP ? WIDTHS.length : 0;
 if (measured !== expectedChrome) {
   console.error(`COVERAGE FAIL — measured ${measured} of ${expectedChrome} view x width cases (${VIEWS.length} views x ${WIDTHS.length} widths). A run that skips its subjects is not a pass.`);
   failures += 1;
+} else if (lessonMeasured !== expectedLesson) {
+  console.error(`COVERAGE FAIL — measured ${lessonMeasured} of ${expectedLesson} lesson widths. A lesson that never rendered is not a pass.`);
+  failures += 1;
 } else {
-  console.log(`coverage ok  ${measured}/${expectedChrome} chrome cases, ${tsMeasured} text-scale cases measured.`);
+  console.log(`coverage ok  ${measured}/${expectedChrome} chrome cases, ${lessonMeasured}/${expectedLesson} lesson cases, ${tsMeasured} text-scale cases measured.`);
 }
 
 process.exit(failures > 0 ? 1 : 0);

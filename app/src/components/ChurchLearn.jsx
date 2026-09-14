@@ -90,7 +90,8 @@ import { useHistoryValue } from '../lib/nav-history.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import UiIcon from './UiIcon.jsx';
 import WordInline from './WordInline.jsx';
-import { anchorIsRun } from '../lib/verse-refs.js';
+import VerseChips from './VerseChips.jsx';
+import { anchorIsRun, referencesIn } from '../lib/verse-refs.js';
 import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 
 const fmtDate = formatClassDate;
@@ -589,30 +590,75 @@ export function LessonReader({ text, className = 'text-xs text-[#1A1815]' }) {
   );
 }
 
+// THE PROSE READS CLEAN; THE WORD WAITS AT THE FOOT OF ITS SECTION.
+//
+// Darrell 2026-09-14, on the living lessons, with elderly church founders as
+// the readers he is building for: "Don't block the lesson words... just have
+// them below each section they refer to like in the storyline section...
+// sometimes there would be up to 4 scriptures and again the green button on
+// top to open all at once... so I or users don't have to click each one
+// separately... however they can if they want to... scripture stays green
+// goes to the bottom of that section that it was referring to." And, sharper:
+// "No tabs, none ever — it's not good, undermines readers."
+//
+// DR-0402 had routed every paragraph through WordInline, which boxes each
+// reference as an inline button MID-SENTENCE. Those boxes are the "tabs". So:
+// every paragraph is plain text again — the reference stays in the sentence as
+// the author's own words, exactly as written — and the references a SECTION
+// named are gathered once, at that section's foot, as green chips (VerseChips,
+// tone "word"), each openable in place, all opened by the page-top Show the
+// Word switch. A section is a numbered heading and the lines under it; a
+// lesson with no headings treats each line as its own section, so a reference
+// is never further than the paragraph that named it (never a list at the end —
+// DR-0392 finding 5 / DR-0402).
+//
+// The landmarks stay exactly where DR-0402 D2 put them: data-point-index /
+// data-point-n / tabIndex -1 on a heading (the speaker index's scroll target
+// and focus target), data-para-index on a line (the paragraph stepper).
+export function lessonSections(items) {
+  const hasHeadings = items.some((it) => it.kind === 'heading');
+  const sections = [];
+  items.forEach((it, i) => {
+    const last = sections[sections.length - 1];
+    if (it.kind === 'heading' || !hasHeadings || !last) sections.push({ items: [{ ...it, i }] });
+    else last.items.push({ ...it, i });
+  });
+  return sections.map((s) => ({ ...s, refs: referencesIn(s.items.map((it) => it.text).join(' ')) }));
+}
+
 export function LessonProse({ text, className = 'text-xs text-[#1A1815]' }) {
   const { items } = formatLessonText(text);
   if (!items.length) return null;
+  const sections = lessonSections(items);
+  const serif = { fontFamily: '"Fraunces", serif' };
   return (
-    <div className={className} style={{ fontFamily: '"Fraunces", serif' }}>
-      {items.map((it, i) => (
-        it.kind === 'heading' ? (
-          // data-point-index is the jump target the speaker's index scrolls to,
-          // and the paragraph stepper's landmark. tabIndex -1 so a jump can move
-          // FOCUS there too, not just the scroll position — a speaker using a
-          // switch or a keyboard needs the caret to follow their eyes.
-          <WordInline
-            key={i}
-            as="p"
-            text={it.text}
-            data-point-index={i}
-            data-point-n={it.n}
-            tabIndex={-1}
-            className={`font-semibold ${i === 0 ? '' : 'mt-3'} scroll-mt-24`}
-            prefix={<span aria-hidden="true" className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 mr-1.5 border border-[#1A1815] bg-[#1A1815] text-white text-[0.625rem] font-bold align-middle">{it.n}</span>}
-          />
-        ) : (
-          <WordInline key={i} as="p" text={it.text} data-para-index={i} className="mt-1.5 scroll-mt-24" />
-        )
+    <div className={className} style={serif}>
+      {sections.map((sec, si) => (
+        <React.Fragment key={si}>
+          {sec.items.map((it) => (
+            it.kind === 'heading' ? (
+              // data-point-index is the jump target the speaker's index scrolls to,
+              // and the paragraph stepper's landmark. tabIndex -1 so a jump can move
+              // FOCUS there too, not just the scroll position — a speaker using a
+              // switch or a keyboard needs the caret to follow their eyes.
+              <p
+                key={it.i}
+                data-point-index={it.i}
+                data-point-n={it.n}
+                tabIndex={-1}
+                className={`font-semibold ${it.i === 0 ? '' : 'mt-3'} scroll-mt-24`}
+              >
+                <span aria-hidden="true" className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 mr-1.5 border border-[#1A1815] bg-[#1A1815] text-white text-[0.625rem] font-bold align-middle">{it.n}</span>
+                {it.text}
+              </p>
+            ) : (
+              <p key={it.i} data-para-index={it.i} className="mt-1.5 scroll-mt-24">{it.text}</p>
+            )
+          ))}
+          {sec.refs.length > 0 && (
+            <VerseChips refs={sec.refs} tone="word" lead className="mt-1.5" data-testid="section-refs" />
+          )}
+        </React.Fragment>
       ))}
     </div>
   );
@@ -630,11 +676,13 @@ export function LessonProse({ text, className = 'text-xs text-[#1A1815]' }) {
 // component with a real multi-step plan. Reaching it through the full ChurchLearn
 // tree meant the assertion depended on which course/session view happened to
 // mount, which is how the first draft of that test passed while proving nothing.
-export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onStepChange = null, showAll = false }) {
+export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onStepChange = null, showAll = false, flush = false }) {
   const [idx, setIdx] = useState(() => Math.max(0, initialIndex));
   const firedRef = useRef(false);
   if (!plan || !plan.segments || plan.segments.length === 0) return null;
   const { segments, totalSegments, segmentMinutes, breakAfterSegments, checkAfterSegments, band } = plan;
+  // In the lesson's own space the box loses its side walls (see TutorPanel).
+  const box = flush ? 'mb-2 border-y border-[#E8E4DC] bg-white py-2' : 'mb-2 border border-[#E8E4DC] bg-white p-2';
 
   // READ-ALONG READS THE WHOLE CORE, NOT STEP ONE OF IT.
   //
@@ -656,7 +704,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
   // versa.
   if (showAll && totalSegments > 1) {
     return (
-      <div className="mb-2 border border-[#E8E4DC] bg-white p-2 space-y-2">
+      <div className={`${box} space-y-2`}>
         {segments.map((s, i) => (
           <div key={i}>
             <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
@@ -698,7 +746,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
   const showCheckHint = (cur + 1) >= checkAfterSegments;
 
   return (
-    <div className="mb-2 border border-[#E8E4DC] bg-white p-2">
+    <div className={box}>
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
           Step {cur + 1} of {totalSegments} · ~{segmentMinutes} min · {band.label} pace
@@ -803,7 +851,10 @@ function GenerativeVisualNote() {
 // reachable, and degrades honestly when it is not. `tutorCourseMeta` lets the
 // SAME engine introduce itself per course (youth class vs broadcast training).
 // -----------------------------------------------------------------------------
-function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = 'In the app', level = DEFAULT_LEVEL, quizSaved = null, onRecordQuiz = null, ageBand = DEFAULT_AGE_BAND, levelOverride = null, onEngagement = null, venueAware = false, unitNoun = 'week', sessionFlow = null, onPlace = null, onAdvance = null }) {
+// `flush` — the lesson is open in its OWN space (DR-0264), so the reading
+// column takes the page's full width: this panel and the stage/paced boxes
+// inside it drop their side borders and side padding (see the `li` below).
+function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = 'In the app', level = DEFAULT_LEVEL, quizSaved = null, onRecordQuiz = null, ageBand = DEFAULT_AGE_BAND, levelOverride = null, onEngagement = null, venueAware = false, unitNoun = 'week', sessionFlow = null, onPlace = null, onAdvance = null, flush = false }) {
   const [messages, setMessages] = useState([]); // [{ role, content, source? }]
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
@@ -917,14 +968,23 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
             {seg.audience.bigIdea && (
               <p className="text-sm text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{seg.audience.bigIdea}</p>
             )}
-            {(seg.audience.anchorRef || seg.audience.anchorTheme) && (
-              <p className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>
-                {seg.audience.anchorRef && !anchorIsRun(seg.audience.anchorRef)
-                  && <strong>Anchor — {seg.audience.anchorRef}:</strong>}
-                {seg.audience.anchorRef && !anchorIsRun(seg.audience.anchorRef) ? ' ' : null}
-                {seg.audience.anchorTheme}
-              </p>
-            )}
+            {(seg.audience.anchorRef || seg.audience.anchorTheme) && (() => {
+              const showRef = seg.audience.anchorRef && !anchorIsRun(seg.audience.anchorRef);
+              // The one or two anchor verses (DR-0402 D3) open beneath the
+              // line as green chips — the anchor was a green line that never
+              // opened (DR-0391's hollow-surface class); now it does, below.
+              const refs = referencesIn(`${showRef ? seg.audience.anchorRef : ''} ${seg.audience.anchorTheme || ''}`);
+              return (
+                <>
+                  <p className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    {showRef && <strong>Anchor — {seg.audience.anchorRef}:</strong>}
+                    {showRef ? ' ' : null}
+                    {seg.audience.anchorTheme}
+                  </p>
+                  {refs.length > 0 && <VerseChips refs={refs} tone="word" lead className="mt-1.5" data-testid="section-refs" />}
+                </>
+              );
+            })()}
           </>
         );
       case 'teach':
@@ -939,6 +999,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
               initialIndex={savedHere ? savedHere.step : 0}
               onStepChange={onPlace ? (i) => onPlace({ lessonId: module.id, step: i }) : null}
               showAll={readAll}
+              flush={flush}
             />
             {/* Parable/story beats — short, vivid, often-funny illustrations, the way
                 Jesus taught (Matthew 13:34); the teacher drops these to land the point. */}
@@ -953,10 +1014,19 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
                     <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] mb-1">
                       {s.kind === 'testimony' ? 'A true story' : 'Picture this'}{s.title ? ` — ${s.title}` : ''}{s.kind === 'testimony' && s.source ? ` · ${s.source}` : ''}
                     </div>
-                    <WordInline text={s.body} className="text-[0.8125rem] text-[#1A1815] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }} />
-                    {s.verse && (
-                      <WordInline text={`— ${s.verse}`} className="text-[0.6875rem] text-[#5A6E3D] mt-1.5" style={{ fontFamily: '"Fraunces", serif' }} />
-                    )}
+                    {/* THE STORYLINE IS THE PATTERN HE POINTED AT (2026-09-14):
+                        clean prose, then "— verse" in green at the foot. The
+                        story's own verse line and any reference the body names
+                        now share ONE green strip beneath it (refsBelow +
+                        alsoRefs), so nothing boxes the words mid-sentence and
+                        nothing is listed twice. */}
+                    <WordInline
+                      text={s.body}
+                      refsBelow
+                      alsoRefs={s.verse ? referencesIn(s.verse) : null}
+                      className="text-[0.8125rem] text-[#1A1815] leading-relaxed"
+                      style={{ fontFamily: '"Fraunces", serif' }}
+                    />
                   </div>
                 ))}
               </div>
@@ -1064,7 +1134,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   };
 
   return (
-    <div className="mt-3 border border-[#E8E4DC] bg-[#FAF8F4] p-3" id={`learn-read-${module.id}`}>
+    <div className={flush ? 'mt-3 border-y border-[#E8E4DC] bg-[#FAF8F4] py-3' : 'mt-3 border border-[#E8E4DC] bg-[#FAF8F4] p-3'} id={`learn-read-${module.id}`}>
       <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2" data-read-skip>
         🧭 {ARI.name} — your guide for this {unitNoun}
       </div>
@@ -1092,6 +1162,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
         initialIndex={savedHere ? savedHere.stage : 0}
         onStageChange={onPlace ? (i) => onPlace({ lessonId: module.id, stage: i }) : null}
         showAll={readAll}
+        flush={flush}
       />
 
       {/* The chat with the local tutor — a conversation, not part of the
@@ -1714,7 +1785,19 @@ function CourseView({
             </>
           );
           return (
-            <li key={m.id} id={`learn-lesson-${m.id}`} className="border border-[#E8E4DC] p-4 scroll-mt-28">
+            // FULL WIDTH IN THE LESSON'S OWN SPACE (Darrell 2026-09-14: "The
+            // width of the pages need the full width of the page to be
+            // used!!!! Old required procedures!!!"). MEASURED in a real
+            // Chromium before this change: at 1440px the prose column was
+            // 1272px (88%); at 390px it was 262px — sixty-seven percent of a
+            // phone, for readers who need large type. No max-width remained;
+            // the loss was FIVE nested bordered boxes each taking its own
+            // padding (main → this card p-4 → the guide p-3 → the stage p-3 →
+            // the paced box p-2). In the space the bar above already frames
+            // the one lesson (DR-0264), so the card sheds its box and hands
+            // `flush` down, and the reading column meets the page gutter like
+            // every other page. The stacked list keeps its cards.
+            <li key={m.id} id={`learn-lesson-${m.id}`} className={focusModule ? 'scroll-mt-28' : 'border border-[#E8E4DC] p-4 scroll-mt-28'}>
               <div className="flex items-baseline justify-between gap-3 flex-wrap">
                 <span className="text-sm font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
                   {U.cap} {m.week} · {m.title}
@@ -1840,6 +1923,7 @@ function CourseView({
                   <div className="flex-1 min-w-0">
                     <WordInline
                       text={`Anchor — ${m.anchor.theme || ''}`}
+                      refsBelow
                       className="text-[0.6875rem] text-[#5A6E3D]"
                       style={{ fontFamily: '"Fraunces", serif' }}
                     />
@@ -1928,6 +2012,7 @@ function CourseView({
                 <div id={`tutor-panel-${m.id}`}>
                   <TutorPanel
                     module={m}
+                    flush={!!focusModule}
                     onLaunch={onLaunch}
                     tutorCourseMeta={tutorCourseMeta}
                     handsOnLabel={handsOnLabel}

@@ -96,12 +96,21 @@ function StageRail({ segments, current = -1, onJump = null }) {
 //                    "deeper doesn't get read at all" was exactly this: four of
 //                    five stages were never in the DOM, so they were never read
 //                    and never highlighted (Darrell 2026-08-10).
+//     flush        — the lesson is open in its OWN space (DR-0264) and takes
+//                    the page's full width: the stage box drops its side walls
+//                    (border-y / py) so five nested paddings stop eating a
+//                    phone's width (measured 2026-09-14: 262px of 390 before).
+//
+// THE BLURBS READ CLEAN (Darrell 2026-09-14, "No tabs, none ever"): a stage
+// blurb that names a verse renders as plain text with the green chip strip
+// beneath it (WordInline refsBelow), never a boxed button mid-sentence.
 // -----------------------------------------------------------------------------
-export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onComplete = null, initialIndex = 0, onStageChange = null, showAll = false }) {
+export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onComplete = null, initialIndex = 0, onStageChange = null, showAll = false, flush = false }) {
   const segments = (arc && arc.audienceSegments) || [];
   const [idx, setIdx] = useState(() => Math.max(0, initialIndex));
   const firedRef = React.useRef(false);
   if (segments.length === 0) return null;
+  const stageBox = flush ? 'border-y border-[#E8E4DC] bg-white py-3' : 'border border-[#E8E4DC] bg-white p-3';
 
   if (showAll) {
     return (
@@ -112,7 +121,7 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
         {/* Every verse this lesson names opens in place; one tap opens them all (DR-0341). */}
         <ShowTheWordToggle className="mb-2" />
         {segments.map((s, i) => (
-          <div key={s.kind} className="border border-[#E8E4DC] bg-white p-3 mb-2">
+          <div key={s.kind} className={`${stageBox} mb-2`}>
             <div className="flex items-baseline justify-between gap-2 mb-1">
               <span className="text-sm font-semibold text-[#1A1815]" style={SERIF}>
                 <span aria-hidden="true">{s.icon}</span> {s.title} <span className="text-[#5A5751] font-normal">· {s.subtitle}</span>
@@ -121,7 +130,7 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
                 {i + 1} / {segments.length}{s.minutes > 0 ? ` · ~${s.minutes} min` : ''}
               </span>
             </div>
-            <WordInline text={s.blurb} className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF} />
+            <WordInline text={s.blurb} refsBelow className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF} />
             <div>{renderStage(s, i)}</div>
           </div>
         ))}
@@ -146,7 +155,7 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
       <StageRail segments={segments} current={clamped} onJump={goTo} />
       <ShowTheWordToggle className="mb-2" />
 
-      <div className="border border-[#E8E4DC] bg-white p-3" aria-live="polite">
+      <div className={stageBox} aria-live="polite">
         <div className="flex items-baseline justify-between gap-2 mb-1">
           <span className="text-sm font-semibold text-[#1A1815]" style={SERIF}>
             <span aria-hidden="true">{seg.icon}</span> {seg.title} <span className="text-[#5A5751] font-normal">· {seg.subtitle}</span>
@@ -155,7 +164,7 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
             {clamped + 1} / {segments.length}{seg.minutes > 0 ? ` · ~${seg.minutes} min` : ''}
           </span>
         </div>
-        <WordInline text={seg.blurb} className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF} />
+        <WordInline text={seg.blurb} refsBelow className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF} />
 
         <div>{renderStage(seg, clamped)}</div>
 
