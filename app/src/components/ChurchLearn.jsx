@@ -1175,6 +1175,17 @@ function CourseView({
   onBecomeHelper = null,
   helped = false,
   resumeLessonId = null, // "Pick up where you left off" target — opens + scrolls to this lesson
+  // A TAP MUST RE-FIRE EVEN WHEN IT NAMES THE LESSON ALREADY NAMED.
+  //
+  // Darrell 2026-09-13: "Links don't work in last played." The effect below is
+  // keyed on resumeLessonId, so setting it to the SAME id is a React no-op and
+  // the effect never runs — the tap does nothing at all. That is invisible on
+  // the main list, where you rarely tap the lesson you just opened, and it is
+  // the NORMAL case on "Recently opened", which is BY DEFINITION the lessons
+  // you already opened. The most likely tap on that row was the one guaranteed
+  // to do nothing. This counter rises on every open() so the arrival is an
+  // EVENT rather than a value, and re-opening the same lesson works.
+  resumeNonce = 0,
   // TWO ARRIVALS, TWO STATES — and they must match the door the reader used.
   // Resume (and a deep link) lands IN the lesson with its guide already open,
   // which DR-0262/DR-0264 decided deliberately: a returning reader is mid-study.
@@ -1203,6 +1214,12 @@ function CourseView({
   // from `teaching` (the whole-series overview): pushing a single lesson presents THAT
   // lesson's own parts, timed to itself (Darrell 2026-07-16).
   const [presentLesson, setPresentLesson] = useState(null);
+  // PLAY STARTS IT (Darrell 2026-09-13: "Let the Play buttons just start the
+  // lessons"). Play used to land on the presenter CONSOLE — a setup screen with
+  // its own START button — so "play" took two taps and the first one did not
+  // play anything. Arriving with the lesson already filling the screen is what
+  // the word on the button promises.
+  const [presentAutoStart, setPresentAutoStart] = useState(false);
   // Bumped when a lesson is opened, so the "Recently opened" cluster re-derives
   // from the user's own device-local UX history (ux-signals). The "Recently
   // opened" strip itself now renders in the wrapper, beside the course picker
@@ -1317,7 +1334,7 @@ function CourseView({
       try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { /* no-op */ }
     }, 80);
     return () => clearTimeout(t);
-  }, [resumeLessonId, resumeOpenGuide]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [resumeLessonId, resumeOpenGuide, resumeNonce]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ▶ Play, arriving from the by-title index (or the finder) one component up.
   // Separate from the resume effect above rather than folded into it: that
@@ -1329,6 +1346,7 @@ function CourseView({
     if (!m) return;   // a hit from another course: that course's view answers it
     recordUse(m.id);
     savePlace({ lessonId: m.id });
+    setPresentAutoStart(true);
     setPresentLesson(m);
   }, [presentRequest]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1398,7 +1416,8 @@ function CourseView({
       <Presenter
         presentable={lessonPresentable(presentLesson, { level: AGEBAND_TO_LEVEL_KEY[ageBand] || null, handsOnLabel, courseTitle: course.meta.title || '' })}
         initialAge={AGEBAND_TO_PRESENT_AGE[ageBand] || 'teen'}
-        onClose={() => setPresentLesson(null)}
+        startOnScreen={presentAutoStart}
+        onClose={() => { setPresentAutoStart(false); setPresentLesson(null); }}
       />
     );
   }
@@ -2240,6 +2259,10 @@ export default function ChurchLearn({
   const [savedPlace, setSavedPlace] = useState(() => getPlace());
   // The lesson CourseView should open + scroll to after a resume tap.
   const [resumeLessonId, setResumeLessonId] = useState(null);
+  // Rises on every open() — see resumeNonce on the inner component: re-opening
+  // the SAME lesson must still arrive, and "Recently opened" is where that is
+  // the normal case rather than the edge one.
+  const [resumeNonce, setResumeNonce] = useState(0);
   const [resumeOpenGuide, setResumeOpenGuide] = useState(true);
   // ▶ Play from any LIST of titles. The card list already had one; the by-title
   // index, the "Recently opened" chips and the finder's hits are the same act —
@@ -2508,7 +2531,7 @@ export default function ChurchLearn({
           const schedule = active.schedule;
           const U = unitLabels(active.meta);
           const recentIds = recentUsed(3).filter((id) => schedule.some((m) => m.id === id));
-          const open = (id) => { setActiveKey(active.key); setResumeOpenGuide(false); setResumeLessonId(id); };
+          const open = (id) => { setActiveKey(active.key); setResumeOpenGuide(false); setResumeLessonId(id); setResumeNonce((n) => n + 1); };
           return (
             <nav
               aria-label={`This course's ${U.noun}s by title`}
@@ -2527,10 +2550,19 @@ export default function ChurchLearn({
                       const t = m.title.length > 34 ? `${m.title.slice(0, 32)}…` : m.title;
                       return (
                         <span key={id} className="inline-flex items-stretch">
+                          {/* A LINK, LIKE THE ONES BELOW (Darrell 2026-09-13:
+                              "Recently Opened should be links like the others so
+                              users can click where they were"). It was a bordered
+                              chip, which reads as a tag rather than a way back —
+                              and a row whose whole purpose is "return to where
+                              you were" has to LOOK like the thing you return
+                              with. Same underline-on-hover, same 44px floor, same
+                              serif as the schedule list. */}
                           <button
                             type="button"
                             onClick={() => open(id)}
-                            className="text-[0.6875rem] px-2 py-1 min-h-[36px] border border-[#E8E4DC] text-[#1A1815] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                            title={m.title}
+                            className="text-left text-sm px-1 py-2 min-h-[44px] text-[#1A1815] underline decoration-[#CFC9BD] underline-offset-4 hover:text-[#B85838] hover:decoration-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
                             style={{ fontFamily: '"Fraunces", serif' }}
                           >
                             {t}
@@ -2538,9 +2570,9 @@ export default function ChurchLearn({
                           <button
                             type="button"
                             onClick={() => playLesson(active.key, id)}
-                            aria-label={`Play ${m.title} in the big full-screen view`}
-                            title={`Open ${m.title} in the big full-screen view`}
-                            className="text-[0.6875rem] px-2 py-1 min-h-[36px] border border-l-0 border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+                            aria-label={`Start ${m.title}`}
+                            title={`Start ${m.title} — it begins on this screen`}
+                            className="ml-1 text-[0.625rem] uppercase tracking-wider px-2 py-2 min-h-[44px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
                           >
                             ▶
                           </button>
@@ -2858,6 +2890,7 @@ export default function ChurchLearn({
         onBecomeHelper={onBecomeHelper}
         helped={!!helped[active.key]}
         resumeLessonId={resumeLessonId}
+        resumeNonce={resumeNonce}
         resumeOpenGuide={resumeOpenGuide}
         presentRequest={presentRequest}
         onFocusChange={setLessonFocus}

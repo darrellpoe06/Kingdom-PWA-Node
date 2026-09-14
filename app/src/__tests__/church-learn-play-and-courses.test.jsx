@@ -97,19 +97,28 @@ describe('▶ Play is there for a member — not only the Governor', () => {
     expect(play.getAttribute('title')).toMatch(/read it yourself or have it read aloud/i);
   });
 
-  it('PLAY OPENS THE BIG VIEW — the presenter takes the whole surface', () => {
+  it('PLAY STARTS THE LESSON — it lands ON SCREEN, not on a setup console', () => {
+    // CONTRACT CHANGED ON PURPOSE (Darrell 2026-09-13: "Let the Play buttons
+    // just start the lessons"). This test previously asserted that Play landed
+    // on the presenter CONSOLE and showed its "Present on this screen" button —
+    // which meant the button called Play played nothing until a second tap. The
+    // assertion was not wrong when it was written; the behaviour it described
+    // is what he asked to change. It is re-pointed at the new contract rather
+    // than deleted, so the arrival is still pinned.
     mount();
     const before = container.textContent;
     act(() => { playButtons()[0].click(); });
-    // The Presenter replaces the course body wholesale; the course list is gone
-    // and the reader's own controls are on screen.
+    // The Presenter replaces the course body wholesale; the course list is gone.
     expect(container.textContent).not.toBe(before);
-    // The presenter console: its own read-aloud, the full-screen hand-off, and
-    // the way out. (The bare "Read aloud / Full screen / Speaker view ✕" strip
-    // in Darrell's screenshot is this same component once it is ON SCREEN.)
-    expect(container.textContent).toMatch(/Read it aloud/i);
-    expect(container.textContent).toMatch(/Present on this screen/i);
-    expect(container.textContent).toMatch(/Exit/i);
+    // It arrives ALREADY presenting: the console's hand-off button is not the
+    // thing the speaker is looking at, because he is already past it.
+    expect(container.textContent).not.toMatch(/Present on this screen/i);
+    // It IS the on-screen strip from his screenshot — the slide, the age
+    // toggle, read-aloud, and the two ways back out.
+    expect(container.textContent).toMatch(/Read aloud/i);
+    expect(container.textContent).toMatch(/Full screen/i);
+    // And the way back to the console is still there — starting is never a trap.
+    expect(container.textContent).toMatch(/Speaker view/i);
   });
 
   it('is ALSO there for the Governor — ungating took nothing away', () => {
