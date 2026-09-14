@@ -6,6 +6,8 @@
 - **Type:** orchestration
 - **Covers, late and on purpose:** #1578, #1579, #1580 (see "The ledger gap" below)
 - **Scope:** `app/src/components/ChurchLearn.jsx` (`LessonProse`, the paced Open block, the removed blocks), `app/src/components/LessonFlow.jsx`, `app/src/components/WordInline.jsx` (`prefix` + attribute pass-through), `app/src/lib/verse-refs.js` (`anchorIsRun`, `ANCHOR_RUN_MIN`), `scripts/decision-record-guard.mjs`, `app/package.json` (`ship`), `app/src/__tests__/the-word-is-in-the-sentence.test.jsx`, `app/src/__tests__/decision-record-guard.test.js`
+- **Supersedes:** DR-0392 finding 5 **for the reading view only** — see "What this changes in earlier records"
+- **Amends:** DR-0340's 2026-09-09 DONE line — see the same section
 - **Principles:** APP-IS-PRIMARY, VERIFICATION-DOCTRINE (DR-0076), MACHINERY-OVER-MEMORY (DR-0250), REALITY-TRACE (DR-0061), PERPETUAL-IMPROVEMENT (DR-0075), DECISION-RECORDS (DR-0011)
 
 ## The report
@@ -59,6 +61,14 @@ Audited across all thirteen merges of 2026-09-14. Ten carry a record: #1567→DR
 The cause is not a mystery and was not new: the INDEX's own ledger-drift finding of **2026-09-13** wrote it down — *"a run of fast merges in one session with no gate requiring a DR for a Tier-B change"* — and it recurred the next day. A finding written in prose is not a safeguard. Decision 5 is the gate that finding asked for and did not get.
 
 This record covers the three merges rather than backfilling three separate ones: they are one continuous episode on one surface, and DR-0011's one-decision-per-file is served better by the true shape than by three reconstructions.
+
+## What this changes in earlier records (found by reading them in full, 2026-09-14 evening)
+
+**DR-0392 finding 5 is superseded for the reading view.** On 2026-09-13 Darrell asked *"Put the list of links at the end of lessons for reference purposes... so it doesn't take away from the lessons"*, and DR-0392 decided — correctly, on those words — that the cap is *a move, not a deletion*: the whole list goes to a closing "The Word we stood on" slide, and (in `a56781ac`, 02:32 on 09-14) to the foot of the reading view. On 2026-09-14 he said *"Send off was our final page!!!!!!"* and *"Citations in the content in context!!! We never wanted a list anyway"*. The later words govern. **In the reading view there is no reference list anywhere — not at the top, not at the foot; Send-off is last.** The closing *slide* in the presented deck (`presentable.js`, `SLIDE_REF_MAX` / `OPENER_REF_MAX`) is untouched by this record: a projector is a different medium, DR-0392's reasoning for it still stands, and nothing he said on 09-14 was about the deck. Its re-review (2026-10-11) is the place to ask whether the deck should follow.
+
+**DR-0340's DONE line over-claimed.** Its re-review of 2026-09-22 named four remaining prose surfaces: *"LessonFlow, PracticeLearn, the living-lessons bodies, the Godhead study."* The 2026-09-09 amendment struck that line as DONE and listed three of the four — LessonFlow, PracticeLearn, EternalAlgorithmsStudy. **The living-lessons bodies (`LessonProse`) were not wired and were not mentioned.** That omission is the defect this record's Decision 1 closes, five days later, after Darrell found it on his phone. The record is amended here rather than silently corrected because a DONE that was three-quarters true is exactly the "looks reviewed" failure DR-0076 §8 names.
+
+**Confirmed, not changed:** the "button up top that opens all of them together or closes them" he described from the Godhead study is `ShowTheWordToggle` (DR-0341 D1), and it is already mounted in the lesson reading view (`ChurchLearn.jsx:947`) and both LessonFlow views (`LessonFlow.jsx:113`, `:147`). The per-section grouping of references (2–4 at a section's end, as the study's `refs: [...]` arrays do) remains the one un-built piece — see Limits.
 
 ## Verification
 
