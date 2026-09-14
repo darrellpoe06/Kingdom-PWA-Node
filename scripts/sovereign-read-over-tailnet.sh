@@ -34,6 +34,17 @@
 # Usage:  sovereign-read-over-tailnet.sh feedback [days]
 #         sovereign-read-over-tailnet.sh definitions [days] [functions]
 #         sovereign-read-over-tailnet.sh tables [days] [functions] [tables]
+#         sovereign-read-over-tailnet.sh instances [days] [functions] [tables]
+#
+# WHICH INSTANCE HOLDS THE ROWS (added 2026-09-14, after real data loss). Every
+# sync in the app filters `.eq('instance_id', <the instance it resolves>)`, so a
+# row in the WRONG instance is invisible to the surface that owns it -- and
+# indistinguishable, on screen, from a row that does not exist. A row count
+# cannot see this: 13 rentals rows read as healthy whether or not the family
+# instance can reach any of them. `instances` mode reports each instance's slug
+# beside how many rows of the asked-about tables point at it, so "the doors are
+# no longer where the books are" is a measurement rather than a deduction from
+# a migration file. Slugs and counts only; no row contents.
 # Requires NAS_SSH_KEY and a tailnet already joined by the calling workflow.
 #
 # ASKING ABOUT A FUNCTION THIS FILE DOES NOT ALREADY NAME (added 2026-09-13,
@@ -75,8 +86,8 @@ DEFAULT_FUNCTIONS='list_instance_members,my_church_instance_id,church_member_rec
 DEFAULT_TABLES='board_tasks,rentals,rental_tenancies,property_rooms,feedback'
 
 case "$MODE" in
-  feedback|definitions|tables) ;;
-  *) echo "::error::unknown mode '$MODE' (feedback|definitions|tables)"; exit 2 ;;
+  feedback|definitions|tables|instances) ;;
+  *) echo "::error::unknown mode '$MODE' (feedback|definitions|tables|instances)"; exit 2 ;;
 esac
 case "$DAYS" in
   ''|*[!0-9]*) echo "::error::days must be a whole number, got '$DAYS'"; exit 2 ;;
@@ -186,6 +197,53 @@ if [ "$MODE" = "feedback" ]; then
                  ' confidential_withheld='||count(*) FILTER (WHERE coalesce(is_confidential,false))||
                  ' newest='||coalesce(max(submitted_at)::text,'none')
             FROM public.feedback"
+elif [ "$MODE" = "instances" ]; then
+  echo "---INSTANCES---"
+  # Each instance, with how many rows of each asked-about table point at it.
+  # This is the question a row count cannot answer: rentals held 13 rows while
+  # the family-OS sync -- which filters on the FAMILY instance -- could reach
+  # none of them, because 0207 moved every door into a landlord instance of its
+  # own. On screen that is identical to having no doors.
+  psql_q "SELECT coalesce(json_agg(x ORDER BY x->>'slug'), '[]'::json)::text FROM (
+            SELECT json_build_object(
+                     'slug', i.slug,
+                     'name', i.name,
+                     'members', (SELECT count(*) FROM public.instance_members m
+                                  WHERE m.instance_id = i.id),
+                     'rows_by_table', (
+                       SELECT coalesce(json_object_agg(t.tbl, t.n) FILTER (WHERE t.n > 0), '{}'::json)
+                         FROM (
+                           SELECT unnest(ARRAY[${TABLE_IN}]) AS tbl
+                         ) names
+                         CROSS JOIN LATERAL (
+                           SELECT names.tbl AS tbl,
+                                  (SELECT count(*) FROM public.rentals r
+                                    WHERE names.tbl = 'rentals' AND r.instance_id = i.id)
+                                + (SELECT count(*) FROM public.transactions tr
+                                    WHERE names.tbl = 'transactions' AND tr.instance_id = i.id)
+                                + (SELECT count(*) FROM public.accounts a
+                                    WHERE names.tbl = 'accounts' AND a.instance_id = i.id)
+                                + (SELECT count(*) FROM public.entities e
+                                    WHERE names.tbl = 'entities' AND e.instance_id = i.id)
+                                + (SELECT count(*) FROM public.leases l
+                                    WHERE names.tbl = 'leases' AND l.instance_id = i.id)
+                                + (SELECT count(*) FROM public.renters rn
+                                    WHERE names.tbl = 'renters' AND rn.instance_id = i.id)
+                                  AS n
+                         ) t
+                     )
+                   ) AS x
+              FROM public.instances i) s"
+  echo "---DEFAULT-INSTANCE-FN---"
+  # Which instance the app's own resolver hands a caller. Every family-OS sync
+  # filters on this, so it is half of the answer -- the other half is the rows
+  # above. Reported as the function's existence + md5, never executed here:
+  # running it would join or create an instance as whoever this ssh session is.
+  psql_q "SELECT coalesce(string_agg(p.proname||' md5='||md5(p.prosrc), ' '), 'absent')
+            FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+           WHERE n.nspname = 'public' AND p.proname = 'join_default_instance'"
+  echo "---LEDGER---"
+  psql_q "SELECT 'sovereign_replay='||count(*) FROM public._sovereign_replay"
 elif [ "$MODE" = "tables" ]; then
   echo "---TABLES---"
   # Does the table EXIST here, is RLS on, and does it carry policies? A table

@@ -17,9 +17,9 @@ on:
   workflow_dispatch:
     inputs:
       what:
-        description: 'feedback (what people said), definitions (which functions), or tables (which tables exist, with RLS)'
+        description: 'feedback (what people said), definitions (which functions), tables (which tables exist, with RLS and ever-inserted/deleted), or instances (WHICH instance holds the rows)'
         type: choice
-        options: [feedback, definitions, tables]
+        options: [feedback, definitions, tables, instances]
         default: feedback
       days:
         description: 'how many days back to read (feedback only)'

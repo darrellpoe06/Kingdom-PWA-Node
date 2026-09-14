@@ -30,10 +30,24 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 const SCRIPT = readFileSync(join(ROOT, 'scripts/sovereign-read-over-tailnet.sh'), 'utf8');
 
-// The tables mode only -- the feedback and definitions branches are other tests'.
-const tablesMode = SCRIPT.slice(SCRIPT.indexOf('elif [ "$MODE" = "tables" ]'), SCRIPT.indexOf('---LEDGER---'));
+// The tables mode only -- the feedback, definitions and instances branches are
+// other tests'. Sliced from the branch to the NEXT ledger line after it, not to
+// the first one in the file: `instances` mode was added ahead of this branch on
+// 2026-09-14 and has a ledger line of its own, which a first-match slice turned
+// into an empty string that passed nothing.
+const tablesStart = SCRIPT.indexOf('elif [ "$MODE" = "tables" ]');
+const tablesMode = SCRIPT.slice(tablesStart, SCRIPT.indexOf('---LEDGER---', tablesStart));
 
 describe('tables mode reports whether a row was EVER there', () => {
+  it('the slice under test is really the tables branch, not an empty string', () => {
+    // Guards the checks below: every one of them is a .toContain, and all of
+    // them pass trivially against ''. Adding a mode above this branch did
+    // exactly that once.
+    expect(tablesStart).toBeGreaterThan(0);
+    expect(tablesMode.length).toBeGreaterThan(500);
+    expect(tablesMode).toContain('---TABLES---');
+  });
+
   it('asks for the insert counter, so "never written" is a provable answer', () => {
     expect(tablesMode).toContain("'ever_inserted', (SELECT n_tup_ins");
   });
