@@ -221,6 +221,12 @@ function SceneEditor({ initial = null, onSave, onCancel }) {
 export default function Presenter({
   presentable,
   onClose = null,
+  // startOnScreen: PLAY STARTS THE LESSON (Darrell 2026-09-13: "Let the Play
+  // buttons just start the lessons"). Play used to land on the console — a
+  // setup screen with its own START button — so the button called Play played
+  // nothing until a second tap. The speaker can still leave the on-screen view;
+  // this only decides where Play LANDS.
+  startOnScreen = false,
   // Respect the surface's visibility/permissions: a surface that should not let the
   // presenter grow its curriculum passes canEdit={false} (the add/edit controls then
   // never render). Default true — present mode is already behind each surface's gate.
@@ -289,7 +295,12 @@ export default function Presenter({
   // Clean present-on-THIS-screen mode: the room's slide fills this device (a tablet
   // held up / cast to a TV), no popup, no second browser. The age toggle + nav stay
   // reachable so the speaker adjusts the pitch to the room live (Darrell 2026-07-16).
-  const [onScreen, setOnScreen] = useState(false);
+  // startOnScreen: Play STARTS the lesson (Darrell 2026-09-13: "Let the Play
+  // buttons just start the lessons"). Arriving on the console with its own
+  // START button meant the button called Play played nothing until a second
+  // tap. The speaker can still leave the on-screen view; this only decides
+  // where Play LANDS.
+  const [onScreen, setOnScreen] = useState(() => !!startOnScreen);
   const [followCode, setFollowCode] = useState(null); // set when broadcasting to congregation devices
 
   // --- time-adaptive: budget + per-scene skip overrides -----------------------

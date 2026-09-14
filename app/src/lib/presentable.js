@@ -890,6 +890,34 @@ export function allocateSections(sections, segmentNames) {
   return out;
 }
 
+// A SLIDE IS NOT A BIBLIOGRAPHY — CAP WHAT THE ROOM IS SHOWN.
+//
+// Darrell 2026-09-13, looking at a real slide: "the PowerPoints have too many
+// references so we need to fix that somehow."
+//
+// He is right, and the cause is ours. A lesson's anchor carries every reference
+// the WHOLE lesson stands on — L149's is eighty — and the opener slide printed
+// the entire string. On a projector that is a wall of green semicolons with no
+// teaching visible, and it is the same defect as the reader performing the
+// index (DR-0391): a LIST rendered as if it were content.
+//
+// The anchor list still exists in full where a list belongs: the presenter's
+// notes, the printed guide, and the lesson's own page, where a reader can tap
+// any of them. What the ROOM gets is the handful that opens the session, and an
+// honest count of the rest — never a silent truncation, because a room that
+// cannot see there are more has been told something false.
+export const SLIDE_REF_MAX = 6;
+// The OPENER is not the reference section — it names what this session opens
+// on, and the rest waits for the closing slide. Three is a line a room reads at
+// a glance; six was still a paragraph of semicolons.
+export const OPENER_REF_MAX = 3;
+
+export function slideAnchorRefs(ref, max = SLIDE_REF_MAX) {
+  const all = String(ref || '').split(';').map((r) => r.trim()).filter(Boolean);
+  if (all.length <= max) return all.join('; ');
+  return `${all.slice(0, max).join('; ')} +${all.length - max} more`;
+}
+
 export function lessonPresentable(module, opts = {}) {
   const m = module || {};
   const handsOnLabel = opts.handsOnLabel || 'In the app';
@@ -923,6 +951,11 @@ export function lessonPresentable(module, opts = {}) {
     .split(';').map((s) => s.trim()).filter(Boolean)
     .map((ref) => { const t = kjvText(ref); return t ? `${ref} — "${t}"` : ref; });
   const scriptureBlock = scriptureLines.join('\n');
+  // What the ROOM reads on the opener — the first few, with an honest count of
+  // the rest. The full list stays in the presenter's notes and the recap.
+  const slideScriptureBlock = scriptureLines.length > SLIDE_REF_MAX
+    ? [...scriptureLines.slice(0, SLIDE_REF_MAX), `+${scriptureLines.length - SLIDE_REF_MAX} more, in your notes`].join('\n')
+    : scriptureBlock;
 
   // The FIRST slide is a TITLE CARD — the lesson's title (+ today's text) — so the
   // room has a standing background on the wall as people gather, until the speaker
@@ -937,7 +970,7 @@ export function lessonPresentable(module, opts = {}) {
       lead: '',
       detail: null,
       detailLabel: handsOnLabel,
-      anchorRef: anchorRef || null,
+      anchorRef: slideAnchorRefs(anchorRef, OPENER_REF_MAX) || null,
       anchorTheme: null, // a clean title card: the reference only, not the full theme
     },
     notes: [{ kind: 'body', heading: 'Title slide — the standing background', body: 'Leave this up as the room gathers; advance when you begin.' }],
@@ -1042,11 +1075,22 @@ export function lessonPresentable(module, opts = {}) {
           citedRefs: citedRefs.length ? citedRefs : null,
           detail: isTakeaway(seg.name) ? (m.inApp || null) : null,
           detailLabel: handsOnLabel,
-          anchorRef: i === 0 ? anchorRef : null,
+          // THE LIST GOES AT THE END (Darrell 2026-09-13: "Put the list of
+          // links at the end of lessons for reference purposes... so it doesn't
+          // take away from the lessons"). The opener names only the handful the
+          // session actually opens on; the whole list lives on the closing
+          // recap slide, where a reference list belongs and where nothing is
+          // competing with it. In-line references THROUGHOUT the lesson are
+          // untouched — those are the Word doing work in a sentence, and he
+          // asked explicitly to keep them ("keep referring to the Word and even
+          // keep the Word in the lessons like we do").
+          anchorRef: i === 0 ? slideAnchorRefs(anchorRef, OPENER_REF_MAX) : null,
           anchorTheme: i === 0 ? anchorTheme : null,
           // The opener puts the anchor Word VERBATIM on the class screen for the room
           // to read together — not just the location.
-          scripture: i === 0 ? (scriptureBlock || null) : null,
+          // The verbatim block is capped for the same reason: forty verses
+          // printed at projector size is not a slide anyone can read.
+          scripture: i === 0 ? (slideScriptureBlock || null) : null,
         },
         notes,
         runOfShow: [],
@@ -1061,8 +1105,13 @@ export function lessonPresentable(module, opts = {}) {
         estimatedMin: 2,
         audience: {
           title: 'The Word we stood on',
-          lead: 'The Scriptures from today — take them with you.',
+          lead: 'Every Scripture this lesson stood on — take them with you.',
+          // THIS is the reference section, so here the whole list belongs —
+          // it is the last thing, it competes with nothing, and it is what a
+          // room writes down. The cap applies to the TEACHING slides, never to
+          // the closing reference slide.
           scripture: scriptureBlock,
+          anchorRef: null,
           detailLabel: handsOnLabel,
         },
         notes: [{ kind: 'list', heading: 'Scriptures (KJV)', items: scriptureLines }],
@@ -1111,11 +1160,30 @@ export function lessonPresentable(module, opts = {}) {
           pointsByAge,
           detail: m.inApp || null,
           detailLabel: handsOnLabel,
-          anchorRef, anchorTheme,
+          // Capped here too: six lessons take this branch, and a wall of
+          // references is a wall on either path.
+          anchorRef: slideAnchorRefs(anchorRef, OPENER_REF_MAX), anchorTheme,
         },
         notes,
         runOfShow: [],
       },
+      // THE REFERENCE SLIDE BELONGS ON THIS PATH TOO. Six lessons author no
+      // timed run-of-show and so never got the closing "The Word we stood on"
+      // slide — which meant capping their one teaching slide would have dropped
+      // the list out of the deck altogether rather than moving it to the end.
+      // Capping without giving the list somewhere to land is not the ask.
+      ...(scriptureBlock ? [{
+        id: `${m.id || 'lesson'}-recap`,
+        estimatedMin: 2,
+        audience: {
+          title: 'The Word we stood on',
+          lead: 'Every Scripture this lesson stood on — take them with you.',
+          scripture: scriptureBlock,
+          detailLabel: handsOnLabel,
+        },
+        notes: [{ kind: 'list', heading: 'Scriptures (KJV)', items: scriptureLines }],
+        runOfShow: [],
+      }] : []),
     ].map((sc, i, arr) => ({ ...sc, indexLabel: `Part ${i + 1} of ${arr.length}` }));
   }
 
