@@ -24,6 +24,7 @@ import { createRoot } from 'react-dom/client';
 import { act } from 'react-dom/test-utils';
 import React from 'react';
 import ChurchLearn from '../components/ChurchLearn.jsx';
+import { pendingRead, clearRead } from '../lib/read-target.js';
 
 let container; let root;
 beforeEach(() => {
@@ -34,6 +35,7 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount());
   container.remove();
+  clearRead();
 });
 
 const mount = (props = {}) => act(() => root.render(React.createElement(ChurchLearn, {
@@ -48,7 +50,13 @@ const playIn = (li) => [...li.querySelectorAll('button')].find((b) => /▶/.test
 const titleIn = (li) => [...li.querySelectorAll('button')].find((b) => !/▶/.test(b.textContent));
 // The reader marks its own roots — the same flag the idle lock reads so it
 // never interrupts someone being read to.
-const readerOpen = () => !!document.querySelector('[data-reading="true"]');
+// RE-POINTED 2026-09-14. This used to check the PRESENTER's marker, because
+// Play used to open the presenter. Darrell, in capitals: "Play Button reads the
+// lesson!!!!! Does not open the PowerPoint!!!" So "the reader opened" now means
+// what he asked for -- a reading was REQUESTED for that lesson. The intent of
+// every test below is unchanged; only what counts as the reader has moved.
+const readerOpen = () => !!pendingRead();
+const presenterOpen = () => !!document.querySelector('[data-reading="true"]');
 const click = (el) => act(() => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
 
 describe('every title in the index carries its own ▶ Play', () => {
@@ -75,7 +83,9 @@ describe('it actually opens the reader (the whole point)', () => {
     mount();
     expect(readerOpen(), 'nothing should be open before the tap').toBe(false);
     click(playIn(rows()[1]));
-    expect(readerOpen(), 'the ▶ Play in the list must open the reader').toBe(true);
+    expect(readerOpen(), 'the ▶ Play in the list must start the reading').toBe(true);
+    // and it must NOT open the deck, which is the whole correction
+    expect(presenterOpen(), 'Play must not open the PowerPoint').toBe(false);
   });
 
   it('PROVEN-TO-CATCH: the title link alone must NOT open the reader — two doors, two intents', () => {

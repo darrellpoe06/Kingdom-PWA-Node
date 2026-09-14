@@ -30,7 +30,13 @@ export const SHOW_THE_WORD_HINT = 'Tap any verse reference to read it right here
 export default function ShowTheWordToggle({ className = '', hint = true }) {
   const on = useShowTheWord();
   return (
-    <div className={`flex flex-wrap items-center gap-2 ${className}`}>
+    /* CONTROLS ARE NOT CONTENT (data-read-skip, read-follow.js). Found 2026-09-14
+       by DRIVING the app: pressing Play read "Tap any verse reference to read it
+       right here" as the FIRST sentence of the lesson. This whole block is a
+       switch plus its instructions -- chrome -- and a reader who asked for the
+       lesson should hear the lesson, not the manual for the button they just
+       pressed. */
+    <div data-read-skip className={`flex flex-wrap items-center gap-2 ${className}`}>
       <button
         type="button" onClick={toggleShowTheWord} aria-pressed={on}
         className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-[#B85838] ${

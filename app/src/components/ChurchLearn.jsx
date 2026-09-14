@@ -59,7 +59,6 @@ import { formatLessonText, lessonPoints } from '../lib/lesson-format.js';
 import { walkState, stepParagraph, stepPoint } from '../lib/lesson-walk.js';
 import { useOpenWithTheWord } from '../lib/show-the-word.js';
 import { setReadTarget, clearReadTarget, requestRead } from '../lib/read-target.js';
-import { referencesIn } from '../lib/verse-refs.js';
 import { useReadingResume } from '../lib/reading-position.js';
 import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload, courseSharePayload, sectionSharePayload } from '../lib/lesson-links.js';
 import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture-matrix.js';
@@ -1375,8 +1374,16 @@ function CourseView({
     if (!m) return;   // a hit from another course: that course's view answers it
     recordUse(m.id);
     savePlace({ lessonId: m.id });
-    setPresentAutoStart(true);
-    setPresentLesson(m);
+    // THE SECOND PLAY ROUTE ALSO READS (Darrell 2026-09-14, found by DRIVING
+    // the app rather than reading it: pressing Play produced ZERO speech calls
+    // and opened the presenter anyway). The card's Play was changed; THIS one --
+    // Play from the by-title index, which is the list with one entry per lesson
+    // and therefore most of the Play buttons on screen -- still called
+    // setPresentLesson with autoStart. One ask, two call sites, and only one of
+    // them was fixed twice over. Both now do the same thing.
+    openLesson(m.id);
+    setOpenTutorId(m.id);
+    requestRead(m.id);
   }, [presentRequest]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A course descriptor is data from the catalog, and a course that carries no
@@ -1790,19 +1797,22 @@ function CourseView({
                       opens each reference in place, which is the promise the
                       rest of the app already makes ("Tap any verse reference to
                       read it right here"). */}
-                  {/* THE LONG LIST MOVED TO THE END (Darrell 2026-09-14).
-                      "Put the list of links at the end of lessons for reference
-                      purposes... so it doesn't take away from the lessons....
-                      keep referring to the Word and even keep the Word in the
-                      lessons like we do -- just the long list of links that are
-                      together." A lesson's anchor carries every reference the
-                      WHOLE lesson stands on (L149's is eighty), and printed here
-                      -- fourth of six blocks, before the teaching -- it is a wall
-                      of green semicolons standing between the reader and the
-                      point. So the THEME stays (that is teaching) and the LIST
-                      goes to "The Word we stood on" at the foot of the lesson,
-                      where it competes with nothing. In-line Scripture
-                      throughout is untouched, exactly as he asked. */}
+                  {/* THE RAW REFERENCE LIST IS NOT SHOWN TO A HUMAN AT ALL.
+                      Darrell 2026-09-14, after seeing the first two attempts:
+                      "all the lesson actual Word has been stripped and listed
+                      instead of naturally inside the lessons" and "now we humans
+                      get a computer list".
+                      `m.anchor.ref` is a semicolon-joined MACHINE string -- every
+                      reference the whole lesson stands on, eighty of them on
+                      L149. Printing it mid-lesson was a wall of green semicolons
+                      between the reader and the point; moving it to the foot was
+                      still a computer list, just later. It is gone from the
+                      reading view. What stays is what he asked for: the anchor's
+                      THEME, which is teaching, and the Word quoted INLINE
+                      throughout the prose, which is what "naturally inside the
+                      lessons" means. The reader still collapses spoken runs
+                      (DR-0391) and the presented deck keeps its closing
+                      reference slide for a speaker who wants one. */}
                   <WordInline
                     text={`Anchor — ${m.anchor.theme || ''}`}
                     className="text-[0.6875rem] text-[#5A6E3D] flex-1"
@@ -1931,37 +1941,6 @@ function CourseView({
                   </ol>
                 </div>
               )}
-
-              {/* THE WORD WE STOOD ON — the full reference list, at the END.
-                  The reading view's half of the move Darrell asked for on
-                  2026-09-14; the presented deck got the same closing slide in
-                  #1567 under the same name, so one concept lands on both
-                  surfaces rather than two that drift. Every reference is
-                  tappable here (the DR-0391 promise), and this is the only
-                  place the whole list appears. */}
-              {m.anchor?.ref && (() => {
-                const anchorRefCount = referencesIn(m.anchor.ref).length;
-                return (
-                <div className="mt-3 border-t border-[#E6E1D7] pt-2">
-                  <div className="mb-1">
-                    {/* THE COUNT IS SAID OUT LOUD (Darrell 2026-09-14: "Say 30
-                        scripture references at the end... Or whatever number").
-                        DERIVED from the list, never typed: referencesIn()
-                        de-duplicates, so the number is what a reader would get
-                        counting them, and it cannot drift from what is shown.
-                        Singular reads correctly for a one-reference lesson. */}
-                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">
-                      The Word we stood on — {anchorRefCount} Scripture {anchorRefCount === 1 ? 'reference' : 'references'}
-                    </div>
-                  </div>
-                  <WordInline
-                    text={m.anchor.ref}
-                    className="text-[0.6875rem] text-[#5A6E3D]"
-                    style={{ fontFamily: '"Fraunces", serif' }}
-                  />
-                </div>
-                );
-              })()}
 
               {/* Facilitator run-of-show (Governor-revealed) — the lesson-flow
                   standard: the same five-stage arc the learner walks, but TIMED
@@ -2526,8 +2505,14 @@ export default function ChurchLearn({
     ? () => { submitHelper(active.key, active.meta.title, (currentUserName || '').trim() || 'A learner'); setHelped((h) => ({ ...h, [active.key]: true })); }
     : null;
 
+  // FULL WIDTH, LIKE EVERY OTHER PAGE (Darrell 2026-09-14: "the lessons are
+  // supposed to be the full width of the window... like all pages").
+  // MEASURED in a real browser at 1440px rather than guessed: window 1440,
+  // <main> 1440, and the lesson card 768 -- constrained by exactly this one
+  // `max-w-3xl` on the section below. It was the ONLY limiter in the whole
+  // ancestor chain, so that single class was the entire cause.
   return (
-    <section className="max-w-3xl" aria-labelledby="learn-h">
+    <section className="w-full" aria-labelledby="learn-h">
       <div className="print:hidden">
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Church · Learn</div>
 

@@ -151,31 +151,34 @@ describe('the Anchor line in the full-screen lesson view is wired to WordInline'
   // being guarded (a reference that looks tappable IS tappable) is unchanged;
   // only where it holds has moved.
   it('does not render the anchor references as bare interpolated text', async () => {
-    const { readFileSync } = await import('node:fs');
-    const { join, dirname } = await import('node:path');
-    const { fileURLToPath } = await import('node:url');
-    const here = dirname(fileURLToPath(import.meta.url));
-    const src = readFileSync(join(here, '..', 'components', 'ChurchLearn.jsx'), 'utf8');
+    const src = readSrc();
     expect(src).not.toContain('<strong>Anchor — {m.anchor.ref}:</strong>');
-    // The list is rendered through WordInline at the foot of the lesson.
-    expect(src).toMatch(/The Word we stood on[\s\S]{0,900}<WordInline[\s\S]{0,120}text=\{m\.anchor\.ref\}/);
   });
 
-  it('does NOT print the long list up in the teaching block any more', () => {
-    // The defect he reported on 2026-09-14: the list still sat fourth of six
-    // blocks, before the teaching, in the reading view — the deck had been
-    // fixed in #1567 and the lesson had not. The anchor line keeps the THEME,
-    // which is teaching; the eighty semicolons go to the end.
+  it('THE RAW REFERENCE STRING IS NOT PRINTED IN THE LESSON AT ALL', () => {
+    // CORRECTED 2026-09-14 after he saw it: "all the lesson actual Word has been
+    // stripped and listed instead of naturally inside the lessons" and "now we
+    // humans get a computer list".
+    //
+    // The first fix moved the anchor's reference string from the middle of the
+    // lesson to the end. That was still WRONG, and the end was not the point:
+    // `m.anchor.ref` is a semicolon-joined machine string (eighty entries on
+    // L149) and rendering it ANYWHERE in a lesson gives a person a computer
+    // list. His instruction was to keep the Word IN the lesson -- which it
+    // already is, quoted inline in the prose -- and to stop the LIST being
+    // performed or displayed. So the list is gone from the reading view
+    // entirely. The reader still collapses runs (above), and the presented deck
+    // still carries its closing reference slide for a speaker who wants it.
     const src = readSrc();
-    expect(src).not.toMatch(/text=\{`Anchor — \$\{m\.anchor\.ref\}/);
+    expect(src).not.toMatch(/text=\{m\.anchor\.ref\}/);
+    expect(src).not.toMatch(/The Word we stood on/);
+  });
+
+  it('but the anchor THEME still teaches, and inline Scripture is untouched', () => {
+    // The half he explicitly asked to keep.
+    const src = readSrc();
     expect(src).toMatch(/text=\{`Anchor — \$\{m\.anchor\.theme/);
-  });
-
-  it('says how many references are down there, derived rather than typed', () => {
-    // "Say 30 scripture references at the end... Or whatever number."
-    const src = readSrc();
-    expect(src).toMatch(/referencesIn\(m\.anchor\.ref\)\.length/);
-    expect(src).toContain("Scripture {anchorRefCount === 1 ? 'reference' : 'references'}");
+    expect(src).toMatch(/WordInline/);
   });
 });
 
