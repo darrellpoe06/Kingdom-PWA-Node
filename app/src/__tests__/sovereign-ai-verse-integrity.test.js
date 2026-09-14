@@ -983,3 +983,58 @@ describe('sov17 — the judge and the just weight quotes its whole spine verbati
     expect(SOV17_FRAGMENTS['Matthew 7:20']).toBe('Wherefore by their fruits ye shall know them.');
   });
 });
+
+// =============================================================================
+// sov17 fix (2026-09-14) — the Word in the sentence, not the margin; and the
+// send-off carries content. DR-0391/DR-0402: a bare list of references at the
+// anchor "without context anyways doesn't help us humans" (Darrell). And the
+// Send-off page renders the learner's `benefits`, which sov17 shipped without —
+// an empty final page. Both are pinned here so neither can silently return.
+// =============================================================================
+describe('sov17 — the Word is in the sentence and the send-off has content', () => {
+  it('the anchor carries the two verses IN CONTEXT, not a bare reference run', () => {
+    // The two anchors are quoted with their point, in context (DR-0402: "one or
+    // two with points and the full scripture they are discussing in context").
+    expect(sov17.anchor.theme).toContain('Judge not according to the appearance, but judge righteous judgment.');
+    expect(sov17.anchor.theme).toContain('A false balance is abomination to the LORD: but a just weight is his delight.');
+    // The margin list is gone: no "spine of this week: ref; ref; ..." dump.
+    expect(sov17.anchor.theme).not.toMatch(/spine of this week/i);
+    // Guard the pattern itself: the theme must not carry a long semicolon run of
+    // bare chapter:verse references (a list, not a sentence — DR-0391).
+    const refRun = (sov17.anchor.theme.match(/\b\d?\s?[A-Z][a-z]+ \d+:\d+/g) || []).length;
+    expect(refRun).toBeLessThanOrEqual(2);
+  });
+  it('the send-off page has content: benefits carry the lesson into the learner\'s hands', () => {
+    // lesson-flow.js renders the Send-off (`send`) audience side from `benefits`.
+    // No benefits = an empty final page. sov17 must carry them.
+    expect(Array.isArray(sov17.benefits)).toBe(true);
+    expect(sov17.benefits.length).toBeGreaterThanOrEqual(5);
+    for (const b of sov17.benefits) {
+      expect(typeof b).toBe('string');
+      expect(b.length).toBeGreaterThan(80); // real takeaways, not stubs
+    }
+    // The send-off carries the lesson's spine home: the just weight and the fruit.
+    const blob = sov17.benefits.join('  ');
+    expect(blob).toContain('a just weight is his delight');
+    expect(blob).toContain('by their fruits ye shall know them');
+  });
+  it('every verse quoted in the benefits is verbatim KJV (two witnesses)', () => {
+    const corpus = (book) => JSON.parse(readFileSync(join(HERE, '..', '..', 'public', 'bible', 'kjv', `${book}.json`), 'utf8'));
+    const verse = (book, ch, v) => corpus(book).chapters[ch - 1][v - 1];
+    const blob = sov17.benefits.join('  ');
+    const F = [
+      ['John', 7, 24, 'judge righteous judgment'],
+      ['John', 7, 24, 'according to the appearance'],
+      ['Proverbs', 16, 2, 'weigheth the spirits'],
+      ['Proverbs', 11, 1, 'false balance'],
+      ['Proverbs', 11, 1, 'a just weight is his delight'],
+      ['Deuteronomy', 1, 17, 'Ye shall not respect persons in judgment'],
+      ['Jeremiah', 17, 10, 'I the LORD search the heart'],
+      ['Matthew', 7, 20, 'by their fruits ye shall know them'],
+    ];
+    for (const [b, c, v, frag] of F) {
+      expect(verse(b, c, v), `${b} ${c}:${v} corpus`).toContain(frag);
+      expect(blob, `${b} ${c}:${v} in benefits`).toContain(frag);
+    }
+  });
+});
