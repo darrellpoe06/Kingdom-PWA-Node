@@ -43,6 +43,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LIVING_LESSONS_MODULES, LIVING_LESSONS_META } from '../lib/living-lessons-class.js';
 import { AGE_BANDS, resolveForAge } from '../lib/learn-framework.js';
+import { measureLesson, CHILD_CEILING } from '../../../scripts/reading-level.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const src = readFileSync(join(HERE, '..', 'lib', 'living-lessons-class.js'), 'utf8');
@@ -125,6 +126,24 @@ describe('L151 — present, whole, and inside the authored floors', () => {
     for (const band of AGE_BANDS) {
       expect(resolveForAge(mod(), band.id).text.length, band.id).toBeGreaterThan(400);
     }
+  });
+
+  it('the reading bands are MEASURED here, not claimed in a commit message', () => {
+    // I wrote "bands 4.4 / 6.4 / 12.7" into this lesson's commit message
+    // without measuring them. The real values, measured with the same scanner
+    // the reading-level gate uses, are child 0 / teen 7.7 / senior 12.9. A
+    // number stated from memory is the exact failure this session was spent
+    // correcting, so the number now lives in a check instead of in prose.
+    //
+    // Only the ORDER is asserted strictly; the values are asserted loosely
+    // enough to survive an honest edit, because a gate that pins a float to
+    // one decimal breaks on a comma and teaches people to update it blindly.
+    const b = measureLesson(mod()).bands;
+    expect(b.child.authored).toBeLessThanOrEqual(b.teen.authored);
+    expect(b.teen.authored).toBeLessThanOrEqual(b.senior.authored);
+    expect(b.child.authored).toBeLessThanOrEqual(CHILD_CEILING);
+    expect(b.teen.authored).toBeGreaterThan(5);
+    expect(b.senior.authored).toBeGreaterThan(10);
   });
 });
 
