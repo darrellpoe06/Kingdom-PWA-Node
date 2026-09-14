@@ -82,6 +82,66 @@ export function clearReadTarget(owner) {
 /** The current primary reading, or null. */
 export function getReadTarget() { return current; }
 
+// =============================================================================
+// PLAY MEANS READ IT (Darrell 2026-09-14, for the third time and in capitals:
+// "Play Button reads the lesson!!!!! Does not open the PowerPoint!!! Reads the
+// lesson front to back")
+// =============================================================================
+// The Play button opened the presenter deck. Twice it was "fixed" and twice it
+// still opened a deck -- first it landed on the presenter CONSOLE, then it
+// landed on the deck already presenting. Neither is what he asked for. Play
+// means the reader reads the lesson, start to finish.
+//
+// The reader is page-level and the lesson's reading is registered by the lesson
+// component, so Play cannot simply call a function on it. It records a WANT
+// here instead: the owner whose reading should begin as soon as it exists. The
+// reader subscribes, and when the matching target registers it reads it and
+// clears the want.
+//
+// The want is keyed by OWNER rather than being a bare boolean, so pressing Play
+// on lesson A and then lesson B before A has mounted cannot make the reader
+// read A. A want is also dropped after one use and expires, because a stale
+// want that fires minutes later would start speech nobody asked for.
+let wanted = null; // { owner, at } | null
+const wantSubs = new Set();
+const WANT_TTL_MS = 15000;
+
+function notifyWant() {
+  for (const fn of wantSubs) {
+    try { fn(wanted); } catch { /* a bad subscriber never breaks the rest */ }
+  }
+}
+
+/** Ask for `owner`'s reading to begin as soon as that target is registered. */
+export function requestRead(owner) {
+  if (!owner) return;
+  wanted = { owner, at: Date.now() };
+  notifyWant();
+}
+
+/** The pending want, or null when there is none or it has gone stale. */
+export function pendingRead(now = Date.now()) {
+  if (!wanted) return null;
+  if (now - wanted.at > WANT_TTL_MS) { wanted = null; return null; }
+  return wanted;
+}
+
+/** Consume the want for `owner`. Returns true when it was indeed theirs. */
+export function takeRead(owner, now = Date.now()) {
+  const w = pendingRead(now);
+  if (!w || w.owner !== owner) return false;
+  wanted = null;
+  notifyWant();
+  return true;
+}
+
+export function clearRead() { wanted = null; notifyWant(); }
+
+export function subscribeRead(fn) {
+  wantSubs.add(fn);
+  return () => wantSubs.delete(fn);
+}
+
 /** Subscribe to target changes. Returns the unsubscribe function. */
 export function subscribeReadTarget(fn) {
   if (typeof fn !== 'function') return () => {};

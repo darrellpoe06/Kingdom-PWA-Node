@@ -24,7 +24,7 @@ import {
 } from '../lib/read-follow.js';
 import { segmentText } from '../lib/tts.js';
 import { readFromPoint } from '../lib/read-from-here.js';
-import { getReadTarget, subscribeReadTarget } from '../lib/read-target.js';
+import { getReadTarget, subscribeReadTarget, pendingRead, takeRead, subscribeRead } from '../lib/read-target.js';
 import { useShowTheWord, toggleShowTheWord } from '../lib/show-the-word.js';
 import { getPlace, recordPlace, sentenceKeyOf, findSentence } from '../lib/learn-resume.js';
 import { subscribeReadRequest } from '../lib/read-request.js';
@@ -192,6 +192,25 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   }, [cloudProgress, isReading, deviceRead, rememberSentence]);
   // Reading over (or never started) → the full card comes back next open.
   useEffect(() => { if (!isReading) setMinimized(false); }, [isReading]);
+  // PLAY MEANS READ IT. A Play press records a want (read-target.js) and this
+  // starts that lesson's reading the moment its target registers -- which is
+  // usually a frame or two later, because pressing Play also opens the lesson
+  // whose component does the registering. Both the want arriving and the target
+  // arriving are watched, since either can be second.
+  useEffect(() => {
+    const tryStart = () => {
+      const t = getReadTarget();
+      const w = pendingRead();
+      if (!t || !w || t.owner !== w.owner) return;
+      if (!takeRead(t.owner)) return;
+      if (readTargetRef.current) readTargetRef.current(t);
+    };
+    tryStart();
+    const offWant = subscribeRead(tryStart);
+    const offTarget = subscribeReadTarget(tryStart);
+    return () => { offWant(); offTarget(); };
+  }, []);
+
   useEffect(() => {
     if (!setBoundaryHandler) return undefined;
     setBoundaryHandler((segIdx, charIndex) => {

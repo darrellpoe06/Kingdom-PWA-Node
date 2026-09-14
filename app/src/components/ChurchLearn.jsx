@@ -58,9 +58,9 @@ import { buildLessonArc, sessionMinutesFromFlow, readAloudTextFromArc } from '..
 import { formatLessonText, lessonPoints } from '../lib/lesson-format.js';
 import { walkState, stepParagraph, stepPoint } from '../lib/lesson-walk.js';
 import { useOpenWithTheWord } from '../lib/show-the-word.js';
-import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
+import { setReadTarget, clearReadTarget, requestRead } from '../lib/read-target.js';
 import { referencesIn } from '../lib/verse-refs.js';
-import { useReadingPosition } from '../lib/use-reading-position.jsx';
+import { useReadingResume } from '../lib/reading-position.js';
 import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload, courseSharePayload, sectionSharePayload } from '../lib/lesson-links.js';
 import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture-matrix.js';
 import CopyButton from './CopyButton.jsx';
@@ -1267,19 +1267,19 @@ function CourseView({
   // THE EXACT LOCATION IS KEPT AND RESTORED (Darrell 2026-09-14: "Lessons keep
   // being interrupted and I'm loosing my exact location!!! Fix it!!!").
   //
-  // This watches the lesson the reader is actually in and writes the sentence
-  // at the reading line as he SCROLLS -- the case nothing covered, because the
-  // read-aloud was the only writer and most reading is silent. It also flushes
-  // on visibilitychange / pagehide, since an interruption is exactly when the
-  // place matters and may be the page's last frame. On return it scrolls that
-  // sentence back to the reading line; if the sentence is gone from an edited
-  // lesson it leaves the scroll ALONE rather than jumping to the top.
-  useReadingPosition({
-    elementId: focusId ? `learn-lesson-${focusId}` : '',
-    lessonId: focusId || '',
-    enabled: !!focusId,
-    restoreKey: resumeNonce,
-  });
+  // THE PRIMITIVE FOR THIS ALREADY EXISTED AND LESSONS WERE NEVER WIRED TO IT.
+  // lib/reading-position.js was built 2026-06-25 for exactly this -- "the user
+  // should start reading wherever they are reading from... not have to start
+  // from the top" -- and it persists on scroll (debounced), on
+  // visibilitychange and on unmount, then restores after two frames via a
+  // stable anchor with a scrollY fallback. The book Reader (Library) and the
+  // Pulpit both use it. LESSONS DID NOT, which is why the place survived in
+  // those surfaces and was lost here.
+  //
+  // So this is three lines against a proven primitive rather than a second
+  // implementation of it. The lesson is the ITEM, so each lesson keeps its own
+  // place and moving between them does not blur them together.
+  useReadingResume({ userKey: 'learn', surface: 'lesson', itemId: focusId || '', enabled: !!focusId });
   const focusModule = focusId ? (schedule.find((m) => m.id === focusId) || null) : null;
   const lastFocusRef = React.useRef(null);
   const openLesson = (id) => {
@@ -1647,10 +1647,25 @@ function CourseView({
                     to choose from... the reader reading for you or you read it in the
                     big nice easy to read views." Placed FIRST in the row so it is the
                     first thing the eye lands on, not the last. */}
+                {/* PLAY READS THE LESSON. Darrell 2026-09-14, in capitals and
+                    for the third time: "Play Button reads the lesson!!!!! Does
+                    not open the PowerPoint!!! Reads the lesson front to back".
+                    It used to call setPresentLesson, which opens the deck --
+                    and the two previous attempts at this only changed WHICH
+                    deck view it opened (console, then already-presenting),
+                    which was never the ask. Play now opens the lesson and
+                    records a want; the reader starts its full reading as soon
+                    as the lesson registers it. The DECK still has its own
+                    control (Present), so nothing is lost. */}
                 <button
                   type="button"
-                  onClick={() => { recordUse(m.id); savePlace({ lessonId: m.id }); setPresentLesson(m); }}
-                  title={`Open this ${U.noun} in the big full-screen view — read it yourself or have it read aloud`}
+                  onClick={() => {
+                    recordUse(m.id); savePlace({ lessonId: m.id });
+                    // The guide must be OPEN for the lesson to register its
+                    // reading, so Play opens it and then asks for the read.
+                    openLesson(m.id); setOpenTutorId(m.id); requestRead(m.id);
+                  }}
+                  title={`Read this ${U.noun} aloud, start to finish`}
                   className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
                 >
                   ▶ Play
