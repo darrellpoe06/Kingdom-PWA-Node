@@ -173,9 +173,29 @@ if [ -z "$DOCKER" ]; then
 fi
 [ -n "$DOCKER" ] || { echo "docker binary not found (PATH, /usr/local/bin, /usr/bin)" >&2; exit 4; }
 
+# A FAILED QUERY MUST NOT LOOK LIKE AN EMPTY ANSWER (2026-09-14). Both attempts
+# sent stderr to /dev/null and returned whatever they had, so a query with a
+# syntax error printed NOTHING under its own section heading -- and nothing,
+# under a heading, reads exactly like "asked, and the database holds none."
+# That is the failure this whole script exists to prevent, living inside the
+# script itself: it was caught the first time the new instances mode ran and
+# printed an empty ---INSTANCES--- block. A query that did not run now says so.
 psql_q() {
-  "$DOCKER" exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$1" 2>/dev/null && return 0
-  sudo -n "$DOCKER" exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$1" 2>/dev/null
+  local out err rc
+  err=$(mktemp)
+  out=$("$DOCKER" exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$1" 2>"$err")
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    out=$(sudo -n "$DOCKER" exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$1" 2>"$err")
+    rc=$?
+  fi
+  if [ "$rc" -ne 0 ]; then
+    echo "---QUERY-FAILED--- $(head -c 400 "$err" | tr '\n' ' ')"
+    rm -f "$err"
+    return 1
+  fi
+  rm -f "$err"
+  printf '%s\n' "$out"
 }
 
 if [ "$MODE" = "feedback" ]; then
@@ -204,35 +224,20 @@ elif [ "$MODE" = "instances" ]; then
   # the family-OS sync -- which filters on the FAMILY instance -- could reach
   # none of them, because 0207 moved every door into a landlord instance of its
   # own. On screen that is identical to having no doors.
-  psql_q "SELECT coalesce(json_agg(x ORDER BY x->>'slug'), '[]'::json)::text FROM (
-            SELECT json_build_object(
-                     'slug', i.slug,
-                     'name', i.name,
-                     'members', (SELECT count(*) FROM public.instance_members m
-                                  WHERE m.instance_id = i.id),
-                     'rows_by_table', (
-                       SELECT coalesce(json_object_agg(t.tbl, t.n) FILTER (WHERE t.n > 0), '{}'::json)
-                         FROM (
-                           SELECT unnest(ARRAY[${TABLE_IN}]) AS tbl
-                         ) names
-                         CROSS JOIN LATERAL (
-                           SELECT names.tbl AS tbl,
-                                  (SELECT count(*) FROM public.rentals r
-                                    WHERE names.tbl = 'rentals' AND r.instance_id = i.id)
-                                + (SELECT count(*) FROM public.transactions tr
-                                    WHERE names.tbl = 'transactions' AND tr.instance_id = i.id)
-                                + (SELECT count(*) FROM public.accounts a
-                                    WHERE names.tbl = 'accounts' AND a.instance_id = i.id)
-                                + (SELECT count(*) FROM public.entities e
-                                    WHERE names.tbl = 'entities' AND e.instance_id = i.id)
-                                + (SELECT count(*) FROM public.leases l
-                                    WHERE names.tbl = 'leases' AND l.instance_id = i.id)
-                                + (SELECT count(*) FROM public.renters rn
-                                    WHERE names.tbl = 'renters' AND rn.instance_id = i.id)
-                                  AS n
-                         ) t
-                     )
-                   ) AS x
+  # A FIXED set of instance-scoped tables, not the `tables` argument: the point
+  # is WHERE the family's own records live, and that set is known. Counts and
+  # slugs only -- no row contents, same withholding as tables mode.
+  psql_q "SELECT coalesce(json_agg(s ORDER BY s.slug), '[]'::json)::text FROM (
+            SELECT i.slug,
+                   i.name,
+                   i.instance_type,
+                   (SELECT count(*) FROM public.instance_members m WHERE m.instance_id = i.id) AS members,
+                   (SELECT count(*) FROM public.rentals r      WHERE r.instance_id  = i.id) AS rentals,
+                   (SELECT count(*) FROM public.transactions t WHERE t.instance_id  = i.id) AS transactions,
+                   (SELECT count(*) FROM public.accounts a     WHERE a.instance_id  = i.id) AS accounts,
+                   (SELECT count(*) FROM public.entities e     WHERE e.instance_id  = i.id) AS entities,
+                   (SELECT count(*) FROM public.leases l       WHERE l.instance_id  = i.id) AS leases,
+                   (SELECT count(*) FROM public.renters rn     WHERE rn.instance_id = i.id) AS renters
               FROM public.instances i) s"
   echo "---DEFAULT-INSTANCE-FN---"
   # Which instance the app's own resolver hands a caller. Every family-OS sync
