@@ -81,11 +81,20 @@ const isWs = (ch) => /\s/.test(ch);
 // units a reader skips between. This set is the wider question of where text
 // simply cannot run together, so it includes DIV, SECTION, BR and the list and
 // table containers too.)
+// Characters that already end a sentence, so no separator is synthesised.
+const SENTENCE_END = new Set(['.', '!', '?', ':', ';', '—']);
+
 const BLOCK_BOUNDARY_TAGS = new Set([
   'ADDRESS', 'ARTICLE', 'ASIDE', 'BLOCKQUOTE', 'BR', 'DD', 'DETAILS', 'DIV', 'DL', 'DT',
   'FIELDSET', 'FIGCAPTION', 'FIGURE', 'FOOTER', 'FORM', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
   'HEADER', 'HR', 'LI', 'MAIN', 'NAV', 'OL', 'P', 'PRE', 'SECTION', 'SUMMARY',
   'TABLE', 'TBODY', 'TD', 'TFOOT', 'TH', 'THEAD', 'TR', 'UL',
+  // ADDED 2026-09-14, measured in the running app. Adjacent BUTTONs and
+  // LABELs (a quiz's option list is a stack of them) were treated as ONE
+  // block, so their text concatenated with nothing between: the reader
+  // said "front of youWhatsoever things are true" and "seenThe things
+  // which are not seen". Captured from a real reading of a real lesson.
+  'BUTTON', 'LABEL', 'LEGEND', 'OPTION', 'FIGURE',
 ]);
 
 /** The nearest block-level ancestor of `el` within `root` (or root itself). */
@@ -141,6 +150,29 @@ export function buildFollowMap(root, doc = typeof document !== 'undefined' ? doc
       // Anchor the separator to the END of the text we just left, so a range
       // that stops here stops at the real last character of that block.
       const prev = map[map.length - 1];
+      // A BLOCK BOUNDARY ENDS A SENTENCE, NOT JUST A WORD (2026-09-14).
+      //
+      // The space added in 2026-08-31 fixed the run-on WORD and the comment
+      // above already names what it could not fix: segmentText splits only on
+      // . ! ?, so a heading or a label with no terminal punctuation is still
+      // welded onto the sentence after it. Captured from a real reading:
+      //   '"...and without blame before him in love:"KJV Ephesians 1:4
+      //    Engage · Discuss Talk it through together, everyone speaks.'
+      // — a verse, its citation, the next SECTION's heading and its blurb, all
+      // spoken as one sentence. And the reverse, a list exploded into
+      // one-word utterances ("honest?" "just?" "pure?") because the only
+      // splits available were the question marks inside it.
+      //
+      // So when the text we are leaving does not already end a sentence, the
+      // separator IS one. It is mapped to the previous block's last character,
+      // exactly like the space, so every range and word offset still lands on
+      // real text — and the engine does not pronounce a full stop, it pauses,
+      // which is what a block boundary sounds like when a person reads it.
+      const last = chars[chars.length - 1];
+      if (!SENTENCE_END.has(last)) {
+        chars.push('.');
+        map.push({ node: prev.node, offset: prev.offset });
+      }
       chars.push(' ');
       map.push({ node: prev.node, offset: prev.offset });
       lastWasSpace = true;

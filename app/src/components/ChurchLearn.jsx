@@ -352,7 +352,17 @@ function QuizBlock({ module, saved, onRecord }) {
           <li key={qi}>
             <fieldset>
               <legend className="text-xs text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>{q.q}</legend>
-              <div className="space-y-1">
+              {/* THE READER MUST NOT SPEAK THE ANSWER OPTIONS (2026-09-14).
+                  Captured from a real reading: the reader recited all four
+                  options of every question as if they were teaching, WRONG
+                  ANSWERS INCLUDED -- "Whatever the world puts in front of you",
+                  "Mostly your problems, so you stay prepared", "It is still
+                  undecided". A listener who cannot see the screen has no way to
+                  know those are decoys, so the reading was teaching error in
+                  Yahweh's name. The QUESTION (the legend) is still read, because
+                  hearing the question is the point; the options are a control to
+                  be tapped, not content to be recited. */}
+              <div data-read-skip className="space-y-1">
                 {q.options.map((opt, oi) => {
                   const checked = answers[qi] === oi;
                   const showCorrect = graded && oi === q.answer;
