@@ -335,30 +335,9 @@ export function LessonRunOfShow({
 
             {/* What the audience sees this stage (so the leader has context) */}
             {s.kind === 'open' && (s.audience.anchorRef || s.audience.bigIdea) && (
-              /* The same miss as ChurchLearn's paced view, on the engine every
-                 other course rides -- so both change together (Darrell,
-                 2026-09-14). The reference string was plain text in a coloured
-                 paragraph; DR-0340 Pattern 1 says every reference renders
-                 through the one Scripture component, and DR-0341 Decision 1
-                 gives the reader one switch that opens them all while each chip
-                 still toggles alone. The toggle above this was wired in the
-                 2026-09-09 sweep; this line was not. */
-              <div className="mb-1">
-                {s.audience.anchorRef && (
-                  <WordInline
-                    text={`Anchor — ${s.audience.anchorRef}: ${s.audience.anchorTheme || ''}`}
-                    className="text-[0.6875rem] text-[#5A5751]"
-                    style={SERIF}
-                  />
-                )}
-                {s.audience.bigIdea && (
-                  <WordInline
-                    text={s.audience.bigIdea}
-                    className="text-[0.6875rem] text-[#5A5751]"
-                    style={SERIF}
-                  />
-                )}
-              </div>
+              <p className="text-[0.6875rem] text-[#5A5751] mb-1" style={SERIF}>
+                {s.audience.anchorRef && <><strong className="text-[#5A6E3D]">Anchor — {s.audience.anchorRef}:</strong> {s.audience.anchorTheme} </>}
+              </p>
             )}
             {s.kind === 'apply' && s.audience.inApp && (
               <p className="text-[0.6875rem] text-[#5A5751] mb-1" style={SERIF}><strong className="text-[#1A1815]">{s.audience.handsOnLabel}:</strong> {s.audience.inApp}</p>
