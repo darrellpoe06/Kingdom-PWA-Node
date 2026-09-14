@@ -44,6 +44,10 @@ Every lesson L1–L139 (through 2026-09-09) shares one shape: **an anchor of 1�
 
 DR-0380, DR-0388, DR-0389, DR-0390 each prove *verbatim*; none states an anchor size or that a reference is named. They were true and incomplete, and the gap they share is the gap this record's gate closes. DR-0392 finding 5 (the list moved to the end) is already superseded for the reading view by DR-0402; this record removes the *reason* for it — a lesson whose anchors are all in the prose has no list to move.
 
+## Amendment 2026-09-14 (late evening) — L151 authored: 61 → 0
+
+The first lesson owed was the worst one and the one on his screen. All 61 of L151's owed anchors are now inside the teaching where each is discussed: 12 were already present as unlabelled fragments and received their reference (Matthew 12:34, Numbers 1:46, Judges 12:6, Proverbs 6:17, 6:19, Malachi 2:15, 2 Chronicles 30:10, 1 Kings 19:7, Matthew 26:41 among them); 49 were written in — each as the verbatim KJV pulled from the corpus at write time, never typed, with one short framing clause in the lesson's own register (e.g. *"Isaiah, shown the King, confessed the mouth before anything else: "Woe is me! …" (Isaiah 6:5)"*; the Elijah sentence now carries 1 Kings 19:4–8 in full; the seven abominations carry Proverbs 6:16–19). 29 insertion points, each anchored on a unique existing sentence; body 19,951 → 28,929 characters. Gates: L151's verse gate green on every span, the provenance ratchet green, reading-level unchanged (bands untouched), the naming gate lowered to 0 for L151 by its own measurement. **Owed now: 119** (L149 30 · L146 26 · L147 23 · L148 15 · L150 13 · L145 11 · L141 1) + 3 pre-existing. Next: L149, after Darrell's live look at L151.
+
 ## Verification
 
 - Detector validated before use: L1 reads "2 named"; strip its names → "2 neither". The corruption detector reads the exact L141 text as a hit, and the whole-corpus scan returns exactly those 3.
@@ -52,6 +56,6 @@ DR-0380, DR-0388, DR-0389, DR-0390 each prove *verbatim*; none states an anchor 
 
 ## Limits, stated
 
-- **180 verses are still owed** (plus 3 pre-existing in L54/L81), and this record does not pretend otherwise. First lesson for the live test: **L151 The Tongue** (93 owed, the worst, and the one on his screen). **re-review: 2026-09-16** — L151 authored and seen live, or a why.
+- **119 verses are still owed** (L151 done, see amendment) (plus 3 pre-existing in L54/L81), and this record does not pretend otherwise. First lesson for the live test: **L151 The Tongue** (93 owed, the worst, and the one on his screen). **re-review: 2026-09-16** — L151 authored and seen live, or a why.
 - The audit's "quoted" test matches the first 40 characters of a verse; a lesson that paraphrases rather than quotes reads as "neither", correctly — paraphrase is not the Word.
 - The gate reads the hosted KJV from disk in the test; it cannot run without `app/public/bible/kjv/`, and says so rather than passing.
