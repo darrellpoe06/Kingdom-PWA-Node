@@ -60,6 +60,7 @@ import { walkState, stepParagraph, stepPoint } from '../lib/lesson-walk.js';
 import { useOpenWithTheWord } from '../lib/show-the-word.js';
 import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
 import { referencesIn } from '../lib/verse-refs.js';
+import { useReadingPosition } from '../lib/use-reading-position.jsx';
 import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload, courseSharePayload, sectionSharePayload } from '../lib/lesson-links.js';
 import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture-matrix.js';
 import CopyButton from './CopyButton.jsx';
@@ -1262,6 +1263,23 @@ function CourseView({
   // reload lands one "Resume →" tap from the same spot.
   const [focusId, setFocusId] = useState(null);
   useHistoryValue(focusId, setFocusId, { base: null, key: 'learn-lesson-focus' });
+
+  // THE EXACT LOCATION IS KEPT AND RESTORED (Darrell 2026-09-14: "Lessons keep
+  // being interrupted and I'm loosing my exact location!!! Fix it!!!").
+  //
+  // This watches the lesson the reader is actually in and writes the sentence
+  // at the reading line as he SCROLLS -- the case nothing covered, because the
+  // read-aloud was the only writer and most reading is silent. It also flushes
+  // on visibilitychange / pagehide, since an interruption is exactly when the
+  // place matters and may be the page's last frame. On return it scrolls that
+  // sentence back to the reading line; if the sentence is gone from an edited
+  // lesson it leaves the scroll ALONE rather than jumping to the top.
+  useReadingPosition({
+    elementId: focusId ? `learn-lesson-${focusId}` : '',
+    lessonId: focusId || '',
+    enabled: !!focusId,
+    restoreKey: resumeNonce,
+  });
   const focusModule = focusId ? (schedule.find((m) => m.id === focusId) || null) : null;
   const lastFocusRef = React.useRef(null);
   const openLesson = (id) => {
@@ -1331,6 +1349,16 @@ function CourseView({
     // lesson reached that way was one a reader could lose again on reload.
     savePlace({ lessonId: resumeLessonId });
     recordUse(resumeLessonId);
+    // ARRIVAL NO LONGER JUMPS TO THE TOP WHEN THERE IS A PLACE TO RETURN TO.
+    // `scrollTo({top: 0})` here was the most-felt half of "I'm losing my exact
+    // location": the record could be perfect and the view still threw it away
+    // on every return. useReadingPosition above restores the sentence, so the
+    // top-scroll is now only for a lesson with NO saved sentence -- a genuinely
+    // fresh open, where the top IS the right place.
+    const saved = getPlace();
+    const hasPlace = saved && saved.lessonId === resumeLessonId
+      && (saved.sentenceKey || saved.sentence > 0);
+    if (hasPlace) return undefined;
     const t = setTimeout(() => {
       try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { /* no-op */ }
     }, 80);

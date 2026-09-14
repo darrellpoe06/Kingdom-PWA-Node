@@ -180,7 +180,16 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     const r = followRef.current.ranges[idx] || null;
     highlightSegment(r);
     followRange(r);
-  }, [cloudProgress, isReading, deviceRead]);
+    // THE CLOUD VOICE KEEPS THE PLACE TOO (Darrell 2026-09-14: "Lessons keep
+    // being interrupted and I'm loosing my exact location"). The sentence write
+    // shipped only in the DEVICE-voice effect above, so listening in the
+    // sovereign/cloned voice -- which is what the voice picker defaults people
+    // into -- recorded nothing at all. Same absolute index convention as the
+    // device path: base + local.
+    const st = followRef.current;
+    const seg = st.follow && st.follow.segments ? st.follow.segments[st.base + idx] : null;
+    if (seg && seg.text) rememberSentence(st.base + idx, seg.text);
+  }, [cloudProgress, isReading, deviceRead, rememberSentence]);
   // Reading over (or never started) → the full card comes back next open.
   useEffect(() => { if (!isReading) setMinimized(false); }, [isReading]);
   useEffect(() => {
