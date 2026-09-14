@@ -16,7 +16,7 @@
 //
 // DR-0402 had routed every lesson paragraph through WordInline, which boxes
 // each reference as an inline BUTTON mid-sentence — the "tabs". This file
-// pins the restored flow (DR-0405):
+// pins the restored flow (DR-0406):
 //   1. no control inside a prose paragraph — the reference stays in the
 //      sentence as plain words, exactly as the author wrote them;
 //   2. the references a section named are a green chip strip at the foot of

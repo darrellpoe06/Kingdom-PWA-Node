@@ -1,7 +1,7 @@
-# DR-0405 — The lesson words are not blocked; the Word waits, green, at the foot of its section; and the lesson takes the full width of the page
+# DR-0406 — The lesson words are not blocked; the Word waits, green, at the foot of its section; and the lesson takes the full width of the page
 
 - **Date:** 2026-09-14
-- **Concurrency:** minted as DR-0404 on this branch (the commit subject and PR #1587 title carry that number); renumbered on merge per DR-0052 — #1585 merged first and keeps 0404 (keep-every-anchor-and-spread-it-through-the-lesson).
+- **Concurrency:** minted as DR-0404 on this branch (the commit subject carries that number); renumbered on merge per DR-0052 — #1585 merged first and keeps 0404 (keep-every-anchor-and-spread-it-through-the-lesson), and the concurrent scripture-prompt lane (#1588) holds 0405, so this record is 0406.
 - **Status:** accepted
 - **Tier:** B (the lesson reading surface — the one elderly church founders actually read)
 - **Type:** orchestration

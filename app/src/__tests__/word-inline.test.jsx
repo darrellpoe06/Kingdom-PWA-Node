@@ -143,7 +143,7 @@ describe('the surfaces that carry it (each reverting to a plain <p> fails here)'
     expect(src).toMatch(/<WordInline text=\{entry\.scripture\}/);
   });
   it('Learn: a story, with its verse line folded into the green strip beneath it', () => {
-    // Re-pointed 2026-09-14 (DR-0405): the story body reads CLEAN — refsBelow
+    // Re-pointed 2026-09-14 (DR-0406): the story body reads CLEAN — refsBelow
     // — and its "— verse" line rides the same strip via alsoRefs, so the Word
     // still opens in place without a boxed chip in the sentence.
     const src = read('../components/ChurchLearn.jsx');
