@@ -25,6 +25,7 @@ import {
 import { segmentText } from '../lib/tts.js';
 import { readFromPoint } from '../lib/read-from-here.js';
 import { getReadTarget, subscribeReadTarget } from '../lib/read-target.js';
+import { useShowTheWord, toggleShowTheWord } from '../lib/show-the-word.js';
 import { getPlace, recordPlace, sentenceKeyOf, findSentence } from '../lib/learn-resume.js';
 import { subscribeReadRequest } from '../lib/read-request.js';
 import { revealAllForReading, settled, afterRender } from '../lib/read-reveal.js';
@@ -103,6 +104,8 @@ function readablePageText() {
 
 export default function TTSControl({ isOwner = false, view, churchView, booksView }) {
   const [isOpen, setIsOpen] = useState(false);
+  // Same switch as the in-lesson bar: one module store, never two states.
+  const showWord = useShowTheWord();
   // WHILE READING, THE PANEL GETS OUT OF THE WAY (Darrell 2026-08-03: "the
   // read along blocks the readers page with the data being read"): once
   // reading starts, the full card collapses to a slim pill (pause/stop/
@@ -772,6 +775,27 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
               </>
             )}
           </div>
+
+          {/* SHOW / HIDE THE WORD LIVES WITH THE PLAY CONTROLS (Darrell
+              2026-09-14, from the lesson with this panel open: "I want that bar
+              to be where the play button is or have the same impact").
+              It was a bar in the lesson BODY -- and it is a READING preference,
+              so it belongs where the reading is controlled, at the same weight
+              as the read buttons rather than buried in the prose above them.
+              The STORE is reused, not the component: show-the-word.js is a
+              module store, so this button and the in-lesson bar are the same
+              switch and can never disagree. It is re-rendered here rather than
+              imported because ShowTheWordToggle sizes in rem, and this panel is
+              deliberately em-sized so its chrome scales with the capped chrome
+              multiplier (see the panel comment above) -- importing it would
+              break at A+++/A44, which is the exact defect that comment records. */}
+          <button
+            type="button" onClick={toggleShowTheWord} aria-pressed={showWord}
+            className={`w-full mb-[0.5em] px-[0.75em] py-[0.625em] text-[0.6875em] uppercase tracking-wider font-semibold border focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${
+              showWord ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'bg-white text-[#5A6E3D] border-[#5A6E3D] hover:text-[#1A1815] hover:border-[#1A1815]'}`}
+          >
+            {showWord ? 'Hide the Word — read without the verses open' : 'Show the Word — open every verse'}
+          </button>
 
           <div className="mb-[0.5em]">
             <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Speed: {rate.toFixed(1)}×</div>

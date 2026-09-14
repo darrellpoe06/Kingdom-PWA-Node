@@ -178,3 +178,47 @@ describe('the Anchor line in the full-screen lesson view is wired to WordInline'
     expect(src).toContain("Scripture {anchorRefCount === 1 ? 'reference' : 'references'}");
   });
 });
+
+describe('Show/Hide the Word sits with the play controls', () => {
+  // Darrell 2026-09-14, from the lesson with the Read Aloud panel open: "I want
+  // that bar to be where the play button is or have the same impact."
+  //
+  // It was a bar in the lesson BODY. It is a READING preference, so it belongs
+  // where reading is controlled. Source-pinned on two properties that a future
+  // edit could quietly break, both of which have bitten this panel before.
+  const readTts = () => {
+    const { readFileSync } = require('node:fs');
+    const { join, dirname } = require('node:path');
+    const { fileURLToPath } = require('node:url');
+    return readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'TTSControl.jsx'),
+      'utf8',
+    );
+  };
+
+  it('the reader panel carries the toggle', () => {
+    const src = readTts();
+    expect(src).toMatch(/onClick=\{toggleShowTheWord\}/);
+    expect(src).toMatch(/Hide the Word — read without the verses open/);
+  });
+
+  it('reuses the STORE so the two controls can never disagree', () => {
+    // If this were local state, the panel button and the in-lesson bar would
+    // drift apart and the verses would be open on one and shut on the other.
+    const src = readTts();
+    expect(src).toMatch(/useShowTheWord, toggleShowTheWord \} from '\.\.\/lib\/show-the-word\.js'/);
+    expect(src).toMatch(/const showWord = useShowTheWord\(\);/);
+  });
+
+  it('is sized in em, not rem, because the panel is capped-chrome scaled', () => {
+    // The panel comment records the real defect this prevents: rem-sized labels
+    // ballooned at A+++/A44 and clipped the controls off-screen. Importing
+    // ShowTheWordToggle (which sizes in rem) would reintroduce exactly that.
+    const src = readTts();
+    const btn = src.slice(src.indexOf('onClick={toggleShowTheWord}') - 400,
+      src.indexOf('onClick={toggleShowTheWord}') + 700);
+    expect(btn).toMatch(/text-\[0\.6875em\]/);
+    expect(btn).not.toMatch(/text-\[0\.\d+rem\]/);
+    expect(src).not.toMatch(/import ShowTheWordToggle/);
+  });
+});
