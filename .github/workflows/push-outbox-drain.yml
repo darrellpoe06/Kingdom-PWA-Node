@@ -1,0 +1,57 @@
+# push-outbox-drain — deliver queued office pushes (DR-0400), SHIPPED INACTIVE
+#
+# THE OTHER HALF OF DR-0378, built. Migration 0220 makes door_fault_report
+# ENQUEUE one push_outbox row (owner/admin, deduped, who/what not customer
+# content) on a genuinely new fault. This drains that queue: for each pending
+# row it resolves the instance's owner/admin user ids and calls the existing
+# push-send fault path (push-send-policy.js already supports topic:'fault', an
+# explicit office audience, never broadcast), then stamps sent_at.
+#
+# WHY IT SHIPS INACTIVE. This IS the timer-driven, compute-touching class the
+# three-brakes rule governs (CLAUDE.md P10/P11/P12), and its live DELIVERY rides
+# the web-push stack whose phone-proof is still open (DR-0334 re-review). So it
+# ships OFF and is armed only when a real phone is proven to receive — the same
+# gate #6's install pass closes. Until armed, the outbox simply fills and the
+# board still shows every fault (DR-0377): nothing is lost, nothing is sent.
+#
+# THE THREE BRAKES:
+#   BUDGET — at most MAX_DRAIN rows per run; a hard step timeout; one push-send
+#            call per row, no fan-out here (push-send owns its own device cap).
+#   LOCK   — concurrency group `push-outbox-drain`, single-instance.
+#   KILL   — the job runs ONLY when repo variable PUSH_OUTBOX_DRAIN_ENABLED is
+#            exactly 'true'. Unset/anything-else = the whole job is skipped. This
+#            is the arm switch; it is deliberately OFF at ship.
+
+name: push-outbox drain (office fault pushes) — inactive until armed
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # a request, not a guarantee (GitHub throttles); only fires when ARMED
+  workflow_dispatch: {}
+
+concurrency:
+  group: push-outbox-drain
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  drain:
+    # KILL BRAKE: off unless a human sets the variable to exactly 'true'.
+    if: ${{ vars.PUSH_OUTBOX_DRAIN_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      MAX_DRAIN: '25'                                  # BUDGET brake
+      PUSH_SEND_URL: 'https://poetech.us/api/push-send'
+      PUSH_SEND_TOKEN: ${{ secrets.PUSH_SEND_TOKEN }}  # DR-0334 sender auth, if set
+      NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Drain pending office pushes
+        run: bash scripts/push-outbox-drain-over-tailnet.sh
