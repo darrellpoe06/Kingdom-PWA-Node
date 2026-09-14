@@ -1867,6 +1867,28 @@ function CourseView({
                 </div>
               )}
 
+              {/* QUESTIONS ARE FOR BOTH (Darrell 2026-09-14: "Questions are for
+                  both!!!!?!!!!!"). The reflection questions were first written
+                  into the facilitator block, which is Governor-gated -- so the
+                  learner, who is who they are FOR, could never see them. The
+                  facilitator keeps discussionPrompts for running a room; these
+                  are the learner's own, rendered for everyone, right before the
+                  reference list. */}
+              {Array.isArray(m.questions) && m.questions.length > 0 && (
+                <div className="mt-3 border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2">
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">
+                    Questions to sit with — {m.questions.length}
+                  </div>
+                  <ol className="list-decimal pl-4 space-y-1">
+                    {m.questions.map((qq, qi) => (
+                      <li key={qi} className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                        <WordInline text={qq} />
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
               {/* THE WORD WE STOOD ON — the full reference list, at the END.
                   The reading view's half of the move Darrell asked for on
                   2026-09-14; the presented deck got the same closing slide in
