@@ -3080,7 +3080,7 @@ export default function PoeFinancialSystem() {
   const addRental = (item) => {
     // Random suffix so rapid same-ms adds (restore-a-building's units loops
     // addRental) get distinct ids instead of colliding into one door.
-    const seeded = { ...item, id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}` };
+    const seeded = { ...item, id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, updatedAt: new Date().toISOString() };
     setData(d => ({ ...d, inflows: { ...d.inflows, rentals: [...(d.inflows.rentals || []), seeded] } }));
     // Rentals sync is NOT gated on numericSyncVerifiedAt (DR-0379) — the family
     // rent roll syncs for a signed-in member even before the ledger verify.
@@ -3096,7 +3096,9 @@ export default function PoeFinancialSystem() {
     }
   };
   const updateRental = (id, updates) => {
-    setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === id ? { ...r, ...updates } : r) } }));
+    // Stamp updatedAt on the local edit (DR-0394) so the merge can tell a fresh
+    // local change from a stale remote row and never clobbers it on a pull.
+    setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === id ? { ...r, ...updates, updatedAt: new Date().toISOString() } : r) } }));
     if (authSession && !isAnyDemoMode && !reviewerMode) {
       const local = (data.inflows.rentals || []).find(r => r.id === id);
       // updateRow when linked, self-heal upsert-by-slug when not (DR-0379); the
