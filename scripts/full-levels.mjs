@@ -20,6 +20,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ourProseOnly } from './reading-level.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const FULL_LEVELS_BASELINE_PATH = join(HERE, '..', 'app', 'src', 'lib', 'full-levels-baseline.json');
@@ -31,13 +32,28 @@ export function words(s) {
   return typeof s === 'string' ? s.trim().split(/\s+/).filter(Boolean).length : 0;
 }
 
+// COUNT THE TEACHING, NOT THE QUOTATIONS (amended 2026-09-15, same day).
+// Writing L146's owed anchors into its body (DR-0404) grew the adult lesson
+// from 1,009 to 1,724 words without a word of new teaching — every added word
+// was verbatim Scripture — and the senior band, unchanged and full, fell from
+// 0.83 to 0.48 of it: the gate would have called a band "shortened" that
+// nobody touched. A quoted verse is the Word, carried in every version by the
+// anchor work and verified by its own gates; what THIS measure asks is whether
+// the message is taught in that age's own words. So both sides of the share
+// are authored prose with double-quoted spans removed — the same register the
+// reading-level gate scores, for the same reason (DR-0332: a proxy measures
+// what it claims to).
+export function proseWords(s) {
+  return words(ourProseOnly(typeof s === 'string' ? s : ''));
+}
+
 /** Per-band word counts and shares for one module. */
 export function measureFullness(module) {
   const m = module || {};
-  const adult = words(m.lesson) || words(m.levels && m.levels.standard);
+  const adult = proseWords(m.lesson) || proseWords(m.levels && m.levels.standard);
   const bands = {};
   for (const b of FULL_BANDS) {
-    const n = words(m.levels && m.levels[b]);
+    const n = proseWords(m.levels && m.levels[b]);
     bands[b] = { words: n, share: adult ? +(n / adult).toFixed(2) : null, present: n > 0 };
   }
   return { id: m.id, adultWords: adult, bands };

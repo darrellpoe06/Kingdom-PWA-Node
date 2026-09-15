@@ -55,6 +55,20 @@ Words to author at the floors: child 0.5 × 294,872 ≈ **147k**; youth, teen, s
 - `re-review: 2026-09-22` — lessons full, words authored, throughput measured; adjust the order or the floors from data.
 - `re-review: 2026-10-13` — the count again; expected roughly a third of the corpus if the lane runs daily.
 
+## Amendment, same day — the measure counts the TEACHING, not the quotations
+
+Writing L146's 26 owed anchors into its body (DR-0404's standing work) grew the adult lesson from 1,009 to 1,724 words with no new teaching — every added word was verbatim Scripture — and the senior band, untouched and full, fell from 0.83 to 0.48 of it. The first measure would have called a band "shortened" that nobody touched, on every lesson the anchor work still has to visit. So `measureFullness` now counts **authored prose with double-quoted spans removed on both sides** (`proseWords`, via the reading-level gate's `ourProseOnly` — the same register, for the same reason, DR-0332). A quoted verse is the Word, carried by the anchor work and verified by its own gates; this measure asks whether the message is taught in the age's own words. Re-measured on that basis (153 lessons):
+
+| band | median prose words | median share of adult prose | lessons short |
+|---|---|---|---|
+| adult prose | 909 (188,857 total) | — | — |
+| child | 176 | 0.21 | 151 |
+| youth | 0 | — | 152 |
+| teen | 231 | 0.28 | 150 |
+| senior | 374 | 0.44 | 126 |
+
+The picture is the same; the numbers are honest to what they measure. Words to author at the floors, restated: child ≈ 94k, youth / teen / senior ≈ 113k each, **≈ 435k words** in total (down from the 680k the first measure implied, because a third of the corpus is quotation). The baseline was rebuilt on the new measure in the same commit; the gate's proven-to-catch tests pass unchanged because they were written in plain prose.
+
 ## L151 — the first full lesson, measured after the write (same session)
 
 | band | words before | words after | share of adult | FK grade | steps at its pace |
@@ -67,6 +81,28 @@ Words to author at the floors: child 0.5 × 294,872 ≈ **147k**; youth, teen, s
 The child level now carries every one of the lesson's thirteen sections at child words (the stakes and the two harvests, creation by speaking, the four pictures, no man tames it, the heart upstream, the fountain, the counted costs, the right and wrong uses, the audit, the certainty that is the problem, correction as diagnosis, the way you cannot see, the mind that predicts, humility, the on-ramp, the spouse who will not read, the mocker, the missing prerequisite, the method, frustration, sustaining, the body, the accounting and the prayer). The youth level is new. The teen level lost a refrain that had been pasted four times and gained the counted costs, the toolbox of right uses, the audit, the marriage duties, Nehemiah, and the accounting. Every verse in all three was expanded from the hosted KJV at write time. Gates green on the written lesson: fullness (L151 no longer short in any band; baseline 153 → 152 lessons short), reading-level ordering (child 0.8 ≤ teen 3.5 ≤ senior 6.1, all under both ceilings), age-appropriateness, provenance, L151's verse gate, the naming gate, the band-debt gate. **Measured throughput for the timeline:** L151 (the longest lesson in the series, 5,146 adult words) took about 45 minutes from first word to green gates, authoring ≈ 6,200 new words. That is the upper bound per lesson; the median lesson is a quarter of L151's length.
 
 **One thing the numbers expose, recorded rather than fixed here:** `estimatedMinutes` multiplies steps by the band's `segmentMinutes` (child 5, youth 10), which reads a 45-word child step as five minutes and prices L151's child level at 275 minutes. The step count is right; the minute estimate is a pre-existing over-statement of the pacing model, not of the text. `re-review: 2026-09-22` alongside the child step length.
+
+## L146 — the second full lesson (same session, with its DR-0404 anchors in the same pass)
+
+| band | prose words before | prose words after | share of adult prose | FK grade |
+|---|---|---|---|---|
+| child | 266 | 763 | 0.79 | 0.9 |
+| youth | 0 | 952 | 0.99 | 4.2 |
+| teen | ~230 | 592 | 0.61 | 3.4 |
+| senior | 695 | 695 | 0.72 | 4.9 |
+
+Two gate catches, both kept as designed: the provenance ratchet refused a capitalised "While" inside a Romans 5:8 quote (the quote was corrected); the reading-level ordering refused a teen extension that measured 5.9 against the senior band's 4.9 (rewritten in shorter sentences to 3.4). Fullness baseline 152 → 151 lessons short. Throughput: about 25 minutes from measurement to green gates for a 1,009-word lesson, including its 26 anchors.
+
+## L147 — the third full lesson (same session)
+
+| band | prose words before | prose words after | share of adult prose | FK grade |
+|---|---|---|---|---|
+| child | 146 | 641 | 0.72 | 1.0 |
+| youth | 0 | 828 | 0.93 | 4.3 |
+| teen | 257 | 550 | 0.62 | 4.1 |
+| senior | 393 | 543 | 0.61 | 8.5 |
+
+Fullness baseline 151 → 150 lessons short. Two catches from the per-lesson verse gates, both kept: the typography rule (Yahweh in our voice, never the generic term) caught twelve places across L146's and L147's new bands; the verbatim-span rule caught a non-Scripture phrase in quotation marks. Both are exactly the class of error a machine catches better than an author's eye, and both were fixed in the text, never in the gate.
 
 ## Not decided here (surfaced, with recommendations)
 
