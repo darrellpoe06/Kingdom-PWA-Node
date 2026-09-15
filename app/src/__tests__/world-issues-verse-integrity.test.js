@@ -1081,3 +1081,101 @@ describe('Issue 10 — Victorious Emotions: every fragment verbatim from the rep
     expect(issue.lens.graceNote).toMatch(/No condemnation/i);
   });
 });
+
+// =============================================================================
+// ISSUE 11 — "College was free until 1965" (wi-tuition-and-the-1965-act).
+// Darrell pasted the transcript as build input on 2026-09-15. Every fragment
+// below was fetched from the repo KJV at authoring time; a drift fails here.
+// =============================================================================
+const TUITION_1965_QUOTES = [
+  { ref: 'Proverbs 22:7', book: 'Proverbs', ch: 22, v: 7, fragments: ['The rich ruleth over the poor, and the borrower is servant to the lender.'] },
+  { ref: 'Exodus 22:25', book: 'Exodus', ch: 22, v: 25, fragments: ['If thou lend money to any of my people that is poor by thee, thou shalt not be to him as an usurer, neither shalt thou lay upon him usury.'] },
+  { ref: 'Deuteronomy 15:1', book: 'Deuteronomy', ch: 15, v: 1, fragments: ['At the end of every seven years thou shalt make a release.'] },
+  { ref: 'Deuteronomy 15:2', book: 'Deuteronomy', ch: 15, v: 2, fragments: ['Every creditor that lendeth ought unto his neighbour shall release it; he shall not exact it of his neighbour, or of his brother; because it is called the LORD’s release.'] },
+  { ref: 'Leviticus 25:10', book: 'Leviticus', ch: 25, v: 10, fragments: ['proclaim liberty throughout all the land unto all the inhabitants thereof'] },
+  { ref: 'Proverbs 11:1', book: 'Proverbs', ch: 11, v: 1, fragments: ['A false balance is abomination to the LORD: but a just weight is his delight.'] },
+  { ref: 'Leviticus 19:15', book: 'Leviticus', ch: 19, v: 15, fragments: ['thou shalt not respect the person of the poor, nor honor the person of the mighty'] },
+  { ref: 'Deuteronomy 1:17', book: 'Deuteronomy', ch: 1, v: 17, fragments: ['ye shall hear the small as well as the great'] },
+  { ref: 'Acts 10:34', book: 'Acts', ch: 10, v: 34, fragments: ['God is no respecter of persons'] },
+  { ref: 'Galatians 3:28', book: 'Galatians', ch: 3, v: 28, fragments: ['ye are all one in Christ Jesus'] },
+  { ref: 'Isaiah 10:1', book: 'Isaiah', ch: 10, v: 1, fragments: ['Woe unto them that decree unrighteous decrees, and that write grievousness which they have prescribed'] },
+  { ref: 'Isaiah 10:2', book: 'Isaiah', ch: 10, v: 2, fragments: ['To turn aside the needy from judgment, and to take away the right from the poor of my people'] },
+  { ref: 'Matthew 23:4', book: 'Matthew', ch: 23, v: 4, fragments: ['they bind heavy burdens and grievous to be borne, and lay them on men’s shoulders'] },
+  { ref: 'Nehemiah 5:1', book: 'Nehemiah', ch: 5, v: 1, fragments: ['there was a great cry of the people'] },
+  { ref: 'Nehemiah 5:3', book: 'Nehemiah', ch: 5, v: 3, fragments: ['We have mortgaged our lands, vineyards, and houses'] },
+  { ref: 'Nehemiah 5:5', book: 'Nehemiah', ch: 5, v: 5, fragments: ['we bring into bondage our sons and our daughters to be servants', 'neither is it in our power to redeem them'] },
+  { ref: 'Nehemiah 5:7', book: 'Nehemiah', ch: 5, v: 7, fragments: ['Ye exact usury, every one of his brother'] },
+  { ref: 'Nehemiah 5:11', book: 'Nehemiah', ch: 5, v: 11, fragments: ['Restore, I pray you, to them, even this day, their lands, their vineyards, their oliveyards, and their houses'] },
+  { ref: 'Nehemiah 5:12', book: 'Nehemiah', ch: 5, v: 12, fragments: ['We will restore them, and will require nothing of them'] },
+  { ref: '1 Thessalonians 5:21', book: '1Thessalonians', ch: 5, v: 21, fragments: ['Prove all things; hold fast that which is good.'] },
+  { ref: 'Proverbs 18:13', book: 'Proverbs', ch: 18, v: 13, fragments: ['He that answereth a matter before he heareth it, it is folly and shame unto him.'] },
+  { ref: 'Proverbs 18:17', book: 'Proverbs', ch: 18, v: 17, fragments: ['He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him.'] },
+  { ref: 'Matthew 7:20', book: 'Matthew', ch: 7, v: 20, fragments: ['by their fruits ye shall know them'] },
+  { ref: 'Romans 13:8', book: 'Romans', ch: 13, v: 8, fragments: ['Owe no man any thing, but to love one another'] },
+  { ref: 'James 5:4', book: 'James', ch: 5, v: 4, fragments: ['crieth: and the cries of them which have reaped are entered into the ears of the Lord of sabaoth'] },
+  { ref: 'Proverbs 14:31', book: 'Proverbs', ch: 14, v: 31, fragments: ['He that oppresseth the poor reproacheth his Maker'] },
+  { ref: 'Amos 5:12', book: 'Amos', ch: 5, v: 12, fragments: ['turn aside the poor in the gate from their right'] },
+  { ref: 'Proverbs 22:22', book: 'Proverbs', ch: 22, v: 22, fragments: ['Rob not the poor, because he is poor'] },
+  { ref: 'Proverbs 22:23', book: 'Proverbs', ch: 22, v: 23, fragments: ['the LORD will plead their cause'] },
+  { ref: 'Psalms 82:3', book: 'Psalms', ch: 82, v: 3, fragments: ['Defend the poor and fatherless: do justice to the afflicted and needy.'] },
+  { ref: 'Micah 6:8', book: 'Micah', ch: 6, v: 8, fragments: ['to do justly, and to love mercy, and to walk humbly with thy God'] },
+];
+
+describe('Issue 11 — College and the 1965 Act: every fragment verbatim from the repo KJV', () => {
+  const issue = WORLD_ISSUES.find((i) => i.id === 'wi-tuition-and-the-1965-act');
+  const norm = (s) => s.replace(/[’‘]/g, "'").replace(/\s+/g, ' ');
+
+  it('the issue is published', () => {
+    expect(issue).toBeTruthy();
+  });
+
+  it('every quoted fragment is a verbatim substring of the cited KJV verse', () => {
+    const failures = [];
+    for (const q of TUITION_1965_QUOTES) {
+      const text = kjvVerse(q.book, q.ch, q.v);
+      for (const frag of q.fragments) {
+        if (!norm(text).includes(norm(frag))) {
+          failures.push(`${q.ref}: NOT VERBATIM — "${frag}" (verse reads: "${text}")`);
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it('every fragment actually appears in the issue content (no stale list)', () => {
+    const blob = norm(JSON.stringify(issue));
+    const missing = TUITION_1965_QUOTES.flatMap((q) =>
+      q.fragments.filter((frag) => !blob.includes(norm(frag))).map((frag) => `${q.ref}: "${frag}"`));
+    expect(missing).toEqual([]);
+  });
+
+  // PROVEN-TO-CATCH: a one-word tamper in the load-bearing verse must fail.
+  it('CATCHES a one-word tamper in a pinned verse', () => {
+    const real = kjvVerse('Proverbs', 22, 7);
+    expect(norm(real).includes(norm('the borrower is master to the lender'))).toBe(false);
+    expect(norm(real).includes(norm('the borrower is servant to the lender'))).toBe(true);
+  });
+
+  // DR-0100's three tiers are load-bearing: the documented 312% is stated as
+  // fact, the causal claim is carried as the creator's interpretation, and the
+  // fruit is judged by the Word regardless of motive.
+  it('states the documented plainly and labels the causal claim as opinion', () => {
+    const c = issue.claims.find((x) => x.id === 'c-causation');
+    expect(c.label).toBe('opinion');
+    expect(issue.claims.find((x) => x.id === 'c-312-percent').note).toMatch(/matches the NCES/);
+    expect(issue.verifiable.find((v) => v.id === 'f-tuition-growth').status).toBe('documented');
+    expect(issue.verifiable.find((v) => v.id === 'f-drivers-debated').status).toBe('partly-documented');
+  });
+
+  it('Nehemiah 5 is the template and release is the remedy — Word first, fruit judged regardless of motive', () => {
+    const blob = JSON.stringify(issue);
+    expect(issue.lens.fourD.deepSource.indexOf('WORD FIRST')).toBe(0);
+    expect(blob).toContain('NEHEMIAH 5 IS THE TEMPLATE');
+    expect(blob).toContain('release and restoration');
+    expect(issue.lens.accountability.scripture).toMatch(/Ecclesiastes 12:14/);
+  });
+
+  it('carries a grace note that condemns no one', () => {
+    expect(issue.lens.graceNote).toMatch(/No condemnation/i);
+  });
+});
