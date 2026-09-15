@@ -195,6 +195,45 @@ Yahweh's Will Be Done on Earth, on the same measure (authored prose · share of 
 
 Every section of the adult body is carried in each band: the cost of seeing and the joy as fuel; the economy as legislation with a clock (release, no usury of a brother, jubilee, the open hand); the guarantee no human framework attaches; mammon named; debt as a governing relationship and what was done to the children; the documented shape of the present system stated as documentation; the older fact and the turn (the wealth was produced, so it is producible); restitution with arithmetic; the present-day mortgage figures stated in all three parts; the credential question; the segregation-era proof of concept; the mutual economy of Acts 4; the release never about money; build it here. The senior pass adds the pastoral sequence for a mixed room and the older members' own memory of the burial society, the lodge and the fund, as a working manual. Fullness baseline 144 → 143.
 
+## L142, L141 and L140 — the eleventh, twelfth and thirteenth full lessons (2026-09-15, one push)
+
+Measured by the gate's own counter (`scripts/full-levels.mjs` proseWords; authored prose · share of adult prose), reading level by Flesch-Kincaid on the same prose:
+
+**L142 It Is Written Again** (adult prose 2,531; floors child 1,266, others 1,519):
+
+| band | before | after |
+|---|---|---|
+| child | 226 · 0.09 · 0.7 | **1,352 · 0.53 · 1.4** |
+| youth | missing | **1,907 · 0.75 · 5.1** (new) |
+| teen | 294 · 0.12 · 8.1 | **1,740 · 0.69 · 7.4** |
+| senior | 333 · 0.14 · 15.6 | **1,657 · 0.65 · 8.6** |
+
+Every band carries the method (the garden edit, the clipped psalm, "It is written again", Peter's two causes), the pastoral rule, all four planks with the true half conceded first, the 1807 Slave Bible, the oldest instance, the charter that proves nothing, why He gives the device, untouchable and touched, the fire, why they cannot see, and taste and see. The teen band adds the gate's own discipline turned on the house; the senior band adds the manner across the table.
+
+**L141 Separate and Connect** (adult prose 1,397; floors child 699, others 839):
+
+| band | before | after |
+|---|---|---|
+| child | 462 · 0.34 · 3.9 | **974 · 0.70 · 2.2** |
+| youth | missing | **1,013 · 0.73 · 4.6** (new) |
+| teen | 571 · 0.42 · 5.3 | **1,003 · 0.72 · 6.0** |
+| senior | 713 · 0.52 · 15.7 | **1,057 · 0.76 · 14.8** |
+
+All eight questions in each band: the sword and the peace as one motion, the Matthew 18 procedure with its guardrails, study to be approved, study without reading, misunderstanding and its cures, tempted versus tried, seasons, and enemies.
+
+**L140 The People of Judah and the People of the Way** (adult prose 3,654 — the longest body in the corpus; floors child 1,827, others 2,193):
+
+| band | before | after |
+|---|---|---|
+| child | 500 · 0.15 · 3.1 | **1,923 · 0.53 · 2.2** |
+| youth | missing | **2,314 · 0.63 · 4.6** (new) |
+| teen | 874 · 0.27 · 7.3 | **2,516 · 0.69 · 8.7** |
+| senior | 1,344 · 0.41 · 10.7 | **2,296 · 0.63 · 10.7** |
+
+All eleven parts in each band: who Judah is and the timeline; scattered, never lost, with the debate named to teach past it; the Way; the tribe from every nation by the graft; joined, never replacing; whom to listen to (one Voice, one test); the two untils; psyops and known by love; more than conquerors; the Way kept and wages stolen; which country, Harriet Tubman as history, a means of making money, sold to all nations, and the if. Where the Word stops, every band stops: no modern date, no living man named a tribe.
+
+Fullness baseline 143 → 140. Thirteen lessons full in one day at the measured pace; the 2026-09-22 re-review sets the order from L139 downward.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
