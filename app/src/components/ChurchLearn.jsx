@@ -390,7 +390,7 @@ export function QuizBlock({ module, saved, onRecord }) {
                       {readOptions && (
                         <button type="button" onClick={(e) => { e.preventDefault(); try { optionTts.speak(opt); } catch (_) { /* no engine */ } }}
                           aria-label={`Hear this choice: ${opt}`} data-read-skip
-                          className="ml-auto shrink-0 min-h-[36px] min-w-[36px] border border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">🔊</button>
+                          className="ml-auto shrink-0 min-h-[36px] min-w-[36px] flex items-center justify-center border border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"><UiIcon name="volume" /></button>
                       )}
                     </label>
                   );
