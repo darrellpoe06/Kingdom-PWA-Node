@@ -191,7 +191,8 @@ export const AGE_BANDS = [
   },
   {
     id: 'youth', label: 'Youth', range: '11–14',
-    depth: 'teen', segmentMinutes: 10, breakEveryMin: 20, contentBeforeCheck: 2,
+    depth: 'youth', // its own authored level (DR-0418); falls back youth → teen → standard while unwritten
+    segmentMinutes: 10, breakEveryMin: 20, contentBeforeCheck: 2,
     visual: 'high', handsOn: 'high', tone: 'encouraging',
     hint: 'Plain language, real examples, hands-on, a check after a couple of ideas.',
     pacing: 'A couple of ideas, then check understanding. Keep it concrete and hands-on.',
@@ -230,13 +231,15 @@ export function ageBandProfile(id) {
 }
 
 // The depth (levels key) an age band reads by default, with its fallback chain.
-// child → teen → standard ; youth/teen → teen → standard ; adult → standard ;
-// senior → senior → standard. resolveForAge applies it against the module's
-// authored `levels`, then the base lesson.
+// child → teen → standard ; youth → teen → standard (DR-0418: youth has its
+// own slot, grades 6–8, and reads the teen text only while its own level is
+// unwritten) ; teen → teen → standard ; adult → standard ; senior → senior →
+// standard. resolveForAge applies it against the module's authored `levels`,
+// then the base lesson.
 export function depthChainForAge(id) {
   const band = ageBandProfile(id);
   const chain = [band.depth];
-  if (band.depth === 'child') chain.push('teen');
+  if (band.depth === 'child' || band.depth === 'youth') chain.push('teen');
   if (!chain.includes('standard')) chain.push('standard');
   return chain;
 }
@@ -273,7 +276,7 @@ export function resolveForAge(module, ageBandId = DEFAULT_AGE_BAND, levelOverrid
   // text the module actually carries: senior (fullest), then teen, then
   // child. Every word the author wrote beats a blank screen.
   if (levels) {
-    for (const key of ['senior', 'teen', 'child']) {
+    for (const key of ['senior', 'teen', 'youth', 'child']) {
       if (typeof levels[key] === 'string' && levels[key]) {
         return { text: levels[key], levelId: key, branched: true, band };
       }

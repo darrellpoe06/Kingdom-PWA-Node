@@ -775,6 +775,28 @@ export function LessonLevelControl({ band, levelId, levelOverride = null, setAge
 export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onStepChange = null, showAll = false, flush = false, setAgeBand = null, setLearnLevel = null, levelOverride = null }) {
   const [idx, setIdx] = useState(() => Math.max(0, initialIndex));
   const firedRef = useRef(false);
+  // A MID-LESSON LEVEL CHANGE KEEPS THE LEARNER'S PLACE (DR-0418).
+  //
+  // Darrell 2026-09-15: "Even if half of the way through they decided to
+  // change levels they can... make sense?" Picking a level re-chunks the text
+  // (child 45 words a step, adult 200), so step 20 of 41 in the child words is
+  // not step 20 of the adult words — the clamp below would have dropped a
+  // learner who switched half-way onto the LAST step, which reads as "the
+  // lesson ended." The honest mapping between two differently-cut versions of
+  // the same message is proportional: half-way stays half-way. Reported
+  // through onStepChange so the saved place follows the learner too.
+  const totalRef = useRef(plan && plan.totalSegments ? plan.totalSegments : 0);
+  React.useEffect(() => {
+    const now = plan && plan.totalSegments ? plan.totalSegments : 0;
+    const was = totalRef.current;
+    totalRef.current = now;
+    if (!was || !now || was === now) return;
+    setIdx((i) => {
+      const mapped = Math.min(now - 1, Math.max(0, Math.round((i / was) * now)));
+      if (mapped !== i && onStepChange) onStepChange(mapped);
+      return mapped;
+    });
+  }, [plan && plan.totalSegments]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!plan || !plan.segments || plan.segments.length === 0) return null;
   const { segments, totalSegments, segmentMinutes, breakAfterSegments, checkAfterSegments, band, levelId } = plan;
   // In the lesson's own space the box loses its side walls (see TutorPanel).
