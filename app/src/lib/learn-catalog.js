@@ -37,6 +37,7 @@ import { SUCCESSION_META, SUCCESSION_SESSION_FLOW, buildSuccessionSchedule, succ
 import { ECON_META, ECON_SESSION_FLOW, buildEconSchedule, econProgressSummary, exportEconCurriculumMarkdown, ECON_INTEREST_TAG, ECON_HELPER_TAG, ECON_TUTOR_META } from './economics-class.js';
 import { PV_META, PV_SESSION_FLOW, buildPvSchedule, pvProgressSummary, exportPvCurriculumMarkdown, PV_INTEREST_TAG, PV_HELPER_TAG, PV_TUTOR_META } from './prophetic-voices.js';
 import { LEGACY_PROVISIONS_META, LEGACY_PROVISIONS_SESSION_FLOW, buildLegacyProvisionsSchedule, legacyProvisionsProgressSummary, exportLegacyProvisionsCurriculumMarkdown, LEGACY_PROVISIONS_INTEREST_TAG, LEGACY_PROVISIONS_HELPER_TAG, LEGACY_PROVISIONS_TUTOR_META } from './legacy-provisions-course.js';
+import { MATHEMATICS_META, MATHEMATICS_SESSION_FLOW, buildMathematicsSchedule, mathematicsProgressSummary, exportMathematicsCurriculumMarkdown, MATHEMATICS_INTEREST_TAG, MATHEMATICS_HELPER_TAG, MATHEMATICS_TUTOR_META } from './mathematics-class.js';
 import { HEALTHY_LIVING_META, HEALTHY_LIVING_SESSION_FLOW, buildHealthyLivingSchedule, healthyLivingProgressSummary, exportHealthyLivingCurriculumMarkdown, HEALTHY_LIVING_INTEREST_TAG, HEALTHY_LIVING_HELPER_TAG, HEALTHY_LIVING_TUTOR_META } from './healthy-living-course.js';
 
 // Every finished course, in picker order. `wiring: 'cohort'` = the host owns a
@@ -107,6 +108,23 @@ export const LEARN_CATALOG = [
       blurb: 'More letters, more numbers, more first words from the Word — tell Darrell what your little one is ready for next and he will add it. Read aloud, redo any check as a game, no grown-up needed.',
       cta: 'My little one wants more',
       sent: '✓ Sent — Darrell will see it. Train up a child in the way he should go.',
+    },
+  },
+  {
+    // MATHEMATICS (DR-0433; Darrell 2026-09-15: "add Mathematics as a Tab").
+    // Its own department in the school (DR-0432): every number a lesson works
+    // with is one the Word records, the working shown, the check redoable.
+    key: 'mathematics', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...MATHEMATICS_META, key: 'mathematics', category: 'Mathematics' }, sessionFlow: MATHEMATICS_SESSION_FLOW,
+    buildScheduleRows: () => buildMathematicsSchedule(), progressSummary: (p) => mathematicsProgressSummary(p),
+    exportMarkdown: () => exportMathematicsCurriculumMarkdown(), downloadName: 'mathematics-from-the-word.md',
+    interestTag: MATHEMATICS_INTEREST_TAG, helperTag: MATHEMATICS_HELPER_TAG, tutorCourseMeta: MATHEMATICS_TUTOR_META,
+    interestText: (who) => `${MATHEMATICS_INTEREST_TAG} ${who} wants more Mathematics lessons.`,
+    interestCopy: {
+      heading: 'Want more Mathematics?',
+      blurb: 'Bigger numbers, ratio and proportion, the geometry of the temple, the statistics of the census — tell Darrell what you or your learner is ready for next and he will add it, every number from the Word, the working shown.',
+      cta: 'I want more mathematics',
+      sent: '✓ Sent — Darrell will see it. He telleth the number of the stars.',
     },
   },
   {

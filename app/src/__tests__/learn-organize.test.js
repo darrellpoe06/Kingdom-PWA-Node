@@ -5,32 +5,46 @@
 // family, counts come from live schedules, empty groups vanish. Pins the
 // 2026-07-10 "sorts and dropdowns" organizing layer.
 import { describe, it, expect } from 'vitest';
-import { organizeCourses, courseLessonCount, isDeepProcessing, COURSE_SORTS, buildLessonIndex, searchLessons, unitNounOf } from '../lib/learn-organize.js';
+import { organizeCourses, learnDepartments, courseDepartment, departmentCode, departmentId, courseLessonCount, isDeepProcessing, COURSE_SORTS, buildLessonIndex, searchLessons, unitNounOf } from '../lib/learn-organize.js';
 
-const c = (key, title, lessons) => ({ key, meta: { title }, schedule: Array.from({ length: lessons }, (_, i) => ({ i })) });
+const c = (key, title, lessons, category = null) => ({ key, meta: category ? { title, category } : { title }, schedule: Array.from({ length: lessons }, (_, i) => ({ i })) });
 const COURSES = [
-  c('ai-class', 'Learning A.I. The Way', 8),
+  c('ai-class', 'Learning A.I. The Way', 8, 'A.I. The Way'),
   c('eternal-gospels', 'The Gospels — Deep Processing', 12),
-  c('broadcast', 'The Broadcast', 6),
+  c('broadcast', 'The Broadcast', 6, 'Serve the House'),
   c('eternal-torah', 'Torah & History — Deep Processing', 20),
+  c('word', 'Living Lessons from the Word', 40, 'The Word & The Way'),
 ];
 
 describe('organizeCourses', () => {
-  it('groups the Deep-Processing family apart, authored order by default', () => {
+  // DR-0432 / DR-0149: one group per DERIVED department (meta.category; the
+  // Eternal-Algorithms family by key), ordered by how much each teaches.
+  it('groups by derived department, heaviest department first, authored order within', () => {
     const g = organizeCourses(COURSES);
-    expect(g.map((x) => x.label)).toEqual(['Courses', 'The Word — Deep Processing']);
-    expect(g[0].courses.map((x) => x.key)).toEqual(['ai-class', 'broadcast']);
+    expect(g.map((x) => x.label)).toEqual(['The Word & The Way', 'The Eternal Algorithms', 'A.I. The Way', 'Serve the House']);
     expect(g[1].courses.map((x) => x.key)).toEqual(['eternal-gospels', 'eternal-torah']);
+    expect(g.map((x) => x.code)).toEqual(['WW', 'EA', 'AW', 'SH']);
   });
   it('sorts within groups: A to Z, most lessons, shortest first', () => {
-    expect(organizeCourses(COURSES, 'title')[0].courses.map((x) => x.key)).toEqual(['ai-class', 'broadcast']);
     expect(organizeCourses(COURSES, 'lessons-desc')[1].courses.map((x) => x.key)).toEqual(['eternal-torah', 'eternal-gospels']);
-    expect(organizeCourses(COURSES, 'lessons-asc')[0].courses.map((x) => x.key)).toEqual(['broadcast', 'ai-class']);
+    expect(organizeCourses(COURSES, 'title')[1].courses.map((x) => x.key)).toEqual(['eternal-gospels', 'eternal-torah']);
+    expect(organizeCourses(COURSES, 'lessons-asc')[1].courses.map((x) => x.key)).toEqual(['eternal-gospels', 'eternal-torah']);
   });
   it('omits empty groups and survives junk input', () => {
-    expect(organizeCourses(COURSES.slice(0, 1)).map((x) => x.label)).toEqual(['Courses']);
+    expect(organizeCourses(COURSES.slice(0, 1)).map((x) => x.label)).toEqual(['A.I. The Way']);
     expect(organizeCourses(null)).toEqual([]);
     expect(organizeCourses([null, undefined])).toEqual([]);
+  });
+  it('a course with no category sits in the plain Courses department; codes derive from the label', () => {
+    expect(courseDepartment({ key: 'x', meta: {} })).toBe('General Studies');
+    expect(courseDepartment({ key: 'eternal-x', meta: { category: 'Whatever' } })).toBe('The Eternal Algorithms');
+    expect(departmentCode('Mathematics')).toBe('MAT');
+    expect(departmentCode('Kingdom Life & Stewardship')).toBe('KLS');
+    expect(departmentId('The Word & The Way')).toBe('the-word-and-the-way');
+    const d = learnDepartments(COURSES);
+    expect(d[0].courses[0].code).toBe('WW-101');
+    expect(d[1].courses.map((c) => c.code)).toEqual(['EA-101', 'EA-102']);
+    expect(d.map((x) => x.lessons)).toEqual([40, 32, 8, 6]);
   });
   it('helpers: counts derive from the live schedule; the family is key-detected', () => {
     expect(courseLessonCount(COURSES[3])).toBe(20);

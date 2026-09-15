@@ -83,7 +83,13 @@ import { coursePresentable, lessonPresentable } from '../lib/presentable.js';
 const AGEBAND_TO_PRESENT_AGE = { child: 'child', youth: 'teen', teen: 'teen', adult: 'adult', senior: 'adult' };
 const AGEBAND_TO_LEVEL_KEY = { child: 'child', youth: 'teen', teen: 'teen', adult: null, senior: 'senior' };
 import SectionTabs from './SectionTabs.jsx';
-import { organizeCourses, courseLessonCount, COURSE_SORTS, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey } from '../lib/learn-organize.js';
+import { LEARN_CATALOG } from '../lib/learn-catalog.js';
+// THE ETERNAL ALGORITHMS LIVE INSIDE LEARN (DR-0432; Darrell 2026-09-15: "put
+// the Eternal Algorithms inside learn... Moving current tabs around for
+// functionality and flow"). The study surface is unchanged; it is mounted
+// under its own department here, loaded only when that department opens.
+const EternalAlgorithmsStudyLazy = React.lazy(() => import('./EternalAlgorithmsStudy.jsx'));
+import { organizeCourses, learnDepartments, courseLessonCount, COURSE_SORTS, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey } from '../lib/learn-organize.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
 import { getPlace, recordPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace } from '../lib/learn-resume.js';
 import { useHistoryValue } from '../lib/nav-history.js';
@@ -2577,6 +2583,8 @@ export default function ChurchLearn({
   setAgeBand = null,           // (bandId) => void
   onEngagement = null,         // ({courseKey,courseTitle,moduleId,ageBand,signal}) => void — feedback-by-age
   submitHelper = null,        // (courseKey, courseTitle, who) => void — graduate → next-cohort helper
+  initialDept = null,         // department id to open on (e.g. a deep link to the Eternal Algorithms); unknown → the whole catalog
+  eternalStudyProps = null,   // { email, view, churchView, setView, setChurchView } for the study surface mounted under its department
 }) {
   const [interestSent, setInterestSent] = useState({}); // keyed by course key
   const [helped, setHelped] = useState({}); // keyed by course key
@@ -2656,7 +2664,9 @@ export default function ChurchLearn({
 
   const aiCourse = {
     key: 'ai',
-    meta: { ...CLASS_META, key: 'ai' },
+    // Its department is the one the catalog registry declares for this key
+    // (DR-0149) — read from the registry, never retyped here.
+    meta: { ...CLASS_META, key: 'ai', category: (LEARN_CATALOG.find((c) => c.key === 'ai') || { meta: {} }).meta.category },
     sessionFlow: SESSION_FLOW,
     schedule: buildSchedule(cohortStart),
     cohortStart, cohortConfirmed, setCohortStart, confirmCohort,
@@ -2719,7 +2729,21 @@ export default function ChurchLearn({
   // A device that has already CHOSEN keeps its choice; this only decides where
   // someone lands who has not picked yet.
   const defaultCourse = courses.find((c) => c.key === 'living-lessons') || aiCourse;
-  const active = chosenCourse || defaultCourse;
+  // THE SCHOOL (DR-0432). Learn is one program of DEPARTMENTS derived from the
+  // mounted catalog (lib/learn-organize.js): the Courses tab is the whole
+  // catalog as usual; a department tab narrows the picker, the finder and the
+  // shelf to its own courses, and the open course follows — a course chosen
+  // elsewhere is kept, a department opens on its first course. A department
+  // that does not exist (a stale link) falls back to the whole catalog: never
+  // a dead door.
+  const departments = learnDepartments(courses);
+  const [deptId, setDeptId] = useState(() => initialDept || 'all');
+  const dept = departments.find((d) => d.id === deptId) || null;
+  const visibleCourses = dept ? dept.courses : courses;
+  const active = (chosenCourse && (!dept || dept.courses.some((c) => c.key === chosenCourse.key)))
+    ? chosenCourse
+    : (dept ? (dept.courses[0] || defaultCourse) : defaultCourse);
+  const totalLessons = courses.reduce((t, c) => t + courseLessonCount(c), 0);
 
   // Open what the link asked for, once, and only when it really exists.
   const linkAppliedRef = React.useRef(false);
@@ -2793,6 +2817,39 @@ export default function ChurchLearn({
     <section className="w-full" aria-labelledby="learn-h">
       <div className="print:hidden">
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Church · Learn</div>
+        {/* THE DEPARTMENTS (DR-0432). One row of sliding tabs over the whole
+            program: Courses (everything, as usual) and one tab per department
+            derived from the catalog's own categories — so it reads like a
+            school's catalog and not a pile. Counts are counted from the live
+            schedules, never typed. Hidden while a lesson is in focus. */}
+        {courses.length > 1 && !lessonFocus && (
+          <div className="mt-1 mb-4" data-testid="learn-departments">
+            <div className="text-[0.6875rem] text-[#5A5751] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>
+              One program · {departments.length} departments · {courses.length} courses · {totalLessons} lessons
+            </div>
+            <SectionTabs
+              ariaLabel="Learn departments"
+              idBase="learn-dept"
+              activeId={dept ? dept.id : 'all'}
+              onActiveChange={(id) => setDeptId(id)}
+              sections={[
+                { id: 'all', label: 'Courses', explain: `Every course in one place · ${courses.length} courses · ${totalLessons} lessons. Pick a course and its lessons follow.`, render: () => null },
+                ...departments.map((d) => ({
+                  id: d.id, label: d.label,
+                  explain: `${d.code} · ${d.courses.length} ${d.courses.length === 1 ? 'course' : 'courses'} · ${d.lessons} lessons`,
+                  render: () => null,
+                })),
+              ]}
+            />
+            {dept && dept.id === 'the-eternal-algorithms' && (
+              <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="eternal-study-in-learn">
+                <React.Suspense fallback={<p className="text-xs text-[#5A5751]">Opening the study…</p>}>
+                  <EternalAlgorithmsStudyLazy {...(eternalStudyProps || {})} />
+                </React.Suspense>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* THE COURSE PICKER SITS FIRST — ABOVE THE CATALOG LINE AND ABOVE
             RESUME. Darrell, 2026-09-06, after saying it repeatedly: "the course
@@ -2819,7 +2876,7 @@ export default function ChurchLearn({
             phone's own picker in one tap, with the Deep-Processing family in its
             own group and a sort control. Groups + counts derive live from the
             mounted courses (lib/learn-organize.js, DR-0121). */}
-        {courses.length > 1 && !lessonFocus && (
+        {visibleCourses.length > 1 && !lessonFocus && (
           <div className="flex flex-wrap items-end gap-3 mb-5 border-b border-[#E8E4DC] pb-3">
             <div className="grow min-w-[14rem]">
               {/* A SELECTOR, not a section title (Darrell 2026-09-06: "even more
@@ -2832,7 +2889,7 @@ export default function ChurchLearn({
                   underneath. Which course is open is stated ONCE, statically,
                   in the <h2> below. */}
               <label htmlFor="learn-course-pick" className="block text-xs uppercase tracking-wider text-[#B85838] font-semibold mb-1">
-                Courses · select one of {courses.length}
+                {dept ? dept.label : 'Courses'} · select one of {visibleCourses.length}
               </label>
               <select
                 id="learn-course-pick"
@@ -2851,12 +2908,12 @@ export default function ChurchLearn({
                 className={`w-full min-h-[48px] px-3 py-2 bg-white border-2 text-sm font-semibold focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${courseChosen ? 'border-[#1A1815]' : 'border-[#B85838]'}`}
                 style={{ fontFamily: '"Fraunces", serif' }}
               >
-                <option value="">Choose another course · {courses.length} to choose from</option>
-                {organizeCourses(courses, courseSort).map((g) => (
+                <option value="">Choose another course · {visibleCourses.length} to choose from</option>
+                {organizeCourses(visibleCourses, courseSort).map((g) => (
                   <optgroup key={g.label} label={g.label}>
                     {g.courses.map((c) => (
                       <option key={c.key} value={c.key}>
-                        {c.key === active.key ? '● ' : ''}{c.meta.title} · {courseLessonCount(c)} lessons
+                        {c.key === active.key ? '● ' : ''}{c.code} · {c.meta.title} · {courseLessonCount(c)} lessons
                       </option>
                     ))}
                   </optgroup>
@@ -2995,7 +3052,7 @@ export default function ChurchLearn({
             same real path Resume drives. Index derives from the mounted
             catalog (lib/learn-organize.js, DR-0121). */}
         {courses.length > 1 && !lessonFocus && (() => {
-          const hits = lessonQuery.trim() ? searchLessons(buildLessonIndex(courses), lessonQuery) : [];
+          const hits = lessonQuery.trim() ? searchLessons(buildLessonIndex(visibleCourses), lessonQuery) : [];
           return (
             <div className="mb-4">
               <label htmlFor="learn-lesson-find" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Or search by name — any course, by title, topic, or verse</label>
@@ -3056,7 +3113,7 @@ export default function ChurchLearn({
                    shelf never buries the course below it, and the whole thing
                    derives from the mounted catalog (DR-0121). */
                 (() => {
-                  const groups = browseLessons(buildLessonIndex(courses));
+                  const groups = browseLessons(buildLessonIndex(visibleCourses));
                   const total = browseCount(groups);
                   if (!total) return null;
                   return (
@@ -3100,6 +3157,18 @@ export default function ChurchLearn({
         <h2 id="learn-h" className="text-2xl sm:text-3xl mt-1 mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
           {active.meta.title}
         </h2>
+        {/* The catalog line a school prints under a course title: its code,
+            its department, and its level where the course declares one
+            (meta.programLevel) — never invented for a course that did not. */}
+        {!lessonFocus && (() => {
+          const coded = departments.flatMap((d) => d.courses).find((c) => c.key === active.key);
+          if (!coded) return null;
+          return (
+            <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] mb-3" data-testid="course-catalog-line">
+              {coded.code} · {coded.department}{active.meta.programLevel ? ` · ${active.meta.programLevel}` : ''} · {courseLessonCount(active)} lessons
+            </p>
+          );
+        })()}
 
         {/* SHARE THE WHOLE COURSE (Darrell 2026-08-10: "I want to also share the
             whole course"). Per-lesson Share hands someone one sitting; this

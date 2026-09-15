@@ -156,7 +156,7 @@ import {
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
   CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library,
   Inventory, Forecast, AdminConsole, ChefCorner, RoadTo150, Games, TVTime, Messages, AdvocacyCases, DataLiberation,
-  surfaceById, AccessRequests, EternalAlgorithmsStudy, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, ChurchGivingBook, Relationships,
+  surfaceById, AccessRequests, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, ChurchGivingBook, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { useInstanceRole } from './lib/instance-role.js';
@@ -4431,7 +4431,7 @@ ${THEME_CSS}
           <div className="border-t border-[#E8E4DC] bg-white">
             {/* Church sub-nav rides <TabScroll>; chrome caps the row via zoom. */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
-                {[['home','Church'],['ministries', <><UiIcon name="heart" /> Ministries</>],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>],['engagement','Engagement'],['choir','Choir'],['bus', <><UiIcon name="users" /> Bus Ministry</>],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['eternal-algorithms', <><UiIcon name="sparkle" /> Eternal Algorithms</>],['conference','Conference'],['events','Campus Rentals'],['projects', <><UiIcon name="sliders" /> Projects</>], ...(authSession ? [['my-record', <><UiIcon name="pencil" /> My Record</>],['access', <><UiIcon name="lock" /> Access</>],['members', <><UiIcon name="users" /> Members</>]] : []), ...(!reviewerMode && isChurchOfficeRole(churchAccess.role) ? [['giving-book', <><UiIcon name="coins" /> Giving Book</>]] : []), ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['devices', <><UiIcon name="tools" /> Devices</>],['infra-plan', <><UiIcon name="sliders" /> Infra Plan</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
+                {[['home','Church'],['ministries', <><UiIcon name="heart" /> Ministries</>],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>],['engagement','Engagement'],['choir','Choir'],['bus', <><UiIcon name="users" /> Bus Ministry</>],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['conference','Conference'],['events','Campus Rentals'],['projects', <><UiIcon name="sliders" /> Projects</>], ...(authSession ? [['my-record', <><UiIcon name="pencil" /> My Record</>],['access', <><UiIcon name="lock" /> Access</>],['members', <><UiIcon name="users" /> Members</>]] : []), ...(!reviewerMode && isChurchOfficeRole(churchAccess.role) ? [['giving-book', <><UiIcon name="coins" /> Giving Book</>]] : []), ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['devices', <><UiIcon name="tools" /> Devices</>],['infra-plan', <><UiIcon name="sliders" /> Infra Plan</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
                   <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
             </TabScroll>
@@ -4541,7 +4541,6 @@ ${THEME_CSS}
             gates prep/management/drafts to leadership (RLS-enforced, 0029). */}
         {view === 'church' && churchView === 'pulpit' && <Pulpit />}
         {view === 'church' && churchView === 'scripture' && <ScriptureLibrary email={authSession?.user?.email} canStudy={isStudyCircle} setChurchView={setChurchView} />}
-        {view === 'church' && churchView === 'eternal-algorithms' && <EternalAlgorithmsStudy email={authSession?.user?.email} view={view} churchView={churchView} setView={setView} setChurchView={setChurchView} />}
         {/* Harvest Ledger: no video lost — every ingested recording fully mined
             (one-source-many-harvests). Staff-gated; RLS read = choir (0050). */}
         {view === 'church' && churchView === 'harvest' && (isChurchStaff
@@ -4563,7 +4562,7 @@ ${THEME_CSS}
         {view === 'church' && churchView === 'observe' && (isChurchStaff
           ? <ChurchObservation observation={data.churchObservation} updateChurchObservation={updateChurchObservation} />
           : <LockedSurface surface={surfaceById['observe']} viewer={surfaceViewer} instanceId={churchAccess.instanceId} />)}
-        {view === 'church' && churchView === 'learn' && (() => {
+        {view === 'church' && (churchView === 'learn' || churchView === 'eternal-algorithms') && (() => {
           // Resolve the cohort a learner SEES: the Governor's live in-instance
           // value when present, else the PUBLISHED confirmed date every build
           // carries (resolveCohort) — so a learner outside Darrell's instance no
@@ -4782,6 +4781,7 @@ ${THEME_CSS}
             setAgeBand={setLearnAgeBand}
             onEngagement={onLearnEngagement}
             submitHelper={submitHelper}
+            initialDept={churchView === 'eternal-algorithms' ? 'the-eternal-algorithms' : null} /* the retired Church route opens Learn on its department (DR-0432) */ eternalStudyProps={{ email: authSession?.user?.email, view, churchView, setView, setChurchView }}
           />;
         })()}
         {view === 'church' && churchView === 'conference' && (
