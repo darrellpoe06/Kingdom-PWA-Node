@@ -182,6 +182,19 @@ A False Balance, on the same measure (authored prose · share of adult prose · 
 
 Every section of the adult body is carried in each band, at the register of the band: the weight as a promise and its national outcome; a loan as a scale and ability as Heaven's criterion; the Federal Reserve survey and the matched-pair tests as two instruments with one finding; the six million jobs and the mechanism Darrell named; the correction he asked for (the disparity stands, the channel is the rotating credit circle, and esusu is the inheritance); the inspection switched off (section 1071, the EEOC and Civil Rights Division figures); the markers, the July replacement panel, and the landmark verses; the cases told to their actual end (Wilcox upheld in December 2025; the 113,000 stated against the looser three hundred thousand; distribution measured, motive not); Nehemiah's same-day restitution; the posture (vengeance His, the mouth still open); the two ways and Heaven and earth called to record. The senior pass adds what the older men in the room already hold: the testimony Darrell gathered, recorded as a recurring account and not as one named case, and the pooled circle under the names their generation used. The child and youth texts each quote verbatim what they name. Fullness baseline 145 → 144.
 
+## L143 — the tenth full lesson (2026-09-15)
+
+Yahweh's Will Be Done on Earth, on the same measure (authored prose · share of adult prose · Flesch-Kincaid; adult prose 1,776 words):
+
+| band | before | after |
+|---|---|---|
+| child | 224 · 0.13 · 1.8 | **1,108 · 0.62 · 2.2** |
+| youth | missing | **1,448 · 0.82 · 7.2** (new) |
+| teen | 306 · 0.17 · 7.6 | **1,340 · 0.75 · 9.3** |
+| senior | 375 · 0.21 · 16.4 | **1,153 · 0.65 · 10.5** |
+
+Every section of the adult body is carried in each band: the cost of seeing and the joy as fuel; the economy as legislation with a clock (release, no usury of a brother, jubilee, the open hand); the guarantee no human framework attaches; mammon named; debt as a governing relationship and what was done to the children; the documented shape of the present system stated as documentation; the older fact and the turn (the wealth was produced, so it is producible); restitution with arithmetic; the present-day mortgage figures stated in all three parts; the credential question; the segregation-era proof of concept; the mutual economy of Acts 4; the release never about money; build it here. The senior pass adds the pastoral sequence for a mixed room and the older members' own memory of the burial society, the lodge and the fund, as a working manual. Fullness baseline 144 → 143.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.

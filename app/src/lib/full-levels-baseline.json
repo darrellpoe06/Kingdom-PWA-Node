@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 161,
-  "lessonsShort": 144,
+  "lessonsShort": 143,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -288,12 +288,6 @@
       "senior"
     ],
     "ll142-it-is-written-again-the-clause-that-gets-left-out-and-the-name-that-gets-put-on-it": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll143-yahwehs-will-be-done-on-earth-the-guaranteed-outcome-the-release-and-the-system-we-can-build": [
       "child",
       "youth",
       "teen",
