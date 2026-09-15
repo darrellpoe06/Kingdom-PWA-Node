@@ -14430,13 +14430,13 @@ export const LIVING_LESSONS_MODULES = [
   },
   // L154 — WHY DO WE HAVE TO PAY FOR OUR FATHERS' SINS? (Darrell 2026-09-15,
   // a question from his cousin, with his answer and his frame, in order):
-  //   "Lesson. Question from my cousin. Why do we have to pay for our father's
+  //   Lesson. Question from my cousin. Why do we have to pay for our father's
   //    sins? Answer we don't... however it needs what we do here.... Word first
-  //    responses..."
-  //   "We have the same familiar spirits etc..."
-  //   "Same potential outcomes because of our bloodlines etc..."
-  //   "Spirit follow framework still out rules that..."
-  //   "Word life can't be cursed..."
+  //    responses...
+  //   We have the same familiar spirits etc...
+  //   Same potential outcomes because of our bloodlines etc...
+  //   Spirit follow framework still out rules that...
+  //   Word life can't be cursed...
   // Built on L127's program with tweaks: numbered sections, every verse
   // verbatim KJV from the in-repo corpus with its reference beside it, three
   // age bands, quiz, facilitator notes. Gate: living-lessons-l154-verses.test.js.
