@@ -78,6 +78,32 @@ html[data-text-size='largest'] .ts-grid-collapse,
 html[data-text-size='bigprint'] .ts-grid-collapse {
   grid-template-columns: minmax(0, 1fr) !important;
 }
+
+/* THE LITTLE ONES GROW TOO (Darrell 2026-09-15, DR-0427): "all text to be able
+   to be big!!! Even the green space... some text are way bigger than others,
+   we want to see the little ones too!!!" Every rem label already scales with
+   the root — but a 0.5625rem meta line is 24px at Big Print while the prose
+   beside it is 33px: it grows and stays the little one. From Larger up, every
+   SMALL content size is floored at the prose size (0.75rem = text-xs), so the
+   step markers, the stage blurbs, the "2 / 5 · ~18 min" meta, the green Word
+   block and the verse chips all reach the size the words do. Chrome keeps its
+   cap (.ts-chrome-region, the reading panel's em-sized controls, the
+   text-size control itself), so big text stays reversible (DR-0276 rule 3). */
+html[data-text-size='larger'] .text-\[0\.5rem\]:not(.ts-chrome-region *),
+html[data-text-size='larger'] .text-\[0\.5625rem\]:not(.ts-chrome-region *),
+html[data-text-size='larger'] .text-\[0\.625rem\]:not(.ts-chrome-region *),
+html[data-text-size='larger'] .text-\[0\.6875rem\]:not(.ts-chrome-region *),
+html[data-text-size='largest'] .text-\[0\.5rem\]:not(.ts-chrome-region *),
+html[data-text-size='largest'] .text-\[0\.5625rem\]:not(.ts-chrome-region *),
+html[data-text-size='largest'] .text-\[0\.625rem\]:not(.ts-chrome-region *),
+html[data-text-size='largest'] .text-\[0\.6875rem\]:not(.ts-chrome-region *),
+html[data-text-size='bigprint'] .text-\[0\.5rem\]:not(.ts-chrome-region *),
+html[data-text-size='bigprint'] .text-\[0\.5625rem\]:not(.ts-chrome-region *),
+html[data-text-size='bigprint'] .text-\[0\.625rem\]:not(.ts-chrome-region *),
+html[data-text-size='bigprint'] .text-\[0\.6875rem\]:not(.ts-chrome-region *) {
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
 html[data-text-size='larger'] .ts-safe-sticky,
 html[data-text-size='largest'] .ts-safe-sticky,
 html[data-text-size='bigprint'] .ts-safe-sticky {
@@ -172,4 +198,22 @@ html[data-text-size='bigprint'] .ts-safe-sticky .ts-escape-hatch {
 ::highlight(poe-read-word) {
   background-color: rgba(184, 88, 56, 0.85);
   color: #ffffff;
+}
+/* THE HIGHLIGHT IS THEMED (2026-09-15, DR-0424). Darrell, on Midnight: "The
+   reader does not have the highlighter of the sentence anymore." It did — a
+   22% rust wash on OLED black, which blends to rgb(61,38,29) behind white
+   text: MEASURED in real Chromium (scripts/read-highlight-probe.mjs) the wash
+   moved the paragraph's pixels by 3.95 on Midnight against 6.05 on the light
+   themes, a smudge no eye reads as a highlight. The word (karaoke) wash was
+   fine at 85% — but most phone engines never fire word boundaries, so the
+   sentence wash IS the highlight there. Midnight paints in its own rust
+   (#FB923C, the theme's mapping of the house rust) at a strength the probe
+   holds to no fainter than the light theme's. Still never true red (DR-0099). */
+[data-theme="midnight"] ::highlight(poe-read-seg) {
+  background-color: rgba(251, 146, 60, 0.42);
+  color: #ffffff;
+}
+[data-theme="midnight"] ::highlight(poe-read-word) {
+  background-color: #FB923C;
+  color: #0A0A0A;
 }

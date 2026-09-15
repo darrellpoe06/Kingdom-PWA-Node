@@ -22,13 +22,15 @@ import {
   mergeVoiceCatalog, isVoiceSelectable, canCloneVoice, resolveVoiceProvider,
   aiVoiceLabel, enrollmentStatus, loadVoiceChoice, saveVoiceChoice, KIND, CONSENT,
 } from '../lib/voice-registry.js';
-import { loadVoiceProfiles, enrollMyVoice, revokeMyVoice } from '../lib/voice-sync.js';
+import { loadVoiceProfiles, enrollMyVoice, revokeMyVoice, enrollMyLikeness, revokeMyLikeness } from '../lib/voice-sync.js';
+import { savePortrait, loadPortrait, hasPortrait, clearPortrait, isUsablePortrait } from '../lib/likeness-reference.js';
+import { likenessConsented } from '../lib/teacher.js';
 import {
   buildStandInAssignments, resolveVoiceURIForId, deviceVoiceOptions, hasVoiceOfGender,
 } from '../lib/voice-assignment.js';
 import { loadPersonaVoiceMap, savePersonaVoice } from '../lib/persona-voice-prefs.js';
 import { isVoiceServiceReady, synthesizeSpeech } from '../lib/voice-service.js';
-import { SOVEREIGNTY_GAPS, GAPS_RECORDED, liveVoicePath } from '../lib/sovereignty-gaps.js';
+import { SOVEREIGNTY_GAPS, GAPS_RECORDED, liveVoicePath, liveLikenessPath } from '../lib/sovereignty-gaps.js';
 import { useReadingVoice, personVoiceId, SYSTEM_VOICE_ID } from '../lib/reading-voice.js';
 import {
   useVoiceRecorder, RECORD_SCRIPT, formatDuration, durationQuality, meetsMinDuration,
@@ -61,6 +63,11 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
   // Record-your-voice enrollment (the recorded sample IS the clone reference).
   const recorder = useVoiceRecorder();
   const [myRefExists, setMyRefExists] = useState(false);
+  // THE LIKENESS (DR-0430): his enrolled portrait, on this device, and the
+  // consent stamp on his own row. Recording IS consent, exactly as the voice.
+  const [myPortraitExists, setMyPortraitExists] = useState(false);
+  const [portraitPreview, setPortraitPreview] = useState('');
+  const [portraitFile, setPortraitFile] = useState(null);
 
   // Resolve identity + load enrollment rows (RLS-scoped to the caller's instance).
   useEffect(() => {
@@ -74,6 +81,13 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
       const { profiles: rows } = await loadVoiceProfiles();
       if (alive && rows) setProfiles(rows);
       if (personaKey) { try { if (alive) setMyRefExists(await hasReference(personaKey)); } catch (_) {} }
+      if (personaKey) {
+        try {
+          const has = await hasPortrait(personaKey);
+          if (alive) setMyPortraitExists(has);
+          if (has && alive) { const b = await loadPortrait(personaKey); if (b && alive) setPortraitPreview(URL.createObjectURL(b)); }
+        } catch (_) { /* no portrait yet */ }
+      }
     })();
     return () => { alive = false; };
   }, [personaKey]);
@@ -237,6 +251,36 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
       ? 'Saved. Select your voice and press Read — it will speak in your voice.'
       : 'Saved on this device. The moment the voice endpoint is live, this reads in your real voice.');
     setBusy(false);
+  };
+
+  // Save the chosen photo as MY likeness reference + stamp consent on my own
+  // row in one gesture (DR-0430). The photo stays on this device; it is only
+  // ever sent to the family's own likeness studio, never a vendor.
+  const savePortraitAndConsent = async () => {
+    if (!portraitFile || !isUsablePortrait(portraitFile)) { setNotice('Choose a clear photo of your face first (a real image file).'); return; }
+    setBusy(true); setNotice('');
+    const ok = await savePortrait(personaKey, portraitFile);
+    if (!ok) { setNotice('That image could not be saved — try a different photo.'); setBusy(false); return; }
+    setMyPortraitExists(true);
+    setPortraitPreview(URL.createObjectURL(portraitFile));
+    setPortraitFile(null);
+    if (canEnrollSelf) {
+      const { error } = await enrollMyLikeness({ instanceId, userId, personKey: personaKey, displayName: PERSONA_NAME[personaKey] });
+      if (error) { setNotice(error.message || 'The photo is saved on this device, but the consent record could not be written — try again when online.'); setBusy(false); return; }
+      const { profiles: rows } = await loadVoiceProfiles(); if (rows) setProfiles(rows);
+    }
+    setNotice('Your likeness is enrolled. The Teacher panel in every lesson now shows you — a still portrait beside your voice until the likeness studio is armed, and always labelled AI-generated.');
+    setBusy(false);
+  };
+  const clearMyPortrait = async () => {
+    await clearPortrait(personaKey);
+    setMyPortraitExists(false); setPortraitPreview(''); setPortraitFile(null);
+    const mine = profiles.find((p) => p.personKey === personaKey);
+    if (mine && mine.remoteId && likenessConsented(mine)) {
+      await revokeMyLikeness(mine.remoteId, mine.meta);
+      const { profiles: rows } = await loadVoiceProfiles(); if (rows) setProfiles(rows);
+    }
+    setNotice('Your likeness was removed from this device and the consent withdrawn.');
   };
 
   const clearMyRecording = async () => {
@@ -475,6 +519,44 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
               )}
             </>
           )}
+        </div>
+      ),
+    } : null,
+    // YOUR LIKENESS — the Teacher's portrait (DR-0430). Same gate and the same
+    // consent doctrine as Record: only the signed-in person, only their own.
+    showRecorder ? {
+      id: 'likeness',
+      label: 'Likeness',
+      icon: 'users',
+      render: () => (
+        <div className="mb-6 border border-[#1A1815] bg-white p-4" data-testid="likeness-tab">
+          <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+            <div className="text-sm font-semibold text-[#1A1815]">Your likeness — {PERSONA_NAME[personaKey]}</div>
+            <span className="text-[0.5625rem] uppercase tracking-wider bg-[#1A1815] text-white px-1.5 py-0.5">AI-generated likeness</span>
+          </div>
+          <p className="text-[0.75rem] text-[#5A5751] leading-relaxed mb-3">
+            Choose one clear photo of your face. This becomes <strong>your</strong> portrait as the Teacher in every lesson —
+            saving it <strong>is</strong> your consent. It stays on this device and is only ever sent to the family’s own
+            likeness studio to be animated to your own voice. It is never sent to a vendor. Likeness path right now:
+            <strong> {liveLikenessPath().label}</strong>.
+          </p>
+          {portraitPreview && (
+            <div className="flex items-center gap-3 mb-3">
+              <img src={portraitPreview} alt="Your enrolled portrait" className="w-20 h-20 object-cover border border-[#1A1815]" />
+              {myPortraitExists && <span className="text-[0.6875rem] text-[#1A1815]">✓ A portrait is saved on this device.</span>}
+            </div>
+          )}
+          <label htmlFor="vs-portrait" className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Photo</label>
+          <input id="vs-portrait" type="file" accept="image/*" className="block text-[0.75rem] mt-1 mb-3"
+            onChange={(e) => { const f = e.target.files && e.target.files[0]; setPortraitFile(f || null); if (f) setPortraitPreview(URL.createObjectURL(f)); }} />
+          <div className="flex items-center gap-2 flex-wrap">
+            <button type="button" onClick={savePortraitAndConsent} disabled={busy || !portraitFile}
+              className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">Save as my likeness — I consent</button>
+            {myPortraitExists && (
+              <button type="button" onClick={clearMyPortrait} disabled={busy}
+                className="border border-[#B85838] text-[#B85838] px-4 py-2 text-xs uppercase tracking-wider hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">Remove and withdraw consent</button>
+            )}
+          </div>
         </div>
       ),
     } : null,

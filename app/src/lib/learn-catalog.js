@@ -26,6 +26,7 @@ import { INFRA_META, INFRA_SESSION_FLOW, buildInfraSchedule, infraProgressSummar
 import { SOVEREIGN_AI_META, SOVEREIGN_AI_SESSION_FLOW, buildSovereignAiSchedule, sovereignAiProgressSummary, exportSovereignAiCurriculumMarkdown, SOVEREIGN_AI_INTEREST_TAG, SOVEREIGN_AI_HELPER_TAG, SOVEREIGN_AI_TUTOR_META } from './sovereign-ai-class.js';
 import { AI_LEGAL_BLUEPRINT_META, AI_LEGAL_BLUEPRINT_SESSION_FLOW, buildAiLegalBlueprintSchedule, aiLegalBlueprintProgressSummary, exportAiLegalBlueprintCurriculumMarkdown, AI_LEGAL_BLUEPRINT_INTEREST_TAG, AI_LEGAL_BLUEPRINT_HELPER_TAG, AI_LEGAL_BLUEPRINT_TUTOR_META } from './ai-legal-blueprint-class.js';
 import { LIVING_LESSONS_META, LIVING_LESSONS_SESSION_FLOW, buildLivingLessonsSchedule, livingLessonsProgressSummary, exportLivingLessonsCurriculumMarkdown, LIVING_LESSONS_INTEREST_TAG, LIVING_LESSONS_HELPER_TAG, LIVING_LESSONS_TUTOR_META } from './living-lessons-class.js';
+import { LITTLE_LEARNERS_META, LITTLE_LEARNERS_SESSION_FLOW, buildLittleLearnersSchedule, littleLearnersProgressSummary, exportLittleLearnersCurriculumMarkdown, LITTLE_LEARNERS_INTEREST_TAG, LITTLE_LEARNERS_HELPER_TAG, LITTLE_LEARNERS_TUTOR_META } from './little-learners-class.js';
 import { MADE_IN_TIME_META, MADE_IN_TIME_SESSION_FLOW, buildMadeInTimeSchedule, madeInTimeProgressSummary, exportMadeInTimeCurriculumMarkdown, MADE_IN_TIME_INTEREST_TAG, MADE_IN_TIME_HELPER_TAG, MADE_IN_TIME_TUTOR_META } from './made-in-time-course.js';
 import { SOUND_BOARD_META, SOUND_BOARD_SESSION_FLOW, buildSoundBoardSchedule, soundBoardProgressSummary, exportSoundBoardCurriculumMarkdown, SOUND_BOARD_INTEREST_TAG, SOUND_BOARD_HELPER_TAG, SOUND_BOARD_TUTOR_META } from './sound-board-class.js';
 import { WORD_OUT_META, WORD_OUT_SESSION_FLOW, buildWordOutSchedule, wordOutProgressSummary, exportWordOutCurriculumMarkdown, WORD_OUT_INTEREST_TAG, WORD_OUT_HELPER_TAG, WORD_OUT_TUTOR_META } from './word-out-course.js';
@@ -89,6 +90,23 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell which Word-first lessons would help you and your family most, and he’ll add them to the series. Read at your own pace, any time, at any age.',
       cta: 'I’d like more',
       sent: '✓ Sent — Darrell will see what you’re hungry for. The Word feeds the whole Body.',
+    },
+  },
+  {
+    // LITTLE LEARNERS (DR-0431; Darrell 2026-09-15): pre-K to school entry,
+    // reading and counting FROM THE WORD, read aloud, checks redoable as a
+    // game, Ari in child mode. Sits with the Word courses on purpose.
+    key: 'little-learners', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...LITTLE_LEARNERS_META, key: 'little-learners', category: 'The Word & The Way' }, sessionFlow: LITTLE_LEARNERS_SESSION_FLOW,
+    buildScheduleRows: () => buildLittleLearnersSchedule(), progressSummary: (p) => littleLearnersProgressSummary(p),
+    exportMarkdown: () => exportLittleLearnersCurriculumMarkdown(), downloadName: 'little-learners.md',
+    interestTag: LITTLE_LEARNERS_INTEREST_TAG, helperTag: LITTLE_LEARNERS_HELPER_TAG, tutorCourseMeta: LITTLE_LEARNERS_TUTOR_META,
+    interestText: (who) => `${LITTLE_LEARNERS_INTEREST_TAG} ${who} wants more Little Learners lessons.`,
+    interestCopy: {
+      heading: 'Want more Little Learners?',
+      blurb: 'More letters, more numbers, more first words from the Word — tell Darrell what your little one is ready for next and he will add it. Read aloud, redo any check as a game, no grown-up needed.',
+      cta: 'My little one wants more',
+      sent: '✓ Sent — Darrell will see it. Train up a child in the way he should go.',
     },
   },
   {

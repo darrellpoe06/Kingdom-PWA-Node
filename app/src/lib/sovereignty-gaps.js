@@ -23,6 +23,7 @@
 // sovereignty-gaps.test.js (proven-to-catch).
 // =============================================================================
 import { activeVoiceEndpoint } from './voice-service.js';
+import { activeAvatarEndpoint } from './avatar-service.js';
 import { PLANNED_RIG } from './church-infra-plan.js';
 
 export const GAPS_RECORDED = '2026-07-10';
@@ -46,6 +47,18 @@ export const SOVEREIGNTY_GAPS = [
     // the arming, not to a guess: the remaining step is his hand on the 4070.
     reReview: '2026-10-14',
     drRef: 'DR-0138',
+  },
+  {
+    id: 'gap-likeness-avatar',
+    capability: 'A talking portrait of Darrell (his enrolled photo animated to his cloned voice) as the Teacher in every lesson',
+    localToday: 'The sovereign likeness studio is written (infra/avatar-studio, :8772 — a Wav2Lip-class lip-sync behind a model-agnostic /render contract with a budget, a single-flight lock, an AI-generated stamp on every clip, and an honest 503 when no model is mounted) and rides the church GPU compose beside the voice studio; it has never been armed. Until VITE_AVATAR_SERVICE_URL points at it, the Teacher panel shows his still portrait while his voice speaks, labelled a stand-in (DR-0430).',
+    vendorMeanwhile: 'NONE, by decision: a person\'s face is never sent to a vendor to be animated. There is no bridge for the likeness and none will be added.',
+    buildPath: 'On the GPU tower: mount a Wav2Lip checkout + checkpoint (WAV2LIP_DIR / WAV2LIP_CHECKPOINT in infra/church-gpu-node/docker-compose.yml), docker compose up avatar-studio, set VITE_AVATAR_SERVICE_URL. Darrell enrols his portrait himself in Voice → Likeness (recording IS consent).',
+    purchasePath: 'None — the 4070 already owned runs Wav2Lip; a stronger model (LivePortrait / SadTalker class) is a backend file, not a purchase.',
+    status: 'open',
+    neededSince: '2026-09-15',
+    reReview: '2026-10-13',
+    drRef: 'DR-0430',
   },
   {
     id: 'gap-big-llm',
@@ -97,4 +110,11 @@ export function validateGaps(gaps = SOVEREIGNTY_GAPS) {
     if (g.status === 'closed' && !g.evidence) errors.push(`${g.id}: a closed gap needs evidence the local path is armed and verified (DR-0076)`);
   }
   return { ok: errors.length === 0, errors };
+}
+
+/** The LIVE state of the likeness path (derived, never re-typed): sovereign or nothing. */
+export function liveLikenessPath() {
+  const ep = activeAvatarEndpoint();
+  if (!ep) return { kind: 'still', label: 'Still portrait beside the real voice (no likeness studio armed; no vendor by decision)' };
+  return { kind: 'sovereign', label: `Sovereign likeness studio at ${ep.url.replace(/\/render$/, '')} — a talking portrait, AI-generated and labelled` };
 }

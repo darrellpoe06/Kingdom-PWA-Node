@@ -6,8 +6,8 @@
     "senior": 0.6
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
-  "measuredLessons": 156,
-  "lessonsShort": 146,
+  "measuredLessons": 161,
+  "lessonsShort": 143,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -293,18 +293,6 @@
       "teen",
       "senior"
     ],
-    "ll143-yahwehs-will-be-done-on-earth-the-guaranteed-outcome-the-release-and-the-system-we-can-build": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll144-a-false-balance-capable-hands-and-the-capital-they-were-never-given": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
     "ll149-cultural-competency-the-same-word-in-three-mouths-and-the-man-nobody-believed": [
       "child",
       "youth",
@@ -316,11 +304,6 @@
       "youth",
       "teen",
       "senior"
-    ],
-    "ll152-crying-because-of-all-the-dying-slow-and-vicious-but-yahweh": [
-      "child",
-      "youth",
-      "teen"
     ],
     "ll153-precept-upon-precept-the-voice-that-programs-the-world": [
       "child",

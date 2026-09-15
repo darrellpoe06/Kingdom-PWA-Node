@@ -152,6 +152,49 @@ Darrell, 2026-09-15: *"Child lessons also condense the lessons for the younger s
 
 Fullness baseline 147 → 146. L154's own verse gate carries an ascending-length rule (child < teen < senior in characters), which the first two passes tripped because a full child level is long; the teen and senior levels were lengthened with real content (the cousin who is himself the father; three forms of the question a pastor meets) until every band both clears its floor and ascends. The rule is kept: it is the shape the older lessons were built to.
 
+## L152 — the eighth full lesson (later the same night), and the order from here
+
+Crying Because of All the Dying, on the same measure (authored prose · share of adult prose · Flesch-Kincaid; adult prose 1,236 words):
+
+| band | before | after |
+|---|---|---|
+| child | 189 · 0.15 · 0.0 | **809 · 0.65 · 1.3** |
+| youth | missing | **1,078 · 0.87 · 3.7** (new) |
+| teen | 460 · 0.37 · 7.7 | **907 · 0.73 · 5.6** |
+| senior | 749 · 0.61 · 12.9 | 749 · 0.61 · 12.9 (already full) |
+
+Every section of the adult body is carried in each band: the tears as the mark, the renaming of slow dying and Hosea's rejected knowledge, the two slownesses, who wants the dying and who held the power of death, the tears as fuel and the trap of contempt, the hinge and its three tenses, the honest posture in the valley, joy as the strength. The child and youth texts each quote verbatim what they name. Fullness baseline 146 → 145.
+
+**L153 is excluded from this pass, on Darrell's word** (2026-09-15: *"Don't mess with that Programer lesson though... that was too good!!!"*). Its bands measure full already in the youth/teen/senior sense of the corpus (the baseline records it short in all four, because its child level was written to the program metaphor at a length he chose), and the message he praised is the shape he wants kept. This is a recorded non-improvement under DR-0075: **why** — the author's own judgment on a lesson he called the standard; **re-review: 2026-10-13** — ask him whether a child version of the program lesson should be written new beside it rather than by re-cutting his text.
+
+**The order from here:** L144, L143, L142, L141, then L140 and downward, each pass posting this table. Measured at this session's end: 8 lessons made full in one day at 20–45 minutes each, so the 2026-09-22 re-review can set the pace from a real day rather than the estimate above.
+
+## L144 — the ninth full lesson (2026-09-15, the next morning of the lane)
+
+A False Balance, on the same measure (authored prose · share of adult prose · Flesch-Kincaid; adult prose 2,786 words, the longest body in the pass so far):
+
+| band | before | after |
+|---|---|---|
+| child | 173 · 0.06 · 1.5 | **1,462 · 0.52 · 1.5** |
+| youth | missing | **1,842 · 0.66 · 4.3** (new) |
+| teen | 268 · 0.10 · 7.2 | **2,005 · 0.72 · 7.2** |
+| senior | 806 · 0.29 · 9.2 | **1,735 · 0.62 · 9.2** |
+
+Every section of the adult body is carried in each band, at the register of the band: the weight as a promise and its national outcome; a loan as a scale and ability as Heaven's criterion; the Federal Reserve survey and the matched-pair tests as two instruments with one finding; the six million jobs and the mechanism Darrell named; the correction he asked for (the disparity stands, the channel is the rotating credit circle, and esusu is the inheritance); the inspection switched off (section 1071, the EEOC and Civil Rights Division figures); the markers, the July replacement panel, and the landmark verses; the cases told to their actual end (Wilcox upheld in December 2025; the 113,000 stated against the looser three hundred thousand; distribution measured, motive not); Nehemiah's same-day restitution; the posture (vengeance His, the mouth still open); the two ways and Heaven and earth called to record. The senior pass adds what the older men in the room already hold: the testimony Darrell gathered, recorded as a recurring account and not as one named case, and the pooled circle under the names their generation used. The child and youth texts each quote verbatim what they name. Fullness baseline 145 → 144.
+
+## L143 — the tenth full lesson (2026-09-15)
+
+Yahweh's Will Be Done on Earth, on the same measure (authored prose · share of adult prose · Flesch-Kincaid; adult prose 1,776 words):
+
+| band | before | after |
+|---|---|---|
+| child | 224 · 0.13 · 1.8 | **1,108 · 0.62 · 2.2** |
+| youth | missing | **1,448 · 0.82 · 7.2** (new) |
+| teen | 306 · 0.17 · 7.6 | **1,340 · 0.75 · 9.3** |
+| senior | 375 · 0.21 · 16.4 | **1,153 · 0.65 · 10.5** |
+
+Every section of the adult body is carried in each band: the cost of seeing and the joy as fuel; the economy as legislation with a clock (release, no usury of a brother, jubilee, the open hand); the guarantee no human framework attaches; mammon named; debt as a governing relationship and what was done to the children; the documented shape of the present system stated as documentation; the older fact and the turn (the wealth was produced, so it is producible); restitution with arithmetic; the present-day mortgage figures stated in all three parts; the credential question; the segregation-era proof of concept; the mutual economy of Acts 4; the release never about money; build it here. The senior pass adds the pastoral sequence for a mixed room and the older members' own memory of the burial society, the lodge and the fund, as a working manual. Fullness baseline 144 → 143.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.

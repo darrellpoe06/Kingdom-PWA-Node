@@ -50,7 +50,7 @@ import { askTutor } from '../lib/class-tutor.js';
 import { ARI } from '../lib/ari.js';
 import {
   LEARN_LEVELS, DEFAULT_LEVEL, normalizeMedia, gradeQuiz, courseAssessment,
-  AGE_BANDS, DEFAULT_AGE_BAND, ageBandProfile,
+  AGE_BANDS, DEFAULT_AGE_BAND, ageBandProfile, resolveForAge,
 } from '../lib/learn-framework.js';
 import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-algorithms-course.js';
@@ -91,6 +91,8 @@ import { motionBehavior } from '../lib/gentle-motion.js';
 import UiIcon from './UiIcon.jsx';
 import WordInline from './WordInline.jsx';
 import VerseChips from './VerseChips.jsx';
+import LessonTeacher from './LessonTeacher.jsx';
+import { useTextToSpeech } from '../lib/tts.js';
 import { anchorIsRun, referencesIn } from '../lib/verse-refs.js';
 import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 
@@ -333,9 +335,15 @@ function MediaList({ module }) {
 
 // QuizBlock — the per-week check-for-understanding. Real assessment: grades the
 // learner's answers, records the result, and shows the score + explanations.
-function QuizBlock({ module, saved, onRecord }) {
+export function QuizBlock({ module, saved, onRecord }) {
   const [answers, setAnswers] = useState({});
   const [graded, setGraded] = useState(null);
+  // THE CHECK READS ITS CHOICES TO A LITTLE LEARNER (DR-0431). A pre-K child
+  // cannot read the options, so a course whose decoys are letters and numbers
+  // (never a wrong teaching) opts in with readOptionsAloud: the options leave
+  // the reader's mute and each carries a speaker that says just that option.
+  const readOptions = !!module.readOptionsAloud;
+  const optionTts = useTextToSpeech();
   const quiz = module.quiz;
   if (!quiz?.questions?.length) return null;
   const submit = () => {
@@ -364,7 +372,7 @@ function QuizBlock({ module, saved, onRecord }) {
                   Yahweh's name. The QUESTION (the legend) is still read, because
                   hearing the question is the point; the options are a control to
                   be tapped, not content to be recited. */}
-              <div data-read-skip className="space-y-1">
+              <div {...(readOptions ? {} : { 'data-read-skip': true })} className="space-y-1">
                 {q.options.map((opt, oi) => {
                   const checked = answers[qi] === oi;
                   const showCorrect = graded && oi === q.answer;
@@ -379,6 +387,11 @@ function QuizBlock({ module, saved, onRecord }) {
                         className="mt-0.5"
                       />
                       <span className="text-[#1A1815]">{opt}</span>
+                      {readOptions && (
+                        <button type="button" onClick={(e) => { e.preventDefault(); try { optionTts.speak(opt); } catch (_) { /* no engine */ } }}
+                          aria-label={`Hear this choice: ${opt}`} data-read-skip
+                          className="ml-auto shrink-0 min-h-[36px] min-w-[36px] flex items-center justify-center border border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"><UiIcon name="volume" /></button>
+                      )}
                     </label>
                   );
                 })}
@@ -1055,10 +1068,35 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
         elementId: `learn-read-${module.id}`,
         prepare: (on) => setReadAll(!!on),
         next: onAdvance || null,
+        // THE READER CAN SWITCH THE LEVEL TOO (Darrell 2026-09-15, DR-0426).
+        // The panel shows the same "Who is learning?" row this lesson shows,
+        // and a pick there reaches the same remembered state — this effect
+        // then re-registers the new level's text and the reader resumes at the
+        // same fraction of the way through.
+        level: ageBand,
+        levels: AGE_BANDS.map((b) => ({ id: b.id, label: b.label, range: b.range })),
+        setLevel: typeof setAgeBand === 'function'
+          ? (id) => { setAgeBand(id); if (levelOverride && setLearnLevel) setLearnLevel('auto'); }
+          : null,
       });
     }
     return () => clearReadTarget(module.id);
-  }, [module, ageBand, levelOverride, sessionFlow, handsOnLabel, unitNoun, onAdvance]);
+  }, [module, ageBand, levelOverride, sessionFlow, handsOnLabel, unitNoun, onAdvance, setAgeBand, setLearnLevel]);
+
+  // THE LEVEL IS CHOSEN FROM THE BEGINNING AND AT EVERY STAGE (Darrell
+  // 2026-09-15, DR-0426: "choose the level from the beginning and at each
+  // section change"). DR-0417 put the row at the top of the paced core —
+  // the Teach stage, the second section — so the first thing a learner met
+  // was still the Open stage with no way to pitch it. The row now rides the
+  // flow itself: under every stage's header, Open first, so it is the first
+  // choice offered and it is offered again at each section change.
+  const stageLevelRow = typeof setAgeBand === 'function'
+    ? () => {
+      const band = AGE_BANDS.find((b) => b.id === ageBand) || AGE_BANDS.find((b) => b.id === DEFAULT_AGE_BAND) || AGE_BANDS[0];
+      const levelId = resolveForAge(module, ageBand, levelOverride).levelId;
+      return <LessonLevelControl band={band} levelId={levelId} levelOverride={levelOverride} setAgeBand={setAgeBand} setLearnLevel={setLearnLevel} />;
+    }
+    : null;
 
   const recordQuizAndEngage = (id, result) => {
     if (onRecordQuiz) onRecordQuiz(id, result);
@@ -1125,8 +1163,8 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
               onStepChange={onPlace ? (i) => onPlace({ lessonId: module.id, step: i }) : null}
               showAll={readAll}
               flush={flush}
-              setAgeBand={setAgeBand}
-              setLearnLevel={setLearnLevel}
+              // The row lives on the stage header now (stageLevelRow below);
+              // the core keeps only the override for its proportional re-step.
               levelOverride={levelOverride}
             />
             {/* Parable/story beats — short, vivid, often-funny illustrations, the way
@@ -1283,6 +1321,11 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
         note={timeFit ? 'Nothing is cut — the lesson is paced to your time, and a longer one carries on next sitting.' : null}
       />
 
+      {/* THE TEACHER (DR-0430): the AI version of Darrell — his cloned voice,
+          his enrolled portrait — beside the lesson, only once he has enrolled
+          his likeness himself; labelled AI-generated in every state. */}
+      <LessonTeacher module={module} className="mb-2" />
+
       <LessonFlowAudience
         arc={arc}
         renderStage={renderStage}
@@ -1291,6 +1334,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
         onStageChange={onPlace ? (i) => onPlace({ lessonId: module.id, stage: i }) : null}
         showAll={readAll}
         flush={flush}
+        stageExtra={stageLevelRow}
       />
 
       {/* The chat with the local tutor — a conversation, not part of the

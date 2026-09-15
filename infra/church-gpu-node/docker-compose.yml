@@ -5,6 +5,7 @@
 #
 #   ollama        :11434  -> sovereign local LLMs (model sized to the tower's VRAM)
 #   voice-studio  :8770   -> XTTS-v2 voice clone (POST /speak) -> "Darrell hears Darrell"
+#   avatar-studio :8772   -> talking portrait (POST /render) -> "Darrell teaches the lesson" (DR-0430)
 #   whisper-gpu   :8771   -> faster-whisper transcription (harvest no-caption fallback)
 #
 # HARDWARE: runs on one of the TWO church tower computers beside the NovaStar. Exact
@@ -121,6 +122,44 @@ services:
       timeout: 10s
       retries: 5
       start_period: 120s   # first start pulls the XTTS weights
+
+  # --- avatar-studio (talking portrait, GPU) -- the Teacher's likeness ------
+  # DR-0430. Same honesty as the voice studio: the lip-sync model is NOT baked
+  # in. Mount a Wav2Lip checkout + checkpoint on the host and name them below;
+  # until then /health says ready:false and the app keeps the portrait still
+  # beside the real voice, labelled a stand-in. Every rendered clip carries
+  # X-AI-Generated: likeness. Budget + single-flight lock live in server.py.
+  avatar-studio:
+    build:
+      context: ../avatar-studio
+      dockerfile: Dockerfile
+    image: poetech/avatar-studio:cuda
+    container_name: church-avatar-studio
+    restart: always
+    ports:
+      - "8772:8772"
+    environment:
+      - PORT=8772
+      - AVATAR_MODEL=wav2lip
+      - AVATAR_MAX_AUDIO_SECONDS=900
+      # Host paths, mounted below. Leave unset and the studio reports not-ready.
+      - WAV2LIP_DIR=/models/wav2lip
+      - WAV2LIP_CHECKPOINT=/models/wav2lip/checkpoints/wav2lip_gan.pth
+    volumes:
+      - ${DATA_ROOT:-./data}/wav2lip:/models/wav2lip
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8772/health >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   # --- whisper-gpu (faster-whisper, GPU) -- harvest no-caption fallback ------
   # Mount the media folder the harvest pipeline reads so { "path": ... } calls work

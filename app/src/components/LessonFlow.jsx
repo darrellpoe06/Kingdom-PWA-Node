@@ -105,7 +105,12 @@ function StageRail({ segments, current = -1, onJump = null }) {
 // blurb that names a verse renders as plain text with the green chip strip
 // beneath it (WordInline refsBelow), never a boxed button mid-sentence.
 // -----------------------------------------------------------------------------
-export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onComplete = null, initialIndex = 0, onStageChange = null, showAll = false, flush = false }) {
+// stageExtra — (segment, index) => ReactNode, rendered under EVERY stage's
+// header, before its body (Darrell 2026-09-15, DR-0426: "choose the level from
+// the beginning and at each section change"). The host hands in the
+// "Who is learning?" row; the flow puts it where each section begins — the
+// Open stage included, so the first thing a learner meets is the choice.
+export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onComplete = null, initialIndex = 0, onStageChange = null, showAll = false, flush = false, stageExtra = null }) {
   const segments = (arc && arc.audienceSegments) || [];
   const [idx, setIdx] = useState(() => Math.max(0, initialIndex));
   const firedRef = React.useRef(false);
@@ -131,6 +136,7 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
               </span>
             </div>
             <WordInline text={s.blurb} refsBelow className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF} />
+            {stageExtra ? stageExtra(s, i) : null}
             <div>{renderStage(s, i)}</div>
           </div>
         ))}
@@ -165,6 +171,7 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
           </span>
         </div>
         <WordInline text={seg.blurb} refsBelow className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF} />
+        {stageExtra ? stageExtra(seg, clamped) : null}
 
         <div>{renderStage(seg, clamped)}</div>
 
