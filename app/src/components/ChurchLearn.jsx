@@ -91,6 +91,7 @@ import { motionBehavior } from '../lib/gentle-motion.js';
 import UiIcon from './UiIcon.jsx';
 import WordInline from './WordInline.jsx';
 import VerseChips from './VerseChips.jsx';
+import LessonTeacher from './LessonTeacher.jsx';
 import { anchorIsRun, referencesIn } from '../lib/verse-refs.js';
 import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 
@@ -1307,6 +1308,11 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
         groupLabel="Fit this lesson to the time you have"
         note={timeFit ? 'Nothing is cut — the lesson is paced to your time, and a longer one carries on next sitting.' : null}
       />
+
+      {/* THE TEACHER (DR-0430): the AI version of Darrell — his cloned voice,
+          his enrolled portrait — beside the lesson, only once he has enrolled
+          his likeness himself; labelled AI-generated in every state. */}
+      <LessonTeacher module={module} className="mb-2" />
 
       <LessonFlowAudience
         arc={arc}
