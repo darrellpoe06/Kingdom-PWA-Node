@@ -78,6 +78,32 @@ html[data-text-size='largest'] .ts-grid-collapse,
 html[data-text-size='bigprint'] .ts-grid-collapse {
   grid-template-columns: minmax(0, 1fr) !important;
 }
+
+/* THE LITTLE ONES GROW TOO (Darrell 2026-09-15, DR-0427): "all text to be able
+   to be big!!! Even the green space... some text are way bigger than others,
+   we want to see the little ones too!!!" Every rem label already scales with
+   the root — but a 0.5625rem meta line is 24px at Big Print while the prose
+   beside it is 33px: it grows and stays the little one. From Larger up, every
+   SMALL content size is floored at the prose size (0.75rem = text-xs), so the
+   step markers, the stage blurbs, the "2 / 5 · ~18 min" meta, the green Word
+   block and the verse chips all reach the size the words do. Chrome keeps its
+   cap (.ts-chrome-region, the reading panel's em-sized controls, the
+   text-size control itself), so big text stays reversible (DR-0276 rule 3). */
+html[data-text-size='larger'] .text-\[0\.5rem\]:not(.ts-chrome-region *),
+html[data-text-size='larger'] .text-\[0\.5625rem\]:not(.ts-chrome-region *),
+html[data-text-size='larger'] .text-\[0\.625rem\]:not(.ts-chrome-region *),
+html[data-text-size='larger'] .text-\[0\.6875rem\]:not(.ts-chrome-region *),
+html[data-text-size='largest'] .text-\[0\.5rem\]:not(.ts-chrome-region *),
+html[data-text-size='largest'] .text-\[0\.5625rem\]:not(.ts-chrome-region *),
+html[data-text-size='largest'] .text-\[0\.625rem\]:not(.ts-chrome-region *),
+html[data-text-size='largest'] .text-\[0\.6875rem\]:not(.ts-chrome-region *),
+html[data-text-size='bigprint'] .text-\[0\.5rem\]:not(.ts-chrome-region *),
+html[data-text-size='bigprint'] .text-\[0\.5625rem\]:not(.ts-chrome-region *),
+html[data-text-size='bigprint'] .text-\[0\.625rem\]:not(.ts-chrome-region *),
+html[data-text-size='bigprint'] .text-\[0\.6875rem\]:not(.ts-chrome-region *) {
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
 html[data-text-size='larger'] .ts-safe-sticky,
 html[data-text-size='largest'] .ts-safe-sticky,
 html[data-text-size='bigprint'] .ts-safe-sticky {
