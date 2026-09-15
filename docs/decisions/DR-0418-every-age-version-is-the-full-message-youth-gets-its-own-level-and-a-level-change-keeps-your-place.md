@@ -126,6 +126,17 @@ Fullness baseline 150 → 149 lessons short. The first pass left teen at 0.48 an
 
 Fullness baseline 149 → 148 lessons short. The first teen extension was a list of verses with a sentence between each and measured 0.33 of the adult prose: quotations do not count, by this record's own amendment, and the teen level was rewritten as a nine-step walk in the teen's own words. The typography rule caught the generic term twelve times in the new text; every instance was rewritten or quoted verbatim with its label.
 
+## L145 — the sixth full lesson (same session)
+
+| band | prose words before | prose words after | share of adult prose | FK grade |
+|---|---|---|---|---|
+| child | 234 | 758 | 0.67 | 1.4 |
+| youth | 0 | 976 | 0.86 | 6.4 |
+| teen | 369 | 704 | 0.62 | 3.7 |
+| senior | ~700 | 746 | 0.66 | 8.2 |
+
+Fullness baseline 148 → 147 lessons short. Six lessons full in one session (L151, L146, L147, L148, L150, L145): measured throughput 20–45 minutes per lesson including its DR-0404 anchors and every gate, which is the number the timeline above was waiting on.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.

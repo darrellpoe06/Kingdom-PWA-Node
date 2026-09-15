@@ -68,6 +68,10 @@ L148 Remember Is a Verb: 10 fragments already in the body received their referen
 
 L150 How Can the Son Not Know: 11 fragments received their reference (Matthew 11:27, 2 Corinthians 8:9, Hebrews 2:17, 4:15, John 5:30, 8:28, Mark 10:40, 1 Corinthians 2:16, Isaiah 55:9, and the John 13:3 sentence now followed by John 3:35 written in full); John 2:24-25 written in beside "he knew all men", Colossians 1:16-17 beside "all things consist". Fourteen further bare quotes labelled (John 21:17, Colossians 2:3, John 5:19, Acts 1:7, John 14:28, 20:28, 17:5, Matthew 28:18, Philippians 2:5, 2:11, John 1:29, Revelation 5:12, Hebrews 1:8 already), each asserted a substring of its verse. 24 insertion points; body 1,939 → 2,093 words. Levels: child 225 → 873 prose words, youth new (1,090), teen 345 → 968, senior 802 → 904. Gate catches kept: the typography rule caught the generic term in twelve places across the new child and teen text (each rewritten to Yahweh, or to the verbatim quote with its label where the Word itself says it — "the Word was God" (John 1:1), "in the form of God" (Philippians 2:6), "My Lord and my God" (John 20:28)). **Owed now: 12** (L145 11 · L141 1) + 3 pre-existing. Next: L145.
 
+## Amendment 2026-09-15 (night) — L145 authored: 11 → 0, levels made full (DR-0418)
+
+L145 I Will Not Go Out Free: none of its 11 owed anchors had a fragment in the body — they were the price and the sonship texts the anchor set named but the lesson never opened — so each was written in where the lesson's argument reaches it: the price beside 1 Peter 1:18 (Isaiah 53:5, 53:7, 2 Corinthians 8:9, Revelation 13:8, Hebrews 12:2), the heir's share beside "servant, then friend, then son, then heir" (Romans 8:17, Philippians 3:10, 1 Peter 4:13), and the laugh's own history in the closing section (Titus 1:16, 1 Corinthians 9:27, Romans 1:21). Six bare quotes labelled (Deuteronomy 15:16, Exodus 21:6, John 15:13, Romans 8:15, Romans 6:23, Matthew 11:29-30). 9 insertion points; body 1,387 → 1,829 words. Levels: child 234 → 758 prose words, youth new (976), teen 369 → 704, senior 786 → 746 prose (the senior text gained a closing note; its prose count moved less than its total because the note quotes little). **Owed now: 1** (L141 1) + 3 pre-existing (L54 2, L81 1). Next: L141, then the three pre-existing.
+
 ## Verification
 
 - Detector validated before use: L1 reads "2 named"; strip its names → "2 neither". The corruption detector reads the exact L141 text as a hit, and the whole-corpus scan returns exactly those 3.
@@ -76,6 +80,6 @@ L150 How Can the Son Not Know: 11 fragments received their reference (Matthew 11
 
 ## Limits, stated
 
-- **12 verses are still owed** (L151, L149, L146, L147, L148 and L150 done, see amendments) (plus 3 pre-existing in L54/L81), and this record does not pretend otherwise. First lesson for the live test: **L151 The Tongue** (93 owed, the worst, and the one on his screen). **re-review: 2026-09-16** — L151 authored and seen live, or a why.
+- **1 verse is still owed** (L141; L151, L149, L146, L147, L148, L150 and L145 done, see amendments) (plus 3 pre-existing in L54/L81), and this record does not pretend otherwise. First lesson for the live test: **L151 The Tongue** (93 owed, the worst, and the one on his screen). **re-review: 2026-09-16** — L151 authored and seen live, or a why.
 - The audit's "quoted" test matches the first 40 characters of a verse; a lesson that paraphrases rather than quotes reads as "neither", correctly — paraphrase is not the Word.
 - The gate reads the hosted KJV from disk in the test; it cannot run without `app/public/bible/kjv/`, and says so rather than passing.

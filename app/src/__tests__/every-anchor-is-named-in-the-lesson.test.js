@@ -76,7 +76,6 @@ function isNamed(text, ref) {
 const OWED = {
   // This week's lessons (L141+), measured 2026-09-14 after the naming pass:
   'll141-separate-and-connect-working-through-issues-studying-to-be-approved-tempted-versus-tried-and-how-we-handle-each-other-and-enemies': 1,
-  'll145-i-will-not-go-out-free-the-bondservant-the-price-and-the-ear-at-the-door': 11,
   // PRE-EXISTING, not this week's: two original lessons whose anchor names a
   // range the body only paraphrases. Recorded so they are seen, not exempted.
   'll54-the-same-word-different-soil-the-parable-of-the-sower': 2,
