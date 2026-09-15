@@ -50,6 +50,8 @@
 // after the Infrastructure course's proposed start. Governor-editable in-app
 // (data.sovereignAiCohort.startDate); the UI shows the true weekday so a
 // non-Saturday is caught honestly. Stays "proposed" until Darrell confirms.
+import { LIVING_LESSONS_MODULES } from './living-lessons-class.js';
+
 export const SOVEREIGN_AI_PROPOSED_COHORT_START = '2026-08-01';
 
 // PUBLISHED cohort — what every learner on every deployed build sees. Until
@@ -68,7 +70,7 @@ export const SOVEREIGN_AI_META = {
   tagline: 'A generator in the garage. The grid can flicker; our lights stay on.',
   format: '9 weekly sessions · ~75 min each (paced to your age) · live time with Darrell plus hands-on with the real A.I. surfaces',
   cadenceDays: 7,
-  weeks: 17,
+  weeks: 18,
   handsOnLabel: 'Hands-on in the app',
   footer: '_Taught by Darrell Poe · The Church of the Living God + the Poe family · built on PoeTech. We run our A.I. on machines we own so the data serves the family and the community — and is never sold. Built to be handed on, at every age._',
 };
@@ -89,6 +91,13 @@ export const SOVEREIGN_AI_SESSION_MINUTES = SOVEREIGN_AI_SESSION_FLOW.reduce((t,
 // (Research → Plan → Execute), multi-modal `media`, a real `inApp` activity (with
 // a `launch` deep link where a real surface exists), a `quiz`, and a Scripture
 // `anchor` (reference + theme gloss, never a quoted verse).
+// ONE SOURCE, TWO DOORS (Darrell 2026-09-15: "Also add to the living lessons
+// also... education for those out there who don't know"). L153 is authored ONCE
+// in the Living Lessons catalog (gate: living-lessons-l153-verses.test.js) and
+// carried into this class below under the class's own id, so the two doors can
+// never drift apart — the same verbatim verses, the same bands, the same quiz.
+const LL153_PRECEPT_UPON_PRECEPT = LIVING_LESSONS_MODULES.find((m) => m.id.startsWith('ll153-'));
+
 export const SOVEREIGN_AI_MODULES = [
   // ---------------------------------------------------------------------------
   {
@@ -870,6 +879,26 @@ export const SOVEREIGN_AI_MODULES = [
         'The whole method rests on a just weight (Proverbs 11:1). What vague rubric ("a good answer," "a good person," "a good deal") do you carry that is really a divers weight - and how would you define it precisely?',
         'The article asks if a model is "healthy." Judged by FRUIT over time (Matthew 7:20) rather than one good answer, what in your own life would that test reveal that a single good day hides?',
       ],
+    },
+  },
+  // sov18 — PRECEPT UPON PRECEPT: THE VOICE THAT PROGRAMS THE WORLD (Darrell,
+  // 2026-09-15, from the mechanical room: a line-numbered control program reads
+  // top to bottom, jumps by the numbers outside the code, and exists to fix
+  // reality — "Yahweh programs the world with His voice"; "the biblical
+  // scriptures work like a program to me also"; the brain keeps a new thing on
+  // a known hook — "use same program with tweeks"). The class's philosophy-of-
+  // technology week. The body is Living Lesson L153, carried here whole (see
+  // LL153_PRECEPT_UPON_PRECEPT above); the class adds only its own id, the
+  // cross-reference, and Research → Plan → Execute — same program with tweaks,
+  // his principle applied to the build.
+  {
+    ...LL153_PRECEPT_UPON_PRECEPT,
+    id: 'sov18-precept-upon-precept-the-voice-that-programs-the-world',
+    sharedWith: { course: 'living-lessons', lesson: LL153_PRECEPT_UPON_PRECEPT.id },
+    rpe: {
+      research: 'Open The Word to Genesis 1 and mark every "And God said" and every "and it was so" — the instruction and its execution. Then write down, in plain words, the top three lines of a program you actually run (a thermostat, a checklist, a controller) and where it jumps when something is off.',
+      plan: 'Take one real matter in your house this week and find the precept that governs it. Write it as a panel from 2 Timothy 3:16 — doctrine (the setpoint), reproof (the alarm), correction (the actuator), instruction in righteousness (the schedule) — one line each, with the verse beside it.',
+      execute: 'Run the line once, today — do what the precept says — and record in Take it with you what changed. A program that is only read fixes nothing; a line that runs fixes reality (James 1:22).',
     },
   },
 ];
