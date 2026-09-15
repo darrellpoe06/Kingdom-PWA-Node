@@ -70,7 +70,7 @@ export const WORLD_ISSUES_META = {
   },
   format: 'Self-paced · one issue at a time · media literacy + biblical discernment · paced to your age',
   cadenceDays: 7,
-  weeks: 13, // eleven published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex · the two aftermaths · the law of assumption · victorious emotions · college tuition and the 1965 Act); the track grows as issues are added
+  weeks: 14, // eleven published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex · the two aftermaths · the law of assumption · victorious emotions · college tuition and the 1965 Act); the track grows as issues are added
   handsOnLabel: 'Practice the skill',
   unit: {
     noun: 'issue',
@@ -3327,7 +3327,331 @@ const TRADES_HIRING_ISSUE = {
   },
 };
 
-export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE, TUITION_1965_ISSUE, EPA_POWER_PLANT_ISSUE, TRADES_HIRING_ISSUE];
+// =============================================================================
+// ISSUE 13 — The Supreme Court leaves the mail-in rules alone
+// (wi-scotus-mail-in-voting-2026). Darrell's word, 2026-09-15, forwarding the
+// Morning Brew and NPR Up First newsletters: Lesson. Find the each subject and
+// independently research them and create a lesson or lessons. The subject: the
+// Supreme Court's September 14, 2026 order in U.S. Postal Service v. California
+// (26A305) declining to let the Postal Service's ballot-mail rule run in the
+// 2026 midterms. Handled under DR-0100's three tiers: the PROCEDURAL record
+// (the executive order, the rule, the injunctions, the order, the dissent, the
+// concurrence, the ballots already in the mail) is stated plainly with sources
+// and as-of dates; the MERITS are marked open (no court has finally decided
+// the Postal Service's authority); fraud-rate claims on either side are sourced
+// or carried as claims; and the Word corrects both over-reaches — neither
+// any-restriction-is-suppression nor any-mail-ballot-is-fraud is established.
+// Word first: a just weight and measure, judges who take no gift and respect
+// no person, rulers as Yahweh's ministers, prayer for kings, Caesar's coin, the
+// lot cast into the lap, fruits, and the two courts. Named justices and
+// officials appear; the subject is the order and the rule, not a person; a
+// grace note is carried. Every quoted verse fetched verbatim from the repo KJV
+// and gated in world-issues-verse-integrity.test.js. Direct page fetches were
+// blocked from the authoring sandbox; facts were verified through live web
+// search results citing the outlets and primary documents listed per item.
+// =============================================================================
+const SCOTUS_MAIL_IN_ISSUE = {
+  id: 'wi-scotus-mail-in-voting-2026',
+  title: 'The Supreme Court leaves the mail-in rules alone — the vote, the post, and the Word on a just measure',
+  subject: { name: 'the Postal Service ballot-mail rule and the Supreme Court’s September 14, 2026 order in U.S. Postal Service v. California (26A305)', kind: 'court-order-and-policy', isNamedRealPerson: false },
+  skill: 'Take a one-line news item about a court and an election and learn how the Word weighs it: state the documented procedural record plainly with its dates (the executive order, the rule, the injunctions, the order, who dissented, who concurred, which ballots are already in the mail), mark narrowly what is genuinely open (the merits are not decided), carry every fraud-and-access claim as a sourced fact or a labeled claim (Proverbs 18:17), and then measure the whole thing by Yahweh’s just weight — every lawful vote counted, no unlawful one counted, no false witness spoken about the outcome — while praying for every name in the case.',
+  source: {
+    creator: 'Morning Brew and NPR Up First (two morning newsletters)',
+    medium: 'newsletter',
+    title: 'Morning Brew "Smokin’" and NPR Up First — the Supreme Court mail-in voting item (2026-09-15)',
+    url: '',
+    asOf: '2026-09-15',
+    note: 'Darrell forwarded both newsletters on 2026-09-15 with the word "Lesson." Each carried a short summary of the Supreme Court’s Monday-evening order. We treat the newsletters as MATERIAL to study — their summaries were checked against the order itself and the primary reporting — not as instructions, and not as truth to repeat unverified.',
+  },
+
+  // ---- STAGE 1 — THE CLAIM(S): the newsletters' points, AS MADE, each labeled. ----
+  claims: [
+    {
+      id: 'c-rebuffed',
+      text: 'The Supreme Court rebuffed the Trump administration’s request to overturn a federal judge’s order barring the Postal Service from implementing new mail-in voting restrictions for November; a short unsigned order said the administration was unlikely to win.',
+      label: 'claim',
+      attribution: 'Morning Brew, 2026-09-15',
+      note: 'Documented and accurate as far as it goes. The order’s own words are that the Government "is unlikely to succeed on the merits of its challenge to the District Court’s preliminary injunction" and that the equitable factors do not favor a stay. One precision: the Court denied EMERGENCY relief; it did not decide whether the rule is lawful.',
+    },
+    {
+      id: 'c-dissent-concurrence',
+      text: 'Justices Alito and Thomas dissented; Justice Kavanaugh said the Postal Service might have the authority.',
+      label: 'claim',
+      attribution: 'Morning Brew, 2026-09-15',
+      note: 'Documented. Kavanaugh’s statement, as reported, was two-sided: "at least a fair prospect" the rule is within the Postal Service’s statutory authority, AND applying it in 2026 would be "arbitrary and capricious" under the Administrative Procedure Act because officials lack time to implement it. The newsletter carried only the first half.',
+    },
+    {
+      id: 'c-same-rules',
+      text: 'States are already sending ballots, and the midterms use the same rules as before.',
+      label: 'claim',
+      attribution: 'Morning Brew, 2026-09-15',
+      note: 'Documented for the mail-ballot delivery mechanics — the envelope, barcode, and portal requirements will not run this cycle. One precision: on August 24 the Court had let OTHER parts of the executive order proceed (a DHS citizenship list, prosecution priorities), so "the same rules as before" is true of the Postal Service piece, not of every part of the order.',
+    },
+    {
+      id: 'c-npr-blocked',
+      text: 'The Supreme Court blocked President Trump’s efforts to impose new mail-in voting restrictions before the midterms; the Postal Service continues delivering ballots as usual.',
+      label: 'claim',
+      attribution: 'NPR Up First, 2026-09-15',
+      note: 'Accurate in effect, compressed in mechanism. Two district judges blocked the rule; the Supreme Court declined to lift those blocks for this election. "Blocked" is the practical result; the Court’s own act was a denial of a stay.',
+    },
+    {
+      id: 'c-npr-check-deadlines',
+      text: 'Voting by mail has already started in Alabama, North Carolina, and Wisconsin; voters should check state deadlines and return ballots promptly.',
+      label: 'call-to-action',
+      attribution: 'NPR Up First, 2026-09-15',
+      note: 'Documented (the three states) and sound. This is the one directive in the item, and it is aimed at the voter’s own diligence, not at any person. The lesson adopts it in the stewardship section because the Word already commands it in substance — render what is due, on time, honestly.',
+    },
+    {
+      id: 'c-admin-fraud',
+      text: 'Mail-ballot fraud is "a particularly pernicious species of fraud that dilutes the votes of lawful voters, prevents election results from reflecting the will of the American people," and undermines public confidence — so the Postal Service’s tracking, barcode, and voter-list requirements are needed for integrity and chain of custody.',
+      label: 'opinion',
+      attribution: 'Solicitor General D. John Sauer, in the government’s emergency application to the Supreme Court, as reported by CBS News (2026-09)',
+      note: 'The characterization is the government’s. What is DOCUMENTED underneath it is in Stage 2: real cases of absentee-ballot fraud exist (the 2018 North Carolina Ninth District scheme is the clearest), and the documented RATE across all mail ballots is very small. "Widespread" was not shown in the filings as reported; that word is carried as a claim, not a fact.',
+    },
+    {
+      id: 'c-states-impossible',
+      text: 'The rule could not lawfully or practically be imposed mid-cycle: no statute gives the Postal Service power over who receives a ballot, the envelopes could not be reprinted in time, and enrolling every mail voter through a still-inactive portal would be "virtually impossible."',
+      label: 'claim',
+      attribution: 'The 23 plaintiff states and the District of Columbia, and state election officials (including the Wisconsin Elections Commission chair), in court filings as reported by CBS News, CNN, and Votebeat (2026-09)',
+      note: 'The legal half is a claim two district judges and a Supreme Court majority found LIKELY to succeed — not yet finally decided. The practical half rests on sworn filings with numbers (Stage 2) and was the exact ground of Justice Kavanaugh’s concurrence.',
+    },
+  ],
+
+  // ---- STAGE 2 — VERIFIABLE vs INTERPRETATION ----
+  verifiable: [
+    {
+      id: 'f-order-and-rule',
+      statement: 'On March 31, 2026 the President signed Executive Order 14399, "Ensuring Citizenship Verification and Integrity in Federal Elections," directing the Postal Service toward a system for ballot mail. On August 26, 2026 the Postal Service published its final rule, "Ballot Mail for Federal Elections" (39 CFR Part 111, a new Domestic Mail Manual section), requiring pre-approved ballot-envelope designs carrying unique Postal Service barcodes and an official logo, and requiring election officials to submit the names and addresses of intended mail-ballot recipients through a new "federal ballot mail portal" before ballots enter the mail stream — with the Postal Service refusing to deliver ballot mail that does not meet the specifications or is not on the submitted list.',
+      status: 'documented',
+      sources: [
+        { title: 'Ballot Mail for Federal Elections (final rule, 39 CFR Part 111)', publisher: 'Federal Register, U.S. Postal Service', url: 'https://www.federalregister.gov/documents/2026/08/26/2026-17238/ballot-mail-for-federal-elections', asOf: '2026-09-15' },
+        { title: 'USPS Ballot Mail Rule: Overview and Potential Impact (IF13297)', publisher: 'Congressional Research Service', url: 'https://www.congress.gov/crs-product/IF13297', asOf: '2026-09-15' },
+        { title: 'Postal Service Mail-In Ballot Rules: What Voters Need to Know Ahead of the 2026 Election', publisher: 'U.S. News & World Report', url: 'https://www.usnews.com/news/national-news/articles/2026-08-25/postal-service-mail-in-ballot-rules-what-voters-need-to-know-ahead-of-the-2026-election', asOf: '2026-09-15' },
+      ],
+      note: 'Verified by live web search on 2026-09-15 against the Federal Register listing, the CRS summary, and contemporaneous reporting. The rule is real, published, and final; what is blocked is its APPLICATION to the 2026 election.',
+    },
+    {
+      id: 'f-lower-courts',
+      statement: 'Twenty-three states and the District of Columbia, led by California, sued in the District of Massachusetts. On June 25, 2026 Judge Indira Talwani blocked key mail-voting provisions of the executive order for those jurisdictions, holding that no act of Congress delegates control of mail-in voting to the Postal Service. On August 24, 2026 the Supreme Court, 6-3 (Justices Sotomayor, Kagan, and Jackson dissenting), lifted that injunction as premature because the Postal Service had not yet issued a final rule; the rule was then published. Judge Talwani put the rule on a 14-day hold on August 28 and entered a preliminary injunction on September 4. On September 13, 2026 Judge Carl Nichols of the District of Columbia — nominated by President Trump in his first term — entered a second preliminary injunction for the Democratic Senatorial Campaign Committee, LULAC, and the NAACP, writing that "No statute grants the Postal Service the power to issue key parts of the Rule."',
+      status: 'documented',
+      sources: [
+        { title: 'Judge blocks key pillars of Trump executive order restricting mail voting in 2026 election', publisher: 'Votebeat', url: 'https://www.votebeat.org/national/2026/06/25/trump-election-overhaul-mail-voting-executive-order-blocked-talwani-usps-dhs/', asOf: '2026-09-15' },
+        { title: 'Supreme Court lifts 1 of 2 injunctions on Trump’s mail-voting executive order for 2026 elections', publisher: 'Votebeat', url: 'https://www.votebeat.org/national/2026/08/24/supreme-court-lifts-stay-trump-executive-order-on-elections-mail-ballot-restrictions/', asOf: '2026-09-15' },
+        { title: 'Federal judge temporarily blocks USPS rules implementing absentee/mail-in voting executive order', publisher: 'Ballotpedia News', url: 'https://news.ballotpedia.org/2026/08/31/federal-judge-temporarily-blocks-usps-rules-implementing-absentee-mail-in-voting-executive-order/', asOf: '2026-09-15' },
+        { title: 'Second federal judge freezes Trump mail ballot order with Supreme Court poised to weigh in', publisher: 'NBC News', url: 'https://www.nbcnews.com/politics/2026-election/second-federal-judge-freezes-trump-mail-ballot-order-supreme-court-rcna597633', asOf: '2026-09-15' },
+        { title: 'Trump-nominated judge blocks USPS mail-in ballot rule as Supreme Court weighs case', publisher: 'Washington Examiner', url: 'https://www.washingtonexaminer.com/news/justice/4725698/trump-nominated-judge-blocks-usps-mail-in-ballot-rule/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The two-judge fact matters for the Word’s own test of a witness: a judge nominated by one party and a judge nominated by the other reached the same reading of the statute (Deuteronomy 19:15’s two-witness standard is about testimony, and we do not stretch it into a legal verdict — but the pattern is worth noticing).',
+    },
+    {
+      id: 'f-scotus-order',
+      statement: 'On September 6, 2026 Solicitor General D. John Sauer filed an emergency application (26A305) with Justice Jackson asking the Court to stay Judge Talwani’s September 4 injunction; responses were due September 9. On Monday, September 14, 2026 the Court denied the application in a short unsigned order stating that the Government "is unlikely to succeed on the merits of its challenge to the District Court’s preliminary injunction" and that the equitable factors for emergency relief do not favor a stay. Justice Kavanaugh wrote separately that there is "at least a fair prospect that the final rule falls within the Postal Service’s statutory authority," but that applying it in the 2026 elections "would be arbitrary and capricious in violation of the Administrative Procedure Act because state and local election officials do not have sufficient time to reasonably implement the rule before the elections." Justice Alito, joined by Justice Thomas, dissented: he wrote that he expressed "no view on whether the Government would be likely to succeed on de novo review of the Postal Service’s powers," but that the Government had made a strong showing that the States’ ultra vires claim is not likely to succeed; the States’ implementation concerns gave him pause but were "not enough to convince me."',
+      status: 'documented',
+      sources: [
+        { title: '26A305 Postal Service v. California — order and opinions (09/14/2026)', publisher: 'Supreme Court of the United States', url: 'https://www.supremecourt.gov/opinions/25pdf/26a305_4g15.pdf', asOf: '2026-09-15' },
+        { title: 'Supreme Court denies Trump administration’s request to implement parts of rule on mail-in voting', publisher: 'SCOTUSblog', url: 'https://www.scotusblog.com/2026/09/supreme-court-denies-trump-administrations-request-to-implement-parts-of-usps-rule-on-mail-in-vo/', asOf: '2026-09-15' },
+        { title: 'The Supreme Court rejects Trump’s mail voting restrictions for this year’s midterms', publisher: 'NPR', url: 'https://www.npr.org/2026/09/14/nx-s1-5962190/supreme-court-mail-in-voting-trump', asOf: '2026-09-15' },
+        { title: 'US Supreme Court rejects DOJ bid to stay injunction blocking USPS mail-in ballot rule', publisher: 'JURIST', url: 'https://www.jurist.org/news/2026/09/us-supreme-court-rejects-doj-bid-to-stay-injunction-blocking-usps-mail-in-ballot-rule/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The quoted lines are as reported from the order and opinions by the outlets above; the primary PDF is listed first so a learner can check every word. Three positions, three honest labels: a majority (unlikely to succeed on THIS emergency challenge), a concurrence (authority plausible, timing fatal), a dissent (States’ theory unlikely, merits reserved). None is a final ruling on the law.',
+    },
+    {
+      id: 'f-ballots-out',
+      statement: 'North Carolina began sending mail ballots on September 4, 2026 and Alabama on September 9; Wisconsin began the following week. Federal law requires every state to transmit ballots to military and overseas voters at least 45 days before the November 3 election. In 2024 about 30% of all ballots were cast by mail (EAC Election Administration and Voting Survey), and voters 65 and older used mail voting at the highest rate of any age group.',
+      status: 'documented',
+      sources: [
+        { title: 'Midterm mail ballots start to go to voters as litigation over Trump’s order creates uncertainty', publisher: 'ABC News / Associated Press', url: 'https://abcnews.com/Politics/wireStory/midterm-mail-ballots-start-voters-litigation-trumps-order-136193718', asOf: '2026-09-15' },
+        { title: 'Alabama voters, who qualify, can use their mail-in ballots freely for the mid-terms', publisher: 'Alabama Public Radio', url: 'https://www.apr.org/news/2026-09-15/alabama-voters-who-qualify-can-use-their-mail-in-ballots-freely-for-the-mid-terms', asOf: '2026-09-15' },
+        { title: 'U.S. Election Assistance Commission Releases 2024 Election Administration and Voting Survey (EAVS) Report', publisher: 'U.S. Election Assistance Commission', url: 'https://www.eac.gov/news/2025/06/30/us-election-assistance-commission-releases-2024-election-administration-and-voting', asOf: '2026-09-15' },
+        { title: 'Here’s who is most likely to vote by mail', publisher: 'CNN', url: 'https://www.cnn.com/2026/09/04/politics/mail-voting-popularity-trump-vis', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The "who" behind the rule matters to the Word’s command to hear the small as well as the great: nearly one ballot in three, and the oldest voters most of all.',
+    },
+    {
+      id: 'f-feasibility',
+      statement: 'In sworn court filings, election officials said the rule could not be implemented before November: Washington’s elections director estimated nearly $2 million to replace more than 1 million envelopes lacking the required inbound barcodes; Hawaii’s already-ordered return envelopes had cost the state $79,000; vendors told officials there was not enough time to print the redesigned envelopes, and possibly not enough paper stock; and the Wisconsin Elections Commission chair said enrolling every Wisconsin mail voter through the portal would be "virtually impossible."',
+      status: 'documented',
+      sources: [
+        { title: 'Election officials raise alarm over implementing new mail voting rules before midterms: "Virtually impossible"', publisher: 'CBS News', url: 'https://www.cbsnews.com/news/mail-voting-rules-usps-election-officials-midterms/', asOf: '2026-09-15' },
+        { title: 'Election officials say they can’t comply with Trump’s proposed mail ballot rules', publisher: 'CNN', url: 'https://www.cnn.com/2026/09/02/politics/election-officials-trump-post-office-mail-ballot-voting', asOf: '2026-09-15' },
+        { title: 'USPS Final Rule on Ballot Mail for Federal Elections: What Counties Need to Know', publisher: 'National Association of Counties', url: 'https://www.naco.org/resource/usps-final-rule-ballot-mail-federal-elections-what-counties-need-know', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. These are sworn filings with numbers, which is why the concurrence rested on timing. They document FEASIBILITY for 2026; they say nothing about whether a rule with lead time would be lawful or wise.',
+    },
+    {
+      id: 'f-fraud-record',
+      statement: 'Absentee-ballot fraud is real and documented in specific cases: in February 2019 the North Carolina State Board of Elections unanimously ordered a new election in the Ninth Congressional District after finding a "coordinated, unlawful and substantially resourced absentee ballot scheme" in the 2018 general election; four people later pleaded guilty. Its measured RATE is very small: the Heritage Foundation’s database counted 1,620 proven instances of voter fraud of all types across decades as of December 2025, of which a New York Times analysis identified 289 absentee-ballot cases from 1982 to 2025; a Brookings analysis put mail-ballot fraud at roughly 0.000043% of mail ballots cast — about four in ten million. Whether the RULE would have prevented any documented case has not been shown in the filings as reported.',
+      status: 'partly-documented',
+      sources: [
+        { title: 'State Board unanimously orders new election in 9th Congressional District', publisher: 'North Carolina State Board of Elections', url: 'https://www.ncsbe.gov/news/press-releases/2019/02/25/state-board-unanimously-orders-new-election-9th-congressional-district', asOf: '2026-09-15' },
+        { title: 'Four people plead guilty in North Carolina ballot probe of 2016 and 2018 elections', publisher: 'NBC News', url: 'https://www.nbcnews.com/politics/elections/four-people-plead-guilty-north-carolina-ballot-probe-2016-2018-electio-rcna49534', asOf: '2026-09-15' },
+        { title: 'The Facts About Mail-In Voting Fraud', publisher: 'TIME', url: 'https://time.com/article/2026/03/20/mail-voting-absentee-voter-fraud-trump-claims-research/', asOf: '2026-09-15' },
+        { title: 'Mail voting fraud: Data points to low risk and high benefits for voters', publisher: 'Brookings Institution', url: 'https://www.brookings.edu/articles/mail-voting-in-the-us-data-points-to-very-low-fraud-and-significant-benefits-to-voters/', asOf: '2026-09-15' },
+        { title: 'What’s Conspicuously Missing from the Government’s Supreme Court Reply Brief in the Mail Ballots Case', publisher: 'Just Security', url: 'https://www.justsecurity.org/156963/usps-mail-ballots-solicitor-general-scotus/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. This is the honest Tier 2 boundary (DR-0100): the CASES are documented and stated plainly; the RATE is documented and small; "widespread" is unproven and carried as the government’s claim; and the counter-slogan that mail fraud never happens is refuted by North Carolina’s own board. Both true data sets stand at once.',
+    },
+    {
+      id: 'f-watson',
+      statement: 'The Court had already decided a sibling mail-ballot question this term: on June 29, 2026, in Watson v. Republican National Committee (24-1260), it held 5-4 that federal Election Day statutes do not bar a state from counting a mail ballot postmarked by Election Day and received within a short state-set grace period (Mississippi’s is five business days). Justice Barrett wrote for the majority with the Chief Justice and Justices Sotomayor, Kagan, and Jackson; Justice Alito dissented, joined by Justices Thomas, Gorsuch, and Kavanaugh.',
+      status: 'documented',
+      sources: [
+        { title: '24-1260 Watson v. Republican National Committee (06/29/2026)', publisher: 'Supreme Court of the United States', url: 'https://www.supremecourt.gov/opinions/25pdf/24-1260_g3cn.pdf', asOf: '2026-09-15' },
+        { title: 'Watson v. Republican National Committee', publisher: 'Ballotpedia', url: 'https://ballotpedia.org/Watson_v._Republican_National_Committee', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. Included because "the midterms use the same rules as before" includes this: grace-period states keep their grace periods, and the same two justices who dissented on September 14 were in that dissent too. The learner can see a consistent legal position on each side, not a whim.',
+    },
+  ],
+  interpretation: [
+    {
+      id: 'n-not-the-merits',
+      statement: '"Rebuffed," "rejected," and "blocked" are the practical result, not the legal act. The Court answered an emergency question — whether to let the rule run in THIS election while the cases proceed — and said no, because the government was unlikely to win its challenge to the injunction and the equities cut against it. It did not rule that the Postal Service lacks the power; a majority signaled doubt, one justice said the power may well exist, two justices said the States’ theory is weak. The merits remain open in two district courts and the First Circuit. Keep the category: an emergency order is a real, binding act with real effect, and it is not a verdict on the law.',
+      restsOn: ['f-scotus-order', 'f-lower-courts'],
+    },
+    {
+      id: 'n-two-slogans',
+      statement: 'Two slogans ride this story, and neither is established. "Any restriction on mail voting is suppression" is not shown: the Court itself, in Watson, was willing to read federal election law strictly, and a rule with real lead time has not been tested. "Any mail ballot is fraud" is refuted by the documented rate and by the fact that nearly a third of the country, and the oldest voters most of all, vote lawfully by mail. What IS documented on each side stands — real cases, real small rate, real feasibility filings, real ballots already out.',
+      restsOn: ['f-fraud-record', 'f-feasibility', 'f-ballots-out', 'f-watson'],
+    },
+    {
+      id: 'n-timing-was-the-hinge',
+      statement: 'The decisive fact was the calendar. The rule was finalized August 26; North Carolina mailed ballots September 4; the order came September 14. Justice Kavanaugh’s concurrence turned on that alone, and even Justice Alito wrote that the States’ implementation concerns gave him pause. A learner who takes away only "the Court is against the President" or "the Court is for mail voting" has missed the sentence the case actually turned on.',
+      restsOn: ['f-scotus-order', 'f-ballots-out', 'f-feasibility'],
+    },
+    {
+      id: 'n-same-rules-narrow',
+      statement: '"The same rules as before" is true of the Postal Service piece — envelopes, barcodes, and the portal will not gate delivery this cycle — and of grace periods after Watson. It is not true of every part of the executive order; on August 24 the Court let other provisions (a federal citizenship list, prosecution priorities) proceed. Saying the narrow true thing is more useful to a voter than the broad loose thing.',
+      restsOn: ['f-lower-courts', 'f-watson'],
+    },
+  ],
+
+  // ---- STAGE 3 — PERSPECTIVES on the UNRESOLVED parts ----
+  perspectives: [
+    {
+      id: 'p-administration',
+      label: 'The administration — integrity, chain of custody, and the mail belongs to the Postal Service',
+      heldBy: 'The President, the Solicitor General, and the two dissenting justices',
+      steelman: 'At its strongest: a ballot in the mail is the one stage of an election no state official can see. A unique barcode on every envelope, a design the carrier can recognize, and a list of intended recipients before the envelopes enter the stream would let the Postal Service track each ballot end to end, refuse counterfeits, and give every voter proof of custody — the same tracking any package gets. Congress gave the Postal Service broad statutory power over what it carries and how; using that power to protect the most vulnerable stage of the vote is not an intrusion on the States but a service to them. And the 2018 North Carolina scheme proves the harm is not imaginary. Even the dissent conceded the timing concern was real; its point was that the States’ legal theory is a long shot and a court should not enjoin a federal agency on a long shot.',
+    },
+    {
+      id: 'p-states',
+      label: 'The challengers — the Constitution gives elections to States and Congress, and rules do not change after the ballots are printed',
+      heldBy: 'Twenty-three states and the District of Columbia, the DSCC, LULAC, the NAACP, and voting-rights groups',
+      steelman: 'At its strongest: the Elections Clause places the times, places, and manner of federal elections with state legislatures and Congress, not with a mail agency, and no statute says otherwise — which is why a judge nominated by each party read the law the same way. Beyond the law is the calendar: ballots were designed, printed, and in some states mailed before the rule was final, and a Postal Service that refuses an envelope because a list was not uploaded is not catching a counterfeit, it is discarding a lawful vote — most often the vote of an older, disabled, rural, or deployed citizen who has no other way to cast it. The documented fraud rate is tiny; the documented cost of the rule was measured in millions of envelopes. The remedy for a real 2018-style scheme is prosecution, which happened, not a national filter that no state could pass in time.',
+    },
+    {
+      id: 'p-officials',
+      label: 'The election officials — feasibility is not a side issue',
+      heldBy: 'State and county election administrators of both parties, in sworn filings',
+      steelman: 'At its strongest: the people who actually run elections were not asked whether the goal was good; they were told to meet a specification with an inactive portal, redesigned envelopes, vendors who said there was no time, and paper that might not exist, weeks before ballots were due to overseas troops by federal law. A rule that cannot be met produces rejected ballots and lawsuits, not integrity. This is the ground Justice Kavanaugh stood on, and it is also the ground the Word calls decently and in order: a just measure must be one the measurer can actually apply.',
+    },
+    {
+      id: 'p-believer',
+      label: 'The ordinary voter — confidence both ways, and the conduct the Word requires of me',
+      heldBy: 'Believers who vote, on either side of the aisle',
+      steelman: 'At its strongest: a citizen wants two things at once — every lawful vote counted and no unlawful one counted — and the Word wants exactly that, calling both errors a false balance. Such a voter does not need the Court to have been for or against anyone; he needs to know what the rules are this cycle (the same as before), what his deadline is, and that he must not repeat a claim about the outcome that he cannot prove. He prays for the President, the Postmaster General, the judges, and the clerks by name, because the Word puts prayer first of all, and he trusts that the disposing of the lot is of the LORD.',
+    },
+  ],
+
+  // ---- STAGE 4 — THE BELIEVER'S LENS ----
+  lens: {
+    fourD: {
+      deepSource: 'WORD FIRST — Before any court, any agency, or any newsletter speaks, Yahweh has already said what an honest count must be. He wrote it for the marketplace first, and it reaches every counting: "Ye shall do no unrighteousness in judgment, in meteyard, in weight, or in measure." (Leviticus 19:35) — "Just balances, just weights, a just ephah, and a just hin, shall ye have: I am the LORD your God, which brought you out of the land of Egypt." (Leviticus 19:36). He owns the measure itself: "A just weight and balance are the LORD’s: all the weights of the bag are his work." (Proverbs 16:11); "A false balance is abomination to the LORD: but a just weight is his delight." (Proverbs 11:1); "Divers weights, and divers measures, both of them are alike abomination to the LORD." (Proverbs 20:10). A ballot is a weight in the bag. Yahweh’s standard has two edges at once: the measure must count every lawful vote (a weight withheld is a false balance) AND count no unlawful one (a weight added is a false balance) — and He names both errors with the same word. So the believer refuses the two slogans the day trades in; "any restriction is suppression" and "any mail ballot is fraud" are both a bag with divers weights. He then wrote the job description of a judge, and every justice on that Court sits under it whether he knows it or not: "Judges and officers shalt thou make thee in all thy gates" and "they shall judge the people with just judgment." (Deuteronomy 16:18) — "Thou shalt not wrest judgment; thou shalt not respect persons, neither take a gift: for a gift doth blind the eyes of the wise, and pervert the words of the righteous." (Deuteronomy 16:19) — "That which is altogether just shalt thou follow" (Deuteronomy 16:20). "Ye shall not respect persons in judgment; but ye shall hear the small as well as the great; ye shall not be afraid of the face of man; for the judgment is God’s" (Deuteronomy 1:17). "And thou shalt take no gift: for the gift blindeth the wise, and perverteth the words of the righteous." (Exodus 23:8). "Thou shalt not follow a multitude to do evil; neither shalt thou speak in a cause to decline after many to wrest judgment" (Exodus 23:2). Jehoshaphat’s charge to his judges is the standard for any bench: "Take heed what ye do: for ye judge not for man, but for the LORD, who is with you in the judgment." (2 Chronicles 19:6). Notice what the Word does NOT say. It does not say a judge must rule for the ruler, nor against him. It says: no respect of persons, no gift, no fear of faces. That is the whole measure of a court, and it is the measure this lesson applies to a majority, a concurrence, and a dissent alike. He wrote the standing of rulers: "Let every soul be subject unto the higher powers. For there is no power but of God: the powers that be are ordained of God." (Romans 13:1); "For he is the minister of God to thee for good." (Romans 13:4); "Submit yourselves to every ordinance of man for the Lord’s sake: whether it be to the king, as supreme;" (1 Peter 2:13) — "Or unto governors, as unto them that are sent by him for the punishment of evildoers, and for the praise of them that do well." (1 Peter 2:14). A President, a Postmaster General, a district judge, a Supreme Court: each is a minister in Yahweh’s ordering, and each will be measured by the same just weight. And He told us what to do with them, and put it FIRST: "I exhort therefore, that, first of all, supplications, prayers, intercessions, and giving of thanks, be made for all men;" (1 Timothy 2:1) — "For kings, and for all that are in authority; that we may lead a quiet and peaceable life in all godliness and honesty." (1 Timothy 2:2). Before the opinion, the prayer. He told us what we owe the system we live under: "Render therefore unto Caesar the things which are Caesar’s; and unto God the things that are God’s." (Matthew 22:21). Caesar’s coin bore Caesar’s image; a lawful ballot is a thing a citizen renders — filled honestly, returned on time, by the rules that stand. He told us the outcome is His: "The lot is cast into the lap; but the whole disposing thereof is of the LORD." (Proverbs 16:33); "The king’s heart is in the hand of the LORD, as the rivers of water: he turneth it whithersoever he will." (Proverbs 21:1); "But God is the judge: he putteth down one, and setteth up another." (Psalms 75:7). A ballot in an envelope is a lot cast into the lap; the disposing is His — which frees the believer from both panic and triumph. He told us how to read a ruler and a rule: "Wherefore by their fruits ye shall know them." (Matthew 7:20); "When the righteous are in authority, the people rejoice: but when the wicked beareth rule, the people mourn." (Proverbs 29:2). And He told us the case is not closed at the top step of that Court: "For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil." (Ecclesiastes 12:14). SO IN THIS CASE the believer does four things in order. First, state what is documented, plainly, because "Prove all things; hold fast that which is good." (1 Thessalonians 5:21): the executive order of March 31, the Postal Service rule of August 26, the injunctions of June 25, September 4, and September 13, the Court’s September 14 order, the two dissenters, the one concurrence, and the ballots already in the mail in North Carolina, Alabama, and Wisconsin. Second, keep the categories — "He that answereth a matter before he heareth it, it is folly and shame unto him." (Proverbs 18:13); "He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him." (Proverbs 18:17): the Court decided an EMERGENCY question, whether to lift a block for this election, not the merits of the Postal Service’s power; a majority said the government is unlikely to succeed, Justice Kavanaugh said the authority may well exist but the timing fails, Justice Alito said the States’ theory is unlikely to succeed — every one of those is reported as what it is, and none of them is the final word on the law. Third, weigh the CLAIMS by the just weight: the administration’s claim that mail fraud is pernicious rests on real documented cases (the 2018 Ninth District scheme in North Carolina was real, and a new election was ordered) and on a documented rate that is very small; the challengers’ claim that the rule would strip lawful ballots rests on real sworn filings from real election officials about envelopes, portals, vendors, and time. Both true data sets stand; neither slogan does. Fourth — and this is where the Word settles what the debate cannot — the believer’s own conduct: "Thou shalt not bear false witness against thy neighbour." (Exodus 20:16); "A false witness shall not be unpunished, and he that speaketh lies shall not escape." (Proverbs 19:5). Whatever any court rules, the believer does not say a count was stolen without proof, does not say a rule was harmless without hearing the clerk, and does not repeat a number he has not checked. "Speak ye every man the truth to his neighbour; execute the judgment of truth and peace in your gates" (Zechariah 8:16). Then he votes — checks the deadline, returns the ballot early, renders to Caesar — and prays for every name in the case, because the disposing is of the LORD.',
+      scripture: 'Leviticus 19:35-36; Proverbs 16:11; Proverbs 11:1; Proverbs 20:10; Deuteronomy 25:13-15; Deuteronomy 16:18-20; Deuteronomy 1:17; Exodus 23:8; Exodus 23:2; 2 Chronicles 19:6-7; Proverbs 24:23; Romans 13:1-4; 1 Peter 2:13-14; 1 Peter 2:17; 1 Timothy 2:1-2; Jeremiah 29:7; Matthew 22:21; Romans 13:7; Proverbs 16:33; Proverbs 21:1; Psalms 75:6-7; Daniel 2:21; Matthew 7:20; Proverbs 29:2; Ecclesiastes 12:14; 1 Thessalonians 5:21; Proverbs 18:13; Proverbs 18:17; John 7:51; Exodus 20:16; Proverbs 19:5; Proverbs 12:22; Zechariah 8:16; 1 Corinthians 14:40',
+    },
+    threeD: 'Practically: read the newsletter line, then read the order. Say the documented parts plainly and dated — the executive order (March 31), the final rule (August 26), the injunctions (June 25, September 4, September 13), the denial (September 14), the dissent (Alito, joined by Thomas), the concurrence (Kavanaugh: authority plausible, timing fatal), and the ballots already out (North Carolina September 4, Alabama September 9, Wisconsin the week after). Then label the rest honestly: "the Court blocked the rule" is the effect, "the Court denied a stay" is the act, and "the Postal Service has no authority" is a likely-but-undecided reading of the law. Hear each side at its strongest (Proverbs 18:17): integrity and custody are real goods; the Elections Clause and the calendar are real limits; feasibility is real. Then measure it by the just weight — every lawful vote counted, no unlawful one counted — and do your own part: find your state’s deadline today, request or complete your ballot, sign it exactly as instructed, return it early (the mailbox, a drop box, or the clerk’s office as your state allows), and confirm it was received where your state offers tracking. Never post a claim about the count you cannot source. Pray, by name, for the President, the Postmaster General, Judge Talwani, Judge Nichols, the nine justices, and your county clerk — first of all (1 Timothy 2:1).',
+    accountability: {
+      statement: 'THE TWO COURTS. Man’s highest court answered a narrow question on September 14 and answered it lawfully; it will answer the merits later, and this lesson invents no verdict it has not given. But the Word never lets accountability shrink to what a bench happened to rule on. Every decree — a President’s order, an agency’s rule, a judge’s injunction, a justice’s dissent — enters the eternal court where "God shall bring every work into judgment, with every secret thing" (Ecclesiastes 12:14), where a judge who took a gift or feared a face answers for it (Exodus 23:8; Deuteronomy 1:17), where "He that justifieth the wicked, and he that condemneth the just, even they both are abomination to the LORD." (Proverbs 17:15), and where a false witness about a count — whoever spoke it, from a podium or a phone — is heard: "Lying lips are abomination to the LORD: but they that deal truly are his delight." (Proverbs 12:22). WHAT A SYSTEM OWES under the Word is a just measure both ways and a measure its clerks can actually apply. WHAT WE OWE: to render what is Caesar’s (Matthew 22:21) — the lawful ballot, on time; to honour the king and the governor (1 Peter 2:17) whether or not we voted for them; to pray for them first of all (1 Timothy 2:1-2); and to speak the truth to our neighbour about what a court did and did not do (Zechariah 8:16). And the lived cost during this life is seen now: an older voter whose lawful ballot would have been refused for a missing barcode, and a lawful voter whose vote would have been diluted by a counterfeit, are both weighed by the same LORD. No one gets away: "God is not mocked" (Galatians 6:7), and the books are opened (Revelation 20:12).',
+      scripture: 'Ecclesiastes 12:14; Exodus 23:8; Deuteronomy 1:17; Proverbs 17:15; Proverbs 12:22; Matthew 22:21; 1 Peter 2:17; 1 Timothy 2:1-2; Zechariah 8:16; Proverbs 24:23; Galatians 6:7; Revelation 20:12',
+    },
+    benefits: [
+      'Both courts, honestly held: man’s highest court decided an emergency question on September 14 and left the merits open, and this lesson invents no verdict — while the ETERNAL court holds every order, rule, dissent, and claim about a count, and lands after this life (Ecclesiastes 12:14; Proverbs 17:15). You can say what happened without pretending to know what has not been decided.',
+      'Freedom from two slogans at once: "any restriction is suppression" and "any mail ballot is fraud" are both a bag of divers weights (Proverbs 20:10); the documented cases, the documented rate, the sworn feasibility filings, and the ballots already out all stand together.',
+      'The Word’s own measure of a court in your hands — no respect of persons, no gift, no fear of faces (Deuteronomy 16:19; Exodus 23:8; Deuteronomy 1:17) — so you can read a majority, a concurrence, and a dissent by the same standard instead of by whose side they landed on.',
+      'A repeatable method for any court story: the ACT (a denial of a stay) versus the EFFECT (the rule will not run); the emergency question versus the merits; what each opinion actually said versus what the headline said.',
+      'Peace in the middle of an election: the lot is cast into the lap and the disposing is of the LORD (Proverbs 16:33), which removes both panic and triumph and leaves the believer free to do his part and pray for every name.',
+      'A house that does not bear false witness: no unsourced claim about a count, no repeated number that was never checked (Exodus 20:16; Proverbs 19:5) — and a ballot rendered to Caesar honestly, early, and by the rules that stand (Matthew 22:21).',
+    ],
+    graceNote: 'No condemnation of any justice’s, judge’s, or official’s soul: this lesson pronounces no verdict on President Trump, Solicitor General Sauer, Justice Alito, Justice Thomas, Justice Kavanaugh, the six who joined the order, Judge Talwani, Judge Nichols, the Postmaster General, or any state official who signed a filing — their hearts are Yahweh’s to judge, and He is no respecter of persons in either direction. A dissent is not wickedness and a majority is not righteousness; each is measured by the just weight, and each will be. Leaving the soul to Yahweh never mutes the deed: a false balance is named as a false balance whichever hand holds it, and a false witness about a count is named as false whoever speaks it. Truth and grace meet in Jesus, who paid Caesar’s coin, told the truth before Pilate, and prayed for the men who judged Him.',
+    stewardship: 'The deeper response to a fight over the mail is to BE the just measure where you stand. Vote, and vote the way the Word describes a just weight: request your ballot early, read the instructions, sign where it says, return it well before the deadline by a method your state allows, and confirm receipt where tracking exists — so that your one weight in the bag is true. Help the people the rule would have touched first: drive an older neighbour to the drop box, walk a disabled brother through his state’s tracking page, remind a deployed cousin of the 45-day window. Volunteer as a poll worker or an election observer — both parties need them, and a believer who has seen a count with his own eyes bears true witness instead of repeating a rumor. In the Body, teach the two-court frame so no one in the church spreads a claim about an outcome he cannot source. This platform’s own discipline is the same in miniature: every fact here carries a source and a date, every verse is fetched verbatim and gated, and what is undecided is marked undecided. Righteous engagement names the measure; it is completed by living it.',
+    anchor: {
+      ref: 'Proverbs 16:11; Exodus 20:16',
+      theme: 'The measure belongs to Yahweh — "A just weight and balance are the LORD’s: all the weights of the bag are his work." — so every lawful vote is counted and no unlawful one is, and the believer’s own weight in the bag is a true ballot and a true word: "Thou shalt not bear false witness against thy neighbour."',
+    },
+  },
+
+  // ---- STAGE 5 — REFLECTION + SKILL ----
+  reflection: {
+    skill: 'When a one-line court story lands in your feed: PAUSE. Separate the ACT (what the court actually did — here, denied an emergency stay) from the EFFECT (the rule will not run this cycle) and from the MERITS (undecided). Read what each opinion said, not what the headline said. Say the documented, dated record plainly — refusing to name it is false witness. Carry each side’s fraud-or-access claim as a sourced fact or a labeled claim, and hear both at their strongest. Then measure by the just weight — every lawful vote, no unlawful one — do your own part on time, and pray for every name in the case before you form an opinion of any of them.',
+    practice: 'Take the line "the Supreme Court blocked the mail-in voting restrictions." Write four lines: (1) one sentence of the ACT with its date and docket; (2) one sentence of what Justice Kavanaugh and Justice Alito each actually said; (3) one sentence labeling the fraud claim and the access claim, each with its documented basis; (4) one sentence of what you will DO this month — your state’s deadline, your ballot, and the names you will pray for first.',
+    prompts: [
+      'The order said the government "is unlikely to succeed on the merits of its challenge to the District Court’s preliminary injunction." What did the Court decide, and what did it leave undecided? Why does that distinction matter for a believer who does not want to bear false witness?',
+      'Justice Kavanaugh said the Postal Service may well have the authority AND that applying the rule in 2026 would be arbitrary and capricious for lack of time. How does the Word’s "decently and in order" (1 Corinthians 14:40) bear on a rule that cannot be met?',
+      'Yahweh calls a withheld weight and an added weight by the same word — abomination (Proverbs 20:10). Where do you see each error being defended as if it were righteousness? How do you hold both edges at once?',
+      'The 2018 North Carolina scheme was real, and the documented mail-fraud rate is about four in ten million. How do you state both plainly in one breath without collapsing either into a slogan?',
+      'Deuteronomy 16:19 forbids a judge to respect persons, take a gift, or fear faces. Apply that measure to the majority, the concurrence, and the dissent — without deciding by which side each landed on. What would it look like to pray for Justice Alito and Judge Talwani in the same sentence?',
+      'Proverbs 16:33: the lot is cast, the disposing is of the LORD. What would change in your speech about this election if you believed that sentence?',
+      'In your own house: what is your state’s mail-ballot deadline, and who in your church or family would have been touched first by an envelope rule — an older saint, a disabled brother, a deployed cousin? What will you do for them this month?',
+    ],
+  },
+
+  // ---- Age-appropriate renderings (kids use the app) ----
+  levels: {
+    child: 'When grown-ups vote, some of them mail their vote in an envelope. This year some leaders wanted the post office to use new rules for those envelopes. Judges said, not this year. The old rules stay. Big news like this can make people say things that are not true. Yahweh says we must be fair when we weigh or count anything. He says, "A false balance is abomination to the LORD: but a just weight is his delight." (Proverbs 11:1). Counting votes is like weighing on a scale. Every real vote should count. No pretend vote should count. Both of those are being fair. Yahweh also tells us to pray for leaders and judges (1 Timothy 2:1-2). And He says, "Thou shalt not bear false witness against thy neighbour." (Exodus 20:16). That means do not say things that are not true about other people. So when you hear big news, do three things. Ask what really happened. Say only what is true. Pray for the people in charge. And when you are old enough, vote on time, the honest way.',
+    teen: 'Two newsletters say the Supreme Court "blocked" new mail-in voting rules. Run the moves before you repeat it. (1) Get the ACT right. On March 31 the President signed an executive order; on August 26 the Postal Service finalized a rule requiring pre-approved envelopes with barcodes and a federal portal listing every mail voter, with the Postal Service refusing anything that did not match. Two judges — one nominated by a Democrat, one by President Trump — blocked it. On September 14 the Supreme Court refused to lift the block for this election, saying the government was unlikely to win its challenge and the timing cut against it. Justices Alito and Thomas dissented; Justice Kavanaugh said the Postal Service may well have the power but there was no time to apply the rule fairly. So: the rule is real, it will not run this year, and whether it is LAWFUL is not decided. That is the honest sentence. (2) Weigh the claims. The government says mail fraud is pernicious; a real 2018 scheme in North Carolina forced a new election, and the documented rate across all mail ballots is about four in ten million. The states say lawful ballots would be refused; sworn filings put the cost in millions of envelopes and a portal that was not even live. Both data sets are true. Neither slogan is. (3) Now the Word. Yahweh says "A false balance is abomination to the LORD: but a just weight is his delight." (Proverbs 11:1) — a withheld lawful vote and an added unlawful one are BOTH a false balance, and He hates both. He says a judge must not respect persons, take a gift, or fear faces (Deuteronomy 16:19) — that is how you measure a majority and a dissent alike, not by whose side they landed on. He says the lot is cast but "the whole disposing thereof is of the LORD." (Proverbs 16:33) — so no panic, no gloating. And He says "Thou shalt not bear false witness against thy neighbour." (Exodus 20:16) — so you do not post a claim about a count you cannot source. (4) Do your part. If you can vote: check your state’s deadline today, return the ballot early, confirm it arrived. If you cannot yet: help someone older get theirs in. And pray, first of all, for the President, the judges, and the justices by name (1 Timothy 2:1-2) — the ones you agree with and the ones you do not.',
+    senior: 'For the seasoned believer, this lesson is about reading a court through the Word’s own measure of a court, in a season when both political tribes want the bench to be their instrument. First, the record, stated plainly and dated: Executive Order 14399 of March 31, 2026; the Postal Service’s final rule of August 26 (pre-approved envelopes with unique barcodes and an official logo; a federal portal listing intended mail-ballot recipients; refusal to deliver non-conforming ballot mail); Judge Talwani’s June 25 injunction against the order for 23 states and the District, lifted by the Court on August 24 as premature; her September 4 preliminary injunction against the rule; Judge Nichols’s parallel September 13 injunction in the District of Columbia ("No statute grants the Postal Service the power to issue key parts of the Rule"); the Solicitor General’s September 6 application; and the September 14 denial — the Government "is unlikely to succeed on the merits of its challenge to the District Court’s preliminary injunction," the equities against a stay — with Justice Kavanaugh concurring on timing under the Administrative Procedure Act and Justice Alito, joined by Justice Thomas, dissenting on the strength of the States’ ultra vires theory while expressly reserving the merits. Ballots were already in the mail in North Carolina, Alabama, and Wisconsin. Second, the categories kept honestly (Proverbs 18:13, 18:17): the act was a denial of emergency relief; the effect is that the rule will not govern 2026; the merits are open in two district courts and a court of appeals; and the sibling ruling in Watson v. RNC (June 29) shows a consistent position on each side rather than a whim. Third, the claims by the just weight (Leviticus 19:35-36; Proverbs 16:11): documented absentee fraud exists and was prosecuted (North Carolina, 2018-2019); its documented rate is very small; sworn feasibility filings are real; nearly a third of the electorate, the oldest voters most of all, votes lawfully by mail. Neither "any restriction is suppression" nor "any mail ballot is fraud" survives the Word, and the true data under each slogan stands untouched. Fourth — where the Word settles what the debate cannot — the measure of the bench itself is not which side it favored but whether it respected persons, took a gift, or feared a face (Deuteronomy 16:18-20; Exodus 23:8; 2 Chronicles 19:6-7); rulers are ministers in Yahweh’s ordering (Romans 13:1-4; 1 Peter 2:13-14) and are to be prayed for first of all (1 Timothy 2:1-2); the ballot is Caesar’s coin rendered honestly (Matthew 22:21); the disposing of the lot is of the LORD (Proverbs 16:33); and the believer’s own weight in the bag is a true ballot and a true word (Exodus 20:16; Zechariah 8:16). The verdict on any justice’s or official’s soul stays with Yahweh; the verdict on a false balance, and on a false witness about a count, is already written (Proverbs 11:1; Proverbs 12:22; Ecclesiastes 12:14). Then let the response mature past commentary into the Body’s vocation: be the just measure where you stand — vote early and exactly, carry the older and the disabled to the box, serve as a poll worker or observer so your witness is true, and teach the household not to repeat what it cannot source.',
+  },
+
+  // ---- Discernment-skill quiz ----
+  quiz: {
+    questions: [
+      {
+        q: 'The newsletter says the Supreme Court "blocked" the mail-in rules. What did the Court actually do on September 14, 2026?',
+        options: ['Ruled that the Postal Service has no authority over ballot mail', 'Denied the government’s emergency request to lift a district court’s injunction, finding the government unlikely to succeed on that challenge and the equities against a stay', 'Struck down the executive order in full'],
+        answer: 1,
+        explain: 'The ACT was a denial of a stay; the EFFECT is that the rule will not run in 2026; the MERITS — whether the rule is lawful — remain undecided in the lower courts. Keeping those three apart is the discernment move.',
+      },
+      {
+        q: 'Justice Kavanaugh wrote separately. Which statement best captures what he said?',
+        options: ['The Postal Service clearly lacks authority', 'There is at least a fair prospect the rule is within the Postal Service’s authority, but applying it in 2026 would be arbitrary and capricious because officials lack time to implement it', 'The States have no standing'],
+        answer: 1,
+        explain: 'His concurrence was two-sided — authority plausible, timing fatal. A newsletter carrying only the first half is not lying, but it is incomplete; the Word asks us to hear the whole matter (Proverbs 18:13).',
+      },
+      {
+        q: 'Which label fits the statement "mail-ballot fraud is a particularly pernicious species of fraud"?',
+        options: ['Documented fact', 'The government’s characterization — carried as a claim, with the documented cases and the documented small rate stated underneath it', 'A lie'],
+        answer: 1,
+        explain: 'Real cases exist (the 2018 North Carolina scheme forced a new election) and the documented rate is about four in ten million. Both are stated plainly; "widespread" is unproven and stays a claim (DR-0100).',
+      },
+      {
+        q: 'Yahweh calls both a withheld weight and an added weight an abomination (Proverbs 20:10). Applied to an election, what does that require?',
+        options: ['Counting every ballot that arrives, no matter what', 'Rejecting any ballot that came by mail', 'Every lawful vote counted AND no unlawful one counted — both errors are a false balance'],
+        answer: 2,
+        explain: 'The Word’s standard has two edges at once. Neither slogan — "any restriction is suppression" or "any mail ballot is fraud" — survives it.',
+      },
+      {
+        q: 'How does the Word tell you to measure a judge — and therefore a majority, a concurrence, and a dissent?',
+        options: ['By which side they ruled for', 'By whether they respected persons, took a gift, or feared the face of man (Deuteronomy 16:19; Exodus 23:8; Deuteronomy 1:17)', 'By their party of nomination'],
+        answer: 1,
+        explain: 'The Word does not say a judge must rule for the ruler or against him. Its measure is impartiality, and it applies to every opinion in the case by the same standard.',
+      },
+      {
+        q: 'What does "Thou shalt not bear false witness against thy neighbour" (Exodus 20:16) require of a believer during this election?',
+        options: ['Silence about politics', 'Never repeating a claim about a count or an outcome that you cannot source, and stating the documented record plainly', 'Only speaking well of your own side'],
+        answer: 1,
+        explain: 'False witness runs both ways — inventing a stolen count and denying a documented scheme are both lies. The believer says what is documented and marks what is undecided.',
+      },
+      {
+        q: 'What is the believer’s own part, per the lesson’s stewardship?',
+        options: ['Wait for the merits ruling before voting', 'Check the state deadline, complete and return the ballot early by an allowed method, confirm receipt, help an older or disabled neighbour do the same, and pray for every name in the case first of all', 'Post reactions to each opinion'],
+        answer: 1,
+        explain: 'Render to Caesar what is Caesar’s (Matthew 22:21), pray first of all (1 Timothy 2:1-2), and trust that the disposing of the lot is of the LORD (Proverbs 16:33).',
+      },
+    ],
+  },
+};
+
+export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE, TUITION_1965_ISSUE, EPA_POWER_PLANT_ISSUE, TRADES_HIRING_ISSUE, SCOTUS_MAIL_IN_ISSUE];
 
 // ---------------------------------------------------------------------------
 // Course-specific helpers — thin wrappers over the reusable discernment engine

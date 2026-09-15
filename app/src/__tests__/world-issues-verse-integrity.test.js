@@ -1444,3 +1444,119 @@ describe('Issue 16 — The trades are hiring: every fragment verbatim from the r
     expect(issue.lens.graceNote).toMatch(/No condemnation/i);
   });
 });
+
+
+// =============================================================================
+// ISSUE 13 — The Supreme Court leaves the mail-in rules alone
+// (wi-scotus-mail-in-voting-2026). Darrell forwarded the Morning Brew and NPR
+// Up First items as build input on 2026-09-15. Every fragment below was fetched
+// from the repo KJV at authoring time; a drift fails here.
+// =============================================================================
+const SCOTUS_MAIL_IN_QUOTES = [
+  { ref: 'Leviticus 19:35', book: 'Leviticus', ch: 19, v: 35, fragments: ['Ye shall do no unrighteousness in judgment, in meteyard, in weight, or in measure.'] },
+  { ref: 'Leviticus 19:36', book: 'Leviticus', ch: 19, v: 36, fragments: ['Just balances, just weights, a just ephah, and a just hin, shall ye have: I am the LORD your God, which brought you out of the land of Egypt.'] },
+  { ref: 'Proverbs 16:11', book: 'Proverbs', ch: 16, v: 11, fragments: ['A just weight and balance are the LORD’s: all the weights of the bag are his work.'] },
+  { ref: 'Proverbs 11:1', book: 'Proverbs', ch: 11, v: 1, fragments: ['A false balance is abomination to the LORD: but a just weight is his delight.'] },
+  { ref: 'Proverbs 20:10', book: 'Proverbs', ch: 20, v: 10, fragments: ['Divers weights, and divers measures, both of them are alike abomination to the LORD.'] },
+  { ref: 'Deuteronomy 16:18', book: 'Deuteronomy', ch: 16, v: 18, fragments: ['Judges and officers shalt thou make thee in all thy gates', 'they shall judge the people with just judgment.'] },
+  { ref: 'Deuteronomy 16:19', book: 'Deuteronomy', ch: 16, v: 19, fragments: ['Thou shalt not wrest judgment; thou shalt not respect persons, neither take a gift: for a gift doth blind the eyes of the wise, and pervert the words of the righteous.'] },
+  { ref: 'Deuteronomy 16:20', book: 'Deuteronomy', ch: 16, v: 20, fragments: ['That which is altogether just shalt thou follow'] },
+  { ref: 'Deuteronomy 1:17', book: 'Deuteronomy', ch: 1, v: 17, fragments: ['Ye shall not respect persons in judgment; but ye shall hear the small as well as the great; ye shall not be afraid of the face of man; for the judgment is God’s'] },
+  { ref: 'Exodus 23:8', book: 'Exodus', ch: 23, v: 8, fragments: ['And thou shalt take no gift: for the gift blindeth the wise, and perverteth the words of the righteous.'] },
+  { ref: 'Exodus 23:2', book: 'Exodus', ch: 23, v: 2, fragments: ['Thou shalt not follow a multitude to do evil; neither shalt thou speak in a cause to decline after many to wrest judgment'] },
+  { ref: '2 Chronicles 19:6', book: '2Chronicles', ch: 19, v: 6, fragments: ['Take heed what ye do: for ye judge not for man, but for the LORD, who is with you in the judgment.'] },
+  { ref: 'Romans 13:1', book: 'Romans', ch: 13, v: 1, fragments: ['Let every soul be subject unto the higher powers. For there is no power but of God: the powers that be are ordained of God.'] },
+  { ref: 'Romans 13:4', book: 'Romans', ch: 13, v: 4, fragments: ['For he is the minister of God to thee for good.'] },
+  { ref: '1 Peter 2:13', book: '1Peter', ch: 2, v: 13, fragments: ['Submit yourselves to every ordinance of man for the Lord’s sake: whether it be to the king, as supreme;'] },
+  { ref: '1 Peter 2:14', book: '1Peter', ch: 2, v: 14, fragments: ['Or unto governors, as unto them that are sent by him for the punishment of evildoers, and for the praise of them that do well.'] },
+  { ref: '1 Timothy 2:1', book: '1Timothy', ch: 2, v: 1, fragments: ['I exhort therefore, that, first of all, supplications, prayers, intercessions, and giving of thanks, be made for all men;'] },
+  { ref: '1 Timothy 2:2', book: '1Timothy', ch: 2, v: 2, fragments: ['For kings, and for all that are in authority; that we may lead a quiet and peaceable life in all godliness and honesty.'] },
+  { ref: 'Matthew 22:21', book: 'Matthew', ch: 22, v: 21, fragments: ['Render therefore unto Caesar the things which are Caesar’s; and unto God the things that are God’s.'] },
+  { ref: 'Proverbs 16:33', book: 'Proverbs', ch: 16, v: 33, fragments: ['The lot is cast into the lap; but the whole disposing thereof is of the LORD.', 'the whole disposing thereof is of the LORD.'] },
+  { ref: 'Proverbs 21:1', book: 'Proverbs', ch: 21, v: 1, fragments: ['The king’s heart is in the hand of the LORD, as the rivers of water: he turneth it whithersoever he will.'] },
+  { ref: 'Psalms 75:7', book: 'Psalms', ch: 75, v: 7, fragments: ['But God is the judge: he putteth down one, and setteth up another.'] },
+  { ref: 'Matthew 7:20', book: 'Matthew', ch: 7, v: 20, fragments: ['Wherefore by their fruits ye shall know them.'] },
+  { ref: 'Proverbs 29:2', book: 'Proverbs', ch: 29, v: 2, fragments: ['When the righteous are in authority, the people rejoice: but when the wicked beareth rule, the people mourn.'] },
+  { ref: 'Ecclesiastes 12:14', book: 'Ecclesiastes', ch: 12, v: 14, fragments: ['For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil.', 'God shall bring every work into judgment, with every secret thing'] },
+  { ref: '1 Thessalonians 5:21', book: '1Thessalonians', ch: 5, v: 21, fragments: ['Prove all things; hold fast that which is good.'] },
+  { ref: 'Proverbs 18:13', book: 'Proverbs', ch: 18, v: 13, fragments: ['He that answereth a matter before he heareth it, it is folly and shame unto him.'] },
+  { ref: 'Proverbs 18:17', book: 'Proverbs', ch: 18, v: 17, fragments: ['He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him.'] },
+  { ref: 'Exodus 20:16', book: 'Exodus', ch: 20, v: 16, fragments: ['Thou shalt not bear false witness against thy neighbour.'] },
+  { ref: 'Proverbs 19:5', book: 'Proverbs', ch: 19, v: 5, fragments: ['A false witness shall not be unpunished, and he that speaketh lies shall not escape.'] },
+  { ref: 'Zechariah 8:16', book: 'Zechariah', ch: 8, v: 16, fragments: ['Speak ye every man the truth to his neighbour; execute the judgment of truth and peace in your gates'] },
+  { ref: 'Proverbs 17:15', book: 'Proverbs', ch: 17, v: 15, fragments: ['He that justifieth the wicked, and he that condemneth the just, even they both are abomination to the LORD.'] },
+  { ref: 'Proverbs 12:22', book: 'Proverbs', ch: 12, v: 22, fragments: ['Lying lips are abomination to the LORD: but they that deal truly are his delight.'] },
+  { ref: 'Galatians 6:7', book: 'Galatians', ch: 6, v: 7, fragments: ['God is not mocked'] },
+];
+
+describe('Issue 13 — The Supreme Court and the mail-in rules: every fragment verbatim from the repo KJV', () => {
+  const issue = WORLD_ISSUES.find((i) => i.id === 'wi-scotus-mail-in-voting-2026');
+  const norm = (s) => s.replace(/[’‘]/g, "'").replace(/\s+/g, ' ');
+
+  it('the issue is published', () => {
+    expect(issue).toBeTruthy();
+  });
+
+  it('every quoted fragment is a verbatim substring of the cited KJV verse', () => {
+    const failures = [];
+    for (const q of SCOTUS_MAIL_IN_QUOTES) {
+      const text = kjvVerse(q.book, q.ch, q.v);
+      for (const frag of q.fragments) {
+        if (!norm(text).includes(norm(frag))) {
+          failures.push(`${q.ref}: NOT VERBATIM — "${frag}" (verse reads: "${text}")`);
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it('every fragment actually appears in the issue content (no stale list)', () => {
+    const blob = norm(JSON.stringify(issue));
+    const missing = SCOTUS_MAIL_IN_QUOTES.flatMap((q) =>
+      q.fragments.filter((frag) => !blob.includes(norm(frag))).map((frag) => `${q.ref}: "${frag}"`));
+    expect(missing).toEqual([]);
+  });
+
+  // PROVEN-TO-CATCH: a one-word tamper in the anchor verse must fail.
+  it('CATCHES a one-word tamper in a pinned verse', () => {
+    const real = kjvVerse('Proverbs', 16, 11);
+    expect(norm(real).includes(norm('A just weight and balance are the king’s'))).toBe(false);
+    expect(norm(real).includes(norm('A just weight and balance are the LORD’s'))).toBe(true);
+  });
+
+  // DR-0100's three tiers are load-bearing: the procedural record is stated
+  // as documented, the government's fraud characterization is carried as
+  // opinion, the fraud RECORD is partly-documented (cases real, rate small,
+  // "widespread" unproven), and the voter directive is a labeled call-to-action.
+  it('states the procedural record plainly and labels the claims by tier', () => {
+    expect(issue.claims.find((x) => x.id === 'c-admin-fraud').label).toBe('opinion');
+    expect(issue.claims.find((x) => x.id === 'c-npr-check-deadlines').label).toBe('call-to-action');
+    expect(issue.claims.find((x) => x.id === 'c-rebuffed').label).toBe('claim');
+    expect(issue.verifiable.find((v) => v.id === 'f-scotus-order').status).toBe('documented');
+    expect(issue.verifiable.find((v) => v.id === 'f-lower-courts').status).toBe('documented');
+    expect(issue.verifiable.find((v) => v.id === 'f-fraud-record').status).toBe('partly-documented');
+    expect(issue.verifiable.find((v) => v.id === 'f-fraud-record').statement).toMatch(/four in ten million/);
+    // The merits are marked open, not decided.
+    expect(issue.interpretation.find((n) => n.id === 'n-not-the-merits').statement).toMatch(/merits remain open/);
+  });
+
+  it('the just weight is the frame — Word first, both edges named, the two courts held', () => {
+    const blob = JSON.stringify(issue);
+    expect(issue.lens.fourD.deepSource.indexOf('WORD FIRST')).toBe(0);
+    expect(blob).toContain('SO IN THIS CASE');
+    expect(blob).toContain('every lawful vote');
+    expect(blob).toContain('no unlawful one');
+    expect(issue.lens.accountability.scripture).toMatch(/Ecclesiastes 12:14/);
+    expect(issue.lens.anchor.ref).toMatch(/Proverbs 16:11/);
+  });
+
+  it('carries a grace note that condemns no one — named justices and officials included', () => {
+    expect(issue.lens.graceNote).toMatch(/No condemnation/i);
+    expect(issue.lens.graceNote).toMatch(/Alito/);
+    expect(issue.lens.graceNote).toMatch(/Talwani/);
+  });
+
+  it('the child rendering carries no charged election vocabulary', () => {
+    expect(issue.levels.child).not.toMatch(/fraud|steal|stolen|rig/i);
+  });
+});
