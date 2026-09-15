@@ -314,6 +314,19 @@ export function alignSegments(follow, spokenSegments, doc) {
  * (DR-0265): a cloned-voice clip has no word timings, but uniform-rate speech
  * maps fraction→characters well enough for sentence-level follow.
  */
+/**
+ * Where a reading RESUMES after the words change under it (a level switch
+ * mid-read, DR-0426): the same fraction of the way through, in the new text's
+ * own sentence count. The same law as DR-0418's step mapping — half-way stays
+ * half-way — applied to sentences. Pure; clamps to the last sentence.
+ */
+export function startIndexForFraction(fraction, count) {
+  const n = Math.max(0, Math.floor(Number(count) || 0));
+  if (!n) return 0;
+  const f = Math.min(1, Math.max(0, Number(fraction) || 0));
+  return Math.min(n - 1, Math.round(f * n));
+}
+
 export function segmentIndexAtFraction(lens, fraction) {
   const list = Array.isArray(lens) ? lens : [];
   const total = list.reduce((t, n) => t + (n > 0 ? n : 0), 0);

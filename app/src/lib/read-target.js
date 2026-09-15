@@ -68,6 +68,13 @@ export function setReadTarget(owner, target) {
     elementId: target && typeof target.elementId === 'string' && target.elementId ? target.elementId : null,
     prepare: target && typeof target.prepare === 'function' ? target.prepare : null,
     next: target && typeof target.next === 'function' ? target.next : null,
+    // THE READER CAN SWITCH THE LEVEL TOO (Darrell 2026-09-15, DR-0426): a
+    // lesson registers who it is pitched for and how to change that, so the
+    // reading panel can offer the same "Who is learning?" row the lesson does
+    // and re-read the new level's words from the same place.
+    level: target && typeof target.level === 'string' ? target.level : null,
+    levels: target && Array.isArray(target.levels) ? target.levels : null,
+    setLevel: target && typeof target.setLevel === 'function' ? target.setLevel : null,
   };
   notify();
 }
