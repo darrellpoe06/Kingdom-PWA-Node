@@ -231,9 +231,12 @@ describe('THE LIVE SERIES — measured, not asserted', () => {
     ).toEqual([]);
   });
 
-  it('knownLessons is the 2026-09-15 corpus, whole, and every lesson on disk today is in it', () => {
+  it('knownLessons is the 2026-09-15 corpus, fixed at 153, every one still on disk — and every lesson written since is held to the age', () => {
     expect(baseline.knownLessons.length).toBe(153);
-    for (const m of LIVING_LESSONS_MODULES) expect(baseline.knownLessons, `${m.id} predates the age ceiling`).toContain(m.id);
+    const onDisk = new Set(LIVING_LESSONS_MODULES.map((m) => m.id));
+    for (const id of baseline.knownLessons) expect(onDisk.has(id), `${id} is in knownLessons but not on disk`).toBe(true);
+    const newer = LIVING_LESSONS_MODULES.filter((m) => !baseline.knownLessons.includes(m.id));
+    for (const m of newer) expect(breachesChildCeiling(measureLesson(m), NEW_LESSON_CHILD_CEILING), `${m.id} was written after the age ceiling and its child level reads above grade 5`).toBe(false);
   });
 
   it('the committed baseline is the REAL debt, not a painted number', () => {
