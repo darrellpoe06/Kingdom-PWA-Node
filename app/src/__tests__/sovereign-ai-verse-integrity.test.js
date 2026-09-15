@@ -1578,3 +1578,309 @@ describe('sov20 — the book of remembrance quotes its whole spine verbatim, Wor
     expect(drifted).not.toContain(SOV20_FRAGMENTS['Isaiah 49:15']);
   });
 });
+
+
+// =============================================================================
+// sov21 — the whole system and the stone cut without hands (captured 2026-09-15
+// from the McKinsey Global Institute announcement of "The AI economy:
+// Interconnected forces, feedback loops, and speeds of change", forwarded by the
+// Governor with his "Lesson." marker; DR-0418). The class's whole-system week:
+// the Word drew the body (1 Corinthians 12:21), the sow-and-reap loop (Galatians
+// 6:7), the seventh-year reset (Deuteronomy 15:1), and the first scenario plan
+// (Genesis 41:34) before any analyst did — and a projection is never a prophecy
+// (Deuteronomy 18:22; James 4:15). Word-first per the sov9/sov10/sov17 standard;
+// every real-world fact carried by DR-0100's tiers with source + as-of date; the
+// report body was NOT readable from the authoring session and is never quoted as
+// if it were (DR-0076 §8); every quoted verse verbatim KJV + pinned here, a drift
+// fails the build (DR-0281).
+// =============================================================================
+const sov21 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov21-the-whole-system-and-the-stone-cut-without-hands');
+
+const SOV21_FRAGMENTS = {
+  '1 Corinthians 12:21': 'And the eye cannot say unto the hand, I have no need of thee: nor again the head to the feet, I have no need of you.',
+  'Galatians 6:7': 'Be not deceived; God is not mocked: for whatsoever a man soweth, that shall he also reap.',
+  'Daniel 2:34': 'Thou sawest till that a stone was cut out without hands, which smote the image upon his feet that were of iron and clay, and brake them to pieces.',
+  'Daniel 2:44': 'And in the days of these kings shall the God of heaven set up a kingdom, which shall never be destroyed: and the kingdom shall not be left to other people, but it shall break in pieces and consume all these kingdoms, and it shall stand for ever.',
+  '1 Corinthians 12:14': 'For the body is not one member, but many.',
+  'Ecclesiastes 5:11': 'When goods increase, they are increased that eat them: and what good is there to the owners thereof, saving the beholding of them with their eyes?',
+  'Hosea 8:7': 'For they have sown the wind, and they shall reap the whirlwind: it hath no stalk: the bud shall yield no meal: if so be it yield, the strangers shall swallow it up.',
+  'Luke 14:28': 'For which of you, intending to build a tower, sitteth not down first, and counteth the cost, whether he have sufficient to finish it?',
+  'Luke 14:31': 'Or what king, going to make war against another king, sitteth not down first, and consulteth whether he be able with ten thousand to meet him that cometh against him with twenty thousand?',
+  'Genesis 11:6': 'And the LORD said, Behold, the people is one, and they have all one language; and this they begin to do: and now nothing will be restrained from them, which they have imagined to do.',
+  'Genesis 11:8': 'So the LORD scattered them abroad from thence upon the face of all the earth: and they left off to build the city.',
+  'Ecclesiastes 9:11': 'I returned, and saw under the sun, that the race is not to the swift, nor the battle to the strong, neither yet bread to the wise, nor yet riches to men of understanding, nor yet favour to men of skill; but time and chance happeneth to them all.',
+  'Isaiah 28:16': 'Therefore thus saith the Lord GOD, Behold, I lay in Zion for a foundation a stone, a tried stone, a precious corner stone, a sure foundation: he that believeth shall not make haste.',
+  'Proverbs 21:5': 'The thoughts of the diligent tend only to plenteousness; but of every one that is hasty only to want.',
+  'Genesis 41:34': 'Let Pharaoh do this, and let him appoint officers over the land, and take up the fifth part of the land of Egypt in the seven plenteous years.',
+  'Proverbs 22:3': 'A prudent man foreseeth the evil, and hideth himself: but the simple pass on, and are punished.',
+  '1 Chronicles 12:32': 'had understanding of the times, to know what Israel ought to do',
+  'Deuteronomy 18:22': 'When a prophet speaketh in the name of the LORD, if the thing follow not, nor come to pass, that is the thing which the LORD hath not spoken, but the prophet hath spoken it presumptuously: thou shalt not be afraid of him.',
+  'James 4:15': 'For that ye ought to say, If the Lord will, we shall live, and do this, or that.',
+  'Psalms 24:1': 'The earth is the LORD’s, and the fulness thereof; the world, and they that dwell therein.',
+  'Luke 10:7': 'the labourer is worthy of his hire.',
+  'Proverbs 31:21': 'She is not afraid of the snow for her household: for all her household are clothed with scarlet.',
+  'Psalms 112:7': 'He shall not be afraid of evil tidings: his heart is fixed, trusting in the LORD.',
+  'Deuteronomy 15:1': 'At the end of every seven years thou shalt make a release.',
+  '1 Corinthians 12:17': 'If the whole body were an eye, where were the hearing? If the whole were hearing, where were the smelling?',
+  '1 Corinthians 12:26': 'And whether one member suffer, all the members suffer with it; or one member be honoured, all the members rejoice with it.',
+  'Colossians 1:17': 'And he is before all things, and by him all things consist.',
+  'Haggai 1:6': 'Ye have sown much, and bring in little; ye eat, but ye have not enough; ye drink, but ye are not filled with drink; ye clothe you, but there is none warm; and he that earneth wages earneth wages to put it into a bag with holes.',
+  'Proverbs 24:27': 'Prepare thy work without, and make it fit for thyself in the field; and afterwards build thine house.',
+  'Leviticus 25:23': 'The land shall not be sold for ever: for the land is mine; for ye are strangers and sojourners with me.',
+  'James 5:4': 'Behold, the hire of the labourers who have reaped down your fields, which is of you kept back by fraud, crieth: and the cries of them which have reaped are entered into the ears of the Lord of sabaoth.',
+  'Proverbs 23:5': 'Wilt thou set thine eyes upon that which is not? for riches certainly make themselves wings; they fly away as an eagle toward heaven.',
+  '1 Corinthians 3:13': 'Every man’s work shall be made manifest: for the day shall declare it, because it shall be revealed by fire; and the fire shall try every man’s work of what sort it is.',
+  'Isaiah 40:15': 'the nations are as a drop of a bucket, and are counted as the small dust of the balance',
+  '1 Corinthians 12:22': 'Nay, much more those members of the body, which seem to be more feeble, are necessary',
+  'Galatians 6:8': 'For he that soweth to his flesh shall of the flesh reap corruption; but he that soweth to the Spirit shall of the Spirit reap life everlasting.',
+  'Galatians 6:9': 'And let us not be weary in well doing: for in due season we shall reap, if we faint not.',
+  'Ecclesiastes 5:10': 'He that loveth silver shall not be satisfied with silver; nor he that loveth abundance with increase: this is also vanity.',
+  'Proverbs 13:11': 'Wealth gotten by vanity shall be diminished: but he that gathereth by labour shall increase.',
+  'Amos 3:3': 'Can two walk together, except they be agreed?',
+  'Genesis 11:4': 'And they said, Go to, let us build us a city and a tower, whose top may reach unto heaven; and let us make us a name, lest we be scattered abroad upon the face of the whole earth.',
+  '2 Thessalonians 3:10': 'if any would not work, neither should he eat.',
+  'Isaiah 65:22': 'mine elect shall long enjoy the work of their hands.',
+  'Job 31:15': 'Did not he that made me in the womb make him? and did not one fashion us in the womb?',
+  'Hebrews 11:3': 'Through faith we understand that the worlds were framed by the word of God, so that things which are seen were not made of things which do appear.',
+  'Matthew 7:20': 'Wherefore by their fruits ye shall know them.',
+  'Luke 14:29': 'Lest haply, after he hath laid the foundation, and is not able to finish it, all that behold it begin to mock him,',
+  'Luke 14:30': 'Saying, This man began to build, and was not able to finish.',
+  'Luke 14:32': 'Or else, while the other is yet a great way off, he sendeth an ambassage, and desireth conditions of peace.',
+  'Exodus 31:3': 'in all manner of workmanship',
+  'Isaiah 54:16': 'I have created the smith that bloweth the coals in the fire, and that bringeth forth an instrument for his work',
+  'Proverbs 28:20': 'A faithful man shall abound with blessings: but he that maketh haste to be rich shall not be innocent.',
+  'Genesis 8:22': 'While the earth remaineth, seedtime and harvest, and cold and heat, and summer and winter, and day and night shall not cease.',
+  'Zechariah 4:10': 'For who hath despised the day of small things?',
+  'Habakkuk 2:3': 'For the vision is yet for an appointed time, but at the end it shall speak, and not lie: though it tarry, wait for it; because it will surely come, it will not tarry.',
+  'Leviticus 25:4': 'But in the seventh year shall be a sabbath of rest unto the land, a sabbath for the LORD: thou shalt neither sow thy field, nor prune thy vineyard.',
+  'Exodus 23:11': 'But the seventh year thou shalt let it rest and lie still; that the poor of thy people may eat',
+  'Deuteronomy 15:2': 'And this is the manner of the release: Every creditor that lendeth ought unto his neighbour shall release it; he shall not exact it of his neighbour, or of his brother; because it is called the LORD’s release.',
+  'Leviticus 25:10': 'And ye shall hallow the fiftieth year, and proclaim liberty throughout all the land unto all the inhabitants thereof: it shall be a jubile unto you; and ye shall return every man unto his possession, and ye shall return every man unto his family.',
+  'Leviticus 25:13': 'In the year of this jubile ye shall return every man unto his possession.',
+  'Isaiah 5:8': 'Woe unto them that join house to house, that lay field to field, till there be no place',
+  'Proverbs 22:7': 'The rich ruleth over the poor, and the borrower is servant to the lender.',
+  'Leviticus 25:21': 'Then I will command my blessing upon you in the sixth year, and it shall bring forth fruit for three years.',
+  'Nehemiah 5:11': 'Restore, I pray you, to them, even this day, their lands, their vineyards, their oliveyards, and their houses',
+  'Luke 4:19': 'To preach the acceptable year of the Lord.',
+  'Genesis 41:25': 'And Joseph said unto Pharaoh, The dream of Pharaoh is one: God hath shewed Pharaoh what he is about to do.',
+  'Genesis 41:29': 'Behold, there come seven years of great plenty throughout all the land of Egypt:',
+  'Genesis 41:30': 'And there shall arise after them seven years of famine; and all the plenty shall be forgotten in the land of Egypt; and the famine shall consume the land;',
+  'Genesis 41:33': 'Now therefore let Pharaoh look out a man discreet and wise, and set him over the land of Egypt.',
+  'Genesis 41:35': 'And let them gather all the food of those good years that come, and lay up corn under the hand of Pharaoh, and let them keep food in the cities.',
+  'Genesis 41:36': 'And that food shall be for store to the land against the seven years of famine, which shall be in the land of Egypt; that the land perish not through the famine.',
+  'Genesis 41:38': 'Can we find such a one as this is, a man in whom the Spirit of God is?',
+  'Luke 12:56': 'Ye hypocrites, ye can discern the face of the sky and of the earth; but how is it that ye do not discern this time?',
+  'Proverbs 27:23': 'Be thou diligent to know the state of thy flocks, and look well to thy herds.',
+  'Proverbs 27:24': 'For riches are not for ever: and doth the crown endure to every generation?',
+  'Proverbs 6:8': 'Provideth her meat in the summer, and gathereth her food in the harvest.',
+  'Ecclesiastes 11:2': 'Give a portion to seven, and also to eight; for thou knowest not what evil shall be upon the earth.',
+  'Genesis 41:32': 'the thing is established by God, and God will shortly bring it to pass.',
+  'James 4:13': 'Go to now, ye that say, To day or to morrow we will go into such a city, and continue there a year, and buy and sell, and get gain:',
+  'James 4:14': 'Whereas ye know not what shall be on the morrow. For what is your life? It is even a vapour, that appeareth for a little time, and then vanisheth away.',
+  'Proverbs 27:1': 'Boast not thyself of to morrow; for thou knowest not what a day may bring forth.',
+  'Isaiah 46:10': 'Declaring the end from the beginning, and from ancient times the things that are not yet done, saying, My counsel shall stand, and I will do all my pleasure:',
+  'Isaiah 41:23': 'Shew the things that are to come hereafter, that we may know that ye are gods',
+  'Revelation 18:17': 'For in one hour so great riches is come to nought.',
+  'Haggai 2:8': 'The silver is mine, and the gold is mine, saith the LORD of hosts.',
+  '1 Timothy 5:18': 'The labourer is worthy of his reward.',
+  'Deuteronomy 24:15': 'At his day thou shalt give him his hire, neither shall the sun go down upon it; for he is poor, and setteth his heart upon it: lest he cry against thee unto the LORD, and it be sin unto thee.',
+  'Genesis 3:19': 'In the sweat of thy face shalt thou eat bread',
+  'Proverbs 23:4': 'Labour not to be rich: cease from thine own wisdom.',
+  '1 Timothy 6:17': 'Charge them that are rich in this world, that they be not highminded, nor trust in uncertain riches, but in the living God',
+  'Ecclesiastes 12:14': 'For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil.',
+  'Daniel 2:31': 'Thou, O king, sawest, and behold a great image. This great image, whose brightness was excellent, stood before thee; and the form thereof was terrible.',
+  'Daniel 2:37': 'Thou, O king, art a king of kings: for the God of heaven hath given thee a kingdom, power, and strength, and glory.',
+  'Daniel 2:35': 'Then was the iron, the clay, the brass, the silver, and the gold, broken to pieces together, and became like the chaff of the summer threshingfloors; and the wind carried them away, that no place was found for them: and the stone that smote the image became a great mountain, and filled the whole earth.',
+  'Daniel 2:45': 'the dream is certain, and the interpretation thereof sure.',
+  'Daniel 2:21': 'he changeth the times and the seasons: he removeth kings, and setteth up kings',
+  'Psalms 2:1': 'Why do the heathen rage, and the people imagine a vain thing?',
+  'Psalms 2:4': 'He that sitteth in the heavens shall laugh: the Lord shall have them in derision.',
+  'Psalms 33:10': 'The LORD bringeth the counsel of the heathen to nought: he maketh the devices of the people of none effect.',
+  'Psalms 33:11': 'The counsel of the LORD standeth for ever, the thoughts of his heart to all generations.',
+  'Proverbs 19:21': 'There are many devices in a man’s heart; nevertheless the counsel of the LORD, that shall stand.',
+  'Isaiah 9:7': 'Of the increase of his government and peace there shall be no end',
+  'Daniel 12:4': 'many shall run to and fro, and knowledge shall be increased.',
+  'Luke 21:26': 'Men’s hearts failing them for fear, and for looking after those things which are coming on the earth',
+  'Proverbs 31:25': 'Strength and honour are her clothing; and she shall rejoice in time to come.',
+  'Deuteronomy 8:17': 'And thou say in thine heart, My power and the might of mine hand hath gotten me this wealth.',
+  'Deuteronomy 8:18': 'But thou shalt remember the LORD thy God: for it is he that giveth thee power to get wealth',
+  'Luke 19:13': 'Occupy till I come.',
+  'Matthew 6:33': 'But seek ye first the kingdom of God, and his righteousness; and all these things shall be added unto you.',
+  'Matthew 6:34': 'Take therefore no thought for the morrow: for the morrow shall take thought for the things of itself.',
+  'Jeremiah 17:7': 'Blessed is the man that trusteth in the LORD, and whose hope the LORD is.',
+  'Jeremiah 17:8': 'For he shall be as a tree planted by the waters, and that spreadeth out her roots by the river, and shall not see when heat cometh, but her leaf shall be green; and shall not be careful in the year of drought, neither shall cease from yielding fruit.',
+  'Psalms 127:1': 'Except the LORD build the house, they labour in vain that build it',
+};
+
+// Where each pinned fragment lives in the corpus (book file, chapter, verse).
+const SOV21_CORPUS = {
+  '1 Corinthians 12:21': ['1Corinthians', 12, 21], 'Galatians 6:7': ['Galatians', 6, 7], 'Daniel 2:34': ['Daniel', 2, 34], 'Daniel 2:44': ['Daniel', 2, 44],
+  '1 Corinthians 12:14': ['1Corinthians', 12, 14], 'Ecclesiastes 5:11': ['Ecclesiastes', 5, 11], 'Hosea 8:7': ['Hosea', 8, 7],
+  'Luke 14:28': ['Luke', 14, 28], 'Luke 14:31': ['Luke', 14, 31], 'Genesis 11:6': ['Genesis', 11, 6], 'Genesis 11:8': ['Genesis', 11, 8],
+  'Ecclesiastes 9:11': ['Ecclesiastes', 9, 11], 'Isaiah 28:16': ['Isaiah', 28, 16], 'Proverbs 21:5': ['Proverbs', 21, 5],
+  'Genesis 41:34': ['Genesis', 41, 34], 'Proverbs 22:3': ['Proverbs', 22, 3], '1 Chronicles 12:32': ['1Chronicles', 12, 32],
+  'Deuteronomy 18:22': ['Deuteronomy', 18, 22], 'James 4:15': ['James', 4, 15], 'Psalms 24:1': ['Psalms', 24, 1], 'Luke 10:7': ['Luke', 10, 7],
+  'Proverbs 31:21': ['Proverbs', 31, 21], 'Psalms 112:7': ['Psalms', 112, 7], 'Deuteronomy 15:1': ['Deuteronomy', 15, 1],
+  '1 Corinthians 12:17': ['1Corinthians', 12, 17], '1 Corinthians 12:26': ['1Corinthians', 12, 26], 'Colossians 1:17': ['Colossians', 1, 17],
+  'Haggai 1:6': ['Haggai', 1, 6], 'Proverbs 24:27': ['Proverbs', 24, 27], 'Leviticus 25:23': ['Leviticus', 25, 23], 'James 5:4': ['James', 5, 4],
+  'Proverbs 23:5': ['Proverbs', 23, 5], '1 Corinthians 3:13': ['1Corinthians', 3, 13], 'Isaiah 40:15': ['Isaiah', 40, 15],
+  '1 Corinthians 12:22': ['1Corinthians', 12, 22], 'Galatians 6:8': ['Galatians', 6, 8], 'Galatians 6:9': ['Galatians', 6, 9],
+  'Ecclesiastes 5:10': ['Ecclesiastes', 5, 10], 'Proverbs 13:11': ['Proverbs', 13, 11], 'Amos 3:3': ['Amos', 3, 3], 'Genesis 11:4': ['Genesis', 11, 4],
+  '2 Thessalonians 3:10': ['2Thessalonians', 3, 10], 'Isaiah 65:22': ['Isaiah', 65, 22], 'Job 31:15': ['Job', 31, 15], 'Hebrews 11:3': ['Hebrews', 11, 3],
+  'Matthew 7:20': ['Matthew', 7, 20], 'Luke 14:29': ['Luke', 14, 29], 'Luke 14:30': ['Luke', 14, 30], 'Luke 14:32': ['Luke', 14, 32],
+  'Exodus 31:3': ['Exodus', 31, 3], 'Isaiah 54:16': ['Isaiah', 54, 16], 'Proverbs 28:20': ['Proverbs', 28, 20], 'Genesis 8:22': ['Genesis', 8, 22],
+  'Zechariah 4:10': ['Zechariah', 4, 10], 'Habakkuk 2:3': ['Habakkuk', 2, 3], 'Leviticus 25:4': ['Leviticus', 25, 4], 'Exodus 23:11': ['Exodus', 23, 11],
+  'Deuteronomy 15:2': ['Deuteronomy', 15, 2], 'Leviticus 25:10': ['Leviticus', 25, 10], 'Leviticus 25:13': ['Leviticus', 25, 13], 'Isaiah 5:8': ['Isaiah', 5, 8],
+  'Proverbs 22:7': ['Proverbs', 22, 7], 'Leviticus 25:21': ['Leviticus', 25, 21], 'Nehemiah 5:11': ['Nehemiah', 5, 11], 'Luke 4:19': ['Luke', 4, 19],
+  'Genesis 41:25': ['Genesis', 41, 25], 'Genesis 41:29': ['Genesis', 41, 29], 'Genesis 41:30': ['Genesis', 41, 30], 'Genesis 41:33': ['Genesis', 41, 33],
+  'Genesis 41:35': ['Genesis', 41, 35], 'Genesis 41:36': ['Genesis', 41, 36], 'Genesis 41:38': ['Genesis', 41, 38], 'Luke 12:56': ['Luke', 12, 56],
+  'Proverbs 27:23': ['Proverbs', 27, 23], 'Proverbs 27:24': ['Proverbs', 27, 24], 'Proverbs 6:8': ['Proverbs', 6, 8], 'Ecclesiastes 11:2': ['Ecclesiastes', 11, 2],
+  'Genesis 41:32': ['Genesis', 41, 32], 'James 4:13': ['James', 4, 13], 'James 4:14': ['James', 4, 14], 'Proverbs 27:1': ['Proverbs', 27, 1],
+  'Isaiah 46:10': ['Isaiah', 46, 10], 'Isaiah 41:23': ['Isaiah', 41, 23], 'Revelation 18:17': ['Revelation', 18, 17], 'Haggai 2:8': ['Haggai', 2, 8],
+  '1 Timothy 5:18': ['1Timothy', 5, 18], 'Deuteronomy 24:15': ['Deuteronomy', 24, 15], 'Genesis 3:19': ['Genesis', 3, 19], 'Proverbs 23:4': ['Proverbs', 23, 4],
+  '1 Timothy 6:17': ['1Timothy', 6, 17], 'Ecclesiastes 12:14': ['Ecclesiastes', 12, 14], 'Daniel 2:31': ['Daniel', 2, 31], 'Daniel 2:37': ['Daniel', 2, 37],
+  'Daniel 2:35': ['Daniel', 2, 35], 'Daniel 2:45': ['Daniel', 2, 45], 'Daniel 2:21': ['Daniel', 2, 21], 'Psalms 2:1': ['Psalms', 2, 1], 'Psalms 2:4': ['Psalms', 2, 4],
+  'Psalms 33:10': ['Psalms', 33, 10], 'Psalms 33:11': ['Psalms', 33, 11], 'Proverbs 19:21': ['Proverbs', 19, 21], 'Isaiah 9:7': ['Isaiah', 9, 7],
+  'Daniel 12:4': ['Daniel', 12, 4], 'Luke 21:26': ['Luke', 21, 26], 'Proverbs 31:25': ['Proverbs', 31, 25], 'Deuteronomy 8:17': ['Deuteronomy', 8, 17],
+  'Deuteronomy 8:18': ['Deuteronomy', 8, 18], 'Luke 19:13': ['Luke', 19, 13], 'Matthew 6:33': ['Matthew', 6, 33], 'Matthew 6:34': ['Matthew', 6, 34],
+  'Jeremiah 17:7': ['Jeremiah', 17, 7], 'Jeremiah 17:8': ['Jeremiah', 17, 8], 'Psalms 127:1': ['Psalms', 127, 1],
+};
+
+describe('sov21 — the whole system and the stone cut without hands quotes its whole spine verbatim, Word first', () => {
+  it('the week exists, anchored on the oldest loop and the kingdom that stands for ever', () => {
+    expect(sov21).toBeTruthy();
+    expect(sov21.anchor.ref).toContain('Galatians 6:7');
+    expect(sov21.anchor.ref).toContain('Daniel 2:44');
+    expect(sov21.anchor.theme).toContain(SOV21_FRAGMENTS['Galatians 6:7']);
+    expect(sov21.anchor.theme).toContain(SOV21_FRAGMENTS['Daniel 2:44']);
+    // No margin list of bare references (DR-0391 / DR-0402 / DR-0403).
+    expect(sov21.anchor.theme).not.toMatch(/spine of this week/i);
+  });
+  it('every quoted fragment appears letter-for-letter in the deep lesson, with its reference beside it', () => {
+    expect(Object.keys(SOV21_FRAGMENTS).length).toBeGreaterThanOrEqual(25);
+    for (const [ref, fragment] of Object.entries(SOV21_FRAGMENTS)) {
+      expect(sov21.lesson, `${ref} must be quoted verbatim`).toContain(fragment);
+      expect(sov21.lesson, `${ref} must be named beside its quote`).toContain(`(${ref})`);
+    }
+  });
+  it('every fragment matches the repo KJV corpus, not memory (two witnesses)', () => {
+    const corpus = (book) => JSON.parse(readFileSync(join(HERE, '..', '..', 'public', 'bible', 'kjv', `${book}.json`), 'utf8'));
+    const verse = (book, ch, v) => corpus(book).chapters[ch - 1][v - 1];
+    for (const [ref, fragment] of Object.entries(SOV21_FRAGMENTS)) {
+      const at = SOV21_CORPUS[ref];
+      expect(at, `${ref} must have a corpus address`).toBeTruthy();
+      expect(verse(...at), `${ref} corpus`).toContain(fragment);
+    }
+  });
+  it('every quoted verse in the OTHER fields (bigIdea, benefits, bands, quiz, facilitator) is one of the pinned fragments or a substring of one', () => {
+    const strings = [];
+    const walk = (o) => { if (typeof o === 'string') strings.push(o); else if (Array.isArray(o)) o.forEach(walk); else if (o && typeof o === 'object') Object.values(o).forEach(walk); };
+    walk({ ...sov21, lesson: '' });
+    const fields = strings.join('\n');
+    const re = /"([^"]+)"\s*\(((?:[1-3] )?[A-Za-z]+ \d+:\d+)\)/g;
+    let m;
+    while ((m = re.exec(fields))) {
+      const [, q, ref] = m;
+      const pinned = SOV21_FRAGMENTS[ref];
+      expect(pinned, `${ref} quoted outside the lesson must be pinned`).toBeTruthy();
+      expect(pinned.includes(q) || q.includes(pinned), `${ref}: "${q}" must be verbatim within the pinned fragment`).toBe(true);
+    }
+  });
+  it('the Word LEADS and the ten movements run in order', () => {
+    expect(sov21.lesson.indexOf('FIRST, THE WORD SAW THE WHOLE SYSTEM FIRST')).toBe(0);
+    // The body precedes McKinsey; sowing and reaping precedes the first dollar figure (Word first, DR-0312/DR-0331).
+    expect(sov21.lesson.indexOf('I have no need of thee')).toBeLessThan(sov21.lesson.indexOf('McKinsey'));
+    expect(sov21.lesson.indexOf('by him all things consist')).toBeLessThan(sov21.lesson.indexOf('$6.7 trillion'));
+    const order = ['FIRST,', 'SECOND,', 'THIRD,', 'FOURTH,', 'FIFTH,', 'SIXTH,', 'SEVENTH,', 'EIGHTH,', 'NINTH,', 'TENTH,'];
+    let last = -1;
+    for (const m of order) {
+      const at = sov21.lesson.indexOf(m);
+      expect(at, `${m} must appear in order`).toBeGreaterThan(last);
+      last = at;
+    }
+    expect(sov21.lesson.length).toBeGreaterThanOrEqual(12000);
+  });
+  it('the load-bearing teaching is carried: the loop, the bottleneck, the speeds, the reset, Joseph, the bright line, the projection, the stone, the brakes', () => {
+    expect(sov21.lesson).toContain('THE OLDEST FEEDBACK LOOP');
+    expect(sov21.lesson).toContain('THINGS OUT OF STEP');
+    expect(sov21.lesson).toContain('THE SPEEDS OF CHANGE');
+    expect(sov21.lesson).toContain('THE SEVENTH YEAR AND THE JUBILE');
+    expect(sov21.lesson).toContain('THE FIRST SCENARIO PLAN');
+    expect(sov21.lesson).toContain('a projection is not a prophecy');
+    expect(sov21.lesson).toContain('LIKELY, into 2030');
+    expect(sov21.lesson).toContain('CERTAIN, from the Word');
+    expect(sov21.lesson).toContain('THE STONE CUT WITHOUT HANDS');
+    for (const brake of ['BUDGET', 'LOCK', 'STOP']) expect(sov21.lesson).toContain(brake);
+    expect(sov21.lesson).toContain('proven-to-catch');
+    expect(sov21.lesson).toContain('ARMED-BY-RECORD');
+    expect(sov21.inApp).toMatch(/OpsBoard/);
+    // Daniel 12:4 is held with the Word's own reticence: no technology is named for it.
+    expect(sov21.lesson).toContain('it does not name a technology, and we will not name one for it');
+  });
+  it('DR-0100: the tiers are named and applied; the report body is never quoted as if it were read; every 2030 figure is a projection', () => {
+    expect(sov21.lesson).toContain('TIER ONE, documented');
+    expect(sov21.lesson).toContain('TIER TWO, genuinely open');
+    expect(sov21.lesson).toContain('TIER THREE, over-reach');
+    expect(sov21.lesson).toContain('no number in this lesson is attributed to the report');
+    expect(sov21.lesson).toContain('DR-0076 SS8');
+    // Sources carry their as-of dates.
+    for (const stamp of ['2026-09-10', 'April 2025', 'June 2023', 'July 2023', '2026-08-25', '2026-08-26', '2026-09-15']) expect(sov21.lesson).toContain(stamp);
+    // The perspectives are steelmanned before the Word weighs them, and named to be educated past, not voted on.
+    expect(sov21.lesson).toContain('be fair to the perspectives');
+    expect(sov21.lesson).toContain('named to be educated past, not to be voted on');
+    // Each LIKELY line carries its assumption.
+    const likely = sov21.lesson.slice(sov21.lesson.indexOf('LIKELY, into 2030'), sov21.lesson.indexOf('CERTAIN, from the Word'));
+    expect((likely.match(/\bIF\b/g) || []).length).toBeGreaterThanOrEqual(4);
+  });
+  it('provenance honesty: the only non-Scripture double-quoted spans in the lesson are McKinsey\'s own announcement lines', () => {
+    const isWord = (q) => Object.values(SOV21_FRAGMENTS).some((f) => q.includes(f) || f.includes(q.slice(1, -1)));
+    const nonScripture = (sov21.lesson.match(/"[^"]+"/g) || []).filter((q) => !isWord(q));
+    const allowed = [
+      '"AI may be the most consequential technology of our time"',
+      '"seeing the whole system, not just the technology"',
+      '"fall out of step, creating bottlenecks and risks"',
+      '"a change in one part can ripple through the rest"',
+      '"AI is shaped by forces far beyond the technology itself, and its effects reach just as widely"',
+    ];
+    for (const q of nonScripture) expect(allowed, `unexpected non-Scripture quote: ${q}`).toContain(q);
+    // Bill Gates is carried paraphrased, never as a verbatim line.
+    expect(sov21.lesson).toContain('paraphrased here, not quoted');
+  });
+  it('typographic theology: Yahweh in our voice; the adversary lowercase; the Word capitalized', () => {
+    const ours = sov21.lesson.replace(/"[^"]+"/g, '');
+    expect(ours).not.toMatch(/\bGod\b/); // the KJV's "God" lives only inside quotes
+    expect(ours).toMatch(/Yahweh/);
+    expect(sov21.lesson).not.toMatch(/\bSatan\b|\bDevil\b|\bLucifer\b/);
+    expect(sov21.lesson).toContain('the Word');
+    // The Son confessed as the Lamb.
+    expect(sov21.lesson).toContain('the Son of Yahweh, the Lamb');
+  });
+  it('the send-off page has content: six benefits, each a real takeaway quoting the Word', () => {
+    expect(sov21.benefits.length).toBeGreaterThanOrEqual(6);
+    for (const b of sov21.benefits) expect(b.length).toBeGreaterThan(80);
+    const blob = sov21.benefits.join('  ');
+    expect(blob).toContain('I have no need of thee');
+    expect(blob).toContain('whatsoever a man soweth');
+    expect(blob).toContain('If the Lord will');
+    expect(blob).toContain('cut out without hands');
+  });
+  it('the three bands ascend and the child band is gentle', () => {
+    expect(typeof sov21.levels.child).toBe('string');
+    expect(sov21.levels.child.length).toBeLessThan(sov21.levels.teen.length);
+    expect(sov21.levels.teen.length).toBeLessThan(sov21.levels.senior.length);
+    expect(sov21.levels.child).not.toMatch(/kill|murder|rape|sexual|abuse|slaughter|massacre|execution|suicide|porn|drug/i);
+    expect(sov21.quiz.questions.length).toBeGreaterThanOrEqual(6);
+    expect(sov21.facilitator.talkingPoints.length).toBeGreaterThanOrEqual(10);
+    expect(sov21.facilitator.discussionPrompts.length).toBeGreaterThanOrEqual(10);
+    expect(sov21.rpe.research && sov21.rpe.plan && sov21.rpe.execute).toBeTruthy();
+  });
+  it('tamper-catch: the pinned ground-truth lines are themselves exact', () => {
+    expect(SOV21_FRAGMENTS['Galatians 6:7']).toBe('Be not deceived; God is not mocked: for whatsoever a man soweth, that shall he also reap.');
+    expect(SOV21_FRAGMENTS['1 Corinthians 12:21']).toBe('And the eye cannot say unto the hand, I have no need of thee: nor again the head to the feet, I have no need of you.');
+    expect(SOV21_FRAGMENTS['Deuteronomy 15:1']).toBe('At the end of every seven years thou shalt make a release.');
+    expect(SOV21_FRAGMENTS['Deuteronomy 18:22']).toBe('When a prophet speaketh in the name of the LORD, if the thing follow not, nor come to pass, that is the thing which the LORD hath not spoken, but the prophet hath spoken it presumptuously: thou shalt not be afraid of him.');
+    // A one-word drift in the lesson would fail the presence check above; prove the check has teeth.
+    const drifted = sov21.lesson.replace('whatsoever a man soweth, that shall he also reap', 'whatever a man sows, that shall he also reap');
+    expect(drifted).not.toContain(SOV21_FRAGMENTS['Galatians 6:7']);
+  });
+});
