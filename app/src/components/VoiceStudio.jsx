@@ -531,7 +531,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
       render: () => (
         <div className="mb-6 border border-[#1A1815] bg-white p-4" data-testid="likeness-tab">
           <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
-            <div className="text-sm font-semibold text-[#1A1815]">🖼 Your likeness — {PERSONA_NAME[personaKey]}</div>
+            <div className="text-sm font-semibold text-[#1A1815]">Your likeness — {PERSONA_NAME[personaKey]}</div>
             <span className="text-[0.5625rem] uppercase tracking-wider bg-[#1A1815] text-white px-1.5 py-0.5">AI-generated likeness</span>
           </div>
           <p className="text-[0.75rem] text-[#5A5751] leading-relaxed mb-3">
@@ -547,7 +547,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
             </div>
           )}
           <label htmlFor="vs-portrait" className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Photo</label>
-          <input id="vs-portrait" type="file" accept="image/*" capture="user" className="block text-[0.75rem] mt-1 mb-3"
+          <input id="vs-portrait" type="file" accept="image/*" className="block text-[0.75rem] mt-1 mb-3"
             onChange={(e) => { const f = e.target.files && e.target.files[0]; setPortraitFile(f || null); if (f) setPortraitPreview(URL.createObjectURL(f)); }} />
           <div className="flex items-center gap-2 flex-wrap">
             <button type="button" onClick={savePortraitAndConsent} disabled={busy || !portraitFile}
