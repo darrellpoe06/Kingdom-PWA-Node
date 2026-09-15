@@ -19,7 +19,7 @@ import { useReadAloud } from '../lib/use-read-aloud.js';
 import {
   buildFollowMap, wordRange, highlightSegment, highlightWord,
   clearReadingHighlights, followRange, rangeFor,
-  segmentIndexAtDomPoint, alignSegments, segmentIndexAtFraction,
+  segmentIndexAtDomPoint, alignSegments, segmentIndexAtFraction, startIndexForFraction,
   paragraphStarts, paragraphJumpTarget,
 } from '../lib/read-follow.js';
 import { segmentText } from '../lib/tts.js';
@@ -134,6 +134,12 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // mapping where the mode supports it), wordable }.
   const followRef = useRef(null);
   const lastCloudIdxRef = useRef(-1);
+  // A LEVEL SWITCH MID-READ KEEPS THE PLACE (DR-0426). When the listener picks
+  // a level from this panel while a lesson is being read, the lesson
+  // re-registers its target with the new level's words; this remembers how
+  // far through the OLD words the reader was, so the new read can begin at
+  // the same fraction (half-way stays half-way — DR-0418's law, per sentence).
+  const relevelRef = useRef(null);
   // DECLARED ABOVE THE EFFECT THAT LISTS IT. A dependency array is evaluated
   // DURING RENDER, so this const sitting below the effect put it in the
   // temporal dead zone and every mount of the reader threw
@@ -284,6 +290,30 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // whole-page reading stays as the fallback below it.
   const [target, setTarget] = useState(() => getReadTarget());
   useEffect(() => subscribeReadTarget(setTarget), []);
+  // THE READER CAN SWITCH THE LEVEL TOO (Darrell 2026-09-15: "we would also
+  // want the reader to be able to switch too" — DR-0426). The lesson hands
+  // its "Who is learning?" choice to the target (level / levels / setLevel);
+  // a pick here reaches the same remembered state the in-lesson row sets.
+  // Mid-read, the current fraction is kept, the engine stops, and when the
+  // lesson re-registers with the new words the reading resumes there.
+  const pickLevel = (id) => {
+    if (!target || !target.setLevel || !id || id === target.level) return;
+    if (isReading && followRef.current && followRef.current.follow) {
+      const total = followRef.current.follow.segments.length || 1;
+      relevelRef.current = { owner: target.owner, fromLevel: target.level, fraction: Math.min(1, Math.max(0, currentGlobalSegment() / total)) };
+      // Not an ended piece: the hands-free run must not advance to the next
+      // lesson while the same lesson re-registers at the new level.
+      jumpingRef.current = true;
+      stop();
+    }
+    try { target.setLevel(id); } catch (_) { relevelRef.current = null; jumpingRef.current = false; }
+  };
+  useEffect(() => {
+    const pending = relevelRef.current;
+    if (!pending || !target || target.owner !== pending.owner || target.level === pending.fromLevel) return;
+    relevelRef.current = null;
+    if (readTargetRef.current) readTargetRef.current(target, { continuing: true, startFraction: pending.fraction });
+  }, [target]);
   // ONE-BUTTON PLAY FROM ANY SURFACE (Darrell 2026-08-10: "speakers are
   // supposed to be able to push play for reading whatever"). A surface asks
   // (lib/read-request) and the reader answers with its full behavior — the
@@ -503,7 +533,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // spoken has a range, word-level follow works again, and nothing deeper is
   // skipped. The composed text remains the honest fallback for a surface that
   // registers no element (or one that isn't in the DOM).
-  const readTargetNow = async (t, { continuing = false } = {}) => {
+  const readTargetNow = async (t, { continuing = false, startFraction = null } = {}) => {
     if (!t) return;
     // A target read is always a RUN: it keeps going to the next piece unless
     // the listener stops it.
@@ -555,7 +585,9 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
       // run advanced into, so it starts at its top; only a read the listener
       // themselves started resumes. Unresolvable saved sentence -> the top,
       // never a guess.
-      const at = continuing ? -1 : savedStartIndex(follow.segments);
+      const at = startFraction != null
+        ? startIndexForFraction(startFraction, follow.segments.length)
+        : (continuing ? -1 : savedStartIndex(follow.segments));
       if (at > 0 && follow.segments[at]) {
         followRef.current = pageFollowState(follow, at);
         setMinimized(true);
@@ -717,6 +749,14 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           aria-label="Reading controls (minimized)"
         >
           <span className="text-[0.6875em] uppercase tracking-wider text-[#B85838] font-semibold" aria-live="polite">{isPaused ? 'Paused' : 'Reading…'}{runInfo ? ' · keeps going' : ''}</span>
+          {/* The level, one tap wide, on the pill too (DR-0426): the pill is
+              what a listener sees for the whole reading. */}
+          {target && target.setLevel && Array.isArray(target.levels) && target.levels.length > 0 && (
+            <select aria-label="Who is learning? Switch the level — the reading keeps its place" value={target.level || ''} onChange={(e) => pickLevel(e.target.value)}
+              className="min-h-[2.75em] text-[0.6875em] uppercase tracking-wider border-2 border-[#E8E4DC] bg-white text-[#1A1815] px-[0.25em] focus:outline focus:outline-2 focus:outline-[#B85838]" data-testid="reader-level-select">
+              {target.levels.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+            </select>
+          )}
           {canJump && (
             <>
               <button type="button" onClick={() => jumpParagraph(-1)} aria-label="Back — re-listen this paragraph; tap again for the one before" title="Re-listen this paragraph (again = the one before)" className="px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
@@ -809,6 +849,26 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
               </>
             )}
           </div>
+
+          {/* WHO IS LEARNING — the level, switchable from the reader (DR-0426).
+              Same row the lesson shows at every stage; a pick mid-read keeps
+              the place and resumes in the new words. */}
+          {target && target.setLevel && Array.isArray(target.levels) && target.levels.length > 0 && (
+            <div className="mb-[0.5em]" data-testid="reader-level-control">
+              <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Who is learning?{isReading ? ' — switch and it keeps your place' : ' — sets the words and the pace'}</div>
+              <div className="flex flex-wrap gap-[0.25em]" role="radiogroup" aria-label="Who is learning? Sets the words and the pace">
+                {target.levels.map((b) => {
+                  const on = b.id === target.level;
+                  return (
+                    <button key={b.id} type="button" role="radio" aria-checked={on} onClick={() => pickLevel(b.id)}
+                      className={`px-[0.5em] py-[0.5em] min-h-[2.25em] text-[0.625em] uppercase tracking-wider border focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>
+                      {b.label}{b.range ? <span className="opacity-70"> {b.range}</span> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* SHOW / HIDE THE WORD LIVES WITH THE PLAY CONTROLS (Darrell
               2026-09-14, from the lesson with this panel open: "I want that bar

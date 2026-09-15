@@ -50,7 +50,7 @@ import { askTutor } from '../lib/class-tutor.js';
 import { ARI } from '../lib/ari.js';
 import {
   LEARN_LEVELS, DEFAULT_LEVEL, normalizeMedia, gradeQuiz, courseAssessment,
-  AGE_BANDS, DEFAULT_AGE_BAND, ageBandProfile,
+  AGE_BANDS, DEFAULT_AGE_BAND, ageBandProfile, resolveForAge,
 } from '../lib/learn-framework.js';
 import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-algorithms-course.js';
@@ -1055,10 +1055,35 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
         elementId: `learn-read-${module.id}`,
         prepare: (on) => setReadAll(!!on),
         next: onAdvance || null,
+        // THE READER CAN SWITCH THE LEVEL TOO (Darrell 2026-09-15, DR-0426).
+        // The panel shows the same "Who is learning?" row this lesson shows,
+        // and a pick there reaches the same remembered state — this effect
+        // then re-registers the new level's text and the reader resumes at the
+        // same fraction of the way through.
+        level: ageBand,
+        levels: AGE_BANDS.map((b) => ({ id: b.id, label: b.label, range: b.range })),
+        setLevel: typeof setAgeBand === 'function'
+          ? (id) => { setAgeBand(id); if (levelOverride && setLearnLevel) setLearnLevel('auto'); }
+          : null,
       });
     }
     return () => clearReadTarget(module.id);
-  }, [module, ageBand, levelOverride, sessionFlow, handsOnLabel, unitNoun, onAdvance]);
+  }, [module, ageBand, levelOverride, sessionFlow, handsOnLabel, unitNoun, onAdvance, setAgeBand, setLearnLevel]);
+
+  // THE LEVEL IS CHOSEN FROM THE BEGINNING AND AT EVERY STAGE (Darrell
+  // 2026-09-15, DR-0426: "choose the level from the beginning and at each
+  // section change"). DR-0417 put the row at the top of the paced core —
+  // the Teach stage, the second section — so the first thing a learner met
+  // was still the Open stage with no way to pitch it. The row now rides the
+  // flow itself: under every stage's header, Open first, so it is the first
+  // choice offered and it is offered again at each section change.
+  const stageLevelRow = typeof setAgeBand === 'function'
+    ? () => {
+      const band = AGE_BANDS.find((b) => b.id === ageBand) || AGE_BANDS.find((b) => b.id === DEFAULT_AGE_BAND) || AGE_BANDS[0];
+      const levelId = resolveForAge(module, ageBand, levelOverride).levelId;
+      return <LessonLevelControl band={band} levelId={levelId} levelOverride={levelOverride} setAgeBand={setAgeBand} setLearnLevel={setLearnLevel} />;
+    }
+    : null;
 
   const recordQuizAndEngage = (id, result) => {
     if (onRecordQuiz) onRecordQuiz(id, result);
@@ -1125,8 +1150,8 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
               onStepChange={onPlace ? (i) => onPlace({ lessonId: module.id, step: i }) : null}
               showAll={readAll}
               flush={flush}
-              setAgeBand={setAgeBand}
-              setLearnLevel={setLearnLevel}
+              // The row lives on the stage header now (stageLevelRow below);
+              // the core keeps only the override for its proportional re-step.
               levelOverride={levelOverride}
             />
             {/* Parable/story beats — short, vivid, often-funny illustrations, the way
@@ -1291,6 +1316,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
         onStageChange={onPlace ? (i) => onPlace({ lessonId: module.id, stage: i }) : null}
         showAll={readAll}
         flush={flush}
+        stageExtra={stageLevelRow}
       />
 
       {/* The chat with the local tutor — a conversation, not part of the

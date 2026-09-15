@@ -141,13 +141,17 @@ describe('the setters are threaded from the course to the paced core', () => {
   // hands the setters down (the lesson space → TutorPanel → AgePacedLesson),
   // which is what the previous build lacked.
   const src = readFileSync(resolve(process.cwd(), 'src/components/ChurchLearn.jsx'), 'utf8');
-  it('TutorPanel receives setAgeBand + setLearnLevel and passes them to AgePacedLesson', () => {
+  it('TutorPanel receives setAgeBand + setLearnLevel and hands the row to EVERY stage (DR-0426), not only the paced core', () => {
     const tutorCall = src.slice(src.indexOf('<TutorPanel'), src.indexOf('/>', src.indexOf('<TutorPanel')));
     expect(tutorCall).toContain('setAgeBand={setAgeBand}');
     expect(tutorCall).toContain('setLearnLevel={setLearnLevel}');
+    // The flow carries the row under each stage header (Open first) …
+    const flowCall = src.slice(src.indexOf('<LessonFlowAudience'), src.indexOf('/>', src.indexOf('<LessonFlowAudience')));
+    expect(flowCall).toContain('stageExtra={stageLevelRow}');
+    // … and the core no longer doubles it; it keeps the override for its
+    // proportional re-step (DR-0418).
     const pacedCall = src.slice(src.indexOf('<AgePacedLesson'), src.indexOf('/>', src.indexOf('<AgePacedLesson')));
-    expect(pacedCall).toContain('setAgeBand={setAgeBand}');
-    expect(pacedCall).toContain('setLearnLevel={setLearnLevel}');
+    expect(pacedCall).not.toContain('setAgeBand={setAgeBand}');
     expect(pacedCall).toContain('levelOverride={levelOverride}');
   });
   it('LessonLevelControl is the exported piece the row is made of', () => {
