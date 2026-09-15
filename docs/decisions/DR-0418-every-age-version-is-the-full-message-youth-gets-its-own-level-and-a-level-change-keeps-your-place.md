@@ -169,6 +169,19 @@ Every section of the adult body is carried in each band: the tears as the mark, 
 
 **The order from here:** L144, L143, L142, L141, then L140 and downward, each pass posting this table. Measured at this session's end: 8 lessons made full in one day at 20–45 minutes each, so the 2026-09-22 re-review can set the pace from a real day rather than the estimate above.
 
+## L144 — the ninth full lesson (2026-09-15, the next morning of the lane)
+
+A False Balance, on the same measure (authored prose · share of adult prose · Flesch-Kincaid; adult prose 2,786 words, the longest body in the pass so far):
+
+| band | before | after |
+|---|---|---|
+| child | 173 · 0.06 · 1.5 | **1,462 · 0.52 · 1.5** |
+| youth | missing | **1,842 · 0.66 · 4.3** (new) |
+| teen | 268 · 0.10 · 7.2 | **2,005 · 0.72 · 7.2** |
+| senior | 806 · 0.29 · 9.2 | **1,735 · 0.62 · 9.2** |
+
+Every section of the adult body is carried in each band, at the register of the band: the weight as a promise and its national outcome; a loan as a scale and ability as Heaven's criterion; the Federal Reserve survey and the matched-pair tests as two instruments with one finding; the six million jobs and the mechanism Darrell named; the correction he asked for (the disparity stands, the channel is the rotating credit circle, and esusu is the inheritance); the inspection switched off (section 1071, the EEOC and Civil Rights Division figures); the markers, the July replacement panel, and the landmark verses; the cases told to their actual end (Wilcox upheld in December 2025; the 113,000 stated against the looser three hundred thousand; distribution measured, motive not); Nehemiah's same-day restitution; the posture (vengeance His, the mouth still open); the two ways and Heaven and earth called to record. The senior pass adds what the older men in the room already hold: the testimony Darrell gathered, recorded as a recurring account and not as one named case, and the pooled circle under the names their generation used. The child and youth texts each quote verbatim what they name. Fullness baseline 145 → 144.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
