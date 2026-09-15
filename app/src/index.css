@@ -173,3 +173,21 @@ html[data-text-size='bigprint'] .ts-safe-sticky .ts-escape-hatch {
   background-color: rgba(184, 88, 56, 0.85);
   color: #ffffff;
 }
+/* THE HIGHLIGHT IS THEMED (2026-09-15, DR-0424). Darrell, on Midnight: "The
+   reader does not have the highlighter of the sentence anymore." It did — a
+   22% rust wash on OLED black, which blends to rgb(61,38,29) behind white
+   text: MEASURED in real Chromium (scripts/read-highlight-probe.mjs) the wash
+   moved the paragraph's pixels by 3.95 on Midnight against 6.05 on the light
+   themes, a smudge no eye reads as a highlight. The word (karaoke) wash was
+   fine at 85% — but most phone engines never fire word boundaries, so the
+   sentence wash IS the highlight there. Midnight paints in its own rust
+   (#FB923C, the theme's mapping of the house rust) at a strength the probe
+   holds to no fainter than the light theme's. Still never true red (DR-0099). */
+[data-theme="midnight"] ::highlight(poe-read-seg) {
+  background-color: rgba(251, 146, 60, 0.42);
+  color: #ffffff;
+}
+[data-theme="midnight"] ::highlight(poe-read-word) {
+  background-color: #FB923C;
+  color: #0A0A0A;
+}
