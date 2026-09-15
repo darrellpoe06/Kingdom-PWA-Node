@@ -2,7 +2,7 @@
   "ceiling": 7,
   "newLessonCeiling": 5,
   "note": "Shrink-only debt. A NEW offender fails the build; entries may be removed as lessons are rewritten, never added. Lessons not in knownLessons are held to newLessonCeiling (DR-0417 D3). See docs/00-foundations/07-neuroplasticity-and-the-word.md §4.",
-  "measuredLessons": 153,
+  "measuredLessons": 156,
   "inverted": [
     "ll100-guard-the-little-ones-children-the-millstone-and-mastery-over-the-tools",
     "ll101-the-real-champion-action-not-theory-die-once-live-forever-and-the-mind-of-christ",
