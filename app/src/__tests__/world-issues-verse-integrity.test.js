@@ -1560,3 +1560,122 @@ describe('Issue 13 — The Supreme Court and the mail-in rules: every fragment v
     expect(issue.levels.child).not.toMatch(/fraud|steal|stolen|rig/i);
   });
 });
+
+// =============================================================================
+// ISSUE 12 — Evanston's reparations and the equal-protection suit
+// (wi-evanston-reparations-and-equal-protection). Darrell forwarded NPR's Up
+// First on 2026-09-15 with the word "Lesson." Every fragment below was fetched
+// from the repo KJV at authoring time; a drift fails here.
+// =============================================================================
+const EVANSTON_REPARATIONS_QUOTES = [
+  { ref: 'Exodus 22:1', book: 'Exodus', ch: 22, v: 1, fragments: ['If a man shall steal an ox, or a sheep, and kill it, or sell it; he shall restore five oxen for an ox, and four sheep for a sheep.'] },
+  { ref: 'Exodus 22:4', book: 'Exodus', ch: 22, v: 4, fragments: ['If the theft be certainly found in his hand alive, whether it be ox, or ass, or sheep; he shall restore double.', 'shall restore double'] },
+  { ref: 'Leviticus 6:2', book: 'Leviticus', ch: 6, v: 2, fragments: ['in a thing taken away by violence, or hath deceived his neighbour'] },
+  { ref: 'Leviticus 6:4', book: 'Leviticus', ch: 6, v: 4, fragments: ['shall restore that which he took violently away, or the thing which he hath deceitfully gotten'] },
+  { ref: 'Leviticus 6:5', book: 'Leviticus', ch: 6, v: 5, fragments: ['he shall even restore it in the principal, and shall add the fifth part more thereto, and give it unto him to whom it appertaineth', 'him to whom it appertaineth'] },
+  { ref: 'Numbers 5:7', book: 'Numbers', ch: 5, v: 7, fragments: ['Then they shall confess their sin which they have done: and he shall recompense his trespass with the principal thereof, and add unto it the fifth part thereof, and give it unto him against whom he hath trespassed.'] },
+  { ref: 'Luke 19:8', book: 'Luke', ch: 19, v: 8, fragments: ['if I have taken any thing from any man by false accusation, I restore him fourfold', 'I restore him fourfold'] },
+  { ref: 'Luke 19:9', book: 'Luke', ch: 19, v: 9, fragments: ['This day is salvation come to this house'] },
+  { ref: 'Nehemiah 5:11', book: 'Nehemiah', ch: 5, v: 11, fragments: ['Restore, I pray you, to them, even this day, their lands, their vineyards, their oliveyards, and their houses', 'Restore, I pray you, to them, even this day'] },
+  { ref: 'Deuteronomy 19:14', book: 'Deuteronomy', ch: 19, v: 14, fragments: ['Thou shalt not remove thy neighbour’s landmark, which they of old time have set in thine inheritance'] },
+  { ref: 'Deuteronomy 27:17', book: 'Deuteronomy', ch: 27, v: 17, fragments: ['Cursed be he that removeth his neighbour’s landmark.'] },
+  { ref: 'Proverbs 23:10', book: 'Proverbs', ch: 23, v: 10, fragments: ['Remove not the old landmark; and enter not into the fields of the fatherless:', 'Remove not the old landmark; and enter not into the fields of the fatherless'] },
+  { ref: 'Proverbs 23:11', book: 'Proverbs', ch: 23, v: 11, fragments: ['For their redeemer is mighty; he shall plead their cause with thee.'] },
+  { ref: 'Isaiah 5:8', book: 'Isaiah', ch: 5, v: 8, fragments: ['that join house to house, that lay field to field, till there be no place'] },
+  { ref: 'Micah 2:2', book: 'Micah', ch: 2, v: 2, fragments: ['covet fields, and take them by violence; and houses, and take them away: so they oppress a man and his house, even a man and his heritage'] },
+  { ref: 'Leviticus 25:10', book: 'Leviticus', ch: 25, v: 10, fragments: ['proclaim liberty throughout all the land unto all the inhabitants thereof: it shall be a jubile unto you; and ye shall return every man unto his possession'] },
+  { ref: 'Leviticus 25:13', book: 'Leviticus', ch: 25, v: 13, fragments: ['In the year of this jubile ye shall return every man unto his possession.', 'ye shall return every man unto his possession'] },
+  { ref: 'Leviticus 19:15', book: 'Leviticus', ch: 19, v: 15, fragments: ['Ye shall do no unrighteousness in judgment: thou shalt not respect the person of the poor, nor honor the person of the mighty: but in righteousness shalt thou judge thy neighbour.', 'thou shalt not respect the person of the poor, nor honor the person of the mighty', 'in righteousness shalt thou judge thy neighbour'] },
+  { ref: 'Deuteronomy 1:17', book: 'Deuteronomy', ch: 1, v: 17, fragments: ['Ye shall not respect persons in judgment; but ye shall hear the small as well as the great', 'ye shall hear the small as well as the great'] },
+  { ref: 'Exodus 23:3', book: 'Exodus', ch: 23, v: 3, fragments: ['Neither shalt thou countenance a poor man in his cause.'] },
+  { ref: 'Acts 10:34', book: 'Acts', ch: 10, v: 34, fragments: ['God is no respecter of persons'] },
+  { ref: 'James 2:9', book: 'James', ch: 2, v: 9, fragments: ['if ye have respect to persons, ye commit sin, and are convinced of the law as transgressors', 'if ye have respect to persons, ye commit sin'] },
+  { ref: 'Ezekiel 18:20', book: 'Ezekiel', ch: 18, v: 20, fragments: ['The son shall not bear the iniquity of the father, neither shall the father bear the iniquity of the son', 'The son shall not bear the iniquity of the father'] },
+  { ref: 'Nehemiah 9:2', book: 'Nehemiah', ch: 9, v: 2, fragments: ['stood and confessed their sins, and the iniquities of their fathers'] },
+  { ref: 'Leviticus 26:40', book: 'Leviticus', ch: 26, v: 40, fragments: ['If they shall confess their iniquity, and the iniquity of their fathers'] },
+  { ref: 'Leviticus 26:42', book: 'Leviticus', ch: 26, v: 42, fragments: ['Then will I remember my covenant with Jacob', 'I will remember the land.'] },
+  { ref: 'Daniel 9:8', book: 'Daniel', ch: 9, v: 8, fragments: ['O Lord, to us belongeth confusion of face, to our kings, to our princes, and to our fathers, because we have sinned against thee.'] },
+  { ref: '2 Samuel 21:1', book: '2Samuel', ch: 21, v: 1, fragments: ['for Saul, and for his bloody house, because he slew the Gibeonites'] },
+  { ref: '2 Samuel 21:3', book: '2Samuel', ch: 21, v: 3, fragments: ['What shall I do for you? and wherewith shall I make the atonement', 'wherewith shall I make the atonement'] },
+  { ref: 'Isaiah 1:17', book: 'Isaiah', ch: 1, v: 17, fragments: ['Learn to do well; seek judgment, relieve the oppressed, judge the fatherless, plead for the widow.'] },
+  { ref: 'Micah 6:8', book: 'Micah', ch: 6, v: 8, fragments: ['to do justly, and to love mercy, and to walk humbly with thy God'] },
+  { ref: 'Amos 5:24', book: 'Amos', ch: 5, v: 24, fragments: ['But let judgment run down as waters, and righteousness as a mighty stream.'] },
+  { ref: 'Isaiah 10:1', book: 'Isaiah', ch: 10, v: 1, fragments: ['Woe unto them that decree unrighteous decrees, and that write grievousness which they have prescribed'] },
+  { ref: '1 Thessalonians 5:21', book: '1Thessalonians', ch: 5, v: 21, fragments: ['Prove all things; hold fast that which is good.'] },
+  { ref: 'Proverbs 18:13', book: 'Proverbs', ch: 18, v: 13, fragments: ['He that answereth a matter before he heareth it, it is folly and shame unto him.'] },
+  { ref: 'Proverbs 18:17', book: 'Proverbs', ch: 18, v: 17, fragments: ['He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him.'] },
+  { ref: 'Ecclesiastes 12:14', book: 'Ecclesiastes', ch: 12, v: 14, fragments: ['God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil.', 'God shall bring every work into judgment, with every secret thing'] },
+  { ref: 'Proverbs 14:31', book: 'Proverbs', ch: 14, v: 31, fragments: ['He that oppresseth the poor reproacheth his Maker'] },
+  { ref: 'Psalms 82:3', book: 'Psalms', ch: 82, v: 3, fragments: ['Defend the poor and fatherless: do justice to the afflicted and needy.'] },
+  { ref: 'Zechariah 7:9', book: 'Zechariah', ch: 7, v: 9, fragments: ['Execute true judgment, and shew mercy and compassions every man to his brother'] },
+  { ref: 'Galatians 6:7', book: 'Galatians', ch: 6, v: 7, fragments: ['God is not mocked: for whatsoever a man soweth, that shall he also reap.'] },
+  { ref: 'Revelation 20:12', book: 'Revelation', ch: 20, v: 12, fragments: ['and the books were opened'] },
+  { ref: 'Matthew 5:24', book: 'Matthew', ch: 5, v: 24, fragments: ['Leave there thy gift before the altar, and go thy way; first be reconciled to thy brother, and then come and offer thy gift.'] },
+  { ref: 'Isaiah 58:12', book: 'Isaiah', ch: 58, v: 12, fragments: ['thou shalt be called, The repairer of the breach, The restorer of paths to dwell in.'] },
+];
+
+describe('Issue 15 — Evanston’s reparations and the equal-protection suit: every fragment verbatim from the repo KJV', () => {
+  const issue = WORLD_ISSUES.find((i) => i.id === 'wi-evanston-reparations-and-equal-protection');
+  const norm = (s) => s.replace(/[’‘]/g, "'").replace(/\s+/g, ' ');
+
+  it('the issue is published', () => {
+    expect(issue).toBeTruthy();
+  });
+
+  it('every quoted fragment is a verbatim substring of the cited KJV verse', () => {
+    const failures = [];
+    for (const q of EVANSTON_REPARATIONS_QUOTES) {
+      const text = kjvVerse(q.book, q.ch, q.v);
+      for (const frag of q.fragments) {
+        if (!norm(text).includes(norm(frag))) {
+          failures.push(`${q.ref}: NOT VERBATIM — "${frag}" (verse reads: "${text}")`);
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it('every fragment actually appears in the issue content (no stale list)', () => {
+    const blob = norm(JSON.stringify(issue));
+    const missing = EVANSTON_REPARATIONS_QUOTES.flatMap((q) =>
+      q.fragments.filter((frag) => !blob.includes(norm(frag))).map((frag) => `${q.ref}: "${frag}"`));
+    expect(missing).toEqual([]);
+  });
+
+  // PROVEN-TO-CATCH: a one-word tamper in the load-bearing verse must fail.
+  it('CATCHES a one-word tamper in a pinned verse', () => {
+    const real = kjvVerse('Leviticus', 6, 5);
+    expect(norm(real).includes(norm('he shall even restore it in the interest'))).toBe(false);
+    expect(norm(real).includes(norm('he shall even restore it in the principal'))).toBe(true);
+  });
+
+  // DR-0100's three tiers are load-bearing: the 1921 wrong is DOCUMENTED and
+  // said plainly; the DOJ's theory is an ALLEGATION in a live case; the headline
+  // frame is OPINION; the legal fit is the one PARTLY-documented (open) item.
+  it('states the documented wrong plainly, carries the DOJ theory as an allegation, and labels the headline frame as opinion', () => {
+    expect(issue.claims.find((x) => x.id === 'c-frame-trump-stopping').label).toBe('opinion');
+    expect(issue.claims.find((x) => x.id === 'c-doj-violates').label).toBe('allegation');
+    expect(issue.verifiable.find((v) => v.id === 'f-1921-and-harms').status).toBe('documented');
+    expect(issue.verifiable.find((v) => v.id === 'f-suit-and-doj').status).toBe('documented');
+    expect(issue.verifiable.find((v) => v.id === 'f-legal-standard').status).toBe('partly-documented');
+    expect(issue.verifiable.find((v) => v.id === 'f-legal-standard').statement).toMatch(/No court has ruled on the merits/);
+  });
+
+  it('Word first — restitution is written, no respect of persons in both directions, and the L154 distinction is kept', () => {
+    const blob = JSON.stringify(issue);
+    expect(issue.lens.fourD.deepSource.indexOf('WORD FIRST')).toBe(0);
+    expect(blob).toContain('in BOTH directions');
+    expect(blob).toContain('guilt is never inherited');
+    expect(blob).toContain('confess and repair');
+    expect(blob).toContain('Where the Word is silent');
+    expect(issue.lens.accountability.scripture).toMatch(/Ecclesiastes 12:14/);
+    expect(issue.perspectives.filter((p) => p.steelman && p.steelman.length > 200).length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('carries a grace note that condemns no one and names every party', () => {
+    expect(issue.lens.graceNote).toMatch(/No condemnation/i);
+    for (const name of ['Rue Simmons', 'Biss', 'Dhillon', 'Judicial Watch', 'Kness']) {
+      expect(issue.lens.graceNote).toContain(name);
+    }
+  });
+});

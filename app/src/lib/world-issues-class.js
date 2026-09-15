@@ -70,7 +70,7 @@ export const WORLD_ISSUES_META = {
   },
   format: 'Self-paced · one issue at a time · media literacy + biblical discernment · paced to your age',
   cadenceDays: 7,
-  weeks: 14, // eleven published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex · the two aftermaths · the law of assumption · victorious emotions · college tuition and the 1965 Act); the track grows as issues are added
+  weeks: 15, // eleven published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex · the two aftermaths · the law of assumption · victorious emotions · college tuition and the 1965 Act); the track grows as issues are added
   handsOnLabel: 'Practice the skill',
   unit: {
     noun: 'issue',
@@ -3651,7 +3651,301 @@ const SCOTUS_MAIL_IN_ISSUE = {
   },
 };
 
-export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE, TUITION_1965_ISSUE, EPA_POWER_PLANT_ISSUE, TRADES_HIRING_ISSUE, SCOTUS_MAIL_IN_ISSUE];
+// =============================================================================
+// ISSUE 15 — Evanston's reparations and the equal-protection suit
+// (wi-evanston-reparations-and-equal-protection). Darrell forwarded NPR's Up
+// First (2026-09-15) with the word Lesson. and the instruction to find each
+// subject, research it independently, and build the lesson. This is the deep
+// dive: the first US city with a reparations program, its documented 1921
+// zoning wrong, the $25,000 grants, the conservative group's suit, and the
+// Justice Department's move to join it on an equal-protection theory. Handled
+// under DR-0100: the DOCUMENTED harm (the ordinance, the confinement to one
+// ward, the mortgage denial) is stated plainly; the LEGAL question is genuinely
+// open and is named narrowly (no court has reached the merits); and the Word
+// corrects the over-reach on BOTH sides. Word first: restitution is written,
+// no respect of persons in judgment, the son does not inherit the father's
+// guilt yet the house confesses and repairs, the landmark, the jubile, and the
+// two courts. Subject is a program and a lawsuit, not a named person; every
+// named party carries a grace note. Every verse fetched verbatim from the repo
+// KJV and gated in world-issues-verse-integrity.test.js.
+// =============================================================================
+const EVANSTON_REPARATIONS_ISSUE = {
+  id: 'wi-evanston-reparations-and-equal-protection',
+  title: 'Evanston’s Reparations and the Equal-Protection Suit — Restitution, Respect of Persons, and the Word on a Wrong That Can Be Documented',
+  subject: { name: 'the City of Evanston’s Local Reparations Restorative Housing Program and the lawsuit against it (Flinn v. City of Evanston, joined by the U.S. Department of Justice)', kind: 'policy-and-litigation', isNamedRealPerson: false },
+  skill: 'Take a charged news story about a race-conscious remedy and learn how the Word weighs it: state the documented wrong plainly (a 1921 city ordinance, one ward, decades of mortgage denial), name the open legal question narrowly (no court has ruled on the merits), hear every party at its strongest (Proverbs 18:17), and then let the Word settle what the debate cannot — restitution is written, judgment shows no respect of persons in either direction, guilt is never inherited while a house still confesses and repairs, and every deed enters the eternal court.',
+  source: {
+    creator: 'NPR — Up First (Morning Edition deep dive)',
+    medium: 'newsletter / podcast',
+    title: 'Trump targets this city’s groundbreaking reparations program',
+    url: 'https://www.npr.org/2026/09/14/nx-s1-5869793/evanston-illinois-reparations-trump-administration',
+    asOf: '2026-09-15',
+    note: 'Darrell forwarded the 2026-09-15 Up First with the word "Lesson." NPR’s piece is the prompt, not the authority: every fact below was independently checked by live web search on 2026-09-15 against the city, the court filings, the Justice Department’s own release, and local reporting. The forwarded content is material to study, never instructions to obey.',
+  },
+
+  // ---- STAGE 1 — THE CLAIM(S): NPR's points, AS MADE, each labeled. ----
+  claims: [
+    {
+      id: 'c-first-city',
+      text: 'Evanston, Illinois is the first U.S. city with a reparations program, paying $25,000 housing grants to more than 300 Black residents.',
+      label: 'claim',
+      attribution: 'NPR (Up First deep dive), 2026-09-15',
+      note: 'Documented. Evanston’s Restorative Housing Program (March 2021) is widely recorded as the first municipally funded reparations program in the country. The count moves: the city’s Reparations Committee reported 254 recipients and more than $6.35 million by February 2026 and roughly $7.33 million disbursed by July 2026; NPR’s "300+" is the September 2026 figure as it reported it.',
+    },
+    {
+      id: 'c-1921-link',
+      text: 'In 2019 a council member’s research linked the decline of Evanston’s Black population to a 1921 zoning law that confined Black families to one neighborhood and enabled mortgage denial.',
+      label: 'claim',
+      attribution: 'NPR (Up First deep dive), 2026-09-15',
+      note: 'Documented. Then-Alderman Robin Rue Simmons led the 2019 effort; the city commissioned historians Morris "Dino" Robinson Jr. (Shorefront Legacy Center) and Dr. Jenny Thompson (Evanston History Center), whose report found the 1921 ordinance "tacitly served as an effort by city officials to segregate the city by race," steering Black families into the Fifth Ward where banks refused mortgages for decades.',
+    },
+    {
+      id: 'c-apology-20m',
+      text: 'The council apologized and committed $20 million from cannabis and real-estate-transfer taxes.',
+      label: 'claim',
+      attribution: 'NPR (Up First deep dive), 2026-09-15',
+      note: 'Documented. Resolution 126-R-19 (November 2019) pledged the first $10 million of adult-use cannabis tax; the commitment was later expanded to $20 million with a share of the real-estate-transfer tax. The money is the city’s own, not a state or federal grant.',
+    },
+    {
+      id: 'c-eligibility',
+      text: 'Applicants had to be Black and show that they or an ancestor lived in Evanston between 1919 and 1969.',
+      label: 'claim',
+      attribution: 'NPR (Up First deep dive), 2026-09-15',
+      note: 'Documented. Two categories: "Ancestors" (Black adults living in Evanston at any time 1919–1969) and "Direct Descendants" (their children, grandchildren, great-grandchildren). The $25,000 may go to a home purchase, mortgage assistance, repairs, or — since a March 2023 council vote — direct cash.',
+    },
+    {
+      id: 'c-doj-violates',
+      text: 'The Justice Department says the program violates the Equal Protection Clause.',
+      label: 'allegation',
+      attribution: 'The U.S. Department of Justice, Civil Rights Division, in its June 16, 2026 motion to intervene — as reported by NPR',
+      note: 'An allegation in a live case, carried as such. The DOJ’s proposed complaint pleads the Equal Protection Clause of the Fourteenth Amendment and the Fair Housing Act and says the program is "not narrowly tailored to remediating specific, identified instances of past discrimination." No court has ruled on it.',
+    },
+    {
+      id: 'c-frame-trump-stopping',
+      text: 'This city led the way on reparations for Black people, and Trump is trying to stop it.',
+      label: 'opinion',
+      attribution: 'NPR’s headline framing (the member-station headline of the same piece), 2026-09-15',
+      note: 'Editorial framing. The documented act is a Justice Department motion to intervene in a private lawsuit filed two years earlier; the DOJ acts under the current administration. "Led the way" and "trying to stop it" are a stance on the merits, not a record — and a discerning reader separates the record from the frame.',
+    },
+  ],
+
+  // ---- STAGE 2 — VERIFIABLE vs INTERPRETATION ----
+  verifiable: [
+    {
+      id: 'f-1921-and-harms',
+      statement: 'Evanston adopted a zoning ordinance in 1921 that, together with restrictive practices by realtors and banks, confined the city’s Black residents to the Fifth Ward, where local banks refused mortgages for decades. The city documented this itself: historians Morris "Dino" Robinson Jr. and Dr. Jenny Thompson were commissioned by the Reparations Subcommittee and produced "Evanston Policies and Practices Directly Affecting the African American Community, 1900–1960 (and Present)" (draft August 2020; released 2021), which found the 1921 ordinance "tacitly served as an effort by city officials to segregate the city by race." The report won a National Council on Public History award in 2022.',
+      status: 'documented',
+      sources: [
+        { title: 'Evanston historians win national award for work documenting city’s history of racial discrimination', publisher: 'Evanston RoundTable', url: 'https://evanstonroundtable.com/2022/02/19/evanston-historians-win-national-council-on-public-history-award/', asOf: '2026-09-15' },
+        { title: 'Documenting Historic Harm', publisher: 'Washington University Libraries', url: 'https://library.washu.edu/news/documenting-historic-harm/', asOf: '2026-09-15' },
+        { title: 'In Likely First, Chicago Suburb Of Evanston Approves Reparations For Black Residents', publisher: 'NPR', url: 'https://www.npr.org/2021/03/23/980277688/in-likely-first-chicago-suburb-of-evanston-approves-reparations-for-black-reside', asOf: '2026-09-15' },
+        { title: 'Trump targets this city’s groundbreaking reparations program', publisher: 'NPR', url: 'https://www.npr.org/2026/09/14/nx-s1-5869793/evanston-illinois-reparations-trump-administration', asOf: '2026-09-15' },
+      ],
+      note: 'Verified by live web search 2026-09-15. This is DR-0100 Tier 1: established, documented damage, done by the city’s own hand and recorded in the city’s own commissioned report. No party in the lawsuit disputes that the 1921 ordinance existed.',
+    },
+    {
+      id: 'f-program-mechanics',
+      statement: 'Timeline: November 2019 — Resolution 126-R-19 commits the first $10 million of adult-use cannabis sales tax to local reparations. March 2021 — the council approves the Local Reparations Restorative Housing Program ($25,000 per eligible person for home purchase, mortgage assistance, or repair). January 2022 — the first 16 recipients are selected by random drawing. 2022 — the fund is expanded toward $20 million with a share of the real-estate-transfer tax. March 2023 — the council allows the $25,000 to be paid as direct cash. Eligibility: "Ancestors" (Black persons who lived in Evanston as adults 1919–1969) and "Direct Descendants" (their children, grandchildren, or great-grandchildren).',
+      status: 'documented',
+      sources: [
+        { title: 'Evanston’s historic reparations program: A 101 guide (parts 1–3)', publisher: 'Evanston RoundTable', url: 'https://evanstonroundtable.com/2022/08/23/evanstons-historic-reparations-program-a-101-guide/', asOf: '2026-09-15' },
+        { title: 'Robin Rue Simmons: "Today we take an important step in selecting the first reparations recipients"', publisher: 'Evanston RoundTable', url: 'https://evanstonroundtable.com/2022/01/13/reparations-robin-rue-simmons-important-first-step-statement/', asOf: '2026-09-15' },
+        { title: 'Evanston City Council votes in favor of expanding its reparations program to repair housing discrimination', publisher: 'CNN', url: 'https://www.cnn.com/2023/03/27/us/evanston-illinois-reparations-housing-discrimination-expand/index.html', asOf: '2026-09-15' },
+        { title: 'Evanston Local Reparations', publisher: 'City of Evanston', url: 'https://www.cityofevanston.org/government/initiatives/evanston_local_reparations.php', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The money is the city’s own revenue; the apology is the council’s own; the eligibility window (1919–1969) matches the period the city’s report documents.',
+    },
+    {
+      id: 'f-paid-to-date',
+      statement: 'As of February 2026 the Reparations Committee reported more than $6.35 million awarded to 254 individuals, with 44 further $25,000 payments announced; by July 2026 the committee reported roughly $7.33 million disbursed. WBEZ (July 2026) put it at "more than $7 million to over 200" residents; NPR (September 2026) said "300+"; the Justice Department’s June 2026 release said the city "has paid out more than $5 million to date." The figures differ by date and by what is counted (awarded vs. disbursed; ancestors vs. descendants), not by dispute.',
+      status: 'documented',
+      sources: [
+        { title: 'Reparations Committee announces 44 new payments, explores Delta-8 tax', publisher: 'The Daily Northwestern', url: 'https://dailynorthwestern.com/2026/02/06/city/reparations-committee-announces-44-new-payments-explores-delta-8-tax/', asOf: '2026-09-15' },
+        { title: 'Evanston Reparations Committee addresses federal lawsuit, seeks community support', publisher: 'The Daily Northwestern', url: 'https://dailynorthwestern.com/2026/07/03/city/reparations-committee-addresses-federal-lawsuit-seeks-community-support/', asOf: '2026-09-15' },
+        { title: 'Architects of Evanston reparations program stand firm against DOJ attacks', publisher: 'WBEZ Chicago', url: 'https://www.wbez.org/in-the-loop-with-sasha-ann-simons/2026/07/01/architects-of-evanston-reparations-program-stand-firm-against-doj-attacks', asOf: '2026-09-15' },
+        { title: 'U.S. Justice Department Moves to Intervene in Race Discrimination Lawsuit Challenging Reparations Program in Evanston, Illinois', publisher: 'U.S. Department of Justice, Office of Public Affairs', url: 'https://www.justice.gov/opa/pr/us-justice-department-moves-intervene-race-discrimination-lawsuit-challenging-reparations', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. A discerning reader carries the range and its dates rather than one round number.',
+    },
+    {
+      id: 'f-suit-and-doj',
+      statement: 'Flinn v. City of Evanston, No. 1:24-cv-04269 (N.D. Ill.), was filed in May 2024 by Judicial Watch as a class action on behalf of non-Black descendants of people who lived in Evanston 1919–1969, alleging the race requirement violates the Equal Protection Clause and "uses race as a proxy for discrimination without requiring proof of discrimination." On March 27, 2026, Judge John F. Kness denied the city’s motion to dismiss — holding the plaintiffs had standing and that applying to a program they were ineligible for would have been futile — without reaching the merits. In March 2026 the Justice Department opened an investigation; on June 16, 2026, its Civil Rights Division moved to intervene, pleading the Equal Protection Clause and the Fair Housing Act and arguing the program is "not narrowly tailored to remediating specific, identified instances of past discrimination." Assistant Attorney General Harmeet K. Dhillon: "Simply handing out money based on race, however, is not the answer. It is race discrimination, pure and simple. And it is illegal." Mayor Daniel Biss: "We stand behind our first-in-the-nation reparations program, are confident in its constitutionality, and look forward to defending it in court," describing the program as repair for "specific acts taken by the city on purpose." The city’s legal department said no change to disbursements was planned; in August 2026 the DOJ was still pressing its motion to join.',
+      status: 'documented',
+      sources: [
+        { title: 'U.S. Justice Department Moves to Intervene in Race Discrimination Lawsuit Challenging Reparations Program in Evanston, Illinois', publisher: 'U.S. Department of Justice', url: 'https://www.justice.gov/opa/pr/us-justice-department-moves-intervene-race-discrimination-lawsuit-challenging-reparations', asOf: '2026-09-15' },
+        { title: 'Evanston’s reparations plan faces constitutional challenge', publisher: 'Evanston RoundTable', url: 'https://evanstonroundtable.com/2026/06/16/department-of-justice-joins-lawsuit-against-evanstons-reparations-program/', asOf: '2026-09-15' },
+        { title: 'Lawsuit challenging Evanston reparations program allowed to proceed', publisher: 'Evanston RoundTable', url: 'https://evanstonroundtable.com/2026/03/30/lawsuit-challenging-evanston-reparations-program-allowed-to-proceed/', asOf: '2026-09-15' },
+        { title: 'Flinn v. City of Evanston, 1:24-cv-04269', publisher: 'Civil Rights Litigation Clearinghouse', url: 'https://clearinghouse.net/case/45655/', asOf: '2026-09-15' },
+        { title: 'Biss defends reparations amid DOJ challenge', publisher: 'Evanston Now', url: 'https://evanstonnow.com/biss-defends-reparations-amid-doj-challenge/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. Both sides’ positions are carried in their own words. The March ruling decided who may sue, not who is right.',
+    },
+    {
+      id: 'f-legal-standard',
+      statement: 'The governing standard is documented; its application to Evanston is not decided. Under City of Richmond v. J.A. Croson Co. (1989) a state or local racial classification must survive strict scrutiny: a compelling interest and narrow tailoring. Remedying the government’s OWN identified past discrimination can be a compelling interest, but only on a "strong basis in evidence" — general "societal discrimination" is not enough. Students for Fair Admissions v. Harvard (2023) reaffirmed that only two interests have qualified: "remediating specific, identified instances of past discrimination that violated the Constitution or a statute" and avoiding imminent violence in prisons. In 2021 federal courts enjoined race-based federal relief programs as not narrowly tailored (Vitolo v. Guzman, 6th Cir., restaurant grants; Wynn v. Vilsack, M.D. Fla., farm-debt relief). Evanston’s defenders (including Howard University law professor Justin Hansford, who is assisting the city) argue the program rests on the city’s own documented, place-specific wrong and a residency window tied to it — exactly the identified discrimination Croson contemplates; critics (the Cato Institute called it "likely unconstitutional") argue race as the gate, without individual proof of harm, fails narrow tailoring after SFFA. No court has ruled on the merits of Evanston’s program.',
+      status: 'partly-documented',
+      sources: [
+        { title: 'City of Richmond v. J.A. Croson Co., 488 U.S. 469 (1989)', publisher: 'Justia', url: 'https://supreme.justia.com/cases/federal/us/488/469/', asOf: '2026-09-15' },
+        { title: 'Equal Protection: Strict Scrutiny of Racial Classifications', publisher: 'Congressional Research Service', url: 'https://www.congress.gov/crs-product/IF12391', asOf: '2026-09-15' },
+        { title: 'Students for Fair Admissions, Inc. v. President and Fellows of Harvard College, 600 U.S. ___ (2023)', publisher: 'Justia', url: 'https://supreme.justia.com/cases/federal/us/600/20-1199/', asOf: '2026-09-15' },
+        { title: 'Vitolo v. Guzman (6th Cir. 2021)', publisher: 'FindLaw', url: 'https://caselaw.findlaw.com/court/us-6th-circuit/2129637.html', asOf: '2026-09-15' },
+        { title: 'Wynn v. Vilsack, 3:21-cv-00514 (M.D. Fla.)', publisher: 'Civil Rights Litigation Clearinghouse', url: 'https://clearinghouse.net/case/18139/', asOf: '2026-09-15' },
+        { title: 'Justice Department challenges Evanston’s reparations program', publisher: 'The Hill', url: 'https://thehill.com/regulation/court-battles/5927763-justice-department-evanston-reparations-housing-discrimination/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. This is the honest boundary of DR-0100 Tier 2, stated narrowly: the STANDARD is settled law; whether Evanston’s evidence and design satisfy it is the one thing genuinely undecided. Nothing here is "no one knows whether a wrong happened."',
+    },
+  ],
+  interpretation: [
+    {
+      id: 'n-what-is-open-narrowly',
+      statement: 'The open question is small and precise: does a city’s documented ordinance plus a residency-in-the-period window satisfy "specific, identified" discrimination and narrow tailoring, or does using race as the eligibility gate — without each applicant proving individual harm — fail strict scrutiny? That is what Judge Kness’s court will decide. What is NOT open: that the 1921 ordinance existed, that it confined Black families to one ward, that mortgages were denied there for decades, that the city itself documented and apologized for it. Keep the categories: the harm is Tier 1; the constitutional fit is Tier 2.',
+      restsOn: ['f-1921-and-harms', 'f-suit-and-doj', 'f-legal-standard'],
+    },
+    {
+      id: 'n-two-overreaches',
+      statement: 'Two over-reaches sit on either side of the record, and the Word corrects both while the true data under each still stands. "Events more than 100 years ago" can slide into "so nothing is owed" — but a documented wrong is not erased by a calendar (2 Samuel 21:1 answers a wrong from a prior king’s reign; Proverbs 23:10-11 names a mighty Redeemer for the fatherless whose field was entered). And "the harm was real" can slide into "therefore any race-based rule is justice" — but the Word forbids respect of persons in judgment in BOTH directions (Leviticus 19:15) and ties restitution to the one wronged, by the one who wronged (Leviticus 6:5; Numbers 5:7). Both corrections leave the true thing beneath each side untouched: the wrong happened; a remedy must be just in its form as well as its aim.',
+      restsOn: ['f-1921-and-harms', 'f-legal-standard'],
+    },
+    {
+      id: 'n-headline-frame',
+      statement: '"Trump is trying to stop it" is a frame laid over a filing. The documented act is the Justice Department moving to join a suit private plaintiffs filed in 2024; the DOJ is the administration’s, so the frame is not false — but it turns a legal question into a personality contest, and a discerning reader declines to let a headline choose the category for them.',
+      restsOn: ['f-suit-and-doj'],
+    },
+    {
+      id: 'n-numbers-carry-dates',
+      statement: '"300+" (NPR, September 2026), "over 200" (WBEZ, July 2026), "254" (the committee, February 2026), and "more than $5 million" (the DOJ, June 2026) are not contradictions; they are different dates and different counts (awarded vs. disbursed). Carry the number with its date and its source — that is what a just weight looks like in reporting (Proverbs 11:1).',
+      restsOn: ['f-paid-to-date'],
+    },
+  ],
+
+  // ---- STAGE 3 — PERSPECTIVES on the UNRESOLVED parts ----
+  perspectives: [
+    {
+      id: 'p-city',
+      label: 'The city — documented, local, apologized, self-funded',
+      heldBy: 'The City of Evanston (Mayor Daniel Biss, the Reparations Committee under Robin Rue Simmons) and the scholars assisting its defense',
+      steelman: 'At its strongest: this is not "societal discrimination" in the abstract. It is one municipality’s own ordinance, from its own council, in its own archive, documented by historians it commissioned — the very "strong basis in evidence" the Supreme Court asked for in Croson. The remedy is bounded to the place (Evanston), the period the wrong operated (1919–1969), the people the wrong was aimed at (Black residents and their direct descendants), and the good it took (housing). The money is the city’s own tax revenue, not another citizen’s wages, and the city chose it in the open with an apology. A wrongdoer who names his wrong, funds the repair himself, and limits it to the people he wronged is doing what the Word calls restitution — "he shall even restore it in the principal" (Leviticus 6:5). If a city may never repair a wrong it can document, then documentation is worthless and the ordinance wins twice.',
+    },
+    {
+      id: 'p-doj-plaintiffs',
+      label: 'The Justice Department and the plaintiffs — equal protection binds the remedy too',
+      heldBy: 'The DOJ Civil Rights Division (Assistant Attorney General Harmeet K. Dhillon), Judicial Watch, and the Flinn plaintiffs',
+      steelman: 'At its strongest: the Fourteenth Amendment does not have an exception for good intentions, and the Court has held for decades that every racial classification by government — benign or hostile — must pass strict scrutiny. The plaintiffs are descendants of people who lived in Evanston in the same years; they are turned away at the door for one reason, their race. The program asks no applicant to show that he, or his ancestor, was actually confined by the ordinance or refused a mortgage; it uses race as a proxy for harm, which is exactly the shortcut Croson and SFFA forbid. A remedy for identified discrimination is lawful — but it must be tailored to the identified victims, and a race-neutral design (residence in the Fifth Ward, a documented denial, a deed with a restrictive covenant) could reach them without a racial gate. Two federal courts in 2021 enjoined race-gated relief on just this reasoning. This is not a claim that the 1921 wrong never happened; it is a claim that the Constitution governs how a wrong may be repaired.',
+    },
+    {
+      id: 'p-recipients',
+      label: 'The recipients and Evanston’s Black families — the harm is specific and it has names',
+      heldBy: 'Ancestors and Direct Descendants who have received or applied for the grant; the Fifth Ward community; the historians who gathered their documents',
+      steelman: 'At its strongest: this harm is not a theory. It is a grandmother who could not get a mortgage a mile from the lake, a deed with a covenant, a family that rented for forty years in the one ward the city allowed and so never built the equity a white family the same age built by default. The applicants proved residence with documents; the Shorefront Legacy Center helped them find the records the city itself had kept. To be told now that the repair is "race discrimination, pure and simple" lands as the wrong being done twice — first the exclusion, then the erasure. Even the 1921 ordinance was aimed at them BY race; a remedy that names the same people is naming the wrong, not inventing a new one. And the amount, $25,000 against a lifetime of lost equity, is closer to a fifth part than a fourfold. Some in this community argued from the start that a housing-only benefit was too small to be called reparations at all — an honest dissent from inside, not from outside.',
+    },
+    {
+      id: 'p-scholars-tailoring',
+      label: 'Legal scholars on narrow tailoring — the case turns on fit, and fit is contested',
+      heldBy: 'Constitutional scholars across the spectrum (Justin Hansford, Howard University, assisting the city; commentators at the Cato Institute and others who expect the program to fail strict scrutiny)',
+      steelman: 'Heard fairly: the law asks two questions, and the second is where this case lives. First, is there a compelling interest? Evanston’s record — a specific ordinance, a specific ward, a commissioned report — is far stronger than Richmond’s in Croson, and even critics concede the documentation is real. Second, is the program narrowly tailored to that interest? Here honest scholars divide, and the division is about legal design, not about history: does a racial eligibility gate plus a residency window fit the identified victims tightly enough, or must the city require individualized proof or use race-neutral proxies? After SFFA and the 2021 relief cases the trend is toward requiring tighter fit, which is why Cato calls the program "likely unconstitutional"; Hansford and others answer that a remedy for a wrong done BY race cannot be forbidden from naming the race it was done to. The scholars are not debating whether the harm happened. They are debating the form a lawful repair must take — and that is precisely what a court, not a headline, will settle.',
+    },
+  ],
+
+  // ---- STAGE 4 — THE BELIEVER'S LENS ----
+  lens: {
+    fourD: {
+      deepSource: 'WORD FIRST — Yahweh wrote restitution into His law before any city council existed, and He tied it to a wrong that can be named. "If a man shall steal an ox, or a sheep, and kill it, or sell it; he shall restore five oxen for an ox, and four sheep for a sheep." (Exodus 22:1) "If the theft be certainly found in his hand alive, whether it be ox, or ass, or sheep; he shall restore double." (Exodus 22:4) When a neighbour is wronged by violence or deceit — "in a thing taken away by violence, or hath deceived his neighbour" (Leviticus 6:2) — the wrongdoer "shall restore that which he took violently away, or the thing which he hath deceitfully gotten" (Leviticus 6:4), and "he shall even restore it in the principal, and shall add the fifth part more thereto, and give it unto him to whom it appertaineth" (Leviticus 6:5). Numbers repeats it with confession attached: "Then they shall confess their sin which they have done: and he shall recompense his trespass with the principal thereof, and add unto it the fifth part thereof, and give it unto him against whom he hath trespassed." (Numbers 5:7) Notice the shape of the Word’s restitution: a NAMED wrong, a NAMED wronged party, paid BY the one who did it, in the principal plus more. Zacchaeus did it with no court in the room: "if I have taken any thing from any man by false accusation, I restore him fourfold" (Luke 19:8) — and Jesus answered, "This day is salvation come to this house" (Luke 19:9). Nehemiah demanded it of leaders who had taken land: "Restore, I pray you, to them, even this day, their lands, their vineyards, their oliveyards, and their houses" (Nehemiah 5:11). And land is the Word’s own example of what must not be taken: "Thou shalt not remove thy neighbour’s landmark, which they of old time have set in thine inheritance" (Deuteronomy 19:14); "Cursed be he that removeth his neighbour’s landmark." (Deuteronomy 27:17) "Remove not the old landmark; and enter not into the fields of the fatherless:" (Proverbs 23:10) "For their redeemer is mighty; he shall plead their cause with thee." (Proverbs 23:11) Isaiah pronounced woe on those "that join house to house, that lay field to field, till there be no place" (Isaiah 5:8), and Micah on those who "covet fields, and take them by violence; and houses, and take them away: so they oppress a man and his house, even a man and his heritage" (Micah 2:2). A zoning ordinance that fenced one people into one ward and a bank that would not lend there is, in the Word’s vocabulary, a landmark moved and a heritage taken — and the jubile is Yahweh’s own design for restoring inheritance across generations: "proclaim liberty throughout all the land unto all the inhabitants thereof: it shall be a jubile unto you; and ye shall return every man unto his possession" (Leviticus 25:10); "In the year of this jubile ye shall return every man unto his possession." (Leviticus 25:13) SECOND, the same Word forbids respect of persons in judgment — in BOTH directions. "Ye shall do no unrighteousness in judgment: thou shalt not respect the person of the poor, nor honor the person of the mighty: but in righteousness shalt thou judge thy neighbour." (Leviticus 19:15) "Ye shall not respect persons in judgment; but ye shall hear the small as well as the great" (Deuteronomy 1:17). "Neither shalt thou countenance a poor man in his cause." (Exodus 23:3) Peter learned it at Cornelius’s house: "God is no respecter of persons" (Acts 10:34); James made it sin: "if ye have respect to persons, ye commit sin, and are convinced of the law as transgressors" (James 2:9). So the Word will not let a court favor the mighty city or the mighty government — and it will not let a court favor a party because his cause is sympathetic. THIRD, the distinction this house taught in Living Lesson L154 governs here, and it must be kept exactly: guilt is never inherited — "The son shall not bear the iniquity of the father, neither shall the father bear the iniquity of the son" (Ezekiel 18:20) — and yet the saints CONFESS the fathers’ deeds as the house’s own, "stood and confessed their sins, and the iniquities of their fathers" (Nehemiah 9:2), because no living Evanstonian inherits the guilt of the 1921 council while the CITY, as a continuing house, may still confess and repair what its own hand did. Leviticus promised what follows such a confession: "If they shall confess their iniquity, and the iniquity of their fathers" (Leviticus 26:40) — "Then will I remember my covenant with Jacob… and I will remember the land." (Leviticus 26:42) Daniel prayed it: "O Lord, to us belongeth confusion of face, to our kings, to our princes, and to our fathers, because we have sinned against thee." (Daniel 9:8) And David is the case law: a famine came "for Saul, and for his bloody house, because he slew the Gibeonites" (2 Samuel 21:1), a wrong from a PRIOR king’s administration, and David — who bore none of Saul’s guilt — asked the wronged, "What shall I do for you? and wherewith shall I make the atonement" (2 Samuel 21:3). The kingdom repaired what an earlier kingdom broke, without any son being charged with a father’s sin. That is the exact frame for a city that says "we caused this" in 2021 about a council of 1921. FOURTH, justice for the oppressed is commanded, not optional: "Learn to do well; seek judgment, relieve the oppressed, judge the fatherless, plead for the widow." (Isaiah 1:17) "to do justly, and to love mercy, and to walk humbly with thy God" (Micah 6:8). "But let judgment run down as waters, and righteousness as a mighty stream." (Amos 5:24) "Woe unto them that decree unrighteous decrees, and that write grievousness which they have prescribed" (Isaiah 10:1) — a written ordinance is a decree, and the Word has a category for it. SO IN THIS CASE the believer does four things in order. First, state the documented wrong plainly, because "Prove all things; hold fast that which is good." (1 Thessalonians 5:21): the 1921 ordinance, the one ward, the decades of mortgage denial, the city’s own report and apology — Tier 1, said without a hedge. Second, name the open question narrowly — "He that answereth a matter before he heareth it, it is folly and shame unto him." (Proverbs 18:13); "He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him." (Proverbs 18:17): no court has ruled whether this design is narrowly tailored, and this lesson does not pretend to be that court. Third, let the Word correct the over-reach on both sides: "it was a hundred years ago, nothing is owed" fails before the Gibeonites and the landmark; "any race-based rule is justice" fails before Leviticus 19:15 and Exodus 23:3, and before the Word’s own restitution, which is paid to "him to whom it appertaineth" (Leviticus 6:5) — the wronged, specifically. Where the Word is silent — it gives no ruling on the Fourteenth Amendment or on whether a category rule or an individual proof satisfies man’s court — this lesson says so and stops. Fourth, remember that the measure the Word cares most about is not which brief wins but whether a documented wrong is REPAIRED to the ones it was done to, by the one who did it, in the principal and more — and that "God shall bring every work into judgment, with every secret thing" (Ecclesiastes 12:14), the ordinance of 1921 and every filing of 2026 alike.',
+      scripture: 'Exodus 22:1; Exodus 22:4; Leviticus 6:2-5; Numbers 5:6-7; Luke 19:8-9; Nehemiah 5:11; Deuteronomy 19:14; Deuteronomy 27:17; Proverbs 22:28; Proverbs 23:10-11; Isaiah 5:8; Micah 2:2; Leviticus 25:10; Leviticus 25:13; Leviticus 25:23; Leviticus 19:15; Deuteronomy 1:17; Deuteronomy 16:19; Exodus 23:3; Acts 10:34; James 2:9; Romans 2:11; Ezekiel 18:20; Deuteronomy 24:16; Nehemiah 9:2; Leviticus 26:40-42; Daniel 9:8; 2 Samuel 21:1-3; Isaiah 1:17; Micah 6:8; Amos 5:24; Isaiah 10:1-2; 1 Thessalonians 5:21; Proverbs 18:13; Proverbs 18:17; Ecclesiastes 12:14',
+    },
+    threeD: 'Practically: read the story and sort it before you repeat it. Say the proven part out loud without softening — Evanston passed a zoning ordinance in 1921 that confined Black families to one ward where banks refused mortgages for decades; the city documented it, apologized, and set aside its own money. Then say the open part exactly as narrow as it is: a federal judge has let the suit proceed and the Justice Department has moved to join it; no court has decided whether a race-gated remedy for a documented city wrong passes strict scrutiny — that is the one live question. Refuse both shortcuts: do not let "a hundred years ago" become "nothing happened," and do not let "the harm was real" become "therefore the form of the remedy cannot be questioned." Hear all four voices at their strongest (Proverbs 18:17) — the city, the DOJ and plaintiffs, the recipients, the scholars — and notice that none of them denies the ordinance; they differ on the lawful shape of repair. Then let the Word give you its own measure, which is older than the Fourteenth Amendment and stricter than any brief: a named wrong, a named wronged party, repaired by the one who did it, in the principal and more (Leviticus 6:5; Numbers 5:7), with no respect of persons in the judging of it (Leviticus 19:15). Carry numbers with their dates. Pray for the judge by name and for every party. And bring it home: Zacchaeus did not wait for a ruling.',
+    accountability: {
+      statement: 'THE TWO COURTS. Man’s court is open on this one — Judge Kness’s courtroom will decide whether Evanston’s program stands, and this lesson invents no verdict either way. But the Word never lets accountability shrink to the docket. The 1921 council that wrote grievousness into an ordinance answers to the court that reads every decree: "Woe unto them that decree unrighteous decrees, and that write grievousness which they have prescribed" (Isaiah 10:1) — where "God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil." (Ecclesiastes 12:14) The bank that would not lend in one ward answers there: "He that oppresseth the poor reproacheth his Maker" (Proverbs 14:31). The fields entered have a Redeemer: "For their redeemer is mighty; he shall plead their cause with thee." (Proverbs 23:11) And every party in 2026 — the city, the department, the plaintiffs, the recipients — answers in the same court for the honesty of its brief and the respect of persons in its heart: "Ye shall not respect persons in judgment" (Deuteronomy 1:17); "if ye have respect to persons, ye commit sin" (James 2:9). WHAT A CITY OWES under the Word is not a winning argument but the repair: "he shall even restore it in the principal, and shall add the fifth part more thereto, and give it unto him to whom it appertaineth" (Leviticus 6:5); "Restore, I pray you, to them, even this day" (Nehemiah 5:11). WHAT A COURT OWES is judgment without a thumb on either scale: "thou shalt not respect the person of the poor, nor honor the person of the mighty" (Leviticus 19:15). WHAT WE OWE: "Defend the poor and fatherless: do justice to the afflicted and needy." (Psalms 82:3); "Execute true judgment, and shew mercy and compassions every man to his brother" (Zechariah 7:9); "to do justly, and to love mercy, and to walk humbly with thy God" (Micah 6:8). And the lived cost is not deferred evidence — the equity a family never built is seen and weighed now. No one gets away: "God is not mocked: for whatsoever a man soweth, that shall he also reap." (Galatians 6:7) "and the books were opened" (Revelation 20:12).',
+      scripture: 'Isaiah 10:1-2; Ecclesiastes 12:14; Proverbs 14:31; Proverbs 23:11; Deuteronomy 1:17; James 2:9; Leviticus 6:5; Nehemiah 5:11; Leviticus 19:15; Psalms 82:3; Zechariah 7:9-10; Micah 6:8; Galatians 6:7; Revelation 20:12',
+    },
+    benefits: [
+      'Both courts, honestly held: man’s court has not ruled on Evanston’s program and this lesson does not pretend to — while the ETERNAL court holds the 1921 ordinance, the mortgage denials, and every 2026 brief alike, and lands after this life (Ecclesiastes 12:14; Isaiah 10:1). You can speak the wrong plainly without inventing a verdict.',
+      'Freedom from two lies at once: the dismissal lie ("it was a hundred years ago, so nothing is owed") and the shortcut lie ("the harm was real, so any race-based rule is justice").',
+      'The Word’s own restitution in your hands: a named wrong, a named wronged party, repaired by the one who did it, in the principal plus more (Exodus 22:4; Leviticus 6:5; Numbers 5:7; Luke 19:8) — a measure older and stricter than any brief.',
+      'The L154 distinction kept exactly where the news blurs it: no living person inherits the guilt of a 1921 council (Ezekiel 18:20), and a house may still confess and repair what its own hand did (Nehemiah 9:2; 2 Samuel 21:1-3).',
+      'A repeatable skill: state what is documented, name what is open as narrowly as it really is, carry every number with its date and source, hear every party at its strongest, and let the Word judge the form of repair as well as its aim.',
+      'No respect of persons in your own judging: the Word forbids favoring the mighty AND favoring the sympathetic (Leviticus 19:15; Exodus 23:3), so you can read this case without a thumb on either scale.',
+      'A church that moves without a court: Zacchaeus restored fourfold before any suit was filed, and the Body can search its own records and repair its own wrongs the same way.',
+    ],
+    graceNote: 'No condemnation of any soul in this story. Not the 1921 council members, long dead, whose hearts Yahweh alone judged; not Robin Rue Simmons or Mayor Daniel Biss, who named a wrong and tried to repair it; not Assistant Attorney General Harmeet K. Dhillon, Judicial Watch, or the Flinn plaintiffs, who say the Constitution binds the form of the repair; not Judge John F. Kness, who must rule; not the historians, the scholars on either side, or a single recipient or applicant. Yahweh is no respecter of persons in either direction, and this lesson pronounces on no one’s heart. But leaving every soul to Him never mutes the record: the ordinance was real, the ward was real, the mortgages were denied, and the Word’s remedy for a documented wrong is repair to the ones it was done to. Truth and grace meet in Jesus, who sat at a swindler’s table and watched him restore fourfold, and said salvation had come to that house.',
+    stewardship: 'The deeper response to a fight over how a city repairs its wrong is for the CHURCH to repair its own without waiting for a ruling. Zacchaeus did not need a court; he needed Jesus at his table, and he said "I restore him fourfold" on the spot. Jesus told us the order: "Leave there thy gift before the altar, and go thy way; first be reconciled to thy brother, and then come and offer thy gift." (Matthew 5:24) So: open your own records. Many congregations sit on land, deeds, and histories that include a covenant, a segregated pew, a member turned away, a property acquired when a neighbor could not get a loan. Search the archive the way Evanston searched its own — honestly, with historians, in the open. Where a wrong is documented, name it, confess it as the house’s own without charging any living member with a dead man’s guilt, and restore in the principal and more to the people it was done to — a scholarship, a house, a deed, a mortgage paid down, a fifth part added. Build the jubile inside the Body: "ye shall return every man unto his possession" (Leviticus 25:13). Isaiah names who does this: "thou shalt be called, The repairer of the breach, The restorer of paths to dwell in." (Isaiah 58:12) Righteous engagement names the wrong and prays for the court; it is completed by a church that repairs its own breach first.',
+    anchor: {
+      ref: 'Leviticus 6:5; Luke 19:8',
+      theme: 'Restitution is written — "he shall even restore it in the principal, and shall add the fifth part more thereto, and give it unto him to whom it appertaineth" — and Zacchaeus showed what it looks like with no court in the room: "if I have taken any thing from any man by false accusation, I restore him fourfold." Name the wrong plainly; judge with no respect of persons; repair to the ones it was done to.',
+    },
+  },
+
+  // ---- STAGE 5 — REFLECTION + SKILL ----
+  reflection: {
+    skill: 'When a race-and-money story lands in your feed: PAUSE. Separate the documented wrong (an ordinance, a ward, a mortgage record you can source) from the open legal question (which is usually narrower than the headline). Say the documented part plainly — refusing to name a real wrong is false witness. Say the open part exactly as narrow as it is — no court had ruled, so do not rule for it. Hear every party at its strongest and notice what none of them disputes. Then let the Word give its own measure: a named wrong, a named wronged party, repaired by the one who did it, in the principal and more, judged with no respect of persons. And respond the Zacchaeus way — search your own house and restore — not the comment-section way.',
+    practice: 'Take the Evanston story. Write four lines: (1) one sentence of what is DOCUMENTED, with a source and its date; (2) one sentence naming the open legal question as narrowly as it really is; (3) one sentence on where each side’s over-reach begins and which verse corrects it; (4) one concrete act of restitution you, your family, or your church could make this month for a wrong you can document — without waiting for anyone to sue.',
+    prompts: [
+      'Which parts of NPR’s story are documented (the 1921 ordinance, the $20 million, the 1919–1969 window, the DOJ filing) and which is the frame ("Trump is trying to stop it")? How would you check each?',
+      'The Word’s restitution is paid "unto him to whom it appertaineth" (Leviticus 6:5) by the one who did the wrong. Walk through how the city’s design tries to match that shape — place, period, people, the good taken — and where the DOJ says it does not. What is each side actually disputing?',
+      'Leviticus 19:15 forbids favoring the poor AND honoring the mighty in judgment. What would it look like to read this case with a thumb on neither scale — and where do you feel the pull toward one?',
+      'Living Lesson L154 taught that guilt is never inherited (Ezekiel 18:20) while the house confesses the fathers’ deeds (Nehemiah 9:2). Where is that line in Evanston’s case — who bears no guilt, and who may still confess and repair? Use 2 Samuel 21:1-3 as the test case.',
+      'No court has ruled on the merits. Practice saying the open question in ONE sentence that neither dismisses the wrong nor pre-decides the law.',
+      'Zacchaeus restored fourfold with no court in the room (Luke 19:8). What wrong could your church document in its own records, and what would "the principal and the fifth part" look like for it?',
+      'Carry a number with its date: "254 by February 2026," "300+ by September 2026," "more than $5 million per the DOJ in June." Why is that discipline part of a just weight (Proverbs 11:1)?',
+    ],
+  },
+
+  // ---- Age-appropriate renderings (kids use the app) ----
+  levels: {
+    child: 'Here is a true story from a town called Evanston. A long time ago, in 1921, the town made a rule. The rule said Black families could only live in one part of town. Banks would not lend them money to buy a house there. That was wrong. It hurt real families for a long time. Many years later, the town looked at its old papers and found the rule. The town said, we are sorry. Then the town began giving money to those families and their children and grandchildren, to help with a home. Now some people have gone to a judge. They say the town should not pick who gets help by the color of their skin. The judge has not decided yet. What does Yahweh say? First, when you take something that is not yours, you give it back, and more. The Bible says a thief "shall restore double" (Exodus 22:4). A man named Zacchaeus had taken money that was not his. When Jesus came to his house, he said, "I restore him fourfold" (Luke 19:8). He gave back four times as much. Nobody made him do it. Second, a judge must be fair to everyone. The Bible says "ye shall hear the small as well as the great" (Deuteronomy 1:17). A judge must not pick a side because someone is big, or because someone is sad. Third, you are not guilty for what your grandpa did. "The son shall not bear the iniquity of the father" (Ezekiel 18:20). You do not inherit his guilt. But a family can still confess an old wrong and help fix it. Nehemiah’s people did that (Nehemiah 9:2). So here is what to do. Say the true part out loud: the old rule was real, and it hurt people. Say the open part honestly: the judge has not decided. And do what Zacchaeus did in your own life. If you took something, give it back, and give more. Yahweh sees every deed. And He loves it when we make things right.',
+    teen: 'NPR ran a deep dive on Evanston, Illinois — the first U.S. city with a reparations program — and on the Justice Department joining a lawsuit to stop it. Run the moves before you take a side. (1) Say what is documented, plainly. In 1921 Evanston passed a zoning ordinance that confined Black families to the Fifth Ward, where banks refused mortgages for decades; the city commissioned historians, found it in its own archive, apologized, and set aside $20 million of its own cannabis and real-estate-transfer tax to pay $25,000 to Black residents who lived there 1919–1969 and their direct descendants. That is not "some say." That is the record. (2) Say what is open, and say it narrowly. A conservative group sued in 2024 on behalf of non-Black descendants of Evanston residents, arguing the race requirement violates equal protection; a federal judge let the case proceed in March 2026 without deciding who is right; the DOJ moved to join in June, saying the program is "not narrowly tailored to remediating specific, identified instances of past discrimination." No court has ruled on the merits. The live question is about the FORM of the repair — whether a race-gated rule fits the identified victims tightly enough — not about whether the wrong happened. (3) Hear everyone at their strongest. The city: our own ordinance, our own money, our own apology, bounded to our own victims. The DOJ and plaintiffs: the Constitution binds remedies too, and race as a proxy for harm is the shortcut the Supreme Court forbids. The recipients: this harm has names, and being told the repair is "discrimination" lands as the wrong done twice. The scholars: the fight is over fit, and honest people divide. Notice that none of them denies 1921. (4) Now the Word. Restitution is written before any constitution: "he shall even restore it in the principal, and shall add the fifth part more thereto, and give it unto him to whom it appertaineth" (Leviticus 6:5) — a named wrong, a named wronged party, repaired by the one who did it. Zacchaeus did it with no court: "I restore him fourfold" (Luke 19:8). Land taken is a landmark moved: "Remove not the old landmark; and enter not into the fields of the fatherless" (Proverbs 23:10). And judgment must show no respect of persons in EITHER direction: "thou shalt not respect the person of the poor, nor honor the person of the mighty" (Leviticus 19:15). Keep the L154 line exactly: nobody alive inherits the 1921 council’s guilt — "The son shall not bear the iniquity of the father" (Ezekiel 18:20) — and yet a house may still confess what its fathers did and repair it (Nehemiah 9:2), the way David repaired Saul’s wrong to the Gibeonites though he bore none of Saul’s guilt (2 Samuel 21:1-3). So the Word corrects both over-reaches: "a hundred years ago, nothing is owed" fails; "any race-based rule is justice" fails. What stands is the record and the measure. (5) Your move: carry numbers with dates, pray for the judge and every party by name, and do the Zacchaeus thing in your own house before anyone sues.',
+    senior: 'For the seasoned believer, this lesson is about weighing a race-conscious remedy with the Word’s own law of restitution, in an age that offers only two scripts — outrage and dismissal — for a question that deserves neither. First, the documented record, stated without a hedge (DR-0100 Tier 1): Evanston’s 1921 zoning ordinance, which the city’s own commissioned historians found "tacitly served as an effort by city officials to segregate the city by race"; the confinement of Black residents to the Fifth Ward and the decades of mortgage denial there; the council’s apology; Resolution 126-R-19 (November 2019) and the $20 million commitment from the city’s own cannabis and real-estate-transfer taxes; the $25,000 grants, paid since January 2022, to "Ancestors" who lived in Evanston 1919–1969 and their direct descendants — some $6.35 million to 254 people by February 2026, roughly $7.33 million by July, "300+" by NPR’s September count. Second, the open question, named as narrowly as it truly is (Tier 2): Flinn v. City of Evanston (N.D. Ill., filed May 2024 by Judicial Watch), which Judge John F. Kness allowed to proceed on March 27, 2026 without reaching the merits, and which the Justice Department’s Civil Rights Division moved to join on June 16, 2026 under the Equal Protection Clause and the Fair Housing Act, arguing the program is "not narrowly tailored to remediating specific, identified instances of past discrimination." The governing law is settled — Croson’s strict scrutiny and "strong basis in evidence," SFFA’s two compelling interests, the 2021 relief-program injunctions — and its application to Evanston is undecided; the scholars’ division is over fit, not over history. Third, the Word, which is older than the Fourteenth Amendment and stricter than any brief. Restitution is written and shaped: a named wrong, a named wronged party, repaid by the wrongdoer "in the principal" with "the fifth part more thereto" and given "unto him to whom it appertaineth" (Leviticus 6:5; Numbers 5:7; Exodus 22:1, 4); Zacchaeus enacted it without a court (Luke 19:8-9); Nehemiah commanded it of leaders who had taken land (Nehemiah 5:11); the landmark texts (Deuteronomy 19:14; 27:17; Proverbs 23:10-11) and the prophets (Isaiah 5:8; Micah 2:2) give a written ordinance that fenced a people into one ward its true name; the jubile is Yahweh’s design for restoring inheritance across generations (Leviticus 25:10, 13). Against that, and with equal weight, judgment must show no respect of persons in either direction — "thou shalt not respect the person of the poor, nor honor the person of the mighty" (Leviticus 19:15); "Neither shalt thou countenance a poor man in his cause." (Exodus 23:3); "if ye have respect to persons, ye commit sin" (James 2:9). And the distinction this house fixed in Living Lesson L154 must be kept precisely where the public debate blurs it: guilt is never inherited — "The son shall not bear the iniquity of the father" (Ezekiel 18:20) — so no living Evanstonian is charged with 1921; yet the house may confess and repair what its own hand did — "stood and confessed their sins, and the iniquities of their fathers" (Nehemiah 9:2; Leviticus 26:40-42; Daniel 9:8) — as David, bearing none of Saul’s guilt, repaired Saul’s wrong to the Gibeonites (2 Samuel 21:1-3). From that frame the Word corrects the over-reach on both sides and leaves the true data under each intact: "events more than 100 years ago" cannot become "nothing is owed," and "the harm was real" cannot become "therefore the form of the remedy is beyond question." Where the Word is silent — on the Fourteenth Amendment, on whether a categorical rule or an individualized proof satisfies man’s court — the seasoned reader says so and stops, and prays for the judge by name. Then let the response mature past commentary into the Body’s own vocation: the church that searches its own deeds, confesses its own documented wrongs as the house’s own, and restores in the principal and more to the people they were done to — the repairer of the breach (Isaiah 58:12), with no lawsuit required.',
+  },
+
+  // ---- Discernment-skill quiz ----
+  quiz: {
+    questions: [
+      {
+        q: 'NPR says Evanston’s 1921 zoning law confined Black families to one neighborhood where mortgages were denied. What is the discernment move?',
+        options: ['Hedge it — "some say" the ordinance was discriminatory', 'State it plainly as documented: the city’s own commissioned report found it, the city apologized, and no party in the suit disputes it', 'Dismiss it — it was a hundred years ago'],
+        answer: 1,
+        explain: 'DR-0100 Tier 1: established, documented damage is said plainly. Under-claiming a verified wrong is as much a failure of truth as over-claiming an unverified one.',
+      },
+      {
+        q: '"The DOJ says the program violates the Equal Protection Clause." Which label fits, and why?',
+        options: ['Documented fact — the DOJ said it, so it is settled', 'Allegation in a live case — pleaded in a June 2026 motion; no court has ruled on the merits', 'Opinion — lawyers just disagree'],
+        answer: 1,
+        explain: 'A filing is a claim, not a verdict. Judge Kness’s March 2026 ruling decided only that the plaintiffs may sue; the merits are undecided. Carry it as an allegation, narrowly.',
+      },
+      {
+        q: 'What is the ONE question genuinely open in Flinn v. City of Evanston?',
+        options: ['Whether the 1921 ordinance existed', 'Whether a race-gated remedy for a city’s documented wrong is "narrowly tailored" to the identified victims under strict scrutiny', 'Whether reparations are a good idea in general'],
+        answer: 1,
+        explain: 'Tier 2 is named narrowly. Every party agrees the ordinance existed; the scholars divide over the lawful FORM of repair. That is what the court will settle — not this lesson.',
+      },
+      {
+        q: 'What is the shape of restitution in the Word (Leviticus 6:5; Numbers 5:7)?',
+        options: ['A general apology to society', 'A named wrong, a named wronged party, repaid by the one who did it, in the principal plus a fifth part', 'Whatever a court orders'],
+        answer: 1,
+        explain: '"he shall even restore it in the principal, and shall add the fifth part more thereto, and give it unto him to whom it appertaineth." The Word ties repair to the specific wronged — a measure older and stricter than any brief.',
+      },
+      {
+        q: 'Leviticus 19:15 says "thou shalt not respect the person of the poor, nor honor the person of the mighty." What does that require of you reading this case?',
+        options: ['Side with the city because its cause is sympathetic', 'Side with the government because it is powerful', 'Judge with a thumb on neither scale — the Word forbids favoring the mighty AND favoring the sympathetic'],
+        answer: 2,
+        explain: 'Respect of persons runs both ways. The Word will not let a court, or a reader, decide by who is big or who is sad, but "in righteousness shalt thou judge thy neighbour."',
+      },
+      {
+        q: 'L154 taught that guilt is never inherited (Ezekiel 18:20). Does that mean Evanston cannot repair a 1921 wrong?',
+        options: ['Yes — no one alive did it, so nothing can be done', 'No — no living person inherits the guilt, yet a house may still confess and repair what its own hand did, as David repaired Saul’s wrong to the Gibeonites (Nehemiah 9:2; 2 Samuel 21:1-3)', 'Yes — the Word forbids any collective act'],
+        answer: 1,
+        explain: 'Two subjects, both kept: guilt (never transferred) and confession-and-repair (the house’s own). David bore none of Saul’s guilt and still asked the wronged, "wherewith shall I make the atonement" (2 Samuel 21:3).',
+      },
+      {
+        q: 'What did Zacchaeus do that no court required (Luke 19:8)?',
+        options: ['Waited for a ruling', 'Said "I restore him fourfold" on the spot, and Jesus said salvation had come to his house', 'Gave to a general charity instead'],
+        answer: 1,
+        explain: 'Restitution without a lawsuit is the stewardship move for the Body: search your own records, confess your own documented wrong, and restore to the ones it was done to.',
+      },
+    ],
+  },
+};
+
+export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE, TUITION_1965_ISSUE, EPA_POWER_PLANT_ISSUE, TRADES_HIRING_ISSUE, SCOTUS_MAIL_IN_ISSUE, EVANSTON_REPARATIONS_ISSUE];
 
 // ---------------------------------------------------------------------------
 // Course-specific helpers — thin wrappers over the reusable discernment engine
