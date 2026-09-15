@@ -38,6 +38,7 @@
 // =============================================================================
 import { chromium } from 'playwright-core';
 import { execFileSync } from 'node:child_process';
+import { inflateSync } from 'node:zlib';
 import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
@@ -50,10 +51,36 @@ const SELFTEST = process.argv.includes('--selftest-break');
 // The highlight rules are read from the SHIPPED stylesheet, never retyped — a
 // probe carrying its own copy would pass while the app's real CSS was broken.
 const indexCss = readFileSync(join(APP, 'src/index.css'), 'utf8');
-const rules = (indexCss.match(/::highlight\((?:poe-read-seg|poe-read-word)\)\s*\{[^}]*\}/g) || []).join('\n');
+// The THEMED rules ride along ("[data-theme=midnight] ::highlight(...)") —
+// the 2026-09-15 defect lived exactly there (DR-0424).
+const rules = (indexCss.match(/[^\n{}]*::highlight\((?:poe-read-seg|poe-read-word)\)\s*\{[^}]*\}/g) || []).join('\n');
 if (!rules.includes('poe-read-seg') || !rules.includes('poe-read-word')) {
   console.error('FAIL  app/src/index.css defines no ::highlight(poe-read-seg/word) rules — the highlight can never paint.');
   process.exit(1);
+}
+
+// A minimal PNG reader for the magnitude check below (8-bit RGB/RGBA,
+// non-interlaced — what Playwright's screenshots are). No dependency: a probe
+// that needs a package fetched is a gate with a network in it.
+function decodePng(buf) {
+  let p = 8; const idat = []; let w = 0, h = 0, ct = 0;
+  while (p < buf.length) {
+    const len = buf.readUInt32BE(p); const type = buf.toString('ascii', p + 4, p + 8); const data = buf.subarray(p + 8, p + 8 + len);
+    if (type === 'IHDR') { w = data.readUInt32BE(0); h = data.readUInt32BE(4); ct = data[9]; } else if (type === 'IDAT') idat.push(data);
+    p += 12 + len;
+  }
+  const bpp = ct === 6 ? 4 : 3; const raw = inflateSync(Buffer.concat(idat)); const stride = w * bpp; const out = Buffer.alloc(w * h * bpp);
+  for (let y = 0; y < h; y++) {
+    const f = raw[y * (stride + 1)]; const src = raw.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1));
+    const row = out.subarray(y * stride, (y + 1) * stride); const prev = y ? out.subarray((y - 1) * stride, y * stride) : null;
+    for (let i = 0; i < stride; i++) {
+      const a = i >= bpp ? row[i - bpp] : 0, b = prev ? prev[i] : 0, c = (prev && i >= bpp) ? prev[i - bpp] : 0; let v = src[i];
+      if (f === 1) v += a; else if (f === 2) v += b; else if (f === 3) v += (a + b) >> 1;
+      else if (f === 4) { const pp = a + b - c, pa = Math.abs(pp - a), pb = Math.abs(pp - b), pc = Math.abs(pp - c); v += (pa <= pb && pa <= pc) ? a : (pb <= pc ? b : c); }
+      row[i] = v & 255;
+    }
+  }
+  return { w, h, bpp, data: out };
 }
 
 const work = mkdtempSync(join(tmpdir(), 'read-highlight-'));
@@ -184,6 +211,40 @@ try {
   check('THE HIGHLIGHT ACTUALLY PAINTS ON A PAGE WITH NO <main>', !noMainBlank.equals(noMainPainted),
     noMainBlank.equals(noMainPainted) ? 'pixels identical — this is the defect Darrell reported' : 'pixels changed');
   await noMain.close();
+
+  // THE HIGHLIGHT IS VISIBLE ON THE DARK THEME TOO (2026-09-15, DR-0424).
+  //
+  // Darrell, on Midnight (OLED black): "The reader does not have the
+  // highlighter of the sentence anymore... fix it." It DID paint — every
+  // check above was green — but the one 22% rust wash, designed on cream,
+  // blends on black to rgb(61,38,29) behind white text: a smudge. MEASURED
+  // here: the sentence wash moved the paragraph's pixels by 3.95 on Midnight
+  // against 6.05 on the light page. "Pixels changed" (the checks above) is
+  // true of a smudge; a highlight the reader SEES needs a magnitude. So this
+  // check holds the dark theme to NO FAINTER THAN the light one, by the same
+  // mean-pixel-change measure on both — and the pre-fix CSS fails it
+  // (3.95 < 0.9 x 6.05), which is what makes its green mean something.
+  const meanChange = (a, b) => {
+    const A = decodePng(a), B = decodePng(b);
+    let sum = 0, n = 0;
+    for (let i = 0; i < A.data.length; i++) { if (A.bpp === 4 && i % 4 === 3) continue; sum += Math.abs(A.data[i] - B.data[i]); n++; }
+    return n ? sum / n : 0;
+  };
+  const lightChange = meanChange(blank, painted);
+  const dark = await browser.newPage({ viewport: { width: 420, height: 320 } });
+  await dark.setContent(
+    `<!doctype html><html data-theme="midnight"><head><style>${rules}\nbody{background:#000;color:#E5E5E5;font:20px/1.6 Georgia,serif;margin:0;padding:16px;}</style></head>`
+    + '<body><main><p id="t">The Perfect You Were Made For. Two famous verses say be perfect.</p></main></body></html>');
+  await dark.addScriptTag({ content: bundle, type: 'module' });
+  await dark.waitForFunction('window.__rfReady===1');
+  const darkBlank = await dark.locator('#t').screenshot();
+  await dark.evaluate('(() => { const f = window.RF.buildFollowMap(document.querySelector("main")); window.RF.highlightSegment(window.RF.segmentRange(f, 0)); })()');
+  const darkPainted = await dark.locator('#t').screenshot();
+  const darkChange = meanChange(darkBlank, darkPainted);
+  check('THE SENTENCE HIGHLIGHT IS NO FAINTER ON MIDNIGHT THAN ON THE LIGHT THEME',
+    darkChange >= 0.9 * lightChange && darkChange > 0,
+    `mean pixel change midnight=${darkChange.toFixed(2)} light=${lightChange.toFixed(2)} (floor 0.9x light)`);
+  await dark.close();
 
   await browser.close();
 
