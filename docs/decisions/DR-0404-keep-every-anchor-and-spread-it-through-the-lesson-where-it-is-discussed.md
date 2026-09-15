@@ -64,6 +64,10 @@ L147 The Due He Is Owed: 12 fragments already in the body received their referen
 
 L148 Remember Is a Verb: 10 fragments already in the body received their reference (Hebrews 10:17 is now written in full beside Hebrews 8:12; Jeremiah 31:34, 1 John 3:20, Hebrews 4:13, Daniel 12:9, Acts 1:7, Isaiah 65:17, Revelation 21:4, 2 Thessalonians 2:10, Isaiah 55:7 labelled), 5 written in verbatim where discussed — 1 Samuel 1:19 at Hannah, Micah 7:18 before 7:19, Isaiah 46:9 before 46:10, Proverbs 8:35 before 8:36, John 3:20 after 3:19 — and 8 further bare quotes labelled (Psalms 147:5, Daniel 12:4, Revelation 10:4, Genesis 19:29, Luke 23:42). 20 insertion points; body 1,585 → 1,770 words. Levels: child 141 → 812 prose words, youth new (974), teen 265 → 681, senior 595 → 653. One gate catch: the verbatim-span rule refused the phrase sea of forgetfulness in quotation marks in the youth level (the lesson's own point is that the phrase is NOT in the Word; unquoted). **Owed now: 25** (L150 13 · L145 11 · L141 1) + 3 pre-existing. Next: L150.
 
+## Amendment 2026-09-15 (evening, later) — L150 authored: 13 → 0, levels made full (DR-0418)
+
+L150 How Can the Son Not Know: 11 fragments received their reference (Matthew 11:27, 2 Corinthians 8:9, Hebrews 2:17, 4:15, John 5:30, 8:28, Mark 10:40, 1 Corinthians 2:16, Isaiah 55:9, and the John 13:3 sentence now followed by John 3:35 written in full); John 2:24-25 written in beside "he knew all men", Colossians 1:16-17 beside "all things consist". Fourteen further bare quotes labelled (John 21:17, Colossians 2:3, John 5:19, Acts 1:7, John 14:28, 20:28, 17:5, Matthew 28:18, Philippians 2:5, 2:11, John 1:29, Revelation 5:12, Hebrews 1:8 already), each asserted a substring of its verse. 24 insertion points; body 1,939 → 2,093 words. Levels: child 225 → 873 prose words, youth new (1,090), teen 345 → 968, senior 802 → 904. Gate catches kept: the typography rule caught the generic term in twelve places across the new child and teen text (each rewritten to Yahweh, or to the verbatim quote with its label where the Word itself says it — "the Word was God" (John 1:1), "in the form of God" (Philippians 2:6), "My Lord and my God" (John 20:28)). **Owed now: 12** (L145 11 · L141 1) + 3 pre-existing. Next: L145.
+
 ## Verification
 
 - Detector validated before use: L1 reads "2 named"; strip its names → "2 neither". The corruption detector reads the exact L141 text as a hit, and the whole-corpus scan returns exactly those 3.
@@ -72,6 +76,6 @@ L148 Remember Is a Verb: 10 fragments already in the body received their referen
 
 ## Limits, stated
 
-- **25 verses are still owed** (L151, L149, L146, L147 and L148 done, see amendments) (plus 3 pre-existing in L54/L81), and this record does not pretend otherwise. First lesson for the live test: **L151 The Tongue** (93 owed, the worst, and the one on his screen). **re-review: 2026-09-16** — L151 authored and seen live, or a why.
+- **12 verses are still owed** (L151, L149, L146, L147, L148 and L150 done, see amendments) (plus 3 pre-existing in L54/L81), and this record does not pretend otherwise. First lesson for the live test: **L151 The Tongue** (93 owed, the worst, and the one on his screen). **re-review: 2026-09-16** — L151 authored and seen live, or a why.
 - The audit's "quoted" test matches the first 40 characters of a verse; a lesson that paraphrases rather than quotes reads as "neither", correctly — paraphrase is not the Word.
 - The gate reads the hosted KJV from disk in the test; it cannot run without `app/public/bible/kjv/`, and says so rather than passing.

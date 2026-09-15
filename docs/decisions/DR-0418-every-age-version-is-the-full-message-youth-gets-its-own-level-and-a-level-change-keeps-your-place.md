@@ -115,6 +115,17 @@ Fullness baseline 151 → 150 lessons short. Two catches from the per-lesson ver
 
 Fullness baseline 150 → 149 lessons short. The first pass left teen at 0.48 and senior at 0.47 — under the floor, and the gate stayed green only because both were already recorded as debt; a lesson in this pass is made FULL, not merely no worse, so both were extended before the commit. That is the honest reading of "shrink-only": the baseline permits an old debt to stand, and the pass does not.
 
+## L150 — the fifth full lesson (same session)
+
+| band | prose words before | prose words after | share of adult prose | FK grade |
+|---|---|---|---|---|
+| child | 225 | 873 | 0.61 | 2.3 |
+| youth | 0 | 1,090 | 0.77 | 5.1 |
+| teen | 345 | 968 | 0.68 | 2.4 |
+| senior | 802 | 904 | 0.64 | 16.3 |
+
+Fullness baseline 149 → 148 lessons short. The first teen extension was a list of verses with a sentence between each and measured 0.33 of the adult prose: quotations do not count, by this record's own amendment, and the teen level was rewritten as a nine-step walk in the teen's own words. The typography rule caught the generic term twelve times in the new text; every instance was rewritten or quoted verbatim with its label.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
