@@ -85,7 +85,7 @@ const AGEBAND_TO_LEVEL_KEY = { child: 'child', youth: 'teen', teen: 'teen', adul
 import SectionTabs from './SectionTabs.jsx';
 import { organizeCourses, courseLessonCount, COURSE_SORTS, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey } from '../lib/learn-organize.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
-import { getPlace, recordPlace, clearPlace, getTimeFit, recordTimeFit } from '../lib/learn-resume.js';
+import { getPlace, recordPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace } from '../lib/learn-resume.js';
 import { useHistoryValue } from '../lib/nav-history.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import UiIcon from './UiIcon.jsx';
@@ -2720,6 +2720,13 @@ export default function ChurchLearn({
     clearPlace();
     setSavedPlace(null);
   };
+  // REFRESH FIRST (DR-0418): back the saved place up a couple of paced steps,
+  // then resume exactly as Resume does — the lesson space reads the place live,
+  // so it opens on the refresher rather than the frontier.
+  const refreshFirst = () => {
+    refreshPlace();
+    resumeNow();
+  };
 
   // Engagement-by-age: TutorPanel emits (signal, moduleId); the wrapper injects the
   // active course + the learner's age band before handing it to the host's pipe.
@@ -3106,6 +3113,16 @@ export default function ChurchLearn({
               >
                 Resume →
               </button>
+              {(savedPlace.step > 0) && (
+                <button
+                  type="button"
+                  onClick={refreshFirst}
+                  title="Replay the last couple of steps before the new one"
+                  className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[40px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                >
+                  Refresh first
+                </button>
+              )}
               <button
                 type="button"
                 onClick={startFresh}

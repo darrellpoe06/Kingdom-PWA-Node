@@ -5,7 +5,7 @@
 // round-trip, merge, the different-lesson reset, validation, and fail-soft.
 // =============================================================================
 import { describe, it, expect, beforeEach } from 'vitest';
-import { getPlace, recordPlace, clearPlace } from '../lib/learn-resume.js';
+import { getPlace, recordPlace, clearPlace, backUpPlace, refreshPlace, REFRESH_BACK_STEPS } from '../lib/learn-resume.js';
 
 // A minimal in-memory Storage double.
 function memStorage(seed = {}) {
@@ -74,6 +74,35 @@ describe('learn-resume — record and read the place', () => {
   it('clearPlace forgets the place (the "Start fresh" control)', () => {
     recordPlace({ courseKey: 'c', lessonId: 'l' }, { storage, now: 1 });
     clearPlace({ storage });
+    expect(getPlace({ storage })).toBeNull();
+  });
+});
+
+// REFRESH FIRST (DR-0418; Darrell 2026-09-15: "start where they left last
+// time... so it can be a refresher if they wanted it"). Proven-to-catch: with
+// backUpPlace returning the place unchanged, the first assertion fails.
+describe('learn-resume — refresh first backs the place up a couple of steps', () => {
+  it('backs the step up by REFRESH_BACK_STEPS inside the same stage and clears the sentence', () => {
+    const p = { courseKey: 'living-lessons', lessonId: 'll151', stage: 1, step: 7, sentence: 4, sentenceKey: 'abc', at: 1 };
+    expect(REFRESH_BACK_STEPS).toBe(2);
+    expect(backUpPlace(p)).toEqual({ ...p, step: 5, sentence: 0, sentenceKey: '' });
+  });
+  it('never goes below the first step, and a custom distance is honoured', () => {
+    const p = { courseKey: 'c', lessonId: 'l', stage: 2, step: 1 };
+    expect(backUpPlace(p).step).toBe(0);
+    expect(backUpPlace({ ...p, step: 9 }, 4).step).toBe(5);
+    expect(backUpPlace(null)).toBeNull();
+    expect(backUpPlace({ stage: 0, step: 3 })).toBeNull(); // no lesson → nothing to refresh
+  });
+  it('refreshPlace records the backed-up place so an ordinary resume lands on the refresher', () => {
+    recordPlace({ courseKey: 'living-lessons', lessonId: 'll151', stage: 1, step: 7 }, { storage, now: 1000 });
+    const out = refreshPlace({ storage, now: 2000 });
+    expect(out.step).toBe(5);
+    expect(out.stage).toBe(1);
+    expect(getPlace({ storage }).step).toBe(5);
+  });
+  it('refreshPlace with nothing saved is a no-op that returns null', () => {
+    expect(refreshPlace({ storage })).toBeNull();
     expect(getPlace({ storage })).toBeNull();
   });
 });

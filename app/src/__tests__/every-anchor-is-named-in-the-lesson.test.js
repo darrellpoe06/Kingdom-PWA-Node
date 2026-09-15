@@ -75,7 +75,6 @@ function isNamed(text, ref) {
 // number is what they owe today; it may only go down. Dated (DR-0404).
 const OWED = {
   // This week's lessons (L141+), measured 2026-09-14 after the naming pass:
-  'll141-separate-and-connect-working-through-issues-studying-to-be-approved-tempted-versus-tried-and-how-we-handle-each-other-and-enemies': 1,
   // PRE-EXISTING, not this week's: two original lessons whose anchor names a
   // range the body only paraphrases. Recorded so they are seen, not exempted.
   'll54-the-same-word-different-soil-the-parable-of-the-sower': 2,
