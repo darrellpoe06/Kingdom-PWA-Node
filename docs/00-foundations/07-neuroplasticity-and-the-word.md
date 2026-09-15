@@ -56,14 +56,14 @@ The rest of the spine:
 | Band | Range | Scriptural warrant | What it is for | Pacing (measured, in code) |
 |---|---|---|---|---|
 | **child** | 6-10 | *little children* (1 John 2:12); *newborn babes* (1 Pet 2:2) | Concrete images, one idea at a time, a quick win. Assurance before instruction. | 45 words/segment · 5-min segments · break every 10 min · check after 1 idea |
-| **youth** | 11-14 | Isaiah 28:10 *line upon line* | Plain language, real examples, hands-on. Abstraction is beginning but is not load-bearing yet. | 90 words · 10-min segments · break every 20 min · check after 2 |
+| **youth** | 11-14 | Isaiah 28:10 *line upon line* | Plain language, real examples, hands-on. Abstraction is beginning but is not load-bearing yet. Its own authored level from DR-0418 (grades 6–8); reads the teen text only while a lesson's youth level is unwritten. | 90 words · 10-min segments · break every 20 min · check after 2 |
 | **teen** | 15-17 | *young men... ye are strong* (1 John 2:14) | Identity, agency, and the honest hard question. Can hold a longer thread; will not be condescended to. | 140 words · 15-min segments · break every 30 min |
 | **adult** | 18-64 | *strong meat... by reason of use* (Heb 5:14) | The full lesson, plainly. The widest audience — this band is the base `lesson`. | 200 words · 25-min segments · check after 4 |
 | **senior** | 65+ | *when I am old and greyheaded... until I have shewed thy strength* (Ps 71:18); *fathers, because ye have known him* (1 John 2:13) | The why, the edge cases, the word-study, the pastoral history. Honors accumulated experience; unhurried. | 120 words · 15-min segments · check after 3 |
 
 **Why senior chunks SHORTER than adult (120 vs 200) while going DEEPER.** These are two different dials and conflating them is the common error. Depth is a property of the *content*; segment length is a property of the *presentation*. Honoring long experience means giving more substance, at a pace that does not demand sustained uninterrupted screen-reading. Deeper and unhurried are compatible; deeper and denser are not the same claim.
 
-**A child level is never a shortened adult level.** The series teaches hard things — the sex industry, the occult, coerced abortion, prison, demonic deception. The child version must carry the **transferable truth without the adult content**, and that promise is machine-checked in `living-lessons-age-appropriateness.test.js` rather than left to an author's good intentions.
+**A child level is never a shortened adult level — and today, measured, it is (DR-0418).** On 2026-09-15 the child level carried a median 16% of the adult lesson's words, teen 26%, senior 41%, and the youth band had no level of its own (it read the teen text). That is recorded as shrink-only debt in `full-levels-baseline.json` with floors child ≥ 0.5 and youth/teen/senior ≥ 0.6 of the adult words, a new lesson ships full or fails, and the authoring pass runs lesson by lesson from L151. The sentence that follows is the standard the pass is written to. The series teaches hard things — the sex industry, the occult, coerced abortion, prison, demonic deception. The child version must carry the **transferable truth without the adult content**, and that promise is machine-checked in `living-lessons-age-appropriateness.test.js` rather than left to an author's good intentions.
 
 ---
 

@@ -49,6 +49,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LIVING_LESSONS_MODULES, LIVING_LESSONS_META } from '../lib/living-lessons-class.js';
 import { AGE_BANDS, resolveForAge } from '../lib/learn-framework.js';
+import fullLevels from '../lib/full-levels-baseline.json';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const src = readFileSync(join(HERE, '..', 'lib', 'living-lessons-class.js'), 'utf8');
@@ -154,11 +155,16 @@ describe('every age band is served text authored for IT (no band left on a fallb
     expect(r.text).toBe(m.lesson);
   });
 
-  it('no band anywhere in the series falls back — the debt stays closed', () => {
+  it('no band anywhere in the series falls back — the debt stays closed (youth: at its recorded debt, DR-0418)', () => {
+    // Youth has its own level slot since 2026-09-15; while a lesson's youth
+    // level is unwritten it reads the teen text, and that gap is recorded as
+    // shrink-only debt in full-levels-baseline.json — never hidden, never new.
+    const youthRecorded = new Set(Object.entries(fullLevels.short || {}).filter(([, b]) => b.includes('youth')).map(([id]) => id.split('-')[0]));
     for (const band of AGE_BANDS) {
       const gaps = LIVING_LESSONS_MODULES
         .filter((x) => resolveForAge(x, band.id, null).levelId !== band.depth)
-        .map((x) => x.id.split('-')[0]);
+        .map((x) => x.id.split('-')[0])
+        .filter((id) => !(band.id === 'youth' && youthRecorded.has(id)));
       expect(gaps, `${band.label} must read prose authored for it`).toEqual([]);
     }
   });

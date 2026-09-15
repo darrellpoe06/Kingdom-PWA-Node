@@ -49,12 +49,21 @@ const ADULT_DEBT = [];
 
 const numOf = (id) => id.split('-')[0];
 
-describe('every band except adult is a hard invariant at zero', () => {
+// YOUTH (11–14) NOW HAS ITS OWN SLOT (DR-0418, 2026-09-15). Until this date the
+// youth band's depth WAS the teen text, so "zero gaps" for youth meant "reads
+// the teen level". Its own level is authored lesson by lesson; while a lesson
+// has none it reads teen at youth pacing, and that gap is recorded as shrink-
+// only debt in full-levels-baseline.json (the fullness gate), never hidden.
+import fullLevels from '../lib/full-levels-baseline.json';
+const youthRecorded = new Set(Object.entries(fullLevels.short || {}).filter(([, b]) => b.includes('youth')).map(([id]) => numOf(id)));
+
+describe('every band except adult is a hard invariant at zero (youth: at its recorded debt)', () => {
   for (const band of AGE_BANDS.filter((b) => b.id !== 'adult')) {
     it(`no lesson falls back to another band's prose for ${band.label} (${band.range})`, () => {
       const gaps = LIVING_LESSONS_MODULES
         .filter((m) => resolveForAge(m, band.id, null).levelId !== band.depth)
-        .map((m) => numOf(m.id));
+        .map((m) => numOf(m.id))
+        .filter((id) => !(band.id === 'youth' && youthRecorded.has(id)));
       expect(gaps, `${band.label} must always read prose authored for it`).toEqual([]);
     });
   }
