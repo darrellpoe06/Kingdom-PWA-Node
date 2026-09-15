@@ -1038,3 +1038,44 @@ describe('sov17 — the Word is in the sentence and the send-off has content', (
     }
   });
 });
+
+// -----------------------------------------------------------------------------
+// sov18 — ONE SOURCE, TWO DOORS. The precept-upon-precept lesson is authored
+// once as Living Lesson L153 and carried into this class whole. If the two
+// ever drift, the class is teaching a different lesson than the catalog under
+// the same title — this pins them together, and pins the load-bearing lines to
+// the corpus a second time (two witnesses, DR-0076).
+// -----------------------------------------------------------------------------
+describe('sov18 — precept upon precept is ONE lesson carried through two doors', () => {
+  const sov18 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov18-precept-upon-precept-the-voice-that-programs-the-world');
+  const corpus = (book) => JSON.parse(readFileSync(join(HERE, '..', '..', 'public', 'bible', 'kjv', `${book}.json`), 'utf8'));
+  const verse = (book, ch, v) => corpus(book).chapters[ch - 1][v - 1];
+  it('exists, names its source, and carries the whole Living Lesson (body, bands, quiz, facilitator)', async () => {
+    expect(sov18).toBeTruthy();
+    const { LIVING_LESSONS_MODULES } = await import('../lib/living-lessons-class.js');
+    const ll = LIVING_LESSONS_MODULES.find((m) => m.id === sov18.sharedWith.lesson);
+    expect(ll).toBeTruthy();
+    expect(sov18.sharedWith.course).toBe('living-lessons');
+    expect(sov18.lesson).toBe(ll.lesson);
+    expect(sov18.levels).toBe(ll.levels);
+    expect(sov18.quiz).toBe(ll.quiz);
+    expect(sov18.benefits).toBe(ll.benefits);
+    expect(sov18.anchor).toBe(ll.anchor);
+    expect(sov18.facilitator).toBe(ll.facilitator);
+    // The class's own tweak: Research → Plan → Execute, which the catalog lesson does not carry.
+    expect(sov18.rpe.research).toMatch(/Genesis 1/);
+    expect(sov18.rpe.plan).toMatch(/2 Timothy 3:16/);
+    expect(sov18.rpe.execute).toMatch(/James 1:22/);
+    expect(ll.rpe).toBeUndefined();
+  });
+  it('the three anchors and the boat are verbatim KJV, reference beside each', () => {
+    for (const [book, ch, v, label] of [['Isaiah', 28, 10, 'Isaiah 28:10'], ['Psalms', 33, 9, 'Psalms 33:9'], ['Hebrews', 11, 3, 'Hebrews 11:3'], ['Mark', 4, 39, 'Mark 4:39']]) {
+      expect(sov18.lesson).toContain(`"${verse(book, ch, v)}" (${label})`);
+    }
+    expect(sov18.anchor.ref).toBe('Isaiah 28:10; Psalms 33:9; Hebrews 11:3');
+  });
+  it('tamper-catch: the pinned anchor text itself is exact', () => {
+    expect(verse('Psalms', 33, 9)).toBe('For he spake, and it was done; he commanded, and it stood fast.');
+    expect(verse('Isaiah', 28, 10)).toBe('For precept must be upon precept, precept upon precept; line upon line, line upon line; here a little, and there a little:');
+  });
+});
