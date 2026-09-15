@@ -697,6 +697,70 @@ export function LessonProse({ text, className = 'text-xs text-[#1A1815]' }) {
 }
 
 // AgePacedLesson — renders the authored lesson PACED to the learner's age band.
+// THE LEVEL IS CHOSEN INSIDE THE LESSON (DR-0417).
+//
+// Darrell 2026-09-15: "can we bring those level controls into each lesson so
+// it can be chosen even inside the lessons like the PowerPoint currently do?
+// Flexibility with rigorous control of the system and processes." The
+// Presenter keeps its "Who is in the room" radio row reachable the whole way
+// through a message; the course's only age control lived on the "Pace & depth"
+// tab, two taps away from the words it changes. This is the same row, at the
+// top of the paced core, wired to the SAME device-remembered state — one
+// setting, now reachable where it is felt.
+//
+// SURFACE SAYS TRUTH. The screenshot that raised this read "STEP 1 OF 41 ·
+// CHILD PACE" over the ADULT text: a standing depth override (learnLevel) wins
+// over the band in resolveForAge, so the pace said child while the words did
+// not. Two rules follow. (1) A fresh age pick here means "pitch it for this
+// age": it clears a standing override, so the words change with the pace.
+// (2) Whenever the words being read are not the band's own level — an
+// override, or a lesson with no version at that level — the row says so in a
+// sentence, with the way back beside it.
+const LEVEL_WORDS = { child: 'Child', teen: 'Teen', standard: 'Adult', senior: 'Senior' };
+function levelWords(id) { return LEVEL_WORDS[id] || id; }
+
+export function LessonLevelControl({ band, levelId, levelOverride = null, setAgeBand, setLearnLevel = null }) {
+  if (!band || typeof setAgeBand !== 'function') return null;
+  const overridden = Boolean(levelOverride);
+  const fellBack = !overridden && levelId && levelId !== band.depth;
+  const pick = (id) => {
+    setAgeBand(id);
+    if (overridden && setLearnLevel) setLearnLevel('auto');
+  };
+  const chip = (on) => `text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`;
+  return (
+    // The reader never speaks this row (data-read-skip): it is a control, not
+    // the lesson, and read-reveal never clicks a radio (no aria-expanded).
+    <div className="mb-2" data-read-skip="true" data-testid="lesson-level-control">
+      <div role="radiogroup" aria-label="Who is learning? Sets the words and the pace" className="flex flex-wrap gap-1">
+        {AGE_BANDS.map((b) => {
+          const on = band.id === b.id;
+          return (
+            <button key={b.id} type="button" role="radio" aria-checked={on} title={b.hint} onClick={() => pick(b.id)} className={chip(on)}>
+              {b.label} <span className="opacity-70">{b.range}</span>
+            </button>
+          );
+        })}
+      </div>
+      {overridden && (
+        <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          Depth is set to {levelWords(levelOverride)}: these are the {levelWords(levelId)} words at {band.label} pace.
+          {setLearnLevel && (
+            <button type="button" onClick={() => setLearnLevel('auto')} className="ml-1 underline min-h-[36px] text-[#5A6E3D] focus:outline focus:outline-2 focus:outline-[#B85838]">
+              Follow my age instead
+            </button>
+          )}
+        </p>
+      )}
+      {fellBack && (
+        <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          This lesson has no {band.label} version yet: these are the {levelWords(levelId)} words at {band.label} pace.
+        </p>
+      )}
+    </div>
+  );
+}
+
 // The same authored text is chunked into developmentally-sized segments
 // (learn-framework lessonPlanForAge); younger bands get a short stepper with break
 // nudges and a quick-win "Got it!" affordance, the adult band gets the whole lesson
@@ -708,13 +772,18 @@ export function LessonProse({ text, className = 'text-xs text-[#1A1815]' }) {
 // component with a real multi-step plan. Reaching it through the full ChurchLearn
 // tree meant the assertion depended on which course/session view happened to
 // mount, which is how the first draft of that test passed while proving nothing.
-export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onStepChange = null, showAll = false, flush = false }) {
+export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onStepChange = null, showAll = false, flush = false, setAgeBand = null, setLearnLevel = null, levelOverride = null }) {
   const [idx, setIdx] = useState(() => Math.max(0, initialIndex));
   const firedRef = useRef(false);
   if (!plan || !plan.segments || plan.segments.length === 0) return null;
-  const { segments, totalSegments, segmentMinutes, breakAfterSegments, checkAfterSegments, band } = plan;
+  const { segments, totalSegments, segmentMinutes, breakAfterSegments, checkAfterSegments, band, levelId } = plan;
   // In the lesson's own space the box loses its side walls (see TutorPanel).
   const box = flush ? 'mb-2 border-y border-[#E8E4DC] bg-white py-2' : 'mb-2 border border-[#E8E4DC] bg-white p-2';
+  // The in-lesson level row (DR-0417) — only where a host hands in the setter,
+  // so every existing caller renders exactly as before.
+  const control = setAgeBand
+    ? <LessonLevelControl band={band} levelId={levelId} levelOverride={levelOverride} setAgeBand={setAgeBand} setLearnLevel={setLearnLevel} />
+    : null;
 
   // READ-ALONG READS THE WHOLE CORE, NOT STEP ONE OF IT.
   //
@@ -737,6 +806,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
   if (showAll && totalSegments > 1) {
     return (
       <div className={`${box} space-y-2`}>
+        {control}
         {segments.map((s, i) => (
           <div key={i}>
             <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
@@ -758,7 +828,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
   // Adult/single-segment: just show the whole lesson, no stepper.
   if (totalSegments <= 1) {
     return (
-      <div className="mb-2"><LessonProse text={segments[0]} /></div>
+      <div className="mb-2">{control}<LessonProse text={segments[0]} /></div>
     );
   }
 
@@ -779,6 +849,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
 
   return (
     <div className={box}>
+      {control}
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
           Step {cur + 1} of {totalSegments} · ~{segmentMinutes} min · {band.label} pace
@@ -886,7 +957,7 @@ function GenerativeVisualNote() {
 // `flush` — the lesson is open in its OWN space (DR-0264), so the reading
 // column takes the page's full width: this panel and the stage/paced boxes
 // inside it drop their side borders and side padding (see the `li` below).
-function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = 'In the app', level = DEFAULT_LEVEL, quizSaved = null, onRecordQuiz = null, ageBand = DEFAULT_AGE_BAND, levelOverride = null, onEngagement = null, venueAware = false, unitNoun = 'week', sessionFlow = null, onPlace = null, onAdvance = null, flush = false }) {
+function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = 'In the app', level = DEFAULT_LEVEL, quizSaved = null, onRecordQuiz = null, ageBand = DEFAULT_AGE_BAND, levelOverride = null, setAgeBand = null, setLearnLevel = null, onEngagement = null, venueAware = false, unitNoun = 'week', sessionFlow = null, onPlace = null, onAdvance = null, flush = false }) {
   const [messages, setMessages] = useState([]); // [{ role, content, source? }]
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
@@ -1032,6 +1103,9 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
               onStepChange={onPlace ? (i) => onPlace({ lessonId: module.id, step: i }) : null}
               showAll={readAll}
               flush={flush}
+              setAgeBand={setAgeBand}
+              setLearnLevel={setLearnLevel}
+              levelOverride={levelOverride}
             />
             {/* Parable/story beats — short, vivid, often-funny illustrations, the way
                 Jesus taught (Matthew 13:34); the teacher drops these to land the point. */}
@@ -2059,6 +2133,8 @@ function CourseView({
                     level={learnLevel}
                     ageBand={ageBand}
                     levelOverride={levelOverride}
+                    setAgeBand={setAgeBand}
+                    setLearnLevel={setLearnLevel}
                     onEngagement={onEngagement}
                     venueAware={venueAware}
                     quizSaved={quizState[m.id] || null}

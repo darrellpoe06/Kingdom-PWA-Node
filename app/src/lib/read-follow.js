@@ -121,7 +121,22 @@ export function buildFollowMap(root, doc = typeof document !== 'undefined' ? doc
   const walker = doc.createTreeWalker(root, 4 /* NodeFilter.SHOW_TEXT */, null);
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
     const parent = node.parentElement;
-    if (!parent || (parent.closest && parent.closest(SKIP_SELECTOR))) continue;
+    if (!parent) continue;
+    // A REFERENCE IN THE SENTENCE IS THE SENTENCE (DR-0417). Since DR-0402 the
+    // lesson prose renders "…as 1 Corinthians 13:4 says…" with the reference
+    // as a WordInline chip — a <button>. `button` is chrome here by default
+    // (DR-0299: the furniture was being read), so the primary reading path
+    // dropped the reference from the middle of its own sentence: the listener
+    // heard "Love is patient, as says". The fallback path (TTSControl's
+    // readablePageText) already honours `data-read-keep`; this path now does
+    // too, with the same meaning — an element that says it IS reading is read
+    // even though a skip rule would have muted it, provided the keep sits at
+    // or inside the muted element (a keep cannot un-mute a whole dialog).
+    const muted = parent.closest ? parent.closest(SKIP_SELECTOR) : null;
+    if (muted) {
+      const kept = parent.closest('[data-read-keep]');
+      if (!kept || !muted.contains(kept)) continue;
+    }
 
     // A BLOCK BOUNDARY IS A WORD BOUNDARY.
     //
