@@ -70,7 +70,7 @@ export const WORLD_ISSUES_META = {
   },
   format: 'Self-paced · one issue at a time · media literacy + biblical discernment · paced to your age',
   cadenceDays: 7,
-  weeks: 11, // eleven published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex · the two aftermaths · the law of assumption · victorious emotions · college tuition and the 1965 Act); the track grows as issues are added
+  weeks: 13, // eleven published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex · the two aftermaths · the law of assumption · victorious emotions · college tuition and the 1965 Act); the track grows as issues are added
   handsOnLabel: 'Practice the skill',
   unit: {
     noun: 'issue',
@@ -2693,7 +2693,641 @@ const TUITION_1965_ISSUE = {
   },
 };
 
-export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE, TUITION_1965_ISSUE];
+// =============================================================================
+// ISSUE 12 — The EPA unwinds the power-plant carbon rules (2026-09-14).
+// Darrell forwarded the Morning Brew lead (Smokin’) and the NPR Up First bullet
+// on 2026-09-15 with the single word: Lesson. The newsletter is MATERIAL TO
+// STUDY, not instruction. Every real-world figure below was checked by live web
+// search on 2026-09-15 and sorted into DR-0100 tiers; every verse was fetched
+// verbatim from the repo KJV and is gated in world-issues-verse-integrity.
+// Word first: dominion is stewardship (Genesis 2:15; Psalms 24:1), the land is
+// not to be polluted (Numbers 35:33-34), the just weight weighs BOTH pans of
+// the cost-benefit claim (Proverbs 11:1; 20:23), the poor breathe the smoke
+// first (Isaiah 10:1-2; Proverbs 29:7), and every decree meets two courts
+// (Ecclesiastes 12:14). No verdict on any official’s soul; pray for rulers.
+// =============================================================================
+const EPA_POWER_PLANT_ISSUE = {
+  id: 'wi-epa-power-plant-carbon-rules-2026',
+  title: 'The EPA unwinds the power-plant carbon rules — $300 billion, 30,000 lives, and the Word on the land',
+  subject: { name: 'the EPA’s September 2026 repeal of the power-plant carbon pollution standards', kind: 'policy-and-news', isNamedRealPerson: false },
+  skill: 'Take a front-page policy fight with a giant number on each side — "$300 billion saved" versus "30,000 lives" — and learn how the Word weighs it: state the documented plainly (what was repealed, when, what the agency itself projects, what coal smoke is proven to do), label each modeled projection as a model with its assumptions in view, hear the administration, the public-health side, and the coal towns and downwind neighborhoods at their strongest (Proverbs 18:17), and then let Yahweh’s own frame settle what the shouting cannot: the earth is His, dominion is stewardship, the just weight has two pans, and the poor breathe the smoke first.',
+  source: {
+    creator: 'Morning Brew (with the NPR Up First bullet on the same story)',
+    medium: 'newsletter',
+    title: 'Smokin’ — EPA unwinds the power-plant carbon rules (2026-09-15 edition)',
+    url: '',
+    asOf: '2026-09-15',
+    note: 'A daily business newsletter’s lead item, forwarded by Darrell on 2026-09-15. It compresses an AP story, an EPA announcement, an NYU analysis, and a Sierra Club count into a few sentences. We treat it as ONE summary — sourced, labeled, and checked line by line — not as truth to repeat.',
+  },
+
+  // ---- STAGE 1 — THE CLAIM(S): the newsletter's points, AS MADE, each labeled. ----
+  claims: [
+    {
+      id: 'c-unwinding',
+      text: 'The EPA announced it is unwinding Obama- and Biden-era carbon pollution standards for fossil-fuel power plants — rules requiring gas plants to burn cleaner and coal plants to capture most of their emissions by 2039 are eliminated, effective shortly after publication.',
+      label: 'claim',
+      attribution: 'Morning Brew, summarizing the EPA announcement of 2026-09-14',
+      note: 'Documented in substance, loose in detail. The final rule signed 2026-09-14 is a PARTIAL repeal of the 2024 Carbon Pollution Standards: it strikes the guidelines for existing coal plants (90% capture by 2032 for plants running past 2039, or retire) and the carbon-capture standard for new baseload gas turbines. "Burn cleaner fuels" is the newsletter’s gloss; the gas-plant standard was a carbon-capture requirement. The exact effective date is in the Federal Register notice and is carried here as the newsletter’s "shortly after publication."',
+    },
+    {
+      id: 'c-300b',
+      text: 'The EPA says the changes save the energy industry more than $300 billion and "unleash" American energy.',
+      label: 'claim',
+      attribution: 'Morning Brew, quoting the EPA',
+      note: 'Documented as the EPA’s OWN projection ($310 billion in avoided compliance costs, per the agency’s release). It is a one-pan figure: it counts what the industry no longer has to spend and does not count the health and climate costs on the other pan. That asymmetry is exactly what the just weight (Stage 4) is for.',
+    },
+    {
+      id: 'c-endanger',
+      text: 'In a separate proposed rule the EPA will argue that greenhouse gases do not endanger human health or the environment — which could prevent future administrations from reinstating restrictions.',
+      label: 'claim',
+      attribution: 'Morning Brew, summarizing the EPA’s supplemental proposal',
+      note: 'Documented with a precision fix. The supplemental proposal argues that power-plant greenhouse gases "do not contribute significantly" to dangerous air pollution under Clean Air Act Section 111, and would rescind every remaining power-plant greenhouse-gas standard (final expected in 2027). The 2009 endangerment finding itself was already rescinded on 2026-02-18 for motor vehicles and is in the D.C. Circuit now.',
+    },
+    {
+      id: 'c-nyu',
+      text: 'An NYU analysis of 2022 data found that if the U.S. power sector were a country it would be the world’s sixth-largest greenhouse-gas emitter.',
+      label: 'claim',
+      attribution: 'Morning Brew, citing NYU School of Law’s Institute for Policy Integrity',
+      note: 'Documented: the Institute for Policy Integrity’s issue brief on 2022 data makes exactly this comparison (ahead of Canada, Japan, Brazil, and Mexico as whole nations).',
+    },
+    {
+      id: 'c-30k',
+      text: 'AP research found the regulations being wiped away could prevent about 30,000 deaths; even a partial unraveling means more smog, mercury, and lead (some mercury and contaminant restrictions remain).',
+      label: 'claim',
+      attribution: 'Morning Brew, citing the Associated Press examination',
+      note: 'Partly documented, and the most important precision in this lesson: the AP figure (~30,000 deaths and ~$275 billion per year) covers the WHOLE slate of roughly thirty EPA rollbacks, not this rule alone — about 10,000 U.S. deaths a year from the soot, mercury, and lead rules (from the EPA’s own regulatory impact analyses) plus about 25,000 heat-related deaths a year worldwide from added carbon, modeled with a peer-reviewed formula. A modeled projection with stated assumptions is not a body count; it is also not nothing. "Some mercury restrictions remain" is right: the 2024 mercury amendments were repealed 2026-02-20, and the 2012 standards still stand.',
+    },
+    {
+      id: 'c-coal-retire',
+      text: 'Coal plants said carbon capture was cost-prohibitive; per the Sierra Club, 330 coal plants have retired since 2010 and 60 more have announced closure by 2031.',
+      label: 'claim',
+      attribution: 'Morning Brew, citing coal operators and the Sierra Club',
+      note: 'Documented: the Sierra Club count (330 retired since 2010; 60 announced by 2031) is carried in the AP story of 2026-09-14, and the EPA’s own rationale is that the 2024 rule required a control technology "not adequately demonstrated" at that scale.',
+    },
+    {
+      id: 'c-data-centers',
+      text: 'Cheaper fossil fuels coincide with the tech sector’s push for AI data centers, which are straining grids and raising consumer energy prices.',
+      label: 'opinion',
+      attribution: 'Morning Brew (the newsletter’s framing)',
+      note: 'The demand surge and the price rise are documented (Stage 2). "Coincide" is the newsletter’s reading of motive and timing; the administration says the demand is precisely why it acted. Both the fact and the framing are carried, labeled.',
+    },
+    {
+      id: 'c-legal',
+      text: 'Legal challenges from environmental groups are expected.',
+      label: 'claim',
+      attribution: 'Morning Brew',
+      note: 'Documented: NRDC and allies announced they will sue; the related endangerment rescission is already before the D.C. Circuit on petitions from health groups and from two dozen states.',
+    },
+  ],
+
+  // ---- STAGE 2 — VERIFIABLE vs INTERPRETATION ----
+  verifiable: [
+    {
+      id: 'f-repeal',
+      statement: 'On September 14, 2026, at the G20 energy summit in Houston, EPA Administrator Lee Zeldin signed the final Partial Repeal of the Carbon Pollution Standards for Fossil Fuel-Fired Electric Generating Units. It strikes the 2024 rule’s emission guidelines for existing coal-fired plants (which required plants operating past 2039 to capture 90% of carbon dioxide by 2032, or retire), the carbon-capture standard for coal plants undertaking a large modification, and the carbon-capture (Phase 2) standard for new baseload gas turbines. The EPA projects $310 billion in avoided compliance costs and says the action will "unleash" American energy. A supplemental proposal issued the same day would rescind all remaining power-plant greenhouse-gas standards on the ground that the sector’s emissions "do not contribute significantly" to dangerous air pollution; it is expected to be finalized in 2027.',
+      status: 'documented',
+      sources: [
+        { title: 'EPA Finalizes Repeal of 2024 Power Plant Regulations, Delivering $300+ Billion in Savings, Proposes Repeal of All Remaining Greenhouse Gas Emissions Standards for Power Plants', publisher: 'U.S. Environmental Protection Agency (news release)', url: 'https://www.epa.gov/newsreleases/epa-finalizes-repeal-2024-power-plant-regulations-delivering-300-billion-savings', asOf: '2026-09-15' },
+        { title: 'Greenhouse Gas Standards and Guidelines for Fossil Fuel-Fired Power Plants', publisher: 'U.S. Environmental Protection Agency (program page)', url: 'https://www.epa.gov/stationary-sources-air-pollution/greenhouse-gas-standards-and-guidelines-fossil-fuel-fired-power', asOf: '2026-09-15' },
+        { title: 'EPA eliminates rule that limits planet-warming greenhouse gas emissions from power plants', publisher: 'Associated Press (via MPR News)', url: 'https://www.mprnews.org/story/2026/09/14/epa-limits-rule-limiting-greenhouse-gas-emissions-from-power-plants', asOf: '2026-09-15' },
+        { title: 'EPA Poised to Repeal Carbon Rules for Coal, Gas Power Plants', publisher: 'Bloomberg (via Insurance Journal)', url: 'https://www.insurancejournal.com/news/national/2026/09/15/884996.htm', asOf: '2026-09-15' },
+      ],
+      note: 'Verified by live web search on 2026-09-15 against the EPA’s own release and program page, the AP, and Bloomberg. The $310 billion is the agency’s figure for avoided industry compliance cost — one pan of the scale, stated as such.',
+    },
+    {
+      id: 'f-endangerment',
+      statement: 'The separate endangerment track is real and already moving: on February 18, 2026 the EPA published a final rule rescinding the 2009 greenhouse-gas endangerment finding for motor vehicles (effective April 20, 2026), and it is being challenged in the D.C. Circuit by a coalition of health and environmental groups and by two dozen states and more than a dozen cities and counties. The power-plant supplemental proposal of September 14, 2026 is the Section 111 counterpart, arguing the sector’s emissions are "a small and decreasing part of global emissions."',
+      status: 'documented',
+      sources: [
+        { title: 'Rescission of the Greenhouse Gas Endangerment Finding and Motor Vehicle Greenhouse Gas Emission Standards Under the Clean Air Act', publisher: 'Federal Register', url: 'https://www.federalregister.gov/documents/2026/02/18/2026-03157/rescission-of-the-greenhouse-gas-endangerment-finding-and-motor-vehicle-greenhouse-gas-emission', asOf: '2026-09-15' },
+        { title: 'Health, environmental groups sue EPA over repeal of endangerment finding', publisher: 'Utility Dive', url: 'https://www.utilitydive.com/news/environmental-groups-sue-epa-endangerment-finding/812576/', asOf: '2026-09-15' },
+        { title: 'Regulating Greenhouse Gases for New and Existing Fossil Fuel-Fired Power Plants (regulatory tracker)', publisher: 'Harvard Law School Environmental & Energy Law Program', url: 'https://eelp.law.harvard.edu/tracker/regulating-greenhouse-gases-for-new-and-existing-fossil-fuel-fired-power-plants/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The newsletter’s "will argue greenhouse gases do not endanger" is close but imprecise: the power-plant proposal turns on "significant contribution" under Section 111; the endangerment finding proper was rescinded in February for vehicles.',
+    },
+    {
+      id: 'f-coal-smoke-damage',
+      statement: 'That coal smoke shortens lives is established science, not a projection. A 2023 study in Science (Henneman et al.) tied Medicare death records to modeled plumes from 480 U.S. coal plants and found about 460,000 deaths between 1999 and 2020 attributable to coal fine-particle pollution — more than 43,000 a year in 1999-2007, falling steeply as plants closed or added scrubbers — with coal particulates carrying roughly double the mortality risk per unit of ordinary fine particles. Mercury from coal is a neurotoxin; the 2024 Mercury and Air Toxics amendments were repealed on February 20, 2026, and the 2012 standards remain in force.',
+      status: 'documented',
+      sources: [
+        { title: 'Mortality risk from United States coal electricity generation', publisher: 'Science (Henneman et al., 2023)', url: 'https://www.science.org/doi/10.1126/science.adf4915', asOf: '2026-09-15' },
+        { title: 'Deaths associated with pollution from coal power plants', publisher: 'National Institutes of Health (Research Matters)', url: 'https://www.nih.gov/news-events/nih-research-matters/deaths-associated-pollution-coal-power-plants', asOf: '2026-09-15' },
+        { title: 'Analysis of the Final Repeal of the Mercury and Air Toxics Standards Amendments', publisher: 'U.S. Environmental Protection Agency', url: 'https://www.epa.gov/power-sector-modeling/analysis-final-repeal-mercury-and-air-toxics-standards-amendments', asOf: '2026-09-15' },
+        { title: 'EPA’s repeal of updated standards allows more emissions of hazardous air pollutants from coal plants', publisher: 'Clean Air Task Force', url: 'https://www.catf.us/2026/02/epas-repeal-updated-standards-allows-more-emissions-hazardous-air-pollutants-coal-plants/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. This is Tier 1 (DR-0100): documented damage, stated plainly. It is also the honest baseline for the coal-town steelman — the same record shows the harm FELL as plants closed, which is the very trend the repeal is meant to slow.',
+    },
+    {
+      id: 'f-ap-projection',
+      statement: 'The Associated Press examination (published June 2025, restated in its September 14, 2026 story) estimated that the roughly thirty EPA rules targeted for rollback could together prevent about 30,000 deaths and save about $275 billion EACH YEAR they are in effect. The AP built the figure from the EPA’s own regulatory impact analyses plus studies in Science and Nature Communications, Rhodium Group emission estimates, and a peer-reviewed heat-death formula (one death per 10,217 tons of added carbon dioxide). Roughly 10,000 of the deaths are U.S. deaths from the soot, mercury, and lead rules; roughly 25,000 are heat-related deaths worldwide from added carbon. The Environmental Defense Fund’s preliminary analysis of this power-plant rule alone projects more than 80,000 additional premature deaths and over $1 trillion in health costs through 2047. The NYU Institute for Policy Integrity projects about 5,300 additional premature U.S. deaths from the sector’s 2022 emissions alone.',
+      status: 'partly-documented',
+      sources: [
+        { title: 'How AP calculated the costs and death toll of EPA rule rollbacks', publisher: 'Associated Press (via Daily Journal)', url: 'https://dailyjournal.net/2025/06/05/how-ap-calculated-the-costs-and-death-toll-of-epa-rule-rollbacks/', asOf: '2026-09-15' },
+        { title: 'Trump EPA attacks U.S. protections against power plant pollution', publisher: 'Environmental Defense Fund', url: 'https://www.edf.org/media/trump-epa-attacks-us-protections-against-power-plant-pollution', asOf: '2026-09-15' },
+        { title: 'The Scale of Significance: Power Plants (issue brief)', publisher: 'Institute for Policy Integrity, NYU School of Law', url: 'https://policyintegrity.org/files/publications/Power_Sector_GHG_Contribution_Issue_Brief_vF.pdf', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. Tier 2 (DR-0100), flagged NARROWLY: the analyses are documented and reviewed, the inputs are named, and the projections rest on models — a carbon-mortality formula, an emissions scenario, an exposure model. Say "modeled projection with these assumptions," never "no one knows," and never "30,000 bodies." The U.S. soot-and-mercury share sits on firmer ground than the global heat share; the EDF and NYU figures are their authors’ projections, carried as such.',
+    },
+    {
+      id: 'f-sector-scale',
+      statement: 'The U.S. power sector emits more than 1.5 billion tons of carbon dioxide a year and is the largest industrial source of it in the country. Using 2022 data, NYU’s Institute for Policy Integrity found that if the sector were a country it would rank as the world’s sixth-largest emitter, ahead of the entire national emissions of Canada, Japan, Brazil, and Mexico.',
+      status: 'documented',
+      sources: [
+        { title: 'The Scale of Significance: Power Plants (issue brief)', publisher: 'Institute for Policy Integrity, NYU School of Law', url: 'https://policyintegrity.org/files/publications/Power_Sector_GHG_Contribution_Issue_Brief_vF.pdf', asOf: '2026-09-15' },
+        { title: 'EPA Repeals Climate Rules for Power Plants', publisher: 'Natural Resources Defense Council (press release)', url: 'https://www.nrdc.org/press-releases/epa-repeals-climate-rules-power-plants', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. This is the direct answer to the proposal’s "small and decreasing part of global emissions": the share IS decreasing (coal retirements), AND the absolute amount is larger than most nations. Both are true; a just weight holds both.',
+    },
+    {
+      id: 'f-coal-fleet',
+      statement: 'Per the Sierra Club, 330 U.S. coal plants have retired since 2010 and 60 more have announced closure by 2031. Against that trend the administration has used Section 202(c) emergency orders to keep aging coal plants running in Michigan, Colorado, Indiana, and Washington; on September 11, 2026 the D.C. Circuit unanimously vacated the first of those orders (the J.H. Campbell plant), rejecting the department’s "sweeping conception" of its emergency authority. The AP reports U.S. coal demand rose about 10% last year, largely on data-center load.',
+      status: 'documented',
+      sources: [
+        { title: 'EPA eliminates rule that limits planet-warming greenhouse gas emissions from power plants', publisher: 'Associated Press (via MPR News)', url: 'https://www.mprnews.org/story/2026/09/14/epa-limits-rule-limiting-greenhouse-gas-emissions-from-power-plants', asOf: '2026-09-15' },
+        { title: 'Trump Administration Loses First Court Case Challenging DOE Orders for Coal Plants', publisher: 'Earthjustice', url: 'https://earthjustice.org/press/2026/trump-administration-loses-first-court-case-challenging-doe-orders-for-coal-plants', asOf: '2026-09-15' },
+        { title: 'DC Circuit Rejects Energy Department’s Claim of "Emergency" Authority to Order Coal Plant to Remain Open', publisher: 'Reason (Volokh Conspiracy)', url: 'https://reason.com/volokh/2026/09/11/dc-circuit-rejects-energy-departments-claim-of-emergency-authority-to-order-coal-plant-to-remain-open/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The retirement count is the Sierra Club’s own tally, carried as theirs.',
+    },
+    {
+      id: 'f-data-centers',
+      statement: 'Electricity demand and prices are rising, and data centers are a large part of the demand story: the Energy Information Administration expects record U.S. power use in 2025 and 2026 on data-center growth; data centers used about 4.4% of U.S. electricity in 2023 and are projected at 6.7-12% by 2028; residential electricity prices rose 6.9% in 2025 (more than double headline inflation); Goldman Sachs projects the AI buildout adds about 6% to electricity costs across 2026-2027. How much of the price rise is data centers versus fuel costs, grid upgrades, and weather is genuinely debated.',
+      status: 'partly-documented',
+      sources: [
+        { title: 'Electricity prices will keep rising on AI data center demand: Goldman', publisher: 'CNBC', url: 'https://www.cnbc.com/2026/02/12/electricity-price-data-center-ai-inflation-goldman.html', asOf: '2026-09-15' },
+        { title: 'AI Data Centers: Big Tech’s Impact on Electric Bills, Water, and More', publisher: 'Consumer Reports', url: 'https://www.consumerreports.org/data-centers/ai-data-centers-impact-on-electric-bills-water-and-more-a1040338678/', asOf: '2026-09-15' },
+        { title: 'Why electricity prices keep rising — and why it’s not just about data centers', publisher: 'Fortune', url: 'https://fortune.com/2026/05/20/electricity-bills-surging-not-just-data-centers/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The demand and the price rise are Tier 1; the attribution of the price rise to data centers specifically is Tier 2, flagged narrowly.',
+    },
+  ],
+  interpretation: [
+    {
+      id: 'n-one-pan-number',
+      statement: '"$300 billion saved" and "30,000 lives" are not the same kind of number and should not be traded as if they were. The first is the agency’s projection of one pan — industry compliance cost avoided. The second is a reviewed but modeled projection of the other pan, covering a whole slate of rules, most of it heat deaths worldwide from added carbon. A just weight puts BOTH pans on the scale and says what each one is. The newsletter set them side by side; the discipline is to name what each measures before comparing.',
+      restsOn: ['f-repeal', 'f-ap-projection'],
+    },
+    {
+      id: 'n-established-vs-modeled',
+      statement: 'Keep the two tiers apart. That coal fine-particle pollution has shortened hundreds of thousands of American lives is ESTABLISHED (Science, 2023; the harm fell as plants closed). That this repeal will cause a specific number of future deaths is MODELED. The first must be said plainly; the second must be said with its assumptions showing. Neither is "no one knows."',
+      restsOn: ['f-coal-smoke-damage', 'f-ap-projection'],
+    },
+    {
+      id: 'n-small-and-decreasing',
+      statement: 'The proposal’s "small and decreasing part of global emissions" and the NYU "sixth-largest emitter" are both true readings of the same data. The share is falling because coal is retiring; the absolute amount still outweighs whole nations. Which fact a speaker leads with reveals the case being made. The reader holds both.',
+      restsOn: ['f-sector-scale', 'f-coal-fleet'],
+    },
+    {
+      id: 'n-coincide',
+      statement: '"Cheaper fossil fuels coincide with the data-center push" is the newsletter’s framing of motive and timing. The demand is real and the administration says it acted BECAUSE of it (reliability, cost, keeping coal online). Whether the poor and the downwind should carry the cost of powering the data centers is the moral question underneath — and the Word answers it without needing anyone’s motive proven.',
+      restsOn: ['f-data-centers', 'f-coal-fleet'],
+    },
+  ],
+
+  // ---- STAGE 3 — PERSPECTIVES on the UNRESOLVED parts ----
+  perspectives: [
+    {
+      id: 'p-administration',
+      label: 'The administration and the industry — cost, reliability, and a grid under strain',
+      heldBy: 'The EPA under Administrator Zeldin, coal and gas generators, and trade groups such as America’s Power',
+      steelman: 'At its strongest: the 2024 rule set a standard almost no existing coal plant could meet — 90% carbon capture at scale is not proven across the fleet, and the practical effect was forced retirement, which is not what Section 111 authorizes. Demand from data centers, artificial intelligence, and reshored manufacturing is surging, prices are already up, and taking dispatchable plants off the grid on a deadline risks blackouts and bills that land on the same households the critics say they protect. Energy independence is a security question, not only an economic one. A regulator’s honest job is standards a plant can actually meet; an unmeetable standard is a closure order wearing a standard’s clothes.',
+    },
+    {
+      id: 'p-public-health',
+      label: 'The public-health and environmental side — the smoke has a body count',
+      heldBy: 'Physicians’ groups, the American Public Health Association, EDF, NRDC, the Sierra Club, and the states suing in the D.C. Circuit',
+      steelman: 'At its strongest: coal fine particles have shortened hundreds of thousands of American lives, and the harm dropped as plants closed — that is the record, not a forecast. The power sector is the country’s largest industrial carbon source and, alone, out-emits most nations; carbon is not a local nuisance but a global bill that comes due as heat and smoke. A "$300 billion savings" that omits the other pan is not accounting; it is advertising. And the supplemental proposal is not merely a repeal but an attempt to remove the legal ground so no future administration can act — which turns a policy choice into a locked door.',
+    },
+    {
+      id: 'p-coal-towns',
+      label: 'The workers and the towns — the mine, the plant, and the paycheck',
+      heldBy: 'Coal miners and plant operators, their unions, and the counties whose tax base is the plant',
+      steelman: 'At its strongest: every retirement on the Sierra Club’s tally is a town that lost its largest employer, its school funding, and its hospital’s patient base, usually with a promise of "transition" that never arrived. These are people who kept the lights on for a nation for a century and are told they are the problem. A rule that closes the plant by a date certain, with no equal-paying work in the county, is a burden laid on men’s shoulders by people who will never carry it. The Word’s "Thou shalt not muzzle the ox when he treadeth out the corn." (Deuteronomy 25:4) is about the laborer being fed by his labor — and it applies to the coal worker as surely as to anyone.',
+    },
+    {
+      id: 'p-downwind',
+      label: 'The downwind neighborhoods — who breathes it first',
+      heldBy: 'Families living near plants and along the plumes, disproportionately poor and often Black and brown; the pastors and clinics that serve them',
+      steelman: 'At its strongest: the asthma inhalers, the emergency visits, the grandmother with the cough, and the child kept home from school are not a model; they are the household budget. These neighborhoods did not choose the data centers, will not share the savings, and cannot move. When a rule is loosened, the cost does not disappear — it moves from a balance sheet to a lung, and the lungs it moves to are the poorest first. This side does not need the motive of any official proven; it needs the fruit named, and a church that shows up.',
+    },
+  ],
+
+  // ---- STAGE 4 — THE BELIEVER'S LENS ----
+  lens: {
+    fourD: {
+      deepSource: 'WORD FIRST — Yahweh settled who owns the earth before any agency was named. "The earth is the LORD’s, and the fulness thereof; the world, and they that dwell therein." (Psalms 24:1). "The land shall not be sold for ever: for the land is mine; for ye are strangers and sojourners with me." (Leviticus 25:23). "For every beast of the forest is mine, and the cattle upon a thousand hills." (Psalms 50:10). DOMINION IS STEWARDSHIP, NOT LICENSE. He gave man real authority — "replenish the earth, and subdue it" and "have dominion" (Genesis 1:28); "the earth hath he given to the children of men" (Psalms 115:16) — and He defined the job in the same breath: "And the LORD God took the man, and put him into the garden of Eden to dress it and to keep it." (Genesis 2:15). A keeper is a steward, and "it is required in stewards, that a man be found faithful." (1 Corinthians 4:2). So the Word corrects the first over-reach in this fight — "the earth is ours to burn." No; it is His, and we are keepers who answer for the keeping. THE LAND IS NOT TO BE POLLUTED. "So ye shall not pollute the land wherein ye are" (Numbers 35:33); "Defile not therefore the land which ye shall inhabit, wherein I dwell" (Numbers 35:34) — the ground on which the Word forbids defiling the land is that He dwells among His people on it. He built rest for the land into the calendar, and tied it to the poor: "But the seventh year thou shalt let it rest and lie still; that the poor of thy people may eat" (Exodus 23:11); "But in the seventh year shall be a sabbath of rest unto the land, a sabbath for the LORD" (Leviticus 25:4). He forbade even an army at war to strip the land bare: "thou shalt not destroy the trees thereof by forcing an axe against them" — "for the tree of the field is man’s life" (Deuteronomy 20:19). He watches the land: "A land which the LORD thy God careth for: the eyes of the LORD thy God are always upon it" (Deuteronomy 11:12). And He counts the defiling of it as a charge: "but when ye entered, ye defiled my land, and made mine heritage an abomination" (Jeremiah 2:7); "The earth also is defiled under the inhabitants thereof" (Isaiah 24:5); "Therefore shall the land mourn, and every one that dwelleth therein shall languish, with the beasts of the field, and with the fowls of heaven" (Hosea 4:3). At the end He names the destroyers: "and shouldest destroy them which destroy the earth" (Revelation 11:18). THE CREATURES ARE HIS CARE, AND SO ARE THE WORKERS. "A righteous man regardeth the life of his beast: but the tender mercies of the wicked are cruel." (Proverbs 12:10). "Thou shalt not muzzle the ox when he treadeth out the corn." (Deuteronomy 25:4) — the laborer eats from his labor; that is the coal worker’s verse as much as anyone’s. He protected even a nesting bird: "thou shalt not take the dam with the young" (Deuteronomy 22:6) — "But thou shalt in any wise let the dam go, and take the young to thee; that it may be well with thee, and that thou mayest prolong thy days." (Deuteronomy 22:7). Take what you need; leave the source alive; and He attaches long life to the restraint. "In whose hand is the soul of every living thing, and the breath of all mankind." (Job 12:10). BUT THE CREATION IS NOT GOD. The Word corrects the second over-reach as firmly as the first. Those who "worshipped and served the creature more than the Creator" (Romans 1:25) are named as the ones who changed the truth into a lie. The earth is a witness to Him, not a deity: "the invisible things of him from the creation of the world are clearly seen, being understood by the things that are made" (Romans 1:20); "all things were created by him, and for him" (Colossians 1:16), and "by him all things consist." (Colossians 1:17). People are not a plague on the planet; He said "Be fruitful, and multiply" (Genesis 1:28), gave the beasts for food — "Every moving thing that liveth shall be meat for you" (Genesis 9:3) — and declared "For every creature of God is good, and nothing to be refused, if it be received with thanksgiving" (1 Timothy 4:4). Coal, gas, sun, and wind are His provision, to be used with thanksgiving and kept with care; neither hoarded as sacred nor spent as if no one owned them. THE JUST WEIGHT HAS TWO PANS. "A false balance is abomination to the LORD: but a just weight is his delight." (Proverbs 11:1). "Divers weights are an abomination unto the LORD; and a false balance is not good." (Proverbs 20:23). "A just weight and balance are the LORD’s: all the weights of the bag are his work." (Proverbs 16:11). This is the verse for the two giant numbers. "$300 billion saved" weighs one pan — the industry’s avoided cost — and calls it the whole scale; that is a divers weight. "30,000 lives" stated as a body count instead of a modeled projection across thirty rules is also a weight that is not what it claims. The Word requires both pans, honestly labeled: the documented harm of coal smoke stated plainly, the modeled future stated as a model, the avoided cost stated as avoided cost, and the bills and blackouts the administration warns of stated as real risks. "Prove all things; hold fast that which is good." (1 Thessalonians 5:21). "He that answereth a matter before he heareth it, it is folly and shame unto him." (Proverbs 18:13). "He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him." (Proverbs 18:17). THE POOR BREATHE THE SMOKE FIRST. "Woe unto them that decree unrighteous decrees, and that write grievousness which they have prescribed" (Isaiah 10:1) — "To turn aside the needy from judgment, and to take away the right from the poor of my people" (Isaiah 10:2). "The righteous considereth the cause of the poor: but the wicked regardeth not to know it." (Proverbs 29:7). "He that oppresseth the poor reproacheth his Maker" (Proverbs 14:31). The Word does not wait for a motive to be proven before it names where a cost lands: when a decree moves a cost from a ledger to a lung, and the lungs are the poorest first, that is a decree the Word has already weighed — whatever any official intended. And the same Word guards the coal worker from being treated as the cost: the ox is not muzzled. SO THE BELIEVER DOES FOUR THINGS IN ORDER. First, state the documented plainly: the repeal, its date, the agency’s own $310 billion figure, the established damage of coal smoke, the sector’s scale. Second, keep the categories: every death projection is a model with assumptions; say so, and do not dismiss it. Third, weigh both pans with a just weight and name where the cost lands — on the poor, on the downwind, and on the coal town — because "by their fruits ye shall know them" (Matthew 7:20). Fourth, pray for the rulers who decree, by command and not by mood: "supplications, prayers, intercessions, and giving of thanks, be made for all men" (1 Timothy 2:1) — "For kings, and for all that are in authority; that we may lead a quiet and peaceable life in all godliness and honesty." (1 Timothy 2:2). The Word settles what the debate cannot: the earth is His, we keep it, the scale has two pans, and the least of these breathe first.',
+      scripture: 'Psalms 24:1; Leviticus 25:23; Psalms 50:10; Genesis 1:26-28; Psalms 115:16; Genesis 2:15; 1 Corinthians 4:2; Numbers 35:33-34; Exodus 23:10-11; Leviticus 25:4; Deuteronomy 20:19; Deuteronomy 11:12; Jeremiah 2:7; Isaiah 24:5; Hosea 4:3; Revelation 11:18; Proverbs 12:10; Deuteronomy 25:4; Deuteronomy 22:6-7; Job 12:10; Romans 1:20-25; Colossians 1:16-17; Genesis 9:3; 1 Timothy 4:4; Proverbs 11:1; Proverbs 20:23; Proverbs 16:11; 1 Thessalonians 5:21; Proverbs 18:13; Proverbs 18:17; Isaiah 10:1-2; Proverbs 29:7; Proverbs 14:31; Matthew 7:20; 1 Timothy 2:1-2',
+    },
+    threeD: 'Practically: read the newsletter exactly as written and sort it. Say the proven parts without a hedge — on September 14, 2026 the EPA signed a partial repeal of the 2024 power-plant carbon standards; the agency itself projects $310 billion in avoided industry cost; a supplemental proposal would remove the remaining standards; coal fine-particle pollution has shortened hundreds of thousands of American lives and the harm fell as plants closed; the sector out-emits most nations. Then label the rest honestly: "30,000 deaths" is the AP’s modeled projection for a whole slate of rules, mostly heat deaths worldwide; "coincide with the data-center push" is the newsletter’s framing. Hear the administration at its strongest (an unmeetable standard is a closure order; the grid is under strain; the bills are real), hear the health side at its strongest (the smoke has a record, and a one-pan savings figure is advertising), and hear the coal town and the downwind block, who are both told they are the cost. Then do what the Word does: weigh both pans with a just weight, name where the cost lands, and refuse both over-reaches — the earth is neither ours to burn nor a god to serve. In your own house, be a keeper: count the cost (Luke 14:28) of the watts you burn, fix the leak, switch the bulb, run the load off-peak, plant the tree — not as a religion of the planet but as a steward of His property. In the Body, be the neighbor: check on the asthmatic child and the grandmother with the cough when the air is bad, drive them to the clinic, and "Open thy mouth for the dumb in the cause of all such as are appointed to destruction." (Proverbs 31:8). And pray for the people who sign the rules — by name, without a sneer — because the Word commands it.',
+    accountability: {
+      statement: 'THE TWO COURTS. Man’s court has not yet ruled on this repeal; the D.C. Circuit will hear it, as it is already hearing the endangerment rescission and as it vacated the first coal-plant emergency order on September 11, 2026. This lesson invents no verdict and predicts none. But the Word never lets accountability shrink to what a court happens to rule on. Every decree enters the eternal court — "Woe unto them that decree unrighteous decrees" (Isaiah 10:1) — where "God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil." (Ecclesiastes 12:14); where the defiling of His land is a charge He has already recorded (Jeremiah 2:7; Numbers 35:33-34); where the ones who "destroy the earth" are named (Revelation 11:18); and where the poor who breathed first are heard: "The righteous considereth the cause of the poor: but the wicked regardeth not to know it." (Proverbs 29:7). WHAT A SYSTEM OWES under the Word is not a defense of its motives but a just weight — both pans, honestly labeled — and a keeper’s care for the land it governs and the people it rules, the coal worker and the downwind child alike. Deuteronomy 22:8 is the Word’s own building code: "thou shalt make a battlement for thy roof, that thou bring not blood upon thine house" — the one who builds is answerable for the neighbor who falls, and a smokestack is a roof over a whole county. WHAT WE OWE: "to do justly, and to love mercy, and to walk humbly with thy God" (Micah 6:8); to "Learn to do well; seek judgment, relieve the oppressed" (Isaiah 1:17); to "Open thy mouth, judge righteously, and plead the cause of the poor and needy." (Proverbs 31:9); to honor the ruler and pray for him (1 Peter 2:17; 1 Timothy 2:1-2) while refusing to call a false balance a just one. And the lived cost during this life is not deferred evidence — every emergency visit and every early funeral is seen and weighed now. No one gets away: "God is not mocked: for whatsoever a man soweth, that shall he also reap" (Galatians 6:7), and "the books were opened" (Revelation 20:12).',
+      scripture: 'Isaiah 10:1-2; Ecclesiastes 12:14; Jeremiah 2:7; Numbers 35:33-34; Revelation 11:18; Proverbs 29:7; Deuteronomy 22:8; Micah 6:8; Isaiah 1:17; Proverbs 31:8-9; 1 Peter 2:17; 1 Timothy 2:1-2; Galatians 6:7; Revelation 20:12',
+    },
+    benefits: [
+      'Both courts, honestly held: no earthly court has ruled on this repeal yet, and this lesson predicts none — while the ETERNAL court holds every decree and every ton, and lands after this life (Ecclesiastes 12:14; Isaiah 10:1-2; Revelation 11:18). You can name the fruit plainly without inventing a verdict man has not given.',
+      'Freedom from two over-reaches at once: "the earth is ours to burn" (No — "The earth is the LORD’s" (Psalms 24:1); we are put in it "to dress it and to keep it" (Genesis 2:15)) and "creation is god / people are the plague" (No — Romans 1:25; Genesis 1:28; 1 Timothy 4:4).',
+      'The just weight in your hands: a savings figure that counts one pan is a divers weight, and a death count that hides its model is too (Proverbs 11:1; 20:23; 16:11). You can hold "$300 billion" and "30,000" in the same hand and say what each one actually measures.',
+      'A repeatable method for every policy headline: state the documented with its source and date, label the modeled as a model with its assumptions, hear each side at its strongest, name where the cost lands, and pray for the ruler by name.',
+      'A house that keeps: the watts you do not burn are tons that do not go up, and a bill that does not come — stewardship of His property, not worship of the planet.',
+      'A church that shows up downwind AND in the coal town: the asthmatic child and the laid-off miner are both among "the least of these" (Matthew 25:40), and the same Body carries both (Deuteronomy 25:4).',
+    ],
+    graceNote: 'No condemnation of any official’s soul: this lesson pronounces no verdict on Administrator Zeldin, the President, the Biden- and Obama-era officials who wrote the rules being repealed, the judges who will hear the challenges, the coal operator, or the newsletter writer — their hearts are Yahweh’s to judge, and He is no respecter of persons in either direction. But leaving the soul to Him never mutes the fruit: coal smoke has a documented record, the poor breathe it first, the coal town has carried its own burden, and the Word names all of it. Truth and grace meet in Jesus, who counted the sparrows His Father does not forget (Matthew 10:29) and of whom the Word says "by him all things consist." (Colossians 1:17).',
+    stewardship: 'The deeper response to a fight over the air is to BE THE KEEPER the Word describes, starting where you have authority. A household: count the cost (Luke 14:28) of what it burns — seal the leaks, switch the bulbs, run the heavy loads off-peak, keep the thermostat honest, plant a tree — because "A prudent man foreseeth the evil, and hideth himself" (Proverbs 22:3), and because every watt not drawn is a bit of smoke not made and a dollar kept for the house. A church: check the air-quality reading the way it checks the weather, and on bad days call the members with asthma and COPD, drive the grandmother to the clinic, keep inhalers in the benevolence closet, and open its mouth at the county meeting for the block that cannot move — "Open thy mouth for the dumb" (Proverbs 31:8). The same church remembers the coal town: the miner is the ox that is not to be muzzled (Deuteronomy 25:4), and a Body that lobbies for cleaner air owes him a job, not a lecture. And every believer prays for the rulers by name — "For kings, and for all that are in authority" (1 Timothy 2:2) — and seeks "the peace of the city" (Jeremiah 29:7) with a just weight in one hand and mercy in the other. This platform’s own posture models the same thing on a small scale: knowledge kept on machines the family owns, run lean, with nothing wasted. Righteous engagement names the false balance; it is completed by keeping the garden you were actually given.',
+    anchor: {
+      ref: 'Genesis 2:15; Psalms 24:1',
+      theme: 'The earth is His — "The earth is the LORD’s, and the fulness thereof" — and our dominion is a keeper’s job: "to dress it and to keep it." Weigh every cost-benefit claim with a just weight that has two pans, name who breathes the smoke first, refuse to burn the earth as ours or to worship it as god, and pray for the ruler who signs.',
+    },
+  },
+
+  // ---- STAGE 5 — REFLECTION + SKILL ----
+  reflection: {
+    skill: 'When a policy headline lands with a giant number on each side: PAUSE. Separate the documented (what was signed, when, what the agency itself says, what the established science already shows) from the modeled (any projection of future deaths or savings — name its assumptions, and do not dismiss it). Say the documented plainly — including documented damage. Then put BOTH numbers on a just weight and state what each one measures. Hear the administration, the health side, the coal town, and the downwind block each at its strongest. Let the Word settle the frame: His earth, our keeping, two pans, the poor first. Then respond as a keeper and a neighbor — and pray for the ruler by name.',
+    practice: 'Take the sentence "the EPA says the changes save the energy industry more than $300 billion; AP research says the rules could prevent about 30,000 deaths." Write four lines: (1) one sentence of what is DOCUMENTED, with a source and date; (2) one sentence stating what each number actually measures (which pan, whose projection, what assumptions); (3) one sentence of the strongest case for the side you least agree with; (4) one sentence on what the Word says about the land and the poor — and one concrete act of keeping or neighboring you or your church can do this week.',
+    prompts: [
+      'Which parts of the newsletter are documented (the repeal, the $310 billion projection, the sixth-largest-emitter analysis, the 330 retirements) and which are modeled or framed (the 30,000 deaths, "coincide with data centers")? How would you check each?',
+      '"$300 billion saved" counts one pan. What would a just weight (Proverbs 11:1; 20:23) require on the other pan before the comparison is honest — and what would it require of the "30,000" figure before it is repeated?',
+      'Walk through Genesis 2:15 and Psalms 24:1 together: if the earth is His and we are put in it to dress and keep it, what does that forbid — and what does it NOT forbid (Genesis 1:28; Genesis 9:3; 1 Timothy 4:4)?',
+      'Exodus 23:11 ties the land’s rest to the poor eating. Isaiah 10:1-2 and Proverbs 29:7 tie decrees to the poor’s cause. Who breathes a power plant’s smoke first in your county — and who carried the cost when its plant closed?',
+      'Deuteronomy 25:4 protects the laboring ox; Deuteronomy 22:6-7 protects the nesting bird. How do those two verses speak to the coal worker AND the downwind child at the same time?',
+      'The Word commands prayer "For kings, and for all that are in authority" (1 Timothy 2:2). Name the officials on both sides of this rule and pray for them by name — without a sneer. What changed in you when you did?',
+      'In your own house: what would "count the cost" (Luke 14:28) of your electricity look like this month — and what one thing could your church do for the members with asthma on the next bad-air day?',
+    ],
+  },
+
+  // ---- Age-appropriate renderings (kids use the app) ----
+  levels: {
+    child: 'A big government office called the EPA changed some rules about power plants. Power plants make the electricity for our lights and phones. Some of them burn coal or gas, and that makes smoke. Here is what we know for sure: that smoke can make people sick, especially grandparents, babies, and kids with asthma. Some leaders say the old rules cost too much money and that we need lots more power right now. Other people say the rules kept the air cleaner and kept people well. Grown-ups will argue about the numbers. Here is what Yahweh says first. He made the earth, and it is His: "The earth is the LORD’s, and the fulness thereof" (Psalms 24:1). He put people in the garden "to dress it and to keep it" (Genesis 2:15). That means we take care of the earth like a gift we are keeping for Him. It is not ours to wreck, and it is not a god to worship. It is His, and we are the keepers. Yahweh also loves fair scales. A fair scale weighs both sides, the money AND the smoke. And He tells us to pray for our leaders (1 Timothy 2:1-2). So we do three things. We pray for the people in charge. We turn off lights we are not using. And we help a neighbor who is sick. We never say a person is bad. We say the air matters, because He made it, and we help.',
+    teen: 'A newsletter says the EPA just wiped out the power-plant carbon rules, that the industry saves "$300 billion," and that AP research says the rules could have prevented "30,000 deaths." Run the moves before you repost either number. (1) Sort documented from modeled. Documented: on September 14, 2026 the EPA signed a partial repeal of the 2024 carbon standards for coal and new gas plants; the agency itself projects $310 billion in avoided industry cost; a second proposal would erase the remaining standards; the U.S. power sector, on 2022 data, out-emits every nation but five; and coal fine-particle smoke has shortened hundreds of thousands of American lives — that one is a record, not a forecast. Modeled: the 30,000 is the AP’s reviewed projection for about thirty rules together, mostly heat deaths worldwide from added carbon, built on a formula and an emissions scenario. Say "modeled, with these assumptions." Do not say "no one knows," and do not say "30,000 bodies." (2) Hear each side at its strongest: the administration says an unmeetable standard is a closure order and the grid is under real strain from data centers; the health side says a savings figure that counts one pan is advertising; the coal town says it has already paid; the downwind block says the cost moves from a spreadsheet to a lung — theirs. (3) Now the Word. "The earth is the LORD’s" (Psalms 24:1), and we are in it "to dress it and to keep it" (Genesis 2:15) — so it is not ours to burn AND it is not a god to serve (Romans 1:25). "A false balance is abomination to the LORD" (Proverbs 11:1): two pans, honestly labeled, every time. And the decree that lands on "the poor of my people" (Isaiah 10:2) is one the Word has already weighed, whatever anyone intended. (4) Respond like a keeper, not a comment section: cut the watts you waste, show up for the kid with asthma and the miner without a job, and pray for the officials on both sides by name (1 Timothy 2:1-2). That is discernment with a spine and a heart.',
+    senior: 'For the seasoned believer, this lesson is about weighing a charged policy fight with the Word’s own doctrine of the land, in an age that rewards both denial and alarm. First, the documented record, stated plainly: on September 14, 2026 the EPA finalized a partial repeal of the 2024 Carbon Pollution Standards — the 90%-capture-by-2032-or-retire-by-2039 guideline for existing coal plants and the carbon-capture standard for new baseload gas turbines — projecting $310 billion in avoided compliance cost, and issued a supplemental proposal to rescind every remaining power-plant greenhouse-gas standard on a "no significant contribution" theory, with the 2009 endangerment finding already rescinded for vehicles in February and before the D.C. Circuit; the sector emits more than 1.5 billion tons a year and, on 2022 data, would rank sixth among nations; and coal fine-particle pollution is established to have shortened roughly 460,000 American lives between 1999 and 2020, a toll that fell as plants closed. Second, the categories kept honestly (Proverbs 18:13; 18:17): the AP’s 30,000 is a reviewed, modeled projection across a slate of about thirty rules — about a third U.S. deaths from soot, mercury, and lead rules, two-thirds global heat deaths from a carbon-mortality formula — and the EDF and NYU figures are their authors’ projections; the administration’s reliability and cost warnings are real risks, not pretexts to be waved away; the Sierra Club’s retirement count is theirs. Third — where the Word settles what the debate cannot — the frame: the earth is His (Psalms 24:1; Leviticus 25:23), dominion is a keeper’s commission (Genesis 1:28; 2:15; 1 Corinthians 4:2), the land is not to be defiled and is given rest for the poor’s sake (Numbers 35:33-34; Exodus 23:11; Leviticus 25:4), the creature and the laborer are both in His regard (Proverbs 12:10; Deuteronomy 25:4; 22:6-7), and yet the creation is never to be served as the Creator (Romans 1:20-25; Colossians 1:16-17; 1 Timothy 4:4). The just weight (Proverbs 11:1; 20:23; 16:11) is the verse for the two giant numbers: one pan called a whole scale is a divers weight, and so is a model called a count. And the placement of the cost is already judged by the Word without any motive proven: the decree that turns aside the needy (Isaiah 10:1-2), the ruler who regards not the cause of the poor (Proverbs 29:7). The verdict on any official’s soul stays with Yahweh; the verdict on a false balance is written. Then let the response mature past reaction into the Body’s long vocation — keepers of what they were given, neighbors to the downwind and to the coal town alike, and intercessors for the rulers by command (1 Timothy 2:1-2; Jeremiah 29:7) — because every work, including this one, enters the court where the books are opened (Ecclesiastes 12:14; Revelation 20:12).',
+  },
+
+  // ---- Discernment-skill quiz ----
+  quiz: {
+    questions: [
+      {
+        q: 'The newsletter says the EPA "saves the energy industry more than $300 billion." What is the discernment move?',
+        options: ['Dismiss it — agencies always inflate', 'Check the source: it is the EPA’s own projection ($310 billion) of avoided industry compliance cost — one pan of the scale, said plainly as that', 'Accept it as the net benefit of the repeal'],
+        answer: 1,
+        explain: 'A documented number is said plainly — and labeled for what it measures. It counts what the industry no longer spends, not the health and climate costs on the other pan (Proverbs 11:1).',
+      },
+      {
+        q: '"AP research says the regulations could prevent about 30,000 deaths." Which label fits, and why?',
+        options: ['Documented body count of this rule', 'A reviewed, modeled projection across about thirty rules — roughly 10,000 U.S. deaths from soot, mercury, and lead rules plus about 25,000 global heat deaths from a carbon formula — carried with its assumptions, not dismissed', 'A lie — you cannot count deaths that have not happened'],
+        answer: 1,
+        explain: 'Tier 2 (DR-0100), flagged narrowly: name the model and its inputs. "No one knows" is false skepticism; "30,000 bodies" is over-claiming. Both fail the just weight.',
+      },
+      {
+        q: 'Which of these is ESTABLISHED, not modeled?',
+        options: ['That this repeal will cause a specific number of future deaths', 'That coal fine-particle pollution shortened roughly 460,000 American lives between 1999 and 2020, falling as plants closed (Science, 2023)', 'That data centers alone explain the rise in electricity bills'],
+        answer: 1,
+        explain: 'Documented damage is stated plainly (Tier 1). Future projections are models; the data-center share of price rises is genuinely debated (Tier 2). Keep the tiers apart.',
+      },
+      {
+        q: 'What does the Word say to "the earth is ours to burn"?',
+        options: ['Nothing — the Bible is silent on the environment', '"The earth is the LORD’s" (Psalms 24:1) and man was put in the garden "to dress it and to keep it" (Genesis 2:15) — dominion is a keeper’s job, and the land is not to be polluted (Numbers 35:33-34)', 'That the earth is sacred and must not be used'],
+        answer: 1,
+        explain: 'The Word corrects the over-reach without swinging to the opposite one: real dominion (Genesis 1:28), real stewardship (1 Corinthians 4:2), and a land He watches and forbids us to defile.',
+      },
+      {
+        q: 'What does the Word say to "creation is god" or "people are the plague on the planet"?',
+        options: ['It agrees — nature is holy', 'It names those who "worshipped and served the creature more than the Creator" (Romans 1:25), blesses fruitfulness (Genesis 1:28), and calls every creature good when received with thanksgiving (1 Timothy 4:4) — the earth is His witness, not a deity', 'It says the earth does not matter because it will burn anyway'],
+        answer: 1,
+        explain: 'Tier 3 cuts both ways: the Word corrects the ideological over-reach on either side, and the true data underneath (the smoke is real; the land is His) still stands.',
+      },
+      {
+        q: 'The administration says the grid is under strain and an unmeetable standard is a closure order. The health side says a one-pan savings figure is advertising. What does the Word require of you?',
+        options: ['Pick the side your friends are on', 'Hear each at its strongest (Proverbs 18:17), weigh both pans with a just weight, and name where the cost lands — on the poor and the downwind first (Isaiah 10:1-2; Proverbs 29:7) and on the coal town too (Deuteronomy 25:4)', 'Refuse to have any view since experts disagree'],
+        answer: 1,
+        explain: 'Steelman, then weigh, then name the fruit. The Word does not need any official’s motive proven to say where a cost fell.',
+      },
+      {
+        q: 'What does a believer actually DO after sorting this headline?',
+        options: ['Post the scarier number', 'Keep the garden you were given (cut wasted watts, count the cost), show up for the neighbor with asthma and the laid-off miner, and pray for the officials on both sides by name (1 Timothy 2:1-2; Matthew 25:40)', 'Wait for the court to decide before caring'],
+        answer: 1,
+        explain: 'Stewardship and intercession are commands, not moods. The two courts are both real; the believer acts in this one while trusting the other (Ecclesiastes 12:14).',
+      },
+    ],
+  },
+};
+
+// =============================================================================
+// ISSUE 16 — The trades are hiring (wi-the-trades-are-hiring-2026).
+// Darrell forwarded the 2026-09-15 Morning Brew newsletter (Smokin’) with the
+// single word Lesson. — build input. Its bullet, Not all job markets are equal,
+// reports a Burning Glass Institute analysis (via the Wall Street Journal):
+// workers 22–34 without a degree are in one of the best job markets in nearly
+// two decades, unemployment near its lowest since 2003, driven by a drop in
+// immigration and retiring blue-collar workers, while unemployment rises for
+// bachelor’s holders as AI takes entry-level white-collar work; degree holders
+// 25–54 still averaged 2.7% vs 4.7% for high-school-only. Companion to Issue 11
+// (the debt a degree can cost); this one is about WORK. Handled under DR-0100’s
+// three tiers with live web search 2026-09-15; every verse fetched verbatim from
+// the repo KJV and gated in world-issues-verse-integrity.test.js.
+// =============================================================================
+const TRADES_HIRING_ISSUE = {
+  id: 'wi-the-trades-are-hiring-2026',
+  title: 'The trades are hiring — the non-degree job market, the white-collar squeeze, and the Word on work with your hands',
+  subject: { name: 'the 2026 job market for workers without a degree, and the Word on work with your hands', kind: 'economy-and-work', isNamedRealPerson: false },
+  skill: 'Take a headline about who is getting hired and learn how the Word weighs it: state the documented numbers plainly with their sources and dates (the Burning Glass analysis, the BLS rates, what an apprenticeship pays and what a degree costs in Illinois), flag the genuinely open parts narrowly (how much of the graduate squeeze is AI; how long the shift lasts), let the Word correct the two slogans that ride on the data ("college is a scam" and "a trade is second-class"), and then hear what Yahweh says about work itself — given before the fall, honored in the craftsman, practiced by the carpenter and the tentmaker, and paid on time.',
+  source: {
+    creator: 'Morning Brew (reporting a Burning Glass Institute analysis published by the Wall Street Journal)',
+    medium: 'newsletter',
+    title: 'Smokin’ — "Not all job markets are equal"',
+    url: 'https://www.morningbrew.com/',
+    asOf: '2026-09-15',
+    note: 'Darrell forwarded the 2026-09-15 edition with the single word "Lesson." The bullet summarizes a Burning Glass Institute analysis reported by the Wall Street Journal in early September 2026 (data through July 2026). A second bullet in the same edition — the 10-year Treasury yield briefly topping 5% on 2026-09-14 — is carried here only as context on the cost of borrowing. We treat the newsletter as a SUMMARY of others’ research: every number was independently checked and is carried with its own source and date.',
+  },
+
+  // ---- STAGE 1 — THE CLAIM(S): the newsletter's points, AS MADE, each labeled. ----
+  claims: [
+    {
+      id: 'c-best-market',
+      text: 'Workers 22–34 without college degrees are having one of the best job markets in nearly two decades — one of the lowest unemployment rates since 2003 (Burning Glass Institute).',
+      label: 'claim',
+      attribution: 'Morning Brew, summarizing the Burning Glass Institute analysis reported by the Wall Street Journal',
+      note: 'Documented: the Burning Glass Institute (chief economist Gad Levanon) compared each group’s current unemployment with its own range since 2003, using data through July 2026. The claim is RELATIVE to the group’s own history — which the newsletter states correctly.',
+    },
+    {
+      id: 'c-causes',
+      text: 'The cause is a drop in immigration plus retiring blue-collar workers.',
+      label: 'claim',
+      attribution: 'Morning Brew, summarizing the Burning Glass Institute / WSJ analysis',
+      note: 'Both drivers are documented (Census Bureau migration estimates; Associated Builders and Contractors on retirements). How much each contributes is not measured by any source we found — carried as documented drivers, unmeasured shares.',
+    },
+    {
+      id: 'c-grads-ai',
+      text: 'Unemployment is rising for bachelor’s-degree holders amid AI replacing entry-level white-collar roles.',
+      label: 'claim',
+      attribution: 'Morning Brew, summarizing the Burning Glass Institute / WSJ analysis',
+      note: 'The RISE for young graduates is documented (New York Fed: 5.6% unemployment and 42% underemployment for recent graduates through Q2 2026). The AI link is partly documented (Stanford’s payroll-data study finds a real gap for 22–25-year-olds in AI-exposed occupations) — but how much of the squeeze is AI, versus the doubling of some majors and slower hiring generally, is genuinely open.',
+    },
+    {
+      id: 'c-unusual',
+      text: 'This divergence is unusual — the two groups tracked each other in the pandemic and after 2008.',
+      label: 'claim',
+      attribution: 'Morning Brew, summarizing the Burning Glass Institute / WSJ analysis',
+      note: 'Documented in the same analysis: the divergence has been running since about 2023. Whether it lasts is a forecast (Stage 2).',
+    },
+    {
+      id: 'c-degree-still-lower',
+      text: 'Big picture: degree holders 25–54 averaged 2.7% unemployment for the year ending July vs 4.7% for high-school-only; the more hands-on and in-person the job, the lower its current unemployment relative to its history (WSJ).',
+      label: 'claim',
+      attribution: 'Morning Brew, citing the Wall Street Journal',
+      note: 'Documented. The BLS single-month figure for August 2026 (ages 25 and over) reads 2.7% for bachelor’s and higher and 4.4% for high-school-only; the newsletter’s 4.7% is the WSJ’s twelve-month average for ages 25–54. Both stand; the precision is noted so no one calls the true number wrong.',
+    },
+    {
+      id: 'c-two-slogans',
+      text: '"College is a scam" — and its mirror, "a trade is second-class work."',
+      label: 'opinion',
+      attribution: 'Not the newsletter — the two slogans that ride on this data in the wider conversation, carried here so the Word can correct both',
+      note: 'Neither is in the newsletter. Both over-reach the data in opposite directions, and the Word corrects each (Stage 4) while the true numbers under both stay standing.',
+    },
+  ],
+
+  // ---- STAGE 2 — VERIFIABLE vs INTERPRETATION ----
+  verifiable: [
+    {
+      id: 'f-bgi-wsj',
+      statement: 'A Burning Glass Institute analysis reported by the Wall Street Journal (early September 2026, data through July 2026) finds unemployment for 22–34-year-olds without a degree near the lowest levels since 2003, while conditions for college graduates of the same age are among the weakest outside the Great Recession and the pandemic. Chief economist Gad Levanon: "There’s a rapidly growing supply of people with a bachelor’s degree, and you have a rapid decline of people who don’t"; "I don’t think it’s a temporary thing." Prime-age (25–54) degree holders averaged 2.7% unemployment over the twelve months ending July versus 4.7% for high-school-only; the more physical and in-person the work, the lower its unemployment by historical standards.',
+      status: 'documented',
+      sources: [
+        { title: 'Americans Without College Degrees Are Having One of the Best Job Markets in Years (WSJ, syndicated)', publisher: 'The Wall Street Journal via To Vima', url: 'https://www.tovima.com/wsj/americans-without-college-degrees-are-having-one-of-the-best-job-markets-in-years', asOf: '2026-09-15' },
+        { title: 'Workers Without College Degrees Are Thriving In A Tough Job Market', publisher: 'Black Enterprise', url: 'https://www.blackenterprise.com/workers-without-college-degrees-best-job-market/', asOf: '2026-09-15' },
+        { title: 'Unemployment for Non-College Grads Is at Near-Record Low', publisher: 'Newser', url: 'https://www.newser.com/story/396041/young-workers-sans-college-degrees-see-strong-job-market.html', asOf: '2026-09-15' },
+      ],
+      note: 'Verified by live web search 2026-09-15. The WSJ original is paywalled; the syndicated text and two independent write-ups agree on every figure. "Best market" is measured against each group’s OWN range since 2003 — a relative claim, correctly stated.',
+    },
+    {
+      id: 'f-bls-august',
+      statement: 'BLS (Current Population Survey, seasonally adjusted, ages 25 and over): in August 2026 unemployment was 4.4% for high-school graduates with no college, 3.7% for some college or an associate degree, and 2.7% for a bachelor’s degree and higher; 4.7% for those without a high-school diploma. The degree still carries the lowest unemployment rate in absolute terms.',
+      status: 'documented',
+      sources: [
+        { title: 'Unemployment rate remains lower for people with more education (The Economics Daily)', publisher: 'U.S. Bureau of Labor Statistics', url: 'https://www.bls.gov/opub/ted/2026/unemployment-rate-remains-lower-for-people-with-more-education.htm', asOf: '2026-09-15' },
+        { title: 'Unemployment rate for people with less than a high school diploma was 4.7 percent in August 2026 (The Economics Daily)', publisher: 'U.S. Bureau of Labor Statistics', url: 'https://www.bls.gov/opub/ted/2026/unemployment-rate-for-those-with-less-than-a-high-school-diploma-was-4-7-percent-in-august-2026.htm', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. This is the absolute picture that sits under the relative one: a degree still has the lowest rate; the non-degree group’s rate is low FOR ITSELF. Both are true at once.',
+    },
+    {
+      id: 'f-recent-grads',
+      statement: 'Federal Reserve Bank of New York, "The Labor Market for Recent College Graduates" (ages 22–27, bachelor’s or higher): through the second quarter of 2026 the unemployment rate held at about 5.6% and the underemployment rate edged up to 42%. Recent graduates have carried a higher unemployment rate than the average worker — a reversal of the long-run pattern.',
+      status: 'documented',
+      sources: [
+        { title: 'The Labor Market for Recent College Graduates', publisher: 'Federal Reserve Bank of New York', url: 'https://www.newyorkfed.org/research/college-labor-market', asOf: '2026-09-15' },
+        { title: 'Unemployment Rate for Recent College Graduates Holds at 5.6%, NY Fed Reports', publisher: 'Bloomberg', url: 'https://www.bloomberg.com/news/articles/2026-05-05/unemployment-for-recent-college-grads-remains-high-ny-fed-says', asOf: '2026-09-15' },
+        { title: 'The Job Market for Recent College Grads in 5 Charts', publisher: 'Inside Higher Ed', url: 'https://www.insidehighered.com/news/students/careers/2026/06/29/job-market-recent-college-grads-5-charts', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The squeeze on the young graduate is real and measured — it is not a vibe. Underemployment (a degree holder in a job that does not require one) is the quieter half of the number.',
+    },
+    {
+      id: 'f-ai-link',
+      statement: 'Stanford Digital Economy Lab, "Canaries in the Coal Mine" (ADP payroll data; August 2026 update): employment of 22–25-year-olds in the most AI-exposed occupations (software development, customer service) now sits about 19% below where it would be had it kept pace with less-exposed peers — up from a 13% relative decline in the 2025 paper — while the authors find NO widespread, economy-wide displacement. The Economic Policy Institute’s Class of 2026 review calls the graduate picture "more mixed than the headlines suggest." How much of the graduate squeeze is AI, versus the doubling of computer-science degrees into fewer openings, higher interest rates, and post-pandemic over-hiring unwinding, is not settled by any source we found.',
+      status: 'partly-documented',
+      sources: [
+        { title: 'No Widespread Displacement, but the AI Employment Gap for Young Workers Has Widened to 19%', publisher: 'Stanford Digital Economy Lab', url: 'https://digitaleconomy.stanford.edu/news/canariesaug26/', asOf: '2026-09-15' },
+        { title: 'Canaries in the Coal Mine? Six Facts about the Recent Employment Effects of Artificial Intelligence', publisher: 'Stanford Digital Economy Lab (Brynjolfsson, Chandar, Chen)', url: 'https://digitaleconomy.stanford.edu/publication/canaries-in-the-coal-mine-six-facts-about-the-recent-employment-effects-of-artificial-intelligence/', asOf: '2026-09-15' },
+        { title: 'Young college graduates face a weaker labor market — but a more mixed picture than the headlines suggest: Class of 2026', publisher: 'Economic Policy Institute', url: 'https://www.epi.org/blog/class-of-2026-young-college-graduates-face-a-weaker-labor-market-but-a-more-mixed-picture-than-the-headlines-suggest/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. This is Tier 2, stated narrowly: the AI effect on the MOST-EXPOSED entry-level occupations is measured and real; "AI is replacing entry-level white-collar work" as a blanket cause of the whole graduate squeeze is not proven. Say the measured part plainly; keep the share open.',
+    },
+    {
+      id: 'f-supply',
+      statement: 'The supply side is documented. Census Bureau (January 2026): net international migration peaked at about 2.7 million in 2024 and is projected to fall to roughly 321,000 in 2026. Associated Builders and Contractors (January 2026): construction must attract about 349,000 net new workers in 2026 and 456,000 in 2027, and more than half of the 2026 figure replaces retiring workers rather than supporting growth; nearly 40% of skilled construction workers are over 45, and in the electrical trades nearly one in five is over 55. ABC chief economist Anirban Basu attributes the gap mainly to retirements plus demand from megaprojects such as AI data centers.',
+      status: 'documented',
+      sources: [
+        { title: 'New Population Estimates Show Historic Decline in Net International Migration', publisher: 'U.S. Census Bureau', url: 'https://census.gov/newsroom/blogs/random-samplings/2026/01/historic-decline-in-net-international-migration.html', asOf: '2026-09-15' },
+        { title: 'ABC: Construction Industry Must Attract 349,000 Workers in 2026 Despite Macroeconomic Headwinds', publisher: 'Associated Builders and Contractors', url: 'https://www.abc.org/News-Media/News-Releases/abc-construction-industry-must-attract-349000-workers-in-2026-despite-macroeconomic-headwinds', asOf: '2026-09-15' },
+        { title: 'Construction’s Triple Labor Crisis: Retirements, Immigration Enforcement, and the Deepening Electrician Shortage', publisher: 'Westside Construction Group', url: 'https://www.buildwcg.com/blog-posts/construction-labor-crisis-retirements-immigration-electricians-2026', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The newsletter’s two causes are real. The one thing not measured is the SHARE each contributes — and the AI-data-center demand that Basu names is a third driver the newsletter left out: the same technology squeezing the entry-level office is hiring the electricians who build the buildings it runs in.',
+    },
+    {
+      id: 'f-pay-and-openings',
+      statement: 'What the trades pay (BLS, May 2025 wage data, via the Occupational Outlook Handbook): electricians median $34.37/hour (mean about $71,490/year), employment projected to grow 9% from 2025 to 2035 with about 72,700 openings a year; plumbers, pipefitters and steamfitters median $34.70/hour; HVAC mechanics and installers median $32.75/hour (mean about $68,120). Typical entry is a high-school diploma plus a four-to-five-year paid apprenticeship. U.S. Department of Labor / GAO: registered-apprenticeship completers earned average first-year wages of about $80,000 (April 2022–March 2023 exits) — higher than associate-degree holders; about 940,000 people were in registered apprenticeships in FY 2024.',
+      status: 'documented',
+      sources: [
+        { title: 'Electricians — Occupational Outlook Handbook', publisher: 'U.S. Bureau of Labor Statistics', url: 'https://www.bls.gov/ooh/construction-and-extraction/electricians.htm', asOf: '2026-09-15' },
+        { title: 'BLS 2025 OEWS Release — Key Numbers for Every Major Trade', publisher: 'SkilledTradesIQ (summarizing BLS OEWS May 2025)', url: 'https://skilledtradesiq.com/salaries/bls-2025-oews-release/', asOf: '2026-09-15' },
+        { title: 'Apprenticeship: Earn-and-Learn Opportunities Can Benefit Workers and Employers (GAO-25-107040)', publisher: 'U.S. Government Accountability Office', url: 'https://www.gao.gov/products/gao-25-107040', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. Medians are national; Chicago-area union scales run higher (next item). The $80,000 figure is an AVERAGE across all registered apprenticeships, not a promise for any one trade or region.',
+    },
+    {
+      id: 'f-illinois-cost',
+      statement: 'The Illinois comparison, at sticker price. University of Illinois Urbana-Champaign, 2026–27, in-state: base tuition $14,768 plus fees $3,292, and about $32,068 a year with room and board — roughly $128,000 over four years before aid. Bachelor’s borrowers nationally took out an average of $35,639 (2025 graduates); Illinois borrowers carry about $29,535 on average. Parkland College (Champaign) estimates $9,642 in tuition and fees for an Illinois resident in 2026. Chicago union apprenticeships charge no tuition and pay from day one: UA Local 130 (plumbers) starts apprentices at $20.55/hour and reaches a journeyman rate of $60.50/hour after five years; IBEW Local 134 (electricians) runs a five-year program that opens with eleven weeks of full-time classroom instruction, with apprentices paid a rising percentage of a journeyman rate listed at $55.55 on the 2024–25 program sheet. On the other side of the ledger the degree still pays on average across a lifetime: Georgetown’s Center on Education and the Workforce puts median lifetime earnings at $2.8 million for a bachelor’s versus $1.6 million for a high-school diploma, and BLS "Education Pays" (2024) puts median weekly earnings at $1,543 versus $930.',
+      status: 'documented',
+      sources: [
+        { title: '2026-2027 Academic Year Undergrad Tuition Rates', publisher: 'University of Illinois Office of the Registrar', url: 'https://registrar.illinois.edu/ug-tuition-rates-2627/', asOf: '2026-09-15' },
+        { title: 'Tuition and Cost of Attendance, University of Illinois at Urbana-Champaign', publisher: 'University of Illinois', url: 'https://cost.illinois.edu/', asOf: '2026-09-15' },
+        { title: 'Average Student Loan Debt for a Bachelor’s Degree: 2025 Analysis', publisher: 'EducationData.org', url: 'https://educationdata.org/average-debt-for-a-bachelors-degree', asOf: '2026-09-15' },
+        { title: 'Student Loans in Illinois — Average Debt, Forgiveness & Rates', publisher: 'StudLoans', url: 'https://studloans.com/state/illinois', asOf: '2026-09-15' },
+        { title: 'Parkland College — Tuition & Fees, Net Price', publisher: 'CollegeTuitionCompare', url: 'https://www.collegetuitioncompare.com/edu/147916/parkland-college/tuition/', asOf: '2026-09-15' },
+        { title: 'Illinois Apprenticeship Programs 2026 — Electrician, Plumber, HVAC & More', publisher: 'Hardhat Careers', url: 'https://hardhat.careers/apprenticeships-illinois', asOf: '2026-09-15' },
+        { title: 'IBEW Local 134 Apprenticeship — Chicago Official Sources', publisher: 'SparkShift', url: 'https://sparkshift.app/ibew-local-134', asOf: '2026-09-15' },
+        { title: 'The College Payoff: Education, Occupations, Lifetime Earnings', publisher: 'Georgetown University Center on Education and the Workforce', url: 'https://cew.georgetown.edu/cew-reports/the-college-payoff/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15 by live search. Sticker prices, not net prices — aid changes the college figure for many families, and union wage sheets change with each contract (the Local 134 rate is the last published sheet, not a 2026 contract). Both paths are stated at their real, dated numbers so a household can count the cost with real figures.',
+    },
+    {
+      id: 'f-cost-of-debt',
+      statement: 'Context on the price of borrowing: on 2026-09-14 the 10-year Treasury yield briefly touched 5.01% — the first time above 5% since 2023 and, had it held above 5.02%, the highest since July 2007 — as oil-driven inflation fears pushed markets to price a Federal Reserve rate increase.',
+      status: 'documented',
+      sources: [
+        { title: '10-year Treasury yield briefly tops 5% for the first time since 2023', publisher: 'Yahoo Finance', url: 'https://finance.yahoo.com/markets/article/10-year-treasury-yield-briefly-tops-5-for-the-first-time-since-2023-123457398.html', asOf: '2026-09-15' },
+        { title: '10-year Treasury yield hits 5% before reversing as traders await Fed meeting', publisher: 'CNBC', url: 'https://www.cnbc.com/2026/09/14/10-year-us-treasury-is-closing-in-on-5percent.html', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. Carried only as context: a borrowed degree is priced in a world where borrowing itself has gotten dearer, which makes counting the cost before the loan (Issue 11) more urgent, not less.',
+    },
+  ],
+  interpretation: [
+    {
+      id: 'n-relative-and-absolute',
+      statement: '"Best job market in two decades" is a claim about the non-degree group MEASURED AGAINST ITSELF; "the degree still has lower unemployment" is a claim about the two groups measured against each other. Both are documented and both are true at the same moment (2.7% vs 4.7% on the WSJ twelve-month average; 2.7% vs 4.4% on the BLS August month). A reader who keeps only one of them is repeating half a fact.',
+      restsOn: ['f-bgi-wsj', 'f-bls-august'],
+    },
+    {
+      id: 'n-ai-share-open',
+      statement: 'The graduate squeeze is documented; the AI link is measured only for the most-exposed entry-level occupations, where it is real (about 19% below trend for 22–25-year-olds). "AI is replacing entry-level white-collar roles" as the cause of the whole divergence is an inference. Say the measured part plainly; keep the share honestly open; do not smear "no one knows" over the part that is known.',
+      restsOn: ['f-recent-grads', 'f-ai-link'],
+    },
+    {
+      id: 'n-durability',
+      statement: '"I don’t think it’s a temporary thing" is a forecast by a credible economist, not a finding. Retirements and birth rates below replacement are slow-moving and will not reverse quickly; immigration policy can change in a single year; AI’s effect is the least predictable of the three. The honest statement is: the supply gap in the trades is structural for years; the exact size of the non-degree advantage is not.',
+      restsOn: ['f-bgi-wsj', 'f-supply'],
+    },
+    {
+      id: 'n-two-slogans-over-reach',
+      statement: '"College is a scam" over-reaches the data in one direction: the degree still carries the lowest unemployment rate and, on average, about $1.2 million more in lifetime earnings — what is true is that the degree is now a PRICED decision that can be lost, not a guarantee. "A trade is second-class work" over-reaches in the other: a Chicago apprentice is paid from day one with no tuition, reaches $55–60 an hour as a journeyman, and registered-apprenticeship completers average about $80,000 in their first year out. The Word corrects both slogans (Stage 4); the numbers under both stand.',
+      restsOn: ['f-bls-august', 'f-pay-and-openings', 'f-illinois-cost'],
+    },
+  ],
+
+  // ---- STAGE 3 — PERSPECTIVES on the UNRESOLVED parts ----
+  perspectives: [
+    {
+      id: 'p-trades',
+      label: 'The trades case — paid to learn, owed nothing, needed for decades',
+      heldBy: 'Tradesmen, union training directors, and the families who watched a degree turn into a loan',
+      steelman: 'At its strongest: a young person can walk into a five-year apprenticeship in Chicago with a high-school diploma, be paid from the first week, owe no tuition at the end, and stand at $55 to $60 an hour as a journeyman while a classmate is still carrying $35,000 of loans into a 5.6% unemployment rate. The demand is not a fad — it is arithmetic: the men who wired and plumbed this country are retiring faster than they are replaced, immigration has fallen by about ninety percent from its peak, and the data centers the AI boom needs are built by electricians. A trade cannot be off-shored, cannot be done by a model, and pays the day it is learned. On this view the household that steers a capable child toward a paid apprenticeship is not settling; it is counting the cost the way the Word tells a builder to.',
+    },
+    {
+      id: 'p-degree',
+      label: 'The degree-still-pays case — 2.7% versus 4.7%',
+      heldBy: 'Labor economists, the Georgetown Center on Education and the Workforce, and most parents',
+      steelman: 'Heard fairly: every headline about the non-degree boom is a RELATIVE claim, and the absolute picture has not changed — prime-age degree holders averaged 2.7% unemployment against 4.7% for high-school-only, and over a working life the median bachelor’s earns about $2.8 million to the diploma’s $1.6 million. The recent-graduate squeeze is real but concentrated in the first years and in a few majors; it says nothing about the nurse, the accountant, the engineer, or the teacher at forty-five. Physical work also carries a body’s cost that shows up at fifty. On this view the lesson of the data is not "skip college" but "choose the degree, the school, and the debt soberly" — which is exactly what Issue 11 taught.',
+    },
+    {
+      id: 'p-graduate',
+      label: 'The young graduate squeezed by AI — did the work, followed the rules, and the door moved',
+      heldBy: 'The class of 2024–2026, especially in software, customer-facing, and analyst roles',
+      steelman: 'At its strongest: a 23-year-old who did everything the last generation told her to do — the grades, the degree, the internship — now applies into a market where entry-level postings in her field have fallen by half since 2022, where employment for her age group in AI-exposed occupations sits about 19% below where it should be, and where 42% of her cohort is working a job that never needed the degree. The loan does not care that the ladder’s bottom rung was removed after she started climbing. This is not laziness and it is not entitlement; it is a documented rearrangement of the entry-level office that landed hardest on the people with the least experience and the most debt. The Word’s answer to her is not a lecture on the trades — it is that her labor is still worthy of its hire, that the door she can open is the one to walk through, and that the house of faith is obligated to help her count the next cost honestly.',
+    },
+    {
+      id: 'p-employer',
+      label: 'The employer who cannot find skilled hands',
+      heldBy: 'Contractors, facility owners, and training coordinators',
+      steelman: 'Heard fairly: a contractor bidding a hospital or a data center today is turning down work because there is no one to do it. The industry needs about 349,000 net new workers this year and 456,000 next, more than half of that just to replace retirements, and an apprentice takes four to five years to become a journeyman. The shortage is not a talking point; it is the reason jobs run late and bids come in high. On this view the churches, schools, and families that still treat the trades as the fallback are the bottleneck — and the employer who pays well, trains honestly, and pays on time is doing the very thing the Word requires of a master.',
+    },
+  ],
+
+  // ---- STAGE 4 — THE BELIEVER'S LENS ----
+  lens: {
+    fourD: {
+      deepSource: 'WORD FIRST — work is not a curse and it is not a consolation prize; it is the first assignment Yahweh gave a man, before there was any fall to recover from: "And the LORD God took the man, and put him into the garden of Eden to dress it and to keep it." (Genesis 2:15). The sweat came later — "In the sweat of thy face shalt thou eat bread" (Genesis 3:19) — but the work came first, and it was good. So the believer never reads a jobs headline as a verdict on a person’s worth; he reads it as a report on where the work is. THE WORD HONORS THE CRAFTSMAN BY NAME. The first person in Scripture of whom it is written "I have filled him with the spirit of God" was not a prophet or a priest but a builder: "See, I have called by name Bezaleel" (Exodus 31:2) — "And I have filled him with the spirit of God, in wisdom, and in understanding, and in knowledge, and in all manner of workmanship" (Exodus 31:3), "to work in gold, and in silver, and in brass" (Exodus 31:4), "in cutting of stones, to set them, and in carving of timber" (Exodus 31:5). And the gift came with a duty to pass it on: "he hath put in his heart that he may teach" (Exodus 35:34); "Them hath he filled with wisdom of heart, to work all manner of work" (Exodus 35:35). Bezaleel is the pattern for every apprenticeship the Body ever runs — Spirit-given craft, taught to the next hands. THE LORD HIMSELF WORKED WITH HIS HANDS. Nazareth knew Jesus by His trade before it knew Him by His miracles: "Is not this the carpenter, the son of Mary" (Mark 6:3) — "Is not this the carpenter’s son?" (Matthew 13:55). And the most learned man in the New Testament, who was "brought up in this city at the feet of Gamaliel" (Acts 22:3), also kept a trade and used it: "because he was of the same craft, he abode with them, and wrought: for by their occupation they were tentmakers" (Acts 18:3); "these hands have ministered unto my necessities, and to them that were with me" (Acts 20:34). Paul is the living correction of both slogans at once: the scholar who honored learning and worked with his hands, and saw no contradiction. THE WORD COMMANDS WORK — WITH THE HANDS — AS A WITNESS. "to do your own business, and to work with your own hands, as we commanded you" (1 Thessalonians 4:11), "That ye may walk honestly toward them that are without, and that ye may have lack of nothing." (1 Thessalonians 4:12). "if any would not work, neither should he eat" (2 Thessalonians 3:10) — spoken against those "working not at all, but are busybodies" (2 Thessalonians 3:11) — "that with quietness they work, and eat their own bread" (2 Thessalonians 3:12). "let him labour, working with his hands the thing which is good, that he may have to give to him that needeth" (Ephesians 4:28). "In all labour there is profit: but the talk of the lips tendeth only to penury." (Proverbs 14:23). "Whatsoever thy hand findeth to do, do it with thy might" (Ecclesiastes 9:10). And the diligent hand is promised a hearing at the top: "Seest thou a man diligent in his business? he shall stand before kings; he shall not stand before mean men." (Proverbs 22:29). THE WORD PAYS THE LABORER, ON TIME. "the labourer is worthy of his hire" (Luke 10:7); "The labourer is worthy of his reward." (1 Timothy 5:18); "the wages of him that is hired shall not abide with thee all night until the morning" (Leviticus 19:13); "At his day thou shalt give him his hire, neither shall the sun go down upon it" (Deuteronomy 24:15). And withheld wages are heard in heaven: "the hire of the labourers who have reaped down your fields, which is of you kept back by fraud, crieth" (James 5:4). The employer in Stage 3 who cannot find hands is bound by this side of the Word as tightly as the worker is bound by the other. THE WORD COUNTS THE COST BEFORE THE LOAN. "sitteth not down first, and counteth the cost, whether he have sufficient to finish it?" (Luke 14:28). "Prepare thy work without, and make it fit for thyself in the field; and afterwards build thine house." (Proverbs 24:27) — income first, then the house; the trade first, then the debt, if any. "Owe no man any thing, but to love one another" (Romans 13:8); "the borrower is servant to the lender" (Proverbs 22:7). NOW THE WORD CORRECTS THE TWO SLOGANS. To "college is a scam": "Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding." (Proverbs 4:7) — Yahweh never scorned learning; He filled Bezaleel with knowledge and understanding, and Paul sat under Gamaliel. What the Word forbids is not the school but the yoke taken without counting, and the true number under the slogan (a degree that must now be CHOSEN soberly, not assumed) still stands. To "a trade is second-class": "the eye cannot say unto the hand, I have no need of thee" (1 Corinthians 12:21); "those members of the body, which seem to be more feeble, are necessary" (1 Corinthians 12:22); "now hath God set the members every one of them in the body, as it hath pleased him" (1 Corinthians 12:18). The carpenter of Nazareth settles the rank of a trade forever. And the true number under THAT slogan — that the degree still pays more on average — also stands; the Word does not need it to be false. SO IN THIS CASE the believer does three things. First, state the documented plainly, because "Prove all things; hold fast that which is good." (1 Thessalonians 5:21): the non-degree market is the best it has been in two decades for that group; the graduate squeeze is real; the trades pay from day one; the degree still has the lower unemployment rate. Second, keep the open parts open — "He that answereth a matter before he heareth it, it is folly and shame unto him." (Proverbs 18:13); "He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him." (Proverbs 18:17): how much is AI, and how long it lasts, are not settled, and we do not pretend. Third, judge the fruit — "by their fruits ye shall know them" (Matthew 7:20) — by the Word’s own measures of work: is the laborer paid, and on time? is the cost counted before the yoke? is the craft honored and taught to the next hands? "Go to the ant, thou sluggard; consider her ways, and be wise" (Proverbs 6:6) — she "Provideth her meat in the summer, and gathereth her food in the harvest." (Proverbs 6:8); the alternative is "Yet a little sleep, a little slumber, a little folding of the hands to sleep" (Proverbs 6:10), and then "So shall thy poverty come as one that travelleth, and thy want as an armed man." (Proverbs 6:11). The market will move again; the Word on work will not.',
+      scripture: 'Genesis 2:15; Genesis 3:19; Exodus 31:1-5; Exodus 35:30-35; Mark 6:3; Matthew 13:55; Acts 22:3; Acts 18:3; Acts 20:34-35; 1 Thessalonians 4:11-12; 2 Thessalonians 3:10-12; Ephesians 4:28; Proverbs 14:23; Ecclesiastes 9:10; Proverbs 22:29; Luke 10:7; 1 Timothy 5:18; Leviticus 19:13; Deuteronomy 24:14-15; James 5:4; Luke 14:28; Proverbs 24:27; Romans 13:8; Proverbs 22:7; Proverbs 4:7; 1 Corinthians 12:18-22; 1 Thessalonians 5:21; Proverbs 18:13; Proverbs 18:17; Matthew 7:20; Proverbs 6:6-11; Colossians 3:23-24; Proverbs 22:6; Ecclesiastes 12:14',
+    },
+    threeD: 'Practically: read the headline exactly as made and sort it. Say the proven parts without a hedge — the non-degree market for 22–34-year-olds is the best it has been in about twenty years for that group (Burning Glass, data through July 2026); recent graduates sit at about 5.6% unemployment and 42% underemployment (New York Fed, Q2 2026); a Chicago plumbing apprentice starts at $20.55 an hour with no tuition and reaches $60.50 as a journeyman; in-state Urbana-Champaign runs about $32,000 a year at sticker; and the degree still carries the lower unemployment rate, 2.7% against 4.7%. Then keep the open parts open: the AI share of the graduate squeeze is measured only in the most-exposed jobs; whether the shift lasts is a forecast. Refuse both slogans — "college is a scam" and "a trade is second-class" — because the Word refuses both, and the data under each still stands. Then do what the Word does with work. In your own house: "Prepare thy work without, and make it fit for thyself in the field; and afterwards build thine house." (Proverbs 24:27) — sit down and count the cost of BOTH paths with real, dated numbers before anyone signs anything; put a capable teenager in front of a real tradesman and a real graduate and let him ask both what the first five years actually looked like; and whichever path he takes, "whatsoever ye do, do it heartily, as to the Lord, and not unto men" (Colossians 3:23), "for ye serve the Lord Christ" (Colossians 3:24). In the Body: the church has tradesmen in the pews — treat them as Bezaleel, "he hath put in his heart that he may teach" (Exodus 35:34), and build the apprenticeship pipeline the industry is begging for, out of your own youth. And if you are the employer, the Word’s side for you is short and strict: pay the laborer, and pay him on time.',
+    accountability: {
+      statement: 'THE TWO COURTS. No court tried the job market, and this lesson accuses no one; a shift in who is hired is not a crime. But the Word never lets accountability shrink to what a court happened to rule on. Every work enters the eternal court — "For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil." (Ecclesiastes 12:14) — where the books are opened (Revelation 20:12) and where withheld wages are already on file: "the hire of the labourers who have reaped down your fields, which is of you kept back by fraud, crieth" (James 5:4). WHAT AN EMPLOYER OWES under the Word: the wage, in full, on time — "At his day thou shalt give him his hire, neither shall the sun go down upon it" (Deuteronomy 24:15); "the wages of him that is hired shall not abide with thee all night until the morning" (Leviticus 19:13); honest training rather than a bait-and-switch; and the just weight in every bid and every paycheck ("a just weight is his delight", Proverbs 11:1). WHAT A WORKER OWES: to work — "if any would not work, neither should he eat" (2 Thessalonians 3:10) — with the hands, heartily, as to the Lord (Colossians 3:23), and to count the cost before taking a yoke (Luke 14:28; Proverbs 22:7). WHAT A HOUSEHOLD AND A CHURCH OWE: "Train up a child in the way he should go: and when he is old, he will not depart from it." (Proverbs 22:6) — which includes training him to work and to count; and to remember that "it is he that giveth thee power to get wealth" (Deuteronomy 8:18), so no path becomes a boast. And the lived reality during this life is not deferred evidence — the graduate under a loan and the apprentice on a job site are both seen and weighed now. No one gets away: "God is not mocked: for whatsoever a man soweth, that shall he also reap" (Galatians 6:7).',
+      scripture: 'Ecclesiastes 12:14; Revelation 20:12; James 5:4; Deuteronomy 24:14-15; Leviticus 19:13; Proverbs 11:1; 2 Thessalonians 3:10; Colossians 3:23; Luke 14:28; Proverbs 22:7; Proverbs 22:6; Deuteronomy 8:18; Galatians 6:7',
+    },
+    benefits: [
+      'Both courts, honestly held: no court ruled on who gets hired, and none needs to — while the ETERNAL court holds every wage withheld and every work done, and lands after this life (Ecclesiastes 12:14; James 5:4). You can speak the data plainly without inventing a villain.',
+      'Freedom from two slogans at once: "college is a scam" (the degree still pays and still has the lowest unemployment) and "a trade is second-class" (the carpenter of Nazareth, Bezaleel "filled" with the Spirit, Paul the tentmaker). The Word corrects both; the numbers under both stand.',
+      'The Word’s own theology of work in your hands: given before the fall (Genesis 2:15), commanded with the hands (1 Thessalonians 4:11), honored in the craftsman (Exodus 31:3), paid on time (Deuteronomy 24:15), done heartily as to the Lord (Colossians 3:23).',
+      'A repeatable skill: state the documented number with its source and date, keep the relative claim and the absolute claim both in view, flag the open share narrowly (how much is AI), and judge the fruit by the Word’s measures of work.',
+      'A house that counts the cost with real figures: $20.55 an hour and no tuition on one path, $32,000 a year at sticker on the other, and "the borrower is servant to the lender" over both (Proverbs 22:7; Luke 14:28).',
+      'A church that apprentices its own: the tradesmen already in the pews are the Bezaleels — "he hath put in his heart that he may teach" (Exodus 35:34) — and the pipeline the industry cannot fill is one the Body can build.',
+    ],
+    graceNote: 'No condemnation of any soul: not the graduate who is struggling to find the job the degree promised, not the parent who steered a child toward a loan in good faith, not the young man who chose a trade over a classroom, and not the employer who cannot find hands. The Word ranks no lawful work below another and pronounces no verdict on a heart for the path it chose; it asks only that the work be done heartily, the laborer be paid, and the cost be counted. Truth and grace meet in Jesus, who was known in His own town as the carpenter before He was known as the Christ.',
+    stewardship: 'The deeper response to a market that is short of skilled hands is to BUILD the hands — the way Yahweh built Bezaleel and told him to teach. The church that raised the HBCUs (Issue 11) can raise apprentices: COLG has tradesmen in its own pews, and PoeTech’s own founder is a building-controls technician who learned a craft with his hands and teaches with the same hands. That is not a footnote; it is the pattern. A congregation can pair every capable teenager with a journeyman for a summer, walk the family through a real union application and a real college cost sheet side by side, and hold both to the Word’s test: is the laborer paid, is the cost counted, is the craft passed on? A household can sit down before the loan, with dated numbers, and hear both a tradesman and a graduate describe their first five years. And whoever takes the degree takes it soberly, owing as little as possible; whoever takes the trade takes it as Bezaleel did, filled and teaching. Righteous engagement names the shift plainly; it is completed by training the next hands.',
+    anchor: {
+      ref: 'Genesis 2:15; Proverbs 22:29',
+      theme: 'Work was Yahweh’s first assignment to a man — "to dress it and to keep it" — and the diligent hand is promised a hearing at the top: "Seest thou a man diligent in his business? he shall stand before kings" — the market will move again; the Word on work will not. Count the cost, honor the craft, pay the laborer, teach the next hands.',
+    },
+  },
+
+  // ---- STAGE 5 — REFLECTION + SKILL ----
+  reflection: {
+    skill: 'When a jobs headline lands in your feed: PAUSE. Ask whether the number is RELATIVE (a group measured against its own past) or ABSOLUTE (two groups measured against each other) — and keep both. Say the documented part plainly with its source and date; label the causal part ("because of AI") by how much of it is actually measured; treat "this will last" as a forecast. Then refuse the two slogans the data tempts you toward, because the Word refuses both. Finally let the Word judge the fruit by its own measures of work: is the laborer paid on time, is the cost counted before the yoke, is the craft honored and taught?',
+    practice: 'Take the claim "workers without a degree have the best job market in twenty years." Write four lines: (1) one sentence of what is DOCUMENTED, with a source and its date; (2) one sentence stating the ABSOLUTE picture beside the relative one (2.7% vs 4.7%); (3) one sentence on what is genuinely OPEN (the AI share; the durability), stated narrowly; (4) one sentence on what the Word says about work with the hands — and one concrete act this month: sit a young person in your house or church down with a real apprenticeship wage sheet and a real college cost sheet, side by side.',
+    prompts: [
+      'Which parts of the newsletter are documented (the Burning Glass finding, the 2.7% vs 4.7%, the retirements and the migration decline) and which are inference (how much is AI; whether it lasts)? How would you check each?',
+      'The non-degree "best market" is true relative to that group’s own history, and the degree’s lower unemployment is true in absolute terms. Why does keeping both in one sentence strengthen the truth instead of weakening it?',
+      'Bezaleel was the first person of whom Scripture says "I have filled him with the spirit of God" — and he was a builder told to teach (Exodus 31:3; 35:34). What does that do to the idea that a trade is second-class work? What does Paul sitting under Gamaliel AND making tents (Acts 22:3; 18:3) do to the idea that college is a scam?',
+      'Read the employer’s side of the Word (Leviticus 19:13; Deuteronomy 24:15; James 5:4). If you hire anyone — a contractor, a babysitter, a helper — what does "neither shall the sun go down upon it" require of you this week?',
+      'Proverbs 24:27 puts the field before the house. For a seventeen-year-old in your family, what would "Prepare thy work without" look like in the next twelve months — before any loan is signed?',
+      'The young graduate in Stage 3 did what she was told and the door moved. What does the Body owe her — and what does the Word say her labor is still worth (Luke 10:7)?',
+      'Where is the line between "the market favors the trades right now" (true, dated) and "everyone should skip college" (over-reach)? Practice saying the true part without the slogan.',
+    ],
+  },
+
+  // ---- Age-appropriate renderings (kids use the app) ----
+  levels: {
+    child: 'Some grown-ups go to college. Some grown-ups learn a trade, like fixing wires or pipes. Right now, a news story says the people who fix things are getting hired a lot. That is true. It is also true that people with a college degree still find jobs a little more often. Both things are true at once. Here is what Yahweh says about work. The very first job He gave a person was to take care of a garden: "to dress it and to keep it" (Genesis 2:15). Work came before anything went wrong. It is a good gift. Jesus worked with His hands. His town called Him "the carpenter" (Mark 6:3). A man named Bezaleel built beautiful things for Yahweh. The Word says Yahweh filled him with His Spirit to do it. So no honest job is small. Yahweh also says the person who works must be paid, and paid on time. And He says to count the cost before you borrow money, like a builder who checks if he has enough before he starts. When you grow up, you might go to college, or you might learn a trade. Either way, do your work with your whole heart, "as to the Lord" (Colossians 3:23). That is what makes it great.',
+    teen: 'A newsletter says workers 22 to 34 without a degree have the best job market in almost twenty years, and that college grads are getting squeezed as AI eats entry-level office jobs. Run the moves before you repeat it. (1) Sort relative from absolute. It is true — Burning Glass Institute, data through July 2026 — that the non-degree group’s unemployment is near its lowest since 2003 FOR THAT GROUP. It is also true that degree holders 25–54 averaged 2.7% unemployment versus 4.7% for high-school-only. Keep both. (2) Sort documented from open. Recent grads really are at about 5.6% unemployment and 42% underemployment (New York Fed). AI really has cut employment for 22–25-year-olds in the most exposed jobs by about 19% relative to peers (Stanford). But how much of the whole squeeze is AI, and whether the shift lasts, are not settled — and the retirements and the ninety-percent drop in immigration behind the trades boom are measured facts. (3) Get the real Illinois numbers: a Chicago plumbing apprentice starts at $20.55 an hour with no tuition and reaches $60.50 as a journeyman after five years; in-state Urbana-Champaign is about $32,000 a year at sticker; bachelor’s borrowers average about $35,000 in loans. Count the cost of BOTH with real figures — "sitteth not down first, and counteth the cost" (Luke 14:28). (4) Refuse both slogans. "College is a scam" — no: "Wisdom is the principal thing; therefore get wisdom" (Proverbs 4:7), and the degree still pays more on average. "A trade is second-class" — no: the first man of whom Scripture says "I have filled him with the spirit of God" (Exodus 31:3) was Bezaleel the craftsman, Jesus was "the carpenter" (Mark 6:3), and Paul, who studied under Gamaliel, made tents (Acts 18:3). (5) Whatever you choose: "work with your own hands" (1 Thessalonians 4:11), "do it heartily, as to the Lord" (Colossians 3:23), and remember the diligent man "shall stand before kings" (Proverbs 22:29). The market will move again. The Word on work will not.',
+    senior: 'For the seasoned believer, this lesson is about weighing a jobs headline with the Word’s own theology of work, in an age that sells both panic about college and contempt for the trades. First, the documented record, stated plainly: a Burning Glass Institute analysis (Wall Street Journal, data through July 2026) finds unemployment for 22–34-year-olds without a degree near its lowest since 2003 while their degreed peers face conditions among the weakest outside the Great Recession and the pandemic; BLS shows the degree still carrying the lowest absolute rate (2.7% for bachelor’s and higher against 4.4% for high-school-only in August 2026; 2.7% against 4.7% on the WSJ’s prime-age twelve-month average); the New York Fed puts recent graduates at 5.6% unemployment and 42% underemployment; the Census Bureau projects net migration falling from a 2024 peak near 2.7 million to about 321,000 in 2026; and Associated Builders and Contractors needs 349,000 net new construction workers this year, more than half to replace retirements. In Illinois the comparison is concrete: a UA Local 130 apprentice starts at $20.55 an hour with no tuition and reaches $60.50 as a journeyman; in-state Urbana-Champaign runs about $32,000 a year at sticker; registered-apprenticeship completers average about $80,000 in their first year out; and the median bachelor’s still earns roughly $2.8 million over a lifetime to the diploma’s $1.6 million. Second, the categories kept honestly (Proverbs 18:13, 18:17): the AI effect is measured only for the most-exposed entry-level occupations (about 19% below trend for 22–25-year-olds), so "AI is replacing entry-level white-collar work" as the cause of the whole divergence is inference; "it is not temporary" is a forecast by a credible economist, not a finding. Third — where the Word settles what the debate cannot — work is judged by the Word’s own measures, not the market’s. Work preceded the fall: "to dress it and to keep it" (Genesis 2:15). The first man of whom Scripture says "I have filled him with the spirit of God" was a craftsman commanded to teach (Exodus 31:3; 35:34). The Lord was "the carpenter" (Mark 6:3); the apostle who sat under Gamaliel made tents with his own hands and said so (Acts 22:3; 18:3; 20:34). The believer is commanded "to work with your own hands" (1 Thessalonians 4:11); the one who "would not work" is not to eat (2 Thessalonians 3:10); the laborer is "worthy of his hire" (Luke 10:7) and must be paid before sundown (Deuteronomy 24:15), because withheld wages cry to the Lord of sabaoth (James 5:4); the field is prepared before the house is built (Proverbs 24:27); and no man is to owe (Romans 13:8), because the borrower serves the lender (Proverbs 22:7). Against "college is a scam" the Word answers "get wisdom" (Proverbs 4:7); against "a trade is second-class" it answers that "the eye cannot say unto the hand, I have no need of thee" (1 Corinthians 12:21). Both slogans fall; the data under both stands. The verdict on any soul’s path stays with Yahweh; the verdict on work — done heartily, paid on time, cost counted, craft taught — is already written. Then let the response mature past reaction into the Body’s long vocation as builder: the church that raised schools can raise apprentices, out of the tradesmen already in its pews, and walk every household through both cost sheets before a single loan is signed.',
+  },
+
+  // ---- Discernment-skill quiz ----
+  quiz: {
+    questions: [
+      {
+        q: 'The newsletter says non-degree workers 22–34 have "one of the best job markets in nearly two decades." What kind of claim is that, and what is the discernment move?',
+        options: ['An absolute claim that non-degree workers now have lower unemployment than graduates', 'A RELATIVE claim — that group measured against its own range since 2003 — which is documented (Burning Glass, data through July 2026) and should be said plainly, beside the absolute picture', 'A rumor until the government confirms it'],
+        answer: 1,
+        explain: 'It is documented and relative. Say it plainly (DR-0100 Tier 1) AND keep the absolute picture in the same breath: degree holders still averaged 2.7% against 4.7%.',
+      },
+      {
+        q: '"Unemployment is rising for graduates because AI is replacing entry-level white-collar roles." How should the parts be labeled?',
+        options: ['All documented — the numbers prove the cause', 'The RISE is documented (NY Fed, 5.6% / 42%); the AI effect is measured only in the most-exposed jobs (Stanford, about 19% below trend for 22–25-year-olds); the SHARE of the whole squeeze due to AI is genuinely open', 'All speculation — no one knows anything about AI and jobs'],
+        answer: 1,
+        explain: 'Tier 1 for the rise and the measured exposed-occupation gap; Tier 2, narrowly, for the share. Neither "AI did all of it" nor "no one knows" is honest.',
+      },
+      {
+        q: 'What does the Word do with the slogan "a trade is second-class work"?',
+        options: ['Agrees — Scripture favors scholars', 'Corrects it: the first man of whom Scripture says "I have filled him with the spirit of God" (Exodus 31:3) was Bezaleel the craftsman, Jesus was "the carpenter" (Mark 6:3), Paul made tents (Acts 18:3), and "the eye cannot say unto the hand, I have no need of thee" (1 Corinthians 12:21)', 'Ignores it — the Word says nothing about work'],
+        answer: 1,
+        explain: 'The Word ranks no lawful work below another. The carpenter of Nazareth settles the question; the true data under the slogan (the degree pays more on average) still stands.',
+      },
+      {
+        q: 'What does the Word do with the slogan "college is a scam"?',
+        options: ['Confirms it — the trades are hiring', 'Corrects it: "Wisdom is the principal thing; therefore get wisdom" (Proverbs 4:7); Paul sat under Gamaliel AND made tents; what the Word forbids is the yoke taken without counting the cost (Luke 14:28; Proverbs 22:7), not the school', 'Has no opinion'],
+        answer: 1,
+        explain: 'The Word honors learning and forbids uncounted debt. The degree is now a priced decision to be chosen soberly — Issue 11’s lesson — not a scam and not a guarantee.',
+      },
+      {
+        q: 'An employer cannot find skilled hands and finally hires an apprentice. What does the Word require of the employer?',
+        options: ['Nothing — the market sets the terms', 'The wage in full and on time — "neither shall the sun go down upon it" (Deuteronomy 24:15), "shall not abide with thee all night" (Leviticus 19:13) — because withheld hire "crieth" to the Lord (James 5:4), plus honest training', 'Only what the contract says'],
+        answer: 1,
+        explain: 'The employer is bound by the Word as tightly as the worker. The shortage does not loosen the command to pay; it makes the paid, trained apprentice the very thing the Word describes.',
+      },
+      {
+        q: 'A family with a capable seventeen-year-old reads this lesson. What is the Word’s first practical step?',
+        options: ['Skip college — the data says so', 'Borrow the maximum — the degree always pays', 'Sit down and COUNT THE COST of both paths with real, dated numbers (Luke 14:28; Proverbs 24:27) — a real apprenticeship wage sheet beside a real college cost sheet — then whichever path, "do it heartily, as to the Lord" (Colossians 3:23)'],
+        answer: 2,
+        explain: 'The field before the house (Proverbs 24:27). The Word does not pick the path for the child; it demands the cost be counted and the work be done with the whole heart.',
+      },
+      {
+        q: 'Why does the lesson keep "2.7% vs 4.7%" beside "best non-degree market in twenty years" instead of choosing one?',
+        options: ['To avoid taking a position', 'Because both are documented and true at once — one relative, one absolute — and a reader who keeps only one is repeating half a fact (Proverbs 18:17)', 'Because the numbers contradict each other'],
+        answer: 1,
+        explain: 'Hearing the whole matter (Proverbs 18:13, 18:17) means holding both true numbers. That is not fence-sitting; it is the full fact.',
+      },
+    ],
+  },
+};
+
+export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE, TUITION_1965_ISSUE, EPA_POWER_PLANT_ISSUE, TRADES_HIRING_ISSUE];
 
 // ---------------------------------------------------------------------------
 // Course-specific helpers — thin wrappers over the reusable discernment engine
