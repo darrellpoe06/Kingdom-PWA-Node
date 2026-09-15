@@ -1,10 +1,10 @@
 # DR-0417 — The reader never opens the Word itself; the level is chosen inside the lesson; and the child ceiling is a corpus number, not an age number
 
-- **Status:** accepted (D1–D2 shipped; D3 is a recommendation awaiting Darrell's decision, dated)
+- **Status:** accepted (D1–D2 shipped in #1594; D3 approved by Darrell 2026-09-15 — "Yes. Nice!" — and shipped as the age ceiling below)
 - **Tier:** A (additive learner-facing controls on the Learn space; no schema, no money, no identity)
 - **Type:** product
 - **Date:** 2026-09-15
-- **Scope:** `app/src/components/WordInline.jsx`, `app/src/components/VerseChips.jsx` (verse chips carry `data-read-no-expand`; the prose chip also `data-read-keep`), `app/src/lib/read-follow.js` (`buildFollowMap` honours `data-read-keep`, as the fallback path already did), `app/src/components/ChurchLearn.jsx` (`LessonLevelControl`; `AgePacedLesson` + `TutorPanel` thread `setAgeBand` / `setLearnLevel` / `levelOverride`), `app/src/__tests__/the-reader-honours-show-the-word.test.jsx`, `app/src/__tests__/the-level-is-chosen-inside-the-lesson.test.jsx`, `docs/00-foundations/07-neuroplasticity-and-the-word.md` §4 (re-measured; re-review re-dated)
+- **Scope:** `scripts/reading-level.mjs` (`NEW_LESSON_CHILD_CEILING` 5.0; `knownLessons`; `freshOverNewCeiling`), `app/src/lib/reading-level-baseline.json` (`knownLessons` = the 153-lesson corpus of 2026-09-15), `app/src/__tests__/reading-level-gate.test.js` (proven-to-catch), `app/src/components/WordInline.jsx`, `app/src/components/VerseChips.jsx` (verse chips carry `data-read-no-expand`; the prose chip also `data-read-keep`), `app/src/lib/read-follow.js` (`buildFollowMap` honours `data-read-keep`, as the fallback path already did), `app/src/components/ChurchLearn.jsx` (`LessonLevelControl`; `AgePacedLesson` + `TutorPanel` thread `setAgeBand` / `setLearnLevel` / `levelOverride`), `app/src/__tests__/the-reader-honours-show-the-word.test.jsx`, `app/src/__tests__/the-level-is-chosen-inside-the-lesson.test.jsx`, `docs/00-foundations/07-neuroplasticity-and-the-word.md` §4 (re-measured; re-review re-dated)
 - **Principles:** VERIFICATION-DOCTRINE (DR-0076), SURFACE-SAYS-TRUTH (DR-0061 / P15), SPEAK-ESTABLISHED-FACT (DR-0100), PERPETUAL-IMPROVEMENT (DR-0075), DECISION-RECORDS (DR-0011)
 - **Grounds:** DR-0340 / DR-0341 (the Word opens in place; one switch opens it everywhere); DR-0285 / DR-0299 / DR-0301 (the reader reads the live DOM and mutes chrome); DR-0402 / DR-0404 (the Word is in the sentence; every anchor is spread through the lesson); DR-0215 (pacing, never cutting); `07-neuroplasticity-and-the-word.md` (the bands and the honest state of the register)
 
@@ -48,4 +48,30 @@ Child lessons over a candidate ceiling: **7.0 → 17**, 6.0 → 47, **5.0 → 82
 ## Not done, with why and date
 
 - The Show-the-Word switch is not surfaced inside the reader's own pill while reading; it is on the lesson bar and in the reader card. `re-review: 2026-09-22` — measure whether listeners flip it mid-read.
-- The child ceiling change (D3) awaits the decision above. `re-review: 2026-09-29`.
+- ~~The child ceiling change (D3) awaits the decision above.~~ Decided and shipped the same day; see the amendment.
+
+## Amendment 2026-09-15 — D3 approved and shipped: the age ceiling for new lessons
+
+Darrell, reading the recommendation: **"Yes. Nice! Timeline?"** — and two questions with it: *"Users will be able to look at the current lesson and change it instantly to their capacities based on their experience?"* and *"Grades? – etc?"*
+
+**The mechanism.** `NEW_LESSON_CHILD_CEILING = 5.0` beside `CHILD_CEILING = 7.0` in `scripts/reading-level.mjs`. The baseline now carries `knownLessons`: the 153 lesson ids on disk at this decision, fixed, never rebuilt from a scan. A lesson not in that list is new and its child level must measure ≤ 5.0 or the build fails (`ratchet().freshOverNewCeiling`); a known lesson keeps the shrink-only 7.0 ratchet. A lesson is therefore either held to the age or recorded as debt, never quietly promoted from one to the other. Proven-to-catch: a child level measuring 6.0 in an unknown id passes the 7.0 ratchet and FAILS the age ceiling; the same text under a known id is judged by 7.0 only; a grade-2 new lesson passes; `knownLessons` survives a baseline rebuild; every lesson on disk today is in it (28/28 gate tests).
+
+**Grades, in one table.** Flesch-Kincaid grade ≈ the US school grade a reader needs. The bands, their ages, the grades those ages sit in, the ceiling that now applies, and the corpus today (authored prose only):
+
+| band | ages | US grades | ceiling | median today | max today |
+|---|---|---|---|---|---|
+| child | 6–10 | 1–5 | **5.0 new** / 7.0 existing | 5.2 | 11.2 |
+| youth | 11–14 | 6–8 | reads the teen text | — | — |
+| teen | 15–17 | 9–12 | ordering only (child ≤ teen) | 6.5 | 13.1 |
+| adult | 18–64 | — | none | 7.3 | 12.9 |
+| senior | 65+ | — | ordering only (teen ≤ senior) | 11.4 | 24.2 |
+
+The youth band has no text of its own: `depthChainForAge('youth')` reads the teen level at youth pacing (90 words a step). That is a gap the table makes visible; it is recorded here, not fixed here. `re-review: 2026-09-29` — decide whether youth (grades 6–8) needs its own authored level.
+
+**Instant switching, by experience.** Yes, and verified in code, not assumed: the row in the paced core writes the same state the Pace tab writes (`setLearnAgeBand` in the app shell); `TutorPanel` rebuilds the arc from `ageBand` on every render, `lessonPlanForAge` re-resolves the text and the pacing, and the stepper re-renders in the same tap. The labels are ages, but the pick is free — Hebrews 5:14 makes capacity a matter of USE, so a sixty-year-old new believer picks the child words and a well-taught fifteen-year-old picks the adult words, inside the lesson, without leaving it. The row says whose words are on the screen when they are not the band's own.
+
+**Timeline (DR-0075: a why and a date, never a silent park).**
+- Gate live: this merge (2026-09-15). No lesson written from today can ship a child level above grade 5.
+- The 17 child levels over 7.0 (the worst): re-authored first, one lesson at a time through the same lane as L151/L149, each measured before and after. `re-review: 2026-09-22` with the count.
+- The remaining 65 between 5.0 and 7.0: brought down as each lesson is touched for the owed-anchor work (DR-0404: L146, L147, L148, L150, L145, L141 next) and then in lesson order, with the measured table re-run and posted on each pass. `re-review: 2026-10-13` — the count, and whether the pace needs to change.
+- The proxy stays a gross-case detector (DR-0332); the learner's own pick is the comprehension control that does not depend on it.

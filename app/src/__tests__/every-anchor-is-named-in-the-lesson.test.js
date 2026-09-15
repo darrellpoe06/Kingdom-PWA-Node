@@ -80,7 +80,6 @@ const OWED = {
   'll146-he-said-it-first-what-it-sounds-like-when-yahweh-tells-you-how-he-feels': 26,
   'll147-the-due-he-is-owed-every-place-the-word-shows-jesus-worshipped-and-the-one-thing-that-never-happens': 23,
   'll148-remember-is-a-verb-what-the-word-says-about-his-knowing-his-withholding-and-the-sea': 15,
-  'll149-cultural-competency-the-same-word-in-three-mouths-and-the-man-nobody-believed': 30,
   'll150-how-can-the-son-not-know-what-the-father-knows': 13,
   // PRE-EXISTING, not this week's: two original lessons whose anchor names a
   // range the body only paraphrases. Recorded so they are seen, not exempted.

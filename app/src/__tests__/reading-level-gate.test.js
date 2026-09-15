@@ -35,7 +35,7 @@ import { describe, it, expect } from 'vitest';
 import {
   syllables, ourProseOnly, fleschKincaidGrade, measureLesson,
   isInverted, breachesChildCeiling, scanSeries, ratchet, buildBaseline,
-  CHILD_CEILING, BAND_ORDER,
+  CHILD_CEILING, NEW_LESSON_CHILD_CEILING, BAND_ORDER,
 } from '../../../scripts/reading-level.mjs';
 import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
 import baseline from '../lib/reading-level-baseline.json';
@@ -161,6 +161,51 @@ describe('the ratchet — new offenders FAIL, the debt may only shrink', () => {
   });
 });
 
+// THE AGE CEILING FOR NEW LESSONS (DR-0417 D3, Darrell 2026-09-15: "Yes. Nice!").
+// 7.0 was the corpus median, not the age. Ages 6–10 are grades 1–5, so a
+// lesson written after the decision is held to 5.0; the existing corpus keeps
+// its shrink-only 7.0 ratchet and is brought down lesson by lesson.
+describe('a NEW lesson is held to the AGE, not the corpus', () => {
+  const lessonAt = (id, child) => ({ id, levels: { child, teen: 'A slightly longer explanation follows here, and it rewards attention.', senior: 'An altogether more considerable exposition, comprising subordinate clauses and qualifications.' }, lesson: 'x.' });
+  // Measured grade 6-ish: under 7.0, over 5.0 — the exact case the old gate let through.
+  const grade6 = 'The family gathered around the table for dinner. Father read a story about the shepherd who found his lost sheep.';
+  const grade2 = 'God is good. He loves you. He gave His Son. That is the news.';
+
+  it('the new-lesson ceiling is a real, stated value below the corpus ceiling', () => {
+    expect(NEW_LESSON_CHILD_CEILING).toBe(5.0);
+    expect(NEW_LESSON_CHILD_CEILING).toBeLessThan(CHILD_CEILING);
+  });
+
+  it('PROVEN-TO-CATCH: a lesson NOT in knownLessons with a child level over 5.0 (and under 7.0) FAILS', () => {
+    const m = measureLesson(lessonAt('llNEW-x', grade6));
+    expect(m.bands.child.authored).toBeGreaterThan(NEW_LESSON_CHILD_CEILING);
+    expect(m.bands.child.authored).toBeLessThanOrEqual(CHILD_CEILING);
+    const scan = scanSeries([lessonAt('llNEW-x', grade6)]);
+    const r = ratchet(scan, { inverted: [], childOverCeiling: [], knownLessons: ['llOLD-y'] });
+    expect(r.freshOverCeiling).toEqual([]);            // the corpus ratchet alone would have let it through
+    expect(r.freshOverNewCeiling).toEqual(['llNEW-x']); // the age ceiling catches it
+  });
+
+  it('the same text in a KNOWN lesson is judged by the 7.0 ratchet only', () => {
+    const scan = scanSeries([lessonAt('llOLD-y', grade6)]);
+    const r = ratchet(scan, { inverted: [], childOverCeiling: [], knownLessons: ['llOLD-y'] });
+    expect(r.freshOverNewCeiling).toEqual([]);
+  });
+
+  it('a new lesson written for the age passes', () => {
+    const scan = scanSeries([lessonAt('llNEW-z', grade2)]);
+    const r = ratchet(scan, { inverted: [], childOverCeiling: [], knownLessons: [] });
+    expect(r.freshOverNewCeiling).toEqual([]);
+  });
+
+  it('knownLessons is carried from the committed baseline, never rebuilt from the scan', () => {
+    const fresh = buildBaseline(scanSeries([lessonAt('llNEW-z', grade2)]));
+    expect(fresh.knownLessons).toEqual(baseline.knownLessons);
+    expect(fresh.knownLessons).not.toContain('llNEW-z');
+    expect(fresh.newLessonCeiling).toBe(NEW_LESSON_CHILD_CEILING);
+  });
+});
+
 describe('THE LIVE SERIES — measured, not asserted', () => {
   const scan = scanSeries(LIVING_LESSONS_MODULES);
 
@@ -180,6 +225,15 @@ describe('THE LIVE SERIES — measured, not asserted', () => {
       r.freshOverCeiling,
       `these child levels read above grade ${baseline.ceiling} and are not in the baseline:\n${r.freshOverCeiling.join('\n')}`,
     ).toEqual([]);
+    expect(
+      r.freshOverNewCeiling,
+      `these lessons were written after 2026-09-15 and their child level reads above grade ${baseline.newLessonCeiling} (ages 6–10 are grades 1–5):\n${r.freshOverNewCeiling.join('\n')}`,
+    ).toEqual([]);
+  });
+
+  it('knownLessons is the 2026-09-15 corpus, whole, and every lesson on disk today is in it', () => {
+    expect(baseline.knownLessons.length).toBe(153);
+    for (const m of LIVING_LESSONS_MODULES) expect(baseline.knownLessons, `${m.id} predates the age ceiling`).toContain(m.id);
   });
 
   it('the committed baseline is the REAL debt, not a painted number', () => {
@@ -188,6 +242,7 @@ describe('THE LIVE SERIES — measured, not asserted', () => {
     expect(fresh.inverted).toEqual(baseline.inverted);
     expect(fresh.childOverCeiling).toEqual(baseline.childOverCeiling);
     expect(fresh.measuredLessons).toBe(baseline.measuredLessons);
+    expect(fresh.knownLessons).toEqual(baseline.knownLessons);
   });
 
   it('the debt is real and non-empty — this gate is not decoration', () => {
