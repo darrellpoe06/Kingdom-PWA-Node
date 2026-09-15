@@ -47,6 +47,17 @@ export const BASELINE_PATH = join(HERE, '..', 'app', 'src', 'lib', 'reading-leve
  */
 export const CHILD_CEILING = 7.0;
 
+/**
+ * A child level in a lesson written AFTER 2026-09-15 must not read above this
+ * grade. Darrell, 2026-09-15 (DR-0417 D3, approved "Yes. Nice!"): the band is
+ * ages 6–10, which is US grades 1–5, so 5.0 is the top of the band's own range
+ * — an AGE number, where CHILD_CEILING is a corpus number. The 7.0 ratchet
+ * still holds the existing corpus (82 of 153 read above 5.0 today, brought
+ * down as each is re-authored); every lesson not in the baseline's
+ * `knownLessons` is new and is held here.
+ */
+export const NEW_LESSON_CHILD_CEILING = 5.0;
+
 /** The intended ordering. Each band should read no harder than the next. */
 export const BAND_ORDER = ['child', 'teen', 'senior'];
 
@@ -127,13 +138,16 @@ export function breachesChildCeiling(measured, ceiling = CHILD_CEILING) {
 }
 
 /** Measure a whole series and name every offender. */
-export function scanSeries(modules, { ceiling = CHILD_CEILING } = {}) {
+export function scanSeries(modules, { ceiling = CHILD_CEILING, newCeiling = NEW_LESSON_CHILD_CEILING } = {}) {
   const measured = (modules || []).map(measureLesson);
   return {
     total: measured.length,
     measured,
     inverted: measured.filter(isInverted).map((m) => m.id),
     childOverCeiling: measured.filter((m) => breachesChildCeiling(m, ceiling)).map((m) => m.id),
+    // Every lesson over the NEW-lesson ceiling; the ratchet decides which of
+    // them are new (not in knownLessons) and therefore fail.
+    childOverNewCeiling: measured.filter((m) => breachesChildCeiling(m, newCeiling)).map((m) => m.id),
   };
 }
 
@@ -142,7 +156,7 @@ export function loadBaseline() {
   try {
     return JSON.parse(readFileSync(BASELINE_PATH, 'utf8'));
   } catch {
-    return { ceiling: CHILD_CEILING, inverted: [], childOverCeiling: [] };
+    return { ceiling: CHILD_CEILING, newLessonCeiling: NEW_LESSON_CHILD_CEILING, inverted: [], childOverCeiling: [], knownLessons: [] };
   }
 }
 
@@ -153,25 +167,39 @@ export function loadBaseline() {
  *           may not be added at the wrong register, ever.
  * `healed` — baseline entries no longer offending. Informational; the baseline
  *           is expected to shrink and should be re-committed when it does.
+ * `freshOverNewCeiling` — lessons NOT in `knownLessons` (written after
+ *           2026-09-15) whose child level reads above NEW_LESSON_CHILD_CEILING.
+ *           These FAIL the build. A known lesson is judged by the 7.0 ratchet
+ *           only; the set of known lessons is fixed at the decision and never
+ *           grows, so a lesson is either held to the age or recorded as debt,
+ *           never quietly promoted from one to the other.
  */
 export function ratchet(scan, baseline = loadBaseline()) {
   const wasInverted = new Set(baseline.inverted || []);
   const wasOver = new Set(baseline.childOverCeiling || []);
+  const known = new Set(baseline.knownLessons || []);
   return {
     freshInverted: scan.inverted.filter((id) => !wasInverted.has(id)),
     freshOverCeiling: scan.childOverCeiling.filter((id) => !wasOver.has(id)),
+    freshOverNewCeiling: (scan.childOverNewCeiling || []).filter((id) => !known.has(id)),
     healedInverted: (baseline.inverted || []).filter((id) => !scan.inverted.includes(id)),
     healedOverCeiling: (baseline.childOverCeiling || []).filter((id) => !scan.childOverCeiling.includes(id)),
   };
 }
 
 /** Build the artifact that gets committed. */
-export function buildBaseline(scan, { ceiling = CHILD_CEILING } = {}) {
+export function buildBaseline(scan, { ceiling = CHILD_CEILING, newLessonCeiling = NEW_LESSON_CHILD_CEILING, knownLessons = null } = {}) {
+  // knownLessons is FIXED at the 2026-09-15 corpus: carried forward from the
+  // committed baseline, never rebuilt from the scan, so a lesson written later
+  // can never be promoted into the 7.0 debt class.
+  const known = Array.isArray(knownLessons) ? knownLessons : (loadBaseline().knownLessons || []);
   return {
     ceiling,
-    note: 'Shrink-only debt. A NEW offender fails the build; entries may be removed as lessons are rewritten, never added. See docs/00-foundations/07-neuroplasticity-and-the-word.md §4.',
+    newLessonCeiling,
+    note: 'Shrink-only debt. A NEW offender fails the build; entries may be removed as lessons are rewritten, never added. Lessons not in knownLessons are held to newLessonCeiling (DR-0417 D3). See docs/00-foundations/07-neuroplasticity-and-the-word.md §4.',
     measuredLessons: scan.total,
     inverted: [...scan.inverted].sort(),
     childOverCeiling: [...scan.childOverCeiling].sort(),
+    knownLessons: [...known].sort(),
   };
 }
