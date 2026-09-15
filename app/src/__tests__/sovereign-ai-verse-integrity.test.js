@@ -1304,3 +1304,277 @@ describe('sov19 — the servant under authority quotes its whole spine verbatim,
     expect(drifted).not.toContain(SOV19_FRAGMENTS['Matthew 8:9']);
   });
 });
+
+
+// =============================================================================
+// sov20 — the book of remembrance and the tool that forgets (captured
+// 2026-09-15 from ByteByteGo, "Do LLMs Have the Memory of a Goldfish?",
+// forwarded by the Governor with his "Lesson." marker; DR-0417). The model
+// keeps nothing between calls; the application places things back on the
+// desk — and the Word set the One who remembers (Isaiah 49:15-16) beside the
+// man who forgets and is commanded to WRITE (Exodus 17:14; Habakkuk 2:2), with
+// the Spirit who brings all things to remembrance (John 14:26). Word-first per
+// the sov9/sov10/sov17 standard; every system fact carried by DR-0100's tiers
+// and verified against provider documentation; every quoted verse verbatim
+// KJV + pinned here, a drift fails the build (DR-0281) — the article's own
+// rule (store the exact fact, never the summary) applied to the Word.
+// =============================================================================
+const sov20 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov20-the-book-of-remembrance-and-the-tool-that-forgets');
+
+const SOV20_FRAGMENTS = {
+  'Genesis 9:15': 'And I will remember my covenant, which is between me and you and every living creature of all flesh; and the waters shall no more become a flood to destroy all flesh.',
+  'Genesis 9:16': 'And the bow shall be in the cloud; and I will look upon it, that I may remember the everlasting covenant between God and every living creature of all flesh that is upon the earth.',
+  'Psalms 105:8': 'He hath remembered his covenant for ever, the word which he commanded to a thousand generations.',
+  'Psalms 111:5': 'He hath given meat unto them that fear him: he will ever be mindful of his covenant.',
+  'Isaiah 49:14': 'The LORD hath forsaken me, and my Lord hath forgotten me.',
+  'Isaiah 49:15': 'Can a woman forget her sucking child, that she should not have compassion on the son of her womb? yea, they may forget, yet will I not forget thee.',
+  'Isaiah 49:16': 'Behold, I have graven thee upon the palms of my hands; thy walls are continually before me.',
+  'Psalms 9:12': 'When he maketh inquisition for blood, he remembereth them: he forgetteth not the cry of the humble.',
+  'Ecclesiastes 1:11': 'There is no remembrance of former things; neither shall there be any remembrance of things that are to come with those that shall come after.',
+  'Jeremiah 2:32': 'Can a maid forget her ornaments, or a bride her attire? yet my people have forgotten me days without number.',
+  'Psalms 139:2': 'Thou knowest my downsitting and mine uprising, thou understandest my thought afar off.',
+  'Psalms 139:4': 'For there is not a word in my tongue, but, lo, O LORD, thou knowest it altogether.',
+  'Deuteronomy 6:6': 'And these words, which I command thee this day, shall be in thine heart:',
+  'Deuteronomy 6:7': 'And thou shalt teach them diligently unto thy children, and shalt talk of them when thou sittest in thine house, and when thou walkest by the way, and when thou liest down, and when thou risest up.',
+  'Deuteronomy 6:8': 'And thou shalt bind them for a sign upon thine hand, and they shall be as frontlets between thine eyes.',
+  'Deuteronomy 6:9': 'And thou shalt write them upon the posts of thy house, and on thy gates.',
+  'Numbers 15:39': 'that ye may look upon it, and remember all the commandments of the LORD, and do them',
+  'Exodus 13:9': 'And it shall be for a sign unto thee upon thine hand, and for a memorial between thine eyes, that the LORD’s law may be in thy mouth',
+  'Exodus 28:12': 'for a memorial',
+  'Exodus 28:29': 'for a memorial before the LORD continually',
+  'Deuteronomy 17:18': 'he shall write him a copy of this law in a book',
+  'Deuteronomy 17:19': 'and he shall read therein all the days of his life',
+  'Deuteronomy 4:9': 'Only take heed to thyself, and keep thy soul diligently, lest thou forget the things which thine eyes have seen, and lest they depart from thy heart all the days of thy life: but teach them thy sons, and thy sons’ sons;',
+  'Deuteronomy 8:11': 'Beware that thou forget not the LORD thy God, in not keeping his commandments, and his judgments, and his statutes, which I command thee this day:',
+  'Deuteronomy 8:14': 'Then thine heart be lifted up, and thou forget the LORD thy God, which brought thee forth out of the land of Egypt, from the house of bondage;',
+  'Deuteronomy 8:17': 'And thou say in thine heart, My power and the might of mine hand hath gotten me this wealth.',
+  'Deuteronomy 8:18': 'But thou shalt remember the LORD thy God: for it is he that giveth thee power to get wealth, that he may establish his covenant which he sware unto thy fathers, as it is this day.',
+  'Psalms 78:11': 'And forgat his works, and his wonders that he had shewed them.',
+  'Psalms 106:13': 'They soon forgat his works; they waited not for his counsel:',
+  'Judges 2:10': 'which knew not the LORD, nor yet the works which he had done for Israel',
+  'Hosea 4:6': 'seeing thou hast forgotten the law of thy God, I will also forget thy children',
+  'Exodus 17:14': 'And the LORD said unto Moses, Write this for a memorial in a book, and rehearse it in the ears of Joshua',
+  'Habakkuk 2:2': 'And the LORD answered me, and said, Write the vision, and make it plain upon tables, that he may run that readeth it.',
+  'Job 19:23': 'Oh that my words were now written! oh that they were printed in a book!',
+  'Job 19:24': 'That they were graven with an iron pen and lead in the rock for ever!',
+  'Revelation 1:19': 'Write the things which thou hast seen, and the things which are, and the things which shall be hereafter;',
+  'Deuteronomy 31:21': 'for it shall not be forgotten out of the mouths of their seed',
+  'Jeremiah 36:28': 'Take thee again another roll, and write in it all the former words that were in the first roll',
+  'Jeremiah 36:32': 'wrote therein from the mouth of Jeremiah all the words of the book which Jehoiakim king of Judah had burned in the fire: and there were added besides unto them many like words.',
+  'Joshua 4:6': 'That this may be a sign among you, that when your children ask their fathers in time to come, saying, What mean ye by these stones?',
+  'Joshua 4:7': 'Then ye shall answer them, That the waters of Jordan were cut off before the ark of the covenant of the LORD; when it passed over Jordan, the waters of Jordan were cut off: and these stones shall be for a memorial unto the children of Israel for ever.',
+  '1 Samuel 7:12': 'Then Samuel took a stone, and set it between Mizpeh and Shen, and called the name of it Ebenezer, saying, Hitherto hath the LORD helped us.',
+  'Joshua 24:27': 'hath heard all the words of the LORD',
+  'Esther 6:1': 'he commanded to bring the book of records of the chronicles; and they were read before the king.',
+  'Esther 6:2': 'And it was found written, that Mordecai had told of Bigthana and Teresh, two of the king’s chamberlains, the keepers of the door, who sought to lay hand on the king Ahasuerus.',
+  'Esther 6:3': 'There is nothing done for him.',
+  'Malachi 3:16': 'Then they that feared the LORD spake often one to another: and the LORD hearkened, and heard it, and a book of remembrance was written before him for them that feared the LORD, and that thought upon his name.',
+  'Malachi 3:17': 'they shall be mine, saith the LORD of hosts, in that day when I make up my jewels',
+  'Psalms 56:8': 'Thou tellest my wanderings: put thou my tears into thy bottle: are they not in thy book?',
+  'Daniel 7:10': 'the judgment was set, and the books were opened',
+  'Revelation 20:12': 'the dead were judged out of those things which were written in the books, according to their works',
+  'Mark 7:13': 'Making the word of God of none effect through your tradition, which ye have delivered: and many such like things do ye.',
+  'Isaiah 28:10': 'For precept must be upon precept, precept upon precept; line upon line, line upon line; here a little, and there a little:',
+  'Isaiah 28:13': 'But the word of the LORD was unto them precept upon precept, precept upon precept; line upon line, line upon line; here a little, and there a little; that they might go, and fall backward, and be broken, and snared, and taken.',
+  'John 10:35': 'the scripture cannot be broken',
+  'Matthew 5:18': 'For verily I say unto you, Till heaven and earth pass, one jot or one tittle shall in no wise pass from the law, till all be fulfilled.',
+  'Deuteronomy 4:2': 'Ye shall not add unto the word which I command you, neither shall ye diminish ought from it',
+  'Proverbs 30:6': 'Add thou not unto his words, lest he reprove thee, and thou be found a liar.',
+  'Revelation 22:18': 'If any man shall add unto these things',
+  'Revelation 22:19': 'And if any man shall take away from the words of the book of this prophecy',
+  'Psalms 12:6': 'The words of the LORD are pure words: as silver tried in a furnace of earth, purified seven times.',
+  'Psalms 12:7': 'Thou shalt keep them, O LORD, thou shalt preserve them from this generation for ever.',
+  'Isaiah 40:8': 'The grass withereth, the flower fadeth: but the word of our God shall stand for ever.',
+  'Psalms 119:89': 'For ever, O LORD, thy word is settled in heaven.',
+  'Psalms 119:160': 'Thy word is true from the beginning: and every one of thy righteous judgments endureth for ever.',
+  'Matthew 24:35': 'Heaven and earth shall pass away, but my words shall not pass away.',
+  'Luke 1:3': 'in order',
+  'Luke 1:4': 'know the certainty of those things, wherein thou hast been instructed',
+  'Acts 17:11': 'searched the scriptures daily, whether those things were so',
+  '1 Corinthians 4:6': 'not to think of men above that which is written',
+  'Proverbs 22:21': 'That I might make thee know the certainty of the words of truth',
+  'Isaiah 8:20': 'To the law and to the testimony: if they speak not according to this word, it is because there is no light in them.',
+  'Exodus 12:14': 'And this day shall be unto you for a memorial; and ye shall keep it a feast to the LORD throughout your generations; ye shall keep it a feast by an ordinance for ever.',
+  'Exodus 12:26': 'And it shall come to pass, when your children shall say unto you, What mean ye by this service?',
+  'Exodus 12:27': 'That ye shall say, It is the sacrifice of the LORD’s passover, who passed over the houses of the children of Israel in Egypt, when he smote the Egyptians, and delivered our houses.',
+  'Exodus 20:8': 'Remember the sabbath day, to keep it holy.',
+  'Deuteronomy 5:15': 'And remember that thou wast a servant in the land of Egypt',
+  'Hebrews 10:3': 'in those sacrifices there is a remembrance again made of sins every year',
+  'Luke 22:19': 'And he took bread, and gave thanks, and brake it, and gave unto them, saying, This is my body which is given for you: this do in remembrance of me.',
+  '1 Corinthians 11:24': 'this is my body, which is broken for you: this do in remembrance of me.',
+  '1 Corinthians 11:25': 'This cup is the new testament in my blood: this do ye, as oft as ye drink it, in remembrance of me.',
+  '1 Corinthians 11:26': 'For as often as ye eat this bread, and drink this cup, ye do shew the Lord’s death till he come.',
+  '2 Peter 1:12': 'Wherefore I will not be negligent to put you always in remembrance of these things, though ye know them, and be established in the present truth.',
+  '2 Peter 1:15': 'Moreover I will endeavour that ye may be able after my decease to have these things always in remembrance.',
+  '2 Peter 3:1': 'I stir up your pure minds by way of remembrance',
+  'Deuteronomy 32:7': 'Remember the days of old, consider the years of many generations: ask thy father, and he will shew thee; thy elders, and they will tell thee.',
+  'Psalms 103:2': 'Bless the LORD, O my soul, and forget not all his benefits:',
+  'John 14:26': 'But the Comforter, which is the Holy Ghost, whom the Father will send in my name, he shall teach you all things, and bring all things to your remembrance, whatsoever I have said unto you.',
+  'John 16:13': 'Howbeit when he, the Spirit of truth, is come, he will guide you into all truth',
+  'John 15:26': 'he shall testify of me',
+  'Luke 24:6': 'He is not here, but is risen: remember how he spake unto you when he was yet in Galilee,',
+  'Luke 24:8': 'And they remembered his words,',
+  'John 2:22': 'his disciples remembered that he had said this unto them; and they believed the scripture, and the word which Jesus had said.',
+  'Luke 12:12': 'For the Holy Ghost shall teach you in the same hour what ye ought to say.',
+  'Matthew 10:19': 'it shall be given you in that same hour what ye shall speak',
+  'Matthew 10:20': 'For it is not ye that speak, but the Spirit of your Father which speaketh in you.',
+  'Jeremiah 31:33': 'I will put my law in their inward parts, and write it in their hearts',
+  '2 Corinthians 3:3': 'written not with ink, but with the Spirit of the living God; not in tables of stone, but in fleshy tables of the heart',
+  'Proverbs 3:3': 'write them upon the table of thine heart',
+  'Proverbs 7:3': 'Bind them upon thy fingers, write them upon the table of thine heart.',
+  'Psalms 119:11': 'Thy word have I hid in mine heart, that I might not sin against thee.',
+  'Psalms 119:16': 'I will delight myself in thy statutes: I will not forget thy word.',
+  'Psalms 77:11': 'I will remember the works of the LORD: surely I will remember thy wonders of old.',
+  'Lamentations 3:21': 'This I recall to my mind, therefore have I hope.',
+  'Isaiah 43:25': 'I, even I, am he that blotteth out thy transgressions for mine own sake, and will not remember thy sins.',
+  'Hebrews 8:12': 'For I will be merciful to their unrighteousness, and their sins and their iniquities will I remember no more.',
+  'Hebrews 10:17': 'And their sins and iniquities will I remember no more.',
+  'Ecclesiastes 12:12': 'of making many books there is no end; and much study is a weariness of the flesh',
+  'Deuteronomy 8:2': 'thou shalt remember all the way which the LORD thy God led thee these forty years in the wilderness, to humble thee, and to prove thee',
+};
+
+// Where each pinned fragment lives in the corpus (book file, chapter, verse).
+const SOV20_CORPUS = {
+  'Genesis 9:15': ['Genesis', 9, 15], 'Genesis 9:16': ['Genesis', 9, 16], 'Psalms 105:8': ['Psalms', 105, 8], 'Psalms 111:5': ['Psalms', 111, 5],
+  'Isaiah 49:14': ['Isaiah', 49, 14], 'Isaiah 49:15': ['Isaiah', 49, 15], 'Isaiah 49:16': ['Isaiah', 49, 16], 'Psalms 9:12': ['Psalms', 9, 12],
+  'Ecclesiastes 1:11': ['Ecclesiastes', 1, 11], 'Jeremiah 2:32': ['Jeremiah', 2, 32], 'Psalms 139:2': ['Psalms', 139, 2], 'Psalms 139:4': ['Psalms', 139, 4],
+  'Deuteronomy 6:6': ['Deuteronomy', 6, 6], 'Deuteronomy 6:7': ['Deuteronomy', 6, 7], 'Deuteronomy 6:8': ['Deuteronomy', 6, 8], 'Deuteronomy 6:9': ['Deuteronomy', 6, 9],
+  'Numbers 15:39': ['Numbers', 15, 39], 'Exodus 13:9': ['Exodus', 13, 9], 'Exodus 28:12': ['Exodus', 28, 12], 'Exodus 28:29': ['Exodus', 28, 29],
+  'Deuteronomy 17:18': ['Deuteronomy', 17, 18], 'Deuteronomy 17:19': ['Deuteronomy', 17, 19],
+  'Deuteronomy 4:9': ['Deuteronomy', 4, 9], 'Deuteronomy 8:11': ['Deuteronomy', 8, 11], 'Deuteronomy 8:14': ['Deuteronomy', 8, 14], 'Deuteronomy 8:17': ['Deuteronomy', 8, 17], 'Deuteronomy 8:18': ['Deuteronomy', 8, 18],
+  'Psalms 78:11': ['Psalms', 78, 11], 'Psalms 106:13': ['Psalms', 106, 13], 'Judges 2:10': ['Judges', 2, 10], 'Hosea 4:6': ['Hosea', 4, 6],
+  'Exodus 17:14': ['Exodus', 17, 14], 'Habakkuk 2:2': ['Habakkuk', 2, 2], 'Job 19:23': ['Job', 19, 23], 'Job 19:24': ['Job', 19, 24], 'Revelation 1:19': ['Revelation', 1, 19],
+  'Deuteronomy 31:21': ['Deuteronomy', 31, 21], 'Jeremiah 36:28': ['Jeremiah', 36, 28], 'Jeremiah 36:32': ['Jeremiah', 36, 32],
+  'Joshua 4:6': ['Joshua', 4, 6], 'Joshua 4:7': ['Joshua', 4, 7], '1 Samuel 7:12': ['1Samuel', 7, 12], 'Joshua 24:27': ['Joshua', 24, 27],
+  'Esther 6:1': ['Esther', 6, 1], 'Esther 6:2': ['Esther', 6, 2], 'Esther 6:3': ['Esther', 6, 3], 'Malachi 3:16': ['Malachi', 3, 16], 'Malachi 3:17': ['Malachi', 3, 17],
+  'Psalms 56:8': ['Psalms', 56, 8], 'Daniel 7:10': ['Daniel', 7, 10], 'Revelation 20:12': ['Revelation', 20, 12],
+  'Mark 7:13': ['Mark', 7, 13], 'Isaiah 28:10': ['Isaiah', 28, 10], 'Isaiah 28:13': ['Isaiah', 28, 13], 'John 10:35': ['John', 10, 35], 'Matthew 5:18': ['Matthew', 5, 18],
+  'Deuteronomy 4:2': ['Deuteronomy', 4, 2], 'Proverbs 30:6': ['Proverbs', 30, 6], 'Revelation 22:18': ['Revelation', 22, 18], 'Revelation 22:19': ['Revelation', 22, 19],
+  'Psalms 12:6': ['Psalms', 12, 6], 'Psalms 12:7': ['Psalms', 12, 7], 'Isaiah 40:8': ['Isaiah', 40, 8], 'Psalms 119:89': ['Psalms', 119, 89], 'Psalms 119:160': ['Psalms', 119, 160], 'Matthew 24:35': ['Matthew', 24, 35],
+  'Luke 1:3': ['Luke', 1, 3], 'Luke 1:4': ['Luke', 1, 4], 'Acts 17:11': ['Acts', 17, 11], '1 Corinthians 4:6': ['1Corinthians', 4, 6], 'Proverbs 22:21': ['Proverbs', 22, 21], 'Isaiah 8:20': ['Isaiah', 8, 20],
+  'Exodus 12:14': ['Exodus', 12, 14], 'Exodus 12:26': ['Exodus', 12, 26], 'Exodus 12:27': ['Exodus', 12, 27], 'Exodus 20:8': ['Exodus', 20, 8], 'Deuteronomy 5:15': ['Deuteronomy', 5, 15], 'Hebrews 10:3': ['Hebrews', 10, 3],
+  'Luke 22:19': ['Luke', 22, 19], '1 Corinthians 11:24': ['1Corinthians', 11, 24], '1 Corinthians 11:25': ['1Corinthians', 11, 25], '1 Corinthians 11:26': ['1Corinthians', 11, 26],
+  '2 Peter 1:12': ['2Peter', 1, 12], '2 Peter 1:15': ['2Peter', 1, 15], '2 Peter 3:1': ['2Peter', 3, 1], 'Deuteronomy 32:7': ['Deuteronomy', 32, 7], 'Psalms 103:2': ['Psalms', 103, 2],
+  'John 14:26': ['John', 14, 26], 'John 16:13': ['John', 16, 13], 'John 15:26': ['John', 15, 26], 'Luke 24:6': ['Luke', 24, 6], 'Luke 24:8': ['Luke', 24, 8], 'John 2:22': ['John', 2, 22],
+  'Luke 12:12': ['Luke', 12, 12], 'Matthew 10:19': ['Matthew', 10, 19], 'Matthew 10:20': ['Matthew', 10, 20],
+  'Jeremiah 31:33': ['Jeremiah', 31, 33], '2 Corinthians 3:3': ['2Corinthians', 3, 3], 'Proverbs 3:3': ['Proverbs', 3, 3], 'Proverbs 7:3': ['Proverbs', 7, 3],
+  'Psalms 119:11': ['Psalms', 119, 11], 'Psalms 119:16': ['Psalms', 119, 16], 'Psalms 77:11': ['Psalms', 77, 11], 'Lamentations 3:21': ['Lamentations', 3, 21],
+  'Isaiah 43:25': ['Isaiah', 43, 25], 'Hebrews 8:12': ['Hebrews', 8, 12], 'Hebrews 10:17': ['Hebrews', 10, 17], 'Ecclesiastes 12:12': ['Ecclesiastes', 12, 12], 'Deuteronomy 8:2': ['Deuteronomy', 8, 2],
+};
+
+describe('sov20 — the book of remembrance quotes its whole spine verbatim, Word first', () => {
+  it('the week exists, anchored on the One who does not forget and the Spirit who brings to remembrance', () => {
+    expect(sov20).toBeTruthy();
+    expect(sov20.anchor.ref).toContain('Isaiah 49:15-16');
+    expect(sov20.anchor.ref).toContain('John 14:26');
+    expect(sov20.anchor.theme).toContain(SOV20_FRAGMENTS['Isaiah 49:15']);
+    expect(sov20.anchor.theme).toContain(SOV20_FRAGMENTS['Isaiah 49:16']);
+    expect(sov20.anchor.theme).toContain('bring all things to your remembrance, whatsoever I have said unto you.');
+    // No margin list of bare references (DR-0391 / DR-0402 / DR-0403).
+    expect(sov20.anchor.theme).not.toMatch(/spine of this week/i);
+  });
+  it('every quoted fragment appears letter-for-letter in the deep lesson, with its reference beside it', () => {
+    expect(Object.keys(SOV20_FRAGMENTS).length).toBeGreaterThanOrEqual(25);
+    for (const [ref, fragment] of Object.entries(SOV20_FRAGMENTS)) {
+      expect(sov20.lesson, `${ref} must be quoted verbatim`).toContain(fragment);
+      expect(sov20.lesson, `${ref} must be named beside its quote`).toContain(`(${ref})`);
+    }
+  });
+  it('every fragment matches the repo KJV corpus, not memory (two witnesses)', () => {
+    const corpus = (book) => JSON.parse(readFileSync(join(HERE, '..', '..', 'public', 'bible', 'kjv', `${book}.json`), 'utf8'));
+    const verse = (book, ch, v) => corpus(book).chapters[ch - 1][v - 1];
+    for (const [ref, fragment] of Object.entries(SOV20_FRAGMENTS)) {
+      const at = SOV20_CORPUS[ref];
+      expect(at, `${ref} must have a corpus address`).toBeTruthy();
+      expect(verse(...at), `${ref} corpus`).toContain(fragment);
+    }
+  });
+  it('the Word LEADS and the ten movements run in order', () => {
+    expect(sov20.lesson.indexOf('FIRST, THE WORD SET THE ONE WHO REMEMBERS')).toBe(0);
+    // Yahweh's remembering precedes the article; the forgetting man precedes the desk (Word first, DR-0312/DR-0331).
+    expect(sov20.lesson.indexOf('yet will I not forget thee')).toBeLessThan(sov20.lesson.indexOf('ByteByteGo'));
+    expect(sov20.lesson.indexOf('forgotten me days without number')).toBeLessThan(sov20.lesson.indexOf('context window'));
+    const order = ['FIRST,', 'SECOND,', 'THIRD,', 'FOURTH,', 'FIFTH,', 'SIXTH,', 'SEVENTH,', 'EIGHTH,', 'NINTH,', 'TENTH,'];
+    let last = -1;
+    for (const m of order) {
+      const at = sov20.lesson.indexOf(m);
+      expect(at, `${m} must appear in order`).toBeGreaterThan(last);
+      last = at;
+    }
+    expect(sov20.lesson.length).toBeGreaterThanOrEqual(12000);
+  });
+  it('the load-bearing teaching is carried: the desk, the book, the photocopy drift, the table, and the Person', () => {
+    expect(sov20.lesson).toContain('THE DESK');
+    expect(sov20.lesson).toContain('SO HE IS COMMANDED TO WRITE');
+    expect(sov20.lesson).toContain('STRUCTURED FACTS, NOT NARRATIVE SUMMARIES');
+    expect(sov20.lesson).toContain('THE PHOTOCOPY OF A PHOTOCOPY');
+    expect(sov20.lesson).toContain('REMEMBRANCE BUILT INTO A CALENDAR');
+    expect(sov20.lesson).toContain('THE PERSON NO MEMORY MANAGER CAN BE');
+    // The house's own practice, named as documented (file paths that exist in this repo).
+    for (const path of ['CLAUDE.md', 'memory/MEMORY.md', 'docs/decisions', 'DR-0250']) expect(sov20.lesson).toContain(path);
+    expect(sov20.inApp).toMatch(/Scripture Library/);
+    expect(sov20.inApp).toMatch(/Build board/);
+  });
+  it('DR-0100: the tiers are named and applied; the system facts are verified, the article is carried honestly', () => {
+    expect(sov20.lesson).toContain('TIER ONE, documented');
+    expect(sov20.lesson).toContain('TIER TWO, genuinely open');
+    expect(sov20.lesson).toContain('TIER THREE, over-reach');
+    // Verified provider-doc sentences are held verbatim.
+    expect(sov20.lesson).toContain('The Messages API is stateless, which means that you always send the full conversational history to the API.');
+    expect(sov20.lesson).toContain('Cached prompt prefixes still occupy the context window: prompt caching changes what you pay for those tokens, not whether they count.');
+    // The article's own illustrations are carried as the newsletter's, not re-measured (DR-0076 §8).
+    expect(sov20.lesson).toContain('carried as the newsletter\'s own examples (DR-0076 SS8)');
+    // Both camps are steelmanned before the Word weighs them.
+    expect(sov20.lesson).toContain('BOTH SIDES STEELMANNED');
+  });
+  it('provenance honesty: the only double-quoted non-Scripture spans are verified doc sentences, the house\'s own written words, and the article\'s terms', () => {
+    const isWord = (q) => Object.values(SOV20_FRAGMENTS).some((f) => q.includes(f) || f.includes(q.slice(1, -1)));
+    const nonScripture = (sov20.lesson.match(/"[^"]+"/g) || []).filter((q) => !isWord(q));
+    const allowed = [
+      '"The Messages API is stateless, which means that you always send the full conversational history to the API."',
+      '"Cached prompt prefixes still occupy the context window: prompt caching changes what you pay for those tokens, not whether they count."',
+      '"As token count grows, accuracy and recall degrade"',
+      '"goes offline or purges its memory just to keep talking to the user, losing context for relevance and current information"',
+      '"Layer 0 is the global identity file that every agent loads first, before anything else."',
+      '"One decision = one small, append-only file with a stable ID"',
+      '"The hedge is in the weights; the override is in context."',
+      '"Context compaction tips the balance."',
+      '"machinery, because memory is the thing that fails"',
+      '"What honour and dignity hath been done to Mordecai for this?"',
+    ];
+    for (const q of nonScripture) expect(allowed, `unexpected non-Scripture quote: ${q}`).toContain(q);
+  });
+  it('typographic theology: Yahweh in our voice; the adversary lowercase; the Word capitalized', () => {
+    const ours = sov20.lesson.replace(/"[^"]+"/g, '');
+    expect(ours).not.toMatch(/\bGod\b/); // the KJV's "God" lives only inside quotes
+    expect(ours).toMatch(/Yahweh/);
+    expect(sov20.lesson).not.toMatch(/\bSatan\b|\bDevil\b/);
+    expect(sov20.lesson).toMatch(/the Son of Yahweh, the Lamb/);
+  });
+  it('the send-off page has content: six benefits, each a real takeaway quoting the Word', () => {
+    expect(sov20.benefits.length).toBeGreaterThanOrEqual(6);
+    for (const b of sov20.benefits) expect(b.length).toBeGreaterThan(80);
+    const blob = sov20.benefits.join('  ');
+    expect(blob).toContain('yet will I not forget thee');
+    expect(blob).toContain('Write this for a memorial in a book');
+    expect(blob).toContain('bring all things to your remembrance');
+  });
+  it('the three bands ascend and the child band is gentle', () => {
+    expect(typeof sov20.levels.child).toBe('string');
+    expect(sov20.levels.child.length).toBeLessThan(sov20.levels.teen.length);
+    expect(sov20.levels.teen.length).toBeLessThan(sov20.levels.senior.length);
+    expect(sov20.levels.child).not.toMatch(/kill|murder|abuse|slaughter|execution|suicide|porn|drug/i);
+    expect(sov20.quiz.questions.length).toBeGreaterThanOrEqual(6);
+    expect(sov20.facilitator.talkingPoints.length).toBeGreaterThanOrEqual(10);
+    expect(sov20.facilitator.discussionPrompts.length).toBeGreaterThanOrEqual(10);
+  });
+  it('tamper-catch: the pinned ground-truth lines are themselves exact', () => {
+    expect(SOV20_FRAGMENTS['Isaiah 49:15']).toBe('Can a woman forget her sucking child, that she should not have compassion on the son of her womb? yea, they may forget, yet will I not forget thee.');
+    expect(SOV20_FRAGMENTS['John 14:26']).toBe('But the Comforter, which is the Holy Ghost, whom the Father will send in my name, he shall teach you all things, and bring all things to your remembrance, whatsoever I have said unto you.');
+    expect(SOV20_FRAGMENTS['Exodus 17:14']).toBe('And the LORD said unto Moses, Write this for a memorial in a book, and rehearse it in the ears of Joshua');
+    expect(SOV20_FRAGMENTS['Malachi 3:16']).toBe('Then they that feared the LORD spake often one to another: and the LORD hearkened, and heard it, and a book of remembrance was written before him for them that feared the LORD, and that thought upon his name.');
+    // A one-word drift in the lesson would fail the presence check above; prove the check has teeth.
+    const drifted = sov20.lesson.replace('yet will I not forget thee', 'yet will I never forget thee');
+    expect(drifted).not.toContain(SOV20_FRAGMENTS['Isaiah 49:15']);
+  });
+});

@@ -18,9 +18,9 @@ import { tutorSystemPrompt } from '../lib/class-tutor.js';
 import { resolveForAge, lessonPlanForAge } from '../lib/learn-framework.js';
 
 describe('curriculum shape', () => {
-  it('has the full 19-week module set (week 19: the servant under authority who keeps the guardrails, forwarded 2026-09-15)', () => {
-    expect(SOVEREIGN_AI_MODULES).toHaveLength(19);
-    expect(SOVEREIGN_AI_META.weeks).toBe(19);
+  it('has the full 20-week module set (week 20: the book of remembrance and the tool that forgets, forwarded 2026-09-15)', () => {
+    expect(SOVEREIGN_AI_MODULES).toHaveLength(20);
+    expect(SOVEREIGN_AI_META.weeks).toBe(20);
     expect(SOVEREIGN_AI_MODULES.every((m) => m.id && m.title && m.bigIdea && m.inApp && m.anchor?.ref)).toBe(true);
     const ids = SOVEREIGN_AI_MODULES.map((m) => m.id);
     expect(ids).toContain('sov1-generator-in-the-garage');     // the thesis
@@ -167,16 +167,16 @@ describe('no fabrication of the "provider banned a model" scenario (DR-0076)', (
 describe('shared machinery (computed timeline, progress, export, cohort, tutor)', () => {
   it('the timeline is COMPUTED (not painted) from the cohort start', () => {
     const sched = buildSovereignAiSchedule('2026-08-01');
-    expect(sched).toHaveLength(19);
+    expect(sched).toHaveLength(20);
     expect(sched[0].week).toBe(1);
     expect(sched[0].date instanceof Date).toBe(true);
     expect(sched[1].date.getTime() - sched[0].date.getTime()).toBe(7 * 86400000);
   });
   it('progress is counted from the real record', () => {
     const r = sovereignAiProgressSummary({ 'sov1-generator-in-the-garage': true, 'sov2-what-a-model-costs-to-run': true });
-    expect(r.total).toBe(19);
+    expect(r.total).toBe(20);
     expect(r.done).toBe(2);
-    expect(r.pct).toBe(11);
+    expect(r.pct).toBe(10);
   });
   it('the cohort starts PROPOSED (not confirmed) until Darrell locks it', () => {
     expect(SOVEREIGN_AI_CONFIRMED_COHORT.confirmed).toBe(false);
