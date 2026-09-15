@@ -18,9 +18,9 @@ import { tutorSystemPrompt } from '../lib/class-tutor.js';
 import { resolveForAge, lessonPlanForAge } from '../lib/learn-framework.js';
 
 describe('curriculum shape', () => {
-  it('has the full 18-week module set (week 18: precept upon precept — the voice that programs the world, spoken 2026-09-15)', () => {
-    expect(SOVEREIGN_AI_MODULES).toHaveLength(18);
-    expect(SOVEREIGN_AI_META.weeks).toBe(18);
+  it('has the full 19-week module set (week 19: the servant under authority who keeps the guardrails, forwarded 2026-09-15)', () => {
+    expect(SOVEREIGN_AI_MODULES).toHaveLength(19);
+    expect(SOVEREIGN_AI_META.weeks).toBe(19);
     expect(SOVEREIGN_AI_MODULES.every((m) => m.id && m.title && m.bigIdea && m.inApp && m.anchor?.ref)).toBe(true);
     const ids = SOVEREIGN_AI_MODULES.map((m) => m.id);
     expect(ids).toContain('sov1-generator-in-the-garage');     // the thesis
@@ -30,6 +30,7 @@ describe('curriculum shape', () => {
     expect(ids).toContain('sov9-verification-earns-trust');    // DR-0076 taught (from Darrell's forwarded article)
     expect(ids).toContain('sov17-the-judge-and-the-just-weight'); // LLMs-as-a-judge, righteous judgment (forwarded 2026-09-14)
     expect(ids).toContain('sov18-precept-upon-precept-the-voice-that-programs-the-world'); // the program picture, one source with Living Lesson L153 (spoken 2026-09-15)
+    expect(ids).toContain('sov19-the-servant-under-authority-who-keeps-the-guardrails'); // who keeps powerful A.I. under control - the servant under authority (forwarded 2026-09-15)
   });
   it('every module id is unique and prefixed sov*', () => {
     const ids = SOVEREIGN_AI_MODULES.map((m) => m.id);
@@ -166,14 +167,14 @@ describe('no fabrication of the "provider banned a model" scenario (DR-0076)', (
 describe('shared machinery (computed timeline, progress, export, cohort, tutor)', () => {
   it('the timeline is COMPUTED (not painted) from the cohort start', () => {
     const sched = buildSovereignAiSchedule('2026-08-01');
-    expect(sched).toHaveLength(18);
+    expect(sched).toHaveLength(19);
     expect(sched[0].week).toBe(1);
     expect(sched[0].date instanceof Date).toBe(true);
     expect(sched[1].date.getTime() - sched[0].date.getTime()).toBe(7 * 86400000);
   });
   it('progress is counted from the real record', () => {
     const r = sovereignAiProgressSummary({ 'sov1-generator-in-the-garage': true, 'sov2-what-a-model-costs-to-run': true });
-    expect(r.total).toBe(18);
+    expect(r.total).toBe(19);
     expect(r.done).toBe(2);
     expect(r.pct).toBe(11);
   });

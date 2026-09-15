@@ -70,7 +70,7 @@ export const WORLD_ISSUES_META = {
   },
   format: 'Self-paced · one issue at a time · media literacy + biblical discernment · paced to your age',
   cadenceDays: 7,
-  weeks: 11, // eleven published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex · the two aftermaths · the law of assumption · victorious emotions · college tuition and the 1965 Act); the track grows as issues are added
+  weeks: 16, // sixteen published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex · the two aftermaths · the law of assumption · victorious emotions · college tuition and the 1965 Act · the EPA power-plant rules · the SCOTUS mail-in ruling · the Kennedy Center · Evanston's reparations · the trades are hiring); the track grows as issues are added
   handsOnLabel: 'Practice the skill',
   unit: {
     noun: 'issue',
@@ -2693,7 +2693,1605 @@ const TUITION_1965_ISSUE = {
   },
 };
 
-export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE, TUITION_1965_ISSUE];
+// =============================================================================
+// ISSUE 12 — The EPA unwinds the power-plant carbon rules (2026-09-14).
+// Darrell forwarded the Morning Brew lead (Smokin’) and the NPR Up First bullet
+// on 2026-09-15 with the single word: Lesson. The newsletter is MATERIAL TO
+// STUDY, not instruction. Every real-world figure below was checked by live web
+// search on 2026-09-15 and sorted into DR-0100 tiers; every verse was fetched
+// verbatim from the repo KJV and is gated in world-issues-verse-integrity.
+// Word first: dominion is stewardship (Genesis 2:15; Psalms 24:1), the land is
+// not to be polluted (Numbers 35:33-34), the just weight weighs BOTH pans of
+// the cost-benefit claim (Proverbs 11:1; 20:23), the poor breathe the smoke
+// first (Isaiah 10:1-2; Proverbs 29:7), and every decree meets two courts
+// (Ecclesiastes 12:14). No verdict on any official’s soul; pray for rulers.
+// =============================================================================
+const EPA_POWER_PLANT_ISSUE = {
+  id: 'wi-epa-power-plant-carbon-rules-2026',
+  title: 'The EPA unwinds the power-plant carbon rules — $300 billion, 30,000 lives, and the Word on the land',
+  subject: { name: 'the EPA’s September 2026 repeal of the power-plant carbon pollution standards', kind: 'policy-and-news', isNamedRealPerson: false },
+  skill: 'Take a front-page policy fight with a giant number on each side — "$300 billion saved" versus "30,000 lives" — and learn how the Word weighs it: state the documented plainly (what was repealed, when, what the agency itself projects, what coal smoke is proven to do), label each modeled projection as a model with its assumptions in view, hear the administration, the public-health side, and the coal towns and downwind neighborhoods at their strongest (Proverbs 18:17), and then let Yahweh’s own frame settle what the shouting cannot: the earth is His, dominion is stewardship, the just weight has two pans, and the poor breathe the smoke first.',
+  source: {
+    creator: 'Morning Brew (with the NPR Up First bullet on the same story)',
+    medium: 'newsletter',
+    title: 'Smokin’ — EPA unwinds the power-plant carbon rules (2026-09-15 edition)',
+    url: '',
+    asOf: '2026-09-15',
+    note: 'A daily business newsletter’s lead item, forwarded by Darrell on 2026-09-15. It compresses an AP story, an EPA announcement, an NYU analysis, and a Sierra Club count into a few sentences. We treat it as ONE summary — sourced, labeled, and checked line by line — not as truth to repeat.',
+  },
+
+  // ---- STAGE 1 — THE CLAIM(S): the newsletter's points, AS MADE, each labeled. ----
+  claims: [
+    {
+      id: 'c-unwinding',
+      text: 'The EPA announced it is unwinding Obama- and Biden-era carbon pollution standards for fossil-fuel power plants — rules requiring gas plants to burn cleaner and coal plants to capture most of their emissions by 2039 are eliminated, effective shortly after publication.',
+      label: 'claim',
+      attribution: 'Morning Brew, summarizing the EPA announcement of 2026-09-14',
+      note: 'Documented in substance, loose in detail. The final rule signed 2026-09-14 is a PARTIAL repeal of the 2024 Carbon Pollution Standards: it strikes the guidelines for existing coal plants (90% capture by 2032 for plants running past 2039, or retire) and the carbon-capture standard for new baseload gas turbines. "Burn cleaner fuels" is the newsletter’s gloss; the gas-plant standard was a carbon-capture requirement. The exact effective date is in the Federal Register notice and is carried here as the newsletter’s "shortly after publication."',
+    },
+    {
+      id: 'c-300b',
+      text: 'The EPA says the changes save the energy industry more than $300 billion and "unleash" American energy.',
+      label: 'claim',
+      attribution: 'Morning Brew, quoting the EPA',
+      note: 'Documented as the EPA’s OWN projection ($310 billion in avoided compliance costs, per the agency’s release). It is a one-pan figure: it counts what the industry no longer has to spend and does not count the health and climate costs on the other pan. That asymmetry is exactly what the just weight (Stage 4) is for.',
+    },
+    {
+      id: 'c-endanger',
+      text: 'In a separate proposed rule the EPA will argue that greenhouse gases do not endanger human health or the environment — which could prevent future administrations from reinstating restrictions.',
+      label: 'claim',
+      attribution: 'Morning Brew, summarizing the EPA’s supplemental proposal',
+      note: 'Documented with a precision fix. The supplemental proposal argues that power-plant greenhouse gases "do not contribute significantly" to dangerous air pollution under Clean Air Act Section 111, and would rescind every remaining power-plant greenhouse-gas standard (final expected in 2027). The 2009 endangerment finding itself was already rescinded on 2026-02-18 for motor vehicles and is in the D.C. Circuit now.',
+    },
+    {
+      id: 'c-nyu',
+      text: 'An NYU analysis of 2022 data found that if the U.S. power sector were a country it would be the world’s sixth-largest greenhouse-gas emitter.',
+      label: 'claim',
+      attribution: 'Morning Brew, citing NYU School of Law’s Institute for Policy Integrity',
+      note: 'Documented: the Institute for Policy Integrity’s issue brief on 2022 data makes exactly this comparison (ahead of Canada, Japan, Brazil, and Mexico as whole nations).',
+    },
+    {
+      id: 'c-30k',
+      text: 'AP research found the regulations being wiped away could prevent about 30,000 deaths; even a partial unraveling means more smog, mercury, and lead (some mercury and contaminant restrictions remain).',
+      label: 'claim',
+      attribution: 'Morning Brew, citing the Associated Press examination',
+      note: 'Partly documented, and the most important precision in this lesson: the AP figure (~30,000 deaths and ~$275 billion per year) covers the WHOLE slate of roughly thirty EPA rollbacks, not this rule alone — about 10,000 U.S. deaths a year from the soot, mercury, and lead rules (from the EPA’s own regulatory impact analyses) plus about 25,000 heat-related deaths a year worldwide from added carbon, modeled with a peer-reviewed formula. A modeled projection with stated assumptions is not a body count; it is also not nothing. "Some mercury restrictions remain" is right: the 2024 mercury amendments were repealed 2026-02-20, and the 2012 standards still stand.',
+    },
+    {
+      id: 'c-coal-retire',
+      text: 'Coal plants said carbon capture was cost-prohibitive; per the Sierra Club, 330 coal plants have retired since 2010 and 60 more have announced closure by 2031.',
+      label: 'claim',
+      attribution: 'Morning Brew, citing coal operators and the Sierra Club',
+      note: 'Documented: the Sierra Club count (330 retired since 2010; 60 announced by 2031) is carried in the AP story of 2026-09-14, and the EPA’s own rationale is that the 2024 rule required a control technology "not adequately demonstrated" at that scale.',
+    },
+    {
+      id: 'c-data-centers',
+      text: 'Cheaper fossil fuels coincide with the tech sector’s push for AI data centers, which are straining grids and raising consumer energy prices.',
+      label: 'opinion',
+      attribution: 'Morning Brew (the newsletter’s framing)',
+      note: 'The demand surge and the price rise are documented (Stage 2). "Coincide" is the newsletter’s reading of motive and timing; the administration says the demand is precisely why it acted. Both the fact and the framing are carried, labeled.',
+    },
+    {
+      id: 'c-legal',
+      text: 'Legal challenges from environmental groups are expected.',
+      label: 'claim',
+      attribution: 'Morning Brew',
+      note: 'Documented: NRDC and allies announced they will sue; the related endangerment rescission is already before the D.C. Circuit on petitions from health groups and from two dozen states.',
+    },
+  ],
+
+  // ---- STAGE 2 — VERIFIABLE vs INTERPRETATION ----
+  verifiable: [
+    {
+      id: 'f-repeal',
+      statement: 'On September 14, 2026, at the G20 energy summit in Houston, EPA Administrator Lee Zeldin signed the final Partial Repeal of the Carbon Pollution Standards for Fossil Fuel-Fired Electric Generating Units. It strikes the 2024 rule’s emission guidelines for existing coal-fired plants (which required plants operating past 2039 to capture 90% of carbon dioxide by 2032, or retire), the carbon-capture standard for coal plants undertaking a large modification, and the carbon-capture (Phase 2) standard for new baseload gas turbines. The EPA projects $310 billion in avoided compliance costs and says the action will "unleash" American energy. A supplemental proposal issued the same day would rescind all remaining power-plant greenhouse-gas standards on the ground that the sector’s emissions "do not contribute significantly" to dangerous air pollution; it is expected to be finalized in 2027.',
+      status: 'documented',
+      sources: [
+        { title: 'EPA Finalizes Repeal of 2024 Power Plant Regulations, Delivering $300+ Billion in Savings, Proposes Repeal of All Remaining Greenhouse Gas Emissions Standards for Power Plants', publisher: 'U.S. Environmental Protection Agency (news release)', url: 'https://www.epa.gov/newsreleases/epa-finalizes-repeal-2024-power-plant-regulations-delivering-300-billion-savings', asOf: '2026-09-15' },
+        { title: 'Greenhouse Gas Standards and Guidelines for Fossil Fuel-Fired Power Plants', publisher: 'U.S. Environmental Protection Agency (program page)', url: 'https://www.epa.gov/stationary-sources-air-pollution/greenhouse-gas-standards-and-guidelines-fossil-fuel-fired-power', asOf: '2026-09-15' },
+        { title: 'EPA eliminates rule that limits planet-warming greenhouse gas emissions from power plants', publisher: 'Associated Press (via MPR News)', url: 'https://www.mprnews.org/story/2026/09/14/epa-limits-rule-limiting-greenhouse-gas-emissions-from-power-plants', asOf: '2026-09-15' },
+        { title: 'EPA Poised to Repeal Carbon Rules for Coal, Gas Power Plants', publisher: 'Bloomberg (via Insurance Journal)', url: 'https://www.insurancejournal.com/news/national/2026/09/15/884996.htm', asOf: '2026-09-15' },
+      ],
+      note: 'Verified by live web search on 2026-09-15 against the EPA’s own release and program page, the AP, and Bloomberg. The $310 billion is the agency’s figure for avoided industry compliance cost — one pan of the scale, stated as such.',
+    },
+    {
+      id: 'f-endangerment',
+      statement: 'The separate endangerment track is real and already moving: on February 18, 2026 the EPA published a final rule rescinding the 2009 greenhouse-gas endangerment finding for motor vehicles (effective April 20, 2026), and it is being challenged in the D.C. Circuit by a coalition of health and environmental groups and by two dozen states and more than a dozen cities and counties. The power-plant supplemental proposal of September 14, 2026 is the Section 111 counterpart, arguing the sector’s emissions are "a small and decreasing part of global emissions."',
+      status: 'documented',
+      sources: [
+        { title: 'Rescission of the Greenhouse Gas Endangerment Finding and Motor Vehicle Greenhouse Gas Emission Standards Under the Clean Air Act', publisher: 'Federal Register', url: 'https://www.federalregister.gov/documents/2026/02/18/2026-03157/rescission-of-the-greenhouse-gas-endangerment-finding-and-motor-vehicle-greenhouse-gas-emission', asOf: '2026-09-15' },
+        { title: 'Health, environmental groups sue EPA over repeal of endangerment finding', publisher: 'Utility Dive', url: 'https://www.utilitydive.com/news/environmental-groups-sue-epa-endangerment-finding/812576/', asOf: '2026-09-15' },
+        { title: 'Regulating Greenhouse Gases for New and Existing Fossil Fuel-Fired Power Plants (regulatory tracker)', publisher: 'Harvard Law School Environmental & Energy Law Program', url: 'https://eelp.law.harvard.edu/tracker/regulating-greenhouse-gases-for-new-and-existing-fossil-fuel-fired-power-plants/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The newsletter’s "will argue greenhouse gases do not endanger" is close but imprecise: the power-plant proposal turns on "significant contribution" under Section 111; the endangerment finding proper was rescinded in February for vehicles.',
+    },
+    {
+      id: 'f-coal-smoke-damage',
+      statement: 'That coal smoke shortens lives is established science, not a projection. A 2023 study in Science (Henneman et al.) tied Medicare death records to modeled plumes from 480 U.S. coal plants and found about 460,000 deaths between 1999 and 2020 attributable to coal fine-particle pollution — more than 43,000 a year in 1999-2007, falling steeply as plants closed or added scrubbers — with coal particulates carrying roughly double the mortality risk per unit of ordinary fine particles. Mercury from coal is a neurotoxin; the 2024 Mercury and Air Toxics amendments were repealed on February 20, 2026, and the 2012 standards remain in force.',
+      status: 'documented',
+      sources: [
+        { title: 'Mortality risk from United States coal electricity generation', publisher: 'Science (Henneman et al., 2023)', url: 'https://www.science.org/doi/10.1126/science.adf4915', asOf: '2026-09-15' },
+        { title: 'Deaths associated with pollution from coal power plants', publisher: 'National Institutes of Health (Research Matters)', url: 'https://www.nih.gov/news-events/nih-research-matters/deaths-associated-pollution-coal-power-plants', asOf: '2026-09-15' },
+        { title: 'Analysis of the Final Repeal of the Mercury and Air Toxics Standards Amendments', publisher: 'U.S. Environmental Protection Agency', url: 'https://www.epa.gov/power-sector-modeling/analysis-final-repeal-mercury-and-air-toxics-standards-amendments', asOf: '2026-09-15' },
+        { title: 'EPA’s repeal of updated standards allows more emissions of hazardous air pollutants from coal plants', publisher: 'Clean Air Task Force', url: 'https://www.catf.us/2026/02/epas-repeal-updated-standards-allows-more-emissions-hazardous-air-pollutants-coal-plants/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. This is Tier 1 (DR-0100): documented damage, stated plainly. It is also the honest baseline for the coal-town steelman — the same record shows the harm FELL as plants closed, which is the very trend the repeal is meant to slow.',
+    },
+    {
+      id: 'f-ap-projection',
+      statement: 'The Associated Press examination (published June 2025, restated in its September 14, 2026 story) estimated that the roughly thirty EPA rules targeted for rollback could together prevent about 30,000 deaths and save about $275 billion EACH YEAR they are in effect. The AP built the figure from the EPA’s own regulatory impact analyses plus studies in Science and Nature Communications, Rhodium Group emission estimates, and a peer-reviewed heat-death formula (one death per 10,217 tons of added carbon dioxide). Roughly 10,000 of the deaths are U.S. deaths from the soot, mercury, and lead rules; roughly 25,000 are heat-related deaths worldwide from added carbon. The Environmental Defense Fund’s preliminary analysis of this power-plant rule alone projects more than 80,000 additional premature deaths and over $1 trillion in health costs through 2047. The NYU Institute for Policy Integrity projects about 5,300 additional premature U.S. deaths from the sector’s 2022 emissions alone.',
+      status: 'partly-documented',
+      sources: [
+        { title: 'How AP calculated the costs and death toll of EPA rule rollbacks', publisher: 'Associated Press (via Daily Journal)', url: 'https://dailyjournal.net/2025/06/05/how-ap-calculated-the-costs-and-death-toll-of-epa-rule-rollbacks/', asOf: '2026-09-15' },
+        { title: 'Trump EPA attacks U.S. protections against power plant pollution', publisher: 'Environmental Defense Fund', url: 'https://www.edf.org/media/trump-epa-attacks-us-protections-against-power-plant-pollution', asOf: '2026-09-15' },
+        { title: 'The Scale of Significance: Power Plants (issue brief)', publisher: 'Institute for Policy Integrity, NYU School of Law', url: 'https://policyintegrity.org/files/publications/Power_Sector_GHG_Contribution_Issue_Brief_vF.pdf', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. Tier 2 (DR-0100), flagged NARROWLY: the analyses are documented and reviewed, the inputs are named, and the projections rest on models — a carbon-mortality formula, an emissions scenario, an exposure model. Say "modeled projection with these assumptions," never "no one knows," and never "30,000 bodies." The U.S. soot-and-mercury share sits on firmer ground than the global heat share; the EDF and NYU figures are their authors’ projections, carried as such.',
+    },
+    {
+      id: 'f-sector-scale',
+      statement: 'The U.S. power sector emits more than 1.5 billion tons of carbon dioxide a year and is the largest industrial source of it in the country. Using 2022 data, NYU’s Institute for Policy Integrity found that if the sector were a country it would rank as the world’s sixth-largest emitter, ahead of the entire national emissions of Canada, Japan, Brazil, and Mexico.',
+      status: 'documented',
+      sources: [
+        { title: 'The Scale of Significance: Power Plants (issue brief)', publisher: 'Institute for Policy Integrity, NYU School of Law', url: 'https://policyintegrity.org/files/publications/Power_Sector_GHG_Contribution_Issue_Brief_vF.pdf', asOf: '2026-09-15' },
+        { title: 'EPA Repeals Climate Rules for Power Plants', publisher: 'Natural Resources Defense Council (press release)', url: 'https://www.nrdc.org/press-releases/epa-repeals-climate-rules-power-plants', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. This is the direct answer to the proposal’s "small and decreasing part of global emissions": the share IS decreasing (coal retirements), AND the absolute amount is larger than most nations. Both are true; a just weight holds both.',
+    },
+    {
+      id: 'f-coal-fleet',
+      statement: 'Per the Sierra Club, 330 U.S. coal plants have retired since 2010 and 60 more have announced closure by 2031. Against that trend the administration has used Section 202(c) emergency orders to keep aging coal plants running in Michigan, Colorado, Indiana, and Washington; on September 11, 2026 the D.C. Circuit unanimously vacated the first of those orders (the J.H. Campbell plant), rejecting the department’s "sweeping conception" of its emergency authority. The AP reports U.S. coal demand rose about 10% last year, largely on data-center load.',
+      status: 'documented',
+      sources: [
+        { title: 'EPA eliminates rule that limits planet-warming greenhouse gas emissions from power plants', publisher: 'Associated Press (via MPR News)', url: 'https://www.mprnews.org/story/2026/09/14/epa-limits-rule-limiting-greenhouse-gas-emissions-from-power-plants', asOf: '2026-09-15' },
+        { title: 'Trump Administration Loses First Court Case Challenging DOE Orders for Coal Plants', publisher: 'Earthjustice', url: 'https://earthjustice.org/press/2026/trump-administration-loses-first-court-case-challenging-doe-orders-for-coal-plants', asOf: '2026-09-15' },
+        { title: 'DC Circuit Rejects Energy Department’s Claim of "Emergency" Authority to Order Coal Plant to Remain Open', publisher: 'Reason (Volokh Conspiracy)', url: 'https://reason.com/volokh/2026/09/11/dc-circuit-rejects-energy-departments-claim-of-emergency-authority-to-order-coal-plant-to-remain-open/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The retirement count is the Sierra Club’s own tally, carried as theirs.',
+    },
+    {
+      id: 'f-data-centers',
+      statement: 'Electricity demand and prices are rising, and data centers are a large part of the demand story: the Energy Information Administration expects record U.S. power use in 2025 and 2026 on data-center growth; data centers used about 4.4% of U.S. electricity in 2023 and are projected at 6.7-12% by 2028; residential electricity prices rose 6.9% in 2025 (more than double headline inflation); Goldman Sachs projects the AI buildout adds about 6% to electricity costs across 2026-2027. How much of the price rise is data centers versus fuel costs, grid upgrades, and weather is genuinely debated.',
+      status: 'partly-documented',
+      sources: [
+        { title: 'Electricity prices will keep rising on AI data center demand: Goldman', publisher: 'CNBC', url: 'https://www.cnbc.com/2026/02/12/electricity-price-data-center-ai-inflation-goldman.html', asOf: '2026-09-15' },
+        { title: 'AI Data Centers: Big Tech’s Impact on Electric Bills, Water, and More', publisher: 'Consumer Reports', url: 'https://www.consumerreports.org/data-centers/ai-data-centers-impact-on-electric-bills-water-and-more-a1040338678/', asOf: '2026-09-15' },
+        { title: 'Why electricity prices keep rising — and why it’s not just about data centers', publisher: 'Fortune', url: 'https://fortune.com/2026/05/20/electricity-bills-surging-not-just-data-centers/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The demand and the price rise are Tier 1; the attribution of the price rise to data centers specifically is Tier 2, flagged narrowly.',
+    },
+  ],
+  interpretation: [
+    {
+      id: 'n-one-pan-number',
+      statement: '"$300 billion saved" and "30,000 lives" are not the same kind of number and should not be traded as if they were. The first is the agency’s projection of one pan — industry compliance cost avoided. The second is a reviewed but modeled projection of the other pan, covering a whole slate of rules, most of it heat deaths worldwide from added carbon. A just weight puts BOTH pans on the scale and says what each one is. The newsletter set them side by side; the discipline is to name what each measures before comparing.',
+      restsOn: ['f-repeal', 'f-ap-projection'],
+    },
+    {
+      id: 'n-established-vs-modeled',
+      statement: 'Keep the two tiers apart. That coal fine-particle pollution has shortened hundreds of thousands of American lives is ESTABLISHED (Science, 2023; the harm fell as plants closed). That this repeal will cause a specific number of future deaths is MODELED. The first must be said plainly; the second must be said with its assumptions showing. Neither is "no one knows."',
+      restsOn: ['f-coal-smoke-damage', 'f-ap-projection'],
+    },
+    {
+      id: 'n-small-and-decreasing',
+      statement: 'The proposal’s "small and decreasing part of global emissions" and the NYU "sixth-largest emitter" are both true readings of the same data. The share is falling because coal is retiring; the absolute amount still outweighs whole nations. Which fact a speaker leads with reveals the case being made. The reader holds both.',
+      restsOn: ['f-sector-scale', 'f-coal-fleet'],
+    },
+    {
+      id: 'n-coincide',
+      statement: '"Cheaper fossil fuels coincide with the data-center push" is the newsletter’s framing of motive and timing. The demand is real and the administration says it acted BECAUSE of it (reliability, cost, keeping coal online). Whether the poor and the downwind should carry the cost of powering the data centers is the moral question underneath — and the Word answers it without needing anyone’s motive proven.',
+      restsOn: ['f-data-centers', 'f-coal-fleet'],
+    },
+  ],
+
+  // ---- STAGE 3 — PERSPECTIVES on the UNRESOLVED parts ----
+  perspectives: [
+    {
+      id: 'p-administration',
+      label: 'The administration and the industry — cost, reliability, and a grid under strain',
+      heldBy: 'The EPA under Administrator Zeldin, coal and gas generators, and trade groups such as America’s Power',
+      steelman: 'At its strongest: the 2024 rule set a standard almost no existing coal plant could meet — 90% carbon capture at scale is not proven across the fleet, and the practical effect was forced retirement, which is not what Section 111 authorizes. Demand from data centers, artificial intelligence, and reshored manufacturing is surging, prices are already up, and taking dispatchable plants off the grid on a deadline risks blackouts and bills that land on the same households the critics say they protect. Energy independence is a security question, not only an economic one. A regulator’s honest job is standards a plant can actually meet; an unmeetable standard is a closure order wearing a standard’s clothes.',
+    },
+    {
+      id: 'p-public-health',
+      label: 'The public-health and environmental side — the smoke has a body count',
+      heldBy: 'Physicians’ groups, the American Public Health Association, EDF, NRDC, the Sierra Club, and the states suing in the D.C. Circuit',
+      steelman: 'At its strongest: coal fine particles have shortened hundreds of thousands of American lives, and the harm dropped as plants closed — that is the record, not a forecast. The power sector is the country’s largest industrial carbon source and, alone, out-emits most nations; carbon is not a local nuisance but a global bill that comes due as heat and smoke. A "$300 billion savings" that omits the other pan is not accounting; it is advertising. And the supplemental proposal is not merely a repeal but an attempt to remove the legal ground so no future administration can act — which turns a policy choice into a locked door.',
+    },
+    {
+      id: 'p-coal-towns',
+      label: 'The workers and the towns — the mine, the plant, and the paycheck',
+      heldBy: 'Coal miners and plant operators, their unions, and the counties whose tax base is the plant',
+      steelman: 'At its strongest: every retirement on the Sierra Club’s tally is a town that lost its largest employer, its school funding, and its hospital’s patient base, usually with a promise of "transition" that never arrived. These are people who kept the lights on for a nation for a century and are told they are the problem. A rule that closes the plant by a date certain, with no equal-paying work in the county, is a burden laid on men’s shoulders by people who will never carry it. The Word’s "Thou shalt not muzzle the ox when he treadeth out the corn." (Deuteronomy 25:4) is about the laborer being fed by his labor — and it applies to the coal worker as surely as to anyone.',
+    },
+    {
+      id: 'p-downwind',
+      label: 'The downwind neighborhoods — who breathes it first',
+      heldBy: 'Families living near plants and along the plumes, disproportionately poor and often Black and brown; the pastors and clinics that serve them',
+      steelman: 'At its strongest: the asthma inhalers, the emergency visits, the grandmother with the cough, and the child kept home from school are not a model; they are the household budget. These neighborhoods did not choose the data centers, will not share the savings, and cannot move. When a rule is loosened, the cost does not disappear — it moves from a balance sheet to a lung, and the lungs it moves to are the poorest first. This side does not need the motive of any official proven; it needs the fruit named, and a church that shows up.',
+    },
+  ],
+
+  // ---- STAGE 4 — THE BELIEVER'S LENS ----
+  lens: {
+    fourD: {
+      deepSource: 'WORD FIRST — Yahweh settled who owns the earth before any agency was named. "The earth is the LORD’s, and the fulness thereof; the world, and they that dwell therein." (Psalms 24:1). "The land shall not be sold for ever: for the land is mine; for ye are strangers and sojourners with me." (Leviticus 25:23). "For every beast of the forest is mine, and the cattle upon a thousand hills." (Psalms 50:10). DOMINION IS STEWARDSHIP, NOT LICENSE. He gave man real authority — "replenish the earth, and subdue it" and "have dominion" (Genesis 1:28); "the earth hath he given to the children of men" (Psalms 115:16) — and He defined the job in the same breath: "And the LORD God took the man, and put him into the garden of Eden to dress it and to keep it." (Genesis 2:15). A keeper is a steward, and "it is required in stewards, that a man be found faithful." (1 Corinthians 4:2). So the Word corrects the first over-reach in this fight — "the earth is ours to burn." No; it is His, and we are keepers who answer for the keeping. THE LAND IS NOT TO BE POLLUTED. "So ye shall not pollute the land wherein ye are" (Numbers 35:33); "Defile not therefore the land which ye shall inhabit, wherein I dwell" (Numbers 35:34) — the ground on which the Word forbids defiling the land is that He dwells among His people on it. He built rest for the land into the calendar, and tied it to the poor: "But the seventh year thou shalt let it rest and lie still; that the poor of thy people may eat" (Exodus 23:11); "But in the seventh year shall be a sabbath of rest unto the land, a sabbath for the LORD" (Leviticus 25:4). He forbade even an army at war to strip the land bare: "thou shalt not destroy the trees thereof by forcing an axe against them" — "for the tree of the field is man’s life" (Deuteronomy 20:19). He watches the land: "A land which the LORD thy God careth for: the eyes of the LORD thy God are always upon it" (Deuteronomy 11:12). And He counts the defiling of it as a charge: "but when ye entered, ye defiled my land, and made mine heritage an abomination" (Jeremiah 2:7); "The earth also is defiled under the inhabitants thereof" (Isaiah 24:5); "Therefore shall the land mourn, and every one that dwelleth therein shall languish, with the beasts of the field, and with the fowls of heaven" (Hosea 4:3). At the end He names the destroyers: "and shouldest destroy them which destroy the earth" (Revelation 11:18). THE CREATURES ARE HIS CARE, AND SO ARE THE WORKERS. "A righteous man regardeth the life of his beast: but the tender mercies of the wicked are cruel." (Proverbs 12:10). "Thou shalt not muzzle the ox when he treadeth out the corn." (Deuteronomy 25:4) — the laborer eats from his labor; that is the coal worker’s verse as much as anyone’s. He protected even a nesting bird: "thou shalt not take the dam with the young" (Deuteronomy 22:6) — "But thou shalt in any wise let the dam go, and take the young to thee; that it may be well with thee, and that thou mayest prolong thy days." (Deuteronomy 22:7). Take what you need; leave the source alive; and He attaches long life to the restraint. "In whose hand is the soul of every living thing, and the breath of all mankind." (Job 12:10). BUT THE CREATION IS NOT GOD. The Word corrects the second over-reach as firmly as the first. Those who "worshipped and served the creature more than the Creator" (Romans 1:25) are named as the ones who changed the truth into a lie. The earth is a witness to Him, not a deity: "the invisible things of him from the creation of the world are clearly seen, being understood by the things that are made" (Romans 1:20); "all things were created by him, and for him" (Colossians 1:16), and "by him all things consist." (Colossians 1:17). People are not a plague on the planet; He said "Be fruitful, and multiply" (Genesis 1:28), gave the beasts for food — "Every moving thing that liveth shall be meat for you" (Genesis 9:3) — and declared "For every creature of God is good, and nothing to be refused, if it be received with thanksgiving" (1 Timothy 4:4). Coal, gas, sun, and wind are His provision, to be used with thanksgiving and kept with care; neither hoarded as sacred nor spent as if no one owned them. THE JUST WEIGHT HAS TWO PANS. "A false balance is abomination to the LORD: but a just weight is his delight." (Proverbs 11:1). "Divers weights are an abomination unto the LORD; and a false balance is not good." (Proverbs 20:23). "A just weight and balance are the LORD’s: all the weights of the bag are his work." (Proverbs 16:11). This is the verse for the two giant numbers. "$300 billion saved" weighs one pan — the industry’s avoided cost — and calls it the whole scale; that is a divers weight. "30,000 lives" stated as a body count instead of a modeled projection across thirty rules is also a weight that is not what it claims. The Word requires both pans, honestly labeled: the documented harm of coal smoke stated plainly, the modeled future stated as a model, the avoided cost stated as avoided cost, and the bills and blackouts the administration warns of stated as real risks. "Prove all things; hold fast that which is good." (1 Thessalonians 5:21). "He that answereth a matter before he heareth it, it is folly and shame unto him." (Proverbs 18:13). "He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him." (Proverbs 18:17). THE POOR BREATHE THE SMOKE FIRST. "Woe unto them that decree unrighteous decrees, and that write grievousness which they have prescribed" (Isaiah 10:1) — "To turn aside the needy from judgment, and to take away the right from the poor of my people" (Isaiah 10:2). "The righteous considereth the cause of the poor: but the wicked regardeth not to know it." (Proverbs 29:7). "He that oppresseth the poor reproacheth his Maker" (Proverbs 14:31). The Word does not wait for a motive to be proven before it names where a cost lands: when a decree moves a cost from a ledger to a lung, and the lungs are the poorest first, that is a decree the Word has already weighed — whatever any official intended. And the same Word guards the coal worker from being treated as the cost: the ox is not muzzled. SO THE BELIEVER DOES FOUR THINGS IN ORDER. First, state the documented plainly: the repeal, its date, the agency’s own $310 billion figure, the established damage of coal smoke, the sector’s scale. Second, keep the categories: every death projection is a model with assumptions; say so, and do not dismiss it. Third, weigh both pans with a just weight and name where the cost lands — on the poor, on the downwind, and on the coal town — because "by their fruits ye shall know them" (Matthew 7:20). Fourth, pray for the rulers who decree, by command and not by mood: "supplications, prayers, intercessions, and giving of thanks, be made for all men" (1 Timothy 2:1) — "For kings, and for all that are in authority; that we may lead a quiet and peaceable life in all godliness and honesty." (1 Timothy 2:2). The Word settles what the debate cannot: the earth is His, we keep it, the scale has two pans, and the least of these breathe first.',
+      scripture: 'Psalms 24:1; Leviticus 25:23; Psalms 50:10; Genesis 1:26-28; Psalms 115:16; Genesis 2:15; 1 Corinthians 4:2; Numbers 35:33-34; Exodus 23:10-11; Leviticus 25:4; Deuteronomy 20:19; Deuteronomy 11:12; Jeremiah 2:7; Isaiah 24:5; Hosea 4:3; Revelation 11:18; Proverbs 12:10; Deuteronomy 25:4; Deuteronomy 22:6-7; Job 12:10; Romans 1:20-25; Colossians 1:16-17; Genesis 9:3; 1 Timothy 4:4; Proverbs 11:1; Proverbs 20:23; Proverbs 16:11; 1 Thessalonians 5:21; Proverbs 18:13; Proverbs 18:17; Isaiah 10:1-2; Proverbs 29:7; Proverbs 14:31; Matthew 7:20; 1 Timothy 2:1-2',
+    },
+    threeD: 'Practically: read the newsletter exactly as written and sort it. Say the proven parts without a hedge — on September 14, 2026 the EPA signed a partial repeal of the 2024 power-plant carbon standards; the agency itself projects $310 billion in avoided industry cost; a supplemental proposal would remove the remaining standards; coal fine-particle pollution has shortened hundreds of thousands of American lives and the harm fell as plants closed; the sector out-emits most nations. Then label the rest honestly: "30,000 deaths" is the AP’s modeled projection for a whole slate of rules, mostly heat deaths worldwide; "coincide with the data-center push" is the newsletter’s framing. Hear the administration at its strongest (an unmeetable standard is a closure order; the grid is under strain; the bills are real), hear the health side at its strongest (the smoke has a record, and a one-pan savings figure is advertising), and hear the coal town and the downwind block, who are both told they are the cost. Then do what the Word does: weigh both pans with a just weight, name where the cost lands, and refuse both over-reaches — the earth is neither ours to burn nor a god to serve. In your own house, be a keeper: count the cost (Luke 14:28) of the watts you burn, fix the leak, switch the bulb, run the load off-peak, plant the tree — not as a religion of the planet but as a steward of His property. In the Body, be the neighbor: check on the asthmatic child and the grandmother with the cough when the air is bad, drive them to the clinic, and "Open thy mouth for the dumb in the cause of all such as are appointed to destruction." (Proverbs 31:8). And pray for the people who sign the rules — by name, without a sneer — because the Word commands it.',
+    accountability: {
+      statement: 'THE TWO COURTS. Man’s court has not yet ruled on this repeal; the D.C. Circuit will hear it, as it is already hearing the endangerment rescission and as it vacated the first coal-plant emergency order on September 11, 2026. This lesson invents no verdict and predicts none. But the Word never lets accountability shrink to what a court happens to rule on. Every decree enters the eternal court — "Woe unto them that decree unrighteous decrees" (Isaiah 10:1) — where "God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil." (Ecclesiastes 12:14); where the defiling of His land is a charge He has already recorded (Jeremiah 2:7; Numbers 35:33-34); where the ones who "destroy the earth" are named (Revelation 11:18); and where the poor who breathed first are heard: "The righteous considereth the cause of the poor: but the wicked regardeth not to know it." (Proverbs 29:7). WHAT A SYSTEM OWES under the Word is not a defense of its motives but a just weight — both pans, honestly labeled — and a keeper’s care for the land it governs and the people it rules, the coal worker and the downwind child alike. Deuteronomy 22:8 is the Word’s own building code: "thou shalt make a battlement for thy roof, that thou bring not blood upon thine house" — the one who builds is answerable for the neighbor who falls, and a smokestack is a roof over a whole county. WHAT WE OWE: "to do justly, and to love mercy, and to walk humbly with thy God" (Micah 6:8); to "Learn to do well; seek judgment, relieve the oppressed" (Isaiah 1:17); to "Open thy mouth, judge righteously, and plead the cause of the poor and needy." (Proverbs 31:9); to honor the ruler and pray for him (1 Peter 2:17; 1 Timothy 2:1-2) while refusing to call a false balance a just one. And the lived cost during this life is not deferred evidence — every emergency visit and every early funeral is seen and weighed now. No one gets away: "God is not mocked: for whatsoever a man soweth, that shall he also reap" (Galatians 6:7), and "the books were opened" (Revelation 20:12).',
+      scripture: 'Isaiah 10:1-2; Ecclesiastes 12:14; Jeremiah 2:7; Numbers 35:33-34; Revelation 11:18; Proverbs 29:7; Deuteronomy 22:8; Micah 6:8; Isaiah 1:17; Proverbs 31:8-9; 1 Peter 2:17; 1 Timothy 2:1-2; Galatians 6:7; Revelation 20:12',
+    },
+    benefits: [
+      'Both courts, honestly held: no earthly court has ruled on this repeal yet, and this lesson predicts none — while the ETERNAL court holds every decree and every ton, and lands after this life (Ecclesiastes 12:14; Isaiah 10:1-2; Revelation 11:18). You can name the fruit plainly without inventing a verdict man has not given.',
+      'Freedom from two over-reaches at once: "the earth is ours to burn" (No — "The earth is the LORD’s" (Psalms 24:1); we are put in it "to dress it and to keep it" (Genesis 2:15)) and "creation is god / people are the plague" (No — Romans 1:25; Genesis 1:28; 1 Timothy 4:4).',
+      'The just weight in your hands: a savings figure that counts one pan is a divers weight, and a death count that hides its model is too (Proverbs 11:1; 20:23; 16:11). You can hold "$300 billion" and "30,000" in the same hand and say what each one actually measures.',
+      'A repeatable method for every policy headline: state the documented with its source and date, label the modeled as a model with its assumptions, hear each side at its strongest, name where the cost lands, and pray for the ruler by name.',
+      'A house that keeps: the watts you do not burn are tons that do not go up, and a bill that does not come — stewardship of His property, not worship of the planet.',
+      'A church that shows up downwind AND in the coal town: the asthmatic child and the laid-off miner are both among "the least of these" (Matthew 25:40), and the same Body carries both (Deuteronomy 25:4).',
+    ],
+    graceNote: 'No condemnation of any official’s soul: this lesson pronounces no verdict on Administrator Zeldin, the President, the Biden- and Obama-era officials who wrote the rules being repealed, the judges who will hear the challenges, the coal operator, or the newsletter writer — their hearts are Yahweh’s to judge, and He is no respecter of persons in either direction. But leaving the soul to Him never mutes the fruit: coal smoke has a documented record, the poor breathe it first, the coal town has carried its own burden, and the Word names all of it. Truth and grace meet in Jesus, who counted the sparrows His Father does not forget (Matthew 10:29) and of whom the Word says "by him all things consist." (Colossians 1:17).',
+    stewardship: 'The deeper response to a fight over the air is to BE THE KEEPER the Word describes, starting where you have authority. A household: count the cost (Luke 14:28) of what it burns — seal the leaks, switch the bulbs, run the heavy loads off-peak, keep the thermostat honest, plant a tree — because "A prudent man foreseeth the evil, and hideth himself" (Proverbs 22:3), and because every watt not drawn is a bit of smoke not made and a dollar kept for the house. A church: check the air-quality reading the way it checks the weather, and on bad days call the members with asthma and COPD, drive the grandmother to the clinic, keep inhalers in the benevolence closet, and open its mouth at the county meeting for the block that cannot move — "Open thy mouth for the dumb" (Proverbs 31:8). The same church remembers the coal town: the miner is the ox that is not to be muzzled (Deuteronomy 25:4), and a Body that lobbies for cleaner air owes him a job, not a lecture. And every believer prays for the rulers by name — "For kings, and for all that are in authority" (1 Timothy 2:2) — and seeks "the peace of the city" (Jeremiah 29:7) with a just weight in one hand and mercy in the other. This platform’s own posture models the same thing on a small scale: knowledge kept on machines the family owns, run lean, with nothing wasted. Righteous engagement names the false balance; it is completed by keeping the garden you were actually given.',
+    anchor: {
+      ref: 'Genesis 2:15; Psalms 24:1',
+      theme: 'The earth is His — "The earth is the LORD’s, and the fulness thereof" — and our dominion is a keeper’s job: "to dress it and to keep it." Weigh every cost-benefit claim with a just weight that has two pans, name who breathes the smoke first, refuse to burn the earth as ours or to worship it as god, and pray for the ruler who signs.',
+    },
+  },
+
+  // ---- STAGE 5 — REFLECTION + SKILL ----
+  reflection: {
+    skill: 'When a policy headline lands with a giant number on each side: PAUSE. Separate the documented (what was signed, when, what the agency itself says, what the established science already shows) from the modeled (any projection of future deaths or savings — name its assumptions, and do not dismiss it). Say the documented plainly — including documented damage. Then put BOTH numbers on a just weight and state what each one measures. Hear the administration, the health side, the coal town, and the downwind block each at its strongest. Let the Word settle the frame: His earth, our keeping, two pans, the poor first. Then respond as a keeper and a neighbor — and pray for the ruler by name.',
+    practice: 'Take the sentence "the EPA says the changes save the energy industry more than $300 billion; AP research says the rules could prevent about 30,000 deaths." Write four lines: (1) one sentence of what is DOCUMENTED, with a source and date; (2) one sentence stating what each number actually measures (which pan, whose projection, what assumptions); (3) one sentence of the strongest case for the side you least agree with; (4) one sentence on what the Word says about the land and the poor — and one concrete act of keeping or neighboring you or your church can do this week.',
+    prompts: [
+      'Which parts of the newsletter are documented (the repeal, the $310 billion projection, the sixth-largest-emitter analysis, the 330 retirements) and which are modeled or framed (the 30,000 deaths, "coincide with data centers")? How would you check each?',
+      '"$300 billion saved" counts one pan. What would a just weight (Proverbs 11:1; 20:23) require on the other pan before the comparison is honest — and what would it require of the "30,000" figure before it is repeated?',
+      'Walk through Genesis 2:15 and Psalms 24:1 together: if the earth is His and we are put in it to dress and keep it, what does that forbid — and what does it NOT forbid (Genesis 1:28; Genesis 9:3; 1 Timothy 4:4)?',
+      'Exodus 23:11 ties the land’s rest to the poor eating. Isaiah 10:1-2 and Proverbs 29:7 tie decrees to the poor’s cause. Who breathes a power plant’s smoke first in your county — and who carried the cost when its plant closed?',
+      'Deuteronomy 25:4 protects the laboring ox; Deuteronomy 22:6-7 protects the nesting bird. How do those two verses speak to the coal worker AND the downwind child at the same time?',
+      'The Word commands prayer "For kings, and for all that are in authority" (1 Timothy 2:2). Name the officials on both sides of this rule and pray for them by name — without a sneer. What changed in you when you did?',
+      'In your own house: what would "count the cost" (Luke 14:28) of your electricity look like this month — and what one thing could your church do for the members with asthma on the next bad-air day?',
+    ],
+  },
+
+  // ---- Age-appropriate renderings (kids use the app) ----
+  levels: {
+    child: 'A big government office called the EPA changed some rules about power plants. Power plants make the electricity for our lights and phones. Some of them burn coal or gas, and that makes smoke. Here is what we know for sure: that smoke can make people sick, especially grandparents, babies, and kids with asthma. Some leaders say the old rules cost too much money and that we need lots more power right now. Other people say the rules kept the air cleaner and kept people well. Grown-ups will argue about the numbers. Here is what Yahweh says first. He made the earth, and it is His: "The earth is the LORD’s, and the fulness thereof" (Psalms 24:1). He put people in the garden "to dress it and to keep it" (Genesis 2:15). That means we take care of the earth like a gift we are keeping for Him. It is not ours to wreck, and it is not a god to worship. It is His, and we are the keepers. Yahweh also loves fair scales. A fair scale weighs both sides, the money AND the smoke. And He tells us to pray for our leaders (1 Timothy 2:1-2). So we do three things. We pray for the people in charge. We turn off lights we are not using. And we help a neighbor who is sick. We never say a person is bad. We say the air matters, because He made it, and we help.',
+    teen: 'A newsletter says the EPA just wiped out the power-plant carbon rules, that the industry saves "$300 billion," and that AP research says the rules could have prevented "30,000 deaths." Run the moves before you repost either number. (1) Sort documented from modeled. Documented: on September 14, 2026 the EPA signed a partial repeal of the 2024 carbon standards for coal and new gas plants; the agency itself projects $310 billion in avoided industry cost; a second proposal would erase the remaining standards; the U.S. power sector, on 2022 data, out-emits every nation but five; and coal fine-particle smoke has shortened hundreds of thousands of American lives — that one is a record, not a forecast. Modeled: the 30,000 is the AP’s reviewed projection for about thirty rules together, mostly heat deaths worldwide from added carbon, built on a formula and an emissions scenario. Say "modeled, with these assumptions." Do not say "no one knows," and do not say "30,000 bodies." (2) Hear each side at its strongest: the administration says an unmeetable standard is a closure order and the grid is under real strain from data centers; the health side says a savings figure that counts one pan is advertising; the coal town says it has already paid; the downwind block says the cost moves from a spreadsheet to a lung — theirs. (3) Now the Word. "The earth is the LORD’s" (Psalms 24:1), and we are in it "to dress it and to keep it" (Genesis 2:15) — so it is not ours to burn AND it is not a god to serve (Romans 1:25). "A false balance is abomination to the LORD" (Proverbs 11:1): two pans, honestly labeled, every time. And the decree that lands on "the poor of my people" (Isaiah 10:2) is one the Word has already weighed, whatever anyone intended. (4) Respond like a keeper, not a comment section: cut the watts you waste, show up for the kid with asthma and the miner without a job, and pray for the officials on both sides by name (1 Timothy 2:1-2). That is discernment with a spine and a heart.',
+    senior: 'For the seasoned believer, this lesson is about weighing a charged policy fight with the Word’s own doctrine of the land, in an age that rewards both denial and alarm. First, the documented record, stated plainly: on September 14, 2026 the EPA finalized a partial repeal of the 2024 Carbon Pollution Standards — the 90%-capture-by-2032-or-retire-by-2039 guideline for existing coal plants and the carbon-capture standard for new baseload gas turbines — projecting $310 billion in avoided compliance cost, and issued a supplemental proposal to rescind every remaining power-plant greenhouse-gas standard on a "no significant contribution" theory, with the 2009 endangerment finding already rescinded for vehicles in February and before the D.C. Circuit; the sector emits more than 1.5 billion tons a year and, on 2022 data, would rank sixth among nations; and coal fine-particle pollution is established to have shortened roughly 460,000 American lives between 1999 and 2020, a toll that fell as plants closed. Second, the categories kept honestly (Proverbs 18:13; 18:17): the AP’s 30,000 is a reviewed, modeled projection across a slate of about thirty rules — about a third U.S. deaths from soot, mercury, and lead rules, two-thirds global heat deaths from a carbon-mortality formula — and the EDF and NYU figures are their authors’ projections; the administration’s reliability and cost warnings are real risks, not pretexts to be waved away; the Sierra Club’s retirement count is theirs. Third — where the Word settles what the debate cannot — the frame: the earth is His (Psalms 24:1; Leviticus 25:23), dominion is a keeper’s commission (Genesis 1:28; 2:15; 1 Corinthians 4:2), the land is not to be defiled and is given rest for the poor’s sake (Numbers 35:33-34; Exodus 23:11; Leviticus 25:4), the creature and the laborer are both in His regard (Proverbs 12:10; Deuteronomy 25:4; 22:6-7), and yet the creation is never to be served as the Creator (Romans 1:20-25; Colossians 1:16-17; 1 Timothy 4:4). The just weight (Proverbs 11:1; 20:23; 16:11) is the verse for the two giant numbers: one pan called a whole scale is a divers weight, and so is a model called a count. And the placement of the cost is already judged by the Word without any motive proven: the decree that turns aside the needy (Isaiah 10:1-2), the ruler who regards not the cause of the poor (Proverbs 29:7). The verdict on any official’s soul stays with Yahweh; the verdict on a false balance is written. Then let the response mature past reaction into the Body’s long vocation — keepers of what they were given, neighbors to the downwind and to the coal town alike, and intercessors for the rulers by command (1 Timothy 2:1-2; Jeremiah 29:7) — because every work, including this one, enters the court where the books are opened (Ecclesiastes 12:14; Revelation 20:12).',
+  },
+
+  // ---- Discernment-skill quiz ----
+  quiz: {
+    questions: [
+      {
+        q: 'The newsletter says the EPA "saves the energy industry more than $300 billion." What is the discernment move?',
+        options: ['Dismiss it — agencies always inflate', 'Check the source: it is the EPA’s own projection ($310 billion) of avoided industry compliance cost — one pan of the scale, said plainly as that', 'Accept it as the net benefit of the repeal'],
+        answer: 1,
+        explain: 'A documented number is said plainly — and labeled for what it measures. It counts what the industry no longer spends, not the health and climate costs on the other pan (Proverbs 11:1).',
+      },
+      {
+        q: '"AP research says the regulations could prevent about 30,000 deaths." Which label fits, and why?',
+        options: ['Documented body count of this rule', 'A reviewed, modeled projection across about thirty rules — roughly 10,000 U.S. deaths from soot, mercury, and lead rules plus about 25,000 global heat deaths from a carbon formula — carried with its assumptions, not dismissed', 'A lie — you cannot count deaths that have not happened'],
+        answer: 1,
+        explain: 'Tier 2 (DR-0100), flagged narrowly: name the model and its inputs. "No one knows" is false skepticism; "30,000 bodies" is over-claiming. Both fail the just weight.',
+      },
+      {
+        q: 'Which of these is ESTABLISHED, not modeled?',
+        options: ['That this repeal will cause a specific number of future deaths', 'That coal fine-particle pollution shortened roughly 460,000 American lives between 1999 and 2020, falling as plants closed (Science, 2023)', 'That data centers alone explain the rise in electricity bills'],
+        answer: 1,
+        explain: 'Documented damage is stated plainly (Tier 1). Future projections are models; the data-center share of price rises is genuinely debated (Tier 2). Keep the tiers apart.',
+      },
+      {
+        q: 'What does the Word say to "the earth is ours to burn"?',
+        options: ['Nothing — the Bible is silent on the environment', '"The earth is the LORD’s" (Psalms 24:1) and man was put in the garden "to dress it and to keep it" (Genesis 2:15) — dominion is a keeper’s job, and the land is not to be polluted (Numbers 35:33-34)', 'That the earth is sacred and must not be used'],
+        answer: 1,
+        explain: 'The Word corrects the over-reach without swinging to the opposite one: real dominion (Genesis 1:28), real stewardship (1 Corinthians 4:2), and a land He watches and forbids us to defile.',
+      },
+      {
+        q: 'What does the Word say to "creation is god" or "people are the plague on the planet"?',
+        options: ['It agrees — nature is holy', 'It names those who "worshipped and served the creature more than the Creator" (Romans 1:25), blesses fruitfulness (Genesis 1:28), and calls every creature good when received with thanksgiving (1 Timothy 4:4) — the earth is His witness, not a deity', 'It says the earth does not matter because it will burn anyway'],
+        answer: 1,
+        explain: 'Tier 3 cuts both ways: the Word corrects the ideological over-reach on either side, and the true data underneath (the smoke is real; the land is His) still stands.',
+      },
+      {
+        q: 'The administration says the grid is under strain and an unmeetable standard is a closure order. The health side says a one-pan savings figure is advertising. What does the Word require of you?',
+        options: ['Pick the side your friends are on', 'Hear each at its strongest (Proverbs 18:17), weigh both pans with a just weight, and name where the cost lands — on the poor and the downwind first (Isaiah 10:1-2; Proverbs 29:7) and on the coal town too (Deuteronomy 25:4)', 'Refuse to have any view since experts disagree'],
+        answer: 1,
+        explain: 'Steelman, then weigh, then name the fruit. The Word does not need any official’s motive proven to say where a cost fell.',
+      },
+      {
+        q: 'What does a believer actually DO after sorting this headline?',
+        options: ['Post the scarier number', 'Keep the garden you were given (cut wasted watts, count the cost), show up for the neighbor with asthma and the laid-off miner, and pray for the officials on both sides by name (1 Timothy 2:1-2; Matthew 25:40)', 'Wait for the court to decide before caring'],
+        answer: 1,
+        explain: 'Stewardship and intercession are commands, not moods. The two courts are both real; the believer acts in this one while trusting the other (Ecclesiastes 12:14).',
+      },
+    ],
+  },
+};
+
+// =============================================================================
+// ISSUE 16 — The trades are hiring (wi-the-trades-are-hiring-2026).
+// Darrell forwarded the 2026-09-15 Morning Brew newsletter (Smokin’) with the
+// single word Lesson. — build input. Its bullet, Not all job markets are equal,
+// reports a Burning Glass Institute analysis (via the Wall Street Journal):
+// workers 22–34 without a degree are in one of the best job markets in nearly
+// two decades, unemployment near its lowest since 2003, driven by a drop in
+// immigration and retiring blue-collar workers, while unemployment rises for
+// bachelor’s holders as AI takes entry-level white-collar work; degree holders
+// 25–54 still averaged 2.7% vs 4.7% for high-school-only. Companion to Issue 11
+// (the debt a degree can cost); this one is about WORK. Handled under DR-0100’s
+// three tiers with live web search 2026-09-15; every verse fetched verbatim from
+// the repo KJV and gated in world-issues-verse-integrity.test.js.
+// =============================================================================
+const TRADES_HIRING_ISSUE = {
+  id: 'wi-the-trades-are-hiring-2026',
+  title: 'The trades are hiring — the non-degree job market, the white-collar squeeze, and the Word on work with your hands',
+  subject: { name: 'the 2026 job market for workers without a degree, and the Word on work with your hands', kind: 'economy-and-work', isNamedRealPerson: false },
+  skill: 'Take a headline about who is getting hired and learn how the Word weighs it: state the documented numbers plainly with their sources and dates (the Burning Glass analysis, the BLS rates, what an apprenticeship pays and what a degree costs in Illinois), flag the genuinely open parts narrowly (how much of the graduate squeeze is AI; how long the shift lasts), let the Word correct the two slogans that ride on the data ("college is a scam" and "a trade is second-class"), and then hear what Yahweh says about work itself — given before the fall, honored in the craftsman, practiced by the carpenter and the tentmaker, and paid on time.',
+  source: {
+    creator: 'Morning Brew (reporting a Burning Glass Institute analysis published by the Wall Street Journal)',
+    medium: 'newsletter',
+    title: 'Smokin’ — "Not all job markets are equal"',
+    url: 'https://www.morningbrew.com/',
+    asOf: '2026-09-15',
+    note: 'Darrell forwarded the 2026-09-15 edition with the single word "Lesson." The bullet summarizes a Burning Glass Institute analysis reported by the Wall Street Journal in early September 2026 (data through July 2026). A second bullet in the same edition — the 10-year Treasury yield briefly topping 5% on 2026-09-14 — is carried here only as context on the cost of borrowing. We treat the newsletter as a SUMMARY of others’ research: every number was independently checked and is carried with its own source and date.',
+  },
+
+  // ---- STAGE 1 — THE CLAIM(S): the newsletter's points, AS MADE, each labeled. ----
+  claims: [
+    {
+      id: 'c-best-market',
+      text: 'Workers 22–34 without college degrees are having one of the best job markets in nearly two decades — one of the lowest unemployment rates since 2003 (Burning Glass Institute).',
+      label: 'claim',
+      attribution: 'Morning Brew, summarizing the Burning Glass Institute analysis reported by the Wall Street Journal',
+      note: 'Documented: the Burning Glass Institute (chief economist Gad Levanon) compared each group’s current unemployment with its own range since 2003, using data through July 2026. The claim is RELATIVE to the group’s own history — which the newsletter states correctly.',
+    },
+    {
+      id: 'c-causes',
+      text: 'The cause is a drop in immigration plus retiring blue-collar workers.',
+      label: 'claim',
+      attribution: 'Morning Brew, summarizing the Burning Glass Institute / WSJ analysis',
+      note: 'Both drivers are documented (Census Bureau migration estimates; Associated Builders and Contractors on retirements). How much each contributes is not measured by any source we found — carried as documented drivers, unmeasured shares.',
+    },
+    {
+      id: 'c-grads-ai',
+      text: 'Unemployment is rising for bachelor’s-degree holders amid AI replacing entry-level white-collar roles.',
+      label: 'claim',
+      attribution: 'Morning Brew, summarizing the Burning Glass Institute / WSJ analysis',
+      note: 'The RISE for young graduates is documented (New York Fed: 5.6% unemployment and 42% underemployment for recent graduates through Q2 2026). The AI link is partly documented (Stanford’s payroll-data study finds a real gap for 22–25-year-olds in AI-exposed occupations) — but how much of the squeeze is AI, versus the doubling of some majors and slower hiring generally, is genuinely open.',
+    },
+    {
+      id: 'c-unusual',
+      text: 'This divergence is unusual — the two groups tracked each other in the pandemic and after 2008.',
+      label: 'claim',
+      attribution: 'Morning Brew, summarizing the Burning Glass Institute / WSJ analysis',
+      note: 'Documented in the same analysis: the divergence has been running since about 2023. Whether it lasts is a forecast (Stage 2).',
+    },
+    {
+      id: 'c-degree-still-lower',
+      text: 'Big picture: degree holders 25–54 averaged 2.7% unemployment for the year ending July vs 4.7% for high-school-only; the more hands-on and in-person the job, the lower its current unemployment relative to its history (WSJ).',
+      label: 'claim',
+      attribution: 'Morning Brew, citing the Wall Street Journal',
+      note: 'Documented. The BLS single-month figure for August 2026 (ages 25 and over) reads 2.7% for bachelor’s and higher and 4.4% for high-school-only; the newsletter’s 4.7% is the WSJ’s twelve-month average for ages 25–54. Both stand; the precision is noted so no one calls the true number wrong.',
+    },
+    {
+      id: 'c-two-slogans',
+      text: '"College is a scam" — and its mirror, "a trade is second-class work."',
+      label: 'opinion',
+      attribution: 'Not the newsletter — the two slogans that ride on this data in the wider conversation, carried here so the Word can correct both',
+      note: 'Neither is in the newsletter. Both over-reach the data in opposite directions, and the Word corrects each (Stage 4) while the true numbers under both stay standing.',
+    },
+  ],
+
+  // ---- STAGE 2 — VERIFIABLE vs INTERPRETATION ----
+  verifiable: [
+    {
+      id: 'f-bgi-wsj',
+      statement: 'A Burning Glass Institute analysis reported by the Wall Street Journal (early September 2026, data through July 2026) finds unemployment for 22–34-year-olds without a degree near the lowest levels since 2003, while conditions for college graduates of the same age are among the weakest outside the Great Recession and the pandemic. Chief economist Gad Levanon: "There’s a rapidly growing supply of people with a bachelor’s degree, and you have a rapid decline of people who don’t"; "I don’t think it’s a temporary thing." Prime-age (25–54) degree holders averaged 2.7% unemployment over the twelve months ending July versus 4.7% for high-school-only; the more physical and in-person the work, the lower its unemployment by historical standards.',
+      status: 'documented',
+      sources: [
+        { title: 'Americans Without College Degrees Are Having One of the Best Job Markets in Years (WSJ, syndicated)', publisher: 'The Wall Street Journal via To Vima', url: 'https://www.tovima.com/wsj/americans-without-college-degrees-are-having-one-of-the-best-job-markets-in-years', asOf: '2026-09-15' },
+        { title: 'Workers Without College Degrees Are Thriving In A Tough Job Market', publisher: 'Black Enterprise', url: 'https://www.blackenterprise.com/workers-without-college-degrees-best-job-market/', asOf: '2026-09-15' },
+        { title: 'Unemployment for Non-College Grads Is at Near-Record Low', publisher: 'Newser', url: 'https://www.newser.com/story/396041/young-workers-sans-college-degrees-see-strong-job-market.html', asOf: '2026-09-15' },
+      ],
+      note: 'Verified by live web search 2026-09-15. The WSJ original is paywalled; the syndicated text and two independent write-ups agree on every figure. "Best market" is measured against each group’s OWN range since 2003 — a relative claim, correctly stated.',
+    },
+    {
+      id: 'f-bls-august',
+      statement: 'BLS (Current Population Survey, seasonally adjusted, ages 25 and over): in August 2026 unemployment was 4.4% for high-school graduates with no college, 3.7% for some college or an associate degree, and 2.7% for a bachelor’s degree and higher; 4.7% for those without a high-school diploma. The degree still carries the lowest unemployment rate in absolute terms.',
+      status: 'documented',
+      sources: [
+        { title: 'Unemployment rate remains lower for people with more education (The Economics Daily)', publisher: 'U.S. Bureau of Labor Statistics', url: 'https://www.bls.gov/opub/ted/2026/unemployment-rate-remains-lower-for-people-with-more-education.htm', asOf: '2026-09-15' },
+        { title: 'Unemployment rate for people with less than a high school diploma was 4.7 percent in August 2026 (The Economics Daily)', publisher: 'U.S. Bureau of Labor Statistics', url: 'https://www.bls.gov/opub/ted/2026/unemployment-rate-for-those-with-less-than-a-high-school-diploma-was-4-7-percent-in-august-2026.htm', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. This is the absolute picture that sits under the relative one: a degree still has the lowest rate; the non-degree group’s rate is low FOR ITSELF. Both are true at once.',
+    },
+    {
+      id: 'f-recent-grads',
+      statement: 'Federal Reserve Bank of New York, "The Labor Market for Recent College Graduates" (ages 22–27, bachelor’s or higher): through the second quarter of 2026 the unemployment rate held at about 5.6% and the underemployment rate edged up to 42%. Recent graduates have carried a higher unemployment rate than the average worker — a reversal of the long-run pattern.',
+      status: 'documented',
+      sources: [
+        { title: 'The Labor Market for Recent College Graduates', publisher: 'Federal Reserve Bank of New York', url: 'https://www.newyorkfed.org/research/college-labor-market', asOf: '2026-09-15' },
+        { title: 'Unemployment Rate for Recent College Graduates Holds at 5.6%, NY Fed Reports', publisher: 'Bloomberg', url: 'https://www.bloomberg.com/news/articles/2026-05-05/unemployment-for-recent-college-grads-remains-high-ny-fed-says', asOf: '2026-09-15' },
+        { title: 'The Job Market for Recent College Grads in 5 Charts', publisher: 'Inside Higher Ed', url: 'https://www.insidehighered.com/news/students/careers/2026/06/29/job-market-recent-college-grads-5-charts', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The squeeze on the young graduate is real and measured — it is not a vibe. Underemployment (a degree holder in a job that does not require one) is the quieter half of the number.',
+    },
+    {
+      id: 'f-ai-link',
+      statement: 'Stanford Digital Economy Lab, "Canaries in the Coal Mine" (ADP payroll data; August 2026 update): employment of 22–25-year-olds in the most AI-exposed occupations (software development, customer service) now sits about 19% below where it would be had it kept pace with less-exposed peers — up from a 13% relative decline in the 2025 paper — while the authors find NO widespread, economy-wide displacement. The Economic Policy Institute’s Class of 2026 review calls the graduate picture "more mixed than the headlines suggest." How much of the graduate squeeze is AI, versus the doubling of computer-science degrees into fewer openings, higher interest rates, and post-pandemic over-hiring unwinding, is not settled by any source we found.',
+      status: 'partly-documented',
+      sources: [
+        { title: 'No Widespread Displacement, but the AI Employment Gap for Young Workers Has Widened to 19%', publisher: 'Stanford Digital Economy Lab', url: 'https://digitaleconomy.stanford.edu/news/canariesaug26/', asOf: '2026-09-15' },
+        { title: 'Canaries in the Coal Mine? Six Facts about the Recent Employment Effects of Artificial Intelligence', publisher: 'Stanford Digital Economy Lab (Brynjolfsson, Chandar, Chen)', url: 'https://digitaleconomy.stanford.edu/publication/canaries-in-the-coal-mine-six-facts-about-the-recent-employment-effects-of-artificial-intelligence/', asOf: '2026-09-15' },
+        { title: 'Young college graduates face a weaker labor market — but a more mixed picture than the headlines suggest: Class of 2026', publisher: 'Economic Policy Institute', url: 'https://www.epi.org/blog/class-of-2026-young-college-graduates-face-a-weaker-labor-market-but-a-more-mixed-picture-than-the-headlines-suggest/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. This is Tier 2, stated narrowly: the AI effect on the MOST-EXPOSED entry-level occupations is measured and real; "AI is replacing entry-level white-collar work" as a blanket cause of the whole graduate squeeze is not proven. Say the measured part plainly; keep the share open.',
+    },
+    {
+      id: 'f-supply',
+      statement: 'The supply side is documented. Census Bureau (January 2026): net international migration peaked at about 2.7 million in 2024 and is projected to fall to roughly 321,000 in 2026. Associated Builders and Contractors (January 2026): construction must attract about 349,000 net new workers in 2026 and 456,000 in 2027, and more than half of the 2026 figure replaces retiring workers rather than supporting growth; nearly 40% of skilled construction workers are over 45, and in the electrical trades nearly one in five is over 55. ABC chief economist Anirban Basu attributes the gap mainly to retirements plus demand from megaprojects such as AI data centers.',
+      status: 'documented',
+      sources: [
+        { title: 'New Population Estimates Show Historic Decline in Net International Migration', publisher: 'U.S. Census Bureau', url: 'https://census.gov/newsroom/blogs/random-samplings/2026/01/historic-decline-in-net-international-migration.html', asOf: '2026-09-15' },
+        { title: 'ABC: Construction Industry Must Attract 349,000 Workers in 2026 Despite Macroeconomic Headwinds', publisher: 'Associated Builders and Contractors', url: 'https://www.abc.org/News-Media/News-Releases/abc-construction-industry-must-attract-349000-workers-in-2026-despite-macroeconomic-headwinds', asOf: '2026-09-15' },
+        { title: 'Construction’s Triple Labor Crisis: Retirements, Immigration Enforcement, and the Deepening Electrician Shortage', publisher: 'Westside Construction Group', url: 'https://www.buildwcg.com/blog-posts/construction-labor-crisis-retirements-immigration-electricians-2026', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The newsletter’s two causes are real. The one thing not measured is the SHARE each contributes — and the AI-data-center demand that Basu names is a third driver the newsletter left out: the same technology squeezing the entry-level office is hiring the electricians who build the buildings it runs in.',
+    },
+    {
+      id: 'f-pay-and-openings',
+      statement: 'What the trades pay (BLS, May 2025 wage data, via the Occupational Outlook Handbook): electricians median $34.37/hour (mean about $71,490/year), employment projected to grow 9% from 2025 to 2035 with about 72,700 openings a year; plumbers, pipefitters and steamfitters median $34.70/hour; HVAC mechanics and installers median $32.75/hour (mean about $68,120). Typical entry is a high-school diploma plus a four-to-five-year paid apprenticeship. U.S. Department of Labor / GAO: registered-apprenticeship completers earned average first-year wages of about $80,000 (April 2022–March 2023 exits) — higher than associate-degree holders; about 940,000 people were in registered apprenticeships in FY 2024.',
+      status: 'documented',
+      sources: [
+        { title: 'Electricians — Occupational Outlook Handbook', publisher: 'U.S. Bureau of Labor Statistics', url: 'https://www.bls.gov/ooh/construction-and-extraction/electricians.htm', asOf: '2026-09-15' },
+        { title: 'BLS 2025 OEWS Release — Key Numbers for Every Major Trade', publisher: 'SkilledTradesIQ (summarizing BLS OEWS May 2025)', url: 'https://skilledtradesiq.com/salaries/bls-2025-oews-release/', asOf: '2026-09-15' },
+        { title: 'Apprenticeship: Earn-and-Learn Opportunities Can Benefit Workers and Employers (GAO-25-107040)', publisher: 'U.S. Government Accountability Office', url: 'https://www.gao.gov/products/gao-25-107040', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. Medians are national; Chicago-area union scales run higher (next item). The $80,000 figure is an AVERAGE across all registered apprenticeships, not a promise for any one trade or region.',
+    },
+    {
+      id: 'f-illinois-cost',
+      statement: 'The Illinois comparison, at sticker price. University of Illinois Urbana-Champaign, 2026–27, in-state: base tuition $14,768 plus fees $3,292, and about $32,068 a year with room and board — roughly $128,000 over four years before aid. Bachelor’s borrowers nationally took out an average of $35,639 (2025 graduates); Illinois borrowers carry about $29,535 on average. Parkland College (Champaign) estimates $9,642 in tuition and fees for an Illinois resident in 2026. Chicago union apprenticeships charge no tuition and pay from day one: UA Local 130 (plumbers) starts apprentices at $20.55/hour and reaches a journeyman rate of $60.50/hour after five years; IBEW Local 134 (electricians) runs a five-year program that opens with eleven weeks of full-time classroom instruction, with apprentices paid a rising percentage of a journeyman rate listed at $55.55 on the 2024–25 program sheet. On the other side of the ledger the degree still pays on average across a lifetime: Georgetown’s Center on Education and the Workforce puts median lifetime earnings at $2.8 million for a bachelor’s versus $1.6 million for a high-school diploma, and BLS "Education Pays" (2024) puts median weekly earnings at $1,543 versus $930.',
+      status: 'documented',
+      sources: [
+        { title: '2026-2027 Academic Year Undergrad Tuition Rates', publisher: 'University of Illinois Office of the Registrar', url: 'https://registrar.illinois.edu/ug-tuition-rates-2627/', asOf: '2026-09-15' },
+        { title: 'Tuition and Cost of Attendance, University of Illinois at Urbana-Champaign', publisher: 'University of Illinois', url: 'https://cost.illinois.edu/', asOf: '2026-09-15' },
+        { title: 'Average Student Loan Debt for a Bachelor’s Degree: 2025 Analysis', publisher: 'EducationData.org', url: 'https://educationdata.org/average-debt-for-a-bachelors-degree', asOf: '2026-09-15' },
+        { title: 'Student Loans in Illinois — Average Debt, Forgiveness & Rates', publisher: 'StudLoans', url: 'https://studloans.com/state/illinois', asOf: '2026-09-15' },
+        { title: 'Parkland College — Tuition & Fees, Net Price', publisher: 'CollegeTuitionCompare', url: 'https://www.collegetuitioncompare.com/edu/147916/parkland-college/tuition/', asOf: '2026-09-15' },
+        { title: 'Illinois Apprenticeship Programs 2026 — Electrician, Plumber, HVAC & More', publisher: 'Hardhat Careers', url: 'https://hardhat.careers/apprenticeships-illinois', asOf: '2026-09-15' },
+        { title: 'IBEW Local 134 Apprenticeship — Chicago Official Sources', publisher: 'SparkShift', url: 'https://sparkshift.app/ibew-local-134', asOf: '2026-09-15' },
+        { title: 'The College Payoff: Education, Occupations, Lifetime Earnings', publisher: 'Georgetown University Center on Education and the Workforce', url: 'https://cew.georgetown.edu/cew-reports/the-college-payoff/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15 by live search. Sticker prices, not net prices — aid changes the college figure for many families, and union wage sheets change with each contract (the Local 134 rate is the last published sheet, not a 2026 contract). Both paths are stated at their real, dated numbers so a household can count the cost with real figures.',
+    },
+    {
+      id: 'f-cost-of-debt',
+      statement: 'Context on the price of borrowing: on 2026-09-14 the 10-year Treasury yield briefly touched 5.01% — the first time above 5% since 2023 and, had it held above 5.02%, the highest since July 2007 — as oil-driven inflation fears pushed markets to price a Federal Reserve rate increase.',
+      status: 'documented',
+      sources: [
+        { title: '10-year Treasury yield briefly tops 5% for the first time since 2023', publisher: 'Yahoo Finance', url: 'https://finance.yahoo.com/markets/article/10-year-treasury-yield-briefly-tops-5-for-the-first-time-since-2023-123457398.html', asOf: '2026-09-15' },
+        { title: '10-year Treasury yield hits 5% before reversing as traders await Fed meeting', publisher: 'CNBC', url: 'https://www.cnbc.com/2026/09/14/10-year-us-treasury-is-closing-in-on-5percent.html', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. Carried only as context: a borrowed degree is priced in a world where borrowing itself has gotten dearer, which makes counting the cost before the loan (Issue 11) more urgent, not less.',
+    },
+  ],
+  interpretation: [
+    {
+      id: 'n-relative-and-absolute',
+      statement: '"Best job market in two decades" is a claim about the non-degree group MEASURED AGAINST ITSELF; "the degree still has lower unemployment" is a claim about the two groups measured against each other. Both are documented and both are true at the same moment (2.7% vs 4.7% on the WSJ twelve-month average; 2.7% vs 4.4% on the BLS August month). A reader who keeps only one of them is repeating half a fact.',
+      restsOn: ['f-bgi-wsj', 'f-bls-august'],
+    },
+    {
+      id: 'n-ai-share-open',
+      statement: 'The graduate squeeze is documented; the AI link is measured only for the most-exposed entry-level occupations, where it is real (about 19% below trend for 22–25-year-olds). "AI is replacing entry-level white-collar roles" as the cause of the whole divergence is an inference. Say the measured part plainly; keep the share honestly open; do not smear "no one knows" over the part that is known.',
+      restsOn: ['f-recent-grads', 'f-ai-link'],
+    },
+    {
+      id: 'n-durability',
+      statement: '"I don’t think it’s a temporary thing" is a forecast by a credible economist, not a finding. Retirements and birth rates below replacement are slow-moving and will not reverse quickly; immigration policy can change in a single year; AI’s effect is the least predictable of the three. The honest statement is: the supply gap in the trades is structural for years; the exact size of the non-degree advantage is not.',
+      restsOn: ['f-bgi-wsj', 'f-supply'],
+    },
+    {
+      id: 'n-two-slogans-over-reach',
+      statement: '"College is a scam" over-reaches the data in one direction: the degree still carries the lowest unemployment rate and, on average, about $1.2 million more in lifetime earnings — what is true is that the degree is now a PRICED decision that can be lost, not a guarantee. "A trade is second-class work" over-reaches in the other: a Chicago apprentice is paid from day one with no tuition, reaches $55–60 an hour as a journeyman, and registered-apprenticeship completers average about $80,000 in their first year out. The Word corrects both slogans (Stage 4); the numbers under both stand.',
+      restsOn: ['f-bls-august', 'f-pay-and-openings', 'f-illinois-cost'],
+    },
+  ],
+
+  // ---- STAGE 3 — PERSPECTIVES on the UNRESOLVED parts ----
+  perspectives: [
+    {
+      id: 'p-trades',
+      label: 'The trades case — paid to learn, owed nothing, needed for decades',
+      heldBy: 'Tradesmen, union training directors, and the families who watched a degree turn into a loan',
+      steelman: 'At its strongest: a young person can walk into a five-year apprenticeship in Chicago with a high-school diploma, be paid from the first week, owe no tuition at the end, and stand at $55 to $60 an hour as a journeyman while a classmate is still carrying $35,000 of loans into a 5.6% unemployment rate. The demand is not a fad — it is arithmetic: the men who wired and plumbed this country are retiring faster than they are replaced, immigration has fallen by about ninety percent from its peak, and the data centers the AI boom needs are built by electricians. A trade cannot be off-shored, cannot be done by a model, and pays the day it is learned. On this view the household that steers a capable child toward a paid apprenticeship is not settling; it is counting the cost the way the Word tells a builder to.',
+    },
+    {
+      id: 'p-degree',
+      label: 'The degree-still-pays case — 2.7% versus 4.7%',
+      heldBy: 'Labor economists, the Georgetown Center on Education and the Workforce, and most parents',
+      steelman: 'Heard fairly: every headline about the non-degree boom is a RELATIVE claim, and the absolute picture has not changed — prime-age degree holders averaged 2.7% unemployment against 4.7% for high-school-only, and over a working life the median bachelor’s earns about $2.8 million to the diploma’s $1.6 million. The recent-graduate squeeze is real but concentrated in the first years and in a few majors; it says nothing about the nurse, the accountant, the engineer, or the teacher at forty-five. Physical work also carries a body’s cost that shows up at fifty. On this view the lesson of the data is not "skip college" but "choose the degree, the school, and the debt soberly" — which is exactly what Issue 11 taught.',
+    },
+    {
+      id: 'p-graduate',
+      label: 'The young graduate squeezed by AI — did the work, followed the rules, and the door moved',
+      heldBy: 'The class of 2024–2026, especially in software, customer-facing, and analyst roles',
+      steelman: 'At its strongest: a 23-year-old who did everything the last generation told her to do — the grades, the degree, the internship — now applies into a market where entry-level postings in her field have fallen by half since 2022, where employment for her age group in AI-exposed occupations sits about 19% below where it should be, and where 42% of her cohort is working a job that never needed the degree. The loan does not care that the ladder’s bottom rung was removed after she started climbing. This is not laziness and it is not entitlement; it is a documented rearrangement of the entry-level office that landed hardest on the people with the least experience and the most debt. The Word’s answer to her is not a lecture on the trades — it is that her labor is still worthy of its hire, that the door she can open is the one to walk through, and that the house of faith is obligated to help her count the next cost honestly.',
+    },
+    {
+      id: 'p-employer',
+      label: 'The employer who cannot find skilled hands',
+      heldBy: 'Contractors, facility owners, and training coordinators',
+      steelman: 'Heard fairly: a contractor bidding a hospital or a data center today is turning down work because there is no one to do it. The industry needs about 349,000 net new workers this year and 456,000 next, more than half of that just to replace retirements, and an apprentice takes four to five years to become a journeyman. The shortage is not a talking point; it is the reason jobs run late and bids come in high. On this view the churches, schools, and families that still treat the trades as the fallback are the bottleneck — and the employer who pays well, trains honestly, and pays on time is doing the very thing the Word requires of a master.',
+    },
+  ],
+
+  // ---- STAGE 4 — THE BELIEVER'S LENS ----
+  lens: {
+    fourD: {
+      deepSource: 'WORD FIRST — work is not a curse and it is not a consolation prize; it is the first assignment Yahweh gave a man, before there was any fall to recover from: "And the LORD God took the man, and put him into the garden of Eden to dress it and to keep it." (Genesis 2:15). The sweat came later — "In the sweat of thy face shalt thou eat bread" (Genesis 3:19) — but the work came first, and it was good. So the believer never reads a jobs headline as a verdict on a person’s worth; he reads it as a report on where the work is. THE WORD HONORS THE CRAFTSMAN BY NAME. The first person in Scripture of whom it is written "I have filled him with the spirit of God" was not a prophet or a priest but a builder: "See, I have called by name Bezaleel" (Exodus 31:2) — "And I have filled him with the spirit of God, in wisdom, and in understanding, and in knowledge, and in all manner of workmanship" (Exodus 31:3), "to work in gold, and in silver, and in brass" (Exodus 31:4), "in cutting of stones, to set them, and in carving of timber" (Exodus 31:5). And the gift came with a duty to pass it on: "he hath put in his heart that he may teach" (Exodus 35:34); "Them hath he filled with wisdom of heart, to work all manner of work" (Exodus 35:35). Bezaleel is the pattern for every apprenticeship the Body ever runs — Spirit-given craft, taught to the next hands. THE LORD HIMSELF WORKED WITH HIS HANDS. Nazareth knew Jesus by His trade before it knew Him by His miracles: "Is not this the carpenter, the son of Mary" (Mark 6:3) — "Is not this the carpenter’s son?" (Matthew 13:55). And the most learned man in the New Testament, who was "brought up in this city at the feet of Gamaliel" (Acts 22:3), also kept a trade and used it: "because he was of the same craft, he abode with them, and wrought: for by their occupation they were tentmakers" (Acts 18:3); "these hands have ministered unto my necessities, and to them that were with me" (Acts 20:34). Paul is the living correction of both slogans at once: the scholar who honored learning and worked with his hands, and saw no contradiction. THE WORD COMMANDS WORK — WITH THE HANDS — AS A WITNESS. "to do your own business, and to work with your own hands, as we commanded you" (1 Thessalonians 4:11), "That ye may walk honestly toward them that are without, and that ye may have lack of nothing." (1 Thessalonians 4:12). "if any would not work, neither should he eat" (2 Thessalonians 3:10) — spoken against those "working not at all, but are busybodies" (2 Thessalonians 3:11) — "that with quietness they work, and eat their own bread" (2 Thessalonians 3:12). "let him labour, working with his hands the thing which is good, that he may have to give to him that needeth" (Ephesians 4:28). "In all labour there is profit: but the talk of the lips tendeth only to penury." (Proverbs 14:23). "Whatsoever thy hand findeth to do, do it with thy might" (Ecclesiastes 9:10). And the diligent hand is promised a hearing at the top: "Seest thou a man diligent in his business? he shall stand before kings; he shall not stand before mean men." (Proverbs 22:29). THE WORD PAYS THE LABORER, ON TIME. "the labourer is worthy of his hire" (Luke 10:7); "The labourer is worthy of his reward." (1 Timothy 5:18); "the wages of him that is hired shall not abide with thee all night until the morning" (Leviticus 19:13); "At his day thou shalt give him his hire, neither shall the sun go down upon it" (Deuteronomy 24:15). And withheld wages are heard in heaven: "the hire of the labourers who have reaped down your fields, which is of you kept back by fraud, crieth" (James 5:4). The employer in Stage 3 who cannot find hands is bound by this side of the Word as tightly as the worker is bound by the other. THE WORD COUNTS THE COST BEFORE THE LOAN. "sitteth not down first, and counteth the cost, whether he have sufficient to finish it?" (Luke 14:28). "Prepare thy work without, and make it fit for thyself in the field; and afterwards build thine house." (Proverbs 24:27) — income first, then the house; the trade first, then the debt, if any. "Owe no man any thing, but to love one another" (Romans 13:8); "the borrower is servant to the lender" (Proverbs 22:7). NOW THE WORD CORRECTS THE TWO SLOGANS. To "college is a scam": "Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding." (Proverbs 4:7) — Yahweh never scorned learning; He filled Bezaleel with knowledge and understanding, and Paul sat under Gamaliel. What the Word forbids is not the school but the yoke taken without counting, and the true number under the slogan (a degree that must now be CHOSEN soberly, not assumed) still stands. To "a trade is second-class": "the eye cannot say unto the hand, I have no need of thee" (1 Corinthians 12:21); "those members of the body, which seem to be more feeble, are necessary" (1 Corinthians 12:22); "now hath God set the members every one of them in the body, as it hath pleased him" (1 Corinthians 12:18). The carpenter of Nazareth settles the rank of a trade forever. And the true number under THAT slogan — that the degree still pays more on average — also stands; the Word does not need it to be false. SO IN THIS CASE the believer does three things. First, state the documented plainly, because "Prove all things; hold fast that which is good." (1 Thessalonians 5:21): the non-degree market is the best it has been in two decades for that group; the graduate squeeze is real; the trades pay from day one; the degree still has the lower unemployment rate. Second, keep the open parts open — "He that answereth a matter before he heareth it, it is folly and shame unto him." (Proverbs 18:13); "He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him." (Proverbs 18:17): how much is AI, and how long it lasts, are not settled, and we do not pretend. Third, judge the fruit — "by their fruits ye shall know them" (Matthew 7:20) — by the Word’s own measures of work: is the laborer paid, and on time? is the cost counted before the yoke? is the craft honored and taught to the next hands? "Go to the ant, thou sluggard; consider her ways, and be wise" (Proverbs 6:6) — she "Provideth her meat in the summer, and gathereth her food in the harvest." (Proverbs 6:8); the alternative is "Yet a little sleep, a little slumber, a little folding of the hands to sleep" (Proverbs 6:10), and then "So shall thy poverty come as one that travelleth, and thy want as an armed man." (Proverbs 6:11). The market will move again; the Word on work will not.',
+      scripture: 'Genesis 2:15; Genesis 3:19; Exodus 31:1-5; Exodus 35:30-35; Mark 6:3; Matthew 13:55; Acts 22:3; Acts 18:3; Acts 20:34-35; 1 Thessalonians 4:11-12; 2 Thessalonians 3:10-12; Ephesians 4:28; Proverbs 14:23; Ecclesiastes 9:10; Proverbs 22:29; Luke 10:7; 1 Timothy 5:18; Leviticus 19:13; Deuteronomy 24:14-15; James 5:4; Luke 14:28; Proverbs 24:27; Romans 13:8; Proverbs 22:7; Proverbs 4:7; 1 Corinthians 12:18-22; 1 Thessalonians 5:21; Proverbs 18:13; Proverbs 18:17; Matthew 7:20; Proverbs 6:6-11; Colossians 3:23-24; Proverbs 22:6; Ecclesiastes 12:14',
+    },
+    threeD: 'Practically: read the headline exactly as made and sort it. Say the proven parts without a hedge — the non-degree market for 22–34-year-olds is the best it has been in about twenty years for that group (Burning Glass, data through July 2026); recent graduates sit at about 5.6% unemployment and 42% underemployment (New York Fed, Q2 2026); a Chicago plumbing apprentice starts at $20.55 an hour with no tuition and reaches $60.50 as a journeyman; in-state Urbana-Champaign runs about $32,000 a year at sticker; and the degree still carries the lower unemployment rate, 2.7% against 4.7%. Then keep the open parts open: the AI share of the graduate squeeze is measured only in the most-exposed jobs; whether the shift lasts is a forecast. Refuse both slogans — "college is a scam" and "a trade is second-class" — because the Word refuses both, and the data under each still stands. Then do what the Word does with work. In your own house: "Prepare thy work without, and make it fit for thyself in the field; and afterwards build thine house." (Proverbs 24:27) — sit down and count the cost of BOTH paths with real, dated numbers before anyone signs anything; put a capable teenager in front of a real tradesman and a real graduate and let him ask both what the first five years actually looked like; and whichever path he takes, "whatsoever ye do, do it heartily, as to the Lord, and not unto men" (Colossians 3:23), "for ye serve the Lord Christ" (Colossians 3:24). In the Body: the church has tradesmen in the pews — treat them as Bezaleel, "he hath put in his heart that he may teach" (Exodus 35:34), and build the apprenticeship pipeline the industry is begging for, out of your own youth. And if you are the employer, the Word’s side for you is short and strict: pay the laborer, and pay him on time.',
+    accountability: {
+      statement: 'THE TWO COURTS. No court tried the job market, and this lesson accuses no one; a shift in who is hired is not a crime. But the Word never lets accountability shrink to what a court happened to rule on. Every work enters the eternal court — "For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil." (Ecclesiastes 12:14) — where the books are opened (Revelation 20:12) and where withheld wages are already on file: "the hire of the labourers who have reaped down your fields, which is of you kept back by fraud, crieth" (James 5:4). WHAT AN EMPLOYER OWES under the Word: the wage, in full, on time — "At his day thou shalt give him his hire, neither shall the sun go down upon it" (Deuteronomy 24:15); "the wages of him that is hired shall not abide with thee all night until the morning" (Leviticus 19:13); honest training rather than a bait-and-switch; and the just weight in every bid and every paycheck ("a just weight is his delight", Proverbs 11:1). WHAT A WORKER OWES: to work — "if any would not work, neither should he eat" (2 Thessalonians 3:10) — with the hands, heartily, as to the Lord (Colossians 3:23), and to count the cost before taking a yoke (Luke 14:28; Proverbs 22:7). WHAT A HOUSEHOLD AND A CHURCH OWE: "Train up a child in the way he should go: and when he is old, he will not depart from it." (Proverbs 22:6) — which includes training him to work and to count; and to remember that "it is he that giveth thee power to get wealth" (Deuteronomy 8:18), so no path becomes a boast. And the lived reality during this life is not deferred evidence — the graduate under a loan and the apprentice on a job site are both seen and weighed now. No one gets away: "God is not mocked: for whatsoever a man soweth, that shall he also reap" (Galatians 6:7).',
+      scripture: 'Ecclesiastes 12:14; Revelation 20:12; James 5:4; Deuteronomy 24:14-15; Leviticus 19:13; Proverbs 11:1; 2 Thessalonians 3:10; Colossians 3:23; Luke 14:28; Proverbs 22:7; Proverbs 22:6; Deuteronomy 8:18; Galatians 6:7',
+    },
+    benefits: [
+      'Both courts, honestly held: no court ruled on who gets hired, and none needs to — while the ETERNAL court holds every wage withheld and every work done, and lands after this life (Ecclesiastes 12:14; James 5:4). You can speak the data plainly without inventing a villain.',
+      'Freedom from two slogans at once: "college is a scam" (the degree still pays and still has the lowest unemployment) and "a trade is second-class" (the carpenter of Nazareth, Bezaleel "filled" with the Spirit, Paul the tentmaker). The Word corrects both; the numbers under both stand.',
+      'The Word’s own theology of work in your hands: given before the fall (Genesis 2:15), commanded with the hands (1 Thessalonians 4:11), honored in the craftsman (Exodus 31:3), paid on time (Deuteronomy 24:15), done heartily as to the Lord (Colossians 3:23).',
+      'A repeatable skill: state the documented number with its source and date, keep the relative claim and the absolute claim both in view, flag the open share narrowly (how much is AI), and judge the fruit by the Word’s measures of work.',
+      'A house that counts the cost with real figures: $20.55 an hour and no tuition on one path, $32,000 a year at sticker on the other, and "the borrower is servant to the lender" over both (Proverbs 22:7; Luke 14:28).',
+      'A church that apprentices its own: the tradesmen already in the pews are the Bezaleels — "he hath put in his heart that he may teach" (Exodus 35:34) — and the pipeline the industry cannot fill is one the Body can build.',
+    ],
+    graceNote: 'No condemnation of any soul: not the graduate who is struggling to find the job the degree promised, not the parent who steered a child toward a loan in good faith, not the young man who chose a trade over a classroom, and not the employer who cannot find hands. The Word ranks no lawful work below another and pronounces no verdict on a heart for the path it chose; it asks only that the work be done heartily, the laborer be paid, and the cost be counted. Truth and grace meet in Jesus, who was known in His own town as the carpenter before He was known as the Christ.',
+    stewardship: 'The deeper response to a market that is short of skilled hands is to BUILD the hands — the way Yahweh built Bezaleel and told him to teach. The church that raised the HBCUs (Issue 11) can raise apprentices: COLG has tradesmen in its own pews, and PoeTech’s own founder is a building-controls technician who learned a craft with his hands and teaches with the same hands. That is not a footnote; it is the pattern. A congregation can pair every capable teenager with a journeyman for a summer, walk the family through a real union application and a real college cost sheet side by side, and hold both to the Word’s test: is the laborer paid, is the cost counted, is the craft passed on? A household can sit down before the loan, with dated numbers, and hear both a tradesman and a graduate describe their first five years. And whoever takes the degree takes it soberly, owing as little as possible; whoever takes the trade takes it as Bezaleel did, filled and teaching. Righteous engagement names the shift plainly; it is completed by training the next hands.',
+    anchor: {
+      ref: 'Genesis 2:15; Proverbs 22:29',
+      theme: 'Work was Yahweh’s first assignment to a man — "to dress it and to keep it" — and the diligent hand is promised a hearing at the top: "Seest thou a man diligent in his business? he shall stand before kings" — the market will move again; the Word on work will not. Count the cost, honor the craft, pay the laborer, teach the next hands.',
+    },
+  },
+
+  // ---- STAGE 5 — REFLECTION + SKILL ----
+  reflection: {
+    skill: 'When a jobs headline lands in your feed: PAUSE. Ask whether the number is RELATIVE (a group measured against its own past) or ABSOLUTE (two groups measured against each other) — and keep both. Say the documented part plainly with its source and date; label the causal part ("because of AI") by how much of it is actually measured; treat "this will last" as a forecast. Then refuse the two slogans the data tempts you toward, because the Word refuses both. Finally let the Word judge the fruit by its own measures of work: is the laborer paid on time, is the cost counted before the yoke, is the craft honored and taught?',
+    practice: 'Take the claim "workers without a degree have the best job market in twenty years." Write four lines: (1) one sentence of what is DOCUMENTED, with a source and its date; (2) one sentence stating the ABSOLUTE picture beside the relative one (2.7% vs 4.7%); (3) one sentence on what is genuinely OPEN (the AI share; the durability), stated narrowly; (4) one sentence on what the Word says about work with the hands — and one concrete act this month: sit a young person in your house or church down with a real apprenticeship wage sheet and a real college cost sheet, side by side.',
+    prompts: [
+      'Which parts of the newsletter are documented (the Burning Glass finding, the 2.7% vs 4.7%, the retirements and the migration decline) and which are inference (how much is AI; whether it lasts)? How would you check each?',
+      'The non-degree "best market" is true relative to that group’s own history, and the degree’s lower unemployment is true in absolute terms. Why does keeping both in one sentence strengthen the truth instead of weakening it?',
+      'Bezaleel was the first person of whom Scripture says "I have filled him with the spirit of God" — and he was a builder told to teach (Exodus 31:3; 35:34). What does that do to the idea that a trade is second-class work? What does Paul sitting under Gamaliel AND making tents (Acts 22:3; 18:3) do to the idea that college is a scam?',
+      'Read the employer’s side of the Word (Leviticus 19:13; Deuteronomy 24:15; James 5:4). If you hire anyone — a contractor, a babysitter, a helper — what does "neither shall the sun go down upon it" require of you this week?',
+      'Proverbs 24:27 puts the field before the house. For a seventeen-year-old in your family, what would "Prepare thy work without" look like in the next twelve months — before any loan is signed?',
+      'The young graduate in Stage 3 did what she was told and the door moved. What does the Body owe her — and what does the Word say her labor is still worth (Luke 10:7)?',
+      'Where is the line between "the market favors the trades right now" (true, dated) and "everyone should skip college" (over-reach)? Practice saying the true part without the slogan.',
+    ],
+  },
+
+  // ---- Age-appropriate renderings (kids use the app) ----
+  levels: {
+    child: 'Some grown-ups go to college. Some grown-ups learn a trade, like fixing wires or pipes. Right now, a news story says the people who fix things are getting hired a lot. That is true. It is also true that people with a college degree still find jobs a little more often. Both things are true at once. Here is what Yahweh says about work. The very first job He gave a person was to take care of a garden: "to dress it and to keep it" (Genesis 2:15). Work came before anything went wrong. It is a good gift. Jesus worked with His hands. His town called Him "the carpenter" (Mark 6:3). A man named Bezaleel built beautiful things for Yahweh. The Word says Yahweh filled him with His Spirit to do it. So no honest job is small. Yahweh also says the person who works must be paid, and paid on time. And He says to count the cost before you borrow money, like a builder who checks if he has enough before he starts. When you grow up, you might go to college, or you might learn a trade. Either way, do your work with your whole heart, "as to the Lord" (Colossians 3:23). That is what makes it great.',
+    teen: 'A newsletter says workers 22 to 34 without a degree have the best job market in almost twenty years, and that college grads are getting squeezed as AI eats entry-level office jobs. Run the moves before you repeat it. (1) Sort relative from absolute. It is true — Burning Glass Institute, data through July 2026 — that the non-degree group’s unemployment is near its lowest since 2003 FOR THAT GROUP. It is also true that degree holders 25–54 averaged 2.7% unemployment versus 4.7% for high-school-only. Keep both. (2) Sort documented from open. Recent grads really are at about 5.6% unemployment and 42% underemployment (New York Fed). AI really has cut employment for 22–25-year-olds in the most exposed jobs by about 19% relative to peers (Stanford). But how much of the whole squeeze is AI, and whether the shift lasts, are not settled — and the retirements and the ninety-percent drop in immigration behind the trades boom are measured facts. (3) Get the real Illinois numbers: a Chicago plumbing apprentice starts at $20.55 an hour with no tuition and reaches $60.50 as a journeyman after five years; in-state Urbana-Champaign is about $32,000 a year at sticker; bachelor’s borrowers average about $35,000 in loans. Count the cost of BOTH with real figures — "sitteth not down first, and counteth the cost" (Luke 14:28). (4) Refuse both slogans. "College is a scam" — no: "Wisdom is the principal thing; therefore get wisdom" (Proverbs 4:7), and the degree still pays more on average. "A trade is second-class" — no: the first man of whom Scripture says "I have filled him with the spirit of God" (Exodus 31:3) was Bezaleel the craftsman, Jesus was "the carpenter" (Mark 6:3), and Paul, who studied under Gamaliel, made tents (Acts 18:3). (5) Whatever you choose: "work with your own hands" (1 Thessalonians 4:11), "do it heartily, as to the Lord" (Colossians 3:23), and remember the diligent man "shall stand before kings" (Proverbs 22:29). The market will move again. The Word on work will not.',
+    senior: 'For the seasoned believer, this lesson is about weighing a jobs headline with the Word’s own theology of work, in an age that sells both panic about college and contempt for the trades. First, the documented record, stated plainly: a Burning Glass Institute analysis (Wall Street Journal, data through July 2026) finds unemployment for 22–34-year-olds without a degree near its lowest since 2003 while their degreed peers face conditions among the weakest outside the Great Recession and the pandemic; BLS shows the degree still carrying the lowest absolute rate (2.7% for bachelor’s and higher against 4.4% for high-school-only in August 2026; 2.7% against 4.7% on the WSJ’s prime-age twelve-month average); the New York Fed puts recent graduates at 5.6% unemployment and 42% underemployment; the Census Bureau projects net migration falling from a 2024 peak near 2.7 million to about 321,000 in 2026; and Associated Builders and Contractors needs 349,000 net new construction workers this year, more than half to replace retirements. In Illinois the comparison is concrete: a UA Local 130 apprentice starts at $20.55 an hour with no tuition and reaches $60.50 as a journeyman; in-state Urbana-Champaign runs about $32,000 a year at sticker; registered-apprenticeship completers average about $80,000 in their first year out; and the median bachelor’s still earns roughly $2.8 million over a lifetime to the diploma’s $1.6 million. Second, the categories kept honestly (Proverbs 18:13, 18:17): the AI effect is measured only for the most-exposed entry-level occupations (about 19% below trend for 22–25-year-olds), so "AI is replacing entry-level white-collar work" as the cause of the whole divergence is inference; "it is not temporary" is a forecast by a credible economist, not a finding. Third — where the Word settles what the debate cannot — work is judged by the Word’s own measures, not the market’s. Work preceded the fall: "to dress it and to keep it" (Genesis 2:15). The first man of whom Scripture says "I have filled him with the spirit of God" was a craftsman commanded to teach (Exodus 31:3; 35:34). The Lord was "the carpenter" (Mark 6:3); the apostle who sat under Gamaliel made tents with his own hands and said so (Acts 22:3; 18:3; 20:34). The believer is commanded "to work with your own hands" (1 Thessalonians 4:11); the one who "would not work" is not to eat (2 Thessalonians 3:10); the laborer is "worthy of his hire" (Luke 10:7) and must be paid before sundown (Deuteronomy 24:15), because withheld wages cry to the Lord of sabaoth (James 5:4); the field is prepared before the house is built (Proverbs 24:27); and no man is to owe (Romans 13:8), because the borrower serves the lender (Proverbs 22:7). Against "college is a scam" the Word answers "get wisdom" (Proverbs 4:7); against "a trade is second-class" it answers that "the eye cannot say unto the hand, I have no need of thee" (1 Corinthians 12:21). Both slogans fall; the data under both stands. The verdict on any soul’s path stays with Yahweh; the verdict on work — done heartily, paid on time, cost counted, craft taught — is already written. Then let the response mature past reaction into the Body’s long vocation as builder: the church that raised schools can raise apprentices, out of the tradesmen already in its pews, and walk every household through both cost sheets before a single loan is signed.',
+  },
+
+  // ---- Discernment-skill quiz ----
+  quiz: {
+    questions: [
+      {
+        q: 'The newsletter says non-degree workers 22–34 have "one of the best job markets in nearly two decades." What kind of claim is that, and what is the discernment move?',
+        options: ['An absolute claim that non-degree workers now have lower unemployment than graduates', 'A RELATIVE claim — that group measured against its own range since 2003 — which is documented (Burning Glass, data through July 2026) and should be said plainly, beside the absolute picture', 'A rumor until the government confirms it'],
+        answer: 1,
+        explain: 'It is documented and relative. Say it plainly (DR-0100 Tier 1) AND keep the absolute picture in the same breath: degree holders still averaged 2.7% against 4.7%.',
+      },
+      {
+        q: '"Unemployment is rising for graduates because AI is replacing entry-level white-collar roles." How should the parts be labeled?',
+        options: ['All documented — the numbers prove the cause', 'The RISE is documented (NY Fed, 5.6% / 42%); the AI effect is measured only in the most-exposed jobs (Stanford, about 19% below trend for 22–25-year-olds); the SHARE of the whole squeeze due to AI is genuinely open', 'All speculation — no one knows anything about AI and jobs'],
+        answer: 1,
+        explain: 'Tier 1 for the rise and the measured exposed-occupation gap; Tier 2, narrowly, for the share. Neither "AI did all of it" nor "no one knows" is honest.',
+      },
+      {
+        q: 'What does the Word do with the slogan "a trade is second-class work"?',
+        options: ['Agrees — Scripture favors scholars', 'Corrects it: the first man of whom Scripture says "I have filled him with the spirit of God" (Exodus 31:3) was Bezaleel the craftsman, Jesus was "the carpenter" (Mark 6:3), Paul made tents (Acts 18:3), and "the eye cannot say unto the hand, I have no need of thee" (1 Corinthians 12:21)', 'Ignores it — the Word says nothing about work'],
+        answer: 1,
+        explain: 'The Word ranks no lawful work below another. The carpenter of Nazareth settles the question; the true data under the slogan (the degree pays more on average) still stands.',
+      },
+      {
+        q: 'What does the Word do with the slogan "college is a scam"?',
+        options: ['Confirms it — the trades are hiring', 'Corrects it: "Wisdom is the principal thing; therefore get wisdom" (Proverbs 4:7); Paul sat under Gamaliel AND made tents; what the Word forbids is the yoke taken without counting the cost (Luke 14:28; Proverbs 22:7), not the school', 'Has no opinion'],
+        answer: 1,
+        explain: 'The Word honors learning and forbids uncounted debt. The degree is now a priced decision to be chosen soberly — Issue 11’s lesson — not a scam and not a guarantee.',
+      },
+      {
+        q: 'An employer cannot find skilled hands and finally hires an apprentice. What does the Word require of the employer?',
+        options: ['Nothing — the market sets the terms', 'The wage in full and on time — "neither shall the sun go down upon it" (Deuteronomy 24:15), "shall not abide with thee all night" (Leviticus 19:13) — because withheld hire "crieth" to the Lord (James 5:4), plus honest training', 'Only what the contract says'],
+        answer: 1,
+        explain: 'The employer is bound by the Word as tightly as the worker. The shortage does not loosen the command to pay; it makes the paid, trained apprentice the very thing the Word describes.',
+      },
+      {
+        q: 'A family with a capable seventeen-year-old reads this lesson. What is the Word’s first practical step?',
+        options: ['Skip college — the data says so', 'Borrow the maximum — the degree always pays', 'Sit down and COUNT THE COST of both paths with real, dated numbers (Luke 14:28; Proverbs 24:27) — a real apprenticeship wage sheet beside a real college cost sheet — then whichever path, "do it heartily, as to the Lord" (Colossians 3:23)'],
+        answer: 2,
+        explain: 'The field before the house (Proverbs 24:27). The Word does not pick the path for the child; it demands the cost be counted and the work be done with the whole heart.',
+      },
+      {
+        q: 'Why does the lesson keep "2.7% vs 4.7%" beside "best non-degree market in twenty years" instead of choosing one?',
+        options: ['To avoid taking a position', 'Because both are documented and true at once — one relative, one absolute — and a reader who keeps only one is repeating half a fact (Proverbs 18:17)', 'Because the numbers contradict each other'],
+        answer: 1,
+        explain: 'Hearing the whole matter (Proverbs 18:13, 18:17) means holding both true numbers. That is not fence-sitting; it is the full fact.',
+      },
+    ],
+  },
+};
+
+// =============================================================================
+// ISSUE 13 — The Supreme Court leaves the mail-in rules alone
+// (wi-scotus-mail-in-voting-2026). Darrell's word, 2026-09-15, forwarding the
+// Morning Brew and NPR Up First newsletters: Lesson. Find the each subject and
+// independently research them and create a lesson or lessons. The subject: the
+// Supreme Court's September 14, 2026 order in U.S. Postal Service v. California
+// (26A305) declining to let the Postal Service's ballot-mail rule run in the
+// 2026 midterms. Handled under DR-0100's three tiers: the PROCEDURAL record
+// (the executive order, the rule, the injunctions, the order, the dissent, the
+// concurrence, the ballots already in the mail) is stated plainly with sources
+// and as-of dates; the MERITS are marked open (no court has finally decided
+// the Postal Service's authority); fraud-rate claims on either side are sourced
+// or carried as claims; and the Word corrects both over-reaches — neither
+// any-restriction-is-suppression nor any-mail-ballot-is-fraud is established.
+// Word first: a just weight and measure, judges who take no gift and respect
+// no person, rulers as Yahweh's ministers, prayer for kings, Caesar's coin, the
+// lot cast into the lap, fruits, and the two courts. Named justices and
+// officials appear; the subject is the order and the rule, not a person; a
+// grace note is carried. Every quoted verse fetched verbatim from the repo KJV
+// and gated in world-issues-verse-integrity.test.js. Direct page fetches were
+// blocked from the authoring sandbox; facts were verified through live web
+// search results citing the outlets and primary documents listed per item.
+// =============================================================================
+const SCOTUS_MAIL_IN_ISSUE = {
+  id: 'wi-scotus-mail-in-voting-2026',
+  title: 'The Supreme Court leaves the mail-in rules alone — the vote, the post, and the Word on a just measure',
+  subject: { name: 'the Postal Service ballot-mail rule and the Supreme Court’s September 14, 2026 order in U.S. Postal Service v. California (26A305)', kind: 'court-order-and-policy', isNamedRealPerson: false },
+  skill: 'Take a one-line news item about a court and an election and learn how the Word weighs it: state the documented procedural record plainly with its dates (the executive order, the rule, the injunctions, the order, who dissented, who concurred, which ballots are already in the mail), mark narrowly what is genuinely open (the merits are not decided), carry every fraud-and-access claim as a sourced fact or a labeled claim (Proverbs 18:17), and then measure the whole thing by Yahweh’s just weight — every lawful vote counted, no unlawful one counted, no false witness spoken about the outcome — while praying for every name in the case.',
+  source: {
+    creator: 'Morning Brew and NPR Up First (two morning newsletters)',
+    medium: 'newsletter',
+    title: 'Morning Brew "Smokin’" and NPR Up First — the Supreme Court mail-in voting item (2026-09-15)',
+    url: '',
+    asOf: '2026-09-15',
+    note: 'Darrell forwarded both newsletters on 2026-09-15 with the word "Lesson." Each carried a short summary of the Supreme Court’s Monday-evening order. We treat the newsletters as MATERIAL to study — their summaries were checked against the order itself and the primary reporting — not as instructions, and not as truth to repeat unverified.',
+  },
+
+  // ---- STAGE 1 — THE CLAIM(S): the newsletters' points, AS MADE, each labeled. ----
+  claims: [
+    {
+      id: 'c-rebuffed',
+      text: 'The Supreme Court rebuffed the Trump administration’s request to overturn a federal judge’s order barring the Postal Service from implementing new mail-in voting restrictions for November; a short unsigned order said the administration was unlikely to win.',
+      label: 'claim',
+      attribution: 'Morning Brew, 2026-09-15',
+      note: 'Documented and accurate as far as it goes. The order’s own words are that the Government "is unlikely to succeed on the merits of its challenge to the District Court’s preliminary injunction" and that the equitable factors do not favor a stay. One precision: the Court denied EMERGENCY relief; it did not decide whether the rule is lawful.',
+    },
+    {
+      id: 'c-dissent-concurrence',
+      text: 'Justices Alito and Thomas dissented; Justice Kavanaugh said the Postal Service might have the authority.',
+      label: 'claim',
+      attribution: 'Morning Brew, 2026-09-15',
+      note: 'Documented. Kavanaugh’s statement, as reported, was two-sided: "at least a fair prospect" the rule is within the Postal Service’s statutory authority, AND applying it in 2026 would be "arbitrary and capricious" under the Administrative Procedure Act because officials lack time to implement it. The newsletter carried only the first half.',
+    },
+    {
+      id: 'c-same-rules',
+      text: 'States are already sending ballots, and the midterms use the same rules as before.',
+      label: 'claim',
+      attribution: 'Morning Brew, 2026-09-15',
+      note: 'Documented for the mail-ballot delivery mechanics — the envelope, barcode, and portal requirements will not run this cycle. One precision: on August 24 the Court had let OTHER parts of the executive order proceed (a DHS citizenship list, prosecution priorities), so "the same rules as before" is true of the Postal Service piece, not of every part of the order.',
+    },
+    {
+      id: 'c-npr-blocked',
+      text: 'The Supreme Court blocked President Trump’s efforts to impose new mail-in voting restrictions before the midterms; the Postal Service continues delivering ballots as usual.',
+      label: 'claim',
+      attribution: 'NPR Up First, 2026-09-15',
+      note: 'Accurate in effect, compressed in mechanism. Two district judges blocked the rule; the Supreme Court declined to lift those blocks for this election. "Blocked" is the practical result; the Court’s own act was a denial of a stay.',
+    },
+    {
+      id: 'c-npr-check-deadlines',
+      text: 'Voting by mail has already started in Alabama, North Carolina, and Wisconsin; voters should check state deadlines and return ballots promptly.',
+      label: 'call-to-action',
+      attribution: 'NPR Up First, 2026-09-15',
+      note: 'Documented (the three states) and sound. This is the one directive in the item, and it is aimed at the voter’s own diligence, not at any person. The lesson adopts it in the stewardship section because the Word already commands it in substance — render what is due, on time, honestly.',
+    },
+    {
+      id: 'c-admin-fraud',
+      text: 'Mail-ballot fraud is "a particularly pernicious species of fraud that dilutes the votes of lawful voters, prevents election results from reflecting the will of the American people," and undermines public confidence — so the Postal Service’s tracking, barcode, and voter-list requirements are needed for integrity and chain of custody.',
+      label: 'opinion',
+      attribution: 'Solicitor General D. John Sauer, in the government’s emergency application to the Supreme Court, as reported by CBS News (2026-09)',
+      note: 'The characterization is the government’s. What is DOCUMENTED underneath it is in Stage 2: real cases of absentee-ballot fraud exist (the 2018 North Carolina Ninth District scheme is the clearest), and the documented RATE across all mail ballots is very small. "Widespread" was not shown in the filings as reported; that word is carried as a claim, not a fact.',
+    },
+    {
+      id: 'c-states-impossible',
+      text: 'The rule could not lawfully or practically be imposed mid-cycle: no statute gives the Postal Service power over who receives a ballot, the envelopes could not be reprinted in time, and enrolling every mail voter through a still-inactive portal would be "virtually impossible."',
+      label: 'claim',
+      attribution: 'The 23 plaintiff states and the District of Columbia, and state election officials (including the Wisconsin Elections Commission chair), in court filings as reported by CBS News, CNN, and Votebeat (2026-09)',
+      note: 'The legal half is a claim two district judges and a Supreme Court majority found LIKELY to succeed — not yet finally decided. The practical half rests on sworn filings with numbers (Stage 2) and was the exact ground of Justice Kavanaugh’s concurrence.',
+    },
+  ],
+
+  // ---- STAGE 2 — VERIFIABLE vs INTERPRETATION ----
+  verifiable: [
+    {
+      id: 'f-order-and-rule',
+      statement: 'On March 31, 2026 the President signed Executive Order 14399, "Ensuring Citizenship Verification and Integrity in Federal Elections," directing the Postal Service toward a system for ballot mail. On August 26, 2026 the Postal Service published its final rule, "Ballot Mail for Federal Elections" (39 CFR Part 111, a new Domestic Mail Manual section), requiring pre-approved ballot-envelope designs carrying unique Postal Service barcodes and an official logo, and requiring election officials to submit the names and addresses of intended mail-ballot recipients through a new "federal ballot mail portal" before ballots enter the mail stream — with the Postal Service refusing to deliver ballot mail that does not meet the specifications or is not on the submitted list.',
+      status: 'documented',
+      sources: [
+        { title: 'Ballot Mail for Federal Elections (final rule, 39 CFR Part 111)', publisher: 'Federal Register, U.S. Postal Service', url: 'https://www.federalregister.gov/documents/2026/08/26/2026-17238/ballot-mail-for-federal-elections', asOf: '2026-09-15' },
+        { title: 'USPS Ballot Mail Rule: Overview and Potential Impact (IF13297)', publisher: 'Congressional Research Service', url: 'https://www.congress.gov/crs-product/IF13297', asOf: '2026-09-15' },
+        { title: 'Postal Service Mail-In Ballot Rules: What Voters Need to Know Ahead of the 2026 Election', publisher: 'U.S. News & World Report', url: 'https://www.usnews.com/news/national-news/articles/2026-08-25/postal-service-mail-in-ballot-rules-what-voters-need-to-know-ahead-of-the-2026-election', asOf: '2026-09-15' },
+      ],
+      note: 'Verified by live web search on 2026-09-15 against the Federal Register listing, the CRS summary, and contemporaneous reporting. The rule is real, published, and final; what is blocked is its APPLICATION to the 2026 election.',
+    },
+    {
+      id: 'f-lower-courts',
+      statement: 'Twenty-three states and the District of Columbia, led by California, sued in the District of Massachusetts. On June 25, 2026 Judge Indira Talwani blocked key mail-voting provisions of the executive order for those jurisdictions, holding that no act of Congress delegates control of mail-in voting to the Postal Service. On August 24, 2026 the Supreme Court, 6-3 (Justices Sotomayor, Kagan, and Jackson dissenting), lifted that injunction as premature because the Postal Service had not yet issued a final rule; the rule was then published. Judge Talwani put the rule on a 14-day hold on August 28 and entered a preliminary injunction on September 4. On September 13, 2026 Judge Carl Nichols of the District of Columbia — nominated by President Trump in his first term — entered a second preliminary injunction for the Democratic Senatorial Campaign Committee, LULAC, and the NAACP, writing that "No statute grants the Postal Service the power to issue key parts of the Rule."',
+      status: 'documented',
+      sources: [
+        { title: 'Judge blocks key pillars of Trump executive order restricting mail voting in 2026 election', publisher: 'Votebeat', url: 'https://www.votebeat.org/national/2026/06/25/trump-election-overhaul-mail-voting-executive-order-blocked-talwani-usps-dhs/', asOf: '2026-09-15' },
+        { title: 'Supreme Court lifts 1 of 2 injunctions on Trump’s mail-voting executive order for 2026 elections', publisher: 'Votebeat', url: 'https://www.votebeat.org/national/2026/08/24/supreme-court-lifts-stay-trump-executive-order-on-elections-mail-ballot-restrictions/', asOf: '2026-09-15' },
+        { title: 'Federal judge temporarily blocks USPS rules implementing absentee/mail-in voting executive order', publisher: 'Ballotpedia News', url: 'https://news.ballotpedia.org/2026/08/31/federal-judge-temporarily-blocks-usps-rules-implementing-absentee-mail-in-voting-executive-order/', asOf: '2026-09-15' },
+        { title: 'Second federal judge freezes Trump mail ballot order with Supreme Court poised to weigh in', publisher: 'NBC News', url: 'https://www.nbcnews.com/politics/2026-election/second-federal-judge-freezes-trump-mail-ballot-order-supreme-court-rcna597633', asOf: '2026-09-15' },
+        { title: 'Trump-nominated judge blocks USPS mail-in ballot rule as Supreme Court weighs case', publisher: 'Washington Examiner', url: 'https://www.washingtonexaminer.com/news/justice/4725698/trump-nominated-judge-blocks-usps-mail-in-ballot-rule/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The two-judge fact matters for the Word’s own test of a witness: a judge nominated by one party and a judge nominated by the other reached the same reading of the statute (Deuteronomy 19:15’s two-witness standard is about testimony, and we do not stretch it into a legal verdict — but the pattern is worth noticing).',
+    },
+    {
+      id: 'f-scotus-order',
+      statement: 'On September 6, 2026 Solicitor General D. John Sauer filed an emergency application (26A305) with Justice Jackson asking the Court to stay Judge Talwani’s September 4 injunction; responses were due September 9. On Monday, September 14, 2026 the Court denied the application in a short unsigned order stating that the Government "is unlikely to succeed on the merits of its challenge to the District Court’s preliminary injunction" and that the equitable factors for emergency relief do not favor a stay. Justice Kavanaugh wrote separately that there is "at least a fair prospect that the final rule falls within the Postal Service’s statutory authority," but that applying it in the 2026 elections "would be arbitrary and capricious in violation of the Administrative Procedure Act because state and local election officials do not have sufficient time to reasonably implement the rule before the elections." Justice Alito, joined by Justice Thomas, dissented: he wrote that he expressed "no view on whether the Government would be likely to succeed on de novo review of the Postal Service’s powers," but that the Government had made a strong showing that the States’ ultra vires claim is not likely to succeed; the States’ implementation concerns gave him pause but were "not enough to convince me."',
+      status: 'documented',
+      sources: [
+        { title: '26A305 Postal Service v. California — order and opinions (09/14/2026)', publisher: 'Supreme Court of the United States', url: 'https://www.supremecourt.gov/opinions/25pdf/26a305_4g15.pdf', asOf: '2026-09-15' },
+        { title: 'Supreme Court denies Trump administration’s request to implement parts of rule on mail-in voting', publisher: 'SCOTUSblog', url: 'https://www.scotusblog.com/2026/09/supreme-court-denies-trump-administrations-request-to-implement-parts-of-usps-rule-on-mail-in-vo/', asOf: '2026-09-15' },
+        { title: 'The Supreme Court rejects Trump’s mail voting restrictions for this year’s midterms', publisher: 'NPR', url: 'https://www.npr.org/2026/09/14/nx-s1-5962190/supreme-court-mail-in-voting-trump', asOf: '2026-09-15' },
+        { title: 'US Supreme Court rejects DOJ bid to stay injunction blocking USPS mail-in ballot rule', publisher: 'JURIST', url: 'https://www.jurist.org/news/2026/09/us-supreme-court-rejects-doj-bid-to-stay-injunction-blocking-usps-mail-in-ballot-rule/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The quoted lines are as reported from the order and opinions by the outlets above; the primary PDF is listed first so a learner can check every word. Three positions, three honest labels: a majority (unlikely to succeed on THIS emergency challenge), a concurrence (authority plausible, timing fatal), a dissent (States’ theory unlikely, merits reserved). None is a final ruling on the law.',
+    },
+    {
+      id: 'f-ballots-out',
+      statement: 'North Carolina began sending mail ballots on September 4, 2026 and Alabama on September 9; Wisconsin began the following week. Federal law requires every state to transmit ballots to military and overseas voters at least 45 days before the November 3 election. In 2024 about 30% of all ballots were cast by mail (EAC Election Administration and Voting Survey), and voters 65 and older used mail voting at the highest rate of any age group.',
+      status: 'documented',
+      sources: [
+        { title: 'Midterm mail ballots start to go to voters as litigation over Trump’s order creates uncertainty', publisher: 'ABC News / Associated Press', url: 'https://abcnews.com/Politics/wireStory/midterm-mail-ballots-start-voters-litigation-trumps-order-136193718', asOf: '2026-09-15' },
+        { title: 'Alabama voters, who qualify, can use their mail-in ballots freely for the mid-terms', publisher: 'Alabama Public Radio', url: 'https://www.apr.org/news/2026-09-15/alabama-voters-who-qualify-can-use-their-mail-in-ballots-freely-for-the-mid-terms', asOf: '2026-09-15' },
+        { title: 'U.S. Election Assistance Commission Releases 2024 Election Administration and Voting Survey (EAVS) Report', publisher: 'U.S. Election Assistance Commission', url: 'https://www.eac.gov/news/2025/06/30/us-election-assistance-commission-releases-2024-election-administration-and-voting', asOf: '2026-09-15' },
+        { title: 'Here’s who is most likely to vote by mail', publisher: 'CNN', url: 'https://www.cnn.com/2026/09/04/politics/mail-voting-popularity-trump-vis', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The "who" behind the rule matters to the Word’s command to hear the small as well as the great: nearly one ballot in three, and the oldest voters most of all.',
+    },
+    {
+      id: 'f-feasibility',
+      statement: 'In sworn court filings, election officials said the rule could not be implemented before November: Washington’s elections director estimated nearly $2 million to replace more than 1 million envelopes lacking the required inbound barcodes; Hawaii’s already-ordered return envelopes had cost the state $79,000; vendors told officials there was not enough time to print the redesigned envelopes, and possibly not enough paper stock; and the Wisconsin Elections Commission chair said enrolling every Wisconsin mail voter through the portal would be "virtually impossible."',
+      status: 'documented',
+      sources: [
+        { title: 'Election officials raise alarm over implementing new mail voting rules before midterms: "Virtually impossible"', publisher: 'CBS News', url: 'https://www.cbsnews.com/news/mail-voting-rules-usps-election-officials-midterms/', asOf: '2026-09-15' },
+        { title: 'Election officials say they can’t comply with Trump’s proposed mail ballot rules', publisher: 'CNN', url: 'https://www.cnn.com/2026/09/02/politics/election-officials-trump-post-office-mail-ballot-voting', asOf: '2026-09-15' },
+        { title: 'USPS Final Rule on Ballot Mail for Federal Elections: What Counties Need to Know', publisher: 'National Association of Counties', url: 'https://www.naco.org/resource/usps-final-rule-ballot-mail-federal-elections-what-counties-need-know', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. These are sworn filings with numbers, which is why the concurrence rested on timing. They document FEASIBILITY for 2026; they say nothing about whether a rule with lead time would be lawful or wise.',
+    },
+    {
+      id: 'f-fraud-record',
+      statement: 'Absentee-ballot fraud is real and documented in specific cases: in February 2019 the North Carolina State Board of Elections unanimously ordered a new election in the Ninth Congressional District after finding a "coordinated, unlawful and substantially resourced absentee ballot scheme" in the 2018 general election; four people later pleaded guilty. Its measured RATE is very small: the Heritage Foundation’s database counted 1,620 proven instances of voter fraud of all types across decades as of December 2025, of which a New York Times analysis identified 289 absentee-ballot cases from 1982 to 2025; a Brookings analysis put mail-ballot fraud at roughly 0.000043% of mail ballots cast — about four in ten million. Whether the RULE would have prevented any documented case has not been shown in the filings as reported.',
+      status: 'partly-documented',
+      sources: [
+        { title: 'State Board unanimously orders new election in 9th Congressional District', publisher: 'North Carolina State Board of Elections', url: 'https://www.ncsbe.gov/news/press-releases/2019/02/25/state-board-unanimously-orders-new-election-9th-congressional-district', asOf: '2026-09-15' },
+        { title: 'Four people plead guilty in North Carolina ballot probe of 2016 and 2018 elections', publisher: 'NBC News', url: 'https://www.nbcnews.com/politics/elections/four-people-plead-guilty-north-carolina-ballot-probe-2016-2018-electio-rcna49534', asOf: '2026-09-15' },
+        { title: 'The Facts About Mail-In Voting Fraud', publisher: 'TIME', url: 'https://time.com/article/2026/03/20/mail-voting-absentee-voter-fraud-trump-claims-research/', asOf: '2026-09-15' },
+        { title: 'Mail voting fraud: Data points to low risk and high benefits for voters', publisher: 'Brookings Institution', url: 'https://www.brookings.edu/articles/mail-voting-in-the-us-data-points-to-very-low-fraud-and-significant-benefits-to-voters/', asOf: '2026-09-15' },
+        { title: 'What’s Conspicuously Missing from the Government’s Supreme Court Reply Brief in the Mail Ballots Case', publisher: 'Just Security', url: 'https://www.justsecurity.org/156963/usps-mail-ballots-solicitor-general-scotus/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. This is the honest Tier 2 boundary (DR-0100): the CASES are documented and stated plainly; the RATE is documented and small; "widespread" is unproven and carried as the government’s claim; and the counter-slogan that mail fraud never happens is refuted by North Carolina’s own board. Both true data sets stand at once.',
+    },
+    {
+      id: 'f-watson',
+      statement: 'The Court had already decided a sibling mail-ballot question this term: on June 29, 2026, in Watson v. Republican National Committee (24-1260), it held 5-4 that federal Election Day statutes do not bar a state from counting a mail ballot postmarked by Election Day and received within a short state-set grace period (Mississippi’s is five business days). Justice Barrett wrote for the majority with the Chief Justice and Justices Sotomayor, Kagan, and Jackson; Justice Alito dissented, joined by Justices Thomas, Gorsuch, and Kavanaugh.',
+      status: 'documented',
+      sources: [
+        { title: '24-1260 Watson v. Republican National Committee (06/29/2026)', publisher: 'Supreme Court of the United States', url: 'https://www.supremecourt.gov/opinions/25pdf/24-1260_g3cn.pdf', asOf: '2026-09-15' },
+        { title: 'Watson v. Republican National Committee', publisher: 'Ballotpedia', url: 'https://ballotpedia.org/Watson_v._Republican_National_Committee', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. Included because "the midterms use the same rules as before" includes this: grace-period states keep their grace periods, and the same two justices who dissented on September 14 were in that dissent too. The learner can see a consistent legal position on each side, not a whim.',
+    },
+  ],
+  interpretation: [
+    {
+      id: 'n-not-the-merits',
+      statement: '"Rebuffed," "rejected," and "blocked" are the practical result, not the legal act. The Court answered an emergency question — whether to let the rule run in THIS election while the cases proceed — and said no, because the government was unlikely to win its challenge to the injunction and the equities cut against it. It did not rule that the Postal Service lacks the power; a majority signaled doubt, one justice said the power may well exist, two justices said the States’ theory is weak. The merits remain open in two district courts and the First Circuit. Keep the category: an emergency order is a real, binding act with real effect, and it is not a verdict on the law.',
+      restsOn: ['f-scotus-order', 'f-lower-courts'],
+    },
+    {
+      id: 'n-two-slogans',
+      statement: 'Two slogans ride this story, and neither is established. "Any restriction on mail voting is suppression" is not shown: the Court itself, in Watson, was willing to read federal election law strictly, and a rule with real lead time has not been tested. "Any mail ballot is fraud" is refuted by the documented rate and by the fact that nearly a third of the country, and the oldest voters most of all, vote lawfully by mail. What IS documented on each side stands — real cases, real small rate, real feasibility filings, real ballots already out.',
+      restsOn: ['f-fraud-record', 'f-feasibility', 'f-ballots-out', 'f-watson'],
+    },
+    {
+      id: 'n-timing-was-the-hinge',
+      statement: 'The decisive fact was the calendar. The rule was finalized August 26; North Carolina mailed ballots September 4; the order came September 14. Justice Kavanaugh’s concurrence turned on that alone, and even Justice Alito wrote that the States’ implementation concerns gave him pause. A learner who takes away only "the Court is against the President" or "the Court is for mail voting" has missed the sentence the case actually turned on.',
+      restsOn: ['f-scotus-order', 'f-ballots-out', 'f-feasibility'],
+    },
+    {
+      id: 'n-same-rules-narrow',
+      statement: '"The same rules as before" is true of the Postal Service piece — envelopes, barcodes, and the portal will not gate delivery this cycle — and of grace periods after Watson. It is not true of every part of the executive order; on August 24 the Court let other provisions (a federal citizenship list, prosecution priorities) proceed. Saying the narrow true thing is more useful to a voter than the broad loose thing.',
+      restsOn: ['f-lower-courts', 'f-watson'],
+    },
+  ],
+
+  // ---- STAGE 3 — PERSPECTIVES on the UNRESOLVED parts ----
+  perspectives: [
+    {
+      id: 'p-administration',
+      label: 'The administration — integrity, chain of custody, and the mail belongs to the Postal Service',
+      heldBy: 'The President, the Solicitor General, and the two dissenting justices',
+      steelman: 'At its strongest: a ballot in the mail is the one stage of an election no state official can see. A unique barcode on every envelope, a design the carrier can recognize, and a list of intended recipients before the envelopes enter the stream would let the Postal Service track each ballot end to end, refuse counterfeits, and give every voter proof of custody — the same tracking any package gets. Congress gave the Postal Service broad statutory power over what it carries and how; using that power to protect the most vulnerable stage of the vote is not an intrusion on the States but a service to them. And the 2018 North Carolina scheme proves the harm is not imaginary. Even the dissent conceded the timing concern was real; its point was that the States’ legal theory is a long shot and a court should not enjoin a federal agency on a long shot.',
+    },
+    {
+      id: 'p-states',
+      label: 'The challengers — the Constitution gives elections to States and Congress, and rules do not change after the ballots are printed',
+      heldBy: 'Twenty-three states and the District of Columbia, the DSCC, LULAC, the NAACP, and voting-rights groups',
+      steelman: 'At its strongest: the Elections Clause places the times, places, and manner of federal elections with state legislatures and Congress, not with a mail agency, and no statute says otherwise — which is why a judge nominated by each party read the law the same way. Beyond the law is the calendar: ballots were designed, printed, and in some states mailed before the rule was final, and a Postal Service that refuses an envelope because a list was not uploaded is not catching a counterfeit, it is discarding a lawful vote — most often the vote of an older, disabled, rural, or deployed citizen who has no other way to cast it. The documented fraud rate is tiny; the documented cost of the rule was measured in millions of envelopes. The remedy for a real 2018-style scheme is prosecution, which happened, not a national filter that no state could pass in time.',
+    },
+    {
+      id: 'p-officials',
+      label: 'The election officials — feasibility is not a side issue',
+      heldBy: 'State and county election administrators of both parties, in sworn filings',
+      steelman: 'At its strongest: the people who actually run elections were not asked whether the goal was good; they were told to meet a specification with an inactive portal, redesigned envelopes, vendors who said there was no time, and paper that might not exist, weeks before ballots were due to overseas troops by federal law. A rule that cannot be met produces rejected ballots and lawsuits, not integrity. This is the ground Justice Kavanaugh stood on, and it is also the ground the Word calls decently and in order: a just measure must be one the measurer can actually apply.',
+    },
+    {
+      id: 'p-believer',
+      label: 'The ordinary voter — confidence both ways, and the conduct the Word requires of me',
+      heldBy: 'Believers who vote, on either side of the aisle',
+      steelman: 'At its strongest: a citizen wants two things at once — every lawful vote counted and no unlawful one counted — and the Word wants exactly that, calling both errors a false balance. Such a voter does not need the Court to have been for or against anyone; he needs to know what the rules are this cycle (the same as before), what his deadline is, and that he must not repeat a claim about the outcome that he cannot prove. He prays for the President, the Postmaster General, the judges, and the clerks by name, because the Word puts prayer first of all, and he trusts that the disposing of the lot is of the LORD.',
+    },
+  ],
+
+  // ---- STAGE 4 — THE BELIEVER'S LENS ----
+  lens: {
+    fourD: {
+      deepSource: 'WORD FIRST — Before any court, any agency, or any newsletter speaks, Yahweh has already said what an honest count must be. He wrote it for the marketplace first, and it reaches every counting: "Ye shall do no unrighteousness in judgment, in meteyard, in weight, or in measure." (Leviticus 19:35) — "Just balances, just weights, a just ephah, and a just hin, shall ye have: I am the LORD your God, which brought you out of the land of Egypt." (Leviticus 19:36). He owns the measure itself: "A just weight and balance are the LORD’s: all the weights of the bag are his work." (Proverbs 16:11); "A false balance is abomination to the LORD: but a just weight is his delight." (Proverbs 11:1); "Divers weights, and divers measures, both of them are alike abomination to the LORD." (Proverbs 20:10). A ballot is a weight in the bag. Yahweh’s standard has two edges at once: the measure must count every lawful vote (a weight withheld is a false balance) AND count no unlawful one (a weight added is a false balance) — and He names both errors with the same word. So the believer refuses the two slogans the day trades in; "any restriction is suppression" and "any mail ballot is fraud" are both a bag with divers weights. He then wrote the job description of a judge, and every justice on that Court sits under it whether he knows it or not: "Judges and officers shalt thou make thee in all thy gates" and "they shall judge the people with just judgment." (Deuteronomy 16:18) — "Thou shalt not wrest judgment; thou shalt not respect persons, neither take a gift: for a gift doth blind the eyes of the wise, and pervert the words of the righteous." (Deuteronomy 16:19) — "That which is altogether just shalt thou follow" (Deuteronomy 16:20). "Ye shall not respect persons in judgment; but ye shall hear the small as well as the great; ye shall not be afraid of the face of man; for the judgment is God’s" (Deuteronomy 1:17). "And thou shalt take no gift: for the gift blindeth the wise, and perverteth the words of the righteous." (Exodus 23:8). "Thou shalt not follow a multitude to do evil; neither shalt thou speak in a cause to decline after many to wrest judgment" (Exodus 23:2). Jehoshaphat’s charge to his judges is the standard for any bench: "Take heed what ye do: for ye judge not for man, but for the LORD, who is with you in the judgment." (2 Chronicles 19:6). Notice what the Word does NOT say. It does not say a judge must rule for the ruler, nor against him. It says: no respect of persons, no gift, no fear of faces. That is the whole measure of a court, and it is the measure this lesson applies to a majority, a concurrence, and a dissent alike. He wrote the standing of rulers: "Let every soul be subject unto the higher powers. For there is no power but of God: the powers that be are ordained of God." (Romans 13:1); "For he is the minister of God to thee for good." (Romans 13:4); "Submit yourselves to every ordinance of man for the Lord’s sake: whether it be to the king, as supreme;" (1 Peter 2:13) — "Or unto governors, as unto them that are sent by him for the punishment of evildoers, and for the praise of them that do well." (1 Peter 2:14). A President, a Postmaster General, a district judge, a Supreme Court: each is a minister in Yahweh’s ordering, and each will be measured by the same just weight. And He told us what to do with them, and put it FIRST: "I exhort therefore, that, first of all, supplications, prayers, intercessions, and giving of thanks, be made for all men;" (1 Timothy 2:1) — "For kings, and for all that are in authority; that we may lead a quiet and peaceable life in all godliness and honesty." (1 Timothy 2:2). Before the opinion, the prayer. He told us what we owe the system we live under: "Render therefore unto Caesar the things which are Caesar’s; and unto God the things that are God’s." (Matthew 22:21). Caesar’s coin bore Caesar’s image; a lawful ballot is a thing a citizen renders — filled honestly, returned on time, by the rules that stand. He told us the outcome is His: "The lot is cast into the lap; but the whole disposing thereof is of the LORD." (Proverbs 16:33); "The king’s heart is in the hand of the LORD, as the rivers of water: he turneth it whithersoever he will." (Proverbs 21:1); "But God is the judge: he putteth down one, and setteth up another." (Psalms 75:7). A ballot in an envelope is a lot cast into the lap; the disposing is His — which frees the believer from both panic and triumph. He told us how to read a ruler and a rule: "Wherefore by their fruits ye shall know them." (Matthew 7:20); "When the righteous are in authority, the people rejoice: but when the wicked beareth rule, the people mourn." (Proverbs 29:2). And He told us the case is not closed at the top step of that Court: "For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil." (Ecclesiastes 12:14). SO IN THIS CASE the believer does four things in order. First, state what is documented, plainly, because "Prove all things; hold fast that which is good." (1 Thessalonians 5:21): the executive order of March 31, the Postal Service rule of August 26, the injunctions of June 25, September 4, and September 13, the Court’s September 14 order, the two dissenters, the one concurrence, and the ballots already in the mail in North Carolina, Alabama, and Wisconsin. Second, keep the categories — "He that answereth a matter before he heareth it, it is folly and shame unto him." (Proverbs 18:13); "He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him." (Proverbs 18:17): the Court decided an EMERGENCY question, whether to lift a block for this election, not the merits of the Postal Service’s power; a majority said the government is unlikely to succeed, Justice Kavanaugh said the authority may well exist but the timing fails, Justice Alito said the States’ theory is unlikely to succeed — every one of those is reported as what it is, and none of them is the final word on the law. Third, weigh the CLAIMS by the just weight: the administration’s claim that mail fraud is pernicious rests on real documented cases (the 2018 Ninth District scheme in North Carolina was real, and a new election was ordered) and on a documented rate that is very small; the challengers’ claim that the rule would strip lawful ballots rests on real sworn filings from real election officials about envelopes, portals, vendors, and time. Both true data sets stand; neither slogan does. Fourth — and this is where the Word settles what the debate cannot — the believer’s own conduct: "Thou shalt not bear false witness against thy neighbour." (Exodus 20:16); "A false witness shall not be unpunished, and he that speaketh lies shall not escape." (Proverbs 19:5). Whatever any court rules, the believer does not say a count was stolen without proof, does not say a rule was harmless without hearing the clerk, and does not repeat a number he has not checked. "Speak ye every man the truth to his neighbour; execute the judgment of truth and peace in your gates" (Zechariah 8:16). Then he votes — checks the deadline, returns the ballot early, renders to Caesar — and prays for every name in the case, because the disposing is of the LORD.',
+      scripture: 'Leviticus 19:35-36; Proverbs 16:11; Proverbs 11:1; Proverbs 20:10; Deuteronomy 25:13-15; Deuteronomy 16:18-20; Deuteronomy 1:17; Exodus 23:8; Exodus 23:2; 2 Chronicles 19:6-7; Proverbs 24:23; Romans 13:1-4; 1 Peter 2:13-14; 1 Peter 2:17; 1 Timothy 2:1-2; Jeremiah 29:7; Matthew 22:21; Romans 13:7; Proverbs 16:33; Proverbs 21:1; Psalms 75:6-7; Daniel 2:21; Matthew 7:20; Proverbs 29:2; Ecclesiastes 12:14; 1 Thessalonians 5:21; Proverbs 18:13; Proverbs 18:17; John 7:51; Exodus 20:16; Proverbs 19:5; Proverbs 12:22; Zechariah 8:16; 1 Corinthians 14:40',
+    },
+    threeD: 'Practically: read the newsletter line, then read the order. Say the documented parts plainly and dated — the executive order (March 31), the final rule (August 26), the injunctions (June 25, September 4, September 13), the denial (September 14), the dissent (Alito, joined by Thomas), the concurrence (Kavanaugh: authority plausible, timing fatal), and the ballots already out (North Carolina September 4, Alabama September 9, Wisconsin the week after). Then label the rest honestly: "the Court blocked the rule" is the effect, "the Court denied a stay" is the act, and "the Postal Service has no authority" is a likely-but-undecided reading of the law. Hear each side at its strongest (Proverbs 18:17): integrity and custody are real goods; the Elections Clause and the calendar are real limits; feasibility is real. Then measure it by the just weight — every lawful vote counted, no unlawful one counted — and do your own part: find your state’s deadline today, request or complete your ballot, sign it exactly as instructed, return it early (the mailbox, a drop box, or the clerk’s office as your state allows), and confirm it was received where your state offers tracking. Never post a claim about the count you cannot source. Pray, by name, for the President, the Postmaster General, Judge Talwani, Judge Nichols, the nine justices, and your county clerk — first of all (1 Timothy 2:1).',
+    accountability: {
+      statement: 'THE TWO COURTS. Man’s highest court answered a narrow question on September 14 and answered it lawfully; it will answer the merits later, and this lesson invents no verdict it has not given. But the Word never lets accountability shrink to what a bench happened to rule on. Every decree — a President’s order, an agency’s rule, a judge’s injunction, a justice’s dissent — enters the eternal court where "God shall bring every work into judgment, with every secret thing" (Ecclesiastes 12:14), where a judge who took a gift or feared a face answers for it (Exodus 23:8; Deuteronomy 1:17), where "He that justifieth the wicked, and he that condemneth the just, even they both are abomination to the LORD." (Proverbs 17:15), and where a false witness about a count — whoever spoke it, from a podium or a phone — is heard: "Lying lips are abomination to the LORD: but they that deal truly are his delight." (Proverbs 12:22). WHAT A SYSTEM OWES under the Word is a just measure both ways and a measure its clerks can actually apply. WHAT WE OWE: to render what is Caesar’s (Matthew 22:21) — the lawful ballot, on time; to honour the king and the governor (1 Peter 2:17) whether or not we voted for them; to pray for them first of all (1 Timothy 2:1-2); and to speak the truth to our neighbour about what a court did and did not do (Zechariah 8:16). And the lived cost during this life is seen now: an older voter whose lawful ballot would have been refused for a missing barcode, and a lawful voter whose vote would have been diluted by a counterfeit, are both weighed by the same LORD. No one gets away: "God is not mocked" (Galatians 6:7), and the books are opened (Revelation 20:12).',
+      scripture: 'Ecclesiastes 12:14; Exodus 23:8; Deuteronomy 1:17; Proverbs 17:15; Proverbs 12:22; Matthew 22:21; 1 Peter 2:17; 1 Timothy 2:1-2; Zechariah 8:16; Proverbs 24:23; Galatians 6:7; Revelation 20:12',
+    },
+    benefits: [
+      'Both courts, honestly held: man’s highest court decided an emergency question on September 14 and left the merits open, and this lesson invents no verdict — while the ETERNAL court holds every order, rule, dissent, and claim about a count, and lands after this life (Ecclesiastes 12:14; Proverbs 17:15). You can say what happened without pretending to know what has not been decided.',
+      'Freedom from two slogans at once: "any restriction is suppression" and "any mail ballot is fraud" are both a bag of divers weights (Proverbs 20:10); the documented cases, the documented rate, the sworn feasibility filings, and the ballots already out all stand together.',
+      'The Word’s own measure of a court in your hands — no respect of persons, no gift, no fear of faces (Deuteronomy 16:19; Exodus 23:8; Deuteronomy 1:17) — so you can read a majority, a concurrence, and a dissent by the same standard instead of by whose side they landed on.',
+      'A repeatable method for any court story: the ACT (a denial of a stay) versus the EFFECT (the rule will not run); the emergency question versus the merits; what each opinion actually said versus what the headline said.',
+      'Peace in the middle of an election: the lot is cast into the lap and the disposing is of the LORD (Proverbs 16:33), which removes both panic and triumph and leaves the believer free to do his part and pray for every name.',
+      'A house that does not bear false witness: no unsourced claim about a count, no repeated number that was never checked (Exodus 20:16; Proverbs 19:5) — and a ballot rendered to Caesar honestly, early, and by the rules that stand (Matthew 22:21).',
+    ],
+    graceNote: 'No condemnation of any justice’s, judge’s, or official’s soul: this lesson pronounces no verdict on President Trump, Solicitor General Sauer, Justice Alito, Justice Thomas, Justice Kavanaugh, the six who joined the order, Judge Talwani, Judge Nichols, the Postmaster General, or any state official who signed a filing — their hearts are Yahweh’s to judge, and He is no respecter of persons in either direction. A dissent is not wickedness and a majority is not righteousness; each is measured by the just weight, and each will be. Leaving the soul to Yahweh never mutes the deed: a false balance is named as a false balance whichever hand holds it, and a false witness about a count is named as false whoever speaks it. Truth and grace meet in Jesus, who paid Caesar’s coin, told the truth before Pilate, and prayed for the men who judged Him.',
+    stewardship: 'The deeper response to a fight over the mail is to BE the just measure where you stand. Vote, and vote the way the Word describes a just weight: request your ballot early, read the instructions, sign where it says, return it well before the deadline by a method your state allows, and confirm receipt where tracking exists — so that your one weight in the bag is true. Help the people the rule would have touched first: drive an older neighbour to the drop box, walk a disabled brother through his state’s tracking page, remind a deployed cousin of the 45-day window. Volunteer as a poll worker or an election observer — both parties need them, and a believer who has seen a count with his own eyes bears true witness instead of repeating a rumor. In the Body, teach the two-court frame so no one in the church spreads a claim about an outcome he cannot source. This platform’s own discipline is the same in miniature: every fact here carries a source and a date, every verse is fetched verbatim and gated, and what is undecided is marked undecided. Righteous engagement names the measure; it is completed by living it.',
+    anchor: {
+      ref: 'Proverbs 16:11; Exodus 20:16',
+      theme: 'The measure belongs to Yahweh — "A just weight and balance are the LORD’s: all the weights of the bag are his work." — so every lawful vote is counted and no unlawful one is, and the believer’s own weight in the bag is a true ballot and a true word: "Thou shalt not bear false witness against thy neighbour."',
+    },
+  },
+
+  // ---- STAGE 5 — REFLECTION + SKILL ----
+  reflection: {
+    skill: 'When a one-line court story lands in your feed: PAUSE. Separate the ACT (what the court actually did — here, denied an emergency stay) from the EFFECT (the rule will not run this cycle) and from the MERITS (undecided). Read what each opinion said, not what the headline said. Say the documented, dated record plainly — refusing to name it is false witness. Carry each side’s fraud-or-access claim as a sourced fact or a labeled claim, and hear both at their strongest. Then measure by the just weight — every lawful vote, no unlawful one — do your own part on time, and pray for every name in the case before you form an opinion of any of them.',
+    practice: 'Take the line "the Supreme Court blocked the mail-in voting restrictions." Write four lines: (1) one sentence of the ACT with its date and docket; (2) one sentence of what Justice Kavanaugh and Justice Alito each actually said; (3) one sentence labeling the fraud claim and the access claim, each with its documented basis; (4) one sentence of what you will DO this month — your state’s deadline, your ballot, and the names you will pray for first.',
+    prompts: [
+      'The order said the government "is unlikely to succeed on the merits of its challenge to the District Court’s preliminary injunction." What did the Court decide, and what did it leave undecided? Why does that distinction matter for a believer who does not want to bear false witness?',
+      'Justice Kavanaugh said the Postal Service may well have the authority AND that applying the rule in 2026 would be arbitrary and capricious for lack of time. How does the Word’s "decently and in order" (1 Corinthians 14:40) bear on a rule that cannot be met?',
+      'Yahweh calls a withheld weight and an added weight by the same word — abomination (Proverbs 20:10). Where do you see each error being defended as if it were righteousness? How do you hold both edges at once?',
+      'The 2018 North Carolina scheme was real, and the documented mail-fraud rate is about four in ten million. How do you state both plainly in one breath without collapsing either into a slogan?',
+      'Deuteronomy 16:19 forbids a judge to respect persons, take a gift, or fear faces. Apply that measure to the majority, the concurrence, and the dissent — without deciding by which side each landed on. What would it look like to pray for Justice Alito and Judge Talwani in the same sentence?',
+      'Proverbs 16:33: the lot is cast, the disposing is of the LORD. What would change in your speech about this election if you believed that sentence?',
+      'In your own house: what is your state’s mail-ballot deadline, and who in your church or family would have been touched first by an envelope rule — an older saint, a disabled brother, a deployed cousin? What will you do for them this month?',
+    ],
+  },
+
+  // ---- Age-appropriate renderings (kids use the app) ----
+  levels: {
+    child: 'When grown-ups vote, some of them mail their vote in an envelope. This year some leaders wanted the post office to use new rules for those envelopes. Judges said, not this year. The old rules stay. Big news like this can make people say things that are not true. Yahweh says we must be fair when we weigh or count anything. He says, "A false balance is abomination to the LORD: but a just weight is his delight." (Proverbs 11:1). Counting votes is like weighing on a scale. Every real vote should count. No pretend vote should count. Both of those are being fair. Yahweh also tells us to pray for leaders and judges (1 Timothy 2:1-2). And He says, "Thou shalt not bear false witness against thy neighbour." (Exodus 20:16). That means do not say things that are not true about other people. So when you hear big news, do three things. Ask what really happened. Say only what is true. Pray for the people in charge. And when you are old enough, vote on time, the honest way.',
+    teen: 'Two newsletters say the Supreme Court "blocked" new mail-in voting rules. Run the moves before you repeat it. (1) Get the ACT right. On March 31 the President signed an executive order; on August 26 the Postal Service finalized a rule requiring pre-approved envelopes with barcodes and a federal portal listing every mail voter, with the Postal Service refusing anything that did not match. Two judges — one nominated by a Democrat, one by President Trump — blocked it. On September 14 the Supreme Court refused to lift the block for this election, saying the government was unlikely to win its challenge and the timing cut against it. Justices Alito and Thomas dissented; Justice Kavanaugh said the Postal Service may well have the power but there was no time to apply the rule fairly. So: the rule is real, it will not run this year, and whether it is LAWFUL is not decided. That is the honest sentence. (2) Weigh the claims. The government says mail fraud is pernicious; a real 2018 scheme in North Carolina forced a new election, and the documented rate across all mail ballots is about four in ten million. The states say lawful ballots would be refused; sworn filings put the cost in millions of envelopes and a portal that was not even live. Both data sets are true. Neither slogan is. (3) Now the Word. Yahweh says "A false balance is abomination to the LORD: but a just weight is his delight." (Proverbs 11:1) — a withheld lawful vote and an added unlawful one are BOTH a false balance, and He hates both. He says a judge must not respect persons, take a gift, or fear faces (Deuteronomy 16:19) — that is how you measure a majority and a dissent alike, not by whose side they landed on. He says the lot is cast but "the whole disposing thereof is of the LORD." (Proverbs 16:33) — so no panic, no gloating. And He says "Thou shalt not bear false witness against thy neighbour." (Exodus 20:16) — so you do not post a claim about a count you cannot source. (4) Do your part. If you can vote: check your state’s deadline today, return the ballot early, confirm it arrived. If you cannot yet: help someone older get theirs in. And pray, first of all, for the President, the judges, and the justices by name (1 Timothy 2:1-2) — the ones you agree with and the ones you do not.',
+    senior: 'For the seasoned believer, this lesson is about reading a court through the Word’s own measure of a court, in a season when both political tribes want the bench to be their instrument. First, the record, stated plainly and dated: Executive Order 14399 of March 31, 2026; the Postal Service’s final rule of August 26 (pre-approved envelopes with unique barcodes and an official logo; a federal portal listing intended mail-ballot recipients; refusal to deliver non-conforming ballot mail); Judge Talwani’s June 25 injunction against the order for 23 states and the District, lifted by the Court on August 24 as premature; her September 4 preliminary injunction against the rule; Judge Nichols’s parallel September 13 injunction in the District of Columbia ("No statute grants the Postal Service the power to issue key parts of the Rule"); the Solicitor General’s September 6 application; and the September 14 denial — the Government "is unlikely to succeed on the merits of its challenge to the District Court’s preliminary injunction," the equities against a stay — with Justice Kavanaugh concurring on timing under the Administrative Procedure Act and Justice Alito, joined by Justice Thomas, dissenting on the strength of the States’ ultra vires theory while expressly reserving the merits. Ballots were already in the mail in North Carolina, Alabama, and Wisconsin. Second, the categories kept honestly (Proverbs 18:13, 18:17): the act was a denial of emergency relief; the effect is that the rule will not govern 2026; the merits are open in two district courts and a court of appeals; and the sibling ruling in Watson v. RNC (June 29) shows a consistent position on each side rather than a whim. Third, the claims by the just weight (Leviticus 19:35-36; Proverbs 16:11): documented absentee fraud exists and was prosecuted (North Carolina, 2018-2019); its documented rate is very small; sworn feasibility filings are real; nearly a third of the electorate, the oldest voters most of all, votes lawfully by mail. Neither "any restriction is suppression" nor "any mail ballot is fraud" survives the Word, and the true data under each slogan stands untouched. Fourth — where the Word settles what the debate cannot — the measure of the bench itself is not which side it favored but whether it respected persons, took a gift, or feared a face (Deuteronomy 16:18-20; Exodus 23:8; 2 Chronicles 19:6-7); rulers are ministers in Yahweh’s ordering (Romans 13:1-4; 1 Peter 2:13-14) and are to be prayed for first of all (1 Timothy 2:1-2); the ballot is Caesar’s coin rendered honestly (Matthew 22:21); the disposing of the lot is of the LORD (Proverbs 16:33); and the believer’s own weight in the bag is a true ballot and a true word (Exodus 20:16; Zechariah 8:16). The verdict on any justice’s or official’s soul stays with Yahweh; the verdict on a false balance, and on a false witness about a count, is already written (Proverbs 11:1; Proverbs 12:22; Ecclesiastes 12:14). Then let the response mature past commentary into the Body’s vocation: be the just measure where you stand — vote early and exactly, carry the older and the disabled to the box, serve as a poll worker or observer so your witness is true, and teach the household not to repeat what it cannot source.',
+  },
+
+  // ---- Discernment-skill quiz ----
+  quiz: {
+    questions: [
+      {
+        q: 'The newsletter says the Supreme Court "blocked" the mail-in rules. What did the Court actually do on September 14, 2026?',
+        options: ['Ruled that the Postal Service has no authority over ballot mail', 'Denied the government’s emergency request to lift a district court’s injunction, finding the government unlikely to succeed on that challenge and the equities against a stay', 'Struck down the executive order in full'],
+        answer: 1,
+        explain: 'The ACT was a denial of a stay; the EFFECT is that the rule will not run in 2026; the MERITS — whether the rule is lawful — remain undecided in the lower courts. Keeping those three apart is the discernment move.',
+      },
+      {
+        q: 'Justice Kavanaugh wrote separately. Which statement best captures what he said?',
+        options: ['The Postal Service clearly lacks authority', 'There is at least a fair prospect the rule is within the Postal Service’s authority, but applying it in 2026 would be arbitrary and capricious because officials lack time to implement it', 'The States have no standing'],
+        answer: 1,
+        explain: 'His concurrence was two-sided — authority plausible, timing fatal. A newsletter carrying only the first half is not lying, but it is incomplete; the Word asks us to hear the whole matter (Proverbs 18:13).',
+      },
+      {
+        q: 'Which label fits the statement "mail-ballot fraud is a particularly pernicious species of fraud"?',
+        options: ['Documented fact', 'The government’s characterization — carried as a claim, with the documented cases and the documented small rate stated underneath it', 'A lie'],
+        answer: 1,
+        explain: 'Real cases exist (the 2018 North Carolina scheme forced a new election) and the documented rate is about four in ten million. Both are stated plainly; "widespread" is unproven and stays a claim (DR-0100).',
+      },
+      {
+        q: 'Yahweh calls both a withheld weight and an added weight an abomination (Proverbs 20:10). Applied to an election, what does that require?',
+        options: ['Counting every ballot that arrives, no matter what', 'Rejecting any ballot that came by mail', 'Every lawful vote counted AND no unlawful one counted — both errors are a false balance'],
+        answer: 2,
+        explain: 'The Word’s standard has two edges at once. Neither slogan — "any restriction is suppression" or "any mail ballot is fraud" — survives it.',
+      },
+      {
+        q: 'How does the Word tell you to measure a judge — and therefore a majority, a concurrence, and a dissent?',
+        options: ['By which side they ruled for', 'By whether they respected persons, took a gift, or feared the face of man (Deuteronomy 16:19; Exodus 23:8; Deuteronomy 1:17)', 'By their party of nomination'],
+        answer: 1,
+        explain: 'The Word does not say a judge must rule for the ruler or against him. Its measure is impartiality, and it applies to every opinion in the case by the same standard.',
+      },
+      {
+        q: 'What does "Thou shalt not bear false witness against thy neighbour" (Exodus 20:16) require of a believer during this election?',
+        options: ['Silence about politics', 'Never repeating a claim about a count or an outcome that you cannot source, and stating the documented record plainly', 'Only speaking well of your own side'],
+        answer: 1,
+        explain: 'False witness runs both ways — inventing a stolen count and denying a documented scheme are both lies. The believer says what is documented and marks what is undecided.',
+      },
+      {
+        q: 'What is the believer’s own part, per the lesson’s stewardship?',
+        options: ['Wait for the merits ruling before voting', 'Check the state deadline, complete and return the ballot early by an allowed method, confirm receipt, help an older or disabled neighbour do the same, and pray for every name in the case first of all', 'Post reactions to each opinion'],
+        answer: 1,
+        explain: 'Render to Caesar what is Caesar’s (Matthew 22:21), pray first of all (1 Timothy 2:1-2), and trust that the disposing of the lot is of the LORD (Proverbs 16:33).',
+      },
+    ],
+  },
+};
+
+// =============================================================================
+// ISSUE 15 — Evanston's reparations and the equal-protection suit
+// (wi-evanston-reparations-and-equal-protection). Darrell forwarded NPR's Up
+// First (2026-09-15) with the word Lesson. and the instruction to find each
+// subject, research it independently, and build the lesson. This is the deep
+// dive: the first US city with a reparations program, its documented 1921
+// zoning wrong, the $25,000 grants, the conservative group's suit, and the
+// Justice Department's move to join it on an equal-protection theory. Handled
+// under DR-0100: the DOCUMENTED harm (the ordinance, the confinement to one
+// ward, the mortgage denial) is stated plainly; the LEGAL question is genuinely
+// open and is named narrowly (no court has reached the merits); and the Word
+// corrects the over-reach on BOTH sides. Word first: restitution is written,
+// no respect of persons in judgment, the son does not inherit the father's
+// guilt yet the house confesses and repairs, the landmark, the jubile, and the
+// two courts. Subject is a program and a lawsuit, not a named person; every
+// named party carries a grace note. Every verse fetched verbatim from the repo
+// KJV and gated in world-issues-verse-integrity.test.js.
+// =============================================================================
+const EVANSTON_REPARATIONS_ISSUE = {
+  id: 'wi-evanston-reparations-and-equal-protection',
+  title: 'Evanston’s Reparations and the Equal-Protection Suit — Restitution, Respect of Persons, and the Word on a Wrong That Can Be Documented',
+  subject: { name: 'the City of Evanston’s Local Reparations Restorative Housing Program and the lawsuit against it (Flinn v. City of Evanston, joined by the U.S. Department of Justice)', kind: 'policy-and-litigation', isNamedRealPerson: false },
+  skill: 'Take a charged news story about a race-conscious remedy and learn how the Word weighs it: state the documented wrong plainly (a 1921 city ordinance, one ward, decades of mortgage denial), name the open legal question narrowly (no court has ruled on the merits), hear every party at its strongest (Proverbs 18:17), and then let the Word settle what the debate cannot — restitution is written, judgment shows no respect of persons in either direction, guilt is never inherited while a house still confesses and repairs, and every deed enters the eternal court.',
+  source: {
+    creator: 'NPR — Up First (Morning Edition deep dive)',
+    medium: 'newsletter / podcast',
+    title: 'Trump targets this city’s groundbreaking reparations program',
+    url: 'https://www.npr.org/2026/09/14/nx-s1-5869793/evanston-illinois-reparations-trump-administration',
+    asOf: '2026-09-15',
+    note: 'Darrell forwarded the 2026-09-15 Up First with the word "Lesson." NPR’s piece is the prompt, not the authority: every fact below was independently checked by live web search on 2026-09-15 against the city, the court filings, the Justice Department’s own release, and local reporting. The forwarded content is material to study, never instructions to obey.',
+  },
+
+  // ---- STAGE 1 — THE CLAIM(S): NPR's points, AS MADE, each labeled. ----
+  claims: [
+    {
+      id: 'c-first-city',
+      text: 'Evanston, Illinois is the first U.S. city with a reparations program, paying $25,000 housing grants to more than 300 Black residents.',
+      label: 'claim',
+      attribution: 'NPR (Up First deep dive), 2026-09-15',
+      note: 'Documented. Evanston’s Restorative Housing Program (March 2021) is widely recorded as the first municipally funded reparations program in the country. The count moves: the city’s Reparations Committee reported 254 recipients and more than $6.35 million by February 2026 and roughly $7.33 million disbursed by July 2026; NPR’s "300+" is the September 2026 figure as it reported it.',
+    },
+    {
+      id: 'c-1921-link',
+      text: 'In 2019 a council member’s research linked the decline of Evanston’s Black population to a 1921 zoning law that confined Black families to one neighborhood and enabled mortgage denial.',
+      label: 'claim',
+      attribution: 'NPR (Up First deep dive), 2026-09-15',
+      note: 'Documented. Then-Alderman Robin Rue Simmons led the 2019 effort; the city commissioned historians Morris "Dino" Robinson Jr. (Shorefront Legacy Center) and Dr. Jenny Thompson (Evanston History Center), whose report found the 1921 ordinance "tacitly served as an effort by city officials to segregate the city by race," steering Black families into the Fifth Ward where banks refused mortgages for decades.',
+    },
+    {
+      id: 'c-apology-20m',
+      text: 'The council apologized and committed $20 million from cannabis and real-estate-transfer taxes.',
+      label: 'claim',
+      attribution: 'NPR (Up First deep dive), 2026-09-15',
+      note: 'Documented. Resolution 126-R-19 (November 2019) pledged the first $10 million of adult-use cannabis tax; the commitment was later expanded to $20 million with a share of the real-estate-transfer tax. The money is the city’s own, not a state or federal grant.',
+    },
+    {
+      id: 'c-eligibility',
+      text: 'Applicants had to be Black and show that they or an ancestor lived in Evanston between 1919 and 1969.',
+      label: 'claim',
+      attribution: 'NPR (Up First deep dive), 2026-09-15',
+      note: 'Documented. Two categories: "Ancestors" (Black adults living in Evanston at any time 1919–1969) and "Direct Descendants" (their children, grandchildren, great-grandchildren). The $25,000 may go to a home purchase, mortgage assistance, repairs, or — since a March 2023 council vote — direct cash.',
+    },
+    {
+      id: 'c-doj-violates',
+      text: 'The Justice Department says the program violates the Equal Protection Clause.',
+      label: 'allegation',
+      attribution: 'The U.S. Department of Justice, Civil Rights Division, in its June 16, 2026 motion to intervene — as reported by NPR',
+      note: 'An allegation in a live case, carried as such. The DOJ’s proposed complaint pleads the Equal Protection Clause of the Fourteenth Amendment and the Fair Housing Act and says the program is "not narrowly tailored to remediating specific, identified instances of past discrimination." No court has ruled on it.',
+    },
+    {
+      id: 'c-frame-trump-stopping',
+      text: 'This city led the way on reparations for Black people, and Trump is trying to stop it.',
+      label: 'opinion',
+      attribution: 'NPR’s headline framing (the member-station headline of the same piece), 2026-09-15',
+      note: 'Editorial framing. The documented act is a Justice Department motion to intervene in a private lawsuit filed two years earlier; the DOJ acts under the current administration. "Led the way" and "trying to stop it" are a stance on the merits, not a record — and a discerning reader separates the record from the frame.',
+    },
+  ],
+
+  // ---- STAGE 2 — VERIFIABLE vs INTERPRETATION ----
+  verifiable: [
+    {
+      id: 'f-1921-and-harms',
+      statement: 'Evanston adopted a zoning ordinance in 1921 that, together with restrictive practices by realtors and banks, confined the city’s Black residents to the Fifth Ward, where local banks refused mortgages for decades. The city documented this itself: historians Morris "Dino" Robinson Jr. and Dr. Jenny Thompson were commissioned by the Reparations Subcommittee and produced "Evanston Policies and Practices Directly Affecting the African American Community, 1900–1960 (and Present)" (draft August 2020; released 2021), which found the 1921 ordinance "tacitly served as an effort by city officials to segregate the city by race." The report won a National Council on Public History award in 2022.',
+      status: 'documented',
+      sources: [
+        { title: 'Evanston historians win national award for work documenting city’s history of racial discrimination', publisher: 'Evanston RoundTable', url: 'https://evanstonroundtable.com/2022/02/19/evanston-historians-win-national-council-on-public-history-award/', asOf: '2026-09-15' },
+        { title: 'Documenting Historic Harm', publisher: 'Washington University Libraries', url: 'https://library.washu.edu/news/documenting-historic-harm/', asOf: '2026-09-15' },
+        { title: 'In Likely First, Chicago Suburb Of Evanston Approves Reparations For Black Residents', publisher: 'NPR', url: 'https://www.npr.org/2021/03/23/980277688/in-likely-first-chicago-suburb-of-evanston-approves-reparations-for-black-reside', asOf: '2026-09-15' },
+        { title: 'Trump targets this city’s groundbreaking reparations program', publisher: 'NPR', url: 'https://www.npr.org/2026/09/14/nx-s1-5869793/evanston-illinois-reparations-trump-administration', asOf: '2026-09-15' },
+      ],
+      note: 'Verified by live web search 2026-09-15. This is DR-0100 Tier 1: established, documented damage, done by the city’s own hand and recorded in the city’s own commissioned report. No party in the lawsuit disputes that the 1921 ordinance existed.',
+    },
+    {
+      id: 'f-program-mechanics',
+      statement: 'Timeline: November 2019 — Resolution 126-R-19 commits the first $10 million of adult-use cannabis sales tax to local reparations. March 2021 — the council approves the Local Reparations Restorative Housing Program ($25,000 per eligible person for home purchase, mortgage assistance, or repair). January 2022 — the first 16 recipients are selected by random drawing. 2022 — the fund is expanded toward $20 million with a share of the real-estate-transfer tax. March 2023 — the council allows the $25,000 to be paid as direct cash. Eligibility: "Ancestors" (Black persons who lived in Evanston as adults 1919–1969) and "Direct Descendants" (their children, grandchildren, or great-grandchildren).',
+      status: 'documented',
+      sources: [
+        { title: 'Evanston’s historic reparations program: A 101 guide (parts 1–3)', publisher: 'Evanston RoundTable', url: 'https://evanstonroundtable.com/2022/08/23/evanstons-historic-reparations-program-a-101-guide/', asOf: '2026-09-15' },
+        { title: 'Robin Rue Simmons: "Today we take an important step in selecting the first reparations recipients"', publisher: 'Evanston RoundTable', url: 'https://evanstonroundtable.com/2022/01/13/reparations-robin-rue-simmons-important-first-step-statement/', asOf: '2026-09-15' },
+        { title: 'Evanston City Council votes in favor of expanding its reparations program to repair housing discrimination', publisher: 'CNN', url: 'https://www.cnn.com/2023/03/27/us/evanston-illinois-reparations-housing-discrimination-expand/index.html', asOf: '2026-09-15' },
+        { title: 'Evanston Local Reparations', publisher: 'City of Evanston', url: 'https://www.cityofevanston.org/government/initiatives/evanston_local_reparations.php', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The money is the city’s own revenue; the apology is the council’s own; the eligibility window (1919–1969) matches the period the city’s report documents.',
+    },
+    {
+      id: 'f-paid-to-date',
+      statement: 'As of February 2026 the Reparations Committee reported more than $6.35 million awarded to 254 individuals, with 44 further $25,000 payments announced; by July 2026 the committee reported roughly $7.33 million disbursed. WBEZ (July 2026) put it at "more than $7 million to over 200" residents; NPR (September 2026) said "300+"; the Justice Department’s June 2026 release said the city "has paid out more than $5 million to date." The figures differ by date and by what is counted (awarded vs. disbursed; ancestors vs. descendants), not by dispute.',
+      status: 'documented',
+      sources: [
+        { title: 'Reparations Committee announces 44 new payments, explores Delta-8 tax', publisher: 'The Daily Northwestern', url: 'https://dailynorthwestern.com/2026/02/06/city/reparations-committee-announces-44-new-payments-explores-delta-8-tax/', asOf: '2026-09-15' },
+        { title: 'Evanston Reparations Committee addresses federal lawsuit, seeks community support', publisher: 'The Daily Northwestern', url: 'https://dailynorthwestern.com/2026/07/03/city/reparations-committee-addresses-federal-lawsuit-seeks-community-support/', asOf: '2026-09-15' },
+        { title: 'Architects of Evanston reparations program stand firm against DOJ attacks', publisher: 'WBEZ Chicago', url: 'https://www.wbez.org/in-the-loop-with-sasha-ann-simons/2026/07/01/architects-of-evanston-reparations-program-stand-firm-against-doj-attacks', asOf: '2026-09-15' },
+        { title: 'U.S. Justice Department Moves to Intervene in Race Discrimination Lawsuit Challenging Reparations Program in Evanston, Illinois', publisher: 'U.S. Department of Justice, Office of Public Affairs', url: 'https://www.justice.gov/opa/pr/us-justice-department-moves-intervene-race-discrimination-lawsuit-challenging-reparations', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. A discerning reader carries the range and its dates rather than one round number.',
+    },
+    {
+      id: 'f-suit-and-doj',
+      statement: 'Flinn v. City of Evanston, No. 1:24-cv-04269 (N.D. Ill.), was filed in May 2024 by Judicial Watch as a class action on behalf of non-Black descendants of people who lived in Evanston 1919–1969, alleging the race requirement violates the Equal Protection Clause and "uses race as a proxy for discrimination without requiring proof of discrimination." On March 27, 2026, Judge John F. Kness denied the city’s motion to dismiss — holding the plaintiffs had standing and that applying to a program they were ineligible for would have been futile — without reaching the merits. In March 2026 the Justice Department opened an investigation; on June 16, 2026, its Civil Rights Division moved to intervene, pleading the Equal Protection Clause and the Fair Housing Act and arguing the program is "not narrowly tailored to remediating specific, identified instances of past discrimination." Assistant Attorney General Harmeet K. Dhillon: "Simply handing out money based on race, however, is not the answer. It is race discrimination, pure and simple. And it is illegal." Mayor Daniel Biss: "We stand behind our first-in-the-nation reparations program, are confident in its constitutionality, and look forward to defending it in court," describing the program as repair for "specific acts taken by the city on purpose." The city’s legal department said no change to disbursements was planned; in August 2026 the DOJ was still pressing its motion to join.',
+      status: 'documented',
+      sources: [
+        { title: 'U.S. Justice Department Moves to Intervene in Race Discrimination Lawsuit Challenging Reparations Program in Evanston, Illinois', publisher: 'U.S. Department of Justice', url: 'https://www.justice.gov/opa/pr/us-justice-department-moves-intervene-race-discrimination-lawsuit-challenging-reparations', asOf: '2026-09-15' },
+        { title: 'Evanston’s reparations plan faces constitutional challenge', publisher: 'Evanston RoundTable', url: 'https://evanstonroundtable.com/2026/06/16/department-of-justice-joins-lawsuit-against-evanstons-reparations-program/', asOf: '2026-09-15' },
+        { title: 'Lawsuit challenging Evanston reparations program allowed to proceed', publisher: 'Evanston RoundTable', url: 'https://evanstonroundtable.com/2026/03/30/lawsuit-challenging-evanston-reparations-program-allowed-to-proceed/', asOf: '2026-09-15' },
+        { title: 'Flinn v. City of Evanston, 1:24-cv-04269', publisher: 'Civil Rights Litigation Clearinghouse', url: 'https://clearinghouse.net/case/45655/', asOf: '2026-09-15' },
+        { title: 'Biss defends reparations amid DOJ challenge', publisher: 'Evanston Now', url: 'https://evanstonnow.com/biss-defends-reparations-amid-doj-challenge/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. Both sides’ positions are carried in their own words. The March ruling decided who may sue, not who is right.',
+    },
+    {
+      id: 'f-legal-standard',
+      statement: 'The governing standard is documented; its application to Evanston is not decided. Under City of Richmond v. J.A. Croson Co. (1989) a state or local racial classification must survive strict scrutiny: a compelling interest and narrow tailoring. Remedying the government’s OWN identified past discrimination can be a compelling interest, but only on a "strong basis in evidence" — general "societal discrimination" is not enough. Students for Fair Admissions v. Harvard (2023) reaffirmed that only two interests have qualified: "remediating specific, identified instances of past discrimination that violated the Constitution or a statute" and avoiding imminent violence in prisons. In 2021 federal courts enjoined race-based federal relief programs as not narrowly tailored (Vitolo v. Guzman, 6th Cir., restaurant grants; Wynn v. Vilsack, M.D. Fla., farm-debt relief). Evanston’s defenders (including Howard University law professor Justin Hansford, who is assisting the city) argue the program rests on the city’s own documented, place-specific wrong and a residency window tied to it — exactly the identified discrimination Croson contemplates; critics (the Cato Institute called it "likely unconstitutional") argue race as the gate, without individual proof of harm, fails narrow tailoring after SFFA. No court has ruled on the merits of Evanston’s program.',
+      status: 'partly-documented',
+      sources: [
+        { title: 'City of Richmond v. J.A. Croson Co., 488 U.S. 469 (1989)', publisher: 'Justia', url: 'https://supreme.justia.com/cases/federal/us/488/469/', asOf: '2026-09-15' },
+        { title: 'Equal Protection: Strict Scrutiny of Racial Classifications', publisher: 'Congressional Research Service', url: 'https://www.congress.gov/crs-product/IF12391', asOf: '2026-09-15' },
+        { title: 'Students for Fair Admissions, Inc. v. President and Fellows of Harvard College, 600 U.S. ___ (2023)', publisher: 'Justia', url: 'https://supreme.justia.com/cases/federal/us/600/20-1199/', asOf: '2026-09-15' },
+        { title: 'Vitolo v. Guzman (6th Cir. 2021)', publisher: 'FindLaw', url: 'https://caselaw.findlaw.com/court/us-6th-circuit/2129637.html', asOf: '2026-09-15' },
+        { title: 'Wynn v. Vilsack, 3:21-cv-00514 (M.D. Fla.)', publisher: 'Civil Rights Litigation Clearinghouse', url: 'https://clearinghouse.net/case/18139/', asOf: '2026-09-15' },
+        { title: 'Justice Department challenges Evanston’s reparations program', publisher: 'The Hill', url: 'https://thehill.com/regulation/court-battles/5927763-justice-department-evanston-reparations-housing-discrimination/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. This is the honest boundary of DR-0100 Tier 2, stated narrowly: the STANDARD is settled law; whether Evanston’s evidence and design satisfy it is the one thing genuinely undecided. Nothing here is "no one knows whether a wrong happened."',
+    },
+  ],
+  interpretation: [
+    {
+      id: 'n-what-is-open-narrowly',
+      statement: 'The open question is small and precise: does a city’s documented ordinance plus a residency-in-the-period window satisfy "specific, identified" discrimination and narrow tailoring, or does using race as the eligibility gate — without each applicant proving individual harm — fail strict scrutiny? That is what Judge Kness’s court will decide. What is NOT open: that the 1921 ordinance existed, that it confined Black families to one ward, that mortgages were denied there for decades, that the city itself documented and apologized for it. Keep the categories: the harm is Tier 1; the constitutional fit is Tier 2.',
+      restsOn: ['f-1921-and-harms', 'f-suit-and-doj', 'f-legal-standard'],
+    },
+    {
+      id: 'n-two-overreaches',
+      statement: 'Two over-reaches sit on either side of the record, and the Word corrects both while the true data under each still stands. "Events more than 100 years ago" can slide into "so nothing is owed" — but a documented wrong is not erased by a calendar (2 Samuel 21:1 answers a wrong from a prior king’s reign; Proverbs 23:10-11 names a mighty Redeemer for the fatherless whose field was entered). And "the harm was real" can slide into "therefore any race-based rule is justice" — but the Word forbids respect of persons in judgment in BOTH directions (Leviticus 19:15) and ties restitution to the one wronged, by the one who wronged (Leviticus 6:5; Numbers 5:7). Both corrections leave the true thing beneath each side untouched: the wrong happened; a remedy must be just in its form as well as its aim.',
+      restsOn: ['f-1921-and-harms', 'f-legal-standard'],
+    },
+    {
+      id: 'n-headline-frame',
+      statement: '"Trump is trying to stop it" is a frame laid over a filing. The documented act is the Justice Department moving to join a suit private plaintiffs filed in 2024; the DOJ is the administration’s, so the frame is not false — but it turns a legal question into a personality contest, and a discerning reader declines to let a headline choose the category for them.',
+      restsOn: ['f-suit-and-doj'],
+    },
+    {
+      id: 'n-numbers-carry-dates',
+      statement: '"300+" (NPR, September 2026), "over 200" (WBEZ, July 2026), "254" (the committee, February 2026), and "more than $5 million" (the DOJ, June 2026) are not contradictions; they are different dates and different counts (awarded vs. disbursed). Carry the number with its date and its source — that is what a just weight looks like in reporting (Proverbs 11:1).',
+      restsOn: ['f-paid-to-date'],
+    },
+  ],
+
+  // ---- STAGE 3 — PERSPECTIVES on the UNRESOLVED parts ----
+  perspectives: [
+    {
+      id: 'p-city',
+      label: 'The city — documented, local, apologized, self-funded',
+      heldBy: 'The City of Evanston (Mayor Daniel Biss, the Reparations Committee under Robin Rue Simmons) and the scholars assisting its defense',
+      steelman: 'At its strongest: this is not "societal discrimination" in the abstract. It is one municipality’s own ordinance, from its own council, in its own archive, documented by historians it commissioned — the very "strong basis in evidence" the Supreme Court asked for in Croson. The remedy is bounded to the place (Evanston), the period the wrong operated (1919–1969), the people the wrong was aimed at (Black residents and their direct descendants), and the good it took (housing). The money is the city’s own tax revenue, not another citizen’s wages, and the city chose it in the open with an apology. A wrongdoer who names his wrong, funds the repair himself, and limits it to the people he wronged is doing what the Word calls restitution — "he shall even restore it in the principal" (Leviticus 6:5). If a city may never repair a wrong it can document, then documentation is worthless and the ordinance wins twice.',
+    },
+    {
+      id: 'p-doj-plaintiffs',
+      label: 'The Justice Department and the plaintiffs — equal protection binds the remedy too',
+      heldBy: 'The DOJ Civil Rights Division (Assistant Attorney General Harmeet K. Dhillon), Judicial Watch, and the Flinn plaintiffs',
+      steelman: 'At its strongest: the Fourteenth Amendment does not have an exception for good intentions, and the Court has held for decades that every racial classification by government — benign or hostile — must pass strict scrutiny. The plaintiffs are descendants of people who lived in Evanston in the same years; they are turned away at the door for one reason, their race. The program asks no applicant to show that he, or his ancestor, was actually confined by the ordinance or refused a mortgage; it uses race as a proxy for harm, which is exactly the shortcut Croson and SFFA forbid. A remedy for identified discrimination is lawful — but it must be tailored to the identified victims, and a race-neutral design (residence in the Fifth Ward, a documented denial, a deed with a restrictive covenant) could reach them without a racial gate. Two federal courts in 2021 enjoined race-gated relief on just this reasoning. This is not a claim that the 1921 wrong never happened; it is a claim that the Constitution governs how a wrong may be repaired.',
+    },
+    {
+      id: 'p-recipients',
+      label: 'The recipients and Evanston’s Black families — the harm is specific and it has names',
+      heldBy: 'Ancestors and Direct Descendants who have received or applied for the grant; the Fifth Ward community; the historians who gathered their documents',
+      steelman: 'At its strongest: this harm is not a theory. It is a grandmother who could not get a mortgage a mile from the lake, a deed with a covenant, a family that rented for forty years in the one ward the city allowed and so never built the equity a white family the same age built by default. The applicants proved residence with documents; the Shorefront Legacy Center helped them find the records the city itself had kept. To be told now that the repair is "race discrimination, pure and simple" lands as the wrong being done twice — first the exclusion, then the erasure. Even the 1921 ordinance was aimed at them BY race; a remedy that names the same people is naming the wrong, not inventing a new one. And the amount, $25,000 against a lifetime of lost equity, is closer to a fifth part than a fourfold. Some in this community argued from the start that a housing-only benefit was too small to be called reparations at all — an honest dissent from inside, not from outside.',
+    },
+    {
+      id: 'p-scholars-tailoring',
+      label: 'Legal scholars on narrow tailoring — the case turns on fit, and fit is contested',
+      heldBy: 'Constitutional scholars across the spectrum (Justin Hansford, Howard University, assisting the city; commentators at the Cato Institute and others who expect the program to fail strict scrutiny)',
+      steelman: 'Heard fairly: the law asks two questions, and the second is where this case lives. First, is there a compelling interest? Evanston’s record — a specific ordinance, a specific ward, a commissioned report — is far stronger than Richmond’s in Croson, and even critics concede the documentation is real. Second, is the program narrowly tailored to that interest? Here honest scholars divide, and the division is about legal design, not about history: does a racial eligibility gate plus a residency window fit the identified victims tightly enough, or must the city require individualized proof or use race-neutral proxies? After SFFA and the 2021 relief cases the trend is toward requiring tighter fit, which is why Cato calls the program "likely unconstitutional"; Hansford and others answer that a remedy for a wrong done BY race cannot be forbidden from naming the race it was done to. The scholars are not debating whether the harm happened. They are debating the form a lawful repair must take — and that is precisely what a court, not a headline, will settle.',
+    },
+  ],
+
+  // ---- STAGE 4 — THE BELIEVER'S LENS ----
+  lens: {
+    fourD: {
+      deepSource: 'WORD FIRST — Yahweh wrote restitution into His law before any city council existed, and He tied it to a wrong that can be named. "If a man shall steal an ox, or a sheep, and kill it, or sell it; he shall restore five oxen for an ox, and four sheep for a sheep." (Exodus 22:1) "If the theft be certainly found in his hand alive, whether it be ox, or ass, or sheep; he shall restore double." (Exodus 22:4) When a neighbour is wronged by violence or deceit — "in a thing taken away by violence, or hath deceived his neighbour" (Leviticus 6:2) — the wrongdoer "shall restore that which he took violently away, or the thing which he hath deceitfully gotten" (Leviticus 6:4), and "he shall even restore it in the principal, and shall add the fifth part more thereto, and give it unto him to whom it appertaineth" (Leviticus 6:5). Numbers repeats it with confession attached: "Then they shall confess their sin which they have done: and he shall recompense his trespass with the principal thereof, and add unto it the fifth part thereof, and give it unto him against whom he hath trespassed." (Numbers 5:7) Notice the shape of the Word’s restitution: a NAMED wrong, a NAMED wronged party, paid BY the one who did it, in the principal plus more. Zacchaeus did it with no court in the room: "if I have taken any thing from any man by false accusation, I restore him fourfold" (Luke 19:8) — and Jesus answered, "This day is salvation come to this house" (Luke 19:9). Nehemiah demanded it of leaders who had taken land: "Restore, I pray you, to them, even this day, their lands, their vineyards, their oliveyards, and their houses" (Nehemiah 5:11). And land is the Word’s own example of what must not be taken: "Thou shalt not remove thy neighbour’s landmark, which they of old time have set in thine inheritance" (Deuteronomy 19:14); "Cursed be he that removeth his neighbour’s landmark." (Deuteronomy 27:17) "Remove not the old landmark; and enter not into the fields of the fatherless:" (Proverbs 23:10) "For their redeemer is mighty; he shall plead their cause with thee." (Proverbs 23:11) Isaiah pronounced woe on those "that join house to house, that lay field to field, till there be no place" (Isaiah 5:8), and Micah on those who "covet fields, and take them by violence; and houses, and take them away: so they oppress a man and his house, even a man and his heritage" (Micah 2:2). A zoning ordinance that fenced one people into one ward and a bank that would not lend there is, in the Word’s vocabulary, a landmark moved and a heritage taken — and the jubile is Yahweh’s own design for restoring inheritance across generations: "proclaim liberty throughout all the land unto all the inhabitants thereof: it shall be a jubile unto you; and ye shall return every man unto his possession" (Leviticus 25:10); "In the year of this jubile ye shall return every man unto his possession." (Leviticus 25:13) SECOND, the same Word forbids respect of persons in judgment — in BOTH directions. "Ye shall do no unrighteousness in judgment: thou shalt not respect the person of the poor, nor honor the person of the mighty: but in righteousness shalt thou judge thy neighbour." (Leviticus 19:15) "Ye shall not respect persons in judgment; but ye shall hear the small as well as the great" (Deuteronomy 1:17). "Neither shalt thou countenance a poor man in his cause." (Exodus 23:3) Peter learned it at Cornelius’s house: "God is no respecter of persons" (Acts 10:34); James made it sin: "if ye have respect to persons, ye commit sin, and are convinced of the law as transgressors" (James 2:9). So the Word will not let a court favor the mighty city or the mighty government — and it will not let a court favor a party because his cause is sympathetic. THIRD, the distinction this house taught in Living Lesson L154 governs here, and it must be kept exactly: guilt is never inherited — "The son shall not bear the iniquity of the father, neither shall the father bear the iniquity of the son" (Ezekiel 18:20) — and yet the saints CONFESS the fathers’ deeds as the house’s own, "stood and confessed their sins, and the iniquities of their fathers" (Nehemiah 9:2), because no living Evanstonian inherits the guilt of the 1921 council while the CITY, as a continuing house, may still confess and repair what its own hand did. Leviticus promised what follows such a confession: "If they shall confess their iniquity, and the iniquity of their fathers" (Leviticus 26:40) — "Then will I remember my covenant with Jacob… and I will remember the land." (Leviticus 26:42) Daniel prayed it: "O Lord, to us belongeth confusion of face, to our kings, to our princes, and to our fathers, because we have sinned against thee." (Daniel 9:8) And David is the case law: a famine came "for Saul, and for his bloody house, because he slew the Gibeonites" (2 Samuel 21:1), a wrong from a PRIOR king’s administration, and David — who bore none of Saul’s guilt — asked the wronged, "What shall I do for you? and wherewith shall I make the atonement" (2 Samuel 21:3). The kingdom repaired what an earlier kingdom broke, without any son being charged with a father’s sin. That is the exact frame for a city that says "we caused this" in 2021 about a council of 1921. FOURTH, justice for the oppressed is commanded, not optional: "Learn to do well; seek judgment, relieve the oppressed, judge the fatherless, plead for the widow." (Isaiah 1:17) "to do justly, and to love mercy, and to walk humbly with thy God" (Micah 6:8). "But let judgment run down as waters, and righteousness as a mighty stream." (Amos 5:24) "Woe unto them that decree unrighteous decrees, and that write grievousness which they have prescribed" (Isaiah 10:1) — a written ordinance is a decree, and the Word has a category for it. SO IN THIS CASE the believer does four things in order. First, state the documented wrong plainly, because "Prove all things; hold fast that which is good." (1 Thessalonians 5:21): the 1921 ordinance, the one ward, the decades of mortgage denial, the city’s own report and apology — Tier 1, said without a hedge. Second, name the open question narrowly — "He that answereth a matter before he heareth it, it is folly and shame unto him." (Proverbs 18:13); "He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him." (Proverbs 18:17): no court has ruled whether this design is narrowly tailored, and this lesson does not pretend to be that court. Third, let the Word correct the over-reach on both sides: "it was a hundred years ago, nothing is owed" fails before the Gibeonites and the landmark; "any race-based rule is justice" fails before Leviticus 19:15 and Exodus 23:3, and before the Word’s own restitution, which is paid to "him to whom it appertaineth" (Leviticus 6:5) — the wronged, specifically. Where the Word is silent — it gives no ruling on the Fourteenth Amendment or on whether a category rule or an individual proof satisfies man’s court — this lesson says so and stops. Fourth, remember that the measure the Word cares most about is not which brief wins but whether a documented wrong is REPAIRED to the ones it was done to, by the one who did it, in the principal and more — and that "God shall bring every work into judgment, with every secret thing" (Ecclesiastes 12:14), the ordinance of 1921 and every filing of 2026 alike.',
+      scripture: 'Exodus 22:1; Exodus 22:4; Leviticus 6:2-5; Numbers 5:6-7; Luke 19:8-9; Nehemiah 5:11; Deuteronomy 19:14; Deuteronomy 27:17; Proverbs 22:28; Proverbs 23:10-11; Isaiah 5:8; Micah 2:2; Leviticus 25:10; Leviticus 25:13; Leviticus 25:23; Leviticus 19:15; Deuteronomy 1:17; Deuteronomy 16:19; Exodus 23:3; Acts 10:34; James 2:9; Romans 2:11; Ezekiel 18:20; Deuteronomy 24:16; Nehemiah 9:2; Leviticus 26:40-42; Daniel 9:8; 2 Samuel 21:1-3; Isaiah 1:17; Micah 6:8; Amos 5:24; Isaiah 10:1-2; 1 Thessalonians 5:21; Proverbs 18:13; Proverbs 18:17; Ecclesiastes 12:14',
+    },
+    threeD: 'Practically: read the story and sort it before you repeat it. Say the proven part out loud without softening — Evanston passed a zoning ordinance in 1921 that confined Black families to one ward where banks refused mortgages for decades; the city documented it, apologized, and set aside its own money. Then say the open part exactly as narrow as it is: a federal judge has let the suit proceed and the Justice Department has moved to join it; no court has decided whether a race-gated remedy for a documented city wrong passes strict scrutiny — that is the one live question. Refuse both shortcuts: do not let "a hundred years ago" become "nothing happened," and do not let "the harm was real" become "therefore the form of the remedy cannot be questioned." Hear all four voices at their strongest (Proverbs 18:17) — the city, the DOJ and plaintiffs, the recipients, the scholars — and notice that none of them denies the ordinance; they differ on the lawful shape of repair. Then let the Word give you its own measure, which is older than the Fourteenth Amendment and stricter than any brief: a named wrong, a named wronged party, repaired by the one who did it, in the principal and more (Leviticus 6:5; Numbers 5:7), with no respect of persons in the judging of it (Leviticus 19:15). Carry numbers with their dates. Pray for the judge by name and for every party. And bring it home: Zacchaeus did not wait for a ruling.',
+    accountability: {
+      statement: 'THE TWO COURTS. Man’s court is open on this one — Judge Kness’s courtroom will decide whether Evanston’s program stands, and this lesson invents no verdict either way. But the Word never lets accountability shrink to the docket. The 1921 council that wrote grievousness into an ordinance answers to the court that reads every decree: "Woe unto them that decree unrighteous decrees, and that write grievousness which they have prescribed" (Isaiah 10:1) — where "God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil." (Ecclesiastes 12:14) The bank that would not lend in one ward answers there: "He that oppresseth the poor reproacheth his Maker" (Proverbs 14:31). The fields entered have a Redeemer: "For their redeemer is mighty; he shall plead their cause with thee." (Proverbs 23:11) And every party in 2026 — the city, the department, the plaintiffs, the recipients — answers in the same court for the honesty of its brief and the respect of persons in its heart: "Ye shall not respect persons in judgment" (Deuteronomy 1:17); "if ye have respect to persons, ye commit sin" (James 2:9). WHAT A CITY OWES under the Word is not a winning argument but the repair: "he shall even restore it in the principal, and shall add the fifth part more thereto, and give it unto him to whom it appertaineth" (Leviticus 6:5); "Restore, I pray you, to them, even this day" (Nehemiah 5:11). WHAT A COURT OWES is judgment without a thumb on either scale: "thou shalt not respect the person of the poor, nor honor the person of the mighty" (Leviticus 19:15). WHAT WE OWE: "Defend the poor and fatherless: do justice to the afflicted and needy." (Psalms 82:3); "Execute true judgment, and shew mercy and compassions every man to his brother" (Zechariah 7:9); "to do justly, and to love mercy, and to walk humbly with thy God" (Micah 6:8). And the lived cost is not deferred evidence — the equity a family never built is seen and weighed now. No one gets away: "God is not mocked: for whatsoever a man soweth, that shall he also reap." (Galatians 6:7) "and the books were opened" (Revelation 20:12).',
+      scripture: 'Isaiah 10:1-2; Ecclesiastes 12:14; Proverbs 14:31; Proverbs 23:11; Deuteronomy 1:17; James 2:9; Leviticus 6:5; Nehemiah 5:11; Leviticus 19:15; Psalms 82:3; Zechariah 7:9-10; Micah 6:8; Galatians 6:7; Revelation 20:12',
+    },
+    benefits: [
+      'Both courts, honestly held: man’s court has not ruled on Evanston’s program and this lesson does not pretend to — while the ETERNAL court holds the 1921 ordinance, the mortgage denials, and every 2026 brief alike, and lands after this life (Ecclesiastes 12:14; Isaiah 10:1). You can speak the wrong plainly without inventing a verdict.',
+      'Freedom from two lies at once: the dismissal lie ("it was a hundred years ago, so nothing is owed") and the shortcut lie ("the harm was real, so any race-based rule is justice").',
+      'The Word’s own restitution in your hands: a named wrong, a named wronged party, repaired by the one who did it, in the principal plus more (Exodus 22:4; Leviticus 6:5; Numbers 5:7; Luke 19:8) — a measure older and stricter than any brief.',
+      'The L154 distinction kept exactly where the news blurs it: no living person inherits the guilt of a 1921 council (Ezekiel 18:20), and a house may still confess and repair what its own hand did (Nehemiah 9:2; 2 Samuel 21:1-3).',
+      'A repeatable skill: state what is documented, name what is open as narrowly as it really is, carry every number with its date and source, hear every party at its strongest, and let the Word judge the form of repair as well as its aim.',
+      'No respect of persons in your own judging: the Word forbids favoring the mighty AND favoring the sympathetic (Leviticus 19:15; Exodus 23:3), so you can read this case without a thumb on either scale.',
+      'A church that moves without a court: Zacchaeus restored fourfold before any suit was filed, and the Body can search its own records and repair its own wrongs the same way.',
+    ],
+    graceNote: 'No condemnation of any soul in this story. Not the 1921 council members, long dead, whose hearts Yahweh alone judged; not Robin Rue Simmons or Mayor Daniel Biss, who named a wrong and tried to repair it; not Assistant Attorney General Harmeet K. Dhillon, Judicial Watch, or the Flinn plaintiffs, who say the Constitution binds the form of the repair; not Judge John F. Kness, who must rule; not the historians, the scholars on either side, or a single recipient or applicant. Yahweh is no respecter of persons in either direction, and this lesson pronounces on no one’s heart. But leaving every soul to Him never mutes the record: the ordinance was real, the ward was real, the mortgages were denied, and the Word’s remedy for a documented wrong is repair to the ones it was done to. Truth and grace meet in Jesus, who sat at a swindler’s table and watched him restore fourfold, and said salvation had come to that house.',
+    stewardship: 'The deeper response to a fight over how a city repairs its wrong is for the CHURCH to repair its own without waiting for a ruling. Zacchaeus did not need a court; he needed Jesus at his table, and he said "I restore him fourfold" on the spot. Jesus told us the order: "Leave there thy gift before the altar, and go thy way; first be reconciled to thy brother, and then come and offer thy gift." (Matthew 5:24) So: open your own records. Many congregations sit on land, deeds, and histories that include a covenant, a segregated pew, a member turned away, a property acquired when a neighbor could not get a loan. Search the archive the way Evanston searched its own — honestly, with historians, in the open. Where a wrong is documented, name it, confess it as the house’s own without charging any living member with a dead man’s guilt, and restore in the principal and more to the people it was done to — a scholarship, a house, a deed, a mortgage paid down, a fifth part added. Build the jubile inside the Body: "ye shall return every man unto his possession" (Leviticus 25:13). Isaiah names who does this: "thou shalt be called, The repairer of the breach, The restorer of paths to dwell in." (Isaiah 58:12) Righteous engagement names the wrong and prays for the court; it is completed by a church that repairs its own breach first.',
+    anchor: {
+      ref: 'Leviticus 6:5; Luke 19:8',
+      theme: 'Restitution is written — "he shall even restore it in the principal, and shall add the fifth part more thereto, and give it unto him to whom it appertaineth" — and Zacchaeus showed what it looks like with no court in the room: "if I have taken any thing from any man by false accusation, I restore him fourfold." Name the wrong plainly; judge with no respect of persons; repair to the ones it was done to.',
+    },
+  },
+
+  // ---- STAGE 5 — REFLECTION + SKILL ----
+  reflection: {
+    skill: 'When a race-and-money story lands in your feed: PAUSE. Separate the documented wrong (an ordinance, a ward, a mortgage record you can source) from the open legal question (which is usually narrower than the headline). Say the documented part plainly — refusing to name a real wrong is false witness. Say the open part exactly as narrow as it is — no court had ruled, so do not rule for it. Hear every party at its strongest and notice what none of them disputes. Then let the Word give its own measure: a named wrong, a named wronged party, repaired by the one who did it, in the principal and more, judged with no respect of persons. And respond the Zacchaeus way — search your own house and restore — not the comment-section way.',
+    practice: 'Take the Evanston story. Write four lines: (1) one sentence of what is DOCUMENTED, with a source and its date; (2) one sentence naming the open legal question as narrowly as it really is; (3) one sentence on where each side’s over-reach begins and which verse corrects it; (4) one concrete act of restitution you, your family, or your church could make this month for a wrong you can document — without waiting for anyone to sue.',
+    prompts: [
+      'Which parts of NPR’s story are documented (the 1921 ordinance, the $20 million, the 1919–1969 window, the DOJ filing) and which is the frame ("Trump is trying to stop it")? How would you check each?',
+      'The Word’s restitution is paid "unto him to whom it appertaineth" (Leviticus 6:5) by the one who did the wrong. Walk through how the city’s design tries to match that shape — place, period, people, the good taken — and where the DOJ says it does not. What is each side actually disputing?',
+      'Leviticus 19:15 forbids favoring the poor AND honoring the mighty in judgment. What would it look like to read this case with a thumb on neither scale — and where do you feel the pull toward one?',
+      'Living Lesson L154 taught that guilt is never inherited (Ezekiel 18:20) while the house confesses the fathers’ deeds (Nehemiah 9:2). Where is that line in Evanston’s case — who bears no guilt, and who may still confess and repair? Use 2 Samuel 21:1-3 as the test case.',
+      'No court has ruled on the merits. Practice saying the open question in ONE sentence that neither dismisses the wrong nor pre-decides the law.',
+      'Zacchaeus restored fourfold with no court in the room (Luke 19:8). What wrong could your church document in its own records, and what would "the principal and the fifth part" look like for it?',
+      'Carry a number with its date: "254 by February 2026," "300+ by September 2026," "more than $5 million per the DOJ in June." Why is that discipline part of a just weight (Proverbs 11:1)?',
+    ],
+  },
+
+  // ---- Age-appropriate renderings (kids use the app) ----
+  levels: {
+    child: 'Here is a true story from a town called Evanston. A long time ago, in 1921, the town made a rule. The rule said Black families could only live in one part of town. Banks would not lend them money to buy a house there. That was wrong. It hurt real families for a long time. Many years later, the town looked at its old papers and found the rule. The town said, we are sorry. Then the town began giving money to those families and their children and grandchildren, to help with a home. Now some people have gone to a judge. They say the town should not pick who gets help by the color of their skin. The judge has not decided yet. What does Yahweh say? First, when you take something that is not yours, you give it back, and more. The Bible says a thief "shall restore double" (Exodus 22:4). A man named Zacchaeus had taken money that was not his. When Jesus came to his house, he said, "I restore him fourfold" (Luke 19:8). He gave back four times as much. Nobody made him do it. Second, a judge must be fair to everyone. The Bible says "ye shall hear the small as well as the great" (Deuteronomy 1:17). A judge must not pick a side because someone is big, or because someone is sad. Third, you are not guilty for what your grandpa did. "The son shall not bear the iniquity of the father" (Ezekiel 18:20). You do not inherit his guilt. But a family can still confess an old wrong and help fix it. Nehemiah’s people did that (Nehemiah 9:2). So here is what to do. Say the true part out loud: the old rule was real, and it hurt people. Say the open part honestly: the judge has not decided. And do what Zacchaeus did in your own life. If you took something, give it back, and give more. Yahweh sees every deed. And He loves it when we make things right.',
+    teen: 'NPR ran a deep dive on Evanston, Illinois — the first U.S. city with a reparations program — and on the Justice Department joining a lawsuit to stop it. Run the moves before you take a side. (1) Say what is documented, plainly. In 1921 Evanston passed a zoning ordinance that confined Black families to the Fifth Ward, where banks refused mortgages for decades; the city commissioned historians, found it in its own archive, apologized, and set aside $20 million of its own cannabis and real-estate-transfer tax to pay $25,000 to Black residents who lived there 1919–1969 and their direct descendants. That is not "some say." That is the record. (2) Say what is open, and say it narrowly. A conservative group sued in 2024 on behalf of non-Black descendants of Evanston residents, arguing the race requirement violates equal protection; a federal judge let the case proceed in March 2026 without deciding who is right; the DOJ moved to join in June, saying the program is "not narrowly tailored to remediating specific, identified instances of past discrimination." No court has ruled on the merits. The live question is about the FORM of the repair — whether a race-gated rule fits the identified victims tightly enough — not about whether the wrong happened. (3) Hear everyone at their strongest. The city: our own ordinance, our own money, our own apology, bounded to our own victims. The DOJ and plaintiffs: the Constitution binds remedies too, and race as a proxy for harm is the shortcut the Supreme Court forbids. The recipients: this harm has names, and being told the repair is "discrimination" lands as the wrong done twice. The scholars: the fight is over fit, and honest people divide. Notice that none of them denies 1921. (4) Now the Word. Restitution is written before any constitution: "he shall even restore it in the principal, and shall add the fifth part more thereto, and give it unto him to whom it appertaineth" (Leviticus 6:5) — a named wrong, a named wronged party, repaired by the one who did it. Zacchaeus did it with no court: "I restore him fourfold" (Luke 19:8). Land taken is a landmark moved: "Remove not the old landmark; and enter not into the fields of the fatherless" (Proverbs 23:10). And judgment must show no respect of persons in EITHER direction: "thou shalt not respect the person of the poor, nor honor the person of the mighty" (Leviticus 19:15). Keep the L154 line exactly: nobody alive inherits the 1921 council’s guilt — "The son shall not bear the iniquity of the father" (Ezekiel 18:20) — and yet a house may still confess what its fathers did and repair it (Nehemiah 9:2), the way David repaired Saul’s wrong to the Gibeonites though he bore none of Saul’s guilt (2 Samuel 21:1-3). So the Word corrects both over-reaches: "a hundred years ago, nothing is owed" fails; "any race-based rule is justice" fails. What stands is the record and the measure. (5) Your move: carry numbers with dates, pray for the judge and every party by name, and do the Zacchaeus thing in your own house before anyone sues.',
+    senior: 'For the seasoned believer, this lesson is about weighing a race-conscious remedy with the Word’s own law of restitution, in an age that offers only two scripts — outrage and dismissal — for a question that deserves neither. First, the documented record, stated without a hedge (DR-0100 Tier 1): Evanston’s 1921 zoning ordinance, which the city’s own commissioned historians found "tacitly served as an effort by city officials to segregate the city by race"; the confinement of Black residents to the Fifth Ward and the decades of mortgage denial there; the council’s apology; Resolution 126-R-19 (November 2019) and the $20 million commitment from the city’s own cannabis and real-estate-transfer taxes; the $25,000 grants, paid since January 2022, to "Ancestors" who lived in Evanston 1919–1969 and their direct descendants — some $6.35 million to 254 people by February 2026, roughly $7.33 million by July, "300+" by NPR’s September count. Second, the open question, named as narrowly as it truly is (Tier 2): Flinn v. City of Evanston (N.D. Ill., filed May 2024 by Judicial Watch), which Judge John F. Kness allowed to proceed on March 27, 2026 without reaching the merits, and which the Justice Department’s Civil Rights Division moved to join on June 16, 2026 under the Equal Protection Clause and the Fair Housing Act, arguing the program is "not narrowly tailored to remediating specific, identified instances of past discrimination." The governing law is settled — Croson’s strict scrutiny and "strong basis in evidence," SFFA’s two compelling interests, the 2021 relief-program injunctions — and its application to Evanston is undecided; the scholars’ division is over fit, not over history. Third, the Word, which is older than the Fourteenth Amendment and stricter than any brief. Restitution is written and shaped: a named wrong, a named wronged party, repaid by the wrongdoer "in the principal" with "the fifth part more thereto" and given "unto him to whom it appertaineth" (Leviticus 6:5; Numbers 5:7; Exodus 22:1, 4); Zacchaeus enacted it without a court (Luke 19:8-9); Nehemiah commanded it of leaders who had taken land (Nehemiah 5:11); the landmark texts (Deuteronomy 19:14; 27:17; Proverbs 23:10-11) and the prophets (Isaiah 5:8; Micah 2:2) give a written ordinance that fenced a people into one ward its true name; the jubile is Yahweh’s design for restoring inheritance across generations (Leviticus 25:10, 13). Against that, and with equal weight, judgment must show no respect of persons in either direction — "thou shalt not respect the person of the poor, nor honor the person of the mighty" (Leviticus 19:15); "Neither shalt thou countenance a poor man in his cause." (Exodus 23:3); "if ye have respect to persons, ye commit sin" (James 2:9). And the distinction this house fixed in Living Lesson L154 must be kept precisely where the public debate blurs it: guilt is never inherited — "The son shall not bear the iniquity of the father" (Ezekiel 18:20) — so no living Evanstonian is charged with 1921; yet the house may confess and repair what its own hand did — "stood and confessed their sins, and the iniquities of their fathers" (Nehemiah 9:2; Leviticus 26:40-42; Daniel 9:8) — as David, bearing none of Saul’s guilt, repaired Saul’s wrong to the Gibeonites (2 Samuel 21:1-3). From that frame the Word corrects the over-reach on both sides and leaves the true data under each intact: "events more than 100 years ago" cannot become "nothing is owed," and "the harm was real" cannot become "therefore the form of the remedy is beyond question." Where the Word is silent — on the Fourteenth Amendment, on whether a categorical rule or an individualized proof satisfies man’s court — the seasoned reader says so and stops, and prays for the judge by name. Then let the response mature past commentary into the Body’s own vocation: the church that searches its own deeds, confesses its own documented wrongs as the house’s own, and restores in the principal and more to the people they were done to — the repairer of the breach (Isaiah 58:12), with no lawsuit required.',
+  },
+
+  // ---- Discernment-skill quiz ----
+  quiz: {
+    questions: [
+      {
+        q: 'NPR says Evanston’s 1921 zoning law confined Black families to one neighborhood where mortgages were denied. What is the discernment move?',
+        options: ['Hedge it — "some say" the ordinance was discriminatory', 'State it plainly as documented: the city’s own commissioned report found it, the city apologized, and no party in the suit disputes it', 'Dismiss it — it was a hundred years ago'],
+        answer: 1,
+        explain: 'DR-0100 Tier 1: established, documented damage is said plainly. Under-claiming a verified wrong is as much a failure of truth as over-claiming an unverified one.',
+      },
+      {
+        q: '"The DOJ says the program violates the Equal Protection Clause." Which label fits, and why?',
+        options: ['Documented fact — the DOJ said it, so it is settled', 'Allegation in a live case — pleaded in a June 2026 motion; no court has ruled on the merits', 'Opinion — lawyers just disagree'],
+        answer: 1,
+        explain: 'A filing is a claim, not a verdict. Judge Kness’s March 2026 ruling decided only that the plaintiffs may sue; the merits are undecided. Carry it as an allegation, narrowly.',
+      },
+      {
+        q: 'What is the ONE question genuinely open in Flinn v. City of Evanston?',
+        options: ['Whether the 1921 ordinance existed', 'Whether a race-gated remedy for a city’s documented wrong is "narrowly tailored" to the identified victims under strict scrutiny', 'Whether reparations are a good idea in general'],
+        answer: 1,
+        explain: 'Tier 2 is named narrowly. Every party agrees the ordinance existed; the scholars divide over the lawful FORM of repair. That is what the court will settle — not this lesson.',
+      },
+      {
+        q: 'What is the shape of restitution in the Word (Leviticus 6:5; Numbers 5:7)?',
+        options: ['A general apology to society', 'A named wrong, a named wronged party, repaid by the one who did it, in the principal plus a fifth part', 'Whatever a court orders'],
+        answer: 1,
+        explain: '"he shall even restore it in the principal, and shall add the fifth part more thereto, and give it unto him to whom it appertaineth." The Word ties repair to the specific wronged — a measure older and stricter than any brief.',
+      },
+      {
+        q: 'Leviticus 19:15 says "thou shalt not respect the person of the poor, nor honor the person of the mighty." What does that require of you reading this case?',
+        options: ['Side with the city because its cause is sympathetic', 'Side with the government because it is powerful', 'Judge with a thumb on neither scale — the Word forbids favoring the mighty AND favoring the sympathetic'],
+        answer: 2,
+        explain: 'Respect of persons runs both ways. The Word will not let a court, or a reader, decide by who is big or who is sad, but "in righteousness shalt thou judge thy neighbour."',
+      },
+      {
+        q: 'L154 taught that guilt is never inherited (Ezekiel 18:20). Does that mean Evanston cannot repair a 1921 wrong?',
+        options: ['Yes — no one alive did it, so nothing can be done', 'No — no living person inherits the guilt, yet a house may still confess and repair what its own hand did, as David repaired Saul’s wrong to the Gibeonites (Nehemiah 9:2; 2 Samuel 21:1-3)', 'Yes — the Word forbids any collective act'],
+        answer: 1,
+        explain: 'Two subjects, both kept: guilt (never transferred) and confession-and-repair (the house’s own). David bore none of Saul’s guilt and still asked the wronged, "wherewith shall I make the atonement" (2 Samuel 21:3).',
+      },
+      {
+        q: 'What did Zacchaeus do that no court required (Luke 19:8)?',
+        options: ['Waited for a ruling', 'Said "I restore him fourfold" on the spot, and Jesus said salvation had come to his house', 'Gave to a general charity instead'],
+        answer: 1,
+        explain: 'Restitution without a lawsuit is the stewardship move for the Body: search your own records, confess your own documented wrong, and restore to the ones it was done to.',
+      },
+    ],
+  },
+};
+
+// =============================================================================
+// ISSUE 14 — The Kennedy Center on the brink: whose name goes on the house, and
+// the Word on names, patrons, and the arts (wi-kennedy-center-bankruptcy-and-the-name).
+// Darrell forwarded NPR's Up First of 2026-09-15 with one word — Lesson. — and the
+// instruction to find each subject, research it independently, and build the
+// lesson. This issue takes the Kennedy Center item: the board's own resolutions
+// saying the arts center is weeks from missing payroll and unsafe to occupy, its
+// stated judgment that only President Trump can lead the fiscal rescue and so his
+// name belongs on the marble, Rep. Joyce Beatty's suit before Judge Christopher
+// Cooper (who ruled in May that Congress gave the center its name and only Congress
+// can change it), the artists and audiences who left, and how a large arts
+// nonprofit is actually funded. Handled under DR-0100's tiers: the documented
+// record (dates, votes, the ruling, the WaPo-obtained figures, the Sept 5 ceiling
+// collapse) stated plainly with sources; the open questions (would an inscription
+// bring the money back; whether an inscription is a renaming under the May order)
+// flagged narrowly; motives adjudicated for no one; over-reach on every side
+// corrected by the Word. Word first: names on houses (Babel, Absalom's pillar,
+// Psalms 49, Nebuchadnezzar), the arts as Yahweh's gift (Bezaleel, David's singers),
+// patrons and dependence (Cyrus and Darius funding the house that kept His name;
+// put not your trust in princes; count the cost), the just weight for the board's
+// claim, and the two courts. Every verse fetched verbatim from the repo KJV and
+// gated in world-issues-verse-integrity.test.js. The board vote and the status
+// hearing were scheduled for the day of authoring; their outcomes are carried as
+// pending, not guessed.
+// =============================================================================
+const KENNEDY_CENTER_ISSUE = {
+  id: 'wi-kennedy-center-bankruptcy-and-the-name',
+  title: 'The Kennedy Center on the Brink — Whose Name Goes on the House, and the Word on Names, Patrons, and the Arts',
+  subject: { name: 'the Kennedy Center’s solvency crisis and the fight over whose name goes on the building', kind: 'institution-and-public-figures', isNamedRealPerson: true },
+  skill: 'Take a breaking news item in which an institution says it will die unless a powerful patron’s name goes on the building, and learn how the Word weighs it: state the documented record plainly (the 1964 Act, the votes, the May ruling, the collapse in tickets and gifts, the ceiling), label the board’s "only he can save it" as its judgment and hear every side at its strongest (Proverbs 18:17), keep the open questions narrow, and then let the Word speak to what no court will rule on — making a name, trusting princes, counting the cost, the just weight, and the arts as Yahweh’s gift — without pronouncing on any soul.',
+  source: {
+    creator: 'NPR (Up First, 2026-09-15; reporting by Anastasia Tsioulcas)',
+    medium: 'newsletter and radio segment',
+    title: 'SCOTUS rejects Trump’s mail voting limits. And, the Kennedy Center financial crisis',
+    url: 'https://www.wkyufm.org/news/2026-09-15/scotus-rejects-trumps-mail-voting-limits-and-the-kennedy-center-financial-crisis',
+    asOf: '2026-09-15',
+    note: 'Darrell forwarded the newsletter on 2026-09-15 with the word "Lesson." and the instruction to research each subject independently. NPR is the reporting source; every fact below was re-verified by live web search the same day against the primary documents and multiple outlets. The board vote and the status hearing were scheduled for the day of authoring; their outcomes were not public when this was written and are carried as pending.',
+  },
+
+  // ---- STAGE 1 — THE CLAIM(S): the points AS MADE, each labeled. ----
+  claims: [
+    {
+      id: 'c-bankruptcy',
+      text: 'The Kennedy Center faces bankruptcy and might close as soon as today; it will not be able to make payroll or routine maintenance contracts within weeks.',
+      label: 'claim',
+      attribution: 'The Kennedy Center board’s draft resolutions, obtained by The Washington Post and NPR ahead of the September 15 board meeting',
+      note: 'That the board SAID this is documented — the resolution text is public. The underlying finances are partly documented by confidential documents The Washington Post obtained in August; the center has not published audited figures for the current year.',
+    },
+    {
+      id: 'c-only-trump',
+      text: 'President Trump is the only one who can raise enough funds to rescue the center, so he deserves his name on the building.',
+      label: 'opinion',
+      attribution: 'The Kennedy Center board’s resolution, as reported by NPR (Anastasia Tsioulcas)',
+      note: 'A judgment about the future by a board most of whose members the President appointed and whose chairman he is. It is carried as the board’s position, not as a fact. What IS documented is that ticket sales and gifts fell after his name went on the building in December (Stage 2).',
+    },
+    {
+      id: 'c-politicized',
+      text: 'Artists and audiences have been leaving over the past year saying the center became too politicized; the live-events calendar is a fraction of what it was; donations dried up.',
+      label: 'claim',
+      attribution: 'NPR (Anastasia Tsioulcas), summarizing a year of reporting',
+      note: 'The departures are documented by name and date. "Too politicized" is the departing artists’ own stated reason and is carried as theirs.',
+    },
+    {
+      id: 'c-funding-model',
+      text: 'Big arts nonprofits rely on ticket revenue, donations, and some grants.',
+      label: 'claim',
+      attribution: 'NPR (Anastasia Tsioulcas)',
+      note: 'Documented and, for the Kennedy Center specifically, refined in Stage 2: about half its budget came from tickets, a federal appropriation of roughly $45 million a year covers upkeep of the memorial only, and the rest is contributed.',
+    },
+    {
+      id: 'c-crisis-likely',
+      text: 'A real and dire crisis seems likely.',
+      label: 'opinion',
+      attribution: 'NPR (Anastasia Tsioulcas), her assessment on air',
+      note: 'A reporter’s reading, carried as such. The documented decline in revenue, the ceiling collapse, and the board’s own words give it weight; it remains an assessment about the future.',
+    },
+    {
+      id: 'c-congress-named-it',
+      text: 'Congress named the center as a memorial to President Kennedy, and only Congress can change its name.',
+      label: 'claim',
+      attribution: 'Rep. Joyce Beatty’s lawsuit; adopted by Judge Christopher Cooper in his May 29, 2026 ruling',
+      note: 'This one is an adjudicated finding, not merely a party’s claim — a federal judge ruled it. Whether the September inscription options honor that order is the narrow question now before the same judge.',
+    },
+  ],
+
+  // ---- STAGE 2 — VERIFIABLE vs INTERPRETATION ----
+  verifiable: [
+    {
+      id: 'f-1964-name',
+      statement: 'On January 23, 1964 — two months after President Kennedy’s assassination — Congress by Public Law 88-260 renamed the National Cultural Center the John F. Kennedy Center for the Performing Arts, designated it a living memorial to him, and authorized $23 million toward building it. The Congressional vote to name it for him was unanimous.',
+      status: 'documented',
+      sources: [
+        { title: 'S.J.Res.136 (88th Congress) — renaming the National Cultural Center as the John F. Kennedy Center for the Performing Arts', publisher: 'Congress.gov (Library of Congress)', url: 'https://www.congress.gov/bill/88th-congress/senate-joint-resolution/136/text', asOf: '2026-09-15' },
+        { title: 'A Living Memorial', publisher: 'The Kennedy Center', url: 'https://www.kennedy-center.org/memorial/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified by live web search 2026-09-15. This is the fact the lawsuit and the ruling rest on: the name was given by statute, not by the board.',
+    },
+    {
+      id: 'f-takeover-2025',
+      statement: 'On February 12, 2025 President Trump dismissed the trustees appointed by President Biden — eighteen, including chairman David Rubenstein — and the remaining board, most of whom he had just appointed, elected him chairman. The board removed Deborah Rutter, president since 2014, and installed Richard Grenell. Congress later provided $257 million for Kennedy Center renovation in the 2025 reconciliation bill ("One Big Beautiful Bill Act").',
+      status: 'documented',
+      sources: [
+        { title: 'Kennedy Center Board elects President Donald J. Trump as Board Chair', publisher: 'The Kennedy Center (press release)', url: 'https://www.kennedy-center.org/news-room/press-release-landing-page/kennedy-center-board-elects--president-donald-j.-trump-as-board-chair/', asOf: '2026-09-15' },
+        { title: 'Trump has purged the Kennedy Center’s board, which in turn made him its chair — why does that matter?', publisher: 'The Conversation', url: 'https://theconversation.com/trump-has-purged-the-kennedy-centers-board-which-in-turn-made-him-its-chair-why-does-that-matter-249934', asOf: '2026-09-15' },
+        { title: 'Kennedy Center Faces $257 Million Renovation — What the One Big Beautiful Bill Really Covers', publisher: 'IBTimes UK', url: 'https://www.ibtimes.co.uk/kennedy-center-faces-257-million-renovation-what-one-big-beautiful-bill-really-covers-1775497', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The chairman of the board is the person the board now proposes to honor on the facade; that structural fact is stated, not editorialized.',
+    },
+    {
+      id: 'f-departures',
+      statement: 'Departures are on the record by name and date. In February 2025 Rhiannon Giddens canceled ("I cannot in good conscience play at The Kennedy with the recent programming changes forced on the institution by this new board"), Issa Rae canceled her March 2025 show, Renée Fleming resigned as artistic advisor at large, Ben Folds resigned as the National Symphony Orchestra’s artistic advisor, and Shonda Rhimes resigned as board treasurer. In March 2025 the producers of Hamilton canceled the run scheduled for March–April 2026. Later cancellations included Béla Fleck (performing there had become "charged and political"), the Brentano String Quartet, Vocal Arts DC’s spring recitals, and Fleming’s May 2026 NSO concerts. On January 10, 2026 the Washington National Opera cut ties with the center after decades as a resident company, citing a new break-even policy: "The Center’s new business model requires productions to be fully funded in advance — a requirement incompatible with opera operations."',
+      status: 'documented',
+      sources: [
+        { title: 'Here’s who’s canceled their Kennedy Center performances since Trump took over', publisher: 'NPR', url: 'https://www.npr.org/2026/01/20/nx-s1-5675192/kennedy-center-canceled-performances', asOf: '2026-09-15' },
+        { title: 'Rhiannon Giddens is the latest artist to cancel Kennedy Center gig', publisher: 'NPR', url: 'https://www.npr.org/2025/02/25/nx-s1-5308302/rhiannon-giddens-cancels-kennedy-center-concert', asOf: '2026-09-15' },
+        { title: '‘Hamilton’ Cancels Kennedy Center Show Run In Protest Of Trump’s ‘Purge’', publisher: 'Forbes', url: 'https://www.forbes.com/sites/antoniopequenoiv/2025/03/05/hamilton-cancels-kennedy-center-show-run-in-protest-of-trumps-purge/', asOf: '2026-09-15' },
+        { title: 'Washington National Opera cuts ties with the Kennedy Center after longstanding partnership', publisher: 'CNN', url: 'https://www.cnn.com/2026/01/10/politics/washington-national-opera-leaves-kennedy-center', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. Each departing artist gave a reason on the record; those reasons are theirs, quoted, not the lesson’s verdict.',
+    },
+    {
+      id: 'f-rename-and-suit',
+      statement: 'On December 18, 2025 the board voted to rename the institution "The Donald J. Trump and The John F. Kennedy Memorial Center for the Performing Arts" (in short, the Trump Kennedy Center). The White House called the vote unanimous; Rep. Joyce Beatty, an ex officio trustee, said she was muted on the call when she tried to object. She filed Beatty v. Trump (No. 1:25-cv-04480, D.D.C.) on December 22, 2025, challenging the renaming, the plan to close the center for two years of renovation (voted in March 2026), and the board’s stripping of her voting rights.',
+      status: 'documented',
+      sources: [
+        { title: 'Kennedy Center board votes to rename it ‘Trump Kennedy Center’', publisher: 'CNN', url: 'https://www.cnn.com/2025/12/18/politics/trump-kennedy-center-name', asOf: '2026-09-15' },
+        { title: 'Beatty v. Trump, 1:25-cv-04480 (D.D.C.)', publisher: 'Civil Rights Litigation Clearinghouse', url: 'https://clearinghouse.net/case/47530/', asOf: '2026-09-15' },
+        { title: 'Ohio Rep. Joyce Beatty sues Trump over Kennedy Center renaming', publisher: 'Yahoo News', url: 'https://www.yahoo.com/news/articles/ohio-rep-joyce-beatty-sues-142528015.html', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. "Unanimous" and "I was muted" are both on the record; the lesson carries both and adjudicates neither.',
+    },
+    {
+      id: 'f-ruling',
+      statement: 'On May 29, 2026 — President Kennedy’s birthday — U.S. District Judge Christopher Cooper ruled in a 94-page opinion that the board had no authority to rename the center: "Congress gave the Kennedy Center its name, and only Congress can change it." He ordered all signage renaming it for Donald Trump removed within fourteen days and blocked the two-year closure. Workers removed the name from the website and, on June 12, erected scaffolding and took down the facade signage. On August 13, 2026 the board voted 20–3 to inscribe "The John F. Kennedy Center for the Performing Arts Restored and Renovated by President Donald J. Trump" and to name the grounds "President Donald J. Trump Plaza"; Beatty filed an emergency motion on August 21; at the emergency hearing the Justice Department argued the inscriptions are "not renaming" the center.',
+      status: 'documented',
+      sources: [
+        { title: 'Judge temporarily halts Kennedy Center closure and orders removal of Trump’s name from building', publisher: 'NBC News', url: 'https://www.nbcnews.com/politics/trump-administration/judge-temporarily-halts-kennedy-center-closure-trump-name-removed-rcna347598', asOf: '2026-09-15' },
+        { title: 'Judge says Kennedy Center board violated law putting Trump’s name on building, blocks closure', publisher: 'PBS NewsHour', url: 'https://www.pbs.org/newshour/politics/judge-says-kennedy-center-board-violated-law-putting-trumps-name-on-building-blocks-closure', asOf: '2026-09-15' },
+        { title: 'Kennedy Center votes to put Trump’s name back on building and close for renovations', publisher: 'CNN', url: 'https://www.cnn.com/2026/08/13/politics/kennedy-center-board-vote', asOf: '2026-09-15' },
+        { title: 'DOJ insists new Trump inscriptions are ‘not renaming’ Kennedy Center', publisher: 'The Hill', url: 'https://thehill.com/regulation/court-battles/6055867-justice-department-trump-kennedy-center-hearing/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The May ruling is an adjudicated finding and is stated as one. Whether an inscription beneath the name is a renaming is the live question before the same judge; the lesson does not pre-decide it.',
+    },
+    {
+      id: 'f-finances',
+      statement: 'Confidential documents obtained by The Washington Post (August 25, 2026) show ticket sales and fundraising collapsed after the President’s name went on the building in December, even as leaders publicly described a turnaround. Spring projections had the center falling nearly $100 million short of its revenue target, with officials predicting the fiscal year’s revenue would miss budget by 70 percent. Subscription sales fell about $1.6 million (roughly 36 percent) from 2024. In the fall of 2025 about 43 percent of tickets for typical productions went unsold, against about 93 percent sold or issued complimentary in fall 2024 and 80 percent in fall 2023. Then on September 5, 2026 a portion of the Grand Foyer ceiling fell during heavy rain — no one was hurt — and spokeswoman Roma Daravi attributed it to decades of deferred maintenance.',
+      status: 'documented',
+      sources: [
+        { title: 'Kennedy Center revenue plunged after Trump’s name went on the building', publisher: 'The Washington Post', url: 'https://www.washingtonpost.com/style/2026/08/25/kennedy-center-revenue-plunged-after-trumps-name-went-building/', asOf: '2026-09-15' },
+        { title: 'Kennedy Center finances deteriorated sharply after Trump name change', publisher: 'The Detroit News (Washington Post report)', url: 'https://www.detroitnews.com/story/news/nation/2026/08/25/kennedy-center-finances-deteriorated-sharply-after-trump-name-change/91454004007/', asOf: '2026-09-15' },
+        { title: 'Chunk of Kennedy Center’s ceiling falls during heavy rains', publisher: 'UPI', url: 'https://www.upi.com/Top_News/US/2026/09/05/kennedy-center-ceiling-collapse/3841788648940/', asOf: '2026-09-15' },
+        { title: 'Kennedy Center closes after partial ceiling collapse in Grand Foyer', publisher: 'The Hill', url: 'https://thehill.com/homenews/administration/6073213-kennedy-center-ceiling-collapse-grand-foyer/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. Two true things in two lanes: the building’s decay is decades old (the ceiling), and the revenue collapse is new and dated (the documents). Both are stated plainly; neither cancels the other.',
+    },
+    {
+      id: 'f-sept-14',
+      statement: 'On September 14, 2026 two draft board resolutions became public ahead of the September 15 board meeting. One calls the main building "unsafe for continued occupancy" and proposes closing it. The other states that the center "is in such a precarious fiscal position that it will not be able to support its payroll obligations, nor routine maintenance contracts within a matter of weeks," warns of "certain fiscal collapse within weeks," and says: "The Board understands that without such appropriate recognition it is unlikely that President Trump will provide the fundamental oversight of the renovation of the main building and lead the fiscal rescue of the Center." It offers ten inscription options for the marble below the center’s name, among them "Renovation and endowment overseen by President Donald J. Trump and the Trump Kennedy Center Fund," "With Gratitude for Support from President Donald J. Trump and the Trump Kennedy Center Fund," and "A Legacy protected through the Generosity of President Donald J. Trump." A status hearing before Judge Cooper was set for the same day, hours before the board meeting.',
+      status: 'documented',
+      sources: [
+        { title: 'Kennedy Center says it’s on the brink of bankruptcy, might close as early as Tuesday', publisher: 'NPR', url: 'https://www.npr.org/2026/09/14/nx-s1-5968690/kennedy-center-financial-physical-state', asOf: '2026-09-15' },
+        { title: 'Kennedy Center says it’s close to bankruptcy and will not be able to pay staff "within weeks"', publisher: 'NPR', url: 'https://www.npr.org/2026/09/14/nx-s1-5968602/kennedy-center-says-its-close-to-bankruptcy-and-will-not-be-able-to-pay-staff-within-weeks', asOf: '2026-09-15' },
+        { title: 'Kennedy Center warns of bankruptcy unless Trump’s name is added to building: court documents', publisher: 'ABC News', url: 'https://abcnews.com/Politics/kennedy-center-warns-bankruptcy-trumps-added-building-court/story?id=136428259', asOf: '2026-09-15' },
+        { title: 'Kennedy Center board to propose new options for honoring Trump as center confronts solvency worries', publisher: 'AP via WTOP', url: 'https://wtop.com/dc/2026/09/kennedy-center-board-to-propose-new-options-for-honoring-trump-as-center-confronts-solvency-worries/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15, the day of the meeting. The vote’s outcome and the hearing’s result were not public at authoring and are NOT asserted here. The resolution’s words are quoted exactly so the reader weighs the board’s own language, not a paraphrase.',
+    },
+    {
+      id: 'f-funding-model',
+      statement: 'How a large arts nonprofit is funded, measured: across the nonprofit arts sector revenue runs roughly 60 percent earned, 30 percent private contributions, 10 percent government. For performing-arts organizations specifically, about 46 percent comes from admissions, contract fees, and memberships, about 41 percent is contributed (individuals 20.7 percent; government only 4.3 percent), and endowment income averages about 5 percent. The Kennedy Center’s operating budget grew to about $268 million under Deborah Rutter; ticket sales covered roughly half; a federal appropriation of about $45 million a year (FY2023: $45.38 million) is restricted to maintenance, security, and capital upkeep of the memorial and funds no programming; the rest is contributed.',
+      status: 'documented',
+      sources: [
+        { title: 'Sources of Revenue for Nonprofit Arts & Cultural Organizations', publisher: 'Americans for the Arts', url: 'https://www.americansforthearts.org/by-program/reports-and-data/legislation-policy/naappd/sources-of-revenue-for-nonprofit-arts-cultural-organizations', asOf: '2026-09-15' },
+        { title: 'John F. Kennedy Center for the Performing Arts: Recent Events and Background (IF12911)', publisher: 'Congressional Research Service', url: 'https://www.congress.gov/crs-product/IF12911', asOf: '2026-09-15' },
+        { title: 'FY2025 Budget Justification to Congress', publisher: 'The Kennedy Center', url: 'https://www.kennedy-center.org/globalassets/our-story/mission/kennedy-center-fy25-budget-justification-to-congress.pdf', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. This is why a hall can be publicly owned and still go broke: the public pays for the walls, not the music; the music is paid for by the people who come and the people who give — and both left.',
+    },
+    {
+      id: 'f-fundraising-claims',
+      statement: 'The center’s leadership has publicly claimed record fundraising — a $23 million Kennedy Center Honors, "$58 million in the last 30 days alone," and, per Richard Grenell, $130 million raised in a year — while the confidential documents show revenue collapsing, and sources told Politico that the figures given to Grenell were "sometimes rosier than the money that actually comes into the center." In June the center said it would lose "hundreds of millions" in donations if the President’s name came off. Grenell has also alleged $26 million in "phantom revenue" under prior leadership. None of these figures has been reconciled by an audited statement available to the public.',
+      status: 'disputed',
+      sources: [
+        { title: 'Kennedy Center Claims It Will Lose ‘Hundreds Of Millions’ In Donations After Removing Trump Name', publisher: 'Forbes', url: 'https://www.forbes.com/sites/conormurray/2026/06/30/kennedy-center-claims-it-will-lose-hundreds-of-millions-in-donations-after-removing-trump-name/', asOf: '2026-09-15' },
+        { title: 'Trump-led Kennedy Center nearly doubles fundraising from Biden era, smashing record with $23M haul', publisher: 'Fox News', url: 'https://www.foxnews.com/politics/exclusive-trump-led-kennedy-center-nearly-doubles-fundraising-from-biden-era-smashing-record-23m-haul', asOf: '2026-09-15' },
+        { title: 'President Donald Trump Plunges Kennedy Center Fundraising Into Chaos', publisher: 'The Daily Beast', url: 'https://www.thedailybeast.com/president-donald-trump-plunges-kennedy-center-fundraising-into-chaos/', asOf: '2026-09-15' },
+      ],
+      note: 'Tier 2 (DR-0100), narrowly: the public claims and the internal documents do not agree, and no audited reconciliation is public. That disagreement is the fact; which set of numbers is right is genuinely open. The Word’s standard for the numbers themselves is not open (Stage 4).',
+    },
+  ],
+  interpretation: [
+    {
+      id: 'n-only-he-can-is-a-forecast',
+      statement: '"Only President Trump can raise enough" is a forecast, not a finding. What is documented is the opposite direction so far: tickets and gifts fell after his name went on in December, and the board’s own June warning that removing the name would cost hundreds of millions has not been reconciled with any audited figure. Whether an inscription would now bring money in is untested — a narrow, honest unknown. The board is also not a neutral witness to it: its chairman is the person to be honored. Keep the categories: the collapse is fact; the rescue is a hope.',
+      restsOn: ['f-finances', 'f-fundraising-claims', 'f-sept-14', 'f-takeover-2025'],
+    },
+    {
+      id: 'n-two-decays-two-clocks',
+      statement: 'Two true things run on two clocks. The building’s decay is decades old — the ceiling fell on September 5 and the spokeswoman blamed deferred maintenance across many administrations; Congress voted $257 million for it. The revenue collapse is new and dated to the takeover and the renaming — the departures are on the record by name and the documents by month. "Decades of neglect" does not explain the empty seats, and the empty seats do not explain the ceiling. A reader who lets either side use its true fact to erase the other’s has stopped weighing.',
+      restsOn: ['f-finances', 'f-departures', 'f-takeover-2025'],
+    },
+    {
+      id: 'n-inscription-or-renaming',
+      statement: 'The May ruling settled that the board cannot rename the center. The September options put the President’s name BELOW the center’s name as a credit line; the Justice Department calls that recognition, Beatty calls it the same act by another route. That is the live question before Judge Cooper, and the lesson does not pre-decide it. What the Word says about a living ruler’s name on a memorial built for another man is a different question, and the Word answers that one (Stage 4).',
+      restsOn: ['f-ruling', 'f-sept-14', 'f-1964-name'],
+    },
+    {
+      id: 'n-departures-are-a-cause-too',
+      statement: 'The departing artists say the center became too politicized; the board says the artists and their audiences abandoned a public institution over politics. Both descriptions are of the same event. What is not in dispute is the fruit: a resident opera company of decades gone, a Hamilton run gone, subscriptions down a third, seats half empty — and now payroll for musicians, ushers, and stagehands at risk within weeks. Whoever is right about who started it, the Word is clear about who must be paid (Stage 4).',
+      restsOn: ['f-departures', 'f-finances', 'f-sept-14'],
+    },
+  ],
+
+  // ---- STAGE 3 — PERSPECTIVES on the UNRESOLVED parts ----
+  perspectives: [
+    {
+      id: 'p-board',
+      label: 'The board’s reading — survival, and the one donor who can',
+      heldBy: 'The Kennedy Center trustees and administration',
+      steelman: 'At its strongest: a ceiling fell on the red carpet two weeks ago; the resolution says payroll cannot be met within weeks; the federal appropriation pays for walls, not music; and the audiences and donors who paid for the music are gone. In that hour there is one person with the reach to raise nine figures fast, and he secured $257 million from Congress for this building already. Concert halls everywhere carry the names of the people who saved them; it is not vanity to credit a benefactor on the marble — the Word itself records elders telling Jesus of a centurion, "he loveth our nation, and he hath built us a synagogue" (Luke 7:5), and commands "honour to whom honour" (Romans 13:7). An inscription beneath the center’s name changes nothing Congress wrote. A closed hall honors no one.',
+    },
+    {
+      id: 'p-artists-audiences',
+      label: 'The artists’ and audiences’ reading — a hall claimed by one ruler changes the song',
+      heldBy: 'Artists who canceled, the Washington National Opera, subscribers who stopped coming',
+      steelman: 'Heard fairly: they did not leave a building; they left a building that had been made to mean something else. A memorial to a slain president was renamed for a sitting one by a board he appointed, after the trustees and president who ran it were dismissed and a break-even rule drove out the opera company that had lived there for decades. An artist asks what a stage means before standing on it — "How shall we sing the LORD’s song in a strange land?" (Psalms 137:4) — and the Word shows the arts conscripted to a ruler’s image once before, when "all kinds of musick" were commanded so the crowd would "fall down and worship the golden image" (Daniel 3:5), and three men who would not. Their conscience is their own; and the empty seats show the audience agreed with their feet. On this view the crisis was not inherited; it was made, and the remedy is to give the house back its meaning, not to carve the cause of the wound deeper into the wall.',
+    },
+    {
+      id: 'p-lawsuit',
+      label: 'The lawsuit’s reading — a memorial’s name belongs to the one it was built for',
+      heldBy: 'Rep. Joyce Beatty and those who back her suit; the court, on the May ruling',
+      steelman: 'At its strongest this is not about one man versus another; it is about who owns a memorial. In 1964 a grieving Congress voted unanimously to name a national house for a president who had just been killed, and only Congress can un-vote it — a judge has already said so. A living ruler’s name on the memorial of another man is exactly the pillar Absalom raised "to keep my name in remembrance" (2 Samuel 18:18), and a board that depends on that ruler for its next payroll is not free to judge whether his name belongs there. A credit line that leads with the ruler’s name is a renaming by inches. The rule of law is the point: if a board can carve around a court order, no memorial is safe.',
+    },
+    {
+      id: 'p-workers',
+      label: 'The workers’ reading — a name on a wall costs us nothing; a closed hall costs us everything',
+      heldBy: 'The National Symphony Orchestra musicians, stagehands, ushers, and staff whose payroll the resolution names',
+      steelman: 'The players did not fire anyone, rename anything, or cancel a show, and they are the ones the resolution says will not be paid "within a matter of weeks." From the pit and the loading dock the fight over marble looks like two sides willing to let the house die to win. Their strongest word is the Word’s own: "the wages of him that is hired shall not abide with thee all night until the morning" (Leviticus 19:13) — and the hire kept back "crieth" (James 5:4). Whatever the court and the board decide, the people who make the music must be paid, and any settlement that leaves them unpaid has failed the first test.',
+    },
+  ],
+
+  // ---- STAGE 4 — THE BELIEVER'S LENS ----
+  lens: {
+    fourD: {
+      deepSource: 'WORD FIRST — Yahweh spoke about names on buildings long before any board did, and He spoke about the arts, and about patrons, and about counting the cost, and the Word settles what the court will never rule on. NAMES ON HOUSES. The first building project after the flood was a name project: "let us make us a name" (Genesis 11:4) — and He scattered it. Absalom, a king’s son with no throne, "reared up for himself a pillar" because "I have no son to keep my name in remembrance: and he called the pillar after his own name" (2 Samuel 18:18); the Word records the pillar and records that he died in a tree the same chapter. The psalmist names the whole instinct: "Their inward thought is, that their houses shall continue for ever, and their dwelling places to all generations; they call their lands after their own names." (Psalms 49:11) — and answers it in the next breath: "Nevertheless man being in honour abideth not: he is like the beasts that perish." (Psalms 49:12). And the plainest case: a king on his roof, "Is not this great Babylon, that I have built for the house of the kingdom by the might of my power, and for the honour of my majesty?" (Daniel 4:30) — "While the word was in the king’s mouth, there fell a voice from heaven" (Daniel 4:31) — and the same king, restored, confessed that the King of heaven is the one whose "works are truth, and his ways judgment: and those that walk in pride he is able to abase." (Daniel 4:37). The Word is not against memorials — Yahweh Himself commanded stones "for a memorial unto the children of Israel for ever" (Joshua 4:7) — and it is not against honoring a benefactor: "he loveth our nation, and he hath built us a synagogue" (Luke 7:5); "honour to whom honour" (Romans 13:7). What it is against is a MAN making his own name the thing the house is for. The name that lasts is not carved: "A good name is rather to be chosen than great riches, and loving favour rather than silver and gold." (Proverbs 22:1); "A good name is better than precious ointment" (Ecclesiastes 7:1); "The memory of the just is blessed" (Proverbs 10:7); and "them that honour me I will honour" (1 Samuel 2:30). And there is one name over every house: Yahweh "hath highly exalted him, and given him a name which is above every name" (Philippians 2:9) — "That at the name of Jesus every knee should bow" (Philippians 2:10) and "every tongue should confess that Jesus Christ is Lord, to the glory of God the Father." (Philippians 2:11). "Not unto us, O LORD, not unto us, but unto thy name give glory" (Psalms 115:1); "my glory will I not give to another" (Isaiah 42:8). THE ARTS ARE HIS GIFT. The first person the Word NAMES as filled with the spirit of God was not a prophet but a craftsman — and even before him the unnamed makers of the priest’s garments were "wise hearted, whom I have filled with the spirit of wisdom" (Exodus 28:3): "See, I have called by name Bezaleel" (Exodus 31:2) — "And I have filled him with the spirit of God, in wisdom, and in understanding, and in knowledge, and in all manner of workmanship" (Exodus 31:3), "To devise cunning works, to work in gold, and in silver, and in brass" (Exodus 31:4), and "in carving of timber" (Exodus 31:5); and Yahweh made him a teacher — "he hath put in his heart that he may teach" (Exodus 35:34) — of a whole guild, "of the engraver, and of the cunning workman, and of the embroiderer, in blue, and in purple, in scarlet, and in fine linen, and of the weaver" (Exodus 35:35). Music was there from the fourth chapter — Jubal, "the father of all such as handle the harp and organ" (Genesis 4:21) — and David built the first national arts institution on the record: singers "who should prophesy with harps, with psalteries, and with cymbals" (1 Chronicles 25:1), "instructed in the songs of the LORD, even all that were cunning, was two hundred fourscore and eight" (1 Chronicles 25:7). He commands excellence in it — "play skilfully with a loud noise" (Psalms 33:3) — and tells the believer to dwell on "whatsoever things are lovely, whatsoever things are of good report" (Philippians 4:8); and skill has always walked into palaces on its own feet: "Seest thou a man diligent in his business? he shall stand before kings" (Proverbs 22:29). So the believer never sneers at a concert hall; the hall is a Bezaleel house, and its emptiness is a real loss. PATRONS AND DEPENDENCE. The Word shows kings funding Yahweh’s house — Cyrus: "he hath charged me to build him an house at Jerusalem" (Ezra 1:2); Darius: "let the expenses be given out of the king’s house" (Ezra 6:4); Artaxerxes, and Ezra blessing the LORD "which hath put such a thing as this in the king’s heart, to beautify the house of the LORD" (Ezra 7:27); Nehemiah taking the king’s timber — "And the king granted me, according to the good hand of my God upon me." (Nehemiah 2:8). Three things stand out. The house kept HIS name, not the king’s — it is "the God that hath caused his name to dwell there" (Ezra 6:12) even in Darius’s own decree. The credit went behind the king to the Giver — "The king’s heart is in the hand of the LORD" (Proverbs 21:1); "it is he that giveth thee power to get wealth" (Deuteronomy 8:18). And the people were told where NOT to put their trust: "Put not your trust in princes, nor in the son of man, in whom there is no help." (Psalms 146:3) — "His breath goeth forth, he returneth to his earth; in that very day his thoughts perish." (Psalms 146:4); "It is better to trust in the LORD than to put confidence in princes." (Psalms 118:9); "Cursed be the man that trusteth in man, and maketh flesh his arm" (Jeremiah 17:5); "Not by might, nor by power, but by my spirit, saith the LORD of hosts." (Zechariah 4:6); "Except the LORD build the house, they labour in vain that build it" (Psalms 127:1). A house that says in writing that one man is its only hope has written its own diagnosis: it has become the borrower, and "the borrower is servant to the lender" (Proverbs 22:7). And Jesus gave the rule every board should have read before December: "For which of you, intending to build a tower, sitteth not down first, and counteth the cost, whether he have sufficient to finish it?" (Luke 14:28) — "Lest haply, after he hath laid the foundation, and is not able to finish it, all that behold it begin to mock him" (Luke 14:29), "Saying, This man began to build, and was not able to finish." (Luke 14:30). THE JUST WEIGHT FOR THE NUMBERS. "A false balance is abomination to the LORD: but a just weight is his delight." (Proverbs 11:1). Public claims of record hauls beside private documents of collapse is a scale with two weights, and the Word forbids it before any auditor does: "Providing for honest things, not only in the sight of the Lord, but also in the sight of men." (2 Corinthians 8:21); "Let another man praise thee, and not thine own mouth" (Proverbs 27:2); "Thou shalt not bear false witness against thy neighbour." (Exodus 20:16) — which binds everyone in this story who reports a number, on every side. THE ONES WHO MUST BE PAID. Whatever the court decides, "the wages of him that is hired shall not abide with thee all night until the morning" (Leviticus 19:13); the hire kept back "crieth" (James 5:4). The musicians and the crew are the first obligation, not the last. THE OVER-REACH, CORRECTED ON EVERY SIDE. To the board’s "only he can": "Put not your trust in princes" (Psalms 146:3) — the true data under it (a real collapse, a real ceiling) stands; the theology over it does not. To any artist or audience tempted from conscience into contempt: conscience is honored — "we will not serve thy gods, nor worship the golden image" (Daniel 3:18) — but so is the command to pray "For kings, and for all that are in authority" (1 Timothy 2:2) and to "seek the peace of the city" (Jeremiah 29:7); the Word never licenses cursing the ruler you will not play for. To the lawsuit’s side, if the marble becomes the whole cause: no man’s name is the final memorial — "The memory of the just is blessed" (Proverbs 10:7) is a memory Yahweh keeps, and He "dwelleth not in temples made with hands" (Acts 17:24); the rule of law is worth defending and the name of a slain president worth honoring, and neither is ultimate. SO IN THIS CASE the believer does four things in order. First, state the documented plainly, because "Prove all things; hold fast that which is good." (1 Thessalonians 5:21): Congress named it in 1964; a court ruled only Congress can change it; the artists left by name; the seats emptied by the numbers; the ceiling fell; the board wrote what it wrote. Second, hear every side at its strongest — "He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him." (Proverbs 18:17) — and mark what each answers and what it leaves standing. Third, keep the open questions narrow and honest: whether an inscription would raise the money, and whether it is a renaming under the order, are for evidence and for the judge; no motive on any side is adjudicated here. Fourth — where the Word settles what the court cannot — judge by the fruit, "by their fruits ye shall know them" (Matthew 7:20): a house whose survival plan is one man’s name has trusted a prince; a name carved for oneself has never kept anyone in remembrance; the arts are Yahweh’s gift and their silence is a loss to Him; the workers must be paid; and "whosoever shall exalt himself shall be abased; and he that shall humble himself shall be exalted" (Matthew 23:12) is not a threat against anyone — it is the law of every name, including ours.',
+      scripture: 'Genesis 11:4; 2 Samuel 18:18; Psalms 49:11-12; Daniel 4:30-37; Joshua 4:7; Luke 7:5; Romans 13:7; Proverbs 22:1; Ecclesiastes 7:1; Proverbs 10:7; 1 Samuel 2:30; Philippians 2:9-11; Psalms 115:1; Isaiah 42:8; Exodus 28:3; Exodus 31:1-5; Exodus 35:30-35; Genesis 4:21; 1 Chronicles 25:1-7; Psalms 33:3; Philippians 4:8; Proverbs 22:29; Ezra 1:2; Ezra 6:4; Ezra 6:12; Ezra 7:27; Nehemiah 2:8; Proverbs 21:1; Deuteronomy 8:18; Psalms 146:3-4; Psalms 118:8-9; Jeremiah 17:5; Zechariah 4:6; Psalms 127:1; Proverbs 22:7; Luke 14:28-30; Proverbs 11:1; 2 Corinthians 8:21; Proverbs 27:2; Exodus 20:16; Leviticus 19:13; James 5:4; Daniel 3:5; Daniel 3:18; Psalms 137:4; 1 Timothy 2:1-2; Jeremiah 29:7; Acts 17:24; 1 Thessalonians 5:21; Proverbs 18:17; Matthew 7:20; Matthew 23:12',
+    },
+    threeD: 'Practically: read the resolution’s own words and sort them. Say the proven parts without a hedge — Congress named the center in 1964; a federal judge ruled in May that only Congress can change it; the artists left by name and date; subscriptions fell about a third and nearly half the seats went unsold; part of the ceiling fell on September 5; the board wrote that payroll cannot be met within weeks. Then label the rest: "only President Trump can raise it" is the board’s forecast, made by a board he chairs, and the public record so far shows gifts falling after his name went on, not rising; "too politicized" is the artists’ reason, carried as theirs; "not renaming" versus "renaming by inches" is the judge’s question, not yours. Hear all four sides at their strongest (Proverbs 18:17) and notice that each holds a true fact — the ceiling, the empty seats, the statute, the unpaid crew — and each is tempted to use its fact to erase the others’. Then do what the Word does: refuse to put your trust in a prince or your contempt on one; count the cost before you build; use one weight for the numbers; insist the workers are paid first; and remember whose name every house is finally for. In your own house: when you give, give without a plaque (Matthew 6:1-4); when you build, sit down first and count (Luke 14:28); when you are honored, "Let another man praise thee" (Proverbs 27:2). In the Body: fund the arts you say you love, and name your buildings for what they are for, not for who paid.',
+    accountability: {
+      statement: 'THE TWO COURTS. Man’s court has ruled once — "Congress gave the Kennedy Center its name, and only Congress can change it" — and is being asked to rule again; the lesson cites what it ruled and invents nothing about what it will. No court will rule on motive, and neither does this lesson. But the Word never lets accountability shrink to a docket. Every resolution, every press release, every canceled contract, and every private projection enters the eternal court — "For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil." (Ecclesiastes 12:14) — where "the books were opened" (Revelation 20:12) and "God is not mocked" (Galatians 6:7), and where the only remembrance that lasts is the one He writes: "a book of remembrance was written before him for them that feared the LORD, and that thought upon his name" (Malachi 3:16). WHAT THE STEWARDS OWE under the Word: to be "found faithful" (1 Corinthians 4:2) with a house the public paid for; to count the cost before laying a foundation (Luke 14:28-30); to keep one weight for the numbers in public and in private (Proverbs 11:1; 2 Corinthians 8:21); and to pay the hired before the sun goes down (Leviticus 19:13; James 5:4) — a settlement that leaves the crew unpaid has failed before it begins. WHAT THE COURT OWES: "thou shalt not respect persons, neither take a gift" (Deuteronomy 16:19). WHAT THE ARTISTS OWE: to work "heartily, as to the Lord, and not unto men" (Colossians 3:23) wherever they do play, and to pray for the ruler they will not play for (1 Timothy 2:1-2). WHAT WE OWE: to speak the documented plainly and the unproven as unproven; to honor a benefactor without trusting him (Romans 13:7; Psalms 146:3); and to leave every soul in this story to Yahweh, who "is able to abase" the proud (Daniel 4:37) and exalt the humble (Matthew 23:12) without our help. And the lived cost during this life is not deferred evidence — a musician’s missed paycheck, a canceled season, a fallen ceiling are seen and weighed now.',
+      scripture: 'Ecclesiastes 12:14; Revelation 20:12; Galatians 6:7; Malachi 3:16; 1 Corinthians 4:2; Luke 14:28-30; Proverbs 11:1; 2 Corinthians 8:21; Leviticus 19:13; James 5:4; Deuteronomy 16:19; Colossians 3:23; 1 Timothy 2:1-2; Romans 13:7; Psalms 146:3; Daniel 4:37; Matthew 23:12',
+    },
+    benefits: [
+      'Both courts, honestly held: a federal judge ruled on the name, and will rule again on the inscription — cite what was ruled, invent nothing about what will be — while the ETERNAL court holds every resolution, every projection, and every secret thing, and lands after this life (Ecclesiastes 12:14; Revelation 20:12). You can name the fruit without pronouncing on a soul.',
+      'Freedom from two lies at once: the rescue lie ("one man’s name will save it, so the name is the price") and the contempt lie ("the building deserves to fall") — the Word forbids trusting a prince AND cursing one.',
+      'The Word’s own theology of names in your hands: Babel, Absalom’s pillar, Psalms 49, Nebuchadnezzar’s roof, and the name above every name — so a plaque never fools you again about what lasts (Genesis 11:4; 2 Samuel 18:18; Proverbs 22:1; Philippians 2:9-11).',
+      'A right love of the arts: Bezaleel is the first person the Word names as filled with the spirit of God, David appointed 288 trained singers, and "play skilfully" is a command — so an empty concert hall is a loss to Yahweh, not a culture-war trophy (Exodus 31:3; 1 Chronicles 25:7; Psalms 33:3).',
+      'A repeatable skill for institutional crises: read the document itself, sort fact from forecast, ask who is speaking and what they depend on, hear four sides, keep the open question narrow, then weigh by the just weight and the fruit.',
+      'A house that counts the cost and gives without a trumpet: Luke 14:28 before every build, Matthew 6:1-4 before every gift, one weight for every number you report.',
+      'A church that builds the arts it praises — a Bezaleel guild, a choir taught to excellence, a building named for its purpose — so the next generation of players has a stage that no patron can rename.',
+    ],
+    graceNote: 'No condemnation of any soul in this story: this lesson pronounces no verdict on President Trump, Rep. Joyce Beatty, Richard Grenell, the trustees who voted, the artists who left, the judge who ruled, or the memory of President Kennedy — their hearts are Yahweh’s to judge, and He is no respecter of persons in either direction. But leaving the soul to Yahweh never mutes the fruit: the seats are empty, the ceiling fell, the workers are weeks from unpaid, and the Word names what a house does when it writes that one man is its only hope. Truth and grace meet in Jesus, whose name is above every name (Philippians 2:9) and who taught that when evening comes the labourers are called and given their hire (Matthew 20:8).',
+    stewardship: 'The deeper response is to BUILD what the Word builds, in your own house first. A congregation has its own arts and its own building, and both raise the same questions this hall does. Name the building for what it is for, not for who paid — the house Cyrus and Darius funded kept Yahweh’s name (Ezra 6:12) — and when a family gives the roof, let the reward be the one "thy Father which seeth in secret" gives "openly" (Matthew 6:4), not a plaque by the door: "let not thy left hand know what thy right hand doeth" (Matthew 6:3). Fund the arts you say you love: raise a Bezaleel guild — the painter, the carpenter, the engraver, the weaver — and a choir "instructed in the songs of the LORD" (1 Chronicles 25:7), taught to "play skilfully" (Psalms 33:3), paid on time (Leviticus 19:13), and free of any patron who could rename the stage. Count the cost before the building campaign (Luke 14:28), keep one weight in every financial report (Proverbs 11:1; 2 Corinthians 8:21), and pray for the rulers and the trustees of the hall in Washington by name — for the workers to be paid, for the house to stand, and for every name on it, including ours, to bow to the one above it (Philippians 2:10). This platform’s own Learn tab is a small example of Yahweh’s pattern: made with skill, given freely, owned by the community, and named for no donor.',
+    anchor: {
+      ref: 'Proverbs 22:1; Psalms 146:3',
+      theme: 'A good name is chosen, not carved — "A good name is rather to be chosen than great riches" — and a house that writes down that one man is its only hope has already told you where its trust went: "Put not your trust in princes, nor in the son of man, in whom there is no help." State the documented plainly, hear every side, pay the workers, and give without a plaque.',
+    },
+  },
+
+  // ---- STAGE 5 — REFLECTION + SKILL ----
+  reflection: {
+    skill: 'When an institution announces it will die unless a powerful person is honored: PAUSE. Read the document itself, not the headline. Separate what is documented (dates, votes, rulings, the numbers with their source) from forecasts ("only he can") and from each side’s reasons ("too politicized," "decades of neglect"). Ask who is speaking and what they depend on. Hear every side at its strongest — the board, the artists, the lawsuit, the workers — and mark the true fact each holds and the fact each is tempted to erase. Keep the open questions narrow and leave motive alone. Then let the Word speak to what no court will rule on: names on houses, trust in princes, counting the cost, the just weight, the wages of the hired, and the arts as Yahweh’s gift.',
+    practice: 'Take the September 14 resolution. Write four lines: (1) one sentence of what is DOCUMENTED, with a source and its date; (2) one sentence labeling "only President Trump can raise enough" as a forecast, naming who made it and what they depend on; (3) one sentence giving the strongest case for a side you do not naturally hold; (4) one sentence on what the Word says about a name on a house — and one concrete thing your own church could do this month with its own arts or its own building’s name.',
+    prompts: [
+      'Which parts of the story are documented (the 1964 Act, the December vote, the May ruling, the WaPo figures, the ceiling) and which are forecasts or reasons (only he can raise it; too politicized; decades of neglect)? How would you check each?',
+      'The board that says only its chairman can save the center is a board he appointed. Does that make its claim false? What does it make it? (Proverbs 18:17)',
+      'Walk through the Word’s names on houses: Babel (Genesis 11:4), Absalom’s pillar (2 Samuel 18:18), Psalms 49:11-12, Nebuchadnezzar’s roof (Daniel 4:30-37). What do they have in common — and how does Luke 7:5 and Romans 13:7 keep this from becoming a rule against ever honoring a giver?',
+      'Cyrus and Darius paid for Yahweh’s house and the house kept His name (Ezra 6:4; 6:12). What would it look like for a hall — or a church — to accept a large gift without becoming the giver’s servant (Proverbs 22:7; Psalms 146:3)?',
+      'The artists cite conscience (Daniel 3:18; Psalms 137:4). The Word also says pray for kings (1 Timothy 2:2) and seek the peace of the city (Jeremiah 29:7). Where is the line between refusing to play and holding a ruler in contempt?',
+      'The resolution says payroll cannot be met within weeks. What does Leviticus 19:13 and James 5:4 require of every party before anything else is settled — and what does that require of your own church’s musicians and staff?',
+      'In your own house: when you give to a building, do you need the plaque? Read Matthew 6:1-4 and answer honestly.',
+    ],
+  },
+
+  // ---- Age-appropriate renderings (kids use the app) ----
+  levels: {
+    child: 'A big music and theater hall in Washington, D.C. is in trouble. It is called the Kennedy Center. Long ago, Congress named it to remember a president who had died. Now the people who run it say it is almost out of money. Part of a ceiling fell down in the rain. And they say the only way to save it is to put the President’s name on the front of the building, because he can ask his friends for money. A judge already said the name has to stay the way Congress wrote it. Many singers and players stopped coming. Many people stopped buying tickets. Here is how to think it through. First, sort what is known from what is a guess. We know the money went down. We know the ceiling fell. "Only one person can save it" is a guess about the future. Second, hear each side kindly. The board is scared. The singers have their reasons. The judge has the law. The workers just want to be paid. Third, ask what Yahweh says. Long ago some people built a tower and said, "let us make us a name" (Genesis 11:4). That did not end well. A king looked at his city and bragged that he built it by his own power (Daniel 4:30), and Yahweh humbled him. The Word says, "A good name is rather to be chosen than great riches" (Proverbs 22:1). A good name is not letters on a wall. It is being honest and kind. And the Word says, "Put not your trust in princes" (Psalms 146:3). Help from a leader can be a gift. But our trust goes to Yahweh. Music and art are His gift too. He filled a man named Bezaleel with His Spirit to make beautiful things (Exodus 31:3). When you give, Jesus says to do it quietly, so your Father who sees in secret can reward you (Matthew 6:4). We do not call anyone bad. We pray for the leaders. We pray for the workers who need their pay. And we make beautiful things for Yahweh.',
+    teen: 'Breaking news: the Kennedy Center’s own board says the place could go bankrupt within weeks and might close — and that the only way out is to carve the President’s name into the front of the building, because he is the only one who can raise the money. Run the moves before you repeat any of it. (1) Sort fact from forecast. Documented: Congress named it for President Kennedy in 1964; the board renamed it for Trump in December 2025; a federal judge ruled in May that "only Congress can change it" and made them take the name down; artists like Renée Fleming and the producers of Hamilton canceled, and the opera company left; documents show subscriptions fell about a third and nearly half the seats went unsold after the name went on; part of the ceiling fell on September 5. Forecast: "only President Trump can raise enough" — said by a board he chairs, and so far the money went DOWN after his name went up. (2) Hear all four sides at their strongest: the board (the ceiling is real, the hall dies without cash), the artists (a memorial claimed by a sitting ruler changes what the stage means — Psalms 137:4), the lawsuit (Congress named a memorial for a slain president; only Congress un-names it), and the workers (a name costs them nothing; a closed hall costs them everything). Notice each side holds a true fact and is tempted to use it to erase the others. (3) Now let the Word speak to what no judge will rule on. Names on houses: Babel said "let us make us a name" (Genesis 11:4); Absalom built a pillar "to keep my name in remembrance" (2 Samuel 18:18); Nebuchadnezzar bragged "Is not this great Babylon, that I have built" (Daniel 4:30) and lost his mind until he honored the King of heaven. The name that lasts: "A good name is rather to be chosen than great riches" (Proverbs 22:1). Trust: "Put not your trust in princes" (Psalms 146:3) — a house that writes down that one man is its only hope has told you where its trust went, and "the borrower is servant to the lender" (Proverbs 22:7). Cost: "sitteth not down first, and counteth the cost" (Luke 14:28). Honesty: public record-fundraising claims next to private collapse documents is two weights on one scale (Proverbs 11:1). The workers: "the wages of him that is hired shall not abide with thee all night" (Leviticus 19:13) — the crew gets paid first, whoever wins. And the arts: Bezaleel is the first person the Word names as filled with the spirit of God (Exodus 31:3), so an empty hall is a loss to Yahweh, not a win for anybody. (4) Don’t become the comment section. Conscience is honored (Daniel 3:18), but so is praying "For kings, and for all that are in authority" (1 Timothy 2:2). For you: when you give, no plaque (Matthew 6:3-4); when you build, count first; and make something excellent for Yahweh this week.',
+    senior: 'For the seasoned believer, this lesson is about weighing a public institution’s cry for rescue with the Word’s own theology of names, patrons, and the arts — in a week when the outcome is not yet known and every side is speaking at once. First, the documented record, stated plainly: Public Law 88-260 of January 23, 1964 named the National Cultural Center for President Kennedy as a living memorial; on February 12, 2025 the President dismissed the Biden-era trustees and was elected chairman by a board he had appointed, which removed Deborah Rutter and installed Richard Grenell; artists withdrew by name and date, and the Washington National Opera ended a residency of decades under a new break-even rule; on December 18, 2025 the board renamed the center for him, and Rep. Joyce Beatty — muted, she says, on the call — sued four days later; on May 29, 2026 Judge Christopher Cooper ruled in ninety-four pages that "Congress gave the Kennedy Center its name, and only Congress can change it," ordered the signage down within fourteen days, and blocked a two-year closure; on August 13 the board voted 20–3 for a credit-line inscription and a "Trump Plaza"; The Washington Post’s documents of August 25 show revenue projected nearly $100 million short and 70 percent under budget, subscriptions down about 36 percent, and roughly 43 percent of seats unsold; on September 5 part of the Grand Foyer ceiling fell; and on September 14 the board’s resolutions said payroll cannot be met "within a matter of weeks" and that without "appropriate recognition" it is unlikely the President will "lead the fiscal rescue of the Center." Second, the categories kept honestly (Proverbs 18:13; 18:17): "only he can" is a forecast by an interested board, and the record so far runs the other way; "too politicized" and "decades of neglect" are each side’s reasons, each resting on a true fact — the empty seats and the fallen ceiling run on two different clocks; whether an inscription is a renaming under the order is the judge’s question, and the public fundraising claims against the private documents are a genuine, narrow unknown — no audited reconciliation exists. No motive is adjudicated. Third — where the Word settles what the court cannot — the theology of names is old and consistent: Babel’s "let us make us a name," Absalom’s pillar, the psalmist’s "they call their lands after their own names" answered by "man being in honour abideth not," and Nebuchadnezzar on his roof — while the Word also commands memorials (Joshua 4:7) and honor to benefactors (Luke 7:5; Romans 13:7), so the correction is precise: not against honoring a giver, but against a man making his own name the thing a house is for. The arts are Yahweh’s gift — Bezaleel the first person the Word names as filled with the spirit of God, David’s 288 trained singers, "play skilfully" — so the hall’s silence is a loss to Him. Patrons are shown funding His house — Cyrus, Darius, Artaxerxes — and the house kept His name (Ezra 6:12) while the people were commanded, "Put not your trust in princes" (Psalms 146:3) and warned that "the borrower is servant to the lender" (Proverbs 22:7). The just weight (Proverbs 11:1; 2 Corinthians 8:21) governs every number reported on every side; the wages of the hired (Leviticus 19:13; James 5:4) govern the first obligation of any settlement; and the two courts govern the rest: man’s court has ruled and will rule again, and the eternal court holds every resolution and every secret thing (Ecclesiastes 12:14). Then let the response mature past taking a side into the Body’s long vocation — build the arts you praise, name your house for its purpose, give without a plaque (Matthew 6:1-4), count the cost (Luke 14:28), pay your musicians on time, and pray by name for the rulers, the trustees, the artists, and the crew — knowing that every name on every wall, ours included, will bow to the one above it (Philippians 2:10).',
+  },
+
+  // ---- Discernment-skill quiz ----
+  quiz: {
+    questions: [
+      {
+        q: 'The board’s resolution says only President Trump can raise enough to rescue the center. What is the discernment move?',
+        options: ['Accept it — the board would know', 'Label it a forecast by an interested board (he chairs it), check the record (gifts fell after his name went on), and keep the open question narrow: it is untested, not proven or disproven', 'Reject it — boards always exaggerate'],
+        answer: 1,
+        explain: 'A forecast is not a finding. Ask who is speaking and what they depend on, check what the documents show so far, and say honestly what is unknown (DR-0100 Tier 2, narrowly).',
+      },
+      {
+        q: '"Congress gave the Kennedy Center its name, and only Congress can change it." What kind of statement is this?',
+        options: ['One side’s opinion in a lawsuit', 'An adjudicated finding — a federal judge ruled it on May 29, 2026 — and it is said plainly as such', 'A claim no one has examined'],
+        answer: 1,
+        explain: 'A ruling is a verdict and is stated as one. What remains open is the narrower question of whether an inscription beneath the name violates that order — which the same judge will decide.',
+      },
+      {
+        q: 'The board says the crisis comes from decades of neglect; the artists say it was made by the takeover. What does the record show?',
+        options: ['Only the board is right', 'Only the artists are right', 'Two true facts on two clocks: the building’s decay is decades old (the ceiling), and the revenue collapse is new and dated to the renaming (the documents) — neither erases the other'],
+        answer: 2,
+        explain: 'Weighing means letting each side keep its true fact without letting it cancel the other’s. "Decades of neglect" does not explain the empty seats; the empty seats do not explain the ceiling.',
+      },
+      {
+        q: 'Which is the Word’s teaching about names on houses?',
+        options: ['Never honor a giver on a building', 'Memorials and honor to benefactors are commanded (Joshua 4:7; Romans 13:7), but a man making his own name the thing a house is for is Babel, Absalom’s pillar, and Nebuchadnezzar’s roof — and "A good name is rather to be chosen than great riches"', 'Whoever pays the most gets the name'],
+        answer: 1,
+        explain: 'The correction is precise. The Word honors givers and commands memorials; it warns against "let us make us a name" and answers "they call their lands after their own names" with "man being in honour abideth not."',
+      },
+      {
+        q: 'Cyrus and Darius paid for Yahweh’s house. What did the Word keep, and what does that model for a hall or a church taking a large gift?',
+        options: ['The king’s name went on the house', 'The house kept Yahweh’s name (Ezra 6:12), the credit went behind the king to the Giver, and the people were told "Put not your trust in princes" — accept the gift, keep the name and the trust where they belong', 'Refuse all gifts from rulers'],
+        answer: 1,
+        explain: 'A patron can be received with honor and thanks (Ezra 7:27; Nehemiah 2:8) without becoming the one the house is for or the one it depends on (Proverbs 22:7).',
+      },
+      {
+        q: 'The resolution says payroll cannot be met within weeks. Before the name is settled, what does the Word require?',
+        options: ['Nothing until the court rules', 'That the hired be paid first — "the wages of him that is hired shall not abide with thee all night until the morning" (Leviticus 19:13); the hire kept back "crieth" (James 5:4)', 'That the artists come back'],
+        answer: 1,
+        explain: 'Whoever wins the fight over the marble, the musicians and the crew are the first obligation, not the last. A settlement that leaves them unpaid has failed the first test.',
+      },
+      {
+        q: 'Public claims of record fundraising sit beside confidential documents showing collapse. What does the Word say about the numbers?',
+        options: ['Numbers are a matter of opinion', '"A false balance is abomination to the LORD" — one weight in public and in private (Proverbs 11:1; 2 Corinthians 8:21); which figures are right is genuinely open, but the standard for reporting them is not', 'Whichever side you favor is right'],
+        answer: 1,
+        explain: 'Tier 2 is narrow: the disagreement is documented and no audited reconciliation is public. The just weight binds every party that reports a figure, on every side.',
+      },
+      {
+        q: 'An artist cancels out of conscience. What does the Word honor, and what does it still require?',
+        options: ['Conscience is honored (Daniel 3:18), and so is praying for those in authority and seeking the peace of the city (1 Timothy 2:2; Jeremiah 29:7) — refusal is not a license for contempt', 'Artists must play wherever they are booked', 'Conscience means the ruler is the enemy'],
+        answer: 0,
+        explain: 'Three men refused the image and were honored; the same Word tells the exiles to pray for the city that held them. Refusing to play and cursing the ruler are different acts.',
+      },
+    ],
+  },
+};
+
+export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE, TUITION_1965_ISSUE, EPA_POWER_PLANT_ISSUE, SCOTUS_MAIL_IN_ISSUE, KENNEDY_CENTER_ISSUE, EVANSTON_REPARATIONS_ISSUE, TRADES_HIRING_ISSUE];
 
 // ---------------------------------------------------------------------------
 // Course-specific helpers — thin wrappers over the reusable discernment engine

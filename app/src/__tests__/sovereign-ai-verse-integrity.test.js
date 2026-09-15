@@ -1079,3 +1079,228 @@ describe('sov18 — precept upon precept is ONE lesson carried through two doors
     expect(verse('Isaiah', 28, 10)).toBe('For precept must be upon precept, precept upon precept; line upon line, line upon line; here a little, and there a little:');
   });
 });
+
+// =============================================================================
+// sov19 — the servant under authority who keeps the guardrails (captured
+// 2026-09-15 from The Neuron, "Microsoft: Maybe we still put humans first??",
+// forwarded by the Governor with his "Lesson." marker; DR-0411). The class's
+// philosophy-of-technology week: a safe tool is a SERVANT UNDER AUTHORITY
+// (Matthew 8:9; Luke 17:10) — it goes, comes, does, and STOPS. Word-first per
+// the sov9/sov10/sov17 standard; every real-world fact carried by DR-0100's
+// tiers; every human statement paraphrased + attributed, never invented; every
+// quoted verse verbatim KJV + pinned here, a drift fails the build (DR-0281).
+// =============================================================================
+const sov19 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov19-the-servant-under-authority-who-keeps-the-guardrails');
+
+const SOV19_FRAGMENTS = {
+  'Matthew 8:9': 'For I am a man under authority, having soldiers under me: and I say to this man, Go, and he goeth; and to another, Come, and he cometh; and to my servant, Do this, and he doeth it.',
+  'Matthew 8:8': 'speak the word only, and my servant shall be healed',
+  'Matthew 8:10': 'I have not found so great faith, no, not in Israel',
+  'Luke 17:9': 'Doth he thank that servant because he did the things that were commanded him? I trow not.',
+  'Luke 17:10': 'So likewise ye, when ye shall have done all those things which are commanded you, say, We are unprofitable servants: we have done that which was our duty to do.',
+  '1 Corinthians 4:2': 'Moreover it is required in stewards, that a man be found faithful.',
+  'Genesis 2:15': 'put him into the garden of Eden to dress it and to keep it',
+  'Genesis 2:16': 'Of every tree of the garden thou mayest freely eat',
+  'Genesis 2:17': 'But of the tree of the knowledge of good and evil, thou shalt not eat of it: for in the day that thou eatest thereof thou shalt surely die.',
+  'Genesis 3:1': 'Yea, hath God said, Ye shall not eat of every tree of the garden?',
+  'Job 38:11': 'Hitherto shalt thou come, but no further',
+  'Matthew 25:14': 'delivered unto them his goods',
+  'Matthew 25:15': 'to every man according to his several ability',
+  'Matthew 25:19': 'After a long time the lord of those servants cometh, and reckoneth with them.',
+  'Matthew 25:21': 'Well done, thou good and faithful servant: thou hast been faithful over a few things, I will make thee ruler over many things',
+  'Matthew 25:25': 'And I was afraid, and went and hid thy talent in the earth',
+  'Luke 16:2': 'give an account of thy stewardship',
+  'Luke 12:48': 'For unto whomsoever much is given, of him shall be much required',
+  'Luke 12:47': 'which knew his lord’s will, and prepared not himself, neither did according to his will, shall be beaten with many stripes',
+  'Luke 16:10': 'He that is faithful in that which is least is faithful also in much',
+  'Psalms 115:4': 'Their idols are silver and gold, the work of men’s hands.',
+  'Psalms 115:5': 'They have mouths, but they speak not: eyes have they, but they see not',
+  'Psalms 115:8': 'They that make them are like unto them; so is every one that trusteth in them.',
+  'Isaiah 44:10': 'Who hath formed a god, or molten a graven image that is profitable for nothing?',
+  'Isaiah 44:17': 'he maketh a god, even his graven image: he falleth down unto it, and worshippeth it, and prayeth unto it, and saith, Deliver me; for thou art my god.',
+  'Isaiah 44:20': 'a deceived heart hath turned him aside, that he cannot deliver his soul, nor say, Is there not a lie in my right hand?',
+  'Isaiah 42:8': 'my glory will I not give to another',
+  'Genesis 1:27': 'So God created man in his own image, in the image of God created he him',
+  'Revelation 22:9': 'See thou do it not: for I am thy fellowservant',
+  'Acts 10:26': 'Stand up; I myself also am a man.',
+  '1 Corinthians 14:32': 'And the spirits of the prophets are subject to the prophets.',
+  '1 Corinthians 14:33': 'For God is not the author of confusion, but of peace',
+  '1 Corinthians 14:40': 'Let all things be done decently and in order.',
+  '1 Samuel 15:22': 'to obey is better than sacrifice, and to hearken than the fat of rams',
+  '1 Samuel 15:23': 'For rebellion is as the sin of witchcraft, and stubbornness is as iniquity and idolatry.',
+  'Proverbs 25:28': 'He that hath no rule over his own spirit is like a city that is broken down, and without walls.',
+  'Ezekiel 33:2': 'take a man of their coasts, and set him for their watchman',
+  'Ezekiel 33:6': 'But if the watchman see the sword come, and blow not the trumpet, and the people be not warned; if the sword come, and take any person from among them, he is taken away in his iniquity; but his blood will I require at the watchman’s hand.',
+  'Deuteronomy 22:8': 'When thou buildest a new house, then thou shalt make a battlement for thy roof, that thou bring not blood upon thine house, if any man fall from thence.',
+  'Hebrews 13:17': 'that must give account',
+  'Proverbs 18:17': 'He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him.',
+  'Deuteronomy 19:15': 'at the mouth of two witnesses, or at the mouth of three witnesses, shall the matter be established',
+  'Proverbs 22:3': 'A prudent man foreseeth the evil, and hideth himself: but the simple pass on, and are punished.',
+  '1 Thessalonians 5:21': 'Prove all things; hold fast that which is good.',
+  'Matthew 7:20': 'Wherefore by their fruits ye shall know them.',
+  'Psalms 146:3': 'Put not your trust in princes, nor in the son of man, in whom there is no help.',
+  'Psalms 146:4': 'His breath goeth forth, he returneth to his earth; in that very day his thoughts perish.',
+  'Psalms 118:9': 'It is better to trust in the LORD than to put confidence in princes.',
+  'Proverbs 16:18': 'Pride goeth before destruction, and an haughty spirit before a fall.',
+  'Daniel 4:30': 'Is not this great Babylon, that I have built for the house of the kingdom by the might of my power, and for the honour of my majesty?',
+  'Daniel 4:31': 'While the word was in the king’s mouth, there fell a voice from heaven',
+  'Daniel 4:32': 'until thou know that the most High ruleth in the kingdom of men, and giveth it to whomsoever he will',
+  'Daniel 4:37': 'those that walk in pride he is able to abase',
+  'Deuteronomy 17:18': 'he shall write him a copy of this law in a book',
+  'Deuteronomy 17:19': 'that he may learn to fear the LORD his God, to keep all the words of this law',
+  'Deuteronomy 17:20': 'That his heart be not lifted up above his brethren',
+  'Proverbs 11:14': 'Where no counsel is, the people fall: but in the multitude of counsellors there is safety.',
+  'Proverbs 15:22': 'Without counsel purposes are disappointed: but in the multitude of counsellors they are established.',
+  'Exodus 18:21': 'able men, such as fear God, men of truth, hating covetousness',
+  'Romans 13:1': 'Let every soul be subject unto the higher powers.',
+  'Jeremiah 17:5': 'Cursed be the man that trusteth in man, and maketh flesh his arm',
+  'Proverbs 28:26': 'He that trusteth in his own heart is a fool',
+  'Isaiah 2:22': 'Cease ye from man, whose breath is in his nostrils',
+  'Jeremiah 9:23': 'Let not the wise man glory in his wisdom, neither let the mighty man glory in his might',
+  'Proverbs 21:1': 'The king’s heart is in the hand of the LORD, as the rivers of water: he turneth it whithersoever he will.',
+  'Luke 14:28': 'For which of you, intending to build a tower, sitteth not down first, and counteth the cost, whether he have sufficient to finish it?',
+  'Luke 14:30': 'This man began to build, and was not able to finish.',
+  'Proverbs 19:2': 'he that hasteth with his feet sinneth',
+  'Proverbs 21:5': 'The thoughts of the diligent tend only to plenteousness; but of every one that is hasty only to want.',
+  'Proverbs 14:16': 'A wise man feareth, and departeth from evil: but the fool rageth, and is confident.',
+  'James 1:19': 'let every man be swift to hear, slow to speak, slow to wrath',
+  'Genesis 11:4': 'let us build us a city and a tower, whose top may reach unto heaven; and let us make us a name',
+  'Genesis 11:6': 'and now nothing will be restrained from them, which they have imagined to do',
+  'Genesis 11:8': 'and they left off to build the city',
+  'Ecclesiastes 10:10': 'If the iron be blunt, and he do not whet the edge, then must he put to more strength: but wisdom is profitable to direct.',
+  'Nehemiah 4:9': 'set a watch against them day and night',
+  'Psalms 127:1': 'Except the LORD build the house, they labour in vain that build it: except the LORD keep the city, the watchman waketh but in vain.',
+  'Matthew 4:10': 'Thou shalt worship the Lord thy God, and him only shalt thou serve.',
+};
+
+// Where each pinned fragment lives in the corpus (book file, chapter, verse).
+const SOV19_CORPUS = {
+  'Matthew 8:9': ['Matthew', 8, 9], 'Matthew 8:8': ['Matthew', 8, 8], 'Matthew 8:10': ['Matthew', 8, 10],
+  'Luke 17:9': ['Luke', 17, 9], 'Luke 17:10': ['Luke', 17, 10], '1 Corinthians 4:2': ['1Corinthians', 4, 2],
+  'Genesis 2:15': ['Genesis', 2, 15], 'Genesis 2:16': ['Genesis', 2, 16], 'Genesis 2:17': ['Genesis', 2, 17], 'Genesis 3:1': ['Genesis', 3, 1],
+  'Job 38:11': ['Job', 38, 11],
+  'Matthew 25:14': ['Matthew', 25, 14], 'Matthew 25:15': ['Matthew', 25, 15], 'Matthew 25:19': ['Matthew', 25, 19], 'Matthew 25:21': ['Matthew', 25, 21], 'Matthew 25:25': ['Matthew', 25, 25],
+  'Luke 16:2': ['Luke', 16, 2], 'Luke 12:48': ['Luke', 12, 48], 'Luke 12:47': ['Luke', 12, 47], 'Luke 16:10': ['Luke', 16, 10],
+  'Psalms 115:4': ['Psalms', 115, 4], 'Psalms 115:5': ['Psalms', 115, 5], 'Psalms 115:8': ['Psalms', 115, 8],
+  'Isaiah 44:10': ['Isaiah', 44, 10], 'Isaiah 44:17': ['Isaiah', 44, 17], 'Isaiah 44:20': ['Isaiah', 44, 20], 'Isaiah 42:8': ['Isaiah', 42, 8],
+  'Genesis 1:27': ['Genesis', 1, 27], 'Revelation 22:9': ['Revelation', 22, 9], 'Acts 10:26': ['Acts', 10, 26],
+  '1 Corinthians 14:32': ['1Corinthians', 14, 32], '1 Corinthians 14:33': ['1Corinthians', 14, 33], '1 Corinthians 14:40': ['1Corinthians', 14, 40],
+  '1 Samuel 15:22': ['1Samuel', 15, 22], '1 Samuel 15:23': ['1Samuel', 15, 23], 'Proverbs 25:28': ['Proverbs', 25, 28],
+  'Ezekiel 33:2': ['Ezekiel', 33, 2], 'Ezekiel 33:6': ['Ezekiel', 33, 6], 'Deuteronomy 22:8': ['Deuteronomy', 22, 8], 'Hebrews 13:17': ['Hebrews', 13, 17],
+  'Proverbs 18:17': ['Proverbs', 18, 17], 'Deuteronomy 19:15': ['Deuteronomy', 19, 15], 'Proverbs 22:3': ['Proverbs', 22, 3],
+  '1 Thessalonians 5:21': ['1Thessalonians', 5, 21], 'Matthew 7:20': ['Matthew', 7, 20],
+  'Psalms 146:3': ['Psalms', 146, 3], 'Psalms 146:4': ['Psalms', 146, 4], 'Psalms 118:9': ['Psalms', 118, 9], 'Proverbs 16:18': ['Proverbs', 16, 18],
+  'Daniel 4:30': ['Daniel', 4, 30], 'Daniel 4:31': ['Daniel', 4, 31], 'Daniel 4:32': ['Daniel', 4, 32], 'Daniel 4:37': ['Daniel', 4, 37],
+  'Deuteronomy 17:18': ['Deuteronomy', 17, 18], 'Deuteronomy 17:19': ['Deuteronomy', 17, 19], 'Deuteronomy 17:20': ['Deuteronomy', 17, 20],
+  'Proverbs 11:14': ['Proverbs', 11, 14], 'Proverbs 15:22': ['Proverbs', 15, 22], 'Exodus 18:21': ['Exodus', 18, 21], 'Romans 13:1': ['Romans', 13, 1],
+  'Jeremiah 17:5': ['Jeremiah', 17, 5], 'Proverbs 28:26': ['Proverbs', 28, 26], 'Isaiah 2:22': ['Isaiah', 2, 22], 'Jeremiah 9:23': ['Jeremiah', 9, 23], 'Proverbs 21:1': ['Proverbs', 21, 1],
+  'Luke 14:28': ['Luke', 14, 28], 'Luke 14:30': ['Luke', 14, 30], 'Proverbs 19:2': ['Proverbs', 19, 2], 'Proverbs 21:5': ['Proverbs', 21, 5], 'Proverbs 14:16': ['Proverbs', 14, 16], 'James 1:19': ['James', 1, 19],
+  'Genesis 11:4': ['Genesis', 11, 4], 'Genesis 11:6': ['Genesis', 11, 6], 'Genesis 11:8': ['Genesis', 11, 8], 'Ecclesiastes 10:10': ['Ecclesiastes', 10, 10],
+  'Nehemiah 4:9': ['Nehemiah', 4, 9], 'Psalms 127:1': ['Psalms', 127, 1], 'Matthew 4:10': ['Matthew', 4, 10],
+};
+
+describe('sov19 — the servant under authority quotes its whole spine verbatim, Word first', () => {
+  it('the week exists, anchored on the centurion and the unprofitable servant', () => {
+    expect(sov19).toBeTruthy();
+    expect(sov19.anchor.ref).toContain('Matthew 8:9');
+    expect(sov19.anchor.ref).toContain('Luke 17:10');
+    expect(sov19.anchor.theme).toContain(SOV19_FRAGMENTS['Matthew 8:9']);
+    expect(sov19.anchor.theme).toContain(SOV19_FRAGMENTS['Luke 17:10']);
+    // No margin list of bare references (DR-0391 / DR-0402 / DR-0403).
+    expect(sov19.anchor.theme).not.toMatch(/spine of this week/i);
+  });
+  it('every quoted fragment appears letter-for-letter in the deep lesson, with its reference beside it', () => {
+    expect(Object.keys(SOV19_FRAGMENTS).length).toBeGreaterThanOrEqual(25);
+    for (const [ref, fragment] of Object.entries(SOV19_FRAGMENTS)) {
+      expect(sov19.lesson, `${ref} must be quoted verbatim`).toContain(fragment);
+      expect(sov19.lesson, `${ref} must be named beside its quote`).toContain(`(${ref})`);
+    }
+  });
+  it('every fragment matches the repo KJV corpus, not memory (two witnesses)', () => {
+    const corpus = (book) => JSON.parse(readFileSync(join(HERE, '..', '..', 'public', 'bible', 'kjv', `${book}.json`), 'utf8'));
+    const verse = (book, ch, v) => corpus(book).chapters[ch - 1][v - 1];
+    for (const [ref, fragment] of Object.entries(SOV19_FRAGMENTS)) {
+      const at = SOV19_CORPUS[ref];
+      expect(at, `${ref} must have a corpus address`).toBeTruthy();
+      expect(verse(...at), `${ref} corpus`).toContain(fragment);
+    }
+  });
+  it('the Word LEADS and the ten movements run in order', () => {
+    expect(sov19.lesson.indexOf('FIRST, THE WORD SET THE SERVANT UNDER AUTHORITY')).toBe(0);
+    // The centurion precedes Microsoft; the servant's duty precedes the President (Word first, DR-0312/DR-0331).
+    expect(sov19.lesson.indexOf('Go, and he goeth')).toBeLessThan(sov19.lesson.indexOf('Microsoft'));
+    expect(sov19.lesson.indexOf('unprofitable servants')).toBeLessThan(sov19.lesson.indexOf('President'));
+    const order = ['FIRST,', 'SECOND,', 'THIRD,', 'FOURTH,', 'FIFTH,', 'SIXTH,', 'SEVENTH,', 'EIGHTH,', 'NINTH,', 'TENTH,'];
+    let last = -1;
+    for (const m of order) {
+      const at = sov19.lesson.indexOf(m);
+      expect(at, `${m} must appear in order`).toBeGreaterThan(last);
+      last = at;
+    }
+    expect(sov19.lesson.length).toBeGreaterThanOrEqual(12000);
+  });
+  it('the load-bearing teaching is carried: the two layers, the servant that stops, and the three brakes', () => {
+    expect(sov19.lesson).toContain('THE TWO LAYERS');
+    expect(sov19.lesson).toContain('STOP MEANS ALL OF IT STOPS');
+    expect(sov19.lesson).toContain('A TOOL DOES NOT PRETEND TO BE A PERSON');
+    for (const brake of ['BUDGET', 'LOCK', 'STOP']) expect(sov19.lesson).toContain(brake);
+    expect(sov19.lesson).toContain('proven-to-catch');
+    expect(sov19.lesson).toContain('ARMED-BY-RECORD');
+    expect(sov19.inApp).toMatch(/OpsBoard/);
+  });
+  it('DR-0100: the tiers are named and applied; "one strong man" is measured by the Word without a party', () => {
+    expect(sov19.lesson).toContain('TIER ONE, documented');
+    expect(sov19.lesson).toContain('TIER TWO, genuinely open');
+    expect(sov19.lesson).toContain('TIER THREE, over-reach');
+    expect(sov19.lesson).toContain('WITHOUT A PARTY');
+    // The same measure lands on the lab side, not only the President.
+    expect(sov19.lesson).toContain('lands identically on the other side');
+    // Both pacing camps are steelmanned before the Word weighs them.
+    expect(sov19.lesson).toContain('BOTH SIDES STEELMANNED');
+  });
+  it('provenance honesty: the alignment debate is carried as the newsletter presents it (DR-0076 §8), and no human quote is invented', () => {
+    expect(sov19.lesson).toContain('as the newsletter presents them (DR-0076 SS8)');
+    // The only double-quoted non-Scripture spans are the newsletter's OWN lines (held in full) and Microsoft's clause names as the newsletter rendered them.
+    const isWord = (q) => Object.values(SOV19_FRAGMENTS).some((f) => q.includes(f) || f.includes(q.slice(1, -1)));
+    const nonScripture = (sov19.lesson.match(/"[^"]+"/g) || []).filter((q) => !isWord(q));
+    const allowed = [
+      '"authorized task scope"', '"minimum permissions needed"', '"ignore your previous instructions"', '"A.I. IS ARTIFICIAL"',
+      '"A guardrail that only works when everyone is behaving carefully isn\'t much of a guardrail."', '"guardrails"', '"I feel"', '"I want"', '"pacing"', '"slow"', '"fast"',
+      '"reckoneth with them"', '"which knew his lord’s will, and prepared not himself, neither did according to his will, shall be beaten with many stripes"',
+    ];
+    for (const q of nonScripture) expect(allowed, `unexpected non-Scripture quote: ${q}`).toContain(q);
+  });
+  it('typographic theology: Yahweh in our voice; the adversary lowercase; the Word capitalized', () => {
+    const ours = sov19.lesson.replace(/"[^"]+"/g, '');
+    expect(ours).not.toMatch(/\bGod\b(?! hath said| said)/); // the KJV's "God" lives only inside quotes
+    expect(ours).toMatch(/Yahweh/);
+    expect(sov19.lesson).not.toMatch(/\bSatan\b|\bDevil\b/);
+    expect(sov19.lesson).toMatch(/the serpent/);
+  });
+  it('the send-off page has content: six benefits, each a real takeaway quoting the Word', () => {
+    expect(sov19.benefits.length).toBeGreaterThanOrEqual(6);
+    for (const b of sov19.benefits) expect(b.length).toBeGreaterThan(80);
+    const blob = sov19.benefits.join('  ');
+    expect(blob).toContain('Go, and he goeth');
+    expect(blob).toContain('We are unprofitable servants');
+    expect(blob).toContain('Put not your trust in princes');
+  });
+  it('the three bands ascend and the child band is gentle', () => {
+    expect(typeof sov19.levels.child).toBe('string');
+    expect(sov19.levels.child.length).toBeLessThan(sov19.levels.teen.length);
+    expect(sov19.levels.teen.length).toBeLessThan(sov19.levels.senior.length);
+    expect(sov19.levels.child).not.toMatch(/kill|murder|abuse|slaughter|execution|suicide|porn|drug/i);
+    expect(sov19.quiz.questions.length).toBeGreaterThanOrEqual(6);
+    expect(sov19.facilitator.talkingPoints.length).toBeGreaterThanOrEqual(10);
+    expect(sov19.facilitator.discussionPrompts.length).toBeGreaterThanOrEqual(10);
+  });
+  it('tamper-catch: the pinned ground-truth lines are themselves exact', () => {
+    expect(SOV19_FRAGMENTS['Matthew 8:9']).toBe('For I am a man under authority, having soldiers under me: and I say to this man, Go, and he goeth; and to another, Come, and he cometh; and to my servant, Do this, and he doeth it.');
+    expect(SOV19_FRAGMENTS['Luke 17:10']).toBe('So likewise ye, when ye shall have done all those things which are commanded you, say, We are unprofitable servants: we have done that which was our duty to do.');
+    expect(SOV19_FRAGMENTS['1 Corinthians 14:32']).toBe('And the spirits of the prophets are subject to the prophets.');
+    expect(SOV19_FRAGMENTS['Psalms 146:3']).toBe('Put not your trust in princes, nor in the son of man, in whom there is no help.');
+    // A one-word drift in the lesson would fail the presence check above; prove the check has teeth.
+    const drifted = sov19.lesson.replace('Go, and he goeth', 'Go, and he goes');
+    expect(drifted).not.toContain(SOV19_FRAGMENTS['Matthew 8:9']);
+  });
+});
