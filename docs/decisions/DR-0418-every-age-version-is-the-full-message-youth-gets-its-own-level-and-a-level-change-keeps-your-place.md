@@ -55,6 +55,19 @@ Words to author at the floors: child 0.5 × 294,872 ≈ **147k**; youth, teen, s
 - `re-review: 2026-09-22` — lessons full, words authored, throughput measured; adjust the order or the floors from data.
 - `re-review: 2026-10-13` — the count again; expected roughly a third of the corpus if the lane runs daily.
 
+## L151 — the first full lesson, measured after the write (same session)
+
+| band | words before | words after | share of adult | FK grade | steps at its pace |
+|---|---|---|---|---|---|
+| child | 874 | 2,619 | 0.51 | 0.8 | 55 |
+| youth | 0 | 3,587 | 0.70 | 3.8 | 38 |
+| teen | 2,227 | 3,121 | 0.61 | 3.5 | 22 |
+| senior | 4,173 | 4,173 | 0.81 | 6.1 | 34 |
+
+The child level now carries every one of the lesson's thirteen sections at child words (the stakes and the two harvests, creation by speaking, the four pictures, no man tames it, the heart upstream, the fountain, the counted costs, the right and wrong uses, the audit, the certainty that is the problem, correction as diagnosis, the way you cannot see, the mind that predicts, humility, the on-ramp, the spouse who will not read, the mocker, the missing prerequisite, the method, frustration, sustaining, the body, the accounting and the prayer). The youth level is new. The teen level lost a refrain that had been pasted four times and gained the counted costs, the toolbox of right uses, the audit, the marriage duties, Nehemiah, and the accounting. Every verse in all three was expanded from the hosted KJV at write time. Gates green on the written lesson: fullness (L151 no longer short in any band; baseline 153 → 152 lessons short), reading-level ordering (child 0.8 ≤ teen 3.5 ≤ senior 6.1, all under both ceilings), age-appropriateness, provenance, L151's verse gate, the naming gate, the band-debt gate. **Measured throughput for the timeline:** L151 (the longest lesson in the series, 5,146 adult words) took about 45 minutes from first word to green gates, authoring ≈ 6,200 new words. That is the upper bound per lesson; the median lesson is a quarter of L151's length.
+
+**One thing the numbers expose, recorded rather than fixed here:** `estimatedMinutes` multiplies steps by the band's `segmentMinutes` (child 5, youth 10), which reads a 45-word child step as five minutes and prices L151's child level at 275 minutes. The step count is right; the minute estimate is a pre-existing over-statement of the pacing model, not of the text. `re-review: 2026-09-22` alongside the child step length.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.

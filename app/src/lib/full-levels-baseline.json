@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 153,
-  "lessonsShort": 153,
+  "lessonsShort": 152,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -336,11 +336,6 @@
       "youth",
       "teen",
       "senior"
-    ],
-    "ll151-the-tongue-death-and-life-in-a-little-member-and-the-knowledge-that-governs-it": [
-      "child",
-      "youth",
-      "teen"
     ],
     "ll152-crying-because-of-all-the-dying-slow-and-vicious-but-yahweh": [
       "child",
