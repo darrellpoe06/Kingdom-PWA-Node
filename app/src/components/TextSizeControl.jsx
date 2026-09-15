@@ -50,7 +50,13 @@ export default function TextSizeControl({ variant = 'header', className = '' }) 
             className={[
               'flex items-end justify-center font-semibold leading-none rounded-md transition-all whitespace-nowrap',
               'focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]',
-              isPanel ? 'flex-1 min-w-[3.25rem] px-2 py-3 min-h-[3rem]' : 'px-2 py-1.5 min-w-[2rem] min-h-[2rem]',
+              // The PANEL variant's box is fixed px too (Darrell 2026-09-15, Big
+              // Print on a lesson: the chips were huge). The label was already fixed;
+              // the box was rem and rode the 2.75x root — 48px min-height became
+              // 132px. Pixel-identical at Normal, fixed at every step, like the label.
+              // The header variant keeps rem: it lives inside a .ts-chrome-region
+              // whose zoom already bounds it.
+              isPanel ? 'flex-1 min-w-[52px] px-[8px] py-[12px] min-h-[48px]' : 'px-2 py-1.5 min-w-[2rem] min-h-[2rem]',
               selected
                 ? 'bg-[#1A1815] text-white border-2 border-[#1A1815]'
                 : 'bg-white text-[#1A1815] border-2 border-[#E8E4DC] hover:border-[#1A1815]',

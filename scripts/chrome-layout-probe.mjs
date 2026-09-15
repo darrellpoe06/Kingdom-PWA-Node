@@ -191,13 +191,39 @@ try {
   // Rides --sweep (real assertions) and --selftest-break (a 60% max-width on
   // the paragraphs plus a button injected into one MUST trip both).
   // ---------------------------------------------------------------------------
-  const LESSON_WIDTHS = SELFTEST ? [360] : (SWEEP ? WIDTHS : []);
+  //
+  // THE STANDARD IS LESSON 127 (Darrell 2026-09-15, listening at Big Print:
+  // "use lesson 127 that flows correctly... as the standard"; and "I don't like
+  // the the buttons get way bigger on the bigger font choices!! Can we fix
+  // it!"). Two more invariants, measured on the rendered lesson:
+  //   8. THE STRIP RHYTHM IS 127's — no green strip carries more than
+  //      SECTION_RHYTHM.maxRefs chips (L128 had 141 in one), and no block of
+  //      prose runs longer than SECTION_RHYTHM.maxLines lines before its strip
+  //      (L1 had one after every line). Read from the strip's own
+  //      data-block-lines, which LessonProse stamps from the real block.
+  //   9. THE CHROME STAYS A FRAME AT BIG PRINT — the lesson-space bar's buttons
+  //      (ALL LESSONS / PREV / NEXT) and every text-size chip on the page stay
+  //      under 64px tall with the root at 2.75x (un-capped they measured ~100px
+  //      and ~132px). Loaded once more at 360px with Big Print seeded.
+  // Selftest: 10 chips injected into a strip + data-block-lines forced to 7
+  // (normal), and the bar's zoom cap removed with a 7rem floor (Big Print) —
+  // all three MUST trip.
+  const RHYTHM = { maxLines: 6, maxRefs: 9 }; // = SECTION_RHYTHM (ChurchLearn.jsx); pinned by lesson-127-is-the-standard.test.jsx
+  const CHROME_MAX_PX = 64;
+  const LESSON_CASES = SELFTEST
+    ? [{ width: 360, size: 'normal' }, { width: 360, size: 'bigprint' }]
+    : (SWEEP ? [...WIDTHS.map((width) => ({ width, size: 'normal' })), { width: 360, size: 'bigprint' }] : []);
   const LESSON_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons&lesson=ll1-the-perfect-yahweh-expects`;
   lessonFailuresBefore = failures;
-  for (const width of LESSON_WIDTHS) {
+  for (const { width, size } of LESSON_CASES) {
     const page = await browser.newPage({ viewport: { width, height: 900 } });
     // The first-visit tour is chrome, not the lesson; a returning reader has seen it.
-    await page.addInitScript(() => { try { localStorage.setItem('poetech.help.tour.v1', 'seen'); } catch { /* private mode */ } });
+    await page.addInitScript((sz) => {
+      try {
+        localStorage.setItem('poetech.help.tour.v1', 'seen');
+        if (sz === 'bigprint') localStorage.setItem('poe-text-size', 'bigprint'); else localStorage.removeItem('poe-text-size');
+      } catch { /* private mode */ }
+    }, size);
     await page.goto(LESSON_URL, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
     await page.waitForSelector('[data-testid="lesson-space-bar"]', { timeout: 20000 }).catch(() => {});
     // Step the arc to TEACH, where the lesson body lives — the stage rail's own
@@ -209,12 +235,22 @@ try {
       if (b) b.click();
     });
     await page.waitForSelector('[data-para-index], [data-point-index]', { timeout: 20000 }).catch(() => {});
-    if (SELFTEST) {
+    if (SELFTEST && size === 'normal') {
       await page.addStyleTag({ content: '[data-para-index], [data-point-index] { max-width: 60% !important }' });
       await page.evaluate(() => {
         const p = document.querySelector('[data-para-index], [data-point-index]');
         if (p) { const b = document.createElement('button'); b.textContent = 'Genesis 17:1'; p.appendChild(b); }
+        const strip = document.querySelector('[data-testid="section-refs"]');
+        if (strip) {
+          for (let i = 0; i < 10; i += 1) { const b = document.createElement('button'); b.textContent = `Psalm ${i + 1}:1`; strip.appendChild(b); }
+          strip.setAttribute('data-block-lines', '7');
+        }
       });
+      await page.evaluate(() => new Promise((r) => setTimeout(r, 100)));
+    }
+    if (SELFTEST && size === 'bigprint') {
+      // The pre-fix balloon, reproduced: the cap removed and the rem floor back.
+      await page.addStyleTag({ content: '[data-testid="lesson-space-bar"] { zoom: 1 !important } [data-testid="lesson-space-bar"] button { min-height: 7rem !important }' });
       await page.evaluate(() => new Promise((r) => setTimeout(r, 100)));
     }
     const m = await page.evaluate(() => {
@@ -226,24 +262,38 @@ try {
       const contentLeft = mr.left + parseFloat(cs.paddingLeft);
       const contentRight = mr.right - parseFloat(cs.paddingRight);
       const pr = paras[0].getBoundingClientRect();
+      const strips = [...document.querySelectorAll('[data-testid="section-refs"]')];
+      const tall = (sel) => Math.max(0, ...[...document.querySelectorAll(sel)].map((b) => Math.round(b.getBoundingClientRect().height)));
       return {
+        size: document.documentElement.getAttribute('data-text-size'),
         paras: paras.length,
         prose: Math.round(pr.width),
         content: Math.round(contentRight - contentLeft),
         gapLeft: Math.round(pr.left - contentLeft),
         gapRight: Math.round(contentRight - pr.right),
         inside: paras.reduce((n, p) => n + p.querySelectorAll('button, a').length, 0),
-        strips: document.querySelectorAll('[data-testid="section-refs"]').length,
+        strips: strips.length,
+        maxChips: Math.max(0, ...strips.map((s) => s.querySelectorAll('button').length)),
+        maxBlockLines: Math.max(0, ...strips.map((s) => parseInt(s.getAttribute('data-block-lines') || '0', 10))),
+        barButtonPx: tall('[data-testid="lesson-space-bar"] button'),
+        chipPx: tall('button[aria-label*="text size" i]'),
       };
     });
     await page.close();
-    const where = `lesson@${width}px`;
+    const where = `lesson@${width}px${size === 'bigprint' ? ' [Big Print]' : ''}`;
     if (m.none) { fail(`${where}: the lesson prose never rendered (${m.paras} paragraphs) — nothing was measured`); continue; }
+    if (size === 'bigprint' && m.size !== 'bigprint') { fail(`${where}: data-text-size="${m.size}" — Big Print never applied, nothing was measured`); continue; }
     const before = failures;
     lessonMeasured += 1;
     if (m.gapLeft > 2 || m.gapRight > 2) fail(`${where}: the prose column stops short of the page — ${m.prose}px of ${m.content}px content width (left gap ${m.gapLeft}px, right gap ${m.gapRight}px)`);
     if (m.inside > 0) fail(`${where}: ${m.inside} control(s) boxed inside the lesson prose — the reference belongs at the foot of its section, not in the sentence`);
-    if (failures === before) console.log(`lesson ok  ${where} — prose ${m.prose}px of ${m.content}px content width, ${m.strips} section strips, nothing boxed in a sentence`);
+    if (m.maxChips > RHYTHM.maxRefs) fail(`${where}: a green strip carries ${m.maxChips} chips — lesson 127's rhythm is at most ${RHYTHM.maxRefs} per strip (a wall of chips is a computer list)`);
+    if (m.maxBlockLines > RHYTHM.maxLines) fail(`${where}: a block of ${m.maxBlockLines} lines waits for one strip — lesson 127's rhythm is at most ${RHYTHM.maxLines} lines before the Word`);
+    if (size === 'bigprint') {
+      if (m.barButtonPx > CHROME_MAX_PX) fail(`${where}: the lesson bar's buttons are ${m.barButtonPx}px tall — the frame ballooned with the text (cap: ${CHROME_MAX_PX}px)`);
+      if (m.chipPx > CHROME_MAX_PX) fail(`${where}: a text-size chip is ${m.chipPx}px tall — the control compounds with its own setting (cap: ${CHROME_MAX_PX}px)`);
+    }
+    if (failures === before) console.log(`lesson ok  ${where} — prose ${m.prose}px of ${m.content}px, ${m.strips} strips (max ${m.maxChips} chips, max ${m.maxBlockLines} lines/block)${size === 'bigprint' ? `, bar buttons ${m.barButtonPx}px, chips ${m.chipPx}px` : ''}, nothing boxed in a sentence`);
   }
   // ---------------------------------------------------------------------------
   // TEXT-SCALE pass — the layout is measured AT Big Print, not assumed to hold.
@@ -355,7 +405,9 @@ if (SELFTEST) {
   const tsTripped = failures - tsFailuresBefore;
   const lessonTripped = tsFailuresBefore - lessonFailuresBefore;
   const chromeTripped = lessonFailuresBefore;
-  if (failures > 0 && chromeTripped > 0 && lessonTripped >= 2 && tsTripped >= 2) {
+  // The lesson pass now trips FIVE ways: width-short, boxed control, a wall of
+  // chips, an over-long block, and the ballooned bar at Big Print.
+  if (failures > 0 && chromeTripped > 0 && lessonTripped >= 5 && tsTripped >= 2) {
     console.log(`SELFTEST-BREAK OK — the probe CAN fail (${failures} tripped: ${chromeTripped} chrome, ${lessonTripped} lesson, ${tsTripped} textscale)`);
     process.exit(0);
   }
@@ -366,7 +418,7 @@ if (SELFTEST) {
 // verdicts: "nothing went wrong" is not the same claim as "everything was
 // checked," and only this line can tell them apart.
 const expectedChrome = VIEWS.length * WIDTHS.length;
-const expectedLesson = SWEEP ? WIDTHS.length : 0;
+const expectedLesson = SWEEP ? WIDTHS.length + 1 : 0; // + the Big Print case at 360
 if (measured !== expectedChrome) {
   console.error(`COVERAGE FAIL — measured ${measured} of ${expectedChrome} view x width cases (${VIEWS.length} views x ${WIDTHS.length} widths). A run that skips its subjects is not a pass.`);
   failures += 1;
