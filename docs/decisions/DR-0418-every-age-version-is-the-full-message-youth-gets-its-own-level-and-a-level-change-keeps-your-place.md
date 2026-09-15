@@ -141,6 +141,17 @@ Fullness baseline 148 → 147 lessons short. Six lessons full in one session (L1
 
 Darrell, 2026-09-15: *"Child lessons also condense the lessons for the younger students or just they start where they left off? I like making sure they start where they left last time they were using or learning so it can be a refresher if they wanted it."* Measured before building: the child levels WERE condensed (this record, D1) and are being made full; resume-your-place already existed (`lib/learn-resume.js`, the "Pick up where you left off" banner with Resume and Start fresh); what did not exist was the refresher. Built: `backUpPlace` / `refreshPlace` back the saved place up `REFRESH_BACK_STEPS` (2) paced steps inside the same stage, never below the first step, clearing the saved sentence; the banner offers **Refresh first** whenever the saved step is past the first, and it resumes exactly as Resume does — the lesson space reads the place live, so it opens on the refresher rather than the frontier. Proven-to-catch: the pure helper's test fails with an unchanged place; the render test finds no such button on the previous banner. Not offered at step 0 (nothing behind it to replay); a learner can still step back by hand inside the lesson.
 
+## L154 — the seventh full lesson, and the first with no owed anchors (same night)
+
+| band | prose words before | prose words after | share of adult prose | FK grade |
+|---|---|---|---|---|
+| child | 488 | 1,614 | 0.85 | 1.8 |
+| youth | 0 | 1,801 | 0.95 | 5.7 |
+| teen | ~800 | 1,331 | 0.70 | 3.9 |
+| senior | ~1,100 | 1,498 | 0.79 | 16.0 |
+
+Fullness baseline 147 → 146. L154's own verse gate carries an ascending-length rule (child < teen < senior in characters), which the first two passes tripped because a full child level is long; the teen and senior levels were lengthened with real content (the cousin who is himself the father; three forms of the question a pastor meets) until every band both clears its floor and ascends. The rule is kept: it is the shape the older lessons were built to.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.

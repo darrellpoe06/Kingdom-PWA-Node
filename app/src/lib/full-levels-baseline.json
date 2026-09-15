@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 153,
-  "lessonsShort": 147,
+  "lessonsShort": 146,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -323,12 +323,6 @@
       "teen"
     ],
     "ll153-precept-upon-precept-the-voice-that-programs-the-world": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll154-why-do-we-have-to-pay-for-our-fathers-sins-we-dont-and-it-needs-what-we-do-here": [
       "child",
       "youth",
       "teen",
