@@ -92,6 +92,7 @@ import UiIcon from './UiIcon.jsx';
 import WordInline from './WordInline.jsx';
 import VerseChips from './VerseChips.jsx';
 import LessonTeacher from './LessonTeacher.jsx';
+import { useTextToSpeech } from '../lib/tts.js';
 import { anchorIsRun, referencesIn } from '../lib/verse-refs.js';
 import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 
@@ -334,9 +335,15 @@ function MediaList({ module }) {
 
 // QuizBlock — the per-week check-for-understanding. Real assessment: grades the
 // learner's answers, records the result, and shows the score + explanations.
-function QuizBlock({ module, saved, onRecord }) {
+export function QuizBlock({ module, saved, onRecord }) {
   const [answers, setAnswers] = useState({});
   const [graded, setGraded] = useState(null);
+  // THE CHECK READS ITS CHOICES TO A LITTLE LEARNER (DR-0431). A pre-K child
+  // cannot read the options, so a course whose decoys are letters and numbers
+  // (never a wrong teaching) opts in with readOptionsAloud: the options leave
+  // the reader's mute and each carries a speaker that says just that option.
+  const readOptions = !!module.readOptionsAloud;
+  const optionTts = useTextToSpeech();
   const quiz = module.quiz;
   if (!quiz?.questions?.length) return null;
   const submit = () => {
@@ -365,7 +372,7 @@ function QuizBlock({ module, saved, onRecord }) {
                   Yahweh's name. The QUESTION (the legend) is still read, because
                   hearing the question is the point; the options are a control to
                   be tapped, not content to be recited. */}
-              <div data-read-skip className="space-y-1">
+              <div {...(readOptions ? {} : { 'data-read-skip': true })} className="space-y-1">
                 {q.options.map((opt, oi) => {
                   const checked = answers[qi] === oi;
                   const showCorrect = graded && oi === q.answer;
@@ -380,6 +387,11 @@ function QuizBlock({ module, saved, onRecord }) {
                         className="mt-0.5"
                       />
                       <span className="text-[#1A1815]">{opt}</span>
+                      {readOptions && (
+                        <button type="button" onClick={(e) => { e.preventDefault(); try { optionTts.speak(opt); } catch (_) { /* no engine */ } }}
+                          aria-label={`Hear this choice: ${opt}`} data-read-skip
+                          className="ml-auto shrink-0 min-h-[36px] min-w-[36px] border border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">🔊</button>
+                      )}
                     </label>
                   );
                 })}
