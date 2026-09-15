@@ -93,7 +93,18 @@ Measured 2026-09-06 across all 128 lessons (Flesch-Kincaid grade):
 
 **The methodological caveat, stated rather than buried.** Flesch-Kincaid is a syllable-and-sentence-length formula. It does **not** understand that *"whosoever"* and *"notwithstanding"* are KJV quotations we are required to reproduce verbatim (DR-0076) and must not simplify. So the gate measures **our authored prose with quoted Scripture removed** — the register an author actually controls — and reports the full-text figure alongside it as context. Neither number is comprehension; both are proxies, and a proxy installed where the truth was available is its own defect (DR-0332). What they honestly catch is the gross case: a "child" level written at college register.
 
-**The ratchet:** the 29 inversions and the child-ceiling breaches are recorded as a **shrink-only baseline**. A NEW lesson that inverts the ordering or breaches the child ceiling **fails the build**; the existing list may only get shorter. `re-review: 2026-09-13`.
+**The ratchet:** the 29 inversions and the child-ceiling breaches are recorded as a **shrink-only baseline**. A NEW lesson that inverts the ordering or breaches the child ceiling **fails the build**; the existing list may only get shorter. ~~`re-review: 2026-09-13`~~ — reviewed 2026-09-15 (DR-0417), below.
+
+**Re-measured 2026-09-15 across 153 lessons (DR-0417), authored prose only:**
+
+| Band | min | p25 | median | p75 | max |
+|---|---|---|---|---|---|
+| child | 0.0 | 3.8 | **5.2** | 6.3 | 11.2 |
+| teen | 2.3 | 5.3 | 6.5 | 7.6 | 13.1 |
+| adult | 4.4 | 6.3 | 7.3 | 8.8 | 12.9 |
+| senior | 4.9 | 9.4 | 11.4 | 13.7 | 24.2 |
+
+Debt today: 30 inverted, 17 child levels over the 7.0 ceiling. **Where the ceiling came from, said plainly:** 7.0 is the corpus median of 2026-09-06, not an age. Flesch-Kincaid grade is a US school-grade estimate, and ages 6–10 are grades 1–5; measured against the age the band names, 82 of 153 child levels read above grade 5. No research citation maps FK grade to this audience and none is claimed (§5). L141–L154 measure 0.0–5.0, most under 2.1 — sentences so short the proxy reads near zero, which is the reason to keep treating it as a gross-case detector and not a comprehension measure (DR-0332). The comprehension control that does not depend on the proxy is the learner's own pick, now reachable inside every lesson (DR-0417 D2). **Open decision (Darrell's):** keep 7.0 as the shrink-only ratchet and add a 5.0 ceiling for NEW lessons only — recommended in DR-0417 D3, not applied. `re-review: 2026-09-29`.
 
 ---
 

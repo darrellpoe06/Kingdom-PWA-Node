@@ -155,6 +155,9 @@ export default function VerseChips({ refs = [], load = verseText, className = ''
               key={r} type="button"
               onClick={() => toggle(r)}
               aria-expanded={open}
+              // Same rule as WordInline's chip (DR-0417): the reader reads what
+              // the Show-the-Word switch has opened; it never opens the Word itself.
+              data-read-no-expand="true"
               aria-controls={open ? blockId(i) : undefined}
               aria-label={`${open ? 'Close' : 'Open'} ${r}${resolvable ? '' : ' (not a reference this app can open)'}`}
               className={`px-2 py-1 min-h-[36px] text-[0.625rem] border focus:outline focus:outline-2 focus:outline-[#B85838] ${open ? look.open : look.closed}`}

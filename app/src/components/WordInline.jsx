@@ -97,6 +97,16 @@ export default function WordInline({
             key={i} type="button"
             onClick={() => toggle(seg.value)}
             aria-expanded={isOpen(seg.value)}
+            // THE READER DOES NOT OPEN THE WORD — THE SWITCH DECIDES (DR-0417).
+            // Darrell 2026-09-15: "the reader currently reads the Word drop
+            // down even when it says to not read the Word." read-reveal opens
+            // every collapsed disclosure before a read; a verse chip is not a
+            // disclosure of the LESSON, it is the Show-the-Word choice, so the
+            // reveal leaves it as the switch (or the reader's own tap) set it.
+            data-read-no-expand="true"
+            // …and the reference itself IS read — it is a word of the sentence
+            // (read-follow mutes buttons by default; this one opts back in).
+            data-read-keep="true"
             aria-controls={isOpen(seg.value) ? blockId(seg.value) : undefined}
             aria-label={`${isOpen(seg.value) ? 'Close' : 'Open'} ${seg.value}`}
             className={`${CHIP} ${isOpen(seg.value)
