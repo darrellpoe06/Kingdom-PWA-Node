@@ -104,6 +104,17 @@ Two gate catches, both kept as designed: the provenance ratchet refused a capita
 
 Fullness baseline 151 → 150 lessons short. Two catches from the per-lesson verse gates, both kept: the typography rule (Yahweh in our voice, never the generic term) caught twelve places across L146's and L147's new bands; the verbatim-span rule caught a non-Scripture phrase in quotation marks. Both are exactly the class of error a machine catches better than an author's eye, and both were fixed in the text, never in the gate.
 
+## L148 — the fourth full lesson (same session)
+
+| band | prose words before | prose words after | share of adult prose | FK grade |
+|---|---|---|---|---|
+| child | 141 | 812 | 0.75 | 1.3 |
+| youth | 0 | 974 | 0.90 | 5.1 |
+| teen | 265 | 681 | 0.63 | 3.0 |
+| senior | 595 | 653 | 0.61 | 7.7 |
+
+Fullness baseline 150 → 149 lessons short. The first pass left teen at 0.48 and senior at 0.47 — under the floor, and the gate stayed green only because both were already recorded as debt; a lesson in this pass is made FULL, not merely no worse, so both were extended before the commit. That is the honest reading of "shrink-only": the baseline permits an old debt to stand, and the pass does not.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
