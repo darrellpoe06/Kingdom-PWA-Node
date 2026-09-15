@@ -43,16 +43,63 @@ function sortCourses(list, sortKey) {
   }
 }
 
-// Group + sort for the picker: the authored courses first, the Deep-Processing
-// family as its own labeled group. Empty groups are omitted (honest dropdown).
-export function organizeCourses(courses, sortKey = 'authored') {
+// THE SCHOOL (DR-0432; Darrell 2026-09-15: "Add the Courses as a tab with
+// lessons depending on the courses as usual... making it look like a college
+// and/or elementary school educational program"). Learn is one program made
+// of DEPARTMENTS, and a department is DERIVED from the one registry: the
+// course's own meta.category (DR-0149), with the Eternal-Algorithms family
+// detected from its key. Nothing here is a hand-kept list — a course given a
+// new category opens a new department on the next build, and a department
+// with no course does not exist (DR-0121: never painted). A course that
+// declares no category sits in General Studies, so the plain Courses tab (the
+// whole catalog) can never collide with a department of the same name.
+export function courseDepartment(course) {
+  if (isDeepProcessing(course)) return 'The Eternal Algorithms';
+  const c = course && course.meta && course.meta.category;
+  return typeof c === 'string' && c.trim() ? c.trim() : 'General Studies';
+}
+
+export function departmentId(label) {
+  return String(label || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+// A short catalog code for a department, from its own name: the initials of
+// its capitalized words ("The Word & The Way" -> WW, "Kingdom Life &
+// Stewardship" -> KLS, "A.I. The Way" -> AW), or the first three letters when
+// the name is one word ("Mathematics" -> MAT). Derived, so it can never drift
+// from the label it abbreviates.
+export function departmentCode(label) {
+  const words = String(label || '').split(/\s+/).map((w) => w.replace(/[^A-Za-z]/g, '')).filter(Boolean);
+  const sig = words.filter((w) => /^[A-Z]/.test(w) && !/^(The|A|An)$/.test(w));
+  if (sig.length >= 2) return sig.map((w) => w[0]).join('').toUpperCase();
+  const one = sig[0] || words[0] || 'CRS';
+  return one.slice(0, 3).toUpperCase();
+}
+
+// Every department of the mounted catalog, each with its courses in authored
+// order and a course code per course (department code + a number from its
+// authored position, 101 upward — the catalog reads like a college's). The
+// departments are ORDERED by how much they teach (total lessons, descending;
+// ties keep first-seen order) — a derived order, never a hand-sorted one, so
+// the Word course, which carries the most lessons, leads by weight.
+export function learnDepartments(courses) {
   const list = Array.isArray(courses) ? courses.filter(Boolean) : [];
-  const deep = list.filter(isDeepProcessing);
-  const rest = list.filter((c) => !isDeepProcessing(c));
-  const groups = [];
-  if (rest.length) groups.push({ label: 'Courses', courses: sortCourses(rest, sortKey) });
-  if (deep.length) groups.push({ label: 'The Word — Deep Processing', courses: sortCourses(deep, sortKey) });
-  return groups;
+  const byLabel = new Map();
+  for (const c of list) {
+    const label = courseDepartment(c);
+    if (!byLabel.has(label)) byLabel.set(label, { id: departmentId(label), label, code: departmentCode(label), courses: [], lessons: 0 });
+    const d = byLabel.get(label);
+    d.courses.push({ ...c, code: `${d.code}-${101 + d.courses.length}`, department: label });
+    d.lessons += courseLessonCount(c);
+  }
+  return [...byLabel.values()].sort((a, b) => b.lessons - a.lessons);
+}
+
+// Group + sort for the picker: one group per department (DR-0149), in the
+// department order above, each sorted by the reader's chosen sort. Empty
+// groups cannot exist (a department is made of its courses).
+export function organizeCourses(courses, sortKey = 'authored') {
+  return learnDepartments(courses).map((d) => ({ label: d.label, code: d.code, courses: sortCourses(d.courses, sortKey) }));
 }
 
 // =============================================================================
