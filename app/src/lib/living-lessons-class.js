@@ -14196,17 +14196,17 @@ export const LIVING_LESSONS_MODULES = [
   },
   // L153 — PRECEPT UPON PRECEPT: THE VOICE THAT PROGRAMS THE WORLD (spoken by
   // Darrell 2026-09-15, in four messages, and built the same day):
-  //   "A program works like precept upon precept... line programming reads the
+  //   A program works like precept upon precept... line programming reads the
   //    code from top to bottom and uses the numbers outside the code... each
   //    line is counted and the code jumps to lines based on what needs to be
   //    done because the program is supposed to be fixing reality... supply,
   //    return and exhaust fans... valves for water flow... etc... Yahweh
-  //    programs the world with His voice!!!!" — "Lesson"
-  //   "The biblical scriptures work like a program to me also..."
-  //   "The brain retains information better if it uses something it knows to
-  //    remember something new... use same program with tweaks.. Etc..."
-  //   "Also add to the living lessons also... education for those out there
-  //    who don't know."
+  //    programs the world with His voice!!!! — Lesson
+  //   The biblical scriptures work like a program to me also...
+  //   The brain retains information better if it uses something it knows to
+  //    remember something new... use same program with tweaks.. Etc...
+  //   Also add to the living lessons also... education for those out there
+  //    who don't know.
   // Built on lesson 127's program with tweaks (his own principle applied to the
   // build): numbered sections, every verse verbatim KJV from the in-repo corpus
   // with its reference beside it, three age bands, quiz, facilitator notes.
