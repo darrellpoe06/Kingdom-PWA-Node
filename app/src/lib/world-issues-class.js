@@ -70,7 +70,7 @@ export const WORLD_ISSUES_META = {
   },
   format: 'Self-paced · one issue at a time · media literacy + biblical discernment · paced to your age',
   cadenceDays: 7,
-  weeks: 15, // eleven published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex · the two aftermaths · the law of assumption · victorious emotions · college tuition and the 1965 Act); the track grows as issues are added
+  weeks: 16, // sixteen published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex · the two aftermaths · the law of assumption · victorious emotions · college tuition and the 1965 Act · the EPA power-plant rules · the SCOTUS mail-in ruling · the Kennedy Center · Evanston's reparations · the trades are hiring); the track grows as issues are added
   handsOnLabel: 'Practice the skill',
   unit: {
     noun: 'issue',
@@ -3945,7 +3945,353 @@ const EVANSTON_REPARATIONS_ISSUE = {
   },
 };
 
-export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE, TUITION_1965_ISSUE, EPA_POWER_PLANT_ISSUE, TRADES_HIRING_ISSUE, SCOTUS_MAIL_IN_ISSUE, EVANSTON_REPARATIONS_ISSUE];
+// =============================================================================
+// ISSUE 14 — The Kennedy Center on the brink: whose name goes on the house, and
+// the Word on names, patrons, and the arts (wi-kennedy-center-bankruptcy-and-the-name).
+// Darrell forwarded NPR's Up First of 2026-09-15 with one word — Lesson. — and the
+// instruction to find each subject, research it independently, and build the
+// lesson. This issue takes the Kennedy Center item: the board's own resolutions
+// saying the arts center is weeks from missing payroll and unsafe to occupy, its
+// stated judgment that only President Trump can lead the fiscal rescue and so his
+// name belongs on the marble, Rep. Joyce Beatty's suit before Judge Christopher
+// Cooper (who ruled in May that Congress gave the center its name and only Congress
+// can change it), the artists and audiences who left, and how a large arts
+// nonprofit is actually funded. Handled under DR-0100's tiers: the documented
+// record (dates, votes, the ruling, the WaPo-obtained figures, the Sept 5 ceiling
+// collapse) stated plainly with sources; the open questions (would an inscription
+// bring the money back; whether an inscription is a renaming under the May order)
+// flagged narrowly; motives adjudicated for no one; over-reach on every side
+// corrected by the Word. Word first: names on houses (Babel, Absalom's pillar,
+// Psalms 49, Nebuchadnezzar), the arts as Yahweh's gift (Bezaleel, David's singers),
+// patrons and dependence (Cyrus and Darius funding the house that kept His name;
+// put not your trust in princes; count the cost), the just weight for the board's
+// claim, and the two courts. Every verse fetched verbatim from the repo KJV and
+// gated in world-issues-verse-integrity.test.js. The board vote and the status
+// hearing were scheduled for the day of authoring; their outcomes are carried as
+// pending, not guessed.
+// =============================================================================
+const KENNEDY_CENTER_ISSUE = {
+  id: 'wi-kennedy-center-bankruptcy-and-the-name',
+  title: 'The Kennedy Center on the Brink — Whose Name Goes on the House, and the Word on Names, Patrons, and the Arts',
+  subject: { name: 'the Kennedy Center’s solvency crisis and the fight over whose name goes on the building', kind: 'institution-and-public-figures', isNamedRealPerson: true },
+  skill: 'Take a breaking news item in which an institution says it will die unless a powerful patron’s name goes on the building, and learn how the Word weighs it: state the documented record plainly (the 1964 Act, the votes, the May ruling, the collapse in tickets and gifts, the ceiling), label the board’s "only he can save it" as its judgment and hear every side at its strongest (Proverbs 18:17), keep the open questions narrow, and then let the Word speak to what no court will rule on — making a name, trusting princes, counting the cost, the just weight, and the arts as Yahweh’s gift — without pronouncing on any soul.',
+  source: {
+    creator: 'NPR (Up First, 2026-09-15; reporting by Anastasia Tsioulcas)',
+    medium: 'newsletter and radio segment',
+    title: 'SCOTUS rejects Trump’s mail voting limits. And, the Kennedy Center financial crisis',
+    url: 'https://www.wkyufm.org/news/2026-09-15/scotus-rejects-trumps-mail-voting-limits-and-the-kennedy-center-financial-crisis',
+    asOf: '2026-09-15',
+    note: 'Darrell forwarded the newsletter on 2026-09-15 with the word "Lesson." and the instruction to research each subject independently. NPR is the reporting source; every fact below was re-verified by live web search the same day against the primary documents and multiple outlets. The board vote and the status hearing were scheduled for the day of authoring; their outcomes were not public when this was written and are carried as pending.',
+  },
+
+  // ---- STAGE 1 — THE CLAIM(S): the points AS MADE, each labeled. ----
+  claims: [
+    {
+      id: 'c-bankruptcy',
+      text: 'The Kennedy Center faces bankruptcy and might close as soon as today; it will not be able to make payroll or routine maintenance contracts within weeks.',
+      label: 'claim',
+      attribution: 'The Kennedy Center board’s draft resolutions, obtained by The Washington Post and NPR ahead of the September 15 board meeting',
+      note: 'That the board SAID this is documented — the resolution text is public. The underlying finances are partly documented by confidential documents The Washington Post obtained in August; the center has not published audited figures for the current year.',
+    },
+    {
+      id: 'c-only-trump',
+      text: 'President Trump is the only one who can raise enough funds to rescue the center, so he deserves his name on the building.',
+      label: 'opinion',
+      attribution: 'The Kennedy Center board’s resolution, as reported by NPR (Anastasia Tsioulcas)',
+      note: 'A judgment about the future by a board most of whose members the President appointed and whose chairman he is. It is carried as the board’s position, not as a fact. What IS documented is that ticket sales and gifts fell after his name went on the building in December (Stage 2).',
+    },
+    {
+      id: 'c-politicized',
+      text: 'Artists and audiences have been leaving over the past year saying the center became too politicized; the live-events calendar is a fraction of what it was; donations dried up.',
+      label: 'claim',
+      attribution: 'NPR (Anastasia Tsioulcas), summarizing a year of reporting',
+      note: 'The departures are documented by name and date. "Too politicized" is the departing artists’ own stated reason and is carried as theirs.',
+    },
+    {
+      id: 'c-funding-model',
+      text: 'Big arts nonprofits rely on ticket revenue, donations, and some grants.',
+      label: 'claim',
+      attribution: 'NPR (Anastasia Tsioulcas)',
+      note: 'Documented and, for the Kennedy Center specifically, refined in Stage 2: about half its budget came from tickets, a federal appropriation of roughly $45 million a year covers upkeep of the memorial only, and the rest is contributed.',
+    },
+    {
+      id: 'c-crisis-likely',
+      text: 'A real and dire crisis seems likely.',
+      label: 'opinion',
+      attribution: 'NPR (Anastasia Tsioulcas), her assessment on air',
+      note: 'A reporter’s reading, carried as such. The documented decline in revenue, the ceiling collapse, and the board’s own words give it weight; it remains an assessment about the future.',
+    },
+    {
+      id: 'c-congress-named-it',
+      text: 'Congress named the center as a memorial to President Kennedy, and only Congress can change its name.',
+      label: 'claim',
+      attribution: 'Rep. Joyce Beatty’s lawsuit; adopted by Judge Christopher Cooper in his May 29, 2026 ruling',
+      note: 'This one is an adjudicated finding, not merely a party’s claim — a federal judge ruled it. Whether the September inscription options honor that order is the narrow question now before the same judge.',
+    },
+  ],
+
+  // ---- STAGE 2 — VERIFIABLE vs INTERPRETATION ----
+  verifiable: [
+    {
+      id: 'f-1964-name',
+      statement: 'On January 23, 1964 — two months after President Kennedy’s assassination — Congress by Public Law 88-260 renamed the National Cultural Center the John F. Kennedy Center for the Performing Arts, designated it a living memorial to him, and authorized $23 million toward building it. The Congressional vote to name it for him was unanimous.',
+      status: 'documented',
+      sources: [
+        { title: 'S.J.Res.136 (88th Congress) — renaming the National Cultural Center as the John F. Kennedy Center for the Performing Arts', publisher: 'Congress.gov (Library of Congress)', url: 'https://www.congress.gov/bill/88th-congress/senate-joint-resolution/136/text', asOf: '2026-09-15' },
+        { title: 'A Living Memorial', publisher: 'The Kennedy Center', url: 'https://www.kennedy-center.org/memorial/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified by live web search 2026-09-15. This is the fact the lawsuit and the ruling rest on: the name was given by statute, not by the board.',
+    },
+    {
+      id: 'f-takeover-2025',
+      statement: 'On February 12, 2025 President Trump dismissed the trustees appointed by President Biden — eighteen, including chairman David Rubenstein — and the remaining board, most of whom he had just appointed, elected him chairman. The board removed Deborah Rutter, president since 2014, and installed Richard Grenell. Congress later provided $257 million for Kennedy Center renovation in the 2025 reconciliation bill ("One Big Beautiful Bill Act").',
+      status: 'documented',
+      sources: [
+        { title: 'Kennedy Center Board elects President Donald J. Trump as Board Chair', publisher: 'The Kennedy Center (press release)', url: 'https://www.kennedy-center.org/news-room/press-release-landing-page/kennedy-center-board-elects--president-donald-j.-trump-as-board-chair/', asOf: '2026-09-15' },
+        { title: 'Trump has purged the Kennedy Center’s board, which in turn made him its chair — why does that matter?', publisher: 'The Conversation', url: 'https://theconversation.com/trump-has-purged-the-kennedy-centers-board-which-in-turn-made-him-its-chair-why-does-that-matter-249934', asOf: '2026-09-15' },
+        { title: 'Kennedy Center Faces $257 Million Renovation — What the One Big Beautiful Bill Really Covers', publisher: 'IBTimes UK', url: 'https://www.ibtimes.co.uk/kennedy-center-faces-257-million-renovation-what-one-big-beautiful-bill-really-covers-1775497', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The chairman of the board is the person the board now proposes to honor on the facade; that structural fact is stated, not editorialized.',
+    },
+    {
+      id: 'f-departures',
+      statement: 'Departures are on the record by name and date. In February 2025 Rhiannon Giddens canceled ("I cannot in good conscience play at The Kennedy with the recent programming changes forced on the institution by this new board"), Issa Rae canceled her March 2025 show, Renée Fleming resigned as artistic advisor at large, Ben Folds resigned as the National Symphony Orchestra’s artistic advisor, and Shonda Rhimes resigned as board treasurer. In March 2025 the producers of Hamilton canceled the run scheduled for March–April 2026. Later cancellations included Béla Fleck (performing there had become "charged and political"), the Brentano String Quartet, Vocal Arts DC’s spring recitals, and Fleming’s May 2026 NSO concerts. On January 10, 2026 the Washington National Opera cut ties with the center after decades as a resident company, citing a new break-even policy: "The Center’s new business model requires productions to be fully funded in advance — a requirement incompatible with opera operations."',
+      status: 'documented',
+      sources: [
+        { title: 'Here’s who’s canceled their Kennedy Center performances since Trump took over', publisher: 'NPR', url: 'https://www.npr.org/2026/01/20/nx-s1-5675192/kennedy-center-canceled-performances', asOf: '2026-09-15' },
+        { title: 'Rhiannon Giddens is the latest artist to cancel Kennedy Center gig', publisher: 'NPR', url: 'https://www.npr.org/2025/02/25/nx-s1-5308302/rhiannon-giddens-cancels-kennedy-center-concert', asOf: '2026-09-15' },
+        { title: '‘Hamilton’ Cancels Kennedy Center Show Run In Protest Of Trump’s ‘Purge’', publisher: 'Forbes', url: 'https://www.forbes.com/sites/antoniopequenoiv/2025/03/05/hamilton-cancels-kennedy-center-show-run-in-protest-of-trumps-purge/', asOf: '2026-09-15' },
+        { title: 'Washington National Opera cuts ties with the Kennedy Center after longstanding partnership', publisher: 'CNN', url: 'https://www.cnn.com/2026/01/10/politics/washington-national-opera-leaves-kennedy-center', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. Each departing artist gave a reason on the record; those reasons are theirs, quoted, not the lesson’s verdict.',
+    },
+    {
+      id: 'f-rename-and-suit',
+      statement: 'On December 18, 2025 the board voted to rename the institution "The Donald J. Trump and The John F. Kennedy Memorial Center for the Performing Arts" (in short, the Trump Kennedy Center). The White House called the vote unanimous; Rep. Joyce Beatty, an ex officio trustee, said she was muted on the call when she tried to object. She filed Beatty v. Trump (No. 1:25-cv-04480, D.D.C.) on December 22, 2025, challenging the renaming, the plan to close the center for two years of renovation (voted in March 2026), and the board’s stripping of her voting rights.',
+      status: 'documented',
+      sources: [
+        { title: 'Kennedy Center board votes to rename it ‘Trump Kennedy Center’', publisher: 'CNN', url: 'https://www.cnn.com/2025/12/18/politics/trump-kennedy-center-name', asOf: '2026-09-15' },
+        { title: 'Beatty v. Trump, 1:25-cv-04480 (D.D.C.)', publisher: 'Civil Rights Litigation Clearinghouse', url: 'https://clearinghouse.net/case/47530/', asOf: '2026-09-15' },
+        { title: 'Ohio Rep. Joyce Beatty sues Trump over Kennedy Center renaming', publisher: 'Yahoo News', url: 'https://www.yahoo.com/news/articles/ohio-rep-joyce-beatty-sues-142528015.html', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. "Unanimous" and "I was muted" are both on the record; the lesson carries both and adjudicates neither.',
+    },
+    {
+      id: 'f-ruling',
+      statement: 'On May 29, 2026 — President Kennedy’s birthday — U.S. District Judge Christopher Cooper ruled in a 94-page opinion that the board had no authority to rename the center: "Congress gave the Kennedy Center its name, and only Congress can change it." He ordered all signage renaming it for Donald Trump removed within fourteen days and blocked the two-year closure. Workers removed the name from the website and, on June 12, erected scaffolding and took down the facade signage. On August 13, 2026 the board voted 20–3 to inscribe "The John F. Kennedy Center for the Performing Arts Restored and Renovated by President Donald J. Trump" and to name the grounds "President Donald J. Trump Plaza"; Beatty filed an emergency motion on August 21; at the emergency hearing the Justice Department argued the inscriptions are "not renaming" the center.',
+      status: 'documented',
+      sources: [
+        { title: 'Judge temporarily halts Kennedy Center closure and orders removal of Trump’s name from building', publisher: 'NBC News', url: 'https://www.nbcnews.com/politics/trump-administration/judge-temporarily-halts-kennedy-center-closure-trump-name-removed-rcna347598', asOf: '2026-09-15' },
+        { title: 'Judge says Kennedy Center board violated law putting Trump’s name on building, blocks closure', publisher: 'PBS NewsHour', url: 'https://www.pbs.org/newshour/politics/judge-says-kennedy-center-board-violated-law-putting-trumps-name-on-building-blocks-closure', asOf: '2026-09-15' },
+        { title: 'Kennedy Center votes to put Trump’s name back on building and close for renovations', publisher: 'CNN', url: 'https://www.cnn.com/2026/08/13/politics/kennedy-center-board-vote', asOf: '2026-09-15' },
+        { title: 'DOJ insists new Trump inscriptions are ‘not renaming’ Kennedy Center', publisher: 'The Hill', url: 'https://thehill.com/regulation/court-battles/6055867-justice-department-trump-kennedy-center-hearing/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The May ruling is an adjudicated finding and is stated as one. Whether an inscription beneath the name is a renaming is the live question before the same judge; the lesson does not pre-decide it.',
+    },
+    {
+      id: 'f-finances',
+      statement: 'Confidential documents obtained by The Washington Post (August 25, 2026) show ticket sales and fundraising collapsed after the President’s name went on the building in December, even as leaders publicly described a turnaround. Spring projections had the center falling nearly $100 million short of its revenue target, with officials predicting the fiscal year’s revenue would miss budget by 70 percent. Subscription sales fell about $1.6 million (roughly 36 percent) from 2024. In the fall of 2025 about 43 percent of tickets for typical productions went unsold, against about 93 percent sold or issued complimentary in fall 2024 and 80 percent in fall 2023. Then on September 5, 2026 a portion of the Grand Foyer ceiling fell during heavy rain — no one was hurt — and spokeswoman Roma Daravi attributed it to decades of deferred maintenance.',
+      status: 'documented',
+      sources: [
+        { title: 'Kennedy Center revenue plunged after Trump’s name went on the building', publisher: 'The Washington Post', url: 'https://www.washingtonpost.com/style/2026/08/25/kennedy-center-revenue-plunged-after-trumps-name-went-building/', asOf: '2026-09-15' },
+        { title: 'Kennedy Center finances deteriorated sharply after Trump name change', publisher: 'The Detroit News (Washington Post report)', url: 'https://www.detroitnews.com/story/news/nation/2026/08/25/kennedy-center-finances-deteriorated-sharply-after-trump-name-change/91454004007/', asOf: '2026-09-15' },
+        { title: 'Chunk of Kennedy Center’s ceiling falls during heavy rains', publisher: 'UPI', url: 'https://www.upi.com/Top_News/US/2026/09/05/kennedy-center-ceiling-collapse/3841788648940/', asOf: '2026-09-15' },
+        { title: 'Kennedy Center closes after partial ceiling collapse in Grand Foyer', publisher: 'The Hill', url: 'https://thehill.com/homenews/administration/6073213-kennedy-center-ceiling-collapse-grand-foyer/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. Two true things in two lanes: the building’s decay is decades old (the ceiling), and the revenue collapse is new and dated (the documents). Both are stated plainly; neither cancels the other.',
+    },
+    {
+      id: 'f-sept-14',
+      statement: 'On September 14, 2026 two draft board resolutions became public ahead of the September 15 board meeting. One calls the main building "unsafe for continued occupancy" and proposes closing it. The other states that the center "is in such a precarious fiscal position that it will not be able to support its payroll obligations, nor routine maintenance contracts within a matter of weeks," warns of "certain fiscal collapse within weeks," and says: "The Board understands that without such appropriate recognition it is unlikely that President Trump will provide the fundamental oversight of the renovation of the main building and lead the fiscal rescue of the Center." It offers ten inscription options for the marble below the center’s name, among them "Renovation and endowment overseen by President Donald J. Trump and the Trump Kennedy Center Fund," "With Gratitude for Support from President Donald J. Trump and the Trump Kennedy Center Fund," and "A Legacy protected through the Generosity of President Donald J. Trump." A status hearing before Judge Cooper was set for the same day, hours before the board meeting.',
+      status: 'documented',
+      sources: [
+        { title: 'Kennedy Center says it’s on the brink of bankruptcy, might close as early as Tuesday', publisher: 'NPR', url: 'https://www.npr.org/2026/09/14/nx-s1-5968690/kennedy-center-financial-physical-state', asOf: '2026-09-15' },
+        { title: 'Kennedy Center says it’s close to bankruptcy and will not be able to pay staff "within weeks"', publisher: 'NPR', url: 'https://www.npr.org/2026/09/14/nx-s1-5968602/kennedy-center-says-its-close-to-bankruptcy-and-will-not-be-able-to-pay-staff-within-weeks', asOf: '2026-09-15' },
+        { title: 'Kennedy Center warns of bankruptcy unless Trump’s name is added to building: court documents', publisher: 'ABC News', url: 'https://abcnews.com/Politics/kennedy-center-warns-bankruptcy-trumps-added-building-court/story?id=136428259', asOf: '2026-09-15' },
+        { title: 'Kennedy Center board to propose new options for honoring Trump as center confronts solvency worries', publisher: 'AP via WTOP', url: 'https://wtop.com/dc/2026/09/kennedy-center-board-to-propose-new-options-for-honoring-trump-as-center-confronts-solvency-worries/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15, the day of the meeting. The vote’s outcome and the hearing’s result were not public at authoring and are NOT asserted here. The resolution’s words are quoted exactly so the reader weighs the board’s own language, not a paraphrase.',
+    },
+    {
+      id: 'f-funding-model',
+      statement: 'How a large arts nonprofit is funded, measured: across the nonprofit arts sector revenue runs roughly 60 percent earned, 30 percent private contributions, 10 percent government. For performing-arts organizations specifically, about 46 percent comes from admissions, contract fees, and memberships, about 41 percent is contributed (individuals 20.7 percent; government only 4.3 percent), and endowment income averages about 5 percent. The Kennedy Center’s operating budget grew to about $268 million under Deborah Rutter; ticket sales covered roughly half; a federal appropriation of about $45 million a year (FY2023: $45.38 million) is restricted to maintenance, security, and capital upkeep of the memorial and funds no programming; the rest is contributed.',
+      status: 'documented',
+      sources: [
+        { title: 'Sources of Revenue for Nonprofit Arts & Cultural Organizations', publisher: 'Americans for the Arts', url: 'https://www.americansforthearts.org/by-program/reports-and-data/legislation-policy/naappd/sources-of-revenue-for-nonprofit-arts-cultural-organizations', asOf: '2026-09-15' },
+        { title: 'John F. Kennedy Center for the Performing Arts: Recent Events and Background (IF12911)', publisher: 'Congressional Research Service', url: 'https://www.congress.gov/crs-product/IF12911', asOf: '2026-09-15' },
+        { title: 'FY2025 Budget Justification to Congress', publisher: 'The Kennedy Center', url: 'https://www.kennedy-center.org/globalassets/our-story/mission/kennedy-center-fy25-budget-justification-to-congress.pdf', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. This is why a hall can be publicly owned and still go broke: the public pays for the walls, not the music; the music is paid for by the people who come and the people who give — and both left.',
+    },
+    {
+      id: 'f-fundraising-claims',
+      statement: 'The center’s leadership has publicly claimed record fundraising — a $23 million Kennedy Center Honors, "$58 million in the last 30 days alone," and, per Richard Grenell, $130 million raised in a year — while the confidential documents show revenue collapsing, and sources told Politico that the figures given to Grenell were "sometimes rosier than the money that actually comes into the center." In June the center said it would lose "hundreds of millions" in donations if the President’s name came off. Grenell has also alleged $26 million in "phantom revenue" under prior leadership. None of these figures has been reconciled by an audited statement available to the public.',
+      status: 'disputed',
+      sources: [
+        { title: 'Kennedy Center Claims It Will Lose ‘Hundreds Of Millions’ In Donations After Removing Trump Name', publisher: 'Forbes', url: 'https://www.forbes.com/sites/conormurray/2026/06/30/kennedy-center-claims-it-will-lose-hundreds-of-millions-in-donations-after-removing-trump-name/', asOf: '2026-09-15' },
+        { title: 'Trump-led Kennedy Center nearly doubles fundraising from Biden era, smashing record with $23M haul', publisher: 'Fox News', url: 'https://www.foxnews.com/politics/exclusive-trump-led-kennedy-center-nearly-doubles-fundraising-from-biden-era-smashing-record-23m-haul', asOf: '2026-09-15' },
+        { title: 'President Donald Trump Plunges Kennedy Center Fundraising Into Chaos', publisher: 'The Daily Beast', url: 'https://www.thedailybeast.com/president-donald-trump-plunges-kennedy-center-fundraising-into-chaos/', asOf: '2026-09-15' },
+      ],
+      note: 'Tier 2 (DR-0100), narrowly: the public claims and the internal documents do not agree, and no audited reconciliation is public. That disagreement is the fact; which set of numbers is right is genuinely open. The Word’s standard for the numbers themselves is not open (Stage 4).',
+    },
+  ],
+  interpretation: [
+    {
+      id: 'n-only-he-can-is-a-forecast',
+      statement: '"Only President Trump can raise enough" is a forecast, not a finding. What is documented is the opposite direction so far: tickets and gifts fell after his name went on in December, and the board’s own June warning that removing the name would cost hundreds of millions has not been reconciled with any audited figure. Whether an inscription would now bring money in is untested — a narrow, honest unknown. The board is also not a neutral witness to it: its chairman is the person to be honored. Keep the categories: the collapse is fact; the rescue is a hope.',
+      restsOn: ['f-finances', 'f-fundraising-claims', 'f-sept-14', 'f-takeover-2025'],
+    },
+    {
+      id: 'n-two-decays-two-clocks',
+      statement: 'Two true things run on two clocks. The building’s decay is decades old — the ceiling fell on September 5 and the spokeswoman blamed deferred maintenance across many administrations; Congress voted $257 million for it. The revenue collapse is new and dated to the takeover and the renaming — the departures are on the record by name and the documents by month. "Decades of neglect" does not explain the empty seats, and the empty seats do not explain the ceiling. A reader who lets either side use its true fact to erase the other’s has stopped weighing.',
+      restsOn: ['f-finances', 'f-departures', 'f-takeover-2025'],
+    },
+    {
+      id: 'n-inscription-or-renaming',
+      statement: 'The May ruling settled that the board cannot rename the center. The September options put the President’s name BELOW the center’s name as a credit line; the Justice Department calls that recognition, Beatty calls it the same act by another route. That is the live question before Judge Cooper, and the lesson does not pre-decide it. What the Word says about a living ruler’s name on a memorial built for another man is a different question, and the Word answers that one (Stage 4).',
+      restsOn: ['f-ruling', 'f-sept-14', 'f-1964-name'],
+    },
+    {
+      id: 'n-departures-are-a-cause-too',
+      statement: 'The departing artists say the center became too politicized; the board says the artists and their audiences abandoned a public institution over politics. Both descriptions are of the same event. What is not in dispute is the fruit: a resident opera company of decades gone, a Hamilton run gone, subscriptions down a third, seats half empty — and now payroll for musicians, ushers, and stagehands at risk within weeks. Whoever is right about who started it, the Word is clear about who must be paid (Stage 4).',
+      restsOn: ['f-departures', 'f-finances', 'f-sept-14'],
+    },
+  ],
+
+  // ---- STAGE 3 — PERSPECTIVES on the UNRESOLVED parts ----
+  perspectives: [
+    {
+      id: 'p-board',
+      label: 'The board’s reading — survival, and the one donor who can',
+      heldBy: 'The Kennedy Center trustees and administration',
+      steelman: 'At its strongest: a ceiling fell on the red carpet two weeks ago; the resolution says payroll cannot be met within weeks; the federal appropriation pays for walls, not music; and the audiences and donors who paid for the music are gone. In that hour there is one person with the reach to raise nine figures fast, and he secured $257 million from Congress for this building already. Concert halls everywhere carry the names of the people who saved them; it is not vanity to credit a benefactor on the marble — the Word itself records elders telling Jesus of a centurion, "he loveth our nation, and he hath built us a synagogue" (Luke 7:5), and commands "honour to whom honour" (Romans 13:7). An inscription beneath the center’s name changes nothing Congress wrote. A closed hall honors no one.',
+    },
+    {
+      id: 'p-artists-audiences',
+      label: 'The artists’ and audiences’ reading — a hall claimed by one ruler changes the song',
+      heldBy: 'Artists who canceled, the Washington National Opera, subscribers who stopped coming',
+      steelman: 'Heard fairly: they did not leave a building; they left a building that had been made to mean something else. A memorial to a slain president was renamed for a sitting one by a board he appointed, after the trustees and president who ran it were dismissed and a break-even rule drove out the opera company that had lived there for decades. An artist asks what a stage means before standing on it — "How shall we sing the LORD’s song in a strange land?" (Psalms 137:4) — and the Word shows the arts conscripted to a ruler’s image once before, when "all kinds of musick" were commanded so the crowd would "fall down and worship the golden image" (Daniel 3:5), and three men who would not. Their conscience is their own; and the empty seats show the audience agreed with their feet. On this view the crisis was not inherited; it was made, and the remedy is to give the house back its meaning, not to carve the cause of the wound deeper into the wall.',
+    },
+    {
+      id: 'p-lawsuit',
+      label: 'The lawsuit’s reading — a memorial’s name belongs to the one it was built for',
+      heldBy: 'Rep. Joyce Beatty and those who back her suit; the court, on the May ruling',
+      steelman: 'At its strongest this is not about one man versus another; it is about who owns a memorial. In 1964 a grieving Congress voted unanimously to name a national house for a president who had just been killed, and only Congress can un-vote it — a judge has already said so. A living ruler’s name on the memorial of another man is exactly the pillar Absalom raised "to keep my name in remembrance" (2 Samuel 18:18), and a board that depends on that ruler for its next payroll is not free to judge whether his name belongs there. A credit line that leads with the ruler’s name is a renaming by inches. The rule of law is the point: if a board can carve around a court order, no memorial is safe.',
+    },
+    {
+      id: 'p-workers',
+      label: 'The workers’ reading — a name on a wall costs us nothing; a closed hall costs us everything',
+      heldBy: 'The National Symphony Orchestra musicians, stagehands, ushers, and staff whose payroll the resolution names',
+      steelman: 'The players did not fire anyone, rename anything, or cancel a show, and they are the ones the resolution says will not be paid "within a matter of weeks." From the pit and the loading dock the fight over marble looks like two sides willing to let the house die to win. Their strongest word is the Word’s own: "the wages of him that is hired shall not abide with thee all night until the morning" (Leviticus 19:13) — and the hire kept back "crieth" (James 5:4). Whatever the court and the board decide, the people who make the music must be paid, and any settlement that leaves them unpaid has failed the first test.',
+    },
+  ],
+
+  // ---- STAGE 4 — THE BELIEVER'S LENS ----
+  lens: {
+    fourD: {
+      deepSource: 'WORD FIRST — Yahweh spoke about names on buildings long before any board did, and He spoke about the arts, and about patrons, and about counting the cost, and the Word settles what the court will never rule on. NAMES ON HOUSES. The first building project after the flood was a name project: "let us make us a name" (Genesis 11:4) — and He scattered it. Absalom, a king’s son with no throne, "reared up for himself a pillar" because "I have no son to keep my name in remembrance: and he called the pillar after his own name" (2 Samuel 18:18); the Word records the pillar and records that he died in a tree the same chapter. The psalmist names the whole instinct: "Their inward thought is, that their houses shall continue for ever, and their dwelling places to all generations; they call their lands after their own names." (Psalms 49:11) — and answers it in the next breath: "Nevertheless man being in honour abideth not: he is like the beasts that perish." (Psalms 49:12). And the plainest case: a king on his roof, "Is not this great Babylon, that I have built for the house of the kingdom by the might of my power, and for the honour of my majesty?" (Daniel 4:30) — "While the word was in the king’s mouth, there fell a voice from heaven" (Daniel 4:31) — and the same king, restored, confessed that the King of heaven is the one whose "works are truth, and his ways judgment: and those that walk in pride he is able to abase." (Daniel 4:37). The Word is not against memorials — Yahweh Himself commanded stones "for a memorial unto the children of Israel for ever" (Joshua 4:7) — and it is not against honoring a benefactor: "he loveth our nation, and he hath built us a synagogue" (Luke 7:5); "honour to whom honour" (Romans 13:7). What it is against is a MAN making his own name the thing the house is for. The name that lasts is not carved: "A good name is rather to be chosen than great riches, and loving favour rather than silver and gold." (Proverbs 22:1); "A good name is better than precious ointment" (Ecclesiastes 7:1); "The memory of the just is blessed" (Proverbs 10:7); and "them that honour me I will honour" (1 Samuel 2:30). And there is one name over every house: Yahweh "hath highly exalted him, and given him a name which is above every name" (Philippians 2:9) — "That at the name of Jesus every knee should bow" (Philippians 2:10) and "every tongue should confess that Jesus Christ is Lord, to the glory of God the Father." (Philippians 2:11). "Not unto us, O LORD, not unto us, but unto thy name give glory" (Psalms 115:1); "my glory will I not give to another" (Isaiah 42:8). THE ARTS ARE HIS GIFT. The first person the Word NAMES as filled with the spirit of God was not a prophet but a craftsman — and even before him the unnamed makers of the priest’s garments were "wise hearted, whom I have filled with the spirit of wisdom" (Exodus 28:3): "See, I have called by name Bezaleel" (Exodus 31:2) — "And I have filled him with the spirit of God, in wisdom, and in understanding, and in knowledge, and in all manner of workmanship" (Exodus 31:3), "To devise cunning works, to work in gold, and in silver, and in brass" (Exodus 31:4), and "in carving of timber" (Exodus 31:5); and Yahweh made him a teacher — "he hath put in his heart that he may teach" (Exodus 35:34) — of a whole guild, "of the engraver, and of the cunning workman, and of the embroiderer, in blue, and in purple, in scarlet, and in fine linen, and of the weaver" (Exodus 35:35). Music was there from the fourth chapter — Jubal, "the father of all such as handle the harp and organ" (Genesis 4:21) — and David built the first national arts institution on the record: singers "who should prophesy with harps, with psalteries, and with cymbals" (1 Chronicles 25:1), "instructed in the songs of the LORD, even all that were cunning, was two hundred fourscore and eight" (1 Chronicles 25:7). He commands excellence in it — "play skilfully with a loud noise" (Psalms 33:3) — and tells the believer to dwell on "whatsoever things are lovely, whatsoever things are of good report" (Philippians 4:8); and skill has always walked into palaces on its own feet: "Seest thou a man diligent in his business? he shall stand before kings" (Proverbs 22:29). So the believer never sneers at a concert hall; the hall is a Bezaleel house, and its emptiness is a real loss. PATRONS AND DEPENDENCE. The Word shows kings funding Yahweh’s house — Cyrus: "he hath charged me to build him an house at Jerusalem" (Ezra 1:2); Darius: "let the expenses be given out of the king’s house" (Ezra 6:4); Artaxerxes, and Ezra blessing the LORD "which hath put such a thing as this in the king’s heart, to beautify the house of the LORD" (Ezra 7:27); Nehemiah taking the king’s timber — "And the king granted me, according to the good hand of my God upon me." (Nehemiah 2:8). Three things stand out. The house kept HIS name, not the king’s — it is "the God that hath caused his name to dwell there" (Ezra 6:12) even in Darius’s own decree. The credit went behind the king to the Giver — "The king’s heart is in the hand of the LORD" (Proverbs 21:1); "it is he that giveth thee power to get wealth" (Deuteronomy 8:18). And the people were told where NOT to put their trust: "Put not your trust in princes, nor in the son of man, in whom there is no help." (Psalms 146:3) — "His breath goeth forth, he returneth to his earth; in that very day his thoughts perish." (Psalms 146:4); "It is better to trust in the LORD than to put confidence in princes." (Psalms 118:9); "Cursed be the man that trusteth in man, and maketh flesh his arm" (Jeremiah 17:5); "Not by might, nor by power, but by my spirit, saith the LORD of hosts." (Zechariah 4:6); "Except the LORD build the house, they labour in vain that build it" (Psalms 127:1). A house that says in writing that one man is its only hope has written its own diagnosis: it has become the borrower, and "the borrower is servant to the lender" (Proverbs 22:7). And Jesus gave the rule every board should have read before December: "For which of you, intending to build a tower, sitteth not down first, and counteth the cost, whether he have sufficient to finish it?" (Luke 14:28) — "Lest haply, after he hath laid the foundation, and is not able to finish it, all that behold it begin to mock him" (Luke 14:29), "Saying, This man began to build, and was not able to finish." (Luke 14:30). THE JUST WEIGHT FOR THE NUMBERS. "A false balance is abomination to the LORD: but a just weight is his delight." (Proverbs 11:1). Public claims of record hauls beside private documents of collapse is a scale with two weights, and the Word forbids it before any auditor does: "Providing for honest things, not only in the sight of the Lord, but also in the sight of men." (2 Corinthians 8:21); "Let another man praise thee, and not thine own mouth" (Proverbs 27:2); "Thou shalt not bear false witness against thy neighbour." (Exodus 20:16) — which binds everyone in this story who reports a number, on every side. THE ONES WHO MUST BE PAID. Whatever the court decides, "the wages of him that is hired shall not abide with thee all night until the morning" (Leviticus 19:13); the hire kept back "crieth" (James 5:4). The musicians and the crew are the first obligation, not the last. THE OVER-REACH, CORRECTED ON EVERY SIDE. To the board’s "only he can": "Put not your trust in princes" (Psalms 146:3) — the true data under it (a real collapse, a real ceiling) stands; the theology over it does not. To any artist or audience tempted from conscience into contempt: conscience is honored — "we will not serve thy gods, nor worship the golden image" (Daniel 3:18) — but so is the command to pray "For kings, and for all that are in authority" (1 Timothy 2:2) and to "seek the peace of the city" (Jeremiah 29:7); the Word never licenses cursing the ruler you will not play for. To the lawsuit’s side, if the marble becomes the whole cause: no man’s name is the final memorial — "The memory of the just is blessed" (Proverbs 10:7) is a memory Yahweh keeps, and He "dwelleth not in temples made with hands" (Acts 17:24); the rule of law is worth defending and the name of a slain president worth honoring, and neither is ultimate. SO IN THIS CASE the believer does four things in order. First, state the documented plainly, because "Prove all things; hold fast that which is good." (1 Thessalonians 5:21): Congress named it in 1964; a court ruled only Congress can change it; the artists left by name; the seats emptied by the numbers; the ceiling fell; the board wrote what it wrote. Second, hear every side at its strongest — "He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him." (Proverbs 18:17) — and mark what each answers and what it leaves standing. Third, keep the open questions narrow and honest: whether an inscription would raise the money, and whether it is a renaming under the order, are for evidence and for the judge; no motive on any side is adjudicated here. Fourth — where the Word settles what the court cannot — judge by the fruit, "by their fruits ye shall know them" (Matthew 7:20): a house whose survival plan is one man’s name has trusted a prince; a name carved for oneself has never kept anyone in remembrance; the arts are Yahweh’s gift and their silence is a loss to Him; the workers must be paid; and "whosoever shall exalt himself shall be abased; and he that shall humble himself shall be exalted" (Matthew 23:12) is not a threat against anyone — it is the law of every name, including ours.',
+      scripture: 'Genesis 11:4; 2 Samuel 18:18; Psalms 49:11-12; Daniel 4:30-37; Joshua 4:7; Luke 7:5; Romans 13:7; Proverbs 22:1; Ecclesiastes 7:1; Proverbs 10:7; 1 Samuel 2:30; Philippians 2:9-11; Psalms 115:1; Isaiah 42:8; Exodus 28:3; Exodus 31:1-5; Exodus 35:30-35; Genesis 4:21; 1 Chronicles 25:1-7; Psalms 33:3; Philippians 4:8; Proverbs 22:29; Ezra 1:2; Ezra 6:4; Ezra 6:12; Ezra 7:27; Nehemiah 2:8; Proverbs 21:1; Deuteronomy 8:18; Psalms 146:3-4; Psalms 118:8-9; Jeremiah 17:5; Zechariah 4:6; Psalms 127:1; Proverbs 22:7; Luke 14:28-30; Proverbs 11:1; 2 Corinthians 8:21; Proverbs 27:2; Exodus 20:16; Leviticus 19:13; James 5:4; Daniel 3:5; Daniel 3:18; Psalms 137:4; 1 Timothy 2:1-2; Jeremiah 29:7; Acts 17:24; 1 Thessalonians 5:21; Proverbs 18:17; Matthew 7:20; Matthew 23:12',
+    },
+    threeD: 'Practically: read the resolution’s own words and sort them. Say the proven parts without a hedge — Congress named the center in 1964; a federal judge ruled in May that only Congress can change it; the artists left by name and date; subscriptions fell about a third and nearly half the seats went unsold; part of the ceiling fell on September 5; the board wrote that payroll cannot be met within weeks. Then label the rest: "only President Trump can raise it" is the board’s forecast, made by a board he chairs, and the public record so far shows gifts falling after his name went on, not rising; "too politicized" is the artists’ reason, carried as theirs; "not renaming" versus "renaming by inches" is the judge’s question, not yours. Hear all four sides at their strongest (Proverbs 18:17) and notice that each holds a true fact — the ceiling, the empty seats, the statute, the unpaid crew — and each is tempted to use its fact to erase the others’. Then do what the Word does: refuse to put your trust in a prince or your contempt on one; count the cost before you build; use one weight for the numbers; insist the workers are paid first; and remember whose name every house is finally for. In your own house: when you give, give without a plaque (Matthew 6:1-4); when you build, sit down first and count (Luke 14:28); when you are honored, "Let another man praise thee" (Proverbs 27:2). In the Body: fund the arts you say you love, and name your buildings for what they are for, not for who paid.',
+    accountability: {
+      statement: 'THE TWO COURTS. Man’s court has ruled once — "Congress gave the Kennedy Center its name, and only Congress can change it" — and is being asked to rule again; the lesson cites what it ruled and invents nothing about what it will. No court will rule on motive, and neither does this lesson. But the Word never lets accountability shrink to a docket. Every resolution, every press release, every canceled contract, and every private projection enters the eternal court — "For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil." (Ecclesiastes 12:14) — where "the books were opened" (Revelation 20:12) and "God is not mocked" (Galatians 6:7), and where the only remembrance that lasts is the one He writes: "a book of remembrance was written before him for them that feared the LORD, and that thought upon his name" (Malachi 3:16). WHAT THE STEWARDS OWE under the Word: to be "found faithful" (1 Corinthians 4:2) with a house the public paid for; to count the cost before laying a foundation (Luke 14:28-30); to keep one weight for the numbers in public and in private (Proverbs 11:1; 2 Corinthians 8:21); and to pay the hired before the sun goes down (Leviticus 19:13; James 5:4) — a settlement that leaves the crew unpaid has failed before it begins. WHAT THE COURT OWES: "thou shalt not respect persons, neither take a gift" (Deuteronomy 16:19). WHAT THE ARTISTS OWE: to work "heartily, as to the Lord, and not unto men" (Colossians 3:23) wherever they do play, and to pray for the ruler they will not play for (1 Timothy 2:1-2). WHAT WE OWE: to speak the documented plainly and the unproven as unproven; to honor a benefactor without trusting him (Romans 13:7; Psalms 146:3); and to leave every soul in this story to Yahweh, who "is able to abase" the proud (Daniel 4:37) and exalt the humble (Matthew 23:12) without our help. And the lived cost during this life is not deferred evidence — a musician’s missed paycheck, a canceled season, a fallen ceiling are seen and weighed now.',
+      scripture: 'Ecclesiastes 12:14; Revelation 20:12; Galatians 6:7; Malachi 3:16; 1 Corinthians 4:2; Luke 14:28-30; Proverbs 11:1; 2 Corinthians 8:21; Leviticus 19:13; James 5:4; Deuteronomy 16:19; Colossians 3:23; 1 Timothy 2:1-2; Romans 13:7; Psalms 146:3; Daniel 4:37; Matthew 23:12',
+    },
+    benefits: [
+      'Both courts, honestly held: a federal judge ruled on the name, and will rule again on the inscription — cite what was ruled, invent nothing about what will be — while the ETERNAL court holds every resolution, every projection, and every secret thing, and lands after this life (Ecclesiastes 12:14; Revelation 20:12). You can name the fruit without pronouncing on a soul.',
+      'Freedom from two lies at once: the rescue lie ("one man’s name will save it, so the name is the price") and the contempt lie ("the building deserves to fall") — the Word forbids trusting a prince AND cursing one.',
+      'The Word’s own theology of names in your hands: Babel, Absalom’s pillar, Psalms 49, Nebuchadnezzar’s roof, and the name above every name — so a plaque never fools you again about what lasts (Genesis 11:4; 2 Samuel 18:18; Proverbs 22:1; Philippians 2:9-11).',
+      'A right love of the arts: Bezaleel is the first person the Word names as filled with the spirit of God, David appointed 288 trained singers, and "play skilfully" is a command — so an empty concert hall is a loss to Yahweh, not a culture-war trophy (Exodus 31:3; 1 Chronicles 25:7; Psalms 33:3).',
+      'A repeatable skill for institutional crises: read the document itself, sort fact from forecast, ask who is speaking and what they depend on, hear four sides, keep the open question narrow, then weigh by the just weight and the fruit.',
+      'A house that counts the cost and gives without a trumpet: Luke 14:28 before every build, Matthew 6:1-4 before every gift, one weight for every number you report.',
+      'A church that builds the arts it praises — a Bezaleel guild, a choir taught to excellence, a building named for its purpose — so the next generation of players has a stage that no patron can rename.',
+    ],
+    graceNote: 'No condemnation of any soul in this story: this lesson pronounces no verdict on President Trump, Rep. Joyce Beatty, Richard Grenell, the trustees who voted, the artists who left, the judge who ruled, or the memory of President Kennedy — their hearts are Yahweh’s to judge, and He is no respecter of persons in either direction. But leaving the soul to Yahweh never mutes the fruit: the seats are empty, the ceiling fell, the workers are weeks from unpaid, and the Word names what a house does when it writes that one man is its only hope. Truth and grace meet in Jesus, whose name is above every name (Philippians 2:9) and who taught that when evening comes the labourers are called and given their hire (Matthew 20:8).',
+    stewardship: 'The deeper response is to BUILD what the Word builds, in your own house first. A congregation has its own arts and its own building, and both raise the same questions this hall does. Name the building for what it is for, not for who paid — the house Cyrus and Darius funded kept Yahweh’s name (Ezra 6:12) — and when a family gives the roof, let the reward be the one "thy Father which seeth in secret" gives "openly" (Matthew 6:4), not a plaque by the door: "let not thy left hand know what thy right hand doeth" (Matthew 6:3). Fund the arts you say you love: raise a Bezaleel guild — the painter, the carpenter, the engraver, the weaver — and a choir "instructed in the songs of the LORD" (1 Chronicles 25:7), taught to "play skilfully" (Psalms 33:3), paid on time (Leviticus 19:13), and free of any patron who could rename the stage. Count the cost before the building campaign (Luke 14:28), keep one weight in every financial report (Proverbs 11:1; 2 Corinthians 8:21), and pray for the rulers and the trustees of the hall in Washington by name — for the workers to be paid, for the house to stand, and for every name on it, including ours, to bow to the one above it (Philippians 2:10). This platform’s own Learn tab is a small example of Yahweh’s pattern: made with skill, given freely, owned by the community, and named for no donor.',
+    anchor: {
+      ref: 'Proverbs 22:1; Psalms 146:3',
+      theme: 'A good name is chosen, not carved — "A good name is rather to be chosen than great riches" — and a house that writes down that one man is its only hope has already told you where its trust went: "Put not your trust in princes, nor in the son of man, in whom there is no help." State the documented plainly, hear every side, pay the workers, and give without a plaque.',
+    },
+  },
+
+  // ---- STAGE 5 — REFLECTION + SKILL ----
+  reflection: {
+    skill: 'When an institution announces it will die unless a powerful person is honored: PAUSE. Read the document itself, not the headline. Separate what is documented (dates, votes, rulings, the numbers with their source) from forecasts ("only he can") and from each side’s reasons ("too politicized," "decades of neglect"). Ask who is speaking and what they depend on. Hear every side at its strongest — the board, the artists, the lawsuit, the workers — and mark the true fact each holds and the fact each is tempted to erase. Keep the open questions narrow and leave motive alone. Then let the Word speak to what no court will rule on: names on houses, trust in princes, counting the cost, the just weight, the wages of the hired, and the arts as Yahweh’s gift.',
+    practice: 'Take the September 14 resolution. Write four lines: (1) one sentence of what is DOCUMENTED, with a source and its date; (2) one sentence labeling "only President Trump can raise enough" as a forecast, naming who made it and what they depend on; (3) one sentence giving the strongest case for a side you do not naturally hold; (4) one sentence on what the Word says about a name on a house — and one concrete thing your own church could do this month with its own arts or its own building’s name.',
+    prompts: [
+      'Which parts of the story are documented (the 1964 Act, the December vote, the May ruling, the WaPo figures, the ceiling) and which are forecasts or reasons (only he can raise it; too politicized; decades of neglect)? How would you check each?',
+      'The board that says only its chairman can save the center is a board he appointed. Does that make its claim false? What does it make it? (Proverbs 18:17)',
+      'Walk through the Word’s names on houses: Babel (Genesis 11:4), Absalom’s pillar (2 Samuel 18:18), Psalms 49:11-12, Nebuchadnezzar’s roof (Daniel 4:30-37). What do they have in common — and how does Luke 7:5 and Romans 13:7 keep this from becoming a rule against ever honoring a giver?',
+      'Cyrus and Darius paid for Yahweh’s house and the house kept His name (Ezra 6:4; 6:12). What would it look like for a hall — or a church — to accept a large gift without becoming the giver’s servant (Proverbs 22:7; Psalms 146:3)?',
+      'The artists cite conscience (Daniel 3:18; Psalms 137:4). The Word also says pray for kings (1 Timothy 2:2) and seek the peace of the city (Jeremiah 29:7). Where is the line between refusing to play and holding a ruler in contempt?',
+      'The resolution says payroll cannot be met within weeks. What does Leviticus 19:13 and James 5:4 require of every party before anything else is settled — and what does that require of your own church’s musicians and staff?',
+      'In your own house: when you give to a building, do you need the plaque? Read Matthew 6:1-4 and answer honestly.',
+    ],
+  },
+
+  // ---- Age-appropriate renderings (kids use the app) ----
+  levels: {
+    child: 'A big music and theater hall in Washington, D.C. is in trouble. It is called the Kennedy Center. Long ago, Congress named it to remember a president who had died. Now the people who run it say it is almost out of money. Part of a ceiling fell down in the rain. And they say the only way to save it is to put the President’s name on the front of the building, because he can ask his friends for money. A judge already said the name has to stay the way Congress wrote it. Many singers and players stopped coming. Many people stopped buying tickets. Here is how to think it through. First, sort what is known from what is a guess. We know the money went down. We know the ceiling fell. "Only one person can save it" is a guess about the future. Second, hear each side kindly. The board is scared. The singers have their reasons. The judge has the law. The workers just want to be paid. Third, ask what Yahweh says. Long ago some people built a tower and said, "let us make us a name" (Genesis 11:4). That did not end well. A king looked at his city and bragged that he built it by his own power (Daniel 4:30), and Yahweh humbled him. The Word says, "A good name is rather to be chosen than great riches" (Proverbs 22:1). A good name is not letters on a wall. It is being honest and kind. And the Word says, "Put not your trust in princes" (Psalms 146:3). Help from a leader can be a gift. But our trust goes to Yahweh. Music and art are His gift too. He filled a man named Bezaleel with His Spirit to make beautiful things (Exodus 31:3). When you give, Jesus says to do it quietly, so your Father who sees in secret can reward you (Matthew 6:4). We do not call anyone bad. We pray for the leaders. We pray for the workers who need their pay. And we make beautiful things for Yahweh.',
+    teen: 'Breaking news: the Kennedy Center’s own board says the place could go bankrupt within weeks and might close — and that the only way out is to carve the President’s name into the front of the building, because he is the only one who can raise the money. Run the moves before you repeat any of it. (1) Sort fact from forecast. Documented: Congress named it for President Kennedy in 1964; the board renamed it for Trump in December 2025; a federal judge ruled in May that "only Congress can change it" and made them take the name down; artists like Renée Fleming and the producers of Hamilton canceled, and the opera company left; documents show subscriptions fell about a third and nearly half the seats went unsold after the name went on; part of the ceiling fell on September 5. Forecast: "only President Trump can raise enough" — said by a board he chairs, and so far the money went DOWN after his name went up. (2) Hear all four sides at their strongest: the board (the ceiling is real, the hall dies without cash), the artists (a memorial claimed by a sitting ruler changes what the stage means — Psalms 137:4), the lawsuit (Congress named a memorial for a slain president; only Congress un-names it), and the workers (a name costs them nothing; a closed hall costs them everything). Notice each side holds a true fact and is tempted to use it to erase the others. (3) Now let the Word speak to what no judge will rule on. Names on houses: Babel said "let us make us a name" (Genesis 11:4); Absalom built a pillar "to keep my name in remembrance" (2 Samuel 18:18); Nebuchadnezzar bragged "Is not this great Babylon, that I have built" (Daniel 4:30) and lost his mind until he honored the King of heaven. The name that lasts: "A good name is rather to be chosen than great riches" (Proverbs 22:1). Trust: "Put not your trust in princes" (Psalms 146:3) — a house that writes down that one man is its only hope has told you where its trust went, and "the borrower is servant to the lender" (Proverbs 22:7). Cost: "sitteth not down first, and counteth the cost" (Luke 14:28). Honesty: public record-fundraising claims next to private collapse documents is two weights on one scale (Proverbs 11:1). The workers: "the wages of him that is hired shall not abide with thee all night" (Leviticus 19:13) — the crew gets paid first, whoever wins. And the arts: Bezaleel is the first person the Word names as filled with the spirit of God (Exodus 31:3), so an empty hall is a loss to Yahweh, not a win for anybody. (4) Don’t become the comment section. Conscience is honored (Daniel 3:18), but so is praying "For kings, and for all that are in authority" (1 Timothy 2:2). For you: when you give, no plaque (Matthew 6:3-4); when you build, count first; and make something excellent for Yahweh this week.',
+    senior: 'For the seasoned believer, this lesson is about weighing a public institution’s cry for rescue with the Word’s own theology of names, patrons, and the arts — in a week when the outcome is not yet known and every side is speaking at once. First, the documented record, stated plainly: Public Law 88-260 of January 23, 1964 named the National Cultural Center for President Kennedy as a living memorial; on February 12, 2025 the President dismissed the Biden-era trustees and was elected chairman by a board he had appointed, which removed Deborah Rutter and installed Richard Grenell; artists withdrew by name and date, and the Washington National Opera ended a residency of decades under a new break-even rule; on December 18, 2025 the board renamed the center for him, and Rep. Joyce Beatty — muted, she says, on the call — sued four days later; on May 29, 2026 Judge Christopher Cooper ruled in ninety-four pages that "Congress gave the Kennedy Center its name, and only Congress can change it," ordered the signage down within fourteen days, and blocked a two-year closure; on August 13 the board voted 20–3 for a credit-line inscription and a "Trump Plaza"; The Washington Post’s documents of August 25 show revenue projected nearly $100 million short and 70 percent under budget, subscriptions down about 36 percent, and roughly 43 percent of seats unsold; on September 5 part of the Grand Foyer ceiling fell; and on September 14 the board’s resolutions said payroll cannot be met "within a matter of weeks" and that without "appropriate recognition" it is unlikely the President will "lead the fiscal rescue of the Center." Second, the categories kept honestly (Proverbs 18:13; 18:17): "only he can" is a forecast by an interested board, and the record so far runs the other way; "too politicized" and "decades of neglect" are each side’s reasons, each resting on a true fact — the empty seats and the fallen ceiling run on two different clocks; whether an inscription is a renaming under the order is the judge’s question, and the public fundraising claims against the private documents are a genuine, narrow unknown — no audited reconciliation exists. No motive is adjudicated. Third — where the Word settles what the court cannot — the theology of names is old and consistent: Babel’s "let us make us a name," Absalom’s pillar, the psalmist’s "they call their lands after their own names" answered by "man being in honour abideth not," and Nebuchadnezzar on his roof — while the Word also commands memorials (Joshua 4:7) and honor to benefactors (Luke 7:5; Romans 13:7), so the correction is precise: not against honoring a giver, but against a man making his own name the thing a house is for. The arts are Yahweh’s gift — Bezaleel the first person the Word names as filled with the spirit of God, David’s 288 trained singers, "play skilfully" — so the hall’s silence is a loss to Him. Patrons are shown funding His house — Cyrus, Darius, Artaxerxes — and the house kept His name (Ezra 6:12) while the people were commanded, "Put not your trust in princes" (Psalms 146:3) and warned that "the borrower is servant to the lender" (Proverbs 22:7). The just weight (Proverbs 11:1; 2 Corinthians 8:21) governs every number reported on every side; the wages of the hired (Leviticus 19:13; James 5:4) govern the first obligation of any settlement; and the two courts govern the rest: man’s court has ruled and will rule again, and the eternal court holds every resolution and every secret thing (Ecclesiastes 12:14). Then let the response mature past taking a side into the Body’s long vocation — build the arts you praise, name your house for its purpose, give without a plaque (Matthew 6:1-4), count the cost (Luke 14:28), pay your musicians on time, and pray by name for the rulers, the trustees, the artists, and the crew — knowing that every name on every wall, ours included, will bow to the one above it (Philippians 2:10).',
+  },
+
+  // ---- Discernment-skill quiz ----
+  quiz: {
+    questions: [
+      {
+        q: 'The board’s resolution says only President Trump can raise enough to rescue the center. What is the discernment move?',
+        options: ['Accept it — the board would know', 'Label it a forecast by an interested board (he chairs it), check the record (gifts fell after his name went on), and keep the open question narrow: it is untested, not proven or disproven', 'Reject it — boards always exaggerate'],
+        answer: 1,
+        explain: 'A forecast is not a finding. Ask who is speaking and what they depend on, check what the documents show so far, and say honestly what is unknown (DR-0100 Tier 2, narrowly).',
+      },
+      {
+        q: '"Congress gave the Kennedy Center its name, and only Congress can change it." What kind of statement is this?',
+        options: ['One side’s opinion in a lawsuit', 'An adjudicated finding — a federal judge ruled it on May 29, 2026 — and it is said plainly as such', 'A claim no one has examined'],
+        answer: 1,
+        explain: 'A ruling is a verdict and is stated as one. What remains open is the narrower question of whether an inscription beneath the name violates that order — which the same judge will decide.',
+      },
+      {
+        q: 'The board says the crisis comes from decades of neglect; the artists say it was made by the takeover. What does the record show?',
+        options: ['Only the board is right', 'Only the artists are right', 'Two true facts on two clocks: the building’s decay is decades old (the ceiling), and the revenue collapse is new and dated to the renaming (the documents) — neither erases the other'],
+        answer: 2,
+        explain: 'Weighing means letting each side keep its true fact without letting it cancel the other’s. "Decades of neglect" does not explain the empty seats; the empty seats do not explain the ceiling.',
+      },
+      {
+        q: 'Which is the Word’s teaching about names on houses?',
+        options: ['Never honor a giver on a building', 'Memorials and honor to benefactors are commanded (Joshua 4:7; Romans 13:7), but a man making his own name the thing a house is for is Babel, Absalom’s pillar, and Nebuchadnezzar’s roof — and "A good name is rather to be chosen than great riches"', 'Whoever pays the most gets the name'],
+        answer: 1,
+        explain: 'The correction is precise. The Word honors givers and commands memorials; it warns against "let us make us a name" and answers "they call their lands after their own names" with "man being in honour abideth not."',
+      },
+      {
+        q: 'Cyrus and Darius paid for Yahweh’s house. What did the Word keep, and what does that model for a hall or a church taking a large gift?',
+        options: ['The king’s name went on the house', 'The house kept Yahweh’s name (Ezra 6:12), the credit went behind the king to the Giver, and the people were told "Put not your trust in princes" — accept the gift, keep the name and the trust where they belong', 'Refuse all gifts from rulers'],
+        answer: 1,
+        explain: 'A patron can be received with honor and thanks (Ezra 7:27; Nehemiah 2:8) without becoming the one the house is for or the one it depends on (Proverbs 22:7).',
+      },
+      {
+        q: 'The resolution says payroll cannot be met within weeks. Before the name is settled, what does the Word require?',
+        options: ['Nothing until the court rules', 'That the hired be paid first — "the wages of him that is hired shall not abide with thee all night until the morning" (Leviticus 19:13); the hire kept back "crieth" (James 5:4)', 'That the artists come back'],
+        answer: 1,
+        explain: 'Whoever wins the fight over the marble, the musicians and the crew are the first obligation, not the last. A settlement that leaves them unpaid has failed the first test.',
+      },
+      {
+        q: 'Public claims of record fundraising sit beside confidential documents showing collapse. What does the Word say about the numbers?',
+        options: ['Numbers are a matter of opinion', '"A false balance is abomination to the LORD" — one weight in public and in private (Proverbs 11:1; 2 Corinthians 8:21); which figures are right is genuinely open, but the standard for reporting them is not', 'Whichever side you favor is right'],
+        answer: 1,
+        explain: 'Tier 2 is narrow: the disagreement is documented and no audited reconciliation is public. The just weight binds every party that reports a figure, on every side.',
+      },
+      {
+        q: 'An artist cancels out of conscience. What does the Word honor, and what does it still require?',
+        options: ['Conscience is honored (Daniel 3:18), and so is praying for those in authority and seeking the peace of the city (1 Timothy 2:2; Jeremiah 29:7) — refusal is not a license for contempt', 'Artists must play wherever they are booked', 'Conscience means the ruler is the enemy'],
+        answer: 0,
+        explain: 'Three men refused the image and were honored; the same Word tells the exiles to pray for the city that held them. Refusing to play and cursing the ruler are different acts.',
+      },
+    ],
+  },
+};
+
+export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE, TUITION_1965_ISSUE, EPA_POWER_PLANT_ISSUE, SCOTUS_MAIL_IN_ISSUE, KENNEDY_CENTER_ISSUE, EVANSTON_REPARATIONS_ISSUE, TRADES_HIRING_ISSUE];
 
 // ---------------------------------------------------------------------------
 // Course-specific helpers — thin wrappers over the reusable discernment engine

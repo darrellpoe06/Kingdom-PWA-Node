@@ -1679,3 +1679,172 @@ describe('Issue 15 — Evanston’s reparations and the equal-protection suit: e
     }
   });
 });
+
+// =============================================================================
+// ISSUE 14 — The Kennedy Center on the brink: whose name goes on the house
+// (wi-kennedy-center-bankruptcy-and-the-name). Darrell forwarded NPR's Up First
+// of 2026-09-15 as build input. Every fragment below was fetched from the repo
+// KJV at authoring time; a drift fails here.
+// =============================================================================
+const KENNEDY_CENTER_QUOTES = [
+  { ref: 'Genesis 11:4', book: 'Genesis', ch: 11, v: 4, fragments: ['let us make us a name'] },
+  { ref: '2 Samuel 18:18', book: '2Samuel', ch: 18, v: 18, fragments: ['reared up for himself a pillar', 'I have no son to keep my name in remembrance: and he called the pillar after his own name', 'to keep my name in remembrance'] },
+  { ref: 'Psalms 49:11', book: 'Psalms', ch: 49, v: 11, fragments: ['Their inward thought is, that their houses shall continue for ever, and their dwelling places to all generations; they call their lands after their own names.', 'they call their lands after their own names'] },
+  { ref: 'Psalms 49:12', book: 'Psalms', ch: 49, v: 12, fragments: ['Nevertheless man being in honour abideth not: he is like the beasts that perish.', 'man being in honour abideth not'] },
+  { ref: 'Daniel 4:30', book: 'Daniel', ch: 4, v: 30, fragments: ['Is not this great Babylon, that I have built for the house of the kingdom by the might of my power, and for the honour of my majesty?', 'Is not this great Babylon, that I have built'] },
+  { ref: 'Daniel 4:31', book: 'Daniel', ch: 4, v: 31, fragments: ['While the word was in the king’s mouth, there fell a voice from heaven'] },
+  { ref: 'Daniel 4:37', book: 'Daniel', ch: 4, v: 37, fragments: ['works are truth, and his ways judgment: and those that walk in pride he is able to abase.', 'is able to abase'] },
+  { ref: 'Joshua 4:7', book: 'Joshua', ch: 4, v: 7, fragments: ['for a memorial unto the children of Israel for ever'] },
+  { ref: 'Luke 7:5', book: 'Luke', ch: 7, v: 5, fragments: ['he loveth our nation, and he hath built us a synagogue'] },
+  { ref: 'Romans 13:7', book: 'Romans', ch: 13, v: 7, fragments: ['honour to whom honour'] },
+  { ref: 'Proverbs 22:1', book: 'Proverbs', ch: 22, v: 1, fragments: ['A good name is rather to be chosen than great riches, and loving favour rather than silver and gold.', 'A good name is rather to be chosen than great riches'] },
+  { ref: 'Ecclesiastes 7:1', book: 'Ecclesiastes', ch: 7, v: 1, fragments: ['A good name is better than precious ointment'] },
+  { ref: 'Proverbs 10:7', book: 'Proverbs', ch: 10, v: 7, fragments: ['The memory of the just is blessed'] },
+  { ref: '1 Samuel 2:30', book: '1Samuel', ch: 2, v: 30, fragments: ['them that honour me I will honour'] },
+  { ref: 'Philippians 2:9', book: 'Philippians', ch: 2, v: 9, fragments: ['hath highly exalted him, and given him a name which is above every name'] },
+  { ref: 'Philippians 2:10', book: 'Philippians', ch: 2, v: 10, fragments: ['That at the name of Jesus every knee should bow'] },
+  { ref: 'Philippians 2:11', book: 'Philippians', ch: 2, v: 11, fragments: ['every tongue should confess that Jesus Christ is Lord, to the glory of God the Father.'] },
+  { ref: 'Psalms 115:1', book: 'Psalms', ch: 115, v: 1, fragments: ['Not unto us, O LORD, not unto us, but unto thy name give glory'] },
+  { ref: 'Isaiah 42:8', book: 'Isaiah', ch: 42, v: 8, fragments: ['my glory will I not give to another'] },
+  { ref: 'Exodus 28:3', book: 'Exodus', ch: 28, v: 3, fragments: ['wise hearted, whom I have filled with the spirit of wisdom'] },
+  { ref: 'Exodus 31:2', book: 'Exodus', ch: 31, v: 2, fragments: ['See, I have called by name Bezaleel'] },
+  { ref: 'Exodus 31:3', book: 'Exodus', ch: 31, v: 3, fragments: ['And I have filled him with the spirit of God, in wisdom, and in understanding, and in knowledge, and in all manner of workmanship'] },
+  { ref: 'Exodus 31:4', book: 'Exodus', ch: 31, v: 4, fragments: ['To devise cunning works, to work in gold, and in silver, and in brass'] },
+  { ref: 'Exodus 31:5', book: 'Exodus', ch: 31, v: 5, fragments: ['in carving of timber'] },
+  { ref: 'Exodus 35:34', book: 'Exodus', ch: 35, v: 34, fragments: ['he hath put in his heart that he may teach'] },
+  { ref: 'Exodus 35:35', book: 'Exodus', ch: 35, v: 35, fragments: ['of the engraver, and of the cunning workman, and of the embroiderer, in blue, and in purple, in scarlet, and in fine linen, and of the weaver'] },
+  { ref: 'Genesis 4:21', book: 'Genesis', ch: 4, v: 21, fragments: ['the father of all such as handle the harp and organ'] },
+  { ref: '1 Chronicles 25:1', book: '1Chronicles', ch: 25, v: 1, fragments: ['who should prophesy with harps, with psalteries, and with cymbals'] },
+  { ref: '1 Chronicles 25:7', book: '1Chronicles', ch: 25, v: 7, fragments: ['instructed in the songs of the LORD, even all that were cunning, was two hundred fourscore and eight', 'instructed in the songs of the LORD'] },
+  { ref: 'Psalms 33:3', book: 'Psalms', ch: 33, v: 3, fragments: ['play skilfully with a loud noise', 'play skilfully'] },
+  { ref: 'Philippians 4:8', book: 'Philippians', ch: 4, v: 8, fragments: ['whatsoever things are lovely, whatsoever things are of good report'] },
+  { ref: 'Proverbs 22:29', book: 'Proverbs', ch: 22, v: 29, fragments: ['Seest thou a man diligent in his business? he shall stand before kings'] },
+  { ref: 'Ezra 1:2', book: 'Ezra', ch: 1, v: 2, fragments: ['he hath charged me to build him an house at Jerusalem'] },
+  { ref: 'Ezra 6:4', book: 'Ezra', ch: 6, v: 4, fragments: ['let the expenses be given out of the king’s house'] },
+  { ref: 'Ezra 6:12', book: 'Ezra', ch: 6, v: 12, fragments: ['the God that hath caused his name to dwell there'] },
+  { ref: 'Ezra 7:27', book: 'Ezra', ch: 7, v: 27, fragments: ['which hath put such a thing as this in the king’s heart, to beautify the house of the LORD'] },
+  { ref: 'Nehemiah 2:8', book: 'Nehemiah', ch: 2, v: 8, fragments: ['And the king granted me, according to the good hand of my God upon me.'] },
+  { ref: 'Proverbs 21:1', book: 'Proverbs', ch: 21, v: 1, fragments: ['The king’s heart is in the hand of the LORD'] },
+  { ref: 'Deuteronomy 8:18', book: 'Deuteronomy', ch: 8, v: 18, fragments: ['it is he that giveth thee power to get wealth'] },
+  { ref: 'Psalms 146:3', book: 'Psalms', ch: 146, v: 3, fragments: ['Put not your trust in princes, nor in the son of man, in whom there is no help.', 'Put not your trust in princes'] },
+  { ref: 'Psalms 146:4', book: 'Psalms', ch: 146, v: 4, fragments: ['His breath goeth forth, he returneth to his earth; in that very day his thoughts perish.'] },
+  { ref: 'Psalms 118:9', book: 'Psalms', ch: 118, v: 9, fragments: ['It is better to trust in the LORD than to put confidence in princes.'] },
+  { ref: 'Jeremiah 17:5', book: 'Jeremiah', ch: 17, v: 5, fragments: ['Cursed be the man that trusteth in man, and maketh flesh his arm'] },
+  { ref: 'Zechariah 4:6', book: 'Zechariah', ch: 4, v: 6, fragments: ['Not by might, nor by power, but by my spirit, saith the LORD of hosts.'] },
+  { ref: 'Psalms 127:1', book: 'Psalms', ch: 127, v: 1, fragments: ['Except the LORD build the house, they labour in vain that build it'] },
+  { ref: 'Proverbs 22:7', book: 'Proverbs', ch: 22, v: 7, fragments: ['the borrower is servant to the lender'] },
+  { ref: 'Luke 14:28', book: 'Luke', ch: 14, v: 28, fragments: ['For which of you, intending to build a tower, sitteth not down first, and counteth the cost, whether he have sufficient to finish it?', 'sitteth not down first, and counteth the cost'] },
+  { ref: 'Luke 14:29', book: 'Luke', ch: 14, v: 29, fragments: ['Lest haply, after he hath laid the foundation, and is not able to finish it, all that behold it begin to mock him'] },
+  { ref: 'Luke 14:30', book: 'Luke', ch: 14, v: 30, fragments: ['Saying, This man began to build, and was not able to finish.'] },
+  { ref: 'Proverbs 11:1', book: 'Proverbs', ch: 11, v: 1, fragments: ['A false balance is abomination to the LORD: but a just weight is his delight.', 'A false balance is abomination to the LORD'] },
+  { ref: '2 Corinthians 8:21', book: '2Corinthians', ch: 8, v: 21, fragments: ['Providing for honest things, not only in the sight of the Lord, but also in the sight of men.'] },
+  { ref: 'Proverbs 27:2', book: 'Proverbs', ch: 27, v: 2, fragments: ['Let another man praise thee, and not thine own mouth', 'Let another man praise thee'] },
+  { ref: 'Exodus 20:16', book: 'Exodus', ch: 20, v: 16, fragments: ['Thou shalt not bear false witness against thy neighbour.'] },
+  { ref: 'Leviticus 19:13', book: 'Leviticus', ch: 19, v: 13, fragments: ['the wages of him that is hired shall not abide with thee all night until the morning', 'the wages of him that is hired shall not abide with thee all night'] },
+  { ref: 'James 5:4', book: 'James', ch: 5, v: 4, fragments: ['crieth'] },
+  { ref: 'Daniel 3:5', book: 'Daniel', ch: 3, v: 5, fragments: ['all kinds of musick', 'fall down and worship the golden image'] },
+  { ref: 'Daniel 3:18', book: 'Daniel', ch: 3, v: 18, fragments: ['we will not serve thy gods, nor worship the golden image'] },
+  { ref: 'Psalms 137:4', book: 'Psalms', ch: 137, v: 4, fragments: ['How shall we sing the LORD’s song in a strange land?'] },
+  { ref: '1 Timothy 2:2', book: '1Timothy', ch: 2, v: 2, fragments: ['For kings, and for all that are in authority'] },
+  { ref: 'Jeremiah 29:7', book: 'Jeremiah', ch: 29, v: 7, fragments: ['seek the peace of the city'] },
+  { ref: 'Acts 17:24', book: 'Acts', ch: 17, v: 24, fragments: ['dwelleth not in temples made with hands'] },
+  { ref: '1 Thessalonians 5:21', book: '1Thessalonians', ch: 5, v: 21, fragments: ['Prove all things; hold fast that which is good.'] },
+  { ref: 'Proverbs 18:17', book: 'Proverbs', ch: 18, v: 17, fragments: ['He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him.'] },
+  { ref: 'Matthew 7:20', book: 'Matthew', ch: 7, v: 20, fragments: ['by their fruits ye shall know them'] },
+  { ref: 'Matthew 23:12', book: 'Matthew', ch: 23, v: 12, fragments: ['whosoever shall exalt himself shall be abased; and he that shall humble himself shall be exalted'] },
+  { ref: 'Ecclesiastes 12:14', book: 'Ecclesiastes', ch: 12, v: 14, fragments: ['For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil.'] },
+  { ref: 'Revelation 20:12', book: 'Revelation', ch: 20, v: 12, fragments: ['the books were opened'] },
+  { ref: 'Galatians 6:7', book: 'Galatians', ch: 6, v: 7, fragments: ['God is not mocked'] },
+  { ref: 'Malachi 3:16', book: 'Malachi', ch: 3, v: 16, fragments: ['a book of remembrance was written before him for them that feared the LORD, and that thought upon his name'] },
+  { ref: '1 Corinthians 4:2', book: '1Corinthians', ch: 4, v: 2, fragments: ['found faithful'] },
+  { ref: 'Deuteronomy 16:19', book: 'Deuteronomy', ch: 16, v: 19, fragments: ['thou shalt not respect persons, neither take a gift'] },
+  { ref: 'Colossians 3:23', book: 'Colossians', ch: 3, v: 23, fragments: ['heartily, as to the Lord, and not unto men'] },
+  { ref: 'Matthew 6:3', book: 'Matthew', ch: 6, v: 3, fragments: ['let not thy left hand know what thy right hand doeth'] },
+  { ref: 'Matthew 6:4', book: 'Matthew', ch: 6, v: 4, fragments: ['thy Father which seeth in secret', 'openly'] },
+];
+
+describe('Issue 14 — The Kennedy Center on the brink: every fragment verbatim from the repo KJV', () => {
+  const issue = WORLD_ISSUES.find((i) => i.id === 'wi-kennedy-center-bankruptcy-and-the-name');
+  const norm = (s) => s.replace(/[’‘]/g, "'").replace(/\s+/g, ' ');
+
+  it('the issue is published', () => {
+    expect(issue).toBeTruthy();
+  });
+
+  it('every quoted fragment is a verbatim substring of the cited KJV verse', () => {
+    const failures = [];
+    for (const q of KENNEDY_CENTER_QUOTES) {
+      const text = kjvVerse(q.book, q.ch, q.v);
+      for (const frag of q.fragments) {
+        if (!norm(text).includes(norm(frag))) {
+          failures.push(`${q.ref}: NOT VERBATIM — "${frag}" (verse reads: "${text}")`);
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it('every fragment actually appears in the issue content (no stale list)', () => {
+    const blob = norm(JSON.stringify(issue));
+    const missing = KENNEDY_CENTER_QUOTES.flatMap((q) =>
+      q.fragments.filter((frag) => !blob.includes(norm(frag))).map((frag) => `${q.ref}: "${frag}"`));
+    expect(missing).toEqual([]);
+  });
+
+  // PROVEN-TO-CATCH: a one-word tamper in the two anchor verses must fail.
+  it('CATCHES a one-word tamper in a pinned verse', () => {
+    const real = kjvVerse('Proverbs', 22, 1);
+    expect(norm(real).includes(norm('A good name is rather to be carved than great riches'))).toBe(false);
+    expect(norm(real).includes(norm('A good name is rather to be chosen than great riches'))).toBe(true);
+    const trust = kjvVerse('Psalms', 146, 3);
+    expect(norm(trust).includes(norm('Put your trust in princes'))).toBe(false);
+    expect(norm(trust).includes(norm('Put not your trust in princes'))).toBe(true);
+  });
+
+  // DR-0100's three tiers are load-bearing: the board's "only he can" is carried
+  // as its OPINION, the May ruling and the board's own words are DOCUMENTED, the
+  // public-vs-private fundraising figures are DISPUTED (narrowly), and no vote
+  // outcome is asserted for the day of authoring.
+  it('labels the rescue forecast as opinion, the record as documented, the numbers fight as disputed', () => {
+    expect(issue.claims.find((x) => x.id === 'c-only-trump').label).toBe('opinion');
+    expect(issue.claims.find((x) => x.id === 'c-crisis-likely').label).toBe('opinion');
+    expect(issue.claims.find((x) => x.id === 'c-congress-named-it').note).toMatch(/adjudicated finding/);
+    expect(issue.verifiable.find((v) => v.id === 'f-ruling').status).toBe('documented');
+    expect(issue.verifiable.find((v) => v.id === 'f-sept-14').status).toBe('documented');
+    expect(issue.verifiable.find((v) => v.id === 'f-finances').status).toBe('documented');
+    expect(issue.verifiable.find((v) => v.id === 'f-fundraising-claims').status).toBe('disputed');
+    expect(issue.verifiable.find((v) => v.id === 'f-sept-14').note).toMatch(/NOT asserted/);
+  });
+
+  it('Word first — names, arts, patrons, the just weight, the two courts; over-reach corrected on every side', () => {
+    const blob = JSON.stringify(issue);
+    expect(issue.lens.fourD.deepSource.indexOf('WORD FIRST')).toBe(0);
+    expect(blob).toContain('NAMES ON HOUSES');
+    expect(blob).toContain('THE ARTS ARE HIS GIFT');
+    expect(blob).toContain('PATRONS AND DEPENDENCE');
+    expect(blob).toContain('THE JUST WEIGHT FOR THE NUMBERS');
+    expect(blob).toContain('THE OVER-REACH, CORRECTED ON EVERY SIDE');
+    expect(issue.lens.accountability.scripture).toMatch(/Ecclesiastes 12:14/);
+    expect(issue.lens.benefits.some((b) => /eternal court/i.test(b) && /after this life/i.test(b))).toBe(true);
+  });
+
+  it('steelmans four perspectives, one of them the workers who must be paid', () => {
+    expect(issue.perspectives.length).toBeGreaterThanOrEqual(3);
+    expect(issue.perspectives.every((p) => p.steelman.length > 200)).toBe(true);
+    expect(issue.perspectives.find((p) => p.id === 'p-workers').steelman).toMatch(/Leviticus 19:13/);
+  });
+
+  it('carries a grace note that condemns no one, naming every real person the lesson names', () => {
+    expect(issue.subject.isNamedRealPerson).toBe(true);
+    expect(issue.lens.graceNote).toMatch(/No condemnation/i);
+    for (const name of ['Trump', 'Beatty', 'Grenell', 'Kennedy']) expect(issue.lens.graceNote).toContain(name);
+  });
+
+  it('keeps our voice on Yahweh and the adversary lowercase', () => {
+    const ownVoice = [issue.skill, issue.lens.threeD, issue.lens.graceNote, issue.lens.stewardship, issue.lens.accountability.statement, ...issue.lens.benefits, ...issue.reflection.prompts, issue.levels.child, issue.levels.teen, issue.levels.senior].join(' ');
+    // Strip every double-quoted span (the verbatim KJV, the resolution, the judge) before checking OUR voice.
+    const ours = ownVoice.replace(/"[^"]*"/g, '');
+    expect(/\bGod\b/.test(ours.replace(/\bGod the Father\b|spirit of God|the God that\b/g, ''))).toBe(false);
+    expect(/\b(Satan|Lucifer|Devil)\b/.test(ownVoice)).toBe(false);
+  });
+});
