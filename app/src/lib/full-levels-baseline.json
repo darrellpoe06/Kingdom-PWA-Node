@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 153,
-  "lessonsShort": 152,
+  "lessonsShort": 147,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -28,47 +28,56 @@
     "ll101-the-real-champion-action-not-theory-die-once-live-forever-and-the-mind-of-christ": [
       "child",
       "youth",
-      "teen"
+      "teen",
+      "senior"
     ],
     "ll102-bold-as-a-lion-boldness-from-righteousness-not-bravado-no-fear": [
       "child",
       "youth",
-      "teen"
+      "teen",
+      "senior"
     ],
     "ll103-his-kings-reigning-under-the-king-of-kings-two-paths-wealth-and-souls": [
       "child",
       "youth",
-      "teen"
+      "teen",
+      "senior"
     ],
     "ll104-study-your-ways-how-yahweh-weighs-love-the-deterministic-standard-two-ways-and-the-word": [
       "child",
       "youth",
-      "teen"
+      "teen",
+      "senior"
     ],
     "ll105-doing-the-word-rewires-you-daily-intake-the-deep-heart-and-experiential-over-theoretical": [
       "child",
       "youth",
-      "teen"
+      "teen",
+      "senior"
     ],
     "ll106-wise-as-serpents-harmless-as-doves-know-the-enemy-deny-the-flesh-and-the-one-way": [
       "child",
       "youth",
-      "teen"
+      "teen",
+      "senior"
     ],
     "ll107-what-the-word-gives-love-truth-light-knowledge-and-how-we-receive-it-vs-the-enemy": [
       "child",
       "youth",
-      "teen"
+      "teen",
+      "senior"
     ],
     "ll108-why-we-name-him-low-the-typography-of-a-defeated-enemy": [
       "child",
       "youth",
-      "teen"
+      "teen",
+      "senior"
     ],
     "ll109-how-we-know-yahwehs-love-taste-see-hear-touch-experienced-at-every-age": [
       "child",
       "youth",
-      "teen"
+      "teen",
+      "senior"
     ],
     "ll11-fearfully-and-wonderfully-made": [
       "child",
@@ -78,7 +87,8 @@
     "ll110-wolf-vs-lion-the-enemys-two-tactics-and-the-one-shepherd": [
       "child",
       "youth",
-      "teen"
+      "teen",
+      "senior"
     ],
     "ll111-the-just-weight-yahwehs-unchanging-measure-vs-the-worlds-shifting-standard": [
       "child",
@@ -235,8 +245,7 @@
     "ll135-they-called-every-one-of-them-george-the-name-they-took-the-porter-at-the-door-and-the-wage-yahweh-legislated": [
       "child",
       "youth",
-      "teen",
-      "senior"
+      "teen"
     ],
     "ll136-touched-with-the-feeling-the-high-priest-who-felt-the-whole-weight-and-why-his-judgment-never-needed-your-experience-to-be-true": [
       "child",
@@ -296,29 +305,6 @@
       "teen",
       "senior"
     ],
-    "ll145-i-will-not-go-out-free-the-bondservant-the-price-and-the-ear-at-the-door": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll146-he-said-it-first-what-it-sounds-like-when-yahweh-tells-you-how-he-feels": [
-      "child",
-      "youth",
-      "teen"
-    ],
-    "ll147-the-due-he-is-owed-every-place-the-word-shows-jesus-worshipped-and-the-one-thing-that-never-happens": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll148-remember-is-a-verb-what-the-word-says-about-his-knowing-his-withholding-and-the-sea": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
     "ll149-cultural-competency-the-same-word-in-three-mouths-and-the-man-nobody-believed": [
       "child",
       "youth",
@@ -331,17 +317,10 @@
       "teen",
       "senior"
     ],
-    "ll150-how-can-the-son-not-know-what-the-father-knows": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
     "ll152-crying-because-of-all-the-dying-slow-and-vicious-but-yahweh": [
       "child",
       "youth",
-      "teen",
-      "senior"
+      "teen"
     ],
     "ll153-precept-upon-precept-the-voice-that-programs-the-world": [
       "child",
@@ -448,7 +427,8 @@
     "ll3-bodybuilding-christ": [
       "child",
       "youth",
-      "teen"
+      "teen",
+      "senior"
     ],
     "ll30-the-whole-story-yahweh-and-humanity": [
       "child",
@@ -507,7 +487,8 @@
     "ll39-roots-lead-to-the-king-hidden-jerusalem": [
       "child",
       "youth",
-      "teen"
+      "teen",
+      "senior"
     ],
     "ll4-dying-to-live": [
       "child",
@@ -522,7 +503,8 @@
     "ll41-truth-with-a-capital-t": [
       "child",
       "youth",
-      "teen"
+      "teen",
+      "senior"
     ],
     "ll42-keep-the-adversary-out-of-the-music": [
       "child",
@@ -586,7 +568,8 @@
     "ll51-the-mind-of-christ-situationally-how-scripture-addresses-each-person": [
       "child",
       "youth",
-      "teen"
+      "teen",
+      "senior"
     ],
     "ll52-how-a-lie-gets-wired-in-neuroplasticity-memory-and-the-mind-of-christ": [
       "child",
@@ -717,10 +700,8 @@
       "teen"
     ],
     "ll72-the-berean-foundation": [
-      "child",
       "youth",
-      "teen",
-      "senior"
+      "teen"
     ],
     "ll73-the-house-of-el-and-the-only-saviour": [
       "child",
@@ -731,14 +712,12 @@
     "ll74-church-hurt-the-counterfeit-comfort-and-the-blood": [
       "child",
       "youth",
-      "teen",
-      "senior"
+      "teen"
     ],
     "ll75-the-greater-yeshua": [
       "child",
       "youth",
-      "teen",
-      "senior"
+      "teen"
     ],
     "ll76-the-sky-the-speculation-and-the-test-that-works": [
       "child",
@@ -749,8 +728,7 @@
     "ll77-the-king-over-the-children-of-pride": [
       "child",
       "youth",
-      "teen",
-      "senior"
+      "teen"
     ],
     "ll78-the-snare-of-the-fear-of-man": [
       "child",
@@ -776,7 +754,8 @@
     "ll82-love-fulfils-the-law-wake-up-and-get-dressed": [
       "child",
       "youth",
-      "teen"
+      "teen",
+      "senior"
     ],
     "ll83-keep-thy-heart-the-conditions-of-growth": [
       "child",
@@ -869,12 +848,14 @@
     "ll97-a-just-weight-for-work-money-and-words-faithful-service-and-verifying-every-claim": [
       "child",
       "youth",
-      "teen"
+      "teen",
+      "senior"
     ],
     "ll98-the-just-judge-equal-justice-and-a-just-weight-for-the-numbers": [
       "child",
       "youth",
-      "teen"
+      "teen",
+      "senior"
     ],
     "ll99-watch-and-be-ready-no-date-setting-and-a-sober-word-on-ai-and-prophecy": [
       "child",

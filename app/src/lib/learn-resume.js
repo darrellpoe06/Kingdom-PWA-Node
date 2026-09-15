@@ -178,6 +178,30 @@ export function recordPlace(patch, opts = {}) {
 }
 
 /** The user's control: forget the saved place on this device. */
+// REFRESH FIRST (Darrell 2026-09-15: "I like making sure they start where
+// they left last time... so it can be a refresher if they wanted it"). A
+// returning learner — a child especially — often wants the last few steps
+// again before the new one. This backs the saved place up `back` paced steps
+// inside the same stage and records it, so the ordinary resume then lands on
+// the refresher instead of the frontier. At the first step of a stage it
+// stays at step 0 (a stage is its own unit; the learner can still step back
+// by hand). Returns the place it recorded, or null when there was nothing to
+// resume. DR-0418.
+export const REFRESH_BACK_STEPS = 2;
+export function backUpPlace(place, back = REFRESH_BACK_STEPS) {
+  if (!place || typeof place !== 'object' || !place.lessonId) return null;
+  const n = Number.isFinite(back) && back > 0 ? Math.floor(back) : REFRESH_BACK_STEPS;
+  return { ...place, step: Math.max(0, idx(place.step) - n), sentence: 0, sentenceKey: '' };
+}
+export function refreshPlace(opts = {}) {
+  const storage = opts.storage || defaultStorage();
+  const prev = getPlace({ storage });
+  const next = backUpPlace(prev, opts.back);
+  if (!next) return null;
+  recordPlace({ courseKey: next.courseKey, lessonId: next.lessonId, stage: next.stage, step: next.step, sentence: 0, sentenceKey: '' }, { storage, now: opts.now });
+  return getPlace({ storage });
+}
+
 export function clearPlace(opts = {}) {
   const storage = opts.storage || defaultStorage();
   try { if (storage) storage.removeItem(KEY); } catch { /* ignore */ }

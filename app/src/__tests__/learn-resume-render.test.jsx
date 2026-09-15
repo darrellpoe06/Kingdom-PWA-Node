@@ -92,6 +92,28 @@ describe('Learn resume-your-place', () => {
     expect(getPlace()).toBeNull();
   });
 
+  // REFRESH FIRST (DR-0418; Darrell 2026-09-15: "so it can be a refresher if
+  // they wanted it"). Proven-to-catch: against the previous banner the button
+  // does not exist, and the place stays at step 2.
+  it('Refresh first backs the saved step up and then resumes — the refresher, not the frontier', () => {
+    window.localStorage.setItem(PLACE_KEY, JSON.stringify(savedPlace)); // step 2
+    mount();
+    const btn = buttonByText('Refresh first');
+    expect(btn).toBeTruthy();
+    click(btn);
+    // resumed (banner gone) and the recorded place is two steps back (2 → 0)
+    expect(container.textContent).not.toContain('Pick up where you left off');
+    expect(getPlace().lessonId).toBe(savedPlace.lessonId);
+    expect(getPlace().step).toBe(0);
+  });
+
+  it('Refresh first is not offered at the first step — there is nothing behind it to replay', () => {
+    window.localStorage.setItem(PLACE_KEY, JSON.stringify({ ...savedPlace, step: 0 }));
+    mount();
+    expect(buttonByText('Resume →')).toBeTruthy();
+    expect(buttonByText('Refresh first')).toBeFalsy();
+  });
+
   it('opening a lesson guide records the place, so the NEXT visit can resume', () => {
     mount();
     expect(getPlace()).toBeNull();
