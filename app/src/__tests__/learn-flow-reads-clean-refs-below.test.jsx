@@ -138,14 +138,26 @@ describe('2. the Word waits, green, at the foot of the section it belongs to', (
     expect(strip.textContent.trim().startsWith('—')).toBe(true);
   });
 
-  it('a lesson with no headings keeps the strip beside the paragraph that named it — never a list at the end', () => {
+  it('a lesson with no headings keeps the strip beside the paragraphs that named it — never a list at the end', () => {
+    // Lesson 127 is the standard (DR-0410): a strip waits at the foot of a
+    // block of at most SECTION_RHYTHM.maxLines lines, and every chip in it was
+    // named in THAT block — so a reference is never further than a few lines
+    // from its sentence, and the last strip is never a list of everything.
     draw(createElement(LessonProse, { text: L1.levels.senior }));
     const s = strips();
-    expect(s.length).toBeGreaterThan(1);
-    // Each strip immediately follows a paragraph, and the last element is not one big strip of everything.
+    expect(s.length).toBeGreaterThan(0);
     const allChips = s.flatMap(stripChips);
     expect(allChips).toContain('Genesis 17:1');
-    expect(Math.max(...s.map((x) => x.querySelectorAll('button').length))).toBeLessThan(allChips.length);
+    const nodes = Array.from(host.querySelectorAll('[data-para-index], [data-point-index], [data-testid="section-refs"]'));
+    let block = [];
+    for (const n of nodes) {
+      if (n.getAttribute('data-testid') === 'section-refs') {
+        expect(block.length, 'lines waiting for one strip').toBeLessThanOrEqual(6);
+        const named = block.map((p) => p.textContent).join(' ');
+        for (const ref of stripChips(n)) expect(named, `${ref} was named in the block above its strip`).toContain(ref);
+        block = [];
+      } else block.push(n);
+    }
   });
 
   it('one chip opens the verbatim KJV beneath its section, and closes it again', async () => {

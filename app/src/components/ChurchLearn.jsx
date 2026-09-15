@@ -615,15 +615,45 @@ export function LessonReader({ text, className = 'text-xs text-[#1A1815]' }) {
 // The landmarks stay exactly where DR-0402 D2 put them: data-point-index /
 // data-point-n / tabIndex -1 on a heading (the speaker index's scroll target
 // and focus target), data-para-index on a line (the paragraph stepper).
-export function lessonSections(items) {
-  const hasHeadings = items.some((it) => it.kind === 'heading');
-  const sections = [];
+//
+// THE STANDARD IS LESSON 127 (Darrell 2026-09-15, listening to it at Big Print:
+// "No I don't like the buttons fix nor the other one with the green... use
+// lesson 127 that flows correctly... as the standard"). MEASURED, not guessed,
+// through this very component: L127 renders 10 numbered sections, 60 lines, 8
+// green strips carrying 2-9 chips each — a strip about every 5-6 lines. Lesson
+// 1 and 43 other lessons have NO headings, so the rule above made every line
+// its own section and a strip landed after nearly every paragraph (L1: 25
+// lines, 12 strips). L128 put 141 chips in ONE strip; L126 51. Both are the
+// broken flow he named, and both are the same defect: the strip rhythm was
+// tied to the author's markers instead of to the reader's eye.
+//
+// So the rhythm is now L127's, for every lesson: a section is a heading and
+// the lines under it, but a section's lines are grouped into BLOCKS of at most
+// SECTION_RHYTHM.maxLines lines, and a block closes early rather than let its
+// strip grow past SECTION_RHYTHM.maxRefs chips. Each block carries its own
+// strip at its foot — so a reference is never further than a few lines from
+// the paragraph that named it, never a wall of chips, and never a strip after
+// every sentence. Same program as 127, with tweaks. Not one word of prose
+// changes; only where the green waits.
+export const SECTION_RHYTHM = Object.freeze({ maxLines: 6, maxRefs: 9 });
+
+export function lessonSections(items, rhythm = SECTION_RHYTHM) {
+  const maxLines = Math.max(1, rhythm.maxLines || SECTION_RHYTHM.maxLines);
+  const maxRefs = Math.max(1, rhythm.maxRefs || SECTION_RHYTHM.maxRefs);
+  const blocks = [];
+  const open = (it, i) => blocks.push({ items: [{ ...it, i }], lines: it.kind === 'heading' ? 0 : 1, refs: new Set(referencesIn(it.text)) });
   items.forEach((it, i) => {
-    const last = sections[sections.length - 1];
-    if (it.kind === 'heading' || !hasHeadings || !last) sections.push({ items: [{ ...it, i }] });
-    else last.items.push({ ...it, i });
+    const last = blocks[blocks.length - 1];
+    if (it.kind === 'heading' || !last) { open(it, i); return; }
+    const refs = referencesIn(it.text);
+    const wouldCarry = new Set([...last.refs, ...refs]).size;
+    if (last.lines >= maxLines || (last.refs.size > 0 && wouldCarry > maxRefs)) { open(it, i); return; }
+    last.items.push({ ...it, i });
+    last.lines += 1;
+    refs.forEach((r) => last.refs.add(r));
   });
-  return sections.map((s) => ({ ...s, refs: referencesIn(s.items.map((it) => it.text).join(' ')) }));
+  // The strip reads in Scripture order, from the block's own words.
+  return blocks.map((b) => ({ items: b.items, refs: referencesIn(b.items.map((it) => it.text).join(' ')) }));
 }
 
 export function LessonProse({ text, className = 'text-xs text-[#1A1815]' }) {
@@ -656,7 +686,9 @@ export function LessonProse({ text, className = 'text-xs text-[#1A1815]' }) {
             )
           ))}
           {sec.refs.length > 0 && (
-            <VerseChips refs={sec.refs} tone="word" lead className="mt-1.5" data-testid="section-refs" />
+            // data-block-lines: the rendered truth of the rhythm, read by the
+            // chrome-layout probe (lines in THIS block, headings excluded).
+            <VerseChips refs={sec.refs} tone="word" lead className="mt-1.5" data-testid="section-refs" data-block-lines={sec.items.filter((it) => it.kind !== 'heading').length} />
           )}
         </React.Fragment>
       ))}
@@ -1639,13 +1671,21 @@ function CourseView({
       </div>
       {/* The lesson's own space: a sticky bar naming where you are, the way
           back, and previous/next — the reader can never fall into the full
-          list by accident. Rendered only while a lesson is open alone. */}
+          list by accident. Rendered only while a lesson is open alone.
+          THE BAR IS CHROME, NOT READING TEXT (Darrell 2026-09-15, at Big Print
+          44 on Lesson 127: "I don't like the the buttons get way bigger on
+          the bigger font choices!! Can we fix it!"). Un-capped, its rem-sized
+          buttons rode the 2.75x root scale — ALL LESSONS / PREV / NEXT at
+          ~100px tall. .ts-chrome-region is the one cap every nav row shares
+          (lib/text-size.js): ~1.4x at Big Print, exactly 1x at Normal, so the
+          WORDS grow and the frame stays a frame. Same for the catalog's
+          lessons-bar below, which reuses this exact shape. */}
       {focusModule && (() => {
         const idx = schedule.findIndex((m) => m.id === focusModule.id);
         const prev = idx > 0 ? schedule[idx - 1] : null;
         const next = idx >= 0 && idx < schedule.length - 1 ? schedule[idx + 1] : null;
         return (
-          <div className="sticky top-0 z-30 mb-3 bg-[#FAF8F4] border border-[#1A1815] px-3 py-2 flex items-center gap-2 flex-wrap" data-testid="lesson-space-bar">
+          <div className="ts-chrome-region sticky top-0 z-30 mb-3 bg-[#FAF8F4] border border-[#1A1815] px-3 py-2 flex items-center gap-2 flex-wrap" data-testid="lesson-space-bar">
             <button
               type="button"
               onClick={() => setFocusId(null)}
@@ -3013,7 +3053,7 @@ export default function ChurchLearn({
           numbers derive from the mounted catalog, never typed (DR-0121). */}
       {courses.length > 1 && !lessonFocus && (
         <div
-          className="sticky top-0 z-30 mb-3 bg-[#FAF8F4] border border-[#1A1815] px-3 py-2 flex items-center gap-2 flex-wrap"
+          className="ts-chrome-region sticky top-0 z-30 mb-3 bg-[#FAF8F4] border border-[#1A1815] px-3 py-2 flex items-center gap-2 flex-wrap"
           data-testid="lessons-bar"
         >
           <button
