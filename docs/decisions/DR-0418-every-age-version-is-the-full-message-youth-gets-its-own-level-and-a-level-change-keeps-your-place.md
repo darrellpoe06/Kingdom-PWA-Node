@@ -152,6 +152,23 @@ Darrell, 2026-09-15: *"Child lessons also condense the lessons for the younger s
 
 Fullness baseline 147 → 146. L154's own verse gate carries an ascending-length rule (child < teen < senior in characters), which the first two passes tripped because a full child level is long; the teen and senior levels were lengthened with real content (the cousin who is himself the father; three forms of the question a pastor meets) until every band both clears its floor and ascends. The rule is kept: it is the shape the older lessons were built to.
 
+## L152 — the eighth full lesson (later the same night), and the order from here
+
+Crying Because of All the Dying, on the same measure (authored prose · share of adult prose · Flesch-Kincaid; adult prose 1,236 words):
+
+| band | before | after |
+|---|---|---|
+| child | 189 · 0.15 · 0.0 | **809 · 0.65 · 1.3** |
+| youth | missing | **1,078 · 0.87 · 3.7** (new) |
+| teen | 460 · 0.37 · 7.7 | **907 · 0.73 · 5.6** |
+| senior | 749 · 0.61 · 12.9 | 749 · 0.61 · 12.9 (already full) |
+
+Every section of the adult body is carried in each band: the tears as the mark, the renaming of slow dying and Hosea's rejected knowledge, the two slownesses, who wants the dying and who held the power of death, the tears as fuel and the trap of contempt, the hinge and its three tenses, the honest posture in the valley, joy as the strength. The child and youth texts each quote verbatim what they name. Fullness baseline 146 → 145.
+
+**L153 is excluded from this pass, on Darrell's word** (2026-09-15: *"Don't mess with that Programer lesson though... that was too good!!!"*). Its bands measure full already in the youth/teen/senior sense of the corpus (the baseline records it short in all four, because its child level was written to the program metaphor at a length he chose), and the message he praised is the shape he wants kept. This is a recorded non-improvement under DR-0075: **why** — the author's own judgment on a lesson he called the standard; **re-review: 2026-10-13** — ask him whether a child version of the program lesson should be written new beside it rather than by re-cutting his text.
+
+**The order from here:** L144, L143, L142, L141, then L140 and downward, each pass posting this table. Measured at this session's end: 8 lessons made full in one day at 20–45 minutes each, so the 2026-09-22 re-review can set the pace from a real day rather than the estimate above.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
