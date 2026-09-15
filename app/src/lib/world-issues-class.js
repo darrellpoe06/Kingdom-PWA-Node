@@ -70,7 +70,7 @@ export const WORLD_ISSUES_META = {
   },
   format: 'Self-paced · one issue at a time · media literacy + biblical discernment · paced to your age',
   cadenceDays: 7,
-  weeks: 8, // eight published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex; the two aftermaths); the track grows as issues are added
+  weeks: 11, // eleven published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex · the two aftermaths · the law of assumption · victorious emotions · college tuition and the 1965 Act); the track grows as issues are added
   handsOnLabel: 'Practice the skill',
   unit: {
     noun: 'issue',
@@ -2431,7 +2431,269 @@ const VICTORIOUS_EMOTIONS_ISSUE = {
   },
 };
 
-export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE];
+// =============================================================================
+// ISSUE 11 — "Wait, really? College was free until 1965." Darrell, 2026-09-15,
+// pasted the transcript of a "Learning with Lindsay — Wait, Really?" video as
+// build input ("Lesson"): colleges charged little or nothing under the land
+// grants; the Higher Education Act of 1965 expanded federally guaranteed loans;
+// tuition then rose enormously; and — the creator's reading — it rose because
+// Black and brown students had just gained access. Handled under DR-0100's
+// three tiers: the DOCUMENTED parts (the Morrill Acts, the HEA and its Title
+// IV loan program, the 312% inflation-adjusted rise — the creator's own number,
+// which matches the NCES-derived figure) are stated plainly; the CAUSAL claim
+// is carried as the creator's interpretation, with the economists' competing
+// explanations steelmanned; and the FRUIT — a generation paying through debt
+// for what earlier generations largely did not — is judged by the Word
+// regardless of anyone's motive. Word first: Yahweh's own economics of debt
+// (release, jubile, no usury on the poor, the just weight) and Nehemiah 5 as the
+// template. Subject is a law and a system, not a named person. Every quoted
+// verse fetched verbatim from the repo KJV and gated in
+// world-issues-verse-integrity.test.js. The transcript is cut off mid-sentence;
+// only what it says is carried.
+// =============================================================================
+const TUITION_1965_ISSUE = {
+  id: 'wi-tuition-and-the-1965-act',
+  title: '"College was free until 1965" — Debt, Access, and the Word’s Economics',
+  subject: { name: 'the Higher Education Act of 1965 and the cost of college', kind: 'policy-and-history', isNamedRealPerson: false },
+  skill: 'Take a viral "wait, really?" history claim and learn how the Word weighs it: state the documented facts plainly (the land grants, the 1965 Act and its guaranteed-loan program, the 312% inflation-adjusted rise), label the creator’s causal reading as an interpretation and hear the economists’ explanations at their strongest (Proverbs 18:17), and then judge the FRUIT the way the Word judges it — debt as bondage, the just weight, and Yahweh’s remedy of release — whatever any lawmaker’s motive was.',
+  source: {
+    creator: 'Learning with Lindsay',
+    medium: 'video',
+    title: 'Wait, Really? — "College was free until 1965"',
+    url: '',
+    asOf: '2026-09-15',
+    note: 'An educational short-form series ("Wait, Really?"). Darrell pasted the transcript on 2026-09-15; it is cut off mid-sentence, so only what it actually says is carried. We treat it as ONE creator’s argument — sourced and labeled — not as truth to repeat.',
+  },
+
+  // ---- STAGE 1 — THE CLAIM(S): the creator's points, AS MADE, each labeled. ----
+  claims: [
+    {
+      id: 'c-free-before-1965',
+      text: 'Because of the land grants of 1862 and 1890 and other federal acts, colleges charged little to nothing to attend — even the most renowned institutions were basically tuition-free.',
+      label: 'claim',
+      attribution: 'Learning with Lindsay (the creator), in the video',
+      note: 'Partly documented: many PUBLIC land-grant colleges charged low or nominal tuition for decades. "Even the most renowned institutions" overstates it — elite private universities charged tuition long before 1965.',
+    },
+    {
+      id: 'c-hea-1965',
+      text: 'The Higher Education Act of 1965, part of the larger Civil Rights Act, expanded the student loan program.',
+      label: 'claim',
+      attribution: 'Learning with Lindsay (the creator), in the video',
+      note: 'The Act and its Title IV Guaranteed Student Loan Program are documented. One precision: the HEA was a separate Great Society statute of the same era and purpose, not literally a part of the Civil Rights Act of 1964.',
+    },
+    {
+      id: 'c-tuition-spike',
+      text: 'In that same year, tuition appeared across the country and quickly spiked; institutions that had charged little or nothing since the 1860s suddenly charged higher and higher.',
+      label: 'claim',
+      attribution: 'Learning with Lindsay (the creator), in the video',
+      note: 'The long-run rise is documented; the timing is compressed. Inflation-adjusted college costs rose only modestly through the 1960s; the steepest decade was the 1980s.',
+    },
+    {
+      id: 'c-312-percent',
+      text: 'Since the mid-60s tuition has climbed to 40 times what it once cost — adjusting for inflation, an increase of 312%.',
+      label: 'claim',
+      attribution: 'Learning with Lindsay (the creator), in the video',
+      note: 'The 312% inflation-adjusted figure matches the NCES-derived number (312.4% since 1963) and is said plainly as fact. "40 times" is a nominal, unadjusted magnitude carried as the creator’s figure.',
+    },
+    {
+      id: 'c-causation',
+      text: 'College was basically free when most students were white; as soon as Black and brown students were given better access, tuition spiked and loans were issued so they now had to pay for what had been free.',
+      label: 'opinion',
+      attribution: 'Learning with Lindsay (the creator), in the video',
+      note: 'The TIMING is real — wider access and the guaranteed-loan program arrived in the same era. The CAUSE is the creator’s interpretation: economists offer competing, documented explanations (Stage 2). The Word judges the fruit either way.',
+    },
+  ],
+
+  // ---- STAGE 2 — VERIFIABLE vs INTERPRETATION ----
+  verifiable: [
+    {
+      id: 'f-morrill',
+      statement: 'The Morrill Act of 1862 let states found public colleges on federal land grants — 57 institutions, one per state or territory, in a system that in practice served white students. The Second Morrill Act of 1890 required states either to admit Black students to their 1862 institution or to establish a separate Black land-grant institution, and 19 historically Black land-grant universities (HBCUs) came from it.',
+      status: 'documented',
+      sources: [
+        { title: 'Morrill Act (1862)', publisher: 'U.S. National Archives', url: 'https://www.archives.gov/milestone-documents/morrill-act', asOf: '2026-09-15' },
+        { title: 'Celebrating the Second Morrill Act of 1890', publisher: 'USDA National Institute of Food and Agriculture', url: 'https://www.nifa.usda.gov/about-nifa/blogs/celebrating-second-morrill-act-1890', asOf: '2026-09-15' },
+      ],
+      note: 'Verified by live web search on 2026-09-15 against the National Archives and USDA NIFA. The 1890 Act is itself the record that the 1862 system had excluded Black students.',
+    },
+    {
+      id: 'f-hea-1965',
+      statement: 'President Lyndon B. Johnson signed the Higher Education Act on November 8, 1965, at Southwest Texas State College, as part of his Great Society "Full Educational Opportunity" agenda (announced to Congress January 12, 1965). Its Title IV-B created the Guaranteed Student Loan Program — the federal government’s first widespread step into guaranteeing loans made by private lenders to students. It was a separate statute from the Civil Rights Act of 1964.',
+      status: 'documented',
+      sources: [
+        { title: 'Higher Education Act of 1965', publisher: 'Encyclopedia.com', url: 'https://www.encyclopedia.com/history/encyclopedias-almanacs-transcripts-and-maps/higher-education-act-1965', asOf: '2026-09-15' },
+        { title: 'Title IV of the Higher Education Act of 1965', publisher: 'Wikipedia', url: 'https://en.wikipedia.org/wiki/Title_IV_of_the_Higher_Education_Act_of_1965', asOf: '2026-09-15' },
+        { title: 'Origins of the Student Loan Industry in the United States (Cornuelle, United Student Aid Funds, and the Guaranteed Student Loan Program)', publisher: 'Journal of American History (Oxford Academic)', url: 'https://academic.oup.com/jah/article-abstract/110/4/667/7631603', asOf: '2026-09-15' },
+      ],
+      note: 'Verified by live web search on 2026-09-15. The mechanism the creator describes — private lenders backed by the government — is exactly what Title IV-B built.',
+    },
+    {
+      id: 'f-tuition-growth',
+      statement: 'Adjusted for inflation, tuition at public colleges has risen about 312% since 1963 — undergraduate tuition from roughly $4,939 to $14,688 in constant dollars by 2022 (NCES-derived). The 1960s themselves were modest (inflation-adjusted tuition, room, and board went from $12,526 in 1963-64 to $12,785 in 1969-70); the steepest decade was the 1980s (+151%).',
+      status: 'documented',
+      sources: [
+        { title: 'Cost of College Every Year Since the 1960s (NCES data)', publisher: 'BestColleges', url: 'https://www.bestcolleges.com/research/college-costs-over-time/', asOf: '2026-09-15' },
+        { title: 'Average Cost of College Over Time: Yearly Tuition Since 1970', publisher: 'EducationData.org', url: 'https://educationdata.org/average-cost-of-college-by-year', asOf: '2026-09-15' },
+        { title: 'Federal Data Confirms College Costs Rose 3x Faster Than Inflation', publisher: 'The College Investor', url: 'https://thecollegeinvestor.com/77152/why-is-college-so-expensive/', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The creator’s 312% is the real inflation-adjusted figure; the creator’s "40 times" is nominal and is carried as the creator’s number, not asserted here.',
+    },
+    {
+      id: 'f-drivers-debated',
+      statement: 'WHY tuition rose is genuinely debated among economists, and no single cause is settled. The "Bennett hypothesis" (federal aid and guaranteed loans let colleges raise prices) has mixed but real support — one Federal Reserve study finds expansions of federal loans significantly raise tuition, and aid-eligible programs have been found to charge markedly more than comparable ineligible ones. The "state disinvestment" view (states shifted cost from taxpayers to students) is also contested — some studies attribute 57–68% of public tuition increases to appropriation cuts; others find long-run state funding per student actually rose.',
+      status: 'partly-documented',
+      sources: [
+        { title: 'Do Student Loans Drive Up College Tuition?', publisher: 'Federal Reserve Bank of Richmond (Economic Brief 22-32)', url: 'https://www.richmondfed.org/publications/research/economic_brief/2022/eb_22-32', asOf: '2026-09-15' },
+        { title: 'Does Federal Student Aid Raise Tuition? New Evidence on For-Profit Colleges', publisher: 'NBER Working Paper 17827', url: 'https://www.nber.org/system/files/working_papers/w17827/w17827.pdf', asOf: '2026-09-15' },
+        { title: 'The Disinvestment Hypothesis: Don’t Blame State Budget Cuts for Rising Tuition', publisher: 'Education Next', url: 'https://www.educationnext.org/disinvestment-hypothesis-dont-blame-state-budget-cuts-rising-tuition-public-universities/', asOf: '2026-09-15' },
+        { title: 'Trends in Higher Education: State Funding and Tuition Revenue at Public Colleges from 1980 to 2025', publisher: 'Cato Institute', url: 'https://www.cato.org/briefing-paper/trends-higher-education-state-funding-tuition-revenue-public-colleges-1980-2025', asOf: '2026-09-15' },
+      ],
+      note: 'Verified 2026-09-15. The DEBATE is documented; a single cause is not. This is the honest boundary of Tier 2 (DR-0100): the mechanism is known, the motive is not adjudicated.',
+    },
+  ],
+  interpretation: [
+    {
+      id: 'n-timing-is-not-motive',
+      statement: 'The creator’s conclusion — tuition rose BECAUSE Black and brown students got in — is an interpretation of motive laid over a real coincidence of timing. What is documented is the mechanism (a federally guaranteed private-loan program in 1965), the long-run result (a ~312% real rise), and a genuine scholarly debate about causes. What is not documented is any decree or record saying access was the reason. Keep the categories: the timing is fact, the motive is inference — and the FRUIT is judged either way.',
+      restsOn: ['f-hea-1965', 'f-tuition-growth', 'f-drivers-debated'],
+    },
+    {
+      id: 'n-free-overstated',
+      statement: '"Basically tuition-free, even at the most renowned institutions" is an overstatement. Many public land-grant colleges were cheap or nominal for decades; elite private universities charged tuition throughout. The true, smaller claim — public higher education was far cheaper before the loan era — is the one that stands.',
+      restsOn: ['f-morrill', 'f-tuition-growth'],
+    },
+    {
+      id: 'n-same-year-compressed',
+      statement: '"In that same year tuition appeared and quickly spiked" compresses decades into a moment. The data show the 1960s were modest and the 1980s were the steep climb. A slow structural shift is still a shift — but honesty about the pace keeps the claim from being dismissed as a whole.',
+      restsOn: ['f-tuition-growth'],
+    },
+    {
+      id: 'n-not-the-civil-rights-act',
+      statement: 'Calling the HEA "part of the larger Civil Rights Act" is a precision error, not a fabrication: it was a separate Great Society law of the same era and the same stated purpose (opening the doors). Naming it exactly makes the true point stronger, not weaker.',
+      restsOn: ['f-hea-1965'],
+    },
+  ],
+
+  // ---- STAGE 3 — PERSPECTIVES on the UNRESOLVED parts ----
+  perspectives: [
+    {
+      id: 'p-creator',
+      label: 'The creator’s reading — the timing tells the story',
+      heldBy: 'Learning with Lindsay and many who share the video',
+      steelman: 'At its strongest: the same era that opened the doors also attached a price to walking through them, and the structure that followed put that price on the newly admitted through debt. A people who lived Jim Crow — laws written to look neutral while landing on one group — have earned the right to distrust "coincidence." Even if no memo ever said it, a system that makes the newly included pay for what the previously included got cheaply produces the same fruit as intent would, and the Word judges fruit.',
+    },
+    {
+      id: 'p-economists',
+      label: 'What the economists actually answer — and what they leave standing',
+      heldBy: 'Economists across the Bennett-hypothesis and expansion literature',
+      steelman: 'Heard fairly: mass enrollment after 1965, federally guaranteed credit that let schools raise prices (the Bennett hypothesis, with real if mixed evidence), and campus cost growth drove tuition for EVERY student, and the timing tracks the loan program itself, not the race of the students entering. This genuinely answers the claim that access was the cause. It does NOT answer where the burden landed: a system that finances access with debt loads the cost onto the least-resourced first, whatever it intended — and that is the part the Word will not let pass.',
+    },
+    {
+      id: 'p-state-funding',
+      label: 'The state-disinvestment view',
+      heldBy: 'Many public-university leaders and education economists',
+      steelman: 'States shifted the cost of public colleges from all taxpayers onto students and families; several studies attribute more than half of public tuition increases to appropriation cuts. On this view the villain is not 1965 or any law but a long political choice to treat higher education as a private good. Its critics answer with data showing state funding per student rose over the long run — so even here the honest reader holds the disagreement open.',
+    },
+    {
+      id: 'p-borrowers',
+      label: 'The borrower’s and the community’s view — the fruit is the point',
+      heldBy: 'Families carrying the debt; the Black church as builder',
+      steelman: 'Whoever is right about causes, the outcome is not in dispute: a generation is paying through decades of debt for what earlier generations largely received without a yoke. For families with the least wealth to begin with, that debt is not an inconvenience but a bond on their labor. This view refuses to let a debate about motive become an excuse to leave the yoke in place — and it turns toward the only remedy the Word ever gave for structural debt: release and restoration.',
+    },
+  ],
+
+  // ---- STAGE 4 — THE BELIEVER'S LENS ----
+  lens: {
+    fourD: {
+      deepSource: 'WORD FIRST — Yahweh wrote the economics of debt before any legislature did, and He wrote it for the poor. Debt is bondage, plainly: "The rich ruleth over the poor, and the borrower is servant to the lender." (Proverbs 22:7). He forbade profiting from the poor’s need: "If thou lend money to any of my people that is poor by thee, thou shalt not be to him as an usurer, neither shalt thou lay upon him usury." (Exodus 22:25). And He built RELEASE into the calendar so no yoke could become permanent: "At the end of every seven years thou shalt make a release." (Deuteronomy 15:1) — "Every creditor that lendeth ought unto his neighbour shall release it; he shall not exact it of his neighbour, or of his brother; because it is called the LORD’s release." (Deuteronomy 15:2) — and the jubile, "proclaim liberty throughout all the land unto all the inhabitants thereof" (Leviticus 25:10). He measured every system by the just weight: "A false balance is abomination to the LORD: but a just weight is his delight." (Proverbs 11:1). He forbade a law that lands on one people: "thou shalt not respect the person of the poor, nor honor the person of the mighty" (Leviticus 19:15); "ye shall hear the small as well as the great" (Deuteronomy 1:17); "God is no respecter of persons" (Acts 10:34); and in Christ "ye are all one in Christ Jesus" (Galatians 3:28). And He pronounced woe on decrees that look neutral and fall on the needy: "Woe unto them that decree unrighteous decrees, and that write grievousness which they have prescribed; To turn aside the needy from judgment, and to take away the right from the poor of my people" (Isaiah 10:1-2). Jesus named the same sin in the religious system of His day: "they bind heavy burdens and grievous to be borne, and lay them on men’s shoulders" (Matthew 23:4). NEHEMIAH 5 IS THE TEMPLATE FOR THIS EXACT CASE. Under a crushing economy the people cried out — "there was a great cry of the people" (Nehemiah 5:1) — "We have mortgaged our lands, vineyards, and houses" (5:3), and worst of all, "we bring into bondage our sons and our daughters to be servants" and "neither is it in our power to redeem them" (5:5). The lenders were their own brethren. Nehemiah did not debate their motives; he named the deed — "Ye exact usury, every one of his brother" (5:7) — and demanded the remedy the Word always demands: "Restore, I pray you, to them, even this day, their lands, their vineyards, their oliveyards, and their houses" (5:11). And they did: "We will restore them, and will require nothing of them" (5:12). SO IN THIS CASE the believer does three things in order. First, state the documented plainly, because "Prove all things; hold fast that which is good." (1 Thessalonians 5:21): the land grants are real; the 1965 Act and its guaranteed private loans are real; the 312% real rise is real. Second, keep the categories honestly — "He that answereth a matter before he heareth it, it is folly and shame unto him." (Proverbs 18:13); "He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him." (Proverbs 18:17): the creator’s "because" is an inference about motive; the economists’ explanations are heard at their strongest; no court and no record has adjudicated the motive of 1965, and the Word does not let us invent one. Third — and this is where the Word settles what the debate cannot — judge the FRUIT: "by their fruits ye shall know them" (Matthew 7:20). Whatever the intent of any lawmaker, a system that finances access to learning with decades of debt laid heaviest on the least-resourced is, by Yahweh’s measure, a false balance and a heavy burden on men’s shoulders, and the sons and daughters in it are in the bondage Nehemiah’s people cried about. The Word’s remedy is not a better argument about 1965; it is release and restoration.',
+      scripture: 'Proverbs 22:7; Exodus 22:25; Deuteronomy 15:1-2; Leviticus 25:10; Proverbs 11:1; Proverbs 20:23; Leviticus 19:15; Deuteronomy 1:17; Acts 10:34; Galatians 3:28; Isaiah 10:1-2; Matthew 23:4; Nehemiah 5:1-12; 1 Thessalonians 5:21; Proverbs 18:13; Proverbs 18:17; Matthew 7:16-20; Proverbs 22:22-23; Psalms 82:3-4; Micah 6:8; Romans 13:8',
+    },
+    threeD: 'Practically: read the claim exactly as made and sort it. Say the proven parts out loud without a hedge — the 1965 Act created guaranteed private loans; real tuition is up about 312% since 1963; the 1890 Act itself records that the first land-grant system left Black students out. Then label the rest honestly: "it rose because Black students got in" is the creator’s reading of motive — a real timing, an unproven cause — and "even the most renowned schools were free" is an overstatement. Hear the economists at their strongest (Proverbs 18:17) and mark what they answer (the mechanism) and what they leave standing (where the burden landed). Then do what the Word does with fruit: name the yoke as a yoke. In your own house, treat debt the way Yahweh’s people were told to — "Owe no man any thing, but to love one another" (Romans 13:8) — count the cost of every loan before signing (Proverbs 22:7), and use the free and low-cost paths first. In the Body, be Nehemiah: the church that founded and fed the HBCUs can fund scholarships, teach families to escape the yoke, and build learning that carries no debt at all — the way Yahweh’s release worked, on a schedule, so bondage never became permanent.',
+    accountability: {
+      statement: 'THE TWO COURTS. Man’s court never tried the motive of 1965 and never will; there is no verdict to cite, and this lesson invents none. But the Word never lets accountability shrink to what a legislature or a court happened to rule on. Every decree enters the eternal court — "Woe unto them that decree unrighteous decrees" (Isaiah 10:1) — where God brings every work into judgment (Ecclesiastes 12:14), where the unpaid and the over-charged are heard: withheld wages "crieth: and the cries of them which have reaped are entered into the ears of the Lord of sabaoth" (James 5:4), and "He that oppresseth the poor reproacheth his Maker" (Proverbs 14:31). Those who "turn aside the poor in the gate from their right" (Amos 5:12) answer there whatever they intended, and so does every system that does it by policy. WHAT A SYSTEM OWES under the Word is not a defense of its motives but the remedy: release on a schedule (Deuteronomy 15:1-2) and restoration — "Restore, I pray you, to them, even this day" (Nehemiah 5:11). WHAT WE OWE: to "Rob not the poor, because he is poor" (Proverbs 22:22) and to remember "the LORD will plead their cause" (Proverbs 22:23); to "Defend the poor and fatherless: do justice to the afflicted and needy." (Psalms 82:3); to hear the small as well as the great (Deuteronomy 1:17); and "to do justly, and to love mercy, and to walk humbly with thy God" (Micah 6:8). And the lived cost during this life is not deferred evidence — the years a family spends under a loan are seen and weighed now. No one gets away: God is not mocked, and the books are opened (Galatians 6:7; Revelation 20:12).',
+      scripture: 'Isaiah 10:1-2; Ecclesiastes 12:14; James 5:4; Proverbs 14:31; Amos 5:12; Deuteronomy 15:1-2; Nehemiah 5:7-12; Proverbs 22:22-23; Psalms 82:3-4; Deuteronomy 1:17; Micah 6:8; Galatians 6:7; Revelation 20:12',
+    },
+    benefits: [
+      'Both courts, honestly held: no earthly court ever ruled on the motive behind 1965, and none may — while the ETERNAL court holds every decree and every yoke it laid, and lands after this life (Ecclesiastes 12:14; Isaiah 10:1-2). You can speak the fruit plainly without inventing a verdict man never gave.',
+      'Freedom from two lies at once: the outrage lie ("it was all deliberate and there is nothing to check") and the dismissal lie ("the causes are debated, so the burden must not be real").',
+      'The Word’s own economics in your hands: debt is bondage, usury on the poor is forbidden, release is scheduled, and the just weight is the measure of every system (Proverbs 22:7; Exodus 22:25; Deuteronomy 15; Proverbs 11:1).',
+      'A repeatable skill: state what is proven, label what is not, check the primary source and its date, hear the other side at its strongest, then judge the fruit.',
+      'A house that owes no man: counting the cost before a loan, using the free and low-cost paths first, and teaching your children the same.',
+      'A church that builds: the same Body that raised the HBCUs can fund, teach, and release — the Nehemiah move, not the outrage move.',
+    ],
+    graceNote: 'No condemnation of any lawmaker’s soul: this lesson pronounces no verdict on President Johnson, the 1965 Congress, or anyone who has run a college or a lender since — their hearts are Yahweh’s to judge, and He is no respecter of persons in either direction. But leaving the soul to God never mutes the fruit: the yoke on a generation of families is real, the Word names it, and the Word’s answer is not blame but release and restoration. Truth and grace meet in Jesus, who named heavy burdens for what they were and lifted them.',
+    stewardship: 'The deeper response to a system that put a price on the door is to BUILD what the Word builds. The Black church did exactly this once: it founded schools, fed the students, and made the 1890 land-grant provision into living institutions. The same Body can do it again — scholarship funds that carry no interest, teaching every family to count the cost before a loan and to owe no man, mentoring young people into the free and low-cost paths, and creating learning that has no yoke on it at all. This platform’s own Learn tab is a small living example of Yahweh’s pattern: knowledge given freely, on machines the community owns, with no debt attached. Righteous engagement names the yoke; it is completed by building the release.',
+    anchor: {
+      ref: 'Proverbs 22:7; Nehemiah 5:11',
+      theme: 'Debt is bondage — "the borrower is servant to the lender" — and the Word’s remedy for a people cried out under it was never a debate about motives but a command to the lenders: "Restore, I pray you, to them, even this day." Name the yoke plainly; build the release.',
+    },
+  },
+
+  // ---- STAGE 5 — REFLECTION + SKILL ----
+  reflection: {
+    skill: 'When a "wait, really?" history claim lands in your feed: PAUSE. Separate the documented facts (dates, laws, numbers you can source) from the creator’s reading of WHY. Say the documented part plainly — refusing to name a real burden is false witness. Label the motive-claim as an interpretation, find the primary source with its date, and hear the strongest competing explanation. Then let the Word judge the FRUIT, which needs no motive proven: is this a just weight or a false balance, a release or a yoke? And respond the Nehemiah way — restore and build — not the outrage way.',
+    practice: 'Take the claim "college was free until 1965." Write three lines: (1) one sentence of what is DOCUMENTED, with a source and its date; (2) one sentence labeling the creator’s causal reading as interpretation and naming the strongest competing explanation; (3) one sentence on what the Word says about the FRUIT — and one concrete act of release or building you or your church could do this month.',
+    prompts: [
+      'Which parts of the video are documented (the land grants, the 1965 Act, the 312% figure) and which are the creator’s interpretation (the "because")? How would you check each?',
+      'The creator’s 312% number turned out to be right, and her "even the most renowned schools were free" turned out to be overstated. Why does honest sorting strengthen the true claim instead of weakening it?',
+      'Walk through Nehemiah 5: the cry (v.1), the mortgaged land (v.3), the children in bondage (v.5), the rebuke (v.7), the demand to restore (v.11), the restoration (v.12). What does that pattern require of leaders today — and what does it forbid?',
+      'Yahweh scheduled release every seven years (Deuteronomy 15:1-2). What would a modern "release" look like for families under education debt — and what could a church do without waiting for a law?',
+      'Where is the line between "no one adjudicated the motive of 1965" (true) and "so the yoke on these families is not real" (false — Isaiah 10:1-2; Matthew 23:4)? Practice naming the fruit without inventing a verdict.',
+      'In your own house: what does "Owe no man any thing" (Romans 13:8) and "count the cost" mean for the next loan someone in your family is offered?',
+    ],
+  },
+
+  // ---- Age-appropriate renderings (kids use the app) ----
+  levels: {
+    child: 'Sometimes a video says "Wait, really?" about history — like, "College used to be almost free, and then it got expensive." Be a good detective: which parts are FACTS you can look up (there really was a law in 1965 that helped people borrow money for college, and college really does cost much more now) and which parts are someone’s GUESS about why it happened? Facts we say out loud; guesses we say "that might be, let’s check." And here is what God says about borrowing: "the borrower is servant to the lender" (Proverbs 22:7) — when you owe someone money for a long time, it is like a heavy backpack you cannot take off. God cared so much about this that He told His people to let go of debts every seven years, so nobody had to carry the backpack forever. When many families are carrying that backpack for school, God calls that a heavy burden — and the people He loves are the ones who help lift it off, like Nehemiah did when he told the lenders, "give it back to them, today." We never say a person is bad; we say a heavy burden is heavy, and we help.',
+    teen: 'A viral "wait, really?" video says college was basically free until 1965, then tuition spiked right when Black and brown students got in. Run the moves before you repeat it. (1) Sort fact from "why." The land grants are real; the 1965 Higher Education Act really created government-backed private loans; and real tuition really is up about 312% since 1963 — the creator’s number checks out. But "even the fanciest schools were free" is overstated, and "it spiked BECAUSE Black students got in" is her reading of motive, not a record. (2) Hear the other side at its strongest: economists say guaranteed loans and mass enrollment drove prices for everyone — that answers the "because," but it does NOT answer where the burden landed. (3) Now let the Word judge the fruit, which doesn’t need anyone’s motive proven: "the borrower is servant to the lender" (Proverbs 22:7). God forbade profiting off the poor’s need, scheduled a release every seven years so no debt became permanent, and called laws that land on the needy "unrighteous decrees" (Isaiah 10:1). A system that makes a whole generation pay through decades of debt for what used to be nearly free is a heavy burden — that is not outrage, that is the Word. (4) Respond like Nehemiah, not like a comment section: he named the deed, told the lenders "restore," and they did. For you: count the cost before you sign a loan, use the free and cheap paths first, and be part of a church that builds scholarships and teaches families to owe no man.',
+    senior: 'For the seasoned believer, this lesson is about weighing a charged historical claim with the Word’s own economics, in an age that rewards both outrage and dismissal. First, the documented record, stated plainly: the Morrill Acts (1862, and 1890 — whose very text records that the first system excluded Black students and required a remedy); the Higher Education Act signed November 8, 1965, whose Title IV-B built the Guaranteed Student Loan Program of government-backed private lending; and the inflation-adjusted rise of roughly 312% in public tuition since 1963, the creator’s own figure and the NCES-derived one. Second, the categories kept honestly (Proverbs 18:13, 18:17): the creator’s causal reading — access as the reason — is an interpretation of motive laid over a true coincidence of timing, and no decree or court has adjudicated it; the economists’ explanations (guaranteed credit, mass enrollment, state cost-shifting) are heard at their strongest, and they answer the mechanism while leaving the placement of the burden standing. "Even the most renowned institutions were free" and "in that same year it spiked" are overstatements the honest reader trims so the true claim survives. Third — where the Word settles what the debate cannot — the fruit is judged by the just weight: debt is bondage (Proverbs 22:7), usury on the poor is forbidden (Exodus 22:25), release is commanded on a schedule (Deuteronomy 15:1-2; Leviticus 25:10), unrighteous decrees that fall on the needy are under woe (Isaiah 10:1-2), and heavy burdens laid on men’s shoulders are named by the Lord Himself (Matthew 23:4). Nehemiah 5 is the governing template: the cry, the mortgaged inheritance, the children in bondage, the leader who names the deed rather than the motive, and the restoration required "even this day." The verdict on any lawmaker’s soul stays with Yahweh, who is no respecter of persons; the verdict on the yoke is already written. Then let the response mature past reaction into the Body’s long vocation as builder — the church that raised the HBCUs can fund release, teach a house to owe no man, and build learning that carries no yoke.',
+  },
+
+  // ---- Discernment-skill quiz ----
+  quiz: {
+    questions: [
+      {
+        q: 'The creator says real tuition is up 312% since the 1960s. What is the discernment move?',
+        options: ['Dismiss it — viral numbers are usually wrong', 'Check the primary source; here it matches the NCES-derived figure, so say it plainly as documented', 'Accept it only if a famous person repeats it'],
+        answer: 1,
+        explain: 'A documented number is said plainly. Sorting fact from interpretation cuts both ways: it also means naming the true parts of a claim without a hedge (DR-0100).',
+      },
+      {
+        q: '"Tuition spiked BECAUSE Black and brown students got access." Which label fits, and why?',
+        options: ['Documented fact — the timing proves it', 'Interpretation — a real coincidence of timing, but a claim about motive no record or court has adjudicated', 'A lie — economists have disproven it'],
+        answer: 1,
+        explain: 'Timing is fact; motive is inference. Economists offer competing explanations, which answers the mechanism — and none of that changes the fruit the Word judges.',
+      },
+      {
+        q: 'Economists explain the rise by guaranteed loans, mass enrollment, and state cost-shifting. What does that answer, and what does it leave standing?',
+        options: ['It answers everything — the burden is therefore not real', 'It answers the MECHANISM; it leaves standing WHERE the burden landed — on the least-resourced', 'It answers nothing'],
+        answer: 1,
+        explain: 'Hearing the other side at its strongest (Proverbs 18:17) means marking both what it covers and what it does not. A debate about causes is not a licence to leave the yoke in place.',
+      },
+      {
+        q: 'What does the Word require once the fruit — a generation under decades of debt — is named?',
+        options: ['Nothing until the motive is proven', 'Release and restoration, the Nehemiah pattern: name the yoke, and "Restore, I pray you, to them, even this day"', 'A verdict on the lawmakers’ souls'],
+        answer: 1,
+        explain: 'Nehemiah did not litigate motives; he named the deed and required restoration (Nehemiah 5:7-12). The soul’s verdict is Yahweh’s; the remedy for a yoke is written.',
+      },
+      {
+        q: 'The video also says "even the most renowned institutions were basically tuition-free." How should a discerning reader handle that?',
+        options: ['Repeat it — it makes the point stronger', 'Trim it — public land-grants were cheap, elite privates charged tuition; the smaller true claim survives', 'Reject the whole video because one line is overstated'],
+        answer: 1,
+        explain: 'Honest trimming strengthens a true claim. Rejecting everything because one line overreaches is the dismissal error; repeating the overreach is the outrage error.',
+      },
+      {
+        q: 'What does "the borrower is servant to the lender" (Proverbs 22:7) mean for a family deciding on a student loan today?',
+        options: ['Loans are always sin', 'Count the cost first, use the free and low-cost paths, and aim to owe no man (Romans 13:8) — debt is a yoke, entered soberly if at all', 'Borrow the maximum; the government backs it'],
+        answer: 1,
+        explain: 'The Word treats debt as bondage to be entered soberly and escaped deliberately — and it puts release, not permanence, at the center of its economy.',
+      },
+    ],
+  },
+};
+
+export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE, TUITION_1965_ISSUE];
 
 // ---------------------------------------------------------------------------
 // Course-specific helpers — thin wrappers over the reusable discernment engine
