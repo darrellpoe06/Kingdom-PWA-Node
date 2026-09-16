@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 163,
-  "lessonsShort": 115,
+  "lessonsShort": 114,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -103,12 +103,6 @@
       "senior"
     ],
     "ll113-the-spirit-is-willing-but-the-flesh-is-weak-telling-them-apart-ruling-your-spirit-and-yahwehs-long-work": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll114-what-makes-having-you-better-covenant-not-contract-and-the-value-a-paycheck-cannot-cover": [
       "child",
       "youth",
       "teen",
