@@ -25,10 +25,10 @@
 #      lockout that a forgotten PIN makes strictly worse on every guess)
 #
 # THE PASSWORD NEVER REACHES A LOG. It is generated ON THE BOX from
-# /dev/urandom, piped straight into reset_password.sh's silent prompt, and
-# written to a root-only file. This script prints the FILE PATH, never the
-# value. A workflow log is readable by anyone with repo access; a password in
-# one is a password burned.
+# /dev/urandom, written into auth.users with the same pgcrypto bcrypt SQL
+# reset_password.sh uses, and recorded in a root-only file. This script prints
+# the FILE PATH, never the value. A workflow log is readable by anyone with
+# repo access; a password in one is a password burned.
 #
 # ADDRESSES ARE MASKED in every line this prints (m****@y****.com), per the
 # counts-only rule the nas-health witness already follows. The dispatch INPUT
@@ -146,6 +146,7 @@ BEFORE=$($SUDO $DOCKER exec -i -e PGPASSWORD="$PGPW" supabase-db $PSQL_T -v em="
 SELECT 'exists=' || count(*)::text
     || ',confirmed=' || coalesce(max((email_confirmed_at IS NOT NULL)::int)::text,'0')
     || ',banned=' || coalesce(max((banned_until IS NOT NULL AND banned_until > now())::int)::text,'0')
+    || ',pwfp=' || coalesce(max(substr(md5(coalesce(encrypted_password,'')),1,8)),'none')
   FROM auth.users WHERE email = :'em';
 EOSQL
 )
@@ -189,12 +190,34 @@ if [ "$DO_PW" = "true" ]; then
   if [ "${#NEWPW}" -ne 14 ]; then
     echo "RESET-PW-RC=1 (could not generate a password)"
   else
-    # reset_password.sh prompts twice, silently, and refuses argv on purpose.
-    # Feed the prompts; --confirm-email because an unconfirmed address cannot
-    # sign in whatever its password is, and the email door that would confirm
-    # it does not work on this box (SMTP unwired).
-    PWOUT=$(printf '%s\n%s\n' "$NEWPW" "$NEWPW" | $SUDO sh "$REPO/infra/nas-supabase/reset_password.sh" "$EMAIL" --confirm-email 2>&1)
-    RC=$?
+    # WHY NOT reset_password.sh HERE (measured, run 35100570812): that script
+    # reads its prompt under `stty -echo`, which needs a terminal. Piped from a
+    # runner there is none, so it died with "stty: 'standard input':
+    # Inappropriate ioctl for device" and set nothing. Allocating a pseudo-TTY
+    # over ssh just to satisfy a hidden-input prompt would be theatre — the
+    # prompt exists to keep a HUMAN's typing off the screen, and there is no
+    # human here.
+    #
+    # So the write is done directly, with the SAME SQL that script uses
+    # (pgcrypto bcrypt, the format GoTrue verifies) and the same guards already
+    # performed above: the account exists, it is not banned, and this lane
+    # never creates one. --confirm-email's effect is folded in because an
+    # unconfirmed address cannot sign in whatever its password is, and the
+    # email door that would confirm it is unwired on this box.
+    #
+    # psql :'var' quoting keeps the password out of every shell layer and out
+    # of the process list. -q matters: without it the "UPDATE 1" command tag
+    # joins the captured value and a SUCCESSFUL update reads as a failure.
+    PWOUT=$($SUDO $DOCKER exec -i -e PGPASSWORD="$PGPW" supabase-db $PSQL_T -v pw="$NEWPW" -v em="$EMAIL" <<'EOSQL' 2>&1 | tr -d '[:space:]'
+UPDATE auth.users
+   SET encrypted_password = crypt(:'pw', gen_salt('bf')),
+       email_confirmed_at = coalesce(email_confirmed_at, now()),
+       updated_at = now()
+ WHERE email = :'em'
+RETURNING 1;
+EOSQL
+)
+    if [ "$PWOUT" = "1" ]; then RC=0; else RC=1; fi
     printf '%s\n' "$PWOUT" | sed "s/$EMAIL/<account>/g; s/$NEWPW/<the password>/g"
     echo "RESET-PW-RC=$RC"
     if [ "$RC" = "0" ]; then
@@ -241,6 +264,7 @@ echo "ORDERS=$ORDERS"
 AFTER=$($SUDO $DOCKER exec -i -e PGPASSWORD="$PGPW" supabase-db $PSQL_T -v em="$EMAIL" <<'EOSQL' | tr -d '[:space:]'
 SELECT 'confirmed=' || (email_confirmed_at IS NOT NULL)::int::text
     || ',pw_set=' || (encrypted_password IS NOT NULL AND length(encrypted_password) > 10)::int::text
+    || ',pwfp=' || substr(md5(coalesce(encrypted_password,'')),1,8)
   FROM auth.users WHERE email = :'em';
 EOSQL
 )
@@ -317,12 +341,38 @@ fi
 
 # A rescue that left the PIN wall standing, or the account unconfirmed, is not
 # a rescue. Say so rather than reporting a green run over a still-locked door.
+#
+# THE FINGERPRINT IS THE POINT (measured, run 35100570812). The first version
+# of this check asked only "is a password SET?" — and passed, green, on a run
+# where the reset had actually failed with an stty error and changed nothing,
+# because the account already carried an older password. That is precisely the
+# looks-right-and-is-wrong class DR-0076 exists to stop, and it was my own
+# check that produced it. A reset now has to prove the stored hash CHANGED.
 ok=0
-case "$after" in confirmed=1,pw_set=1) ok=1 ;; esac
+case "$after" in confirmed=1,pw_set=1,*) ok=1 ;; esac
 if [ "$RESCUE_NEW_PASSWORD" = "true" ] && [ "$ok" != "1" ]; then
   say ""
   say "The account did not end up confirmed with a password set. Not calling this done."
   echo "::error::post-state is '$after' - the person still cannot sign in"
+  exit 1
+fi
+if [ "$RESCUE_NEW_PASSWORD" = "true" ]; then
+  fp_before=$(printf '%s' "$before" | sed -n 's/.*pwfp=\([0-9a-f]*\).*/\1/p')
+  fp_after=$(printf '%s' "$after" | sed -n 's/.*pwfp=\([0-9a-f]*\).*/\1/p')
+  if [ -z "$fp_after" ] || [ "$fp_before" = "$fp_after" ]; then
+    say ""
+    say "The stored password did NOT change (fingerprint ${fp_before:-?} -> ${fp_after:-?})."
+    say "A reset that changed nothing is not a reset, whatever else the run printed."
+    echo "::error::password unchanged - the new password was never written"
+    exit 1
+  fi
+  say ""
+  say "The stored password changed (fingerprint ${fp_before} -> ${fp_after}) — proof, not a claim."
+fi
+if [ -z "$rfile" ] && [ "$RESCUE_NEW_PASSWORD" = "true" ]; then
+  say ""
+  say "No rescue file was written, so nobody can read the new password. Not done."
+  echo "::error::password set but not recorded - re-run before telling anyone it works"
   exit 1
 fi
 if [ "$RESCUE_CLEAR_PIN" = "true" ]; then

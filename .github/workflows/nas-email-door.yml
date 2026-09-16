@@ -1,0 +1,117 @@
+# nas-email-door — wire the sovereign stack's email sender from a repo secret,
+# so the ONE value only Darrell can mint is the only thing he ever touches.
+#
+# Darrell 2026-09-16: "Email door!!!!!!!!?!!!!" and "Always saying you need mee
+# holding up progress!!!! Cli Ssh... what do you need from me?!!!!"
+#
+# THE HONEST ANSWER, and why this workflow is shaped the way it is. The email
+# door needs an SMTP credential. Every credential on this box can be generated
+# by the box EXCEPT this one: a Google App Password is minted by Google, behind
+# 2-Step Verification on HIS Google account, and no amount of SSH reaches it.
+# That is a real DR-0111 §2 carve-out (a value only he holds), not the
+# must-be-by-hand premise DR-0108 tells us to challenge.
+#
+# What WAS the challengeable premise: that he then had to SSH to the NAS and
+# run enable_email_smtp.sh himself. He does not. He pastes the 16 characters
+# into a repo secret once, and this lane does the rest — rewrites the four
+# SMTP_* lines in the stack's .env, restarts GoTrue, and PROVES the result.
+#
+# So his total effort is: make the App Password, paste it into
+# Settings -> Secrets and variables -> Actions as SMTP_APP_PASSWORD, dispatch.
+#
+# WHY THE STACK SHIPPED WITHOUT IT (not an oversight): DR-0307 §3 keeps SMTP
+# out of sovereign auth's critical path deliberately — phone+PIN and password
+# lead, magic links are the optional add. Email sending is the one dependency
+# self-hosting does not remove. This turns the optional add ON.
+#
+# THE SECRET IS NEVER PRINTED. It rides in as an environment variable, is
+# written by awk (never part of a command pattern, never in the process list),
+# and every line this run prints reports presence only. A verify-only dispatch
+# changes nothing and just reads back the door's state.
+#
+# Dispatch-only, single-instance, no timer, no self-trigger.
+name: nas-email-door
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'wire = write the secret and restart auth. verify = change nothing, just report whether the door is on.'
+        type: choice
+        options: [verify, wire]
+        default: verify
+      sender:
+        description: 'The Gmail address the App Password belongs to (the From: on every sign-in link).'
+        type: string
+        default: 'darrellpoe06@gmail.com'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nas-email-door
+  cancel-in-progress: false
+
+jobs:
+  door:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+          AP: ${{ secrets.SMTP_APP_PASSWORD != '' }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (Reusable + Ephemeral) and NAS_SSH_KEY, then re-dispatch."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$MODE" = "wire" ] && [ "$AP" != "true" ]; then
+            {
+              echo "## Email door — NOT WIRED (the one value is missing)"
+              echo ""
+              echo "Mode was **wire**, but the repo secret \`SMTP_APP_PASSWORD\` is not set."
+              echo "Nothing on the NAS was touched."
+              echo ""
+              echo "This is the single value the box cannot generate for itself — Google mints it,"
+              echo "behind 2-Step Verification on the account."
+              echo ""
+              echo "1. Make it: https://myaccount.google.com/apppasswords"
+              echo "2. Paste the 16 characters (no spaces) into Settings → Secrets and variables →"
+              echo "   Actions → New repository secret, named \`SMTP_APP_PASSWORD\`"
+              echo "3. Dispatch this workflow again with mode = wire"
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::SMTP_APP_PASSWORD secret is not set - nothing was changed"
+            echo "go=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+          echo "go=true" >> "$GITHUB_OUTPUT"
+
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Verify the tailnet actually joined
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          if ! tailscale status --peers=false >/dev/null 2>&1; then
+            echo "::error::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral)."
+            exit 1
+          fi
+
+      - name: Wire the door (or just read it) and prove the result
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          SMTP_APP_PASSWORD: ${{ secrets.SMTP_APP_PASSWORD }}
+          EMAIL_DOOR_MODE: ${{ inputs.mode }}
+          EMAIL_DOOR_SENDER: ${{ inputs.sender }}
+        run: bash scripts/email-door-over-tailnet.sh
