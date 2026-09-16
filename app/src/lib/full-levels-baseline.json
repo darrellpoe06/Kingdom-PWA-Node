@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 163,
-  "lessonsShort": 119,
+  "lessonsShort": 118,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -127,12 +127,6 @@
       "senior"
     ],
     "ll117-no-two-children-grow-up-in-the-same-house-why-siblings-differ-and-the-one-parent-who-is-the-same": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll118-ninety-seven-percent-testing-a-viral-number-against-the-word-and-the-real-research": [
       "child",
       "youth",
       "teen",
