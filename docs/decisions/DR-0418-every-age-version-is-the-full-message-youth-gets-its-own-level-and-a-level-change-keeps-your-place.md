@@ -431,6 +431,19 @@ Rules of Engagement: the warfare the Word authorizes, the open doors it closes, 
 
 The child band keeps its gate's own marks (no demonology vocabulary, "not a lesson about being afraid", the archangel's line, the joy moved to the name written in heaven) and now carries the family question in both halves in a child's words — say sorry like Daniel did, and you are not in trouble for what they did — and closes on the locked house with the lights on. The teen band gains the movements it lacked: source discipline in two hands, Peter's sequence beside James's, the three giants treated pastorally with Elijah's meal and nap and the explicit depression guardrail, the bloodline in both tiers with the evening-versus-once proportion, legal ground with the who-holds-the-controversy question, the drift-vector of deception, the Isaiah 14 proportion, Jehoshaphat, the pace verse, and the two failure modes addressed to teenagers. The senior band gains a movement-by-movement run-of-room: the ninety-second source framing, the show-of-hands diagnosis on James 4:7, Elijah given the whole segment, the third-row script for the bloodline, the one question asked of every land text, the house audit done in the room rather than described, the boundary movement's close-the-loop, which movement may never be cut for time, and how to spot each failure mode by the end of the first movement. Fullness baseline 126 → 125.
 
+## L124 — the twenty-ninth full lesson (2026-09-16)
+
+Equipped to Win: the hour you are losing, the Word again, and the man who did not want the job (adult prose 2,411 by the gate's counter; floors child 1,206, others 1,447). Before- and after-values both by the gate's counter:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 554 · 0.23 | **1,529 · 0.63** |
+| youth | missing | **2,263 · 0.94** (new) |
+| teen | 909 · 0.38 | **1,625 · 0.67** |
+| senior | 1,105 · 0.46 | **1,676 · 0.70** |
+
+The child band keeps its gate's marks (no captivity or death arithmetic; Jeremiah 1:5 kept) and now carries the broken jar against again as mending versus making, the burned scroll and the room that was not scared, the house nobody wanted, opposition in the terms, the tears that are love, the two things to put down, the fountain and the buckets, and the present-tense you are, closing on the father's hand on the bicycle seat. The youth band walks all sixteen movements in a teenager's voice. The teen band gains the seventy-years arithmetic, Daniel's we as the anti-offence posture, mending versus making, and the buyer and the passer-by, with homework and the whole of it. The senior band gains three movements (the arithmetic of the sentence, mending versus making said explicitly, and the buyer illustration credited and grounded) plus a run-of-room order: hands on who is losing now, waves early, love before again, the honest cost before the identity, and the two-evils question asked and waited on. Fullness baseline 125 → 124.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
