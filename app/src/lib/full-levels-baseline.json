@@ -6,8 +6,8 @@
     "senior": 0.6
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
-  "measuredLessons": 162,
-  "lessonsShort": 143,
+  "measuredLessons": 163,
+  "lessonsShort": 136,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -247,50 +247,9 @@
       "youth",
       "teen"
     ],
-    "ll136-touched-with-the-feeling-the-high-priest-who-felt-the-whole-weight-and-why-his-judgment-never-needed-your-experience-to-be-true": [
-      "child",
-      "youth",
-      "teen"
-    ],
-    "ll137-look-and-live-the-serpent-on-the-pole-the-son-lifted-up-and-why-believing-him-over-the-liar-is-the-whole-cure": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll138-exercised-senses-why-perception-is-grown-not-withheld-the-tests-that-train-the-eye-and-what-comes-after-your-ways-align-with-the-word": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll139-the-sceptre-of-judah-who-judah-is-why-judah-still-matters-until-the-end-and-who-shiloh-is": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
     "ll14-ten-healed-one-whole": [
       "child",
       "youth",
-      "senior"
-    ],
-    "ll140-the-people-of-judah-and-the-people-of-the-way-who-they-are-where-they-are-and-whom-to-listen-to": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll141-separate-and-connect-working-through-issues-studying-to-be-approved-tempted-versus-tried-and-how-we-handle-each-other-and-enemies": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll142-it-is-written-again-the-clause-that-gets-left-out-and-the-name-that-gets-put-on-it": [
-      "child",
-      "youth",
-      "teen",
       "senior"
     ],
     "ll149-cultural-competency-the-same-word-in-three-mouths-and-the-man-nobody-believed": [

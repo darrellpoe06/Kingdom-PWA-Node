@@ -195,6 +195,99 @@ Yahweh's Will Be Done on Earth, on the same measure (authored prose · share of 
 
 Every section of the adult body is carried in each band: the cost of seeing and the joy as fuel; the economy as legislation with a clock (release, no usury of a brother, jubilee, the open hand); the guarantee no human framework attaches; mammon named; debt as a governing relationship and what was done to the children; the documented shape of the present system stated as documentation; the older fact and the turn (the wealth was produced, so it is producible); restitution with arithmetic; the present-day mortgage figures stated in all three parts; the credential question; the segregation-era proof of concept; the mutual economy of Acts 4; the release never about money; build it here. The senior pass adds the pastoral sequence for a mixed room and the older members' own memory of the burial society, the lodge and the fund, as a working manual. Fullness baseline 144 → 143.
 
+## L142, L141 and L140 — the eleventh, twelfth and thirteenth full lessons (2026-09-15, one push)
+
+Measured by the gate's own counter (`scripts/full-levels.mjs` proseWords; authored prose · share of adult prose), reading level by Flesch-Kincaid on the same prose:
+
+**L142 It Is Written Again** (adult prose 2,531; floors child 1,266, others 1,519):
+
+| band | before | after |
+|---|---|---|
+| child | 226 · 0.09 · 0.7 | **1,352 · 0.53 · 1.4** |
+| youth | missing | **1,907 · 0.75 · 5.1** (new) |
+| teen | 294 · 0.12 · 8.1 | **1,740 · 0.69 · 7.4** |
+| senior | 333 · 0.14 · 15.6 | **1,657 · 0.65 · 8.6** |
+
+Every band carries the method (the garden edit, the clipped psalm, "It is written again", Peter's two causes), the pastoral rule, all four planks with the true half conceded first, the 1807 Slave Bible, the oldest instance, the charter that proves nothing, why He gives the device, untouchable and touched, the fire, why they cannot see, and taste and see. The teen band adds the gate's own discipline turned on the house; the senior band adds the manner across the table.
+
+**L141 Separate and Connect** (adult prose 1,397; floors child 699, others 839):
+
+| band | before | after |
+|---|---|---|
+| child | 462 · 0.34 · 3.9 | **974 · 0.70 · 2.2** |
+| youth | missing | **1,013 · 0.73 · 4.6** (new) |
+| teen | 571 · 0.42 · 5.3 | **1,003 · 0.72 · 6.0** |
+| senior | 713 · 0.52 · 15.7 | **1,057 · 0.76 · 14.8** |
+
+All eight questions in each band: the sword and the peace as one motion, the Matthew 18 procedure with its guardrails, study to be approved, study without reading, misunderstanding and its cures, tempted versus tried, seasons, and enemies.
+
+**L140 The People of Judah and the People of the Way** (adult prose 3,654 — the longest body in the corpus; floors child 1,827, others 2,193):
+
+| band | before | after |
+|---|---|---|
+| child | 500 · 0.15 · 3.1 | **1,923 · 0.53 · 2.2** |
+| youth | missing | **2,314 · 0.63 · 4.6** (new) |
+| teen | 874 · 0.27 · 7.3 | **2,516 · 0.69 · 8.7** |
+| senior | 1,344 · 0.41 · 10.7 | **2,296 · 0.63 · 10.7** |
+
+All eleven parts in each band: who Judah is and the timeline; scattered, never lost, with the debate named to teach past it; the Way; the tribe from every nation by the graft; joined, never replacing; whom to listen to (one Voice, one test); the two untils; psyops and known by love; more than conquerors; the Way kept and wages stolen; which country, Harriet Tubman as history, a means of making money, sold to all nations, and the if. Where the Word stops, every band stops: no modern date, no living man named a tribe.
+
+Fullness baseline 143 → 140. Thirteen lessons full in one day at the measured pace; the 2026-09-22 re-review sets the order from L139 downward.
+
+## L139 — the fourteenth full lesson (2026-09-15)
+
+The Sceptre of Judah (adult prose 3,609 by the gate's counter; floors child 1,805, others 2,166). The "before" column is the session's own word count, the "after" column the gate's (`scripts/full-levels.mjs`), which counts about a tenth more; both are stated so neither is mistaken for the other:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 258 · 0.08 · FK 3.1 | **1,920 · 0.53** |
+| youth | missing | **2,521 · 0.70** (new) |
+| teen | 488 · 0.15 · FK 5.9 | **2,493 · 0.69** |
+| senior | 610 · 0.19 · FK 8.4 | **2,251 · 0.62** |
+
+All of the lesson in each band: the verse and Jacob's last-days frame; who Judah is (the man, the tribe, the kingdom, the people); the sceptre by choice and by oath; who Shiloh is, by the gathering and by the right; until as arrival, not expiry; humans will listen to Judah; the Lion who is the Lamb; the war on the sceptre; the one Lawgiver who wants His ways; the whole tribe of law-carriers; the percentage corrected to alignment; the god of this world versus the Law with the civil rights movement as history; media, music and the Word's own star; the church that shut the door and the unseen church that praised Him anyhow; black and beautiful; unseen because the Word is not their guide; and where the Word stops. The child band carries the relay picture; the senior band the elder's testimony and the restraints. Fullness baseline 140 → 139.
+
+**Caught by the lane on this pass, recorded so it is not repeated:** three sentence-initial "The devil" in the L140 and L142 child bands and three more in the L139 bands tripped the adversary guard (`adversary-is-never-capitalized.test.js`); the house rule is never sentence-initial, so the sentences were recast ("It is the devil who…", "Then the devil…", "Yes, the devil…"). And the L139 gate's proven-to-catch clause caught "Judah is done" in the child band's own paraphrase of the error it was refuting; recast to "Judah stops mattering", which the gate allows because it is not the lesson's claim.
+
+## L138 — the fifteenth full lesson (2026-09-16)
+
+Exercised Senses (adult prose 1,835 by the gate's counter; floors child 918, others 1,101). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 355 · 0.21 · FK 1.4 | **1,296 · 0.71** |
+| youth | missing | **1,390 · 0.76** (new) |
+| teen | 554 · 0.32 · FK 3.6 | **1,264 · 0.69** |
+| senior | 691 · 0.40 · FK 6.3 | **1,211 · 0.66** |
+
+All seven parts in each band: He is not stingy and does not lecture; why it is not a download (exercised, by reason of use; a dawn, not a switch); do, then know (alignment is the road, not the toll); what the tests are for since He already knows; why it seems to come after; what He keeps, what He gave, and where the lack is really from; diligence evaluated by Yahweh and aimed at His Word (seek, do, teach; the ever-learning counterfeit). The child band adds the piano and the sunrise; the teen band turns the four reasons into habits and names the fear the adversary wants carried; the senior band the elders as the room's evidence and their own humility rep. Fullness baseline 139 → 138.
+
+## L137 — the sixteenth full lesson (2026-09-16)
+
+Look and Live (adult prose 1,526 by the gate's counter; floors child 763, others 916). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 320 · 0.22 · FK 1.9 | **984 · 0.64** |
+| youth | missing | **1,248 · 0.82** (new) |
+| teen | 650 · 0.45 · FK 4.6 | **1,065 · 0.70** |
+| senior | 810 · 0.56 · FK 7.1 | **1,086 · 0.71** |
+
+All six parts in each band: the type is His (John 3:14-16 as the explanation of the pole); what was on the pole (the cure shaped like the curse, the Lamb and the serpent both); the look was believing (the sin was a sentence; nobody looked well; the look is not a work); how far and how long (whosoever; eternally, the picture smaller than the Person); the serpent's end in the Word's words; the serpents not taken away and the sign that became Nehushtan; where the Word stops. Fullness baseline 138 → 137. One sentence-initial "the devil" in the child draft was caught by the session's own scan before the lane and recast.
+
+## L136 — the seventeenth full lesson (2026-09-16)
+
+Touched With the Feeling (adult prose 2,679 by the gate's counter; floors child 1,340, others 1,608). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 625 · 0.24 · FK 1.4 | **1,818 · 0.68** |
+| youth | missing | **1,754 · 0.65** (new) |
+| teen | 1,422 · 0.55 · FK 4.7 | **1,734 · 0.65** |
+| senior | 1,745 · 0.67 · FK 9.7 | **2,003 · 0.75** |
+
+All twelve movements in each band: the sympathy as fact; without sin as completeness (the exit nobody but He refused); made sin, numbered, wounded rather than "felt like a sinner"; how He was tempted at all (nothing in Me); the weight measured in damage, not desire (the advertisement inversion); the old priest's shared guilt against His; the judgment never grounded in sampling; He knows you without a briefing; what the sympathy is for (your nerve, not His verdict); what it does to prayer; where the Word stops; where it lands. The child band keeps the L136 gate's own child rules: no made-to-be-sin abstraction and no Levitical comparison quoted at child level (two verses the first draft quoted were replaced with child prose, caught by the gate before the lane). Fullness baseline 137 → 136.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
