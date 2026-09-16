@@ -142,13 +142,53 @@ lied — the guard held while the count did not.
 55 selftests (was 47). Re-applying each defect goes red: the key translation
 removed → 3 cases; `RETURNING 1` dropped → 1.
 
-## What is still not proven
+## The second live run: GO, and it was the mis-comparison branch
 
-The second pass has not yet run live either. The advance expectation, again:
-`entities` reaches `missing_after=0` with its two rows actually written (or
-`skipped_existing=2` if sovereign already holds them under the translated key —
-in which case there was never a gap, only a mis-comparison, and the verdict
-turns GO). **re-review: 2026-09-23** if the next run is not GO.
+Run **35113817142** on `main@a2078515`, `mode=apply`, dispatched the minute the
+second pass merged. **Verdict GO — "Every content table is whole on the
+sovereign side: nothing hosted-only remains."**
+
+| table | hosted | sovereign | hosted-only after |
+|---|---|---|---|
+| instances | 24 | 28 | 0 |
+| **entities** | 6 | **6** | **0** |
+| church_speakers | 3 | 3 | 0 |
+| choir_sermons | 911 | 911 | 0 |
+| sermon_prep | 39 | 39 | 0 |
+| video_transcripts | 872 | 872 | 0 |
+| sermon_video_stats | 0 | 0 | 0 |
+| video_harvests | 0 | 0 | 0 |
+| tlc_onboarding_invites | 5 | 5 | 0 |
+| tlc_jobs | 1 | 2 | 0 |
+| person_links | 1 | 1 | 0 |
+
+The advance expectation named two possible outcomes for `entities`, and the run
+answered with the **second**: `missing=0, copied=0`. **There was never a gap in
+that table — only a mis-comparison.** Both rows had been on the sovereign side
+the whole time, and the untranslated key made them invisible to the plan. That
+is the vindication of fixing the COMPARISON rather than the copy, and it is
+exactly why the false `copied=2` mattered: it was the only thing in the previous
+run claiming that work had been done. A copy-shaped fix would have kept trying
+to insert rows that already existed, for ever.
+
+`tlc_jobs` reads hosted 1, sovereign 2 — the sovereign side holds one row of its
+own beyond the carried one, which is the app's own write and is correctly never
+touched (that asymmetry is the design, not drift; the same shape as `instances`
+at 24/28).
+
+**The chain that Darrell's "Where are the messages in September?" opened is now
+closed end to end:** readers repointed (DR-0310), blobs (DR-0317), migrations
+(the replay lane), writers (DR-0442), the carry armed by its own record
+(DR-0443), and the two key crossings (this DR). The daily 06:20 run is the
+standing witness from here: a GO with nothing copied means every writer is
+landing in the database the app reads, and a GO with rows copied names the table
+a writer came in through.
+
+## Still open, and not parked behind a question
+
+- The content-parity row in `nas-health`, so the witness that counts
+  `auth.users` on both sides counts `choir_sermons` too. Carried forward from
+  DR-0443. **re-review: 2026-09-23.**
 
 The content-parity row in `nas-health` (DR-0443's other open item — the witness
 that counts `auth.users` on both sides should count `choir_sermons` too) is
