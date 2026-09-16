@@ -196,6 +196,27 @@ jobs:
       - name: storage blob-copy selftest
         working-directory: infra/nas-supabase
         run: python3 storage_sync.py --selftest
+      # Content-sync planner selftest (DR-0442): the pure plan/insert/verdict
+      # logic behind the hosted -> sovereign content copy. The repoint moved the
+      # readers on 2026-08-19 and left the NAS writers behind: four September
+      # services and 699 transcripts sat on the retired backend while The Word
+      # showed "0 of 901 messages". Proven-to-catch: fails if a hosted-only row
+      # is not planned, if a hosted-newer edit is not planned, if a sovereign-
+      # only row (the app's own write) ever enters the plan, if the insert stops
+      # being conflict-safe, or if a table that copied ZERO while hosted holds
+      # more is ever allowed to read GO.
+      - name: sovereign content-sync selftest
+        working-directory: infra/nas-supabase
+        run: python3 content_sync.py --selftest
+      # Writer-target resolver selftest (DR-0442): every NAS loader now resolves
+      # its backend through one function that follows REPOINT-ARMED the way the
+      # deploy does (DR-0310). Proven-to-catch: fails if the record + the box's
+      # own sovereign .env does not resolve to the sovereign door, if the record
+      # alone (no local .env: a tower, a laptop) ever leaves the secrets file,
+      # or if a missing key is ever returned blank instead of falling through.
+      - name: sovereign writer-target selftest
+        working-directory: infra/nas-supabase
+        run: python3 sovereign_target.py --selftest
       # Sovereign Ways-brain parser selftest (DR-0219): the bounded, single-shot
       # parser that turns PRINCIPLES.md + the DR files (incl. re-review dates) into
       # the live /ways/brain.json. Proven-to-catch: fails if principle parsing, DR

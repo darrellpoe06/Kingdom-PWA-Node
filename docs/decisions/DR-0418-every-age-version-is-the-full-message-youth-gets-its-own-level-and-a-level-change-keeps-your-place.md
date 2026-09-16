@@ -483,6 +483,45 @@ Know Your Own Post: her provision, her guard, and the beam in the pointing eye (
 
 The child band keeps its gate's marks (the beam verse, "Strength and honour are her clothing", "never tell someone they are worthless", no marital-argument frame) and walks nine pieces: the two lists, the plank first, the hero woman really provides (Dorcas, the Shunammite, the women who funded the Lord), the hero woman really guards (looketh well, ready before the snow, Abigail, the midwives), peace is everybody's job with the tell-a-grown-up guard rail, never price a person at zero with the edify test, the funny part that is not funny, your score is your own, and the floor everybody stands on, closing on the goalie who leaves the goal. The youth band walks the whole adult lesson with the feed named as the place the fault performs itself. The teen band gains her guard as logistics, peace weighed with both hands and the guard rail, the beam precisely without dismissing the man, the busybody economy, the floor, and why this matters at that age. The senior band gains a run-of-room: the verb count done by the room, 21:9 never without 29:22, the guard rail said while looking at the room, the contempt hinge done in both halves, the beam as order not cancellation, and three pastoral watch-fors. Fullness baseline 122 → 121.
 
+## L120 — the thirty-third full lesson (2026-09-16)
+
+It Is Written: keep the policy in your pocket, advocacy from the written Word, and a just weight (adult prose 2,168 by the gate's counter; floors child 1,084, others 1,301). Before- and after-values both by the gate's counter:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 478 · 0.22 | **1,510 · 0.70** |
+| youth | missing | **1,901 · 0.88** (new) |
+| teen | 655 · 0.30 | **1,372 · 0.63** |
+| senior | 702 · 0.32 | **1,401 · 0.65** |
+
+The child band keeps its gate's marks (the pocket, "For the LORD will plead their cause", forgiving one another, no accusation words) and walks ten pieces: put the words in first, a rule is a scale, Yahweh watches out for the little ones, fair goes both ways, two are better than one and so is a piece of paper, how Mom wrote the letter, the one who says sorry is the wise one, do not guess what is in somebody's heart, follow the money, and the win was not the envelope, closing on the lemonade stand. The youth band walks the whole record and every movement with the appeal template spelled out for a lifetime of counters. The teen band gains the fruit shown where the parents were not, two witnesses and a document with Proverbs 18:17 binding the teller too, the father's anger and where it goes, the correction honoured in full, follow the money, and the floor. The senior band gains a run-of-room for parents and children together: the facts read from the page, the method role-played, the weight made physical, the guardrail pressed with the young men in view, the appeal template on the board, the correction honoured, the anger modelled, the economics for the parents, and three watch-fors. Fullness baseline 121 → 120.
+
+## L119 — the thirty-fourth full lesson (2026-09-16)
+
+Abstention: if I am an option, do not pick me, and the choosing settled before there was a list (adult prose 2,022 by the gate's counter; floors child 1,011, others 1,214). Before- and after-values both by the gate's counter:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 326 · 0.16 | **1,626 · 0.80** |
+| youth | missing | **1,898 · 0.94** (new) |
+| teen | 472 · 0.23 | **1,308 · 0.65** |
+| senior | 483 · 0.24 | **1,274 · 0.63** |
+
+The child band keeps its gate's marks (the being-picked frame, the refused stone, before the foundation of the world, kindness, the bedtime verse, no adult frame) and walks eleven pieces: the four words for being left out, Yahweh will not be a maybe either, chosen before there was a list, people rank by what shows, think before you promise and never compare after, you cannot buy love, the price was already paid, do not be a maybe person yourself, a friend shows up when it is hard, knowing you are valuable is not permission to be mean, and called-chosen-faithful, closing on the two captains at recess and the Father's hand already on the shoulder. The youth band walks every movement with the feed named as a ranking machine and the maybe-er addressed directly. The teen band gains the four words with Peter's two ledgers, Yahweh's own posture, the scale of convenience, the fire whole, the closed market, the period, friend under load, all four cautions, and the three texts of the settlement. The senior band gains a run-of-room for a spoken declaration: honour the speaker then sort, the vocabulary walk as an exercise, who may make the demand and of whom drawn as two seats, the line of time drawn on the board, the fire and the market for those who priced themselves by a career, all four corrections named, four pastoral watch-fors, and a note on what may never be cut for time. Its first draft measured 1,200 against a floor of 1,214 and was extended before it was recorded. Fullness baseline 120 → 119.
+
+## L118 — the thirty-fifth full lesson (2026-09-16)
+
+Ninety-Seven Percent: testing a viral number against the Word and the real research (adult prose 2,874 by the gate's counter; floors child 1,437, others 1,725). Before- and after-values both by the gate's counter:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 270 · 0.09 | **1,712 · 0.60** |
+| youth | missing | **2,414 · 0.84** (new) |
+| teen | 602 · 0.21 | **1,785 · 0.62** |
+| senior | 688 · 0.24 | **1,801 · 0.63** |
+
+The child band keeps its gate's marks ("HOW DO YOU KNOW", the fruit verse, "Wisdom is the principal thing", none of the adult vocabulary) and walks thirteen pieces: the four questions, studies-have-shown as a permission slip, a number about people is a kind of telling, a number is a weight, the real counting went the other way, we do not fix a wrong number with another wrong number, one thing nobody knows yet, Yahweh looks at the heart, the Bible's wise and strong women, learning is a gift and not knowing is not holiness, the one true thing that cuts both ways, the man in the mirror, and how you really know a person, closing on the two shopkeepers' scales. The youth band walks the whole adult lesson with every figure, every source, the attribution note, and the fruit questions turned around on the asker. The teen band gains the shape before the substance, the Word setting the test, testimony in full, the rest of the record with the honesty note and the trend corrections, the one open question, follows-by-nature answered from the text, the mirror-image weight, the man in the mirror, the fruit questions, environments on both pans applied to the reader's own feed, and why this matters at that age. The senior band gains a run-of-room: the shape on the board, the four questions as a drill, testimony not arithmetic, reading the numbers with the attribution note aloud, the three true things without flinching, the one open question, the women walk with the Huldah word handled first, the mirror-image weight with the grandmothers in view, the man in the mirror for the young men, the seven fruit questions, the environments movement turned on the room's own habits, four pastoral watch-fors, and a note on what may never be cut. The first teen and senior drafts measured under their floors and were extended before recording. Fullness baseline 119 → 118.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.

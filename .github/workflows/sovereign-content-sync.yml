@@ -1,0 +1,69 @@
+# Sovereign content sync — the rows the NAS pipelines filed on the retired
+# backend are carried to the database the app reads (DR-0442)
+#
+# WHY THIS EXISTS. The app has read the sovereign stack since REPOINT-ARMED
+# (2026-08-19, DR-0310). The NAS ingest scripts (youtube_load, proclaim_load,
+# the transcript loaders) kept writing to the HOSTED project. Measured
+# 2026-09-16 from The Word -> Migdal: "0 of 901 messages . September 2026" on the
+# app, 911 choir_sermons on hosted with four September services, and 699
+# video_transcripts rows hosted-only. Third instance of one class after the
+# blobs (DR-0317) and the migrations (sovereign-replay): a repoint is complete
+# only when readers, writers, blobs and lanes ALL follow the record.
+#
+# TWO MODES, ONE SCRIPT (scripts/content-sync-over-tailnet.sh):
+#   dry-run  reads both databases and goes RED when any hosted-only row remains
+#            (the witness — a red run is the finding, DR-0076)
+#   apply    copies the difference (insert missing, update where hosted is
+#            newer), then re-measures and goes red unless nothing remains
+#
+# Dispatch-only, the same shape DR-0317 established for storage_sync.py and the
+# replay lane: no schedule, no self-trigger, one hand-dispatched pass that exits
+# when done. Committing it does not run it. A daily armed run is a separate
+# decision recorded in DR-0442 (re-review there) — the durable fix is the
+# loaders themselves following the record (sovereign_target.py), so hosted
+# stops receiving new rows at all.
+name: Sovereign content sync (hosted -> sovereign, dispatch only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run measures and reports; apply copies the difference"
+        type: choice
+        options: [dry-run, apply]
+        default: dry-run
+      table:
+        description: "one table only (blank = every content table)"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sovereign-content-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: carry hosted-only content rows to the sovereign database
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Measure, and carry across when applying
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          MODE: ${{ inputs.mode }}
+          ONLY_TABLE: ${{ inputs.table }}
+        run: bash scripts/content-sync-over-tailnet.sh
+
+      - name: Say how to confirm it independently
+        if: always()
+        run: echo "Open The Word -> Migdal on poetech.us, step the month to September 2026, and count the services there against the channel. The surface is the proof; this run only reports (DR-0076)." >> "$GITHUB_STEP_SUMMARY"

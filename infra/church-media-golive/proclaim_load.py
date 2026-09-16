@@ -147,15 +147,12 @@ def _service_type(iso):
 # --- Supabase REST (service key; mirrors load-transcripts.py) -----------------
 
 def load_secrets(path):
-    url = os.environ.get("SUPABASE_URL")
-    key = os.environ.get("SUPABASE_SERVICE_KEY")
-    if url and key:
-        return url.rstrip("/"), key
-    try:
-        d = json.loads(Path(path).read_text())
-        return d["url"].rstrip("/"), (d.get("service_key") or d.get("service_role_key"))
-    except Exception:
-        return None, None
+    # DR-0442: the writers follow the repoint record. The shared resolver picks
+    # env -> the sovereign door (REPOINT-ARMED + this box's own supabase .env)
+    # -> the secrets file, and says which one to stderr. Same (url, key) shape.
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "nas-supabase"))
+    from sovereign_target import load_target
+    return load_target(path)
 
 
 def _req(url, key, method, path, params=None, body=None):
