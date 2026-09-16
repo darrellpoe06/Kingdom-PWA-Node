@@ -110,7 +110,24 @@ function StageRail({ segments, current = -1, onJump = null }) {
 // the beginning and at each section change"). The host hands in the
 // "Who is learning?" row; the flow puts it where each section begins — the
 // Open stage included, so the first thing a learner meets is the choice.
-export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onComplete = null, initialIndex = 0, onStageChange = null, showAll = false, flush = false, stageExtra = null }) {
+// -----------------------------------------------------------------------------
+// onAllUnits / onStartOver — THE END OF A LESSON IS A DOOR, NOT A WALL
+// (Darrell 2026-09-16, from his phone at part 7/7: "There's a little bitty
+// button to get back to all... you can't really find the all button... All
+// should just pop up with all every time you get done, anytime you want" —
+// and, of the same screen, "if it's over, it's over... you want to re-listen
+// to the same freaking lesson").
+//
+// Measured before this: at the last part the footer showed "◀ Previous part",
+// the words "End of this lesson", and a DISABLED "Done ✓". Three controls and
+// not one of them went anywhere — the only way back to the list was the 10px
+// "← All" in the sticky bar far above the fold. So a reader who finished was
+// left at a dead end with the top of the app off screen.
+//
+// Both doors now stand at the end, full-width and primary: START OVER (part 1
+// again, the place cleared, which is what re-listening needs) and ALL LESSONS.
+// Optional props — a host that passes neither keeps the old footer exactly.
+export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onComplete = null, initialIndex = 0, onStageChange = null, showAll = false, flush = false, stageExtra = null, onAllUnits = null, onStartOver = null }) {
   const segments = (arc && arc.audienceSegments) || [];
   const [idx, setIdx] = useState(() => Math.max(0, initialIndex));
   const firedRef = React.useRef(false);
@@ -196,6 +213,35 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
             {atLast ? 'Done ✓' : 'Next part ▶'}
           </button>
         </div>
+        {/* THE TWO DOORS AT THE END (see onAllUnits/onStartOver above). Their
+            own row, so they are not competing for a phone's width with the
+            part pager: full-width targets, 13px words, 48px tall, chrome-capped
+            by the region they sit in so Big Print grows the WORDS and not the
+            frame (DR-0410). */}
+        {atLast && (onStartOver || onAllUnits) && (
+          <div className="ts-chrome-region mt-3 pt-3 border-t-2 border-[#1A1815] flex flex-col sm:flex-row gap-2" data-read-skip data-testid="lesson-end-doors">
+            {onStartOver && (
+              <button
+                type="button"
+                onClick={() => { goTo(0); onStartOver(); }}
+                data-testid="lesson-start-over"
+                className="flex-1 text-[0.8125rem] uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#5A6E3D] text-[#5A6E3D] font-semibold hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+              >
+                ↺ Start this {unitNoun} over
+              </button>
+            )}
+            {onAllUnits && (
+              <button
+                type="button"
+                onClick={onAllUnits}
+                data-testid="lesson-end-all"
+                className="flex-1 text-[0.8125rem] uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#1A1815] bg-[#1A1815] text-white font-semibold hover:bg-[#3a352f] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+              >
+                ← All {unitNoun}s
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -141,9 +141,55 @@ export function getPlace(opts = {}) {
       step: idx(p.step),
       sentence: idx(p.sentence),
       sentenceKey: typeof p.sentenceKey === 'string' ? p.sentenceKey.slice(0, 16) : '',
+      // IF IT IS OVER, IT IS OVER (see finishPlace below). Absent in every
+      // place written before this shipped, which reads as false — an old
+      // record keeps resuming exactly as it did.
+      done: p.done === true,
       at: typeof p.at === 'number' ? p.at : 0,
     };
   } catch { return null; }
+}
+
+/**
+ * THE END IS NOT A PLACE TO RESUME FROM.
+ *
+ * Darrell 2026-09-16, from his phone at part 7/7 with the reader open: "can't
+ * re-listen to the lesson after the lesson is over because it's allowing the
+ * lesson to keep starting at the end because it thinks it's finished because
+ * it's starting where it left off at. But if it's over, it's over. So it needs
+ * to be able to recognize that the lesson was over and you want to re-listen
+ * to the same freaking lesson, obviously."
+ *
+ * He is describing a real trap in this very record, and it was airtight: the
+ * place stored where the reader last was and nothing else, so a lesson heard
+ * to its final sentence saved that final sentence. The next press of Read this
+ * lesson resolved the saved sentence, started there, spoke it, and stopped —
+ * looking for all the world like a lesson that refused to play. Same for the
+ * part pager, which reopened at the last stage.
+ *
+ * A finished reading now records `done`. Nothing else about the place changes,
+ * so every surface that wants the detail still has it — but the two places
+ * that decide WHERE TO BEGIN treat a finished lesson as a lesson to begin
+ * again (lib/learn-resume.js is consulted by TTSControl's savedStartIndex and
+ * by ChurchLearn's savedHere).
+ *
+ * Marked when the LAST sentence of the piece is spoken, which is the one
+ * moment that means "heard to the end" without having to tell an ended read
+ * apart from a Stop pressed on the final words. Either way the listener heard
+ * it all, and either way the next start belongs at the top.
+ */
+export function finishPlace(patch = {}, opts = {}) {
+  recordPlace({ ...patch, done: true }, opts);
+}
+
+/**
+ * True when the saved place is a lesson that was heard to the end — so a
+ * caller about to resume should start at the beginning instead. Takes the
+ * place object (or null) rather than reading storage, so a component that
+ * already has the place does not pay for a second parse.
+ */
+export function placeIsFinished(place) {
+  return !!(place && place.done === true);
 }
 
 /**
@@ -158,7 +204,9 @@ export function recordPlace(patch, opts = {}) {
   const now = typeof opts.now === 'number' ? opts.now : nowMs();
   const prev = getPlace({ storage });
   const sameLesson = prev && (!patch.lessonId || patch.lessonId === prev.lessonId);
-  const base = sameLesson ? prev : { stage: 0, step: 0, sentence: 0, sentenceKey: '' };
+  // A DIFFERENT lesson starts unfinished: `done` belongs to the lesson that
+  // was heard, and must never carry onto the next one.
+  const base = sameLesson ? prev : { stage: 0, step: 0, sentence: 0, sentenceKey: '', done: false };
   const next = {
     courseKey: typeof patch.courseKey === 'string' && patch.courseKey ? patch.courseKey : (base.courseKey || (prev && prev.courseKey) || ''),
     lessonId: typeof patch.lessonId === 'string' && patch.lessonId ? patch.lessonId : (base.lessonId || ''),
@@ -171,6 +219,16 @@ export function recordPlace(patch, opts = {}) {
       : (patch.step !== undefined ? 0 : idx(base.sentence)),
     sentenceKey: patch.sentenceKey !== undefined ? String(patch.sentenceKey || '').slice(0, 16)
       : (patch.step !== undefined ? '' : (base.sentenceKey || '')),
+    // OVER stays over until the reader is somewhere again. Any patch that
+    // MOVES the place (a stage, a step, a sentence) means a reading is under
+    // way, so the finished flag clears itself — one press of Read this lesson
+    // starts at the top, and the sentence it then stores resumes normally.
+    // A patch that only re-names the lesson (opening it again) keeps the flag,
+    // which is what lets the lesson space reopen at part one.
+    done: patch.done !== undefined
+      ? patch.done === true
+      : ((patch.stage !== undefined || patch.step !== undefined || patch.sentence !== undefined)
+        ? false : base.done === true),
     at: now,
   };
   if (!next.courseKey || !next.lessonId) return; // never store a half place
