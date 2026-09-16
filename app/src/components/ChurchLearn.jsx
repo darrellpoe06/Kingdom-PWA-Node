@@ -84,6 +84,7 @@ const AGEBAND_TO_PRESENT_AGE = { child: 'child', youth: 'teen', teen: 'teen', ad
 const AGEBAND_TO_LEVEL_KEY = { child: 'child', youth: 'teen', teen: 'teen', adult: null, senior: 'senior' };
 import SectionTabs from './SectionTabs.jsx';
 import { catalogMeta } from '../lib/learn-catalog.js';
+import { crossListingsFor, resolveCrossListed, crossListedCount } from '../lib/learn-crosslist.js';
 // THE ETERNAL ALGORITHMS LIVE INSIDE LEARN (DR-0432; Darrell 2026-09-15: "put
 // the Eternal Algorithms inside learn... Moving current tabs around for
 // functionality and flow"). The study surface is unchanged; it is mounted
@@ -2751,8 +2752,18 @@ export default function ChurchLearn({
   // that does not exist (a stale link) falls back to the whole catalog: never
   // a dead door.
   const departments = learnDepartments(courses);
+  // A.I. UNDERSTANDING BUILT INTO THE CURRICULUM (DR-0448). Darrell 2026-09-16:
+  // "Most people want Ai understanding built in their curriculum"; "can we use
+  // cross-referenced lessons that get credited either way." A department also
+  // gathers the lessons its subject is taught in ELSEWHERE — pointers into
+  // their home courses, so a lesson keeps one home and therefore one credit
+  // (lib/learn-crosslist.js). Built only for a department that declares any,
+  // and only while one is open.
   const [deptId, setDeptId] = useState(() => initialDept || 'all');
   const dept = departments.find((d) => d.id === deptId) || null;
+  const gathered = (dept && crossListingsFor(dept.label).length)
+    ? resolveCrossListed(dept.label, buildLessonIndex(courses))
+    : [];
   const visibleCourses = dept ? dept.courses : courses;
   const active = (chosenCourse && (!dept || dept.courses.some((c) => c.key === chosenCourse.key)))
     ? chosenCourse
@@ -2850,11 +2861,52 @@ export default function ChurchLearn({
                 { id: 'all', label: 'Courses', explain: `Every course in one place · ${courses.length} courses · ${totalLessons} lessons. Pick a course and its lessons follow.`, render: () => null },
                 ...departments.map((d) => ({
                   id: d.id, label: d.label,
-                  explain: `${d.code} · ${d.courses.length} ${d.courses.length === 1 ? 'course' : 'courses'} · ${d.lessons} lessons`,
+                  explain: `${d.code} · ${d.courses.length} ${d.courses.length === 1 ? 'course' : 'courses'} · ${d.lessons} lessons${crossListedCount(d.label) ? ` · ${crossListedCount(d.label)} more taught across the curriculum` : ''}`,
                   render: () => null,
                 })),
               ]}
             />
+            {/* ALSO TAUGHT ACROSS THE CURRICULUM (DR-0448) — the department's
+                subject where the rest of the program teaches it. Every row is a
+                real mounted lesson read live (title, course, unit, reference),
+                and opening one goes to that lesson IN ITS HOME COURSE: the
+                catalog view, the home course selected, that lesson opened. One
+                home, one place record, one credit — whichever shelf you find it
+                on. A declaration whose lesson no longer exists fails the build
+                (learn-crosslist.test.js) rather than rendering a dead row. */}
+            {dept && gathered.length > 0 && (
+              <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="learn-crosslisted">
+                <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">
+                  Also taught across the curriculum · {gathered.length}
+                </p>
+                <p className="text-[0.625rem] text-[#5A5751] leading-snug mb-2">
+                  These lessons live in their own courses and are taught there. Open one here and it
+                  opens where it lives — so it counts once, whichever shelf you found it on.
+                </p>
+                <ul className="space-y-2">
+                  {gathered.map((r) => (
+                    <li key={`${r.courseKey}-${r.lessonId}`}>
+                      <button
+                        type="button"
+                        className="text-left w-full focus:outline focus:outline-2 focus:outline-[#B85838]"
+                        onClick={() => {
+                          setDeptId('all');
+                          setActiveKey(r.courseKey);
+                          setResumeOpenGuide(false);
+                          setResumeLessonId(r.lessonId);
+                        }}
+                      >
+                        <span className="block text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{r.title}</span>
+                        <span className="block text-[0.625rem] text-[#5A5751]">
+                          {r.courseTitle} · {r.unitLabel}{r.ref ? ` · ${r.ref}` : ''}
+                        </span>
+                        <span className="block text-[0.625rem] text-[#5A5751]">{r.why}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {dept && dept.id === 'the-eternal-algorithms' && (
               <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="eternal-study-in-learn">
                 <React.Suspense fallback={<p className="text-xs text-[#5A5751]">Opening the study…</p>}>
