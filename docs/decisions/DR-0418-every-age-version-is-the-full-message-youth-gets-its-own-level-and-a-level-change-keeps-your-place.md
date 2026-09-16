@@ -457,6 +457,19 @@ Would You Sign That Contract: the answer, the qualification, and the manner that
 
 The child band keeps its gate's marks (no marriage, divorce, contract, or spouse vocabulary; "Ye shall know them by their fruits" kept) and teaches the transferable spine as nine pieces for a child: a question is not a trap, Yahweh keeps His promises to people who break theirs, a promise that only counts when it is easy was never a promise, Caesar's coin as rules-and-Yahweh-both, check the bottom block, kids are allowed to say true things, names are not arguments, slow down, and the question nobody asked, closing on the two block-builders. The youth band walks every movement of the adult lesson in a teenager's voice with a how-to-use-this list. The teen band gains the seam, the Ephesians 5:32 licence, the tribute-money occasion stated, the three tiers as a method, all four qualification steps at exact size, the slur handled specifically, and the question neither man asked. The senior band gains a run-of-room: the three people in the room named at the opening, the seam found by the room itself, tier one said face to face with the young men, Psalm 15:4 slowed down, the fourth qualification step kept at the size the text gives it, the manner where a grey head is the asset, and three pastoral watch-fors. Fullness baseline 124 → 123.
 
+## L122 — the thirty-first full lesson (2026-09-16)
+
+Does She Feel Like Your Favorite Person: preferring one another and the first works (adult prose 1,509 by the gate's counter; floors child 755, others 906). Before- and after-values both by the gate's counter:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 262 · 0.17 | **1,121 · 0.74** |
+| youth | missing | **1,537 · 1.02** (new) |
+| teen | 479 · 0.32 | **1,161 · 0.77** |
+| senior | 475 · 0.31 | **1,162 · 0.77** |
+
+The child band keeps its gate's marks (no marital frame; "do the first works" and the practice a child can run) and now walks eight pieces for a household: can they tell, the Word's own name for favorite person at a fervent temperature, the friend who goes missing, the three-step repair that never waits on feelings, the list item by item with the talebearer warning, laughing at home as obedience, the two warnings (the sad person who cannot feel it; the mirror never a bill), and Jesus first, closing on the campfire nobody decided to let go out. The youth band walks the whole adult lesson for friendships and family with the first-relationship trap named. The teen band gains why the order is the whole lesson, delight as command with Deuteronomy 24:5, the covering item pressed, both caveats, the first-relationship trap, and homework. The senior band gains a run-of-room: the silence after the second question, the friend movement made to cost something by a silent list that becomes the homework, Revelation 2:4-5 in its honest order, the covering item named as talebearing, Deuteronomy 24:5 as the verse the room has never heard preached, and the two people the caveats protect. Fullness baseline 123 → 122.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
