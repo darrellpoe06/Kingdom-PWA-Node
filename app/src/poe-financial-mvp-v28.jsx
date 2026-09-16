@@ -113,6 +113,7 @@ import { useChurchAccess, isChurchOfficeRole } from './lib/church-access-store.j
 import { useIdleLock } from './lib/use-idle-lock.jsx';
 import { hasUserPin, setUserPin, verifyUserPin, listPersonaPins, verifyPersonaPin } from './lib/pin.js';
 import { markPinResetIntent, hasPinResetIntent, clearPinResetIntent } from './lib/pin-reset-intent.js';
+import { markPresence, presenceStillValid, clearPresence } from './lib/presence-window.js';
 import { isDeviceTrusted, trustThisDevice, forgetLocalDeviceTrust } from './lib/device-trust.js';
 import { isBiometricEnrolled, isPlatformAuthenticatorAvailable, enrollBiometric, unlockWithBiometric } from './lib/webauthn.js';
 import { contractorsSync, contractorColumns } from './lib/contractors-sync.js';
@@ -1197,7 +1198,6 @@ export default function PoeFinancialSystem() {
   // SESSION-scoped (sessionStorage) verified flag — NEVER the PIN itself, only a
   // boolean that this tab session has cleared the PIN. Cleared on sign-out.
   const [mpPinVerified, setMpPinVerified] = useState(false);
-  const mpPinOkKey = (uid) => 'poe-pin-ok:' + String(uid || 'anon');
   // Biometric (fingerprint / Face via WebAuthn — lib/webauthn.js). A faster way
   // to satisfy the SAME human-presence point as the PIN, on a known device.
   // mpHasBiometric = a credential is enrolled on THIS device; mpBioSupported =
@@ -1301,7 +1301,7 @@ export default function PoeFinancialSystem() {
   // gate IS the surface for all three (it carries the biometric button on top in
   // the ENTER cases), so the new step joins the same render condition.
   const [idleLockNotice, setIdleLockNotice] = useState('');
-  useIdleLock({ isStaff: isChurchStaff || isFamilyMember, signedIn: !!authSession, canLock: mpEnforce && mpHasPin, view, churchView, onLock: (n) => { setIdleLockNotice(n); setMpPinVerified(false); } });
+  useIdleLock({ isStaff: isChurchStaff || isFamilyMember, signedIn: !!authSession, canLock: mpEnforce && mpHasPin, view, churchView, onLock: (n) => { setIdleLockNotice(n); setMpPinVerified(false); clearPresence(authSession?.user?.id); } });
   const showPinGate = mpEnforce && !churchLinkVisit
     && (accessDecision.nextStep === NEXT_STEP.SET_PIN
       || accessDecision.nextStep === NEXT_STEP.ENTER_PIN
@@ -1309,11 +1309,9 @@ export default function PoeFinancialSystem() {
 
   const markPinVerified = () => {
     setMpPinVerified(true); setIdleLockNotice('');
-    try {
-      if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.setItem(mpPinOkKey(authSession?.user?.id), String(new Date().toISOString()));
-      }
-    } catch (_) { /* sessionStorage unavailable */ }
+    // lib/presence-window: also shared with sibling TABS for a bounded window,
+    // because sessionStorage alone re-demanded the PIN in every new tab.
+    try { markPresence(authSession?.user?.id); } catch (_) { /* storage blocked */ }
   };
   const markBiometricVerified = () => {
     setMpBiometricVerified(true);
@@ -1384,9 +1382,7 @@ export default function PoeFinancialSystem() {
   const handleForgotPin = () => {
     try { markPinResetIntent(authSession?.user?.id); } catch (_) { /* lib/pin-reset-intent: next sign-in opens SET-PIN */ }
     try { forgetLocalDeviceTrust(authSession?.user?.id); } catch (_) { /* ignore */ }
-    try {
-      if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(mpPinOkKey(authSession?.user?.id));
-    } catch (_) { /* ignore */ }
+    try { clearPresence(authSession?.user?.id); } catch (_) { /* ignore */ }
     try { signOut(); } catch (_) { /* ignore */ }
   };
 
@@ -1854,7 +1850,7 @@ export default function PoeFinancialSystem() {
     let cancelled = false;
     const uid = authSession.user?.id;
     try {
-      if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(mpPinOkKey(uid))) {
+      if (presenceStillValid(uid)) {
         setMpPinVerified(true);
       }
       if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(mpBioOkKey(uid))) {
