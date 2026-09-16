@@ -275,6 +275,19 @@ Look and Live (adult prose 1,526 by the gate's counter; floors child 763, others
 
 All six parts in each band: the type is His (John 3:14-16 as the explanation of the pole); what was on the pole (the cure shaped like the curse, the Lamb and the serpent both); the look was believing (the sin was a sentence; nobody looked well; the look is not a work); how far and how long (whosoever; eternally, the picture smaller than the Person); the serpent's end in the Word's words; the serpents not taken away and the sign that became Nehushtan; where the Word stops. Fullness baseline 138 → 137. One sentence-initial "the devil" in the child draft was caught by the session's own scan before the lane and recast.
 
+## L136 — the seventeenth full lesson (2026-09-16)
+
+Touched With the Feeling (adult prose 2,679 by the gate's counter; floors child 1,340, others 1,608). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 625 · 0.24 · FK 1.4 | **1,818 · 0.68** |
+| youth | missing | **1,754 · 0.65** (new) |
+| teen | 1,422 · 0.55 · FK 4.7 | **1,734 · 0.65** |
+| senior | 1,745 · 0.67 · FK 9.7 | **2,003 · 0.75** |
+
+All twelve movements in each band: the sympathy as fact; without sin as completeness (the exit nobody but He refused); made sin, numbered, wounded rather than "felt like a sinner"; how He was tempted at all (nothing in Me); the weight measured in damage, not desire (the advertisement inversion); the old priest's shared guilt against His; the judgment never grounded in sampling; He knows you without a briefing; what the sympathy is for (your nerve, not His verdict); what it does to prayer; where the Word stops; where it lands. The child band keeps the L136 gate's own child rules: no made-to-be-sin abstraction and no Levitical comparison quoted at child level (two verses the first draft quoted were replaced with child prose, caught by the gate before the lane). Fullness baseline 137 → 136.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.

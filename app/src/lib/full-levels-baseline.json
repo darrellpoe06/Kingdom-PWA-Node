@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 163,
-  "lessonsShort": 137,
+  "lessonsShort": 136,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -243,11 +243,6 @@
       "senior"
     ],
     "ll135-they-called-every-one-of-them-george-the-name-they-took-the-porter-at-the-door-and-the-wage-yahweh-legislated": [
-      "child",
-      "youth",
-      "teen"
-    ],
-    "ll136-touched-with-the-feeling-the-high-priest-who-felt-the-whole-weight-and-why-his-judgment-never-needed-your-experience-to-be-true": [
       "child",
       "youth",
       "teen"
