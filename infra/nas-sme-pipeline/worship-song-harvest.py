@@ -47,6 +47,7 @@
 #   python3 worship-song-harvest.py --write --instance <uuid>   # one instance only
 # =============================================================================
 import json
+import os
 import re
 import sys
 import argparse
@@ -154,9 +155,14 @@ def extract_songs(raw_text):
 
 # --- Supabase REST (PostgREST) via service role, read from the NAS secret --------
 def load_creds():
-    with open(SECRET_PATH) as f:
-        d = json.load(f)
-    return d["url"].rstrip("/"), d["service_key"]
+    # DR-0442: the writers follow the repoint record (env -> sovereign door ->
+    # this secrets file). Same (url, key) shape as before.
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "nas-supabase"))
+    from sovereign_target import load_target
+    url, key = load_target(SECRET_PATH)
+    if not (url and key):
+        raise SystemExit("no Supabase credentials (env, sovereign .env, or %s)" % SECRET_PATH)
+    return url, key
 
 
 def rest_get(base, key, path, params):
