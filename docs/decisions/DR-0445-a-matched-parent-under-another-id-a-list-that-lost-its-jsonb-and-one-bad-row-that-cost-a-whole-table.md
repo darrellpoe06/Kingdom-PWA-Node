@@ -95,15 +95,60 @@ closes, by re-applying the defect:
 Measured, not asserted: the numbers above are from the run's own per-table
 lines, and the next armed run's verdict is the test of this change.
 
+## The live run: two of three closed, and the third exposed one level deeper
+
+Run **35111252952** on `main@8c8651f4`, `mode=apply`, dispatched the minute the
+fix merged. Against the advance expectation written above:
+
+| table | before | result |
+|---|---|---|
+| `tlc_onboarding_invites` | UNMEASURABLE (FK refused) | **copied 5, `missing_after=0`** — the id translation worked |
+| `tlc_jobs` | UNMEASURABLE (check refused) | **copied 1, sovereign 1 → 2, `missing_after=0`** — the jsonb binding worked |
+| `entities` | UNMEASURABLE (FK refused) | `copied=2` but `sovereign_after` still 6 and **`missing_after=2`** |
+
+Every other table held parity, and the run re-proved the box: `loaders now
+resolve to: sovereign http://127.0.0.1:8800`, REST `HTTP 200`. So the FK error
+is gone — but `entities` had a second defect underneath it, and the numbers say
+exactly which: an insert that raised no error and wrote nothing.
+
+**The cause: a natural key that CONTAINS a foreign key was compared
+untranslated.** `entities` is keyed `(instance_id, slug)`. Hosted's key reads
+`(hosted_inst | slug)`, sovereign's reads `(sov_inst | slug)` — so they never
+match, the row reads as missing for ever, and the insert (whose *row* was
+correctly translated) then collided on `entities_tenant_id_slug_key` and was
+discarded by `ON CONFLICT DO NOTHING`. **This is the same false-permanent-gap
+DR-0443 closed, one level up:** it is not enough to translate the row, the KEY
+must be translated too.
+
+**Decision: the plan is computed in the DESTINATION'S key terms.** Key
+components are read separately rather than pre-joined, each foreign-key
+component is translated through its parent's map, and the plan carries a map
+back to the hosted key each row is fetched by — so the fetch and the UPDATE's
+WHERE can never drift apart. The parents' maps are therefore computed BEFORE
+the plan rather than before the write, which also means a DRY RUN now reports
+the real gap instead of a phantom one. One renderer (`join_key`) matches
+`concat_ws` exactly, which fixes a latent mismatch on the way: the old update
+path joined a NULL component as `''`, and could never have matched the row it
+meant.
+
+**And a defect of mine that the run's own numbers exposed: `copied` was a false
+number.** It counted rows `ON CONFLICT DO NOTHING` had thrown away — which is
+precisely the looks-right-and-is-wrong class this tool exists to prevent, in the
+tool itself. The insert now carries `RETURNING 1`, so a real write is
+distinguished from a conflict skip and reported as `skipped_existing`. The
+verdict was still correctly NO-GO throughout, because `missing_after` never
+lied — the guard held while the count did not.
+
+55 selftests (was 47). Re-applying each defect goes red: the key translation
+removed → 3 cases; `RETURNING 1` dropped → 1.
+
 ## What is still not proven
 
-**This has not yet run against the live databases** — it ships through the lane
-and the first armed run after merge is its proof. The expectation, stated in
-advance so a miss is visible: `entities`, `tlc_onboarding_invites` and
-`tlc_jobs` reach `missing_after=0` with `parents_translated=1` on the two FK
-children, and the verdict turns GO. If a refusal remains, the per-table line now
-names it instead of hiding the table. **re-review: 2026-09-23** if the next run
-is not GO.
+The second pass has not yet run live either. The advance expectation, again:
+`entities` reaches `missing_after=0` with its two rows actually written (or
+`skipped_existing=2` if sovereign already holds them under the translated key —
+in which case there was never a gap, only a mis-comparison, and the verdict
+turns GO). **re-review: 2026-09-23** if the next run is not GO.
 
 The content-parity row in `nas-health` (DR-0443's other open item — the witness
 that counts `auth.users` on both sides should count `choir_sermons` too) is
