@@ -69,6 +69,13 @@ export function departmentId(label) {
 // the name is one word ("Mathematics" -> MAT). Derived, so it can never drift
 // from the label it abbreviates.
 export function departmentCode(label) {
+  // A DOTTED INITIALISM IS ITS OWN CODE (DR-0447). Darrell 2026-09-16, reading
+  // the live shelf: "Should a section be call Ai - ?" — "A.I. The Way" reduced
+  // to "AW", first initials of A.I. and Way, which names nothing a reader
+  // recognizes. When the label already contains an initialism, those letters
+  // ARE the abbreviation: "A.I. The Way" -> AI. Still derived from the label.
+  const dotted = String(label || '').split(/\s+/).find((w) => /^(?:[A-Za-z]\.){2,}$/.test(w));
+  if (dotted) return dotted.replace(/[^A-Za-z]/g, '').toUpperCase();
   const words = String(label || '').split(/\s+/).map((w) => w.replace(/[^A-Za-z]/g, '')).filter(Boolean);
   const sig = words.filter((w) => /^[A-Z]/.test(w) && !/^(The|A|An)$/.test(w));
   if (sig.length >= 2) return sig.map((w) => w[0]).join('').toUpperCase();
@@ -82,6 +89,31 @@ export function departmentCode(label) {
 // departments are ORDERED by how much they teach (total lessons, descending;
 // ties keep first-seen order) — a derived order, never a hand-sorted one, so
 // the Word course, which carries the most lessons, leads by weight.
+// WHERE A DEPARTMENT SITS WHEN WEIGHT IS THE WRONG ANSWER (DR-0447). Darrell
+// 2026-09-16: "Most people want Ai understanding built in their curriculum also
+// make the tab after eternal algorithms". Ordering by lessons taught is right
+// for a catalog and wrong for a department a reader is meant to FIND: A.I. The
+// Way carries 35 lessons and by weight falls behind every larger shelf, at the
+// scroll edge of the tab strip. So one declared adjacency — read as "place this
+// department immediately after that one" — is applied over the derived order.
+// It is a DECISION (a placement Darrell named), not painted data: a department
+// named here that is not mounted simply has nowhere to go, and the weight order
+// still decides everything else.
+export const DEPARTMENT_AFTER = { 'A.I. The Way': 'The Eternal Algorithms' };
+
+export function placeDepartments(sorted) {
+  const out = [...(Array.isArray(sorted) ? sorted : [])];
+  for (const [label, after] of Object.entries(DEPARTMENT_AFTER)) {
+    const from = out.findIndex((d) => d && d.label === label);
+    if (from < 0) continue;
+    if (!out.some((d) => d && d.label === after)) continue;
+    const [moved] = out.splice(from, 1);
+    const anchor = out.findIndex((d) => d && d.label === after);
+    out.splice(anchor + 1, 0, moved);
+  }
+  return out;
+}
+
 export function learnDepartments(courses) {
   const list = Array.isArray(courses) ? courses.filter(Boolean) : [];
   const byLabel = new Map();
@@ -92,7 +124,7 @@ export function learnDepartments(courses) {
     d.courses.push({ ...c, code: `${d.code}-${101 + d.courses.length}`, department: label });
     d.lessons += courseLessonCount(c);
   }
-  return [...byLabel.values()].sort((a, b) => b.lessons - a.lessons);
+  return placeDepartments([...byLabel.values()].sort((a, b) => b.lessons - a.lessons));
 }
 
 // Group + sort for the picker: one group per department (DR-0149), in the

@@ -23,7 +23,8 @@ describe('organizeCourses', () => {
     const g = organizeCourses(COURSES);
     expect(g.map((x) => x.label)).toEqual(['The Word & The Way', 'The Eternal Algorithms', 'A.I. The Way', 'Serve the House']);
     expect(g[1].courses.map((x) => x.key)).toEqual(['eternal-gospels', 'eternal-torah']);
-    expect(g.map((x) => x.code)).toEqual(['WW', 'EA', 'AW', 'SH']);
+    // A.I. The Way reads AI, not AW — an initialism is its own code (DR-0447).
+    expect(g.map((x) => x.code)).toEqual(['WW', 'EA', 'AI', 'SH']);
   });
   it('sorts within groups: A to Z, most lessons, shortest first', () => {
     expect(organizeCourses(COURSES, 'lessons-desc')[1].courses.map((x) => x.key)).toEqual(['eternal-torah', 'eternal-gospels']);

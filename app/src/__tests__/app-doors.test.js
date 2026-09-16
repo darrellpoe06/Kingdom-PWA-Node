@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 import {
   DOORS, PERSONAL_DOOR, doorForInstanceSlug, doorPathForInstanceSlug, currentDoor,
   messageLanding, liveLanding, dmPeerFrom, captureDeepLink, consumeDmPeer,
-  resetDeepLinkForTests,
+  resetDeepLinkForTests, doorLabelForInstanceSlug, spaceLabel,
 } from '../lib/app-doors.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -188,5 +188,35 @@ describe('the defect cannot come back', () => {
     for (const f of ['src/poe-financial-mvp-v28.jsx', 'src/lib/nav-history.js']) {
       expect(readFileSync(join(APP, f), 'utf8')).toMatch(/sp\.get\('view'\) \|\| sp\.get\('tab'\)/);
     }
+  });
+});
+
+// THE NAME A PERSON RECOGNIZES (DR-0447). Darrell 2026-09-16: "Messages don't
+// give an option for the Love Corner" — of a list that held that very space
+// under its registry name. A space must be sayable as the door it is.
+describe('a space is named by its door', () => {
+  it('names the church door', () => {
+    expect(doorLabelForInstanceSlug('colg')).toBe('The Love Corner');
+    expect(spaceLabel({ slug: 'colg', displayName: 'The Church of the Living God' }))
+      .toBe('The Love Corner \u00b7 The Church of the Living God');
+  });
+
+  it('says a space that is its own door once', () => {
+    expect(spaceLabel({ slug: 'tlc', displayName: 'TLC Therapy Solutions' })).toBe('TLC Therapy Solutions');
+    expect(spaceLabel({ slug: 'poe-properties', displayName: 'Poe Properties' })).toBe('Poe Properties');
+  });
+
+  it('keeps the record name when there is no slug to read a door from', () => {
+    expect(spaceLabel({ slug: null, displayName: 'Poe Family' })).toBe('Poe Family');
+    expect(spaceLabel({ slug: '', displayName: 'Moore Divahs' })).toBe('Moore Divahs');
+  });
+
+  it('falls back to the door when a space has no name at all', () => {
+    expect(spaceLabel({ slug: 'colg', displayName: '' })).toBe('The Love Corner');
+    expect(spaceLabel({})).toBe('PoeTech');
+  });
+
+  it('an unknown slug is the personal door, never a blank', () => {
+    expect(doorLabelForInstanceSlug('nobody-knows')).toBe('PoeTech');
   });
 });

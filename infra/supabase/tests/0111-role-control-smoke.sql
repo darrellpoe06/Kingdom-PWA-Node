@@ -103,6 +103,20 @@ BEGIN
   RETURN n;
 END $$;
 
+-- The slug a picker names the DOOR from (0221). A picker that can only say
+-- "The Church of the Living God" cannot offer "The Love Corner" (DR-0447), so
+-- the slug coming back is part of the contract, not a detail.
+CREATE OR REPLACE FUNCTION pg_temp.admin_slug(_who uuid)
+RETURNS text LANGUAGE plpgsql AS $$
+DECLARE s text;
+BEGIN
+  PERFORM set_config('role','authenticated', true);
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', _who, 'role','authenticated')::text, true);
+  SELECT slug INTO s FROM public.list_my_admin_instances() LIMIT 1;
+  PERFORM set_config('role','postgres', true);
+  RETURN s;
+END $$;
+
 DO $$
 DECLARE
   o    uuid := '00000000-0000-4000-a000-0000000a0111';
@@ -184,6 +198,11 @@ BEGIN
   END IF;
   IF pg_temp.admin_count(a) <> 1 THEN
     RAISE EXCEPTION 'ROLE CONTROL SMOKE FAIL: admin A should administer exactly 1 space, saw %', pg_temp.admin_count(a);
+  END IF;
+
+  -- and it comes back with the slug the door is named from (0221 / DR-0447).
+  IF pg_temp.admin_slug(o) IS DISTINCT FROM 'colg-0111' THEN
+    RAISE EXCEPTION 'ROLE CONTROL SMOKE FAIL: list_my_admin_instances returned slug %, expected colg-0111', pg_temp.admin_slug(o);
   END IF;
   IF pg_temp.admin_count(m1) <> 0 THEN
     RAISE EXCEPTION 'ROLE CONTROL SMOKE FAIL: a non-admin (M1) should administer 0 spaces, saw %', pg_temp.admin_count(m1);

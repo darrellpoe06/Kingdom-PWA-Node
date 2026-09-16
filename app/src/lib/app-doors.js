@@ -104,6 +104,32 @@ export function doorForInstanceSlug(slug) {
   return byPath.get(PERSONAL_DOOR);
 }
 
+// THE NAME A PERSON RECOGNIZES IS THE DOOR'S (DR-0447).
+// ---------------------------------------------------------------------------
+// Darrell 2026-09-16, with the Messages -> Add contact picker open: "Messages
+// don't give an option for the Love Corner." Measured the same day: the option
+// WAS there — he owns that space — listed under the name its row carries, "The
+// Church of the Living God." He opens that house through a door named The Love
+// Corner, so nothing in the list read as the thing he was looking for. A space
+// named only by its registry name is, to the person using it, missing.
+//
+// So a space is labeled by the DOOR it lives behind, with its own name kept
+// beside it: the door is what the person opens, the display name is what the
+// record says, and neither is invented here (both are real values, DR-0121).
+// When a space IS its door's namesake, the name is said once.
+export function doorLabelForInstanceSlug(slug) {
+  return doorForInstanceSlug(slug).label;
+}
+
+export function spaceLabel({ slug, displayName } = {}) {
+  const name = String(displayName || '').trim();
+  const door = doorLabelForInstanceSlug(slug);
+  if (!name) return door;
+  if (!slug) return name;                       // no slug: nothing to name a door from
+  if (name.toLowerCase() === door.toLowerCase()) return name;
+  return `${door} \u00b7 ${name}`;
+}
+
 /** Just the base path, for callers that only need somewhere to land. */
 export function doorPathForInstanceSlug(slug) {
   return doorForInstanceSlug(slug).path;

@@ -91,7 +91,7 @@ jobs:
           # holds across the shape change.
           - feature: role-control
             pre: "DROP FUNCTION IF EXISTS public.list_instance_members(uuid);"
-            migrations: "0111-set-member-role.sql 0112-list-my-admin-instances.sql 0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0143-member-worker-classification.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
+            migrations: "0111-set-member-role.sql 0112-list-my-admin-instances.sql 0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0143-member-worker-classification.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql 0221-the-space-picker-can-name-the-door-it-belongs-to.sql"
             smokes: "0111-role-control-smoke.sql"
           - feature: support-door
             migrations: "0114-governed-support-door.sql 0115-support-user-initiated-self-grant.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"

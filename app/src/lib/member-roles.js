@@ -163,6 +163,10 @@ export async function listMyAdminInstances() {
   if (error) { console.warn('[member-roles] list_my_admin_instances failed:', error); return []; }
   return (data || []).map((r) => ({
     instanceId: r.instance_id,
+    // The slug is what names the DOOR a space lives behind (app-doors.js,
+    // DR-0447) — carried through so a picker can say "The Love Corner" and not
+    // only the registry name. Null until 0221 is applied; callers fall back.
+    slug: r.slug ?? null,
     displayName: r.display_name ?? null,
     instanceType: r.instance_type ?? null,
     role: r.role ?? null,

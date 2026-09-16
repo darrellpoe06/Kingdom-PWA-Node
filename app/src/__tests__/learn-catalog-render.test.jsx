@@ -91,7 +91,15 @@ describe('Learn catalog — every finished course renders in the picker', () => 
       if (entry.wiring === 'component') {
         expect(wrapper, `ChurchLearn must own course key "${entry.key}"`).toContain(`key: '${entry.key}'`);
       } else if (entry.wiring === 'cohort') {
-        expect(host, `host must wire cohort course key "${entry.key}"`).toContain(`key: '${entry.key}'`);
+        // Either form counts as wiring the key: the literal the host used to
+        // write by hand, or catalogMeta('<key>', …) — the registry-merged form
+        // DR-0447 moved these to, so a cohort course can no longer arrive with
+        // its department dropped. What is asserted is unchanged: the host
+        // names this course.
+        expect(
+          host.includes(`key: '${entry.key}'`) || host.includes(`catalogMeta('${entry.key}'`),
+          `host must wire cohort course key "${entry.key}"`,
+        ).toBe(true);
       } else {
         // Self-paced courses ride the registry — the host must mount them via
         // buildSelfPacedDescriptors, so ANY course added to the registry ships.
