@@ -39,7 +39,7 @@ import { listMyAdminInstances, inviteToSpace, isInviteEmail } from '../lib/membe
 import { listPendingClaims, confirmInvite } from '../lib/family-invite.js';
 import { canAddContacts, inviteShareText, smsHrefTo, telHref, isLikelyPhone, installPromptText } from '../lib/messages-invite.js';
 import { readContacts, upsertContact, removeContact } from '../lib/saved-contacts.js';
-import { consumeDmPeer } from '../lib/app-doors.js';
+import { consumeDmPeer, spaceLabel } from '../lib/app-doors.js';
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -272,7 +272,11 @@ function AddContact({ onInvited }) {
         <label className="block">
           <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">Into which space</span>
           <select value={spaceId} onChange={(e) => setSpaceId(e.target.value)} className={FIELD}>
-            {spaces.map((s) => <option key={s.instanceId} value={s.instanceId}>{s.displayName || s.instanceType || s.instanceId}</option>)}
+            {spaces.map((s) => (
+              <option key={s.instanceId} value={s.instanceId}>
+                {spaceLabel({ slug: s.slug, displayName: s.displayName }) || s.instanceType || s.instanceId}
+              </option>
+            ))}
           </select>
         </label>
       )}

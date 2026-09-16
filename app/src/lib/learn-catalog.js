@@ -294,6 +294,34 @@ export function learnCatalogSummary() {
   return { courses: LEARN_CATALOG.length, lessons };
 }
 
+// THE DEPARTMENT IS THE REGISTRY'S TO DECLARE — a descriptor may never retype it.
+// ===========================================================================
+// Measured 2026-09-16 on the live church door: the A.I. The Way department read
+// "AW · 1 course · 8 lessons" while THREE A.I. courses are registered here
+// (ai:8, sovereign-ai:21, ai-legal-blueprint:6 = 35 lessons), and a phantom
+// "General Studies" department held four courses that all declare a real
+// category above. Cause: the cohort-wired descriptors are assembled in the host
+// as `meta: { ...SOVEREIGN_AI_META, key: 'sovereign-ai' }` — the key is carried,
+// the registry's `category` is not, so courseDepartment() fell through to its
+// General Studies default and the whole A.I. shelf looked like one small class.
+// The category was never missing from the registry; it was dropped in transit.
+//
+// So the merge is a function, not a literal: every mounted descriptor builds its
+// meta HERE, from this registry, and cannot drop what it does not retype
+// (DR-0149, DR-0121). A key with no entry keeps whatever the meta carries rather
+// than inventing a department — never painted.
+export function catalogCategory(key) {
+  const entry = LEARN_CATALOG.find((c) => c.key === key);
+  return (entry && entry.meta && entry.meta.category) || null;
+}
+
+/** A mounted course's meta: its own, plus the key and the department the registry declares. */
+export function catalogMeta(key, meta = null) {
+  const category = catalogCategory(key);
+  const base = { ...(meta || {}), key };
+  return category ? { ...base, category } : base;
+}
+
 // The helper tag for a course key — replaces the host's hand-typed ternary
 // chain so a course added to the catalog is automatically covered.
 export function helperTagForCourse(courseKey) {

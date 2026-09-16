@@ -63,7 +63,7 @@ import {
 // Data Systems, Handed Forward, Kingdom Economics, Prophetic Voices) all derive
 // from the ONE course registry — a finished course can never again be built but
 // left unsurfaced (Darrell 2026-07-08; lib/learn-catalog.js).
-import { buildSelfPacedDescriptors, helperTagForCourse } from './lib/learn-catalog.js';
+import { buildSelfPacedDescriptors, helperTagForCourse, catalogMeta } from './lib/learn-catalog.js';
 import { helperInterestText } from './lib/learn-framework.js';
 import { engagementFeedbackText, aggregateEngagementByAge } from './lib/learn-engagement.js';
 import { latestFinancialDocMs } from './lib/finance-activity.js';
@@ -4585,7 +4585,7 @@ ${THEME_CSS}
             : null;
           const broadcastRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], BROADCAST_INTEREST_TAG) : null;
           const broadcastCourse = {
-            meta: { ...BROADCAST_META, key: 'broadcast' },
+            meta: catalogMeta('broadcast', BROADCAST_META),
             sessionFlow: BROADCAST_SESSION_FLOW,
             schedule: buildBroadcastSchedule(bcStart),
             cohortStart: bcStart,
@@ -4621,7 +4621,7 @@ ${THEME_CSS}
           // Engagement-by-age aggregate (Governor only) from the real feedback stream.
           const engagementByAge = isGov ? aggregateEngagementByAge([...(data.feedback || []), ...remoteFeedback]) : null;
           const infrastructureCourse = {
-            meta: { ...INFRA_META, key: 'infrastructure' },
+            meta: catalogMeta('infrastructure', INFRA_META),
             sessionFlow: INFRA_SESSION_FLOW,
             schedule: buildInfraSchedule(infraStart),
             cohortStart: infraStart,
@@ -4658,7 +4658,7 @@ ${THEME_CSS}
             : null;
           const sovereignAiRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], SOVEREIGN_AI_INTEREST_TAG) : null;
           const sovereignAiCourse = {
-            meta: { ...SOVEREIGN_AI_META, key: 'sovereign-ai' },
+            meta: catalogMeta('sovereign-ai', SOVEREIGN_AI_META),
             sessionFlow: SOVEREIGN_AI_SESSION_FLOW,
             schedule: buildSovereignAiSchedule(sovereignAiStart),
             cohortStart: sovereignAiStart,
@@ -4691,7 +4691,7 @@ ${THEME_CSS}
             : null;
           const aiLegalBlueprintRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], AI_LEGAL_BLUEPRINT_INTEREST_TAG) : null;
           const aiLegalBlueprintCourse = {
-            meta: { ...AI_LEGAL_BLUEPRINT_META, key: 'ai-legal-blueprint' },
+            meta: catalogMeta('ai-legal-blueprint', AI_LEGAL_BLUEPRINT_META),
             sessionFlow: AI_LEGAL_BLUEPRINT_SESSION_FLOW,
             schedule: buildAiLegalBlueprintSchedule(aiLegalBlueprintStart),
             cohortStart: aiLegalBlueprintStart,

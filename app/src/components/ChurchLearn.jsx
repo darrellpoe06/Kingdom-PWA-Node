@@ -83,7 +83,7 @@ import { coursePresentable, lessonPresentable } from '../lib/presentable.js';
 const AGEBAND_TO_PRESENT_AGE = { child: 'child', youth: 'teen', teen: 'teen', adult: 'adult', senior: 'adult' };
 const AGEBAND_TO_LEVEL_KEY = { child: 'child', youth: 'teen', teen: 'teen', adult: null, senior: 'senior' };
 import SectionTabs from './SectionTabs.jsx';
-import { LEARN_CATALOG } from '../lib/learn-catalog.js';
+import { catalogMeta } from '../lib/learn-catalog.js';
 // THE ETERNAL ALGORITHMS LIVE INSIDE LEARN (DR-0432; Darrell 2026-09-15: "put
 // the Eternal Algorithms inside learn... Moving current tabs around for
 // functionality and flow"). The study surface is unchanged; it is mounted
@@ -2678,8 +2678,9 @@ export default function ChurchLearn({
   const aiCourse = {
     key: 'ai',
     // Its department is the one the catalog registry declares for this key
-    // (DR-0149) — read from the registry, never retyped here.
-    meta: { ...CLASS_META, key: 'ai', category: (LEARN_CATALOG.find((c) => c.key === 'ai') || { meta: {} }).meta.category },
+    // (DR-0149, DR-0447) — merged BY the registry, never retyped here, so it
+    // cannot be dropped in transit the way the cohort courses' was.
+    meta: catalogMeta('ai', CLASS_META),
     sessionFlow: SESSION_FLOW,
     schedule: buildSchedule(cohortStart),
     cohortStart, cohortConfirmed, setCohortStart, confirmCohort,
