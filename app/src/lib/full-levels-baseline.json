@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 163,
-  "lessonsShort": 124,
+  "lessonsShort": 123,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -162,12 +162,6 @@
       "senior"
     ],
     "ll122-does-she-feel-like-your-favorite-person-preferring-one-another-and-the-first-works": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll123-would-you-sign-that-contract-the-answer-the-qualification-and-the-manner-that-forfeited-it": [
       "child",
       "youth",
       "teen",

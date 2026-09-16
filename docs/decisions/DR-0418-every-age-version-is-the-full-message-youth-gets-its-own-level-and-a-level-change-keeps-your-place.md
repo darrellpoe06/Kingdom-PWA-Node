@@ -444,6 +444,19 @@ Equipped to Win: the hour you are losing, the Word again, and the man who did no
 
 The child band keeps its gate's marks (no captivity or death arithmetic; Jeremiah 1:5 kept) and now carries the broken jar against again as mending versus making, the burned scroll and the room that was not scared, the house nobody wanted, opposition in the terms, the tears that are love, the two things to put down, the fountain and the buckets, and the present-tense you are, closing on the father's hand on the bicycle seat. The youth band walks all sixteen movements in a teenager's voice. The teen band gains the seventy-years arithmetic, Daniel's we as the anti-offence posture, mending versus making, and the buyer and the passer-by, with homework and the whole of it. The senior band gains three movements (the arithmetic of the sentence, mending versus making said explicitly, and the buyer illustration credited and grounded) plus a run-of-room order: hands on who is losing now, waves early, love before again, the honest cost before the identity, and the two-evils question asked and waited on. Fullness baseline 125 → 124.
 
+## L123 — the thirtieth full lesson (2026-09-16)
+
+Would You Sign That Contract: the answer, the qualification, and the manner that forfeited it (adult prose 2,118 by the gate's counter; floors child 1,059, others 1,271). Before- and after-values both by the gate's counter:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 223 · 0.11 | **1,379 · 0.65** |
+| youth | missing | **2,001 · 0.94** (new) |
+| teen | 502 · 0.24 | **1,394 · 0.66** |
+| senior | 495 · 0.23 | **1,311 · 0.62** |
+
+The child band keeps its gate's marks (no marriage, divorce, contract, or spouse vocabulary; "Ye shall know them by their fruits" kept) and teaches the transferable spine as nine pieces for a child: a question is not a trap, Yahweh keeps His promises to people who break theirs, a promise that only counts when it is easy was never a promise, Caesar's coin as rules-and-Yahweh-both, check the bottom block, kids are allowed to say true things, names are not arguments, slow down, and the question nobody asked, closing on the two block-builders. The youth band walks every movement of the adult lesson in a teenager's voice with a how-to-use-this list. The teen band gains the seam, the Ephesians 5:32 licence, the tribute-money occasion stated, the three tiers as a method, all four qualification steps at exact size, the slur handled specifically, and the question neither man asked. The senior band gains a run-of-room: the three people in the room named at the opening, the seam found by the room itself, tier one said face to face with the young men, Psalm 15:4 slowed down, the fourth qualification step kept at the size the text gives it, the manner where a grey head is the asset, and three pastoral watch-fors. Fullness baseline 124 → 123.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
