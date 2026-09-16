@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 163,
-  "lessonsShort": 113,
+  "lessonsShort": 112,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -91,12 +91,6 @@
       "senior"
     ],
     "ll111-the-just-weight-yahwehs-unchanging-measure-vs-the-worlds-shifting-standard": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll112-foxes-wolves-and-bears-the-enemys-graded-beasts-and-how-yahwehs-servants-win": [
       "child",
       "youth",
       "teen",
