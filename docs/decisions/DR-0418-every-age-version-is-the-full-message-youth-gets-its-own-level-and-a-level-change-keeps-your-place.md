@@ -327,6 +327,19 @@ How to See the Whole Torah at Once: the twelve patterns and the two questions th
 
 All nine parts in each band: the discipline of named versus shown; the Three on the first page before there is an enemy; the Spirit in all five books; the One who is seen and carries the Name; what Yahweh meant by our likeness (a communion, family language, self-giving — Judah, Moses, Aaron, and the coats of skins first); the chain of substitution from the garden to the pole; the enemy named with the one playbook; the hard pattern that knowing did not prevent it, with Deuteronomy 29:4 keeping it from contempt; and the whole picture. The child band keeps its gate's own three marks (what a pattern is, the three tricks, points to Jesus) and walks each pattern a second time with a job to do; the youth band is the full nine patterns in a teenager's voice; the teen adds the two questions answered in their own words and the pencil-mark reading plan; the senior adds three charges, Bezaleel for the school, and the table assignment. Fullness baseline 134 → 133.
 
+## L132 — the twenty-first full lesson (2026-09-16)
+
+The Whole Salvation Plan Inside Genesis Alone, and the Godhead at War with the Enemies from the First Pages (adult prose 2,343 by the gate's counter; floors child 1,172, others 1,406). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 410 · 0.17 | **1,237 · 0.53** |
+| youth | missing | **1,601 · 0.68** (new) |
+| teen | 788 · 0.34 | **1,416 · 0.60** |
+| senior | 914 · 0.39 | **1,433 · 0.61** |
+
+All nine parts in each band: the Three on page one before there is an enemy; the enemy's three moves on the record; Yahweh seeks before He sentences; the whole rescue announced to the enemy as his sentence; the first covering Yahweh provided and the way kept, not demolished; the plan the length of Genesis (Abel, the Spirit striving, grace by name, the blessing for everybody, righteousness counted, the covenant Yahweh walked alone, the Lamb on Moriah, the ladder, the ford, the sceptre, Joseph's sentence); the enemies named early; the Three working together against them; and why the case borrows nothing from later. The child band keeps its gate's own marks (the sore heel that gets better; Jesus is the Lamb) and walks the plan a second time with a job to do; the youth band is the full nine parts in a teenager's voice; the teen adds the three moves as today's pressure, the covenant walked alone, the five-minute Genesis-only telling and Bezaleel for the school; the senior adds four charges and the table. Fullness baseline 133 → 132.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.

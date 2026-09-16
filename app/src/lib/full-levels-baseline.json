@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 163,
-  "lessonsShort": 133,
+  "lessonsShort": 132,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -219,12 +219,6 @@
       "senior"
     ],
     "ll131-joy-is-not-happiness-three-days-one-strength-and-the-word-as-the-code-that-runs-each-of-them": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll132-the-whole-salvation-plan-inside-genesis-alone-and-the-godhead-at-war-with-the-enemies-from-the-first-pages": [
       "child",
       "youth",
       "teen",
