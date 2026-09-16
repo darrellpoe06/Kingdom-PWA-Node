@@ -82,6 +82,23 @@ const REF_RE = new RegExp(`\\b(${ANY_BOOK})\\.?\\s+(\\d{1,3}):(\\d{1,3})(?:\\s*[
  *      by every engine as a clock time or a ratio ("three sixteen"), which is
  *      not how anyone in the Body says a reference out loud.
  */
+// THE BOOK OF JOB IS SAID LIKE THE NAME, NEVER LIKE WORK (Darrell 2026-09-16:
+// "Reader keeps saying Job like working not Job like the name... can we fix
+// that?!!! Perpetually?"; DR-0441). Every device engine reads the four letters
+// as employment. The spoken form says "Jobe" — the spelling engines read as
+// the name — wherever the capitalised word is the patriarch or his book: a
+// reference ("Job 1:6"), the name in prose, the possessive. The written text
+// on screen is never touched. The capitalised EMPLOYMENT senses that can open
+// a sentence ("Job interviews...", "Job losses...") are the only exclusions,
+// by the word that follows; lowercase "job" is never a name and is left alone.
+const JOB_AS_WORK_NEXT = /^(?:interview|market|description|title|offer|search|seeker|hunt|hunting|posting|application|training|fair|creation|loss|losses|growth|cut|cuts|numbers|openings|opening|security|site|board|listing|listings|ad|ads|done|well|satisfaction|report|reports)s?$/i;
+export function sayTheBookOfJob(s) {
+  return String(s).replace(/\bJob\b/g, (m, off, str) => {
+    const next = str.slice(off + 3).match(/^(?:'s)?\s+([A-Za-z]+)/);
+    return next && JOB_AS_WORK_NEXT.test(next[1]) ? m : 'Jobe';
+  });
+}
+
 export function toSpokenForm(text) {
   if (text == null) return '';
   const s = String(text);
@@ -119,7 +136,7 @@ export function toSpokenForm(text) {
   // the utterance is lowered. Em-dashes, curly quotes and ellipses are
   // flattened for the same reason — the engine either names them or lets them
   // flatten the prosody.
-  return plainTypography(softenShouting(withRefs));
+  return plainTypography(softenShouting(sayTheBookOfJob(withRefs)));
 }
 
 export default toSpokenForm;
