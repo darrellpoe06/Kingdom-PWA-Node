@@ -635,7 +635,7 @@ export function ChurchGiveFloater({ church }) {
           onClick={() => setOpen(true)}
           aria-label="Give to the church"
           title="Give to the church — and the blessing of giving according to the Word"
-          className={`ts-chrome-region fixed bottom-20 right-4 z-30 inline-flex items-center justify-center gap-1.5 bg-[#5A6E3D] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#5A6E3D] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden transition-all duration-500 hover:opacity-100 focus:opacity-100 ${reveal ? 'px-4 py-3 opacity-100 translate-y-0' : 'p-0 w-12 h-12 opacity-40 translate-y-1'}`}
+          className={`ts-chrome-region church-give-floater fixed bottom-20 right-4 z-30 inline-flex items-center justify-center gap-1.5 bg-[#5A6E3D] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#5A6E3D] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden transition-all duration-500 hover:opacity-100 focus:opacity-100 ${reveal ? 'px-4 py-3 opacity-100 translate-y-0' : 'p-0 w-12 h-12 opacity-40 translate-y-1'}`}
           style={{ borderRadius: '999px' }}
         >
           <GiftIcon />{reveal ? <span>Give</span> : null}
@@ -679,7 +679,11 @@ export function ChurchGiveFloater({ church }) {
 // stays visible at every width rather than collapsing to a bare icon — the
 // word "Give" is only four characters and the row already wraps, so the label
 // always stays: a button you can find by name is the whole request.
-export function ChurchGiveHeaderButton({ church }) {
+// `floaterPresent`: on the Church tab the ChurchGiveFloater is on the same
+// screen, so on a PHONE this header copy is the duplicate and steps aside
+// ("only what is necessary when the screen is reduced" — DR-0438); from sm up,
+// and wherever the floater is absent, it stays.
+export function ChurchGiveHeaderButton({ church, floaterPresent = false }) {
   const [open, setOpen] = React.useState(false);
   return (
     <>
@@ -688,7 +692,7 @@ export function ChurchGiveHeaderButton({ church }) {
         onClick={() => setOpen(true)}
         aria-label="Give to the church — tithes, offerings and gifts"
         title="Give to the church — tithes, offerings, gifts, and your own giving record"
-        className="ts-chrome-region text-[0.625rem] uppercase tracking-wider px-2 py-1.5 bg-[#5A6E3D] text-white border border-[#5A6E3D] hover:bg-[#1A1815] hover:border-[#1A1815] font-semibold whitespace-nowrap inline-flex items-center gap-1.5 min-h-[44px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden"
+        className={`${floaterPresent ? 'hidden sm:inline-flex ' : ''}ts-chrome-region text-[0.625rem] uppercase tracking-wider px-2 py-1.5 bg-[#5A6E3D] text-white border border-[#5A6E3D] hover:bg-[#1A1815] hover:border-[#1A1815] font-semibold whitespace-nowrap inline-flex items-center gap-1.5 min-h-[44px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden`}
       >
         <GiftIcon /><span>Give</span>
       </button>

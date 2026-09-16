@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 163,
-  "lessonsShort": 136,
+  "lessonsShort": 121,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -155,94 +155,7 @@
       "teen",
       "senior"
     ],
-    "ll121-know-your-own-post-her-provision-her-guard-and-the-beam-in-the-pointing-eye": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll122-does-she-feel-like-your-favorite-person-preferring-one-another-and-the-first-works": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll123-would-you-sign-that-contract-the-answer-the-qualification-and-the-manner-that-forfeited-it": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll124-equipped-to-win-the-hour-you-are-losing-the-word-again-and-the-man-who-did-not-want-the-job": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll125-rules-of-engagement-the-warfare-the-word-authorizes-the-open-doors-it-closes-and-where-it-stops": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll126-feelings-are-fruit-not-root-belief-the-renewed-mind-and-declarations-bounded-by-his-word": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll127-the-firsts-what-yahweh-did-in-each-century-that-had-never-been-done-before": [
-      "child",
-      "youth"
-    ],
-    "ll128-the-prudent-man-studies-systematic-analysis-the-ways-that-protect-and-seeing-him-while-blind": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll129-you-have-a-destiny-the-giver-the-window-covenant-authority-the-heart-of-flesh-and-the-me-that-has-to-die": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
     "ll13-a-sound-mind": [
-      "child",
-      "youth",
-      "teen"
-    ],
-    "ll130-three-days-and-three-nights-what-he-did-in-the-place-of-the-dead-and-why-the-devil-is-defeated-but-not-destroyed": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll131-joy-is-not-happiness-three-days-one-strength-and-the-word-as-the-code-that-runs-each-of-them": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll132-the-whole-salvation-plan-inside-genesis-alone-and-the-godhead-at-war-with-the-enemies-from-the-first-pages": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll133-how-to-see-the-whole-torah-at-once-the-twelve-patterns-and-the-two-questions-that-opened-them": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll134-divers-weights-when-the-question-keeps-moving-the-record-that-stands-and-the-better-assignment": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll135-they-called-every-one-of-them-george-the-name-they-took-the-porter-at-the-door-and-the-wage-yahweh-legislated": [
       "child",
       "youth",
       "teen"

@@ -29,7 +29,7 @@ import {
   buildStandInAssignments, resolveVoiceURIForId, deviceVoiceOptions, hasVoiceOfGender,
 } from '../lib/voice-assignment.js';
 import { loadPersonaVoiceMap, savePersonaVoice } from '../lib/persona-voice-prefs.js';
-import { isVoiceServiceReady, synthesizeSpeech } from '../lib/voice-service.js';
+import { isVoiceServiceReady, synthesizeSpeech, voiceServiceHealth, probeVoiceService } from '../lib/voice-service.js';
 import { SOVEREIGNTY_GAPS, GAPS_RECORDED, liveVoicePath, liveLikenessPath } from '../lib/sovereignty-gaps.js';
 import { useReadingVoice, personVoiceId, SYSTEM_VOICE_ID } from '../lib/reading-voice.js';
 import {
@@ -48,6 +48,21 @@ const SAMPLE_SHORT = 'For God so loved the world. The Lord is my shepherd; I sha
 const PERSONA_NAME = { darrell: 'Darrell Poe', christina: 'Christina Poe', 'bishop-gwin': 'Bishop Lloyd E. Gwin' };
 
 export default function VoiceStudio({ personaKey = null, isOwner = false, sovereignVoiceReady = isVoiceServiceReady() }) {
+  // THE STUDIO'S REAL STATE, SAID PLAINLY (DR-0440): not configured / configured
+  // but not answering / armed and answering — asked, not assumed.
+  const [studioHealth, setStudioHealth] = useState(() => voiceServiceHealth());
+  useEffect(() => {
+    let alive = true;
+    if (isVoiceServiceReady()) probeVoiceService().then((h) => { if (alive) setStudioHealth(h); });
+    return () => { alive = false; };
+  }, []);
+  const studioLine = !isVoiceServiceReady()
+    ? 'Recording works now. Hearing your voice read new text needs the church\'s own voice studio armed and this build pointed at it (VITE_VOICE_SERVICE_URL) — see your steward for the one-time enable.'
+    : studioHealth === 'down'
+      ? 'The voice studio is configured but did not answer its health check — your voice plays as the labelled stand-in until it does.'
+      : studioHealth === 'up'
+        ? 'The voice studio is armed and answering — your recorded voice reads new text.'
+        : 'The voice studio is configured; checking that it answers…';
   const tts = useTextToSpeech();
   const { setVoiceId: setGlobalVoiceId } = useReadingVoice(supabase); // the ONE global pref
   const [profiles, setProfiles] = useState([]);
@@ -514,9 +529,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
                 )}
               </div>
               {recorder.error && <p className="text-[0.6875rem] text-[#B85838] mt-2">{recorder.error}</p>}
-              {!sovereignVoiceReady && (
-                <p className="text-[0.625rem] text-[#5A5751] mt-2">Recording works now. Hearing your voice read <em>new</em> text needs the voice endpoint live (bridge or the church GPU studio) — see your steward for the one-time enable.</p>
-              )}
+              <p className="text-[0.625rem] text-[#5A5751] mt-2" data-testid="voice-studio-state">{studioLine}</p>
             </>
           )}
         </div>

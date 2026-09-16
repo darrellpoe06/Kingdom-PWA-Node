@@ -101,6 +101,7 @@ import LessonTeacher from './LessonTeacher.jsx';
 import { useTextToSpeech } from '../lib/tts.js';
 import { anchorIsRun, referencesIn } from '../lib/verse-refs.js';
 import ShowTheWordToggle from './ShowTheWordToggle.jsx';
+import { useScreenAwake } from '../lib/screen-awake.js';
 
 const fmtDate = formatClassDate;
 
@@ -1543,6 +1544,13 @@ function CourseView({
   // place and moving between them does not blur them together.
   useReadingResume({ userKey: 'learn', surface: 'lesson', itemId: focusId || '', enabled: !!focusId });
   const focusModule = focusId ? (schedule.find((m) => m.id === focusId) || null) : null;
+  // THE SCREEN STAYS ON WHILE A LESSON IS OPEN (DR-0439; Darrell 2026-09-16:
+  // "my Zfold 7 allows 10 minutes until it goes black"). One shared wake-lock
+  // holder named for the lesson space; released when the reader leaves it.
+  // Where the browser has no wake lock, a touch device gets the honest hint
+  // under the lesson bar — the phone's own setting, named.
+  const awake = useScreenAwake(!!focusModule, 'lesson');
+  const touchDevice = useMemo(() => { try { return !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches); } catch (_) { return false; } }, []);
   const lastFocusRef = React.useRef(null);
   const openLesson = (id) => {
     lastFocusRef.current = id;
@@ -1831,16 +1839,18 @@ function CourseView({
         const prev = idx > 0 ? schedule[idx - 1] : null;
         const next = idx >= 0 && idx < schedule.length - 1 ? schedule[idx + 1] : null;
         return (
-          <div className="ts-chrome-region sticky top-0 z-30 mb-3 bg-[#FAF8F4] border border-[#1A1815] px-3 py-2 flex items-center gap-2 flex-wrap" data-testid="lesson-space-bar">
+          <div className="ts-chrome-region sticky top-0 z-30 mb-3 bg-[#FAF8F4] border border-[#1A1815] px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 flex-nowrap sm:flex-wrap" data-testid="lesson-space-bar">
             <button
               type="button"
               onClick={() => setFocusId(null)}
               className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]"
             >
-              ← All {U.noun}s
+              {/* SMALLER ON A PHONE (DR-0438): the same three controls, short
+                  words, one row — the bar was two rows (98px) at 360px. */}
+              <span className="sm:hidden">← All</span><span className="hidden sm:inline">← All {U.noun}s</span>
             </button>
-            <span className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-              {U.cap} {focusModule.week} of {schedule.length}
+            <span className="text-[0.6875rem] text-[#5A5751] whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+              <span className="hidden sm:inline">{U.cap} </span>{focusModule.week}<span className="sm:hidden"> / </span><span className="hidden sm:inline"> of </span>{schedule.length}
             </span>
             <span className="flex-1" />
             <button
@@ -1849,7 +1859,7 @@ function CourseView({
               onClick={() => prev && openLesson(prev.id)}
               className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A5751] text-[#5A5751] enabled:hover:border-[#1A1815] enabled:hover:text-[#1A1815] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]"
             >
-              ← Prev
+              ←<span className="hidden sm:inline"> Prev</span>
             </button>
             <button
               type="button"
@@ -1857,11 +1867,14 @@ function CourseView({
               onClick={() => next && openLesson(next.id)}
               className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A5751] text-[#5A5751] enabled:hover:border-[#1A1815] enabled:hover:text-[#1A1815] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]"
             >
-              Next →
+              <span className="hidden sm:inline">Next </span>→
             </button>
           </div>
         );
       })()}
+      {focusModule && !awake.supported && touchDevice && (
+        <p className="ts-chrome-region mb-3 pl-2 border-l-2 border-[#B85838] text-[0.625rem] text-[#5A5751]" data-testid="screen-timeout-hint" style={{ fontFamily: '"Fraunces", serif' }}>{awake.hint}</p>
+      )}
       <ol className="space-y-3">
         {(focusModule ? [focusModule] : schedule).map((m) => {
           const done = !!progress[m.id];
@@ -3281,7 +3294,7 @@ export default function ChurchLearn({
           numbers derive from the mounted catalog, never typed (DR-0121). */}
       {courses.length > 1 && !lessonFocus && (
         <div
-          className="ts-chrome-region sticky top-0 z-30 mb-3 bg-[#FAF8F4] border border-[#1A1815] px-3 py-2 flex items-center gap-2 flex-wrap"
+          className="ts-chrome-region sticky top-0 z-30 mb-3 bg-[#FAF8F4] border border-[#1A1815] px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 flex-wrap"
           data-testid="lessons-bar"
         >
           <button
@@ -3295,13 +3308,13 @@ export default function ChurchLearn({
             }}
             className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]"
           >
-            <UiIcon name="bookOpen" /> All {unitLabels(active.meta).noun}s
+            <UiIcon name="bookOpen" /> All<span className="hidden sm:inline"> {unitLabels(active.meta).noun}s</span>
           </button>
           <span className="text-[0.6875rem] text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
             {active.meta.title}
           </span>
           <span className="text-[0.6875rem] text-[#5A5751] ml-auto" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-            {courses.reduce((t, c) => t + ((c.schedule && c.schedule.length) || 0), 0)} lessons · {courses.length} courses
+            {courses.reduce((t, c) => t + ((c.schedule && c.schedule.length) || 0), 0)} lessons<span className="hidden sm:inline"> · {courses.length} courses</span>
           </span>
         </div>
       )}

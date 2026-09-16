@@ -110,3 +110,30 @@ describe('it changes only what it should', () => {
     expect(toSpokenForm(undefined)).toBe('');
   });
 });
+
+// =============================================================================
+// The book of Job is said like the NAME, never like work (DR-0441)
+// =============================================================================
+// Darrell 2026-09-16: "Reader keeps saying Job like working not Job like the
+// name... can we fix that?!!! Perpetually?" Spoken form only; the page and every
+// quotation keep the four letters. Proven-to-catch: the raw string still says
+// the working word.
+describe('the book of Job is said like the name, never like work', () => {
+  it('the report itself: a reference to the book', () => {
+    expect(toSpokenForm('Job 1:6')).toBe('Jobe chapter 1 verse 6');
+    expect(toSpokenForm('Job 38:4')).toBe('Jobe chapter 38 verse 4');
+  });
+  it('the name in prose, the possessive, and inside a quoted line', () => {
+    expect(toSpokenForm('the book of Job')).toBe('the book of Jobe');
+    expect(toSpokenForm("Job's three friends")).toBe("Jobe's three friends");
+    expect(toSpokenForm('read through Job 1:6 and Job 38:7 together')).toBe('read through Jobe chapter 1 verse 6 and Jobe chapter 38 verse 7 together');
+  });
+  it('work is left alone: lowercase always, and the capitalised employment senses by the word that follows', () => {
+    expect(toSpokenForm('a job well done')).toBe('a job well done');
+    expect(toSpokenForm('Job interviews are hard')).toBe('Job interviews are hard');
+    expect(toSpokenForm('Job losses rose last year')).toBe('Job losses rose last year');
+  });
+  it('PROVEN-TO-CATCH: the raw string handed to the voice still says the working word', () => {
+    expect('Job 1:6').not.toContain('Jobe');
+  });
+});

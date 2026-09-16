@@ -210,6 +210,27 @@ try {
   // all three MUST trip.
   const RHYTHM = { maxLines: 6, maxRefs: 9 }; // = SECTION_RHYTHM (ChurchLearn.jsx); pinned by lesson-127-is-the-standard.test.jsx
   const CHROME_MAX_PX = 64;
+  //  10. THE TEXT DOMINATES AND THE CONTROLS NEVER GET BIGGER (Darrell
+  //      2026-09-16, phone screenshots at A++/A+++, DR-0438): on the lesson at
+  //      360px the chrome that covers the first viewport (header, lesson bar,
+  //      the fixed comfort bar, the floaters — a union of their bands) is
+  //      bounded at Normal, and at Big Print it is NO LARGER than at Normal
+  //      (+12px of rounding). Measured before the fix: 443px at Normal, 749px
+  //      (89% of 844) at Big Print; after: 443 / 422.
+  //  11. NO FLOATER SITS ON THE FIXED COMFORT BAR at Big Print — the reading
+  //      pill, back-to-top, Feedback and Give step above it (--ts-hatch-h).
+  // The Normal budget is a RATCHET: it holds today's measurement and only
+  // moves down (the phone header's own "only what is necessary" decision is
+  // the pending DR-0438 re-review).
+  const CHROME_BUDGET_360_NORMAL_PX = 460;
+  // Rounding allowance for the never-bigger comparison: the union is built
+  // from five or six bands each rounded to a pixel, and the comfort row wraps
+  // on web-font metrics. Measured 2026-09-16: 441 vs 445 in the sandbox, 442
+  // vs 456 on one runner that measured before the fonts had settled (the
+  // sibling run on the same commit read 442 vs 450). The pass now waits for
+  // document.fonts.ready and a settle before it measures, and allows 12px.
+  const NEVER_BIGGER_ALLOWANCE_PX = 12;
+  let coveredNormal360 = null;
   const LESSON_CASES = SELFTEST
     ? [{ width: 360, size: 'normal' }, { width: 360, size: 'bigprint' }]
     : (SWEEP ? [...WIDTHS.map((width) => ({ width, size: 'normal' })), { width: 360, size: 'bigprint' }] : []);
@@ -235,6 +256,10 @@ try {
       if (b) b.click();
     });
     await page.waitForSelector('[data-para-index], [data-point-index]', { timeout: 20000 }).catch(() => {});
+    // Fonts first, then a settle: the chrome bands wrap on the real web-font
+    // metrics, and a measurement taken on the fallback face reads differently.
+    await page.evaluate(() => (document.fonts && document.fonts.ready ? document.fonts.ready : null)).catch(() => {});
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 300)));
     if (SELFTEST && size === 'normal') {
       await page.addStyleTag({ content: '[data-para-index], [data-point-index] { max-width: 60% !important }' });
       await page.evaluate(() => {
@@ -250,7 +275,10 @@ try {
     }
     if (SELFTEST && size === 'bigprint') {
       // The pre-fix balloon, reproduced: the cap removed and the rem floor back.
-      await page.addStyleTag({ content: '[data-testid="lesson-space-bar"] { zoom: 1 !important } [data-testid="lesson-space-bar"] button { min-height: 7rem !important }' });
+      // And DR-0438's two: every chrome region back to the raw root scale (the
+      // controls grow with the text) and the comfort-bar height un-published
+      // (the floaters land on the bar) — both MUST trip.
+      await page.addStyleTag({ content: '[data-testid="lesson-space-bar"] { zoom: 1 !important } [data-testid="lesson-space-bar"] button { min-height: 7rem !important } .ts-chrome-region { zoom: 1 !important } :root { --ts-hatch-h: 0px !important }' });
       await page.evaluate(() => new Promise((r) => setTimeout(r, 100)));
     }
     const m = await page.evaluate(() => {
@@ -264,8 +292,31 @@ try {
       const pr = paras[0].getBoundingClientRect();
       const strips = [...document.querySelectorAll('[data-testid="section-refs"]')];
       const tall = (sel) => Math.max(0, ...[...document.querySelectorAll(sel)].map((b) => Math.round(b.getBoundingClientRect().height)));
+      // Invariants 10 + 11: the chrome bands that cover the first viewport.
+      const vh = window.innerHeight;
+      const hdr = document.querySelector('header');
+      const bar = document.querySelector('[data-testid="lesson-space-bar"]');
+      const hatch = document.querySelector('.ts-escape-hatch');
+      const floaters = [document.querySelector('.tts-controls'), document.querySelector('button[aria-label="Open feedback"]'), document.querySelector('.church-give-floater')].filter(Boolean);
+      const bands = [];
+      for (const el of [hdr, bar, hatch, ...floaters]) {
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        if (r.height <= 0) continue;
+        bands.push([Math.max(0, r.top), Math.min(vh, r.bottom)]);
+      }
+      bands.sort((a, b) => a[0] - b[0]);
+      let covered = 0; let cur = null;
+      for (const [t, b] of bands) { if (b <= t) continue; if (!cur || t > cur[1]) { if (cur) covered += cur[1] - cur[0]; cur = [t, b]; } else cur[1] = Math.max(cur[1], b); }
+      if (cur) covered += cur[1] - cur[0];
+      const hatchFixed = !!hatch && getComputedStyle(hatch).position === 'fixed';
+      const hr = hatch ? hatch.getBoundingClientRect() : null;
+      const onTheBar = hatchFixed ? floaters.filter((f) => { const r = f.getBoundingClientRect(); return r.height > 0 && !(r.right <= hr.left || hr.right <= r.left || r.bottom <= hr.top || hr.bottom <= r.top); }).map((f) => (f.getAttribute('aria-label') || f.className || '?').toString().slice(0, 20)) : [];
       return {
         size: document.documentElement.getAttribute('data-text-size'),
+        vh,
+        covered: Math.round(covered),
+        onTheBar,
         paras: paras.length,
         prose: Math.round(pr.width),
         content: Math.round(contentRight - contentLeft),
@@ -293,7 +344,17 @@ try {
       if (m.barButtonPx > CHROME_MAX_PX) fail(`${where}: the lesson bar's buttons are ${m.barButtonPx}px tall — the frame ballooned with the text (cap: ${CHROME_MAX_PX}px)`);
       if (m.chipPx > CHROME_MAX_PX) fail(`${where}: a text-size chip is ${m.chipPx}px tall — the control compounds with its own setting (cap: ${CHROME_MAX_PX}px)`);
     }
-    if (failures === before) console.log(`lesson ok  ${where} — prose ${m.prose}px of ${m.content}px, ${m.strips} strips (max ${m.maxChips} chips, max ${m.maxBlockLines} lines/block)${size === 'bigprint' ? `, bar buttons ${m.barButtonPx}px, chips ${m.chipPx}px` : ''}, nothing boxed in a sentence`);
+    if (width === 360) {
+      if (size === 'normal') {
+        coveredNormal360 = m.covered;
+        if (m.covered > CHROME_BUDGET_360_NORMAL_PX) fail(`${where}: chrome covers ${m.covered}px of the ${m.vh}px first viewport — over the ${CHROME_BUDGET_360_NORMAL_PX}px budget; the text must dominate a phone`);
+      } else if (size === 'bigprint') {
+        if (coveredNormal360 == null) fail(`${where}: no Normal measurement to compare against — the never-bigger invariant was not checked`);
+        else if (m.covered > coveredNormal360 + NEVER_BIGGER_ALLOWANCE_PX) fail(`${where}: chrome covers ${m.covered}px at Big Print vs ${coveredNormal360}px at Normal — the controls got bigger with the text`);
+        if (m.onTheBar.length) fail(`${where}: ${m.onTheBar.length} floater(s) sit on the fixed comfort bar: ${m.onTheBar.join(', ')}`);
+      }
+    }
+    if (failures === before) console.log(`lesson ok  ${where} — chrome covers ${m.covered}px of ${m.vh}px, prose ${m.prose}px of ${m.content}px, ${m.strips} strips (max ${m.maxChips} chips, max ${m.maxBlockLines} lines/block)${size === 'bigprint' ? `, bar buttons ${m.barButtonPx}px, chips ${m.chipPx}px` : ''}, nothing boxed in a sentence`);
   }
   // ---------------------------------------------------------------------------
   // TEXT-SCALE pass — the layout is measured AT Big Print, not assumed to hold.
@@ -405,9 +466,10 @@ if (SELFTEST) {
   const tsTripped = failures - tsFailuresBefore;
   const lessonTripped = tsFailuresBefore - lessonFailuresBefore;
   const chromeTripped = lessonFailuresBefore;
-  // The lesson pass now trips FIVE ways: width-short, boxed control, a wall of
-  // chips, an over-long block, and the ballooned bar at Big Print.
-  if (failures > 0 && chromeTripped > 0 && lessonTripped >= 5 && tsTripped >= 2) {
+  // The lesson pass now trips SEVEN ways: width-short, boxed control, a wall of
+  // chips, an over-long block, the ballooned bar at Big Print, chrome that grew
+  // with the text, and floaters on the comfort bar (DR-0438).
+  if (failures > 0 && chromeTripped > 0 && lessonTripped >= 7 && tsTripped >= 2) {
     console.log(`SELFTEST-BREAK OK — the probe CAN fail (${failures} tripped: ${chromeTripped} chrome, ${lessonTripped} lesson, ${tsTripped} textscale)`);
     process.exit(0);
   }

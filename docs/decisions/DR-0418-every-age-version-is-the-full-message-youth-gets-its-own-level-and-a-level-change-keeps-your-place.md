@@ -288,6 +288,201 @@ Touched With the Feeling (adult prose 2,679 by the gate's counter; floors child 
 
 All twelve movements in each band: the sympathy as fact; without sin as completeness (the exit nobody but He refused); made sin, numbered, wounded rather than "felt like a sinner"; how He was tempted at all (nothing in Me); the weight measured in damage, not desire (the advertisement inversion); the old priest's shared guilt against His; the judgment never grounded in sampling; He knows you without a briefing; what the sympathy is for (your nerve, not His verdict); what it does to prayer; where the Word stops; where it lands. The child band keeps the L136 gate's own child rules: no made-to-be-sin abstraction and no Levitical comparison quoted at child level (two verses the first draft quoted were replaced with child prose, caught by the gate before the lane). Fullness baseline 137 → 136.
 
+## L135 — the eighteenth full lesson (2026-09-16)
+
+They Called Every One of Them George (adult prose 3,008 by the gate's counter; floors child 1,504, others 1,805). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 820 · 0.28 · FK 1.3 | **1,890 · 0.63** |
+| youth | missing | **1,930 · 0.64** (new) |
+| teen | 1,312 · 0.45 · FK 6.7 | **1,881 · 0.63** |
+| senior | 1,731 · 0.59 · FK 12.3 | **2,063 · 0.69** |
+
+All thirteen parts in each band: the telling with its one precision; the name they took; the porter honoured in the Word; Yahweh names and never un-names; Hagar; hired to be invisible and therefore positioned, with the guard; what the Word says about stealing a man (kept out of the child band per the L135 gate's own child rules); shut out by the builders; the wage Yahweh legislated; good news from a far country; thirty years then one phone call; the One who took the servant's form and was given the Name; the one small instruction. The L135 gate also holds the child band shorter than the senior; the first draft's senior was 119 characters too short and was given the elders' two-ledgers paragraph. Fullness baseline 136 → 135.
+
+## L134 — the nineteenth full lesson (2026-09-16)
+
+Divers Weights: when the question keeps moving, the record that stands, and the better assignment (adult prose 2,382 by the gate's counter; floors child 1,191, others 1,430). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 471 · 0.20 | **1,387 · 0.58** |
+| youth | missing | **1,599 · 0.67** (new) |
+| teen | 829 · 0.35 | **1,481 · 0.62** |
+| senior | 1,136 · 0.48 | **1,636 · 0.69** |
+
+All eight parts in each band: the scene and the comment that was wiser than the video; the moving goalpost named in the Torah as divers weights, not a figure of speech; you do not owe a rigged question an answer, with the Master as the proof; honour is a debt; the record stated plainly (Latimer's filament, Williams's pericardium, the thin attributions called thin, the electret microphone in the phone); why telling it exactly right is the stronger honour; the frame underneath (one image, one blood, one Giver); the better assignment, which is the children. The teen band adds the two objections young readers actually hear and the Bezaleel frame for the school's engineering track; the senior band adds the elders' testimony, the once-a-year list read aloud at the table, and the two failures that look like strength. The first draft's teen and senior each sat 29 and 19 words under the floor and the senior was shorter than the child, which the age gate forbids; both were extended. Fullness baseline 135 → 134.
+
+## L133 — the twentieth full lesson (2026-09-16)
+
+How to See the Whole Torah at Once: the twelve patterns and the two questions that opened them (adult prose 1,871 by the gate's counter; floors child 936, others 1,123). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 345 · 0.18 | **1,010 · 0.54** |
+| youth | missing | **1,338 · 0.72** (new) |
+| teen | 675 · 0.36 | **1,131 · 0.60** |
+| senior | 742 · 0.40 | **1,156 · 0.62** |
+
+All nine parts in each band: the discipline of named versus shown; the Three on the first page before there is an enemy; the Spirit in all five books; the One who is seen and carries the Name; what Yahweh meant by our likeness (a communion, family language, self-giving — Judah, Moses, Aaron, and the coats of skins first); the chain of substitution from the garden to the pole; the enemy named with the one playbook; the hard pattern that knowing did not prevent it, with Deuteronomy 29:4 keeping it from contempt; and the whole picture. The child band keeps its gate's own three marks (what a pattern is, the three tricks, points to Jesus) and walks each pattern a second time with a job to do; the youth band is the full nine patterns in a teenager's voice; the teen adds the two questions answered in their own words and the pencil-mark reading plan; the senior adds three charges, Bezaleel for the school, and the table assignment. Fullness baseline 134 → 133.
+
+## L132 — the twenty-first full lesson (2026-09-16)
+
+The Whole Salvation Plan Inside Genesis Alone, and the Godhead at War with the Enemies from the First Pages (adult prose 2,343 by the gate's counter; floors child 1,172, others 1,406). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 410 · 0.17 | **1,237 · 0.53** |
+| youth | missing | **1,601 · 0.68** (new) |
+| teen | 788 · 0.34 | **1,416 · 0.60** |
+| senior | 914 · 0.39 | **1,433 · 0.61** |
+
+All nine parts in each band: the Three on page one before there is an enemy; the enemy's three moves on the record; Yahweh seeks before He sentences; the whole rescue announced to the enemy as his sentence; the first covering Yahweh provided and the way kept, not demolished; the plan the length of Genesis (Abel, the Spirit striving, grace by name, the blessing for everybody, righteousness counted, the covenant Yahweh walked alone, the Lamb on Moriah, the ladder, the ford, the sceptre, Joseph's sentence); the enemies named early; the Three working together against them; and why the case borrows nothing from later. The child band keeps its gate's own marks (the sore heel that gets better; Jesus is the Lamb) and walks the plan a second time with a job to do; the youth band is the full nine parts in a teenager's voice; the teen adds the three moves as today's pressure, the covenant walked alone, the five-minute Genesis-only telling and Bezaleel for the school; the senior adds four charges and the table. Fullness baseline 133 → 132.
+
+## L131 — the twenty-second full lesson (2026-09-16)
+
+Joy Is Not Happiness: three days, one strength, and the Word as the code that runs each of them (adult prose 1,330 by the gate's counter; floors child 665, others 798). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 321 · 0.24 | **753 · 0.57** |
+| youth | missing | **1,013 · 0.76** (new) |
+| teen | 401 · 0.30 | **806 · 0.61** |
+| senior | 474 · 0.36 | **816 · 0.61** |
+
+All movements in each band: happiness as a readout and strength wired to joy; the weeping crowd the verse was issued to; the four-line code (read, source, act, strength); the bad day with Habakkuk's Yet, James's ledger word and the Philippian jail; the okay day as the dangerous one, the Maker of the day and the discipline of counting; the great day with the seventy, the Giver and the shared win; the same joy on all three proved at Golgotha and sealed by the theft-proof clause; and the prayer for the day the strength line reads empty. The child band keeps its gate's own marks (two different kinds of glad; the crowd was crying; Jesus is the best example) and learns the four steps with a nightly job; the youth band is the full teaching in a teenager's voice; the teen adds the five uses and a seven-night assignment; the senior adds three charges from the elders' own data and the portion sent by hand. Fullness baseline 132 → 131.
+
+## L130 — the twenty-third full lesson (2026-09-16)
+
+Three Days and Three Nights: what He did in the place of the dead, and why the devil is defeated but not destroyed (adult prose 1,971 by the gate's counter; floors child 986, others 1,183). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 484 · 0.25 | **1,110 · 0.56** |
+| youth | missing | **1,260 · 0.64** (new) |
+| teen | 630 · 0.32 | **1,227 · 0.62** |
+| senior | 741 · 0.38 | **1,238 · 0.63** |
+
+All ten parts in each band: the question asked precisely as three claims; where He was and the one English word doing two jobs; the four verbs and not one of them is fight; where the victory was won, by date; what destroy means; the proof he was not annihilated, written after the resurrection; the three dates kept straight; where the Word is silent, we stop; Yahweh's purpose in His own clauses; and the ten points for the Body. The child band keeps its gate's own marks (It is finished; the keys; the Lamb of Yahweh) and walks ten pieces with a job to do; the youth band is the full teaching in a teenager's voice; the teen adds the seven uses, the card and the three-sentence answer, and the bench discipline for the school; the senior adds four charges, the two halves for the fearful, and the table. The first draft's teen and senior each sat under the floor by 43 and 62 words and were extended. Fullness baseline 131 → 130.
+
+## L129 — the twenty-fourth full lesson (2026-09-16)
+
+You Have a Destiny: the Giver, the window, covenant authority, the heart of flesh, and the me that has to die (adult prose 2,890 by the gate's counter, the longest lesson in the pass so far; floors child 1,445, others 1,734). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 505 · 0.17 | **1,658 · 0.57** |
+| youth | missing | **1,871 · 0.65** (new) |
+| teen | 665 · 0.23 | **1,775 · 0.61** |
+| senior | 936 · 0.32 | **1,787 · 0.62** |
+
+All ten movements in each band: He is a Giver, settled before you pray; faith is the window, and a window can be shut from the inside, with the Word's own limits (James 4:2-3, Paul's thorn); short is not small and long is not holy; authority is not power and the verse itself says so, with the honest note on the keys; the covenant is what makes it work, and bounds it; the heart of stone (Darrell's word, the hinge); thoughts brought to obey (his second word), with the guard rail and the Philippians 4:8 checklist; to the death of me and His version of me (his third and fourth words), both choosing sentences taught; grace then glory; the destiny and its fence. The child band keeps its gate's own marks and walks ten pieces with a three-part job; the youth band is the full ten movements in a teenager's voice; the teen adds the movements the short version skipped and seven uses; the senior adds five charges, the two choosings and the corporate destiny for the elders, and the table. This lesson's bands are stored with paragraph breaks, so the apply script learned to escape newlines (a one-line fix, kept for every later lesson). Fullness baseline 130 → 129.
+
+## L128 — the twenty-fifth full lesson (2026-09-16)
+
+The Prudent Man Studies: systematic analysis, the Ways that protect, and seeing Him while blind (adult prose 4,650 by the gate's counter — the longest lesson in the corpus; floors child 2,325, others 2,790). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 581 · 0.12 | **2,594 · 0.56** |
+| youth | missing | **3,461 · 0.74** (new) |
+| teen | 673 · 0.14 | **3,242 · 0.70** |
+| senior | 1,131 · 0.24 | **3,002 · 0.65** |
+
+Every movement in each band: the weld verse (Hosea 14:9) and the two verbs of the prudent man; prudence as a skill handed to the simple and the young, with its active definitions; systematic analysis as a workman's labour (precept upon precept, the Bereans' pairing, Ezra's seek-do-teach); the mechanism (senses exercised by use) and the fence (both houses got identical weather, and both men heard); the hiding as invitation and the fence on the searching (the secret things His, the revealed ours and our children's, to do); what prophets and kings wanted and did not get (not unto themselves, but unto us; Daniel by books); acts versus Ways, the still small voice, the word behind you at the turn, the stranger's voice, recognising someone never met, the retrospective proof (Jacob, Emmaus, the healed man) and Isaiah 42:16; He changes the default and holds the attention with His own eye; the temple as the actual heart and the words abiding as the link that makes studying into protecting; noticing the difference (the thin line, the peace as umpire, the decision still yours); cannot see, not will not; the deterministic doing (dwell, the terms in His first person, willing and obedient, sowing and reaping); three guard rails; ask for the Ways by name; the warning of John 5:39 and the walk of Genesis 3:8. The child band keeps the whole lesson in seventeen pieces with the curb story and a nightly job; the youth band is the full teaching in a teenager's voice; the teen adds the movements the short version left out and a seven-part week; the senior adds five charges, the elders' accumulating advantage, and the table. Fullness baseline 129 → 128.
+
+## L127 — the twenty-sixth full lesson (2026-09-16)
+
+The Firsts: what Yahweh did in each century that had never been done before (adult prose 1,554 by the gate's counter; floors child 777, others 933). This is the standard lesson (DR-0410); its teen and senior were already full, so only the child and the youth needed work. Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 514 · 0.33 | **959 · 0.62** |
+| youth | missing | **1,574 · 1.01** (new) |
+| teen | 1,235 · 0.79 | 1,235 · 0.79 (already full, unchanged) |
+| senior | 1,555 · 1.00 | 1,555 · 1.00 (already full, unchanged) |
+
+The child band keeps its gate's own marks (the walk, Genesis 3:8, no adult freight) and now walks every first a second time with what each was for, ending at the walk; the youth band carries all ten movements — the goal, why it looks like this, dating without lying, the firsts themselves, where the firsts stop, the puzzle, the fence that matters most, why the covenant had to change, the road, and the receipt book — in a teenager's voice. The apply script learned to leave a band alone when it has no extension. Fullness baseline 128 → 127.
+
+## L126 — the twenty-seventh full lesson (2026-09-16)
+
+Feelings Are Fruit, Not Root: belief, the renewed mind, and declarations bounded by His Word (adult prose 4,090 by the gate's counter; floors child 2,045, others 2,454). One of the longest lessons in the corpus, with nineteen movements. Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 525 · 0.13 | **2,281 · 0.56** |
+| youth | missing | **2,924 · 0.71** (new) |
+| teen | 1,567 · 0.38 | **2,600 · 0.64** |
+| senior | 1,525 · 0.37 | **2,619 · 0.64** |
+
+The child band keeps its gate's own marks (none of the adult vocabulary — no subconscious, neural, self-sabotage, or declaration — and its three kept quotes) and now walks all nineteen pieces as a garden: the roots, the tree, the bird that does not get a nest, the sharp knife that sees the why, the fence that we speak only what He said, and the meal and the nap before the word. The youth, teen, and senior bands each carry the whole spine — feelings prove belief not truth, you are not your thoughts, the honest days-to-a-habit answer with no invented number, the reasoning-together pattern from Abraham to Habakkuk to Job, "who told thee," the stuffed-feelings warning from Psalm 32, the opened eyes at Dothan, and thanksgiving before petition — in their own registers. Fullness baseline 127 → 126.
+
+## L125 — the twenty-eighth full lesson (2026-09-16)
+
+Rules of Engagement: the warfare the Word authorizes, the open doors it closes, and where the Word stops (adult prose 3,664 by the gate's counter; floors child 1,832, others 2,199). The short bands were quote-dense and prose-thin: the teen carried the verses but not the bloodline, the land, the giants at home, or the deception movement at all. Before- and after-values both by the gate's counter:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 432 · 0.12 | **2,134 · 0.58** |
+| youth | missing | **2,647 · 0.72** (new) |
+| teen | 684 · 0.19 | **2,548 · 0.70** |
+| senior | 1,150 · 0.31 | **2,620 · 0.72** |
+
+The child band keeps its gate's own marks (no demonology vocabulary, "not a lesson about being afraid", the archangel's line, the joy moved to the name written in heaven) and now carries the family question in both halves in a child's words — say sorry like Daniel did, and you are not in trouble for what they did — and closes on the locked house with the lights on. The teen band gains the movements it lacked: source discipline in two hands, Peter's sequence beside James's, the three giants treated pastorally with Elijah's meal and nap and the explicit depression guardrail, the bloodline in both tiers with the evening-versus-once proportion, legal ground with the who-holds-the-controversy question, the drift-vector of deception, the Isaiah 14 proportion, Jehoshaphat, the pace verse, and the two failure modes addressed to teenagers. The senior band gains a movement-by-movement run-of-room: the ninety-second source framing, the show-of-hands diagnosis on James 4:7, Elijah given the whole segment, the third-row script for the bloodline, the one question asked of every land text, the house audit done in the room rather than described, the boundary movement's close-the-loop, which movement may never be cut for time, and how to spot each failure mode by the end of the first movement. Fullness baseline 126 → 125.
+
+## L124 — the twenty-ninth full lesson (2026-09-16)
+
+Equipped to Win: the hour you are losing, the Word again, and the man who did not want the job (adult prose 2,411 by the gate's counter; floors child 1,206, others 1,447). Before- and after-values both by the gate's counter:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 554 · 0.23 | **1,529 · 0.63** |
+| youth | missing | **2,263 · 0.94** (new) |
+| teen | 909 · 0.38 | **1,625 · 0.67** |
+| senior | 1,105 · 0.46 | **1,676 · 0.70** |
+
+The child band keeps its gate's marks (no captivity or death arithmetic; Jeremiah 1:5 kept) and now carries the broken jar against again as mending versus making, the burned scroll and the room that was not scared, the house nobody wanted, opposition in the terms, the tears that are love, the two things to put down, the fountain and the buckets, and the present-tense you are, closing on the father's hand on the bicycle seat. The youth band walks all sixteen movements in a teenager's voice. The teen band gains the seventy-years arithmetic, Daniel's we as the anti-offence posture, mending versus making, and the buyer and the passer-by, with homework and the whole of it. The senior band gains three movements (the arithmetic of the sentence, mending versus making said explicitly, and the buyer illustration credited and grounded) plus a run-of-room order: hands on who is losing now, waves early, love before again, the honest cost before the identity, and the two-evils question asked and waited on. Fullness baseline 125 → 124.
+
+## L123 — the thirtieth full lesson (2026-09-16)
+
+Would You Sign That Contract: the answer, the qualification, and the manner that forfeited it (adult prose 2,118 by the gate's counter; floors child 1,059, others 1,271). Before- and after-values both by the gate's counter:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 223 · 0.11 | **1,379 · 0.65** |
+| youth | missing | **2,001 · 0.94** (new) |
+| teen | 502 · 0.24 | **1,394 · 0.66** |
+| senior | 495 · 0.23 | **1,311 · 0.62** |
+
+The child band keeps its gate's marks (no marriage, divorce, contract, or spouse vocabulary; "Ye shall know them by their fruits" kept) and teaches the transferable spine as nine pieces for a child: a question is not a trap, Yahweh keeps His promises to people who break theirs, a promise that only counts when it is easy was never a promise, Caesar's coin as rules-and-Yahweh-both, check the bottom block, kids are allowed to say true things, names are not arguments, slow down, and the question nobody asked, closing on the two block-builders. The youth band walks every movement of the adult lesson in a teenager's voice with a how-to-use-this list. The teen band gains the seam, the Ephesians 5:32 licence, the tribute-money occasion stated, the three tiers as a method, all four qualification steps at exact size, the slur handled specifically, and the question neither man asked. The senior band gains a run-of-room: the three people in the room named at the opening, the seam found by the room itself, tier one said face to face with the young men, Psalm 15:4 slowed down, the fourth qualification step kept at the size the text gives it, the manner where a grey head is the asset, and three pastoral watch-fors. Fullness baseline 124 → 123.
+
+## L122 — the thirty-first full lesson (2026-09-16)
+
+Does She Feel Like Your Favorite Person: preferring one another and the first works (adult prose 1,509 by the gate's counter; floors child 755, others 906). Before- and after-values both by the gate's counter:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 262 · 0.17 | **1,121 · 0.74** |
+| youth | missing | **1,537 · 1.02** (new) |
+| teen | 479 · 0.32 | **1,161 · 0.77** |
+| senior | 475 · 0.31 | **1,162 · 0.77** |
+
+The child band keeps its gate's marks (no marital frame; "do the first works" and the practice a child can run) and now walks eight pieces for a household: can they tell, the Word's own name for favorite person at a fervent temperature, the friend who goes missing, the three-step repair that never waits on feelings, the list item by item with the talebearer warning, laughing at home as obedience, the two warnings (the sad person who cannot feel it; the mirror never a bill), and Jesus first, closing on the campfire nobody decided to let go out. The youth band walks the whole adult lesson for friendships and family with the first-relationship trap named. The teen band gains why the order is the whole lesson, delight as command with Deuteronomy 24:5, the covering item pressed, both caveats, the first-relationship trap, and homework. The senior band gains a run-of-room: the silence after the second question, the friend movement made to cost something by a silent list that becomes the homework, Revelation 2:4-5 in its honest order, the covering item named as talebearing, Deuteronomy 24:5 as the verse the room has never heard preached, and the two people the caveats protect. Fullness baseline 123 → 122.
+
+## L121 — the thirty-second full lesson (2026-09-16)
+
+Know Your Own Post: her provision, her guard, and the beam in the pointing eye (adult prose 1,596 by the gate's counter; floors child 798, others 958). Before- and after-values both by the gate's counter:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 267 · 0.17 | **1,354 · 0.85** |
+| youth | missing | **1,601 · 1.00** (new) |
+| teen | 451 · 0.28 | **1,184 · 0.74** |
+| senior | 469 · 0.29 | **1,125 · 0.70** |
+
+The child band keeps its gate's marks (the beam verse, "Strength and honour are her clothing", "never tell someone they are worthless", no marital-argument frame) and walks nine pieces: the two lists, the plank first, the hero woman really provides (Dorcas, the Shunammite, the women who funded the Lord), the hero woman really guards (looketh well, ready before the snow, Abigail, the midwives), peace is everybody's job with the tell-a-grown-up guard rail, never price a person at zero with the edify test, the funny part that is not funny, your score is your own, and the floor everybody stands on, closing on the goalie who leaves the goal. The youth band walks the whole adult lesson with the feed named as the place the fault performs itself. The teen band gains her guard as logistics, peace weighed with both hands and the guard rail, the beam precisely without dismissing the man, the busybody economy, the floor, and why this matters at that age. The senior band gains a run-of-room: the verb count done by the room, 21:9 never without 29:22, the guard rail said while looking at the room, the contempt hinge done in both halves, the beam as order not cancellation, and three pastoral watch-fors. Fullness baseline 122 → 121.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.

@@ -17,6 +17,29 @@ import { useTextSize, DEFAULT_TEXT_SIZE } from '../lib/text-size.js';
 export default function TextSizeControl({ variant = 'header', className = '' }) {
   const [active, setSize, steps] = useTextSize();
   const isPanel = variant === 'panel';
+  // THE FIXED COMFORT BAR PUBLISHES ITS HEIGHT (DR-0438). At Largest / Big
+  // Print the header's comfort row becomes a fixed bottom bar (.ts-escape-hatch,
+  // index.css) — and the floaters (reading pill, back-to-top, Feedback, Give)
+  // sat ON it: measured 2026-09-16 at 360px, every floater overlapped the bar
+  // at both sizes. The bar's real height goes out as --ts-hatch-h on <html> so
+  // the floaters step above it by exactly that much; 0px whenever the row is in
+  // the flow. Re-published on every size step (position flips at Largest) and
+  // on every resize of the row (it wraps differently per width).
+  const rootRef = React.useRef(null);
+  React.useEffect(() => {
+    if (isPanel || typeof document === 'undefined') return undefined;
+    const bar = rootRef.current && rootRef.current.closest('.ts-escape-hatch');
+    const doc = document.documentElement;
+    if (!bar) return undefined;
+    const publish = () => {
+      const fixed = getComputedStyle(bar).position === 'fixed';
+      doc.style.setProperty('--ts-hatch-h', fixed ? `${Math.round(bar.getBoundingClientRect().height)}px` : '0px');
+    };
+    publish();
+    let ro = null;
+    if (typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(publish); ro.observe(bar); }
+    return () => { if (ro) ro.disconnect(); doc.style.setProperty('--ts-hatch-h', '0px'); };
+  }, [isPanel, active]);
 
   const buttons = (
     <div
@@ -73,8 +96,8 @@ export default function TextSizeControl({ variant = 'header', className = '' }) 
   if (!isPanel) {
     // Header variant: an aA icon hint + the stepper, kept tight.
     return (
-      <div className={`flex items-center gap-1.5 ${className}`}>
-        <span aria-hidden="true" className="text-[#5A5751] leading-none select-none" style={{ fontSize: '0.95rem' }}>
+      <div ref={rootRef} className={`flex items-center gap-1.5 ${className}`}>
+        <span aria-hidden="true" className="text-[#5A5751] leading-none select-none hidden sm:inline" style={{ fontSize: '0.95rem' }}>
           <span style={{ fontSize: '0.7em' }}>A</span>A
         </span>
         {buttons}

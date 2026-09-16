@@ -22,7 +22,7 @@ import {
 import { mergeVoiceCatalog, canCloneVoice, isVoiceEntitled, resolveVoiceProvider, KIND, SYSTEM_VOICE } from './voice-registry.js';
 import { buildStandInAssignments, resolveVoiceURIForId, standInPitch } from './voice-assignment.js';
 import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
-import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport } from './voice-service.js';
+import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService } from './voice-service.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
 import { createBackgroundAudio } from './background-audio.js';
@@ -34,8 +34,19 @@ import { supabase } from './supabase.js';
  * @param {boolean} opts.isOwner       entitled to personal (subscriber) voices
  * @param {boolean} opts.sovereignVoiceReady  override (defaults to the endpoint config)
  */
-export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceServiceReady() } = {}) {
+export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverride } = {}) {
   const tts = useTextToSpeech();
+  // READY MEANS ANSWERING (DR-0440): configured is not the same as alive. A
+  // configured studio is probed once (cached a minute) and a studio that did
+  // not answer reads as not ready — the stand-in plays and says why — instead
+  // of every read timing out. A caller's explicit override still wins (tests).
+  const [studioHealth, setStudioHealth] = useState(() => voiceServiceHealth());
+  useEffect(() => {
+    let alive = true;
+    if (readyOverride === undefined && isVoiceServiceReady()) probeVoiceService().then((h) => { if (alive) setStudioHealth(h); });
+    return () => { alive = false; };
+  }, [readyOverride]);
+  const sovereignVoiceReady = readyOverride !== undefined ? readyOverride : (isVoiceServiceReady() && studioHealth !== 'down');
   const { voiceId, setVoiceId } = useReadingVoice(supabase);
   const [profiles, setProfiles] = useState([]);
   const [cloudPlaying, setCloudPlaying] = useState(false);

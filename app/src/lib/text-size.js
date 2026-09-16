@@ -103,9 +103,15 @@ export const DEFAULT_TEXT_SIZE = 'normal';
 // chrome (no fixed-px controls), so nothing already-fixed is shrunk.
 //
 // CHROME_SCALE_FACTOR controls how much of the content growth the chrome is
-// allowed to follow. 0.25 => at Largest (1.5x content) the chrome is ~1.125x —
-// "maybe slightly larger, capped," never ballooned.
-export const CHROME_SCALE_FACTOR = 0.25;
+// allowed to follow. It was 0.25 from 2026-06-17 ("maybe slightly larger,
+// capped": ~1.44x at Big Print). ZERO since 2026-09-16 (DR-0438) — Darrell,
+// with three phone screenshots of a lesson at A++/A+++: "the controls should
+// never get bigger." Measured at 360px before the change: the chrome covered
+// 90% of the first viewport at A+++ (header 594px, comfort bar 222px, floaters
+// stacked on top of it). Chrome is now exactly its Normal size at every step —
+// the WORDS grow, the frame does not move — and the floor rule for small
+// content text (DR-0427) keeps excluding every chrome region.
+export const CHROME_SCALE_FACTOR = 0;
 
 /**
  * The capped multiplier for display/nav chrome, given the full content multiplier.
@@ -114,7 +120,7 @@ export const CHROME_SCALE_FACTOR = 0.25;
  *   mult 1    -> 1      (Normal: identical)
  *   mult 1.15 -> 1.0375
  *   mult 1.3  -> 1.075
- *   mult 1.5  -> 1.125  (Largest: chrome ~12.5% larger vs content 50% larger)
+ *   mult 1.5  -> 1.125  (with the 2026-06-17 factor; 1 — unchanged — since DR-0438)
  */
 export function chromeMultFor(mult) {
   const m = typeof mult === 'number' && mult > 0 ? mult : 1;
