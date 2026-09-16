@@ -116,7 +116,7 @@ export default function PublicWelcome({ catalog = LEARN_CATALOG, placement = 'to
     // find (the "faint hover" has to work with a finger).
     if (retreated) {
       return (
-        <div className="print:hidden" data-testid="public-welcome-rest">
+        <div className="ts-chrome-region print:hidden" data-testid="public-welcome-rest">
           <button
             type="button"
             onClick={() => { setRetreated(false); setAsked(true); }}
@@ -131,7 +131,7 @@ export default function PublicWelcome({ catalog = LEARN_CATALOG, placement = 'to
     }
     return (
       <div
-        className="border-b border-[#E8E4DC] bg-[#1A1815] text-[#FAF8F4] px-4 py-1.5 flex items-center justify-between gap-3 flex-wrap print:hidden"
+        className="ts-chrome-region border-b border-[#E8E4DC] bg-[#1A1815] text-[#FAF8F4] px-4 py-1.5 flex items-center justify-between gap-3 flex-wrap print:hidden"
         data-testid="public-welcome-top"
       >
         <span className="text-[0.625rem] uppercase tracking-[0.2em]" style={MONO}>

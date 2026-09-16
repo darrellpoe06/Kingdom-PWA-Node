@@ -3986,7 +3986,7 @@ ${THEME_CSS}
           picker). Stays visible the whole session. CTAs: switch persona, see
           welcome modal again, or start your own. */}
       {isDemoMode && !demoWelcomeOpen && !headerCollapsed && !churchDoorOnly && (
-        <div className="bg-[#B85838] text-white text-xs px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
+        <div className="ts-chrome-region bg-[#B85838] text-white text-xs px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="uppercase tracking-[0.2em] font-semibold">Sample · {DEMO_PERSONA_META[demoPersona]?.label || 'Family of 4'}</span>
             <span className="opacity-90 hidden sm:inline" style={{ fontFamily: '"Fraunces", serif' }}>Nothing saves.</span>
@@ -4146,11 +4146,11 @@ ${THEME_CSS}
                 <span className="hidden sm:inline lg:hidden">{churchBrand ? 'The Love Corner' : 'Family Operating Systems'}</span>
                 <span className="sm:hidden lg:inline">{churchBrand ? 'The Love Corner' : 'PoeTech'}</span>
               </h1>
-              <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} <span className="text-[0.5rem] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
+              <div className="ts-chrome-region text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} <span className="text-[0.5rem] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end min-w-0 ts-chrome-region ts-escape-hatch bg-[#FAF8F4]">
               {/* GIVE, first in the row, on church surfaces only (rationale in components/ChurchGiving.jsx). */}
-              {(churchBrand || view === 'church') && <ChurchGiveHeaderButton church={data.church} />}
+              {(churchBrand || view === 'church') && <ChurchGiveHeaderButton church={data.church} floaterPresent={view === 'church'} />}
               {/* Obvious top-right Log in / Log out box, like TLC, on every app (Darrell 2026-07-14). */}
               <HeaderAuthButton />
               <AuthBanner />
@@ -4407,7 +4407,7 @@ ${THEME_CSS}
               aria-expanded={!headerCollapsed}
               aria-label={headerCollapsed ? 'Show the full header (date, account, voice, font, theme controls)' : 'Hide the top bar — keep only the tabs for more room'}
               title={headerCollapsed ? 'Show the full header' : 'Hide the top bar (keep tabs)'}
-              className="shrink-0 self-stretch px-2.5 sm:px-3 flex items-center justify-center border-l border-[#E8E4DC] text-[#5A5751] hover:text-[#1A1815] hover:bg-[#E8E4DC] focus:outline focus:outline-2 focus:outline-[#B85838]"
+              className="ts-chrome-region shrink-0 self-stretch px-2.5 sm:px-3 flex items-center justify-center border-l border-[#E8E4DC] text-[#5A5751] hover:text-[#1A1815] hover:bg-[#E8E4DC] focus:outline focus:outline-2 focus:outline-[#B85838]"
             >
               <UiIcon name={headerCollapsed ? 'chevronDown' : 'chevronUp'} className="text-base" />
               <span className="sr-only">{headerCollapsed ? 'Show header' : 'Hide header'}</span>

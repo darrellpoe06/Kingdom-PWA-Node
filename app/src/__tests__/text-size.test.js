@@ -115,21 +115,19 @@ describe('content-vs-chrome scope split', () => {
     expect(chromeMultFor(1)).toBe(1);
   });
 
-  it('chromeMultFor grows far slower than content — capped, never ballooned', () => {
-    // At Largest, content is 2x but chrome must stay bounded (~1.25x — DR-0145).
-    expect(chromeMultFor(2)).toBeCloseTo(1.25, 6);
-    // The cap must always be strictly between "no growth" and "full growth".
-    for (const s of TEXT_SIZE_STEPS) {
-      if (s.mult === 1) continue;
-      const cap = chromeMultFor(s.mult);
-      expect(cap).toBeGreaterThan(1);
-      expect(cap).toBeLessThan(s.mult);
-    }
+  it('chrome NEVER grows with the text size — exactly 1x at every step (DR-0438)', () => {
+    // Darrell 2026-09-16, phone screenshots at A++/A+++: "the controls should
+    // never get bigger." Before this the cap let chrome reach ~1.44x at Big
+    // Print and it covered 90% of a 360px viewport. Proven-to-catch: the old
+    // factor (0.25) makes chromeMultFor(2) = 1.25 and this fails.
+    expect(CHROME_SCALE_FACTOR).toBe(0);
+    for (const s of TEXT_SIZE_STEPS) expect(chromeMultFor(s.mult)).toBe(1);
+    expect(chromeMultFor(2)).toBe(1);
   });
 
   it('chrome follows exactly CHROME_SCALE_FACTOR of the content growth', () => {
     expect(chromeMultFor(1.3)).toBeCloseTo(1 + 0.3 * CHROME_SCALE_FACTOR, 6);
-    expect(CHROME_SCALE_FACTOR).toBeGreaterThan(0);
+    expect(CHROME_SCALE_FACTOR).toBeGreaterThanOrEqual(0);
     expect(CHROME_SCALE_FACTOR).toBeLessThan(1);
   });
 
@@ -142,7 +140,7 @@ describe('content-vs-chrome scope split', () => {
       // Above Normal the region zooms OUT (<1) to undo most of the root growth.
       if (s.mult > 1) expect(zoom).toBeLessThan(1);
     }
-    expect(chromeScaleFor(2)).toBeCloseTo(0.625, 6); // 1.25 chrome cap / 2 root (DR-0145)
+    expect(chromeScaleFor(2)).toBeCloseTo(0.5, 6); // 1x chrome / 2x root (DR-0438)
   });
 
   it('chrome math degrades to identity for bad input, never throws', () => {

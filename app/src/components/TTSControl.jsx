@@ -35,6 +35,12 @@ import { buildSurfaceDigest } from '../lib/surface-digest.js';
 import { talkAboutSurface } from '../lib/talk-about.js';
 import { useIdleReveal } from '../lib/use-idle-reveal.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
+import { useScreenAwake, NO_WAKE_LOCK_HINT } from '../lib/screen-awake.js';
+
+// After the page comes back from dark, the engine's own foreground recovery
+// (lib/tts.js _recoverForeground) gets this long to bring the audio back before
+// the reader is offered ▶ Continue (DR-0439).
+export const INTERRUPT_GRACE_MS = 1500;
 
 // CONTROLS ARE NOT CONTENT — the reader must not read the buttons.
 //
@@ -121,6 +127,36 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     catalog, voiceId, setVoiceId, currentItem,
     segmentIndex, setBoundaryHandler, deviceRead, cloudProgress,
   } = useReadAloud({ isOwner });
+
+  // THE SCREEN STAYS ON WHILE IT READS (DR-0439; Darrell 2026-09-16: his phone
+  // goes black at 10 minutes and cuts the lesson). One shared wake-lock holder
+  // named for the reader; the lesson space holds its own while a lesson is
+  // open (ChurchLearn). Per-device switch in the panel below.
+  const awake = useScreenAwake(isReading, 'read-aloud');
+  // WENT DARK MID-READING → ▶ CONTINUE (Darrell: "a prompt to users... so it
+  // doesn't cut out their lesson and they can push play and it will continue").
+  // If the page hid while a reading was live and, on return, the engine's own
+  // recovery did not bring it back within the grace period, offer the way on —
+  // from the held sentence, never the top. A reader's own pause is never nagged
+  // (paused still counts as reading, so nothing was lost).
+  const [interrupted, setInterrupted] = useState(false);
+  const readingRef = useRef(false);
+  readingRef.current = isReading;
+  const hidWhileReadingRef = useRef(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    let timer = null;
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') { hidWhileReadingRef.current = readingRef.current; return; }
+      if (!hidWhileReadingRef.current) return;
+      hidWhileReadingRef.current = false;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { if (!readingRef.current) setInterrupted(true); }, INTERRUPT_GRACE_MS);
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { document.removeEventListener('visibilitychange', onVis); if (timer) clearTimeout(timer); };
+  }, []);
+  useEffect(() => { if (isReading) setInterrupted(false); }, [isReading]);
 
   // FOLLOW-ALONG (DR-0264, Darrell 2026-08-03: readers "could be 6 or 60 years
   // old... highlighted as it reads so users can see their place and the screen
@@ -696,6 +732,14 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     if (f && f.follow && isReading) jumpToSegment(0);
   };
   const canJump = isReading && !!(followRef.current && followRef.current.follow);
+  // ▶ Continue after the screen went dark: resume a pause, else re-speak from
+  // the held sentence when a follow map exists, else start the page read.
+  const continueReading = () => {
+    setInterrupted(false);
+    if (isPaused) { resume(); return; }
+    const f = followRef.current;
+    if (f && f.follow) jumpToSegment(currentGlobalSegment()); else start();
+  };
 
   const close = () => {
     if (!isReading) stopAll(); // idle: also stands down an armed tap-to-start
@@ -730,6 +774,13 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // true modal layer — HelpWalkthrough (110), Modal/Lightbox (120) — which
     // must keep covering it.
     <div className="tts-controls fixed bottom-4 right-4 z-[80] print:hidden flex flex-col items-end gap-2">
+      {interrupted && (
+        <div role="status" data-testid="reading-interrupted" className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.75em] py-[0.5em] flex items-center flex-wrap justify-end gap-[0.5em]" style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>
+          <span className="text-[0.75em] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>The screen went dark and the reading stopped.</span>
+          <button type="button" onClick={continueReading} className="px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">▶ Continue</button>
+          <button type="button" onClick={() => setInterrupted(false)} aria-label="Dismiss" className="px-[0.5em] py-[0.375em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
+        </div>
+      )}
       {scrollTopBtn}
       {supported && (isOpen && minimized && isReading ? (
         /* THE READING PILL (DR-0265): while the voice is reading, the full card
@@ -812,6 +863,14 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
             </div>
           </div>
 
+          {/* THE SCREEN STAYS ON WHILE IT READS (DR-0439) — the per-device switch,
+              and the honest line where the browser has no wake lock. */}
+          <div className="flex items-center justify-between gap-[0.5em] mb-[0.75em]" data-testid="screen-awake-row">
+            <span className="text-[0.625em] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{awake.supported ? 'Keeps the screen on while it reads' : NO_WAKE_LOCK_HINT}</span>
+            {awake.supported && (
+              <button type="button" role="switch" aria-checked={awake.enabled} onClick={() => awake.setEnabled(!awake.enabled)} aria-label="Keep the screen on while reading" className={`px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.625em] uppercase tracking-wider border-2 font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838] ${awake.enabled ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{awake.enabled ? 'On' : 'Off'}</button>
+            )}
+          </div>
           <div className="grid grid-cols-3 gap-[0.25em] mb-[0.75em]">
             {!isReading ? (
               <>

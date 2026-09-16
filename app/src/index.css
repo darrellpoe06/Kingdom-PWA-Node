@@ -146,6 +146,34 @@ html[data-text-size='bigprint'] .ts-safe-sticky .ts-escape-hatch {
   z-index: 60;
 }
 
+/* THE CONTROLS NEVER GET BIGGER, AND THE TEXT DOMINATES (Darrell 2026-09-16,
+   DR-0438, three phone screenshots of a lesson at A++/A+++: "We need the text
+   to dominate the screen when the screen gets smaller... the controls should
+   never get bigger... they should get smaller or only have what is necessary
+   when the screen is reduced"). Measured before, 360px: chrome covered 52% of
+   the first viewport at Normal and 90% at A+++; the mobile build stamp read at
+   33px (a chrome label the DR-0427 floor caught because its row was never
+   marked chrome); every floater sat on top of the fixed comfort bar.
+   Three moves: (1) --ts-chrome-scale is now exactly 1/mult (lib/text-size.js,
+   CHROME_SCALE_FACTOR = 0) so every chrome region is its Normal size at every
+   step; (2) the unmarked chrome rows are marked; (3) the floaters step above
+   the fixed comfort bar by its published height (--ts-hatch-h, set by
+   TextSizeControl from the bar's real box). The floaters that are themselves
+   chrome regions are zoomed, and a zoomed element's offsets are zoomed with
+   it, so their offset is divided by the zoom to land in viewport pixels. */
+html[data-text-size='largest'] .tts-controls,
+html[data-text-size='bigprint'] .tts-controls {
+  bottom: calc(1rem + var(--ts-hatch-h, 0px));
+}
+html[data-text-size='largest'] button[aria-label="Open feedback"],
+html[data-text-size='bigprint'] button[aria-label="Open feedback"] {
+  bottom: calc(1rem + var(--ts-hatch-h, 0px) / var(--ts-chrome-scale, 1));
+}
+html[data-text-size='largest'] .church-give-floater,
+html[data-text-size='bigprint'] .church-give-floater {
+  bottom: calc(5rem + var(--ts-hatch-h, 0px) / var(--ts-chrome-scale, 1));
+}
+
 /* ===========================================================================
    Tab strips scroll horizontally — never overflow the page (Darrell 2026-06-18)
    ===========================================================================
