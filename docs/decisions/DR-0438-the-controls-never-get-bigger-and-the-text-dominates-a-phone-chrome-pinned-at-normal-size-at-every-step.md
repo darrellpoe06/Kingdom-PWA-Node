@@ -57,7 +57,7 @@ Measured after, same instrument, same viewport:
 
 At 390px: Normal 421 · 50%; A+++ 405 · 48%; A44 422 · 50%. Horizontal overflow: none at any width or step.
 
-- **The gate** (`scripts/chrome-layout-probe.mjs`, lesson pass, rides CI's `--sweep`): at 360px the chrome covering the first viewport is ≤ 460px at Normal (today's 443, a ratchet) and at Big Print is no larger than at Normal (+8px rounding); no floater intersects the fixed comfort bar at Big Print. **Selftest-proven:** `--selftest-break` restores the raw root scale on every chrome region and un-publishes the bar height; both new invariants trip (the selftest now requires seven lesson trips, up from five).
+- **The gate** (`scripts/chrome-layout-probe.mjs`, lesson pass, rides CI's `--sweep`): at 360px the chrome covering the first viewport is ≤ 460px at Normal (today's 443, a ratchet) and at Big Print is no larger than at Normal (+12px rounding allowance, after waiting for `document.fonts.ready` and a settle — the first CI run on the same commit read 442 vs 456 on one runner and 442 vs 450 on its sibling, a web-font-metrics race, not a control that grew); no floater intersects the fixed comfort bar at Big Print. **Selftest-proven:** `--selftest-break` restores the raw root scale on every chrome region and un-publishes the bar height; both new invariants trip (the selftest now requires seven lesson trips, up from five).
 - `text-size.test.js` pins `CHROME_SCALE_FACTOR === 0` and `chromeMultFor(step) === 1` for every step; the old factor fails it.
 - The affected suites (text size, escape hatch, header hideaway, the reading panel's chrome cap, lesson space, lesson 127 standard, the little ones grow too, public welcome, church give) pass; lint clean.
 
