@@ -405,6 +405,19 @@ The Firsts: what Yahweh did in each century that had never been done before (adu
 
 The child band keeps its gate's own marks (the walk, Genesis 3:8, no adult freight) and now walks every first a second time with what each was for, ending at the walk; the youth band carries all ten movements — the goal, why it looks like this, dating without lying, the firsts themselves, where the firsts stop, the puzzle, the fence that matters most, why the covenant had to change, the road, and the receipt book — in a teenager's voice. The apply script learned to leave a band alone when it has no extension. Fullness baseline 128 → 127.
 
+## L126 — the twenty-seventh full lesson (2026-09-16)
+
+Feelings Are Fruit, Not Root: belief, the renewed mind, and declarations bounded by His Word (adult prose 4,090 by the gate's counter; floors child 2,045, others 2,454). One of the longest lessons in the corpus, with nineteen movements. Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 525 · 0.13 | **2,281 · 0.56** |
+| youth | missing | **2,924 · 0.71** (new) |
+| teen | 1,567 · 0.38 | **2,600 · 0.64** |
+| senior | 1,525 · 0.37 | **2,619 · 0.64** |
+
+The child band keeps its gate's own marks (none of the adult vocabulary — no subconscious, neural, self-sabotage, or declaration — and its three kept quotes) and now walks all nineteen pieces as a garden: the roots, the tree, the bird that does not get a nest, the sharp knife that sees the why, the fence that we speak only what He said, and the meal and the nap before the word. The youth, teen, and senior bands each carry the whole spine — feelings prove belief not truth, you are not your thoughts, the honest days-to-a-habit answer with no invented number, the reasoning-together pattern from Abraham to Habakkuk to Job, "who told thee," the stuffed-feelings warning from Psalm 32, the opened eyes at Dothan, and thanksgiving before petition — in their own registers. Fullness baseline 127 → 126.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
