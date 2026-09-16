@@ -470,6 +470,19 @@ Does She Feel Like Your Favorite Person: preferring one another and the first wo
 
 The child band keeps its gate's marks (no marital frame; "do the first works" and the practice a child can run) and now walks eight pieces for a household: can they tell, the Word's own name for favorite person at a fervent temperature, the friend who goes missing, the three-step repair that never waits on feelings, the list item by item with the talebearer warning, laughing at home as obedience, the two warnings (the sad person who cannot feel it; the mirror never a bill), and Jesus first, closing on the campfire nobody decided to let go out. The youth band walks the whole adult lesson for friendships and family with the first-relationship trap named. The teen band gains why the order is the whole lesson, delight as command with Deuteronomy 24:5, the covering item pressed, both caveats, the first-relationship trap, and homework. The senior band gains a run-of-room: the silence after the second question, the friend movement made to cost something by a silent list that becomes the homework, Revelation 2:4-5 in its honest order, the covering item named as talebearing, Deuteronomy 24:5 as the verse the room has never heard preached, and the two people the caveats protect. Fullness baseline 123 → 122.
 
+## L121 — the thirty-second full lesson (2026-09-16)
+
+Know Your Own Post: her provision, her guard, and the beam in the pointing eye (adult prose 1,596 by the gate's counter; floors child 798, others 958). Before- and after-values both by the gate's counter:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 267 · 0.17 | **1,354 · 0.85** |
+| youth | missing | **1,601 · 1.00** (new) |
+| teen | 451 · 0.28 | **1,184 · 0.74** |
+| senior | 469 · 0.29 | **1,125 · 0.70** |
+
+The child band keeps its gate's marks (the beam verse, "Strength and honour are her clothing", "never tell someone they are worthless", no marital-argument frame) and walks nine pieces: the two lists, the plank first, the hero woman really provides (Dorcas, the Shunammite, the women who funded the Lord), the hero woman really guards (looketh well, ready before the snow, Abigail, the midwives), peace is everybody's job with the tell-a-grown-up guard rail, never price a person at zero with the edify test, the funny part that is not funny, your score is your own, and the floor everybody stands on, closing on the goalie who leaves the goal. The youth band walks the whole adult lesson with the feed named as the place the fault performs itself. The teen band gains her guard as logistics, peace weighed with both hands and the guard rail, the beam precisely without dismissing the man, the busybody economy, the floor, and why this matters at that age. The senior band gains a run-of-room: the verb count done by the room, 21:9 never without 29:22, the guard rail said while looking at the room, the contempt hinge done in both halves, the beam as order not cancellation, and three pastoral watch-fors. Fullness baseline 122 → 121.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
