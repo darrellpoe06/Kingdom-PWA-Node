@@ -1884,3 +1884,464 @@ describe('sov21 — the whole system and the stone cut without hands quotes its 
     expect(drifted).not.toContain(SOV21_FRAGMENTS['Galatians 6:7']);
   });
 });
+
+// =============================================================================
+// sov22 — the needle in the haystack and the chunk that drops its condition
+// (captured 2026-09-16 from the ByteByteGo issue "How LLMs Can Find a Needle in
+// a Haystack", forwarded by the Governor with his "Lesson." marker and two
+// words — research, and Word first; DR-0449). The class's retrieval week: the
+// invitation to search is older than every index and came from Yahweh
+// (Matthew 7:7; Jeremiah 29:13); a true sentence cut from its condition is the
+// oldest trick there is (Genesis 2:16-17 re-chunked in Genesis 3:1, 4; Matthew
+// 4:6 against Psalms 91:11, answered in Matthew 4:7), hence "rightly dividing"
+// (2 Timothy 2:15); the Word explains the Word is the real embedding space
+// (1 Corinthians 2:13; Isaiah 28:10; Acts 17:11); two or three witnesses is
+// reranking (Deuteronomy 19:15; 2 Corinthians 13:1); a word in due season is
+// metadata filtering (Proverbs 15:23); the Author superseded His own
+// administration and never revised His text (Hebrews 8:13 with Isaiah 40:8;
+// John 10:35); and when the retrieved set holds no answer we say so
+// (Deuteronomy 29:29). Word-first per the sov9/sov10/sov17 standard; every
+// real-world claim carried by DR-0100's tiers with source + as-of date; blocked
+// domains named rather than pretended (DR-0076 §8); every quoted verse verbatim
+// KJV + pinned here, a drift fails the build (DR-0281).
+// =============================================================================
+const sov22 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov22-the-needle-in-the-haystack-and-the-chunk-that-drops-its-condition');
+
+const SOV22_FRAGMENTS = {
+  "1 Chronicles 28:9": "for the LORD searcheth all hearts, and understandeth all the imaginations of the thoughts: if thou seek him, he will be found of thee; but if thou forsake him, he will cast thee off for ever.",
+  "1 Corinthians 13:9": "For we know in part, and we prophesy in part.",
+  "1 Corinthians 2:10": "But God hath revealed them unto us by his Spirit: for the Spirit searcheth all things, yea, the deep things of God.",
+  "1 Corinthians 2:13": "Which things also we speak, not in the words which man’s wisdom teacheth, but which the Holy Ghost teacheth; comparing spiritual things with spiritual.",
+  "1 Corinthians 2:14": "But the natural man receiveth not the things of the Spirit of God: for they are foolishness unto him: neither can he know them, because they are spiritually discerned.",
+  "1 John 2:27": "But the anointing which ye have received of him abideth in you, and ye need not that any man teach you: but as the same anointing teacheth you of all things, and is truth, and is no lie, and even as it hath taught you, ye shall abide in him.",
+  "1 John 4:1": "Beloved, believe not every spirit, but try the spirits whether they are of God: because many false prophets are gone out into the world.",
+  "1 Peter 3:15": "But sanctify the Lord God in your hearts: and be ready always to give an answer to every man that asketh you a reason of the hope that is in you with meekness and fear:",
+  "1 Thessalonians 5:21": "Prove all things; hold fast that which is good.",
+  "1 Timothy 5:19": "Against an elder receive not an accusation, but before two or three witnesses.",
+  "2 Corinthians 13:1": "This is the third time I am coming to you. In the mouth of two or three witnesses shall every word be established.",
+  "2 Corinthians 3:6": "Who also hath made us able ministers of the new testament; not of the letter, but of the spirit: for the letter killeth, but the spirit giveth life.",
+  "2 Peter 1:20": "Knowing this first, that no prophecy of the scripture is of any private interpretation.",
+  "2 Peter 3:16": "hard to be understood, which they that are unlearned and unstable wrest, as they do also the other scriptures, unto their own destruction.",
+  "2 Timothy 2:15": "Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth.",
+  "2 Timothy 3:16": "All scripture is given by inspiration of God, and is profitable for doctrine, for reproof, for correction, for instruction in righteousness:",
+  "2 Timothy 3:17": "That the man of God may be perfect, throughly furnished unto all good works.",
+  "2 Timothy 4:2": "Preach the word; be instant in season, out of season; reprove, rebuke, exhort with all longsuffering and doctrine.",
+  "Acts 17:11": "These were more noble than those in Thessalonica, in that they received the word with all readiness of mind, and searched the scriptures daily, whether those things were so.",
+  "Acts 1:7": "And he said unto them, It is not for you to know the times or the seasons, which the Father hath put in his own power.",
+  "Acts 8:30": "And Philip ran thither to him, and heard him read the prophet Esaias, and said, Understandest thou what thou readest?",
+  "Acts 8:31": "And he said, How can I, except some man should guide me? And he desired Philip that he would come up and sit with him.",
+  "Amos 8:12": "And they shall wander from sea to sea, and from the north even to the east, they shall run to and fro to seek the word of the LORD, and shall not find it.",
+  "Colossians 1:17": "And he is before all things, and by him all things consist.",
+  "Deuteronomy 17:6": "At the mouth of two witnesses, or three witnesses, shall he that is worthy of death be put to death; but at the mouth of one witness he shall not be put to death.",
+  "Deuteronomy 19:15": "One witness shall not rise up against a man for any iniquity, or for any sin, in any sin that he sinneth: at the mouth of two witnesses, or at the mouth of three witnesses, shall the matter be established.",
+  "Deuteronomy 29:29": "The secret things belong unto the LORD our God: but those things which are revealed belong unto us and to our children for ever, that we may do all the words of this law.",
+  "Deuteronomy 4:2": "Ye shall not add unto the word which I command you, neither shall ye diminish ought from it, that ye may keep the commandments of the LORD your God which I command you.",
+  "Ecclesiastes 3:1": "To every thing there is a season, and a time to every purpose under the heaven:",
+  "Ecclesiastes 3:7": "A time to rend, and a time to sew; a time to keep silence, and a time to speak;",
+  "Galatians 3:24": "Wherefore the law was our schoolmaster to bring us unto Christ, that we might be justified by faith.",
+  "Galatians 3:25": "But after that faith is come, we are no longer under a schoolmaster.",
+  "Genesis 2:16": "And the LORD God commanded the man, saying, Of every tree of the garden thou mayest freely eat:",
+  "Genesis 2:17": "But of the tree of the knowledge of good and evil, thou shalt not eat of it: for in the day that thou eatest thereof thou shalt surely die.",
+  "Genesis 3:1": "Now the serpent was more subtil than any beast of the field which the LORD God had made. And he said unto the woman, Yea, hath God said, Ye shall not eat of every tree of the garden?",
+  "Genesis 3:4": "And the serpent said unto the woman, Ye shall not surely die:",
+  "Hebrews 11:3": "Through faith we understand that the worlds were framed by the word of God, so that things which are seen were not made of things which do appear.",
+  "Hebrews 1:1": "God, who at sundry times and in divers manners spake in time past unto the fathers by the prophets,",
+  "Hebrews 1:2": "Hath in these last days spoken unto us by his Son, whom he hath appointed heir of all things, by whom also he made the worlds;",
+  "Hebrews 4:12": "For the word of God is quick, and powerful, and sharper than any twoedged sword, piercing even to the dividing asunder of soul and spirit, and of the joints and marrow, and is a discerner of the thoughts and intents of the heart.",
+  "Hebrews 7:12": "For the priesthood being changed, there is made of necessity a change also of the law.",
+  "Hebrews 8:13": "In that he saith, A new covenant, he hath made the first old. Now that which decayeth and waxeth old is ready to vanish away.",
+  "Hebrews 8:6": "But now hath he obtained a more excellent ministry, by how much also he is the mediator of a better covenant, which was established upon better promises.",
+  "Isaiah 28:10": "For precept must be upon precept, precept upon precept; line upon line, line upon line; here a little, and there a little:",
+  "Isaiah 34:16": "Seek ye out of the book of the LORD, and read: no one of these shall fail, none shall want her mate: for my mouth it hath commanded, and his spirit it hath gathered them.",
+  "Isaiah 40:8": "The grass withereth, the flower fadeth: but the word of our God shall stand for ever.",
+  "Isaiah 45:19": "I have not spoken in secret, in a dark place of the earth: I said not unto the seed of Jacob, Seek ye me in vain: I the LORD speak righteousness, I declare things that are right.",
+  "Isaiah 50:4": "The Lord GOD hath given me the tongue of the learned, that I should know how to speak a word in season to him that is weary: he wakeneth morning by morning, he wakeneth mine ear to hear as the learned.",
+  "Jeremiah 17:10": "I the LORD search the heart, I try the reins, even to give every man according to his ways, and according to the fruit of his doings.",
+  "Jeremiah 29:13": "And ye shall seek me, and find me, when ye shall search for me with all your heart.",
+  "Jeremiah 6:16": "Thus saith the LORD, Stand ye in the ways, and see, and ask for the old paths, where is the good way, and walk therein, and ye shall find rest for your souls. But they said, We will not walk therein.",
+  "Job 38:2": "Who is this that darkeneth counsel by words without knowledge?",
+  "John 10:35": "If he called them gods, unto whom the word of God came, and the scripture cannot be broken;",
+  "John 16:13": "Howbeit when he, the Spirit of truth, is come, he will guide you into all truth: for he shall not speak of himself; but whatsoever he shall hear, that shall he speak: and he will shew you things to come.",
+  "John 17:17": "Sanctify them through thy truth: thy word is truth.",
+  "John 21:25": "And there are also many other things which Jesus did, the which, if they should be written every one, I suppose that even the world itself could not contain the books that should be written. Amen.",
+  "John 5:39": "Search the scriptures; for in them ye think ye have eternal life: and they are they which testify of me.",
+  "John 8:17": "It is also written in your law, that the testimony of two men is true.",
+  "Luke 11:10": "For every one that asketh receiveth; and he that seeketh findeth; and to him that knocketh it shall be opened.",
+  "Luke 11:9": "And I say unto you, Ask, and it shall be given you; seek, and ye shall find; knock, and it shall be opened unto you.",
+  "Luke 12:42": "And the Lord said, Who then is that faithful and wise steward, whom his lord shall make ruler over his household, to give them their portion of meat in due season?",
+  "Luke 15:4": "What man of you, having an hundred sheep, if he lose one of them, doth not leave the ninety and nine in the wilderness, and go after that which is lost, until he find it?",
+  "Luke 15:5": "And when he hath found it, he layeth it on his shoulders, rejoicing.",
+  "Luke 15:6": "And when he cometh home, he calleth together his friends and neighbours, saying unto them, Rejoice with me; for I have found my sheep which was lost.",
+  "Luke 15:7": "I say unto you, that likewise joy shall be in heaven over one sinner that repenteth, more than over ninety and nine just persons, which need no repentance.",
+  "Luke 15:8": "Either what woman having ten pieces of silver, if she lose one piece, doth not light a candle, and sweep the house, and seek diligently till she find it?",
+  "Luke 15:9": "And when she hath found it, she calleth her friends and her neighbours together, saying, Rejoice with me; for I have found the piece which I had lost.",
+  "Luke 19:10": "For the Son of man is come to seek and to save that which was lost.",
+  "Luke 24:27": "And beginning at Moses and all the prophets, he expounded unto them in all the scriptures the things concerning himself.",
+  "Luke 24:32": "And they said one to another, Did not our heart burn within us, while he talked with us by the way, and while he opened to us the scriptures?",
+  "Matthew 13:44": "Again, the kingdom of heaven is like unto treasure hid in a field; the which when a man hath found, he hideth, and for joy thereof goeth and selleth all that he hath, and buyeth that field.",
+  "Matthew 13:45": "Again, the kingdom of heaven is like unto a merchant man, seeking goodly pearls:",
+  "Matthew 13:46": "Who, when he had found one pearl of great price, went and sold all that he had, and bought it.",
+  "Matthew 13:52": "Then said he unto them, Therefore every scribe which is instructed unto the kingdom of heaven is like unto a man that is an householder, which bringeth forth out of his treasure things new and old.",
+  "Matthew 18:16": "But if he will not hear thee, then take with thee one or two more, that in the mouth of two or three witnesses every word may be established.",
+  "Matthew 22:29": "Ye do err, not knowing the scriptures, nor the power of God.",
+  "Matthew 24:35": "Heaven and earth shall pass away, but my words shall not pass away.",
+  "Matthew 4:10": "Then saith Jesus unto him, Get thee hence, satan: for it is written, Thou shalt worship the Lord thy God, and him only shalt thou serve.",
+  "Matthew 4:4": "But he answered and said, It is written, Man shall not live by bread alone, but by every word that proceedeth out of the mouth of God.",
+  "Matthew 4:5": "Then the devil taketh him up into the holy city, and setteth him on a pinnacle of the temple,",
+  "Matthew 4:6": "And saith unto him, If thou be the Son of God, cast thyself down: for it is written, He shall give his angels charge concerning thee: and in their hands they shall bear thee up, lest at any time thou dash thy foot against a stone.",
+  "Matthew 4:7": "Jesus said unto him, It is written again, Thou shalt not tempt the Lord thy God.",
+  "Matthew 5:38": "Ye have heard that it hath been said, An eye for an eye, and a tooth for a tooth:",
+  "Matthew 5:39": "But I say unto you, That ye resist not evil: but whosoever shall smite thee on thy right cheek, turn to him the other also.",
+  "Matthew 5:43": "Ye have heard that it hath been said, Thou shalt love thy neighbour, and hate thine enemy.",
+  "Matthew 5:44": "But I say unto you, Love your enemies, bless them that curse you, do good to them that hate you, and pray for them which despitefully use you, and persecute you;",
+  "Matthew 7:7": "Ask, and it shall be given you; seek, and ye shall find; knock, and it shall be opened unto you:",
+  "Matthew 7:8": "For every one that asketh receiveth; and he that seeketh findeth; and to him that knocketh it shall be opened.",
+  "Nehemiah 8:8": "So they read in the book in the law of God distinctly, and gave the sense, and caused them to understand the reading.",
+  "Proverbs 11:14": "Where no counsel is, the people fall: but in the multitude of counsellors there is safety.",
+  "Proverbs 14:15": "The simple believeth every word: but the prudent man looketh well to his going.",
+  "Proverbs 15:22": "Without counsel purposes are disappointed: but in the multitude of counsellors they are established.",
+  "Proverbs 15:23": "A man hath joy by the answer of his mouth: and a word spoken in due season, how good is it!",
+  "Proverbs 17:28": "Even a fool, when he holdeth his peace, is counted wise: and he that shutteth his lips is esteemed a man of understanding.",
+  "Proverbs 18:13": "He that answereth a matter before he heareth it, it is folly and shame unto him.",
+  "Proverbs 18:17": "He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him.",
+  "Proverbs 25:11": "A word fitly spoken is like apples of gold in pictures of silver.",
+  "Proverbs 2:3": "Yea, if thou criest after knowledge, and liftest up thy voice for understanding;",
+  "Proverbs 2:4": "If thou seekest her as silver, and searchest for her as for hid treasures;",
+  "Proverbs 2:5": "Then shalt thou understand the fear of the LORD, and find the knowledge of God.",
+  "Proverbs 30:5": "Every word of God is pure: he is a shield unto them that put their trust in him.",
+  "Proverbs 30:6": "Add thou not unto his words, lest he reprove thee, and thou be found a liar.",
+  "Proverbs 8:17": "I love them that love me; and those that seek me early shall find me.",
+  "Psalms 119:105": "Thy word is a lamp unto my feet, and a light unto my path.",
+  "Psalms 119:130": "The entrance of thy words giveth light; it giveth understanding unto the simple.",
+  "Psalms 119:160": "Thy word is true from the beginning: and every one of thy righteous judgments endureth for ever.",
+  "Psalms 12:6": "The words of the LORD are pure words: as silver tried in a furnace of earth, purified seven times.",
+  "Psalms 12:7": "Thou shalt keep them, O LORD, thou shalt preserve them from this generation for ever.",
+  "Psalms 139:1": "O LORD, thou hast searched me, and known me.",
+  "Psalms 139:2": "Thou knowest my downsitting and mine uprising, thou understandest my thought afar off.",
+  "Psalms 139:23": "Search me, O God, and know my heart: try me, and know my thoughts:",
+  "Psalms 139:24": "And see if there be any wicked way in me, and lead me in the way everlasting.",
+  "Psalms 139:4": "For there is not a word in my tongue, but, lo, O LORD, thou knowest it altogether.",
+  "Psalms 91:11": "For he shall give his angels charge over thee, to keep thee in all thy ways.",
+  "Psalms 91:12": "They shall bear thee up in their hands, lest thou dash thy foot against a stone.",
+  "Revelation 22:18": "For I testify unto every man that heareth the words of the prophecy of this book, If any man shall add unto these things, God shall add unto him the plagues that are written in this book:",
+  "Revelation 22:19": "And if any man shall take away from the words of the book of this prophecy, God shall take away his part out of the book of life, and out of the holy city, and from the things which are written in this book.",
+  "Revelation 2:23": "And I will kill her children with death; and all the churches shall know that I am he which searcheth the reins and hearts: and I will give unto every one of you according to your works.",
+  "Romans 15:4": "For whatsoever things were written aforetime were written for our learning, that we through patience and comfort of the scriptures might have hope.",
+};
+
+const SOV22_CORPUS = {
+  "1 Chronicles 28:9": ["1Chronicles", 28, 9],
+  "1 Corinthians 13:9": ["1Corinthians", 13, 9],
+  "1 Corinthians 2:10": ["1Corinthians", 2, 10],
+  "1 Corinthians 2:13": ["1Corinthians", 2, 13],
+  "1 Corinthians 2:14": ["1Corinthians", 2, 14],
+  "1 John 2:27": ["1John", 2, 27],
+  "1 John 4:1": ["1John", 4, 1],
+  "1 Peter 3:15": ["1Peter", 3, 15],
+  "1 Thessalonians 5:21": ["1Thessalonians", 5, 21],
+  "1 Timothy 5:19": ["1Timothy", 5, 19],
+  "2 Corinthians 13:1": ["2Corinthians", 13, 1],
+  "2 Corinthians 3:6": ["2Corinthians", 3, 6],
+  "2 Peter 1:20": ["2Peter", 1, 20],
+  "2 Peter 3:16": ["2Peter", 3, 16],
+  "2 Timothy 2:15": ["2Timothy", 2, 15],
+  "2 Timothy 3:16": ["2Timothy", 3, 16],
+  "2 Timothy 3:17": ["2Timothy", 3, 17],
+  "2 Timothy 4:2": ["2Timothy", 4, 2],
+  "Acts 17:11": ["Acts", 17, 11],
+  "Acts 1:7": ["Acts", 1, 7],
+  "Acts 8:30": ["Acts", 8, 30],
+  "Acts 8:31": ["Acts", 8, 31],
+  "Amos 8:12": ["Amos", 8, 12],
+  "Colossians 1:17": ["Colossians", 1, 17],
+  "Deuteronomy 17:6": ["Deuteronomy", 17, 6],
+  "Deuteronomy 19:15": ["Deuteronomy", 19, 15],
+  "Deuteronomy 29:29": ["Deuteronomy", 29, 29],
+  "Deuteronomy 4:2": ["Deuteronomy", 4, 2],
+  "Ecclesiastes 3:1": ["Ecclesiastes", 3, 1],
+  "Ecclesiastes 3:7": ["Ecclesiastes", 3, 7],
+  "Galatians 3:24": ["Galatians", 3, 24],
+  "Galatians 3:25": ["Galatians", 3, 25],
+  "Genesis 2:16": ["Genesis", 2, 16],
+  "Genesis 2:17": ["Genesis", 2, 17],
+  "Genesis 3:1": ["Genesis", 3, 1],
+  "Genesis 3:4": ["Genesis", 3, 4],
+  "Hebrews 11:3": ["Hebrews", 11, 3],
+  "Hebrews 1:1": ["Hebrews", 1, 1],
+  "Hebrews 1:2": ["Hebrews", 1, 2],
+  "Hebrews 4:12": ["Hebrews", 4, 12],
+  "Hebrews 7:12": ["Hebrews", 7, 12],
+  "Hebrews 8:13": ["Hebrews", 8, 13],
+  "Hebrews 8:6": ["Hebrews", 8, 6],
+  "Isaiah 28:10": ["Isaiah", 28, 10],
+  "Isaiah 34:16": ["Isaiah", 34, 16],
+  "Isaiah 40:8": ["Isaiah", 40, 8],
+  "Isaiah 45:19": ["Isaiah", 45, 19],
+  "Isaiah 50:4": ["Isaiah", 50, 4],
+  "Jeremiah 17:10": ["Jeremiah", 17, 10],
+  "Jeremiah 29:13": ["Jeremiah", 29, 13],
+  "Jeremiah 6:16": ["Jeremiah", 6, 16],
+  "Job 38:2": ["Job", 38, 2],
+  "John 10:35": ["John", 10, 35],
+  "John 16:13": ["John", 16, 13],
+  "John 17:17": ["John", 17, 17],
+  "John 21:25": ["John", 21, 25],
+  "John 5:39": ["John", 5, 39],
+  "John 8:17": ["John", 8, 17],
+  "Luke 11:10": ["Luke", 11, 10],
+  "Luke 11:9": ["Luke", 11, 9],
+  "Luke 12:42": ["Luke", 12, 42],
+  "Luke 15:4": ["Luke", 15, 4],
+  "Luke 15:5": ["Luke", 15, 5],
+  "Luke 15:6": ["Luke", 15, 6],
+  "Luke 15:7": ["Luke", 15, 7],
+  "Luke 15:8": ["Luke", 15, 8],
+  "Luke 15:9": ["Luke", 15, 9],
+  "Luke 19:10": ["Luke", 19, 10],
+  "Luke 24:27": ["Luke", 24, 27],
+  "Luke 24:32": ["Luke", 24, 32],
+  "Matthew 13:44": ["Matthew", 13, 44],
+  "Matthew 13:45": ["Matthew", 13, 45],
+  "Matthew 13:46": ["Matthew", 13, 46],
+  "Matthew 13:52": ["Matthew", 13, 52],
+  "Matthew 18:16": ["Matthew", 18, 16],
+  "Matthew 22:29": ["Matthew", 22, 29],
+  "Matthew 24:35": ["Matthew", 24, 35],
+  "Matthew 4:10": ["Matthew", 4, 10],
+  "Matthew 4:4": ["Matthew", 4, 4],
+  "Matthew 4:5": ["Matthew", 4, 5],
+  "Matthew 4:6": ["Matthew", 4, 6],
+  "Matthew 4:7": ["Matthew", 4, 7],
+  "Matthew 5:38": ["Matthew", 5, 38],
+  "Matthew 5:39": ["Matthew", 5, 39],
+  "Matthew 5:43": ["Matthew", 5, 43],
+  "Matthew 5:44": ["Matthew", 5, 44],
+  "Matthew 7:7": ["Matthew", 7, 7],
+  "Matthew 7:8": ["Matthew", 7, 8],
+  "Nehemiah 8:8": ["Nehemiah", 8, 8],
+  "Proverbs 11:14": ["Proverbs", 11, 14],
+  "Proverbs 14:15": ["Proverbs", 14, 15],
+  "Proverbs 15:22": ["Proverbs", 15, 22],
+  "Proverbs 15:23": ["Proverbs", 15, 23],
+  "Proverbs 17:28": ["Proverbs", 17, 28],
+  "Proverbs 18:13": ["Proverbs", 18, 13],
+  "Proverbs 18:17": ["Proverbs", 18, 17],
+  "Proverbs 25:11": ["Proverbs", 25, 11],
+  "Proverbs 2:3": ["Proverbs", 2, 3],
+  "Proverbs 2:4": ["Proverbs", 2, 4],
+  "Proverbs 2:5": ["Proverbs", 2, 5],
+  "Proverbs 30:5": ["Proverbs", 30, 5],
+  "Proverbs 30:6": ["Proverbs", 30, 6],
+  "Proverbs 8:17": ["Proverbs", 8, 17],
+  "Psalms 119:105": ["Psalms", 119, 105],
+  "Psalms 119:130": ["Psalms", 119, 130],
+  "Psalms 119:160": ["Psalms", 119, 160],
+  "Psalms 12:6": ["Psalms", 12, 6],
+  "Psalms 12:7": ["Psalms", 12, 7],
+  "Psalms 139:1": ["Psalms", 139, 1],
+  "Psalms 139:2": ["Psalms", 139, 2],
+  "Psalms 139:23": ["Psalms", 139, 23],
+  "Psalms 139:24": ["Psalms", 139, 24],
+  "Psalms 139:4": ["Psalms", 139, 4],
+  "Psalms 91:11": ["Psalms", 91, 11],
+  "Psalms 91:12": ["Psalms", 91, 12],
+  "Revelation 22:18": ["Revelation", 22, 18],
+  "Revelation 22:19": ["Revelation", 22, 19],
+  "Revelation 2:23": ["Revelation", 2, 23],
+  "Romans 15:4": ["Romans", 15, 4],
+};
+
+describe('sov22 — the needle in the haystack and the chunk that drops its condition quotes its whole spine verbatim, Word first', () => {
+  it('the week exists, anchored on the invitation to seek and on rightly dividing', () => {
+    expect(sov22).toBeTruthy();
+    expect(sov22.anchor.ref).toContain('Matthew 7:7');
+    expect(sov22.anchor.ref).toContain('2 Timothy 2:15');
+    expect(sov22.anchor.theme).toContain(SOV22_FRAGMENTS['Matthew 7:7']);
+    expect(sov22.anchor.theme).toContain(SOV22_FRAGMENTS['2 Timothy 2:15']);
+    // No margin list of bare references (DR-0391 / DR-0402 / DR-0403).
+    expect(sov22.anchor.theme).not.toMatch(/spine of this week/i);
+  });
+  it('every quoted fragment appears letter-for-letter in the deep lesson, with its reference beside it', () => {
+    expect(Object.keys(SOV22_FRAGMENTS).length).toBeGreaterThanOrEqual(25);
+    for (const [ref, fragment] of Object.entries(SOV22_FRAGMENTS)) {
+      expect(sov22.lesson, `${ref} must be quoted verbatim`).toContain(fragment);
+      expect(sov22.lesson, `${ref} must be named beside its quote`).toContain(`(${ref})`);
+    }
+  });
+  it('every fragment matches the repo KJV corpus, not memory (two witnesses)', () => {
+    const corpus = (book) => JSON.parse(readFileSync(join(HERE, '..', '..', 'public', 'bible', 'kjv', `${book}.json`), 'utf8'));
+    const verse = (book, ch, v) => corpus(book).chapters[ch - 1][v - 1];
+    for (const [ref, fragment] of Object.entries(SOV22_FRAGMENTS)) {
+      const at = SOV22_CORPUS[ref];
+      expect(at, `${ref} must have a corpus address`).toBeTruthy();
+      expect(verse(...at), `${ref} corpus`).toContain(fragment);
+    }
+  });
+  it('every quoted verse in the OTHER fields (bigIdea, inApp, benefits, bands, quiz, rpe, facilitator) is one of the pinned fragments or a substring of one', () => {
+    const strings = [];
+    const walk = (o) => { if (typeof o === 'string') strings.push(o); else if (Array.isArray(o)) o.forEach(walk); else if (o && typeof o === 'object') Object.values(o).forEach(walk); };
+    walk({ ...sov22, lesson: '' });
+    const fields = strings.join('\n');
+    const re = /"([^"]+)"\s*\(((?:[1-3] )?[A-Za-z]+ \d+:\d+)\)/g;
+    let m;
+    while ((m = re.exec(fields))) {
+      const [, q, ref] = m;
+      const pinned = SOV22_FRAGMENTS[ref];
+      expect(pinned, `${ref} quoted outside the lesson must be pinned`).toBeTruthy();
+      expect(pinned.includes(q) || q.includes(pinned), `${ref}: "${q}" must be verbatim within the pinned fragment`).toBe(true);
+    }
+  });
+  it('the Word LEADS and the ten movements run in order', () => {
+    expect(sov22.lesson.indexOf('FIRST, THE INVITATION IS OLDER THAN THE INDEX')).toBe(0);
+    // The invitation precedes the newsletter's machinery; the Author precedes the first vendor fact (Word first, DR-0312/DR-0331).
+    expect(sov22.lesson.indexOf('Ask, and it shall be given you')).toBeLessThan(sov22.lesson.indexOf('Retrieval-augmented generation'));
+    expect(sov22.lesson.indexOf('by him all things consist')).toBeLessThan(sov22.lesson.indexOf('TIER ONE, documented'));
+    expect(sov22.lesson.indexOf('to seek and to save that which was lost')).toBeLessThan(sov22.lesson.indexOf('pgvector'));
+    const order = ['FIRST,', 'SECOND,', 'THIRD,', 'FOURTH,', 'FIFTH,', 'SIXTH,', 'SEVENTH,', 'EIGHTH,', 'NINTH,', 'TENTH,'];
+    let last = -1;
+    for (const m of order) {
+      const at = sov22.lesson.indexOf(m);
+      expect(at, `${m} must appear in order`).toBeGreaterThan(last);
+      last = at;
+    }
+    expect(sov22.lesson.length).toBeGreaterThanOrEqual(12000);
+  });
+  it('the load-bearing teaching is carried: the re-chunk, rightly dividing, the real embedding space, evidence-not-verdict, witnesses, due season, the version line, reticence, the reversal', () => {
+    for (const heading of [
+      'SECOND, WHAT THE ARTICLE DESCRIBES, HELD TO THAT PLUMB LINE',
+      'THIRD, THE CHUNK THAT DROPS ITS CONDITION IS THE OLDEST TRICK THERE IS',
+      'FOURTH, THE WORD EXPLAINS THE WORD - THAT IS THE REAL EMBEDDING SPACE',
+      'FIFTH, HOW CLOSE IS CLOSE ENOUGH - SIMILARITY IS EVIDENCE, NOT A VERDICT',
+      'SIXTH, TWO OR THREE WITNESSES IS RERANKING',
+      'SEVENTH, A WORD IN DUE SEASON IS METADATA FILTERING',
+      'EIGHTH, THE VERSION QUESTION THE AUTHOR HIMSELF SETTLED',
+      'NINTH, WHEN THERE IS NO ANSWER IN THE RETRIEVED SET, SAY SO',
+      'TENTH, WHO SEARCHES WHOM',
+    ]) expect(sov22.lesson).toContain(heading);
+    // The garden re-chunk and the temple omission are both taught, and the answer with them.
+    expect(sov22.lesson).toContain('He moved the restriction off the one tree and onto ALL of them');
+    expect(sov22.lesson).toContain('The first verse he ended three words early');
+    expect(sov22.lesson).toContain('IT IS WRITTEN AGAIN');
+    expect(sov22.lesson).toContain('Divide rightly, not divide anywhere');
+    // The nearest match is never the verdict, and the filter never falsifies a true passage.
+    expect(sov22.lesson).toContain('a candidate, not a verdict');
+    expect(sov22.lesson).toContain('A filter does not make a true passage false');
+    // exactness is numerical, not doctrinal
+    expect(sov22.lesson).toContain('exact describes the numerical search');
+    // the version bright line, stated crisply and not overreached
+    expect(sov22.lesson).toContain('The ADMINISTRATION was superseded by the Author Himself. The TEXT was never revised.');
+    expect(sov22.lesson).toContain('We will not go one step past what the Word says here');
+    // reticence named, not merely implied
+    expect(sov22.lesson).toContain('reticence');
+    // the house's own practice, read from the files
+    expect(sov22.lesson).toContain('app/public/bible/kjv');
+    expect(sov22.lesson).toContain('sixty-seven files on disk');
+    expect(sov22.lesson).toContain('app/src/__tests__/sovereign-ai-verse-integrity.test.js');
+    expect(sov22.lesson).toContain('scripts/scripture-inference-guard.mjs');
+    expect(sov22.inApp).toMatch(/Scripture tab/);
+    expect(sov22.inApp).toMatch(/Connections web/);
+  });
+  it('DR-0100: the tiers are named and applied, every source carries its as-of date, and blocked egress is disclosed rather than papered over', () => {
+    expect(sov22.lesson).toContain('TIER ONE, documented');
+    expect(sov22.lesson).toContain('TIER TWO, genuinely open');
+    expect(sov22.lesson).toContain('TIER THREE, over-reach');
+    // Primary sources named with their identifiers.
+    for (const src of ['Malkov and Yashunin', 'arXiv 1603.09320', 'arXiv 2005.11401', 'NeurIPS 2020', 'IEEE Transactions on Pattern Analysis and Machine Intelligence volume 42', 'pgvector', 'FAISS', 'Milvus documentation']) {
+      expect(sov22.lesson, `${src} must be named`).toContain(src);
+    }
+    // Every claim carries an as-of stamp, and the blocked domains are named (DR-0076 §8).
+    expect(sov22.lesson).toContain('fetched 2026-09-16');
+    expect(sov22.lesson).toContain('search-verified 2026-09-16');
+    expect(sov22.lesson).toContain('egress-blocked');
+    // Tier 2 is narrow: the open question is named, and what is NOT open is said out loud.
+    expect(sov22.lesson).toContain('Which index wins for a given workload is genuinely open');
+    expect(sov22.lesson).toContain('What is NOT open, and will not be hedged');
+    // Tier 3 corrects the claim while the data under it stands.
+    expect(sov22.lesson).toContain('the quiet belief that the tool nearest match IS the truth');
+    expect(sov22.lesson).toContain('The data under it stands untouched');
+    // Both steelmen are stated at their strongest, and named to be educated past rather than voted on.
+    expect(sov22.lesson).toContain('THE FIRST PERSPECTIVE');
+    expect(sov22.lesson).toContain('THE SECOND PERSPECTIVE');
+    expect(sov22.lesson).toContain('named to be educated past');
+    expect((sov22.lesson.match(/named to be educated past/g) || []).length).toBeGreaterThanOrEqual(2);
+  });
+  it('provenance honesty: the only non-Scripture double-quoted spans in the lesson are the forwarded article, primary vendor docs, or this repo\'s own files', () => {
+    const isWord = (q) => Object.values(SOV22_FRAGMENTS).some((f) => q.includes(f) || f.includes(q.slice(1, -1)));
+    const nonScripture = (sov22.lesson.match(/"[^"]+"/g) || []).filter((q) => !isWord(q));
+    const allowed = [
+      "\"Can I expense a hotel if my flight gets cancelled?\"",
+      "\"Accommodation expenses are reimbursable following a cancellation.\"",
+      "\"This applies only when accommodation is not provided by the airline.\"",
+      "\"matching vector lengths alone doesn't make two models compatible\"",
+      "\"Similarity provides evidence of relevance, but additional checks are needed before that evidence becomes an answer.\"",
+      "\"It doesn't guarantee that those neighbors contain the correct answer.\"",
+      "\"These groups are mathematical neighborhoods, not tidy subject folders.\"",
+      "\"It isn't the number of results returned.\"",
+      "\"Disallowed points may still provide useful navigation routes toward allowed points.\"",
+      "\"A metadata-only change can often be applied without re-embedding, provided that metadata was not a part of the text used to create the vector.\"",
+      "\"Returning the closest passage doesn't mean that an answer exists.\"",
+      "\"After normalization, the inner product equals cosine similarity.\"",
+      "\"By default, pgvector performs exact nearest neighbor search, which provides perfect recall.\"",
+      "\"The only index that can guarantee exact results is the IndexFlatL2 or IndexFlatIP.\"",
+      "\"at query time, a set of `nprobe` inverted lists is selected\"",
+      "\"the number of neighbors used in the graph\"",
+      "\"the depth of exploration at add time\"",
+      "\"the depth of exploration of the search\"",
+      "\"the max number of connections per layer\"",
+      "\"the size of the dynamic candidate list for constructing the graph\"",
+      "\"the size of the dynamic candidate list for search\"",
+      "\"fetch the actual translation rather than producing from memory\"",
+      "\"A gate that always passes is itself a lie.\"",
+      "\"They cannot see an error that lives BETWEEN two correct quotes.\"",
+      "\"Wherever a registered pair is cited as one claim, the prose MUST name what each side actually measures.\""
+];
+    for (const q of nonScripture) expect(allowed, `unexpected non-Scripture quote: ${q}`).toContain(q);
+    // The newsletter is studied, never obeyed, and never treated as an authority over the Word.
+    expect(sov22.lesson).toContain('the article is the occasion');
+  });
+  it('typographic theology: Yahweh in our voice; the adversary lowercase; the Word capitalized', () => {
+    const ours = sov22.lesson.replace(/"[^"]+"/g, '');
+    expect(ours).not.toMatch(/\bGod\b/); // the KJV's "God" lives only inside quotes
+    expect(ours).toMatch(/Yahweh/);
+    expect(sov22.lesson).not.toMatch(/\bSatan\b|\bDevil\b|\bLucifer\b/);
+    expect(sov22.lesson).toContain('the Word');
+    // The Son confessed as the Lamb.
+    expect(sov22.lesson).toContain('the Son of Yahweh, the Lamb');
+  });
+  it('the send-off page has content: at least six benefits, each a real takeaway quoting the Word', () => {
+    expect(sov22.benefits.length).toBeGreaterThanOrEqual(6);
+    for (const b of sov22.benefits) expect(b.length).toBeGreaterThan(80);
+    const blob = sov22.benefits.join('  ');
+    expect(blob).toContain('seek, and ye shall find');
+    expect(blob).toContain('rightly dividing the word of truth');
+    expect(blob).toContain('comparing spiritual things with spiritual');
+    expect(blob).toContain('shall every word be established');
+    expect(blob).toContain('a word spoken in due season');
+    expect(blob).toContain('shall stand for ever');
+    expect(blob).toContain('leave the ninety and nine');
+  });
+  it('the three bands ascend and the child band is gentle', () => {
+    expect(typeof sov22.levels.child).toBe('string');
+    expect(sov22.levels.child.length).toBeLessThan(sov22.levels.teen.length);
+    expect(sov22.levels.teen.length).toBeLessThan(sov22.levels.senior.length);
+    expect(sov22.levels.child).not.toMatch(/kill|murder|rape|sexual|abuse|slaughter|massacre|execution|suicide|porn|drug/i);
+    expect(sov22.quiz.questions.length).toBeGreaterThanOrEqual(6);
+    expect(sov22.facilitator.talkingPoints.length).toBeGreaterThanOrEqual(10);
+    expect(sov22.facilitator.discussionPrompts.length).toBeGreaterThanOrEqual(10);
+    expect(sov22.facilitator.howToRun.split('|').length).toBeGreaterThanOrEqual(5);
+    expect(sov22.rpe.research && sov22.rpe.plan && sov22.rpe.execute).toBeTruthy();
+  });
+  it('tamper-catch: the pinned ground-truth lines are themselves exact, and a one-word drift fails', () => {
+    expect(SOV22_FRAGMENTS['Matthew 7:7']).toBe('Ask, and it shall be given you; seek, and ye shall find; knock, and it shall be opened unto you:');
+    expect(SOV22_FRAGMENTS['2 Timothy 2:15']).toBe('Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth.');
+    expect(SOV22_FRAGMENTS['Genesis 3:4']).toBe('And the serpent said unto the woman, Ye shall not surely die:');
+    expect(SOV22_FRAGMENTS['Psalms 91:11']).toBe('For he shall give his angels charge over thee, to keep thee in all thy ways.');
+    expect(SOV22_FRAGMENTS['Matthew 4:7']).toBe('Jesus said unto him, It is written again, Thou shalt not tempt the Lord thy God.');
+    // The whole point of the week, pinned: the omitted clause IS the condition.
+    expect(SOV22_FRAGMENTS['Matthew 4:6']).toContain('and in their hands they shall bear thee up');
+    expect(SOV22_FRAGMENTS['Matthew 4:6']).not.toContain('in all thy ways');
+    // A one-word drift in the lesson would fail the presence check above; prove the check has teeth.
+    const drifted = sov22.lesson.split('seek, and ye shall find; knock, and it shall be opened unto you').join('seek, and you will find; knock, and it will be opened to you');
+    expect(drifted).not.toContain(SOV22_FRAGMENTS['Matthew 7:7']);
+  });
+});
