@@ -303,6 +303,24 @@ jobs:
             ${SUDO} docker exec -e PGPASSWORD="$SUPA_PW" supabase-db \
               psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A \
               -c "SELECT 'sovereign auth.users: '||count(*) FROM auth.users;" 2>&1 | tail -1
+            # CONTENT PARITY, from the box itself (DR-0443/DR-0445 open item).
+            # The witness counted auth.users and nothing the family actually
+            # reads -- so "where are the September messages?" (Darrell,
+            # 2026-09-16) had no answer here, and the repoint's writer gap went
+            # unseen for four weeks. These are the carry tables The Word reads,
+            # with the newest service DATE beside the count: a count alone
+            # cannot tell a whole database from a stale one, and unknown
+            # freshness must never read as fresh (DR-0076/DR-0125). The daily
+            # content-sync lane owns the hosted-vs-sovereign COMPARISON; this
+            # row is the sovereign side's own answer, so the two never drift
+            # into re-implementing each other.
+            ${SUDO} docker exec -e PGPASSWORD="$SUPA_PW" supabase-db \
+              psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A \
+              -c "SELECT 'sovereign content: choir_sermons '||(SELECT count(*) FROM public.choir_sermons)
+                        ||' (newest service '||COALESCE((SELECT max(service_date)::text FROM public.choir_sermons),'none')||')'
+                        ||' | video_transcripts '||(SELECT count(*) FROM public.video_transcripts)
+                        ||' | sermon_prep '||(SELECT count(*) FROM public.sermon_prep)
+                        ||' | instances '||(SELECT count(*) FROM public.instances);" 2>&1 | tail -1
           else
             echo "no POSTGRES_PASSWORD readable — ledger not queryable this probe"
           fi

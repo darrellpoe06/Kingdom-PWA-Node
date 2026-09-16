@@ -19,6 +19,83 @@ const BASE = '/poetech-app';
 const CACHE = 'poetech-' + SW_VERSION;
 const PRECACHE = [BASE + '/', BASE + '/index.html', BASE + '/manifest.webmanifest', BASE + '/icon.svg'];
 
+// THE INSTALLABLE DOORS, BY PATH -- ONE list, two jobs (DR-0258 install-scope
+// split; DR-0444 notification routing; #1405's offline shells).
+//
+// MUST stay in step with DOORS in src/lib/app-doors.js -- sw-push-handler
+// .test.js derives both lists from source and fails if they disagree.
+//
+// Both features that need to know the doors now read THIS list rather than
+// carrying one each, which is the unification the two changes owed each other:
+//   * notificationclick prefers a window already in the target's own door, so
+//     a church notification is never handed to a family window (DR-0444);
+//   * a navigation that fails offline falls back to ITS OWN face's shell.
+var DOOR_PATHS = ['/poetech-app/', '/lovecorner/app/', '/moore/app/', '/tlc/app/', '/properties/app/'];
+
+// The door a URL belongs to: the longest door path it starts with, or ''.
+function doorOf(pathname) {
+  var best = '';
+  for (var i = 0; i < DOOR_PATHS.length; i += 1) {
+    var d = DOOR_PATHS[i];
+    if (pathname.indexOf(d) === 0 && d.length > best.length) best = d;
+  }
+  return best;
+}
+
+// SCOPE-AWARE OFFLINE SHELLS. Diagnosed in PR #1405 (Darrell, 2026-08-30): the
+// church app's own start_url died with ERR_FAILED on 4G while site-health
+// reported "UP. Fresh." across every dimension. main.jsx registers '/sw.js' at
+// the DEFAULT scope '/', so ONE worker controls every face while BASE names
+// only PoeTech's -- and the navigation fallback was
+// caches.match('/poetech-app/index.html'): the WRONG app's shell when that
+// entry existed, and `undefined` when it did not. respondWith(undefined) IS a
+// network error, which Chrome renders as ERR_FAILED. A fresh browser can never
+// reproduce it (no worker installed), which is exactly why every probe stayed
+// green while installed devices were dark.
+var FACE_SHELLS = DOOR_PATHS.filter(function (d) { return d !== BASE + '/'; });
+
+// The shell belonging to a URL's own door; PoeTech's for anything else.
+function shellPathFor(rawUrl) {
+  try {
+    var d = doorOf(new URL(rawUrl).pathname);
+    if (d && d !== BASE + '/') return d + 'index.html';
+  } catch (e) { /* unparseable -> the PoeTech shell below */ }
+  return BASE + '/index.html';
+}
+
+// LAST RESORT -- a real Response, never undefined. The front door never shows
+// a dead error page.
+function offlineHtmlResponse() {
+  return new Response(
+    '<!doctype html><meta charset="utf-8">'
+    + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+    + '<title>Offline</title>'
+    + '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem;'
+    + 'font-family:Georgia,\'Times New Roman\',serif;background:#FAF8F4;color:#1A1815;text-align:center;">'
+    + '<div style="max-width:26rem;">'
+    + '<div style="font-size:.625rem;letter-spacing:.25em;text-transform:uppercase;color:#B85838;'
+    + 'font-weight:600;margin-bottom:.75rem;">PoeTech</div>'
+    + '<h1 style="font-size:1.25rem;margin:0 0 .5rem;font-weight:600;">You are offline</h1>'
+    + '<p style="font-size:.9375rem;line-height:1.5;color:#5A5751;margin:0;">'
+    + 'The connection dropped before this page could load. Reopen it once you are back online.</p>'
+    + '</div></div>',
+    { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+  );
+}
+
+// This face's shell -> the PoeTech shell -> a real offline page. Never undefined.
+function offlineShellFor(rawUrl) {
+  var shell = shellPathFor(rawUrl);
+  return Promise.resolve(caches.match(shell))
+    .catch(function () { return undefined; })
+    .then(function (hit) {
+      if (hit) return hit;
+      if (shell === BASE + '/index.html') return undefined;
+      return Promise.resolve(caches.match(BASE + '/index.html')).catch(function () { return undefined; });
+    })
+    .then(function (hit) { return hit || offlineHtmlResponse(); });
+}
+
 self.addEventListener('install', (event) => {
   // Prime the offline shell with { cache: 'reload' } so the precached copy is
   // fetched fresh from the network at install — never a stale shell pulled from
@@ -27,6 +104,13 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE).then((cache) =>
       Promise.all(PRECACHE.map((url) => cache.add(new Request(url, { cache: 'reload' }))))
+        // Each installable face's OWN shell, BEST-EFFORT: a face that 404s must
+        // never reject install, because a failed install leaves the device with
+        // NO worker at all -- strictly worse than one missing offline shell.
+        // Strict for PoeTech above, tolerant for the faces here.
+        .then(() => Promise.all(FACE_SHELLS.map((d) =>
+          cache.add(new Request(d + 'index.html', { cache: 'reload' })).catch(() => {})
+        )))
     )
   );
 });
@@ -67,7 +151,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request.url, { cache: 'no-store' })
         .then((res) => (res.redirected ? Response.redirect(res.url, 301) : res))
-        .catch(() => caches.match(BASE + '/index.html'))
+        .catch(() => offlineShellFor(event.request.url))
     );
     return;
   }
@@ -246,23 +330,6 @@ self.addEventListener('push', function (event) {
 
 // Tapping the notification should land on the RIGHT screen, and should reuse a
 // tab that is already open rather than stacking another copy of the app.
-// THE INSTALLABLE DOORS, BY PATH (DR-0258 install-scope split; DR-0444).
-// MUST stay in step with DOORS in src/lib/app-doors.js -- sw-push-handler
-// .test.js derives both lists from source and fails if they disagree, because
-// a door missing here is a notification tap that opens a SECOND window instead
-// of focusing the app the person already has open.
-var DOOR_PATHS = ['/poetech-app/', '/lovecorner/app/', '/moore/app/', '/tlc/app/', '/properties/app/'];
-
-// The door a URL belongs to: the longest door path it starts with, or ''.
-function doorOf(pathname) {
-  var best = '';
-  for (var i = 0; i < DOOR_PATHS.length; i += 1) {
-    var d = DOOR_PATHS[i];
-    if (pathname.indexOf(d) === 0 && d.length > best.length) best = d;
-  }
-  return best;
-}
-
 self.addEventListener('notificationclick', function (event) {
   event.notification.close();
   var target = (event.notification.data && event.notification.data.url) || BASE + '/';
