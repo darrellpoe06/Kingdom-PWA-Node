@@ -118,6 +118,21 @@ describe('nav-history pure helpers', () => {
     expect(parseNav('?view=does-not-exist')).toEqual({ view: 'overview', booksView: 'calendar', churchView: 'home' });
   });
 
+  // ?tab= IS AN ALIAS (2026-09-16, DR-0444). Every message notification this
+  // app ever sent landed on `/poetech-app/?tab=messages` -- a param nothing
+  // read -- so the tap opened the default view and the person met the welcome
+  // screen instead of their message ("the open the app to the welcome instead
+  // of the text message"). The landings are fixed; the notifications already
+  // delivered are not, and they must still work.
+  it('honors ?tab= as an alias for ?view= (notifications already on phones)', () => {
+    expect(parseNav('?tab=messages').view).toBe('messages');
+    expect(parseNav('?tab=church').view).toBe('church');
+  });
+
+  it('prefers ?view= when a URL carries both', () => {
+    expect(parseNav('?view=books&tab=messages').view).toBe('books');
+  });
+
   it('honors legacy church deep-links (?view=engagement)', () => {
     expect(parseNav('?view=engagement')).toEqual({ view: 'church', booksView: 'calendar', churchView: 'engagement' });
   });

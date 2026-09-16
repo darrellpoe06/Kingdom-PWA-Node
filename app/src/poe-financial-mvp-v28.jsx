@@ -919,7 +919,7 @@ function getInitialView() {
   try {
     if (typeof window === 'undefined') return 'overview';
     const sp = new URLSearchParams(window.location.search);
-    const v = (sp.get('view') || '').toLowerCase().trim();
+    const v = (sp.get('view') || sp.get('tab') || '').toLowerCase().trim(); // ?tab= is an alias, for notifications already on phones (DR-0444)
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
     if (['engagement','choir','pulpit','events','learn','scripture','bus','harvest','conference','program'].includes(v)) return 'church';

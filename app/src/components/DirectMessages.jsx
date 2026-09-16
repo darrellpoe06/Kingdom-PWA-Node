@@ -58,7 +58,7 @@ const fmtTime = (iso) => {
 // optional list of { inviteId, email } — people whose invite is out but who
 // have not signed in yet, shown as visible-but-pending (0124), never hidden.
 // `title` labels the panel.
-export default function DirectMessages({ roster = [], invited = [], displayName = '', title = 'Direct messages' }) {
+export default function DirectMessages({ roster = [], invited = [], displayName = '', title = 'Direct messages', openWithUserId = null }) {
   const [signedIn, setSignedIn] = useState(false);
   const [rows, setRows] = useState([]);
   const [openWith, setOpenWith] = useState(null); // otherUserId
@@ -144,6 +144,22 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
     setRows((prev) => markThreadReadLocal(prev, otherUserId));
     markThreadRead(otherUserId).then(() => subRef.current?.refresh?.());
   };
+
+  // A NOTIFICATION TAP OPENS THE THREAD, NOT THE LIST (2026-09-16, DR-0444).
+  //
+  // Darrell: "the messages notifications don't work fully... the open the app
+  // to the welcome instead of the text message." The landing bug is fixed in
+  // app-doors.js; this is the other half -- arriving at Messages with the
+  // person's own thread already open, which is what he asked for and what
+  // every phone's messaging app does. `openWithUserId` is the peer the deep
+  // link named; it runs ONCE (the ref), and only once signed in, so a later
+  // manual choice of another thread is never yanked back.
+  const deepLinkedRef = useRef(false);
+  useEffect(() => {
+    if (deepLinkedRef.current || !openWithUserId || !signedIn) return;
+    deepLinkedRef.current = true;
+    openThread(openWithUserId);
+  }, [openWithUserId, signedIn]);
 
   const convo = useMemo(() => (openWith ? threadMessages(rows, openWith) : []), [rows, openWith]);
   // "Seen 8:57 PM" / "Delivered" under the last of MY messages — a real row

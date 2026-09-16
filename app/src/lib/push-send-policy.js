@@ -162,11 +162,19 @@ export function liveAnnouncement({ churchName, serviceLabel } = {}) {
  * confidence would be readable over someone's shoulder on a bus. So the push
  * says who, and the app says what.
  */
-export function messageAnnouncement({ senderName } = {}) {
+export function messageAnnouncement({ senderName, spaceName } = {}) {
   const who = str(senderName) || 'Someone';
+  const where = str(spaceName);
   return {
     title: `${who} sent you a message`.slice(0, MAX_TITLE),
-    body: 'Open the app to read it.',
+    // THE SPACE IS NAMED, THE MESSAGE STILL IS NOT (added 2026-09-16, DR-0444).
+    // Darrell: "I also need the message to be sent from and received from the
+    // group it belongs to originally." A thread belongs to one space, and on a
+    // phone the person needs to know WHICH house is calling before they open
+    // it -- the church, a business, or the family. The space NAME is not the
+    // message CONTENT, so the privacy rule above is untouched: still who and
+    // where, never what.
+    body: (where ? `In ${where}. Open the app to read it.` : 'Open the app to read it.').slice(0, MAX_BODY),
   };
 }
 

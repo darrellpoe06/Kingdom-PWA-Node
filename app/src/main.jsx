@@ -11,6 +11,14 @@ import { initTextSize } from './lib/text-size.js';
 import { wireDatePickerTap } from './lib/date-picker-tap.js';
 import { captureInstallPrompt } from './lib/install-app.js';
 import { startDmNotifications } from './lib/dm-notify.js';
+import { captureDeepLink } from './lib/app-doors.js';
+
+// A notification's deep link is read HERE, at boot, before anything renders:
+// nav-history's history seed rewrites the URL within a tick and keeps only
+// view/sub/PRESERVED_PARAMS, and the surface that needs `dm=` is lazily
+// imported, so it mounts after the param is gone. One synchronous read, taken
+// once, consumed by whichever surface owns the link (app-doors.js; DR-0444).
+captureDeepLink();
 
 // The entry module is ALIVE — public/watchdog.js watches for this flag and
 // retries the load once (cache-busted) if it never appears (LESSONS P32:

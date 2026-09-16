@@ -78,7 +78,15 @@ export function parseNav(search) {
   const out = { view: DEFAULT_VIEW, booksView: DEFAULT_BOOKS, churchView: DEFAULT_CHURCH };
   try {
     const sp = new URLSearchParams(search || '');
-    const v = (sp.get('view') || '').toLowerCase().trim();
+    // `?tab=` IS AN ALIAS FOR `?view=`, and it is not a convenience (added
+    // 2026-09-16, DR-0444). push-announce shipped its notification landings as
+    // `/poetech-app/?tab=messages` -- a param this app has never read -- so
+    // every message notification fell through to the default view and opened
+    // Big Picture with the welcome card on it. The landings are fixed to
+    // `?view=`, but the notifications ALREADY DELIVERED are sitting on phones
+    // with `?tab=` in them, and a tap on one must still work. Honored here,
+    // once, in the one parser the shell and Back both read through.
+    const v = (sp.get('view') || sp.get('tab') || '').toLowerCase().trim();
     const sub = (sp.get('sub') || '').toLowerCase().trim();
     if (CHURCH_ALIASES.includes(v)) { out.view = 'church'; out.churchView = v; return out; }
     if (VALID_VIEWS.includes(v)) out.view = v;

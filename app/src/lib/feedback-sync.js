@@ -31,6 +31,7 @@
 
 import supabase from './supabase.js';
 import { postToChat, formatFeedbackMessage } from './synology-chat.js';
+import { currentDoor, PERSONAL_DOOR } from './app-doors.js';
 
 // THE LIST NEVER CARRIES THE IMAGES.
 //
@@ -91,6 +92,42 @@ export async function ensureTenantMembership(displayName) {
 }
 
 /**
+ * THE DOOR THE FEEDBACK WAS ACTUALLY GIVEN IN (2026-09-16, DR-0444).
+ *
+ * Darrell, on reading the notification fix: "Feedback should work the same
+ * way..." He is right, and it was the same defect wearing different clothes.
+ * uploadFeedback() below stamped every row with whatever
+ * `join_default_instance()` returned -- 'poe-family' -- so a member who tapped
+ * FEEDBACK inside the Love Corner app filed it to the FAMILY space, and the
+ * door it came from was not recorded anywhere. Same class as a church message
+ * notified into the family door: the record lost which house it belonged to.
+ *
+ * The membership check is the READ ITSELF, which is why this needs no extra
+ * query and no new grant: `instances_member_read` (migration 0056) only lets a
+ * member SELECT their own instances, so a non-member's read comes back empty
+ * and the caller falls back to the default space. A person standing in a door
+ * they do not belong to therefore cannot file into it -- RLS decides, not this
+ * function (DR-0060: the gate is the guard).
+ *
+ * Returns null for the personal door (its instance IS the default), for a
+ * signed-out reader, and for any failure -- never a throw, because feedback
+ * that fails to file is feedback nobody reads.
+ */
+export async function doorInstanceId(client = supabase, loc = null) {
+  const where = loc || (typeof window !== 'undefined' ? window.location : null);
+  const door = currentDoor(where && where.pathname, where && where.search);
+  if (!door || door.path === PERSONAL_DOOR) return null;
+  for (const slug of door.instances) {
+    try {
+      const { data, error } = await client
+        .from('instances').select('id').eq('slug', slug).maybeSingle();
+      if (!error && data && data.id) return data.id;
+    } catch { /* try the next slug this door answers to */ }
+  }
+  return null;
+}
+
+/**
  * Uploads one feedback item to Supabase. Best-effort: returns silently
  * if user is signed out, or if the upload fails (we log but don't throw
  * — the local localStorage write already happened, so nothing is lost).
@@ -110,6 +147,12 @@ export async function uploadFeedback(item, meta = {}) {
     console.warn('[feedback-sync] tenant membership setup failed:', e);
     return { skipped: 'no-tenant', error: e };
   }
+
+  // File it to the space the person was standing in, when they belong to it
+  // (DR-0444). The default space stays the fallback, so nothing is ever lost
+  // to a door that could not be resolved.
+  const doorId = await doorInstanceId().catch(() => null);
+  if (doorId) tenantId = doorId;
 
   // The FeedbackModal currently submits structured fields (rating + area +
   // categories + whatsWorking/whatsNot/whatsMissing). Compose a single
