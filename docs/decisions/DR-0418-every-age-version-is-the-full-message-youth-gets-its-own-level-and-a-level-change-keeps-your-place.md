@@ -340,6 +340,19 @@ The Whole Salvation Plan Inside Genesis Alone, and the Godhead at War with the E
 
 All nine parts in each band: the Three on page one before there is an enemy; the enemy's three moves on the record; Yahweh seeks before He sentences; the whole rescue announced to the enemy as his sentence; the first covering Yahweh provided and the way kept, not demolished; the plan the length of Genesis (Abel, the Spirit striving, grace by name, the blessing for everybody, righteousness counted, the covenant Yahweh walked alone, the Lamb on Moriah, the ladder, the ford, the sceptre, Joseph's sentence); the enemies named early; the Three working together against them; and why the case borrows nothing from later. The child band keeps its gate's own marks (the sore heel that gets better; Jesus is the Lamb) and walks the plan a second time with a job to do; the youth band is the full nine parts in a teenager's voice; the teen adds the three moves as today's pressure, the covenant walked alone, the five-minute Genesis-only telling and Bezaleel for the school; the senior adds four charges and the table. Fullness baseline 133 → 132.
 
+## L131 — the twenty-second full lesson (2026-09-16)
+
+Joy Is Not Happiness: three days, one strength, and the Word as the code that runs each of them (adult prose 1,330 by the gate's counter; floors child 665, others 798). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 321 · 0.24 | **753 · 0.57** |
+| youth | missing | **1,013 · 0.76** (new) |
+| teen | 401 · 0.30 | **806 · 0.61** |
+| senior | 474 · 0.36 | **816 · 0.61** |
+
+All movements in each band: happiness as a readout and strength wired to joy; the weeping crowd the verse was issued to; the four-line code (read, source, act, strength); the bad day with Habakkuk's Yet, James's ledger word and the Philippian jail; the okay day as the dangerous one, the Maker of the day and the discipline of counting; the great day with the seventy, the Giver and the shared win; the same joy on all three proved at Golgotha and sealed by the theft-proof clause; and the prayer for the day the strength line reads empty. The child band keeps its gate's own marks (two different kinds of glad; the crowd was crying; Jesus is the best example) and learns the four steps with a nightly job; the youth band is the full teaching in a teenager's voice; the teen adds the five uses and a seven-night assignment; the senior adds three charges from the elders' own data and the portion sent by hand. Fullness baseline 132 → 131.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
