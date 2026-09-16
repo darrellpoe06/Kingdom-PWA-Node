@@ -392,6 +392,19 @@ The Prudent Man Studies: systematic analysis, the Ways that protect, and seeing 
 
 Every movement in each band: the weld verse (Hosea 14:9) and the two verbs of the prudent man; prudence as a skill handed to the simple and the young, with its active definitions; systematic analysis as a workman's labour (precept upon precept, the Bereans' pairing, Ezra's seek-do-teach); the mechanism (senses exercised by use) and the fence (both houses got identical weather, and both men heard); the hiding as invitation and the fence on the searching (the secret things His, the revealed ours and our children's, to do); what prophets and kings wanted and did not get (not unto themselves, but unto us; Daniel by books); acts versus Ways, the still small voice, the word behind you at the turn, the stranger's voice, recognising someone never met, the retrospective proof (Jacob, Emmaus, the healed man) and Isaiah 42:16; He changes the default and holds the attention with His own eye; the temple as the actual heart and the words abiding as the link that makes studying into protecting; noticing the difference (the thin line, the peace as umpire, the decision still yours); cannot see, not will not; the deterministic doing (dwell, the terms in His first person, willing and obedient, sowing and reaping); three guard rails; ask for the Ways by name; the warning of John 5:39 and the walk of Genesis 3:8. The child band keeps the whole lesson in seventeen pieces with the curb story and a nightly job; the youth band is the full teaching in a teenager's voice; the teen adds the movements the short version left out and a seven-part week; the senior adds five charges, the elders' accumulating advantage, and the table. Fullness baseline 129 → 128.
 
+## L127 — the twenty-sixth full lesson (2026-09-16)
+
+The Firsts: what Yahweh did in each century that had never been done before (adult prose 1,554 by the gate's counter; floors child 777, others 933). This is the standard lesson (DR-0410); its teen and senior were already full, so only the child and the youth needed work. Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 514 · 0.33 | **959 · 0.62** |
+| youth | missing | **1,574 · 1.01** (new) |
+| teen | 1,235 · 0.79 | 1,235 · 0.79 (already full, unchanged) |
+| senior | 1,555 · 1.00 | 1,555 · 1.00 (already full, unchanged) |
+
+The child band keeps its gate's own marks (the walk, Genesis 3:8, no adult freight) and now walks every first a second time with what each was for, ending at the walk; the youth band carries all ten movements — the goal, why it looks like this, dating without lying, the firsts themselves, where the firsts stop, the puzzle, the fence that matters most, why the covenant had to change, the road, and the receipt book — in a teenager's voice. The apply script learned to leave a band alone when it has no extension. Fullness baseline 128 → 127.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
