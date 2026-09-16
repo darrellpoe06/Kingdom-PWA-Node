@@ -1,0 +1,99 @@
+# nas-user-rescue — get a locked-out family member back IN, over the
+# remote-hands channel, without anybody's hand on a keyboard.
+#
+# Darrell 2026-09-16: "Always saying you need mee holding up progress!!!! Cli
+# Ssh... what do you need from me?!!!!" and "She should never be logged [out] or
+# not able to get in!!!!!" — about Shay, locked out of the Moore Divahs app.
+#
+# WHY THIS EXISTS. infra/nas-supabase/clear_user_pin.sh and reset_password.sh
+# were written for exactly this on 2026-09-07 and then left runnable only by
+# Darrell's own hand over ConnectBot. Nothing about them needs HIS hand: they
+# need root on the NAS, and NAS_SSH_KEY already has it. That gap is what kept
+# turning a five-minute rescue into "here is a paste block for you" (DR-0108 —
+# a stated must-be-by-hand is an unverified premise to challenge).
+#
+# THE LOCKOUT IS TWO WALLS, and this clears both in one pass:
+#   1. the ACCOUNT PASSWORD (GoTrue) — the only door an email-identity account
+#      has, because SMTP is deliberately unwired on the sovereign stack
+#      (DR-0307 §3; measured again on 2026-09-16: "SMTP wired: no"), so the
+#      "email me a sign-in link" door has never worked here and cannot be the
+#      recovery path.
+#   2. the APP PIN (migration 0022) — the "Welcome back — enter your PIN"
+#      screen, whose escalating lockout makes a forgotten PIN worse on every
+#      guess. Cleared, the next sign-in opens SET-PIN instead of a wall.
+#
+# THE PASSWORD IS NEVER IN THIS LOG. It is generated on the NAS, written to a
+# root-only file there, and only the FILE PATH is printed. Addresses are masked
+# in every printed line. This lane is dispatch-only and never scheduled.
+#
+# NOT the three-brakes class (P10/P11/P12): hand-dispatched, single-instance,
+# no timer, no self-trigger, and it exits when the rescue is done.
+name: nas-user-rescue
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: 'The account to rescue (the address they sign in with).'
+        type: string
+        required: true
+      clear_pin:
+        description: 'Clear the app PIN + its lockout, so the app asks them to choose a NEW one at next sign-in.'
+        type: boolean
+        default: true
+      new_password:
+        description: 'Generate a new password ON THE NAS and set it (also confirms the address, since the email door cannot). Never printed — written to a root-only file whose path this run reports.'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nas-user-rescue
+  cancel-in-progress: false
+
+jobs:
+  rescue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (Reusable + Ephemeral) and NAS_SSH_KEY, then re-dispatch."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Verify the tailnet actually joined
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          if ! tailscale status --peers=false >/dev/null 2>&1; then
+            echo "::error::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral)."
+            exit 1
+          fi
+
+      # Red unless the account ends up able to sign in: confirmed, password set,
+      # and the PIN wall down when a clear was asked for (DR-0076).
+      - name: Rescue the account and prove they can get in
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          RESCUE_EMAIL: ${{ inputs.email }}
+          RESCUE_CLEAR_PIN: ${{ inputs.clear_pin }}
+          RESCUE_NEW_PASSWORD: ${{ inputs.new_password }}
+        run: bash scripts/user-rescue-over-tailnet.sh
