@@ -92,7 +92,7 @@ import { crossListingsFor, resolveCrossListed, crossListedCount } from '../lib/l
 const EternalAlgorithmsStudyLazy = React.lazy(() => import('./EternalAlgorithmsStudy.jsx'));
 import { organizeCourses, learnDepartments, courseLessonCount, COURSE_SORTS, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey } from '../lib/learn-organize.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
-import { getPlace, recordPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace } from '../lib/learn-resume.js';
+import { getPlace, recordPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished } from '../lib/learn-resume.js';
 import { useHistoryValue } from '../lib/nav-history.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import UiIcon from './UiIcon.jsx';
@@ -1000,7 +1000,7 @@ function GenerativeVisualNote() {
 // `flush` — the lesson is open in its OWN space (DR-0264), so the reading
 // column takes the page's full width: this panel and the stage/paced boxes
 // inside it drop their side borders and side padding (see the `li` below).
-function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = 'In the app', level = DEFAULT_LEVEL, quizSaved = null, onRecordQuiz = null, ageBand = DEFAULT_AGE_BAND, levelOverride = null, setAgeBand = null, setLearnLevel = null, onEngagement = null, venueAware = false, unitNoun = 'week', sessionFlow = null, onPlace = null, onAdvance = null, flush = false }) {
+function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = 'In the app', level = DEFAULT_LEVEL, quizSaved = null, onRecordQuiz = null, ageBand = DEFAULT_AGE_BAND, levelOverride = null, setAgeBand = null, setLearnLevel = null, onEngagement = null, venueAware = false, unitNoun = 'week', sessionFlow = null, onPlace = null, onAdvance = null, flush = false, onAllUnits = null, onStartOver = null }) {
   const [messages, setMessages] = useState([]); // [{ role, content, source? }]
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
@@ -1035,9 +1035,16 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   // and paced step instead of the top. Read live so a stage-away-and-back
   // lands on the step the learner actually reached. Fail-soft: no saved place
   // (or a different lesson's) → 0, exactly the old behavior.
+  // A LESSON THAT IS OVER REOPENS AT PART ONE (Darrell 2026-09-16: "if it's
+  // over, it's over. So it needs to be able to recognize that the lesson was
+  // over and you want to re-listen to the same freaking lesson"). A finished
+  // place still names this lesson — that is how the reader knows it was heard
+  // — but it is no longer a place to resume INTO, so the arc opens at its top
+  // instead of at the last part with nothing left to play (learn-resume.js).
   const savedHere = (() => {
     const p = getPlace();
-    return p && p.lessonId === module.id ? p : null;
+    if (!p || p.lessonId !== module.id) return null;
+    return placeIsFinished(p) ? null : p;
   })();
 
   // Real engagement: this learner started this week (once per open).
@@ -1343,6 +1350,8 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
         showAll={readAll}
         flush={flush}
         stageExtra={stageLevelRow}
+        onAllUnits={onAllUnits}
+        onStartOver={onStartOver}
       />
 
       {/* The chat with the local tutor — a conversation, not part of the
@@ -1844,11 +1853,23 @@ function CourseView({
             <button
               type="button"
               onClick={() => setFocusId(null)}
-              className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]"
+              data-testid="lesson-bar-all"
+              className="text-[0.8125rem] uppercase tracking-wider px-4 py-2 min-h-[44px] border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#3a352f] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]"
             >
               {/* SMALLER ON A PHONE (DR-0438): the same three controls, short
-                  words, one row — the bar was two rows (98px) at 360px. */}
-              <span className="sm:hidden">← All</span><span className="hidden sm:inline">← All {U.noun}s</span>
+                  words, one row — the bar was two rows (98px) at 360px.
+                  BUT NOT INVISIBLE (Darrell 2026-09-16, from his phone): "There
+                  is a little bitty button to get back to all... you can't
+                  really find the all button... Stop making it difficult to get
+                  to places in the app." Measured before this: a 10px label in a
+                  1px outline, 36px tall — the smallest thing in a bar whose
+                  other controls were mere arrows, and the ONLY way out of a
+                  lesson. The way out is now the bar's PRIMARY control: filled,
+                  13px, 44px tall, and it says All lessons on a phone too.
+                  Prev/Next stay quiet arrows beside it, which is the right
+                  weight for them. Still inside .ts-chrome-region, so Big Print
+                  grows the words and the frame stays a frame (DR-0410). */}
+              ← All {U.noun}s
             </button>
             <span className="text-[0.6875rem] text-[#5A5751] whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
               <span className="hidden sm:inline">{U.cap} </span>{focusModule.week}<span className="sm:hidden"> / </span><span className="hidden sm:inline"> of </span>{schedule.length}
@@ -2229,6 +2250,13 @@ function CourseView({
                     sessionFlow={sessionFlow}
                     onPlace={savePlace}
                     onAdvance={advanceFrom(m.id)}
+                    /* THE END OF A LESSON IS A DOOR (Darrell 2026-09-16). All
+                       lessons returns to the index the same way the bar does;
+                       Start over puts the reader back at part 1 AND clears the
+                       saved place, which is what "if it's over, it's over"
+                       requires — otherwise the next read resumes at the end. */
+                    onAllUnits={focusModule ? () => setFocusId(null) : null}
+                    onStartOver={() => { savePlace({ lessonId: m.id, stage: 0, step: 0 }); }}
                   />
                 </div>
               )}

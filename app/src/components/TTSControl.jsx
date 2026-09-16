@@ -26,7 +26,7 @@ import { segmentText } from '../lib/tts.js';
 import { readFromPoint } from '../lib/read-from-here.js';
 import { getReadTarget, subscribeReadTarget, pendingRead, takeRead, subscribeRead } from '../lib/read-target.js';
 import { useShowTheWord, toggleShowTheWord } from '../lib/show-the-word.js';
-import { getPlace, recordPlace, sentenceKeyOf, findSentence } from '../lib/learn-resume.js';
+import { getPlace, recordPlace, sentenceKeyOf, findSentence, finishPlace, placeIsFinished } from '../lib/learn-resume.js';
 import { subscribeReadRequest } from '../lib/read-request.js';
 import { revealAllForReading, settled, afterRender } from '../lib/read-reveal.js';
 import UiIcon from './UiIcon.jsx';
@@ -193,6 +193,23 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
       const place = getPlace();
       if (!t || !t.owner || !place || !place.lessonId || t.owner !== place.lessonId) return;
       recordPlace({ sentence: absIndex, sentenceKey: sentenceKeyOf(text) });
+      // IF IT IS OVER, IT IS OVER (Darrell 2026-09-16, from his phone at part
+      // 7/7: "can't re-listen to the lesson after the lesson is over because
+      // it's allowing the lesson to keep starting at the end because it thinks
+      // it's finished because it's starting where it left off at").
+      //
+      // The line above is the whole trap: every sentence is remembered, the
+      // LAST one included, so a lesson heard to its end saved its end. The
+      // next press resolved that sentence, spoke it, and stopped.
+      //
+      // The final sentence is the one moment that means HEARD TO THE END, and
+      // it needs no guess about whether the engine finished or the listener
+      // pressed Stop on the closing words — either way they heard it all, and
+      // either way the next start belongs at the top. Read from the follow map
+      // through the ref, so this keeps its empty dependency list honest.
+      const st = followRef.current;
+      const total = st && st.follow && st.follow.segments ? st.follow.segments.length : 0;
+      if (total > 0 && absIndex >= total - 1) finishPlace();
     } catch { /* a place that cannot be written never breaks a read */ }
   }, []);
 
@@ -299,6 +316,12 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   const savedStartIndex = (segments) => {
     const place = placeLessonIfMine();
     if (!place) return -1;
+    // A FINISHED LESSON BEGINS AGAIN. Without this, the saved sentence IS the
+    // last sentence, and "Read this lesson — start to finish" spoke one line
+    // and stopped — which is exactly what re-listening looked like from his
+    // phone. The flag is cleared by the first sentence this read then stores,
+    // so an interrupted re-listen resumes normally (lib/learn-resume.js).
+    if (placeIsFinished(place)) return -1;
     const found = findSentence((segments || []).map((g) => (g && g.text) || ''), place);
     // `gone` / `unknown` deliberately fall through to the top rather than guess.
     return found.how === 'exact' || found.how === 'moved' || found.how === 'index-only'
