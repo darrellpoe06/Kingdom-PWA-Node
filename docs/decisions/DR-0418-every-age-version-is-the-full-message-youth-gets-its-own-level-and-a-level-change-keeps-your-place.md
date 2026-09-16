@@ -522,6 +522,45 @@ Ninety-Seven Percent: testing a viral number against the Word and the real resea
 
 The child band keeps its gate's marks ("HOW DO YOU KNOW", the fruit verse, "Wisdom is the principal thing", none of the adult vocabulary) and walks thirteen pieces: the four questions, studies-have-shown as a permission slip, a number about people is a kind of telling, a number is a weight, the real counting went the other way, we do not fix a wrong number with another wrong number, one thing nobody knows yet, Yahweh looks at the heart, the Bible's wise and strong women, learning is a gift and not knowing is not holiness, the one true thing that cuts both ways, the man in the mirror, and how you really know a person, closing on the two shopkeepers' scales. The youth band walks the whole adult lesson with every figure, every source, the attribution note, and the fruit questions turned around on the asker. The teen band gains the shape before the substance, the Word setting the test, testimony in full, the rest of the record with the honesty note and the trend corrections, the one open question, follows-by-nature answered from the text, the mirror-image weight, the man in the mirror, the fruit questions, environments on both pans applied to the reader's own feed, and why this matters at that age. The senior band gains a run-of-room: the shape on the board, the four questions as a drill, testimony not arithmetic, reading the numbers with the attribution note aloud, the three true things without flinching, the one open question, the women walk with the Huldah word handled first, the mirror-image weight with the grandmothers in view, the man in the mirror for the young men, the seven fruit questions, the environments movement turned on the room's own habits, four pastoral watch-fors, and a note on what may never be cut. The first teen and senior drafts measured under their floors and were extended before recording. Fullness baseline 119 → 118.
 
+## L117 — the thirty-sixth full lesson (2026-09-16)
+
+No Two Children Grow Up in the Same House: why siblings differ, and the one Parent who is the same (adult prose 2,079 by the gate's counter; floors child 1,040, others 1,248). Before- and after-values both by the gate's counter:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 359 · 0.17 | **1,782 · 0.86** |
+| youth | missing | **1,948 · 0.94** (new) |
+| teen | 581 · 0.28 | **1,414 · 0.68** |
+| senior | 654 · 0.31 | **1,328 · 0.64** |
+
+The child band keeps its gate's marks (Genesis 25:27, the unchanging Father, the wounded seat, "fearfully and wonderfully made", "all that I have is thine", both-telling-the-truth, and none of the adult vocabulary) and walks eleven pieces: two kids and two childhoods, the Word showed it first, parents are told not to pick favourites, nobody can fully explain why you are different and that is good, a parent's job is to see you, the one Parent who never changes, for the one who got left out, shaped not sentenced, forgiving a parent who could not be the same with the tell-a-safe-grown-up guard rail, stop keeping score, and how a divided house can end, closing on the gardener with a rose, a tomato and a cactus. The youth band walks every movement with the research cited and its limit named. The teen band gains goodness of fit, the Word judging the preference, the assignment sentence to write down, the two trips on one night, Joseph's last word, shaped-not-sentenced in full, the forgiveness guard rail, and the ledger closed. The senior band gains a run-of-room: the Thanksgiving-table opener, how to cite research to a room including its limit, the sentence for the board, the two trips as the parents' model, the wounded seat named out loud, the guard rail in the same session as the command, four pastoral watch-fors, and what may never be cut for time. Fullness baseline 118 → 117.
+
+## L116 — the thirty-seventh full lesson (2026-09-16)
+
+The Thirty-Day Experiment: action produces information, and the grace that met a pretender (adult prose 1,752 by the gate's counter; floors child 876, others 1,052). Before- and after-values both by the gate's counter:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 464 · 0.26 | **1,731 · 0.99** |
+| youth | missing | **1,984 · 1.13** (new) |
+| teen | 551 · 0.31 | **1,369 · 0.78** |
+| senior | 736 · 0.42 | **1,566 · 0.89** |
+
+The child band keeps its gate's marks (John 7:17, the living Word, the forgiveness that moved first, "he knoweth not how", the submit-then-resist order, the bedtime verse, and "could not stop" in place of the adult substance) and walks eleven pieces: action makes information, Yahweh is not afraid of being tested, taste and see, the four small things each with its verse, the power was not in him, the friendship that moved first, the chain that fell off by itself, the bad dreams that are not a punishment, what to do in order, the warning against a trick, and why he got answered at all, closing on the person arguing at a door he could simply open. The youth band walks every movement with the term offered as the reader's own and the comment-section fight refused by name. The teen band gains the dated test in Scripture, the four practices each with its verse, the Word's advertised behaviour with the variable isolated, the fruit order as diagnosis, the post-turn assault taught before it happens, the seeking-clause tension, the caution riding with the invitation, and why the argument is never taken. The senior band gains a run-of-room: the source line kept short, the three wrong sermons named up front, the order taught as epistemology with the ask reframed from assent to a term, the doctrinal centre pressed against sincerity-as-power, the fruit order with its payoff for the thirty-year white-knuckler, the assault in order, the tension not resolved cheaply, the caution in the same breath as the invitation, Darrell's own grief answered the Word's way, and four pastoral watch-fors. Fullness baseline 117 → 116.
+
+## L115 — the thirty-eighth full lesson (2026-09-16)
+
+Meek and Quiet: strength, the ornament of great price, and why Jael is not the blueprint (adult prose 1,975 by the gate's counter; floors child 988, others 1,185). Before- and after-values both by the gate's counter:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 280 · 0.14 | **1,399 · 0.71** |
+| youth | missing | **2,009 · 1.02** (new) |
+| teen | 538 · 0.27 | **1,263 · 0.64** |
+| senior | 775 · 0.39 | **1,485 · 0.75** |
+
+The child band keeps its gate's marks (Numbers 12:3, Psalm 131:2, the law of kindness, and none of the adult freight: no nail, hammer, Jael, strange woman, spouse or deceit) and walks twelve pieces: the reins, the strongest meek people, meek is for everybody and not just girls, the weaned child, quiet is called strength, quiet people are allowed to talk, loudness is not the measure, the law of kindness with a mouth that opens, speak up for people who need it, never gentle outside and sneaky inside, where the strength goes, and the soft answer, closing on the big kind dog with the loose leash. The youth band walks every movement with the group chat named as where the guileless test lands first. The teen band gains the preposition read exactly, the gendering as the root error, quiet as an interior condition, the false floor pulled out properly with the harshness distinction stated twice, the Jael transfer error, the decibel argument retired, the mechanism that keeps this from being repression, and the third rail that is always cut off in the quoting. The senior band gains a run-of-room: say what is true first and mean it, both readings of the preposition on the board, the gendering pressed with the men in view, how to remove a false floor without knocking the house down, Judges 4:17-21 read aloud for the details that are not there, the rails in the same session and never a later one, Titus 2:3-5 affirmed rather than avoided, and four pastoral watch-fors including the woman who was handed this as a reason to stay silent. Fullness baseline 116 → 115.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
