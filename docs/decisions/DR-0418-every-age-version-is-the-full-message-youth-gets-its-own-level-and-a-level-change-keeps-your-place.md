@@ -353,6 +353,19 @@ Joy Is Not Happiness: three days, one strength, and the Word as the code that ru
 
 All movements in each band: happiness as a readout and strength wired to joy; the weeping crowd the verse was issued to; the four-line code (read, source, act, strength); the bad day with Habakkuk's Yet, James's ledger word and the Philippian jail; the okay day as the dangerous one, the Maker of the day and the discipline of counting; the great day with the seventy, the Giver and the shared win; the same joy on all three proved at Golgotha and sealed by the theft-proof clause; and the prayer for the day the strength line reads empty. The child band keeps its gate's own marks (two different kinds of glad; the crowd was crying; Jesus is the best example) and learns the four steps with a nightly job; the youth band is the full teaching in a teenager's voice; the teen adds the five uses and a seven-night assignment; the senior adds three charges from the elders' own data and the portion sent by hand. Fullness baseline 132 → 131.
 
+## L130 — the twenty-third full lesson (2026-09-16)
+
+Three Days and Three Nights: what He did in the place of the dead, and why the devil is defeated but not destroyed (adult prose 1,971 by the gate's counter; floors child 986, others 1,183). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 484 · 0.25 | **1,110 · 0.56** |
+| youth | missing | **1,260 · 0.64** (new) |
+| teen | 630 · 0.32 | **1,227 · 0.62** |
+| senior | 741 · 0.38 | **1,238 · 0.63** |
+
+All ten parts in each band: the question asked precisely as three claims; where He was and the one English word doing two jobs; the four verbs and not one of them is fight; where the victory was won, by date; what destroy means; the proof he was not annihilated, written after the resurrection; the three dates kept straight; where the Word is silent, we stop; Yahweh's purpose in His own clauses; and the ten points for the Body. The child band keeps its gate's own marks (It is finished; the keys; the Lamb of Yahweh) and walks ten pieces with a job to do; the youth band is the full teaching in a teenager's voice; the teen adds the seven uses, the card and the three-sentence answer, and the bench discipline for the school; the senior adds four charges, the two halves for the fearful, and the table. The first draft's teen and senior each sat under the floor by 43 and 62 words and were extended. Fullness baseline 131 → 130.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
