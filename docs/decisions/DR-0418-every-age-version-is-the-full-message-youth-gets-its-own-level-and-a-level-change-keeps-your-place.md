@@ -249,6 +249,19 @@ All of the lesson in each band: the verse and Jacob's last-days frame; who Judah
 
 **Caught by the lane on this pass, recorded so it is not repeated:** three sentence-initial "The devil" in the L140 and L142 child bands and three more in the L139 bands tripped the adversary guard (`adversary-is-never-capitalized.test.js`); the house rule is never sentence-initial, so the sentences were recast ("It is the devil who…", "Then the devil…", "Yes, the devil…"). And the L139 gate's proven-to-catch clause caught "Judah is done" in the child band's own paraphrase of the error it was refuting; recast to "Judah stops mattering", which the gate allows because it is not the lesson's claim.
 
+## L138 — the fifteenth full lesson (2026-09-16)
+
+Exercised Senses (adult prose 1,835 by the gate's counter; floors child 918, others 1,101). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 355 · 0.21 · FK 1.4 | **1,296 · 0.71** |
+| youth | missing | **1,390 · 0.76** (new) |
+| teen | 554 · 0.32 · FK 3.6 | **1,264 · 0.69** |
+| senior | 691 · 0.40 · FK 6.3 | **1,211 · 0.66** |
+
+All seven parts in each band: He is not stingy and does not lecture; why it is not a download (exercised, by reason of use; a dawn, not a switch); do, then know (alignment is the road, not the toll); what the tests are for since He already knows; why it seems to come after; what He keeps, what He gave, and where the lack is really from; diligence evaluated by Yahweh and aimed at His Word (seek, do, teach; the ever-learning counterfeit). The child band adds the piano and the sunrise; the teen band turns the four reasons into habits and names the fear the adversary wants carried; the senior band the elders as the room's evidence and their own humility rep. Fullness baseline 139 → 138.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
