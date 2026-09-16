@@ -47,14 +47,37 @@ CA_PATH = os.path.join(HERE, "..", "nas-agent", "supabase-prod-ca-2021.crt")
 # FK order matters for inserts: a sermon points at its speaker, a transcript at
 # its instance (present on both sides since the baseline). Self-references
 # (choir_sermons.source_sermon_id) are satisfied by inserting oldest-first.
+# FK order: a table is listed after every table it points at, so an insert never
+# arrives before its parent. Self-references (choir_sermons.source_sermon_id,
+# instances.parent_instance_id) are satisfied by inserting oldest-first.
 CONTENT_TABLES = [
+    "instances",
+    "entities",
     "church_speakers",
     "choir_sermons",
-    "video_transcripts",
     "sermon_prep",
+    "video_transcripts",
     "sermon_video_stats",
     "video_harvests",
+    "tlc_onboarding_invites",
+    "tlc_jobs",
+    "person_links",
 ]
+
+# NOT CARRIED, AND NEVER SILENTLY (DR-0076 / DR-0443). These three tables hold
+# rows the hosted project has and the sovereign side lacks, and copying them
+# would be wrong rather than merely unnecessary. The report prints this list on
+# every run so the gap is named rather than missing.
+EXCLUDED_TABLES = {
+    "ops_commands": "an operational command queue the NAS runner reads, not "
+                    "content the family reads; a carried row is bookkeeping for "
+                    "a run that happened on the other stack",
+    "agent_tasks": "the same: a task queue with its own status column, whose "
+                   "rows belong to the stack that ran them",
+    "_sync_tokens": "a delta-read watermark. Carried into a database with "
+                    "different contents it would make a delta reader SKIP rows "
+                    "it has never seen, which is the one thing worse than a gap",
+}
 
 # NATURAL KEYS -- the break the first apply run found (2026-09-16, run
 # 35097143467). choir_sermons and church_speakers carried across cleanly, and
@@ -68,6 +91,11 @@ CONTENT_TABLES = [
 NATURAL_KEYS = {
     "video_transcripts": ["instance_id", "video_id"],
     "sermon_video_stats": ["instance_id", "video_id"],
+    # Read from the live constraint catalogue 2026-09-16, never guessed:
+    "instances": ["slug"],                      # tenants_slug_key
+    "entities": ["instance_id", "slug"],        # entities_tenant_id_slug_key
+    "tlc_onboarding_invites": ["token"],        # tlc_onboarding_invites_token_key
+    "person_links": ["primary_user", "door_user"],  # its primary key; no id column
 }
 CHUNK = 50
 
@@ -117,12 +145,17 @@ def key_expr(key_cols):
 
 def key_cols_for(table, cols):
     """The natural key when the table has one AND this copy carries every one of
-    its columns; otherwise the primary key. A natural key we cannot fully read
-    is never guessed at."""
+    its columns; otherwise the primary key. A natural key we cannot fully read is
+    never guessed at, and a table with neither returns None so the caller reports
+    it as unmeasurable rather than copying rows it cannot identify.
+    (person_links and _sync_tokens have no id column at all, which is why this
+    cannot simply assume one -- DR-0443.)"""
     nat = NATURAL_KEYS.get(table)
     if nat and all(c in cols for c in nat):
         return list(nat)
-    return ["id"]
+    if "id" in cols:
+        return ["id"]
+    return None
 
 
 def insert_sql(table, cols):
@@ -186,8 +219,12 @@ def table_columns(con, table):
 
 
 def read_index(con, table, has_updated, key_cols):
+    """{key: newest updated_at for that key}. MAX, not last-row-wins: a natural
+    key can cover several rows on one side (hosted allows what a sovereign unique
+    index forbids), and an arbitrary pick would make the plan flap day to day."""
     q = ('SELECT {} AS k, {} FROM public."{}"'
-         .format(key_expr(key_cols), "updated_at" if has_updated else "NULL", table))
+         .format(key_expr(key_cols), "max(updated_at)" if has_updated else "NULL", table))
+    q += " GROUP BY 1" if has_updated else ""
     return {r[0]: r[1] for r in con.run(q)}
 
 
@@ -206,12 +243,12 @@ def sync_table(src, dst, table, commit):
         out["error"] = "table missing on {}".format("hosted" if not src_cols else "sovereign")
         return out
     cols = intersect_columns(src_cols, dst_cols)
-    if "id" not in cols:
-        out["error"] = "no shared id column"
+    key_cols = key_cols_for(table, cols)
+    if key_cols is None:
+        out["error"] = "no shared key: neither an id column nor a known natural key"
         return out
     has_updated = "updated_at" in cols
     order_col = "created_at" if "created_at" in cols else None
-    key_cols = key_cols_for(table, cols)
     s_idx = read_index(src, table, has_updated, key_cols)
     d_idx = read_index(dst, table, has_updated, key_cols)
     inserts, updates = plan_sync(s_idx, d_idx)
@@ -270,6 +307,8 @@ def real_run(commit, only_table=None):
         src.close()
         dst.close()
     go = verdict(report)
+    for t, why in sorted(EXCLUDED_TABLES.items()):
+        print("content-sync: NOT CARRIED {} -- {}".format(t, why))
     print("content-sync: mode " + ("COMMIT" if commit else "DRY-RUN"))
     print("content-sync: summary " + json.dumps(report, default=str))
     print("content-sync: verdict " + ("GO" if go else "NO-GO"))
@@ -337,8 +376,28 @@ def selftest():
     check("CATCHES an unmeasurable table (never a silent zero)",
           not verdict({"t": {"error": "table missing on sovereign"}}))
     check("the content list starts with the FK parents",
-          CONTENT_TABLES.index("church_speakers") < CONTENT_TABLES.index("choir_sermons")
-          < CONTENT_TABLES.index("video_transcripts"))
+          CONTENT_TABLES.index("instances") < CONTENT_TABLES.index("entities")
+          and CONTENT_TABLES.index("church_speakers") < CONTENT_TABLES.index("choir_sermons")
+          < CONTENT_TABLES.index("sermon_prep")
+          and CONTENT_TABLES.index("instances") == 0)
+    # Tables with no id column at all (person_links, _sync_tokens) -- the second
+    # thing the live catalogue read on 2026-09-16 turned up.
+    check("a table with NO id column is keyed by its natural key, not skipped",
+          key_cols_for("person_links", ["primary_user", "door_user", "created_at"])
+          == ["primary_user", "door_user"])
+    check("CATCHES a table with neither an id nor a known natural key: None, so "
+          "the caller reports it unmeasurable rather than copying rows it cannot identify",
+          key_cols_for("some_unknown_table", ["a", "b"]) is None)
+    check("an UPDATE on a no-id table still never names id in its SET",
+          '"id"' not in update_sql("person_links", ["primary_user", "door_user"],
+                                   ["primary_user", "door_user"]))
+    # The exclusions are a decision, and they are printed rather than silent.
+    check("the queues and the watermark are NOT in the carry list",
+          all(t not in CONTENT_TABLES for t in ("ops_commands", "agent_tasks", "_sync_tokens")))
+    check("every exclusion carries a stated reason",
+          all(len(v) > 40 for v in EXCLUDED_TABLES.values()))
+    check("the watermark exclusion names the skip-rows danger, not just tidiness",
+          "SKIP" in EXCLUDED_TABLES["_sync_tokens"])
     print("\n{}/{} passed".format(passed, passed + failed))
     return 1 if failed else 0
 

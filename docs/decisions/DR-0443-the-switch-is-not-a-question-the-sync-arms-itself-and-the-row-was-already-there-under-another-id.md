@@ -93,11 +93,25 @@ aborted the whole table.
 
 ## Still open, and not parked behind a question
 
-- The non-content drift named in DR-0442 (`instances`, `entities`, `tlc_*`,
-  `agent_tasks`, `ops_commands`, `person_links`, `_sync_tokens`) is next: each
-  needs its natural key read before a copy is safe, and the TLC and Poe
-  Properties instances minted after the repoint are the first question. Now that
-  the tool plans by natural key, adding them is a table-list change plus its
-  proof. **Next session, not a re-review date.**
+- ~~The non-content drift named in DR-0442 is next.~~ **CLOSED the same
+  session, from the live constraint catalogue rather than a guess.** Eight of the
+  remaining tables were read for their real unique keys and sorted into two
+  groups. **Carried, with the natural keys the catalogue gave:** `instances`
+  (`slug`), `entities` (`instance_id + slug`), `tlc_onboarding_invites`
+  (`token`), `tlc_jobs`, and `person_links` (`primary_user + door_user`, a table
+  with **no id column at all** — the second thing the read turned up, and the
+  reason `key_cols_for` can no longer assume one). The two instances minted after
+  the repoint, `tlc-therapy-solutions` and `poe-properties`, and the two Poe
+  Properties entities, are in that carry. `video_transcripts` was also confirmed
+  clean under its key: 872 rows, 872 distinct `(instance_id, video_id)`, no
+  duplicates and no null video id, and the unique index that aborted the first
+  run lives on the sovereign side, not on hosted. **NOT carried, and printed on
+  every run rather than left silent:** `ops_commands` and `agent_tasks` are
+  operational queues the runner acts on, whose rows belong to the stack that ran
+  them, and `_sync_tokens` is a delta-read watermark — carried into a database
+  with different contents it would make a delta reader SKIP rows it has never
+  seen, which is worse than the gap. The index read also now takes `max(updated_at)`
+  per key rather than an arbitrary row, so a key covering several rows cannot make
+  the plan flap from day to day. Eight further selftests pin all of it.
 - A content-parity row in `nas-health` so the witness that counts `auth.users`
   on both sides counts `choir_sermons` too.
