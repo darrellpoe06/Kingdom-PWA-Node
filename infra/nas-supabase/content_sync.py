@@ -214,6 +214,35 @@ def bind_row(row, cols, json_cols):
     return [bind_value(v, cols[i] in json_cols) for i, v in enumerate(row)]
 
 
+def join_key(parts):
+    """The text key EXACTLY as concat_ws('|', ...) renders it in SQL: a NULL
+    component is SKIPPED, not written as empty. (The old update path joined a
+    null component as '', which could never match the row it meant -- fixed
+    here by having one renderer instead of two.)"""
+    return "|".join(p for p in parts if p is not None)
+
+
+def translate_key(parts, key_cols, table, remaps):
+    """THE KEY ITSELF is translated, not only the row (2026-09-16, second pass).
+    A natural key that CONTAINS a foreign key -- entities is
+    (instance_id, slug) -- cannot be compared across the two databases until
+    that component is in the destination's terms. Untranslated, hosted's
+    (hosted_inst | slug) and sovereign's (sov_inst | slug) NEVER match, so the
+    row reads as missing for ever: the same false-permanent-gap the natural-key
+    fix closed, one level up. Measured in run 35111252952: entities reported
+    copied=2 while sovereign_after stayed 6, because the insert then collided
+    on entities_tenant_id_slug_key and did nothing."""
+    fks = FK_COLUMNS.get(table) or {}
+    out = []
+    for i, c in enumerate(key_cols):
+        v = parts[i]
+        parent = fks.get(c)
+        if parent and v is not None:
+            v = remaps.get(parent, {}).get(str(v), v)
+        out.append(None if v is None else str(v))
+    return tuple(out)
+
+
 def build_remap(src_ids, dst_ids):
     """{hosted id: sovereign id} for every row the two sides hold under the SAME
     natural key and a DIFFERENT primary key. Inputs are {key: id} per side.
@@ -253,7 +282,11 @@ def insert_sql(table, cols, json_cols=None):
     # Bare ON CONFLICT DO NOTHING, not ON CONFLICT (id): a row already present
     # under a different primary key collides on the table's natural unique index,
     # and that must SKIP rather than abort the whole table (the 2026-09-16 break).
-    return ('INSERT INTO public."{}" ({}) VALUES ({}) ON CONFLICT DO NOTHING'
+    # RETURNING 1 so the caller can tell a real insert from a conflict SKIP.
+    # Without it, `copied` counted rows ON CONFLICT DO NOTHING had discarded --
+    # a false number in the tool whose whole job is measurement (run
+    # 35111252952 reported entities copied=2 with sovereign_after unchanged).
+    return ('INSERT INTO public."{}" ({}) VALUES ({}) ON CONFLICT DO NOTHING RETURNING 1'
             .format(table, col_list, placeholders))
 
 
@@ -336,13 +369,22 @@ def read_id_map(con, table, key_cols):
 
 
 def read_index(con, table, has_updated, key_cols):
-    """{key: newest updated_at for that key}. MAX, not last-row-wins: a natural
-    key can cover several rows on one side (hosted allows what a sovereign unique
-    index forbids), and an arbitrary pick would make the plan flap day to day."""
-    q = ('SELECT {} AS k, {} FROM public."{}"'
-         .format(key_expr(key_cols), "max(updated_at)" if has_updated else "NULL", table))
-    q += " GROUP BY 1" if has_updated else ""
-    return {r[0]: r[1] for r in con.run(q)}
+    """{(component, ...): newest updated_at for that key}.
+
+    The components are read SEPARATELY rather than pre-joined, so a key that
+    CONTAINS a foreign key can be translated into the other database's terms
+    before the two sides are compared (translate_key). MAX, not last-row-wins:
+    a natural key can cover several rows on one side (hosted allows what a
+    sovereign unique index forbids), and an arbitrary pick would make the plan
+    flap day to day."""
+    n = len(key_cols)
+    parts = ("id::text" if key_cols == ["id"]
+             else ", ".join('"{}"::text'.format(c) for c in key_cols))
+    q = ('SELECT {}, {} FROM public."{}"'
+         .format(parts, "max(updated_at)" if has_updated else "NULL", table))
+    if has_updated:
+        q += " GROUP BY " + ", ".join(str(i + 1) for i in range(n))
+    return {tuple(r[:n]): r[n] for r in con.run(q)}
 
 
 def fetch_rows(con, table, cols, keys, order_col, key_cols):
@@ -386,30 +428,47 @@ def sync_table(src, dst, table, commit, remaps=None):
     # Which of the carried columns are json/jsonb, by type rather than by name.
     types = dict(table_columns_typed(dst, table))
     json_cols = {c: types[c] for c in cols if types.get(c) in ("json", "jsonb")}
-    s_idx = read_index(src, table, has_updated, key_cols)
-    d_idx = read_index(dst, table, has_updated, key_cols)
-    inserts, updates = plan_sync(s_idx, d_idx)
-    out.update({"hosted": len(s_idx), "sovereign_before": len(d_idx),
+    # THE PARENTS' ID MAPS ARE NEEDED BEFORE THE PLAN, not only before the
+    # write: a key containing a foreign key cannot be compared across the two
+    # databases until that component is translated (translate_key). Computing
+    # them here also means a DRY RUN reports the real gap rather than a phantom
+    # one. A self-reference is still computed before this table's own inserts.
+    for parent in sorted(set(FK_COLUMNS.get(table, {}).values())):
+        try:
+            parent_remap(src, dst, parent, remaps)
+        except Exception as e:  # noqa: BLE001 - an unreadable parent is reported, not fatal
+            out.setdefault("remap_warnings", []).append("{}: {}".format(parent, str(e)[:120]))
+    translated_parents = sum(1 for p in set(FK_COLUMNS.get(table, {}).values()) if remaps.get(p))
+    if translated_parents:
+        out["parents_translated"] = translated_parents
+
+    def plan_now():
+        """(inserts, updates, src_key_of, hosted_count, sovereign_count).
+        The plan is computed in the DESTINATION'S key terms; `src_key_of` maps
+        each back to the hosted key the row is fetched by, so the fetch and the
+        WHERE can never drift apart."""
+        s_parts = read_index(src, table, has_updated, key_cols)
+        d_parts = read_index(dst, table, has_updated, key_cols)
+        d_keys = {join_key(p): u for p, u in d_parts.items()}
+        s_keys = {}
+        back = {}
+        for parts, upd in s_parts.items():
+            t = join_key(translate_key(parts, key_cols, table, remaps))
+            s_keys[t] = upd
+            back[t] = join_key(parts)
+        i, u = plan_sync(s_keys, d_keys)
+        return i, u, back, len(s_keys), len(d_keys)
+
+    inserts, updates, src_key_of, s_count, d_count = plan_now()
+    out.update({"hosted": s_count, "sovereign_before": d_count,
                 "missing": len(inserts), "stale": len(updates),
                 "copied": 0, "updated": 0, "columns": len(cols),
                 "keyed_by": "+".join(key_cols)})
     if commit:
-        # THE PARENTS' ID MAPS, before anything is written. A self-reference is
-        # computed here too, deliberately BEFORE this table's own insert loop,
-        # so it reflects the rows that already matched rather than the ones this
-        # run is about to add (whose ids need no translation).
-        for parent in sorted(set(FK_COLUMNS.get(table, {}).values())):
-            try:
-                parent_remap(src, dst, parent, remaps)
-            except Exception as e:  # noqa: BLE001 - an unreadable parent is reported, not fatal
-                out.setdefault("remap_warnings", []).append("{}: {}".format(parent, str(e)[:120]))
-        translated = sum(1 for p in set(FK_COLUMNS.get(table, {}).values())
-                         if remaps.get(p))
-        if translated:
-            out["parents_translated"] = translated
         ins = insert_sql(table, cols, json_cols)
         out["refused"] = 0
-        for batch in chunks(inserts, CHUNK):
+        out["skipped_existing"] = 0
+        for batch in chunks([src_key_of[k] for k in inserts], CHUNK):
             for row in fetch_rows(src, table, cols, batch, order_col, key_cols):
                 row = bind_row(remap_row(row, cols, table, remaps), cols, json_cols)
                 # ONE BAD ROW MUST NOT HIDE THE TABLE (2026-09-16). The first
@@ -419,16 +478,26 @@ def sync_table(src, dst, table, commit, remaps=None):
                 # carried, and the re-count below still decides the verdict -- so
                 # nothing is rounded to zero either way (DR-0076).
                 try:
-                    dst.run(ins, **{"p{}".format(i): v for i, v in enumerate(row)})
-                    out["copied"] += 1
+                    wrote = dst.run(ins, **{"p{}".format(i): v for i, v in enumerate(row)})
+                    # RETURNING 1 came back empty => ON CONFLICT DO NOTHING
+                    # discarded it. That is NOT a copy, and calling it one is
+                    # the kind of false number this tool exists to prevent.
+                    if wrote:
+                        out["copied"] += 1
+                    else:
+                        out["skipped_existing"] += 1
                 except Exception as e:  # noqa: BLE001
                     out["refused"] += 1
                     out.setdefault("refused_reason", str(e)[:200])
         upd = update_sql(table, cols, key_cols, json_cols)
         key_at = [cols.index(c) for c in key_cols]
         for batch in chunks(updates, CHUNK):
-            for row in fetch_rows(src, table, cols, batch, order_col, key_cols):
-                k = "|".join("" if row[i] is None else str(row[i]) for i in key_at)
+            for row in fetch_rows(src, table, cols, [src_key_of[k] for k in batch],
+                                  order_col, key_cols):
+                # The WHERE must name the row in the DESTINATION'S terms, so the
+                # key is translated exactly as the plan translated it.
+                parts = tuple(None if row[i] is None else str(row[i]) for i in key_at)
+                k = join_key(translate_key(parts, key_cols, table, remaps))
                 vals = bind_row(remap_row(row, cols, table, remaps), cols, json_cols)
                 params = {"p{}".format(i): v for i, v in enumerate(vals) if cols[i] != "id"}
                 params["k"] = k
@@ -438,12 +507,11 @@ def sync_table(src, dst, table, commit, remaps=None):
                 except Exception as e:  # noqa: BLE001
                     out["refused"] += 1
                     out.setdefault("refused_reason", str(e)[:200])
-        d2 = read_index(dst, table, has_updated, key_cols)
-        s2 = read_index(src, table, has_updated, key_cols)
-        i2, u2 = plan_sync(s2, d2)
-        out.update({"sovereign_after": len(d2), "missing_after": len(i2), "stale_after": len(u2)})
+        i2, u2, _, _, d2 = plan_now()
+        out.update({"sovereign_after": d2, "missing_after": len(i2), "stale_after": len(u2)})
     else:
-        out.update({"sovereign_after": len(d_idx), "missing_after": len(inserts), "stale_after": len(updates)})
+        out.update({"sovereign_after": d_count, "missing_after": len(inserts),
+                    "stale_after": len(updates)})
     return out
 
 
@@ -625,8 +693,8 @@ def selftest():
     check("a NON-json column is never json-encoded (a text[] must stay an array)",
           bind_value(["a", "b"], False) == ["a", "b"])
     check("the insert casts a jsonb column and nothing else",
-          insert_sql("tlc_jobs", ["id", "requirements"], {"requirements": "jsonb"})
-          .endswith("VALUES (:p0, :p1::jsonb) ON CONFLICT DO NOTHING"))
+          "VALUES (:p0, :p1::jsonb) ON CONFLICT DO NOTHING"
+          in insert_sql("tlc_jobs", ["id", "requirements"], {"requirements": "jsonb"}))
     check("the update casts it the same way, through the one placeholder builder",
           '"requirements" = :p1::jsonb' in update_sql(
               "tlc_jobs", ["id", "requirements"], ["id"], {"requirements": "jsonb"}))
@@ -641,6 +709,43 @@ def selftest():
           not verdict({"t": {"missing_after": 0, "stale_after": 0, "refused": 1}}))
     check("no refusals is still GO",
           verdict({"t": {"missing_after": 0, "stale_after": 0, "refused": 0}}))
+
+    # ---- THE SECOND PASS, from run 35111252952: entities reported copied=2
+    # while sovereign_after stayed 6 and missing_after stayed 2. Two defects.
+    #
+    # (a) A natural key that CONTAINS a foreign key was compared UNTRANSLATED,
+    #     so hosted's (hosted_inst | slug) never matched sovereign's
+    #     (sov_inst | slug) and the row read as missing for ever -- the same
+    #     false-permanent-gap the natural-key fix closed, one level up.
+    KEY_COLS = ["instance_id", "slug"]
+    rm = {"instances": {HOSTED_INST: SOV_INST}}
+    check("CATCHES the untranslated key: a key containing a foreign key is "
+          "compared in the DESTINATION'S terms, so the row is seen as present",
+          join_key(translate_key((HOSTED_INST, "poe-properties"), KEY_COLS, "entities", rm))
+          == "{}|poe-properties".format(SOV_INST))
+    check("and with the translation the plan finds NOTHING missing, where "
+          "before it found a permanent phantom gap",
+          plan_sync({join_key(translate_key((HOSTED_INST, "poe-properties"), KEY_COLS, "entities", rm)): None},
+                    {"{}|poe-properties".format(SOV_INST): None}) == ([], []))
+    check("a key component with no translation is left exactly as it is",
+          translate_key(("other-inst", "x"), KEY_COLS, "entities", rm) == ("other-inst", "x"))
+    check("a key column that is NOT a foreign key is never translated",
+          translate_key((HOSTED_INST, HOSTED_INST), ["instance_id", "slug"], "entities", rm)
+          == (SOV_INST, HOSTED_INST))
+    check("the key renderer matches concat_ws: a NULL component is SKIPPED, "
+          "not written as an empty string (the old update path joined it as '')",
+          join_key(("a", None, "b")) == "a|b" and join_key((None,)) == "")
+    check("an id-keyed table's key is one component and is never translated",
+          translate_key(("row-9",), ["id"], "entities", rm) == ("row-9",)
+          and join_key(("row-9",)) == "row-9")
+
+    # (b) `copied` counted rows ON CONFLICT DO NOTHING had thrown away -- a
+    #     false number in the tool whose entire job is measurement.
+    check("CATCHES the false copy count: the insert RETURNS, so a conflict "
+          "skip can be told apart from a real write",
+          "RETURNING 1" in insert_sql("entities", ["id", "slug"]))
+    check("a conflict skip is never GO by itself -- the re-count still decides",
+          not verdict({"t": {"missing_after": 2, "stale_after": 0, "skipped_existing": 2}}))
     print("\n{}/{} passed".format(passed, passed + failed))
     return 1 if failed else 0
 
