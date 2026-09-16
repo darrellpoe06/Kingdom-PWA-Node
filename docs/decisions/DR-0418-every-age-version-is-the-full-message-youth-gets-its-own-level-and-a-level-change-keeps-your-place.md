@@ -535,6 +535,19 @@ No Two Children Grow Up in the Same House: why siblings differ, and the one Pare
 
 The child band keeps its gate's marks (Genesis 25:27, the unchanging Father, the wounded seat, "fearfully and wonderfully made", "all that I have is thine", both-telling-the-truth, and none of the adult vocabulary) and walks eleven pieces: two kids and two childhoods, the Word showed it first, parents are told not to pick favourites, nobody can fully explain why you are different and that is good, a parent's job is to see you, the one Parent who never changes, for the one who got left out, shaped not sentenced, forgiving a parent who could not be the same with the tell-a-safe-grown-up guard rail, stop keeping score, and how a divided house can end, closing on the gardener with a rose, a tomato and a cactus. The youth band walks every movement with the research cited and its limit named. The teen band gains goodness of fit, the Word judging the preference, the assignment sentence to write down, the two trips on one night, Joseph's last word, shaped-not-sentenced in full, the forgiveness guard rail, and the ledger closed. The senior band gains a run-of-room: the Thanksgiving-table opener, how to cite research to a room including its limit, the sentence for the board, the two trips as the parents' model, the wounded seat named out loud, the guard rail in the same session as the command, four pastoral watch-fors, and what may never be cut for time. Fullness baseline 118 → 117.
 
+## L116 — the thirty-seventh full lesson (2026-09-16)
+
+The Thirty-Day Experiment: action produces information, and the grace that met a pretender (adult prose 1,752 by the gate's counter; floors child 876, others 1,052). Before- and after-values both by the gate's counter:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 464 · 0.26 | **1,731 · 0.99** |
+| youth | missing | **1,984 · 1.13** (new) |
+| teen | 551 · 0.31 | **1,369 · 0.78** |
+| senior | 736 · 0.42 | **1,566 · 0.89** |
+
+The child band keeps its gate's marks (John 7:17, the living Word, the forgiveness that moved first, "he knoweth not how", the submit-then-resist order, the bedtime verse, and "could not stop" in place of the adult substance) and walks eleven pieces: action makes information, Yahweh is not afraid of being tested, taste and see, the four small things each with its verse, the power was not in him, the friendship that moved first, the chain that fell off by itself, the bad dreams that are not a punishment, what to do in order, the warning against a trick, and why he got answered at all, closing on the person arguing at a door he could simply open. The youth band walks every movement with the term offered as the reader's own and the comment-section fight refused by name. The teen band gains the dated test in Scripture, the four practices each with its verse, the Word's advertised behaviour with the variable isolated, the fruit order as diagnosis, the post-turn assault taught before it happens, the seeking-clause tension, the caution riding with the invitation, and why the argument is never taken. The senior band gains a run-of-room: the source line kept short, the three wrong sermons named up front, the order taught as epistemology with the ask reframed from assent to a term, the doctrinal centre pressed against sincerity-as-power, the fruit order with its payoff for the thirty-year white-knuckler, the assault in order, the tension not resolved cheaply, the caution in the same breath as the invitation, Darrell's own grief answered the Word's way, and four pastoral watch-fors. Fullness baseline 117 → 116.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
