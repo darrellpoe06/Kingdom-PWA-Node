@@ -379,6 +379,19 @@ You Have a Destiny: the Giver, the window, covenant authority, the heart of fles
 
 All ten movements in each band: He is a Giver, settled before you pray; faith is the window, and a window can be shut from the inside, with the Word's own limits (James 4:2-3, Paul's thorn); short is not small and long is not holy; authority is not power and the verse itself says so, with the honest note on the keys; the covenant is what makes it work, and bounds it; the heart of stone (Darrell's word, the hinge); thoughts brought to obey (his second word), with the guard rail and the Philippians 4:8 checklist; to the death of me and His version of me (his third and fourth words), both choosing sentences taught; grace then glory; the destiny and its fence. The child band keeps its gate's own marks and walks ten pieces with a three-part job; the youth band is the full ten movements in a teenager's voice; the teen adds the movements the short version skipped and seven uses; the senior adds five charges, the two choosings and the corporate destiny for the elders, and the table. This lesson's bands are stored with paragraph breaks, so the apply script learned to escape newlines (a one-line fix, kept for every later lesson). Fullness baseline 130 → 129.
 
+## L128 — the twenty-fifth full lesson (2026-09-16)
+
+The Prudent Man Studies: systematic analysis, the Ways that protect, and seeing Him while blind (adult prose 4,650 by the gate's counter — the longest lesson in the corpus; floors child 2,325, others 2,790). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 581 · 0.12 | **2,594 · 0.56** |
+| youth | missing | **3,461 · 0.74** (new) |
+| teen | 673 · 0.14 | **3,242 · 0.70** |
+| senior | 1,131 · 0.24 | **3,002 · 0.65** |
+
+Every movement in each band: the weld verse (Hosea 14:9) and the two verbs of the prudent man; prudence as a skill handed to the simple and the young, with its active definitions; systematic analysis as a workman's labour (precept upon precept, the Bereans' pairing, Ezra's seek-do-teach); the mechanism (senses exercised by use) and the fence (both houses got identical weather, and both men heard); the hiding as invitation and the fence on the searching (the secret things His, the revealed ours and our children's, to do); what prophets and kings wanted and did not get (not unto themselves, but unto us; Daniel by books); acts versus Ways, the still small voice, the word behind you at the turn, the stranger's voice, recognising someone never met, the retrospective proof (Jacob, Emmaus, the healed man) and Isaiah 42:16; He changes the default and holds the attention with His own eye; the temple as the actual heart and the words abiding as the link that makes studying into protecting; noticing the difference (the thin line, the peace as umpire, the decision still yours); cannot see, not will not; the deterministic doing (dwell, the terms in His first person, willing and obedient, sowing and reaping); three guard rails; ask for the Ways by name; the warning of John 5:39 and the walk of Genesis 3:8. The child band keeps the whole lesson in seventeen pieces with the curb story and a nightly job; the youth band is the full teaching in a teenager's voice; the teen adds the movements the short version left out and a seven-part week; the senior adds five charges, the elders' accumulating advantage, and the table. Fullness baseline 129 → 128.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.

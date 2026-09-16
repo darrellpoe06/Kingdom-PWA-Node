@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 163,
-  "lessonsShort": 129,
+  "lessonsShort": 128,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -194,12 +194,6 @@
     "ll127-the-firsts-what-yahweh-did-in-each-century-that-had-never-been-done-before": [
       "child",
       "youth"
-    ],
-    "ll128-the-prudent-man-studies-systematic-analysis-the-ways-that-protect-and-seeing-him-while-blind": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
     ],
     "ll13-a-sound-mind": [
       "child",
