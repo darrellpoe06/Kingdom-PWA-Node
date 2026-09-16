@@ -483,6 +483,19 @@ Know Your Own Post: her provision, her guard, and the beam in the pointing eye (
 
 The child band keeps its gate's marks (the beam verse, "Strength and honour are her clothing", "never tell someone they are worthless", no marital-argument frame) and walks nine pieces: the two lists, the plank first, the hero woman really provides (Dorcas, the Shunammite, the women who funded the Lord), the hero woman really guards (looketh well, ready before the snow, Abigail, the midwives), peace is everybody's job with the tell-a-grown-up guard rail, never price a person at zero with the edify test, the funny part that is not funny, your score is your own, and the floor everybody stands on, closing on the goalie who leaves the goal. The youth band walks the whole adult lesson with the feed named as the place the fault performs itself. The teen band gains her guard as logistics, peace weighed with both hands and the guard rail, the beam precisely without dismissing the man, the busybody economy, the floor, and why this matters at that age. The senior band gains a run-of-room: the verb count done by the room, 21:9 never without 29:22, the guard rail said while looking at the room, the contempt hinge done in both halves, the beam as order not cancellation, and three pastoral watch-fors. Fullness baseline 122 → 121.
 
+## L120 — the thirty-third full lesson (2026-09-16)
+
+It Is Written: keep the policy in your pocket, advocacy from the written Word, and a just weight (adult prose 2,168 by the gate's counter; floors child 1,084, others 1,301). Before- and after-values both by the gate's counter:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 478 · 0.22 | **1,510 · 0.70** |
+| youth | missing | **1,901 · 0.88** (new) |
+| teen | 655 · 0.30 | **1,372 · 0.63** |
+| senior | 702 · 0.32 | **1,401 · 0.65** |
+
+The child band keeps its gate's marks (the pocket, "For the LORD will plead their cause", forgiving one another, no accusation words) and walks ten pieces: put the words in first, a rule is a scale, Yahweh watches out for the little ones, fair goes both ways, two are better than one and so is a piece of paper, how Mom wrote the letter, the one who says sorry is the wise one, do not guess what is in somebody's heart, follow the money, and the win was not the envelope, closing on the lemonade stand. The youth band walks the whole record and every movement with the appeal template spelled out for a lifetime of counters. The teen band gains the fruit shown where the parents were not, two witnesses and a document with Proverbs 18:17 binding the teller too, the father's anger and where it goes, the correction honoured in full, follow the money, and the floor. The senior band gains a run-of-room for parents and children together: the facts read from the page, the method role-played, the weight made physical, the guardrail pressed with the young men in view, the appeal template on the board, the correction honoured, the anger modelled, the economics for the parents, and three watch-fors. Fullness baseline 121 → 120.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.

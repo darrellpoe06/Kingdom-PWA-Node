@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 163,
-  "lessonsShort": 121,
+  "lessonsShort": 120,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -148,12 +148,6 @@
       "child",
       "youth",
       "teen"
-    ],
-    "ll120-it-is-written-keep-the-policy-in-your-pocket-advocacy-from-the-written-word-and-a-just-weight": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
     ],
     "ll13-a-sound-mind": [
       "child",
