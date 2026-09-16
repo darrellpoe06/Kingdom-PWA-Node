@@ -106,8 +106,33 @@ describe('a rescue that did not actually open the door goes RED', () => {
   });
 
   it('fails when the account did not end up confirmed with a password set', () => {
-    expect(sh).toMatch(/case "\$after" in confirmed=1,pw_set=1\) ok=1/);
+    expect(sh).toMatch(/case "\$after" in confirmed=1,pw_set=1,\*\) ok=1/);
     expect(sh).toMatch(/the person still cannot sign in/);
+  });
+
+  // PROVEN-TO-CATCH, on this lane's own first real run (35100570812). The
+  // original check asked only "is a password SET?" and went GREEN on a run
+  // whose reset had failed with an stty error and written nothing, because the
+  // account already carried an older password. A reset must now prove the
+  // stored hash CHANGED, or the run is red.
+  it('CATCHES a reset that changed nothing, by fingerprinting the stored hash', () => {
+    expect(sh).toMatch(/pwfp=/);
+    expect(sh).toMatch(/fp_before=/);
+    expect(sh).toMatch(/fp_after=/);
+    expect(sh).toMatch(/\[ "\$fp_before" = "\$fp_after" \]/);
+    expect(sh).toMatch(/::error::password unchanged - the new password was never written/);
+  });
+
+  it('CATCHES a password that was set but never recorded for a human to read', () => {
+    expect(sh).toMatch(/::error::password set but not recorded - re-run before telling anyone it works/);
+  });
+
+  it('does not depend on a prompt that needs a terminal (the stty defect)', () => {
+    // reset_password.sh reads under `stty -echo`, which has no terminal on a
+    // runner; piping to it silently set nothing. The write is done directly
+    // with the same pgcrypto bcrypt SQL instead.
+    expect(sh).toMatch(/crypt\(:'pw', gen_salt\('bf'\)\)/);
+    expect(sh).not.toMatch(/\|\s*\$SUDO sh "\$REPO\/infra\/nas-supabase\/reset_password\.sh"/);
   });
 
   it('fails when a PIN clear was asked for and the wall is still up', () => {
