@@ -28,6 +28,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const SW_PATH = join(HERE, '..', '..', 'public', 'sw.js');
 const SW_SRC = readFileSync(SW_PATH, 'utf8');
 const BASE = '/poetech-app';
+const ORIGIN = 'https://poetech.us';
 
 /** Load the real sw.js into a fake worker scope and hand back what it registered. */
 function loadServiceWorker() {
@@ -41,6 +42,10 @@ function loadServiceWorker() {
   const self = {
     addEventListener(type, fn) { handlers[type] = fn; },
     skipWaiting() {},
+    // A real worker scope HAS a location, and the notificationclick handler
+    // resolves its target against it (DR-0444 door routing). Without this the
+    // door cases below silently take the fallback path and prove nothing.
+    location: { origin: ORIGIN, href: `${ORIGIN}/sw.js` },
     navigator: {
       setAppBadge(n) { badge.set.push(n); return Promise.resolve(); },
       clearAppBadge() { badge.cleared += 1; return Promise.resolve(); },
@@ -269,7 +274,7 @@ describe('tapping the notification reuses an open tab instead of stacking copies
     const ev = clickEvent(`${BASE}/?tab=church`);
     sw.handlers.notificationclick(ev);
     await Promise.all(ev.waited);
-    expect(sw.opened).toEqual([`${BASE}/?tab=church`]);
+    expect(sw.opened).toEqual([`${ORIGIN}${BASE}/?tab=church`]);
   });
 
   it('focuses an existing app tab rather than opening a second one', async () => {
@@ -295,15 +300,77 @@ describe('tapping the notification reuses an open tab instead of stacking copies
     const ev = clickEvent(`${BASE}/?tab=church`);
     sw.handlers.notificationclick(ev);
     await Promise.all(ev.waited);
-    expect(navigatedTo).toBe(`${BASE}/?tab=church`);
+    expect(navigatedTo).toBe(`${ORIGIN}${BASE}/?tab=church`);
     expect(sw.opened).toEqual([]);
+  });
+
+  // ── THE DOOR DECIDES (2026-09-16, DR-0444) ────────────────────────────────
+  // Darrell: "I text Christina from the Love Corner App and receive a text
+  // from the PoeTech App." Half of that was the landing URL; this half was
+  // here. The handler matched clients by indexOf('/poetech-app'), so a phone
+  // standing in the church door was never matched, and a church notification
+  // was handed to whatever family window happened to be open.
+
+  it('focuses the window that is already in the notification\'s own door', async () => {
+    const focused = [];
+    sw.clientList.push({
+      url: `${ORIGIN}${BASE}/?view=overview`,
+      focus() { focused.push('poetech'); return Promise.resolve(this); },
+      navigate(u) { focused.push(`poetech-nav:${u}`); return Promise.resolve(this); },
+    });
+    sw.clientList.push({
+      url: `${ORIGIN}/lovecorner/app/?view=church`,
+      focus() { focused.push('lovecorner'); return Promise.resolve(this); },
+      navigate(u) { focused.push(`lovecorner-nav:${u}`); return Promise.resolve({ focus() { focused.push('lovecorner'); return Promise.resolve(); } }); },
+    });
+    const ev = clickEvent('/lovecorner/app/?view=messages&dm=11111111-2222-3333-4444-555555555555');
+    sw.handlers.notificationclick(ev);
+    await Promise.all(ev.waited);
+    // The church window was used; the family window was never touched.
+    expect(focused.some((x) => x.startsWith('lovecorner'))).toBe(true);
+    expect(focused.some((x) => x.startsWith('poetech'))).toBe(false);
+    expect(sw.opened).toEqual([]);
+  });
+
+  it('opens the church door rather than reusing a family window on the wrong door', async () => {
+    // Only a family window is open, and the notification is for the church.
+    // Reusing it is still correct (one window, navigated) -- what must NOT
+    // happen is landing on the family door's URL.
+    let navigatedTo = null;
+    sw.clientList.push({
+      url: `${ORIGIN}${BASE}/?view=overview`,
+      focus() { return Promise.resolve(this); },
+      navigate(u) { navigatedTo = u; return Promise.resolve({ focus() { return Promise.resolve(); } }); },
+    });
+    const ev = clickEvent('/lovecorner/app/?view=messages');
+    sw.handlers.notificationclick(ev);
+    await Promise.all(ev.waited);
+    expect(navigatedTo).toBe(`${ORIGIN}/lovecorner/app/?view=messages`);
+  });
+
+  it('ignores a window on another origin entirely', async () => {
+    sw.clientList.push({ url: 'https://example.com/', focus() { return Promise.resolve(this); } });
+    const ev = clickEvent(`${BASE}/?view=messages`);
+    sw.handlers.notificationclick(ev);
+    await Promise.all(ev.waited);
+    expect(sw.opened).toEqual([`${ORIGIN}${BASE}/?view=messages`]);
+  });
+
+  it('knows the SAME doors app-doors.js knows — drift here is a stacked window', () => {
+    const swDoors = (/var DOOR_PATHS = \[([^\]]+)\]/.exec(SW_SRC) || [])[1];
+    expect(swDoors, 'sw.js has no DOOR_PATHS list').toBeTruthy();
+    const inSw = swDoors.split(',').map((x) => x.trim().replace(/^'|'$/g, '')).sort();
+    const libSrc = readFileSync(join(HERE, '..', 'lib', 'app-doors.js'), 'utf8');
+    const inLib = [...libSrc.matchAll(/^\s*path: (?:PERSONAL_DOOR|'([^']+)'),/gm)]
+      .map((m) => m[1] || '/poetech-app/').sort();
+    expect(inSw).toEqual(inLib);
   });
 
   it('falls back to the app root when the notification carries no url', async () => {
     const ev = { notification: { close() {}, data: null }, waitUntil(p) { this.waited = [p]; }, waited: [] };
     sw.handlers.notificationclick(ev);
     await Promise.all(ev.waited);
-    expect(sw.opened).toEqual([`${BASE}/`]);
+    expect(sw.opened).toEqual([`${ORIGIN}${BASE}/`]);
   });
 });
 
@@ -349,7 +416,9 @@ describe('the app-icon badge follows the notifications in the shade', () => {
     });
     await Promise.all(waited);
     expect(sw.badge.cleared).toBe(1);
-    expect(sw.opened).toEqual([`${BASE}/?tab=messages`]);
+    // Absolute now: a client's own href is COMPARED to the target rather than
+    // substring-matched, which is what lets the door be honored (DR-0444).
+    expect(sw.opened).toEqual([`${ORIGIN}${BASE}/?tab=messages`]);
   });
 
   it('a worker scope without the Badging API is a no-op, never a throw', async () => {

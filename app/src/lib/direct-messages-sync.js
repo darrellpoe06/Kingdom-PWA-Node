@@ -149,6 +149,49 @@ export function subscribeDirectMessages(onChange) {
   return unsubscribe;
 }
 
+// THE SPACE A THREAD BELONGS TO, AS THE NOTIFIER NEEDS IT (2026-09-16, DR-0444).
+//
+// Darrell: "I text Christina from the Love Corner App and receive a text from
+// the PoeTech App... I also need the message to be sent from and received from
+// the group it belongs to originally." The SEND half was already right --
+// resolveDmInstance() below stamps the thread with the contact's own instance.
+// The RECEIVE half had nothing to work with: the notification's landing was a
+// hard-coded path into the personal door, because the only fact the send path
+// held was an instance UUID, and a door is keyed by SLUG (app-doors.js). (That
+// path is deliberately not written out here: client-path-parity scans source
+// for same-origin path literals and rightly demands a provider for each one.)
+//
+// So this reads the two facts a notification needs about the thread's space --
+// its slug (which door to open) and its display name (which house is calling,
+// shown in the push body). `list_dm_contacts` does not project either, and
+// widening an RPC used by every messaging surface for this is a bigger blast
+// radius than one read; a member may SELECT their own instances already
+// (instances_member_read, migration 0056), so no grant and no migration is
+// needed. Cached per instance for the session -- a space's slug does not
+// change while a phone is on -- and cached ONLY on success, so a network blip
+// cannot pin "unknown" for the rest of the session. Every failure path resolves
+// to nulls, which lands the notification on the personal door: the same place
+// it landed before this existed, never an unopenable link.
+const instanceFactsCache = new Map();
+
+export async function instanceSpaceFacts(instanceId, client = supabase) {
+  if (!instanceId) return { slug: null, name: null };
+  if (instanceFactsCache.has(instanceId)) return instanceFactsCache.get(instanceId);
+  try {
+    const { data, error } = await client
+      .from('instances')
+      .select('slug,display_name')
+      .eq('id', instanceId)
+      .maybeSingle();
+    if (!error && data) {
+      const facts = { slug: data.slug || null, name: data.display_name || null };
+      instanceFactsCache.set(instanceId, facts);
+      return facts;
+    }
+  } catch { /* fall through to unknown */ }
+  return { slug: null, name: null };
+}
+
 // The instance a DM rides: the contact's OWN space when the roster carried it
 // (0124/review GAP 2 — a non-church-space contact must not be stamped with the
 // church instance, or RLS correctly blocks the send), else the church fallback.
@@ -205,8 +248,14 @@ export async function sendDirectMessage(recipientUserId, body, displayName, cont
   let push = null;
   if (inserted && inserted.id) {
     push = Promise.resolve()
-      .then(() => notifyNewMessage({
+      // The thread's OWN space decides where the tap lands and which house the
+      // push names (DR-0444). A failed read is nulls, never a thrown send.
+      .then(() => instanceSpaceFacts(tenantId))
+      .then((space) => notifyNewMessage({
         instanceId: tenantId,
+        instanceSlug: space.slug,
+        spaceName: space.name,
+        senderUserId: session.user.id,
         recipientUserId,
         messageId: inserted.id,
         senderName,

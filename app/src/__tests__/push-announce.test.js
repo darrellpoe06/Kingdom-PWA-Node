@@ -67,6 +67,12 @@ describe('announceLive — a declaration, never a guess', () => {
     expect(f.calls[0].body.title).toBe('The Love Corner is live');
     expect(f.calls[0].body.body).toBe('Sunday Worship has started.');
     expect(f.calls[0].body.url).toBe(LANDING.live);
+  });
+
+  it("lands on the church's OWN door when the space is known (DR-0444)", async () => {
+    const f = fakeFetch();
+    await announceLive({ ...liveArgs, instanceSlug: 'colg', supabase: supabaseWith(), fetchImpl: f });
+    expect(f.calls[0].body.url).toBe('/lovecorner/app/?view=church');
     expect(f.calls[0].body.url.startsWith('/')).toBe(true);
   });
 
@@ -171,6 +177,42 @@ describe('notifyNewMessage — names the sender, never the message', () => {
     const f = fakeFetch();
     await notifyNewMessage({ ...args, supabase: supabaseWith(), fetchImpl: f });
     expect(f.calls[0].body.url).toBe(LANDING.message);
+  });
+
+  // ── THE THREAD'S OWN DOOR (2026-09-16, DR-0444) ─────────────────────────
+  // Darrell: "I text Christina from the Love Corner App and receive a text
+  // from the PoeTech App... I also need the message to be sent from and
+  // received from the group it belongs to originally." And, on the same taps
+  // landing nowhere useful: "the open the app to the welcome instead of the
+  // text message."
+  it("lands in the THREAD'S door, on the thread, when the space is known", async () => {
+    const f = fakeFetch();
+    await notifyNewMessage({
+      ...args,
+      instanceSlug: 'colg',
+      senderUserId: '11111111-2222-3333-4444-555555555555',
+      supabase: supabaseWith(),
+      fetchImpl: f,
+    });
+    expect(f.calls[0].body.url)
+      .toBe('/lovecorner/app/?view=messages&dm=11111111-2222-3333-4444-555555555555');
+  });
+
+  it('never ships a ?tab= landing again — that param opened the welcome screen', async () => {
+    const f = fakeFetch();
+    await notifyNewMessage({ ...args, instanceSlug: 'colg', supabase: supabaseWith(), fetchImpl: f });
+    expect(f.calls[0].body.url).not.toContain('tab=');
+    expect(f.calls[0].body.url).toContain('?view=messages');
+  });
+
+  it('names the house that is calling, and still never the message', async () => {
+    const f = fakeFetch();
+    await notifyNewMessage({
+      ...args, instanceSlug: 'colg', spaceName: 'The Love Corner',
+      supabase: supabaseWith(), fetchImpl: f,
+    });
+    expect(f.calls[0].body.body).toBe('In The Love Corner. Open the app to read it.');
+    expect(f.calls[0].body.title).toBe('Eldress Redding sent you a message');
   });
 
   it('NEVER THROWS on any failure path', async () => {

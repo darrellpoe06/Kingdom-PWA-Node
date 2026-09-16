@@ -39,6 +39,7 @@ import { listMyAdminInstances, inviteToSpace, isInviteEmail } from '../lib/membe
 import { listPendingClaims, confirmInvite } from '../lib/family-invite.js';
 import { canAddContacts, inviteShareText, smsHrefTo, telHref, isLikelyPhone, installPromptText } from '../lib/messages-invite.js';
 import { readContacts, upsertContact, removeContact } from '../lib/saved-contacts.js';
+import { consumeDmPeer } from '../lib/app-doors.js';
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -379,9 +380,17 @@ function AddContact({ onInvited }) {
 export default function Messages({
   voiceOps = {}, setVoiceOpsConfig = () => {},
   addIncident, addInquiry, addProject, entities = [], setView,
+  openWithUserId,
 } = {}) {
   const [session, setSession] = useState(null);
   const [tab, setTab] = useState('direct');
+  // The person a notification tap named, taken ONCE from the boot snapshot
+  // (app-doors.js: the URL has already been rewritten by the time this lazy
+  // surface mounts, which is why the value is snapshotted at boot rather than
+  // re-read here). The prop is the test seam; production reads the snapshot.
+  // Consuming clears it, so leaving Messages and coming back later does not
+  // silently reopen the same thread (DR-0444).
+  const [deepLinkPeer] = useState(() => (openWithUserId !== undefined ? openWithUserId : consumeDmPeer()));
   const [contacts, setContacts] = useState([]);
   const [invited, setInvited] = useState([]);
 
@@ -437,7 +446,7 @@ export default function Messages({
               ask a leader of your space to add you.
             </p>
           )}
-          <DirectMessages roster={contacts} invited={invited} title="Direct messages" />
+          <DirectMessages roster={contacts} invited={invited} title="Direct messages" openWithUserId={deepLinkPeer} />
           <AddContact onInvited={() => {
             loadDmContacts().then(setContacts).catch(() => {});
             loadDmInvited().then(setInvited).catch(() => {});

@@ -246,23 +246,76 @@ self.addEventListener('push', function (event) {
 
 // Tapping the notification should land on the RIGHT screen, and should reuse a
 // tab that is already open rather than stacking another copy of the app.
+// THE INSTALLABLE DOORS, BY PATH (DR-0258 install-scope split; DR-0444).
+// MUST stay in step with DOORS in src/lib/app-doors.js -- sw-push-handler
+// .test.js derives both lists from source and fails if they disagree, because
+// a door missing here is a notification tap that opens a SECOND window instead
+// of focusing the app the person already has open.
+var DOOR_PATHS = ['/poetech-app/', '/lovecorner/app/', '/moore/app/', '/tlc/app/', '/properties/app/'];
+
+// The door a URL belongs to: the longest door path it starts with, or ''.
+function doorOf(pathname) {
+  var best = '';
+  for (var i = 0; i < DOOR_PATHS.length; i += 1) {
+    var d = DOOR_PATHS[i];
+    if (pathname.indexOf(d) === 0 && d.length > best.length) best = d;
+  }
+  return best;
+}
+
 self.addEventListener('notificationclick', function (event) {
   event.notification.close();
   var target = (event.notification.data && event.notification.data.url) || BASE + '/';
+  // Absolute, so a client's own href can be compared to it rather than
+  // substring-matched (the old indexOf test called a client "already there"
+  // whenever the target path merely appeared in its URL).
+  var abs = target;
+  var wantDoor = '';
+  try {
+    var u = new URL(target, self.location.origin);
+    abs = u.href;
+    wantDoor = doorOf(u.pathname);
+  } catch (e) { /* keep the raw target; the openWindow fallback still works */ }
+
   event.waitUntil(
     syncAppBadge().then(function () {
       return self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     }).then(function (list) {
+      // THE DOOR DECIDES WHICH WINDOW GETS THE TAP (2026-09-16, DR-0444).
+      // Darrell: "I text Christina from the Love Corner App and receive a text
+      // from the PoeTech App." Half of that was the landing URL (fixed in
+      // app-doors.js); the other half was HERE. This matched clients by
+      // `indexOf(BASE)` -- BASE being /poetech-app -- so a phone standing in
+      // the church door was never matched at all, and a church notification
+      // was handed to whatever PoeTech window happened to be open. Now a
+      // client in the TARGET'S OWN door is preferred; any other same-origin
+      // window is the fallback and is navigated to the target; and only with
+      // no window at all do we open one.
+      var same = [];
       for (var i = 0; i < list.length; i += 1) {
         var c = list[i];
-        if (c.url.indexOf(BASE) !== -1 && 'focus' in c) {
-          if ('navigate' in c && c.url.indexOf(target) === -1) {
-            return c.navigate(target).then(function (nc) { return nc && nc.focus(); });
-          }
-          return c.focus();
+        if (!('focus' in c)) continue;
+        try {
+          if (new URL(c.url).origin !== self.location.origin) continue;
+        } catch (e) { continue; }
+        same.push(c);
+      }
+      var pick = null;
+      if (wantDoor) {
+        for (var j = 0; j < same.length; j += 1) {
+          try {
+            if (doorOf(new URL(same[j].url).pathname) === wantDoor) { pick = same[j]; break; }
+          } catch (e) { /* skip an unparseable client */ }
         }
       }
-      return self.clients.openWindow ? self.clients.openWindow(target) : undefined;
+      if (!pick && same.length) pick = same[0];
+      if (pick) {
+        if ('navigate' in pick && pick.url !== abs) {
+          return pick.navigate(abs).then(function (nc) { return (nc || pick).focus(); });
+        }
+        return pick.focus();
+      }
+      return self.clients.openWindow ? self.clients.openWindow(abs) : undefined;
     })
   );
 });

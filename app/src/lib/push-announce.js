@@ -23,13 +23,33 @@
 // letting RLS decide, so there is no second copy of the roster rule to drift.
 import { supabase as defaultSupabase } from './supabase.js';
 import { liveAnnouncement, messageAnnouncement, dedupeKeyFor } from './push-send-policy.js';
+import { messageLanding, liveLanding, PERSONAL_DOOR } from './app-doors.js';
 
 export const PUSH_SEND_URL = '/api/push-send';
 
-/** The app path a notification tap should land on, per topic. */
+/**
+ * The app path a notification tap lands on, per topic, WHEN THE SPACE IS NOT
+ * KNOWN — the personal door, which every account can open.
+ *
+ * FIXED 2026-09-16 (DR-0444), two defects in these two lines:
+ *   * `?tab=` was never a param this app reads. The shell routes on `?view=`
+ *     (getInitialView / parseNav), so every message notification ever sent
+ *     fell through to the default view and opened Big Picture with the welcome
+ *     card on it -- "the open the app to the welcome instead of the text
+ *     message" (Darrell, with the screenshot).
+ *   * `/poetech-app/` was hard-coded, so a church thread handed a member the
+ *     FAMILY door -- "I text Christina from the Love Corner App and receive a
+ *     text from the PoeTech App... I also need the message to be sent from and
+ *     received from the group it belongs to originally."
+ *
+ * Both are now DERIVED per announcement from the space the thread belongs to
+ * (app-doors.js). These constants remain the fallback for a caller that has no
+ * space, and `?view=` is what they carry. parseNav still accepts `?tab=` as an
+ * alias so the notifications already sitting on phones are not dead links.
+ */
 export const LANDING = {
-  live: '/poetech-app/?tab=church',
-  message: '/poetech-app/?tab=messages',
+  live: `${PERSONAL_DOOR}?view=church`,
+  message: `${PERSONAL_DOOR}?view=messages`,
 };
 
 async function accessToken(supabase) {
@@ -79,7 +99,7 @@ async function post(body, { supabase, fetchImpl }) {
  * fabricated state delivered into a pocket. Only a real declaration gets here.
  */
 export async function announceLive({
-  instanceId, churchId, churchName, serviceLabel, videoId,
+  instanceId, instanceSlug, churchId, churchName, serviceLabel, videoId,
   supabase = defaultSupabase,
   fetchImpl = typeof fetch !== 'undefined' ? fetch : null,
   at,
@@ -96,7 +116,7 @@ export async function announceLive({
     serviceLabel: serviceLabel || null,
     title: words.title,
     body: words.body,
-    url: LANDING.live,
+    url: instanceSlug ? liveLanding({ instanceSlug }) : LANDING.live,
     dedupeKey: dedupeKeyFor({ topic: 'live', churchId, videoId, at }),
   }, { supabase, fetchImpl });
 }
@@ -112,13 +132,13 @@ export async function announceLive({
  * `messageAnnouncement()` so there is exactly one place this decision lives.
  */
 export async function notifyNewMessage({
-  instanceId, recipientUserId, messageId, senderName,
+  instanceId, instanceSlug, spaceName, senderUserId, recipientUserId, messageId, senderName,
   supabase = defaultSupabase,
   fetchImpl = typeof fetch !== 'undefined' ? fetch : null,
 } = {}) {
   if (!instanceId || !recipientUserId || !messageId) return { ok: false, reason: 'missing-target' };
   if (typeof fetchImpl !== 'function') return { ok: false, reason: 'no-fetch' };
-  const words = messageAnnouncement({ senderName });
+  const words = messageAnnouncement({ senderName, spaceName });
   return post({
     topic: 'message',
     instanceId,
@@ -126,7 +146,7 @@ export async function notifyNewMessage({
     userIds: [recipientUserId],
     title: words.title,
     body: words.body,
-    url: LANDING.message,
+    url: messageLanding({ instanceSlug, peerUserId: senderUserId }),
   }, { supabase, fetchImpl });
 }
 
