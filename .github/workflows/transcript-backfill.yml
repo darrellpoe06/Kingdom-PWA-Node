@@ -82,9 +82,30 @@ jobs:
       - name: Install Python dependencies
         run: pip install youtube-transcript-api psycopg2-binary
 
+      # DR-0442: this lane writes through a direct Postgres URL, and
+      # SUPABASE_DB_URL names the RETIRED hosted project. The app has read the
+      # sovereign stack since REPOINT-ARMED (2026-08-19), so a run here filed
+      # rows into a database nobody reads — that is how 699 transcripts went
+      # hosted-only. A write to the wrong backend is now an honest red instead
+      # of a silent success. SOVEREIGN_DB_URL (a tailnet-reachable URL for the
+      # NAS Postgres) unblocks it; without it, the live path is the NAS
+      # transcript-trickle, whose loader follows the record by itself.
+      - name: Refuse to write to the retired backend
+        run: |
+          if [ ! -f infra/nas-supabase/REPOINT-ARMED ]; then
+            echo "REPOINT-ARMED absent: hosted is still the app's backend, so this lane is correct."
+            exit 0
+          fi
+          if [ -n "${{ secrets.SOVEREIGN_DB_URL }}" ]; then
+            echo "REPOINT-ARMED present and SOVEREIGN_DB_URL is set: writing to the database the app reads."
+            exit 0
+          fi
+          echo "::error::REPOINT-ARMED is present (the app reads the sovereign stack) and SOVEREIGN_DB_URL is not set, so the only target here is the RETIRED hosted project. Nothing was written. Use the NAS transcript-trickle (infra/nas-sme-pipeline/transcript_trickle_install.sh), whose loader resolves the sovereign door itself (DR-0442), or add SOVEREIGN_DB_URL."
+          exit 1
+
       - name: Phase 1 + 2 — channel sync + transcript backfill
         env:
-          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+          DATABASE_URL: ${{ secrets.SOVEREIGN_DB_URL || secrets.SUPABASE_DB_URL }}
           # Residential proxy (see PROXY note above); absent secrets = empty = direct.
           WEBSHARE_PROXY_USERNAME: ${{ secrets.WEBSHARE_PROXY_USERNAME }}
           WEBSHARE_PROXY_PASSWORD: ${{ secrets.WEBSHARE_PROXY_PASSWORD }}

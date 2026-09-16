@@ -16,13 +16,22 @@
 #   apply    copies the difference (insert missing, update where hosted is
 #            newer), then re-measures and goes red unless nothing remains
 #
-# Dispatch-only, the same shape DR-0317 established for storage_sync.py and the
-# replay lane: no schedule, no self-trigger, one hand-dispatched pass that exits
-# when done. Committing it does not run it. A daily armed run is a separate
-# decision recorded in DR-0442 (re-review there) — the durable fix is the
-# loaders themselves following the record (sovereign_target.py), so hosted
-# stops receiving new rows at all.
-name: Sovereign content sync (hosted -> sovereign, dispatch only)
+# ARMED, BY DARRELL'S OWN WORD (2026-09-16): "You switch it!!!!!!!!! Obviously!!!!!
+# Why wouldn't that just happen????!" Parking the carry-across on a human
+# dispatch was the DR-0111/DR-0247 violation — agreed work starts itself. So the
+# schedule below APPLIES daily, and a dispatch can still measure first.
+#
+# This is the deterministic class of DR-0247/DR-0248: no model, no spawned work,
+# idempotent by construction (ON CONFLICT DO NOTHING; updates only where hosted
+# is newer; sovereign-only rows never touched). It carries the two brakes that
+# class keeps — a budget (timeout-minutes) and a single-instance lock
+# (concurrency, cancel-in-progress false) — and its stop-paths are deterministic
+# too: remove the schedule block, or revert this file. The durable fix rides
+# with it: the loaders now follow the record (sovereign_target.py), so hosted
+# stops receiving new rows at all, and this lane's daily verdict is what proves
+# that — a GO with nothing copied means the writers are landing in the right
+# place, and a copy means one has not been repointed yet.
+name: Sovereign content sync (hosted -> sovereign)
 
 on:
   workflow_dispatch:
@@ -36,6 +45,10 @@ on:
         description: "one table only (blank = every content table)"
         type: string
         default: ""
+  schedule:
+    # 06:20 UTC daily — after the NAS's overnight ingest window and before the
+    # US morning, offset from the hour so it never stacks on the other clocks.
+    - cron: '20 6 * * *'
 
 permissions:
   contents: read
@@ -60,8 +73,10 @@ jobs:
       - name: Measure, and carry across when applying
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
-          MODE: ${{ inputs.mode }}
-          ONLY_TABLE: ${{ inputs.table }}
+          # A scheduled run has no inputs, and it APPLIES: the daily carry is
+          # the point (Darrell 2026-09-16). A dispatch does what it was told.
+          MODE: ${{ github.event_name == 'schedule' && 'apply' || inputs.mode }}
+          ONLY_TABLE: ${{ github.event_name == 'schedule' && '' || inputs.table }}
         run: bash scripts/content-sync-over-tailnet.sh
 
       - name: Say how to confirm it independently

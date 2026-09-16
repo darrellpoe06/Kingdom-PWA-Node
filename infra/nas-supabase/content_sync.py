@@ -55,6 +55,20 @@ CONTENT_TABLES = [
     "sermon_video_stats",
     "video_harvests",
 ]
+
+# NATURAL KEYS -- the break the first apply run found (2026-09-16, run
+# 35097143467). choir_sermons and church_speakers carried across cleanly, and
+# video_transcripts died on "duplicate key value violates unique constraint
+# video_transcripts_uniq, Key (instance_id, video_id)": both sides held the
+# same transcript under DIFFERENT primary keys, because the hosted row and the
+# sovereign row were each minted by their own insert. Keyed by id, such a row
+# reads as missing for ever -- a permanent NO-GO that is not a real gap -- and
+# the insert aborts the table. So a table with a natural unique key is planned
+# by THAT key, and every insert is conflict-safe against ANY unique index.
+NATURAL_KEYS = {
+    "video_transcripts": ["instance_id", "video_id"],
+    "sermon_video_stats": ["instance_id", "video_id"],
+}
 CHUNK = 50
 
 
@@ -92,16 +106,40 @@ def plan_sync(src_index, dst_index):
     return inserts, sorted(updates)
 
 
+def key_expr(key_cols):
+    """The SQL that renders a row's key as one text value. Used identically for
+    the index read, the row fetch and the update's WHERE, so the three can never
+    disagree about what identifies a row."""
+    if key_cols == ["id"]:
+        return "id::text"
+    return "concat_ws('|', {})".format(", ".join('"{}"::text'.format(c) for c in key_cols))
+
+
+def key_cols_for(table, cols):
+    """The natural key when the table has one AND this copy carries every one of
+    its columns; otherwise the primary key. A natural key we cannot fully read
+    is never guessed at."""
+    nat = NATURAL_KEYS.get(table)
+    if nat and all(c in cols for c in nat):
+        return list(nat)
+    return ["id"]
+
+
 def insert_sql(table, cols):
     col_list = ", ".join('"{}"'.format(c) for c in cols)
     placeholders = ", ".join(":p{}".format(i) for i in range(len(cols)))
-    return ('INSERT INTO public."{}" ({}) VALUES ({}) ON CONFLICT (id) DO NOTHING'
+    # Bare ON CONFLICT DO NOTHING, not ON CONFLICT (id): a row already present
+    # under a different primary key collides on the table's natural unique index,
+    # and that must SKIP rather than abort the whole table (the 2026-09-16 break).
+    return ('INSERT INTO public."{}" ({}) VALUES ({}) ON CONFLICT DO NOTHING'
             .format(table, col_list, placeholders))
 
 
-def update_sql(table, cols):
+def update_sql(table, cols, key_cols):
+    # id is never in the SET: on a natural-key match the two sides hold different
+    # primary keys, and rewriting one would break every row that references it.
     sets = ", ".join('"{}" = :p{}'.format(c, i) for i, c in enumerate(cols) if c != "id")
-    return 'UPDATE public."{}" SET {} WHERE id::text = :id'.format(table, sets)
+    return 'UPDATE public."{}" SET {} WHERE {} = :k'.format(table, sets, key_expr(key_cols))
 
 
 def chunks(items, n):
@@ -147,17 +185,17 @@ def table_columns(con, table):
     return [r[0] for r in rows]
 
 
-def read_index(con, table, has_updated):
-    q = ('SELECT id::text, {} FROM public."{}"'
-         .format("updated_at" if has_updated else "NULL", table))
+def read_index(con, table, has_updated, key_cols):
+    q = ('SELECT {} AS k, {} FROM public."{}"'
+         .format(key_expr(key_cols), "updated_at" if has_updated else "NULL", table))
     return {r[0]: r[1] for r in con.run(q)}
 
 
-def fetch_rows(con, table, cols, ids, order_col):
+def fetch_rows(con, table, cols, keys, order_col, key_cols):
     col_list = ", ".join('"{}"'.format(c) for c in cols)
     order = ' ORDER BY "{}" ASC NULLS FIRST, id::text'.format(order_col) if order_col else " ORDER BY id::text"
-    return con.run('SELECT {} FROM public."{}" WHERE id::text = ANY(:ids){}'
-                   .format(col_list, table, order), ids=ids)
+    return con.run('SELECT {} FROM public."{}" WHERE {} = ANY(:keys){}'
+                   .format(col_list, table, key_expr(key_cols), order), keys=keys)
 
 
 def sync_table(src, dst, table, commit):
@@ -173,28 +211,30 @@ def sync_table(src, dst, table, commit):
         return out
     has_updated = "updated_at" in cols
     order_col = "created_at" if "created_at" in cols else None
-    s_idx = read_index(src, table, has_updated)
-    d_idx = read_index(dst, table, has_updated)
+    key_cols = key_cols_for(table, cols)
+    s_idx = read_index(src, table, has_updated, key_cols)
+    d_idx = read_index(dst, table, has_updated, key_cols)
     inserts, updates = plan_sync(s_idx, d_idx)
     out.update({"hosted": len(s_idx), "sovereign_before": len(d_idx),
                 "missing": len(inserts), "stale": len(updates),
-                "copied": 0, "updated": 0, "columns": len(cols)})
+                "copied": 0, "updated": 0, "columns": len(cols),
+                "keyed_by": "+".join(key_cols)})
     if commit:
         ins = insert_sql(table, cols)
         for batch in chunks(inserts, CHUNK):
-            for row in fetch_rows(src, table, cols, batch, order_col):
+            for row in fetch_rows(src, table, cols, batch, order_col, key_cols):
                 dst.run(ins, **{"p{}".format(i): v for i, v in enumerate(row)})
                 out["copied"] += 1
-        upd = update_sql(table, cols)
-        id_at = cols.index("id")
+        upd = update_sql(table, cols, key_cols)
+        key_at = [cols.index(c) for c in key_cols]
         for batch in chunks(updates, CHUNK):
-            for row in fetch_rows(src, table, cols, batch, order_col):
+            for row in fetch_rows(src, table, cols, batch, order_col, key_cols):
                 params = {"p{}".format(i): v for i, v in enumerate(row) if cols[i] != "id"}
-                params["id"] = row[id_at]
+                params["k"] = "|".join("" if row[i] is None else str(row[i]) for i in key_at)
                 dst.run(upd, **params)
                 out["updated"] += 1
-        d2 = read_index(dst, table, has_updated)
-        s2 = read_index(src, table, has_updated)
+        d2 = read_index(dst, table, has_updated, key_cols)
+        s2 = read_index(src, table, has_updated, key_cols)
         i2, u2 = plan_sync(s2, d2)
         out.update({"sovereign_after": len(d2), "missing_after": len(i2), "stale_after": len(u2)})
     else:
@@ -264,10 +304,30 @@ def selftest():
     check("a sovereign row with no updated_at yields to a dated hosted edit", upd == ["a"])
     ins, upd = plan_sync({"a": 1}, {"a": 5})
     check("a sovereign edit NEWER than hosted is left alone", upd == [])
-    check("insert is conflict-safe on the primary key (re-runs never duplicate)",
-          "ON CONFLICT (id) DO NOTHING" in insert_sql("choir_sermons", ["id", "title"]))
+    check("insert is conflict-safe (re-runs never duplicate)",
+          "ON CONFLICT DO NOTHING" in insert_sql("choir_sermons", ["id", "title"]))
+    check("CATCHES the 2026-09-16 break: the insert must not name only the primary "
+          "key, or a row present under a different id aborts the whole table",
+          "ON CONFLICT (id)" not in insert_sql("video_transcripts", ["id", "video_id"]))
     check("update never rewrites the key",
-          '"id" =' not in update_sql("choir_sermons", ["id", "title"]).split("WHERE")[0])
+          '"id" =' not in update_sql("choir_sermons", ["id", "title"], ["id"]).split("WHERE")[0])
+    # Natural keys: the same break, on the planning side.
+    check("a table with a natural key is planned by it, not by id",
+          key_cols_for("video_transcripts", ["id", "instance_id", "video_id", "text"])
+          == ["instance_id", "video_id"])
+    check("a natural key we cannot fully read is never guessed at",
+          key_cols_for("video_transcripts", ["id", "video_id"]) == ["id"])
+    check("a table with no natural key keeps the primary key",
+          key_cols_for("choir_sermons", ["id", "title"]) == ["id"])
+    check("the key expression is identical for the index, the fetch and the update",
+          key_expr(["instance_id", "video_id"])
+          == "concat_ws('|', \"instance_id\"::text, \"video_id\"::text)"
+          and key_expr(["instance_id", "video_id"]) in update_sql(
+              "video_transcripts", ["id", "instance_id", "video_id", "text"],
+              ["instance_id", "video_id"]))
+    check("CATCHES the false permanent gap: a row held on BOTH sides under "
+          "different ids reads as present, never as missing for ever",
+          plan_sync({"inst|vid": None}, {"inst|vid": None}) == ([], []))
     check("chunking covers every id exactly once",
           sum(len(c) for c in chunks(list(range(123)), CHUNK)) == 123)
     check("verdict GO when nothing hosted-only remains",
