@@ -288,6 +288,32 @@ Touched With the Feeling (adult prose 2,679 by the gate's counter; floors child 
 
 All twelve movements in each band: the sympathy as fact; without sin as completeness (the exit nobody but He refused); made sin, numbered, wounded rather than "felt like a sinner"; how He was tempted at all (nothing in Me); the weight measured in damage, not desire (the advertisement inversion); the old priest's shared guilt against His; the judgment never grounded in sampling; He knows you without a briefing; what the sympathy is for (your nerve, not His verdict); what it does to prayer; where the Word stops; where it lands. The child band keeps the L136 gate's own child rules: no made-to-be-sin abstraction and no Levitical comparison quoted at child level (two verses the first draft quoted were replaced with child prose, caught by the gate before the lane). Fullness baseline 137 → 136.
 
+## L135 — the eighteenth full lesson (2026-09-16)
+
+They Called Every One of Them George (adult prose 3,008 by the gate's counter; floors child 1,504, others 1,805). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 820 · 0.28 · FK 1.3 | **1,890 · 0.63** |
+| youth | missing | **1,930 · 0.64** (new) |
+| teen | 1,312 · 0.45 · FK 6.7 | **1,881 · 0.63** |
+| senior | 1,731 · 0.59 · FK 12.3 | **2,063 · 0.69** |
+
+All thirteen parts in each band: the telling with its one precision; the name they took; the porter honoured in the Word; Yahweh names and never un-names; Hagar; hired to be invisible and therefore positioned, with the guard; what the Word says about stealing a man (kept out of the child band per the L135 gate's own child rules); shut out by the builders; the wage Yahweh legislated; good news from a far country; thirty years then one phone call; the One who took the servant's form and was given the Name; the one small instruction. The L135 gate also holds the child band shorter than the senior; the first draft's senior was 119 characters too short and was given the elders' two-ledgers paragraph. Fullness baseline 136 → 135.
+
+## L134 — the nineteenth full lesson (2026-09-16)
+
+Divers Weights: when the question keeps moving, the record that stands, and the better assignment (adult prose 2,382 by the gate's counter; floors child 1,191, others 1,430). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 471 · 0.20 | **1,387 · 0.58** |
+| youth | missing | **1,599 · 0.67** (new) |
+| teen | 829 · 0.35 | **1,481 · 0.62** |
+| senior | 1,136 · 0.48 | **1,636 · 0.69** |
+
+All eight parts in each band: the scene and the comment that was wiser than the video; the moving goalpost named in the Torah as divers weights, not a figure of speech; you do not owe a rigged question an answer, with the Master as the proof; honour is a debt; the record stated plainly (Latimer's filament, Williams's pericardium, the thin attributions called thin, the electret microphone in the phone); why telling it exactly right is the stronger honour; the frame underneath (one image, one blood, one Giver); the better assignment, which is the children. The teen band adds the two objections young readers actually hear and the Bezaleel frame for the school's engineering track; the senior band adds the elders' testimony, the once-a-year list read aloud at the table, and the two failures that look like strength. The first draft's teen and senior each sat 29 and 19 words under the floor and the senior was shorter than the child, which the age gate forbids; both were extended. Fullness baseline 135 → 134.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
