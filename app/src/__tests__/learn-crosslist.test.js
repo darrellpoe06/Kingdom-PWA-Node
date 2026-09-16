@@ -71,12 +71,13 @@ describe('a pointer, never a copy', () => {
   });
 
   it('leaves the program totals exactly where they were', () => {
-    // The department shelf grows; the catalog does not. 25 courses / 486
-    // lessons, measured 2026-09-16, unchanged by any cross-listing.
+    // The department shelf grows; the catalog does not. 25 courses / 487
+    // lessons, measured 2026-09-16 (486 + Sovereign A.I. week 22),
+    // unchanged by any cross-listing.
     expect(courses).toHaveLength(25);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(486);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(487);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(486);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(487);
   });
 
   it('every declared department is a real department of the catalog', () => {
