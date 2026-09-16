@@ -186,9 +186,22 @@ a writer came in through.
 
 ## Still open, and not parked behind a question
 
-- The content-parity row in `nas-health`, so the witness that counts
-  `auth.users` on both sides counts `choir_sermons` too. Carried forward from
-  DR-0443. **re-review: 2026-09-23.**
+- ~~The content-parity row in `nas-health`.~~ **CLOSED the same session, ahead
+  of its date.** The witness counted `auth.users` and nothing the family
+  actually reads — which is why "where are the September messages?" had no
+  answer there, and why the repoint's writer gap went unseen for four weeks.
+  `nas-health.yml` now prints, from the box's own database: `choir_sermons`
+  with **the newest `service_date` beside the count**, plus `video_transcripts`,
+  `sermon_prep` and `instances`. The date matters as much as the count — a
+  count alone cannot tell a whole database from a stale one, and unknown
+  freshness must never read as fresh (DR-0076 / DR-0125).
+
+  **The division of labour is deliberate, so the two witnesses cannot drift
+  into re-implementing each other:** the daily content-sync lane owns the
+  hosted-vs-sovereign COMPARISON and its GO/NO-GO verdict; this row is the
+  sovereign side's own answer to "what does the database the app reads
+  actually hold, and how fresh is it." A person diagnosing a missing month now
+  gets that from the witness rather than by opening the app and counting.
 
 The content-parity row in `nas-health` (DR-0443's other open item — the witness
 that counts `auth.users` on both sides should count `choir_sermons` too) is
