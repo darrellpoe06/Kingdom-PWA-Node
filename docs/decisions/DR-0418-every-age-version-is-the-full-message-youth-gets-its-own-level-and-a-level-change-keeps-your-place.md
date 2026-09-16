@@ -314,6 +314,19 @@ Divers Weights: when the question keeps moving, the record that stands, and the 
 
 All eight parts in each band: the scene and the comment that was wiser than the video; the moving goalpost named in the Torah as divers weights, not a figure of speech; you do not owe a rigged question an answer, with the Master as the proof; honour is a debt; the record stated plainly (Latimer's filament, Williams's pericardium, the thin attributions called thin, the electret microphone in the phone); why telling it exactly right is the stronger honour; the frame underneath (one image, one blood, one Giver); the better assignment, which is the children. The teen band adds the two objections young readers actually hear and the Bezaleel frame for the school's engineering track; the senior band adds the elders' testimony, the once-a-year list read aloud at the table, and the two failures that look like strength. The first draft's teen and senior each sat 29 and 19 words under the floor and the senior was shorter than the child, which the age gate forbids; both were extended. Fullness baseline 135 → 134.
 
+## L133 — the twentieth full lesson (2026-09-16)
+
+How to See the Whole Torah at Once: the twelve patterns and the two questions that opened them (adult prose 1,871 by the gate's counter; floors child 936, others 1,123). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 345 · 0.18 | **1,010 · 0.54** |
+| youth | missing | **1,338 · 0.72** (new) |
+| teen | 675 · 0.36 | **1,131 · 0.60** |
+| senior | 742 · 0.40 | **1,156 · 0.62** |
+
+All nine parts in each band: the discipline of named versus shown; the Three on the first page before there is an enemy; the Spirit in all five books; the One who is seen and carries the Name; what Yahweh meant by our likeness (a communion, family language, self-giving — Judah, Moses, Aaron, and the coats of skins first); the chain of substitution from the garden to the pole; the enemy named with the one playbook; the hard pattern that knowing did not prevent it, with Deuteronomy 29:4 keeping it from contempt; and the whole picture. The child band keeps its gate's own three marks (what a pattern is, the three tricks, points to Jesus) and walks each pattern a second time with a job to do; the youth band is the full nine patterns in a teenager's voice; the teen adds the two questions answered in their own words and the pencil-mark reading plan; the senior adds three charges, Bezaleel for the school, and the table assignment. Fullness baseline 134 → 133.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.

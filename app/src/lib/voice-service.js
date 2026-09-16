@@ -83,6 +83,53 @@ export function isVoiceServiceReady() {
   return !!activeVoiceEndpoint();
 }
 
+// -----------------------------------------------------------------------------
+// BOUNDS AND THE LIVE HEALTH PROBE (DR-0440; Darrell 2026-09-16: "I want to be
+// able to add my voice... and be able to choose my personal voice... make sure
+// that that works"). Two defects stood between a configured studio and an
+// honest one: (1) synthesizeSpeech had NO timeout — a hung studio hung the read
+// for ever; (2) isVoiceServiceReady() is a CONFIG check, so a mistyped URL read
+// as "armed" in every surface and failed on every read. Every async path now
+// has an explicit bound and a fallback (DoD), and the studio is ASKED whether it
+// answers (GET {base}/health — infra/voice-studio/server.py serves it cold)
+// instead of assumed. The vendor bridge has no health route, so it stays
+// 'unknown' — never reported up, never reported down.
+// -----------------------------------------------------------------------------
+export const SPEAK_TIMEOUT_MS = 45000;   // XTTS-class generation for a paragraph on a consumer GPU
+export const HEALTH_TIMEOUT_MS = 4000;
+export const HEALTH_CACHE_MS = 60000;
+let health = 'unknown'; // 'unknown' | 'up' | 'down'
+let healthAt = 0;
+
+/** What the last probe learned. Honest third state — never reported as up. */
+export function voiceServiceHealth() { return health; }
+/** For tests and for a deliberate re-probe after the studio is (re)armed. */
+export function resetVoiceServiceHealthForTests() { health = 'unknown'; healthAt = 0; }
+/** Configured AND not known to be down — the readiness a reader should trust. */
+export function isVoiceServiceAnswering() { return isVoiceServiceReady() && health !== 'down'; }
+
+/**
+ * Ask the sovereign studio whether it answers. Cached for HEALTH_CACHE_MS so a
+ * page of reads costs one probe; `force` re-asks now. Never throws.
+ */
+export async function probeVoiceService({ timeoutMs = HEALTH_TIMEOUT_MS, force = false } = {}) {
+  const base = voiceServiceUrl();
+  if (!base) { health = 'unknown'; return health; }
+  if (!force && health !== 'unknown' && Date.now() - healthAt < HEALTH_CACHE_MS) return health;
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = setTimeout(() => { try { if (ctrl) ctrl.abort(); } catch (_) { /* ignore */ } }, timeoutMs);
+  try {
+    const res = await fetch(`${base}/health`, { method: 'GET', signal: ctrl ? ctrl.signal : undefined });
+    health = res && res.ok ? 'up' : 'down';
+  } catch (_) {
+    health = 'down';
+  } finally {
+    clearTimeout(timer);
+    healthAt = Date.now();
+  }
+  return health;
+}
+
 /**
  * Synthesize speech in the chosen voice and return a playable object URL.
  * `referenceDataUri` is the person's recorded sample (base64) — required for the
@@ -95,6 +142,10 @@ export async function synthesizeSpeech({
   // person. Set by the System-voice read path; never set for a person's voice,
   // where a missing sample is a real error the reader must be told about.
   allowBuiltIn = false,
+  // The explicit bound (DR-0440). A studio that neither answers nor refuses
+  // within it is treated as a failure — the reader falls back to the stand-in
+  // instead of waiting for ever.
+  timeoutMs = SPEAK_TIMEOUT_MS,
 } = {}) {
   const endpoint = activeVoiceEndpoint();
   if (!endpoint) return { error: 'voice-service-not-configured' };
@@ -104,6 +155,14 @@ export async function synthesizeSpeech({
     if (!allowBuiltIn) return { error: 'no-voice-sample' };
     // Already asked once and been refused — do not spend the round trip again.
     if (builtInSupport === 'no') return { error: 'no-builtin-voice' };
+  }
+  // One controller carries BOTH the caller's own abort and the timeout.
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; try { if (ctrl) ctrl.abort(); } catch (_) { /* ignore */ } }, timeoutMs);
+  if (signal && ctrl) {
+    if (signal.aborted) ctrl.abort();
+    else { try { signal.addEventListener('abort', () => ctrl.abort(), { once: true }); } catch (_) { /* ignore */ } }
   }
   try {
     const res = await fetch(endpoint.url, {
@@ -116,7 +175,7 @@ export async function synthesizeSpeech({
         reference_audio: referenceDataUri || null,
         language: language || 'en',
       }),
-      signal,
+      signal: ctrl ? ctrl.signal : signal,
     });
     if (!res || !res.ok) {
       if (!referenceDataUri && allowBuiltIn) builtInSupport = 'no';
@@ -131,6 +190,9 @@ export async function synthesizeSpeech({
     return { url: URL.createObjectURL(blob) };
   } catch (e) {
     if (!referenceDataUri && allowBuiltIn) builtInSupport = 'no';
+    if (timedOut) return { error: 'voice-service-timeout' };
     return { error: (e && e.message) || 'voice-service-error' };
+  } finally {
+    clearTimeout(timer);
   }
 }
