@@ -418,6 +418,19 @@ Feelings Are Fruit, Not Root: belief, the renewed mind, and declarations bounded
 
 The child band keeps its gate's own marks (none of the adult vocabulary — no subconscious, neural, self-sabotage, or declaration — and its three kept quotes) and now walks all nineteen pieces as a garden: the roots, the tree, the bird that does not get a nest, the sharp knife that sees the why, the fence that we speak only what He said, and the meal and the nap before the word. The youth, teen, and senior bands each carry the whole spine — feelings prove belief not truth, you are not your thoughts, the honest days-to-a-habit answer with no invented number, the reasoning-together pattern from Abraham to Habakkuk to Job, "who told thee," the stuffed-feelings warning from Psalm 32, the opened eyes at Dothan, and thanksgiving before petition — in their own registers. Fullness baseline 127 → 126.
 
+## L125 — the twenty-eighth full lesson (2026-09-16)
+
+Rules of Engagement: the warfare the Word authorizes, the open doors it closes, and where the Word stops (adult prose 3,664 by the gate's counter; floors child 1,832, others 2,199). The short bands were quote-dense and prose-thin: the teen carried the verses but not the bloodline, the land, the giants at home, or the deception movement at all. Before- and after-values both by the gate's counter:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 432 · 0.12 | **2,134 · 0.58** |
+| youth | missing | **2,647 · 0.72** (new) |
+| teen | 684 · 0.19 | **2,548 · 0.70** |
+| senior | 1,150 · 0.31 | **2,620 · 0.72** |
+
+The child band keeps its gate's own marks (no demonology vocabulary, "not a lesson about being afraid", the archangel's line, the joy moved to the name written in heaven) and now carries the family question in both halves in a child's words — say sorry like Daniel did, and you are not in trouble for what they did — and closes on the locked house with the lights on. The teen band gains the movements it lacked: source discipline in two hands, Peter's sequence beside James's, the three giants treated pastorally with Elijah's meal and nap and the explicit depression guardrail, the bloodline in both tiers with the evening-versus-once proportion, legal ground with the who-holds-the-controversy question, the drift-vector of deception, the Isaiah 14 proportion, Jehoshaphat, the pace verse, and the two failure modes addressed to teenagers. The senior band gains a movement-by-movement run-of-room: the ninety-second source framing, the show-of-hands diagnosis on James 4:7, Elijah given the whole segment, the third-row script for the bloodline, the one question asked of every land text, the house audit done in the room rather than described, the boundary movement's close-the-loop, which movement may never be cut for time, and how to spot each failure mode by the end of the first movement. Fullness baseline 126 → 125.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
