@@ -99,6 +99,37 @@ NATURAL_KEYS = {
 }
 CHUNK = 50
 
+# FOREIGN KEYS, READ FROM THE LIVE CATALOGUE 2026-09-16 (never guessed).
+#
+# THE BREAK THIS CLOSES. The first full apply run carried nine tables and died
+# on three, with two distinct causes. The first: `entities` failed
+# `entities_tenant_id_fkey` on Key (instance_id)=(3f222e86-...), and
+# `tlc_onboarding_invites` failed the same way. Both parents were MATCHED --
+# their `instances` row exists on the sovereign side under its natural key
+# (slug) -- but sovereign minted it with a DIFFERENT PRIMARY KEY. So the child's
+# instance_id pointed at an id the sovereign database has never held, and the
+# insert was correctly refused.
+#
+# A natural-key match therefore implies a possible id TRANSLATION for every row
+# that points at that parent. This map is what makes the translation possible:
+# child table -> {column: parent table}. A table is its own parent where it
+# self-references, and that case is handled by computing the remap BEFORE the
+# table's own insert loop, so it reflects the rows that already matched.
+FK_COLUMNS = {
+    "instances": {"parent_instance_id": "instances"},
+    "entities": {"instance_id": "instances", "parent_entity_id": "entities"},
+    "church_speakers": {"instance_id": "instances"},
+    "choir_sermons": {"instance_id": "instances", "speaker_id": "church_speakers",
+                      "source_speaker_id": "church_speakers",
+                      "source_sermon_id": "choir_sermons"},
+    "sermon_prep": {"instance_id": "instances", "sermon_id": "choir_sermons"},
+    "video_transcripts": {"instance_id": "instances"},
+    "sermon_video_stats": {"instance_id": "instances"},
+    "video_harvests": {"instance_id": "instances"},
+    "tlc_onboarding_invites": {"instance_id": "instances"},
+    "tlc_jobs": {"instance_id": "instances"},
+}
+
 
 def env_value(path, key):
     try:
@@ -158,9 +189,67 @@ def key_cols_for(table, cols):
     return None
 
 
-def insert_sql(table, cols):
+def json_placeholder(col, i, json_cols):
+    """The bind marker for one column. A json/jsonb column carries an explicit
+    cast, which is the second half of the 2026-09-16 break: pg8000 sends a
+    Python list as a POSTGRES ARRAY literal, so `requirements = []` arrived in a
+    jsonb column as `{}` -- an empty OBJECT -- and tlc_jobs_requirements_check
+    (jsonb_typeof = 'array') refused it. Bound as JSON TEXT with a cast, `[]`
+    stays an array."""
+    return ":p{}::{}".format(i, json_cols[col]) if col in json_cols else ":p{}".format(i)
+
+
+def bind_value(value, is_json):
+    """What actually goes on the wire for one value. A json column is sent as
+    JSON TEXT; a value pg8000 already handed back as text is passed through
+    rather than encoded twice."""
+    if not is_json or value is None:
+        return value
+    if isinstance(value, str):
+        return value
+    return json.dumps(value)
+
+
+def bind_row(row, cols, json_cols):
+    return [bind_value(v, cols[i] in json_cols) for i, v in enumerate(row)]
+
+
+def build_remap(src_ids, dst_ids):
+    """{hosted id: sovereign id} for every row the two sides hold under the SAME
+    natural key and a DIFFERENT primary key. Inputs are {key: id} per side.
+    Rows that agree are absent (nothing to translate); a row only hosted has is
+    absent too (its parent rides across with its own id)."""
+    out = {}
+    for k, sid in src_ids.items():
+        did = dst_ids.get(k)
+        if did is not None and sid is not None and str(did) != str(sid):
+            out[str(sid)] = did
+    return out
+
+
+def remap_row(row, cols, table, remaps):
+    """Translate this row's foreign keys through the parents' id maps. A value
+    with no translation is passed through unchanged -- that is the common case
+    (the two sides agree) and also the honest one (an unknown parent must fail
+    the FK, not be silently re-pointed at something else)."""
+    fks = FK_COLUMNS.get(table)
+    if not fks:
+        return list(row)
+    out = list(row)
+    for i, c in enumerate(cols):
+        parent = fks.get(c)
+        if not parent or out[i] is None:
+            continue
+        mapped = remaps.get(parent, {}).get(str(out[i]))
+        if mapped is not None:
+            out[i] = mapped
+    return out
+
+
+def insert_sql(table, cols, json_cols=None):
+    json_cols = json_cols or {}
     col_list = ", ".join('"{}"'.format(c) for c in cols)
-    placeholders = ", ".join(":p{}".format(i) for i in range(len(cols)))
+    placeholders = ", ".join(json_placeholder(c, i, json_cols) for i, c in enumerate(cols))
     # Bare ON CONFLICT DO NOTHING, not ON CONFLICT (id): a row already present
     # under a different primary key collides on the table's natural unique index,
     # and that must SKIP rather than abort the whole table (the 2026-09-16 break).
@@ -168,10 +257,12 @@ def insert_sql(table, cols):
             .format(table, col_list, placeholders))
 
 
-def update_sql(table, cols, key_cols):
+def update_sql(table, cols, key_cols, json_cols=None):
     # id is never in the SET: on a natural-key match the two sides hold different
     # primary keys, and rewriting one would break every row that references it.
-    sets = ", ".join('"{}" = :p{}'.format(c, i) for i, c in enumerate(cols) if c != "id")
+    json_cols = json_cols or {}
+    sets = ", ".join('"{}" = {}'.format(c, json_placeholder(c, i, json_cols))
+                     for i, c in enumerate(cols) if c != "id")
     return 'UPDATE public."{}" SET {} WHERE {} = :k'.format(table, sets, key_expr(key_cols))
 
 
@@ -187,6 +278,11 @@ def verdict(report):
         if t.get("error"):
             return False
         if t.get("missing_after", 0) > 0 or t.get("stale_after", 0) > 0:
+            return False
+        # A row the database refused is a finding even when the re-count happens
+        # to come out even (a refused UPDATE leaves the row present but stale-by
+        # -content, which the key-based re-count cannot see).
+        if t.get("refused", 0) > 0:
             return False
     return True
 
@@ -211,11 +307,32 @@ def connect(url, use_tls):
 
 
 def table_columns(con, table):
+    return [c for c, _ in table_columns_typed(con, table)]
+
+
+def table_columns_typed(con, table):
+    """[(name, data_type)] in ordinal order. The TYPE is read because a
+    json/jsonb column has to be bound differently (json_placeholder) -- reading
+    it is the alternative to a second hand-kept list of which columns are json,
+    and this repo has already paid for one of those (DR-0443's note on
+    crm_capture_lead)."""
     rows = con.run(
-        "SELECT column_name FROM information_schema.columns "
+        "SELECT column_name, data_type FROM information_schema.columns "
         "WHERE table_schema='public' AND table_name=:t "
         "AND is_generated='NEVER' ORDER BY ordinal_position", t=table)
-    return [r[0] for r in rows]
+    return [(r[0], r[1]) for r in rows]
+
+
+def read_id_map(con, table, key_cols):
+    """{natural key: primary key}. One row per key (the newest id wins by text
+    order, deterministically), so a key covering several rows cannot make the
+    translation flap. Returns {} for a table keyed by id -- there is nothing to
+    translate when both sides use the same primary key by definition."""
+    if key_cols == ["id"]:
+        return {}
+    q = ('SELECT {} AS k, max(id::text) FROM public."{}" GROUP BY 1'
+         .format(key_expr(key_cols), table))
+    return {r[0]: r[1] for r in con.run(q)}
 
 
 def read_index(con, table, has_updated, key_cols):
@@ -235,7 +352,24 @@ def fetch_rows(con, table, cols, keys, order_col, key_cols):
                    .format(col_list, table, key_expr(key_cols), order), keys=keys)
 
 
-def sync_table(src, dst, table, commit):
+def parent_remap(src, dst, table, remaps):
+    """Fill `remaps[table]` with that parent's {hosted id: sovereign id}, once.
+    Read from whatever key the parent is actually planned by, so the map can
+    never disagree with the plan about what identifies a row."""
+    if table in remaps:
+        return remaps[table]
+    cols = intersect_columns(table_columns(src, table), table_columns(dst, table))
+    key_cols = key_cols_for(table, cols)
+    if not key_cols or key_cols == ["id"]:
+        remaps[table] = {}
+    else:
+        remaps[table] = build_remap(read_id_map(src, table, key_cols),
+                                    read_id_map(dst, table, key_cols))
+    return remaps[table]
+
+
+def sync_table(src, dst, table, commit, remaps=None):
+    remaps = {} if remaps is None else remaps
     out = {"table": table}
     src_cols = table_columns(src, table)
     dst_cols = table_columns(dst, table)
@@ -249,6 +383,9 @@ def sync_table(src, dst, table, commit):
         return out
     has_updated = "updated_at" in cols
     order_col = "created_at" if "created_at" in cols else None
+    # Which of the carried columns are json/jsonb, by type rather than by name.
+    types = dict(table_columns_typed(dst, table))
+    json_cols = {c: types[c] for c in cols if types.get(c) in ("json", "jsonb")}
     s_idx = read_index(src, table, has_updated, key_cols)
     d_idx = read_index(dst, table, has_updated, key_cols)
     inserts, updates = plan_sync(s_idx, d_idx)
@@ -257,19 +394,50 @@ def sync_table(src, dst, table, commit):
                 "copied": 0, "updated": 0, "columns": len(cols),
                 "keyed_by": "+".join(key_cols)})
     if commit:
-        ins = insert_sql(table, cols)
+        # THE PARENTS' ID MAPS, before anything is written. A self-reference is
+        # computed here too, deliberately BEFORE this table's own insert loop,
+        # so it reflects the rows that already matched rather than the ones this
+        # run is about to add (whose ids need no translation).
+        for parent in sorted(set(FK_COLUMNS.get(table, {}).values())):
+            try:
+                parent_remap(src, dst, parent, remaps)
+            except Exception as e:  # noqa: BLE001 - an unreadable parent is reported, not fatal
+                out.setdefault("remap_warnings", []).append("{}: {}".format(parent, str(e)[:120]))
+        translated = sum(1 for p in set(FK_COLUMNS.get(table, {}).values())
+                         if remaps.get(p))
+        if translated:
+            out["parents_translated"] = translated
+        ins = insert_sql(table, cols, json_cols)
+        out["refused"] = 0
         for batch in chunks(inserts, CHUNK):
             for row in fetch_rows(src, table, cols, batch, order_col, key_cols):
-                dst.run(ins, **{"p{}".format(i): v for i, v in enumerate(row)})
-                out["copied"] += 1
-        upd = update_sql(table, cols, key_cols)
+                row = bind_row(remap_row(row, cols, table, remaps), cols, json_cols)
+                # ONE BAD ROW MUST NOT HIDE THE TABLE (2026-09-16). The first
+                # apply run lost every measurement for video_transcripts because
+                # a single conflicting row raised out of the whole table. A row
+                # the database refuses is now COUNTED and named, the rest are
+                # carried, and the re-count below still decides the verdict -- so
+                # nothing is rounded to zero either way (DR-0076).
+                try:
+                    dst.run(ins, **{"p{}".format(i): v for i, v in enumerate(row)})
+                    out["copied"] += 1
+                except Exception as e:  # noqa: BLE001
+                    out["refused"] += 1
+                    out.setdefault("refused_reason", str(e)[:200])
+        upd = update_sql(table, cols, key_cols, json_cols)
         key_at = [cols.index(c) for c in key_cols]
         for batch in chunks(updates, CHUNK):
             for row in fetch_rows(src, table, cols, batch, order_col, key_cols):
-                params = {"p{}".format(i): v for i, v in enumerate(row) if cols[i] != "id"}
-                params["k"] = "|".join("" if row[i] is None else str(row[i]) for i in key_at)
-                dst.run(upd, **params)
-                out["updated"] += 1
+                k = "|".join("" if row[i] is None else str(row[i]) for i in key_at)
+                vals = bind_row(remap_row(row, cols, table, remaps), cols, json_cols)
+                params = {"p{}".format(i): v for i, v in enumerate(vals) if cols[i] != "id"}
+                params["k"] = k
+                try:
+                    dst.run(upd, **params)
+                    out["updated"] += 1
+                except Exception as e:  # noqa: BLE001
+                    out["refused"] += 1
+                    out.setdefault("refused_reason", str(e)[:200])
         d2 = read_index(dst, table, has_updated, key_cols)
         s2 = read_index(src, table, has_updated, key_cols)
         i2, u2 = plan_sync(s2, d2)
@@ -290,19 +458,27 @@ def real_run(commit, only_table=None):
     src = connect(hosted_url, use_tls=True)
     dst = connect("postgres://supabase_admin:{}@127.0.0.1:5433/postgres".format(pw), use_tls=False)
     report = {}
+    remaps = {}
     try:
         for t in tables:
             try:
-                r = sync_table(src, dst, t, commit)
+                r = sync_table(src, dst, t, commit, remaps)
             except Exception as e:  # noqa: BLE001 - a table that cannot be measured is a finding
                 r = {"table": t, "error": str(e)[:200]}
             report[t] = r
             if r.get("error"):
                 print("content-sync: {} UNMEASURABLE: {}".format(t, r["error"]))
             else:
-                print("content-sync: {} hosted={} sovereign_before={} missing={} stale={} copied={} updated={} sovereign_after={} missing_after={} stale_after={}"
-                      .format(t, r["hosted"], r["sovereign_before"], r["missing"], r["stale"],
-                              r["copied"], r["updated"], r["sovereign_after"], r["missing_after"], r["stale_after"]))
+                line = ("content-sync: {} hosted={} sovereign_before={} missing={} stale={} copied={} updated={} sovereign_after={} missing_after={} stale_after={}"
+                        .format(t, r["hosted"], r["sovereign_before"], r["missing"], r["stale"],
+                                r["copied"], r["updated"], r["sovereign_after"], r["missing_after"], r["stale_after"]))
+                if r.get("refused"):
+                    line += " refused={}".format(r["refused"])
+                if r.get("parents_translated"):
+                    line += " parents_translated={}".format(r["parents_translated"])
+                print(line)
+                if r.get("refused_reason"):
+                    print("content-sync: {} refused a row: {}".format(t, r["refused_reason"]))
     finally:
         src.close()
         dst.close()
@@ -398,6 +574,73 @@ def selftest():
           all(len(v) > 40 for v in EXCLUDED_TABLES.values()))
     check("the watermark exclusion names the skip-rows danger, not just tidiness",
           "SKIP" in EXCLUDED_TABLES["_sync_tokens"])
+
+    # ---- the FIRST of the two 2026-09-16 apply-run causes: a matched parent
+    # held under a different primary key, so its children pointed at ids the
+    # sovereign database has never had (entities, tlc_onboarding_invites).
+    HOSTED_INST = "3f222e86-0000-0000-0000-000000000001"
+    SOV_INST = "9c111111-0000-0000-0000-000000000002"
+    remaps = {"instances": {HOSTED_INST: SOV_INST}}
+    check("CATCHES the FK break: a child's instance_id is translated to the id "
+          "the sovereign side actually holds that parent under",
+          remap_row(("row-1", HOSTED_INST, "poe-properties"),
+                    ["id", "instance_id", "slug"], "entities", remaps)
+          == ["row-1", SOV_INST, "poe-properties"])
+    check("a foreign key with no translation is passed through unchanged, so an "
+          "unknown parent fails its FK rather than being re-pointed silently",
+          remap_row(("row-1", "other-inst"), ["id", "instance_id"], "entities", remaps)[1]
+          == "other-inst")
+    check("a null foreign key is left null",
+          remap_row(("row-1", None), ["id", "instance_id"], "entities", remaps)[1] is None)
+    check("a table with no foreign keys is untouched",
+          remap_row(("a", "b"), ["primary_user", "door_user"], "person_links", remaps)
+          == ["a", "b"])
+    check("a self-reference is translated through the table's OWN map",
+          remap_row(("kid", HOSTED_INST), ["id", "parent_entity_id"], "entities",
+                    {"entities": {HOSTED_INST: SOV_INST}})[1] == SOV_INST)
+    check("every FK column names a table that is actually carried",
+          all(parent in CONTENT_TABLES
+              for fks in FK_COLUMNS.values() for parent in fks.values()))
+    check("every FK child is carried AFTER its parent, or is its own parent",
+          all(child == parent or CONTENT_TABLES.index(parent) < CONTENT_TABLES.index(child)
+              for child, fks in FK_COLUMNS.items() for parent in fks.values()))
+    check("the id map is built only where the two sides disagree",
+          build_remap({"k1": "a", "k2": "same"}, {"k1": "b", "k2": "same"}) == {"a": "b"})
+    check("a parent only hosted has is not in the map (it rides across as itself)",
+          build_remap({"k1": "a"}, {}) == {})
+    check("a table keyed by id needs no translation at all",
+          build_remap({}, {}) == {})
+
+    # ---- the SECOND cause: tlc_jobs_requirements_check refused `[]` because
+    # pg8000 sends a Python list as a POSTGRES ARRAY literal, so an empty list
+    # arrived in jsonb as `{}` -- an empty OBJECT, not an array.
+    check("CATCHES the jsonb break: a json column is bound as json text, so an "
+          "empty list stays an ARRAY and the requirements check passes",
+          bind_value([], True) == "[]")
+    check("a json object survives the crossing as an object",
+          bind_value({"a": 1}, True) == '{"a": 1}')
+    check("text pg8000 already handed back as json is not encoded twice",
+          bind_value('{"a": 1}', True) == '{"a": 1}')
+    check("a null json value stays null", bind_value(None, True) is None)
+    check("a NON-json column is never json-encoded (a text[] must stay an array)",
+          bind_value(["a", "b"], False) == ["a", "b"])
+    check("the insert casts a jsonb column and nothing else",
+          insert_sql("tlc_jobs", ["id", "requirements"], {"requirements": "jsonb"})
+          .endswith("VALUES (:p0, :p1::jsonb) ON CONFLICT DO NOTHING"))
+    check("the update casts it the same way, through the one placeholder builder",
+          '"requirements" = :p1::jsonb' in update_sql(
+              "tlc_jobs", ["id", "requirements"], ["id"], {"requirements": "jsonb"}))
+    check("a json (not jsonb) column is cast to its own type, not coerced",
+          ":p1::json" in insert_sql("t", ["id", "doc"], {"doc": "json"}))
+    check("bind_row binds every column by its own type",
+          bind_row(("x", [], "plain"), ["id", "requirements", "title"], {"requirements": "jsonb"})
+          == ["x", "[]", "plain"])
+
+    # ---- one bad row must not cost the whole table's measurement
+    check("CATCHES a refused row: never GO, even when the key re-count comes out even",
+          not verdict({"t": {"missing_after": 0, "stale_after": 0, "refused": 1}}))
+    check("no refusals is still GO",
+          verdict({"t": {"missing_after": 0, "stale_after": 0, "refused": 0}}))
     print("\n{}/{} passed".format(passed, passed + failed))
     return 1 if failed else 0
 
