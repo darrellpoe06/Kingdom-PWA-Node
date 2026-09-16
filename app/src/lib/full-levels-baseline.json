@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 163,
-  "lessonsShort": 138,
+  "lessonsShort": 137,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -251,12 +251,6 @@
       "child",
       "youth",
       "teen"
-    ],
-    "ll137-look-and-live-the-serpent-on-the-pole-the-son-lifted-up-and-why-believing-him-over-the-liar-is-the-whole-cure": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
     ],
     "ll14-ten-healed-one-whole": [
       "child",

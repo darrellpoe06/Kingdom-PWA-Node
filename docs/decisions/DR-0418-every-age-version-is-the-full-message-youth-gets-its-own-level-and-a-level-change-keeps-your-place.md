@@ -262,6 +262,19 @@ Exercised Senses (adult prose 1,835 by the gate's counter; floors child 918, oth
 
 All seven parts in each band: He is not stingy and does not lecture; why it is not a download (exercised, by reason of use; a dawn, not a switch); do, then know (alignment is the road, not the toll); what the tests are for since He already knows; why it seems to come after; what He keeps, what He gave, and where the lack is really from; diligence evaluated by Yahweh and aimed at His Word (seek, do, teach; the ever-learning counterfeit). The child band adds the piano and the sunrise; the teen band turns the four reasons into habits and names the fear the adversary wants carried; the senior band the elders as the room's evidence and their own humility rep. Fullness baseline 139 → 138.
 
+## L137 — the sixteenth full lesson (2026-09-16)
+
+Look and Live (adult prose 1,526 by the gate's counter; floors child 763, others 916). Before-values by the session counter, after-values by the gate's:
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 320 · 0.22 · FK 1.9 | **984 · 0.64** |
+| youth | missing | **1,248 · 0.82** (new) |
+| teen | 650 · 0.45 · FK 4.6 | **1,065 · 0.70** |
+| senior | 810 · 0.56 · FK 7.1 | **1,086 · 0.71** |
+
+All six parts in each band: the type is His (John 3:14-16 as the explanation of the pole); what was on the pole (the cure shaped like the curse, the Lamb and the serpent both); the look was believing (the sin was a sentence; nobody looked well; the look is not a work); how far and how long (whosoever; eternally, the picture smaller than the Person); the serpent's end in the Word's words; the serpents not taken away and the sign that became Nehushtan; where the Word stops. Fullness baseline 138 → 137. One sentence-initial "the devil" in the child draft was caught by the session's own scan before the lane and recast.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
