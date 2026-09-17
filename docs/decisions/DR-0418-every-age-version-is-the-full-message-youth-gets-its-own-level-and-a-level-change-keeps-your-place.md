@@ -1228,6 +1228,45 @@ Two generic `God` instances were lifted from our own voice in quiz options — a
 
 Proven to catch eight ways, every edit verified to land inside L94's own block: the plural correction removed from the Name, the instrument-problem conclusion deleted, the flesh softened to merely weak (all instances), the taste-then-see order dropped, the glory/fruit split collapsed, the senior band turned back into notes, the senior band's decades-do-not-calibrate line removed (all instances), and one required movement deleted.
 
+## L93 — Come, Let Us Reason (2026-09-17)
+
+Truth is truth in any language, the mind rewired, and the Word that seemed a fantasy turning data-real (adult prose 721 by the gate's counter; floors child 361, others 433):
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 153 · 0.21 | **798 · 1.11** |
+| youth | missing | **705 · 0.98** (new) |
+| teen | 223 · 0.31 | **895 · 1.24** |
+| senior | 288 · 0.40 | **1157 · 1.60** |
+
+Nineteenth consecutive facilitator's-notes senior band. Reading levels 4.8 / 6.7 / 8.0 / 8.7 ascending; no inversion to fix. Fullness baseline 94 → 93. Gate 30 → 44 checks.
+
+### The allowlist's first entry is the lesson's own hinge
+
+`"believe or else"` is quoted precisely because it is what Yahweh does **not** say — the contrast that makes the invitation of Isaiah 1:18 land. Quoting a thing in order to deny it is the same category as L94's `"the Lord of Host"` and L97's `"Congressman"`, and the gate does more than permit it: it requires every band to carry the contrast **and** negate it explicitly, alongside the invitation itself. A band that let `believe or else` stand unmarked would invert the lesson.
+
+### A paraphrase that was already honest, and is now gated as such
+
+The child band renders *reason together* as `"Come here, let us think it through together!"` — our plain English, not the verse's words. It was already signposted with *that means* immediately before, which is exactly the form DR-0076 requires of a paraphrase. Rather than strip it, the gate now **requires the signpost**: it locates the gloss and asserts the preceding characters carry the marker, so our rendering can never drift into looking like His words. This is the first time in the pass a paraphrase has been kept *and* structurally protected instead of un-quoted.
+
+### The sentence a careless reader would invert
+
+If the truth survives any language, why fetch verses verbatim? The lesson answers it directly — *precisely BECAUSE the meaning is too valuable to distort* — and the gate now requires that answer in every band. Dropping it would hand the reader a licence this lesson never grants, and it would contradict the very discipline the other gates in this pass enforce. Invariant meaning is an argument for accuracy, never against it.
+
+### Also required in every band
+
+- **The experiment's order** — obedience *before* certainty (John 7:17), with the knowing named as the promised result. Demanding the result before running the experiment is the one procedure guaranteed to produce no data.
+- **The shock and the joy read as evidence, not mood** — an old pathway breaking and a new one forming, both data rather than a feeling passing through.
+- **The neuroscience under His Word** — He commanded the re-forming before the term `neuroplasticity` existed.
+
+### The senior band as a reader's lesson
+
+Six checks turning each movement toward a reader who has the decades: a long-held translation is **reconciled rather than corrected** (*the treasure was never the alphabet*, and it was never diminished by anyone receiving it in theirs); reversed majorities are named as evidence he already holds; the rewiring is documented to continue **late in life** and the pathways are explicitly **not sealed**; the everlasting love is weighed for its direction — it has **no start date** to be measured against his record; and *the joy of the LORD is your strength* is addressed most pointedly to whoever has less strength of his own than he once had.
+
+Nine generic `God` instances were lifted from our own voice across the base prose, the bands and a facilitator note — *"The God of all truth"*, *"the God who IS Truth"*, *"not what most people expect from a God"* — now His covenant name or a title that names Him unambiguously (DR-0210). Titles CLAUDE.md leaves available stay available; what went is the bare generic where He is the one being named. Note that `"God, that cannot lie"` (Titus 1:2) is untouched and the gate asserts it: the covenant-name rule governs our voice, never a quotation of the Word.
+
+Proven to catch eight ways, every break made **global inside L93's block** from the outset — the discipline L94 taught after two breaks left a phrase standing in a band's closing summary: the negation removed from what He does not say, the verbatim-accuracy clause deleted, the experiment order dropped, the shock/joy-as-evidence reading removed, the before-the-term clause deleted, the paraphrase signpost stripped, the senior band turned back into notes, and the senior band's translation-reconciling line removed.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.

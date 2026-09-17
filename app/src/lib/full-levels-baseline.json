@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 163,
-  "lessonsShort": 94,
+  "lessonsShort": 93,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -540,12 +540,6 @@
       "senior"
     ],
     "ll92-yahweh-standardized-love-obedience-deeds-thoughts-and-the-temple-kingdom": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll93-come-let-us-reason-truth-in-any-language-the-mind-rewired-real": [
       "child",
       "youth",
       "teen",
