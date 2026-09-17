@@ -86,6 +86,44 @@ describe('deploy-freshness hears the merge, not a timer', () => {
     expect(FRESH.slice(at, at + 120)).toMatch(/exit 0/);
   });
 
+  it('does NOT dispatch when a deploy run already exists for main\u2019s exact tip', () => {
+    // MEASURED on the merge of PR #1650 — the same merge that proved the hook
+    // works. This workflow compares against the last SUCCESSFUL deploy, so
+    // while auto-merge's own heal had a deploy RUNNING on the new tip the last
+    // success was still the previous tip: it read STALE and dispatched a second
+    // build (#1157 and #1158, both on 003aaf22, both green). Two Cloudflare
+    // Pages builds for one merge, and it would have happened on every merge.
+    expect(FRESH).toMatch(/runs\?head_sha=\$main_sha/);
+    expect(FRESH).toMatch(/ALREADY IN FLIGHT/);
+  });
+
+  it('counts a run of ANY status as in flight, not only a successful one', () => {
+    // A queued, running or even failed deploy for this tip is the deploy
+    // workflow's business to report; it is never a reason for this healer to
+    // stack a second build on top of it. So the in-flight query carries no
+    // status filter, while the freshness comparison above still uses one.
+    const at = FRESH.indexOf('runs?head_sha=$main_sha');
+    const query = FRESH.slice(at, at + 80);
+    expect(query, 'the in-flight query must not filter by status').not.toMatch(/status=/);
+    expect(FRESH).toMatch(/runs\?status=success/);
+  });
+
+  it('treats already-handled as DONE, never as something to keep waiting on', () => {
+    // Three outcomes, three codes: dispatched, already in flight, and
+    // fresh-or-unresolved. Only the last one keeps looking, because only that
+    // one can still change within the watch.
+    expect(FRESH).toMatch(/return 2/);
+    expect(FRESH).toMatch(/already handled on look \$i; done\./);
+    const at = FRESH.indexOf('already handled on look');
+    expect(FRESH.slice(at, at + 120)).toMatch(/exit 0/);
+  });
+
+  it('reads the return code explicitly, so a non-zero code is never a job failure', () => {
+    // `set -euo pipefail` is on: calling check_once bare and letting it return
+    // 1 or 2 would abort the job. The codes are captured around a `set +e`.
+    expect(FRESH).toMatch(/set \+e\n\s+check_once\n\s+rc=\$\?\n\s+set -e/);
+  });
+
   it('still compares main against the last SUCCESSFUL deploy, and dispatches on main', () => {
     expect(FRESH).toMatch(/deploy-cloudflare-pages\.yml\/runs\?status=success/);
     expect(FRESH).toMatch(/gh workflow run deploy-cloudflare-pages\.yml --repo "\$REPO" --ref main/);
