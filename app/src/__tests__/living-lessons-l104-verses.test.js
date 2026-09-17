@@ -12,7 +12,7 @@
 // FETCHED from the repo's own KJV this session; a drift fails the build. Word-
 // first, non-debating (DR-0098). Pairs with L102, L103, the Godhead Study.
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -143,5 +143,130 @@ describe('corpus witness + tamper-catch — the pins match the repo KJV, and the
     expect(verse('Haggai', 1, 5)).toContain('Consider your ways');
     expect(verse('Psalms', 119, 105)).toBe('Thy word is a lamp unto my feet, and a light unto my path.');
     expect(verse('John', 17, 17)).toBe('Sanctify them through thy truth: thy word is truth.');
+  });
+});
+
+// =============================================================================
+// THE TWO CHECKS THIS GATE DID NOT HAVE (added 2026-09-17, DR-0418 pass)
+// =============================================================================
+// Carried from L111 down through L105 the same day. The module's quotations
+// arrived clean; the voice check found the generic name in our own prose in
+// SEVEN places — the most of any lesson in this pass — and the finding is
+// worth naming precisely, because it was not carelessness. Six of them were
+// our own PARAPHRASE of Mark 10:18 ("only God is good", "the standard of good
+// is God Himself") in bigIdea, a quiz option and the facilitator notes. A
+// paraphrase in our voice is our voice, so it now reads "only Yahweh is
+// good", which says the same thing with the covenant name — which is the
+// entire point of DR-0210. The QUOTED verse ("there is none good but one,
+// that is, God") is untouched, and this gate holds both halves at once.
+//
+// The corpus is joined with each chapter's VERSES FLOWING (space-separated
+// within a chapter), so a quotation of contiguous verses — Psalms 139:23-24
+// is quoted whole here — is a true substring, while a phrase stitched from
+// two chapters still is not.
+const KJV_DIR = join(HERE, '..', '..', 'public', 'bible', 'kjv');
+const KJV_FLOW = (() => {
+  let all = '';
+  for (const f of readdirSync(KJV_DIR).filter((x) => x.endsWith('.json'))) {
+    let j;
+    try { j = JSON.parse(readFileSync(join(KJV_DIR, f), 'utf8')); } catch { continue; }
+    if (!j || !Array.isArray(j.chapters)) continue;   // index.json is not a book
+    for (const ch of j.chapters) all += `${ch.join(' ')}\n`;
+  }
+  return all;
+})();
+
+const quotedSpans = (text) => {
+  const unescaped = text.replace(/\\'/g, "'");
+  const at = [...unescaped.matchAll(/"/g)].map((m) => m.index);
+  const out = [];
+  for (let i = 0; i + 1 < at.length; i += 2) out.push(unescaped.slice(at[i] + 1, at[i + 1]));
+  return { spans: out, balanced: at.length % 2 === 0 };
+};
+
+describe('NO in-quote alteration anywhere in the lesson — the whole-span gate', () => {
+  it('the double quotes are balanced, so the spans below are real quotations', () => {
+    expect(quotedSpans(l).balanced).toBe(true);
+  });
+
+  it('EVERY double-quoted span is verbatim KJV', () => {
+    const { spans } = quotedSpans(l);
+    expect(spans.length, 'the lesson should carry a substantial body of quoted Scripture').toBeGreaterThan(150);
+    const altered = [];
+    for (const span of spans) {
+      for (const part of span.split('...').map((x) => x.trim()).filter(Boolean)) {
+        if (!KJV_FLOW.includes(part)) altered.push(part);
+      }
+    }
+    expect(altered, `quoted text that is NOT verbatim KJV:\n${altered.map((a) => ` - ${JSON.stringify(a)}`).join('\n')}`).toEqual([]);
+  });
+
+  it('is PROVEN-TO-CATCH — plausible drifts of this lesson\'s own hinges are not the text', () => {
+    expect(KJV_FLOW.includes('All the ways of a man are clean in his own eyes')).toBe(true);
+    expect(KJV_FLOW.includes('All the ways of a man are right in his own eyes')).toBe(false);
+    expect(KJV_FLOW.includes('there is none good but one, that is, God')).toBe(true);
+    expect(KJV_FLOW.includes('there is none good but one, that is, Yahweh')).toBe(false);
+    expect(KJV_FLOW.includes('I thought on my ways, and turned my feet unto thy testimonies')).toBe(true);
+    expect(KJV_FLOW.includes('I thought on my ways, and turned my feet unto thy commandments')).toBe(false);
+    expect(KJV_FLOW.includes('The heart is deceitful above all things, and desperately wicked')).toBe(true);
+    expect(KJV_FLOW.includes('The heart is deceitful above all things, and desperately sick')).toBe(false);
+  });
+});
+
+describe('our own voice says Yahweh; the quoted verse keeps its own words (DR-0210 + DR-0076)', () => {
+  it('names Him by His covenant name in our prose, and leaves the quotation alone', () => {
+    const { spans } = quotedSpans(l);
+    let ours = l.replace(/\\'/g, "'");
+    for (const s of spans) ours = ours.split(`"${s}"`).join(' ');
+    // Our prose, including every paraphrase of Mark 10:18:
+    expect((ours.match(/\bGod\b/g) || []).length, 'generic "God" in our authored voice').toBe(0);
+    expect((ours.match(/Yahweh/g) || []).length).toBeGreaterThan(20);
+    // And the BRIGHT LINE in the other direction: the KJV's own wording is
+    // never "corrected" into the covenant name inside a quotation (DR-0076).
+    expect(l).toContain('there is none good but one, that is, God');
+    expect(l).not.toContain('there is none good but one, that is, Yahweh');
+  });
+});
+
+describe('every band is the FULL message, in that age\'s own words (DR-0418)', () => {
+  const level = (name) => {
+    const i = l.indexOf(`${name}: '`);
+    const j = l.indexOf("',\n", i);
+    return l.slice(i, j);
+  };
+
+  it('youth exists beside the other three, and none is a summary', () => {
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      expect(level(band).length, `${band} is missing or a stub`).toBeGreaterThan(1600);
+    }
+  });
+
+  it('every band carries all eight movements, not a subset', () => {
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      const t = level(band);
+      expect(t, `${band} proves love by keeping`).toContain('If ye love me, keep my commandments');
+      expect(t, `${band} forbids word-only love`).toContain('not love in word, neither in tongue');
+      expect(t, `${band} carries clean-in-his-own-eyes`).toContain('clean in his own eyes');
+      expect(t, `${band} carries rendering according to ways`).toContain('according to the fruit of his doings');
+      expect(t, `${band} says you cannot mock Him`).toContain('whatsoever a man soweth, that shall he also reap');
+      expect(t, `${band} names the feelings as the bent instrument`).toContain('The heart is deceitful above all things');
+      expect(t, `${band} carries the mirror that does not lie`).toContain('deceiving your own selves');
+      expect(t, `${band} carries thought-on-ways-then-turned-feet`).toContain('I thought on my ways, and turned my feet');
+      expect(t, `${band} leaves the definition of good to Him`).toContain('there is none good but one');
+      expect(t, `${band} aims the audit inward`).toContain('prove your own selves');
+      expect(t, `${band} hands the search over`).toContain('Search me, O God, and know my heart');
+      expect(t, `${band} reads the path by His lamp`).toContain('Thy word is a lamp unto my feet');
+    }
+  });
+
+  it('the senior band is a senior READER\'s lesson, not the facilitator\'s notes', () => {
+    // It was the notes: "Teach this as the platform's core self-examination -
+    // Word-first and deterministic (DR-0098; pairs with the Godhead Study,
+    // L102 integrity...)". Those belong in `facilitator`.
+    const senior = level('senior');
+    expect(senior).not.toContain('Teach this as the platform');
+    expect(senior).not.toMatch(/\bDR-\d{4}\b/);
+    expect(senior).not.toMatch(/\bL10[0-9]\b/);
+    expect(l, 'the facilitator notes must still exist somewhere').toContain('talkingPoints');
   });
 });
