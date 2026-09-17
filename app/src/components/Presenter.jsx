@@ -389,7 +389,7 @@ export default function Presenter({
   const sendCurrent = useCallback(() => {
     const base = blankRef.current
       ? holdingSlide(title, kicker)
-      : buildSlideForScene(scenes, idxRef.current, { kicker, age: ageRef.current, reveal: revealRef.current });
+      : buildSlideForScene(scenes, idxRef.current, { kicker, lessonTitle: title, age: ageRef.current, reveal: revealRef.current });
     // Invite-the-room (Darrell 2026-07-24): while the congregation broadcast is
     // LIVE, the projected slide carries the join QR + code so the room can scan
     // and follow on their own phones — zero typing (COMMUNITY-FIRST). Audience-
@@ -513,9 +513,9 @@ export default function Presenter({
 
   const resumeAudience = useCallback(() => {
     blankRef.current = false;
-    try { chRef.current?.postMessage(buildSlideForScene(scenes, idxRef.current, { kicker, age: ageRef.current, reveal: revealRef.current })); } catch (e) { /* noop */ }
+    try { chRef.current?.postMessage(buildSlideForScene(scenes, idxRef.current, { kicker, lessonTitle: title, age: ageRef.current, reveal: revealRef.current })); } catch (e) { /* noop */ }
     setAudienceState('live');
-  }, [scenes, kicker]);
+  }, [scenes, kicker, title]);
 
   // --- congregation follow-along: broadcast the live slide to their own devices ---
   const goLiveForCongregation = useCallback(() => {
@@ -529,7 +529,7 @@ export default function Presenter({
     // push the current slide immediately so a follower who joins right away sees it
     const payload = blankRef.current
       ? holdingSlide(title, kicker)
-      : buildSlideForScene(scenes, idxRef.current, { kicker, age: ageRef.current, reveal: revealRef.current });
+      : buildSlideForScene(scenes, idxRef.current, { kicker, lessonTitle: title, age: ageRef.current, reveal: revealRef.current });
     try { if (blankRef.current) followRef.current.hold(); else followRef.current.publish(payload); } catch (e) { /* non-fatal */ }
   }, [scenes, title, kicker, sendCurrent]);
 
@@ -554,7 +554,7 @@ export default function Presenter({
   // A live PREVIEW of exactly what the class screen shows (age-resolved), so the
   // presenter view holds the slide AND the notes together — no window to drag, no
   // backing out (Darrell 2026-07-16).
-  const previewSlide = cur ? buildSlideForScene(scenes, idx, { kicker, age, reveal }) : null;
+  const previewSlide = cur ? buildSlideForScene(scenes, idx, { kicker, lessonTitle: title, age, reveal }) : null;
 
   // ONE-BUTTON READ ALOUD FOR THE SPEAKER (Darrell 2026-08-10: "I should be able
   // to also listen to the full message or lesson/s from here... speakers are
@@ -701,7 +701,7 @@ export default function Presenter({
   // leaving to the top (Darrell 2026-07-16). A connected class-screen window still
   // mirrors this via the broadcast (age + index carry through sendCurrent).
   if (onScreen) {
-    const cleanSlide = buildSlideForScene(scenes, idx, { kicker, age, reveal });
+    const cleanSlide = buildSlideForScene(scenes, idx, { kicker, lessonTitle: title, age, reveal });
     const chip = (on) => ({ cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.75rem', minHeight: 40, padding: '8px 14px', border: `1px solid ${on ? '#C9D9A6' : '#4A453D'}`, background: on ? '#C9D9A6' : 'transparent', color: on ? '#14110E' : '#CFC9BD' });
     const navBtn = { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', minHeight: 44, minWidth: 52, padding: '8px 16px', border: '1px solid #4A453D', background: 'transparent', color: '#FAF8F4', fontSize: '1.25rem', lineHeight: 1 };
     // GO STRAIGHT TO THE ONE YOU WANT (Darrell 2026-09-17: "each Lesson should

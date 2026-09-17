@@ -46,7 +46,12 @@ describe('half-way stays half-way', () => {
     expect(Number(total)).toBe(adult.totalSegments);
     expect(Number(step)).toBe(expected + 1);            // shown 1-based
     expect(Number(step)).toBeLessThan(adult.totalSegments); // NOT the end (the old clamp)
-    expect(onStepChange).toHaveBeenCalledWith(expected); // the saved place follows
+    // onStepChange now reports (step, total). The mapped STEP is unchanged and
+    // is still the property this test exists for; the TOTAL is what lets the
+    // sticky place-indicator show how far through a lesson a reader is without
+    // it scrolling away (Darrell 2026-09-17). Pinning the old arity would fail
+    // a signature change while proving nothing about the mapped step.
+    expect(onStepChange).toHaveBeenCalledWith(expected, expect.any(Number)); // the saved place follows
   });
 
   it('the first step stays the first step, and the last stays the last', () => {

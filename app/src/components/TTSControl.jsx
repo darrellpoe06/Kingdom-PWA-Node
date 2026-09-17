@@ -41,6 +41,10 @@ import { useScreenAwake, NO_WAKE_LOCK_HINT } from '../lib/screen-awake.js';
 // (lib/tts.js _recoverForeground) gets this long to bring the audio back before
 // the reader is offered ▶ Continue (DR-0439).
 export const INTERRUPT_GRACE_MS = 1500;
+// How long a reading must stay continuously live before the "screen went dark"
+// offer is taken down. Shorter than this and an engine flicker on wake dismisses
+// the offer (Darrell 2026-09-17: it "flashes and leaves pretty quickly").
+export const RESUME_CONFIRM_MS = 1200;
 
 // CONTROLS ARE NOT CONTENT — the reader must not read the buttons.
 //
@@ -156,7 +160,27 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     document.addEventListener('visibilitychange', onVis);
     return () => { document.removeEventListener('visibilitychange', onVis); if (timer) clearTimeout(timer); };
   }, []);
-  useEffect(() => { if (isReading) setInterrupted(false); }, [isReading]);
+  // WHY THIS IS NOT `if (isReading) setInterrupted(false)` (Darrell 2026-09-17:
+  // "the continue button flashes and leaves pretty quickly"). That one-line
+  // effect cleared the offer on the FIRST tick of isReading - and on waking a
+  // dark screen the speech engine frequently performs its own brief recovery,
+  // flickers alive, and then dies again. So the notice appeared and vanished
+  // within a frame or two, leaving the reader with no reading AND no way back
+  // to the sentence they lost. The offer was being dismissed by the very
+  // failure it exists to recover from.
+  //
+  // It now clears only once reading has been continuously live for
+  // RESUME_CONFIRM_MS - long enough that a flicker cannot claim success - and
+  // any drop inside that window cancels the clear and leaves the offer
+  // standing. Once shown, nothing auto-hides it: only the reader pressing
+  // Continue or the dismiss X takes it away. An offer to restore a lost place
+  // must not evaporate on its own, because the reader may be looking at the
+  // screen rather than at it.
+  useEffect(() => {
+    if (!isReading) return undefined;
+    const t = setTimeout(() => { if (readingRef.current) setInterrupted(false); }, RESUME_CONFIRM_MS);
+    return () => clearTimeout(t);
+  }, [isReading]);
 
   // FOLLOW-ALONG (DR-0264, Darrell 2026-08-03: readers "could be 6 or 60 years
   // old... highlighted as it reads so users can see their place and the screen

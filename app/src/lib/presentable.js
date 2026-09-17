@@ -153,6 +153,15 @@ export function buildSlideForScene(scenes, index, opts = {}) {
     scripture: a.scripture || null,
     dateLabel: scene.dateLabel || null,
     kicker: opts.kicker || DEFAULT_KICKER,
+    // THE LESSON'S OWN TITLE, ON EVERY SLIDE (Darrell 2026-09-17: "The title to
+    // these lessons should stay at the top of the presentations and as well as
+    // in the actual narrative so that people can remember what we're talking
+    // about"). Before this, a slide carried the PART's title (scene.audience
+    // .title) and its position ("Part 3 of 9") and nothing said WHICH LESSON --
+    // so a reader nine movements into a long lesson had no way to recall what
+    // he was in. Null when a caller does not pass it, so the eyebrow simply
+    // does not render and an un-upgraded surface is unaffected.
+    lessonTitle: opts.lessonTitle || null,
   };
 }
 
