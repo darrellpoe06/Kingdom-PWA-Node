@@ -674,6 +674,25 @@ All four bands now carry all five reasons rather than a subset: the honor he for
 
 Proven-to-catch four ways: re-quoting our own phrase beside the verse references, capitalizing him in one sentence of our prose (which fails two checks, including this lesson's pre-existing bright-line test), reversing head and heel inside the Genesis 3:15 quotation, and returning the senior band to its notes. The tamper pins also now assert what this lesson argues for — that **the corpus itself keeps him low inside the Bible text** (`I beheld satan as lightning fall from heaven` present, the capitalized form absent), so the practice the lesson defends is itself machine-checked. Reading level child 3.4 / teen 8.1 / senior 9.9, ascending. Fullness baseline 109 → 108.
 
+## L107 — the forty-sixth full lesson (2026-09-17)
+
+What the Word Gives: love, truth, light, knowledge, understanding — the thoughts to think, what to experience, how we receive it, and the two strategies (adult prose 607 by the gate's counter; floors child 304, others 365):
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 139 · 0.23 | **398 · 0.66** |
+| youth | missing | **492 · 0.81** (new) |
+| teen | 153 · 0.25 | **518 · 0.85** |
+| senior | 255 · 0.42 | **605 · 1.00** |
+
+**Five in a row.** The senior band was the facilitator's notes again — "Teach as the positive companion to L106 (know the enemy)", the capture date, and a checklist of what to cover. The pattern is now assumed rather than discovered, and the gate asserts the fix.
+
+This is the longest arc in the pass so far — eight movements — and all four bands now carry every one rather than a subset, which the gate enumerates item by item: the eight-question filter of Philippians 4:8 taught as **eight tests rather than an atmosphere**, the failing thought taken captive rather than argued with indefinitely, the fruit that GROWS against the mood that must be manufactured, the abundant life set against the thief *inside a single verse* so the contrast belongs to the text and not to our arrangement of it, the Love poured in rather than produced, truth that performs work rather than informing, and the sentence that ought to change how a person reads — `The entrance of thy words giveth light` — taught as the mechanism it is: **the light arrives WITH the Word rather than before it, so nobody waits to understand before opening it; the opening is how the understanding comes.** Then wisdom given *liberally, and upbraideth not* (He does not make a person feel small for needing what they lack), the single posture that receives all of it, and the two strategies in two columns, closing on both instruments of the overcoming with submission kept before resistance. The child band ends by making the filter usable at its own age — you can check a thought in about five seconds — and the youth band ends on the observation that **every item on the list is RECEIVED**, with acting on it the only part left to the reader.
+
+**Two real findings on arrival.** The span gate caught **John 15:10 quoted with an ASCII apostrophe** where the corpus carries U+2019 (`Father's` for `Father’s`) — the third in-quote alteration of the Word this pass has now caught, after L110's Matthew 7:15 (which also appeared in L102) and L108's falsely-quoted phrase of our own. And the voice check caught **the generic name in our own prose in six places** — five in the child band, one in a facilitator talking point ("God IS love, and the Word is His Love in a body"). All six now carry His covenant name; the quoted KJV is untouched.
+
+Proven-to-catch four ways: the ASCII apostrophe put back into John 15:10, the generic name put back into one sentence, `thy word` for `thy words` inside the Psalms 119:130 quotation (a singular that reads perfectly and is not the text), and the senior band returned to its notes. Reading level child 1.8 / teen 6.0 / senior 7.8, ascending. Fullness baseline 108 → 107.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
