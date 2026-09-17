@@ -1849,7 +1849,8 @@ function CourseView({
         const prev = idx > 0 ? schedule[idx - 1] : null;
         const next = idx >= 0 && idx < schedule.length - 1 ? schedule[idx + 1] : null;
         return (
-          <div className="ts-chrome-region sticky top-0 z-30 mb-3 bg-[#FAF8F4] border border-[#1A1815] px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 flex-nowrap sm:flex-wrap" data-testid="lesson-space-bar">
+          <div className="sticky top-0 z-30 mb-3 bg-[#FAF8F4]" data-testid="lesson-space-sticky">
+          <div className="ts-chrome-region border border-[#1A1815] border-b-0 px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 flex-nowrap sm:flex-wrap" data-testid="lesson-space-bar">
             <button
               type="button"
               onClick={() => setFocusId(null)}
@@ -1891,6 +1892,29 @@ function CourseView({
             >
               <span className="hidden sm:inline">Next </span>→
             </button>
+          </div>
+          {/* THE TITLE STAYS WHERE THE READER CAN SEE IT (Darrell 2026-09-17:
+              "The title to these lessons should stay at the top... so that
+              people can remember what we're talking about"). The sticky bar
+              above it already held position through a long read -- but it named
+              the POSITION ("Lesson 90 of 163") and never the lesson, so a
+              reader deep in a nine-movement lesson was told where he was and
+              not what he was in. The title now rides the same sticky block,
+              joined to the bar as one box.
+              It sits on its OWN line rather than inside the controls row on
+              purpose: DR-0438 fought that row down to one line on a 360px
+              phone, and a long title in it would push it straight back to two.
+              And it is deliberately OUTSIDE .ts-chrome-region -- the cap is for
+              controls (DR-0410 / DR-0432), and this is text the reader READS,
+              so it grows with Big Print like the lesson does (DR-0410's own
+              rule that the words grow and the frame stays a frame). */}
+          <h2
+            data-testid="lesson-space-title"
+            className="border border-[#1A1815] px-2 sm:px-3 py-1.5 text-[0.875rem] font-semibold text-[#1A1815] leading-snug"
+            style={{ fontFamily: '"Fraunces", serif' }}
+          >
+            {focusModule.title}
+          </h2>
           </div>
         );
       })()}

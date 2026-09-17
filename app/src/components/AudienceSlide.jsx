@@ -106,6 +106,32 @@ export default function AudienceSlide({ slide = null, hold = null, invite = null
     <div style={{ maxWidth: 1400, margin: '0 auto', width: '100%', display: 'flex', gap: 'clamp(20px, 3vw, 52px)', alignItems: 'flex-start' }}>
       <InviteCorner invite={invite} />
       <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+      {/* THE LESSON'S TITLE STAYS AT THE TOP, ON EVERY SLIDE (Darrell
+          2026-09-17: the title "should stay at the top of the presentations...
+          so that people can remember what we're talking about"). It sits ABOVE
+          the position row and the part heading, in its own line, because the
+          part heading is the h1 of THIS slide and cannot also carry the lesson.
+          Quieter than the part heading on purpose -- it is orientation, not the
+          point of the slide -- and it rides --slide-scale like everything else,
+          so it grows with the room (DR-0451). Renders nothing when a caller
+          passes no lessonTitle. */}
+      {slide.lessonTitle && (
+        <div
+          data-testid="slide-lesson-title"
+          style={{
+            fontSize: SLIDE_FS('clamp(15px, 1.7vw, 26px)'),
+            color: '#CFC9BD',
+            fontWeight: 600,
+            lineHeight: 1.25,
+            marginBottom: 'clamp(10px, 1.2vw, 18px)',
+            paddingBottom: 'clamp(8px, 1vw, 14px)',
+            borderBottom: '1px solid #2A2620',
+          }}
+        >
+          {slide.lessonTitle}
+        </div>
+      )}
+
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 'clamp(16px, 2vw, 28px)' }}>
         {/* Generic position label (indexLabel) for any surface; falls back to the
             original "Week X of Y" if an older presenter posts the legacy shape. */}
