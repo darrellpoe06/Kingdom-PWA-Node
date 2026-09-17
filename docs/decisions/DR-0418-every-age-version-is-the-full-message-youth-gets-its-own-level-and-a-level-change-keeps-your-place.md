@@ -1073,6 +1073,64 @@ Proven-to-catch six ways, every edit verified to land inside L96's own block bef
 
 One generic `God` was lifted from our own voice in a talking point — *the thief steals/kills/destroys, not God* — and is now the covenant name (DR-0210).
 
+## L95 — Know the State of Thy Flocks (2026-09-17)
+
+Reading the times, meeting people where they are, and not chasing the rally (adult prose 446 by the gate's counter; floors child 223, others 268):
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 106 · 0.24 | **521 · 1.17** |
+| youth | missing | **508 · 1.14** (new) |
+| teen | 121 · 0.27 | **640 · 1.43** |
+| senior | 188 · 0.42 | **918 · 2.06** |
+
+Seventeenth consecutive facilitator's-notes senior band, which opened *"Teach this the..."* and instructed the teacher rather than addressing a reader. Reading levels 3.1 / 5.6 / 7.3 / 8.7 ascending; no inversion to fix. Fullness baseline 96 → 95. All seventeen of the lesson's Scripture quotations were already verbatim — the catalog-wide terminal sweep had cleaned this one.
+
+### A class this pass had not met before: a LIVING PERSON'S words misquoted
+
+Every earlier false attribution in this pass put our own phrasing inside quotation marks beside a **verse** reference. This lesson did it to a named company's chief executive — and the proof needed no outside source at all, because the same sentence appeared in **two different forms** in the same catalog:
+
+| field | form |
+|---|---|
+| `bigIdea` | `"Following consumers' lead, wherever they may want to go"` |
+| teen band | `"following consumers' lead, wherever they may want to go."` |
+
+Different capital, different terminal punctuation. **A verbatim quotation cannot have two forms**, so at most one could ever have been right, and no transcript exists in this repo for either. The one-word `"trick,"` was attributed to him the same way, and a quiz stem carried `"trick"` as well.
+
+The fix required no research, because the lesson already contained the correct pattern in its own base prose: paraphrase him **unquoted** and say the claim is carried as reported. That discipline now holds in `bigIdea`, the quiz and all four bands, and the paraphrase states plainly that we hold no transcript.
+
+**Why this is owed at least as strictly as it is owed to Scripture, arguably more.** A misquoted verse can be checked by any reader against a text that is fixed and public — which is exactly what the gates in this pass do. A misquoted person has words placed in his mouth that he cannot retrieve, and no reader can check them at all. The asymmetry runs against us, so the marks come off.
+
+**The gate's own header was carrying the same misquotation** (`its "trick" was following consumers' lead`) and is corrected, with a note saying so. A gate that forbids in the code what it commits in its own comment is not a gate.
+
+### My chain-order check was theatre, and its own break test proved it
+
+The check asserting every band keeps the Romans 5 order looked sound and passed. Deleting the sentence that actually walks the sequence — *"It produces patience; patience produces proven experience; and experience is what finally produces hope"* — **left the suite green.**
+
+Two causes, both mine:
+
+1. The check tested the **disclaimer** ("does not produce hope directly") and the consequence ("quit in the middle"), never the sequence. It verified a label, not the teaching.
+2. Worse, the chain words all appear inside the Romans 5:3-4 **quotation itself**, so any naive search finds `patience`, `experience` and `hope` whether or not we ever explain the order.
+
+Fixed by stripping every quoted span first and requiring the ordered chain in **our own prose**. This is the same root cause as L97's two no-op breaks in a fourth costume: a check pointed at the wrong text manufactures confidence exactly as well as one that is too lenient. It was caught only because the break test was run and its result was read rather than assumed — which is the whole argument for DR-0076 §3.
+
+One further break was a no-op and the harness threw rather than reporting a false pass, which is the L97 discipline working as intended.
+
+### What the gate now requires in every band
+
+- **The Romans 5 order, walked in our own words** — with the disclaimer and the reason people quit in the middle.
+- **Reading the times kept DISTINCT from trend-chasing.** Trend-chasing follows what is loudest; this attends to what your own people actually need now. The senior band adds that Issachar's understanding was joined to a conclusion — they knew what Israel *ought* to do, and discernment that never reaches an ought is not yet understanding.
+- **Meeting people where they are kept DISTINCT from compromise**, with what makes the difference: compromise surrenders the truth to be accepted, this keeps the truth and absorbs the cost of knowing someone well enough to be useful.
+- **Both halves of the money teaching (DR-0100).** The beat is real and is said to be real; earning is not treated as sin in the teen and senior bands; and the crowd's verdict is still refused as a foundation. Under-claiming a verified good result would be as much a failure of truth as inflating it.
+
+### The senior band as a reader's lesson
+
+Four checks, because deleting the teacher's instructions does not by itself address anyone. Each movement is turned toward a reader who has the decades: the Romans 5 chain is the one thing a long life is positioned to **verify** rather than merely accept; the compromise boundary has a mirror-image failure that long conviction invites — defending the truth in terms nobody present can receive, and calling the failure faithfulness; gathering is read as a service rendered rather than a benefit collected, which is the reading that still applies when going has become difficult; and work done for Him does not become worthless when fewer people are watching it.
+
+Its closing principle: **a crowd's approval and a crowd's disappointment are the same substance, arriving on different days, and neither is evidence about the work.**
+
+Gate 22 → 37 checks. Proven to catch six ways, every edit verified to land inside L95's own block: the marks put back on `trick`, the CEO's sentence re-quoted, the chain sequence deleted, the compromise boundary blurred, the senior band turned back into notes, and the beat-is-real clause dropped.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
