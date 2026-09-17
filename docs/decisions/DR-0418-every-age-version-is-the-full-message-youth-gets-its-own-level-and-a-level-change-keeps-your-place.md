@@ -655,6 +655,25 @@ All four bands now carry the whole arc rather than a subset: taste first (and th
 
 **This lesson arrived clean on both new checks — 109 spans verbatim and not one generic name in our prose — and the checks were added anyway.** That is the discipline worth recording: a property that holds today and is not checked is a property that breaks quietly tomorrow, which is precisely how L110's altered apostrophe had been shipping. Proven-to-catch three ways against real drifts that read perfectly: Psalms 34:8 with taste and see reversed, the generic name put into one sentence of our prose, and the senior band returned to its notes. Four tamper pins now guard this lesson's own hinges (the taste/see order, the singing clause, the known-and-believed order, and "hoar hairs" against a modernized "grey hairs"). Reading level child 1.7 / teen 7.4 / senior 9.9, ascending. Fullness baseline 110 → 109.
 
+## L108 — the forty-fifth full lesson (2026-09-17)
+
+Why We Name Him Low: the typography of a defeated enemy (adult prose 535 by the gate's counter; floors child 268, others 321):
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 145 · 0.27 | **362 · 0.68** |
+| youth | missing | **411 · 0.77** (new) |
+| teen | 129 · 0.24 | **543 · 1.01** |
+| senior | 273 · 0.51 | **635 · 1.19** |
+
+**Four in a row.** The senior band was the facilitator's notes again — "Teach as the rationale behind the platform's typography", "Pairs with the Typographic Theology, the Color Theology, and L105", ordinal movements addressed to whoever was leading. The pattern named at L109 holds, and the gate now asserts the fix in this lesson too.
+
+All four bands now carry all five reasons rather than a subset: the honor he forfeited (and that nothing was done to him he had not first said in his own heart — Isaiah 14:13), the head-for-heel asymmetry of Genesis 3:15 read as the asymmetry it is, the glory Yahweh will not share, the Name that is actually high, and the discipling of the eye with the fear reassigned by name — because fear does not evaporate under instruction, it relocates. The practical point is stated carefully in every band, because it is commonly taken backwards: **he is not weakened by our contempt; we are strengthened by refusing him a dignity he no longer holds.**
+
+**Two real findings on arrival, in the lesson whose whole subject is which names get honor.** First, a discussion question had put **our own phrase in double quotes and followed it with verse references** — `"agree with Heaven's verdict" (Isaiah 5:20; Revelation 12:10)` — so it read as a quotation of those verses when it was not Scripture at all. In a lesson arguing about honor in typography, that is exactly the confusion we must not manufacture, so the quotation marks came off and the references stayed references. No allowlist was added, deliberately: unlike L111, where the lesson genuinely quotes the reporting it answers, nothing of ours here has any business wearing quotation marks. Second, **the generic name stood in our own prose in four places** — three in the child band, one in a facilitator talking point ("not a peer of God"). All four are now His covenant name; the quoted KJV is untouched.
+
+Proven-to-catch four ways: re-quoting our own phrase beside the verse references, capitalizing him in one sentence of our prose (which fails two checks, including this lesson's pre-existing bright-line test), reversing head and heel inside the Genesis 3:15 quotation, and returning the senior band to its notes. The tamper pins also now assert what this lesson argues for — that **the corpus itself keeps him low inside the Bible text** (`I beheld satan as lightning fall from heaven` present, the capitalized form absent), so the practice the lesson defends is itself machine-checked. Reading level child 3.4 / teen 8.1 / senior 9.9, ascending. Fullness baseline 109 → 108.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
