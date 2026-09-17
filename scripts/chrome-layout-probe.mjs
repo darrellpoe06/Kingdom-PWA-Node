@@ -210,6 +210,15 @@ try {
   // all three MUST trip.
   const RHYTHM = { maxLines: 6, maxRefs: 9 }; // = SECTION_RHYTHM (ChurchLearn.jsx); pinned by lesson-127-is-the-standard.test.jsx
   const CHROME_MAX_PX = 64;
+  // THE WAY OUT IS NEVER A LITTLE BITTY BUTTON (DR-0450). The cap above keeps
+  // chrome from ballooning; nothing kept it from SHRINKING back to the 10px
+  // label in a 1px outline that Darrell could not find on his phone
+  // (2026-09-16: "There's a little bitty button to get back to all... Make it
+  // obvious"). A ceiling without a floor is half a guarantee, so the lesson's
+  // way-out carries both: a real touch target and a legible word, measured in
+  // the browser at phone width.
+  const WAY_OUT_MIN_PX = 44;
+  const WAY_OUT_MIN_FONT_PX = 12;
   //  10. THE TEXT DOMINATES AND THE CONTROLS NEVER GET BIGGER (Darrell
   //      2026-09-16, phone screenshots at A++/A+++, DR-0438): on the lesson at
   //      360px the chrome that covers the first viewport (header, lesson bar,
@@ -328,6 +337,19 @@ try {
         maxBlockLines: Math.max(0, ...strips.map((s) => parseInt(s.getAttribute('data-block-lines') || '0', 10))),
         barButtonPx: tall('[data-testid="lesson-space-bar"] button'),
         chipPx: tall('button[aria-label*="text size" i]'),
+        // The way back to ALL: its own box and its own word size (DR-0450).
+        wayOut: (() => {
+          const b = document.querySelector('[data-testid="lesson-bar-all"]');
+          if (!b) return null;
+          const r = b.getBoundingClientRect();
+          return {
+            h: Math.round(r.height),
+            w: Math.round(r.width),
+            font: Math.round(parseFloat(getComputedStyle(b).fontSize) * 10) / 10,
+            filled: getComputedStyle(b).backgroundColor.replace(/\s/g, '') === 'rgb(26,24,21)',
+            says: /all/i.test(b.textContent || ''),
+          };
+        })(),
       };
     });
     await page.close();
@@ -340,6 +362,15 @@ try {
     if (m.inside > 0) fail(`${where}: ${m.inside} control(s) boxed inside the lesson prose — the reference belongs at the foot of its section, not in the sentence`);
     if (m.maxChips > RHYTHM.maxRefs) fail(`${where}: a green strip carries ${m.maxChips} chips — lesson 127's rhythm is at most ${RHYTHM.maxRefs} per strip (a wall of chips is a computer list)`);
     if (m.maxBlockLines > RHYTHM.maxLines) fail(`${where}: a block of ${m.maxBlockLines} lines waits for one strip — lesson 127's rhythm is at most ${RHYTHM.maxLines} lines before the Word`);
+    if (!m.wayOut) fail(`${where}: the lesson bar has no way back to ALL — the reader is shut in (data-testid="lesson-bar-all")`);
+    else {
+      if (!m.wayOut.says) fail(`${where}: the way out does not say ALL — it reads "${m.wayOut.text || ''}"`);
+      if (!m.wayOut.filled) fail(`${where}: the way out is an outline, not the bar's primary control — a hairline button is the one Darrell could not find`);
+      if (size === 'normal') {
+        if (m.wayOut.h < WAY_OUT_MIN_PX) fail(`${where}: the way back to ALL is ${m.wayOut.h}px tall — under the ${WAY_OUT_MIN_PX}px touch floor (DR-0450)`);
+        if (m.wayOut.font < WAY_OUT_MIN_FONT_PX) fail(`${where}: the way back to ALL is set at ${m.wayOut.font}px — under the ${WAY_OUT_MIN_FONT_PX}px legibility floor (DR-0450)`);
+      }
+    }
     if (size === 'bigprint') {
       if (m.barButtonPx > CHROME_MAX_PX) fail(`${where}: the lesson bar's buttons are ${m.barButtonPx}px tall — the frame ballooned with the text (cap: ${CHROME_MAX_PX}px)`);
       if (m.chipPx > CHROME_MAX_PX) fail(`${where}: a text-size chip is ${m.chipPx}px tall — the control compounds with its own setting (cap: ${CHROME_MAX_PX}px)`);
