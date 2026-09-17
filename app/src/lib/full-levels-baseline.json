@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 163,
-  "lessonsShort": 92,
+  "lessonsShort": 91,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -528,12 +528,6 @@
       "teen"
     ],
     "ll90-no-respecter-of-persons-the-image-the-unrighteous-decree-and-the-judge": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll91-the-authors-own-code-searched-out-to-guard-his-image": [
       "child",
       "youth",
       "teen",

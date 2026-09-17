@@ -1304,6 +1304,57 @@ Two generic `God` instances were lifted from our own prose, where it supplied th
 
 Proven to catch eleven ways, every break made global inside L92's block: the marks put back on our compression (fails two checks), and each of the defilement, unlit lamp, not-a-leash, temple-made-of-temples, closing if-then, deed-already-begun, not-neutral, omission-restated, senior-as-notes and still-bearing-weight lines removed.
 
+## L91 — The Author's Own Code (2026-09-17)
+
+DNA, hidden poison, and the fear of the LORD as wisdom (adult prose 720 by the gate's counter; floors child 360, others 432):
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 177 · 0.25 | **769 · 1.07** |
+| youth | missing | **702 · 0.97** (new) |
+| teen | 218 · 0.30 | **987 · 1.37** |
+| senior | 326 · 0.45 | **1174 · 1.63** |
+
+Twenty-first consecutive facilitator's-notes senior band — here a labelled outline (`WHOSE CODE (Psalm 139):`, `THE LIMIT AND THE COMPLETENESS (...)`), notes to be delivered rather than prose to be read. Reading levels before: child 6.6 against teen 6.7, **a 0.1 gap** — technically ascending, functionally flat. After: 4.7 / 6.4 / 7.6 / 8.2. Fullness baseline 92 → 91. Gate 25 → 39 checks.
+
+### An eleventh false attribution — this time to a research paper
+
+The same purported quotation appeared in **three different forms**:
+
+| field | form |
+|---|---|
+| `bigIdea` | the first sensor `"was not a finished product,"` |
+| senior | the paper's own honesty — `"not a finished product,"` |
+| prompt | The paper admitted its sensor was `"not a finished product."` |
+
+A verbatim quotation cannot have three forms, so at most one could be right, and no paper text exists in this repo for any of them. This is L95's misquoted executive pointed at a research paper — **the defect appears wherever we quote a source we do not hold**, whether that source is Scripture, a person, or a journal. The claim is kept, paraphrased and attributed, because the claim is almost certainly true and it is only the exact wording we cannot vouch for.
+
+### This lesson already had the best provenance discipline in the catalog, and it is now gated
+
+Its base prose does what every lesson built on an outside report should: *"The article's specific figures are carried as it reported them and are not independently verified here; the Word below is quoted verbatim."* That asymmetry is the whole of DR-0076 in one sentence — one of those sources can be checked against a fixed text and the other cannot.
+
+The gate now requires **all three parts of it in every band**, not just the adult prose, because a child reading the child band is the reader least able to supply the caveat for himself. The child band carries it in its own words: *"Those numbers come from the report and we have not checked them ourselves - but the Bible verses below are copied word for word."*
+
+### Five gaps, and all five were the L92 case
+
+The shared-fragment measurement flagged five fragments as missing — `as it reported them`, `not independently verified here`, `quoted verbatim`, `WISDOM`, `KEEPING, not plundering`. Every one is present in the band's own register: the provenance trio as above, and *"KEEPING it - not wrecking it"* for the child. So each check watches the teaching and accepts either phrasing. That is now the second consecutive lesson where the measurement's output needed **reading** rather than acting on — it reports difference, not absence, and the distinction is the difference between protecting a child band and overwriting it.
+
+### Also required in every band
+
+- **KNOWLEDGE and WISDOM as different faculties** — a brilliant sensor is the first; knowing whose world you are searching and departing from evil while you search it is the second. The lesson exists to hold them apart, and the age collapses them.
+- **Concealment as invitation, never hostility** — Proverbs 25:2 dignifies both parties: the hiding is His glory, the finding is our honour, so the searcher is no rival in that verse but a king doing a king's proper work.
+- **Detection is mercy only when it acts** — *a sensor that reveals lead and changes nothing is a light nobody obeys.*
+- **Dominion as KEEPING, not plundering** (Genesis 2:15).
+- **Ours provisional, His complete** — still `unperfect`, while He knew each strand before there was one.
+
+### The senior band as a reader's lesson
+
+Seven checks turning each movement toward a reader who has the decades: the members were written in His book **before they were fashioned**, so the writing never depended on the condition they are in now; an invitation extended to a lifetime of searching **does not expire partway through**; the long searcher is **best placed to feel** Job 28's limit as true rather than merely concede it; the Genesis mandate reads the same when the body being kept is one's own and has **begun to need keeping**; provisional knowing is a **release rather than an indictment** for anyone who hoped to have it settled by now; one does not run out of time to search a treasury that size — one **hands the searching on**; and *making wise the simple* means the entry fee was never cleverness, and it is **not failing memory** either.
+
+Five generic `God` instances were lifted from our own prose and two benefit/facilitator notes — *concealment is God's glory*, *the body that is God's temple* — now the covenant name or His pronoun (DR-0210). Every quoted span in all four bands is verbatim corpus text, so the bands themselves need no allowlist at all.
+
+Proven to catch ten ways, every break global inside L91's block: the marks put back on the paper's claim (fails two checks), the not-verified clause deleted, the verbatim marker deleted (fails two), the knowledge/wisdom distinction collapsed, the invitation-not-hostility line removed, the light-nobody-obeys line removed (fails two), the keeping/plundering distinction removed, the before-there-was-one clause removed, the senior band turned back into notes, and the senior band's hands-the-searching-on line removed.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
