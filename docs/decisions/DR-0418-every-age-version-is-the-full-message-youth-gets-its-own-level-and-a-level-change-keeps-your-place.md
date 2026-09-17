@@ -1020,6 +1020,59 @@ The **self-correction, whole, including that we were the ones corrected.** It wa
 
 Proven-to-catch three ways, all verified to land inside L97: the marks put back on our nominalisation (fails two checks), the correction dates dropped from a band, and the Acts 10:34 comma restored.
 
+## L96 — Doers of the Word (2026-09-17)
+
+Competence by doing, the mind's tactics, purity by the Spirit, the highest knowledge (to know Him), and how the family of Yahweh is known — by doing (adult prose 776 by the gate's counter; floors child 388, others 466):
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 167 · 0.22 | **937 · 1.21** |
+| youth | missing | **767 · 0.99** (new) |
+| teen | 182 · 0.23 | **926 · 1.19** |
+| senior | 328 · 0.42 | **1260 · 1.62** |
+
+**Sixteenth in a row** on the facilitator's-notes senior band, which opened *"Teach this as the difference between information and formation"* and carried instructions to the teacher throughout — *"Draw the delegated/reserved line"*, *"Close on the daily dosage and the arc"*, *"Take the sharpest, longest example"*. Reading levels 2.6 / 3.3 / 6.8 / 9.1 ascending; **no inversion to fix** — this is the first lesson in the pass where the original ordering was already correct, so the reading-level baseline is unchanged at 23. Fullness baseline 97 → 96.
+
+### The check-in's premise was wrong, and measurement corrected it before any edit
+
+I carried two false attributions into this lesson. Measurement found one.
+
+`"better to marry than to burn,"` was on the list because 1 Corinthians 7:9 reads *for it is better to marry than to burn*. But the fragment **without** the leading `it is` is a true contiguous substring, so the quotation was legitimate and always had been. What had actually been wrong was the trailing comma — and the catalog-wide terminal sweep in the preceding commit had already fixed it. I was about to strip the marks off a correct quotation of the Word on the strength of a claim I had written down myself and never measured. The gate now records the disproof beside the assertion, because the failure mode here is not carelessness about Scripture but confidence in my own earlier note.
+
+The one real false attribution was `"cast it down"` beside 2 Corinthians 10:5, in the `inApp` block and the child band. The verse reads *Casting down imaginations*. The phrase is a good teaching compression and it is **kept** — as ours, unquoted, with the reference still pointing where a reader can check it. Ninth of the pass.
+
+### A second claim of mine the gate disproved on the spot
+
+Writing the proven-to-catch block I asserted that `There is a way that seemeth right unto a man` is absent from the corpus, as the drift of Proverbs 14:12's `which seemeth right`. It is present. **Proverbs 16:25 is the same sentence with `that`**, and both verses are in this store. So a swap between the two is invisible to any substring check, and the only honest guard is the **reference** the lesson prints beside the words. The gate now asserts both forms present, pins the `which` form to 14:12, and fails if that form is ever labelled 16:25 — which the break test confirms.
+
+This is the third time in this pass that a guard clause of mine died to a corpus read (after `satan’s` being real Scripture, and `Satan` capitalised appearing nowhere). The pattern is worth naming: **my assumptions about what the Word does not say fail more often than my quotations of what it does.**
+
+### The child band was quietly thinner, and the gate is what found it
+
+The first draft cleared the fullness floor at 858 words and would have passed every existing check. Measuring which fragments all four bands actually shared showed the child band missing **sixteen** movements the other three carried: the renewed mind (Romans 12:2), the mortified deeds (Romans 8:13), `rightly dividing the word of truth`, the reasonable service (Romans 12:1), `faith, if it hath not works, is dead, being alone` in full rather than a two-word fragment, the excellency (Philippians 3:8), led-by-the-Spirit (Romans 8:14), the works of Abraham (John 8:39), `temperance`, and the prefrontal cortex by name.
+
+Fourteen were restored, which is the right direction: **a band that clears a length floor while carrying fewer movements is the exact failure this DR exists to prevent**, and length alone cannot see it. Fifty-six fragments are now required in every one of the four bands.
+
+Two are deliberately age-gated and the gate says so with its reason: `that ye should abstain from fornication` and `better to marry than to burn` stay out of the band written for a six-year-old. The **movement** does not — the child band carries the sanctification command, the temple, that marriage is honourable, that singleness for the Kingdom is honoured, and that it is held for years. That is the whole shape of it without the explicit clauses, and the gate requires the shape in all four while requiring the clauses in the other three.
+
+### What else the gate now requires in every band
+
+**The honest clause.** Purity was Darrell's worked example precisely because the flesh will not do it — *"the flesh can't and won't want to do this without the Holy Spirit of Yahweh, over a lifetime."* A band stating a lifetime standard without naming the power for it would be cruel, so every band must say that willpower is not the remedy and that He supplies **both** halves, the wanting and the doing (Philippians 2:13).
+
+**The neuroscience under the Word, not beside it.** DR-0100 tier one: the prefrontal-cortex finding is documented and is stated plainly as true in all four bands, the child's included, with the structure named. And its **place** is stated too — He commanded a `sound mind` and `temperance` millennia before any instrument could observe the tissue. Dropping the ordering would invite a reader to take the Word as needing science's endorsement, which inverts the authority. The senior band adds that the tissue remains capable of reshaping late in life, because that is the encouragement a reader of years actually needs from this movement.
+
+**The deed measured by the Word, not by how right it felt** (Proverbs 14:12) — and in the teen band aimed where it belongs, at the confidence that age is handed.
+
+**Teaching LAST in Ezra's order**, with the reason, in every band. This is the most searching item in the lesson for the senior reader, and the senior band says why: the instruction to teach is real and the temptation is to reach it by the shorter road. *Teaching what one has sought but not done is the hearer-only condition, dressed in authority and multiplied by an audience.*
+
+### The senior band as a reader's lesson
+
+Two new checks, because removing the teacher's instructions is not by itself enough to make a senior reader's lesson: the years spent doing must read as the training rather than a loss, the late-life reshaping must be there, and being asked for counsel must be named as the live temptation. A senior band that merely deletes the clipboard language is still not addressed to anyone.
+
+Proven-to-catch six ways, every edit verified to land inside L96's own block before the result was trusted: the marks put back on `cast it down` (fails two checks), the prefrontal cortex dropped from the child band, the explicit clause pushed into the child band, `Teach this as the difference` restored to the senior band, the Psalms 8:5 comma moved back inside its quotation, and the `which` form relabelled Proverbs 16:25.
+
+One generic `God` was lifted from our own voice in a talking point — *the thief steals/kills/destroys, not God* — and is now the covenant name (DR-0210).
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
