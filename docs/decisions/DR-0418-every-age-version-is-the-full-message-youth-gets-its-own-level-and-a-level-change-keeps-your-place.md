@@ -754,6 +754,39 @@ Eight movements, and the gate now enumerates twelve load-bearing quotations per 
 
 That pairing is now asserted in both directions by one check, which is the sharpest thing this lesson added to the harness: our prose must carry **no** generic name, AND the quotation must **still read `that is, God`**. Pushing the covenant name *into* the quotation — the well-meant error that would corrupt the Word in the opposite direction from the one DR-0210 guards — fails two assertions. Proven-to-catch four ways in total: `right` for `clean` inside Proverbs 16:2 (which would erase the lesson's own hinge while reading perfectly), the covenant name pushed into Mark 10:18, the generic name restored to one paraphrase, and the senior band returned to its notes. Fullness baseline 105 → 104.
 
+## L103 — the fiftieth full lesson (2026-09-17)
+
+His Kings: reigning under the King of kings — two paths, wealth Yahweh's way not confusion, winning souls through excellence, and skill drawn from His Word (adult prose 646 by the gate's counter; floors child 323, others 388):
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 135 · 0.23 | **432 · 0.67** |
+| youth | missing | **459 · 0.71** (new) |
+| teen | 126 · 0.21 | **580 · 0.90** |
+| senior | 264 · 0.44 | **637 · 0.99** |
+
+**Ninth in a row** on the facilitator's-notes senior band, and the **second inverted band ordering in a row**: before, child 5.6 against teen 4.4 — the child level reading harder than the teen level; after, 2.6 / 7.0 / 8.1 ascending, and the reading-level baseline's inverted list shrinks 29 → 28.
+
+Nine movements, and the gate enumerates sixteen load-bearing quotations per band plus a check of its own for the observation that gives this lesson its edge rather than merely its correctness: **being your own king IS the broad way.** It does not feel like rebellion from the inside — it feels like independence, which is exactly why that road is wide and well travelled. A band that dropped that sentence would leave a lesson about kingship which flatters the reader, so the gate requires it in all four. The crowns are the other thing every band keeps: twenty-four crowned elders in His presence take their crowns off and put them down, which settles the question of posture more decisively than any exhortation to humility could.
+
+## A correction to my own method, and it is the same class this pass exists to catch
+
+My scratch pre-apply checker had been reading **the wrong lesson**. Its module slice was pinned to `id: 'll107-'`, inherited through a chain of sed-renamed copies that updated the filenames but not that string — so every "module clean" line I reported for L103, and for L104 and L105 before it, was re-auditing **L107** rather than the lesson in hand. That is precisely the L112 failure repeated in a new costume: *a checker that reports on the wrong subject manufactures confidence exactly as effectively as one that is too lenient.*
+
+What it did and did not cost, measured rather than assumed:
+
+- **Nothing shipped unverified.** Each lesson's own repo gate slices by full id and ran before every commit; all of them passed. I re-audited L104, L105, L106 and L107 with a corrected auditor that takes the lesson id as an argument and refuses to run without it — **all four are genuinely clean, 0 non-verbatim spans**.
+- **It did hide a real defect in L103 for one cycle.** L103's own module carried `Christ's stead` — an ASCII apostrophe inside 2 Corinthians 5:20, where the corpus has `Christ’s`. That is the **fifth** in-quote alteration of the Word this pass has found, and it is now restored byte-for-byte.
+- The new bands were never affected, because they are checked by filename rather than by id — which is why the same run correctly caught me typing `Christ's stead` into the teen and senior drafts, the second time in this pass I have typed a quotation instead of pasting it.
+
+The fix is structural: the auditor now takes the lesson prefix as `argv[2]`, prints the full id it resolved, and exits rather than defaulting. A checker that cannot say which subject it examined should not be trusted, and mine could not.
+
+## Darrell's own words are quoted here, and they stay quoted
+
+The span gate then surfaced twelve spans that are not Scripture and should not be: this lesson was captured from what Darrell said on 2026-08-29, and `bigIdea` quotes him directly — *"Kings are also bold… His kings… creating wealth is the goal, not confusion… winning souls, because souls respect excellence, and we kings respect The Living Yahweh…"*. Those are real quotations of a real person, the source the lesson was built from, so the quotation marks are correct and removing them would erase the attribution (DR-0331). They are named in the gate one by one, so it can tell a quoted SPEAKER from a quoted VERSE rather than being loosened for both — the L111 pattern, and the exact opposite of L108's, where a phrase of OUR OWN wore quotation marks beside verse references and had them removed. Two further assertions keep that allowlist honest: **his words must still be present** (it can never become a way to delete his voice), and **none of them may appear in the corpus** (it can never excuse a real quotation from the gate).
+
+Proven-to-catch four ways: the ASCII apostrophe put back into 2 Corinthians 5:20, one of his quoted phrases altered (which fails two checks), the broad-way edge removed from the child band, and the senior band returned to its notes. Fullness baseline 104 → 103.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
