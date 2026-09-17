@@ -102,6 +102,7 @@ let failures = 0;
 let tsFailuresBefore = 0;
 let lessonFailuresBefore = 0;
 let lessonMeasured = 0;
+let presenterMeasured = 0;
 // COVERAGE, counted — not assumed (DR-0323). This probe reported `exit 0` on
 // 2026-09-03 having measured only 8 of its 11 views: no failure was raised, so
 // the run read as a clean pass while a third of the surfaces — including the
@@ -486,7 +487,76 @@ try {
     if (failures === before) console.log(`textscale ok  ${where} — Big Print holds, escape hatch on screen (${m.hatchCount} controls)`);
   }
 } finally {
+  // ---------------------------------------------------------------------------
+  // THE PRESENTER IS CHROME TOO (DR-0451). It was the largest surface in the
+  // app the probe had never visited: no view, no selector, no budget — so the
+  // one rule that would have caught Darrell's report ("the controls are taking
+  // over the screen real-estate", 2026-09-17) had nothing to measure. The bar
+  // now carries a testid and a cap; this measures both, in the browser, at the
+  // width he was holding.
+  // ---------------------------------------------------------------------------
+  const PRESENTER_BAR_MAX_PX = 160;
+  const DECK_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons&lesson=ll1-the-perfect-yahweh-expects`;
+  for (const size of ['normal', 'bigprint']) {
+    const page = await browser.newPage({ viewport: { width: 360, height: 900 } });
+    await page.addInitScript((sz) => {
+      try {
+        localStorage.setItem('poetech.help.tour.v1', 'seen');
+        if (sz === 'bigprint') localStorage.setItem('poe-text-size', 'bigprint'); else localStorage.removeItem('poe-text-size');
+      } catch { /* private mode */ }
+    }, size);
+    await page.goto(DECK_URL, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+    await page.waitForSelector('[data-testid="lesson-space-bar"]', { timeout: 20000 }).catch(() => {});
+    // Open the series deck the way a reader does — the overview play control.
+    const opened = await page.evaluate(() => {
+      const b = [...document.querySelectorAll('button')].find((x) => /play the overview/i.test(x.textContent || ''));
+      if (!b) return false;
+      b.click();
+      return true;
+    });
+    if (!opened) { await page.close(); fail(`presenter@360px${size === 'bigprint' ? ' [Big Print]' : ''}: no way into the deck was found on the lesson page`); continue; }
+    await page.waitForSelector('[data-testid="present-setup-bar"]', { timeout: 20000 }).catch(() => {});
+    await page.evaluate(() => (document.fonts && document.fonts.ready ? document.fonts.ready : null)).catch(() => {});
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 400)));
+    if (SELFTEST) {
+      // The pre-fix bar, reproduced: the cap removed and every control always on.
+      await page.addStyleTag({ content: '[data-testid="present-setup-bar"] { zoom: 1 !important } [data-testid="present-setup-bar"] button { min-height: 6rem !important }' });
+      await page.evaluate(() => new Promise((r) => setTimeout(r, 150)));
+    }
+    const pm = await page.evaluate(() => {
+      const bar = document.querySelector('[data-testid="present-setup-bar"]');
+      if (!bar) return { none: true };
+      const r = bar.getBoundingClientRect();
+      const hasJump = !!document.querySelector('[data-testid="present-setup-jump"]');
+      const more = document.querySelector('[data-testid="present-setup-bar-more"]');
+      return {
+        h: Math.round(r.height),
+        vh: window.innerHeight,
+        capped: bar.classList.contains('ts-chrome-region'),
+        safeSticky: bar.classList.contains('ts-safe-sticky'),
+        foldable: !!more,
+        hasJump,
+        size: document.documentElement.getAttribute('data-text-size') || 'normal',
+      };
+    });
+    await page.close();
+    const pwhere = `presenter@360px${size === 'bigprint' ? ' [Big Print]' : ''}`;
+    if (pm.none) { fail(`${pwhere}: the presenting bar never rendered — nothing was measured`); continue; }
+    if (size === 'bigprint' && pm.size !== 'bigprint') { fail(`${pwhere}: data-text-size="${pm.size}" — Big Print never applied, nothing was measured`); continue; }
+    const pbefore = failures;
+    presenterMeasured += 1;
+    if (!pm.capped) fail(`${pwhere}: the presenting bar is not in .ts-chrome-region — the controls grow with the text (DR-0438 §1)`);
+    if (!pm.safeSticky) fail(`${pwhere}: the presenting bar is not .ts-safe-sticky — a sticky header may never exceed the viewport (DR-0276 rule 2)`);
+    if (!pm.foldable) fail(`${pwhere}: the presenting bar has no More control — every control is always on, which is what took the screen`);
+    if (!pm.hasJump) fail(`${pwhere}: the deck offers no way to reach one part directly — stepping is the only route`);
+    if (pm.h > PRESENTER_BAR_MAX_PX) fail(`${pwhere}: the presenting bar is ${pm.h}px of the ${pm.vh}px viewport — over the ${PRESENTER_BAR_MAX_PX}px budget; the slide must dominate the screen`);
+    if (failures === pbefore) console.log(`presenter ok  ${pwhere} — bar ${pm.h}px of ${pm.vh}px, capped, safe-sticky, foldable, one-tap jump present`);
+  }
+  if (presenterMeasured !== 2) fail(`coverage: ${presenterMeasured}/2 presenter cases measured`);
+
   await browser.close();
+
+
   server.close();
 }
 

@@ -29,14 +29,28 @@ import { verseText } from '../lib/bible-kjv.js';
 // large type for phones without a camera shortcut. White-backed QR with a
 // quiet zone so cameras lock from the pews; presenter-controlled (it appears
 // only while "live for congregation" is on, and drops the moment it stops).
+// THE ROOM'S TEXT SIZE IS THE PRESENTER'S TO SET (DR-0451). Every size on this
+// slide was viewport math — clamp(px, vw, px) — so it answered the projector's
+// width and NOTHING else. The app's own text-size control (A / A+ / A++ / A44)
+// could not touch it, and there was no control inside the presenting view
+// either: Darrell 2026-09-17, "Need to be able to work the text sizes on the
+// PowerPoint." A pastor holding up a tablet, or casting to a TV across a hall,
+// has to be able to make the words bigger for the room in front of him.
+//
+// Every font size now rides one multiplier the presenter sets on an ancestor
+// (--slide-scale, default 1 so an unset surface renders exactly as before).
+// calc() around clamp() is valid CSS and keeps the responsive floor and
+// ceiling intact — the slide still answers the screen, then answers the room.
+const SLIDE_FS = (clampExpr) => `calc(${clampExpr} * var(--slide-scale, 1))`;
+
 function InviteCorner({ invite }) {
   if (!invite || !invite.url) return null;
   return (
     <div className="bg-white text-[#1A1815]" style={{ position: 'fixed', right: 'clamp(16px, 2vw, 40px)', bottom: 'clamp(16px, 2vw, 40px)', zIndex: 5, borderRadius: 10, padding: 'clamp(10px, 1vw, 16px)', textAlign: 'center', boxShadow: '0 4px 24px rgba(0,0,0,0.45)' }}>
       <QRCodeSVG value={invite.url} size={132} level="M" role="img" aria-label="Scan to follow along on your phone" style={{ display: 'block', width: 'clamp(96px, 10vw, 180px)', height: 'auto' }} />
-      <div style={{ fontSize: 'clamp(11px, 1vw, 15px)', letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: 8, fontWeight: 600 }}>Follow along</div>
+      <div style={{ fontSize: SLIDE_FS('clamp(11px, 1vw, 15px)'), letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: 8, fontWeight: 600 }}>Follow along</div>
       {invite.code && (
-        <div style={{ fontSize: 'clamp(14px, 1.4vw, 22px)', fontFamily: '"JetBrains Mono", monospace', letterSpacing: '0.22em', fontWeight: 700 }}>{invite.code}</div>
+        <div style={{ fontSize: SLIDE_FS('clamp(14px, 1.4vw, 22px)'), fontFamily: '"JetBrains Mono", monospace', letterSpacing: '0.22em', fontWeight: 700 }}>{invite.code}</div>
       )}
     </div>
   );
@@ -76,13 +90,13 @@ export default function AudienceSlide({ slide = null, hold = null, invite = null
     return (
       <div style={{ textAlign: 'center', margin: 'auto' }}>
         <InviteCorner invite={invite} />
-        <div style={{ fontSize: 'clamp(13px, 1.4vw, 18px)', letterSpacing: '0.35em', textTransform: 'uppercase', color: '#EBA77E', marginBottom: 24 }}>
+        <div style={{ fontSize: SLIDE_FS('clamp(13px, 1.4vw, 18px)'), letterSpacing: '0.35em', textTransform: 'uppercase', color: '#EBA77E', marginBottom: 24 }}>
           {hold?.kicker || 'The Church of the Living God'}
         </div>
-        <h1 style={{ fontSize: 'clamp(40px, 7vw, 104px)', fontWeight: 600, lineHeight: 1.04, letterSpacing: '-0.02em', margin: 0 }}>
+        <h1 style={{ fontSize: SLIDE_FS('clamp(40px, 7vw, 104px)'), fontWeight: 600, lineHeight: 1.04, letterSpacing: '-0.02em', margin: 0 }}>
           {hold?.title || 'Learning A.I. The Way'}
         </h1>
-        <p style={{ fontSize: 'clamp(16px, 1.8vw, 24px)', color: '#CFC9BD', marginTop: 28 }}>
+        <p style={{ fontSize: SLIDE_FS('clamp(16px, 1.8vw, 24px)'), color: '#CFC9BD', marginTop: 28 }}>
           {slide ? 'Ready when you are.' : 'Waiting for the teacher to begin…'}
         </p>
       </div>
@@ -96,23 +110,23 @@ export default function AudienceSlide({ slide = null, hold = null, invite = null
         {/* Generic position label (indexLabel) for any surface; falls back to the
             original "Week X of Y" if an older presenter posts the legacy shape. */}
         {(slide.indexLabel || slide.week) && (
-          <span style={{ fontSize: 'clamp(13px, 1.4vw, 18px)', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#EBA77E' }}>
+          <span style={{ fontSize: SLIDE_FS('clamp(13px, 1.4vw, 18px)'), letterSpacing: '0.3em', textTransform: 'uppercase', color: '#EBA77E' }}>
             {slide.indexLabel || `Week ${slide.week} of ${slide.total}`}
           </span>
         )}
         {slide.dateLabel && (
-          <span style={{ fontSize: 'clamp(12px, 1.2vw, 16px)', color: '#CFC9BD', fontFamily: '"JetBrains Mono", monospace' }}>
+          <span style={{ fontSize: SLIDE_FS('clamp(12px, 1.2vw, 16px)'), color: '#CFC9BD', fontFamily: '"JetBrains Mono", monospace' }}>
             {slide.dateLabel}
           </span>
         )}
       </div>
 
-      <h1 style={{ fontSize: 'clamp(36px, 6vw, 96px)', fontWeight: 600, lineHeight: 1.03, letterSpacing: '-0.02em', margin: 0 }}>
+      <h1 style={{ fontSize: SLIDE_FS('clamp(36px, 6vw, 96px)'), fontWeight: 600, lineHeight: 1.03, letterSpacing: '-0.02em', margin: 0 }}>
         {slide.title}
       </h1>
 
       {(slide.lead || slide.bigIdea) && (
-        <p style={{ fontSize: 'clamp(20px, 2.8vw, 42px)', lineHeight: 1.3, marginTop: 'clamp(20px, 3vw, 40px)', marginBottom: 0 }}>
+        <p style={{ fontSize: SLIDE_FS('clamp(20px, 2.8vw, 42px)'), lineHeight: 1.3, marginTop: 'clamp(20px, 3vw, 40px)', marginBottom: 0 }}>
           {slide.lead || slide.bigIdea}
         </p>
       )}
@@ -141,24 +155,24 @@ export default function AudienceSlide({ slide = null, hold = null, invite = null
               }}
             >
               {slide.ordered ? (
-                <span aria-hidden="true" style={{ flexShrink: 0, minWidth: '1.3em', color: '#C9D9A6', fontWeight: 700, fontFamily: '"JetBrains Mono", monospace', fontSize: 'clamp(15px, 1.8vw, 26px)' }}>{i + 1}</span>
+                <span aria-hidden="true" style={{ flexShrink: 0, minWidth: '1.3em', color: '#C9D9A6', fontWeight: 700, fontFamily: '"JetBrains Mono", monospace', fontSize: SLIDE_FS('clamp(15px, 1.8vw, 26px)') }}>{i + 1}</span>
               ) : (
                 <span aria-hidden="true" style={{ flexShrink: 0, marginTop: '0.5em', width: 'clamp(9px, 1vw, 15px)', height: 'clamp(9px, 1vw, 15px)', borderRadius: '50%', background: '#C9D9A6' }} />
               )}
-              <span style={{ fontSize: 'clamp(16px, 2vw, 30px)', lineHeight: 1.3 }}>{pt}</span>
+              <span style={{ fontSize: SLIDE_FS('clamp(16px, 2vw, 30px)'), lineHeight: 1.3 }}>{pt}</span>
             </li>
           )),
         );
       })()}
 
       {(slide.detail || slide.inApp) && (
-        <p style={{ fontSize: 'clamp(16px, 2vw, 30px)', lineHeight: 1.35, marginTop: 'clamp(18px, 2.4vw, 32px)', color: '#CFC9BD' }}>
+        <p style={{ fontSize: SLIDE_FS('clamp(16px, 2vw, 30px)'), lineHeight: 1.35, marginTop: 'clamp(18px, 2.4vw, 32px)', color: '#CFC9BD' }}>
           <span style={{ color: '#C9D9A6', fontWeight: 600 }}>{slide.detailLabel || 'In the app'}: </span>{slide.detail || slide.inApp}
         </p>
       )}
 
       {slide.anchorRef && (
-        <p style={{ fontSize: 'clamp(15px, 1.8vw, 26px)', lineHeight: 1.35, marginTop: 'clamp(20px, 3vw, 40px)', color: '#C9D9A6' }}>
+        <p style={{ fontSize: SLIDE_FS('clamp(15px, 1.8vw, 26px)'), lineHeight: 1.35, marginTop: 'clamp(20px, 3vw, 40px)', color: '#C9D9A6' }}>
           <strong>{slide.anchorRef}</strong>{slide.anchorTheme ? ` — ${slide.anchorTheme}` : ''}
         </p>
       )}
@@ -168,7 +182,7 @@ export default function AudienceSlide({ slide = null, hold = null, invite = null
       {slide.scripture && (
         <div style={{ marginTop: 'clamp(20px, 3vw, 40px)', borderLeft: '3px solid #4A453D', paddingLeft: 'clamp(14px, 1.6vw, 22px)' }}>
           {String(slide.scripture).split('\n').filter(Boolean).map((line, i) => (
-            <p key={i} style={{ fontSize: 'clamp(15px, 1.9vw, 28px)', lineHeight: 1.4, margin: i === 0 ? 0 : 'clamp(10px, 1.4vw, 18px) 0 0', color: '#FAF8F4', fontStyle: 'italic' }}>{line}</p>
+            <p key={i} style={{ fontSize: SLIDE_FS('clamp(15px, 1.9vw, 28px)'), lineHeight: 1.4, margin: i === 0 ? 0 : 'clamp(10px, 1.4vw, 18px) 0 0', color: '#FAF8F4', fontStyle: 'italic' }}>{line}</p>
           ))}
         </div>
       )}
@@ -179,7 +193,7 @@ export default function AudienceSlide({ slide = null, hold = null, invite = null
       {cited.length > 0 && (
         <div style={{ marginTop: 'clamp(20px, 3vw, 40px)', borderLeft: '3px solid #C9D9A6', paddingLeft: 'clamp(14px, 1.6vw, 22px)' }}>
           {cited.map((row, i) => (
-            <p key={row.ref} style={{ fontSize: 'clamp(15px, 1.85vw, 27px)', lineHeight: 1.4, margin: i === 0 ? 0 : 'clamp(12px, 1.6vw, 20px) 0 0', color: '#FAF8F4' }}>
+            <p key={row.ref} style={{ fontSize: SLIDE_FS('clamp(15px, 1.85vw, 27px)'), lineHeight: 1.4, margin: i === 0 ? 0 : 'clamp(12px, 1.6vw, 20px) 0 0', color: '#FAF8F4' }}>
               <span style={{ color: '#C9D9A6', fontWeight: 700 }}>{row.ref} — </span>
               <span style={{ fontStyle: 'italic' }}>&ldquo;{row.text}&rdquo;</span>
             </p>
@@ -193,15 +207,15 @@ export default function AudienceSlide({ slide = null, hold = null, invite = null
           slide's references glow; the rest are the trail behind them. */}
       {soFar.length > 0 && (
         <aside style={{ flex: '0 0 clamp(150px, 20vw, 300px)', alignSelf: 'stretch', borderLeft: '2px solid #4A453D', paddingLeft: 'clamp(14px, 1.4vw, 22px)' }}>
-          <div style={{ fontSize: 'clamp(11px, 1.1vw, 15px)', letterSpacing: '0.22em', textTransform: 'uppercase', color: '#EBA77E', marginBottom: 'clamp(10px, 1.2vw, 16px)' }}>
+          <div style={{ fontSize: SLIDE_FS('clamp(11px, 1.1vw, 15px)'), letterSpacing: '0.22em', textTransform: 'uppercase', color: '#EBA77E', marginBottom: 'clamp(10px, 1.2vw, 16px)' }}>
             Scriptures · {soFar.length}{scriptureTotal > soFar.length ? ` of ${scriptureTotal}` : ''}
           </div>
           {railHidden > 0 && (
-            <div style={{ fontSize: 'clamp(11px, 1.1vw, 15px)', color: '#CFC9BD', fontFamily: '"JetBrains Mono", monospace', marginBottom: 'clamp(6px, 0.8vw, 10px)' }}>+{railHidden} earlier</div>
+            <div style={{ fontSize: SLIDE_FS('clamp(11px, 1.1vw, 15px)'), color: '#CFC9BD', fontFamily: '"JetBrains Mono", monospace', marginBottom: 'clamp(6px, 0.8vw, 10px)' }}>+{railHidden} earlier</div>
           )}
           <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 'clamp(6px, 0.8vw, 11px)' }}>
             {railShown.map((r, i) => (
-              <li key={`${r}-${i}`} style={{ fontSize: 'clamp(13px, 1.3vw, 19px)', lineHeight: 1.25, fontFamily: '"JetBrains Mono", monospace', color: currentRefs.has(r) ? '#C9D9A6' : '#CFC9BD', fontWeight: currentRefs.has(r) ? 700 : 400 }}>{r}</li>
+              <li key={`${r}-${i}`} style={{ fontSize: SLIDE_FS('clamp(13px, 1.3vw, 19px)'), lineHeight: 1.25, fontFamily: '"JetBrains Mono", monospace', color: currentRefs.has(r) ? '#C9D9A6' : '#CFC9BD', fontWeight: currentRefs.has(r) ? 700 : 400 }}>{r}</li>
             ))}
           </ol>
         </aside>

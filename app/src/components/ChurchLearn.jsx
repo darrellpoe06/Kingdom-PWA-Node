@@ -1983,6 +1983,35 @@ function CourseView({
                 >
                   ▶ Play
                 </button>
+                {/* PRESENT THIS ONE (DR-0451). Darrell 2026-09-17: "each Lesson
+                    should be able to present just the one that we want without
+                    having to scroll through the whole list to get to the one
+                    lesson that we want to understand."
+                    The comment above promised "The DECK still has its own
+                    control (Present), so nothing is lost" — and that was not
+                    true of the tree. Nothing ever called setPresentLesson, so
+                    lessonPresentable (the single-lesson deck, timed to the
+                    lesson itself) was unreachable dead code, and the ONLY way
+                    into a deck was Play the overview, which opens all 163 at
+                    week one. Reaching week 45 in front of a room meant
+                    forty-four taps of the arrow.
+                    This is the door that was promised. It is NOT Play, and it
+                    never will be: Play reads the lesson aloud, in capitals,
+                    for the third time (2026-09-14). Present opens the deck for
+                    THIS lesson and starts it presenting (DR-0392's
+                    startOnScreen, whose branch this finally makes live). */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    recordUse(m.id); savePlace({ lessonId: m.id });
+                    setPresentAutoStart(true); setPresentLesson(m);
+                  }}
+                  data-testid={`present-one-${m.id}`}
+                  title={`Present this ${U.noun} on its own — the deck for this one, not the whole series`}
+                  className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A5751] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                >
+                  <UiIcon name="monitor" className="inline-block align-[-0.15em] mr-1" /> Present
+                </button>
                 {m.launch && onLaunch && !tutorOpen && (
                   <button
                     type="button"
