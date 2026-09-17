@@ -12,6 +12,8 @@
 // reads lives in lib/opportunity-capacity.js (moved in the same pass).
 // =============================================================================
 import React, { useState } from 'react';
+import LifeHub from './LifeHub.jsx';
+import { useHomePrefs, setHomeView } from '../lib/home-view-prefs.js';
 import { MetricCell } from './shared.jsx';
 import UiIcon from './UiIcon.jsx';
 import SectionTabs from './SectionTabs.jsx';
@@ -38,6 +40,57 @@ const URGENCY_ACCENT_CLS = {
   incident: 'text-[#D97706] border-[#D97706]',
   project: 'text-[#5A6E3D] border-[#5A6E3D]',
 };
+
+// =============================================================================
+// Home — WHICH front door this reader opens
+// =============================================================================
+// Darrell 2026-09-17 gave three decisions on Christina's mockups, and the first
+// was that the CURRENT VIEW STAYS THE DEFAULT. So this is a two-line switch
+// with a default of "current": a reader who never chooses anything sees exactly
+// the screen they see today, and the Life Hub is reached only by choosing it.
+//
+// WHY IT LIVES HERE AND NOT IN THE SHELL. The shell is frozen to bug-fixes and
+// its line count may only go DOWN (monolith-budget-guard, DR-0078). Exporting
+// the switch from this file lets the shell's existing mount line change its
+// component name and pass two more props without growing by a single line, and
+// the new capability lives entirely in modules — which is exactly what the
+// freeze is for.
+//
+// AND IT IS A COMPONENT RATHER THAN AN EARLY RETURN inside the dashboard: an
+// early return above the dashboard's own useState calls would change the hook
+// count between renders the moment somebody flipped the preference. Two
+// siblings, each with its own unconditional hooks, cannot do that.
+export function Home(props) {
+  const { homeView } = useHomePrefs();
+  if (homeView === 'lifehub') {
+    return (
+      <LifeHub
+        data={props.data}
+        setData={props.setData}
+        setView={props.setView}
+        setChurchView={props.setChurchView}
+        setBooksView={props.setBooksView}
+      />
+    );
+  }
+  return <BigPictureDashboard {...props} />;
+}
+
+// The way IN to the Life Hub, offered once on the current home rather than
+// anywhere clever. It is a button, not a banner: nothing about the existing
+// screen moves for somebody who ignores it, and the Life Hub carries the way
+// back in its own header.
+export function TryLifeHubButton() {
+  return (
+    <button
+      type="button"
+      onClick={() => setHomeView('lifehub')}
+      className="border border-[#E8E4DC] px-2 py-1 text-[0.625rem] uppercase tracking-wider min-h-[36px] hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+    >
+      Try the Life Hub
+    </button>
+  );
+}
 
 // =============================================================================
 // BIG PICTURE — v7 dashboard horizontal-first
@@ -183,6 +236,13 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
   }).length;
   return (
     <div className="space-y-3 sm:space-y-4">
+      {/* THE WAY IN, offered once and easy to ignore. It sits above the screen
+          rather than inside it, so nothing a reader already uses moves; the
+          Life Hub carries the way back in its own header, so the choice is
+          reversible from either side without hunting through settings. */}
+      <div className="flex justify-end">
+        <TryLifeHubButton />
+      </div>
       {/* WELCOME PANEL — only shows until dismissed */}
       {!welcomeDismissed && (
         <section className="bg-white border-2 border-[#B85838] p-5 sm:p-6">
