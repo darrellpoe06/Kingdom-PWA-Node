@@ -13,7 +13,7 @@
 // the lesson's own voice the adversary is named low; KJV quotes keep verbatim
 // casing (DR-0076). Every KJV line FETCHED from the repo's own KJV this session.
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -142,5 +142,123 @@ describe('corpus witness + tamper-catch — the pins match the repo KJV, and the
     expect(verse('1Corinthians', 14, 33)).toContain('God is not the author of confusion, but of peace');
     expect(verse('Revelation', 12, 11)).toContain('they overcame him by the blood of the Lamb, and by the word of their testimony');
     expect(verse('Philippians', 4, 7)).toContain('the peace of God, which passeth all understanding');
+  });
+});
+
+// =============================================================================
+// THE TWO CHECKS THIS GATE DID NOT HAVE (added 2026-09-17, DR-0418 pass)
+// =============================================================================
+// Carried from L111/L110/L109/L108 the same day, and they found two real
+// things here too: John 15:10 was quoted with an ASCII apostrophe where the
+// corpus carries U+2019 (`Father's` for `Father’s`) — the third in-quote
+// alteration this pass has caught — and the generic name stood in our own
+// prose in six places, five in the child band and one in a facilitator
+// talking point.
+//
+// The corpus is joined with each chapter's VERSES FLOWING (space-separated
+// within a chapter), so a legitimate quotation of contiguous verses — this
+// lesson quotes Galatians 5:22-23 whole — is a true substring while a phrase
+// stitched from two chapters still is not.
+const KJV_DIR = join(HERE, '..', '..', 'public', 'bible', 'kjv');
+const KJV_FLOW = (() => {
+  let all = '';
+  for (const f of readdirSync(KJV_DIR).filter((x) => x.endsWith('.json'))) {
+    let j;
+    try { j = JSON.parse(readFileSync(join(KJV_DIR, f), 'utf8')); } catch { continue; }
+    if (!j || !Array.isArray(j.chapters)) continue;   // index.json is not a book
+    for (const ch of j.chapters) all += `${ch.join(' ')}\n`;
+  }
+  return all;
+})();
+
+const quotedSpans = (text) => {
+  const unescaped = text.replace(/\\'/g, "'");
+  const at = [...unescaped.matchAll(/"/g)].map((m) => m.index);
+  const out = [];
+  for (let i = 0; i + 1 < at.length; i += 2) out.push(unescaped.slice(at[i] + 1, at[i + 1]));
+  return { spans: out, balanced: at.length % 2 === 0 };
+};
+
+describe('NO in-quote alteration anywhere in the lesson — the whole-span gate', () => {
+  it('the double quotes are balanced, so the spans below are real quotations', () => {
+    expect(quotedSpans(l).balanced).toBe(true);
+  });
+
+  it('EVERY double-quoted span is verbatim KJV', () => {
+    const { spans } = quotedSpans(l);
+    expect(spans.length, 'the lesson should carry a substantial body of quoted Scripture').toBeGreaterThan(120);
+    const altered = [];
+    for (const span of spans) {
+      for (const part of span.split('...').map((x) => x.trim()).filter(Boolean)) {
+        if (!KJV_FLOW.includes(part)) altered.push(part);
+      }
+    }
+    expect(altered, `quoted text that is NOT verbatim KJV:\n${altered.map((a) => ` - ${JSON.stringify(a)}`).join('\n')}`).toEqual([]);
+  });
+
+  it('is PROVEN-TO-CATCH — including the apostrophe this lesson actually carried', () => {
+    // The real defect this gate found on the day it was added, in John 15:10.
+    expect(KJV_FLOW.includes('I have kept my Father\u2019s commandments')).toBe(true);
+    expect(KJV_FLOW.includes("I have kept my Father's commandments")).toBe(false);
+    // And drifts of this lesson's own hinges that read perfectly:
+    expect(KJV_FLOW.includes('The entrance of thy words giveth light')).toBe(true);
+    expect(KJV_FLOW.includes('The entrance of thy word giveth light')).toBe(false);
+    expect(KJV_FLOW.includes('giveth to all men liberally, and upbraideth not')).toBe(true);
+    expect(KJV_FLOW.includes('giveth to all men liberally, and upbraideth them not')).toBe(false);
+    expect(KJV_FLOW.includes('he is a liar, and the father of it')).toBe(true);
+    expect(KJV_FLOW.includes('he is a liar, and the father of lies')).toBe(false);
+  });
+});
+
+describe('our own authored voice says Yahweh, not the generic name (DR-0210)', () => {
+  it('names Him by His covenant name in every band and every note', () => {
+    const { spans } = quotedSpans(l);
+    let ours = l.replace(/\\'/g, "'");
+    for (const s of spans) ours = ours.split(`"${s}"`).join(' ');
+    expect((ours.match(/\bGod\b/g) || []).length, 'generic "God" in our authored voice').toBe(0);
+    expect((ours.match(/\bSatan\b/g) || []).length, 'capitalized adversary name in our voice').toBe(0);
+    expect((ours.match(/Yahweh/g) || []).length).toBeGreaterThan(15);
+  });
+});
+
+describe('every band is the FULL message, in that age\'s own words (DR-0418)', () => {
+  const level = (name) => {
+    const i = l.indexOf(`${name}: '`);
+    const j = l.indexOf("',\n", i);
+    return l.slice(i, j);
+  };
+
+  it('youth exists beside the other three, and none is a summary', () => {
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      expect(level(band).length, `${band} is missing or a stub`).toBeGreaterThan(1400);
+    }
+  });
+
+  it('every band carries all eight movements, not a subset', () => {
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      const t = level(band);
+      expect(t, `${band} carries the eight-question filter`).toContain('whatsoever things are true');
+      expect(t, `${band} carries the thought taken captive`).toContain('captivity every thought');
+      expect(t, `${band} carries the fruit that grows`).toContain('the fruit of the Spirit');
+      expect(t, `${band} sets abundant life against the thief`).toContain('more abundantly');
+      expect(t, `${band} carries the Love poured in`).toContain('shed abroad in our hearts');
+      expect(t, `${band} carries truth that frees`).toContain('the truth shall make you free');
+      expect(t, `${band} carries the ENTRANCE that gives light`).toContain('The entrance of thy words giveth light');
+      expect(t, `${band} carries wisdom given liberally and without reproach`).toContain('upbraideth not');
+      expect(t, `${band} carries ask, seek, knock`).toContain('Ask, and it shall be given you');
+      expect(t, `${band} names the liar and the father of it`).toContain('the father of it');
+      expect(t, `${band} names what Yahweh gives`).toContain('Every good gift and every perfect gift');
+    }
+  });
+
+  it('the senior band is a senior READER\'s lesson, not the facilitator\'s notes', () => {
+    // It was the notes: "Teach as the positive companion to L106 (know the
+    // enemy)...", the capture date, and a checklist of what to cover. Those
+    // belong in `facilitator`.
+    const senior = level('senior');
+    expect(senior).not.toContain('Teach as the positive companion');
+    expect(senior).not.toMatch(/\bL10[0-9]\b/);
+    expect(senior).not.toContain('2026-08-30');
+    expect(l, 'the facilitator notes must still exist somewhere').toContain('talkingPoints');
   });
 });
