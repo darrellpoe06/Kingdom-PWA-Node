@@ -2108,13 +2108,35 @@ function CourseView({
                   />
                 );
                 return (<>
-              <div className="flex items-start justify-between gap-2 mt-2">
-                <p className="text-sm text-[#1A1815] flex-1" style={{ fontFamily: '"Fraunces", serif' }}>{m.bigIdea}</p>
-                {sec('The big idea', m.bigIdea || '')}
+              {/* THE WORDS GET THE WHOLE WIDTH; SHARE SITS UNDER THEM
+                  (DR-0452). Darrell 2026-09-17, from his phone at A44 on lesson
+                  49: "The share button shouldn't make the words only fit to one
+                  side taking all that screen real-estate..."
+                  He is describing this row's own shape. The prose and the Share
+                  control were flex SIBLINGS (items-start justify-between), so
+                  the button claimed a column of a 360px screen and the reading
+                  was squeezed into what was left — and the taller the text, the
+                  longer that narrow ribbon ran, with dead space beside all of
+                  it. Chrome capping the button made this worse, not better: the
+                  prose grew and the column it had did not.
+                  The control now sits BENEATH its text, right-aligned — the same
+                  shape the green verse strips already use at the foot of a
+                  section (DR-0410's refsBelow). The text dominates the phone,
+                  which is the standing rule (DR-0438). */}
+              <div className="mt-2">
+                <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{m.bigIdea}</p>
+                {/* AND THE CONTROL IS PINNED, NOT GROWN (DR-0438 §1). Measured
+                    at Big Print 44 before this: the Share control rendered
+                    177x184px — a slab taller than six lines of the reading it
+                    belonged to, because its rem-sized box rode the root scale.
+                    Moving it below the prose alone would have left that slab
+                    full-width. .ts-chrome-region holds it at its Normal size at
+                    every text step: the words grow, the control does not. */}
+                <div className="ts-chrome-region flex justify-end mt-1">{sec('The big idea', m.bigIdea || '')}</div>
               </div>
               {Array.isArray(m.benefits) && m.benefits.length > 0 && (
                 <div className="mt-2 border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2">
-                  <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="ts-chrome-region flex items-center justify-between gap-2 mb-1">
                     <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">What this frees in you</div>
                     {sec('What this frees in you', m.benefits.map((b) => `• ${b}`).join('\n'))}
                   </div>
@@ -2125,14 +2147,14 @@ function CourseView({
                   </ul>
                 </div>
               )}
-              <div className="flex items-start justify-between gap-2 mt-2">
-                <p className="text-xs text-[#5A5751] flex-1" style={{ fontFamily: '"Fraunces", serif' }}>
+              <div className="mt-2">
+                <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
                   <strong className="text-[#1A1815]">{handsOnLabel}:</strong> {m.inApp}
                 </p>
-                {sec(handsOnLabel, m.inApp || '')}
+                <div className="ts-chrome-region flex justify-end mt-1">{sec(handsOnLabel, m.inApp || '')}</div>
               </div>
               {m.anchor?.ref && (
-                <div className="flex items-start justify-between gap-2 mt-2">
+                <div className="mt-2">
                   {/* THE REFERENCES HERE ARE TAPPABLE, BECAUSE THEY LOOK IT.
                       Darrell 2026-09-13, from this exact screen: "Links don't
                       work in last played." They were plain text inside a green
@@ -2170,7 +2192,10 @@ function CourseView({
                       block-flow item, so an opened verse stacks under its
                       sentence the way it does everywhere else. min-w-0 lets the
                       prose wrap instead of pushing the share control off. */}
-                  <div className="flex-1 min-w-0">
+                  {/* Full width now, with Share beneath (DR-0452) — the
+                      min-w-0 dance below existed only to stop the share control
+                      from being pushed off the row it no longer shares. */}
+                  <div className="min-w-0">
                     <WordInline
                       text={`Anchor — ${m.anchor.theme || ''}`}
                       refsBelow
@@ -2178,7 +2203,7 @@ function CourseView({
                       style={{ fontFamily: '"Fraunces", serif' }}
                     />
                   </div>
-                  {sec('Anchor', m.anchor.theme || '')}
+                  <div className="ts-chrome-region flex justify-end mt-1">{sec('Anchor', m.anchor.theme || '')}</div>
                 </div>
               )}
                 </>);
@@ -2194,7 +2219,7 @@ function CourseView({
                 if (kin.length === 0) return null;
                 return (
                   <div className="mt-2 border-l-4 border-[#B85838] bg-[#B85838]/[0.06] pl-3 py-2">
-                    <div className="flex items-center justify-between gap-2 mb-1">
+                    <div className="ts-chrome-region flex items-center justify-between gap-2 mb-1">
                       <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold">
                         The Lord’s Matrix — where else this Word stands
                       </div>

@@ -53,6 +53,21 @@ describe('WordInline is never itself a flex item', () => {
 
   it('the lesson card wraps its anchor WordInline in one block item', () => {
     const src = readFileSync(join(DIR, 'ChurchLearn.jsx'), 'utf8');
-    expect(src).toMatch(/<div className="flex-1 min-w-0">\s*<WordInline\s+text=\{`Anchor — /);
+    // The guarantee is the WRAPPER, not its exact spelling: WordInline's two
+    // siblings (the paragraph, and the verses opened beneath it) must be one
+    // block item so they can never become two flex columns.
+    //
+    // Re-pinned 2026-09-17 (DR-0452). It used to require `flex-1 min-w-0`,
+    // which was right only while the anchor line sat IN a flex row beside its
+    // Share control. That row was the defect Darrell reported — the words were
+    // squeezed into a column — so the prose now takes the whole width and the
+    // control sits beneath it. `flex-1` on a non-flex parent would be a leftover
+    // claiming a shape that no longer exists; the block wrapper is what matters
+    // and it is still here.
+    expect(src).toMatch(/<div className="(?:flex-1 )?min-w-0">\s*<WordInline\s+text=\{`Anchor — /);
+    // And it is a BLOCK wrapper — never a flex row that would split the pair.
+    const at = src.indexOf('text={`Anchor — ');
+    const wrapper = src.lastIndexOf('<div className="', at);
+    expect(src.slice(wrapper, at)).not.toMatch(/\bflex\b(?!-1)/);
   });
 });
