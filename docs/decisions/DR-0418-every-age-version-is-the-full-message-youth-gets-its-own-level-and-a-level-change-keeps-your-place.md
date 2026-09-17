@@ -818,6 +818,31 @@ One entry deserves naming on its own. His rendering of the anchor verse is *"the
 
 Proven-to-catch three ways, each in a different gate: the ASCII apostrophe put back into Romans 14:8 in the child band (which fails the span gate *and* the twelve-movement check), the generic name restored to one sentence of child prose, and the youth band cut to a summary. Fullness baseline 103 → 102.
 
+## L101 — The Real Champion (2026-09-17)
+
+The Real Champion: He did it in action rather than theory, died once to live for ever, and He is solid (adult prose 597 by the gate's counter; floors child 299, others 359):
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 171 · 0.29 | **448 · 0.75** |
+| youth | missing | **624 · 1.05** (new) |
+| teen | 199 · 0.33 | **582 · 0.97** |
+| senior | 307 · 0.51 | **769 · 1.29** |
+
+**Eleventh in a row** on the facilitator's-notes senior band — it opened *"Teach this as worship-grade doctrine drawn from a member's testimony (Darrell, 2026-08-29), pairing with MIND-OF-CHRIST and the Godhead studies"* and closed on *"CLOSE:"* — and the **third inverted band ordering** of the pass: before, child 6.3 against teen 4.8, the child level reading harder than the teen level; after, 2.2 / 4.9 / 5.8 / 6.7 ascending, and the reading-level baseline's inverted list shrinks 28 → 27.
+
+**A NEW SUBCLASS OF IN-QUOTE ALTERATION, and it is worth naming because the eight before it were all the same shape.** Every previous find in this pass was an ASCII apostrophe standing where the KJV carries U+2019. This one is punctuation *inside* the quotation: the body quoted Malachi 3:6 as `"For I am the LORD, I change not."` — a full stop where the verse carries a semicolon and keeps going (*"...therefore ye sons of Jacob are not consumed."*). A period closes a sentence the Word did not close there, and the effect is not cosmetic: it presents a clause as the whole verse. The tell was already in the file — the lesson quotes the same verse correctly twenty lines earlier with no terminal punctuation at all, which is the form both now use. Nine in-quote alterations found across the pass, and the defect classes are now two: the apostrophe, and the borrowed full stop.
+
+Seven movements, fourteen load-bearing quotations enumerated per band, and three checks of its own — one more than any lesson before it, because this lesson carries a doctrinal edge that a compressed band would round off rather than drop outright:
+
+- **Both halves of the hard doctrine, uncollapsed.** Darrell drew the line precisely: the Crown was never truly at risk, AND the obedience was fully real. Collapse the first and the cross becomes a tragedy that might have gone the other way; collapse the second and it becomes theatre. The Word holds both without embarrassment — the immutable Nature (Malachi 3:6) beside *he humbled himself, and became obedient unto death, even the death of the cross* — and the gate requires both verses in every band plus an explicit both-halves sentence, so a band cannot quietly resolve the paradox it is supposed to keep.
+- **The not-Superman displacement WITH its reason.** *A fictional hero is a wish someone wrote down* — and the real One upholds all things, including the person imagining the cartoon. Without that reason the movement is only a scolding about comics; the gate requires the reason, not just the word.
+- **What SOLID means, rather than asserting it.** Unchanging is the definition, and the payoff is the thing a reader can use: it is the only thing that can be leaned on at full weight without checking first.
+
+**His own phrase carries this lesson, so it rides into every band.** *"He is a G"* — from his neighbourhood, meaning SOLID: a soldier who will die for what is right by the Word. That is why the sixth movement is about immutability rather than toughness; he had already made the connection, and the lesson follows his word to Hebrews 13:8 rather than the other way round. It is allowlisted as a quoted SPEAKER (DR-0331), required present in all four bands, and asserted absent from the corpus so the allowlist can never excuse a real drift.
+
+Proven-to-catch three ways, each in a different gate: the full stop put back inside Malachi 3:6, the generic name restored to one sentence of child prose, and the both-halves sentence removed from the youth band. Fullness baseline 102 → 101.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.

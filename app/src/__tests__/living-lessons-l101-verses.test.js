@@ -13,7 +13,7 @@
 // (DR-0098). Every KJV line FETCHED from the repo's own KJV this session; a drift
 // fails the build.
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -68,7 +68,7 @@ const QUOTED_FRAGMENTS = [
 describe('L101 exists in the catalog with its full shape', () => {
   it('the module is present with anchor, levels, quiz, benefits, and facilitator', () => {
     expect(start).toBeGreaterThan(-1);
-    for (const key of ['bigIdea:', 'inApp:', "ref: 'Deuteronomy 30:19; John 10:18; Hebrews 13:8'", 'benefits:', 'child:', 'teen:', 'senior:', 'quiz:', 'facilitator:']) {
+    for (const key of ['bigIdea:', 'inApp:', "ref: 'Deuteronomy 30:19; John 10:18; Hebrews 13:8'", 'benefits:', 'child:', 'youth:', 'teen:', 'senior:', 'quiz:', 'facilitator:']) {
       expect(l).toContain(key);
     }
     expect(src).toMatch(/weeks: \d+,/);
@@ -150,5 +150,207 @@ describe('corpus witness + tamper-catch — the pins match the repo KJV, and the
     expect(verse('Hebrews', 13, 8)).toBe('Jesus Christ the same yesterday, and to day, and for ever.');
     expect(verse('1Corinthians', 2, 16)).toContain('But we have the mind of Christ');
     expect(verse('2Timothy', 1, 7)).toBe('For God hath not given us the spirit of fear; but of power, and of love, and of a sound mind.');
+  });
+});
+
+// =============================================================================
+// THE CHECKS THIS GATE DID NOT HAVE (added 2026-09-17, DR-0418 pass)
+// =============================================================================
+// Carried from L111 down through L102 the same day, and this lesson produced a
+// NEW subclass of in-quote alteration. The eight found before it were every
+// one an ASCII apostrophe standing where the KJV carries U+2019. This one is
+// punctuation inside the quotation: the body quoted Malachi 3:6 as
+// `"For I am the LORD, I change not."` — a full stop where the verse carries a
+// semicolon and keeps going ("...therefore ye sons of Jacob are not
+// consumed."). A period closes a sentence the Word did not close there, which
+// is a small edit with a real effect: it presents a clause as the whole verse.
+// The lesson quotes the same verse correctly twenty lines earlier with no
+// terminal punctuation at all, which is the form both now use.
+const KJV_DIR = join(HERE, '..', '..', 'public', 'bible', 'kjv');
+const KJV_FLOW = (() => {
+  let all = '';
+  for (const f of readdirSync(KJV_DIR).filter((x) => x.endsWith('.json'))) {
+    let j;
+    try { j = JSON.parse(readFileSync(join(KJV_DIR, f), 'utf8')); } catch { continue; }
+    if (!j || !Array.isArray(j.chapters)) continue;   // index.json is not a book
+    for (const ch of j.chapters) all += `${ch.join(' ')}\n`;
+  }
+  return all;
+})();
+
+const quotedSpans = (text) => {
+  const unescaped = text.replace(/\\'/g, "'");
+  const at = [...unescaped.matchAll(/"/g)].map((m) => m.index);
+  const out = [];
+  for (let i = 0; i + 1 < at.length; i += 2) out.push(unescaped.slice(at[i] + 1, at[i + 1]));
+  return { spans: out, balanced: at.length % 2 === 0 };
+};
+
+// DARRELL'S OWN WORDS ARE QUOTED HERE, AND THEY STAY QUOTED.
+// ---------------------------------------------------------------------------
+// This lesson IS his spoken testimony of 2026-08-29, so his phrases are
+// quoted throughout — and one of them carries the lesson: "He is a G", which
+// from his neighbourhood means SOLID, a soldier who will die for what is
+// right by the Word. That is why the sixth movement is about immutability
+// rather than about toughness: he had already made the connection, and the
+// lesson follows his word to Hebrews 13:8 rather than the other way round.
+// It is named here so the span gate can tell a quoted SPEAKER from a quoted
+// VERSE rather than being loosened for both (DR-0331; the L103 and L111
+// pattern, the opposite of L108's).
+const DARRELL_QUOTED = ['He is a G'];
+
+describe('NO in-quote alteration anywhere in the lesson — the whole-span gate', () => {
+  it('the double quotes are balanced, so the spans below are real quotations', () => {
+    expect(quotedSpans(l).balanced).toBe(true);
+  });
+
+  it('EVERY double-quoted span is verbatim KJV', () => {
+    const { spans } = quotedSpans(l);
+    expect(spans.length, 'the lesson should carry a substantial body of quoted Scripture').toBeGreaterThan(100);
+    const altered = [];
+    for (const span of spans) {
+      for (const part of span.split('...').map((x) => x.trim()).filter(Boolean)) {
+        if (DARRELL_QUOTED.includes(part)) continue;   // a quoted speaker, not a quoted verse
+        if (!KJV_FLOW.includes(part)) altered.push(part);
+      }
+    }
+    expect(altered, `quoted text that is NOT verbatim KJV:\n${altered.map((a) => ` - ${JSON.stringify(a)}`).join('\n')}`).toEqual([]);
+  });
+
+  it('is PROVEN-TO-CATCH — starting with the punctuation this lesson actually shipped', () => {
+    // The exact drift found in this module and restored in this commit: a full
+    // stop closing a clause the verse continues with a semicolon.
+    expect(KJV_FLOW.includes('For I am the LORD, I change not;')).toBe(true);
+    expect(KJV_FLOW.includes('For I am the LORD, I change not.')).toBe(false);
+    // The apostrophe class, eight of which this pass has found in other lessons:
+    expect(KJV_FLOW.includes('Judah is a lion’s whelp')).toBe(true);
+    expect(KJV_FLOW.includes("Judah is a lion's whelp")).toBe(false);
+    // Drifts of this lesson's own hinges, each reading perfectly:
+    expect(KJV_FLOW.includes('No man taketh it from me, but I lay it down of myself')).toBe(true);
+    expect(KJV_FLOW.includes('No man taketh it from me, for I lay it down of myself')).toBe(false);
+    expect(KJV_FLOW.includes('and by him all things consist')).toBe(true);
+    expect(KJV_FLOW.includes('and by him all things are held')).toBe(false);
+    expect(KJV_FLOW.includes('death hath no more dominion over him')).toBe(true);
+    expect(KJV_FLOW.includes('death hath no dominion over him')).toBe(false);
+    expect(KJV_FLOW.includes('have the keys of hell and of death')).toBe(true);
+    expect(KJV_FLOW.includes('have the keys of death and of hell')).toBe(false);
+  });
+});
+
+describe('our own authored voice says Yahweh, not the generic name (DR-0210)', () => {
+  it('names Him by His covenant name in every band and every note', () => {
+    const { spans } = quotedSpans(l);
+    let ours = l.replace(/\\'/g, "'");
+    for (const s of spans) ours = ours.split(`"${s}"`).join(' ');
+    expect((ours.match(/\bGod\b/g) || []).length, 'generic "God" in our authored voice').toBe(0);
+    expect((ours.match(/Yahweh/g) || []).length).toBeGreaterThan(3);
+  });
+
+  it('keeps the adversary lowercase in our voice', () => {
+    const { spans } = quotedSpans(l);
+    let ours = l.replace(/\\'/g, "'");
+    for (const s of spans) ours = ours.split(`"${s}"`).join(' ');
+    expect(ours).not.toMatch(/\b(Satan|Lucifer|Devil|Dragon|Accuser|Deceiver|Baal)\b/);
+  });
+});
+
+describe('every band is the FULL message, in that age\'s own words (DR-0418)', () => {
+  const level = (name) => {
+    const i = l.indexOf(`${name}: '`);
+    const j = l.indexOf("',\n", i);
+    return l.slice(i, j);
+  };
+
+  it('youth exists beside the other three, and none is a summary', () => {
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      expect(level(band).length, `${band} is missing or a stub`).toBeGreaterThan(2000);
+    }
+  });
+
+  it('every band carries all seven movements, not a subset', () => {
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      const t = level(band);
+      expect(t, `${band} carries choose life`).toContain('therefore choose life');
+      expect(t, `${band} carries the laying down`).toContain('No man taketh it from me, but I lay it down of myself');
+      expect(t, `${band} carries greater love`).toContain('Greater love hath no man than this');
+      expect(t, `${band} carries the death of the cross`).toContain('became obedient unto death, even the death of the cross');
+      expect(t, `${band} carries the immutable Nature`).toContain('For I am the LORD, I change not');
+      expect(t, `${band} carries the exaltation`).toContain('given him a name which is above every name');
+      expect(t, `${band} carries the crown`).toContain('KING OF KINGS, AND LORD OF LORDS');
+      expect(t, `${band} carries death's end`).toContain('death hath no more dominion over him');
+      expect(t, `${band} carries the keys`).toContain('have the keys of hell and of death');
+      expect(t, `${band} carries the Sustainer`).toContain('by him all things consist');
+      expect(t, `${band} carries the same for ever`).toContain('the same yesterday, and to day, and for ever');
+      expect(t, `${band} carries the mind of Christ`).toContain('Let this mind be in you');
+      expect(t, `${band} carries the sound mind`).toContain('of power, and of love, and of a sound mind');
+      expect(t, `${band} carries things above`).toContain('Set your affection on things above');
+    }
+  });
+
+  it('every band keeps BOTH halves of the hard doctrine, uncollapsed', () => {
+    // The careful line Darrell drew, and the one a compressed band drops: the
+    // Crown was never truly at risk AND the obedience was fully real. Collapse
+    // the first and the cross becomes a tragedy that might have gone the other
+    // way; collapse the second and it becomes theatre. Every band must hold
+    // both, which is why the immutability verse and the cross verse are BOTH
+    // required above and the explicit both-halves sentence is required here.
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      expect(level(band), `${band} collapsed the paradox`)
+        .toMatch(/[Bb]oth are true|Both halves|keep BOTH|Both things are true|both halves kept|obedience was fully real|it still really happened/);
+    }
+  });
+
+  it('every band keeps the not-Superman displacement and WHY it lands', () => {
+    // A fictional hero is a wish someone wrote down; the real One upholds even
+    // the person imagining the cartoon. The reason is the point — without it
+    // the movement is just a scolding about comics.
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      expect(level(band), `${band} lost the cartoon displacement`)
+        .toMatch(/cartoon/i);
+      expect(level(band), `${band} lost why it lands`)
+        .toMatch(/wish (someone|somebody) wrote down|wish written on paper|person (imagining|who drew) the cartoon/i);
+    }
+  });
+
+  it('every band says what SOLID means, rather than only asserting it', () => {
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      expect(level(band), `${band} lost the definition of solid`)
+        .toMatch(/full weight|never changes/i);
+    }
+  });
+
+  it('the senior band is a senior READER\'s lesson, not the facilitator\'s notes', () => {
+    // It WAS the notes, opening "Teach this as worship-grade doctrine drawn
+    // from a member's testimony (Darrell, 2026-08-29), pairing with
+    // MIND-OF-CHRIST and the Godhead studies" and closing on "CLOSE:". That is
+    // the ELEVENTH consecutive lesson in this pass whose senior band handed the
+    // reader the teacher's clipboard. The build references belong in
+    // `facilitator`.
+    const senior = level('senior');
+    expect(senior).not.toContain('Teach this as worship-grade doctrine');
+    expect(senior).not.toContain('MIND-OF-CHRIST');
+    expect(senior).not.toMatch(/\bDR-\d{4}\b/);
+    expect(senior).not.toContain('CLOSE:');
+    expect(l, 'the facilitator notes must still exist somewhere').toContain('talkingPoints');
+  });
+});
+
+describe('his own words stay in the lesson, and stay attributed', () => {
+  it('the phrase that carries the lesson is present and attributed', () => {
+    const text = l.replace(/\\'/g, "'");
+    expect(text).toContain('He is a G');
+    expect(text, 'the phrase must be attributed, not floated').toMatch(/Darrell/);
+    // And it must reach the reader in every band, because the sixth movement
+    // is built on it.
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      const i = l.indexOf(`${band}: '`);
+      expect(l.slice(i, l.indexOf("',\n", i)), `${band} lost his phrase`).toContain('He is a G');
+    }
+  });
+
+  it('a verse quotation can never hide behind that allowlist', () => {
+    for (const q of DARRELL_QUOTED) {
+      expect(KJV_FLOW.includes(q), `allowlisted phrase IS Scripture: ${q}`).toBe(false);
+    }
   });
 });
