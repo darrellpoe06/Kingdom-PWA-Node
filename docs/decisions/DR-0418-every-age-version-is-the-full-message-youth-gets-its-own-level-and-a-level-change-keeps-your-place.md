@@ -1131,6 +1131,59 @@ Its closing principle: **a crowd's approval and a crowd's disappointment are the
 
 Gate 22 → 37 checks. Proven to catch six ways, every edit verified to land inside L95's own block: the marks put back on `trick`, the CEO's sentence re-quoted, the chain sequence deleted, the compromise boundary blurred, the senior band turned back into notes, and the beat-is-real clause dropped.
 
+## A sixth class — the first letter of a quotation, re-cased to suit our sentence (2026-09-17)
+
+Found by accident while auditing L94, and the accident is the part worth recording. Its audit flagged
+
+> `"the thoughts of the wicked are an abomination to the LORD,"`
+
+and my first reading was the familiar one: a fabricated comma, the class the terminal sweep had already fixed 222 of. Moving the comma did **not** make it verbatim. Proverbs 15:26 reads *The thoughts of the wicked are an abomination to the LORD:* — a **colon**, and a capital **The**. The span carried **two defects at once**, which is exactly why my own sweep had walked past it: that sweep's test was *"does this become verbatim once the mark moves,"* which answers no for a span that also needs a case fix.
+
+**A detector that normalises one thing at a time is blind to every span needing two.** That is a real weakness in work I had shipped two commits earlier, not a new judgment call.
+
+### Measured
+
+| | |
+|---|---|
+| spans ≥ 25 chars examined | 24,905 |
+| already exact | 24,138 |
+| fixed by one existing gate | 11 |
+| **needed a case fix PLUS something** | **95** ← no gate could see these |
+| not Scripture at all | 661 |
+
+Classified, those 95 were four different things, and only two were this gate's business:
+
+| class | count | what it is |
+|---|---|---|
+| `firstLetterOnly` | 52 | the host-sentence capitalisation convention |
+| `firstPlusTerminal` | 17 | a case fix **and** a fabricated mark — the sweep's miss |
+| `capsInside` | 17 | the emphasis class compounded with a case change, already in `quoted-emphasis-baseline.json` |
+| `other` | 9 | mostly caps+terminal together, plus two of our own section titles (*"Fearfully and Wonderfully Made,"*) which are ours, not the Word |
+
+### Why the case change is fixed rather than allowed
+
+Lowercasing the first letter of a quotation woven into a host sentence is the most universal convention in English; it removes nothing and makes no claim about meaning, so it is genuinely milder than a fabricated comma and milder still than added emphasis. It is nonetheless not what CLAUDE.md binds — quoted KJV is *"fetched verbatim and left EXACTLY as written,"* with no carve-out. I had already tried holding a carve-out once, for terminal punctuation, and was corrected for applying the strict reading to gated lessons while calling it open elsewhere. The same reasoning settles this, and restoring the verse's case is mechanical, reads correctly inside quotation marks, and costs a reader nothing.
+
+**The catalog was already disagreeing with itself**, which is the strongest evidence the capital is right: of the 53 distinct spans swept, **33 were already pinned in their verbatim form by another lesson's gate** — the same verse quoted correctly in one lesson and re-cased in another. That is the same shape of proof L95 turned on a misquoted person: a quotation appearing in two forms in one catalog cannot be verbatim in both.
+
+**69 occurrences fixed, and the class is at ZERO** — 60 by whole-span replace, then 9 more reachable only by matching a fragment against its region's delimiters rather than as a whole span. That last step is worth noting because both earlier sweeps recorded ellipsis-joined fragments as unreachable residual work; they were not unreachable, just addressed at the wrong granularity. So this gate asserts zero rather than ratcheting.
+
+### The gate's first version was blind to its own founding example
+
+I excluded every span containing an ALL-CAPS word, reasoning that ALL-CAPS belongs to the emphasis class — and `...abomination to the LORD,` contains `LORD`. So the one span that started the investigation was skipped, the reintroduced break **left the suite green**, and I had already written that blindness into the gate's header as an acceptable cost rather than noticing it voided the gate entirely.
+
+The exclusion is now name-aware: `LORD` and `GOD` no longer exempt a span, only ALL-CAPS that is not the divine name. What actually keeps the divine name safe is that the detector alters *only the first letter's case* and a verse beginning with the divine name already matches the corpus exactly, so it is skipped before any flip.
+
+That is the **second time in two lessons** a check of mine tested a label instead of the thing — after L95's Romans 5 chain-order check — and both times the break test was the only reason I found out. Neither would have been caught by reading the check; both were caught by breaking the code and reading the result.
+
+### A structural finding that outlives this class
+
+**L104's gate pins an altered quotation** — `'and see if there be any wicked way in me'`, lowercase, where Psalms 139:24 has `And` — and L104's prose still matches it, so the gate passes and *protects* the alteration from correction. A per-lesson pinned fragment is only as good as the fetch that produced it. Recorded with a date rather than fixed in passing, because changing it means editing another lesson's gate and its prose together. **`re-review: 2026-10-24`** — sweep the per-lesson gates' own pins against the corpus, so no gate can enshrine an altered quotation.
+
+Also honest about evidence: 20 of the 53 swept spans are pinned by no gate at all, so for those the suite's green is silence rather than confirmation. The 33 that are pinned verbatim elsewhere are the real corroboration.
+
+Proven to catch three ways, each verified to land: the Proverbs 15:26 span that started it, `Casting all your care upon him`, and `Let no man despise thy youth`. Gate: `app/src/__tests__/living-lessons-quoted-case.test.js`, 3 checks, asserting zero.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
