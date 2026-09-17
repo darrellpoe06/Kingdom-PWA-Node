@@ -733,6 +733,27 @@ Seven movements, and every band now carries all of them: daily and attentive int
 
 Also proven-to-catch three more ways: `read` for `keep` inside Psalms 119:100 (which would invert the lesson's own point while reading perfectly), the generic name put into one sentence of our prose, and the senior band returned to its notes. One honest correction to my own gate while writing it: I first set the quoted-span floor at 180 from the pre-apply count of 197, and the rewritten bands carry 172 — the old bands' quotations were part of that number. The floor is now 150, which asserts a substantial body of Scripture without pinning a count that legitimately changes whenever a band is authored. Reading level child 3.3 / teen 9.2 / senior 10.5, ascending. Fullness baseline 106 → 105.
 
+## L104 — the forty-ninth full lesson (2026-09-17)
+
+Study Your Ways: how Yahweh weighs love — the deterministic standard, the two ways, and seeing them only through the Word (adult prose 618 by the gate's counter; floors child 309, others 371):
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 149 · 0.26 | **405 · 0.66** |
+| youth | missing | **438 · 0.71** (new) |
+| teen | 117 · 0.21 | **550 · 0.89** |
+| senior | 267 · 0.47 | **612 · 0.99** |
+
+**Eighth in a row** on the facilitator's-notes senior band ("Teach this as the platform's core self-examination — Word-first and deterministic (DR-0098; pairs with the Godhead Study, L102 integrity…)").
+
+**This is the first lesson in the pass whose band ordering was actually INVERTED, and the rewrite fixed it.** Measured before: child 4.6, teen 3.2 — the "child" band read *harder* than the teen band, which is the gross failure `reading-level.mjs` exists to catch, and it was sitting in the baseline as recorded debt. Measured after: child 2.9 / teen 8.4 / senior 10.5, properly ascending, and the reading-level baseline's inverted list shrinks 30 → 29. That drop is the durable evidence; it is not a number I chose.
+
+Eight movements, and the gate now enumerates twelve load-bearing quotations per band. The movement I was most careful to keep whole in every band is the fourth, because it is the one a compressed band would quietly drop: **feelings are flesh.** Feeling loving is the most common substitute there is for being found faithful, and the instrument a person would naturally reach for to check themselves is precisely the one the Word calls bent — which is why every claim in this lesson is validated through the Scriptures rather than through introspection. Every band also keeps the **mercy hidden inside the fixed standard**, since the weighing passages are commonly heard as threat alone: what is measured is your actual way, weighed the same for everyone — not your press release, and not your reputation. And the psalmist's whole procedure in one sentence: *I thought on my ways, and turned my feet* — thought on the WAYS, then turned the FEET.
+
+**The voice finding here was the largest of the pass — seven instances — and it was not carelessness.** Six of the seven were our own PARAPHRASE of Mark 10:18 ("only God is good", "the standard of good is God Himself") in `bigIdea`, a quiz option and the facilitator notes. A paraphrase in our voice is our voice, so they now read "only Yahweh is good" — the same claim under His covenant name, which is the entire point of DR-0210. The QUOTED verse is untouched and stays exactly as the corpus has it: *there is none good but one, that is, God.*
+
+That pairing is now asserted in both directions by one check, which is the sharpest thing this lesson added to the harness: our prose must carry **no** generic name, AND the quotation must **still read `that is, God`**. Pushing the covenant name *into* the quotation — the well-meant error that would corrupt the Word in the opposite direction from the one DR-0210 guards — fails two assertions. Proven-to-catch four ways in total: `right` for `clean` inside Proverbs 16:2 (which would erase the lesson's own hinge while reading perfectly), the covenant name pushed into Mark 10:18, the generic name restored to one paraphrase, and the senior band returned to its notes. Fullness baseline 105 → 104.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
