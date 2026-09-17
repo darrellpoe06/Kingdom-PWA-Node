@@ -13,7 +13,7 @@
 // Hebrews 13:8; James 1:17). Every KJV line FETCHED from the repo's own KJV this
 // session; a drift fails the build. Companion to L104 (Study Your Ways).
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -22,6 +22,39 @@ const src = readFileSync(join(HERE, '..', 'lib', 'living-lessons-class.js'), 'ut
 const start = src.indexOf("id: 'll111-the-just-weight-yahwehs-unchanging-measure-vs-the-worlds-shifting-standard'");
 const nextId = src.indexOf("id: 'll", start + 10);
 const l = src.slice(start, nextId === -1 ? start + 120000 : nextId);
+
+// THE WHOLE KJV, WITH EACH CHAPTER'S VERSES FLOWING (added 2026-09-17, DR-0418
+// full-levels pass). Two gates below need it, and both were learned the hard
+// way on the lessons authored just before this one: a checker more lenient than
+// the corpus manufactures confidence, and a quotation that crosses a verse
+// boundary is still a real quotation. So verses are joined WITHIN a chapter by
+// a space — a full quotation of Matthew 6:19-21 or Psalms 103:2-3 is then a
+// true substring, while a phrase stitched together from two different chapters
+// still is not.
+const KJV_DIR = join(HERE, '..', '..', 'public', 'bible', 'kjv');
+const KJV_FLOW = (() => {
+  let all = '';
+  for (const f of readdirSync(KJV_DIR).filter((x) => x.endsWith('.json'))) {
+    let j;
+    try { j = JSON.parse(readFileSync(join(KJV_DIR, f), 'utf8')); } catch { continue; }
+    if (!j || !Array.isArray(j.chapters)) continue;   // index.json is not a book
+    for (const ch of j.chapters) all += `${ch.join(' ')}\n`;
+  }
+  return all;
+})();
+
+const quotedSpans = (text) => {
+  const unescaped = text.replace(/\\'/g, "'");
+  const at = [...unescaped.matchAll(/"/g)].map((m) => m.index);
+  const out = [];
+  for (let i = 0; i + 1 < at.length; i += 2) out.push(unescaped.slice(at[i] + 1, at[i + 1]));
+  return { spans: out, balanced: at.length % 2 === 0 };
+};
+
+// The lesson quotes the REPORTING as well as the Word — the news phrasing this
+// lesson exists to answer. Named here so the span gate below can tell a quoted
+// headline from a quoted verse, rather than being loosened for both.
+const NON_SCRIPTURE_QUOTES = ['what counts as a goal.', 'what counts', 'hallelujah moment.'];
 
 const QUOTED_FRAGMENTS = [
   'A false balance is abomination to the LORD: but a just weight is his delight',        // Prov 11:1
@@ -137,5 +170,85 @@ describe('corpus witness + tamper-catch — the pins match the repo KJV, and the
     expect(verse('Hebrews', 13, 5)).toContain('I will never leave thee, nor forsake thee');
     expect(verse('Isaiah', 40, 8)).toBe('The grass withereth, the flower fadeth: but the word of our God shall stand for ever.');
     expect(verse('Psalms', 103, 3)).toBe('Who forgiveth all thine iniquities; who healeth all thy diseases;');
+  });
+});
+
+describe('NO in-quote alteration anywhere in the lesson — the whole-span gate', () => {
+  it('the double quotes are balanced, so the spans below are real quotations', () => {
+    expect(quotedSpans(l).balanced).toBe(true);
+  });
+
+  it('EVERY double-quoted span is verbatim KJV, except the named news phrases', () => {
+    const { spans } = quotedSpans(l);
+    expect(spans.length, 'the lesson should carry a substantial body of quoted Scripture').toBeGreaterThan(90);
+    const altered = [];
+    for (const span of spans) {
+      for (const part of span.split('...').map((x) => x.trim()).filter(Boolean)) {
+        if (NON_SCRIPTURE_QUOTES.includes(part)) continue;
+        if (!KJV_FLOW.includes(part)) altered.push(part);
+      }
+    }
+    expect(altered, `quoted text that is NOT verbatim KJV:\n${altered.map((a) => ` - ${JSON.stringify(a)}`).join('\n')}`).toEqual([]);
+  });
+
+  it('is PROVEN-TO-CATCH — a plausible drift of this lesson\'s own hinge verse is not the text', () => {
+    // The hinge is Malachi 3:6. Each of these reads perfectly and is not what
+    // is written; the corpus is what decides, not how a line sounds.
+    expect(KJV_FLOW.includes('For I am the LORD, I change not')).toBe(true);
+    expect(KJV_FLOW.includes('For I am the LORD; I change not')).toBe(false);
+    expect(KJV_FLOW.includes('a just weight is his delight')).toBe(true);
+    expect(KJV_FLOW.includes('a just weight is His delight')).toBe(false);
+    expect(KJV_FLOW.includes('Divers weights, and divers measures')).toBe(true);
+    expect(KJV_FLOW.includes('Diverse weights, and diverse measures')).toBe(false);
+  });
+});
+
+describe('our own authored voice says Yahweh, not the generic name (DR-0210)', () => {
+  it('names Him by His covenant name in every band and every note', () => {
+    // Strip the quoted Scripture — the KJV's own "God" and "the LORD" are
+    // fetched verbatim and never touched (DR-0076 bright line) — then audit
+    // only the prose this house wrote. Caught five instances in the child and
+    // teen bands on 2026-09-17, all of them rewritten rather than swept.
+    const { spans } = quotedSpans(l);
+    let ours = l.replace(/\\'/g, "'");
+    for (const s of spans) ours = ours.split(`"${s}"`).join(' ');
+    expect((ours.match(/\bGod\b/g) || []).length, 'generic "God" in our authored voice').toBe(0);
+    expect((ours.match(/Yahweh/g) || []).length).toBeGreaterThan(15);
+  });
+});
+
+describe('every band is the FULL message, in that age\'s own words (DR-0418)', () => {
+  const level = (name) => {
+    const i = l.indexOf(`${name}: '`);
+    const j = l.indexOf("',\n", i);
+    return l.slice(i, j);
+  };
+
+  it('youth exists beside the other three, and none is a summary', () => {
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      const t = level(band);
+      expect(t.length, `${band} is missing or a stub`).toBeGreaterThan(1200);
+    }
+  });
+
+  it('every band carries the just weight, the unchanging One, and the treasure', () => {
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      const t = level(band);
+      expect(t, `${band} carries the just/false weight`).toMatch(/just weight|divers weights|abomination/i);
+      expect(t, `${band} carries He changes not`).toMatch(/I change not|the same yesterday, and to day, and for ever/);
+      expect(t, `${band} carries the treasure that cannot erode`).toContain('lay up for yourselves treasures in heaven');
+      expect(t, `${band} carries faithfulness in the least`).toContain('faithful in that which is least');
+    }
+  });
+
+  it('the senior band is a senior READER\'s lesson, not the facilitator\'s notes', () => {
+    // It was the notes: "Teach as biblical economics...", "Handle in DR-0100
+    // tiers", numbered movements addressed to whoever was running the room.
+    // The notes live in `facilitator` and `bigIdea`; the band is for the reader.
+    const senior = level('senior');
+    expect(senior).not.toMatch(/^senior: 'Teach as/);
+    expect(senior).not.toContain('Handle in DR-0100 tiers');
+    expect(senior).not.toContain('Captured 2026-08-30');
+    expect(l, 'the facilitator notes must still exist somewhere').toContain('talkingPoints');
   });
 });
