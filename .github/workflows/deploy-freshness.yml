@@ -113,6 +113,12 @@ jobs:
           WATCH_GAP: '45'
         run: |
           set -euo pipefail
+          # Return codes, because three outcomes are genuinely different:
+          #   0  DISPATCHED       — main is stale and no deploy exists for it.
+          #   2  ALREADY IN FLIGHT — a deploy run already exists for main's
+          #      exact tip. Nothing to do, and NOTHING TO WAIT FOR either.
+          #   1  FRESH / UNRESOLVED — keep looking on an event fire, because
+          #      main may simply not have moved yet.
           check_once() {
             main_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha' 2>/dev/null || echo "")
             # The commit the last SUCCESSFUL production deploy actually ran on.
@@ -123,20 +129,50 @@ jobs:
               echo "::warning::could not resolve main HEAD; skipping this look."
               return 1
             fi
-            if [ "$main_sha" != "$last_deployed" ]; then
-              echo "STALE: main $main_sha != last-deployed ${last_deployed:-<none>} — dispatching deploy."
-              gh workflow run deploy-cloudflare-pages.yml --repo "$REPO" --ref main \
-                || echo "::warning::could not dispatch deploy (it can be run manually)."
-              return 0
+            if [ "$main_sha" = "$last_deployed" ]; then
+              echo "FRESH: main $main_sha is already the served build; nothing to do."
+              return 1
             fi
-            echo "FRESH: main $main_sha is already the served build; nothing to do."
-            return 1
+            # THE IN-FLIGHT GATE (2026-09-17, measured on the merge of PR #1650
+            # — the same merge that PROVED the workflow_run hook above works).
+            # This workflow compares against the last SUCCESSFUL deploy, so
+            # while auto-merge's own heal had a deploy RUNNING on the new tip,
+            # the last success was still the previous tip and this read STALE
+            # and dispatched a SECOND build: runs #1157 (19:15:57, auto-merge)
+            # and #1158 (19:17:06, this hook), both on 003aaf22, both green.
+            # Nothing broke, but two Cloudflare Pages builds ran for one merge
+            # and would have on every merge from here. auto-merge's own heal
+            # already avoids this ("a run already queued/running for this same
+            # tip is a no-op") and the same gate belongs here. ANY run for
+            # main's exact tip counts, whatever its status — queued, running or
+            # failed — because a failed deploy for this tip is the deploy
+            # workflow's problem to report, not a reason for this healer to
+            # stack another build on top of it.
+            in_flight=$(gh api \
+              "repos/$REPO/actions/workflows/deploy-cloudflare-pages.yml/runs?head_sha=$main_sha&per_page=1" \
+              --jq '.total_count // 0' 2>/dev/null || echo "0")
+            if [ "${in_flight:-0}" != "0" ]; then
+              echo "ALREADY IN FLIGHT: a deploy run exists for main $main_sha; not dispatching."
+              return 2
+            fi
+            echo "STALE: main $main_sha != last-deployed ${last_deployed:-<none>} — dispatching deploy."
+            gh workflow run deploy-cloudflare-pages.yml --repo "$REPO" --ref main \
+              || echo "::warning::could not dispatch deploy (it can be run manually)."
+            return 0
           }
           i=1
           while [ "$i" -le "$WATCH_TRIES" ]; do
             echo "--- look $i of $WATCH_TRIES (event: $GITHUB_EVENT_NAME)"
-            if check_once; then
+            set +e
+            check_once
+            rc=$?
+            set -e
+            if [ "$rc" -eq 0 ]; then
               echo "dispatched on look $i; done."
+              exit 0
+            fi
+            if [ "$rc" -eq 2 ]; then
+              echo "already handled on look $i; done."
               exit 0
             fi
             if [ "$i" -lt "$WATCH_TRIES" ]; then sleep "$WATCH_GAP"; fi
