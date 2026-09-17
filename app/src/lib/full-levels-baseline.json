@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 163,
-  "lessonsShort": 101,
+  "lessonsShort": 100,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -16,11 +16,6 @@
       "senior"
     ],
     "ll10-strength-and-honour-are-her-clothing": [
-      "child",
-      "youth",
-      "teen"
-    ],
-    "ll100-guard-the-little-ones-children-the-millstone-and-mastery-over-the-tools": [
       "child",
       "youth",
       "teen"

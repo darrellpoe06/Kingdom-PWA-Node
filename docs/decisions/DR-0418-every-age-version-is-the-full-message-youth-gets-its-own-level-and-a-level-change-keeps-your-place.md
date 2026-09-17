@@ -843,6 +843,45 @@ Seven movements, fourteen load-bearing quotations enumerated per band, and three
 
 Proven-to-catch three ways, each in a different gate: the full stop put back inside Malachi 3:6, the generic name restored to one sentence of child prose, and the both-halves sentence removed from the youth band. Fullness baseline 102 → 101.
 
+## L100 — Guard the Little Ones (2026-09-17)
+
+Guard the Little Ones: children as a trust, the millstone warning, and being mastered by nothing (adult prose 728 by the gate's counter; floors child 364, others 437):
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 194 · 0.27 | **699 · 0.96** |
+| youth | missing | **768 · 1.05** (new) |
+| teen | 254 · 0.35 | **789 · 1.08** |
+| senior | 435 · 0.60 | **1040 · 1.43** |
+
+**Twelfth in a row** on the facilitator's-notes senior band — it opened *"Teach this as a Word-first, non-partisan response to a real event (pairs with the Sovereign A.I. course and L99, a sound mind not fear)"* and closed on *"CLOSE:"* — and the **fourth inverted band ordering** of the pass: before, child 6.3 against teen 5.2; after, 3.2 / 6.5 / 6.9 / 8.8 ascending, and the reading-level baseline's inverted list shrinks 27 → 26.
+
+**The first lesson in the pass whose quotations arrived CLEAN.** After nine in-quote alterations found in the ten lessons above it, this module had none. What it produced instead is a third category of quoted span, which the two allowlists built so far do not describe.
+
+### The three categories of quoted span, now that all three exist
+
+1. **Quoted Scripture** — must be verbatim KJV. The default, and everything below is an exception that has to earn its place.
+2. **A quoted speaker** — Darrell's own words (L103, L101). Real quotations of a real person, correct as marks, and deleting them would erase the attribution (DR-0331).
+3. **Our own quoted terms and reported reflexes** — this lesson. `"parental controls"` names an industry term we are re-framing; `"likes"` names a product feature; and the inApp block quotes the two reflexes a story like this provokes — `"the platforms are the enemy"` and `"everyone's on it, what can you do"` — in order to TEST both against the Word rather than endorse either. That is ordinary English: a term held at arm's length, and reported speech.
+
+What keeps category 3 from becoming a hole is where it may NOT appear: not beside a verse reference, and not reading as Scripture. That is the L108 line, where a phrase of OUR OWN wore quotation marks next to verse references and had them removed. None of the four sits anywhere near a reference.
+
+**The honesty assertion earned its keep while the gate was being written.** My draft allowlist also carried `"some say"` — and `some say` IS in the KJV. An allowlist entry that is real Scripture would excuse a real quotation from the gate, so the sentence was rewritten to drop the marks rather than the assertion being relaxed. Two of my own rhetorical questions in the senior draft were unquoted for the same reason, before the apply. An allowlist is only safe while every entry is provably ours.
+
+### The two-tier honesty check, and a lesson that disagreed with itself
+
+The gate now holds **both tiers of DR-0100 in one check**, because dropping either is a failure of truth in a different direction. Soften the documented harm into a hedge and the reader is misled about something real (under-claiming); assert the disputed figure as settled and the reader is misled about something unproven (over-claiming). So every band must carry the guards and the developing-brain harm plainly, AND the company's denial and the contested figure as flagged rather than asserted — and no band may name a dollar figure at all.
+
+That last clause is not hypothetical. **The senior band used to fail it:** it asserted *"reported at up to roughly $17 billion, with outlets ranging about $16.7B to $18B"* while the adult body of the same lesson deliberately refused to name a figure and called it contested. A single lesson disagreeing with itself about what is settled fact is exactly the drift this check now prevents, and the body's treatment is the correct one.
+
+### Two of our own paraphrases carried the generic name
+
+The voice check found two instances, both our own paraphrase of John 12:43 in the facilitator notes — *"one act done for the praise of God, not men"* and *"than the praise of God?"*. A paraphrase in our voice is our voice, so both now say Yahweh; the quoted verse is untouched and still reads exactly as the corpus has it. This is the L104 pairing, asserted in both directions here too: our prose must carry no generic name AND John 12:43 must still read `the praise of God`. Pushing the covenant name INTO the quotation fails **four** separate checks in this file.
+
+Three further band checks guard what a compressed version would round off: the **uncomfortable half** of the millstone warning (it is easy to aim outward at a corporation, and a band that did only that would leave a lesson about other people — the most comfortable kind and the least useful); **the line Paul actually draws** in 1 Corinthians 6:12, which is at the POWER rather than at the lawfulness, so the question of a feed is not whether it is permitted but what it has taken hold of; and that **outward walls do not travel** — the two-hour limit and the nighttime block are real and worth having, but only self-mastery goes with the child into a friend's house, into adulthood, onto a device nobody configured. Plus the sentence the whole third movement turns on: *a feed is a gate, whether or not anyone calls it one.*
+
+Proven-to-catch three ways: the contested dollar figure asserted in the senior band, the covenant name pushed into John 12:43 (four checks), and a real Scripture phrase added to the allowlist. Fullness baseline 101 → 100.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
