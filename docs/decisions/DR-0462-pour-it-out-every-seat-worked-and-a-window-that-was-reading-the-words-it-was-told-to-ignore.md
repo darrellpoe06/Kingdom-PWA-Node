@@ -1,0 +1,62 @@
+# DR-0462 — Pour it out: every seat worked, and a window that was reading the words it was told to ignore
+
+- **Status:** accepted
+- **Tier:** B (a new lesson in the learner-facing series; content is teaching, and it is a man's own working life handed over as instruction)
+- **Date:** 2026-09-17
+- **Type:** app
+- **Scope:** `app/src/lib/living-lessons-class.js` (L169 added; 168 lessons, painted count moved with it), `app/src/__tests__/living-lessons-l169-verses.test.js` (new, 34 checks, 76/76 breaks caught), the three shrink-only baselines re-measured (count only), the crosslist pin moved with its reason
+- **Principles:** SPOKEN-TEACHINGS-ARE-BUILD-INPUT (2026-07-03), VERIFICATION-DOCTRINE (DR-0076), TEACH-NOT-DEBATE (DR-0098), COVENANT-NAME (DR-0210), RENDER-FOR-MEANING (DR-0331), FULL-LEVELS (DR-0418), NOTHING-WAITS (DR-0236)
+- **Grounds:** DR-0417 (a new lesson's child band is held to 5.0), DR-0456 (whitespace-only strict comparison), DR-0457 (no leading-numeral rewriting), DR-0459 (the ellipsis refusal), DR-0461 (the windowed check this lesson's gate is built on), DR-0454 (the business suite this lesson frames)
+
+## Why this exists
+
+Darrell, 2026-09-17, spoken into this channel and marked "Lesson." twice (rendered for meaning per DR-0331): at Rent-A-Center he started as an **account manager** and went account manager, to assistant manager, to **general manager** — he worked every single position and has a story and a narrative about every one of his roles, because Yahweh taught him something through every season of his life. Love Him with your **whole mind, will, soul and emotion** — every aspect of who you are as a human. His purpose now: **pour out** the knowledge, wisdom and understanding he already has, as much as possible and as humbly as he can, while maintaining a quality life — *give away as much as I possibly can before I pass.* He looks at that as **feed my sheep**, for the people in the body who would love to comprehend what the King says and want to spend time processing what He is saying. He wants you to have **a sound mind** — he loves sound-mind people, people who do not want a lot of stress but who are willing to get in and get some, because he loves to work. And yet **peace is the point**, because He is the Prince of Peace. The close: if something is off with what the King says in the Word, it makes no sense not to fall in line — **like being in the military and skipping the exercises, left, left, right, left.** You want to be the best at everything you do. **Be the best in this too.**
+
+This is also the framing of the whole business suite (DR-0454): the instructor's credential is every seat worked, and the posture is pouring it out.
+
+## The decision
+
+**a. TWO NOTES ARE SAID FIRST, SO NOTHING IS BORROWED THAT WAS NOT LENT, and both are checked per band.** (1) **Pouring out.** Scripture uses the phrase in two senses that are NOT this one: Yahweh pours out His own Spirit, *"I will pour out my spirit upon all flesh"* (Joel 2:28), and a man pours out his own heart to Him, *"pour out your heart before him: God is a refuge for us."* (Psalms 62:8) Neither is a man handing his understanding to the people behind him. That sense IS in the Word and has a picture of its own — a life already being poured out like a drink offering, *"For I am now ready to be offered, and the time of my departure is at hand."* (2 Timothy 4:6), done gladly (Philippians 2:17), with the hand-off spelled out as an instruction (2 Timothy 2:2). Quoting Joel and letting its weight carry this lesson was the available shortcut; it is refused out loud. (2) **Mind, will, soul and emotion** is his four-part way of saying ALL of you. It is not a list the verse gives: Mark 12:30 names heart, soul, mind and strength; Deuteronomy 6:5 names heart, soul and might. Both are quoted, the counts are stated honestly, and his framing is named as his.
+
+**b. The ladder is a credential the Word recognises, not a career story.** *"He that is faithful in that which is least is faithful also in much"* (Luke 16:10), and the reward in the parable is read correctly — not a bonus but a bigger job: *"I will make thee ruler over many things"* (Matthew 25:21). The trade opens the door on its own (Proverbs 22:29). The seats are deliberately different (1 Corinthians 12:4-7), **the placing is His and not a climb** (1 Corinthians 12:18), and the shepherd's version says why it matters at all — *"Be thou diligent to know the state of thy flocks"* (Proverbs 27:23): the state of a flock cannot be known from a chair you never sat in.
+
+**c. The work itself sits under the first commandment, or the ladder is ambition in obedience's clothes.** Heartily as to the Lord, for the employer you actually have (Colossians 3:23-24), never as eyeservice, from the heart, with good will (Ephesians 6:6-7).
+
+**d. The real cost of pouring out is named, and answered from the Word rather than by encouragement.** It costs being the only one in the room who knows. The pourer is not drained (Proverbs 11:25); the trade runs the opposite way from how it feels (Acts 20:35); and the teacher is deliberately kept provided for (Galatians 6:6), which is how a pouring-out life lasts long enough to matter. Maintaining a quality life while giving it away is the arrangement, not a compromise.
+
+**e. FEED MY SHEEP IS GIVEN WHOLE, INCLUDING THE FENCE.** Three askings, three assignments, and a man grieved by the third (John 21:15-17) — love was never asked to produce a feeling; it was handed a flock. And the manner is prescribed as tightly as the task: willingly, not by constraint (1 Peter 5:2), and *"Neither as being lords over God's heritage, but being ensamples to the flock."* (1 Peter 5:3) A feeding lesson without that fence produces an owner, so the gate holds it per band.
+
+**f. Who it is for is described without flattery, and the qualifier is the one the text gives.** Milk when it should be teaching (Hebrews 5:12); strong meat for those whose senses are exercised **by use** — not by age (Hebrews 5:14). The prayer for such people is already written (Colossians 1:9-10). Comprehension is produced by working the Word, which is exactly what the processing time he speaks of is for.
+
+**g. A sound mind is read the way the verse lists it — with power and love — so it is cleared to work hard rather than softened** (2 Timothy 1:7; Ecclesiastes 9:10; 1 Corinthians 10:31). Willing to get in and take some stress is the right reading of work; living inside stress is not, which is what (h) settles.
+
+**h. Peace is a person with a working government, not a quiet room.** His name is given before His government is described (Isaiah 9:6), and that government exists *"to order it, and to establish it with judgment and with justice from henceforth even for ever."* (Isaiah 9:7) He hands it over Himself and marks it as a different kind (John 14:27); it does not wait for circumstances to add up (Philippians 4:7); and it carries one condition, which is where it meets the sound mind — *"whose mind is stayed on thee"* (Isaiah 26:3). A mind stayed on Him can carry a hard week; a mind stayed on the hard week cannot.
+
+**i. The military picture is HIS, and the Word's own soldier language is what carries it.** Endure hardness as a good soldier; no man that warreth entangleth himself (2 Timothy 2:3-4); order is not decorative (1 Corinthians 14:40). Underneath sits the oldest correction for religious effort that will not obey — *"to obey is better than sacrifice"* (1 Samuel 15:22) — and the question nobody answers well (Luke 6:46), so hearing is not the finish line (James 1:22) and the blessing is fastened to the doing (James 1:25). **"The Bible says do drills" was the failure available here; the attribution is checked in every band.**
+
+**j. Be the best in this too, by the method the Word actually gives — which is not talent.** Wholly given and visibly improving (1 Timothy 4:15), with the double watch on your life and your teaching (1 Timothy 4:16). The supply is unrationed and comes without a lecture (James 1:5), proceeds from His mouth (Proverbs 2:6), is worth the price of everything else you are acquiring (Proverbs 4:7), and the standard is completeness (2 Timothy 3:17).
+
+**k. All four bands carry the whole message.** Measured (adult prose 1,578 words, quotations stripped): child 986 (ratio 0.625, floor 0.50), youth 1,240 (0.786), teen 1,567 (0.993), senior 2,115 (1.340). Reading ladder 1.21 / 4.93 / 7.12 / 9.19 — monotone, child far under the 5.0 ceiling a new lesson is held to. Yahweh named 5-6 times per text.
+
+## Verification (DR-0076)
+
+- **56 verses fetched VERBATIM from this repo's own KJV corpus BEFORE a word of the lesson was authored**, and the finished module's **290 quoted spans are 290 verbatim under the STRICT comparison, 290 referenced, 0 unreferenced, 0 ellipses — the first pass, with nothing to correct.** That is what authoring from a fetched batch rather than from memory buys.
+- **A MEASUREMENT ARTIFACT FOUND AND FIXED IN THE PROSE RATHER THAN EXCUSED.** The first draft read 9.62 / 8.32 / 11.68 / 14.47 on the reading ladder, which would have been a senior band four grades harder than L168's. The cause was not vocabulary but punctuation: a colon immediately before a quotation means that once the quotations are stripped for measurement, our clause before it is glued to our sentence after it, and the sentence-length term of the score doubles. Every clause before one of those colons was already a complete sentence, so 170 of them became full stops across the four bands — truer to how a reader actually meets the text AND truer to the measurement. The ladder came out 6.51 / 1.21 / 4.93 / 7.12 / 9.19. **The lesson generalises: when a number looks wrong, find out what the instrument is measuring before rewriting the thing being measured.**
+- **A REAL DEFECT IN THIS GATE'S OWN WINDOWING HELPER, caught by the gate's first run.** DR-0461 introduced windowed checks (a property must be doing its job in the place it belongs). The first version of `near()` here sliced the RAW band around a reference and stripped quotations afterwards — but the slice lands inside a quotation, the quote marks come out unbalanced, the regex matches nothing, and **the whole quotation survives into the window**, which is precisely the too-loose failure windowing exists to prevent. Ten checks failed on it and the failure messages showed the Word's own words inside the window. Fixed by stripping the quotations FIRST (references survive, so the marker can still be found) and windowing the result. A break now proves it: a required phrase moved into a different section of the band leaves the check red.
+- **34 checks; 76 breaks applied for real, 76 caught, 0 missed, 0 no-ops.** Every break global inside the L169 block only, each asserting the edit landed before the gate ran.
+- Two wording alternations were widened after the first run, both to real variants the bands actually use ("never a soft one" beside "not a soft one"; "Neither is a man handing" beside "not this lesson") — widened to the text that exists, never to something that would pass vacuously, and each still has a break proving it fails when the property goes.
+- The three shrink-only baselines each changed by exactly one line (the count); no debt entry added. Painted META count 167 → 168; crosslist pin 27 / 507 → 27 / 508 with the reason written in beside it.
+
+## What is still NOT proven
+
+- **That the four-part framing is his considered doctrine rather than his shorthand.** He said mind, will, soul and emotion; the lesson treats it as a way of saying ALL of you, quotes both verses, and says so. If he means a specific faculty-by-faculty teaching, the place to correct is that one paragraph per band.
+- **That "before I pass" sets any timetable for this series.** He said it; the lesson uses it as the reason for urgency and nothing more. Nothing in the curriculum plan is scheduled from it.
+
+## Files
+
+- `app/src/lib/living-lessons-class.js` — L169 (168 lessons)
+- `app/src/__tests__/living-lessons-l169-verses.test.js` — new, 34 checks
+- `app/src/__tests__/learn-crosslist.test.js` — pin moved with its reason
+- `app/src/lib/full-levels-baseline.json`, `reading-level-baseline.json`, `title-in-narrative-baseline.json` — re-measured, count only
+- `docs/decisions/DR-0460-*.md` — its "not proven" section closed by measurement on the merge of #1652
+- `docs/decisions/INDEX.md` — row + pointer
