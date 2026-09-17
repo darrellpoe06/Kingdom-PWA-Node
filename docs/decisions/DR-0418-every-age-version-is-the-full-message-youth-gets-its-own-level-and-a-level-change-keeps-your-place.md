@@ -693,6 +693,27 @@ This is the longest arc in the pass so far — eight movements — and all four 
 
 Proven-to-catch four ways: the ASCII apostrophe put back into John 15:10, the generic name put back into one sentence, `thy word` for `thy words` inside the Psalms 119:130 quotation (a singular that reads perfectly and is not the text), and the senior band returned to its notes. Reading level child 1.8 / teen 6.0 / senior 7.8, ascending. Fullness baseline 108 → 107.
 
+## L106 — the forty-seventh full lesson (2026-09-17)
+
+Wise as Serpents, Harmless as Doves: knowing the enemy, denying the flesh, doing only Yahweh's will, and the one directed way (adult prose 668 by the gate's counter; floors child 334, others 401):
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 145 · 0.24 | **372 · 0.56** |
+| youth | missing | **450 · 0.67** (new) |
+| teen | 141 · 0.23 | **603 · 0.90** |
+| senior | 281 · 0.46 | **701 · 1.05** |
+
+**Six in a row** on the facilitator's-notes senior band ("Teach as discernment-under-the-Word (companion to L102 … L104 … L105)", the capture date, a checklist of what the phrases mean). Nine movements, and the gate now enumerates all twelve of their load-bearing quotations per band, because a nine-movement lesson is exactly where a band quietly carries six.
+
+The through-line every band now holds: the pairing IS the instruction, with Romans 16:19 as the plainest form of it — **wise unto GOOD, simple concerning EVIL** — and the consequence of taking one half named in both directions (a cynic who knows every trick and trusts nobody, or a mark who trusts everybody and knows nothing). Then the enemy Yahweh has ALREADY exposed rather than one to reverse-engineer; the armour issued against **method** rather than force, which tells you what kind of fight this is; the roaring lion weighed on Peter's word **AS** and set beside the Lion who already prevailed; serpent-WISDOM against serpent-NATURE, with the counterfeit named outright and the genuine article known by what it produces rather than by how smart it sounds; submission before resistance, because resistance without it is willpower in a scriptural coat; the flesh denied as **the ground he works** (starve the ground and he has nothing to work with — a better strategy than meeting him on his own terms); and the answer to why the Word divides soul from spirit: so you can tell **which pull is which**. That discernment IS the serpent-wisdom — *not cleverness about the enemy, accuracy about yourself*, which is the harder of the two. Then capable-yet-bounded, with the legions Jesus could have called and did not; the guard against leaning on your own understanding, which belongs in THIS lesson because the serpent's oldest tactic was to make the hearer her own oracle; and the one way, which is a Person rather than a technique.
+
+**Two findings, and the second is about the gate itself.** First, the span gate earned its keep *before* the apply, which is the point of running it on the drafts: my own new teen and senior bands were written with `Christ's` where Galatians 5:24 carries `Christ’s`. I had **typed the quotation instead of pasting it** — precisely the mechanism the L112 note in this record named — and it never reached the file.
+
+Second, and this is a real limitation worth recording rather than glossing: **the module scan passed before the apply and failed after it, on a defect that was pre-existing.** The adult body's own Galatians 5:24 carried the ASCII apostrophe all along. The checker pairs double-quote characters sequentially, so which text counts as "quoted" depends on the alignment of every quote before it; changing the bands shifted the pairing and exposed a span that had previously been folded into a passing one. Two things follow. The defect was real either way and is now restored byte-for-byte (the fourth in-quote alteration of the Word this pass has caught). And the checker can report a clean lesson that carries an altered quotation — which is an argument for running it on **every** lesson rather than trusting a green result, and the reason this pass adds it lesson by lesson instead of sampling. A delimiter-aware version (pairing only quotes that open or close beside a verse reference) is the obvious improvement; **re-review: 2026-10-01.**
+
+Proven-to-catch four ways: the ASCII apostrophe put back into Galatians 5:24, `gentle` for `harmless` inside Matthew 10:16 (a synonym that reads perfectly and is not the text), the generic name put into one sentence of our prose, and the senior band returned to its notes. Reading level child 2.3 / teen 7.2 / senior 9.5, ascending. Fullness baseline 107 → 106.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.

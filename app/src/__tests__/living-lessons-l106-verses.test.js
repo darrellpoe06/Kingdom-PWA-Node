@@ -13,7 +13,7 @@
 // their casing verbatim (DR-0076 bright line). Every KJV line FETCHED from the
 // repo's own KJV this session; a drift fails the build. Companion to L102/L104/L105.
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -145,5 +145,128 @@ describe('corpus witness + tamper-catch — the pins match the repo KJV, and the
     expect(verse('Proverbs', 3, 5)).toBe('Trust in the LORD with all thine heart; and lean not unto thine own understanding.');
     expect(verse('Proverbs', 3, 6)).toBe('In all thy ways acknowledge him, and he shall direct thy paths.');
     expect(verse('John', 14, 6)).toContain('I am the way, the truth, and the life');
+  });
+});
+
+// =============================================================================
+// THE TWO CHECKS THIS GATE DID NOT HAVE (added 2026-09-17, DR-0418 pass)
+// =============================================================================
+// Carried from L111/L110/L109/L108/L107 the same day. The module arrived clean
+// on the span gate — all 197 quotations verbatim — and the voice check found
+// the generic name in two places in bands that were rewritten anyway.
+//
+// The span gate also earned its keep BEFORE the apply this time, which is the
+// point of running it on the drafts: the new teen and senior bands were
+// written with `Christ's` where Galatians 5:24 carries `Christ’s` (U+2019).
+// It was typed rather than pasted, which is exactly the mechanism DR-0418's
+// L112 note named, and it never reached the file.
+//
+// The corpus is joined with each chapter's VERSES FLOWING (space-separated
+// within a chapter), so a quotation of contiguous verses is a true substring
+// while a phrase stitched from two chapters still is not.
+const KJV_DIR = join(HERE, '..', '..', 'public', 'bible', 'kjv');
+const KJV_FLOW = (() => {
+  let all = '';
+  for (const f of readdirSync(KJV_DIR).filter((x) => x.endsWith('.json'))) {
+    let j;
+    try { j = JSON.parse(readFileSync(join(KJV_DIR, f), 'utf8')); } catch { continue; }
+    if (!j || !Array.isArray(j.chapters)) continue;   // index.json is not a book
+    for (const ch of j.chapters) all += `${ch.join(' ')}\n`;
+  }
+  return all;
+})();
+
+const quotedSpans = (text) => {
+  const unescaped = text.replace(/\\'/g, "'");
+  const at = [...unescaped.matchAll(/"/g)].map((m) => m.index);
+  const out = [];
+  for (let i = 0; i + 1 < at.length; i += 2) out.push(unescaped.slice(at[i] + 1, at[i + 1]));
+  return { spans: out, balanced: at.length % 2 === 0 };
+};
+
+describe('NO in-quote alteration anywhere in the lesson — the whole-span gate', () => {
+  it('the double quotes are balanced, so the spans below are real quotations', () => {
+    expect(quotedSpans(l).balanced).toBe(true);
+  });
+
+  it('EVERY double-quoted span is verbatim KJV', () => {
+    const { spans } = quotedSpans(l);
+    expect(spans.length, 'the lesson should carry a substantial body of quoted Scripture').toBeGreaterThan(180);
+    const altered = [];
+    for (const span of spans) {
+      for (const part of span.split('...').map((x) => x.trim()).filter(Boolean)) {
+        if (!KJV_FLOW.includes(part)) altered.push(part);
+      }
+    }
+    expect(altered, `quoted text that is NOT verbatim KJV:\n${altered.map((a) => ` - ${JSON.stringify(a)}`).join('\n')}`).toEqual([]);
+  });
+
+  it('is PROVEN-TO-CATCH — including the apostrophe caught in this lesson\'s own drafts', () => {
+    expect(KJV_FLOW.includes('they that are Christ\u2019s have crucified the flesh')).toBe(true);
+    expect(KJV_FLOW.includes("they that are Christ's have crucified the flesh")).toBe(false);
+    // Drifts of this lesson's own hinges, each reading perfectly:
+    expect(KJV_FLOW.includes('wise as serpents, and harmless as doves')).toBe(true);
+    expect(KJV_FLOW.includes('wise as serpents, and gentle as doves')).toBe(false);
+    expect(KJV_FLOW.includes('wise unto that which is good, and simple concerning evil')).toBe(true);
+    expect(KJV_FLOW.includes('wise unto that which is good, and simple concerning the evil')).toBe(false);
+    expect(KJV_FLOW.includes('lean not unto thine own understanding')).toBe(true);
+    expect(KJV_FLOW.includes('lean not upon thine own understanding')).toBe(false);
+    expect(KJV_FLOW.includes('dividing asunder of soul and spirit')).toBe(true);
+    expect(KJV_FLOW.includes('dividing asunder of soul and of spirit')).toBe(false);
+  });
+});
+
+describe('our own authored voice says Yahweh, not the generic name (DR-0210)', () => {
+  it('names Him by His covenant name, and never capitalizes him', () => {
+    const { spans } = quotedSpans(l);
+    let ours = l.replace(/\\'/g, "'");
+    for (const s of spans) ours = ours.split(`"${s}"`).join(' ');
+    expect((ours.match(/\bGod\b/g) || []).length, 'generic "God" in our authored voice').toBe(0);
+    expect((ours.match(/\bSatan\b/g) || []).length, 'capitalized adversary name in our voice').toBe(0);
+    expect((ours.match(/\bLucifer\b/g) || []).length).toBe(0);
+    expect((ours.match(/Yahweh/g) || []).length).toBeGreaterThan(10);
+  });
+});
+
+describe('every band is the FULL message, in that age\'s own words (DR-0418)', () => {
+  const level = (name) => {
+    const i = l.indexOf(`${name}: '`);
+    const j = l.indexOf("',\n", i);
+    return l.slice(i, j);
+  };
+
+  it('youth exists beside the other three, and none is a summary', () => {
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      expect(level(band).length, `${band} is missing or a stub`).toBeGreaterThan(1600);
+    }
+  });
+
+  it('every band carries all nine movements, not a subset', () => {
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      const t = level(band);
+      expect(t, `${band} carries both halves together`).toContain('wise as serpents, and harmless as doves');
+      expect(t, `${band} splits the two objects`).toContain('simple concerning evil');
+      expect(t, `${band} carries the head-for-heel asymmetry`).toContain('bruise thy head, and thou shalt bruise his heel');
+      expect(t, `${band} names the liar and the father of it`).toContain('the father of it');
+      expect(t, `${band} distinguishes the counterfeit from the Lion of Judah`).toContain('the Lion of the tribe of Juda');
+      expect(t, `${band} rejects the counterfeit wisdom`).toContain('earthly, sensual, devilish');
+      expect(t, `${band} denies the flesh`).toContain('deny himself, and take up his cross');
+      expect(t, `${band} says why the Word divides`).toContain('sharper than any twoedged sword');
+      expect(t, `${band} carries the legions He did not call`).toContain('twelve legions of angels');
+      expect(t, `${band} leans not on its own understanding`).toContain('lean not unto thine own understanding');
+      expect(t, `${band} carries the one directed way`).toContain('he shall direct thy paths');
+      expect(t, `${band} names the Way as a Person`).toContain('I am the way, the truth, and the life');
+    }
+  });
+
+  it('the senior band is a senior READER\'s lesson, not the facilitator\'s notes', () => {
+    // It was the notes: "Teach as discernment-under-the-Word (companion to
+    // L102 ... L104 ... L105)", the capture date, and a checklist of what the
+    // phrases mean. Those belong in `facilitator`.
+    const senior = level('senior');
+    expect(senior).not.toContain('Teach as discernment-under-the-Word');
+    expect(senior).not.toMatch(/companion to L\d+/i);
+    expect(senior).not.toContain('2026-08-30');
+    expect(l, 'the facilitator notes must still exist somewhere').toContain('talkingPoints');
   });
 });
