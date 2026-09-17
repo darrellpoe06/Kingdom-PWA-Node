@@ -9,7 +9,7 @@
 // L105 (experiential knowing) and L107 (how we receive Love). Every KJV line
 // FETCHED from the repo's own KJV this session; a drift fails the build.
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -121,5 +121,121 @@ describe('corpus witness + tamper-catch — the pins match the repo KJV, and the
     expect(verse('Mark', 10, 16)).toBe('And he took them up in his arms, put his hands upon them, and blessed them.');
     expect(verse('Isaiah', 46, 4)).toContain('even to hoar hairs will I carry you');
     expect(verse('1John', 4, 19)).toBe('We love him, because he first loved us.');
+  });
+});
+
+// =============================================================================
+// THE TWO CHECKS THIS GATE DID NOT HAVE (added 2026-09-17, DR-0418 pass)
+// =============================================================================
+// The same pair added to L111 and L110 the same day, for the same reason: the
+// two classes of defect that actually occur when a lesson is authored are an
+// altered quotation and the generic name slipping into our own voice. This
+// lesson passed both on arrival — 109 spans verbatim and no generic name in
+// our prose — and the checks are added anyway, because a property that holds
+// today and is not checked is a property that breaks quietly tomorrow.
+//
+// The corpus is joined with each chapter's VERSES FLOWING (space-separated
+// within a chapter), so a legitimate quotation of contiguous verses — this
+// lesson quotes Ephesians 3:17-19 whole — is a true substring, while a phrase
+// stitched from two different chapters still is not.
+const KJV_DIR = join(HERE, '..', '..', 'public', 'bible', 'kjv');
+const KJV_FLOW = (() => {
+  let all = '';
+  for (const f of readdirSync(KJV_DIR).filter((x) => x.endsWith('.json'))) {
+    let j;
+    try { j = JSON.parse(readFileSync(join(KJV_DIR, f), 'utf8')); } catch { continue; }
+    if (!j || !Array.isArray(j.chapters)) continue;   // index.json is not a book
+    for (const ch of j.chapters) all += `${ch.join(' ')}\n`;
+  }
+  return all;
+})();
+
+const quotedSpans = (text) => {
+  const unescaped = text.replace(/\\'/g, "'");
+  const at = [...unescaped.matchAll(/"/g)].map((m) => m.index);
+  const out = [];
+  for (let i = 0; i + 1 < at.length; i += 2) out.push(unescaped.slice(at[i] + 1, at[i + 1]));
+  return { spans: out, balanced: at.length % 2 === 0 };
+};
+
+describe('NO in-quote alteration anywhere in the lesson — the whole-span gate', () => {
+  it('the double quotes are balanced, so the spans below are real quotations', () => {
+    expect(quotedSpans(l).balanced).toBe(true);
+  });
+
+  it('EVERY double-quoted span is verbatim KJV', () => {
+    const { spans } = quotedSpans(l);
+    expect(spans.length, 'the lesson should carry a substantial body of quoted Scripture').toBeGreaterThan(90);
+    const altered = [];
+    for (const span of spans) {
+      for (const part of span.split('...').map((x) => x.trim()).filter(Boolean)) {
+        if (!KJV_FLOW.includes(part)) altered.push(part);
+      }
+    }
+    expect(altered, `quoted text that is NOT verbatim KJV:\n${altered.map((a) => ` - ${JSON.stringify(a)}`).join('\n')}`).toEqual([]);
+  });
+
+  it('is PROVEN-TO-CATCH — plausible drifts of this lesson\'s own hinges are not the text', () => {
+    // Each wrong form below reads perfectly and is not what is written. The
+    // corpus decides, never how a line sounds in the ear.
+    expect(KJV_FLOW.includes('O taste and see that the LORD is good')).toBe(true);
+    expect(KJV_FLOW.includes('O see and taste that the LORD is good')).toBe(false);
+    expect(KJV_FLOW.includes('he will joy over thee with singing')).toBe(true);
+    expect(KJV_FLOW.includes('he will sing over thee with joy')).toBe(false);
+    expect(KJV_FLOW.includes('And we have known and believed the love')).toBe(true);
+    expect(KJV_FLOW.includes('And we have believed and known the love')).toBe(false);
+    expect(KJV_FLOW.includes('even to hoar hairs will I carry you')).toBe(true);
+    expect(KJV_FLOW.includes('even to grey hairs will I carry you')).toBe(false);
+  });
+});
+
+describe('our own authored voice says Yahweh, not the generic name (DR-0210)', () => {
+  it('names Him by His covenant name in every band and every note', () => {
+    // The KJV's own "God" is fetched verbatim and never touched (DR-0076's
+    // bright line), so the quoted spans come out before the prose is audited.
+    const { spans } = quotedSpans(l);
+    let ours = l.replace(/\\'/g, "'");
+    for (const s of spans) ours = ours.split(`"${s}"`).join(' ');
+    expect((ours.match(/\bGod\b/g) || []).length, 'generic "God" in our authored voice').toBe(0);
+    expect((ours.match(/Yahweh/g) || []).length).toBeGreaterThan(5);
+  });
+});
+
+describe('every band is the FULL message, in that age\'s own words (DR-0418)', () => {
+  const level = (name) => {
+    const i = l.indexOf(`${name}: '`);
+    const j = l.indexOf("',\n", i);
+    return l.slice(i, j);
+  };
+
+  it('youth exists beside the other three, and none is a summary', () => {
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      expect(level(band).length, `${band} is missing or a stub`).toBeGreaterThan(1200);
+    }
+  });
+
+  it('every band carries all four senses, the knowing, and both ends of a life', () => {
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      const t = level(band);
+      expect(t, `${band} tastes it`).toContain('O taste and see that the LORD is good');
+      expect(t, `${band} sees it at the cross`).toMatch(/he gave his only begotten Son|while we were yet sinners/);
+      expect(t, `${band} hears it sung`).toContain('joy over thee with singing');
+      expect(t, `${band} feels it poured in`).toContain('shed abroad in our hearts');
+      expect(t, `${band} carries the child in His arms`).toContain('took them up in his arms');
+      expect(t, `${band} carries the gray head He carries`).toContain('hoar hairs will I carry you');
+      expect(t, `${band} names where it starts`).toContain('because he first loved us');
+    }
+  });
+
+  it('the senior band is a senior READER\'s lesson, not the facilitator\'s notes', () => {
+    // It was the notes: "Teach as experiential knowledge of Yahweh's Love
+    // (companion to L105 and L107)", ordinal movements addressed to whoever
+    // was leading, and "lead the group" at the close. Those belong in
+    // `facilitator`.
+    const senior = level('senior');
+    expect(senior).not.toContain('Teach as experiential knowledge');
+    expect(senior).not.toMatch(/companion to L\d+/i);
+    expect(senior).not.toContain('lead the group');
+    expect(l, 'the facilitator notes must still exist somewhere').toContain('talkingPoints');
   });
 });
