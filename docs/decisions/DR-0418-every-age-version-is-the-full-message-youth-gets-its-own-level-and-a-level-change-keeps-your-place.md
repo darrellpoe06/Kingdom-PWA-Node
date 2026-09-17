@@ -1267,6 +1267,43 @@ Nine generic `God` instances were lifted from our own voice across the base pros
 
 Proven to catch eight ways, every break made **global inside L93's block** from the outset — the discipline L94 taught after two breaks left a phrase standing in a band's closing summary: the negation removed from what He does not say, the verbatim-accuracy clause deleted, the experiment order dropped, the shock/joy-as-evidence reading removed, the before-the-term clause deleted, the paraphrase signpost stripped, the senior band turned back into notes, and the senior band's translation-reconciling line removed.
 
+## L92 — Yahweh Standardized Love (2026-09-17)
+
+Obedience, deeds, the thoughts not cast down, and the Kingdom inside us (adult prose 664 by the gate's counter; floors child 332, others 399):
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 171 · 0.26 | **752 · 1.13** |
+| youth | missing | **646 · 0.97** (new) |
+| teen | 202 · 0.30 | **790 · 1.19** |
+| senior | 251 · 0.38 | **998 · 1.50** |
+
+Twentieth consecutive facilitator's-notes senior band. Reading levels 4.1 / 4.8 / 5.7 / 6.9 ascending; no inversion to fix. Fullness baseline 93 → 92. Gate 37 → 51 checks.
+
+### A tenth false attribution, and the subtlest kind yet
+
+A facilitator prompt carried `"captive to the obedience of Christ"` in quotation marks — **inside a sentence that had already cited (2 Corinthians 10:5) a clause earlier**. The verse reads *bringing into captivity every thought to the obedience of Christ*; ours is a compression. The adjacent citation is what makes it a false attribution rather than a stray phrase: a reader has every reason to take the quoted words for the verse's own. Marks off, phrase kept as ours, reference still pointing where it can be checked — and the gate now asserts both that our compression is never quoted and that the verse itself appears in full.
+
+### A check that would have failed a correct child band
+
+The shared-fragment measurement found three fragments missing from the child band: `temple made of temples`, `defilement carried INTO the holy place`, `lamp you never light`. But the child band **does** teach all three, in its own words — *the temple made out of temples*, *dirt you carried INTO His holy room*, *a lamp you never turned on in there*. Requiring the adult phrasing would have forced the child band to adopt language written for adults, in the name of a gate meant to protect it.
+
+So the synthesis check tests the **teaching** rather than one phrasing, accepting either form. That is the mirror image of the mistake this pass keeps catching: L95's check watched a label instead of the thing; here a naive check would have watched the adult's *wording* instead of the child's *meaning*. Both failures are the same error pointed in opposite directions — **a check must watch the thing, not a token standing in for it.**
+
+### The synthesis is the payoff, so every band must reach it
+
+Movement nine is what turns the standard from a rulebook into the upkeep of an occupied house: if you are a temple, an uncast-down thought is defilement carried **into the holy place**, and the study you never do is a lamp you never light in it. The gate requires all five parts in every band — the defilement, the unlit lamp, *not a leash*, the temple-made-of-temples, and the closing if-then (*Obey Him, and the temple stays His*). A band carrying the nine movements but stopping short of the synthesis would read as a list of demands with its reason removed.
+
+Also required in every band: that the command is **casting down and taking captive, not avoidance** — the thought's arrival is not itself the sin (the teen and senior bands quote `"avoid bad thoughts"` in order to deny it); that an unfought thought is **a deed already begun**; and that the **study never done is not neutral**, restated as *a thought never captured and a deed never done*.
+
+### The senior band as a reader's lesson
+
+Six checks turning each movement toward a reader who has the decades: **not grievous** is weighed as a statement about the commandments rather than about the reader's vigour; a thought fed for forty years has a **deeper channel** than one fed for four, which makes the casting down harder and the command no less addressed to him; **long acquaintance with the Word is not study undertaken this week**; a quiet obedience nobody notices is **still load the body is carrying** because of him; ownership is settled even of a body that has **begun to fail** (*ye are not your own*); and a stone already laid is **still bearing weight**.
+
+Two generic `God` instances were lifted from our own prose, where it supplied the subject before a Romans 2:6 quotation (*God "will render to every man according to his deeds"*) — now `He`, since the verse itself reads *Who will render* (DR-0210).
+
+Proven to catch eleven ways, every break made global inside L92's block: the marks put back on our compression (fails two checks), and each of the defilement, unlit lamp, not-a-leash, temple-made-of-temples, closing if-then, deed-already-begun, not-neutral, omission-restated, senior-as-notes and still-bearing-weight lines removed.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
