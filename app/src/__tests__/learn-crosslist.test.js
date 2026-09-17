@@ -79,7 +79,13 @@ describe('a pointer, never a copy', () => {
     // 2026-09-17 — the Business department's rent-to-own slice, 8 lessons
     // (DR-0454) — which legitimately raises both numbers. It moved again the
     // same day for the Development slice, another 8 real lessons. That is the
-    // ONLY reason this pin may ever move: a real course entering the catalog.
+    // ONLY reason this pin may ever move: real content entering the catalog.
+    // It moved to 27 / 504 on 2026-09-17 for L165 ("I Always Had Love",
+    // DR-0456) — a real LESSON added to an existing course, so the course
+    // count is unchanged at 27 while the lesson total rises by exactly one.
+    // That case was not spelled out when this comment was written and is
+    // written in now: a new course moves both numbers, a new lesson in an
+    // existing course moves only the second, and nothing else may move either.
     //
     // What this test exists to catch has NOT changed and is unaffected: a
     // cross-listing is a POINTER, so putting a lesson on another department's
@@ -87,9 +93,9 @@ describe('a pointer, never a copy', () => {
     // cross-listing ever inflates them, this fails — and the numbers above are
     // the catalog's own, so the check still has teeth after the bump.
     expect(courses).toHaveLength(27);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(503);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(504);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(503);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(504);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
