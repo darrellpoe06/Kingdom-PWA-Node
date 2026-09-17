@@ -975,6 +975,51 @@ The senior band spells out the mechanism: an opponent who catches the exaggerate
 
 Proven-to-catch three ways: the Deuteronomy 1:17 apostrophe restored, the 138.2 specifics dropped from the youth band, and a real Scripture phrase added to the allowlist.
 
+## L97 — A Just Weight for Work, Money, and Words (2026-09-17)
+
+Honouring faithful service, one standard for every person, and verifying every claim (adult prose 669 by the gate's counter; floors child 335, others 402):
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 162 · 0.24 | **706 · 1.12** |
+| youth | missing | **661 · 1.04** (new) |
+| teen | 275 · 0.41 | **666 · 1.05** |
+| senior | 381 · 0.57 | **920 · 1.45** |
+
+**Fifteenth in a row** on the facilitator's-notes senior band, and the **seventh inverted band ordering**: before, child 6.5 against teen 6.1; after, 4.1 / 5.1 / 6.8 / 8.2 ascending, and the reading-level baseline's inverted list shrinks 24 → 23. Fullness baseline 98 → 97.
+
+### This lesson is why the pass changed method mid-stream
+
+Its audit turned up `"Prove all things,"` — the **identical** comma-for-semicolon defect fixed in L98 one commit earlier. The same verse, quoted the same wrong way, in the sibling lesson. Finding a defect twice in two adjacent lessons meant lesson-by-lesson auditing was the wrong instrument for a class that recurs, so the catalog was measured at once (28,695 spans; 35 apostrophes fixed catalog-wide with their own gate; 146 terminal-punctuation cases surfaced rather than swept).
+
+Five defects in this module, all verified against the corpus before anything was authored:
+
+| finding | class |
+|---|---|
+| Ecclesiastes 9:16 `the poor man's wisdom` | ASCII apostrophe (fixed by the catalog sweep) |
+| Acts 10:34 `...persons.` | period for a **colon** |
+| Acts 10:34 `...persons,` | comma for a **colon** |
+| 1 Samuel 16:7 `...on the heart,` | comma for a period |
+| 1 Thessalonians 5:21 `Prove all things,` | comma for a semicolon |
+
+**The policy, stated so it is not mistaken for inconsistency:** a lesson entering the gated set takes the **strict** reading — a quotation ends where the verse's own punctuation falls, and any mark the host sentence wants goes outside the closing quote. The other ~157 lessons keep the convention until that standard is decided. The catalog is mixed on purpose, and this lesson is on the strict side.
+
+**An eighth false attribution.** `"searching out" (Proverbs 18:17)` — our nominalisation of a verse that reads *his neighbour cometh and searcheth him*. Marks off. The rewritten bands drop the nominalisation entirely in favour of plain words (*let the process be opened and searched*), which is better than either form.
+
+### Two of my three break tests were no-ops, and the cause is one I have hit before
+
+Proving the new checks caught, two "breaks" left the suite green. That is not a passing gate; it is proven-to-catch theatre, which DR-0076 §3 names outright. Both failed for the same root cause: **my replacement edited text outside the lesson under test.** One targeted a phrase my rewritten band no longer contained, so the edit was a no-op. The other used a whole-file `replace(..., 1)`, which hit the first occurrence anywhere in the catalog — and **L90 is literally named `no-respecter-of-persons`**, so the break edited L90 while L97's gate was watching L97.
+
+That is the L103 failure in a third costume: a check pointed at the wrong subject manufactures confidence exactly as effectively as one that is too lenient. The fix is structural and now standing practice: **a break test is scoped to the block under test and asserts that the edit landed** (`assert n > 0, 'BREAK IS A NO-OP'`) before the result is trusted either way. Re-run under that discipline, all three caught — the nominalisation by two independent checks.
+
+### What the gate now requires in every band
+
+The **self-correction, whole, including that we were the ones corrected.** It was said the video mislabelled the official as a Congressman, insisting he was Florida's CFO. We searched it out, and the correction itself was out of date: he WAS Florida CFO through March 2025, then resigned and won a U.S. House seat, taking office in April 2025 — so Congressman was correct. The lesson is emphatically not who won that exchange; it is that a just weight for words checks **every** claim, the video's, the world's, the correction's, and our own. Every band must carry both dates (so a reader can check it), the conclusion, and the words *our own*. The senior band adds the general principle: **a correction is not automatically more reliable than the thing it corrects; it is simply another claim, owed the same weighing.**
+
+**Both commands at once, and that this is not fence-sitting.** Name the real disparity AND refuse to convict a heart nobody can see. The lesson says it plainly and the gate requires it: fence-sitting declines to say anything, while this says two things and refuses to drop either because the other is easier to shout. Also required: **asking for an accounting stays distinct from declaring guilt** — the discipline that lets the lesson touch a live dispute it does not pretend to resolve.
+
+Proven-to-catch three ways, all verified to land inside L97: the marks put back on our nominalisation (fails two checks), the correction dates dropped from a band, and the Acts 10:34 comma restored.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
