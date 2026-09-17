@@ -1355,6 +1355,192 @@ Five generic `God` instances were lifted from our own prose and two benefit/faci
 
 Proven to catch ten ways, every break global inside L91's block: the marks put back on the paper's claim (fails two checks), the not-verified clause deleted, the verbatim marker deleted (fails two), the knowledge/wisdom distinction collapsed, the invitation-not-hostility line removed, the light-nobody-obeys line removed (fails two), the keeping/plundering distinction removed, the before-there-was-one clause removed, the senior band turned back into notes, and the senior band's hands-the-searching-on line removed.
 
+### L90 — No respecter of persons: the image, the unrighteous decree, and the Judge (2026-09-17)
+
+The most politically live lesson in the catalog, and the one whose base prose was
+already the most carefully built: nine movements, a two-tier honesty discipline
+written into the text, the landmark analogy explicitly marked as "a picture, not
+a proof-text about modern maps", and a flat refusal to name a march, a group or a
+party — "The Word commissions the DUTY. The HOW — lawful, peaceable, honest — is
+yours to walk out under the King."
+
+Adult prose 1136 by the gate's counter; floors child 568, others 682.
+
+```
+  band     before                    after
+  child    217 / 0.19 / FK 9.8       1143 / 1.01 / FK 5.2
+  youth    missing                   1274 / 1.12 / FK 6.3   (new)
+  teen     435 / 0.38 / FK 7.8       1512 / 1.33 / FK 9.1
+  senior   524 / 0.46 / FK 12.2      1414 / 1.24 / FK 11.1
+```
+
+A REAL INVERSION, NOT A NARROW GAP. The child band read at grade 9.8 — TWO FULL
+GRADES HARDER than the teen band's 7.8, on a lesson about voting rights and an
+unrighteous decree. The 6-10 year old was being handed the hardest prose in the
+lesson. After: a genuine ladder, 5.2 / 6.3 / 9.1 / 11.1.
+
+The ladder had to be built against a measured ceiling rather than an assumed one.
+The adult base is only FK 8.2, because its prose is deliberately punchy. So the
+first youth draft, which was the adult prose lightly edited, scored 8.0 — an
+11-14 band reading at the adult grade, a defect of its own. And the first teen
+draft scored 7.5, BELOW that youth band, because writing plainly for a teenager
+fragmented the prose into short sentences. Four measured passes to get the four
+bands into their own registers; every intermediate reading is recorded above the
+tuning scripts rather than smoothed over.
+
+ONE DEFECT IN THE WORD, AND IT CARRIED TWO ALTERATIONS INSIDE A SINGLE PAIR OF
+QUOTATION MARKS:
+
+```
+  bigIdea   the law itself is what "turn[s] aside the needy from judgment."
+  Isaiah 10:2  To turn aside the needy from judgment, and to take away ...
+```
+
+The bracket changed the word and the period invented a sentence end where the
+verse continues. The claim is kept and the marks are gone, which is exactly what
+the base prose already does everywhere else it says the same thing — and the full
+verse is still quoted, with its own punctuation, two sentences earlier.
+
+Every other flagged span was legitimate and is now named in the gate's allowlist
+by category: the creator's own terms of art (`packing and cracking`, `partisan
+proxy`), the video's attributed phrase (`complete exclusion,`), a title (`1000
+Miles to Memphis`), our own claim quoted back in the quiz (`a landmark waiting to
+be moved again`), our provenance marker (`as reported.`), a word scare-quoted by
+us (`Legal`), the child band's signposted gloss, and the fourth category this
+lesson depends on most — A PHRASE QUOTED IN ORDER TO BE DENIED. `well, some
+people say` appears in quotation marks precisely because the lesson refuses it;
+removing the marks would make us appear to assert it.
+
+EIGHT REGISTER MISREADS IN ONE LESSON — the most in the pass, and the reason is
+instructive. The checks first flagged thirteen properties as missing from one
+band or another. Every single one was present, in that band's own words: the
+child teaches the any-hand/any-colour/any-side clause as "no matter whose hand is
+doing it, no matter what colour they are, and no matter which side they are on";
+the senior states impartiality's both-directions harder than the word "both"
+does, as prohibiting favour to the poor "precisely as firmly as" honour to the
+mighty; the child names the Three-Fifths MECHANISM without the proper noun, which
+is the right call for a six-year-old; and the senior drops the pen image for one
+drawn from his own decades, a monopoly "merely transferred to new management
+re-arms the identical disease beneath a friendlier name".
+
+The pattern is now clear enough to state as a finding: THE MORE GENUINELY
+DISTINCT THE BANDS' REGISTERS ARE, THE MORE A TOKEN-MATCHING CHECK MISREADS
+DIFFERENCE AS ABSENCE. This lesson's bands are the most separated in the pass —
+that was the whole point of fixing the inversion — and it produced the most
+misreads. Each check was rewritten to watch the TEACHING and accept any register,
+never to accept less teaching. Three lessons running (L92, L91, L90) the
+measurement's output has needed READING rather than acting on, and here it needed
+it thirteen times.
+
+REQUIRED IN ALL FOUR BANDS, because a lesson that holds its discipline only at
+adult level does not hold it at all, and a child is the reader least able to
+supply a missing caveat for himself:
+
+  - THE STANDARD SET ABOVE THE CASE, convicting on every side. A standard that
+    only ever convicts the other side is a loyalty, not a standard — and the
+    teen and senior bands now say that in as many words.
+  - IMPARTIALITY IN BOTH DIRECTIONS (Leviticus 19:15), with the poor named
+    FIRST. A scale tilted out of compassion is still a tilted scale.
+  - THE TWO TIERS OF HONESTY, both halves: documented harm stated plainly as
+    established historical fact (DR-0100 — under-claiming a verified truth is as
+    much a failure as over-claiming), and the unverified 2026 specifics carried
+    as reported, neither settled nor dismissed (DR-0076).
+  - THE PRINCIPLE DOES NOT NEED THE HEADLINE. The sentence that lets the lesson
+    be honest about an unverifiable ruling WITHOUT going quiet on the Word.
+  - THE ANALOGY MARKED AS A PICTURE, so nobody can cite this lesson as Scripture
+    ruling on a district map.
+  - THE DUTY COMMISSIONED, THE SPECIFIC ACTION REFUSED — and the refusal stated,
+    so the silence reads as principle rather than timidity.
+  - A POWER-SWAP IS NOT ENOUGH, because the root is the heart.
+  - THE JUDGE WHO GUARANTEES JUSTICE, so the reader labours without despair AND
+    without vengeance.
+
+THE GATE NOW AUDITS ITSELF. Every verse was FETCHED from the repo's own KJV this
+session, the full verse recorded beside each cut fragment so a future reader can
+check that the cut did not change the sense, and — new in this gate — every
+fragment the file pins is asserted to BE corpus text. That closes, for this
+lesson, the hole the `re-review: 2026-10-24` item names: a gate can otherwise pin
+a drifted fragment, watch the prose match it, and pass while protecting the
+alteration.
+
+ONE HONEST LIMIT RECORDED RATHER THAN HIDDEN. Our own denied phrase `some say` is
+also, by pure coincidence, a substring of Luke 9:19 ("but some say, Elias"), so
+it passes the verbatim check for the wrong reason. Nothing is wrong here — it is
+our phrase either way — but it is a live example of why the whole-span gate asks
+a different question than "is this a quotation", and it is the argument for the
+verse-boundary check tracked at `re-review: 2026-10-08`.
+
+The twenty-second facilitator's-notes senior band turned into a reader's lesson:
+it opened `Teach this the way the platform exists to teach:`, notes handed to a
+reader as though he were staff. It now addresses him and uses the decades he
+actually has — he has watched this argument come around before and watched more
+than one generation be certain it had found the final version of it; the long
+memory is named as an asset; the power-swap is proven by his own lifetime; and
+Galatians 6:9 is aimed where it belongs, at the long-serving rather than the
+newly zealous.
+
+One generic `God` lifted from a benefit line into His covenant name (DR-0210).
+The child band's `neighbour's landmark` corrected to the typographic apostrophe.
+
+All 34 load-bearing Scripture fragments carry in all four bands — the first
+lesson in this pass where the shared-fragment measurement is clean across the
+board, with no gaps to read past.
+
+Proven to catch FOURTEEN ways, every break global inside L90's block and every
+one asserting the edit landed: the bracket put back on Isaiah 10:2, the
+any-hand clause deleted, Leviticus 19:15 stripped of the poor-and-mighty clause,
+the both-directions teaching removed, tier one softened, tier two's as-reported
+marker removed, the principle-not-the-headline discipline deleted, the analogy no
+longer marked as a picture, the refusal to name a march deleted, Jeremiah 17:9
+removed, Genesis 18:25 removed, the senior band turned back into notes, a quoted
+verse altered mid-span, and the child band's gloss signpost removed so the gloss
+would read as the verse. 14/14.
+
+A NEAR-MISS, RECORDED BECAUSE IT WOULD HAVE BEEN INVISIBLE. This gate was
+written as though L90 had none, and it OVERWROTE a 210-line gate that already
+existed. The replacement is broader — 59 checks against 12, and every property
+now required in all four bands rather than only in the adult prose — but broader
+is not a superset. Four of the old file's checks guarded specifics nothing in the
+new one touched: the 2026 case named as reported (`Louisiana v. Callais`), the
+early-1900s purge (`complete exclusion`), the meritocracy claim, and the icons
+the creator invoked (Malcolm X, Fred Hampton, Martin Luther King Jr. in Memphis
+for the sanitation workers). Dropping them silently would have been a REGRESSION
+HIDDEN INSIDE AN IMPROVEMENT — the hardest kind to notice, because every number
+in the report goes up. All of them are restored, in a block that says on its face
+where they came from.
+
+The restore produced two further findings, both caught by breaking the restored
+checks rather than by reading them:
+
+  1. THE MOVEMENT HEADINGS WERE ONLY EVER PINNED BY PREFIX, so a heading could be
+     rewritten past its first few words and no check would notice. Rewriting
+     `1) THE IMAGE AND THE ONE BLOOD — WHERE EVERY VOTE'S WORTH BEGINS` to
+     `... — WHY OUR SIDE IS RIGHT` left the old gate green. They are now pinned
+     at FULL length. The reason the old gate settled for prefixes is worth
+     knowing: the source stores `\'` for an apostrophe inside a single-quoted JS
+     string, so a full-length pin containing `VOTE'S` never matches the raw
+     slice. The fix is to match an unescaped view, not to shorten the pin.
+
+  2. A LESSON-WIDE `toContain` CANNOT PROVE WHERE A PROPERTY LIVES — AND WITH
+     FOUR FULL BANDS IT BARELY PROVES ANYTHING. Two restored checks stayed GREEN
+     under a real break: removing the non-verification beside the named 2026
+     case, and removing the meritocracy claim, both from the bigIdea. The bands'
+     own copies of those phrases held the lesson-wide check up. This is a direct
+     side effect of the pass itself: every band made full is another site
+     repeating the lesson's phrases, so an unscoped contains-check gets weaker
+     with every lesson completed. Both are now scoped to the bigIdea, the field
+     that has to carry them. The general lesson applies to every gate in this
+     pass and is worth a sweep.
+
+Proven to catch a further seven ways on the restored checks alone — the
+standard-above-the-video opening deleted, a heading rewritten past its prefix,
+the named case stripped of its caveat, the purge dropped, the icons dropped, the
+meritocracy claim dropped, and the partisan refusal reworded. 7/7, for 21/21
+across both break runs.
+
+Fullness baseline 91 -> 90. Gate: 59 checks, replacing a 210-line predecessor
+whose every check is carried forward.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
