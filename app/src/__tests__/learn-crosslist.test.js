@@ -71,13 +71,35 @@ describe('a pointer, never a copy', () => {
   });
 
   it('leaves the program totals exactly where they were', () => {
-    // The department shelf grows; the catalog does not. 25 courses / 487
-    // lessons, measured 2026-09-16 (486 + Sovereign A.I. week 22),
-    // unchanged by any cross-listing.
-    expect(courses).toHaveLength(25);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(487);
+    // The department shelf grows; the catalog does not. 26 courses / 495
+    // lessons, measured 2026-09-17.
+    //
+    // WHY THIS PIN MOVED, because a pin that moves silently is worthless. It
+    // read 25 / 487 (measured 2026-09-16). A genuinely NEW course was added on
+    // 2026-09-17 — the Business department's rent-to-own slice, 8 lessons
+    // (DR-0454) — which legitimately raises both numbers. That is the ONLY
+    // reason this pin may ever move: a real course entering the catalog.
+    //
+    // What this test exists to catch has NOT changed and is unaffected: a
+    // cross-listing is a POINTER, so putting a lesson on another department's
+    // shelf must never add a course or a lesson to these totals. If a
+    // cross-listing ever inflates them, this fails — and the numbers above are
+    // the catalog's own, so the check still has teeth after the bump.
+    expect(courses).toHaveLength(26);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(495);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(487);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(495);
+  });
+
+  it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
+    // Proven rather than asserted: sum the department shelves WITH every
+    // cross-listing in force, and it must equal the plain catalog total. This
+    // is the property the pin above is protecting, measured directly, so the
+    // protection survives any future re-pinning.
+    const catalogLessons = courses.reduce((t, c) => t + courseLessonCount(c), 0);
+    const shelfLessons = learnDepartments(courses).reduce((t, d) => t + d.lessons, 0);
+    expect(shelfLessons, 'a cross-listing has duplicated a lesson into the totals').toBe(catalogLessons);
+    expect(CROSS_LISTINGS.length, 'there should be cross-listings in force for this to mean anything').toBeGreaterThan(0);
   });
 
   it('every declared department is a real department of the catalog', () => {

@@ -38,6 +38,7 @@ import { ECON_META, ECON_SESSION_FLOW, buildEconSchedule, econProgressSummary, e
 import { PV_META, PV_SESSION_FLOW, buildPvSchedule, pvProgressSummary, exportPvCurriculumMarkdown, PV_INTEREST_TAG, PV_HELPER_TAG, PV_TUTOR_META } from './prophetic-voices.js';
 import { LEGACY_PROVISIONS_META, LEGACY_PROVISIONS_SESSION_FLOW, buildLegacyProvisionsSchedule, legacyProvisionsProgressSummary, exportLegacyProvisionsCurriculumMarkdown, LEGACY_PROVISIONS_INTEREST_TAG, LEGACY_PROVISIONS_HELPER_TAG, LEGACY_PROVISIONS_TUTOR_META } from './legacy-provisions-course.js';
 import { MATHEMATICS_META, MATHEMATICS_SESSION_FLOW, buildMathematicsSchedule, mathematicsProgressSummary, exportMathematicsCurriculumMarkdown, MATHEMATICS_INTEREST_TAG, MATHEMATICS_HELPER_TAG, MATHEMATICS_TUTOR_META } from './mathematics-class.js';
+import { RTO_BUSINESS_META, RTO_BUSINESS_SESSION_FLOW, buildRtoBusinessSchedule, rtoBusinessProgressSummary, exportRtoBusinessCurriculumMarkdown, RTO_BUSINESS_INTEREST_TAG, RTO_BUSINESS_HELPER_TAG, RTO_BUSINESS_TUTOR_META } from './rent-to-own-business-class.js';
 import { HEALTHY_LIVING_META, HEALTHY_LIVING_SESSION_FLOW, buildHealthyLivingSchedule, healthyLivingProgressSummary, exportHealthyLivingCurriculumMarkdown, HEALTHY_LIVING_INTEREST_TAG, HEALTHY_LIVING_HELPER_TAG, HEALTHY_LIVING_TUTOR_META } from './healthy-living-course.js';
 
 // Every finished course, in picker order. `wiring: 'cohort'` = the host owns a
@@ -125,6 +126,25 @@ export const LEARN_CATALOG = [
       blurb: 'Bigger numbers, ratio and proportion, the geometry of the temple, the statistics of the census — tell Darrell what you or your learner is ready for next and he will add it, every number from the Word, the working shown.',
       cta: 'I want more mathematics',
       sent: '✓ Sent — Darrell will see it. He telleth the number of the stars.',
+    },
+  },
+  // BUSINESS — the department Darrell opened 2026-09-17 ("I would like to have
+  // a whole business suite of courses"), founded on the rent-to-own operating
+  // system he worked every seat of. The department name is the REGISTRY'S to
+  // declare, never retyped by a descriptor (see catalogCategory below — the
+  // 2026-09-16 phantom "General Studies" miss).
+  {
+    key: 'rent-to-own-business', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...RTO_BUSINESS_META, key: 'rent-to-own-business', category: 'Business' }, sessionFlow: RTO_BUSINESS_SESSION_FLOW,
+    buildScheduleRows: () => buildRtoBusinessSchedule(), progressSummary: (p) => rtoBusinessProgressSummary(p),
+    exportMarkdown: () => exportRtoBusinessCurriculumMarkdown(), downloadName: 'rent-to-own-business-operating-systems.md',
+    interestTag: RTO_BUSINESS_INTEREST_TAG, helperTag: RTO_BUSINESS_HELPER_TAG, tutorCourseMeta: RTO_BUSINESS_TUTOR_META,
+    interestText: (who) => `${RTO_BUSINESS_INTEREST_TAG} ${who} wants more of the business suite.`,
+    interestCopy: {
+      heading: 'Want more of the business suite?',
+      blurb: 'Slice 1 is the rent-to-own operating system — the seats, the model and the just weight, inventory control, sales, collections, customer service, covenant over contract, and marketing. Tell Darrell which part of running a business you need next and he will add it, taught from the floor with the Word above it.',
+      cta: 'I want more business lessons',
+      sent: '✓ Sent — Darrell will see it. Seest thou a man diligent in his business?',
     },
   },
   {
