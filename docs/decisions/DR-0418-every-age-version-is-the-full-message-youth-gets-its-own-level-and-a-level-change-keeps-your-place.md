@@ -638,6 +638,23 @@ Every band now carries all six movements rather than a subset, and the asymmetry
 
 **The two gates added to L111 the same day were carried here, and both immediately found real work.** The span gate caught **Matthew 7:15 quoted with an ASCII apostrophe** where the corpus carries U+2019 — `sheep's` for `sheep’s` — an in-quote alteration of the Word that had been shipping. The identical altered quotation was found in **L102** and restored there too: this is not a style sweep but a byte-for-byte restoration to the corpus, which is the DR-0076 bright line working in the direction it was written for. The voice check caught the generic name in the child band's prose. One correction to my own pin while writing the gate, worth recording because it is the same error class the gate exists to prevent: I first pinned `"like a roaring lion"` as a drift, and **it is in the corpus** (Ezekiel 22:25, of the prophets in her midst). A corpus-wide phrase search would have called a real reading a drift, so the pin is now the 1 Peter 5:8 clause as a whole, which is what the lesson's teaching on the word AS actually rests on. Proven-to-catch three ways: the ASCII apostrophe put back, the generic name put back into one sentence, and the senior band returned to its notes. Reading level child 0.8 / teen 6.5 / senior 9.2, ascending. Fullness baseline 111 → 110.
 
+## L109 — the forty-fourth full lesson (2026-09-17)
+
+How We Know Yahweh's Love: experienced, not only believed — taste, see, hear, touch, at every age (adult prose 523 by the gate's counter; floors child 262, others 314):
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 137 · 0.26 | **352 · 0.67** |
+| youth | missing | **374 · 0.72** (new) |
+| teen | 122 · 0.23 | **477 · 0.91** |
+| senior | 212 · 0.41 | **584 · 1.12** |
+
+The third lesson in a row whose senior band was **the facilitator's notes** rather than a senior reader's lesson — opening "Teach as experiential knowledge of Yahweh's Love (companion to L105 and L107)", ordinal movements addressed to whoever was leading, and closing on "lead the group." Three in a row is no longer a coincidence to note in passing; it is a pattern in how these lessons were originally built, and every remaining lesson in this pass should be expected to carry it until proven otherwise. The notes stay in `facilitator`; the band is now for the reader, and a gate holds both halves.
+
+All four bands now carry the whole arc rather than a subset: taste first (and the order in Psalms 34:8 taught as deliberate — contact precedes the clear look), the cross as the sight that settles it with the word *commendeth* weighed as demonstration entered into evidence, the incarnation, creation's own testimony, the Love spoken and then sung over you (Zephaniah 3:17 read slowly rather than cited), the Love poured in and holding and healing and literally handled (Luke 24:39), the paradox of a love that passeth knowledge which we are nonetheless told to know — sat with rather than resolved, because the instruction is only coherent if the knowing is experiential — the order in 1 John 4:16 (known AND believed, in that sequence), the proof required outward in deed, and both ends of a life on purpose so nobody excuses themselves: the children He took up Himself, and the gray head He carries and does not hand off. The child band closes on a week of practice, one sense per day, with the point named plainly: you are not making His love happen, you are noticing what is already there.
+
+**This lesson arrived clean on both new checks — 109 spans verbatim and not one generic name in our prose — and the checks were added anyway.** That is the discipline worth recording: a property that holds today and is not checked is a property that breaks quietly tomorrow, which is precisely how L110's altered apostrophe had been shipping. Proven-to-catch three ways against real drifts that read perfectly: Psalms 34:8 with taste and see reversed, the generic name put into one sentence of our prose, and the senior band returned to its notes. Four tamper pins now guard this lesson's own hinges (the taste/see order, the singing clause, the known-and-believed order, and "hoar hairs" against a modernized "grey hairs"). Reading level child 1.7 / teen 7.4 / senior 9.9, ascending. Fullness baseline 110 → 109.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
