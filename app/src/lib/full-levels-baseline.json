@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 163,
-  "lessonsShort": 99,
+  "lessonsShort": 98,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -570,12 +570,6 @@
       "senior"
     ],
     "ll97-a-just-weight-for-work-money-and-words-faithful-service-and-verifying-every-claim": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll98-the-just-judge-equal-justice-and-a-just-weight-for-the-numbers": [
       "child",
       "youth",
       "teen",

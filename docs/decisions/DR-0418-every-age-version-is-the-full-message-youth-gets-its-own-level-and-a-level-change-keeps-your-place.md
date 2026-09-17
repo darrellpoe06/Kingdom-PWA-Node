@@ -924,6 +924,57 @@ The senior band also named a specific show as the panel's source. The reader's b
 
 Proven-to-catch three ways: the marks put back on our own phrase (fails **two** checks), the Titus 2:13 full stop restored, and the worship observation removed from the teen band. Fullness baseline 100 → 99.
 
+## L98 — The Judge of All the Earth (2026-09-17)
+
+Equal justice, real partiality named, and a just weight for the numbers (adult prose 626 by the gate's counter before the fixes; floors child 313, others 376):
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 158 · 0.25 | **684 · 1.14** |
+| youth | missing | **683 · 1.14** (new) |
+| teen | 218 · 0.35 | **627 · 1.05** |
+| senior | 341 · 0.54 | **958 · 1.60** |
+
+**Fourteenth in a row** on the facilitator's-notes senior band, and the **sixth inverted band ordering**: before, child 6.6 against teen 6.3; after, 3.0 / 4.9 / 7.4 / 9.4 ascending, and the reading-level baseline's inverted list shrinks 25 → 24. Fullness baseline 99 → 98.
+
+### Five altered quotations, found before a word was authored
+
+| finding | class | instances |
+|---|---|---|
+| Deuteronomy 1:17 `is God's` | ASCII apostrophe for U+2019 | 3 |
+| Leviticus 19:15 `...the mighty.` | borrowed full stop | 1 |
+| 1 Thessalonians 5:21 `Prove all things,` | comma for semicolon | 1 |
+
+The 1 Thessalonians comma is a **new variant**, and the pattern is now hard to call accidental. L99 gave period-for-semicolon (Titus 2:13) and comma-for-period (Revelation 22:20); this is comma-for-semicolon — a third pairing of the same two marks. The common cause looks systematic rather than careless: a clause is quoted out of a verse that keeps going, and then closed with whatever punctuation the surrounding sentence wanted. Running total: **seventeen altered quotations in four typographic classes, plus seven false attributions.**
+
+### Four corrections to my own work, all caught by machinery rather than by my reading
+
+This lesson cost more rework than any other in the pass, and every bit of it was mine.
+
+**1. I nearly "fixed" a correct spelling into a real alteration.** The Leviticus span failed and my first reading was `honor` standing where the KJV usually carries `honour`. Wrong twice over: this corpus *does* carry `nor honor the person of the mighty`, so the spelling was right and the defect was purely the trailing full stop — **and the header of the gate file I was editing already said so**: *"this catalog's KJV reads 'honor,' not 'honour,' in Leviticus 19:15; the lesson matches the corpus."* The finding was already verified and written down exactly where I was working. Reading a gate's own header before diagnosing its failures is the cheap step I skipped. Both directions are now pinned, so the spelling can never be "corrected" into a drift.
+
+**2. I built the teen band by transforming the youth band's headings.** 655 words differing from youth by three sentences and 0.1 of a reading grade. That is not a teen band; it is youth with different numbering, and **it would have passed every gate in this repo** — the fullness measure asks whether a band is long enough, never whether it is distinct. Thrown out; youth was rewritten genuinely simpler instead, which is what produced the real 3.0 / 4.9 / 7.4 / 9.4 ladder. Worth recording because the shortcut stays available for ~98 more lessons and no machine will catch it.
+
+**3. My rewritten bands dropped verified specifics the old bands carried** — the 138.2 sentence points and the 19th Judicial Circuit — and the *pre-existing* assertions caught it. Those are tier-1 documented facts, and naming them is what makes the claim checkable, which is this lesson's entire ethic. **A rewrite that makes a verified claim vaguer is a regression even when every word of it is true.** Restored, and the gate now requires both in all four bands.
+
+**4. I broke the module.** Inserting `Florida's` as literal text into a single-quoted JS string terminated the string and the file stopped parsing. Two compounding errors made it worse: the failed command was `&&`-chained, so the snapshot I meant to take was never written, and a `git checkout` on the test file discarded the gate additions I had just authored. Recovery cost a full re-application. Three habits close it: any text inserted into that file is escaped or written apostrophe-free, a parse check runs after every edit, and snapshots are taken as their own command rather than chained behind something that can fail.
+
+### Acts 10:34 was quoted rather than lifted
+
+The voice check found eleven generic-name instances, ten of them our own prose or paraphrase (*"what God requires"*, *"where God judges the judges"*, *"God's law forbids partial judgment"*) — all now the covenant name. The eleventh was different and deserved the opposite treatment: `God is no respecter of persons (Acts 10:34)` used the verse's **exact words unquoted**. The words are Scripture, so the fix was to *quote* them, which keeps the generic name correctly inside the Word and adds an anchor instead of lifting a name that was never ours to lift.
+
+### The largest allowlist of the pass, and why it is sound
+
+This is a justice-statistics lesson, so it quotes the reel's claims in order to weigh them: `"4.5 to 6.5 times harsher"`, `"the white guy got 2 years"`, `"the Black guy got 26 years,"`, `"only difference was race"`, `"6.5x"` — plus a report title, a name, a hashtag, the two reflexes the inApp block tests against the Word, and our own sharpest line, *"an inflated truth is handed its own dismissal."* Twenty-two entries, every one asserted absent from the corpus. Quoting a claim you are about to examine is not asserting it; it is the opposite.
+
+### The hinge the gate now requires in every band
+
+> naming the real wrong does NOT require inflating it — and inflating a true injustice hands it the easiest possible way to be dismissed.
+
+The senior band spells out the mechanism: an opponent who catches the exaggerated multiple will use it to discard the documented 13–20 percent *and* the verified same-judge case along with it. Accuracy is not a concession to the other side; it is the only form in which a true accusation survives scrutiny. One check holds both DR-0100 tiers in every band, because a band keeping only the first would read as advocacy and one keeping only the second would read as dismissal — both failures of truth, in opposite directions.
+
+Proven-to-catch three ways: the Deuteronomy 1:17 apostrophe restored, the 138.2 specifics dropped from the youth band, and a real Scripture phrase added to the allowlist.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
