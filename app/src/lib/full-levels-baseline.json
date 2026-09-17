@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 163,
-  "lessonsShort": 103,
+  "lessonsShort": 102,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -26,12 +26,6 @@
       "teen"
     ],
     "ll101-the-real-champion-action-not-theory-die-once-live-forever-and-the-mind-of-christ": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll102-bold-as-a-lion-boldness-from-righteousness-not-bravado-no-fear": [
       "child",
       "youth",
       "teen",

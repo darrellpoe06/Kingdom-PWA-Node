@@ -787,6 +787,37 @@ The span gate then surfaced twelve spans that are not Scripture and should not b
 
 Proven-to-catch four ways: the ASCII apostrophe put back into 2 Corinthians 5:20, one of his quoted phrases altered (which fails two checks), the broad-way edge removed from the child band, and the senior band returned to its notes. Fullness baseline 104 → 103.
 
+## L102 — Bold as a Lion (2026-09-17)
+
+Bold as a Lion: righteousness kept by integrity, His good will live-or-die, a Word-trained mind, suffering to reign, loving enemies, and discerning the destroyer (adult prose 809 by the gate's counter; floors child 405, others 486):
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 167 · 0.21 | **501 · 0.62** |
+| youth | missing | **724 · 0.89** (new) |
+| teen | 169 · 0.21 | **807 · 1.00** |
+| senior | 456 · 0.56 | **1221 · 1.51** |
+
+**Tenth in a row** on the facilitator's-notes senior band, and this one was the most explicit yet: it opened *"Teach as boldness rightly sourced - sequel to L101, mate to L99 and the Test (Philippians 4:8), and a Scripture-voiced echo of DR-0076"* and closed on *"CLOSE:"*. A senior reader was being handed the teacher's clipboard, complete with the decision-record cross-references. The gate now refuses a senior band that names an `L99`–`L109` sibling, a `DR-####`, or that opening, while asserting the facilitator notes still exist where they belong.
+
+Twelve movements, and the gate enumerates twenty-two load-bearing quotations per band. Two checks of its own guard what gives this lesson its edge rather than merely its correctness. The first is the **diagnosis**, which is the half of Proverbs 28:1 that is easy to skip: nobody is chasing, and he runs anyway — guilt manufactures its own pursuers, so the standing of the righteous is not nerve or temperament but a settled account. A band carrying only "be bold" would have dropped the reason boldness is available at all. The second is the **not-naive half**, because loving enemies without discernment produces a doormat and discernment without love produces a cynic; the lesson's own observation that *the counterfeit is a lion too* (1 Peter 5:8) is the hinge, and it must survive into every band.
+
+**Three altered quotations of the Word, all in the adult body, all restored here** — the largest single find of the pass. Genesis 49:9 carried `lion's whelp`, Romans 14:8 carried `we are the Lord's.`, and Proverbs 16:7 carried `When a man's ways` — each an ASCII apostrophe where the KJV carries U+2019, each reading perfectly, each invisible at a glance. That makes **eight** in-quote alterations found across this pass, and it is now the single most common defect class it has surfaced. The gate proves-to-catch on all three by name.
+
+## A method correction that matters more than the three apostrophes
+
+My pre-apply auditor, run on the raw SOURCE SLICE, reported **18** non-verbatim spans for this lesson. Auditing the **parsed module field-by-field** reported **3**. The slice version was not merely noisy — it was wrong in a specific, structural way: quote pairing is sequential, so a field boundary or a `\'` escape shifts the odd/even alignment, and from that point on every "span" is an arbitrary cut of unquoted prose. Fifteen of the eighteen were phantoms.
+
+This is the delimiter-aware checker I had parked with `re-review: 2026-10-01` after L106, where the same alignment fragility made a module scan **pass before an apply and fail after** without the quotations changing. It is built now, a fortnight early, and the fix is smaller than the problem sounded: audit the **parsed** module, field by field, so there is no alignment to lose. Fifteen false findings and one genuinely hidden defect are the same bug wearing two faces, and both faces are closed by reading the data structure instead of the text that produces it. The `re-review` is discharged.
+
+## His own words are quoted here, and they stay quoted
+
+Of the three real findings none was his voice, but the field audit named fifteen spans that are not Scripture and correctly should not be: `bigIdea` carries his spoken teaching of 2026-08-29 as one attributed run — *"bold because if we live or die it was His will… His Will is Good no matter what… cry with Him when you need to, just stay Word solid… love even the enemies - they switch sides and are better family than family, Blood In Blood Out… it's amazing how much Yahweh can do with enemies"* — and a quiz question quotes two of his phrases back to the reader. They are named in the gate one by one, with the same two honesty assertions the L103 allowlist carries: his words must still be present, and none may appear in the corpus.
+
+One entry deserves naming on its own. His rendering of the anchor verse is *"the righteous are as bold as a lion"* — with an `as` the KJV does not have. That is **his voice, not a drifted quotation**, and the distinction is visible in the field itself: his paraphrase sits inside the attributed run, and two sentences later the verse is introduced *"Word first, verbatim:"* and quoted exactly. His paraphrase is rendered for meaning (DR-0331); the Word is quoted letter-for-letter. The gate asserts both halves — his phrase present, and `the righteous are as bold as a lion` absent from the corpus so the allowlist can never excuse a real drift.
+
+Proven-to-catch three ways, each in a different gate: the ASCII apostrophe put back into Romans 14:8 in the child band (which fails the span gate *and* the twelve-movement check), the generic name restored to one sentence of child prose, and the youth band cut to a summary. Fullness baseline 103 → 102.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
