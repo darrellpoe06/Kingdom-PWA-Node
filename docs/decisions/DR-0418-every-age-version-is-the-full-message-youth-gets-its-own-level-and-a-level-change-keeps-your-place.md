@@ -882,6 +882,48 @@ Three further band checks guard what a compressed version would round off: the *
 
 Proven-to-catch three ways: the contested dollar figure asserted in the senior band, the covenant name pushed into John 12:43 (four checks), and a real Scripture phrase added to the allowlist. Fullness baseline 101 → 100.
 
+## L99 — Watch and Be Ready (2026-09-17) — the largest find of the pass
+
+Watch and Be Ready: no date-setting, a sober word on A.I. and prophecy, and the blessed hope (adult prose 672 by the gate's counter; floors child 336, others 404):
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 131 · 0.19 | **750 · 1.12** |
+| youth | missing | **718 · 1.07** (new) |
+| teen | 199 · 0.30 | **716 · 1.07** |
+| senior | 299 · 0.44 | **1007 · 1.50** |
+
+**Thirteenth in a row** on the facilitator's-notes senior band, and the **fifth inverted band ordering**: before, child 5.2 against teen 4.3; after, 3.1 / 4.5 / 4.7 / 6.5 ascending, and the reading-level baseline's inverted list shrinks 26 → 25.
+
+### Our own phrase was presented AS Scripture, six times
+
+This is the most consequential find of the pass, and it was not an altered quotation at all. `"found so doing"` appeared **in quotation marks in six places** — `inApp`, a benefit, a quiz explanation, two facilitator fields and a discussion prompt — and in **every case a verse reference stood immediately beside it**: `"found so doing" (Matthew 24:46)`.
+
+The KJV does not say that. It says *shall find so doing* — and the adult body of this very lesson quotes Matthew 24:45-46 correctly. So a reader met quotation marks, a phrase, and a chapter-and-verse citation, and drew the only reasonable conclusion available to them: that they were reading Matthew 24:46. They were reading our participial recasting of it, one word off.
+
+That is the **L108 class at its worst**. L108 had one phrase of our own wearing marks beside references; this had six, and unlike L108's the phrase is a *near-miss of a real verse*, which makes it far likelier to be believed and repeated by someone who trusts us. The fix is L108's: the marks come off, the phrase stays as ours, and the reference remains the honest allusion pointer it always was. The gate now pins both halves — the quoted form may never return, and the phrase itself must still be present.
+
+### Two genuine in-quote alterations came with it, both punctuation
+
+- **Titus 2:13** in `anchor.theme` closed with a full stop where the KJV carries a **semicolon** and continues (*"...Jesus Christ; Who gave himself for us..."*). Truncated to the verbatim clause with no terminal mark — the same fix L101's Malachi 3:6 took.
+- **Revelation 22:20** in a quiz option closed with a **comma** where the KJV carries a full stop. A third punctuation variant, and the exact mirror of L101's: there a period was *borrowed*, here a period was *replaced*.
+
+**Running total for the pass: twelve in-quote alterations of the Word** in three typographic classes (eight ASCII apostrophes, two borrowed full stops, one swapped-out full stop), **plus six instances of our own phrase falsely attributed.** The second category is the more dangerous, because a gate that only compares quoted spans to the corpus catches it solely when the phrase is not *also* a corpus substring.
+
+### And that limit is real, so it is named rather than glossed
+
+The check compares each quoted span against the corpus **as a substring**. A short, common quoted word therefore always passes. This lesson quotes the single words `"when"` and `"watch"` in our own prose (*"He turns every when into a watch"*) and both are corpus substrings by coincidence, not by verification. The same coincidence is what let `"some say"` pass in L100's draft allowlist. The check is strong on quotations of any length and weak on one-word quotations; a version requiring a span to match a verse **boundary** rather than merely appear somewhere in the corpus would close it. **re-review: 2026-10-08.**
+
+### Seven movements, and five band checks
+
+Four generic-name instances were lifted from our prose and paraphrase (`bigIdea`, a benefit, a quiz explanation, a talking point — all of "leave the secret things to God"); the quoted Deuteronomy 29:29 still reads *the LORD our God* exactly, asserted in all five fields.
+
+The band checks guard what a compressed version rounds off: **the closed door is a door, not a caution** (if the Son in His earthly ministry did not name the day, then no chart, headline or A.I. milestone does — a band that quoted Matthew 24:36 and stopped would leave date-setting merely discouraged); **readiness stays undramatic**, with the stay-ready-so-you-do-not-have-to-get-ready line intact; **both halves on the imagery** — it is not wrong to WONDER, it IS wrong to make a guess into a doctrine, which is DR-0098's move of naming a question in order to teach past it; **both of the paired commands**, since most people manage only one and each failure looks like faithfulness to the person committing it; and the sharpest observation in the lesson, which a band would drop precisely because it is an aside rather than a verse — **the end-time danger Scripture names is not a machine, it is a WORSHIP, a demand for allegiance.** Drop that and the lesson becomes a lesson about technology.
+
+The senior band also named a specific show as the panel's source. The reader's band keeps the panel generic exactly as the adult body does, rather than carrying an attribution this lesson does not verify, and the gate holds that.
+
+Proven-to-catch three ways: the marks put back on our own phrase (fails **two** checks), the Titus 2:13 full stop restored, and the worship observation removed from the teen band. Fullness baseline 100 → 99.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
