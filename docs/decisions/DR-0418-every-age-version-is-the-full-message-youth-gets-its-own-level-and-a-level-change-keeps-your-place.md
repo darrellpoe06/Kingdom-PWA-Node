@@ -1184,6 +1184,50 @@ Also honest about evidence: 20 of the 53 swept spans are pinned by no gate at al
 
 Proven to catch three ways, each verified to land: the Proverbs 15:26 span that started it, `Casting all your care upon him`, and `Let no man despise thy youth`. Gate: `app/src/__tests__/living-lessons-quoted-case.test.js`, 3 checks, asserting zero.
 
+## L94 — Lord of Hosts, the Two Ways, and the Seal of Eternity (2026-09-17)
+
+The capstone, and the largest lesson in the pass: eighteen movements (adult prose 1046 by the gate's counter; floors child 523, others 628):
+
+| band | before | after (gate counter) |
+|---|---|---|
+| child | 218 · 0.21 | **1086 · 1.04** |
+| youth | missing | **1019 · 0.97** (new) |
+| teen | 303 · 0.29 | **1233 · 1.18** |
+| senior | 402 · 0.38 | **1438 · 1.37** |
+
+Eighteenth consecutive facilitator's-notes senior band. Reading levels 3.9 / 5.1 / 6.6 / 7.2 ascending; no inversion to fix. Fullness baseline 95 → 94. Gate 86 → 98 checks.
+
+**This lesson's audit is what surfaced the sixth typographic class** — its Proverbs 15:26 span carried a fabricated comma *and* a re-cased first letter at once, which is why the terminal sweep could not see it. That sweep and its gate shipped separately, ahead of these bands.
+
+### The allowlist is almost entirely one thing, and it is the lesson's own point
+
+`"the Lord of Host"` is quoted precisely because it is **wrong**: the lesson opens by correcting it, since He is the LORD of host**s**, plural — Commander of all the armies of heaven, not one host among many. Quoting an error in order to correct it is the same legitimate category as L97's `"Congressman"`, the term that was itself under examination. So the gate does more than allowlist it: it requires that the wrong form **never stands without the plural correction beside it**, in every band and in the base prose, with Isaiah 6:3 as the witness.
+
+### The child band was nineteen movements short, again
+
+The first draft cleared the word floor at 957 and would have passed every existing check while missing nineteen fragments the other three carried: Proverbs 4:18-19 (the darkness that hides what trips you, and the path that shines *more and more*), Ecclesiastes 11:3 verbatim, the `righteous still` clause of Revelation 22:11, Psalms 51:5, Colossians 1:15-16, John 1:18, John 6:38, John 6:53/57/63, Matthew 18:19, Matthew 28:19, 1 Corinthians 12:21, 3 John 1:2, Proverbs 15:22, Colossians 3:16, Proverbs 24:3, Luke 14:28 verbatim, Proverbs 12:24.
+
+All nineteen restored. **Eighty fragments are now required in every one of the four bands** — the third consecutive lesson where the shared-fragment measurement caught a thin band that length alone could not see (L96: sixteen; L95: one; L94: nineteen). That consistency is itself the argument for running the measurement before writing any gate.
+
+### What the gate now requires in every band
+
+- **The instrument problem, which is the lesson's spine.** Proverbs 16:2 is not one more verse here: self-assessment reports back clean, which is *why* an outside standard is structural rather than optional. A band quoting the verse without drawing that conclusion has kept the citation and dropped the teaching.
+- **The flesh actively opposed, not merely weak.** Romans 8:7 says *neither indeed can be* — not weak, not undecided, but constitutionally unable to submit. Softening it into weakness is the easy drift.
+- **Taste before see**, in that order, and study as eating rather than glancing.
+- **Yahweh gets the glory for the algorithm; the walker gets the fruit** — the whole point of the seventeenth movement, and the easiest clause to lose.
+
+### The senior band as a reader's lesson
+
+Six checks, because deleting the teacher's instructions does not by itself address anyone. Each movement is turned toward a reader who *has* the decades: **decades of practice do not calibrate that instrument** — they make its verdicts feel better earned; the just path shines *more and more* **the longer it is walked**, which is the promise addressed precisely to someone far along it; a narrower window is still an open one, and *open is the only word that matters*; **long familiarity with the Word is not the same as having eaten today**; receiving help is named as the **harder half** of mutual support; and a career's worth of competence in the operational disciplines is not diminished by attributing it upward — it is **finally accounted for**.
+
+### Two break tests looked like misses and were not
+
+`fleshopposed` and `seniorreader` each left the suite green. Both times my break removed the phrase from the movement but left it in the band's **closing summary**, where the check legitimately found it — so the break had not actually removed the teaching. Widening each break to every instance inside L94's block made both fail. That distinction matters and is the opposite of L95's case: there the check was too lenient; here the break was too narrow. **Neither result is trustworthy until the edit is confirmed to remove the thing itself** — which is why the harness asserts the edit landed, and why a green result after a break gets investigated rather than accepted.
+
+Two generic `God` instances were lifted from our own voice in quiz options — a distractor (*"Many valid paths that all reach God eventually"*) and the correct option's unquoted paraphrase of Romans 8:7 — both now the covenant name (DR-0210).
+
+Proven to catch eight ways, every edit verified to land inside L94's own block: the plural correction removed from the Name, the instrument-problem conclusion deleted, the flesh softened to merely weak (all instances), the taste-then-see order dropped, the glory/fruit split collapsed, the senior band turned back into notes, the senior band's decades-do-not-calibrate line removed (all instances), and one required movement deleted.
+
 ## Not decided here (surfaced, with recommendations)
 
 - The floors (0.5 / 0.6) are the recommended default. Darrell may set them higher; raising them only grows the recorded debt, never hides it.
