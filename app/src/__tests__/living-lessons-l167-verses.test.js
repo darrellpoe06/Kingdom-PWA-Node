@@ -1,6 +1,6 @@
 // @vitest-environment node
 //
-// L167 — "Be a G About It": execute the fourteen love verbs, high or low,
+// L167 — "Be a G About It": execute the fifteen love verbs, high or low,
 // because it is not about how you feel.
 //
 // Darrell, 2026-09-17, spoken into this channel (rendered for meaning, DR-0331):
@@ -12,14 +12,19 @@
 //
 // THE THREE THINGS THIS LESSON COULD MOST EASILY HAVE GOT WRONG.
 //
-//   1. THE COUNT. He said fourteen. L157, already shipped in this same series,
-//      says FIFTEEN. Both are right: 1 Corinthians 13:4-7 gives a run of
-//      clauses and never numbers them, so it is fourteen when "rejoiceth not in
-//      iniquity, but rejoiceth in the truth" counts as one item facing two ways
-//      and fifteen when its halves are listed apart. The failure available here
-//      was to assert a number and quietly contradict a shipped lesson, or to
-//      stage a disagreement (DR-0098). Instead the note is said plainly in
-//      EVERY band, and the gate checks that it is said.
+//   1. THE COUNT, AND HE HAS SINCE SETTLED IT. This lesson first shipped
+//      teaching FOURTEEN, because that is the number he said out loud, and
+//      DR-0459 recorded in writing that whether he counted item ten as one or
+//      meant a different split was NOT proven. He answered it later the same
+//      day: "Lesson 166 should have, I think, 15 love verbs. Can you correct
+//      that? If it's 15 love verbs, make sure it's accurate." It is accurate —
+//      1 Corinthians 13:4-7 gives a run of clauses and never numbers them, so
+//      it is FIFTEEN with "rejoiceth not in iniquity" and "rejoiceth in the
+//      truth" listed apart (which is also how L157 already lays them out in
+//      this same series) and FOURTEEN with those halves counted as one item
+//      facing two ways. The lesson now teaches fifteen, the honest note still
+//      names both, and the gate checks the taught count IS fifteen rather than
+//      merely that some number is stated (DR-0467).
 //   2. "IT IS NOT ABOUT HOW YOU FEEL" is the load-bearing clause, and the
 //      enemy case is what settles it. A band that listed the verbs and dropped
 //      Luke 6:35 would teach a warm feeling with extra steps.
@@ -79,7 +84,7 @@ const ourVoice = (t) => String(t).replace(ALL_SPANS, ' ').replace(/\([1-3]?\s?[A
 describe('L167 exists and is whole', () => {
   it('is registered with its own id and title', () => {
     expect(L).toBeTruthy();
-    expect(L.title).toBe('Be a G About It — Execute the Fourteen Love Verbs, High or Low, Because It Is Not About How You Feel');
+    expect(L.title).toBe('Be a G About It — Execute the Fifteen Love Verbs, High or Low, Because It Is Not About How You Feel');
   });
 
   it('carries all four bands, a quiz, benefits and facilitator notes', () => {
@@ -154,7 +159,7 @@ describe('L167 — every quoted span is the Word, verbatim, with its reference',
 
   it("DARRELL'S OWN WORDS are never dressed as Scripture", () => {
     const his = [
-      'be a g about', 'fourteen love verbs', 'how you feel',
+      'be a g about', 'fifteen love verbs', 'how you feel',
       'brings the balance', 'without a vision you perish',
     ];
     const offences = [];
@@ -168,7 +173,7 @@ describe('L167 — every quoted span is the Word, verbatim, with its reference',
   });
 });
 
-describe('L167 — the fourteen are numbered, and the COUNT is handled honestly', () => {
+describe('L167 — the fifteen are numbered, and the COUNT is handled honestly', () => {
   it('each band quotes all four verses of the list', () => {
     for (const b of BANDS) {
       for (const v of [4, 5, 6, 7]) {
@@ -197,12 +202,44 @@ describe('L167 — the fourteen are numbered, and the COUNT is handled honestly'
       // numbering punctuation (a comma in the adult registers, a full stop in
       // the child's) so ordinary uses of "one" cannot satisfy them, and their
       // positions must strictly increase.
+      // Each ordinal is paired with ITS OWN item, because a bare search for
+      // the ordinal can be satisfied by the tally sentence that follows the
+      // list ("...endureth all things. Fifteen.") rather than by a number on
+      // an item. The alternatives per item are the registers' real wordings,
+      // the child band included — never the adult's phrasing demanded of a
+      // child (DR-0467).
+      const ITEMS = [
+        /suffereth long/i,
+        /is kind/i,
+        /envieth not|not jealous|is not jealous/i,
+        /vaunteth not|does not brag/i,
+        /puffed up|stuck up/i,
+        /unseemly|is not rude/i,
+        /seeketh not her own|its own way/i,
+        /easily provoked|snap at you/i,
+        /thinketh no evil|no evil/i,
+        /rejoiceth not in iniquity|does not enjoy wrong/i,
+        /rejoiceth in the truth|enjoys truth/i,
+        /beareth all things/i,
+        /believeth all things/i,
+        /hopeth all things/i,
+        /endureth all things/i,
+      ];
       const ORDINALS = ['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven',
-        'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen'];
+        'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen'];
       let last = -1;
       for (const [i, word] of ORDINALS.entries()) {
-        const at = ours.search(new RegExp(`\\b${word}[.,]\\s`));
-        expect(at, `${b} does not number item ${i + 1} (${word})`).toBeGreaterThan(-1);
+        const re = new RegExp(`\\b${word}[.,]\\s`);
+        // Walk EVERY occurrence: the right one is the one carrying item i.
+        let at = -1;
+        for (let from = 0; from < ours.length;) {
+          const m = ours.slice(from).search(re);
+          if (m < 0) break;
+          const hit = from + m;
+          if (ITEMS[i].test(ours.slice(hit, hit + 70))) { at = hit; break; }
+          from = hit + 1;
+        }
+        expect(at, `${b} does not number item ${i + 1} (${word}) beside its own words`).toBeGreaterThan(-1);
         expect(at, `${b} numbers ${word} out of order`).toBeGreaterThan(last);
         last = at;
       }
@@ -216,13 +253,66 @@ describe('L167 — the fourteen are numbered, and the COUNT is handled honestly'
     // disagreement (DR-0098) was the other.
     for (const b of BANDS) {
       const ours = ourVoice(band(b));
+      // WINDOWED ON THE NOTE ITSELF, and this is a defect the break harness
+      // caught rather than a precaution. Searching the whole band for
+      // "fifteen" is satisfied by the numbered list and the tally, so a break
+      // that deleted the count FROM THE NOTE left this green. The note has to
+      // carry both counts in its own paragraph or it is not a note.
+      const noteAt = ours.search(/(A NOTE ON THE NUMBER|note on the number|note on that number|honest note about the number)/i);
+      expect(noteAt, `${b} has no note on the number at all`).toBeGreaterThan(-1);
+      const note = ours.slice(noteAt, noteAt + 900);
       // The pattern accepts each band's own wording ("does not number them for
       // us", "never numbers them", "nowhere numbers them itself") because the
       // teaching is what is checked, never the adult's phrasing demanded from
       // another register.
-      expect(ours, `${b} never says the text does not number them`).toMatch(/(does not|never|nowhere) numbers? them/i);
-      expect(ours, `${b} never names the other count`).toMatch(/fifteen/i);
-      expect(ours, `${b} never says neither count is wrong`).toMatch(/neither count is|Nobody is wrong|not a mistake|not an error/i);
+      expect(note, `${b}'s note never says the text does not number them`).toMatch(/(does not|never|nowhere) numbers? them/i);
+      // BOTH counts, not just one. Naming only the taught number would make
+      // the note an assertion again, which is the thing this section exists
+      // to refuse.
+      expect(note, `${b}'s note never names the count it teaches`).toMatch(/fifteen/i);
+      expect(note, `${b}'s note never names the other reading`).toMatch(/fourteen/i);
+      expect(note, `${b}'s note never says neither count is wrong`).toMatch(/neither count is|Nobody is wrong|not a mistake|not an error/i);
+    }
+  });
+
+  it('THE TAUGHT COUNT IS FIFTEEN, stated where the enumeration ends', () => {
+    // Darrell settled the count after this lesson first shipped, so the number
+    // the lesson TEACHES is now a property in its own right. Checking only
+    // that "fifteen" appears somewhere would pass on the honest note alone —
+    // which is exactly what the old fourteen-teaching version did. So the
+    // tally is checked where it does its job: immediately after the last item
+    // of the list, and it must say fifteen rather than fourteen.
+    for (const b of BANDS) {
+      const ours = ourVoice(band(b));
+      const at = ours.toLowerCase().lastIndexOf('endureth all things');
+      expect(at, `${b} never reaches the last item of the list`).toBeGreaterThan(-1);
+      const tally = ours.slice(at, at + 90);
+      expect(tally, `${b} closes the list without stating the count: ${tally}`).toMatch(/fifteen/i);
+      expect(/\bfourteen\b/i.test(tally), `${b} still tallies the list at fourteen: ${tally}`).toBe(false);
+    }
+  });
+
+  it('ITEMS TEN AND ELEVEN ARE THE TWO HALVES, numbered apart — which is WHY it is fifteen', () => {
+    // This is the whole mechanism of the correction. Fifteen is not a different
+    // list; it is this list with "rejoiceth not in iniquity" and "rejoiceth in
+    // the truth" given a number each. A band that renumbered to fifteen without
+    // actually splitting that clause would be counting to a number its own list
+    // cannot reach, so the split is checked between the two ordinals that must
+    // carry it.
+    for (const b of BANDS) {
+      const ours = ourVoice(band(b));
+      const ten = ours.search(/\bTen[.,]\s/);
+      const twelve = ours.search(/\bTwelve[.,]\s/);
+      expect(ten, `${b} does not number item ten`).toBeGreaterThan(-1);
+      expect(twelve, `${b} does not number item twelve`).toBeGreaterThan(-1);
+      expect(twelve, `${b} numbers twelve before ten`).toBeGreaterThan(ten);
+      const between = ours.slice(ten, twelve).toLowerCase();
+      expect(between, `${b} loses the first half of the rejoicing clause`)
+        .toMatch(/rejoiceth not in iniquity|does not enjoy wrong/);
+      expect(between, `${b} loses the second half of the rejoicing clause`)
+        .toMatch(/rejoiceth in the truth|enjoys truth/);
+      expect(between, `${b} does not number the second half as item eleven`)
+        .toMatch(/\beleven[.,]\s/);
     }
   });
 
