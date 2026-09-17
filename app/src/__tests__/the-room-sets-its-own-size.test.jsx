@@ -290,3 +290,41 @@ describe('a lesson can be presented on its own', () => {
     expect(learn()).toMatch(/startOnScreen=\{presentAutoStart\}/);
   });
 });
+
+// -----------------------------------------------------------------------------
+// 6. The projector follows the one dial (DR-0453)
+// -----------------------------------------------------------------------------
+// DR-0451 put the room's size on the presenting screen and left the SECOND
+// display on the default — backwards, because a projector across a hall is
+// exactly where a big step matters. Nobody stands at the projector, so it gets
+// no control of its own: the size rides the slide it is already following.
+describe('the second display carries the room s size too', () => {
+  const window_ = () => readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'AudienceWindow.jsx'), 'utf8');
+
+  it('the broadcast payload carries the scale, and a size change re-sends at once', () => {
+    const s = src('Presenter.jsx');
+    expect(s).toMatch(/slideScale: slideScaleRef\.current,/);
+    // Read through a ref so sendCurrent is not re-created by a size change...
+    expect(s).toMatch(/const slideScaleRef = useRef\(slideSize\.scale\);/);
+    // ...and named in the broadcast effect so the change does not wait for the
+    // next slide. A speaker enlarges the words because the back row cannot read
+    // THIS one.
+    expect(s).toMatch(/\[idx, age, reveal, slideSize\.scale, sendCurrent\]/);
+  });
+
+  it('the projector applies it, and a slide without one renders exactly as before', () => {
+    const s = window_();
+    expect(s).toMatch(/'--slide-scale': String\(slideScale\)/);
+    // Only published when it is a real, positive, non-default number.
+    expect(s).toMatch(/slideScale && slideScale !== 1/);
+    expect(s).toMatch(/Number\.isFinite\(Number\(slide\.slideScale\)\) && Number\(slide\.slideScale\) > 0/);
+  });
+
+  it('blanking the screen does not snap the room back to the default size', () => {
+    // The choice belongs to the session, not to one slide: a hold carries no
+    // scale, so the last one told is held.
+    const s = window_();
+    expect(s).toMatch(/lastScaleRef/);
+    expect(s).toMatch(/: lastScaleRef\.current;/);
+  });
+});

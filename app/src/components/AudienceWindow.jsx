@@ -14,7 +14,7 @@
 // Contrast (WCAG AA, on #14110E near-black): #FAF8F4 body (>16:1), #CFC9BD
 // secondary (~9:1), #C9D9A6 green + #EBA77E orange accents (>=4.5:1) — all verified
 // against the rendered tokens, all at large sizes.
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { TEACH_CHANNEL } from '../lib/teach-present.js';
 import AudienceSlide from './AudienceSlide.jsx';
 
@@ -22,6 +22,7 @@ export default function AudienceWindow() {
   const [slide, setSlide] = useState(null);
   const [hold, setHold] = useState(null);
   const [canFs, setCanFs] = useState(false);
+  const lastScaleRef = useRef(1);
   const [isFs, setIsFs] = useState(false);
 
   useEffect(() => {
@@ -51,6 +52,14 @@ export default function AudienceWindow() {
   }, []);
 
   const showHold = !!hold || !slide;
+  // Held across a blank/hold: the speaker's choice belongs to the session, not
+  // to one slide, so blanking the screen and coming back keeps the size.
+  const slideScale = (slide && Number.isFinite(Number(slide.slideScale)) && Number(slide.slideScale) > 0)
+    ? Number(slide.slideScale)
+    : lastScaleRef.current;
+  if (slide && Number.isFinite(Number(slide.slideScale)) && Number(slide.slideScale) > 0) {
+    lastScaleRef.current = Number(slide.slideScale);
+  }
 
   return (
     <div
@@ -62,6 +71,12 @@ export default function AudienceWindow() {
         display: 'flex', flexDirection: 'column', justifyContent: 'flex-start',
         padding: 'clamp(24px, 5vw, 72px)', fontFamily: '"Fraunces", Georgia, serif',
         cursor: (!showHold && isFs) ? 'none' : 'default', // only hide the pointer once projected fullscreen
+        // THE ROOM'S SIZE, SET BY THE SPEAKER, APPLIED HERE (DR-0453). The
+        // presenter's A-/A+ dial rides the broadcast, so the projector follows
+        // the one control instead of carrying a second one nobody is standing
+        // at. A slide with no scale (an older presenter, or a hold) renders at
+        // 1, exactly as this window always has.
+        ...(slideScale && slideScale !== 1 ? { '--slide-scale': String(slideScale) } : {}),
       }}
     >
       {canFs && !isFs && (
