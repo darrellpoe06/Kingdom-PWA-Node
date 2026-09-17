@@ -242,6 +242,27 @@ if (__params.get('oauth_popup') === '1') {
   // No-op when nothing is parked. Self-contained; does not touch the monolith.
   import('./lib/conference-link.js').then(({ wirePendingConferenceLink }) => { wirePendingConferenceLink(); }).catch(() => {});
 
+  // The app-wide ALERT LAYER, in its own root beside the app's.
+  //
+  // Measured 2026-09-17 against the live database: `push_subscriptions` and
+  // `push_sends` are both EMPTY and always have been, because the only control
+  // that can subscribe a device renders part-way down the Messages tab — and
+  // nothing else in the app ever said notifications were off. This layer is
+  // the offer that was missing, plus the IN-APP arrival signal that covers the
+  // case the OS doorbell declines by design (Darrell: "I was even inside the
+  // Love Corner App"). Its own root because the shell is frozen at 5355 lines
+  // and because it must not wait on the lazily-imported monolith. Every
+  // standalone boot above is excluded: none of them is a place to be offered a
+  // subscription. See components/AppAlerts.jsx + lib/notify-readiness.js.
+  import('./components/AppAlerts.jsx').then(({ default: AppAlerts }) => {
+    const host = document.createElement('div');
+    host.id = 'pt-alerts';
+    document.body.appendChild(host);
+    ReactDOM.createRoot(host).render(
+      <React.StrictMode><ErrorBoundary><AppAlerts /></ErrorBoundary></React.StrictMode>
+    );
+  }).catch(() => { /* the app itself must never fail to boot over an alert layer */ });
+
   // Full app, dynamically imported so the lightweight capture/admin/present boots
   // above never pull the entire PWA (+ its supabase/auth init) they don't need.
   import('./poe-financial-mvp-v28.jsx').then(({ default: PoeFinancialSystem }) => {

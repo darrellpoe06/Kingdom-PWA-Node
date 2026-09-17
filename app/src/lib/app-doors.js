@@ -178,6 +178,24 @@ export function messageLanding({ instanceSlug, peerUserId } = {}) {
   return base + q;
 }
 
+/**
+ * The same landing, but WITHOUT LEAVING THE DOOR THE PERSON IS ALREADY IN.
+ *
+ * `messageLanding` is for a notification arriving from outside — it must open
+ * the thread's own door, because nothing is open yet. An in-app arrival pill
+ * is the opposite case: the app is already running, and sending someone from
+ * /lovecorner/app/ to /poetech-app/ to read a message would throw away the
+ * door they chose and reload the whole app to do it. So the base is the door
+ * THIS page booted as, and only the query changes.
+ */
+export function messageLandingHere({ pathname, search, peerUserId } = {}) {
+  const base = currentDoor(pathname, search).path;
+  const peer = String(peerUserId || '');
+  return base + (UUID.test(peer)
+    ? `?view=messages&dm=${encodeURIComponent(peer)}`
+    : '?view=messages');
+}
+
 /** Where a tap on "the service is live" must land: the Church surface of that
  *  space's own door. */
 export function liveLanding({ instanceSlug } = {}) {

@@ -6,11 +6,17 @@
 // the first layer of the cure, everything the BROWSER can do without a push
 // server: a "(N)" unread badge on the tab title, and a real browser
 // Notification when a message arrives while the app is off-screen (permission
-// asked only on a user gesture, in the Messages surface). The second layer —
-// true phone push with the app fully closed (Web Push: VAPID keys minted on
-// the NAS, a service-worker push handler, a sovereign sender) — is staged
-// work; this layer ships today and degrades honestly where Notification
-// doesn't exist.
+// asked only on a user gesture). It degrades honestly where Notification does
+// not exist.
+//
+// THE SECOND LAYER SHIPPED (DR-0334 / DR-0336) and this header no longer
+// claims otherwise: true Web Push with the app fully closed — a
+// service-worker `push` handler, RFC 8291 crypto, a same-origin sender, and a
+// VAPID pair installed from a workflow — is live. What was NOT true until
+// 2026-09-17 is that anyone could find it: measured against the live database,
+// `push_subscriptions` held ZERO rows and `push_sends` zero attempts, because
+// the only control that subscribes a device sat part-way down the Messages
+// tab. See lib/notify-readiness.js + components/AppAlerts.jsx for the door.
 //
 // Occurrence-first here too: the underlying subscription's realtime stream is
 // the trigger when healthy; a slow hidden-tab heartbeat (60s) is the net so a
@@ -18,6 +24,7 @@
 
 import { onAuthChange } from './supabase.js';
 import { subscribeDirectMessages, unreadDmCount } from './direct-messages-sync.js';
+import { DM_UNREAD_EVENT, newestUnreadFrom } from './notify-readiness.js';
 
 const HIDDEN_HEARTBEAT_MS = 60000;
 
@@ -87,6 +94,24 @@ export function startDmNotifications(win = typeof window !== 'undefined' ? windo
           n.onclick = () => { try { win.focus(); } catch { /* noop */ } };
         } catch { /* Notification constructor can throw in odd contexts — never break the app */ }
       }
+      // TELL THE APP, not only the OS. This watcher is the single DM
+      // subscription in the page (a second one would mean a second realtime
+      // channel and a second heartbeat over the same rows), so every surface
+      // that needs to know an unread count moved hears it here. The visible
+      // case is the one `notifyDecision` above deliberately refuses, and
+      // before this event the app answered it with nothing at all — Darrell
+      // 2026-09-17: "I was even inside the Love Corner App... I believe it
+      // should be able to give a better response."
+      try {
+        win.dispatchEvent(new win.CustomEvent(DM_UNREAD_EVENT, {
+          detail: {
+            prev,
+            next,
+            visible: win.document?.visibilityState !== 'hidden',
+            newest: newestUnreadFrom(rows),
+          },
+        }));
+      } catch { /* a page without CustomEvent must never lose the badge above */ }
       prev = next;
     });
     // The shared heartbeat deliberately sleeps while the app is hidden; the

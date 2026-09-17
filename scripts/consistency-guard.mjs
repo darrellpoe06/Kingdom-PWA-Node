@@ -64,10 +64,48 @@ const EMOJI_RE = /[\u{2600}-\u{26FF}\u{2B00}-\u{2BFF}\u{FE0F}\u{1F000}-\u{1FAFF}
 const FIXED_PX_RE = /text-\[\d+(?:\.\d+)?px\]/g;
 // Per-surface width cap: max-w-md, max-w-[640px], max-w-screen-lg, ...
 const WIDTH_CAP_RE = /\bmax-w-(?:\[[^\]]+\]|[a-z0-9-]+)/g;
+// Any quoted span — the shape a className always takes.
+const CLASS_SPAN_RE = /"[^"]*"|'[^']*'|`[^`]*`/g;
 
 function countMatches(src, re) {
   const m = src.match(re);
   return m ? m.length : 0;
+}
+
+// A width cap on a FIXED-POSITION OVERLAY is not the drift this rule exists to
+// stop, and counting it was a blind spot rather than a standard.
+//
+// DR-0246's target is named exactly in the violation's own fix text: "tab
+// content stretches the full width... prose measure and modals live INSIDE the
+// full-width container, NEVER AS THE TAB WRAPPER." A `fixed` element is by
+// definition not a tab wrapper — it is lifted out of the tab's flow entirely
+// and painted over the app. It is the modal/toast class the rule already
+// allows, and it MUST carry a cap: a banner stretched edge-to-edge on a 27"
+// monitor is the defect, not the standard.
+//
+// The house already writes them this way — PwaPrompts' UpdatePrompt
+// (`fixed bottom-4 left-1/2 -translate-x-1/2 z-50 max-w-sm`) and InstallPrompt
+// (`fixed bottom-4 left-4 right-20 ... max-w-xs`) are both grandfathered in the
+// baseline for exactly this, which is the tell that the count, not the code,
+// was wrong. Found 2026-09-17 when the app-wide alert layer (AppAlerts.jsx, a
+// `fixed` toast) was refused by a rule that was never about it.
+//
+// Narrow on purpose: the exemption is per CLASS SPAN and requires `fixed` in
+// that same span, so a tab wrapper one line away is still counted. Comment
+// lines are stripped first, for the same reason fixedPx strips them — a header
+// that names `max-w-md` while explaining the rule is documentation, not drift.
+export function countWidthCaps(src) {
+  const code = stripCommentLines(src);
+  let total = 0;
+  for (const span of code.match(CLASS_SPAN_RE) || []) {
+    const caps = countMatches(span, WIDTH_CAP_RE);
+    if (!caps) continue;
+    if (/\bfixed\b/.test(span)) continue;
+    total += caps;
+  }
+  // A cap written outside any quoted span still counts — the exemption is for
+  // overlays, not for anything that dodges the string form.
+  return total + countMatches(code.replace(CLASS_SPAN_RE, ' '), WIDTH_CAP_RE);
 }
 
 // Per-file counts for the three drift classes. emoji is 0 for exempt files.
@@ -79,7 +117,7 @@ export function fileCounts(src, basename) {
   return {
     emoji: EMOJI_EXEMPT.has(basename) ? 0 : countMatches(src, EMOJI_RE),
     fixedPx: countMatches(stripCommentLines(src), FIXED_PX_RE),
-    widthCap: countMatches(src, WIDTH_CAP_RE),
+    widthCap: countWidthCaps(src),
   };
 }
 
