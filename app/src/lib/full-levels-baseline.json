@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 169,
-  "lessonsShort": 90,
+  "lessonsShort": 89,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -38,12 +38,6 @@
     "ll14-ten-healed-one-whole": [
       "child",
       "youth",
-      "senior"
-    ],
-    "ll149-cultural-competency-the-same-word-in-three-mouths-and-the-man-nobody-believed": [
-      "child",
-      "youth",
-      "teen",
       "senior"
     ],
     "ll15-seasoned-with-salt": [

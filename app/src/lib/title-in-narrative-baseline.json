@@ -2,13 +2,13 @@
   "window": 200,
   "note": "Shrink-only debt (Darrell 2026-09-17). Each entry names the bands of a lesson whose OPENING does not name its own lesson. A newly-unnamed band fails the build; entries are removed as bands are authored to carry the title, never added. Read the entries — this measures DIFFERENCE, not absence: a band may name its lesson in a synonym the author chose on purpose.",
   "measuredLessons": 169,
-  "lessonsUnnamed": 156,
-  "bandsUnnamed": 468,
+  "lessonsUnnamed": 155,
+  "bandsUnnamed": 465,
   "perBand": {
-    "child": 146,
+    "child": 145,
     "youth": 55,
-    "teen": 131,
-    "senior": 136
+    "teen": 130,
+    "senior": 135
   },
   "unnamed": {
     "ll10-strength-and-honour-are-her-clothing": [
@@ -294,11 +294,6 @@
     "ll148-remember-is-a-verb-what-the-word-says-about-his-knowing-his-withholding-and-the-sea": [
       "child",
       "youth",
-      "teen",
-      "senior"
-    ],
-    "ll149-cultural-competency-the-same-word-in-three-mouths-and-the-man-nobody-believed": [
-      "child",
       "teen",
       "senior"
     ],
