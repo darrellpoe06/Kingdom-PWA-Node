@@ -121,8 +121,21 @@ describe('Play READS the lesson (it does not open the deck)', () => {
     const learn = readFileSync(join(here, '..', 'components', 'ChurchLearn.jsx'), 'utf8');
     // the card's Play and the by-title index's Play both request a read
     expect((learn.match(/requestRead\(m\.id\)/g) || []).length).toBeGreaterThanOrEqual(2);
-    // and neither opens the presenter any more
-    expect(learn).not.toMatch(/setPresentAutoStart\(true\)/);
+    // AND NEITHER OPENS THE PRESENTER. Narrowed 2026-09-17 (DR-0451) from a
+    // whole-file ban on setPresentAutoStart to the two PLAY handlers, which is
+    // what this test has always been about. The file-wide form also forbade any
+    // OTHER control from ever presenting, and that outlawed the door Darrell
+    // then asked for ("each Lesson should be able to present just the one that
+    // we want"): a separate ⛶ Present control, which is not Play and never
+    // will be. The guarantee that matters is unchanged and is asserted below —
+    // press Play, get a reading, and the deck stays shut.
+    const playCard = learn.slice(learn.indexOf('PLAY READS THE LESSON'), learn.indexOf('PLAY READS THE LESSON') + 1400);
+    expect(playCard).not.toMatch(/setPresentAutoStart\(true\)/);
+    expect(playCard).not.toMatch(/setPresentLesson\(/);
+    const playFn = learn.slice(learn.indexOf('const playLesson ='), learn.indexOf('const playLesson =') + 400);
+    expect(playFn).not.toMatch(/setPresentAutoStart|setPresentLesson/);
+    // The separate Present door exists, is its own control, and says so.
+    expect(learn).toMatch(/UiIcon name="monitor"[^>]*\/> Present/);
   });
 });
 

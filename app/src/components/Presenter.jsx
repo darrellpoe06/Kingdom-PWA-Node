@@ -46,6 +46,7 @@ import {
   audienceLive, effectiveReadMode, scriptSuppressed, notesToSpeech, readingTextFor, readingLabel,
 } from '../lib/presenter-read-mode.js';
 import AudienceSlide from './AudienceSlide.jsx';
+import { useSlideSize, SLIDE_SIZE_STEPS } from '../lib/slide-size.js';
 import {
   FOLLOW_ALONG_ENABLED, makeFollowCode, createFollowBroadcaster, followLink,
 } from '../lib/follow-along-sync.js';
@@ -301,6 +302,21 @@ export default function Presenter({
   // tap. The speaker can still leave the on-screen view; this only decides
   // where Play LANDS.
   const [onScreen, setOnScreen] = useState(() => !!startOnScreen);
+  // THE ROOM'S TEXT SIZE, AND THE SPEAKER'S OWN PANEL, MOVE SEPARATELY
+  // (DR-0451). Darrell 2026-09-17: "Need to be able to work the text sizes on
+  // the PowerPoint and the controls are taking over the screen real-estate."
+  // Raising his own reading size would have done both at once — bigger slide
+  // words AND a control bar that ate the screen — so the slide carries its own
+  // multiplier (lib/slide-size.js) and every bar below sits in the capped
+  // chrome region (DR-0410).
+  const slideSize = useSlideSize();
+  // THE SPEAKER'S PANEL FOLDS. On a phone the bar wrapped to three and four
+  // rows because every control is always present; the essentials stay, the
+  // rest live behind More. Open by default on a wide screen, closed on a
+  // phone, and the choice is remembered for the session.
+  const [barOpen, setBarOpen] = useState(() => {
+    try { return typeof window !== 'undefined' ? window.innerWidth >= 640 : true; } catch { return true; }
+  });
   const [followCode, setFollowCode] = useState(null); // set when broadcasting to congregation devices
 
   // --- time-adaptive: budget + per-scene skip overrides -----------------------
@@ -437,6 +453,18 @@ export default function Presenter({
       if (revealRef.current > 0) { setReveal((r) => Math.max(0, r - 1)); return; }
       setIdx((w) => { const pv = Math.max(0, w - 1); if (pv !== w) setReveal(pointsCountAt(pv)); return pv; });
     }
+  }, [last, pointsCountAt]);
+
+  // STRAIGHT TO ONE PART (DR-0451). `go` only ever steps, which is right for a
+  // clicker and wrong for "present just the one that we want": in a 163-week
+  // deck the only route to week 45 was forty-four taps. This lands on a scene
+  // whole — every point already revealed, as if you had walked in — and the
+  // broadcast follows through the same reveal-aware effect as a step does.
+  const goTo = useCallback((n) => {
+    const target = Math.max(0, Math.min(last, Math.floor(Number(n))));
+    if (!Number.isFinite(target)) return;
+    setIdx(target);
+    setReveal(pointsCountAt(target));
   }, [last, pointsCountAt]);
 
   // --- keyboard / presentation-remote control ---
@@ -660,31 +688,112 @@ export default function Presenter({
     const cleanSlide = buildSlideForScene(scenes, idx, { kicker, age, reveal });
     const chip = (on) => ({ cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.75rem', minHeight: 40, padding: '8px 14px', border: `1px solid ${on ? '#C9D9A6' : '#4A453D'}`, background: on ? '#C9D9A6' : 'transparent', color: on ? '#14110E' : '#CFC9BD' });
     const navBtn = { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', minHeight: 44, minWidth: 52, padding: '8px 16px', border: '1px solid #4A453D', background: 'transparent', color: '#FAF8F4', fontSize: '1.25rem', lineHeight: 1 };
+    // GO STRAIGHT TO THE ONE YOU WANT (Darrell 2026-09-17: "each Lesson should
+    // be able to present just the one that we want without having to scroll
+    // through the whole list to get to the one lesson that we want to
+    // understand"). A 163-week deck had exactly two ways through it, ← and →.
+    // Reaching week 45 in front of a room meant forty-four taps. This names
+    // every scene and goes there in one, and it is a plain <select> on purpose:
+    // it is the one control a phone renders as a full-height native picker with
+    // its own scrolling and type-ahead, which is better than anything a custom
+    // menu would give a speaker holding a tablet up.
+    const jump = scenes.length > 2 ? (
+      <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Go to</span>
+        <select
+          data-testid="presenting-jump"
+          value={idx}
+          onChange={(e) => { const n = parseInt(e.target.value, 10); if (Number.isFinite(n)) goTo(n); }}
+          aria-label={`Go to any of the ${scenes.length} parts`}
+          style={{ ...chip(false), minWidth: 116, maxWidth: '38vw', cursor: 'pointer', appearance: 'auto', textTransform: 'none', letterSpacing: 0 }}
+        >
+          {scenes.map((s, i) => (
+            <option key={s.id || i} value={i}>
+              {`${s.indexLabel || `Part ${i + 1}`} — ${(s.audience && s.audience.title) || s.title || ''}`.slice(0, 70)}
+            </option>
+          ))}
+        </select>
+      </label>
+    ) : null;
+    // THE ROOM'S TEXT SIZE, on the presenting screen itself (DR-0451). Two taps
+    // reach every step; the label shows where you are so a speaker never has to
+    // guess. It writes --slide-scale, which only the slide reads.
+    const roomSize = (
+      <span data-testid="presenting-room-size" style={{ display: 'flex', alignItems: 'center', gap: 4 }} title="How big the words are for the room">
+        <button
+          type="button"
+          onClick={() => slideSize.bump(-1)}
+          disabled={slideSize.size === SLIDE_SIZE_STEPS[0].key}
+          aria-label="Smaller words for the room"
+          style={{ ...chip(false), minWidth: 44, opacity: slideSize.size === SLIDE_SIZE_STEPS[0].key ? 0.4 : 1 }}
+        >
+          A−
+        </button>
+        <span aria-live="polite" style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.6875rem', color: '#CFC9BD', minWidth: 42, textAlign: 'center' }}>{slideSize.step.label}</span>
+        <button
+          type="button"
+          onClick={() => slideSize.bump(1)}
+          disabled={slideSize.size === SLIDE_SIZE_STEPS[SLIDE_SIZE_STEPS.length - 1].key}
+          aria-label="Bigger words for the room"
+          style={{ ...chip(false), minWidth: 44, opacity: slideSize.size === SLIDE_SIZE_STEPS[SLIDE_SIZE_STEPS.length - 1].key ? 0.4 : 1 }}
+        >
+          A+
+        </button>
+      </span>
+    );
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 70, background: '#14110E', color: '#FAF8F4', display: 'flex', flexDirection: 'column', fontFamily: '"Fraunces", Georgia, serif' }} data-reading="true" role="dialog" aria-label={`Presenting — ${title}`}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: 'clamp(24px, 5vw, 72px)', overflowY: 'auto' }} onClick={() => go(1)} title="Tap to advance">
+        {/* THE SLIDE CARRIES THE ROOM'S SIZE (DR-0451). --slide-scale multiplies
+            every font size on the slide and nothing else on the screen, so the
+            words for the room grow without the speaker's own panel growing
+            with them. */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: 'clamp(24px, 5vw, 72px)', overflowY: 'auto', ...slideSize.style }} onClick={() => go(1)} title="Tap to advance">
           <div id="presenter-slide"><AudienceSlide slide={cleanSlide} invite={followCode ? { code: followCode, url: followLink(followCode) } : null} /></div>
         </div>
-        {/* Always-on speaker bar — never projected content, just the controls. */}
-        <div style={{ background: '#0E0C0A', borderTop: '1px solid #2A2620', padding: '8px clamp(10px, 2.5vw, 24px)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}
+        {/* Always-on speaker bar — never projected content, just the controls.
+            IT IS CHROME, AND IT FOLDS (DR-0451). Measured on a 360px phone
+            before this: ten always-present controls wrapped to four rows and
+            took a third of the screen from the slide. Now the essentials hold
+            one row — move, position, time, the room's size, and the way out —
+            and everything else waits behind More. .ts-chrome-region caps it at
+            Big Print so the words on the SLIDE grow and this frame does not
+            (DR-0410). */}
+        <div className="ts-chrome-region" data-testid="presenting-bar" style={{ background: '#0E0C0A', borderTop: '1px solid #2A2620', padding: '8px clamp(10px, 2.5vw, 24px)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}
           onClick={(e) => e.stopPropagation()}>
           <button type="button" onClick={() => go(-1)} disabled={atStart} aria-label="Previous" style={{ ...navBtn, opacity: atStart ? 0.4 : 1 }}>←</button>
           <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem', color: '#CFC9BD', minWidth: 88, textAlign: 'center' }}>{idx + 1} / {scenes.length}</span>
           <button type="button" onClick={() => go(1)} disabled={atEnd} aria-label="Next" style={{ ...navBtn, opacity: atEnd ? 0.4 : 1 }}>→</button>
-          {/* THE audience choice, reachable the whole way through — switch instantly */}
-          <div role="radiogroup" aria-label="Who is in the room" style={{ display: 'flex', gap: 6, marginLeft: 6, flexWrap: 'wrap' }}>
-            {PRESENT_AGE_BANDS.map((b) => (
-              <button key={b.id} type="button" role="radio" aria-checked={age === b.id} onClick={() => setAge(b.id)} style={chip(age === b.id)}>{b.label}</button>
-            ))}
-          </div>
-          {canRepitch && <span style={{ fontSize: '0.6875rem', color: '#C9D9A6', fontFamily: '"JetBrains Mono", monospace' }}>re-pitches live</span>}
+          {/* GO STRAIGHT TO THE ONE YOU WANT (DR-0451) — see the jump control's
+              own note at its definition. Never make a speaker press → forty
+              times in front of a room. */}
+          {jump}
           <span aria-live="polite" style={{ marginLeft: 'auto', fontFamily: '"JetBrains Mono", monospace', fontSize: '1rem', color: overMin ? '#FF9B7A' : '#C9D9A6' }}>{formatClock(elapsed)}</span>
-          <button type="button" onClick={() => setRunning((r) => !r)} style={chip(false)}>{running ? 'Pause' : 'Start'}</button>
-          {/* PUSH PLAY — reads this slide aloud and keeps going through the
-              message, hands-free, in the speaker's chosen voice. */}
-          <button type="button" onClick={() => requestRead({ from: 'presenter' })} style={chip(false)} title="Read this message aloud, slide by slide">▶ Read aloud</button>
-          <button type="button" onClick={() => { try { document.documentElement.requestFullscreen?.(); } catch (e) { /* F11 */ } }} style={chip(false)}>Full screen</button>
+          {/* THE ROOM'S TEXT SIZE — the one he asked for, on the screen he asked
+              for it on, never more than a tap away while presenting. */}
+          {roomSize}
+          {/* The chip helper owns both states' colors (and their contrast); this
+              adds no inline color of its own — an un-themeable literal here is
+              exactly what the legibility guard catches, and it caught mine. */}
+          <button type="button" onClick={() => setBarOpen((o) => !o)} aria-expanded={barOpen} data-testid="presenting-bar-more" style={chip(barOpen)}>
+            {barOpen ? 'Less ▴' : 'More ▾'}
+          </button>
           <button type="button" onClick={() => setOnScreen(false)} style={{ ...chip(false), borderColor: '#EBA77E', color: '#EBA77E' }}>Speaker view ✕</button>
+          {barOpen && (
+            <div data-testid="presenting-bar-rest" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%' }}>
+              {/* THE audience choice, reachable the whole way through — switch instantly */}
+              <div role="radiogroup" aria-label="Who is in the room" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {PRESENT_AGE_BANDS.map((b) => (
+                  <button key={b.id} type="button" role="radio" aria-checked={age === b.id} onClick={() => setAge(b.id)} style={chip(age === b.id)}>{b.label}</button>
+                ))}
+              </div>
+              {canRepitch && <span style={{ fontSize: '0.6875rem', color: '#C9D9A6', fontFamily: '"JetBrains Mono", monospace' }}>re-pitches live</span>}
+              <button type="button" onClick={() => setRunning((r) => !r)} style={chip(false)}>{running ? 'Pause' : 'Start'}</button>
+              {/* PUSH PLAY — reads this slide aloud and keeps going through the
+                  message, hands-free, in the speaker's chosen voice. */}
+              <button type="button" onClick={() => requestRead({ from: 'presenter' })} style={chip(false)} title="Read this message aloud, slide by slide">▶ Read aloud</button>
+              <button type="button" onClick={() => { try { document.documentElement.requestFullscreen?.(); } catch (e) { /* F11 */ } }} style={chip(false)}>Full screen</button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -692,24 +801,67 @@ export default function Presenter({
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#FAF8F4', color: '#1A1815', overflowY: 'auto', fontFamily: '"Fraunces", Georgia, serif' }} data-reading="true" role="dialog" aria-label={`Present — ${title}`}>
-      {/* sticky control bar — controls-in-context: scene nav + timer reachable at any scroll */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 2, background: '#1A1815', color: '#FAF8F4', padding: '10px clamp(12px, 3vw, 28px)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '0.6875rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#EBA77E', fontFamily: '"JetBrains Mono", monospace' }}>Presenting</span>
+      {/* Sticky control bar — controls-in-context: scene nav + timer reachable at
+          any scroll. IT IS CHROME, AND IT FOLDS (DR-0451). Darrell 2026-09-17,
+          from this exact bar on his phone: "the controls are taking over the
+          screen real-estate." Measured before this at 360px: nine always-on
+          controls with rem-sized words, wrapping to three and four rows, and at
+          Big Print the whole band pushed the lesson off the screen. Now the
+          essentials hold the first row and the rest wait behind More, with
+          .ts-chrome-region capping the lot at Big Print (DR-0410). */}
+      <div className="ts-chrome-region ts-safe-sticky" data-testid="present-setup-bar" style={{ position: 'sticky', top: 0, zIndex: 2, background: '#1A1815', color: '#FAF8F4', padding: '10px clamp(12px, 3vw, 28px)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <button type="button" onClick={() => go(-1)} disabled={atStart} aria-label="Previous" title="Previous (←)" style={{ ...btn.nav, opacity: atStart ? 0.4 : 1 }}>←</button>
-        <strong style={{ fontFamily: '"Fraunces", serif', fontSize: '0.9375rem' }}>{cur.indexLabel}</strong>
-        <button type="button" onClick={() => go(1)} disabled={atEnd} aria-label="Next" title="Next (→)" style={{ ...btn.nav, opacity: atEnd ? 0.4 : 1 }}>→</button>
-        {curPointCount > 0 && (
-          <span title="Points reveal one at a time as you advance; → shows the next point, then the next scene" style={{ fontSize: '0.6875rem', fontFamily: '"JetBrains Mono", monospace', color: moreToReveal ? '#C9D9A6' : '#CFC9BD' }}>
-            {moreToReveal ? `→ reveals point ${reveal + 1} of ${curPointCount}` : `all ${curPointCount} shown`}
-          </span>
+        {/* THE JUMP IS AN ESSENTIAL, NOT A SECONDARY (DR-0451). I first put it
+            behind More and the layout probe caught it at 360px: on the phone he
+            was holding, the one control he asked for was folded away. On a long
+            deck it REPLACES the static position label, because it shows the
+            current part and changes it — one control doing two jobs is also how
+            it fits a phone's first row. */}
+        {scenes.length > 2 ? (
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+            <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Go to</span>
+            <select
+              data-testid="present-setup-jump"
+              value={idx}
+              onChange={(e) => { const n = parseInt(e.target.value, 10); if (Number.isFinite(n)) goTo(n); }}
+              aria-label={`Go to any of the ${scenes.length} parts`}
+              style={{ ...btn.ghost, maxWidth: '46vw', cursor: 'pointer', appearance: 'auto', textTransform: 'none', letterSpacing: 0, fontFamily: '"Fraunces", serif', fontSize: '0.9375rem' }}
+            >
+              {scenes.map((s, i) => (
+                <option key={s.id || i} value={i}>
+                  {`${s.indexLabel || `Part ${i + 1}`} — ${(s.audience && s.audience.title) || s.title || ''}`.slice(0, 70)}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <strong style={{ fontFamily: '"Fraunces", serif', fontSize: '0.9375rem' }}>{cur.indexLabel}</strong>
         )}
-        <span style={{ color: '#CFC9BD', fontSize: '0.8125rem', maxWidth: '30vw', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</span>
+        <button type="button" onClick={() => go(1)} disabled={atEnd} aria-label="Next" title="Next (→)" style={{ ...btn.nav, opacity: atEnd ? 0.4 : 1 }}>→</button>
         <span aria-live="polite" title="Session timer" style={{ marginLeft: 'auto', fontFamily: '"JetBrains Mono", monospace', fontSize: '1.125rem', color: overMin ? '#FF9B7A' : '#C9D9A6' }}>
           {formatClock(elapsed)} <span style={{ fontSize: '0.6875rem', color: '#CFC9BD' }}>/ {effectiveTarget}:00{budgetMin > 0 ? ' budget' : ''}</span>
         </span>
-        <button type="button" onClick={() => setRunning((r) => !r)} style={btn.ghost}>{running ? 'Pause' : 'Start'}</button>
-        <button type="button" onClick={() => { setElapsed(0); setRunning(false); }} style={btn.ghost}>Reset</button>
+        {/* btn.base already carries the on-state pair (dark ground, light text)
+            and btn.ghost the off-state; neither adds an inline dark literal, so
+            the legibility guard has nothing new to track. It caught the version
+            of this button that did. */}
+        <button type="button" onClick={() => setBarOpen((o) => !o)} aria-expanded={barOpen} data-testid="present-setup-bar-more" style={barOpen ? btn.base : btn.ghost}>
+          {barOpen ? 'Less ▴' : 'More ▾'}
+        </button>
         {onClose && <button type="button" onClick={onClose} style={{ ...btn.ghost, borderColor: '#B85838', color: '#FAF8F4', background: 'transparent' }}>Exit ✕</button>}
+        {barOpen && (
+          <div data-testid="present-setup-bar-rest" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', width: '100%' }}>
+            <span style={{ fontSize: '0.6875rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#EBA77E', fontFamily: '"JetBrains Mono", monospace' }}>Presenting</span>
+            {curPointCount > 0 && (
+              <span title="Points reveal one at a time as you advance; → shows the next point, then the next scene" style={{ fontSize: '0.6875rem', fontFamily: '"JetBrains Mono", monospace', color: moreToReveal ? '#C9D9A6' : '#CFC9BD' }}>
+                {moreToReveal ? `→ reveals point ${reveal + 1} of ${curPointCount}` : `all ${curPointCount} shown`}
+              </span>
+            )}
+            <span style={{ color: '#CFC9BD', fontSize: '0.8125rem', maxWidth: '60vw', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</span>
+            <button type="button" onClick={() => setRunning((r) => !r)} style={btn.ghost}>{running ? 'Pause' : 'Start'}</button>
+            <button type="button" onClick={() => { setElapsed(0); setRunning(false); }} style={btn.ghost}>Reset</button>
+          </div>
+        )}
       </div>
 
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: 'clamp(16px, 3vw, 32px)' }}>
