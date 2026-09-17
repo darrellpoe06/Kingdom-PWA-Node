@@ -39,6 +39,7 @@ import { PV_META, PV_SESSION_FLOW, buildPvSchedule, pvProgressSummary, exportPvC
 import { LEGACY_PROVISIONS_META, LEGACY_PROVISIONS_SESSION_FLOW, buildLegacyProvisionsSchedule, legacyProvisionsProgressSummary, exportLegacyProvisionsCurriculumMarkdown, LEGACY_PROVISIONS_INTEREST_TAG, LEGACY_PROVISIONS_HELPER_TAG, LEGACY_PROVISIONS_TUTOR_META } from './legacy-provisions-course.js';
 import { MATHEMATICS_META, MATHEMATICS_SESSION_FLOW, buildMathematicsSchedule, mathematicsProgressSummary, exportMathematicsCurriculumMarkdown, MATHEMATICS_INTEREST_TAG, MATHEMATICS_HELPER_TAG, MATHEMATICS_TUTOR_META } from './mathematics-class.js';
 import { RTO_BUSINESS_META, RTO_BUSINESS_SESSION_FLOW, buildRtoBusinessSchedule, rtoBusinessProgressSummary, exportRtoBusinessCurriculumMarkdown, RTO_BUSINESS_INTEREST_TAG, RTO_BUSINESS_HELPER_TAG, RTO_BUSINESS_TUTOR_META } from './rent-to-own-business-class.js';
+import { DEVELOPMENT_META, DEVELOPMENT_SESSION_FLOW, buildDevelopmentSchedule, developmentProgressSummary, exportDevelopmentCurriculumMarkdown, DEVELOPMENT_INTEREST_TAG, DEVELOPMENT_HELPER_TAG, DEVELOPMENT_TUTOR_META } from './development-class.js';
 import { HEALTHY_LIVING_META, HEALTHY_LIVING_SESSION_FLOW, buildHealthyLivingSchedule, healthyLivingProgressSummary, exportHealthyLivingCurriculumMarkdown, HEALTHY_LIVING_INTEREST_TAG, HEALTHY_LIVING_HELPER_TAG, HEALTHY_LIVING_TUTOR_META } from './healthy-living-course.js';
 
 // Every finished course, in picker order. `wiring: 'cohort'` = the host owns a
@@ -145,6 +146,25 @@ export const LEARN_CATALOG = [
       blurb: 'Slice 1 is the rent-to-own operating system — the seats, the model and the just weight, inventory control, sales, collections, customer service, covenant over contract, and marketing. Tell Darrell which part of running a business you need next and he will add it, taught from the floor with the Word above it.',
       cta: 'I want more business lessons',
       sent: '✓ Sent — Darrell will see it. Seest thou a man diligent in his business?',
+    },
+  },
+  // DEVELOPMENT — the second half of the 2026-09-17 directive ("and also uh,
+  // development, those sorts of courses"), taught from THIS platform's own
+  // construction so the app answers questions about how it was built without
+  // its builder in the room ("so all questions can be answered without even
+  // having to have a conversation with me").
+  {
+    key: 'development', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...DEVELOPMENT_META, key: 'development', category: 'Development' }, sessionFlow: DEVELOPMENT_SESSION_FLOW,
+    buildScheduleRows: () => buildDevelopmentSchedule(), progressSummary: (p) => developmentProgressSummary(p),
+    exportMarkdown: () => exportDevelopmentCurriculumMarkdown(), downloadName: 'development-systems-that-tell-the-truth.md',
+    interestTag: DEVELOPMENT_INTEREST_TAG, helperTag: DEVELOPMENT_HELPER_TAG, tutorCourseMeta: DEVELOPMENT_TUTOR_META,
+    interestText: (who) => `${DEVELOPMENT_INTEREST_TAG} ${who} wants more development lessons.`,
+    interestCopy: {
+      heading: 'Want more Development?',
+      blurb: 'Slice 1 is the discipline — counting the cost, tracing the real record, the plumbline, proving a gate catches, guarding anything that runs itself, the outage that taught the most, shrink-only debt, and the decision record. Tell Darrell which part of building you need next and he will add it, taught from real files with the Word above the craft.',
+      cta: 'I want more development lessons',
+      sent: '✓ Sent — Darrell will see it. Except the LORD build the house.',
     },
   },
   {

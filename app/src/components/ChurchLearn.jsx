@@ -814,7 +814,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
     if (!was || !now || was === now) return;
     setIdx((i) => {
       const mapped = Math.min(now - 1, Math.max(0, Math.round((i / was) * now)));
-      if (mapped !== i && onStepChange) onStepChange(mapped);
+      if (mapped !== i && onStepChange) onStepChange(mapped, totalSegments);
       return mapped;
     });
   }, [plan && plan.totalSegments]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -865,7 +865,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
   const moveTo = (i) => {
     const n = Math.max(0, Math.min(totalSegments - 1, i));
     setIdx(n);
-    if (onStepChange) onStepChange(n);
+    if (onStepChange) onStepChange(n, totalSegments);
   };
 
   // Adult/single-segment: just show the whole lesson, no stepper.
@@ -1175,7 +1175,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
               plan={seg.audience.lessonPlan}
               onSegmentComplete={() => onEngagement && onEngagement('segment-complete', module.id)}
               initialIndex={savedHere ? savedHere.step : 0}
-              onStepChange={onPlace ? (i) => onPlace({ lessonId: module.id, step: i }) : null}
+              onStepChange={onPlace ? (i, total) => onPlace({ lessonId: module.id, step: i, totalSteps: total }) : null}
               showAll={readAll}
               flush={flush}
               // The row lives on the stage header now (stageLevelRow below);
@@ -1520,7 +1520,29 @@ function CourseView({
   const U = unitLabels(meta); // "week"/"Week" by default; "lesson"/"Lesson" + self-paced for the lesson series
   // Resume-your-place: every write goes through here so the record always
   // carries THIS course's key (device-local, lib/learn-resume.js).
-  const savePlace = (patch) => recordPlace({ courseKey: course.key, ...patch });
+  // THE READER'S PLACE IN THE LESSON, HELD WHERE IT STAYS VISIBLE (Darrell
+  // 2026-09-17, from the live church door): "The timeline bar for the place or
+  // how far or close to the end isn't visible to the user during the reading
+  // process." TRACED: the step line and its bar were rendered INLINE at the top
+  // of the current segment (AgePacedLesson), so the moment the reader scrolled
+  // into the prose they were reading, the only indicator of how far through the
+  // lesson they were had scrolled off the screen. His screenshot shows exactly
+  // that - a fragment of the bar stranded above the sticky block while the body
+  // says STEP 4 OF 5 far below it.
+  //
+  // AgePacedLesson already reported each step through onStepChange; it now
+  // reports the TOTAL with it, and that pair is held here so the sticky block
+  // can render it beside the lesson title. The inline row STAYS as well: a
+  // reader who scrolls back to the top of a segment should still see where the
+  // segment begins. This adds a second, always-visible view of the same real
+  // state - never a second source of it.
+  const [liveStep, setLiveStep] = useState(null);
+  const savePlace = (patch) => {
+    if (patch && Number.isFinite(patch.step) && Number.isFinite(patch.totalSteps)) {
+      setLiveStep({ lessonId: patch.lessonId || null, step: patch.step, total: patch.totalSteps });
+    }
+    return recordPlace({ courseKey: course.key, ...patch });
+  };
 
   // THE LESSON'S OWN SPACE (Darrell 2026-08-02: "each one needs a space that
   // doesn't allow for losing your place... the system sets up the reader to
@@ -1910,11 +1932,51 @@ function CourseView({
               rule that the words grow and the frame stays a frame). */}
           <h2
             data-testid="lesson-space-title"
-            className="border border-[#1A1815] px-2 sm:px-3 py-1.5 text-[0.875rem] font-semibold text-[#1A1815] leading-snug"
+            className="border border-[#1A1815] border-b-0 px-2 sm:px-3 py-1.5 text-[0.875rem] font-semibold text-[#1A1815] leading-snug"
             style={{ fontFamily: '"Fraunces", serif' }}
           >
             {focusModule.title}
           </h2>
+          {/* HOW FAR THROUGH, WHERE IT CANNOT SCROLL AWAY (Darrell 2026-09-17).
+              The bar spans the FULL width on purpose: the inline one is 96px
+              wide, which is legible enough beside its own label but useless as
+              a glance-target while reading. This one is the width of the
+              reading column, so distance-to-the-end is readable without
+              looking for it.
+              It renders ONLY for the lesson that is actually open and only once
+              a real step has been reported - never a painted bar, and never
+              another lesson's position (the lessonId is checked). Before the
+              first step arrives there is nothing to show, so nothing shows. */}
+          {liveStep && liveStep.lessonId === focusModule.id && liveStep.total > 1 && (
+            <div
+              data-testid="lesson-space-progress"
+              className="border border-[#1A1815] px-2 sm:px-3 py-1.5 bg-[#FAF8F4]"
+            >
+              <div className="flex items-baseline justify-between gap-2 mb-1">
+                <span className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] font-semibold" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                  Step {Math.min(liveStep.step + 1, liveStep.total)} of {liveStep.total}
+                </span>
+                <span className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                  {liveStep.step + 1 >= liveStep.total
+                    ? 'last step'
+                    : `${liveStep.total - (liveStep.step + 1)} to go`}
+                </span>
+              </div>
+              <div
+                className="h-2 bg-[#E8E4DC]"
+                role="progressbar"
+                aria-valuenow={Math.min(liveStep.step + 1, liveStep.total)}
+                aria-valuemin={1}
+                aria-valuemax={liveStep.total}
+                aria-label="How far through this lesson"
+              >
+                <div
+                  className="h-full bg-[#5A6E3D]"
+                  style={{ width: `${Math.round((Math.min(liveStep.step + 1, liveStep.total) / liveStep.total) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
           </div>
         );
       })()}
