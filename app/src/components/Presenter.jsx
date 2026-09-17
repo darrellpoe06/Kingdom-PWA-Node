@@ -310,6 +310,10 @@ export default function Presenter({
   // multiplier (lib/slide-size.js) and every bar below sits in the capped
   // chrome region (DR-0410).
   const slideSize = useSlideSize();
+  // Read by sendCurrent, which is a useCallback the size must not re-create.
+  const slideScaleRef = useRef(slideSize.scale);
+  slideScaleRef.current = slideSize.scale;
+
   // THE SPEAKER'S PANEL FOLDS. On a phone the bar wrapped to three and four
   // rows because every control is always present; the essentials stay, the
   // rest live behind More. Open by default on a wide screen, closed on a
@@ -391,9 +395,18 @@ export default function Presenter({
     // and follow on their own phones — zero typing (COMMUNITY-FIRST). Audience-
     // safe fields only (a URL + code the presenter already shows on screen).
     const inviteCode = followCodeRef.current;
-    const payload = inviteCode
-      ? { ...base, invite: { code: inviteCode, url: followLink(inviteCode) } }
-      : base;
+    // THE PROJECTOR FOLLOWS THE ONE DIAL (DR-0453). DR-0451 gave the room's
+    // text size a control on the presenting screen, and left the second
+    // display on the default — which is backwards, because a projector across
+    // a hall is exactly where a big step matters. Nobody stands at the
+    // projector, so it gets no control of its own: the size rides the slide
+    // it is already following, and the speaker's dial moves both screens at
+    // once. A payload without it renders at 1, as it did before.
+    const payload = {
+      ...base,
+      ...(inviteCode ? { invite: { code: inviteCode, url: followLink(inviteCode) } } : {}),
+      slideScale: slideScaleRef.current,
+    };
     // 1) the same-browser projector (BroadcastChannel)
     const ch = chRef.current;
     if (ch) { try { ch.postMessage(payload); } catch (e) { /* non-fatal */ } }
@@ -419,7 +432,10 @@ export default function Presenter({
 
   // Broadcast on scene change, on AGE change (live re-pitch to the room), and on
   // mount — blank-aware via sendCurrent.
-  useEffect(() => { sendCurrent(); }, [idx, age, reveal, sendCurrent]);
+  // slideSize.scale joins idx/age/reveal: the room's size is part of what the
+  // second screen is showing, so a change to it re-sends at once rather than
+  // waiting for the next slide (DR-0453).
+  useEffect(() => { sendCurrent(); }, [idx, age, reveal, slideSize.scale, sendCurrent]);
 
   // If the projector window is closed (or the display unplugged), reflect it.
   useEffect(() => {
