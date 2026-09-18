@@ -99,13 +99,14 @@ describe('the debt, recorded as it actually is', () => {
   it('is the number measured, not a number anybody hoped for', () => {
     // 211 when this gate was written, then the Real Estate department: 219 with
     // its footing (DR-0500), 227 with its capstone (DR-0501), 235 with the
-    // buying course (DR-0504), 245 with the leasing course (DR-0505) and the
-    // two lessons another session landed in between. Thirty-two new course
+    // buying course (DR-0504), 245 with the leasing course (DR-0507) and the
+    // two lessons another session landed in between, 253 with the maintenance
+    // course (DR-0508). Thirty-two new course
     // lessons, every one carrying authored bands — which is why adultOnly did
     // NOT move with any of them. That is the shape a new course is supposed to
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
-    expect(baseline.total).toBe(245);
+    expect(baseline.total).toBe(253);
     expect(baseline.allFour).toBe(0);
     expect(baseline.adultOnly).toBe(37);
   });
