@@ -109,6 +109,8 @@ jobs:
         env:
           REASONS: ${{ steps.probe.outputs.fail_reasons }}
           LEVELS: ${{ steps.probe.outputs.level_summary }}
+          BUILD: ${{ steps.probe.outputs.served_build }}
+          SW: ${{ steps.probe.outputs.sw_controlled }}
           OUTCOME: ${{ steps.probe.outcome }}
         run: |
           set -uo pipefail
@@ -118,7 +120,7 @@ jobs:
           else
             verdict="FAIL - ${REASONS:-the probe crashed before reporting}"
           fi
-          line="$(date -u +%FT%TZ) - ${verdict}. Bodies read: ${LEVELS:-none}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          line="$(date -u +%FT%TZ) - ${verdict}. Bodies read: ${LEVELS:-none}. Build served: ${BUILD:-unknown} (service worker controlling: ${SW:-unknown}). Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
           log_issue=$(gh issue list --repo "$REPO" --state all --search "in:title level-witness run log" --json number --jq '.[0].number // ""')
           if [ -n "$log_issue" ]; then
             gh issue comment "$log_issue" --repo "$REPO" --body "$line"
@@ -134,10 +136,11 @@ jobs:
         env:
           REASONS: ${{ steps.probe.outputs.fail_reasons }}
           LEVELS: ${{ steps.probe.outputs.level_summary }}
+          BUILD: ${{ steps.probe.outputs.served_build }}
         run: |
           set -uo pipefail
           title="level-witness: the reader may serve one body for every band"
-          body="$(date -u +%FT%TZ) — **LEVEL SWITCH FINDING**: ${REASONS:-the probe crashed before reporting — see the run log}. Bodies read: ${LEVELS:-none}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          body="$(date -u +%FT%TZ) — **LEVEL SWITCH FINDING**: ${REASONS:-the probe crashed before reporting — see the run log}. Bodies read: ${LEVELS:-none}. Build served: ${BUILD:-unknown}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
           open_issue=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title level-witness" --json number --jq '.[0].number // ""')
           if [ -n "$open_issue" ]; then
             gh issue comment "$open_issue" --repo "$REPO" --body "$body"

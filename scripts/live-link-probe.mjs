@@ -127,6 +127,7 @@ for (const c of RUN) {
   let lessonMounted = null;
   let player = null;
   const levelBodies = [];
+  let servedBuild = { build: null, worker: null, controlled: false };
 
   try {
     await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
@@ -151,6 +152,25 @@ for (const c of RUN) {
 
     player = await page.evaluate(() =>
       !!document.querySelector('iframe[src*="youtube"], iframe[src*="ytimg"]'));
+
+    // WHICH BUILD IS THIS BROWSER ACTUALLY RUNNING (2026-09-18). When a reader
+    // reports behaviour the live product does not reproduce, the first question
+    // is whether his device is executing the build we think it is — an
+    // installed service worker updates on its own schedule, and this app has
+    // that history (the scope-shell outage). vite injects
+    // globalThis.__PT_BUILD__ = "<sha>.<buildTime>" into the bundle, so the
+    // running page can be ASKED rather than assumed, and the controlling
+    // worker's script tells us whether a worker is serving this page at all.
+    servedBuild = await page.evaluate(() => {
+      const out = { build: null, worker: null, controlled: false };
+      try { out.build = globalThis.__PT_BUILD__ || null; } catch (e) { /* not injected */ }
+      try {
+        const c = navigator.serviceWorker && navigator.serviceWorker.controller;
+        out.controlled = !!c;
+        out.worker = c ? String(c.scriptURL || '') : null;
+      } catch (e) { /* no worker API */ }
+      return out;
+    });
 
     if (c.expectLessonId) {
       lessonMounted = await page.evaluate(
@@ -254,6 +274,7 @@ for (const c of RUN) {
     heading,
     lessonMounted,
     youtubePlayerMounted: player,
+    servedBuild,
     levelBodies,
     pageErrors,
     problems,
@@ -277,6 +298,9 @@ for (const r of results) {
   if (r.heading !== null) lines.push(`- Course heading rendered: **${r.heading}**`);
   if (r.lessonMounted !== null) lines.push(`- Deep-linked lesson card mounted: **${r.lessonMounted}**`);
   lines.push(`- Live-stream player mounted: **${r.youtubePlayerMounted}**`);
+  if (r.servedBuild) {
+    lines.push(`- Build this browser ran: **${r.servedBuild.build || 'not injected'}** · service worker controlling: **${r.servedBuild.controlled}**${r.servedBuild.worker ? ` (\`${r.servedBuild.worker}\`)` : ''}`);
+  }
   if (r.pageErrors.length) lines.push(`- Page errors: ${r.pageErrors.join(' | ')}`);
   for (const p of r.problems) lines.push(`- **FAIL:** ${p}`);
   lines.push('');
@@ -287,7 +311,12 @@ for (const r of results) {
 if (process.env.GITHUB_OUTPUT) {
   const reasons = results.flatMap((r) => r.problems).join(' | ').replace(/[\r\n]+/g, ' ');
   const levels = results.flatMap((r) => (r.levelBodies || []).map((b) => `${b.level}:${b.chars}ch`)).join(', ');
-  writeFileSync(process.env.GITHUB_OUTPUT, `fail_reasons=${reasons}\nlevel_summary=${levels}\n`, { flag: 'a' });
+  // The build the browser actually executed, and whether a service worker was
+  // serving the page. When a reader reports behaviour the live site does not
+  // reproduce, this is the first number to compare against his device.
+  const builds = [...new Set(results.map((r) => (r.servedBuild && r.servedBuild.build) || 'unknown'))].join('/');
+  const controlled = results.some((r) => r.servedBuild && r.servedBuild.controlled);
+  writeFileSync(process.env.GITHUB_OUTPUT, `fail_reasons=${reasons}\nlevel_summary=${levels}\nserved_build=${builds}\nsw_controlled=${controlled}\n`, { flag: 'a' });
 }
 
 const summary = lines.join('\n');

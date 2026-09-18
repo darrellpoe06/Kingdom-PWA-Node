@@ -81,6 +81,40 @@ describe('the probe can walk the levels on the live site', () => {
     expect(probe).toMatch(/process\.exit\(2\)/);
   });
 
+  it('reads the BUILD the browser actually ran, and whether a worker served it', () => {
+    // When a reader reports behaviour the live site does not reproduce, the
+    // first question is whether his device is executing the build we think it
+    // is — an installed service worker updates on its own schedule, and this
+    // app has that history. vite injects globalThis.__PT_BUILD__, so the page
+    // can be ASKED instead of assumed.
+    // ASSERT THE ASSIGNMENT, NOT THE IDENTIFIER. The first version of this
+    // check said toContain('globalThis.__PT_BUILD__') — and the probe's own
+    // header comment contains that string, so gutting the code to
+    // `out.build = null` left the check passing. A gate that survives a gutted
+    // implementation is exactly what DR-0076 §3 forbids, and this one was
+    // caught by running the break rather than by reading it.
+    expect(probe).toMatch(/out\.build = globalThis\.__PT_BUILD__ \|\| null/);
+    expect(probe).toMatch(/navigator\.serviceWorker && navigator\.serviceWorker\.controller/);
+    expect(probe).toMatch(/out\.controlled = !!c/);
+    expect(probe).toMatch(/servedBuild = await page\.evaluate/);
+    expect(probe, 'a throwing accessor must not break the probe')
+      .toMatch(/catch \(e\) \{ \/\* not injected \*\/ \}/);
+  });
+
+  it('carries the served build into both records, so it can be compared later', () => {
+    // And assert it per STEP. The first version checked the whole file, so
+    // deleting the build from the RUN LOG line still passed because the
+    // incident step carried the same words. Both records are checked
+    // separately now — the same defect class, found the same way.
+    expect(probe).toMatch(/served_build=\$\{builds\}/);
+    expect(probe).toMatch(/sw_controlled=\$\{controlled\}/);
+    const logStep = witness.slice(witness.indexOf('Record the run (rolling log'), witness.indexOf('Record the finding'));
+    expect(logStep, 'the run log must carry the served build').toContain('Build served: ${BUILD:-unknown}');
+    expect(logStep, 'the run log must say whether a worker served the page').toContain('${SW:-unknown}');
+    const findingStep = witness.slice(witness.indexOf('Record the finding'));
+    expect(findingStep, 'the incident entry must carry the served build too').toContain('Build served: ${BUILD:-unknown}');
+  });
+
   it('emits machine-readable outputs for the witness step', () => {
     expect(probe).toContain('fail_reasons=');
     expect(probe).toContain('level_summary=');
