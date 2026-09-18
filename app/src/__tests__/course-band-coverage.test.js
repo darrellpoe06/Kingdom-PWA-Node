@@ -12,7 +12,7 @@
 // than one repeated four times). ALL THREE SCAN `LIVING_LESSONS_MODULES` AND
 // NOTHING ELSE. Across the whole catalog:
 //
-//     211  lessons outside the Living Lessons series (219 after DR-0500)
+//     211  lessons outside the Living Lessons series (227 after DR-0500/0501)
 //       0  carrying all four authored bands
 //      43  carrying no authored band at all  (37 after the first pass)
 //       5  of those 43 reading ABOVE grade 9 in the text actually served (now 0)
@@ -97,10 +97,11 @@ describe('the measure reads the real catalog', () => {
 
 describe('the debt, recorded as it actually is', () => {
   it('is the number measured, not a number anybody hoped for', () => {
-    // 211 when this gate was written; 219 once the Real Estate department's
-    // first course arrived (DR-0500) — eight lessons, every one of them
-    // carrying authored bands, which is why adultOnly did NOT move with it.
-    expect(baseline.total).toBe(219);
+    // 211 when this gate was written; 219 with the Real Estate department's
+    // first course (DR-0500) and 227 with its capstone (DR-0501) — sixteen new
+    // lessons, every one carrying authored bands, which is why adultOnly did
+    // NOT move with either of them. That is the shape a new course should have.
+    expect(baseline.total).toBe(227);
     expect(baseline.allFour).toBe(0);
     expect(baseline.adultOnly).toBe(37);
   });
