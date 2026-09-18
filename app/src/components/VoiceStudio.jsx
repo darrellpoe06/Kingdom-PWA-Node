@@ -357,7 +357,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
                   className="border border-[#1A1815] text-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⏹ Stop</button>
               </>
             )}
-            <div className="flex items-center gap-1 ml-auto" role="group" aria-label="Reading speed">
+            <div className="flex flex-wrap items-center gap-1 ml-auto" role="group" aria-label="Reading speed">
               {RATE_STEPS.map((s) => {
                 const on = Math.abs(tts.rate - s.value) < 0.001;
                 return (

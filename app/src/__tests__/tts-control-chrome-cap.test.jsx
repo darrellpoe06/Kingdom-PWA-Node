@@ -38,6 +38,7 @@ vi.mock('../lib/use-read-aloud.js', () => ({
 }));
 
 import TTSControl from '../components/TTSControl.jsx';
+import { RATE_STEPS } from '../lib/tts.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -76,12 +77,19 @@ describe('TTSControl panel — chrome-capped so large print never breaks it', ()
     expect(panel.className).toContain('overflow-y-auto');             // …it scrolls inside instead of clipping controls
   });
 
-  it('the three talk actions and all five speed steps are present and reachable', () => {
+  it('the three talk actions and EVERY speed step are present and reachable', () => {
+    // The count is derived from RATE_STEPS, not typed. It was pinned at 5 and
+    // went stale the moment the ladder grew to 5x for the laptop (DR-0499) —
+    // a hardcoded count tests the number, not the panel.
     const panel = openPanel();
     const labels = Array.from(panel.querySelectorAll('button')).map((b) => b.textContent.trim());
     expect(labels.some((t) => /Read this page/i.test(t))).toBe(true);
     expect(labels.some((t) => /Start where I tap/i.test(t))).toBe(true);
     expect(labels.some((t) => /Talk about this/i.test(t))).toBe(true);
-    expect(panel.querySelectorAll('[role="group"][aria-label="Reading speed"] button').length).toBe(5);
+    const chips = Array.from(panel.querySelectorAll('[role="group"][aria-label="Reading speed"] button'));
+    expect(chips.length).toBe(RATE_STEPS.length);
+    for (const step of RATE_STEPS) {
+      expect(chips.map((b) => b.textContent.trim()), `${step.label} is missing from the panel`).toContain(step.label);
+    }
   });
 });

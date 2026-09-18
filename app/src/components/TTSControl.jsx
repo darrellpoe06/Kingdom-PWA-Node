@@ -999,7 +999,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
 
           <div className="mb-[0.5em]">
             <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Speed: {rate.toFixed(1)}×</div>
-            <div className="grid grid-cols-5 gap-[0.25em]" role="group" aria-label="Reading speed">
+            <div className="grid grid-cols-4 gap-[0.25em]" role="group" aria-label="Reading speed">
               {RATE_STEPS.map((s) => {
                 const selected = Math.abs(rate - s.value) < 0.001;
                 return (
