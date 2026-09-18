@@ -86,11 +86,21 @@ const CASES = [
   },
 ];
 
+// A witness workflow runs ONE case without altering this probe's read-only
+// posture (its own header declares that posture, and DR-0319's lesson is that a
+// documented posture is not changed because something else would be convenient).
+const ONLY = String(process.env.ONLY_CASE || '').split(',').map((x) => x.trim()).filter(Boolean);
+const RUN = ONLY.length ? CASES.filter((c) => ONLY.includes(c.name)) : CASES;
+if (ONLY.length && RUN.length !== ONLY.length) {
+  console.error(`ONLY_CASE named ${ONLY.length} case(s) and ${RUN.length} matched — a renamed case must fail loudly rather than measure nothing`);
+  process.exit(2);
+}
+
 const browser = await chromium.launch();
 const results = [];
 let failures = 0;
 
-for (const c of CASES) {
+for (const c of RUN) {
   const url = `${BASE}${c.query}`;
   const ctx = await browser.newContext({
     viewport: { width: 430, height: 932 },
@@ -247,6 +257,15 @@ for (const r of results) {
   for (const p of r.problems) lines.push(`- **FAIL:** ${p}`);
   lines.push('');
 }
+// Machine-readable outputs. The artifact is for eyes; these are for the witness
+// step, so a finding can reach the incident ledger instead of living only in a
+// run nobody can cheaply fetch.
+if (process.env.GITHUB_OUTPUT) {
+  const reasons = results.flatMap((r) => r.problems).join(' | ').replace(/[\r\n]+/g, ' ');
+  const levels = results.flatMap((r) => (r.levelBodies || []).map((b) => `${b.level}:${b.chars}ch`)).join(', ');
+  writeFileSync(process.env.GITHUB_OUTPUT, `fail_reasons=${reasons}\nlevel_summary=${levels}\n`, { flag: 'a' });
+}
+
 const summary = lines.join('\n');
 console.log(summary);
 if (process.env.GITHUB_STEP_SUMMARY) {
@@ -254,7 +273,7 @@ if (process.env.GITHUB_STEP_SUMMARY) {
 }
 
 if (failures) {
-  console.error(`\n${failures} of ${CASES.length} cases failed. Screenshots are in the artifact.`);
+  console.error(`\n${failures} of ${RUN.length} cases failed. Screenshots are in the artifact.`);
   process.exit(1);
 }
-console.log(`\nAll ${CASES.length} cases passed against ${BASE}`);
+console.log(`\nAll ${RUN.length} cases passed against ${BASE}`);
