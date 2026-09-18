@@ -87,18 +87,31 @@ describe('the measure, run on the real corpus', () => {
     // proving the measure can see a real duplicate — and when the last one is
     // repaired this fails, and someone reads it and retires it deliberately
     // rather than a silent green standing in for a cleared debt.
+    // The threshold is DERIVED from the baseline's own worst recorded entry
+    // rather than hard-coded. A hard-coded 0.9 needed a hand-edit on the very
+    // next repair (ll172 cleared within the hour and the worst left was 0.86),
+    // which is friction that buys nothing: the baseline is rebased in the same
+    // commit as any repair, so the two move together. What this still proves is
+    // what matters — the LIVE measure reports a real near-duplicate that the
+    // recorded debt agrees is there.
+    const recorded = Object.values(baseline.duplicated).map((d) => d.worst);
+    expect(recorded.length, 'the debt is cleared — retire this check deliberately').toBeGreaterThan(0);
+    const floor = Math.max(...recorded);
+    expect(floor, 'the worst RECORDED entry is under the ceiling, so the baseline is stale').toBeGreaterThanOrEqual(DIFF_CEILING);
     const worst = scan.rows.slice().sort((a, b) => b.worst - a.worst)[0];
     expect(worst, 'nothing in the corpus is being measured at all').toBeTruthy();
-    expect(worst.worst, `the worst row left is ${worst.id} at ${worst.worst} — if the debt is cleared, retire this check`).toBeGreaterThanOrEqual(0.9);
+    expect(worst.worst, `the worst row LIVE is ${worst.id} at ${worst.worst}, but the baseline records ${floor}`).toBeGreaterThanOrEqual(floor);
   });
 
-  it('records the repair: ll173 is under the ceiling and may not drift back', () => {
-    // The debt shrank by one. Deleting the old check and recording nothing in
-    // its place would leave the repair unwitnessed; this is the witness.
-    const l173 = scan.rows.find((r) => r.id.startsWith('ll173-'));
-    expect(l173, 'll173 is not being measured at all').toBeTruthy();
-    expect(l173.worst, 'll173 has drifted back over the ceiling').toBeLessThan(DIFF_CEILING);
-    expect(l173.id in baseline.duplicated, 'll173 is repaired but still recorded as debt — remove it').toBe(false);
+  it('records the repairs: the two 0.99 lessons are under the ceiling and may not drift back', () => {
+    // The debt shrank by two. Deleting the old check and recording nothing in
+    // its place would leave the repairs unwitnessed; this is the witness.
+    for (const p of ['ll173-', 'll172-']) {
+      const r = scan.rows.find((x) => x.id.startsWith(p));
+      expect(r, `${p} is not being measured at all`).toBeTruthy();
+      expect(r.worst, `${p} has drifted back over the ceiling`).toBeLessThan(DIFF_CEILING);
+      expect(r.id in baseline.duplicated, `${p} is repaired but still recorded as debt — remove it`).toBe(false);
+    }
   });
 
   it('a lesson that heals LEAVES the baseline in the same commit', () => {
