@@ -43,6 +43,7 @@ import { BUYING_TERMS_META, BUYING_TERMS_SESSION_FLOW, buildBuyingTermsSchedule,
 import { LEASING_TENANTS_META, LEASING_TENANTS_SESSION_FLOW, buildLeasingTenantsSchedule, leasingTenantsProgressSummary, exportLeasingTenantsCurriculumMarkdown, LEASING_TENANTS_INTEREST_TAG, LEASING_TENANTS_HELPER_TAG, LEASING_TENANTS_TUTOR_META } from './leasing-tenants-course.js';
 import { MAINTENANCE_TRADES_META, MAINTENANCE_TRADES_SESSION_FLOW, buildMaintenanceTradesSchedule, maintenanceTradesProgressSummary, exportMaintenanceTradesCurriculumMarkdown, MAINTENANCE_TRADES_INTEREST_TAG, MAINTENANCE_TRADES_HELPER_TAG, MAINTENANCE_TRADES_TUTOR_META } from './maintenance-trades-course.js';
 import { PARTNERSHIPS_META, PARTNERSHIPS_SESSION_FLOW, buildPartnershipsSchedule, partnershipsProgressSummary, exportPartnershipsCurriculumMarkdown, PARTNERSHIPS_INTEREST_TAG, PARTNERSHIPS_HELPER_TAG, PARTNERSHIPS_TUTOR_META } from './partnerships-course.js';
+import { FINANCING_DEBT_META, FINANCING_DEBT_SESSION_FLOW, buildFinancingDebtSchedule, financingDebtProgressSummary, exportFinancingDebtCurriculumMarkdown, FINANCING_DEBT_INTEREST_TAG, FINANCING_DEBT_HELPER_TAG, FINANCING_DEBT_TUTOR_META } from './financing-debt-course.js';
 import { MATHEMATICS_META, MATHEMATICS_SESSION_FLOW, buildMathematicsSchedule, mathematicsProgressSummary, exportMathematicsCurriculumMarkdown, MATHEMATICS_INTEREST_TAG, MATHEMATICS_HELPER_TAG, MATHEMATICS_TUTOR_META } from './mathematics-class.js';
 import { RTO_BUSINESS_META, RTO_BUSINESS_SESSION_FLOW, buildRtoBusinessSchedule, rtoBusinessProgressSummary, exportRtoBusinessCurriculumMarkdown, RTO_BUSINESS_INTEREST_TAG, RTO_BUSINESS_HELPER_TAG, RTO_BUSINESS_TUTOR_META } from './rent-to-own-business-class.js';
 import { DEVELOPMENT_META, DEVELOPMENT_SESSION_FLOW, buildDevelopmentSchedule, developmentProgressSummary, exportDevelopmentCurriculumMarkdown, DEVELOPMENT_INTEREST_TAG, DEVELOPMENT_HELPER_TAG, DEVELOPMENT_TUTOR_META } from './development-class.js';
@@ -376,6 +377,21 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want a hand applying these eight to the arrangement in front of you \u2014 the four blanks answered separately by both parties, whether this is a yoke or a transaction, the exit mechanism written while you can still be generous about it, and an honest read on whether there is a mind to work. The whole course is free and open right here; this is for a hand with yours. Teaching, not legal advice.',
       cta: 'I want help with mine',
       sent: '\u2713 Sent \u2014 Darrell will reach out. Agree first, then walk.',
+    },
+  },
+  {
+    // REAL ESTATE, COURSE SEVEN — the money behind every other course, and the party on the other end of it.
+    key: 'financing-debt', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...FINANCING_DEBT_META, key: 'financing-debt', category: 'Real Estate' }, sessionFlow: FINANCING_DEBT_SESSION_FLOW,
+    buildScheduleRows: () => buildFinancingDebtSchedule(null), progressSummary: (p) => financingDebtProgressSummary(p),
+    exportMarkdown: () => exportFinancingDebtCurriculumMarkdown(null), downloadName: 'financing-the-debt-you-sign-curriculum.md',
+    interestTag: FINANCING_DEBT_INTEREST_TAG, helperTag: FINANCING_DEBT_HELPER_TAG, tutorCourseMeta: FINANCING_DEBT_TUTOR_META,
+    interestText: (who) => `${FINANCING_DEBT_INTEREST_TAG} ${who} wants a hand reading a real note by these principles.`,
+    interestCopy: {
+      heading: 'Carrying a note, or about to sign one?',
+      blurb: 'Tell Darrell you want a hand applying these eight to the financing in front of you \u2014 your position written as one sentence with real names, every date the note can change state with the notice beside it, the obligations you have quietly stopped intending to pay, and what is already in your house that could produce. The whole course is free and open right here; this is for a hand with yours. Teaching, not legal or financial advice.',
+      cta: 'I want help with mine',
+      sent: '\u2713 Sent \u2014 Darrell will reach out. Know your position, then work it.',
     },
   },
   {
