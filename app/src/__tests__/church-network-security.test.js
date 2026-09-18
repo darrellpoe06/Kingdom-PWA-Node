@@ -145,10 +145,31 @@ describe('scan ingest', () => {
     expect(validateScan({ liveHosts: ['1.1.1.1'], arp: [] }).ok).toBe(false);
   });
   it('finds hosts that are live but absent from the register', () => {
-    const r = reconcileScan(scan, SEED_DEVICES);
+    // Deliberately a synthetic address on a segment the register does not use.
+    // This test once pinned 192.168.0.10 — a REAL host from the 2026-09-18 scan —
+    // and started failing the moment that host was written into the register,
+    // which is the register working, not a bug. A gate for "detects unregistered
+    // hosts" must not depend on a specific device staying unregistered forever.
+    const withStranger = {
+      ...scan,
+      liveHosts: [...scan.liveHosts, '192.168.9.99'],
+      arp: [...scan.arp, { ip: '192.168.9.99', mac: '44-94-FC-01-02-03' }],
+      services: [...scan.services, { ip: '192.168.9.99', openPorts: [23, 80] }],
+    };
+    const r = reconcileScan(withStranger, SEED_DEVICES);
     expect(r.ok).toBe(true);
-    expect(r.unregistered.map((h) => h.ip)).toContain('192.168.0.10');
-    expect(r.unregistered[0].vendor).toBe('Netgear');
+    const unregisteredIps = r.unregistered.map((h) => h.ip);
+    expect(unregisteredIps).toContain('192.168.9.99');
+    expect(r.unregistered.find((h) => h.ip === '192.168.9.99').vendor).toBe('Netgear');
+  });
+  it('PROVEN-TO-CATCH: a host that IS on the register is never called unregistered', () => {
+    // The other half of the same gate. Registering the 23 scan hosts must actually
+    // remove them from the unregistered list, or the register grew for nothing.
+    const r = reconcileScan(scan, SEED_DEVICES);
+    const unregisteredIps = r.unregistered.map((h) => h.ip);
+    expect(unregisteredIps).not.toContain('192.168.0.1');   // the pfSense
+    expect(unregisteredIps).not.toContain('192.168.0.100'); // the RackStation
+    expect(unregisteredIps).not.toContain('192.168.1.123'); // a PTZ camera
   });
   it('treats a silent register row as a QUESTION, never an automatic retirement', () => {
     const r = reconcileScan(scan, SEED_DEVICES);
