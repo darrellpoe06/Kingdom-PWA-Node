@@ -119,6 +119,13 @@ export const MODULES = [
         { q: 'If it sounds completely sure, does that mean it’s right?', options: ['Yes, confidence = truth', 'No — confidence is not truth; test it', 'Only on weekdays'], answer: 1, explain: 'Sounding sure and being right are different things — the whole class is "test everything."' },
       ],
     },
+    benefits: [
+      'You leave able to name what the thing actually is. A model that has learned which word tends to come next is a pattern-guesser, not a knower — so its confidence carries no information about whether it is right, and you stop reading fluency as evidence.',
+      'You get the posture that makes every other week work: "Prove all things; hold fast that which is good" (1 Thessalonians 5:21). Not awe and not fear — a test you actually run, and a keeping of only what survives it.',
+      'You can spot a hallucination before it costs you. A made-up paragraph reads exactly like a true one, so the tell is never the tone; it is the check you ran against a real source.',
+      'You handle it as a tool under Yahweh, never as an oracle beside Him. In a trained hand a hammer builds; swung carelessly it breaks something. The skill is the swing, and the swing is on purpose.',
+      'Carry it out this week: send one prompt in the Council Chamber, write down one thing it did well and one thing it got wrong, and keep both. Your first catch is the beginning of your judgment.',
+    ],
     lesson: 'A large language model has read an enormous amount of writing and learned, very well, which word tends to come next. That is its whole trick — a brilliant pattern-guesser, not a knower. It has no eyes, no memory of your life, and no conscience; it can produce a confident paragraph that is simply made up (we call that a "hallucination"). So the first posture of a wise user is not awe and not fear — it is stewardship. It is a tool, like a hammer or a calculator: powerful in a trained hand, dangerous swung carelessly. We are learning to swing it on purpose.',
     facilitator: {
       talkingPoints: [
@@ -147,6 +154,13 @@ export const MODULES = [
         { q: 'What does "garbage in, garbage out" mean here?', options: ['The app is broken', 'The model mirrors the clarity you give it', 'You should delete bad answers'], answer: 1, explain: 'A vague question gets a vague answer; a good question is a real, transferable skill.' },
       ],
     },
+    benefits: [
+      'You leave knowing the answer is mostly decided before the model says a word. “tell me about dogs” cannot produce a sharp reply, because nothing sharp was asked.',
+      'You carry the four keys — WHAT you want, WHEN and where it applies, WHY you need it, HOW you want it back — so a disappointing answer stops being a mystery and becomes a checklist you skipped.',
+      'You learn to hear before you answer, which is the verse under the whole week: "He that answereth a matter before he heareth it, it is folly and shame unto him" (Proverbs 18:13). Asking before you think is that same folly pointed the other way.',
+      'You gain a skill that transfers straight off the screen. A clear question to a teacher, a parent or a boss is the same instrument — name the role, the audience, and the form you need back.',
+      'Carry it out this week: write one vague prompt and one clear prompt for the same thing, set the answers side by side, and keep the pair. The difference teaches it; nobody has to argue you into it.',
+    ],
     lesson: 'The quality of the answer is mostly decided before the model says a word — by the question. A vague prompt ("tell me about dogs") gets a vague, generic reply. A clear prompt names the four keys: WHAT you want, WHEN/where it applies, WHY you need it, and HOW you want it back (a list? a paragraph? for a fifth-grader?). Giving the model a role and an audience ("explain photosynthesis to my little sister") sharpens it further. This is a real skill — the same skill as asking a teacher, a parent, or a boss a good question — and it transfers far beyond A.I.',
     facilitator: {
       talkingPoints: [
@@ -180,6 +194,13 @@ export const MODULES = [
         { q: 'What’s the rule for a claim of fact?', options: ['Trust it if it sounds smart', 'Verify it against a real source, THEN trust', 'Repeat it quickly'], answer: 1, explain: 'Verify, then trust — not the other way around. Doubting well protects your mind and your name.' },
       ],
     },
+    benefits: [
+      'You leave with the danger named correctly: an answer that looks right and is wrong is worse than one that is obviously wrong, because you will believe it and then repeat it.',
+      'You carry the filter in the words it is written in — "whatsoever things are true, whatsoever things are honest, whatsoever things are just, whatsoever things are pure, whatsoever things are lovely" (Philippians 4:8) — a sequence you run, not a mood you have.',
+      'You stop grading answers by how smart they sound. Verify, THEN trust; “trust but verify” lets the trusting happen first, and that is exactly where the damage lives.',
+      'You learn to doubt well without turning cynical. The first account always sounds right — "He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him" (Proverbs 18:17) — so searching it is not disrespect; it is the neighbour’s job.',
+      'Carry it out this week: run the in-app Test on three answers, find the one that is wrong on purpose, and verify one real fact against a real source before you repeat it anywhere.',
+    ],
     lesson: 'This is the hinge of the whole class, and it is the kid-sized version of the Verification Doctrine the platform itself runs on: an answer that LOOKS right and is WRONG is more dangerous than an answer that is obviously wrong, because you will believe it. So we never trust an answer because it sounds smart. We run it through the Test — true, honorable, just, pure, lovely, commendable, excellent, praiseworthy (Philippians 4:8) — and for any claim of fact we VERIFY it against a real source before we repeat it or hand it in. "Trust but verify" is too weak; the rule is verify, THEN trust. Learning to doubt well is not cynicism — it is how you protect your mind and your name.',
     facilitator: {
       talkingPoints: [
@@ -208,6 +229,13 @@ export const MODULES = [
         { q: 'How did Daniel handle Babylon’s schooling?', options: ['He refused to learn anything', 'He mastered the learning without losing who he was', 'He cheated his way through'], answer: 1, explain: 'Use the system without being owned by it; honest effort is worship (Colossians 3:23).' },
       ],
     },
+    benefits: [
+      'You leave with the bright line drawn where it actually falls — not at “did you use it” but at “who ended up stronger.”',
+      'You know what a tutor does that a ghostwriter never does: quizzes you, explains the hard part, checks your reasoning, and leaves the work honestly yours.',
+      'You have Daniel as a pattern rather than a slogan. He "purposed in his heart" (Daniel 1:8) before Babylon’s schooling ever touched him, and came out with "knowledge and skill in all learning and wisdom" (Daniel 1:17) — inside the system, never owned by it.',
+      'You carry the standard that settles it when nobody is watching: "whatsoever ye do, do it heartily, as to the Lord, and not unto men" (Colossians 3:23). A shortcut that leaves you emptier fails that test long before it fails a teacher’s.',
+      'Carry it out this week: take one hard topic, turn it into your own study guide in your own words, and check it yourself. If you can teach it afterwards it was learning; if you cannot, it was copying.',
+    ],
     lesson: 'There is a bright line between using A.I. to LEARN and using it to cheat, and it is about who ends up stronger. If the model does the thinking and you copy it, you walk away weaker and you have lied about your work. If the model is your tutor — quizzing you, explaining the hard part, checking your reasoning — you walk away stronger and the work is honestly yours. Daniel went to school in Babylon and out-learned everyone without losing who he was; he used the system without being owned by it. Whatever you do, do it with all your heart, as for the Lord (Colossians 3:23). A shortcut that leaves you emptier is not worth it.',
     facilitator: {
       talkingPoints: [
@@ -237,6 +265,13 @@ export const MODULES = [
         { q: 'How is serving an elder also good for YOU?', options: ['It isn’t', 'Teaching it forces you to really understand it', 'It gets you out of class'], answer: 1, explain: 'Helping a phone-shy elder is real ministry AND real skill-building.' },
       ],
     },
+    benefits: [
+      'You leave with the Kingdom’s inversion applied to a tool that begs to be pointed at yourself: "whosoever will be great among you, shall be your minister" (Mark 10:43).',
+      'You know where greatness is actually measured — "And whosoever of you will be the chiefest, shall be servant of all" (Mark 10:44) — and who set that price: He "came not to be ministered unto, but to minister" (Mark 10:45).',
+      'You carry the one use of liberty the Word names: "by love serve one another" (Galatians 5:13). Freedom with a powerful tool is not the reward; it is the assignment.',
+      'You find out that serving is where your own skill gets real. Teaching a phone-shy elder forces you to understand the thing you only thought you had learned.',
+      'Carry it out this week: help one person — a grandparent, an elder, a friend — do one real thing in the app. One prayer request sent, one photo shared. That is the whole week.',
+    ],
     lesson: 'A tool this powerful tempts you to point it only at yourself — my homework, my game, my questions. The Kingdom flips that: whoever wants to be great becomes a servant (Mark 10:43-45). The best thing you can do with this skill is aim it at someone else — write a prayer request with an elder who struggles with their phone, help a grandparent send a photo, build a younger kid a study helper. You have freedom with this tool; use it to serve one another in love (Galatians 5:13). Serving is also where your skill gets real: teaching a phone-shy elder forces you to actually understand the thing you learned.',
     facilitator: {
       talkingPoints: [
@@ -266,6 +301,13 @@ export const MODULES = [
         { q: 'What matters most about your project?', options: ['That it looks fancy', 'That it actually works and is real', 'That it’s the biggest'], answer: 1, explain: '"Real" beats "fancy" — skilled work has weight (Proverbs 22:29).' },
       ],
     },
+    benefits: [
+      'You leave on the other side of a quiet line: a user accepts whatever the app hands them, and a maker asks what this could do for somebody and then builds it.',
+      'You know you do not need to be a programmer to cross it. A good prompt, a clear plan and one small useful thing is real building.',
+      'You carry the Word’s own weight on skilled work: "Seest thou a man diligent in his business? he shall stand before kings" (Proverbs 22:29). Diligence is what the verse names — not talent, and not luck.',
+      'You build for a person instead of for a grade, which is what makes a small tool worth keeping: a scripture-memory helper somebody actually opens beats a clever thing nobody uses.',
+      'Carry it out this week: design it, build it in the app, and get it working end to end. Finished and small beats grand and unbuilt.',
+    ],
     lesson: 'There is a quiet line between being a USER of technology and being a MAKER of it, and crossing it changes how you see everything. A user accepts whatever the app hands them; a maker asks "what could this DO for someone?" and builds it. You do not need to be a programmer to start — a good prompt, a clear plan, and one small useful thing (a scripture-memory helper, a study buddy, a chore tracker) is real building. Skilled work has weight: the one who is skilled in their work will stand before kings (Proverbs 22:29). We are not raising kids who are used BY the tool; we are raising builders who put it to work.',
     facilitator: {
       talkingPoints: [
@@ -295,6 +337,13 @@ export const MODULES = [
         { q: 'Which is one of the four "pulls" to watch for?', options: ['Eating lunch', 'Oversharing private things into a screen', 'Reading a book'], answer: 1, explain: 'The four pulls: over-reliance, time-sink, oversharing, and trusting a screen over people and God.' },
       ],
     },
+    benefits: [
+      'You leave able to name all four pulls rather than only the obvious one — over-reliance, time-sink, oversharing, and the quiet one: trusting a screen more than people and more than Yahweh.',
+      'You carry a distinction sharper than “be careful”: "All things are lawful unto me, but all things are not expedient" (1 Corinthians 6:12). Lawful and good are two different questions, and only one of them is easy.',
+      'You know the line Paul actually holds: "I will not be brought under the power of any" (1 Corinthians 6:12). What is refused there is mastery, not use.',
+      'You set your guardrails BEFORE you need them, because a limit decided in advance is a decision, while a limit decided in the moment is a negotiation you will lose.',
+      'Carry it out this week: write your three rules — what you will never share, when you will stop, who you will tell — and read the app’s privacy promise for yourself. "Keep thy heart with all diligence; for out of it are the issues of life" (Proverbs 4:23).',
+    ],
     lesson: 'Everything powerful pulls at you, and this tool pulls in four ways. Over-reliance — letting it think so you stop thinking. Time-sink — an hour gone before you notice. Oversharing — typing private things into a screen you should have kept between you and the people who love you. And the quiet one: trusting a screen more than people and more than God. "Everything is permitted," Paul says, "but I will not be mastered by anything" (1 Corinthians 6:12). So we build guardrails BEFORE we need them: decide what you will never share, decide when you will stop, and remember the tool serves your life — never the other way around. PoeTech is built the same way on purpose — it has its own brakes, and it processes your data without selling it or keeping it. Above all else, guard your heart, because everything you do flows from it (Proverbs 4:23).',
     facilitator: {
       talkingPoints: [
@@ -323,7 +372,14 @@ export const MODULES = [
         { q: 'What is the ladder you climbed in this class?', options: ['User only', 'User → discerner → server → maker → multiplier', 'Just maker'], answer: 1, explain: 'You grew from user to multiplier; kings raise kings (2 Timothy 2:2).' },
       ],
     },
-    lesson: 'This is the commissioning. Over eight weeks you have climbed a ladder — user, then discerner who tests what it says, then server who points it at others, then maker who builds, and now multiplier who hands it on. The proof that you truly own something is that you can teach it simply; if you can make one week clear to someone younger, you have mastered it. So each of you prepares a five-minute version of the one week that helped you most, and those five-minute lessons seed the next cohort. This is the whole pattern of the Kingdom: "what you heard from me, entrust to faithful people who will be able to teach others also" (2 Timothy 2:2), and "go and make disciples... teaching them" (Matthew 28:19-20). Kings raise kings.',
+    benefits: [
+      'You leave able to see the ladder you climbed: user, then discerner who tests what it says, then server who points it at others, then maker who builds, and now multiplier who hands it on.',
+      'You get the real proof of ownership. If you can make one week clear to someone younger you have it; if you cannot, you were carrying it rather than holding it.',
+      'You carry the Kingdom’s own multiplication instruction: "the same commit thou to faithful men, who shall be able to teach others also" (2 Timothy 2:2). Faithful, and able to teach — two filters, not one.',
+      'You stand inside the commission the King gave: "Go ye therefore, and teach all nations" (Matthew 28:19), and "Teaching them to observe all things whatsoever I have commanded you" (Matthew 28:20). Teaching is the verb in both halves.',
+      'Carry it out this week: pick the week that helped you most, prepare the five-minute version of it, and put your name on the helper list for the next group. Kings raise kings.',
+    ],
+    lesson: 'This is the commissioning. Over eight weeks you have climbed a ladder — user, then discerner who tests what it says, then server who points it at others, then maker who builds, and now multiplier who hands it on. The proof that you truly own something is that you can teach it simply; if you can make one week clear to someone younger, you have mastered it. So each of you prepares a five-minute version of the one week that helped you most, and those five-minute lessons seed the next cohort. This is the whole pattern of the Kingdom: "the things that thou hast heard of me among many witnesses, the same commit thou to faithful men, who shall be able to teach others also" (2 Timothy 2:2), and "Go ye therefore, and teach all nations" (Matthew 28:19), "Teaching them to observe all things whatsoever I have commanded you" (Matthew 28:20). Kings raise kings.',
     facilitator: {
       talkingPoints: [
         'Name the ladder they climbed: user → discerner → server → maker → multiplier.',

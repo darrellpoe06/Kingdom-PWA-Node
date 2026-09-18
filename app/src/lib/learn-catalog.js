@@ -42,6 +42,7 @@ import { MANAGEMENT_STEWARDSHIP_META, MANAGEMENT_STEWARDSHIP_SESSION_FLOW, build
 import { BUYING_TERMS_META, BUYING_TERMS_SESSION_FLOW, buildBuyingTermsSchedule, buyingTermsProgressSummary, exportBuyingTermsCurriculumMarkdown, BUYING_TERMS_INTEREST_TAG, BUYING_TERMS_HELPER_TAG, BUYING_TERMS_TUTOR_META } from './buying-terms-course.js';
 import { LEASING_TENANTS_META, LEASING_TENANTS_SESSION_FLOW, buildLeasingTenantsSchedule, leasingTenantsProgressSummary, exportLeasingTenantsCurriculumMarkdown, LEASING_TENANTS_INTEREST_TAG, LEASING_TENANTS_HELPER_TAG, LEASING_TENANTS_TUTOR_META } from './leasing-tenants-course.js';
 import { MAINTENANCE_TRADES_META, MAINTENANCE_TRADES_SESSION_FLOW, buildMaintenanceTradesSchedule, maintenanceTradesProgressSummary, exportMaintenanceTradesCurriculumMarkdown, MAINTENANCE_TRADES_INTEREST_TAG, MAINTENANCE_TRADES_HELPER_TAG, MAINTENANCE_TRADES_TUTOR_META } from './maintenance-trades-course.js';
+import { PARTNERSHIPS_META, PARTNERSHIPS_SESSION_FLOW, buildPartnershipsSchedule, partnershipsProgressSummary, exportPartnershipsCurriculumMarkdown, PARTNERSHIPS_INTEREST_TAG, PARTNERSHIPS_HELPER_TAG, PARTNERSHIPS_TUTOR_META } from './partnerships-course.js';
 import { MATHEMATICS_META, MATHEMATICS_SESSION_FLOW, buildMathematicsSchedule, mathematicsProgressSummary, exportMathematicsCurriculumMarkdown, MATHEMATICS_INTEREST_TAG, MATHEMATICS_HELPER_TAG, MATHEMATICS_TUTOR_META } from './mathematics-class.js';
 import { RTO_BUSINESS_META, RTO_BUSINESS_SESSION_FLOW, buildRtoBusinessSchedule, rtoBusinessProgressSummary, exportRtoBusinessCurriculumMarkdown, RTO_BUSINESS_INTEREST_TAG, RTO_BUSINESS_HELPER_TAG, RTO_BUSINESS_TUTOR_META } from './rent-to-own-business-class.js';
 import { DEVELOPMENT_META, DEVELOPMENT_SESSION_FLOW, buildDevelopmentSchedule, developmentProgressSummary, exportDevelopmentCurriculumMarkdown, DEVELOPMENT_INTEREST_TAG, DEVELOPMENT_HELPER_TAG, DEVELOPMENT_TUTOR_META } from './development-class.js';
@@ -360,6 +361,21 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want a hand applying these eight to the building in front of you \u2014 a real service interval with real dates, which covered defects still need tracing to their source, what one deferral has actually cost you all in, and how your trades would describe being paid by you. The whole course is free and open right here; this is for a hand with yours. Teaching, not legal or trade advice.',
       cta: 'I want help with mine',
       sent: '\u2713 Sent \u2014 Darrell will reach out. Maintain at the rate of decay.',
+    },
+  },
+  {
+    // REAL ESTATE, COURSE SIX — the person standing next to you when you sign.
+    key: 'partnerships', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...PARTNERSHIPS_META, key: 'partnerships', category: 'Real Estate' }, sessionFlow: PARTNERSHIPS_SESSION_FLOW,
+    buildScheduleRows: () => buildPartnershipsSchedule(null), progressSummary: (p) => partnershipsProgressSummary(p),
+    exportMarkdown: () => exportPartnershipsCurriculumMarkdown(null), downloadName: 'partnerships-who-you-build-with-curriculum.md',
+    interestTag: PARTNERSHIPS_INTEREST_TAG, helperTag: PARTNERSHIPS_HELPER_TAG, tutorCourseMeta: PARTNERSHIPS_TUTOR_META,
+    interestText: (who) => `${PARTNERSHIPS_INTEREST_TAG} ${who} wants a hand weighing a real partnership by these principles.`,
+    interestCopy: {
+      heading: 'About to sign with somebody?',
+      blurb: 'Tell Darrell you want a hand applying these eight to the arrangement in front of you \u2014 the four blanks answered separately by both parties, whether this is a yoke or a transaction, the exit mechanism written while you can still be generous about it, and an honest read on whether there is a mind to work. The whole course is free and open right here; this is for a hand with yours. Teaching, not legal advice.',
+      cta: 'I want help with mine',
+      sent: '\u2713 Sent \u2014 Darrell will reach out. Agree first, then walk.',
     },
   },
   {
