@@ -16,6 +16,12 @@
 //                  row updates in place; editing a seed device writes a row
 //                  whose slug overrides the seed twin on merge (the documented
 //                  church-devices.js path). Members/visitors see no controls.
+//   Topology     — HOW the register is connected: the segments derived from the
+//                  recorded addresses, the routing spine between them, the tailnet
+//                  overlay, and the eyes-on queue that would finish the map.
+//                  <NetworkTopology /> owns the render; church-network-topology.js
+//                  owns the derivation. Addresses render for editors only, matching
+//                  the Registry's gate.
 //   Compute Pool — the capability index (which node can run which job) that feeds
 //                  the deterministic idle-GPU router (gpu-scheduler.js), plus the
 //                  live INERT brake state. Read-only observability; nothing runs.
@@ -39,6 +45,7 @@ import {
   planRun, makeInertState, JOB_TYPES, DEFAULT_IDLE_WINDOWS,
 } from '../lib/gpu-scheduler.js';
 import { getDeviceAccess, subscribeDevices, saveDevice } from '../lib/church-devices-sync.js';
+import NetworkTopology from './NetworkTopology.jsx';
 
 // Shared visual tokens — identical to the Video Wall / conference surfaces
 // (already passing contrast-guard + legibility).
@@ -377,6 +384,12 @@ export default function DeviceInventory() {
                 ))}
               </div>
             ),
+          },
+          {
+            id: 'topology',
+            label: 'Topology',
+            icon: 'globe',
+            render: () => <NetworkTopology devices={devices} canEdit={access.canEdit} />,
           },
           {
             id: 'compute',
