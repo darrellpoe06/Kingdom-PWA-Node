@@ -1,13 +1,10 @@
 {
-  "note": "Shrink-only debt. Measured 2026-09-18 after Darrell reported \"Send off is not populated in the latest lessons\". A RENDERED arc stage whose AUDIENCE side is empty gives the reader a heading with nothing under it. Counted per lesson PER AGE BAND (five bands), so one bare lesson contributes 5. These numbers may only fall; a course that gets worse fails the build, and a course not listed here must stay at zero. The five Real Estate courses were the reported case and are fixed to zero in the same commit that records this file. Course six (partnerships, DR-0510) added 8 lessons and ZERO empty stages, because it shipped benefits and stories from its first commit — which is the whole point of this file.",
-  "total": 345,
+  "note": "Shrink-only debt. Measured 2026-09-18 after Darrell reported \"Send off is not populated in the latest lessons\". A RENDERED arc stage whose AUDIENCE side is empty gives the reader a heading with nothing under it. Counted per lesson PER AGE BAND (five bands), so one bare lesson contributes 5. These numbers may only fall; a course that gets worse fails the build, and a course not listed here must stay at zero. The five Real Estate courses were the reported case and are fixed to zero in the same commit that records this file. Course six (partnerships, DR-0510) added 8 lessons and ZERO empty stages, because it shipped benefits and stories from its first commit — which is the whole point of this file. 2026-09-18, later the same day: the ai course (8 lessons) was authored out of the debt -- 40 benefits, 18 verified KJV spans -- so its key is GONE from this file rather than set to zero, which is what keeps a regression there loud.",
+  "total": 210,
   "lessons": 438,
   "courses": {
-    "ai": 40,
     "ai-legal-blueprint": 30,
-    "broadcast": 45,
     "handed-forward": 25,
-    "infrastructure": 50,
     "kingdom-economics": 40,
     "legacy-provisions": 35,
     "sovereign-ai": 80
