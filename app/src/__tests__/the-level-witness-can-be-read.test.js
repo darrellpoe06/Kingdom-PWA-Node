@@ -55,9 +55,23 @@ describe('the probe can walk the levels on the live site', () => {
     expect(probe).toContain('button[role="radio"]');
   });
 
-  it('names the defect as REAL when two bands render one body', () => {
+  it('names the defect as REAL only when the bodies are BYTE-IDENTICAL', () => {
+    // THE FIRST VERSION OF THIS CHECK CRIED WOLF ON ITS FIRST LIVE RUN. It
+    // compared the first 240 characters, and against poetech.us Child rendered
+    // 787 characters while Adult rendered 1968 — plainly different bodies —
+    // that happened to share an opening, because the lesson card renders its
+    // title, anchor and big idea above the band text. A witness that fires
+    // falsely is worse than none, so the failure rests on the whole body.
     expect(probe).toContain('THE REPORTED DEFECT IS REAL');
-    expect(probe).toMatch(/distinct < seen\.length/);
+    expect(probe).toContain('BYTE-IDENTICAL');
+    expect(probe).toMatch(/new Set\(seen\.map\(\(b\) => b\.body\)\)/);
+    expect(probe, 'comparing the 240-character head is the false-alarm bug')
+      .not.toMatch(/new Set\(seen\.map\(\(b\) => b\.head\)\)/);
+  });
+
+  it('reports where the bodies diverge, so a shared opening is visibly the header', () => {
+    expect(probe).toMatch(/divergeAt/);
+    expect(probe).toContain("a shared opening is the card's own heading, not the lesson");
   });
 
   it('fails loudly when a named case no longer exists', () => {
