@@ -3,11 +3,11 @@
   "note": "Shrink-only debt (Darrell 2026-09-17). Each entry names the bands of a lesson whose OPENING does not name its own lesson. A newly-unnamed band fails the build; entries are removed as bands are authored to carry the title, never added. Read the entries — this measures DIFFERENCE, not absence: a band may name its lesson in a synonym the author chose on purpose.",
   "measuredLessons": 174,
   "lessonsUnnamed": 146,
-  "bandsUnnamed": 440,
+  "bandsUnnamed": 438,
   "perBand": {
     "child": 136,
-    "youth": 55,
-    "teen": 122,
+    "youth": 54,
+    "teen": 121,
     "senior": 127
   },
   "unnamed": {
@@ -698,8 +698,6 @@
     ],
     "ll91-the-authors-own-code-searched-out-to-guard-his-image": [
       "child",
-      "youth",
-      "teen",
       "senior"
     ],
     "ll92-yahweh-standardized-love-obedience-deeds-thoughts-and-the-temple-kingdom": [

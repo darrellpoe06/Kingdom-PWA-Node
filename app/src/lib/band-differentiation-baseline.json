@@ -3,44 +3,8 @@
   "shingle": 8,
   "note": "Shrink-only debt (Darrell 2026-09-18: \"Last lessons don't have diversity of lessons for all reading levels... why not?\"). Overlap is the share of 8-word phrases the smaller band shares with the larger, measured on AUTHORED PROSE with quotations removed — every band quotes the same verses, so counting them would punish a well-differentiated lesson. A lesson newly over the ceiling FAILS the build; entries are removed as bands are genuinely re-authored, never added. Differentiation is not abbreviation: the full-levels floor and the reading ladder stay in force at the same time (DR-0418).",
   "measuredLessons": 94,
-  "lessonsDuplicated": 19,
+  "lessonsDuplicated": 14,
   "duplicated": {
-    "ll172-the-spirit-of-your-mind-dust-breath-and-the-one-who-inhabits-eternity": {
-      "worst": 0.99,
-      "pairs": {
-        "child~youth": 0.13,
-        "youth~teen": 0.73,
-        "teen~senior": 0.99,
-        "child~senior": 0.13
-      }
-    },
-    "ll82-love-fulfils-the-law-wake-up-and-get-dressed": {
-      "worst": 0.86,
-      "pairs": {
-        "child~youth": 0.01,
-        "youth~teen": 0.86,
-        "teen~senior": 0.02,
-        "child~senior": 0.01
-      }
-    },
-    "ll91-the-authors-own-code-searched-out-to-guard-his-image": {
-      "worst": 0.86,
-      "pairs": {
-        "child~youth": 0.07,
-        "youth~teen": 0.86,
-        "teen~senior": 0.7,
-        "child~senior": 0.05
-      }
-    },
-    "ll81-tongues-weighed-word-first": {
-      "worst": 0.83,
-      "pairs": {
-        "child~youth": 0.01,
-        "youth~teen": 0.83,
-        "teen~senior": 0.29,
-        "child~senior": 0.01
-      }
-    },
     "ll149-cultural-competency-the-same-word-in-three-mouths-and-the-man-nobody-believed": {
       "worst": 0.78,
       "pairs": {
@@ -48,15 +12,6 @@
         "youth~teen": 0.78,
         "teen~senior": 0.53,
         "child~senior": 0.04
-      }
-    },
-    "ll100-guard-the-little-ones-children-the-millstone-and-mastery-over-the-tools": {
-      "worst": 0.76,
-      "pairs": {
-        "child~youth": 0,
-        "youth~teen": 0.76,
-        "teen~senior": 0.48,
-        "child~senior": 0
       }
     },
     "ll99-watch-and-be-ready-no-date-setting-and-a-sober-word-on-ai-and-prophecy": {
