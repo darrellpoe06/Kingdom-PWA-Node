@@ -161,10 +161,15 @@ const carries = (key, text, markers, claims, pad = 600) => {
 };
 
 describe('L171 exists and is the newest lesson', () => {
-  it('is mounted, titled, and last in the series', () => {
+  it('is mounted exactly once, and titled', () => {
     expect(L, 'L171 is not mounted').toBeTruthy();
     expect(L.title).toBe('Trend It Against the Shoreline — Points, Setpoints, and the Trends of Our Lives');
-    expect(LIVING_LESSONS_MODULES[LIVING_LESSONS_MODULES.length - 1].id).toBe(ID);
+    // MOUNTED EXACTLY ONCE, not "last". This first read
+    // LIVING_LESSONS_MODULES[length - 1].id === ID, which is a property that
+    // is only true until the next lesson lands — and it duly went red on the
+    // full verify the moment one did. Being newest is not a property of this
+    // lesson; being present, exactly once, is (DR-0468).
+    expect(LIVING_LESSONS_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
   });
 
   it('carries a real lesson, four real bands, a quiz and facilitator notes', () => {
