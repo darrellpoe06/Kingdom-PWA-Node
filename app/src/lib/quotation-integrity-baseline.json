@@ -4,11 +4,11 @@
   "lessonsElided": 105,
   "lessonsReciting": 42,
   "totals": {
-    "spans": 700,
-    "scripture": 661,
+    "spans": 685,
+    "scripture": 646,
     "ours": 14,
     "undecidable": 25,
-    "contiguousAvailable": 639
+    "contiguousAvailable": 624
   },
   "elided": {
     "ll1-the-perfect-yahweh-expects": {
@@ -31,14 +31,12 @@
       "lesson": 2,
       "bigIdea": 1,
       "levels.child": 1,
-      "levels.youth": 1,
       "levels.teen": 2,
       "levels.senior": 2
     },
     "ll104-study-your-ways-how-yahweh-weighs-love-the-deterministic-standard-two-ways-and-the-word": {
       "lesson": 1,
       "levels.child": 1,
-      "levels.youth": 1,
       "levels.teen": 1,
       "levels.senior": 1
     },
@@ -507,17 +505,13 @@
       "lesson": 3,
       "bigIdea": 3,
       "levels.child": 3,
-      "levels.youth": 3,
-      "levels.teen": 3,
-      "levels.senior": 3
+      "levels.teen": 3
     },
     "ll93-come-let-us-reason-truth-in-any-language-the-mind-rewired-real": {
       "lesson": 1,
       "bigIdea": 1,
       "levels.child": 1,
-      "levels.youth": 1,
-      "levels.teen": 1,
-      "levels.senior": 1
+      "levels.teen": 1
     },
     "ll94-lord-of-hosts-the-two-ways-sealed-in-time-and-the-mind-of-christ": {
       "lesson": 4,
@@ -525,7 +519,6 @@
       "levels.child": 3,
       "levels.youth": 2,
       "levels.teen": 2,
-      "levels.senior": 2,
       "anchor.theme": 1
     },
     "ll96-doers-of-the-word-competence-by-doing-and-the-minds-tactics-daily": {
@@ -544,16 +537,13 @@
       "bigIdea": 4,
       "levels.child": 1,
       "levels.youth": 1,
-      "levels.teen": 1,
-      "levels.senior": 1
+      "levels.teen": 1
     },
     "ll99-watch-and-be-ready-no-date-setting-and-a-sober-word-on-ai-and-prophecy": {
       "lesson": 1,
       "bigIdea": 7,
       "inApp": 1,
-      "levels.youth": 1,
-      "levels.teen": 1,
-      "levels.senior": 1
+      "levels.teen": 1
     }
   },
   "recited": {
