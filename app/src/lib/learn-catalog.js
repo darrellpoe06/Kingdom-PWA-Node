@@ -41,6 +41,7 @@ import { PROPERTY_PRINCIPLE_META, PROPERTY_PRINCIPLE_SESSION_FLOW, buildProperty
 import { MANAGEMENT_STEWARDSHIP_META, MANAGEMENT_STEWARDSHIP_SESSION_FLOW, buildManagementStewardshipSchedule, managementStewardshipProgressSummary, exportManagementStewardshipCurriculumMarkdown, MANAGEMENT_STEWARDSHIP_INTEREST_TAG, MANAGEMENT_STEWARDSHIP_HELPER_TAG, MANAGEMENT_STEWARDSHIP_TUTOR_META } from './management-stewardship-course.js';
 import { BUYING_TERMS_META, BUYING_TERMS_SESSION_FLOW, buildBuyingTermsSchedule, buyingTermsProgressSummary, exportBuyingTermsCurriculumMarkdown, BUYING_TERMS_INTEREST_TAG, BUYING_TERMS_HELPER_TAG, BUYING_TERMS_TUTOR_META } from './buying-terms-course.js';
 import { LEASING_TENANTS_META, LEASING_TENANTS_SESSION_FLOW, buildLeasingTenantsSchedule, leasingTenantsProgressSummary, exportLeasingTenantsCurriculumMarkdown, LEASING_TENANTS_INTEREST_TAG, LEASING_TENANTS_HELPER_TAG, LEASING_TENANTS_TUTOR_META } from './leasing-tenants-course.js';
+import { MAINTENANCE_TRADES_META, MAINTENANCE_TRADES_SESSION_FLOW, buildMaintenanceTradesSchedule, maintenanceTradesProgressSummary, exportMaintenanceTradesCurriculumMarkdown, MAINTENANCE_TRADES_INTEREST_TAG, MAINTENANCE_TRADES_HELPER_TAG, MAINTENANCE_TRADES_TUTOR_META } from './maintenance-trades-course.js';
 import { MATHEMATICS_META, MATHEMATICS_SESSION_FLOW, buildMathematicsSchedule, mathematicsProgressSummary, exportMathematicsCurriculumMarkdown, MATHEMATICS_INTEREST_TAG, MATHEMATICS_HELPER_TAG, MATHEMATICS_TUTOR_META } from './mathematics-class.js';
 import { RTO_BUSINESS_META, RTO_BUSINESS_SESSION_FLOW, buildRtoBusinessSchedule, rtoBusinessProgressSummary, exportRtoBusinessCurriculumMarkdown, RTO_BUSINESS_INTEREST_TAG, RTO_BUSINESS_HELPER_TAG, RTO_BUSINESS_TUTOR_META } from './rent-to-own-business-class.js';
 import { DEVELOPMENT_META, DEVELOPMENT_SESSION_FLOW, buildDevelopmentSchedule, developmentProgressSummary, exportDevelopmentCurriculumMarkdown, DEVELOPMENT_INTEREST_TAG, DEVELOPMENT_HELPER_TAG, DEVELOPMENT_TUTOR_META } from './development-class.js';
@@ -344,6 +345,21 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want a hand applying these eight to the door in front of you \u2014 written criteria applied the same way to everyone, what you verify before you answer, the terms read aloud before anyone signs, what your deposit and late-fee terms actually cost the household, and the order you follow when it goes wrong. The whole course is free and open right here; this is for a hand with yours. Teaching, not legal advice.',
       cta: 'I want help with mine',
       sent: '\u2713 Sent \u2014 Darrell will reach out. Remember the position; refuse the seating chart.',
+    },
+  },
+  {
+    // REAL ESTATE, COURSE FIVE — the building itself, and who keeps it standing.
+    key: 'maintenance-trades', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...MAINTENANCE_TRADES_META, key: 'maintenance-trades', category: 'Real Estate' }, sessionFlow: MAINTENANCE_TRADES_SESSION_FLOW,
+    buildScheduleRows: () => buildMaintenanceTradesSchedule(null), progressSummary: (p) => maintenanceTradesProgressSummary(p),
+    exportMarkdown: () => exportMaintenanceTradesCurriculumMarkdown(null), downloadName: 'maintenance-repairs-and-the-trades-curriculum.md',
+    interestTag: MAINTENANCE_TRADES_INTEREST_TAG, helperTag: MAINTENANCE_TRADES_HELPER_TAG, tutorCourseMeta: MAINTENANCE_TRADES_TUTOR_META,
+    interestText: (who) => `${MAINTENANCE_TRADES_INTEREST_TAG} ${who} wants a hand maintaining a real building by these principles.`,
+    interestCopy: {
+      heading: 'Working on a real building?',
+      blurb: 'Tell Darrell you want a hand applying these eight to the building in front of you \u2014 a real service interval with real dates, which covered defects still need tracing to their source, what one deferral has actually cost you all in, and how your trades would describe being paid by you. The whole course is free and open right here; this is for a hand with yours. Teaching, not legal or trade advice.',
+      cta: 'I want help with mine',
+      sent: '\u2713 Sent \u2014 Darrell will reach out. Maintain at the rate of decay.',
     },
   },
   {
