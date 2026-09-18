@@ -40,6 +40,7 @@ import { LEGACY_PROVISIONS_META, LEGACY_PROVISIONS_SESSION_FLOW, buildLegacyProv
 import { PROPERTY_PRINCIPLE_META, PROPERTY_PRINCIPLE_SESSION_FLOW, buildPropertyPrincipleSchedule, propertyPrincipleProgressSummary, exportPropertyPrincipleCurriculumMarkdown, PROPERTY_PRINCIPLE_INTEREST_TAG, PROPERTY_PRINCIPLE_HELPER_TAG, PROPERTY_PRINCIPLE_TUTOR_META } from './property-principle-course.js';
 import { MANAGEMENT_STEWARDSHIP_META, MANAGEMENT_STEWARDSHIP_SESSION_FLOW, buildManagementStewardshipSchedule, managementStewardshipProgressSummary, exportManagementStewardshipCurriculumMarkdown, MANAGEMENT_STEWARDSHIP_INTEREST_TAG, MANAGEMENT_STEWARDSHIP_HELPER_TAG, MANAGEMENT_STEWARDSHIP_TUTOR_META } from './management-stewardship-course.js';
 import { BUYING_TERMS_META, BUYING_TERMS_SESSION_FLOW, buildBuyingTermsSchedule, buyingTermsProgressSummary, exportBuyingTermsCurriculumMarkdown, BUYING_TERMS_INTEREST_TAG, BUYING_TERMS_HELPER_TAG, BUYING_TERMS_TUTOR_META } from './buying-terms-course.js';
+import { LEASING_TENANTS_META, LEASING_TENANTS_SESSION_FLOW, buildLeasingTenantsSchedule, leasingTenantsProgressSummary, exportLeasingTenantsCurriculumMarkdown, LEASING_TENANTS_INTEREST_TAG, LEASING_TENANTS_HELPER_TAG, LEASING_TENANTS_TUTOR_META } from './leasing-tenants-course.js';
 import { MATHEMATICS_META, MATHEMATICS_SESSION_FLOW, buildMathematicsSchedule, mathematicsProgressSummary, exportMathematicsCurriculumMarkdown, MATHEMATICS_INTEREST_TAG, MATHEMATICS_HELPER_TAG, MATHEMATICS_TUTOR_META } from './mathematics-class.js';
 import { RTO_BUSINESS_META, RTO_BUSINESS_SESSION_FLOW, buildRtoBusinessSchedule, rtoBusinessProgressSummary, exportRtoBusinessCurriculumMarkdown, RTO_BUSINESS_INTEREST_TAG, RTO_BUSINESS_HELPER_TAG, RTO_BUSINESS_TUTOR_META } from './rent-to-own-business-class.js';
 import { DEVELOPMENT_META, DEVELOPMENT_SESSION_FLOW, buildDevelopmentSchedule, developmentProgressSummary, exportDevelopmentCurriculumMarkdown, DEVELOPMENT_INTEREST_TAG, DEVELOPMENT_HELPER_TAG, DEVELOPMENT_TUTOR_META } from './development-class.js';
@@ -328,6 +329,21 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want a hand applying these eight to a deal in front of you \u2014 the price paid openly, one standard in both directions, what is still unverified before the closing date, any guarantee your name would go on, and the reserve that decides whether the loan is a tool. The whole course is free and open right here; this is for a hand with yours. Teaching, not legal or financial advice.',
       cta: 'I want help with mine',
       sent: '\u2713 Sent \u2014 Darrell will reach out. The cleanest deal is rarely the friendliest one.',
+    },
+  },
+  {
+    // REAL ESTATE, COURSE FOUR — the part with a person on the other side of it.
+    key: 'leasing-tenants', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...LEASING_TENANTS_META, key: 'leasing-tenants', category: 'Real Estate' }, sessionFlow: LEASING_TENANTS_SESSION_FLOW,
+    buildScheduleRows: () => buildLeasingTenantsSchedule(null), progressSummary: (p) => leasingTenantsProgressSummary(p),
+    exportMarkdown: () => exportLeasingTenantsCurriculumMarkdown(null), downloadName: 'leasing-and-tenant-selection-curriculum.md',
+    interestTag: LEASING_TENANTS_INTEREST_TAG, helperTag: LEASING_TENANTS_HELPER_TAG, tutorCourseMeta: LEASING_TENANTS_TUTOR_META,
+    interestText: (who) => `${LEASING_TENANTS_INTEREST_TAG} ${who} wants a hand leasing a real door by these principles.`,
+    interestCopy: {
+      heading: 'Filling a real door?',
+      blurb: 'Tell Darrell you want a hand applying these eight to the door in front of you \u2014 written criteria applied the same way to everyone, what you verify before you answer, the terms read aloud before anyone signs, what your deposit and late-fee terms actually cost the household, and the order you follow when it goes wrong. The whole course is free and open right here; this is for a hand with yours. Teaching, not legal advice.',
+      cta: 'I want help with mine',
+      sent: '\u2713 Sent \u2014 Darrell will reach out. Remember the position; refuse the seating chart.',
     },
   },
   {

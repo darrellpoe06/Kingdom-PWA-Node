@@ -45,6 +45,22 @@ import { ourProseOnly, fleschKincaidGrade } from '../../../scripts/reading-level
 import { shingles, overlap, DIFF_CEILING } from '../../../scripts/band-differentiation.mjs';
 import { formatLessonText } from '../lib/lesson-format.js';
 
+/**
+ * DR-0459 forbids an ellipsis INSIDE a quotation. It PERMITS one in our own
+ * prose between two quotations. The first version of this check ran the regex
+ * from one closing quote to the next opening one, so it flagged our own prose —
+ * measured 2026-09-18 when it false-blocked a leasing-course band. Each quoted
+ * span is now tested on its own.
+ */
+function elidedSpans(text) {
+  const out = [];
+  for (const m of String(text).matchAll(/"([^"]*)"/g)) {
+    if (/\.\.\.|\u2026/.test(m[1])) out.push(m[1]);
+  }
+  return out;
+}
+
+
 const M = PROPERTY_PRINCIPLE_MODULES;
 const TEEN_CEILING = 6.0;
 const SENIOR_CEILING = 10.0;
@@ -176,9 +192,15 @@ describe('His words, fetched not remembered', () => {
   it('never elides inside a quotation (DR-0459)', () => {
     for (const m of M) {
       walkStrings(m, m.id, (text, path) => {
-        expect(/"[^"]*(?:\.\.\.|…)[^"]*"/.test(text), `${path} elided a quotation`).toBe(false);
+        expect(elidedSpans(text), `${path} elided a quotation`).toEqual([]);
       });
     }
+    // PROVEN-TO-CATCH on the same function the walk uses, both ellipsis forms.
+    expect(elidedSpans('x "a ... b" y').length, 'a real elision passed').toBe(1);
+    expect(elidedSpans('x "a \u2026 b" y').length, 'a unicode elision passed').toBe(1);
+    // And the form DR-0459 PERMITS is not flagged: our prose between quotations.
+    expect(elidedSpans('he said "a" and then... then "b"'),
+      'our own prose was flagged as an elision').toEqual([]);
   });
 
   it('says Yahweh in OUR voice and leaves "the LORD" exactly where the KJV has it', () => {

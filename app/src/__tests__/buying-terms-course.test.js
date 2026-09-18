@@ -47,6 +47,22 @@ import { ourProseOnly, fleschKincaidGrade } from '../../../scripts/reading-level
 import { shingles, overlap, DIFF_CEILING } from '../../../scripts/band-differentiation.mjs';
 import { formatLessonText } from '../lib/lesson-format.js';
 
+/**
+ * DR-0459 forbids an ellipsis INSIDE a quotation. It PERMITS one in our own
+ * prose between two quotations. The first version of this check ran the regex
+ * from one closing quote to the next opening one, so it flagged our own prose —
+ * measured 2026-09-18 when it false-blocked a leasing-course band. Each quoted
+ * span is now tested on its own.
+ */
+function elidedSpans(text) {
+  const out = [];
+  for (const m of String(text).matchAll(/"([^"]*)"/g)) {
+    if (/\.\.\.|\u2026/.test(m[1])) out.push(m[1]);
+  }
+  return out;
+}
+
+
 const M = BUYING_TERMS_MODULES;
 const TEEN_CEILING = 6.0;
 const SENIOR_CEILING = 10.0;
@@ -205,7 +221,7 @@ describe('His words, fetched not remembered', () => {
   it('never elides inside a quotation, which the first draft did twice', () => {
     for (const m of M) {
       walkStrings(m, m.id, (text, path) => {
-        expect(/"[^"]*(?:\.\.\.|\u2026)[^"]*"/.test(text), `${path} elided a quotation`).toBe(false);
+        expect(elidedSpans(text), `${path} elided a quotation`).toEqual([]);
       });
     }
     // the two-span replacements are present rather than the elisions
@@ -338,11 +354,19 @@ describe('it is wired into the school, on the Real Estate shelf', () => {
     expect(row.meta.category).toBe('Real Estate');
   });
 
-  it('makes the department three courses on ONE shelf', () => {
+  it('puts this course on the SAME single Real Estate shelf as its siblings', () => {
+    // NOT an exhaustive census of the shelf. The first version of this pinned
+    // the department at exactly three keys and broke the moment course four
+    // landed -- the same defect the capstone's own pin had, written a second
+    // time. The property being guarded is that the department is ONE shelf and
+    // that this course is on it with the courses that came before it.
     const labels = learnDepartments(LEARN_CATALOG).map((d) => d.label);
     expect(labels.filter((l) => l === 'Real Estate')).toHaveLength(1);
-    const re = LEARN_CATALOG.filter((c) => c.meta && c.meta.category === 'Real Estate');
-    expect(re.map((c) => c.key).sort()).toEqual(['buying-terms', 'management-stewardship', 'property-principle']);
+    const re = LEARN_CATALOG.filter((c) => c.meta && c.meta.category === 'Real Estate').map((c) => c.key);
+    expect(re).toContain('buying-terms');
+    expect(re).toContain('property-principle');
+    expect(re).toContain('management-stewardship');
+    expect(re.length).toBeGreaterThanOrEqual(3);
   });
 
   it('builds a real schedule, summarises progress, and exports its curriculum', () => {
@@ -380,7 +404,12 @@ describe('proven-to-catch (DR-0076 \u00a73)', () => {
 
   it('catches an elision, which is what the first draft shipped twice', () => {
     const elided = '"Abraham weighed to Ephron the silver... current money with the merchant" (Genesis 23:16)';
-    expect(/"[^"]*(?:\.\.\.|\u2026)[^"]*"/.test(elided), 'an elided quotation passed').toBe(true);
+    expect(elidedSpans(elided).length, 'an elided quotation passed').toBe(1);
+    const unicode = '"Abraham weighed to Ephron the silver \u2026 with the merchant" (Genesis 23:16)';
+    expect(elidedSpans(unicode).length, 'a unicode elision passed').toBe(1);
+    // and the permitted form is NOT flagged: our own prose between two quotations
+    const ourProse = 'He said "I will give thee money for the field" and then... then "take it of me".';
+    expect(elidedSpans(ourProse), 'our own prose was flagged as an elision').toEqual([]);
   });
 
   it('catches an inverted ladder, a summary, and a near-copy', () => {
