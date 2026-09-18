@@ -339,8 +339,15 @@ describe('it is wired into the school, in the department course one opened', () 
   it('stands on the same shelf as course one rather than opening a second', () => {
     const labels = learnDepartments(LEARN_CATALOG).map((d) => d.label);
     expect(labels.filter((l) => l === 'Real Estate')).toHaveLength(1);
-    const re = LEARN_CATALOG.filter((c) => c.meta && c.meta.category === 'Real Estate');
-    expect(re.map((c) => c.key).sort()).toEqual(['management-stewardship', 'property-principle']);
+    // NOT an exhaustive list. This pinned exactly two courses and went stale the
+    // moment the department's third arrived (DR-0504) — the same stale-pin class
+    // as the five-speed-chip count in the chrome-cap test. What the check is
+    // actually for is that the capstone stands on the SAME shelf as the footing,
+    // so that is what it now asserts.
+    const re = LEARN_CATALOG.filter((c) => c.meta && c.meta.category === 'Real Estate').map((c) => c.key);
+    expect(re).toContain('management-stewardship');
+    expect(re).toContain('property-principle');
+    expect(re.length, 'the Real Estate shelf lost a course').toBeGreaterThanOrEqual(2);
   });
 
   it('builds a real schedule, summarises progress, and exports its curriculum', () => {
