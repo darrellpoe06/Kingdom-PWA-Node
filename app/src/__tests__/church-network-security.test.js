@@ -10,7 +10,7 @@ import {
   assessNetworkSecurity, topRemediation, severityRank, severityTone, SEVERITY_IDS,
 } from '../lib/church-network-security.js';
 import {
-  reconcileScan, validateScan, portMeaning, PORT_MEANINGS,
+  reconcileScan, validateScan, portMeaning, PORT_MEANINGS, bannerRisks,
 } from '../lib/church-scan-ingest.js';
 import { describeMac, lookupVendor, normalizeMac, isRandomizedMac } from '../lib/oui-vendors.js';
 import { SEED_DEVICES, makeDevice } from '../lib/church-devices.js';
@@ -171,6 +171,40 @@ describe('scan ingest', () => {
       expect(v.note.length).toBeGreaterThan(30);
       expect(v.service).toBeTruthy();
     }
+  });
+  it('PROVEN-TO-CATCH: an end-of-life server banner is CRITICAL', () => {
+    // Found on the real 2026-09-18 scan at 192.168.1.120. Boa development stopped
+    // in 2005; it carries published unpatched vulnerabilities and ships inside
+    // cheap camera/DVR firmware. A port list alone would have called this a
+    // moderate "unencrypted web" and missed it entirely.
+    const risks = bannerRisks([{ ip: '192.168.1.120', port: 80, server: 'Boa/0.94.13', title: '' }]);
+    expect(risks).toHaveLength(1);
+    expect(risks[0].severity).toBe('critical');
+    expect(risks[0].title).toMatch(/end of life/i);
+  });
+  it('a modern banner raises nothing', () => {
+    expect(bannerRisks([{ ip: '1.1.1.1', port: 80, server: 'nginx/1.27.0', title: 'Home' }])).toEqual([]);
+    expect(bannerRisks([])).toEqual([]);
+    expect(bannerRisks(null)).toEqual([]);
+  });
+  it('an untrusted TLS certificate is reported without being called a breach', () => {
+    const risks = bannerRisks([{ ip: '192.168.0.125', port: 443, server: '', title: 'Could not establish trust relationship for the SSL/TLS secure channel.' }]);
+    expect(risks).toHaveLength(1);
+    expect(risks[0].severity).toBe('moderate');
+  });
+  it('banner risks reach the exposure list, ranked with the rest', () => {
+    const withBanner = {
+      scan: { scannedAt: '2026-09-18T13:05:00Z' },
+      liveHosts: ['192.168.1.120'],
+      arp: [{ ip: '192.168.1.120', mac: '00-84-E4-26-37-34' }],
+      services: [{ ip: '192.168.1.120', openPorts: [80] }],
+      banners: [{ ip: '192.168.1.120', port: 80, server: 'Boa/0.94.13', title: '' }],
+      routes: [],
+    };
+    const r = reconcileScan(withBanner, SEED_DEVICES);
+    expect(r.exposures[0].severity).toBe('critical');
+    expect(r.exposures[0].fromBanner).toBe(true);
+    expect(r.summary.criticalExposures).toBe(1);
   });
   it('reports register coverage of the live network', () => {
     const r = reconcileScan(scan, SEED_DEVICES);

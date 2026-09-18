@@ -44,6 +44,49 @@ export const PORT_MEANINGS = {
   32400: { service: 'Plex',             severity: 'watch',    note: 'Media server. Worth knowing it is here: a consumer service with an internet-facing account model, running on church hardware.' },
 };
 
+// --- Banner risks -------------------------------------------------------------
+// A server banner sometimes says more than an open port does. An end-of-life
+// embedded web server is not a "maybe" - it is software with published
+// vulnerabilities and no vendor left to patch it. DR-0100: established fact is
+// stated plainly, not hedged into "possibly outdated".
+export const BANNER_RISKS = [
+  {
+    id: 'boa-eol',
+    match: /\bBoa\/?\s*0\./i,
+    severity: 'critical',
+    title: 'Boa web server - end of life since 2005',
+    note: 'Boa is an embedded HTTP server whose development STOPPED in 2005. It carries published, unpatched vulnerabilities and no vendor is issuing fixes. It persists inside cheap IP cameras and DVRs through vendor SDKs, and it is a known recurring foothold in IoT compromises. Whatever device this is, its web stack has been unmaintained for two decades and it is reachable from the church LAN.',
+  },
+  {
+    id: 'lighttpd-embedded',
+    match: /lighttpd\/1\.4\.(?:[0-9]|[1-3][0-9])\b/i,
+    severity: 'moderate',
+    title: 'Old lighttpd build',
+    note: 'An early lighttpd 1.4.x build, typical of appliance firmware that has not been updated. Check the device vendor for a firmware release.',
+  },
+  {
+    id: 'tls-untrusted',
+    match: /[Cc]ould not establish trust relationship|SSL\/TLS secure channel/,
+    severity: 'moderate',
+    title: 'HTTPS with an untrusted certificate',
+    note: 'The device serves TLS with a self-signed or expired certificate. Not a breach by itself, but it trains anyone who administers it to click through certificate warnings - which is how a real interception attempt gets accepted.',
+  },
+];
+
+export function bannerRisks(banners) {
+  const out = [];
+  for (const b of banners || []) {
+    const text = `${b.server || ''} ${b.title || ''}`.trim();
+    if (!text) continue;
+    for (const risk of BANNER_RISKS) {
+      if (risk.match.test(text)) {
+        out.push({ ...risk, match: undefined, ip: b.ip, port: b.port, banner: text.slice(0, 160) });
+      }
+    }
+  }
+  return out;
+}
+
 export function portMeaning(port) {
   return PORT_MEANINGS[port] || { service: `TCP ${port}`, severity: 'watch', note: 'Unrecognized service - identify what is listening.' };
 }
@@ -74,6 +117,34 @@ function registerIndex(devices) {
     }
   }
   return byIp;
+}
+
+// ouiClusters - group unknown-vendor hosts by their MAC prefix.
+// A prefix nobody recognizes is still EVIDENCE: four hosts sharing one prefix are
+// four units from one manufacturer. On the closet walk that turns four separate
+// mysteries into one identification that resolves all four. Clusters are sorted
+// largest-first because that is the order that saves the most time on site.
+export function ouiClusters(hosts) {
+  const byPrefix = new Map();
+  for (const h of hosts || []) {
+    if (!h.mac || h.vendor) continue;             // named vendors need no cluster
+    if (h.macConfidence === 'randomized-mac-no-vendor') continue; // meaningless prefix
+    const prefix = h.mac.slice(0, 8);
+    if (!byPrefix.has(prefix)) byPrefix.set(prefix, []);
+    byPrefix.get(prefix).push(h);
+  }
+  return Array.from(byPrefix.entries())
+    .map(([prefix, members]) => ({
+      prefix,
+      count: members.length,
+      ips: members.map((m) => m.ip),
+      subnets: Array.from(new Set(members.map((m) => m.subnet))),
+      services: Array.from(new Set(members.flatMap((m) => m.openPorts || []))).sort((a, b) => a - b),
+      note: members.length > 1
+        ? `${members.length} units from one unrecognized manufacturer. Identify ONE on the walk and all ${members.length} are resolved.`
+        : 'A single unit from an unrecognized manufacturer.',
+    }))
+    .sort((a, b) => b.count - a.count);
 }
 
 export function reconcileScan(scan, devices) {
@@ -181,6 +252,23 @@ export function reconcileScan(scan, devices) {
       });
     }
   }
+  // Banner-derived risks: what the software ITSELF says about how old it is.
+  for (const h of hosts) {
+    for (const risk of bannerRisks(h.banners)) {
+      exposures.push({
+        ip: h.ip,
+        subnet: h.subnet,
+        vendor: h.vendor,
+        port: risk.port,
+        service: risk.title,
+        severity: risk.severity,
+        note: `${risk.note} (banner: ${risk.banner})`,
+        knownAs: h.registeredAs.map((r) => r.name).join(' / ') || 'UNREGISTERED HOST',
+        fromBanner: true,
+      });
+    }
+  }
+
   const rank = { critical: 0, high: 1, moderate: 2, watch: 3 };
   exposures.sort((a, b) => rank[a.severity] - rank[b.severity]);
 
@@ -189,6 +277,7 @@ export function reconcileScan(scan, devices) {
     scannedAt,
     hosts,
     unregistered,
+    clusters: ouiClusters(hosts),
     silent,
     identifications,
     exposures,

@@ -85,6 +85,22 @@ if (r.unregistered.length > 0) {
   line('');
 }
 
+if (r.clusters && r.clusters.length > 0) {
+  const multi = r.clusters.filter((c) => c.count > 1);
+  if (multi.length > 0) {
+    line('-'.repeat(78));
+    line(`VENDOR CLUSTERS (${multi.length}) - unrecognized prefixes shared by several hosts`);
+    line('  Identify ONE unit in a cluster and the whole cluster is resolved.');
+    line('-'.repeat(78));
+    for (const c of multi) {
+      line(`  ${c.prefix}  x${c.count}  ${c.subnets.join(' + ')}`);
+      line(`      ${c.ips.join(', ')}`);
+      if (c.services.length > 0) line(`      services seen: ${c.services.join(', ')}`);
+    }
+    line('');
+  }
+}
+
 if (r.identifications.length > 0) {
   line('-'.repeat(78));
   line(`IDENTIFICATIONS (${r.identifications.length}) - MAC vendor for rows we could not name`);

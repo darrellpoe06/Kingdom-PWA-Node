@@ -102,6 +102,19 @@ export const OUI_TABLE = {
   '14-CC-20': 'TP-Link', '50-C7-BF': 'TP-Link', '60-E3-27': 'TP-Link',
   'A0-F3-C1': 'TP-Link', 'EC-08-6B': 'TP-Link',
 
+  // --- DERIVED FROM THIS ESTATE'S OWN CONFIRMED DEVICES ---------------------
+  // These two were not read from a registry - they were established from the COLG
+  // network itself on the 2026-09-18 scan, which is STRONGER evidence than a table
+  // lookup for this estate specifically:
+  //   DC-ED-84 is carried by all three scan-confirmed PTZOptics stage cameras
+  //            (192.168.1.123 / .126 / .127), each serving 80 + 554 + 22.
+  //   10-DA-43 is carried by both endpoints the register already records as the
+  //            Netgear pair (192.168.0.136 / .137), whose vendor was read as
+  //            Netgear on the 2026-07-08 scan.
+  // Both still name the MAKER only - model and role remain needs-eyes-on.
+  'DC-ED-84': 'PTZOptics',
+  '10-DA-43': 'Netgear',
+
   // --- Apple (the iMac and any AirPlay endpoint) ---
   '00-03-93': 'Apple', '00-0A-27': 'Apple', '00-16-CB': 'Apple',
   '3C-07-54': 'Apple', '68-A8-6D': 'Apple', 'AC-BC-32': 'Apple',
