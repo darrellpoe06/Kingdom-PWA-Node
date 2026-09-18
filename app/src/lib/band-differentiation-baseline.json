@@ -3,7 +3,7 @@
   "shingle": 8,
   "note": "Shrink-only debt (Darrell 2026-09-18: \"Last lessons don't have diversity of lessons for all reading levels... why not?\"). Overlap is the share of 8-word phrases the smaller band shares with the larger, measured on AUTHORED PROSE with quotations removed — every band quotes the same verses, so counting them would punish a well-differentiated lesson. A lesson newly over the ceiling FAILS the build; entries are removed as bands are genuinely re-authored, never added. Differentiation is not abbreviation: the full-levels floor and the reading ladder stay in force at the same time (DR-0418).",
   "measuredLessons": 94,
-  "lessonsDuplicated": 20,
+  "lessonsDuplicated": 19,
   "duplicated": {
     "ll172-the-spirit-of-your-mind-dust-breath-and-the-one-who-inhabits-eternity": {
       "worst": 0.99,
@@ -12,15 +12,6 @@
         "youth~teen": 0.73,
         "teen~senior": 0.99,
         "child~senior": 0.13
-      }
-    },
-    "ll173-humility-is-the-strength-no-shame-and-feelings-that-arrive-late": {
-      "worst": 0.99,
-      "pairs": {
-        "child~youth": 0.12,
-        "youth~teen": 0.99,
-        "teen~senior": 0.98,
-        "child~senior": 0.12
       }
     },
     "ll82-love-fulfils-the-law-wake-up-and-get-dressed": {

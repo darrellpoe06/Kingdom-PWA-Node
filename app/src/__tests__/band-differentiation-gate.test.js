@@ -76,14 +76,55 @@ describe('the measure, run on the real corpus', () => {
     expect(scan.measuredLessons).toBe(baseline.measuredLessons);
   });
 
-  it('catches the lesson that prompted this gate', () => {
-    // ll173's youth and teen bands are the same text. If this ever stops
-    // reporting, either the lesson was genuinely re-authored — in which case it
-    // leaves the baseline and this check is updated deliberately — or the
-    // measure has gone blind.
+  it('still catches a near-identical pair living in the real corpus', () => {
+    // RE-ANCHORED 2026-09-18 (DR-0485). This check was pinned to ll173, whose
+    // youth and teen bands were the same text. ll173 was re-authored the same
+    // day and now measures 0.16 on that pair, which took the check with it —
+    // exactly as the original comment said it would. The lesson: a live
+    // proven-to-catch anchored to a defect we INTEND to fix has to be
+    // re-anchored every time we fix one, and re-anchoring by hand is the point.
+    // It is now pinned to the worst row the corpus still carries, so it keeps
+    // proving the measure can see a real duplicate — and when the last one is
+    // repaired this fails, and someone reads it and retires it deliberately
+    // rather than a silent green standing in for a cleared debt.
+    const worst = scan.rows.slice().sort((a, b) => b.worst - a.worst)[0];
+    expect(worst, 'nothing in the corpus is being measured at all').toBeTruthy();
+    expect(worst.worst, `the worst row left is ${worst.id} at ${worst.worst} — if the debt is cleared, retire this check`).toBeGreaterThanOrEqual(0.9);
+  });
+
+  it('records the repair: ll173 is under the ceiling and may not drift back', () => {
+    // The debt shrank by one. Deleting the old check and recording nothing in
+    // its place would leave the repair unwitnessed; this is the witness.
     const l173 = scan.rows.find((r) => r.id.startsWith('ll173-'));
     expect(l173, 'll173 is not being measured at all').toBeTruthy();
-    expect(l173.pairs['youth~teen'], 'll173 youth~teen is no longer reported as duplicated').toBeGreaterThanOrEqual(0.9);
+    expect(l173.worst, 'll173 has drifted back over the ceiling').toBeLessThan(DIFF_CEILING);
+    expect(l173.id in baseline.duplicated, 'll173 is repaired but still recorded as debt — remove it').toBe(false);
+  });
+
+  it('a lesson that heals LEAVES the baseline in the same commit', () => {
+    // Without this the baseline shrinks only when someone remembers. A padded
+    // allowance nobody lowers becomes an exemption — the same discipline the
+    // anchor gate enforces on its owed list.
+    const { healed } = ratchetDifferentiation(scan, baseline);
+    expect(healed, `re-authored and still recorded as debt:\n${healed.join('\n')}`).toEqual([]);
+  });
+
+  it('the healed check can see a re-authored lesson left in the file (proven-to-catch)', () => {
+    // ll174 is a real lesson, measured, and under the ceiling. Recording it as
+    // debt is exactly the stale entry this check exists to report.
+    const id = scan.rows.find((r) => r.id.startsWith('ll174-')).id;
+    const padded = { ...baseline, duplicated: { ...baseline.duplicated, [id]: { worst: 0.99, pairs: {} } } };
+    expect(ratchetDifferentiation(scan, padded).healed).toContain(id);
+  });
+
+  it('reports a recorded id the corpus no longer carries, which can never heal', () => {
+    // Found while re-anchoring: `healed` only ever walked the rows it MEASURED,
+    // so an entry for a lesson that was renamed or removed was invisible to it
+    // and would have sat in the file for ever. The first assertion is the
+    // proven-to-catch; the second is the real baseline having none.
+    const ghost = { ...baseline, duplicated: { ...baseline.duplicated, 'll999-a-lesson-that-does-not-exist': { worst: 0.99, pairs: {} } } };
+    expect(ratchetDifferentiation(scan, ghost).stale).toContain('ll999-a-lesson-that-does-not-exist');
+    expect(ratchetDifferentiation(scan, baseline).stale, 'the baseline records a lesson the corpus does not carry').toEqual([]);
   });
 
   it('adds no NEW lesson to the duplication debt', () => {

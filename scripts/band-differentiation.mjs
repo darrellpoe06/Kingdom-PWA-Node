@@ -111,7 +111,12 @@ export function ratchetDifferentiation(scan, baseline = loadBandDiffBaseline()) 
     if (r.over.length && !(r.id in known)) fresh.push(r.id);
     if (!r.over.length && r.id in known) healed.push(r.id);
   }
-  return { fresh, healed };
+  // A recorded id the corpus no longer carries is debt for a lesson that does
+  // not exist. It can never heal, so it would sit in the file for ever and
+  // quietly inflate lessonsDuplicated. Report it as stale (2026-09-18).
+  const measured = new Set(scan.rows.map((r) => r.id));
+  const stale = Object.keys(known).filter((id) => !measured.has(id));
+  return { fresh, healed, stale };
 }
 
 export function buildBandDiffBaseline(scan, { ceiling = DIFF_CEILING } = {}) {
