@@ -520,3 +520,35 @@ jobs:
             gh issue close "$open_issue" --repo "$REPO" \
               --comment "$(date -u +%FT%TZ) — RECOVERED: probe green (served build ${{ steps.probe.outputs.served_sha }})."
           fi
+
+  # A DISABLED WITNESS MUST STILL SAY SO (added 2026-09-18; DR-0514).
+  #
+  # The probe job carries `if: vars.SITE_HEALTH_ENABLED != 'false'`. When that
+  # variable is set to 'false' the whole job is SKIPPED, which means the run-log
+  # step inside it never runs either -- and the log then looks exactly the same
+  # as it does when the workflow was never dispatched at all. That defeats the
+  # contract the log exists to create ("silence means it did not run"), because
+  # it makes "switched off on purpose" indistinguishable from "never fired".
+  #
+  # This job is additive and cannot affect the probe: it only runs when the
+  # probe was skipped, and all it does is leave the line the probe could not.
+  log_disabled:
+    needs: probe
+    if: ${{ always() && needs.probe.result == 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Record that the witness was switched off
+        run: |
+          set -uo pipefail
+          title="site-health: the live site, run log"
+          line="$(date -u +%FT%TZ) - DISABLED - the probe job was skipped, so nothing was measured. Set the repository variable SITE_HEALTH_ENABLED back to true (or remove it) to resume. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          log_issue=$(gh issue list --repo "$REPO" --state all --search "in:title site-health: the live site, run log" --json number --jq '.[0].number // ""')
+          if [ -n "$log_issue" ]; then
+            gh issue comment "$log_issue" --repo "$REPO" --body "$line"
+          else
+            gh issue create --repo "$REPO" --title "$title" --body "$line"
+          fi

@@ -4,7 +4,7 @@
 - **Tier:** B (the instrument that answers "is the site up?")
 - **Type:** verification
 - **Date:** 2026-09-18
-- **Scope:** `.github/workflows/site-health.yml` (a `Record the run (rolling log, pass or fail)` step, `if: always()`), `app/src/__tests__/every-witness-leaves-a-run-log.test.js` (new, 11 checks), `app/src/lib/witness-run-log-baseline.json` (new, shrink-only)
+- **Scope:** `.github/workflows/site-health.yml` (a `Record the run (rolling log, pass or fail)` step and a `log_disabled` job), `.github/workflows/level-witness.yml` (a `log_disabled` job), `app/src/__tests__/every-witness-leaves-a-run-log.test.js` (new, 14 checks), `app/src/lib/witness-run-log-baseline.json` (new, shrink-only)
 - **Principles:** UNKNOWN-NEVER-READS-FRESH (DR-0125), VERIFICATION-DOCTRINE (DR-0076 §2 §3 §8), A-DOWN-SITE-IS-THE-WORST-OUTCOME (DR-0107), PERPETUAL-IMPROVEMENT (DR-0075)
 - **Grounds:** DR-0125 (the site has its own witness), DR-0502/0503 (the level witness learned this one day earlier), the standing finding carried since 2026-09-18
 
@@ -48,6 +48,14 @@ expected '' to contain 'Served build: ${SERVED:-unknown}'
 ```
 
 Plus the deliberate breaks: a witness with no log recognised as a witness, a run log conditioned on `success()` instead of `always()`, and a step that would append to another workflow's log.
+
+## And the hole a run log alone does not close
+
+Both witnesses carry a **job-level `if` on a repository variable** — `SITE_HEALTH_ENABLED`, `LEVEL_WITNESS_ENABLED`. When one is set to `false` the whole job is SKIPPED, which means the run-log step *inside* it never runs either. The log then looks exactly as it does when the workflow was never dispatched at all, so **"switched off on purpose" becomes indistinguishable from "never fired"** — the same ambiguity the log was built to remove, reintroduced one level up.
+
+Closed with a second job, `log_disabled`, on both witnesses: `needs:` the probe, `if: always() && needs.<job>.result == 'skipped'`. It is purely additive — it cannot run unless the probe was skipped, and all it does is append the line the probe could not, naming the variable that has to be flipped back.
+
+**Its first draft was wrong and the validation caught it.** The copied job said `needs: probe`, which is correct for `site-health.yml` and wrong for `level-witness.yml`, whose job is named `witness`. A dangling `needs:` makes the whole workflow file invalid — it would have silenced the witness completely while the change was described as making silence impossible. The gate now asserts that `needs:` names a job that actually exists in the same file, and that assertion is proven against the broken shape.
 
 ## The honest limit
 

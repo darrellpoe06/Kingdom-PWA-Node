@@ -135,3 +135,39 @@ describe('the gate can actually fail', () => {
       'site-health would append to the level witness’s log').toBe(false);
   });
 });
+
+describe('a witness switched off still says so', () => {
+  // The hole this closes, found the hard way: both witnesses carry a job-level
+  // `if` on a repository variable. When that variable is 'false' the whole job
+  // is SKIPPED, so the run-log step inside it never runs — and the log then
+  // looks identical to a workflow that was never dispatched. That makes
+  // "switched off on purpose" indistinguishable from "never fired", which is
+  // the same ambiguity the run log was built to remove. A separate job that
+  // runs only when the main one was skipped leaves the line it could not.
+  for (const f of ['site-health.yml', 'level-witness.yml']) {
+    it(`${f}: a skipped probe still appends a DISABLED line`, () => {
+      const src = read(f);
+      const from = src.indexOf('log_disabled:');
+      expect(from, 'no log_disabled job').toBeGreaterThan(0);
+      const job = src.slice(from);
+      expect(job, 'it must run even when the job it watches did not').toMatch(/always\(\)/);
+      expect(job, 'and only when that job was skipped').toMatch(/result == 'skipped'/);
+      expect(job, 'the line must name the state plainly').toMatch(/DISABLED/);
+      expect(job, 'and name the switch that has to be flipped back').toMatch(/_ENABLED/);
+      expect(job, 'it appends to the same rolling log the probe uses').toMatch(/in:title[^\n]*run log/);
+      // the dependency must name a job that actually exists, or the whole
+      // workflow file is invalid — caught exactly this way on the first draft,
+      // where level-witness's job is `witness` and not `probe`.
+      const needs = /log_disabled:[\s\S]*?needs:\s*(\w+)/.exec(src);
+      expect(needs, 'no needs: on log_disabled').toBeTruthy();
+      expect(src, `needs: ${needs[1]} names no such job`).toMatch(new RegExp(`\\n  ${needs[1]}:`));
+    });
+  }
+
+  it('PROVEN-TO-CATCH: a needs: pointing at a job that does not exist', () => {
+    const bad = '\n  witness:\n    runs-on: x\n  log_disabled:\n    needs: probe\n';
+    const needs = /log_disabled:[\s\S]*?needs:\s*(\w+)/.exec(bad);
+    expect(needs[1]).toBe('probe');
+    expect(new RegExp(`\\n  ${needs[1]}:`).test(bad), 'a dangling needs passed').toBe(false);
+  });
+});
