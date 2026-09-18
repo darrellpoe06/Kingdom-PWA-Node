@@ -3,44 +3,8 @@
   "shingle": 8,
   "note": "Shrink-only debt (Darrell 2026-09-18: \"Last lessons don't have diversity of lessons for all reading levels... why not?\"). Overlap is the share of 8-word phrases the smaller band shares with the larger, measured on AUTHORED PROSE with quotations removed — every band quotes the same verses, so counting them would punish a well-differentiated lesson. A lesson newly over the ceiling FAILS the build; entries are removed as bands are genuinely re-authored, never added. Differentiation is not abbreviation: the full-levels floor and the reading ladder stay in force at the same time (DR-0418).",
   "measuredLessons": 94,
-  "lessonsDuplicated": 8,
+  "lessonsDuplicated": 4,
   "duplicated": {
-    "ll98-the-just-judge-equal-justice-and-a-just-weight-for-the-numbers": {
-      "worst": 0.63,
-      "pairs": {
-        "child~youth": 0.05,
-        "youth~teen": 0.41,
-        "teen~senior": 0.63,
-        "child~senior": 0.02
-      }
-    },
-    "ll103-his-kings-reigning-under-the-king-of-kings-two-paths-wealth-and-souls": {
-      "worst": 0.62,
-      "pairs": {
-        "child~youth": 0.01,
-        "youth~teen": 0.62,
-        "teen~senior": 0.31,
-        "child~senior": 0
-      }
-    },
-    "ll97-a-just-weight-for-work-money-and-words-faithful-service-and-verifying-every-claim": {
-      "worst": 0.61,
-      "pairs": {
-        "child~youth": 0.08,
-        "youth~teen": 0.44,
-        "teen~senior": 0.61,
-        "child~senior": 0.02
-      }
-    },
-    "ll104-study-your-ways-how-yahweh-weighs-love-the-deterministic-standard-two-ways-and-the-word": {
-      "worst": 0.61,
-      "pairs": {
-        "child~youth": 0,
-        "youth~teen": 0.61,
-        "teen~senior": 0.22,
-        "child~senior": 0
-      }
-    },
     "ll171-trend-it-against-the-shoreline-points-setpoints-and-the-trends-of-our-lives": {
       "worst": 0.59,
       "pairs": {

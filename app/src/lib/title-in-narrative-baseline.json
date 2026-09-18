@@ -3,12 +3,12 @@
   "note": "Shrink-only debt (Darrell 2026-09-17). Each entry names the bands of a lesson whose OPENING does not name its own lesson. A newly-unnamed band fails the build; entries are removed as bands are authored to carry the title, never added. Read the entries — this measures DIFFERENCE, not absence: a band may name its lesson in a synonym the author chose on purpose.",
   "measuredLessons": 174,
   "lessonsUnnamed": 146,
-  "bandsUnnamed": 434,
+  "bandsUnnamed": 431,
   "perBand": {
     "child": 136,
-    "youth": 52,
+    "youth": 50,
     "teen": 121,
-    "senior": 125
+    "senior": 124
   },
   "unnamed": {
     "ll10-strength-and-honour-are-her-clothing": [
@@ -29,13 +29,11 @@
     ],
     "ll103-his-kings-reigning-under-the-king-of-kings-two-paths-wealth-and-souls": [
       "child",
-      "youth",
       "teen",
       "senior"
     ],
     "ll104-study-your-ways-how-yahweh-weighs-love-the-deterministic-standard-two-ways-and-the-word": [
       "child",
-      "youth",
       "teen",
       "senior"
     ],
@@ -728,8 +726,7 @@
     ],
     "ll97-a-just-weight-for-work-money-and-words-faithful-service-and-verifying-every-claim": [
       "child",
-      "youth",
-      "senior"
+      "youth"
     ],
     "ll98-the-just-judge-equal-justice-and-a-just-weight-for-the-numbers": [
       "child"

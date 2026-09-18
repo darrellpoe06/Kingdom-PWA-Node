@@ -4,11 +4,11 @@
   "lessonsElided": 105,
   "lessonsReciting": 42,
   "totals": {
-    "spans": 690,
-    "scripture": 651,
+    "spans": 687,
+    "scripture": 648,
     "ours": 14,
     "undecidable": 25,
-    "contiguousAvailable": 629
+    "contiguousAvailable": 626
   },
   "elided": {
     "ll1-the-perfect-yahweh-expects": {
@@ -31,14 +31,12 @@
       "lesson": 2,
       "bigIdea": 1,
       "levels.child": 1,
-      "levels.youth": 1,
       "levels.teen": 2,
       "levels.senior": 2
     },
     "ll104-study-your-ways-how-yahweh-weighs-love-the-deterministic-standard-two-ways-and-the-word": {
       "lesson": 1,
       "levels.child": 1,
-      "levels.youth": 1,
       "levels.teen": 1,
       "levels.senior": 1
     },
@@ -540,8 +538,7 @@
       "bigIdea": 4,
       "levels.child": 1,
       "levels.youth": 1,
-      "levels.teen": 1,
-      "levels.senior": 1
+      "levels.teen": 1
     },
     "ll99-watch-and-be-ready-no-date-setting-and-a-sober-word-on-ai-and-prophecy": {
       "lesson": 1,
