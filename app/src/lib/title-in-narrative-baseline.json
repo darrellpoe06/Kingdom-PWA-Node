@@ -2,12 +2,12 @@
   "window": 200,
   "note": "Shrink-only debt (Darrell 2026-09-17). Each entry names the bands of a lesson whose OPENING does not name its own lesson. A newly-unnamed band fails the build; entries are removed as bands are authored to carry the title, never added. Read the entries — this measures DIFFERENCE, not absence: a band may name its lesson in a synonym the author chose on purpose.",
   "measuredLessons": 172,
-  "lessonsUnnamed": 150,
-  "bandsUnnamed": 451,
+  "lessonsUnnamed": 149,
+  "bandsUnnamed": 449,
   "perBand": {
-    "child": 140,
+    "child": 139,
     "youth": 55,
-    "teen": 126,
+    "teen": 125,
     "senior": 130
   },
   "unnamed": {
@@ -705,10 +705,6 @@
       "child",
       "teen",
       "senior"
-    ],
-    "ll84-blessed-and-highly-favored-before-during-after-time": [
-      "child",
-      "teen"
     ],
     "ll9-the-lord-looks-on-the-heart": [
       "child",
