@@ -22,8 +22,9 @@ import { KpiDot } from './KpiDot.jsx';
 import UiIcon from './UiIcon.jsx';
 import { buildTopology } from '../lib/church-network-topology.js';
 import {
-  assessNetworkSecurity, topRemediation, severityTone, severityLabel,
+  assessNetworkSecurity, severityTone, severityLabel,
 } from '../lib/church-network-security.js';
+import { buildRemediationPlan, WINDOWS } from '../lib/church-network-remediation.js';
 
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
 const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
@@ -56,7 +57,10 @@ function Finding({ f }) {
 export default function ChurchNetworkPosture({ devices }) {
   const topology = useMemo(() => buildTopology(devices), [devices]);
   const assessment = useMemo(() => assessNetworkSecurity(devices, topology), [devices, topology]);
-  const steps = useMemo(() => topRemediation(assessment), [assessment]);
+  const plan = useMemo(
+    () => buildRemediationPlan(devices, assessment, topology),
+    [devices, assessment, topology],
+  );
   const s = assessment.summary;
 
   return (
@@ -118,18 +122,51 @@ export default function ChurchNetworkPosture({ devices }) {
         {assessment.findings.map((f) => <Finding key={f.id} f={f} />)}
       </div>
 
-      {/* WHAT CLOSES THE MOST, FIRST */}
-      {steps.length > 0 && (
+      {/* THE PATCH PLAN - ordered so nothing that can darken the sanctuary runs
+          before the reads and reversible changes that make it safe. */}
+      {plan.steps.length > 0 && (
         <div className="mt-4 border border-[#1A1815] p-3">
-          <div className={labelCls}>What closes the most exposure, in order</div>
-          <ol className="mt-2 space-y-2">
-            {steps.map((st, i) => (
-              <li key={st.step} className="text-[0.75rem]">
-                <span className="text-[#1A1815]" style={serif}>{i + 1}. {st.step}</span>
-                <span className="block text-[#5A5751]">{st.detail}</span>
-                <span className="block text-[#B85838]">Closes: {st.closes}</span>
-              </li>
-            ))}
+          <div className={labelCls}>The patch plan, in the order it is safe to run</div>
+          <p className="mt-1.5 text-[0.75rem] text-[#5A5751]">{plan.principle}</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <span className={chip}>{plan.summary.anytime} any time</span>
+            <span className={chip}>{plan.summary.offService} outside service hours</span>
+            <span className={chip}>{plan.summary.maintenance} maintenance window</span>
+          </div>
+          <ol className="mt-3 space-y-3">
+            {plan.steps.map((st, i) => {
+              const win = WINDOWS.find((w) => w.id === st.window) || { label: st.window };
+              return (
+                <li key={st.id} className="border border-[#E8E4DC] p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-sm text-[#1A1815]" style={serif}>{i + 1}. {st.title}</span>
+                    <span className={chip}>{win.label}</span>
+                  </div>
+                  <p className="mt-1.5 text-[0.75rem] text-[#5A5751]">{st.why}</p>
+                  <ul className="mt-1.5 space-y-1">
+                    {st.actions.map((a, ai) => (
+                      <li key={ai} className="flex gap-2 text-[0.75rem] text-[#1A1815]">
+                        <span className="text-[#B85838]" aria-hidden="true">·</span><span>{a}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-1.5 text-[0.75rem] text-[#B85838]">
+                    <span className={labelCls}>Blast radius</span> — {st.blastRadius}
+                  </p>
+                  <p className="mt-1 text-[0.75rem] text-[#1A1815]">
+                    <span className={labelCls}>Rollback</span> — {st.rollback}
+                  </p>
+                  <p className="mt-1 text-[0.75rem] text-[#1A1815]">
+                    <span className={labelCls}>Proves it worked</span> — {st.verifies}
+                  </p>
+                  {st.dependsOn.length > 0 && (
+                    <p className="mt-1 text-[0.6875rem] text-[#5A5751]">
+                      Only after: {st.dependsOn.join(', ')}
+                    </p>
+                  )}
+                </li>
+              );
+            })}
           </ol>
         </div>
       )}
