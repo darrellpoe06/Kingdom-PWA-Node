@@ -171,15 +171,20 @@ describe('a pointer, never a copy', () => {
     // ("Maintenance, Repairs and the Trades", DR-0508) — the building itself.
     // Both pins move for its eight lessons, same Real Estate shelf.
     //
+    // And to 35 / 587 on 2026-09-18 for the department's SIXTH course
+    // ("Partnerships: Who You Build With", DR-0510) — the person standing next
+    // to you when you sign, and the first course to ship benefits AND stories
+    // from its first commit (DR-0509).
+    //
     // What this test exists to catch has NOT changed and is unaffected: a
     // cross-listing is a POINTER, so putting a lesson on another department's
     // shelf must never add a course or a lesson to these totals. If a
     // cross-listing ever inflates them, this fails — and the numbers above are
     // the catalog's own, so the check still has teeth after the bump.
-    expect(courses).toHaveLength(34);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(579);
+    expect(courses).toHaveLength(35);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(587);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(579);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(587);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
