@@ -137,17 +137,31 @@ export function assessNetworkSecurity(devices, topologyIn) {
   }
 
   // --- 4. Unidentified network gear = unmeasurable attack surface --------------
-  const unknownGear = allMembers.filter(
-    (m) => m.node.deviceType === 'network' && m.node.smeNeeded && !m.node.confirmed,
-  );
-  for (const m of unknownGear) {
+  // A group row (the possible UniFi pair) holds addresses on BOTH segments, so it
+  // appears once per segment in allMembers. Collapse to ONE finding per DEVICE that
+  // names every segment it touches — a duplicate finding is noise, and a duplicate
+  // React key silently drops a render. Caught by the infra-plan render test.
+  const unknownGearByDevice = new Map();
+  for (const m of allMembers) {
+    const n = m.node;
+    if (!(n.deviceType === 'network' && n.smeNeeded && !n.confirmed)) continue;
+    if (!unknownGearByDevice.has(n.id)) unknownGearByDevice.set(n.id, { node: n, places: [] });
+    unknownGearByDevice.get(n.id).places.push({ cidr: m.cidr, ips: addressesOf(m) });
+  }
+  for (const g of unknownGearByDevice.values()) {
+    const m = { node: g.node };
+    const spans = g.places.length > 1;
     findings.push({
       id: `unknown-gear-${m.node.id}`,
       class: 'unidentified-infrastructure',
-      severity: 'high',
-      title: `${m.node.name} — unidentified gear carrying traffic`,
-      evidence: `Answering at ${addressesOf(m)} on ${m.cidr}; role (switch / access point / router) never confirmed.`,
-      why: 'Unidentified gear cannot be patched, credentialed or trusted. If any of it is an access point, it may be extending this network into the parking lot on defaults nobody has ever read — and a wireless AP bridging both segments would silently undo any segmentation built above it. Its admin interface, firmware age and credentials are all unknown.',
+      severity: spans ? 'critical' : 'high',
+      title: spans
+        ? `${m.node.name} — unidentified gear on BOTH segments`
+        : `${m.node.name} — unidentified gear carrying traffic`,
+      evidence: `Answering at ${g.places.map((p) => `${p.ips} (${p.cidr})`).join(' and ')}; role (switch / access point / router) never confirmed.`,
+      why: spans
+        ? 'Unidentified gear answering on BOTH segments is the worst case: whatever it is, it already spans the boundary the firewall is supposed to enforce. If it is an access point it may be bridging the two segments over the air AND extending this network past the walls on defaults nobody has ever read — which would silently undo any segmentation built above it. Its admin interface, firmware age and credentials are all unknown.'
+        : 'Unidentified gear cannot be patched, credentialed or trusted. If it is an access point, it may be extending this network into the parking lot on defaults nobody has ever read. Its admin interface, firmware age and credentials are all unknown.',
       fix: 'Physically identify each unit at the closet, read its model and firmware, change its admin credentials, and confirm whether it bridges segments or broadcasts an SSID.',
       governs: 'DR-0076 (no claim without evidence — this gear is pure unknown)',
       established: true,
