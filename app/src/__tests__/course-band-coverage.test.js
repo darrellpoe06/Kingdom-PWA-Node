@@ -14,13 +14,23 @@
 //
 //     211  lessons outside the Living Lessons series
 //       0  carrying all four authored bands
-//      43  carrying adult text only
+//      43  carrying no authored band at all
+//       5  of those 43 reading ABOVE grade 9 in the text actually served
 //
-// A child who opens one of those 43 is handed the adult words by
-// resolveForAge's fallback, silently, and no gate in the house has ever said
-// so. That is L178's own subject committed by the instruments: the need is
-// real, the gate reports nothing, and a defect no instrument reports reads as
-// a defect that does not exist.
+// Whoever opens one of the 43 gets the single `lesson` field through
+// resolveForAge's fallback, and no gate in the house has ever said so. That is
+// L178's own subject committed by the instruments: the need is real, the gate
+// reports nothing, and a defect no instrument reports reads as a defect that
+// does not exist.
+//
+// AND THE COUNT ALONE WOULD HAVE LIED. The first version of this file said a
+// child opening any of the 43 "is handed the adult words". Measured: that is
+// true of 5 of them. `little-learners` reads at grade 0.3 and `mathematics` at
+// 1.5 in that single field — already written for the youngest readers, so the
+// missing bands there are a LABEL gap. `broadcast` reads at 12.4 and is the
+// real defect. The register measure below exists because the count over-claimed
+// (DR-0076 §1 no claim without evidence, §4 measure don't claim), and it is
+// ratcheted so the distinction is instrumented rather than remembered.
 //
 // WHAT THIS FILE DOES AND DELIBERATELY DOES NOT DO. It does NOT impose the
 // Living-Lessons floors on a paced course lesson — that is a different
@@ -34,6 +44,7 @@ import { LEARN_CATALOG } from '../lib/learn-catalog.js';
 import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
 import {
   BANDS, bandsPresent, lessonsOfCourse, scanCourseBands, ratchetCourseBands,
+  servedGrade, median, ADULT_REGISTER_CEILING,
 } from '../../../scripts/course-band-coverage.mjs';
 import baseline from '../lib/course-band-coverage-baseline.json';
 
@@ -86,6 +97,34 @@ describe('the debt, recorded as it actually is', () => {
   it('matches the live catalog exactly', () => {
     expect(scan.allFour).toBe(baseline.allFour);
     expect(scan.adultOnly).toBe(baseline.adultOnly);
+    expect(scan.adultRegister).toBe(baseline.adultRegister);
+  });
+
+  it('separates a missing label from adult prose served to a child', () => {
+    // The correction. 43 bandless lessons are NOT 43 lessons serving adult
+    // words: 5 are, and the record says which. A course written for the
+    // youngest readers reading at grade 0.3 must never be counted the same as
+    // one reading at 12.4, or the number stops being information.
+    expect(baseline.adultRegister).toBe(5);
+    expect(baseline.courses['little-learners'].bandlessGrade).toBeLessThan(3);
+    expect(baseline.courses['little-learners'].adultRegister).toBe(0);
+    expect(baseline.courses.mathematics.bandlessGrade).toBeLessThan(3);
+    expect(baseline.courses.mathematics.adultRegister).toBe(0);
+    expect(baseline.courses.broadcast.bandlessGrade).toBeGreaterThan(ADULT_REGISTER_CEILING);
+    expect(baseline.courses.broadcast.adultRegister).toBe(4);
+  });
+
+  it('measures the served text the way the reading-level ratchet does', () => {
+    // Quoted spans are verbatim Scripture: not ours to simplify, and not
+    // scored against the author. And no prose means no number, never a zero
+    // that would read as a perfectly easy lesson.
+    const quoted = { lesson: 'He said it. "Notwithstanding the everlasting consideration of righteousness."' };
+    const plain = { lesson: 'He said it.' };
+    expect(servedGrade(quoted)).toBe(servedGrade(plain));
+    expect(servedGrade({ lesson: '' })).toBeNull();
+    expect(servedGrade({})).toBeNull();
+    expect(median([1, 9, 2])).toBe(2);
+    expect(median([])).toBeNull();
   });
 
   it('gets no worse — a course that loses bands, or a new bare lesson, fails here', () => {
@@ -116,6 +155,20 @@ describe('proven-to-catch (DR-0076 §3)', () => {
     // amount of debt at all, which is how 211 lessons got here unnoticed.
     const withNew = { ...scan, courses: { ...scan.courses, 'real-estate-principle': { lessons: 4, allFour: 0, adultOnly: 4 } } };
     expect(ratchetCourseBands(withNew, baseline).worse.join(' ')).toMatch(/real-estate-principle: not recorded/);
+  });
+
+  it('sees a bandless lesson that climbs above the adult-register ceiling', () => {
+    // The register dimension moving the wrong way: same band count, harder text.
+    const worseScan = { ...scan, courses: { ...scan.courses, ai: { ...scan.courses.ai, adultRegister: 2 } } };
+    expect(ratchetCourseBands(worseScan, baseline).worse.join(' ')).toMatch(/ai: 2 bandless lessons above the adult-register ceiling/);
+  });
+
+  it('refuses a baseline row that carries no register number at all', () => {
+    // An absent measurement is not a licence. A row written before this
+    // measure existed is reported, the same way an unrecorded course is —
+    // otherwise the gate would silently stop watching the dimension.
+    const unmeasured = { ...baseline, courses: { ...baseline.courses, ai: { lessons: 8, allFour: 0, adultOnly: 8 } } };
+    expect(ratchetCourseBands(scan, unmeasured).worse.join(' ')).toMatch(/ai: no adultRegister recorded/);
   });
 
   it('sees a recorded course that has vanished from the catalog', () => {
