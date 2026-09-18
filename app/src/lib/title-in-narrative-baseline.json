@@ -2,13 +2,13 @@
   "window": 200,
   "note": "Shrink-only debt (Darrell 2026-09-17). Each entry names the bands of a lesson whose OPENING does not name its own lesson. A newly-unnamed band fails the build; entries are removed as bands are authored to carry the title, never added. Read the entries — this measures DIFFERENCE, not absence: a band may name its lesson in a synonym the author chose on purpose.",
   "measuredLessons": 172,
-  "lessonsUnnamed": 149,
-  "bandsUnnamed": 449,
+  "lessonsUnnamed": 148,
+  "bandsUnnamed": 446,
   "perBand": {
-    "child": 139,
+    "child": 138,
     "youth": 55,
-    "teen": 125,
-    "senior": 130
+    "teen": 124,
+    "senior": 129
   },
   "unnamed": {
     "ll10-strength-and-honour-are-her-clothing": [
@@ -697,11 +697,6 @@
       "senior"
     ],
     "ll82-love-fulfils-the-law-wake-up-and-get-dressed": [
-      "child",
-      "teen",
-      "senior"
-    ],
-    "ll83-keep-thy-heart-the-conditions-of-growth": [
       "child",
       "teen",
       "senior"
