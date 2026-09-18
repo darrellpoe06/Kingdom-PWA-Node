@@ -55,6 +55,7 @@ import {
 import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-algorithms-course.js';
 import { buildLessonArc, sessionMinutesFromFlow, readAloudTextFromArc } from '../lib/lesson-flow.js';
+import { courseDuration, formatDuration } from '../lib/course-duration.js';
 import { formatLessonText, lessonPoints } from '../lib/lesson-format.js';
 import { walkState, stepParagraph, stepPoint } from '../lib/lesson-walk.js';
 import { useOpenWithTheWord } from '../lib/show-the-word.js';
@@ -1516,6 +1517,14 @@ function CourseView({
   // The explicit depth override the learner picked, if any. 'auto' (default) means
   // "follow my age band" — the age picker is the master control; this fine-tunes it.
   const levelOverride = learnLevel && learnLevel !== 'auto' && learnLevel !== DEFAULT_AGE_BAND ? learnLevel : null;
+  // HOW LONG THIS ACTUALLY TAKES, at the reader's own level (Darrell 2026-09-18:
+  // "the time it takes to go through the course at 1 and 1.5 speeds ... the
+  // actual time they can expect to spend"). Memoised because scanning a
+  // 171-lesson course chunks every band; it must not run on every paint.
+  const duration = useMemo(
+    () => courseDuration(schedule, { ageBand, levelOverride }),
+    [schedule, ageBand, levelOverride],
+  );
   const handsOnLabel = meta.handsOnLabel || 'In the app';
   const U = unitLabels(meta); // "week"/"Week" by default; "lesson"/"Lesson" + self-paced for the lesson series
   // Resume-your-place: every write goes through here so the record always
@@ -2642,6 +2651,36 @@ function CourseView({
       </p>
       </>)}
 
+      {/* WHAT THIS COSTS YOU IN TIME — shown before the decision, and shown to
+          everyone, because a reader deciding whether to start needs it whether
+          or not they are signed in. Every number is derived from the same
+          functions the lesson player uses (lib/course-duration.js), so this and
+          the strip inside a lesson cannot disagree in front of one reader. The
+          two speeds are read FROM the app's own rate control, so a speed can
+          never be advertised here that the player cannot actually do. */}
+      {!focusModule && duration && (
+        <div className="border border-[#E8E4DC] p-4 mb-5" data-testid="course-duration">
+          <div className="flex items-baseline justify-between gap-2 mb-2">
+            <h3 className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>How long this takes</h3>
+            <span className="text-xs text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+              {duration.lessons} {duration.lessons === 1 ? U.noun : U.plural}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-x-5 gap-y-1">
+            {duration.listen.map((l) => (
+              <span key={l.rate} className="text-sm text-[#1A1815]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                <strong>{l.label}</strong> {formatDuration(l.minutes)}
+              </span>
+            ))}
+          </div>
+          <p className="text-[0.6875rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+            Listening time for the whole thing, read aloud at the speed you pick in the reader.
+            About {formatDuration(duration.listen[0].minutes / duration.lessons)} per {U.noun} at 1×.
+            These numbers are for the <strong>{duration.levelId}</strong> version — the level you choose changes the length, because each one is written out in full.
+          </p>
+        </div>
+      )}
+
       {/* Your progress — real, from the signed-in record. Absent (not zeroed)
           when the course carries no progressSummary: a painted 0% would be a
           number with nothing behind it (DR-0061). */}
@@ -2656,6 +2695,22 @@ function CourseView({
           </div>
           <p className="text-[0.6875rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
             Check off each {U.noun} as you finish it — this is counted from your own record, just for you.
+          </p>
+        </div>
+      )}
+
+      {/* THE ABSENCE EXPLAINS ITSELF (Darrell 2026-09-18: "what happened to the
+          progress bar?"). Measured before changing anything: signed in, the bar
+          above renders on every department tab and counts correctly. Signed
+          OUT, the whole panel vanished — no bar, no percentage, no heading —
+          and an unexplained absence reads as a break. Progress is genuinely
+          per-person and cannot be shown without a person, so the honest fix is
+          to say that rather than paint a 0% nobody earned. */}
+      {!toggleModule && !focusModule && prog && (
+        <div className="border border-dashed border-[#E8E4DC] p-4 mb-5" data-testid="progress-needs-signin">
+          <h3 className="text-base font-semibold text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}>Your progress</h3>
+          <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+            Sign in and your place is kept — each {U.noun} you finish is counted from your own record, just for you. Until then you can read everything here; nothing is locked.
           </p>
         </div>
       )}
