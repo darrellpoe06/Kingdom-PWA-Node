@@ -3,12 +3,12 @@
   "note": "Shrink-only debt (Darrell 2026-09-17). Each entry names the bands of a lesson whose OPENING does not name its own lesson. A newly-unnamed band fails the build; entries are removed as bands are authored to carry the title, never added. Read the entries — this measures DIFFERENCE, not absence: a band may name its lesson in a synonym the author chose on purpose.",
   "measuredLessons": 174,
   "lessonsUnnamed": 146,
-  "bandsUnnamed": 438,
+  "bandsUnnamed": 434,
   "perBand": {
     "child": 136,
-    "youth": 54,
+    "youth": 52,
     "teen": 121,
-    "senior": 127
+    "senior": 125
   },
   "unnamed": {
     "ll10-strength-and-honour-are-her-clothing": [
@@ -702,15 +702,11 @@
     ],
     "ll92-yahweh-standardized-love-obedience-deeds-thoughts-and-the-temple-kingdom": [
       "child",
-      "youth",
-      "teen",
-      "senior"
+      "teen"
     ],
     "ll93-come-let-us-reason-truth-in-any-language-the-mind-rewired-real": [
       "child",
-      "youth",
-      "teen",
-      "senior"
+      "teen"
     ],
     "ll94-lord-of-hosts-the-two-ways-sealed-in-time-and-the-mind-of-christ": [
       "child",

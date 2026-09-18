@@ -4,11 +4,11 @@
   "lessonsElided": 105,
   "lessonsReciting": 42,
   "totals": {
-    "spans": 698,
-    "scripture": 659,
+    "spans": 690,
+    "scripture": 651,
     "ours": 14,
     "undecidable": 25,
-    "contiguousAvailable": 637
+    "contiguousAvailable": 629
   },
   "elided": {
     "ll1-the-perfect-yahweh-expects": {
@@ -507,17 +507,13 @@
       "lesson": 3,
       "bigIdea": 3,
       "levels.child": 3,
-      "levels.youth": 3,
-      "levels.teen": 3,
-      "levels.senior": 3
+      "levels.teen": 3
     },
     "ll93-come-let-us-reason-truth-in-any-language-the-mind-rewired-real": {
       "lesson": 1,
       "bigIdea": 1,
       "levels.child": 1,
-      "levels.youth": 1,
-      "levels.teen": 1,
-      "levels.senior": 1
+      "levels.teen": 1
     },
     "ll94-lord-of-hosts-the-two-ways-sealed-in-time-and-the-mind-of-christ": {
       "lesson": 4,
