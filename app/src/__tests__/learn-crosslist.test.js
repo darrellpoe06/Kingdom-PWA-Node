@@ -125,15 +125,19 @@ describe('a pointer, never a copy', () => {
     // only the lesson total moves by exactly one, which is the shape the rule
     // above spells out for that case.
     //
+    // And to 29 / 534 on 2026-09-18 for L175 ("True Love Starts With an Act and
+    // a Sound Mind, and Feelings Come After the Test", DR-0483) — again a real
+    // lesson into an existing course, so only the lesson total moves.
+    //
     // What this test exists to catch has NOT changed and is unaffected: a
     // cross-listing is a POINTER, so putting a lesson on another department's
     // shelf must never add a course or a lesson to these totals. If a
     // cross-listing ever inflates them, this fails — and the numbers above are
     // the catalog's own, so the check still has teeth after the bump.
     expect(courses).toHaveLength(29);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(533);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(534);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(533);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(534);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
