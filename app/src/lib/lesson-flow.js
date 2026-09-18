@@ -43,7 +43,7 @@
 // than shown empty; every word of the authored lesson survives (the chunking lives
 // in learn-framework). Claims are derived from real fields, not painted.
 // =============================================================================
-import { lessonPlanForAge, DEFAULT_AGE_BAND } from './learn-framework.js';
+import { lessonPlanForAge, resolveForAge, DEFAULT_AGE_BAND } from './learn-framework.js';
 
 // ---------------------------------------------------------------------------
 // The canonical arc — ONE shape every lesson follows. `weight` is the default
@@ -284,6 +284,91 @@ export function readAloudTextFromArc(arc) {
   return parts.join(' ').replace(/\s+/g, ' ').trim().slice(0, 32000);
 }
 
+// ---------------------------------------------------------------------------
+// THE INTRO IS READ BY THE SAME PERSON WHO READS THE LESSON
+// ---------------------------------------------------------------------------
+// Darrell 2026-09-18, from the church door: "child version isn't on the intro".
+//
+// MEASURED, not inferred. buildLessonArc paced the TEACH stage to the learner's
+// band (lessonPlanForAge) and built the Open stage from three raw authored
+// fields — bigIdea, anchor.ref, anchor.theme — with no band argument reaching
+// them at all. So the intro was byte-identical at child, youth, teen, adult and
+// senior, for every lesson in the catalog: a seven-year-old met the adult big
+// idea, in the adult register, before a single word of the lesson written for
+// him. The level control genuinely re-paced the teaching and genuinely could
+// not touch the intro.
+//
+// WHERE THE REPLACEMENT COMES FROM, AND WHY IT IS NOT INVENTED. No lesson
+// carries a per-band bigIdea, and writing one would be fabrication. Each band
+// DOES already open by naming its own lesson and stating its point in that
+// age's words — that is enforced by the title-in-narrative gate — so the band's
+// own opening IS its intro, authored for that reader by the person who wrote
+// the lesson. presentable.js has led the presenter's slides this way since it
+// was built (`child: lv.child || m.bigIdea`); this is the same pattern, reaching
+// the stage that was missed.
+//
+// THE COST, NAMED: the teach stage then re-reads those opening sentences, so a
+// listener hears them twice within a minute. That is why the extract is held to
+// roughly one or two sentences rather than a paragraph, and it is a smaller
+// cost than an intro a child cannot read. The duplication-free version starts
+// the band's teach plan AFTER the intro, which changes step counts and course
+// duration and is carried separately. re-review: 2026-11-18.
+export const INTRO_CHARS = 320;
+// An intro shorter than this is not an intro. The first draft cut at the LAST
+// sentence end inside the window and produced a THREE-CHARACTER opening for
+// ll5's senior band, whose first words are "Dr. Martin Picard describes..." —
+// the period after an abbreviation is not a sentence end. Measured across all
+// 700 derived intros, which is how it was found.
+export const MIN_INTRO_CHARS = 90;
+// The abbreviations whose period ends no sentence. Same list the lesson
+// renderer uses, kept in step by intent rather than by import: this module
+// must stay dependency-light enough to run in a plain node script.
+const ABBREV = /(?:^|\s)(?:[IVX]{1,4}|Dr|Mr|Mrs|Ms|Jr|Sr|St|vs)\.$/;
+
+/**
+ * The opening sentences of `text`, up to `limit` characters: whole sentences,
+ * never a cut word, never fewer than MIN_INTRO_CHARS while more text exists,
+ * and never stopping on an abbreviation's period.
+ */
+export function firstSentences(text, limit = INTRO_CHARS, min = MIN_INTRO_CHARS) {
+  const t = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!t) return '';
+  if (t.length <= limit) return t;
+  let out = '';
+  const re = /[.!?]\s/g;
+  let m;
+  while ((m = re.exec(t))) {
+    const upto = t.slice(0, m.index + 1);
+    if (ABBREV.test(upto)) continue;          // "Dr." ends no sentence
+    if (upto.length > limit) break;           // past the window — keep what we have
+    out = upto;
+    if (out.length >= min) break;             // long enough to be an intro
+  }
+  if (out) return out;
+  // No usable sentence end in the window: cut at the last space instead, so a
+  // word is never broken in half.
+  const head = t.slice(0, limit);
+  const space = head.lastIndexOf(' ');
+  return (space > 0 ? head.slice(0, space) : head).trim();
+}
+
+/**
+ * The intro this band's reader should meet. A band with its own authored text
+ * gets that text's opening; everyone else gets the lesson's big idea, exactly
+ * as before. Returns { text, levelId, derived } so a surface or a gate can tell
+ * which of the two it is holding.
+ */
+export function introForAge(module, ageBand = DEFAULT_AGE_BAND, levelOverride = null) {
+  const m = module || {};
+  const big = m.bigIdea || '';
+  const resolved = resolveForAge(m, ageBand, levelOverride);
+  const own = resolved && resolved.branched && resolved.levelId !== 'standard' ? resolved.text : '';
+  const opening = firstSentences(own);
+  return opening
+    ? { text: opening, levelId: resolved.levelId, derived: true }
+    : { text: big, levelId: (resolved && resolved.levelId) || 'standard', derived: false };
+}
+
 export function buildLessonArc(module, opts = {}) {
   const m = module || {};
   const {
@@ -301,6 +386,8 @@ export function buildLessonArc(module, opts = {}) {
 
   // The authored lesson, paced to age/depth (chunked, never summarized).
   const lessonPlan = lessonPlanForAge(m, ageBand, levelOverride);
+  // The intro, at the same level as the teaching it introduces (2026-09-18).
+  const intro = introForAge(m, ageBand, levelOverride);
 
   const fac = (m && m.facilitator) || {};
   const phases = parseHowToRun(fac.howToRun);
@@ -331,7 +418,9 @@ export function buildLessonArc(module, opts = {}) {
   const body = {
     open: {
       audience: {
-        bigIdea: m.bigIdea || '',
+        bigIdea: intro.text,
+        introIsBandsOwn: intro.derived,
+        introLevelId: intro.levelId,
         anchorRef: anchor.ref || null,
         anchorTheme: anchor.theme || null,
       },
@@ -339,7 +428,7 @@ export function buildLessonArc(module, opts = {}) {
         say: [anchor.ref ? `Open in prayer, then read ${anchor.ref} aloud — ${anchor.theme || 'the anchor for today'}.` : 'Open in prayer and welcome everyone.'],
         do: facDo('open'),
       },
-      hasContent: !!(m.bigIdea || anchor.ref),
+      hasContent: !!(intro.text || anchor.ref),
     },
     teach: {
       audience: { lessonPlan, stories, hasMedia, hasHardware, hasRpe },
