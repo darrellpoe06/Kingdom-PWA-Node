@@ -44,9 +44,19 @@ describe('surface-hollow-guard — green on a healthy surface', () => {
   it('reports nothing when every part carries the lesson', () => {
     expect(analyzeSurfaces(healthy())).toEqual([]);
   });
+  // TIMEOUT RAISED FROM THE 5000ms DEFAULT, 2026-09-18, on a measurement rather
+  // than a hunch. This walks the WHOLE corpus, so its cost grows with the
+  // corpus. Measured on an idle machine: 5.78s WITHOUT L174 and 6.36s with it —
+  // meaning it was ALREADY over the default before that lesson existed and was
+  // passing only on runs that happened to land under 5s. L174 added ~0.5s,
+  // proportionate to one lesson of 173. So this is a pre-existing edge that a
+  // new lesson exposed, not one it caused, and the honest fix is a budget that
+  // matches the work rather than a test that fails by luck. 30s leaves real
+  // headroom; if this ever approaches it, the guard needs to get faster rather
+  // than the number bigger. re-review: 2026-10-16.
   it('the REAL corpus is green', async () => {
     expect(await runSurfaceHollowGuard()).toEqual([]);
-  });
+  }, 30000);
 });
 
 describe('surface-hollow-guard — and it CATCHES every break it exists for', () => {
