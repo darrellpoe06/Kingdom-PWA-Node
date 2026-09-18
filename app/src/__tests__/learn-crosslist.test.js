@@ -71,7 +71,7 @@ describe('a pointer, never a copy', () => {
   });
 
   it('leaves the program totals exactly where they were', () => {
-    // The department shelf grows; the catalog does not. 27 courses / 511
+    // The department shelf grows; the catalog does not. 27 courses / 512
     // lessons, measured 2026-09-18.
     //
     // WHY THIS PIN MOVED, because a pin that moves silently is worthless. It
@@ -103,14 +103,17 @@ describe('a pointer, never a copy', () => {
     // And to 27 / 511 for L172 ("The Spirit of Your Mind", DR-0468), an
     // eighth — same existing course again, so only the lesson total moves.
     //
+    // And to 27 / 512 for L173 ("Humility Is the Strength", DR-0470), a ninth
+    // — same existing course, so only the lesson total moves.
+    //
     // cross-listing is a POINTER, so putting a lesson on another department's
     // shelf must never add a course or a lesson to these totals. If a
     // cross-listing ever inflates them, this fails — and the numbers above are
     // the catalog's own, so the check still has teeth after the bump.
     expect(courses).toHaveLength(27);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(511);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(512);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(511);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(512);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {

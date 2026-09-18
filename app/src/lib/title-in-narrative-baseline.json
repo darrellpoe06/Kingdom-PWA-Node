@@ -1,7 +1,7 @@
 {
   "window": 200,
   "note": "Shrink-only debt (Darrell 2026-09-17). Each entry names the bands of a lesson whose OPENING does not name its own lesson. A newly-unnamed band fails the build; entries are removed as bands are authored to carry the title, never added. Read the entries — this measures DIFFERENCE, not absence: a band may name its lesson in a synonym the author chose on purpose.",
-  "measuredLessons": 171,
+  "measuredLessons": 172,
   "lessonsUnnamed": 155,
   "bandsUnnamed": 465,
   "perBand": {
