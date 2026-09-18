@@ -71,9 +71,14 @@ const QUOTED_FRAGMENTS = [
 ];
 
 describe('L89 exists in the catalog with its full shape', () => {
-  it('the module is present with anchor, levels, quiz, and facilitator', () => {
+  it('the module is present with anchor, ALL FOUR levels, quiz, and facilitator', () => {
     expect(start).toBeGreaterThan(-1);
-    for (const key of ['bigIdea:', 'inApp:', "ref: 'Hebrews 10:26; 1 John 1:9'", 'child:', 'teen:', 'senior:', 'quiz:', 'facilitator:']) {
+    // 'youth:' was absent from this list, and the band was absent from the
+    // lesson, while the coverage describe below still called itself "full
+    // coverage" (DR-0418: every band is the whole message). The youth band was
+    // written 2026-09-18 and is now required here, so it cannot go missing
+    // again without failing.
+    for (const key of ['bigIdea:', 'inApp:', "ref: 'Hebrews 10:26; 1 John 1:9'", 'child:', 'youth:', 'teen:', 'senior:', 'quiz:', 'facilitator:']) {
       expect(lesson).toContain(key);
     }
     expect(src).toMatch(/weeks: \d+,/);
@@ -95,22 +100,93 @@ describe('every quoted fragment is letter-for-letter KJV (fetched, not remembere
   }
 });
 
-describe('every age level carries the whole message (child, teen, senior — full coverage)', () => {
+describe('every age level carries the whole message (child, youth, teen, senior — full coverage)', () => {
   const level = (name) => {
     const i = l.indexOf(`${name}: '`);
+    expect(i, `the ${name} band is missing entirely`).toBeGreaterThan(-1);
     const j = l.indexOf("',\n", i);
     return l.slice(i, j);
   };
-  it('child, teen, and senior each name the hinge and the mercy', () => {
-    for (const band of ['child', 'teen', 'senior']) {
+  const BANDS = ['child', 'youth', 'teen', 'senior'];
+
+  it('all FOUR bands carry the frame and the mercy', () => {
+    for (const band of BANDS) {
       const t = level(band);
       expect(t, `${band} carries the once-for-all sacrifice`).toContain('once for all');
       expect(t, `${band} carries the confession-mercy`).toContain('If we confess our sins');
     }
-    // teen and senior additionally name the hinge word and the no-despair hope.
-    for (const band of ['teen', 'senior']) {
-      expect(level(band)).toContain('wilfully');
-      expect(level(band)).toContain('saving of the soul');
+  });
+
+  it('all FOUR bands carry the Advocate — the half a warning lesson most easily drops', () => {
+    // The adult lesson makes the Advocate load-bearing: a believer who sins is
+    // not thrown out, he is represented. A band that kept the warning and lost
+    // this would teach the opposite of the passage.
+    for (const band of BANDS) {
+      expect(level(band), `${band} drops the Advocate`).toContain('we have an advocate with the Father');
+    }
+  });
+
+  it('youth, teen and senior name the hinge word and the no-despair hope', () => {
+    // The child band teaches WILFULLY in its own register (on purpose, eyes
+    // wide open) rather than by repeating the KJV adverb in lowercase, so it is
+    // held to the caps form its own text uses.
+    expect(level('child')).toContain('WILFULLY');
+    for (const band of ['youth', 'teen', 'senior']) {
+      expect(level(band), `${band} drops the hinge word`).toContain('wilfully');
+      expect(level(band), `${band} drops the hope the chapter ends on`).toContain('saving of the soul');
+    }
+  });
+
+  // OUR prose only — quotations stripped. Caught by the break harness: the
+  // frame and hinge checks below were satisfiable by the QUOTATION alone, so a
+  // band could quote Hebrews 10:26 verbatim and never once teach what wilfully
+  // means. Quoting a verse is not teaching it, and DR-0418 asks every band to
+  // be the whole MESSAGE.
+  const ourProse = (band) => level(band).replace(/"[^"]*"/g, ' ');
+
+  it('all FOUR bands TEACH the hinge word, not merely quote the verse containing it', () => {
+    const MEANING = [/deliberate/i, /on purpose/i, /chosen|picks/i, /eyes (wide )?open/i,
+      /kept (on|up)|keep on|sustained/i, /presumptuous/i];
+    for (const band of BANDS) {
+      const ours = ourProse(band);
+      expect(ours, `${band} never names wilfully outside the quotation`).toMatch(/wilfully/i);
+      const carried = MEANING.filter((re) => re.test(ours)).length;
+      expect(carried, `${band} names wilfully but explains it in fewer than two ways`)
+        .toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it('all FOUR bands TEACH that the one sacrifice is finished, in their own words', () => {
+    for (const band of BANDS) {
+      const ours = ourProse(band);
+      expect(ours, `${band} never says the sacrifice is ONE, outside the quotation`)
+        .toMatch(/one sacrifice|ONE sacrifice|one time|only ONE|only one/);
+      expect(ours, `${band} never says it is finished or enough, outside the quotation`)
+        .toMatch(/finished|enough|sufficient|done|complete/i);
+    }
+  });
+
+  it('no band elides inside a quotation (DR-0459)', () => {
+    // Found already shipped in this lesson on 2026-09-18: the teen and senior
+    // bands each carried Hebrews 10:29 with an ellipsis standing in for the
+    // middle of His own sentence. The remedy was never an elision — it was to
+    // quote the contiguous verbatim span, which was available the whole time.
+    for (const band of BANDS) {
+      for (const m of level(band).matchAll(/"([^"]*)"/g)) {
+        expect(/\.\.\.|\u2026/.test(m[1]), `${band}: an elision inside a quotation — "${m[1]}"`).toBe(false);
+      }
+    }
+  });
+
+  it('no band cites a decision record at the reader', () => {
+    // Found already shipped in this lesson on 2026-09-18: the senior band told
+    // the reader to teach the verse inside its chapter "(DR-0098: let the Word
+    // explain the Word)". The rule is right and the citation is ours, not
+    // theirs — a reader has no idea what DR-0098 is, and a lesson that shows
+    // its own internal bookkeeping has stopped speaking to the person in front
+    // of it. The rule now travels in plain words.
+    for (const band of BANDS) {
+      expect(level(band), `${band} cites a decision record to the reader`).not.toMatch(/DR-\d{4}/);
     }
   });
 });

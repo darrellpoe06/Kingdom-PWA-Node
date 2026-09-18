@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 172,
-  "lessonsShort": 89,
+  "lessonsShort": 88,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -505,12 +505,6 @@
       "senior"
     ],
     "ll88-four-soils-heart-conditions-and-the-kings-eternal-program": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll89-the-most-hated-verse-wilful-sin-the-one-sacrifice-the-advocate": [
       "child",
       "youth",
       "teen",
