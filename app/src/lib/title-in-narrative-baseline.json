@@ -2,13 +2,13 @@
   "window": 200,
   "note": "Shrink-only debt (Darrell 2026-09-17). Each entry names the bands of a lesson whose OPENING does not name its own lesson. A newly-unnamed band fails the build; entries are removed as bands are authored to carry the title, never added. Read the entries — this measures DIFFERENCE, not absence: a band may name its lesson in a synonym the author chose on purpose.",
   "measuredLessons": 172,
-  "lessonsUnnamed": 147,
-  "bandsUnnamed": 443,
+  "lessonsUnnamed": 146,
+  "bandsUnnamed": 440,
   "perBand": {
-    "child": 137,
+    "child": 136,
     "youth": 55,
-    "teen": 123,
-    "senior": 128
+    "teen": 122,
+    "senior": 127
   },
   "unnamed": {
     "ll10-strength-and-honour-are-her-clothing": [
@@ -687,11 +687,6 @@
       "senior"
     ],
     "ll80-the-four-warnings-of-a-hardening-heart": [
-      "child",
-      "teen",
-      "senior"
-    ],
-    "ll81-tongues-weighed-word-first": [
       "child",
       "teen",
       "senior"
