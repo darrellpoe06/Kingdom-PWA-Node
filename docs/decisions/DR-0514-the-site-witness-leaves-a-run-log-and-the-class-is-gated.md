@@ -12,7 +12,17 @@
 
 Tonight a merge landed on `main` and the question was the one DR-0107 makes binding: **did it reach the live site?** The sandbox has no route to poetech.us, so the answer has to come from a runner. `site-health.yml` was dispatched on `main` at 22:05Z for exactly that purpose.
 
-It produced **no observable record at all.** Not a pass, not a failure — nothing. Fifty minutes after an earlier dispatch of `level-witness.yml`, the same silence. The question had no answer, and I could not honestly tell Darrell the deploy was verified.
+It produced **no observable record at all.** Not a pass, not a failure — nothing. The question had no answer from that instrument.
+
+**A correction belongs here, because I got part of this wrong while writing it.** I also reported `level-witness.yml` as silent after its own 21:37Z dispatch, and concluded the witnesses were not running on dispatch. That was false. It ran, and it posted:
+
+> `2026-09-18T21:37:11Z - PASS`. Build served: **`99396c0`**`.2026-09-18T21:32:13.092Z`
+
+`99396c0` was `main`'s head, built **34 seconds** after the 21:31:39Z merge. So the deploy for that merge was verified the whole time, and the record existed while I was calling it silence.
+
+The cause was my own instrument, not the witness: I read the run log with `get_comments` at `perPage: 1`, and that list is returned **oldest first**, so page one of one row is the OLDEST comment — the 20:33Z line — never the newest. I then read a stale row as "no new row." That is DR-0076 §4 exactly, turned on myself: I did not measure the thing I claimed to have measured. A reader of a rolling log must fetch the tail, and a one-row page of an ascending list is the head.
+
+What survives that correction, checked by reading the file rather than by inference: **`site-health.yml` genuinely had no run-log step at all.** It could not have left a line, and the gate below is proven against that exact pre-fix state.
 
 The cause was structural, and it was the failure DR-0125 was written about — in the instrument DR-0125 created. `site-health.yml` filed to the incident ledger on **failure**, and closed a recovered incident. That was all. A run that passed left nothing behind, so **"no issue filed" meant either "the site is fine" or "the witness never ran"**, and those cannot be told apart. DR-0125's own rule is that unknown freshness must never read as fresh.
 
@@ -59,4 +69,6 @@ Closed with a second job, `log_disabled`, on both witnesses: `needs:` the probe,
 
 ## The honest limit
 
-This is the structural fix and it is not yet an observation. The step only exists on `main` once this merges, so the first real line on the new log comes from the first run after that. **Tonight's question — whether the current `main` is the served build — is still unanswered**, and this record says so rather than implying the fix answered it. That is the whole point of the log: the next dispatch leaves a line whether it passes, fails or crashes.
+This is the structural fix for `site-health.yml` and it is not yet an observation from that workflow. The step only exists on `main` once this merges, so its first real line comes from the first run after that.
+
+Tonight's actual question **was** answered, by the other witness: `main` at `99396c0` was the served build, 34 seconds after the merge. What was missing was a second, independent answer from the instrument that watches the product rather than one lesson surface — and the ability to tell its silence apart from its absence. That is what shipped.
