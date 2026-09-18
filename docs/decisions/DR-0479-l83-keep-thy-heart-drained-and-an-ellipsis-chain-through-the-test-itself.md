@@ -65,5 +65,24 @@ The honest reading: recording a finding is not the same as installing it. Three 
 
 - The full-levels pass has **82** lessons left carrying a short band. Next is L82, downward.
 - The DR-0473 elision debt is at 107 lessons, still under its own `re-review: 2026-11-18`.
-- **Worth a sweep of its own, not deferred silently:** if Philippians 4:8 was elided here, the Test may be elided elsewhere in the corpus. That is a specific, machine-checkable question rather than a vague worry — **re-review: 2026-09-25**, with the check being a corpus-wide search for any partial quotation of Philippians 4:8. It is not done tonight because it is a separate pass with its own findings, and stacking it onto a lesson commit would bury it.
+### The Test is elided in six other lessons — MEASURED, not suspected
+
+The obvious next question was whether the Test is elided elsewhere. That was a machine-checkable question, so it was measured before this record shipped rather than filed as a worry (DR-0076 §4: measure, don't claim). Searching every reader-facing field of all 172 lessons for a quotation containing *"whatsoever things are"* with an ellipsis in it:
+
+**17 elided quotations of Philippians 4:8, across 6 lessons.**
+
+| lesson | fields |
+|---|---|
+| `ll6-think-on-these-things` | `bigIdea`, `levels.child` |
+| `ll18-the-flinch-comes-first` | `lesson`, `bigIdea` |
+| `ll50-the-mind-of-christ...` | `lesson`, `levels.senior` |
+| `ll96-doers-of-the-word...` | `lesson`, `bigIdea`, and **all four bands** |
+| `ll102-bold-as-a-lion...` | `lesson`, `levels.youth`, `levels.teen`, `levels.senior` |
+| `ll107-what-the-word-gives...` | `levels.child` |
+
+**The sharpest one: `ll6-think-on-these-things` is the lesson NAMED for this verse, and it elides it.** A reader who opens the lesson called Think On These Things is handed a shortened version of the sequence the lesson is titled after.
+
+(Four further lessons quote a short *contiguous* fragment of the verse with no ellipsis, which is legitimate, and two quote Romans 15:4's *"whatsoever things were written aforetime"* — a different verse. Those are excluded; the 17 are ellipsis chains only.)
+
+**Why it is not fixed in this commit, stated plainly.** It is not a mechanical substitution. `ll18` writes *"whatsoever things are TRUE... think on these things"* with a deliberate capital on TRUE and prose built around that short form; restoring the whole verse there changes the author's emphasis and the sentence around it. DR-0473's own note governs: *never sweep this mechanically; each elision needs the right span chosen by reading the verse and the sentence re-read after.* So this is 17 judgement calls in 6 lessons, and it gets its own pass with its own verification — **re-review: 2026-09-25**. What has changed is that it is now a bounded, counted, named piece of work instead of a suspicion.
 - L83's anchor list still names only Proverbs 4:23 while the bands now teach from nineteen references. Same deferral as L89, L88, L86, L85 and L84 — **re-review: 2026-10-24**.
