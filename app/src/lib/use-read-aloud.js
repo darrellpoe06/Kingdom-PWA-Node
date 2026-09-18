@@ -27,6 +27,7 @@ import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
 import { createBackgroundAudio } from './background-audio.js';
 import { toSpokenForm } from './speech-text.js';
+import { clipFraction, estimateClipSeconds, seekableEndOf } from './clip-progress.js';
 import { supabase } from './supabase.js';
 
 /**
@@ -253,9 +254,24 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
               // 0..1 into the segment to highlight. Estimation, honestly named:
               // exact per-word timing needs the voice service to return
               // timestamps (its own carried item).
+              // A STREAMED CLIP NEVER REPORTS ITS LENGTH, AND THE HIGHLIGHT FROZE
+              // ON SENTENCE ONE BECAUSE OF IT (2026-09-18). This callback used to
+              // be `const d = a.duration; if (Number.isFinite(d) && d > 0)` and
+              // nothing else — so on a chunk-encoded body, where `duration` is
+              // Infinity for the whole of playback, it set nothing on every tick,
+              // cloudProgress stayed at its initial 0, and the follow highlight
+              // painted the first sentence once and never moved again while the
+              // lesson read on to the end. clipFraction takes a real duration when
+              // one exists and falls back through seekable to a named estimate, so
+              // the highlight keeps moving either way.
               a.ontimeupdate = () => {
-                const d = a.duration;
-                if (Number.isFinite(d) && d > 0) setCloudProgress(Math.min(1, a.currentTime / d));
+                const f = clipFraction({
+                  currentTime: a.currentTime,
+                  duration: a.duration,
+                  seekableEnd: seekableEndOf(a),
+                  estimatedSeconds: estimateClipSeconds(clean),
+                });
+                if (f != null) setCloudProgress(f);
               };
               a.onended = () => { setCloudPlaying(false); setCloudProgress(0); try { URL.revokeObjectURL(url); } catch (_) {} };
               a.onerror = () => { setCloudPlaying(false); setCloudProgress(0); if (tts.supported) tts.speak(clean, resolveSpeakURI(voiceId)); };
@@ -300,9 +316,24 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
         }
         try {
           const a = new Audio(url); audioRef.current = a; setCloudPlaying(true); setCloudProgress(0);
+          // A STREAMED CLIP NEVER REPORTS ITS LENGTH, AND THE HIGHLIGHT FROZE
+          // ON SENTENCE ONE BECAUSE OF IT (2026-09-18). This callback used to
+          // be `const d = a.duration; if (Number.isFinite(d) && d > 0)` and
+          // nothing else — so on a chunk-encoded body, where `duration` is
+          // Infinity for the whole of playback, it set nothing on every tick,
+          // cloudProgress stayed at its initial 0, and the follow highlight
+          // painted the first sentence once and never moved again while the
+          // lesson read on to the end. clipFraction takes a real duration when
+          // one exists and falls back through seekable to a named estimate, so
+          // the highlight keeps moving either way.
           a.ontimeupdate = () => {
-            const d = a.duration;
-            if (Number.isFinite(d) && d > 0) setCloudProgress(Math.min(1, a.currentTime / d));
+            const f = clipFraction({
+              currentTime: a.currentTime,
+              duration: a.duration,
+              seekableEnd: seekableEndOf(a),
+              estimatedSeconds: estimateClipSeconds(clean),
+            });
+            if (f != null) setCloudProgress(f);
           };
           a.onended = () => { setCloudPlaying(false); setCloudProgress(0); try { URL.revokeObjectURL(url); } catch (_) {} };
           // A mid-clip failure is NOT silence: hand the same text to the device
