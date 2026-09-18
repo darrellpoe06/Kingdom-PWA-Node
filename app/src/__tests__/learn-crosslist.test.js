@@ -119,15 +119,21 @@ describe('a pointer, never a copy', () => {
     // is a POINTER". Rejoined, because a record nobody can read is not a
     // record. Nothing about the check changed.)
     //
+    // And to 29 / 533 on 2026-09-18 for L174 ("The Levels of Disrespect, and
+    // the Gap Between What He Means and What We Say", DR-0482) — a real lesson
+    // added to an existing course, so the COURSE count is unchanged at 29 and
+    // only the lesson total moves by exactly one, which is the shape the rule
+    // above spells out for that case.
+    //
     // What this test exists to catch has NOT changed and is unaffected: a
     // cross-listing is a POINTER, so putting a lesson on another department's
     // shelf must never add a course or a lesson to these totals. If a
     // cross-listing ever inflates them, this fails — and the numbers above are
     // the catalog's own, so the check still has teeth after the bump.
     expect(courses).toHaveLength(29);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(532);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(533);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(532);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(533);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
