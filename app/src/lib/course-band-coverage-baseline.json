@@ -1,0 +1,118 @@
+{
+  "note": "Shrink-only debt. Measured 2026-09-18: the four-band requirement was never applied outside the Living Lessons series. A course that gets WORSE fails the build; these numbers may only improve. Authoring bands for a course lesson lowers its adultOnly and raises its allFour, and the baseline is lowered in the same commit.",
+  "total": 211,
+  "allFour": 0,
+  "adultOnly": 43,
+  "courses": {
+    "ai": {
+      "lessons": 8,
+      "allFour": 0,
+      "adultOnly": 8
+    },
+    "ai-legal-blueprint": {
+      "lessons": 6,
+      "allFour": 0,
+      "adultOnly": 0
+    },
+    "broadcast": {
+      "lessons": 9,
+      "allFour": 0,
+      "adultOnly": 5
+    },
+    "church-offices": {
+      "lessons": 7,
+      "allFour": 0,
+      "adultOnly": 0
+    },
+    "datasystems": {
+      "lessons": 14,
+      "allFour": 0,
+      "adultOnly": 0
+    },
+    "development": {
+      "lessons": 8,
+      "allFour": 0,
+      "adultOnly": 8
+    },
+    "handed-forward": {
+      "lessons": 5,
+      "allFour": 0,
+      "adultOnly": 0
+    },
+    "healthy-living": {
+      "lessons": 12,
+      "allFour": 0,
+      "adultOnly": 0
+    },
+    "infrastructure": {
+      "lessons": 10,
+      "allFour": 0,
+      "adultOnly": 0
+    },
+    "kingdom-economics": {
+      "lessons": 8,
+      "allFour": 0,
+      "adultOnly": 0
+    },
+    "legacy-provisions": {
+      "lessons": 7,
+      "allFour": 0,
+      "adultOnly": 0
+    },
+    "little-learners": {
+      "lessons": 6,
+      "allFour": 0,
+      "adultOnly": 6
+    },
+    "made-in-time": {
+      "lessons": 18,
+      "allFour": 0,
+      "adultOnly": 0
+    },
+    "mathematics": {
+      "lessons": 8,
+      "allFour": 0,
+      "adultOnly": 8
+    },
+    "project-management": {
+      "lessons": 10,
+      "allFour": 0,
+      "adultOnly": 0
+    },
+    "prophetic-voices": {
+      "lessons": 6,
+      "allFour": 0,
+      "adultOnly": 0
+    },
+    "rent-to-own-business": {
+      "lessons": 8,
+      "allFour": 0,
+      "adultOnly": 8
+    },
+    "software-project-management": {
+      "lessons": 10,
+      "allFour": 0,
+      "adultOnly": 0
+    },
+    "sound-board": {
+      "lessons": 8,
+      "allFour": 0,
+      "adultOnly": 0
+    },
+    "sovereign-ai": {
+      "lessons": 22,
+      "allFour": 0,
+      "adultOnly": 0
+    },
+    "word-out": {
+      "lessons": 5,
+      "allFour": 0,
+      "adultOnly": 0
+    },
+    "world-issues": {
+      "lessons": 16,
+      "allFour": 0,
+      "adultOnly": 0
+    }
+  }
+}
