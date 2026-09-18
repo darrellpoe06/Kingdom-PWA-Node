@@ -86,11 +86,21 @@ const CASES = [
   },
 ];
 
+// A witness workflow runs ONE case without altering this probe's read-only
+// posture (its own header declares that posture, and DR-0319's lesson is that a
+// documented posture is not changed because something else would be convenient).
+const ONLY = String(process.env.ONLY_CASE || '').split(',').map((x) => x.trim()).filter(Boolean);
+const RUN = ONLY.length ? CASES.filter((c) => ONLY.includes(c.name)) : CASES;
+if (ONLY.length && RUN.length !== ONLY.length) {
+  console.error(`ONLY_CASE named ${ONLY.length} case(s) and ${RUN.length} matched — a renamed case must fail loudly rather than measure nothing`);
+  process.exit(2);
+}
+
 const browser = await chromium.launch();
 const results = [];
 let failures = 0;
 
-for (const c of CASES) {
+for (const c of RUN) {
   const url = `${BASE}${c.query}`;
   const ctx = await browser.newContext({
     viewport: { width: 430, height: 932 },
@@ -180,17 +190,36 @@ for (const c of CASES) {
         if (clicked !== 'clicked') { problems.push(`could not select the ${label} level: ${clicked}`); continue; }
         await page.waitForTimeout(1200);
         const body = await bodyOf();
-        levelBodies.push({ level: label, chars: body ? body.length : 0, head: body ? body.slice(0, 240) : null });
+        levelBodies.push({ level: label, chars: body ? body.length : 0, head: body ? body.slice(0, 240) : null, body });
         await page.screenshot({ path: `${OUT}/${c.name}-${label.toLowerCase()}.png` }).catch(() => {});
       }
 
-      const seen = levelBodies.filter((b) => b.head);
+      // COMPARE THE WHOLE BODY, NOT ITS OPENING. The first version of this
+      // check compared the first 240 characters and FIRED FALSELY on its very
+      // first run against the live site: Child rendered 787 characters and
+      // Adult 1968 — plainly different bodies — while both opened with the
+      // same 240, because the lesson card renders shared chrome (the title,
+      // the anchor, the big idea) above the band text. A witness that cries
+      // wolf gets ignored, so the failure now rests on the FULL body, and the
+      // first differing character index is reported so a shared header is
+      // visibly a shared header rather than a mystery.
+      const seen = levelBodies.filter((b) => b.body);
       if (seen.length < c.levelBands.length) {
         problems.push(`read ${seen.length} of ${c.levelBands.length} level bodies — the lesson card did not re-render`);
       } else {
-        const distinct = new Set(seen.map((b) => b.head)).size;
+        const distinct = new Set(seen.map((b) => b.body)).size;
+        const divergeAt = (() => {
+          if (seen.length < 2) return null;
+          const [a, b] = [seen[0].body, seen[1].body];
+          const n = Math.min(a.length, b.length);
+          for (let i = 0; i < n; i += 1) if (a[i] !== b[i]) return i;
+          return a.length === b.length ? null : n;
+        })();
+        for (const b of seen) b.divergesAt = divergeAt;
         if (distinct < seen.length) {
-          problems.push(`THE REPORTED DEFECT IS REAL: ${seen.length} levels were selected and only ${distinct} distinct lesson bodies rendered — [${seen.map((b) => `${b.level}:${b.chars}ch`).join(', ')}]`);
+          problems.push(`THE REPORTED DEFECT IS REAL: ${seen.length} levels were selected and the rendered lesson body was BYTE-IDENTICAL — [${seen.map((b) => `${b.level}:${b.chars}ch`).join(', ')}]`);
+        } else {
+          console.log(`level walk: ${seen.map((b) => `${b.level}=${b.chars}ch`).join(', ')}; bodies diverge at character ${divergeAt === null ? 'n/a' : divergeAt} (a shared opening is the card's own heading, not the lesson)`);
         }
       }
     }
@@ -233,6 +262,11 @@ for (const c of CASES) {
 
 await browser.close();
 
+// The full bodies are the evidence a person reads; cap each at 4000 characters
+// so the artifact stays reviewable rather than becoming a dump.
+for (const r of results) {
+  for (const b of r.levelBodies || []) if (typeof b.body === 'string') b.body = b.body.slice(0, 4000);
+}
 writeFileSync(`${OUT}/result.json`, JSON.stringify({ base: BASE, results }, null, 2));
 
 const lines = ['## Live link probe', '', `Base: \`${BASE}\``, ''];
@@ -247,6 +281,15 @@ for (const r of results) {
   for (const p of r.problems) lines.push(`- **FAIL:** ${p}`);
   lines.push('');
 }
+// Machine-readable outputs. The artifact is for eyes; these are for the witness
+// step, so a finding can reach the incident ledger instead of living only in a
+// run nobody can cheaply fetch.
+if (process.env.GITHUB_OUTPUT) {
+  const reasons = results.flatMap((r) => r.problems).join(' | ').replace(/[\r\n]+/g, ' ');
+  const levels = results.flatMap((r) => (r.levelBodies || []).map((b) => `${b.level}:${b.chars}ch`)).join(', ');
+  writeFileSync(process.env.GITHUB_OUTPUT, `fail_reasons=${reasons}\nlevel_summary=${levels}\n`, { flag: 'a' });
+}
+
 const summary = lines.join('\n');
 console.log(summary);
 if (process.env.GITHUB_STEP_SUMMARY) {
@@ -254,7 +297,7 @@ if (process.env.GITHUB_STEP_SUMMARY) {
 }
 
 if (failures) {
-  console.error(`\n${failures} of ${CASES.length} cases failed. Screenshots are in the artifact.`);
+  console.error(`\n${failures} of ${RUN.length} cases failed. Screenshots are in the artifact.`);
   process.exit(1);
 }
-console.log(`\nAll ${CASES.length} cases passed against ${BASE}`);
+console.log(`\nAll ${RUN.length} cases passed against ${BASE}`);

@@ -1,0 +1,134 @@
+# Level witness — the reader's LEVEL SWITCH gets an instrument on the live site.
+#
+# WHY THIS EXISTS (2026-09-18). Darrell reported that the reader "reads only the
+# child version no matter what is chosen". Every unit test measures the level
+# plumbing correct, and the cloud agent session has NO route to poetech.us
+# (measured: CONNECT returns 403 from the egress gateway). So the honest answer
+# was never "ask him" — it was to send a runner, which reaches the live site.
+# That was the DR-0108 failure: reporting one member's limit as the team's.
+#
+# WHY IT IS A SEPARATE WORKFLOW from live-link-probe.yml, which already drives
+# the browser. That probe declares itself READ-ONLY BY CONSTRUCTION in its own
+# header — it cannot open an issue, dispatch, or push, and a failure there is a
+# red run plus a screenshot. Changing a recorded posture because something else
+# would be convenient is drift (DR-0319's own lesson). So the probe stays
+# read-only and THIS workflow carries the one extra power: filing what it found
+# on the rolling incident ledger, where a person or an agent can read it without
+# the Actions API.
+#
+# WHAT IT MEASURES, from the rendered DOM rather than the URL: it selects each
+# age band on the exact lesson from his screenshot and compares the rendered
+# lesson BODY, with the control row (data-read-skip) stripped out — so a change
+# in the CONTROL can never be mistaken for a change in the LESSON, which is the
+# confusion the report needs settled. Two bands rendering one body fails the run
+# and files the evidence.
+#
+# THE THREE BRAKES (CLAUDE.md), same class as site-health/deploy-freshness:
+#   1. BUDGET — one runner, hard 12-minute timeout, three page loads.
+#   2. LOCK   — concurrency group `level-witness`, single-instance.
+#   3. STOP   — repo variable LEVEL_WITNESS_ENABLED='false' (deterministic), or
+#      disable in the Actions UI. Unset => runs. Read-only against the product:
+#      it never writes to the site, the repo, or a deploy.
+
+name: Level witness (does picking a band change the lesson body?)
+
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: 'Base URL to probe'
+        required: false
+        default: 'https://poetech.us/lovecorner/app/'
+  schedule:
+    - cron: '41 12 * * *' # once a day; the unit tests are the fast guard
+
+concurrency:
+  group: level-witness
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write # the rolling incident record — the one extra power
+
+jobs:
+  witness:
+    if: ${{ vars.LEVEL_WITNESS_ENABLED != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Installed OUTSIDE the checkout so nothing in the repo tree is touched.
+      - name: Install Playwright (chromium only)
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/pw" && cd "$RUNNER_TEMP/pw"
+          npm init -y >/dev/null
+          npm i --no-audit --no-fund playwright@1.47.2
+          npx playwright install --with-deps chromium
+
+      - name: Pick each level on the live site and compare the bodies
+        id: probe
+        continue-on-error: true
+        env:
+          BASE: ${{ github.event.inputs.base || 'https://poetech.us/lovecorner/app/' }}
+          OUT_DIR: ${{ github.workspace }}/shots
+          ONLY_CASE: '4-level-switch'
+        run: |
+          set -euo pipefail
+          mkdir -p "$OUT_DIR"
+          cp "$GITHUB_WORKSPACE/scripts/live-link-probe.mjs" "$RUNNER_TEMP/pw/probe.mjs"
+          node "$RUNNER_TEMP/pw/probe.mjs"
+
+      - name: Upload what each level rendered
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: level-witness-screenshots
+          path: shots/
+          if-no-files-found: warn
+          retention-days: 30
+
+      # The ledger entry. A finding that lives only in a run log is a finding
+      # nobody reads (DR-0125's lesson about the site's own witness).
+      - name: Record the finding (rolling issue, labeled `incident`)
+        if: ${{ always() && (steps.probe.outputs.fail_reasons != '' || steps.probe.outcome == 'failure') }}
+        env:
+          REASONS: ${{ steps.probe.outputs.fail_reasons }}
+          LEVELS: ${{ steps.probe.outputs.level_summary }}
+        run: |
+          set -uo pipefail
+          title="level-witness: the reader may serve one body for every band"
+          body="$(date -u +%FT%TZ) — **LEVEL SWITCH FINDING**: ${REASONS:-the probe crashed before reporting — see the run log}. Bodies read: ${LEVELS:-none}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          open_issue=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title level-witness" --json number --jq '.[0].number // ""')
+          if [ -n "$open_issue" ]; then
+            gh issue comment "$open_issue" --repo "$REPO" --body "$body"
+          else
+            gh issue create --repo "$REPO" --label incident --title "$title" --body "$body"
+          fi
+
+      # Only close on a probe that actually RAN and found nothing wrong. A
+      # crashed probe proves nothing and must never close an open finding.
+      - name: Close a recovered finding
+        if: ${{ always() && steps.probe.outcome == 'success' && steps.probe.outputs.fail_reasons == '' }}
+        env:
+          LEVELS: ${{ steps.probe.outputs.level_summary }}
+        run: |
+          set -uo pipefail
+          open_issue=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title level-witness" --json number --jq '.[0].number // ""')
+          if [ -n "$open_issue" ]; then
+            gh issue close "$open_issue" --repo "$REPO" \
+              --comment "$(date -u +%FT%TZ) — RECOVERED: each band rendered its own body (${LEVELS})."
+          fi
+
+      # The run's own colour still reflects the truth, after the ledger is written.
+      - name: Fail the run if the probe failed
+        if: ${{ steps.probe.outcome == 'failure' }}
+        run: exit 1

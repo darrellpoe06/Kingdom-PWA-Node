@@ -38,6 +38,7 @@ import { ECON_META, ECON_SESSION_FLOW, buildEconSchedule, econProgressSummary, e
 import { PV_META, PV_SESSION_FLOW, buildPvSchedule, pvProgressSummary, exportPvCurriculumMarkdown, PV_INTEREST_TAG, PV_HELPER_TAG, PV_TUTOR_META } from './prophetic-voices.js';
 import { LEGACY_PROVISIONS_META, LEGACY_PROVISIONS_SESSION_FLOW, buildLegacyProvisionsSchedule, legacyProvisionsProgressSummary, exportLegacyProvisionsCurriculumMarkdown, LEGACY_PROVISIONS_INTEREST_TAG, LEGACY_PROVISIONS_HELPER_TAG, LEGACY_PROVISIONS_TUTOR_META } from './legacy-provisions-course.js';
 import { PROPERTY_PRINCIPLE_META, PROPERTY_PRINCIPLE_SESSION_FLOW, buildPropertyPrincipleSchedule, propertyPrincipleProgressSummary, exportPropertyPrincipleCurriculumMarkdown, PROPERTY_PRINCIPLE_INTEREST_TAG, PROPERTY_PRINCIPLE_HELPER_TAG, PROPERTY_PRINCIPLE_TUTOR_META } from './property-principle-course.js';
+import { MANAGEMENT_STEWARDSHIP_META, MANAGEMENT_STEWARDSHIP_SESSION_FLOW, buildManagementStewardshipSchedule, managementStewardshipProgressSummary, exportManagementStewardshipCurriculumMarkdown, MANAGEMENT_STEWARDSHIP_INTEREST_TAG, MANAGEMENT_STEWARDSHIP_HELPER_TAG, MANAGEMENT_STEWARDSHIP_TUTOR_META } from './management-stewardship-course.js';
 import { MATHEMATICS_META, MATHEMATICS_SESSION_FLOW, buildMathematicsSchedule, mathematicsProgressSummary, exportMathematicsCurriculumMarkdown, MATHEMATICS_INTEREST_TAG, MATHEMATICS_HELPER_TAG, MATHEMATICS_TUTOR_META } from './mathematics-class.js';
 import { RTO_BUSINESS_META, RTO_BUSINESS_SESSION_FLOW, buildRtoBusinessSchedule, rtoBusinessProgressSummary, exportRtoBusinessCurriculumMarkdown, RTO_BUSINESS_INTEREST_TAG, RTO_BUSINESS_HELPER_TAG, RTO_BUSINESS_TUTOR_META } from './rent-to-own-business-class.js';
 import { DEVELOPMENT_META, DEVELOPMENT_SESSION_FLOW, buildDevelopmentSchedule, developmentProgressSummary, exportDevelopmentCurriculumMarkdown, DEVELOPMENT_INTEREST_TAG, DEVELOPMENT_HELPER_TAG, DEVELOPMENT_TUTOR_META } from './development-class.js';
@@ -311,6 +312,21 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want to take Handed Forward — the succession course for the next generation. We hand you the mission, not our path: know the God of your father, learn to read the real books, and build what we could not. Self-paced, at any age.',
       cta: 'I want to learn',
       sent: '✓ Sent — Darrell will see you’re in. We hand it forward.',
+    },
+  },
+  {
+    // THE CAPSTONE OF THE REAL ESTATE DEPARTMENT — the other end Darrell named.
+    key: 'management-stewardship', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...MANAGEMENT_STEWARDSHIP_META, key: 'management-stewardship', category: 'Real Estate' }, sessionFlow: MANAGEMENT_STEWARDSHIP_SESSION_FLOW,
+    buildScheduleRows: () => buildManagementStewardshipSchedule(null), progressSummary: (p) => managementStewardshipProgressSummary(p),
+    exportMarkdown: () => exportManagementStewardshipCurriculumMarkdown(null), downloadName: 'management-is-stewardship-curriculum.md',
+    interestTag: MANAGEMENT_STEWARDSHIP_INTEREST_TAG, helperTag: MANAGEMENT_STEWARDSHIP_HELPER_TAG, tutorCourseMeta: MANAGEMENT_STEWARDSHIP_TUTOR_META,
+    interestText: (who) => `${MANAGEMENT_STEWARDSHIP_INTEREST_TAG} ${who} wants help holding the management standard on real property.`,
+    interestCopy: {
+      heading: 'Want a hand holding this standard?',
+      blurb: 'Tell Darrell you want help running property the way this course teaches it \u2014 the record an owner could pick up, the hazards with dates on them, the response times measured rather than remembered, and the lawful charges you are willing to justify out loud. The whole course is free and open right here; this is for a hand with yours. Teaching, not legal or financial advice.',
+      cta: 'I want help with mine',
+      sent: '\u2713 Sent \u2014 Darrell will reach out. Faithful is the measurement, and it is taken at the least.',
     },
   },
   {
