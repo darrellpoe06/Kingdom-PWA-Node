@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 172,
-  "lessonsShort": 86,
+  "lessonsShort": 85,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -487,12 +487,6 @@
       "senior"
     ],
     "ll85-the-kings-code-sheep-hear-goats-of-the-world-lost": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll86-luke-research-meets-inspiration-son-of-man-for-all": [
       "child",
       "youth",
       "teen",

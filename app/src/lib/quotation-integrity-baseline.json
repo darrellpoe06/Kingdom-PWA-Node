@@ -1,14 +1,14 @@
 {
   "note": "Shrink-only debt, measured 2026-09-18. TWO classes, both about whether a reader is given His words whole and our bookkeeping kept out of his way. (1) elided: fields carrying a quotation with an ellipsis in it — DR-0459 forbids the elision and asks for a shorter genuinely-verbatim span, and the totals beside this note say how many of the real ones have a contiguous span available. (2) recited: fields printing a DR-nnnn identifier at a reader. A NEW offender fails the build, and a field that gains elided spans counts as new; entries are removed as the full-levels pass reaches each lesson, never added. Never sweep this mechanically: each elision needs the right span chosen by reading the verse and the sentence re-read after.",
   "measuredLessons": 172,
-  "lessonsElided": 111,
-  "lessonsReciting": 43,
+  "lessonsElided": 110,
+  "lessonsReciting": 42,
   "totals": {
-    "spans": 732,
-    "scripture": 691,
+    "spans": 725,
+    "scripture": 684,
     "ours": 14,
     "undecidable": 27,
-    "contiguousAvailable": 666
+    "contiguousAvailable": 659
   },
   "elided": {
     "ll1-the-perfect-yahweh-expects": {
@@ -514,11 +514,6 @@
       "lesson": 1,
       "bigIdea": 1
     },
-    "ll86-luke-research-meets-inspiration-son-of-man-for-all": {
-      "lesson": 3,
-      "bigIdea": 3,
-      "levels.senior": 1
-    },
     "ll9-the-lord-looks-on-the-heart": {
       "lesson": 1,
       "bigIdea": 1,
@@ -700,9 +695,6 @@
     ],
     "ll77-the-king-over-the-children-of-pride": [
       "lesson",
-      "levels.senior"
-    ],
-    "ll86-luke-research-meets-inspiration-son-of-man-for-all": [
       "levels.senior"
     ],
     "ll93-come-let-us-reason-truth-in-any-language-the-mind-rewired-real": [
