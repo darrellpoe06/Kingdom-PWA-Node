@@ -41,6 +41,8 @@ import { MATHEMATICS_META, MATHEMATICS_SESSION_FLOW, buildMathematicsSchedule, m
 import { RTO_BUSINESS_META, RTO_BUSINESS_SESSION_FLOW, buildRtoBusinessSchedule, rtoBusinessProgressSummary, exportRtoBusinessCurriculumMarkdown, RTO_BUSINESS_INTEREST_TAG, RTO_BUSINESS_HELPER_TAG, RTO_BUSINESS_TUTOR_META } from './rent-to-own-business-class.js';
 import { DEVELOPMENT_META, DEVELOPMENT_SESSION_FLOW, buildDevelopmentSchedule, developmentProgressSummary, exportDevelopmentCurriculumMarkdown, DEVELOPMENT_INTEREST_TAG, DEVELOPMENT_HELPER_TAG, DEVELOPMENT_TUTOR_META } from './development-class.js';
 import { HEALTHY_LIVING_META, HEALTHY_LIVING_SESSION_FLOW, buildHealthyLivingSchedule, healthyLivingProgressSummary, exportHealthyLivingCurriculumMarkdown, HEALTHY_LIVING_INTEREST_TAG, HEALTHY_LIVING_HELPER_TAG, HEALTHY_LIVING_TUTOR_META } from './healthy-living-course.js';
+import { PROJECT_MANAGEMENT_META, PROJECT_MANAGEMENT_SESSION_FLOW, buildProjectManagementSchedule, projectManagementProgressSummary, exportProjectManagementCurriculumMarkdown, PROJECT_MANAGEMENT_INTEREST_TAG, PROJECT_MANAGEMENT_HELPER_TAG, PROJECT_MANAGEMENT_TUTOR_META } from './project-management-course.js';
+import { SOFTWARE_PM_META, SOFTWARE_PM_SESSION_FLOW, buildSoftwarePmSchedule, softwarePmProgressSummary, exportSoftwarePmCurriculumMarkdown, SOFTWARE_PM_INTEREST_TAG, SOFTWARE_PM_HELPER_TAG, SOFTWARE_PM_TUTOR_META } from './software-project-management-course.js';
 
 // Every finished course, in picker order. `wiring: 'cohort'` = the host owns a
 // bespoke cohort-dated descriptor; `wiring: 'self-paced'` = the descriptor is
@@ -238,6 +240,34 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell which health question you want cross-referenced with the Word — every expert cited, every verse verbatim, and the counter-witness kept in. Read at your own pace, at any age. Medical decisions stay with your physician.',
       cta: 'I’d like more',
       sent: '✓ Sent — Darrell will see what to cross-reference next. His Word governs; the science witnesses.',
+    },
+  },
+  {
+    key: 'project-management', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...PROJECT_MANAGEMENT_META, key: 'project-management', category: 'Project Management' }, sessionFlow: PROJECT_MANAGEMENT_SESSION_FLOW,
+    buildScheduleRows: () => buildProjectManagementSchedule(), progressSummary: (p) => projectManagementProgressSummary(p),
+    exportMarkdown: () => exportProjectManagementCurriculumMarkdown(), downloadName: 'project-management-count-the-cost.md',
+    interestTag: PROJECT_MANAGEMENT_INTEREST_TAG, helperTag: PROJECT_MANAGEMENT_HELPER_TAG, tutorCourseMeta: PROJECT_MANAGEMENT_TUTOR_META,
+    interestText: (who) => `${PROJECT_MANAGEMENT_INTEREST_TAG} ${who} wants more Project Management lessons.`,
+    interestCopy: {
+      heading: 'Carrying a project right now?',
+      blurb: 'Tell Darrell what you are building \u2014 a church renovation, a rehab, a property turn, a ministry launch \u2014 and which part is hardest. He said he would add more lessons once this began, and the hard part you name is what the next one is built from.',
+      cta: 'I\u2019d like more',
+      sent: '\u2713 Sent \u2014 Darrell will see which part is hardest. The Word gave the discipline first; the standard only named it.',
+    },
+  },
+  {
+    key: 'software-project-management', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...SOFTWARE_PM_META, key: 'software-project-management', category: 'Project Management' }, sessionFlow: SOFTWARE_PM_SESSION_FLOW,
+    buildScheduleRows: () => buildSoftwarePmSchedule(), progressSummary: (p) => softwarePmProgressSummary(p),
+    exportMarkdown: () => exportSoftwarePmCurriculumMarkdown(), downloadName: 'software-project-management-prove-it.md',
+    interestTag: SOFTWARE_PM_INTEREST_TAG, helperTag: SOFTWARE_PM_HELPER_TAG, tutorCourseMeta: SOFTWARE_PM_TUTOR_META,
+    interestText: (who) => `${SOFTWARE_PM_INTEREST_TAG} ${who} wants more Software Project Management lessons.`,
+    interestCopy: {
+      heading: 'Shipping something, or answerable for it staying up?',
+      blurb: 'Tell Darrell what broke, or what you cannot currently prove about your own system. This course is taught from this house\u2019s own recorded outages rather than invented ones, so a real failure you name can become the next lesson.',
+      cta: 'I\u2019d like more',
+      sent: '\u2713 Sent \u2014 Darrell will see it. A green pipeline is not a live site, and the next lesson may well be yours.',
     },
   },
   {
