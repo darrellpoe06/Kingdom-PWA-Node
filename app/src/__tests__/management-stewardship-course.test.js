@@ -53,6 +53,22 @@ import { ourProseOnly, fleschKincaidGrade } from '../../../scripts/reading-level
 import { shingles, overlap, DIFF_CEILING } from '../../../scripts/band-differentiation.mjs';
 import { formatLessonText } from '../lib/lesson-format.js';
 
+/**
+ * DR-0459 forbids an ellipsis INSIDE a quotation. It PERMITS one in our own
+ * prose between two quotations. The first version of this check ran the regex
+ * from one closing quote to the next opening one, so it flagged our own prose —
+ * measured 2026-09-18 when it false-blocked a leasing-course band. Each quoted
+ * span is now tested on its own.
+ */
+function elidedSpans(text) {
+  const out = [];
+  for (const m of String(text).matchAll(/"([^"]*)"/g)) {
+    if (/\.\.\.|\u2026/.test(m[1])) out.push(m[1]);
+  }
+  return out;
+}
+
+
 const M = MANAGEMENT_STEWARDSHIP_MODULES;
 const TEEN_CEILING = 6.0;
 const SENIOR_CEILING = 10.0;
@@ -208,7 +224,7 @@ describe('His words, fetched not remembered', () => {
     // ellipsis. The generator caught six of these before the course shipped.
     for (const m of M) {
       walkStrings(m, m.id, (text, path) => {
-        expect(/"[^"]*(?:\.\.\.|\u2026)[^"]*"/.test(text), `${path} elided a quotation`).toBe(false);
+        expect(elidedSpans(text), `${path} elided a quotation`).toEqual([]);
       });
     }
     // and the two-span replacements are present rather than the elisions
@@ -385,7 +401,12 @@ describe('proven-to-catch (DR-0076 \u00a73)', () => {
 
   it('catches an elision, which is what the first draft actually shipped', () => {
     const elided = '"he gathered up all the food of the seven years... laid he up in the same" (Genesis 41:48)';
-    expect(/"[^"]*(?:\.\.\.|\u2026)[^"]*"/.test(elided), 'an elided quotation passed').toBe(true);
+    expect(elidedSpans(elided).length, 'an elided quotation passed').toBe(1);
+    const unicode = '"Well done, thou good \u2026 faithful servant" (Matthew 25:21)';
+    expect(elidedSpans(unicode).length, 'a unicode elision passed').toBe(1);
+    // and the permitted form is NOT flagged: our own prose between two quotations
+    const ourProse = 'He said "Well done" and then... then "thou good and faithful servant".';
+    expect(elidedSpans(ourProse), 'our own prose was flagged as an elision').toEqual([]);
   });
 
   it('catches "the LORD" drifting into our own prose', () => {
