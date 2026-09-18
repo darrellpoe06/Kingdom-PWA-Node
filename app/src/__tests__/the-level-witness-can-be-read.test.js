@@ -97,6 +97,31 @@ describe('the finding reaches a place that can be read cheaply', () => {
     expect(witness).toMatch(/gh issue create/);
   });
 
+  it('records EVERY run, pass or fail, so silence means it did not run', () => {
+    // THE FIRST CLEAN RUN TAUGHT THIS. The witness filed only on failure, so a
+    // passing run left nothing behind — and then "no issue filed" means either
+    // "the reader is fine" or "the witness never ran", which are different
+    // answers that cannot be told apart. DR-0125's rule exactly: unknown
+    // freshness must never read as fresh. A run log fixes it, because silence
+    // on the log is now itself the finding.
+    expect(witness).toMatch(/name: Record the run \(rolling log, pass or fail\)/);
+    expect(witness).toMatch(/if: always\(\)/);
+    expect(witness).toContain('in:title level-witness run log');
+    expect(witness).toContain('PASS - each band rendered its own lesson body');
+    expect(witness).toContain('FAIL - ${REASONS:-the probe crashed before reporting}');
+    expect(witness, 'silence on the log must be documented as meaning NOT RUN')
+      .toMatch(/SILENCE on this log means the witness did not run/);
+  });
+
+  it('keeps the run log separate from the incident ledger', () => {
+    // A passing run must never open an `incident` issue, and a failing one must
+    // still reach the ledger. Two records, two meanings.
+    const logStep = witness.slice(witness.indexOf('Record the run (rolling log'), witness.indexOf('Record the finding'));
+    expect(logStep, 'the run log must not label anything as an incident').not.toContain('--label incident');
+    const findingStep = witness.slice(witness.indexOf('Record the finding'));
+    expect(findingStep).toContain('--label incident');
+  });
+
   it('only closes a finding on a probe that actually RAN clean', () => {
     // A crashed probe proves nothing and must never close an open finding.
     expect(witness).toMatch(/steps\.probe\.outcome == 'success' && steps\.probe\.outputs\.fail_reasons == ''/);

@@ -50,3 +50,13 @@ That is the same failure as DR-0497 wearing different clothes: a measurement tha
 3. **The report predating the fixes.** DR-0494 (the level-blind intro) merged today; if he read before that deploy landed, the intro genuinely did not change with the band.
 
 **re-review: 2026-09-19.** Nothing here says his report was wrong. It says the defect is not in the place I looked, and names where to look next.
+
+## Amendment, the same day: the witness could not say it had passed
+
+With the fixed comparison live on `main`, the witness was dispatched against poetech.us. **Nothing was filed.** And that turned out to be unreadable rather than reassuring, because the first version of the workflow recorded a finding only on FAILURE — so an empty ledger means either *the reader is fine* or *the witness never ran*, and those are different answers that cannot be told apart from outside.
+
+That is DR-0125's rule arriving from a new direction: **unknown freshness must never read as fresh.** I had built an instrument whose silence I was about to interpret, which is the same over-claim this record already corrects once.
+
+**The fix is a rolling RUN LOG.** Every run now appends its measurement — `PASS - each band rendered its own lesson body`, or the failure with its reasons — to one issue kept for that purpose, deliberately NOT labeled `incident`, so a pass never opens an incident and a failure still reaches the ledger. Two records, two meanings. Silence on the log is now itself a finding: the witness did not run.
+
+Three breaks proven against the real workflow, each reverted: the run log made failure-only again, the run log labelling its entries as incidents, and the deletion of the note that states what silence means. **re-review: 2026-09-19** stands, and the answer now arrives on the log rather than from my inference.
