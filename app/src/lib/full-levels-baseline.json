@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 172,
-  "lessonsShort": 82,
+  "lessonsShort": 81,
   "short": {
     "ll1-the-perfect-yahweh-expects": [
       "child",
@@ -468,12 +468,6 @@
       "child",
       "youth",
       "teen"
-    ],
-    "ll82-love-fulfils-the-law-wake-up-and-get-dressed": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
     ],
     "ll9-the-lord-looks-on-the-heart": [
       "child",
