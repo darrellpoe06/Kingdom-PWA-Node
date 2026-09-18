@@ -4,11 +4,11 @@
   "lessonsElided": 105,
   "lessonsReciting": 42,
   "totals": {
-    "spans": 700,
-    "scripture": 661,
+    "spans": 698,
+    "scripture": 659,
     "ours": 14,
     "undecidable": 25,
-    "contiguousAvailable": 639
+    "contiguousAvailable": 637
   },
   "elided": {
     "ll1-the-perfect-yahweh-expects": {
@@ -551,9 +551,7 @@
       "lesson": 1,
       "bigIdea": 7,
       "inApp": 1,
-      "levels.youth": 1,
-      "levels.teen": 1,
-      "levels.senior": 1
+      "levels.teen": 1
     }
   },
   "recited": {
