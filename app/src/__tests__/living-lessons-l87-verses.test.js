@@ -10,6 +10,10 @@
 // never written from memory (DR-0076 / DR-0281 QUOTED). A drifted quote
 // fails the build (the L83-L86 discipline).
 import { describe, it, expect } from 'vitest';
+// This file otherwise reads the SOURCE as text; the section and band checks
+// below need the real module, because what matters is what the app renders.
+import { formatLessonText } from '../lib/lesson-format.js';
+import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -109,7 +113,9 @@ const QUOTED_FRAGMENTS = [
 describe('L87 exists in the catalog with its full shape', () => {
   it('the module is present with anchor, levels, quiz, and facilitator', () => {
     expect(start).toBeGreaterThan(-1);
-    for (const key of ['bigIdea:', 'inApp:', "ref: '2 Timothy 3:16-17'", 'child:', 'teen:', 'senior:', 'quiz:', 'facilitator:']) {
+    // 'youth:' was absent from this list AND from the lesson — the third
+    // lesson in a row found that way (L89, L88, L87). Written 2026-09-18.
+    for (const key of ['bigIdea:', 'inApp:', "ref: '2 Timothy 3:16-17'", 'child:', 'youth:', 'teen:', 'senior:', 'quiz:', 'facilitator:']) {
       expect(lesson).toContain(key);
     }
     expect(src).toContain('L87 Two Ways, Two Wisdoms');
@@ -137,6 +143,112 @@ describe('L87 exists in the catalog with its full shape', () => {
     // and the lesson's own prose says "the adversary", never capitalized.
     expect(l).toContain('the god of this world hath blinded');
     expect(l).not.toMatch(/The Adversary/);
+  });
+});
+
+describe('all FOUR bands carry the six movements (DR-0418)', () => {
+  const L = LIVING_LESSONS_MODULES.find((m) => m.id.startsWith('ll87-two-ways'));
+  const BANDS = ['child', 'youth', 'teen', 'senior'];
+  const TEXTS = { adult: L.lesson, ...Object.fromEntries(BANDS.map((b) => [b, L.levels[b]])) };
+  // OUR prose only — quoting a verse is not teaching it.
+  const ourProse = (t) => String(t).replace(/"[^"]*"/g, ' ');
+
+  it('EVERY text renders all SIX movements as numbered sections', () => {
+    // Found 2026-09-18 by running the real formatter instead of trusting the
+    // prose. A marker is numbered only when the preceding text ends in a
+    // SENTENCE PERIOD — never after a closing reference like "(John 14:6) " —
+    // and only in the forms the formatter knows (ordinal words, I./II., SOIL n).
+    // Before the fix the child band rendered [1, 4, 6], the youth/teen/senior
+    // bands rendered a single section each because "ONE:"/"TWO:" are not
+    // markers it knows, and THE ADULT LESSON ITSELF rendered [1, 2, 3] — it had
+    // been losing half its own movements on screen. All five now render 1-6.
+    for (const [key, text] of Object.entries(TEXTS)) {
+      const { items, sectionCount } = formatLessonText(text);
+      const ns = items.filter((i) => i.kind === 'heading').map((h) => h.n);
+      expect(sectionCount, `${key} does not render six movements`).toBe(6);
+      expect(ns, `${key} numbers its movements ${JSON.stringify(ns)}`).toEqual([1, 2, 3, 4, 5, 6]);
+      for (const i of items) expect(i.text.length, `${key} has a wall of text`).toBeLessThanOrEqual(420);
+    }
+  });
+
+  it('every band carries the two ways, and that the wrong one does not announce itself', () => {
+    for (const band of BANDS) {
+      const t = TEXTS[band];
+      expect(t, `${band} drops the two ways`).toContain('the way of the ungodly shall perish');
+      expect(t, `${band} drops the road that seems right`).toContain('seemeth right unto a man');
+      expect(ourProse(t), `${band} never teaches that sincerity is not safety`)
+        .toMatch(/sincerity is not safety|meaning well is not the same as being safe|can FEEL right/i);
+    }
+  });
+
+  it('every band carries all THREE blinders, because they need three different mercies', () => {
+    // Collapsing them is the error: the hostile one, the moral one, and the
+    // constitutional one are answered differently, and the moral one is the
+    // uncomfortable one a lesson most wants to soften.
+    for (const band of BANDS) {
+      const t = TEXTS[band];
+      expect(t, `${band} drops the hostile blinder`).toMatch(/blinded the minds|blinds people on purpose/i);
+      expect(t, `${band} drops the moral blinder`).toContain('loved darkness rather than light');
+      expect(t, `${band} drops the constitutional blinder`).toContain('natural man receiveth not');
+      expect(ourProse(t), `${band} never says the moral one is not an information problem`)
+        // The senior register says "not an information deficit; it is an
+        // affection"; the others say "not an information problem" or, for the
+        // child, "not a thinking problem". Same claim, three registers.
+        .toMatch(/not an information (problem|deficit)|not a thinking problem/i);
+    }
+  });
+
+  it('every band teaches that sight is GIVEN and follows seeking, never effort at seeing', () => {
+    for (const band of BANDS) {
+      const t = TEXTS[band];
+      expect(t, `${band} drops new birth`).toContain('Except a man be born again');
+      expect(t, `${band} drops the pure heart`).toContain('Blessed are the pure in heart');
+      expect(t, `${band} drops the asking`).toContain('Open thou mine eyes');
+      expect(ourProse(t), `${band} never refuses effort-at-seeing`)
+        // "It never comes by effort at seeing" (senior), "Not by trying harder
+        // to see" (youth/teen), "Not by squinting harder" (child).
+        .toMatch(/not by trying harder|not by squinting harder|never comes by effort at seeing/i);
+    }
+  });
+
+  it('every band teaches the engine as four strokes with a stated output', () => {
+    for (const band of BANDS) {
+      const t = TEXTS[band];
+      expect(t, `${band} drops the engine verse`).toContain('profitable for doctrine, for reproof, for correction');
+      const ours = ourProse(t);
+      for (const stroke of [/doctrine/i, /reproof/i, /correction/i, /instruction/i]) {
+        expect(ours, `${band} does not teach all four strokes`).toMatch(stroke);
+      }
+      expect(ours, `${band} never names the output as a whole person`).toMatch(/whole person/i);
+    }
+  });
+
+  it('every band keeps the fairness about science, because a swipe would cost the room its trust', () => {
+    // The lesson makes a real distinction and explicitly refuses to sneer. A
+    // band that kept the contrast and dropped the fairness would be doing the
+    // thing DR-0098 exists to prevent.
+    for (const band of BANDS) {
+      const ours = ourProse(TEXTS[band]);
+      if (!/science/i.test(ours)) continue; // the child band does not raise it
+      expect(ours, `${band} raises science without the fairness`)
+        .toMatch(/honest best|revised honestly|good thing/i);
+      expect(ours, `${band} never states the contrast it is drawing`)
+        .toMatch(/does not forecast|He IS/);
+    }
+  });
+
+  it('no band elides inside a quotation, and none cites a decision record (DR-0473)', () => {
+    // NINE elisions were found in this lesson on 2026-09-18 — four in the adult
+    // lesson and five in bigIdea — every one with a contiguous verbatim span
+    // available. Fixing them GAINED words of His: "who is the image of God",
+    // "and of the joints and marrow", "he being not a forgetful hearer, but",
+    // and the whole glory clause of John 1:14.
+    for (const [key, text] of Object.entries(TEXTS)) {
+      for (const m of String(text).matchAll(/"([^"]*)"/g)) {
+        expect(/\.\.\.|\u2026/.test(m[1]), `${key}: an elision inside a quotation — "${m[1]}"`).toBe(false);
+      }
+      expect(String(text), `${key} cites a decision record to the reader`).not.toMatch(/DR-\d{4}/);
+    }
   });
 });
 
