@@ -123,3 +123,67 @@ gap is itself the finding.
 - PR #1683 · DR-0003 · DR-0012 · DR-0050 · DR-0076 · DR-0100 · DR-0108 · DR-0219
 - `docs/99-session-notes/2026-07-08-church-lan-device-inventory.md` — the prior scan
   this work derives structure from.
+
+---
+
+## CORRECTION, same day — it is ONE /23, not two /24s
+
+**Everything above that speaks of "two segments" was wrong, and the error is kept
+here rather than edited away.**
+
+The 2026-07-08 note recorded *"two subnets `192.168.0.0/24` and `192.168.1.0/24`"*.
+**No netmask was ever read.** Someone saw addresses in two ranges and assumed /24
+each. This session then inherited that assumption and shipped it marked
+`maskAssumed: false` — an assumption wearing a measurement's provenance, which is
+precisely the failure DR-0076 exists to prevent.
+
+The 2026-09-18 scan had the answer in it the whole time, in a field nobody read:
+
+```
+LIVESTREAM-MAIN · Ethernet · 192.168.1.73 · prefix 23 · origin Dhcp
+route table: 0.0.0.0/0 -> 192.168.0.1 (Ethernet). No inter-subnet route.
+```
+
+A /23 at that address spans `192.168.0.0`–`192.168.1.255`. So `192.168.0.x` and
+`192.168.1.x` are **one layer-2 broadcast domain**, and the pfSense is not routing
+between them because there is nothing to route.
+
+### What that inverts
+
+| Claimed above | Actually |
+|---|---|
+| Two segments, routed by the pfSense | **One flat /23**; the pfSense is the edge only |
+| Cameras and ATEM on opposite segments — "a routed hop every service" | **Same wire.** Switched, never routed |
+| `livestream-main-pc` bridges the segments | **No bridge exists** — both addresses are in the same /23 |
+| UniFi pair spans both segments → CRITICAL | Spans nothing → **HIGH** |
+| Router interface on `192.168.1.0/24` unrecorded | **No such network.** One gateway, recorded |
+
+### What it makes worse
+
+The flat-network finding was already CRITICAL and is now both **more certain and
+more severe**. This is not two segments that happen to share risk — it is 42 devices
+on a single broadcast domain with **no filtering anywhere inside it**: the NAS
+holding member and financial records, consumer cloud IoT, cameras, printers and the
+production chain, all able to reach each other without passing a firewall.
+
+Segmentation was already step 5 of the plan. It is now the only structural fix, and
+the "close the bridge first" prerequisite is gone because there is no bridge.
+
+### The defects this exposed in our own code
+
+1. **`maskAssumed` was derived from "is this CIDR in our list", not from an actual
+   netmask reading.** Fixed: a mask is `maskObserved` only when one was read.
+2. **A dangling plan dependency.** `segment-vlans` named `close-bridge`
+   unconditionally; when that step stopped being generated, the plan told an
+   operator to wait for a step that was not in it. `validatePlan` ignored that case
+   entirely. Both fixed, and the validator now catches it.
+3. **Gates pinned to live data asserted fictions.** Three tests demanded a bridge, a
+   spanning group row and an opposite-segment placement — all artifacts of the false
+   split. Rewritten to test the behaviour on synthetic networks, with direct
+   assertions that the real church network has none of them.
+
+### Standing lesson
+
+The scan captured the netmask on its very first run. Nobody read that field for two
+months, and a security assessment was built on an assumed topology instead. **Read
+the mask; never infer it from which addresses you happen to see.**
