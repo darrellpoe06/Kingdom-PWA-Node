@@ -57,6 +57,25 @@ const CASES = [
     expectPlayer: false,
   },
   {
+    // THE LEVEL SWITCH, OPENED IN A REAL BROWSER (2026-09-18). Darrell reported
+    // "the highlighting reads only the child version no matter what is chosen".
+    // Every unit test measures the level plumbing correct, and the cloud agent
+    // session has NO route to poetech.us — so the honest answer was never "ask
+    // him", it was THIS: a runner picks each band on the live site and compares
+    // the rendered lesson body. The bodies are recorded in result.json, so the
+    // evidence is readable rather than asserted (DR-0108: account for the whole
+    // team's capabilities; DR-0076 §7: an independent method, not a re-read of
+    // the code).
+    name: '4-level-switch',
+    label: 'Level switch — does picking a band change the LESSON BODY on the live site?',
+    query: '?view=church&sub=learn&course=made-in-time&lesson=mit5-those-who-know-their-god',
+    expectTab: 'Learn',
+    expectHeadingIncludes: 'Made in Time',
+    expectLessonId: 'mit5-those-who-know-their-god',
+    expectPlayer: false,
+    levelBands: ['Child', 'Adult'],
+  },
+  {
     name: '3-bare-church',
     label: 'Bare church link — the Worship tab, where the player BELONGS',
     query: '?view=church',
@@ -97,6 +116,7 @@ for (const c of CASES) {
   let heading = null;
   let lessonMounted = null;
   let player = null;
+  const levelBodies = [];
 
   try {
     await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
@@ -134,6 +154,47 @@ for (const c of CASES) {
       }
     }
 
+    // --- the level walk ----------------------------------------------------
+    // Reads the lesson body once per band, with the control row stripped out so
+    // a change in the CONTROL never reads as a change in the LESSON — which is
+    // exactly the confusion the report needs settled.
+    if (c.levelBands && lessonMounted) {
+      const bodyOf = () => page.evaluate((id) => {
+        const card = document.getElementById(`learn-lesson-${id}`);
+        if (!card) return null;
+        const clone = card.cloneNode(true);
+        clone.querySelectorAll('[data-read-skip="true"]').forEach((n) => n.remove());
+        return String(clone.innerText || clone.textContent || '').replace(/\s+/g, ' ').trim();
+      }, c.expectLessonId);
+
+      for (const label of c.levelBands) {
+        const clicked = await page.evaluate((lab) => {
+          const ctl = document.querySelector('[data-testid="lesson-level-control"]');
+          if (!ctl) return 'no-control';
+          const b = [...ctl.querySelectorAll('button[role="radio"]')]
+            .find((x) => (x.textContent || '').trim().toLowerCase().startsWith(lab.toLowerCase()));
+          if (!b) return 'no-chip';
+          b.click();
+          return 'clicked';
+        }, label);
+        if (clicked !== 'clicked') { problems.push(`could not select the ${label} level: ${clicked}`); continue; }
+        await page.waitForTimeout(1200);
+        const body = await bodyOf();
+        levelBodies.push({ level: label, chars: body ? body.length : 0, head: body ? body.slice(0, 240) : null });
+        await page.screenshot({ path: `${OUT}/${c.name}-${label.toLowerCase()}.png` }).catch(() => {});
+      }
+
+      const seen = levelBodies.filter((b) => b.head);
+      if (seen.length < c.levelBands.length) {
+        problems.push(`read ${seen.length} of ${c.levelBands.length} level bodies — the lesson card did not re-render`);
+      } else {
+        const distinct = new Set(seen.map((b) => b.head)).size;
+        if (distinct < seen.length) {
+          problems.push(`THE REPORTED DEFECT IS REAL: ${seen.length} levels were selected and only ${distinct} distinct lesson bodies rendered — [${seen.map((b) => `${b.level}:${b.chars}ch`).join(', ')}]`);
+        }
+      }
+    }
+
     if (!activeTabs.some((t) => t.includes(c.expectTab))) {
       problems.push(`expected the "${c.expectTab}" tab selected; DOM says [${activeTabs.join(', ') || 'none'}]`);
     }
@@ -164,6 +225,7 @@ for (const c of CASES) {
     heading,
     lessonMounted,
     youtubePlayerMounted: player,
+    levelBodies,
     pageErrors,
     problems,
   });

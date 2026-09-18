@@ -28,6 +28,7 @@ import { loadVoiceProfiles } from './voice-sync.js';
 import { createBackgroundAudio } from './background-audio.js';
 import { toSpokenForm } from './speech-text.js';
 import { clipFraction, estimateClipSeconds, seekableEndOf } from './clip-progress.js';
+import { applyClipRate, clipRateNotice } from './clip-rate.js';
 import { supabase } from './supabase.js';
 
 /**
@@ -55,6 +56,32 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const [cloudProgress, setCloudProgress] = useState(0); // 0..1 through the cloud clip
   const [notice, setNotice] = useState('');
   const audioRef = useRef(null);
+  // THE SPEED CHIP HAS TO REACH THE CLIP (2026-09-18). A cloud read is one
+  // audio element, and playbackRate was never touched on it — so on the
+  // sovereign/bridge path (which since DR-0382 carries the SYSTEM voice, the
+  // default nobody changes) the chips moved the button highlight and changed
+  // nothing about the speech, while the device-voice path honoured them. One
+  // device honouring the rate and the other ignoring it IS "different on the
+  // laptop than the phone". The rate lives in a ref so a clip created inside
+  // an async read uses the CURRENT speed rather than a render's stale closure
+  // — the same class of bug tts.js was built to kill.
+  const rateRef = useRef(tts.rate);
+  rateRef.current = tts.rate;
+
+  /** Set the read speed, and carry it to a clip already playing. */
+  const setRate = useCallback((r) => {
+    rateRef.current = r;
+    tts.setRate(r);
+    const a = audioRef.current;
+    if (a) {
+      // An audio element takes a live rate change mid-play, unlike an
+      // utterance, so this is audible immediately rather than at the next
+      // sentence — and it is MEASURED, never assumed (DR-0076).
+      const applied = applyClipRate(a, r);
+      const msg = clipRateNotice(applied);
+      if (msg) setNotice(msg);
+    }
+  }, [tts]);
 
   useEffect(() => {
     let alive = true;
@@ -248,6 +275,10 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
             }
             try {
               const a = new Audio(url); audioRef.current = a; setCloudPlaying(true); setCloudProgress(0);
+              // The chosen speed applies to the clip from its first second, and a
+              // device that refuses the rate says so instead of quietly reading slow.
+              const rateApplied = applyClipRate(a, rateRef.current);
+              if (!rateApplied.honored) setNotice(clipRateNotice(rateApplied));
               // Follow-along for CLOUD audio (DR-0265): the clip carries no word
               // timings, but its playback fraction maps to a text position well
               // enough for sentence-level follow — the caller converts this
@@ -316,6 +347,10 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
         }
         try {
           const a = new Audio(url); audioRef.current = a; setCloudPlaying(true); setCloudProgress(0);
+          // The chosen speed applies to the clip from its first second, and a
+          // device that refuses the rate says so instead of quietly reading slow.
+          const rateApplied = applyClipRate(a, rateRef.current);
+          if (!rateApplied.honored) setNotice(clipRateNotice(rateApplied));
           // A STREAMED CLIP NEVER REPORTS ITS LENGTH, AND THE HIGHLIGHT FROZE
           // ON SENTENCE ONE BECAUSE OF IT (2026-09-18). This callback used to
           // be `const d = a.duration; if (Number.isFinite(d) && d > 0)` and
@@ -404,6 +439,6 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     deviceRead: !cloudPlaying,
     cloudProgress,
     voiceId, setVoiceId, catalog, currentItem, notice,
-    read, pause, resume, stop, setRate: tts.setRate,
+    read, pause, resume, stop, setRate,
   };
 }

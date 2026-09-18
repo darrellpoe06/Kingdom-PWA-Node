@@ -43,7 +43,7 @@ import { clauseSegments } from './speech-shape.js';
 const STORAGE_KEY = 'poe-tts-prefs';
 
 export const MIN_RATE = 0.5;
-export const MAX_RATE = 3.0;
+export const MAX_RATE = 5.0;
 export const DEFAULT_RATE = 1.0;
 export const DEFAULT_PITCH = 1.0;
 
@@ -66,12 +66,26 @@ const START_WATCHDOG_MS = 1400;
 // Big, plain-language speed steps for non-technical readers — a SLOWER option
 // (the old control had none) plus normal and faster. Slider-free on purpose:
 // large tap targets beat a fiddly 0.1x slider for an elderly reader.
+// THE LADDER GOES TO 5x, AND WHY (Darrell 2026-09-18, reading on both his
+// devices): "Reader speed is different on the laptop vs cellphone... we may
+// need 4.5 or even as high as 5x speed for the laptop... it's slower." The
+// nominal rate is NOT a speed: every engine has its own baseline words per
+// minute, so 2.5x on a desktop voice can be slower than 1.5x on a phone's.
+// Capping at 2.5x therefore capped the LAPTOP below the pace he reads at,
+// while the phone had headroom to spare. The Web Speech spec allows up to 10;
+// 5 is where this house stops, because the ladder is only useful while the
+// words are still words. Each device remembers its own choice (prefs are
+// per-device localStorage), which is the right shape for exactly this: one
+// number cannot mean one speed on two engines.
 export const RATE_STEPS = [
   { value: 0.7, label: '0.7×', name: 'Slower' },
   { value: 1.0, label: '1×',   name: 'Normal' },
   { value: 1.5, label: '1.5×', name: 'Faster' },
   { value: 2.0, label: '2×',   name: 'Fast' },
-  { value: 2.5, label: '2.5×', name: 'Fastest' },
+  { value: 2.5, label: '2.5×', name: 'Faster still' },
+  { value: 3.0, label: '3×',   name: 'Very fast' },
+  { value: 4.0, label: '4×',   name: 'Rapid' },
+  { value: 5.0, label: '5×',   name: 'Fastest' },
 ];
 
 /** Clamp any rate into the supported range. Non-numbers fall back to Normal. */

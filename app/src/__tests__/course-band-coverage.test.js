@@ -12,10 +12,10 @@
 // than one repeated four times). ALL THREE SCAN `LIVING_LESSONS_MODULES` AND
 // NOTHING ELSE. Across the whole catalog:
 //
-//     211  lessons outside the Living Lessons series
+//     211  lessons outside the Living Lessons series (219 after DR-0500)
 //       0  carrying all four authored bands
-//      43  carrying no authored band at all
-//       5  of those 43 reading ABOVE grade 9 in the text actually served
+//      43  carrying no authored band at all  (37 after the first pass)
+//       5  of those 43 reading ABOVE grade 9 in the text actually served (now 0)
 //
 // Whoever opens one of the 43 gets the single `lesson` field through
 // resolveForAge's fallback, and no gate in the house has ever said so. That is
@@ -31,6 +31,14 @@
 // real defect. The register measure below exists because the count over-claimed
 // (DR-0076 §1 no claim without evidence, §4 measure don't claim), and it is
 // ratcheted so the distinction is instrumented rather than remembered.
+//
+// THEN THE FIVE WERE FIXED, which is what a measurement is for. broadcast bc2,
+// bc3, bc4, bc6 and bc7 and the ai course's wk3-the-test now carry authored
+// teen and senior bands, so adultRegister across the whole catalog is ZERO and
+// this file holds it there: a new bandless lesson reading above grade 9 fails
+// the build. The 37 still bandless all read at or below grade 9 in the text
+// they serve — a label gap with a dated re-review, not a reader who cannot
+// reach the words.
 //
 // WHAT THIS FILE DOES AND DELIBERATELY DOES NOT DO. It does NOT impose the
 // Living-Lessons floors on a paced course lesson — that is a different
@@ -89,9 +97,12 @@ describe('the measure reads the real catalog', () => {
 
 describe('the debt, recorded as it actually is', () => {
   it('is the number measured, not a number anybody hoped for', () => {
-    expect(baseline.total).toBe(211);
+    // 211 when this gate was written; 219 once the Real Estate department's
+    // first course arrived (DR-0500) — eight lessons, every one of them
+    // carrying authored bands, which is why adultOnly did NOT move with it.
+    expect(baseline.total).toBe(219);
     expect(baseline.allFour).toBe(0);
-    expect(baseline.adultOnly).toBe(43);
+    expect(baseline.adultOnly).toBe(37);
   });
 
   it('matches the live catalog exactly', () => {
@@ -101,17 +112,32 @@ describe('the debt, recorded as it actually is', () => {
   });
 
   it('separates a missing label from adult prose served to a child', () => {
-    // The correction. 43 bandless lessons are NOT 43 lessons serving adult
-    // words: 5 are, and the record says which. A course written for the
-    // youngest readers reading at grade 0.3 must never be counted the same as
-    // one reading at 12.4, or the number stops being information.
-    expect(baseline.adultRegister).toBe(5);
+    // The correction that made the fix aimable. 43 bandless lessons were NOT
+    // 43 lessons serving adult words: 5 were, and measuring said which. A
+    // course written for the youngest readers, reading at grade 0.3, must
+    // never be counted the same as one reading at 12.4, or the number stops
+    // being information and starts being an impression with a digit on it.
     expect(baseline.courses['little-learners'].bandlessGrade).toBeLessThan(3);
     expect(baseline.courses['little-learners'].adultRegister).toBe(0);
     expect(baseline.courses.mathematics.bandlessGrade).toBeLessThan(3);
     expect(baseline.courses.mathematics.adultRegister).toBe(0);
-    expect(baseline.courses.broadcast.bandlessGrade).toBeGreaterThan(ADULT_REGISTER_CEILING);
-    expect(baseline.courses.broadcast.adultRegister).toBe(4);
+  });
+
+  it('holds the register defect at zero, everywhere, now that the five are authored', () => {
+    // broadcast read at 12.4 and rose to 16.3; ai wk3-the-test read at 10.3.
+    // All six of those lessons now carry authored teen and senior bands, so
+    // NOTHING bandless in the catalog reads above the ceiling — and this is
+    // the assertion that keeps it that way, because a ratchet held at zero is
+    // the only kind that cannot drift.
+    expect(baseline.adultRegister).toBe(0);
+    expect(scan.adultRegister).toBe(0);
+    expect(baseline.courses.broadcast.adultOnly).toBe(0);
+    for (const [key, row] of Object.entries(baseline.courses)) {
+      expect(row.adultRegister, `${key} carries a bandless lesson above grade ${ADULT_REGISTER_CEILING}`).toBe(0);
+      if (row.bandlessGrade !== undefined) {
+        expect(row.bandlessGrade, `${key} median bandless grade`).toBeLessThanOrEqual(ADULT_REGISTER_CEILING);
+      }
+    }
   });
 
   it('measures the served text the way the reading-level ratchet does', () => {
@@ -140,13 +166,13 @@ describe('the debt, recorded as it actually is', () => {
 
 describe('proven-to-catch (DR-0076 §3)', () => {
   it('sees a course that adds a bare lesson', () => {
-    const worseScan = { ...scan, courses: { ...scan.courses, ai: { lessons: 9, allFour: 0, adultOnly: 9 } } };
-    expect(ratchetCourseBands(worseScan, baseline).worse.join(' ')).toMatch(/ai: 9 adult-only/);
+    const worseScan = { ...scan, courses: { ...scan.courses, ai: { lessons: 9, allFour: 0, adultOnly: 8 } } };
+    expect(ratchetCourseBands(worseScan, baseline).worse.join(' ')).toMatch(/ai: 8 adult-only/);
   });
 
   it('sees a course that LOSES an authored band', () => {
     // The direction nobody watches: bands can be deleted as easily as added.
-    const padded = { ...baseline, courses: { ...baseline.courses, ai: { lessons: 8, allFour: 3, adultOnly: 8 } } };
+    const padded = { ...baseline, courses: { ...baseline.courses, ai: { lessons: 8, allFour: 3, adultOnly: 7 } } };
     expect(ratchetCourseBands(scan, padded).worse.join(' ')).toMatch(/ai: 0 four-band/);
   });
 
@@ -159,8 +185,8 @@ describe('proven-to-catch (DR-0076 §3)', () => {
 
   it('sees a bandless lesson that climbs above the adult-register ceiling', () => {
     // The register dimension moving the wrong way: same band count, harder text.
-    const worseScan = { ...scan, courses: { ...scan.courses, ai: { ...scan.courses.ai, adultRegister: 2 } } };
-    expect(ratchetCourseBands(worseScan, baseline).worse.join(' ')).toMatch(/ai: 2 bandless lessons above the adult-register ceiling/);
+    const worseScan = { ...scan, courses: { ...scan.courses, ai: { ...scan.courses.ai, adultRegister: 1 } } };
+    expect(ratchetCourseBands(worseScan, baseline).worse.join(' ')).toMatch(/ai: 1 bandless lessons above the adult-register ceiling/);
   });
 
   it('refuses a baseline row that carries no register number at all', () => {

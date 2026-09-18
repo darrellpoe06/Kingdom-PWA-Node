@@ -1,16 +1,16 @@
 {
   "note": "Shrink-only debt. Measured 2026-09-18: the four-band requirement was never applied outside the Living Lessons series. A course that gets WORSE fails the build; these numbers may only improve. Authoring bands for a course lesson lowers its adultOnly and raises its allFour, and the baseline is lowered in the same commit. adultRegister counts the BANDLESS lessons whose single lesson field reads above grade 9 — the ones where the fallback really does hand adult prose to a child; bandlessGrade is the median grade of a course bandless lessons, recorded so a low number is never mistaken for a high one.",
-  "total": 211,
+  "total": 219,
   "allFour": 0,
-  "adultOnly": 43,
-  "adultRegister": 5,
+  "adultOnly": 37,
+  "adultRegister": 0,
   "courses": {
     "ai": {
       "lessons": 8,
       "allFour": 0,
-      "adultOnly": 8,
-      "adultRegister": 1,
-      "bandlessGrade": 7.1
+      "adultOnly": 7,
+      "adultRegister": 0,
+      "bandlessGrade": 6.7
     },
     "ai-legal-blueprint": {
       "lessons": 6,
@@ -21,9 +21,8 @@
     "broadcast": {
       "lessons": 9,
       "allFour": 0,
-      "adultOnly": 5,
-      "adultRegister": 4,
-      "bandlessGrade": 12.4
+      "adultOnly": 0,
+      "adultRegister": 0
     },
     "church-offices": {
       "lessons": 7,
@@ -96,6 +95,12 @@
     },
     "project-management": {
       "lessons": 10,
+      "allFour": 0,
+      "adultOnly": 0,
+      "adultRegister": 0
+    },
+    "property-principle": {
+      "lessons": 8,
       "allFour": 0,
       "adultOnly": 0,
       "adultRegister": 0
