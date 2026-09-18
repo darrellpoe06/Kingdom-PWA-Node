@@ -96,6 +96,39 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+      # EVERY RUN IS RECORDED, PASS OR FAIL (added 2026-09-18, same day, after
+      # the first clean run taught the lesson). The first version filed only on
+      # failure, so a run that passed left NOTHING behind -- and "no issue
+      # filed" then means either "the reader is fine" or "the witness never
+      # ran", which are not the same answer and cannot be told apart. That is
+      # DR-0125's rule exactly: unknown freshness must never read as fresh. So
+      # this step writes the measurement to a rolling RUN LOG on every run, and
+      # silence on that log now means the witness did not run.
+      - name: Record the run (rolling log, pass or fail)
+        if: always()
+        env:
+          REASONS: ${{ steps.probe.outputs.fail_reasons }}
+          LEVELS: ${{ steps.probe.outputs.level_summary }}
+          BUILD: ${{ steps.probe.outputs.served_build }}
+          SW: ${{ steps.probe.outputs.sw_controlled }}
+          OUTCOME: ${{ steps.probe.outcome }}
+        run: |
+          set -uo pipefail
+          title="level-witness: the reader's level switch, run log"
+          if [ "$OUTCOME" = "success" ] && [ -z "${REASONS}" ]; then
+            verdict="PASS - each band rendered its own lesson body"
+          else
+            verdict="FAIL - ${REASONS:-the probe crashed before reporting}"
+          fi
+          line="$(date -u +%FT%TZ) - ${verdict}. Bodies read: ${LEVELS:-none}. Build served: ${BUILD:-unknown} (service worker controlling: ${SW:-unknown}). Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          log_issue=$(gh issue list --repo "$REPO" --state all --search "in:title level-witness run log" --json number --jq '.[0].number // ""')
+          if [ -n "$log_issue" ]; then
+            gh issue comment "$log_issue" --repo "$REPO" --body "$line"
+          else
+            printf '%s\n\n%s\n' "Rolling run log for level-witness.yml. Every run appends its measurement here, pass or fail, so SILENCE on this log means the witness did not run rather than that the reader is fine (DR-0125). Failures also open an incident-labeled issue of their own." "$line" > "$RUNNER_TEMP/log-body.md"
+            gh issue create --repo "$REPO" --title "$title" --body-file "$RUNNER_TEMP/log-body.md"
+          fi
+
       # The ledger entry. A finding that lives only in a run log is a finding
       # nobody reads (DR-0125's lesson about the site's own witness).
       - name: Record the finding (rolling issue, labeled `incident`)
@@ -103,10 +136,11 @@ jobs:
         env:
           REASONS: ${{ steps.probe.outputs.fail_reasons }}
           LEVELS: ${{ steps.probe.outputs.level_summary }}
+          BUILD: ${{ steps.probe.outputs.served_build }}
         run: |
           set -uo pipefail
           title="level-witness: the reader may serve one body for every band"
-          body="$(date -u +%FT%TZ) — **LEVEL SWITCH FINDING**: ${REASONS:-the probe crashed before reporting — see the run log}. Bodies read: ${LEVELS:-none}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          body="$(date -u +%FT%TZ) — **LEVEL SWITCH FINDING**: ${REASONS:-the probe crashed before reporting — see the run log}. Bodies read: ${LEVELS:-none}. Build served: ${BUILD:-unknown}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
           open_issue=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title level-witness" --json number --jq '.[0].number // ""')
           if [ -n "$open_issue" ]; then
             gh issue comment "$open_issue" --repo "$REPO" --body "$body"

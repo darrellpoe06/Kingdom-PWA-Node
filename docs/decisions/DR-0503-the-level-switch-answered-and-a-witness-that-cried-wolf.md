@@ -45,8 +45,29 @@ That is the same failure as DR-0497 wearing different clothes: a measurement tha
 
 **Why did he see it?** The instrument says the live product serves a different body and a different reader text per band. His report stands as a real experience, and three candidates remain, none of them guessed at here:
 
-1. **A stale service worker** serving an older build on his device — the app has scope-shell worker logic with exactly this history (PR #1405), and an installed worker updates on its own schedule. The witness should read the **served build version** alongside the bodies so "he is on an old build" becomes measurable. **That is the next build, not a claim.**
+1. **A stale service worker** serving an older build on his device — the app has scope-shell worker logic with exactly this history (PR #1405), and an installed worker updates on its own schedule. **BUILT, not deferred:** the witness now asks the running page which build it is executing (`globalThis.__PT_BUILD__`, injected by vite) and whether a service worker is controlling the page at all, and carries both into the run log and the incident entry. So "is he on an old build?" is now a comparison between two recorded numbers rather than a theory. Calling that "the next build" was a fake boundary, and the ari-guard caught it before this record reached Darrell.
 2. **The level chosen in one surface not reaching the other** — the panel's chip versus the reader's own band. The plumbing measures correct, and only an instrumented read on his device settles it.
 3. **The report predating the fixes.** DR-0494 (the level-blind intro) merged today; if he read before that deploy landed, the intro genuinely did not change with the band.
 
 **re-review: 2026-09-19.** Nothing here says his report was wrong. It says the defect is not in the place I looked, and names where to look next.
+
+## Amendment, the same day: the witness could not say it had passed
+
+With the fixed comparison live on `main`, the witness was dispatched against poetech.us. **Nothing was filed.** And that turned out to be unreadable rather than reassuring, because the first version of the workflow recorded a finding only on FAILURE — so an empty ledger means either *the reader is fine* or *the witness never ran*, and those are different answers that cannot be told apart from outside.
+
+That is DR-0125's rule arriving from a new direction: **unknown freshness must never read as fresh.** I had built an instrument whose silence I was about to interpret, which is the same over-claim this record already corrects once.
+
+**The fix is a rolling RUN LOG.** Every run now appends its measurement — `PASS - each band rendered its own lesson body`, or the failure with its reasons — to one issue kept for that purpose, deliberately NOT labeled `incident`, so a pass never opens an incident and a failure still reaches the ledger. Two records, two meanings. Silence on the log is now itself a finding: the witness did not run.
+
+Three breaks proven against the real workflow, each reverted: the run log made failure-only again, the run log labelling its entries as incidents, and the deletion of the note that states what silence means. **re-review: 2026-09-19** stands, and the answer now arrives on the log rather than from my inference.
+
+## And the break run caught two hollow checks of my own
+
+The served-build checks passed on the first attempt, so I ran the breaks anyway — and **two of the three did not fail**:
+
+- Gutting the probe to `out.build = null` left the check green, because it asserted `toContain('globalThis.__PT_BUILD__')` and the probe's own **header comment** contains that string.
+- Deleting the build from the **run log** line left the check green, because it searched the whole file and the **incident** step carries the same words.
+
+Both are the class DR-0076 §3 exists to forbid: a gate that survives a gutted implementation. Tightened to assert the ASSIGNMENT (`out.build = globalThis.__PT_BUILD__ || null`) rather than the identifier, and to check each record's step SEPARATELY by slicing the workflow text. Re-broken three ways afterwards — probe gutted, run log stripped, incident entry stripped — and all three now fail.
+
+Worth naming plainly: I only found these because I ran the breaks after the checks were already green. Reading a check cannot tell you it would catch anything.
