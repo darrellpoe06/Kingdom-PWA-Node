@@ -76,42 +76,52 @@ describe('the measure, run on the real corpus', () => {
     expect(scan.measuredLessons).toBe(baseline.measuredLessons);
   });
 
-  it('still catches a near-identical pair living in the real corpus', () => {
-    // RE-ANCHORED 2026-09-18 (DR-0485). This check was pinned to ll173, whose
-    // youth and teen bands were the same text. ll173 was re-authored the same
-    // day and now measures 0.16 on that pair, which took the check with it —
-    // exactly as the original comment said it would. The lesson: a live
-    // proven-to-catch anchored to a defect we INTEND to fix has to be
-    // re-anchored every time we fix one, and re-anchoring by hand is the point.
-    // It is now pinned to the worst row the corpus still carries, so it keeps
-    // proving the measure can see a real duplicate — and when the last one is
-    // repaired this fails, and someone reads it and retires it deliberately
-    // rather than a silent green standing in for a cleared debt.
-    // The threshold is DERIVED from the baseline's own worst recorded entry
-    // rather than hard-coded. A hard-coded 0.9 needed a hand-edit on the very
-    // next repair (ll172 cleared within the hour and the worst left was 0.86),
-    // which is friction that buys nothing: the baseline is rebased in the same
-    // commit as any repair, so the two move together. What this still proves is
-    // what matters — the LIVE measure reports a real near-duplicate that the
-    // recorded debt agrees is there.
-    const recorded = Object.values(baseline.duplicated).map((d) => d.worst);
-    expect(recorded.length, 'the debt is cleared — retire this check deliberately').toBeGreaterThan(0);
-    const floor = Math.max(...recorded);
-    expect(floor, 'the worst RECORDED entry is under the ceiling, so the baseline is stale').toBeGreaterThanOrEqual(DIFF_CEILING);
-    const worst = scan.rows.slice().sort((a, b) => b.worst - a.worst)[0];
-    expect(worst, 'nothing in the corpus is being measured at all').toBeTruthy();
-    expect(worst.worst, `the worst row LIVE is ${worst.id} at ${worst.worst}, but the baseline records ${floor}`).toBeGreaterThanOrEqual(floor);
+  it('RETIRED 2026-09-18: the live-catch pin, because the debt reached zero', () => {
+    // History, kept because deleting it would erase why this file trusts the
+    // measure. The pin began (DR-0485) hard-coded to ll173's own 0.99 and broke
+    // the moment ll173 was repaired. It was re-anchored to "the worst row the
+    // corpus still carries", then (DR-0488) derived from the baseline's worst
+    // recorded entry so it tracked each repair instead of needing a hand-edit.
+    // It was written to FAIL when the debt cleared, so that a person would read
+    // it and retire it rather than a silent green standing in for a cleared
+    // debt. On 2026-09-18 the last of the twenty was repaired, it failed
+    // exactly as designed, and this is the deliberate retirement it asked for.
+    expect(Object.keys(baseline.duplicated), 'debt returned — restore the live pin').toEqual([]);
+    expect(baseline.lessonsDuplicated).toBe(0);
   });
 
-  it('records the repairs: the two 0.99 lessons are under the ceiling and may not drift back', () => {
-    // The debt shrank by two. Deleting the old check and recording nothing in
-    // its place would leave the repairs unwitnessed; this is the witness.
-    for (const p of ['ll173-', 'll172-']) {
+  it('proves it can still SEE a duplicate, with none left in the corpus to point at', () => {
+    // The replacement for the pin above. A corpus at zero cannot supply a live
+    // offender, so the proof is made by injecting one: take a real lesson,
+    // clone its teen band into its youth band, and require the scan to report
+    // it. This keeps the guarantee the pin used to give — that the measure is
+    // wired to the real corpus rather than only to fixtures — and it cannot go
+    // stale, because the offender is manufactured fresh on every run.
+    const real = LIVING_LESSONS_MODULES.find((m) => m.levels?.teen && m.levels?.youth);
+    const cloned = { ...real, id: `${real.id}-CLONED-FOR-THIS-CHECK`, levels: { ...real.levels, youth: real.levels.teen } };
+    const scanWithClone = scanDifferentiation([...LIVING_LESSONS_MODULES, cloned]);
+    const row = scanWithClone.rows.find((r) => r.id === cloned.id);
+    expect(row, 'the injected clone was not measured at all').toBeTruthy();
+    expect(row.pairs['youth~teen'], 'a band cloned from its neighbour scored as different').toBeGreaterThanOrEqual(0.9);
+    expect(ratchetDifferentiation(scanWithClone, baseline).fresh, 'the ratchet did not report the clone').toContain(cloned.id);
+  });
+
+  it('records the repairs: all twenty are under the ceiling and may not drift back', () => {
+    // The twenty lessons DR-0484 measured as duplicated, repaired across
+    // DR-0485 to DR-0491. Deleting the pin above and recording nothing in its
+    // place would leave the whole pass unwitnessed; this is the witness, and it
+    // is what fails first if any of them regresses.
+    const REPAIRED = ['ll173-', 'll172-', 'll82-', 'll91-', 'll81-', 'll100-', 'll149-', 'll99-',
+      'll84-', 'll92-', 'll93-', 'll162-', 'll98-', 'll103-', 'll97-', 'll104-',
+      'll171-', 'll167-', 'll94-', 'll168-'];
+    const over = [];
+    for (const p of REPAIRED) {
       const r = scan.rows.find((x) => x.id.startsWith(p));
       expect(r, `${p} is not being measured at all`).toBeTruthy();
-      expect(r.worst, `${p} has drifted back over the ceiling`).toBeLessThan(DIFF_CEILING);
-      expect(r.id in baseline.duplicated, `${p} is repaired but still recorded as debt — remove it`).toBe(false);
+      if (r.worst >= DIFF_CEILING) over.push(`${r.id.slice(0, 40)} ${r.worst}`);
+      expect(r.id in baseline.duplicated, `${p} is repaired but recorded as debt — remove it`).toBe(false);
     }
+    expect(over, `these have drifted back over the ceiling:\n${over.join('\n')}`).toEqual([]);
   });
 
   it('a lesson that heals LEAVES the baseline in the same commit', () => {

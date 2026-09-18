@@ -3,43 +3,6 @@
   "shingle": 8,
   "note": "Shrink-only debt (Darrell 2026-09-18: \"Last lessons don't have diversity of lessons for all reading levels... why not?\"). Overlap is the share of 8-word phrases the smaller band shares with the larger, measured on AUTHORED PROSE with quotations removed — every band quotes the same verses, so counting them would punish a well-differentiated lesson. A lesson newly over the ceiling FAILS the build; entries are removed as bands are genuinely re-authored, never added. Differentiation is not abbreviation: the full-levels floor and the reading ladder stay in force at the same time (DR-0418).",
   "measuredLessons": 94,
-  "lessonsDuplicated": 4,
-  "duplicated": {
-    "ll171-trend-it-against-the-shoreline-points-setpoints-and-the-trends-of-our-lives": {
-      "worst": 0.59,
-      "pairs": {
-        "child~youth": 0.09,
-        "youth~teen": 0.59,
-        "teen~senior": 0.51,
-        "child~senior": 0.05
-      }
-    },
-    "ll167-be-a-g-about-it-execute-the-fourteen-love-verbs-high-or-low-because-it-is-not-about-how-you-feel": {
-      "worst": 0.58,
-      "pairs": {
-        "child~youth": 0.06,
-        "youth~teen": 0.47,
-        "teen~senior": 0.58,
-        "child~senior": 0.04
-      }
-    },
-    "ll94-lord-of-hosts-the-two-ways-sealed-in-time-and-the-mind-of-christ": {
-      "worst": 0.54,
-      "pairs": {
-        "child~youth": 0.08,
-        "youth~teen": 0.46,
-        "teen~senior": 0.54,
-        "child~senior": 0.04
-      }
-    },
-    "ll168-the-king-through-the-warriors-lens-before-the-foundation-the-third-dimension-he-spoke-and-the-name-written-on-his-thigh": {
-      "worst": 0.54,
-      "pairs": {
-        "child~youth": 0.01,
-        "youth~teen": 0.54,
-        "teen~senior": 0.53,
-        "child~senior": 0
-      }
-    }
-  }
+  "lessonsDuplicated": 0,
+  "duplicated": {}
 }
