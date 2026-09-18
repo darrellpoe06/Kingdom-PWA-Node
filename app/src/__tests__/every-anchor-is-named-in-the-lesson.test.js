@@ -78,7 +78,13 @@ const OWED = {
   // PRE-EXISTING, not this week's: two original lessons whose anchor names a
   // range the body only paraphrases. Recorded so they are seen, not exempted.
   'll54-the-same-word-different-soil-the-parable-of-the-sower': 2,
-  'll81-tongues-weighed-word-first': 1,
+  // L81 CLEARED 2026-09-18 (DR-0481). Its one owed anchor was 1 Corinthians
+  // 14:23 — the outsider who walks in and concludes the room is mad, which is
+  // the PERSON Paul has in view when he commands intelligibility. The
+  // full-levels rewrite put that verse into all four bands, so L81 now owes
+  // nothing and this gate required the allowance be lowered rather than left
+  // padded. That refusal is the check doing its job: an allowance nobody
+  // lowers becomes an exemption.
 };
 
 describe('a quoted verse carries its reference beside the quote', () => {
@@ -125,10 +131,18 @@ describe('every anchor is spread through the lesson, not listed', () => {
     }
     expect(stale, stale.join('\n')).toEqual([]);
   });
-  it('of the 139 lessons that set the shape, exactly two carry a pre-existing gap (3 references) and no more', () => {
+  it('of the 139 lessons that set the shape, exactly ONE carries a pre-existing gap (2 references) and no more', () => {
+    // MOVED DOWN 2026-09-18 (DR-0481), and this pin may only ever move in this
+    // direction. It read "exactly two ... (3 references)": L54 owing 2 and L81
+    // owing 1. The full-levels pass reached L81 and put its one owed anchor —
+    // 1 Corinthians 14:23 — into all four bands, so L81 cleared and only L54
+    // remains. A pin like this exists so the debt cannot quietly grow; when
+    // the debt SHRINKS the pin has to be lowered by hand, which is the point.
     const owedOld = MS.slice(0, 139).filter((x) => OWED[x.id]).map((x) => x.id);
-    expect(owedOld.length).toBe(2);
-    expect(owedOld.every((id) => id.startsWith('ll54-') || id.startsWith('ll81-'))).toBe(true);
+    expect(owedOld.length).toBe(1);
+    expect(owedOld.every((id) => id.startsWith('ll54-'))).toBe(true);
+    // And the total references still owed across the whole corpus, measured.
+    expect(Object.values(OWED).reduce((a, b) => a + b, 0)).toBe(2);
   });
 });
 
