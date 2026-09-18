@@ -102,7 +102,7 @@ describe('the debt, recorded as it actually is', () => {
     // buying course (DR-0504). Twenty-four new lessons, every one carrying
     // authored bands — which is why adultOnly did NOT move with any of them.
     // That is the shape a new course is supposed to have.
-    expect(baseline.total).toBe(235);
+    expect(baseline.total).toBe(237);
     expect(baseline.allFour).toBe(0);
     expect(baseline.adultOnly).toBe(37);
   });

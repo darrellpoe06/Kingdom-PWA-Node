@@ -2841,3 +2841,416 @@ describe('sov23 — the swarm that agreed together quotes its whole spine verbat
     expect(drifted).not.toContain(SOV23_FRAGMENTS['Acts 5:9']);
   });
 });
+
+
+// =============================================================================
+// sov24 — changing the engine in flight, and the Word that is not a schema
+// =============================================================================
+// Week 24, captured 2026-09-18 by the Gmail-lesson-intake Way (DR-0312) from
+// the ByteByteGo issue Migrations at Scale: Changing the Application Engine at
+// 30,000 Feet (Sep 17 2026), forwarded by the Governor with one word: Lessons.
+// The forward was a PAYWALLED PREVIEW — only the framing arrived and it cut off
+// at What Exactly is Being Replaced — so honest provenance is itself part of
+// the teaching (DR-0076): the framing is carried as the piece's own claim, the
+// key strategies it promised are named as NOT AVAILABLE rather than invented,
+// and the worked example is this house's own migration measured from its own
+// files. The pins below also hold the CITATION straight, because a true claim
+// attributed to the wrong record is still a false weight (Proverbs 20:10):
+// DR-0132 took n8n off the RELIABILITY-CRITICAL PATH via an outbound-poll bus
+// and explicitly did NOT rip the tool out; the sovereign-Python direction comes
+// from the CLAUDE.md:23 standing rule extending DR-0083, not from DR-0132.
+// Word first per the sov9/sov17/sov22 standard; every quoted verse verbatim KJV
+// and pinned here, a drift fails the build (DR-0281).
+// =============================================================================
+const sov24 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov24-changing-the-engine-in-flight-and-the-word-that-is-not-a-schema');
+
+const SOV24_FRAGMENTS = {
+  "1 Corinthians 14:33": "For God is not the author of confusion, but of peace, as in all churches of the saints.",
+  "1 Corinthians 14:40": "Let all things be done decently and in order.",
+  "1 Corinthians 3:10": "as a wise masterbuilder, I have laid the foundation, and another buildeth thereon. But let every man take heed how he buildeth thereupon.",
+  "1 Corinthians 3:11": "For other foundation can no man lay than that is laid, which is Jesus Christ.",
+  "1 Peter 1:25": "But the word of the Lord endureth for ever.",
+  "1 Thessalonians 5:21": "Prove all things; hold fast that which is good.",
+  "2 Corinthians 13:1": "In the mouth of two or three witnesses shall every word be established.",
+  "2 Corinthians 8:21": "Providing for honest things, not only in the sight of the Lord, but also in the sight of men.",
+  "2 Timothy 2:15": "Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth.",
+  "Colossians 1:17": "by him all things consist",
+  "Deuteronomy 19:15": "One witness shall not rise up against a man for any iniquity, or for any sin, in any sin that he sinneth: at the mouth of two witnesses, or at the mouth of three witnesses, shall the matter be established.",
+  "Deuteronomy 24:15": "At his day thou shalt give him his hire, neither shall the sun go down upon it; for he is poor, and setteth his heart upon it: lest he cry against thee unto the LORD, and it be sin unto thee.",
+  "Deuteronomy 7:22": "And the LORD thy God will put out those nations before thee by little and little: thou mayest not consume them at once, lest the beasts of the field increase upon thee.",
+  "Ecclesiastes 3:1": "To every thing there is a season, and a time to every purpose under the heaven:",
+  "Ephesians 4:25": "Wherefore putting away lying, speak every man truth with his neighbour",
+  "Exodus 23:30": "By little and little I will drive them out from before thee, until thou be increased, and inherit the land.",
+  "Habakkuk 2:2": "Write the vision, and make it plain upon tables, that he may run that readeth it",
+  "Hebrews 1:11": "They shall perish; but thou remainest; and they all shall wax old as doth a garment;",
+  "Hebrews 1:12": "And as a vesture shalt thou fold them up, and they shall be changed: but thou art the same, and thy years shall not fail.",
+  "Hebrews 7:12": "For the priesthood being changed, there is made of necessity a change also of the law.",
+  "Hebrews 8:13": "In that he saith, A new covenant, he hath made the first old. Now that which decayeth and waxeth old is ready to vanish away.",
+  "Hebrews 8:6": "he is the mediator of a better covenant, which was established upon better promises",
+  "Isaiah 28:10": "For precept must be upon precept, precept upon precept; line upon line, line upon line; here a little, and there a little:",
+  "Isaiah 28:16": "a tried stone, a precious corner stone, a sure foundation: he that believeth shall not make haste.",
+  "Isaiah 40:8": "The grass withereth, the flower fadeth: but the word of our God shall stand for ever.",
+  "Isaiah 42:3": "A bruised reed shall he not break, and the smoking flax shall he not quench",
+  "James 1:22": "But be ye doers of the word, and not hearers only, deceiving your own selves.",
+  "John 10:35": "the scripture cannot be broken",
+  "Leviticus 19:13": "the wages of him that is hired shall not abide with thee all night until the morning",
+  "Luke 12:42": "Who then is that faithful and wise steward, whom his lord shall make ruler over his household, to give them their portion of meat in due season?",
+  "Luke 14:28": "For which of you, intending to build a tower, sitteth not down first, and counteth the cost, whether he have sufficient to finish it?",
+  "Luke 14:29": "Lest haply, after he hath laid the foundation, and is not able to finish it, all that behold it begin to mock him,",
+  "Luke 14:30": "Saying, This man began to build, and was not able to finish.",
+  "Luke 14:31": "Or what king, going to make war against another king, sitteth not down first, and consulteth whether he be able with ten thousand to meet him that cometh against him with twenty thousand?",
+  "Luke 16:10": "He that is faithful in that which is least is faithful also in much: and he that is unjust in the least is unjust also in much.",
+  "Luke 6:48": "digged deep, and laid the foundation on a rock",
+  "Malachi 3:6": "For I am the LORD, I change not",
+  "Matthew 13:52": "bringeth forth out of his treasure things new and old",
+  "Matthew 24:35": "Heaven and earth shall pass away, but my words shall not pass away.",
+  "Matthew 9:16": "No man putteth a piece of new cloth unto an old garment, for that which is put in to fill it up taketh from the garment, and the rent is made worse.",
+  "Matthew 9:17": "Neither do men put new wine into old bottles: else the bottles break, and the wine runneth out, and the bottles perish: but they put new wine into new bottles, and both are preserved.",
+  "Nehemiah 2:13": "viewed the walls of Jerusalem, which were broken down",
+  "Nehemiah 2:16": "the rulers knew not whither I went, or what I did",
+  "Nehemiah 4:10": "The strength of the bearers of burdens is decayed, and there is much rubbish",
+  "Nehemiah 4:17": "They which builded on the wall, and they that bare burdens, with those that laded, every one with one of his hands wrought in the work, and with the other hand held a weapon.",
+  "Nehemiah 4:18": "For the builders, every one had his sword girded by his side, and so builded. And he that sounded the trumpet was by me.",
+  "Nehemiah 4:19": "The work is great and large, and we are separated upon the wall, one far from another",
+  "Nehemiah 4:20": "In what place therefore ye hear the sound of the trumpet, resort ye thither unto us: our God shall fight for us.",
+  "Nehemiah 4:6": "So built we the wall; and all the wall was joined together unto the half thereof: for the people had a mind to work.",
+  "Nehemiah 4:9": "we made our prayer unto our God, and set a watch against them day and night",
+  "Nehemiah 6:15": "So the wall was finished in the twenty and fifth day of the month Elul, in fifty and two days.",
+  "Nehemiah 6:16": "they perceived that this work was wrought of our God",
+  "Nehemiah 6:3": "I am doing a great work, so that I cannot come down",
+  "Philippians 2:4": "Look not every man on his own things, but every man also on the things of others.",
+  "Proverbs 11:14": "Where no counsel is, the people fall: but in the multitude of counsellors there is safety.",
+  "Proverbs 12:22": "Lying lips are abomination to the LORD: but they that deal truly are his delight.",
+  "Proverbs 14:15": "The simple believeth every word: but the prudent man looketh well to his going.",
+  "Proverbs 18:17": "He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him.",
+  "Proverbs 19:2": "he that hasteth with his feet sinneth",
+  "Proverbs 20:10": "Divers weights, and divers measures, both of them are alike abomination to the LORD.",
+  "Proverbs 21:5": "The thoughts of the diligent tend only to plenteousness; but of every one that is hasty only to want.",
+  "Proverbs 22:3": "A prudent man foreseeth the evil, and hideth himself: but the simple pass on, and are punished.",
+  "Proverbs 24:27": "Prepare thy work without, and make it fit for thyself in the field; and afterwards build thine house.",
+  "Proverbs 27:1": "Boast not thyself of to morrow; for thou knowest not what a day may bring forth.",
+  "Proverbs 27:23": "Be thou diligent to know the state of thy flocks, and look well to thy herds.",
+  "Proverbs 3:27": "Withhold not good from them to whom it is due, when it is in the power of thine hand to do it.",
+  "Proverbs 3:28": "Say not unto thy neighbour, Go, and come again, and to morrow I will give; when thou hast it by thee.",
+  "Proverbs 4:26": "Ponder the path of thy feet, and let all thy ways be established.",
+  "Psalms 119:89": "For ever, O LORD, thy word is settled in heaven.",
+  "Psalms 127:1": "Except the LORD build the house, they labour in vain that build it",
+  "Revelation 3:1": "thou hast a name that thou livest, and art dead",
+  "Romans 14:19": "Let us therefore follow after the things which make for peace, and things wherewith one may edify another.",
+  "Romans 15:1": "We then that are strong ought to bear the infirmities of the weak, and not to please ourselves.",
+  "Romans 15:2": "Let every one of us please his neighbour for his good to edification.",
+  "Zechariah 4:10": "For who hath despised the day of small things?",
+};
+
+const SOV24_CORPUS = {
+  "1 Corinthians 14:33": ["1Corinthians", 14, 33],
+  "1 Corinthians 14:40": ["1Corinthians", 14, 40],
+  "1 Corinthians 3:10": ["1Corinthians", 3, 10],
+  "1 Corinthians 3:11": ["1Corinthians", 3, 11],
+  "1 Peter 1:25": ["1Peter", 1, 25],
+  "1 Thessalonians 5:21": ["1Thessalonians", 5, 21],
+  "2 Corinthians 13:1": ["2Corinthians", 13, 1],
+  "2 Corinthians 8:21": ["2Corinthians", 8, 21],
+  "2 Timothy 2:15": ["2Timothy", 2, 15],
+  "Colossians 1:17": ["Colossians", 1, 17],
+  "Deuteronomy 19:15": ["Deuteronomy", 19, 15],
+  "Deuteronomy 24:15": ["Deuteronomy", 24, 15],
+  "Deuteronomy 7:22": ["Deuteronomy", 7, 22],
+  "Ecclesiastes 3:1": ["Ecclesiastes", 3, 1],
+  "Ephesians 4:25": ["Ephesians", 4, 25],
+  "Exodus 23:30": ["Exodus", 23, 30],
+  "Habakkuk 2:2": ["Habakkuk", 2, 2],
+  "Hebrews 1:11": ["Hebrews", 1, 11],
+  "Hebrews 1:12": ["Hebrews", 1, 12],
+  "Hebrews 7:12": ["Hebrews", 7, 12],
+  "Hebrews 8:13": ["Hebrews", 8, 13],
+  "Hebrews 8:6": ["Hebrews", 8, 6],
+  "Isaiah 28:10": ["Isaiah", 28, 10],
+  "Isaiah 28:16": ["Isaiah", 28, 16],
+  "Isaiah 40:8": ["Isaiah", 40, 8],
+  "Isaiah 42:3": ["Isaiah", 42, 3],
+  "James 1:22": ["James", 1, 22],
+  "John 10:35": ["John", 10, 35],
+  "Leviticus 19:13": ["Leviticus", 19, 13],
+  "Luke 12:42": ["Luke", 12, 42],
+  "Luke 14:28": ["Luke", 14, 28],
+  "Luke 14:29": ["Luke", 14, 29],
+  "Luke 14:30": ["Luke", 14, 30],
+  "Luke 14:31": ["Luke", 14, 31],
+  "Luke 16:10": ["Luke", 16, 10],
+  "Luke 6:48": ["Luke", 6, 48],
+  "Malachi 3:6": ["Malachi", 3, 6],
+  "Matthew 13:52": ["Matthew", 13, 52],
+  "Matthew 24:35": ["Matthew", 24, 35],
+  "Matthew 9:16": ["Matthew", 9, 16],
+  "Matthew 9:17": ["Matthew", 9, 17],
+  "Nehemiah 2:13": ["Nehemiah", 2, 13],
+  "Nehemiah 2:16": ["Nehemiah", 2, 16],
+  "Nehemiah 4:10": ["Nehemiah", 4, 10],
+  "Nehemiah 4:17": ["Nehemiah", 4, 17],
+  "Nehemiah 4:18": ["Nehemiah", 4, 18],
+  "Nehemiah 4:19": ["Nehemiah", 4, 19],
+  "Nehemiah 4:20": ["Nehemiah", 4, 20],
+  "Nehemiah 4:6": ["Nehemiah", 4, 6],
+  "Nehemiah 4:9": ["Nehemiah", 4, 9],
+  "Nehemiah 6:15": ["Nehemiah", 6, 15],
+  "Nehemiah 6:16": ["Nehemiah", 6, 16],
+  "Nehemiah 6:3": ["Nehemiah", 6, 3],
+  "Philippians 2:4": ["Philippians", 2, 4],
+  "Proverbs 11:14": ["Proverbs", 11, 14],
+  "Proverbs 12:22": ["Proverbs", 12, 22],
+  "Proverbs 14:15": ["Proverbs", 14, 15],
+  "Proverbs 18:17": ["Proverbs", 18, 17],
+  "Proverbs 19:2": ["Proverbs", 19, 2],
+  "Proverbs 20:10": ["Proverbs", 20, 10],
+  "Proverbs 21:5": ["Proverbs", 21, 5],
+  "Proverbs 22:3": ["Proverbs", 22, 3],
+  "Proverbs 24:27": ["Proverbs", 24, 27],
+  "Proverbs 27:1": ["Proverbs", 27, 1],
+  "Proverbs 27:23": ["Proverbs", 27, 23],
+  "Proverbs 3:27": ["Proverbs", 3, 27],
+  "Proverbs 3:28": ["Proverbs", 3, 28],
+  "Proverbs 4:26": ["Proverbs", 4, 26],
+  "Psalms 119:89": ["Psalms", 119, 89],
+  "Psalms 127:1": ["Psalms", 127, 1],
+  "Revelation 3:1": ["Revelation", 3, 1],
+  "Romans 14:19": ["Romans", 14, 19],
+  "Romans 15:1": ["Romans", 15, 1],
+  "Romans 15:2": ["Romans", 15, 2],
+  "Zechariah 4:10": ["Zechariah", 4, 10],
+};
+
+describe('sov24 — changing the engine in flight and the Word that is not a schema quotes its whole spine verbatim, Word first', () => {
+  it('the week exists, anchored on counting the cost and on the wall rebuilt while the work continued', () => {
+    expect(sov24).toBeTruthy();
+    expect(sov24.anchor.ref).toContain('Luke 14:28');
+    expect(sov24.anchor.ref).toContain('Nehemiah 4:17');
+    expect(sov24.anchor.theme).toContain(SOV24_FRAGMENTS['Luke 14:28']);
+    // The anchor quotes the load-bearing clause of Nehemiah 4:17; it is chained to the
+    // pinned full verse so the shorter span is still guaranteed verbatim KJV.
+    const NEH417_CLAUSE = 'every one with one of his hands wrought in the work, and with the other hand held a weapon.';
+    expect(SOV24_FRAGMENTS['Nehemiah 4:17']).toContain(NEH417_CLAUSE);
+    expect(sov24.anchor.theme).toContain(NEH417_CLAUSE);
+    // No margin list of bare references (DR-0391 / DR-0402 / DR-0403).
+    expect(sov24.anchor.theme).not.toMatch(/spine of this week/i);
+  });
+  it('every quoted fragment appears letter-for-letter in the deep lesson, with its reference beside it', () => {
+    expect(Object.keys(SOV24_FRAGMENTS).length).toBeGreaterThanOrEqual(25);
+    for (const [ref, fragment] of Object.entries(SOV24_FRAGMENTS)) {
+      expect(sov24.lesson, `${ref} must be quoted verbatim`).toContain(fragment);
+      expect(sov24.lesson, `${ref} must be named beside its quote`).toContain(`(${ref})`);
+    }
+  });
+  it('every fragment matches the repo KJV corpus, not memory (two witnesses)', () => {
+    const corpus = (book) => JSON.parse(readFileSync(join(HERE, '..', '..', 'public', 'bible', 'kjv', `${book}.json`), 'utf8'));
+    const verse = (book, ch, v) => corpus(book).chapters[ch - 1][v - 1];
+    for (const [ref, fragment] of Object.entries(SOV24_FRAGMENTS)) {
+      const at = SOV24_CORPUS[ref];
+      expect(at, `${ref} must have a corpus address`).toBeTruthy();
+      expect(verse(...at), `${ref} corpus`).toContain(fragment);
+    }
+  });
+  it('every quoted verse in the OTHER fields (bigIdea, inApp, benefits, bands, quiz, rpe, facilitator) is one of the pinned fragments or a substring of one', () => {
+    const strings = [];
+    const walk = (o) => { if (typeof o === 'string') strings.push(o); else if (Array.isArray(o)) o.forEach(walk); else if (o && typeof o === 'object') Object.values(o).forEach(walk); };
+    walk({ ...sov24, lesson: '' });
+    const fields = strings.join('\n');
+    const re = /"([^"]+)"\s*\(((?:[1-3] )?[A-Za-z]+ \d+:\d+)\)/g;
+    let m;
+    while ((m = re.exec(fields))) {
+      const [, q, ref] = m;
+      const pinned = SOV24_FRAGMENTS[ref];
+      expect(pinned, `${ref} quoted outside the lesson must be pinned`).toBeTruthy();
+      expect(pinned.includes(q) || q.includes(pinned), `${ref}: "${q}" must be verbatim within the pinned fragment`).toBe(true);
+    }
+  });
+  it('the Word LEADS and the ten movements run in order', () => {
+    expect(sov24.lesson.indexOf('FIRST, COUNT THE COST BEFORE YOU TOUCH THE RUNNING THING')).toBe(0);
+    // The Son's question precedes the newsletter, the vendors and every measured number (Word first, DR-0312/DR-0331).
+    expect(sov24.lesson.indexOf('For which of you, intending to build a tower')).toBeLessThan(sov24.lesson.indexOf('ByteByteGo'));
+    expect(sov24.lesson.indexOf('Except the LORD build the house')).toBeLessThan(sov24.lesson.indexOf('TIER ONE, documented'));
+    expect(sov24.lesson.indexOf('Boast not thyself of to morrow')).toBeLessThan(sov24.lesson.indexOf('PAYWALLED PREVIEW'));
+    expect(sov24.lesson.indexOf('The grass withereth')).toBeLessThan(sov24.lesson.indexOf('47 workflow files on disk'));
+    const order = ['FIRST,', 'SECOND,', 'THIRD,', 'FOURTH,', 'FIFTH,', 'SIXTH,', 'SEVENTH,', 'EIGHTH,', 'NINTH,', 'TENTH,'];
+    let last = -1;
+    for (const m of order) {
+      const at = sov24.lesson.indexOf(m);
+      expect(at, `${m} must appear in order`).toBeGreaterThan(last);
+      last = at;
+    }
+    expect(sov24.lesson.length).toBeGreaterThanOrEqual(12000);
+  });
+  it('the load-bearing teaching is carried: count the cost of FINISHING, Nehemiah as the case study, order as love, by little and little, two witnesses, new bottles, built-is-not-running, the steward aim', () => {
+    for (const heading of [
+      'SECOND, WHAT CAME THROUGH AND WHAT DID NOT - HONEST PROVENANCE IS PART OF THE TEACHING',
+      'THIRD, THE WORK CONTINUES WHILE THE WORK IS BEING REBUILT - NEHEMIAH ALREADY SOLVED THIS',
+      'FOURTH, ORDER IS NOT BUREAUCRACY - IT IS LOVE OF THE PEOPLE DEPENDING ON THE THING',
+      'FIFTH, BY LITTLE AND LITTLE - THE PHASED STEP IS THE SCRIPTURAL STEP',
+      'SIXTH, PROVE EACH STEP - TWO WITNESSES, AND A REVERSIBLE STEP IS THE MERCIFUL STEP',
+      'SEVENTH, NEW WINE, NEW BOTTLES - THE SHAPE MUST FIT THE SUBSTANCE',
+      'EIGHTH, THE ONE MIGRATION YAHWEH HIMSELF PERFORMED - AND THE TEXT WAS NEVER REVISED',
+      'NINTH, BUILT IS NOT RUNNING - THE MEASURED STATE OF THIS HOUSE OWN MIGRATION',
+      'TENTH, THE STEWARD AIM - NOBODY DEPENDING ON IT GETS HURT WHILE IT CHANGES',
+    ]) expect(sov24.lesson).toContain(heading);
+    // The mockery falls on the ABANDONED foundation — the half-finished migration.
+    expect(sov24.lesson).toContain('Not on the man who never began.');
+    expect(sov24.lesson).toContain('the cost of STARTING instead of the cost of FINISHING');
+    // Nehemiah is the worked example the paywall could not give us.
+    expect(sov24.lesson).toContain('The trumpeter stood beside the builder.');
+    expect(sov24.lesson).toContain('much rubbish');
+    expect(sov24.lesson).toContain('he published the alarm path BEFORE it was needed');
+    // Order is love, and the sequence is the field before the house.
+    expect(sov24.lesson).toContain('The field before the house.');
+    expect(sov24.lesson).toContain('Verification before cutover, never after.');
+    // The phased step has a STATED reason, not a style preference.
+    expect(sov24.lesson).toContain('The pace was chosen so the gain could be KEPT.');
+    // A shadow read is a second, independent witness; confidence is not.
+    expect(sov24.lesson).toContain('a second, INDEPENDENT witness in the strict sense');
+    expect(sov24.lesson).toContain('what does NOT count as a witness: your own confidence');
+    // The in-app surfaces named.
+    expect(sov24.inApp).toMatch(/OpsBoard/);
+    expect(sov24.inApp).toMatch(/REVERSIBLE/);
+  });
+  it('the bright line is drawn sharply and not overreached: the SYSTEM migrates, the WORD does not', () => {
+    expect(sov24.lesson).toContain('The ADMINISTRATION was superseded by the Author Himself. The TEXT was never revised.');
+    expect(sov24.lesson).toContain('THE SYSTEM MIGRATES; THE WORD DOES NOT.');
+    expect(sov24.lesson).toContain('The Word is not a schema.');
+    expect(sov24.lesson).toContain('Drop the first half and you deny the new covenant.');
+    expect(sov24.lesson).toContain('we will not go one step past what the Word says here');
+    // Both halves are present: the supersession AND the unrevised text.
+    expect(sov24.lesson).toContain(SOV24_FRAGMENTS['Hebrews 8:13']);
+    expect(sov24.lesson).toContain(SOV24_FRAGMENTS['Isaiah 40:8']);
+    expect(sov24.lesson).toContain(SOV24_FRAGMENTS['Matthew 24:35']);
+    expect(sov24.lesson).toContain(SOV24_FRAGMENTS['Malachi 3:6']);
+  });
+  it('provenance: the paywalled preview is disclosed in the bigIdea AND the lesson, and no migration technique is attributed to the forwarded piece', () => {
+    expect(sov24.bigIdea).toContain('PAYWALLED PREVIEW');
+    expect(sov24.bigIdea).toContain('We will not invent them.');
+    expect(sov24.lesson).toContain('The forward arrived as a PAYWALLED PREVIEW');
+    expect(sov24.lesson).toContain('we will not invent them, paraphrase them, or attribute any technique to it');
+    expect(sov24.lesson).toContain('NOT AVAILABLE TO US');
+    expect(sov24.lesson).toContain('The article is the occasion.');
+    // The documented practice we DO teach is labelled as public practice with its own
+    // sources and as-of dates, never as the newsletter's content.
+    expect(sov24.lesson).toContain('publicly documented engineering practice');
+    for (const src of ['Martin Fowler', 'Online migrations at scale', 'expand-migrate-contract', 'github/gh-ost', 'github/scientist']) {
+      expect(sov24.lesson, `${src} must be named as the source`).toContain(src);
+    }
+    expect(sov24.lesson).toContain('search-verified 2026-09-18');
+    expect(sov24.lesson).toContain('fetched verbatim 2026-09-18');
+    // Blocked egress is named rather than papered over (DR-0076 §8).
+    expect(sov24.lesson).toContain('egress-blocked');
+  });
+  it('DR-0100: the three tiers are named and applied, tier two is NARROW, tier three corrects the claim while the data stands, and both steelmen are educated past rather than voted on', () => {
+    expect(sov24.lesson).toContain('TIER ONE, documented');
+    expect(sov24.lesson).toContain('TIER TWO, genuinely open');
+    expect(sov24.lesson).toContain('TIER THREE, over-reach');
+    expect(sov24.lesson).toContain('What is NOT open, and will not be hedged');
+    expect(sov24.lesson).toContain('The data under it stands untouched');
+    expect(sov24.lesson).toContain('THE FIRST PERSPECTIVE');
+    expect(sov24.lesson).toContain('THE SECOND PERSPECTIVE');
+    expect((sov24.lesson.match(/named to be educated past/g) || []).length).toBeGreaterThanOrEqual(2);
+  });
+  it('the citation of this house own migration is EXACT: DR-0132 is the reliability-critical path via outbound poll and did NOT rip n8n out; sovereign Python comes from the CLAUDE.md standing rule', () => {
+    // Proven-to-catch on a real mischaracterisation caught in review: DR-0132's own title and §2.
+    expect(sov24.lesson).toContain('Take n8n off the reliability-critical path');
+    expect(sov24.lesson).toContain('does NOT say the tool was ripped out');
+    expect(sov24.lesson).toContain('It changed the tool ROLE');
+    expect(sov24.lesson).toContain('OUTBOUND POLL');
+    expect(sov24.lesson).toContain('HTTP 530');
+    // The sovereign-Python direction is cited to the standing rule, not to DR-0132.
+    expect(sov24.lesson).toContain('the sovereign Python direction does not come from that one');
+    expect(sov24.lesson).toContain('CLAUDE.md line 23');
+    // The measured numbers, each with its file — no painted figures (DR-0076 §4).
+    expect(sov24.lesson).toContain('47 workflow files on disk');
+    expect(sov24.lesson).toContain('docs/00-foundations/n8n-workflows');
+    expect(sov24.lesson).toContain('app/functions/n8n/[[path]].js');
+    expect(sov24.lesson).toContain('app/src/lib/n8n-base.js line 67');
+    expect(sov24.lesson).toContain('nine non-test files still import');
+    expect(sov24.lesson).toContain('an un-finished cutover');
+    expect(sov24.lesson).toContain('A gate that always passes is itself a lie.');
+  });
+  it('provenance honesty: the only non-Scripture double-quoted spans in the lesson are the forwarded article, primary sources we actually fetched, or this repo\'s own files', () => {
+    const isWord = (q) => Object.values(SOV24_FRAGMENTS).some((f) => q.includes(f) || f.includes(q.slice(1, -1)));
+    const nonScripture = (sov24.lesson.match(/"[^"]+"/g) || []).filter((q) => !isWord(q));
+    const allowed = [
+      // The forwarded ByteByteGo preview — everything that actually came through.
+      "\"It has outgrown its original database.\"",
+      "\"This causes order histories to load very slowly.\"",
+      "\"Maintenance takes much longer than it used to.\"",
+      "\"But you cannot take a popular online store offline to make the switch.\"",
+      "\"Customers are always placing orders, changing addresses, and requesting refunds.\"",
+      "\"How do you change a working system while still running the service that people depend on?\"",
+      "\"At scale, copying existing data during such migrations can take days.\"",
+      "\"many supporting applications may depend on the component being replaced\"",
+      "\"Every intermediate step needs to work while ordinary business continues.\"",
+      "\"In this article, we will look at how migrations work at scale and the key strategies that can help make it as efficient as possible.\"",
+      "\"What Exactly is Being Replaced?\"",
+      // Primary sources fetched verbatim 2026-09-18 from github.com (reachable from the sandbox).
+      "\"migrate that table while empty, slowly and incrementally copy data from your original table\"",
+      "\"postpone what is probably the most critical step: the swap of tables\"",
+      "\"it truly ceases writes on master: no row copies and no ongoing events processing\"",
+      "\"by testing it on replicas\"",
+      "\"A Ruby library for carefully refactoring critical paths.\"",
+      // This repo's own files.
+      "\"Take n8n off the reliability-critical path\"",
+      "\"The target is ZERO n8n.\"",
+      "\"sovereign-neutral name is tracked\"",
+      "\"N8N_BASE resolves EMPTY by default, so no app code calls n8n\"",
+      "\"A gate that always passes is itself a lie.\"",
+    ];
+    for (const q of nonScripture) expect(allowed, `unexpected non-Scripture quote: ${q}`).toContain(q);
+  });
+  it('typographic theology: Yahweh in our voice; the adversary lowercase; the Word capitalized', () => {
+    const ours = sov24.lesson.replace(/"[^"]+"/g, '');
+    expect(ours).not.toMatch(/\bGod\b/); // the KJV's "God" lives only inside quotes
+    expect(ours).toMatch(/Yahweh/);
+    expect(sov24.lesson).not.toMatch(/\bSatan\b|\bDevil\b|\bLucifer\b/);
+    expect(sov24.lesson).toContain('the Word');
+    // The Son confessed as the Lamb.
+    expect(sov24.lesson).toContain('the Son of Yahweh, the Lamb');
+  });
+  it('the send-off page has content: at least six benefits, each a real takeaway quoting the Word', () => {
+    expect(sov24.benefits.length).toBeGreaterThanOrEqual(6);
+    for (const b of sov24.benefits) expect(b.length).toBeGreaterThan(80);
+    const blob = sov24.benefits.join('  ');
+    expect(blob).toContain('counteth the cost');
+    expect(blob).toContain('with the other hand held a weapon');
+    expect(blob).toContain('in fifty and two days');
+    expect(blob).toContain('afterwards build thine house');
+    expect(blob).toContain('By little and little');
+    expect(blob).toContain('shall every word be established');
+    expect(blob).toContain('shall stand for ever');
+    expect(blob).toContain('the things of others');
+  });
+  it('the three bands ascend and the child band is gentle', () => {
+    expect(typeof sov24.levels.child).toBe('string');
+    expect(sov24.levels.child.length).toBeLessThan(sov24.levels.teen.length);
+    expect(sov24.levels.teen.length).toBeLessThan(sov24.levels.senior.length);
+    expect(sov24.levels.child).not.toMatch(/kill|murder|rape|sexual|abuse|slaughter|massacre|execution|suicide|porn|drug/i);
+    expect(sov24.quiz.questions.length).toBeGreaterThanOrEqual(6);
+    expect(sov24.facilitator.talkingPoints.length).toBeGreaterThanOrEqual(10);
+    expect(sov24.facilitator.discussionPrompts.length).toBeGreaterThanOrEqual(10);
+    expect(sov24.facilitator.howToRun.split('|').length).toBeGreaterThanOrEqual(5);
+    expect(sov24.rpe.research && sov24.rpe.plan && sov24.rpe.execute).toBeTruthy();
+  });
+  it('tamper-catch: the pinned ground-truth lines are themselves exact, and a one-word drift fails', () => {
+    expect(SOV24_FRAGMENTS['Luke 14:28']).toBe('For which of you, intending to build a tower, sitteth not down first, and counteth the cost, whether he have sufficient to finish it?');
+    expect(SOV24_FRAGMENTS['Luke 14:30']).toBe('Saying, This man began to build, and was not able to finish.');
+    expect(SOV24_FRAGMENTS['Nehemiah 4:17']).toBe('They which builded on the wall, and they that bare burdens, with those that laded, every one with one of his hands wrought in the work, and with the other hand held a weapon.');
+    expect(SOV24_FRAGMENTS['Nehemiah 6:15']).toBe('So the wall was finished in the twenty and fifth day of the month Elul, in fifty and two days.');
+    expect(SOV24_FRAGMENTS['Proverbs 24:27']).toBe('Prepare thy work without, and make it fit for thyself in the field; and afterwards build thine house.');
+    expect(SOV24_FRAGMENTS['Exodus 23:30']).toBe('By little and little I will drive them out from before thee, until thou be increased, and inherit the land.');
+    expect(SOV24_FRAGMENTS['Hebrews 8:13']).toBe('In that he saith, A new covenant, he hath made the first old. Now that which decayeth and waxeth old is ready to vanish away.');
+    expect(SOV24_FRAGMENTS['Isaiah 40:8']).toBe('The grass withereth, the flower fadeth: but the word of our God shall stand for ever.');
+    expect(SOV24_FRAGMENTS['Matthew 24:35']).toBe('Heaven and earth shall pass away, but my words shall not pass away.');
+    // The whole point of the fifth movement, pinned: the phased step carries its own stated REASON.
+    expect(SOV24_FRAGMENTS['Deuteronomy 7:22']).toContain('lest the beasts of the field increase upon thee');
+    // New bottles exist so that BOTH survive — this week is not anti-change.
+    expect(SOV24_FRAGMENTS['Matthew 9:17']).toContain('and both are preserved');
+    expect(SOV24_FRAGMENTS['1 Thessalonians 5:21'].length).toBe(47);
+    // A one-word drift in the lesson would fail the presence check above; prove the check has teeth.
+    const drifted = sov24.lesson.split('counteth the cost, whether he have sufficient to finish it').join('counteth the cost, whether he has enough to finish it');
+    expect(drifted).not.toContain(SOV24_FRAGMENTS['Luke 14:28']);
+  });
+});
