@@ -13,13 +13,13 @@
 // `kjv-case` verdict fires on any quotation differing from the cited verse by
 // case alone, and a capital swept into a quoted verse is exactly that.
 //
-// CORRECTION, same day: an earlier draft of this file said the ceiling had ZERO
-// slack because the actual equalled it at 9. Re-measured against current main
-// after the corpus work landed: kjv-case is now 0 and kjv-drift 0, against a
-// ceiling of 9. The enforcement holds either way, but the margin is real and
-// that sentence went stale the moment the corpus was fixed. Recorded rather
-// than quietly edited — a gate about not overstating things must not overstate
-// itself.
+// CORRECTION, twice in one day, which is the point. This file first claimed the
+// ceiling had ZERO slack because the actual equalled it at 9. Then the corpus
+// work closed those nine and the claim was stale. Re-measured on current main:
+// kjv-case actual 0 against a ceiling of 0 — zero slack again, now at the
+// strongest possible value. A gate about not overstating things must not
+// overstate itself, so the assertion below pins the RATCHET rather than a
+// remembered number.
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
@@ -89,16 +89,17 @@ describe('the bright line is machine-held, with no room to hide a swept capital'
 
   it('the case ceiling has ZERO slack — measured actual equals the ceiling', () => {
     // Measured 2026-09-19 via scripts/scripture-provenance-audit.mjs against
-    // current main: kjv-case 0, kjv-drift 0, ceiling 9. The 9 that once sat
-    // here were the corpus's own recorded question (DR-0300) and are now
-    // closed. What this pins is the CEILING, not the actual: raising it is how
-    // a swept capital would be absorbed without anyone noticing, so the ceiling
-    // may fall but must never rise.
+    // current main: kjv-case 0, kjv-drift 0, ceiling 0. The 9 that once sat
+    // here were the corpus's own recorded question (DR-0300) and are closed.
+    // What this pins is the CEILING, not the actual: raising it is how a swept
+    // capital would be absorbed without anyone noticing. The ratchet is
+    // shrink-only by the repo's own convention, so this asserts the floor it
+    // has reached — it may stay at 0, never climb back.
     const m = provenance.match(/'kjv-case':\s*(\d+)/);
     expect(m, 'kjv-case ceiling not found in scripture-provenance').toBeTruthy();
     expect(
       Number(m[1]),
       'the kjv-case ceiling was raised; DR-0530 bright line loses its enforcement',
-    ).toBeLessThanOrEqual(9);
+    ).toBeLessThanOrEqual(0);
   });
 });
