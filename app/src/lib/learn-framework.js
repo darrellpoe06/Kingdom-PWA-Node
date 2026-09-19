@@ -267,7 +267,30 @@ export function resolveForAge(module, ageBandId = DEFAULT_AGE_BAND, levelOverrid
       }
     }
   }
-  if (m.lesson) return { text: m.lesson, levelId: chain[0], branched: false, band };
+  if (m.lesson) {
+    // THE TOP-LEVEL `lesson` IS THE ADULT VERSION -- not a fallback from one
+    // (Darrell, screenshot 2026-09-19: "Choosing to change the length?!!!!!
+    // Not the lessons to fit the level?!!!!!"). The adult band's depth key is
+    // 'standard', and almost no module carries `levels.standard`, so EVERY
+    // adult reader -- the DEFAULT band and the widest audience -- fell through
+    // to here and was flagged branched:false. ChurchLearn reads that flag as
+    // noneAuthored and printed "The Adult version has not been written yet"
+    // over the very prose it was displaying, on a lesson authored that same
+    // day. The words were right; the app called them nobody's.
+    //
+    // For any OTHER band this really IS a fallback (a child handed the adult
+    // text has not been given a child version), so the honest flag depends on
+    // which band asked. Only the adult band is being served its own text.
+    // BUT ONLY WHEN THE LESSON ACTUALLY CARRIES BANDS. A lesson with NO
+    // authored levels has ONE version written once for everybody, and the
+    // adult is not being served a version of their own -- that is the case
+    // the morning's fix pinned ("Same lesson on all levels?!!!!! Won't
+    // change?"), and it stays false so the row can still say so. When bands
+    // DO exist beside it, `lesson` is the deliberate adult version among
+    // them, and calling it a fallback is the lie this corrects.
+    const hasAuthoredBand = !!levels && Object.values(levels).some((v) => typeof v === 'string' && v);
+    return { text: m.lesson, levelId: chain[0], branched: band.depth === 'standard' && hasAuthoredBand, band };
+  }
   // No band ever dead-ends into empty text (measured 2026-08-25: ten lessons
   // authored with child/teen/senior levels and no `lesson` field served the
   // ADULT band — the widest audience — zero characters, because its chain was
