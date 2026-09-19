@@ -46,7 +46,7 @@ export const EVERYDAY_WORDS = new Set([
   // money and trade
   'money', 'cash', 'debt', 'loan', 'borrow', 'lending', 'interest', 'bank', 'banking',
   'saving', 'spending', 'giving', 'budget', 'price', 'cost', 'pay', 'paying', 'income',
-  'taxes', 'bills', 'receipts', 'records', 'buying', 'selling', 'owning', 'business',
+  'taxes', 'bills', 'fees', 'receipts', 'records', 'buying', 'selling', 'owning', 'business',
   'profit', 'wages', 'deal', 'contract', 'partners', 'inheritance', 'will',
   // home, land and work
   'house', 'home', 'land', 'rent', 'renting', 'landlord', 'tenant', 'repairs', 'fixing',
@@ -77,6 +77,7 @@ export const COURSE_PLAIN_WORDS = {
   'kingdom-economics': ['money', 'debt', 'giving', 'saving', 'business', 'work'],
   'legacy-provisions': ['will', 'inheritance', 'insurance', 'family', 'death', 'money'],
   'handed-forward': ['family', 'kids', 'planning', 'money', 'jobs', 'time'],
+  banking: ['bank', 'money', 'saving', 'interest', 'debt', 'fees'],
   // --- Real Estate ----------------------------------------------------------
   'property-principle': ['house', 'land', 'owning', 'home', 'money'],
   'buying-terms': ['buying', 'house', 'price', 'deal', 'money', 'contract'],
