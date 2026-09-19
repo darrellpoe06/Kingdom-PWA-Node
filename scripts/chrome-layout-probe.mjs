@@ -240,21 +240,33 @@ try {
   // sibling run on the same commit read 442 vs 450). The pass now waits for
   // document.fonts.ready and a settle before it measures, and allows 12px.
   const NEVER_BIGGER_ALLOWANCE_PX = 12;
-  let coveredNormal360 = null;
+  const coveredNormal360 = { open: null, collapsed: null };
+  // THE COLLAPSED CASE IS NOT OPTIONAL (added 2026-09-19, DR-0524). Every
+  // earlier run of this pass loaded with the header EXPANDED, and the header is
+  // position:sticky — so five text-size controls stayed on screen mid-lesson
+  // and the pass would have reported comfort as reachable. With the top bar
+  // TUCKED AWAY, which is the state Darrell's screenshot shows and the state
+  // the hideaway exists to produce, the count was ZERO. Measuring only the
+  // state that works is the instrument blindness this file's textscale pass was
+  // already written about; the same law applies here.
   const LESSON_CASES = SELFTEST
-    ? [{ width: 360, size: 'normal' }, { width: 360, size: 'bigprint' }]
-    : (SWEEP ? [...WIDTHS.map((width) => ({ width, size: 'normal' })), { width: 360, size: 'bigprint' }] : []);
+    ? [{ width: 360, size: 'normal', collapsed: true }, { width: 360, size: 'bigprint' }]
+    : (SWEEP
+      ? [...WIDTHS.map((width) => ({ width, size: 'normal' })), { width: 360, size: 'normal', collapsed: true }, { width: 360, size: 'bigprint' }, { width: 360, size: 'bigprint', collapsed: true }]
+      : []);
   const LESSON_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons&lesson=ll1-the-perfect-yahweh-expects`;
   lessonFailuresBefore = failures;
-  for (const { width, size } of LESSON_CASES) {
+  for (const { width, size, collapsed = false } of LESSON_CASES) {
     const page = await browser.newPage({ viewport: { width, height: 900 } });
     // The first-visit tour is chrome, not the lesson; a returning reader has seen it.
-    await page.addInitScript((sz) => {
+    await page.addInitScript((cfg) => {
       try {
         localStorage.setItem('poetech.help.tour.v1', 'seen');
-        if (sz === 'bigprint') localStorage.setItem('poe-text-size', 'bigprint'); else localStorage.removeItem('poe-text-size');
+        if (cfg.sz === 'bigprint') localStorage.setItem('poe-text-size', 'bigprint'); else localStorage.removeItem('poe-text-size');
+        // The header hideaway's own per-device key (lib/header-hideaway.js).
+        if (cfg.collapsed) localStorage.setItem('poe-header-collapsed', '1'); else localStorage.removeItem('poe-header-collapsed');
       } catch { /* private mode */ }
-    }, size);
+    }, { sz: size, collapsed });
     await page.goto(LESSON_URL, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
     await page.waitForSelector('[data-testid="lesson-space-bar"]', { timeout: 20000 }).catch(() => {});
     // Step the arc to TEACH, where the lesson body lives — the stage rail's own
@@ -353,8 +365,67 @@ try {
         })(),
       };
     });
+
+    // -------------------------------------------------------------------------
+    // CAN THE READER STILL CHANGE HOW IT LOOKS, MID-LESSON? (DR-0524)
+    // -------------------------------------------------------------------------
+    // Darrell, 2026-09-19, reading L179 on his phone: "Can't change the text
+    // side nor etc on o cellphone reader fix it." He was right, and THIS
+    // instrument had never looked: the textscale pass below loads the app at
+    // page top with the header on screen, and never opens a lesson. Its own
+    // law -- a state the user can reach is a state the probe must load in --
+    // was written about exactly this class and had not been applied here.
+    //
+    // The state measured now is the one he was actually in: a lesson open,
+    // SCROLLED INTO THE WORDS, with the reading panel open -- and, in the
+    // collapsed cases below, with the top bar tucked away, which is what his
+    // screenshot shows and where the count was ZERO. (The header itself is
+    // position:sticky, so with the bar OPEN the controls never left the screen;
+    // measuring only that state is what hid this for so long.) A text-size
+    // control must be on screen, and so must a theme swatch -- reading at night
+    // is when a person reaches for Midnight.
+    if (SELFTEST && size === 'normal') {
+      // The break: the reader's own comfort row removed, which is precisely
+      // the state this pass exists to refuse. The header is already scrolled
+      // away by the scroll below, so this leaves genuinely nothing reachable.
+      await page.addStyleTag({ content: '[data-testid="reader-look-and-feel"] { display: none !important }' });
+    }
+    await page.evaluate(() => window.scrollTo(0, Math.max(900, Math.round(document.documentElement.scrollHeight * 0.4))));
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 200)));
+    // Open the reading panel the way a reader does — by tapping the floater.
+    await page.evaluate(() => {
+      const fab = [...document.querySelectorAll('button')]
+        .find((b) => /read-aloud controls/i.test(b.getAttribute('aria-label') || ''));
+      if (fab) fab.click();
+    });
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 250)));
+    const comfort = await page.evaluate(() => {
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const onScreen = (b) => {
+        const r = b.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && r.top >= 0 && r.left >= 0 && r.bottom <= vh && r.right <= vw;
+      };
+      const pick = (re) => [...document.querySelectorAll('button')]
+        .filter((b) => re.test(b.getAttribute('aria-label') || ''));
+      const sizes = pick(/text size/i);
+      const themes = pick(/ theme/i);
+      return {
+        scrollY: Math.round(window.scrollY),
+        panelOpen: !!document.querySelector('[data-testid="reader-look-and-feel"]'),
+        sizeCount: sizes.length,
+        sizeReachable: sizes.filter(onScreen).length,
+        themeCount: themes.length,
+        themeReachable: themes.filter(onScreen).length,
+        // The instrument names WHERE, not just "none" (instrument-blindness law).
+        rects: sizes.slice(0, 5).map((b) => {
+          const r = b.getBoundingClientRect();
+          return `${(b.getAttribute('aria-label') || '?').slice(0, 12)}@t${Math.round(r.top)},b${Math.round(r.bottom)}`;
+        }),
+        vh,
+      };
+    });
     await page.close();
-    const where = `lesson@${width}px${size === 'bigprint' ? ' [Big Print]' : ''}`;
+    const where = `lesson@${width}px${size === 'bigprint' ? ' [Big Print]' : ''}${collapsed ? ' [header collapsed]' : ''}`;
     if (m.none) { fail(`${where}: the lesson prose never rendered (${m.paras} paragraphs) — nothing was measured`); continue; }
     if (size === 'bigprint' && m.size !== 'bigprint') { fail(`${where}: data-text-size="${m.size}" — Big Print never applied, nothing was measured`); continue; }
     const before = failures;
@@ -372,21 +443,35 @@ try {
         if (m.wayOut.font < WAY_OUT_MIN_FONT_PX) fail(`${where}: the way back to ALL is set at ${m.wayOut.font}px — under the ${WAY_OUT_MIN_FONT_PX}px legibility floor (DR-0450)`);
       }
     }
+    // MID-LESSON COMFORT (DR-0524) — the reader is scrolled into the words and
+    // the header is gone; the reading panel must carry the way to change both.
+    if (!comfort.scrollY) fail(`${where}: the page never scrolled — the mid-lesson state was not measured`);
+    else if (!comfort.sizeCount) fail(`${where}: scrolled into the lesson, NO text-size control exists anywhere — the reader cannot change the words' size while reading (panel open: ${comfort.panelOpen})`);
+    else if (!comfort.sizeReachable) fail(`${where}: scrolled into the lesson, ${comfort.sizeCount} text-size control(s) exist but none is on screen — viewport ${comfort.vh}px, controls: ${comfort.rects.join(' ')}`);
+    else if (!comfort.themeReachable) fail(`${where}: scrolled into the lesson, no theme swatch on screen (${comfort.themeCount} exist) — a night reader cannot reach Midnight`);
     if (size === 'bigprint') {
       if (m.barButtonPx > CHROME_MAX_PX) fail(`${where}: the lesson bar's buttons are ${m.barButtonPx}px tall — the frame ballooned with the text (cap: ${CHROME_MAX_PX}px)`);
       if (m.chipPx > CHROME_MAX_PX) fail(`${where}: a text-size chip is ${m.chipPx}px tall — the control compounds with its own setting (cap: ${CHROME_MAX_PX}px)`);
     }
     if (width === 360) {
+      // THE BASELINE IS PER HEADER STATE (2026-09-19). The never-bigger
+      // invariant compares Big Print chrome against the SAME page at Normal.
+      // Adding the collapsed cases with one shared baseline would have measured
+      // Big-Print-expanded against Normal-COLLAPSED — a smaller number, so the
+      // check would have failed for a reason that is not a defect. Keyed by
+      // header state, each comparison is like-for-like.
+      const key = collapsed ? 'collapsed' : 'open';
       if (size === 'normal') {
-        coveredNormal360 = m.covered;
+        coveredNormal360[key] = m.covered;
         if (m.covered > CHROME_BUDGET_360_NORMAL_PX) fail(`${where}: chrome covers ${m.covered}px of the ${m.vh}px first viewport — over the ${CHROME_BUDGET_360_NORMAL_PX}px budget; the text must dominate a phone`);
       } else if (size === 'bigprint') {
-        if (coveredNormal360 == null) fail(`${where}: no Normal measurement to compare against — the never-bigger invariant was not checked`);
-        else if (m.covered > coveredNormal360 + NEVER_BIGGER_ALLOWANCE_PX) fail(`${where}: chrome covers ${m.covered}px at Big Print vs ${coveredNormal360}px at Normal — the controls got bigger with the text`);
+        const base = coveredNormal360[key];
+        if (base == null) fail(`${where}: no Normal measurement in the same header state to compare against — the never-bigger invariant was not checked`);
+        else if (m.covered > base + NEVER_BIGGER_ALLOWANCE_PX) fail(`${where}: chrome covers ${m.covered}px at Big Print vs ${base}px at Normal — the controls got bigger with the text`);
         if (m.onTheBar.length) fail(`${where}: ${m.onTheBar.length} floater(s) sit on the fixed comfort bar: ${m.onTheBar.join(', ')}`);
       }
     }
-    if (failures === before) console.log(`lesson ok  ${where} — chrome covers ${m.covered}px of ${m.vh}px, prose ${m.prose}px of ${m.content}px, ${m.strips} strips (max ${m.maxChips} chips, max ${m.maxBlockLines} lines/block)${size === 'bigprint' ? `, bar buttons ${m.barButtonPx}px, chips ${m.chipPx}px` : ''}, nothing boxed in a sentence`);
+    if (failures === before) console.log(`lesson ok  ${where} — chrome covers ${m.covered}px of ${m.vh}px, prose ${m.prose}px of ${m.content}px, ${m.strips} strips (max ${m.maxChips} chips, max ${m.maxBlockLines} lines/block)${size === 'bigprint' ? `, bar buttons ${m.barButtonPx}px, chips ${m.chipPx}px` : ''}, nothing boxed in a sentence; mid-lesson at y${comfort.scrollY}: ${comfort.sizeReachable}/${comfort.sizeCount} size + ${comfort.themeReachable}/${comfort.themeCount} theme controls on screen`);
   }
   // ---------------------------------------------------------------------------
   // TEXT-SCALE pass — the layout is measured AT Big Print, not assumed to hold.
@@ -581,7 +666,8 @@ if (SELFTEST) {
 // verdicts: "nothing went wrong" is not the same claim as "everything was
 // checked," and only this line can tell them apart.
 const expectedChrome = VIEWS.length * WIDTHS.length;
-const expectedLesson = SWEEP ? WIDTHS.length + 1 : 0; // + the Big Print case at 360
+// WIDTHS at Normal + the collapsed Normal case + Big Print + Big Print collapsed.
+const expectedLesson = SWEEP ? WIDTHS.length + 3 : 0;
 if (measured !== expectedChrome) {
   console.error(`COVERAGE FAIL — measured ${measured} of ${expectedChrome} view x width cases (${VIEWS.length} views x ${WIDTHS.length} widths). A run that skips its subjects is not a pass.`);
   failures += 1;

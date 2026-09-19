@@ -11,6 +11,7 @@
 // stays guard-policed exactly as before the move.
 // =============================================================================
 
+import { useCallback, useEffect, useState } from 'react';
 export const THEME_CSS = `
 
 /* ===================================================================
@@ -256,6 +257,12 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 
 // The theme swatch registry (was inline in the monolith header). Key order is
 // display order; 'cream' is the no-attribute default (the base palette).
+// White and Slate take their look from the two phone ecosystems most users come
+// from, so the app feels familiar on whichever phone opens it (no brand names
+// used) -- the reasoning moved here 2026-09-19 when the app header stopped
+// carrying its own copy of this list (DR-0524). CREAM IS IN THIS LIST AND MUST
+// STAY: it is the first-run default, and the header's inline copy had omitted
+// it, so a reader who chose any other palette could never return to it.
 export const THEMES = [
   { key: 'cream',    color: '#FAF8F4', border: '#1A1815', label: 'Cream · warm light' },
   { key: 'white',    color: '#F5F5F7', border: '#1D1D1F', label: 'Snow · clean light' },
@@ -283,4 +290,52 @@ export function saveThemePref(theme) {
   try {
     if (typeof localStorage !== 'undefined' && THEME_KEYS.has(theme)) localStorage.setItem(THEME_PREF_KEY, theme);
   } catch { /* private mode */ }
+}
+
+// -----------------------------------------------------------------------------
+// ONE THEME, EVERY CONTROL — the store (added 2026-09-19, DR-0524)
+// -----------------------------------------------------------------------------
+// Darrell, reading a lesson on his phone: "Can't change the text side nor etc
+// on o cellphone reader fix it." Text size and THEME both lived only in the
+// header's comfort row, which the header hideaway unmounts -- measured at 360px
+// mid-lesson with the top bar tucked away, there were ZERO of either in the
+// DOM. Reading at night is exactly when a person reaches for Midnight.
+//
+// The theme was the monolith's own useState, so a second picker (the reader
+// panel) could not move it. It is published from here instead, the same plain
+// subscriber set text-size.js uses and for the same reason: the two pickers sit
+// in unrelated trees, and a provider that must wrap both is what this avoids.
+// The DOM application does NOT move -- the monolith still owns `data-theme` on
+// its wrapper, so nothing about how a palette is applied changes.
+const themeListeners = new Set();
+/** Subscribe to theme changes. Returns the unsubscribe function. */
+export function subscribeThemePref(fn) {
+  if (typeof fn !== 'function') return () => {};
+  themeListeners.add(fn);
+  return () => { themeListeners.delete(fn); };
+}
+/** Set + persist + publish in one call. Returns the key actually used. */
+export function setThemePref(theme) {
+  if (!THEME_KEYS.has(theme)) return readThemePref();
+  saveThemePref(theme);
+  for (const fn of [...themeListeners]) { try { fn(theme); } catch (e) { /* a dead subscriber never blocks the rest */ } }
+  return theme;
+}
+/**
+ * React glue: [activeKey, setTheme]. Drop-in for the useState the monolith
+ * carried, so every existing setTheme(...) call site is unchanged.
+ */
+export function useThemePref(fallback = 'cream') {
+  const [theme, setTheme] = useState(() => readThemePref(fallback));
+  useEffect(() => subscribeThemePref(setTheme), []);
+  // VALUE ONLY, deliberately. A functional updater would have to run
+  // setThemePref inside React's updater, which is a side effect React may
+  // invoke twice -- so it would double-publish. Every call site in the app
+  // passes a key, and a function here would be a silent no-op rather than a
+  // wrong colour, which is the safer way to be wrong.
+  const update = useCallback((next) => {
+    if (typeof next === 'function') return;
+    setTheme(setThemePref(next));
+  }, []);
+  return [theme, update];
 }

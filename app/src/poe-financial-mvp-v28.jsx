@@ -163,7 +163,7 @@ import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { useInstanceRole } from './lib/instance-role.js';
 import { TIER_ORDER, TIER_LABEL, effectiveTier, tierMeets } from './lib/tiers.js';
 import TierSwitcher from './components/TierSwitcher.jsx';
-import { THEME_CSS, readThemePref, saveThemePref } from './lib/theme-css.js';
+import { THEME_CSS, THEMES, useThemePref } from './lib/theme-css.js';
 import { mergeTransactionsPreferCloud } from './lib/txn-dedupe.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
 import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
@@ -1070,8 +1070,12 @@ export default function PoeFinancialSystem() {
   const [debtSnowballExtra, setDebtSnowballExtra] = useState(500);
   // Theme is per-device and SHARED with the business doors (lib/theme-css.js).
   // First-run default is LIGHT (cream); then it follows the last chosen theme.
-  const [theme, setTheme] = useState(() => readThemePref('cream'));
-  useEffect(() => { saveThemePref(theme); }, [theme]);
+  // ONE THEME, EVERY PICKER (DR-0524). Was this component's own useState, which
+  // meant the reader panel's swatches -- mounted in a different tree -- could
+  // not move it. useThemePref publishes from lib/theme-css.js and persists on
+  // set, so the separate saveThemePref effect is no longer needed and every
+  // setTheme(...) call site below is unchanged.
+  const [theme, setTheme] = useThemePref('cream');
   // One-click HEADER HIDEAWAY (Darrell 2026-06-29): collapse the top chrome —
   // date/time, build line, account/business/subscribe row, voice picker, font
   // controls, theme swatches, the Sample banner — to ALL the room for the
@@ -4199,16 +4203,9 @@ ${THEME_CSS}
                   together. Saved to the account so it follows the user to any device. */}
               <ReadingVoiceControl variant="header" isOwner={isFamilyMember} />
               <div className="flex gap-1 items-center" role="group" aria-label="Theme selector">
-                {[
-                  // White and Slate take design inspiration from the two phone
-                  // ecosystems most users come from — so the app feels familiar
-                  // on whichever phone opens it. No brand names used.
-                  { key: 'white',    color: '#F5F5F7', border: '#1D1D1F', label: 'Snow · clean light' },
-                  { key: 'slate',    color: '#F2F4F7', border: '#1F6FEB', label: 'Glacier · cool light' },
-                  { key: 'sapphire', color: '#EFF6FF', border: '#1E3A8A', label: 'Sapphire' },
-                  { key: 'rose',     color: '#FDF2F8', border: '#831843', label: 'Rose' },
-                  { key: 'midnight', color: '#000000', border: '#888888', label: 'Midnight · OLED black' },
-                ].map(t => (
+                {/* The shared registry, not a second hardcoded list: this row
+                    omitted CREAM, the first-run default (DR-0524, theme-css.js). */}
+                {THEMES.map(t => (
                   <button key={t.key} type="button" onClick={() => setTheme(t.key)} aria-label={`${t.label} theme${theme === t.key ? ' (currently selected)' : ''}`} title={t.label} className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full transition-all focus:outline focus:outline-2 focus:outline-[#B85838] ${theme === t.key ? 'ring-2 ring-[#B85838] ring-offset-1 scale-110' : 'opacity-70 hover:opacity-100 hover:scale-105'}`} style={{ backgroundColor: t.color, border: `1.5px solid ${t.border}` }}></button>
                 ))}
               </div>
