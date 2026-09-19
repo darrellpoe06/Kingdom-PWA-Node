@@ -162,7 +162,58 @@ function capsLeadAt(sentence) {
  * lines are one-or-two-sentence groups. Joining every item's text with single
  * spaces reproduces the normalized input exactly.
  */
-export function formatLessonText(text) {
+/**
+ * lessonSectionPlan(fullText) -> { hasExplicit, headings: [{ text, n }], total }
+ *
+ * THE NUMBERS BELONG TO THE LESSON, NOT TO THE STEP ON SCREEN (DR-0520).
+ * Darrell 2026-09-19, with two screenshots of L175: "Stop adding numbers that
+ * don't make sense!!! Make it make sense!!! Why do we count from 1 - whatever
+ * each section?!" And: "Obvious!!!"
+ *
+ * It was. Step 1 of 13 rendered headings 1, 2, 3; Step 2 rendered a heading
+ * numbered 1; Step 3 rendered 1 and then 2. Three different points on one
+ * screen all called 1. The cause is mechanical: the paced reader chunks a band
+ * into steps and calls the formatter ONCE PER STEP, so the auto counter — and
+ * the hasExplicit decision — were both computed per chunk and reset at every
+ * step boundary.
+ *
+ * So the numbering is computed ONCE over the whole band text and carried into
+ * each chunk. This function is that single computation; pass its result to
+ * formatLessonText as `plan` and every step continues the lesson's count.
+ *
+ * It is also the source of truth for WHICH sentences are headings, which fixes
+ * a second boundary defect: capsHeadingAlone looks at the NEXT sentence, and at
+ * a chunk boundary the next sentence lives in the following chunk, so a heading
+ * could be detected differently depending on where the pacer happened to cut.
+ *
+ * NOT ONE WORD OF ANY LESSON CHANGES. Only which number is rendered beside a
+ * heading the author already wrote.
+ */
+export function lessonSectionPlan(fullText) {
+  const clean = typeof fullText === 'string' ? fullText.replace(/\s+/g, ' ').trim() : '';
+  const sents = sentences(clean);
+  // EXPLICIT MARKERS WIN OUTRIGHT. Where the author numbered their own points
+  // (FIRST/SECOND, I./II., SOIL n) those numbers are theirs and the caps-lead
+  // pass is switched off entirely -- otherwise a lesson would count 1,2,3 from
+  // its shouted lead-ins and then hit "FIRST" and restart at 1. This also means
+  // the 31 lessons that already carried numbers render byte-identically to
+  // before; only the 113 that had none gain any.
+  const hasExplicit = sents.some((x) => markerAt(x));
+  const headings = [];
+  let auto = 0;
+  for (let si = 0; si < sents.length; si += 1) {
+    const sent = sents[si];
+    const mark = markerAt(sent);
+    if (mark) { headings.push({ text: sent, n: mark.n }); continue; }
+    if (!hasExplicit && (capsLeadAt(sent) || capsHeadingAlone(sent, sents[si + 1]))) {
+      auto += 1;
+      headings.push({ text: sent, n: auto });
+    }
+  }
+  return { hasExplicit, headings, total: headings.length };
+}
+
+export function formatLessonText(text, plan = null) {
   const clean = typeof text === 'string' ? text.replace(/\s+/g, ' ').trim() : '';
   if (!clean) return { items: [], sectionCount: 0 };
   const items = [];
@@ -170,30 +221,39 @@ export function formatLessonText(text) {
   const flush = () => { if (buf) { items.push({ kind: 'line', text: buf }); buf = ''; } };
   let sectionCount = 0;
 
-  // EXPLICIT MARKERS WIN OUTRIGHT. Where the author numbered their own points
-  // (FIRST/SECOND, I./II., SOIL n) those numbers are theirs and the caps-lead
-  // pass is switched off entirely -- otherwise a lesson would count 1,2,3 from
-  // its shouted lead-ins and then hit "FIRST" and restart at 1. This also means
-  // the 31 lessons that already carried numbers render byte-identically to
-  // before; only the 113 that had none gain any.
   const sents = sentences(clean);
-  const hasExplicit = sents.some((x) => markerAt(x));
-  let auto = 0;
-
-  for (let si = 0; si < sents.length; si += 1) {
-    const sent = sents[si];
-    const mark = markerAt(sent);
-    if (mark) {
-      flush();
-      sectionCount += 1;
-      items.push({ kind: 'heading', n: mark.n, text: sent });
-      continue;
+  // With no plan the text IS the whole lesson, so it plans itself and behaves
+  // exactly as it always did. With a plan, this chunk is one step of a longer
+  // lesson and takes its numbers from there.
+  const P = (plan && Array.isArray(plan.headings)) ? plan : lessonSectionPlan(clean);
+  // Headings are consumed in order, so a chunk that repeats a heading sentence
+  // verbatim still advances rather than re-reading the first occurrence.
+  //
+  // The match is a PREFIX match, not equality, because the pacer cuts by word
+  // count and can land inside a sentence. Measured on ll94's youth band: two
+  // headings each carry a quotation whose closing `. "` reads like a sentence
+  // end, so the chunk holds only the opening fragment of the heading and an
+  // equality match dropped the number entirely (the reader saw 6 then 8). The
+  // fragment that STARTS the heading is where the badge belongs; the remainder
+  // lands in the next step as ordinary prose, and the cursor has already moved
+  // past it so it can never take a second number.
+  let cursor = 0;
+  const MIN_MATCH = 12;
+  const starts = (a, b) =>
+    a === b || (a.length >= MIN_MATCH && b.length >= MIN_MATCH && (a.startsWith(b) || b.startsWith(a)));
+  const numberFor = (sent) => {
+    for (let i = cursor; i < P.headings.length; i += 1) {
+      if (starts(P.headings[i].text, sent)) { cursor = i + 1; return P.headings[i].n; }
     }
-    if (!hasExplicit && (capsLeadAt(sent) || capsHeadingAlone(sent, sents[si + 1]))) {
+    return null;
+  };
+
+  for (const sent of sents) {
+    const n = numberFor(sent);
+    if (n != null) {
       flush();
-      auto += 1;
       sectionCount += 1;
-      items.push({ kind: 'heading', n: auto, text: sent });
+      items.push({ kind: 'heading', n, text: sent });
       continue;
     }
     for (const s of splitLong(sent, 320)) {
