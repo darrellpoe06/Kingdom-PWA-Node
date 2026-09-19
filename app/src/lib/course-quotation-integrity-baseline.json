@@ -1,105 +1,54 @@
 {
-  "note": "Measured 2026-09-18 while authoring the Send-off out of the 69 bare lessons (DR-0511). The Living Lessons SERIES has had a quotation-integrity ratchet since DR-0473; the CATALOG COURSES never did, so this debt was invisible. It is the same instrument (scripts/quotation-integrity.mjs) pointed at every self-paced course the catalog serves. SHRINK-ONLY: these numbers may only fall, a lesson not listed must carry no elision and recite no decision record, and a fresh defect fails the build. Most of it is His own words elided, and for most of it a contiguous verbatim span is available - which is to say the remedy exists (DR-0459). re-review: 2026-09-25. 2026-09-18, same day: the financing course (DR-0513) added 8 lessons and ZERO elided spans, so only measuredLessons moved -- which is the shape a new course is supposed to have and what this pin exists to prove. 2026-09-18, again: the taxes and records course (DR-0515) added 8 lessons and ZERO elided spans, so only measuredLessons moved. It DID briefly add a recited record -- a decision-record ID cited at a reader in one senior band -- which this ratchet caught in a brand-new course and which was replaced with the teaching itself rather than recorded as debt. 2026-09-19: the Banking course (DR-0522) added 8 lessons and ZERO elided spans, so only measuredLessons moved. It DID add TWO recited records -- decision-record IDs cited at a reader in two senior bands -- which this ratchet caught in a brand-new course, exactly as it caught one in the taxes course, and both were replaced with the teaching itself rather than recorded as debt. 2026-09-19: the Insurance and Risk course (Real Estate nine, DR-0523) added 8 lessons, 231 quoted spans and ZERO elided spans and ZERO recited records, so only measuredLessons moved -- 463 to 471. 2026-09-19: the Inspections course (Real Estate ten, DR-0525) added 8 lessons, 238 quoted spans and ZERO elided spans and ZERO recited records, so only measuredLessons moved -- 471 to 479.",
+  "note": "Shrink-only debt, measured 2026-09-18. TWO classes, both about whether a reader is given His words whole and our bookkeeping kept out of his way. (1) elided: fields carrying a quotation with an ellipsis in it — DR-0459 forbids the elision and asks for a shorter genuinely-verbatim span, and the totals beside this note say how many of the real ones have a contiguous span available. (2) recited: fields printing a DR-nnnn identifier at a reader. A NEW offender fails the build, and a field that gains elided spans counts as new; entries are removed as the full-levels pass reaches each lesson, never added. Never sweep this mechanically: each elision needs the right span chosen by reading the verse and the sentence re-read after.",
   "measuredLessons": 495,
   "lessonsElided": 156,
   "lessonsReciting": 82,
   "totals": {
-    "spans": 908,
+    "spans": 901,
     "scripture": 798,
     "ours": 38,
-    "undecidable": 72,
+    "undecidable": 65,
     "contiguousAvailable": 767
   },
   "elided": {
-    "sov9-verification-earns-trust": {
-      "lesson": 1
-    },
-    "sov10-the-settled-word": {
-      "lesson": 2,
-      "levels.teen": 1,
-      "levels.senior": 1
-    },
-    "sov11-the-sealed-trace": {
-      "lesson": 3,
-      "levels.teen": 1,
-      "levels.senior": 1,
-      "anchor.theme": 1
-    },
-    "sov12-the-engineering-disaster": {
-      "lesson": 1,
-      "levels.teen": 2,
-      "levels.senior": 3
-    },
-    "sov13-the-whole-stack": {
-      "lesson": 3,
-      "bigIdea": 1,
-      "levels.teen": 3,
-      "levels.senior": 4,
-      "anchor.theme": 1
-    },
-    "sov14-the-doom-that-did-not-come": {
-      "lesson": 3,
-      "bigIdea": 2,
-      "levels.senior": 2
-    },
-    "sov15-watch-brake-and-the-city-without-walls": {
-      "lesson": 4,
-      "bigIdea": 1,
-      "levels.teen": 5,
-      "levels.senior": 1,
-      "anchor.theme": 1
-    },
-    "sov16-trust-the-counsel-you-can-actually-trust": {
-      "lesson": 4,
-      "levels.teen": 2,
-      "levels.senior": 3
-    },
-    "sov17-the-judge-and-the-just-weight": {
-      "lesson": 2,
-      "levels.teen": 2,
-      "levels.senior": 3
-    },
     "aib5-real-world-scenarios": {
       "levels.teen": 1
     },
-    "ll1-the-perfect-yahweh-expects": {
-      "lesson": 3,
+    "co6-fivefold-and-body": {
       "levels.senior": 1
     },
-    "ll2-the-energy-you-were-given": {
+    "econ1-soul-first": {
+      "levels.senior": 1
+    },
+    "econ3-circulation": {
+      "levels.senior": 1
+    },
+    "econ4-group-economics": {
+      "levels.senior": 1
+    },
+    "econ5-the-real-barriers": {
+      "lesson": 2,
+      "levels.senior": 1
+    },
+    "econ6-accountability-and-judgment": {
+      "lesson": 3,
       "levels.senior": 3
     },
-    "ll4-dying-to-live": {
+    "econ7-build-institutions": {
       "lesson": 1,
-      "levels.child": 1,
+      "levels.senior": 2
+    },
+    "econ8-test-build-multiply": {
       "levels.senior": 1
     },
-    "ll5-take-no-thought-for-tomorrow": {
-      "bigIdea": 1,
-      "inApp": 1,
-      "levels.child": 1,
-      "levels.teen": 1,
-      "levels.senior": 1
+    "legacy4-forced-production": {
+      "lesson": 1
     },
-    "ll6-think-on-these-things": {
-      "bigIdea": 1,
-      "levels.child": 1
+    "legacy7-how-we-got-here": {
+      "lesson": 1
     },
-    "ll7-let-peace-be-the-umpire": {
-      "lesson": 1,
-      "levels.senior": 1
-    },
-    "ll8-not-by-might-a-new-body-coming": {
-      "lesson": 1,
-      "bigIdea": 1,
-      "levels.teen": 1,
-      "levels.senior": 1
-    },
-    "ll9-the-lord-looks-on-the-heart": {
-      "lesson": 1,
-      "bigIdea": 1,
-      "inApp": 1,
-      "levels.teen": 1,
+    "ll1-the-perfect-yahweh-expects": {
+      "lesson": 3,
       "levels.senior": 1
     },
     "ll10-strength-and-honour-are-her-clothing": {
@@ -107,17 +56,150 @@
       "levels.teen": 1,
       "levels.senior": 3
     },
+    "ll102-bold-as-a-lion-boldness-from-righteousness-not-bravado-no-fear": {
+      "lesson": 1,
+      "bigIdea": 1,
+      "levels.youth": 1,
+      "levels.teen": 1,
+      "levels.senior": 1
+    },
+    "ll103-his-kings-reigning-under-the-king-of-kings-two-paths-wealth-and-souls": {
+      "lesson": 2,
+      "bigIdea": 1,
+      "levels.child": 1,
+      "levels.teen": 2,
+      "levels.senior": 2
+    },
+    "ll104-study-your-ways-how-yahweh-weighs-love-the-deterministic-standard-two-ways-and-the-word": {
+      "lesson": 1,
+      "levels.child": 1,
+      "levels.teen": 1,
+      "levels.senior": 1
+    },
+    "ll105-doing-the-word-rewires-you-daily-intake-the-deep-heart-and-experiential-over-theoretical": {
+      "lesson": 1,
+      "levels.teen": 1,
+      "levels.senior": 1
+    },
+    "ll106-wise-as-serpents-harmless-as-doves-know-the-enemy-deny-the-flesh-and-the-one-way": {
+      "levels.youth": 1
+    },
+    "ll107-what-the-word-gives-love-truth-light-knowledge-and-how-we-receive-it-vs-the-enemy": {
+      "levels.child": 1
+    },
     "ll11-fearfully-and-wonderfully-made": {
       "bigIdea": 1,
       "levels.child": 1,
       "levels.teen": 1
     },
+    "ll111-the-just-weight-yahwehs-unchanging-measure-vs-the-worlds-shifting-standard": {
+      "levels.child": 4,
+      "levels.youth": 7,
+      "levels.teen": 8,
+      "levels.senior": 5
+    },
+    "ll112-foxes-wolves-and-bears-the-enemys-graded-beasts-and-how-yahwehs-servants-win": {
+      "lesson": 1,
+      "bigIdea": 1,
+      "inApp": 1,
+      "levels.teen": 2,
+      "levels.senior": 1
+    },
+    "ll113-the-spirit-is-willing-but-the-flesh-is-weak-telling-them-apart-ruling-your-spirit-and-yahwehs-long-work": {
+      "lesson": 2,
+      "bigIdea": 7,
+      "levels.teen": 2,
+      "levels.senior": 1
+    },
+    "ll114-what-makes-having-you-better-covenant-not-contract-and-the-value-a-paycheck-cannot-cover": {
+      "lesson": 1
+    },
+    "ll116-the-thirty-day-experiment-action-produces-information-and-the-grace-that-met-a-pretender": {
+      "lesson": 2,
+      "bigIdea": 2,
+      "levels.teen": 1
+    },
+    "ll119-abstention-if-i-am-an-option-do-not-pick-me-and-the-choosing-settled-before-there-was-a-list": {
+      "levels.teen": 1
+    },
     "ll12-if-one-member-suffers": {
       "bigIdea": 1
+    },
+    "ll120-it-is-written-keep-the-policy-in-your-pocket-advocacy-from-the-written-word-and-a-just-weight": {
+      "levels.teen": 1
+    },
+    "ll123-would-you-sign-that-contract-the-answer-the-qualification-and-the-manner-that-forfeited-it": {
+      "levels.teen": 1
+    },
+    "ll124-equipped-to-win-the-hour-you-are-losing-the-word-again-and-the-man-who-did-not-want-the-job": {
+      "levels.teen": 1
+    },
+    "ll126-feelings-are-fruit-not-root-belief-the-renewed-mind-and-declarations-bounded-by-his-word": {
+      "levels.teen": 4,
+      "anchor.theme": 1
+    },
+    "ll128-the-prudent-man-studies-systematic-analysis-the-ways-that-protect-and-seeing-him-while-blind": {
+      "bigIdea": 2,
+      "inApp": 1,
+      "levels.senior": 1
+    },
+    "ll129-you-have-a-destiny-the-giver-the-window-covenant-authority-the-heart-of-flesh-and-the-me-that-has-to-die": {
+      "lesson": 9,
+      "levels.senior": 2
+    },
+    "ll137-look-and-live-the-serpent-on-the-pole-the-son-lifted-up-and-why-believing-him-over-the-liar-is-the-whole-cure": {
+      "levels.teen": 1,
+      "levels.senior": 1
+    },
+    "ll138-exercised-senses-why-perception-is-grown-not-withheld-the-tests-that-train-the-eye-and-what-comes-after-your-ways-align-with-the-word": {
+      "lesson": 1,
+      "levels.teen": 2,
+      "levels.senior": 1
+    },
+    "ll139-the-sceptre-of-judah-who-judah-is-why-judah-still-matters-until-the-end-and-who-shiloh-is": {
+      "lesson": 8,
+      "bigIdea": 2,
+      "levels.child": 1,
+      "levels.teen": 2,
+      "levels.senior": 2
+    },
+    "ll140-the-people-of-judah-and-the-people-of-the-way-who-they-are-where-they-are-and-whom-to-listen-to": {
+      "lesson": 17,
+      "bigIdea": 1,
+      "levels.teen": 5,
+      "levels.senior": 7,
+      "anchor.theme": 1
+    },
+    "ll144-a-false-balance-capable-hands-and-the-capital-they-were-never-given": {
+      "lesson": 1
+    },
+    "ll145-i-will-not-go-out-free-the-bondservant-the-price-and-the-ear-at-the-door": {
+      "bigIdea": 2,
+      "levels.teen": 2,
+      "levels.senior": 2,
+      "anchor.theme": 1
+    },
+    "ll147-the-due-he-is-owed-every-place-the-word-shows-jesus-worshipped-and-the-one-thing-that-never-happens": {
+      "lesson": 3,
+      "levels.teen": 1,
+      "levels.senior": 1,
+      "anchor.theme": 1
+    },
+    "ll148-remember-is-a-verb-what-the-word-says-about-his-knowing-his-withholding-and-the-sea": {
+      "bigIdea": 1,
+      "levels.senior": 5,
+      "anchor.theme": 2
     },
     "ll15-seasoned-with-salt": {
       "lesson": 4,
       "bigIdea": 1
+    },
+    "ll150-how-can-the-son-not-know-what-the-father-knows": {
+      "levels.teen": 1
+    },
+    "ll154-why-do-we-have-to-pay-for-our-fathers-sins-we-dont-and-it-needs-what-we-do-here": {
+      "lesson": 1,
+      "levels.senior": 1
     },
     "ll16-rule-your-spirit-repair-the-bond": {
       "lesson": 1,
@@ -134,6 +216,9 @@
       "lesson": 1,
       "bigIdea": 3,
       "levels.senior": 1
+    },
+    "ll2-the-energy-you-were-given": {
+      "levels.senior": 3
     },
     "ll20-the-ladder-and-the-door": {
       "lesson": 10,
@@ -234,14 +319,14 @@
       "lesson": 2,
       "inApp": 1,
       "levels.child": 1,
-      "levels.teen": 2,
-      "levels.senior": 4
+      "levels.teen": 1,
+      "levels.senior": 3
     },
     "ll38-become-the-message-tactics-to-essence": {
       "lesson": 2,
-      "bigIdea": 2,
+      "bigIdea": 1,
       "inApp": 1,
-      "levels.teen": 4,
+      "levels.teen": 3,
       "levels.senior": 3
     },
     "ll39-roots-lead-to-the-king-hidden-jerusalem": {
@@ -249,6 +334,11 @@
       "inApp": 1,
       "levels.teen": 3,
       "levels.senior": 6
+    },
+    "ll4-dying-to-live": {
+      "lesson": 1,
+      "levels.child": 1,
+      "levels.senior": 1
     },
     "ll40-the-thread-did-not-snap-remnant": {
       "lesson": 3,
@@ -302,6 +392,13 @@
       "levels.teen": 2,
       "levels.senior": 3
     },
+    "ll5-take-no-thought-for-tomorrow": {
+      "bigIdea": 1,
+      "inApp": 1,
+      "levels.child": 1,
+      "levels.teen": 1,
+      "levels.senior": 1
+    },
     "ll50-the-mind-of-christ-thinking-yahwehs-thoughts-proven-in-works": {
       "lesson": 6,
       "inApp": 1,
@@ -342,15 +439,19 @@
       "bigIdea": 1,
       "levels.senior": 1
     },
-    "ll61-the-audit-fruit-not-photographs-accountable-shepherds": {
-      "lesson": 4,
-      "levels.teen": 1,
-      "levels.senior": 4
+    "ll6-think-on-these-things": {
+      "bigIdea": 1,
+      "levels.child": 1
     },
     "ll60-fearfully-and-wonderfully-maintained-thyroid-hair-temple": {
       "lesson": 1,
       "bigIdea": 1,
       "levels.senior": 1
+    },
+    "ll61-the-audit-fruit-not-photographs-accountable-shepherds": {
+      "lesson": 4,
+      "levels.teen": 1,
+      "levels.senior": 4
     },
     "ll62-the-age-of-counterfeits-meekness-over-manipulation": {
       "levels.senior": 1
@@ -364,11 +465,15 @@
     },
     "ll68-out-of-the-way-consecration-and-the-broken-bread": {
       "lesson": 1,
-      "levels.senior": 2
+      "levels.senior": 1
     },
     "ll69-faithful-over-a-few-things-stewardship-and-increase": {
       "lesson": 2,
       "levels.teen": 1,
+      "levels.senior": 1
+    },
+    "ll7-let-peace-be-the-umpire": {
+      "lesson": 1,
       "levels.senior": 1
     },
     "ll70-the-bridegrooms-answer-only-the-father-names-the-day": {
@@ -407,10 +512,26 @@
       "lesson": 8,
       "levels.teen": 4
     },
+    "ll8-not-by-might-a-new-body-coming": {
+      "lesson": 1,
+      "bigIdea": 1,
+      "levels.teen": 1,
+      "levels.senior": 1
+    },
     "ll80-the-four-warnings-of-a-hardening-heart": {
       "lesson": 2,
       "bigIdea": 2,
       "levels.teen": 1
+    },
+    "ll9-the-lord-looks-on-the-heart": {
+      "lesson": 1,
+      "bigIdea": 1,
+      "inApp": 1,
+      "levels.teen": 1,
+      "levels.senior": 1
+    },
+    "ll90-no-respecter-of-persons-the-image-the-unrighteous-decree-and-the-judge": {
+      "anchor.theme": 1
     },
     "ll91-the-authors-own-code-searched-out-to-guard-his-image": {
       "bigIdea": 1,
@@ -436,12 +557,9 @@
       "levels.teen": 2,
       "anchor.theme": 1
     },
-    "ll90-no-respecter-of-persons-the-image-the-unrighteous-decree-and-the-judge": {
-      "anchor.theme": 1
-    },
     "ll96-doers-of-the-word-competence-by-doing-and-the-minds-tactics-daily": {
       "lesson": 2,
-      "bigIdea": 9,
+      "bigIdea": 8,
       "levels.child": 1,
       "levels.youth": 3,
       "levels.teen": 2,
@@ -460,171 +578,7 @@
     "ll99-watch-and-be-ready-no-date-setting-and-a-sober-word-on-ai-and-prophecy": {
       "lesson": 1,
       "bigIdea": 7,
-      "inApp": 1,
       "levels.teen": 1
-    },
-    "ll102-bold-as-a-lion-boldness-from-righteousness-not-bravado-no-fear": {
-      "lesson": 1,
-      "bigIdea": 1,
-      "levels.youth": 1,
-      "levels.teen": 1,
-      "levels.senior": 1
-    },
-    "ll103-his-kings-reigning-under-the-king-of-kings-two-paths-wealth-and-souls": {
-      "lesson": 2,
-      "bigIdea": 1,
-      "levels.child": 1,
-      "levels.teen": 2,
-      "levels.senior": 2
-    },
-    "ll104-study-your-ways-how-yahweh-weighs-love-the-deterministic-standard-two-ways-and-the-word": {
-      "lesson": 1,
-      "levels.child": 1,
-      "levels.teen": 1,
-      "levels.senior": 1
-    },
-    "ll105-doing-the-word-rewires-you-daily-intake-the-deep-heart-and-experiential-over-theoretical": {
-      "lesson": 1,
-      "levels.teen": 1,
-      "levels.senior": 1
-    },
-    "ll106-wise-as-serpents-harmless-as-doves-know-the-enemy-deny-the-flesh-and-the-one-way": {
-      "levels.youth": 1
-    },
-    "ll107-what-the-word-gives-love-truth-light-knowledge-and-how-we-receive-it-vs-the-enemy": {
-      "levels.child": 1
-    },
-    "ll111-the-just-weight-yahwehs-unchanging-measure-vs-the-worlds-shifting-standard": {
-      "levels.child": 4,
-      "levels.youth": 7,
-      "levels.teen": 8,
-      "levels.senior": 5
-    },
-    "ll112-foxes-wolves-and-bears-the-enemys-graded-beasts-and-how-yahwehs-servants-win": {
-      "lesson": 1,
-      "bigIdea": 1,
-      "inApp": 1,
-      "levels.teen": 2,
-      "levels.senior": 1
-    },
-    "ll113-the-spirit-is-willing-but-the-flesh-is-weak-telling-them-apart-ruling-your-spirit-and-yahwehs-long-work": {
-      "lesson": 2,
-      "bigIdea": 7,
-      "levels.teen": 2,
-      "levels.senior": 1
-    },
-    "ll114-what-makes-having-you-better-covenant-not-contract-and-the-value-a-paycheck-cannot-cover": {
-      "lesson": 1
-    },
-    "ll116-the-thirty-day-experiment-action-produces-information-and-the-grace-that-met-a-pretender": {
-      "lesson": 2,
-      "bigIdea": 2,
-      "levels.teen": 1
-    },
-    "ll119-abstention-if-i-am-an-option-do-not-pick-me-and-the-choosing-settled-before-there-was-a-list": {
-      "levels.teen": 1
-    },
-    "ll120-it-is-written-keep-the-policy-in-your-pocket-advocacy-from-the-written-word-and-a-just-weight": {
-      "levels.teen": 1
-    },
-    "ll123-would-you-sign-that-contract-the-answer-the-qualification-and-the-manner-that-forfeited-it": {
-      "levels.teen": 1
-    },
-    "ll124-equipped-to-win-the-hour-you-are-losing-the-word-again-and-the-man-who-did-not-want-the-job": {
-      "levels.teen": 1
-    },
-    "ll126-feelings-are-fruit-not-root-belief-the-renewed-mind-and-declarations-bounded-by-his-word": {
-      "levels.teen": 4,
-      "anchor.theme": 1
-    },
-    "ll128-the-prudent-man-studies-systematic-analysis-the-ways-that-protect-and-seeing-him-while-blind": {
-      "bigIdea": 2,
-      "inApp": 1,
-      "levels.senior": 1
-    },
-    "ll129-you-have-a-destiny-the-giver-the-window-covenant-authority-the-heart-of-flesh-and-the-me-that-has-to-die": {
-      "lesson": 9,
-      "levels.senior": 2
-    },
-    "ll137-look-and-live-the-serpent-on-the-pole-the-son-lifted-up-and-why-believing-him-over-the-liar-is-the-whole-cure": {
-      "levels.teen": 1,
-      "levels.senior": 1
-    },
-    "ll138-exercised-senses-why-perception-is-grown-not-withheld-the-tests-that-train-the-eye-and-what-comes-after-your-ways-align-with-the-word": {
-      "lesson": 1,
-      "levels.teen": 2,
-      "levels.senior": 1
-    },
-    "ll139-the-sceptre-of-judah-who-judah-is-why-judah-still-matters-until-the-end-and-who-shiloh-is": {
-      "lesson": 8,
-      "bigIdea": 2,
-      "levels.child": 1,
-      "levels.teen": 2,
-      "levels.senior": 2
-    },
-    "ll140-the-people-of-judah-and-the-people-of-the-way-who-they-are-where-they-are-and-whom-to-listen-to": {
-      "lesson": 17,
-      "bigIdea": 1,
-      "levels.teen": 5,
-      "levels.senior": 7,
-      "anchor.theme": 1
-    },
-    "ll144-a-false-balance-capable-hands-and-the-capital-they-were-never-given": {
-      "lesson": 1
-    },
-    "ll145-i-will-not-go-out-free-the-bondservant-the-price-and-the-ear-at-the-door": {
-      "bigIdea": 2,
-      "levels.teen": 2,
-      "levels.senior": 2,
-      "anchor.theme": 1
-    },
-    "ll147-the-due-he-is-owed-every-place-the-word-shows-jesus-worshipped-and-the-one-thing-that-never-happens": {
-      "lesson": 3,
-      "levels.teen": 1,
-      "levels.senior": 1,
-      "anchor.theme": 1
-    },
-    "ll148-remember-is-a-verb-what-the-word-says-about-his-knowing-his-withholding-and-the-sea": {
-      "bigIdea": 1,
-      "levels.senior": 5,
-      "anchor.theme": 2
-    },
-    "ll150-how-can-the-son-not-know-what-the-father-knows": {
-      "levels.teen": 1
-    },
-    "ll154-why-do-we-have-to-pay-for-our-fathers-sins-we-dont-and-it-needs-what-we-do-here": {
-      "lesson": 1,
-      "levels.senior": 1
-    },
-    "mit4-the-renewed-mind": {
-      "bigIdea": 1,
-      "levels.teen": 1
-    },
-    "mit5-those-who-know-their-god": {
-      "levels.teen": 1,
-      "levels.senior": 1
-    },
-    "mit6-effort-attention-and-rest": {
-      "lesson": 6,
-      "bigIdea": 2,
-      "inApp": 1,
-      "levels.senior": 3
-    },
-    "mit7-systems-over-willpower": {
-      "lesson": 1,
-      "bigIdea": 1,
-      "inApp": 1,
-      "levels.teen": 1
-    },
-    "mit8-deep-over-busy": {
-      "lesson": 2,
-      "bigIdea": 1,
-      "inApp": 1,
-      "levels.teen": 3,
-      "levels.senior": 2
-    },
-    "mit9-power-into-knowledge": {
-      "levels.senior": 1
     },
     "mit10-wired-to-survive": {
       "inApp": 1,
@@ -676,45 +630,93 @@
       "levels.teen": 2,
       "levels.senior": 1
     },
-    "co6-fivefold-and-body": {
-      "levels.senior": 1
-    },
-    "wo5-ask-for-what-you-want": {
+    "mit4-the-renewed-mind": {
       "bigIdea": 1,
-      "inApp": 2,
       "levels.teen": 1
     },
-    "wi-musk-creator-critique": {
-      "lesson": 2
+    "mit5-those-who-know-their-god": {
+      "levels.teen": 1,
+      "levels.senior": 1
     },
-    "wi-game-changers-diet": {
-      "lesson": 1
+    "mit6-effort-attention-and-rest": {
+      "lesson": 6,
+      "bigIdea": 2,
+      "inApp": 1,
+      "levels.senior": 3
     },
-    "wi-musk-prophetic-lens": {
+    "mit7-systems-over-willpower": {
+      "lesson": 1,
+      "bigIdea": 1,
+      "inApp": 1,
+      "levels.teen": 1
+    },
+    "mit8-deep-over-busy": {
       "lesson": 2,
+      "bigIdea": 1,
+      "inApp": 1,
+      "levels.teen": 3,
+      "levels.senior": 2
+    },
+    "mit9-power-into-knowledge": {
       "levels.senior": 1
     },
-    "wi-medical-establishment": {
-      "lesson": 3
-    },
-    "wi-ai-empire": {
-      "lesson": 10,
-      "levels.child": 1
-    },
-    "wi-prison-industrial-complex": {
-      "lesson": 11
-    },
-    "wi-historical-trauma-two-aftermaths": {
-      "lesson": 10,
-      "levels.senior": 1
-    },
-    "wi-law-of-assumption": {
-      "lesson": 1
-    },
-    "wi-victorious-emotions": {
+    "pv-darby": {
       "lesson": 2
     },
-    "wi-evanston-reparations-and-equal-protection": {
+    "pv-inventions": {
+      "lesson": 1,
+      "levels.senior": 2
+    },
+    "pv-price": {
+      "lesson": 2,
+      "levels.senior": 3
+    },
+    "sov10-the-settled-word": {
+      "lesson": 2,
+      "levels.teen": 1,
+      "levels.senior": 1
+    },
+    "sov11-the-sealed-trace": {
+      "lesson": 3,
+      "levels.teen": 1,
+      "levels.senior": 1,
+      "anchor.theme": 1
+    },
+    "sov12-the-engineering-disaster": {
+      "lesson": 1,
+      "levels.teen": 2,
+      "levels.senior": 3
+    },
+    "sov13-the-whole-stack": {
+      "lesson": 3,
+      "bigIdea": 1,
+      "levels.teen": 3,
+      "levels.senior": 4,
+      "anchor.theme": 1
+    },
+    "sov14-the-doom-that-did-not-come": {
+      "lesson": 3,
+      "bigIdea": 2,
+      "levels.senior": 2
+    },
+    "sov15-watch-brake-and-the-city-without-walls": {
+      "lesson": 4,
+      "bigIdea": 1,
+      "levels.teen": 5,
+      "levels.senior": 1,
+      "anchor.theme": 1
+    },
+    "sov16-trust-the-counsel-you-can-actually-trust": {
+      "lesson": 4,
+      "levels.teen": 2,
+      "levels.senior": 3
+    },
+    "sov17-the-judge-and-the-just-weight": {
+      "lesson": 2,
+      "levels.teen": 2,
+      "levels.senior": 3
+    },
+    "sov9-verification-earns-trust": {
       "lesson": 1
     },
     "succ2-read-before-you-rule": {
@@ -723,49 +725,61 @@
     "succ3-new-builder-new-work": {
       "levels.senior": 1
     },
-    "legacy4-forced-production": {
+    "wi-ai-empire": {
+      "lesson": 10,
+      "levels.child": 1
+    },
+    "wi-evanston-reparations-and-equal-protection": {
       "lesson": 1
     },
-    "legacy7-how-we-got-here": {
+    "wi-game-changers-diet": {
       "lesson": 1
     },
-    "econ1-soul-first": {
+    "wi-historical-trauma-two-aftermaths": {
+      "lesson": 10,
       "levels.senior": 1
     },
-    "econ3-circulation": {
-      "levels.senior": 1
+    "wi-law-of-assumption": {
+      "lesson": 1
     },
-    "econ4-group-economics": {
-      "levels.senior": 1
+    "wi-medical-establishment": {
+      "lesson": 3
     },
-    "econ5-the-real-barriers": {
-      "lesson": 2,
-      "levels.senior": 1
-    },
-    "econ6-accountability-and-judgment": {
-      "lesson": 3,
-      "levels.senior": 3
-    },
-    "econ7-build-institutions": {
-      "lesson": 1,
-      "levels.senior": 2
-    },
-    "econ8-test-build-multiply": {
-      "levels.senior": 1
-    },
-    "pv-price": {
-      "lesson": 2,
-      "levels.senior": 3
-    },
-    "pv-darby": {
+    "wi-musk-creator-critique": {
       "lesson": 2
     },
-    "pv-inventions": {
-      "lesson": 1,
-      "levels.senior": 2
+    "wi-musk-prophetic-lens": {
+      "lesson": 2,
+      "levels.senior": 1
+    },
+    "wi-prison-industrial-complex": {
+      "lesson": 11
+    },
+    "wi-victorious-emotions": {
+      "lesson": 2
+    },
+    "wo5-ask-for-what-you-want": {
+      "bigIdea": 1,
+      "inApp": 2,
+      "levels.teen": 1
     }
   },
   "recited": {
+    "buy6-what-borrowing-makes-you-and-what-it-does-not": [
+      "levels.senior"
+    ],
+    "dsi3-the-loops": [
+      "levels.senior"
+    ],
+    "dsi4-how-modules-connect": [
+      "levels.senior"
+    ],
+    "econ3-circulation": [
+      "levels.senior"
+    ],
+    "econ6-accountability-and-judgment": [
+      "levels.senior"
+    ],
     "inf7-gpu-vram-farm": [
       "lesson",
       "levels.senior"
@@ -773,89 +787,70 @@
     "inf8-church-stack": [
       "levels.senior"
     ],
-    "sov3-model-tier-landscape": [
-      "lesson",
+    "ll100-guard-the-little-ones-children-the-millstone-and-mastery-over-the-tools": [
+      "bigIdea"
+    ],
+    "ll101-the-real-champion-action-not-theory-die-once-live-forever-and-the-mind-of-christ": [
+      "bigIdea"
+    ],
+    "ll102-bold-as-a-lion-boldness-from-righteousness-not-bravado-no-fear": [
+      "bigIdea"
+    ],
+    "ll104-study-your-ways-how-yahweh-weighs-love-the-deterministic-standard-two-ways-and-the-word": [
+      "bigIdea"
+    ],
+    "ll105-doing-the-word-rewires-you-daily-intake-the-deep-heart-and-experiential-over-theoretical": [
+      "anchor.theme",
+      "bigIdea"
+    ],
+    "ll111-the-just-weight-yahwehs-unchanging-measure-vs-the-worlds-shifting-standard": [
+      "bigIdea"
+    ],
+    "ll113-the-spirit-is-willing-but-the-flesh-is-weak-telling-them-apart-ruling-your-spirit-and-yahwehs-long-work": [
       "levels.senior"
     ],
-    "sov5-how-skos-runs-it": [
-      "levels.senior"
+    "ll114-what-makes-having-you-better-covenant-not-contract-and-the-value-a-paycheck-cannot-cover": [
+      "bigIdea"
     ],
-    "sov8-build-sovereign-hand-it-on": [
-      "lesson",
-      "levels.senior"
-    ],
-    "sov9-verification-earns-trust": [
+    "ll115-meek-and-quiet-strength-the-ornament-of-great-price-and-why-jael-is-not-the-blueprint": [
       "bigIdea",
-      "lesson",
-      "levels.senior",
-      "levels.teen"
+      "levels.senior"
     ],
-    "sov10-the-settled-word": [
+    "ll116-the-thirty-day-experiment-action-produces-information-and-the-grace-that-met-a-pretender": [
+      "levels.senior"
+    ],
+    "ll118-ninety-seven-percent-testing-a-viral-number-against-the-word-and-the-real-research": [
+      "bigIdea"
+    ],
+    "ll121-know-your-own-post-her-provision-her-guard-and-the-beam-in-the-pointing-eye": [
+      "bigIdea"
+    ],
+    "ll122-does-she-feel-like-your-favorite-person-preferring-one-another-and-the-first-works": [
+      "bigIdea"
+    ],
+    "ll123-would-you-sign-that-contract-the-answer-the-qualification-and-the-manner-that-forfeited-it": [
+      "bigIdea"
+    ],
+    "ll125-rules-of-engagement-the-warfare-the-word-authorizes-the-open-doors-it-closes-and-where-it-stops": [
+      "bigIdea",
+      "levels.senior"
+    ],
+    "ll126-feelings-are-fruit-not-root-belief-the-renewed-mind-and-declarations-bounded-by-his-word": [
+      "bigIdea",
+      "levels.senior"
+    ],
+    "ll139-the-sceptre-of-judah-who-judah-is-why-judah-still-matters-until-the-end-and-who-shiloh-is": [
       "lesson"
     ],
-    "sov11-the-sealed-trace": [
-      "inApp",
+    "ll140-the-people-of-judah-and-the-people-of-the-way-who-they-are-where-they-are-and-whom-to-listen-to": [
+      "lesson",
+      "levels.senior"
+    ],
+    "ll154-why-do-we-have-to-pay-for-our-fathers-sins-we-dont-and-it-needs-what-we-do-here": [
       "lesson"
     ],
-    "sov12-the-engineering-disaster": [
-      "lesson",
+    "ll155-yahweh-his-name-and-why-this-house-says-it": [
       "levels.senior"
-    ],
-    "sov13-the-whole-stack": [
-      "bigIdea",
-      "lesson",
-      "levels.senior",
-      "levels.teen"
-    ],
-    "sov14-the-doom-that-did-not-come": [
-      "bigIdea",
-      "lesson",
-      "levels.senior",
-      "levels.teen"
-    ],
-    "sov15-watch-brake-and-the-city-without-walls": [
-      "bigIdea",
-      "lesson",
-      "levels.senior",
-      "levels.teen"
-    ],
-    "sov16-trust-the-counsel-you-can-actually-trust": [
-      "bigIdea",
-      "lesson",
-      "levels.senior",
-      "levels.teen"
-    ],
-    "sov17-the-judge-and-the-just-weight": [
-      "lesson",
-      "levels.senior"
-    ],
-    "sov19-the-servant-under-authority-who-keeps-the-guardrails": [
-      "inApp",
-      "lesson",
-      "levels.senior"
-    ],
-    "sov20-the-book-of-remembrance-and-the-tool-that-forgets": [
-      "lesson",
-      "levels.senior"
-    ],
-    "sov21-the-whole-system-and-the-stone-cut-without-hands": [
-      "lesson",
-      "levels.senior"
-    ],
-    "sov22-the-needle-in-the-haystack-and-the-chunk-that-drops-its-condition": [
-      "inApp",
-      "lesson",
-      "levels.senior"
-    ],
-    "sov23-the-swarm-that-agreed-together-and-the-plumbline-held-from-outside": [
-      "inApp",
-      "lesson",
-      "levels.senior",
-      "levels.teen"
-    ],
-    "sov24-changing-the-engine-in-flight-and-the-word-that-is-not-a-schema": [
-      "inApp",
-      "lesson"
     ],
     "ll20-the-ladder-and-the-door": [
       "levels.senior"
@@ -928,76 +923,95 @@
     "ll99-watch-and-be-ready-no-date-setting-and-a-sober-word-on-ai-and-prophecy": [
       "bigIdea"
     ],
-    "ll100-guard-the-little-ones-children-the-millstone-and-mastery-over-the-tools": [
-      "bigIdea"
-    ],
-    "ll101-the-real-champion-action-not-theory-die-once-live-forever-and-the-mind-of-christ": [
-      "bigIdea"
-    ],
-    "ll102-bold-as-a-lion-boldness-from-righteousness-not-bravado-no-fear": [
-      "bigIdea"
-    ],
-    "ll104-study-your-ways-how-yahweh-weighs-love-the-deterministic-standard-two-ways-and-the-word": [
-      "bigIdea"
-    ],
-    "ll105-doing-the-word-rewires-you-daily-intake-the-deep-heart-and-experiential-over-theoretical": [
-      "anchor.theme",
-      "bigIdea"
-    ],
-    "ll111-the-just-weight-yahwehs-unchanging-measure-vs-the-worlds-shifting-standard": [
-      "bigIdea"
-    ],
-    "ll113-the-spirit-is-willing-but-the-flesh-is-weak-telling-them-apart-ruling-your-spirit-and-yahwehs-long-work": [
-      "levels.senior"
-    ],
-    "ll114-what-makes-having-you-better-covenant-not-contract-and-the-value-a-paycheck-cannot-cover": [
-      "bigIdea"
-    ],
-    "ll115-meek-and-quiet-strength-the-ornament-of-great-price-and-why-jael-is-not-the-blueprint": [
-      "bigIdea",
-      "levels.senior"
-    ],
-    "ll116-the-thirty-day-experiment-action-produces-information-and-the-grace-that-met-a-pretender": [
-      "levels.senior"
-    ],
-    "ll118-ninety-seven-percent-testing-a-viral-number-against-the-word-and-the-real-research": [
-      "bigIdea"
-    ],
-    "ll121-know-your-own-post-her-provision-her-guard-and-the-beam-in-the-pointing-eye": [
-      "bigIdea"
-    ],
-    "ll122-does-she-feel-like-your-favorite-person-preferring-one-another-and-the-first-works": [
-      "bigIdea"
-    ],
-    "ll123-would-you-sign-that-contract-the-answer-the-qualification-and-the-manner-that-forfeited-it": [
-      "bigIdea"
-    ],
-    "ll125-rules-of-engagement-the-warfare-the-word-authorizes-the-open-doors-it-closes-and-where-it-stops": [
-      "bigIdea",
-      "levels.senior"
-    ],
-    "ll126-feelings-are-fruit-not-root-belief-the-renewed-mind-and-declarations-bounded-by-his-word": [
-      "bigIdea",
-      "levels.senior"
-    ],
-    "ll139-the-sceptre-of-judah-who-judah-is-why-judah-still-matters-until-the-end-and-who-shiloh-is": [
+    "mit14-the-mind-is-a-servant-not-a-god": [
       "lesson"
-    ],
-    "ll140-the-people-of-judah-and-the-people-of-the-way-who-they-are-where-they-are-and-whom-to-listen-to": [
-      "lesson",
-      "levels.senior"
-    ],
-    "ll154-why-do-we-have-to-pay-for-our-fathers-sins-we-dont-and-it-needs-what-we-do-here": [
-      "lesson"
-    ],
-    "ll155-yahweh-his-name-and-why-this-house-says-it": [
-      "levels.senior"
     ],
     "rto2-what-rent-to-own-actually-is-and-the-just-weight": [
       "lesson"
     ],
-    "mit14-the-mind-is-a-servant-not-a-god": [
+    "sov10-the-settled-word": [
       "lesson"
+    ],
+    "sov11-the-sealed-trace": [
+      "inApp",
+      "lesson"
+    ],
+    "sov12-the-engineering-disaster": [
+      "lesson",
+      "levels.senior"
+    ],
+    "sov13-the-whole-stack": [
+      "bigIdea",
+      "lesson",
+      "levels.senior",
+      "levels.teen"
+    ],
+    "sov14-the-doom-that-did-not-come": [
+      "bigIdea",
+      "lesson",
+      "levels.senior",
+      "levels.teen"
+    ],
+    "sov15-watch-brake-and-the-city-without-walls": [
+      "bigIdea",
+      "lesson",
+      "levels.senior",
+      "levels.teen"
+    ],
+    "sov16-trust-the-counsel-you-can-actually-trust": [
+      "bigIdea",
+      "lesson",
+      "levels.senior",
+      "levels.teen"
+    ],
+    "sov17-the-judge-and-the-just-weight": [
+      "lesson",
+      "levels.senior"
+    ],
+    "sov19-the-servant-under-authority-who-keeps-the-guardrails": [
+      "inApp",
+      "lesson",
+      "levels.senior"
+    ],
+    "sov20-the-book-of-remembrance-and-the-tool-that-forgets": [
+      "lesson",
+      "levels.senior"
+    ],
+    "sov21-the-whole-system-and-the-stone-cut-without-hands": [
+      "lesson",
+      "levels.senior"
+    ],
+    "sov22-the-needle-in-the-haystack-and-the-chunk-that-drops-its-condition": [
+      "inApp",
+      "lesson",
+      "levels.senior"
+    ],
+    "sov23-the-swarm-that-agreed-together-and-the-plumbline-held-from-outside": [
+      "inApp",
+      "lesson",
+      "levels.senior",
+      "levels.teen"
+    ],
+    "sov24-changing-the-engine-in-flight-and-the-word-that-is-not-a-schema": [
+      "inApp",
+      "lesson"
+    ],
+    "sov3-model-tier-landscape": [
+      "lesson",
+      "levels.senior"
+    ],
+    "sov5-how-skos-runs-it": [
+      "levels.senior"
+    ],
+    "sov8-build-sovereign-hand-it-on": [
+      "lesson",
+      "levels.senior"
+    ],
+    "sov9-verification-earns-trust": [
+      "bigIdea",
+      "lesson",
+      "levels.senior",
+      "levels.teen"
     ],
     "spm4-incident-problem-change": [
       "levels.senior"
@@ -1014,16 +1028,8 @@
     "spm8-debt-named-and-dated": [
       "bigIdea"
     ],
-    "wi-game-changers-diet": [
+    "succ2-read-before-you-rule": [
       "lesson",
-      "levels.senior"
-    ],
-    "wi-musk-prophetic-lens": [
-      "lesson",
-      "levels.senior"
-    ],
-    "wi-medical-establishment": [
-      "bigIdea",
       "levels.senior"
     ],
     "wi-ai-empire": [
@@ -1031,37 +1037,30 @@
       "lesson",
       "levels.senior"
     ],
-    "wi-prison-industrial-complex": [
+    "wi-evanston-reparations-and-equal-protection": [
+      "levels.senior"
+    ],
+    "wi-game-changers-diet": [
       "lesson",
       "levels.senior"
     ],
     "wi-historical-trauma-two-aftermaths": [
       "levels.senior"
     ],
-    "wi-victorious-emotions": [
-      "lesson"
-    ],
-    "wi-evanston-reparations-and-equal-protection": [
+    "wi-medical-establishment": [
+      "bigIdea",
       "levels.senior"
     ],
-    "dsi3-the-loops": [
-      "levels.senior"
-    ],
-    "dsi4-how-modules-connect": [
-      "levels.senior"
-    ],
-    "succ2-read-before-you-rule": [
+    "wi-musk-prophetic-lens": [
       "lesson",
       "levels.senior"
     ],
-    "buy6-what-borrowing-makes-you-and-what-it-does-not": [
+    "wi-prison-industrial-complex": [
+      "lesson",
       "levels.senior"
     ],
-    "econ3-circulation": [
-      "levels.senior"
-    ],
-    "econ6-accountability-and-judgment": [
-      "levels.senior"
+    "wi-victorious-emotions": [
+      "lesson"
     ]
   }
 }

@@ -1,13 +1,13 @@
 {
   "note": "Shrink-only debt, measured 2026-09-18. TWO classes, both about whether a reader is given His words whole and our bookkeeping kept out of his way. (1) elided: fields carrying a quotation with an ellipsis in it — DR-0459 forbids the elision and asks for a shorter genuinely-verbatim span, and the totals beside this note say how many of the real ones have a contiguous span available. (2) recited: fields printing a DR-nnnn identifier at a reader. A NEW offender fails the build, and a field that gains elided spans counts as new; entries are removed as the full-levels pass reaches each lesson, never added. Never sweep this mechanically: each elision needs the right span chosen by reading the verse and the sentence re-read after.",
-  "measuredLessons": 174,
+  "measuredLessons": 178,
   "lessonsElided": 105,
   "lessonsReciting": 42,
   "totals": {
-    "spans": 685,
+    "spans": 678,
     "scripture": 646,
     "ours": 14,
-    "undecidable": 25,
+    "undecidable": 18,
     "contiguousAvailable": 624
   },
   "elided": {
@@ -283,14 +283,14 @@
       "lesson": 2,
       "inApp": 1,
       "levels.child": 1,
-      "levels.teen": 2,
-      "levels.senior": 4
+      "levels.teen": 1,
+      "levels.senior": 3
     },
     "ll38-become-the-message-tactics-to-essence": {
       "lesson": 2,
-      "bigIdea": 2,
+      "bigIdea": 1,
       "inApp": 1,
-      "levels.teen": 4,
+      "levels.teen": 3,
       "levels.senior": 3
     },
     "ll39-roots-lead-to-the-king-hidden-jerusalem": {
@@ -429,7 +429,7 @@
     },
     "ll68-out-of-the-way-consecration-and-the-broken-bread": {
       "lesson": 1,
-      "levels.senior": 2
+      "levels.senior": 1
     },
     "ll69-faithful-over-a-few-things-stewardship-and-increase": {
       "lesson": 2,
@@ -523,7 +523,7 @@
     },
     "ll96-doers-of-the-word-competence-by-doing-and-the-minds-tactics-daily": {
       "lesson": 2,
-      "bigIdea": 9,
+      "bigIdea": 8,
       "levels.child": 1,
       "levels.youth": 3,
       "levels.teen": 2,
@@ -542,7 +542,6 @@
     "ll99-watch-and-be-ready-no-date-setting-and-a-sober-word-on-ai-and-prophecy": {
       "lesson": 1,
       "bigIdea": 7,
-      "inApp": 1,
       "levels.teen": 1
     }
   },
