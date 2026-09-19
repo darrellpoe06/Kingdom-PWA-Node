@@ -193,15 +193,24 @@ describe('a pointer, never a copy', () => {
     // one and the lesson total by eight. Darrell named the gap in four words,
     // "Banking courses etc...", in the same breath as the plain-words work.
     //
+    // The pins then moved to 40 / 628 for the Insurance and Risk course
+    // (DR-0523) and the Inspections course (DR-0525) — eight lessons each, on
+    // the same Real Estate shelf — and those two bumps landed without a note
+    // here, which is recorded now rather than quietly carried forward.
+    //
+    // And to 41 / 636 on 2026-09-19 for the Evictions course (DR-0527) — eight
+    // new lessons in a NEW course, course count by one and lesson total by
+    // eight, Real Estate shelf again. Course eleven of that department.
+    //
     // What this test exists to catch has NOT changed and is unaffected: a
     // cross-listing is a POINTER, so putting a lesson on another department's
     // shelf must never add a course or a lesson to these totals. If a
     // cross-listing ever inflates them, this fails — and the numbers above are
     // the catalog's own, so the check still has teeth after the bump.
-    expect(courses).toHaveLength(40);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(628);
+    expect(courses).toHaveLength(41);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(636);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(628);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(636);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
