@@ -101,12 +101,12 @@ describe('the debt, recorded as it actually is', () => {
     // its footing (DR-0500), 227 with its capstone (DR-0501), 235 with the
     // buying course (DR-0504), 245 with the leasing course (DR-0507) and the
     // two lessons another session landed in between, 253 with the maintenance
-    // course (DR-0508), 261 with the partnerships course (DR-0510), 269 with the financing course (DR-0513). Forty new course
+    // course (DR-0508), 261 with the partnerships course (DR-0510), 269 with the financing course (DR-0513), 277 with the taxes and records course (DR-0515). Forty-eight new course
     // lessons, every one carrying authored bands — which is why adultOnly did
     // NOT move with any of them. That is the shape a new course is supposed to
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
-    expect(baseline.total).toBe(269);
+    expect(baseline.total).toBe(277);
     expect(baseline.allFour).toBe(0);
     expect(baseline.adultOnly).toBe(37);
   });

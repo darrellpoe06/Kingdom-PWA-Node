@@ -180,15 +180,19 @@ describe('a pointer, never a copy', () => {
     // ("Financing: The Debt You Sign and the Lender You Face", DR-0513) — the
     // money behind every other course in the department.
     //
+    // And to 37 / 603 on 2026-09-18 for its EIGHTH course ("Taxes and Records:
+    // What You Owe and What You Can Show", DR-0515) — what the authorities take
+    // and what an owner can actually prove.
+    //
     // What this test exists to catch has NOT changed and is unaffected: a
     // cross-listing is a POINTER, so putting a lesson on another department's
     // shelf must never add a course or a lesson to these totals. If a
     // cross-listing ever inflates them, this fails — and the numbers above are
     // the catalog's own, so the check still has teeth after the bump.
-    expect(courses).toHaveLength(36);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(595);
+    expect(courses).toHaveLength(37);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(603);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(595);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(603);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
