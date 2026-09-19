@@ -68,6 +68,18 @@ That lesson's child band deliberately teaches the transferable truth — listeni
 
 **So the method gains a fourth rule:** a placement must clear the **host lesson's own** band rules, not only the corpus-wide gates. Subject fit chooses the host; the host's existing guards still govern what each band may say. Nothing here was loosened to make the placement fit.
 
+## Tranche two, and the fifth rule the method produced against itself
+
+Shipped in the same PR: **Leviticus 19:15** into `ll97`, `ll111` and `ll144` (the just-weight lessons), and **Ephesians 6:9** into `ll145`, the bondservant lesson. Reach is now 8 and 3, both declared as floors.
+
+The host guards were read **before** writing this time, which is the fourth rule working as intended: `ll144` and `ll145` forbid the word "God" in our own voice (DR-0210 enforced per lesson), and `ll97`'s senior band carries no lesson or DR identifiers. The prose was written to those constraints rather than corrected after.
+
+**Then the method broke a lesson by its own hand.** The insert-before-the-final-heading rule needs a heading to aim at, and five bands across `ll111`, `ll144` and `ll145` have no ALL-CAPS heading structure at all. The first run **skipped** those bands while the adult text still grew — which pushed `ll111`'s youth and teen and `ll145`'s teen **under the full-levels floor**. That is exactly the regression this DR was written to prevent, produced by the DR's own procedure.
+
+Caught by measuring before committing, reverted whole, and fixed properly: **a band with no heading structure is appended to, never skipped.** A band that cannot take the passage in the preferred position must still take it, or the placement is not finished. After the fix all four hosts are clean and shares improved again — `ll111`'s child 0.58 → 0.60, `ll144`'s child 0.52 → 0.53.
+
+The lesson underneath it is the one worth keeping: a placement procedure that silently does nothing on an edge case is more dangerous than one that fails loudly, because the adult half of the change still lands.
+
 ## Re-review
 
 - **re-review: 2026-10-19** — Job 31:1 is still at floor 1. Every strong subject fit (`ll21`, `ll113`) is either in the full-levels debt or has under 40 words of band headroom. Raise it once a healthy host exists.

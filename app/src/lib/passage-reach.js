@@ -48,6 +48,15 @@
 // tripped it. Subject fit chooses the host; the host's own guards still govern
 // what each band may say. De-frame the band text -- never loosen the guard to
 // make a placement fit.
+//
+// A BAND WITH NO HEADING STRUCTURE IS APPENDED, NEVER SKIPPED (2026-09-19,
+// tranche two). The insert-before-the-final-heading rule needs a heading to
+// aim at; five bands across ll111, ll144 and ll145 have none. The first run
+// SKIPPED them while the adult text still grew, which pushed ll111's youth
+// and teen and ll145's teen UNDER the full-levels floor -- the precise
+// regression this method exists to prevent, produced by the method itself.
+// A band that cannot take the passage in the preferred position must still
+// take it, or the placement is not finished.
 export const PASSAGES_THAT_MUST_REACH = Object.freeze([
   {
     ref: 'Genesis 29:17',
@@ -66,6 +75,18 @@ export const PASSAGES_THAT_MUST_REACH = Object.freeze([
     subject: 'a reputation the whole city already knows',
     minLessons: 2,
     why: 'Boaz reports a fact the town settled by watching her, not a compliment. Belongs wherever the meek and quiet spirit, virtue or reputation is taught.',
+  },
+  {
+    ref: 'Leviticus 19:15',
+    subject: 'justice with no thumb on either side of the scale',
+    minLessons: 8,
+    why: 'Forbids favouring the poor as firmly as favouring the mighty, in one verse. The guard that stops any justice teaching in this school becoming a faction\u2019s banner, so it belongs in every just-weight and just-judge lesson.',
+  },
+  {
+    ref: 'Ephesians 6:9',
+    subject: 'the master is told he has a Master',
+    minLessons: 3,
+    why: 'The half of the servant passage that is left off when the first half is quoted at the person underneath. Belongs wherever service, employment, authority or the bondservant is taught.',
   },
   {
     ref: 'Job 31:1',
