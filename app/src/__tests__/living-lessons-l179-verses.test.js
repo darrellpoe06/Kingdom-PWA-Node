@@ -115,11 +115,14 @@ const ours = (text) => String(text).replace(ALL_SPANS, ' ').replace(REF_PARENS, 
 const OURS = Object.fromEntries(ALL.map((k) => [k, ours(TEXTS[k])]));
 
 describe('the lesson exists and is wired', () => {
-  it('is the 179th Living Lesson and the series count says so', () => {
+  it('is in the series and the count stays honest', () => {
+    // Relaxed 2026-09-19 when L180 landed: the hard-coded 178 and the
+    // "is last" assertion were only ever true until the next lesson shipped,
+    // and they are not what this gate is for. L178 received exactly this
+    // relaxation when L179 landed. What stays pinned is the invariant that
+    // does not expire — the declared week count equals the real series length.
     expect(L, 'L179 is not in the series').toBeTruthy();
-    expect(LIVING_LESSONS_MODULES).toHaveLength(178);
-    expect(LIVING_LESSONS_META.weeks).toBe(178);
-    expect(LIVING_LESSONS_MODULES[LIVING_LESSONS_MODULES.length - 1].id).toBe(ID);
+    expect(LIVING_LESSONS_META.weeks).toBe(LIVING_LESSONS_MODULES.length);
   });
 
   it('carries every field a lesson is required to carry', () => {
