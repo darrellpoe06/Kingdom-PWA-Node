@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 187,
-  "lessonsShort": 77,
+  "lessonsShort": 72,
   "short": {
     "ll10-strength-and-honour-are-her-clothing": [
       "child",
@@ -190,11 +190,6 @@
       "teen",
       "senior"
     ],
-    "ll4-dying-to-live": [
-      "child",
-      "youth",
-      "teen"
-    ],
     "ll40-the-thread-did-not-snap-remnant": [
       "child",
       "youth",
@@ -248,12 +243,6 @@
       "senior"
     ],
     "ll49-mastery-without-manipulation-lifes-task-envy-sober-mind": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll5-take-no-thought-for-tomorrow": [
       "child",
       "youth",
       "teen",
@@ -318,11 +307,6 @@
       "teen",
       "senior"
     ],
-    "ll6-think-on-these-things": [
-      "child",
-      "youth",
-      "teen"
-    ],
     "ll60-fearfully-and-wonderfully-maintained-thyroid-hair-temple": [
       "child",
       "youth",
@@ -383,11 +367,6 @@
       "teen",
       "senior"
     ],
-    "ll7-let-peace-be-the-umpire": [
-      "child",
-      "youth",
-      "teen"
-    ],
     "ll70-the-bridegrooms-answer-only-the-father-names-the-day": [
       "child",
       "youth",
@@ -435,11 +414,6 @@
       "youth",
       "teen",
       "senior"
-    ],
-    "ll8-not-by-might-a-new-body-coming": [
-      "child",
-      "youth",
-      "teen"
     ],
     "ll80-the-four-warnings-of-a-hardening-heart": [
       "child",

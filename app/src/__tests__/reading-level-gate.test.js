@@ -132,7 +132,62 @@ describe('measureLesson and the two offence shapes', () => {
 
   it('the ceiling and the band order are real, stated values', () => {
     expect(CHILD_CEILING).toBe(7.0);
-    expect(BAND_ORDER).toEqual(['child', 'teen', 'senior']);
+    expect(BAND_ORDER).toEqual(['child', 'youth', 'teen', 'senior']);
+  });
+});
+
+// =============================================================================
+// THE YOUTH RUNG (DR-0544, 2026-09-19)
+// =============================================================================
+// This gate shipped 2026-09-06 measuring child -> teen -> senior. The youth
+// band arrived with L81 and was never added to BAND_ORDER, so for two weeks the
+// app displayed a youth level that nothing in this file scored — while the
+// band-fill pass was authoring eighty more of them. Adding the rung made 30
+// pre-existing inversions visible at once, every one of them the same shape:
+// the YOUNGER band reading HARDER than the teen band above it.
+//
+// Darrell, 2026-09-19, on seeing the level row: "Choosing to change the
+// length?!!!!!!!!!!! Not the lessons to fit the level?!!!!!!!!!!!!!" A youth
+// band that reads harder than the teen band is that complaint, measured.
+describe('the youth band is on the ladder — it was not, and that was the gap', () => {
+  const four = (child, youth, teen, senior) => ({ id: 'llY-test', levels: { child, youth, teen, senior }, lesson: teen });
+  const CHILDISH = 'God is good. He loves you. He gave His Son. That is the news.';
+  const MIDDLING = 'The point runs a little deeper than one sentence, and it rewards a second look.';
+  const OLDER = 'The exposition proceeds through several considerations, each requiring deliberate examination.';
+  const DENSE = 'Notwithstanding the aforementioned soteriological considerations, the hermeneutical framework necessitates comprehensive reevaluation of eschatological presuppositions.';
+
+  it('measureLesson now reports a youth figure at all — it returned none before', () => {
+    const m = measureLesson(four(CHILDISH, MIDDLING, OLDER, DENSE));
+    expect(Object.keys(m.bands).sort()).toEqual(['adult', 'child', 'senior', 'teen', 'youth']);
+    expect(m.bands.youth.authored).not.toBeNull();
+  });
+
+  it('PROVEN-TO-CATCH: youth harder than teen is an inversion', () => {
+    // The exact shape found 30 times in the live corpus the day the rung landed.
+    expect(isInverted(measureLesson(four(CHILDISH, DENSE, MIDDLING, OLDER)))).toBe(true);
+  });
+
+  it('PROVEN-TO-CATCH: youth EASIER than child is an inversion too', () => {
+    expect(isInverted(measureLesson(four(MIDDLING, CHILDISH, OLDER, DENSE)))).toBe(true);
+  });
+
+  it('PROVEN-TO-CATCH: the same lesson passed before the rung existed', () => {
+    // Without youth on the ladder the child->teen->senior reading is clean, so
+    // the old gate would have called this lesson correct. That is the miss.
+    const inverted = four(CHILDISH, DENSE, MIDDLING, OLDER);
+    const { youth, ...withoutYouth } = inverted.levels;
+    expect(youth).toBeTruthy();
+    expect(isInverted(measureLesson({ ...inverted, levels: withoutYouth })), 'the old three-rung ladder saw nothing wrong here').toBe(false);
+    expect(isInverted(measureLesson(inverted)), 'the four-rung ladder catches it').toBe(true);
+  });
+
+  it('a correctly ordered four-band lesson still passes', () => {
+    expect(isInverted(measureLesson(four(CHILDISH, MIDDLING, OLDER, DENSE)))).toBe(false);
+  });
+
+  it('a lesson with no youth band is judged exactly as before', () => {
+    const m = { id: 'llNoYouth', levels: { child: CHILDISH, teen: OLDER, senior: DENSE }, lesson: OLDER };
+    expect(isInverted(measureLesson(m))).toBe(false);
   });
 });
 
@@ -246,6 +301,22 @@ describe('THE LIVE SERIES — measured, not asserted', () => {
     expect(fresh.childOverCeiling).toEqual(baseline.childOverCeiling);
     expect(fresh.measuredLessons).toBe(baseline.measuredLessons);
     expect(fresh.knownLessons).toEqual(baseline.knownLessons);
+  });
+
+  it('the youth debt the rung exposed is recorded, and may only shrink', () => {
+    // 30 lessons read harder at youth than at teen the day the rung landed
+    // (DR-0544). They are debt, not a pass: recording them is what lets the
+    // gate fail a NEW one immediately. This number is a CEILING — every one
+    // re-authored lowers it, and it must never rise.
+    const withYouthInversion = scan.measured.filter((m) => {
+      const b = m.bands;
+      return b.youth && b.teen && b.child
+        && (b.child.authored > b.youth.authored || b.youth.authored > b.teen.authored);
+    });
+    expect(withYouthInversion.length).toBeLessThanOrEqual(30);
+    for (const m of withYouthInversion) {
+      expect(baseline.inverted, `${m.id} inverts at the youth rung and is not recorded as debt`).toContain(m.id);
+    }
   });
 
   it('the debt is real and non-empty — this gate is not decoration', () => {
