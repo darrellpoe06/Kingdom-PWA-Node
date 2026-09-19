@@ -15,4 +15,4 @@ Nothing in this directory is imported, linted, bundled or executed.
 
 | file | what it is | state |
 |---|---|---|
-| `banking-course.draft.js` | Banking: What the Bank Does With Your Money (DR-0519 follow-on) | lessons 1–2 of 8 authored and verified against the KJV; 6 to go |
+_Empty. Banking moved into `app/src/lib` in the commit that registered it, which is how this directory is meant to be used._

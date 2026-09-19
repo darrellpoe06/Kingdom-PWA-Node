@@ -45,6 +45,7 @@ import { MAINTENANCE_TRADES_META, MAINTENANCE_TRADES_SESSION_FLOW, buildMaintena
 import { PARTNERSHIPS_META, PARTNERSHIPS_SESSION_FLOW, buildPartnershipsSchedule, partnershipsProgressSummary, exportPartnershipsCurriculumMarkdown, PARTNERSHIPS_INTEREST_TAG, PARTNERSHIPS_HELPER_TAG, PARTNERSHIPS_TUTOR_META } from './partnerships-course.js';
 import { FINANCING_DEBT_META, FINANCING_DEBT_SESSION_FLOW, buildFinancingDebtSchedule, financingDebtProgressSummary, exportFinancingDebtCurriculumMarkdown, FINANCING_DEBT_INTEREST_TAG, FINANCING_DEBT_HELPER_TAG, FINANCING_DEBT_TUTOR_META } from './financing-debt-course.js';
 import { TAXES_RECORDS_META, TAXES_RECORDS_SESSION_FLOW, buildTaxesRecordsSchedule, taxesRecordsProgressSummary, exportTaxesRecordsCurriculumMarkdown, TAXES_RECORDS_INTEREST_TAG, TAXES_RECORDS_HELPER_TAG, TAXES_RECORDS_TUTOR_META } from './taxes-records-course.js';
+import { BANKING_META, BANKING_SESSION_FLOW, buildBankingSchedule, bankingProgressSummary, exportBankingCurriculumMarkdown, BANKING_INTEREST_TAG, BANKING_HELPER_TAG, BANKING_TUTOR_META } from './banking-course.js';
 import { MATHEMATICS_META, MATHEMATICS_SESSION_FLOW, buildMathematicsSchedule, mathematicsProgressSummary, exportMathematicsCurriculumMarkdown, MATHEMATICS_INTEREST_TAG, MATHEMATICS_HELPER_TAG, MATHEMATICS_TUTOR_META } from './mathematics-class.js';
 import { RTO_BUSINESS_META, RTO_BUSINESS_SESSION_FLOW, buildRtoBusinessSchedule, rtoBusinessProgressSummary, exportRtoBusinessCurriculumMarkdown, RTO_BUSINESS_INTEREST_TAG, RTO_BUSINESS_HELPER_TAG, RTO_BUSINESS_TUTOR_META } from './rent-to-own-business-class.js';
 import { DEVELOPMENT_META, DEVELOPMENT_SESSION_FLOW, buildDevelopmentSchedule, developmentProgressSummary, exportDevelopmentCurriculumMarkdown, DEVELOPMENT_INTEREST_TAG, DEVELOPMENT_HELPER_TAG, DEVELOPMENT_TUTOR_META } from './development-class.js';
@@ -408,6 +409,26 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want a hand applying these eight to your own papers — the three questions that judge a levy better than its rate, the itemised annual total almost nobody has assembled, the ten-minute drill on the document you would need first, and the one column that sends no notice. The whole course is free and open right here; this is for a hand with yours. Teaching, not tax or legal advice.',
       cta: 'I want help with mine',
       sent: '\u2713 Sent \u2014 Darrell will reach out. Know what you owe, and keep what you can show.',
+    },
+  },
+  {
+    // Darrell 2026-09-19: "Banking courses etc..." — named as a gap in the same
+    // breath as the plain-words work (DR-0519), and the two belong together: a
+    // person looking for this course is thinking the word BANK, not the word
+    // stewardship. Filed under Kingdom Life & Stewardship beside Kingdom
+    // Economics; no book-and-chapter is shared with any of that department's
+    // other courses, which the course test checks rather than assumes.
+    key: 'banking', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...BANKING_META, key: 'banking', category: 'Kingdom Life & Stewardship' }, sessionFlow: BANKING_SESSION_FLOW,
+    buildScheduleRows: () => buildBankingSchedule(null), progressSummary: (p) => bankingProgressSummary(p),
+    exportMarkdown: () => exportBankingCurriculumMarkdown(null), downloadName: 'banking-what-the-bank-does-with-your-money-curriculum.md',
+    interestTag: BANKING_INTEREST_TAG, helperTag: BANKING_HELPER_TAG, tutorCourseMeta: BANKING_TUTOR_META,
+    interestText: (who) => `${BANKING_INTEREST_TAG} ${who} wants a hand on an account, a fee, or a debt that is getting away from them.`,
+    interestCopy: {
+      heading: 'Money getting away from you?',
+      blurb: 'Tell Darrell you want a hand applying these eight to your own accounts \u2014 the two numbers on your statement nobody prints together, the signature you were asked for and can still refuse, the store you can start in a summer month, and the fee total almost nobody has ever added up. The whole course is free and open right here; this is for a hand with yours. Teaching, not financial or legal advice.',
+      cta: 'I want help with mine',
+      sent: '\u2713 Sent \u2014 Darrell will reach out. Know what it is for, and know what is holding you up.',
     },
   },
   {
