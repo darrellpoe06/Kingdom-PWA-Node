@@ -34,6 +34,14 @@
 // is the thing this file exists to prevent — the fix is to write the plain
 // meaning into the lesson, which takes one clause.
 //
+// A CUE MAY BE BROADENED; A CUE MAY NOT BE HOLLOWED OUT. Those are different
+// edits and the difference is the whole integrity of this file. `collateral`
+// first listed the cue "something the lender can take", and prose reading "the
+// thing the lender gets to take if they cannot pay" failed it — identical
+// teaching, an over-specific matcher. Broadening to "lender can take" recognises
+// the same gloss. What is forbidden is adding a cue that is not itself a plain
+// explanation, in order to make an unexplained use pass.
+//
 // TWO WORDS WERE TAKEN BACK OFF THIS LIST after the first measurement, and the
 // reason belongs here rather than in a commit nobody re-reads. `tribute` fired
 // 150 times and `pledge` 22, almost all of them the ordinary modern senses —
@@ -47,7 +55,7 @@ export const HARD_TERMS = {
   assay: ['heat a sample', 'find out what it actually is', 'metal shop', 'what a material is', 'test of what is there'],
   usury: ['old word for interest', 'charging extra for the use of money', 'rule about interest', 'interest'],
   surety: ['signing for somebody else', 'sign for someone else', 'promise to pay someone else', 'you owe it instead', 'on the hook for'],
-  collateral: ['something you hold until the loan is paid', 'something the lender can take', 'what you put up', 'a pledge'],
+  collateral: ['hold until the loan is paid', 'lender can take', 'lender gets to take', 'put up as security', 'put their land up as security', 'lender could take'],
   neuroplasticity: ['brain physically changes with use', 'brain rewires itself', 'brain rebuilds itself', 'brain changes with use'],
   subconscious: ['runs without you watching', 'while you are not watching', 'without being watched', 'part of your mind that runs'],
   amortisation: ['how a loan is paid down', 'schedule of payments', 'paid off over time'],
