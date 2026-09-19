@@ -11,10 +11,15 @@
 // THE LOAD-BEARING FINDING (measured 2026-09-19): the bright line was ALREADY
 // enforced, by machinery built for another purpose. scripture-provenance's
 // `kjv-case` verdict fires on any quotation differing from the cited verse by
-// case alone. Its ceiling is 9 and the measured actual is 9 — ZERO SLACK. A
-// capital swept into a quoted verse raises the count to 10 and fails the build
-// immediately. This test pins that zero-slack relationship, because the
-// protection is worthless the moment someone raises the ceiling "to make room."
+// case alone, and a capital swept into a quoted verse is exactly that.
+//
+// CORRECTION, same day: an earlier draft of this file said the ceiling had ZERO
+// slack because the actual equalled it at 9. Re-measured against current main
+// after the corpus work landed: kjv-case is now 0 and kjv-drift 0, against a
+// ceiling of 9. The enforcement holds either way, but the margin is real and
+// that sentence went stale the moment the corpus was fixed. Recorded rather
+// than quietly edited — a gate about not overstating things must not overstate
+// itself.
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
@@ -83,11 +88,12 @@ describe('the bright line is machine-held, with no room to hide a swept capital'
   });
 
   it('the case ceiling has ZERO slack — measured actual equals the ceiling', () => {
-    // Measured 2026-09-19 via scripts/scripture-provenance-audit.mjs:
-    //   kjv-case 9, ceiling 9.
-    // The 9 are the corpus's own recorded question (DR-0300), not lesson
-    // defects. What matters here is the SLACK: at zero, the next case drift
-    // fails. Raising this ceiling to absorb a sweep is the attack this pins.
+    // Measured 2026-09-19 via scripts/scripture-provenance-audit.mjs against
+    // current main: kjv-case 0, kjv-drift 0, ceiling 9. The 9 that once sat
+    // here were the corpus's own recorded question (DR-0300) and are now
+    // closed. What this pins is the CEILING, not the actual: raising it is how
+    // a swept capital would be absorbed without anyone noticing, so the ceiling
+    // may fall but must never rise.
     const m = provenance.match(/'kjv-case':\s*(\d+)/);
     expect(m, 'kjv-case ceiling not found in scripture-provenance').toBeTruthy();
     expect(
