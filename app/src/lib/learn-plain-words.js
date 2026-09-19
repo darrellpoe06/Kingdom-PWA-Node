@@ -82,6 +82,7 @@ export const COURSE_PLAIN_WORDS = {
   'handed-forward': ['family', 'kids', 'planning', 'money', 'jobs', 'time'],
   banking: ['bank', 'money', 'saving', 'interest', 'debt', 'fees'],
   'insurance-risk': ['insurance', 'fire', 'flood', 'accident', 'house', 'bills'],
+  inspections: ['house', 'repairs', 'building', 'fixing', 'plumbing', 'buying'],
   // --- Real Estate ----------------------------------------------------------
   'property-principle': ['house', 'land', 'owning', 'home', 'money'],
   'buying-terms': ['buying', 'house', 'price', 'deal', 'money', 'contract'],

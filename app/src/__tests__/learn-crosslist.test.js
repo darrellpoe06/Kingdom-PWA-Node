@@ -198,10 +198,10 @@ describe('a pointer, never a copy', () => {
     // shelf must never add a course or a lesson to these totals. If a
     // cross-listing ever inflates them, this fails — and the numbers above are
     // the catalog's own, so the check still has teeth after the bump.
-    expect(courses).toHaveLength(39);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(620);
+    expect(courses).toHaveLength(40);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(628);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(620);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(628);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
