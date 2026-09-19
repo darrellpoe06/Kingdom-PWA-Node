@@ -370,6 +370,23 @@ documents, it is a *measured* corpus with ratchets in both directions. That is
 the Excellence Standard implemented as machinery rather than intention — which
 is exactly right, and exactly why a lesson cannot be written quickly.
 
+**CLOSED 2026-09-19 — L180 landed on the second attempt.** The bar above was
+turned into a measurement harness and the lesson was authored *against the
+numbers* rather than submitted and corrected: child band Flesch-Kincaid 0.29
+against a ceiling of 5.0, worst band-pair overlap 0.00 against a ceiling of
+0.50, all four bands above their fullness floors, every band naming its own
+title in its opening window, `sectionCount` 7.
+
+Two further invariants surfaced only on insertion and are added to the table
+above for the next author:
+
+| 7 | **`sectionCount` > 3** — the adult `lesson` needs ALL-CAPS section headings (2–9 words, own sentence). Shortening prose for the fullness ratios silently removed them. | `the-points-are-numbered-once-per-lesson` |
+| 8 | **Corpus-total baselines move** — `band-differentiation`, `course-quotation-integrity`, `stage-reaches-reader` and `learn-crosslist` each pin a total that a new lesson shifts. Re-measure; never blind-bump. | four separate gates |
+
+And one convention: a neighbouring lesson's gate asserts it is LAST. When the
+next lesson lands, that assertion is relaxed to the relative form
+(`weeks === modules.length`), exactly as L178 was relaxed when L179 landed.
+
 ---
 
 ## [8] CAPTURED — the inheritance, and why this is not a project
@@ -441,7 +458,7 @@ Love into something that can be handed to people he will never meet.
 | # | Lesson | Status | Blocking |
 |---|---|---|---|
 | 5 | The Resources are capitalized | **LANDED** (DR-0530 + gate) | — |
-| 1 | He giveth thee power to get wealth | **drafted, reverted** | 4 bands + 5 measured gates above; prose kept, shape to redo |
+| 1 | He giveth thee power to get wealth | **LANDED as L180** | all six invariants measured green before insert |
 | 2 | The patent bar and what was taken | queued | **historical research must be verified, not recalled** |
 | 3 | The School | queued | authoring + the spec for the two tracks |
 | 4 | Rent-to-own: the mechanism and the guard | queued | authoring |
