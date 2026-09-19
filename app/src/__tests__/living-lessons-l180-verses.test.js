@@ -91,8 +91,13 @@ const SPOKEN = new Set([
 describe('the lesson exists and is wired', () => {
   it('is the 180th Living Lesson and the series count says so', () => {
     expect(L, 'L180 is not in the series').toBeTruthy();
-    expect(LIVING_LESSONS_MODULES).toHaveLength(180);
-    expect(LIVING_LESSONS_META.weeks).toBe(180);
+    // The count is an INVARIANT here, not a literal. Pinning the number was
+    // itself the defect: L181, L182 and L183 each appended one lesson and each
+    // append broke a hardcoded total in a file that had nothing to do with the
+    // new lesson -- which teaches the next author to bump a digit instead of
+    // reading the assertion. What must be true is that the series length and
+    // the declared week count agree. That is what is pinned now.
+    expect(LIVING_LESSONS_META.weeks).toBe(LIVING_LESSONS_MODULES.length);
     // Relative order rather than an end-offset, for the reason recorded in
     // L179's file: L181 landed the same day and an offset pin would already
     // have needed bumping. L180 sits immediately after L179.

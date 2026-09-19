@@ -120,8 +120,13 @@ describe('the lesson exists and is wired', () => {
     // The pin moved rather than being dropped: it still fixes L179's POSITION,
     // which is what would catch an accidental reorder or duplicate insert.
     expect(L, 'L179 is not in the series').toBeTruthy();
-    expect(LIVING_LESSONS_MODULES).toHaveLength(180);
-    expect(LIVING_LESSONS_META.weeks).toBe(180);
+    // The count is an INVARIANT here, not a literal. Pinning the number was
+    // itself the defect: L181, L182 and L183 each appended one lesson and each
+    // append broke a hardcoded total in a file that had nothing to do with the
+    // new lesson -- which teaches the next author to bump a digit instead of
+    // reading the assertion. What must be true is that the series length and
+    // the declared week count agree. That is what is pinned now.
+    expect(LIVING_LESSONS_META.weeks).toBe(LIVING_LESSONS_MODULES.length);
     // RELATIVE, not an offset from the end. L180 was appended on 2026-09-19 and
     // L181 the same day, and each append broke an end-offset pin -- which
     // trains the next person to bump the number rather than read it. Order is

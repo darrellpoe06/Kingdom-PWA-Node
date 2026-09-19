@@ -80,8 +80,13 @@ const walk = (node, path, fn) => {
 describe('the lesson exists and is wired', () => {
   it('is the 181st Living Lesson and the series count says so', () => {
     expect(L, 'L181 is not in the series').toBeTruthy();
-    expect(LIVING_LESSONS_MODULES).toHaveLength(181);
-    expect(LIVING_LESSONS_META.weeks).toBe(181);
+    // The count is an INVARIANT here, not a literal. Pinning the number was
+    // itself the defect: L181, L182 and L183 each appended one lesson and each
+    // append broke a hardcoded total in a file that had nothing to do with the
+    // new lesson -- which teaches the next author to bump a digit instead of
+    // reading the assertion. What must be true is that the series length and
+    // the declared week count agree. That is what is pinned now.
+    expect(LIVING_LESSONS_META.weeks).toBe(LIVING_LESSONS_MODULES.length);
     const here = LIVING_LESSONS_MODULES.findIndex((m) => m.id === ID);
     expect(LIVING_LESSONS_MODULES[here - 1].id).toMatch(/^ll180-/);
   });
