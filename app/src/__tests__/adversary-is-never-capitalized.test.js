@@ -22,11 +22,17 @@
 // cannot depend on whoever is writing remembering it at the start of a
 // sentence.
 //
-// SCOPE, and why it is our voice only. Quoted Scripture is fetched verbatim and
-// the KJV capitalises Satan (Job 1:6, Matthew 4:10). DR-0076's bright line
-// forbids editing a quotation to fit house style, so double-quoted spans are
-// stripped before the scan -- exactly as each lesson's ourVoice() helper does.
-// The rule governs what WE author; the Word is never touched.
+// SCOPE, and why it is our voice only. Double-quoted spans are stripped before
+// the scan -- exactly as each lesson's ourVoice() helper does -- because a
+// quotation is not our voice and its wording is never edited to fit house
+// style. This comment used to add that the KJV capitalises his name, citing
+// Job 1:6 and Matthew 4:10. CORRECTED 2026-09-19: that is false of the text
+// this app serves. app/public/bible/kjv reads `satan` at both, and at Luke
+// 22:31, Zechariah 3:1 and Revelation 12:9 -- Darrell's own directive
+// (PR #1397), which scripts/kjv-name-case-corrections.mjs names as deliberate
+// and standing. The stripping is still right; the reason given for it was
+// wrong, and a wrong reason in a gate's header is how a future reader gets
+// talked out of the gate.
 import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';

@@ -16,6 +16,8 @@
 // with nobody remembering to update prose. The proven-to-catch case bends the
 // canonical list and requires the page to change with it.
 import { describe, it, expect, afterEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
 import HowWeWriteHisName from '../components/HowWeWriteHisName.jsx';
@@ -76,6 +78,41 @@ describe('the canonical list is sound before anything renders from it', () => {
   });
 });
 
+describe('what the page SAYS about the corpus is checked against the corpus', () => {
+  // DR-0076 section 8: a citation is a CLAIM that you consulted the source. The
+  // first version of this page told the reader the King James text capitalises
+  // the adversary's name -- written from memory, never checked, and FALSE of
+  // the text this app serves. These assertions read the actual corpus, so the
+  // page can never again say something about the Word that the Word does not do.
+  const kjv = (book, ch, v) => {
+    const p = join(process.cwd(), 'public', 'bible', 'kjv', `${book}.json`);
+    return JSON.parse(readFileSync(p, 'utf8')).chapters[ch - 1][v - 1];
+  };
+
+  it('our Bible text really does carry his name in lower case, everywhere it appears', () => {
+    // Darrell's directive (PR #1397), deliberate and standing per
+    // scripts/kjv-name-case-corrections.mjs. If a re-ingest ever restored the
+    // capital, this fails and the page's sentence would have become untrue.
+    for (const [b, c, v] of [['Job', 1, 6], ['Matthew', 4, 10], ['Luke', 22, 31], ['Zechariah', 3, 1], ['Revelation', 12, 9]]) {
+      const text = kjv(b, c, v);
+      expect(text, `${b} ${c}:${v} does not mention him at all`).toMatch(/satan/i);
+      expect(text, `${b} ${c}:${v} capitalises his name in our corpus`).not.toContain('Satan');
+    }
+  });
+
+  it('and the page tells the reader that, rather than the opposite', () => {
+    expect(THE_EXCEPTION.body).toMatch(/lower case, by Darrell/i);
+    expect(THE_EXCEPTION.body, 'the page must not claim the text capitalises it').not.toMatch(/capitalises the adversary/i);
+  });
+
+  it('while "God" and "the LORD" really are left standing inside the verses', () => {
+    // The other half of the same honesty: we do NOT sweep these to "Yahweh".
+    expect(kjv('Psalms', 23, 1)).toContain('The LORD is my shepherd');
+    expect(kjv('John', 1, 1)).toContain('the Word was God');
+    expect(THE_EXCEPTION.body).toMatch(/never substitute "Yahweh"/);
+  });
+});
+
 describe('the reader actually meets it', () => {
   it('shows every name on both lists, with its reason', () => {
     const text = paint();
@@ -93,7 +130,7 @@ describe('the reader actually meets it', () => {
     const text = paint();
     expect(text).toContain(THE_EXCEPTION.headline);
     expect(text).toContain(THE_EXCEPTION.body);
-    expect(text).toMatch(/never edited to match the way we write/i);
+    expect(text).toMatch(/never edit the wording to match the way we write/i);
   });
 
   it('PROVEN-TO-CATCH: the page is DERIVED, so bending the list bends the page', () => {

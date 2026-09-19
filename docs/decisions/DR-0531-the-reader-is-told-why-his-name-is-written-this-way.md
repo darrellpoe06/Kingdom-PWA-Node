@@ -51,6 +51,18 @@ Three things, none of which a hand-written copy would ever have surfaced:
 
    This is also the rule the reader's page now teaches, and it is the reason L42's title WAS a violation while "The adversary shows you..." is not: L42 capitalised the name itself.
 
+## A correction I had to make to my own page, hours after shipping it
+
+The first version of this surface told the reader that **the King James text capitalises the adversary's name**, citing Job 1:6 and Matthew 4:10. I wrote that from memory and never checked it, in the one file whose entire job is to tell a reader the truth about how names are written.
+
+It is **false of the text this app actually serves.** `app/public/bible/kjv` reads `satan` at Job 1:6, Matthew 4:10, Luke 22:31, Zechariah 3:1 and Revelation 12:9.
+
+And it is not an ingest accident. It is **Darrell's own directive (PR #1397)**, recorded in `scripts/kjv-name-case-corrections.mjs`, which draws the line explicitly: that script restores `LORD` / `Lord` / `GOD` case where our corpus mis-renders the NAME, and names the adversary-name lowercasing as separate, deliberate and standing.
+
+So the honest statement is not that we leave his capital alone. It is that **our Bible text carries his name in lower case on purpose**, and a reader meets it that way inside the verses too, not only in our sentences. The page now says exactly that.
+
+**The structural fix, which matters more than the correction.** Three assertions now read the corpus itself and compare it to what the page claims: his name is lower case at all five references, the page says so rather than the opposite, and `The LORD is my shepherd` and `the Word was God` really do still stand inside the verses. A claim about the Word is now checked against the Word. DR-0076 §8 — a citation is a claim that you consulted the source, and I had not.
+
 ## The exception, stated to the reader as plainly as the rule
 
 The surface says it outright: inside a quotation the Word is left exactly as written. The King James text capitalises the adversary's name (Job 1:6, Matthew 4:10) and writes "God" and "the LORD" throughout, and every quotation is fetched from the text and never edited to match how we write. **When the two disagree on a page, the quotation is right and untouched — that is the rule working, not failing.** We never substitute "Yahweh" into a verse that says "God."

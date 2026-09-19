@@ -23,11 +23,26 @@
 // update prose. Derived beats detected (the same reasoning as the surface-copy
 // work): drift is not caught here, it is made impossible.
 //
-// THE BRIGHT LINE THIS FILE EXISTS TO PROTECT. None of it touches a quotation.
-// The KJV capitalises the adversary’s name (Job 1:6, Matthew 4:10) and writes "God" and "the
-// LORD" throughout, and every one of those is fetched verbatim and left exactly
-// as written. We never edit the Word to fit house style. The rule governs OUR
-// voice and stops at the quotation mark.
+// THE BRIGHT LINE THIS FILE EXISTS TO PROTECT. We never edit the WORDING of a
+// quotation to fit house style, and never substitute "Yahweh" into a verse that
+// says "God". The rule governs OUR voice.
+//
+// CORRECTED 2026-09-19, and the correction is the reason this comment is long.
+// The first version of this file told the reader that the King James text
+// capitalises the adversary's name, citing Job 1:6 and Matthew 4:10. That was
+// written from memory and never checked, and it is FALSE of the text this app
+// actually serves: app/public/bible/kjv reads `satan` in Job 1:6, Matthew 4:10,
+// Luke 22:31, Zechariah 3:1 and Revelation 12:9. Not an ingest accident either
+// -- it is Darrell's own directive (PR #1397), recorded in
+// scripts/kjv-name-case-corrections.mjs, which draws the line explicitly: that
+// script restores LORD/Lord/GOD case where our corpus mis-renders the NAME, and
+// states that the adversary-name lowercasing is separate, deliberate, and
+// stands. So the honest statement to a reader is not that we leave his capital
+// alone -- it is that our Bible text carries his name lower case ON PURPOSE,
+// and a reader will meet it that way inside the verses too. Told plainly on the
+// page, and pinned against the corpus in the test so this claim can never drift
+// from the text again (DR-0076 section 8: a citation is a claim you consulted
+// the source).
 // =============================================================================
 
 /**
@@ -61,8 +76,8 @@ export const WHY_LOWERCASE = 'The adversary lost the right to that honour. A cap
  * Word being left alone rather than the rule being broken.
  */
 export const THE_EXCEPTION = {
-  headline: 'Inside a quotation, the Word is left exactly as it is written.',
-  body: 'The King James text capitalises the adversary’s name and writes "God" and "the LORD" throughout. Every quotation in this app is fetched from the text itself and never edited to match the way we write. So when the two disagree on a page, the quotation is right and untouched -- that is the rule working, not failing. We also never substitute "Yahweh" into a verse that says "God."',
+  headline: 'Inside a quotation, the words are never changed.',
+  body: 'Every verse here is fetched from the text itself. We never edit the wording to match the way we write, and we never substitute "Yahweh" into a verse that says "God" -- so when our sentence and a quotation differ on a page, the quotation is right and untouched. One thing IS deliberate and you should know it rather than wonder: the Bible text this app serves carries the adversary’s name in lower case, by Darrell’s own directive, so you will meet it that way inside the verses too and not only in our own sentences. Everything else in a quotation stands exactly as the text has it, including "God" and "the LORD."',
 };
 
 /** Pronouns that take the capital when they point at Him. */
