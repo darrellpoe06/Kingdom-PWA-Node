@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-19 · **Branch:** `claude/poetech-ip-conversion-ppi6lh`
 **Captured under:** `CLAUDE.md` — "Spoken Teachings Are Build Input — Always Add It" (2026-07-03) and DR-0331 (captured for MEANING, not transcribed with typos).
-**Status:** CAPTURE + build queue. DR-0530 is LANDED. The four lessons are specified here and queued, not yet authored — stated plainly rather than implied done (DR-0076 §1).
+**Status:** CAPTURE + build queue. **DR-0530 is LANDED. Lesson [1] is LANDED as L180.** The remaining THREE lessons ([2] the patent bar, [3] the School, [4] rent-to-own) are specified here and queued, not yet authored — stated plainly rather than implied done (DR-0076 §1). *Header corrected 2026-09-19: it read "the four lessons ... not yet authored" after L180 had already shipped. Third stale figure caught in this file in one day, which is the file's own lesson applied to itself — a status line is a claim, and a claim goes stale the moment the work moves.*
 **All verses below fetched verbatim from the in-repo KJV corpus on 2026-09-19.** Never from memory (DR-0076).
 
 ---
