@@ -1,6 +1,6 @@
 {
-  "note": "Shrink-only debt. Measured 2026-09-18: the four-band requirement was never applied outside the Living Lessons series. A course that gets WORSE fails the build; these numbers may only improve. Authoring bands for a course lesson lowers its adultOnly and raises its allFour, and the baseline is lowered in the same commit. adultRegister counts the BANDLESS lessons whose single lesson field reads above grade 9 \u2014 the ones where the fallback really does hand adult prose to a child; bandlessGrade is the median grade of a course bandless lessons, recorded so a low number is never mistaken for a high one. 2026-09-19: the Banking course (DR-0522) added 8 lessons, every one carrying both bands -- adultOnly 0 and adultRegister 0 -- so only `total` moved, which is the shape a new course is supposed to have and the thing this pin exists to prove. 2026-09-19: the Insurance and Risk course (Real Estate nine) adds 8 lessons, all carrying authored teen and senior bands, so it lands with adultOnly 0 and adultRegister 0 rather than adding debt. The ai row bandlessGrade was recorded as 6.7 and a fresh measurement of the untouched course reads 6.8 -- an informational field that is not ratcheted, corrected here to what it actually measures rather than left stale (DR-0076 sec.4).",
-  "total": 293,
+  "note": "Shrink-only debt. Measured 2026-09-18: the four-band requirement was never applied outside the Living Lessons series. A course that gets WORSE fails the build; these numbers may only improve. Authoring bands for a course lesson lowers its adultOnly and raises its allFour, and the baseline is lowered in the same commit. adultRegister counts the BANDLESS lessons whose single lesson field reads above grade 9 \u2014 the ones where the fallback really does hand adult prose to a child; bandlessGrade is the median grade of a course bandless lessons, recorded so a low number is never mistaken for a high one. 2026-09-19: the Banking course (DR-0522) added 8 lessons, every one carrying both bands -- adultOnly 0 and adultRegister 0 -- so only `total` moved, which is the shape a new course is supposed to have and the thing this pin exists to prove. 2026-09-19: the Insurance and Risk course (Real Estate nine) adds 8 lessons, all carrying authored teen and senior bands, so it lands with adultOnly 0 and adultRegister 0 rather than adding debt. The ai row bandlessGrade was recorded as 6.7 and a fresh measurement of the untouched course reads 6.8 -- an informational field that is not ratcheted, corrected here to what it actually measures rather than left stale (DR-0076 sec.4). 2026-09-19: the Inspections course (Real Estate ten) adds 8 lessons, all carrying authored teen and senior bands, so it lands with adultOnly 0 and adultRegister 0 rather than adding debt.",
+  "total": 301,
   "allFour": 0,
   "adultOnly": 37,
   "adultRegister": 0,
@@ -75,6 +75,12 @@
     },
     "infrastructure": {
       "lessons": 10,
+      "allFour": 0,
+      "adultOnly": 0,
+      "adultRegister": 0
+    },
+    "inspections": {
+      "lessons": 8,
       "allFour": 0,
       "adultOnly": 0,
       "adultRegister": 0

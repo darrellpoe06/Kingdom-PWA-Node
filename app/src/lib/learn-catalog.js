@@ -47,6 +47,7 @@ import { FINANCING_DEBT_META, FINANCING_DEBT_SESSION_FLOW, buildFinancingDebtSch
 import { TAXES_RECORDS_META, TAXES_RECORDS_SESSION_FLOW, buildTaxesRecordsSchedule, taxesRecordsProgressSummary, exportTaxesRecordsCurriculumMarkdown, TAXES_RECORDS_INTEREST_TAG, TAXES_RECORDS_HELPER_TAG, TAXES_RECORDS_TUTOR_META } from './taxes-records-course.js';
 import { BANKING_META, BANKING_SESSION_FLOW, buildBankingSchedule, bankingProgressSummary, exportBankingCurriculumMarkdown, BANKING_INTEREST_TAG, BANKING_HELPER_TAG, BANKING_TUTOR_META } from './banking-course.js';
 import { INSURANCE_RISK_META, INSURANCE_RISK_SESSION_FLOW, buildInsuranceRiskSchedule, insuranceRiskProgressSummary, exportInsuranceRiskCurriculumMarkdown, INSURANCE_RISK_INTEREST_TAG, INSURANCE_RISK_HELPER_TAG, INSURANCE_RISK_TUTOR_META } from './insurance-risk-course.js';
+import { INSPECTIONS_META, INSPECTIONS_SESSION_FLOW, buildInspectionsSchedule, inspectionsProgressSummary, exportInspectionsCurriculumMarkdown, INSPECTIONS_INTEREST_TAG, INSPECTIONS_HELPER_TAG, INSPECTIONS_TUTOR_META } from './inspections-course.js';
 import { MATHEMATICS_META, MATHEMATICS_SESSION_FLOW, buildMathematicsSchedule, mathematicsProgressSummary, exportMathematicsCurriculumMarkdown, MATHEMATICS_INTEREST_TAG, MATHEMATICS_HELPER_TAG, MATHEMATICS_TUTOR_META } from './mathematics-class.js';
 import { RTO_BUSINESS_META, RTO_BUSINESS_SESSION_FLOW, buildRtoBusinessSchedule, rtoBusinessProgressSummary, exportRtoBusinessCurriculumMarkdown, RTO_BUSINESS_INTEREST_TAG, RTO_BUSINESS_HELPER_TAG, RTO_BUSINESS_TUTOR_META } from './rent-to-own-business-class.js';
 import { DEVELOPMENT_META, DEVELOPMENT_SESSION_FLOW, buildDevelopmentSchedule, developmentProgressSummary, exportDevelopmentCurriculumMarkdown, DEVELOPMENT_INTEREST_TAG, DEVELOPMENT_HELPER_TAG, DEVELOPMENT_TUTOR_META } from './development-class.js';
@@ -430,6 +431,27 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want a hand applying these eight to your own accounts \u2014 the two numbers on your statement nobody prints together, the signature you were asked for and can still refuse, the store you can start in a summer month, and the fee total almost nobody has ever added up. The whole course is free and open right here; this is for a hand with yours. Teaching, not financial or legal advice.',
       cta: 'I want help with mine',
       sent: '\u2713 Sent \u2014 Darrell will reach out. Know what it is for, and know what is holding you up.',
+    },
+  },
+  {
+    // COURSE TEN OF THE REAL ESTATE DEPARTMENT. Nine courses covered the
+    // ground, the stewardship, the transaction, the tenant, the building, the
+    // partner, the lender, the record and the loss. This one covers the act
+    // every one of them depends on and none of them teaches: LOOKING at a
+    // thing properly before you are bound to it. Built on the complete staged
+    // inspection in Leviticus 14 -- report, empty the house, look, wait, look
+    // again, targeted repair, re-inspect, and a rule for when it comes down.
+    key: 'inspections', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...INSPECTIONS_META, key: 'inspections', category: 'Real Estate' }, sessionFlow: INSPECTIONS_SESSION_FLOW,
+    buildScheduleRows: () => buildInspectionsSchedule(null), progressSummary: (p) => inspectionsProgressSummary(p),
+    exportMarkdown: () => exportInspectionsCurriculumMarkdown(null), downloadName: 'inspections-what-you-look-at-before-you-sign-curriculum.md',
+    interestTag: INSPECTIONS_INTEREST_TAG, helperTag: INSPECTIONS_HELPER_TAG, tutorCourseMeta: INSPECTIONS_TUTOR_META,
+    interestText: (who) => `${INSPECTIONS_INTEREST_TAG} ${who} wants a hand looking at a building properly before signing, or has already signed and found something.`,
+    interestCopy: {
+      heading: 'About to sign for a building?',
+      blurb: 'Tell Darrell you want a hand applying these eight to a real building \u2014 the seven steps Yahweh wrote into Leviticus 14, what to move out before anybody inspects, your own six answerable pairs, the one question worth scoping down to, and where to send your one specialist if you can only afford one. The whole course is free and open right here; this is for a hand with yours. Teaching, not inspection, legal or engineering advice \u2014 hire somebody licensed in your own state, and an engineer for anything structural.',
+      cta: 'I want help with mine',
+      sent: '\u2713 Sent \u2014 Darrell will reach out. And if you have already signed and already found something, start at lesson four and lesson eight.',
     },
   },
   {
