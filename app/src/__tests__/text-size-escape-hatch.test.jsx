@@ -85,10 +85,29 @@ describe('the collapsed header still offers a way back', () => {
 });
 
 describe('it stays out of the way when nothing is trapped', () => {
-  it('renders nothing at Normal, so the tucked-away header stays clean', async () => {
+  // THIS CASE WAS INVERTED 2026-09-19 (DR-0524), and the reason belongs here
+  // rather than in a commit nobody re-reads. It used to assert that the hatch
+  // renders NOTHING at Normal, on the stated reasoning that "at 1x there is no
+  // trap." That reasoning is true of getting OUT of big text and false of
+  // getting INTO it. Measured at 360px, mid-lesson, header collapsed, Normal:
+  //
+  //     header EXPANDED   -> 5 text-size controls, all 5 on screen
+  //     header COLLAPSED  -> ZERO text-size controls in the DOM
+  //
+  // Darrell hit exactly that, reading L179 on his phone with the top bar tucked
+  // away: "Can't change the text side nor etc on o cellphone reader fix it."
+  // Zero is a trap whichever way the reader wanted to go, so the hatch now
+  // renders at every size while the header is tucked away. The hideaway still
+  // hides what it was built to hide — the account row, the voice picker, the
+  // theme swatches, the date and build lines.
+  it('DOES render at Normal too — a reader who cannot make the words BIGGER is just as stuck', async () => {
     setSize(DEFAULT_TEXT_SIZE);
     const el = await mount({ collapsed: true });
-    expect(el.innerHTML).toBe('');
+    expect(el.innerHTML).not.toBe('');
+    expect(el.textContent).toContain('Text size');
+    // Every step is offered, so it is a real control and not a hint.
+    const btns = [...el.querySelectorAll('button')].filter((b) => /text size/i.test(b.getAttribute('aria-label') || ''));
+    expect(btns).toHaveLength(TEXT_SIZE_STEPS.length);
   });
 
   it('renders nothing while the header is open — that row already has the control', async () => {

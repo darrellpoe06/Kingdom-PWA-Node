@@ -12,7 +12,7 @@
 //   variant="panel"  — prominent labeled card for the reading-heavy areas
 //                       (The Word, Learn, Conference) and the About/Settings page.
 import React from 'react';
-import { useTextSize, DEFAULT_TEXT_SIZE } from '../lib/text-size.js';
+import { useTextSize } from '../lib/text-size.js';
 
 export default function TextSizeControl({ variant = 'header', className = '' }) {
   const [active, setSize, steps] = useTextSize();
@@ -142,16 +142,35 @@ export default function TextSizeControl({ variant = 'header', className = '' }) 
 // reader may have left. This restores it without taking the hideaway away —
 // Darrell built that for dashboard room and it stays.
 //
-// Renders NOTHING at Normal: at 1x there is no trap, so a reader who tucked
-// the top bar away for room gets exactly the clean surface they asked for.
-// Above Normal it renders inside the .ts-safe-sticky header carrying
-// .ts-escape-hatch, so the existing index.css rules take over at the sizes
-// that actually trap (sticky at Larger; a fixed bottom bar at Largest and Big
-// Print) — no new layout mechanism, the proven one is reused.
+// IT USED TO RENDER NOTHING AT NORMAL, and that was a measured mistake
+// (corrected 2026-09-19, DR-0524). The reasoning written here was "at 1x there
+// is no trap, so a reader who tucked the top bar away for room gets exactly the
+// clean surface they asked for." That is true of getting OUT of big text and
+// FALSE of getting INTO it. Darrell, reading L179 on his phone with the header
+// tucked away: "Can't change the text side nor etc on o cellphone reader fix
+// it." Measured at 360px, mid-lesson, header collapsed, size Normal:
+//
+//     header EXPANDED   -> 5 text-size controls, all 5 on screen
+//     header COLLAPSED  -> ZERO text-size controls in the DOM
+//
+// Zero is a trap whichever direction the reader wanted to go. DR-0276's rule is
+// that text-size controls are chrome so the size is ALWAYS changeable; a reader
+// who cannot make the words BIGGER is as stuck as one who cannot make them
+// smaller. So the hatch now renders whenever the header is tucked away, at
+// every size. The hideaway still hides what Darrell built it to hide — the
+// account row, the voice picker, the theme swatches, the date and build lines —
+// so the room he asked for is still there; one thin row is not the dashboard.
+//
+// At Normal it sits in the flow inside the .ts-safe-sticky header (the header
+// is sticky, measured: position:sticky at top 0), and the existing index.css
+// rules still take over at the sizes that trap harder — sticky at Larger, a
+// fixed bottom bar at Largest and Big Print. No new layout mechanism.
 export function TextSizeEscapeHatch({ collapsed }) {
-  const [active] = useTextSize();
-  // Only when the header is tucked away AND the reader is above Normal.
-  if (!collapsed || active === DEFAULT_TEXT_SIZE) return null;
+  // Read so the row re-renders on every step, and so the ts-hatch-h publisher
+  // inside TextSizeControl re-measures when the position flips.
+  useTextSize();
+  // Only when the header is tucked away — at ANY size (see above).
+  if (!collapsed) return null;
   return (
     <div className="ts-chrome-region ts-escape-hatch bg-[#FAF8F4] border-t border-[#E8E4DC] px-3 py-1.5 flex items-center justify-end gap-2 flex-wrap">
       {/* Plain words, not an icon: the reader who needs this is the reader who

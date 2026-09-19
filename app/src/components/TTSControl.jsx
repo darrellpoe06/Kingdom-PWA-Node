@@ -36,6 +36,29 @@ import { talkAboutSurface } from '../lib/talk-about.js';
 import { useIdleReveal } from '../lib/use-idle-reveal.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import { useScreenAwake, NO_WAKE_LOCK_HINT } from '../lib/screen-awake.js';
+// COMFORT CONTROLS IN THE READER (DR-0524). Darrell, reading L179 on his phone:
+// "Can't change the text side nor etc on o cellphone reader fix it."
+// WHAT WAS ACTUALLY WRONG, measured at 360px mid-lesson after a first reading
+// of the code got it wrong. The first trace said the header scrolls away; it
+// does not -- the header is position:sticky at top 0, so with the top bar OPEN
+// five text-size controls stay on screen the whole way down a lesson. The real
+// trap is the HIDEAWAY, which is the state his screenshot shows:
+//
+//     header OPEN       -> 5 text-size controls, all 5 on screen
+//     header TUCKED AWAY -> ZERO text-size controls in the DOM, at Normal size
+//
+// The hideaway unmounts the comfort row, and TextSizeEscapeHatch rendered
+// nothing at Normal on the reasoning that "at 1x there is no trap" -- true of
+// getting OUT of big text, false of getting INTO it. Two fixes, both measured:
+// the hatch now renders at every size while the header is tucked away, and this
+// panel carries its own copy so the lesson reader is covered whatever the
+// header is doing.
+//
+// This panel is the one reading-settings surface reachable from anywhere in a
+// lesson, and it is where he went looking -- his second screenshot is it, open,
+// with speed and voice in it and no text size.
+import { useTextSize } from '../lib/text-size.js';
+import { THEMES, useThemePref } from '../lib/theme-css.js';
 
 // After the page comes back from dark, the engine's own foreground recovery
 // (lib/tts.js _recoverForeground) gets this long to bring the audio back before
@@ -122,6 +145,11 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // expand) so the page — and its moving highlight — stays visible. Expanding
   // re-opens the full card; stopping restores it.
   const [minimized, setMinimized] = useState(false);
+  // Both are module-published (text-size.js / theme-css.js), so these pickers
+  // and the header's are the SAME switch and can never disagree -- the same
+  // reason show-the-word.js is reused below rather than re-implemented.
+  const [textSize, setTextSizeKey, textSizeSteps] = useTextSize();
+  const [theme, setTheme] = useThemePref('cream');
   // "Talk about this" state: thinking, and the source of the last explanation
   // (live NAS A.I. vs on-device authored) so the user knows which they heard.
   const [talking, setTalking] = useState(false);
@@ -954,6 +982,62 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
                 )}
               </>
             )}
+          </div>
+
+          {/* HOW IT LOOKS — text size and theme, reachable while READING (DR-0524).
+              Darrell, on his phone in L179: "Can't change the text side nor etc
+              on o cellphone reader fix it." Both controls existed only in the
+              header's comfort row, which the header HIDEAWAY unmounts — and
+              measured at 360px mid-lesson, header tucked away, Normal size:
+              ZERO text-size controls in the DOM. (With the header open there
+              are five, on screen, because the header is sticky; the first
+              reading of this got that backwards and a measurement fixed it.)
+              Theme rides along because reading at night is precisely when a
+              person reaches for Midnight.
+
+              FIRST among the settings on purpose: it is the one he went looking
+              for and did not find, so it does not go below Speed and Voice.
+
+              RE-RENDERED, NOT IMPORTED, for the reason the Show-the-Word comment
+              below records: TextSizeControl sizes its labels in fixed px and its
+              panel box in rem, and this panel is deliberately em-sized so its
+              chrome rides the CAPPED chrome multiplier. Importing it would break
+              at A+++/A44, which is the exact defect that comment exists about.
+              The STORES are shared (text-size.js / theme-css.js), so this and
+              the header are one switch -- there is no second source of truth. */}
+          <div className="mb-[0.5em]" data-testid="reader-look-and-feel">
+            <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Text size — make the words bigger</div>
+            <div className="grid grid-cols-5 gap-[0.25em]" role="group" aria-label="Text size — make reading text larger" data-testid="reader-text-size">
+              {textSizeSteps.map((st) => {
+                const on = textSize === st.key;
+                return (
+                  <button
+                    key={st.key}
+                    type="button"
+                    onClick={() => setTextSizeKey(st.key)}
+                    aria-pressed={on}
+                    aria-label={`${st.name} text size${on ? ' (current)' : ''}`}
+                    title={`${st.name} text`}
+                    className={`px-[0.25em] py-[0.5em] min-h-[2.25em] text-[0.625em] font-semibold leading-none border focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}
+                  >{st.label}</button>
+                );
+              })}
+            </div>
+            <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mt-[0.5em] mb-[0.25em]">Colours — dark for night reading</div>
+            <div className="flex flex-wrap items-center gap-[0.375em]" role="group" aria-label="Theme selector" data-testid="reader-theme">
+              {THEMES.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setTheme(t.key)}
+                  aria-pressed={theme === t.key}
+                  aria-label={`${t.label} theme${theme === t.key ? ' (currently selected)' : ''}`}
+                  title={t.label}
+                  className={`w-[1.75em] h-[1.75em] rounded-full transition-all focus:outline focus:outline-2 focus:outline-[#B85838] ${theme === t.key ? 'ring-2 ring-[#B85838] ring-offset-1 scale-110' : 'opacity-70 hover:opacity-100 hover:scale-105'}`}
+                  style={{ backgroundColor: t.color, border: `1.5px solid ${t.border}` }}
+                />
+              ))}
+            </div>
           </div>
 
           {/* WHO IS LEARNING — the level, switchable from the reader (DR-0426).

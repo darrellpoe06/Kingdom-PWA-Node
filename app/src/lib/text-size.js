@@ -44,7 +44,7 @@
 // phone — and it applies even before sign-in, on the public conference page.
 //
 // Pure functions are exported and unit-tested; the React hook is thin glue.
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 // The shared scroll-anchor mechanism (also powers reading-position resume). One-
 // way dependency: reading-position.js never imports this, so no cycle.
 import { captureAnchor, applyAnchor } from './reading-position.js';
@@ -224,7 +224,34 @@ export function setTextSize(key) {
   applyTextSize(k);
   saveTextSize(k);
   if (anchor) { try { applyAnchor(anchor); } catch (e) { /* non-fatal */ } }
+  notifyTextSize(k);
   return k;
+}
+
+// -----------------------------------------------------------------------------
+// ONE SIZE, EVERY CONTROL — the store (added 2026-09-19)
+// -----------------------------------------------------------------------------
+// useTextSize used to keep its own useState, which was fine while exactly ONE
+// control existed. The moment a second one renders (the reader panel, DR-0524),
+// each copy holds its own idea of the active step: the DOM is right, but the
+// OTHER control's highlighted chip goes stale, so the reader is told a size he
+// is not on. That is a surface saying something untrue, which is the one thing
+// a comfort control must never do.
+//
+// So the active key is published from one place. Every useTextSize() consumer
+// subscribes, and setTextSize — wherever it is called from — moves all of them.
+// Deliberately a plain subscriber set rather than a context: these controls are
+// mounted in unrelated trees (the header, the floating reader panel, the doors),
+// and a provider that has to wrap all of them is the thing this avoids.
+const sizeListeners = new Set();
+function notifyTextSize(key) {
+  for (const fn of [...sizeListeners]) { try { fn(key); } catch (e) { /* a dead subscriber never blocks the rest */ } }
+}
+/** Subscribe to text-size changes. Returns the unsubscribe function. */
+export function subscribeTextSize(fn) {
+  if (typeof fn !== 'function') return () => {};
+  sizeListeners.add(fn);
+  return () => { sizeListeners.delete(fn); };
 }
 
 /**
@@ -234,6 +261,8 @@ export function setTextSize(key) {
  */
 export function useTextSize() {
   const [key, setKey] = useState(() => loadTextSize());
+  // Every control reflects the ONE active size, not its own copy of it.
+  useEffect(() => subscribeTextSize(setKey), []);
   const update = useCallback((next) => {
     setKey(setTextSize(next));
   }, []);
