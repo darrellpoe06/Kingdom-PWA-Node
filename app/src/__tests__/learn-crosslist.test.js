@@ -244,10 +244,16 @@ describe('a pointer, never a copy', () => {
     // across an evening and then named it himself; again a real lesson into
     // the existing Living Lessons course, so the course count holds at 42 and
     // only the lesson total moves.
-    expect(courses).toHaveLength(42);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(654);
+    // And to 43 / 662 on 2026-09-19 when the STOCK MARKET department opened
+    // (Darrell: "Stock Market courses to explore and explain the world of
+    // stock and bonds and countries that trade and how investment works world
+    // wide."). Its first course, stocks, is 8 lessons and is the first course
+    // to add a whole DEPARTMENT rather than a shelf, so both numbers move —
+    // 42 to 43 and 654 to 662. DR-0548.
+    expect(courses).toHaveLength(43);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(662);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(654);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(662);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {

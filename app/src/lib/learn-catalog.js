@@ -46,6 +46,7 @@ import { PARTNERSHIPS_META, PARTNERSHIPS_SESSION_FLOW, buildPartnershipsSchedule
 import { FINANCING_DEBT_META, FINANCING_DEBT_SESSION_FLOW, buildFinancingDebtSchedule, financingDebtProgressSummary, exportFinancingDebtCurriculumMarkdown, FINANCING_DEBT_INTEREST_TAG, FINANCING_DEBT_HELPER_TAG, FINANCING_DEBT_TUTOR_META } from './financing-debt-course.js';
 import { TAXES_RECORDS_META, TAXES_RECORDS_SESSION_FLOW, buildTaxesRecordsSchedule, taxesRecordsProgressSummary, exportTaxesRecordsCurriculumMarkdown, TAXES_RECORDS_INTEREST_TAG, TAXES_RECORDS_HELPER_TAG, TAXES_RECORDS_TUTOR_META } from './taxes-records-course.js';
 import { BANKING_META, BANKING_SESSION_FLOW, buildBankingSchedule, bankingProgressSummary, exportBankingCurriculumMarkdown, BANKING_INTEREST_TAG, BANKING_HELPER_TAG, BANKING_TUTOR_META } from './banking-course.js';
+import { STOCKS_META, STOCKS_SESSION_FLOW, buildStocksSchedule, stocksProgressSummary, exportStocksCurriculumMarkdown, STOCKS_INTEREST_TAG, STOCKS_HELPER_TAG, STOCKS_TUTOR_META } from './stocks-course.js';
 import { INSURANCE_RISK_META, INSURANCE_RISK_SESSION_FLOW, buildInsuranceRiskSchedule, insuranceRiskProgressSummary, exportInsuranceRiskCurriculumMarkdown, INSURANCE_RISK_INTEREST_TAG, INSURANCE_RISK_HELPER_TAG, INSURANCE_RISK_TUTOR_META } from './insurance-risk-course.js';
 import { INSPECTIONS_META, INSPECTIONS_SESSION_FLOW, buildInspectionsSchedule, inspectionsProgressSummary, exportInspectionsCurriculumMarkdown, INSPECTIONS_INTEREST_TAG, INSPECTIONS_HELPER_TAG, INSPECTIONS_TUTOR_META } from './inspections-course.js';
 import { EVICTIONS_META, EVICTIONS_SESSION_FLOW, buildEvictionsSchedule, evictionsProgressSummary, exportEvictionsCurriculumMarkdown, EVICTIONS_INTEREST_TAG, EVICTIONS_HELPER_TAG, EVICTIONS_TUTOR_META } from './evictions-course.js';
@@ -433,6 +434,33 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want a hand applying these eight to your own accounts \u2014 the two numbers on your statement nobody prints together, the signature you were asked for and can still refuse, the store you can start in a summer month, and the fee total almost nobody has ever added up. The whole course is free and open right here; this is for a hand with yours. Teaching, not financial or legal advice.',
       cta: 'I want help with mine',
       sent: '\u2713 Sent \u2014 Darrell will reach out. Know what it is for, and know what is holding you up.',
+    },
+  },
+  {
+    // COURSE ONE OF THE STOCK MARKET DEPARTMENT. Darrell 2026-09-19: "Stock
+    // Market courses to explore and explain the world of stock and bonds and
+    // countries that trade and how investment works world wide." Four courses
+    // were planned: stocks, bonds, the world market, and how investing works.
+    // This is the first, and it is deliberately the one that replaces a
+    // picture -- the way Banking opens by replacing the drawer. The picture
+    // here is that a share is a number on a screen. It is a piece of a
+    // company, and every confusion downstream grows from forgetting it.
+    //
+    // Its own gates hold two lines: Matthew 25 is NOT presented as an
+    // endorsement of equity investing (DR-0098), and no live figure is quoted
+    // anywhere -- only dated rules and labelled arithmetic (DR-0076), because
+    // a number printed in a lesson is wrong by the time it is read.
+    key: 'stocks', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...STOCKS_META, key: 'stocks', category: 'Stock Market' }, sessionFlow: STOCKS_SESSION_FLOW,
+    buildScheduleRows: () => buildStocksSchedule(null), progressSummary: (p) => stocksProgressSummary(p),
+    exportMarkdown: () => exportStocksCurriculumMarkdown(null), downloadName: 'stocks-what-you-actually-own-when-you-buy-a-share-curriculum.md',
+    interestTag: STOCKS_INTEREST_TAG, helperTag: STOCKS_HELPER_TAG, tutorCourseMeta: STOCKS_TUTOR_META,
+    interestText: (who) => `${STOCKS_INTEREST_TAG} ${who} wants a hand understanding shares, a pension statement, or something they already hold.`,
+    interestCopy: {
+      heading: 'Never had it explained?',
+      blurb: 'Tell Darrell you want a hand working these eight through something real \u2014 the fact that your purchase gives the company nothing, the gap between a bid and an ask that nobody bills you for, the share count that tells you what no letter tells you, and the weighting behind every headline about the market. The whole course is free and open right here; this is for a hand with yours. No company, fund or product is named anywhere in it. Teaching, not financial advice.',
+      cta: 'I want help understanding mine',
+      sent: '\u2713 Sent \u2014 Darrell will reach out. Understand the machinery, then ask the question the screen never asks.',
     },
   },
   {

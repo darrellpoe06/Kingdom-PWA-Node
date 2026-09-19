@@ -229,6 +229,14 @@ export const COURSE_CROSS_LISTINGS = [
   // The list was hand-kept, so every course added after it was written simply
   // never appeared. See HOME_ONLY below for the structural fix.
   { department: 'Business', courseKey: 'banking', why: 'What the bank does with your money — the counterparty every business banks with, and what it owes you.' },
+  // CROSS-LISTED WITH THE STOCK MARKET DEPARTMENT, 2026-09-19. The Stocks
+  // course lives in Stock Market and is genuinely discussed in two other
+  // places: a business raising capital by selling ownership is a Business
+  // question (its lesson two IS that decision), and a household pension is a
+  // Kingdom Life & Stewardship question, which is how most people first meet
+  // shares at all.
+  { department: 'Business', courseKey: 'stocks', why: 'Selling a piece of the ownership to fund the tower — the third road out of Luke 14:28, and the only one that is never repaid and never recovered.' },
+  { department: 'Kingdom Life & Stewardship', courseKey: 'stocks', why: 'Most households meet shares through a pension statement they have never opened. What a share is, who gets your money, and the question the screen never asks.' },
   { department: 'Business', courseKey: 'appraisal', why: 'What a thing is actually worth — valuation, which every business that holds or sells an asset must do honestly.' },
   { department: 'Business', courseKey: 'evictions', why: 'Ending a tenancy righteously — the hardest enforcement any operator does, and the one most easily done cruelly.' },
   { department: 'Business', courseKey: 'inspections', why: 'What you look at before you sign — diligence on the asset, which is diligence on the deal.' },
