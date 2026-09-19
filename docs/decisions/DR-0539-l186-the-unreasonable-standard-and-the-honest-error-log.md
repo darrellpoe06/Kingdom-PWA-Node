@@ -45,7 +45,7 @@ The ordinal-heading failure is now a standing assertion in L186's own test (`pla
 
 | | |
 |---|---|
-| Lesson | `ll186-the-unreasonable-standard-and-the-honest-error-log` |
+| Lesson | `ll187-the-unreasonable-standard-and-the-honest-error-log` |
 | Band fullness | child 0.51 · youth 0.64 · teen 0.67 · senior 0.67 |
 | Numbered points | lesson 30 · child 22 · youth 22 · teen 26 · senior 26 |
 | Quotations | **213 referenced spans, 213 verbatim, 0 faults** |
@@ -54,3 +54,8 @@ The ordinal-heading failure is now a standing assertion in L186's own test (`pla
 Debt proven not to grow: full-levels short 80 (0 added), band-differentiation duplicated 0, quotation elided 105 (0 added), course-quotation 0 added. Counts moved: crosslist 650 → 651, stage-reaches-reader 501 → 502.
 
 The video's own claims — research it cites on post-entry study hours and declining critical thinking — are **attributed, not asserted as measured by us**, and a test enforces that the attribution language is present.
+
+
+## Renumbered on merge (2026-09-19, DR-0052)
+
+A concurrent session landed its own **L185 — Knowledge Was Never the Savior** on `main` first, so this lesson is now **L187** (`ll187-the-unreasonable-standard-and-the-honest-error-log`). Only the lesson number moved; the content is untouched.

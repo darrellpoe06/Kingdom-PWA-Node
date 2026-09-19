@@ -64,3 +64,8 @@ The gates caught a **real quotation defect in L186**, unrelated to this lesson: 
 ## Re-review
 
 **re-review: 2026-12-19** — confirm later lessons have begun picking up Luke 4:19 and Isaiah 61:2 (the test asserts a ceiling of 2 elsewhere precisely so this lesson does not remain the only place they appear while the claim goes stale).
+
+
+## Renumbered on merge (2026-09-19, DR-0052)
+
+A concurrent session landed its own **L185 — Knowledge Was Never the Savior** on `main` first, so this lesson is now **L188** (`ll188-the-acceptable-year-and-the-whole-counsel`) and its test is `living-lessons-l188-verses.test.js`. Only the lesson number moved; every measurement recorded above was re-run after the renumber and still holds.

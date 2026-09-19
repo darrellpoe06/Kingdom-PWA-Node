@@ -44,7 +44,7 @@ The **quotations were verbatim**; the **references were wrong**. That is precise
 
 | | |
 |---|---|
-| Lesson | `ll185-glory-to-glory-one-letter-holds-both-sides` |
+| Lesson | `ll186-glory-to-glory-one-letter-holds-both-sides` |
 | Registers | adult + child, youth, teen, senior |
 | Band fullness | child 0.52 · youth 0.64 · teen 0.69 · senior 0.76 (floors 0.5 / 0.6 / 0.6 / 0.6) |
 | Numbered points | lesson 21 · child 13 · youth 16 · teen 19 · senior 20 |
@@ -54,3 +54,8 @@ The **quotations were verbatim**; the **references were wrong**. That is precise
 Debt measured after the append and **proven not to grow**: full-levels short 80 (unchanged), band-differentiation duplicated 0, quotation-integrity elided 105 (unchanged), course-quotation 0 added. Counts moved: crosslist 649 → 650, stage-reaches-reader 500 → 501, course-quotation 500 → 501.
 
 Three bands (child, youth, teen) had to be re-led so their openings name the lesson, because the title-in-narrative baseline takes entries off as bands are authored and never adds them.
+
+
+## Renumbered on merge (2026-09-19, DR-0052)
+
+A concurrent session landed its own **L185 — Knowledge Was Never the Savior** on `main` first, so this lesson is now **L186** (`ll186-glory-to-glory-one-letter-holds-both-sides`). The DR keeps its number and its title records the lesson as it was minted; only the lesson number moved, and none of the content changed. Allocation is always against live `main`.

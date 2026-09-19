@@ -220,6 +220,10 @@ describe('a pointer, never a copy', () => {
     // DR-0532) — Darrell's spoken teaching from his wife's choir rehearsal,
     // another real lesson into the existing Living Lessons course, so again
     // only the lesson total moves.
+    // And to 42 / 653 on 2026-09-19 when the concurrent branch merged again:
+    // main's own L185 (Knowledge Was Never the Savior) landed first, so our
+    // L185-L187 each moved up one per DR-0052 and one more real lesson joined
+    // the existing Living Lessons course -- again only the lesson total moves.
     // And to 42 / 652 on 2026-09-19 for L187 (“The Acceptable Year and the Whole
     // Counsel”, DR-0541) — Darrell’s two shouts over the Tony Evans interview,
     // another real lesson into the existing Living Lessons course —
@@ -231,10 +235,14 @@ describe('a pointer, never a copy', () => {
     // and to 42 / 647 the same day for L182 ("Two Witnesses", DR-0533) —
     // built from a debate Darrell sent; again a real lesson into the existing
     // Living Lessons course, so only the lesson total moves.
+    // And to 42 / 650 on 2026-09-19 for L185 ("Knowledge Was Never the Savior")
+    // -- Darrell's spoken teaching on gnosticism plus his own question about
+    // the jealousy of Yahweh, a real lesson into the existing Living Lessons
+    // course, so the course count holds at 42 and only the lesson total moves.
     expect(courses).toHaveLength(42);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(652);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(653);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(652);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(653);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
