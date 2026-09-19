@@ -106,7 +106,7 @@ The Drive files were created **eight days after** the 2016-09-07 organization
 date on the ILSOS record. That is exactly the interval a law office takes to
 send the executed set back, and it corroborates the state record independently.
 
-### The document identifies the firm that formed the entity — and it is the agent of record
+### The document identifies the firm that formed the entity — and that is the ROOT CAUSE, not a contact
 
 The operating agreement carries `Copyright © 2016 Hansford & Deckert, LLP` and
 the address **1701 South Prospect Avenue, Suite 206, Champaign, Illinois
@@ -115,14 +115,72 @@ Coordinated Legal Services, P.C.*
 
 **That address is character-for-character the registered agent address on the
 ILSOS record, and the agent on file is John F. Deckert.** The firm that formed
-POE TECH, LLC in 2016 is still its agent of record in 2026.
+POE TECH, LLC in 2016 is still the agent of record in 2026.
 
-This turns the "registered agent may no longer be engaged" item above from an
-open question into a **first phone call**. He is a known, reachable
-relationship: a 2024 message from Christina describes him as the attorney who
-put the Poe Trust together, and a 2022 message in the same account carries a
-direct number for him. **He is the natural person to ask the two reinstatement
-questions to**, and he already holds the file.
+> **CORRECTION, 2026-09-19, same day, declared by Darrell:** *"Deckert is no
+> longer doing law and has moved to another country."*
+>
+> An earlier version of this section called him "a known, reachable
+> relationship" and "the natural person to ask," and turned the open agent
+> question into a "first phone call." **That was wrong and is retracted.** It
+> rested on an address match plus two old messages — real evidence of who the
+> agent of record IS, but never evidence that he is still reachable or still
+> practising. Matching a record is not confirming a person. Recorded rather
+> than quietly edited, per DR-0076 §8.
+
+**What the correction actually buys us is better than a phone number: it is the
+root cause.** The state record shows the 2023 annual report with a filing date
+of `00-00-0000` — never filed — followed by involuntary dissolution on
+2024-03-08. The registered agent is the statutory conduit for exactly those
+notices. **If the agent left the practice and the country, the delinquency
+notices went to an office with nobody in it.** That fits every fact on the
+record: no dissolution notice in either Gmail account (searched, absent),
+no annual report filed, and a dissolution nobody knew about until this week.
+
+This reframes the fork in front of counsel. It is no longer "reinstate the
+entity" versus "start clean" with a friendly attorney on one side of the
+scale — **the relationship advantage that argument leaned on does not exist.**
+Whichever path is chosen, a NEW registered agent must be appointed, and the
+mechanism that failed must be replaced rather than re-pointed.
+
+### Appointing the replacement agent — verified against the state's own rules
+
+Confirmed at ilsos.gov on 2026-09-19, not asserted from memory:
+
+- **Every Illinois LLC must appoint and maintain a registered agent in
+  Illinois.** The agent is the entity authorised to accept service of process
+  and is the conduit between the company and the Secretary of State.
+- **The agent must reside in Illinois**, and a business entity serving as agent
+  must itself be registered with the Secretary of State.
+- **The LLC may not act as its own registered agent.** (An individual member
+  is a different person from the LLC, so this bars self-appointment by the
+  entity, not appointment of Darrell personally.)
+- **The registered office needs a street address**, not a bare PO box.
+- **Filed WITH the reinstatement:** *"If the registered agent and/or office
+  address has changed since dissolution or revocation, form LLC-1.36/1.37 must
+  be completed."* This matters because the stand-alone electronic agent-change
+  application is open only to companies **in good standing** — which POE TECH,
+  LLC is not. The agent change rides in the reinstatement packet; it cannot be
+  done first on its own.
+
+**Three replacement options, for counsel to weigh with Darrell:**
+
+1. **Darrell personally**, if he is an Illinois resident with an Illinois
+   street address. No fee. He receives service directly, so nothing can go
+   unseen at a vacant office again — which is precisely the failure that
+   caused this. Cost: the address becomes public record, and someone must be
+   present at it during business hours.
+2. **A commercial registered agent service.** A modest annual fee buys scanning
+   and forwarding, so notices reach an inbox rather than a door. **This is the
+   direct structural fix to the root cause** and is the option to beat.
+3. **New Illinois counsel**, if an attorney is being engaged for the IP
+   assignment anyway — but note this is the arrangement that just failed, and
+   it fails the same way again if that attorney later moves on without a
+   handover.
+
+**Do not simply re-point the agent field and move on.** The lesson in the
+record is that an agent nobody is watching is the same as no agent, and the
+company does not find out until the state has already dissolved it.
 
 ### One substantive term, relevant to the assignment
 
