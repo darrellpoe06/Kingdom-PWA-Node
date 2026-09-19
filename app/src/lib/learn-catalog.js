@@ -48,6 +48,7 @@ import { TAXES_RECORDS_META, TAXES_RECORDS_SESSION_FLOW, buildTaxesRecordsSchedu
 import { BANKING_META, BANKING_SESSION_FLOW, buildBankingSchedule, bankingProgressSummary, exportBankingCurriculumMarkdown, BANKING_INTEREST_TAG, BANKING_HELPER_TAG, BANKING_TUTOR_META } from './banking-course.js';
 import { INSURANCE_RISK_META, INSURANCE_RISK_SESSION_FLOW, buildInsuranceRiskSchedule, insuranceRiskProgressSummary, exportInsuranceRiskCurriculumMarkdown, INSURANCE_RISK_INTEREST_TAG, INSURANCE_RISK_HELPER_TAG, INSURANCE_RISK_TUTOR_META } from './insurance-risk-course.js';
 import { INSPECTIONS_META, INSPECTIONS_SESSION_FLOW, buildInspectionsSchedule, inspectionsProgressSummary, exportInspectionsCurriculumMarkdown, INSPECTIONS_INTEREST_TAG, INSPECTIONS_HELPER_TAG, INSPECTIONS_TUTOR_META } from './inspections-course.js';
+import { EVICTIONS_META, EVICTIONS_SESSION_FLOW, buildEvictionsSchedule, evictionsProgressSummary, exportEvictionsCurriculumMarkdown, EVICTIONS_INTEREST_TAG, EVICTIONS_HELPER_TAG, EVICTIONS_TUTOR_META } from './evictions-course.js';
 import { MATHEMATICS_META, MATHEMATICS_SESSION_FLOW, buildMathematicsSchedule, mathematicsProgressSummary, exportMathematicsCurriculumMarkdown, MATHEMATICS_INTEREST_TAG, MATHEMATICS_HELPER_TAG, MATHEMATICS_TUTOR_META } from './mathematics-class.js';
 import { RTO_BUSINESS_META, RTO_BUSINESS_SESSION_FLOW, buildRtoBusinessSchedule, rtoBusinessProgressSummary, exportRtoBusinessCurriculumMarkdown, RTO_BUSINESS_INTEREST_TAG, RTO_BUSINESS_HELPER_TAG, RTO_BUSINESS_TUTOR_META } from './rent-to-own-business-class.js';
 import { DEVELOPMENT_META, DEVELOPMENT_SESSION_FLOW, buildDevelopmentSchedule, developmentProgressSummary, exportDevelopmentCurriculumMarkdown, DEVELOPMENT_INTEREST_TAG, DEVELOPMENT_HELPER_TAG, DEVELOPMENT_TUTOR_META } from './development-class.js';
@@ -431,6 +432,28 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want a hand applying these eight to your own accounts \u2014 the two numbers on your statement nobody prints together, the signature you were asked for and can still refuse, the store you can start in a summer month, and the fee total almost nobody has ever added up. The whole course is free and open right here; this is for a hand with yours. Teaching, not financial or legal advice.',
       cta: 'I want help with mine',
       sent: '\u2713 Sent \u2014 Darrell will reach out. Know what it is for, and know what is holding you up.',
+    },
+  },
+  {
+    // COURSE ELEVEN OF THE REAL ESTATE DEPARTMENT. Ten courses covered the
+    // ground, the stewardship, the transaction, the tenant, the building, the
+    // partner, the lender, the record, the loss and the looking. This one
+    // covers the hardest hour any of them can produce: the day somebody in
+    // your building cannot pay and you are the one holding the power. What
+    // Scripture restrains, over and over, is the METHOD and the MEMORY of the
+    // one with the power -- it never cancels the debt anywhere in this
+    // material, which is the limit the course test pins in both directions.
+    key: 'evictions', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...EVICTIONS_META, key: 'evictions', category: 'Real Estate' }, sessionFlow: EVICTIONS_SESSION_FLOW,
+    buildScheduleRows: () => buildEvictionsSchedule(null), progressSummary: (p) => evictionsProgressSummary(p),
+    exportMarkdown: () => exportEvictionsCurriculumMarkdown(null), downloadName: 'evictions-handled-righteously-curriculum.md',
+    interestTag: EVICTIONS_INTEREST_TAG, helperTag: EVICTIONS_HELPER_TAG, tutorCourseMeta: EVICTIONS_TUTOR_META,
+    interestText: (who) => `${EVICTIONS_INTEREST_TAG} ${who} is holding a situation where somebody cannot pay \u2014 or is the one behind and frightened.`,
+    interestCopy: {
+      heading: 'Somebody cannot pay?',
+      blurb: 'Tell Darrell you want a hand applying these eight to a real situation \u2014 standing outside the door rather than walking in, naming the millstone before anything is taken, writing the window at both ends before you need it, and listing what you are holding that is not yours. If you are the one behind and frightened, say so and start at lesson three and lesson eight. The whole course is free and open right here; this is for a hand with yours. Teaching, not legal advice \u2014 get somebody licensed in your own state before you act.',
+      cta: 'I want help with mine',
+      sent: '\u2713 Sent \u2014 Darrell will reach out. And if you are the one behind, start at lesson three, which is about what may not be done to you.',
     },
   },
   {

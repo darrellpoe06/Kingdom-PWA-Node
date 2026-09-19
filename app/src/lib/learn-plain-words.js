@@ -83,6 +83,7 @@ export const COURSE_PLAIN_WORDS = {
   banking: ['bank', 'money', 'saving', 'interest', 'debt', 'fees'],
   'insurance-risk': ['insurance', 'fire', 'flood', 'accident', 'house', 'bills'],
   inspections: ['house', 'repairs', 'building', 'fixing', 'plumbing', 'buying'],
+  evictions: ['rent', 'landlord', 'tenant', 'debt', 'money', 'home'],
   // --- Real Estate ----------------------------------------------------------
   'property-principle': ['house', 'land', 'owning', 'home', 'money'],
   'buying-terms': ['buying', 'house', 'price', 'deal', 'money', 'contract'],
