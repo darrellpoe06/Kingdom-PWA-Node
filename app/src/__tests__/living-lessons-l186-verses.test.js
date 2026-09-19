@@ -1,6 +1,6 @@
 // @vitest-environment node
 // =============================================================================
-// L185 — Knowledge Was Never the Savior
+// L186 — Knowledge Was Never the Savior
 // =============================================================================
 // Darrell 2026-09-19, five messages in a row, mid IP-conversion work: a
 // Trackstarz discussion of a spiritual center, gnosticism, "Christ
@@ -57,7 +57,7 @@ import { ourProseOnly, fleschKincaidGrade, NEW_LESSON_CHILD_CEILING } from '../.
 import { measureDifferentiation, DIFF_CEILING } from '../../../scripts/band-differentiation.mjs';
 import { namesItsLesson } from '../../../scripts/title-in-narrative.mjs';
 
-const ID = 'll185-knowledge-was-never-the-savior';
+const ID = 'll186-knowledge-was-never-the-savior';
 const L = LIVING_LESSONS_MODULES.find((m) => m.id === ID);
 const BANDS = ['child', 'youth', 'teen', 'senior'];
 
@@ -114,13 +114,13 @@ const quotationFaults = (text, path = '') => {
 
 const ALL_TEXT = (() => { const a = []; walkStrings(L, '', (t) => a.push(t)); return a.join(' \n '); })();
 
-describe('L185 — wired, and the series count stays honest', () => {
+describe('L186 — wired, and the series count stays honest', () => {
   it('is in the catalog with every contract field and all four bands', () => {
-    expect(L, 'L185 not found in LIVING_LESSONS_MODULES').toBeTruthy();
+    expect(L, 'L186 not found in LIVING_LESSONS_MODULES').toBeTruthy();
     for (const k of ['title', 'bigIdea', 'anchor', 'benefits', 'inApp', 'levels', 'quiz', 'facilitator', 'lesson']) {
-      expect(L[k], `L185 missing ${k}`).toBeTruthy();
+      expect(L[k], `L186 missing ${k}`).toBeTruthy();
     }
-    for (const b of BANDS) expect(L.levels[b], `L185 missing the ${b} band`).toBeTruthy();
+    for (const b of BANDS) expect(L.levels[b], `L186 missing the ${b} band`).toBeTruthy();
   });
 
   it('the declared week count equals the real series length', () => {
@@ -133,7 +133,7 @@ describe('L185 — wired, and the series count stays honest', () => {
   });
 });
 
-describe('L185 — every quoted verse is verbatim', () => {
+describe('L186 — every quoted verse is verbatim', () => {
   it('no quotation in any field drifts from the KJV', () => {
     const faults = [];
     walkStrings(L, '', (text, path) => faults.push(...quotationFaults(text, path)));
@@ -150,7 +150,7 @@ describe('L185 — every quoted verse is verbatim', () => {
   });
 });
 
-describe('L185 — teaches the doctrine, never a verdict on a person', () => {
+describe('L186 — teaches the doctrine, never a verdict on a person', () => {
   // THE LOAD-BEARING GATE. Taken from the source material Darrell pasted, not
   // from memory: these are the people and the institution the broadcast named.
   // The lesson answers what is TAUGHT and leaves every one of them alone.
@@ -158,7 +158,7 @@ describe('L185 — teaches the doctrine, never a verdict on a person', () => {
 
   it('no person or institution from the source material is named anywhere in the lesson', () => {
     const present = NAMED_IN_THE_SOURCE.filter((n) => new RegExp(`\\b${n}\\b`, 'i').test(ALL_TEXT));
-    expect(present, `L185 names people it must not judge: ${present.join(', ')}`).toEqual([]);
+    expect(present, `L186 names people it must not judge: ${present.join(', ')}`).toEqual([]);
   });
 
   it('PROVEN-TO-CATCH: the same scan fires on a sentence that does name one', () => {
@@ -172,7 +172,7 @@ describe('L185 — teaches the doctrine, never a verdict on a person', () => {
   });
 });
 
-describe('L185 — the six things it could most easily have got wrong', () => {
+describe('L186 — the six things it could most easily have got wrong', () => {
   it('keeps Knowledge a Resource (DR-0530) rather than making study the enemy', () => {
     expect(ALL_TEXT).toMatch(/out of his mouth cometh knowledge and understanding/);
     expect(L.bigIdea).toMatch(/RESOURCE/);
@@ -220,7 +220,7 @@ describe('L185 — the six things it could most easily have got wrong', () => {
   });
 });
 
-describe('L185 — the shape invariants, measured not asserted', () => {
+describe('L186 — the shape invariants, measured not asserted', () => {
   it('no band is short of its fullness floor', () => {
     expect(shortBands(measureFullness(L))).toEqual([]);
   });
@@ -242,7 +242,7 @@ describe('L185 — the shape invariants, measured not asserted', () => {
   });
 });
 
-describe('L185 — the jealousy of Yahweh, answered in every register', () => {
+describe('L186 — the jealousy of Yahweh, answered in every register', () => {
   // Darrell asked this directly, mid-build. The system's own account calls the
   // Creator "jealous, arrogant, and oppressive" and offers that as the evidence
   // for a demiurge, so the attribute is EXHIBIT A and not an aside. A band that
