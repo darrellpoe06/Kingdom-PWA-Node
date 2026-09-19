@@ -12,7 +12,7 @@ actual assignment. Every fact below is measured from the repository on
 ## The ask, in one sentence
 
 **Draft a written assignment transferring all intellectual property Darrell Poe
-created personally in the PoeTech / SKOS work to a newly formed Illinois LLC,
+created personally in the PoeTech / SKOS work to PoeTech LLC (already formed),
 with Schedule A (below) attached — plus an IP-assignment clause for the
 contractor agreement that subject-matter experts will sign before contributing.**
 
@@ -31,9 +31,18 @@ not exist here**, and it is measured, not asserted:
 | Non-Claude co-author trailers across 21 co-authored commits | **0** |
 | Repository created | 2026-04-27 |
 | Files in the tree | 4,486+ |
+| **PoeTech LLC incorporated** | **2016** (per Darrell; not verified from the sandbox) |
 
 **One human author. Zero contested contributions. Clean title.** The assignment
 is therefore a single signature over an undisputed chain — not a reconstruction.
+
+**Scope question counsel must resolve — the entity is a decade older than this
+repository.** PoeTech LLC dates to 2016; this codebase began 2026-04-27. The
+assignment should therefore be drafted to reach **both** the pre-2026 business
+assets created under the PoeTech name AND this repository's work — not only what
+is in the register. The register is Schedule A for the software and content; it
+is not an inventory of ten years of business. Ask counsel whether the operating
+agreement already addresses IP, and whether anything was assigned previously.
 
 **This is a wasting condition.** The moment a subject-matter expert contributes,
 they own their contribution by default. That is why the contractor clause
@@ -83,7 +92,7 @@ claiming a protection the facts foreclose.
 
 | Mark | Uses | Note for counsel |
 |---|---|---|
-| **PoeTech** | 203 | The house mark. File this one first. |
+| **PoeTech** | 203 | The house mark. **NOT CLEAR — see the clearance finding below. Do not file first on my say-so.** |
 | **SKOS** | 196 | **Clearance risk — collides with an established W3C standard.** Screen before spending. |
 | Ari | 75 | Short mark, crowded class. |
 | Council Chamber | 58 | |
@@ -91,6 +100,58 @@ claiming a protection the facts foreclose.
 | The Root | 23 | Descriptive-leaning; weaker. |
 | Behavioral Mirror | 19 | Distinctive method name. |
 | The Love Corner | 13 | Church-facing; has its own branded door. |
+
+### CLEARANCE FINDING, 2026-09-19 — corrects an earlier recommendation
+
+An earlier draft of this pack, and the advice given in chat, said *"file
+`PoeTech` first — the house mark, cleanest, most defensible."* **That was
+unmeasured and is withdrawn.** It rested on in-repo usage counts — how often the
+word appears in our own files — which measures nothing about third-party use in
+commerce. No clearance search had been run.
+
+A web search on 2026-09-19 found **prior users of PoeTech / Poe Tech in US
+commerce, in related fields**:
+
+| Entity | Where |
+|---|---|
+| PoeTech Digital Enterprises LLC | California, active ~2 years |
+| Poe Tech Web Design & Digital Marketing LLC | Sykesville, Maryland |
+| poetechllc.com (lead generation) | Westminster, Maryland |
+| Poe Technologies LLC (IT consulting) | — |
+| POET Technologies (public company) | opto-electronics |
+
+### AND THEN 2016 — which likely flips the finding
+
+Darrell, same session: *"2016 is when it was incorporated into the LLC."*
+
+**PoeTech LLC has existed since 2016 — roughly ten years.** That reframes the
+table above, because US trademark rights arise from **use in commerce**, and
+priority generally runs to the **first** user, not the first filer.
+
+Against that: PoeTech Digital Enterprises LLC (California) is reported active
+**~2 years**, i.e. around 2024. The Maryland entities are not dated here.
+
+So the live question is not *"is Darrell blocked?"* It is plausibly the reverse:
+**is Darrell the SENIOR user, with common-law rights predating the others?** A
+2016 continuous-use date in the same field would be a real asset rather than an
+obstacle, and it is exactly the kind of fact a clearance search is for.
+
+**Still counsel's call, and still unverified from here.** Priority turns on
+actual, continuous use in commerce, its geographic scope, and the classes
+involved — none of which a web search establishes. What changed is the SHAPE of
+the question, which is worth counsel knowing before they price the work.
+
+**So `PoeTech` needs a clearance search before filing spend** — not because it
+is presumed blocked, but because a 2016 priority date is worth establishing
+properly if it holds.
+
+**Honest limit (DR-0076 §8):** this is a WEB SEARCH, not a clearance search. The
+sandbox is egress-blocked from `apps.ilsos.gov`, `uspto.report` and the
+registries, so USPTO records were not checked and none of the above was
+confirmed against a primary source. A real clearance search covers the USPTO
+register, state registries, and common-law use, and is counsel's work. What is
+established here is only that **the question is real and unanswered** — which is
+enough to stop a filing decision made on my earlier say-so.
 
 **Deliberately excluded — do not add "The Way" to any filing.** It is the Word's
 own language for the early believers (Acts 9:2; 19:9; 24:14). It is used as
@@ -146,12 +207,16 @@ of Love into something that can be handed to people he will never meet.
 
 ## Checklist for the visit
 
-- [ ] LLC formed (Illinois SOS) and EIN issued — **do this first**
+- [ ] **Confirm PoeTech LLC is ACTIVE and in good standing** — Darrell reports
+      the LLC exists; it could not be verified from the build sandbox
+      (`apps.ilsos.gov` is egress-blocked). A lapsed entity cannot properly hold
+      an assignment. Check at ilsos.gov business search.
+- [ ] EIN issued
 - [ ] Operating agreement adopted
 - [ ] **Assignment executed**, with the dated register printout as Schedule A
 - [ ] Contractor agreement carries the IP clause — **before any SME contributes**
 - [ ] Counsel told about the AI-authorship split (do not over-claim)
-- [ ] `SKOS` clearance question raised before any trademark spend
+- [ ] **`PoeTech` AND `SKOS` clearance searches run before ANY trademark spend** — prior users found for both
 
 ---
 
