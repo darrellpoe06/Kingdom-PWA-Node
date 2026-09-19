@@ -219,16 +219,17 @@ describe('a pointer, never a copy', () => {
     // DR-0532) — Darrell's spoken teaching from his wife's choir rehearsal,
     // another real lesson into the existing Living Lessons course, so again
     // only the lesson total moves.
-    // And to 42 / 649 on 2026-09-19 when the concurrent branch merged: main's own
+    // And to 42 / 650 on 2026-09-19 for L185 ("Glory to Glory", DR-0537) —
+    // and to 42 / 649 the same day when the concurrent branch merged: main's own
     // L180 (He Giveth Thee Power to Get Wealth) joined L181-L183 and L184
     // (He Sings, renumbered from 180 per DR-0052) —
     // and to 42 / 647 the same day for L182 ("Two Witnesses", DR-0533) —
     // built from a debate Darrell sent; again a real lesson into the existing
     // Living Lessons course, so only the lesson total moves.
     expect(courses).toHaveLength(42);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(649);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(650);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(649);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(650);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {

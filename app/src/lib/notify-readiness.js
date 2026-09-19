@@ -57,6 +57,11 @@
  *  unreachable for a year without choosing to be. */
 export const NOTIFY_SNOOZE_DAYS = 14;
 
+/** How long a failed ATTEMPT stays quiet. Shorter than a dismissal -- the
+ *  person wants this and we owe them another try -- but never zero, because
+ *  zero is the nag. */
+export const NOTIFY_ATTEMPT_QUIET_DAYS = 1;
+
 /** The in-page event the app-wide watcher raises on every unread change, so
  *  one subscription feeds every listener (a second `subscribeDirectMessages`
  *  would mean a second channel and a second heartbeat for the same rows). */
@@ -105,6 +110,30 @@ export function readinessFrom({
       canAct: false,
     };
   }
+  // ALREADY SAID YES, BUT NOT REGISTERED. Darrell, 2026-09-19, with a
+  // screenshot of the offer on his phone: "I get a lot of requests for getting
+  // notifications however why does it keep asking after agreeing to?"
+  //
+  // He had agreed. The browser had granted. What had NOT happened is the
+  // subscription -- and the old code only ever asked `subscribed && granted`,
+  // so a failed registration fell through to the plain 'off' branch and the
+  // same "Turn on notifications" card came back every time the app loaded.
+  // Agreement was never what the offer measured, which is why agreeing could
+  // not silence it.
+  //
+  // This is its own state, for two reasons. The copy was a LIE to someone who
+  // had already said yes -- it asked him to do a thing he had done. And the
+  // real failure is OURS (the subscribe step), so the card must say that
+  // rather than send him back around the same loop.
+  if (permission === 'granted' && !subscribed) {
+    return {
+      state: 'permitted',
+      headline: 'You said yes — this device just is not registered yet.',
+      detail: 'Your browser already allows notifications. The step that registers this '
+        + 'device did not finish, so try once more.',
+      canAct: true,
+    };
+  }
   if (subscribed && permission === 'granted') {
     return {
       state: 'on',
@@ -139,10 +168,20 @@ export function snoozeActive(dismissedAt, now = Date.now(), days = NOTIFY_SNOOZE
  * in, because a subscription is bound to a person's device row. And never
  * inside a snooze.
  */
-export function shouldOfferNotifications(readiness, { signedIn = false, dismissedAt = null, now = Date.now() } = {}) {
-  if (!readiness || readiness.state !== 'off') return false;
+export function shouldOfferNotifications(
+  readiness,
+  { signedIn = false, dismissedAt = null, attemptedAt = null, now = Date.now() } = {},
+) {
+  if (!readiness) return false;
   if (!signedIn) return false;
-  return !snoozeActive(dismissedAt, now);
+  // 'permitted' is offered too -- the person can still finish -- but it is a
+  // RETRY, not the original ask, and it carries its own quiet window.
+  if (readiness.state !== 'off' && readiness.state !== 'permitted') return false;
+  if (snoozeActive(dismissedAt, now)) return false;
+  // An ATTEMPT quiets the offer the same way a dismissal does. Without this a
+  // failed registration re-asks on every load, which is exactly the nag
+  // Darrell reported: he acted, it failed silently, and the card returned.
+  return !snoozeActive(attemptedAt, now, NOTIFY_ATTEMPT_QUIET_DAYS);
 }
 
 /**

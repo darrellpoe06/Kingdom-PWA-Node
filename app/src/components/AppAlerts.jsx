@@ -60,13 +60,19 @@ export const ARRIVAL_VISIBLE_MS = 9000;
 
 export const SNOOZE_KEY = 'poetech:notify-offer-dismissed';
 
+// Stamped when the person ACTS on the offer, not when they wave it away.
+// Darrell, 2026-09-19: "why does it keep asking after agreeing to?" -- because
+// nothing recorded that he had. A registration that fails silently left the
+// state at 'off' and the same card returned on the next load.
+export const ATTEMPT_KEY = 'poetech:notify-offer-attempted';
+
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 
-function readSnooze(win) {
-  try { return win.localStorage.getItem(SNOOZE_KEY); } catch { return null; }
+function readStamp(win, key) {
+  try { return win.localStorage.getItem(key); } catch { return null; }
 }
-function writeSnooze(win, value) {
-  try { win.localStorage.setItem(SNOOZE_KEY, value); } catch { /* a storage-blocked browser still gets the offer next time */ }
+function writeStamp(win, key, value) {
+  try { win.localStorage.setItem(key, value); } catch { /* a storage-blocked browser still gets the offer next time */ }
 }
 
 export default function AppAlerts({
@@ -80,7 +86,8 @@ export default function AppAlerts({
   const [signedIn, setSignedIn] = useState(false);
   const [status, setStatus] = useState(null);
   const [arrival, setArrival] = useState(null);
-  const [dismissedAt, setDismissedAt] = useState(() => (win ? readSnooze(win) : null));
+  const [dismissedAt, setDismissedAt] = useState(() => (win ? readStamp(win, SNOOZE_KEY) : null));
+  const [attemptedAt, setAttemptedAt] = useState(() => (win ? readStamp(win, ATTEMPT_KEY) : null));
 
   // Live browser state, never a saved preference (PushNotifications rule 1).
   const refresh = useCallback(async () => {
@@ -132,7 +139,9 @@ export default function AppAlerts({
   // from the defaults above would flash it at someone who already has
   // notifications on.
   const offer = !!status && vapidKey !== undefined
-    && shouldOfferNotifications(readiness, { signedIn, dismissedAt, now: now() });
+    && shouldOfferNotifications(readiness, {
+      signedIn, dismissedAt, attemptedAt, now: now(),
+    });
 
   const openThread = () => {
     if (!win || !win.location) return;
@@ -147,8 +156,18 @@ export default function AppAlerts({
 
   const dismissOffer = () => {
     const stamp = new Date(now()).toISOString();
-    writeSnooze(win, stamp);
+    writeStamp(win, SNOOZE_KEY, stamp);
     setDismissedAt(stamp);
+  };
+
+  // The person acted. Record it BEFORE the outcome is known, because the
+  // failure this fixes is precisely the one where the attempt does not
+  // complete -- if we only stamped on success, a silent failure would re-ask
+  // on the very next load, which is the nag being reported.
+  const noteAttempt = () => {
+    const stamp = new Date(now()).toISOString();
+    writeStamp(win, ATTEMPT_KEY, stamp);
+    setAttemptedAt(stamp);
   };
 
   if (!arrival && !offer) return null;
@@ -199,7 +218,7 @@ export default function AppAlerts({
               registration={registration}
               vapidPublicKey={vapidKey}
               win={win}
-              onChange={() => refresh()}
+              onChange={() => { noteAttempt(); refresh(); }}
             />
             <button
               type="button"
