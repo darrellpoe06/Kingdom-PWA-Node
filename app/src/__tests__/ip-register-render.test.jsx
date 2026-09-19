@@ -120,6 +120,28 @@ describe('IpRegisterPanel reports the real position', () => {
     expect(IP_PORTFOLIO.some((a) => a.name === 'Operational runbooks' && a.publiclyDisclosed)).toBe(true);
   });
 
+  it('names the entity prerequisite, and refuses to paint the entity STATUS', async () => {
+    // Measured 2026-09-19: POE TECH, LLC (IL file 05947103) has been in
+    // involuntary dissolution since 2024-03-08. The surface previously said
+    // "one document moves the whole register" with no mention that the
+    // receiving entity must exist — true about the register, wrong about the
+    // sequence, and a reader would have acted on it.
+    //
+    // The fix states the REQUIREMENT, never the status. A status pasted into a
+    // component is the exact stale-claim class this register exists to refuse,
+    // and it would go wrong the day the entity is reinstated. So this gate
+    // asserts BOTH halves: the requirement is present, and no live status is
+    // hardcoded beside it.
+    await mount();
+    expect(text()).toMatch(/must actually exist and be in good\s+standing/i);
+    expect(text()).toMatch(/dissolved or lapsed entity is not a sound instrument/i);
+    expect(text()).toMatch(/Secretary of State/i);
+    // The status itself must NOT be painted here.
+    expect(text()).not.toMatch(/involuntary dissolution/i);
+    expect(text()).not.toMatch(/POE TECH, LLC/);
+    expect(text()).not.toMatch(/05947103/);
+  });
+
   it('says plainly that this is PoeTech’s register and not the tenant’s', async () => {
     await mount();
     expect(text()).toMatch(/not yours/i);

@@ -336,6 +336,24 @@ export function IpRegisterPanel({ assets = IP_PORTFOLIO }) {
         )}
       </p>
 
+      {/* The prerequisite the sentence above quietly assumed, and should not.
+          Measured 2026-09-19: POE TECH, LLC (IL file 05947103) has been in
+          INVOLUNTARY DISSOLUTION since 2024-03-08 — the 2023 annual report was
+          never filed. An assignment into a dissolved entity is not a sound
+          instrument, so "one document" was true about the register and wrong
+          about the sequence.
+
+          This surface deliberately states the REQUIREMENT rather than the
+          entity's current status: a status pasted here would be exactly the
+          stale-claim class this register exists to refuse, and would go wrong
+          the day it is reinstated. The requirement is true either way. */}
+      <p className="text-xs leading-relaxed mt-2 pl-3 border-l-2 border-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
+        <strong>Before that document can be signed:</strong> the receiving entity must actually exist and be in good
+        standing. An assignment into a dissolved or lapsed entity is not a sound instrument, and entity status lives
+        with the Secretary of State — not in this repository, so this surface will never claim to know it. Verify it
+        there first. <span className="text-[#5A5751] italic">Not legal advice.</span>
+      </p>
+
       {/* The five tests, with how many rows pass each. Computed, never typed. */}
       <ol className="mt-3 space-y-1.5">
         {ASSET_TESTS.map((test, i) => {
