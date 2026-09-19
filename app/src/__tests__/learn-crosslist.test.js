@@ -239,10 +239,15 @@ describe('a pointer, never a copy', () => {
     // -- Darrell's spoken teaching on gnosticism plus his own question about
     // the jealousy of Yahweh, a real lesson into the existing Living Lessons
     // course, so the course count holds at 42 and only the lesson total moves.
+    // And to 42 / 654 on 2026-09-19 for L189 (“Follow the Leader — the
+    // Shepherd of Our Souls”, DR-0546) — Darrell spoke this one in pieces
+    // across an evening and then named it himself; again a real lesson into
+    // the existing Living Lessons course, so the course count holds at 42 and
+    // only the lesson total moves.
     expect(courses).toHaveLength(42);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(653);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(654);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(653);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(654);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
