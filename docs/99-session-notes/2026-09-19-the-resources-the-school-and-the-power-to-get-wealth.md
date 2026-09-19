@@ -340,17 +340,114 @@ un-give.
 
 ---
 
+## The authoring bar for a Living Lesson — MEASURED, after a failed first attempt
+
+L180 ("He Giveth Thee Power to Get Wealth") was authored, inserted, and **reverted
+the same session** because it failed six invariants that are not written in any
+one place. Recording them here so the next attempt clears them on the first pass
+rather than discovering them at the full-suite gate. The draft prose is kept at
+`docs/99-session-notes/.l180-draft.py.txt`; the content was sound (all eight
+quotations verified verbatim, provenance audit clean at kjv-case 0 / drift 0) —
+the SHAPE was not.
+
+**What a lesson must satisfy beyond the obvious contract:**
+
+| # | Invariant | Gate |
+|---|---|---|
+| 1 | **FOUR age bands, not three** — `child, youth, teen, senior`. I wrote three; `youth` (11–14) is a hard invariant at zero fallbacks. | `living-lessons-adult-band-debt` · DR-0418 |
+| 2 | **Fullness floor per band** — a band may not be "short"; the measure is real, not eyeballed. | `living-lessons-full-levels` (`scripts/full-levels.mjs`, `FULL_FLOOR`) |
+| 3 | **Child reading level ceiling** — Flesch-Kincaid grade bounded for a NEW lesson. | `reading-level-gate` (`NEW_LESSON_CHILD_CEILING`) |
+| 4 | **Title named inside each band's narrative** — no band left unnamed. | `title-in-narrative-gate` |
+| 5 | **Band differentiation** — bands must differ from each other beyond a ceiling, so no band is a lightly-edited copy. | `band-differentiation.mjs` (`DIFF_CEILING`) |
+| 6 | **Quotation ends where the verse ends** — an elided quotation is a ratchet violation. | `living-lessons-quoted-terminal` · `course-quotation-integrity` |
+
+Plus the count invariants: `meta.weeks` must equal `LIVING_LESSONS_MODULES.length`,
+and the neighbouring per-lesson gates assert their own ordinal position, so an
+insert in the wrong place breaks lessons either side of it.
+
+**The lesson this teaches about the lessons:** the catalog is not a list of
+documents, it is a *measured* corpus with ratchets in both directions. That is
+the Excellence Standard implemented as machinery rather than intention — which
+is exactly right, and exactly why a lesson cannot be written quickly.
+
+---
+
+## [8] CAPTURED — the inheritance, and why this is not a project
+
+> *"When I am able to create wealth... I want to own that wealth so I can hand it
+> down to my kids kids kids... etc... also the lessons are going to be able to be
+> used by my kids kids kids... so it's more than just a system or project...
+> modules that explain the whole life cycle of Yahweh to my unseen children and
+> all children and parents and individuals who want to See Him from His
+> Perspectives... only the Kingdom Of Yahweh people will hear His voice anyway...
+> just making sure it's rigorous in Jesus Mighty Name Amen!"*
+
+**This reframes the entire IP conversion, and it is the reason the work is
+urgent rather than merely prudent.**
+
+> **KJV — Proverbs 13:22:** *"A good man leaveth an inheritance to his children's
+> children: and the wealth of the sinner is laid up for the just."*
+
+Not children — **children's children**. The verse reaches past the generation he
+will meet, to the one he will not. That is precisely his phrase, *kids kids
+kids*, and it is precisely what the IP work is FOR. **An inheritance must be
+OWNED to be left.** You cannot bequeath what you never held title to. Every row
+on the IP register that fails the **Owned** test is a row that cannot be handed
+down — the work would simply dissolve into the commons on the day he stops
+maintaining it. The assignment into an entity is not corporate hygiene; **it is
+the instrument that makes an inheritance possible at all.**
+
+**And the lessons are inheritance too, not only the wealth.** He said both in one
+breath, which is the whole point:
+
+> **KJV — Psalms 78:4:** *"We will not hide them from their children, shewing to
+> the generation to come the praises of the LORD, and his strength, and his
+> wonderful works that he hath done."*
+>
+> **KJV — Psalms 78:6:** *"That the generation to come might know them, even the
+> children which should be born; who should arise and declare them to their
+> children:"*
+
+*The children which should be born* — his "unseen children." Psalm 78 is the
+pattern for a corpus built to outlive its author and be re-declared by people
+who never met him. That is a design requirement, not a sentiment: **the lessons
+must be legible and usable by someone with no access to the man who wrote
+them.** Which is exactly why the measured gates exist — a corpus that depends on
+its author's memory to stay true is a corpus that dies with him.
+
+**"Only the Kingdom of Yahweh people will hear His voice anyway."**
+
+> **KJV — John 10:27:** *"My sheep hear my voice, and I know them, and they
+> follow me:"*
+
+Recorded as he said it. It is not a gate we build or enforce — the platform
+never decides who is in. It is why the work is offered widely and the outcome
+is left to Him: *"and all children and parents and individuals who want to See
+Him from His Perspectives."* The invitation is open; the hearing is His.
+
+**"Just making sure it's rigorous."** That sentence is the commission under
+every gate in this repository — and the reason the L180 revert above was the
+right call rather than a setback. A lesson his great-grandchildren will read
+must be right, not fast.
+
+**What this changes operationally:** the entity + assignment moves from "good
+practice" to **the mechanism of inheritance**. Title is what converts a labor of
+Love into something that can be handed to people he will never meet.
+
+---
+
 ## Build queue
 
 | # | Lesson | Status | Blocking |
 |---|---|---|---|
 | 5 | The Resources are capitalized | **LANDED** (DR-0530 + gate) | — |
-| 1 | He giveth thee power to get wealth | queued | verses fetched ✓ · authoring |
+| 1 | He giveth thee power to get wealth | **drafted, reverted** | 4 bands + 5 measured gates above; prose kept, shape to redo |
 | 2 | The patent bar and what was taken | queued | **historical research must be verified, not recalled** |
 | 3 | The School | queued | authoring + the spec for the two tracks |
 | 4 | Rent-to-own: the mechanism and the guard | queued | authoring |
 | 6 | Sole authorship + the SME window | **MEASURED** (this file) | feeds the entity/assignment sequence |
 | 7 | The labor of Love | **CAPTURED** (this file) | lesson-worthy; verses to fetch when authored |
+| 8 | The inheritance — children's children | **CAPTURED** (this file) | verses fetched ✓; reframes WHY the assignment matters |
 
 **Nothing here is built by being written down.** This file is the capture that
 keeps the covenant; the lessons are the build, and they ride the normal lane

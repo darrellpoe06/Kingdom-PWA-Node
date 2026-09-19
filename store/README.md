@@ -75,6 +75,55 @@ one is worse than none. It goes live only with the real fingerprint.
   CLI instead of PWABuilder.
 - `assetlinks.template.json` — Digital Asset Links template; fill the fingerprint,
   then copy to `app/public/.well-known/`.
+- **`android.keystore.enc` — the signing identity. Read the next section.**
+
+## The signing key: what it is, where custody lives, how to rotate
+
+*Documented 2026-09-19. This file previously listed only the two templates and
+said nothing about the keystore, which meant the custody model existed only in
+a workflow comment. That gap is what this section closes.*
+
+**What it is.** `android.keystore.enc` is the **real store signing key** for all
+five brand packages — `us.poetech.app`, `us.poetech.lovecorner`, `us.poetech.tlc`,
+`us.poetech.moore`, and Poe Properties. Not a throwaway debug key. Every package
+the lane builds is signed with this one stable identity, which is what lets an
+installed app update in place instead of forcing a uninstall/reinstall.
+
+**How it got here.** Darrell, 2026-07-24: *"YOU do it."* The base64-paste ceremony
+for handing a keystore to CI kept failing, and `ANDROID_STORE_KEYSTORE_PASS` was
+the only secret that reliably landed. So `.github/workflows/android-package.yml`
+(the `key:` job) generates the store key **once**, encrypts it with that
+passphrase (AES-256-CBC, PBKDF2, salted), and commits the result here. Every
+build since decrypts with the same secret and signs.
+
+**Custody — you already hold it.** The key is recoverable from two things you
+control: this repository and `ANDROID_STORE_KEYSTORE_PASS`. To pull a custody
+copy for offline backup:
+
+```
+cd C:\Users\dpoe\Kingdom-PWA-Node
+git pull origin main
+openssl enc -d -aes-256-cbc -pbkdf2 -in store\android.keystore.enc -out %USERPROFILE%\poetech-android.keystore
+```
+
+Store that output somewhere durable and offline. **Losing both the passphrase
+and every decrypted copy means the listing can never be updated again** — the
+packageId is permanent after first upload, so the identity cannot be re-minted.
+Treat the backup like a title deed (DR-0152).
+
+**Rotation (DR-0232).** Delete `store/android.keystore.enc`, set a new
+`ANDROID_STORE_KEYSTORE_PASS` secret, and dispatch the workflow — the `key:` job
+re-bootstraps from scratch. **Only do this before the first Play upload.** After
+a package is published, a new signing key is a different app to Android, so
+rotation there requires Play App Signing key-rotation rather than this path.
+
+**Standing consideration.** While the repository is public, the encrypted key is
+publicly copyable and its confidentiality rests entirely on the strength of that
+one passphrase. If the passphrase was hand-chosen rather than generated, rotate
+it now (the step above is cheap pre-upload). Making the repository private
+removes the exposure without requiring any rotation at all. Recorded as a
+posture question in the DR-0152 drift note — `re-review: 2026-10-03`, or on any
+visibility change, whichever comes first.
 
 ## Alternative: Bubblewrap CLI (Android only, no PWABuilder)
 
