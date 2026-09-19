@@ -87,6 +87,92 @@ clean**, and the pack should not pretend otherwise:
 
 ---
 
+## THE FORMATION DOCUMENTS — LOCATED 2026-09-19
+
+Darrell asked whether the PoeTech paperwork could be found in his or Christina's
+Google account. It could. Two searches (Gmail and Drive, both accounts in
+reach) turned up the originals. **Nothing below is reconstructed or inferred —
+each item is a real file or a real message, identified by its own id.**
+
+### What was found
+
+| Document | Where | Dated |
+| --- | --- | --- |
+| `LLC Operating Agreement - Poe Tech LLC.pdf` (622 KB) | Drive, file id `0BxcqxYAVjPesaFRpZ0UzbTVvcGs`, folder `0BxcqxYAVjPesOFFIQmxva09Ucjg`, owned by `darrellpoe06@gmail.com` | created **2016-09-15** |
+| `LLC Operations Manual.pdf` (422 KB) | Drive, file id `0BxcqxYAVjPesSm01czhVaWlqOG8`, same folder | created **2016-09-15** |
+| *Signed Operation Agreement with EIN* — the **executed** copy, with attachments | Gmail thread `16441399f423bf6c`, originally sent by `poetech.us@gmail.com` on **2018-06-27**; forwarded again by Christina to Darrell on **2026-09-19** | 2018-06-27 |
+
+The Drive files were created **eight days after** the 2016-09-07 organization
+date on the ILSOS record. That is exactly the interval a law office takes to
+send the executed set back, and it corroborates the state record independently.
+
+### The document identifies the firm that formed the entity — and it is the agent of record
+
+The operating agreement carries `Copyright © 2016 Hansford & Deckert, LLP` and
+the address **1701 South Prospect Avenue, Suite 206, Champaign, Illinois
+61820**. The operations manual carries the same address under *Law Offices
+Coordinated Legal Services, P.C.*
+
+**That address is character-for-character the registered agent address on the
+ILSOS record, and the agent on file is John F. Deckert.** The firm that formed
+POE TECH, LLC in 2016 is still its agent of record in 2026.
+
+This turns the "registered agent may no longer be engaged" item above from an
+open question into a **first phone call**. He is a known, reachable
+relationship: a 2024 message from Christina describes him as the attorney who
+put the Poe Trust together, and a 2022 message in the same account carries a
+direct number for him. **He is the natural person to ask the two reinstatement
+questions to**, and he already holds the file.
+
+### One substantive term, relevant to the assignment
+
+The operating agreement contains **§1.03, "Company to Be Taxed as a Sole
+Proprietorship."** Counsel should read the section itself rather than this
+summary, but on its face it indicates a **single-member LLC treated as a
+disregarded entity**. If that holds, it is *good* news for the assignment:
+there is no second member whose consent the instrument needs, and the
+member-consent formalities collapse to one signature.
+
+### What is NOT there — and what that means
+
+Two documents were searched for and **not found** in either account:
+
+- **The Articles of Organization.** The operating agreement is the internal
+  document; the Articles are the state filing. They may exist only in paper, or
+  only at the firm. **Certified copies are orderable from the Secretary of
+  State**, and that is the reliable route rather than more searching.
+- **Any notice of the 2024 involuntary dissolution.** No email announced it. The
+  practical reading is that the notice went to the registered agent address in
+  Champaign — not to either Gmail account — which is consistent with the
+  delinquency going unnoticed, and is itself a reason to confirm a current
+  agent at reinstatement.
+
+### Handling note — sensitive value
+
+The executed 2018 copy and the operating agreement PDF both carry the **EIN**.
+It is deliberately **not transcribed into this repository**, which is public.
+Counsel should be given the document, not a number copied out of it.
+
+### ⚠️ URGENT AND SEPARATE — the entity is being addressed as live, right now
+
+While searching, the mailbox turned up an active, ongoing commercial thread that
+nobody appears to have connected to the dissolution:
+
+**Laverdiere Construction, Inc. (Macomb, IL) is sending bid invitations
+addressed to "Poe Tech LLC ATTN: Darrell Poe"** for Illinois **CDB / IDOT
+public-works** projects. The most recent are dated **2026-09-14, 2026-09-15 and
+2026-09-16** — that is roughly **eighteen months after the involuntary
+dissolution**, with bids due October 2026.
+
+This is not an IP question and it does not wait on the assignment. **Public
+works bidding as an Illinois LLC that the Secretary of State shows as
+involuntarily dissolved is a live exposure**, and it belongs in front of counsel
+in the same conversation as the reinstatement, as its own item. Raise it
+whether or not any of those invitations was ever answered.
+
+
+---
+
 ## The ask, in one sentence
 
 **FIRST resolve the entity — reinstate POE TECH, LLC or form a clean successor
