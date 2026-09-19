@@ -3124,38 +3124,6 @@ export default function ChurchLearn({
                 credit never fork. Each row names where it actually lives, so the shelf
                 never implies a second identity. A declaration naming a course the
                 catalog does not carry fails the build (course-crosslist.test.js). */}
-            {dept && gatheredCourses.length > 0 && (
-              <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="learn-crosslisted-courses">
-                <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">
-                  Courses that serve {dept.label} · {gatheredCourses.length}
-                </p>
-                <p className="text-[0.625rem] text-[#5A5751] leading-snug mb-2">
-                  These are taught in their own departments and counted there. Open one here and it
-                  opens where it lives — one home, one credit, whichever shelf you found it on.
-                </p>
-                <ul className="space-y-2">
-                  {gatheredCourses.map((r) => (
-                    <li key={`course-${r.courseKey}`}>
-                      <button
-                        type="button"
-                        className="text-left w-full focus:outline focus:outline-2 focus:outline-[#B85838]"
-                        onClick={() => {
-                          setDeptId('all');
-                          setActiveKey(r.courseKey);
-                          setResumeOpenGuide(false);
-                        }}
-                      >
-                        <span className="block text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{r.courseTitle}</span>
-                        <span className="block text-[0.625rem] text-[#5A5751]">
-                          Taught in {r.homeDepartment} · {r.lessons} {r.lessons === 1 ? String(r.unitCap).toLowerCase() : `${String(r.unitCap).toLowerCase()}s`}
-                        </span>
-                        <span className="block text-[0.625rem] text-[#5A5751]">{r.why}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
             {dept && gathered.length > 0 && (
               <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="learn-crosslisted">
                 <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">
@@ -3224,7 +3192,15 @@ export default function ChurchLearn({
             phone's own picker in one tap, with the Deep-Processing family in its
             own group and a sort control. Groups + counts derive live from the
             mounted courses (lib/learn-organize.js, DR-0121). */}
-        {visibleCourses.length > 1 && !lessonFocus && (
+        {/* THE PICKER APPEARS WHENEVER THERE IS SOMEWHERE ELSE TO GO — its own
+            courses OR the ones that serve it. It used to require two of the
+            department's OWN courses, which is why a one-course department like
+            Business had no dropdown at all, and why the fourteen courses
+            serving it had to be stacked underneath as a wall of text. That
+            wall is what Darrell called garbage on 2026-09-19. Counting the
+            cross-listed courses here only decides whether the control is worth
+            showing; it never changes a course count anywhere (DR-0516). */}
+        {(visibleCourses.length + gatheredCourses.length) > 1 && !lessonFocus && (
           <div className="flex flex-wrap items-end gap-3 mb-5 border-b border-[#E8E4DC] pb-3">
             <div className="grow min-w-[14rem]">
               {/* A SELECTOR, not a section title (Darrell 2026-09-06: "even more
@@ -3252,11 +3228,25 @@ export default function ChurchLearn({
                 // go somewhere else.
                 value={''}
                 data-chosen={courseChosen ? 'true' : 'false'}
-                onChange={(e) => { if (e.target.value) setActiveKey(e.target.value); }}
+                onChange={(e) => {
+                  const k = e.target.value;
+                  if (!k) return;
+                  // A course that only SERVES this department lives somewhere
+                  // else (DR-0516: one home, one credit). Leaving the
+                  // department filter on would hide the course the reader just
+                  // picked, because it is not in this department's own list —
+                  // so opening one drops the filter, exactly as the old shelf
+                  // did before it moved in here.
+                  if (gatheredCourses.some((r) => r.courseKey === k)) {
+                    setDeptId('all');
+                    setResumeOpenGuide(false);
+                  }
+                  setActiveKey(k);
+                }}
                 className={`w-full min-h-[48px] px-3 py-2 bg-white border-2 text-sm font-semibold focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${courseChosen ? 'border-[#1A1815]' : 'border-[#B85838]'}`}
                 style={{ fontFamily: '"Fraunces", serif' }}
               >
-                <option value="">Choose another course · {visibleCourses.length} to choose from</option>
+                <option value="">Choose another course · {visibleCourses.length}{dept && gatheredCourses.length ? ` + ${gatheredCourses.length} that serve it` : ''} to choose from</option>
                 {organizeCourses(visibleCourses, courseSort).map((g) => (
                   <optgroup key={g.label} label={g.label}>
                     {g.courses.map((c) => (
@@ -3266,6 +3256,25 @@ export default function ChurchLearn({
                     ))}
                   </optgroup>
                 ))}
+                {/* COURSES THAT SERVE THIS DEPARTMENT, IN THE PICKER ITSELF.
+                    Darrell 2026-09-19, shown the stacked shelf this replaced:
+                    "Not this list!!!!! Inside the dop down as options under the
+                    original or course/s that exist..." and, of the shelf,
+                    "Garbage...". They are OPTIONS now, in their own labelled
+                    group beneath the department's own, each naming the
+                    department it actually lives in. The counts above are
+                    deliberately NOT summed — a cross-listing is a pointer, so
+                    Business stays one course that fourteen others serve, never
+                    fifteen courses (DR-0516 / DR-0448). */}
+                {dept && gatheredCourses.length > 0 && (
+                  <optgroup label={`Also serves ${dept.label} · taught elsewhere`}>
+                    {gatheredCourses.map((r) => (
+                      <option key={`serves-${r.courseKey}`} value={r.courseKey}>
+                        {r.courseTitle} · {r.homeDepartment} · {r.lessons} {r.lessons === 1 ? String(r.unitCap).toLowerCase() : `${String(r.unitCap).toLowerCase()}s`}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </div>
             <div>
