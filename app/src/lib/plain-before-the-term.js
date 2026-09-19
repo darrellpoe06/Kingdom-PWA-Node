@@ -34,6 +34,13 @@
 // is the thing this file exists to prevent — the fix is to write the plain
 // meaning into the lesson, which takes one clause.
 //
+// WRITE A TERM'S CUES FROM REAL PROSE, NOT FROM IMAGINATION. Both times a cue
+// has had to be widened, the cause was the same: the cue was invented in the
+// abstract ("a measure", "something the lender can take") and the actual
+// teaching said it differently ("the dry measure the grain was poured into",
+// "the thing the lender gets to take if they cannot pay"). Seed a new term's
+// cues by writing the explanation first and lifting the phrases out of it.
+//
 // A CUE MAY BE BROADENED; A CUE MAY NOT BE HOLLOWED OUT. Those are different
 // edits and the difference is the whole integrity of this file. `collateral`
 // first listed the cue "something the lender can take", and prose reading "the
@@ -63,7 +70,7 @@ export const HARD_TERMS = {
   reprobate: ['failed the test', 'did not pass', 'not approved'],
   adokimos: ['failed the test', 'did not pass', 'not approved'],
   kenosis: ['emptied himself', 'made himself of no reputation', 'laid it down', 'he emptied himself'],
-  ephah: ['a measure', 'measuring basket', 'the size of the measure'],
+  ephah: ['measure the grain', 'measured your grain', 'dry measure', 'basket', 'measure the customer', 'customer receives'],
 };
 
 const norm = (s) => String(s || '').replace(/\s+/g, ' ');
