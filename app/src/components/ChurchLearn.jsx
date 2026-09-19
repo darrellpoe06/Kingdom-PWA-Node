@@ -56,7 +56,7 @@ import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-algorithms-course.js';
 import { buildLessonArc, sessionMinutesFromFlow, readAloudTextFromArc } from '../lib/lesson-flow.js';
 import { courseDuration, formatDuration } from '../lib/course-duration.js';
-import { formatLessonText, lessonPoints } from '../lib/lesson-format.js';
+import { formatLessonText, lessonPoints, lessonSectionPlan } from '../lib/lesson-format.js';
 import { walkState, stepParagraph, stepPoint } from '../lib/lesson-walk.js';
 import { useOpenWithTheWord } from '../lib/show-the-word.js';
 import { setReadTarget, clearReadTarget, requestRead } from '../lib/read-target.js';
@@ -92,6 +92,7 @@ import { crossListingsFor, resolveCrossListed, crossListedCount, courseCrossList
 // under its own department here, loaded only when that department opens.
 const EternalAlgorithmsStudyLazy = React.lazy(() => import('./EternalAlgorithmsStudy.jsx'));
 import { organizeCourses, learnDepartments, courseLessonCount, COURSE_SORTS, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey } from '../lib/learn-organize.js';
+import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
 import { getPlace, recordPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished } from '../lib/learn-resume.js';
 import { useHistoryValue } from '../lib/nav-history.js';
@@ -678,8 +679,12 @@ export function lessonSections(items, rhythm = SECTION_RHYTHM) {
   return blocks.map((b) => ({ items: b.items, refs: referencesIn(b.items.map((it) => it.text).join(' ')) }));
 }
 
-export function LessonProse({ text, className = 'text-xs text-[#1A1815]' }) {
-  const { items } = formatLessonText(text);
+// `plan` is the WHOLE lesson's numbering, computed once by the caller and
+// handed to every step (DR-0520). Without it each step restarted at 1 and three
+// different points on one screen were all called 1. A single-text caller passes
+// nothing and the text plans itself, exactly as before.
+export function LessonProse({ text, plan = null, className = 'text-xs text-[#1A1815]' }) {
+  const { items } = formatLessonText(text, plan);
   if (!items.length) return null;
   const sections = lessonSections(items);
   const serif = { fontFamily: '"Fraunces", serif' };
@@ -821,6 +826,13 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
   }, [plan && plan.totalSegments]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!plan || !plan.segments || plan.segments.length === 0) return null;
   const { segments, totalSegments, segmentMinutes, breakAfterSegments, checkAfterSegments, band, levelId } = plan;
+  // ONE numbering for the whole lesson, handed to every step (DR-0520). The
+  // pacer cuts the band into steps and each step used to number itself, so
+  // Step 1 showed points 1, 2, 3 and Step 2 opened with another point 1.
+  // Darrell, with the screenshots: "Why do we count from 1 - whatever each
+  // section?!" Derived from the segments themselves, so the count can never
+  // describe text the reader is not being shown.
+  const sectionPlan = lessonSectionPlan(segments.join(' '));
   // In the lesson's own space the box loses its side walls (see TutorPanel).
   const box = flush ? 'mb-2 border-y border-[#E8E4DC] bg-white py-2' : 'mb-2 border border-[#E8E4DC] bg-white p-2';
   // The in-lesson level row (DR-0417) — only where a host hands in the setter,
@@ -856,7 +868,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
             <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
               Step {i + 1} of {totalSegments} · ~{segmentMinutes} min · {band.label} pace
             </span>
-            <div className="mt-1"><LessonProse text={s} /></div>
+            <div className="mt-1"><LessonProse text={s} plan={sectionPlan} /></div>
           </div>
         ))}
       </div>
@@ -872,7 +884,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
   // Adult/single-segment: just show the whole lesson, no stepper.
   if (totalSegments <= 1) {
     return (
-      <div className="mb-2">{control}<LessonProse text={segments[0]} /></div>
+      <div className="mb-2">{control}<LessonProse text={segments[0]} plan={sectionPlan} /></div>
     );
   }
 
@@ -902,7 +914,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
           <div className="h-full bg-[#5A6E3D]" style={{ width: `${Math.round(((cur + 1) / totalSegments) * 100)}%` }} />
         </div>
       </div>
-      <div aria-live="polite"><LessonProse text={segments[cur]} /></div>
+      <div aria-live="polite"><LessonProse text={segments[cur]} plan={sectionPlan} /></div>
       {showBreak && (
         <p className="text-[0.6875rem] text-[#B85838] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>🙆 Quick stretch break — then keep going!</p>
       )}
@@ -3505,6 +3517,24 @@ export default function ChurchLearn({
             </p>
           );
         })()}
+
+        {/* THE PLAIN WORDS, under the title the title keeps (DR-0519). Darrell
+            2026-09-19: "I like the current titles they pull me in" AND "we are
+            just thinking about broad connections made by simple word choices"
+            — so the everyday word sits BESIDE the house term rather than
+            replacing it. "Kingdom Economics: Stewardship, Ownership & the
+            Body's Economic Witness" is a title that pulls him in and contains
+            no word a child would go looking for; this line carries money, debt,
+            giving, saving. It is the same declaration that makes those words
+            find this course in search (learn-organize.js buildLessonIndex), so
+            the line a reader sees and the words that reach them are one thing,
+            never two that drift. */}
+        {!lessonFocus && plainWordsFor(active.key).length > 0 && (
+          <p className="text-[0.75rem] text-[#5A6E3D] mb-3" data-testid="course-plain-words">
+            <span className="uppercase tracking-wider text-[0.625rem] text-[#5A5751] mr-1.5">In plain words</span>
+            {plainWordLine(active.key)}
+          </p>
+        )}
 
         {/* SHARE THE WHOLE COURSE (Darrell 2026-08-10: "I want to also share the
             whole course"). Per-lesson Share hands someone one sitting; this

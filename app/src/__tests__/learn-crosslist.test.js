@@ -184,15 +184,19 @@ describe('a pointer, never a copy', () => {
     // What You Owe and What You Can Show", DR-0515) — what the authorities take
     // and what an owner can actually prove.
     //
+    // And to 37 / 604 on 2026-09-19 for L179 ("Heartfelt: The Heart Is the
+    // Deep Mind", DR-0518) — a real lesson into an existing course, so the
+    // course count holds at 37 and only the lesson total moves by one.
+    //
     // What this test exists to catch has NOT changed and is unaffected: a
     // cross-listing is a POINTER, so putting a lesson on another department's
     // shelf must never add a course or a lesson to these totals. If a
     // cross-listing ever inflates them, this fails — and the numbers above are
     // the catalog's own, so the check still has teeth after the bump.
     expect(courses).toHaveLength(37);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(603);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(604);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(603);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(604);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
