@@ -46,6 +46,7 @@ import { PARTNERSHIPS_META, PARTNERSHIPS_SESSION_FLOW, buildPartnershipsSchedule
 import { FINANCING_DEBT_META, FINANCING_DEBT_SESSION_FLOW, buildFinancingDebtSchedule, financingDebtProgressSummary, exportFinancingDebtCurriculumMarkdown, FINANCING_DEBT_INTEREST_TAG, FINANCING_DEBT_HELPER_TAG, FINANCING_DEBT_TUTOR_META } from './financing-debt-course.js';
 import { TAXES_RECORDS_META, TAXES_RECORDS_SESSION_FLOW, buildTaxesRecordsSchedule, taxesRecordsProgressSummary, exportTaxesRecordsCurriculumMarkdown, TAXES_RECORDS_INTEREST_TAG, TAXES_RECORDS_HELPER_TAG, TAXES_RECORDS_TUTOR_META } from './taxes-records-course.js';
 import { BANKING_META, BANKING_SESSION_FLOW, buildBankingSchedule, bankingProgressSummary, exportBankingCurriculumMarkdown, BANKING_INTEREST_TAG, BANKING_HELPER_TAG, BANKING_TUTOR_META } from './banking-course.js';
+import { INSURANCE_RISK_META, INSURANCE_RISK_SESSION_FLOW, buildInsuranceRiskSchedule, insuranceRiskProgressSummary, exportInsuranceRiskCurriculumMarkdown, INSURANCE_RISK_INTEREST_TAG, INSURANCE_RISK_HELPER_TAG, INSURANCE_RISK_TUTOR_META } from './insurance-risk-course.js';
 import { MATHEMATICS_META, MATHEMATICS_SESSION_FLOW, buildMathematicsSchedule, mathematicsProgressSummary, exportMathematicsCurriculumMarkdown, MATHEMATICS_INTEREST_TAG, MATHEMATICS_HELPER_TAG, MATHEMATICS_TUTOR_META } from './mathematics-class.js';
 import { RTO_BUSINESS_META, RTO_BUSINESS_SESSION_FLOW, buildRtoBusinessSchedule, rtoBusinessProgressSummary, exportRtoBusinessCurriculumMarkdown, RTO_BUSINESS_INTEREST_TAG, RTO_BUSINESS_HELPER_TAG, RTO_BUSINESS_TUTOR_META } from './rent-to-own-business-class.js';
 import { DEVELOPMENT_META, DEVELOPMENT_SESSION_FLOW, buildDevelopmentSchedule, developmentProgressSummary, exportDevelopmentCurriculumMarkdown, DEVELOPMENT_INTEREST_TAG, DEVELOPMENT_HELPER_TAG, DEVELOPMENT_TUTOR_META } from './development-class.js';
@@ -429,6 +430,28 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want a hand applying these eight to your own accounts \u2014 the two numbers on your statement nobody prints together, the signature you were asked for and can still refuse, the store you can start in a summer month, and the fee total almost nobody has ever added up. The whole course is free and open right here; this is for a hand with yours. Teaching, not financial or legal advice.',
       cta: 'I want help with mine',
       sent: '\u2713 Sent \u2014 Darrell will reach out. Know what it is for, and know what is holding you up.',
+    },
+  },
+  {
+    // COURSE NINE OF THE REAL ESTATE DEPARTMENT. Eight courses covered the
+    // ground, the stewardship, the transaction, the tenant, the building, the
+    // partner, the lender and the record. This one covers the thing every one
+    // of them assumes and none of them handles: what happens when it goes
+    // wrong, who bears the cost, and how a household decides in advance what
+    // it cannot afford to lose. No book-and-chapter is shared with the other
+    // courses of this department, which the course test checks rather than
+    // assumes.
+    key: 'insurance-risk', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...INSURANCE_RISK_META, key: 'insurance-risk', category: 'Real Estate' }, sessionFlow: INSURANCE_RISK_SESSION_FLOW,
+    buildScheduleRows: () => buildInsuranceRiskSchedule(null), progressSummary: (p) => insuranceRiskProgressSummary(p),
+    exportMarkdown: () => exportInsuranceRiskCurriculumMarkdown(null), downloadName: 'insurance-and-risk-what-you-cannot-afford-to-lose-curriculum.md',
+    interestTag: INSURANCE_RISK_INTEREST_TAG, helperTag: INSURANCE_RISK_HELPER_TAG, tutorCourseMeta: INSURANCE_RISK_TUTOR_META,
+    interestText: (who) => `${INSURANCE_RISK_INTEREST_TAG} ${who} wants a hand reading their own cover, or is carrying a loss that already happened.`,
+    interestCopy: {
+      heading: 'Not sure what you are actually covered for?',
+      blurb: 'Tell Darrell you want a hand applying these eight to your own situation — the hazards you already knew about, the sentence in your agreement that says who pays when nobody was at fault, the two numbers that belong on one line, and the names of the people a loss would actually reach. The whole course is free and open right here; this is for a hand with yours. Teaching, not insurance or legal advice — anything that turns on wording needs somebody licensed in your own state.',
+      cta: 'I want help with mine',
+      sent: '✓ Sent — Darrell will reach out. And if a loss has already happened, start at lesson four and lesson five.',
     },
   },
   {
