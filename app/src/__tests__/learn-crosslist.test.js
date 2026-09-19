@@ -219,13 +219,14 @@ describe('a pointer, never a copy', () => {
     // DR-0532) — Darrell's spoken teaching from his wife's choir rehearsal,
     // another real lesson into the existing Living Lessons course, so again
     // only the lesson total moves.
-    // And to 42 / 647 on 2026-09-19 for L182 ("Two Witnesses", DR-0533) —
+    // And to 42 / 648 on 2026-09-19 for L183 ("Realign My Eyes", DR-0534) —
+    // and to 42 / 647 the same day for L182 ("Two Witnesses", DR-0533) —
     // built from a debate Darrell sent; again a real lesson into the existing
     // Living Lessons course, so only the lesson total moves.
     expect(courses).toHaveLength(42);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(647);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(648);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(647);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(648);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
