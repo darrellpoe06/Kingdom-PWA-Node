@@ -211,10 +211,14 @@ describe('a pointer, never a copy', () => {
     // shelf must never add a course or a lesson to these totals. If a
     // cross-listing ever inflates them, this fails — and the numbers above are
     // the catalog's own, so the check still has teeth after the bump.
+    // And to 42 / 645 on 2026-09-19 for L180 ("He Sings", DR-0530) — Darrell's
+    // own spoken teaching, a real lesson into the existing Living Lessons
+    // course, so the course count stays at 42 and only the lesson total moves,
+    // exactly as the rule above spells out.
     expect(courses).toHaveLength(42);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(644);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(645);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(644);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(645);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
