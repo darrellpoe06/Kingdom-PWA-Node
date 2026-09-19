@@ -51,6 +51,9 @@ export const EVERYDAY_WORDS = new Set([
   // home, land and work
   'house', 'home', 'land', 'rent', 'renting', 'landlord', 'tenant', 'repairs', 'fixing',
   'building', 'tools', 'plumbing', 'moving', 'neighbours', 'insurance', 'work', 'job',
+  // added 2026-09-19 with the Insurance and Risk course: the words a person
+  // actually types when something has gone wrong at their house.
+  'fire', 'flood', 'storm', 'accident',
   'jobs', 'boss', 'team', 'planning', 'deadline', 'schedule', 'project',
   // body and mind
   'food', 'eating', 'sleep', 'exercise', 'health', 'sick', 'doctor', 'body', 'brain',
@@ -78,6 +81,7 @@ export const COURSE_PLAIN_WORDS = {
   'legacy-provisions': ['will', 'inheritance', 'insurance', 'family', 'death', 'money'],
   'handed-forward': ['family', 'kids', 'planning', 'money', 'jobs', 'time'],
   banking: ['bank', 'money', 'saving', 'interest', 'debt', 'fees'],
+  'insurance-risk': ['insurance', 'fire', 'flood', 'accident', 'house', 'bills'],
   // --- Real Estate ----------------------------------------------------------
   'property-principle': ['house', 'land', 'owning', 'home', 'money'],
   'buying-terms': ['buying', 'house', 'price', 'deal', 'money', 'contract'],

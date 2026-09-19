@@ -71,6 +71,27 @@ export const HARD_TERMS = {
   adokimos: ['failed the test', 'did not pass', 'not approved'],
   kenosis: ['emptied himself', 'made himself of no reputation', 'laid it down', 'he emptied himself'],
   ephah: ['measure the grain', 'measured your grain', 'dry measure', 'basket', 'measure the customer', 'customer receives'],
+  // Added 2026-09-19 with the Insurance and Risk course (DR-0522 sibling), each
+  // one measured against the whole live corpus FIRST: all five were at zero
+  // faults before the course landed, so they add no debt and no false fires.
+  premium: ['regular payment you make so', 'regular payment made so', 'regular payment a household makes so'],
+  deductible: ['part you pay yourself first', 'you pay the first'],
+  indemnify: ['put it back the way it was', 'made whole and no further'],
+  indemnity: ['put it back the way it was', 'made whole and no further'],
+  actuarial: ['counting how often a loss happens', 'arithmetic of how often'],
+  // THREE WORDS WERE MEASURED AND DELIBERATELY LEFT OFF, and the reasons belong
+  // here rather than in a commit nobody re-reads. Each is a real candidate and
+  // each would fire on correct content today, which this file forbids.
+  //   liability   -- 26 genuine uses across 13 lessons, no matcher problem, and
+  //                  a word a young reader really does not own. It is owed a
+  //                  pass that AUTHORS the gloss at each site; it must never be
+  //                  added by hollowing its cues. re-review: 2026-10-03.
+  //   peril       -- fires at the word start of `perilously`, which is ordinary
+  //                  English (ll66). It needs a matcher that understands
+  //                  inflection, not a list entry. re-review: 2026-10-03.
+  //   underwriting-- 2 of its 7 hits are a document TITLE, the FHA's 1938
+  //                  Underwriting Manual (econ5). A title is not a term use, so
+  //                  the same matcher work gates it. re-review: 2026-10-03.
 };
 
 const norm = (s) => String(s || '').replace(/\s+/g, ' ');
@@ -80,6 +101,12 @@ const norm = (s) => String(s || '').replace(/\s+/g, ' ');
 export const oursOnly = (text) =>
   norm(text).replace(/"[^"]*"/g, ' ').replace(/\([1-3]?\s?[A-Za-z]+(?: of [A-Za-z]+)*\s+\d+:[\d\-,\s]+\)/g, ' ');
 
+/** First use of a term at a word start, case-insensitively; -1 when unused. */
+const firstUseAt = (lowerText, term) => {
+  const m = new RegExp(`\\b${term.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).exec(lowerText);
+  return m ? m.index : -1;
+};
+
 // Where the term is first used in our own prose, and where the earliest cue
 // lands. A cue in the SAME sentence counts as in time; anything later does not.
 export function termFaults(text, terms = HARD_TERMS) {
@@ -87,7 +114,14 @@ export function termFaults(text, terms = HARD_TERMS) {
   const lower = ours.toLowerCase();
   const out = [];
   for (const [term, cues] of Object.entries(terms)) {
-    const at = lower.indexOf(term.toLowerCase());
+    // A WORD-START boundary, and deliberately none at the end. Measured
+    // 2026-09-19 while judging `liability` for this list: a bare indexOf found
+    // the term inside `reliability` and `peril` inside `perilously`, which is a
+    // check firing on correct content — the exact failure this file forbids.
+    // The tail stays open so an inflection (`assayer`, `usurious`) still counts
+    // as a use. A start boundary can only ever match LESS, so the recorded debt
+    // cannot grow from this change, and it was re-measured to prove it.
+    const at = firstUseAt(lower, term);
     if (at < 0) continue;
     // The end of the sentence the term appears in — a cue up to there is in time.
     const rest = ours.slice(at);
