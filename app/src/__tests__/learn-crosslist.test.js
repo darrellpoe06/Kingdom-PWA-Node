@@ -225,7 +225,7 @@ describe('a pointer, never a copy', () => {
     // and to 42 / 647 the same day for L182 ("Two Witnesses", DR-0533) —
     // built from a debate Darrell sent; again a real lesson into the existing
     // Living Lessons course, so only the lesson total moves.
-    // And to 42 / 650 on 2026-09-19 for L186 ("Knowledge Was Never the Savior")
+    // And to 42 / 650 on 2026-09-19 for L185 ("Knowledge Was Never the Savior")
     // -- Darrell's spoken teaching on gnosticism plus his own question about
     // the jealousy of Yahweh, a real lesson into the existing Living Lessons
     // course, so the course count holds at 42 and only the lesson total moves.

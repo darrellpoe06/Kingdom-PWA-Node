@@ -1,6 +1,6 @@
 # Knowledge Was Never the Savior — spoken 2026-09-19
 
-**Status: BUILT AND SHIPPED.** This is not a queue entry. L186 is in the
+**Status: BUILT AND SHIPPED.** This is not a queue entry. L185 is in the
 Living Lessons corpus with four authored bands, 138 verbatim quotations, and a
 28-assertion gate. This file records the teaching and the two judgment calls
 made while building it.
@@ -85,7 +85,7 @@ that the misreading of it *is* the deception, not a by-product of it.
 ### The named people are not in the lesson — and that is gated
 
 The source material names an actor, his wife, a pastor, a spiritual center and
-a broadcast. **None of them appears anywhere in L186**, and the gate is
+a broadcast. **None of them appears anywhere in L185**, and the gate is
 *derived* from the source rather than a remembered list:
 
 ```js
@@ -136,9 +136,9 @@ always passes is itself a lie.
 
 ## Where it sits
 
-L186 is the twin of **L180 (*He Giveth Thee Power to Get Wealth*)** and the
+L185 is the twin of **L180 (*He Giveth Thee Power to Get Wealth*)** and the
 guard on **DR-0530**. L180: He gives power to **GET**, capacity rather than
-product. DR-0530: the Resources are provision He **supplies**. L186: the moment
+product. DR-0530: the Resources are provision He **supplies**. L185: the moment
 a Resource is treated as the **source**, it stops being provision and becomes an
 idol with a familiar name. Read together, the pair is what makes this house
 safe to be ambitious inside.
