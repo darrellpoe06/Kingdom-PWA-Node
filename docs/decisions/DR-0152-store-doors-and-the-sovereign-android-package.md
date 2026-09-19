@@ -27,6 +27,29 @@ Christina, 2026-07-10 (via Darrell): *"add the app to the Android Play Store and
 - **Opportunity:** push notifications ride the TWA package once it exists — the Apple-4.2 answer and a real family feature (service reminders, prayer-list updates). `re-review: 2026-08-07`.
 - **Opportunity:** the store listing page doubles as the public front door copy (BUSINESS-PROCESS-CONNECTIONS four-question test applies before it ships). `re-review: 2026-08-07`.
 - **Constraint (held):** the CI debug key is NOT the release key — Play's keystore is generated once, offline, and custodied by Darrell (backed up in two places) before the first upload. The workflow refuses to pretend otherwise: its artifact is labeled sideload-testing.
+
+  > **DRIFT NOTE — 2026-09-19 (DR-0219 GAPS → CLOSE; recorded, not decided).**
+  > This constraint **no longer describes the lane** and has not since 2026-07-24.
+  > `.github/workflows/android-package.yml` (the `key:` job) now **generates the
+  > STORE key once in CI**, encrypts it with `ANDROID_STORE_KEYSTORE_PASS`
+  > (AES-256-CBC, PBKDF2, salted) and **commits `store/android.keystore.enc`**;
+  > every build thereafter decrypts and signs with that same stable identity
+  > across all five brand packages (`us.poetech.app`, `.lovecorner`, `.tlc`,
+  > `.moore`, properties). The change was deliberate and recorded in the
+  > workflow — Darrell 2026-07-24, *"YOU do it"* — because the B64-paste
+  > ceremony kept failing and `PASS` was the only secret that reliably landed.
+  > So the signing identity is real, not sideload-only, and its confidentiality
+  > rests on that one passphrase while the repository is public.
+  >
+  > **Not a defect to fix silently — a posture question for the Governor**, and
+  > it interacts with the repository-visibility decision: going private removes
+  > the ciphertext from public reach without requiring any rotation. A rotation
+  > path also exists independently (delete the `.enc`, set a new `PASS`, the
+  > next run re-bootstraps). `store/README.md` documents neither the file nor
+  > the custody model and should.
+  >
+  > `re-review: 2026-10-03` — or immediately on a visibility change, whichever
+  > comes first.
 - **Constraint (held):** no store submission, account purchase, or assetlinks publication happens from an agent lane — every outward step is a named Governor action (Tier C).
 - **Constraint (held):** iOS is sequenced AFTER Play ships value — the Mac + $99/yr + 4.2 risk is not paid until the Android door has proven the demand (Proverbs 24:27 — prepare the field first).
 
