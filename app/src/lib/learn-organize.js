@@ -11,6 +11,8 @@
 //
 // Pure + dependency-free — unit-tested in learn-organize.test.js.
 
+import { plainWordsFor } from './learn-plain-words.js';
+
 export const COURSE_SORTS = [
   { key: 'authored', label: 'Course order' },
   { key: 'title', label: 'A to Z' },
@@ -156,7 +158,14 @@ export function unitNounOf(unit) {
   return String(unit || 'week');
 }
 
-// big idea + anchor ref/theme + tags.
+// big idea + anchor ref/theme + tags + the course's PLAIN WORDS.
+//
+// Darrell 2026-09-19: "broad connections made by simple word choices" — the
+// titles he likes stay exactly as they are, and the everyday word rides
+// alongside so somebody thinking `money` reaches Kingdom Economics, whose
+// title contains no such word. The words are declared per course in
+// learn-plain-words.js and folded into every one of that course's lessons here,
+// which is what makes the connection real rather than decorative.
 export function buildLessonIndex(courses) {
   const list = Array.isArray(courses) ? courses.filter(Boolean) : [];
   const out = [];
@@ -170,13 +179,14 @@ export function buildLessonIndex(courses) {
     // (six Deep Processing courses, ~149 of 169 lessons). Caught 2026-09-11 in
     // the rendered text of a Learn render test, not by reading the code.
     const unitNoun = unitNounOf(c.meta?.unit);
+    const plain = plainWordsFor(c.key).join(' ').toLowerCase();
     for (const m of (c.schedule || [])) {
       if (!m || !m.id) continue;
       const title = String(m.title || '');
       const ref = String(m.anchor?.ref || '');
       const hayBody = [
         m.bigIdea, m.anchor?.theme, Array.isArray(m.tags) ? m.tags.join(' ') : '',
-      ].filter(Boolean).join(' ').toLowerCase();
+      ].filter(Boolean).join(' ').toLowerCase() + (plain ? ` ${plain}` : '');
       out.push({
         courseKey: c.key,
         courseTitle,

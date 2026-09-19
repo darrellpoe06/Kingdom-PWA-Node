@@ -92,6 +92,7 @@ import { crossListingsFor, resolveCrossListed, crossListedCount, courseCrossList
 // under its own department here, loaded only when that department opens.
 const EternalAlgorithmsStudyLazy = React.lazy(() => import('./EternalAlgorithmsStudy.jsx'));
 import { organizeCourses, learnDepartments, courseLessonCount, COURSE_SORTS, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey } from '../lib/learn-organize.js';
+import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
 import { getPlace, recordPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished } from '../lib/learn-resume.js';
 import { useHistoryValue } from '../lib/nav-history.js';
@@ -3505,6 +3506,24 @@ export default function ChurchLearn({
             </p>
           );
         })()}
+
+        {/* THE PLAIN WORDS, under the title the title keeps (DR-0519). Darrell
+            2026-09-19: "I like the current titles they pull me in" AND "we are
+            just thinking about broad connections made by simple word choices"
+            — so the everyday word sits BESIDE the house term rather than
+            replacing it. "Kingdom Economics: Stewardship, Ownership & the
+            Body's Economic Witness" is a title that pulls him in and contains
+            no word a child would go looking for; this line carries money, debt,
+            giving, saving. It is the same declaration that makes those words
+            find this course in search (learn-organize.js buildLessonIndex), so
+            the line a reader sees and the words that reach them are one thing,
+            never two that drift. */}
+        {!lessonFocus && plainWordsFor(active.key).length > 0 && (
+          <p className="text-[0.75rem] text-[#5A6E3D] mb-3" data-testid="course-plain-words">
+            <span className="uppercase tracking-wider text-[0.625rem] text-[#5A5751] mr-1.5">In plain words</span>
+            {plainWordLine(active.key)}
+          </p>
+        )}
 
         {/* SHARE THE WHOLE COURSE (Darrell 2026-08-10: "I want to also share the
             whole course"). Per-lesson Share hands someone one sitting; this
