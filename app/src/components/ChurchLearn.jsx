@@ -1518,6 +1518,7 @@ function CourseView({
   // reader twice, and an unchanged value would make the second tap do nothing.
   presentRequest = null,
   onFocusChange = null,  // tells the wrapper a lesson space is open (it hides the course picker)
+  onAllCourses = null,   // leave the lesson AND the course — the way out of a hidden-chrome space
 }) {
   const [showFacilitator, setShowFacilitator] = useState(false);
   const [openTutorId, setOpenTutorId] = useState(null);
@@ -1919,6 +1920,22 @@ function CourseView({
         return (
           <div className="sticky top-0 z-30 mb-3 bg-[#FAF8F4]" data-testid="lesson-space-sticky">
           <div className="ts-chrome-region border border-[#1A1815] border-b-0 px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 flex-nowrap sm:flex-wrap" data-testid="lesson-space-bar">
+            {onAllCourses && (
+              <button
+                type="button"
+                onClick={() => { setFocusId(null); onAllCourses(); }}
+                data-testid="lesson-bar-all-courses"
+                className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[44px] border-2 border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]"
+              >
+                {/* Darrell 2026-09-19: "Make it easy to get back and to All
+                    Courses!!!!!!!!!" The bar's existing control goes back to
+                    THIS course's lessons; inside a lesson the department tabs
+                    and the course picker are both hidden, so there was no
+                    control on screen that left the course at all. This one
+                    does: it closes the space AND returns to every course. */}
+                ⌂<span className="hidden sm:inline"> All courses</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setFocusId(null)}
@@ -3125,7 +3142,24 @@ export default function ChurchLearn({
               ariaLabel="Learn departments"
               idBase="learn-dept"
               activeId={dept ? dept.id : 'all'}
-              onActiveChange={(id) => setDeptId(id)}
+              onActiveChange={(id) => {
+                // Darrell, 2026-09-19, from his phone: "When I click the
+                // business tab... it moves me into the first lesson of the
+                // series... instead of just the tab like others... then its
+                // hard to get back!!!!!"
+                //
+                // The cause: resumeLessonId is WRAPPER state and nothing
+                // cleared it on a department change. CourseView re-mounts on
+                // the new department's course (key={active.key}), sees a
+                // resume id still set, and opens that lesson's space
+                // immediately -- which also hides these very tabs and the
+                // picker, so there was no way back out. A tab is navigation,
+                // not a resume: it lands you on the department, never inside
+                // a lesson.
+                setResumeLessonId(null);
+                setResumeOpenGuide(false);
+                setDeptId(id);
+              }}
               sections={[
                 { id: 'all', label: 'Courses', explain: `Every course in one place · ${courses.length} courses · ${totalLessons} lessons. Pick a course and its lessons follow.`, render: () => null },
                 ...departments.map((d) => ({
@@ -3763,6 +3797,7 @@ export default function ChurchLearn({
         resumeOpenGuide={resumeOpenGuide}
         presentRequest={presentRequest}
         onFocusChange={setLessonFocus}
+        onAllCourses={() => { setResumeLessonId(null); setResumeOpenGuide(false); setDeptId('all'); }}
       />
     </section>
   );

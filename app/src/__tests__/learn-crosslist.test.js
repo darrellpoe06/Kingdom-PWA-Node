@@ -16,6 +16,7 @@ import { describe, it, expect } from 'vitest';
 import {
   CROSS_LISTINGS, crossListingsFor, crossListedDepartments, resolveCrossListed,
   missingCrossListings, selfListedCrossListings, crossListedCount,
+  COURSE_CROSS_LISTINGS, HOME_ONLY, coursesWithNoShelfDeclaration,
 } from '../lib/learn-crosslist.js';
 import { LEARN_CATALOG, catalogCategory, buildCatalogCourseDescriptors } from '../lib/learn-catalog.js';
 import { buildLessonIndex, courseLessonCount, learnDepartments } from '../lib/learn-organize.js';
@@ -219,7 +220,16 @@ describe('a pointer, never a copy', () => {
     // DR-0532) — Darrell's spoken teaching from his wife's choir rehearsal,
     // another real lesson into the existing Living Lessons course, so again
     // only the lesson total moves.
-    // And to 42 / 649 on 2026-09-19 when the concurrent branch merged: main's own
+    // And to 42 / 653 on 2026-09-19 when the concurrent branch merged again:
+    // main's own L185 (Knowledge Was Never the Savior) landed first, so our
+    // L185-L187 each moved up one per DR-0052 and one more real lesson joined
+    // the existing Living Lessons course -- again only the lesson total moves.
+    // And to 42 / 652 on 2026-09-19 for L187 (“The Acceptable Year and the Whole
+    // Counsel”, DR-0541) — Darrell’s two shouts over the Tony Evans interview,
+    // another real lesson into the existing Living Lessons course —
+    // And to 42 / 651 on 2026-09-19 for L186 ("The Unreasonable Standard", DR-0539) —
+    // and to 42 / 650 the same day for L185 ("Glory to Glory", DR-0537) —
+    // and to 42 / 649 the same day when the concurrent branch merged: main's own
     // L180 (He Giveth Thee Power to Get Wealth) joined L181-L183 and L184
     // (He Sings, renumbered from 180 per DR-0052) —
     // and to 42 / 647 the same day for L182 ("Two Witnesses", DR-0533) —
@@ -230,9 +240,9 @@ describe('a pointer, never a copy', () => {
     // the jealousy of Yahweh, a real lesson into the existing Living Lessons
     // course, so the course count holds at 42 and only the lesson total moves.
     expect(courses).toHaveLength(42);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(650);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(653);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(650);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(653);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
@@ -298,5 +308,46 @@ describe('the shelf answers a real question', () => {
       if (c.courseKey === 'ai') continue; // component-wired; absent from this harness by design
       expect(ids.has(c.lessonId), `${c.lessonId} missing from the render harness`).toBe(true);
     }
+  });
+});
+
+describe('every course says SOMETHING about its shelves — the gap Darrell found', () => {
+  // Darrell, 2026-09-19, opening the Business picker: "We need to review the
+  // Ways we update our systems and don't when we have features added!!!!!!!!!
+  // Why isn't Banking in this list already?!!!!!"
+  //
+  // It was not, because COURSE_CROSS_LISTINGS is hand-kept and Banking shipped
+  // after the list was written. Measured that day: 22 of 36 mounted courses had
+  // no entry at all. Five of them plainly belonged in Business and were added;
+  // the rest declare that home is their only shelf. This gate is the half that
+  // stops it recurring -- a course must be in ONE of the two lists, so the
+  // decision happens when the course is added rather than being discovered in
+  // a dropdown months later.
+  it('no mounted course is silent about where it belongs', () => {
+    const keys = LEARN_CATALOG.map((c) => c.key);
+    expect(keys.length, 'no courses mounted — this check would prove nothing').toBeGreaterThan(30);
+    expect(
+      coursesWithNoShelfDeclaration(keys),
+      'these courses mounted with no cross-listing and no home-only declaration — '
+      + 'decide which shelf each belongs on rather than leaving it silent',
+    ).toEqual([]);
+  });
+
+  it('PROVEN-TO-CATCH: an undeclared course is reported', () => {
+    // The control. If a fabricated key does not come back, the check above is
+    // passing for the wrong reason.
+    expect(coursesWithNoShelfDeclaration(['a-course-nobody-declared'])).toEqual(['a-course-nobody-declared']);
+  });
+
+  it('a course is never in BOTH lists — home-only and cross-listed are exclusive', () => {
+    const crossed = new Set(COURSE_CROSS_LISTINGS.map((c) => c.courseKey));
+    const both = HOME_ONLY.filter((k) => crossed.has(k));
+    expect(both, 'a course cannot be home-only and cross-listed at once').toEqual([]);
+  });
+
+  it('Banking specifically serves Business now, with a reason a reader can read', () => {
+    const row = COURSE_CROSS_LISTINGS.find((c) => c.courseKey === 'banking' && c.department === 'Business');
+    expect(row, 'Banking is still missing from Business').toBeTruthy();
+    expect(row.why.length, 'a cross-listing must say WHY it serves that department').toBeGreaterThan(30);
   });
 });
