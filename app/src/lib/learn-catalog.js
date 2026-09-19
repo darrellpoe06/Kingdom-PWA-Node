@@ -49,6 +49,7 @@ import { BANKING_META, BANKING_SESSION_FLOW, buildBankingSchedule, bankingProgre
 import { INSURANCE_RISK_META, INSURANCE_RISK_SESSION_FLOW, buildInsuranceRiskSchedule, insuranceRiskProgressSummary, exportInsuranceRiskCurriculumMarkdown, INSURANCE_RISK_INTEREST_TAG, INSURANCE_RISK_HELPER_TAG, INSURANCE_RISK_TUTOR_META } from './insurance-risk-course.js';
 import { INSPECTIONS_META, INSPECTIONS_SESSION_FLOW, buildInspectionsSchedule, inspectionsProgressSummary, exportInspectionsCurriculumMarkdown, INSPECTIONS_INTEREST_TAG, INSPECTIONS_HELPER_TAG, INSPECTIONS_TUTOR_META } from './inspections-course.js';
 import { EVICTIONS_META, EVICTIONS_SESSION_FLOW, buildEvictionsSchedule, evictionsProgressSummary, exportEvictionsCurriculumMarkdown, EVICTIONS_INTEREST_TAG, EVICTIONS_HELPER_TAG, EVICTIONS_TUTOR_META } from './evictions-course.js';
+import { APPRAISAL_META, APPRAISAL_SESSION_FLOW, buildAppraisalSchedule, appraisalProgressSummary, exportAppraisalCurriculumMarkdown, APPRAISAL_INTEREST_TAG, APPRAISAL_HELPER_TAG, APPRAISAL_TUTOR_META } from './appraisal-course.js';
 import { MATHEMATICS_META, MATHEMATICS_SESSION_FLOW, buildMathematicsSchedule, mathematicsProgressSummary, exportMathematicsCurriculumMarkdown, MATHEMATICS_INTEREST_TAG, MATHEMATICS_HELPER_TAG, MATHEMATICS_TUTOR_META } from './mathematics-class.js';
 import { RTO_BUSINESS_META, RTO_BUSINESS_SESSION_FLOW, buildRtoBusinessSchedule, rtoBusinessProgressSummary, exportRtoBusinessCurriculumMarkdown, RTO_BUSINESS_INTEREST_TAG, RTO_BUSINESS_HELPER_TAG, RTO_BUSINESS_TUTOR_META } from './rent-to-own-business-class.js';
 import { DEVELOPMENT_META, DEVELOPMENT_SESSION_FLOW, buildDevelopmentSchedule, developmentProgressSummary, exportDevelopmentCurriculumMarkdown, DEVELOPMENT_INTEREST_TAG, DEVELOPMENT_HELPER_TAG, DEVELOPMENT_TUTOR_META } from './development-class.js';
@@ -432,6 +433,30 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want a hand applying these eight to your own accounts \u2014 the two numbers on your statement nobody prints together, the signature you were asked for and can still refuse, the store you can start in a summer month, and the fee total almost nobody has ever added up. The whole course is free and open right here; this is for a hand with yours. Teaching, not financial or legal advice.',
       cta: 'I want help with mine',
       sent: '\u2713 Sent \u2014 Darrell will reach out. Know what it is for, and know what is holding you up.',
+    },
+  },
+  {
+    // COURSE TWELVE OF THE REAL ESTATE DEPARTMENT. Eleven courses covered the
+    // ground, the stewardship, the transaction, the tenant, the building, the
+    // partner, the lender, the record, the loss, the looking and the hardest
+    // hour. This one covers the number every one of them runs on and none of
+    // them examines: what a thing is actually worth, and who says so. Built on
+    // Leviticus 27, which almost nobody teaches and which turns out to be a
+    // complete valuation statute -- a published schedule with an
+    // ability-to-pay override, a binding estimate by a disinterested valuer,
+    // land priced by harvests remaining, a fixed fifth-part premium, an expiry
+    // with no reversion, and the unit defined in the same chapter.
+    key: 'appraisal', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...APPRAISAL_META, key: 'appraisal', category: 'Real Estate' }, sessionFlow: APPRAISAL_SESSION_FLOW,
+    buildScheduleRows: () => buildAppraisalSchedule(null), progressSummary: (p) => appraisalProgressSummary(p),
+    exportMarkdown: () => exportAppraisalCurriculumMarkdown(null), downloadName: 'appraisal-what-a-thing-is-actually-worth-curriculum.md',
+    interestTag: APPRAISAL_INTEREST_TAG, helperTag: APPRAISAL_HELPER_TAG, tutorCourseMeta: APPRAISAL_TUTOR_META,
+    interestText: (who) => `${APPRAISAL_INTEREST_TAG} ${who} wants a hand reading a valuation \u2014 or thinks something of theirs was valued wrongly.`,
+    interestCopy: {
+      heading: 'Was that number straight?',
+      blurb: 'Tell Darrell you want a hand applying these eight to a real valuation \u2014 publishing the number you currently set by feel, checking who made the estimate and what they stood to gain, pricing the years remaining rather than the thing, and writing one unit out in full so you can find out whether you have been arguing about price or about the measure. The whole course is free and open right here; this is for a hand with yours. Teaching, not appraisal, tax or investment advice \u2014 nothing here produces a number for your property, so hire somebody licensed in your own state.',
+      cta: 'I want help with mine',
+      sent: '\u2713 Sent \u2014 Darrell will reach out. And if you think something of yours was valued wrongly, start at lesson two and lesson five.',
     },
   },
   {

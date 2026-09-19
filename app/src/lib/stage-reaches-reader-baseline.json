@@ -1,6 +1,6 @@
 {
   "note": "Shrink-only debt. Opened 2026-09-18 after Darrell reported \"Send off is not populated in the latest lessons\". A RENDERED arc stage whose AUDIENCE side is empty gives the reader a heading with nothing under it. Counted per lesson PER AGE BAND (five bands), so one bare lesson contributed 5. It opened at 345 across eight courses that predate the gate, and the same day it reached ZERO: every one of those 69 lessons was authored a real Send-off, so every course key is GONE from this file rather than set to zero. The file stays because the gate reads it: with courses empty, EVERY course in the catalog must stay at zero, and a single bare stage anywhere fails the build. 2026-09-19: the Insurance and Risk course added 8 lessons, all with a real Send-off, so only the lesson count moved -- 463 to 471. 2026-09-19: the Inspections course added 8 lessons, all with a real Send-off, so only the lesson count moved -- 471 to 479.",
   "total": 0,
-  "lessons": 487,
+  "lessons": 495,
   "courses": {}
 }

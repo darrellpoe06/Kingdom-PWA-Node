@@ -97,6 +97,21 @@ export const HARD_TERMS = {
   //                  no work is deferred: the money sense appears only in
   //                  adult-register fields and is unpacked within a sentence or
   //                  two at every site.
+  //   premium is ALREADY on the list above, and a second sense of it surfaced
+  //                  on 2026-09-19 while building the appraisal course, where
+  //                  the word means a markup over an appraised value rather
+  //                  than a regular insurance payment. The cues were NOT
+  //                  widened: adding markup cues would give the term a second
+  //                  way to pass, which weakens the check rather than
+  //                  strengthening it, and weakening cues so a lesson passes is
+  //                  precisely what this file exists to prevent. The appraisal
+  //                  course was reworded instead -- charge, addition, the fifth
+  //                  part -- and the word does not appear in it at all, not
+  //                  even in a title or a benefit, because keeping it in the
+  //                  unscanned fields while avoiding it in the scanned ones
+  //                  would be gaming the gate rather than obeying it. Recorded
+  //                  here so a future author reaches for the reword rather than
+  //                  the cue list. Sibling of the `liability` finding above.
   //   peril       -- fires at the word start of `perilously`, which is ordinary
   //                  English (ll66). It needs a matcher that understands
   //                  inflection, not a list entry. re-review: 2026-10-03.
