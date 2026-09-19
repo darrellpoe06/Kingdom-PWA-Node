@@ -461,9 +461,17 @@ describe('FRESHNESS INSIDE THE DEPARTMENT, measured rather than claimed (DR-0076
       .toEqual(['Deuteronomy 24', 'Leviticus 25', 'Matthew 18', 'Micah 2']);
   });
 
-  it('shares exactly THREE verses with courses OUTSIDE the department, and names them', () => {
+  it('shares exactly FOUR verses with courses OUTSIDE the department, and names them', () => {
     // The department pin above is verse-level zero. This is the wider picture,
     // pinned so the narrower claim cannot be mistaken for a catalog-wide one.
+    //
+    // Matthew 18:27 joined the list on 2026-09-19 when L187 (The Acceptable
+    // Year and the Whole Counsel, DR-0541) taught the unforgiving-servant
+    // parable as DEBT RELEASE -- "loosed him, and forgave him the debt" -- the
+    // weld between jubilee and forgiveness. That a lesson about releasing a
+    // debt overlaps a course about what the Word restrains when somebody
+    // cannot pay is the catalog working, not drifting. The count moved because
+    // real teaching moved; the list is re-pinned rather than loosened.
     const mine = versesCited(ROW);
     const outside = new Set();
     for (const c of LEARN_CATALOG) {
@@ -472,7 +480,7 @@ describe('FRESHNESS INSIDE THE DEPARTMENT, measured rather than claimed (DR-0076
       const theirs = versesCited(c);
       for (const v of mine) if (theirs.has(v)) outside.add(v);
     }
-    expect([...outside].sort()).toEqual(['Amos 2:6', 'Job 31:15', 'Matthew 18:33']);
+    expect([...outside].sort()).toEqual(['Amos 2:6', 'Job 31:15', 'Matthew 18:27', 'Matthew 18:33']);
   });
 
   it('carries none of the three passages the measurement ruled out', () => {

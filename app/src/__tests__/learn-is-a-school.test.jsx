@@ -48,6 +48,17 @@ const clickTab = (label) => {
   act(() => tab.dispatchEvent(new MouseEvent('click', { bubbles: true })));
 };
 const pickerOptions = () => [...container.querySelectorAll('#learn-course-pick option')].map((o) => o.textContent || '').filter((t) => !t.startsWith('Choose'));
+// The department's own courses only: the picker also carries an "Also serves"
+// optgroup of courses hosted elsewhere that serve this department (DR-0540).
+// A cross-listing is a POINTER, never a course, so it is never counted as one.
+const ownGroupOptions = () => {
+  const pick = container.querySelector('#learn-course-pick');
+  if (!pick) return [];
+  const groups = [...pick.querySelectorAll('optgroup')];
+  const own = groups.find((g) => !/Also serves/.test(g.getAttribute('label') || ''));
+  const scope = own || pick;
+  return [...scope.querySelectorAll('option')].map((o) => o.textContent || '').filter((t) => !t.startsWith('Choose'));
+};
 const heading = () => container.querySelector('#learn-h').textContent;
 
 describe('Learn is a school — departments derived from the catalog', () => {
@@ -78,10 +89,17 @@ describe('Learn is a school — departments derived from the catalog', () => {
   it('a department tab narrows the picker to its courses and the open course follows', () => {
     mount();
     clickTab('Kingdom Life & Stewardship');
-    const opts = pickerOptions();
+    // The department's OWN courses live in the first optgroup. A second,
+    // labelled "Also serves" group carries courses that are hosted elsewhere
+    // but serve this department (DR-0540) -- Darrell 2026-09-19: "Inside the
+    // dop down as options under the original or course/s that exist...". So
+    // this assertion counts the department's own group; counting every option
+    // would count pointers as courses, which is the exact inflation DR-0516
+    // forbids.
+    const own = ownGroupOptions();
     const keys = LEARN_CATALOG.filter((c) => c.meta.category === 'Kingdom Life & Stewardship').map((c) => c.meta.title);
-    expect(opts.length).toBe(keys.length);
-    for (const o of opts) expect(o).toMatch(/^(● )?KLS-\d{3} · /);
+    expect(own.length).toBe(keys.length);
+    for (const o of own) expect(o).toMatch(/^(● )?KLS-\d{3} · /);
     expect(keys).toContain(heading());
     expect(container.querySelector('[data-testid="course-catalog-line"]').textContent).toMatch(/^KLS-\d{3} · Kingdom Life & Stewardship/);
     // back to Courses: the whole catalog again, and the course chosen nowhere → Living Lessons

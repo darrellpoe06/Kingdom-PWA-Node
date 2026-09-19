@@ -183,10 +183,32 @@ describe('the gate can actually fail', () => {
   });
 
   it('PROVEN-TO-CATCH: a course cross-listed into its own home department', () => {
-    // Pretend every course lives in Business; every declaration is then a
-    // self-listing and all of them must be reported.
+    // Pretend every course lives in Business. Every declaration that TARGETS
+    // Business is then a self-listing and must be reported.
+    //
+    // This assertion used to read `.toBe(COURSE_CROSS_LISTINGS.length)`, which
+    // was only ever true while every declaration pointed at Business. DR-0540
+    // added shelves in Kingdom Life & Stewardship, Mathematics and Development
+    // -- Darrell 2026-09-19: "All courses need to be listed in their respective
+    // courses and also cross the other spaces it is discussed" -- so 21 of the
+    // 27 target Business and the old literal started reporting a fault in
+    // correct data. The count is DERIVED now, so it cannot go stale again.
+    const business = COURSE_CROSS_LISTINGS.filter((c) => c.department === 'Business');
+    expect(business.length, 'Business should still be a shelf').toBeGreaterThan(0);
     const self = selfListedCourseCrossListings(() => 'Business');
-    expect(self.length, 'self-listing went unreported').toBe(COURSE_CROSS_LISTINGS.length);
+    expect(self.length, 'self-listing went unreported').toBe(business.length);
+  });
+
+  it('PROVEN-TO-CATCH: every declaration self-lists when its own shelf is its home', () => {
+    // The stronger form of the check above, and the one that actually covers
+    // EVERY declaration rather than the Business subset. Give each course a
+    // home equal to one of its own declared shelves; every course must then be
+    // reported, including the four that serve two shelves.
+    const home = new Map();
+    for (const c of COURSE_CROSS_LISTINGS) if (!home.has(c.courseKey)) home.set(c.courseKey, c.department);
+    const self = new Set(selfListedCourseCrossListings((k) => home.get(k) || ''));
+    const every = new Set(COURSE_CROSS_LISTINGS.map((c) => c.courseKey));
+    expect([...every].filter((k) => !self.has(k)), 'a course never self-listed').toEqual([]);
   });
 
   it('PROVEN-TO-CATCH: a row whose title was retyped instead of read', () => {
