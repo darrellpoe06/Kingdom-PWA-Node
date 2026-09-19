@@ -62,6 +62,21 @@ Recorded because it is the more useful half of the record:
 
 `learn-crosslist` 37 → **38 courses**, 604 → **612 lessons** — a new course, so both numbers move.
 
+## Cross-department passage overlap — raised as an alarm, then disproved by measurement
+
+The sibling-chapter rule is **department-local**, and after shipping I checked whether that scoping was hiding a real problem: five of Banking's seven anchor chapters (Genesis 41, Exodus 22, Nehemiah 5, Proverbs 6, 2 Kings 12) are also used somewhere in **Real Estate**. That looked bad enough to stop and measure.
+
+**What the measurement showed.** Across the whole catalog, **407 verses are anchored by more than one lesson** — Philippians 4:8 by eight, Proverbs 4:23 by eleven, 1 Thessalonians 5:21 by twenty-two. Cross-department reuse of a passage is the **established pattern** of this corpus, not a defect, which is exactly why the rule was scoped to the department in the first place.
+
+**The two closest cases, read rather than assumed.** These are the ones where the shared verse is also the headline of an existing lesson, so they were checked directly:
+
+- **2 Kings 12** — `maint4-for-they-dealt-faithfully` (Real Estate) anchors on **verses 12 and 15** and teaches *paying tradesmen without auditing them*: trust extended at the disbursement. Banking lesson 7 anchors on **verse 9** and teaches the **collection-side control system** — one entry point, the hole in the lid, the public position, separation of duty, dual control across an organisational boundary — with verse 15 as the payoff rather than the subject. The two read the same chapter **from opposite ends**, and `maint4` does not touch verses 9 or 10 at all.
+- **Exodus 22** — `lease5-wherein-shall-he-sleep` (Real Estate) anchors on **verses 26 and 27** and teaches the *pledge clock* in a landlord-and-tenant setting. Banking lesson 2 anchors on **verse 25** and teaches the usury prohibition and the borrower it names, using 26 and 27 only to **fix the register** of who that borrower is.
+
+**Conclusion:** not duplication. Same chapter, different end; same support verse, different subject — which is the good kind of reuse and the reason the department-local rule is the right scope.
+
+**What is genuinely missing, and is not closed here.** Nothing *measures* any of this. The department rule is enforced per course; cross-department overlap is invisible until somebody checks by hand, as happened here. And the useful signal is not "shares a verse" — that would fire 407 times and mean nothing — but "shares a verse **and** the headline reading," which required reading both lessons to judge. A gate for that is not obviously buildable without a similarity measure over teaching claims rather than references. `re-review: 2026-09-26`.
+
 ## Follow-on
 
 - The draft lived in `docs/drafts` while it was part-authored, because `learn-catalog-render.test.jsx` requires every course lib in `app/src/lib` to be registered — *built means surfaced* (DR-0065). It moved into the source tree in the commit that registered it, which is how that directory is meant to be used.
