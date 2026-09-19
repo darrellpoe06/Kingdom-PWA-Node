@@ -45,7 +45,11 @@ Three things, none of which a hand-written copy would ever have surfaced:
 
    Whether that article is a violation is a judgement about His honour, not a regex question, and CLAUDE.md forbids blind sweeps of content. So the gate enforces **what it always enforced plus the unambiguous additions**, never less, and the question goes to Darrell. Recorded here rather than resolved by machine.
 
-   **Open — `re-review: 2026-10-03`.** Does "The adversary" at the start of a sentence pay him a capital, or is the article simply English? If it does, 12 sentences are rewritten so the name never opens a sentence.
+   **CLOSED the same day, by Darrell.** Shown the finding in his own terms — *"The adversary..." where the name itself is already lowercase and only the definite article carries the capital* — he answered: **"Great."**
+
+   So the narrow reading governs: **the definite article is English, and the NAME is what must never carry the capital.** A sentence opening "The adversary" is correct as written, because `adversary` is already lower case. The 12 sentences stand; no sweep. The gate stays exactly where it is — every form it enforced before, plus the unambiguous name-word additions (`baal`, `the Devil`, `the Dragon`, `the Adversary`, `the Accuser`, `the Deceiver`), and nothing that would fire on a capitalised article.
+
+   This is also the rule the reader's page now teaches, and it is the reason L42's title WAS a violation while "The adversary shows you..." is not: L42 capitalised the name itself.
 
 ## The exception, stated to the reader as plainly as the rule
 

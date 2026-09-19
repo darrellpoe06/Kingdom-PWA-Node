@@ -59,10 +59,15 @@ const SRC = join(HERE, '..');
 //      shape, opposite treatment. Generating the sentence-start form for every
 //      name turned 12 shipped lesson sentences red, all of them "The adversary
 //      ..." where the NAME word is already lower case and only the article
-//      carries the capital. Whether that article is a violation is a judgement
-//      about His honour, not a regex question, so it goes to Darrell rather
-//      than being swept. Until he rules, this gate enforces what it has always
-//      enforced PLUS the unambiguous additions below, and never less.
+//      carries the capital. That went to Darrell rather than being swept, and
+//      he RULED the same day, shown the finding in his own terms: "Great."
+//      So the definite article is English and the NAME is what may never carry
+//      the capital. A sentence opening "The adversary" is correct as written,
+//      because `adversary` is already lower case, and those 12 stand. This gate
+//      therefore enforces every form it always enforced PLUS the unambiguous
+//      name-word additions below, and nothing that fires on an article.
+//      It is the same rule that made L42's title a real violation: that one
+//      capitalised the NAME.
 //
 // What is unambiguous: the NAME word itself in capitals -- Satan, Lucifer,
 // Baal, the Devil, the Dragon. Those are generated. Beelzebub is a deliberate

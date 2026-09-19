@@ -53,7 +53,7 @@ export const NEVER_CAPITALIZED = [
 ];
 
 /** The one sentence that carries the whole reason for the list above. */
-export const WHY_LOWERCASE = 'The adversary lost the right to that honour. A capital letter is a small honour and we do not pay it to him -- not even when he begins a sentence, which is the only place this rule ever looks like a mistake.';
+export const WHY_LOWERCASE = 'The adversary lost the right to that honour. A capital letter is a small honour and we do not pay it to him -- not even when he begins a sentence, which is the only place this rule ever looks like a mistake. One thing that is NOT an exception: an ordinary "The" that opens a sentence is just English, and the name after it stays lower case. So "The adversary tempted Him" is written correctly -- the capital belongs to the sentence, never to him.';
 
 /**
  * The exception, stated as plainly as the rule, because a reader who spots
