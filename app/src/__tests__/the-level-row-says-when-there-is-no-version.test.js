@@ -36,6 +36,54 @@ const BANDED = {
   levels: { child: 'The child version.', teen: 'The teen version.', senior: 'The senior version.' },
 };
 
+// THE SECOND SCREENSHOT, THE SAME DAY (2026-09-19). With the row finally
+// speaking, Darrell opened L186 (Glory to Glory -- four authored bands plus its
+// adult prose) and was told "The Adult version has not been written yet", over
+// the very words it was showing him: "Choosing to change the length?!!!!!!!!!!!
+// Not the lessons to fit the level?!!!!!!!!!!!!!"
+//
+// He was right again. The adult band's depth key is 'standard'; almost no module
+// carries `levels.standard`; so EVERY adult reader -- the DEFAULT band and the
+// widest audience -- fell through to the plain `lesson` and was flagged
+// branched:false. On a lesson with real bands that is simply false: `lesson` IS
+// the adult version, authored for them, sitting beside the other four.
+//
+// The two complaints are the same wire and the fix has to thread both. A lesson
+// carrying NO bands still reports false for every band (one version, written
+// once, and the row says so). A lesson carrying bands reports TRUE for adult,
+// because the adult is being served their own text. The test below pins the
+// screenshot so neither half can regress into the other.
+describe('a banded lesson does not call its adult prose nobody\u2019s (the second screenshot)', () => {
+  const GLORY = {
+    id: 'll186-glory-to-glory-one-letter-holds-both-sides',
+    title: 'Glory to Glory: One Letter Holds Both Sides',
+    lesson: 'The adult version, authored for the adult reader.',
+    levels: {
+      child: 'The child version.', youth: 'The youth version.',
+      teen: 'The teen version.', senior: 'The senior version.',
+    },
+  };
+
+  it('the ADULT band is served its own authored text, and knows it', () => {
+    const r = resolveForAge(GLORY, 'adult');
+    expect(r.text).toBe(GLORY.lesson);
+    expect(r.branched, 'the adult was told their version was never written').toBe(true);
+  });
+
+  it('every band on a fully banded lesson reports branched:true', () => {
+    for (const b of AGE_BANDS) {
+      expect(resolveForAge(GLORY, b.id).branched, `${b.id} reads as a fallback`).toBe(true);
+    }
+  });
+
+  it('PROVEN-TO-CATCH: strip the bands and the adult honestly reports false again', () => {
+    // The guard against over-correcting. Remove the authored levels and the
+    // lesson really does have one version for everybody -- the morning's case.
+    const stripped = { id: GLORY.id, title: GLORY.title, lesson: GLORY.lesson };
+    expect(resolveForAge(stripped, 'adult').branched).toBe(false);
+  });
+});
+
 describe('the resolver tells the truth, and the flag is the thing that knows', () => {
   it('a bandless lesson reports branched:false for EVERY band', () => {
     for (const b of AGE_BANDS) {
