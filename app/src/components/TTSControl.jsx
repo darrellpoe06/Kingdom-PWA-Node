@@ -931,6 +931,18 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
               <div className="text-[0.625em] text-[#5A5751]" role="status" aria-live="polite" style={{ fontFamily: '"Fraunces", serif' }}>{armed ? 'Tap any word on the page — reading starts there' : (talking ? 'Ari is looking at this screen…' : (talkSource && !isReading ? talkSource : (isReading && runInfo ? `${statusLabel} — keeps going to the next one` : statusLabel)))}</div>
             </div>
             <div className="flex items-center gap-[0.375em]">
+              {/* TOP LIVES IN THE HEADER (Darrell 2026-09-19: "sometimes I can't
+                  find the back to the Top button... why?"). He was right and the
+                  cause was structural, not his memory. The floating ↑ is hidden
+                  whenever this panel is open — it shares a bottom-anchored
+                  flex column with the panel and a tall card would push it off
+                  the top of the screen — so with the panel open the ONLY way
+                  back was ⏮ Top down in the second button row, which on a phone
+                  is below the fold of the panel itself. The header never
+                  scrolls away, so a Top here is always findable. jumpTop only
+                  re-seeks the voice when a reading is actually running, so for
+                  a reader using their eyes this is a plain scroll home. */}
+              <button type="button" onClick={jumpTop} data-testid="tts-header-top" aria-label="Back to the top of the lesson" title="Back to the top" className="text-[0.625em] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">↑ Top</button>
               {isReading && (
                 <button type="button" onClick={() => setMinimized(true)} aria-label="Collapse to the reading pill — keeps reading" className="text-[0.625em] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⌄ Smaller</button>
               )}
@@ -977,7 +989,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
                   <>
                     <button type="button" onClick={() => jumpParagraph(-1)} aria-label="Back — re-listen this paragraph; tap again for the one before" className="border border-[#E8E4DC] text-[#5A5751] px-[0.5em] py-[0.625em] min-h-[2.75em] text-[0.6875em] uppercase tracking-wider hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">↩¶ Back</button>
                     <button type="button" onClick={() => jumpParagraph(1)} aria-label="Forward — skip to the next paragraph" className="border border-[#E8E4DC] text-[#5A5751] px-[0.5em] py-[0.625em] min-h-[2.75em] text-[0.6875em] uppercase tracking-wider hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">↪¶ Next</button>
-                    <button type="button" onClick={jumpTop} aria-label="Back to the top — scrolls up and restarts the reading" className="border border-[#E8E4DC] text-[#5A5751] px-[0.5em] py-[0.625em] min-h-[2.75em] text-[0.6875em] uppercase tracking-wider hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⏮ Top</button>
+                    <button type="button" onClick={jumpTop} aria-label="Back to the top — and if a reading is running, it starts again from the first line" className="border border-[#E8E4DC] text-[#5A5751] px-[0.5em] py-[0.625em] min-h-[2.75em] text-[0.6875em] uppercase tracking-wider hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⏮ Top</button>
                   </>
                 )}
               </>
