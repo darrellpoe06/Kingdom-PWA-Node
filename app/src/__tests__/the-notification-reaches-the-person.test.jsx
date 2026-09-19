@@ -182,10 +182,20 @@ describe('three different truths, told apart', () => {
     ]) expect(readinessFrom(facts).canAct).toBe(false);
   });
 
-  it('a granted-but-unsubscribed device is still OFF — permission is not a subscription', () => {
+  it('a granted-but-unsubscribed device is never ON — permission is not a subscription', () => {
     // The distinction the zero-row measurement turns on: Darrell could have
     // granted permission in 2026-08 and still have no subscription row.
-    expect(readinessFrom({ permission: 'granted', subscribed: false }).state).toBe('off');
+    //
+    // 2026-09-19: this case got its OWN state rather than falling into 'off'.
+    // Darrell: "why does it keep asking after agreeing to?" -- because 'off'
+    // carried the headline "Turn on notifications", which is a lie to someone
+    // who already granted. The INVARIANT this test exists for is unchanged and
+    // is asserted first: we must never believe we can reach this device. Only
+    // the label moved, and it moved so the copy could stop lying (DR-0538).
+    const r = readinessFrom({ permission: 'granted', subscribed: false });
+    expect(r.state, 'a device with no subscription row is not reachable').not.toBe('on');
+    expect(r.state).toBe('permitted');
+    expect(r.headline, 'it must not ask him to allow what he already allowed').not.toMatch(/^Turn on notifications/);
   });
 
   it('unsupported outranks unconfigured outranks blocked', () => {
