@@ -7,7 +7,7 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 187,
-  "lessonsShort": 79,
+  "lessonsShort": 77,
   "short": {
     "ll10-strength-and-honour-are-her-clothing": [
       "child",
@@ -70,12 +70,6 @@
       "teen",
       "senior"
     ],
-    "ll2-the-energy-you-were-given": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
     "ll20-the-ladder-and-the-door": [
       "child",
       "youth",
@@ -131,12 +125,6 @@
       "senior"
     ],
     "ll29-the-unseen-realm-and-the-nations": [
-      "child",
-      "youth",
-      "teen",
-      "senior"
-    ],
-    "ll3-bodybuilding-christ": [
       "child",
       "youth",
       "teen",
