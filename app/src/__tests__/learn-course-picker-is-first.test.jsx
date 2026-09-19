@@ -27,6 +27,7 @@ import { createRoot } from 'react-dom/client';
 import { act } from 'react-dom/test-utils';
 import React from 'react';
 import ChurchLearn from '../components/ChurchLearn.jsx';
+import { buildCatalogCourseDescriptors } from '../lib/learn-catalog.js';
 
 let container; let root;
 
@@ -39,6 +40,8 @@ afterEach(() => {
   act(() => root.unmount());
   container.remove();
 });
+
+const CATALOG = buildCatalogCourseDescriptors();
 
 const mount = (props = {}) => act(() => root.render(React.createElement(ChurchLearn, {
   progress: {},
@@ -57,6 +60,13 @@ const isBefore = (a, b) =>
   !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
 const picker = () => container.querySelector('#learn-course-pick');
+// The department tabs are role="tab" nodes, not plain buttons -- selecting them
+// by tagName finds nothing and the assertion passes vacuously, which is how a
+// gate becomes theatre. Same selector the crosslisted-in-the-picker suite uses.
+const deptTabs = () => [...container.querySelectorAll('#learn-dept-panel-all, [id^="learn-dept-tab-"]')]
+  .filter((el) => el.getAttribute('role') === 'tab');
+const deptTab = (label) => deptTabs().find((b) => (b.textContent || '').trim() === label);
+const mountWithCatalog = (props = {}) => mount({ extraCourses: CATALOG, ...props });
 
 describe('the course picker comes FIRST on the Learn tab', () => {
   it('the picker is on screen at all', () => {
@@ -156,5 +166,56 @@ describe('the obvious progression: pick one of N courses, or search by name, the
     const find = container.querySelector('#learn-lesson-find');
     const bar = container.querySelector('[data-testid="lessons-bar"]');
     expect(isBefore(find, bar), 'search must precede the lessons bar').toBe(true);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Darrell, 2026-09-19, with a screenshot of the Business tab, which has one
+  // course of its own and fourteen that serve it: "Not good!!!! Where is the
+  // drop-down?!!!!!!!!!! For all tabs..."
+  //
+  // The cross-list blocks were rendering INSIDE the department block, which put
+  // a wall of rows between the tabs and the picker. Everything above already
+  // passed -- the picker was before the title, Share, the catalog line and
+  // Resume -- because every one of those lives further down the page. Nothing
+  // in this file looked at what a DEPARTMENT tab inserts ABOVE it. That blind
+  // spot is why the same complaint came back thirteen days later, so it is
+  // closed here rather than in a comment.
+  // ---------------------------------------------------------------------------
+  it('comes before the cross-listed block on a DEPARTMENT tab, not after it', async () => {
+    mountWithCatalog();
+    const tabs = deptTabs().filter((t) => (t.textContent || '').trim() !== 'Courses');
+    expect(tabs.length, 'no department tabs rendered').toBeGreaterThan(0);
+    // Walk the tabs until one actually renders the shelf. Asserting only on
+    // Business would pass vacuously -- Business gathers cross-listed COURSES
+    // (which now live in the picker) but no cross-listed LESSONS, so its shelf
+    // never mounts and the check would prove nothing. A gate that cannot fire
+    // is not a gate (DR-0076 §3), so this fails outright if NO department
+    // renders the shelf.
+    let checked = 0;
+    for (const tab of tabs) {
+      await act(async () => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      const shelf = container.querySelector('[data-testid="learn-crosslisted"]');
+      if (!shelf) continue;
+      checked += 1;
+      expect(picker(), `no course dropdown on ${tab.textContent.trim()}`).toBeTruthy();
+      expect(
+        isBefore(picker(), shelf),
+        `on ${tab.textContent.trim()} the picker must precede the cross-listed block, never follow it`,
+      ).toBe(true);
+    }
+    expect(checked, 'no department rendered the cross-listed shelf — this check proved nothing').toBeGreaterThan(0);
+  });
+
+  it('comes before the Eternal Algorithms study panel on its own tab', async () => {
+    mountWithCatalog();
+    const tab = deptTabs().find((b) => /eternal algorithms/i.test((b.textContent || '').trim()));
+    if (!tab) return;
+    await act(async () => { tab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    const study = container.querySelector('[data-testid="eternal-study-in-learn"]');
+    expect(picker(), 'the course dropdown must still render').toBeTruthy();
+    if (study) {
+      expect(isBefore(picker(), study),
+        'the picker must precede the study panel, never follow it').toBe(true);
+    }
   });
 });

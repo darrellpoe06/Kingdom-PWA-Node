@@ -3149,46 +3149,6 @@ export default function ChurchLearn({
                 credit never fork. Each row names where it actually lives, so the shelf
                 never implies a second identity. A declaration naming a course the
                 catalog does not carry fails the build (course-crosslist.test.js). */}
-            {dept && gathered.length > 0 && (
-              <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="learn-crosslisted">
-                <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">
-                  Also taught across the curriculum · {gathered.length}
-                </p>
-                <p className="text-[0.625rem] text-[#5A5751] leading-snug mb-2">
-                  These lessons live in their own courses and are taught there. Open one here and it
-                  opens where it lives — so it counts once, whichever shelf you found it on.
-                </p>
-                <ul className="space-y-2">
-                  {gathered.map((r) => (
-                    <li key={`${r.courseKey}-${r.lessonId}`}>
-                      <button
-                        type="button"
-                        className="text-left w-full focus:outline focus:outline-2 focus:outline-[#B85838]"
-                        onClick={() => {
-                          setDeptId('all');
-                          setActiveKey(r.courseKey);
-                          setResumeOpenGuide(false);
-                          setResumeLessonId(r.lessonId);
-                        }}
-                      >
-                        <span className="block text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{r.title}</span>
-                        <span className="block text-[0.625rem] text-[#5A5751]">
-                          {r.courseTitle} · {r.unitLabel}{r.ref ? ` · ${r.ref}` : ''}
-                        </span>
-                        <span className="block text-[0.625rem] text-[#5A5751]">{r.why}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {dept && dept.id === 'the-eternal-algorithms' && (
-              <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="eternal-study-in-learn">
-                <React.Suspense fallback={<p className="text-xs text-[#5A5751]">Opening the study…</p>}>
-                  <EternalAlgorithmsStudyLazy {...(eternalStudyProps || {})} />
-                </React.Suspense>
-              </div>
-            )}
           </div>
         )}
 
@@ -3316,6 +3276,63 @@ export default function ChurchLearn({
             </div>
           </div>
         )}
+
+        {/* THE CROSS-LIST BLOCKS SIT BELOW THE PICKER, NEVER ABOVE IT.
+            Darrell, 2026-09-19, with a screenshot of the Business tab:
+            "Where is the drop-down?!!!!!!!!!! For all tabs..."
+
+            They used to render inside the department block, which put a wall
+            of cross-listed rows between the department tabs and the course
+            picker -- so on a department with one course of its own and
+            fourteen that serve it, the reader met the wall and never saw the
+            dropdown at all. That is the SAME complaint as 2026-09-06 ("its
+            hard to find!!! I have said this already too many times"), and the
+            order test written then only guarded the picker against the
+            catalog line and Resume, so it was blind to this. It now guards
+            against these blocks too.
+
+            The courses that serve a department are already options INSIDE the
+            picker (DR-0516), so the picker alone is enough to choose one. */}
+            {dept && gathered.length > 0 && (
+              <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="learn-crosslisted">
+                <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">
+                  Also taught across the curriculum · {gathered.length}
+                </p>
+                <p className="text-[0.625rem] text-[#5A5751] leading-snug mb-2">
+                  These lessons live in their own courses and are taught there. Open one here and it
+                  opens where it lives — so it counts once, whichever shelf you found it on.
+                </p>
+                <ul className="space-y-2">
+                  {gathered.map((r) => (
+                    <li key={`${r.courseKey}-${r.lessonId}`}>
+                      <button
+                        type="button"
+                        className="text-left w-full focus:outline focus:outline-2 focus:outline-[#B85838]"
+                        onClick={() => {
+                          setDeptId('all');
+                          setActiveKey(r.courseKey);
+                          setResumeOpenGuide(false);
+                          setResumeLessonId(r.lessonId);
+                        }}
+                      >
+                        <span className="block text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{r.title}</span>
+                        <span className="block text-[0.625rem] text-[#5A5751]">
+                          {r.courseTitle} · {r.unitLabel}{r.ref ? ` · ${r.ref}` : ''}
+                        </span>
+                        <span className="block text-[0.625rem] text-[#5A5751]">{r.why}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {dept && dept.id === 'the-eternal-algorithms' && (
+              <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="eternal-study-in-learn">
+                <React.Suspense fallback={<p className="text-xs text-[#5A5751]">Opening the study…</p>}>
+                  <EternalAlgorithmsStudyLazy {...(eternalStudyProps || {})} />
+                </React.Suspense>
+              </div>
+            )}
 
         {/* THIS COURSE'S LESSONS — DIRECTLY UNDER THE COURSE YOU JUST CHOSE.
             Darrell 2026-09-06, three screenshots of the live tab in a row: "Of
