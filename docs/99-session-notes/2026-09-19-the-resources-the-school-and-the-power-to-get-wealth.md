@@ -72,8 +72,15 @@ which is exactly why it is a Resource and not a sentiment. **Business Systems**
 carries the capital because its lack is a real barrier, not a character flaw.
 
 **Bright line:** our voice only, never a quotation. Measured and machine-held —
-`kjv-case` fires on any case-only drift inside a quoted verse, ceiling 9,
-actual 9, **zero slack**.
+`kjv-case` fires on any case-only drift inside a quoted verse.
+
+> **Correction, 2026-09-19 (later the same day).** This paragraph first read
+> "ceiling 9, actual 9, zero slack." Both numbers were stale within hours: the
+> corpus work closed the nine outstanding cases and the ratchet was lowered, so
+> the measured state on `main` is now **actual 0 against a ceiling of 0** — still
+> zero slack, and strictly stronger than what was written. Recorded rather than
+> quietly edited, because a document about not overstating things has no licence
+> to leave a stale number standing. The conclusion held; the figures did not.
 
 ---
 
