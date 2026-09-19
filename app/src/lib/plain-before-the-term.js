@@ -82,10 +82,21 @@ export const HARD_TERMS = {
   // THREE WORDS WERE MEASURED AND DELIBERATELY LEFT OFF, and the reasons belong
   // here rather than in a commit nobody re-reads. Each is a real candidate and
   // each would fire on correct content today, which this file forbids.
-  //   liability   -- 26 genuine uses across 13 lessons, no matcher problem, and
-  //                  a word a young reader really does not own. It is owed a
-  //                  pass that AUTHORS the gloss at each site; it must never be
-  //                  added by hollowing its cues. re-review: 2026-10-03.
+  //   liability   -- PERMANENTLY off, and the reason here was corrected on
+  //                  2026-09-19 after the sites were actually surveyed
+  //                  (DR-0526 amends DR-0523). It is not one word: it carries
+  //                  at least FOUR senses in this corpus -- a burden ("the Word
+  //                  never presents a wife as a liability", ll123, and the only
+  //                  place it reaches a youth or teen band), answerability
+  //                  (pm7, spm6, dev5), money owed (part3, part7, tax2), and a
+  //                  legal term of art (premises liability, product-liability
+  //                  law, a liability shield, a court finding). Money-sense cues
+  //                  would demand a WRONG gloss at three senses out of four,
+  //                  which is a check firing on correct content -- exactly why
+  //                  `tribute` and `pledge` came off this list. No date, because
+  //                  no work is deferred: the money sense appears only in
+  //                  adult-register fields and is unpacked within a sentence or
+  //                  two at every site.
   //   peril       -- fires at the word start of `perilously`, which is ordinary
   //                  English (ll66). It needs a matcher that understands
   //                  inflection, not a list entry. re-review: 2026-10-03.
