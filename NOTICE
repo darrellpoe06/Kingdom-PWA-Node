@@ -1,0 +1,107 @@
+NOTICE
+======
+
+PoeTech / SKOS
+Copyright (c) 2026 Darrell Poe. All rights reserved.
+
+This file identifies material in this repository that is owned by others or is
+in the public domain. That material is NOT covered by the LICENSE file and
+remains governed by its own terms. The LICENSE covers only this Work's own
+original elements.
+
+Every entry below was verified against the repository tree on 2026-09-19, not
+recalled. Where a component's terms require attribution, this file is where
+that attribution is given.
+
+
+1. BIBLICAL TEXTS — PUBLIC DOMAIN, NOT CLAIMED
+-----------------------------------------------
+
+The Word is not ours to own. The biblical texts reproduced in this Work are
+public domain, reproduced verbatim, and are claimed by no one here. The
+authoritative registry of what may be reproduced and on what terms is
+`app/src/lib/bible-editions.js`, which enforces these terms as data.
+
+  World English Bible (WEB)
+    Status .......... Public domain (explicit dedication)
+    Source .......... eBible.org / Michael Paul Johnson (worldenglish.bible)
+    Attribution ..... Given here with thanks.
+    Trademark ....... The NAME "World English Bible" and its logo are
+                      trademarks of the publisher. The TEXT is public domain
+                      and modifiable, but a MODIFIED text must be renamed. This
+                      Work reproduces the WEB VERBATIM and labels it as WEB, so
+                      the trademark is honored and no rename is required.
+
+  King James Version (1611), the Authorized Version
+    Status .......... Public domain in the United States.
+    Note ............ In the United Kingdom the Crown holds a perpetual
+                      royal-prerogative right (Cambridge / Oxford), preserved
+                      by s.171(b) CDPA 1988. This does not affect use in the
+                      United States. UK distribution is a separate question.
+
+  Commentary, clarification, study apparatus, lesson content, and arrangement
+  surrounding these texts are original to this Work and ARE covered by the
+  LICENSE. The boundary between the text and the commentary is structural and
+  machine-checked: Scripture is reproduced verbatim and labeled; commentary is
+  always marked as commentary. The two are never merged.
+
+
+2. THIRD-PARTY SOFTWARE — VENDORED
+-----------------------------------
+
+Vendored under `infra/nas-agent/.vendor/`. Each retains its own license file in
+its `.dist-info` directory; the terms below govern that component, not this
+Work.
+
+  asn1crypto      1.5.1              MIT License
+  pg8000          1.30.5             BSD License
+  python-dateutil 2.9.0.post0        BSD License
+  scramp          1.4.4              MIT No Attribution License (MIT-0)
+  six             1.17.0             MIT License
+
+
+3. THIRD-PARTY SOFTWARE — DEPENDENCIES
+---------------------------------------
+
+The web application under `app/` and the tooling under `scripts/` and `infra/`
+depend on third-party packages resolved at install time from public registries.
+Those packages are not redistributed in this repository, are not part of the
+Work, and remain governed by their own licenses as declared in their respective
+manifests and lockfiles.
+
+
+4. TRADEMARKS
+-------------
+
+The following names and marks are used in commerce by the copyright holder and
+are claimed as trademarks, whether or not registered:
+
+  PoeTech · SKOS · Ari · Council Chamber · Quality Gatekeeper ·
+  Behavioral Mirror · The Love Corner · OpsBoard
+
+No license to any of these is granted by the LICENSE file or by this NOTICE.
+
+Two deliberate exclusions, recorded so they are not "helpfully" added later:
+
+  "The Way" is NOT claimed. It is the Word's own language for the early
+  believers (Acts 9:2; 19:9; 24:14). It is used here as Scripture uses it, and
+  it is not ours to own.
+
+  "SKOS" collides with an established W3C standard (Simple Knowledge
+  Organization System). It is listed above as used in commerce by this project;
+  no claim is made against that standard, and the mark requires clearance
+  before any registration is pursued.
+
+Third-party names and marks appearing in this repository (including but not
+limited to GitHub, Cloudflare, Google, Apple, Supabase, and the Bible
+publishers named above) are the property of their respective owners and are
+used for identification only.
+
+
+5. SCOPE OF THIS NOTICE
+------------------------
+
+This file records attribution and ownership boundaries. It is not legal advice,
+and it does not itself transfer or assign any right. The register of what this
+Work contains and how each element is protected is maintained at
+`docs/00-foundations/_root/IP-REGISTER.md`.
