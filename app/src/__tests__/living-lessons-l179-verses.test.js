@@ -120,9 +120,15 @@ describe('the lesson exists and is wired', () => {
     // The pin moved rather than being dropped: it still fixes L179's POSITION,
     // which is what would catch an accidental reorder or duplicate insert.
     expect(L, 'L179 is not in the series').toBeTruthy();
-    expect(LIVING_LESSONS_MODULES).toHaveLength(179);
-    expect(LIVING_LESSONS_META.weeks).toBe(179);
-    expect(LIVING_LESSONS_MODULES[LIVING_LESSONS_MODULES.length - 2].id).toBe(ID);
+    expect(LIVING_LESSONS_MODULES).toHaveLength(180);
+    expect(LIVING_LESSONS_META.weeks).toBe(180);
+    // RELATIVE, not an offset from the end. L180 was appended on 2026-09-19 and
+    // L181 the same day, and each append broke an end-offset pin -- which
+    // trains the next person to bump the number rather than read it. Order is
+    // the property that actually matters: L179 sits immediately before L180.
+    const here = LIVING_LESSONS_MODULES.findIndex((m) => m.id === ID);
+    expect(here, 'L179 is not in the series').toBeGreaterThan(-1);
+    expect(LIVING_LESSONS_MODULES[here + 1].id).toMatch(/^ll180-/);
   });
 
   it('carries every field a lesson is required to carry', () => {

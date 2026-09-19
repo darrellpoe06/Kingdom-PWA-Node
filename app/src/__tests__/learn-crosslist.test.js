@@ -215,10 +215,14 @@ describe('a pointer, never a copy', () => {
     // own spoken teaching, a real lesson into the existing Living Lessons
     // course, so the course count stays at 42 and only the lesson total moves,
     // exactly as the rule above spells out.
+    // And to 42 / 646 on 2026-09-19 for L181 ("Run It Through the Word",
+    // DR-0532) — Darrell's spoken teaching from his wife's choir rehearsal,
+    // another real lesson into the existing Living Lessons course, so again
+    // only the lesson total moves.
     expect(courses).toHaveLength(42);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(645);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(646);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(645);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(646);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {

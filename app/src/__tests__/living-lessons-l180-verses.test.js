@@ -91,9 +91,14 @@ const SPOKEN = new Set([
 describe('the lesson exists and is wired', () => {
   it('is the 180th Living Lesson and the series count says so', () => {
     expect(L, 'L180 is not in the series').toBeTruthy();
-    expect(LIVING_LESSONS_MODULES).toHaveLength(179);
-    expect(LIVING_LESSONS_META.weeks).toBe(179);
-    expect(LIVING_LESSONS_MODULES[LIVING_LESSONS_MODULES.length - 1].id).toBe(ID);
+    expect(LIVING_LESSONS_MODULES).toHaveLength(180);
+    expect(LIVING_LESSONS_META.weeks).toBe(180);
+    // Relative order rather than an end-offset, for the reason recorded in
+    // L179's file: L181 landed the same day and an offset pin would already
+    // have needed bumping. L180 sits immediately after L179.
+    const here = LIVING_LESSONS_MODULES.findIndex((m) => m.id === ID);
+    expect(here, 'L180 is not in the series').toBeGreaterThan(-1);
+    expect(LIVING_LESSONS_MODULES[here - 1].id).toMatch(/^ll179-/);
   });
 
   it('carries every field the reader and the facilitator need', () => {
