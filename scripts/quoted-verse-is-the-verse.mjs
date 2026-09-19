@@ -49,6 +49,8 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { HOLY_NAME_WORDS } from '../app/src/lib/typographic-theology.js';
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const KJV_DIR = join(HERE, '..', 'app', 'public', 'bible', 'kjv');
 
@@ -212,15 +214,11 @@ export function describeFault(f) {
 // is a lord. 'father' and 'son' are not. Including them would force wrong edits
 // or need exemptions, and either one would make this gate a liar. Quotations are
 // stripped first -- the Word is never touched to fit house style (DR-0076).
-export const HOLY_NAMES = [
-  ['yahweh', /\byahweh\b/g],
-  ['jesus', /\bjesus\b/g],
-  ['christ', /\bchrist\b/g],
-  ['messiah', /\bmessiah\b/g],
-  ['godhead', /\bgodhead\b/g],
-  ['holy spirit', /\bholy spirit\b/g],
-  ['holy ghost', /\bholy ghost\b/g],
-];
+// DERIVED, never a second copy. The canonical list is app/src/lib/
+// typographic-theology.js -- the same module the READER's explanation renders
+// from. One source means the gate, the rule and the page a reader sees cannot
+// disagree: adding a name updates all three in the same commit.
+export const HOLY_NAMES = HOLY_NAME_WORDS.map((name) => [name, new RegExp(`\\b${name}\\b`, 'g')]);
 
 /** Our own voice: whatever is left once every quoted span is removed. */
 export const ourVoice = (text) => String(text).replace(/"[^"]*"/g, ' ');
