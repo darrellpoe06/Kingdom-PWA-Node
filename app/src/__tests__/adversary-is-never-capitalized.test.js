@@ -22,15 +22,23 @@
 // cannot depend on whoever is writing remembering it at the start of a
 // sentence.
 //
-// SCOPE, and why it is our voice only. Quoted Scripture is fetched verbatim and
-// the KJV capitalises Satan (Job 1:6, Matthew 4:10). DR-0076's bright line
-// forbids editing a quotation to fit house style, so double-quoted spans are
-// stripped before the scan -- exactly as each lesson's ourVoice() helper does.
-// The rule governs what WE author; the Word is never touched.
+// SCOPE, and why it is our voice only. Double-quoted spans are stripped before
+// the scan -- exactly as each lesson's ourVoice() helper does -- because a
+// quotation is not our voice and its wording is never edited to fit house
+// style. This comment used to add that the KJV capitalises his name, citing
+// Job 1:6 and Matthew 4:10. CORRECTED 2026-09-19: that is false of the text
+// this app serves. app/public/bible/kjv reads `satan` at both, and at Luke
+// 22:31, Zechariah 3:1 and Revelation 12:9 -- Darrell's own directive
+// (PR #1397), which scripts/kjv-name-case-corrections.mjs names as deliberate
+// and standing. The stripping is still right; the reason given for it was
+// wrong, and a wrong reason in a gate's header is how a future reader gets
+// talked out of the gate.
 import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { NEVER_CAPITALIZED } from '../lib/typographic-theology.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SRC = join(HERE, '..');
@@ -38,10 +46,70 @@ const SRC = join(HERE, '..');
 // Capitalised forms of the names the rule covers. "the devil" and friends are
 // matched only in their capitalised spelling, because the lowercase spelling is
 // the correct one and must stay untouched.
-const FORBIDDEN = /\b(The devil|The Devil|Satan|Lucifer|Beelzebub|The Adversary|The Accuser|The Deceiver|The Dragon)\b/g;
+// DERIVED from lib/typographic-theology.js, the canonical Layer-0 list that the
+// READER's own explanation renders from (HowWeWriteHisName). Before this, the
+// pattern here was a hand-written second copy -- and it had drifted: it never
+// checked `baal`, which Layer 0 has named since 2026-07-03. Deriving it closed
+// that hole the moment the two were joined. Beelzebub is kept as a deliberate
+// EXTENSION beyond Layer 0's list, not a divergence, and is named here so the
+// difference is visible rather than silent.
+// DERIVED from lib/typographic-theology.js -- the canonical Layer-0 list the
+// READER's own explanation renders from (HowWeWriteHisName). The pattern here
+// used to be a hand-written second copy, and deriving it exposed two things:
+//
+//   1. IT HAD DRIFTED. It never checked `baal`, which Layer 0 has named since
+//      2026-07-03. Joining the two closed that hole immediately.
+//   2. IT WAS INCONSISTENT, and the inconsistency is left standing DELIBERATELY
+//      rather than resolved by a machine. The old pattern forbade "The devil"
+//      at the start of a sentence but allowed "The adversary" -- identical
+//      shape, opposite treatment. Generating the sentence-start form for every
+//      name turned 12 shipped lesson sentences red, all of them "The adversary
+//      ..." where the NAME word is already lower case and only the article
+//      carries the capital. That went to Darrell rather than being swept, and
+//      he RULED the same day, shown the finding in his own terms: "Great."
+//      So the definite article is English and the NAME is what may never carry
+//      the capital. A sentence opening "The adversary" is correct as written,
+//      because `adversary` is already lower case, and those 12 stand. This gate
+//      therefore enforces every form it always enforced PLUS the unambiguous
+//      name-word additions below, and nothing that fires on an article.
+//      It is the same rule that made L42's title a real violation: that one
+//      capitalised the NAME.
+//
+// What is unambiguous: the NAME word itself in capitals -- Satan, Lucifer,
+// Baal, the Devil, the Dragon. Those are generated. Beelzebub is a deliberate
+// EXTENSION beyond Layer 0's list, named here so it is visible, not silent.
+const nameWordForms = (name) => {
+  const words = name.split(' ');
+  const cap = (w) => w.charAt(0).toUpperCase() + w.slice(1);
+  if (words.length === 1) return [cap(name)];
+  const capped = words.map(cap).join(' ');                       // "The Devil"
+  const articleLower = [words[0], ...words.slice(1).map(cap)].join(' '); // "the Devil"
+  return [capped, articleLower];
+};
+// Every form the gate enforced before deriving, kept verbatim so this change
+// can only ever ADD coverage. A derivation that quietly dropped a form would be
+// a loosened gate wearing the clothes of a refactor.
+const LEGACY_FORMS = [
+  'The devil', 'The Devil', 'Satan', 'Lucifer', 'Beelzebub',
+  'The Adversary', 'The Accuser', 'The Deceiver', 'The Dragon',
+];
+const FORBIDDEN_WORDS = [...new Set([
+  ...LEGACY_FORMS,
+  ...NEVER_CAPITALIZED.flatMap(nameWordForms),
+])];
+// THE ONE EXEMPTION, by exact phrase rather than by file or by pattern. The
+// television catalogs list a programme called House of the Dragon. That is the
+// name of a show, not a name for him, and no honour is paid to the adversary by
+// recording what a series is called. It is exempted as a literal string so the
+// exemption cannot widen: "the Dragon" anywhere else still fails, and a second
+// exemption would have to be argued for on its own terms rather than inherited.
+const EXEMPT_PHRASES = ['House of the Dragon'];
+const withoutExempt = (src) => EXEMPT_PHRASES.reduce((t, phrase) => t.split(phrase).join(' '), src);
+
+const FORBIDDEN = new RegExp(`\\b(${FORBIDDEN_WORDS.join('|')})\\b`, 'g');
 
 // Strip double-quoted spans: that is where verbatim Scripture lives.
-const ourVoice = (src) => src.replace(/"[^"]*"/g, ' ');
+const ourVoice = (src) => withoutExempt(src.replace(/"[^"]*"/g, ' '));
 
 const collect = (dir) => {
   const out = [];

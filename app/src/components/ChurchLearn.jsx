@@ -746,10 +746,30 @@ export function LessonProse({ text, plan = null, className = 'text-xs text-[#1A1
 const LEVEL_WORDS = { child: 'Child', teen: 'Teen', standard: 'Adult', senior: 'Senior' };
 function levelWords(id) { return LEVEL_WORDS[id] || id; }
 
-export function LessonLevelControl({ band, levelId, levelOverride = null, setAgeBand, setLearnLevel = null }) {
+export function LessonLevelControl({
+  band, levelId, levelOverride = null, setAgeBand, setLearnLevel = null, branched = true,
+}) {
   if (!band || typeof setAgeBand !== 'function') return null;
   const overridden = Boolean(levelOverride);
-  const fellBack = !overridden && levelId && levelId !== band.depth;
+  // BRANCHED IS THE TRUTH; levelId ALONE IS NOT (Darrell 2026-09-19, with two
+  // screenshots of the same Development lesson at TEEN and at ADULT showing
+  // byte-identical text: "Not diversity in lessons!!!!!! Same lesson on all
+  // levels?!!!!! Won't change?").
+  //
+  // He was right and the notice below was ALREADY written to say so -- it just
+  // could never fire. For a lesson carrying NO authored bands, resolveForAge
+  // falls through to the plain `lesson` and returns `levelId: chain[0]`, which
+  // IS the band's own depth. So `levelId !== band.depth` was false for every
+  // band, on every bandless lesson, and the row stayed silent while the words
+  // never changed. The flag that actually knows is `branched`, which
+  // resolveForAge has returned all along and no caller passed in.
+  //
+  // Measured the same day: of 317 course lessons (Living Lessons excluded,
+  // its own ratchets own those), ZERO carry all four bands and 37 carry none.
+  // So this row was quietly implying a choice on hundreds of lessons that have
+  // exactly one version. It now says which it is.
+  const fellBack = !overridden && (!branched || (levelId && levelId !== band.depth));
+  const noneAuthored = !overridden && !branched;
   const pick = (id) => {
     setAgeBand(id);
     if (overridden && setLearnLevel) setLearnLevel('auto');
@@ -780,8 +800,10 @@ export function LessonLevelControl({ band, levelId, levelOverride = null, setAge
         </p>
       )}
       {fellBack && (
-        <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
-          This lesson has no {band.label} version yet: these are the {levelWords(levelId)} words at {band.label} pace.
+        <p data-testid="lesson-level-fellback" className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          {noneAuthored
+            ? `This lesson has one version for every age so far, so switching here changes the pace, not the words. The ${band.label} version has not been written yet.`
+            : `This lesson has no ${band.label} version yet: these are the ${levelWords(levelId)} words at ${band.label} pace.`}
         </p>
       )}
     </div>
@@ -825,7 +847,10 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
     });
   }, [plan && plan.totalSegments]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!plan || !plan.segments || plan.segments.length === 0) return null;
-  const { segments, totalSegments, segmentMinutes, breakAfterSegments, checkAfterSegments, band, levelId } = plan;
+  // `branched` rides the plan already (lessonPlanForAge passes resolveForAge's
+  // own flag straight through) and was simply never read here -- which is the
+  // whole reason the no-version-yet notice could not fire on a bandless lesson.
+  const { segments, totalSegments, segmentMinutes, breakAfterSegments, checkAfterSegments, band, levelId, branched } = plan;
   // ONE numbering for the whole lesson, handed to every step (DR-0520). The
   // pacer cuts the band into steps and each step used to number itself, so
   // Step 1 showed points 1, 2, 3 and Step 2 opened with another point 1.
@@ -838,7 +863,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
   // The in-lesson level row (DR-0417) — only where a host hands in the setter,
   // so every existing caller renders exactly as before.
   const control = setAgeBand
-    ? <LessonLevelControl band={band} levelId={levelId} levelOverride={levelOverride} setAgeBand={setAgeBand} setLearnLevel={setLearnLevel} />
+    ? <LessonLevelControl band={band} levelId={levelId} levelOverride={levelOverride} setAgeBand={setAgeBand} setLearnLevel={setLearnLevel} branched={branched} />
     : null;
 
   // READ-ALONG READS THE WHOLE CORE, NOT STEP ONE OF IT.
@@ -1121,8 +1146,8 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   const stageLevelRow = typeof setAgeBand === 'function'
     ? () => {
       const band = AGE_BANDS.find((b) => b.id === ageBand) || AGE_BANDS.find((b) => b.id === DEFAULT_AGE_BAND) || AGE_BANDS[0];
-      const levelId = resolveForAge(module, ageBand, levelOverride).levelId;
-      return <LessonLevelControl band={band} levelId={levelId} levelOverride={levelOverride} setAgeBand={setAgeBand} setLearnLevel={setLearnLevel} />;
+      const resolved = resolveForAge(module, ageBand, levelOverride);
+      return <LessonLevelControl band={band} levelId={resolved.levelId} levelOverride={levelOverride} setAgeBand={setAgeBand} setLearnLevel={setLearnLevel} branched={resolved.branched} />;
     }
     : null;
 
@@ -3124,46 +3149,6 @@ export default function ChurchLearn({
                 credit never fork. Each row names where it actually lives, so the shelf
                 never implies a second identity. A declaration naming a course the
                 catalog does not carry fails the build (course-crosslist.test.js). */}
-            {dept && gathered.length > 0 && (
-              <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="learn-crosslisted">
-                <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">
-                  Also taught across the curriculum · {gathered.length}
-                </p>
-                <p className="text-[0.625rem] text-[#5A5751] leading-snug mb-2">
-                  These lessons live in their own courses and are taught there. Open one here and it
-                  opens where it lives — so it counts once, whichever shelf you found it on.
-                </p>
-                <ul className="space-y-2">
-                  {gathered.map((r) => (
-                    <li key={`${r.courseKey}-${r.lessonId}`}>
-                      <button
-                        type="button"
-                        className="text-left w-full focus:outline focus:outline-2 focus:outline-[#B85838]"
-                        onClick={() => {
-                          setDeptId('all');
-                          setActiveKey(r.courseKey);
-                          setResumeOpenGuide(false);
-                          setResumeLessonId(r.lessonId);
-                        }}
-                      >
-                        <span className="block text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{r.title}</span>
-                        <span className="block text-[0.625rem] text-[#5A5751]">
-                          {r.courseTitle} · {r.unitLabel}{r.ref ? ` · ${r.ref}` : ''}
-                        </span>
-                        <span className="block text-[0.625rem] text-[#5A5751]">{r.why}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {dept && dept.id === 'the-eternal-algorithms' && (
-              <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="eternal-study-in-learn">
-                <React.Suspense fallback={<p className="text-xs text-[#5A5751]">Opening the study…</p>}>
-                  <EternalAlgorithmsStudyLazy {...(eternalStudyProps || {})} />
-                </React.Suspense>
-              </div>
-            )}
           </div>
         )}
 
@@ -3291,6 +3276,63 @@ export default function ChurchLearn({
             </div>
           </div>
         )}
+
+        {/* THE CROSS-LIST BLOCKS SIT BELOW THE PICKER, NEVER ABOVE IT.
+            Darrell, 2026-09-19, with a screenshot of the Business tab:
+            "Where is the drop-down?!!!!!!!!!! For all tabs..."
+
+            They used to render inside the department block, which put a wall
+            of cross-listed rows between the department tabs and the course
+            picker -- so on a department with one course of its own and
+            fourteen that serve it, the reader met the wall and never saw the
+            dropdown at all. That is the SAME complaint as 2026-09-06 ("its
+            hard to find!!! I have said this already too many times"), and the
+            order test written then only guarded the picker against the
+            catalog line and Resume, so it was blind to this. It now guards
+            against these blocks too.
+
+            The courses that serve a department are already options INSIDE the
+            picker (DR-0516), so the picker alone is enough to choose one. */}
+            {dept && gathered.length > 0 && (
+              <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="learn-crosslisted">
+                <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">
+                  Also taught across the curriculum · {gathered.length}
+                </p>
+                <p className="text-[0.625rem] text-[#5A5751] leading-snug mb-2">
+                  These lessons live in their own courses and are taught there. Open one here and it
+                  opens where it lives — so it counts once, whichever shelf you found it on.
+                </p>
+                <ul className="space-y-2">
+                  {gathered.map((r) => (
+                    <li key={`${r.courseKey}-${r.lessonId}`}>
+                      <button
+                        type="button"
+                        className="text-left w-full focus:outline focus:outline-2 focus:outline-[#B85838]"
+                        onClick={() => {
+                          setDeptId('all');
+                          setActiveKey(r.courseKey);
+                          setResumeOpenGuide(false);
+                          setResumeLessonId(r.lessonId);
+                        }}
+                      >
+                        <span className="block text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{r.title}</span>
+                        <span className="block text-[0.625rem] text-[#5A5751]">
+                          {r.courseTitle} · {r.unitLabel}{r.ref ? ` · ${r.ref}` : ''}
+                        </span>
+                        <span className="block text-[0.625rem] text-[#5A5751]">{r.why}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {dept && dept.id === 'the-eternal-algorithms' && (
+              <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="eternal-study-in-learn">
+                <React.Suspense fallback={<p className="text-xs text-[#5A5751]">Opening the study…</p>}>
+                  <EternalAlgorithmsStudyLazy {...(eternalStudyProps || {})} />
+                </React.Suspense>
+              </div>
+            )}
 
         {/* THIS COURSE'S LESSONS — DIRECTLY UNDER THE COURSE YOU JUST CHOSE.
             Darrell 2026-09-06, three screenshots of the live tab in a row: "Of

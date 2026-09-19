@@ -1,11 +1,11 @@
 {
-  "note": "Shrink-only debt, measured 2026-09-18. TWO classes, both about whether a reader is given His words whole and our bookkeeping kept out of his way. (1) elided: fields carrying a quotation with an ellipsis in it \u2014 DR-0459 forbids the elision and asks for a shorter genuinely-verbatim span, and the totals beside this note say how many of the real ones have a contiguous span available. (2) recited: fields printing a DR-nnnn identifier at a reader. A NEW offender fails the build, and a field that gains elided spans counts as new; entries are removed as the full-levels pass reaches each lesson, never added. Never sweep this mechanically: each elision needs the right span chosen by reading the verse and the sentence re-read after.",
-  "measuredLessons": 496,
+  "note": "Shrink-only debt, measured 2026-09-18. TWO classes, both about whether a reader is given His words whole and our bookkeeping kept out of his way. (1) elided: fields carrying a quotation with an ellipsis in it — DR-0459 forbids the elision and asks for a shorter genuinely-verbatim span, and the totals beside this note say how many of the real ones have a contiguous span available. (2) recited: fields printing a DR-nnnn identifier at a reader. A NEW offender fails the build, and a field that gains elided spans counts as new; entries are removed as the full-levels pass reaches each lesson, never added. Never sweep this mechanically: each elision needs the right span chosen by reading the verse and the sentence re-read after.",
+  "measuredLessons": 500,
   "lessonsElided": 156,
   "lessonsReciting": 82,
   "totals": {
-    "spans": 901,
-    "scripture": 798,
+    "spans": 900,
+    "scripture": 797,
     "ours": 38,
     "undecidable": 65,
     "contiguousAvailable": 767
@@ -165,7 +165,6 @@
     },
     "ll140-the-people-of-judah-and-the-people-of-the-way-who-they-are-where-they-are-and-whom-to-listen-to": {
       "lesson": 17,
-      "bigIdea": 1,
       "levels.teen": 5,
       "levels.senior": 7,
       "anchor.theme": 1

@@ -51,6 +51,7 @@ import BibleReader from './BibleReader.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import VerseChips from './VerseChips.jsx';
 import ShowTheWordToggle from './ShowTheWordToggle.jsx';
+import HowWeWriteHisName from './HowWeWriteHisName.jsx';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -605,6 +606,16 @@ export default function ScriptureLibrary({ email = null, canStudy = false, sermo
   // (Study Edition refs, themes) as the deeper navigation, and every hook stays
   // up here so sliding between sections loses no depth/level/interest choices.
   const sections = [
+    {
+      // Darrell 2026-09-19: "Still quoting however give an overall we capitalize
+      // etc for etc reasons..." It gets a section rather than a note repeated
+      // under every verse: the rule is stated ONCE, where the Word lives, and
+      // a reader who wonders about a lower-case name has somewhere to go.
+      id: 'names',
+      label: 'How we write His Name',
+      icon: 'bookOpen',
+      render: () => <HowWeWriteHisName />,
+    },
     {
       id: 'bible',
       label: 'The Word · Full Bible KJV',

@@ -211,10 +211,24 @@ describe('a pointer, never a copy', () => {
     // shelf must never add a course or a lesson to these totals. If a
     // cross-listing ever inflates them, this fails — and the numbers above are
     // the catalog's own, so the check still has teeth after the bump.
+    // And to 42 / 645 on 2026-09-19 for L180 ("He Sings", DR-0530) — Darrell's
+    // own spoken teaching, a real lesson into the existing Living Lessons
+    // course, so the course count stays at 42 and only the lesson total moves,
+    // exactly as the rule above spells out.
+    // And to 42 / 646 on 2026-09-19 for L181 ("Run It Through the Word",
+    // DR-0532) — Darrell's spoken teaching from his wife's choir rehearsal,
+    // another real lesson into the existing Living Lessons course, so again
+    // only the lesson total moves.
+    // And to 42 / 649 on 2026-09-19 when the concurrent branch merged: main's own
+    // L180 (He Giveth Thee Power to Get Wealth) joined L181-L183 and L184
+    // (He Sings, renumbered from 180 per DR-0052) —
+    // and to 42 / 647 the same day for L182 ("Two Witnesses", DR-0533) —
+    // built from a debate Darrell sent; again a real lesson into the existing
+    // Living Lessons course, so only the lesson total moves.
     expect(courses).toHaveLength(42);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(645);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(649);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(645);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(649);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {

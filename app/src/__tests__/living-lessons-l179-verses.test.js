@@ -123,6 +123,14 @@ describe('the lesson exists and is wired', () => {
     // does not expire — the declared week count equals the real series length.
     expect(L, 'L179 is not in the series').toBeTruthy();
     expect(LIVING_LESSONS_META.weeks).toBe(LIVING_LESSONS_MODULES.length);
+    // And the RELATIVE order pin is kept, which main's version dropped: it is
+    // the part that catches an accidental reorder or a duplicate insert, and
+    // it does not expire the way a hardcoded total does. L179 still sits
+    // immediately before whatever holds the 180 slot -- which, after the
+    // concurrent-branch merge, is He Giveth Thee Power to Get Wealth.
+    const here = LIVING_LESSONS_MODULES.findIndex((m) => m.id === ID);
+    expect(here, 'L179 is not in the series').toBeGreaterThan(-1);
+    expect(LIVING_LESSONS_MODULES[here + 1].id).toMatch(/^ll180-/);
   });
 
   it('carries every field a lesson is required to carry', () => {
