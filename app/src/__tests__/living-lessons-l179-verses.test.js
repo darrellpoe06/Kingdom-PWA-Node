@@ -116,10 +116,13 @@ const OURS = Object.fromEntries(ALL.map((k) => [k, ours(TEXTS[k])]));
 
 describe('the lesson exists and is wired', () => {
   it('is the 179th Living Lesson and the series count says so', () => {
+    // L180 (He Sings) was added 2026-09-19, so this lesson is no longer last.
+    // The pin moved rather than being dropped: it still fixes L179's POSITION,
+    // which is what would catch an accidental reorder or duplicate insert.
     expect(L, 'L179 is not in the series').toBeTruthy();
-    expect(LIVING_LESSONS_MODULES).toHaveLength(178);
-    expect(LIVING_LESSONS_META.weeks).toBe(178);
-    expect(LIVING_LESSONS_MODULES[LIVING_LESSONS_MODULES.length - 1].id).toBe(ID);
+    expect(LIVING_LESSONS_MODULES).toHaveLength(179);
+    expect(LIVING_LESSONS_META.weeks).toBe(179);
+    expect(LIVING_LESSONS_MODULES[LIVING_LESSONS_MODULES.length - 2].id).toBe(ID);
   });
 
   it('carries every field a lesson is required to carry', () => {

@@ -2,7 +2,7 @@
   "ceiling": 7,
   "newLessonCeiling": 5,
   "note": "Shrink-only debt. A NEW offender fails the build; entries may be removed as lessons are rewritten, never added. Lessons not in knownLessons are held to newLessonCeiling (DR-0417 D3). See docs/00-foundations/07-neuroplasticity-and-the-word.md §4.",
-  "measuredLessons": 178,
+  "measuredLessons": 179,
   "inverted": [
     "ll16-rule-your-spirit-repair-the-bond",
     "ll2-the-energy-you-were-given",
