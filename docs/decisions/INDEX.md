@@ -682,6 +682,7 @@ These records came from the 2026-06-09 documentation chain (PoeTech market strat
 | [DR-0531](DR-0531-the-reader-is-told-why-his-name-is-written-this-way.md) | The reader is told why His Name is written this way, and the rule gets one source | accepted | 2026-09-19 | governance |
 | [DR-0532](DR-0532-l181-run-it-through-the-word.md) | L181 Run It Through the Word, and the verse that had never been taught | accepted | 2026-09-19 | content |
 | [DR-0533](DR-0533-l182-two-witnesses-jesus-counted-them-himself.md) | L182 Two Witnesses, and refusing a symmetry the text does not have | accepted | 2026-09-19 | content |
+| [DR-0534](DR-0534-l183-realign-my-eyes-your-type-was-trained.md) | L183 Realign My Eyes, the trap named before writing, and a number carried with its limits | accepted | 2026-09-19 | content |
 | [DR-0528](DR-0528-real-estate-course-twelve-appraisal.md) | Real Estate course twelve: Appraisal — What a Thing Is Actually Worth | accepted | 2026-09-19 | content |
 | [DR-0527](DR-0527-real-estate-course-eleven-evictions.md) | Real Estate course eleven: Evictions Handled Righteously — What the Word Restrains When Somebody Cannot Pay | accepted | 2026-09-19 | content |
 | [DR-0526](DR-0526-liability-is-four-words-not-one.md) | `liability` is four words, not one: correcting DR-0523’s reason and retiring its date | accepted | 2026-09-19 | defect |
