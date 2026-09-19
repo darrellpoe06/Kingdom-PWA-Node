@@ -1,4 +1,4 @@
-# DR-0531 — The reader is told why His Name is written this way, and the rule gets one source
+# DR-0532 — The reader is told why His Name is written this way, and the rule gets one source
 
 - **Status:** accepted
 - **Date:** 2026-09-19

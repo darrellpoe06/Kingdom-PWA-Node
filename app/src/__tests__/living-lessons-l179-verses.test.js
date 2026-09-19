@@ -115,22 +115,19 @@ const ours = (text) => String(text).replace(ALL_SPANS, ' ').replace(REF_PARENS, 
 const OURS = Object.fromEntries(ALL.map((k) => [k, ours(TEXTS[k])]));
 
 describe('the lesson exists and is wired', () => {
-  it('is the 179th Living Lesson and the series count says so', () => {
-    // L180 (He Sings) was added 2026-09-19, so this lesson is no longer last.
-    // The pin moved rather than being dropped: it still fixes L179's POSITION,
-    // which is what would catch an accidental reorder or duplicate insert.
+  it('is in the series and the count stays honest', () => {
+    // Relaxed 2026-09-19 when L180 landed: the hard-coded 178 and the
+    // "is last" assertion were only ever true until the next lesson shipped,
+    // and they are not what this gate is for. L178 received exactly this
+    // relaxation when L179 landed. What stays pinned is the invariant that
+    // does not expire — the declared week count equals the real series length.
     expect(L, 'L179 is not in the series').toBeTruthy();
-    // The count is an INVARIANT here, not a literal. Pinning the number was
-    // itself the defect: L181, L182 and L183 each appended one lesson and each
-    // append broke a hardcoded total in a file that had nothing to do with the
-    // new lesson -- which teaches the next author to bump a digit instead of
-    // reading the assertion. What must be true is that the series length and
-    // the declared week count agree. That is what is pinned now.
     expect(LIVING_LESSONS_META.weeks).toBe(LIVING_LESSONS_MODULES.length);
-    // RELATIVE, not an offset from the end. L180 was appended on 2026-09-19 and
-    // L181 the same day, and each append broke an end-offset pin -- which
-    // trains the next person to bump the number rather than read it. Order is
-    // the property that actually matters: L179 sits immediately before L180.
+    // And the RELATIVE order pin is kept, which main's version dropped: it is
+    // the part that catches an accidental reorder or a duplicate insert, and
+    // it does not expire the way a hardcoded total does. L179 still sits
+    // immediately before whatever holds the 180 slot -- which, after the
+    // concurrent-branch merge, is He Giveth Thee Power to Get Wealth.
     const here = LIVING_LESSONS_MODULES.findIndex((m) => m.id === ID);
     expect(here, 'L179 is not in the series').toBeGreaterThan(-1);
     expect(LIVING_LESSONS_MODULES[here + 1].id).toMatch(/^ll180-/);

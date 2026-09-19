@@ -1,54 +1,49 @@
 // @vitest-environment node
 // =============================================================================
-// L180 — He Sings: Yahweh Over You, Jesus in the Midst of You
+// L180 — He Giveth Thee Power to Get Wealth
 // =============================================================================
-// Darrell, 2026-09-19, spoken straight into the channel:
-//
-//   "Jesus Sings!!!!!!!!! Amazing!!!! Yahweh sings!!!!!! I never actually
-//    thought about it until I learned He sings!!! Lesson... made me feel
-//    closer to Him... I know Him better"
-//
-// A spoken teaching, so CLAUDE.md binds it to ship the same session. What makes
-// it a lesson rather than a nice thought is that it is not a new idea about
-// Him; it is a part of Him that was written down the whole time and never got
-// taught here. MEASURED BEFORE WRITING, against the 178 existing lessons:
-// Zephaniah 3:17 appears in exactly 2 (L109, L146). Hebrews 2:12 appears in 0.
-// Matthew 26:30 appears in 0. So the Father's singing was already in the
-// series and the SON's singing was not — which is why this lesson says so out
-// loud instead of presenting the whole thing as new.
+// Darrell 2026-09-19, mid IP-conversion: "Yahweh says He gives us the ability to
+// create wealth, I don't want to miss out on that because I don't have
+// knowledge and understanding of these processes, so I'm using faith and the
+// only way I know at this time. Lesson."
 //
 // THE FIVE THINGS THIS LESSON COULD MOST EASILY HAVE GOT WRONG:
 //
-//   1. THE PSALM 22 / HEBREWS 2:12 RENDERING STATED LOOSELY. The entire weight
-//      of the lesson rests on one observation: Psalms 22:22 reads "will I
-//      praise thee" and Hebrews 2:12 renders the same line "will I sing praise
-//      unto thee." If that is overstated by a single word the lesson collapses,
-//      so it is pinned here against the KJV in both directions rather than
-//      asserted in prose.
-//   2. THE COURAGE MADE CHEAP. "He sang before the cross" becomes a slogan the
-//      moment it implies He did not feel it. He tells them in that same garden
-//      His soul is exceeding sorrowful, even unto death. Grief and song in one
-//      hour is the teaching; a band that dropped the grief would be teaching
-//      stoicism with a verse attached.
-//   3. INVENTING THE HYMN. The text does not say which hymn was sung. It has
-//      been supposed for centuries. DR-0098 says stay where the Word stays, so
-//      the lesson names the silence rather than filling it, and this file pins
-//      that the lesson never claims to know.
-//   4. THE FATHER'S HALF PRESENTED AS NEW. It is not; two lessons already carry
-//      Zephaniah 3:17. Claiming novelty we do not have is the over-claim
-//      DR-0076 forbids, so the lesson states the overlap itself.
-//   5. SINGING REDUCED TO FEELING. Colossians 3:16 ties it to teaching and
-//      admonishing, and 1 Corinthians 14:15 insists on spirit AND understanding.
-//      A lesson about singing that drifted into atmosphere would have missed
-//      what the apostles actually said it is for.
+//   1. PROSPERITY DOCTRINE. Deuteronomy 8:18 is the most misused verse in this
+//      territory. The chapter is a WARNING chapter and verse 17 is the sentence
+//      of a man who forgot. Quoting 18 without 17 teaches the exact thing the
+//      passage was written against. Both are quoted; the gate requires v17.
+//   2. THE READING THAT MAKES IT A PROMISE OF ARRIVAL. The verse says power TO
+//      GET, not wealth. That distinction is the whole thesis — capacity handed
+//      over, getting still owed. If the bigIdea drifted to "He gives wealth"
+//      the lesson would invert. Pinned.
+//   3. TREATING THE KNOWLEDGE GAP AS A CHARACTER FLAW. Hosea 4:6 says destroyed
+//      for LACK of knowledge — a lack, not a verdict. Darrell named his own gap
+//      out loud; a lesson that made that shameful would punish the honesty the
+//      platform runs on.
+//   4. FAITH WITHOUT THE COUNTERWEIGHT. Hebrews 11:8 (went out not knowing)
+//      without Luke 14:28 (count the cost) is recklessness with a proof-text.
+//      Both are required here.
+//   5. STOPPING THE QUOTATION EARLY. Most citations cut before "that he may
+//      establish his covenant", which is the clause that makes the wealth
+//      instrumental rather than evidentiary. Required.
+//
+// SHAPE, MEASURED BEFORE INSERTING (the first draft of this lesson was reverted
+// for failing these): four bands not three, each above its fullness floor, the
+// child band under the new-lesson reading ceiling, every band naming its own
+// title in its opening window, bands differentiated from one another, and no
+// quotation carrying the host sentence's punctuation inside it.
+
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { LIVING_LESSONS_MODULES, LIVING_LESSONS_META } from '../lib/living-lessons-class.js';
 import { measureFullness, shortBands } from '../../../scripts/full-levels.mjs';
+import { ourProseOnly, fleschKincaidGrade, NEW_LESSON_CHILD_CEILING } from '../../../scripts/reading-level.mjs';
 import { measureDifferentiation, DIFF_CEILING } from '../../../scripts/band-differentiation.mjs';
+import { namesItsLesson } from '../../../scripts/title-in-narrative.mjs';
 
-const ID = 'll180-he-sings-yahweh-over-you-jesus-in-the-midst-of-you';
+const ID = 'll180-he-giveth-thee-power-to-get-wealth';
 const L = LIVING_LESSONS_MODULES.find((m) => m.id === ID);
 const BANDS = ['child', 'youth', 'teen', 'senior'];
 
@@ -59,198 +54,144 @@ const load = (book) => {
   const k = String(book).replace(/\s+/g, '');
   if (!cache.has(k)) {
     const p = join(KJV, `${k}.json`);
-    const alt = join(KJV, `${k}s.json`);
-    cache.set(k, existsSync(p) ? JSON.parse(readFileSync(p, 'utf8'))
-      : (existsSync(alt) ? JSON.parse(readFileSync(alt, 'utf8')) : null));
+    cache.set(k, existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : null);
   }
   return cache.get(k);
 };
-const verse = (book, ch, n) => {
-  const bk = load(book); if (!bk) return null;
-  const chap = bk.chapters[Number(ch) - 1]; if (!chap) return null;
-  return chap[Number(n) - 1] == null ? null : norm(chap[Number(n) - 1]);
+const versesOf = (book, ch, label) => {
+  const bk = load(book);
+  if (!bk) return null;
+  const chap = bk.chapters[Number(ch) - 1];
+  if (!chap) return null;
+  const nums = [];
+  for (const part of String(label).split(',')) {
+    const p = part.trim();
+    if (!p) continue;
+    const m = p.match(/^(\d+)\s*-\s*(\d+)$/);
+    if (m) for (let i = Number(m[1]); i <= Number(m[2]); i += 1) nums.push(i);
+    else nums.push(Number(p));
+  }
+  const parts = nums.map((n) => chap[n - 1]);
+  return parts.some((x) => x == null) ? null : parts.join(' ');
 };
-
+const SPAN_WITH_REF = /"([^"]+)"\s*\(([1-3]?\s?[A-Za-z]+)\s+(\d+):([\d\-,\s]+)\)/g;
 const walkStrings = (node, path, fn) => {
   if (typeof node === 'string') fn(node, path);
   else if (Array.isArray(node)) node.forEach((v, i) => walkStrings(v, `${path}[${i}]`, fn));
-  else if (node && typeof node === 'object') for (const [k, v] of Object.entries(node)) walkStrings(v, path ? `${path}.${k}` : k, fn);
+  else if (node && typeof node === 'object') {
+    for (const [k, v] of Object.entries(node)) walkStrings(v, path ? `${path}.${k}` : k, fn);
+  }
 };
 
-// Spans that are deliberately NOT Scripture: Darrell's own spoken words, which
-// this lesson is built from and quotes as his. Declared by exact text so a
-// future edit cannot quietly smuggle an unreferenced Scripture span in beside
-// them (DR-0076 — the exemption is enumerated, never a pattern).
-const SPOKEN = new Set([
-  'Jesus Sings!!!!!!!!! Amazing!!!! Yahweh sings!!!!!! I never actually thought about it until I learned He sings!!!',
-  'made me feel closer to Him,',
-  'I know Him better',
-  'I know Him better.',
-]);
+/** Quoted-with-reference spans that do not match the corpus verbatim. */
+const quotationFaults = (text, path = '') => {
+  const out = [];
+  SPAN_WITH_REF.lastIndex = 0;
+  let m;
+  while ((m = SPAN_WITH_REF.exec(text))) {
+    const real = versesOf(m[2].trim(), m[3], m[4].trim());
+    if (real == null) out.push(`${path}: ${m[2]} ${m[3]}:${m[4]} does not resolve`);
+    else if (!norm(real).includes(norm(m[1]))) {
+      out.push(`${path}: NOT VERBATIM — ${m[2]} ${m[3]}:${m[4]} — ${m[1].slice(0, 60)}`);
+    }
+  }
+  return out;
+};
 
-describe('the lesson exists and is wired', () => {
-  it('is the 180th Living Lesson and the series count says so', () => {
-    expect(L, 'L180 is not in the series').toBeTruthy();
-    // The count is an INVARIANT here, not a literal. Pinning the number was
-    // itself the defect: L181, L182 and L183 each appended one lesson and each
-    // append broke a hardcoded total in a file that had nothing to do with the
-    // new lesson -- which teaches the next author to bump a digit instead of
-    // reading the assertion. What must be true is that the series length and
-    // the declared week count agree. That is what is pinned now.
+const ALL_TEXT = (() => { const a = []; walkStrings(L, '', (t) => a.push(t)); return a.join(' \n '); })();
+
+describe('L180 — wired, and the series count stays honest', () => {
+  it('is in the catalog with every contract field and all four bands', () => {
+    expect(L, 'L180 not found in LIVING_LESSONS_MODULES').toBeTruthy();
+    for (const k of ['title', 'bigIdea', 'anchor', 'benefits', 'inApp', 'levels', 'quiz', 'facilitator', 'lesson']) {
+      expect(L[k], `L180 missing ${k}`).toBeTruthy();
+    }
+    // The first draft shipped three bands and was reverted for it.
+    for (const b of BANDS) expect(L.levels[b], `L180 missing the ${b} band`).toBeTruthy();
+  });
+
+  it('the declared week count equals the real series length', () => {
     expect(LIVING_LESSONS_META.weeks).toBe(LIVING_LESSONS_MODULES.length);
-    // Relative order rather than an end-offset, for the reason recorded in
-    // L179's file: L181 landed the same day and an offset pin would already
-    // have needed bumping. L180 sits immediately after L179.
-    const here = LIVING_LESSONS_MODULES.findIndex((m) => m.id === ID);
-    expect(here, 'L180 is not in the series').toBeGreaterThan(-1);
-    expect(LIVING_LESSONS_MODULES[here - 1].id).toMatch(/^ll179-/);
   });
 
-  it('carries every field the reader and the facilitator need', () => {
-    expect(L.title).toBe('He Sings: Yahweh Over You, Jesus in the Midst of You');
-    expect(L.benefits.length).toBeGreaterThanOrEqual(16);
-    expect(L.quiz.questions.length).toBeGreaterThanOrEqual(6);
-    expect(L.facilitator.talkingPoints.length).toBeGreaterThanOrEqual(10);
-    for (const b of BANDS) expect(L.levels[b], `${b} band missing`).toBeTruthy();
+  it('anchors on Deuteronomy 8:18, verbatim from the corpus', () => {
+    expect(L.anchor.ref).toBe('Deuteronomy 8:18');
+    expect(norm(versesOf('Deuteronomy', 8, '18'))).toBe(norm(L.anchor.text));
+  });
+});
+
+describe('L180 — every quoted verse is verbatim', () => {
+  it('no quotation in any field drifts from the KJV', () => {
+    const faults = [];
+    walkStrings(L, '', (text, path) => faults.push(...quotationFaults(text, path)));
+    expect(faults, faults.join('\n')).toEqual([]);
   });
 
-  it('every band and the adult lesson clear the fullness floor', () => {
+  it('PROVEN-TO-CATCH: an altered quotation fails', () => {
+    expect(quotationFaults('"for it is he that giveth thee GREAT WEALTH" (Deuteronomy 8:18)', 't').length)
+      .toBeGreaterThan(0);
+  });
+
+  it('PROVEN-TO-CATCH: a real verse cited to the wrong reference fails', () => {
+    expect(quotationFaults('"By faith Abraham, when he was called to go out" (Hebrews 12:8)', 't').length)
+      .toBeGreaterThan(0);
+  });
+});
+
+describe('L180 — the shape invariants, measured not asserted', () => {
+  it('no band is short of its fullness floor', () => {
     expect(shortBands(measureFullness(L))).toEqual([]);
   });
 
-  it('the four bands are genuinely different teachings, not one text simplified', () => {
-    const m = measureDifferentiation(L);
-    for (const [pair, score] of Object.entries(m.pairs)) {
-      expect(score, `${pair} bands are near-duplicates (${score})`).toBeLessThan(DIFF_CEILING);
-    }
+  it('the child band is under the new-lesson reading ceiling', () => {
+    const g = fleschKincaidGrade(ourProseOnly(L.levels.child));
+    expect(g, `child band reads at grade ${g}`).toBeLessThanOrEqual(NEW_LESSON_CHILD_CEILING);
+  });
+
+  it('the bands are differentiated, not lightly-edited copies of each other', () => {
+    const d = measureDifferentiation(L);
+    expect(d, 'differentiation unmeasurable — a band is missing').toBeTruthy();
+    expect(d.worst, `worst pair overlap ${d.worst}`).toBeLessThan(DIFF_CEILING);
+  });
+
+  it('every band names its own lesson in its opening window', () => {
+    const unnamed = BANDS.filter((b) => !namesItsLesson(L.title, L.levels[b]));
+    expect(unnamed, `bands not naming the lesson: ${unnamed.join(', ')}`).toEqual([]);
   });
 });
 
-describe('EVERY quotation is the verse it names', () => {
-  const SPAN = /"([^"]+)"\s*\(([1-3]?\s?[A-Za-z]+(?: of [A-Za-z]+)*)\s+(\d+):(\d+)\)/g;
-
-  it('resolves and is letter-for-letter KJV, everywhere in the module', () => {
-    const faults = [];
-    let checked = 0;
-    walkStrings(L, '', (text, path) => {
-      SPAN.lastIndex = 0;
-      let m;
-      while ((m = SPAN.exec(text))) {
-        checked += 1;
-        const real = verse(m[2].trim(), m[3], m[4]);
-        if (real == null) faults.push(`${path}: ${m[2]} ${m[3]}:${m[4]} does not resolve`);
-        else if (!real.includes(norm(m[1]))) faults.push(`${path}: NOT VERBATIM — ${m[2]} ${m[3]}:${m[4]} — ${m[1].slice(0, 70)}`);
-      }
-    });
-    expect(checked, 'the walk found no quotations at all').toBeGreaterThan(60);
-    expect(faults).toEqual([]);
+describe('L180 — the five things it could most easily have got wrong', () => {
+  it('quotes verse 17 with verse 18, so the warning is not stripped off', () => {
+    expect(ALL_TEXT).toMatch(/My power and the might of mine hand hath gotten me this wealth/);
+    expect(ALL_TEXT).toMatch(/Deuteronomy 8:17/);
   });
 
-  it('no double-quoted span is unattributed, except Darrell’s own declared words', () => {
-    const orphans = [];
-    walkStrings(L, '', (text, path) => {
-      const re = /"([^"]+)"(\s*\([1-3]?\s?[A-Za-z]+(?: of [A-Za-z]+)*\s+\d+:[\d\-,\s]+\))?/g;
-      let m;
-      while ((m = re.exec(text))) if (!m[2] && !SPOKEN.has(m[1])) orphans.push(`${path}: ${m[1].slice(0, 70)}`);
-    });
-    expect(orphans).toEqual([]);
+  it('holds the thesis: POWER TO GET, not wealth delivered', () => {
+    // The thesis is a DISTINCTION, so the naive "the wrong phrase is absent"
+    // check is wrong twice over — the bigIdea must contain that phrase, inside
+    // its own negation. Assert the negation, which is the actual property.
+    expect(L.bigIdea).toMatch(/POWER TO GET/);
+    expect(L.bigIdea).toMatch(/DOES NOT SAY HE GIVES YOU WEALTH/);
   });
 
-  it('carries no ellipsis inside any quotation (DR-0459)', () => {
-    const elided = [];
-    walkStrings(L, '', (text, path) => {
-      for (const m of String(text).matchAll(/"([^"]*(?:\.\.\.|…)[^"]*)"/g)) elided.push(`${path}: ${m[1].slice(0, 60)}`);
-    });
-    expect(elided).toEqual([]);
-  });
-});
-
-describe('the observation the whole lesson rests on, pinned against the KJV', () => {
-  it('Psalms 22:22 says PRAISE and Hebrews 2:12 says SING PRAISE — in both directions', () => {
-    const psalm = verse('Psalms', 22, 22);
-    const heb = verse('Hebrews', 2, 12);
-    // The psalm says praise, and does NOT say sing.
-    expect(psalm).toBe('I will declare thy name unto my brethren: in the midst of the congregation will I praise thee.');
-    expect(psalm).toContain('will I praise thee');
-    expect(psalm).not.toContain('sing');
-    // Hebrews quotes it and DOES say sing.
-    expect(heb).toBe('Saying, I will declare thy name unto my brethren, in the midst of the church will I sing praise unto thee.');
-    expect(heb).toContain('will I sing praise unto thee');
-    // And the lesson makes the claim rather than leaving it implied.
-    expect(L.lesson).toContain('sing praise');
+  it('names the Knowledge gap as a lack, never a verdict', () => {
+    expect(ALL_TEXT).toMatch(/My people are destroyed for lack of knowledge/);
+    expect(ALL_TEXT).toMatch(/lack rather than a verdict|not a bad one|never taught/i);
   });
 
-  it('Psalm 22 really does open with the cry from the cross', () => {
-    // The arc is the lesson: the same psalm holds the dereliction and the song.
-    expect(verse('Psalms', 22, 1)).toContain('My God, my God, why hast thou forsaken me?');
-    expect(verse('Psalms', 22, 3)).toContain('thou that inhabitest the praises of Israel');
+  it('carries faith AND the counterweight, never one alone', () => {
+    expect(ALL_TEXT).toMatch(/he went out, not knowing whither he went/);
+    expect(ALL_TEXT).toMatch(/counteth the cost/);
   });
 
-  it('Matthew and Mark record the hymn in identical words', () => {
-    expect(verse('Matthew', 26, 30)).toBe('And when they had sung an hymn, they went out into the mount of Olives.');
-    expect(verse('Mark', 14, 26)).toBe('And when they had sung an hymn, they went out into the mount of Olives.');
+  it('reaches the covenant clause most quotations cut off', () => {
+    expect(ALL_TEXT).toMatch(/that he may establish his covenant/);
   });
 
-  it('Zephaniah 3:17 really ends on the singing, which is the clause nobody quotes', () => {
-    expect(verse('Zephaniah', 3, 17)).toContain('he will joy over thee with singing');
-  });
-});
-
-describe('the five things it could have got wrong', () => {
-  const ALL = [L.lesson, L.bigIdea, L.inApp, ...BANDS.map((b) => L.levels[b])].join(' ');
-
-  it('never claims to know WHICH hymn was sung', () => {
-    // DR-0098: where the Word is reticent, we stay with what it says.
-    expect(L.lesson).toMatch(/does not tell us which hymn/i);
-    expect(ALL).not.toMatch(/\bHallel\b/);
-  });
-
-  it('keeps the grief beside the song, so the courage is never made cheap', () => {
-    expect(L.lesson).toMatch(/exceeding sorrowful/i);
-  });
-
-  it('says out loud that the Father’s half is already taught here', () => {
-    expect(L.lesson).toMatch(/already appears in two lessons|two lessons in this series already carry/i);
-  });
-
-  it('holds singing to teaching and to understanding, not to atmosphere', () => {
-    expect(ALL).toContain('teaching and admonishing one another');
-    expect(ALL).toContain('I will sing with the understanding also');
-  });
-
-  it('ties it to the seats that serve the room, which is what Darrell asked for', () => {
-    // His Music/Serve the House insight: the church's physical systems ARE the
-    // classroom, and Hebrews 2:12 makes that seat a place He is singing in.
-    expect(ALL).toMatch(/soundboard/i);
-  });
-});
-
-describe('PROVEN-TO-CATCH — the gate goes red on the defects this lesson could ship', () => {
-  const faultsIn = (text) => {
-    const out = [];
-    const re = /"([^"]+)"\s*\(([1-3]?\s?[A-Za-z]+(?: of [A-Za-z]+)*)\s+(\d+):(\d+)\)/g;
-    let m;
-    while ((m = re.exec(text))) {
-      const real = verse(m[2].trim(), m[3], m[4]);
-      if (real == null || !real.includes(norm(m[1]))) out.push(m[1]);
-    }
-    return out;
-  };
-
-  it('a quotation cited to the neighbouring verse is caught', () => {
-    // Hebrews 2:12 attributed to 2:11 — the exact class of defect that four
-    // spans of L104 shipped with (Haggai 1:7 text cited to 1:5).
-    expect(faultsIn('"in the midst of the church will I sing praise unto thee" (Hebrews 2:12)')).toEqual([]);
-    expect(faultsIn('"in the midst of the church will I sing praise unto thee" (Hebrews 2:11)')).toHaveLength(1);
-  });
-
-  it('a single altered word inside the quotation marks is caught', () => {
-    expect(faultsIn('"And when they had sung an hymn, they went out into the mount of Olives." (Matthew 26:30)')).toEqual([]);
-    expect(faultsIn('"And when they had sung a hymn, they went out into the mount of Olives." (Matthew 26:30)')).toHaveLength(1);
-  });
-
-  it('a lowered capital His verse carries is caught', () => {
-    expect(faultsIn('"Sing praises to God, sing praises" (Psalms 47:6)')).toEqual([]);
-    expect(faultsIn('"sing praises to God, sing praises" (Psalms 47:6)')).toHaveLength(1);
+  it('capitalizes the Resources in our own voice (DR-0530), never in a quote', () => {
+    expect(ALL_TEXT).toMatch(/Business Systems Knowledge/);
+    // The KJV lowercases them inside the verses; the verbatim check above is
+    // what proves we did not sweep capitals through quoted Scripture.
+    expect(ALL_TEXT).toMatch(/destroyed for lack of knowledge/);
   });
 });

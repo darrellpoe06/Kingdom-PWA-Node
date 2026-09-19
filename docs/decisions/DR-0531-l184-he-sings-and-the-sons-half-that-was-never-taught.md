@@ -1,8 +1,11 @@
-# DR-0530 — L180 He Sings, and the Son's half that was never taught
+# DR-0531 — L184 He Sings, and the Son's half that was never taught
 
 - **Status:** accepted
 - **Date:** 2026-09-19
 - **Type:** content
+
+> **Renumbered on merge (DR-0052).** This lesson was authored as **L180** and this record as **DR-0530** on a concurrent branch. Main merged its own L180 (*He Giveth Thee Power to Get Wealth*) and its own DR-0530 (*The Resources are capitalized*) first, so the lesson became **L184** and this record **DR-0531**. Neither piece of work was discarded; only the numbers moved, which is exactly what DR-0052 is for.
+
 - **Relates to:** DR-0076 (measure, do not claim; proven-to-catch), DR-0098 (teach the Word, stop where it stops), DR-0210 (Yahweh in our own voice; quoted Scripture untouched), DR-0459 (no ellipsis inside a quotation), DR-0509 (the lesson contract), DR-0529 (the school's subject map — Music and Serve the House)
 
 ## What Darrell spoke

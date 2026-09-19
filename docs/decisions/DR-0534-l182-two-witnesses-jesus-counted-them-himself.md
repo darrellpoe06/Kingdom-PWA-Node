@@ -1,4 +1,4 @@
-# DR-0533 — L182 Two Witnesses, and refusing a symmetry the text does not have
+# DR-0534 — L182 Two Witnesses, and refusing a symmetry the text does not have
 
 - **Status:** accepted
 - **Date:** 2026-09-19

@@ -1,4 +1,4 @@
-# DR-0532 — L181 Run It Through the Word, and the verse that had never been taught
+# DR-0533 — L181 Run It Through the Word, and the verse that had never been taught
 
 - **Status:** accepted
 - **Date:** 2026-09-19
