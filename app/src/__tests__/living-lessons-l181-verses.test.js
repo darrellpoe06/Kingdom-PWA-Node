@@ -80,8 +80,8 @@ const walk = (node, path, fn) => {
 describe('the lesson exists and is wired', () => {
   it('is the 181st Living Lesson and the series count says so', () => {
     expect(L, 'L181 is not in the series').toBeTruthy();
-    expect(LIVING_LESSONS_MODULES).toHaveLength(180);
-    expect(LIVING_LESSONS_META.weeks).toBe(180);
+    expect(LIVING_LESSONS_MODULES).toHaveLength(181);
+    expect(LIVING_LESSONS_META.weeks).toBe(181);
     const here = LIVING_LESSONS_MODULES.findIndex((m) => m.id === ID);
     expect(LIVING_LESSONS_MODULES[here - 1].id).toMatch(/^ll180-/);
   });
