@@ -7,24 +7,9 @@
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added.",
   "measuredLessons": 187,
-  "lessonsShort": 72,
+  "lessonsShort": 68,
   "short": {
     "ll10-strength-and-honour-are-her-clothing": [
-      "child",
-      "youth",
-      "teen"
-    ],
-    "ll11-fearfully-and-wonderfully-made": [
-      "child",
-      "youth",
-      "teen"
-    ],
-    "ll12-if-one-member-suffers": [
-      "child",
-      "youth",
-      "teen"
-    ],
-    "ll13-a-sound-mind": [
       "child",
       "youth",
       "teen"
@@ -416,11 +401,6 @@
       "senior"
     ],
     "ll80-the-four-warnings-of-a-hardening-heart": [
-      "child",
-      "youth",
-      "teen"
-    ],
-    "ll9-the-lord-looks-on-the-heart": [
       "child",
       "youth",
       "teen"
