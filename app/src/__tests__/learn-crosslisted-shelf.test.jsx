@@ -64,9 +64,12 @@ describe('the A.I. department gathers the curriculum\'s A.I. lessons', () => {
     // lesson lives before they go there.
     expect(text).toContain('Living Lessons');
     expect(text).toMatch(/Lesson \d+/);
-    // And the tab's own summary says how many are gathered.
+    // And the tab's own summary says how many are gathered. The wording gained
+    // the word "lessons" when course-level cross-listing landed (DR-0516),
+    // because a shelf can now gather both and "9 more" would not say which —
+    // so the assertion follows the copy rather than the copy following it.
     expect(container.querySelector('[data-testid="learn-departments"]').textContent)
-      .toContain('more taught across the curriculum');
+      .toContain(`${declared.length} more lessons taught across the curriculum`);
   });
 
   it('opens a gathered lesson in its HOME course, out of the department', () => {

@@ -150,6 +150,49 @@ jobs:
             gh issue create --title "Pipeline device dark" --label incident --body-file "$BODY_FILE"
           fi
 
+      # EVERY RUN IS RECORDED, PASS OR FAIL (added 2026-09-19; DR-0514, DR-0517).
+      #
+      # This witness filed ONLY on an incident, so a clean fleet left nothing
+      # behind. MEASURED: the incident ledger's last entry was 2026-09-03, and
+      # fifteen days later nobody could say whether that meant "the fleet is
+      # healthy" or "the witness stopped running" -- which is the exact question
+      # Darrell asked on 2026-09-18 about the two CUDA towers, and the exact
+      # ambiguity DR-0125 exists to remove.
+      #
+      # It matters more here than anywhere else in the fleet, because this is
+      # the ONLY instrument that reports which machines are reachable at all.
+      # Silence on this log now means the witness did not run.
+      - name: Record the run (rolling log, pass or fail)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GO: ${{ steps.gate.outputs.go }}
+          CODE: ${{ steps.probe.outputs.code }}
+        run: |
+          set -uo pipefail
+          REPO="${{ github.repository }}"
+          title="node-availability: the pipeline fleet, run log"
+          if [ "${GO:-false}" != "true" ]; then
+            verdict="SKIPPED - the tailnet secrets are absent, so nothing was measured"
+            counts=""
+          else
+            case "${CODE:-}" in
+              0) verdict="ALL DECLARED DEVICES REACHABLE" ;;
+              1) verdict="A DEVICE DECLARED ALWAYS-ON IS DARK - an incident was filed" ;;
+              2) verdict="UNUSABLE READING - a runner fault, NOT a device fault" ;;
+              *) verdict="NO READING - the probe crashed before reporting" ;;
+            esac
+            counts="$(grep -m1 '^declared ' /tmp/fleet-report.txt 2>/dev/null || echo 'counts unavailable')"
+          fi
+          line="$(date -u +%FT%TZ) - ${verdict}. ${counts} Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          log_issue=$(gh issue list --repo "$REPO" --state all --search "in:title node-availability: the pipeline fleet, run log" --json number --jq '.[0].number // ""')
+          if [ -n "$log_issue" ]; then
+            gh issue comment "$log_issue" --repo "$REPO" --body "$line"
+          else
+            printf '%s\n\n%s\n' "Rolling run log for node-availability.yml, the only instrument that reports which machines in the declared fleet are reachable at all. Every run appends its measurement here, pass or fail, so SILENCE on this log means the witness did not run rather than that the fleet is healthy (DR-0125 / DR-0514). A dark always-on device also files on the incident ledger (\"Pipeline device dark\"); a clean fleet used to file nothing at all, which is why this exists. Declared fleet: infra/device-availability/pipeline-nodes.json" "$line" > "$RUNNER_TEMP/fleet-log-body.md"
+            gh issue create --repo "$REPO" --title "$title" --body-file "$RUNNER_TEMP/fleet-log-body.md"
+          fi
+
       - name: Fail the run when a node is dark
         if: steps.gate.outputs.go == 'true' && steps.probe.outputs.code == '1'
         run: |
@@ -160,3 +203,29 @@ jobs:
         if: steps.gate.outputs.go == 'true' && steps.probe.outputs.code == '2'
         run: |
           echo "::warning::The tailnet reading was unusable (bad JSON or no peers). No device conclusion drawn — unknown never reads as up (DR-0076)."
+
+  # A DISABLED WITNESS MUST STILL SAY SO (DR-0514). The probe job carries
+  # `if: vars.NODE_AVAILABILITY_ENABLED != 'false'`; when that is 'false' the
+  # whole job is skipped and the run-log step inside it never runs, which makes
+  # "switched off on purpose" indistinguishable from "never fired". Additive:
+  # it cannot run unless the probe was skipped.
+  log_disabled:
+    needs: probe
+    if: ${{ always() && needs.probe.result == 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Record that the witness was switched off
+        run: |
+          set -uo pipefail
+          title="node-availability: the pipeline fleet, run log"
+          line="$(date -u +%FT%TZ) - DISABLED - the probe job was skipped, so no device was measured. Set the repository variable NODE_AVAILABILITY_ENABLED back to true (or remove it) to resume. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          log_issue=$(gh issue list --repo "$REPO" --state all --search "in:title node-availability: the pipeline fleet, run log" --json number --jq '.[0].number // ""')
+          if [ -n "$log_issue" ]; then
+            gh issue comment "$log_issue" --repo "$REPO" --body "$line"
+          else
+            gh issue create --repo "$REPO" --title "$title" --body "$line"
+          fi

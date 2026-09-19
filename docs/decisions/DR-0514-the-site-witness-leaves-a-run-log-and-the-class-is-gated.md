@@ -42,7 +42,7 @@ Served build beside main's head is the answer to "did the last merge actually re
 
 Two workflows sharing a good habit is not a rule. `every-witness-leaves-a-run-log.test.js` makes it one: **any workflow that files a finding to the incident ledger must also append to a rolling run log.** Six workflows qualify as witnesses by that definition; two now carry one.
 
-The other four — `deploy-cloudflare-pages.yml`, `harvest-health.yml`, `node-availability.yml`, `ops-queue-health.yml` — are recorded as **shrink-only debt**, not retrofitted in one pass. Writing four run-log steps tonight would mean naming outputs nobody has measured, and a line that reads `unknown` for every field is precisely the gate-that-always-passes DR-0076 §3 forbids. The list may only shrink, healing is reported by name, a baseline entry that no longer exists is reported as a ghost, and **a NEW incident-filing workflow must carry a run log from its first commit.** **re-review: 2026-09-25.**
+The other four — `deploy-cloudflare-pages.yml`, `harvest-health.yml`, `node-availability.yml`, `ops-queue-health.yml` — were recorded as **shrink-only debt** (`node-availability.yml` healed hours later, see DR-0517; three remain), not retrofitted in one pass. Writing four run-log steps tonight would mean naming outputs nobody has measured, and a line that reads `unknown` for every field is precisely the gate-that-always-passes DR-0076 §3 forbids. The list may only shrink, healing is reported by name, a baseline entry that no longer exists is reported as a ghost, and **a NEW incident-filing workflow must carry a run log from its first commit.** **re-review: 2026-09-25.**
 
 The gate also checks that a run log which *exists* is actually readable, per step rather than per file — `always()`, a timestamp, a link back to the run, `gh issue comment` as well as `create`, and a search for **its own** log. That last one matters: the level-witness test found in its own first draft that checking the whole file let the incident step satisfy an assertion about the run log.
 
@@ -69,6 +69,10 @@ Closed with a second job, `log_disabled`, on both witnesses: `needs:` the probe,
 
 ## The honest limit
 
-This is the structural fix for `site-health.yml` and it is not yet an observation from that workflow. The step only exists on `main` once this merges, so its first real line comes from the first run after that.
+**Measured after the merge, which closes this record rather than leaving it a promise.** The step landed on `main` at 22:57Z, the workflow was dispatched, and issue **#1693** was created by the run itself with its first line:
+
+> `2026-09-18T23:14:40Z - UP. Fresh.` **Served build: `07af8d5` (main: `07af8d5`)**. pages.dev shell: HTTP 200. backend auth: HTTP 200.
+
+Served build equals `main`'s head. So the whole night's work — the 345 benefits, the elision ratchet, Real Estate course seven, and this change itself — is live, and that is now a line anyone can read rather than an inference anyone has to trust. The instrument reports its own success, which was the entire ask.
 
 Tonight's actual question **was** answered, by the other witness: `main` at `99396c0` was the served build, 34 seconds after the merge. What was missing was a second, independent answer from the instrument that watches the product rather than one lesson surface — and the ability to tell its silence apart from its absence. That is what shipped.

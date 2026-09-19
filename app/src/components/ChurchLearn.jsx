@@ -85,7 +85,7 @@ const AGEBAND_TO_PRESENT_AGE = { child: 'child', youth: 'teen', teen: 'teen', ad
 const AGEBAND_TO_LEVEL_KEY = { child: 'child', youth: 'teen', teen: 'teen', adult: null, senior: 'senior' };
 import SectionTabs from './SectionTabs.jsx';
 import { catalogMeta } from '../lib/learn-catalog.js';
-import { crossListingsFor, resolveCrossListed, crossListedCount } from '../lib/learn-crosslist.js';
+import { crossListingsFor, resolveCrossListed, crossListedCount, courseCrossListingsFor, resolveCourseCrossListed, courseCrossListedCount } from '../lib/learn-crosslist.js';
 // THE ETERNAL ALGORITHMS LIVE INSIDE LEARN (DR-0432; Darrell 2026-09-15: "put
 // the Eternal Algorithms inside learn... Moving current tabs around for
 // functionality and flow"). The study surface is unchanged; it is mounted
@@ -2987,6 +2987,15 @@ export default function ChurchLearn({
   const gathered = (dept && crossListingsFor(dept.label).length)
     ? resolveCrossListed(dept.label, buildLessonIndex(courses))
     : [];
+  // AND THE SAME QUESTION ONE LEVEL UP (DR-0516). Darrell 2026-09-18, reading
+  // this picker: "we only show one business course... each one could be
+  // considered a business course as well as another because it is integration
+  // of it throughout." A department also gathers WHOLE COURSES it is served by
+  // — pointers, so each keeps one home, one count and one credit. Same rule as
+  // the lessons above, same file, one level up.
+  const gatheredCourses = (dept && courseCrossListingsFor(dept.label).length)
+    ? resolveCourseCrossListed(dept.label, courses)
+    : [];
   const visibleCourses = dept ? dept.courses : courses;
   const active = (chosenCourse && (!dept || dept.courses.some((c) => c.key === chosenCourse.key)))
     ? chosenCourse
@@ -3084,7 +3093,7 @@ export default function ChurchLearn({
                 { id: 'all', label: 'Courses', explain: `Every course in one place · ${courses.length} courses · ${totalLessons} lessons. Pick a course and its lessons follow.`, render: () => null },
                 ...departments.map((d) => ({
                   id: d.id, label: d.label,
-                  explain: `${d.code} · ${d.courses.length} ${d.courses.length === 1 ? 'course' : 'courses'} · ${d.lessons} lessons${crossListedCount(d.label) ? ` · ${crossListedCount(d.label)} more taught across the curriculum` : ''}`,
+                  explain: `${d.code} · ${d.courses.length} ${d.courses.length === 1 ? 'course' : 'courses'} · ${d.lessons} lessons${courseCrossListedCount(d.label) ? ` · ${courseCrossListedCount(d.label)} more courses serve it` : ''}${crossListedCount(d.label) ? ` · ${crossListedCount(d.label)} more lessons taught across the curriculum` : ''}`,
                   render: () => null,
                 })),
               ]}
@@ -3097,6 +3106,44 @@ export default function ChurchLearn({
                 home, one place record, one credit — whichever shelf you find it
                 on. A declaration whose lesson no longer exists fails the build
                 (learn-crosslist.test.js) rather than rendering a dead row. */}
+            {/* WHOLE COURSES THAT SERVE THIS DEPARTMENT (DR-0516). A course has one
+                HOME — what it forms — and any number of shelves it serves. Tapping one
+                opens it in the full catalog, in its own course, so the count and the
+                credit never fork. Each row names where it actually lives, so the shelf
+                never implies a second identity. A declaration naming a course the
+                catalog does not carry fails the build (course-crosslist.test.js). */}
+            {dept && gatheredCourses.length > 0 && (
+              <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="learn-crosslisted-courses">
+                <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">
+                  Courses that serve {dept.label} · {gatheredCourses.length}
+                </p>
+                <p className="text-[0.625rem] text-[#5A5751] leading-snug mb-2">
+                  These are taught in their own departments and counted there. Open one here and it
+                  opens where it lives — one home, one credit, whichever shelf you found it on.
+                </p>
+                <ul className="space-y-2">
+                  {gatheredCourses.map((r) => (
+                    <li key={`course-${r.courseKey}`}>
+                      <button
+                        type="button"
+                        className="text-left w-full focus:outline focus:outline-2 focus:outline-[#B85838]"
+                        onClick={() => {
+                          setDeptId('all');
+                          setActiveKey(r.courseKey);
+                          setResumeOpenGuide(false);
+                        }}
+                      >
+                        <span className="block text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{r.courseTitle}</span>
+                        <span className="block text-[0.625rem] text-[#5A5751]">
+                          Taught in {r.homeDepartment} · {r.lessons} {r.lessons === 1 ? String(r.unitCap).toLowerCase() : `${String(r.unitCap).toLowerCase()}s`}
+                        </span>
+                        <span className="block text-[0.625rem] text-[#5A5751]">{r.why}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {dept && gathered.length > 0 && (
               <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="learn-crosslisted">
                 <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">
