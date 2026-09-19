@@ -9,12 +9,92 @@ actual assignment. Every fact below is measured from the repository on
 
 ---
 
+## ⛔ BLOCKER FOUND 2026-09-19 — THE ENTITY IS DISSOLVED. READ THIS FIRST.
+
+Darrell pulled the Illinois Secretary of State record. It is the most important
+fact in this document and it inverts the plan:
+
+| Field | Value (ILSOS record) |
+|---|---|
+| **Entity Name** | **POE TECH, LLC** — two words, not "PoeTech" |
+| File Number | 05947103 |
+| **Status** | **INVOLUNTARY DISSOLUTION on 03-08-2024** |
+| Org. Date | 09-07-2016 |
+| Jurisdiction | IL · Domestic LLC · Perpetual |
+| Annual Report Year | 2023 |
+| **Annual Report Filing Date** | **00-00-0000 — never filed** |
+| Registered Agent | John F. Deckert, 1701 S Prospect Ave Ste 206, Champaign IL |
+| Principal Address | 2111 Talans Drive, Champaign IL |
+
+**You cannot assign intellectual property into a dissolved LLC.** An entity in
+involuntary dissolution exists in Illinois for winding-up purposes; it is not a
+sound recipient of an assignment of the whole IP estate. **The assignment is
+BLOCKED until this is resolved**, and everything downstream of it is blocked too.
+
+The cause is visible in the record: the annual report for 2023 shows a filing
+date of `00-00-0000`. It was never filed, and the involuntary dissolution
+followed on 2024-03-08.
+
+### The fix — reinstatement, before anything else
+
+Illinois permits reinstatement of an administratively dissolved LLC:
+
+- **Form LLC-35.40**, *Reinstatement Following Administrative Dissolution* —
+  filed in duplicate by mail or in person at the Secretary of State.
+- **$200 reinstatement fee.**
+- **Plus every delinquent annual report** (reported at **$75 each**, maximum six
+  years) **and all accumulated late penalties**, filed at the same time.
+- A name change at reinstatement uses Form LLC-5.25 / LLC-45.25.
+
+On this record the delinquency plausibly spans **2023 through 2026** — but the
+exact years and the penalty total are the Secretary of State's to state, not
+mine. **Call or file and let them compute it.**
+
+**Ask counsel two things this raises:**
+
+1. **Does Illinois reinstatement relate back** to the dissolution date, treating
+   the entity as having continued uninterrupted? If it does, the continuity
+   problems below largely dissolve with it. If it does not, they are real.
+2. **Is reinstating POE TECH, LLC the right move at all**, or is a clean new
+   entity better given ten years of unknown history, a lapsed registered agent,
+   and a principal address that may no longer be current? Reinstating inherits
+   the past; a new entity does not. **This is a genuine fork and it is Darrell's
+   to decide with counsel** — not a formality.
+
+### What the dissolution does to the trademark argument
+
+The 2016 priority date is still potentially valuable, but it is **no longer
+clean**, and the pack should not pretend otherwise:
+
+- Trademark rights rest on **continuous use in commerce**. The entity was
+  dissolved 2024-03-08 and `poetech.us` has plainly stayed live since — so use
+  very likely continued, but **as Darrell personally rather than through the
+  entity**. Who the user of the mark has been for the last eighteen months is a
+  real question, not a formality.
+- The registered name is **POE TECH, LLC**; the brand in use is **PoeTech**.
+  Those are not the same string, and the difference matters for both the
+  assignment's naming and any filing.
+
+### Three more record details worth acting on
+
+- **Registered agent** John F. Deckert has been on file since 2016 and may no
+  longer be engaged or willing. Reinstatement needs a current agent.
+- **Principal address** is in Champaign. Confirm it is still correct.
+- **The name on every document must be the registered name** — `POE TECH, LLC`
+  — not the brand spelling, or the instrument names an entity that does not
+  exist.
+
+
+---
+
 ## The ask, in one sentence
 
-**Draft a written assignment transferring all intellectual property Darrell Poe
-created personally in the PoeTech / SKOS work to PoeTech LLC (already formed),
-with Schedule A (below) attached — plus an IP-assignment clause for the
-contractor agreement that subject-matter experts will sign before contributing.**
+**FIRST resolve the entity — reinstate POE TECH, LLC or form a clean successor
+(see the blocker above). THEN draft a written assignment transferring all
+intellectual property Darrell Poe created personally in the PoeTech / SKOS work
+to that entity, with Schedule A (below) attached — plus an IP-assignment clause
+for the contractor agreement that subject-matter experts will sign before
+contributing.**
 
 ---
 
@@ -31,7 +111,7 @@ not exist here**, and it is measured, not asserted:
 | Non-Claude co-author trailers across 21 co-authored commits | **0** |
 | Repository created | 2026-04-27 |
 | Files in the tree | 4,486+ |
-| **PoeTech LLC incorporated** | **2016** (per Darrell; not verified from the sandbox) |
+| **POE TECH, LLC organized** | **2016-09-07** — **DISSOLVED 2024-03-08**, see blocker above |
 
 **One human author. Zero contested contributions. Clean title.** The assignment
 is therefore a single signature over an undisputed chain — not a reconstruction.
@@ -207,11 +287,13 @@ of Love into something that can be handed to people he will never meet.
 
 ## Checklist for the visit
 
-- [ ] **Confirm PoeTech LLC is ACTIVE and in good standing** — Darrell reports
-      the LLC exists; it could not be verified from the build sandbox
-      (`apps.ilsos.gov` is egress-blocked). A lapsed entity cannot properly hold
-      an assignment. Check at ilsos.gov business search.
-- [ ] EIN issued
+- [ ] **RESOLVE THE ENTITY FIRST — it is in involuntary dissolution.** Either
+      reinstate (Form LLC-35.40, $200 + all delinquent annual reports at $75
+      each + penalties) or form a clean successor. Nothing below can proceed
+      until this is done. **This is the whole blocker.**
+- [ ] Current registered agent confirmed or replaced (Deckert, on file since 2016)
+- [ ] Principal address confirmed or updated (Champaign)
+- [ ] EIN confirmed still valid for the reinstated entity
 - [ ] Operating agreement adopted
 - [ ] **Assignment executed**, with the dated register printout as Schedule A
 - [ ] Contractor agreement carries the IP clause — **before any SME contributes**
