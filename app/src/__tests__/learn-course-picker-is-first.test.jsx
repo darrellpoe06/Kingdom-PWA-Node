@@ -65,7 +65,6 @@ const picker = () => container.querySelector('#learn-course-pick');
 // gate becomes theatre. Same selector the crosslisted-in-the-picker suite uses.
 const deptTabs = () => [...container.querySelectorAll('#learn-dept-panel-all, [id^="learn-dept-tab-"]')]
   .filter((el) => el.getAttribute('role') === 'tab');
-const deptTab = (label) => deptTabs().find((b) => (b.textContent || '').trim() === label);
 const mountWithCatalog = (props = {}) => mount({ extraCourses: CATALOG, ...props });
 
 describe('the course picker comes FIRST on the Learn tab', () => {
