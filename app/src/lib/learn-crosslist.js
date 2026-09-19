@@ -223,9 +223,93 @@ export const COURSE_CROSS_LISTINGS = [
   { department: 'Business', courseKey: 'project-management', why: 'Scope, schedule and the count before the build — delivery as a discipline.' },
   { department: 'Business', courseKey: 'software-project-management', why: 'The same discipline where the product is software and the estimate is hardest.' },
   { department: 'Business', courseKey: 'development', why: 'Building systems that tell the truth: the make-side of a business that runs on its own tools.' },
+  // ADDED 2026-09-19, after Darrell opened the Business picker and asked:
+  // "Why isn't Banking in this list already?!!!!!" It was not, and neither
+  // were four more Real Estate courses that shipped after the original eight.
+  // The list was hand-kept, so every course added after it was written simply
+  // never appeared. See HOME_ONLY below for the structural fix.
+  { department: 'Business', courseKey: 'banking', why: 'What the bank does with your money — the counterparty every business banks with, and what it owes you.' },
+  { department: 'Business', courseKey: 'appraisal', why: 'What a thing is actually worth — valuation, which every business that holds or sells an asset must do honestly.' },
+  { department: 'Business', courseKey: 'evictions', why: 'Ending a tenancy righteously — the hardest enforcement any operator does, and the one most easily done cruelly.' },
+  { department: 'Business', courseKey: 'inspections', why: 'What you look at before you sign — diligence on the asset, which is diligence on the deal.' },
+  { department: 'Business', courseKey: 'insurance-risk', why: 'What you cannot afford to lose — risk transfer, which every business either buys deliberately or carries by accident.' },
+  // CROSS-LISTED FROM MEASURED OVERLAP, 2026-09-19. Darrell: "All courses need
+  // to be listed in their respective courses and also cross the other spaces it
+  // is discussed..." So the remaining shelves were found by MEASURING each
+  // course's own lesson text against the distinctive vocabulary of every other
+  // department, rather than by guessing. Only overlaps a reader would recognise
+  // are declared; the count beside each is what the measurement returned.
+  { department: 'Development', courseKey: 'sovereign-ai', why: 'Running your own models on your own hardware is a build discipline before it is anything else (measured: 126 development terms in its own lessons).' },
+  { department: 'Business', courseKey: 'sovereign-ai', why: 'What it costs to own the stack instead of renting it — a procurement and margin question (measured: 94 business terms).' },
+  { department: 'Business', courseKey: 'ai-legal-blueprint', why: 'The agreements and liabilities around using these tools in a real operation (measured: 31 business terms).' },
+  { department: 'Development', courseKey: 'datasystems', why: 'The house data systems are built and maintained like any other software (measured: 26 development terms).' },
+  { department: 'Kingdom Life & Stewardship', courseKey: 'world-issues', why: 'What is happening in the world, read against the Word\u2019s own economics and stewardship (measured: 62 stewardship terms).' },
+  { department: 'Kingdom Life & Stewardship', courseKey: 'financing-debt', why: 'The debt you sign is a stewardship question before it is a finance question (measured: 37 stewardship terms).' },
+  { department: 'Kingdom Life & Stewardship', courseKey: 'evictions', why: 'Ending a tenancy righteously is stewardship of people, not only of an asset (measured: 37 stewardship terms).' },
+  { department: 'Mathematics', courseKey: 'appraisal', why: 'Valuation is applied arithmetic — comparables, adjustments and the measure behind a number (measured: 49 mathematics terms).' },
 ];
 
 /** The course declarations shelved into one department, in authored order. */
+// COURSES THAT LIVE IN ONE PLACE ONLY, DECLARED RATHER THAN ASSUMED.
+//
+// Darrell, 2026-09-19, opening the Business picker: "We need to review the Ways
+// we update our systems and don't when we have features added!!!!!!!!! Why
+// isn't Banking in this list already?!!!!!"
+//
+// Banking was missing because COURSE_CROSS_LISTINGS is hand-kept: a course
+// added after the list was written never appears in it, and nothing notices.
+// Measured the day he asked: 22 of 36 mounted courses had no entry at all.
+//
+// Adding the five that belonged is half a fix. The other half is that a course
+// must not be able to mount with NOTHING said about its shelves. So every
+// course is now in exactly one of two places -- it declares a cross-listing,
+// or it declares here that its home is the only shelf it belongs on. A new
+// course in neither list FAILS the build (learn-crosslist.test.js), which puts
+// the decision at the moment the course is added rather than leaving a silent
+// gap for somebody to find in a dropdown months later.
+//
+// WHAT THIS LIST MEANS, STATED HONESTLY. It is NOT a finding that these could
+// not serve elsewhere. It is that no second shelf has been declared for them
+// YET. Darrell's standing instruction is the wider one -- "All courses need to
+// be listed in their respective courses and also cross the other spaces it is
+// discussed" -- and the eight cross-listings above were found by measuring
+// each course's lesson text against every other department's vocabulary. The
+// courses below either measured no real overlap or measured one that is an
+// artefact of volume rather than subject: living-lessons scores high against
+// every department simply because it is 181 lessons, which is not evidence of
+// anything. Those need a read, not a keyword count.
+//
+// re-review: 2026-10-19 -- read the remaining courses and declare the shelves
+// a reader would actually expect, rather than leaving them here by default.
+export const HOME_ONLY = Object.freeze([
+  // The Word and the Way -- the Word's own subject. Its home IS the shelf.
+  // (world-issues left this list when it measured real stewardship overlap.)
+  'living-lessons', 'little-learners', 'made-in-time', 'church-offices',
+  'healthy-living', 'prophetic-voices',
+  // Serve the House -- serving your own congregation, taught where it is served.
+  // (datasystems left this list when it measured real Development overlap.)
+  'broadcast', 'infrastructure', 'sound-board', 'word-out',
+  // A.I. The Way -- discernment for believers rather than a transferable trade.
+  // (sovereign-ai and ai-legal-blueprint left when they measured real overlap.)
+  'ai',
+  // A child's schooling.
+  'mathematics',
+  // Business's OWN course. It is the department a cross-listing would point at,
+  // so it has no cross-listing to make; it is the destination, not a pointer.
+  'rent-to-own-business',
+]);
+
+/**
+ * Courses the catalog mounts that say NOTHING about their shelves -- neither a
+ * cross-listing nor a home-only declaration. This must stay empty: a course
+ * with no declaration is not a course somebody decided about, it is one that
+ * slipped through. Pure: takes the mounted keys, returns the undeclared ones.
+ */
+export function coursesWithNoShelfDeclaration(mountedKeys = []) {
+  const declared = new Set([...COURSE_CROSS_LISTINGS.map((c) => c.courseKey), ...HOME_ONLY]);
+  return [...new Set(mountedKeys)].filter((k) => !declared.has(k)).sort();
+}
+
 export function courseCrossListingsFor(department) {
   const d = String(department || '');
   return d ? COURSE_CROSS_LISTINGS.filter((c) => c.department === d) : [];
