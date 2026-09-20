@@ -1,0 +1,150 @@
+# source-transcript — turn a video link Darrell sends into TEXT this session can read
+#
+# THE GAP THIS CLOSES. Darrell sends a video link with the word Lesson. and the
+# lesson gets authored from whatever summary came with it, because the cloud
+# sandbox has NO route to youtube.com (measured 2026-09-20: WebFetch returned
+# EGRESS_BLOCKED for www.youtube.com). That made every video lesson carry the
+# same honest-but-weak provenance line: positions attributed from a summary, not
+# from the speaker's own words. A GitHub runner HAS that route. My sandbox limit
+# was never the team's limit (DR-0108), and the lesson quality difference is the
+# difference between a summary and a transcript.
+#
+# WHY NOT PLAY THE VIDEO AND RECORD IT. Darrell asked, 2026-09-20, whether we
+# could open the link, press play, and voice-record it for transcription. That
+# reaches the same destination an hour slower and with worse input: it runs in
+# real time (a 1:06:42 talk costs 1:06:42), needs an audio device in a headless
+# container, and yields a lossy re-encode of audio that can simply be downloaded.
+# Published captions are already exact text with timestamps. So: captions first,
+# audio + sovereign transcription only when there are no captions.
+#
+# WHAT IT DOES
+#   1. Fetches the published caption track with yt-dlp (manual subs preferred,
+#      auto-generated accepted) — metadata and subtitles only, never the video.
+#   2. Flattens the VTT to plain text, keeping a timestamp marker every ~30s so
+#      a quotation can still be cited to a point in the talk.
+#   3. Writes BOTH the raw VTT and the flattened text to
+#      docs/99-session-notes/sources/<slug>/ and pushes them on a fix/ branch.
+#      The delivery lane opens the PR; the session reads the file directly.
+#
+# HONEST RED (DR-0076). YouTube rate-limits the CAPTION endpoint from datacenter
+# IPs specifically — corpus-reconcile.yml's own header records that its flat
+# listing works while captions are the blocked path. So this run CAN come back
+# empty through no fault of the code. When it does it exits RED and writes
+# nothing rather than committing a half file, and the log says which of the two
+# it was: no caption track published, or the fetch was refused. A lesson then
+# keeps the summary provenance and says so — which is exactly what it does today,
+# so a red run leaves us no worse than before and never quietly worse.
+#
+# FALLBACK, when captions are genuinely absent rather than refused: the audio is
+# small enough to carry and this house already runs its own transcription on the
+# church GPU box (infra/church-gpu-node/whisper-gpu). That path is NOT wired here
+# on purpose — it moves bytes to the NAS and belongs in its own verified change
+# with its own record. re-review: 2026-10-04.
+#
+# BRAKES (deterministic class — DR-0247/DR-0248 posture):
+#   (1) Budget — ONE url per run, subtitles only, --no-playlist, and the run is
+#       hard-capped by timeout-minutes. It cannot walk a channel.
+#   (2) Lock   — concurrency group keyed to the workflow; a second fire queues
+#       rather than stacking two yt-dlp calls at the same rate-limited endpoint.
+#   Stop-paths are deterministic: disable the workflow in the Actions UI, or
+#   delete this file in a PR. There is no schedule — it fires only when a link
+#   is actually sent, which is the only time it has anything to do.
+
+name: source-transcript
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Video URL (the link as sent, e.g. https://youtu.be/XXXXXXXXXXX)'
+        required: true
+      slug:
+        description: 'Folder name under docs/99-session-notes/sources/ (lowercase, dashes)'
+        required: true
+
+concurrency:
+  group: source-transcript
+  cancel-in-progress: false
+
+jobs:
+  transcript:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yt-dlp
+        run: pip install --quiet yt-dlp
+
+      - name: Refuse a slug that is not a plain folder name
+        env:
+          SLUG: ${{ inputs.slug }}
+        run: |
+          # The slug becomes a path we write to, so it is validated rather than
+          # trusted: lowercase, digits and dashes only. No dots, no slashes.
+          case "$SLUG" in
+            *[!a-z0-9-]*|''|-*|*-) echo "Refusing slug '$SLUG' — use lowercase letters, digits and dashes."; exit 1 ;;
+          esac
+          echo "slug ok: $SLUG"
+
+      - name: Fetch the published captions (subtitles only, never the video)
+        id: fetch
+        env:
+          URL: ${{ inputs.url }}
+          SLUG: ${{ inputs.slug }}
+        run: |
+          set -o pipefail
+          OUT="docs/99-session-notes/sources/$SLUG"
+          mkdir -p "$OUT"
+
+          # Metadata first, so a failure here separates "no such video / refused"
+          # from "video exists, no captions" in the log.
+          yt-dlp --no-playlist --skip-download --print '%(title)s' --print '%(channel)s' \
+                 --print '%(upload_date)s' --print '%(duration_string)s' "$URL" \
+                 | tee "$OUT/meta.txt" || { echo 'METADATA FETCH REFUSED — the runner could not read this video.'; exit 1; }
+
+          # Manual captions preferred; auto-generated accepted. English variants.
+          yt-dlp --no-playlist --skip-download \
+                 --write-subs --write-auto-subs \
+                 --sub-langs 'en.*' --sub-format vtt \
+                 -o "$OUT/%(id)s.%(ext)s" "$URL" || true
+
+          if ! ls "$OUT"/*.vtt >/dev/null 2>&1; then
+            echo 'NO CAPTION TRACK WRITTEN.'
+            echo 'Either this video publishes no English captions, or the caption endpoint refused this runner IP.'
+            echo 'The distinction matters and the lines above say which: a refusal prints an HTTP error, an absence does not.'
+            echo 'Writing nothing rather than a half file (DR-0076). The lesson keeps its summary provenance and says so.'
+            exit 1
+          fi
+          echo "vtt=$(ls "$OUT"/*.vtt | head -1)" >> "$GITHUB_OUTPUT"
+          echo "out=$OUT" >> "$GITHUB_OUTPUT"
+
+      - name: Flatten the VTT to readable text, keeping a timestamp every ~30s
+        env:
+          VTT: ${{ steps.fetch.outputs.vtt }}
+          OUT: ${{ steps.fetch.outputs.out }}
+        run: |
+          node scripts/vtt-to-text.mjs "$VTT" > "$OUT/transcript.txt"
+          echo "--- first 40 lines ---"
+          head -40 "$OUT/transcript.txt"
+          echo "--- size ---"
+          wc -c "$OUT/transcript.txt"
+          # An empty or near-empty flatten is a silent failure wearing a green
+          # check, so it is refused here rather than committed.
+          test "$(wc -c < "$OUT/transcript.txt")" -gt 500 \
+            || { echo 'Flattened transcript is under 500 bytes — refusing to commit it.'; exit 1; }
+
+      - name: Push the transcript (the lane opens the PR)
+        env:
+          SLUG: ${{ inputs.slug }}
+        run: |
+          BR="fix/source-transcript-$SLUG-$(date -u +%Y%m%d-%H%M)"
+          git config user.name 'source-transcript'
+          git config user.email 'actions@users.noreply.github.com'
+          git checkout -b "$BR"
+          git add "docs/99-session-notes/sources/$SLUG"
+          git commit -m "Transcript fetched for $SLUG (source-transcript run ${GITHUB_RUN_ID})"
+          git push -u origin "$BR"
+          echo "Pushed $BR — read docs/99-session-notes/sources/$SLUG/transcript.txt"
