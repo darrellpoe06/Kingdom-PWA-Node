@@ -242,3 +242,41 @@ describe('having BOTH a stick and a smart TV has a recommended answer', () => {
     expect(steps[0]).toMatch(/more capable browser/);
   });
 });
+
+describe('The Love Corner on a television — the case that actually matters', () => {
+  // Darrell 2026-09-20: "Can the Love Corner App work?" then "Love Corner".
+  // VERIFIED rather than assumed, by reading the chain end to end:
+  //   poetech.us/lovecorner -> public/lovecorner/index.html (the church door)
+  //   -> /lovecorner/app/?view=church -> app/lovecorner/app/index.html
+  //   -> <script type="module" src="/src/main.jsx"> -> wireRemoteNavigation()
+  // All five brand entries load the SAME main.jsx, so the D-pad and the focus
+  // ring are live on the church face with nothing brand-specific needed.
+  const steps = INSTALL_STEPS.tv.join(' ');
+
+  it('names the church address a TV viewer would actually type', () => {
+    expect(steps).toMatch(/poetech\.us\/lovecorner/);
+  });
+
+  it('carries the aliases, so a remembered address is not a dead end', () => {
+    // _redirects 301s /thelovecorner, /church and /LoveCorner to /lovecorner/.
+    // Typing on a TV is slow and painful; being sent back to re-type is worse.
+    expect(steps).toMatch(/thelovecorner/);
+    expect(steps).toMatch(/church/);
+  });
+
+  it('warns that the built-in TV browsers are worst at the ONE job this is for', () => {
+    // ChurchLearn.jsx carries a <video> element and youtube-feed.js a
+    // livestream: watching service on the big screen IS the church use case.
+    // Tizen and webOS browsers are documented as unreliable at video, so a
+    // recommendation that ignored it would send people to the failing route
+    // for the exact thing they came to do.
+    expect(steps).toMatch(/video playback in those browsers is unreliable/);
+    expect(steps).toMatch(/For anything with video, use the Fire Stick/);
+  });
+
+  it('the church brand is really in the store, with a real package door', () => {
+    const church = APP_STORE.find((b) => b.key === 'lovecorner');
+    expect(church, 'lovecorner is not in APP_STORE').toBeTruthy();
+    expect(church.apk).toBe(`${APK_DOOR_BASE}/lovecorner.apk`);
+  });
+});

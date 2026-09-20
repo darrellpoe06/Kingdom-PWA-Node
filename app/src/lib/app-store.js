@@ -129,10 +129,12 @@ export const INSTALL_STEPS = {
   // screen, better browser, so switch the input rather than fight the TV.
   tv: [
     'If you have a Fire Stick plugged into the TV, USE THE STICK — switch to that input. Silk is a far more capable browser than a smart TV\'s built-in one, and it is the one we can count on staying current.',
-    'Fire TV / Fire Stick: open the Amazon Appstore, install Silk Browser (free), then go to poetech.us — or a brand address like poetech.us/lovecorner.',
+    'Fire TV / Fire Stick: open the Amazon Appstore, install Silk Browser (free), then go to poetech.us — or a brand address like poetech.us/lovecorner for the church.',
     'Samsung TV: open the Apps row and launch "Internet" (Samsung TVs run Tizen, not Android — an Android app cannot be installed on one at all). Go to poetech.us there.',
     'LG TV: open the "Web Browser" app from the launcher bar and go to poetech.us.',
     'On any of them: use the remote\'s arrows to move between things — the highlighted outline shows where you are — and the centre/OK button to choose. Save it to Bookmarks so it is one click next time.',
+    'THE LOVE CORNER on a TV: go to poetech.us/lovecorner (poetech.us/thelovecorner and poetech.us/church land in the same place). It is the same app, so the remote drives it exactly the same way.',
+    'Watching the service or a sermon on the big screen is the reason to be here at all — and that is the one job a Samsung or LG built-in browser is worst at, because video playback in those browsers is unreliable. For anything with video, use the Fire Stick.',
     'If your set has no browser at all (some models and regions ship without one): open the app on your phone and cast or mirror the screen to the TV instead.',
     'Do NOT sideload the Android package onto a television. On a Samsung or LG it cannot run at all. On a Fire TV it installs but is built portrait for a phone and never appears on the home screen. The browser is the working route today; a proper TV app is a separate build.',
   ],
