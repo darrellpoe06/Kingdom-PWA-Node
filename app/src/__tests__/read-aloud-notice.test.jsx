@@ -25,6 +25,15 @@ import { isTTSSupported } from '../lib/tts.js';
 const repoRoot = resolve(__dirname, '../../..');
 const read = (rel) => readFileSync(join(repoRoot, rel), 'utf8');
 
+// ASSERT ON CODE, NOT ON PROSE. The first version of the checks below matched
+// the raw file, and two of them failed the moment the fix's own comment QUOTED
+// the wording being retired — the explanation of a change tripping the gate
+// that guards it. A comment is documentation; only the executable text can
+// make a promise to a user, so the strings are stripped of comments first.
+const codeOf = (rel) => read(rel)
+  .replace(/\/\*[\s\S]*?\*\//g, ' ')
+  .split('\n').map((l) => l.replace(/(^|\s)\/\/.*$/, '$1')).join('\n');
+
 describe('the notice reaches the screen', () => {
   const control = read('app/src/components/TTSControl.jsx');
 
@@ -53,18 +62,46 @@ describe('the notice reaches the screen', () => {
 });
 
 describe('a device with no voices is told the truth, not given useless advice', () => {
-  it('the zero-voice branch names the real cause', () => {
+  it('the zero-voice branch names the real cause, and the right one', () => {
+    const hook = codeOf('app/src/lib/use-read-aloud.js');
+    expect(hook).toMatch(/no voice of its own/);
+    // CORRECTED within the hour. The first version said "open the lesson on a
+    // phone or tablet" — defeatist and, worse, WRONG: the app already carries
+    // a device-independent answer in the System-voice cloud read, which
+    // synthesizes server-side and plays through an <audio> element on any
+    // device with a speaker. A device with no local voice is not the end of
+    // the story; an unconfigured voice service is why it stayed silent.
+    expect(hook, 'the old defeatist message is back').not.toMatch(/open the lesson on a phone or tablet/);
+    expect(hook).toMatch(/voice service is not switched on yet/);
+    expect(hook).toMatch(/reads aloud HERE, on this screen/);
+  });
+
+  it('it distinguishes "not configured" from "configured but silent"', () => {
+    // The two have completely different remedies — arm the studio, versus
+    // check why it stopped answering — and only one of them is ours to fix.
+    // One blurred message would send someone at the wrong problem.
+    const hook = codeOf('app/src/lib/use-read-aloud.js');
+    expect(hook).toMatch(/isVoiceServiceReady\(\)\s*\n?\s*\?/);
+    expect(hook).toMatch(/did not answer/);
+  });
+
+  it('the device-independent path really does run BEFORE the device one', () => {
+    // The whole correction rests on this ordering: if the cloud read came
+    // second it could never rescue a device with no voices, because the device
+    // path returns first. Pinned so a refactor cannot quietly invert it.
     const hook = read('app/src/lib/use-read-aloud.js');
-    expect(hook).toMatch(/no voice installed/);
-    // "Press play once more" cannot install a speech engine. The advice given
-    // must be advice that can actually work.
-    expect(hook).toMatch(/open the lesson on a phone or tablet/);
+    const cloud = hook.indexOf('allowBuiltIn: true');
+    const device = hook.indexOf("if (!tts.supported) { setNotice(");
+    expect(cloud, 'the System-voice cloud read is gone').toBeGreaterThan(0);
+    expect(cloud, 'the cloud read no longer precedes the device path').toBeLessThan(device);
   });
 
   it('it returns instead of speaking into the void', () => {
-    const hook = read('app/src/lib/use-read-aloud.js');
-    const branch = hook.slice(hook.indexOf('no voice installed') - 900, hook.indexOf('no voice installed') + 400);
-    expect(branch, 'the empty-voice path must stop, not fall through to speak()').toMatch(/setNotice\([\s\S]*?\);\s*\n\s*return;/);
+    const hook = codeOf('app/src/lib/use-read-aloud.js');
+    const at = hook.indexOf('no voice of its own');
+    expect(at, 'the zero-voice notice is gone').toBeGreaterThan(0);
+    const branch = hook.slice(at, at + 700);
+    expect(branch, 'the empty-voice path must stop, not fall through to speak()').toMatch(/\);\s*\n\s*return;/);
   });
 
   it('isTTSSupported still answers the question it actually asks', () => {

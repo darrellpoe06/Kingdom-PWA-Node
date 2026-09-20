@@ -422,7 +422,20 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
         // — press play once more', which is ADVICE THAT CANNOT WORK: pressing
         // again cannot install a voice engine. Naming the real cause costs one
         // branch and saves someone pressing a button forever.
-        setNotice('This device has no voice installed, so it cannot read aloud. The text is all here to read — or open the lesson on a phone or tablet, where the reading voice works.');
+        //
+        // AND THE MESSAGE MUST NAME THE RIGHT CAUSE. The first version of this
+        // said "open the lesson on a phone or tablet" — defeatist AND wrong,
+        // because it treats a device limit as the end of the story when the
+        // app already carries a device-independent answer. The System-voice
+        // cloud read above synthesizes server-side and plays through an
+        // <audio> element, which works on Fire TV, on a smart TV, on anything
+        // with a speaker. It did not fire here for exactly one reason: no
+        // voice endpoint is configured. So the notice says which of the two
+        // situations this actually is, because they have completely different
+        // remedies and only one of them is ours to fix.
+        setNotice(isVoiceServiceReady()
+          ? 'This device has no voice of its own, and the church’s voice service did not answer. The text is all here to read; the reading voice returns when the service is back.'
+          : 'This device has no voice of its own — and the church’s own voice service is not switched on yet. Once it is, the lesson reads aloud HERE, on this screen, with no device voice needed.');
         return;
       }
     }
