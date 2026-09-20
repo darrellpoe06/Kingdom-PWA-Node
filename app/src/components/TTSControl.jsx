@@ -869,7 +869,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
         <div
           role="status"
           data-testid="read-aloud-notice"
-          className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.75em] py-[0.5em] max-w-[22em] text-right"
+          className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.75em] py-[0.5em] text-right"
           style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}
         >
           <span className="text-[0.75em] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{notice}</span>

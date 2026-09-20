@@ -37,9 +37,14 @@ describe('the notice reaches the screen', () => {
   it('and RENDERS it, rather than only holding it', () => {
     expect(control).toMatch(/data-testid="read-aloud-notice"/);
     expect(control).toMatch(/\{notice && \(/);
-    expect(control, 'a failure message must be announced, not just drawn').toMatch(
-      /role="status"[\s\S]{0,200}read-aloud-notice|read-aloud-notice[\s\S]{0,200}role="status"/,
-    );
+    // Assert the PAIRING without pinning how far apart they sit — the first
+    // version of this test measured 200 characters and broke the moment a
+    // comment was added between them, which is a proximity check masquerading
+    // as an accessibility one. What matters is that THIS element announces.
+    const el = control.slice(control.indexOf('{notice && ('));
+    const open = el.slice(0, el.indexOf('>'));
+    expect(open, 'the notice element does not announce itself').toMatch(/role="status"/);
+    expect(open).toMatch(/data-testid="read-aloud-notice"/);
   });
 
   it('the hook really exports it, so the wiring is end to end', () => {
