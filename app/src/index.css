@@ -245,3 +245,51 @@ html[data-text-size='bigprint'] .church-give-floater {
   background-color: #FB923C;
   color: #0A0A0A;
 }
+
+/* =============================================================================
+   Focus ring — the only thing a TV remote has instead of a cursor
+   =============================================================================
+   Darrell 2026-09-20, asking how to get the app onto a Firestick. The browser
+   is the route that works there (the .apk is portrait-locked and carries no
+   leanback entry), and lib/remote-navigation.js makes the D-pad move focus
+   spatially. But focus that cannot be SEEN is focus that does not exist: on a
+   TV the viewer is across the room, there is no pointer to fall back on, and
+   before this rule the app shipped no focus styling at all — so the browser
+   route was technically navigable and practically unusable.
+
+   :focus-visible, not :focus, so a tap or click never paints a ring on a
+   phone. Keyboard and D-pad get it; touch does not.
+
+   NOT RED. True red is reserved for the Blood of Jesus and never marks
+   anything else (Color Theology, DR-0099). A focus ring is chrome, so it takes
+   a colour with no such claim on it. The pairing below is a deep blue on light
+   surfaces and a bright amber on dark ones — each chosen to carry across a
+   room against its own background, and each far from red. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid #0B4F9E;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* On a dark theme the deep blue disappears into the background, so the ring
+   flips rather than dimming. Both halves are keyed off the app's own theme
+   attribute first and the OS preference second, matching how the rest of the
+   shell decides its palette. */
+:root[data-theme='dark'] :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline-color: #F2B705;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline-color: #F2B705;
+  }
+}
+
+/* A TV sits far enough away that the standard ring is thin. Any viewport this
+   wide is a television or a projector in practice, so the ring thickens rather
+   than asking anyone to configure it. */
+@media (min-width: 1280px) and (pointer: coarse), (min-width: 1600px) {
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline-width: 4px;
+    outline-offset: 3px;
+  }
+}

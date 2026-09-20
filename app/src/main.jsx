@@ -12,6 +12,7 @@ import { wireDatePickerTap } from './lib/date-picker-tap.js';
 import { captureInstallPrompt } from './lib/install-app.js';
 import { startDmNotifications } from './lib/dm-notify.js';
 import { captureDeepLink } from './lib/app-doors.js';
+import { wireRemoteNavigation } from './lib/remote-navigation.js';
 
 // A notification's deep link is read HERE, at boot, before anything renders:
 // nav-history's history seed rewrites the URL within a tick and keeps only
@@ -26,6 +27,12 @@ captureDeepLink();
 window.__PT_BOOTED = true;
 
 window.storage = storage;
+
+// A TV remote's D-pad arrives as plain arrow keydowns and OK as Enter, so the
+// browser route onto a Fire TV / streaming stick is only usable if arrows move
+// focus spatially. Bubbling listener: any surface that owns its own arrows
+// keeps them (remote-navigation.js).
+wireRemoteNavigation();
 
 // Self-heal a stale-deploy lazy-chunk 404 (e.g. opening the Voice tab after a newer
 // deploy replaced its chunk hash): on a failed dynamic import, recover once to the
