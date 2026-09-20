@@ -79,6 +79,27 @@ describe('the mount is made only against a studio that answered', () => {
     expect(noBackend).toContain('exit 0');
   });
 
+  // PROVEN-TO-CATCH a premise I shipped wrong and then verified. This file was
+  // first written offering tlcmediadpt by MagicDNS, its tailnet name and its
+  // measured address as mount targets, on the assumption that a Funnel path
+  // can point anywhere the node can reach. Tailscale refuses a non-local
+  // target outright -- "only localhost or 127.0.0.1 proxies are currently
+  // supported", tailscale/tailscale#8751, open since 2023-07-31 -- so those
+  // mounts would have failed on every cycle while the actuation guard stayed
+  // green, because the row and the installer both existed. One search would
+  // have said so before the code rode on it.
+  it('never offers a mount target tailscale will refuse', () => {
+    const setPath = INSTALL.match(/--set-path \/voice "?\$?\{?[A-Za-z_]*\}?"?/g) || [];
+    expect(setPath.length, 'the mount line is gone').toBeGreaterThan(0);
+    const candidates = (INSTALL.match(/^CANDIDATES=.*$/m) || [''])[0];
+    expect(candidates, 'the candidate list is gone').toContain('127.0.0.1');
+    // Any http:// target in the candidate list that is not loopback cannot be
+    // mounted, so offering one can only ever produce a silent per-cycle failure.
+    const hosts = (candidates.match(/https?:\/\/[^\s"']+/g) || []);
+    const remote = hosts.filter((h) => !/^https?:\/\/(127\.0\.0\.1|localhost)\b/.test(h));
+    expect(remote, `tailscale cannot proxy to these: ${remote.join(', ')}`).toEqual([]);
+  });
+
   it('uses funnel, never serve — serve is tailnet-only and REPLACES the public exposure', () => {
     expect(INSTALL).toMatch(/funnel --bg --set-path \/voice/);
     expect(INSTALL).not.toMatch(/\bserve --bg\b/);

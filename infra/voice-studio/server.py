@@ -68,16 +68,21 @@ def _decode_reference(data_uri: str) -> str:
     return path
 
 
-# THE PREFIX IS SERVED BOTH WAYS, ON PURPOSE.
+# THE PREFIX IS SERVED BOTH WAYS, AND THE PLAIN ONE IS THE REAL PATH.
 #
 # The app reaches this studio at same-origin `/voice/speak`, which the Pages
 # Function forwards to the Funnel as `/voice/speak`, which a Tailscale path
-# mount hands on to this server. Whether the mount STRIPS `/voice` before
-# forwarding is a property of the tailscale build running on the NAS, and
-# nothing in this repository can read that machine to find out (DR-0076: do not
-# claim what you cannot measure). The tax server met the identical uncertainty
-# on 2026-09-06 and settled it the only honest way -- by answering to both
-# spellings, so the route cannot be wrong. This does the same.
+# mount hands on here. This comment first said that whether the mount STRIPS
+# `/voice` was unknowable from this repository. It is not -- it is documented:
+# tailscale trims the mount point before proxying, so a mount at `/voice`
+# delivers `/speak` and `/health`, as if the service were running at the root.
+# "Nothing here can measure it" was a guess wearing DR-0076's clothes; the
+# actual discipline is to go and check.
+#
+# The prefixed aliases stay anyway, and not out of timidity. They cost one
+# decorator each, they make the server correct under a proxy that does NOT trim
+# (a Caddy handle, a forwarder that passes the path through), and the tax
+# server carries exactly the same pair for exactly that reason.
 @app.get("/voice/health")
 @app.get("/health")
 def health():

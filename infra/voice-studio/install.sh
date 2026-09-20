@@ -38,12 +38,29 @@
 # added by the same merge, per rule 2).
 set -e
 
-# Candidate backends, in order. 127.0.0.1 first so a studio that is ever run on
-# this box wins without a tailnet hop; then the GPU box by MagicDNS name, which
-# survives a DHCP/tailnet address change in a way a literal address does not;
-# then its address as measured 2026-09-20, for the case where MagicDNS is off.
-# VOICE_STUDIO_URL overrides the lot for a box that is somewhere else entirely.
-CANDIDATES="${VOICE_STUDIO_URL:-} http://127.0.0.1:8770 http://tlcmediadpt:8770 http://tlcmediadpt.tail5a2f35.ts.net:8770 http://100.69.19.13:8770"
+# TAILSCALE WILL ONLY PROXY TO LOCALHOST. This file was first written with
+# tlcmediadpt by MagicDNS in this list, on the assumption that a Funnel path
+# mount can point anywhere the node can reach. It cannot, and the check was one
+# search away: tailscale refuses a non-local target outright -- "only localhost
+# or 127.0.0.1 proxies are currently supported" -- and the feature request to
+# lift that (tailscale/tailscale#8751) has been open since 2023-07-31. So a
+# mount at the GPU box would have failed on every cycle, quietly, with the
+# actuation guard green the whole time because the row and the installer both
+# existed. DR-0076: the premise gets verified before the code rides on it.
+#
+# What this means structurally: the studio lives on the 4070 and the Funnel
+# lives on the NAS, so /voice needs a LOCAL forwarder on the NAS standing
+# between them -- exactly the shape every other row here already has
+# (127.0.0.1:8099 photos, 127.0.0.1:8790 taxes, 127.0.0.1:8800 supabase). That
+# forwarder is the next piece of work and it is NOT in this file, because it
+# also needs the bearer check those services have: /voice sits on the PUBLIC
+# Funnel, and the studio has no authentication of its own, so mounting it open
+# would put the family's GPU on the open internet for anyone to spend.
+# re-review: 2026-09-21.
+#
+# Until then this mounts exactly one thing: a studio answering on THIS box.
+# That is the only target tailscale will accept, so it is the only one offered.
+CANDIDATES="${VOICE_STUDIO_URL:-} http://127.0.0.1:8770"
 
 echo "== voice-studio install: find a studio that is actually answering =="
 BACKEND=""
@@ -60,11 +77,14 @@ for C in $CANDIDATES; do
 done
 
 if [ -z "$BACKEND" ]; then
-  echo "  no voice studio answered on this cycle."
-  echo "  NOTHING MOUNTED -- deliberately. A /voice path pointed at a dark host"
-  echo "  would hang the reader instead of failing it, and would read as armed."
-  echo "  Bring the studio up with the 'Arm voice studio' workflow (arm=true);"
-  echo "  the next services-sync cycle mounts the path on its own."
+  echo "  no voice studio answered on 127.0.0.1 this cycle."
+  echo "  NOTHING MOUNTED -- deliberately, for two reasons."
+  echo "  1. A /voice path pointed at a dark host would HANG the reader rather"
+  echo "     than fail them, and would read as armed in every check."
+  echo "  2. If the studio is up on the 4070 rather than here, tailscale still"
+  echo "     cannot mount it: only 127.0.0.1 targets are accepted (#8751). That"
+  echo "     case needs the local forwarder, which is not built yet."
+  echo "  Bring a local studio up and the next cycle mounts the path on its own."
   exit 0
 fi
 echo "  using $BACKEND"
