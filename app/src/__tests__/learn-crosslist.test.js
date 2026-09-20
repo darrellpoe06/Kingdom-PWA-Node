@@ -258,10 +258,14 @@ describe('a pointer, never a copy', () => {
     // (8 lessons, DR-0553) — the "countries that trade" half of the sentence
     // the first two courses did not answer, since each of them was about an
     // instrument held by a person rather than the system it sits inside.
-    expect(courses).toHaveLength(45);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(678);
+    // And to 46 / 686 on 2026-09-20 for the department's FOURTH and final
+    // course, investing (8 lessons, DR-0554) — which completes the four
+    // Darrell named in one sentence, and is the only one of them about a
+    // DECISION rather than a piece of machinery.
+    expect(courses).toHaveLength(46);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(686);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(678);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(686);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {

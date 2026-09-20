@@ -247,6 +247,12 @@ export const COURSE_CROSS_LISTINGS = [
   // what a just weight is across a border — is stewardship, not economics.
   { department: 'Business', courseKey: 'world-market', why: 'What an exchange rate and a shipping lane do to a price you quoted in your own currency — the exposure every importer and exporter carries whether or not they look at it.' },
   { department: 'Kingdom Life & Stewardship', courseKey: 'world-market', why: 'The just weight that does not stop being required at a border (Leviticus 19:36), and the plain answer to the headline word that moves people who were never taught it.' },
+  // COURSE FOUR OF THE STOCK MARKET DEPARTMENT, 2026-09-20. The only course in
+  // the department about a DECISION rather than a piece of machinery, which is
+  // why it belongs on the stewardship shelf as much as the market one: its last
+  // three lessons are whose money is it, what is it for, and how much is enough.
+  { department: 'Kingdom Life & Stewardship', courseKey: 'investing', why: 'The steward’s three questions before any product is named — whose is it, what is it for, by when — and the one the industry cannot answer: how much is enough (Proverbs 30:8).' },
+  { department: 'Business', courseKey: 'investing', why: 'The four different things the word RISK gets used for, and the only number in the whole business that is knowable before anything happens.' },
   { department: 'Business', courseKey: 'appraisal', why: 'What a thing is actually worth — valuation, which every business that holds or sells an asset must do honestly.' },
   { department: 'Business', courseKey: 'evictions', why: 'Ending a tenancy righteously — the hardest enforcement any operator does, and the one most easily done cruelly.' },
   { department: 'Business', courseKey: 'inspections', why: 'What you look at before you sign — diligence on the asset, which is diligence on the deal.' },

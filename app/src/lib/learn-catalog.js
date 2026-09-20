@@ -49,6 +49,7 @@ import { BANKING_META, BANKING_SESSION_FLOW, buildBankingSchedule, bankingProgre
 import { STOCKS_META, STOCKS_SESSION_FLOW, buildStocksSchedule, stocksProgressSummary, exportStocksCurriculumMarkdown, STOCKS_INTEREST_TAG, STOCKS_HELPER_TAG, STOCKS_TUTOR_META } from './stocks-course.js';
 import { BONDS_META, BONDS_SESSION_FLOW, buildBondsSchedule, bondsProgressSummary, exportBondsCurriculumMarkdown, BONDS_INTEREST_TAG, BONDS_HELPER_TAG, BONDS_TUTOR_META } from './bonds-course.js';
 import { WORLD_MARKET_META, WORLD_MARKET_SESSION_FLOW, buildWorldMarketSchedule, worldMarketProgressSummary, exportWorldMarketCurriculumMarkdown, WORLD_MARKET_INTEREST_TAG, WORLD_MARKET_HELPER_TAG, WORLD_MARKET_TUTOR_META } from './world-market-course.js';
+import { INVESTING_META, INVESTING_SESSION_FLOW, buildInvestingSchedule, investingProgressSummary, exportInvestingCurriculumMarkdown, INVESTING_INTEREST_TAG, INVESTING_HELPER_TAG, INVESTING_TUTOR_META } from './investing-course.js';
 import { INSURANCE_RISK_META, INSURANCE_RISK_SESSION_FLOW, buildInsuranceRiskSchedule, insuranceRiskProgressSummary, exportInsuranceRiskCurriculumMarkdown, INSURANCE_RISK_INTEREST_TAG, INSURANCE_RISK_HELPER_TAG, INSURANCE_RISK_TUTOR_META } from './insurance-risk-course.js';
 import { INSPECTIONS_META, INSPECTIONS_SESSION_FLOW, buildInspectionsSchedule, inspectionsProgressSummary, exportInspectionsCurriculumMarkdown, INSPECTIONS_INTEREST_TAG, INSPECTIONS_HELPER_TAG, INSPECTIONS_TUTOR_META } from './inspections-course.js';
 import { EVICTIONS_META, EVICTIONS_SESSION_FLOW, buildEvictionsSchedule, evictionsProgressSummary, exportEvictionsCurriculumMarkdown, EVICTIONS_INTEREST_TAG, EVICTIONS_HELPER_TAG, EVICTIONS_TUTOR_META } from './evictions-course.js';
@@ -514,6 +515,34 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want a hand working these eight through something real \u2014 the word deficit and what it actually means, why a falling currency helps some people at home and hurts others, what a central bank can and cannot do, and what closing a pipe costs the household standing next to the target. The whole course is free and open right here; this is for a hand with yours. If your own job or your own town is on the losing side of a trade, say so \u2014 lessons one and seven are about that, and nobody here will tell you the aggregate is positive. Teaching, not financial or policy advice.',
       cta: 'I want help understanding it',
       sent: '\u2713 Sent \u2014 Darrell will reach out. Know the machinery, and carry a just weight across the border.',
+    },
+  },
+  {
+    // COURSE FOUR OF THE STOCK MARKET DEPARTMENT, and the last quarter of the
+    // sentence that opened it. Courses one to three taught MACHINERY -- what a
+    // share is, what a bond is, what a deficit is -- and a reader handed those
+    // is strictly better off. This one is about a DECISION, which is precisely
+    // where teaching turns into telling somebody what to do with their money
+    // without anybody noticing the step.
+    //
+    // So it is built to refuse that. Every lesson ends by handing the reader a
+    // QUESTION for their own situation rather than an answer this house
+    // supplies; no product, fund, company, platform, allocation or strategy is
+    // named anywhere in it; no figure is quoted and no forecast is made. Its
+    // last three lessons are whose money is it, what is it for, and how much is
+    // enough -- which is why it is cross-listed onto the stewardship shelf as
+    // firmly as onto the market one.
+    key: 'investing', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...INVESTING_META, key: 'investing', category: 'Stock Market' }, sessionFlow: INVESTING_SESSION_FLOW,
+    buildScheduleRows: () => buildInvestingSchedule(null), progressSummary: (p) => investingProgressSummary(p),
+    exportMarkdown: () => exportInvestingCurriculumMarkdown(null), downloadName: 'how-investing-actually-works-curriculum.md',
+    interestTag: INVESTING_INTEREST_TAG, helperTag: INVESTING_HELPER_TAG, tutorCourseMeta: INVESTING_TUTOR_META,
+    interestText: (who) => `${INVESTING_INTEREST_TAG} ${who} wants a hand working out what they are actually holding, what it costs, and what it is for.`,
+    interestCopy: {
+      heading: 'Told you ought to be investing?',
+      blurb: 'Tell Darrell you want a hand working these eight through something real \u2014 the four different things the word risk gets used for, the charge you have probably never looked at, what time actually does, and the three questions that come before any product is named. The whole course is free and open right here; this is for a hand with yours. Nothing in it names a product, a fund or a strategy, nothing tells you what to buy, and nothing quotes a figure. If you finish it harder to sell to, including by us, it worked. Teaching, not financial advice.',
+      cta: 'I want help understanding mine',
+      sent: '\u2713 Sent \u2014 Darrell will reach out. Whose is it, what is it for, and by when.',
     },
   },
   {

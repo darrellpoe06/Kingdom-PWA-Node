@@ -91,6 +91,7 @@ export const COURSE_PLAIN_WORDS = {
   stocks: ['shares', 'investing', 'company', 'money', 'pension', 'trading'],
   bonds: ['loan', 'lending', 'debt', 'interest', 'pension', 'government'],
   'world-market': ['trading', 'money', 'price', 'buying', 'selling', 'cost'],
+  investing: ['investing', 'saving', 'money', 'pension', 'retirement', 'planning'],
   'insurance-risk': ['insurance', 'fire', 'flood', 'accident', 'house', 'bills'],
   inspections: ['house', 'repairs', 'building', 'fixing', 'plumbing', 'buying'],
   evictions: ['rent', 'landlord', 'tenant', 'debt', 'money', 'home'],

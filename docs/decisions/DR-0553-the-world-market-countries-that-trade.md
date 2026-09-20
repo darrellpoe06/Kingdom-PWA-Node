@@ -18,7 +18,7 @@ Darrell named the whole department in one sentence: *"Stock Market courses to ex
 | 5 | Who issues the money — what a central bank can and cannot do | Deuteronomy 8:17 |
 | 6 | Reserves — why it reaches a person who never leaves their state | Isaiah 23:8 |
 | 7 | When the pipes get closed | Revelation 18:11 |
-| 8 | The just weight across a border | Leviticus 19:35 |
+| 8 | The just weight across a border | Leviticus 19:36 |
 
 ## The lesson this course exists for
 
