@@ -12,6 +12,8 @@
 // a drag, a dock toggle, or a tab change, so the stream survives all three.
 import React, { useEffect, useRef, useState } from 'react';
 import { getFloating, subscribeFloating, closeFloating, setFloatingPos } from '../lib/floating-player.js';
+import VideoSkip from './VideoSkip.jsx';
+import { withJsApi } from '../lib/youtube-embed-control.js';
 
 // KEEP IT REACHABLE. The version this replaces clamped the drag to the
 // viewport, and losing that would have been a regression worth more than the
@@ -35,6 +37,7 @@ export default function FloatingPlayer() {
   useEffect(() => subscribeFloating(setPlayer), []);
 
   const dragRef = useRef(null);
+  const frameRef = useRef(null);
   const onPointerDown = (e) => {
     const box = e.currentTarget.parentElement;
     if (!box) return;
@@ -88,14 +91,19 @@ export default function FloatingPlayer() {
             never change this key — each would remount the iframe and restart
             the stream, which is the very thing being fixed. */}
         <iframe
+          ref={frameRef}
           key={player.src}
-          src={player.src}
+          src={withJsApi(player.src, typeof window !== 'undefined' ? window.location.origin : '')}
           title={player.title || 'Video player'}
           className="w-full h-full border-0"
           allow="encrypted-media; picture-in-picture; fullscreen"
           allowFullScreen
         />
       </div>
+      {/* The popped-out player needs the skips too — it is the one a viewer
+          leaves running while they read something else, so it is the one they
+          most need to move around in. */}
+      <VideoSkip frameRef={frameRef} src={player.src} className="px-2 pb-2 mt-0" />
     </div>
   );
 }

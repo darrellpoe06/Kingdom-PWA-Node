@@ -18,6 +18,8 @@
 // =============================================================================
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { openFloating, closeFloating, isFloating, subscribeFloating } from '../lib/floating-player.js';
+import VideoSkip from './VideoSkip.jsx';
+import { withJsApi } from '../lib/youtube-embed-control.js';
 import { liveStatus, worshipPlayerSrc } from '../lib/church-live.js';
 import { useLivePlayerPrefs, setLivePlayerScale } from '../lib/live-player-prefs.js';
 import { parseYoutubeFeed } from '../lib/youtube-feed.js';
@@ -167,6 +169,11 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // The 5 BELOW the one now playing (the player shows the newest item).
   const priorStreams = recentVids.slice(1, 6);
   const playerSrc = worshipPlayerSrc(liveChannelId, recentVids[0]?.videoId);
+  // `enablejsapi=1` is what lets our own skip buttons drive the embed at all
+  // (lib/youtube-embed-control.js). The KEY stays the bare playerSrc so adding
+  // the parameter can never look like a different video and remount the frame.
+  const frameRef = useRef(null);
+  const playerEmbedSrc = withJsApi(playerSrc, typeof window !== 'undefined' ? window.location.origin : '');
   // Render the section whenever we have a source at all.
   const hasWorshipPlayer = !!playerSrc;
 
@@ -380,8 +387,9 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
                         the sermon over itself. */}
                     <div className="contents">
                       {!floating && <iframe
+                        ref={frameRef}
                         key={playerSrc}
-                        src={playerSrc}
+                        src={playerEmbedSrc}
                         title={showLive ? `${c.name || 'Church'} — live worship broadcast` : `${c.name || 'Church'} — latest message`}
                         className="w-full h-full border-0"
                         allow="encrypted-media; picture-in-picture; fullscreen"
@@ -390,6 +398,10 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
                       />}
                     </div>
                   </div>
+                  {/* FAST FORWARD THE REMOTE CAN REACH. YouTube's scrub bar is
+                      inside the iframe — a four-pixel line a D-pad cursor
+                      cannot hit. These are ours, and the remote walks them. */}
+                  {!floating && <VideoSkip frameRef={frameRef} src={playerSrc} />}
                   {floating && (
                     <p className="mt-2 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
                       Playing in a small window — drag it anywhere by its grip, and tap <span className="font-semibold text-[#B85838]">Dock</span> to bring it back. It keeps playing while you move around the app.
