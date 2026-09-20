@@ -148,3 +148,57 @@ describe('configuration stopped being a question — every surface asks the stud
     expect(HOOK).toMatch(/isVoiceServiceReady\(\) && studioHealth !== 'down'/);
   });
 });
+
+describe('arming the studio cannot report a confident wrong answer', () => {
+  // The workflow is the other half of this route and nothing gated it. Its
+  // first version carried two numbers that would each have produced a clean,
+  // specific, WRONG verdict on the very first real run — the worst kind of
+  // failure, because a wrong diagnosis gets acted on and a crash does not.
+  const ARM = repo('.github/workflows/arm-voice-studio.yml');
+
+  it('the job ceiling fits a COLD build, which is what a first run is', () => {
+    // compose declares `build: ../voice-studio` over a multi-gigabyte CUDA
+    // base plus a pip install of TTS and its tree. Nothing about that fits in
+    // 25 minutes on a residential line, and a run killed mid-build leaves a
+    // half-populated layer cache and reports nothing usable.
+    const m = ARM.match(/timeout-minutes:\s*(\d+)/);
+    expect(m, 'the arm job declares no timeout at all').toBeTruthy();
+    expect(Number(m[1]), 'the ceiling is back below a cold build').toBeGreaterThanOrEqual(60);
+  });
+
+  it('the FIRST speak is given room for the model download; only the WARM one judges', () => {
+    // XTTS-v2's weights (~1.8 GB) download on the first synthesis. At the
+    // original 180-second ceiling that call times out, and the verify step
+    // then announced "NO AUDIO — the model has no speaker bank": a precise
+    // diagnosis of a download in progress. Two attempts, and the conclusion
+    // belongs to the second.
+    const first = ARM.match(/curl -s -m (\d+) -X POST[^\n]*first speak/);
+    const warm = ARM.match(/curl -s -m (\d+) -X POST[^\n]*warm speak/);
+    expect(first, 'the two-attempt speak verification is gone').toBeTruthy();
+    expect(warm).toBeTruthy();
+    expect(Number(first[1]), 'the first speak cannot outlast a model download').toBeGreaterThanOrEqual(600);
+    expect(Number(warm[1])).toBeLessThan(Number(first[1]));
+  });
+
+  it('a real synthesis is still what counts as armed — /health is not enough', () => {
+    // server.py loads the model lazily so /health answers cold. A workflow
+    // that stopped at a 200 would call a studio armed that cannot speak.
+    expect(ARM).toMatch(/\/speak/);
+    expect(ARM).toMatch(/test -s \/tmp\/v\.wav/);
+  });
+
+  it('the probe stays read-only and default-off', () => {
+    // Arming pulls gigabytes. A dispatch that has not asked for it must not.
+    expect(ARM).toMatch(/arm[\s\S]{0,200}default: 'false'/);
+    expect(ARM).toMatch(/if: \$\{\{ github\.event\.inputs\.arm == 'true' \}\}/);
+  });
+
+  it('and it mounts the road home instead of leaving the reader to wait a cycle', () => {
+    // services-sync would mount /voice within fifteen minutes on its own. That
+    // is correct and it is also fifteen minutes of a reader pressing a button
+    // that does nothing, when the mount can be asked for the moment the studio
+    // answers. The installer is idempotent and refuses a dark backend, so
+    // doing it here is safe and no-ops if the cycle got there first.
+    expect(ARM).toMatch(/infra\/voice-studio\/install\.sh/);
+  });
+});
