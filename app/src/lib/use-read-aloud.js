@@ -409,6 +409,21 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
         const overrides = loadPersonaVoiceMap();
         const cidFresh = catalogIdOf(voiceId);
         if (cidFresh) uri = resolveVoiceURIForId(cidFresh, { assignments: liveAssignments, overrides, available: fresh });
+      } else {
+        // NO VOICES AT ALL, after waiting. This is NOT the cold-start case the
+        // wait exists for (DR-0138) — the list is genuinely empty because the
+        // device has no speech engine installed. Fire TV is the one that found
+        // it: Silk exposes speechSynthesis and SpeechSynthesisUtterance, so
+        // isTTSSupported() answers true and the "can't read aloud" path never
+        // runs, but nothing can ever speak.
+        //
+        // Falling through here would call speak() with no voice, produce
+        // silence, and leave the start watchdog to report 'Audio didn't start
+        // — press play once more', which is ADVICE THAT CANNOT WORK: pressing
+        // again cannot install a voice engine. Naming the real cause costs one
+        // branch and saves someone pressing a button forever.
+        setNotice('This device has no voice installed, so it cannot read aloud. The text is all here to read — or open the lesson on a phone or tablet, where the reading voice works.');
+        return;
       }
     }
     const cid = catalogIdOf(voiceId);
