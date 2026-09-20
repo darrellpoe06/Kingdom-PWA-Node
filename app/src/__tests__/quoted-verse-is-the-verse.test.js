@@ -34,7 +34,7 @@
 import { describe, it, expect } from 'vitest';
 import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
 import { LITTLE_LEARNERS_MODULES } from '../lib/little-learners-class.js';
-import { readerTexts } from '../../../scripts/quotation-integrity.mjs';
+import { readerTexts, quotedTexts } from '../../../scripts/quotation-integrity.mjs';
 import {
   bookFile, verseText, shoutedWords, loweredHolyNames, checkSpan,
   scanQuotedVerses, describeFault,
@@ -109,14 +109,100 @@ describe('THE LIVE SERIES — measured, not asserted', () => {
   });
 
   for (const [name, modules] of series) {
-    it(`${name}: every quotation is the verse it names`, () => {
-      const scan = scanQuotedVerses(modules, readerTexts);
+    it(`${name}: every quotation is the verse it names — on EVERY surface`, () => {
+      // quotedTexts, not readerTexts: benefits, the quiz and the facilitator's
+      // talking points are read too, and the facilitator reads his ALOUD.
+      const scan = scanQuotedVerses(modules, quotedTexts);
       expect(
         scan.faults.map(describeFault),
         `${scan.faults.length} of ${scan.spans} quoted spans are not what they claim`,
       ).toEqual([]);
     });
   }
+
+  // ===========================================================================
+  // THE SURFACES THIS GATE COULD NOT SEE UNTIL 2026-09-19 (DR-0545)
+  // ===========================================================================
+  // READER_FIELDS is scoped for the DR-id check and says so in its own comment
+  // ("a record id is not noise to him"). This gate reused readerTexts and
+  // inherited that scope, which has nothing to do with record ids — so for as
+  // long as it has existed, every quotation in benefits, the quiz and the
+  // facilitator's talking points went unchecked.
+  //
+  // MEASURED the day the scope widened: 2,942 additional spans. 2,906 already
+  // resolved verbatim — the authoring had been faithful — and 36 did not:
+  // eight quotations that were not the verse, one that shouted a word His text
+  // does not, and twenty-seven references abbreviated past a resolver's reach.
+  // A twenty-eighth surfaced once the abbreviations were written out. All were
+  // repaired in the same change; none was recorded as debt.
+  describe('the wider scope is real, and it is what the series is judged by', () => {
+    const one = LIVING_LESSONS_MODULES[0];
+
+    it('quotedTexts reaches strictly further than readerTexts', () => {
+      const narrow = scanQuotedVerses(LIVING_LESSONS_MODULES, readerTexts);
+      const wide = scanQuotedVerses(LIVING_LESSONS_MODULES, quotedTexts);
+      expect(wide.spans).toBeGreaterThan(narrow.spans);
+      // Non-vacuous: the three surfaces carry thousands of His words, not a handful.
+      expect(wide.spans - narrow.spans).toBeGreaterThan(2_000);
+    });
+
+    it('quotedTexts names the three surfaces readerTexts never returned', () => {
+      const where = new Set(quotedTexts(one).map(([w]) => w.replace(/\[\d+\]/g, '[]')));
+      const narrow = new Set(readerTexts(one).map(([w]) => w));
+      for (const surface of ['benefits[]', 'talkingPoints[]']) {
+        expect(where.has(surface), `${surface} must be in the wider scope`).toBe(true);
+        expect(narrow.has(surface)).toBe(false);
+      }
+      expect([...where].some((w) => w.startsWith('quiz[]')), 'the quiz must be in scope').toBe(true);
+    });
+
+    // PROVEN-TO-CATCH, one per surface: bend the real module, confirm the wide
+    // scan reports it and the narrow scan does NOT. The second half is the
+    // point — it is the miss this change closes, asserted rather than described.
+    const bendAt = (patch) => {
+      const modules = LIVING_LESSONS_MODULES.map((m) => (m === one ? { ...m, ...patch } : m));
+      return {
+        wide: scanQuotedVerses(modules, quotedTexts).faults.filter((f) => f.id === one.id),
+        narrow: scanQuotedVerses(modules, readerTexts).faults.filter((f) => f.id === one.id),
+      };
+    };
+    // Verbatim John 3:16 cited to the wrong verse: the shape of the eight real faults.
+    const MISCITED = 'He says "For God so loved the world, that he gave his only begotten Son" (John 3:17)';
+
+    it('PROVEN-TO-CATCH: a miscited verse in a BENEFIT is caught now and was not before', () => {
+      const r = bendAt({ benefits: [...one.benefits.slice(0, -1), MISCITED] });
+      expect(r.wide.map((f) => f.kind)).toContain('not-the-verse');
+      expect(r.narrow, 'the old scope saw nothing here — that was the gap').toEqual([]);
+    });
+
+    it('PROVEN-TO-CATCH: a miscited verse in a QUIZ EXPLANATION is caught now and was not before', () => {
+      const qs = one.quiz.questions.map((q, i) => (i === 0 ? { ...q, explain: MISCITED } : q));
+      const r = bendAt({ quiz: { ...one.quiz, questions: qs } });
+      expect(r.wide.map((f) => f.kind)).toContain('not-the-verse');
+      expect(r.narrow).toEqual([]);
+    });
+
+    it('PROVEN-TO-CATCH: a miscited verse in a TALKING POINT is caught now and was not before', () => {
+      // The facilitator reads this one out loud to a room.
+      const tp = [...one.facilitator.talkingPoints.slice(0, -1), MISCITED];
+      const r = bendAt({ facilitator: { ...one.facilitator, talkingPoints: tp } });
+      expect(r.wide.map((f) => f.kind)).toContain('not-the-verse');
+      expect(r.narrow).toEqual([]);
+    });
+
+    it('PROVEN-TO-CATCH: an ABBREVIATED book name is unresolvable, so it cannot ship unverified', () => {
+      // 27 references read "(1 Cor 12:21)" and similar. A resolver taught to
+      // guess which book "Phil" means is a place a wrong book can hide, so the
+      // abbreviations were written out instead and the gate keeps refusing them.
+      const r = bendAt({ benefits: [...one.benefits.slice(0, -1), 'He says "Consider your ways" (Hag 1:7)'] });
+      expect(r.wide.map((f) => f.kind)).toContain('unresolvable');
+    });
+
+    it('and the corpus carries NO abbreviated reference today', () => {
+      const scan = scanQuotedVerses(LIVING_LESSONS_MODULES, quotedTexts);
+      expect(scan.faults.filter((f) => f.kind === 'unresolvable')).toEqual([]);
+    });
+  });
 
   it('PROVEN-TO-CATCH: each of the four faults is reported on a COPY of the real series', () => {
     // A gate is only worth its green if it goes red. Every case below is a real

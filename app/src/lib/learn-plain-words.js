@@ -48,6 +48,12 @@ export const EVERYDAY_WORDS = new Set([
   'saving', 'spending', 'giving', 'budget', 'price', 'cost', 'pay', 'paying', 'income',
   'taxes', 'bills', 'fees', 'receipts', 'records', 'buying', 'selling', 'owning', 'business',
   'profit', 'wages', 'deal', 'contract', 'partners', 'inheritance', 'will',
+  // added 2026-09-19 with the Stock Market department: the words a person
+  // actually types when they have heard the market went up and do not know
+  // what that sentence meant. 'pension' and 'retirement' are here because a
+  // great many people meet shares for the first time through an account they
+  // have never opened.
+  'shares', 'stocks', 'investing', 'trading', 'company', 'pension', 'retirement',
   // home, land and work
   'house', 'home', 'land', 'rent', 'renting', 'landlord', 'tenant', 'repairs', 'fixing',
   'building', 'tools', 'plumbing', 'moving', 'neighbours', 'insurance', 'work', 'job',
@@ -81,6 +87,11 @@ export const COURSE_PLAIN_WORDS = {
   'legacy-provisions': ['will', 'inheritance', 'insurance', 'family', 'death', 'money'],
   'handed-forward': ['family', 'kids', 'planning', 'money', 'jobs', 'time'],
   banking: ['bank', 'money', 'saving', 'interest', 'debt', 'fees'],
+  // --- Stock Market ---------------------------------------------------------
+  stocks: ['shares', 'investing', 'company', 'money', 'pension', 'trading'],
+  bonds: ['loan', 'lending', 'debt', 'interest', 'pension', 'government'],
+  'world-market': ['trading', 'money', 'price', 'buying', 'selling', 'cost'],
+  investing: ['investing', 'saving', 'money', 'pension', 'retirement', 'planning'],
   'insurance-risk': ['insurance', 'fire', 'flood', 'accident', 'house', 'bills'],
   inspections: ['house', 'repairs', 'building', 'fixing', 'plumbing', 'buying'],
   evictions: ['rent', 'landlord', 'tenant', 'debt', 'money', 'home'],

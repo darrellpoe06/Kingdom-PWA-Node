@@ -186,8 +186,33 @@ describe('the five things it could have got wrong', () => {
     expect(L.lesson).toMatch(/taught that doctrine before|This series has taught/i);
   });
 
-  it('carries the Tuesday that proved it, not just the rehearsal', () => {
+  it('carries the morning that proved it, not just the rehearsal', () => {
     expect(ALL).toMatch(/feelings had nothing to do with (her )?capability/i);
     expect(ALL).toMatch(/notes/i);
+  });
+
+  it('names the REAL days — Thursday rehearsal, Friday morning (Darrell 2026-09-20)', () => {
+    // He caught this on his phone at step 5: "Choir rehearsal was on Thursday
+    // today is Saturday... fix the lesson..." The lesson had said Tuesday in
+    // four places. It is his rehearsal, his choir and his Friday morning; a
+    // lesson that gets a checkable fact wrong about the week it happened in
+    // invites a reader to doubt everything else in it, and rightly.
+    expect(ALL).toMatch(/Thursday rehearsal/);
+    expect(ALL).toMatch(/Friday morning/);
+  });
+
+  it('PROVEN-TO-CATCH: no wrong weekday is named anywhere in the module', () => {
+    // A guard rather than a memory, and it walks the WHOLE module — bands,
+    // benefits, quiz, talking points — not just the adult prose, because the
+    // day was wrong in four separate fields and three of them were not the
+    // lesson body. The measure is proven by the defect it was written for:
+    // before the fix this found four faults.
+    const faults = [];
+    walk(L, '', (text, path) => {
+      if (/\b(Tuesday|Wednesday|Saturday|Sunday)\b/.test(String(text))) {
+        faults.push(`${path}: ${String(text).slice(0, 70)}`);
+      }
+    });
+    expect(faults).toEqual([]);
   });
 });
