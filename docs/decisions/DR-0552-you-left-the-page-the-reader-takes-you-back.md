@@ -49,8 +49,26 @@ Encoding that in a component effect would make it untestable without a browser a
 
 Also pinned: no place record → no offer; a place with **no sentence** → no offer (that would send him to the top, which is the complaint); a page that was never being read → no offer, so an old saved place cannot make every navigation pop a prompt; and wandering into a **different** lesson neither clears nor hijacks the held one.
 
+## Wired the same session
+
+The record above first closed with the wire-up dated **2026-09-27**. That was the wrong call and it was corrected within the hour: DR-0236 says plainly that "later" is not a scheduling tool for work that can be built and verified now, and this could. **The reader is wired.**
+
+- `TTSControl` folds the same observations it already holds (`target`, `isReading`, `isPaused`, `getPlace()`) through `foldReturn`, and renders a **↩ Take me back** control beside the existing screen-went-dark offer, using its exact shape and the same dismiss.
+- Pressing it calls `requestRead(lessonId)`, which re-arms the reader the moment that lesson re-registers — and `savedStartIndex()` then lands the read on the sentence, which was already built and simply had no way of being reached after an in-app navigation.
+- The label matches how they left: *"Back to where it was reading"* or *"Back to where you stopped"*.
+
+**Two real defects were caught in the wiring itself, both by measurement rather than reading:**
+
+1. **The temporal-dead-zone trap, again.** The first placement of the fold put its `useEffect` **above** `const [target, setTarget]`. A dependency array is evaluated during render, so that throws on every mount of the reader — the identical failure this file already records costing 67 render failures at `rememberSentence`. Re-homed below the declaration, with the reason written beside it.
+2. **`requestRead` was called and never imported.** This is the one that matters, because of *how* it was found. **Every existing reader render test stayed green** — 9 of 9 — since none of them presses this button. The break lived only on the path a person actually takes.
+
+So a render test was written that mounts the real reader, drives the real departure (`setReadTarget` → `clearReadTarget`, which is exactly what an in-app navigation does) and **presses the button**. Proven by reverting: with the import removed, the other reader render tests pass 9/9 and this one fails. That is the whole argument for a render test over one more unit test of a decider.
+
+It also caught a third thing, in the test rather than the app: `getPlace()` refuses a record with no `courseKey`, so a place written without one reads back as `null`. The running app always has it — the lesson space writes the course and `TTSControl` only *merges* `sentence`/`sentenceKey` onto it — but the test had to be honest about the real contract rather than a convenient one.
+
+**17 tests across the two files** (11 decider + 6 render), three of them proven-to-catch.
+
 ## The honest remainder
 
-**This is the decider, not yet the wiring.** The reducer is pure, tested and correct about *when* and *where*; nothing in `TTSControl` calls it yet, so the behaviour is not live for a reader. That is deliberate — the decision logic is the part that is hard to get right and easy to get wrong invisibly, and it is now fixed and proven. **re-review: 2026-09-27** — subscribe `TTSControl` to `subscribeReadTarget` through this fold, render the way-back control in the panel, and scroll to the sentence on arrival via the `read-follow.js:614` mechanism the reader already uses mid-read.
-
-Stated plainly because a tested primitive can look like a shipped feature and is not one: **if he leaves a lesson today and comes back, the app still does not carry him to the sentence.** The reason it will is now built and proven; the wire is not yet in.
+- **Not yet observed in the running app.** The behaviour is proven in jsdom against the real component, not watched on a device. The sandbox has no route to poetech.us, so the live pass is the standing reviewer-mode step after deploy (DR-0104), not a claim made here.
+- **The scroll on arrival rides `savedStartIndex`, not an explicit scroll call.** Landing the read on the sentence is what moves the view, via the follow-along path the reader already uses mid-read. If a lesson is opened but the read is NOT resumed (the deliberate-pause case), the view is not independently scrolled to the sentence. **re-review: 2026-09-27** — give the paused case its own scroll so the way back lands the eye as well as the voice.
