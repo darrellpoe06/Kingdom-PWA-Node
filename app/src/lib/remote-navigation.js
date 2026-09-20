@@ -183,6 +183,28 @@ export function consumesArrows(el) {
   return tag === 'INPUT' && String(el.getAttribute('type') || '').toLowerCase() === 'range';
 }
 
+// FOCUS IS NOT ENOUGH ON ITS OWN — THE TARGET HAS TO BE ON SCREEN.
+//
+// Darrell 2026-09-20, on the Fire TV: "I can't pick lessons outside of what the
+// screen shows.... the scrolling isn't working for the lessons lists." A
+// television browser drives a POINTER with the D-pad, and a pointer cannot
+// reach a list item below the fold — there is no wheel, no thumb, and no Tab
+// key on a remote. Walking focus down the list is the mechanism that reaches
+// them, and it only works if each step brings its target into view.
+//
+// .focus() does scroll by default, but its behaviour is the browser's choice
+// and an old engine may jump the page or do nothing. scrollIntoView with
+// block:'nearest' is explicit: it moves the minimum needed, so walking a long
+// list creeps rather than lurching a screen at a time. `preventScroll` on the
+// focus call keeps the two from fighting over the same movement.
+export function focusAndReveal(el) {
+  if (!el || typeof el.focus !== 'function') return;
+  try { el.focus({ preventScroll: true }); } catch (_) { el.focus(); }
+  if (typeof el.scrollIntoView === 'function') {
+    try { el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (_) { el.scrollIntoView(); }
+  }
+}
+
 /**
  * Handle one keydown. Returns the element focused, or null when the event was
  * left alone — which is the common case and must stay cheap and predictable.
@@ -206,14 +228,14 @@ export function handleRemoteKey(event, root, { rectOf, isVisible } = {}) {
   // rather than do nothing, or the remote appears dead on a fresh page.
   if (fromIndex === -1) {
     if (typeof event.preventDefault === 'function') event.preventDefault();
-    items[0].focus();
+    focusAndReveal(items[0]);
     return items[0];
   }
 
   const next = nextInDirection(items.map(measure), fromIndex, dir);
   if (next === -1) return null; // At the edge: stay put, and let the page scroll.
   if (typeof event.preventDefault === 'function') event.preventDefault();
-  items[next].focus();
+  focusAndReveal(items[next]);
   return items[next];
 }
 

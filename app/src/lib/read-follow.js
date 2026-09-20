@@ -23,6 +23,7 @@
 // place-keeping floor works everywhere speech works.
 import { segmentText } from './tts.js';
 import { motionBehavior } from './gentle-motion.js';
+import { paint as paintFallback, clearAll as clearFallback } from './highlight-fallback.js';
 
 // WHAT IS SKIPPED — and the bug that was hiding in this one line.
 //
@@ -355,7 +356,16 @@ export function supportsHighlight(win = typeof window !== 'undefined' ? window :
 // was a silent no-op on every device. The support probe and the paint must read
 // the same window or the check is answering about a different one.
 function setNamed(name, range, win = typeof window !== 'undefined' ? window : null) {
-  if (!supportsHighlight(win)) return false;
+  // NO API IS NOT NO HIGHLIGHT (2026-09-20). This used to `return false` here
+  // and paint nothing, which index.css described as an accepted degradation:
+  // "browsers without the API simply never paint these and the auto-scroll
+  // floor still follows." That trade holds on a phone, where the page still
+  // moves to the right place and the reader's eye is a hand's width away. It
+  // does not hold on a television. Darrell, watching a lesson read itself on a
+  // Fire TV whose Silk predates Chromium 105: "Make sure the highlighting
+  // works with the reader." Across a room the highlight IS how you keep your
+  // place, and DR-0264 asked for exactly that for readers aged 6 to 60.
+  if (!supportsHighlight(win)) return paintFallback(name, range, win) > 0 || !range;
   try {
     if (!range) { win.CSS.highlights.delete(name); return true; }
     win.CSS.highlights.set(name, new win.Highlight(range));
@@ -369,6 +379,10 @@ export const WORD_HIGHLIGHT = 'poe-read-word';
 export function highlightSegment(range, win) { return setNamed(SEGMENT_HIGHLIGHT, range, win); }
 export function highlightWord(range, win) { return setNamed(WORD_HIGHLIGHT, range, win); }
 export function clearReadingHighlights(win = typeof window !== 'undefined' ? window : null) {
+  // Clear BOTH mechanisms unconditionally. Clearing only the one this browser
+  // is using would strand the other's boxes on screen if support ever changed
+  // mid-session, and clearing an absent layer is a no-op anyway.
+  clearFallback(win);
   if (!supportsHighlight(win)) return;
   try { win.CSS.highlights.delete(SEGMENT_HIGHLIGHT); win.CSS.highlights.delete(WORD_HIGHLIGHT); } catch (_) { /* no-op */ }
 }

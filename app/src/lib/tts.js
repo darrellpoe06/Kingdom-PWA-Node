@@ -403,9 +403,24 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc } = {})
       // fired AND the synth is not actually speaking after a beat, the tap produced
       // no audio (mobile suspended-synth / voices-not-ready / lost gesture). Kick
       // once via resume()+re-speak; if it is STILL silent, surface a real failure so
-      // the UI can tell the user instead of sitting quiet. Gated on a synth that
-      // exposes `speaking` so the simple unit-test fakes are unaffected.
-      if (typeof setTimeout === 'function' && this.synth && ('speaking' in this.synth)) {
+      // the UI can tell the user instead of sitting quiet.
+      //
+      // THE GUARD USED TO READ `&& ('speaking' in this.synth)`, ADDED SO THAT
+      // "the simple unit-test fakes are unaffected" — and that convenience
+      // silently disabled this entire safety net on any real engine that does
+      // not expose `speaking`. Darrell, on a Fire TV, 2026-09-20: "Not reading
+      // yet... even though it says so." The panel read READING... KEEPS GOING
+      // while nothing played, for as long as he cared to watch: status stayed
+      // 'playing', the watchdog never armed, `failed` never flipped, and the
+      // notice that would have explained it was never computed. A surface
+      // lying about its own state is the one thing this repo exists to prevent
+      // (DR-0076), and it was a test affordance that put it there.
+      //
+      // The watchdog now always arms. `speaking` is used when the engine has
+      // it — a true reading with no onstart event must not be called a failure
+      // — but its ABSENCE no longer buys silence, because `_started` is the
+      // real evidence and every engine reports that or doesn't.
+      if (typeof setTimeout === 'function' && this.synth) {
         this._watch = setTimeout(() => {
           if (gen !== this._gen || this.status !== 'playing' || this._started) return;
           let isSpeaking = false;
