@@ -156,6 +156,33 @@ export function focusableIn(root, { isVisible } = {}) {
   );
 }
 
+// Elements that OWN the arrow keys for their own behaviour. Text entry is the
+// obvious one and was handled from the start; these two were not, and both were
+// found by checking rather than by reasoning about the design:
+//
+//   · <video> / <audio>. On a television this is the whole point — The Love
+//     Corner's reason to be on a big screen is watching the service, and
+//     ChurchLearn renders `<video controls>`. Left/Right seek and Up/Down set
+//     volume. Stealing those would break the one thing the viewer came for, on
+//     the one surface built for it.
+//   · <input type="range">. A slider IS its arrow keys; without them it cannot
+//     be moved by a remote at all. editsText() deliberately answers false for
+//     range because no caret is involved, which is correct for its own question
+//     and exactly why a second, wider question is needed here.
+//
+// Native controls may or may not call preventDefault before this listener sees
+// the event — Chromium's media controls live in shadow DOM and the behaviour
+// differs by element and by focus target. Relying on that would be assuming
+// (DR-0076); declaring the ownership outright does not depend on it.
+const OWNS_ARROWS = new Set(['VIDEO', 'AUDIO']);
+export function consumesArrows(el) {
+  if (!el) return false;
+  if (editsText(el)) return true;
+  const tag = String(el.tagName || '').toUpperCase();
+  if (OWNS_ARROWS.has(tag)) return true;
+  return tag === 'INPUT' && String(el.getAttribute('type') || '').toLowerCase() === 'range';
+}
+
 /**
  * Handle one keydown. Returns the element focused, or null when the event was
  * left alone — which is the common case and must stay cheap and predictable.
@@ -167,7 +194,7 @@ export function handleRemoteKey(event, root, { rectOf, isVisible } = {}) {
 
   const doc = root && root.ownerDocument ? root.ownerDocument : (root || null);
   const active = doc && doc.activeElement ? doc.activeElement : null;
-  if (editsText(active)) return null;
+  if (consumesArrows(active)) return null;
 
   const items = focusableIn(root, { isVisible });
   if (!items.length) return null;

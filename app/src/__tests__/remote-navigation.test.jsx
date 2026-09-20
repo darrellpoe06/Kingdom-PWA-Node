@@ -34,7 +34,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import {
-  nextInDirection, inDirection, score, editsText, focusableIn, wireRemoteNavigation,
+  nextInDirection, inDirection, score, editsText, focusableIn, wireRemoteNavigation, consumesArrows,
   handleRemoteKey, DIRECTIONS, CROSS_AXIS_WEIGHT, FOCUSABLE_SELECTOR,
 } from '../lib/remote-navigation.js';
 
@@ -340,5 +340,64 @@ describe('it is actually wired, and the ring is actually visible', () => {
     const css = read('app/src/index.css');
     expect(css).toMatch(/data-theme='dark'\]/);
     expect(css).toMatch(/prefers-color-scheme: dark/);
+  });
+});
+
+describe('elements that OWN the arrows keep them', () => {
+  // Found by checking the real surfaces rather than by reasoning about the
+  // design, which is the only way this class of bug ever turns up.
+  it('a <video> keeps its arrows — seek and volume are the point on a TV', () => {
+    // ChurchLearn.jsx renders `<video controls>`, and watching the service on
+    // the big screen is The Love Corner's whole reason to be on a television.
+    // Hijacking Left/Right here would break the one thing the viewer came for.
+    expect(consumesArrows(document.createElement('video'))).toBe(true);
+    expect(consumesArrows(document.createElement('audio'))).toBe(true);
+  });
+
+  it('a range slider keeps its arrows — it IS its arrow keys', () => {
+    const range = document.createElement('input');
+    range.setAttribute('type', 'range');
+    expect(consumesArrows(range)).toBe(true);
+    // And the narrower question still answers correctly for its own purpose:
+    // a range has no caret, so it does not "edit text".
+    expect(editsText(range)).toBe(false);
+  });
+
+  it('a plain button does NOT own them, or nothing could ever move', () => {
+    expect(consumesArrows(document.createElement('button'))).toBe(false);
+    expect(consumesArrows(document.createElement('a'))).toBe(false);
+    expect(consumesArrows(null)).toBe(false);
+  });
+
+  it('END TO END: focus a video, press an arrow, focus does not move', () => {
+    document.body.innerHTML = '';
+    const root = document.createElement('div');
+    root.innerHTML = '<button id="before">B</button><video id="v" controls tabindex="0"></video>';
+    document.body.appendChild(root);
+    const rects = { before: r(0, 0), v: r(0, 70) };
+    const video = document.getElementById('v');
+    video.focus();
+    let prevented = false;
+    const ev = { key: 'ArrowUp', preventDefault: () => { prevented = true; } };
+    expect(handleRemoteKey(ev, root, { rectOf: (el) => rects[el.id], isVisible: () => true })).toBe(null);
+    expect(document.activeElement.id, 'focus was stolen from the player').toBe('v');
+    expect(prevented, 'the player must still receive the key').toBe(false);
+  });
+
+  it('PROVEN-TO-CATCH: the same press DOES move focus from a button', () => {
+    // The control case — without it the test above would pass on a handler
+    // that had simply stopped working.
+    document.body.innerHTML = '';
+    const root = document.createElement('div');
+    root.innerHTML = '<button id="before">B</button><button id="after">A</button>';
+    document.body.appendChild(root);
+    const rects = { before: r(0, 0), after: r(0, 70) };
+    document.getElementById('after').focus();
+    const moved = handleRemoteKey(
+      { key: 'ArrowUp', preventDefault: () => {} },
+      root,
+      { rectOf: (el) => rects[el.id], isVisible: () => true },
+    );
+    expect(moved && moved.id).toBe('before');
   });
 });
