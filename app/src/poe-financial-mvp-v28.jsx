@@ -5162,10 +5162,6 @@ ${THEME_CSS}
         </Suspense>
       </main>
       <TTSControl isOwner={isFamilyMember} view={view} churchView={churchView} booksView={booksView} />
-      {/* THE POPPED-OUT VIDEO LIVES IN THE SHELL, not in the tab that opened
-          it (Darrell 2026-09-20: "Going away from the tab should not close the
-          popout video player"). Mounted here it outlives every tab change, so
-          the stream keeps running while you read something else. */}
       <FloatingPlayer />
       <InstallPrompt />
       <UpdatePrompt />

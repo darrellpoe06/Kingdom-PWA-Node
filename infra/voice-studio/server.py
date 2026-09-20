@@ -14,10 +14,18 @@
 #   POST /speak  { text, reference_audio (base64 data URI), language }  -> audio/wav
 #   GET  /health -> { ok: true }
 #
-# Deploy (his-hand, on the church 4070 box):
-#   python -m venv .venv && . .venv/bin/activate
+# Deploy — NOT by hand (DR-0236 / DR-0108). Two channels drive this and neither
+# is a person at a keyboard:
+#   · the container:  infra/church-gpu-node/docker-compose.yml `voice-studio`,
+#     brought up on the 4070 box by .github/workflows/arm-voice-studio.yml,
+#     which joins the tailnet with TS_AUTHKEY and verifies by SYNTHESIZING
+#     rather than by reading /health.
+#   · the road home:  infra/voice-studio/install.sh, run every cycle by the
+#     services-sync loop, which finds whichever host is answering and mounts
+#     `/voice` on the Funnel so poetech.us can reach it same-origin.
+# The commands below remain only as the description of what those two automate.
 #   pip install fastapi uvicorn TTS torch   # CUDA build of torch for the 4070
-#   python server.py    # serves on :8770; expose via Tailscale, not the public net
+#   python server.py    # serves on :8770; exposed via Tailscale, never the public net
 #
 # License note: XTTS-v2 weights are CPML (non-commercial). Fine for family/church
 # sovereign use. The contract is model-agnostic — swap to F5-TTS / OpenVoice v2
@@ -60,11 +68,23 @@ def _decode_reference(data_uri: str) -> str:
     return path
 
 
+# THE PREFIX IS SERVED BOTH WAYS, ON PURPOSE.
+#
+# The app reaches this studio at same-origin `/voice/speak`, which the Pages
+# Function forwards to the Funnel as `/voice/speak`, which a Tailscale path
+# mount hands on to this server. Whether the mount STRIPS `/voice` before
+# forwarding is a property of the tailscale build running on the NAS, and
+# nothing in this repository can read that machine to find out (DR-0076: do not
+# claim what you cannot measure). The tax server met the identical uncertainty
+# on 2026-09-06 and settled it the only honest way -- by answering to both
+# spellings, so the route cannot be wrong. This does the same.
+@app.get("/voice/health")
 @app.get("/health")
 def health():
     return {"ok": True}
 
 
+@app.post("/voice/speak")
 @app.post("/speak")
 async def speak(req: Request):
     body = await req.json()
