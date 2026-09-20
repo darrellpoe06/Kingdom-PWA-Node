@@ -17,6 +17,9 @@
 // lib/default-church.js so the shell's seed and this module share one record.
 // =============================================================================
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { openFloating, closeFloating, isFloating, subscribeFloating } from '../lib/floating-player.js';
+import VideoSkip from './VideoSkip.jsx';
+import { withJsApi } from '../lib/youtube-embed-control.js';
 import { liveStatus, worshipPlayerSrc } from '../lib/church-live.js';
 import { useLivePlayerPrefs, setLivePlayerScale } from '../lib/live-player-prefs.js';
 import { parseYoutubeFeed } from '../lib/youtube-feed.js';
@@ -56,38 +59,14 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // (Darrell 2026-09-09: the player opens on its own, before any tap).
   const { scale: playerScale } = useLivePlayerPrefs();
   const setPlayerScale = setLivePlayerScale;
-  const [floating, setFloating] = useState(false);
-  // The floating mini-player is DRAGGABLE anywhere (Darrell 2026-07-18: "why cant
-  // the video only size like small MOVE ANYWHERE we want and go back whenever").
-  // floatPos = {x,y} once dragged; null = the default bottom-right resting spot.
-  // Dragging never remounts the iframe (the drag handle is a sibling bar in the
-  // SAME wrapper), so the stream keeps playing while you move it.
-  const [floatPos, setFloatPos] = useState(null);
-  const floatDrag = useRef({ on: false, offX: 0, offY: 0, w: 0, h: 0 });
-  const onFloatPointerDown = useCallback((e) => {
-    const wrap = e.currentTarget.parentElement;
-    if (!wrap) return;
-    const r = wrap.getBoundingClientRect();
-    floatDrag.current = { on: true, offX: e.clientX - r.left, offY: e.clientY - r.top, w: r.width, h: r.height };
-    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) { /* non-fatal */ }
-  }, []);
-  const onFloatPointerMove = useCallback((e) => {
-    const d = floatDrag.current;
-    if (!d.on) return;
-    const x = Math.max(4, Math.min(e.clientX - d.offX, window.innerWidth - d.w - 4));
-    const y = Math.max(4, Math.min(e.clientY - d.offY, window.innerHeight - d.h - 4));
-    setFloatPos({ x, y });
-  }, []);
-  const onFloatPointerUp = useCallback((e) => {
-    floatDrag.current.on = false;
-    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (err) { /* non-fatal */ }
-  }, []);
+  // FLOATING IS NO LONGER OURS TO OWN (2026-09-20). It used to be local state
+  // and a CSS position on a div in this subtree — which meant leaving the
+  // Church tab unmounted the player mid-sermon. The popped-out player now
+  // lives in the app shell (components/FloatingPlayer.jsx); this mirrors the
+  // shell's state so the Pop out / Dock button still reads correctly here.
+  const [floating, setFloatingLocal] = useState(isFloating);
+  useEffect(() => subscribeFloating((st) => setFloatingLocal(!!st.src)), []);
   const followRef = useRef(null);
-  const openFollowAlong = useCallback(() => {
-    setFollowAlong(true);
-    setFloating(true); // pop the video to a small DRAGGABLE mini-player so the Word reads clean below (no big orange box)
-    setTimeout(() => { try { followRef.current && followRef.current.scrollIntoView({ behavior: motionBehavior(), block: 'start' }); } catch (e) { /* non-fatal */ } }, 60);
-  }, []);
   const [prForm, setPrForm] = useState({ requester: '', request: '', shareWithChurch: true, anonymous: false });
   const [prError, setPrError] = useState('');
   const [showPrForm, setShowPrForm] = useState(false);
@@ -185,8 +164,29 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   // The 5 BELOW the one now playing (the player shows the newest item).
   const priorStreams = recentVids.slice(1, 6);
   const playerSrc = worshipPlayerSrc(liveChannelId, recentVids[0]?.videoId);
+  // `enablejsapi=1` is what lets our own skip buttons drive the embed at all
+  // (lib/youtube-embed-control.js). The KEY stays the bare playerSrc so adding
+  // the parameter can never look like a different video and remount the frame.
+  const frameRef = useRef(null);
+  const playerEmbedSrc = withJsApi(playerSrc, typeof window !== 'undefined' ? window.location.origin : '');
   // Render the section whenever we have a source at all.
   const hasWorshipPlayer = !!playerSrc;
+
+  // THIS CALLBACK MUST LIVE BELOW playerSrc, and the crash it caused is the
+  // reason the rule is written here rather than assumed. It was declared up
+  // with followRef, two hundred lines above the `const playerSrc` it names —
+  // and a dependency array is evaluated on EVERY render, so React read
+  // `[playerSrc]` in its temporal dead zone and ChurchHome threw
+  // `ReferenceError: Cannot access 'playerSrc' before initialization` before
+  // it could paint anything. Not a subtle degradation: the Church tab did not
+  // render. The file even says so eighty lines up — "playerSrc is computed
+  // BELOW, after recentVids" — which is true because the source follows the
+  // live feed, and is exactly what makes a reference above it illegal.
+  const openFollowAlong = useCallback(() => {
+    setFollowAlong(true);
+    openFloating({ src: playerSrc, title: 'Message' }); // pop it to the SHELL's mini-player so the Word reads clean below
+    setTimeout(() => { try { followRef.current && followRef.current.scrollIntoView({ behavior: motionBehavior(), block: 'start' }); } catch (e) { /* non-fatal */ } }, 60);
+  }, [playerSrc]);
 
   const submitPrayer = () => {
     const requester = prForm.anonymous ? '(anonymous)' : (prForm.requester || '').trim();
@@ -381,7 +381,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
                     ))}
                     <button
                       type="button"
-                      onClick={() => setFloating((f) => !f)}
+                      onClick={() => (floating ? closeFloating() : openFloating({ src: playerSrc, title: showLive ? `${c.name || 'Church'} — live worship broadcast` : `${c.name || 'Church'} — latest message` }))}
                       aria-pressed={floating}
                       className={`px-2 py-1 min-h-[32px] border font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] ${floating ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#CFC9BD] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838]'}`}
                     >
@@ -389,53 +389,33 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
                     </button>
                   </div>
                   <div
-                    className={floating
-                      ? 'fixed z-[60] w-[46vw] max-w-[300px] bg-[#1A1815] shadow-2xl rounded-md overflow-hidden'
-                      : 'mt-2 aspect-video bg-[#1A1815]'}
-                    style={floating
-                      ? (floatPos ? { left: `${floatPos.x}px`, top: `${floatPos.y}px` } : { right: '0.75rem', bottom: '5rem' })
-                      : { width: playerScale === 's' ? '56%' : playerScale === 'l' ? '100%' : '80%' }}
+                    className="mt-2 aspect-video bg-[#1A1815]"
+                    style={{ width: playerScale === 's' ? '56%' : playerScale === 'l' ? '100%' : '80%' }}
                   >
-                    {/* Drag grip — ONLY when floating. Lets you move the mini-player
-                        ANYWHERE on screen (touch + mouse). It is a sibling BAR in the
-                        SAME wrapper as the keyed iframe, so dragging/floating never
-                        remounts the iframe — the stream keeps playing (Darrell 2026-07-18). */}
-                    {floating && (
-                      <div
-                        onPointerDown={onFloatPointerDown}
-                        onPointerMove={onFloatPointerMove}
-                        onPointerUp={onFloatPointerUp}
-                        onPointerCancel={onFloatPointerUp}
-                        className="flex items-center justify-between gap-2 px-2 h-7 bg-[#26211d] cursor-move touch-none select-none"
-                      >
-                        <span className="text-[0.5625rem] uppercase tracking-wider text-[#CFC9BD] flex items-center gap-1 pointer-events-none" aria-hidden="true">⠿ Drag</span>
-                        <button
-                          type="button"
-                          onClick={() => { setFloating(false); setFloatPos(null); }}
-                          aria-label="Dock the player back into the page"
-                          className="text-[0.5625rem] uppercase tracking-wider text-[#EBA77E] hover:text-white font-semibold px-1.5 py-0.5 focus:outline focus:outline-2 focus:outline-white"
-                        >
-                          ⤡ Dock
-                        </button>
-                      </div>
-                    )}
-                    {/* iframe stays keyed + in the SAME wrapper so toggling size/float/drag
-                        never remounts it (a remount would restart the stream). */}
-                    <div className={floating ? 'aspect-video' : 'contents'}>
-                      <iframe
+                    {/* DOCKED ONLY. When the player is popped out the shell's
+                        FloatingPlayer holds the one live iframe; rendering a
+                        second one here would start the stream twice and play
+                        the sermon over itself. */}
+                    <div className="contents">
+                      {!floating && <iframe
+                        ref={frameRef}
                         key={playerSrc}
-                        src={playerSrc}
+                        src={playerEmbedSrc}
                         title={showLive ? `${c.name || 'Church'} — live worship broadcast` : `${c.name || 'Church'} — latest message`}
                         className="w-full h-full border-0"
                         allow="encrypted-media; picture-in-picture; fullscreen"
                         allowFullScreen
                         loading="lazy"
-                      />
+                      />}
                     </div>
                   </div>
-                  {floating && !floatPos && (
+                  {/* FAST FORWARD THE REMOTE CAN REACH. YouTube's scrub bar is
+                      inside the iframe — a four-pixel line a D-pad cursor
+                      cannot hit. These are ours, and the remote walks them. */}
+                  {!floating && <VideoSkip frameRef={frameRef} src={playerSrc} />}
+                  {floating && (
                     <p className="mt-2 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-                      Playing in a small window — drag it anywhere by its grip, and tap <span className="font-semibold text-[#B85838]">Dock</span> to bring it back.
+                      Playing in a small window — drag it anywhere by its grip, and tap <span className="font-semibold text-[#B85838]">Dock</span> to bring it back. It keeps playing while you move around the app.
                     </p>
                   )}
                 </>

@@ -181,7 +181,7 @@ describe('the reading panel carries text size, reachable while reading', () => {
   });
 });
 
-describe('the reading panel carries the colours too', () => {
+describe('the reading panel carries the colors too', () => {
   it('offers every theme in the registry, cream included', async () => {
     const el = await mountPanel();
     expect(themeButtons(el)).toHaveLength(THEMES.length);

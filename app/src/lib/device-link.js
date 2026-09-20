@@ -1,0 +1,168 @@
+// =============================================================================
+// device-link — sign in to the TV from the phone already in your hand
+// =============================================================================
+// Darrell 2026-09-20: "I don't want to have to be fighting with the Fire Stick
+// to then try to log in... I'd rather just be able to use a QR code to access
+// the login quicker and faster."
+//
+// Typing an email and a password with a D-pad is miserable, and a Google OAuth
+// popup on a TV browser is worse — it wants an account chooser, a password
+// manager and often a second factor, none of which a remote is built for. So
+// the television never authenticates anybody. It asks for permission, and the
+// phone grants it. This is the device authorization grant (RFC 8628) in the
+// shape this app already has parts for: Google popup sign-in and Royalty Link
+// one-time codes both live on the phone side already.
+//
+//   TV   -> creates a link, shows a short CODE and a QR of /link?c=CODE
+//   PHONE-> opens it, signs in as normal, approves
+//   TV   -> polls with its own secret, receives a one-time token, becomes signed in
+//
+// TWO SECRETS, AND THE DIFFERENCE IS THE WHOLE SECURITY MODEL.
+//
+//   user_code   SHOWN on the television. Short, human-readable, and therefore
+//               low entropy. It is a LOOKUP HANDLE, never an authority: it can
+//               only ever address a pending request, and approving one needs a
+//               signed-in human on the phone. Anyone reading the screen learns
+//               nothing they could use elsewhere.
+//   device_code NEVER shown. High-entropy, generated on the TV, held only by
+//               the TV, and the sole thing that can collect the session. A
+//               shoulder-surfer with a camera cannot obtain it, because it is
+//               never rendered, printed or transmitted to the phone.
+//
+// That split is what stops the obvious attack: someone photographs the code on
+// a screen in a church foyer and races to claim the session. They cannot —
+// claiming requires the secret the TV kept.
+//
+// Everything here is pure. The table and the privileged endpoint are named in
+// the migration beside this file; the invariants that keep the flow safe are
+// decided here, where they can be tested exhaustively.
+
+// No 0/O, 1/I/L, 2/Z, 5/S, 8/B. A code is read off a television across a room
+// and typed on a phone; a character pair that looks alike at that distance is a
+// support call, and worse, a person retyping until something works.
+export const CODE_ALPHABET = 'ACDEFGHJKMNPQRTUVWXY34679';
+export const USER_CODE_LEN = 8;
+export const DEVICE_CODE_BYTES = 32;
+
+/** Default life of a link. Long enough to walk to the sofa, short enough that an abandoned code on a screen stops mattering. */
+export const LINK_TTL_MS = 10 * 60 * 1000;
+/** How often the television asks. Gentle: a TV that polls hard is a TV that gets rate-limited. */
+export const POLL_INTERVAL_MS = 3000;
+
+const randomBytes = (n, crypto) => {
+  const c = crypto || (typeof globalThis !== 'undefined' ? globalThis.crypto : null);
+  if (!c || typeof c.getRandomValues !== 'function') {
+    // NEVER silently fall back to Math.random for a credential. A weak
+    // device_code is the one failure that turns this whole flow into a
+    // guessable session handover.
+    throw new Error('device-link: no secure randomness available');
+  }
+  return c.getRandomValues(new Uint8Array(n));
+};
+
+/** The short code a person reads off the screen. */
+export function newUserCode(crypto) {
+  const bytes = randomBytes(USER_CODE_LEN, crypto);
+  let out = '';
+  for (let i = 0; i < USER_CODE_LEN; i += 1) {
+    // Rejection-free modulo is fine here: the alphabet's length is small
+    // relative to 256 and the residual bias is far below what matters for a
+    // code that also expires in ten minutes and is rate-limited.
+    out += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length];
+  }
+  return out;
+}
+
+/** Grouped for reading aloud and for typing: ABCD-EFGH. */
+export function formatUserCode(code) {
+  const c = String(code || '');
+  return c.length === 8 ? `${c.slice(0, 4)}-${c.slice(4)}` : c;
+}
+
+/**
+ * What the person typed -> what we stored. Dashes and spaces go, case is
+ * folded, and the lookalikes the alphabet excludes are mapped to what the
+ * reader almost certainly meant. Without this a correct reading of the screen
+ * still fails, which reads to the user as "the code does not work".
+ */
+// EVERY TARGET MUST BE A CHARACTER WE CAN ACTUALLY SHOW. The first version of
+// this mapped S->5 and B->8, and neither 5 nor 8 is in the alphabet — so those
+// entries were dead weight that read as handled while silently dropping the
+// character. A map whose targets are unreachable is worse than no map: it
+// looks like care. S and B are simply absent now, because a reader can never
+// have seen a 5 or an 8 on the screen to mistype in the first place. The
+// invariant is gated, so this cannot rot back.
+export const LOOKALIKE = Object.freeze({ O: 'Q', '0': 'Q', I: 'J', L: 'J', '1': 'J', Z: '3', '2': '3' });
+export function normalizeUserCode(input) {
+  const raw = String(input || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  let out = '';
+  for (const ch of raw) {
+    if (CODE_ALPHABET.includes(ch)) { out += ch; continue; }
+    const mapped = LOOKALIKE[ch];
+    // An unmappable character is DROPPED, never guessed at. Inventing a
+    // character would silently address someone else's pending link.
+    if (mapped && CODE_ALPHABET.includes(mapped)) out += mapped;
+  }
+  return out.slice(0, USER_CODE_LEN);
+}
+
+/** The secret the television keeps and never shows. */
+export function newDeviceCode(crypto) {
+  const bytes = randomBytes(DEVICE_CODE_BYTES, crypto);
+  let s = '';
+  for (const b of bytes) s += b.toString(16).padStart(2, '0');
+  return s;
+}
+
+/** Where the QR points. The phone opens this and does the signing in. */
+export function qrTarget(origin, userCode) {
+  const base = String(origin || '').replace(/\/+$/, '');
+  return `${base}/link?c=${encodeURIComponent(formatUserCode(userCode))}`;
+}
+
+export const STATE = Object.freeze({
+  PENDING: 'pending', APPROVED: 'approved', DENIED: 'denied',
+  EXPIRED: 'expired', CONSUMED: 'consumed', UNKNOWN: 'unknown',
+});
+
+/**
+ * The single place a row's meaning is decided, so no caller can disagree with
+ * another about whether a link is still good.
+ *
+ * ORDER MATTERS AND IS DELIBERATE. Consumed is checked before approved, and
+ * expiry before both: a row that has already handed over a session must never
+ * read as approved again, and an approval that arrives after the deadline is
+ * not an approval. Getting this order wrong is how a one-time code becomes a
+ * reusable one.
+ */
+export function linkState(row, now = Date.now()) {
+  if (!row || typeof row !== 'object') return STATE.UNKNOWN;
+  if (row.consumed_at) return STATE.CONSUMED;
+  const exp = row.expires_at ? Date.parse(row.expires_at) : NaN;
+  if (Number.isFinite(exp) && now >= exp) return STATE.EXPIRED;
+  if (row.denied_at) return STATE.DENIED;
+  if (row.approved_at && row.user_id) return STATE.APPROVED;
+  return STATE.PENDING;
+}
+
+/** Can this link still be approved by a person on their phone? */
+export function isApprovable(row, now = Date.now()) {
+  return linkState(row, now) === STATE.PENDING;
+}
+
+/** Should the television keep asking? */
+export function shouldKeepPolling(state) {
+  return state === STATE.PENDING;
+}
+
+/** A human sentence for each state — the TV is read from a sofa, not debugged. */
+export function stateMessage(state) {
+  switch (state) {
+    case STATE.PENDING: return 'Waiting for you to approve this on your phone…';
+    case STATE.APPROVED: return 'Approved — signing you in…';
+    case STATE.DENIED: return 'That request was turned down. Start again when you are ready.';
+    case STATE.EXPIRED: return 'This code has expired. Press the button for a fresh one.';
+    case STATE.CONSUMED: return 'This code has already been used. Press the button for a fresh one.';
+    default: return 'Something is not right with this code. Press the button for a fresh one.';
+  }
+}

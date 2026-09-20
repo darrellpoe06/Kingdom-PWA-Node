@@ -94,25 +94,51 @@ export const INSTALL_STEPS = {
     'Tap Share (the square with the up arrow) → "Add to Home Screen."',
     'The app lands on the home screen under its own name and icon.',
   ],
-  // FIRE TV / STREAMING STICKS: the browser, NOT the .apk. Asked 2026-09-20
-  // ("how do I download it on the Firestick since it's an android app?") and
-  // the honest answer is that our package will install there and still not
-  // work, for three reasons visible in store/twa-manifest.template.json:
-  //   1. orientation is `portrait-primary` — a portrait window on a 16:9 TV.
-  //   2. Bubblewrap emits no `android.software.leanback` feature and no
-  //      LEANBACK_LAUNCHER intent filter, so the app does not appear on the
-  //      Fire TV home screen at all even once installed.
-  //   3. The pages are built for touch; a D-pad remote has no focus model to
-  //      drive them with.
-  // On top of that a TWA needs a Custom Tabs provider that implements the TWA
-  // protocol, and Fire OS ships Silk with no Play Store. Sending someone down
-  // the sideload path would be sending them to a dead end, so this path sends
-  // them to the browser, which genuinely works today. A real TV build (landscape,
-  // leanback, D-pad focus) is its own piece of work, not a packaging flag.
+  // TELEVISIONS: the browser, NOT the .apk — and the reason differs by TV.
+  //
+  // FIRE TV runs Android, so our package WILL install and still not work, for
+  // three reasons visible in store/twa-manifest.template.json: orientation is
+  // `portrait-primary` (a portrait window on a 16:9 screen); Bubblewrap emits
+  // no `android.software.leanback` feature and no LEANBACK_LAUNCHER intent
+  // filter, so it never appears on the Fire TV home screen even once
+  // installed; and the pages are built for touch. On top of that a TWA needs a
+  // Custom Tabs provider implementing the TWA protocol, and Fire OS ships Silk
+  // with no Play Store.
+  //
+  // SAMSUNG is not Android at all. Samsung TVs run TIZEN, which cannot execute
+  // an Android package under any circumstance — so here sideloading is not a
+  // bad idea, it is not a thing. Asked by Darrell 2026-09-20 ("Same on the
+  // Samsung TV?") and the honest answer is that the question of the .apk does
+  // not arise. Tizen ships an "Internet" app and no alternative browser can be
+  // installed, so that one browser is the whole surface. Confirmed present in
+  // 2026, but availability and menus vary by model and region — hence the
+  // mirroring fallback rather than pretending every set has it.
+  //
+  // LG runs webOS, same shape as Samsung: built-in browser, no Android.
+  //
+  // What makes the browser route worth giving at all is lib/remote-navigation.js
+  // — a D-pad arrives as ordinary arrow keydowns, and without spatial focus
+  // movement and a visible focus ring these pages could not be driven from a
+  // sofa on ANY of these sets.
+  //
+  // BOTH ON ONE SET is the common case (Darrell 2026-09-20: "I use both!") — a
+  // stick plugged into a smart TV. It has a clear winner and the steps say so
+  // rather than leaving someone to guess: Silk is a modern Chromium browser
+  // that Amazon keeps current, while Tizen's Internet app cannot be replaced
+  // (no Chrome or Firefox build exists for it) and is the weaker surface. Same
+  // screen, better browser, so switch the input rather than fight the TV.
   tv: [
-    'On a Fire TV Stick / Fire TV: open the Amazon Appstore and install Silk Browser (free) if it is not already there.',
-    'Open Silk and go to poetech.us — or the brand address, like poetech.us/lovecorner.',
-    'Press the menu button and add it to Bookmarks so it is one click next time.',
-    'Do NOT sideload the Android package on a TV. It installs, but it is built portrait for a phone, it will not show on the Fire TV home screen, and a remote cannot drive pages made for touch. The browser is the working route today; a proper TV app is a separate build.',
+    'If you have a Fire Stick plugged into the TV, USE THE STICK — switch to that input. Silk is a far more capable browser than a smart TV\'s built-in one, and it is the one we can count on staying current.',
+    'Fire TV / Fire Stick: open the Amazon Appstore, install Silk Browser (free), then go to poetech.us — or a brand address like poetech.us/lovecorner for the church.',
+    'Samsung TV: open the Apps row and launch "Internet" (Samsung TVs run Tizen, not Android — an Android app cannot be installed on one at all). Go to poetech.us there.',
+    'LG TV: open the "Web Browser" app from the launcher bar and go to poetech.us.',
+    'Android TV / Google TV (NVIDIA Shield, Chromecast with Google TV, many Sony and TCL sets): install a browser from the Play Store, then go to poetech.us.',
+    'ROKU: Roku has NO web browser at all — not a weak one, none, and none can be installed. It is the one device here that cannot open a website. Cast or mirror from your phone or tablet instead, and drive it from there.',
+    'Apple TV: no browser either. Open the app on an iPhone or iPad and AirPlay it to the TV.',
+    'On any of them: use the remote\'s arrows to move between things — the highlighted outline shows where you are — and the centre/OK button to choose. Save it to Bookmarks so it is one click next time.',
+    'THE LOVE CORNER on a TV: go to poetech.us/lovecorner (poetech.us/thelovecorner and poetech.us/church land in the same place). It is the same app, so the remote drives it exactly the same way.',
+    'Watching the service or a sermon on the big screen is the reason to be here at all — and that is the one job a Samsung or LG built-in browser is worst at, because video playback in those browsers is unreliable. For anything with video, use the Fire Stick.',
+    'If your set has no browser at all (some models and regions ship without one): open the app on your phone and cast or mirror the screen to the TV instead.',
+    'Do NOT sideload the Android package onto a television. On a Samsung or LG it cannot run at all. On a Fire TV it installs but is built portrait for a phone and never appears on the home screen. The browser is the working route today; a proper TV app is a separate build.',
   ],
 };

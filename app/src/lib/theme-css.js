@@ -46,12 +46,12 @@ export const THEME_CSS = `
 
    WHY CUSTOM PROPERTIES AND NOT "[data-theme="x"] input". That selector
    scores (0,1,1) and would beat a plain "bg-white" utility (0,1,0) —
-   silently overriding every control that DOES choose its own colour. A
+   silently overriding every control that DOES choose its own color. A
    bare element selector scores (0,0,1), so any explicit Tailwind class
    still wins, and the theme only swaps what the variable holds. The
    default is the floor, never the ceiling.
 
-   Checkboxes, radios, ranges, colour swatches, file pickers and button
+   Checkboxes, radios, ranges, color swatches, file pickers and button
    inputs are excluded: painting their background is what breaks their
    native appearance (BooksAccounts.jsx:223 is a styled range). */
 :root{
@@ -332,7 +332,7 @@ export function useThemePref(fallback = 'cream') {
   // setThemePref inside React's updater, which is a side effect React may
   // invoke twice -- so it would double-publish. Every call site in the app
   // passes a key, and a function here would be a silent no-op rather than a
-  // wrong colour, which is the safer way to be wrong.
+  // wrong color, which is the safer way to be wrong.
   const update = useCallback((next) => {
     if (typeof next === 'function') return;
     setTheme(setThemePref(next));

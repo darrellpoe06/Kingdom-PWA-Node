@@ -156,6 +156,55 @@ export function focusableIn(root, { isVisible } = {}) {
   );
 }
 
+// Elements that OWN the arrow keys for their own behaviour. Text entry is the
+// obvious one and was handled from the start; these two were not, and both were
+// found by checking rather than by reasoning about the design:
+//
+//   · <video> / <audio>. On a television this is the whole point — The Love
+//     Corner's reason to be on a big screen is watching the service, and
+//     ChurchLearn renders `<video controls>`. Left/Right seek and Up/Down set
+//     volume. Stealing those would break the one thing the viewer came for, on
+//     the one surface built for it.
+//   · <input type="range">. A slider IS its arrow keys; without them it cannot
+//     be moved by a remote at all. editsText() deliberately answers false for
+//     range because no caret is involved, which is correct for its own question
+//     and exactly why a second, wider question is needed here.
+//
+// Native controls may or may not call preventDefault before this listener sees
+// the event — Chromium's media controls live in shadow DOM and the behaviour
+// differs by element and by focus target. Relying on that would be assuming
+// (DR-0076); declaring the ownership outright does not depend on it.
+const OWNS_ARROWS = new Set(['VIDEO', 'AUDIO']);
+export function consumesArrows(el) {
+  if (!el) return false;
+  if (editsText(el)) return true;
+  const tag = String(el.tagName || '').toUpperCase();
+  if (OWNS_ARROWS.has(tag)) return true;
+  return tag === 'INPUT' && String(el.getAttribute('type') || '').toLowerCase() === 'range';
+}
+
+// FOCUS IS NOT ENOUGH ON ITS OWN — THE TARGET HAS TO BE ON SCREEN.
+//
+// Darrell 2026-09-20, on the Fire TV: "I can't pick lessons outside of what the
+// screen shows.... the scrolling isn't working for the lessons lists." A
+// television browser drives a POINTER with the D-pad, and a pointer cannot
+// reach a list item below the fold — there is no wheel, no thumb, and no Tab
+// key on a remote. Walking focus down the list is the mechanism that reaches
+// them, and it only works if each step brings its target into view.
+//
+// .focus() does scroll by default, but its behaviour is the browser's choice
+// and an old engine may jump the page or do nothing. scrollIntoView with
+// block:'nearest' is explicit: it moves the minimum needed, so walking a long
+// list creeps rather than lurching a screen at a time. `preventScroll` on the
+// focus call keeps the two from fighting over the same movement.
+export function focusAndReveal(el) {
+  if (!el || typeof el.focus !== 'function') return;
+  try { el.focus({ preventScroll: true }); } catch (_) { el.focus(); }
+  if (typeof el.scrollIntoView === 'function') {
+    try { el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (_) { el.scrollIntoView(); }
+  }
+}
+
 /**
  * Handle one keydown. Returns the element focused, or null when the event was
  * left alone — which is the common case and must stay cheap and predictable.
@@ -167,7 +216,7 @@ export function handleRemoteKey(event, root, { rectOf, isVisible } = {}) {
 
   const doc = root && root.ownerDocument ? root.ownerDocument : (root || null);
   const active = doc && doc.activeElement ? doc.activeElement : null;
-  if (editsText(active)) return null;
+  if (consumesArrows(active)) return null;
 
   const items = focusableIn(root, { isVisible });
   if (!items.length) return null;
@@ -179,14 +228,14 @@ export function handleRemoteKey(event, root, { rectOf, isVisible } = {}) {
   // rather than do nothing, or the remote appears dead on a fresh page.
   if (fromIndex === -1) {
     if (typeof event.preventDefault === 'function') event.preventDefault();
-    items[0].focus();
+    focusAndReveal(items[0]);
     return items[0];
   }
 
   const next = nextInDirection(items.map(measure), fromIndex, dir);
   if (next === -1) return null; // At the edge: stay put, and let the page scroll.
   if (typeof event.preventDefault === 'function') event.preventDefault();
-  items[next].focus();
+  focusAndReveal(items[next]);
   return items[next];
 }
 

@@ -18,7 +18,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { loadVoiceProfiles } from '../lib/voice-sync.js';
 import { resolveTeacher, teacherIntroText, TEACHER_PERSONA } from '../lib/teacher.js';
-import { isVoiceServiceReady, synthesizeSpeech } from '../lib/voice-service.js';
+import { isVoiceServiceReady, synthesizeSpeech, probeVoiceService } from '../lib/voice-service.js';
 import { isAvatarServiceReady, renderTalkingPortrait } from '../lib/avatar-service.js';
 import { loadReference, blobToDataUri, hasReference } from '../lib/voice-reference.js';
 import { loadPortrait, hasPortrait } from '../lib/likeness-reference.js';
@@ -42,7 +42,16 @@ export default function LessonTeacher({ module, className = '' }) {
       const profile = (profiles || []).find((p) => p.personKey === TEACHER_PERSONA) || null;
       const [hasVoiceSample, portraitHere] = await Promise.all([hasReference(TEACHER_PERSONA), hasPortrait(TEACHER_PERSONA)]);
       if (!alive) return;
-      const t = resolveTeacher({ profile, voiceReady: isVoiceServiceReady(), avatarReady: isAvatarServiceReady(), hasVoiceSample, hasPortrait: portraitHere });
+      // ASK THE STUDIO, DO NOT READ THE CONFIG. voiceReady decides whether the
+      // teacher is introduced as speaking in a REAL cloned voice or as a
+      // labelled stand-in, and isVoiceServiceReady() stopped being able to tell
+      // them apart when /voice became a same-origin route — it answers true on
+      // every device now, so the teacher would have claimed a real voice on a
+      // night the studio was dark. The probe is cached for a minute, so this
+      // costs one request per page rather than one per lesson.
+      const studioHealth = await probeVoiceService();
+      if (!alive) return;
+      const t = resolveTeacher({ profile, voiceReady: isVoiceServiceReady() && studioHealth !== 'down', avatarReady: isAvatarServiceReady(), hasVoiceSample, hasPortrait: portraitHere });
       setTeacher(t);
       if (portraitHere) {
         const blob = await loadPortrait(TEACHER_PERSONA);

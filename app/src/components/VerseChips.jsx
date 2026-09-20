@@ -114,7 +114,7 @@ export function useOpenRefs() {
 // library). `word` is the GREEN chip Darrell pointed at on the storyline's
 // "— Genesis 1:1" line (2026-09-14: "scripture stays green goes to the bottom
 // of that section that it was referring to") — the same button, same 36px
-// floor, same open model, coloured as the Word is coloured everywhere else on
+// floor, same open model, colored as the Word is colored everywhere else on
 // the page (#5A6E3D). `lead` draws the storyline's em dash ahead of the row so
 // a strip under a section reads as "— these are the verses it stood on".
 const TONES = {

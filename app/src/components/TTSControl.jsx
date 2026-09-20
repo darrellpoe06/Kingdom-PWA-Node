@@ -159,6 +159,15 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     supported, isReading, isPaused, rate, read, pause, resume, stop, setRate, claimAudio,
     catalog, voiceId, setVoiceId, currentItem,
     segmentIndex, setBoundaryHandler, deviceRead, cloudProgress,
+    // `notice` WAS NOT TAKEN HERE until 2026-09-20, and that single omission
+    // broke the engine's own guarantee at its very last hop. tts.js runs a
+    // start watchdog whose comment reads "Truly silent after a retry — report
+    // it. Never a dead, silent button," and use-read-aloud turns that into
+    // 'Audio didn't start…'. The message was computed on every failure and
+    // then thrown away, because this component — the one behind the READ
+    // ALOUD button — never destructured it. Darrell hit it on a Fire TV:
+    // pressed read, heard nothing, was told nothing.
+    notice,
   } = useReadAloud({ isOwner });
 
   // THE SCREEN STAYS ON WHILE IT READS (DR-0439; Darrell 2026-09-16: his phone
@@ -887,6 +896,23 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // true modal layer — HelpWalkthrough (110), Modal/Lightbox (120) — which
     // must keep covering it.
     <div className="tts-controls fixed bottom-4 right-4 z-[80] print:hidden flex flex-col items-end gap-2">
+      {/* THE FAILURE THE ENGINE ALREADY DETECTED, finally shown. Fire TV is the
+          case that exposed it: Silk exposes speechSynthesis and
+          SpeechSynthesisUtterance, so isTTSSupported() answers true, but the
+          device carries no voice engine — getVoices() stays empty, the
+          utterance produces no audio, and the watchdog flips `failed`. Every
+          piece worked except the last one. role="status" so a screen reader
+          announces it, and it sits ABOVE the panel so it cannot be missed. */}
+      {notice && (
+        <div
+          role="status"
+          data-testid="read-aloud-notice"
+          className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.75em] py-[0.5em] text-right"
+          style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}
+        >
+          <span className="text-[0.75em] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{notice}</span>
+        </div>
+      )}
       {interrupted && (
         <div role="status" data-testid="reading-interrupted" className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.75em] py-[0.5em] flex items-center flex-wrap justify-end gap-[0.5em]" style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>
           <span className="text-[0.75em] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>The screen went dark and the reading stopped.</span>
@@ -1080,7 +1106,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
                 );
               })}
             </div>
-            <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mt-[0.5em] mb-[0.25em]">Colours — dark for night reading</div>
+            <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mt-[0.5em] mb-[0.25em]">Colors — dark for night reading</div>
             <div className="flex flex-wrap items-center gap-[0.375em]" role="group" aria-label="Theme selector" data-testid="reader-theme">
               {THEMES.map((t) => (
                 <button

@@ -70,6 +70,7 @@ import { latestFinancialDocMs } from './lib/finance-activity.js';
 import PrivateGate from './components/PrivateGate.jsx';
 import NetworkStatus from './components/NetworkStatus.jsx';
 import TTSControl from './components/TTSControl.jsx';
+import FloatingPlayer from './components/FloatingPlayer.jsx';
 import TextSizeControl, { TextSizeEscapeHatch } from './components/TextSizeControl.jsx';
 import ReadingVoiceControl from './components/ReadingVoiceControl.jsx';
 import HeaderAuthButton from './components/HeaderAuthButton.jsx';
@@ -5161,6 +5162,7 @@ ${THEME_CSS}
         </Suspense>
       </main>
       <TTSControl isOwner={isFamilyMember} view={view} churchView={churchView} booksView={booksView} />
+      <FloatingPlayer />
       <InstallPrompt />
       <UpdatePrompt />
       <NetworkStatus />

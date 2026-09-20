@@ -47,22 +47,41 @@ const SAMPLE_SHORT = 'For God so loved the world. The Lord is my shepherd; I sha
 
 const PERSONA_NAME = { darrell: 'Darrell Poe', christina: 'Christina Poe', 'bishop-gwin': 'Bishop Lloyd E. Gwin' };
 
-export default function VoiceStudio({ personaKey = null, isOwner = false, sovereignVoiceReady = isVoiceServiceReady() }) {
-  // THE STUDIO'S REAL STATE, SAID PLAINLY (DR-0440): not configured / configured
-  // but not answering / armed and answering — asked, not assumed.
+export default function VoiceStudio({ personaKey = null, isOwner = false, sovereignVoiceReady: readyOverride }) {
+  // THE STUDIO'S REAL STATE, SAID PLAINLY (DR-0440): not answering / answering /
+  // not asked yet — asked, never assumed.
   const [studioHealth, setStudioHealth] = useState(() => voiceServiceHealth());
   useEffect(() => {
     let alive = true;
-    if (isVoiceServiceReady()) probeVoiceService().then((h) => { if (alive) setStudioHealth(h); });
+    probeVoiceService().then((h) => { if (alive) setStudioHealth(h); });
     return () => { alive = false; };
   }, []);
-  const studioLine = !isVoiceServiceReady()
-    ? 'Recording works now. Hearing your voice read new text needs the church\'s own voice studio armed and this build pointed at it (VITE_VOICE_SERVICE_URL) — see your steward for the one-time enable.'
-    : studioHealth === 'down'
-      ? 'The voice studio is configured but did not answer its health check — your voice plays as the labelled stand-in until it does.'
-      : studioHealth === 'up'
-        ? 'The voice studio is armed and answering — your recorded voice reads new text.'
-        : 'The voice studio is configured; checking that it answers…';
+  // THE SAME DERIVATION THE READER USES (use-read-aloud.js), and for the same
+  // reason. This was a default parameter reading isVoiceServiceReady() alone,
+  // which became a constant `true` when /voice turned into a same-origin route.
+  // Every consequence of that was a lie in the person's favour: the "your voice
+  // is a stand-in until the studio is armed" panel could never render, the
+  // recording notice always promised the real voice, and a personal voice was
+  // sent to a studio that might be dark. A parameter default cannot see
+  // studioHealth, so the prop becomes a pure override and the honest value is
+  // derived here.
+  const sovereignVoiceReady = readyOverride !== undefined
+    ? readyOverride
+    : (isVoiceServiceReady() && studioHealth !== 'down');
+  // THE FIRST BRANCH USED TO BE `!isVoiceServiceReady()`, AND IT IS GONE
+  // BECAUSE IT COULD NO LONGER RENDER. Once /voice became a same-origin route
+  // the endpoint is derived from window.location, so the config check answers
+  // true everywhere and that line was unreachable. Deleting it is not a loss:
+  // it told the steward to point the build at VITE_VOICE_SERVICE_URL, and that
+  // instruction was WRONG on its own terms — the studio speaks plain HTTP on
+  // :8770, which an HTTPS page refuses as mixed content, so no value in that
+  // variable could ever have worked from poetech.us. What is left is the only
+  // question that is still open on any given day: does the studio ANSWER.
+  const studioLine = studioHealth === 'down'
+    ? 'The church\'s voice studio did not answer — your voice plays as the labelled stand-in until it does.'
+    : studioHealth === 'up'
+      ? 'The voice studio is armed and answering — your recorded voice reads new text.'
+      : 'Asking the church\'s voice studio whether it is up…';
   const tts = useTextToSpeech();
   const { setVoiceId: setGlobalVoiceId } = useReadingVoice(supabase); // the ONE global pref
   const [profiles, setProfiles] = useState([]);

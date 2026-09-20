@@ -107,7 +107,7 @@ function ChooseService({ onPick, progressById }) {
               <div className="mt-1 leading-relaxed text-[#1A1815]" style={{ ...serif,  fontSize: '1.0625rem' }}>
                 {v.holds}
               </div>
-              {/* State is always in WORDS, never only a border colour. */}
+              {/* State is always in WORDS, never only a border color. */}
               {started && (
                 <div className="mt-2 text-[#B85838]" style={{ ...serif,  fontSize: '1rem', fontWeight: 600 }}>
                   {done ? 'Finished' : `Started — step ${plainStage(p.stage).step} of ${TOTAL_STEPS}`}

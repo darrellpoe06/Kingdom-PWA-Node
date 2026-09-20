@@ -409,12 +409,52 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
         const overrides = loadPersonaVoiceMap();
         const cidFresh = catalogIdOf(voiceId);
         if (cidFresh) uri = resolveVoiceURIForId(cidFresh, { assignments: liveAssignments, overrides, available: fresh });
+      } else {
+        // NO VOICES AT ALL, after waiting. This is NOT the cold-start case the
+        // wait exists for (DR-0138) — the list is genuinely empty because the
+        // device has no speech engine installed. Fire TV is the one that found
+        // it: Silk exposes speechSynthesis and SpeechSynthesisUtterance, so
+        // isTTSSupported() answers true and the "can't read aloud" path never
+        // runs, but nothing can ever speak.
+        //
+        // Falling through here would call speak() with no voice, produce
+        // silence, and leave the start watchdog to report 'Audio didn't start
+        // — press play once more', which is ADVICE THAT CANNOT WORK: pressing
+        // again cannot install a voice engine. Naming the real cause costs one
+        // branch and saves someone pressing a button forever.
+        //
+        // AND THE MESSAGE MUST NAME THE RIGHT CAUSE. The first version of this
+        // said "open the lesson on a phone or tablet" — defeatist AND wrong,
+        // because it treats a device limit as the end of the story when the
+        // app already carries a device-independent answer. The System-voice
+        // cloud read above synthesizes server-side and plays through an
+        // <audio> element, which works on Fire TV, on a smart TV, on anything
+        // with a speaker. It did not fire here for exactly one reason: no
+        // voice endpoint is configured. So the notice says which of the two
+        // situations this actually is, because they have completely different
+        // remedies and only one of them is ours to fix.
+        // WHICH of the two it is comes from the PROBE, not from configuration.
+        // It used to come from isVoiceServiceReady(), and that stopped being a
+        // question the moment /voice became a same-origin route: the URL is now
+        // built from window.location and is therefore ALWAYS present, so the
+        // config check answers true on every device and the second branch below
+        // could never render. A message that cannot render is not a message —
+        // and the one that CAN would have told a reader the service "did not
+        // answer" on a night when it was simply never switched on. Same defect
+        // class as DR-0440, which is quoted three files away: a config check
+        // reading as armed. The studio is ASKED instead.
+        setNotice(studioHealth === 'down'
+          ? 'This device has no voice of its own, and the church’s voice service did not answer. The text is all here to read; the reading voice returns when the service is back.'
+          : studioHealth === 'up'
+            ? 'This device has no voice of its own, and the church’s voice service is answering but could not read this passage. The text is all here; try once more in a moment.'
+            : 'This device has no voice of its own — and the church’s own voice service has not answered yet. Once it is up, the lesson reads aloud HERE, on this screen, with no device voice needed.');
+        return;
       }
     }
     const cid = catalogIdOf(voiceId);
     const pitch = cid ? standInPitch(fullCatalog, liveAssignments, cid) : undefined;
     tts.speak(clean, uri, pitch);
-  }, [voiceId, personalVoices, sovereignVoiceReady, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio]);
+  }, [voiceId, personalVoices, sovereignVoiceReady, studioHealth, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio]);
 
   // The OS media buttons drive the SAME controls the panel does — kept in a ref
   // so a lock-screen tap can never call a stale closure.

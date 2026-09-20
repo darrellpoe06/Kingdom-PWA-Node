@@ -367,7 +367,7 @@ describe('the furniture stays furniture', () => {
     expect(HUB_SRC, 'a fixed-px font size does not scale with the reader').not.toMatch(/text-\[\d+px\]/);
   });
 
-  it('USES NO INLINE COLOUR, so every surface follows the theme', () => {
+  it('USES NO INLINE COLOR, so every surface follows the theme', () => {
     // An inline hex cannot be remapped per theme, which is how a midnight
     // accent once rendered at 2.84:1 on black (contrast-guard's founding bug).
     expect(HUB_SRC).not.toMatch(/style=\{\{[^}]*(color|background)/i);

@@ -14,10 +14,18 @@
 #   POST /speak  { text, reference_audio (base64 data URI), language }  -> audio/wav
 #   GET  /health -> { ok: true }
 #
-# Deploy (his-hand, on the church 4070 box):
-#   python -m venv .venv && . .venv/bin/activate
+# Deploy — NOT by hand (DR-0236 / DR-0108). Two channels drive this and neither
+# is a person at a keyboard:
+#   · the container:  infra/church-gpu-node/docker-compose.yml `voice-studio`,
+#     brought up on the 4070 box by .github/workflows/arm-voice-studio.yml,
+#     which joins the tailnet with TS_AUTHKEY and verifies by SYNTHESIZING
+#     rather than by reading /health.
+#   · the road home:  infra/voice-studio/install.sh, run every cycle by the
+#     services-sync loop, which finds whichever host is answering and mounts
+#     `/voice` on the Funnel so poetech.us can reach it same-origin.
+# The commands below remain only as the description of what those two automate.
 #   pip install fastapi uvicorn TTS torch   # CUDA build of torch for the 4070
-#   python server.py    # serves on :8770; expose via Tailscale, not the public net
+#   python server.py    # serves on :8770; exposed via Tailscale, never the public net
 #
 # License note: XTTS-v2 weights are CPML (non-commercial). Fine for family/church
 # sovereign use. The contract is model-agnostic — swap to F5-TTS / OpenVoice v2
@@ -60,11 +68,28 @@ def _decode_reference(data_uri: str) -> str:
     return path
 
 
+# THE PREFIX IS SERVED BOTH WAYS, AND THE PLAIN ONE IS THE REAL PATH.
+#
+# The app reaches this studio at same-origin `/voice/speak`, which the Pages
+# Function forwards to the Funnel as `/voice/speak`, which a Tailscale path
+# mount hands on here. This comment first said that whether the mount STRIPS
+# `/voice` was unknowable from this repository. It is not -- it is documented:
+# tailscale trims the mount point before proxying, so a mount at `/voice`
+# delivers `/speak` and `/health`, as if the service were running at the root.
+# "Nothing here can measure it" was a guess wearing DR-0076's clothes; the
+# actual discipline is to go and check.
+#
+# The prefixed aliases stay anyway, and not out of timidity. They cost one
+# decorator each, they make the server correct under a proxy that does NOT trim
+# (a Caddy handle, a forwarder that passes the path through), and the tax
+# server carries exactly the same pair for exactly that reason.
+@app.get("/voice/health")
 @app.get("/health")
 def health():
     return {"ok": True}
 
 
+@app.post("/voice/speak")
 @app.post("/speak")
 async def speak(req: Request):
     body = await req.json()

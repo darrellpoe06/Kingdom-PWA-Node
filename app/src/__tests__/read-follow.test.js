@@ -116,10 +116,40 @@ describe('the DR-0265 bridges — tap-to-start, lesson alignment, cloud fraction
 });
 
 describe('highlight + follow are unbreakable where the platform lacks the APIs', () => {
-  it('jsdom has no CSS Custom Highlight API — helpers no-op instead of crashing', () => {
+  it('jsdom has no CSS Custom Highlight API — and "no API" no longer means "no highlight"', () => {
+    // This used to assert highlightSegment(null) === false, because the whole
+    // unsupported branch returned false and painted nothing. index.css called
+    // that an accepted degradation, and on a phone it is one: the page still
+    // scrolls to the right place and the reader's eye is a hand's width away.
+    // It is not one on a television. Darrell, on a Fire TV whose Silk predates
+    // Chromium 105: "Make sure the highlighting works with the reader." Across
+    // a room the highlight IS how you keep your place.
     expect(supportsHighlight()).toBe(false);
-    expect(highlightSegment(null)).toBe(false);
+    // What matters now is that the TWO PATHS AGREE. A null range means "clear
+    // it", and the API path has always answered true for that. A fallback that
+    // answered false would make the same call mean different things on
+    // different devices, which is the divergence this whole fallback exists to
+    // remove — the feature must not behave like a different feature depending
+    // on the browser.
+    expect(highlightSegment(null), 'clearing reports failure on a fallback browser').toBe(true);
     expect(() => clearReadingHighlights()).not.toThrow();
+  });
+
+  it('PROVEN-TO-CATCH: the API path and the fallback path give the SAME answer', () => {
+    // The control for the assertion above. Stand the real platform up and ask
+    // the identical question; if the two ever diverge again, this is red.
+    class FakeHighlight { constructor(r) { this.range = r; } }
+    const store = new Map();
+    window.Highlight = FakeHighlight;
+    window.CSS = { ...(window.CSS || {}), highlights: store };
+    try {
+      expect(supportsHighlight()).toBe(true);
+      expect(highlightSegment(null)).toBe(true);
+    } finally {
+      delete window.Highlight; delete window.CSS;
+    }
+    expect(supportsHighlight()).toBe(false);
+    expect(highlightSegment(null)).toBe(true);
   });
 
   // PROVEN-TO-CATCH (DR-0076 §3). The test above passes for the WRONG reason on a

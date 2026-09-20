@@ -1,0 +1,170 @@
+# =============================================================================
+# Arm the sovereign voice studio — from CI, with no human at a keyboard
+# =============================================================================
+# Darrell 2026-09-20, after being handed a runbook of commands to paste: "You do
+# it!!! Why would I be doing that when you can and should?!! No human being
+# unless necessary!! Or Ways and documentation!!"
+#
+# He is right, and the runbook was the wrong artifact. The agent's sandbox has
+# no tailnet and no ssh — measured, not assumed — but THE WHOLE TEAM has more
+# reach than the agent does (DR-0108), and this repo already proved the route:
+# deploy-cloudflare-pages.yml joins the tailnet with TS_AUTHKEY and reaches the
+# NAS with NAS_SSH_KEY, under a comment that reads "no secret-store hands, no
+# human paste... a 'must-be-by-hand' is a premise to challenge."
+#
+# PROBE BEFORE ACT. The first run answers questions instead of guessing at
+# them: which host answers, whether docker is there, whether a GPU is visible,
+# where the repo lives. Guessing produces an opaque failure; probing produces a
+# fact to build the next step on. `arm` therefore defaults to FALSE — this is
+# read-only until someone (or the next dispatch) says otherwise.
+name: Arm voice studio
+
+on:
+  workflow_dispatch:
+    inputs:
+      host:
+        description: Tailnet host to target
+        required: false
+        default: tlcmediadpt.tail5a2f35.ts.net
+      user:
+        description: SSH user on that host
+        required: false
+        default: dpoe
+      arm:
+        description: Actually bring the studio up (false = probe only)
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: arm-voice-studio
+  cancel-in-progress: false
+
+jobs:
+  probe-and-arm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Write the key
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/k
+          test -s /tmp/k || { echo "NAS_SSH_KEY is empty — nothing to try"; exit 1; }
+
+      # READ-ONLY. Every line here reports; none of it changes the machine.
+      - name: Probe the host
+        id: probe
+        continue-on-error: true
+        run: |
+          H='${{ github.event.inputs.host }}'
+          U='${{ github.event.inputs.user }}'
+          S="ssh -i /tmp/k -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 $U@$H"
+          echo "== whoami / uname =="
+          $S 'whoami; uname -a' || echo "SSH FAILED to $U@$H"
+          echo "== docker =="
+          $S 'docker --version; docker ps --format "{{.Names}}\t{{.Status}}"' || echo "no docker"
+          echo "== nvidia =="
+          $S 'nvidia-smi --query-gpu=name,memory.total --format=csv,noheader' || echo "no nvidia-smi"
+          echo "== is the studio already answering? =="
+          $S 'curl -s -m 5 -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8770/health' || echo "no local studio"
+          echo "== repo checkouts =="
+          $S 'ls -d ~/Kingdom-PWA-Node /volume1/repos/Kingdom-PWA-Node /opt/Kingdom-PWA-Node 2>/dev/null' || echo "no known checkout"
+
+      # Gated. Only runs when the dispatch explicitly asks for it, so a probe
+      # can never start a multi-gigabyte pull by surprise.
+      #
+      # THE CEILING IS 90 MINUTES, NOT 25, AND THAT IS NOT PADDING. This image
+      # is BUILT on the box, not pulled: compose declares `build: ../voice-studio`
+      # over pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime (several GB) plus a
+      # pip install of TTS 0.22 and its dependency tree. A first build on a
+      # residential connection does not fit in 25 minutes, and a run killed
+      # mid-build leaves a half-pulled layer cache and reports nothing useful.
+      # A warm box still finishes in about two minutes -- the ceiling costs
+      # nothing when it is not needed.
+      - name: Bring the studio up
+        if: ${{ github.event.inputs.arm == 'true' }}
+        run: |
+          H='${{ github.event.inputs.host }}'
+          U='${{ github.event.inputs.user }}'
+          S="ssh -i /tmp/k -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o ServerAliveInterval=30 $U@$H"
+          $S 'set -e
+            R=""
+            for c in ~/Kingdom-PWA-Node /volume1/repos/Kingdom-PWA-Node /opt/Kingdom-PWA-Node; do
+              if [ -d "$c/infra/church-gpu-node" ]; then R="$c"; break; fi
+            done
+            test -n "$R" || { echo "no checkout carrying infra/church-gpu-node"; exit 1; }
+            cd "$R"
+            git pull --ff-only || true
+            cd infra/church-gpu-node
+            # BUILD AS ITS OWN STEP so a build failure says "build" rather than
+            # surfacing later as a container that never answers. The base tag is
+            # pinned and the Dockerfile says in its own words to confirm it is
+            # still published before relying on it -- if the tag has been pulled
+            # from Docker Hub, THIS is the line that says so.
+            docker compose build voice-studio
+            docker compose up -d voice-studio'
+
+      # PROVE IT, never assume it (DR-0076). /health answers while the model is
+      # still cold -- server.py loads the model lazily on purpose -- so a real
+      # synthesis is the only thing that counts as armed.
+      - name: Verify it actually speaks
+        if: ${{ github.event.inputs.arm == 'true' }}
+        run: |
+          H='${{ github.event.inputs.host }}'
+          U='${{ github.event.inputs.user }}'
+          S="ssh -i /tmp/k -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o ServerAliveInterval=30 $U@$H"
+          for i in $(seq 1 30); do
+            C=$($S 'curl -s -m 5 -o /dev/null -w "%{http_code}" http://127.0.0.1:8770/health' || echo 000)
+            echo "health attempt $i: $C"
+            [ "$C" = "200" ] && break
+            sleep 10
+          done
+          # THE FIRST SPEAK IS NOT LIKE THE REST, and the previous version of
+          # this step did not know that. XTTS-v2's weights (~1.8 GB) download on
+          # the first synthesis, into the volume compose persists at
+          # ${DATA_ROOT}/voice-models. At a 180-second ceiling that first call
+          # times out on any ordinary connection and the step below reported
+          # "NO AUDIO -- the model has no speaker bank" -- a confident, specific,
+          # WRONG diagnosis of a download in progress. The first attempt gets
+          # twenty minutes; a second attempt after it is cached gets three, and
+          # only THAT one is allowed to conclude anything.
+          $S 'curl -s -m 1200 -X POST http://127.0.0.1:8770/speak -H "Content-Type: application/json" -d "{\"text\":\"The Word of Yahweh endures forever.\"}" -o /tmp/v.wav -w "first speak: %{http_code} %{size_download} bytes in %{time_total}s\n"' || echo "first speak did not complete"
+          $S 'curl -s -m 180 -X POST http://127.0.0.1:8770/speak -H "Content-Type: application/json" -d "{\"text\":\"The Word of Yahweh endures forever.\"}" -o /tmp/v.wav -w "warm speak: %{http_code} %{size_download} bytes in %{time_total}s\n"'
+          $S 'test -s /tmp/v.wav && echo "SPOKE: $(stat -c%s /tmp/v.wav) bytes -- the studio is ARMED" || { echo "NO AUDIO. Read the two lines above before concluding anything: a 000/0-byte FIRST speak is a download that did not finish (re-dispatch, the weights are cached now); a 400 on the WARM speak is the model refusing a built-in speaker, which means it has no speaker bank and only cloned voices will work."; exit 1; }'
+
+      # The road home, so the app can reach what was just armed. The NAS mounts
+      # /voice on the Funnel itself on its next services-sync cycle (<=15 min,
+      # infra/voice-studio/install.sh), but there is no reason to make the
+      # reader wait a quarter of an hour for a mount we can ask for now. The
+      # installer is idempotent and refuses to mount a backend that is not
+      # answering, so running it here is safe and is a no-op if the cycle beat
+      # us to it.
+      - name: Mount /voice on the Funnel now, rather than waiting for the cycle
+        if: ${{ github.event.inputs.arm == 'true' }}
+        continue-on-error: true
+        run: |
+          U='${{ github.event.inputs.user }}'
+          S="ssh -i /tmp/k -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 $U@poetech.tail5a2f35.ts.net"
+          $S 'set -e
+            R=""
+            for c in /volume1/PoeTech/repos/Kingdom-PWA-Node ~/Kingdom-PWA-Node /volume1/repos/Kingdom-PWA-Node; do
+              if [ -f "$c/infra/voice-studio/install.sh" ]; then R="$c"; break; fi
+            done
+            test -n "$R" || { echo "no checkout carrying infra/voice-studio/install.sh on the NAS"; exit 1; }
+            cd "$R" && git pull --ff-only || true
+            sh "$R/infra/voice-studio/install.sh"'
+
+      - name: Always drop the key
+        if: always()
+        run: rm -f /tmp/k

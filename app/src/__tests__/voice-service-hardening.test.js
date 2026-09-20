@@ -55,12 +55,35 @@ describe('the speak request is bounded', () => {
 });
 
 describe('the studio is asked whether it answers', () => {
-  it('unconfigured → unknown, and no request is made', async () => {
+  it('NO ORIGIN AT ALL → unknown, and no request is made', async () => {
+    // This used to be the "unconfigured" case: clear VITE_VOICE_SERVICE_URL and
+    // there was no endpoint to probe. /voice being a same-origin route deleted
+    // that state — the URL is now derived from window.location, so a browser
+    // ALWAYS has one. What is left is the case the derivation itself cannot
+    // serve: no window (a node/SSR import, a worker without location). It still
+    // must not invent an endpoint, and it must not report a guess as health.
     delete import.meta.env.VITE_VOICE_SERVICE_URL;
+    const realWindow = globalThis.window;
+    delete globalThis.window;
     globalThis.fetch = vi.fn();
-    expect(await probeVoiceService()).toBe('unknown');
-    expect(globalThis.fetch).not.toHaveBeenCalled();
-    expect(isVoiceServiceAnswering()).toBe(false);
+    try {
+      expect(await probeVoiceService()).toBe('unknown');
+      expect(globalThis.fetch, 'it probed something it had to invent').not.toHaveBeenCalled();
+      expect(isVoiceServiceAnswering()).toBe(false);
+    } finally {
+      globalThis.window = realWindow;
+    }
+  });
+
+  it('and IN a browser there is always an endpoint — the probe really runs', async () => {
+    // The other half, so the test above cannot be read as "the probe is off by
+    // default". Without an override the same-origin road is probed, which is
+    // the behaviour a Fire TV depends on: nobody types a URL into a television.
+    delete import.meta.env.VITE_VOICE_SERVICE_URL;
+    resetVoiceServiceHealthForTests();
+    globalThis.fetch = vi.fn(async () => ({ ok: true }));
+    expect(await probeVoiceService({ force: true })).toBe('up');
+    expect(String(globalThis.fetch.mock.calls[0][0])).toBe(window.location.origin + '/voice/health');
   });
   it('GET {base}/health ok → up; the reader may trust it', async () => {
     globalThis.fetch = vi.fn(async (u) => ({ ok: u === 'https://voice.example/health' }));

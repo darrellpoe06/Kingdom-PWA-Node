@@ -37,7 +37,7 @@ export default function VerseHighlighter({ value = 'none', onPick, refLabel = 't
           every `[aria-expanded="false"]` inside the reading root, and its own
           header says it must NEVER touch "menus/dialogs ([aria-haspopup])".
           This button opens a role="menu" but never declared it, so the reveal
-          pass matched it as a disclosure and popped a colour palette open on
+          pass matched it as a disclosure and popped a color palette open on
           every verse on the page. The guard was right; the attribute was
           missing. It is also simply correct ARIA for a button that opens a
           menu, which is why it belongs here rather than as a special case in

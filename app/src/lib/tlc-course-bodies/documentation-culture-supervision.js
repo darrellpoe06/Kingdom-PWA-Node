@@ -42,7 +42,7 @@ How it runs in session. Ask rather than assume: how the client describes their b
 
 A worked example. A clinician who has read about a client's culture opens by saying she knows that family is central in it. The client, an individualist by temperament, feels flattened. A humble opening asks instead: "Tell me who matters in how you make decisions." The client answers, and the clinician learns this person, not a category.
 
-Pitfalls. Replacing one stereotype with a more sophisticated one; treating humility as having no knowledge; colour-blindness that refuses to see difference; and putting the burden of educating the clinician entirely on the client.
+Pitfalls. Replacing one stereotype with a more sophisticated one; treating humility as having no knowledge; color-blindness that refuses to see difference; and putting the burden of educating the clinician entirely on the client.
 
 What is required. Illinois requires three hours of cultural competence and one hour of implicit bias awareness per renewal cycle; the NASW Code names cultural awareness and social diversity as an ethical standard. TLC's mission names cultural awareness as part of clinical excellence.
 

@@ -32,7 +32,7 @@ const LEG = read('../../../.github/workflows/rls-isolation.yml');
 const SIMPLE = [
   { id: 'a', title: 'First', blurb: 'b', fields: [
     { key: 'name', type: 'text', label: 'Name', required: true },
-    { key: 'colour', type: 'select', label: 'Colour', options: ['red', 'blue'] },
+    { key: 'color', type: 'select', label: 'Color', options: ['red', 'blue'] },
     { key: 'agree', type: 'acknowledgment', label: 'Agree', statement: 'I agree.' },
   ] },
 ];
@@ -40,7 +40,7 @@ const SIMPLE = [
 describe('the engine is product-free', () => {
   it('takes whatever sections it is handed and merges a saved body onto them', () => {
     const def = defaultForm(SIMPLE, { floor: ['name'] });
-    expect(formKeys(def)).toEqual(['name', 'colour', 'agree']);
+    expect(formKeys(def)).toEqual(['name', 'color', 'agree']);
     expect(validateForm(SIMPLE, def, { floor: ['name'] })).toEqual([]);
     const body = { sections: [{ id: 'a', title: 'First (ours)', fields: [
       { key: 'name', label: 'Your name', required: false, hidden: true },
@@ -52,7 +52,7 @@ describe('the engine is product-free', () => {
     expect(name.required).toBe(true);   // the floor cannot be made optional
     expect(name.hidden).toBe(false);    // nor hidden
     expect(formKeys(merged)).toContain('x_pets');
-    expect(formKeys(merged)).toContain('colour'); // never less than the original
+    expect(formKeys(merged)).toContain('color'); // never less than the original
     const errs = validateForm(SIMPLE, body, { floor: ['name'] });
     expect(errs.join(' ')).toMatch(/cannot be hidden/);
     expect(errs.join(' ')).toMatch(/cannot be made optional/);
@@ -60,11 +60,11 @@ describe('the engine is product-free', () => {
   it('an acknowledgment is always fixed, floor or not; a live section drops what the office hid', () => {
     const body = { sections: [{ id: 'a', title: 'First', fields: [
       { key: 'agree', label: 'Agree', hidden: true, required: false },
-      { key: 'colour', label: 'Colour', hidden: true },
+      { key: 'color', label: 'Color', hidden: true },
     ] }] };
     expect(validateForm(SIMPLE, body, {}).join(' ')).toMatch(/cannot be hidden/);
     const live = liveSections(SIMPLE, body, {});
-    expect(live[0].fields.map((f) => f.key)).toEqual(['name', 'agree']); // colour hidden, agree cannot hide
+    expect(live[0].fields.map((f) => f.key)).toEqual(['name', 'agree']); // color hidden, agree cannot hide
   });
   it('a new question gets a safe key and never collides', () => {
     expect(newCustomKey('Pets at home')).toBe('x_pets-at-home');

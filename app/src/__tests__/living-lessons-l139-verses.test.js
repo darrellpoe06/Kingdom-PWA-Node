@@ -360,7 +360,7 @@ describe('EIGHT — the devil and the sceptre; the one Lawgiver; a whole tribe t
     expect(l).toContain('hath made of one blood all nations of men');
     expect(l).toMatch(/1787/);
     expect(l).toMatch(/1816/);
-    expect(l).toMatch(/no colour is a rank/);
+    expect(l).toMatch(/no color is a rank/);
     // The Word's own description of David is carried as written, never overwritten.
     expect(l).not.toMatch(/David (was|had) (black|dark|brown) skin/i);
   });

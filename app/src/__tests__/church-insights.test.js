@@ -14,6 +14,7 @@
 import { describe, it, expect } from 'vitest';
 import { churchInsights, ministriesAwaitingASurface, NEVER_COMPUTED, memberFieldLabel } from '../lib/church-insights.js';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
+import { ministryName } from '../lib/church-ministries.js';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -94,8 +95,17 @@ describe('the findings a church actually acts on', () => {
     // The church band case, generalized: the congregation telling the build
     // team what to build next, in numbers.
     expect(out.findings[0].id).toBe('serving-no-page');
-    expect(out.findings[0].data).toMatch(/Church Band: 2/);
-    expect(out.findings[0].invitation).toMatch(/Build Church Band next/);
+    // The name comes from the roster, which was rebuilt 2026-09-20 from the
+    // church's own printed flyer — so the finding a leader reads says what the
+    // flyer says, not a shortened developer label. Asserted against the
+    // registry rather than a literal, because the office can rename this row
+    // from inside the app and a suite that pins their wording would turn their
+    // edit into a build failure.
+    const bandName = ministryName('band');
+    expect(bandName, 'the band row is gone from the roster').not.toBe('band');
+    expect(bandName, 'the seed no longer carries the flyer wording').toBe('Church Band / Instrumental Ministry');
+    expect(out.findings[0].data).toMatch(new RegExp(`${bandName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}: 2`));
+    expect(out.findings[0].invitation).toMatch(new RegExp(`Build ${bandName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} next`));
   });
 
   it('answers the bus ministry’s real question', () => {
@@ -160,7 +170,10 @@ describe('the findings a church actually acts on', () => {
 describe('ministriesAwaitingASurface — the build queue, from the congregation', () => {
   it('ranks by how many people offered', () => {
     expect(ministriesAwaitingASurface([ruth, amos, mae], CH))
-      .toEqual([{ id: 'band', name: 'Church Band', offers: 2 }, { id: 'ushers', name: 'Ushers', offers: 1 }]);
+      .toEqual([
+        { id: 'band', name: ministryName('band'), offers: 2 },
+        { id: 'ushers', name: ministryName('ushers'), offers: 1 },
+      ]);
   });
 
   it('leaves out ministries that already HAVE a page', () => {

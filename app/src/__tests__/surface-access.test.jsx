@@ -167,7 +167,7 @@ describe('the locked tile instructs — the whole point of the second half', () 
     expect(clicks).toEqual([1]);
   });
 
-  it('is dark, as asked — and not an error colour, because a shut door is not an error', () => {
+  it('is dark, as asked — and not an error color, because a shut door is not an error', () => {
     mount({ surface: byId('devices'), viewer: MEMBER });
     const box = container.querySelector('section');
     expect(box.className).toMatch(/bg-\[#1A1815\]/);
