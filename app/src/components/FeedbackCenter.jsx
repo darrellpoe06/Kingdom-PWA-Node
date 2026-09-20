@@ -194,6 +194,26 @@ export const FEEDBACK_AREAS = [
     // A ministry you cannot even FILE ON is a ministry the app is pretending
     // does not exist; the entry comes first, the surface follows.
     ['church-band', 'Church · Church Band (the musicians — no page yet; tell us what it needs)'],
+    // THE CHURCH'S OWN FLYER, 2026-09-20. The "Love Corner Experience"
+    // volunteer call names twenty-one ministries and carries a QR code to
+    // this app; the app carried nine. Every one of these is now nameable AND
+    // fileable, on the same principle as the band above — the entry comes
+    // first, the surface follows. Back to Church and Volunteer Sunday is the
+    // day this has to hold.
+    ['church-music', 'Church · Music Ministry (singing and leading worship — no page yet)'],
+    ['church-it', 'Church · IT Ministry (computers, network, the screens that carry the service — no page yet)'],
+    ['church-parking', 'Church · Parking & Traffic Ministry (safe arrivals and departures — no page yet)'],
+    ['church-deacons', 'Church · Deacons (serving the congregation, supporting the pastor — no page yet)'],
+    ['church-prayer', 'Church · Prayer Ministry (standing in prayer for the house — no page yet)'],
+    ['church-missions', 'Church · Missions & Evangelism (carrying the Word beyond the building — no page yet)'],
+    ['church-children', 'Church · Children’s Ministry (the youngest of the house — no page yet)'],
+    ['church-youth', 'Church · Youth Ministry (the teenagers — no page yet)'],
+    ['church-college', 'Church · College Ministry (students away from home — no page yet)'],
+    ['church-school-outreach', 'Church · School Outreach & Youth Education (tutoring and mentoring — no page yet)'],
+    ['church-administration', 'Church · Administration (the office work behind everything else — no page yet)'],
+    ['church-events-programs', 'Church · Events & Special Programs (programs and banquets — distinct from Campus Rentals — no page yet)'],
+    ['church-care', 'Church · Care & Benevolence (practical help, quietly given — no page yet)'],
+    ['church-counseling', 'Church · Counseling Support (walking with people through hard seasons — no page yet)'],
     ['church-ministries', 'Church · Ministries directory (ushers · security · hospitality · outreach · new members)'],
     ['church-members', 'Church · Members (the way in · people by standing with faces · may / may-not · invite · remove — DR-0348)'],
     ['church-my-record', 'Church · My Record (your own answers · your shelf of documents · and, for the office, the roll and what it says)'],

@@ -37,6 +37,18 @@
 // surface: the in-app route this ministry already has, or null when the
 //          ministry is named but has no surface of its own yet.
 // join:    what a member is actually asking for when they tap it.
+// The church's own published call for volunteers — the authoritative roster.
+const FLYER = 'the Love Corner Experience volunteer flyer, published by the church 2026-09 ("We Need You!")';
+
+// A NOTE ON DOUBLE-BARRELLED NAMES. Two entries carry both our word and the
+// church's printed one — "Church Band / Instrumental Ministry" and "New
+// Members & Membership Care". They are ONE ministry each, not two, but the
+// flyer is what a volunteer is holding: someone reading "Instrumental
+// Ministry" off the paper must find it in the app under that word, and a
+// second near-identical entry would split one ministry's people across two
+// lists. The gate that caught this reads from the FLYER, so it fails whenever
+// the app drifts from what the church published — the only direction that
+// matters.
 export const CHURCH_MINISTRIES = [
   {
     id: 'bus', name: 'Bus / Van Ministry',
@@ -53,7 +65,7 @@ export const CHURCH_MINISTRIES = [
     source: 'live surface (director hub)',
   },
   {
-    id: 'band', name: 'Church Band',
+    id: 'band', name: 'Church Band / Instrumental Ministry',
     blurb: 'The musicians who play with the choir and through the service.',
     // Named by Darrell 2026-09-11 precisely BECAUSE it was missing: "I don't
     // see the church band." It has no surface yet — saying so is the honest
@@ -98,7 +110,7 @@ export const CHURCH_MINISTRIES = [
     source: 'OPS_MINISTRIES + the church project board',
   },
   {
-    id: 'new-members', name: 'New Members',
+    id: 'new-members', name: 'New Members & Membership Care',
     blurb: 'The welcome for someone who just joined — the card, and what comes next.',
     // Named by Darrell 2026-09-11 as the SECOND pilot after giving: "you wanna
     // deal with the new members?... I think November would be good."
@@ -106,13 +118,133 @@ export const CHURCH_MINISTRIES = [
     join: 'Just joined? This is where the welcome starts.',
     source: 'named by Darrell 2026-09-11 as the second pilot (target November)',
   },
+  // -------------------------------------------------------------------------
+  // THE CHURCH'S OWN PUBLISHED ROSTER, 2026-09-20.
+  // -------------------------------------------------------------------------
+  // Darrell sent the "Love Corner Experience" volunteer flyer — the church's
+  // own printed call for volunteers, QR code on it, twenty-one ministries
+  // named — and asked whether the process is in place to support it TODAY.
+  //
+  // It was not. The app carried NINE of them. A person scans that QR, arrives
+  // wanting the Prayer Ministry or Children's Ministry, and finds no such
+  // thing — which reads as "they do not want me", on the one surface the
+  // church printed a QR code to send them to.
+  //
+  // This is also the source the file has been waiting for since 2026-09-11:
+  // "the church office sets the real list." A flyer the church published IS
+  // the office naming it, so the roster below is confirmed and the hedge that
+  // stood in for it comes down.
+  {
+    id: 'music', name: 'Music Ministry',
+    blurb: 'Singing and leading worship — the whole music side, beyond the choir alone.',
+    surface: null, feedbackKey: 'church-music',
+    join: 'Ask about singing or leading worship.',
+    source: FLYER,
+  },
+  {
+    id: 'it', name: 'IT Ministry',
+    blurb: 'The computers, the network and the screens that carry the service.',
+    surface: null, feedbackKey: 'church-it',
+    join: 'Ask about helping with the tech.',
+    source: FLYER,
+  },
+  {
+    id: 'parking', name: 'Parking & Traffic Ministry',
+    blurb: 'The lot on a Sunday morning — safe arrivals, safe departures.',
+    surface: null, feedbackKey: 'church-parking',
+    join: 'Ask about helping in the lot.',
+    source: FLYER,
+  },
+  {
+    id: 'deacons', name: 'Deacons',
+    blurb: 'Serving the congregation and supporting the pastor.',
+    surface: null, feedbackKey: 'church-deacons',
+    join: 'Ask a deacon about the ministry.',
+    source: FLYER,
+  },
+  {
+    id: 'prayer', name: 'Prayer Ministry',
+    blurb: 'Standing in prayer for the church and for whoever asks.',
+    surface: null, feedbackKey: 'church-prayer',
+    join: 'Ask about joining the prayer ministry.',
+    source: FLYER,
+  },
+  {
+    id: 'missions', name: 'Missions & Evangelism',
+    blurb: 'Carrying the Word beyond the building.',
+    surface: null, feedbackKey: 'church-missions',
+    join: 'Ask about missions and evangelism.',
+    source: FLYER,
+  },
+  {
+    id: 'children', name: "Children's Ministry",
+    blurb: 'The youngest of the house — teaching, care and a safe room.',
+    surface: null, feedbackKey: 'church-children',
+    join: "Ask about serving with the children.",
+    source: FLYER,
+  },
+  {
+    id: 'youth', name: 'Youth Ministry',
+    blurb: 'The teenagers — discipleship, activities and a place to belong.',
+    surface: null, feedbackKey: 'church-youth',
+    join: 'Ask about serving with the youth.',
+    source: FLYER,
+  },
+  {
+    id: 'college', name: 'College Ministry',
+    blurb: 'Students away from home, kept close to the house.',
+    surface: null, feedbackKey: 'church-college',
+    join: 'Ask about the college ministry.',
+    source: FLYER,
+  },
+  {
+    id: 'school-outreach', name: 'School Outreach & Youth Education',
+    blurb: 'Into the schools — tutoring, mentoring and the education of the young.',
+    surface: null, feedbackKey: 'church-school-outreach',
+    join: 'Ask about school outreach and tutoring.',
+    source: FLYER,
+  },
+  {
+    id: 'administration', name: 'Administration',
+    blurb: 'The office work that keeps everything else running.',
+    surface: null, feedbackKey: 'church-administration',
+    join: 'Ask about helping in the office.',
+    source: FLYER,
+  },
+  {
+    id: 'events', name: 'Events & Special Programs',
+    blurb: 'Programs, banquets and the days the house sets apart.',
+    // NOT `church-events` — that key is Campus Rentals, a different thing
+    // entirely. Pointing here would have quietly filed a volunteer's note
+    // about the Christmas program into the building-rental queue.
+    surface: null, feedbackKey: 'church-events-programs',
+    join: 'Ask about helping with events.',
+    source: FLYER,
+  },
+  {
+    id: 'care', name: 'Care & Benevolence',
+    blurb: 'Practical help for members in need — quietly, and without shame.',
+    surface: null, feedbackKey: 'church-care',
+    join: 'Ask about the care and benevolence ministry.',
+    source: FLYER,
+  },
+  {
+    id: 'counseling', name: 'Counseling Support',
+    blurb: 'Walking alongside people through hard seasons.',
+    surface: null, feedbackKey: 'church-counseling',
+    join: 'Ask about counseling support.',
+    source: FLYER,
+  },
 ];
 
-// The roster is what the church has told us SO FAR, not the whole house. Until
-// the office confirms their own list, every surface that renders it says so.
-export const MINISTRY_ROSTER_IS_CONFIRMED = false;
+// CONFIRMED 2026-09-20 against the church's OWN published flyer. The hedge
+// below stood for "we are guessing at their list"; a roster the church printed
+// and put a QR code on is not a guess, it is the office naming it. Keeping the
+// disclaimer up after that would be its own kind of dishonesty — understating
+// what we know is as much a failure of truth as overstating it (DR-0100).
+export const MINISTRY_ROSTER_IS_CONFIRMED = true;
 export const MINISTRY_ROSTER_NOTE =
-  'These are the ministries the app knows about so far. The church office sets the real list — anything missing gets added the moment they name it.';
+  'These are the ministries the church names on its own volunteer flyer. If your gift is not on the list, there is still a place for you — say so and the office will point you to it.';
 
 export const ministryById = (id) => CHURCH_MINISTRIES.find((m) => m.id === id) || null;
 export const ministryName = (id) => ministryById(id)?.name || id;

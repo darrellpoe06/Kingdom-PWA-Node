@@ -33,7 +33,7 @@ const feedbackKeys = FEEDBACK_AREAS.flatMap((g) => g.items.map(([k]) => k));
 describe('the registry', () => {
   it('names the church band — the ministry that was missing entirely', () => {
     expect(ministryById('band')).toBeTruthy();
-    expect(ministryName('band')).toBe('Church Band');
+    expect(ministryName('band')).toContain('Church Band');
   });
 
   it('carries the ministries the app already serves', () => {
@@ -62,15 +62,24 @@ describe('the registry', () => {
   });
 
   it('is honest that the roster is partial until the office confirms it', () => {
-    expect(MINISTRY_ROSTER_IS_CONFIRMED).toBe(false);
-    expect(MINISTRY_ROSTER_NOTE).toMatch(/so far/i);
+    expect(MINISTRY_ROSTER_IS_CONFIRMED).toBe(true);
+    // UPDATED 2026-09-20. This pinned the hedge that stood while the list was
+    // our guess at the church's. The church then PUBLISHED its own roster on
+    // the volunteer flyer, so the honest note is no longer "what we know so
+    // far" — it is the church's list, plus the flyer's own promise that a gift
+    // not named still has a place. Understating what we know is as much a
+    // failure of truth as overstating it (DR-0100).
+    expect(MINISTRY_ROSTER_NOTE).toMatch(/still a place for you/i);
   });
 
   it('is the ONE list — the staff ops picker derives from it, not a second copy', () => {
     const opts = opsMinistryOptions();
     expect(opts[0]).toEqual(['general', 'General / Platform']);
     expect(opts.map(([k]) => k)).toEqual(['general', ...CHURCH_MINISTRIES.map((m) => m.id)]);
-    expect(opts.map(([, l]) => l)).toContain('Church Band');
+    // The label now carries the church's printed word too ("Church Band /
+    // Instrumental Ministry"), so this asserts presence rather than an exact
+    // string — one ministry, both names.
+    expect(opts.map(([, l]) => l).some((l) => String(l).includes('Church Band'))).toBe(true);
   });
 
   it('finds a ministry by name, blurb or id, in any word order', () => {
