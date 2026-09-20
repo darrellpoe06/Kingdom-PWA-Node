@@ -21,6 +21,7 @@ import { describe, it, expect } from 'vitest';
 import {
   CHURCH_MINISTRIES, MINISTRY_ROSTER_IS_CONFIRMED, MINISTRY_ROSTER_NOTE,
   ministryById, ministriesWithSurface, ministriesWithoutSurface,
+  mergeMinistries, ministryFromRow, ministryToRow,
 } from '../lib/church-ministries.js';
 
 // Transcribed from the flyer image, in its own order. Each entry is a phrase
@@ -113,5 +114,59 @@ describe('every entry is usable, not just present', () => {
     const fromFlyer = CHURCH_MINISTRIES.filter((m) => /flyer/i.test(m.source));
     expect(fromFlyer.length).toBeGreaterThanOrEqual(14);
     for (const m of fromFlyer) expect(m.source).toMatch(/published by the church/);
+  });
+});
+
+describe('the office can edit the list without anyone writing code', () => {
+  // Darrell 2026-09-20: "expandable by staff and no need for technical work."
+  // The seeded array is now a FLOOR, not the list. church_ministries (0223) is
+  // the living one. These pin the merge, because the failure mode is silent and
+  // awful: get it wrong and either the office's edits do nothing, or a working
+  // list disappears the moment a table is empty.
+  it('an empty or missing table still shows the church its ministries', () => {
+    // The assertion that makes this safe to ship on a Sunday morning.
+    expect(mergeMinistries([])).toHaveLength(CHURCH_MINISTRIES.length);
+    expect(mergeMinistries(null)).toHaveLength(CHURCH_MINISTRIES.length);
+    expect(mergeMinistries(undefined)).toHaveLength(CHURCH_MINISTRIES.length);
+  });
+
+  it('an office row REPLACES the seeded one of the same slug', () => {
+    // If a rename did not stick, the edit box would be a lie.
+    const merged = mergeMinistries([{ slug: 'bus', name: 'Transportation Ministry' }]);
+    expect(merged.find((m) => m.id === 'bus').name).toBe('Transportation Ministry');
+    expect(merged).toHaveLength(CHURCH_MINISTRIES.length);
+  });
+
+  it('a brand-new ministry is appended, with no code change anywhere', () => {
+    const merged = mergeMinistries([{ slug: 'motorcycle', name: 'Motorcycle Ministry', sort_order: 5 }]);
+    expect(merged).toHaveLength(CHURCH_MINISTRIES.length + 1);
+    expect(merged.at(-1).name).toBe('Motorcycle Ministry');
+    expect(merged.at(-1).fromOffice).toBe(true);
+  });
+
+  it('new ministries follow the office’s own ordering', () => {
+    const merged = mergeMinistries([
+      { slug: 'b', name: 'Bravo', sort_order: 20 },
+      { slug: 'a', name: 'Alpha', sort_order: 10 },
+    ]);
+    expect(merged.slice(-2).map((m) => m.name)).toEqual(['Alpha', 'Bravo']);
+  });
+
+  it('a row with no slug is skipped rather than rendering a nameless tile', () => {
+    expect(mergeMinistries([{ name: 'No slug' }, null, {}])).toHaveLength(CHURCH_MINISTRIES.length);
+  });
+
+  it('a row round-trips through the DB shape without losing its surface', () => {
+    const row = ministryToRow(
+      { id: 'x', name: 'X', blurb: 'b', join: 'j', surface: { view: 'church', sub: 'x' }, feedbackKey: 'k' },
+      { tenantId: 't', userId: 'u' },
+    );
+    expect(row.slug).toBe('x');
+    expect(row.view).toBe('church');
+    expect(ministryFromRow(row).surface).toEqual({ view: 'church', sub: 'x' });
+  });
+
+  it('an office row is labelled as the office’s, so provenance stays honest', () => {
+    expect(ministryFromRow({ slug: 's', name: 'S' }).source).toMatch(/church office/);
   });
 });

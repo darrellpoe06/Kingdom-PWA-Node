@@ -272,3 +272,80 @@ export function matchesMinistry(ministry, query) {
   const hay = `${ministry.id} ${ministry.name} ${ministry.blurb} ${ministry.join}`.toLowerCase();
   return q.split(/\s+/).every((word) => hay.includes(word));
 }
+
+// =============================================================================
+// THE LIST IS THE OFFICE'S, AND THIS ARRAY IS ONLY ITS FLOOR
+// =============================================================================
+// Darrell 2026-09-20: "We can just make the list like our others in Books....
+// we can add as we need and we have a list we can edit at anytime.... so
+// expandable by staff and no need for technical work."
+//
+// Right, and it is the correction to how the flyer's fourteen were added that
+// morning: by editing this array, which means the fifteenth needs an agent, a
+// commit, a review and a deploy. A church that starts a Motorcycle Ministry on
+// a Tuesday should have it on the volunteer list on Tuesday.
+//
+// So church_ministries (0223) is the living list and everything above is the
+// SEED. The merge below is deliberately floor-shaped: rows the office has
+// written WIN, and every seeded ministry the office has not touched still
+// appears. That ordering is what makes the change safe to ship on a Sunday
+// morning -- an empty table, an offline phone and a signed-out visitor all
+// still see the church's real ministries, because the database can only ever
+// ADD to the floor.
+
+/** A stored row -> the shape every surface here already renders. */
+export function ministryFromRow(row) {
+  if (!row || !row.slug) return null;
+  return {
+    id: String(row.slug),
+    name: row.name || String(row.slug),
+    blurb: row.blurb || '',
+    surface: row.view ? { view: row.view, sub: row.sub || undefined } : null,
+    feedbackKey: row.feedback_key || null,
+    join: row.join_note || '',
+    source: 'the church office, edited in the app',
+    sortOrder: Number.isFinite(row.sort_order) ? row.sort_order : 100,
+    fromOffice: true,
+  };
+}
+
+/**
+ * The list a surface should render: the seed, with the office's own rows laid
+ * over it.
+ *
+ * A row matching a seeded slug REPLACES it -- renaming "Bus / Van Ministry" in
+ * the app has to actually rename it, or the edit box is a lie. A row with a new
+ * slug is appended. A seeded ministry with no row is kept, which is the whole
+ * point of a floor.
+ *
+ * Rows are sorted by sort_order then name so the office can order its own list;
+ * seeded entries hold their authored order ahead of anything new, because that
+ * order was chosen to put the ministries with real surfaces first.
+ */
+export function mergeMinistries(rows) {
+  const list = Array.isArray(rows) ? rows.map(ministryFromRow).filter(Boolean) : [];
+  const bySlug = new Map(list.map((m) => [m.id, m]));
+  const merged = CHURCH_MINISTRIES.map((seed) => bySlug.get(seed.id) || seed);
+  const seeded = new Set(CHURCH_MINISTRIES.map((m) => m.id));
+  const added = list
+    .filter((m) => !seeded.has(m.id))
+    .sort((a, b) => (a.sortOrder - b.sortOrder) || String(a.name).localeCompare(String(b.name)));
+  return [...merged, ...added];
+}
+
+/** What the office is editing, for an editor that needs the DB shape back. */
+export function ministryToRow(m, { tenantId, userId } = {}) {
+  return {
+    instance_id: tenantId,
+    created_by: userId,
+    slug: m.id,
+    name: m.name,
+    blurb: m.blurb || null,
+    join_note: m.join || null,
+    view: m.surface?.view || null,
+    sub: m.surface?.sub || null,
+    feedback_key: m.feedbackKey || null,
+    sort_order: Number.isFinite(m.sortOrder) ? m.sortOrder : 100,
+    is_active: m.isActive !== false,
+  };
+}
