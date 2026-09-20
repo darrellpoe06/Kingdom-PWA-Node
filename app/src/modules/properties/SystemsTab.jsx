@@ -52,7 +52,7 @@ const Card = ({ title, children, right }) => (
 const field = 'w-full border border-[#E8E4DC] px-2 py-2 text-[0.875rem] focus:outline focus:outline-2 focus:outline-[#2F5D50]';
 const lbl = 'block text-[0.625rem] uppercase tracking-wider text-[#6B665E] mb-1';
 
-// One colour vocabulary for the two health readings, so a person learns it once.
+// One color vocabulary for the two health readings, so a person learns it once.
 // Amber for "unknown" on purpose: a gap in the record is a thing to go and find
 // out, not a neutral state to scroll past.
 const TONE = {

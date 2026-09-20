@@ -14,7 +14,7 @@
 //
 // WHY THE EXISTING GUARDS MISSED IT. contrast-guard and legibility-guard both
 // scan for COLOR TOKENS in class strings (`bg-[#…]`, `text-[#…]`) and check the
-// pairs they find. A control whose class names no colour at all presents them
+// pairs they find. A control whose class names no color at all presents them
 // with nothing to check, so it reads as clean — the absence was invisible to a
 // scanner built to inspect presence. 27 controls across the app are in exactly
 // that state, and would each have been a bug on somebody's phone.
@@ -84,7 +84,7 @@ describe('every theme paints form controls rather than inheriting a guess', () =
 
   it('leaves the controls whose native look a background would break', () => {
     // A painted background is what ruins a checkbox, a radio, a range slider
-    // (BooksAccounts.jsx:223 styles one), a colour swatch and a file picker.
+    // (BooksAccounts.jsx:223 styles one), a color swatch and a file picker.
     const rule = THEME_CSS.slice(
       THEME_CSS.indexOf('input:not(['),
       THEME_CSS.indexOf('input::placeholder'),
@@ -98,7 +98,7 @@ describe('every theme paints form controls rather than inheriting a guess', () =
     // THE SPECIFICITY POINT, and the reason this is not written as
     // `[data-theme="rose"] input { … }`: that scores (0,1,1) and would beat a
     // plain `bg-white` utility (0,1,0), silently overriding every control that
-    // DOES choose its own colour. The default must be a floor, never a ceiling.
+    // DOES choose its own color. The default must be a floor, never a ceiling.
     //
     // The selector is read from the START OF ITS RULE, not from the word
     // `input`. A first draft of this test sliced at indexOf('input:not([') and
@@ -157,7 +157,7 @@ describe('the tokens themselves are legible where they are used', () => {
   });
 
   it('the field is distinguishable from the page behind it', () => {
-    // A field the same colour as the page is a different failure from an
+    // A field the same color as the page is a different failure from an
     // illegible one, and just as real: nothing shows you where to type.
     for (const t of THEMES) {
       const surface = tok(t.key, '--form-surface');

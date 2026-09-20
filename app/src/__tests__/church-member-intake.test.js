@@ -204,7 +204,7 @@ describe('the record itself', () => {
 
 describe('proven-to-catch (anti-theater)', () => {
   it('CATCHES a question added with no surface behind it', () => {
-    const orphan = { key: 'favouriteColour', type: 'text', label: 'Favourite colour' };
+    const orphan = { key: 'favouriteColour', type: 'text', label: 'Favourite color' };
     expect(orphan.feeds).toBeUndefined(); // the rule above would fail on this
   });
 

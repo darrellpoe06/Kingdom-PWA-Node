@@ -42,7 +42,7 @@ const NO_EXPAND = '.tts-controls, [data-read-no-expand], [aria-haspopup], [role=
 //
 // Darrell 2026-08-13: "the color tab pops up on its own after a while." The
 // reveal pass below clicked VerseHighlighter's swatch — `aria-expanded="false"`,
-// no `aria-haspopup` — and opened a colour palette on every verse on screen.
+// no `aria-haspopup` — and opened a color palette on every verse on screen.
 // The NO_EXPAND list above already intended to exclude menus; the component
 // simply never carried the attribute the list looks for.
 //

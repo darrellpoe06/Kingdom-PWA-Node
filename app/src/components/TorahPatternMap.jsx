@@ -35,10 +35,10 @@ import {
 const serif = { fontFamily: '"Fraunces", serif' };
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 
-// A person chip — the colour is by ROLE, never by rank. Red is reserved for the
-// Blood and is deliberately not used here (DR-0099 colour theology).
-// Distinguished by BORDER, never by a bespoke text colour. Four custom dark
-// text colours were tried first and the per-theme contrast guard caught every
+// A person chip — the color is by ROLE, never by rank. Red is reserved for the
+// Blood and is deliberately not used here (DR-0099 color theology).
+// Distinguished by BORDER, never by a bespoke text color. Four custom dark
+// text colors were tried first and the per-theme contrast guard caught every
 // one of them failing AA on the midnight theme (ratios 1.95 to 3.14) — so the
 // text stays on the palette token that is already proven in both themes, and
 // the border carries the distinction. The guard was right; this is its fix.

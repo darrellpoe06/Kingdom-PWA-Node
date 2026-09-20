@@ -24,11 +24,11 @@
 // that was a forced call worth stating: her three mockups differ in skin (light
 // pastel / photographic / dark) and in density (Quick Actions 4 / 8 / 6). A
 // private palette per view cannot be carried here — contrast-guard reads the
-// theme CSS as the single source of truth and a hardcoded colour cannot be
+// theme CSS as the single source of truth and a hardcoded color cannot be
 // remapped per theme, so three private palettes would render dark-on-dark in
 // midnight for whoever picked the pastel one. The structure and the density
 // survive intact and inherit the theme the reader already chose, which keeps
-// every colour inside the contrast gate. All three of her looks therefore ship,
+// every color inside the contrast gate. All three of her looks therefore ship,
 // as airy / photo / compact, rather than two being discarded.
 import { useSyncExternalStore } from 'react';
 

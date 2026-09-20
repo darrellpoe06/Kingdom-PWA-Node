@@ -247,7 +247,7 @@ self.addEventListener('fetch', (event) => {
 // push permission. So every failure path still shows something honest rather
 // than nothing, and nothing here can throw.
 // `badge` is the STATUS-BAR glyph Android paints when the shade is closed. It
-// must be a monochrome raster (Chrome masks it to white on the bar's colour);
+// must be a monochrome raster (Chrome masks it to white on the bar's color);
 // the seal SVG used to sit here and Android quietly substituted a generic bell
 // for it (Darrell's shade, 2026-09-09). badge-96.png is a white cross on
 // transparency, generated in-repo, so the church's own mark is what shows.

@@ -16,7 +16,7 @@
 // out of step with what the build actually enforces. If a name is added to the
 // rule, it appears here in the same commit with nobody remembering to do it.
 //
-// THEME-SAFE BY CONSTRUCTION. Body text carries NO colour class: it inherits
+// THEME-SAFE BY CONSTRUCTION. Body text carries NO color class: it inherits
 // the theme's own ink, which is correct in cream and in midnight without a
 // remap entry existing for it. The first cut hardcoded #1A1815 and #5A5751 to
 // match the Scripture surfaces and put five new lines of dark-on-dark debt into

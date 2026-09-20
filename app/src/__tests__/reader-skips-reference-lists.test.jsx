@@ -114,7 +114,7 @@ describe('WordInline — a reference that LOOKS tappable actually opens', () => 
 
   const anchorLine = 'Anchor — Matthew 4:10; Isaiah 42:8: KJV: the standard is set by the accused.';
 
-  it('renders each reference as a real button, not as coloured text', () => {
+  it('renders each reference as a real button, not as colored text', () => {
     act(() => root.render(createElement(WordInline, { text: anchorLine, load: async () => 'verse text' })));
     const labels = [...container.querySelectorAll('button')].map((b) => b.textContent);
     expect(labels).toContain('Matthew 4:10');

@@ -20,7 +20,7 @@
 //      beats a button that goes nowhere (DR-0329).
 //
 // It is dark on purpose — Darrell's word was "black" — which also makes a shut
-// surface unmistakable beside the light ones, without a red warning colour that
+// surface unmistakable beside the light ones, without a red warning color that
 // would read as an error. A shut door is not an error.
 //
 // The DATABASE is the wall (DR-0060). This tile is the app being honest about

@@ -312,9 +312,9 @@ describe('it is actually wired, and the ring is actually visible', () => {
     // chrome; red belongs to the Blood and marks nothing else.
     const css = read('app/src/index.css');
     const ringBlock = css.slice(css.indexOf(':focus-visible'));
-    const colours = ringBlock.match(/#[0-9A-Fa-f]{3,6}/g) || [];
-    expect(colours.length, 'the focus ring declares no colour at all').toBeGreaterThan(0);
-    for (const hex of colours) {
+    const colors = ringBlock.match(/#[0-9A-Fa-f]{3,6}/g) || [];
+    expect(colors.length, 'the focus ring declares no color at all').toBeGreaterThan(0);
+    for (const hex of colors) {
       const h = hex.length === 4
         ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}`
         : hex;
@@ -322,7 +322,7 @@ describe('it is actually wired, and the ring is actually visible', () => {
       const gn = parseInt(h.slice(3, 5), 16);
       const bl = parseInt(h.slice(5, 7), 16);
       const dominantRed = rd > 150 && rd > gn * 1.8 && rd > bl * 1.8;
-      expect(dominantRed, `focus ring uses a red-dominant colour ${hex}`).toBe(false);
+      expect(dominantRed, `focus ring uses a red-dominant color ${hex}`).toBe(false);
     }
   });
 

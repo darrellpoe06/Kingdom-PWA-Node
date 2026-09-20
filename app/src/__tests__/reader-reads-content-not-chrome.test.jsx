@@ -20,7 +20,7 @@
 //  2. `revealForReading()` opens collapsed disclosures by clicking every
 //     `[aria-expanded="false"]` in the reading root. VerseHighlighter's swatch
 //     is exactly that shape — and it opens a `role="menu"`. So the reader
-//     popped a colour palette open on every verse on screen. The module's own
+//     popped a color palette open on every verse on screen. The module's own
 //     header already said it must never touch menus (`[aria-haspopup]`); the
 //     component simply never carried the attribute the guard looks for.
 //
@@ -55,7 +55,7 @@ afterEach(() => {
   root = null;
 });
 
-// ── 2. The reader must not PRESS the colour palette open ────────────────────
+// ── 2. The reader must not PRESS the color palette open ────────────────────
 
 describe('revealForReading never opens a menu', () => {
   const mount = (props = {}) => act(() => root.render(
@@ -75,7 +75,7 @@ describe('revealForReading never opens a menu', () => {
     act(() => { revealForReading(container); });
     expect(
       container.querySelector('[role="menu"]'),
-      'the reader popped the colour palette open on a verse',
+      'the reader popped the color palette open on a verse',
     ).toBeNull();
   });
 

@@ -262,7 +262,7 @@ html[data-text-size='bigprint'] .church-give-floater {
 
    NOT RED. True red is reserved for the Blood of Jesus and never marks
    anything else (Color Theology, DR-0099). A focus ring is chrome, so it takes
-   a colour with no such claim on it. The pairing below is a deep blue on light
+   a color with no such claim on it. The pairing below is a deep blue on light
    surfaces and a bright amber on dark ones — each chosen to carry across a
    room against its own background, and each far from red. */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
@@ -303,7 +303,7 @@ html[data-text-size='bigprint'] .church-give-floater {
    painted at all. lib/highlight-fallback.js draws one box per line-box of the
    range into a single overlay layer; these rules style it to match.
 
-   Same colours as the API path on purpose: the two must be indistinguishable,
+   Same colors as the API path on purpose: the two must be indistinguishable,
    or the feature would look like a different feature depending on the device.
    Still never true red — red is the Blood (DR-0099). */
 #poe-read-highlight-layer {

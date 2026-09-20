@@ -1061,7 +1061,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
                 );
               })}
             </div>
-            <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mt-[0.5em] mb-[0.25em]">Colours — dark for night reading</div>
+            <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mt-[0.5em] mb-[0.25em]">Colors — dark for night reading</div>
             <div className="flex flex-wrap items-center gap-[0.375em]" role="group" aria-label="Theme selector" data-testid="reader-theme">
               {THEMES.map((t) => (
                 <button

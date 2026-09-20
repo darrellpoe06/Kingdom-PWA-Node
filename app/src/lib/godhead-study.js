@@ -1772,7 +1772,7 @@ export const GODHEAD_ALGORITHMS = [
   // priest asks that it endure "for all time and eternity." Within about a
   // generation there was likely no one alive who could read it.
   //
-  // The colours themselves are the smaller lesson and an honest one: what we
+  // The colors themselves are the smaller lesson and an honest one: what we
   // picture as austere bare stone was vivid. Our image of antiquity is a
   // DECAYED image, not the thing itself -- worth remembering before treating
   // any faded thing as though its faded state were its true state.

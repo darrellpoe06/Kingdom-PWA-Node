@@ -105,7 +105,7 @@ export default function AuthBanner() {
   // washed-out envelope + the "Add email" offer.
   const hasEmail = !isPhoneUser || linkedDoor;
 
-  // Status colours: green phone when a phone identity is held; full ink envelope
+  // Status colors: green phone when a phone identity is held; full ink envelope
   // when an email is attached; washed-out for absent.
   const phoneClass = isPhoneUser ? 'text-[#5A6E3D]' : 'text-[#B0AAA2]';
   const mailClass = hasEmail ? 'text-[#1A1815]' : 'text-[#B0AAA2]';

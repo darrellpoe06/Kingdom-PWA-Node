@@ -8,7 +8,7 @@
 // number (DR-0061 — a painted number on the family's front screen is worse
 // than none).
 //
-// COLOURS ARE CLASSES, NEVER INLINE. contrast-guard reads the theme CSS as the
+// COLORS ARE CLASSES, NEVER INLINE. contrast-guard reads the theme CSS as the
 // single source of truth and an inline hex cannot be remapped per theme, which
 // is how a midnight-blue accent once rendered 2.84:1 on black. Every surface
 // here uses the palette classes the rest of the cockpit uses, so this view

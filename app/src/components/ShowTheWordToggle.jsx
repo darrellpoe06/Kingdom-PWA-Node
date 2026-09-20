@@ -11,7 +11,7 @@
 // own on top of it. Nothing scrolls when it flips — the verses open where they
 // sit and the screen holds still (Pattern 2e).
 //
-// NO HOVER COLOUR SWAP (2026-09-09, Darrell's screenshot: a blank button). A
+// NO HOVER COLOR SWAP (2026-09-09, Darrell's screenshot: a blank button). A
 // phone keeps :hover on the last thing tapped, and a hover that turned the text white over a
 // surface a theme paints white left the label invisible. Hover now only
 // darkens the text and border, the way the sibling toggles on the map do.
