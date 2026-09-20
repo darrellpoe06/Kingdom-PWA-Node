@@ -239,6 +239,14 @@ export const COURSE_CROSS_LISTINGS = [
   { department: 'Kingdom Life & Stewardship', courseKey: 'stocks', why: 'Most households meet shares through a pension statement they have never opened. What a share is, who gets your money, and the question the screen never asks.' },
   { department: 'Business', courseKey: 'bonds', why: 'Borrowing rather than selling ownership — the road that must be repaid, what a lender will ask about your income and what it already owes.' },
   { department: 'Kingdom Life & Stewardship', courseKey: 'bonds', why: 'The other side of a debt, taught from 2 Kings 4 and Deuteronomy 23 whole — including what the usury passage does and does not settle.' },
+  // COURSE THREE OF THE STOCK MARKET DEPARTMENT, 2026-09-20. World trade is
+  // discussed in two other places for reasons a reader would recognise: any
+  // business that buys or sells something that crossed a border is exposed to
+  // the exchange rate and the shipping cost whether or not it ever looks at
+  // them, and the household question — what a deficit is, what a currency is,
+  // what a just weight is across a border — is stewardship, not economics.
+  { department: 'Business', courseKey: 'world-market', why: 'What an exchange rate and a shipping lane do to a price you quoted in your own currency — the exposure every importer and exporter carries whether or not they look at it.' },
+  { department: 'Kingdom Life & Stewardship', courseKey: 'world-market', why: 'The just weight that does not stop being required at a border (Leviticus 19:36), and the plain answer to the headline word that moves people who were never taught it.' },
   { department: 'Business', courseKey: 'appraisal', why: 'What a thing is actually worth — valuation, which every business that holds or sells an asset must do honestly.' },
   { department: 'Business', courseKey: 'evictions', why: 'Ending a tenancy righteously — the hardest enforcement any operator does, and the one most easily done cruelly.' },
   { department: 'Business', courseKey: 'inspections', why: 'What you look at before you sign — diligence on the asset, which is diligence on the deal.' },

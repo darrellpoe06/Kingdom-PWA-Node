@@ -48,6 +48,7 @@ import { TAXES_RECORDS_META, TAXES_RECORDS_SESSION_FLOW, buildTaxesRecordsSchedu
 import { BANKING_META, BANKING_SESSION_FLOW, buildBankingSchedule, bankingProgressSummary, exportBankingCurriculumMarkdown, BANKING_INTEREST_TAG, BANKING_HELPER_TAG, BANKING_TUTOR_META } from './banking-course.js';
 import { STOCKS_META, STOCKS_SESSION_FLOW, buildStocksSchedule, stocksProgressSummary, exportStocksCurriculumMarkdown, STOCKS_INTEREST_TAG, STOCKS_HELPER_TAG, STOCKS_TUTOR_META } from './stocks-course.js';
 import { BONDS_META, BONDS_SESSION_FLOW, buildBondsSchedule, bondsProgressSummary, exportBondsCurriculumMarkdown, BONDS_INTEREST_TAG, BONDS_HELPER_TAG, BONDS_TUTOR_META } from './bonds-course.js';
+import { WORLD_MARKET_META, WORLD_MARKET_SESSION_FLOW, buildWorldMarketSchedule, worldMarketProgressSummary, exportWorldMarketCurriculumMarkdown, WORLD_MARKET_INTEREST_TAG, WORLD_MARKET_HELPER_TAG, WORLD_MARKET_TUTOR_META } from './world-market-course.js';
 import { INSURANCE_RISK_META, INSURANCE_RISK_SESSION_FLOW, buildInsuranceRiskSchedule, insuranceRiskProgressSummary, exportInsuranceRiskCurriculumMarkdown, INSURANCE_RISK_INTEREST_TAG, INSURANCE_RISK_HELPER_TAG, INSURANCE_RISK_TUTOR_META } from './insurance-risk-course.js';
 import { INSPECTIONS_META, INSPECTIONS_SESSION_FLOW, buildInspectionsSchedule, inspectionsProgressSummary, exportInspectionsCurriculumMarkdown, INSPECTIONS_INTEREST_TAG, INSPECTIONS_HELPER_TAG, INSPECTIONS_TUTOR_META } from './inspections-course.js';
 import { EVICTIONS_META, EVICTIONS_SESSION_FLOW, buildEvictionsSchedule, evictionsProgressSummary, exportEvictionsCurriculumMarkdown, EVICTIONS_INTEREST_TAG, EVICTIONS_HELPER_TAG, EVICTIONS_TUTOR_META } from './evictions-course.js';
@@ -486,6 +487,33 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want a hand working these eight through something real \u2014 the two different things the word safe gets used for, the fraction of a borrower\u2019s income already spoken for, the question that decides a country\u2019s debt, and the loss that happens with no letter and no announcement. The whole course is free and open right here; this is for a hand with yours. If you are the one in debt rather than the one lending, say so \u2014 lessons three and five are about what is happening to you. Teaching, not financial advice.',
       cta: 'I want help with mine',
       sent: '\u2713 Sent \u2014 Darrell will reach out. Know what you are owed, and know who is on the other side.',
+    },
+  },
+  {
+    // COURSE THREE OF THE STOCK MARKET DEPARTMENT. Courses one and two were
+    // each about an INSTRUMENT held by a person -- a share, a bond. This one is
+    // about the system those instruments sit inside, and it answers the half of
+    // Darrell's sentence neither of them touched: countries that trade.
+    //
+    // Its hardest line is lesson three. "Trade deficit" is among the most
+    // confidently misused phrases in public life and the confusion is not
+    // partisan, it is arithmetic: a deficit is not a debt, nobody is owed
+    // anything at the end of a year of one, and the money that went out came
+    // back. Saying that plainly is not taking a side, and this course takes
+    // none -- it names no country as a villain and none as a model, holds no
+    // position on any live dispute, and quotes no figure, because balances and
+    // rates move daily (DR-0098 / DR-0100).
+    key: 'world-market', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...WORLD_MARKET_META, key: 'world-market', category: 'Stock Market' }, sessionFlow: WORLD_MARKET_SESSION_FLOW,
+    buildScheduleRows: () => buildWorldMarketSchedule(null), progressSummary: (p) => worldMarketProgressSummary(p),
+    exportMarkdown: () => exportWorldMarketCurriculumMarkdown(null), downloadName: 'the-world-market-countries-that-trade-curriculum.md',
+    interestTag: WORLD_MARKET_INTEREST_TAG, helperTag: WORLD_MARKET_HELPER_TAG, tutorCourseMeta: WORLD_MARKET_TUTOR_META,
+    interestText: (who) => `${WORLD_MARKET_INTEREST_TAG} ${who} wants a hand with a headline, a price that moved, or a job that depends on something crossing a border.`,
+    interestCopy: {
+      heading: 'Heard the headline and did not know whether to worry?',
+      blurb: 'Tell Darrell you want a hand working these eight through something real \u2014 the word deficit and what it actually means, why a falling currency helps some people at home and hurts others, what a central bank can and cannot do, and what closing a pipe costs the household standing next to the target. The whole course is free and open right here; this is for a hand with yours. If your own job or your own town is on the losing side of a trade, say so \u2014 lessons one and seven are about that, and nobody here will tell you the aggregate is positive. Teaching, not financial or policy advice.',
+      cta: 'I want help understanding it',
+      sent: '\u2713 Sent \u2014 Darrell will reach out. Know the machinery, and carry a just weight across the border.',
     },
   },
   {

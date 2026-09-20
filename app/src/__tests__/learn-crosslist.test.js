@@ -254,10 +254,14 @@ describe('a pointer, never a copy', () => {
     // course, bonds (8 lessons, DR-0549) — the department stops being a shelf
     // with a grand name and becomes a department with more than one course in
     // it, which its own test now pins.
-    expect(courses).toHaveLength(44);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(670);
+    // And to 45 / 678 on 2026-09-20 for the department's THIRD course, world-market
+    // (8 lessons, DR-0553) — the "countries that trade" half of the sentence
+    // the first two courses did not answer, since each of them was about an
+    // instrument held by a person rather than the system it sits inside.
+    expect(courses).toHaveLength(45);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(678);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(670);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(678);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
