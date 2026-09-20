@@ -88,6 +88,10 @@ export default function AppStore() {
                   <div className="font-semibold text-[#5A5751] uppercase tracking-wider text-[0.5625rem]">iPhone / iPad</div>
                   <ol className="list-decimal ml-4 mt-0.5 space-y-0.5">{INSTALL_STEPS.ios.map((s, i) => <li key={i}>{s}</li>)}</ol>
                 </div>
+                <div>
+                  <div className="font-semibold text-[#5A5751] uppercase tracking-wider text-[0.5625rem]">Fire TV / streaming stick</div>
+                  <ol className="list-decimal ml-4 mt-0.5 space-y-0.5">{INSTALL_STEPS.tv.map((s, i) => <li key={i}>{s}</li>)}</ol>
+                </div>
               </div>
             )}
           </div>
