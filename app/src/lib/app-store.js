@@ -94,4 +94,25 @@ export const INSTALL_STEPS = {
     'Tap Share (the square with the up arrow) → "Add to Home Screen."',
     'The app lands on the home screen under its own name and icon.',
   ],
+  // FIRE TV / STREAMING STICKS: the browser, NOT the .apk. Asked 2026-09-20
+  // ("how do I download it on the Firestick since it's an android app?") and
+  // the honest answer is that our package will install there and still not
+  // work, for three reasons visible in store/twa-manifest.template.json:
+  //   1. orientation is `portrait-primary` — a portrait window on a 16:9 TV.
+  //   2. Bubblewrap emits no `android.software.leanback` feature and no
+  //      LEANBACK_LAUNCHER intent filter, so the app does not appear on the
+  //      Fire TV home screen at all even once installed.
+  //   3. The pages are built for touch; a D-pad remote has no focus model to
+  //      drive them with.
+  // On top of that a TWA needs a Custom Tabs provider that implements the TWA
+  // protocol, and Fire OS ships Silk with no Play Store. Sending someone down
+  // the sideload path would be sending them to a dead end, so this path sends
+  // them to the browser, which genuinely works today. A real TV build (landscape,
+  // leanback, D-pad focus) is its own piece of work, not a packaging flag.
+  tv: [
+    'On a Fire TV Stick / Fire TV: open the Amazon Appstore and install Silk Browser (free) if it is not already there.',
+    'Open Silk and go to poetech.us — or the brand address, like poetech.us/lovecorner.',
+    'Press the menu button and add it to Bookmarks so it is one click next time.',
+    'Do NOT sideload the Android package on a TV. It installs, but it is built portrait for a phone, it will not show on the Fire TV home screen, and a remote cannot drive pages made for touch. The browser is the working route today; a proper TV app is a separate build.',
+  ],
 };
