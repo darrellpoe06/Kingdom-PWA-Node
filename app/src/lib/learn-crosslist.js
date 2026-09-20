@@ -237,6 +237,8 @@ export const COURSE_CROSS_LISTINGS = [
   // shares at all.
   { department: 'Business', courseKey: 'stocks', why: 'Selling a piece of the ownership to fund the tower — the third road out of Luke 14:28, and the only one that is never repaid and never recovered.' },
   { department: 'Kingdom Life & Stewardship', courseKey: 'stocks', why: 'Most households meet shares through a pension statement they have never opened. What a share is, who gets your money, and the question the screen never asks.' },
+  { department: 'Business', courseKey: 'bonds', why: 'Borrowing rather than selling ownership — the road that must be repaid, what a lender will ask about your income and what it already owes.' },
+  { department: 'Kingdom Life & Stewardship', courseKey: 'bonds', why: 'The other side of a debt, taught from 2 Kings 4 and Deuteronomy 23 whole — including what the usury passage does and does not settle.' },
   { department: 'Business', courseKey: 'appraisal', why: 'What a thing is actually worth — valuation, which every business that holds or sells an asset must do honestly.' },
   { department: 'Business', courseKey: 'evictions', why: 'Ending a tenancy righteously — the hardest enforcement any operator does, and the one most easily done cruelly.' },
   { department: 'Business', courseKey: 'inspections', why: 'What you look at before you sign — diligence on the asset, which is diligence on the deal.' },

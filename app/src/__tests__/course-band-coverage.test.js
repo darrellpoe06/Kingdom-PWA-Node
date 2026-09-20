@@ -101,12 +101,12 @@ describe('the debt, recorded as it actually is', () => {
     // its footing (DR-0500), 227 with its capstone (DR-0501), 235 with the
     // buying course (DR-0504), 245 with the leasing course (DR-0507) and the
     // two lessons another session landed in between, 253 with the maintenance
-    // course (DR-0508), 261 with the partnerships course (DR-0510), 269 with the financing course (DR-0513), 277 with the taxes and records course (DR-0515), 285 with the Banking course (DR-0522), 293 with the Insurance and Risk course (DR-0523), 301 with the Inspections course (DR-0525) 309 with the Evictions course (DR-0527) and 317 with the Appraisal course (DR-0528), and 325 when the STOCK MARKET department opened with its first course (stocks, DR-0548) -- the first addition that is a whole new DEPARTMENT rather than another shelf in an existing one. Eighty-eight new course
+    // course (DR-0508), 261 with the partnerships course (DR-0510), 269 with the financing course (DR-0513), 277 with the taxes and records course (DR-0515), 285 with the Banking course (DR-0522), 293 with the Insurance and Risk course (DR-0523), 301 with the Inspections course (DR-0525) 309 with the Evictions course (DR-0527) and 317 with the Appraisal course (DR-0528), and 325 when the STOCK MARKET department opened with its first course (stocks, DR-0548) -- the first addition that is a whole new DEPARTMENT rather than another shelf in an existing one -- and 333 with its second course (bonds, DR-0549). Ninety-six new course
     // lessons, every one carrying authored bands — which is why adultOnly did
     // NOT move with any of them. That is the shape a new course is supposed to
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
-    expect(baseline.total).toBe(325);
+    expect(baseline.total).toBe(333);
     expect(baseline.allFour).toBe(0);
     expect(baseline.adultOnly).toBe(37);
   });

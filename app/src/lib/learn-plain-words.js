@@ -89,6 +89,7 @@ export const COURSE_PLAIN_WORDS = {
   banking: ['bank', 'money', 'saving', 'interest', 'debt', 'fees'],
   // --- Stock Market ---------------------------------------------------------
   stocks: ['shares', 'investing', 'company', 'money', 'pension', 'trading'],
+  bonds: ['loan', 'lending', 'debt', 'interest', 'pension', 'government'],
   'insurance-risk': ['insurance', 'fire', 'flood', 'accident', 'house', 'bills'],
   inspections: ['house', 'repairs', 'building', 'fixing', 'plumbing', 'buying'],
   evictions: ['rent', 'landlord', 'tenant', 'debt', 'money', 'home'],

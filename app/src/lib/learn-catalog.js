@@ -47,6 +47,7 @@ import { FINANCING_DEBT_META, FINANCING_DEBT_SESSION_FLOW, buildFinancingDebtSch
 import { TAXES_RECORDS_META, TAXES_RECORDS_SESSION_FLOW, buildTaxesRecordsSchedule, taxesRecordsProgressSummary, exportTaxesRecordsCurriculumMarkdown, TAXES_RECORDS_INTEREST_TAG, TAXES_RECORDS_HELPER_TAG, TAXES_RECORDS_TUTOR_META } from './taxes-records-course.js';
 import { BANKING_META, BANKING_SESSION_FLOW, buildBankingSchedule, bankingProgressSummary, exportBankingCurriculumMarkdown, BANKING_INTEREST_TAG, BANKING_HELPER_TAG, BANKING_TUTOR_META } from './banking-course.js';
 import { STOCKS_META, STOCKS_SESSION_FLOW, buildStocksSchedule, stocksProgressSummary, exportStocksCurriculumMarkdown, STOCKS_INTEREST_TAG, STOCKS_HELPER_TAG, STOCKS_TUTOR_META } from './stocks-course.js';
+import { BONDS_META, BONDS_SESSION_FLOW, buildBondsSchedule, bondsProgressSummary, exportBondsCurriculumMarkdown, BONDS_INTEREST_TAG, BONDS_HELPER_TAG, BONDS_TUTOR_META } from './bonds-course.js';
 import { INSURANCE_RISK_META, INSURANCE_RISK_SESSION_FLOW, buildInsuranceRiskSchedule, insuranceRiskProgressSummary, exportInsuranceRiskCurriculumMarkdown, INSURANCE_RISK_INTEREST_TAG, INSURANCE_RISK_HELPER_TAG, INSURANCE_RISK_TUTOR_META } from './insurance-risk-course.js';
 import { INSPECTIONS_META, INSPECTIONS_SESSION_FLOW, buildInspectionsSchedule, inspectionsProgressSummary, exportInspectionsCurriculumMarkdown, INSPECTIONS_INTEREST_TAG, INSPECTIONS_HELPER_TAG, INSPECTIONS_TUTOR_META } from './inspections-course.js';
 import { EVICTIONS_META, EVICTIONS_SESSION_FLOW, buildEvictionsSchedule, evictionsProgressSummary, exportEvictionsCurriculumMarkdown, EVICTIONS_INTEREST_TAG, EVICTIONS_HELPER_TAG, EVICTIONS_TUTOR_META } from './evictions-course.js';
@@ -461,6 +462,30 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want a hand working these eight through something real \u2014 the fact that your purchase gives the company nothing, the gap between a bid and an ask that nobody bills you for, the share count that tells you what no letter tells you, and the weighting behind every headline about the market. The whole course is free and open right here; this is for a hand with yours. No company, fund or product is named anywhere in it. Teaching, not financial advice.',
       cta: 'I want help understanding mine',
       sent: '\u2713 Sent \u2014 Darrell will reach out. Understand the machinery, then ask the question the screen never asks.',
+    },
+  },
+  {
+    // COURSE TWO OF THE STOCK MARKET DEPARTMENT. Course one answered STOCK;
+    // this one answers BONDS, and it is the other half of a question course
+    // one set up and deliberately left open: a shareholder is paid LAST and is
+    // owed nothing, a bondholder is paid FIRST and is owed a specific sum on a
+    // specific date. Everything else about the two instruments follows.
+    //
+    // Its hardest line is lesson eight. Deuteronomy 23:19-20 is habitually
+    // quoted in halves and each half is used to prove the opposite of the
+    // other; this course teaches BOTH clauses from the text, names what they
+    // settle and what they do not, and refuses both over-reaches (DR-0098).
+    key: 'bonds', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...BONDS_META, key: 'bonds', category: 'Stock Market' }, sessionFlow: BONDS_SESSION_FLOW,
+    buildScheduleRows: () => buildBondsSchedule(null), progressSummary: (p) => bondsProgressSummary(p),
+    exportMarkdown: () => exportBondsCurriculumMarkdown(null), downloadName: 'bonds-lending-to-companies-and-to-countries-curriculum.md',
+    interestTag: BONDS_INTEREST_TAG, helperTag: BONDS_HELPER_TAG, tutorCourseMeta: BONDS_TUTOR_META,
+    interestText: (who) => `${BONDS_INTEREST_TAG} ${who} wants a hand with a debt, a pension holding, or something they were told was safe.`,
+    interestCopy: {
+      heading: 'Told it was safe?',
+      blurb: 'Tell Darrell you want a hand working these eight through something real \u2014 the two different things the word safe gets used for, the fraction of a borrower\u2019s income already spoken for, the question that decides a country\u2019s debt, and the loss that happens with no letter and no announcement. The whole course is free and open right here; this is for a hand with yours. If you are the one in debt rather than the one lending, say so \u2014 lessons three and five are about what is happening to you. Teaching, not financial advice.',
+      cta: 'I want help with mine',
+      sent: '\u2713 Sent \u2014 Darrell will reach out. Know what you are owed, and know who is on the other side.',
     },
   },
   {
