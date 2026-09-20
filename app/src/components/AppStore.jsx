@@ -89,7 +89,7 @@ export default function AppStore() {
                   <ol className="list-decimal ml-4 mt-0.5 space-y-0.5">{INSTALL_STEPS.ios.map((s, i) => <li key={i}>{s}</li>)}</ol>
                 </div>
                 <div>
-                  <div className="font-semibold text-[#5A5751] uppercase tracking-wider text-[0.5625rem]">TV / streaming stick (Fire TV · Samsung · LG)</div>
+                  <div className="font-semibold text-[#5A5751] uppercase tracking-wider text-[0.5625rem]">TV / streaming stick (Fire TV · Samsung · LG · Android TV · Roku · Apple TV)</div>
                   <ol className="list-decimal ml-4 mt-0.5 space-y-0.5">{INSTALL_STEPS.tv.map((s, i) => <li key={i}>{s}</li>)}</ol>
                 </div>
               </div>

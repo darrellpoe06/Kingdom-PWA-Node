@@ -10,6 +10,9 @@ import { join, dirname } from 'node:path';
 import { brandFromParam, onRequestGet } from '../../functions/store/apk/[brand].js';
 import { APP_STORE, APK_DOOR_BASE, INSTALL_STEPS } from '../lib/app-store.js';
 
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../..');
+const read = (rel) => readFileSync(join(REPO_ROOT, rel), 'utf8');
+
 const here = dirname(fileURLToPath(import.meta.url));
 const noCache = { match: async () => undefined, put: async () => {} };
 beforeEach(() => { vi.stubGlobal('caches', { default: noCache }); });
@@ -278,5 +281,37 @@ describe('The Love Corner on a television — the case that actually matters', (
     const church = APP_STORE.find((b) => b.key === 'lovecorner');
     expect(church, 'lovecorner is not in APP_STORE').toBeTruthy();
     expect(church.apk).toBe(`${APK_DOOR_BASE}/lovecorner.apk`);
+  });
+});
+
+describe('every streaming device gets its OWN answer, including the bad news', () => {
+  // Darrell 2026-09-20: "Also explain that it also works on streaming
+  // devices... like firestick... roku... etc?" It works on most of them and
+  // NOT on two, and saying so is the only useful answer — a cheerful "works on
+  // streaming devices" would send a Roku owner hunting for a browser that does
+  // not exist and cannot be installed.
+  const steps = INSTALL_STEPS.tv.join(' ');
+
+  it('covers the devices people actually own', () => {
+    for (const d of ['Fire TV', 'Samsung', 'LG', 'Android TV', 'ROKU', 'Apple TV']) {
+      expect(steps, `no answer for ${d}`).toContain(d);
+    }
+  });
+
+  it('says outright that Roku has NO browser, rather than softening it', () => {
+    // Verified at Roku's own support: "your Roku streaming player or Roku TV
+    // does not provide the ability to browse the internet." Not a limitation
+    // to work around — an absence. Anything vaguer wastes somebody's evening.
+    expect(steps).toMatch(/Roku has NO web browser at all/);
+    expect(steps).toMatch(/none can be installed/);
+  });
+
+  it('gives the devices with no browser the route that DOES work', () => {
+    expect(steps).toMatch(/Cast or mirror from your phone/);
+    expect(steps).toMatch(/AirPlay/);
+  });
+
+  it('the heading names them, so nobody has to open the steps to find out', () => {
+    expect(read('app/src/components/AppStore.jsx')).toMatch(/Roku · Apple TV/);
   });
 });
