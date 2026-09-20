@@ -98,3 +98,17 @@ DROP TRIGGER IF EXISTS church_ministries_touch ON public.church_ministries;
 CREATE TRIGGER church_ministries_touch
   BEFORE UPDATE ON public.church_ministries
   FOR EACH ROW EXECUTE FUNCTION public.touch_church_ministries();
+
+-- THE STANDING OVERLAYS, BECAUSE A NEW INSTANCE-SCOPED TABLE SHIPPED.
+-- church_ministries carries instance_id, so both overlays must be re-applied
+-- in the same migration that creates it (DR-0059 / DR-0241 / DR-0347) or the
+-- tenancy guard fails the build -- which is exactly what it did here, and it
+-- was right to. The RLS above already limits writes to owner/admin, but the
+-- viewer overlay is a SEPARATE grant surface: without re-running it a viewer
+-- role could write this table, and the church's ministry directory is the
+-- public face of the Love Corner. A guard catching this before merge is the
+-- whole reason it exists.
+SELECT public.apply_viewer_readonly_overlay();
+SELECT public.apply_assistant_scope_overlay();
+
+NOTIFY pgrst, 'reload schema';

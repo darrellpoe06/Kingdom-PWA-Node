@@ -67,11 +67,6 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   const [floating, setFloatingLocal] = useState(isFloating);
   useEffect(() => subscribeFloating((st) => setFloatingLocal(!!st.src)), []);
   const followRef = useRef(null);
-  const openFollowAlong = useCallback(() => {
-    setFollowAlong(true);
-    openFloating({ src: playerSrc, title: 'Message' }); // pop it to the SHELL's mini-player so the Word reads clean below
-    setTimeout(() => { try { followRef.current && followRef.current.scrollIntoView({ behavior: motionBehavior(), block: 'start' }); } catch (e) { /* non-fatal */ } }, 60);
-  }, [playerSrc]);
   const [prForm, setPrForm] = useState({ requester: '', request: '', shareWithChurch: true, anonymous: false });
   const [prError, setPrError] = useState('');
   const [showPrForm, setShowPrForm] = useState(false);
@@ -176,6 +171,22 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
   const playerEmbedSrc = withJsApi(playerSrc, typeof window !== 'undefined' ? window.location.origin : '');
   // Render the section whenever we have a source at all.
   const hasWorshipPlayer = !!playerSrc;
+
+  // THIS CALLBACK MUST LIVE BELOW playerSrc, and the crash it caused is the
+  // reason the rule is written here rather than assumed. It was declared up
+  // with followRef, two hundred lines above the `const playerSrc` it names —
+  // and a dependency array is evaluated on EVERY render, so React read
+  // `[playerSrc]` in its temporal dead zone and ChurchHome threw
+  // `ReferenceError: Cannot access 'playerSrc' before initialization` before
+  // it could paint anything. Not a subtle degradation: the Church tab did not
+  // render. The file even says so eighty lines up — "playerSrc is computed
+  // BELOW, after recentVids" — which is true because the source follows the
+  // live feed, and is exactly what makes a reference above it illegal.
+  const openFollowAlong = useCallback(() => {
+    setFollowAlong(true);
+    openFloating({ src: playerSrc, title: 'Message' }); // pop it to the SHELL's mini-player so the Word reads clean below
+    setTimeout(() => { try { followRef.current && followRef.current.scrollIntoView({ behavior: motionBehavior(), block: 'start' }); } catch (e) { /* non-fatal */ } }, 60);
+  }, [playerSrc]);
 
   const submitPrayer = () => {
     const requester = prForm.anonymous ? '(anonymous)' : (prForm.requester || '').trim();

@@ -21,7 +21,12 @@ describe('access + labels', () => {
     // The label now comes from the one shared registry (lib/church-ministries),
     // which names the ministry the way a member would say it.
     expect(opsMinistryLabel('bus')).toBe('Bus / Van Ministry');
-    expect(opsMinistryLabel('band')).toBe('Church Band');
+    // "Church Band" until 2026-09-20, when the roster was rebuilt from the
+    // church's OWN printed volunteer flyer and this row took the name the
+    // flyer gives it. The label is data now, not a constant: the office edits
+    // this list from the app (components/MinistryEditor.jsx), so the pin is on
+    // the seed's exact wording rather than on a name a developer chose.
+    expect(opsMinistryLabel('band')).toBe('Church Band / Instrumental Ministry');
     expect(opsMinistryLabel('mystery')).toBe('mystery');
     expect(OPS_STATUS.length).toBeGreaterThanOrEqual(4);
     expect(OPS_MINISTRIES.some(([k]) => k === 'general')).toBe(true);
