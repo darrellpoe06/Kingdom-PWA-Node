@@ -72,17 +72,34 @@ describe('a device with no voices is told the truth, not given useless advice', 
     // device with a speaker. A device with no local voice is not the end of
     // the story; an unconfigured voice service is why it stayed silent.
     expect(hook, 'the old defeatist message is back').not.toMatch(/open the lesson on a phone or tablet/);
-    expect(hook).toMatch(/voice service is not switched on yet/);
+    expect(hook).toMatch(/has not answered yet/);
     expect(hook).toMatch(/reads aloud HERE, on this screen/);
+    // AND IT NO LONGER CLAIMS THE SERVICE IS "not switched on". That wording
+    // was a CONFIGURATION verdict, and configuration stopped being a variable
+    // when /voice became a same-origin route. Saying a service is switched off
+    // when the true state is "it did not answer" sends the reader's steward to
+    // flip a switch that does not exist.
+    expect(hook, 'a configuration verdict is back in the notice').not.toMatch(/is not switched on yet/);
   });
 
-  it('it distinguishes "not configured" from "configured but silent"', () => {
-    // The two have completely different remedies — arm the studio, versus
-    // check why it stopped answering — and only one of them is ours to fix.
-    // One blurred message would send someone at the wrong problem.
+  it('it branches on the PROBE, not on configuration — three real states', () => {
+    // This used to require the notice to branch on isVoiceServiceReady(), and
+    // that requirement became a trap: /voice is same-origin, so the config
+    // check answers true on every device, one arm of the ternary could never
+    // render, and the arm that COULD told a reader the studio "did not answer"
+    // on a night it had simply never been started. The remedies are genuinely
+    // different — arm the studio, chase why it stopped, or wait for the probe
+    // — so the studio is asked and all three states are spelled out.
     const hook = codeOf('app/src/lib/use-read-aloud.js');
-    expect(hook).toMatch(/isVoiceServiceReady\(\)\s*\n?\s*\?/);
+    expect(hook, 'the notice still reads a config flag').toMatch(/studioHealth === 'down'/);
+    expect(hook).toMatch(/studioHealth === 'up'/);
     expect(hook).toMatch(/did not answer/);
+    // PROVEN-TO-CATCH the exact bug being fixed: a stale closure. studioHealth
+    // is now READ inside the speak callback, and sovereignVoiceReady collapses
+    // 'up' and 'unknown' into one value, so without this dependency the notice
+    // would show whichever state was true when the callback was last built.
+    expect(hook, 'studioHealth is read in the callback but is not a dependency')
+      .toMatch(/sovereignVoiceReady, studioHealth,/);
   });
 
   it('the device-independent path really does run BEFORE the device one', () => {

@@ -107,3 +107,44 @@ describe('something actually RUNS the installer', () => {
     expect(repo('app/src/lib/voice-service.js')).toContain("SOVEREIGN_VOICE_PATH = '/voice'");
   });
 });
+
+describe('configuration stopped being a question — every surface asks the studio', () => {
+  // Making /voice same-origin turned isVoiceServiceReady() into a constant
+  // `true`, and three surfaces were still treating it as a variable. None of
+  // them threw; each simply started saying something that could not be false.
+  // That is the quietest way for a screen to lie, and it is DR-0440's own
+  // defect class — the comment naming it sits in voice-service.js, twenty
+  // lines from the function that caused it.
+  const STUDIO = repo('app/src/components/VoiceStudio.jsx');
+  const TEACHER = repo('app/src/components/LessonTeacher.jsx');
+  const HOOK = repo('app/src/lib/use-read-aloud.js');
+
+  it('the studio panel reports health, not configuration', () => {
+    expect(STUDIO).toMatch(/const studioLine = studioHealth === 'down'/);
+    // The retired line told a steward to set VITE_VOICE_SERVICE_URL. Beyond
+    // being unreachable it was wrong advice: the studio serves plain HTTP on
+    // :8770 and an HTTPS page refuses that as mixed content, so no value in
+    // that variable could have worked from poetech.us.
+    expect(STUDIO, 'the unreachable VITE_VOICE_SERVICE_URL instruction is back')
+      .not.toMatch(/pointed at it \(VITE_VOICE_SERVICE_URL\)/);
+  });
+
+  it('the studio panel derives readiness from the probe, not a parameter default', () => {
+    // A default parameter cannot see studioHealth, which is why this was wrong
+    // by construction rather than by oversight.
+    expect(STUDIO).not.toMatch(/sovereignVoiceReady = isVoiceServiceReady\(\)/);
+    expect(STUDIO).toMatch(/isVoiceServiceReady\(\) && studioHealth !== 'down'/);
+  });
+
+  it('the teacher asks before claiming a REAL cloned voice', () => {
+    // voiceReady decides whether the lesson introduces the teacher as speaking
+    // in their own voice or as a labelled stand-in. Claiming the real one over
+    // a dark studio is the specific dishonesty here.
+    expect(TEACHER).toMatch(/const studioHealth = await probeVoiceService\(\)/);
+    expect(TEACHER).toMatch(/voiceReady: isVoiceServiceReady\(\) && studioHealth !== 'down'/);
+  });
+
+  it('the reader keeps its own honest derivation', () => {
+    expect(HOOK).toMatch(/isVoiceServiceReady\(\) && studioHealth !== 'down'/);
+  });
+});

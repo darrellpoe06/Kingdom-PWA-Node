@@ -433,16 +433,28 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
         // voice endpoint is configured. So the notice says which of the two
         // situations this actually is, because they have completely different
         // remedies and only one of them is ours to fix.
-        setNotice(isVoiceServiceReady()
+        // WHICH of the two it is comes from the PROBE, not from configuration.
+        // It used to come from isVoiceServiceReady(), and that stopped being a
+        // question the moment /voice became a same-origin route: the URL is now
+        // built from window.location and is therefore ALWAYS present, so the
+        // config check answers true on every device and the second branch below
+        // could never render. A message that cannot render is not a message —
+        // and the one that CAN would have told a reader the service "did not
+        // answer" on a night when it was simply never switched on. Same defect
+        // class as DR-0440, which is quoted three files away: a config check
+        // reading as armed. The studio is ASKED instead.
+        setNotice(studioHealth === 'down'
           ? 'This device has no voice of its own, and the church’s voice service did not answer. The text is all here to read; the reading voice returns when the service is back.'
-          : 'This device has no voice of its own — and the church’s own voice service is not switched on yet. Once it is, the lesson reads aloud HERE, on this screen, with no device voice needed.');
+          : studioHealth === 'up'
+            ? 'This device has no voice of its own, and the church’s voice service is answering but could not read this passage. The text is all here; try once more in a moment.'
+            : 'This device has no voice of its own — and the church’s own voice service has not answered yet. Once it is up, the lesson reads aloud HERE, on this screen, with no device voice needed.');
         return;
       }
     }
     const cid = catalogIdOf(voiceId);
     const pitch = cid ? standInPitch(fullCatalog, liveAssignments, cid) : undefined;
     tts.speak(clean, uri, pitch);
-  }, [voiceId, personalVoices, sovereignVoiceReady, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio]);
+  }, [voiceId, personalVoices, sovereignVoiceReady, studioHealth, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio]);
 
   // The OS media buttons drive the SAME controls the panel does — kept in a ref
   // so a lock-screen tap can never call a stale closure.

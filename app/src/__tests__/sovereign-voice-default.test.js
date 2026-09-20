@@ -112,13 +112,36 @@ describe('what this deployment can do is DISCOVERED, never assumed', () => {
   });
 });
 
-describe('no studio configured — exactly the old behaviour', () => {
-  it('returns not-configured so the caller falls to the device voice', async () => {
+describe('THERE IS NO LONGER A "NOT CONFIGURED" STATE, and that is the point', () => {
+  // This block used to assert that clearing VITE_VOICE_SERVICE_URL produced
+  // `voice-service-not-configured` and made no request at all. That was true
+  // and is now false, deliberately: /voice is a SAME-ORIGIN route derived from
+  // window.location, so every device has an endpoint without a build variable,
+  // a per-device setting or a steward's one-time enable. Darrell asked for the
+  // reading voice on a Fire TV he had just plugged in; a feature that needs an
+  // environment variable typed somewhere is not an answer to that.
+  //
+  // What replaces the old assertion is the thing that actually protects the
+  // reader: the call is MADE, and when it fails the caller is handed a tagged
+  // error rather than an exception, so the device voice still speaks.
+  it('with no override, the call goes to the same-origin /voice route', async () => {
     delete import.meta.env.VITE_VOICE_SERVICE_URL;
     globalThis.fetch = vi.fn(ok);
+    await synthesizeSpeech({ text: 'hi', allowBuiltIn: true });
+    expect(globalThis.fetch).toHaveBeenCalled();
+    const url = String(globalThis.fetch.mock.calls[0][0]);
+    expect(url, 'the default endpoint is not the same-origin /voice road').toContain('/voice/speak');
+    expect(url.startsWith(window.location.origin), 'the endpoint left this origin').toBe(true);
+  });
+
+  it('a studio that refuses returns a TAGGED error, never a throw', async () => {
+    // The whole safety of the fall-back-to-device-voice path: use-read-aloud
+    // checks `r.error` and keeps reading. An exception here would take the tap
+    // handler down and the reader would get silence with no explanation.
+    delete import.meta.env.VITE_VOICE_SERVICE_URL;
+    globalThis.fetch = vi.fn(async () => { throw new Error('ECONNREFUSED'); });
     const r = await synthesizeSpeech({ text: 'hi', allowBuiltIn: true });
-    expect(r.error).toBe('voice-service-not-configured');
-    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(r && r.error, 'a dark studio did not produce a tagged error').toBeTruthy();
   });
 });
 
