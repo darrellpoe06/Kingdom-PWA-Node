@@ -1,14 +1,14 @@
 {
   "window": 200,
-  "note": "Shrink-only debt (Darrell 2026-09-17). Each entry names the bands of a lesson whose OPENING does not name its own lesson. A newly-unnamed band fails the build; entries are removed as bands are authored to carry the title, never added. Read the entries — this measures DIFFERENCE, not absence: a band may name its lesson in a synonym the author chose on purpose.",
+  "note": "Shrink-only debt (Darrell 2026-09-17). Each entry names the bands of a lesson whose OPENING does not name its own lesson. A newly-unnamed band fails the build; entries are removed as bands are authored to carry the title, never added. Read the entries — this measures DIFFERENCE, not absence: a band may name its lesson in a synonym the author chose on purpose. 2026-09-20: ll57 (Power to Tread) leaves this list entirely. Its child band was re-authored from scratch and its teen and senior openings now name the lesson, so all three recorded bands HEALED and a newly authored youth band was written naming it from the first sentence rather than added as fresh debt.",
   "measuredLessons": 188,
-  "lessonsUnnamed": 146,
-  "bandsUnnamed": 431,
+  "lessonsUnnamed": 145,
+  "bandsUnnamed": 428,
   "perBand": {
-    "child": 136,
+    "child": 135,
     "youth": 50,
-    "teen": 121,
-    "senior": 124
+    "teen": 120,
+    "senior": 123
   },
   "unnamed": {
     "ll10-strength-and-honour-are-her-clothing": [
@@ -574,11 +574,6 @@
       "senior"
     ],
     "ll56-the-person-of-the-holy-spirit-seek-the-deliverer-not-deliverance": [
-      "senior"
-    ],
-    "ll57-power-to-tread-the-authority-he-gave-and-the-better-joy": [
-      "child",
-      "teen",
       "senior"
     ],
     "ll59-not-by-measure-all-of-him-from-day-one": [
