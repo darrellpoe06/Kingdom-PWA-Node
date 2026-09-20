@@ -2,7 +2,7 @@
   "ceiling": 0.5,
   "shingle": 8,
   "note": "Shrink-only debt (Darrell 2026-09-18: \"Last lessons don't have diversity of lessons for all reading levels... why not?\"). Overlap is the share of 8-word phrases the smaller band shares with the larger, measured on AUTHORED PROSE with quotations removed — every band quotes the same verses, so counting them would punish a well-differentiated lesson. A lesson newly over the ceiling FAILS the build; entries are removed as bands are genuinely re-authored, never added. Differentiation is not abbreviation: the full-levels floor and the reading ladder stay in force at the same time (DR-0418).",
-  "measuredLessons": 110,
+  "measuredLessons": 120,
   "lessonsDuplicated": 0,
   "duplicated": {}
 }

@@ -24,9 +24,10 @@ import {
 } from '../lib/read-follow.js';
 import { segmentText } from '../lib/tts.js';
 import { readFromPoint } from '../lib/read-from-here.js';
-import { getReadTarget, subscribeReadTarget, pendingRead, takeRead, subscribeRead } from '../lib/read-target.js';
+import { getReadTarget, subscribeReadTarget, pendingRead, takeRead, subscribeRead, requestRead } from '../lib/read-target.js';
 import { useShowTheWord, toggleShowTheWord } from '../lib/show-the-word.js';
 import { getPlace, recordPlace, sentenceKeyOf, findSentence, finishPlace, placeIsFinished } from '../lib/learn-resume.js';
+import { IDLE as RETURN_IDLE, foldReturn, offersReturn, returnPlan, returnLabel } from '../lib/reader-return.js';
 import { subscribeReadRequest } from '../lib/read-request.js';
 import { revealAllForReading, settled, afterRender } from '../lib/read-reveal.js';
 import UiIcon from './UiIcon.jsx';
@@ -401,6 +402,43 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // whole-page reading stays as the fallback below it.
   const [target, setTarget] = useState(() => getReadTarget());
   useEffect(() => subscribeReadTarget(setTarget), []);
+  // DECLARED BELOW `target` ON PURPOSE. The first placement of this block sat
+  // above the useState above — the same temporal-dead-zone trap this file
+  // already records costing 67 render failures at rememberSentence. A
+  // dependency array is evaluated DURING render, so a const listed there but
+  // declared later throws on every mount of the reader.
+  // THE WAY BACK WHEN YOU LEAVE THE PAGE (DR-0552; Darrell 2026-09-20: "if and
+  // when you leave the page to do something necessary and want to come back in
+  // and listen to what you were just listening to... move them back to the
+  // highlighted sentences and pages right away from the reader").
+  //
+  // The screen-off recoveries above all hang off `visibilitychange`, and
+  // IN-APP NAVIGATION FIRES NONE OF THEM. But a lesson's unmount already calls
+  // clearReadTarget(owner), so the target going {owner: X} -> null WHILE the
+  // place still names lesson X IS the departure event — no new bookkeeping.
+  // reader-return.js decides when an offer is honest (it never restarts a
+  // deliberate pause, and stays silent on a finished lesson); this only folds
+  // observations in and renders what it decides.
+  // A place that cannot be read is simply no place — never a throw that takes
+  // the reader down with it.
+  const readPlace = () => { try { return getPlace(); } catch { return null; } };
+  const [ret, setRet] = useState(RETURN_IDLE);
+  // TAKING THE WAY BACK. The plan always carries the SENTENCE — "move them back
+  // to the highlighted sentences" is the half that did not exist — and `speak`
+  // honours how they left, so a deliberate pause is never restarted for them.
+  const takeMeBack = useCallback(() => {
+    const plan = returnPlan(ret, readPlace());
+    if (!plan) return;
+    // The lesson's own space is the thing that knows how to open a lesson and
+    // scroll within it; asking for the read re-arms the reader the moment that
+    // lesson re-registers, and savedStartIndex() lands it on the sentence.
+    try { requestRead(plan.lessonId); } catch { /* a way back that fails is never fatal */ }
+    setRet(RETURN_IDLE);
+  }, [ret]);
+
+  useEffect(() => {
+    setRet((prev) => foldReturn(prev, { target, isReading, paused: isPaused, place: readPlace() }));
+  }, [target, isReading, isPaused]);
   // THE READER CAN SWITCH THE LEVEL TOO (Darrell 2026-09-15: "we would also
   // want the reader to be able to switch too" — DR-0426). The lesson hands
   // its "Who is learning?" choice to the target (level / levels / setLevel);
@@ -854,6 +892,13 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           <span className="text-[0.75em] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>The screen went dark and the reading stopped.</span>
           <button type="button" onClick={continueReading} className="px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">▶ Continue</button>
           <button type="button" onClick={() => setInterrupted(false)} aria-label="Dismiss" className="px-[0.5em] py-[0.375em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
+        </div>
+      )}
+      {offersReturn(ret) && (
+        <div role="status" data-testid="reading-way-back" className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.75em] py-[0.5em] flex items-center flex-wrap justify-end gap-[0.5em]" style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>
+          <span className="text-[0.75em] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{returnLabel(ret)}</span>
+          <button type="button" onClick={takeMeBack} data-testid="reading-way-back-go" className="px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">↩ Take me back</button>
+          <button type="button" onClick={() => setRet(RETURN_IDLE)} aria-label="Dismiss" className="px-[0.5em] py-[0.375em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
         </div>
       )}
       {scrollTopBtn}

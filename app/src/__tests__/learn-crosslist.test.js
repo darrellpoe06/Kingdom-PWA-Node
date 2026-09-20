@@ -239,10 +239,33 @@ describe('a pointer, never a copy', () => {
     // -- Darrell's spoken teaching on gnosticism plus his own question about
     // the jealousy of Yahweh, a real lesson into the existing Living Lessons
     // course, so the course count holds at 42 and only the lesson total moves.
-    expect(courses).toHaveLength(42);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(653);
+    // And to 42 / 654 on 2026-09-19 for L189 (“Follow the Leader — the
+    // Shepherd of Our Souls”, DR-0546) — Darrell spoke this one in pieces
+    // across an evening and then named it himself; again a real lesson into
+    // the existing Living Lessons course, so the course count holds at 42 and
+    // only the lesson total moves.
+    // And to 43 / 662 on 2026-09-19 when the STOCK MARKET department opened
+    // (Darrell: "Stock Market courses to explore and explain the world of
+    // stock and bonds and countries that trade and how investment works world
+    // wide."). Its first course, stocks, is 8 lessons and is the first course
+    // to add a whole DEPARTMENT rather than a shelf, so both numbers move —
+    // 42 to 43 and 654 to 662. DR-0548.
+    // And to 44 / 670 on 2026-09-20 for the Stock Market department's SECOND
+    // course, bonds (8 lessons, DR-0549) — the department stops being a shelf
+    // with a grand name and becomes a department with more than one course in
+    // it, which its own test now pins.
+    // And to 45 / 678 on 2026-09-20 for the department's THIRD course, world-market
+    // (8 lessons, DR-0553) — the "countries that trade" half of the sentence
+    // the first two courses did not answer, since each of them was about an
+    // instrument held by a person rather than the system it sits inside.
+    // And to 46 / 686 on 2026-09-20 for the department's FOURTH and final
+    // course, investing (8 lessons, DR-0554) — which completes the four
+    // Darrell named in one sentence, and is the only one of them about a
+    // DECISION rather than a piece of machinery.
+    expect(courses).toHaveLength(46);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(686);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(653);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(686);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {

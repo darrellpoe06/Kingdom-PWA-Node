@@ -62,6 +62,45 @@ export const READER_FIELDS = ['lesson', 'bigIdea', 'inApp'];
 const norm = (s) => String(s).replace(/\s+/g, ' ').trim();
 const ELLIPSIS = /\.\.\.|…/;
 
+/**
+ * Every place a QUOTATION can appear, which is wider than readerTexts.
+ *
+ * WHY TWO SETS (2026-09-19, DR-0545). READER_FIELDS above is scoped for the
+ * DR-id check, and the reason is written right there: a record id is not noise
+ * to a facilitator, so his notes are out of that check's scope. The quotation
+ * gate then reused readerTexts and silently inherited a scope that has nothing
+ * to do with record ids — so benefits, the quiz and the facilitator's talking
+ * points were never checked against the KJV at all.
+ *
+ * MEASURED the day this was added: 2,942 quoted spans live in those three
+ * surfaces. 2,906 resolved verbatim — the authoring had been faithful — and 36
+ * did not: eight quotations that were not the verse, one that shouted a word
+ * His text does not, and twenty-seven references abbreviated past the point a
+ * resolver could check them. All 36 were repaired before this shipped.
+ *
+ * His words are His words wherever they are printed, and the facilitator reads
+ * the talking points ALOUD to a room. There is no surface where the verse may
+ * be approximate.
+ */
+export function quotedTexts(module) {
+  const out = readerTexts(module);
+  (module.benefits || []).forEach((x, i) => {
+    if (typeof x === 'string') out.push([`benefits[${i}]`, x]);
+  });
+  const questions = (module.quiz && module.quiz.questions) || [];
+  questions.forEach((q, i) => {
+    if (typeof q.q === 'string') out.push([`quiz[${i}].q`, q.q]);
+    if (typeof q.explain === 'string') out.push([`quiz[${i}].explain`, q.explain]);
+    (q.options || []).forEach((o, j) => {
+      if (typeof o === 'string') out.push([`quiz[${i}].options[${j}]`, o]);
+    });
+  });
+  ((module.facilitator && module.facilitator.talkingPoints) || []).forEach((x, i) => {
+    if (typeof x === 'string') out.push([`talkingPoints[${i}]`, x]);
+  });
+  return out;
+}
+
 /** Every reader-facing string of a module, as [where, text] pairs. */
 export function readerTexts(module) {
   const out = [];

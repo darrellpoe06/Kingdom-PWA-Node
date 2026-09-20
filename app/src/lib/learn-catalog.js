@@ -46,6 +46,10 @@ import { PARTNERSHIPS_META, PARTNERSHIPS_SESSION_FLOW, buildPartnershipsSchedule
 import { FINANCING_DEBT_META, FINANCING_DEBT_SESSION_FLOW, buildFinancingDebtSchedule, financingDebtProgressSummary, exportFinancingDebtCurriculumMarkdown, FINANCING_DEBT_INTEREST_TAG, FINANCING_DEBT_HELPER_TAG, FINANCING_DEBT_TUTOR_META } from './financing-debt-course.js';
 import { TAXES_RECORDS_META, TAXES_RECORDS_SESSION_FLOW, buildTaxesRecordsSchedule, taxesRecordsProgressSummary, exportTaxesRecordsCurriculumMarkdown, TAXES_RECORDS_INTEREST_TAG, TAXES_RECORDS_HELPER_TAG, TAXES_RECORDS_TUTOR_META } from './taxes-records-course.js';
 import { BANKING_META, BANKING_SESSION_FLOW, buildBankingSchedule, bankingProgressSummary, exportBankingCurriculumMarkdown, BANKING_INTEREST_TAG, BANKING_HELPER_TAG, BANKING_TUTOR_META } from './banking-course.js';
+import { STOCKS_META, STOCKS_SESSION_FLOW, buildStocksSchedule, stocksProgressSummary, exportStocksCurriculumMarkdown, STOCKS_INTEREST_TAG, STOCKS_HELPER_TAG, STOCKS_TUTOR_META } from './stocks-course.js';
+import { BONDS_META, BONDS_SESSION_FLOW, buildBondsSchedule, bondsProgressSummary, exportBondsCurriculumMarkdown, BONDS_INTEREST_TAG, BONDS_HELPER_TAG, BONDS_TUTOR_META } from './bonds-course.js';
+import { WORLD_MARKET_META, WORLD_MARKET_SESSION_FLOW, buildWorldMarketSchedule, worldMarketProgressSummary, exportWorldMarketCurriculumMarkdown, WORLD_MARKET_INTEREST_TAG, WORLD_MARKET_HELPER_TAG, WORLD_MARKET_TUTOR_META } from './world-market-course.js';
+import { INVESTING_META, INVESTING_SESSION_FLOW, buildInvestingSchedule, investingProgressSummary, exportInvestingCurriculumMarkdown, INVESTING_INTEREST_TAG, INVESTING_HELPER_TAG, INVESTING_TUTOR_META } from './investing-course.js';
 import { INSURANCE_RISK_META, INSURANCE_RISK_SESSION_FLOW, buildInsuranceRiskSchedule, insuranceRiskProgressSummary, exportInsuranceRiskCurriculumMarkdown, INSURANCE_RISK_INTEREST_TAG, INSURANCE_RISK_HELPER_TAG, INSURANCE_RISK_TUTOR_META } from './insurance-risk-course.js';
 import { INSPECTIONS_META, INSPECTIONS_SESSION_FLOW, buildInspectionsSchedule, inspectionsProgressSummary, exportInspectionsCurriculumMarkdown, INSPECTIONS_INTEREST_TAG, INSPECTIONS_HELPER_TAG, INSPECTIONS_TUTOR_META } from './inspections-course.js';
 import { EVICTIONS_META, EVICTIONS_SESSION_FLOW, buildEvictionsSchedule, evictionsProgressSummary, exportEvictionsCurriculumMarkdown, EVICTIONS_INTEREST_TAG, EVICTIONS_HELPER_TAG, EVICTIONS_TUTOR_META } from './evictions-course.js';
@@ -433,6 +437,112 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want a hand applying these eight to your own accounts \u2014 the two numbers on your statement nobody prints together, the signature you were asked for and can still refuse, the store you can start in a summer month, and the fee total almost nobody has ever added up. The whole course is free and open right here; this is for a hand with yours. Teaching, not financial or legal advice.',
       cta: 'I want help with mine',
       sent: '\u2713 Sent \u2014 Darrell will reach out. Know what it is for, and know what is holding you up.',
+    },
+  },
+  {
+    // COURSE ONE OF THE STOCK MARKET DEPARTMENT. Darrell 2026-09-19: "Stock
+    // Market courses to explore and explain the world of stock and bonds and
+    // countries that trade and how investment works world wide." Four courses
+    // were planned: stocks, bonds, the world market, and how investing works.
+    // This is the first, and it is deliberately the one that replaces a
+    // picture -- the way Banking opens by replacing the drawer. The picture
+    // here is that a share is a number on a screen. It is a piece of a
+    // company, and every confusion downstream grows from forgetting it.
+    //
+    // Its own gates hold two lines: Matthew 25 is NOT presented as an
+    // endorsement of equity investing (DR-0098), and no live figure is quoted
+    // anywhere -- only dated rules and labelled arithmetic (DR-0076), because
+    // a number printed in a lesson is wrong by the time it is read.
+    key: 'stocks', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...STOCKS_META, key: 'stocks', category: 'Stock Market' }, sessionFlow: STOCKS_SESSION_FLOW,
+    buildScheduleRows: () => buildStocksSchedule(null), progressSummary: (p) => stocksProgressSummary(p),
+    exportMarkdown: () => exportStocksCurriculumMarkdown(null), downloadName: 'stocks-what-you-actually-own-when-you-buy-a-share-curriculum.md',
+    interestTag: STOCKS_INTEREST_TAG, helperTag: STOCKS_HELPER_TAG, tutorCourseMeta: STOCKS_TUTOR_META,
+    interestText: (who) => `${STOCKS_INTEREST_TAG} ${who} wants a hand understanding shares, a pension statement, or something they already hold.`,
+    interestCopy: {
+      heading: 'Never had it explained?',
+      blurb: 'Tell Darrell you want a hand working these eight through something real \u2014 the fact that your purchase gives the company nothing, the gap between a bid and an ask that nobody bills you for, the share count that tells you what no letter tells you, and the weighting behind every headline about the market. The whole course is free and open right here; this is for a hand with yours. No company, fund or product is named anywhere in it. Teaching, not financial advice.',
+      cta: 'I want help understanding mine',
+      sent: '\u2713 Sent \u2014 Darrell will reach out. Understand the machinery, then ask the question the screen never asks.',
+    },
+  },
+  {
+    // COURSE TWO OF THE STOCK MARKET DEPARTMENT. Course one answered STOCK;
+    // this one answers BONDS, and it is the other half of a question course
+    // one set up and deliberately left open: a shareholder is paid LAST and is
+    // owed nothing, a bondholder is paid FIRST and is owed a specific sum on a
+    // specific date. Everything else about the two instruments follows.
+    //
+    // Its hardest line is lesson eight. Deuteronomy 23:19-20 is habitually
+    // quoted in halves and each half is used to prove the opposite of the
+    // other; this course teaches BOTH clauses from the text, names what they
+    // settle and what they do not, and refuses both over-reaches (DR-0098).
+    key: 'bonds', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...BONDS_META, key: 'bonds', category: 'Stock Market' }, sessionFlow: BONDS_SESSION_FLOW,
+    buildScheduleRows: () => buildBondsSchedule(null), progressSummary: (p) => bondsProgressSummary(p),
+    exportMarkdown: () => exportBondsCurriculumMarkdown(null), downloadName: 'bonds-lending-to-companies-and-to-countries-curriculum.md',
+    interestTag: BONDS_INTEREST_TAG, helperTag: BONDS_HELPER_TAG, tutorCourseMeta: BONDS_TUTOR_META,
+    interestText: (who) => `${BONDS_INTEREST_TAG} ${who} wants a hand with a debt, a pension holding, or something they were told was safe.`,
+    interestCopy: {
+      heading: 'Told it was safe?',
+      blurb: 'Tell Darrell you want a hand working these eight through something real \u2014 the two different things the word safe gets used for, the fraction of a borrower\u2019s income already spoken for, the question that decides a country\u2019s debt, and the loss that happens with no letter and no announcement. The whole course is free and open right here; this is for a hand with yours. If you are the one in debt rather than the one lending, say so \u2014 lessons three and five are about what is happening to you. Teaching, not financial advice.',
+      cta: 'I want help with mine',
+      sent: '\u2713 Sent \u2014 Darrell will reach out. Know what you are owed, and know who is on the other side.',
+    },
+  },
+  {
+    // COURSE THREE OF THE STOCK MARKET DEPARTMENT. Courses one and two were
+    // each about an INSTRUMENT held by a person -- a share, a bond. This one is
+    // about the system those instruments sit inside, and it answers the half of
+    // Darrell's sentence neither of them touched: countries that trade.
+    //
+    // Its hardest line is lesson three. "Trade deficit" is among the most
+    // confidently misused phrases in public life and the confusion is not
+    // partisan, it is arithmetic: a deficit is not a debt, nobody is owed
+    // anything at the end of a year of one, and the money that went out came
+    // back. Saying that plainly is not taking a side, and this course takes
+    // none -- it names no country as a villain and none as a model, holds no
+    // position on any live dispute, and quotes no figure, because balances and
+    // rates move daily (DR-0098 / DR-0100).
+    key: 'world-market', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...WORLD_MARKET_META, key: 'world-market', category: 'Stock Market' }, sessionFlow: WORLD_MARKET_SESSION_FLOW,
+    buildScheduleRows: () => buildWorldMarketSchedule(null), progressSummary: (p) => worldMarketProgressSummary(p),
+    exportMarkdown: () => exportWorldMarketCurriculumMarkdown(null), downloadName: 'the-world-market-countries-that-trade-curriculum.md',
+    interestTag: WORLD_MARKET_INTEREST_TAG, helperTag: WORLD_MARKET_HELPER_TAG, tutorCourseMeta: WORLD_MARKET_TUTOR_META,
+    interestText: (who) => `${WORLD_MARKET_INTEREST_TAG} ${who} wants a hand with a headline, a price that moved, or a job that depends on something crossing a border.`,
+    interestCopy: {
+      heading: 'Heard the headline and did not know whether to worry?',
+      blurb: 'Tell Darrell you want a hand working these eight through something real \u2014 the word deficit and what it actually means, why a falling currency helps some people at home and hurts others, what a central bank can and cannot do, and what closing a pipe costs the household standing next to the target. The whole course is free and open right here; this is for a hand with yours. If your own job or your own town is on the losing side of a trade, say so \u2014 lessons one and seven are about that, and nobody here will tell you the aggregate is positive. Teaching, not financial or policy advice.',
+      cta: 'I want help understanding it',
+      sent: '\u2713 Sent \u2014 Darrell will reach out. Know the machinery, and carry a just weight across the border.',
+    },
+  },
+  {
+    // COURSE FOUR OF THE STOCK MARKET DEPARTMENT, and the last quarter of the
+    // sentence that opened it. Courses one to three taught MACHINERY -- what a
+    // share is, what a bond is, what a deficit is -- and a reader handed those
+    // is strictly better off. This one is about a DECISION, which is precisely
+    // where teaching turns into telling somebody what to do with their money
+    // without anybody noticing the step.
+    //
+    // So it is built to refuse that. Every lesson ends by handing the reader a
+    // QUESTION for their own situation rather than an answer this house
+    // supplies; no product, fund, company, platform, allocation or strategy is
+    // named anywhere in it; no figure is quoted and no forecast is made. Its
+    // last three lessons are whose money is it, what is it for, and how much is
+    // enough -- which is why it is cross-listed onto the stewardship shelf as
+    // firmly as onto the market one.
+    key: 'investing', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...INVESTING_META, key: 'investing', category: 'Stock Market' }, sessionFlow: INVESTING_SESSION_FLOW,
+    buildScheduleRows: () => buildInvestingSchedule(null), progressSummary: (p) => investingProgressSummary(p),
+    exportMarkdown: () => exportInvestingCurriculumMarkdown(null), downloadName: 'how-investing-actually-works-curriculum.md',
+    interestTag: INVESTING_INTEREST_TAG, helperTag: INVESTING_HELPER_TAG, tutorCourseMeta: INVESTING_TUTOR_META,
+    interestText: (who) => `${INVESTING_INTEREST_TAG} ${who} wants a hand working out what they are actually holding, what it costs, and what it is for.`,
+    interestCopy: {
+      heading: 'Told you ought to be investing?',
+      blurb: 'Tell Darrell you want a hand working these eight through something real \u2014 the four different things the word risk gets used for, the charge you have probably never looked at, what time actually does, and the three questions that come before any product is named. The whole course is free and open right here; this is for a hand with yours. Nothing in it names a product, a fund or a strategy, nothing tells you what to buy, and nothing quotes a figure. If you finish it harder to sell to, including by us, it worked. Teaching, not financial advice.',
+      cta: 'I want help understanding mine',
+      sent: '\u2713 Sent \u2014 Darrell will reach out. Whose is it, what is it for, and by when.',
     },
   },
   {

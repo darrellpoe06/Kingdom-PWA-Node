@@ -58,8 +58,19 @@ export const CHILD_CEILING = 7.0;
  */
 export const NEW_LESSON_CHILD_CEILING = 5.0;
 
-/** The intended ordering. Each band should read no harder than the next. */
-export const BAND_ORDER = ['child', 'teen', 'senior'];
+/**
+ * The intended ordering. Each band should read no harder than the next.
+ *
+ * YOUTH WAS MISSING UNTIL 2026-09-19 (DR-0544). This gate was written
+ * 2026-09-06; the youth band was introduced with L81 and never added here. So
+ * for two weeks the app displayed a youth level that NOTHING measured, while
+ * the band-fill pass was authoring eighty more of them. The first measurement
+ * after adding it found 30 of the 115 lessons carrying a youth band read
+ * HARDER at youth than at teen — the younger band, the harder text, which is
+ * precisely the defect this file exists to catch, hidden only because youth
+ * was not in this array. Those 30 are recorded as shrink-only debt.
+ */
+export const BAND_ORDER = ['child', 'youth', 'teen', 'senior'];
 
 /** Rough English syllable count. Deliberately simple and deterministic. */
 export function syllables(word) {
@@ -98,7 +109,7 @@ const round1 = (n) => (n === null ? null : Math.round(n * 10) / 10);
 export function measureLesson(module) {
   const levels = (module && module.levels) || {};
   const bands = {};
-  for (const band of ['child', 'teen', 'senior']) {
+  for (const band of BAND_ORDER) {
     const text = levels[band];
     if (typeof text !== 'string' || !text) continue;
     bands[band] = {
@@ -116,8 +127,9 @@ export function measureLesson(module) {
 }
 
 /**
- * Is the ordering inverted? child should read no harder than teen, and teen no
- * harder than senior. A lesson missing a band is not judged here — the
+ * Is the ordering inverted? child should read no harder than youth, youth no
+ * harder than teen, and teen no harder than senior. A lesson missing a band is
+ * not judged here — the
  * band-coverage gates own that, and two gates blaming each other for the same
  * defect is how a gap survives both.
  */
@@ -196,7 +208,7 @@ export function buildBaseline(scan, { ceiling = CHILD_CEILING, newLessonCeiling 
   return {
     ceiling,
     newLessonCeiling,
-    note: 'Shrink-only debt. A NEW offender fails the build; entries may be removed as lessons are rewritten, never added. Lessons not in knownLessons are held to newLessonCeiling (DR-0417 D3). See docs/00-foundations/07-neuroplasticity-and-the-word.md §4.',
+    note: 'Shrink-only debt. A NEW offender fails the build; entries may be removed as lessons are rewritten, never added. Lessons not in knownLessons are held to newLessonCeiling (DR-0417 D3). The inverted list grew ONCE, on 2026-09-19, when the youth band was added to BAND_ORDER and 30 pre-existing youth inversions became visible (DR-0544) — that was the gate widening, not the corpus worsening; it is shrink-only from there. See docs/00-foundations/07-neuroplasticity-and-the-word.md §4.',
     measuredLessons: scan.total,
     inverted: [...scan.inverted].sort(),
     childOverCeiling: [...scan.childOverCeiling].sort(),

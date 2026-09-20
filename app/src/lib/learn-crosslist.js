@@ -229,6 +229,30 @@ export const COURSE_CROSS_LISTINGS = [
   // The list was hand-kept, so every course added after it was written simply
   // never appeared. See HOME_ONLY below for the structural fix.
   { department: 'Business', courseKey: 'banking', why: 'What the bank does with your money — the counterparty every business banks with, and what it owes you.' },
+  // CROSS-LISTED WITH THE STOCK MARKET DEPARTMENT, 2026-09-19. The Stocks
+  // course lives in Stock Market and is genuinely discussed in two other
+  // places: a business raising capital by selling ownership is a Business
+  // question (its lesson two IS that decision), and a household pension is a
+  // Kingdom Life & Stewardship question, which is how most people first meet
+  // shares at all.
+  { department: 'Business', courseKey: 'stocks', why: 'Selling a piece of the ownership to fund the tower — the third road out of Luke 14:28, and the only one that is never repaid and never recovered.' },
+  { department: 'Kingdom Life & Stewardship', courseKey: 'stocks', why: 'Most households meet shares through a pension statement they have never opened. What a share is, who gets your money, and the question the screen never asks.' },
+  { department: 'Business', courseKey: 'bonds', why: 'Borrowing rather than selling ownership — the road that must be repaid, what a lender will ask about your income and what it already owes.' },
+  { department: 'Kingdom Life & Stewardship', courseKey: 'bonds', why: 'The other side of a debt, taught from 2 Kings 4 and Deuteronomy 23 whole — including what the usury passage does and does not settle.' },
+  // COURSE THREE OF THE STOCK MARKET DEPARTMENT, 2026-09-20. World trade is
+  // discussed in two other places for reasons a reader would recognise: any
+  // business that buys or sells something that crossed a border is exposed to
+  // the exchange rate and the shipping cost whether or not it ever looks at
+  // them, and the household question — what a deficit is, what a currency is,
+  // what a just weight is across a border — is stewardship, not economics.
+  { department: 'Business', courseKey: 'world-market', why: 'What an exchange rate and a shipping lane do to a price you quoted in your own currency — the exposure every importer and exporter carries whether or not they look at it.' },
+  { department: 'Kingdom Life & Stewardship', courseKey: 'world-market', why: 'The just weight that does not stop being required at a border (Leviticus 19:36), and the plain answer to the headline word that moves people who were never taught it.' },
+  // COURSE FOUR OF THE STOCK MARKET DEPARTMENT, 2026-09-20. The only course in
+  // the department about a DECISION rather than a piece of machinery, which is
+  // why it belongs on the stewardship shelf as much as the market one: its last
+  // three lessons are whose money is it, what is it for, and how much is enough.
+  { department: 'Kingdom Life & Stewardship', courseKey: 'investing', why: 'The steward’s three questions before any product is named — whose is it, what is it for, by when — and the one the industry cannot answer: how much is enough (Proverbs 30:8).' },
+  { department: 'Business', courseKey: 'investing', why: 'The four different things the word RISK gets used for, and the only number in the whole business that is knowable before anything happens.' },
   { department: 'Business', courseKey: 'appraisal', why: 'What a thing is actually worth — valuation, which every business that holds or sells an asset must do honestly.' },
   { department: 'Business', courseKey: 'evictions', why: 'Ending a tenancy righteously — the hardest enforcement any operator does, and the one most easily done cruelly.' },
   { department: 'Business', courseKey: 'inspections', why: 'What you look at before you sign — diligence on the asset, which is diligence on the deal.' },

@@ -62,7 +62,20 @@ export const HARD_TERMS = {
   assay: ['heat a sample', 'find out what it actually is', 'metal shop', 'what a material is', 'test of what is there'],
   usury: ['old word for interest', 'charging extra for the use of money', 'rule about interest', 'interest'],
   surety: ['signing for somebody else', 'sign for someone else', 'promise to pay someone else', 'you owe it instead', 'on the hook for'],
-  collateral: ['hold until the loan is paid', 'lender can take', 'lender gets to take', 'put up as security', 'put their land up as security', 'lender could take'],
+  // BROADENED 2026-09-19 for a SECOND SENSE of the word, not for a second
+  // phrasing of the first. Every cue here glossed collateral as security a
+  // LENDER may take from a borrower, which is the right gloss for the six
+  // lessons that had it and the wrong gloss for the Stocks course, where the
+  // word names margin a CLEARING HOUSE holds against a member failing to
+  // settle -- nobody's property, no lender, no borrower. Writing the lending
+  // gloss into that lesson to satisfy the matcher would have taught a reader
+  // something false, which is worse than the fault it fixed. MEASURED BEFORE
+  // THE EDIT across the whole live corpus: the two added cues silence exactly
+  // ONE fault, the new one, and leave the other six collateral faults standing
+  // (105 -> 104). They are broadenings, not a hollowing-out: each is itself a
+  // plain explanation, and 'held by somebody in the middle' is already the
+  // accepted gloss for escrow one line below.
+  collateral: ['hold until the loan is paid', 'lender can take', 'lender gets to take', 'put up as security', 'put their land up as security', 'lender could take', 'money set aside', 'set aside against'],
   neuroplasticity: ['brain physically changes with use', 'brain rewires itself', 'brain rebuilds itself', 'brain changes with use'],
   subconscious: ['runs without you watching', 'while you are not watching', 'without being watched', 'part of your mind that runs'],
   amortisation: ['how a loan is paid down', 'schedule of payments', 'paid off over time'],
