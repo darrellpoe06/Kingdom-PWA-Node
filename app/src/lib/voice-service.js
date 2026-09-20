@@ -33,8 +33,26 @@ function env(name) {
 }
 
 /** The sovereign studio base URL (expects POST {base}/speak), or ''. */
+// The same-origin road to the sovereign studio. A browser on an HTTPS page
+// cannot fetch the studio's plain-HTTP :8770 at all — mixed content — so an
+// absolute tailnet URL was never a working answer from poetech.us, whatever
+// was written in an env var. functions/voice/[[path]].js proxies this to the
+// Funnel over its own HTTPS, which is the transport shape this house already
+// settled on for the NAS (DR-0083/0132/0217: same-origin, never the absolute
+// Funnel URL, which throttles cross-origin).
+export const SOVEREIGN_VOICE_PATH = '/voice';
+
 export function voiceServiceUrl() {
-  return env('VITE_VOICE_SERVICE_URL').replace(/\/+$/, '');
+  // An explicit override still wins — a studio on a different host, or a test.
+  const explicit = env('VITE_VOICE_SERVICE_URL').replace(/\/+$/, '');
+  if (explicit) return explicit;
+  // Otherwise the same-origin transport, which needs no build secret and no
+  // per-device setting: ONE route that works from a phone, a Firestick and a
+  // smart TV identically, because it is just this site.
+  if (typeof window !== 'undefined' && window.location && window.location.origin) {
+    return window.location.origin + SOVEREIGN_VOICE_PATH;
+  }
+  return '';
 }
 
 /** The same-origin vendor bridge is enabled (a recorded sovereignty gap). */
