@@ -8,7 +8,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
 import { brandFromParam, onRequestGet } from '../../functions/store/apk/[brand].js';
-import { APP_STORE, APK_DOOR_BASE } from '../lib/app-store.js';
+import { APP_STORE, APK_DOOR_BASE, INSTALL_STEPS } from '../lib/app-store.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const noCache = { match: async () => undefined, put: async () => {} };
@@ -185,4 +185,60 @@ describe('the release notes are derived, not typed', () => {
   // dispatched, and no config-conformance test can see that. The check that
   // would have caught it has to compare the store against the SHELF, which
   // needs the network; it lives in the `shelf` job below instead.
+});
+
+describe('the TV path tells the truth per platform, not one blurred answer', () => {
+  // Darrell asked about a Firestick and then "Same on the Samsung TV?" — and it
+  // is NOT the same in the way that matters. Fire TV runs Android, so the .apk
+  // installs and disappoints. Samsung runs Tizen and LG runs webOS, where an
+  // Android package cannot execute at all. A single "use the browser" line
+  // would be true by accident and would leave someone hunting for a sideload
+  // route that does not exist on their set.
+  const steps = INSTALL_STEPS.tv.join(' ');
+
+  it('names each of the three platforms, because the reason differs on each', () => {
+    for (const platform of ['Fire TV', 'Samsung', 'LG']) {
+      expect(steps, `the TV path never mentions ${platform}`).toContain(platform);
+    }
+  });
+
+  it('says plainly that a Samsung cannot run an Android app AT ALL', () => {
+    // The load-bearing distinction. "It will not work well" is the Fire TV
+    // answer; "it cannot be installed" is the Samsung one, and collapsing them
+    // sends someone on a hunt with no end.
+    expect(steps).toMatch(/Tizen/);
+    expect(steps).toMatch(/cannot be installed on one at all|cannot run at all/);
+  });
+
+  it('warns against sideloading on a TV and says why', () => {
+    expect(steps).toMatch(/Do NOT sideload/);
+    expect(steps).toMatch(/portrait|home screen/);
+  });
+
+  it('tells the viewer how to DRIVE it, not just how to open it', () => {
+    // A browser address with no remote instructions is half an answer: the
+    // arrows and the highlight are the whole interaction model on a sofa.
+    expect(steps).toMatch(/arrows/);
+    expect(steps).toMatch(/outline|highlight/i);
+  });
+
+  it('carries a fallback for sets with no browser', () => {
+    expect(steps).toMatch(/cast or mirror/);
+  });
+
+  it('every path still points at the real site, not a placeholder', () => {
+    expect(steps).toMatch(/poetech\.us/);
+    expect(steps, 'a TV step points at a dead example host').not.toMatch(/example\.com/);
+  });
+});
+
+describe('having BOTH a stick and a smart TV has a recommended answer', () => {
+  // Darrell 2026-09-20: "I use both!" — a stick plugged into a smart TV is the
+  // ordinary case, and the two browsers are not equal. Leaving the reader to
+  // pick means half of them land on the weaker surface for no reason.
+  it('recommends the stick, first, and says why', () => {
+    const steps = INSTALL_STEPS.tv;
+    expect(steps[0], 'the both-devices case is not the first thing said').toMatch(/USE THE STICK/);
+    expect(steps[0]).toMatch(/more capable browser/);
+  });
 });
