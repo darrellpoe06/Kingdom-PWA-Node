@@ -14,6 +14,7 @@ import {
   parseIpv4, isPrivateIp, isTailnetIp, subnetCidr, hostOctet, isHostAddress,
   isAddressField, isListField, expectsAddress, extractEndpoints, buildTopology,
   eyesOnQueue, RECORDED_SUBNETS, RECORDED_GATEWAY_IP, TAILNET_CIDR,
+  networkForIp, networkContains, ipToInt, CHURCH_NETWORK,
 } from '../lib/church-network-topology.js';
 import { SEED_DEVICES, makeDevice } from '../lib/church-devices.js';
 
@@ -38,8 +39,12 @@ describe('address primitives', () => {
     expect(isTailnetIp('100.128.0.1')).toBe(false); // outside the /10
     expect(isPrivateIp('100.72.5.90')).toBe(false);
   });
-  it('derives the /24 and the host octet', () => {
-    expect(subnetCidr('192.168.1.123')).toBe('192.168.1.0/24');
+  it('resolves an address to its network, using a READ mask where one exists', () => {
+    // A church address resolves to the /23 that was actually read off DHCP.
+    expect(subnetCidr('192.168.1.123')).toBe('192.168.0.0/23');
+    expect(subnetCidr('192.168.0.100')).toBe('192.168.0.0/23');
+    // Anything outside it falls back to /24 and is flagged assumed, not read.
+    expect(subnetCidr('10.9.9.9')).toBe('10.9.9.0/24');
     expect(hostOctet('192.168.1.123')).toBe(123);
   });
   it('PROVEN-TO-CATCH: a network or broadcast address is never a host', () => {
@@ -97,26 +102,51 @@ describe('expectsAddress — a gap in the map vs a property of the hardware', ()
 describe('buildTopology — against the REAL COLG register', () => {
   const topology = buildTopology(SEED_DEVICES);
 
-  it('derives exactly the two scan-recorded church segments', () => {
-    expect(topology.subnets.map((s) => s.cidr)).toEqual(['192.168.0.0/24', '192.168.1.0/24']);
-    for (const s of topology.subnets) expect(s.maskAssumed).toBe(false); // both masks were READ
-    expect(RECORDED_SUBNETS.map((s) => s.cidr)).toEqual(['192.168.0.0/24', '192.168.1.0/24']);
+  it('derives ONE flat /23, not the two /24s an earlier note assumed', () => {
+    // CORRECTION 2026-09-18: the 2026-07-08 note saw addresses in two ranges and
+    // wrote "two subnets /24". No netmask was ever read. The 2026-09-18 scan read
+    // the scanning host's own DHCP lease: 192.168.1.73 prefix 23, which spans
+    // 192.168.0.0-192.168.1.255. One broadcast domain, not two segments.
+    expect(topology.subnets.map((s) => s.cidr)).toEqual(['192.168.0.0/23']);
+    expect(RECORDED_SUBNETS.map((s) => s.cidr)).toEqual(['192.168.0.0/23']);
+    expect(topology.subnets[0].maskAssumed).toBe(false); // this mask WAS read
+  });
+  it('PROVEN-TO-CATCH: a /23 keeps 0.x and 1.x hosts in ONE bucket', () => {
+    // Grouping by /24 would split one network into two segments that do not exist,
+    // and manufacture a routed boundary, a bridge host and a spanning group row.
+    const one = topology.subnets[0];
+    const ips = one.members.flatMap((m) => m.ips.map((e) => e.ip));
+    expect(ips).toContain('192.168.0.100'); // the RackStation
+    expect(ips).toContain('192.168.1.123'); // a PTZ camera
+    expect(networkContains('192.168.0.0/23', '192.168.1.255')).toBe(true);
+    expect(networkContains('192.168.0.0/23', '192.168.2.1')).toBe(false);
+  });
+  it('PROVEN-TO-CATCH: an address with no READ mask is flagged assumed', () => {
+    // The whole point of the correction. A mask that was never read must never
+    // again be presented as a measurement.
+    expect(networkForIp('192.168.0.100').maskObserved).toBe(true);
+    expect(networkForIp('10.9.9.9').maskObserved).toBe(false);
+    expect(networkForIp('10.9.9.9').cidr).toBe('10.9.9.0/24');
+  });
+  it('the flat /23 leaves NO bridge and NO spanning group row to find', () => {
+    // Both were artifacts of the false split, not facts about the hardware.
+    expect(topology.dualHomed).toHaveLength(0);
+    expect(topology.groupRows).toHaveLength(0);
   });
 
-  it('seats the pfSense as the gateway of the subnet it actually holds', () => {
-    const zero = topology.subnets.find((s) => s.cidr === '192.168.0.0/24');
-    expect(zero.gateway).toBeTruthy();
-    expect(zero.gateway.id).toBe('dev-pfsense-gateway');
+  it('seats the pfSense as the gateway of the one network', () => {
+    const net = topology.subnets.find((s) => s.cidr === CHURCH_NETWORK.cidr);
+    expect(net.gateway).toBeTruthy();
+    expect(net.gateway.id).toBe('dev-pfsense-gateway');
     expect(topology.routing.routerIp).toBe(RECORDED_GATEWAY_IP);
   });
 
-  it('reports the router interface on the 1-subnet as UNRECORDED rather than inventing one', () => {
-    // The scan says the pfSense gateways BOTH subnets, but its interface address on
-    // 192.168.1.0/24 was never read. The map must say so, not paint a .1.
-    const one = topology.subnets.find((s) => s.cidr === '192.168.1.0/24');
-    expect(one.gateway).toBeNull();
-    expect(topology.routing.interfacesUnrecorded).toContain('192.168.1.0/24');
-    expect(topology.findings.some((f) => f.kind === 'gateway-interface-unrecorded')).toBe(true);
+  it('needs no second router interface: one network needs one gateway', () => {
+    // This test previously demanded an unrecorded interface on 192.168.1.0/24.
+    // That network does not exist — the /23 has ONE gateway and it is recorded.
+    expect(topology.subnets).toHaveLength(1);
+    expect(topology.subnets[0].gateway).toBeTruthy();
+    expect(topology.routing.interfacesUnrecorded).toEqual([]);
   });
 
   it('PROVEN-TO-CATCH: the real register has ZERO address collisions', () => {
@@ -136,32 +166,55 @@ describe('buildTopology — against the REAL COLG register', () => {
     expect(topology.unaddressed.some((n) => n.id === 'dev-network-core')).toBe(true);
   });
 
-  it('finds the one genuine bridge host and does not invent others', () => {
-    // livestream-main-pc is wired on 192.168.1.73 and on Wi-Fi at 192.168.0.44 —
-    // one machine with a foot on each segment. That is the only true dual-homed host.
-    expect(topology.dualHomed).toHaveLength(1);
-    expect(topology.dualHomed[0].node.id).toBe('dev-gpu-node-2');
-    expect(topology.dualHomed[0].subnets.sort()).toEqual(['192.168.0.0/24', '192.168.1.0/24']);
+  it('PROVEN-TO-CATCH: invents no bridge host on a single flat network', () => {
+    // This test previously asserted livestream-main-pc bridged two segments. It
+    // does not — both its addresses are inside the same /23, so there was never a
+    // boundary to bridge. The "bridge" was an artifact of the assumed /24 split,
+    // and reporting it as a security finding was wrong.
+    expect(topology.dualHomed).toHaveLength(0);
+    const net = topology.subnets[0];
+    const gpu2 = net.members.find((m) => m.node.id === 'dev-gpu-node-2');
+    expect(gpu2).toBeTruthy(); // still present, just not "bridging" anything
+  });
+  it('still detects a REAL bridge across two genuinely different networks', () => {
+    // The dual-homed derivation itself is sound and must keep working — proven on
+    // synthetic addresses in two networks that really are distinct.
+    const bridge = makeDevice({
+      id: 'b', name: 'Bridge', deviceType: 'server',
+      ipAddress: '10.1.1.5',
+      specs: { lanIpWifi: '10.2.2.5' },
+    });
+    const t = buildTopology([bridge]);
+    expect(t.dualHomed).toHaveLength(1);
+    expect(t.dualHomed[0].subnets.sort()).toEqual(['10.1.1.0/24', '10.2.2.0/24']);
   });
 
-  it('PROVEN-TO-CATCH: group rows are NOT reported as dual-homed hosts', () => {
-    // Three AirPlay speakers on one row spread across two segments is a spread of
-    // units, not a machine with two NICs. Claiming otherwise fabricates hardware.
-    const groupIds = topology.groupRows.map((g) => g.node.id);
-    expect(groupIds).toContain('dev-airplay-spotify-speakers');
-    expect(groupIds).toContain('dev-echo-alexa');
-    for (const id of groupIds) {
-      expect(topology.dualHomed.some((d) => d.node.id === id)).toBe(false);
-    }
+  it('PROVEN-TO-CATCH: a list-field row is a group row, never a dual-homed host', () => {
+    // Several speakers on one row is a spread of UNITS, not a machine with two
+    // NICs. Tested synthetically across two genuinely distinct networks, because
+    // on the real church /23 nothing spans a boundary at all any more — pinning it
+    // to live rows is what made the previous version of this gate go silent.
+    const speakers = makeDevice({
+      id: 'spk', name: 'Speakers (3)', deviceType: 'iot',
+      specs: { ips: '10.1.1.4, 10.2.2.57, 10.1.1.178' },
+    });
+    const t = buildTopology([speakers]);
+    expect(t.groupRows).toHaveLength(1);
+    expect(t.groupRows[0].node.id).toBe('spk');
+    expect(t.dualHomed).toHaveLength(0);
   });
 
-  it('places the NDI cameras and the ATEM on OPPOSITE segments (the routed-hop fact)', () => {
-    const one = topology.subnets.find((s) => s.cidr === '192.168.1.0/24');
-    const zero = topology.subnets.find((s) => s.cidr === '192.168.0.0/24');
-    for (const cam of ['dev-ptz-center-1', 'dev-ptz-right-3', 'dev-ptz-left-2']) {
-      expect(one.members.some((m) => m.node.id === cam)).toBe(true);
+  it('places the NDI cameras and the ATEM on the SAME network (no routed hop)', () => {
+    // CORRECTED. This test used to assert the cameras and the switcher sat on
+    // opposite segments, and that live production traffic therefore crossed the
+    // firewall every service. That was wrong: the /23 puts them on one wire, so
+    // camera-to-switcher traffic is SWITCHED, never routed.
+    expect(topology.subnets).toHaveLength(1);
+    const net = topology.subnets[0];
+    for (const id of ['dev-ptz-center-1', 'dev-ptz-right-3', 'dev-ptz-left-2',
+                      'dev-atem-production-studio-4k']) {
+      expect(net.members.some((m) => m.node.id === id)).toBe(true);
     }
-    expect(zero.members.some((m) => m.node.id === 'dev-atem-production-studio-4k')).toBe(true);
   });
 
   it('keeps the tailnet on its own plane, never as a church segment', () => {

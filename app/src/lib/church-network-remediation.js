@@ -167,7 +167,12 @@ export function buildRemediationPlan(devices, assessmentIn, topologyIn) {
       window: 'maintenance',
       reversibility: 'config',
       blastRadius: 'EVERYTHING. A wrong rule can drop the stream, the wall, the NAS, or the office at once. Export the pfSense config FIRST, and keep console access to the firewall.',
-      dependsOn: ['identify-gear', 'close-bridge'],
+      // Depends only on steps this plan ACTUALLY generated. close-bridge was named
+      // here unconditionally until 2026-09-18; once the /23 correction removed the
+      // (non-existent) segment bridge, that step stopped being generated and this
+      // line pointed at nothing. A plan that tells an operator "after close-bridge"
+      // for a step that is not in the plan is worse than one that says nothing.
+      dependsOn: ['identify-gear', ...(classes.has('segmentation-bypass') ? ['close-bridge'] : [])],
       actions: [
         'Export the running pfSense configuration and verify the file before touching anything.',
         'Define four zones: DATA (NAS, member and financial records) · PRODUCTION (AV, GPU nodes, wall, stage cameras) · OFFICE (workstations, printers) · IOT-GUEST (consumer devices, guest Wi-Fi).',
@@ -223,11 +228,16 @@ export function buildRemediationPlan(devices, assessmentIn, topologyIn) {
 export function validatePlan(plan) {
   const errors = [];
   const seen = new Set();
+  const allIds = new Set((plan.steps || []).map((x) => x.id));
   for (const s of plan.steps || []) {
     for (const dep of s.dependsOn || []) {
-      if (!seen.has(dep)) {
-        const present = (plan.steps || []).some((x) => x.id === dep);
-        if (present) errors.push(`"${s.id}" is ordered before its dependency "${dep}"`);
+      if (!allIds.has(dep)) {
+        // A dependency on a step that is not in the plan. The validator used to
+        // IGNORE this case, which is how a dangling "after: close-bridge" survived
+        // the step itself disappearing.
+        errors.push(`"${s.id}" depends on "${dep}", which is not in this plan`);
+      } else if (!seen.has(dep)) {
+        errors.push(`"${s.id}" is ordered before its dependency "${dep}"`);
       }
     }
     seen.add(s.id);
