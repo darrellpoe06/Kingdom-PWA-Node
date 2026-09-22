@@ -108,7 +108,11 @@ describe('a notice takes itself down instead of parking over the lesson', () => 
     // Before this the panel destructured `notice` and not `setNotice`, so it
     // could display a message and had no way to remove one.
     expect(HOOK).toMatch(/\n {4}setNotice,/);
-    expect(TTS).toMatch(/\n {4}setNotice,\n {2}\} = useReadAloud/);
+    // Pinned on the destructure containing it, not on it being the LAST line:
+    // the first version asserted `setNotice,\n} = useReadAloud` and went red
+    // the moment `noticeAction` was destructured after it, which is a test
+    // holding formatting rather than behaviour.
+    expect(TTS).toMatch(/\n {4}setNotice,\n[\s\S]{0,80}?\} = useReadAloud/);
   });
 
   it('carries NO width cap, because the consistency guard owns that line', () => {
@@ -132,10 +136,17 @@ describe('a notice that tells the reader to do something NAMES WHERE', () => {
     expect(HOOK).toMatch(/Record a voice sample first in the Voice tab/);
   });
 
-  it('and warns it may be behind the nav overflow on a narrow screen', () => {
-    // This is the whole reason he could not find it: the tab is real, and on
-    // his phone it renders as "Voi" plus a chevron.
-    expect(HOOK).toMatch(/behind the » overflow on a narrow screen/);
+  it('and now OFFERS the route instead of describing where to hunt for it', () => {
+    // SUPERSEDED THE SAME DAY, and the replacement is the better answer. The
+    // first pass had the notice warn that the tab "may be behind the »
+    // overflow on a narrow screen" — accurate, and still leaving the reader to
+    // do the finding. Drive-Don't-Delegate applies to the product too: the
+    // notice now carries a door (noticeAction) and the panel draws it as a
+    // button. Describing the hunt is what was wrong; the description going
+    // away is the fix, not a regression.
+    expect(HOOK).toMatch(/hrefForView\('voice'\)/);
+    expect(HOOK).toMatch(/label: 'Open the Voice tab'/);
+    expect(HOOK).not.toMatch(/behind the » overflow/);
   });
 
   it('the Voice tab it names actually exists, so the notice is not sending him nowhere', () => {
