@@ -312,7 +312,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
           }
           setNotice('Voice endpoint unreachable — using a stand-in voice.');
         } else {
-          setNotice('Record a voice sample first — then this reads in that voice.');
+          setNotice('Record a voice sample first in the Voice tab (top nav — it may be behind the » overflow on a narrow screen), then this reads in that voice.');
         }
       }
       // Stand-in until the sovereign studio is live: a gender-correct browser voice —
@@ -479,6 +479,10 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     deviceRead: !cloudPlaying,
     cloudProgress,
     voiceId, setVoiceId, catalog, currentItem, notice,
+    // setNotice is exported so the panel can DISMISS a notice (2026-09-22).
+    // Before this the only clear was at the start of the next read, so a
+    // fault message stayed on top of the lesson indefinitely.
+    setNotice,
     read, pause, resume, stop, setRate,
   };
 }
