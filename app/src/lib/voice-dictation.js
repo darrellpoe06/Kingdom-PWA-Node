@@ -39,6 +39,30 @@ import { useRef, useState } from 'react';
 // The brake: no session listens longer than this, tap or no tap.
 export const VOICE_SESSION_CAP_MS = 5 * 60 * 1000;
 
+// LISTEN TO THE WHOLE THING (Darrell, 2026-09-22, sending a screenshot of the
+// Notes box beside a reel playing: "This needs to be able to listen to the
+// whole thing").
+//
+// The five-minute cap above is right for DICTATION -- a person speaking a note
+// into a box -- and it is a lid on the other job this mic is asked to do:
+// listening to something that PLAYS. A reel, a sermon, a class, an interview
+// all run past five minutes, and at five minutes the session ended with
+// everything after it simply not heard. The lid, not the microphone, is the
+// defect; the same shape as the sticky lesson title earlier today.
+//
+// So the cap is now SIZED TO THE JOB rather than removed. Long-form is 180
+// minutes, which is not a number invented here: it is the self-stop
+// workflow-scribe already carries for a long capture, so the two long-listening
+// paths in this app stop on the same clock instead of on two opinions.
+//
+// The brake is still a brake, and all three parts of it survive. It is a HARD
+// ceiling a tap cannot extend. It is OPT-IN, so an ordinary note keeps the
+// tighter five minutes and no surface starts listening for three hours because
+// someone touched a mic. And it ends with an HONEST message that now names the
+// real number -- see below, where the message used to say "5 minutes" no matter
+// what the cap actually was.
+export const LONG_FORM_SESSION_CAP_MS = 180 * 60 * 1000;
+
 // Engine errors that just mean "the speaker paused" — never fatal mid-session.
 const PAUSE_ERRORS = ['no-speech', 'aborted'];
 
@@ -84,6 +108,19 @@ export function extractNewFinalTranscript(event) {
 }
 
 /**
+ * Render a cap for a person: "5 minutes", "3 hours", "90 minutes". Pure, so the
+ * message a speaker reads is testable without a microphone.
+ */
+export function capMinutes(ms) {
+  const mins = Math.round(ms / 60000);
+  if (mins % 60 === 0 && mins >= 60) {
+    const hrs = mins / 60;
+    return `${hrs} ${hrs === 1 ? 'hour' : 'hours'}`;
+  }
+  return `${mins} ${mins === 1 ? 'minute' : 'minutes'}`;
+}
+
+/**
  * The pause-vs-stop decision, pure: when the engine ends, should the session
  * restart? Only while the speaker still holds the mic AND the hard cap hasn't
  * passed. Returns 'restart' | 'cap' | 'stopped'.
@@ -108,7 +145,7 @@ export function decideOnEngineEnd({ active, startedAt, now, capMs = VOICE_SESSIO
  * pauses do not end the session — only the Stop tap (or the 5-minute cap).
  * The caller decides how to merge chunks (append, replace, etc.).
  */
-export function useVoiceDictation({ onTranscript, lang = 'en-US' } = {}) {
+export function useVoiceDictation({ onTranscript, lang = 'en-US', capMs = VOICE_SESSION_CAP_MS } = {}) {
   const [listening, setListening] = useState(false);
   const [error, setError] = useState('');
   const recognitionRef = useRef(null);
@@ -146,13 +183,19 @@ export function useVoiceDictation({ onTranscript, lang = 'en-US' } = {}) {
         active: activeRef.current,
         startedAt: startedAtRef.current,
         now: Date.now(),
+        capMs,
       });
       if (verdict === 'restart') {
         // The engine gave up on a pause; the speaker didn't. Re-arm quietly.
         try { startEngine(); return; } catch (_) { /* fall through to stop */ }
       }
       if (verdict === 'cap') {
-        setError('Paused after 5 minutes of listening — tap Speak to keep going. Everything you said is kept.');
+        // THE MESSAGE SAYS THE REAL NUMBER. It used to be the literal string
+        // "5 minutes" while decideOnEngineEnd already accepted a capMs the hook
+        // never passed -- so the moment a caller set a different cap, the app
+        // would have told the speaker a time that was not the time. A brake
+        // that misreports itself is worse than a brake nobody can see.
+        setError(`Paused after ${capMinutes(capMs)} of listening — tap Speak to keep going. Everything you said is kept.`);
       }
       activeRef.current = false;
       setListening(false);
