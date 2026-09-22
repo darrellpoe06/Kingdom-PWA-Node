@@ -179,6 +179,14 @@ export function normalizeIssue(issue) {
     },
     levels: i.levels && typeof i.levels === 'object' ? i.levels : {},
     quiz: i.quiz && typeof i.quiz === 'object' ? i.quiz : null,
+    // AUTHORED source limits — what the way this lesson was OBTAINED does and
+    // does not let it say. A count can measure the lesson's shape; it cannot
+    // know that the recording was never watched, so this is never derived.
+    // Absent is a real state and lesson-context.js reports it as one.
+    limits: arr(i.limits).map((l, idx) => ({
+      id: l?.id || `limit-${idx}`,
+      text: typeof l === 'string' ? l : (l?.text || ''),
+    })).filter((l) => l.text),
   };
 }
 
