@@ -89,10 +89,14 @@ describe('auto-merge — the migration question is asked after the deploy wait',
   it('gives both polls a window that spans a real CI run', () => {
     // Measured 2026-08-28 on #1370: lint+vitest ran 14:01:42 -> 14:10:28, i.e.
     // 8m46s. A 6-minute window cannot span that — which is how the migration
-    // poll kept expiring before the merge it was waiting for. 48 x 15s = 12m.
+    // poll kept expiring before the merge it was waiting for. Was 48 x 15s = 12m.
     const loops = src.match(/for i in \$\(seq 1 (\d+)\); do/g) || [];
     expect(loops.length).toBe(2);
-    for (const l of loops) expect(l).toContain('seq 1 48');
+    // RAISED 48 -> 160 (12 -> 40 minutes) on 2026-09-22, the SEVENTH miss
+    // (#1727): CI now runs 17-19 minutes on 19,208 tests and the 12-minute
+    // window expired four minutes before the merge. "A full current CI run
+    // plus equal margin" is the rule the workflow states; 160 x 15s = 40m.
+    for (const l of loops) expect(l).toContain('seq 1 160');
   });
 
   it('dispatches at least twice across the job', () => {

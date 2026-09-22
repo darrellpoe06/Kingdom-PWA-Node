@@ -216,6 +216,20 @@ jobs:
       # superseded sweeps cancel). The 5-minute freshness cron remains the
       # outer net, but GitHub throttles busy-repo schedules to ~hourly in
       # practice — the poll here is the net that actually catches the merge.
+      #
+      # WHY IT IS NOW 40 MINUTES (2026-09-22, after the SEVENTH miss, PR
+      # #1727): the same failure, the same rule, and the number had gone
+      # stale again. Measured on the six most recent CI runs: 16.9, 16.8,
+      # 18.0, 17.1, 18.8, 11.6 minutes — the suite is 1,151 files / 19,208
+      # tests now. The sweep armed #1727 at 15:57:52, polled until 16:09:52,
+      # and the merge landed at ~16:14 — four minutes after the window
+      # closed. No deploy fired; it was dispatched by hand, again. The rule
+      # this file states in its own words is "a full current CI run plus
+      # equal margin": 19 + 19 = 38, rounded to 40 (160 x 15s). The cost is
+      # unchanged in kind (armed-PRs-only, superseded sweeps cancel), and
+      # the worst case of a stale window is the exact outage class DR-0107
+      # exists to prevent. The pin lives in migration-dispatch-lane.test.js
+      # so the next raise is a deliberate edit in two places, not a drift.
       # ONE HEAL USED TO SERVE EXACTLY ONE MERGE (2026-08-28, the SIXTH miss —
       # PR #1370). Measured on runs 3381 / 3388:
       #
@@ -277,8 +291,8 @@ jobs:
           armed=$(gh pr list --repo "$REPO" --state open --base main \
             --json autoMergeRequest --jq '[.[] | select(.autoMergeRequest != null)] | length' 2>/dev/null || echo 0)
           if [ "$armed" -gt 0 ]; then
-            echo "$armed armed PR(s) may merge momentarily — polling up to 12 minutes."
-            for i in $(seq 1 48); do
+            echo "$armed armed PR(s) may merge momentarily — polling up to 40 minutes."
+            for i in $(seq 1 160); do
               sleep 15
               deploy_if_stale || true
             done
@@ -326,8 +340,8 @@ jobs:
           armed=$(gh pr list --repo "$REPO" --state open --base main \
             --json autoMergeRequest --jq '[.[] | select(.autoMergeRequest != null)] | length' 2>/dev/null || echo 0)
           if [ "$armed" -gt 0 ]; then
-            echo "$armed armed PR(s) may merge momentarily — polling up to 12 minutes."
-            for i in $(seq 1 48); do
+            echo "$armed armed PR(s) may merge momentarily — polling up to 40 minutes."
+            for i in $(seq 1 160); do
               sleep 15
               migrate_if_tip_migration || true
             done

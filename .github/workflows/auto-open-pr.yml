@@ -60,6 +60,17 @@ jobs:
           set -euo pipefail
           # Idempotent: skip creation if a PR for this branch is already open.
           existing=$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          # A branch that is AT main has nothing to open (2026-09-22): after a
+          # merge the working branch is restarted on main's tip, and that push
+          # fires this workflow with zero commits ahead. `gh pr create` then
+          # hard-fails ("No commits between main and <branch>") and the lane
+          # shows a red run for a state that is entirely correct. Red must
+          # mean something; this is a clean no-op, said out loud.
+          ahead=$(gh api "repos/$REPO/compare/main...$BRANCH" --jq '.ahead_by' 2>/dev/null || echo "?")
+          if [ -z "$existing" ] && [ "$ahead" = "0" ]; then
+            echo "$BRANCH is at main (0 commits ahead) — nothing to open. Not an error."
+            exit 0
+          fi
           if [ -n "$existing" ]; then
             num="$existing"
             echo "PR #$num already open for $BRANCH."
