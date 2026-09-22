@@ -1,0 +1,151 @@
+// Chrome may not sit on the Word.
+//
+// Darrell, 2026-09-22, on a Big Print screenshot of World Issues issue 17 at
+// poetech.us/lovecorner/app/?view=church:
+//
+//   "The hovering words over the actual lesson needs to be considered
+//    undermining the lessons... these types of words covering the Word and
+//    perspectives being explained are not wanted.... also how can it do what it
+//    is claims to be able to do? I can't find how to do that add a voice?!!!!!!"
+//
+// Two separate defects, both visible in that one frame.
+//
+// 1. THE STICKY TITLE HAD NO CEILING. ChurchLearn's lesson-space title is
+//    deliberately OUTSIDE .ts-chrome-region, so it grows with Big Print — the
+//    2026-09-17 reasoning being that it is text the reader READS. That holds at
+//    Normal and fails at A44: a sticky element is not read once and scrolled
+//    past, it sits over the prose for the whole lesson, and at 2.75x a long
+//    title took three lines of a 660px viewport. The lid, not the size, is the
+//    defect. Fix is a CEILING (two lines, clamped) and nothing changes at Normal.
+//
+// 2. THE READ-ALOUD NOTICE NEVER CAME DOWN, AND NAMED NO ROUTE. The panel is
+//    `fixed`, so every notice overlays the lesson by construction. `setNotice`
+//    was only ever cleared at the START OF THE NEXT READ (use-read-aloud.js), so
+//    a reader who hit one fault and then read with his eyes had a white box
+//    parked over the page for the rest of the session. And the message it parked
+//    there — "Record a voice sample first" — told him to do a thing without
+//    saying where, which is why he could not find it. The Voice tab exists
+//    (surfaces.js, id 'voice'), but on a narrow screen it is behind the nav
+//    overflow, exactly as his screenshot shows it ("Voi" then a chevron).
+//
+// A surface that tells a reader to do something must name where. A surface that
+// covers the Word must take itself down.
+
+import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const r = (p) => readFileSync(resolve(__dirname, p), 'utf8');
+const CHURCH_LEARN = r('../components/ChurchLearn.jsx');
+const TTS = r('../components/TTSControl.jsx');
+const HOOK = r('../lib/use-read-aloud.js');
+const SURFACES = r('../surfaces.js');
+
+describe('the sticky lesson title has a ceiling, so it can never be a lid', () => {
+  it('is clamped to two lines', () => {
+    const block = CHURCH_LEARN.slice(
+      CHURCH_LEARN.indexOf('data-testid="lesson-space-title"') - 400,
+      CHURCH_LEARN.indexOf('data-testid="lesson-space-title"') + 700,
+    );
+    expect(block).toMatch(/WebkitLineClamp: 2/);
+    expect(block).toMatch(/WebkitBoxOrient: 'vertical'/);
+    expect(block).toMatch(/overflow-hidden/);
+  });
+
+  it('carries a hard max-height too, so a clamp failure still cannot run away', () => {
+    // -webkit-line-clamp is widely supported but is a vendor property; the
+    // em cap is the belt to its braces and is what actually bounds the box.
+    const block = CHURCH_LEARN.slice(
+      CHURCH_LEARN.indexOf('data-testid="lesson-space-title"') - 400,
+      CHURCH_LEARN.indexOf('data-testid="lesson-space-title"') + 700,
+    );
+    expect(block).toMatch(/maxHeight: '2\.8em'/);
+  });
+
+  it('the full title is still reachable rather than silently truncated', () => {
+    const block = CHURCH_LEARN.slice(
+      CHURCH_LEARN.indexOf('data-testid="lesson-space-title"') - 400,
+      CHURCH_LEARN.indexOf('data-testid="lesson-space-title"') + 700,
+    );
+    expect(block).toMatch(/title=\{focusModule\.title\}/);
+  });
+
+  it('REPRODUCES THE DEFECT: without a clamp the box grows with the line count', () => {
+    // The pre-fix element had no clamp and no max-height, so its height was
+    // purely a function of the title's length times the text-size multiplier.
+    // Issue 17's title is long enough to prove the point.
+    const title = 'Biology Walks Back the Selfish Gene — the Word Framed the Worlds First, and the Science Is Arriving Late';
+    expect(title.length).toBeGreaterThan(90);
+    // At Big Print a ~100-character title cannot fit in two lines of a phone
+    // column, which is exactly why the clamp (not a shrink) is the fix: the
+    // overflow is hidden instead of pushing the lesson down the page.
+    const roughCharsPerLineAtBigPrint = 22;
+    expect(Math.ceil(title.length / roughCharsPerLineAtBigPrint)).toBeGreaterThan(2);
+  });
+});
+
+describe('a notice takes itself down instead of parking over the lesson', () => {
+  it('auto-clears on a timer', () => {
+    expect(TTS).toMatch(/setTimeout\(\(\) => setNotice\(''\), 12000\)/);
+  });
+
+  it('the timer is keyed to the notice text, so a new notice gets its own full window', () => {
+    expect(TTS).toMatch(/\}, \[notice, setNotice\]\);/);
+  });
+
+  it('clears the timer on unmount, so it cannot fire into a dead component', () => {
+    const block = TTS.slice(TTS.indexOf('A NOTICE TAKES ITSELF DOWN'), TTS.indexOf('A NOTICE TAKES ITSELF DOWN') + 900);
+    expect(block).toMatch(/return \(\) => clearTimeout\(t\)/);
+  });
+
+  it('can also be dismissed by hand', () => {
+    expect(TTS).toMatch(/data-testid="read-aloud-notice-dismiss"/);
+    expect(TTS).toMatch(/onClick=\{\(\) => setNotice\(''\)\}/);
+    expect(TTS).toMatch(/aria-label="Dismiss this message"/);
+  });
+
+  it('the hook exports setNotice, which is what makes dismissal possible at all', () => {
+    // Before this the panel destructured `notice` and not `setNotice`, so it
+    // could display a message and had no way to remove one.
+    expect(HOOK).toMatch(/\n {4}setNotice,/);
+    expect(TTS).toMatch(/\n {4}setNotice,\n {2}\} = useReadAloud/);
+  });
+
+  it('is width-bounded so a long message cannot span the reading column', () => {
+    const block = TTS.slice(TTS.indexOf('data-testid="read-aloud-notice"') - 300, TTS.indexOf('data-testid="read-aloud-notice"') + 400);
+    expect(block).toMatch(/max-w-\[22em\]/);
+  });
+
+  it('still announces to a screen reader, so the timeout costs no accessibility', () => {
+    const block = TTS.slice(TTS.indexOf('data-testid="read-aloud-notice"') - 300, TTS.indexOf('data-testid="read-aloud-notice"') + 400);
+    expect(block).toMatch(/role="status"/);
+  });
+});
+
+describe('a notice that tells the reader to do something NAMES WHERE', () => {
+  it('the voice-sample notice names the Voice tab', () => {
+    expect(HOOK).toMatch(/Record a voice sample first in the Voice tab/);
+  });
+
+  it('and warns it may be behind the nav overflow on a narrow screen', () => {
+    // This is the whole reason he could not find it: the tab is real, and on
+    // his phone it renders as "Voi" plus a chevron.
+    expect(HOOK).toMatch(/behind the » overflow on a narrow screen/);
+  });
+
+  it('the Voice tab it names actually exists, so the notice is not sending him nowhere', () => {
+    // A route named in a message must be a route that exists (DR-0381).
+    expect(SURFACES).toMatch(/id: 'voice',\s+label: 'Voice',\s+nav: 'top',\s+view: 'voice'/);
+  });
+
+  it('the OLD routeless wording is gone', () => {
+    expect(HOOK).not.toMatch(/Record a voice sample first — then this reads/);
+  });
+
+  it('inside the Voice studio the notice points at the control on THAT screen, not at the tab', () => {
+    // Telling someone already in the studio to go to the studio would be absurd.
+    const vs = r('../components/VoiceStudio.jsx');
+    expect(vs).toMatch(/use Record above/);
+    expect(vs).not.toMatch(/in the Voice tab/);
+  });
+});

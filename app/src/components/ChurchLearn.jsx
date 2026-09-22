@@ -1993,10 +1993,35 @@ function CourseView({
               controls (DR-0410 / DR-0432), and this is text the reader READS,
               so it grows with Big Print like the lesson does (DR-0410's own
               rule that the words grow and the frame stays a frame). */}
+          {/* BOUNDED, because a sticky label may never eat the reading area
+              (Darrell 2026-09-22, on a Big Print screenshot where this title
+              took three lines of a 660px viewport and sat on top of the
+              lesson): "these types of words covering the Word and perspectives
+              being explained are not wanted."
+
+              The 2026-09-17 reasoning above — that the title is text the
+              reader READS, so it should grow with Big Print like the lesson —
+              is right about a title at Normal and wrong at A44. A sticky
+              element is not read once and scrolled past; it sits over the
+              prose for the whole lesson. At 2.75x an unbounded three-line
+              title is a permanent lid on the Word.
+
+              So it still grows and still stays put, but it can never exceed
+              two lines: line-clamp caps the height at every text size, and
+              the full title rides the `title` attribute for anyone who wants
+              it. The fix is a CEILING, not a shrink — at Normal nothing about
+              this changes. */}
           <h2
             data-testid="lesson-space-title"
-            className="border border-[#1A1815] border-b-0 px-2 sm:px-3 py-1.5 text-[0.875rem] font-semibold text-[#1A1815] leading-snug"
-            style={{ fontFamily: '"Fraunces", serif' }}
+            title={focusModule.title}
+            className="border border-[#1A1815] border-b-0 px-2 sm:px-3 py-1.5 text-[0.875rem] font-semibold text-[#1A1815] leading-snug overflow-hidden"
+            style={{
+              fontFamily: '"Fraunces", serif',
+              display: '-webkit-box',
+              WebkitBoxOrient: 'vertical',
+              WebkitLineClamp: 2,
+              maxHeight: '2.8em',
+            }}
           >
             {focusModule.title}
           </h2>

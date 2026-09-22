@@ -201,7 +201,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
       // REAL cloned voice: condition on the person's RECORDED sample (few-shot).
       const refBlob = await loadReference(voice.personKey);
       if (!refBlob) {
-        setNotice('Record a voice sample first — then this reads in that voice.');
+        setNotice('Record a voice sample first — use Record above, then this reads in that voice.');
         if (!tts.supported) return;
         tts.speak(clean, resolvedURIFor(voice)); // pinned/gendered stand-in until a sample exists
         return;

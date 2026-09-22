@@ -168,6 +168,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // ALOUD button — never destructured it. Darrell hit it on a Fire TV:
     // pressed read, heard nothing, was told nothing.
     notice,
+    setNotice,
   } = useReadAloud({ isOwner });
 
   // THE SCREEN STAYS ON WHILE IT READS (DR-0439; Darrell 2026-09-16: his phone
@@ -185,6 +186,20 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   const readingRef = useRef(false);
   readingRef.current = isReading;
   const hidWhileReadingRef = useRef(false);
+
+  // A NOTICE TAKES ITSELF DOWN (2026-09-22). This panel is `fixed`, so every
+  // notice overlays the lesson. The only previous clear was at the start of the
+  // NEXT read, which meant a reader who hit one fault and then kept reading
+  // with his eyes had a white box parked over the Word for the rest of the
+  // session. Twelve seconds is long enough to read the longest of these
+  // messages and short enough that it is never a lid. The timer is keyed to the
+  // notice text, so a NEW notice gets its own full twelve seconds rather than
+  // inheriting the tail of the last one.
+  useEffect(() => {
+    if (!notice) return undefined;
+    const t = setTimeout(() => setNotice(''), 12000);
+    return () => clearTimeout(t);
+  }, [notice, setNotice]);
   useEffect(() => {
     if (typeof document === 'undefined') return undefined;
     let timer = null;
@@ -903,14 +918,36 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           utterance produces no audio, and the watchdog flips `failed`. Every
           piece worked except the last one. role="status" so a screen reader
           announces it, and it sits ABOVE the panel so it cannot be missed. */}
+      {/* A NOTICE MAY NOT SIT ON THE WORD (Darrell 2026-09-22, on a screenshot
+          where this box covered the middle of a lesson): "these types of words
+          covering the Word and perspectives being explained are not wanted."
+
+          This whole stack is `fixed`, so every notice overlays the prose by
+          construction. Until now nothing ever took it down: `setNotice` was
+          called on a fault and only cleared when the NEXT read started
+          (use-read-aloud.js), so a reader who hit one fault and then read with
+          his eyes instead had a permanent white box over the page.
+
+          Two things fix that without losing the message, which is real and
+          worth saying: it can be dismissed by hand, and it takes itself down
+          after twelve seconds — long enough to read a sentence, short enough
+          that it is never a lid. role="status" still announces it to a screen
+          reader the moment it appears, so the timeout costs no accessibility. */}
       {notice && (
         <div
           role="status"
           data-testid="read-aloud-notice"
-          className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.75em] py-[0.5em] text-right"
+          className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.75em] py-[0.5em] flex items-start gap-[0.5em] max-w-[22em]"
           style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}
         >
-          <span className="text-[0.75em] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{notice}</span>
+          <span className="text-[0.75em] text-[#1A1815] text-left" style={{ fontFamily: '"Fraunces", serif' }}>{notice}</span>
+          <button
+            type="button"
+            onClick={() => setNotice('')}
+            aria-label="Dismiss this message"
+            data-testid="read-aloud-notice-dismiss"
+            className="shrink-0 px-[0.5em] py-[0.25em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
+          >×</button>
         </div>
       )}
       {interrupted && (
