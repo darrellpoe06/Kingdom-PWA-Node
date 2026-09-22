@@ -2,7 +2,7 @@
 // to end the chronic truncation problem caused by editing the 9,700-line monolith.
 // These are small, stateless, rarely-changed components used across many tabs.
 // See /docs/01-architecture/* for the long-term split plan.
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import TraceableNumber from './TraceableNumber.jsx';
 
 function MarketCard({ title, need, have }) {
@@ -258,19 +258,81 @@ function ModuleCard({ moduleKey, status, title, repo, desc, features, moduleInte
 //                     WITHOUT touching the scroll behavior every row shares.
 //   - `label`         when set, marks the row `role="tablist"` + aria-label
 //                     (pass only where the children are `role="tab"`).
+//   - SHOW ALL — every buried tab, visible from the start of the group.
+//
+// Darrell, 2026-09-22: "All buried tabs need to be able to be seen from the
+// beginning of the top tab group... make sense?" It does, and the scrolling row
+// alone could not do it. A tab past the right edge is reachable only by knowing
+// it is there and swiping for it — which is exactly how he lost the Voice tab
+// for a day, and how every strip in this app hides its tail.
+//
+// So when the row ACTUALLY overflows, a "show all" control appears and unwraps
+// the strip into as many lines as it needs. Nothing is hidden and nothing
+// scrolls. Three properties make it safe to put on the ONE primitive rather
+// than on one screen:
+//   * It only appears when there is something buried. A strip that fits shows
+//     no control, so no surface gains a button it does not need.
+//   * The choice PERSISTS per strip, because a person who opens the drawer is
+//     telling you their screen is too narrow for the default and re-collapsing
+//     it on every navigation would be a small daily insult.
+//   * Collapsed behaviour is unchanged, so nothing about the nav he likes moves.
 function TabScroll({ children, chrome = false, className = '', rowClassName = '', label }) {
+  const boxRef = useRef(null);
+  const storeKey = `tabscroll:showall:${label || 'row'}`;
+  const [showAll, setShowAll] = useState(() => {
+    try { return localStorage.getItem(storeKey) === '1'; } catch (_) { return false; }
+  });
+  const [overflows, setOverflows] = useState(false);
+
+  // MEASURED, not guessed: the control appears because this row genuinely does
+  // not fit, on this screen, at this text size. A media query would be a guess
+  // about width; scrollWidth is the answer.
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const measure = () => setOverflows(el.scrollWidth > el.clientWidth + 4);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [children]);
+
+  const toggle = () => {
+    setShowAll((v) => {
+      const next = !v;
+      try { localStorage.setItem(storeKey, next ? '1' : '0'); } catch (_) { /* private mode */ }
+      return next;
+    });
+  };
+
   return (
-    <div
-      className={`tab-scroll w-full overflow-x-auto overscroll-x-contain ${className}`}
-      style={{ WebkitOverflowScrolling: 'touch' }}
-    >
+    <div className="w-full flex items-start gap-1">
       <div
-        className={`${chrome ? 'ts-chrome-region ' : ''}flex gap-1 text-xs ${rowClassName}`.trim()}
-        role={label ? 'tablist' : undefined}
-        aria-label={label}
+        ref={boxRef}
+        className={`tab-scroll w-full ${showAll ? 'overflow-visible' : 'overflow-x-auto'} overscroll-x-contain ${className}`}
+        style={{ WebkitOverflowScrolling: 'touch' }}
       >
-        {children}
+        <div
+          className={`${chrome ? 'ts-chrome-region ' : ''}flex ${showAll ? 'flex-wrap' : ''} gap-1 text-xs ${rowClassName}`.trim()}
+          role={label ? 'tablist' : undefined}
+          aria-label={label}
+        >
+          {children}
+        </div>
       </div>
+      {(overflows || showAll) && (
+        <button
+          type="button"
+          onClick={toggle}
+          data-testid="tabscroll-show-all"
+          aria-expanded={showAll}
+          aria-label={showAll ? 'Show fewer tabs on one line' : 'Show every tab, including the ones past the edge'}
+          title={showAll ? 'Back to one line' : 'Show all tabs'}
+          className={`${chrome ? 'ts-chrome-region ' : ''}shrink-0 self-start px-2 py-2 text-[0.625rem] uppercase tracking-wider border border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]`}
+        >
+          {showAll ? 'Less' : 'All'}
+        </button>
+      )}
     </div>
   );
 }

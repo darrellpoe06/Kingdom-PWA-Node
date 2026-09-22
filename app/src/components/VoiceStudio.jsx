@@ -142,11 +142,34 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
       // Reading the stale one would look for a saved sample under the wrong key
       // on first load and report "no sample" to someone who has one.
       let key = personKeyFor({ personaKey, userId });
+      // THE SESSION FIRST, AND THE REASON IS A REAL DEFECT (Darrell, 2026-09-22,
+      // on the new "Does it work?" tab: "I'm signed in and it doesn't work!!!!!!!"
+      // — the panel read FAIL on "You are signed in on this device" while the
+      // header beside it showed his name and a LOG OUT button).
+      //
+      // getUser() is a NETWORK call to the auth server. getSession() reads the
+      // session this device already holds. This component asked the network,
+      // swallowed any failure, and left userId null — so a slow or unreachable
+      // auth server rendered as "you are not signed in", which is a different
+      // and much more alarming claim than the truth. The shell never had this
+      // problem because it works from the stored session.
+      //
+      // So: the local session decides, and getUser() is only a top-up for the
+      // profile metadata the display name reads. A failure there can no longer
+      // make a signed-in person read as a stranger.
+      try {
+        const { data: sess } = await supabase.auth.getSession();
+        const su = sess?.session?.user || null;
+        if (su) {
+          if (alive) { setUserId(su.id); setAuthUser(su); }
+          key = personKeyFor({ personaKey, userId: su.id });
+        }
+      } catch (_) { /* no stored session — the getUser attempt below still runs */ }
       try {
         const { data } = await supabase.auth.getUser();
-        if (alive) { setUserId(data?.user?.id || null); setAuthUser(data?.user || null); }
-        key = personKeyFor({ personaKey, userId: data?.user?.id || null });
-      } catch (_) { /* signed out — local-only, still usable */ }
+        if (data?.user && alive) { setUserId(data.user.id); setAuthUser(data.user); }
+        if (data?.user) key = personKeyFor({ personaKey, userId: data.user.id });
+      } catch (_) { /* network said nothing; the stored session already answered */ }
       try { const id = await getInstanceId(); if (alive) setInstanceId(id || null); } catch (_) { /* offline */ }
       const { profiles: rows } = await loadVoiceProfiles();
       if (alive && rows) setProfiles(rows);
