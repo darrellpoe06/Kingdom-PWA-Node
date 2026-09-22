@@ -262,10 +262,13 @@ describe('a pointer, never a copy', () => {
     // course, investing (8 lessons, DR-0554) — which completes the four
     // Darrell named in one sentence, and is the only one of them about a
     // DECISION rather than a piece of machinery.
+    // And to 46 / 687 on 2026-09-22 for World Issues issue 17 (biology walks
+    // back the selfish gene) — an issue added to an existing track, so the
+    // course count does not move and only the lesson total does.
     expect(courses).toHaveLength(46);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(686);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(687);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(686);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(687);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {

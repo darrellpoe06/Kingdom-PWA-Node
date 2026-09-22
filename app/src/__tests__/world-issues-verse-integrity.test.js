@@ -1848,3 +1848,234 @@ describe('Issue 14 — The Kennedy Center on the brink: every fragment verbatim 
     expect(/\b(Satan|Lucifer|Devil)\b/.test(ownVoice)).toBe(false);
   });
 });
+
+const NOBLE_BIOLOGY_QUOTES = [
+  { ref: 'Hebrews 11:3', book: 'Hebrews', ch: 11, v: 3, fragments: ['Through faith we understand that the worlds were framed by the word of God, so that things which are seen were not made of things which do appear.', 'Through faith we understand that the worlds were framed by the word of God', 'Through faith we understand'] },
+  { ref: 'Colossians 1:16', book: 'Colossians', ch: 1, v: 16, fragments: ['For by him were all things created, that are in heaven, and that are in earth, visible and invisible'] },
+  { ref: 'Colossians 1:17', book: 'Colossians', ch: 1, v: 17, fragments: ['And he is before all things, and by him all things consist.', 'he is before all things, and by him all things consist', 'by him all things consist'] },
+  { ref: 'Acts 17:28', book: 'Acts', ch: 17, v: 28, fragments: ['For in him we live, and move, and have our being'] },
+  { ref: 'Acts 17:25', book: 'Acts', ch: 17, v: 25, fragments: ['he giveth to all life, and breath, and all things'] },
+  { ref: 'Proverbs 8:29', book: 'Proverbs', ch: 8, v: 29, fragments: ['When he gave to the sea his decree, that the waters should not pass his commandment'] },
+  { ref: 'Job 38:4', book: 'Job', ch: 38, v: 4, fragments: ['Where wast thou when I laid the foundations of the earth? declare, if thou hast understanding.'] },
+  { ref: 'Job 38:11', book: 'Job', ch: 38, v: 11, fragments: ['Hitherto shalt thou come, but no further'] },
+  { ref: 'Genesis 2:7', book: 'Genesis', ch: 2, v: 7, fragments: ['And the LORD God formed man of the dust of the ground, and breathed into his nostrils the breath of life; and man became a living soul.', 'And the LORD God formed man of the dust of the ground, and breathed into his nostrils the breath of life'] },
+  { ref: 'Psalms 139:13', book: 'Psalms', ch: 139, v: 13, fragments: ['thou hast covered me in my mother’s womb'] },
+  { ref: 'Psalms 139:14', book: 'Psalms', ch: 139, v: 14, fragments: ['I will praise thee; for I am fearfully and wonderfully made: marvellous are thy works; and that my soul knoweth right well.', 'I am fearfully and wonderfully made'] },
+  { ref: 'Psalms 139:15', book: 'Psalms', ch: 139, v: 15, fragments: ['My substance was not hid from thee, when I was made in secret, and curiously wrought in the lowest parts of the earth.', 'curiously wrought'] },
+  { ref: 'Psalms 139:16', book: 'Psalms', ch: 139, v: 16, fragments: ['Thine eyes did see my substance, yet being unperfect; and in thy book all my members were written'] },
+  { ref: 'Psalms 139:6', book: 'Psalms', ch: 139, v: 6, fragments: ['Such knowledge is too wonderful for me; it is high, I cannot attain unto it.'] },
+  { ref: 'Psalms 100:3', book: 'Psalms', ch: 100, v: 3, fragments: ['it is he that hath made us, and not we ourselves'] },
+  { ref: 'Isaiah 45:9', book: 'Isaiah', ch: 45, v: 9, fragments: ['Shall the clay say to him that fashioneth it, What makest thou?'] },
+  { ref: 'Psalms 115:4', book: 'Psalms', ch: 115, v: 4, fragments: ['Their idols are silver and gold, the work of men’s hands.'] },
+  { ref: 'Psalms 115:5', book: 'Psalms', ch: 115, v: 5, fragments: ['They have mouths, but they speak not: eyes have they, but they see not:'] },
+  { ref: 'Psalms 115:6', book: 'Psalms', ch: 115, v: 6, fragments: ['They have ears, but they hear not: noses have they, but they smell not:'] },
+  { ref: 'Psalms 115:7', book: 'Psalms', ch: 115, v: 7, fragments: ['They have hands, but they handle not: feet have they, but they walk not: neither speak they through their throat.'] },
+  { ref: 'Psalms 115:8', book: 'Psalms', ch: 115, v: 8, fragments: ['They that make them are like unto them; so is every one that trusteth in them.'] },
+  { ref: 'Job 32:8', book: 'Job', ch: 32, v: 8, fragments: ['But there is a spirit in man: and the inspiration of the Almighty giveth them understanding.'] },
+  { ref: '1 Corinthians 2:11', book: '1Corinthians', ch: 2, v: 11, fragments: ['For what man knoweth the things of a man, save the spirit of man which is in him?'] },
+  { ref: 'Job 12:10', book: 'Job', ch: 12, v: 10, fragments: ['In whose hand is the soul of every living thing, and the breath of all mankind.'] },
+  { ref: 'Zechariah 12:1', book: 'Zechariah', ch: 12, v: 1, fragments: ['formeth the spirit of man within him'] },
+  { ref: 'Habakkuk 2:18', book: 'Habakkuk', ch: 2, v: 18, fragments: ['a teacher of lies, that the maker of his work trusteth therein'] },
+  { ref: 'Habakkuk 2:19', book: 'Habakkuk', ch: 2, v: 19, fragments: ['Woe unto him that saith to the wood, Awake; to the dumb stone, Arise, it shall teach!', 'it shall teach', 'and there is no breath at all in the midst of it'] },
+  { ref: 'Habakkuk 2:20', book: 'Habakkuk', ch: 2, v: 20, fragments: ['But the LORD is in his holy temple: let all the earth keep silence before him.'] },
+  { ref: 'Psalms 147:4', book: 'Psalms', ch: 147, v: 4, fragments: ['He telleth the number of the stars; he calleth them all by their names.'] },
+  { ref: 'Psalms 147:5', book: 'Psalms', ch: 147, v: 5, fragments: ['Great is our Lord, and of great power: his understanding is infinite.', 'his understanding is infinite'] },
+  { ref: 'Job 38:37', book: 'Job', ch: 38, v: 37, fragments: ['Who can number the clouds in wisdom?'] },
+  { ref: 'Job 26:8', book: 'Job', ch: 26, v: 8, fragments: ['He bindeth up the waters in his thick clouds; and the cloud is not rent under them.'] },
+  { ref: 'Genesis 1:2', book: 'Genesis', ch: 1, v: 2, fragments: ['And the Spirit of God moved upon the face of the waters'] },
+  { ref: '2 Peter 3:5', book: '2Peter', ch: 3, v: 5, fragments: ['For this they willingly are ignorant of, that by the word of God the heavens were of old, and the earth standing out of the water and in the water:', 'willingly are ignorant'] },
+  { ref: 'Isaiah 43:16', book: 'Isaiah', ch: 43, v: 16, fragments: ['Thus saith the LORD, which maketh a way in the sea, and a path in the mighty waters'] },
+  { ref: 'Isaiah 43:19', book: 'Isaiah', ch: 43, v: 19, fragments: ['I will even make a way in the wilderness, and rivers in the desert'] },
+  { ref: '1 Corinthians 10:13', book: '1Corinthians', ch: 10, v: 13, fragments: ['will with the temptation also make a way to escape, that ye may be able to bear it'] },
+  { ref: 'John 7:38', book: 'John', ch: 7, v: 38, fragments: ['out of his belly shall flow rivers of living water'] },
+  { ref: 'Proverbs 16:33', book: 'Proverbs', ch: 16, v: 33, fragments: ['The lot is cast into the lap; but the whole disposing thereof is of the LORD.'] },
+  { ref: 'Ecclesiastes 9:11', book: 'Ecclesiastes', ch: 9, v: 11, fragments: ['time and chance happeneth to them all'] },
+  { ref: 'Proverbs 16:9', book: 'Proverbs', ch: 16, v: 9, fragments: ['A man’s heart deviseth his way: but the LORD directeth his steps.'] },
+  { ref: 'Proverbs 20:24', book: 'Proverbs', ch: 20, v: 24, fragments: ['Man’s goings are of the LORD; how can a man then understand his own way?'] },
+  { ref: 'Jeremiah 10:23', book: 'Jeremiah', ch: 10, v: 23, fragments: ['the way of man is not in himself: it is not in man that walketh to direct his steps'] },
+  { ref: '1 Kings 22:17', book: '1Kings', ch: 22, v: 17, fragments: ['I saw all Israel scattered upon the hills, as sheep that have not a shepherd'] },
+  { ref: '1 Kings 22:23', book: '1Kings', ch: 22, v: 23, fragments: ['the LORD hath put a lying spirit in the mouth of all these thy prophets'] },
+  { ref: '1 Kings 22:34', book: '1Kings', ch: 22, v: 34, fragments: ['And a certain man drew a bow at a venture, and smote the king of Israel between the joints of the harness'] },
+  { ref: '1 Corinthians 12:24', book: '1Corinthians', ch: 12, v: 24, fragments: ['For our comely parts have no need: but God hath tempered the body together, having given more abundant honour to that part which lacked:'] },
+  { ref: '1 Corinthians 12:25', book: '1Corinthians', ch: 12, v: 25, fragments: ['That there should be no schism in the body; but that the members should have the same care one for another.'] },
+  { ref: 'Ephesians 4:16', book: 'Ephesians', ch: 4, v: 16, fragments: ['the effectual working in the measure of every part'] },
+  { ref: 'Proverbs 25:2', book: 'Proverbs', ch: 25, v: 2, fragments: ['It is the glory of God to conceal a thing: but the honour of kings is to search out a matter.', 'the honour of kings is to search out a matter'] },
+  { ref: '1 Corinthians 8:2', book: '1Corinthians', ch: 8, v: 2, fragments: ['And if any man think that he knoweth any thing, he knoweth nothing yet as he ought to know.'] },
+  { ref: 'Proverbs 18:17', book: 'Proverbs', ch: 18, v: 17, fragments: ['He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him.'] },
+  { ref: '1 Thessalonians 5:21', book: '1Thessalonians', ch: 5, v: 21, fragments: ['Prove all things; hold fast that which is good.'] },
+  { ref: 'Mark 7:13', book: 'Mark', ch: 7, v: 13, fragments: ['Making the word of God of none effect through your tradition'] },
+  { ref: 'Psalms 94:9', book: 'Psalms', ch: 94, v: 9, fragments: ['He that planted the ear, shall he not hear? he that formed the eye, shall he not see?'] },
+  { ref: 'Isaiah 46:10', book: 'Isaiah', ch: 46, v: 10, fragments: ['Declaring the end from the beginning, and from ancient times the things that are not yet done'] },
+  { ref: 'Jeremiah 1:5', book: 'Jeremiah', ch: 1, v: 5, fragments: ['Before I formed thee in the belly I knew thee'] },
+  { ref: 'Isaiah 55:9', book: 'Isaiah', ch: 55, v: 9, fragments: ['so are my ways higher than your ways, and my thoughts than your thoughts'] },
+  { ref: '1 Timothy 6:20', book: '1Timothy', ch: 6, v: 20, fragments: ['oppositions of science falsely so called'] },
+  { ref: 'Romans 1:20', book: 'Romans', ch: 1, v: 20, fragments: ['the invisible things of him from the creation of the world are clearly seen, being understood by the things that are made, even his eternal power and Godhead; so that they are without excuse:', 'so that they are without excuse'] },
+  { ref: 'Romans 1:21', book: 'Romans', ch: 1, v: 21, fragments: ['when they knew God, they glorified him not as God, neither were thankful; but became vain in their imaginations'] },
+  { ref: 'Romans 1:22', book: 'Romans', ch: 1, v: 22, fragments: ['Professing themselves to be wise, they became fools,'] },
+  { ref: '1 Corinthians 1:19', book: '1Corinthians', ch: 1, v: 19, fragments: ['For it is written, I will destroy the wisdom of the wise, and will bring to nothing the understanding of the prudent.'] },
+  { ref: '1 Corinthians 1:20', book: '1Corinthians', ch: 1, v: 20, fragments: ['where is the disputer of this world? hath not God made foolish the wisdom of this world?'] },
+  { ref: '1 Corinthians 3:19', book: '1Corinthians', ch: 3, v: 19, fragments: ['For the wisdom of this world is foolishness with God.'] },
+  { ref: '1 Corinthians 3:20', book: '1Corinthians', ch: 3, v: 20, fragments: ['The Lord knoweth the thoughts of the wise, that they are vain.'] },
+  { ref: 'Psalms 14:1', book: 'Psalms', ch: 14, v: 1, fragments: ['The fool hath said in his heart, There is no God.'] },
+  { ref: 'Colossians 2:8', book: 'Colossians', ch: 2, v: 8, fragments: ['Beware lest any man spoil you through philosophy and vain deceit'] },
+  { ref: 'Ezekiel 18:20', book: 'Ezekiel', ch: 18, v: 20, fragments: ['The soul that sinneth, it shall die.'] },
+  { ref: 'Deuteronomy 30:19', book: 'Deuteronomy', ch: 30, v: 19, fragments: ['I have set before you life and death, blessing and cursing: therefore choose life'] },
+  { ref: 'Deuteronomy 29:29', book: 'Deuteronomy', ch: 29, v: 29, fragments: ['The secret things belong unto the LORD our God: but those things which are revealed belong unto us and to our children for ever, that we may do all the words of this law.', 'The secret things belong unto the LORD our God: but those things which are revealed belong unto us and to our children for ever', 'those things which are revealed belong unto us and to our children for ever'] },
+  { ref: 'Job 11:7', book: 'Job', ch: 11, v: 7, fragments: ['Canst thou by searching find out God? canst thou find out the Almighty unto perfection?'] },
+  { ref: 'Ecclesiastes 3:11', book: 'Ecclesiastes', ch: 3, v: 11, fragments: ['he hath set the world in their heart, so that no man can find out the work that God maketh from the beginning to the end'] },
+  { ref: 'Ecclesiastes 8:17', book: 'Ecclesiastes', ch: 8, v: 17, fragments: ['though a wise man think to know it, yet shall he not be able to find it'] },
+  { ref: 'Job 42:3', book: 'Job', ch: 42, v: 3, fragments: ['things too wonderful for me, which I knew not'] },
+  { ref: 'Proverbs 3:5', book: 'Proverbs', ch: 3, v: 5, fragments: ['Trust in the LORD with all thine heart; and lean not unto thine own understanding.'] },
+  { ref: 'Proverbs 3:7', book: 'Proverbs', ch: 3, v: 7, fragments: ['Be not wise in thine own eyes: fear the LORD, and depart from evil.'] },
+  { ref: 'Ecclesiastes 12:14', book: 'Ecclesiastes', ch: 12, v: 14, fragments: ['For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil.'] },
+  { ref: 'Revelation 20:12', book: 'Revelation', ch: 20, v: 12, fragments: ['the books were opened'] },
+  { ref: 'Galatians 6:7', book: 'Galatians', ch: 6, v: 7, fragments: ['God is not mocked'] },
+];
+
+describe('Issue 17 — Biology walks back the selfish gene: every fragment verbatim from the repo KJV', () => {
+  const issue = WORLD_ISSUES.find((i) => i.id === 'wi-biology-walked-back-and-the-word-on-the-worlds');
+  const norm = (s) => s.replace(/[’‘]/g, "'").replace(/\s+/g, ' ');
+
+  it('the issue is published', () => {
+    expect(issue).toBeTruthy();
+  });
+
+  it('every quoted fragment is a verbatim substring of the cited KJV verse', () => {
+    const failures = [];
+    for (const q of NOBLE_BIOLOGY_QUOTES) {
+      const text = kjvVerse(q.book, q.ch, q.v);
+      for (const frag of q.fragments) {
+        if (!norm(text).includes(norm(frag))) {
+          failures.push(`${q.ref}: NOT VERBATIM — "${frag}" (verse reads: "${text}")`);
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it('every fragment actually appears in the issue content (no stale list)', () => {
+    const blob = norm(JSON.stringify(issue));
+    const missing = NOBLE_BIOLOGY_QUOTES.flatMap((q) =>
+      q.fragments.filter((frag) => !blob.includes(norm(frag))).map((frag) => `${q.ref}: "${frag}"`));
+    expect(missing).toEqual([]);
+  });
+
+  // PROVEN-TO-CATCH: a one-word tamper in the two anchor verses must fail.
+  it('CATCHES a one-word tamper in a pinned verse', () => {
+    const framed = kjvVerse('Hebrews', 11, 3);
+    expect(norm(framed).includes(norm('Through science we understand that the worlds were framed by the word of God'))).toBe(false);
+    expect(norm(framed).includes(norm('Through faith we understand that the worlds were framed by the word of God'))).toBe(true);
+    const formed = kjvVerse('Genesis', 2, 7);
+    expect(norm(formed).includes(norm('breathed into his nostrils the breath of air'))).toBe(false);
+    expect(norm(formed).includes(norm('breathed into his nostrils the breath of life'))).toBe(true);
+  });
+
+  // DR-0100's three tiers are load-bearing here, and each pin is a place this
+  // lesson could have lied: the contested verdict carried as a verdict, the
+  // Genome Project slandered as a failure, or an improbability calculation
+  // shipped as a proof.
+  it('labels the contested verdict as opinion and the measured record as documented', () => {
+    expect(issue.claims.find((c) => c.id === 'c-neo-darwinism-dead').label).toBe('opinion');
+    expect(issue.claims.find((c) => c.id === 'c-title-misled-80-years').label).toBe('opinion');
+    expect(issue.claims.find((c) => c.id === 'c-finite-monkeys').label).toBe('opinion');
+    expect(issue.verifiable.find((v) => v.id === 'f-hgp-succeeded').status).toBe('documented');
+    expect(issue.verifiable.find((v) => v.id === 'f-polygenic-scores-predict-poorly').status).toBe('documented');
+    expect(issue.verifiable.find((v) => v.id === 'f-brownian-1827').status).toBe('documented');
+    expect(issue.verifiable.find((v) => v.id === 'f-ai-has-no-senses').status).toBe('documented');
+    expect(issue.verifiable.find((v) => v.id === 'f-noble-is-eminent').status).toBe('documented');
+  });
+
+  it('carries "neo-Darwinism is dead" as CONTESTED opinion, never as a concession by mainstream biology', () => {
+    const row = issue.verifiable.find((v) => v.id === 'f-neo-darwinism-contested');
+    expect(row.status).toBe('disputed');
+    expect(row.statement).toMatch(/has not conceded/i);
+    expect(row.note).toMatch(/contested/i);
+    // The claim itself must never be dressed as documented.
+    const claim = issue.claims.find((c) => c.id === 'c-neo-darwinism-dead');
+    expect(claim.note).toMatch(/contested/i);
+    expect(claim.note).toMatch(/Most working biologists disagree/i);
+  });
+
+  it('describes the Human Genome Project as ACHIEVING its goal, never as failing', () => {
+    const claim = issue.claims.find((c) => c.id === 'c-genome-project');
+    expect(claim.text).toMatch(/achieved its primary scientific goal/i);
+    expect(claim.note).toMatch(/did NOT fail/);
+    const fact = issue.verifiable.find((v) => v.id === 'f-hgp-succeeded');
+    expect(fact.statement).toMatch(/achieved its goal/i);
+    expect(fact.note).toMatch(/did NOT fail/);
+    expect(issue.interpretation.find((n) => n.id === 'n-the-genome-project-did-not-fail').statement).toMatch(/THE PROJECT SUCCEEDED/);
+  });
+
+  it('carries the finite-monkeys OBJECTION in the same field as the claim, and never as a proof', () => {
+    const claim = issue.claims.find((c) => c.id === 'c-finite-monkeys');
+    expect(claim.note).toMatch(/NEVER AS A PROOF/);
+    expect(claim.note).toMatch(/selection is not a pure random search/);
+    expect(issue.verifiable.find((v) => v.id === 'f-finite-monkeys-objection').status).toBe('disputed');
+  });
+
+  it('refuses the over-reach in BOTH directions — no readout of your genes, and no scientific proof of Yahweh', () => {
+    const arrow = issue.interpretation.find((n) => n.id === 'n-the-reverse-arrow');
+    expect(arrow.statement).toMatch(/Biology has not proved Yahweh/);
+    expect(issue.lens.fourD.deepSource).toContain('THE OVER-REACH, CORRECTED IN BOTH DIRECTIONS');
+    expect(issue.lens.fourD.deepSource).toMatch(/do not claim biology has proved Yahweh/);
+    expect(issue.lens.fourD.deepSource).toMatch(/A man is not a readout of a sequence/);
+  });
+
+  it('states its own provenance plainly: a SUMMARY, not a transcript, and the video was not watched', () => {
+    expect(issue.source.note).toMatch(/not a transcript/i);
+    expect(issue.source.note).toMatch(/SUMMARY/);
+    expect(issue.source.note).toMatch(/we have NOT watched this video/i);
+    expect(issue.source.note).toMatch(/timestamp[^.]*summary/i);
+    expect(issue.source.note).toMatch(/as summarized in the material Darrell provided/i);
+    expect(issue.interpretation.find((n) => n.id === 'n-our-own-provenance-limit')).toBeTruthy();
+    // Every position credited to a living man is reported at one remove.
+    for (const id of ['c-dna-not-sole-commander', 'c-neo-darwinism-dead', 'c-consciousness-and-ai', 'c-water-and-prediction-limits']) {
+      expect(issue.claims.find((c) => c.id === id).attribution).toMatch(/as summarized in the material Darrell provided/);
+    }
+  });
+
+  it('Word first — the worlds, consciousness, water, chance, the limits; the deep lens opens with His frame', () => {
+    const src = issue.lens.fourD.deepSource;
+    expect(src.indexOf('WORD FIRST')).toBe(0);
+    expect(src).toContain('THE WORLDS AS HE FRAMED THEM');
+    expect(src).toContain('CONSCIOUSNESS — THE SENSES OF A MADE THING');
+    expect(src).toContain('WATER, AND WHAT IS UNCOMPUTABLE TO US');
+    expect(src).toContain('CHANCE IS A WORD FOR WHAT WE CANNOT SEE, NEVER FOR WHAT IS UNRULED');
+    expect(src).toContain('SCIENCE FALSELY SO CALLED — USED PRECISELY');
+    expect(src).toContain('AND THEN VERSE 8 TURNS IT ON US');
+    expect(issue.lens.accountability.scripture).toMatch(/Ecclesiastes 12:14/);
+    expect(issue.lens.benefits.some((b) => /eternal court/i.test(b) && /after this life/i.test(b))).toBe(true);
+    expect(issue.lens.anchor.ref).toBe('Hebrews 11:3; Genesis 2:7');
+  });
+
+  it('steelmans four perspectives, one of them the mainstream synthesis that thinks Noble overstates it', () => {
+    expect(issue.perspectives.length).toBeGreaterThanOrEqual(3);
+    expect(issue.perspectives.every((p) => p.steelman.length > 200)).toBe(true);
+    const mainstream = issue.perspectives.find((p) => p.id === 'p-mainstream-synthesis');
+    expect(mainstream.steelman).toMatch(/Modern Synthesis remains foundational|extension and refinement/);
+    const geneCentric = issue.perspectives.find((p) => p.id === 'p-gene-centric');
+    expect(geneCentric.steelman).toMatch(/explained/);
+  });
+
+  it('carries a grace note that condemns no one, naming every real person the lesson names', () => {
+    expect(issue.subject.isNamedRealPerson).toBe(true);
+    expect(issue.lens.graceNote).toMatch(/No condemnation/i);
+    for (const name of ['Noble', 'Dawkins', 'Metaxas', 'Collins']) expect(issue.lens.graceNote).toContain(name);
+    // "Anti-Yahweh" names the CLAIM, never the person.
+    expect(issue.lens.graceNote).toMatch(/names a CLAIM[^.]*and never a person/);
+  });
+
+  it('keeps our voice on Yahweh and the adversary lowercase', () => {
+    const ownVoice = [issue.skill, issue.lens.threeD, issue.lens.graceNote, issue.lens.stewardship, issue.lens.accountability.statement, ...issue.lens.benefits, ...issue.reflection.prompts, issue.levels.child, issue.levels.teen, issue.levels.senior].join(' ');
+    // Strip every double-quoted span (the verbatim KJV, the video title, the slogans) before checking OUR voice.
+    const ours = ownVoice.replace(/"[^"]*"/g, '');
+    expect(/\bGod\b/.test(ours)).toBe(false);
+    expect(/\b(Satan|Lucifer|Devil)\b/.test(ownVoice)).toBe(false);
+  });
+
+  it('the child band teaches it gently: not an accident, not a machine', () => {
+    expect(issue.levels.child).toMatch(/not an accident/i);
+    expect(issue.levels.child).toMatch(/not a machine/i);
+    expect(issue.levels.child).toMatch(/never make fun of scientists/i);
+  });
+});
