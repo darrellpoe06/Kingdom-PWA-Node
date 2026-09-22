@@ -5,7 +5,7 @@
 # Darrell 2026-09-20, reading a lesson on a Fire TV: "No sounds yet for the
 # tts... but it does click and do what it should." The device has no voice of
 # its own, so the app routes the System voice to the church's OWN XTTS studio
-# (DR-0382 / DR-0394) over the same-origin /voice transport. That transport
+# (DR-0382 / DR-0401) over the same-origin /voice transport. That transport
 # ends at the Funnel on the NAS -- and the studio is a GPU container on the
 # 4070 (tlcmediadpt), a different machine.
 #
@@ -182,7 +182,7 @@ def make_handler(upstream, token, max_inflight=MAX_INFLIGHT, timeout=UPSTREAM_TI
                     # The studio's own refusal (400 reference-required, etc.)
                     # is passed through unchanged: the app's built-in-voice
                     # probe reads that status to learn what this deployment
-                    # can do (DR-0394), and rewriting it would teach it wrong.
+                    # can do (DR-0401), and rewriting it would teach it wrong.
                     payload = e.read() or b""
                     self.send_response(e.code)
                     self.send_header("Content-Type", e.headers.get("Content-Type", "application/json"))
@@ -281,7 +281,7 @@ def _selftest():
     s, _, d = call("POST", "/voice/speak", body, auth="Bearer " + token)
     check(s == 200 and d.startswith(b"RIFF"), "POST /voice/speak (un-stripped spelling) forwards too")
 
-    print("=== 4. the studio's OWN refusal passes through unchanged (DR-0394 probe) ===")
+    print("=== 4. the studio's OWN refusal passes through unchanged (DR-0401 probe) ===")
     s, _, d = call("POST", "/speak", b'{"text":"refuse"}', auth="Bearer " + token)
     check(s == 400 and b"reference-required" in d, "studio 400 reference-required arrives as 400 reference-required")
 

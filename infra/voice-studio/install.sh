@@ -5,7 +5,7 @@
 # WHAT THIS CLOSES. Darrell, 2026-09-20, reading a lesson on a Fire TV: "No
 # sounds yet for the tts... but it does click and do what it should." The
 # device has no voice of its own, so the app routes the System voice to the
-# church's OWN XTTS studio (DR-0382 / DR-0394) over the same-origin /voice
+# church's OWN XTTS studio (DR-0382 / DR-0401) over the same-origin /voice
 # transport -- and the Funnel had no /voice mount for it to arrive on. Same
 # class as /nas-photos (DR-0268) and /taxes (DR-0330): built, correct, never
 # actuated.

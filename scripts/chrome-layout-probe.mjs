@@ -12,7 +12,14 @@
 // Chromium at phone / tablet / laptop widths (COMPREHENSIVE-REVIEW-STANDARD
 // dimension 4, DR-0239).
 //
-// Invariants asserted per width (360 / 768 / 1440):
+// Invariants asserted per width (360 / 768 / 1440 / 1920):
+//   1920 ADDED 2026-09-22: Darrell reads lessons on a Fire TV and a Samsung
+//   set, and the sweep had never measured a television. A 10-foot UI is a
+//   real form factor for this app (DR-0264 asked for readers aged 6 to 60,
+//   across a room), and dimension 4 says a sweep is MEASURED, not eyeballed.
+//   Measured by CI's runner: the sandbox that added this width cannot mount
+//   the page at all (no route to /sb), which is exactly why the runner is the
+//   team's eye (DR-0125) and why this line was not asserted from a guess.
 //   1. NO PAGE OVERFLOW — document scrollWidth <= viewport width + 1px.
 //   2. BRAND READS HORIZONTALLY — the header h1 box is wider than tall
 //      (a letter-stacked 1-ch column is taller than wide by construction).
@@ -53,7 +60,7 @@ const SELFTEST = process.argv.includes('--selftest-break');
 const SWEEP = process.argv.includes('--sweep');
 const BASE = '/poetech-app';
 const DIST = args[0] || fileURLToPath(new URL('../app/dist', import.meta.url));
-const WIDTHS = [360, 768, 1440];
+const WIDTHS = [360, 768, 1440, 1920];
 const VIEWS = SWEEP
   // 'properties' added 2026-08-27: the Poe Properties workspace is a face of
   // its own (its own manifest scope, its own served page) and had NO layout

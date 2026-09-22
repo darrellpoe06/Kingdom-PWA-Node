@@ -8,7 +8,7 @@
 // anywhere that could produce audio for that device. Fire OS's Silk may carry
 // no speechSynthesis voice at all, so the browser stand-in has nothing to speak
 // with, and the app's answer to exactly that is to route the System voice to
-// the church's OWN studio instead (DR-0382 / DR-0394) — device-independent by
+// the church's OWN studio instead (DR-0382 / DR-0401) — device-independent by
 // construction. But the road to that studio did not exist: the same-origin
 // Pages Function forwarded /voice/* to the Funnel, and the Funnel had no
 // /voice mount at all.

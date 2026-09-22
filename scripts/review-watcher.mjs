@@ -72,6 +72,16 @@ for (const { dir, label } of extraLedgers) {
     reviews.items.push({ id: `${label}:${f}`, title: f, findings: readFileSync(join(abs, f), 'utf8'), source: `${dir}/${f}` });
   }
 }
+// WIDENED AGAIN 2026-09-22 (the /voice review): the UNACTUATED ledger in
+// infra/nas-transport/RECORDED-STATE.md carries eleven `re-review:` dates — all
+// 2026-09-20, all past due — and NOTHING read them. funnel-actuation-guard
+// honours those dates as lawful gaps (a declared gap needs a date), so the
+// file is exactly where an invented date can hide in plain sight: green in
+// CI, invisible to the daily drive. Same extractor, one more ledger.
+const recordedStatePath = join(root, 'infra/nas-transport/RECORDED-STATE.md');
+if (existsSync(recordedStatePath)) {
+  reviews.items.push({ id: 'transport:RECORDED-STATE.md', title: 'NAS transport recorded state (UNACTUATED ledger)', findings: readFileSync(recordedStatePath, 'utf8'), source: 'infra/nas-transport/RECORDED-STATE.md' });
+}
 const indexPath = join(root, 'docs/decisions/INDEX.md');
 if (existsSync(indexPath)) {
   reviews.items.push({ id: 'INDEX.md', title: 'Decision ledger index', findings: readFileSync(indexPath, 'utf8'), source: 'docs/decisions/INDEX.md' });

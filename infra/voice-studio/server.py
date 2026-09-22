@@ -98,7 +98,7 @@ async def speak(req: Request):
     language = body.get("language") or "en"
     if not text:
         return JSONResponse({"error": "text-required"}, status_code=400)
-    # THE BUILT-IN VOICE IS SERVED, NOT REFUSED (2026-09-14, DR-0394).
+    # THE BUILT-IN VOICE IS SERVED, NOT REFUSED (2026-09-14, DR-0401).
     #
     # Until now this returned 400 the moment no reference sample arrived, which
     # made the studio CLONE-ONLY by construction. DR-0382 had taught the client
