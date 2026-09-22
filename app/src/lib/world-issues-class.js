@@ -4311,12 +4311,37 @@ const NOBLE_BIOLOGY_ISSUE = {
   skill: 'Take a viral science conversation in which an eminent biologist says his own field got something big wrong for eighty years, and learn how the Word weighs it: lead with what Yahweh already said about the worlds (Hebrews 11:3; Colossians 1:16-17; Genesis 2:7; Job 38), state the documented plainly (the genome was sequenced; polygenic scores predict poorly for individuals; water moves at random; today’s machines have no senses), keep the genuinely contested narrow and named (whether neo-Darwinism is dead is Noble’s position in a live dispute, not a concession by mainstream biology), hear the gene-centric view at its strongest without a sneer (Proverbs 18:17), and refuse BOTH over-reaches — you are not a readout of your genes, and this science is not a proof of Yahweh.',
   source: {
     creator: 'Socrates in the City (host Eric Metaxas), in conversation with the physiologist Denis Noble',
-    medium: 'video, received as a written SUMMARY',
+    // Upgraded 2026-09-22 with the transcript. The old value read "video,
+    // received as a written SUMMARY" and stayed that way after the speaker's own
+    // words landed in the repo, so the one-line medium disagreed with the note
+    // underneath it. A stale field beside a corrected one is how a reader learns
+    // not to trust either.
+    medium: 'video, read as AUTO-GENERATED CAPTIONS (the recording itself unwatched)',
     title: 'We Have Been Misled About Biology for 80 Years | Denis Noble',
     url: 'https://youtu.be/18pppZ3egOg',
     asOf: '2026-09-20',
     note: 'PROVENANCE, plainly: we have NOT watched this video, and this lesson is written from a written SUMMARY of it — not a transcript and not the recording. Darrell pasted six summary blocks into the session on 2026-09-20 with the single word "Lesson." Therefore EVERY position attributed here to Denis Noble, Richard Dawkins, Eric Metaxas or Francis Collins is as summarized in the material Darrell provided, not as quoted from the video; and every timestamp in that material is the summary’s own, not one we checked. We quote none of these men verbatim from the recording. The one phrase this lesson does quote from a book — Dawkins’s "created us, body and mind" from The Selfish Gene — was verified independently by live web search on 2026-09-22, not taken from the summary’s word. Video metadata as displayed to Darrell on 2026-09-20: about 1:06:42 long, roughly 503K views, upload read as approximately three weeks earlier (so mid-to-late August 2026, approximate). PROVENANCE UPGRADED 2026-09-22, and the upgrade is itself the honest record: the NAS-side transcript route landed after this lesson was authored, and the speaker’s own words are now in the repo at docs/99-session-notes/sources/denis-noble-misled-about-biology/transcript.txt — 9,927 words of auto-generated captions fetched from the NAS’s residential IP, because youtube.com is blocked to CI. Every position this lesson attributes was re-checked against that transcript and held. Two things the SUMMARY got thin and the transcript corrected, both folded in: Noble names FIVE senses, not four — he asks “can it see? … feel? … hear? … touch? … smell?” — and the summary dropped smell, which is the very sense Psalms 115:6 denies an idol; and the monkeys argument is the FINITE monkeys theorem, a calculation two mathematicians published about three years before the conversation, which he cites against a 19th-century assumption rather than advancing as his own. The transcript also shows the disagreement is collegial: he calls Dawkins “my friend.” TWO LIMITS REMAIN, stated rather than buried. These are AUTO-GENERATED captions — a machine’s hearing, carrying speaker markers and stage noise — so they establish a position but are not a warrant for putting any living man’s sentence inside quotation marks; and this route joins the caption segments, so nothing here can be cited to a minute mark. The recording itself still has not been watched.',
   },
+
+  // ---- SOURCE LIMITS, stated where the reader meets them (lib/lesson-context.js).
+  // The provenance note above carries the whole story and is ~2,400 characters
+  // of it. These are the three sentences a reader needs BEFORE he starts, lifted
+  // out so they are not something he has to mine. Nothing here is derivable from
+  // a count — how a source was obtained is knowledge only the author has. ----
+  limits: [
+    {
+      id: 'lim-unwatched',
+      text: 'Nobody here has watched or heard this conversation. The lesson is built from a written summary and then re-checked against auto-generated captions — both of them text, neither of them the recording.',
+    },
+    {
+      id: 'lim-no-verbatim',
+      text: 'Auto-generated captions are a machine’s hearing. They establish what a man’s position was; they are not a warrant for putting his sentence inside quotation marks. So we quote none of these living men verbatim from the recording — the one book phrase this lesson does quote was verified separately.',
+    },
+    {
+      id: 'lim-no-timestamps',
+      text: 'The caption segments were joined into continuous text, so nothing here can be cited to a minute mark. If you want to check a point against the video, you will have to find it yourself.',
+    },
+  ],
 
   // ---- STAGE 1 — THE CLAIM(S): the summary's points, AS SUMMARIZED, each labeled. ----
   claims: [
