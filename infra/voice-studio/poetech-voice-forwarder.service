@@ -1,0 +1,28 @@
+# PoeTech voice forwarder -- the NAS-side road home for the sovereign reading
+# voice. Request-driven (no timers: not the three-brakes class -- it does no
+# work until a browser asks). The Funnel mounts /voice here; this carries the
+# request across the tailnet to the XTTS studio on the 4070, behind the SAME
+# family bridge bearer the photo and tax servers already gate on.
+# Installed + kept running by infra/voice-studio/install.sh via services-sync.
+[Unit]
+Description=PoeTech voice forwarder (/voice -> the church's XTTS studio)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=dpoe
+Environment=PORT=8771
+# Written by install.sh to whichever studio ANSWERED /health on that cycle.
+Environment=VOICE_STUDIO_UPSTREAM=http://tlcmediadpt:8770
+# Bearer read from /volume1/PoeTech/secrets/chat-bridge-token.txt by default --
+# the one family token, provisioned to devices by the 0128 RPC. Never a second
+# secret: a separate token would mean a 401 on every read with nothing to show why.
+WorkingDirectory=/volume1/PoeTech/repos/Kingdom-PWA-Node/infra/voice-studio
+ExecStart=/usr/bin/python3 -u /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/voice-studio/voice_forwarder.py
+Restart=on-failure
+RestartSec=5
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

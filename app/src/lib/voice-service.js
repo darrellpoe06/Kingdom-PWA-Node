@@ -25,6 +25,8 @@
 // Every call is null-safe and returns a tagged error instead of throwing, so the
 // caller can fall back to the browser stand-in and NEVER fail silently.
 
+import { bridgeToken } from './nas-photos.js';
+
 const BRIDGE_PATH = '/api/voice-speak';
 
 function env(name) {
@@ -183,9 +185,21 @@ export async function synthesizeSpeech({
     else { try { signal.addEventListener('abort', () => ctrl.abort(), { once: true }); } catch (_) { /* ignore */ } }
   }
   try {
+    // THE SOVEREIGN ROAD IS LOCKED, and this is the key. /voice sits on the
+    // PUBLIC Funnel and the studio has no authentication of its own, so the
+    // NAS-side forwarder (infra/voice-studio/voice_forwarder.py) gates /speak
+    // on the family bridge bearer -- the same token the photo and tax reads
+    // already carry, provisioned to a signed-in family device by the 0128 RPC
+    // (lib/bridge-provision.js). No token -> no header -> the forwarder's 401
+    // arrives as a tagged error below and the device voice still speaks.
+    const headers = { 'Content-Type': 'application/json' };
+    if (endpoint.kind === 'sovereign') {
+      const token = bridgeToken();
+      if (token) headers.Authorization = `Bearer ${token}`;
+    }
     const res = await fetch(endpoint.url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         text: body,
         voice: voiceId || null,
