@@ -4906,7 +4906,7 @@ ${THEME_CSS}
         {view === 'voice' && (
           <SectionBoundary name="Voice">
             <VoiceStudio
-              personaKey={authSession && !reviewerMode ? personaOf(authSession.user?.email) : null}
+              personaKey={authSession ? personaOf(authSession.user?.email) : null} reviewerMode={reviewerMode}
               isOwner={!reviewerMode && !!authSession && personaOf(authSession.user?.email) === 'darrell'}
             />
           </SectionBoundary>

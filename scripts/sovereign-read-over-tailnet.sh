@@ -291,6 +291,44 @@ elif [ "$MODE" = "tables" ]; then
             FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
            WHERE n.nspname = 'public' AND c.relkind = 'r'
              AND c.relname IN (${TABLE_IN})"
+  echo "---POLICIES---"
+  # WHAT IS ACTUALLY ENFORCED (Darrell, 2026-09-22: "What's enforced?!").
+  #
+  # The count above said voice_profiles carries ELEVEN policies while migration
+  # 0047 creates FOUR, and no other migration in this repo names that table --
+  # the two dynamic policy loops (0077, 0082) iterate explicit arrays that
+  # exclude it, and there is no catalog-driven loop. A count cannot close that
+  # gap. Seven policies existing that the repo does not create is either
+  # harmless history or a live rule nobody can read in source control, and the
+  # difference matters on a table that holds consent.
+  #
+  # So the NAMES come back, with the command each one covers, the roles it
+  # applies to, and the USING / WITH CHECK expressions -- which is the whole of
+  # what a policy enforces. Read-only catalog query; no row contents.
+  psql_q "SELECT c.relname || ' | ' || pol.polname
+                 || ' | ' || CASE pol.polcmd WHEN 'r' THEN 'SELECT' WHEN 'a' THEN 'INSERT'
+                                             WHEN 'w' THEN 'UPDATE' WHEN 'd' THEN 'DELETE'
+                                             ELSE 'ALL' END
+                 || ' | roles=' || coalesce((SELECT string_agg(r.rolname, ',' ORDER BY r.rolname)
+                                               FROM pg_roles r WHERE r.oid = ANY(pol.polroles)), 'public')
+                 || ' | using=' || coalesce(pg_get_expr(pol.polqual, pol.polrelid), '-')
+                 || ' | check=' || coalesce(pg_get_expr(pol.polwithcheck, pol.polrelid), '-')
+            FROM pg_policy pol
+            JOIN pg_class c ON c.oid = pol.polrelid
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+           WHERE n.nspname = 'public' AND c.relname IN (${TABLE_IN})
+           ORDER BY c.relname, pol.polname"
+  echo "---GRANTS---"
+  # RLS gates ROWS; a GRANT is what reaches the table at all, and the two fail
+  # in completely different ways. This is also the open question from the same
+  # day: nas-health's UUID census hit 'permission denied for table
+  # voice_profiles' as supabase_admin while the catalog read fine, which is the
+  # signature of a missing table-level grant rather than a policy refusal.
+  psql_q "SELECT table_name || ' | ' || grantee || ' | ' || string_agg(privilege_type, ',' ORDER BY privilege_type)
+            FROM information_schema.role_table_grants
+           WHERE table_schema = 'public' AND table_name IN (${TABLE_IN})
+           GROUP BY table_name, grantee
+           ORDER BY table_name, grantee"
   echo "---MISSING---"
   # Names the caller asked about that this database does not have. Silence would
   # otherwise read as "fine" -- the exact failure this mode exists to prevent.

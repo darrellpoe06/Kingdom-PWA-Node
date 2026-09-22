@@ -22,7 +22,7 @@ import {
   mergeVoiceCatalog, isVoiceSelectable, canCloneVoice, resolveVoiceProvider,
   aiVoiceLabel, enrollmentStatus, loadVoiceChoice, saveVoiceChoice, KIND, CONSENT,
 } from '../lib/voice-registry.js';
-import { loadVoiceProfiles, enrollMyVoice, revokeMyVoice, enrollMyLikeness, revokeMyLikeness } from '../lib/voice-sync.js';
+import { loadVoiceProfiles, enrollMyVoice, revokeMyVoice, enrollMyLikeness, revokeMyLikeness, personKeyFor, displayNameFor } from '../lib/voice-sync.js';
 import { savePortrait, loadPortrait, hasPortrait, clearPortrait, isUsablePortrait } from '../lib/likeness-reference.js';
 import { likenessConsented } from '../lib/teacher.js';
 import {
@@ -41,13 +41,14 @@ import {
 import { getInstanceId } from '../lib/table-sync.js';
 import { supabase } from '../lib/supabase.js';
 import SectionTabs from './SectionTabs.jsx';
+import { buildVoiceChecks, overallVerdict, VOICE_SYSTEM_DOCS, PASS, FAIL } from '../lib/voice-system-check.js';
 
 const SAMPLE = 'Welcome. This is your chosen reading voice. Paste any message, lesson, or passage below and press Read to hear it aloud in this voice.';
 const SAMPLE_SHORT = 'For God so loved the world. The Lord is my shepherd; I shall not want.';
 
 const PERSONA_NAME = { darrell: 'Darrell Poe', christina: 'Christina Poe', 'bishop-gwin': 'Bishop Lloyd E. Gwin' };
 
-export default function VoiceStudio({ personaKey = null, isOwner = false, sovereignVoiceReady: readyOverride }) {
+export default function VoiceStudio({ personaKey = null, isOwner = false, reviewerMode = false, sovereignVoiceReady: readyOverride }) {
   // THE STUDIO'S REAL STATE, SAID PLAINLY (DR-0440): not answering / answering /
   // not asked yet — asked, never assumed.
   const [studioHealth, setStudioHealth] = useState(() => voiceServiceHealth());
@@ -86,6 +87,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
   const { setVoiceId: setGlobalVoiceId } = useReadingVoice(supabase); // the ONE global pref
   const [profiles, setProfiles] = useState([]);
   const [userId, setUserId] = useState(null);
+  const [authUser, setAuthUser] = useState(null);
   const [instanceId, setInstanceId] = useState(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
@@ -93,6 +95,23 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
   const [selectedId, setSelectedId] = useState(() => loadVoiceChoice());
   const [cloudPlaying, setCloudPlaying] = useState(false); // real cloned-voice audio in flight
   const audioRef = useRef(null);
+
+  // THE ENROLMENT IDENTITY -- who this person is allowed to enrol AS.
+  //
+  // It used to be `personaKey` alone, a value that exists for exactly three
+  // hardcoded names, and `showRecorder` was gated on it -- so for every other
+  // signed-in person the Record section did not render AT ALL. Not hidden
+  // behind a scroll: absent. Meanwhile migration 0047's own INSERT policy
+  // already allows any member of the instance to create their OWN row. The app
+  // was stricter than the rule it was enforcing, and the cost is measurable:
+  // ever_inserted on voice_profiles was ONE, over the whole life of the
+  // sovereign database (measured 2026-09-22 via sovereign-read).
+  //
+  // Now: a named persona keeps its historical key so nothing is orphaned, and
+  // anybody else is keyed by their own auth id. Both from a pure helper, so the
+  // rule lives in a test instead of inside a component.
+  const enrolKey = personKeyFor({ personaKey, userId });
+  const enrolName = displayNameFor({ personaKey, personaNames: PERSONA_NAME, user: authUser });
 
   // Record-your-voice enrollment (the recorded sample IS the clone reference).
   const recorder = useVoiceRecorder();
@@ -107,27 +126,50 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
   useEffect(() => {
     let alive = true;
     (async () => {
+      // The key is derived from the id this call just returned, NOT from the
+      // userId state, which is still last render's value inside this closure.
+      // Reading the stale one would look for a saved sample under the wrong key
+      // on first load and report "no sample" to someone who has one.
+      let key = personKeyFor({ personaKey, userId });
       try {
         const { data } = await supabase.auth.getUser();
-        if (alive) setUserId(data?.user?.id || null);
+        if (alive) { setUserId(data?.user?.id || null); setAuthUser(data?.user || null); }
+        key = personKeyFor({ personaKey, userId: data?.user?.id || null });
       } catch (_) { /* signed out — local-only, still usable */ }
       try { const id = await getInstanceId(); if (alive) setInstanceId(id || null); } catch (_) { /* offline */ }
       const { profiles: rows } = await loadVoiceProfiles();
       if (alive && rows) setProfiles(rows);
-      if (personaKey) { try { if (alive) setMyRefExists(await hasReference(personaKey)); } catch (_) {} }
-      if (personaKey) {
+      if (key) { try { if (alive) setMyRefExists(await hasReference(key)); } catch (_) {} }
+      if (key) {
         try {
-          const has = await hasPortrait(personaKey);
+          const has = await hasPortrait(key);
           if (alive) setMyPortraitExists(has);
-          if (has && alive) { const b = await loadPortrait(personaKey); if (b && alive) setPortraitPreview(URL.createObjectURL(b)); }
+          if (has && alive) { const b = await loadPortrait(key); if (b && alive) setPortraitPreview(URL.createObjectURL(b)); }
         } catch (_) { /* no portrait yet */ }
       }
     })();
     return () => { alive = false; };
-  }, [personaKey]);
+  }, [personaKey, userId]);
 
   // Stop any cloud audio when the surface unmounts.
   useEffect(() => () => { if (audioRef.current) { try { audioRef.current.pause(); } catch (_) {} audioRef.current = null; } }, []);
+
+  // DOES IT ACTUALLY WORK -- answered on the screen, from this render's own
+  // measurements (Darrell 2026-09-22: "I want to be able to review it myself
+  // within the PoeTech App build"). Nothing here is a claim; every row is a
+  // value this component already holds, turned into a verdict by a pure
+  // function that is tested separately.
+  const checks = useMemo(() => buildVoiceChecks({
+    signedIn: !!userId,
+    enrolKey,
+    instanceId,
+    reviewerMode,
+    recorderSupported: !!recorder.supported,
+    sampleOnDevice: myRefExists,
+    consentRow: !!profiles.find((x) => x.personKey === enrolKey),
+    studioHealth,
+  }), [userId, enrolKey, instanceId, reviewerMode, recorder.supported, myRefExists, profiles, studioHealth]);
+  const verdict = useMemo(() => overallVerdict(checks), [checks]);
 
   const voices = useMemo(() => mergeVoiceCatalog(profiles), [profiles]);
   const ctx = { isOwner, subscribed: isOwner }; // owner/building circle entitled; real billing slots in here
@@ -238,14 +280,14 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
   const isReading = tts.isReading || cloudPlaying;
 
   // Self-consent enrollment: only ever the signed-in person's OWN persona.
-  const canEnrollSelf = !!(personaKey && PERSONA_NAME[personaKey] && userId && instanceId);
+  const canEnrollSelf = !!(enrolKey && userId && instanceId && !reviewerMode);
 
   const enrollSelf = async () => {
     if (!canEnrollSelf) { setNotice('Sign in to enroll your voice.'); return; }
     setBusy(true); setNotice('');
     const { error } = await enrollMyVoice({
-      instanceId, userId, personKey: personaKey,
-      displayName: PERSONA_NAME[personaKey], scope: 'read-aloud-narration',
+      instanceId, userId, personKey: enrolKey,
+      displayName: enrolName, scope: 'read-aloud-narration',
     });
     if (error) { setNotice(error.message || 'Could not enroll right now.'); setBusy(false); return; }
     const { profiles: rows } = await loadVoiceProfiles();
@@ -269,21 +311,38 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
   const saveRecording = async () => {
     if (!recorder.blob) return;
     setBusy(true); setNotice('');
-    const ok = await saveReference(personaKey, recorder.blob);
+    const ok = await saveReference(enrolKey, recorder.blob);
     if (!ok) { setNotice('That sample was too short or empty — record a few more seconds.'); setBusy(false); return; }
     setMyRefExists(true);
     // Persist consent (best-effort; the local sample already works for synth).
+    // THE CONSENT ROW, AND WHAT HAPPENS WHEN IT DOES NOT GET WRITTEN.
+    //
+    // This was best-effort AND SILENT: if instanceId or userId was missing the
+    // upsert was skipped entirely, the sample still saved locally, and the
+    // person was told "Saved on this device" -- true, and hiding the fact that
+    // no consent record existed anywhere. That silence is the mechanism behind
+    // a table with one row in it. An enrolment that did not enrol now SAYS SO.
+    let enrolled = false;
+    let enrolProblem = '';
     if (canEnrollSelf) {
       const { error } = await enrollMyVoice({
-        instanceId, userId, personKey: personaKey,
-        displayName: PERSONA_NAME[personaKey], scope: 'read-aloud-narration',
+        instanceId, userId, personKey: enrolKey,
+        displayName: enrolName, scope: 'read-aloud-narration',
       });
-      if (!error) { const { profiles: rows } = await loadVoiceProfiles(); if (rows) setProfiles(rows); }
+      if (error) enrolProblem = error.message || 'the consent record could not be saved';
+      else { enrolled = true; const { profiles: rows } = await loadVoiceProfiles(); if (rows) setProfiles(rows); }
+    } else if (!userId) {
+      enrolProblem = 'you are not signed in on this device';
+    } else if (!instanceId) {
+      enrolProblem = 'this account is not a member of a family or church space yet';
     }
     recorder.reset();
+    const where = enrolled
+      ? 'Saved on this device, and your consent is recorded.'
+      : `Saved on this device ONLY — the consent record was not written because ${enrolProblem}. The sample works here; it will not follow you to another device.`;
     setNotice(sovereignVoiceReady
-      ? 'Saved. Select your voice and press Read — it will speak in your voice.'
-      : 'Saved on this device. The moment the voice endpoint is live, this reads in your real voice.');
+      ? `${where} Select your voice and press Read — it will speak in your voice.`
+      : `${where} The moment the voice endpoint is live, this reads in your real voice.`);
     setBusy(false);
   };
 
@@ -293,13 +352,13 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
   const savePortraitAndConsent = async () => {
     if (!portraitFile || !isUsablePortrait(portraitFile)) { setNotice('Choose a clear photo of your face first (a real image file).'); return; }
     setBusy(true); setNotice('');
-    const ok = await savePortrait(personaKey, portraitFile);
+    const ok = await savePortrait(enrolKey, portraitFile);
     if (!ok) { setNotice('That image could not be saved — try a different photo.'); setBusy(false); return; }
     setMyPortraitExists(true);
     setPortraitPreview(URL.createObjectURL(portraitFile));
     setPortraitFile(null);
     if (canEnrollSelf) {
-      const { error } = await enrollMyLikeness({ instanceId, userId, personKey: personaKey, displayName: PERSONA_NAME[personaKey] });
+      const { error } = await enrollMyLikeness({ instanceId, userId, personKey: enrolKey, displayName: enrolName });
       if (error) { setNotice(error.message || 'The photo is saved on this device, but the consent record could not be written — try again when online.'); setBusy(false); return; }
       const { profiles: rows } = await loadVoiceProfiles(); if (rows) setProfiles(rows);
     }
@@ -307,9 +366,9 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
     setBusy(false);
   };
   const clearMyPortrait = async () => {
-    await clearPortrait(personaKey);
+    await clearPortrait(enrolKey);
     setMyPortraitExists(false); setPortraitPreview(''); setPortraitFile(null);
-    const mine = profiles.find((p) => p.personKey === personaKey);
+    const mine = profiles.find((p) => p.personKey === enrolKey);
     if (mine && mine.remoteId && likenessConsented(mine)) {
       await revokeMyLikeness(mine.remoteId, mine.meta);
       const { profiles: rows } = await loadVoiceProfiles(); if (rows) setProfiles(rows);
@@ -318,12 +377,16 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
   };
 
   const clearMyRecording = async () => {
-    await clearReference(personaKey);
+    await clearReference(enrolKey);
     setMyRefExists(false);
     setNotice('Your voice sample was removed from this device.');
   };
 
-  const showRecorder = !!(personaKey && PERSONA_NAME[personaKey]);
+  // SIGNED IN IS THE GATE, and reviewer mode is called out rather than silently
+  // emptying the tab: reviewing production as a visitor must never write a real
+  // consent row, but a blank screen is what sent Darrell hunting in the first
+  // place. See the explanatory panel where the Record tab is composed.
+  const showRecorder = !!enrolKey && !reviewerMode;
 
   // Swipeable sections instead of a stacked scroll (Darrell 2026-07-04: "sliding
   // tabs for all tabs instead of a long scroll"). Every hook stays at the top
@@ -404,7 +467,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
           const selectable = isVoiceSelectable(v, ctx);
           const status = enrollmentStatus(v);
           const prov = resolveVoiceProvider(v, { sovereignVoiceReady });
-          const isMine = personaKey && v.personKey === personaKey;
+          const isMine = enrolKey && v.personKey === enrolKey;
           const isSel = selected && selected.id === v.id;
           return (
             <div key={v.id} className={`border p-3 ${isSel ? 'border-[#1A1815] bg-[#FAF8F4]' : 'border-[#E8E4DC] bg-white'}`}>
@@ -490,6 +553,57 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
       </div>
       ),
     },
+    // DOES IT WORK? — the dependency chain, checked in front of the person.
+    // ALWAYS present, including when enrolment is off, because the whole point
+    // is to answer "why can't I record" on the screen instead of leaving it to
+    // a guess. This is the tab Darrell asked for by name.
+    {
+      id: 'works',
+      label: 'Does it work?',
+      icon: 'check',
+      render: () => (
+        <div className="mb-6 border border-[#1A1815] bg-white p-4" data-testid="voice-system-check">
+          <div className="text-sm font-semibold text-[#1A1815] mb-1">Does the voice system actually work — right now, on this device?</div>
+          <p
+            data-testid="voice-system-verdict"
+            className={`text-[0.75rem] mb-3 ${verdict.state === PASS ? 'text-[#5A6E3D]' : verdict.state === FAIL ? 'text-[#B85838]' : 'text-[#5A5751]'}`}
+          >
+            {verdict.text}
+          </p>
+          <ul className="space-y-2">
+            {checks.map((c) => (
+              <li key={c.id} data-testid={`voice-check-${c.id}`} className="border border-[#E8E4DC] p-2">
+                <div className="flex items-start gap-2">
+                  <span
+                    aria-hidden="true"
+                    className={`text-[0.6875rem] font-bold shrink-0 ${c.state === PASS ? 'text-[#5A6E3D]' : c.state === FAIL ? 'text-[#B85838]' : 'text-[#5A5751]'}`}
+                  >{c.state === PASS ? 'PASS' : c.state === FAIL ? 'FAIL' : '????'}</span>
+                  <div className="min-w-0">
+                    <div className="text-[0.75rem] text-[#1A1815] font-semibold">
+                      <span className="sr-only">{c.state === PASS ? 'Passing: ' : c.state === FAIL ? 'Failing: ' : 'Not answered: '}</span>
+                      {c.label}
+                    </div>
+                    <div className="text-[0.6875rem] text-[#5A5751]">{c.detail}</div>
+                    {c.fix && <div className="text-[0.6875rem] text-[#B85838] mt-0.5">What to do: {c.fix}</div>}
+                    <div className="text-[0.5625rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{c.where}</div>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 border-t border-[#E8E4DC] pt-2">
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Where this system is written down</div>
+            <ul className="space-y-0.5">
+              {VOICE_SYSTEM_DOCS.map((d) => (
+                <li key={d.id} className="text-[0.625rem] text-[#5A5751]">
+                  {d.label} — <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{d.where}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      ),
+    },
     // RECORD YOUR VOICE — the primary enrollment: clean audio + explicit consent
     // in one gesture. The recorded sample IS the clone reference. Gated exactly
     // as before (showRecorder); SectionTabs filters the null so the tab never
@@ -501,7 +615,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
       render: () => (
         <div className="mb-6 border border-[#1A1815] bg-white p-4">
           <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
-            <div className="text-sm font-semibold text-[#1A1815]">🎙 Record your voice — {PERSONA_NAME[personaKey]}</div>
+            <div className="text-sm font-semibold text-[#1A1815]">🎙 Record your voice — {enrolName}</div>
             <span className="text-[0.5625rem] uppercase tracking-wider bg-[#1A1815] text-white px-1.5 py-0.5">AI-generated voice</span>
           </div>
           <p className="text-[0.75rem] text-[#5A5751] leading-relaxed mb-3">
@@ -563,7 +677,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, sovere
       render: () => (
         <div className="mb-6 border border-[#1A1815] bg-white p-4" data-testid="likeness-tab">
           <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
-            <div className="text-sm font-semibold text-[#1A1815]">Your likeness — {PERSONA_NAME[personaKey]}</div>
+            <div className="text-sm font-semibold text-[#1A1815]">Your likeness — {enrolName}</div>
             <span className="text-[0.5625rem] uppercase tracking-wider bg-[#1A1815] text-white px-1.5 py-0.5">AI-generated likeness</span>
           </div>
           <p className="text-[0.75rem] text-[#5A5751] leading-relaxed mb-3">

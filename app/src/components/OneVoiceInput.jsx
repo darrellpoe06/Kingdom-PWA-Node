@@ -18,7 +18,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { suggestDestination, destinationsFor, planDispatch, composeNoteText } from '../lib/one-voice-routing.js';
 import { resolveSurface } from '../lib/one-voice-surfaces.js';
-import { useVoiceDictation } from '../lib/voice-dictation.js';
+import { useVoiceDictation, LONG_FORM_SESSION_CAP_MS, VOICE_SESSION_CAP_MS, capMinutes } from '../lib/voice-dictation.js';
 import { readDraft, writeDraft, clearDraft } from '../lib/draft-autosave.js';
 
 export function OneVoiceInput({
@@ -72,8 +72,15 @@ export function OneVoiceInput({
   // typing. latestText keeps the append correct across async recognition.
   const latestText = useRef('');
   latestText.current = text;
+  // LISTEN TO THE WHOLE THING (Darrell, 2026-09-22, screenshot of this very box
+  // beside a reel playing). Two different jobs share one microphone: speaking a
+  // note, and listening to something that PLAYS. The five-minute cap fits the
+  // first and was a lid on the second. Opt in and the cap becomes three hours,
+  // the same self-stop workflow-scribe already uses for a long capture.
+  const [wholeThing, setWholeThing] = useState(false);
   const mic = useVoiceDictation({
     onTranscript: (t) => onText((latestText.current ? `${latestText.current} ${t}` : t).trim()),
+    capMs: wholeThing ? LONG_FORM_SESSION_CAP_MS : VOICE_SESSION_CAP_MS,
   });
 
   // Persist the draft as they type (lightly debounced); an emptied box clears it.
@@ -166,8 +173,34 @@ export function OneVoiceInput({
               {mic.listening ? '⏹ Stop' : '🎤 Speak'}
             </button>
           )}
+          {mic.supported && (
+            <label className="flex items-center gap-1.5 text-[0.625rem] text-[#5A5751] cursor-pointer" style={{ fontFamily: '"Fraunces", serif' }}>
+              <input
+                type="checkbox"
+                data-testid="listen-whole-thing"
+                checked={wholeThing}
+                disabled={mic.listening}
+                onChange={(e) => setWholeThing(e.target.checked)}
+                className="accent-[#B85838]"
+              />
+              Listen to the whole thing
+            </label>
+          )}
           {mic.listening && (
-            <span className="text-[0.625rem] text-[#B85838] uppercase tracking-wider" style={{ fontFamily: '"JetBrains Mono", monospace' }}>listening…</span>
+            <span className="text-[0.625rem] text-[#B85838] uppercase tracking-wider" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+              listening… stops itself after {capMinutes(wholeThing ? LONG_FORM_SESSION_CAP_MS : VOICE_SESSION_CAP_MS)}
+            </span>
+          )}
+          {mic.supported && wholeThing && !mic.listening && (
+            /* THE LIMIT, SAID BEFORE HE RELIES ON IT. A web page cannot reach
+               inside another app and take its audio; what this has is the
+               microphone. So it hears a reel, a sermon or a class the way a
+               person in the room hears it — played OUT LOUD — and it hears
+               nothing at all through headphones. Saying that here costs one
+               line; not saying it costs him a three-hour recording of silence. */
+            <span className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }} data-testid="listen-whole-thing-limit">
+              It listens through the microphone, so play the sound OUT LOUD — through headphones it hears nothing.
+            </span>
           )}
           {mic.error && (
             <span role="alert" className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>{mic.error}</span>

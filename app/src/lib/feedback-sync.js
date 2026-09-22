@@ -64,10 +64,31 @@ const FEEDBACK_LIST_COLUMNS = [
 ].join(', ');
 
 // A bound, so this query's cost cannot grow without limit as feedback
-// accumulates. The board reads newest-first, so the cap drops the oldest
-// items rather than the ones anyone is working. 500 is far above the 119 rows
-// that exist today — this is a ceiling, not a page size.
-const FEEDBACK_LIST_LIMIT = 500;
+// accumulates.
+//
+// THE COMMENT THAT USED TO BE HERE WAS WRONG ABOUT ITS OWN QUERY, and the cost
+// of that was every piece of feedback sent after the table passed the cap.
+//
+// It said: "The board reads newest-first, so the cap drops the oldest items
+// rather than the ones anyone is working. 500 is far above the 119 rows that
+// exist today." Two things were untrue at once. The query below ordered
+// `submitted_at` ASCENDING and then applied the limit, so Postgres returned the
+// OLDEST 500 rows and dropped the newest — the exact opposite of what the
+// comment promised. And the table is not at 119. Measured on the sovereign
+// database 2026-09-22 via sovereign-read: total = 963, newest 2026-09-22
+// 21:41. So roughly 460 of the most recent submissions could not reach the
+// board AT ALL, silently, and the newer a message was the less likely anyone
+// was to see it.
+//
+// Darrell, 2026-09-22: "how is the feedback process going?!!!!!! We had a lot
+// I've never seen them...!!!!!!" He had not seen them because they were not
+// being fetched.
+//
+// The order is now DESCENDING, which is what makes a cap safe: a ceiling may
+// drop the oldest history, never the newest word. The limit is raised to 2000
+// against a table at 963 so there is real headroom, and it is a CEILING on
+// cost, not a page size.
+const FEEDBACK_LIST_LIMIT = 2000;
 
 /** Get the current Supabase session, or null. */
 async function currentSession() {
@@ -303,7 +324,9 @@ export function subscribeFeedback(onRemote) {
         .from('feedback')
         .select(FEEDBACK_LIST_COLUMNS)
         .neq('user_id', myUserId)
-        .order('submitted_at', { ascending: true })
+        // DESCENDING, so the cap drops the oldest rows and never the newest.
+        // Ascending + limit is what made every recent submission invisible.
+        .order('submitted_at', { ascending: false })
         .limit(FEEDBACK_LIST_LIMIT);
       if (error) {
         console.warn('[feedback-sync] fetch failed:', error);

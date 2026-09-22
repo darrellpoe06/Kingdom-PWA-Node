@@ -30,6 +30,7 @@ import { toSpokenForm } from './speech-text.js';
 import { clipFraction, estimateClipSeconds, seekableEndOf } from './clip-progress.js';
 import { applyClipRate, clipRateNotice } from './clip-rate.js';
 import { supabase } from './supabase.js';
+import { hrefForView } from './nav-history.js';
 
 /**
  * @param {object} opts
@@ -54,7 +55,18 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const [cloudPlaying, setCloudPlaying] = useState(false);
   const [cloudPaused, setCloudPaused] = useState(false);
   const [cloudProgress, setCloudProgress] = useState(0); // 0..1 through the cloud clip
-  const [notice, setNotice] = useState('');
+  // A NOTICE MAY CARRY A DOOR (2026-09-22). Most notices are just news. One of
+  // them tells the reader to go and do something in another tab, and telling is
+  // where it failed him — so a notice can hand over `{ href, label }` and the
+  // panel draws it as a button. Every plain setNotice() call clears the action,
+  // which is why the raw setter is wrapped rather than exported: a stale door
+  // under a new message would send someone somewhere the message never meant.
+  const [notice, setNoticeRaw] = useState('');
+  const [noticeAction, setNoticeAction] = useState(null);
+  const setNotice = useCallback((msg, action = null) => {
+    setNoticeRaw(msg);
+    setNoticeAction(msg ? action : null);
+  }, []);
   const audioRef = useRef(null);
   // THE SPEED CHIP HAS TO REACH THE CLIP (2026-09-18). A cloud read is one
   // audio element, and playbackRate was never touched on it — so on the
@@ -81,7 +93,10 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       const msg = clipRateNotice(applied);
       if (msg) setNotice(msg);
     }
-  }, [tts]);
+  // setNotice is a useCallback with an empty dep list, so it is stable for the
+  // life of the hook; it is listed because it is now a function rather than a
+  // raw setState, and the linter cannot know that by itself.
+  }, [tts, setNotice]);
 
   useEffect(() => {
     let alive = true;
@@ -200,7 +215,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // button — the engine flips `failed` when a tap produces no audio at all.
   useEffect(() => {
     if (tts.failed) setNotice('Audio didn’t start — press play once more, or pick the System voice.');
-  }, [tts.failed]);
+  }, [tts.failed, setNotice]);
 
   // Keep the OS transport and the keep-alive session in step with the reader:
   // released the moment nothing is being read, so a finished reading does not
@@ -312,7 +327,10 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
           }
           setNotice('Voice endpoint unreachable — using a stand-in voice.');
         } else {
-          setNotice('Record a voice sample first in the Voice tab (top nav — it may be behind the » overflow on a narrow screen), then this reads in that voice.');
+          setNotice(
+            'Record a voice sample first in the Voice tab, then this reads in that voice.',
+            { href: hrefForView('voice'), label: 'Open the Voice tab' },
+          );
         }
       }
       // Stand-in until the sovereign studio is live: a gender-correct browser voice —
@@ -454,7 +472,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     const cid = catalogIdOf(voiceId);
     const pitch = cid ? standInPitch(fullCatalog, liveAssignments, cid) : undefined;
     tts.speak(clean, uri, pitch);
-  }, [voiceId, personalVoices, sovereignVoiceReady, studioHealth, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio]);
+  }, [voiceId, personalVoices, sovereignVoiceReady, studioHealth, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio, setNotice]);
 
   // The OS media buttons drive the SAME controls the panel does — kept in a ref
   // so a lock-screen tap can never call a stale closure.
@@ -483,6 +501,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // Before this the only clear was at the start of the next read, so a
     // fault message stayed on top of the lesson indefinitely.
     setNotice,
+    // The door a notice carries, when it has one: { href, label }.
+    noticeAction,
     read, pause, resume, stop, setRate,
   };
 }
