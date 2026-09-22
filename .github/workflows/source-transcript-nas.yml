@@ -128,20 +128,50 @@ jobs:
           OUT="docs/99-session-notes/sources/$SLUG"
           mkdir -p "$OUT"
 
-          # The fetcher already lives on the NAS with the repo. --max 1 is the
-          # budget brake; --out is a run-scoped path so a one-off request can
-          # never overwrite the trickle's own transcripts.json backlog file.
+          # MEASURED, not assumed. The first run of this workflow (run
+          # 35675931362, 2026-09-22) failed with
+          #   cd: /var/services/homes/dpoe/Kingdom-PWA-Node/...: No such file
+          # because I had written "cd ~/Kingdom-PWA-Node". SSH, the tailnet and
+          # the key were all fine; the PATH was my guess. The real mirror path
+          # and the PYTHONPATH the module needs are both already written down:
+          # .github/workflows/nas-health.yml:242 and
+          # infra/nas-sme-pipeline/transcript_trickle_install.sh:97-101.
+          # youtube_transcript_api is VENDORED into the repo because it is not
+          # importable from the system python3 on this DSM, so the vendor dir
+          # (and dpoe's user-site, when present) must be on PYTHONPATH or the
+          # import fails even with the right cwd.
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          VENDOR="$REPO/infra/nas-sme-pipeline/.vendor"
+          USER_SITE="/var/services/homes/dpoe/.local/lib/python3.8/site-packages"
           REMOTE_OUT="/tmp/source-transcript-$VID.json"
-          echo "Running youtube-captions.py on the NAS for $VID ..."
-          $SSH "cd ~/Kingdom-PWA-Node/infra/nas-sme-pipeline && python3 youtube-captions.py --ids '$VID' --max 1 --refetch --out '$REMOTE_OUT'" 2>&1 | tee /tmp/fetch.log || true
+
+          # Prove the preconditions separately, so a failure names ITSELF rather
+          # than being reported as a caption problem — which is exactly how the
+          # first run misled its own reader.
+          echo "--- preconditions on the NAS ---"
+          if ! $SSH "test -d '$REPO/infra/nas-sme-pipeline'"; then
+            echo "::error::The repo mirror is not at $REPO on the NAS. SSH worked; the path is wrong."
+            echo "Check nas-health.yml's REPO value and the services-sync mirror before re-dispatching."
+            exit 1
+          fi
+          $SSH "PYTHONPATH='$VENDOR:$USER_SITE' python3 -c 'import youtube_transcript_api, sys; print(\"youtube_transcript_api OK\")'" \
+            || { echo "::error::youtube_transcript_api is not importable on the NAS even with the vendor dir on PYTHONPATH."; \
+                 echo "The transcript-trickle installer vendors it (transcript_trickle_install.sh:97-119); run that installer, then re-dispatch."; \
+                 exit 1; }
+
+          # --max 1 is the budget brake; --out is a run-scoped path so a one-off
+          # request can never overwrite the trickle's own transcripts.json.
+          echo "--- running youtube-captions.py on the NAS for $VID ---"
+          $SSH "cd '$REPO/infra/nas-sme-pipeline' && PYTHONPATH='$VENDOR:$USER_SITE' python3 youtube-captions.py --ids '$VID' --max 1 --refetch --out '$REMOTE_OUT'" 2>&1 | tee /tmp/fetch.log || true
 
           if ! $SSH "test -s '$REMOTE_OUT'"; then
             echo 'NO TRANSCRIPT WRITTEN ON THE NAS.'
-            echo 'The log above is the NAS speaking, not a runner. Read it for which case this is:'
+            echo 'The preconditions above passed, so this is the FETCH itself. Read the log for which:'
             echo '  * an IpBlocked / rate message means the residential IP hit the measured ceiling —'
             echo '    the trickle is likely mid-drain; re-dispatch later rather than retrying now.'
             echo '  * a no-captions result means this video publishes none, and the sovereign'
             echo '    fallback is whisper-gpu on the church GPU box (infra/church-gpu-node/whisper-gpu).'
+            echo '  * anything else is a real defect worth a record, not a retry.'
             echo 'Writing nothing rather than a half file (DR-0076).'
             exit 1
           fi
