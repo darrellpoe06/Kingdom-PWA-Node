@@ -191,6 +191,39 @@ export function navKey(loc) {
 // exactly what the sharer meant to send.
 export const PRESERVED_PARAMS = ['lovecorner', 'moore', 'tlc', 'biz', 'demo', 'course', 'lesson'];
 
+// hrefForView — a real, openable address for a top-level tab, from anywhere.
+//
+// WHY THIS EXISTS. Darrell, 2026-09-22, on a read-aloud notice that told him to
+// record a voice sample in the Voice tab: "I can't find how to do that add a
+// voice?!!!!!!" The tab is real, and on a phone it sits past the right edge of
+// the scrolling nav as "Voi" plus a chevron. Naming a route is not the same as
+// offering it — Drive-Don't-Delegate applies to the product, not only to the
+// agent: a surface that tells someone to go somewhere should TAKE them.
+//
+// A plain href rather than a setView call ON PURPOSE. TTSControl is mounted in
+// four places and three of them (FollowAlong, PracticeLearn, TlcPublicDoor) have
+// no nav shell to call into, so a prop would be undefined exactly where a
+// stranded reader is most likely to be. The shell reads `?view=` on boot
+// (parseNav), so this address works from all four.
+//
+// The door params ride along, or a Love Corner visitor who taps it lands in the
+// wrong face of the app — the same defect PRESERVED_PARAMS was written for.
+export function hrefForView(view, opts = {}) {
+  const loc = (typeof window !== 'undefined' && window.location) || {};
+  const pathname = opts.pathname != null ? opts.pathname : (loc.pathname || '/');
+  const search = opts.search != null ? opts.search : (loc.search || '');
+  const out = new URLSearchParams();
+  out.set('view', String(view));
+  try {
+    const cur = new URLSearchParams(search);
+    for (const p of PRESERVED_PARAMS) {
+      const v = cur.get(p);
+      if (v != null) out.set(p, v);
+    }
+  } catch (e) { /* no search to preserve — the bare view address still works */ }
+  return `${pathname}?${out.toString()}`;
+}
+
 // Compose the full URL for a location, preserving the app's base path
 // (/poetech-app/ on the NAS, / on Vercel) — serializeNav only owns the query —
 // and carrying the door/context params through every push.

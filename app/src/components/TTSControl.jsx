@@ -169,6 +169,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // pressed read, heard nothing, was told nothing.
     notice,
     setNotice,
+    noticeAction,
   } = useReadAloud({ isOwner });
 
   // THE SCREEN STAYS ON WHILE IT READS (DR-0439; Darrell 2026-09-16: his phone
@@ -949,6 +950,20 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}
         >
           <span className="text-[0.75em] text-[#1A1815] text-left" style={{ fontFamily: '"Fraunces", serif' }}>{notice}</span>
+          {/* THE DOOR, when the notice carries one (2026-09-22). Telling a
+              reader to go to a tab he cannot find is how "I can't find how to
+              do that add a voice?!!!!!!" happens. An anchor rather than a
+              setView call because this panel is mounted on three surfaces that
+              have no nav shell to call into — the address works from all of
+              them, and it carries the door params so a Love Corner visitor does
+              not land in a different face of the app. */}
+          {noticeAction?.href && (
+            <a
+              href={noticeAction.href}
+              data-testid="read-aloud-notice-action"
+              className="shrink-0 px-[0.625em] py-[0.375em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]"
+            >{noticeAction.label || 'Open'}</a>
+          )}
           <button
             type="button"
             onClick={() => setNotice('')}
