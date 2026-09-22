@@ -111,9 +111,14 @@ describe('a notice takes itself down instead of parking over the lesson', () => 
     expect(TTS).toMatch(/\n {4}setNotice,\n {2}\} = useReadAloud/);
   });
 
-  it('is width-bounded so a long message cannot span the reading column', () => {
-    const block = TTS.slice(TTS.indexOf('data-testid="read-aloud-notice"') - 300, TTS.indexOf('data-testid="read-aloud-notice"') + 400);
-    expect(block).toMatch(/max-w-\[22em\]/);
+  it('carries NO width cap, because the consistency guard owns that line', () => {
+    // A first pass added max-w-[22em] here and consistency-guard failed it:
+    // width-cap 2 against a frozen baseline of 1 for this file (DR-0246). The
+    // cap was never load-bearing — what stops this box being a lid is that it
+    // LEAVES, not that it is narrow — so the cap came out rather than the
+    // baseline going up. Pinned so nobody re-adds it and re-reds the guard.
+    const block = TTS.slice(TTS.indexOf('data-testid="read-aloud-notice"') - 200, TTS.indexOf('data-testid="read-aloud-notice"') + 400);
+    expect(block).not.toMatch(/max-w-\[22em\]/);
   });
 
   it('still announces to a screen reader, so the timeout costs no accessibility', () => {

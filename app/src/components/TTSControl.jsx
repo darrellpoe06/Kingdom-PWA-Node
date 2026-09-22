@@ -937,7 +937,15 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
         <div
           role="status"
           data-testid="read-aloud-notice"
-          className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.75em] py-[0.5em] flex items-start gap-[0.5em] max-w-[22em]"
+          /* Deliberately NO width cap. A first pass added a max-width utility
+             class here and the consistency guard failed it — width-cap 2
+             against this file's frozen baseline of 1 (DR-0246). The guard is
+             right to hold that line, and the cap was never load-bearing: what
+             stops this box being a lid is that it LEAVES, not that it is
+             narrow. So the cap came out rather than the baseline going up.
+             (The class name is spelled out nowhere in this file on purpose —
+             the gate that pins its absence matches on the literal string.) */
+          className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.75em] py-[0.5em] flex items-start gap-[0.5em]"
           style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}
         >
           <span className="text-[0.75em] text-[#1A1815] text-left" style={{ fontFamily: '"Fraunces", serif' }}>{notice}</span>
