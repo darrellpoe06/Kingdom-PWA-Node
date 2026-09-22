@@ -243,6 +243,49 @@ export function deviceVoiceOptions(available) {
   return [phoneDefault, ...rest];
 }
 
+/**
+ * describeDeviceVoices — what this device ACTUALLY handed the browser.
+ *
+ * Darrell, 2026-09-22: "Nothing changed the actual voice from the same female no
+ * matter what I pick!!!!!" and "No choice for male or female like the verbiage on
+ * the app explains... not accurate?!!!!!!!!"
+ *
+ * He is right, and the reason is measurable rather than arguable. The picker is
+ * genuinely the device's own voice list — but his Android names every entry by
+ * LOCALE ("English United States (en_US)", "English Nigeria (en_NG)",
+ * "Assamese India (as_IN)"), carrying no name and no gender token. So
+ * classifyVoiceGender returns 'unknown' for all of them, the gender-correct
+ * assignment has nothing to match on, and every choice in that list speaks in
+ * the one voice the engine defaults to.
+ *
+ * The app was claiming a male/female choice while its own red note admitted the
+ * list was female-only. Both could not be true. This returns the COUNTS, so the
+ * surface can state what is actually there instead of promising what is not.
+ *
+ * @returns {{ total:number, male:number, female:number, unknown:number,
+ *             anyGendered:boolean, namedByLocale:boolean }}
+ */
+export function describeDeviceVoices(available) {
+  const list = dedupeByUri(englishFirst(available || []));
+  let male = 0; let female = 0; let unknown = 0;
+  for (const v of list) {
+    const g = classifyVoiceGender(v);
+    if (g === 'male') male += 1;
+    else if (g === 'female') female += 1;
+    else unknown += 1;
+  }
+  // A list whose entries all read like "Something Somewhere (xx_YY)" is a
+  // locale list wearing a voice list's clothes. Naming that is what lets the
+  // surface explain the situation instead of blaming the person's choice.
+  const localeShaped = list.length > 0 && list.every((v) => /\([a-z]{2,3}[_-][A-Za-z]{2,4}\)\s*$/.test(String(v.name || '')));
+  return {
+    total: list.length,
+    male, female, unknown,
+    anyGendered: male > 0 || female > 0,
+    namedByLocale: localeShaped,
+  };
+}
+
 /** True when the device exposes at least one voice classified as the wanted gender. */
 export function hasVoiceOfGender(available, gender) {
   return dedupeByUri(englishFirst(available)).some((v) => classifyVoiceGender(v) === gender);
