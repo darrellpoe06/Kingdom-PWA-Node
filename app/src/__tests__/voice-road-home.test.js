@@ -80,24 +80,26 @@ describe('the mount is made only against a studio that answered', () => {
   });
 
   // PROVEN-TO-CATCH a premise I shipped wrong and then verified. This file was
-  // first written offering tlcmediadpt by MagicDNS, its tailnet name and its
-  // measured address as mount targets, on the assumption that a Funnel path
-  // can point anywhere the node can reach. Tailscale refuses a non-local
-  // target outright -- "only localhost or 127.0.0.1 proxies are currently
-  // supported", tailscale/tailscale#8751, open since 2023-07-31 -- so those
-  // mounts would have failed on every cycle while the actuation guard stayed
-  // green, because the row and the installer both existed. One search would
-  // have said so before the code rode on it.
-  it('never offers a mount target tailscale will refuse', () => {
-    const setPath = INSTALL.match(/--set-path \/voice "?\$?\{?[A-Za-z_]*\}?"?/g) || [];
-    expect(setPath.length, 'the mount line is gone').toBeGreaterThan(0);
+  // first written offering the 4070 to the FUNNEL as a mount target three ways.
+  // Tailscale refuses a non-local target outright -- "only localhost or
+  // 127.0.0.1 proxies are currently supported", tailscale/tailscale#8751,
+  // open since 2023-07-31 -- so those mounts would have failed on every cycle
+  // while the actuation guard stayed green. The forwarder is the answer: IT
+  // may point at the 4070; the Funnel may point only at the forwarder.
+  it('the Funnel is only ever pointed at loopback -- the forwarder, never the 4070', () => {
+    const fwd = INSTALL.match(/^FWD=(\S+)$/m);
+    expect(fwd, 'FWD (the forwarder address) is gone').toBeTruthy();
+    expect(fwd[1]).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
+    const mounts = INSTALL.match(/--set-path \/voice\s+(\S+)/g) || [];
+    expect(mounts.length, 'the mount line is gone').toBeGreaterThan(0);
+    for (const m of mounts) {
+      expect(m, `a Funnel mount target that is not the forwarder: ${m}`).toMatch(/"\$FWD"|\$FWD\b/);
+    }
+    // And the forwarder's own candidates DO include the 4070 -- that is the
+    // whole point of having one. If this ever reads loopback-only again the
+    // road home has been quietly severed.
     const candidates = (INSTALL.match(/^CANDIDATES=.*$/m) || [''])[0];
-    expect(candidates, 'the candidate list is gone').toContain('127.0.0.1');
-    // Any http:// target in the candidate list that is not loopback cannot be
-    // mounted, so offering one can only ever produce a silent per-cycle failure.
-    const hosts = (candidates.match(/https?:\/\/[^\s"']+/g) || []);
-    const remote = hosts.filter((h) => !/^https?:\/\/(127\.0\.0\.1|localhost)\b/.test(h));
-    expect(remote, `tailscale cannot proxy to these: ${remote.join(', ')}`).toEqual([]);
+    expect(candidates).toMatch(/tlcmediadpt/);
   });
 
   it('uses funnel, never serve — serve is tailnet-only and REPLACES the public exposure', () => {
@@ -221,5 +223,51 @@ describe('arming the studio cannot report a confident wrong answer', () => {
     // answers. The installer is idempotent and refuses a dark backend, so
     // doing it here is safe and no-ops if the cycle got there first.
     expect(ARM).toMatch(/infra\/voice-studio\/install\.sh/);
+  });
+});
+
+describe('the forwarder is the lock, and the app carries the key', () => {
+  // Two verified facts made this process necessary: tailscale proxies only to
+  // loopback, and the studio has no auth of its own on a PUBLIC route. So the
+  // NAS runs a door with a lock (voice_forwarder.py), the Funnel points at the
+  // door, and the app presents the same family bearer it already carries for
+  // photos and taxes. The forwarder's behaviour is proven in its own selftest
+  // (gated in ci.yml); these pin the wiring around it.
+  const FWD = repo('infra/voice-studio/voice_forwarder.py');
+  const UNIT = repo('infra/voice-studio/poetech-voice-forwarder.service');
+  const CI = repo('.github/workflows/ci.yml');
+  const CLIENT = repo('app/src/lib/voice-service.js');
+
+  it('the forwarder refuses to start without a bearer, and refuses a non-loopback bind', () => {
+    expect(FWD).toMatch(/REFUSING TO START: no bearer token/);
+    expect(FWD).toMatch(/REFUSING TO START: --host must be loopback/);
+  });
+
+  it('it reads the ONE family token, from the same file the photo and tax servers read', () => {
+    expect(FWD).toContain('TOKEN_FILE_DEFAULT = "/volume1/PoeTech/secrets/chat-bridge-token.txt"');
+    expect(repo('infra/nas-tax-ingest/install.sh')).toContain('/volume1/PoeTech/secrets/chat-bridge-token.txt');
+  });
+
+  it('the unit runs it from the NAS mirror path on 8771, as dpoe, and is what the Funnel mounts', () => {
+    expect(UNIT).toMatch(/ExecStart=\/usr\/bin\/python3 -u \/volume1\/PoeTech\/repos\/Kingdom-PWA-Node\/infra\/voice-studio\/voice_forwarder\.py/);
+    expect(UNIT).toMatch(/Environment=PORT=8771/);
+    expect(UNIT).toMatch(/User=dpoe/);
+    expect(INSTALL).toMatch(/FWD=http:\/\/127\.0\.0\.1:8771/);
+  });
+
+  it('its selftest gates merge', () => {
+    // The selftest is where the lock is proven: a wrong bearer must 401, the
+    // studio's own 400 must pass through untouched, the (N+1)th synthesis must
+    // be refused at once, a dark studio must never read as up.
+    expect(CI).toMatch(/working-directory: infra\/voice-studio\s*\n\s*run: python3 voice_forwarder\.py --selftest/);
+  });
+
+  it('the app sends the bearer on the SOVEREIGN road only', () => {
+    // The vendor bridge (/api/voice-speak) is a Pages Function with its own
+    // server-side secret; the family token means nothing to it and must not
+    // leak there.
+    expect(CLIENT).toMatch(/import \{ bridgeToken \} from '\.\/nas-photos\.js'/);
+    expect(CLIENT).toMatch(/if \(endpoint\.kind === 'sovereign'\) \{\s*\n\s*const token = bridgeToken\(\);/);
+    expect(CLIENT).toMatch(/headers\.Authorization = `Bearer \$\{token\}`/);
   });
 });

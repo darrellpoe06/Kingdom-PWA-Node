@@ -171,6 +171,15 @@ jobs:
       - name: sovereign photo server selftest
         working-directory: infra/nas-property-photos
         run: python3 photo_server.py --selftest
+      # Voice forwarder selftest (DR-0076): the NAS-side lock + road for the
+      # sovereign reading voice. Proven-to-catch: fails if /speak ever accepts a
+      # missing or wrong bearer, if the studio's own refusal stops passing
+      # through (the DR-0394 probe reads it), if the concurrency cap stops
+      # refusing immediately, or if a dark studio ever reads as this process's
+      # own 200 on /health. Gates merge: this is the door in front of the GPU.
+      - name: sovereign voice forwarder selftest
+        working-directory: infra/voice-studio
+        run: python3 voice_forwarder.py --selftest
       # Sovereign review-queue server selftest (DR-0218 zero-n8n / DR-0076): the
       # byte-faithful port of wf-review-feed + wf-review-action. Proven-to-catch:
       # fails if the dismissed-filter, id path-containment, or status-write

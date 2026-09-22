@@ -159,3 +159,52 @@ describe('the reader wires it up', () => {
     expect(code).toMatch(/a\.onerror[\s\S]{0,200}tts\.speak/);
   });
 });
+
+describe('the sovereign road carries the family key, and the bridge never does', () => {
+  // The NAS-side forwarder gates /speak on the family bridge bearer. The app
+  // already holds that token for photos and taxes (localStorage
+  // "poetech-chat-bridge-token", provisioned by the 0128 RPC); the same value
+  // must ride the voice call, and must NOT ride the vendor bridge, which is a
+  // Pages Function with its own server-side secret.
+  const KEY = 'poetech-chat-bridge-token';
+  afterEach(() => { try { localStorage.removeItem(KEY); } catch (_) { /* jsdom */ } });
+
+  it('sends Authorization: Bearer <token> to the same-origin /voice/speak when the device has it', async () => {
+    delete import.meta.env.VITE_VOICE_SERVICE_URL;
+    localStorage.setItem(KEY, 'family-token-abc');
+    globalThis.fetch = vi.fn(ok);
+    await synthesizeSpeech({ text: 'hi', allowBuiltIn: true });
+    const [url, init] = globalThis.fetch.mock.calls[0];
+    expect(String(url)).toContain('/voice/speak');
+    expect(init.headers.Authorization).toBe('Bearer family-token-abc');
+  });
+
+  it('sends NO Authorization header when the device has no token -- the forwarder 401s, the app falls back', async () => {
+    delete import.meta.env.VITE_VOICE_SERVICE_URL;
+    globalThis.fetch = vi.fn(async () => ({ ok: false, status: 401, blob: async () => ({ size: 0 }) }));
+    const r = await synthesizeSpeech({ text: 'hi', allowBuiltIn: true });
+    const [, init] = globalThis.fetch.mock.calls[0];
+    expect(init.headers.Authorization).toBeUndefined();
+    expect(r.error).toBe('voice-service-401');
+  });
+
+  it('PROVEN-TO-CATCH: the vendor bridge never receives the family token', async () => {
+    delete import.meta.env.VITE_VOICE_SERVICE_URL;
+    localStorage.setItem(KEY, 'family-token-abc');
+    // Force the bridge: no window origin means no sovereign URL, and the
+    // bridge flag on.
+    const realWindow = globalThis.window;
+    import.meta.env.VITE_VOICE_BRIDGE = '1';
+    delete globalThis.window;
+    globalThis.fetch = vi.fn(ok);
+    try {
+      await synthesizeSpeech({ text: 'hi', allowBuiltIn: true });
+      const [url, init] = globalThis.fetch.mock.calls[0];
+      expect(String(url)).toBe('/api/voice-speak');
+      expect(init.headers.Authorization, 'the family bearer leaked to the vendor bridge').toBeUndefined();
+    } finally {
+      globalThis.window = realWindow;
+      delete import.meta.env.VITE_VOICE_BRIDGE;
+    }
+  });
+});
