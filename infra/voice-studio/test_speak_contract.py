@@ -1,7 +1,7 @@
 # =============================================================================
 # test_speak_contract — the studio must SERVE the built-in voice, not refuse it
 # =============================================================================
-# 2026-09-14 (DR-0394). Darrell said "Yes" to the built-in voice reaching the
+# 2026-09-14 (DR-0401). Darrell said "Yes" to the built-in voice reaching the
 # church's own studio -- and the honest answer was that it never could.
 #
 # DR-0382 taught the CLIENT to ask: `allowBuiltIn`, a runtime probe that
