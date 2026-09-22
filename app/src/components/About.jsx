@@ -10,6 +10,7 @@ import TrustedDevices from './TrustedDevices.jsx';
 import AdoptPoeTech from './AdoptPoeTech.jsx';
 import BlueprintFieldGuide from './BlueprintFieldGuide.jsx';
 import { ARI } from '../lib/ari.js';
+import { feedbackText, feedbackScreenshotCount } from '../lib/feedback-triage.js';
 
 // Patch the function signature to also accept VIEW_TIER_REQUIREMENTS as a prop.
 // 2026-06-14 — authUserId + onChangePin added for the multi-point auth Security
@@ -679,11 +680,23 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-2 font-semibold">💬 Feedback Log · MVP Test</div>
           <h3 className="text-xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>What testers have shared ({feedback.length})</h3>
           <div className="space-y-3">
-            {[...feedback].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map(f => (
+            {[...feedback].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map(f => {
+              // The body is read through the SHARED extractor, never off one
+              // field. Every addFeedback call site writes `text`; the cloud
+              // round-trip writes `feedback_text`; only the old modal wrote the
+              // whatsWorking/whatsNot/whatsMissing triple. This list rendered
+              // ONLY the triple until 2026-09-22, so ~160 of 170 real entries —
+              // including parishioners tapping to join a course — drew as empty
+              // boxes with a date and an x. The data was never missing; this
+              // surface never read it (DR-0381: a hollow surface is a lie).
+              const body = String(feedbackText(f) || '').trim();
+              const shots = feedbackScreenshotCount(f);
+              const hasLegacyTriple = !!(f.whatsWorking || f.whatsNot || f.whatsMissing);
+              return (
               <div key={f.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-3">
                 <div className="flex items-baseline justify-between gap-2 mb-1 flex-wrap">
                   <div className="text-[0.625rem] uppercase tracking-wider">
-                    <span className="font-semibold text-[#B85838]">{f.area}</span>
+                    <span className="font-semibold text-[#B85838]">{f.area || f.currentView || f.which_tab || 'unlabelled'}</span>
                     {f.rating && <span className="text-[#5A5751]"> · {f.rating}</span>}
                   </div>
                   <div className="flex items-center gap-2">
@@ -691,11 +704,33 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
                     <button type="button" onClick={() => { if (confirm('Delete this feedback?')) deleteFeedback(f.id); }} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">×</button>
                   </div>
                 </div>
+                {/* The old modal's three labelled fields keep their labels — a
+                    tester who said what was working and what was not deserves
+                    to have those read separately, not flattened together. */}
                 {f.whatsWorking && <div className="mb-1"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">✓ Working</div><p className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsWorking}</p></div>}
                 {f.whatsNot && <div className="mb-1"><div className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold">✗ Not working</div><p className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsNot}</p></div>}
                 {f.whatsMissing && <div className="mb-1"><div className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold">+ Missing</div><p className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{f.whatsMissing}</p></div>}
+                {/* Everything else — which is almost everything — has its body in
+                    `text`/`feedback_text`, and this is the line that was missing. */}
+                {!hasLegacyTriple && body && (
+                  <p className="text-xs whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }} data-testid="feedback-body">{body}</p>
+                )}
+                {shots > 0 && (
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mt-1" data-testid="feedback-shots">
+                    {shots} screenshot{shots > 1 ? 's' : ''} attached
+                  </div>
+                )}
+                {/* A row with no words and no picture is a real record of an
+                    empty submission. Say that, rather than rendering a blank
+                    box the reader has to guess at. */}
+                {!hasLegacyTriple && !body && shots === 0 && (
+                  <p className="text-xs italic text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }} data-testid="feedback-empty">
+                    No words and no screenshot were submitted with this one.
+                  </p>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       </>

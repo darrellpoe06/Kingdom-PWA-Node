@@ -1,0 +1,178 @@
+# source-transcript-nas — fetch a video transcript from the NAS's residential IP
+#
+# THE CORRECTION THIS RECORDS. On 2026-09-22 I built source-transcript.yml to
+# fetch captions from a GitHub runner, dispatched it at a video Darrell sent, and
+# it came back red: "Sign in to confirm you're not a bot." YouTube challenged the
+# datacenter IP before the fetch ever reached the captions.
+#
+# That failure was already documented in this repository, and I did not look.
+# infra/nas-loops/services.json's `transcript-trickle` entry says it plainly:
+# "loader parked on a manual app button while the CI path is YouTube-IP-blocked
+# ... Rides the ALREADY-ARMED services-sync clock ... from the NAS's residential
+# IP ... against the measured ~180/day IpBlocked ceiling". The house measured
+# this, wrote it down, and built the NAS-side answer. I rebuilt the blocked path
+# instead of reading the manifest. Stated here so the next session reads the
+# manifest first (DR-0076 section 5: characterize before you change).
+#
+# WHAT THIS DOES, reusing both proven pieces rather than inventing a third:
+#   1. The remote-hands channel (nas-health.yml's pattern, DR-0108/DR-0319):
+#      a runner joins the tailnet with TS_AUTHKEY and SSHes to the NAS as dpoe.
+#      Both secrets already exist; nothing new is asked of anyone.
+#   2. infra/nas-sme-pipeline/youtube-captions.py, which ALREADY takes --ids and
+#      already runs from the residential IP that is not challenged. No new
+#      fetcher, no new dependency, no second implementation to drift.
+#   3. The text is flattened by scripts/vtt-to-text.mjs only when the NAS hands
+#      back VTT; the captions tool returns plain segments, so its own JSON is
+#      rendered to text here and the de-duplication case does not arise.
+#   4. Result is pushed to docs/99-session-notes/sources/<slug>/ on a fix/ branch,
+#      the same destination source-transcript.yml uses, so a lesson author reads
+#      one path regardless of which route succeeded.
+#
+# WHY BOTH WORKFLOWS STAY. source-transcript.yml is not deleted: it is the cheap
+# probe. If YouTube ever stops challenging runner IPs it is the faster path, and
+# its honest-red log is how we would find that out. This one is the route that
+# works today. Preference order is in the lesson brief: try NAS first.
+#
+# BRAKES (deterministic class — DR-0247/DR-0248 posture):
+#   (1) Budget — ONE video id per run, --max 1 passed to the fetcher, and a
+#       15-minute job cap. It cannot walk a channel and cannot drain a backlog.
+#   (2) Lock   — a concurrency group SHARED with the trickle's own contention
+#       surface in spirit: a second fire queues rather than stacking another
+#       caption call against the measured ~180/day ceiling the trickle is
+#       already spending. Starving that drain would be the real harm here.
+#   Stop-paths are deterministic: disable the workflow in the Actions UI, or
+#   delete this file in a PR. No schedule — it fires only when a link is sent.
+
+name: source-transcript-nas
+
+on:
+  workflow_dispatch:
+    inputs:
+      video_id:
+        description: 'YouTube video id only (e.g. 18pppZ3egOg), not the full URL'
+        required: true
+      slug:
+        description: 'Folder name under docs/99-session-notes/sources/ (lowercase, dashes)'
+        required: true
+
+concurrency:
+  group: youtube-captions-residential
+  cancel-in-progress: false
+
+jobs:
+  transcript:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Refuse malformed inputs before anything reaches a shell
+        env:
+          VID: ${{ inputs.video_id }}
+          SLUG: ${{ inputs.slug }}
+        run: |
+          # Both values become shell words and a path, so they are validated
+          # rather than trusted. A YouTube id is 11 chars of [A-Za-z0-9_-].
+          case "$VID" in
+            *[!A-Za-z0-9_-]*|'') echo "Refusing video_id '$VID' — pass the ID only, not a URL."; exit 1 ;;
+          esac
+          if [ ${#VID} -ne 11 ]; then
+            echo "Refusing video_id '$VID' — a YouTube id is 11 characters. Pass the id, not the URL."
+            exit 1
+          fi
+          case "$SLUG" in
+            *[!a-z0-9-]*|''|-*|*-) echo "Refusing slug '$SLUG' — lowercase letters, digits and dashes only."; exit 1 ;;
+          esac
+          echo "inputs ok: $VID -> $SLUG"
+
+      - name: Check the remote-hands channel is configured
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: this lane needs the SAME secrets nas-health.yml already uses —"
+            echo "TS_AUTHKEY (Reusable + Ephemeral) and NAS_SSH_KEY. Nothing new is required;"
+            echo "if nas-health runs green, these are present and something else changed."
+            exit 1
+          fi
+          echo "remote-hands secrets present"
+
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Confirm the tailnet actually joined
+        run: |
+          if ! tailscale status --peers=false >/dev/null 2>&1; then
+            echo "::error::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral)."
+            exit 1
+          fi
+          tailscale status --peers=false
+
+      - name: Fetch the captions ON THE NAS, from its residential IP
+        id: fetch
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          VID: ${{ inputs.video_id }}
+          SLUG: ${{ inputs.slug }}
+        run: |
+          set -o pipefail
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          chmod 600 /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+
+          OUT="docs/99-session-notes/sources/$SLUG"
+          mkdir -p "$OUT"
+
+          # The fetcher already lives on the NAS with the repo. --max 1 is the
+          # budget brake; --out is a run-scoped path so a one-off request can
+          # never overwrite the trickle's own transcripts.json backlog file.
+          REMOTE_OUT="/tmp/source-transcript-$VID.json"
+          echo "Running youtube-captions.py on the NAS for $VID ..."
+          $SSH "cd ~/Kingdom-PWA-Node/infra/nas-sme-pipeline && python3 youtube-captions.py --ids '$VID' --max 1 --refetch --out '$REMOTE_OUT'" 2>&1 | tee /tmp/fetch.log || true
+
+          if ! $SSH "test -s '$REMOTE_OUT'"; then
+            echo 'NO TRANSCRIPT WRITTEN ON THE NAS.'
+            echo 'The log above is the NAS speaking, not a runner. Read it for which case this is:'
+            echo '  * an IpBlocked / rate message means the residential IP hit the measured ceiling —'
+            echo '    the trickle is likely mid-drain; re-dispatch later rather than retrying now.'
+            echo '  * a no-captions result means this video publishes none, and the sovereign'
+            echo '    fallback is whisper-gpu on the church GPU box (infra/church-gpu-node/whisper-gpu).'
+            echo 'Writing nothing rather than a half file (DR-0076).'
+            exit 1
+          fi
+
+          $SSH "cat '$REMOTE_OUT'" > "$OUT/captions.json"
+          $SSH "rm -f '$REMOTE_OUT'" || true
+          echo "out=$OUT" >> "$GITHUB_OUTPUT"
+          wc -c "$OUT/captions.json"
+
+      - name: Render the captions to readable text with timestamps
+        env:
+          OUT: ${{ steps.fetch.outputs.out }}
+          VID: ${{ inputs.video_id }}
+        run: |
+          node scripts/captions-json-to-text.mjs "$OUT/captions.json" "$VID" > "$OUT/transcript.txt"
+          echo "--- first 40 lines ---"
+          head -40 "$OUT/transcript.txt"
+          wc -c "$OUT/transcript.txt"
+          # A near-empty render is a silent failure wearing a green check.
+          test "$(wc -c < "$OUT/transcript.txt")" -gt 500 \
+            || { echo 'Rendered transcript is under 500 bytes — refusing to commit it.'; exit 1; }
+
+      - name: Push the transcript (the lane opens the PR)
+        env:
+          SLUG: ${{ inputs.slug }}
+        run: |
+          BR="fix/source-transcript-$SLUG-$(date -u +%Y%m%d-%H%M)"
+          git config user.name 'source-transcript-nas'
+          git config user.email 'actions@users.noreply.github.com'
+          git checkout -b "$BR"
+          git add "docs/99-session-notes/sources/$SLUG"
+          git commit -m "Transcript fetched on the NAS for $SLUG (source-transcript-nas run ${GITHUB_RUN_ID})"
+          git push -u origin "$BR"
+          echo "Pushed $BR — read docs/99-session-notes/sources/$SLUG/transcript.txt"

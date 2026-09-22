@@ -78,6 +78,18 @@ jobs:
       - name: Install yt-dlp
         run: pip install --quiet yt-dlp
 
+      # MEASURED 2026-09-22, first real run (run 35673574195): yt-dlp now warns
+      # "No supported JavaScript runtime could be found. Only deno is enabled by
+      # default ... YouTube extraction without a JS runtime has been deprecated,
+      # and some formats may be missing." That warning was not the fatal error,
+      # but it is a real and documented requirement, so the runtime is installed
+      # rather than left to chance. Cheap, and it removes one variable from the
+      # next diagnosis.
+      - name: Install a JavaScript runtime for the extractor
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
       - name: Refuse a slug that is not a plain folder name
         env:
           SLUG: ${{ inputs.slug }}
@@ -94,19 +106,49 @@ jobs:
         env:
           URL: ${{ inputs.url }}
           SLUG: ${{ inputs.slug }}
+          YTDLP_COOKIES: ${{ secrets.YTDLP_COOKIES }}
         run: |
           set -o pipefail
           OUT="docs/99-session-notes/sources/$SLUG"
           mkdir -p "$OUT"
 
-          # Metadata first, so a failure here separates "no such video / refused"
-          # from "video exists, no captions" in the log.
-          yt-dlp --no-playlist --skip-download --print '%(title)s' --print '%(channel)s' \
+          # A cookie jar, IF one is configured. Measured 2026-09-22: without it a
+          # GitHub runner IP gets "Sign in to confirm you're not a bot." from
+          # YouTube — a datacenter-IP challenge, not a caption problem. The
+          # secret is OPTIONAL and absent by default: no credential is required
+          # to run this workflow, and the run stays honest-red without one.
+          COOKIE_ARGS=""
+          if [ -n "${YTDLP_COOKIES:-}" ]; then
+            printf '%s' "$YTDLP_COOKIES" > "$RUNNER_TEMP/cookies.txt"
+            COOKIE_ARGS="--cookies $RUNNER_TEMP/cookies.txt"
+            echo 'Using the configured cookie jar.'
+          else
+            echo 'No cookie jar configured — proceeding unauthenticated (expect a bot challenge from a datacenter IP).'
+          fi
+
+          # Metadata first, so a failure here separates the three real outcomes
+          # in the log: refused (an HTTP error or a bot challenge), no such
+          # video, or video-exists-but-no-captions.
+          # shellcheck disable=SC2086
+          yt-dlp --no-playlist --skip-download $COOKIE_ARGS --print '%(title)s' --print '%(channel)s' \
                  --print '%(upload_date)s' --print '%(duration_string)s' "$URL" \
-                 | tee "$OUT/meta.txt" || { echo 'METADATA FETCH REFUSED — the runner could not read this video.'; exit 1; }
+                 2>&1 | tee "$OUT/meta.txt" || true
+          if ! grep -qv '^$' "$OUT/meta.txt" 2>/dev/null || grep -qi "confirm you.re not a bot\|Sign in to confirm" "$OUT/meta.txt"; then
+            echo 'METADATA FETCH REFUSED — the runner could not read this video.'
+            if grep -qi "confirm you.re not a bot\|Sign in to confirm" "$OUT/meta.txt"; then
+              echo 'CAUSE: YouTube challenged this runner IP as a bot. This is NOT a caption problem and NOT a code defect.'
+              echo 'The two real routes, neither of which is guesswork:'
+              echo '  1. Run the same fetch from the NAS, which has a residential IP that is not challenged this way.'
+              echo '  2. Configure the optional YTDLP_COOKIES secret (a Netscape cookie jar for youtube.com).'
+              echo 'Route 1 needs no credential and is preferred; route 2 puts an account session into CI.'
+            fi
+            rm -f "$OUT/meta.txt"
+            exit 1
+          fi
 
           # Manual captions preferred; auto-generated accepted. English variants.
-          yt-dlp --no-playlist --skip-download \
+          # shellcheck disable=SC2086
+          yt-dlp --no-playlist --skip-download $COOKIE_ARGS \
                  --write-subs --write-auto-subs \
                  --sub-langs 'en.*' --sub-format vtt \
                  -o "$OUT/%(id)s.%(ext)s" "$URL" || true
