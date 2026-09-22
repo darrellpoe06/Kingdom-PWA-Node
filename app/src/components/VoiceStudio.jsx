@@ -26,7 +26,7 @@ import { loadVoiceProfiles, enrollMyVoice, revokeMyVoice, enrollMyLikeness, revo
 import { savePortrait, loadPortrait, hasPortrait, clearPortrait, isUsablePortrait } from '../lib/likeness-reference.js';
 import { likenessConsented } from '../lib/teacher.js';
 import {
-  buildStandInAssignments, resolveVoiceURIForId, deviceVoiceOptions, hasVoiceOfGender,
+  buildStandInAssignments, resolveVoiceURIForId, deviceVoiceOptions, hasVoiceOfGender, describeDeviceVoices,
 } from '../lib/voice-assignment.js';
 import { loadPersonaVoiceMap, savePersonaVoice } from '../lib/persona-voice-prefs.js';
 import { isVoiceServiceReady, synthesizeSpeech, voiceServiceHealth, probeVoiceService } from '../lib/voice-service.js';
@@ -36,7 +36,7 @@ import {
   useVoiceRecorder, RECORD_SCRIPT, formatDuration, durationQuality, meetsMinDuration,
 } from '../lib/voice-recording.js';
 import {
-  saveReference, loadReference, hasReference, clearReference, blobToDataUri,
+  saveReference, loadReference, clearReference, blobToDataUri,
 } from '../lib/voice-reference.js';
 import { getInstanceId } from '../lib/table-sync.js';
 import { supabase } from '../lib/supabase.js';
@@ -116,6 +116,17 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
   // Record-your-voice enrollment (the recorded sample IS the clone reference).
   const recorder = useVoiceRecorder();
   const [myRefExists, setMyRefExists] = useState(false);
+  // THE RECORDING STAYS, AND IT PLAYS (Darrell 2026-09-22: "Where does my voice
+  // go after?!!! I would like to have access to it stay right there after the
+  // recording!!!!!! Why not?!!!! Also where does it live on the device anywhy").
+  //
+  // saveRecording called recorder.reset(), which threw away the only playable
+  // handle on the audio. The bytes were safe in IndexedDB the whole time and the
+  // surface simply would not hand them back -- a line saying "saved" and no way
+  // to hear it. This holds an object URL for the SAVED sample, read back out of
+  // the store, so what is on the page is the thing that was actually persisted
+  // rather than a leftover from the recorder.
+  const [savedUrl, setSavedUrl] = useState('');
   // THE LIKENESS (DR-0430): his enrolled portrait, on this device, and the
   // consent stamp on his own row. Recording IS consent, exactly as the voice.
   const [myPortraitExists, setMyPortraitExists] = useState(false);
@@ -131,15 +142,46 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
       // Reading the stale one would look for a saved sample under the wrong key
       // on first load and report "no sample" to someone who has one.
       let key = personKeyFor({ personaKey, userId });
+      // THE SESSION FIRST, AND THE REASON IS A REAL DEFECT (Darrell, 2026-09-22,
+      // on the new "Does it work?" tab: "I'm signed in and it doesn't work!!!!!!!"
+      // — the panel read FAIL on "You are signed in on this device" while the
+      // header beside it showed his name and a LOG OUT button).
+      //
+      // getUser() is a NETWORK call to the auth server. getSession() reads the
+      // session this device already holds. This component asked the network,
+      // swallowed any failure, and left userId null — so a slow or unreachable
+      // auth server rendered as "you are not signed in", which is a different
+      // and much more alarming claim than the truth. The shell never had this
+      // problem because it works from the stored session.
+      //
+      // So: the local session decides, and getUser() is only a top-up for the
+      // profile metadata the display name reads. A failure there can no longer
+      // make a signed-in person read as a stranger.
+      try {
+        const { data: sess } = await supabase.auth.getSession();
+        const su = sess?.session?.user || null;
+        if (su) {
+          if (alive) { setUserId(su.id); setAuthUser(su); }
+          key = personKeyFor({ personaKey, userId: su.id });
+        }
+      } catch (_) { /* no stored session — the getUser attempt below still runs */ }
       try {
         const { data } = await supabase.auth.getUser();
-        if (alive) { setUserId(data?.user?.id || null); setAuthUser(data?.user || null); }
-        key = personKeyFor({ personaKey, userId: data?.user?.id || null });
-      } catch (_) { /* signed out — local-only, still usable */ }
+        if (data?.user && alive) { setUserId(data.user.id); setAuthUser(data.user); }
+        if (data?.user) key = personKeyFor({ personaKey, userId: data.user.id });
+      } catch (_) { /* network said nothing; the stored session already answered */ }
       try { const id = await getInstanceId(); if (alive) setInstanceId(id || null); } catch (_) { /* offline */ }
       const { profiles: rows } = await loadVoiceProfiles();
       if (alive && rows) setProfiles(rows);
-      if (key) { try { if (alive) setMyRefExists(await hasReference(key)); } catch (_) {} }
+      if (key) {
+        try {
+          const blob = await loadReference(key);
+          if (alive) {
+            setMyRefExists(!!blob);
+            setSavedUrl((prev) => { if (prev) { try { URL.revokeObjectURL(prev); } catch (_) {} } return blob ? URL.createObjectURL(blob) : ''; });
+          }
+        } catch (_) { /* no sample yet */ }
+      }
       if (key) {
         try {
           const has = await hasPortrait(key);
@@ -186,6 +228,8 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
   // playback update the instant a pin changes.
   const [overrides, setOverrides] = useState(() => loadPersonaVoiceMap());
   const deviceOptions = useMemo(() => deviceVoiceOptions(tts.voices), [tts.voices]);
+  // WHAT THIS DEVICE ACTUALLY GAVE US, counted rather than promised.
+  const voiceCensus = useMemo(() => describeDeviceVoices(tts.voices), [tts.voices]);
   // The voiceURI each option ACTUALLY speaks in right now (pin first, else auto).
   const resolvedURIFor = (v) => resolveVoiceURIForId(v.id, { assignments, overrides, available: tts.voices });
   const pinDeviceVoice = (catalogId, voiceURI) => {
@@ -312,6 +356,14 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
     if (!recorder.blob) return;
     setBusy(true); setNotice('');
     const ok = await saveReference(enrolKey, recorder.blob);
+    if (ok) {
+      // Read it BACK OUT of the store rather than reusing the recorder's blob:
+      // what plays on the page is then provably the thing that persisted.
+      try {
+        const saved = await loadReference(enrolKey);
+        setSavedUrl((prev) => { if (prev) { try { URL.revokeObjectURL(prev); } catch (_) {} } return saved ? URL.createObjectURL(saved) : ''; });
+      } catch (_) { /* the line below still reports the save */ }
+    }
     if (!ok) { setNotice('That sample was too short or empty — record a few more seconds.'); setBusy(false); return; }
     setMyRefExists(true);
     // Persist consent (best-effort; the local sample already works for synth).
@@ -378,6 +430,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
 
   const clearMyRecording = async () => {
     await clearReference(enrolKey);
+    setSavedUrl((prev) => { if (prev) { try { URL.revokeObjectURL(prev); } catch (_) {} } return ''; });
     setMyRefExists(false);
     setNotice('Your voice sample was removed from this device.');
   };
@@ -489,7 +542,21 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
                   <div className={`text-[0.625rem] mt-1 ${status.tone === 'ok' ? 'text-[#1A1815]' : status.tone === 'off' ? 'text-[#B85838]' : 'text-[#5A5751]'}`}>
                     {status.label}
                     {prov.standIn ? ' · plays a stand-in until the voice studio is live' : ''}
-                    {prov.real && v.kind === KIND.PERSONAL ? ' · cloned voice live' : ''}
+                    {/* LIVE HAS TO BE EARNED (Darrell 2026-09-22: the card said
+                        "cloned voice live · IN USE" while a device voice was what
+                        he actually heard). `prov.real` only knows the studio is
+                        configured and answering. It does NOT know whether THIS
+                        device holds the sample the clone is conditioned on — and
+                        without that sample the read falls back to a device voice
+                        with the card still claiming live. Same class as a feedback
+                        log counting rows it never fetched. */}
+                    {prov.real && v.kind === KIND.PERSONAL
+                      ? (isMine
+                          ? (myRefExists
+                              ? ' · cloned voice live'
+                              : ' · the studio is answering, but THIS device holds no sample of your voice — it will read in a stand-in until you record here')
+                          : ' · cloned voice live')
+                      : ''}
                   </div>
                   {/* Pick the ACTUAL device voice this option speaks in — the same
                       voices other apps use (speechSynthesis.getVoices()). The choice
@@ -512,8 +579,25 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
                           </option>
                         ))}
                       </select>
-                      {v.kind === KIND.PERSONAL && v.gender === 'male' && !hasVoiceOfGender(tts.voices, 'male') && (
-                        <p className="text-[0.625rem] text-[#B85838] mt-0.5 max-w-[15rem]">This browser only exposes female voices to web pages. To get a male voice on Android: pick <strong>“Phone’s default voice”</strong> above, then set a male voice in <strong>Android Settings → Text-to-speech</strong>. (Your real voice needs the voice-clone endpoint.)</p>
+                      {/* WHAT IS ACTUALLY THERE, COUNTED (Darrell 2026-09-22:
+                          "No choice for male or female like the verbiage on the
+                          app explains... not accurate?!!!!!!!!").
+                          The old copy asserted the list was female-only. On his
+                          Android it is not female-only — it is GENDERLESS: every
+                          entry is named by locale ("English Nigeria (en_NG)"),
+                          so nothing can be classified and no male/female match
+                          is possible from this list at all. Asserting the wrong
+                          reason is its own defect, so the surface now reports
+                          the census it just took. */}
+                      {v.kind === KIND.PERSONAL && !hasVoiceOfGender(tts.voices, v.gender) && (
+                        <p className="text-[0.625rem] text-[#B85838] mt-0.5 max-w-[15rem]" data-testid="device-voice-census">
+                          {voiceCensus.total === 0
+                            ? 'This browser handed us no voices at all, so nothing in this list can change how it sounds.'
+                            : voiceCensus.anyGendered
+                              ? `Of the ${voiceCensus.total} voices this browser exposes, ${voiceCensus.male} read as male and ${voiceCensus.female} as female — none of them ${v.gender}. Pick one above to hear the difference.`
+                              : `This browser exposes ${voiceCensus.total} voices and ${voiceCensus.namedByLocale ? 'names every one of them by LANGUAGE rather than by voice' : 'declares no gender on any of them'}, so a ${v.gender} match cannot be made from this list — which is why changing the selection does not change how it sounds.`}
+                          {' '}On Android the working route is: pick <strong>“Phone’s default voice”</strong> above, then choose a {v.gender} voice in <strong>Settings → Text-to-speech</strong>. Your own recorded voice comes from the voice studio, not from this list.
+                        </p>
                       )}
                     </div>
                   )}
@@ -633,8 +717,32 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
               </div>
 
               {myRefExists && !recorder.blob && !recorder.recording && (
-                <div className="text-[0.6875rem] text-[#1A1815] mb-2">✓ A voice sample is saved on this device.
-                  <button type="button" onClick={clearMyRecording} className="ml-2 underline text-[#B85838] hover:no-underline">Remove</button>
+                <div className="mb-2" data-testid="saved-sample">
+                  <div className="text-[0.6875rem] text-[#1A1815]">✓ A voice sample is saved on this device.
+                    <button type="button" onClick={clearMyRecording} className="ml-2 underline text-[#B85838] hover:no-underline">Remove</button>
+                  </div>
+                  {/* IT STAYS AND IT PLAYS. Before this the save threw away the
+                      only playable handle and left a sentence, so a person could
+                      be told their voice was kept and have no way to hear it. */}
+                  {savedUrl && (
+                    <audio
+                      src={savedUrl}
+                      controls
+                      /* No width cap here ON PURPOSE. A first pass wrote
+                         a max-width utility class and the guard failed it —
+                         width-cap 5 against this file's frozen baseline of 4
+                         (DR-0246). The cap was never load-bearing: what matters
+                         is that the sample PLAYS, not that the player is narrow.
+                         So the cap came out rather than the baseline going up,
+                         exactly as it did for the read-aloud notice today. */
+                      className="h-8 mt-1 w-full"
+                      data-testid="saved-sample-audio"
+                    />
+                  )}
+                  {/* And WHERE it lives, in plain words, because he asked. */}
+                  <div className="text-[0.625rem] text-[#5A5751] mt-1">
+                    It lives in this browser’s own storage on this device — IndexedDB, database <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>poe-voice</span>, store <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>references</span>, key <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>ref:{enrolKey}</span>. It does not follow you to another device, and clearing this browser’s site data deletes it.
+                  </div>
                 </div>
               )}
 
