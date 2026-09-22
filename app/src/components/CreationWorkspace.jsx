@@ -28,6 +28,7 @@
 //     artifact is rasterized at standard size on purpose (large print is a
 //     viewing aid for composing; the saved/exported document stays standard).
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { entryStampHtml, needsEntryStamp, formatEntryStamp } from '../lib/entry-stamp.js';
 import {
   WORKSPACE_TYPES, typeFor, exportFormatsFor, blankWorkspace,
   validateWorkspace, sanitizeHtml, exportNodeToImage, triggerDownload,
@@ -127,6 +128,33 @@ export default function CreationWorkspace({
   };
 
   const list = (ordered) => exec(ordered ? 'insertOrderedList' : 'insertUnorderedList');
+
+  // EVERY ENTRY CARRIES ITS OWN DATE (Darrell 2026-09-22: "Make sure each entry
+  // automatically adds a date and time stamp to the document... like Christina
+  // is already doing at times... that why it reads chronological").
+  //
+  // Her hand-typed lines -- 9.22.26, 8.24.26, 8.25.26 -- are the only reason his
+  // document has an order at all, and where nobody typed one a block of tasks
+  // floats belonging to no day. So the app types it, in HER format, and a day
+  // gets exactly one.
+  const stamp = (withTime = false) => {
+    if (typeof document === 'undefined') return;
+    editorRef.current?.focus();
+    try { document.execCommand('insertHTML', false, entryStampHtml(new Date(), { withTime })); } catch (_) { /* non-fatal */ }
+    setDirty(true);
+  };
+
+  // AUTOMATIC, ONCE A DAY, AND ONLY WHEN HE IS ACTUALLY WRITING. It fires on the
+  // first input of the day rather than on mount, because stamping a document the
+  // moment it opens would date entries he never wrote.
+  const stampedRef = useRef(false);
+  const autoStamp = () => {
+    if (stampedRef.current || typeof document === 'undefined') return;
+    const html = editorRef.current?.innerHTML || '';
+    if (!needsEntryStamp(html)) { stampedRef.current = true; return; }
+    stampedRef.current = true;
+    try { document.execCommand('insertHTML', false, entryStampHtml(new Date())); } catch (_) { /* non-fatal */ }
+  };
 
   // Save: update the open workspace, or create a new one. Returns the id saved.
   // The draft is collected from the live editor + controls at save time.
@@ -293,6 +321,9 @@ export default function CreationWorkspace({
             <span className="mx-1 h-6 border-l border-[#E8E4DC]" aria-hidden="true" />
             <button type="button" onClick={() => list(false)} title="Bulleted list" aria-label="Bulleted list" className="w-9 h-9 border border-[#E8E4DC] bg-white text-[#1A1815] text-sm hover:bg-[#F0ECE4] focus:outline focus:outline-2" style={{ outlineColor: accent }}>•</button>
             <button type="button" onClick={() => list(true)} title="Numbered list" aria-label="Numbered list" className="w-9 h-9 border border-[#E8E4DC] bg-white text-[#1A1815] text-xs hover:bg-[#F0ECE4] focus:outline focus:outline-2" style={{ outlineColor: accent }}>1.</button>
+            <span className="mx-1 h-6 border-l border-[#E8E4DC]" aria-hidden="true" />
+            <button type="button" onClick={() => stamp(false)} data-testid="insert-date-stamp" title={`Insert today's date (${formatEntryStamp(new Date())})`} className="px-2 h-9 border border-[#E8E4DC] bg-white text-[#1A1815] text-xs hover:bg-[#F0ECE4] focus:outline focus:outline-2" style={{ outlineColor: accent }}>{formatEntryStamp(new Date())}</button>
+            <button type="button" onClick={() => stamp(true)} data-testid="insert-date-time-stamp" title="Insert today's date AND the time" className="px-2 h-9 border border-[#E8E4DC] bg-white text-[#1A1815] text-xs hover:bg-[#F0ECE4] focus:outline focus:outline-2" style={{ outlineColor: accent }}>+ time</button>
           </div>
 
           {/* The big working canvas — a page on a neutral mat. The mat + page
@@ -318,7 +349,7 @@ export default function CreationWorkspace({
                 aria-multiline="true"
                 aria-label="Document canvas"
                 data-placeholder={cfg.placeholder}
-                onInput={() => { setDirty(true); }}
+                onInput={() => { autoStamp(); setDirty(true); }}
                 className="creation-canvas outline-none"
                 style={{
                   minHeight: `${Math.min(cfg.page.height, 640)}px`,
