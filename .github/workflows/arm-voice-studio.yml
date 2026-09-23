@@ -17,6 +17,23 @@
 # where the repo lives. Guessing produces an opaque failure; probing produces a
 # fact to build the next step on. `arm` therefore defaults to FALSE — this is
 # read-only until someone (or the next dispatch) says otherwise.
+#
+# THE TOWER SPEAKS POWERSHELL, AND ITS USER IS `creed` (2026-09-23, DR-0579).
+# Runs 1-3 of this lane were refused at the door — "Permission denied
+# (publickey)" — and DR-0568 read that as a key not yet placed on the 4070.
+# The runbook (infra/device-availability/RUNBOOK.md) had the fuller fact all
+# along: `tlcmediadpt` is a WINDOWS tower reached over OpenSSH as `creed`, and
+# its login shell is PowerShell, proven by a real build on 2026-07-08. Every
+# step here was written for a Linux box reached as `dpoe`: the wrong user, and
+# a bash script handed to a shell that cannot run it. So:
+#   * the user defaults to `creed`;
+#   * the probe prints the CI public key (public by definition) so the exact
+#     line to authorize on a box is in the log, never guessed at;
+#   * the probe DETECTS the dialect (uname answers on Linux; $PSVersionTable
+#     answers on Windows) and every later step runs the matching variant;
+#   * the studio's two folders are SHIPPED from this runner's own checkout by
+#     scp, so the tower needs no git checkout, no token, no clone — the
+#     compose file already says a Windows tower runs Docker Desktop with WSL2.
 name: Arm voice studio
 
 on:
@@ -27,9 +44,9 @@ on:
         required: false
         default: tlcmediadpt.tail5a2f35.ts.net
       user:
-        description: SSH user on that host
+        description: SSH user on that host (the 4070 tower is reached as creed)
         required: false
-        default: dpoe
+        default: creed
       arm:
         description: Actually bring the studio up (false = probe only)
         required: false
@@ -61,8 +78,20 @@ jobs:
           umask 077
           printf '%s\n' "$NAS_SSH_KEY" > /tmp/k
           test -s /tmp/k || { echo "NAS_SSH_KEY is empty — nothing to try"; exit 1; }
+          # THE PUBLIC HALF, PRINTED. A box that refuses this key needs exactly
+          # this line in its authorized keys; the log is where a person reads it.
+          echo "== CI public key (authorize THIS line on a box that refuses it) =="
+          ssh-keygen -y -f /tmp/k || echo "could not derive the public key"
+          # The log MASKS part of that line: an OpenSSH private key embeds its
+          # own public blob, so a run of the public base64 matches a line of
+          # the secret and Actions stars it out. The same key in 32-character
+          # rows never matches a whole secret line, so it prints unmasked —
+          # join the rows with no spaces to get the line back.
+          echo "== the same key in 32-character rows (join them, no spaces) =="
+          ssh-keygen -y -f /tmp/k | fold -w 32 || true
 
       # READ-ONLY. Every line here reports; none of it changes the machine.
+      # The dialect it finds is what every later step runs in.
       - name: Probe the host
         id: probe
         continue-on-error: true
@@ -70,16 +99,27 @@ jobs:
           H='${{ github.event.inputs.host }}'
           U='${{ github.event.inputs.user }}'
           S="ssh -i /tmp/k -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 $U@$H"
-          echo "== whoami / uname =="
-          $S 'whoami; uname -a' || echo "SSH FAILED to $U@$H"
+          echo "== dialect =="
+          DIALECT=none
+          if $S 'uname -a' 2>/dev/null; then DIALECT=sh; fi
+          if [ "$DIALECT" = none ] && $S '$PSVersionTable.PSVersion.ToString()' 2>/dev/null; then DIALECT=powershell; fi
+          echo "dialect=$DIALECT"
+          echo "dialect=$DIALECT" >> "$GITHUB_OUTPUT"
+          if [ "$DIALECT" = none ]; then echo "SSH FAILED to $U@$H — authorize the CI public key printed above for user $U on that box"; exit 1; fi
+          echo "== whoami =="
+          $S 'whoami' || true
           echo "== docker =="
           $S 'docker --version; docker ps --format "{{.Names}}\t{{.Status}}"' || echo "no docker"
           echo "== nvidia =="
           $S 'nvidia-smi --query-gpu=name,memory.total --format=csv,noheader' || echo "no nvidia-smi"
           echo "== is the studio already answering? =="
-          $S 'curl -s -m 5 -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8770/health' || echo "no local studio"
-          echo "== repo checkouts =="
-          $S 'ls -d ~/Kingdom-PWA-Node /volume1/repos/Kingdom-PWA-Node /opt/Kingdom-PWA-Node 2>/dev/null' || echo "no known checkout"
+          if [ "$DIALECT" = sh ]; then
+            $S 'curl -s -m 5 -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8770/health' || echo "no local studio"
+          else
+            $S 'curl.exe -s -m 5 -o NUL -w "%{http_code}\n" http://127.0.0.1:8770/health' || echo "no local studio"
+          fi
+          echo "== where the studio folders will live =="
+          if [ "$DIALECT" = sh ]; then $S 'echo "$HOME/poetech-gpu-node"'; else $S 'Write-Output "$env:USERPROFILE\poetech-gpu-node"'; fi
 
       # Gated. Only runs when the dispatch explicitly asks for it, so a probe
       # can never start a multi-gigabyte pull by surprise.
@@ -92,28 +132,50 @@ jobs:
       # mid-build leaves a half-pulled layer cache and reports nothing useful.
       # A warm box still finishes in about two minutes -- the ceiling costs
       # nothing when it is not needed.
+      #
+      # THE FOLDERS COME FROM HERE. `infra/church-gpu-node` (the compose) and
+      # `infra/voice-studio` (its build context, `../voice-studio`) are copied
+      # from this runner's checkout into `<home>/poetech-gpu-node/infra/` on the
+      # box by scp, every run, so the tower always builds the merged version and
+      # needs no git, no token and no clone of a private repository.
       - name: Bring the studio up
         if: ${{ github.event.inputs.arm == 'true' }}
         run: |
           H='${{ github.event.inputs.host }}'
           U='${{ github.event.inputs.user }}'
+          D='${{ steps.probe.outputs.dialect }}'
           S="ssh -i /tmp/k -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o ServerAliveInterval=30 $U@$H"
-          $S 'set -e
-            R=""
-            for c in ~/Kingdom-PWA-Node /volume1/repos/Kingdom-PWA-Node /opt/Kingdom-PWA-Node; do
-              if [ -d "$c/infra/church-gpu-node" ]; then R="$c"; break; fi
-            done
-            test -n "$R" || { echo "no checkout carrying infra/church-gpu-node"; exit 1; }
-            cd "$R"
-            git pull --ff-only || true
-            cd infra/church-gpu-node
-            # BUILD AS ITS OWN STEP so a build failure says "build" rather than
-            # surfacing later as a container that never answers. The base tag is
-            # pinned and the Dockerfile says in its own words to confirm it is
-            # still published before relying on it -- if the tag has been pulled
-            # from Docker Hub, THIS is the line that says so.
-            docker compose build voice-studio
-            docker compose up -d voice-studio'
+          SCP="scp -i /tmp/k -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -r"
+          # The compose reads DATA_ROOT from .env; ship a default so a first
+          # run has somewhere to keep the weights. Never overwrite one that exists.
+          if [ "$D" = sh ]; then
+            $S 'mkdir -p "$HOME/poetech-gpu-node/infra"'
+            $SCP infra/church-gpu-node infra/voice-studio "$U@$H:poetech-gpu-node/infra/"
+            $S 'set -e
+              cd "$HOME/poetech-gpu-node/infra/church-gpu-node"
+              test -f .env || cp .env.example .env
+              # BUILD AS ITS OWN STEP so a build failure says "build" rather than
+              # surfacing later as a container that never answers.
+              docker compose build voice-studio
+              docker compose up -d voice-studio'
+          elif [ "$D" = powershell ]; then
+            $S 'New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\poetech-gpu-node\infra" | Out-Null'
+            $SCP infra/church-gpu-node infra/voice-studio "$U@$H:poetech-gpu-node/infra/"
+            # The whole script goes over stdin (-Command -), so nothing here
+            # has to survive two layers of quoting.
+            $S 'powershell -NoProfile -Command -' <<'PS'
+              $ErrorActionPreference = 'Stop'
+              Set-Location "$env:USERPROFILE\poetech-gpu-node\infra\church-gpu-node"
+              if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+              docker compose build voice-studio
+              if ($LASTEXITCODE -ne 0) { Write-Output "build failed"; exit 1 }
+              docker compose up -d voice-studio
+              if ($LASTEXITCODE -ne 0) { Write-Output "up failed"; exit 1 }
+              Write-Output "voice-studio is up"
+          PS
+          else
+            echo "no dialect was detected by the probe — nothing was armed"; exit 1
+          fi
 
       # PROVE IT, never assume it (DR-0076). /health answers while the model is
       # still cold -- server.py loads the model lazily on purpose -- so a real
@@ -123,9 +185,11 @@ jobs:
         run: |
           H='${{ github.event.inputs.host }}'
           U='${{ github.event.inputs.user }}'
+          D='${{ steps.probe.outputs.dialect }}'
           S="ssh -i /tmp/k -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o ServerAliveInterval=30 $U@$H"
+          if [ "$D" = powershell ]; then CURL='curl.exe'; NULLDEV='NUL'; WAV='$env:TEMP\v.wav'; else CURL='curl'; NULLDEV='/dev/null'; WAV='/tmp/v.wav'; fi
           for i in $(seq 1 30); do
-            C=$($S 'curl -s -m 5 -o /dev/null -w "%{http_code}" http://127.0.0.1:8770/health' || echo 000)
+            C=$($S "$CURL -s -m 5 -o $NULLDEV -w \"%{http_code}\" http://127.0.0.1:8770/health" || echo 000)
             echo "health attempt $i: $C"
             [ "$C" = "200" ] && break
             sleep 10
@@ -139,9 +203,14 @@ jobs:
           # WRONG diagnosis of a download in progress. The first attempt gets
           # twenty minutes; a second attempt after it is cached gets three, and
           # only THAT one is allowed to conclude anything.
-          $S 'curl -s -m 1200 -X POST http://127.0.0.1:8770/speak -H "Content-Type: application/json" -d "{\"text\":\"The Word of Yahweh endures forever.\"}" -o /tmp/v.wav -w "first speak: %{http_code} %{size_download} bytes in %{time_total}s\n"' || echo "first speak did not complete"
-          $S 'curl -s -m 180 -X POST http://127.0.0.1:8770/speak -H "Content-Type: application/json" -d "{\"text\":\"The Word of Yahweh endures forever.\"}" -o /tmp/v.wav -w "warm speak: %{http_code} %{size_download} bytes in %{time_total}s\n"'
-          $S 'test -s /tmp/v.wav && echo "SPOKE: $(stat -c%s /tmp/v.wav) bytes -- the studio is ARMED" || { echo "NO AUDIO. Read the two lines above before concluding anything: a 000/0-byte FIRST speak is a download that did not finish (re-dispatch, the weights are cached now); a 400 on the WARM speak is the model refusing a built-in speaker, which means it has no speaker bank and only cloned voices will work."; exit 1; }'
+          BODY='{"text":"The Word of Yahweh endures forever."}'
+          $S "$CURL -s -m 1200 -X POST http://127.0.0.1:8770/speak -H \"Content-Type: application/json\" -d '$BODY' -o $WAV -w \"first speak: %{http_code} %{size_download} bytes in %{time_total}s\n\"" || echo "first speak did not complete"
+          $S "$CURL -s -m 180 -X POST http://127.0.0.1:8770/speak -H \"Content-Type: application/json\" -d '$BODY' -o $WAV -w \"warm speak: %{http_code} %{size_download} bytes in %{time_total}s\n\""
+          if [ "$D" = powershell ]; then
+            $S 'if ((Test-Path "$env:TEMP\v.wav") -and ((Get-Item "$env:TEMP\v.wav").Length -gt 0)) { Write-Output ("SPOKE: " + (Get-Item "$env:TEMP\v.wav").Length + " bytes -- the studio is ARMED") } else { Write-Output "NO AUDIO. Read the two lines above before concluding anything: a 000/0-byte FIRST speak is a download that did not finish (re-dispatch, the weights are cached now); a 400 on the WARM speak is the model refusing a built-in speaker, which means it has no speaker bank and only cloned voices will work."; exit 1 }'
+          else
+            $S 'test -s /tmp/v.wav && echo "SPOKE: $(stat -c%s /tmp/v.wav) bytes -- the studio is ARMED" || { echo "NO AUDIO. Read the two lines above before concluding anything: a 000/0-byte FIRST speak is a download that did not finish (re-dispatch, the weights are cached now); a 400 on the WARM speak is the model refusing a built-in speaker, which means it has no speaker bank and only cloned voices will work."; exit 1; }'
+          fi
 
       # The road home, so the app can reach what was just armed. The NAS mounts
       # /voice on the Funnel itself on its next services-sync cycle (<=15 min,
@@ -149,13 +218,12 @@ jobs:
       # reader wait a quarter of an hour for a mount we can ask for now. The
       # installer is idempotent and refuses to mount a backend that is not
       # answering, so running it here is safe and is a no-op if the cycle beat
-      # us to it.
+      # us to it. The NAS is reached as dpoe whatever the tower's user is.
       - name: Mount /voice on the Funnel now, rather than waiting for the cycle
         if: ${{ github.event.inputs.arm == 'true' }}
         continue-on-error: true
         run: |
-          U='${{ github.event.inputs.user }}'
-          S="ssh -i /tmp/k -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 $U@poetech.tail5a2f35.ts.net"
+          S="ssh -i /tmp/k -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
           $S 'set -e
             R=""
             for c in /volume1/PoeTech/repos/Kingdom-PWA-Node ~/Kingdom-PWA-Node /volume1/repos/Kingdom-PWA-Node; do
