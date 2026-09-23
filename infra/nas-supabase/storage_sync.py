@@ -114,12 +114,33 @@ def key_shape(key):
     family, not a secret), how many dots it has (a JWT has two), and whether
     it carries quotes or whitespace (a paste that brought its own quotes)."""
     k = "" if key is None else str(key)
+    # Character CLASSES, not characters (run 35905496750: 57 chars, "cdn", no
+    # dots -- and nothing said whether it was hex, base64, or a word). Counts
+    # of upper / lower / digit / other, and the narrowest alphabet the whole
+    # value fits: hex, base64url, base64, alnum, mixed. A family is named by
+    # its alphabet; the value itself never leaves the box.
+    upper = sum(1 for c in k if c.isupper())
+    lower = sum(1 for c in k if c.islower())
+    digit = sum(1 for c in k if c.isdigit())
+    other = len(k) - upper - lower - digit
+    if k and all(c in "0123456789abcdefABCDEF" for c in k):
+        charset = "hex"
+    elif k and all(c.isalnum() for c in k):
+        charset = "alnum"
+    elif k and all(c.isalnum() or c in "-_" for c in k):
+        charset = "base64url"
+    elif k and all(c.isalnum() or c in "+/=" for c in k):
+        charset = "base64"
+    else:
+        charset = "mixed" if k else "empty"
     return {
         "len": len(k),
         "prefix3": k[:3],
         "dots": k.count("."),
         "quoted": (k[:1] in ("'", '"')) or (k[-1:] in ("'", '"')),
         "whitespace": any(c.isspace() for c in k),
+        "upper": upper, "lower": lower, "digit": digit, "other": other,
+        "charset": charset,
     }
 
 
@@ -534,8 +555,18 @@ def selftest():
           classify_bucket_probe(0, b"timed out")[0] == "rejected")
     shape = key_shape('"eyJabc.def.ghi"')
     check("the key SHAPE names length, family prefix, dots and quoting -- never the value",
-          shape == {"len": 16, "prefix3": '"ey', "dots": 2, "quoted": True, "whitespace": False}
+          {k: shape[k] for k in ("len", "prefix3", "dots", "quoted", "whitespace")}
+          == {"len": 16, "prefix3": '"ey', "dots": 2, "quoted": True, "whitespace": False}
           and "eyJabc" not in json.dumps(shape))
+    check("the shape names the value's ALPHABET and class counts, never its characters",
+          key_shape("cd0123456789abcdef")["charset"] == "hex"
+          and key_shape("cdnAbc123")["charset"] == "alnum"
+          and key_shape("sb_secret_Ab-1")["charset"] == "base64url"
+          and key_shape("Ab+/=")["charset"] == "base64"
+          and key_shape("a b!")["charset"] == "mixed"
+          and key_shape("")["charset"] == "empty"
+          and key_shape("aB3-")["upper"] == 1 and key_shape("aB3-")["lower"] == 1
+          and key_shape("aB3-")["digit"] == 1 and key_shape("aB3-")["other"] == 1)
     check("a quoted or whitespace-carrying paste is visible in the shape",
           key_shape("sb_secret_x y")["whitespace"] is True and key_shape(None)["len"] == 0)
 

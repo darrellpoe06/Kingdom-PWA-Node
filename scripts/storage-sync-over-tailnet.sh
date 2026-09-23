@@ -126,14 +126,43 @@ fi
 # authenticated GET of the bucket list; the log carries the status and the
 # bucket NAMES or the project's error words -- never the key. Private buckets
 # listed = the value is service-grade whatever it looks like.
-HK=$( { grep '^HOSTED_SERVICE_ROLE_KEY=' /volume1/docker/poetech/agent.env 2>/dev/null \
-        || sudo -n grep '^HOSTED_SERVICE_ROLE_KEY=' /volume1/docker/poetech/agent.env 2>/dev/null; } | head -1 | cut -d= -f2-)
-if [ -n "$HK" ]; then
-  PB=$(mktemp)
-  PS=$(curl -sS -m 30 -o "$PB" -w '%{http_code}' \
+#
+# Run 35905496750 printed "HTTP 000000 (unparseable body)": curl itself failed
+# on the box and its reason was thrown away. So this probe now (a) resolves
+# curl the way python3 is resolved, (b) makes a CONTROL request with no key
+# first, so a dead network path is told apart from a refused key, (c) keeps
+# curl's exit code and error text (curl never echoes a header value into its
+# errors), and (d) lists the variable NAMES in agent.env -- names only -- so a
+# key filed under another name is found instead of guessed at.
+CURL=$(command -v curl 2>/dev/null || true)
+if [ -z "$CURL" ]; then
+  for c in /usr/bin/curl /usr/local/bin/curl /bin/curl /opt/bin/curl; do
+    [ -x "$c" ] && CURL="$c" && break
+  done
+fi
+echo "HOSTED-PROBE-CURL: ${CURL:-not-found}"
+AE=/volume1/docker/poetech/agent.env
+NAMES=$( { grep -oE '^[A-Za-z_][A-Za-z0-9_]*=' "$AE" 2>/dev/null \
+           || sudo -n grep -oE '^[A-Za-z_][A-Za-z0-9_]*=' "$AE" 2>/dev/null; } | tr -d '=' | sort -u | tr '\n' ' ')
+echo "HOSTED-ENV-NAMES: ${NAMES:-(unreadable)}"
+KEYLINES=$( { grep -c '^HOSTED_SERVICE_ROLE_KEY=' "$AE" 2>/dev/null \
+              || sudo -n grep -c '^HOSTED_SERVICE_ROLE_KEY=' "$AE" 2>/dev/null; } | tail -1)
+echo "HOSTED-KEY-LINES: ${KEYLINES:-0}"
+HK=$( { grep '^HOSTED_SERVICE_ROLE_KEY=' "$AE" 2>/dev/null \
+        || sudo -n grep '^HOSTED_SERVICE_ROLE_KEY=' "$AE" 2>/dev/null; } | head -1 | cut -d= -f2-)
+if [ -n "$CURL" ]; then
+  PE=$(mktemp)
+  CS=$("$CURL" -sS -m 30 -o /dev/null -w '%{http_code}' \
+        https://mjjlevhdufpaplypnqrv.supabase.co/storage/v1/bucket 2>"$PE"); CE=$?
+  echo "HOSTED-REACHABLE-FROM-NAS: HTTP ${CS:-000} curl-exit $CE $(head -c 200 "$PE" | tr '\n' ' ')"
+  rm -f "$PE"
+fi
+if [ -n "$HK" ] && [ -n "$CURL" ]; then
+  PB=$(mktemp); PE=$(mktemp)
+  PS=$("$CURL" -sS -m 30 -o "$PB" -w '%{http_code}' \
         -H "apikey: $HK" -H "Authorization: Bearer $HK" \
-        https://mjjlevhdufpaplypnqrv.supabase.co/storage/v1/bucket 2>/dev/null || echo 000)
-  echo "HOSTED-ANSWERS-THE-KEY: HTTP $PS $($PY - "$PB" <<'PYEOF'
+        https://mjjlevhdufpaplypnqrv.supabase.co/storage/v1/bucket 2>"$PE"); CE=$?
+  echo "HOSTED-ANSWERS-THE-KEY: HTTP ${PS:-000} curl-exit $CE $(head -c 200 "$PE" | tr '\n' ' ')$($PY - "$PB" <<'PYEOF'
 import json, sys
 try:
     d = json.load(open(sys.argv[1]))
@@ -149,7 +178,7 @@ else:
     print(str(d)[:120])
 PYEOF
 )"
-  rm -f "$PB"
+  rm -f "$PB" "$PE"
 fi
 unset HK
 
