@@ -33,7 +33,7 @@ The eight lessons stated the documented record with dates and read it under the 
 
 ## Limits, stated
 
-1. **Two of the twenty-two records are transcriptions, not the originals’ own hosts.** Chief Joseph’s 1879 article is read from a 1912 Oregon history’s reprint of the North American Review text, and John Ross’s letter from a Wikisource transcription, both because the pages that held them moved or died this year. The `where` and `note` say so on the surface. A scan-backed host for each (HathiTrust, the Review’s own volume) is the better citation. `re-review: 2026-10-07`.
+1. **Two of the twenty-two records are transcriptions, not the originals’ own hosts.** Chief Joseph’s 1879 article is read from a later Oregon history’s reprint of the North American Review text (Wikisource page 2422023), and John Ross’s letter from a Wikisource transcription, both because the pages that held them moved or died this year. The `where` and `note` say so on the surface. A scan-backed host for each (HathiTrust, the Review’s own volume) is the better citation. `re-review: 2026-10-07`.
 2. **The read-aloud arc does not yet speak the voices.** `lesson-flow.js` builds the spoken lesson from the fields it knew; the voices and the timeline are on screen and on paper, not yet in the reader’s voice. `re-review: 2026-09-30`.
 3. **The course-level timeline has no surface of its own yet.** `historyTimeline()` is exported and pinned; a single line of years across the department, with each entry opening its lesson, is the next step. `re-review: 2026-09-30`.
 4. **Twenty-two hosts’ pages can change.** A source that moves is a red witness run, not a silent drift; the allowlist makes a new host a deliberate add.
