@@ -104,6 +104,23 @@ describe('the studio is asked whether it answers', () => {
     expect(await probeVoiceService({ force: true })).toBe('down');
     expect(isVoiceServiceAnswering()).toBe(false);
   });
+  it('PROVEN-TO-CATCH: headers that arrive but a body that never ends read as down within the timeout — the request is ENDED, not left open (live-link-probe run 35931484959: /voice/health in flight for 60 s)', async () => {
+    // What the runner measured on 2026-09-23: fetch resolved on n8n's 200
+    // headers, the old code called clearTimeout in finally and never read the
+    // body, so the abort was disarmed while the stream stayed open — one
+    // request in flight for the whole 60 s wait, four days running.
+    vi.useFakeTimers();
+    let aborted = false;
+    globalThis.fetch = vi.fn(async (_u, opts) => {
+      opts.signal.addEventListener('abort', () => { aborted = true; });
+      return { ok: true, status: 200, json: () => new Promise((_, reject) => opts.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')))) };
+    });
+    const p = probeVoiceService({ force: true, timeoutMs: 40 });
+    await vi.advanceTimersByTimeAsync(50);
+    expect(await p).toBe('down');
+    expect(aborted).toBe(true);
+    vi.useRealTimers();
+  });
   it('PROVEN-TO-CATCH: a non-ok answer, a thrown fetch, or a hang all read as down — configured is not the same as alive', async () => {
     globalThis.fetch = vi.fn(async () => ({ ok: false, status: 502 }));
     expect(await probeVoiceService({ force: true })).toBe('down');

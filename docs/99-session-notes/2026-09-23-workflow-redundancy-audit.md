@@ -107,6 +107,6 @@ Measured from the box (nas-health 21:35Z): cron.d fires `services-sync` every 15
 
 ## 5. Not done, said plainly
 
-- The never-idle cause on the live site is named by run 35931484959 (this branch's witness with in-flight naming); the section above records the runner's timings, and the run's own lines are the evidence. If that run reached idle, the four-day red was the `/voice` fall-through's side effect and is closed by 1a95711 after deploy; if it did not, the named requests are the next fix.
+- The never-idle cause is MEASURED (run 35931484959, this branch): every case names one request still in flight, `/voice/health`, open since ~650–800 ms for the whole 60 s. The app's `fetch` resolved on n8n's 200 headers, never read the body, and disarmed its 4 s abort in `finally` — so the stream stayed open. Commit 1a95711 reads the body inside the armed window; the request now ends within 4 s whatever answers, and is pinned. The witnesses should go green on the deploy after #1756 merges — verified by their next daily runs (or a dispatch).
 - The 09-07 → 09-18 gap in the runs API is stated, not explained.
 - NAS-side: the root-user `youtube_transcript_api` install and the yt-dlp install are the rider's real blockers; nas-bootstrap (services-sync) is the channel, and harvest-health can now dispatch it.
