@@ -115,6 +115,17 @@ def hosted_key_verdict(key, expected_ref):
     download bodies remain the judge)."""
     if not key:
         return ("absent", "")
+    # NEW-STYLE KEYS (run 35883853346 printed "opaque": the value is not a
+    # JWT). Supabase's opaque keys carry their role in the PREFIX --
+    # sb_publishable_ is the anon role, sb_secret_ is service_role (docs:
+    # guides/getting-started/api-keys; the gateway translates the apikey
+    # header to the matching role JWT). The prefix names the role without
+    # revealing the key.
+    k = str(key).strip()
+    if k.startswith("sb_publishable_"):
+        return ("wrong-role", "publishable")
+    if k.startswith("sb_secret_"):
+        return ("ok", "sb_secret")
     claims = jwt_claims(key)
     if not claims:
         return ("opaque", "")
@@ -248,8 +259,9 @@ def real_run(only_bucket=None, limit=0, dry_run=False):
         if kind in ("wrong-role", "wrong-project"):
             print("storage-sync: that is NOT the hosted service_role key -- the private "
                   "buckets cannot be read with it (storage answers 'Bucket not found' "
-                  "under RLS). Paste the service_role key from Project Settings > API "
-                  "Keys > Legacy into HOSTED_SERVICE_ROLE_KEY and re-dispatch.")
+                  "under RLS). Paste EITHER the service_role key (Project Settings > API "
+                  "Keys > Legacy, starts eyJ) OR the Secret key (API Keys, starts "
+                  "sb_secret_) into HOSTED_SERVICE_ROLE_KEY and re-dispatch.")
             hosted_key = None
 
     src = connect(hosted_url, use_tls=True)
@@ -426,8 +438,12 @@ def selftest():
     check("CATCHES a service_role key for a different project",
           hosted_key_verdict(other, "mjjlevhdufpaplypnqrv") == ("wrong-project", "zzzzzzzzzzzzzzzzzzzz"))
     check("the right key is ok", hosted_key_verdict(svc, "mjjlevhdufpaplypnqrv") == ("ok", "service_role"))
-    check("an opaque (sb_secret_) value is let through for the bodies to judge",
-          hosted_key_verdict("sb_secret_abc", "mjjlevhdufpaplypnqrv") == ("opaque", ""))
+    check("a new-style SECRET key is ok, named by its prefix and never printed",
+          hosted_key_verdict("sb_secret_abc", "mjjlevhdufpaplypnqrv") == ("ok", "sb_secret"))
+    check("CATCHES a new-style PUBLISHABLE key pasted where the secret belongs (the anon role)",
+          hosted_key_verdict("sb_publishable_abc", "mjjlevhdufpaplypnqrv") == ("wrong-role", "publishable"))
+    check("a value that is neither a JWT nor an sb_ key is let through for the bodies to judge",
+          hosted_key_verdict("something-else", "mjjlevhdufpaplypnqrv") == ("opaque", ""))
     check("an empty key is absent", hosted_key_verdict("", "x") == ("absent", ""))
     check("garbage never crashes the decoder", jwt_claims("a.b.c") == {} and jwt_claims(None) == {})
 
