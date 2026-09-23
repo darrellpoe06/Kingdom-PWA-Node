@@ -40,6 +40,7 @@ import {
 } from '../lib/voice-reference.js';
 import { getInstanceId } from '../lib/table-sync.js';
 import { hasBridgeToken } from '../lib/nas-photos.js';
+import { provisionBridgeToken } from '../lib/bridge-provision.js';
 import { supabase } from '../lib/supabase.js';
 import SectionTabs from './SectionTabs.jsx';
 import { buildVoiceChecks, overallVerdict, VOICE_SYSTEM_DOCS, PASS, FAIL } from '../lib/voice-system-check.js';
@@ -197,6 +198,22 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
   // Stop any cloud audio when the surface unmounts.
   useEffect(() => () => { if (audioRef.current) { try { audioRef.current.pause(); } catch (_) {} audioRef.current = null; } }, []);
 
+  // THE KEY PROVISIONS ITSELF (DR-0574). The bridge-key row used to tell a
+  // signed-in person to "provision this device" by hand while the machine
+  // path already existed (bridge-provision.js, migration 0128) and only Real
+  // Estate ever ran it. Run it here the moment a signed-in person opens the
+  // studio without the key; the row then reports what actually happened —
+  // present, provisioned just now, or none (not a family member, or no
+  // steward has published the key yet) — rather than a chore.
+  const [bridgeProvision, setBridgeProvision] = useState(() => (hasBridgeToken() ? 'present' : 'unknown'));
+  useEffect(() => {
+    if (!userId) { setBridgeProvision(hasBridgeToken() ? 'present' : 'unknown'); return undefined; }
+    if (hasBridgeToken()) { setBridgeProvision('present'); return undefined; }
+    let live = true;
+    provisionBridgeToken(supabase).then((r) => { if (live) setBridgeProvision(r); });
+    return () => { live = false; };
+  }, [userId]);
+
   // DOES IT ACTUALLY WORK -- answered on the screen, from this render's own
   // measurements (Darrell 2026-09-22: "I want to be able to review it myself
   // within the PoeTech App build"). Nothing here is a claim; every row is a
@@ -212,7 +229,8 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
     consentRow: !!profiles.find((x) => x.personKey === enrolKey),
     studioHealth,
     bridgeKey: hasBridgeToken(),
-  }), [userId, enrolKey, instanceId, reviewerMode, recorder.supported, myRefExists, profiles, studioHealth]);
+    bridgeProvision,
+  }), [userId, enrolKey, instanceId, reviewerMode, recorder.supported, myRefExists, profiles, studioHealth, bridgeProvision]);
   const verdict = useMemo(() => overallVerdict(checks), [checks]);
 
   const voices = useMemo(() => mergeVoiceCatalog(profiles), [profiles]);

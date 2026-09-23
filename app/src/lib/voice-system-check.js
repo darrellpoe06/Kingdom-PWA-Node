@@ -61,12 +61,17 @@ export const UNKNOWN = 'unknown';
  * @param {boolean} m.consentRow      a voice_profiles row exists for this person
  * @param {'up'|'down'|'unknown'} m.studioHealth   what the studio ANSWERED
  * @param {boolean} m.bridgeKey      this device holds the bearer /speak requires
+ * @param {'present'|'provisioned'|'none'|'unknown'} m.bridgeProvision  what
+ *        asking the family for the key returned (bridge-provision.js): the
+ *        device already had it, fetched it just now, got nothing (signed out,
+ *        not a family member, or no steward has published it yet), or has not
+ *        asked yet
  */
 export function buildVoiceChecks(m = {}) {
   const {
     signedIn = false, enrolKey = '', instanceId = null, reviewerMode = false,
     recorderSupported = false, sampleOnDevice = false, consentRow = false,
-    studioHealth = 'unknown', bridgeKey = false,
+    studioHealth = 'unknown', bridgeKey = false, bridgeProvision = 'unknown',
   } = m;
 
   const rows = [];
@@ -150,14 +155,29 @@ export function buildVoiceChecks(m = {}) {
     // synced"), so a device that was never provisioned answers the probe
     // perfectly and is refused at the door -- and the chain built to name the
     // broken link had no row for the link that was broken.
+    //
+    // AND THE FIX IS NOT A CHORE (DR-0574). The key provisions ITSELF on a
+    // signed-in family device through the RLS-deny-all + SECURITY DEFINER RPC
+    // pair (migration 0128; bridge-provision.js). The first version of this
+    // row told the person to "provision this device" by hand while that
+    // machine path existed and only Real Estate ever ran it. The studio and
+    // the read now ask for the key themselves; this row reports what came
+    // back, and names the one human step that remains -- a steward publishes
+    // the key once -- only when the family genuinely has none published.
     id: 'bridge-key',
     label: 'This device holds the family key the studio requires',
     state: bridgeKey ? PASS : FAIL,
     detail: bridgeKey
-      ? 'POST /speak will be sent with this device\u2019s key.'
+      ? (bridgeProvision === 'provisioned'
+        ? 'This device asked the family for the key and received it just now. POST /speak will be sent with it.'
+        : 'POST /speak will be sent with this device\u2019s key.')
       : 'The studio can answer its health check and still refuse to read, because /speak is gated on a key this device does not have. The key never syncs between devices, so having it on your phone says nothing about this browser.',
-    fix: bridgeKey ? '' : 'Provision this device\u2019s bridge key (the same one the photo and tax reads use); until then reads fall back to the labelled stand-in voice.',
-    where: 'infra/voice-studio/voice_forwarder.py (401) \u00b7 lib/nas-photos.js (bridgeToken) \u00b7 lib/bridge-provision.js',
+    fix: bridgeKey ? ''
+      : !signedIn ? 'Sign in. A signed-in family device asks the family for the key itself; until then reads fall back to the labelled stand-in voice.'
+        : bridgeProvision === 'none'
+          ? 'This device asked the family for the key itself and got none: either no steward has published it yet (a steward pastes it once in Real Estate \u2192 Photos, and every family device picks it up from then on), or this account is not a member of a family space. Until then reads fall back to the labelled stand-in voice.'
+          : 'This device asks the family for the key itself the moment you open the studio signed in; if this row is still failing after a moment, reopen the tab.',
+    where: 'infra/voice-studio/voice_forwarder.py (401) \u00b7 lib/bridge-provision.js (get_family_bridge_token, migration 0128) \u00b7 lib/nas-photos.js (bridgeToken)',
   });
 
   rows.push({
