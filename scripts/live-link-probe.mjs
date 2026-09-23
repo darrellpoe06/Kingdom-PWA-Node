@@ -120,6 +120,21 @@ for (const c of RUN) {
   const page = await ctx.newPage();
   const pageErrors = [];
   page.on('pageerror', (e) => pageErrors.push(String(e).slice(0, 200)));
+  // WHAT KEPT THE NETWORK BUSY (2026-09-23). Both daily witnesses read
+  // "page.goto: Timeout 60000ms exceeded" for four days and said nothing
+  // else; the runner's own curl of the same pages answered in under a second.
+  // A timeout without the names of the requests still in flight is a verdict
+  // without evidence (DR-0076 §8), so every request is tracked from start to
+  // finish and the failure line names the ones that never came back.
+  const openedAt = Date.now();
+  const inFlight = new Map();   // url -> ms since open when it started
+  const settled = [];
+  page.on('request', (r) => inFlight.set(r.url(), Date.now() - openedAt));
+  page.on('requestfinished', (r) => { inFlight.delete(r.url()); settled.push(r.url()); });
+  page.on('requestfailed', (r) => { inFlight.delete(r.url()); settled.push(`${r.url()} [failed: ${(r.failure() || {}).errorText || '?'}]`); });
+  const stillInFlight = () => [...inFlight.entries()]
+    .map(([u, t]) => `${u.replace(/^https?:\/\/[^/]+/, '')} (since ${t}ms)`)
+    .slice(0, 12);
 
   const problems = [];
   let activeTabs = [];
@@ -259,7 +274,9 @@ for (const c of RUN) {
         : 'a live-stream player is mounted on a LESSON link (the DR-0296 symptom)');
     }
   } catch (err) {
-    problems.push(`navigation/render failed: ${String(err).slice(0, 200)}`);
+    const open = stillInFlight();
+    problems.push(`navigation/render failed: ${String(err).slice(0, 200)}`
+      + (open.length ? ` — ${inFlight.size} request(s) still in flight when the wait gave up: ${open.join('; ')}` : ` — no request was in flight (${settled.length} settled)`));
   }
 
   await page.screenshot({ path: `${OUT}/${c.name}.png` }).catch(() => {});
