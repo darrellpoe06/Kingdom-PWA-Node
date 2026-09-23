@@ -232,3 +232,38 @@ jobs:
           path: app/${{ matrix.brand }}-native.apk
           retention-days: 30
           if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # The shelf must hold what the store offers (DR-0573) — the same gate the TWA
+  # lane carries: every brand the in-app store lists with a local door must
+  # have a `<brand>-native.apk` on android-native-latest, or the run FAILS. A
+  # store that lists what it cannot deliver is the defect (the 2026-08-28
+  # "Bad gateway" lesson), and a green build that leaves one missing is the
+  # lie. `if: always()` so a partial run still reports what is actually there.
+  shelf:
+    needs: build
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prove every store brand has a local package on the shelf
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          names=$(gh api "repos/$REPO/releases/tags/android-native-latest" --jq '[.assets[].name] | join(",")')
+          csv=",$names,"
+          missing=""
+          for key in $(grep -oP "^\s+key: '\K[a-z]+" app/src/lib/app-store.js); do
+            case "$csv" in
+              *",$key-native.apk,"*) ;;
+              *) missing="$missing $key" ;;
+            esac
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::the store offers a local app for these brands with NO package on android-native-latest:$missing"
+            exit 1
+          fi
+          echo "every store brand has a local package on the shelf: $names"

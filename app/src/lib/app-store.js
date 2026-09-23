@@ -20,6 +20,17 @@ export const APK_RELEASE_BASE = 'https://github.com/darrellpoe06/Kingdom-PWA-Nod
 // The door the store links: our origin, no redirect chain, exact byte count.
 export const APK_DOOR_BASE = '/store/apk';
 
+// THE LOCAL APP'S DOOR (DR-0570 / DR-0573). Beside every TWA package there is
+// now a LOCAL app: the same Vite app bundled INSIDE the package by
+// native-shell.yml, under `<packageId>.local`, so both can be installed on
+// one phone. Its door is `/store/apk/<brand>-local.apk`, served by the same
+// Pages Function from its own shelf (`android-native-latest`). The button
+// appears in the store only because the shelf holds a real package for every
+// brand -- read from the shelf on 2026-09-23 (run 35805849172), five of five --
+// and the door answers "not published yet" rather than a gateway error if a
+// shelf is ever empty again.
+export const APK_LOCAL_SUFFIX = '-local';
+
 export const APP_STORE = [
   {
     key: 'poetech', name: 'PoeTech Family OS', short: 'PoeTech',
@@ -28,6 +39,8 @@ export const APP_STORE = [
     webUrl: 'https://poetech.us',
     apk: `${APK_DOOR_BASE}/poetech.apk`,
     packageId: 'us.poetech.app',
+    apkLocal: `${APK_DOOR_BASE}/poetech${APK_LOCAL_SUFFIX}.apk`,
+    packageIdLocal: 'us.poetech.app.local',
   },
   {
     key: 'lovecorner', name: 'The Love Corner', short: 'Love Corner',
@@ -36,6 +49,8 @@ export const APP_STORE = [
     webUrl: 'https://poetech.us/thelovecorner',
     apk: `${APK_DOOR_BASE}/lovecorner.apk`,
     packageId: 'us.poetech.lovecorner',
+    apkLocal: `${APK_DOOR_BASE}/lovecorner${APK_LOCAL_SUFFIX}.apk`,
+    packageIdLocal: 'us.poetech.lovecorner.local',
   },
   {
     key: 'tlc', name: 'TLC Therapy Solutions', short: 'TLC Therapy',
@@ -44,6 +59,8 @@ export const APP_STORE = [
     webUrl: 'https://poetech.us/tlc',
     apk: `${APK_DOOR_BASE}/tlc.apk`,
     packageId: 'us.poetech.tlc',
+    apkLocal: `${APK_DOOR_BASE}/tlc${APK_LOCAL_SUFFIX}.apk`,
+    packageIdLocal: 'us.poetech.tlc.local',
   },
   {
     key: 'properties', name: 'Poe Properties', short: 'Poe Properties',
@@ -52,6 +69,8 @@ export const APP_STORE = [
     webUrl: 'https://poetech.us/properties',
     apk: `${APK_DOOR_BASE}/properties.apk`,
     packageId: 'us.poetech.properties',
+    apkLocal: `${APK_DOOR_BASE}/properties${APK_LOCAL_SUFFIX}.apk`,
+    packageIdLocal: 'us.poetech.properties.local',
   },
   {
     key: 'moore', name: 'Moore Divahs', short: 'Moore Divahs',
@@ -60,13 +79,32 @@ export const APP_STORE = [
     webUrl: 'https://poetech.us/moore',
     apk: `${APK_DOOR_BASE}/moore.apk`,
     packageId: 'us.poetech.moore',
+    apkLocal: `${APK_DOOR_BASE}/moore${APK_LOCAL_SUFFIX}.apk`,
+    packageIdLocal: 'us.poetech.moore.local',
   },
 ];
+
+// What the local app IS, in the words a person reads before tapping it. One
+// sentence of what, one of why, one of the limit -- the shape ANXIETY-CLARITY
+// asks for, and nothing here is a promise the shelf has not kept.
+export const LOCAL_APP_NOTE = {
+  what: 'The whole app inside the package \u2014 it opens from your phone, not from the website.',
+  why: 'Installs beside the Android app under its own name, so you can try it without losing anything.',
+  limit: 'New (sideload-testing): sign in with email and password; Google sign-in and notifications are not in it yet.',
+};
 
 // The two install paths, as plain steps anyone can follow (ANXIETY-CLARITY:
 // what / how, no jargon). The Android-package path is the one that always
 // lands each app SEPARATELY in the phone's Apps section (DR-0227).
 export const INSTALL_STEPS = {
+  // The LOCAL app (DR-0573): the same phone steps as the Android package, and
+  // one sentence about what is different — it does not replace the other app.
+  local: [
+    'Tap "Try the local app" — the .apk downloads to the phone (it is bigger, about 20 MB, because the whole app is inside it).',
+    'Install it the same way as the Android app: tap the finished download, allow this source the first time, and choose "Install anyway" past Play Protect.',
+    'It appears in your Apps section as its own app, BESIDE the Android app — nothing is removed or replaced.',
+    'Sign in with your email and password. Google sign-in and notifications are not in the local app yet.',
+  ],
   web: [
     'Open the app link in Chrome (or Samsung Internet).',
     'Tap the browser menu (⋮) → "Add to Home screen" / "Install app."',
