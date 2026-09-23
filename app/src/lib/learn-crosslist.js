@@ -271,6 +271,12 @@ export const COURSE_CROSS_LISTINGS = [
   { department: 'Kingdom Life & Stewardship', courseKey: 'financing-debt', why: 'The debt you sign is a stewardship question before it is a finance question (measured: 37 stewardship terms).' },
   { department: 'Kingdom Life & Stewardship', courseKey: 'evictions', why: 'Ending a tenancy righteously is stewardship of people, not only of an asset (measured: 37 stewardship terms).' },
   { department: 'Mathematics', courseKey: 'appraisal', why: 'Valuation is applied arithmetic — comparables, adjustments and the measure behind a number (measured: 49 mathematics terms).' },
+  // The History department's first course is taught Word-first at every step
+  // -- His measure of a nation, His law on land, wages, weights and persons,
+  // and the two-or-three-witness rule -- so it belongs on the Word's own shelf
+  // as well as its home (measured: 39 distinct Scripture anchors across eight
+  // lessons; the course test walks every quoted span against the KJV).
+  { department: 'The Word & The Way', courseKey: 'history-truth', why: 'American history read under the Word’s own measure of a nation — the fatherless, the widow and the stranger — and established at the mouth of two or three witnesses (measured: 39 Scripture anchors across eight lessons).' },
 ];
 
 /** The course declarations shelved into one department, in authored order. */
