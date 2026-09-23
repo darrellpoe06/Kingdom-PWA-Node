@@ -43,14 +43,18 @@ describe('a lesson card s prose is never squeezed into a column by its Share con
     expect(s).not.toMatch(/flex items-start justify-between gap-2/);
   });
 
-  it('each of the three prose sections puts Share on its own line beneath the words', () => {
+  it('each of the five prose sections puts Share on its own line beneath the words', () => {
     const s = learn();
     const beneath = s.match(/className="ts-chrome-region flex justify-end mt-1"/g) || [];
-    expect(beneath.length).toBe(3);
+    // Three since DR-0452 (big idea, hands-on, anchor); five since DR-0580
+    // added the voices of the time and the dated record, in the same shape.
+    expect(beneath.length).toBe(5);
     // And each one holds a section share, not something else.
     expect(s).toMatch(/flex justify-end mt-1">\{sec\('The big idea'/);
     expect(s).toMatch(/flex justify-end mt-1">\{sec\(handsOnLabel/);
     expect(s).toMatch(/flex justify-end mt-1">\{sec\('Anchor'/);
+    expect(s).toMatch(/flex justify-end mt-1">\{sec\('Voices of the time'/);
+    expect(s).toMatch(/flex justify-end mt-1">\{sec\('Timeline'/);
   });
 
   it('the prose itself no longer carries flex-1 in those sections — it has the whole width', () => {
@@ -65,7 +69,8 @@ describe('a lesson card s prose is never squeezed into a column by its Share con
     // where a share sits beside an eyebrow. Measured at Big Print: the label
     // rows' control was 177x184px before the cap and 74x59px after.
     const capped = s.match(/ts-chrome-region flex (justify-end mt-1|items-center justify-between gap-2 mb-1)/g) || [];
-    expect(capped.length).toBe(5);
+    // Five, plus the two DR-0580 sections (voices, timeline): seven.
+    expect(capped.length).toBe(7);
   });
 
   it('the anchor line keeps its tappable references and its own reading shape', () => {

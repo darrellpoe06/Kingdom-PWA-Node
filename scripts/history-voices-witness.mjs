@@ -65,7 +65,8 @@ async function fetchText(url) {
       redirect: 'follow',
     });
     const body = await res.text();
-    const text = { status: res.status, text: stripTags(body) };
+    const title = (body.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [, ''])[1];
+    const text = { status: res.status, text: stripTags(body), title: strict(title).slice(0, 120) };
     cache.set(url, text);
     return text;
   } catch (e) {
@@ -81,7 +82,17 @@ async function witness(modules) {
     for (const v of m.voices || []) {
       const page = await fetchText(v.source.url);
       const tier = page.status === 200 ? tierOf(page.text, v.words) : '';
-      rows.push({ lesson: m.id, speaker: v.speaker, year: v.year, url: v.source.url, status: page.status, tier, error: page.error || '' });
+      // On a refusal, say what the page DOES hold where the words should be:
+      // its title, and the passage that follows the quotation's first four
+      // words if they occur — the runner is the only eye that can read it.
+      let hint = '';
+      if (!tier && page.status === 200) {
+        const first = strict(v.words).split(' ').slice(0, 4).join(' ');
+        const at = strict(page.text).indexOf(first);
+        hint = at >= 0 ? `page holds: «${strict(page.text).slice(at, at + Math.min(320, strict(v.words).length + 80))}»` : `first words «${first}» not on the page`;
+        hint = `title: «${page.title || ''}» · ${hint}`;
+      }
+      rows.push({ lesson: m.id, speaker: v.speaker, year: v.year, url: v.source.url, status: page.status, tier, error: page.error || '', hint });
     }
   }
   return rows;
@@ -105,6 +116,7 @@ const main = async () => {
     const ok = r.tier !== '';
     if (!ok) bad += 1;
     console.log(`${ok ? 'OK  ' : 'FAIL'} ${r.lesson} · ${r.speaker}, ${r.year} · HTTP ${r.status}${r.error ? ' ' + r.error : ''} · ${r.tier || 'NOT IN SOURCE'} · ${r.url}`);
+    if (r.hint) console.log(`     ${r.hint}`);
   }
   if (selftest) {
     const [real, altered] = rows;
