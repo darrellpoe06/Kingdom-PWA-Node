@@ -243,7 +243,13 @@ def real_run(only_bucket=None, limit=0, dry_run=False):
             status, blob = http("GET", public_object_url(hosted_api, bucket, name), None)
         if status != 200:
             failed += 1
-            print("storage-sync: DOWNLOAD failed {}/{} (HTTP {})".format(bucket, name, status))
+            # THE BODY SAYS WHY (2026-09-23): 322 private downloads answered
+            # HTTP 400 and this line reported only the number, so the cause
+            # had to be guessed from outside. The upload path already prints
+            # the body; the download path now does too. The bucket, the name
+            # and the server's own words -- never the credential.
+            print("storage-sync: DOWNLOAD failed {}/{} (HTTP {}): {}".format(
+                bucket, name, status, blob[:200].decode("utf-8", "replace")))
             continue
         status, body = http("PUT", object_url(SOVEREIGN_URL, bucket, name), sov_key,
                             body=blob, ctype=content_type_of(meta))
