@@ -49,10 +49,16 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: app/package-lock.json
+      # JDK 21, not 17 (run 2 lesson, DR-0571): @capacitor/android 8 compiles its
+      # own module at sourceCompatibility JavaVersion.VERSION_21
+      # (node_modules/@capacitor/android/capacitor/build.gradle:66), so a 17
+      # toolchain fails with "invalid source release: 21" before the app is
+      # ever compiled. The TWA lane stays on 17 — Bubblewrap's project is not
+      # this project.
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
       - name: Install deps
         run: npm ci

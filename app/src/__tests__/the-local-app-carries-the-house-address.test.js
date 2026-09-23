@@ -306,6 +306,16 @@ describe('the lane carries the three brakes and proves what it built', () => {
     expect(WORKFLOW).toMatch(/timeout-minutes: 30/);
   });
 
+  it('sets up the JDK Capacitor 8 actually compiles for — run 2 failed on a 17 toolchain (DR-0571)', () => {
+    // "invalid source release: 21" from :capacitor-android:compileReleaseJavaWithJavac.
+    // The number is read from the installed module rather than remembered, so a
+    // Capacitor upgrade that moves the target moves this pin with it.
+    const gradle = read(join(APP, 'node_modules/@capacitor/android/capacitor/build.gradle'));
+    const m = /sourceCompatibility JavaVersion\.VERSION_(\d+)/.exec(gradle);
+    expect(m, 'could not read Capacitor’s Java target').toBeTruthy();
+    expect(WORKFLOW).toMatch(new RegExp(`java-version: '${m[1]}'`));
+  });
+
   it('builds at base / and stages through the same script the test exercises', () => {
     expect(WORKFLOW).toMatch(/PT_NATIVE_SHELL: '1'/);
     expect(WORKFLOW).toMatch(/node native\/stage\.mjs \$\{\{ matrix\.brand \}\}/);
