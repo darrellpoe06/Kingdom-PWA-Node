@@ -10,7 +10,7 @@
 # limit. This lane builds the SAME Vite app INTO the package: the bundle ships
 # on the device (Capacitor), and native capability can be added to it plugin by
 # plugin. Both lanes are kept: this one publishes to its OWN shelf
-# (android-native-latest) under its OWN package ids (*.native), so nothing the
+# (android-native-latest) under its OWN package ids (*.local), so nothing the
 # TWA lane serves is touched, and both can be installed on one phone.
 #
 # THE THREE BRAKES: dispatch-only (no schedule), one bounded job per brand with
@@ -49,10 +49,16 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: app/package-lock.json
+      # JDK 21, not 17 (run 2 lesson, DR-0571): @capacitor/android 8 compiles its
+      # own module at sourceCompatibility JavaVersion.VERSION_21
+      # (node_modules/@capacitor/android/capacitor/build.gradle:66), so a 17
+      # toolchain fails with "invalid source release: 21" before the app is
+      # ever compiled. The TWA lane stays on 17 — Bubblewrap's project is not
+      # this project.
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
       - name: Install deps
         run: npm ci
@@ -204,7 +210,7 @@ jobs:
           {
             echo "## Native shell built (sideload-testing) — ${{ matrix.brand }}"
             echo "- The SAME app, bundled INTO the package (Capacitor), not a wrapper around the live site."
-            echo "- Installs BESIDE the TWA package (its own id, \`*.native\`) — both lanes are kept."
+            echo "- Installs BESIDE the TWA package (its own id, \`*.local\`) — both lanes are kept."
             echo "- Signing: ${{ steps.keys.outputs.mode }} key. A testing key means updating requires uninstall/reinstall."
             echo "- NAS routes (/n8n, /voice, /api, /llm, …) leave for poetech.us from inside the shell (src/lib/native-shell.js)."
           } >> "$GITHUB_STEP_SUMMARY"
