@@ -164,6 +164,11 @@ jobs:
   heal-deploy:
     name: dispatch deploy for main's tip (GITHUB_TOKEN push gap)
     runs-on: ubuntu-latest
+    # THE CEILING IS THE WORKFLOW'S, NOT A MYSTERY (2026-09-23): run 35796585068's
+    # heal-deploy ended `failure` at exactly 48:00 with its only step still
+    # `in_progress` and no log ever uploaded — killed from outside mid-poll.
+    # 75 minutes covers the 60-minute armed-while ceiling plus its last look.
+    timeout-minutes: 75
     # NON-cancelling: the wait-loop MUST run to completion to win the merge race
     # (the 2026-07-14 lesson). A newer enable-sweep must never cancel an
     # in-flight heal. Runs independently of enable (no `needs`).
@@ -225,11 +230,17 @@ jobs:
       # and the merge landed at ~16:14 — four minutes after the window
       # closed. No deploy fired; it was dispatched by hand, again. The rule
       # this file states in its own words is "a full current CI run plus
-      # equal margin": 19 + 19 = 38, rounded to 40 (160 x 15s). The cost is
-      # unchanged in kind (armed-PRs-only, superseded sweeps cancel), and
-      # the worst case of a stale window is the exact outage class DR-0107
-      # exists to prevent. The pin lives in migration-dispatch-lane.test.js
-      # so the next raise is a deliberate edit in two places, not a drift.
+      # equal margin": 19 + 19 = 38, rounded to 40 (160 x 15s).
+      #
+      # AND THEN THE NUMBER WAS REMOVED THE SAME DAY (DR-0567). Forty minutes
+      # was the fourth constant in this comment's history and would have been
+      # the fourth to go stale. The loop now polls WHILE AN ARMED PR EXISTS,
+      # re-read every 15 seconds, under a 60-minute ceiling that is a brake
+      # rather than a target: it watches exactly as long as a merge can still
+      # land and leaves the moment nothing can. DR-0458's event hook stays
+      # and now fires AFTER the merge, because the sweep it chains to no
+      # longer ends before CI does. The pin in migration-dispatch-lane.test.js
+      # asserts the shape (armed re-check + ceiling), not a number.
       # ONE HEAL USED TO SERVE EXACTLY ONE MERGE (2026-08-28, the SIXTH miss —
       # PR #1370). Measured on runs 3381 / 3388:
       #
@@ -267,19 +278,44 @@ jobs:
         run: |
           set -euo pipefail
           dispatched_for=""
+          # THE POLL MUST NOT EAT ITS OWN TOKEN, AND MUST NOT EAT ITS OWN ERRORS
+          # (2026-09-23, the NINTH miss — #1735 merged at 23:57:36 with this
+          # very loop alive and polling, and no deploy was dispatched). Two
+          # things in the old shape could produce exactly that, silently:
+          #   · every `gh` error went to /dev/null and read as "nothing to do"
+          #     — a rate-limited 403 was indistinguishable from an up-to-date
+          #     site. Two loops × two calls × every 15 s is ~960 calls/hour
+          #     against GITHUB_TOKEN's 1,000/hour, with everything else in
+          #     the repo sharing the same budget.
+          #   · a FAILED `timeout 25 gh workflow run` still set dispatched_for, so the
+          #     tip was never retried — one transient refusal became a
+          #     permanent skip for the rest of the window.
+          # Now: errors are printed (the log says WHY nothing happened),
+          # dispatched_for is set only after a dispatch that returned 0, and
+          # the interval is 30 s (below, with the armed re-check on every
+          # fourth pass) so the loop's budget is ~half the token's.
+          #
+          # AND EVERY gh CALL HAS A 25-SECOND TIMEOUT. The run that missed
+          # #1735 (35796585068) ended `failure` at exactly 48:00 with its only
+          # step still `in_progress` and NO log uploaded — a hung call, killed
+          # from outside, not a rate limit (a 403 returns at once and the loop
+          # would have run to its end and logged). A watcher that can hang is
+          # a watcher that can miss while looking alive.
           deploy_if_stale() {
-            main_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha' 2>/dev/null || echo "")
-            last_deployed=$(gh api "repos/$REPO/actions/workflows/deploy-cloudflare-pages.yml/runs?per_page=1" \
-              --jq '.workflow_runs[0].head_sha // ""' 2>/dev/null || echo "")
+            main_sha=$(timeout 25 gh api "repos/$REPO/commits/main" --jq '.sha' 2>&1) || { echo "poll: could not read main tip: $main_sha"; main_sha=""; }
+            last_deployed=$(timeout 25 gh api "repos/$REPO/actions/workflows/deploy-cloudflare-pages.yml/runs?per_page=1" \
+              --jq '.workflow_runs[0].head_sha // ""' 2>&1) || { echo "poll: could not read last deploy: $last_deployed"; last_deployed=""; }
             # `dispatched_for` (2026-08-28): the loop no longer exits after a
             # dispatch, so it can come back around before the new run is listed.
             # Without this it would dispatch the same tip twice and burn a CF
             # Pages build for nothing.
             if [ -n "$main_sha" ] && [ "$main_sha" != "$last_deployed" ] && [ "$main_sha" != "$dispatched_for" ]; then
               echo "main tip $main_sha not yet deployed (last deployed $last_deployed) — dispatching CF Pages deploy."
-              gh workflow run deploy-cloudflare-pages.yml --repo "$REPO" --ref main \
-                || echo "::warning::could not dispatch deploy (it can be run manually)"
-              dispatched_for="$main_sha"
+              if timeout 25 gh workflow run deploy-cloudflare-pages.yml --repo "$REPO" --ref main; then
+                dispatched_for="$main_sha"
+              else
+                echo "::warning::could not dispatch deploy for $main_sha — will retry next pass (it can also be run manually)"
+              fi
               return 0
             fi
             return 1
@@ -288,13 +324,32 @@ jobs:
           # step. `dispatched_for` makes a repeat for the same tip a no-op, so
           # continuing to poll costs nothing and covers the NEXT merge too.
           deploy_if_stale || true
-          armed=$(gh pr list --repo "$REPO" --state open --base main \
-            --json autoMergeRequest --jq '[.[] | select(.autoMergeRequest != null)] | length' 2>/dev/null || echo 0)
+          armed=$(timeout 25 gh pr list --repo "$REPO" --state open --base main \
+            --json autoMergeRequest --jq '[.[] | select(.autoMergeRequest != null)] | length' 2>&1) || { echo "could not list armed PRs (treating as none): $armed"; armed=0; }
           if [ "$armed" -gt 0 ]; then
-            echo "$armed armed PR(s) may merge momentarily — polling up to 40 minutes."
-            for i in $(seq 1 160); do
-              sleep 15
+            echo "$armed armed PR(s) may merge momentarily — polling every 30 s while any PR stays armed (ceiling 60 minutes)."
+            for i in $(seq 1 120); do
+              sleep 30
               deploy_if_stale || true
+              # THE CONSTANT IS GONE (2026-09-22, the eighth miss). Every fix of
+              # this class raised a number — 2, 6, 12, 40 minutes — and every
+              # number was overtaken by a slower suite. The poll now asks the
+              # question it was always standing in for: is anything still armed?
+              # It keeps watching exactly as long as a merge can still land, and
+              # stops the moment nothing can. The ceiling is a brake, not a
+              # target. One extra API read per 15s while armed; nothing otherwise.
+              # Every FOURTH pass (two minutes), not every pass: this is the
+              # call that decides when to leave, not the one that deploys, and
+              # the token's budget is shared with the whole repo.
+              [ $((i % 4)) -eq 0 ] || continue
+              still=$(timeout 25 gh pr list --repo "$REPO" --state open --base main \
+                --json autoMergeRequest --jq '[.[] | select(.autoMergeRequest != null)] | length' 2>&1) || { echo "poll: could not list armed PRs: $still"; still=1; }
+              if [ "$still" = "0" ]; then
+                # One last look after the last merge lands, then leave.
+                sleep 20; deploy_if_stale || true
+                echo "No armed PRs remain; the last merge (if any) was checked. Leaving."
+                break
+              fi
             done
             echo "Poll window closed; the next sweep or the scheduled freshness check covers what is left."
           else
@@ -304,6 +359,7 @@ jobs:
   heal-migrate:
     name: dispatch migrations for main's tip (GITHUB_TOKEN push gap)
     runs-on: ubuntu-latest
+    timeout-minutes: 75
     concurrency:
       group: auto-merge-heal-migrate
       cancel-in-progress: false
@@ -317,14 +373,14 @@ jobs:
           set -euo pipefail
           dispatched_for=""
           migrate_if_tip_migration() {
-            main_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha' 2>/dev/null || echo "")
+            main_sha=$(timeout 25 gh api "repos/$REPO/commits/main" --jq '.sha' 2>&1) || { echo "poll: could not read main tip: $main_sha"; main_sha=""; }
             [ -n "$main_sha" ] || return 1
             [ "$main_sha" != "$dispatched_for" ] || return 1
-            touched=$(gh api "repos/$REPO/commits/$main_sha" \
-              --jq 'any(.files[]?.filename; startswith("infra/supabase/migrations-auto/"))' 2>/dev/null || echo false)
+            touched=$(timeout 25 gh api "repos/$REPO/commits/$main_sha" \
+              --jq 'any(.files[]?.filename; startswith("infra/supabase/migrations-auto/"))' 2>&1) || { echo "poll: could not read the tip's files: $touched"; touched=false; }
             if [ "$touched" = "true" ]; then
               echo "main tip $main_sha touched a migration — dispatching db-migrate."
-              gh workflow run db-migrate.yml --repo "$REPO" --ref main \
+              timeout 25 gh workflow run db-migrate.yml --repo "$REPO" --ref main \
                 || echo "::warning::could not dispatch db-migrate (it can be run manually)"
               dispatched_for="$main_sha"
               return 0
@@ -337,13 +393,25 @@ jobs:
           # dispatch had nothing watching. `dispatched_for` already makes a
           # repeat dispatch for the same tip a no-op, so polling on is free.
           migrate_if_tip_migration || true
-          armed=$(gh pr list --repo "$REPO" --state open --base main \
-            --json autoMergeRequest --jq '[.[] | select(.autoMergeRequest != null)] | length' 2>/dev/null || echo 0)
+          armed=$(timeout 25 gh pr list --repo "$REPO" --state open --base main \
+            --json autoMergeRequest --jq '[.[] | select(.autoMergeRequest != null)] | length' 2>&1) || { echo "could not list armed PRs (treating as none): $armed"; armed=0; }
           if [ "$armed" -gt 0 ]; then
-            echo "$armed armed PR(s) may merge momentarily — polling up to 40 minutes."
-            for i in $(seq 1 160); do
-              sleep 15
+            echo "$armed armed PR(s) may merge momentarily — polling every 30 s while any PR stays armed (ceiling 60 minutes)."
+            for i in $(seq 1 120); do
+              sleep 30
               migrate_if_tip_migration || true
+              # Same armed-while shape as heal-deploy above, for the same reason.
+              # Every FOURTH pass (two minutes), not every pass: this is the
+              # call that decides when to leave, not the one that deploys, and
+              # the token's budget is shared with the whole repo.
+              [ $((i % 4)) -eq 0 ] || continue
+              still=$(timeout 25 gh pr list --repo "$REPO" --state open --base main \
+                --json autoMergeRequest --jq '[.[] | select(.autoMergeRequest != null)] | length' 2>&1) || { echo "poll: could not list armed PRs: $still"; still=1; }
+              if [ "$still" = "0" ]; then
+                sleep 20; migrate_if_tip_migration || true
+                echo "No armed PRs remain; the last merge (if any) was checked. Leaving."
+                break
+              fi
             done
             echo "Poll window closed; the re-check step and migrate-freshness cover what is left."
           else
@@ -386,19 +454,19 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          main_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha' 2>/dev/null || echo "")
+          main_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha' 2>&1) || { echo "re-check: could not read main tip: $main_sha"; main_sha=""; }
           if [ -z "$main_sha" ]; then
             echo "::warning::could not read main's tip; the freshness cron covers this."
             exit 0
           fi
           last_sha=$(gh api "repos/$REPO/actions/workflows/db-migrate.yml/runs?status=success&per_page=1" \
-            --jq '.workflow_runs[0].head_sha // ""' 2>/dev/null || echo "")
+            --jq '.workflow_runs[0].head_sha // ""' 2>&1) || { echo "re-check: could not read last deploy: $last_deployed"; last_deployed=""; }
           if [ "$main_sha" = "$last_sha" ]; then
             echo "db-migrate already ran against main's tip ($main_sha); nothing to re-dispatch."
             exit 0
           fi
           touched=$(gh api "repos/$REPO/commits/$main_sha" \
-            --jq 'any(.files[]?.filename; startswith("infra/supabase/migrations-auto/"))' 2>/dev/null || echo "unknown")
+            --jq 'any(.files[]?.filename; startswith("infra/supabase/migrations-auto/"))' 2>&1) || { echo "re-check: could not read the tip's files: $touched"; touched="unknown"; }
           if [ "$touched" = "true" ]; then
             echo "main tip $main_sha carries a migration db-migrate has not run — dispatching."
             gh workflow run db-migrate.yml --repo "$REPO" --ref main \

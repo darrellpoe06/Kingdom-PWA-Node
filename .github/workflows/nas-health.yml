@@ -284,6 +284,15 @@ jobs:
           # read fresh -- a passing installer is inferred; this is measured.
           echo "=== sovereign gateway: does kong answer? (direct probe) ==="
           curl -s -o /dev/null -w 'auth/v1/health HTTP %{http_code}\n' --max-time 5 http://127.0.0.1:8800/auth/v1/health 2>&1 || echo "gateway unreachable"
+          # The reading voice's road home (DR-0566): the forwarder on :8771
+          # passes the STUDIO's own /health through, so one code answers two
+          # questions -- 200 = the 4070 studio is up and reachable from the NAS;
+          # 502 = the road is built and the studio is dark; no answer = the
+          # forwarder itself is not running. Without this line the only way to
+          # learn any of it was a person on the 4070 (2026-09-22).
+          echo "=== voice road: does the forwarder pass the studio's answer through? ==="
+          curl -s --max-time 8 -w '\nforwarder /health HTTP %{http_code}\n' http://127.0.0.1:8771/health 2>&1 | tail -2 || echo "forwarder unreachable (poetech-voice-forwarder not running)"
+          ${SUDO} systemctl is-active poetech-voice-forwarder 2>&1 | sed 's/^/poetech-voice-forwarder: /' || true
           echo "=== the installer's own words (nas-supabase lines, cron log) ==="
           ${SUDO} grep -a "nas-supabase:" "$LOOPS/events/cron-services-sync.log" 2>/dev/null | tail -10 || echo "no cron log readable"
           # FOURTH blindness (2026-08-15 22:52Z): the cron log records only
