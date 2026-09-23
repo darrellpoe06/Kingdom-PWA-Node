@@ -7,6 +7,7 @@ import { buildInterconnectManifest } from '../scripts/interconnect-manifest.mjs'
 import { buildConflictManifest } from '../scripts/orchestration/conflict-analytics.mjs';
 import { buildTestCensus } from '../scripts/test-census.mjs';
 import { buildLessonsManifest } from '../scripts/lessons-manifest.mjs';
+import { chainOf } from './src/lib/decision-chain.js';
 
 // DR-0061 (surfaces are live views of real flow): the Build board's automation
 // count must be a REAL number, not hand-typed. Count the actual n8n workflow
@@ -183,6 +184,7 @@ function readDecisionLedger() {
   const stripNull = (v) => (v && v !== 'null' && v !== '[]' ? v : '');
 
   const byNum = new Map();
+  const newestNum = names.reduce((mx, f) => { const m = /^DR-(\d{4})-/.exec(f); return m ? Math.max(mx, parseInt(m[1], 10)) : mx; }, 0);
 
   // 1) Per-DR files: DR-XXXX-*.md (skips INDEX.md / README.md / PRINCIPLES.md).
   for (const f of names) {
@@ -206,6 +208,12 @@ function readDecisionLedger() {
       rationale: plain(section(raw, 'Context') || section(raw, 'Directive')),
       owner: '',
       source: stripNull(meta.source),
+      // Concern → Evidence → Impact → Decision → Outcome, read from the
+      // record's own sections (lib/decision-chain.js; DR-0588). The newest
+      // forty carry each slot's text (bounded); every
+      // record carries which slots it has and which it lacks, so the
+      // surface can say "not recorded" instead of painting one.
+      chain: chainOf(raw, { max: 500, withText: num > newestNum - 40 }),
     });
   }
 

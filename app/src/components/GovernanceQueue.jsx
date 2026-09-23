@@ -18,6 +18,7 @@
 // the call site).
 import React, { useEffect, useState } from 'react';
 import { DECISION_KIND } from '../lib/decisions.js';
+import { CHAIN_SLOTS, CHAIN_LABELS, CHAIN_QUESTIONS, chainCoverage } from '../lib/decision-chain.js';
 import supabase from '../lib/supabase.js';
 import ReactionBar from './ReactionBar.jsx';
 import HelpButton from './HelpButton.jsx';
@@ -56,9 +57,63 @@ export function normalizeDecisionLedger(raw) {
         rationale: it.rationale || '',
         owner: it.owner || '',
         source: it.source || '',
+        // Concern → Evidence → Impact → Decision → Outcome (DR-0588): read at
+        // build time from the record's own sections; absent = not recorded.
+        chain: normalizeChain(it.chain),
       }))
     : [];
   return { ok: q.ok === true, count: items.length, items };
+}
+
+function normalizeChain(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const slot = (v) => (v && typeof v === 'object' ? { heading: String(v.heading || ''), text: typeof v.text === 'string' ? v.text : '' } : null);
+  const out = {};
+  for (const k of CHAIN_SLOTS) out[k] = slot(raw[k]);
+  out.missing = CHAIN_SLOTS.filter((k) => !out[k]);
+  out.complete = out.missing.length === 0;
+  out.reReview = typeof raw.reReview === 'string' ? raw.reReview : '';
+  return out;
+}
+
+// How a steward reads one record's chain: five rows, in order, each either
+// the record's own words under its own heading or the plain fact that the
+// record never wrote that step down. Nothing is inferred to fill a row.
+function DecisionChain({ chain }) {
+  if (!chain) return null;
+  return (
+    <div data-testid="decision-chain" className="mt-2 border-t border-[#E8E4DC] pt-2">
+      <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">
+        Concern → Evidence → Impact → Decision → Outcome
+        {chain.complete
+          ? <span className="ml-2 text-[#5A6E3D]">whole chain recorded</span>
+          : <span className="ml-2 text-[#B85838]">{chain.missing.length} of 5 not recorded</span>}
+      </div>
+      <ol className="mt-1 space-y-1.5">
+        {CHAIN_SLOTS.map((k) => {
+          const s = chain[k];
+          return (
+            <li key={k} className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
+              <span className="uppercase tracking-wider text-[0.625rem] font-semibold" style={{ color: s ? '#5A6E3D' : '#B85838' }}>{CHAIN_LABELS[k]}</span>
+              <span className="text-[0.625rem] text-[#5A5751] ml-1">· {CHAIN_QUESTIONS[k]}</span>
+              {s ? (
+                <p className="text-[#1A1815] mt-0.5 whitespace-pre-wrap">
+                  {s.text
+                    ? s.text
+                    : <em className="text-[#5A5751]">recorded under “{s.heading}” — open the record for the words</em>}
+                </p>
+              ) : (
+                <p className="text-[#B85838] italic mt-0.5">not recorded in this decision</p>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+      {chain.reReview && (
+        <p className="text-[0.625rem] text-[#5A5751] mt-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>re-review · {chain.reReview}</p>
+      )}
+    </div>
+  );
 }
 
 const tierColor = (t) => (t === 'C' ? '#B85838' : t === 'B' ? '#8B6F47' : '#5A6E3D');
@@ -174,6 +229,7 @@ export default function GovernanceQueue({ appDecisions = [], familyInstanceId = 
                   <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
                     Source · {d.source}{d.owner ? ` · ${d.owner}` : ''}
                   </p>
+                  {d.chain && <DecisionChain chain={normalizeChain(d.chain)} />}
                   {/* React to a family/financial decision — encouragement + a
                       teaching moment (a kid "crowning" mom's stewardship call). */}
                   <div className="mt-2">
@@ -199,6 +255,16 @@ export default function GovernanceQueue({ appDecisions = [], familyInstanceId = 
           <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
             Every decision that has landed, in full — number, title, the decision, the why, and the date. {ledger.count > 0 ? `${ledger.count} records` : 'No records'}, read straight from the repo at build time and rendered here. Nothing to open elsewhere.
           </p>
+          {ledger.count > 0 && (() => {
+            const cov = chainCoverage(ledger.items);
+            const worst = CHAIN_SLOTS.map((k) => [k, cov.missingBySlot[k]]).sort((a, b) => b[1] - a[1])[0];
+            return (
+              <p data-testid="chain-coverage" className="text-xs mt-2 text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                <span className="uppercase tracking-wider text-[0.625rem] font-semibold text-[#5A6E3D]">Traceability · </span>
+                Each record opens as Concern → Evidence → Impact → Decision → Outcome, read from its own sections. {cov.complete} of {cov.total} carry all five; {cov.incomplete} are missing at least one step, most often <em>{CHAIN_LABELS[worst[0]]}</em> ({worst[1]}). A missing step is shown as missing, never filled in. Every record from DR-0588 on must carry all five.
+              </p>
+            );
+          })()}
         </section>
 
         {ledger.items.length === 0 ? (
@@ -250,6 +316,7 @@ export default function GovernanceQueue({ appDecisions = [], familyInstanceId = 
                       Recorded in the ledger; see the title above for the decision.
                     </p>
                   )}
+                  <DecisionChain chain={dr.chain} />
                 </div>
               </details>
             ))}

@@ -19,6 +19,10 @@
 
 **The cause, read from the lane.** `rls-isolation.yml` runs after every db-migrate apply and its `viewer-readonly` leg replays `0125 → 0126 → 0130 → 0131 → 0144 → 0181 → 0190 → 0210 → 0211 → 0212 → 0213` against the same hosted database, "idempotent". 0125's text defines `apply_viewer_readonly_overlay()` without `push_subscriptions` in its participation list (the table did not exist until 0181) and runs it, stamping the three policies onto `push_subscriptions`. 0181 and 0190 redefine the function with the table excluded and run it again — but the overlay only creates on the tables it loops over; it never removes from a table it has since excluded. So the leg put the three back sixty seconds after 0226 dropped them, and would after every future apply. The predicate shape on hosted (pure deny, no `has_capability`) is 0125's signature and confirms which text stamped them.
 
+## Impact
+
+Unresolved, the sovereign parity verdict can never read GO on the schema: the retired side keeps three policies the live side is right not to have, and every apply re-stamps them, so DR-0583's close is undone on a one-minute cycle. On hosted itself the three still enforce the rule 0181 retired (a viewer cannot opt their own device in or out). Resolved, the comparator's only remaining gap is DR-0317's storage copy, which is reported separately and waits on the key.
+
 ## Decision
 
 1. **The overlay finishes by sweeping its own exclusions.** 0227 redefines `apply_viewer_readonly_overlay()` with 0190's body verbatim (the same seven participation tables — the lineage test pins the list as a superset of every earlier one — and 0126's capability predicate) plus a final loop that drops `viewer_readonly_insert / update / delete` from every participation table that exists. The last definition to run in any replay therefore leaves the excluded tables clean, whatever an earlier text stamped a moment before. Generic over the list, so the class cannot recur when the list grows.
