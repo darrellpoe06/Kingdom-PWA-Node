@@ -108,11 +108,11 @@ describe('auto-merge — the migration question is asked after the deploy wait',
     // timeout can freeze the watcher; every gh call in a heal loop carries
     // one, and each heal job carries an explicit ceiling above the window.
     const healSeg = src.slice(src.indexOf('  heal-deploy:'), src.indexOf('      # THE ORDERING HOLE, CLOSED'));
-    const bare = healSeg.match(/(?<![\w/])gh (api|pr list|workflow run)\b/g) || [];
+    const bare = healSeg.match(/(?<!timeout 25 )(?<![\w/])gh (api|pr list|workflow run)\b/g) || [];
     expect(bare, `gh calls in the heal loops without a timeout: ${bare.length}`).toEqual([]);
     expect((healSeg.match(/timeout 25 gh /g) || []).length).toBeGreaterThanOrEqual(8);
-    expect((healSeg.match(/^    timeout-minutes: 75$/gm) || []).length, 'both heal jobs carry the 75-minute ceiling').toBe(2);
-    const armedRechecks = (src.match(/still=\$\(gh pr list --repo "\$REPO" --state open --base main/g) || []).length;
+    expect((healSeg.match(/^ {4}timeout-minutes: 75$/gm) || []).length, 'both heal jobs carry the 75-minute ceiling').toBe(2);
+    const armedRechecks = (src.match(/still=\$\(timeout 25 gh pr list --repo "\$REPO" --state open --base main/g) || []).length;
     expect(armedRechecks, 'each heal loop must re-ask whether anything is still armed').toBe(2);
     expect((src.match(/if \[ "\$still" = "0" \]; then/g) || []).length).toBe(2);
   });
