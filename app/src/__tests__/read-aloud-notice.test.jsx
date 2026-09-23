@@ -50,8 +50,13 @@ describe('the notice reaches the screen', () => {
     // version of this test measured 200 characters and broke the moment a
     // comment was added between them, which is a proximity check masquerading
     // as an accessibility one. What matters is that THIS element announces.
-    const el = control.slice(control.indexOf('{notice && ('));
-    const open = el.slice(0, el.indexOf('>'));
+    // Located by the element's own id, not by the first `{notice && (` in
+    // the file: since DR-0576 a waiting notice also draws a small mark on the
+    // pill and on the speaker button, each behind its own `{notice && (`,
+    // and the first of those is a button, not the notice. The element that
+    // must announce is the one carrying the testid.
+    const at = control.indexOf('data-testid="read-aloud-notice"');
+    const open = control.slice(control.lastIndexOf('<div', at), control.indexOf('>', at));
     expect(open, 'the notice element does not announce itself').toMatch(/role="status"/);
     expect(open).toMatch(/data-testid="read-aloud-notice"/);
   });
