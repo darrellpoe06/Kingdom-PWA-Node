@@ -29,7 +29,7 @@ import {
   buildStandInAssignments, resolveVoiceURIForId, deviceVoiceOptions, hasVoiceOfGender, describeDeviceVoices,
 } from '../lib/voice-assignment.js';
 import { loadPersonaVoiceMap, savePersonaVoice } from '../lib/persona-voice-prefs.js';
-import { isVoiceServiceReady, synthesizeSpeech, voiceServiceHealth, probeVoiceService, voiceErrorReason } from '../lib/voice-service.js';
+import { isVoiceServiceReady, synthesizeSpeech, voiceServiceHealth, probeVoiceService, voiceErrorReason, isStudioRoadProblem } from '../lib/voice-service.js';
 import { SOVEREIGNTY_GAPS, GAPS_RECORDED, liveVoicePath, liveLikenessPath } from '../lib/sovereignty-gaps.js';
 import { useReadingVoice, personVoiceId, SYSTEM_VOICE_ID } from '../lib/reading-voice.js';
 import {
@@ -44,6 +44,8 @@ import { provisionBridgeToken } from '../lib/bridge-provision.js';
 import { supabase } from '../lib/supabase.js';
 import SectionTabs from './SectionTabs.jsx';
 import { buildVoiceChecks, overallVerdict, VOICE_SYSTEM_DOCS, PASS, FAIL } from '../lib/voice-system-check.js';
+import { detectVoiceDevice, deviceVoiceRoute } from '../lib/device-voice-route.js';
+import { isNativeShell } from '../lib/native-shell.js';
 
 const SAMPLE = 'Welcome. This is your chosen reading voice. Paste any message, lesson, or passage below and press Read to hear it aloud in this voice.';
 const SAMPLE_SHORT = 'For God so loved the world. The Lord is my shepherd; I shall not want.';
@@ -254,7 +256,24 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
   const resolvedURIFor = (v) => resolveVoiceURIForId(v.id, { assignments, overrides, available: tts.voices });
   const pinDeviceVoice = (catalogId, voiceURI) => {
     setOverrides(savePersonaVoice(catalogId, voiceURI || ''));
+    // HEAR IT THE MOMENT IT IS PICKED (Darrell 2026-09-23: "Intuitive
+    // Design!!!!!!"). A change that makes no sound leaves the person guessing
+    // whether anything happened -- which, on a phone whose list is one voice
+    // per language, was the exact experience: "changing the selection does not
+    // change how it sounds". Now every pick speaks a line in the voice picked.
+    if (tts.supported) { try { tts.speak(SAMPLE_SHORT, voiceURI || ''); } catch (_) { /* a silent pick is still a pick */ } }
   };
+  // WHICH SETTINGS SCREEN, DEDUCED FROM THE DEVICE (Darrell 2026-09-23, three
+  // screenshots of Samsung Settings searched for "voice" and finding nothing
+  // that changes the reading voice: "How do we know which settings to
+  // change?!!!!"). The old note said "Settings → Text-to-speech" as if every
+  // phone filed it in the same place under a word a person would search for.
+  // lib/device-voice-route.js answers per device: a one-tap door on Android in
+  // a browser, the word to search, and the steps in the phone's own menu words.
+  const voiceRoute = useMemo(() => deviceVoiceRoute(
+    detectVoiceDevice(typeof navigator !== 'undefined' ? navigator.userAgent : ''),
+    { nativeShell: typeof window !== 'undefined' && isNativeShell(window) },
+  ), []);
 
   // Highlight-as-it-reads: the engine segments deterministically, so we segment the
   // SAME text and highlight the sentence the engine is currently speaking.
@@ -331,7 +350,11 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
       // "unreachable" for every one of them -- including a 401, which is a
       // credential being refused by a studio that is running perfectly and
       // sends a person to check their network for no reason.
-      setNotice(`${voiceErrorReason(error)} Using the labelled stand-in voice for now.`);
+      // The road is the house's problem: a dark studio marks the studio line
+      // 'down' (the line already says the stand-in plays until it is back) and
+      // raises no message. A refused key or a missing sample is the person's.
+      if (isStudioRoadProblem(error)) setStudioHealth('down');
+      else setNotice(`${voiceErrorReason(error)} Using the labelled stand-in voice for now.`);
     }
 
     // Browser path: System voice (real) or the labeled personal stand-in. Each option
@@ -449,6 +472,29 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
       const { profiles: rows } = await loadVoiceProfiles(); if (rows) setProfiles(rows);
     }
     setNotice('Your likeness was removed from this device and the consent withdrawn.');
+  };
+
+  // A SAMPLE BROUGHT AS A FILE is saved exactly as a recorded one: same store,
+  // same key, same read-back so what plays is what persisted. The consent row
+  // is written in the same gesture when this device can write one, because a
+  // sample in the store with no consent record is the silent failure DR-0563
+  // closed.
+  const loadRecordingFile = async (file) => {
+    if (!file) return;
+    setBusy(true); setNotice('');
+    const ok = await saveReference(enrolKey, file);
+    if (!ok) { setNotice('That file is not an audio recording this device can use — choose the sample you downloaded here, or record again.'); setBusy(false); return; }
+    try {
+      const saved = await loadReference(enrolKey);
+      setSavedUrl((prev) => { if (prev) { try { URL.revokeObjectURL(prev); } catch (_) {} } return saved ? URL.createObjectURL(saved) : ''; });
+    } catch (_) { /* the line below still reports the save */ }
+    setMyRefExists(true);
+    if (canEnrollSelf) {
+      const { error } = await enrollMyVoice({ instanceId, userId, personKey: enrolKey, displayName: enrolName, scope: 'read-aloud-narration' });
+      if (!error) { const { profiles: rows } = await loadVoiceProfiles(); if (rows) setProfiles(rows); }
+    }
+    setNotice('Your sample is loaded on this device. Select your voice and press Read.');
+    setBusy(false);
   };
 
   const clearMyRecording = async () => {
@@ -613,14 +659,33 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
                           reason is its own defect, so the surface now reports
                           the census it just took. */}
                       {v.kind === KIND.PERSONAL && !hasVoiceOfGender(tts.voices, v.gender) && (
-                        <p className="text-[0.625rem] text-[#B85838] mt-0.5 max-w-[15rem]" data-testid="device-voice-census">
-                          {voiceCensus.total === 0
-                            ? 'This browser handed us no voices at all, so nothing in this list can change how it sounds.'
-                            : voiceCensus.anyGendered
-                              ? `Of the ${voiceCensus.total} voices this browser exposes, ${voiceCensus.male} read as male and ${voiceCensus.female} as female — none of them ${v.gender}. Pick one above to hear the difference.`
-                              : `This browser exposes ${voiceCensus.total} voices and ${voiceCensus.namedByLocale ? 'names every one of them by LANGUAGE rather than by voice' : 'declares no gender on any of them'}, so a ${v.gender} match cannot be made from this list — which is why changing the selection does not change how it sounds.`}
-                          {' '}On Android the working route is: pick <strong>“Phone’s default voice”</strong> above, then choose a {v.gender} voice in <strong>Settings → Text-to-speech</strong>. Your own recorded voice comes from the voice studio, not from this list.
-                        </p>
+                        <div className="mt-1.5 border border-[#E8E4DC] bg-[#FAF8F4] p-2" data-testid="device-voice-route">
+                          {/* THE ONE-LINE WHY, then THE DOOR. The paragraph this
+                              replaces explained the census in full and ended with
+                              "Settings → Text-to-speech" -- a hunt (Darrell: "Make
+                              this easy!!!!!!!!!!!!"). The census is still here,
+                              shortened to the sentence that matters; the route is
+                              deduced from the device (device-voice-route.js). */}
+                          <p className="text-[0.625rem] text-[#5A5751]" data-testid="device-voice-census">
+                            {voiceCensus.total === 0
+                              ? 'This browser handed us no voices at all, so nothing in this list can change how it sounds.'
+                              : voiceCensus.anyGendered
+                                ? `Of the ${voiceCensus.total} voices here, ${voiceCensus.male} read as male and ${voiceCensus.female} as female — none of them ${v.gender}. Pick one above and you hear it at once.`
+                                : `This list ${voiceCensus.namedByLocale ? 'names every one of them by LANGUAGE rather than by voice' : `declares no gender on any of its ${voiceCensus.total} voices`}, which is why changing the selection does not change how it sounds. The phone’s own setting decides.`}
+                          </p>
+                          <p className="text-[0.6875rem] text-[#1A1815] font-semibold mt-1">{voiceRoute.title}</p>
+                          {voiceRoute.href && (
+                            <a
+                              href={voiceRoute.href}
+                              data-testid="device-voice-settings-door"
+                              className="inline-block mt-1 px-3 py-1.5 text-[0.6875rem] uppercase tracking-wider border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] hover:border-[#B85838] font-semibold focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"
+                            >{voiceRoute.hrefLabel}</a>
+                          )}
+                          <ol className="list-decimal pl-4 mt-1 space-y-0.5">
+                            {voiceRoute.steps.map((s) => <li key={s} className="text-[0.625rem] text-[#5A5751]">{s}</li>)}
+                          </ol>
+                          <p className="text-[0.625rem] text-[#5A5751] mt-1">{voiceRoute.after} Your own recorded voice comes from the voice studio, not from this list.</p>
+                        </div>
                       )}
                     </div>
                   )}
@@ -692,7 +757,16 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
                     </div>
                     <div className="text-[0.6875rem] text-[#5A5751]">{c.detail}</div>
                     {c.fix && <div className="text-[0.6875rem] text-[#B85838] mt-0.5">What to do: {c.fix}</div>}
-                    <div className="text-[0.5625rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{c.where}</div>
+                    {/* THE CITATION FOLDS (Darrell 2026-09-23, on a row whose
+                        file paths took three lines at Big Print: "Why does
+                        this need this?!!!!!!!!!!!" / "Intuitive!!!!!!!!"). He
+                        asked for the documentation IN the app (2026-09-22), and
+                        it stays in the app -- one tap away, under the verdict
+                        and the fix, instead of between the person and them. */}
+                    <details className="mt-0.5">
+                      <summary className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] cursor-pointer focus:outline focus:outline-2 focus:outline-[#B85838]">Where this is decided</summary>
+                      <div className="text-[0.5625rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{c.where}</div>
+                    </details>
                   </div>
                 </div>
               </li>
@@ -762,10 +836,34 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
                       data-testid="saved-sample-audio"
                     />
                   )}
-                  {/* And WHERE it lives, in plain words, because he asked. */}
-                  <div className="text-[0.625rem] text-[#5A5751] mt-1">
-                    It lives in this browser’s own storage on this device — IndexedDB, database <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>poe-voice</span>, store <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>references</span>, key <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>ref:{enrolKey}</span>. It does not follow you to another device, and clearing this browser’s site data deletes it.
+                  {/* KEEP IT, AND BRING IT (Darrell 2026-09-23: "Where are my
+                      voices stored in my cellphone so I can troubleshoot without
+                      having to do the recording over and over again"). The
+                      sample is not a file in the phone's Files app -- it is in
+                      this browser's own storage, which no file manager shows --
+                      so the honest answer is a Download that makes it a file,
+                      and a Use-a-file that takes one back on any device. */}
+                  <div className="flex items-center gap-2 flex-wrap mt-1">
+                    {savedUrl && (
+                      <a
+                        href={savedUrl}
+                        download={`poetech-voice-${enrolKey}.webm`}
+                        data-testid="saved-sample-download"
+                        className="px-3 py-1.5 text-[0.6875rem] uppercase tracking-wider border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"
+                      >⇩ Download my sample</a>
+                    )}
+                    <label className="px-3 py-1.5 text-[0.6875rem] uppercase tracking-wider border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold cursor-pointer focus-within:outline focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-[#B85838]">
+                      Use a recording file
+                      <input type="file" accept="audio/*" className="sr-only" data-testid="saved-sample-import" onChange={(e) => loadRecordingFile(e.target.files && e.target.files[0])} />
+                    </label>
                   </div>
+                  <div className="text-[0.625rem] text-[#5A5751] mt-1">
+                    It is saved on this phone, inside this browser’s own storage — not as a file you can find in your Files app, and it does not follow you to another device. Download it to keep a copy; on another device, tap Use a recording file to load it instead of recording again.
+                  </div>
+                  <details className="mt-0.5">
+                    <summary className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] cursor-pointer focus:outline focus:outline-2 focus:outline-[#B85838]">Exactly where</summary>
+                    <div className="text-[0.5625rem] text-[#5A5751] mt-0.5">IndexedDB, database <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>poe-voice</span>, store <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>references</span>, key <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>ref:{enrolKey}</span>. Clearing this browser’s site data deletes it.</div>
+                  </details>
                 </div>
               )}
 
