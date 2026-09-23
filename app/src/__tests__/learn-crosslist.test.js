@@ -270,10 +270,14 @@ describe('a pointer, never a copy', () => {
     // History department"). Its first course, history-truth, is 8 lessons and
     // is a whole new DEPARTMENT, so both numbers move — 46 to 47 and 687 to
     // 695. DR-0572.
+    // And to 47 / 696 on 2026-09-23 for L190 ("Were the Parables Real? — the
+    // One Who Made the Ages Told Them") — Darrell's question, answered from
+    // the Word only; a real lesson into the existing Living Lessons course,
+    // so the course count holds at 47 and only the lesson total moves.
     expect(courses).toHaveLength(47);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(695);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(696);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(695);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(696);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {

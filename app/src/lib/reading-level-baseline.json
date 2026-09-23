@@ -2,7 +2,7 @@
   "ceiling": 7,
   "newLessonCeiling": 5,
   "note": "Shrink-only debt. A NEW offender fails the build; entries may be removed as lessons are rewritten, never added. Lessons not in knownLessons are held to newLessonCeiling (DR-0417 D3). The inverted list grew ONCE, on 2026-09-19, when the youth band was added to BAND_ORDER and 30 pre-existing youth inversions became visible (DR-0544) — that was the gate widening, not the corpus worsening; it is shrink-only from there. See docs/00-foundations/07-neuroplasticity-and-the-word.md §4. 2026-09-20: ll57 (Power to Tread) was re-authored whole — the child band rewritten from grade 10.1 to 1.5, a youth band authored where none existed, and teen and senior extended past the floor. It leaves this list because its CONTENT changed, not because an entry was edited out. inverted 43 -> 42; childOverCeiling 12 -> 11 (child now 1.5 against a ceiling of 7.0).",
-  "measuredLessons": 188,
+  "measuredLessons": 189,
   "inverted": [
     "ll114-what-makes-having-you-better-covenant-not-contract-and-the-value-a-paycheck-cannot-cover",
     "ll117-no-two-children-grow-up-in-the-same-house-why-siblings-differ-and-the-one-parent-who-is-the-same",
