@@ -276,7 +276,7 @@ export const COURSE_CROSS_LISTINGS = [
   // and the two-or-three-witness rule -- so it belongs on the Word's own shelf
   // as well as its home (measured: 39 distinct Scripture anchors across eight
   // lessons; the course test walks every quoted span against the KJV).
-  { department: 'The Word & The Way', courseKey: 'history-truth', why: 'American history read under the Word’s own measure of a nation — the fatherless, the widow and the stranger — and established at the mouth of two or three witnesses (measured: 39 Scripture anchors across eight lessons).' },
+  { department: 'The Word & The Way', courseKey: 'history-truth', why: 'American history read under the Word’s own measure of a nation — the fatherless, the widow and the stranger — and established at the mouth of two or three witnesses (measured: 41 Scripture anchors across eight lessons).' },
 ];
 
 /** The course declarations shelved into one department, in authored order. */
