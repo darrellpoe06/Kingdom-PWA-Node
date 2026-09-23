@@ -114,12 +114,33 @@ def key_shape(key):
     family, not a secret), how many dots it has (a JWT has two), and whether
     it carries quotes or whitespace (a paste that brought its own quotes)."""
     k = "" if key is None else str(key)
+    # Character CLASSES, not characters (run 35905496750: 57 chars, "cdn", no
+    # dots -- and nothing said whether it was hex, base64, or a word). Counts
+    # of upper / lower / digit / other, and the narrowest alphabet the whole
+    # value fits: hex, base64url, base64, alnum, mixed. A family is named by
+    # its alphabet; the value itself never leaves the box.
+    upper = sum(1 for c in k if c.isupper())
+    lower = sum(1 for c in k if c.islower())
+    digit = sum(1 for c in k if c.isdigit())
+    other = len(k) - upper - lower - digit
+    if k and all(c in "0123456789abcdefABCDEF" for c in k):
+        charset = "hex"
+    elif k and all(c.isalnum() for c in k):
+        charset = "alnum"
+    elif k and all(c.isalnum() or c in "-_" for c in k):
+        charset = "base64url"
+    elif k and all(c.isalnum() or c in "+/=" for c in k):
+        charset = "base64"
+    else:
+        charset = "mixed" if k else "empty"
     return {
         "len": len(k),
         "prefix3": k[:3],
         "dots": k.count("."),
         "quoted": (k[:1] in ("'", '"')) or (k[-1:] in ("'", '"')),
         "whitespace": any(c.isspace() for c in k),
+        "upper": upper, "lower": lower, "digit": digit, "other": other,
+        "charset": charset,
     }
 
 
@@ -159,6 +180,34 @@ def hosted_key_verdict(key, expected_ref):
     if role != "service_role":
         return ("wrong-role", role or "?")
     return ("ok", role)
+
+
+def classify_bucket_probe(status, body):
+    """What the HOSTED project itself says about the key, from one GET of
+    /storage/v1/bucket with it (Darrell 2026-09-23: "It is Supabase!!!!!!!!
+    Reread it"). The shape of a value is a guess about a key; the project's
+    answer is the fact. Returns (kind, detail):
+      ('service', names)  - HTTP 200 and PRIVATE buckets listed: the key
+                            bypasses RLS on storage.buckets, so it is
+                            service-grade whatever it looks like;
+      ('limited', names)  - HTTP 200 but only public buckets (or none): a
+                            valid key WITHOUT service rights (anon /
+                            publishable);
+      ('rejected', msg)   - anything else: the project's own error text."""
+    try:
+        data = json.loads(body.decode("utf-8", "replace") if isinstance(body, (bytes, bytearray)) else str(body))
+    except (ValueError, TypeError):
+        data = None
+    if status == 200 and isinstance(data, list):
+        names = sorted(str(b.get("name") or b.get("id") or "") for b in data if isinstance(b, dict))
+        private = [b for b in data if isinstance(b, dict) and not b.get("public")]
+        return ("service" if private else "limited", names)
+    msg = ""
+    if isinstance(data, dict):
+        msg = str(data.get("message") or data.get("error") or data.get("msg") or "")
+    if not msg:
+        msg = (body[:120].decode("utf-8", "replace") if isinstance(body, (bytes, bytearray)) else str(body)[:120])
+    return ("rejected", "HTTP {}: {}".format(status, msg))
 
 
 def scope_to_reachable(buckets, rows, have_hosted_key):
@@ -281,12 +330,23 @@ def real_run(only_bucket=None, limit=0, dry_run=False):
             kind, " ({})".format(detail) if detail else ""))
         if kind in ("opaque", "not-a-key"):
             print("storage-sync: hosted key shape: " + json.dumps(key_shape(hosted_key)))
-        if kind == "not-a-key":
-            print("storage-sync: that value is not a Supabase API key at all (a legacy key "
-                  "starts 'eyJ' and carries two dots; a new key starts 'sb_'). The private "
+        # THE PROJECT'S OWN ANSWER OUTRANKS THE SHAPE (2026-09-23). Whatever the
+        # value looks like, one authenticated GET of the bucket list tells us
+        # what hosted makes of it: private buckets listed = service-grade,
+        # public-only = a valid key without service rights, else its error.
+        p_status, p_body = http("GET", bucket_url(hosted_api), hosted_key, timeout=30)
+        p_kind, p_detail = classify_bucket_probe(p_status, p_body)
+        print("storage-sync: hosted answers the key: {} {}".format(
+            p_kind, json.dumps(p_detail) if isinstance(p_detail, list) else p_detail))
+        if p_kind == "service":
+            kind = "ok"   # the fact wins over the guess
+        elif kind == "ok":
+            kind = "wrong-role"  # looked right, but hosted says it cannot see private buckets
+        if kind in ("not-a-key", "opaque") and p_kind != "service":
+            print("storage-sync: hosted did not accept that value as a service key. The private "
                   "buckets are withheld until HOSTED_SERVICE_ROLE_KEY holds the service_role "
-                  "key (Project Settings > API Keys > Legacy) or the Secret key (API Keys, "
-                  "sb_secret_...).")
+                  "key (Project Settings > API Keys > Legacy, starts eyJ) or the Secret key "
+                  "(API Keys, starts sb_secret_).")
             hosted_key = None
         if kind in ("wrong-role", "wrong-project"):
             print("storage-sync: that is NOT the hosted service_role key -- the private "
@@ -480,10 +540,33 @@ def selftest():
           hosted_key_verdict("eyJhbGciOiJIUzI1NiJ9.broken", "mjjlevhdufpaplypnqrv") == ("opaque", ""))
     check("an empty key is absent", hosted_key_verdict("", "x") == ("absent", ""))
     check("garbage never crashes the decoder", jwt_claims("a.b.c") == {} and jwt_claims(None) == {})
+    # The project's own answer to the key, classified (the fact over the shape).
+    svc_body = json.dumps([{"id": "moore-showcase", "name": "moore-showcase", "public": True},
+                           {"id": "sermon-documents", "name": "sermon-documents", "public": False}]).encode()
+    check("HTTP 200 with a PRIVATE bucket listed is service-grade, whatever the key looks like",
+          classify_bucket_probe(200, svc_body) == ("service", ["moore-showcase", "sermon-documents"]))
+    pub_body = json.dumps([{"id": "moore-showcase", "name": "moore-showcase", "public": True}]).encode()
+    check("CATCHES a valid key that only sees public buckets (anon / publishable)",
+          classify_bucket_probe(200, pub_body) == ("limited", ["moore-showcase"]))
+    check("an empty list is limited, not service", classify_bucket_probe(200, b"[]") == ("limited", []))
+    check("a refusal carries the project's own words",
+          classify_bucket_probe(401, b'{"message":"Invalid API key"}') == ("rejected", "HTTP 401: Invalid API key"))
+    check("a dead host is rejected with its status, never a crash",
+          classify_bucket_probe(0, b"timed out")[0] == "rejected")
     shape = key_shape('"eyJabc.def.ghi"')
     check("the key SHAPE names length, family prefix, dots and quoting -- never the value",
-          shape == {"len": 16, "prefix3": '"ey', "dots": 2, "quoted": True, "whitespace": False}
+          {k: shape[k] for k in ("len", "prefix3", "dots", "quoted", "whitespace")}
+          == {"len": 16, "prefix3": '"ey', "dots": 2, "quoted": True, "whitespace": False}
           and "eyJabc" not in json.dumps(shape))
+    check("the shape names the value's ALPHABET and class counts, never its characters",
+          key_shape("cd0123456789abcdef")["charset"] == "hex"
+          and key_shape("cdnAbc123")["charset"] == "alnum"
+          and key_shape("sb_secret_Ab-1")["charset"] == "base64url"
+          and key_shape("Ab+/=")["charset"] == "base64"
+          and key_shape("a b!")["charset"] == "mixed"
+          and key_shape("")["charset"] == "empty"
+          and key_shape("aB3-")["upper"] == 1 and key_shape("aB3-")["lower"] == 1
+          and key_shape("aB3-")["digit"] == 1 and key_shape("aB3-")["other"] == 1)
     check("a quoted or whitespace-carrying paste is visible in the shape",
           key_shape("sb_secret_x y")["whitespace"] is True and key_shape(None)["len"] == 0)
 

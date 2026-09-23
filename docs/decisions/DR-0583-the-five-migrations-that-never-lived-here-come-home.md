@@ -42,3 +42,16 @@ Guards run against 0225 locally, all PASS: rls-isolation-matrix, migration-repla
 ## Verification after merge
 
 The next nas-health cycle's status line must read `cutover-sync: post-repoint {"go": true, …}` with `schema_missing_by_name` empty. If it does not, the names it prints are the next file.
+
+## Measured after merge (2026-09-23 18:47Z, appended)
+
+0225 replayed on the box the same afternoon: the sovereign ledger reads **231 applied** (was 230) and `services-sync` has been green every fifteen minutes since 17:46Z (the choir-dates rider DEGRADED and named, per DR-0582 §1). The first parity line after it (nas-health run 35904661282):
+
+    post-repoint {"go": false, "schema_missing_by_name": {"rls_policies": [
+      "push_subscriptions.viewer_readonly_delete",
+      "push_subscriptions.viewer_readonly_insert",
+      "push_subscriptions.viewer_readonly_update"]}}
+
+Every table, function and trigger this record named is present on the box. The three policies left are missing on the box because the box is **right**: 0181 put `push_subscriptions` on the viewer overlay's participation list, so the current overlay creates none; hosted still carries three from a run before 0181, because the overlay never removes what it has since excluded. On hosted they still block a viewer's own opt-in/opt-out, the exact thing 0181 allows. **0226** drops the three where they exist and is a no-op on the box; after it lands on hosted the schema verdict can read GO. The storage gap stays DR-0317's and is not part of the schema verdict.
+
+**One more finding from the same read:** the six-hourly `nas-health` clock (DR-0582 §4) did **not** fire at its 18:23Z slot; the read above was a hand dispatch. Whether the 00:23Z slot fires is the next check-in's question; if the schedule never fires, the clock is a claim and not a witness.
