@@ -13,6 +13,7 @@
 //                       (The Word, Learn, Conference) and the About/Settings page.
 import React from 'react';
 import { useTextSize } from '../lib/text-size.js';
+import UiIcon from './UiIcon.jsx';
 
 export default function TextSizeControl({ variant = 'header', className = '' }) {
   const [active, setSize, steps] = useTextSize();
@@ -165,7 +166,7 @@ export default function TextSizeControl({ variant = 'header', className = '' }) 
 // is sticky, measured: position:sticky at top 0), and the existing index.css
 // rules still take over at the sizes that trap harder — sticky at Larger, a
 // fixed bottom bar at Largest and Big Print. No new layout mechanism.
-export function TextSizeEscapeHatch({ collapsed }) {
+export function TextSizeEscapeHatch({ collapsed, onShowHeader = null }) {
   // Read so the row re-renders on every step, and so the ts-hatch-h publisher
   // inside TextSizeControl re-measures when the position flips.
   useTextSize();
@@ -173,6 +174,27 @@ export function TextSizeEscapeHatch({ collapsed }) {
   if (!collapsed) return null;
   return (
     <div className="ts-chrome-region ts-escape-hatch bg-[#FAF8F4] border-t border-[#E8E4DC] px-3 py-1.5 flex items-center justify-end gap-2 flex-wrap">
+      {/* THE WAY BACK FROM THE HIDEAWAY, IN WORDS, ON THE LEFT (Darrell
+          2026-09-23, Fold: "Lost the whole header?!!!!!!!!!!!" / "What
+          happened to the features?!"). The only control that brought the
+          header back was a chevron pinned to the RIGHT of the tab row — and
+          when the row overflowed the screen (DR-0577), it was off-screen.
+          A way back that depends on an edge is not a way back. This row is
+          the one thing that always renders while the header is tucked away,
+          so the way back lives here too, as words a person can read, on the
+          side the tab row never pushes off. */}
+      {onShowHeader && (
+        <button
+          type="button"
+          onClick={onShowHeader}
+          data-testid="show-full-header"
+          aria-label="Show the full header (name, account, voice, font, theme controls)"
+          className="mr-auto flex items-center gap-1 px-2 py-1 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]"
+          style={{ fontSize: 'calc(11px / var(--ts-chrome-scale, 1))' }}
+        >
+          <UiIcon name="chevronDown" /> Show header
+        </button>
+      )}
       {/* Plain words, not an icon: the reader who needs this is the reader who
           could not find it. Fixed px (like the control's own labels) so the
           way out never compounds with the setting it undoes. */}
