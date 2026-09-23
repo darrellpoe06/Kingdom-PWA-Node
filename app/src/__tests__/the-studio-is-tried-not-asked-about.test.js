@@ -156,7 +156,9 @@ describe('the chain no longer omits the link that breaks', () => {
   it('the row explains the per-device trap rather than just failing', () => {
     const key = buildVoiceChecks({ ...base, bridgeKey: false }).find((r) => r.id === 'bridge-key');
     expect(key.detail).toMatch(/never syncs between devices/);
-    expect(key.fix).toMatch(/Provision this device/);
+    // DR-0574: the fix is no longer a chore for a person — the device asks
+    // the family for the key itself, and the row says what came back.
+    expect(key.fix).toMatch(/asks the family for the key itself|published it yet/);
     expect(key.where).toMatch(/voice_forwarder\.py/);
   });
 

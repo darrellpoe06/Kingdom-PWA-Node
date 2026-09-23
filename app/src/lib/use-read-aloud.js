@@ -31,6 +31,8 @@ import { clipFraction, estimateClipSeconds, seekableEndOf } from './clip-progres
 import { applyClipRate, clipRateNotice } from './clip-rate.js';
 import { supabase } from './supabase.js';
 import { hrefForView } from './nav-history.js';
+import { hasBridgeToken } from './nas-photos.js';
+import { provisionBridgeToken } from './bridge-provision.js';
 
 /**
  * @param {object} opts
@@ -287,6 +289,15 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       const personKey = personKeyOf(voiceId);
       const voice = personalVoices.find((v) => v.personKey === personKey);
       if (voice && attemptStudio) {
+        // THE KEY PROVISIONS ITSELF BEFORE THE READ (DR-0574). /speak is gated
+        // on the family bridge key, and the key already provisions itself on a
+        // signed-in family device through the RLS-deny-all + SECURITY DEFINER
+        // RPC pair (migration 0128) — but only Real Estate ever asked for it,
+        // so a device that had never opened Rentals was refused at the studio
+        // door with a key it could have had. Ask here, once, before the first
+        // attempt; a signed-out or non-family device gets nothing and the read
+        // falls back honestly, exactly as before.
+        if (!hasBridgeToken()) await provisionBridgeToken(supabase);
         const refBlob = await loadReference(personKey);
         if (refBlob) {
           const referenceDataUri = await blobToDataUri(refBlob);
