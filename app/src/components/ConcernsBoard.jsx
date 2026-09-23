@@ -119,6 +119,17 @@ function ConcernRow({ c, isLast, canEdit, onUpdate, onDelete }) {
           {c.whenNote && c.status !== 'done' && !c.targetDate && (
             <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>When: {c.whenNote}</p>
           )}
+          {/* The chain (DR-0589): what proves it, what it costs unresolved, who
+              must decide what, what came of it, and who carries it — database
+              columns on this row (0228). An empty one is said to be empty. */}
+          <dl data-testid="concern-chain" className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-0.5 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
+            {[['Owner', c.owner], ['Evidence', c.evidence], ['Impact', c.impact], ['Decision required', c.decisionRequired], ['Outcome', c.outcome]].map(([label, val]) => (
+              <React.Fragment key={label}>
+                <dt className="text-[0.625rem] uppercase tracking-wider font-semibold self-start" style={{ color: val ? '#5A6E3D' : '#B85838' }}>{label}</dt>
+                <dd className={val ? 'text-[#1A1815] whitespace-pre-wrap' : 'text-[#B85838] italic'}>{val || 'not recorded'}</dd>
+              </React.Fragment>
+            ))}
+          </dl>
           {(c.author || c.deviceLabel) && (
             <p className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
               {c.author ? `from ${c.author}` : ''}{c.deviceLabel ? ` · ${c.deviceLabel}` : ''}{c.created ? ` · ${c.created}` : ''}
@@ -156,6 +167,22 @@ function ConcernRow({ c, isLast, canEdit, onUpdate, onDelete }) {
                 placeholder="The solution we intend (saved when you tap away)"
                 aria-label={`Solution for: ${c.concern}`} rows={2}
                 className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }} />
+              {/* The chain fields — each saves on blur into its own column (0228). */}
+              <input type="text" defaultValue={c.owner || ''}
+                onBlur={(e) => { const v = e.target.value.trim(); if (v !== (c.owner || '')) onUpdate(c.id, { owner: v || null }); }}
+                placeholder="Owner — who carries this (empty = an ownership gap)"
+                aria-label={`Owner for: ${c.concern}`}
+                className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }} />
+              {[['evidence', 'Evidence — what proves this is a real issue (runs, rows, recordings, quotes)'],
+                ['impact', 'Impact — what happens if unresolved'],
+                ['decisionRequired', 'Decision required — who needs to decide what (empty = nothing waiting)'],
+                ['outcome', 'Outcome — the final disposition']].map(([field, ph]) => (
+                <textarea key={field} defaultValue={c[field] || ''}
+                  onBlur={(e) => { const v = e.target.value.trim(); if (v !== (c[field] || '')) onUpdate(c.id, { [field]: v || null }); }}
+                  placeholder={ph}
+                  aria-label={`${ph.split(' — ')[0]} for: ${c.concern}`} rows={2}
+                  className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }} />
+              ))}
               {onDelete && c.source !== 'seed' && (
                 <button type="button" onClick={() => { if (confirm('Delete this concern? It is removed for everyone.')) onDelete(c.id); }}
                   className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] border border-[#E8E4DC] hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
