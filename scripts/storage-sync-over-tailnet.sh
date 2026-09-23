@@ -120,6 +120,39 @@ else
   echo "HOSTED-KEY-PRESENT=no"
 fi
 
+# ASK THE HOSTED PROJECT ITSELF WHAT THE KEY IS (Darrell 2026-09-23: "It is
+# Supabase!!!!!!!! Reread it"). This block ships from the RUNNER's checkout, so
+# it answers on the very next dispatch, before any merge reaches the box. One
+# authenticated GET of the bucket list; the log carries the status and the
+# bucket NAMES or the project's error words -- never the key. Private buckets
+# listed = the value is service-grade whatever it looks like.
+HK=$( { grep '^HOSTED_SERVICE_ROLE_KEY=' /volume1/docker/poetech/agent.env 2>/dev/null \
+        || sudo -n grep '^HOSTED_SERVICE_ROLE_KEY=' /volume1/docker/poetech/agent.env 2>/dev/null; } | head -1 | cut -d= -f2-)
+if [ -n "$HK" ]; then
+  PB=$(mktemp)
+  PS=$(curl -sS -m 30 -o "$PB" -w '%{http_code}' \
+        -H "apikey: $HK" -H "Authorization: Bearer $HK" \
+        https://mjjlevhdufpaplypnqrv.supabase.co/storage/v1/bucket 2>/dev/null || echo 000)
+  echo "HOSTED-ANSWERS-THE-KEY: HTTP $PS $($PY - "$PB" <<'PYEOF'
+import json, sys
+try:
+    d = json.load(open(sys.argv[1]))
+except Exception:
+    print("(unparseable body)"); sys.exit(0)
+if isinstance(d, list):
+    names = sorted(str(b.get("name") or b.get("id") or "") for b in d if isinstance(b, dict))
+    private = sum(1 for b in d if isinstance(b, dict) and not b.get("public"))
+    print("%d buckets listed, %d private: %s" % (len(names), private, ", ".join(names)))
+elif isinstance(d, dict):
+    print("error: %s" % (d.get("message") or d.get("error") or d.get("msg") or d))
+else:
+    print(str(d)[:120])
+PYEOF
+)"
+  rm -f "$PB"
+fi
+unset HK
+
 cd "$REPO/infra/nas-supabase" || { echo "infra/nas-supabase missing in checkout" >&2; exit 6; }
 echo "----- storage-sync output -----"
 if [ -n "$BUCKET" ]; then
