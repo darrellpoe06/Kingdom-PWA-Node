@@ -138,11 +138,25 @@ project (a public fact, not a secret).
 
     HOSTED_SERVICE_ROLE_KEY=<the hosted project's service_role key>
 
-The key is at Supabase dashboard -> Project Settings -> API -> `service_role`.
-It is a server-side secret: it belongs in `agent.env` on the NAS and must never
-reach the browser bundle or a repo secret used at build time. The next dispatch
-with an empty `bucket` then copies every bucket; the run prints the key's
-PRESENCE only, never its value.
+The key is at Supabase dashboard -> Project Settings -> API Keys -> Legacy ->
+`service_role` (starts `eyJ`), or the Secret key on the API Keys tab (starts
+`sb_secret_`). It is a server-side secret: it belongs in `agent.env` on the NAS
+and must never reach the browser bundle or a repo secret used at build time.
+The next dispatch with an empty `bucket` then copies every bucket; the run
+prints the key's PRESENCE, family and hosted's answer to it, never its value.
+
+**Place it with `place_hosted_key.sh`, not a raw paste (2026-09-23).** Four
+dispatches read a pasted value that was not a key of any family (57 chars,
+"cdn", a control byte inside; hosted answered HTTP 400 to it over HTTP/1.1,
+the same as to no key at all). On the NAS (ssh or ConnectBot):
+
+    bash /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-supabase/place_hosted_key.sh
+
+It reads the paste silently, strips what a terminal adds (CR, quotes, spaces,
+a copied `Bearer `), names the family by prefix, reads a JWT's role and
+project, asks hosted to list its buckets with the value, and writes
+`agent.env` ONLY when hosted lists a private bucket. The screen shows length,
+prefix and hosted's answer; the value is never echoed.
 
 **By hand, from the NAS (the same script, if the lane is ever unavailable):**
 
