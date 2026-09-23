@@ -162,7 +162,7 @@ export function deriveDecisionIntelligence({ concerns = [], projects = [], discu
 
   // 3. OWNERSHIP GAPS — who should own this but doesn't.
   const ownershipGaps = [];
-  for (const c of cs) if (OPEN.has(c.status) && !c.owner) ownershipGaps.push({ id: c.id, kind: 'concern', title: c.label, area: c.area, sources: [c.id], why: `Open ${c.status} concern in ${c.area} with no owner set.` });
+  for (const c of cs) if (OPEN.has(c.status) && !c.owner) ownershipGaps.push({ id: c.id, kind: 'concern', title: c.label, area: c.area, sources: [c.id], why: `${c.status === 'in-progress' ? 'In-progress' : 'Open'} concern in ${c.area} with no owner set.` });
   for (const p of ps) if (p.status && p.status !== 'done' && p.status !== 'complete' && p.assignees.length === 0) ownershipGaps.push({ id: p.id, kind: 'project', title: p.label, area: p.domain || 'project', sources: [p.id], why: `Project "${p.label}" (${p.status}) has no assignee.` });
   for (const d of ds) {
     if (d.kind !== 'handoff') continue;
