@@ -98,8 +98,15 @@ describe('a device with no voices is told the truth, not given useless advice', 
     // is now READ inside the speak callback, and sovereignVoiceReady collapses
     // 'up' and 'unknown' into one value, so without this dependency the notice
     // would show whichever state was true when the callback was last built.
-    expect(hook, 'studioHealth is read in the callback but is not a dependency')
-      .toMatch(/sovereignVoiceReady, studioHealth,/);
+    // Pinned on studioHealth BEING in the dependency array, not on which
+    // name sits beside it. The first version matched the literal pair
+    // `sovereignVoiceReady, studioHealth,` and went red the moment
+    // `attemptStudio` was added between them (2026-09-22, when the health
+    // probe was demoted from a gate on the ATTEMPT to a display signal) — a
+    // test holding formatting rather than the behaviour it exists to hold.
+    const depsLine = (hook.match(/\}, \[voiceId, personalVoices,[^\]]*\]\);/) || [''])[0];
+    expect(depsLine, 'the speak callback dependency array was not found').not.toBe('');
+    expect(depsLine, 'studioHealth is read in the callback but is not a dependency').toMatch(/\bstudioHealth\b/);
   });
 
   it('the device-independent path really does run BEFORE the device one', () => {

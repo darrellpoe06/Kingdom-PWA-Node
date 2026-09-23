@@ -60,12 +60,13 @@ export const UNKNOWN = 'unknown';
  * @param {boolean} m.sampleOnDevice  a saved reference exists in IndexedDB here
  * @param {boolean} m.consentRow      a voice_profiles row exists for this person
  * @param {'up'|'down'|'unknown'} m.studioHealth   what the studio ANSWERED
+ * @param {boolean} m.bridgeKey      this device holds the bearer /speak requires
  */
 export function buildVoiceChecks(m = {}) {
   const {
     signedIn = false, enrolKey = '', instanceId = null, reviewerMode = false,
     recorderSupported = false, sampleOnDevice = false, consentRow = false,
-    studioHealth = 'unknown',
+    studioHealth = 'unknown', bridgeKey = false,
   } = m;
 
   const rows = [];
@@ -139,11 +140,32 @@ export function buildVoiceChecks(m = {}) {
   });
 
   rows.push({
+    // THE LINK THIS CHAIN WAS MISSING (Darrell 2026-09-22: "Didn't work!!!!!!"
+    // with this very panel showing All 7 checks pass).
+    //
+    // The panel probed GET /health, which takes no authentication, and called
+    // the studio good. The read calls POST /speak, which the NAS-side forwarder
+    // gates on the family bridge bearer. That token lives in localStorage and
+    // is PER-DEVICE BY DESIGN (nas-photos.js: "a device credential, never
+    // synced"), so a device that was never provisioned answers the probe
+    // perfectly and is refused at the door -- and the chain built to name the
+    // broken link had no row for the link that was broken.
+    id: 'bridge-key',
+    label: 'This device holds the family key the studio requires',
+    state: bridgeKey ? PASS : FAIL,
+    detail: bridgeKey
+      ? 'POST /speak will be sent with this device\u2019s key.'
+      : 'The studio can answer its health check and still refuse to read, because /speak is gated on a key this device does not have. The key never syncs between devices, so having it on your phone says nothing about this browser.',
+    fix: bridgeKey ? '' : 'Provision this device\u2019s bridge key (the same one the photo and tax reads use); until then reads fall back to the labelled stand-in voice.',
+    where: 'infra/voice-studio/voice_forwarder.py (401) \u00b7 lib/nas-photos.js (bridgeToken) \u00b7 lib/bridge-provision.js',
+  });
+
+  rows.push({
     id: 'studio',
     label: 'The voice studio answers',
     state: studioHealth === 'up' ? PASS : studioHealth === 'down' ? FAIL : UNKNOWN,
     detail: studioHealth === 'up'
-      ? 'The service answered, so a saved sample can be read back in your own voice.'
+      ? 'The service answered its health check. That is not the same as a read succeeding — see the key row above, which is what /speak is actually gated on.'
       : studioHealth === 'down'
         ? 'The service did not answer. Everything else can still be done now; the reading plays in a labelled stand-in voice until it is back.'
         : 'It has not been asked yet on this screen.',
