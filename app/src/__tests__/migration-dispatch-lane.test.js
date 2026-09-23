@@ -101,8 +101,17 @@ describe('auto-merge — the migration question is asked after the deploy wait',
     // THE NINTH MISS (2026-09-23, #1735): the loop was alive and silent. A
     // failed dispatch must never mark the tip done, and no gh error may be
     // swallowed — the log has to say why nothing happened.
-    expect(src).toMatch(/if gh workflow run deploy-cloudflare-pages\.yml[^\n]*; then\s*\n\s*dispatched_for="\$main_sha"/);
+    expect(src).toMatch(/if timeout 25 gh workflow run deploy-cloudflare-pages\.yml[^\n]*; then\s*\n\s*dispatched_for="\$main_sha"/);
     expect(src, 'a gh error in the poll is still swallowed').not.toMatch(/commits\/main" --jq '\.sha' 2>\/dev\/null/);
+    // THE HANG (run 35796585068): the step was still in_progress when the job
+    // was killed at 48:00 and its log never uploaded. A gh call with no
+    // timeout can freeze the watcher; every gh call in a heal loop carries
+    // one, and each heal job carries an explicit ceiling above the window.
+    const healSeg = src.slice(src.indexOf('  heal-deploy:'), src.indexOf('      # THE ORDERING HOLE, CLOSED'));
+    const bare = healSeg.match(/(?<![\w/])gh (api|pr list|workflow run)\b/g) || [];
+    expect(bare, `gh calls in the heal loops without a timeout: ${bare.length}`).toEqual([]);
+    expect((healSeg.match(/timeout 25 gh /g) || []).length).toBeGreaterThanOrEqual(8);
+    expect((healSeg.match(/^    timeout-minutes: 75$/gm) || []).length, 'both heal jobs carry the 75-minute ceiling').toBe(2);
     const armedRechecks = (src.match(/still=\$\(gh pr list --repo "\$REPO" --state open --base main/g) || []).length;
     expect(armedRechecks, 'each heal loop must re-ask whether anything is still armed').toBe(2);
     expect((src.match(/if \[ "\$still" = "0" \]; then/g) || []).length).toBe(2);
