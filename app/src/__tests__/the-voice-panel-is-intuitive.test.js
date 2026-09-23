@@ -24,7 +24,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { detectVoiceDevice, deviceVoiceRoute, TTS_SETTINGS_INTENT } from '../lib/device-voice-route.js';
-import { voiceErrorReason } from '../lib/voice-service.js';
+import { voiceErrorReason, isStudioRoadProblem } from '../lib/voice-service.js';
 
 const STUDIO = readFileSync(resolve(__dirname, '../components/VoiceStudio.jsx'), 'utf8');
 const TTS = readFileSync(resolve(__dirname, '../components/TTSControl.jsx'), 'utf8');
@@ -186,15 +186,55 @@ describe('a read notice is not a popup', () => {
   });
 });
 
-describe('a 404 names the road, not the device', () => {
-  it('says the studio’s door is not mounted and that the recording is safe', () => {
+describe('a road problem is the house’s, not the reader’s — no message, a word on the status line', () => {
+  // Darrell 2026-09-23, on being shown the HTTP 404 sentence: "What?!!!!
+  // Intuitive... you do it!!!! Deduce if it worked properly!!!!!!!!! No
+  // headaches!!!!" A person reading a lesson can do nothing about a dark
+  // studio or an unmounted route, so the reader is told nothing to dismiss.
+  const HOOK = readFileSync(resolve(__dirname, '../lib/use-read-aloud.js'), 'utf8');
+
+  it('classifies the road: 404, timeout, no answer, 5xx, empty, unconfigured', () => {
+    for (const t of ['voice-service-404', 'voice-service-timeout', 'voice-service-no-response', 'voice-service-error', 'voice-service-empty', 'voice-service-not-configured', 'voice-service-502', 'voice-service-503']) {
+      expect(isStudioRoadProblem(t), t).toBe(true);
+    }
+  });
+
+  it('and the device: a refused key, a missing sample, no built-in voice stay the reader’s', () => {
+    for (const t of ['voice-service-401', 'voice-service-403', 'no-voice-sample', 'no-builtin-voice', '']) {
+      expect(isStudioRoadProblem(t), t).toBe(false);
+    }
+  });
+
+  it('the read raises NO notice on a road problem — it sets the status and falls back', () => {
+    const block = HOOK.slice(HOOK.indexOf('if (isStudioRoadProblem(error)) {'), HOOK.indexOf('if (isStudioRoadProblem(error)) {') + 500);
+    expect(block).toMatch(/setStandInWhy\('studio-offline'\)/);
+    expect(block).toMatch(/\} else \{\s*setNotice\(`\$\{voiceErrorReason\(error\)\} Using a stand-in voice\.`\);/);
+  });
+
+  it('an unarmed studio is status too, not a message on every read', () => {
+    expect(HOOK).toMatch(/if \(!sovereignVoiceReady\) setStandInWhy\(\(w\) => w \|\| 'studio-unarmed'\);/);
+    expect(HOOK).not.toMatch(/setNotice\('Reading in a stand-in voice — your real voice turns on/);
+  });
+
+  it('the status clears at the start of every read, so a recovered studio reads clean', () => {
+    expect(HOOK).toMatch(/setNotice\(''\);\n\s*setStandInWhy\(''\);/);
+    expect(HOOK).toMatch(/\n\s*standInWhy,\n/);
+  });
+
+  it('the panel prints which voice is speaking and why, beside Reading', () => {
+    expect(TTS).toMatch(/standInWhy === 'studio-offline'\s*\?\s*' · stand-in voice, the studio is offline'/);
+    expect(TTS).toMatch(/' · stand-in voice until the studio is armed'/);
+    expect(TTS).toMatch(/const statusLabel = \(isReading \? \(isPaused \? 'Paused' : 'Reading…'\) : 'Ready'\) \+ standInNote;/);
+  });
+
+  it('the studio marks itself down on a road problem instead of messaging', () => {
+    expect(STUDIO).toMatch(/if \(isStudioRoadProblem\(error\)\) setStudioHealth\('down'\);/);
+  });
+
+  it('the reason sentence still exists for the one place it is wanted — the Does-it-work panel and the console', () => {
     const msg = voiceErrorReason('voice-service-404');
     expect(msg).toMatch(/not open right now \(HTTP 404\)/);
-    expect(msg).toMatch(/not mounted/);
     expect(msg).toMatch(/Nothing on this device is wrong/);
-    expect(msg).toMatch(/your recording is safe/);
-  });
-  it('other 4xx and 5xx keep the generic sentence', () => {
     expect(voiceErrorReason('voice-service-502')).toMatch(/HTTP 502/);
   });
 });

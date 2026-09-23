@@ -170,6 +170,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     notice,
     setNotice,
     noticeAction,
+    standInWhy,
   } = useReadAloud({ isOwner });
 
   // THE SCREEN STAYS ON WHILE IT READS (DR-0439; Darrell 2026-09-16: his phone
@@ -886,7 +887,13 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   const groups = catalog.reduce((acc, item) => { (acc[item.group] = acc[item.group] || []).push(item); return acc; }, {});
   const order = ['Default', 'Your voices', 'Voices & accents'].filter((g) => groups[g] && groups[g].length);
   const onVoice = (e) => { const item = catalog.find((c) => c.id === e.target.value); if (item && !item.usable) return; setVoiceId(e.target.value); };
-  const statusLabel = isReading ? (isPaused ? 'Paused' : 'Reading…') : 'Ready';
+  // WHICH VOICE, AND WHY, on the status line (Darrell 2026-09-23: "No
+  // headaches!!!!"). A dark studio is not a message to dismiss; it is a
+  // word beside Reading.
+  const standInNote = standInWhy === 'studio-offline'
+    ? ' · stand-in voice, the studio is offline'
+    : standInWhy === 'studio-unarmed' ? ' · stand-in voice until the studio is armed' : '';
+  const statusLabel = (isReading ? (isPaused ? 'Paused' : 'Reading…') : 'Ready') + standInNote;
 
   return (
     // THE READER MUST OUTRANK A FULL-SCREEN PRESENTING SURFACE.

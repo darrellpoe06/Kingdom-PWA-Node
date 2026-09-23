@@ -29,7 +29,7 @@ import {
   buildStandInAssignments, resolveVoiceURIForId, deviceVoiceOptions, hasVoiceOfGender, describeDeviceVoices,
 } from '../lib/voice-assignment.js';
 import { loadPersonaVoiceMap, savePersonaVoice } from '../lib/persona-voice-prefs.js';
-import { isVoiceServiceReady, synthesizeSpeech, voiceServiceHealth, probeVoiceService, voiceErrorReason } from '../lib/voice-service.js';
+import { isVoiceServiceReady, synthesizeSpeech, voiceServiceHealth, probeVoiceService, voiceErrorReason, isStudioRoadProblem } from '../lib/voice-service.js';
 import { SOVEREIGNTY_GAPS, GAPS_RECORDED, liveVoicePath, liveLikenessPath } from '../lib/sovereignty-gaps.js';
 import { useReadingVoice, personVoiceId, SYSTEM_VOICE_ID } from '../lib/reading-voice.js';
 import {
@@ -350,7 +350,11 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
       // "unreachable" for every one of them -- including a 401, which is a
       // credential being refused by a studio that is running perfectly and
       // sends a person to check their network for no reason.
-      setNotice(`${voiceErrorReason(error)} Using the labelled stand-in voice for now.`);
+      // The road is the house's problem: a dark studio marks the studio line
+      // 'down' (the line already says the stand-in plays until it is back) and
+      // raises no message. A refused key or a missing sample is the person's.
+      if (isStudioRoadProblem(error)) setStudioHealth('down');
+      else setNotice(`${voiceErrorReason(error)} Using the labelled stand-in voice for now.`);
     }
 
     // Browser path: System voice (real) or the labeled personal stand-in. Each option

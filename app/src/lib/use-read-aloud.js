@@ -22,7 +22,7 @@ import {
 import { mergeVoiceCatalog, canCloneVoice, isVoiceEntitled, resolveVoiceProvider, KIND, SYSTEM_VOICE } from './voice-registry.js';
 import { buildStandInAssignments, resolveVoiceURIForId, standInPitch } from './voice-assignment.js';
 import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
-import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService, voiceErrorReason, speakTimeoutFor, mayAttemptStudio } from './voice-service.js';
+import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService, voiceErrorReason, speakTimeoutFor, mayAttemptStudio, isStudioRoadProblem } from './voice-service.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
 import { createBackgroundAudio } from './background-audio.js';
@@ -78,6 +78,13 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // under a new message would send someone somewhere the message never meant.
   const [notice, setNoticeRaw] = useState('');
   const [noticeAction, setNoticeAction] = useState(null);
+  // WHY THE STAND-IN IS SPEAKING, as STATUS rather than a message (Darrell
+  // 2026-09-23: "No headaches!!!!"). '' = the chosen voice is speaking;
+  // 'studio-offline' = the road to the studio failed on this read;
+  // 'studio-unarmed' = the studio is not armed for this voice yet. The panel
+  // prints it beside Reading/Paused. Nothing here is a popup and nothing here
+  // is the reader's to fix; the house sees the studio through nas-health.
+  const [standInWhy, setStandInWhy] = useState('');
   const setNotice = useCallback((msg, action = null) => {
     setNoticeRaw(msg);
     setNoticeAction(msg ? action : null);
@@ -280,6 +287,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     const clean = String(text || '').trim();
     if (!clean) return;
     setNotice('');
+    setStandInWhy('');
     stopCloud();
     // Claim the audio session INSIDE the user's tap — after an await the
     // gesture is spent and the browser refuses to start it.
@@ -349,9 +357,18 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
               return;
             } catch (_) { setCloudPlaying(false); setCloudProgress(0); }
           }
-          // The tag names the real failure; printing "unreachable" for a 401
-          // sent him to check the network when the studio was running.
-          setNotice(`${voiceErrorReason(error)} Using a stand-in voice.`);
+          // THE ROAD IS THE HOUSE'S PROBLEM; THE DEVICE IS THE READER'S.
+          // A dark studio or an unmounted route (404, timeout, 5xx, no
+          // answer) raises NO message -- the person can do nothing about it
+          // and was shown "HTTP 404" over a lesson for it (2026-09-23). The
+          // read falls back and the status line says so. A refused key or a
+          // missing sample is the reader's, and keeps its sentence + door.
+          if (isStudioRoadProblem(error)) {
+            setStandInWhy('studio-offline');
+            try { console.warn('[read-aloud] studio road failed, stand-in voice used:', error); } catch (_) { /* no console */ }
+          } else {
+            setNotice(`${voiceErrorReason(error)} Using a stand-in voice.`);
+          }
         } else {
           setNotice(
             'Record a voice sample first in the Voice tab, then this reads in that voice.',
@@ -361,9 +378,9 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       }
       // Stand-in until the sovereign studio is live: a gender-correct browser voice —
       // and SAY so (DR-0138), instead of silently sounding like "it never worked".
-      if (!sovereignVoiceReady) {
-        setNotice('Reading in a stand-in voice — your real voice turns on when the church’s own voice studio is armed (sovereign, no vendor).');
-      }
+      // Status, not a message: the panel prints "stand-in voice until the
+      // studio is armed" beside Reading. Still never silent (DR-0138).
+      if (!sovereignVoiceReady) setStandInWhy((w) => w || 'studio-unarmed');
     }
 
     // THE SYSTEM VOICE REACHES THE SOVEREIGN STUDIO TOO (DR-0382).
@@ -523,6 +540,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     deviceRead: !cloudPlaying,
     cloudProgress,
     voiceId, setVoiceId, catalog, currentItem, notice,
+    standInWhy,
     // setNotice is exported so the panel can DISMISS a notice (2026-09-22).
     // Before this the only clear was at the start of the next read, so a
     // fault message stayed on top of the lesson indefinitely.

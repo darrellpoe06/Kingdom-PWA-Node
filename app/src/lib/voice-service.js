@@ -290,6 +290,24 @@ export function voiceErrorReason(tag) {
   return t ? `The voice studio failed: ${t}.` : 'The voice studio failed for a reason it did not name.';
 }
 
+/**
+ * True when the failure is the ROAD or the STUDIO — the house's problem, not
+ * the reader's. Darrell 2026-09-23, on being shown "HTTP 404": "What?!!!!
+ * Intuitive... you do it!!!! Deduce if it worked properly!!!!!!!!! No
+ * headaches!!!!" A person reading a lesson can do nothing about a dark studio
+ * or an unmounted route, so the reader is told nothing to dismiss: the read
+ * falls back to the stand-in voice and the panel's status line says which
+ * voice is speaking and why. Only a problem the person CAN act on — no sample
+ * on this device, no key, no consent — earns a notice, and that notice
+ * carries its door (DR-0558). Pure: a tag in, a verdict out.
+ */
+export function isStudioRoadProblem(tag) {
+  const t = String(tag || '');
+  if (t === 'voice-service-404' || t === 'voice-service-timeout' || t === 'voice-service-no-response'
+    || t === 'voice-service-error' || t === 'voice-service-empty' || t === 'voice-service-not-configured') return true;
+  return /^voice-service-5\d{2}$/.test(t);
+}
+
 /** True when the tag means "refused", which is a credential problem, not a network one. */
 export function isVoiceAuthRefusal(tag) {
   return /^voice-service-(401|403)$/.test(String(tag || ''));
