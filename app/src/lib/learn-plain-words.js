@@ -92,6 +92,11 @@ export const COURSE_PLAIN_WORDS = {
   bonds: ['loan', 'lending', 'debt', 'interest', 'pension', 'government'],
   'world-market': ['trading', 'money', 'price', 'buying', 'selling', 'cost'],
   investing: ['investing', 'saving', 'money', 'pension', 'retirement', 'planning'],
+  // The History department's first course (DR-0572). 'history' and 'truth'
+  // echo the title; 'laws', 'land', 'wages' and 'bible' are the words a person
+  // types when they want to know what the law did to whom, and what the Word
+  // says about it.
+  'history-truth': ['history', 'truth', 'laws', 'land', 'wages', 'bible'],
   'insurance-risk': ['insurance', 'fire', 'flood', 'accident', 'house', 'bills'],
   inspections: ['house', 'repairs', 'building', 'fixing', 'plumbing', 'buying'],
   evictions: ['rent', 'landlord', 'tenant', 'debt', 'money', 'home'],

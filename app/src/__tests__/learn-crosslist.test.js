@@ -265,10 +265,15 @@ describe('a pointer, never a copy', () => {
     // And to 46 / 687 on 2026-09-22 for World Issues issue 17 (biology walks
     // back the selfish gene) — an issue added to an existing track, so the
     // course count does not move and only the lesson total does.
-    expect(courses).toHaveLength(46);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(687);
+    // And to 47 / 695 on 2026-09-23 when the HISTORY department opened
+    // (Darrell: "We need history to reflect actual history... Build the
+    // History department"). Its first course, history-truth, is 8 lessons and
+    // is a whole new DEPARTMENT, so both numbers move — 46 to 47 and 687 to
+    // 695. DR-0572.
+    expect(courses).toHaveLength(47);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(695);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(687);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(695);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
