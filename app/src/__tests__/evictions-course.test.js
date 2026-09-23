@@ -480,7 +480,12 @@ describe('FRESHNESS INSIDE THE DEPARTMENT, measured rather than claimed (DR-0076
       const theirs = versesCited(c);
       for (const v of mine) if (theirs.has(v)) outside.add(v);
     }
-    expect([...outside].sort()).toEqual(['Amos 2:6', 'Job 31:15', 'Matthew 18:27', 'Matthew 18:33']);
+    // And to FIVE on 2026-09-23 when the History department opened (DR-0572):
+    // its landmark lesson quotes Job 24:2 — "Some remove the landmarks" — the
+    // same verse this course cites for the boundary a landlord may not move.
+    // Two courses meeting on the one verse that names the crime is the
+    // catalog agreeing with itself; re-pinned, not loosened.
+    expect([...outside].sort()).toEqual(['Amos 2:6', 'Job 24:2', 'Job 31:15', 'Matthew 18:27', 'Matthew 18:33']);
   });
 
   it('carries none of the three passages the measurement ruled out', () => {

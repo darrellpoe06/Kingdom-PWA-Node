@@ -38,6 +38,7 @@ import { ECON_META, ECON_SESSION_FLOW, buildEconSchedule, econProgressSummary, e
 import { PV_META, PV_SESSION_FLOW, buildPvSchedule, pvProgressSummary, exportPvCurriculumMarkdown, PV_INTEREST_TAG, PV_HELPER_TAG, PV_TUTOR_META } from './prophetic-voices.js';
 import { LEGACY_PROVISIONS_META, LEGACY_PROVISIONS_SESSION_FLOW, buildLegacyProvisionsSchedule, legacyProvisionsProgressSummary, exportLegacyProvisionsCurriculumMarkdown, LEGACY_PROVISIONS_INTEREST_TAG, LEGACY_PROVISIONS_HELPER_TAG, LEGACY_PROVISIONS_TUTOR_META } from './legacy-provisions-course.js';
 import { PROPERTY_PRINCIPLE_META, PROPERTY_PRINCIPLE_SESSION_FLOW, buildPropertyPrincipleSchedule, propertyPrincipleProgressSummary, exportPropertyPrincipleCurriculumMarkdown, PROPERTY_PRINCIPLE_INTEREST_TAG, PROPERTY_PRINCIPLE_HELPER_TAG, PROPERTY_PRINCIPLE_TUTOR_META } from './property-principle-course.js';
+import { HISTORY_META, HISTORY_SESSION_FLOW, buildHistorySchedule, historyProgressSummary, exportHistoryCurriculumMarkdown, HISTORY_INTEREST_TAG, HISTORY_HELPER_TAG, HISTORY_TUTOR_META } from './history-course.js';
 import { MANAGEMENT_STEWARDSHIP_META, MANAGEMENT_STEWARDSHIP_SESSION_FLOW, buildManagementStewardshipSchedule, managementStewardshipProgressSummary, exportManagementStewardshipCurriculumMarkdown, MANAGEMENT_STEWARDSHIP_INTEREST_TAG, MANAGEMENT_STEWARDSHIP_HELPER_TAG, MANAGEMENT_STEWARDSHIP_TUTOR_META } from './management-stewardship-course.js';
 import { BUYING_TERMS_META, BUYING_TERMS_SESSION_FLOW, buildBuyingTermsSchedule, buyingTermsProgressSummary, exportBuyingTermsCurriculumMarkdown, BUYING_TERMS_INTEREST_TAG, BUYING_TERMS_HELPER_TAG, BUYING_TERMS_TUTOR_META } from './buying-terms-course.js';
 import { LEASING_TENANTS_META, LEASING_TENANTS_SESSION_FLOW, buildLeasingTenantsSchedule, leasingTenantsProgressSummary, exportLeasingTenantsCurriculumMarkdown, LEASING_TENANTS_INTEREST_TAG, LEASING_TENANTS_HELPER_TAG, LEASING_TENANTS_TUTOR_META } from './leasing-tenants-course.js';
@@ -665,6 +666,28 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want a hand applying the eight principles to a place you own, rent, or manage \u2014 the real boundary, the honest term, the records in one place, the wage paid before sundown, and a successor who is actually being taught. The whole course is free and open right here; this is for a hand with yours. Teaching, not legal or financial advice.',
       cta: 'I want help with mine',
       sent: '\u2713 Sent \u2014 Darrell will reach out. He kept the title; we hold the use.',
+    },
+  },
+  {
+    // COURSE ONE OF THE HISTORY DEPARTMENT (Darrell 2026-09-22: "We need
+    // history to reflect actual history... Courses on Historical Truth Light
+    // from Yahweh's perspectives... American Historical accuracy from the
+    // beginning... least of these and fatherless and widows narratives... two
+    // or more gather together there He will be in the midst"). Measured before
+    // it was built: ten departments, none of them History; no course taught
+    // American history at all. The category string opens the department
+    // (learn-organize.js derives departments from meta.category).
+    key: 'history-truth', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...HISTORY_META, key: 'history-truth', category: 'History' }, sessionFlow: HISTORY_SESSION_FLOW,
+    buildScheduleRows: () => buildHistorySchedule(null), progressSummary: (p) => historyProgressSummary(p),
+    exportMarkdown: () => exportHistoryCurriculumMarkdown(null), downloadName: 'historical-truth-american-history-in-the-light-of-the-word-curriculum.md',
+    interestTag: HISTORY_INTEREST_TAG, helperTag: HISTORY_HELPER_TAG, tutorCourseMeta: HISTORY_TUTOR_META,
+    interestText: (who) => `${HISTORY_INTEREST_TAG} ${who} wants a hand reading history under the Word, or has a family record to work through.`,
+    interestCopy: {
+      heading: 'Want a hand with your own family’s history?',
+      blurb: 'Tell Darrell you want help working the eight moves on a real record — the elder to ask, the decade to measure by the fatherless, the widow and the stranger, the title to trace, the one name to find, the second weight in your own state, the gleaning field in your own town, and the two or three witnesses to gather at your table. Teaching, not a substitute for the record: every date here points to the census, the statute, the treaty or the testimony it came from, and you are meant to check it.',
+      cta: 'I want help with mine',
+      sent: '✓ Sent — Darrell will reach out. The Word is true from the beginning; the record is read under it.',
     },
   },
   {
