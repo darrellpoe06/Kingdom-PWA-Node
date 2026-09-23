@@ -40,8 +40,11 @@ describe('nas-storage-sync.yml — the copy is a dispatchable lane', () => {
     expect(wf).not.toMatch(/^\s+push:/m);
   });
 
-  it('takes a bucket input that defaults to Shay’s public gallery, and empty means every bucket', () => {
-    expect(wf).toMatch(/bucket:\s*\n\s+description:[^\n]*EMPTY[^\n]*every bucket/);
+  it('takes a bucket input that defaults to Shay’s public gallery, and `all` means every bucket', () => {
+    expect(wf).toMatch(/bucket:\s*\n\s+description:[^\n]*`all` for every bucket/);
+    // An EMPTY value cannot be dispatched (the API substitutes the default), and
+    // the description says so, so nobody tries "blank" again.
+    expect(wf).toMatch(/bucket:\s*\n\s+description:[^\n]*EMPTY value dispatched/);
     expect(wf).toMatch(/default:\s*'moore-showcase'/);
   });
 
@@ -49,7 +52,10 @@ describe('nas-storage-sync.yml — the copy is a dispatchable lane', () => {
     expect(wf).toMatch(/uses:\s*tailscale\/github-action@v3/);
     expect(wf).toMatch(/tailscale status --peers=false/);
     expect(wf).toMatch(/NAS_SSH_KEY:\s*\$\{\{\s*secrets\.NAS_SSH_KEY\s*\}\}/);
-    expect(wf).toMatch(/STORAGE_BUCKET:\s*\$\{\{\s*inputs\.bucket\s*\}\}/);
+    // `all` is the sentinel for every bucket (a blank API input is replaced by
+    // the default; measured 2026-09-23, run 35872279062), so the env line maps
+    // it to the empty string storage_sync.py reads as "all in scope".
+    expect(wf).toMatch(/STORAGE_BUCKET:\s*\$\{\{\s*inputs\.bucket == 'all' && '' \|\| inputs\.bucket\s*\}\}/);
     expect(wf).toMatch(/run:\s*bash scripts\/storage-sync-over-tailnet\.sh/);
   });
 
