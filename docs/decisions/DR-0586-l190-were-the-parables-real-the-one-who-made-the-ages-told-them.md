@@ -5,7 +5,7 @@
 - **Type:** lesson
 - **Tier:** B (a new Living Lesson; every gate the series carries)
 - **Relates to:** DR-0098 (teach the Word, do not platform man's disagreement), DR-0076 (every verse fetched verbatim from the in-repo corpus, never from memory), DR-0100 (state established fact plainly, hedge only the genuinely open), DR-0331 (render his words for meaning, never his voice or his claim), DR-0459 (no ellipsis inside a quotation), DR-0210 (Yahweh in our own voice; quoted Scripture untouched), DR-0417 (child ceiling 5.0 for a new lesson), DR-0418 (full levels), DR-0544 (youth in the ladder)
-- **Scope:** `app/src/lib/living-lessons-class.js` (L190; `weeks` 188 → 189), `app/src/__tests__/living-lessons-l190-verses.test.js`, the shrink-only baselines (`reading-level`, `full-levels`, `title-in-narrative` 188 → 189; `band-differentiation` 121 → 122; `stage-reaches-reader` lessons 546 → 547), `learn-crosslist.test.js` (47 / 695 → 47 / 696)
+- **Scope:** `app/src/lib/living-lessons-class.js` (L190; `weeks` 188 → 189), `app/src/__tests__/living-lessons-l190-verses.test.js`, the shrink-only baselines (`reading-level`, `full-levels`, `title-in-narrative` 188 → 189; `band-differentiation` 121 → 122; `stage-reaches-reader` lessons 546 → 547; `course-quotation-integrity` measuredLessons 546 → 547, caught by CI run 35905362723 on the first push), `learn-crosslist.test.js` (47 / 695 → 47 / 696)
 
 ## What Darrell sent
 

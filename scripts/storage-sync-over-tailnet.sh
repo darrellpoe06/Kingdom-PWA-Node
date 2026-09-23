@@ -150,18 +150,42 @@ KEYLINES=$( { grep -c '^HOSTED_SERVICE_ROLE_KEY=' "$AE" 2>/dev/null \
 echo "HOSTED-KEY-LINES: ${KEYLINES:-0}"
 HK=$( { grep '^HOSTED_SERVICE_ROLE_KEY=' "$AE" 2>/dev/null \
         || sudo -n grep '^HOSTED_SERVICE_ROLE_KEY=' "$AE" 2>/dev/null; } | head -1 | cut -d= -f2-)
+HOSTED_URL=https://mjjlevhdufpaplypnqrv.supabase.co/storage/v1/bucket
 if [ -n "$CURL" ]; then
+  echo "HOSTED-PROBE-CURL-VERSION: $("$CURL" --version 2>/dev/null | head -1)"
   PE=$(mktemp)
-  CS=$("$CURL" -sS -m 30 -o /dev/null -w '%{http_code}' \
-        https://mjjlevhdufpaplypnqrv.supabase.co/storage/v1/bucket 2>"$PE"); CE=$?
+  CS=$("$CURL" -sS -m 30 -o /dev/null -w '%{http_code}' "$HOSTED_URL" 2>"$PE"); CE=$?
   echo "HOSTED-REACHABLE-FROM-NAS: HTTP ${CS:-000} curl-exit $CE $(head -c 200 "$PE" | tr '\n' ' ')"
+  # Run 35906035230: the no-key GET reached hosted (HTTP 400) and the keyed
+  # GET died inside curl ("(27) Failed sending HTTP request") before any byte
+  # left the box. Two controls tell a curl that cannot send ANY header apart
+  # from a VALUE curl will not send: a dummy header of the same length
+  # (expect 401 "Invalid API key"), then the real value over HTTP/1.1.
+  DUMMY=$(printf 'a%.0s' $(seq 1 57))
+  CS=$("$CURL" -sS -m 30 -o /dev/null -w '%{http_code}' \
+        -H "apikey: $DUMMY" -H "Authorization: Bearer $DUMMY" "$HOSTED_URL" 2>"$PE"); CE=$?
+  echo "HOSTED-DUMMY-HEADER-SENDS: HTTP ${CS:-000} curl-exit $CE $(head -c 200 "$PE" | tr '\n' ' ')"
   rm -f "$PE"
 fi
+if [ -n "$HK" ]; then
+  # BYTES, not characters, and CLASSES, not characters: a multibyte or
+  # non-printable byte inside the value is exactly what curl refuses to put on
+  # the wire, and none of these numbers can be turned back into the value.
+  BYTES=$(printf '%s' "$HK" | wc -c | tr -d ' ')
+  NONALNUM=$(printf '%s' "$HK" | LC_ALL=C tr -d 'a-zA-Z0-9' | wc -c | tr -d ' ')
+  NONPRINT=$(printf '%s' "$HK" | LC_ALL=C tr -d '[:print:]' | wc -c | tr -d ' ')
+  PUNCT=$(printf '%s' "$HK" | LC_ALL=C tr -d 'a-zA-Z0-9' | LC_ALL=C tr -cd '[:print:]' | fold -w1 | sort -u | tr -d '\n')
+  echo "HOSTED-KEY-BYTES: bytes=$BYTES non-alnum=$NONALNUM non-printable=$NONPRINT punctuation-set=[$PUNCT]"
+fi
 if [ -n "$HK" ] && [ -n "$CURL" ]; then
+  PE=$(mktemp)
+  CS=$("$CURL" -sS -m 30 --http1.1 -o /dev/null -w '%{http_code}' \
+        -H "apikey: $HK" -H "Authorization: Bearer $HK" "$HOSTED_URL" 2>"$PE"); CE=$?
+  echo "HOSTED-ANSWERS-THE-KEY-HTTP1: HTTP ${CS:-000} curl-exit $CE $(head -c 200 "$PE" | tr '\n' ' ')"
+  rm -f "$PE"
   PB=$(mktemp); PE=$(mktemp)
   PS=$("$CURL" -sS -m 30 -o "$PB" -w '%{http_code}' \
-        -H "apikey: $HK" -H "Authorization: Bearer $HK" \
-        https://mjjlevhdufpaplypnqrv.supabase.co/storage/v1/bucket 2>"$PE"); CE=$?
+        -H "apikey: $HK" -H "Authorization: Bearer $HK" "$HOSTED_URL" 2>"$PE"); CE=$?
   echo "HOSTED-ANSWERS-THE-KEY: HTTP ${PS:-000} curl-exit $CE $(head -c 200 "$PE" | tr '\n' ' ')$($PY - "$PB" <<'PYEOF'
 import json, sys
 try:
