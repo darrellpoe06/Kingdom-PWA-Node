@@ -195,8 +195,10 @@ describe('arming the studio cannot report a confident wrong answer', () => {
     // then announced "NO AUDIO — the model has no speaker bank": a precise
     // diagnosis of a download in progress. Two attempts, and the conclusion
     // belongs to the second.
-    const first = ARM.match(/curl -s -m (\d+) -X POST[^\n]*first speak/);
-    const warm = ARM.match(/curl -s -m (\d+) -X POST[^\n]*warm speak/);
+    // The curl binary is chosen per dialect since DR-0579 (`curl` on a Linux
+    // box, `curl.exe` on the PowerShell tower), so the line reads `$CURL`.
+    const first = ARM.match(/(?:curl|\$CURL) -s -m (\d+) -X POST[^\n]*first speak/);
+    const warm = ARM.match(/(?:curl|\$CURL) -s -m (\d+) -X POST[^\n]*warm speak/);
     expect(first, 'the two-attempt speak verification is gone').toBeTruthy();
     expect(warm).toBeTruthy();
     expect(Number(first[1]), 'the first speak cannot outlast a model download').toBeGreaterThanOrEqual(600);
