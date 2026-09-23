@@ -1,0 +1,15 @@
+{
+  "note": "Shrink-only debt, measured 2026-09-23 by running app/src/lib/decision-chain.js over every docs/decisions/DR-*.md numbered below DR-0588 (DR-0588 is the first record REQUIRED to carry all five steps). A record may gain a step (append a measured section; never rewrite substance, DR-0011) and never lose one. Re-measure by running the mapper, never by hand.",
+  "measuredAt": "2026-09-23",
+  "firstRecordUnderTheRule": 588,
+  "measuredRecords": 550,
+  "complete": 16,
+  "incomplete": 534,
+  "missingBySlot": {
+    "concern": 101,
+    "evidence": 381,
+    "impact": 208,
+    "decision": 134,
+    "outcome": 311
+  }
+}

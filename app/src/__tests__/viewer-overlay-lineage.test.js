@@ -69,14 +69,14 @@ function realLineage() {
 describe('viewer-overlay lineage (DR-0347)', () => {
   it('every redefinition carries every earlier participation table and, once taught, the capability predicate; the LAST definition is the whole truth', () => {
     const defs = realLineage();
-    expect(defs.map((d) => d.name.slice(0, 4))).toEqual(['0125', '0126', '0181', '0190']);
+    expect(defs.map((d) => d.name.slice(0, 4))).toEqual(['0125', '0126', '0181', '0190', '0227']);
     expect(lineageProblems(defs)).toEqual([]);
     const last = defs[defs.length - 1];
     expect(hasCapabilityPredicate(last.body)).toBe(true);
     expect(participationOf(last.body)).toEqual(['direct_messages', 'group_messages', 'family_messages', 'feedback', 'usage_events', 'user_instance_settings', 'push_subscriptions']);
   });
-  it('PROVEN-TO-CATCH: with 0190 removed, 0181’s own redefinition is the drop this gate exists to name', () => {
-    const defs = realLineage().filter((d) => !d.name.startsWith('0190'));
+  it('PROVEN-TO-CATCH: with 0190 and 0227 removed, 0181’s own redefinition is the drop this gate exists to name', () => {
+    const defs = realLineage().filter((d) => !d.name.startsWith('0190') && !d.name.startsWith('0227'));
     const problems = lineageProblems(defs);
     expect(problems).toHaveLength(1);
     expect(problems[0]).toMatch(/^0181-.*drops the capability predicate/);
@@ -93,5 +93,18 @@ describe('viewer-overlay lineage (DR-0347)', () => {
     const wf = readFileSync(join(here, '../../../.github/workflows/rls-isolation.yml'), 'utf8');
     const line = wf.split('\n').find((l) => /0125-viewer-true-readonly/.test(l));
     expect(line).toMatch(/0181-push-subscriptions[^"]*0190-the-viewer-overlay-keeps-the-checklist/);
+  });
+  it('0227 sweeps viewer_readonly_* off every participation table, and both legs that replay 0190 end on it (DR-0587)', () => {
+    const defs = realLineage();
+    const last = defs[defs.length - 1];
+    expect(last.name).toMatch(/^0227-/);
+    expect(last.body).toMatch(/FOREACH\s+p\s+IN\s+ARRAY\s+participation/);
+    for (const verb of ['insert', 'update', 'delete']) {
+      expect(last.body).toMatch(new RegExp(`DROP POLICY IF EXISTS viewer_readonly_${verb} ON public\\.%I', p\\)`));
+    }
+    const wf = readFileSync(join(here, '../../../.github/workflows/rls-isolation.yml'), 'utf8');
+    const legs = wf.split('\n').filter((l) => /0190-the-viewer-overlay-keeps-the-checklist/.test(l));
+    expect(legs.length).toBeGreaterThanOrEqual(2);
+    for (const l of legs) expect(l).toMatch(/0190-the-viewer-overlay-keeps-the-checklist[^"]*0227-the-overlay-removes-what-it-no-longer-stamps\.sql"/);
   });
 });

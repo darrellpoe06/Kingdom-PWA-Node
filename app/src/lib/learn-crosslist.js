@@ -321,6 +321,12 @@ export const COURSE_CROSS_LISTINGS = [
   // as well as its home (measured: 39 distinct Scripture anchors across eight
   // lessons; the course test walks every quoted span against the KJV).
   { department: 'The Word & The Way', courseKey: 'history-truth', why: 'American history read under the Word’s own measure of a nation — the fatherless, the widow and the stranger — and established at the mouth of two or three witnesses (measured: 41 Scripture anchors across eight lessons).' },
+  // The department's second course teaches the researcher's craft as the
+  // Word commands it — prove all things, the eyewitness, two or three
+  // witnesses, a just weight, reproof regarded, written in order — so it sits
+  // on the Word's shelf as well as at home (measured: 32 distinct Scripture
+  // anchors across eight lessons; the course test walks every quoted span).
+  { department: 'The Word & The Way', courseKey: 'historical-research-1619', why: 'The historian’s craft taught as the Word commands it — prove all things, go to the eyewitness, two or three witnesses, a just weight, reproof regarded, written in order — worked on the 1619 Project as the case (measured: 32 Scripture anchors across eight lessons).' },
 ];
 
 /** The course declarations shelved into one department, in authored order. */

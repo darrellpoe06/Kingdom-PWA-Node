@@ -124,7 +124,7 @@ export const SURFACES = [
   { id: 'transactions', label: 'Transactions', nav: 'books', view: 'books', sub: 'transactions', load: () => import('./components/BooksTransactions.jsx') },
   { id: 'cart',  label: 'Subscriptions', nav: 'books', view: 'books', sub: 'cart',  load: pick(() => import('./components/Cart.jsx'), 'Cart') },
   { id: 'k1099', label: '1099',          nav: 'books', view: 'books', sub: 'k1099', load: pick(() => import('./components/Contractors1099.jsx'), 'Contractors1099') },
-  { id: 'owed',  label: 'Owed',          nav: 'books', view: 'books', sub: 'owed',  requires: 'instance-owner-admin', whenDenied: 'lock', gate: 'owner or admin (books wall, 0082/0100 + 0202/0203)', load: pick(() => import('./components/Obligations.jsx'), 'Obligations') },
+  { id: 'owed',  label: 'Owed',          nav: 'books', view: 'books', sub: 'owed',  requires: 'instance-owner-admin', whenDenied: 'lock', gate: 'owner or admin (books wall, 0082/0100 + 0202/0203)', load: () => import('./components/Obligations.jsx') },
   { id: 'plan',  label: 'Plan',          nav: 'books', view: 'books', sub: 'plan',  requires: 'signed-in', whenDenied: 'lock', gate: 'instance member (family_plans RLS)', load: pick(() => import('./components/FamilyPlan.jsx'), 'FamilyPlan') },
 ];
 

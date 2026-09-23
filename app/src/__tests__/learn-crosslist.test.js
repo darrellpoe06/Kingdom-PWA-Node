@@ -274,10 +274,13 @@ describe('a pointer, never a copy', () => {
     // One Who Made the Ages Told Them") — Darrell's question, answered from
     // the Word only; a real lesson into the existing Living Lessons course,
     // so the course count holds at 47 and only the lesson total moves.
-    expect(courses).toHaveLength(47);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(696);
+    // And to 48 / 704 on 2026-09-23 for the HISTORY department's second
+    // course, historical-research-1619 (8 lessons, DR-0590) — the craft of
+    // research taught Word-first on one case, so both numbers move.
+    expect(courses).toHaveLength(48);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(704);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(696);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(704);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {

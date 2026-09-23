@@ -25,6 +25,7 @@
 // BRAKES: one fetch per distinct URL (cached), 30 s each, no writes anywhere.
 // =============================================================================
 import { HISTORY_MODULES } from '../app/src/lib/history-course.js';
+import { HISTORICAL_RESEARCH_MODULES } from '../app/src/lib/historical-research-course.js';
 
 const ENTITIES = {
   amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
@@ -128,7 +129,8 @@ async function probe(spec) {
 const main = async () => {
   if (process.argv.includes('--probe')) { await probe(process.env.PROBES); process.exit(0); }
   const selftest = process.argv.includes('--selftest-break');
-  let modules = HISTORY_MODULES;
+  // Both History courses carry voices; the witness reads every one.
+  let modules = [...HISTORY_MODULES, ...HISTORICAL_RESEARCH_MODULES];
   if (selftest) {
     // The true words must be FOUND and the altered words REFUSED, in the same
     // page. A dark network refuses both, and that is not a catch — it is a

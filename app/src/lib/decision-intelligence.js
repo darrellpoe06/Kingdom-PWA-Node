@@ -1,0 +1,242 @@
+// =============================================================================
+// decision-intelligence — the six readouts of Darrell's brief, derived from the
+// rows the app already writes: repeated risks, dependencies, ownership gaps,
+// what has stalled, patterns across areas, and what threatens a date
+// =============================================================================
+// Darrell, 2026-09-23: "How can PoeTech App do these functions for me?!!!!"
+// The functions, in his words — Risks: what appears repeatedly? Dependencies:
+// what cannot move until another item is completed? Ownership gaps: who
+// should own this but doesn't? Escalation needs: what has stalled? Patterns:
+// what concerns are appearing across multiple projects? Timeline threats:
+// what evidence suggests delivery dates are at risk? — plus the column his
+// board recommends: Decision required (who needs to decide what).
+//
+// THE REAL DATA (DR-0061). concerns (0039 + 0228: concern, evidence, impact,
+// decision_required, outcome, owner, target_date, status, area, links,
+// updated_at), projects (title, end_date, status, blocker, assignee_personas),
+// discussions (kind handoff → meta.handoff.to). Every readout item names the
+// rows it was derived from (`sources`) and states its reason in one plain
+// sentence (`why`). No rows → ok:false "unavailable", never a painted zero
+// (DR-0076 / DR-0100). PURE and deterministic: same rows + same nowMs → same
+// readout; the clock is an argument, never read inside.
+//
+// THRESHOLDS are named constants, stated on the surface, so "stalled" means
+// one measurable thing and not a feeling.
+// =============================================================================
+
+export const STALL_DAYS = 21;          // no update for this long on an open row = stalled
+export const DUE_SOON_DAYS = 14;       // a target inside this window with no work started = a threat
+export const PROJECT_HORIZON_DAYS = 30; // a project ending inside this window with an open blocker = a threat
+export const REPEAT_MIN = 2;           // the same signature this many times = a repeated risk
+
+const DAY = 86400000;
+const OPEN = new Set(['open', 'in-progress']);
+
+const STOP = new Set(('a an the and or of to in on for with without from by at is are was were be been it its this that these those we our you your they their as into over under not no yes do does did done has have had can cannot could should would will if then than so such via per about after before again still just only also more most less least very much many any some all each every one two three new old same other another when where what which who whom whose how why up down out off').split(' '));
+
+export function isoDay(v) {
+  if (!v) return '';
+  const s = String(v);
+  return s.length >= 10 ? s.slice(0, 10) : s;
+}
+
+export function daysBetween(fromIso, toMs) {
+  if (!fromIso || !Number.isFinite(toMs)) return null;
+  const t = Date.parse(String(fromIso).length === 10 ? `${fromIso}T00:00:00Z` : fromIso);
+  if (!Number.isFinite(t)) return null;
+  return Math.floor((toMs - t) / DAY);
+}
+
+// The content signature of a sentence: its three most telling words, sorted.
+// Two concerns with the same signature are the same worry stated twice.
+export function signatureOf(text, n = 3) {
+  const words = String(text || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length >= 4 && !STOP.has(w));
+  const freq = new Map();
+  for (const w of words) freq.set(w, (freq.get(w) || 0) + 1);
+  return Array.from(freq.entries())
+    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
+    .slice(0, n)
+    .map((e) => e[0])
+    .sort()
+    .join('+');
+}
+
+const conc = (c) => ({
+  id: c.id,
+  label: String(c.concern || '').trim().slice(0, 120),
+  area: (c.area || '').trim() || 'general',
+  status: c.status || 'open',
+  owner: (c.owner || '').trim(),
+  targetDate: isoDay(c.targetDate || c.target_date),
+  updatedAt: c.updatedAt || c.updated_at || c.createdAt || c.created_at || '',
+  links: c.links && typeof c.links === 'object' ? c.links : {},
+  decisionRequired: (c.decisionRequired || c.decision_required || '').trim(),
+  evidence: (c.evidence || '').trim(),
+  impact: (c.impact || '').trim(),
+  outcome: (c.outcome || '').trim(),
+  solution: (c.solution || '').trim(),
+});
+
+const proj = (p) => ({
+  id: p.id,
+  label: String(p.title || '').trim().slice(0, 120),
+  status: p.status || '',
+  endDate: isoDay(p.endDate || p.end_date),
+  blocker: (p.blocker || '').trim(),
+  assignees: Array.isArray(p.assigneePersonas) ? p.assigneePersonas.filter(Boolean) : [],
+  domain: (p.domain || '').trim(),
+});
+
+const dep = (x) => ({
+  // links.depends_on / links.blocked_by: a concern id, a project slug, or a list of either
+  ids: [].concat(x.links.depends_on || [], x.links.blocked_by || [], x.links.blockedBy || []).map(String).filter(Boolean),
+  projectSlug: x.links.project_slug || x.links.projectSlug || '',
+});
+
+// deriveDecisionIntelligence — the whole readout in one pass.
+export function deriveDecisionIntelligence({ concerns = [], projects = [], discussions = [], nowMs } = {}) {
+  const now = Number.isFinite(nowMs) ? nowMs : NaN;
+  const cs = (concerns || []).filter((c) => c && c.id).map(conc);
+  const ps = (projects || []).filter((p) => p && p.id).map(proj);
+  const ds = (discussions || []).filter((d) => d && d.id);
+  const total = cs.length + ps.length + ds.length;
+  const byId = new Map();
+  for (const c of cs) byId.set(String(c.id), { kind: 'concern', ...c });
+  for (const p of ps) byId.set(String(p.id), { kind: 'project', ...p });
+
+  const empty = { ok: false, reason: 'no concerns, projects or discussions to read', counts: {}, risks: [], dependencies: [], ownershipGaps: [], escalations: [], patterns: [], timelineThreats: [], decisionsRequired: [] };
+  if (!total) return empty;
+
+  // 1. RISKS — what appears repeatedly: the same signature stated on two or
+  //    more concerns (any status: a resolved worry that returns is the point).
+  const bySig = new Map();
+  for (const c of cs) {
+    const sig = signatureOf(c.label);
+    if (!sig) continue;
+    if (!bySig.has(sig)) bySig.set(sig, []);
+    bySig.get(sig).push(c);
+  }
+  const risks = [];
+  for (const [sig, list] of bySig) {
+    if (list.length < REPEAT_MIN) continue;
+    const open = list.filter((c) => OPEN.has(c.status)).length;
+    risks.push({
+      key: sig,
+      title: list[0].label,
+      count: list.length,
+      open,
+      areas: Array.from(new Set(list.map((c) => c.area))).sort(),
+      sources: list.map((c) => c.id),
+      why: `Stated ${list.length} times (${open} still open) as "${sig.split('+').join(', ')}" across ${Array.from(new Set(list.map((c) => c.area))).length} area(s).`,
+    });
+  }
+  risks.sort((a, b) => b.count - a.count || b.open - a.open || (a.key < b.key ? -1 : 1));
+
+  // 2. DEPENDENCIES — what cannot move until another item is completed.
+  const dependencies = [];
+  for (const c of cs) {
+    if (!OPEN.has(c.status)) continue;
+    const d = dep(c);
+    for (const id of d.ids) {
+      const target = byId.get(id);
+      const targetOpen = !target || (target.kind === 'concern' ? OPEN.has(target.status) : target.status !== 'done' && target.status !== 'complete');
+      if (!targetOpen) continue;
+      dependencies.push({
+        id: c.id,
+        title: c.label,
+        waitsOn: id,
+        waitsOnTitle: target ? target.label : '(not on this board)',
+        sources: [c.id, id],
+        why: target ? `Waits on ${target.kind} "${target.label}" which is ${target.status || 'not done'}.` : `Waits on "${id}", which is not a row this board holds.`,
+      });
+    }
+  }
+  for (const p of ps) {
+    if (!p.blocker || p.status === 'done' || p.status === 'complete') continue;
+    dependencies.push({ id: p.id, title: p.label, waitsOn: '', waitsOnTitle: p.blocker, sources: [p.id], why: `Project names its own blocker: "${p.blocker.slice(0, 140)}".` });
+  }
+
+  // 3. OWNERSHIP GAPS — who should own this but doesn't.
+  const ownershipGaps = [];
+  for (const c of cs) if (OPEN.has(c.status) && !c.owner) ownershipGaps.push({ id: c.id, kind: 'concern', title: c.label, area: c.area, sources: [c.id], why: `${c.status === 'in-progress' ? 'In-progress' : 'Open'} concern in ${c.area} with no owner set.` });
+  for (const p of ps) if (p.status && p.status !== 'done' && p.status !== 'complete' && p.assignees.length === 0) ownershipGaps.push({ id: p.id, kind: 'project', title: p.label, area: p.domain || 'project', sources: [p.id], why: `Project "${p.label}" (${p.status}) has no assignee.` });
+  for (const d of ds) {
+    if (d.kind !== 'handoff') continue;
+    const to = d.meta && (d.meta.handoff?.to || d.meta.to);
+    if (!to) ownershipGaps.push({ id: d.id, kind: 'handoff', title: d.title || 'Hand-off', area: 'board', sources: [d.id], why: 'A hand-off was recorded with no one to receive it.' });
+  }
+
+  // 4. ESCALATIONS — what has stalled: a slipped target, or no update for STALL_DAYS.
+  const escalations = [];
+  for (const c of cs) {
+    if (!OPEN.has(c.status)) continue;
+    const slip = c.targetDate ? daysBetween(c.targetDate, now) : null;
+    const idle = c.updatedAt ? daysBetween(c.updatedAt, now) : null;
+    if (slip != null && slip > 0) escalations.push({ id: c.id, title: c.label, kind: 'slipped', days: slip, sources: [c.id], why: `Target ${c.targetDate} passed ${slip} day(s) ago and the row is still ${c.status}.` });
+    else if (idle != null && idle >= STALL_DAYS) escalations.push({ id: c.id, title: c.label, kind: 'idle', days: idle, sources: [c.id], why: `No update for ${idle} days (threshold ${STALL_DAYS}) while ${c.status}.` });
+  }
+  for (const p of ps) {
+    if (!p.endDate || p.status === 'done' || p.status === 'complete') continue;
+    const slip = daysBetween(p.endDate, now);
+    if (slip != null && slip > 0) escalations.push({ id: p.id, title: p.label, kind: 'slipped', days: slip, sources: [p.id], why: `Project end date ${p.endDate} passed ${slip} day(s) ago and status is ${p.status}.` });
+  }
+  escalations.sort((a, b) => b.days - a.days || (a.id < b.id ? -1 : 1));
+
+  // 5. PATTERNS — the same worry across more than one area, or an area that
+  //    keeps collecting open concerns.
+  const patterns = [];
+  for (const r of risks) if (r.areas.length >= 2) patterns.push({ key: r.key, title: r.title, areas: r.areas, count: r.count, sources: r.sources, why: `The same concern is on the board in ${r.areas.join(', ')}.` });
+  const byArea = new Map();
+  for (const c of cs) if (OPEN.has(c.status)) { if (!byArea.has(c.area)) byArea.set(c.area, []); byArea.get(c.area).push(c); }
+  for (const [area, list] of byArea) if (list.length >= 3) patterns.push({ key: `area:${area}`, title: `${list.length} open concerns in ${area}`, areas: [area], count: list.length, sources: list.map((c) => c.id), why: `${area} carries ${list.length} open concerns at once.` });
+  patterns.sort((a, b) => b.count - a.count || (a.key < b.key ? -1 : 1));
+
+  // 6. TIMELINE THREATS — evidence a date is at risk: a target inside
+  //    DUE_SOON_DAYS with no work started; a project ending inside
+  //    PROJECT_HORIZON_DAYS with an open blocker or an open concern linked to it.
+  const timelineThreats = [];
+  for (const c of cs) {
+    if (c.status !== 'open' || !c.targetDate) continue;
+    const left = -(daysBetween(c.targetDate, now) ?? -Infinity);
+    if (left >= 0 && left <= DUE_SOON_DAYS) timelineThreats.push({ id: c.id, title: c.label, date: c.targetDate, daysLeft: left, sources: [c.id], why: `Due in ${left} day(s) and no work has started (status open).` });
+  }
+  for (const p of ps) {
+    if (!p.endDate || p.status === 'done' || p.status === 'complete') continue;
+    const left = -(daysBetween(p.endDate, now) ?? -Infinity);
+    if (left < 0 || left > PROJECT_HORIZON_DAYS) continue;
+    const linked = cs.filter((c) => OPEN.has(c.status) && dep(c).projectSlug === p.id);
+    if (p.blocker || linked.length) timelineThreats.push({ id: p.id, title: p.label, date: p.endDate, daysLeft: left, sources: [p.id, ...linked.map((c) => c.id)], why: `Ends in ${left} day(s) with ${p.blocker ? 'a named blocker' : ''}${p.blocker && linked.length ? ' and ' : ''}${linked.length ? `${linked.length} open concern(s) linked to it` : ''}.` });
+  }
+  timelineThreats.sort((a, b) => a.daysLeft - b.daysLeft || (a.id < b.id ? -1 : 1));
+
+  // 7. DECISIONS REQUIRED — the board's own column: an open row that names
+  //    who must decide what.
+  const decisionsRequired = cs
+    .filter((c) => OPEN.has(c.status) && c.decisionRequired)
+    .map((c) => ({ id: c.id, title: c.label, decision: c.decisionRequired.slice(0, 240), impact: c.impact.slice(0, 240), evidence: c.evidence.slice(0, 240), owner: c.owner, sources: [c.id], why: 'The row names a decision it is waiting on.' }));
+
+  const counts = { risks: risks.length, dependencies: dependencies.length, ownershipGaps: ownershipGaps.length, escalations: escalations.length, patterns: patterns.length, timelineThreats: timelineThreats.length, decisionsRequired: decisionsRequired.length };
+  return { ok: true, read: { concerns: cs.length, projects: ps.length, discussions: ds.length }, counts, risks, dependencies, ownershipGaps, escalations, patterns, timelineThreats, decisionsRequired };
+}
+
+// The chain a concern carries as database fields (0228), in the five-slot
+// shape the Governance ledger renders. Empty = not recorded, said as such.
+export function concernChain(c) {
+  const x = conc(c || {});
+  const slot = (heading, text) => (text ? { heading, text } : null);
+  const out = {
+    concern: slot('Concern', x.label),
+    evidence: slot('Evidence', x.evidence),
+    impact: slot('Impact', x.impact),
+    decision: slot(x.decisionRequired ? 'Decision required' : 'Solution', x.decisionRequired || x.solution),
+    outcome: slot('Outcome', x.outcome),
+  };
+  out.missing = ['concern', 'evidence', 'impact', 'decision', 'outcome'].filter((k) => !out[k]);
+  out.complete = out.missing.length === 0;
+  out.reReview = '';
+  return out;
+}

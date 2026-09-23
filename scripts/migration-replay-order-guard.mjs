@@ -78,12 +78,100 @@ export function replacedObjects(dir = MIGRATIONS) {
 /** The legs, as { feature, migrations: [FILENAMES in listed order] }. */
 export function isolationLegs(workflowText = readFileSync(WORKFLOW, 'utf8')) {
   const legs = [];
-  const re = /- feature:\s*([\w-]+)[\s\S]*?migrations:\s*"([^"]*)"/g;
+  const re = /- feature:\s*([\w-]+)([\s\S]*?)migrations:\s*"([^"]*)"/g;
   let m;
   while ((m = re.exec(workflowText)) !== null) {
-    legs.push({ feature: m[1], migrations: m[2].split(/\s+/).filter(Boolean) });
+    const pre = /\bpre:\s*"([^"]*)"/.exec(m[2]);
+    legs.push({ feature: m[1], pre: pre ? pre[1] : '', migrations: m[3].split(/\s+/).filter(Boolean) });
   }
   return legs;
+}
+
+// ── THE THIRD BLIND SPOT (measured live 2026-09-23, rls-isolation runs 8 of 9
+// red): the role-control leg lists 0112 AND 0221 in order, exactly as the
+// check above requires — and still fails every time. 0221 widened
+// list_my_admin_instances()'s RETURNS TABLE (it added slug) with DROP + CREATE,
+// so the live database carries the wide shape; the leg then RE-APPLIES 0112,
+// whose CREATE OR REPLACE carries the narrow shape, and Postgres refuses it:
+// "cannot change return type of existing function". Listing the newer file
+// after the older one keeps a replay from REVERTING — it does not keep the
+// older file from being REFUSED. A leg that replays two shapes of one function
+// must drop it first (matrix.pre), the way books-role-wall and poe-properties
+// already do; this check makes that a rule instead of a memory.
+
+/** Every function definition in one migration, with its normalized RETURNS. */
+export function functionShapes(sql = '') {
+  const clean = sql.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/--[^\n]*/g, ' ');
+  const out = [];
+  const re = /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?([a-z0-9_]+)\s*\(/gi;
+  let m;
+  while ((m = re.exec(clean)) !== null) {
+    let i = m.index + m[0].length;
+    let depth = 1;
+    while (i < clean.length && depth > 0) {
+      if (clean[i] === '(') depth += 1;
+      else if (clean[i] === ')') depth -= 1;
+      i += 1;
+    }
+    const bodyAt = clean.slice(i).search(/\bas\s*\$|\blanguage\b/i);
+    if (bodyAt === -1) continue;
+    const ret = /\breturns\b([\s\S]*)$/i.exec(clean.slice(i, i + bodyAt));
+    const returns = (ret ? ret[1] : '').replace(/\s+/g, ' ').replace(/\s*,\s*/g, ',').replace(/\s*\(\s*/g, '(').replace(/\s*\)\s*/g, ')').trim().toLowerCase();
+    out.push({ name: m[1].toLowerCase(), returns });
+  }
+  return out;
+}
+
+/** The functions a SQL text drops (a migration's own DROP, or a leg's pre). */
+export function droppedFunctions(sql = '') {
+  const clean = sql.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/--[^\n]*/g, ' ');
+  const out = new Set();
+  const re = /drop\s+function\s+(?:if\s+exists\s+)?(?:public\.)?([a-z0-9_]+)/gi;
+  let m;
+  while ((m = re.exec(clean)) !== null) out.add(m[1].toLowerCase());
+  return out;
+}
+
+/** filename -> { shapes: [{name, returns}], drops: Set } for every migration. */
+export function functionShapesByFile(dir = MIGRATIONS) {
+  const out = new Map();
+  for (const f of readdirSync(dir).sort()) {
+    if (!/^\d{4}-.+\.sql$/.test(f)) continue;
+    const sql = readFileSync(join(dir, f), 'utf8');
+    out.set(f, { shapes: functionShapes(sql), drops: droppedFunctions(sql) });
+  }
+  return out;
+}
+
+/**
+ * The check: a leg that replays a function under two RETURNS shapes must drop
+ * it in its pre-step, or the older file is refused on a database that already
+ * carries the newer shape. Returns { ok, problems }.
+ */
+export function checkReplayShapes(byFile = functionShapesByFile(), legs = isolationLegs()) {
+  const problems = [];
+  for (const leg of legs) {
+    const preDrops = droppedFunctions(leg.pre || '');
+    const finalShape = new Map();   // name -> returns of the LAST listed definition
+    for (const f of leg.migrations) {
+      for (const s of (byFile.get(f) || { shapes: [] }).shapes) finalShape.set(s.name, { returns: s.returns, file: f });
+    }
+    for (const f of leg.migrations) {
+      const entry = byFile.get(f);
+      if (!entry) continue;
+      for (const s of entry.shapes) {
+        const last = finalShape.get(s.name);
+        if (!last || last.file === f || last.returns === s.returns) continue;
+        if (entry.drops.has(s.name) || preDrops.has(s.name)) continue;
+        problems.push(
+          `rls-isolation leg "${leg.feature}" re-applies ${f}, which defines ${s.name}() with one RETURNS shape, ` +
+          `after ${last.file} changed it — on a database already at ${last.file} Postgres REFUSES the replay ` +
+          `("cannot change return type of existing function"). Add "DROP FUNCTION IF EXISTS public.${s.name}(...);" to that leg's pre.`
+        );
+      }
+    }
+  }
+  return { ok: problems.length === 0, problems };
 }
 
 /** The check. Returns { ok, problems: [...] }. */
@@ -119,9 +207,12 @@ export function check(replaced = replacedObjects(), legs = isolationLegs()) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const { ok, problems } = check();
+  const order = check();
+  const shapes = checkReplayShapes();
+  const ok = order.ok && shapes.ok;
+  const problems = [...order.problems, ...shapes.problems];
   if (ok) {
-    console.log('migration-replay-order-guard: OK — no isolation leg can revert a newer migration.');
+    console.log('migration-replay-order-guard: OK — no isolation leg can revert a newer migration, and none replays a function under two RETURNS shapes without dropping it first.');
     process.exit(0);
   }
   console.error('migration-replay-order-guard FAILED — a replay would restore an older definition:');

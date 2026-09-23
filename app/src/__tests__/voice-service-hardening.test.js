@@ -81,16 +81,45 @@ describe('the studio is asked whether it answers', () => {
     // the behaviour a Fire TV depends on: nobody types a URL into a television.
     delete import.meta.env.VITE_VOICE_SERVICE_URL;
     resetVoiceServiceHealthForTests();
-    globalThis.fetch = vi.fn(async () => ({ ok: true }));
+    globalThis.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ ok: true }) }));
     expect(await probeVoiceService({ force: true })).toBe('up');
     expect(String(globalThis.fetch.mock.calls[0][0])).toBe(window.location.origin + '/voice/health');
   });
   it('GET {base}/health ok → up; the reader may trust it', async () => {
-    globalThis.fetch = vi.fn(async (u) => ({ ok: u === 'https://voice.example/health' }));
+    globalThis.fetch = vi.fn(async (u) => ({ ok: u === 'https://voice.example/health', json: async () => ({ ok: true }) }));
     expect(await probeVoiceService()).toBe('up');
     expect(globalThis.fetch.mock.calls[0][0]).toBe('https://voice.example/health');
     expect(isVoiceServiceReady()).toBe(true);
     expect(isVoiceServiceAnswering()).toBe(true);
+  });
+  it('PROVEN-TO-CATCH: a 200 that is not the studio\'s own {ok:true} reads as down — n8n\'s page answered /voice/health for three days (2026-09-23)', async () => {
+    // What the runner measured: HTTP 200, text/html, "n8n.io - workflow automation".
+    globalThis.fetch = vi.fn(async () => ({ ok: true, status: 200, json: async () => { throw new SyntaxError('Unexpected token <'); } }));
+    expect(await probeVoiceService({ force: true })).toBe('down');
+    // A JSON body that is not the studio's answer.
+    globalThis.fetch = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ message: 'no route matched' }) }));
+    expect(await probeVoiceService({ force: true })).toBe('down');
+    // The forwarder's dark-studio answer: 502 with ok:false.
+    globalThis.fetch = vi.fn(async () => ({ ok: false, status: 502, json: async () => ({ ok: false, error: 'studio-unreachable' }) }));
+    expect(await probeVoiceService({ force: true })).toBe('down');
+    expect(isVoiceServiceAnswering()).toBe(false);
+  });
+  it('PROVEN-TO-CATCH: headers that arrive but a body that never ends read as down within the timeout — the request is ENDED, not left open (live-link-probe run 35931484959: /voice/health in flight for 60 s)', async () => {
+    // What the runner measured on 2026-09-23: fetch resolved on n8n's 200
+    // headers, the old code called clearTimeout in finally and never read the
+    // body, so the abort was disarmed while the stream stayed open — one
+    // request in flight for the whole 60 s wait, four days running.
+    vi.useFakeTimers();
+    let aborted = false;
+    globalThis.fetch = vi.fn(async (_u, opts) => {
+      opts.signal.addEventListener('abort', () => { aborted = true; });
+      return { ok: true, status: 200, json: () => new Promise((_, reject) => opts.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')))) };
+    });
+    const p = probeVoiceService({ force: true, timeoutMs: 40 });
+    await vi.advanceTimersByTimeAsync(50);
+    expect(await p).toBe('down');
+    expect(aborted).toBe(true);
+    vi.useRealTimers();
   });
   it('PROVEN-TO-CATCH: a non-ok answer, a thrown fetch, or a hang all read as down — configured is not the same as alive', async () => {
     globalThis.fetch = vi.fn(async () => ({ ok: false, status: 502 }));
