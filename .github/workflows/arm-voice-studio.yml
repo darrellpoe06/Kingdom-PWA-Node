@@ -108,6 +108,21 @@ jobs:
       #      again; the secret can be deleted.
       # Read-only on every road that fails; writes exactly one line on the
       # road that works.
+      # DIAGNOSTIC, booleans only: which credentials this run can SEE. Prints
+      # no value — only whether each name resolves — so a secret set under the
+      # wrong name, as a Variable instead of a Secret, or on another repo is
+      # found by the run instead of by a person guessing.
+      - name: What this run can see
+        run: |
+          echo "repository: ${{ github.repository }}  ref: ${{ github.ref }}  event: ${{ github.event_name }}"
+          echo "secrets.TOWER_CREED_PASSWORD set: ${{ secrets.TOWER_CREED_PASSWORD != '' }}"
+          echo "vars.TOWER_CREED_PASSWORD set:    ${{ vars.TOWER_CREED_PASSWORD != '' }}"
+          echo "secrets.TOWER_PASSWORD set:       ${{ secrets.TOWER_PASSWORD != '' }}"
+          echo "secrets.CREED_PASSWORD set:       ${{ secrets.CREED_PASSWORD != '' }}"
+          echo "secrets.TLCMEDIADPT_PASSWORD set: ${{ secrets.TLCMEDIADPT_PASSWORD != '' }}"
+          echo "secrets.NAS_SSH_KEY set:          ${{ secrets.NAS_SSH_KEY != '' }}"
+          echo "secrets.TS_AUTHKEY set:           ${{ secrets.TS_AUTHKEY != '' }}"
+
       - name: Authorize the CI key on the tower, by whichever road the team holds
         id: road
         continue-on-error: true
