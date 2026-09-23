@@ -269,6 +269,13 @@ jobs:
       - name: sovereign supabase migration parity selftest
         working-directory: infra/nas-supabase
         run: python3 migrate_verify.py --selftest
+      # Cutover-sync selftest (2026-09-23): the post-repoint parity verdict —
+      # a public schema object missing BY NAME is NO-GO; the live side being
+      # ahead is expected; the blob gap carries its record (DR-0317). Was
+      # never gated before; the pre-repoint column-plan checks ride along.
+      - name: sovereign cutover-sync selftest (post-repoint parity)
+        working-directory: infra/nas-supabase
+        run: python3 cutover_sync.py --selftest
       # Box agent consumer (DR-0132 P1; built on Darrell's arm 2026-08-15).
       # Proven-to-catch: keyless vendor rows FAIL with the why (never spin),
       # Ollama errors land verbatim, empty responses read as failure, the

@@ -206,7 +206,14 @@ def main():
         return 0
 
     t0 = time.monotonic()
-    dates = fetch_dates([r["video_id"] for r in rows], a.time_budget)
+    try:
+        dates = fetch_dates([r["video_id"] for r in rows], a.time_budget)
+    except RuntimeError as e:
+        # The tool itself is absent or refused (the docker-backed wrapper could
+        # not run). Degraded, not broken — see the exit-3 note below.
+        print(f"choir-dates: DEGRADED — {e}", file=sys.stderr)
+        emit(False, 0, f"degraded: {e}")
+        return 3
     dated = 0
     for r in rows:
         d = dates.get(r["video_id"])
@@ -224,9 +231,16 @@ def main():
     emit(dated > 0, dated, f"{mode}; chunk {len(rows)}; {took}s")
     if dated == 0:
         # A whole chunk yielding nothing means the page read is blocked or the
-        # remainder is genuinely undateable — either way, say so RED (DR-0076).
-        print(f"choir-dates: dated 0 of {len(rows)} — page metadata unavailable; NOT marking done.", file=sys.stderr)
-        return 1
+        # remainder is genuinely undateable — either way, say so loudly (DR-0076).
+        # EXIT 3, NOT 1 (2026-09-23): this is DEGRADED, not broken. The loader
+        # is stamp-gated and has its own witness (harvest-health files the
+        # incident when the count stops advancing). Returning 1 here made the
+        # WHOLE services-sync fleet read red on every 15-minute cycle for a
+        # YouTube read that no installer can fix, and a red that never clears
+        # teaches everyone to stop reading it. The runner reports exit 3 as
+        # DEGRADED by name and keeps the fleet green.
+        print(f"choir-dates: DEGRADED — dated 0 of {len(rows)}; page metadata unavailable; NOT marking done.", file=sys.stderr)
+        return 3
     return 0
 
 
