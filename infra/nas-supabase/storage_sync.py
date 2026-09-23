@@ -106,6 +106,23 @@ def jwt_claims(key):
         return {}
 
 
+def key_shape(key):
+    """The SHAPE of the pasted value, never the value (run 35890958021 printed
+    'opaque' for a key that is neither a JWT nor an sb_ key, and nothing said
+    what it looked like): its length, its first three characters (every
+    Supabase legacy key starts 'eyJ', every new key 'sb_' -- a prefix names a
+    family, not a secret), how many dots it has (a JWT has two), and whether
+    it carries quotes or whitespace (a paste that brought its own quotes)."""
+    k = "" if key is None else str(key)
+    return {
+        "len": len(k),
+        "prefix3": k[:3],
+        "dots": k.count("."),
+        "quoted": (k[:1] in ("'", '"')) or (k[-1:] in ("'", '"')),
+        "whitespace": any(c.isspace() for c in k),
+    }
+
+
 def hosted_key_verdict(key, expected_ref):
     """('ok', role) when the key is a service_role JWT for the hosted project;
     ('wrong-role', role) for any other JWT role (the anon key is the likely
@@ -256,6 +273,8 @@ def real_run(only_bucket=None, limit=0, dry_run=False):
         kind, detail = hosted_key_verdict(hosted_key, HOSTED_SB_URL_DEFAULT.split("//")[1].split(".")[0])
         print("storage-sync: hosted key in agent.env: {}{}".format(
             kind, " ({})".format(detail) if detail else ""))
+        if kind == "opaque":
+            print("storage-sync: hosted key shape: " + json.dumps(key_shape(hosted_key)))
         if kind in ("wrong-role", "wrong-project"):
             print("storage-sync: that is NOT the hosted service_role key -- the private "
                   "buckets cannot be read with it (storage answers 'Bucket not found' "
@@ -446,6 +465,12 @@ def selftest():
           hosted_key_verdict("something-else", "mjjlevhdufpaplypnqrv") == ("opaque", ""))
     check("an empty key is absent", hosted_key_verdict("", "x") == ("absent", ""))
     check("garbage never crashes the decoder", jwt_claims("a.b.c") == {} and jwt_claims(None) == {})
+    shape = key_shape('"eyJabc.def.ghi"')
+    check("the key SHAPE names length, family prefix, dots and quoting -- never the value",
+          shape == {"len": 16, "prefix3": '"ey', "dots": 2, "quoted": True, "whitespace": False}
+          and "eyJabc" not in json.dumps(shape))
+    check("a quoted or whitespace-carrying paste is visible in the shape",
+          key_shape("sb_secret_x y")["whitespace"] is True and key_shape(None)["len"] == 0)
 
     print("\n{}/{} passed".format(passed, passed + failed))
     return 1 if failed else 0
