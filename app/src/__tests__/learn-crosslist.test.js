@@ -342,6 +342,51 @@ describe('the shelf answers a real question', () => {
   });
 });
 
+describe('the History shelf gathers what the curriculum already taught (DR-0575)', () => {
+  // Darrell 2026-09-23, the evening the department opened: "History section
+  // doesn't have any of the historical events we currently have... why not?!"
+  // The department held its one course; the curriculum had been teaching dated
+  // history for months in five other courses. Reproduced here as the shape of
+  // the shelf: it must draw from OUTSIDE the department, from several courses,
+  // and every row must be a real, mounted lesson with a measured reason.
+  const rows = resolveCrossListed('History', index);
+
+  it('gathers the historical events the curriculum already teaches — seventeen, measured', () => {
+    expect(rows.length).toBeGreaterThanOrEqual(17);
+    expect(rows).toHaveLength(crossListedCount('History'));
+  });
+
+  it('draws them from at least five courses in two other departments (the Word’s, and Stewardship)', () => {
+    const from = [...new Set(rows.map((r) => r.courseKey))];
+    expect(from.length).toBeGreaterThanOrEqual(5);
+    expect(from).not.toContain('history-truth');
+    const depts = [...new Set(from.map((k) => catalogCategory(k)))];
+    expect(depts).not.toContain('History');
+    expect(depts).toEqual(expect.arrayContaining(['The Word & The Way', 'Kingdom Life & Stewardship']));
+  });
+
+  it('the events he named are on the shelf: the porters, Greenwood, the 1965 Act, Evanston, the engineered barriers', () => {
+    const ids = rows.map((r) => r.lessonId);
+    expect(ids.some((id) => id.startsWith('ll135-'))).toBe(true);
+    expect(ids).toContain('econ7-build-institutions');
+    expect(ids).toContain('wi-tuition-and-the-1965-act');
+    expect(ids).toContain('wi-evanston-reparations-and-equal-protection');
+    expect(ids).toContain('econ5-the-real-barriers');
+  });
+
+  it('every reason states what was measured, so the shelf is data, not taste', () => {
+    for (const c of crossListingsFor('History')) {
+      expect(c.why, `${c.lessonId} does not say what was measured`).toMatch(/\(measured: /);
+    }
+  });
+
+  it('the department line says how many more lessons it gathers', () => {
+    const dept = learnDepartments(courses).find((d) => d.label === 'History');
+    expect(dept).toBeTruthy();
+    expect(crossListedCount(dept.label)).toBe(rows.length);
+  });
+});
+
 describe('every course says SOMETHING about its shelves — the gap Darrell found', () => {
   // Darrell, 2026-09-19, opening the Business picker: "We need to review the
   // Ways we update our systems and don't when we have features added!!!!!!!!!

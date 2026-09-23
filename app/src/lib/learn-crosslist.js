@@ -118,6 +118,50 @@ export const CROSS_LISTINGS = [
     lessonId: 'bc7-llms-for-broadcast',
     why: 'A.I. that serves the broadcast — and how it really works under the hood.',
   },
+
+  // ===========================================================================
+  // THE HISTORY SHELF GATHERS WHAT THE CURRICULUM ALREADY TAUGHT (DR-0575)
+  // ===========================================================================
+  // Darrell 2026-09-23, the evening the department opened: "History section
+  // doesn't have any of the historical events we currently have... why not?!"
+  //
+  // He was right. The department held its one new course and nothing else,
+  // while the curriculum had been teaching dated American and world history
+  // for months — the Pullman porters, Greenwood, the 1965 Act, the 1921
+  // Evanston ordinance, redlining written into federal manuals, the patent law
+  // that barred the enslaved — each shelved where it was first taught. Same
+  // wall DR-0447 hit for A.I.: a lesson has ONE category string, so a reader
+  // standing in History could not see any of it.
+  //
+  // FOUND BY MEASURING, NOT BY TITLE-MATCHING. Every mounted lesson was
+  // scanned for distinct dated years and for a fixed history vocabulary
+  // (slavery, emancipation, reconstruction, jim crow, redlining, treaty,
+  // constitution, reparations, civil war, ...). 103 lessons carried three or
+  // more years or four or more of those words; a keyword count alone is not a
+  // shelf, so each candidate's own big idea was then READ, and only lessons
+  // whose SUBJECT is a documented event or period are declared here. The
+  // count beside each is what the measurement returned (history words /
+  // distinct years). Lessons that merely cite a date in passing — a 2026
+  // filing, a 1997 sermon quoted for its doctrine — stay off the shelf.
+  //
+  // Same rule as every pointer above: one home, one credit, one place record.
+  { department: 'History', courseKey: 'living-lessons', lessonId: 'll135-they-called-every-one-of-them-george-the-name-they-took-the-porter-at-the-door-and-the-wage-yahweh-legislated', why: 'The Pullman porters, 1894 to 1925 — every man called by the owner’s name, the union that won the wage, and the wage Yahweh legislated first (measured: 119 history terms, 1894–1963).' },
+  { department: 'History', courseKey: 'world-issues', lessonId: 'wi-evanston-reparations-and-equal-protection', why: 'A 1921 city ordinance, one ward, decades of mortgage denial — the documented wrong, the narrow legal question, and restitution in the Word (measured: 114 history terms, 1900–1989).' },
+  { department: 'History', courseKey: 'world-issues', lessonId: 'wi-historical-trauma-two-aftermaths', why: 'Two aftermaths on one scale — 1865, 1921, 1938, 1947 — honoring a documented wound without carrying the false report attached to it (measured: 112 history terms).' },
+  { department: 'History', courseKey: 'world-issues', lessonId: 'wi-tuition-and-the-1965-act', why: 'The land-grant acts of 1862 and 1890, the Higher Education Act of 1965, and the guaranteed-loan road that followed — the documented facts under a viral claim (measured: 80 history terms).' },
+  { department: 'History', courseKey: 'world-issues', lessonId: 'wi-prison-industrial-complex', why: 'From the 1865 amendment’s exception clause to the 1994 crime bill — the documented spine of mass incarceration, and the jubilee question (measured: 57 history terms).' },
+  { department: 'History', courseKey: 'living-lessons', lessonId: 'll90-no-respecter-of-persons-the-image-the-unrighteous-decree-and-the-judge', why: 'The vote traced from the Three-Fifths Compromise through Jim Crow to today, weighed under the Judge who is no respecter of persons (measured: 43 history terms).' },
+  { department: 'History', courseKey: 'living-lessons', lessonId: 'll134-divers-weights-when-the-question-keeps-moving-the-record-that-stands-and-the-better-assignment', why: 'The record of Black invention, 1821 to 1919, and the moving goalpost the Word names a divers weight (measured: 13 history terms, 1821–1919).' },
+  { department: 'History', courseKey: 'prophetic-voices', lessonId: 'pv-inventions', why: 'The patent law that barred the enslaved from holding their own inventions, 1793 onward, and the credit that was taken (measured: 22 history terms, 1793–1858).' },
+  { department: 'History', courseKey: 'kingdom-economics', lessonId: 'econ5-the-real-barriers', why: 'The engineered barriers, measured and documented — racial covenants, the FHA’s 1938 manual, redlining — written into deeds and federal law (measured: 14 history terms, 1938–2017).' },
+  { department: 'History', courseKey: 'kingdom-economics', lessonId: 'econ7-build-institutions', why: 'Greenwood, 1921 — thirty-five blocks destroyed and never repaid — as a documented witness of what the Body built and of an injustice that still stands (measured: 32 history terms).' },
+  { department: 'History', courseKey: 'prophetic-voices', lessonId: 'pv-price', why: 'Dr. Frederick K.C. Price’s 1997 series naming the American Church’s complicity in slavery and racism, from the record (measured: 11 history terms, 1932–1997).' },
+  { department: 'History', courseKey: 'legacy-provisions', lessonId: 'legacy7-how-we-got-here', why: 'The history of the trust itself — from the 1535 Statute of Uses to the modern spendthrift wall — the fight over how far one generation may bind the next (measured: 1535–1983).' },
+  { department: 'History', courseKey: 'living-lessons', lessonId: 'll40-the-thread-did-not-snap-remnant', why: 'Assyria’s conquest of Samaria as real history — the tablets confirm it — and the remnant Yahweh kept through the scattering (measured: 26 history terms).' },
+  { department: 'History', courseKey: 'living-lessons', lessonId: 'll127-the-firsts-what-yahweh-did-in-each-century-that-had-never-been-done-before', why: 'What Yahweh did in each century that had never been done before — the firsts, from 1446 BC to now, and what continues (measured: 31 history terms).' },
+  { department: 'History', courseKey: 'prophetic-voices', lessonId: 'pv-diop', why: 'Dr. Cheikh Anta Diop’s scientific case, defended at Cairo in 1974, that ancient Kemet was a Black African civilization continuous with the rest of Africa (measured: 1923–1986).' },
+  { department: 'History', courseKey: 'prophetic-voices', lessonId: 'pv-obenga', why: 'Dr. Théophile Obenga’s case from language — the tongue preserving the continuity the record-keepers tried to sever, presented at Cairo in 1974 (measured: 1936–1974).' },
+  { department: 'History', courseKey: 'prophetic-voices', lessonId: 'pv-williams', why: 'Dr. Chancellor Williams’ sixteen years of research into the destruction of Black civilization, and the knowledge to rebuild (measured: 1893–2000).' },
 ];
 
 /** The declarations shelved into one department, in their authored order. */
