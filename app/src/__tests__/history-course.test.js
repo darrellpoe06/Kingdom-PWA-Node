@@ -361,6 +361,48 @@ describe('the eight moves each teach their own thing — and his words land wher
   });
 });
 
+describe('a consequence the lesson names is a consequence the Word states (DR-0578)', () => {
+  // Darrell 2026-09-23, reading lesson 1 on his Fold, on the benefit "a
+  // command with a consequence attached when it is not kept": "Seems short!
+  // What's the consequence when it's not kept?!!!!!!!" The lesson had said
+  // there was one and never said what it was -- a claim with no verse under
+  // it. Now every band and the benefit carry the verses that state it.
+  const h1 = M[0];
+  const CONSEQUENCE = [/\(Judges 2:11\)/, /\(Judges 2:14\)/, /\(Hosea 4:6\)/];
+
+  it('the benefit that names a consequence quotes it', () => {
+    const b = h1.benefits.find((x) => /consequence/.test(x));
+    expect(b).toBeTruthy();
+    for (const re of CONSEQUENCE) expect(b, `benefit lacks ${re}`).toMatch(re);
+    expect(b).not.toMatch(/consequence attached when it is not kept\.$/);
+  });
+
+  it('every band states it from the Word, not from us', () => {
+    for (const [name, text] of [['teen', h1.levels.teen], ['senior', h1.levels.senior], ['adult', h1.lesson]]) {
+      for (const re of CONSEQUENCE) expect(text, `${name} lacks ${re}`).toMatch(re);
+      expect(text, `${name} lacks the verbatim Judges 2:11 span`).toMatch(/"did evil in the sight of the LORD, and served baalim" \(Judges 2:11\)|"the children of Israel did evil in the sight of the LORD, and served baalim" \(Judges 2:11\)/);
+      expect(text, `${name} lacks the reach to the children`).toMatch(/"seeing thou hast forgotten the law of thy God, I will also forget thy children" \(Hosea 4:6\)/);
+    }
+  });
+
+  it('the anchor carries the verses and the quiz asks the question', () => {
+    expect(h1.anchor.ref).toMatch(/Judges 2:10-14/);
+    expect(h1.anchor.ref).toMatch(/Hosea 4:6/);
+    expect(h1.anchor.ref).toMatch(/Deuteronomy 8:19/);
+    expect(h1.quiz.questions.some((q) => /Judges 2/.test(q.q) && /spoilers/.test(q.options[q.answer]))).toBe(true);
+  });
+
+  it('no lesson in the course says "consequence" in a paragraph with no verse in it', () => {
+    for (const m of M) {
+      for (const text of [m.lesson, m.levels.teen, m.levels.senior, ...m.benefits]) {
+        for (const para of String(text).split('\n\n')) {
+          if (/\bconsequence\b/i.test(para)) expect(para, `${m.id}: a consequence with no verse: ${para.slice(0, 80)}`).toMatch(/\([1-3]?\s?[A-Z][a-z]+ \d+:\d+/);
+        }
+      }
+    }
+  });
+});
+
 describe('it is wired into the school, and it OPENS the History department', () => {
   const row = LEARN_CATALOG.find((c) => c.key === 'history-truth');
 
