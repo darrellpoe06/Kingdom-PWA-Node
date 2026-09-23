@@ -270,6 +270,17 @@ export function voiceErrorReason(tag) {
   if (t === 'voice-service-not-configured') {
     return 'No voice endpoint is configured for this build.';
   }
+  // A 404 IS THE ROAD, NOT THE DEVICE (Darrell 2026-09-23, a lesson page with
+  // "The voice studio answered with an error (HTTP 404)" floating over it).
+  // The same-origin /voice route proxies through the Funnel to the NAS
+  // forwarder, which answers every real path (/speak, /voice/speak, /health)
+  // and 404s only an unknown one. DR-0566 mounts the Funnel's /voice path only
+  // while the forwarder passes its health check, so a 404 at the read means
+  // the road to the studio is not mounted right now -- the studio on the 4070
+  // is dark or unarmed. Nothing on this device, and not the recording.
+  if (t === 'voice-service-404') {
+    return 'The road to the voice studio is not open right now (HTTP 404): the studio’s door on the house network is not mounted, which happens when the studio itself is dark. Nothing on this device is wrong, and your recording is safe.';
+  }
   if (/^voice-service-\d{3}$/.test(t)) {
     return `The voice studio answered with an error (${t.replace('voice-service-', 'HTTP ')}).`;
   }

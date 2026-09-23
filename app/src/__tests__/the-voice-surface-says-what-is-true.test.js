@@ -103,8 +103,9 @@ describe('the surface reports the census instead of the old assertion', () => {
     expect(STUDIO).toMatch(/which is why changing the selection does not change how it sounds/);
   });
 
-  it('it keeps the working Android route, which was the one true part of the old copy', () => {
-    expect(STUDIO).toMatch(/Settings → Text-to-speech/);
+  it('the Android route is now DEDUCED per device with a door, not one sentence (DR-0576)', () => {
+    expect(STUDIO).toMatch(/data-testid="device-voice-settings-door"/);
+    expect(STUDIO).toMatch(/voiceRoute\.steps\.map/);
   });
 
   it('the note is no longer hardcoded to male — a female persona gets the same honesty', () => {
@@ -153,7 +154,9 @@ describe('it says where the voice actually lives', () => {
 
   it('and says the two things that follow from that, plainly', () => {
     expect(STUDIO).toMatch(/does not follow you to another device/);
-    expect(STUDIO).toMatch(/clearing this browser’s site data deletes it/);
+    // The exact location folds under "Exactly where" (DR-0576) — still on the
+    // page, one tap down, and still says what deletes it.
+    expect(STUDIO).toMatch(/Clearing this browser’s site data deletes it/);
   });
 });
 

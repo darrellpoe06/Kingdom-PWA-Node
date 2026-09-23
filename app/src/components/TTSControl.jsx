@@ -188,19 +188,15 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   readingRef.current = isReading;
   const hidWhileReadingRef = useRef(false);
 
-  // A NOTICE TAKES ITSELF DOWN (2026-09-22). This panel is `fixed`, so every
-  // notice overlays the lesson. The only previous clear was at the start of the
-  // NEXT read, which meant a reader who hit one fault and then kept reading
-  // with his eyes had a white box parked over the Word for the rest of the
-  // session. Twelve seconds is long enough to read the longest of these
-  // messages and short enough that it is never a lid. The timer is keyed to the
-  // notice text, so a NEW notice gets its own full twelve seconds rather than
-  // inheriting the tail of the last one.
-  useEffect(() => {
-    if (!notice) return undefined;
-    const t = setTimeout(() => setNotice(''), 12000);
-    return () => clearTimeout(t);
-  }, [notice, setNotice]);
+  // A NOTICE IS NOT A POPUP (Darrell 2026-09-23, a lesson page with the
+  // studio's HTTP 404 floating over it: "Popup's?!!!"). The 2026-09-22 answer
+  // was a twelve-second timer that took the floating box down; that treated
+  // the symptom -- the box still appeared over the Word, and a message that
+  // vanishes while you are reading it is its own kind of unintuitive. The
+  // notice now lives INSIDE the reader's own chrome: a line in the open panel,
+  // a small mark on the pill and on the speaker button when the panel is
+  // closed. Nothing new is painted over the page, so nothing needs a timer;
+  // the person dismisses it, or the next read replaces it (use-read-aloud.js).
   useEffect(() => {
     if (typeof document === 'undefined') return undefined;
     let timer = null;
@@ -919,60 +915,14 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           utterance produces no audio, and the watchdog flips `failed`. Every
           piece worked except the last one. role="status" so a screen reader
           announces it, and it sits ABOVE the panel so it cannot be missed. */}
-      {/* A NOTICE MAY NOT SIT ON THE WORD (Darrell 2026-09-22, on a screenshot
-          where this box covered the middle of a lesson): "these types of words
-          covering the Word and perspectives being explained are not wanted."
-
-          This whole stack is `fixed`, so every notice overlays the prose by
-          construction. Until now nothing ever took it down: `setNotice` was
-          called on a fault and only cleared when the NEXT read started
-          (use-read-aloud.js), so a reader who hit one fault and then read with
-          his eyes instead had a permanent white box over the page.
-
-          Two things fix that without losing the message, which is real and
-          worth saying: it can be dismissed by hand, and it takes itself down
-          after twelve seconds — long enough to read a sentence, short enough
-          that it is never a lid. role="status" still announces it to a screen
-          reader the moment it appears, so the timeout costs no accessibility. */}
-      {notice && (
-        <div
-          role="status"
-          data-testid="read-aloud-notice"
-          /* Deliberately NO width cap. A first pass added a max-width utility
-             class here and the consistency guard failed it — width-cap 2
-             against this file's frozen baseline of 1 (DR-0246). The guard is
-             right to hold that line, and the cap was never load-bearing: what
-             stops this box being a lid is that it LEAVES, not that it is
-             narrow. So the cap came out rather than the baseline going up.
-             (The class name is spelled out nowhere in this file on purpose —
-             the gate that pins its absence matches on the literal string.) */
-          className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.75em] py-[0.5em] flex items-start gap-[0.5em]"
-          style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}
-        >
-          <span className="text-[0.75em] text-[#1A1815] text-left" style={{ fontFamily: '"Fraunces", serif' }}>{notice}</span>
-          {/* THE DOOR, when the notice carries one (2026-09-22). Telling a
-              reader to go to a tab he cannot find is how "I can't find how to
-              do that add a voice?!!!!!!" happens. An anchor rather than a
-              setView call because this panel is mounted on three surfaces that
-              have no nav shell to call into — the address works from all of
-              them, and it carries the door params so a Love Corner visitor does
-              not land in a different face of the app. */}
-          {noticeAction?.href && (
-            <a
-              href={noticeAction.href}
-              data-testid="read-aloud-notice-action"
-              className="shrink-0 px-[0.625em] py-[0.375em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]"
-            >{noticeAction.label || 'Open'}</a>
-          )}
-          <button
-            type="button"
-            onClick={() => setNotice('')}
-            aria-label="Dismiss this message"
-            data-testid="read-aloud-notice-dismiss"
-            className="shrink-0 px-[0.5em] py-[0.25em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
-          >×</button>
-        </div>
-      )}
+      {/* A NOTICE MAY NOT SIT ON THE WORD (Darrell 2026-09-22): "these types
+          of words covering the Word and perspectives being explained are not
+          wanted." And 2026-09-23, when the same box came back with an HTTP
+          404 in it: "Popup's?!!!" The notice used to be its own floating box
+          in this fixed stack, painted over the prose by construction. It is
+          no longer rendered here at all: it lives inside the open panel (below,
+          under the header), and while the panel is a pill or a button it is a
+          small mark on that pill or button. See the panel for the block. */}
       {interrupted && (
         <div role="status" data-testid="reading-interrupted" className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.75em] py-[0.5em] flex items-center flex-wrap justify-end gap-[0.5em]" style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>
           <span className="text-[0.75em] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>The screen went dark and the reading stopped.</span>
@@ -1006,6 +956,11 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           aria-label="Reading controls (minimized)"
         >
           <span className="text-[0.6875em] uppercase tracking-wider text-[#B85838] font-semibold" aria-live="polite">{isPaused ? 'Paused' : 'Reading…'}{runInfo ? ' · keeps going' : ''}</span>
+          {/* THE MARK ON THE PILL: a notice is waiting in the panel. Tapping
+              it expands the panel where the words are; nothing floats. */}
+          {notice && (
+            <button type="button" onClick={() => setMinimized(false)} data-testid="read-aloud-notice-mark" aria-label={`A message is waiting: ${notice}`} title={notice} className="px-[0.5em] py-[0.375em] min-h-[2.75em] text-[0.75em] font-bold border-2 border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">!</button>
+          )}
           {/* The level, one tap wide, on the pill too (DR-0426): the pill is
               what a listener sees for the whole reading. */}
           {target && target.setLevel && Array.isArray(target.levels) && target.levels.length > 0 && (
@@ -1081,6 +1036,29 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
             </div>
           </div>
 
+          {/* THE NOTICE, IN THE PANEL THE PERSON OPENED — not over the Word.
+              role="status" announces it the moment it appears; the door
+              (noticeAction, 2026-09-22) is an anchor because this panel is
+              mounted on three surfaces with no nav shell to call into. */}
+          {notice && (
+            <div role="status" data-testid="read-aloud-notice" className="border-2 border-[#B85838] bg-[#FAF8F4] px-[0.5em] py-[0.375em] mb-[0.75em] flex items-start gap-[0.5em]">
+              <span className="text-[0.6875em] text-[#1A1815] text-left" style={{ fontFamily: '"Fraunces", serif' }}>{notice}</span>
+              {noticeAction?.href && (
+                <a
+                  href={noticeAction.href}
+                  data-testid="read-aloud-notice-action"
+                  className="shrink-0 px-[0.625em] py-[0.375em] text-[0.6875em] uppercase tracking-wider border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]"
+                >{noticeAction.label || 'Open'}</a>
+              )}
+              <button
+                type="button"
+                onClick={() => setNotice('')}
+                aria-label="Dismiss this message"
+                data-testid="read-aloud-notice-dismiss"
+                className="shrink-0 px-[0.5em] py-[0.25em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
+              >×</button>
+            </div>
+          )}
           {/* THE SCREEN STAYS ON WHILE IT READS (DR-0439) — the per-device switch,
               and the honest line where the browser has no wake lock. */}
           <div className="flex items-center justify-between gap-[0.5em] mb-[0.75em]" data-testid="screen-awake-row">
@@ -1284,8 +1262,8 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          aria-label={isReading ? (isPaused ? 'Reading paused — open read-aloud controls' : 'Reading aloud — open read-aloud controls') : 'Open read-aloud controls'}
-          title={isReading ? 'Reading aloud — tap for pause, speed and stop' : 'Read aloud'}
+          aria-label={notice ? `A message is waiting: ${notice} — open read-aloud controls` : isReading ? (isPaused ? 'Reading paused — open read-aloud controls' : 'Reading aloud — open read-aloud controls') : 'Open read-aloud controls'}
+          title={notice ? notice : isReading ? 'Reading aloud — tap for pause, speed and stop' : 'Read aloud'}
           className={`ts-chrome-region relative ${isReading ? 'bg-[#B85838]' : 'bg-[#1A1815]'} text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg hover:bg-[#B85838] flex items-center justify-center text-xl sm:text-2xl border-2 border-[#FAF8F4] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] transition-all duration-500 hover:opacity-100 focus:opacity-100 ${(revealFab || isReading) ? 'opacity-100 translate-y-0' : 'opacity-40 translate-y-2'}`}
         >
           🔊
@@ -1293,6 +1271,10 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
             <span aria-hidden="true" className="absolute -top-1 -right-1 bg-[#1A1815] text-white text-[0.5rem] leading-none px-1.5 py-1 rounded-full border border-[#FAF8F4]">
               {isPaused ? '❚❚' : '▶'}
             </span>
+          )}
+          {/* THE MARK ON THE BUTTON: a notice is waiting inside. */}
+          {notice && !isReading && (
+            <span aria-hidden="true" data-testid="read-aloud-notice-mark" className="absolute -top-1 -right-1 bg-[#B85838] text-white text-[0.625rem] font-bold leading-none px-1.5 py-1 rounded-full border border-[#FAF8F4]">!</span>
           )}
         </button>
       ))}
