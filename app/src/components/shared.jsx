@@ -305,8 +305,20 @@ function TabScroll({ children, chrome = false, className = '', rowClassName = ''
     });
   };
 
+  // THE WRAPPER MUST BE ALLOWED TO SHRINK (Darrell 2026-09-23, Fold, header
+  // tucked away: "It's hard to get to the edges of the app anymore?!" and
+  // "Lost the whole header?!"). This wrapper arrived with the Show-all control
+  // (#1734, DR-0565) as `w-full` only. As a flex ITEM of the header's nav row
+  // its min-width was `auto` -- the min-content width of a row of nowrap tabs
+  // -- so at any width where the tabs did not fit, the wrapper refused to
+  // shrink, the nav row grew past the viewport, and everything pinned to the
+  // row's right edge (the header hideaway's own chevron, the one control that
+  // brings the header back) was pushed off-screen. Measured in Chromium at the
+  // Fold's 1812px: nav row 1953px wide, toggle at x=1912. `min-w-0 flex-1`
+  // restores the shrink the scroll box below relies on; in a block parent the
+  // pair is inert and `w-full` still fills.
   return (
-    <div className="w-full flex items-start gap-1">
+    <div className="min-w-0 flex-1 w-full flex items-start gap-1">
       <div
         ref={boxRef}
         className={`tab-scroll w-full ${showAll ? 'overflow-visible' : 'overflow-x-auto'} overscroll-x-contain ${className}`}
