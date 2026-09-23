@@ -25,7 +25,7 @@ on:
   workflow_dispatch:
     inputs:
       bucket:
-        description: 'Copy one bucket (moore-showcase = Shay''s public gallery). Leave EMPTY to copy every bucket in scope (public buckets always; private ones once the hosted service key is in agent.env).'
+        description: 'Copy one bucket by name (moore-showcase = Shay''s public gallery), or `all` for every bucket in scope (public buckets always; private ones once the hosted service key is in agent.env). NOTE: an EMPTY value dispatched through the API is replaced by this default (measured 2026-09-23, run 35872279062), so `all` is the sentinel, not blank.'
         type: string
         default: 'moore-showcase'
 
@@ -77,7 +77,7 @@ jobs:
           REF: mjjlevhdufpaplypnqrv
         run: |
           if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
-            echo "SUPABASE_ACCESS_TOKEN is not set — the probe cannot run."; exit 0
+            echo "SUPABASE_ACCESS_TOKEN is not set (measured 2026-09-23: the name is referenced by enable-auth-hook.yml, the value was never stored). Either set a Supabase personal access token as that repository secret and re-dispatch, or take DR-0317 paste path (HOSTED_SERVICE_ROLE_KEY into agent.env). Nothing else unblocks the six private buckets."; exit 0
           fi
           code=$(curl -sS -o /tmp/keys.json -w '%{http_code}' \
             -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
@@ -113,5 +113,7 @@ jobs:
         if: steps.gate.outputs.go == 'true'
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
-          STORAGE_BUCKET: ${{ inputs.bucket }}
+          # `all` -> '' (every bucket in scope). An empty API input becomes the
+          # default, so "leave it blank" was never reachable from a dispatch.
+          STORAGE_BUCKET: ${{ inputs.bucket == 'all' && '' || inputs.bucket }}
         run: bash scripts/storage-sync-over-tailnet.sh
