@@ -31,3 +31,8 @@
 
 - The supabase gateway's 150-second wait failed at 16:xx for a reason this session could not measure from the log (it passed at 00:30). Left alone; the new clock will show whether it recurs. `re-review: 2026-09-30` — carried by the review watcher.
 - The 17 functions / 4 tables are still unnamed until the next NAS cycle prints the post-repoint line. That line is the deliverable of §2; reading it is the next session's first act.
+
+## Measured after merge (2026-09-23, appended; the substance above is left as written)
+
+The probe ran (nas-storage-sync run 35870752417) and its first line was `SUPABASE_ACCESS_TOKEN is not set — the probe cannot run.` §3's premise — *"the repo already holds a Supabase management-API token"* — was read off a workflow that names the secret, not off the secret store, and it is false: the name exists, the value does not. So the hosted key is **not** channel-drivable today. The private set is also larger than DR-0317 counted: six buckets (`church-documents`, `church-team-documents`, `family-documents`, `legal-documents`, `sermon-documents`, `tlc-onboarding`), none copied. Two roads remain and both start with a value only Darrell holds: (a) DR-0317's paste of `HOSTED_SERVICE_ROLE_KEY` into `agent.env`; or (b) a Supabase personal access token set once as the repository secret `SUPABASE_ACCESS_TOKEN`, after which the probe reports whether `service_role` is listable and the placement decision in §3 becomes live. The probe step now says this in its own words.
+
