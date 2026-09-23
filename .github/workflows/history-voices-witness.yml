@@ -1,0 +1,53 @@
+# History voices witness — THEIR words, fetched not remembered (DR-0580).
+#
+# WHY THIS EXISTS (2026-09-23). The History course quotes historical figures
+# verbatim from named primary records. The cloud sandbox that writes those
+# lessons has NO road to any of those hosts (measured: CONNECT 403 from the
+# egress gateway for avalon.law.yale.edu, law.cornell.edu, archives.gov,
+# gutenberg.org, presidency.ucsb.edu and the rest). The Scripture gate can run
+# locally because the KJV is on disk; this cannot. So the runner is the team's
+# eye, exactly as site-health and level-witness are (DR-0108): a stated
+# "can't fetch" is one member's limit, not the team's.
+#
+# WHAT IT DOES: scripts/history-voices-witness.mjs fetches every voice's source
+# once and proves the quoted words are in it (strict, or words-only when only
+# an edition's punctuation differs — printed as which). First it breaks one
+# word on purpose and must see itself refuse it (proven-to-catch, DR-0076 §3).
+#
+# WHEN: every push that touches the course or the witness, and on demand. It
+# is NOT in ci.yml's required set on purpose: a third-party host going dark
+# must not block the merge lane; a red run here is a finding to act on, cited
+# by run id in the record that changed the words.
+#
+# BRAKES: one runner, hard timeout, one fetch per distinct URL, nothing written.
+
+name: History voices witness (their words are in the record)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - app/src/lib/history-course.js
+      - scripts/history-voices-witness.mjs
+      - .github/workflows/history-voices-witness.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: history-voices-witness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Prove the witness catches an altered word
+        run: node scripts/history-voices-witness.mjs --selftest-break
+      - name: Every voice is in its source
+        run: node scripts/history-voices-witness.mjs

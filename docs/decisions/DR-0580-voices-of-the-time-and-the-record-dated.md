@@ -1,0 +1,38 @@
+# DR-0580 — Voices of the time, and the record, dated: every History lesson quotes the figures’ own words from a named primary record, and carries a timeline a gate keeps whole
+
+- **Status:** accepted
+- **Tier:** A
+- **Type:** feature
+- **Date:** 2026-09-23
+- **Scope:** `app/src/lib/history-course.js` (`voices[]` and `timeline[]` on all eight lessons; `historyVoiceFaults`, `historyTimelineFaults`, `historyYearsNamed`, `historyVoiceYears`, `historyTimeline`, `HISTORY_SOURCE_HOSTS`); `scripts/history-voices-witness.mjs` (new: fetches every source on a runner and proves the words are in it; `--selftest-break`); `.github/workflows/history-voices-witness.yml` (new: runs on every push that touches the course and on demand); `app/src/components/ChurchLearn.jsx` (the two blocks on screen with share controls, and in the printed curriculum); `app/src/__tests__/history-course.test.js` (13 new checks)
+- **Principles:** VERIFICATION-DOCTRINE (DR-0076 §1 no claim without evidence, §3 proven-to-catch, §7 independent verification, §8 provenance), DR-0100 (state established fact plainly; name the one unsettled count narrowly), DR-0098 (teach, do not stage schools), DR-0108 (send a runner where the sandbox cannot reach), DR-0572 / DR-0578 (the course this extends), DR-0459 (never elide inside a quotation)
+- **Grounds:** Darrell, 2026-09-23: *"History should have quoted Historical figures most important and familiar words in context of the time..."* and *"Timelines management"*.
+
+---
+
+## What the course lacked, measured
+
+The eight lessons stated the documented record with dates and read it under the Word, and pinned every Scripture span against the repo’s own KJV. But no figure of the time spoke in them. A reader met "the Fugitive Slave Act of 1850" and "Plessy in 1896" as our sentences about the record, never Harlan’s own sentence or Douglass’s. And the years were scattered through prose: forty-eight distinct years across the eight lessons, in no one place, with nothing holding them to the record they name.
+
+## What changed
+
+**1. Voices.** Every lesson carries `voices`: the speaker, the year, the occasion (`where`), the primary record (`source.title`, `source.url`), the words, and why the lesson quotes them. Twenty-four voices from twenty-two records: Lincoln’s Second Inaugural, Douglass at Rochester and in his Narrative, John Ross to Congress, Jackson’s and Roosevelt’s annual messages, Marshall in Worcester, Taney in Dred Scott, Harlan alone in Plessy, Warren in Brown, the Declaration, Jefferson’s Notes, Article I §2 and the Thirteenth Amendment, Sherman’s Field Orders No. 15, Booker T. Washington, Chief Joseph, Emma Lazarus, Sojourner Truth, Ida B. Wells, King from Birmingham, Lincoln at Gettysburg. Each is placed where the lesson’s argument needs it — the two honest tellers are Lincoln’s "Both read the same Bible"; the wage that could not wait is Douglass’s "I contracted for it; I earned it"; two weights in one bag is Taney and Harlan in the same court; two or three witnesses is Sojourner Truth quoted from Marius Robinson’s report three weeks after Akron, with Frances Gage’s version of twelve years later named as the second, farther witness.
+
+**2. Their words are fetched, not remembered — by a runner.** The Scripture gate runs locally because the KJV is on disk. These records are not, and this sandbox has no road to any of them (measured 2026-09-23: CONNECT 403 from the egress gateway for every host). Per DR-0108 the runner is the team’s eye: `history-voices-witness.mjs` fetches each source once, strips the page to text, and proves the quoted words are in it — strictly, or on letters and digits alone when only an edition’s punctuation differs, printed as which. It first breaks one word on purpose and must refuse it. The workflow runs on every push that touches the course and is not in the required set, so a third-party host going dark cannot block the merge lane; a red run is a finding cited by run id.
+
+**3. The timeline is managed by a gate.** Every lesson carries `timeline`: year, event, and the record it can be checked against (the statute at its Stat. page, the case at its U.S. Reports page, the census, the letter, the order). `historyTimelineFaults` holds it in both directions: every four-digit year the lesson’s own prose names must be on the timeline, and every timeline year must be named by the prose or by a voice. Parables are excluded from the count on purpose (a bridge built in 1931 in a story is not the record). So an edit that adds a year to a lesson fails the build until the timeline carries it with its record, and a timeline entry the lesson never speaks of fails too. `historyTimeline()` merges all eight into one sorted line, 1607 to 1968, each entry knowing its lesson.
+
+**4. The surface.** Both blocks render under the anchor on the lesson screen, each with a share control (DR-0452 shape), and print with the lesson in the paper curriculum. The source is a real link: the course’s own care note tells the reader to check the record, so the record is one tap away.
+
+## Verification
+
+- 58 checks in `history-course.test.js` pass, 13 of them new: no voice fault on any lesson; 24 voices, 22 sources, every host listed; the KJV walk ignores a historical quotation and none carries a verse tag or an elision; Truth is quoted from the nearer record and the other is named; the witness’s normaliser accepts an edition’s colon-for-semicolon and dash spelling and refuses a changed word; proven-to-catch for a foreign host, an elision, a smuggled verse tag, a dropped year, an unnamed year, a disordered year; the parable exclusion; the merged timeline; the course’s stated dates on the record; the surface pins.
+- The KJV walk still counts more than ninety Scripture spans; the band ladders, floors and overlap ceilings are untouched (the new fields are outside the reading bands).
+- The runner witness: its first run on this branch is the proof that the words are in their sources, cited in the pull request.
+
+## Limits, stated
+
+1. **The witness had not run when this record was written.** It cannot run from here. The branch’s first run of `history-voices-witness.yml` is the evidence; any voice it refuses is corrected or removed before merge. `re-review: 2026-09-24`.
+2. **The read-aloud arc does not yet speak the voices.** `lesson-flow.js` builds the spoken lesson from the fields it knew; the voices and the timeline are on screen and on paper, not yet in the reader’s voice. `re-review: 2026-09-30`.
+3. **The course-level timeline has no surface of its own yet.** `historyTimeline()` is exported and pinned; a single line of years across the department, with each entry opening its lesson, is the next step. `re-review: 2026-09-30`.
+4. **Twenty-two hosts’ pages can change.** A source that moves is a red witness run, not a silent drift; the allowlist makes a new host a deliberate add.
