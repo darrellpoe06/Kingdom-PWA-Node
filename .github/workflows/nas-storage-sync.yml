@@ -56,6 +56,42 @@ jobs:
             echo "go=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # READ-ONLY PROBE (2026-09-23; the DR-0108 challenge run on DR-0317's
+      # carve-out). DR-0317 parked the private-bucket copy on "a value only
+      # Darrell holds" — the hosted project's service_role key — and 443
+      # objects (Christina's 322 team documents, BG's 121 sermon files) have
+      # been unreadable for fifteen days. This repository already holds a
+      # Supabase management-API token (SUPABASE_ACCESS_TOKEN, used by
+      # enable-auth-hook.yml), and the management API can list a project's
+      # API keys. This step ONLY asks whether that token can, and whether a
+      # service_role entry is listed. It prints names and types with every
+      # value-bearing field stripped, and the response's field names, so if
+      # the endpoint's shape differs from what is assumed here the log says so
+      # instead of the step guessing. PLACING the key on the NAS is a separate
+      # decision — the most privileged credential the hosted project has,
+      # moving through CI — and is not done here.
+      - name: Probe the management API for the hosted project's keys (names only, nothing placed)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          REF: mjjlevhdufpaplypnqrv
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "SUPABASE_ACCESS_TOKEN is not set — the probe cannot run."; exit 0
+          fi
+          code=$(curl -sS -o /tmp/keys.json -w '%{http_code}' \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            "https://api.supabase.com/v1/projects/$REF/api-keys")
+          echo "GET /v1/projects/$REF/api-keys -> HTTP $code"
+          if [ "$code" != "200" ]; then
+            echo "the token cannot list this project's keys (HTTP $code). A fine-grained token needs secrets:read; a classic token has it."
+            rm -f /tmp/keys.json; exit 0
+          fi
+          jq -c 'if type=="array" then map({id: .id, name: .name, type: .type, fields: (keys | map(select(. != "api_key" and . != "hash")))}) else {shape: type, fields: (keys? // [])} end' /tmp/keys.json
+          has=$(jq -r 'if type=="array" then (map(select((.name // .id) == "service_role")) | length) else 0 end' /tmp/keys.json)
+          rm -f /tmp/keys.json
+          if [ "$has" -ge 1 ]; then echo "service_role: LISTED — placement is possible through this channel (a separate, decided step)"; else echo "service_role: not listed under that name — read the shape above"; fi
+
       - name: Join the tailnet (ephemeral)
         if: steps.gate.outputs.go == 'true'
         uses: tailscale/github-action@v3

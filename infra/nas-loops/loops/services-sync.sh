@@ -53,6 +53,7 @@ import json, os, subprocess, sys
 manifest, repo = sys.argv[1], sys.argv[2]
 doc = json.load(open(manifest, encoding="utf-8"))
 failed = []
+degraded = []
 for svc in doc.get("services", []):
     if not svc.get("enabled"):
         print(f"services-sync: {svc.get('name')} disabled, skip")
@@ -84,7 +85,21 @@ for svc in doc.get("services", []):
     # Always echo the installer's own output so a GOOD run stays as readable as
     # it was before this change.
     print(out, end="" if out.endswith("\n") else "\n")
-    if r.returncode != 0:
+    if r.returncode == 3:
+        # DEGRADED, NOT FAILED (2026-09-23). Exit 3 is a service saying "I am
+        # installed and healthy but could not do my work this cycle" — the
+        # choir-dates rider when YouTube will not answer, for one. Measured on
+        # 2026-09-22/23: that single rider's exit 1 made EVERY services-sync
+        # cycle read loop_run_fail for over eight hours while the photo
+        # server, the tax archive, the voice road and the sovereign stack
+        # were all fine. A fleet witness that is always red is no witness.
+        # The degraded service is named on the summary line the event log
+        # keeps; its own witness (harvest-health) owns the incident.
+        tail = [ln for ln in out.strip().splitlines() if ln.strip()][-2:]
+        why = " | ".join(tail) if tail else "(no output)"
+        print(f"services-sync: {svc.get('name')} DEGRADED :: {why}", file=sys.stderr)
+        degraded.append(f"{svc.get('name')} ({why[:140]})")
+    elif r.returncode != 0:
         tail = [ln for ln in out.strip().splitlines() if ln.strip()][-3:]
         why = " | ".join(tail) if tail else "(no output)"
         print(f"services-sync: {svc.get('name')} exit={r.returncode} :: {why}", file=sys.stderr)
@@ -96,5 +111,9 @@ if failed:
     # cause. Now the cause rides the channel that is actually kept.
     print(f"services-sync: FAILED: {'; '.join(failed)}")
     sys.exit(1)
+if degraded:
+    # Green for the fleet, loud about the one that could not work today.
+    print(f"services-sync: all services synced; DEGRADED: {'; '.join(degraded)}")
+    sys.exit(0)
 print("services-sync: all services synced")
 EOF
