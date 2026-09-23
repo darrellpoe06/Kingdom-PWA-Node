@@ -81,16 +81,28 @@ describe('the studio is asked whether it answers', () => {
     // the behaviour a Fire TV depends on: nobody types a URL into a television.
     delete import.meta.env.VITE_VOICE_SERVICE_URL;
     resetVoiceServiceHealthForTests();
-    globalThis.fetch = vi.fn(async () => ({ ok: true }));
+    globalThis.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ ok: true }) }));
     expect(await probeVoiceService({ force: true })).toBe('up');
     expect(String(globalThis.fetch.mock.calls[0][0])).toBe(window.location.origin + '/voice/health');
   });
   it('GET {base}/health ok → up; the reader may trust it', async () => {
-    globalThis.fetch = vi.fn(async (u) => ({ ok: u === 'https://voice.example/health' }));
+    globalThis.fetch = vi.fn(async (u) => ({ ok: u === 'https://voice.example/health', json: async () => ({ ok: true }) }));
     expect(await probeVoiceService()).toBe('up');
     expect(globalThis.fetch.mock.calls[0][0]).toBe('https://voice.example/health');
     expect(isVoiceServiceReady()).toBe(true);
     expect(isVoiceServiceAnswering()).toBe(true);
+  });
+  it('PROVEN-TO-CATCH: a 200 that is not the studio\'s own {ok:true} reads as down — n8n\'s page answered /voice/health for three days (2026-09-23)', async () => {
+    // What the runner measured: HTTP 200, text/html, "n8n.io - workflow automation".
+    globalThis.fetch = vi.fn(async () => ({ ok: true, status: 200, json: async () => { throw new SyntaxError('Unexpected token <'); } }));
+    expect(await probeVoiceService({ force: true })).toBe('down');
+    // A JSON body that is not the studio's answer.
+    globalThis.fetch = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ message: 'no route matched' }) }));
+    expect(await probeVoiceService({ force: true })).toBe('down');
+    // The forwarder's dark-studio answer: 502 with ok:false.
+    globalThis.fetch = vi.fn(async () => ({ ok: false, status: 502, json: async () => ({ ok: false, error: 'studio-unreachable' }) }));
+    expect(await probeVoiceService({ force: true })).toBe('down');
+    expect(isVoiceServiceAnswering()).toBe(false);
   });
   it('PROVEN-TO-CATCH: a non-ok answer, a thrown fetch, or a hang all read as down — configured is not the same as alive', async () => {
     globalThis.fetch = vi.fn(async () => ({ ok: false, status: 502 }));

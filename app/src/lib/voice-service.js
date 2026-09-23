@@ -140,7 +140,19 @@ export async function probeVoiceService({ timeoutMs = HEALTH_TIMEOUT_MS, force =
   const timer = setTimeout(() => { try { if (ctrl) ctrl.abort(); } catch (_) { /* ignore */ } }, timeoutMs);
   try {
     const res = await fetch(`${base}/health`, { method: 'GET', signal: ctrl ? ctrl.signal : undefined });
-    health = res && res.ok ? 'up' : 'down';
+    // THE ANSWER MUST BE THE STUDIO'S OWN (2026-09-23, measured from a runner:
+    // GET https://poetech.us/voice/health answered HTTP 200 with n8n's editor
+    // page — the Funnel had no /voice mount, so the call fell through the root
+    // to n8n, the exact class RECORDED-STATE names for /taxes and /nas-photos).
+    // Any 200 read as "up" for three days, and every read-aloud first posted to
+    // a studio that was not there. The studio (server.py) and the forwarder both
+    // answer `{ ok: true }`; an HTML page, an empty body or JSON without ok:true
+    // is somebody else talking, and reads as down.
+    let body = null;
+    if (res && res.ok && typeof res.json === 'function') {
+      try { body = await res.json(); } catch (_) { body = null; }
+    }
+    health = res && res.ok && body && body.ok === true ? 'up' : 'down';
   } catch (_) {
     health = 'down';
   } finally {
