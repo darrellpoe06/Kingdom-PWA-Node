@@ -494,3 +494,132 @@ describe('proven-to-catch (DR-0076 §3)', () => {
     expect(/some (historians|scholars) (say|argue|believe)/i.test('Some historians argue the removal was voluntary; you decide.')).toBe(true);
   });
 });
+
+// =============================================================================
+// VOICES OF THE TIME + THE RECORD, DATED (DR-0580)
+// =============================================================================
+// Darrell, 2026-09-23: "History should have quoted Historical figures most
+// important and familiar words in context of the time..." / "Timelines
+// management". The figures' words are checked against their sources by the
+// runner-side witness (scripts/history-voices-witness.mjs), because this
+// sandbox has no road to those hosts; what CAN be pinned here is pinned here.
+import {
+  historyVoiceFaults, historyTimelineFaults, historyYearsNamed, historyVoiceYears,
+  historyTimeline, HISTORY_SOURCE_HOSTS,
+} from '../lib/history-course.js';
+import { tierOf, strict, loose } from '../../../scripts/history-voices-witness.mjs';
+
+describe('voices of the time: their own words, dated, sourced, and never elided (DR-0580)', () => {
+  it('every lesson carries at least two voices and none has a fault', () => {
+    for (const m of M) {
+      expect(m.voices.length, `${m.id} voices`).toBeGreaterThanOrEqual(2);
+      expect(historyVoiceFaults(m), `${m.id}`).toEqual([]);
+    }
+  });
+
+  it('measures something: 24 voices, 22 distinct sources, every source on a listed primary-record host', () => {
+    const all = M.flatMap((m) => m.voices);
+    expect(all.length).toBe(24);
+    const urls = new Set(all.map((v) => v.source.url));
+    expect(urls.size).toBe(22);
+    for (const u of urls) expect(HISTORY_SOURCE_HOSTS, u).toContain(new URL(u).host);
+  });
+
+  it('the KJV walk does not mistake a historical quotation for Scripture, and the historical words carry no verse tag', () => {
+    for (const m of M) for (const v of m.voices) {
+      expect(spansWithRef(`"${v.words}" (${v.speaker}, ${v.year})`), `${m.id} ${v.speaker}`).toEqual([]);
+      expect(v.words).not.toMatch(/\.\.\.|…/);
+    }
+  });
+
+  it('two witnesses on one afternoon: Sojourner Truth is quoted from the nearer record and the other is named', () => {
+    const l8 = M.find((m) => m.id === 'hist8-two-or-three-witnesses');
+    const truth = l8.voices.find((v) => v.speaker === 'Sojourner Truth');
+    expect(truth.year).toBe(1851);
+    expect(truth.where).toContain('Anti-Slavery Bugle');
+    expect(truth.note).toContain('twelve years later');
+    expect(truth.note).toContain('Frances Gage');
+  });
+
+  it('the witness normalises what editions vary and refuses what they do not', () => {
+    expect(tierOf('Both read the same Bible and pray to the same God, and each invokes His aid against the other.', 'Both read the same Bible and pray to the same God, and each invokes His aid against the other.')).toBe('strict');
+    expect(tierOf('I answer: a day that reveals to him', 'I answer; a day that reveals to him')).toBe('loose');
+    expect(tierOf('free to talk, think and act for myself -- and I will obey', 'free to talk, think and act for myself — and I will obey')).toBe('strict');
+    expect(tierOf('a just God&#8217;s assistance', 'a just God’s assistance')).toBe('strict');
+    expect(tierOf('Both read the same Bible', 'Both read the same Koran')).toBe('');
+    expect(strict('  A&nbsp;B  ')).toBe('a b');
+    expect(loose('Life, Liberty and the pursuit of Happiness.')).toBe('lifelibertyandthepursuitofhappiness');
+  });
+
+  it('proven-to-catch: a voice without a source, with an elision, or with a verse tag is refused', () => {
+    const m = M[0];
+    const v = m.voices[0];
+    const withVoices = (voices) => ({ ...m, voices });
+    expect(historyVoiceFaults(withVoices([v, { ...v, source: { title: 'x y', url: 'https://example.com/x' } }])).join('\n')).toMatch(/not a listed primary-record host/);
+    expect(historyVoiceFaults(withVoices([v, { ...v, words: 'Both read ... the same Bible and pray and pray and pray' }])).join('\n')).toMatch(/elision/);
+    expect(historyVoiceFaults(withVoices([v, { ...v, words: 'Thy word is true from the beginning and endureth for ever (Psalms 119:160)' }])).join('\n')).toMatch(/Scripture reference/);
+    expect(historyVoiceFaults(withVoices([v])).join('\n')).toMatch(/fewer than two/);
+  });
+});
+
+describe('the record, dated: the timeline is managed by a gate, not typed by hand (DR-0580)', () => {
+  it('every lesson carries a dated timeline with no fault', () => {
+    for (const m of M) {
+      expect(m.timeline.length, `${m.id} timeline`).toBeGreaterThanOrEqual(3);
+      expect(historyTimelineFaults(m), `${m.id}`).toEqual([]);
+    }
+  });
+
+  it('every year the lesson names is on its timeline, and every timeline year is named by the lesson or a voice', () => {
+    for (const m of M) {
+      const on = new Set(m.timeline.map((t) => t.year));
+      for (const y of historyYearsNamed(m)) expect(on.has(y), `${m.id} names ${y}`).toBe(true);
+      for (const y of historyVoiceYears(m)) expect(on.has(y), `${m.id} voice ${y}`).toBe(true);
+      const known = new Set([...historyYearsNamed(m), ...historyVoiceYears(m)]);
+      for (const y of on) expect(known.has(y), `${m.id} timeline ${y}`).toBe(true);
+    }
+  });
+
+  it('the parables are not the record: a year inside a story does not have to be on the timeline', () => {
+    const l1 = M.find((m) => m.id === 'hist1-the-standard-before-the-story');
+    expect(l1.stories.map((s) => s.body).join(' ')).toMatch(/1931/);
+    expect(historyYearsNamed(l1)).not.toContain(1931);
+  });
+
+  it('the whole course lines up on one timeline, sorted, each entry knowing its lesson', () => {
+    const all = historyTimeline();
+    expect(all.length).toBe(M.reduce((n, m) => n + m.timeline.length, 0));
+    for (let i = 1; i < all.length; i += 1) expect(all[i].year).toBeGreaterThanOrEqual(all[i - 1].year);
+    expect(all[0].year).toBe(1607);
+    expect(all[all.length - 1].year).toBe(1968);
+    for (const t of all) expect(M.map((m) => m.id)).toContain(t.lessonId);
+  });
+
+  it('the dates the course already states are on the record with what to check them against', () => {
+    const by = (id) => M.find((m) => m.id === id).timeline;
+    expect(by('hist4-the-wage-that-could-not-wait').find((t) => t.year === 1860).event).toContain('3,953,760');
+    expect(by('hist3-the-landmark-and-the-vineyard').find((t) => t.year === 1934).event).toMatch(/138 million.*48 million/);
+    expect(by('hist5-two-weights-in-one-bag').find((t) => t.year === 1896).record).toContain('163 U.S. 537');
+    expect(by('hist6-the-fields-of-the-fatherless').find((t) => t.year === 1921).event).toMatch(/unsettled/);
+  });
+
+  it('proven-to-catch: a year the lesson names but the timeline drops, an unnamed year, and a disordered year are refused', () => {
+    const m = M.find((x) => x.id === 'hist1-the-standard-before-the-story');
+    expect(historyTimelineFaults({ ...m, timeline: m.timeline.filter((t) => t.year !== 1619) }).join('\n')).toMatch(/names 1619/);
+    expect(historyTimelineFaults({ ...m, timeline: [...m.timeline, { year: 1999, event: 'nothing the lesson says at all', record: 'no record here' }] }).join('\n')).toMatch(/carries 1999/);
+    expect(historyTimelineFaults({ ...m, timeline: [...m.timeline].reverse() }).join('\n')).toMatch(/out of order/);
+  });
+});
+
+describe('the surface shows the voices and the record (DR-0580 source pins)', () => {
+  const src = readFileSync(join(process.cwd(), 'src', 'components', 'ChurchLearn.jsx'), 'utf8');
+  it('renders both blocks on screen, each with its share control, and prints both', () => {
+    expect(src).toContain('data-testid="lesson-voices"');
+    expect(src).toContain('data-testid="lesson-timeline"');
+    expect(src).toContain("sec('Voices of the time'");
+    expect(src).toContain("sec('Timeline'");
+    expect(src).toContain('<a href={v.source?.url} target="_blank" rel="noopener noreferrer"');
+    expect((src.match(/Voices of the time/g) || []).length).toBeGreaterThanOrEqual(3);
+    expect((src.match(/Timeline — the record, dated/g) || []).length).toBe(2);
+  });
+});

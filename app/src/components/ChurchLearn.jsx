@@ -2380,6 +2380,51 @@ function CourseView({
                   <div className="ts-chrome-region flex justify-end mt-1">{sec('Anchor', m.anchor.theme || '')}</div>
                 </div>
               )}
+              {/* VOICES OF THE TIME (DR-0580). Darrell 2026-09-23: "History
+                  should have quoted Historical figures most important and
+                  familiar words in context of the time". Their own words,
+                  verbatim from the named record, with the year, the occasion,
+                  and why this lesson quotes them. The source is a real link —
+                  the reader is meant to check it (the course's own care note). */}
+              {Array.isArray(m.voices) && m.voices.length > 0 && (
+                <div className="mt-2 border-l-4 border-[#B85838] bg-[#B85838]/[0.06] pl-3 py-2" data-testid="lesson-voices">
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold mb-1">
+                    Voices of the time — their own words, dated
+                  </div>
+                  {m.voices.map((v, i) => (
+                    <figure key={i} className="mb-2">
+                      <blockquote className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>“{v.words}”</blockquote>
+                      <figcaption className="text-[0.6875rem] text-[#5A5751] mt-0.5">
+                        — {v.speaker}, {v.year}. {v.where}{' '}
+                        <a href={v.source?.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-[#B85838]">{v.source?.title}</a>
+                        {v.note ? ` · ${v.note}` : ''}
+                      </figcaption>
+                      {v.why && <p className="text-[0.6875rem] text-[#5A5751] mt-0.5">{v.why}</p>}
+                    </figure>
+                  ))}
+                  <div className="ts-chrome-region flex justify-end mt-1">{sec('Voices of the time', m.voices.map((v) => `“${v.words}” — ${v.speaker}, ${v.year}`).join('\n'))}</div>
+                </div>
+              )}
+              {/* THE RECORD, DATED (DR-0580) — "Timelines management". Every year
+                  this lesson names is on this list with the record it can be
+                  checked against, and the gate holds both directions, so the
+                  list cannot rot as the lesson is edited. */}
+              {Array.isArray(m.timeline) && m.timeline.length > 0 && (
+                <div className="mt-2 border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2" data-testid="lesson-timeline">
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">
+                    Timeline — the record, dated
+                  </div>
+                  <ol className="text-sm text-[#1A1815] space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                    {m.timeline.map((t, i) => (
+                      <li key={i}>
+                        <strong>{t.year}</strong> — {t.event}{' '}
+                        <span className="text-[0.6875rem] text-[#5A5751]">Record: {t.record}</span>
+                      </li>
+                    ))}
+                  </ol>
+                  <div className="ts-chrome-region flex justify-end mt-1">{sec('Timeline', m.timeline.map((t) => `${t.year} — ${t.event} (Record: ${t.record})`).join('\n'))}</div>
+                </div>
+              )}
                 </>);
               })()}
               {/* THE LORD'S MATRIX (Darrell 2026-08-10) — the other lessons
@@ -2844,6 +2889,16 @@ function CourseView({
             {m.lesson && <p><strong>Lesson.</strong> {m.lesson}</p>}
             <p><strong>{handsOnLabel}.</strong> {m.inApp}</p>
             {m.anchor?.ref && <p><strong>Anchor — {m.anchor.ref}.</strong> {m.anchor.theme}</p>}
+            {/* The voices and the dated record print with the lesson (DR-0580):
+                a facilitator working from paper has the words and the years. */}
+            {Array.isArray(m.voices) && m.voices.length > 0 && (
+              <><p><strong>Voices of the time</strong></p>
+              <ul>{m.voices.map((v, i) => <li key={i}>“{v.words}” — {v.speaker}, {v.year}. {v.where} ({v.source?.title})</li>)}</ul></>
+            )}
+            {Array.isArray(m.timeline) && m.timeline.length > 0 && (
+              <><p><strong>Timeline — the record, dated</strong></p>
+              <ul>{m.timeline.map((t, i) => <li key={i}>{t.year} — {t.event} Record: {t.record}</li>)}</ul></>
+            )}
             {/* The printed guide carries the same integrations the screen shows —
                 a facilitator working from paper sees the cross-lesson web AND
                 where the lesson sits in time, with the years. */}
