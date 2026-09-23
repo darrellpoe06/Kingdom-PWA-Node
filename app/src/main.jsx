@@ -14,6 +14,7 @@ import { startDmNotifications } from './lib/dm-notify.js';
 import { captureDeepLink } from './lib/app-doors.js';
 import { wireRemoteNavigation } from './lib/remote-navigation.js';
 import { installNativeShell, isNativeShell } from './lib/native-shell.js';
+import { registerDoorWorker, rowMoverFor } from './lib/sw-door-scope.js';
 
 // The local app (the native shell, DR-0570) carries the house's address: the
 // same-origin NAS routes are re-homed to poetech.us before any module fetches.
@@ -310,10 +311,17 @@ if (__params.get('oauth_popup') === '1') {
 // Skipped in the native shell too (DR-0570): the shell IS the offline shell —
 // its bundle is on the device — and a worker registered against the local
 // asset server would add only a stale-cache layer with nothing to update from.
+// REGISTERED AT THE DOOR, NOT THE ROOT (2026-09-23, DR-0584). The worker file
+// is still the one /sw.js; its scope is the door this page booted in, so the
+// OS credits a notification to the installed app (name, icon, launcher count)
+// instead of to the browser. A root registration left by earlier builds is
+// retired with its push subscription carried across. See lib/sw-door-scope.js.
 if (!__standalone && !isNativeShell(window) && 'serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      const reg = await navigator.serviceWorker.register('/sw.js');
+      const { supabase } = await import('./lib/supabase.js');
+      const { registration: reg, error } = await registerDoorWorker({ navigator, location: window.location, moveRow: rowMoverFor(supabase) });
+      if (!reg) throw new Error(error || 'no registration');
       window.__pwaReg = reg;
       wireUpdates(reg, navigator, window);
       startUpdateChecks(reg, window, navigator);

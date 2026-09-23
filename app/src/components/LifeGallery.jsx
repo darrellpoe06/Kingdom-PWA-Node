@@ -12,8 +12,10 @@
 // pipeline — there is none. The large per-property archives (hundreds of
 // images) reference the NAS in place rather than copy it.
 import React, { useState, useEffect } from 'react';
-import { compressImageFile } from '../lib/image.js';
-import { fetchChannelPhotos, fetchFamilyPhotos, fetchAlbumPhotos, uploadPhoto, hasBridgeToken, setBridgeToken, chatChannelFor, bigPictureAlbum, setBigPictureAlbum } from '../lib/nas-photos.js';
+import { compressImageFile, fileToDataUrl } from '../lib/image.js';
+import { fetchChannelPhotos, fetchFamilyPhotos, fetchAlbumPhotos, uploadPhoto, uploadPlan, hasBridgeToken, setBridgeToken, chatChannelFor, bigPictureAlbum, setBigPictureAlbum } from '../lib/nas-photos.js';
+import { provisionBridgeToken } from '../lib/bridge-provision.js';
+import { supabase } from '../lib/supabase.js';
 import Lightbox from './Lightbox.jsx';
 
 const CATEGORIES = ['Family', 'Business', 'Projects', 'Properties', 'Faith', 'Other'];
@@ -245,6 +247,20 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
   const saveToken = () => { setBridgeToken(tokenDraft); setNasConnected(hasBridgeToken()); setTokenDraft(''); setShowTokenField(false); };
   const disconnectNas = () => { setBridgeToken(''); setNasConnected(false); };
 
+  // THE KEY PROVISIONS ITSELF HERE TOO (DR-0574; Darrell 2026-09-23: "There's
+  // no path to upload photos from my cellphone to the nas!!!!! Why not?!!!").
+  // There was one — this card — but on a phone that had never opened Voice or
+  // Real Estate it sat behind "paste this device's bridge token", the v1 gate
+  // bridge-provision.js retired on 2026-08-03 for every OTHER surface. A
+  // signed-in family device pulls the token through the RPC; the paste stays
+  // only for a device the RPC answers null to (signed out, not family).
+  useEffect(() => {
+    if (readOnly || hasBridgeToken()) return undefined;
+    let live = true;
+    provisionBridgeToken(supabase).then((r) => { if (live && r === 'provisioned') setNasConnected(true); });
+    return () => { live = false; };
+  }, [readOnly]);
+
   const onFiles = async (fileList) => {
     if (!fileList || fileList.length === 0 || !addLifePhotos) return;
     setBusy(true);
@@ -261,18 +277,35 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
     // is SHARED + backed up; only fall back to device-local for shots the NAS
     // refused or when there's no token. The NAS is the better home; a photo is
     // never lost for lack of it.
-    let toNas = 0;
+    //
+    // THE ORIGINAL IS WHAT GETS BACKED UP (2026-09-23). The reduced 1600px copy
+    // is the phone's own preview; the NAS receives the original bytes whenever
+    // they fit the server's cap and are a type it keeps (uploadPlan), and the
+    // reduced copy only when they do not — and the note says which happened.
+    let originals = 0;
+    let reduced = 0;
     const localOnly = [];
     if (hasBridgeToken()) {
       for (const s of shots) {
-        const res = await uploadPhoto(s.src, { filename: s.file?.name });
-        if (res && res.ok) toNas += 1; else localOnly.push(s);
+        const plan = uploadPlan(s.file);
+        let payload = s.src;
+        if (plan.mode === 'original') {
+          try { payload = await fileToDataUrl(s.file); } catch (_) { payload = s.src; plan.mode = 'reduced'; }
+        }
+        const res = await uploadPhoto(payload, { filename: s.file?.name });
+        if (res && res.ok) { if (plan.mode === 'original') originals += 1; else reduced += 1; } else localOnly.push(s);
       }
     } else {
       localOnly.push(...shots);
     }
     setBusy(false);
-    if (toNas) { setFamilyRefresh(k => k + 1); setNasNote(`${toNas} photo${toNas === 1 ? '' : 's'} saved to your NAS — shared with the family.`); }
+    const toNas = originals + reduced;
+    if (toNas) {
+      setFamilyRefresh(k => k + 1);
+      const parts = [`${toNas} photo${toNas === 1 ? '' : 's'} backed up to your NAS — shared with the family.`];
+      if (reduced) parts.push(`${reduced} sent as a reduced copy (over 8 MB or a type the NAS does not keep).`);
+      setNasNote(parts.join(' '));
+    }
     if (localOnly.length) addLifePhotos(localOnly.map(s => { const c = { ...s }; delete c.file; return c; }));
   };
 
@@ -316,7 +349,7 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
               <input type="file" accept="image/*" multiple className="hidden" onChange={e => { onFiles(e.target.files); e.target.value = ''; }} />
             </label>
             {supportsFolderPick && (
-              <button type="button" disabled={busy} onClick={addFromCameraFolder} className={`${busy ? 'opacity-50 pointer-events-none ' : ''}text-[0.625rem] uppercase tracking-wider px-3 py-1.5 min-h-[36px] inline-flex items-center border border-[#1A1815] text-[#1A1815] hover:bg-[#FAF8F4] cursor-pointer`}>📷 From camera folder</button>
+              <button type="button" disabled={busy} onClick={addFromCameraFolder} className={`${busy ? 'opacity-50 pointer-events-none ' : ''}text-[0.625rem] uppercase tracking-wider px-3 py-1.5 min-h-[36px] inline-flex items-center border border-[#1A1815] text-[#1A1815] hover:bg-[#FAF8F4] cursor-pointer`}>📷 Newest 30 from camera folder</button>
             )}
           </div>
         )}
@@ -333,7 +366,7 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
         <div className="mb-3 text-[0.6875rem] border border-[#E8E4DC] bg-white px-3 py-2">
           {nasConnected ? (
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <span className="text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>✓ NAS backup on — new photos upload to your NAS and leave the phone.</span>
+              <span className="text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }} data-testid="nas-backup-on">✓ Backing up to your NAS · the family-photos folder — originals up to 8 MB, shared with the family. Pick photos above{supportsFolderPick ? ', or pull the newest 30 from the camera folder' : ''}.</span>
               <button type="button" onClick={disconnectNas} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] underline hover:text-[#B85838]">Disconnect</button>
             </div>
           ) : showTokenField ? (
@@ -348,7 +381,7 @@ export function LifeGallery({ photos = [], addLifePhotos, updateLifePhoto, delet
             </div>
           ) : (
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <span className="text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Photos are staying on this phone. Connect your NAS to back them up and free space.</span>
+              <span className="text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Photos are staying on this phone. A signed-in family device connects to the NAS on its own; if this one has not, paste the bridge token once.</span>
               <button type="button" onClick={() => setShowTokenField(true)} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#FAF8F4]">Connect NAS</button>
             </div>
           )}

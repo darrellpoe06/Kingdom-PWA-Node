@@ -44,14 +44,22 @@ function doorOf(pathname) {
 
 // SCOPE-AWARE OFFLINE SHELLS. Diagnosed in PR #1405 (Darrell, 2026-08-30): the
 // church app's own start_url died with ERR_FAILED on 4G while site-health
-// reported "UP. Fresh." across every dimension. main.jsx registers '/sw.js' at
-// the DEFAULT scope '/', so ONE worker controls every face while BASE names
-// only PoeTech's -- and the navigation fallback was
+// reported "UP. Fresh." across every dimension. main.jsx then registered
+// '/sw.js' at the DEFAULT scope '/', so ONE worker controlled every face while
+// BASE names only PoeTech's -- and the navigation fallback was
 // caches.match('/poetech-app/index.html'): the WRONG app's shell when that
 // entry existed, and `undefined` when it did not. respondWith(undefined) IS a
 // network error, which Chrome renders as ERR_FAILED. A fresh browser can never
 // reproduce it (no worker installed), which is exactly why every probe stayed
 // green while installed devices were dark.
+//
+// SINCE 2026-09-23 (DR-0584) the SAME file is registered once PER DOOR, at the
+// door's own scope (lib/sw-door-scope.js), because Android credits a
+// notification to an installed app only when the registration that shows it
+// lies inside the app's manifest scope -- a root registration never did, so
+// the shade said "Chrome" and the launcher icon never carried a count. Every
+// handler below is written per-URL, not per-registration, so nothing here
+// changes: each door's worker still answers its own shell and its own taps.
 var FACE_SHELLS = DOOR_PATHS.filter(function (d) { return d !== BASE + '/'; });
 
 // The shell belonging to a URL's own door; PoeTech's for anything else.

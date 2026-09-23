@@ -79,6 +79,54 @@ def bucket_url(base):
     return "{}/storage/v1/bucket".format(base.rstrip("/"))
 
 
+def jwt_claims(key):
+    """The unverified payload of a Supabase API key (a JWT): its `role` and
+    `ref`. No signature check -- this names WHICH key was pasted, it does not
+    trust it (nas-health decodes the anon key the same way). Returns {} for
+    anything that is not a three-part JWT.
+
+    WHY (nas-storage-sync run 35877253926, 2026-09-23): with a value present
+    in agent.env, all 322 private downloads answered
+    {"statusCode":"404","error":"Bucket not found","code":"NoSuchBucket"} from
+    the hosted project -- for a bucket the hosted catalog lists. Storage looks
+    the bucket up UNDER THE CALLER'S ROLE with RLS on storage.buckets; a real
+    service_role bypasses RLS and sees it, an anon key does not and is told
+    "Bucket not found". So that body is the signature of a key that is not
+    service_role, and the run must say so in one line instead of failing 322
+    times."""
+    import base64
+    try:
+        parts = str(key or "").strip().split(".")
+        if len(parts) != 3:
+            return {}
+        seg = parts[1] + "=" * (-len(parts[1]) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(seg.encode()).decode("utf-8"))
+        return payload if isinstance(payload, dict) else {}
+    except Exception:  # noqa: BLE001 - an undecodable key is reported as {}
+        return {}
+
+
+def hosted_key_verdict(key, expected_ref):
+    """('ok', role) when the key is a service_role JWT for the hosted project;
+    ('wrong-role', role) for any other JWT role (the anon key is the likely
+    paste); ('wrong-project', ref) when it signs for another ref; ('opaque',
+    '') for a value that is not a JWT at all (a new-style sb_secret_ key is
+    opaque and cannot be classified here -- it is allowed through and the
+    download bodies remain the judge)."""
+    if not key:
+        return ("absent", "")
+    claims = jwt_claims(key)
+    if not claims:
+        return ("opaque", "")
+    ref = str(claims.get("ref") or "")
+    role = str(claims.get("role") or "")
+    if expected_ref and ref and ref != expected_ref:
+        return ("wrong-project", ref)
+    if role != "service_role":
+        return ("wrong-role", role or "?")
+    return ("ok", role)
+
+
 def scope_to_reachable(buckets, rows, have_hosted_key):
     """Without the hosted service key only PUBLIC buckets are readable, so the
     copy is scoped to them and the withheld buckets are NAMED -- a run that
@@ -188,6 +236,21 @@ def real_run(only_bucket=None, limit=0, dry_run=False):
     if missing:
         print("storage-sync: missing {} - cannot run".format(", ".join(missing)))
         return 2
+
+    # NAME THE KEY BEFORE TRUSTING IT (run 35877253926). A pasted anon key
+    # reads as "present" and then fails every private download with "Bucket
+    # not found"; the role claim says which key it is, in one line, and a
+    # wrong one scopes the run back to public-only with the reason named.
+    if hosted_key:
+        kind, detail = hosted_key_verdict(hosted_key, HOSTED_SB_URL_DEFAULT.split("//")[1].split(".")[0])
+        print("storage-sync: hosted key in agent.env: {}{}".format(
+            kind, " ({})".format(detail) if detail else ""))
+        if kind in ("wrong-role", "wrong-project"):
+            print("storage-sync: that is NOT the hosted service_role key -- the private "
+                  "buckets cannot be read with it (storage answers 'Bucket not found' "
+                  "under RLS). Paste the service_role key from Project Settings > API "
+                  "Keys > Legacy into HOSTED_SERVICE_ROLE_KEY and re-dispatch.")
+            hosted_key = None
 
     src = connect(hosted_url, use_tls=True)
     try:
@@ -344,6 +407,29 @@ def selftest():
           and size_of('{"mimetype":"application/pdf","size":12}') == 12)
     check("a garbage size never becomes a false zero-length match",
           size_of({"size": "not-a-number"}) == 0)
+
+    # The key is NAMED before it is trusted (run 35877253926: 322 x "Bucket
+    # not found" from a key that was present). Unsigned test JWTs: header.
+    # payload.signature with a base64url payload -- the decoder never verifies.
+    import base64
+
+    def fake_jwt(payload):
+        seg = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+        return "eyJhbGciOiJIUzI1NiJ9." + seg + ".sig"
+    anon = fake_jwt({"iss": "supabase", "ref": "mjjlevhdufpaplypnqrv", "role": "anon"})
+    svc = fake_jwt({"iss": "supabase", "ref": "mjjlevhdufpaplypnqrv", "role": "service_role"})
+    other = fake_jwt({"iss": "supabase", "ref": "zzzzzzzzzzzzzzzzzzzz", "role": "service_role"})
+    check("the role claim is read without verifying the signature",
+          jwt_claims(anon).get("role") == "anon" and jwt_claims(svc).get("role") == "service_role")
+    check("CATCHES the anon key pasted where service_role belongs",
+          hosted_key_verdict(anon, "mjjlevhdufpaplypnqrv") == ("wrong-role", "anon"))
+    check("CATCHES a service_role key for a different project",
+          hosted_key_verdict(other, "mjjlevhdufpaplypnqrv") == ("wrong-project", "zzzzzzzzzzzzzzzzzzzz"))
+    check("the right key is ok", hosted_key_verdict(svc, "mjjlevhdufpaplypnqrv") == ("ok", "service_role"))
+    check("an opaque (sb_secret_) value is let through for the bodies to judge",
+          hosted_key_verdict("sb_secret_abc", "mjjlevhdufpaplypnqrv") == ("opaque", ""))
+    check("an empty key is absent", hosted_key_verdict("", "x") == ("absent", ""))
+    check("garbage never crashes the decoder", jwt_claims("a.b.c") == {} and jwt_claims(None) == {})
 
     print("\n{}/{} passed".format(passed, passed + failed))
     return 1 if failed else 0

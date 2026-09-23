@@ -412,4 +412,40 @@ function MetricCell({ label, value, sub, accent, small, trace, traceAction = nul
 }
 
 // Named exports — main file imports these explicitly.
-export { MarketCard, PricingTier, CommunityPriorities, ModuleCard, SectionTitle, MetricCell, TabScroll, NavControls };
+// =============================================================================
+// DmUnreadBadge — the number on the Messages TAB
+// =============================================================================
+// Darrell 2026-09-23, Fold screenshot: every other app in his dock carried a
+// count and PoeTech carried nothing — and inside the app the Messages tab
+// itself said nothing either. The launcher half is sw-door-scope.js (DR-0584);
+// this is the in-app half. It listens to the one DM subscription the app-wide
+// watcher owns (lib/dm-notify.js raises DM_UNREAD_EVENT on every change — the
+// LifeHub tile and AppAlerts already read it the same way), and draws nothing
+// until it has heard a real count. A literal number never appears here; zero
+// renders nothing, so the tab reads exactly as before when there is nothing
+// to say. Pure display: no fetch, no second channel.
+function DmUnreadBadge() {
+  const [unread, setUnread] = useState(0);
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const onUnread = (e) => {
+      const n = Number(e && e.detail && e.detail.next);
+      setUnread(Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
+    };
+    window.addEventListener('poetech:dm-unread', onUnread);
+    return () => window.removeEventListener('poetech:dm-unread', onUnread);
+  }, []);
+  if (!unread) return null;
+  const shown = unread > 99 ? '99+' : String(unread);
+  return (
+    <span
+      data-testid="dm-unread-badge"
+      aria-label={`${unread} unread ${unread === 1 ? 'message' : 'messages'}`}
+      className="ml-1 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-[#B85838] text-white text-[0.625rem] font-semibold leading-none align-middle"
+    >
+      {shown}
+    </span>
+  );
+}
+
+export { MarketCard, PricingTier, CommunityPriorities, ModuleCard, SectionTitle, MetricCell, TabScroll, NavControls, DmUnreadBadge };

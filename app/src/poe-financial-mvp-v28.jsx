@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react';
-import { SectionTitle, MetricCell, TabScroll, NavControls } from './components/shared.jsx';
+import { SectionTitle, MetricCell, TabScroll, NavControls, DmUnreadBadge } from './components/shared.jsx';
 // Contextual help — the discrete "?" that explains the current tab/tool (Ari's
 // voice) + the optional first-run roadmap tour. lib/help-content.js is the one
 // help registry every surface reads from. Small + always-present chrome, so it
@@ -4233,7 +4233,7 @@ ${THEME_CSS}
             the header is collapsed AND the reader is above Normal: at 1x there
             is nothing to escape, so the tucked-away header stays as clean as
             Darrell built it. DR-0276 rule 3 — always reversible. */}
-        <TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} />
+        <TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} siteName={churchBrand ? 'The Love Corner' : 'PoeTech'} />
         <nav className="border-t border-[#E8E4DC]">
           {/* v28+ MVP v1.5 — Nav reordered (round 3): primary financial tabs
               first, About anchors the right side of the primary group, then a
@@ -4284,7 +4284,7 @@ ${THEME_CSS}
                 // Messages — encrypted 1:1 + roster group threads, app-wide
                 // (Darrell 2026-07-25: "how can he message me whenever
                 // encrypted?"). Open to every signed-in user.
-                ['messages', <><UiIcon name="chat" /> Messages</>],
+                ['messages', <><UiIcon name="chat" /> Messages<DmUnreadBadge /></>],
                 ['notes', <><UiIcon name="dove" /> Notes</>],
                 // Create — the document / image creation workspace (Notes group:
                 // capture (Notes) -> reflect (Study) -> compose/produce (Create)).
