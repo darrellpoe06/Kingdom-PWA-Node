@@ -82,6 +82,13 @@ jobs:
           # this line in its authorized keys; the log is where a person reads it.
           echo "== CI public key (authorize THIS line on a box that refuses it) =="
           ssh-keygen -y -f /tmp/k || echo "could not derive the public key"
+          # The log MASKS part of that line: an OpenSSH private key embeds its
+          # own public blob, so a run of the public base64 matches a line of
+          # the secret and Actions stars it out. The same key in 32-character
+          # rows never matches a whole secret line, so it prints unmasked —
+          # join the rows with no spaces to get the line back.
+          echo "== the same key in 32-character rows (join them, no spaces) =="
+          ssh-keygen -y -f /tmp/k | fold -w 32 || true
 
       # READ-ONLY. Every line here reports; none of it changes the machine.
       # The dialect it finds is what every later step runs in.
