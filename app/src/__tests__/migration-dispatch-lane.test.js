@@ -95,9 +95,14 @@ describe('auto-merge — the migration question is asked after the deploy wait',
     // RAISED 48 -> 160 on 2026-09-22 (the seventh miss, #1727), and then the
     // constant was REMOVED the same day (DR-0567): 2, 6, 12 and 40 minutes
     // were each overtaken by a slower suite. The loop now polls while an
-    // armed PR exists and stops when none does; `seq 1 240` is a 60-minute
-    // CEILING (a brake), not the window. Pinned as a shape, not a number.
-    for (const l of loops) expect(l).toContain('seq 1 240');
+    // armed PR exists and stops when none does; `seq 1 120` x 30 s is a
+    // 60-minute CEILING (a brake), not the window. Pinned as a shape.
+    for (const l of loops) expect(l).toContain('seq 1 120');
+    // THE NINTH MISS (2026-09-23, #1735): the loop was alive and silent. A
+    // failed dispatch must never mark the tip done, and no gh error may be
+    // swallowed — the log has to say why nothing happened.
+    expect(src).toMatch(/if gh workflow run deploy-cloudflare-pages\.yml[^\n]*; then\s*\n\s*dispatched_for="\$main_sha"/);
+    expect(src, 'a gh error in the poll is still swallowed').not.toMatch(/commits\/main" --jq '\.sha' 2>\/dev\/null/);
     const armedRechecks = (src.match(/still=\$\(gh pr list --repo "\$REPO" --state open --base main/g) || []).length;
     expect(armedRechecks, 'each heal loop must re-ask whether anything is still armed').toBe(2);
     expect((src.match(/if \[ "\$still" = "0" \]; then/g) || []).length).toBe(2);

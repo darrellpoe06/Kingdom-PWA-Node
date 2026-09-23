@@ -26,6 +26,12 @@ DR-0458 chose *not* to raise the timer again and instead made the healer hear th
 
 **So the constant is removed.** Both heal loops now poll **while any PR remains armed**, re-asking every 15 seconds, and leave after one last look once none is — under a **60-minute ceiling that is a brake, not a target**. The sweep now lives as long as a merge can land, which is also exactly what makes DR-0458's hook fire after the merge rather than before it. The two nets stop disagreeing about when a merge can happen.
 
+## The ninth miss, found while this record was being written (2026-09-23)
+
+#1735 merged at **23:57:36** with the 40-minute sweep **alive and polling** (heal-deploy of run 35796585068, 23:20:22 → past 00:03). No deploy was dispatched. A live poll that watches a merge and does nothing has a different cause from a poll that ended early, and the old loop could produce it two ways, both silently: every `gh` error went to `/dev/null` and read as "nothing to do" — and two loops × two calls every 15 s is ~960 calls/hour against `GITHUB_TOKEN`'s 1,000/hour, a budget the whole repo shares; and a failed `gh workflow run` still set `dispatched_for`, so one refusal became a permanent skip for the rest of the window.
+
+**So the loop was rewritten again before this record merged:** 30-second passes (half the budget), the armed re-check on every fourth pass, every API error printed with the API's own words, and `dispatched_for` set only after a dispatch that returned 0. The pin now also asserts that no `gh` read in the lane is swallowed. The sweep's own log, once it completes, says which of the two it was; this record is updated with that line by the PR that observes it.
+
 ## Verification
 
 - `migration-dispatch-lane`: the pin asserts the shape — two armed re-checks, two exit conditions, the 240-iteration ceiling — not a number. `deploy-freshness-lane` unchanged and green. Both YAML files parse.
