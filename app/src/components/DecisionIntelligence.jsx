@@ -17,19 +17,27 @@
 import React, { useMemo } from 'react';
 import { deriveDecisionIntelligence, STALL_DAYS, DUE_SOON_DAYS, PROJECT_HORIZON_DAYS, REPEAT_MIN } from '../lib/decision-intelligence.js';
 
+// Color rides theme CLASSES, never inline hex (legibility guard, the Chef's
+// Corner class): a class is remapped per theme, an inline color is not.
+const TONE = {
+  rust: { text: 'text-[#B85838]', border: 'border-[#B85838]' },
+  bronze: { text: 'text-[#8B6F47]', border: 'border-[#8B6F47]' },
+  blue: { text: 'text-[#2A5A8E]', border: 'border-[#2A5A8E]' },
+  green: { text: 'text-[#5A6E3D]', border: 'border-[#5A6E3D]' },
+};
 const PANELS = [
-  { key: 'risks', title: 'Risks · what appears repeatedly', color: '#B85838', empty: 'No concern is stated twice on this board.' },
-  { key: 'dependencies', title: 'Dependencies · what cannot move yet', color: '#8B6F47', empty: 'No open item names something it waits on.' },
-  { key: 'ownershipGaps', title: 'Ownership gaps · who should own this', color: '#B85838', empty: 'Every open item has an owner.' },
-  { key: 'escalations', title: 'Escalation · what has stalled', color: '#B85838', empty: 'Nothing has slipped its date or gone quiet.' },
-  { key: 'patterns', title: 'Patterns · across areas', color: '#2A5A8E', empty: 'No worry spans more than one area.' },
-  { key: 'timelineThreats', title: 'Timeline threats · dates at risk', color: '#8B6F47', empty: 'No date inside the window is under threat.' },
-  { key: 'decisionsRequired', title: 'Decisions required · who decides what', color: '#5A6E3D', empty: 'No open row names a decision it waits on.' },
+  { key: 'risks', title: 'Risks · what appears repeatedly', tone: 'rust', empty: 'No concern is stated twice on this board.' },
+  { key: 'dependencies', title: 'Dependencies · what cannot move yet', tone: 'bronze', empty: 'No open item names something it waits on.' },
+  { key: 'ownershipGaps', title: 'Ownership gaps · who should own this', tone: 'rust', empty: 'Every open item has an owner.' },
+  { key: 'escalations', title: 'Escalation · what has stalled', tone: 'rust', empty: 'Nothing has slipped its date or gone quiet.' },
+  { key: 'patterns', title: 'Patterns · across areas', tone: 'blue', empty: 'No worry spans more than one area.' },
+  { key: 'timelineThreats', title: 'Timeline threats · dates at risk', tone: 'bronze', empty: 'No date inside the window is under threat.' },
+  { key: 'decisionsRequired', title: 'Decisions required · who decides what', tone: 'green', empty: 'No open row names a decision it waits on.' },
 ];
 
-function Item({ it, color }) {
+function Item({ it, tone }) {
   return (
-    <li className="border-l-2 pl-2" style={{ borderLeftColor: color }}>
+    <li className={`border-l-2 pl-2 ${TONE[tone].border}`}>
       <p className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
         {it.title}
         {typeof it.count === 'number' && it.count > 1 && <span className="ml-1 text-[0.625rem] font-normal text-[#5A5751]">×{it.count}</span>}
@@ -67,12 +75,12 @@ export default function DecisionIntelligence({ concerns = [], projects = [], dis
             return (
               <section key={p.key} className="bg-white border border-[#E8E4DC] p-3" data-testid={`di-${p.key}`}>
                 <div className="flex items-baseline justify-between">
-                  <h4 className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: p.color }}>{p.title}</h4>
-                  <span className="text-[0.625rem]" style={{ fontFamily: '"JetBrains Mono", monospace', color: list.length ? p.color : '#5A5751' }}>{list.length}</span>
+                  <h4 className={`text-[0.625rem] uppercase tracking-wider font-semibold ${TONE[p.tone].text}`}>{p.title}</h4>
+                  <span className={`text-[0.625rem] ${list.length ? TONE[p.tone].text : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{list.length}</span>
                 </div>
                 {list.length === 0
                   ? <p className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{p.empty}</p>
-                  : <ul className="mt-1.5 space-y-1.5">{list.slice(0, 8).map((it, i) => <Item key={`${it.id || it.key}-${i}`} it={it} color={p.color} />)}</ul>}
+                  : <ul className="mt-1.5 space-y-1.5">{list.slice(0, 8).map((it, i) => <Item key={`${it.id || it.key}-${i}`} it={it} tone={p.tone} />)}</ul>}
                 {list.length > 8 && <p className="text-[0.625rem] text-[#5A5751] mt-1">and {list.length - 8} more</p>}
               </section>
             );

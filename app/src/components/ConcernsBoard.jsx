@@ -125,7 +125,7 @@ function ConcernRow({ c, isLast, canEdit, onUpdate, onDelete }) {
           <dl data-testid="concern-chain" className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-0.5 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
             {[['Owner', c.owner], ['Evidence', c.evidence], ['Impact', c.impact], ['Decision required', c.decisionRequired], ['Outcome', c.outcome]].map(([label, val]) => (
               <React.Fragment key={label}>
-                <dt className="text-[0.625rem] uppercase tracking-wider font-semibold self-start" style={{ color: val ? '#5A6E3D' : '#B85838' }}>{label}</dt>
+                <dt className={`text-[0.625rem] uppercase tracking-wider font-semibold self-start ${val ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>{label}</dt>
                 <dd className={val ? 'text-[#1A1815] whitespace-pre-wrap' : 'text-[#B85838] italic'}>{val || 'not recorded'}</dd>
               </React.Fragment>
             ))}

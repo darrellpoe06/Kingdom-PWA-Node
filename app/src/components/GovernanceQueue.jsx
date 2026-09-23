@@ -94,7 +94,7 @@ function DecisionChain({ chain }) {
           const s = chain[k];
           return (
             <li key={k} className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
-              <span className="uppercase tracking-wider text-[0.625rem] font-semibold" style={{ color: s ? '#5A6E3D' : '#B85838' }}>{CHAIN_LABELS[k]}</span>
+              <span className={`uppercase tracking-wider text-[0.625rem] font-semibold ${s ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>{CHAIN_LABELS[k]}</span>
               <span className="text-[0.625rem] text-[#5A5751] ml-1">· {CHAIN_QUESTIONS[k]}</span>
               {s ? (
                 <p className="text-[#1A1815] mt-0.5 whitespace-pre-wrap">
