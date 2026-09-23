@@ -89,8 +89,12 @@ jobs:
           # function first (pre), then apply the FULL chain so the live DB only
           # ever reaches the final combined state. The smoke counts rows, so it
           # holds across the shape change.
+          # list_my_admin_instances joined the same class on 2026-09-23: 0221
+          # widened its RETURNS (slug), so re-applying 0112's narrow shape was
+          # refused on every run since (8 of 9 red). Dropped here for the same
+          # reason; the guard (checkReplayShapes) now names this class.
           - feature: role-control
-            pre: "DROP FUNCTION IF EXISTS public.list_instance_members(uuid);"
+            pre: "DROP FUNCTION IF EXISTS public.list_instance_members(uuid); DROP FUNCTION IF EXISTS public.list_my_admin_instances();"
             migrations: "0111-set-member-role.sql 0112-list-my-admin-instances.sql 0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0143-member-worker-classification.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql 0221-the-space-picker-can-name-the-door-it-belongs-to.sql"
             smokes: "0111-role-control-smoke.sql"
           - feature: support-door
