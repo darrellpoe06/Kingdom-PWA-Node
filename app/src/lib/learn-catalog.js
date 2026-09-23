@@ -39,6 +39,7 @@ import { PV_META, PV_SESSION_FLOW, buildPvSchedule, pvProgressSummary, exportPvC
 import { LEGACY_PROVISIONS_META, LEGACY_PROVISIONS_SESSION_FLOW, buildLegacyProvisionsSchedule, legacyProvisionsProgressSummary, exportLegacyProvisionsCurriculumMarkdown, LEGACY_PROVISIONS_INTEREST_TAG, LEGACY_PROVISIONS_HELPER_TAG, LEGACY_PROVISIONS_TUTOR_META } from './legacy-provisions-course.js';
 import { PROPERTY_PRINCIPLE_META, PROPERTY_PRINCIPLE_SESSION_FLOW, buildPropertyPrincipleSchedule, propertyPrincipleProgressSummary, exportPropertyPrincipleCurriculumMarkdown, PROPERTY_PRINCIPLE_INTEREST_TAG, PROPERTY_PRINCIPLE_HELPER_TAG, PROPERTY_PRINCIPLE_TUTOR_META } from './property-principle-course.js';
 import { HISTORY_META, HISTORY_SESSION_FLOW, buildHistorySchedule, historyProgressSummary, exportHistoryCurriculumMarkdown, HISTORY_INTEREST_TAG, HISTORY_HELPER_TAG, HISTORY_TUTOR_META } from './history-course.js';
+import { HISTORICAL_RESEARCH_META, HISTORICAL_RESEARCH_SESSION_FLOW, buildHistoricalResearchSchedule, historicalResearchProgressSummary, exportHistoricalResearchCurriculumMarkdown, HISTORICAL_RESEARCH_INTEREST_TAG, HISTORICAL_RESEARCH_HELPER_TAG, HISTORICAL_RESEARCH_TUTOR_META } from './historical-research-course.js';
 import { MANAGEMENT_STEWARDSHIP_META, MANAGEMENT_STEWARDSHIP_SESSION_FLOW, buildManagementStewardshipSchedule, managementStewardshipProgressSummary, exportManagementStewardshipCurriculumMarkdown, MANAGEMENT_STEWARDSHIP_INTEREST_TAG, MANAGEMENT_STEWARDSHIP_HELPER_TAG, MANAGEMENT_STEWARDSHIP_TUTOR_META } from './management-stewardship-course.js';
 import { BUYING_TERMS_META, BUYING_TERMS_SESSION_FLOW, buildBuyingTermsSchedule, buyingTermsProgressSummary, exportBuyingTermsCurriculumMarkdown, BUYING_TERMS_INTEREST_TAG, BUYING_TERMS_HELPER_TAG, BUYING_TERMS_TUTOR_META } from './buying-terms-course.js';
 import { LEASING_TENANTS_META, LEASING_TENANTS_SESSION_FLOW, buildLeasingTenantsSchedule, leasingTenantsProgressSummary, exportLeasingTenantsCurriculumMarkdown, LEASING_TENANTS_INTEREST_TAG, LEASING_TENANTS_HELPER_TAG, LEASING_TENANTS_TUTOR_META } from './leasing-tenants-course.js';
@@ -688,6 +689,26 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want help working the eight moves on a real record — the elder to ask, the decade to measure by the fatherless, the widow and the stranger, the title to trace, the one name to find, the second weight in your own state, the gleaning field in your own town, and the two or three witnesses to gather at your table. Teaching, not a substitute for the record: every date here points to the census, the statute, the treaty or the testimony it came from, and you are meant to check it.',
       cta: 'I want help with mine',
       sent: '✓ Sent — Darrell will reach out. The Word is true from the beginning; the record is read under it.',
+    },
+  },
+  {
+    // COURSE TWO OF THE HISTORY DEPARTMENT (Darrell 2026-09-23: "Let's use the
+    // 1619 project as a history or historical research 1 level competencies
+    // based on those professors work... Word first research and then Lessons
+    // as our Ways and documentation mandated"). The craft, taught on one case:
+    // eight Level-1 competencies, every verse verbatim, every historical voice
+    // verified against its source on a runner before it was written in.
+    key: 'historical-research-1619', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...HISTORICAL_RESEARCH_META, key: 'historical-research-1619', category: 'History' }, sessionFlow: HISTORICAL_RESEARCH_SESSION_FLOW,
+    buildScheduleRows: () => buildHistoricalResearchSchedule(null), progressSummary: (p) => historicalResearchProgressSummary(p),
+    exportMarkdown: () => exportHistoricalResearchCurriculumMarkdown(null), downloadName: 'historical-research-level-1-the-1619-project-as-the-case-curriculum.md',
+    interestTag: HISTORICAL_RESEARCH_INTEREST_TAG, helperTag: HISTORICAL_RESEARCH_HELPER_TAG, tutorCourseMeta: HISTORICAL_RESEARCH_TUTOR_META,
+    interestText: (who) => `${HISTORICAL_RESEARCH_INTEREST_TAG} ${who} wants a hand working a claim, a document or a dispute through the eight competencies.`,
+    interestCopy: {
+      heading: 'Want a hand with a claim of your own?',
+      blurb: 'Tell Darrell you want help working the eight competencies on a real case — a claim to sort, a record to find, a second witness to hunt, a dispute to table, a correction to trace, or the two paragraphs to write with their sources. Teaching, not a substitute for the record: every document this course names can be read in full where it points, and you are meant to check it.',
+      cta: 'I want help with mine',
+      sent: '✓ Sent — Darrell will reach out. Prove all things; establish every word at the mouth of two or three witnesses.',
     },
   },
   {

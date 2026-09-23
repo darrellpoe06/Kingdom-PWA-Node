@@ -97,6 +97,9 @@ export const COURSE_PLAIN_WORDS = {
   // types when they want to know what the law did to whom, and what the Word
   // says about it.
   'history-truth': ['history', 'truth', 'laws', 'land', 'wages', 'bible'],
+  // The department's second course (DR-0590): the words a person types when
+  // they want to know how to check a claim about the past for themselves.
+  'historical-research-1619': ['history', 'research', 'facts', 'sources', 'evidence', '1619'],
   'insurance-risk': ['insurance', 'fire', 'flood', 'accident', 'house', 'bills'],
   inspections: ['house', 'repairs', 'building', 'fixing', 'plumbing', 'buying'],
   evictions: ['rent', 'landlord', 'tenant', 'debt', 'money', 'home'],

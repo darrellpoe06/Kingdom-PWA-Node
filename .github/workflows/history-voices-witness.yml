@@ -33,6 +33,7 @@ on:
   push:
     paths:
       - app/src/lib/history-course.js
+      - app/src/lib/historical-research-course.js
       - scripts/history-voices-witness.mjs
       - .github/workflows/history-voices-witness.yml
 

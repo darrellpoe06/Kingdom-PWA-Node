@@ -106,7 +106,7 @@ describe('the debt, recorded as it actually is', () => {
     // NOT move with any of them. That is the shape a new course is supposed to
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
-    expect(baseline.total).toBe(358);
+    expect(baseline.total).toBe(366); // 366 on 2026-09-23: the History department's second course (historical-research-1619, DR-0590), both bands on every lesson
     expect(baseline.allFour).toBe(0);
     expect(baseline.adultOnly).toBe(37);
   });
