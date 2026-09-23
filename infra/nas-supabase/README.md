@@ -143,7 +143,8 @@ The key is at Supabase dashboard -> Project Settings -> API Keys -> Legacy ->
 `sb_secret_`). It is a server-side secret: it belongs in `agent.env` on the NAS
 and must never reach the browser bundle or a repo secret used at build time.
 The next dispatch with an empty `bucket` then copies every bucket; the run
-prints the key's PRESENCE, family and hosted's answer to it, never its value.
+prints the key's PRESENCE only, never its value (its family by prefix and
+hosted's answer to it are printed beside that presence line).
 
 **Place it with `place_hosted_key.sh`, not a raw paste (2026-09-23).** Four
 dispatches read a pasted value that was not a key of any family (57 chars,
