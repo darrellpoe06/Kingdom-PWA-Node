@@ -256,12 +256,17 @@ export default function GovernanceQueue({ appDecisions = [], familyInstanceId = 
             Every decision that has landed, in full — number, title, the decision, the why, and the date. {ledger.count > 0 ? `${ledger.count} records` : 'No records'}, read straight from the repo at build time and rendered here. Nothing to open elsewhere.
           </p>
           {ledger.count > 0 && (() => {
-            const cov = chainCoverage(ledger.items);
+            // Only a record with sections can be read as a chain; the index-only
+            // rows (DR-0017..0049, a title and a date) are counted separately
+            // and never as "missing every step".
+            const withChain = ledger.items.filter((it) => it.chain);
+            const indexOnly = ledger.items.length - withChain.length;
+            const cov = chainCoverage(withChain);
             const worst = CHAIN_SLOTS.map((k) => [k, cov.missingBySlot[k]]).sort((a, b) => b[1] - a[1])[0];
             return (
               <p data-testid="chain-coverage" className="text-xs mt-2 text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
                 <span className="uppercase tracking-wider text-[0.625rem] font-semibold text-[#5A6E3D]">Traceability · </span>
-                Each record opens as Concern → Evidence → Impact → Decision → Outcome, read from its own sections. {cov.complete} of {cov.total} carry all five; {cov.incomplete} are missing at least one step, most often <em>{CHAIN_LABELS[worst[0]]}</em> ({worst[1]}). A missing step is shown as missing, never filled in. Every record from DR-0588 on must carry all five.
+                Each record opens as Concern → Evidence → Impact → Decision → Outcome, read from its own sections. {cov.complete} of the {cov.total} records with sections carry all five; {cov.incomplete} are missing at least one step, most often <em>{CHAIN_LABELS[worst[0]]}</em> ({worst[1]}).{indexOnly > 0 ? ` ${indexOnly} early rows live only in the index (a title and a date) and are not read as a chain.` : ''} A missing step is shown as missing, never filled in. Every record from DR-0588 on must carry all five.
               </p>
             );
           })()}

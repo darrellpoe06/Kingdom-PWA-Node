@@ -94,6 +94,11 @@ The guard names them.
     expect(c.evidence.text).toBeUndefined();
   });
 
+  it('a markdown table reads as "cell — cell" lines with the separator row dropped', () => {
+    const c = chainOf('## What was measured\n| what | measured |\n| --- | --- |\n| records | 550 |\n| complete | 16 |\n');
+    expect(c.evidence.text).toBe('what — measured\nrecords — 550\ncomplete — 16');
+  });
+
   it('bounds each slot to max and keeps bullets and newlines', () => {
     const long = `## Decision\n- one\n- two\n${'x'.repeat(2000)}\n`;
     const c = chainOf(long, { max: 100 });

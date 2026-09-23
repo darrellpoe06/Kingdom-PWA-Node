@@ -120,7 +120,16 @@ function familyOf(heading) {
 
 // Markdown → readable text (bullets and newlines kept; bold/code/links dropped).
 export function plainText(s, max = 1400) {
-  const t = String(s || '')
+  const lines = String(s || '').replace(/\r\n/g, '\n').split('\n').map((line) => {
+    // A markdown table row reads as "cell — cell"; its separator row is dropped.
+    if (/^\s*\|/.test(line)) {
+      const cells = line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
+      if (cells.every((c) => /^:?-{2,}:?$/.test(c) || c === '')) return null;
+      return cells.filter(Boolean).join(' — ');
+    }
+    return line;
+  }).filter((l) => l !== null);
+  const t = lines.join('\n')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .replace(/\*\*/g, '')
     .replace(/`/g, '')
