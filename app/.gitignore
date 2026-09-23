@@ -9,3 +9,10 @@ vite.config.js.timestamp-*.mjs
 *.local
 *.log
 .DS_Store
+
+# The native shell (DR-0570): the Android project is generated in CI by `cap add`,
+# the staged web dir is a copy of dist, and capacitor.config.json is written per
+# brand by native/stage.mjs. None of the three is source.
+android/
+native/www/
+capacitor.config.json

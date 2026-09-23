@@ -1,4 +1,4 @@
-# DR-0566 — The studio is tried, not asked about — and the chain gains its missing link
+# DR-0569 — The studio is tried, not asked about — and the chain gains its missing link
 
 - **Status:** accepted
 - **Tier:** B
