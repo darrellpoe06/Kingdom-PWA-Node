@@ -232,17 +232,36 @@ describe('the brand table is one table — store, TWA matrix and native shell ag
     expect(m[1].split(',').map((s) => s.trim()).sort()).toEqual(brands.map((b) => b.key).sort());
   });
 
-  it('every native package id is distinct, ends in .native, and is NOT a TWA id — both must install side by side', () => {
+  it('every native package id is distinct, ends in .local, and is NOT a TWA id — both must install side by side', () => {
     const twa = new Set(APP_STORE.map((a) => a.packageId));
     const ids = brands.map((b) => b.appId);
     expect(new Set(ids).size).toBe(ids.length);
     for (const b of brands) {
-      expect(b.appId.endsWith('.native')).toBe(true);
+      expect(b.appId.endsWith('.local')).toBe(true);
       expect(twa.has(b.appId)).toBe(false);
-      // …and it is the TWA id with .native appended, so the pairing is legible.
+      // …and it is the TWA id with .local appended, so the pairing is legible.
       const twaId = APP_STORE.find((a) => a.key === b.key).packageId;
-      expect(b.appId).toBe(`${twaId}.native`);
+      expect(b.appId).toBe(`${twaId}.local`);
     }
+  });
+
+  it('no segment of any id is a Java keyword — the first run failed on exactly this (DR-0571)', () => {
+    // Run 1 of the lane, all five brands: "Namespace 'us.poetech.properties.native'
+    // is not a valid Java package name as 'native' is a Java keyword." The
+    // Android namespace is a Java package, so every dot-separated segment must
+    // be a legal Java identifier, and this is the whole reserved-word list.
+    const JAVA_KEYWORDS = new Set(('abstract assert boolean break byte case catch char class const continue default do double '
+      + 'else enum extends final finally float for goto if implements import instanceof int interface long native new '
+      + 'package private protected public return short static strictfp super switch synchronized this throw throws '
+      + 'transient try void volatile while true false null').split(' '));
+    for (const b of brands) {
+      for (const seg of b.appId.split('.')) {
+        expect(/^[a-z][a-z0-9_]*$/.test(seg), `${b.appId}: "${seg}" is not a Java identifier`).toBe(true);
+        expect(JAVA_KEYWORDS.has(seg), `${b.appId}: "${seg}" is a Java keyword`).toBe(false);
+      }
+    }
+    // proven-to-catch on the exact id that failed
+    expect('us.poetech.properties.native'.split('.').some((s) => JAVA_KEYWORDS.has(s))).toBe(true);
   });
 
   it('every start page is a served HTML that exists in the app source, named as a FILE', () => {
@@ -271,7 +290,7 @@ describe('the brand table is one table — store, TWA matrix and native shell ag
 
   it('the Capacitor config turns native HTTP on (no CORS wall) and keeps a secure origin', () => {
     const c = capacitorConfigFor(brandFor('poetech', brands));
-    expect(c.appId).toBe('us.poetech.app.native');
+    expect(c.appId).toBe('us.poetech.app.local');
     expect(c.webDir).toBe('native/www/poetech');
     expect(c.plugins.CapacitorHttp.enabled).toBe(true);
     expect(c.server.androidScheme).toBe('https');

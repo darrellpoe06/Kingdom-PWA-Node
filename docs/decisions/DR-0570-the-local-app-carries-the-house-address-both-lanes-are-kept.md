@@ -53,6 +53,8 @@ The native lane:
 5. **Cut-over decision.** Whether the native app takes the TWA's id (installs as an *update* over it under the same store key) or stays beside it — decided on the soak's evidence, never by default. `re-review: 2026-10-15`.
 6. **The sw-version-stamp plugin reads `dist/sw.js` by a fixed path** and throws under any other `--outDir` (found while proving the build). Harmless to both lanes (both use `dist`); a one-line `outDir` read when next touched. `re-review: 2026-10-15`.
 
+> **Amended 2026-09-23 (DR-0571):** the id suffix written above as `<twa id>.native` shipped, ran once, and failed on all five brands — `native` is a Java keyword and an Android namespace is a Java package. The suffix is **`.local`** (`us.poetech.app.local`, `us.poetech.lovecorner.local`, …); every other sentence in this record stands. The finding and the keyword pin are DR-0571's.
+
 ## Verification
 
 - 30 new checks, green: the web untouched (no install without the runtime; base default; TWA workflow and shelf unmentioned; Capacitor never in `dependencies`); the fault reproduced (a relative route resolved from the device); every transport re-homed with its query; local files, absolute URLs and non-http schemes untouched; prefix vs file matching; `Request` and `URL` inputs; idempotent install; the route list equal to `app/functions/` both ways; main.jsx order and the service-worker skip; store / matrix / brands table equality; ids distinct, `.native`-suffixed, paired to the TWA id; every start page an existing HTML file; the door script's first-load-only rule and single injection; the three brakes and the verify-before-publish order in the workflow.
