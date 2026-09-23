@@ -110,16 +110,18 @@ async function witness(modules) {
 // cites it, from the one place that can reach it.
 async function probe(spec) {
   for (const line of String(spec || '').split('\n')) {
-    const [rawUrl, ...rest] = line.split('|');
-    const url = (rawUrl || '').trim(); const phrase = rest.join('|').trim();
+    // `url | phrase | window` — window (chars, default 700) widens the read.
+    const [rawUrl, rawPhrase = '', rawWindow = ''] = line.split('|');
+    const url = (rawUrl || '').trim(); const phrase = rawPhrase.trim();
+    const win = Math.min(12000, Number(rawWindow.trim()) || 700);
     if (!url) continue;
     const page = await fetchText(url);
     const sp = strict(page.text);
     console.log(`== ${url} · HTTP ${page.status}${page.error ? ' ' + page.error : ''} · title «${page.title || ''}»`);
-    if (!phrase) { console.log(`   opens: «${sp.slice(0, 500)}»`); continue; }
+    if (!phrase) { console.log(`   opens: «${sp.slice(0, win)}»`); continue; }
     const at = sp.indexOf(strict(phrase));
-    if (at >= 0) console.log(`   around «${phrase}»: «${sp.slice(Math.max(0, at - 300), at + 700)}»`);
-    else { const la = loose(sp).indexOf(loose(phrase)); console.log(`   «${phrase}» ${la >= 0 ? 'present on letters only (punctuation differs)' : 'NOT on the page'}; opens: «${sp.slice(0, 400)}»`); }
+    if (at >= 0) console.log(`   around «${phrase}»: «${sp.slice(Math.max(0, at - Math.floor(win / 2)), at + win)}»`);
+    else { const la = loose(sp).indexOf(loose(phrase)); console.log(`   «${phrase}» ${la >= 0 ? 'present on letters only (punctuation differs)' : 'NOT on the page'}; opens: «${sp.slice(0, Math.min(win, 400))}»`); }
   }
 }
 
