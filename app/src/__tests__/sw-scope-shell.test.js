@@ -8,8 +8,10 @@
 // 4G, while site-health reported "UP. Fresh." across every dimension at the
 // same moment. Both observations were true, which is the whole problem.
 //
-// main.jsx registers `/sw.js` at the DEFAULT scope '/', so ONE worker controls
-// every face while its BASE names only '/poetech-app'. The navigation handler is
+// main.jsx then registered `/sw.js` at the DEFAULT scope '/', so ONE worker
+// controlled every face while its BASE names only '/poetech-app' (since
+// 2026-09-23 the same file is registered per door, lib/sw-door-scope.js; the
+// handlers are per-URL, so every case below holds unchanged). The navigation handler is
 // network-first; on a transient failure it fell back to
 // `caches.match('/poetech-app/index.html')` — the WRONG app's shell when cached,
 // and `undefined` when not. respondWith(undefined) IS a network error, which

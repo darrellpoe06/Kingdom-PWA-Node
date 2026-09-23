@@ -49,7 +49,7 @@ describe('the tab-row wrapper is allowed to shrink', () => {
 
 describe('the way back from the hideaway is in words, on the left', () => {
   it('the tucked-away row renders a Show header button when given the toggle', () => {
-    expect(HATCH).toMatch(/export function TextSizeEscapeHatch\(\{ collapsed, onShowHeader = null \}\)/);
+    expect(HATCH).toMatch(/export function TextSizeEscapeHatch\(\{ collapsed, onShowHeader = null, siteName = '' \}\)/);
     expect(HATCH).toMatch(/data-testid="show-full-header"/);
     expect(HATCH).toMatch(/onClick=\{onShowHeader\}/);
     expect(HATCH).toMatch(/aria-label="Show the full header \(name, account, voice, font, theme controls\)"/);
@@ -61,7 +61,8 @@ describe('the way back from the hideaway is in words, on the left', () => {
   });
 
   it('both header mounts wire the toggle into it', () => {
-    expect(SHELL).toMatch(/<TextSizeEscapeHatch collapsed=\{headerCollapsed\} onShowHeader=\{toggleHeaderChrome\} \/>/);
+    // The shell also names the door on the row (2026-09-23); the toggle wiring is unchanged.
+    expect(SHELL).toMatch(/<TextSizeEscapeHatch collapsed=\{headerCollapsed\} onShowHeader=\{toggleHeaderChrome\} siteName=\{[^}]+\} \/>/);
     expect(TLC).toMatch(/<TextSizeEscapeHatch collapsed=\{headerCollapsed\} onShowHeader=\{toggleHeaderChrome\} \/>/);
   });
 

@@ -239,7 +239,29 @@ export async function fetchAlbumPhotos(album, { limit = 60 } = {}) {
   }
 }
 
-// Upload one photo (a compressed data URL) to the NAS. Returns { ok } | null.
+// THE ORIGINAL GOES TO THE NAS WHEN IT FITS (Darrell 2026-09-23: "There's no
+// path to upload photos from my cellphone to the nas!!!!! ... I should be able
+// to back up my phone"). There was a path — Big Picture › Life Gallery — but it
+// sent a 1600px/0.75 JPEG re-encode of every photo, which is a preview, not a
+// backup. The sovereign photo server takes up to MAX_UPLOAD_BYTES of decoded
+// image (photo_server.py:129, 8 MiB) and decides the type from the bytes'
+// magic number (jpg / png / webp only). So the plan is pure and honest: the
+// original bytes when they fit and are a type the server keeps; the reduced
+// copy otherwise, with the reason named so the note can say it.
+export const NAS_UPLOAD_MAX_BYTES = 8 * 1024 * 1024;
+const NAS_KEPT_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+export function uploadPlan(file, { maxBytes = NAS_UPLOAD_MAX_BYTES } = {}) {
+  const size = file && Number.isFinite(file.size) ? file.size : 0;
+  const type = String((file && file.type) || '').toLowerCase();
+  if (!size) return { mode: 'reduced', reason: 'unknown-size' };
+  if (!NAS_KEPT_TYPES.includes(type)) return { mode: 'reduced', reason: 'type-not-kept' };
+  if (size > maxBytes) return { mode: 'reduced', reason: 'too-large' };
+  return { mode: 'original', reason: 'fits' };
+}
+
+// Upload one photo (a data URL — the original when it fits, see uploadPlan)
+// to the NAS. Returns { ok } | null.
 // dest defaults to the shared family gallery. The caller falls back to
 // device-local storage when this returns null (no token, offline, rejected) —
 // the NAS is the better home, but a photo is never lost for lack of it.

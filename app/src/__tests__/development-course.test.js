@@ -195,7 +195,12 @@ describe('NOTHING IN IT IS ILLUSTRATIVE — every cited artifact is real', () =>
 
   it('the registration scope the lesson describes is the registration that exists', () => {
     const main = readFileSync(join(REPO, 'app', 'src', 'main.jsx'), 'utf8');
-    expect(main, 'the lesson says the worker registers at the default scope').toContain("register('/sw.js')");
+    // The lesson says the root registration was RETIRED for the door's scope
+    // (2026-09-23, lib/sw-door-scope.js); main.jsx must agree.
+    expect(main, 'the lesson says the worker now registers at the door').toMatch(/registerDoorWorker\(/);
+    expect(main, 'the bare root registration the lesson calls retired must be gone').not.toContain("register('/sw.js')");
+    const lesson6 = DEVELOPMENT_MODULES.find((m) => m.id.includes('front-door'));
+    expect(lesson6.lesson).toMatch(/sw-door-scope\.js/);
   });
 
   it('the three baselines it points at are really shrink-only debt with real entries', () => {
