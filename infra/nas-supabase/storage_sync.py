@@ -145,7 +145,13 @@ def hosted_key_verdict(key, expected_ref):
         return ("ok", "sb_secret")
     claims = jwt_claims(key)
     if not claims:
-        return ("opaque", "")
+        # Run 35893779483 measured the pasted value's shape: 57 characters,
+        # prefix 'cdn', no dots. That is not any Supabase API key -- a legacy
+        # key is a JWT ('eyJ', two dots, ~200 characters), a new key starts
+        # 'sb_'. A value in neither family is NAMED as not a key, so the run
+        # does not spend 322 downloads discovering it. Only an 'eyJ' value
+        # that fails to decode stays 'opaque' (a truncated JWT paste).
+        return ("opaque", "") if k.startswith("eyJ") else ("not-a-key", "")
     ref = str(claims.get("ref") or "")
     role = str(claims.get("role") or "")
     if expected_ref and ref and ref != expected_ref:
@@ -273,8 +279,15 @@ def real_run(only_bucket=None, limit=0, dry_run=False):
         kind, detail = hosted_key_verdict(hosted_key, HOSTED_SB_URL_DEFAULT.split("//")[1].split(".")[0])
         print("storage-sync: hosted key in agent.env: {}{}".format(
             kind, " ({})".format(detail) if detail else ""))
-        if kind == "opaque":
+        if kind in ("opaque", "not-a-key"):
             print("storage-sync: hosted key shape: " + json.dumps(key_shape(hosted_key)))
+        if kind == "not-a-key":
+            print("storage-sync: that value is not a Supabase API key at all (a legacy key "
+                  "starts 'eyJ' and carries two dots; a new key starts 'sb_'). The private "
+                  "buckets are withheld until HOSTED_SERVICE_ROLE_KEY holds the service_role "
+                  "key (Project Settings > API Keys > Legacy) or the Secret key (API Keys, "
+                  "sb_secret_...).")
+            hosted_key = None
         if kind in ("wrong-role", "wrong-project"):
             print("storage-sync: that is NOT the hosted service_role key -- the private "
                   "buckets cannot be read with it (storage answers 'Bucket not found' "
@@ -461,8 +474,10 @@ def selftest():
           hosted_key_verdict("sb_secret_abc", "mjjlevhdufpaplypnqrv") == ("ok", "sb_secret"))
     check("CATCHES a new-style PUBLISHABLE key pasted where the secret belongs (the anon role)",
           hosted_key_verdict("sb_publishable_abc", "mjjlevhdufpaplypnqrv") == ("wrong-role", "publishable"))
-    check("a value that is neither a JWT nor an sb_ key is let through for the bodies to judge",
-          hosted_key_verdict("something-else", "mjjlevhdufpaplypnqrv") == ("opaque", ""))
+    check("CATCHES a value that is not a Supabase key at all (run 35893779483: 57 chars, 'cdn', no dots)",
+          hosted_key_verdict("cdn" + "x" * 54, "mjjlevhdufpaplypnqrv") == ("not-a-key", ""))
+    check("an 'eyJ' value that does not decode stays opaque (a truncated JWT paste)",
+          hosted_key_verdict("eyJhbGciOiJIUzI1NiJ9.broken", "mjjlevhdufpaplypnqrv") == ("opaque", ""))
     check("an empty key is absent", hosted_key_verdict("", "x") == ("absent", ""))
     check("garbage never crashes the decoder", jwt_claims("a.b.c") == {} and jwt_claims(None) == {})
     shape = key_shape('"eyJabc.def.ghi"')
