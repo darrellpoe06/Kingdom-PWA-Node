@@ -225,11 +225,17 @@ jobs:
       # and the merge landed at ~16:14 — four minutes after the window
       # closed. No deploy fired; it was dispatched by hand, again. The rule
       # this file states in its own words is "a full current CI run plus
-      # equal margin": 19 + 19 = 38, rounded to 40 (160 x 15s). The cost is
-      # unchanged in kind (armed-PRs-only, superseded sweeps cancel), and
-      # the worst case of a stale window is the exact outage class DR-0107
-      # exists to prevent. The pin lives in migration-dispatch-lane.test.js
-      # so the next raise is a deliberate edit in two places, not a drift.
+      # equal margin": 19 + 19 = 38, rounded to 40 (160 x 15s).
+      #
+      # AND THEN THE NUMBER WAS REMOVED THE SAME DAY (DR-0567). Forty minutes
+      # was the fourth constant in this comment's history and would have been
+      # the fourth to go stale. The loop now polls WHILE AN ARMED PR EXISTS,
+      # re-read every 15 seconds, under a 60-minute ceiling that is a brake
+      # rather than a target: it watches exactly as long as a merge can still
+      # land and leaves the moment nothing can. DR-0458's event hook stays
+      # and now fires AFTER the merge, because the sweep it chains to no
+      # longer ends before CI does. The pin in migration-dispatch-lane.test.js
+      # asserts the shape (armed re-check + ceiling), not a number.
       # ONE HEAL USED TO SERVE EXACTLY ONE MERGE (2026-08-28, the SIXTH miss —
       # PR #1370). Measured on runs 3381 / 3388:
       #
@@ -291,10 +297,25 @@ jobs:
           armed=$(gh pr list --repo "$REPO" --state open --base main \
             --json autoMergeRequest --jq '[.[] | select(.autoMergeRequest != null)] | length' 2>/dev/null || echo 0)
           if [ "$armed" -gt 0 ]; then
-            echo "$armed armed PR(s) may merge momentarily — polling up to 40 minutes."
-            for i in $(seq 1 160); do
+            echo "$armed armed PR(s) may merge momentarily — polling while any PR stays armed (ceiling 60 minutes)."
+            for i in $(seq 1 240); do
               sleep 15
               deploy_if_stale || true
+              # THE CONSTANT IS GONE (2026-09-22, the eighth miss). Every fix of
+              # this class raised a number — 2, 6, 12, 40 minutes — and every
+              # number was overtaken by a slower suite. The poll now asks the
+              # question it was always standing in for: is anything still armed?
+              # It keeps watching exactly as long as a merge can still land, and
+              # stops the moment nothing can. The ceiling is a brake, not a
+              # target. One extra API read per 15s while armed; nothing otherwise.
+              still=$(gh pr list --repo "$REPO" --state open --base main \
+                --json autoMergeRequest --jq '[.[] | select(.autoMergeRequest != null)] | length' 2>/dev/null || echo 1)
+              if [ "$still" = "0" ]; then
+                # One last look after the last merge lands, then leave.
+                sleep 20; deploy_if_stale || true
+                echo "No armed PRs remain; the last merge (if any) was checked. Leaving."
+                break
+              fi
             done
             echo "Poll window closed; the next sweep or the scheduled freshness check covers what is left."
           else
@@ -340,10 +361,18 @@ jobs:
           armed=$(gh pr list --repo "$REPO" --state open --base main \
             --json autoMergeRequest --jq '[.[] | select(.autoMergeRequest != null)] | length' 2>/dev/null || echo 0)
           if [ "$armed" -gt 0 ]; then
-            echo "$armed armed PR(s) may merge momentarily — polling up to 40 minutes."
-            for i in $(seq 1 160); do
+            echo "$armed armed PR(s) may merge momentarily — polling while any PR stays armed (ceiling 60 minutes)."
+            for i in $(seq 1 240); do
               sleep 15
               migrate_if_tip_migration || true
+              # Same armed-while shape as heal-deploy above, for the same reason.
+              still=$(gh pr list --repo "$REPO" --state open --base main \
+                --json autoMergeRequest --jq '[.[] | select(.autoMergeRequest != null)] | length' 2>/dev/null || echo 1)
+              if [ "$still" = "0" ]; then
+                sleep 20; migrate_if_tip_migration || true
+                echo "No armed PRs remain; the last merge (if any) was checked. Leaving."
+                break
+              fi
             done
             echo "Poll window closed; the re-check step and migrate-freshness cover what is left."
           else

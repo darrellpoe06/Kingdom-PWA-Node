@@ -92,11 +92,15 @@ describe('auto-merge — the migration question is asked after the deploy wait',
     // poll kept expiring before the merge it was waiting for. Was 48 x 15s = 12m.
     const loops = src.match(/for i in \$\(seq 1 (\d+)\); do/g) || [];
     expect(loops.length).toBe(2);
-    // RAISED 48 -> 160 (12 -> 40 minutes) on 2026-09-22, the SEVENTH miss
-    // (#1727): CI now runs 17-19 minutes on 19,208 tests and the 12-minute
-    // window expired four minutes before the merge. "A full current CI run
-    // plus equal margin" is the rule the workflow states; 160 x 15s = 40m.
-    for (const l of loops) expect(l).toContain('seq 1 160');
+    // RAISED 48 -> 160 on 2026-09-22 (the seventh miss, #1727), and then the
+    // constant was REMOVED the same day (DR-0567): 2, 6, 12 and 40 minutes
+    // were each overtaken by a slower suite. The loop now polls while an
+    // armed PR exists and stops when none does; `seq 1 240` is a 60-minute
+    // CEILING (a brake), not the window. Pinned as a shape, not a number.
+    for (const l of loops) expect(l).toContain('seq 1 240');
+    const armedRechecks = (src.match(/still=\$\(gh pr list --repo "\$REPO" --state open --base main/g) || []).length;
+    expect(armedRechecks, 'each heal loop must re-ask whether anything is still armed').toBe(2);
+    expect((src.match(/if \[ "\$still" = "0" \]; then/g) || []).length).toBe(2);
   });
 
   it('dispatches at least twice across the job', () => {
