@@ -29,7 +29,7 @@ import {
   buildStandInAssignments, resolveVoiceURIForId, deviceVoiceOptions, hasVoiceOfGender, describeDeviceVoices,
 } from '../lib/voice-assignment.js';
 import { loadPersonaVoiceMap, savePersonaVoice } from '../lib/persona-voice-prefs.js';
-import { isVoiceServiceReady, synthesizeSpeech, voiceServiceHealth, probeVoiceService } from '../lib/voice-service.js';
+import { isVoiceServiceReady, synthesizeSpeech, voiceServiceHealth, probeVoiceService, voiceErrorReason } from '../lib/voice-service.js';
 import { SOVEREIGNTY_GAPS, GAPS_RECORDED, liveVoicePath, liveLikenessPath } from '../lib/sovereignty-gaps.js';
 import { useReadingVoice, personVoiceId, SYSTEM_VOICE_ID } from '../lib/reading-voice.js';
 import {
@@ -39,6 +39,7 @@ import {
   saveReference, loadReference, clearReference, blobToDataUri,
 } from '../lib/voice-reference.js';
 import { getInstanceId } from '../lib/table-sync.js';
+import { hasBridgeToken } from '../lib/nas-photos.js';
 import { supabase } from '../lib/supabase.js';
 import SectionTabs from './SectionTabs.jsx';
 import { buildVoiceChecks, overallVerdict, VOICE_SYSTEM_DOCS, PASS, FAIL } from '../lib/voice-system-check.js';
@@ -210,6 +211,7 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
     sampleOnDevice: myRefExists,
     consentRow: !!profiles.find((x) => x.personKey === enrolKey),
     studioHealth,
+    bridgeKey: hasBridgeToken(),
   }), [userId, enrolKey, instanceId, reviewerMode, recorder.supported, myRefExists, profiles, studioHealth]);
   const verdict = useMemo(() => overallVerdict(checks), [checks]);
 
@@ -307,8 +309,11 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
           return;
         } catch (_) { setCloudPlaying(false); /* fall through to browser */ }
       }
-      // Studio unreachable -> honest fallback to the labeled stand-in, with a note.
-      setNotice('The voice studio was unreachable — using the stand-in voice for now.');
+      // SAY WHICH FAILURE IT WAS. This threw the tagged error away and printed
+      // "unreachable" for every one of them -- including a 401, which is a
+      // credential being refused by a studio that is running perfectly and
+      // sends a person to check their network for no reason.
+      setNotice(`${voiceErrorReason(error)} Using the labelled stand-in voice for now.`);
     }
 
     // Browser path: System voice (real) or the labeled personal stand-in. Each option

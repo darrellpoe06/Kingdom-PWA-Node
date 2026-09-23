@@ -228,3 +228,100 @@ export async function synthesizeSpeech({
     clearTimeout(timer);
   }
 }
+
+// -----------------------------------------------------------------------------
+// SAY THE REAL REASON (Darrell, 2026-09-22: "Didn't work!!!!!!" with the studio
+// showing "All 7 checks pass" and the read answering "The voice studio was
+// unreachable — using the stand-in voice for now.")
+//
+// Both of those cannot be true, and the app already knew which one was. Every
+// failure path above returns a TAGGED error — voice-service-401,
+// voice-service-timeout, no-voice-sample — and both call sites threw the tag
+// away and printed one generic sentence. "Unreachable" for a 401 is not a
+// rounding error: it sends a person to check their network when the real
+// problem is a credential, which is the same wrong-reason defect as the
+// female-voices copy corrected the same evening.
+//
+// THE 401 IS THE LIKELY ONE, and it explains the contradiction exactly. The
+// health probe calls GET /health, which takes no authentication. The read calls
+// POST /speak, which the NAS-side forwarder gates on the family bridge bearer.
+// That token lives in localStorage and is PER-DEVICE BY DESIGN (nas-photos.js:
+// "a device credential, never synced"), so a device that has never been
+// provisioned answers the probe perfectly and is refused at the door.
+//
+// Pure: a tag in, a sentence out. No network, no DOM.
+export function voiceErrorReason(tag) {
+  const t = String(tag || '');
+  if (/^voice-service-(401|403)$/.test(t)) {
+    return 'The voice studio refused this device — it is running, but this device does not hold the family key that /speak requires. The key is per-device and never syncs, so a device that has never been set up is refused even though the studio answers.';
+  }
+  if (t === 'voice-service-timeout') {
+    return 'The voice studio answered too slowly and the read gave up rather than hanging. It is up; it just did not finish in time.';
+  }
+  if (t === 'no-voice-sample') {
+    return 'There is no voice sample on THIS device, so there is nothing for the studio to read in your voice.';
+  }
+  if (t === 'no-builtin-voice') {
+    return 'The voice studio has no built-in voice of its own, and no sample was sent, so it had nothing to speak with.';
+  }
+  if (t === 'voice-service-empty') {
+    return 'The voice studio answered but sent no audio back.';
+  }
+  if (t === 'voice-service-not-configured') {
+    return 'No voice endpoint is configured for this build.';
+  }
+  if (/^voice-service-\d{3}$/.test(t)) {
+    return `The voice studio answered with an error (${t.replace('voice-service-', 'HTTP ')}).`;
+  }
+  if (t === 'voice-service-no-response' || t === 'voice-service-error') {
+    return 'The voice studio could not be reached at all.';
+  }
+  return t ? `The voice studio failed: ${t}.` : 'The voice studio failed for a reason it did not name.';
+}
+
+/** True when the tag means "refused", which is a credential problem, not a network one. */
+export function isVoiceAuthRefusal(tag) {
+  return /^voice-service-(401|403)$/.test(String(tag || ''));
+}
+
+// -----------------------------------------------------------------------------
+// TRY THE REAL THING — the health probe does not get a vote.
+//
+// Darrell, 2026-09-22: "Why does the health matter?!!! Can't we build it to work
+// independently?"
+//
+// He is right, and the gate was doing real damage in BOTH directions. The read
+// path computed `isVoiceServiceReady() && studioHealth !== 'down'` and refused
+// to even ATTEMPT a read when the probe said down. So:
+//
+//   * probe says UP, /speak refused (401)  -> he was told "unreachable"
+//   * probe says DOWN, /speak would work   -> the app never tried at all
+//
+// The second is the worse one. A health check is a SECOND system that can be
+// wrong about the first, and when it is wrong it silently withholds a working
+// feature. GET /health and POST /speak are different routes with different
+// gates -- on this deployment /speak is bearer-gated and /health is not -- so
+// the probe was never able to answer the question it was being asked.
+//
+// DR-0440 said "ready means ANSWERING, never configured". This takes the same
+// rule one step further: the only thing that proves /speak answers is CALLING
+// /speak. So the attempt is always made when an endpoint exists, the result is
+// the truth, and the probe is demoted from a gate to a DISPLAY signal and to
+// this: how long to wait before giving up.
+//
+// The gate existed for a real reason -- a dark studio made every read sit
+// through the full timeout. That cost is paid by SIZING the patience instead of
+// skipping the call: a studio we last saw answering gets the full generation
+// window; one we last saw dark gets a short one, still tried, and still able to
+// prove the probe wrong.
+export const SPEAK_TIMEOUT_WHEN_DARK_MS = 6000;
+
+/** How long to wait on /speak, given what the probe last saw. Pure. */
+export function speakTimeoutFor(health) {
+  return health === 'down' ? SPEAK_TIMEOUT_WHEN_DARK_MS : SPEAK_TIMEOUT_MS;
+}
+
+/** May we ATTEMPT a studio read? Endpoint configured — health is not consulted. */
+export function mayAttemptStudio() {
+  return isVoiceServiceReady();
+}
