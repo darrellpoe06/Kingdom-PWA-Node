@@ -1,9 +1,10 @@
-# DR-0569 — A rider that cannot work today does not red the fleet; parity asks by name after the repoint; the hosted key has a channel
+# DR-0582 — A rider that cannot work today does not red the fleet; parity asks by name after the repoint; the hosted key has a channel
 
 - **Status:** accepted
 - **Tier:** B (fleet-witness semantics on the NAS; a read-only probe of the management API); the key PLACEMENT step is Tier C and is NOT shipped here — see §3
 - **Type:** orchestration
 - **Date:** 2026-09-23
+- **Numbering:** minted as DR-0569 on this branch and renumbered on merge per DR-0052; main's DR-0569 (the-studio-is-tried-not-asked-about) landed first and keeps the number.
 - **Scope:** `infra/church-media-golive/choir_dates_sync.py` (exit 3 on both "cannot work today" paths), `infra/nas-loops/loops/services-sync.sh` (exit 3 = DEGRADED, named, fleet green), `app/src/__tests__/services-sync-degraded.test.js` (behavioural), `infra/nas-supabase/cutover_sync.py` (post-repoint parity: schema objects missing BY NAME, the blob gap carries DR-0317, the live side ahead is expected; selftest gated in `ci.yml`), `.github/workflows/nas-storage-sync.yml` (read-only probe of the hosted project's keys via `SUPABASE_ACCESS_TOKEN`), `.github/workflows/nas-health.yml` (six-hourly clock)
 - **Principles:** VERIFICATION-DOCTRINE (DR-0076 — a check must mean something; measure, do not claim), GATE-THE-CLASS (DR-0239 dim 7), REVIEW-OUR-WAYS (DR-0108 — a "his hand" is a premise to challenge), NOTHING-WAITS (DR-0236), THREE-BRAKES (the clock is read-only; nothing spawns work)
 - **Grounds:** Darrell 2026-09-23: *"Find solutions!!!!!!!!!"* — on the services-sync red; nas-health runs 35759346227 and 35802484974; DR-0317 (the blobs never moved), DR-0442 (the writers never moved), DR-0310 (REPOINT-ARMED)

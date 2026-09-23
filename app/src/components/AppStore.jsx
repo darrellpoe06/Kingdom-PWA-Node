@@ -7,7 +7,7 @@
 // from the rolling release the lane publishes — our store, our shelves.
 // Mounted on About (install identity's home) and safe anywhere.
 import React, { useState } from 'react';
-import { APP_STORE, INSTALL_STEPS } from '../lib/app-store.js';
+import { APP_STORE, INSTALL_STEPS, LOCAL_APP_NOTE } from '../lib/app-store.js';
 import { STORE_IDENTITY } from '../lib/marketing-store.js';
 
 export default function AppStore() {
@@ -49,6 +49,13 @@ export default function AppStore() {
               <a href={a.apk} className="text-[0.6875rem] uppercase tracking-wider px-3 py-2 min-h-[36px] inline-flex items-center bg-[#B85838] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815]">
                 ⇩ Download Android app
               </a>
+              {/* THE LOCAL APP (DR-0570 / DR-0573): the same app bundled inside
+                  the package, on its own shelf, under its own id — installs
+                  beside the Android app. The button exists because the shelf
+                  holds a real package for every brand; see app-store.js. */}
+              <a href={a.apkLocal} data-testid={`apk-local-${a.key}`} title={`${LOCAL_APP_NOTE.what} ${LOCAL_APP_NOTE.why} ${LOCAL_APP_NOTE.limit}`} className="text-[0.6875rem] uppercase tracking-wider px-3 py-2 min-h-[36px] inline-flex items-center border border-[#B85838] text-[#B85838] font-semibold hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#1A1815]">
+                ⇩ Try the local app
+              </a>
               <a href={a.webUrl} target="_blank" rel="noreferrer" className="text-[0.6875rem] uppercase tracking-wider px-3 py-2 min-h-[36px] inline-flex items-center border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
                 Open on the web
               </a>
@@ -79,6 +86,10 @@ export default function AppStore() {
                 <div>
                   <div className="font-semibold text-[#B85838] uppercase tracking-wider text-[0.5625rem]">Android app (the sure path)</div>
                   <ol className="list-decimal ml-4 mt-0.5 space-y-0.5">{INSTALL_STEPS.apk.map((s, i) => <li key={i}>{s}</li>)}</ol>
+                  <div className="mt-2 text-[0.6875rem] text-[#1A1815]" data-testid={`local-note-${a.key}`}>
+                    <strong>The local app.</strong> {LOCAL_APP_NOTE.what} {LOCAL_APP_NOTE.why} <span className="text-[#5A5751]">{LOCAL_APP_NOTE.limit}</span>
+                  </div>
+                  <ol className="list-decimal ml-4 mt-0.5 space-y-0.5">{INSTALL_STEPS.local.map((s, i) => <li key={i}>{s}</li>)}</ol>
                 </div>
                 <div>
                   <div className="font-semibold text-[#5A5751] uppercase tracking-wider text-[0.5625rem]">Android / computer (web install)</div>

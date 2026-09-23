@@ -17,9 +17,32 @@
 const BRANDS = Object.freeze(['poetech', 'lovecorner', 'tlc', 'moore', 'properties']);
 const RELEASE_BASE = 'https://github.com/darrellpoe06/Kingdom-PWA-Node/releases/download/android-latest';
 
+// TWO LANES, ONE DOOR (DR-0570 / DR-0573). `<brand>.apk` is the TWA package
+// from the `android-latest` shelf, exactly as before. `<brand>-local.apk` is
+// the LOCAL app — the same Vite app bundled INSIDE the package by
+// native-shell.yml — from its own `android-native-latest` shelf. Both lanes
+// are kept; the suffix is the only thing that chooses the shelf, and both
+// shelves are read through the same allowlist, so no user input ever reaches
+// the upstream URL.
+const LOCAL_SUFFIX = '-local';
+const LOCAL_RELEASE_BASE = 'https://github.com/darrellpoe06/Kingdom-PWA-Node/releases/download/android-native-latest';
+
+/** The store key the door serves for this path segment, or null. A key is a
+ *  brand (`poetech`) or a brand with the local suffix (`poetech-local`). */
 export function brandFromParam(p) {
   const name = String(p || '').replace(/\.apk$/i, '');
-  return BRANDS.includes(name) ? name : null;
+  const base = name.endsWith(LOCAL_SUFFIX) ? name.slice(0, -LOCAL_SUFFIX.length) : name;
+  return BRANDS.includes(base) ? name : null;
+}
+
+/** Which shelf a served key reads from, and the exact upstream asset. Pure. */
+export function shelfFor(key) {
+  const k = String(key || '');
+  if (k.endsWith(LOCAL_SUFFIX)) {
+    const brand = k.slice(0, -LOCAL_SUFFIX.length);
+    return { lane: 'local', brand, url: `${LOCAL_RELEASE_BASE}/${brand}-native.apk` };
+  }
+  return { lane: 'twa', brand: k, url: `${RELEASE_BASE}/${k}.apk` };
 }
 
 export async function onRequestGet(context) {
@@ -33,7 +56,7 @@ export async function onRequestGet(context) {
 
   let upstream;
   try {
-    upstream = await fetch(`${RELEASE_BASE}/${brand}.apk`, { redirect: 'follow' });
+    upstream = await fetch(shelfFor(brand).url, { redirect: 'follow' });
   } catch { return new Response('release unreachable', { status: 502 }); }
 
   // AN EMPTY SHELF IS NOT AN OUTAGE. Measured 2026-08-28: Poe Properties was
@@ -53,8 +76,9 @@ export async function onRequestGet(context) {
   }
   if (!upstream.ok) return new Response(`release-${upstream.status}`, { status: 502 });
 
-  // Buffer fully (the packages are ~1-2 MB): the response carries the exact
-  // byte count, so the phone's downloader can always finalize.
+  // Buffer fully (a TWA package is ~1-2 MB; a local app carries the whole
+  // bundle, ~20 MB): the response carries the exact byte count, so the phone's
+  // downloader can always finalize.
   const buf = await upstream.arrayBuffer();
   const resp = new Response(buf, {
     status: 200,

@@ -50,8 +50,13 @@ describe('the notice reaches the screen', () => {
     // version of this test measured 200 characters and broke the moment a
     // comment was added between them, which is a proximity check masquerading
     // as an accessibility one. What matters is that THIS element announces.
-    const el = control.slice(control.indexOf('{notice && ('));
-    const open = el.slice(0, el.indexOf('>'));
+    // Located by the element's own id, not by the first `{notice && (` in
+    // the file: since DR-0576 a waiting notice also draws a small mark on the
+    // pill and on the speaker button, each behind its own `{notice && (`,
+    // and the first of those is a button, not the notice. The element that
+    // must announce is the one carrying the testid.
+    const at = control.indexOf('data-testid="read-aloud-notice"');
+    const open = control.slice(control.lastIndexOf('<div', at), control.indexOf('>', at));
     expect(open, 'the notice element does not announce itself').toMatch(/role="status"/);
     expect(open).toMatch(/data-testid="read-aloud-notice"/);
   });
@@ -98,8 +103,15 @@ describe('a device with no voices is told the truth, not given useless advice', 
     // is now READ inside the speak callback, and sovereignVoiceReady collapses
     // 'up' and 'unknown' into one value, so without this dependency the notice
     // would show whichever state was true when the callback was last built.
-    expect(hook, 'studioHealth is read in the callback but is not a dependency')
-      .toMatch(/sovereignVoiceReady, studioHealth,/);
+    // Pinned on studioHealth BEING in the dependency array, not on which
+    // name sits beside it. The first version matched the literal pair
+    // `sovereignVoiceReady, studioHealth,` and went red the moment
+    // `attemptStudio` was added between them (2026-09-22, when the health
+    // probe was demoted from a gate on the ATTEMPT to a display signal) — a
+    // test holding formatting rather than the behaviour it exists to hold.
+    const depsLine = (hook.match(/\}, \[voiceId, personalVoices,[^\]]*\]\);/) || [''])[0];
+    expect(depsLine, 'the speak callback dependency array was not found').not.toBe('');
+    expect(depsLine, 'studioHealth is read in the callback but is not a dependency').toMatch(/\bstudioHealth\b/);
   });
 
   it('the device-independent path really does run BEFORE the device one', () => {

@@ -1,0 +1,11 @@
+{
+  "_comment": "The native shell's brand table (DR-0570). One local Android app per family brand, built by .github/workflows/native-shell.yml from the SAME Vite app the web serves, at base '/'. appId is deliberately NOT the TWA lane's package id (us.poetech.app etc.): both lanes are kept, so both apps must be installable on one phone side by side while the local app soaks. `start` is the first page the shell opens — a brand's OWN served HTML (DR-0258) named as a FILE, because Capacitor's local server routes an extension-less path to the root index.html, never to a folder's. Keys must equal the store's (app-store.js) and the TWA matrix's — a test holds all three together.",
+  "houseOrigin": "https://poetech.us",
+  "brands": [
+    { "key": "poetech", "appId": "us.poetech.app.local", "appName": "PoeTech Family OS", "start": "/" },
+    { "key": "lovecorner", "appId": "us.poetech.lovecorner.local", "appName": "The Love Corner", "start": "/lovecorner/app/index.html?view=church" },
+    { "key": "tlc", "appId": "us.poetech.tlc.local", "appName": "TLC Therapy Solutions", "start": "/tlc/app/index.html?tlc=1" },
+    { "key": "properties", "appId": "us.poetech.properties.local", "appName": "Poe Properties", "start": "/properties/app/index.html?properties=1" },
+    { "key": "moore", "appId": "us.poetech.moore.local", "appName": "Moore Divahs", "start": "/moore/app/index.html?moore=1" }
+  ]
+}

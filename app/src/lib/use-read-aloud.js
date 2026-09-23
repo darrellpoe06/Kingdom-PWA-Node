@@ -22,7 +22,7 @@ import {
 import { mergeVoiceCatalog, canCloneVoice, isVoiceEntitled, resolveVoiceProvider, KIND, SYSTEM_VOICE } from './voice-registry.js';
 import { buildStandInAssignments, resolveVoiceURIForId, standInPitch } from './voice-assignment.js';
 import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
-import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService } from './voice-service.js';
+import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService, voiceErrorReason, speakTimeoutFor, mayAttemptStudio, isStudioRoadProblem } from './voice-service.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
 import { createBackgroundAudio } from './background-audio.js';
@@ -31,6 +31,8 @@ import { clipFraction, estimateClipSeconds, seekableEndOf } from './clip-progres
 import { applyClipRate, clipRateNotice } from './clip-rate.js';
 import { supabase } from './supabase.js';
 import { hrefForView } from './nav-history.js';
+import { hasBridgeToken } from './nas-photos.js';
+import { provisionBridgeToken } from './bridge-provision.js';
 
 /**
  * @param {object} opts
@@ -49,7 +51,20 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     if (readyOverride === undefined && isVoiceServiceReady()) probeVoiceService().then((h) => { if (alive) setStudioHealth(h); });
     return () => { alive = false; };
   }, [readyOverride]);
+  // WHAT WE SAY vs WHAT WE TRY, split on purpose (Darrell 2026-09-22: "Why does
+  // the health matter?!!! Can't we build it to work independently?").
+  //
+  // `sovereignVoiceReady` is the DISPLAY signal -- it decides the copy and
+  // whether a personal voice is labelled a stand-in. It still listens to the
+  // probe, because telling someone the studio is answering when it is not would
+  // be the lie DR-0440 was written about.
+  //
+  // `attemptStudio` is the ATTEMPT, and it does NOT consult the probe. A health
+  // check is a second system that can be wrong about the first, and when it was
+  // wrong it withheld a working feature without a word. The call itself is the
+  // only thing that proves the call works.
   const sovereignVoiceReady = readyOverride !== undefined ? readyOverride : (isVoiceServiceReady() && studioHealth !== 'down');
+  const attemptStudio = readyOverride !== undefined ? readyOverride : mayAttemptStudio();
   const { voiceId, setVoiceId } = useReadingVoice(supabase);
   const [profiles, setProfiles] = useState([]);
   const [cloudPlaying, setCloudPlaying] = useState(false);
@@ -63,6 +78,13 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // under a new message would send someone somewhere the message never meant.
   const [notice, setNoticeRaw] = useState('');
   const [noticeAction, setNoticeAction] = useState(null);
+  // WHY THE STAND-IN IS SPEAKING, as STATUS rather than a message (Darrell
+  // 2026-09-23: "No headaches!!!!"). '' = the chosen voice is speaking;
+  // 'studio-offline' = the road to the studio failed on this read;
+  // 'studio-unarmed' = the studio is not armed for this voice yet. The panel
+  // prints it beside Reading/Paused. Nothing here is a popup and nothing here
+  // is the reader's to fix; the house sees the studio through nas-health.
+  const [standInWhy, setStandInWhy] = useState('');
   const setNotice = useCallback((msg, action = null) => {
     setNoticeRaw(msg);
     setNoticeAction(msg ? action : null);
@@ -265,6 +287,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     const clean = String(text || '').trim();
     if (!clean) return;
     setNotice('');
+    setStandInWhy('');
     stopCloud();
     // Claim the audio session INSIDE the user's tap — after an await the
     // gesture is spent and the browser refuses to start it.
@@ -273,13 +296,22 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     if (isPersonVoiceId(voiceId)) {
       const personKey = personKeyOf(voiceId);
       const voice = personalVoices.find((v) => v.personKey === personKey);
-      if (voice && resolveVoiceProvider(voice, { sovereignVoiceReady }).real && sovereignVoiceReady) {
+      if (voice && attemptStudio) {
+        // THE KEY PROVISIONS ITSELF BEFORE THE READ (DR-0574). /speak is gated
+        // on the family bridge key, and the key already provisions itself on a
+        // signed-in family device through the RLS-deny-all + SECURITY DEFINER
+        // RPC pair (migration 0128) — but only Real Estate ever asked for it,
+        // so a device that had never opened Rentals was refused at the studio
+        // door with a key it could have had. Ask here, once, before the first
+        // attempt; a signed-out or non-family device gets nothing and the read
+        // falls back honestly, exactly as before.
+        if (!hasBridgeToken()) await provisionBridgeToken(supabase);
         const refBlob = await loadReference(personKey);
         if (refBlob) {
           const referenceDataUri = await blobToDataUri(refBlob);
           // The cloned voice gets the same spoken form the device voice does —
           // "2nd Timothy", never "two Timothy" (lib/speech-text.js).
-          const { url, error } = await synthesizeSpeech({ text: toSpokenForm(clean), voiceId: voice.id, personKey, referenceDataUri });
+          const { url, error } = await synthesizeSpeech({ text: toSpokenForm(clean), voiceId: voice.id, personKey, referenceDataUri, timeoutMs: speakTimeoutFor(studioHealth) });
           if (!error && url) {
             // Vendor use is never silent (DR-0138): when the bridge (not the
             // sovereign studio) carried this voice, say so — it is a recorded
@@ -325,7 +357,18 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
               return;
             } catch (_) { setCloudPlaying(false); setCloudProgress(0); }
           }
-          setNotice('Voice endpoint unreachable — using a stand-in voice.');
+          // THE ROAD IS THE HOUSE'S PROBLEM; THE DEVICE IS THE READER'S.
+          // A dark studio or an unmounted route (404, timeout, 5xx, no
+          // answer) raises NO message -- the person can do nothing about it
+          // and was shown "HTTP 404" over a lesson for it (2026-09-23). The
+          // read falls back and the status line says so. A refused key or a
+          // missing sample is the reader's, and keeps its sentence + door.
+          if (isStudioRoadProblem(error)) {
+            setStandInWhy('studio-offline');
+            try { console.warn('[read-aloud] studio road failed, stand-in voice used:', error); } catch (_) { /* no console */ }
+          } else {
+            setNotice(`${voiceErrorReason(error)} Using a stand-in voice.`);
+          }
         } else {
           setNotice(
             'Record a voice sample first in the Voice tab, then this reads in that voice.',
@@ -335,9 +378,9 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       }
       // Stand-in until the sovereign studio is live: a gender-correct browser voice —
       // and SAY so (DR-0138), instead of silently sounding like "it never worked".
-      if (!sovereignVoiceReady) {
-        setNotice('Reading in a stand-in voice — your real voice turns on when the church’s own voice studio is armed (sovereign, no vendor).');
-      }
+      // Status, not a message: the panel prints "stand-in voice until the
+      // studio is armed" beside Reading. Still never silent (DR-0138).
+      if (!sovereignVoiceReady) setStandInWhy((w) => w || 'studio-unarmed');
     }
 
     // THE SYSTEM VOICE REACHES THE SOVEREIGN STUDIO TOO (DR-0382).
@@ -472,7 +515,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     const cid = catalogIdOf(voiceId);
     const pitch = cid ? standInPitch(fullCatalog, liveAssignments, cid) : undefined;
     tts.speak(clean, uri, pitch);
-  }, [voiceId, personalVoices, sovereignVoiceReady, studioHealth, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio, setNotice]);
+  }, [voiceId, personalVoices, sovereignVoiceReady, attemptStudio, studioHealth, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio, setNotice]);
 
   // The OS media buttons drive the SAME controls the panel does — kept in a ref
   // so a lock-screen tap can never call a stale closure.
@@ -497,6 +540,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     deviceRead: !cloudPlaying,
     cloudProgress,
     voiceId, setVoiceId, catalog, currentItem, notice,
+    standInWhy,
     // setNotice is exported so the panel can DISMISS a notice (2026-09-22).
     // Before this the only clear was at the start of the next read, so a
     // fault message stayed on top of the lesson indefinitely.

@@ -13,6 +13,13 @@ import { captureInstallPrompt } from './lib/install-app.js';
 import { startDmNotifications } from './lib/dm-notify.js';
 import { captureDeepLink } from './lib/app-doors.js';
 import { wireRemoteNavigation } from './lib/remote-navigation.js';
+import { installNativeShell, isNativeShell } from './lib/native-shell.js';
+
+// The local app (the native shell, DR-0570) carries the house's address: the
+// same-origin NAS routes are re-homed to poetech.us before any module fetches.
+// Wired FIRST — a boot-time fetch that ran before it would ask the phone's own
+// asset server for a route only the house has. On the web this is a no-op.
+installNativeShell(window);
 
 // A notification's deep link is read HERE, at boot, before anything renders:
 // nav-history's history seed rewrites the URL within a tick and keeps only
@@ -300,7 +307,10 @@ if (__params.get('oauth_popup') === '1') {
 // someone mid-form (?join), wipe the admin's place (?invites), drop a registrant
 // (?register), or fire a controller-swap reload inside the projector / presenter
 // window during a live class (?audience / ?teach). Those windows opt out entirely.
-if (!__standalone && 'serviceWorker' in navigator) {
+// Skipped in the native shell too (DR-0570): the shell IS the offline shell —
+// its bundle is on the device — and a worker registered against the local
+// asset server would add only a stale-cache layer with nothing to update from.
+if (!__standalone && !isNativeShell(window) && 'serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
       const reg = await navigator.serviceWorker.register('/sw.js');

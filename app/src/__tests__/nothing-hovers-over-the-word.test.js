@@ -84,18 +84,27 @@ describe('the sticky lesson title has a ceiling, so it can never be a lid', () =
   });
 });
 
-describe('a notice takes itself down instead of parking over the lesson', () => {
-  it('auto-clears on a timer', () => {
-    expect(TTS).toMatch(/setTimeout\(\(\) => setNotice\(''\), 12000\)/);
+describe('a notice does not hover at all — it lives inside the reader’s own chrome (DR-0576)', () => {
+  // SUPERSEDED 2026-09-23, and the replacement is the better answer. The
+  // 2026-09-22 fix took the floating box down after twelve seconds; the box
+  // still appeared over the Word first, and Darrell met it again with an HTTP
+  // 404 in it: "Popup's?!!!" A message that vanishes while it is being read
+  // is its own defect. The notice now renders INSIDE the open panel, and while
+  // the panel is a pill or a button it is a small mark on that pill or button
+  // — nothing new is painted over the page, so nothing needs a timer.
+  it('no timer takes the notice down', () => {
+    expect(TTS).not.toMatch(/setTimeout\(\(\) => setNotice\(''\), 12000\)/);
   });
 
-  it('the timer is keyed to the notice text, so a new notice gets its own full window', () => {
-    expect(TTS).toMatch(/\}, \[notice, setNotice\]\);/);
+  it('the notice block sits inside the panel, not in the fixed stack above it', () => {
+    const stackStart = TTS.indexOf('className="tts-controls fixed');
+    const interruptedAt = TTS.indexOf('data-testid="reading-interrupted"');
+    expect(TTS.slice(stackStart, interruptedAt)).not.toMatch(/data-testid="read-aloud-notice"/);
+    expect(TTS.indexOf('data-testid="read-aloud-notice"')).toBeGreaterThan(TTS.indexOf('Read Aloud</div>'));
   });
 
-  it('clears the timer on unmount, so it cannot fire into a dead component', () => {
-    const block = TTS.slice(TTS.indexOf('A NOTICE TAKES ITSELF DOWN'), TTS.indexOf('A NOTICE TAKES ITSELF DOWN') + 900);
-    expect(block).toMatch(/return \(\) => clearTimeout\(t\)/);
+  it('a closed panel shows a mark, so the message is never lost', () => {
+    expect((TTS.match(/data-testid="read-aloud-notice-mark"/g) || []).length).toBe(2);
   });
 
   it('can also be dismissed by hand', () => {

@@ -181,6 +181,72 @@ try {
     if (failures === before) console.log(`layout ok  ${view}@${width}px — h1 ${m.h1.w}x${m.h1.h}px, no overflow, no overlap`);
   }
   // ---------------------------------------------------------------------------
+  // THE WAY BACK FROM THE HIDEAWAY pass (DR-0577). Darrell 2026-09-23, on his
+  // Fold with the header tucked away: "Lost the whole header?!!!!!!!!!!!" and
+  // "It's hard to get to the edges of the app anymore?!" The only control that
+  // brought the header back was the chevron pinned to the RIGHT of the tab
+  // row, and the row had stopped shrinking (#1734's Show-all wrapper was a
+  // flex item with min-width:auto), so at any width where the tabs did not
+  // fit the row ran past the viewport and took the chevron with it. Measured
+  // in Chromium at 1812px before the fix: nav row 1953px, chevron at x=1912.
+  // Three invariants, with the header COLLAPSED, at every width:
+  //  12. THE HEADER NEVER RUNS PAST THE SCREEN — header.scrollWidth <= clientWidth.
+  //  13. THE CHEVRON IS ON SCREEN — the hideaway toggle's right edge <= viewport.
+  //  14. THE WAY BACK IS ALSO IN WORDS — the tucked-away row carries a
+  //      "Show header" button, on screen, so the way back never depends on
+  //      an edge; and when the tab row overflows, its Show-all control is
+  //      there (the wrapper shrank, so the scroll box can measure itself).
+  // Selftest: the wrapper (the div holding .tab-scroll) is forced to 2600px min-width (the pre-fix
+  // behaviour, exaggerated) and 12 + 13 MUST trip.
+  // ---------------------------------------------------------------------------
+  const HIDEAWAY_WIDTHS = SELFTEST ? [1812] : [360, 768, 1440, 1812, 1920];
+  let hideawayTripped = 0;
+  for (const width of HIDEAWAY_WIDTHS) {
+    const page = await browser.newPage({ viewport: { width, height: 900 } });
+    await page.addInitScript(() => {
+      try { localStorage.setItem('poetech.help.tour.v1', 'seen'); localStorage.setItem('poe-header-collapsed', '1'); } catch (_) { /* private mode */ }
+    });
+    await page.goto(`${origin}${BASE}/?view=church`, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+    await page.waitForSelector('header nav', { timeout: 20000 }).catch(() => {});
+    if (SELFTEST) {
+      await page.addStyleTag({ content: 'header nav div:has(> .tab-scroll) { min-width: 2600px !important }' });
+      await page.evaluate(() => new Promise((r) => setTimeout(r, 100)));
+    }
+    const hm = await page.evaluate(() => {
+      const header = document.querySelector('header');
+      const nav = header && header.querySelector('nav');
+      if (!header || !nav) return { none: true };
+      const vw = document.documentElement.clientWidth;
+      const rect = (el) => (el ? el.getBoundingClientRect() : null);
+      const chevron = header.querySelector('nav button[aria-label^="Show the full header"]');
+      const words = header.querySelector('[data-testid="show-full-header"]');
+      const box = nav.querySelector('.tab-scroll');
+      const showAll = nav.querySelector('[data-testid="tabscroll-show-all"]');
+      const c = rect(chevron); const w = rect(words); const b = rect(box);
+      return {
+        vw,
+        headerScroll: header.scrollWidth, headerClient: header.clientWidth,
+        chevron: c ? { right: Math.round(c.right), width: Math.round(c.width) } : null,
+        words: w ? { left: Math.round(w.left), right: Math.round(w.right), width: Math.round(w.width) } : null,
+        box: b ? { right: Math.round(b.right), scroll: box.scrollWidth, client: box.clientWidth } : null,
+        showAll: !!showAll,
+      };
+    });
+    await page.close();
+    const hbefore = failures;
+    const hwhere = `hideaway@${width}px`;
+    if (hm.none) { fail(`${hwhere}: the header never rendered`); continue; }
+    if (hm.headerScroll > hm.headerClient + 1) fail(`${hwhere}: the collapsed header runs past the screen (${hm.headerScroll} > ${hm.headerClient})`);
+    if (!hm.chevron) fail(`${hwhere}: the hideaway chevron is missing`);
+    else if (hm.chevron.right > hm.vw) fail(`${hwhere}: the hideaway chevron is off-screen (right edge ${hm.chevron.right} > ${hm.vw})`);
+    if (!hm.words || hm.words.width === 0) fail(`${hwhere}: the tucked-away row has no "Show header" button`);
+    else if (hm.words.left < 0 || hm.words.right > hm.vw) fail(`${hwhere}: the "Show header" button is off-screen (${hm.words.left}..${hm.words.right} of ${hm.vw})`);
+    if (hm.box && hm.box.scroll > hm.box.client + 4 && !hm.showAll) fail(`${hwhere}: the tab row overflows (${hm.box.scroll} > ${hm.box.client}) and offers no Show-all control`);
+    if (failures === hbefore) console.log(`hideaway ok  ${hwhere} — header ${hm.headerScroll}/${hm.headerClient}, chevron right ${hm.chevron.right}, words ${hm.words.left}..${hm.words.right}${hm.box && hm.box.scroll > hm.box.client + 4 ? ', tabs overflow with Show-all' : ''}`);
+    else hideawayTripped += failures - hbefore;
+  }
+  if (SELFTEST && hideawayTripped < 2) fail(`selftest: the hideaway break tripped ${hideawayTripped} invariants, expected at least 2 — the pass is theater`);
+  // ---------------------------------------------------------------------------
   // LESSON READING pass (DR-0406) — the lesson column is MEASURED at the width
   // a reader gets, and nothing is boxed inside a sentence.
   //

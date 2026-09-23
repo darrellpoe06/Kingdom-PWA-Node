@@ -346,6 +346,15 @@ catch (e) { interconnectLoops = { ok: false, error: (e && e.message) || 'manifes
 // Actions' GITHUB_SHA (the off-Vercel pipeline; see
 // docs/99-session-notes/2026-06-16-research-review-off-vercel-hosting.md and
 // .github/workflows/deploy-cloudflare-pages.yml). Locally falls back to 'dev'.
+// THE NATIVE SHELL BUILDS THE SAME APP AT BASE '/' (DR-0570). The web build is
+// published at the site root with /poetech-app/ rewritten onto it (_redirects),
+// so both are ONE layout seen from two doors; the local app has no rewrite
+// layer, so it is built at the root it is served from. Env unset → the web
+// build, exactly as before. The base is used in two places below and nowhere
+// else, so the two builds cannot drift apart.
+const NATIVE_SHELL = process.env.PT_NATIVE_SHELL === '1';
+const BASE = NATIVE_SHELL ? '/' : '/poetech-app/';
+
 const buildTime = new Date().toISOString();
 const buildSha = (
   process.env.VERCEL_GIT_COMMIT_SHA ||
@@ -391,7 +400,7 @@ const modulepreloadMonolith = () => ({
       if (!bundle) return html;
       const fileName = Object.keys(bundle).find((f) => /poe-financial-mvp-v28-.*\.js$/.test(f));
       if (!fileName) return html;
-      return html.replace('__MONOLITH_PRELOAD_HREF__', '/poetech-app/' + fileName);
+      return html.replace('__MONOLITH_PRELOAD_HREF__', BASE + fileName);
     },
   },
 });
@@ -407,7 +416,7 @@ const N8N_DEV_TARGET = process.env.N8N_DEV_TARGET || 'http://192.168.1.26:5678';
 const NAS_PHOTOS_DEV_TARGET = process.env.NAS_PHOTOS_DEV_TARGET || 'http://192.168.1.26:8099';
 
 export default defineConfig({
-  base: '/poetech-app/',
+  base: BASE,
   plugins: [react(), swVersionStamp(), modulepreloadMonolith()],
   build: {
     rollupOptions: {

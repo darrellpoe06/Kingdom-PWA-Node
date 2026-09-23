@@ -444,7 +444,7 @@ export default function TlcPublicDoor() {
           )}
         </div>
         {/* Collapsed above Normal: the text-size way out stays on screen. */}
-        <TextSizeEscapeHatch collapsed={headerCollapsed} />
+        <TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} />
       </header>
 
       {/* Signed-in staff get the office menu (Find + Assistant); a client gets
