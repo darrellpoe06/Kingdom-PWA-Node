@@ -25,6 +25,11 @@ name: History voices witness (their words are in the record)
 
 on:
   workflow_dispatch:
+    inputs:
+      probes:
+        description: 'Probe mode: one "url | phrase" per line; prints the page title and the text around the phrase. Empty = run the witness.'
+        required: false
+        default: ''
   push:
     paths:
       - app/src/lib/history-course.js
@@ -47,7 +52,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Probe candidate records (dispatch with probes only)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.probes != '' }}
+        env:
+          PROBES: ${{ inputs.probes }}
+        run: node scripts/history-voices-witness.mjs --probe
       - name: Prove the witness catches an altered word
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.probes == '' }}
         run: node scripts/history-voices-witness.mjs --selftest-break
       - name: Every voice is in its source
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.probes == '' }}
         run: node scripts/history-voices-witness.mjs

@@ -87,10 +87,15 @@ async function witness(modules) {
       // words if they occur — the runner is the only eye that can read it.
       let hint = '';
       if (!tier && page.status === 200) {
-        const first = strict(v.words).split(' ').slice(0, 4).join(' ');
-        const at = strict(page.text).indexOf(first);
-        hint = at >= 0 ? `page holds: «${strict(page.text).slice(at, at + Math.min(320, strict(v.words).length + 80))}»` : `first words «${first}» not on the page`;
-        hint = `title: «${page.title || ''}» · ${hint}`;
+        const sp = strict(page.text);
+        const ws = strict(v.words).split(' ');
+        let found = '';
+        for (let k = 0; k + 3 <= ws.length && !found; k += 3) {
+          const win = ws.slice(k, k + 3).join(' ');
+          const at = sp.indexOf(win);
+          if (at >= 0) found = `page holds near «${win}»: «${sp.slice(Math.max(0, at - 120), at + Math.min(360, strict(v.words).length + 120))}»`;
+        }
+        hint = `title: «${page.title || ''}» · ${found || 'no three-word window of the quotation is on the page'}`;
       }
       rows.push({ lesson: m.id, speaker: v.speaker, year: v.year, url: v.source.url, status: page.status, tier, error: page.error || '', hint });
     }
@@ -98,7 +103,28 @@ async function witness(modules) {
   return rows;
 }
 
+// PROBE MODE — the runner as the team's eye. `--probe` reads PROBES from the
+// environment, one `url | phrase` per line, and prints each page's title and
+// the text around the phrase (or the page's opening when the phrase is
+// absent). Read-only; it is how a candidate record is checked before a voice
+// cites it, from the one place that can reach it.
+async function probe(spec) {
+  for (const line of String(spec || '').split('\n')) {
+    const [rawUrl, ...rest] = line.split('|');
+    const url = (rawUrl || '').trim(); const phrase = rest.join('|').trim();
+    if (!url) continue;
+    const page = await fetchText(url);
+    const sp = strict(page.text);
+    console.log(`== ${url} · HTTP ${page.status}${page.error ? ' ' + page.error : ''} · title «${page.title || ''}»`);
+    if (!phrase) { console.log(`   opens: «${sp.slice(0, 500)}»`); continue; }
+    const at = sp.indexOf(strict(phrase));
+    if (at >= 0) console.log(`   around «${phrase}»: «${sp.slice(Math.max(0, at - 300), at + 700)}»`);
+    else { const la = loose(sp).indexOf(loose(phrase)); console.log(`   «${phrase}» ${la >= 0 ? 'present on letters only (punctuation differs)' : 'NOT on the page'}; opens: «${sp.slice(0, 400)}»`); }
+  }
+}
+
 const main = async () => {
+  if (process.argv.includes('--probe')) { await probe(process.env.PROBES); process.exit(0); }
   const selftest = process.argv.includes('--selftest-break');
   let modules = HISTORY_MODULES;
   if (selftest) {
