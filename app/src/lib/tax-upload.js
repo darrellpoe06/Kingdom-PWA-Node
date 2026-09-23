@@ -102,7 +102,7 @@ export function uploadFailureMessage(res) {
     return 'The upload never left this device — you appear to be offline. Nothing was sent; try again when you have signal.';
   }
   if (status === 401 || status === 403) {
-    return 'The NAS refused the upload as unauthorized. This device is missing the family bridge token — sign in again on this device to have it reissued.';
+    return 'The NAS refused the upload as unauthorized: this device\u2019s family bridge token is missing or does not match the NAS. Sign in as a family member so the device can ask for the key; a steward publishes it once in Real Estate → Photos, and every family device picks it up.';
   }
   if (status === 404 || status === 502 || status === 503) {
     return `The NAS tax service did not answer (${status}). The PDF was not stored. The archive below will also read empty while this is true — it is the same hop.`;

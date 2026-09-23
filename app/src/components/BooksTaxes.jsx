@@ -19,6 +19,29 @@ import { groupByYear, buildTaxHistory, hasFigures, TAX_FIGURE_KEYS, TAX_DOC_KIND
 import { uploadTaxDoc, uploadFailureMessage, validateUpload } from '../lib/tax-upload.js';
 import PaymentsLedgerPanel from './PaymentsLedgerPanel.jsx';
 import { resolveN8nBearer } from '../lib/n8n-base.js';
+import { hasBridgeToken } from '../lib/nas-photos.js';
+import { provisionBridgeToken } from '../lib/bridge-provision.js';
+import { supabase } from '../lib/supabase.js';
+
+// THE DEVICE ASKS FOR ITS OWN KEY (2026-09-23; DR-0574's rule, applied here).
+// Darrell: "we need to be able to upload through the PoeTech App to our
+// nas!!!!!!!" and "Christina needs to be able to upload our tax documents".
+// Measured from a runner the same evening: the same-origin road is LIVE
+// (archive.json answers a real index, /taxes/upload answers 405 to a GET, the
+// NAS unit poetech-tax-upload.service is active). What blocked a family device
+// was this file: it posted with the device's family bridge key but never asked
+// for it, so a phone that had not opened Real Estate -> Photos or read a
+// lesson aloud was refused 401 and told to "sign in again", which reissues
+// nothing. The read-aloud and the studio already provision the key on first
+// use (0128's RPC pair); the upload now does the same, and the form says which
+// state the device is in before anyone picks a file.
+const KEY_STATE_WORDS = {
+  unknown: 'Checking whether this device holds the family key…',
+  asking: 'Asking the family for this device\u2019s key…',
+  present: 'This device holds the family key — uploads go straight to your NAS.',
+  provisioned: 'This device just received the family key — uploads go straight to your NAS.',
+  none: 'This device has no family key yet. Sign in as a family member; a steward publishes the key once (Real Estate → Photos) and every family device picks it up on its own.',
+};
 
 const KIND_LABEL = {
   return: 'Return (1040)', w2: 'W-2', '1099-received': '1099 received',
@@ -48,6 +71,15 @@ export default function BooksTaxes({ entities = [] }) {
   const [form, setForm] = useState({ file: null, entityId: '', year: '', kind: 'return' });
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
+  const [keyState, setKeyState] = useState(() => (hasBridgeToken() ? 'present' : 'unknown'));
+
+  useEffect(() => {
+    let live = true;
+    if (hasBridgeToken()) { setKeyState('present'); return () => { live = false; }; }
+    setKeyState('asking');
+    provisionBridgeToken(supabase).then((r) => { if (live) setKeyState(r || 'none'); });
+    return () => { live = false; };
+  }, []);
 
   const refresh = () => fetchTaxArchive().then((a) => setArchive(a));
   useEffect(() => {
@@ -63,6 +95,11 @@ export default function BooksTaxes({ entities = [] }) {
   const doUpload = async () => {
     if (!gate.ok || busy) return;
     setBusy(true); setNotice('Uploading to your NAS…');
+    // Ask for the key before the first post, never after a refusal.
+    if (!hasBridgeToken()) {
+      const r = await provisionBridgeToken(supabase);
+      setKeyState(r || 'none');
+    }
     const token = (() => { try { return resolveN8nBearer(typeof window !== 'undefined' ? window : undefined); } catch { return null; } })();
     const res = await uploadTaxDoc(uploadReq, { token });
     setBusy(false);
@@ -133,6 +170,9 @@ export default function BooksTaxes({ entities = [] }) {
           </button>
           {notice && <span className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>{notice}</span>}
         </div>
+        <p data-testid="tax-device-key" className={`text-[0.625rem] mt-2 ${keyState === 'none' ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"Fraunces", serif' }}>
+          {KEY_STATE_WORDS[keyState] || KEY_STATE_WORDS.unknown}
+        </p>
         <p className="text-[0.5625rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
           Stays on your own NAS — never a third-party cloud. Add the year&rsquo;s numbers later by uploading, or on the NAS as a small <span className="font-mono">.figures.json</span> beside the PDF.
         </p>
@@ -142,11 +182,17 @@ export default function BooksTaxes({ entities = [] }) {
       {docs.length === 0 && (
         <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-4">
           <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-2">No returns indexed yet</div>
-          <ol className="text-xs text-[#1A1815] list-decimal pl-5 space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
-            <li>Drop each return on the NAS at <span className="font-mono text-[0.6875rem]">/volume1/PoeTech/tax-documents/&lt;entity&gt;/&lt;year&gt;/&lt;name&gt;.pdf</span>.</li>
-            <li>Optionally add <span className="font-mono text-[0.6875rem]">&lt;name&gt;.figures.json</span> beside it with the verified numbers.</li>
-            <li>Run <span className="font-mono text-[0.6875rem]">python3 infra/nas-tax-ingest/tax_ingest.py</span> (SSH / ConnectBot). This page fills in on refresh.</li>
-          </ol>
+          <p className="text-xs text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+            Upload a return above: it is stored on your NAS and listed here at once, by year and by entity, with the original printable. Every business and every person in the household files under its own entity.
+          </p>
+          <details className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+            <summary className="cursor-pointer">By hand instead (SSH / ConnectBot)</summary>
+            <ol className="list-decimal pl-5 space-y-1 mt-1">
+              <li>Drop each return on the NAS at <span className="font-mono text-[0.6875rem]">/volume1/PoeTech/tax-documents/&lt;entity&gt;/&lt;year&gt;/&lt;name&gt;.pdf</span>.</li>
+              <li>Optionally add <span className="font-mono text-[0.6875rem]">&lt;name&gt;.figures.json</span> beside it with the verified numbers.</li>
+              <li>Run <span className="font-mono text-[0.6875rem]">python3 infra/nas-tax-ingest/tax_ingest.py</span>. This page fills in on refresh.</li>
+            </ol>
+          </details>
         </div>
       )}
 
@@ -183,6 +229,23 @@ export default function BooksTaxes({ entities = [] }) {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* By entity — the shelf for each business and each person (Darrell 2026-09-23:
+          "a location to see our businesses documents"). Counts come from the
+          same index the years read; no entity is painted in without a file. */}
+      {docs.length > 0 && (
+        <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-3" data-testid="tax-by-entity">
+          <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-2">By entity · each business and each person</div>
+          <ul className="flex flex-wrap gap-2 text-[0.6875rem]">
+            {Object.entries(docs.reduce((acc, d) => { const k = d.entityId || '—'; acc[k] = (acc[k] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1]).map(([id, n]) => (
+              <li key={id} className="border border-[#E8E4DC] bg-white px-2 py-1">
+                <span className="text-[#1A1815]">{entityName(id)}</span>
+                <span className="text-[#5A5751]"> · {n} document{n === 1 ? '' : 's'}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
