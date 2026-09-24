@@ -17,13 +17,14 @@
 // the inputs to make a master multiinput").
 import React, { useState, useRef, useEffect } from 'react';
 import { suggestDestination, destinationsFor, planDispatch, composeNoteText } from '../lib/one-voice-routing.js';
-import { resolveSurface } from '../lib/one-voice-surfaces.js';
+import { resolveSurface, lessonConfirmationKey } from '../lib/one-voice-surfaces.js';
 import { useVoiceDictation, LONG_FORM_SESSION_CAP_MS, VOICE_SESSION_CAP_MS, capMinutes } from '../lib/voice-dictation.js';
 import { readDraft, writeDraft, clearDraft } from '../lib/draft-autosave.js';
 import { relayThought } from '../lib/agent-inbox-sync.js';
 import VoiceLessonRecorder from './VoiceLessonRecorder.jsx';
 import LessonInbox from './LessonInbox.jsx';
 import { sendVoiceLesson, formatClock } from '../lib/lesson-voice.js';
+import LessonsForSituation from './LessonsForSituation.jsx';
 import ConversationRecorder from './ConversationRecorder.jsx';
 import { isMicCaptureSupported } from '../lib/workflow-scribe.js';
 import { rememberPrompt, AUTO_REMEMBERED, USE_PROMPT_EVENT } from '../lib/saved-prompts.js';
@@ -180,8 +181,14 @@ export function OneVoiceInput({
         // tagged so the staged intake routine can find them. Best-effort and
         // honest: signed-out or a refused insert is SAID on the surface, never
         // swallowed, and the words stay in the box for the person to keep.
-        relayThought({ body: t, tags: ['lesson'], source: cfg.sourceTag }).then((res) => {
-          if (!res.ok) setConfirmation(String(c.lessonFailed || 'Not sent as a lesson ({reason}) — keep it as a note and send it again signed in.').replace('{reason}', res.reason || 'unknown'));
+        relayThought({ body: t, tags: ['lesson'], source: cfg.sourceTag }).then(async (res) => {
+          if (!res.ok) { setConfirmation(String(c.lessonFailed || 'Not sent as a lesson ({reason}) — keep it as a note and send it again signed in.').replace('{reason}', res.reason || 'unknown')); return; }
+          // SAID TRUE FOR WHO SENT IT (DR-0630): the Governor's own row is read
+          // into a new lesson; a member's is kept and reviewed first, and the
+          // lessons that already speak to it stay on screen for them.
+          let email;
+          try { const { data } = await supabase.auth.getSession(); email = data?.session?.user?.email || ''; } catch (e) { email = ''; }
+          setConfirmation(c[lessonConfirmationKey(email)] || c.lesson);
         });
         break;
       case 'prayer':     addPrayerRequest({ requester: who || 'church family', request: t, shareWithChurch: true }); break;
@@ -201,6 +208,8 @@ export function OneVoiceInput({
       case 'fallback-voice': voiceNote('voice'); break;
       default: break; // 'none' — no handler available
     }
+    // The lesson door's confirmation is said once the relay answers (above).
+    if (plan.action === 'lesson') return null;
     return plan.confirmationKey ? c[plan.confirmationKey] : null;
   };
 
@@ -230,10 +239,11 @@ export function OneVoiceInput({
     if (takeReady) { sendSpokenLesson(t); return; }
     const msg = dispatch(route, t, name.trim());
     if (msg) setConfirmation(msg);
+    else if (route === 'lesson') setConfirmation(null); // its own line arrives with the relay's answer
     // A lesson or a PoeTech request is remembered in Your prompts (DR-0615).
     // Private notes and the rest are not: they are kept only on request.
     if (AUTO_REMEMBERED.includes(route)) remember(t, route, false);
-    setLastSent({ text: t, who: name.trim() });
+    setLastSent({ text: t, who: name.trim(), route });
     setText('');
     setTouchedRoute(false);
     setRoute(cfg.defaultRoute);
@@ -242,6 +252,12 @@ export function OneVoiceInput({
   };
 
   const active = DESTS.find(d => d.key === route) || DESTS[0];
+  // FROM THE WORD FOR THIS (DR-0630): the words being written under the Lesson
+  // chip, or — once sent — the words just sent as a lesson, so the lessons
+  // stay on screen with the confirmation instead of vanishing with the text.
+  const lessonWords = route === 'lesson' && text.trim() && !isSpokenLessonLine(text) && !lessonRecording
+    ? text
+    : (!text.trim() && lastSent && lastSent.route === 'lesson' ? lastSent.text : '');
   const recentItems = recent ? (recent || []).slice(-3).reverse() : null;
 
   return (
@@ -365,6 +381,13 @@ export function OneVoiceInput({
       {/* THE SENDER SEES WHAT HAPPENED (DR-0636): every lesson they sent, its
           state, and the words Whisper wrote. The Notes tab shows it below. */}
       {route === 'lesson' && surface !== 'notes' && <LessonInbox refreshKey={lessonsSeen} />}
+      {lessonWords && <LessonsForSituation words={lessonWords} />}
+      {route === 'lesson' && cfg.lessonNotice && (
+        /* SAID BEFORE THEY SEND (Darrell 2026-09-24): every time, above Send. */
+        <p className="text-[0.75rem] text-[#1A1815] mt-2 border-l-2 border-[#B85838] pl-2" style={{ fontFamily: '"Fraunces", serif' }} data-testid="lesson-notice">
+          {cfg.lessonNotice}
+        </p>
+      )}
       <div className="flex gap-1.5 mt-2 flex-wrap items-center">
         <span className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>→ {active.hint}</span>
         {showName && (

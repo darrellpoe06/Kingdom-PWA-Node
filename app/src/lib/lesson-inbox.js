@@ -19,6 +19,9 @@
 // Pure except fetchMyLessons, which takes the Supabase client as an argument.
 // =============================================================================
 
+import { memberOutcome } from './member-lesson-review.js';
+import { isLessonDoorOwner } from './one-voice-surfaces.js';
+
 const has = (row, t) => Array.isArray(row && row.tags) && row.tags.includes(t);
 const ofTag = (row) => (Array.isArray(row && row.tags) ? (row.tags.find((t) => String(t).startsWith('of:')) || '').slice(3) : '');
 
@@ -59,6 +62,9 @@ export function lessonItems(rows) {
       words: transcript ? String(transcript.body || '') : '',
       why: failure ? String(failure.body || '') : '',
       withReader: carried,
+      // DR-0635: the Governor's review of a member's lesson, read from the row
+      // that carries the words (the transcript, for a spoken one).
+      review: memberOutcome(spoken ? (transcript || {}) : r),
     });
   }
   return items.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
@@ -70,17 +76,22 @@ export async function fetchMyLessons({ supabase, limit = 100 } = {}) {
     const { data: sess } = await supabase.auth.getSession();
     const uid = sess?.session?.user?.id || null;
     if (!uid) return { ok: false, items: [], reason: 'signed-out' };
-    const { data, error } = await supabase
+    const owner = isLessonDoorOwner(sess?.session?.user?.email || '');
+    const read = (cols) => supabase
       .from('agent_inbox')
-      .select('id, body, tags, created_at')
+      .select(cols)
       // tags is jsonb: the filter must be JSON ('["lesson"]'). An array here
       // is sent as cs.{lesson}, which is not JSON, and the read fails every time.
       .contains('tags', JSON.stringify(['lesson']))
       .eq('created_by', uid)
       .order('created_at', { ascending: false })
       .limit(limit);
+    let { data, error } = await read('id, body, tags, created_at, review_reason');
+    // A database that has not yet taken 0237 has no review_reason column: the
+    // lessons still read, and a decline shows without its reason until it does.
+    if (error && /review_reason/.test(String(error.message || ''))) ({ data, error } = await read('id, body, tags, created_at'));
     if (error) return { ok: false, items: [], reason: error.message };
-    return { ok: true, items: lessonItems(data || []), reason: '' };
+    return { ok: true, items: lessonItems(data || []), reason: '', owner };
   } catch (e) {
     return { ok: false, items: [], reason: e?.message || 'unknown' };
   }

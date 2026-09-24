@@ -14,6 +14,16 @@ import { fetchMyLessons, transcriptWords } from '../lib/lesson-inbox.js';
 // (USE_PROMPT_EVENT), to edit or send again: the loop closes (DR-0636).
 import { sendPromptToBox } from '../lib/saved-prompts.js';
 import supabase from '../lib/supabase.js';
+import LessonsForSituation from './LessonsForSituation.jsx';
+import { lessonsForSituation } from '../lib/lessons-for-situation.js';
+
+// A decline points to the lessons that already speak to it; when none is close
+// enough, the pointer is dropped rather than said falsely.
+function reviewLine(it) {
+  if (it.review.state !== 'declined') return it.review.line;
+  const words = it.spoken ? transcriptWords(it.words) : it.body;
+  return lessonsForSituation(words).length ? it.review.line : it.review.line.replace(/ These lessons from the Word already speak to it\.$/, '');
+}
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const MONO = { fontFamily: '"JetBrains Mono", monospace' };
@@ -63,6 +73,15 @@ export default function LessonInbox({ deps = LIVE, refreshKey = 0 }) {
               </p>
               <p className={`text-xs font-semibold ${TONE[it.state] || 'text-[#5A5751]'}`} style={SERIF} data-testid="lesson-state">{it.label}</p>
               {!it.spoken && <p className="text-sm text-[#1A1815] whitespace-pre-wrap break-words" style={SERIF}>{it.body.replace(/^Lesson\.\s*/, '')}</p>}
+              {/* THE GOVERNOR'S REVIEW, SAID TO THE MEMBER (DR-0635). His own
+                  lessons are read straight into the class; a member's waits for
+                  his word, and the outcome is on their own row. */}
+              {!state.owner && it.review && (
+                <p className={`text-[0.75rem] mt-0.5 ${it.review.state === 'approved' ? 'text-[#5A6E3D] font-semibold' : 'text-[#1A1815]'}`} style={SERIF} data-testid="lesson-review">{reviewLine(it)}</p>
+              )}
+              {!state.owner && it.review && it.review.state === 'declined' && (
+                <LessonsForSituation words={it.spoken ? transcriptWords(it.words) : it.body} />
+              )}
               {it.state === 'failed' && it.why && <p className="text-[0.6875rem] text-[#1A1815] mt-0.5" style={SERIF} data-testid="lesson-why">{it.why}</p>}
               {it.state === 'failed' && <p className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={SERIF}>The recording is kept on our own machine and is tried again by itself as soon as a Whisper computer answers.</p>}
               {words && (
