@@ -41,6 +41,7 @@ The Plan tab reads one `family_plans` row under RLS and renders eight worksheets
 
 - `family-plan-fetch-bounds` 5/5, `release-meta` 3/3, `legacy-provisions-backfill` 3/3, `family-plan-render` and the six neighbouring suites green in one run; lint 0.
 - `scripts/migration-replay-order-guard.mjs`: OK with the two smokes added.
-- `rls-isolation.yml` dispatched on this branch after the push; the product-forms leg must print both `… ISOLATION SMOKE: PASS` lines. If 0167's smoke raises "relation does not exist", that is the DR-0322 answer and is recorded here rather than assumed.
+- `rls-isolation.yml` run 35947345883 (dispatched on this branch, 2026-09-24T02:27Z), product-forms leg, job 107468147041: `FAMILY PLANS ISOLATION SMOKE: PASS` and `FAMILY TRUST RECORDS ISOLATION SMOKE: PASS`, both on the live hosted database, rolled back. So `family_trust_records` (0167) IS applied on hosted with its policies intact — the hosted half of DR-0322's open question, measured; the NAS half stays with DR-0322's re-review.
+- Caught by the same push's CI, fixed before merge: the shell edit first grew the frozen monolith by six lines (a comment); trimmed to the two irreducible lines and the budget raised 5354 → 5356 with the reason in `scripts/monolith-budget.json`.
 - After merge: DR-0107 deploy proof; DR-0104 live review of the Plan tab on a phone: the footer must read the release, and a plan must load inside the bound.
 - re-review: 2026-10-01 — the bills-import button (Tier B) and whether any hung-fetch error was ever shown (the error text is greppable in site-health's DOM read).

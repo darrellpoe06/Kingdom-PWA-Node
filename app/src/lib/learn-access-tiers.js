@@ -43,7 +43,8 @@
 
 /** Departments whose subject is the Word, the house, or a child's schooling. */
 export const FORMATION_DEPARTMENTS = Object.freeze([
-  'The Word & The Way',        // the Living Lessons, Little Learners, the rest
+  'The Word & The Way',        // Little Learners and the rest of the Word's own shelf
+  'Living Lessons',            // the Word itself — its own department since DR-0598 (2026-09-24); never sold
   'Serve the House',           // serving your own congregation is never a product
   'Kingdom Life & Stewardship', // biblical economics; the Word's own money teaching
   'Mathematics',               // a child's schooling

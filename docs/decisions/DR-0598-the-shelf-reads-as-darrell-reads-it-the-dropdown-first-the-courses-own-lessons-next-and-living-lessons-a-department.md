@@ -35,5 +35,6 @@ A reader on any department tab meets the dropdown first, then the course’s own
 ## Verification
 
 - The suites named above, 174/174; the two new pins fail on the previous condition and the previous order.
+- Caught by CI on the PR (run 35946373759, `learn-access-tiers`): a department the access-tier list did not know defaulted to *vocational*, so Living Lessons — the Word itself — read as sellable for the length of one CI run. `FORMATION_DEPARTMENTS` now names 'Living Lessons' beside 'The Word & The Way' (`app/src/lib/learn-access-tiers.js`); the by-name pin that caught it stands.
 - After merge: DR-0104 live review on his Fold — Church → Learn: the dropdown at the top of History, the course’s lessons above the gathered rows, and "Living Lessons" as the first department tab.
 - re-review: 2026-10-07 — whether any other block has crept between the dropdown and the course’s own lessons on any department (the order test guards History; a sweep across departments is the next pin).

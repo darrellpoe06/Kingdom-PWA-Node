@@ -1687,11 +1687,7 @@ export default function PoeFinancialSystem() {
           if (parsed.data) setData(d => ({
             ...d,
             ...parsed.data,
-            // The footer names the app's RELEASE, never the demo persona
-            // (2026-09-24: a signed-in member's real plan sat under "SAMPLE ·
-            // FAMILY OF 4" because a device that first hydrated from the demo
-            // object saved the demo's meta and kept it). lib/release-meta.js.
-            meta: withReleaseMeta(parsed.data.meta || d.meta, SEED_DATA.meta),
+            meta: withReleaseMeta(parsed.data.meta || d.meta, SEED_DATA.meta), // the footer names the RELEASE, never a saved demo label (DR-0599; why: lib/release-meta.js)
             // Multi-user Layer A — backfill `visibleTo` on saved entities so
             // existing devices loading old data continue working. Defaults
             // match the seed: owner sees all, family-rollup includes business
