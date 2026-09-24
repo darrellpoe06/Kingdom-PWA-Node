@@ -42,6 +42,10 @@
 //      (James 5:4; Deuteronomy 25:13-16; Proverbs 22:16; Luke 16:10; Matthew 6:24)
 //   8. Write it in order — the sourced case brief
 //      (Habakkuk 2:2; Luke 1:3-4; Proverbs 22:20-21)
+//   9. Follow the money to the oil — the eight applied to one commodity, every
+//      industry, worldwide (Proverbs 21:20; Genesis 41:35-36; Deuteronomy 8:17-18)
+//      Added 2026-09-24 (DR-0602) on the records the runner fetched in runs
+//      35948713733 and 35949217702; OPEC's own page refused the runner (403).
 //
 // TEACH THE WORD, DO NOT DEBATE IT (DR-0098) and SPEAK ESTABLISHED FACT
 // (DR-0100). Whether a false balance is wrong is not a research finding: the
@@ -61,6 +65,11 @@
 //
 // THEIR WORDS, FETCHED NOT REMEMBERED (DR-0580). Every voice below was probed
 // on a GitHub runner against its named source before it was written in
+// WITNESSES ADDED 2026-09-24 (DR-0600): a person who was there, in his own
+// words, in every lesson — Hastings (2011), the Netflix letter (2011), Keyes
+// (2010), Iger and Perlmutter (2009), Gates as the Court quoted his memo
+// (1999), Boeing's own 10-K (2020); probed on a runner first (runs
+// 35946339324, 35946488040, 35946756879).
 // (history-voices-witness runs 35933697006, 35933806953, 35933917730,
 // 35934034007, 35934089153, 35934134357 and 35934157081, 2026-09-23): the
 // Wondery show page (served through Audible), the Antitrust Division's
@@ -76,7 +85,7 @@
 // every year the lesson names and names every year it carries.
 // =============================================================================
 import { buildScheduleFor, progressSummaryFor } from './church-classes.js';
-import { historyVoiceFaults, historyTimelineFaults } from './history-course.js';
+import { historyVoiceFaults, historyTimelineFaults, historyWorkedCaseFaults } from './history-course.js';
 
 export const BUSINESS_RESEARCH_CARE_NOTE =
   'Teaching, not a substitute for the record. This course teaches the eight Level-1 competencies of business research on a set of cases the Business Wars podcast tells as drama, and states the documented facts it names, with their dates and their record. It is not a history of any company and it is not investment advice. Every quoted verse is the KJV verbatim; every quoted voice was fetched from its named source before it was written in. Where the record is silent on a motive, the course says so.';
@@ -85,16 +94,16 @@ export const BUSINESS_RESEARCH_META = {
   key: 'business-research-wars',
   title: 'Business Research, Level 1: Business Wars as the Case',
   audience: 'students, teachers, parents, and anyone who has heard a business story told as a war and wants to know how to find out what the companies actually did — taught at every age',
-  tagline: 'Count the cost. Eight competencies of business research, worked on the rivalries a podcast tells as drama, under the Word.',
+  tagline: 'Count the cost. Eight competencies of business research, worked on the rivalries a podcast tells as drama, then all eight followed to the money tied to oil, under the Word.',
   // WORD-FIRST, DECLARED (DR-0127 / DR-0282). Both spans VERBATIM from the
   // repo's KJV and pinned in the course test.
   wordFirst: {
     ref: 'Luke 14:28; Deuteronomy 19:15',
     frame: 'Yahweh gave the researcher the method before any business school did: "For which of you, intending to build a tower, sitteth not down first, and counteth the cost, whether he have sufficient to finish it?" (Luke 14:28), and "at the mouth of two witnesses, or at the mouth of three witnesses, shall the matter be established" (Deuteronomy 19:15). Count first; establish by witnesses; then speak.',
   },
-  format: 'Self-paced · 8 lessons · one competency a week or all in a weekend · paced to your age',
+  format: 'Self-paced · 9 lessons · one competency a week or all in a weekend · paced to your age',
   cadenceDays: 7,
-  weeks: 8,
+  weeks: 9,
   handsOnLabel: 'Work it on the case',
   unit: {
     noun: 'lesson',
@@ -104,7 +113,7 @@ export const BUSINESS_RESEARCH_META = {
     sessionLabel: 'How to run it (family table, class, or one-on-one)',
     countNoun: 'lesson',
   },
-  blurb: 'The second course of the Business department. Business Wars, the Wondery podcast hosted by David Brown, retells the rivalries that shaped what we buy — Netflix against Blockbuster, Microsoft against the browser makers, Boeing against Airbus, Disney buying Marvel — as drama, and it says so: the unauthorized, real story. This course takes the drama as its doorway and teaches the craft beneath it: count the cost before you believe a plan, go to the filing before the retelling, find the second witness, sort the reenactment from the document, keep a just weight, trace the correction, know what the Word has already settled, and write the case in order with its sources. Every verse verbatim; every voice fetched from its record.',
+  blurb: 'The second course of the Business department. Business Wars, the Wondery podcast hosted by David Brown, retells the rivalries that shaped what we buy — Netflix against Blockbuster, Microsoft against the browser makers, Boeing against Airbus, Disney buying Marvel — as drama, and it says so: the unauthorized, real story. This course takes the drama as its doorway and teaches the craft beneath it: count the cost before you believe a plan, go to the filing before the retelling, find the second witness, sort the reenactment from the document, keep a just weight, trace the correction, know what the Word has already settled, and write the case in order with its sources. The ninth lesson follows the money to the oil beneath every rivalry: the two shocks on the Federal Reserve’s own record, the nation’s figures from the Energy Information Administration, the Standard Oil opinion, and the reserve. Every verse verbatim; every voice fetched from its record.',
   care: BUSINESS_RESEARCH_CARE_NOTE,
   footer: '_Taught by Darrell Poe · the Poe family + The Church of the Living God · built on PoeTech. Course two of the Business department. Count the cost; establish every word at the mouth of two or three witnesses; write it plain upon tables._',
 };
@@ -131,6 +140,27 @@ const SRC = {
   disney: { title: 'The Walt Disney Company — press release, “Disney to Acquire Marvel Entertainment,” August 31, 2009', url: 'https://thewaltdisneycompany.com/disney-to-acquire-marvel-entertainment/' },
   netflix10k: { title: 'U.S. Securities and Exchange Commission, EDGAR — Netflix, Inc., annual report on Form 10-K for the year ended December 31, 2011, filed February 10, 2012', url: 'https://www.sec.gov/Archives/edgar/data/1065280/000119312512053009/d260328d10k.htm' },
   blockbuster8k: { title: 'U.S. Securities and Exchange Commission, EDGAR — Blockbuster Inc., exhibit 99.1 to the current report on Form 8-K filed September 23, 2010', url: 'https://www.sec.gov/Archives/edgar/data/1085734/000119312510215624/dex991.htm' },
+  // WITNESSES — people who were there, in their own words (2026-09-24, DR-0600;
+  // Darrell: "Any actual testimonies from witnesses?! For these lessons?!"
+  // — "Fix them too!"). Probed on a runner before they were written in:
+  // history-voices-witness runs 35946339324, 35946488040, 35946756879.
+  hastings: { title: 'Reed Hastings, chief executive of Netflix — “An Explanation and Some Reflections,” the Netflix blog, September 18, 2011, as archived by the Wayback Machine (the live page is gone)', url: 'https://web.archive.org/web/2011/https://blog.netflix.com/2011/09/explanation-and-some-reflections.html' },
+  netflixLetter: { title: 'U.S. Securities and Exchange Commission, EDGAR — Netflix, Inc., letter to shareholders of October 24, 2011, exhibit 99.1 to the current report on Form 8-K', url: 'https://www.sec.gov/Archives/edgar/data/1065280/000119312511278716/d246709dex991.htm' },
+  blockbusterRelease: { title: 'U.S. Securities and Exchange Commission, EDGAR — Blockbuster Inc., press release of September 23, 2010 (the chapter 11 filing), exhibit 99.1 to the current report on Form 8-K filed September 24, 2010', url: 'https://www.sec.gov/Archives/edgar/data/1085734/000119312510215765/dex991.htm' },
+  boeing10k: { title: 'U.S. Securities and Exchange Commission, EDGAR — The Boeing Company, annual report on Form 10-K for the year ended December 31, 2019, filed January 31, 2020', url: 'https://www.sec.gov/Archives/edgar/data/12927/000001292720000014/a201912dec3110k.htm' },  // THE OIL RECORDS (2026-09-24, DR-0602; Darrell: "Tie all the money tied to
+  // oil and how that impacts the economy worldwide"). Probed on a runner first:
+  // history-voices-witness runs 35948713733 and 35949217702. OPEC's own page
+  // answered 403 and is NOT used; the Bureau of Economic Analysis page answered
+  // with navigation only and is NOT used.
+  fedOil1973: { title: 'Federal Reserve History — “Oil Shock of 1973-74,” by Michael Corbett: the embargo of October 19, 1973, the price from $2.90 to $11.65 a barrel, and Arthur Burns’s explanation of 1974', url: 'https://www.federalreservehistory.org/essays/oil-shock-of-1973-74' },
+  fedOil1979: { title: 'Federal Reserve History — “Oil Shock of 1978-79,” by Laurel Graefe: Iranian output down 4.8 million barrels a day by January 1979 and the price more than doubled by April 1980', url: 'https://www.federalreservehistory.org/essays/oil-shock-of-1978-79' },
+  fedGreatInflation: { title: 'Federal Reserve History — “The Great Inflation”: the two energy crises and the central bank’s own account of what it could and could not control', url: 'https://www.federalreservehistory.org/essays/great-inflation' },
+  eiaUse: { title: 'U.S. Energy Information Administration — “Use of oil” (Oil and petroleum products explained): consumption by sector and by product, 2022, citing the Monthly Energy Review of July 2023', url: 'https://www.eia.gov/energyexplained/oil-and-petroleum-products/use-of-oil.php' },
+  eiaTrade: { title: 'U.S. Energy Information Administration — “Oil imports and exports”: the net-exporter year of 2020, the 2022 figures, the 2005 peak and OPEC’s 1977 share', url: 'https://www.eia.gov/energyexplained/oil-and-petroleum-products/imports-and-exports.php' },
+  eiaPrices: { title: 'U.S. Energy Information Administration — “Oil prices and outlook”: petroleum as about one third of world energy and OPEC’s share of reserves and production, 2021', url: 'https://www.eia.gov/energyexplained/oil-and-petroleum-products/prices-and-outlook.php' },
+  eiaWhere: { title: 'U.S. Energy Information Administration — “Where our oil comes from”: the top producer since 2018, the five states and the five countries, 2022, citing the Petroleum Supply Annual of August 2023', url: 'https://www.eia.gov/energyexplained/oil-and-petroleum-products/where-our-oil-comes-from.php' },
+  standardOil: { title: 'Legal Information Institute, Cornell Law School — Standard Oil Company of New Jersey et al. v. United States, 221 U.S. 1: the Supreme Court’s opinion, argued March 1910, reargued January 1911', url: 'https://www.law.cornell.edu/supremecourt/text/221/1' },
+  spr: { title: 'U.S. Department of Energy, Office of Petroleum Reserves — “Strategic Petroleum Reserve”: 714 million barrels of authorized capacity and the four emergency releases', url: 'https://www.energy.gov/ceser/strategic-petroleum-reserve' },
 };
 
 export const BUSINESS_RESEARCH_MODULES = [
@@ -170,6 +200,8 @@ export const BUSINESS_RESEARCH_MODULES = [
     voices: [
       { speaker: 'Wondery, the show page for Business Wars', year: 2018, where: 'The show’s own description, on its page as served through Audible, beside the first episode of February 6, 2018.', source: SRC.wondery, words: 'Business Wars gives you the unauthorized, real story of what drives these companies and their leaders, innovators, investors and executives to new heights - or to ruin.', why: 'The case states its own posture in one sentence, and every word of it is a claim the course teaches how to sort.' },
       { speaker: 'Netflix, Inc., in its annual report for 2011', year: 2012, where: 'Item 1 of the Form 10-K for the year ended December 31, 2011, filed with the Securities and Exchange Commission on February 10, 2012.', source: SRC.netflix10k, words: 'We were incorporated in Delaware in August 1997 and completed our initial public offering in May 2002.', why: 'A fact claim answered by the company’s own filing: the date the story says it started, on the record.' },
+      { speaker: 'Reed Hastings, chief executive of Netflix', year: 2011, where: 'The same post, on why he moved the company as fast as he did.', source: SRC.hastings, words: 'Companies rarely die from moving too fast, and they frequently die from moving too slowly.', why: 'The cost he counted, stated by the one who counted it.' },
+      { speaker: 'Jim Keyes, chairman and chief executive of Blockbuster', year: 2010, where: 'The company’s press release on the day it filed for chapter 11, September 23, 2010, filed with the Securities and Exchange Commission.', source: SRC.blockbusterRelease, words: 'After a careful and thorough analysis, we determined that the process announced today provides the optimal path for recapitalizing our balance sheet and positioning Blockbuster for the future as we continue to transform our business model to meet the evolving preferences of our customers.', why: 'The man at the head of the losing company, on the day, in his own words on the record.' },
     ],
     timeline: [
       { year: 1997, event: 'Netflix is incorporated in Delaware in August, by its own later account.', record: 'Netflix, Inc., Form 10-K for 2011, Item 1, “Other Information.”' },
@@ -179,6 +211,32 @@ export const BUSINESS_RESEARCH_MODULES = [
       { year: 2012, event: 'Netflix files its annual report for 2011 on February 10, stating its incorporation and its offering dates.', record: 'EDGAR accession 0001193125-12-053009.' },
       { year: 2018, event: 'Wondery introduces Business Wars on January 19; the first episode, on Netflix and Blockbuster, follows on February 6.', record: 'The Business Wars show page, episode list.' },
     ],
+    workedCase: {
+      claim: { words: "Companies rarely die from moving too fast, and they frequently die from moving too slowly.", by: "Reed Hastings, chief executive of Netflix, September 18, 2011", source: SRC.hastings },
+      event: { year: 2011, what: "Netflix raises its prices and announces a split of its DVD service; two months of member anger later the chief executive apologises in public." },
+      closedDoors: {
+        hidden: "The decision to raise prices and split the service was made inside the company; members learned of it when it was announced, and the reasoning stayed inside until the apology.",
+        light: "The chief executive published the reasoning himself, and the company’s signed letter to shareholders put the damage on the record with the Securities and Exchange Commission.",
+        verse: "\"But he that doeth truth cometh to the light, that his deeds may be made manifest, that they are wrought in God\" (John 3:21).",
+        heart: "\"He that loveth silver shall not be satisfied with silver; nor he that loveth abundance with increase: this is also vanity\" (Ecclesiastes 5:10).",
+      },
+      risk: "The letter names it: the company “greatly upset many domestic Netflix members” and, in doing so, hurt its reputation and stalled its domestic growth.",
+      opportunity: "The same letter names the prize: to be one of the leaders of the internet’s transformation of video, with the best streaming subscription service on the planet.",
+      constraint: "Streaming and DVD by mail had become, in the chief executive’s words, two quite different businesses with very different cost structures; one price could not carry both.",
+      economics: [
+        { figure: "$7.99", meaning: "The price of the unlimited streaming service the letter says the company dramatically improved while it upset its members on the DVD side.", record: "Netflix, Inc., letter to shareholders of October 24, 2011, exhibit 99.1 (EDGAR)" },
+        { figure: "2×, more than doubled", meaning: "What the company did to its domestic spending on streaming content over the prior year: the cost it was counting when it moved fast.", record: "Netflix, Inc., letter to shareholders of October 24, 2011, exhibit 99.1 (EDGAR)" },
+        { figure: "over 10 years", meaning: "How long the company had mailed DVDs when its chief executive wrote that it was hard to split the service; the sunk cost he chose to move past.", record: "Reed Hastings, the Netflix blog, September 18, 2011, as archived by the Wayback Machine" },
+      ],
+      steps: [
+        "Quote the claim and mark it as a claim about cost: moving slowly is the more expensive error, in the words of the one who paid for moving fast.",
+        "Open the filed letter and find the actual costs: members upset, reputation hurt, domestic growth stalled, in the company’s own signed words.",
+        "Set the figures beside the claim — the $7.99 price, the doubled content spend, the ten years of DVDs — and count what the move risked against what it protected.",
+        "State what the record settles: the company counted the cost of moving slowly higher than the cost of moving fast, and paid the second cost in public.",
+      ],
+      settled: "The company’s own filed letter records the price, the spending and the damage, and its chief executive’s own post records the reasoning; the cost was counted after the fact, in public.",
+      stillOpen: "How many members left, and what the stalled growth cost in dollars, are figures the letter’s excerpt this course fetched does not carry; the full letter is the record still to read.",
+    },
     quiz: {
       questions: [
         { q: '"Blockbuster lost because it missed the internet." What kind of claim is that?', options: ['A fact claim, settled by one filing', 'A cause claim about motive and reason, settled only by what the actors said and did at the time', 'A frame claim, neither true nor false'], answer: 1, explain: 'Why a company won or lost is a cause claim; a filing gives you the dates, not the reason.' },
@@ -237,6 +295,8 @@ export const BUSINESS_RESEARCH_MODULES = [
     voices: [
       { speaker: 'Netflix, Inc., in its annual report for 2011', year: 2012, where: 'Item 1, “Competition,” of the Form 10-K for the year ended December 31, 2011, filed February 10, 2012.', source: SRC.netflix10k, words: 'The market for entertainment video is intensely competitive and subject to rapid change. New competitors may be able to launch new businesses at relatively low cost.', why: 'The company describes its own market in the register of a filing, not a scene; the reader can hold the two side by side.' },
       { speaker: 'Blockbuster Inc., in an exhibit filed the day it entered chapter 11', year: 2010, where: 'Exhibit 99.1 to the current report on Form 8-K filed with the Securities and Exchange Commission on September 23, 2010.', source: SRC.blockbuster8k, words: 'the ability of the Company to continue as a going concern, the Company’s ability to obtain bankruptcy court approval with respect to motions in the chapter 11 cases', why: 'The company names its own condition on the day, in its own words; no retelling is needed to date the turn.' },
+      { speaker: 'Netflix, Inc., in its letter to shareholders', year: 2011, where: 'The letter of October 24, 2011, filed with the Securities and Exchange Commission as exhibit 99.1: its second paragraph.', source: SRC.netflixLetter, words: 'The last few months, however, have been difficult for shareholders, employees, and most unfortunately, many members of Netflix.', why: 'The company under its own signature, on the record, saying what the quarter cost.' },
+      { speaker: 'The Boeing Company, in its annual report', year: 2020, where: 'Item 1 of the Form 10-K for the year ended December 31, 2019, filed January 31, 2020: the paragraph headed Competition.', source: SRC.boeing10k, words: 'We face aggressive international competitors who are intent on increasing their market share, such as Airbus and other entrants from Russia, China and Japan.', why: 'One party to the dispute naming the other, under its own signature, in a sworn filing.' },
     ],
     timeline: [
       { year: 1997, event: 'Netflix is incorporated in Delaware in August.', record: 'Netflix, Inc., Form 10-K for 2011, Item 1, “Other Information.”' },
@@ -244,7 +304,36 @@ export const BUSINESS_RESEARCH_MODULES = [
       { year: 2010, event: 'Blockbuster files a current report on September 23 whose exhibit names the chapter 11 cases and the going-concern risk.', record: 'Blockbuster Inc., Form 8-K, exhibit 99.1, EDGAR accession 0001193125-10-215624.' },
       { year: 2011, event: 'The fiscal year the Netflix report covers ends on December 31.', record: 'Netflix, Inc., Form 10-K for the year ended December 31, 2011, cover page.' },
       { year: 2012, event: 'Netflix files its annual report for 2011 on February 10.', record: 'EDGAR accession 0001193125-12-053009, primary document d260328d10k.htm.' },
+      { year: 2019, event: 'The fiscal year Boeing’s annual report covers ends on December 31; the report is filed the next January.', record: 'The Boeing Company, Form 10-K for the year ended December 31, 2019, cover page.' },
+      { year: 2020, event: 'Boeing files its annual report for 2019 on January 31, naming Airbus among the aggressive international competitors it faces.', record: 'The Boeing Company, Form 10-K for 2019, Item 1, “Competition.”' },
     ],
+    workedCase: {
+      claim: { words: "After a careful and thorough analysis, we determined that the process announced today provides the optimal path for recapitalizing our balance sheet and positioning Blockbuster for the future", by: "Jim Keyes, chairman and chief executive of Blockbuster, September 23, 2010", source: SRC.blockbusterRelease },
+      event: { year: 2010, what: "Blockbuster files for chapter 11 and files the press release with the Securities and Exchange Commission the next day: the last day the company’s own words are on the record as a going concern." },
+      closedDoors: {
+        hidden: "The analysis the chairman calls careful and thorough was done inside the company with its noteholders; the plan support agreement was negotiated before the public heard a word.",
+        light: "The filing put the whole arrangement on the record: the financing, the store count, the library, and which debt would be exchanged for the equity of the reorganized company.",
+        verse: "\"Neither is there any creature that is not manifest in his sight: but all things are naked and opened unto the eyes of him with whom we have to do\" (Hebrews 4:13).",
+        heart: "\"The rich ruleth over the poor, and the borrower is servant to the lender\" (Proverbs 22:7).",
+      },
+      risk: "A company that cannot pay its senior notes hands the company to the people who hold them; the release says so in one sentence about what the notes would be exchanged for.",
+      opportunity: "The release names the assets the reorganized company would keep: a well-established brand, a library of more than 125,000 titles, and stores, kiosks, mail and digital under one name.",
+      constraint: "The senior secured notes, at eleven and three-quarters percent, set the terms; the borrower’s path was the one its lenders would fund.",
+      economics: [
+        { figure: "$125 million", meaning: "The debtor-in-possession financing the senior noteholders committed so the company could pay customers, suppliers and employees during the recapitalization.", record: "Blockbuster Inc., press release of September 23, 2010, exhibit 99.1 to the Form 8-K (EDGAR)" },
+        { figure: "3,000 stores", meaning: "The number of United States stores the release says would remain open, while the company evaluated its store portfolio.", record: "Blockbuster Inc., press release of September 23, 2010, exhibit 99.1 to the Form 8-K (EDGAR)" },
+        { figure: "more than 125,000 titles", meaning: "The library the release counts as an exceptional asset of the reorganized company.", record: "Blockbuster Inc., press release of September 23, 2010, exhibit 99.1 to the Form 8-K (EDGAR)" },
+        { figure: "11¾ percent", meaning: "The rate on the senior secured notes that, under the proposed plan, would be exchanged for the equity of a reorganized Blockbuster.", record: "Blockbuster Inc., press release of September 23, 2010, exhibit 99.1 to the Form 8-K (EDGAR)" },
+      ],
+      steps: [
+        "Go past the retelling to the filing: the press release is exhibit 99.1 to a Form 8-K on EDGAR, filed the day after the chapter 11 filing.",
+        "Read the chairman’s sentence as a claim of judgment (optimal path) resting on facts the same document states.",
+        "Pull the figures — the financing, the stores, the titles, the rate — and notice each comes from the company under its own signature, not from a narrator.",
+        "State the finding: on the day it filed, the company’s own record shows what it owed, what it kept, and to whom the equity would go.",
+      ],
+      settled: "The financing, the store count, the library and the note exchange are on the record in the company’s own filed release, dated to the day.",
+      stillOpen: "What the reorganized company was worth, and what the noteholders recovered, are figures in later filings this course did not fetch.",
+    },
     quiz: {
       questions: [
         { q: 'Which is the record and which is the retelling?', options: ['The podcast episode is the record; the 10-K is the retelling', 'The 10-K signed by the company is the record; the episode is a retelling', 'Both are records'], answer: 1, explain: 'A filing is the company on itself under the law; an episode is someone else telling it.' },
@@ -303,6 +392,8 @@ export const BUSINESS_RESEARCH_MODULES = [
     voices: [
       { speaker: 'The WTO Secretariat, summarising dispute DS316', year: 2004, where: 'The Secretariat’s summary of the dispute on the WTO’s site, under “Consultations,” the complaint by the United States.', source: SRC.ds316, words: 'On 6 October 2004, the United States requested consultations with the governments of Germany, France, the United Kingdom, and Spain', why: 'The first witness: who complained, against whom, on what date, in the record-keeper’s own words.' },
       { speaker: 'The WTO Secretariat, summarising dispute DS353', year: 2011, where: 'The Secretariat’s summary of the dispute on the WTO’s site, under “Summary of key findings,” the European Communities’ complaint against the United States.', source: SRC.ds353, words: 'The European Communities estimated that the total amount of the alleged subsidies was $19.1 billion between 1989 and 2006.', why: 'The second witness: the other side’s complaint, with its own number and its own dates, so neither accusation stands alone.' },
+      { speaker: 'Reed Hastings, chief executive of Netflix', year: 2011, where: 'His post on the Netflix blog, September 18, 2011, the first words after the title.', source: SRC.hastings, words: 'I messed up. I owe everyone an explanation.', why: 'The man who made the decision, in his own words, before any narrator retells it.' },
+      { speaker: 'Netflix, Inc., in its letter to shareholders', year: 2011, where: 'The same letter, on the pricing change and the rebranding it had cancelled.', source: SRC.netflixLetter, words: 'we greatly upset many domestic Netflix members with our significant DVD-related pricing changes, and to a lesser degree, with the proposed-and-now-cancelled rebranding of our DVD service', why: 'The second witness to the same event, in a filed document: the blog and the letter agree.' },
     ],
     timeline: [
       { year: 1989, event: 'The first year of the period over which the European Communities later counted alleged subsidies to Boeing.', record: 'WTO dispute DS353, Secretariat summary of key findings.' },
@@ -311,6 +402,31 @@ export const BUSINESS_RESEARCH_MODULES = [
       { year: 2006, event: 'The Dispute Settlement Body establishes the DS353 panel on February 17; the last year of the counted period.', record: 'WTO dispute DS353, Secretariat summary.' },
       { year: 2011, event: 'The DS353 panel report is circulated to members on March 31.', record: 'WTO dispute DS353, Secretariat summary.' },
     ],
+    workedCase: {
+      claim: { words: "I messed up. I owe everyone an explanation.", by: "Reed Hastings, chief executive of Netflix, September 18, 2011", source: SRC.hastings },
+      event: { year: 2011, what: "The same event is on the record twice: the chief executive’s post on September 18, and the company’s letter to shareholders on October 24, which calls the rebranding proposed and now cancelled." },
+      closedDoors: {
+        hidden: "The chief executive’s account of what went wrong could have stayed a private post-mortem; the shareholders’ letter could have described the quarter without naming the damage.",
+        light: "Both were published: the post under his name on the company’s blog, the letter under the company’s signature with the Securities and Exchange Commission; two witnesses to one event, both in the light.",
+        verse: "\"Therefore whatsoever ye have spoken in darkness shall be heard in the light; and that which ye have spoken in the ear in closets shall be proclaimed upon the housetops\" (Luke 12:3).",
+        heart: "\"He that covereth his sins shall not prosper: but whoso confesseth and forsaketh them shall have mercy\" (Proverbs 28:13).",
+      },
+      risk: "One witness alone can be dismissed as a mood or a public-relations move; the second, a filed document, makes the first a matter of record.",
+      opportunity: "Two independent records of the same event let a researcher establish it the way the Word requires, at the mouth of two witnesses, without trusting either one alone.",
+      constraint: "The two witnesses are not independent of the company — one is its chief executive, the other its signed letter — so a third, outside witness would be needed to establish anything they both omit.",
+      economics: [
+        { figure: "2 records, 36 days apart", meaning: "The post of September 18 and the letter of October 24: the same price change and rebranding described twice, once by the man and once by the company under its filing obligation.", record: "Reed Hastings, the Netflix blog, September 18, 2011, as archived by the Wayback Machine; Netflix, Inc., letter to shareholders of October 24, 2011, exhibit 99.1 (EDGAR)" },
+        { figure: "2 charges", meaning: "What a member subscribing to both services would have seen under the split the post announced: two entries on a credit card statement, one for each business.", record: "Reed Hastings, the Netflix blog, September 18, 2011, as archived by the Wayback Machine" },
+      ],
+      steps: [
+        "Take the first witness — the post — and note what it establishes: an apology, a reason, and a plan to split the service.",
+        "Take the second — the filed letter — and note what it establishes: the damage, and that the rebranding was proposed and then cancelled.",
+        "Mark what both share (the price change, the split, the harm) as established, and what only one carries (the reasoning; the cancellation) as single-witness.",
+        "Name the outside witness that would complete the case — a member count from a later filing — and that this course did not fetch it.",
+      ],
+      settled: "The price change, the announced split and the damage to members and reputation are established by two records of the company’s own, thirty-six days apart.",
+      stillOpen: "The number of members lost is in neither excerpt this course fetched; a later filing would be the third witness.",
+    },
     quiz: {
       questions: [
         { q: 'Reading only DS316, what has a researcher established?', options: ['That Airbus cheated', 'That the United States formally accused the European side, on a date, of named measures', 'Nothing at all'], answer: 1, explain: 'One record establishes its own dispute — who complained, when, of what — not the whole matter.' },
@@ -369,12 +485,40 @@ export const BUSINESS_RESEARCH_MODULES = [
     voices: [
       { speaker: 'Wondery, the show page for Business Wars', year: 2018, where: 'The show’s own description beside its first episode on the page as served through Audible, February 6, 2018.', source: SRC.wondery, words: 'Netflix vs. HBO. Nike vs. Adidas. Business is war. Sometimes the prize is your wallet or your attention.', why: 'The frame in the show’s own words: a lens the researcher names before sorting the scenes it frames.' },
       { speaker: 'The Walt Disney Company, in its press release', year: 2009, where: 'The release “Disney to Acquire Marvel Entertainment,” Burbank and New York, August 31, 2009, still on Disney’s own site.', source: SRC.disney, words: 'Based on the closing price of Disney stock on Friday, August 28, the transaction value is $50 per Marvel share or approximately $4 billion.', why: 'A document with a date, a number and a name: the model of what may be cited, set beside a scene that may not.' },
+      { speaker: 'Robert A. Iger, president and chief executive of The Walt Disney Company', year: 2009, where: 'The company’s press release of August 31, 2009, announcing the Marvel acquisition.', source: SRC.disney, words: 'We believe that adding Marvel to Disney\'s unique portfolio of brands provides significant opportunities for long-term growth and value creation', why: 'The buyer, in his own words, on the day: what a dramatization must be checked against.' },
+      { speaker: 'Ike Perlmutter, chief executive of Marvel', year: 2009, where: 'The same press release: the seller’s own words.', source: SRC.disney, words: 'Disney is the perfect home for Marvel\'s fantastic library of characters given its proven ability to expand content creation and licensing businesses', why: 'The seller as a witness beside the buyer, both on the record the same day.' },
     ],
     timeline: [
       { year: 1999, event: 'The Court’s Findings of Fact in the Microsoft case are signed on November 5, a document a researcher may cite word for word.', record: 'The Court’s Findings of Fact, U.S. v. Microsoft, on the Antitrust Division’s site.' },
       { year: 2009, event: 'Disney announces on August 31 that it has agreed to acquire Marvel Entertainment for about $4 billion.', record: 'The Walt Disney Company press release of August 31, 2009.' },
       { year: 2018, event: 'Business Wars begins; its show page describes the unauthorized, real story and stages its episodes as scenes.', record: 'The Business Wars show page, description and episode list.' },
     ],
+    workedCase: {
+      claim: { words: "Based on the closing price of Disney stock on Friday, August 28, the transaction value is $50 per Marvel share or approximately $4 billion.", by: "The Walt Disney Company, press release of August 31, 2009", source: SRC.disney },
+      event: { year: 2009, what: "Disney announces it will acquire Marvel; the release states the price, the assets and both chief executives’ words on the same day." },
+      closedDoors: {
+        hidden: "The negotiation between the two companies — who wanted what, what was offered and refused — happened in private and is not in the release.",
+        light: "What the release does put in the light is the price, the count of characters, and the two executives’ own sentences; a dramatization may fill the room with invented dialogue, but only those are on the record.",
+        verse: "\"For nothing is secret, that shall not be made manifest; neither any thing hid, that shall not be known and come abroad\" (Luke 8:17).",
+        heart: "\"A just weight and balance are the LORD’s: all the weights of the bag are his work\" (Proverbs 16:11).",
+      },
+      risk: "A reenactment that invents a boardroom line teaches the listener a motive nobody recorded; repeated as fact, it displaces the two sentences the executives actually said.",
+      opportunity: "The release gives the researcher exactly what a dramatization cannot: a price per share, a total, a character count and two quotations with names attached.",
+      constraint: "The release states the value “based on the closing price” of one Friday, so the $4 billion is a computation on a date, not a fixed sum; the record itself says so.",
+      economics: [
+        { figure: "$50 per share", meaning: "The transaction value per Marvel share, on the release’s own basis of Disney’s closing price on Friday, August 28.", record: "The Walt Disney Company, press release of August 31, 2009" },
+        { figure: "approximately $4 billion", meaning: "The total value the release states for the acquisition, on the same basis.", record: "The Walt Disney Company, press release of August 31, 2009" },
+        { figure: "more than 5,000 characters", meaning: "What Disney said it would acquire ownership of: the library the buyer named as the asset.", record: "The Walt Disney Company, press release of August 31, 2009" },
+      ],
+      steps: [
+        "Separate what the release records (price, total, characters, two quotations) from what a dramatization adds (scenes, dialogue, motive).",
+        "Read the two executives’ sentences as the only words either man is on record saying about the deal that day.",
+        "Check the computation the release describes: the total rests on one closing price, which the release names.",
+        "Teach the listener to keep the record’s figures and hold the reenactment as illustration, never as source.",
+      ],
+      settled: "The price per share, the approximate total, the character count and the two executives’ words are on the record in the buyer’s own release, dated to the day.",
+      stillOpen: "What was said in the negotiation, and what Marvel’s owner would have accepted, are in no record this course fetched; any dramatization of them is invention.",
+    },
     quiz: {
       questions: [
         { q: 'A scene in which two executives argue across a table is:', options: ['A record, because the show says it is real', 'A reenactment, unless a document carries the words', 'Always false'], answer: 1, explain: 'Could a document say this? If not, it is appearance — to be enjoyed and credited, never cited.' },
@@ -433,12 +577,41 @@ export const BUSINESS_RESEARCH_MODULES = [
     voices: [
       { speaker: 'Judge Thomas Penfield Jackson, in the Court’s Findings of Fact', year: 1999, where: 'Finding 33, under “Microsoft’s Power in the Relevant Market,” signed November 5, 1999, on the Antitrust Division’s site.', source: SRC.findings, words: 'In other words, Microsoft enjoys monopoly power in the relevant market.', why: 'A finding of conduct weighed against a stated standard, in the court’s own words, numbered so anyone can check it.' },
       { speaker: 'Judge Thomas Penfield Jackson, in the Court’s Findings of Fact', year: 1999, where: 'Finding 35, under “Market Share,” signed November 5, 1999, on the Antitrust Division’s site.', source: SRC.findings, words: 'Every year for the last decade, Microsoft’s share of the market for Intel-compatible PC operating systems has stood above ninety percent.', why: 'The number beneath the finding: a just weight is a measured one, not a felt one.' },
+      { speaker: 'Bill Gates, chairman and chief executive of Microsoft, in a memorandum to his executives', year: 1999, where: 'His “Internet Tidal Wave” memorandum of May 1995, as the Court quoted it in its Findings of Fact of November 5, 1999.', source: SRC.findings, words: 'pursuing a multi-platform strategy where they move the key API into the client to commoditize the underlying operating system', why: 'The defendant’s own words about his rival, entered into the court’s record: the weight is his, not the narrator’s.' },
+      { speaker: 'Bill Gates, chairman and chief executive of Microsoft, in a memorandum to his executives', year: 1999, where: 'The same memorandum, as the Court quoted it: what a decent product could and could not do.', source: SRC.findings, words: 'this alone won\'t get people to switch away from Netscape', why: 'His own words, weighed by the Court, on why quality alone would not win the browser.' },
     ],
     timeline: [
+      { year: 1995, event: 'In May Bill Gates sends his “Internet Tidal Wave” memorandum to Microsoft’s executives, naming Netscape as a new competitor; the Court quotes it four years later.', record: 'U.S. v. Microsoft, the Court’s Findings of Fact, paragraphs 72 and 134.' },
       { year: 1998, event: 'The United States’ case against Microsoft opens on May 18; trial begins October 19.', record: 'The Antitrust Division’s case page (case open date) and the Court’s Findings of Fact (trial dates).' },
       { year: 1999, event: 'Trial ends June 24; the record closes July 28; Judge Jackson signs 412 findings of fact on November 5.', record: 'The Court’s Findings of Fact, U.S. v. Microsoft, November 5, 1999.' },
       { year: 2001, event: 'The Court of Appeals issues its opinion on June 28, the first of the courts the findings went to next.', record: 'The Antitrust Division’s case page, frequently requested documents.' },
     ],
+    workedCase: {
+      claim: { words: "this alone won't get people to switch away from Netscape", by: "Bill Gates, in his May 1995 memorandum, as the Court quoted it in its Findings of Fact", source: SRC.findings },
+      event: { year: 1999, what: "The Court finds the facts: what Microsoft’s chairman wrote to his executives in 1995, what the company spent on its browser, and what it gave away." },
+      closedDoors: {
+        hidden: "An internal memorandum from a chairman to his executive staff is written for a closed room; it names the rival and what a decent product will not accomplish by itself.",
+        light: "The memorandum was entered into a federal court’s findings of fact and is quoted there in his own words; the closed room is now a public record with paragraph numbers.",
+        verse: "\"For there is nothing covered, that shall not be revealed; neither hid, that shall not be known\" (Luke 12:2).",
+        heart: "\"Divers weights are an abomination unto the LORD; and a false balance is not good\" (Proverbs 20:23).",
+      },
+      risk: "A company that decides quality alone will not win, and then spends and gives away to make sure, is weighed by a court on its own words; the memorandum became the weight.",
+      opportunity: "The findings carry the figures — the spending, the headcount, the free product — so the weighing can be done by a reader with the record open, not by a narrator’s side.",
+      constraint: "The findings are the Court’s account of the facts, not the company’s; the company’s own reply is in other documents on the same case page, and a just weight reads both.",
+      economics: [
+        { figure: "more than $100 million a year", meaning: "What Microsoft spent each year from 1995 onward developing Internet Explorer, by the Court’s finding.", record: "U.S. v. Microsoft, the Court’s Findings of Fact, November 5, 1999 (Department of Justice)" },
+        { figure: "from five or six to more than one thousand", meaning: "The number of developers working on the browser, early 1995 to 1999, by the Court’s finding.", record: "U.S. v. Microsoft, the Court’s Findings of Fact, November 5, 1999 (Department of Justice)" },
+        { figure: "$0, free", meaning: "The price at which the company gave the browser away, while also giving other firms things of value to build its usage share, by the Court’s finding.", record: "U.S. v. Microsoft, the Court’s Findings of Fact, November 5, 1999 (Department of Justice)" },
+      ],
+      steps: [
+        "Quote the chairman’s own words as the Court quotes them, and mark them as the defendant’s account of his own strategy.",
+        "Set the Court’s figures beside them: the spending, the headcount, the free product.",
+        "Weigh without respect of persons: a large company and a small one are read by the same record, and the record here is the Court’s.",
+        "Name the other side’s documents on the case page as the record to read before the weight is final.",
+      ],
+      settled: "The chairman’s words, the annual spending and the growth in developers are in the Court’s findings of fact with their paragraph numbers.",
+      stillOpen: "What the browser strategy earned or cost the company in dollars is not in the excerpt this course fetched; the company’s filings are the record for that.",
+    },
     quiz: {
       questions: [
         { q: 'What did the court write before it weighed?', options: ['Its opinion of Microsoft', 'Its standard of proof: facts proved by a preponderance of the evidence', 'Nothing'], answer: 1, explain: 'A just weight states the standard first; the findings open by naming it.' },
@@ -497,6 +670,8 @@ export const BUSINESS_RESEARCH_MODULES = [
     voices: [
       { speaker: 'The Antitrust Division’s case page for U.S. v. Microsoft Corporation', year: 2001, where: 'The list of frequently requested documents on the case page, each with its date, including the appeals opinion of June 28, 2001.', source: SRC.casePage, words: 'Court of Appeals Opinion (June 30, 2004) Final Judgment (November 12, 2002) Court’s Findings of Fact (November 5, 1999)', why: 'The chain of corrections as the record-keeper lists it: dated documents after the findings, which a researcher must read in order.' },
       { speaker: 'Blockbuster Inc., in an exhibit filed the day it entered chapter 11', year: 2010, where: 'Exhibit 99.1 to the current report on Form 8-K filed September 23, 2010, in its cautionary note.', source: SRC.blockbuster8k, words: 'those described in filings made by the Company with the U.S. Bankruptcy Court for the Southern District of New York, the ability of the Company to continue as a going concern', why: 'A company correcting its own story in the present tense, on the day, in its own filing.' },
+      { speaker: 'Reed Hastings, chief executive of Netflix', year: 2011, where: 'The same post, on what he got wrong.', source: SRC.hastings, words: 'In hindsight, I slid into arrogance based upon past success.', why: 'A correction in the first person: the witness names his own fault.' },
+      { speaker: 'Netflix, Inc., in its letter to shareholders', year: 2011, where: 'The same letter, on the pricing change and the rebranding it had cancelled.', source: SRC.netflixLetter, words: 'we greatly upset many domestic Netflix members with our significant DVD-related pricing changes, and to a lesser degree, with the proposed-and-now-cancelled rebranding of our DVD service', why: 'The second witness to the same event, in a filed document: the blog and the letter agree.' },
     ],
     timeline: [
       { year: 1999, event: 'The Court’s Findings of Fact are signed on November 5.', record: 'The Antitrust Division’s case page, frequently requested documents.' },
@@ -505,7 +680,33 @@ export const BUSINESS_RESEARCH_MODULES = [
       { year: 2004, event: 'A second Court of Appeals opinion issues on June 30.', record: 'The Antitrust Division’s case page, frequently requested documents.' },
       { year: 2006, event: 'The Modified Final Judgment is entered on September 7.', record: 'The Antitrust Division’s case page, frequently requested documents.' },
       { year: 2010, event: 'Blockbuster names the going-concern risk and the chapter 11 cases in its own exhibit on September 23.', record: 'Blockbuster Inc., Form 8-K, exhibit 99.1.' },
+      { year: 2011, event: 'Reed Hastings publishes his apology on September 18; the letter to shareholders of October 24 calls the rebranding proposed-and-now-cancelled.', record: 'The Netflix blog as archived by the Wayback Machine; the letter to shareholders, exhibit 99.1.' },
     ],
+    workedCase: {
+      claim: { words: "In hindsight, I slid into arrogance based upon past success.", by: "Reed Hastings, chief executive of Netflix, September 18, 2011", source: SRC.hastings },
+      event: { year: 2011, what: "The chief executive corrects himself in public on September 18; by October 24 the company’s filed letter records the rebranding as proposed and now cancelled." },
+      closedDoors: {
+        hidden: "Arrogance based on past success is a private condition; nobody outside the company saw it forming, and the man who had it did not see it until the members answered.",
+        light: "He named it himself, in public, under his own name; and thirty-six days later the company’s filed letter recorded that the plan he announced had been cancelled.",
+        verse: "\"But all things that are reproved are made manifest by the light: for whatsoever doth make manifest is light\" (Ephesians 5:13).",
+        heart: "\"He that covereth his sins shall not prosper: but whoso confesseth and forsaketh them shall have mercy\" (Proverbs 28:13).",
+      },
+      risk: "The post’s own plan — two websites, two charges, ratings that do not carry across — was the risk the members judged; the letter records that the judgment stood and the plan fell.",
+      opportunity: "A correction made in the open, with the reason stated, is the one asset a company can create in a bad quarter; the record shows it was made.",
+      constraint: "The price increase was not reversed — the post says it would not have changed the price — so the correction was of the manner and the split, not of the cost to the member.",
+      economics: [
+        { figure: "2 websites, 2 charges", meaning: "What the split would have meant for a member of both services: two sites that did not share ratings or a credit card, and two entries on the statement; the cost the members refused.", record: "Reed Hastings, the Netflix blog, September 18, 2011, as archived by the Wayback Machine" },
+        { figure: "36 days", meaning: "From the post of September 18 to the letter of October 24 that records the rebranding as cancelled: the time from the correction of the manner to the correction of the plan.", record: "Reed Hastings, the Netflix blog, September 18, 2011, as archived by the Wayback Machine; Netflix, Inc., letter to shareholders of October 24, 2011, exhibit 99.1 (EDGAR)" },
+      ],
+      steps: [
+        "Read the first correction — the apology and the named fault — for what it changed (the manner) and what it left standing (the price).",
+        "Read the second — the filed letter — for what it changed (the plan itself, cancelled) and what it left standing (the pricing).",
+        "Tell an open correction from a quiet one: both here carry a name and a date, one on the blog and one in a filing.",
+        "Keep the dated copy: the blog page is gone from the company’s site and lives only in the archive, which is why it can still be quoted.",
+      ],
+      settled: "The chief executive corrected the manner in public and the company cancelled the plan within thirty-six days; both are on dated records in their own words.",
+      stillOpen: "What the cancelled rebranding had already cost — the name, the site, the team — is not in the excerpts this course fetched.",
+    },
     quiz: {
       questions: [
         { q: 'A researcher cites the 1999 findings as the last word on the Microsoft case. What has he missed?', options: ['Nothing; findings are final', 'Four dated documents through 2006 in which courts corrected and modified the record', 'The podcast'], answer: 1, explain: 'The case page lists an appeals opinion, a final judgment, a second opinion and a modified judgment, through September 7, 2006.' },
@@ -564,6 +765,8 @@ export const BUSINESS_RESEARCH_MODULES = [
     voices: [
       { speaker: 'Judge Thomas Penfield Jackson, in the Court’s Findings of Fact', year: 1999, where: 'Finding 412, the last of the findings, signed November 5, 1999, on the Antitrust Division’s site.', source: SRC.findings, words: 'Most harmful of all is the message that Microsoft’s actions have conveyed to every enterprise with the potential to innovate in the computer industry.', why: 'A record-list sentence: a court’s finding of effect, which is what research supplies and a verse does not.' },
       { speaker: 'The WTO Secretariat, summarising dispute DS353', year: 2011, where: 'The Secretariat’s summary of the dispute, under “Summary of key findings,” the European Communities’ estimate of subsidies to Boeing.', source: SRC.ds353, words: 'More than half of this amount was accounted for by the value of the alleged NASA R&D subsidies, which, according to the European Communities, was $10.4 billion in this period.', why: 'A record-list number with its own attribution — what a record supplies, stated as the record states it.' },
+      { speaker: 'Jim Keyes, chairman and chief executive of Blockbuster', year: 2010, where: 'The company’s press release on the day it filed for chapter 11, September 23, 2010, filed with the Securities and Exchange Commission.', source: SRC.blockbusterRelease, words: 'After a careful and thorough analysis, we determined that the process announced today provides the optimal path for recapitalizing our balance sheet and positioning Blockbuster for the future as we continue to transform our business model to meet the evolving preferences of our customers.', why: 'The man at the head of the losing company, on the day, in his own words on the record.' },
+      { speaker: 'Reed Hastings, chief executive of Netflix', year: 2011, where: 'The same post, announcing the split of the DVD service.', source: SRC.hastings, words: 'It\'s hard for me to write this after over 10 years of mailing DVDs with pride, but we think it is necessary and best', why: 'The decision as he announced it, so the later reversal can be read against his own words.' },
     ],
     timeline: [
       { year: 1989, event: 'The first year of the period over which the European Communities counted alleged subsidies to Boeing.', record: 'WTO dispute DS353, Secretariat summary.' },
@@ -573,7 +776,33 @@ export const BUSINESS_RESEARCH_MODULES = [
       { year: 2006, event: 'The last year of the counted period in the European Communities’ estimate.', record: 'WTO dispute DS353, Secretariat summary.' },
       { year: 2010, event: 'Blockbuster names the going-concern risk in its own exhibit on September 23.', record: 'Blockbuster Inc., Form 8-K, exhibit 99.1.' },
       { year: 2011, event: 'The DS353 panel report, carrying the $19.1 billion estimate, is circulated on March 31.', record: 'WTO dispute DS353, Secretariat summary.' },
+      { year: 2019, event: 'On October 2 the United States trade office announces a $7.5 billion award in the Airbus subsidies case, the other side of the pair of disputes.', record: 'Office of the United States Trade Representative, press release of October 2, 2019.' },
     ],
+    workedCase: {
+      claim: { words: "The European Communities estimated that the total amount of the alleged subsidies was $19.1 billion between 1989 and 2006", by: "The World Trade Organization Secretariat, summarizing dispute DS353", source: SRC.ds353 },
+      event: { year: 2011, what: "The panel report in the Boeing dispute is circulated to members on March 31, with the claimed subsidies counted by category and by amount." },
+      closedDoors: {
+        hidden: "Tax breaks, research payments and access to government facilities are granted in legislatures and agencies, line by line, and each side keeps its own accounting of what the other received.",
+        light: "The dispute forced both accountings into one public record: ten categories of claimed measures, an estimated total, and years later an award the trade office announced to the dollar.",
+        verse: "\"For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil\" (Ecclesiastes 12:14).",
+        heart: "\"A false balance is abomination to the LORD: but a just weight is his delight\" (Proverbs 11:1).",
+      },
+      risk: "Each side’s figure is a claim by a party to the dispute; a reader who takes either as settled has let the party weigh its own cause.",
+      opportunity: "The Word settles the standard — a just weight, no respect of persons — before any panel sits, so the researcher knows what to ask of the record: who counted, and by what measure.",
+      constraint: "The Secretariat’s summary reports what the complainant estimated, not what the panel found in every category; the panel report itself is the record for the finding.",
+      economics: [
+        { figure: "$19.1 billion, 1989–2006", meaning: "The European Communities’ estimate of the alleged subsidies to Boeing’s large civil aircraft division, across ten categories of measures.", record: "World Trade Organization, dispute DS353, the Secretariat’s summary" },
+        { figure: "$7.5 billion", meaning: "The award the United States trade office announced on October 2, 2019 in the Airbus subsidies case, the other side of the same pair of disputes.", record: "Office of the United States Trade Representative, press release of October 2, 2019" },
+      ],
+      steps: [
+        "Mark what the Word settles before the record is opened: the weight must be just and the same for both parties.",
+        "Read the claim as a party’s estimate, name who made it and over what years, and keep it apart from the panel’s finding.",
+        "Set the other side’s figure beside it — the award the trade office announced — and notice both numbers come from parties, not from a neutral scale.",
+        "Name the panel reports as the record where the weighing was actually done, and that this course fetched the summaries, not the reports.",
+      ],
+      settled: "The complainant’s estimate, its period and its categories are on the Secretariat’s record; the award figure is on the trade office’s record; the Word’s standard for weighing them is settled.",
+      stillOpen: "What the panels found subsidy by subsidy, and what each side actually paid or withdrew, is in the panel reports and later filings this course did not fetch.",
+    },
     quiz: {
       questions: [
         { q: 'Which question belongs on the settled list?', options: ['Whether Microsoft’s share stood above ninety percent', 'Whether keeping back wages by fraud is wrong', 'When the DS316 consultations began'], answer: 1, explain: '"which is of you kept back by fraud, crieth" (James 5:4) — settled by the Word before any research began, and never reopened by any rivalry or any retelling.' },
@@ -632,6 +861,8 @@ export const BUSINESS_RESEARCH_MODULES = [
     voices: [
       { speaker: 'Wondery, the episode note for the first Business Wars episode', year: 2018, where: 'The note beside “Netflix vs Blockbuster - Sudden Death,” episode 1, February 6, 2018, on the show page as served through Audible.', source: SRC.wondery, words: 'This is episode 1 of an 8-part series on the brutal business battle between Netflix and Blockbuster, and later HBO.', why: 'The doorway credited in its own words, by date, in the brief that walks through it to the record.' },
       { speaker: 'Netflix, Inc., in its annual report for 2011', year: 2012, where: 'Item 1, “Competition,” of the Form 10-K for the year ended December 31, 2011, filed February 10, 2012.', source: SRC.netflix10k, words: 'DVD rental outlets and kiosk services, such as Blockbuster and Redbox; entertainment video retailers, such as Best Buy, Wal-Mart and Amazon.com.', why: 'The record naming the rival in the company’s own filing: the sentence the brief cites instead of the scene.' },
+      { speaker: 'The Boeing Company, in its annual report', year: 2020, where: 'Item 1 of the Form 10-K for the year ended December 31, 2019, filed January 31, 2020: the paragraph headed Competition.', source: SRC.boeing10k, words: 'We face aggressive international competitors who are intent on increasing their market share, such as Airbus and other entrants from Russia, China and Japan.', why: 'One party to the dispute naming the other, under its own signature, in a sworn filing.' },
+      { speaker: 'Jim Keyes, chairman and chief executive of Blockbuster', year: 2010, where: 'The company’s press release on the day it filed for chapter 11, September 23, 2010, filed with the Securities and Exchange Commission.', source: SRC.blockbusterRelease, words: 'After a careful and thorough analysis, we determined that the process announced today provides the optimal path for recapitalizing our balance sheet and positioning Blockbuster for the future as we continue to transform our business model to meet the evolving preferences of our customers.', why: 'The man at the head of the losing company, on the day, in his own words on the record.' },
     ],
     timeline: [
       { year: 1997, event: 'Netflix is incorporated in Delaware in August; the podcast later places the story’s beginning around this year.', record: 'Netflix, Inc., Form 10-K for 2011; the Business Wars episode note.' },
@@ -641,11 +872,42 @@ export const BUSINESS_RESEARCH_MODULES = [
       { year: 2002, event: 'Netflix completes its initial public offering in May; the Final Judgment in the Microsoft case is entered November 12.', record: 'Netflix, Inc., Form 10-K for 2011; the Antitrust Division’s case page.' },
       { year: 2004, event: 'A second Court of Appeals opinion issues on June 30.', record: 'The Antitrust Division’s case page.' },
       { year: 2006, event: 'The Modified Final Judgment is entered on September 7.', record: 'The Antitrust Division’s case page.' },
+      { year: 2009, event: 'On August 31 Disney announces it will acquire Marvel for about $4 billion, $50 a Marvel share on that Friday’s closing price; a figure in the brief.', record: 'The Walt Disney Company, press release, “Disney to Acquire Marvel Entertainment,” August 31, 2009.' },
       { year: 2010, event: 'Blockbuster files its chapter 11 exhibit on September 23.', record: 'Blockbuster Inc., Form 8-K, exhibit 99.1.' },
       { year: 2011, event: 'The fiscal year the Netflix report covers ends on December 31.', record: 'Netflix, Inc., Form 10-K for the year ended December 31, 2011, cover page.' },
       { year: 2012, event: 'Netflix files its annual report for 2011 on February 10.', record: 'EDGAR accession 0001193125-12-053009.' },
       { year: 2018, event: 'Wondery introduces Business Wars on January 19; the first episode follows on February 6.', record: 'The Business Wars show page, episode list.' },
+      { year: 2019, event: 'The fiscal year Boeing’s annual report covers ends on December 31; the report is filed the next January.', record: 'The Boeing Company, Form 10-K for the year ended December 31, 2019, cover page.' },
+      { year: 2020, event: 'Boeing files its annual report for 2019 on January 31, naming Airbus among the aggressive international competitors it faces.', record: 'The Boeing Company, Form 10-K for 2019, Item 1, “Competition.”' },
     ],
+    workedCase: {
+      claim: { words: "We face aggressive international competitors who are intent on increasing their market share, such as Airbus and other entrants from Russia, China and Japan.", by: "The Boeing Company, in its annual report for 2019, filed January 31, 2020", source: SRC.boeing10k },
+      event: { year: 2020, what: "Boeing files its annual report and names its competitors under its own signature; the sentence closes the course’s timeline from a founding in 1997 to a sworn filing." },
+      closedDoors: {
+        hidden: "A company’s view of its rivals is formed in strategy rooms; what it fears and what it plans are not said aloud to the market by choice.",
+        light: "The securities law puts a version of it in the light every year: the annual report must state the competition the company faces, under its signature, and this one names Airbus, Russia, China and Japan.",
+        verse: "\"Neither is there any creature that is not manifest in his sight: but all things are naked and opened unto the eyes of him with whom we have to do\" (Hebrews 4:13).",
+        heart: "\"Take heed, and beware of covetousness: for a man’s life consisteth not in the abundance of the things which he possesseth\" (Luke 12:15).",
+      },
+      risk: "A brief written from podcasts and memory will carry dates and figures no filing supports, and a reader who checks one will discard the rest.",
+      opportunity: "Every figure in this course sits on a filing, a finding, a summary or a release with a date, so the case brief can be written in order with a record under every line.",
+      constraint: "The brief may state only what the fetched records carry; where the record is a party’s estimate or a company’s own view, the brief must say whose it is.",
+      economics: [
+        { figure: "$125 million · 3,000 stores · 125,000 titles", meaning: "Blockbuster on the day it filed: the financing, the stores, the library, from the company’s own release.", record: "Blockbuster Inc., press release of September 23, 2010, exhibit 99.1 to the Form 8-K (EDGAR)" },
+        { figure: "$7.99 · more than doubled", meaning: "Netflix in the quarter it apologised: the streaming price and the growth in content spending, from the filed letter.", record: "Netflix, Inc., letter to shareholders of October 24, 2011, exhibit 99.1 (EDGAR)" },
+        { figure: "$50 a share · about $4 billion · 5,000 characters", meaning: "Disney buying Marvel, from the buyer’s release.", record: "The Walt Disney Company, press release of August 31, 2009" },
+        { figure: "more than $100 million a year · 5 or 6 to more than 1,000 developers", meaning: "Microsoft building the browser, from the Court’s findings.", record: "U.S. v. Microsoft, the Court’s Findings of Fact, November 5, 1999 (Department of Justice)" },
+        { figure: "$19.1 billion claimed · $7.5 billion awarded", meaning: "Boeing and Airbus, from the Secretariat’s summary and the trade office’s release.", record: "World Trade Organization, dispute DS353, the Secretariat’s summary; Office of the United States Trade Representative, press release of October 2, 2019" },
+      ],
+      steps: [
+        "Lay the figures out in date order from the founding in 1997 to the filing in 2020, each with the record it came from.",
+        "Write one sentence per figure that names whose figure it is: the company’s, the Court’s, the complainant’s, the trade office’s.",
+        "Keep the settled and the open in the same brief: what the records carry and what this course did not fetch.",
+        "Close with the Word that stood before any of it: a just weight, and a man’s life not measured by what he possesses.",
+      ],
+      settled: "Every figure in the brief is on a dated record in the words of the party that filed, found, summarized or announced it.",
+      stillOpen: "The panel reports, the later Netflix and Blockbuster filings, and the negotiation behind the Marvel deal are the records the brief names as still to open.",
+    },
     quiz: {
       questions: [
         { q: 'A sentence in your brief has no record behind it. What do you do?', options: ['Leave it; it sounds right', 'Give it a record, or give it the honest words: the record I have does not say', 'Cite the podcast scene'], answer: 1, explain: 'Every sentence carries its record or carries the honest words; a scene is a doorway, not a record.' },
@@ -664,6 +926,148 @@ export const BUSINESS_RESEARCH_MODULES = [
         'Which sentence was hardest to source, and what did you write instead?',
         'How does it feel to write the record I have does not say — and why is that sentence the strongest one on the page?',
         'What will you write next, in order, with its record?',
+      ],
+    },
+  },
+  // ---------------------------------------------------------------------------
+  // 9 · FOLLOW THE MONEY TO THE OIL — one commodity, every industry, worldwide
+  // (2026-09-24, Darrell: "Tie all the money tied to oil and how that impacts
+  // the economy worldwide... comprehensive data driven understanding from all
+  // industries which is why business wars was a source I gave for context
+  // especially in American culture and history"). Every figure below is from a
+  // record the runner fetched (runs 35948713733 and 35949217702): the Federal
+  // Reserve's own histories of the two oil shocks and the Great Inflation, five
+  // Energy Information Administration pages, the Supreme Court's Standard Oil
+  // opinion (221 U.S. 1) and the Energy Department's reserve page. OPEC's own
+  // page refused the runner (403) and is not used.
+  // ---------------------------------------------------------------------------
+  {
+    id: 'br9-follow-the-oil',
+    title: 'Follow the money to the oil: one commodity, every industry, worldwide',
+    bigIdea: 'Every rivalry this course has worked ran on one commodity. Netflix shipped discs by truck; Boeing’s jets burn it; the Court’s first great monopoly case was about it. Yahweh names it as the store of a wise house: "There is treasure to be desired and oil in the dwelling of the wise; but a foolish man spendeth it up" (Proverbs 21:20). The ninth competency applies the other eight to the money tied to oil: a price that quadrupled in three months in 1973 and 1974 and reached every industry; a nation that imported most of its oil in 1977 and became a net exporter in 2020; a company that controlled ninety per cent of the business by 1899; and a reserve of 714 million barrels laid up against the next cut, the way Joseph laid up corn.',
+    inApp: 'Open the lesson’s economics table and pick one figure: the barrel price of January 1974, the transportation sector’s 66.6% share of consumption, or the 714 million barrels of the reserve. Trace it to its record and write, in one dated sentence, what it did to one industry you can name from the record. Then write the sentence the Word already settled about the wealth beneath it. Save both in your Study.',
+    anchor: { ref: 'Proverbs 21:20; Genesis 41:35-36; Deuteronomy 8:17-18', theme: 'The store: "There is treasure to be desired and oil in the dwelling of the wise; but a foolish man spendeth it up" (Proverbs 21:20). The reserve laid up before the cut: "And let them gather all the food of those good years that come, and lay up corn under the hand of Pharaoh, and let them keep food in the cities. And that food shall be for store to the land against the seven years of famine, which shall be in the land of Egypt; that the land perish not through the famine" (Genesis 41:35-36). And the heart that forgets who gave the wealth: "And thou say in thine heart, My power and the might of mine hand hath gotten me this wealth. But thou shalt remember the LORD thy God: for it is he that giveth thee power to get wealth" (Deuteronomy 8:17-18).' },
+    stories: [
+      {
+        kind: 'parable', tone: 'light',
+        title: 'The Receipt on the Dashboard',
+        body: 'Marcus kept every fuel receipt in the glove box, which his daughter thought was a strange habit until the lesson on oil. She laid a year of them on the table beside the family’s grocery receipts and the electric bill and drew one line: the month the pump price jumped was the month the bread and the delivery fees rose too. Then she found the Federal Reserve’s essay on the embargo, read the sentence about a barrel going from under three dollars to nearly twelve, and said the thing the whole course had been teaching her to say: that is one number, from one record, and it moved every other number on this table. Marcus said the glove box had been waiting fifteen years for someone to do that.',
+      },
+      {
+        kind: 'parable', tone: 'sober',
+        title: 'The Church Van and the Second Shock',
+        body: 'A deacon who had driven the church van through the second oil shock told the class what the record could not: the line at the pump on the morning of the rationing, the widow who stopped coming to midweek service because the drive cost too much, the youth trip cancelled. Then he did what the lesson asked. He opened the Federal Reserve’s essay, found the sentence that said Iranian output fell by 4.8 million barrels a day and prices more than doubled inside a year, and put his memory beside it as a witness beside a record. He said the memory had been true for forty years, and the record told him how big it had been. "Be thou diligent to know the state of thy flocks, and look well to thy herds" (Proverbs 27:23), he said, is a command about knowing your numbers before the shock, not after.',
+      },
+    ],
+    benefits: [
+      'You learn to follow one commodity through every industry: the barrel price behind a delivery fee, a jet fare, a plastic lid, a grocery bill, all from the government’s own figures.',
+      'You can name, from the Federal Reserve’s own history, what an embargo did to prices and how a central bank explained it at the time.',
+      'You see the same case worked at three scales: a trust that held ninety per cent of the business, a nation that imported seventy per cent of its oil from one group of countries, and a world in which five countries pump half the crude.',
+      'You learn that a reserve is a biblical pattern before it is a policy: Joseph laid up corn against the famine, and the nation lays up 714 million barrels against the next cut.',
+      'You can teach a child to ask, of any price, what it is made of, and to look for the answer in a record rather than a rumour.',
+    ],
+    levels: {
+      teen: 'Here is the ninth skill. Follow the money to the oil. Almost every price you pay has oil in it. The truck that brings the bread burns it. The jet burns it. The plastic on the shelf is made from it. So when the price of a barrel moves, every other price moves too. Yahweh calls oil the store of a wise house. "There is treasure to be desired and oil in the dwelling of the wise; but a foolish man spendeth it up" (Proverbs 21:20).\n\nNow the record. In October 1973 a group of oil countries cut off the United States. The Federal Reserve’s own history says the price of a barrel went from $2.90 to $11.65 by January 1974. That is nearly four times the price in three months. The embargo ended in March 1974. The high price stayed. The chairman of the Federal Reserve, Arthur Burns, said in 1974 that prices for industrial goods were already rising more than ten per cent a year before the cut came. So the shock landed on an economy that was already hot.\n\nA second shock came. Iran had a revolution that began in 1978. By January 1979 its oil output was down by 4.8 million barrels a day. That was seven per cent of the world’s oil. Prices more than doubled between April 1979 and April 1980. The Federal Reserve says the first shock made oil cost four times as much, and the second made it cost three times as much again.\n\nNow the shape of it today. The government’s energy office says oil is about one third of all the energy the world uses. In the United States two thirds of the oil goes to moving things: cars, trucks, ships, planes. Gasoline alone is about 43 per cent of it. In 1977 the country got 70 per cent of the oil it bought from OPEC. In 2020 the United States sold more oil abroad than it bought, for the first time since at least 1949. In 2022 it was the largest producer in the world, with about 14.7 per cent of the crude. Five countries pumped about half of it all. Texas alone pumped 42.5 per cent of the American share. In that same year the country sold about 9.52 million barrels a day abroad and bought about 8.33. It made about 20.08 million barrels a day and used about 20.01. So it makes about what it uses. But it still bought 6.28 million barrels of crude a day from other countries and sold 3.58. Read that twice. A net exporter of oil can still be a net buyer of crude. The record holds both facts at once.\n\nNow the oldest case. By 1899 one company held about ninety per cent of the business of making, moving and selling oil in America. The government said so in its bill. The Supreme Court wrote the story down in 1911 and found the combination was in restraint of trade.\n\nAnd the reserve. The nation keeps 714 million barrels in salt caves against the next cut. The President has let some of it out in an emergency four times. Joseph did the same thing with corn. He filled the cities in the good years so the land would not die in the bad ones. "And that food shall be for store to the land against the seven years of famine" (Genesis 41:36).\n\nYour job. Pick one figure from the table. Find it in its record. Write one sentence that says what it did to one industry. Then write the verse that stood before it.',
+      senior: 'The ninth lesson is the one Darrell asked for by name: tie the money to the oil and show the class how one commodity reaches every industry in the world, with data, not with a mood. The teacher’s task is to keep three scales in view at once and to keep every figure pinned to the record it came from.\n\nThe first scale is the shock. Open the Federal Reserve’s own essay and let the class read the sentence about the embargo of October 1973 and the barrel that went from $2.90 to $11.65 by January 1974. Then read Arthur Burns, the chairman at the time, explaining in 1974 that industrial prices were already rising at better than ten per cent a year when the cut arrived, and that the industry had no spare capacity with which to answer. Put the second essay beside it: the Iranian revolution that began in 1978, output down 4.8 million barrels a day by January 1979, seven per cent of the world’s production, and a price that more than doubled between April 1979 and April 1980. The Federal Reserve’s essay on the Great Inflation ties the two together: the first crisis quadrupled crude and the second tripled it, and the central bank says plainly that the inflation the oil price caused was largely beyond its control. That is what a shock to one commodity does to the price of everything, on the record of the institution that had to answer for it.\n\nThe second scale is the nation. The Energy Information Administration’s pages give the class the shape of American oil: about one third of the world’s energy is petroleum; the transportation sector takes 66.6 per cent of American consumption and gasoline alone 43 per cent; OPEC supplied 70 per cent of American petroleum imports in 1977; the country became a net exporter in 2020 for the first time since at least 1949; it produced about 20.08 million barrels a day in 2022 and consumed about 20.01, was the world’s top producer from 2018, and drew 72 per cent of its crude from five states, Texas first at 42.5 per cent. Worldwide, 98 countries produced the crude in 2022 and five of them, the United States first at 14.7 per cent, accounted for about half.\n\nThe third scale is the company. The Supreme Court’s opinion in the Standard Oil case recites the government’s bill: a conspiracy alleged to have been formed about 1870, a trust agreement of January 1882 by which the stock of forty corporations went to nine trustees, its dissolution in 1892, the New Jersey holding company of 1899, and a combination controlling ninety per cent of producing, shipping, refining and selling. The company, in its own brief, admitted the trust, the dissolution and the acquisitions and denied the conspiracy; the decree found the combination of 1899 in restraint of trade. Teach the class to read the admission and the denial as the two witnesses they are.\n\nThen the Word. Oil is the store of a wise house, and a fool spends it (Proverbs 21:20). A reserve laid up against a famine is Joseph’s pattern before it is the Energy Department’s: the nation keeps 714 million barrels in salt caverns and has released them in an emergency on four occasions. And Moses names the heart that every one of these figures tempts: "My power and the might of mine hand hath gotten me this wealth" (Deuteronomy 8:17). Send the class to the table with one question for every figure: what did this do to one industry, and which record says so?',
+    },
+    lesson: 'The eight competencies were worked on rivalries; the ninth is worked on the commodity beneath all of them. Netflix’s discs travelled by truck; Boeing’s aircraft burn fuel; Disney’s parks and Microsoft’s data centres run on power; the oldest antitrust case the Supreme Court decided against a single industry was about oil. Yahweh names it as the store of a wise house: "There is treasure to be desired and oil in the dwelling of the wise; but a foolish man spendeth it up" (Proverbs 21:20). The competency is to follow the money to the oil at three scales, the shock, the nation and the company, and to let every figure stand on the record that carries it.\n\nThe shock. The Federal Reserve’s own history records that on October 19, 1973 the Arab exporters cut off the United States, and that the production cuts that followed took the price of a barrel from $2.90 to $11.65 by January 1974. The embargo was lifted in March 1974; the price stayed. Arthur Burns, the chairman of the Federal Reserve, explained in 1974 that the manipulation of oil prices came at the worst time, when wholesale prices of industrial commodities were already rising at more than ten per cent a year and the industrial plant was running at full capacity, and that the American oil industry had no spare capacity with which to answer a cut. OPEC, formed in 1960, had by then a growing share of the world market, and a dollar devalued in the early years of that decade made the price rise steeper. Five years later the Iranian revolution, which began in early 1978, took 4.8 million barrels a day out of the world’s supply by January 1979, seven per cent of production, and prices more than doubled between April 1979 and April 1980. The Federal Reserve’s essay on the Great Inflation puts the two shocks in one sentence: the first quadrupled the price of crude and the second tripled it, and the inflation the oil price caused was, in the central bank’s own words, largely beyond the control of monetary policy. That is one commodity reaching every price in the economy, on the record of the institution that had to answer for the result.\n\nThe nation. The Energy Information Administration gives the shape of it. Petroleum is about one third of the world’s energy. In the United States the transportation sector takes the largest share, 66.6 per cent of consumption in 2022, industry 27.5, homes 2.8, commerce 2.5 and power plants 0.6; gasoline alone averaged 8.78 million barrels a day, about 43 per cent of the whole, and distillate, the diesel that moves trucks and trains, 3.96 million, about 20 per cent. In 1977 OPEC supplied 70 per cent of the petroleum the country imported. In 2020 the United States became a net exporter of petroleum for the first time since at least 1949; in 2022 it exported about 9.52 million barrels a day and imported about 8.33, produced about 20.08 million and consumed about 20.01, while still importing 6.28 million barrels of crude a day and exporting 3.58. Imports had peaked in 2005. The country has been the world’s top crude producer since 2018; in 2022 five states supplied 72 per cent of its crude, Texas 42.5 per cent, New Mexico 13.3, North Dakota 8.9, Colorado and Alaska 3.7 each. Worldwide, 98 countries produced about 80.75 million barrels of crude in 2022 and five of them about 52 per cent: the United States 14.7, Saudi Arabia 13.2, Russia 12.7, Canada 5.6, Iraq 5.5. At the start of 2021 OPEC’s members held about 72 per cent of proved reserves and produced 37 per cent of the crude.\n\nThe company. The Supreme Court’s opinion in the Standard Oil case, reargued in January 1911, recites the government’s bill: a conspiracy alleged to have been formed about 1870; a trust agreement made in January 1882 by which the stock of forty corporations was turned over to nine trustees; its dissolution in 1892; the acquisition by the Standard Oil Company of New Jersey of the stocks of the corporations in 1899; and by then a combination controlling ninety per cent of the business of producing, shipping, refining and selling petroleum, able to fix the price of crude and refined oil. The company’s own brief admitted the trust, the dissolution and the acquisitions and denied any conspiracy, and the decree adjudged the combination of 1899 a combination in restraint of trade. The admission and the denial are two witnesses on one record; the researcher reads both.\n\nThe reserve. The Energy Department keeps the Strategic Petroleum Reserve, 714 million barrels of authorized capacity in salt caverns on the Gulf coast, established to reduce the impact of a cut in supply; the President has authorized emergency releases on four occasions, and a heating oil exchange was made in 2000. It is Joseph’s pattern: "let them gather all the food of those good years that come, and lay up corn under the hand of Pharaoh" (Genesis 41:35), "for store to the land against the seven years of famine" (Genesis 41:36). And the Word names the heart every one of these figures tempts, in the company that held ninety per cent and the nation that pumps the most: "And thou say in thine heart, My power and the might of mine hand hath gotten me this wealth. But thou shalt remember the LORD thy God: for it is he that giveth thee power to get wealth" (Deuteronomy 8:17-18). Follow the money to the oil, and then follow the oil to the One who put it in the ground.',
+    voices: [
+      { speaker: 'Federal Reserve History, the Federal Reserve’s own account of the first oil shock', year: 2026, where: 'The essay “Oil Shock of 1973-74,” on the embargo and the price; the page carries no date in the fetched window, so it is dated by the day the runner read it, September 24, 2026.', source: SRC.fedOil1973, words: 'These cuts nearly quadrupled the price of oil from $2.90 a barrel before the embargo to $11.65 a barrel in January 1974.', why: 'The figure the whole lesson turns on, in the central bank’s own history.' },
+      { speaker: 'Arthur Burns, chairman of the Federal Reserve, in 1974, as Federal Reserve History quotes him', year: 1974, where: 'The same essay, quoting the chairman’s explanation given in 1974 of why the shock landed as hard as it did.', source: SRC.fedOil1973, words: 'manipulation of oil prices and supplies by the oil-exporting countries came at a most inopportune time for the United States. In the middle of 1973, wholesale prices of industrial commodities were already rising at an annual rate of more than 10 per cent; our industrial plant was operating at virtually full capacity', why: 'The witness: the man who had to answer for the price of everything, in his own words, at the time.' },
+      { speaker: 'Federal Reserve History, on the second oil shock', year: 2026, where: 'The essay “Oil Shock of 1978-79,” on Iranian output and the price; dated by the day the runner read it.', source: SRC.fedOil1979, words: 'Iranian oil output declined by 4.8 million barrels per day (7 percent of world production at the time) by January 1979.', why: 'The second shock measured in barrels and in the world’s share, from the same record-keeper.' },
+      { speaker: 'Federal Reserve History, on the Great Inflation', year: 2026, where: 'The essay “The Great Inflation,” tying the two shocks to the price level; dated by the day the runner read it.', source: SRC.fedGreatInflation, words: 'From the perspective of the central bank, the inflation being caused by the rising price of oil was largely beyond the control of monetary policy.', why: 'The central bank on the limit of its own power over a commodity price: the plainest sentence in the lesson.' },
+      { speaker: 'The U.S. Energy Information Administration, on the use of oil', year: 2023, where: 'The page “Use of oil,” whose figures cite the Monthly Energy Review of July 2023.', source: SRC.eiaUse, words: 'In 2022, consumption of finished motor gasoline averaged about 8.78 million b/d (369 million gallons per day), which was about 43% of total U.S. petroleum consumption.', why: 'The single largest use of the commodity, measured by the government’s own statisticians.' },
+      { speaker: 'The U.S. Energy Information Administration, on imports and exports', year: 2023, where: 'The page “Oil imports and exports,” on the year the country became a net exporter.', source: SRC.eiaTrade, words: 'In 2020, the United States became a net exporter of petroleum for the first time since at least 1949.', why: 'The turn in the nation’s position, dated, on the record.' },
+      { speaker: 'The U.S. Energy Information Administration, on where oil comes from', year: 2023, where: 'The page “Where our oil comes from,” whose figures cite the Petroleum Supply Annual of August 2023 and international statistics as of September 6, 2023.', source: SRC.eiaWhere, words: 'In 2022, 98 countries produced about 80.75 million barrels of crude oil, and five of those countries accounted for about 52% of the total.', why: 'The world’s supply in one sentence: many producers, half of it from five.' },
+      { speaker: 'The U.S. Energy Information Administration, on prices', year: 2021, where: 'The page “Oil prices and outlook,” in its paragraph on OPEC, whose figures are for 2021.', source: SRC.eiaPrices, words: 'Petroleum products made from crude oil and other hydrocarbon liquids account for about one-third of total world energy consumption.', why: 'The scale of the commodity against all energy, worldwide.' },
+      { speaker: 'The United States, in its bill against Standard Oil, as the Supreme Court recited it', year: 1911, where: 'The opinion in Standard Oil Company of New Jersey v. United States, 221 U.S. 1, reciting the government’s charge for the third period.', source: SRC.standardOil, words: 'controlling 90 per cent of the business of producing, shipping, refining, and selling petroleum and its products, and thus was able to fix the price of crude and refined petroleum', why: 'The government’s own figure for the company’s hold on the commodity, on the Court’s record.' },
+      { speaker: 'Standard Oil’s appellants, in their own brief, as the Court quoted it', year: 1911, where: 'The same opinion, quoting the appellants’ summary of their answers to the bill.', source: SRC.standardOil, words: 'admitting many of the alleged acquisitions of property, the formation of the so-called trust of 1882, its dissolution in 1892, and the acquisition by the Standard Oil Company of New Jersey of the stocks of the various corporations in 1899, they deny all the allegations respecting combinations or conspiracies to restrain or monopolize the oil trade', why: 'The company under its own signature: what it admitted and what it denied, the second witness beside the bill.' },
+      { speaker: 'The U.S. Department of Energy, on the Strategic Petroleum Reserve', year: 2026, where: 'The page of the Office of Petroleum Reserves, “Strategic Petroleum Reserve,” dated by the day the runner read it.', source: SRC.spr, words: 'the President has authorized emergency releases from the SPR on four occasions', why: 'The reserve as Joseph’s pattern, in the words of the office that keeps it.' },
+    ],
+    timeline: [
+      { year: 1870, event: 'The conspiracy the government later alleged is said to have been formed in or about this year by John D. Rockefeller, William Rockefeller and Henry M. Flagler.', record: 'Standard Oil Co. of New Jersey v. United States, 221 U.S. 1, reciting the bill.' },
+      { year: 1882, event: 'The trust agreement is made in January; the stock of forty corporations, including the Standard Oil Company of Ohio, goes to nine trustees.', record: 'Standard Oil Co. of New Jersey v. United States, 221 U.S. 1.' },
+      { year: 1892, event: 'The trust is dissolved, as the company’s own brief admitted.', record: 'Standard Oil Co. of New Jersey v. United States, 221 U.S. 1, quoting the appellants’ brief.' },
+      { year: 1899, event: 'The Standard Oil Company of New Jersey acquires the stocks of the corporations; the decree later adjudges this combination in restraint of trade.', record: 'Standard Oil Co. of New Jersey v. United States, 221 U.S. 1.' },
+      { year: 1910, event: 'The case is argued March 14, 15 and 16 and ordered for reargument April 11.', record: 'Standard Oil Co. of New Jersey v. United States, 221 U.S. 1, the caption.' },
+      { year: 1911, event: 'The case is reargued January 12, 13 and 16; the Court’s opinion recites the bill, the answers and the decree.', record: 'Standard Oil Co. of New Jersey v. United States, 221 U.S. 1.' },
+      { year: 1949, event: 'The earliest year the Energy Information Administration’s series reaches: the country would not be a net exporter of petroleum again until 2020.', record: 'U.S. Energy Information Administration, “Oil imports and exports.”' },
+      { year: 1960, event: 'OPEC is formed; the Federal Reserve’s history dates its growing influence over the price from here.', record: 'Federal Reserve History, “Oil Shock of 1973-74.”' },
+      { year: 1973, event: 'On October 19 the Arab exporters institute an embargo on the United States; wholesale industrial prices were already rising at more than 10 per cent a year in the middle of the year.', record: 'Federal Reserve History, “Oil Shock of 1973-74,” quoting Arthur Burns.' },
+      { year: 1974, event: 'The barrel reaches $11.65 in January from $2.90 before the embargo; the embargo is lifted in March; Burns explains the shock.', record: 'Federal Reserve History, “Oil Shock of 1973-74.”' },
+      { year: 1977, event: 'OPEC nations supply 70 per cent of the petroleum the United States imports.', record: 'U.S. Energy Information Administration, “Oil imports and exports.”' },
+      { year: 1978, event: 'The Iranian revolution begins early in the year.', record: 'Federal Reserve History, “Oil Shock of 1978-79.”' },
+      { year: 1979, event: 'By January Iranian output is down 4.8 million barrels a day, 7 per cent of world production; prices begin to rise rapidly in mid-year.', record: 'Federal Reserve History, “Oil Shock of 1978-79.”' },
+      { year: 1980, event: 'By April the price has more than doubled from April of the year before.', record: 'Federal Reserve History, “Oil Shock of 1978-79.”' },
+      { year: 2000, event: 'The reserve’s heating oil exchange, the one exchange the Energy Department names apart from those made at refiners’ request.', record: 'U.S. Department of Energy, “Strategic Petroleum Reserve.”' },
+      { year: 2005, event: 'United States petroleum imports peak.', record: 'U.S. Energy Information Administration, “Oil imports and exports.”' },
+      { year: 2018, event: 'The United States becomes the world’s top crude oil producer.', record: 'U.S. Energy Information Administration, “Where our oil comes from.”' },
+      { year: 2020, event: 'The United States becomes a net exporter of petroleum for the first time since at least 1949.', record: 'U.S. Energy Information Administration, “Oil imports and exports.”' },
+      { year: 2021, event: 'At the start of the year OPEC’s members hold about 72 per cent of the world’s proved crude reserves; they produce 37 per cent of the crude this year.', record: 'U.S. Energy Information Administration, “Oil prices and outlook.”' },
+      { year: 2022, event: 'Exports 9.52 and imports 8.33 million barrels a day; production 20.08 and consumption 20.01; transportation 66.6 per cent of use; 98 countries produce about 80.75 million barrels of crude, five of them 52 per cent.', record: 'U.S. Energy Information Administration, “Oil imports and exports,” “Use of oil,” “Where our oil comes from.”' },
+      { year: 2023, event: 'The Energy Information Administration cites the data this lesson uses: the Monthly Energy Review of July, the Petroleum Supply Annual of August, and international statistics as of September 6.', record: 'The three pages’ own data-source lines.' },
+      { year: 2026, event: 'On September 24 the records this lesson stands on are fetched on a runner (runs 35948713733 and 35949217702); OPEC’s own page refuses the runner and is not used.', record: 'The history-voices-witness workflow, probe mode.' },
+    ],
+    workedCase: {
+      claim: { words: 'These cuts nearly quadrupled the price of oil from $2.90 a barrel before the embargo to $11.65 a barrel in January 1974.', by: 'Federal Reserve History, the Federal Reserve’s own account of the first oil shock', source: SRC.fedOil1973 },
+      event: { year: 1973, what: 'On October 19 the Arab exporters embargo the United States and begin production cuts; within three months the barrel costs four times what it did, and the price reaches every industry that moves, heats or makes anything.' },
+      closedDoors: {
+        hidden: 'The production cuts were decided among the exporting governments, and the earlier control of the American market was built in a trust agreement of January 1882 that put forty corporations under nine trustees without the public’s knowledge.',
+        light: 'The Federal Reserve’s own history now states the embargo, the date and the price, and the Supreme Court’s opinion recites the trust agreement, the company’s admission of it, and the decree, so a student can read both from the record.',
+        verse: '"For there is nothing covered, that shall not be revealed; neither hid, that shall not be known" (Luke 12:2).',
+        heart: '"And thou say in thine heart, My power and the might of mine hand hath gotten me this wealth" (Deuteronomy 8:17).',
+      },
+      risk: 'A price that quadruples in one commodity reaches every price in the economy at once, and a central bank that has already let prices run has, in its own words, little control over the result.',
+      opportunity: 'A nation that lays up a reserve, and a household that knows its numbers before the shock, can meet a cut without panic; the record shows both the reserve and the figures a family can keep.',
+      constraint: 'The lesson may state only what the fetched records carry: the Federal Reserve’s history, the Energy Information Administration’s figures, the Court’s recital and the Energy Department’s page; OPEC’s own account refused the runner and is not quoted.',
+      economics: [
+        { figure: '$2.90 to $11.65 a barrel', meaning: 'The price before the embargo and in January 1974: nearly four times, in three months.', record: 'Federal Reserve History, “Oil Shock of 1973-74”' },
+        { figure: 'more than 10 per cent a year', meaning: 'Wholesale industrial prices already rising in the middle of 1973, before the cut, in Burns’s words.', record: 'Federal Reserve History, “Oil Shock of 1973-74,” quoting Arthur Burns, 1974' },
+        { figure: '4.8 million barrels a day · 7 per cent', meaning: 'Iranian output lost by January 1979 and its share of world production.', record: 'Federal Reserve History, “Oil Shock of 1978-79”' },
+        { figure: 'more than doubled, from April 1979 to April 1980', meaning: 'The oil price over the 12 months the essay names.', record: 'Federal Reserve History, “Oil Shock of 1978-79”' },
+        { figure: 'quadrupled (4 times) · tripled (3 times) · about 5 months', meaning: 'The first crisis and the second, and how long the embargo lasted.', record: 'Federal Reserve History, “The Great Inflation”' },
+        { figure: 'about one third (1 in 3)', meaning: 'Petroleum’s share of all the energy the world uses.', record: 'U.S. Energy Information Administration, “Oil prices and outlook”' },
+        { figure: '72 per cent · 37 per cent', meaning: 'OPEC’s share of proved reserves at the start of 2021 and of production in 2021.', record: 'U.S. Energy Information Administration, “Oil prices and outlook”' },
+        { figure: '66.6 · 27.5 · 2.8 · 2.5 · 0.6 per cent', meaning: 'Transportation, industry, homes, commerce and power plants as shares of American petroleum use in 2022: every industry, measured.', record: 'U.S. Energy Information Administration, “Use of oil”' },
+        { figure: '8.78 million b/d · 43 per cent', meaning: 'Gasoline consumed in 2022 and its share of the whole.', record: 'U.S. Energy Information Administration, “Use of oil”' },
+        { figure: '3.96 million b/d · 20 per cent', meaning: 'Distillate, the diesel of trucks, trains and heavy equipment, in 2022.', record: 'U.S. Energy Information Administration, “Use of oil”' },
+        { figure: '70 per cent', meaning: 'OPEC’s share of the petroleum the United States imported in 1977.', record: 'U.S. Energy Information Administration, “Oil imports and exports”' },
+        { figure: '9.52 · 8.33 · 1.19 million b/d', meaning: 'Exports, imports and net exports of petroleum in 2022, the third year as a net exporter.', record: 'U.S. Energy Information Administration, “Oil imports and exports”' },
+        { figure: '20.08 · 20.01 million b/d', meaning: 'Produced and consumed in 2022: the nation makes about what it uses.', record: 'U.S. Energy Information Administration, “Oil imports and exports”' },
+        { figure: '6.28 · 3.58 million b/d', meaning: 'Crude imported and exported in 2022: still a net importer of crude while a net exporter of petroleum.', record: 'U.S. Energy Information Administration, “Oil imports and exports”' },
+        { figure: '42.5 · 13.3 · 8.9 · 3.7 · 3.7 per cent · 72 per cent', meaning: 'Texas, New Mexico, North Dakota, Colorado and Alaska in 2022, and the five together.', record: 'U.S. Energy Information Administration, “Where our oil comes from”' },
+        { figure: '14.7 · 13.2 · 12.7 · 5.6 · 5.5 per cent · 80.75 million barrels · 98 countries', meaning: 'The United States, Saudi Arabia, Russia, Canada and Iraq in 2022, and the world’s crude.', record: 'U.S. Energy Information Administration, “Where our oil comes from”' },
+        { figure: '90 per cent · forty corporations · nine trustees', meaning: 'The company’s hold on the business by 1899 as the bill charged it, and the trust of 1882.', record: 'Standard Oil Co. of New Jersey v. United States, 221 U.S. 1' },
+        { figure: '714 million barrels · four occasions', meaning: 'The reserve’s authorized capacity and the emergency releases the President has ordered.', record: 'U.S. Department of Energy, “Strategic Petroleum Reserve”' },
+      ],
+      steps: [
+        'Count the cost: take the barrel price of January 1974 and follow it into one industry named in the record, transportation at 66.6 per cent of use, and write what a fourfold price does to the cost of moving every good.',
+        'Go to the filing: read the Federal Reserve’s essay yourself and confirm the date, the price and the chairman’s words before repeating any of them.',
+        'Two or three witnesses: put the Fed’s history, the Energy Information Administration’s trade page and the Court’s recital side by side, and note that each carries its own figures and none contradicts another.',
+        'Keep a just weight: state the exporters’ cut and the company’s ninety per cent as the records state them, and state the nation’s own turn to net exporter in 2020 from the same office, without a side.',
+        'Write it in order: from 1870 to 2022, every sentence dated, every figure with its record, and the Word that stood before it.',
+      ],
+      settled: 'On the record, the embargo of October 1973, the barrel from $2.90 to $11.65, the Iranian loss of 4.8 million barrels a day, the trust of 1882 and its ninety per cent, the net-exporter year of 2020 and the reserve of 714 million barrels are all stated by the institutions that keep the figures.',
+      stillOpen: 'What the exporters said to one another in deciding the cuts, and OPEC’s own account of 1973, are records this lesson did not fetch: OPEC’s page refused the runner, and the exporters’ minutes are not on any page the runner reached.',
+    },
+    quiz: {
+      questions: [
+        { q: 'The Federal Reserve’s history says the barrel went from $2.90 to $11.65. What must the researcher do before repeating it?', options: ['Repeat it; the Federal Reserve is trustworthy', 'Open the essay, confirm the sentence, and cite it with its date', 'Round it to twelve dollars for the class'], answer: 1, explain: 'A figure is repeated from the record it stands on, confirmed and cited; the source’s reputation is not a substitute for opening it.' },
+        { q: 'The nation keeps 714 million barrels against the next cut. Which pattern in the Word does the lesson set beside it?', options: ['The widow’s mite', 'Joseph laying up corn against the seven years of famine', 'The talents buried in the ground'], answer: 1, explain: '"And that food shall be for store to the land against the seven years of famine" (Genesis 41:36): a reserve laid up in the good years is Joseph’s pattern before it is a policy.' },
+      ],
+    },
+    facilitator: {
+      talkingPoints: [
+        'The store and the fool: "There is treasure to be desired and oil in the dwelling of the wise; but a foolish man spendeth it up" (Proverbs 21:20); the reserve as Joseph’s pattern (Genesis 41:35-36); the heart that forgets who gave the wealth (Deuteronomy 8:17-18).',
+        'The shock, from the Federal Reserve: October 19, 1973; $2.90 to $11.65 by January 1974; Burns on prices already rising more than 10 per cent; Iran down 4.8 million barrels a day by January 1979; prices more than doubled by April 1980; quadrupled, then tripled.',
+        'The nation, from the Energy Information Administration: one third of world energy; transportation 66.6 per cent; gasoline 43 per cent; OPEC 70 per cent of imports in 1977; net exporter in 2020; top producer since 2018; five states 72 per cent; five countries 52 per cent of the world’s crude in 2022.',
+        'The company, from the Court: 1870, the trust of 1882, dissolved 1892, the New Jersey holding of 1899, ninety per cent of the business; the admission and the denial in the company’s own brief; the decree.',
+      ],
+      howToRun: 'Prayer + the anchor (5): pray; read Proverbs 21:20. | The competency in a sentence (10): follow the money to the oil, at three scales, on the record. | Teach it (15): read the Federal Reserve’s embargo sentence and Burns’s words aloud; then the Energy Information Administration’s shares. | Work it (20): each person takes one figure from the table to its record and writes what it did to one industry. | Discussion (10): which industry in your own week runs on the barrel? | Send-off (5): know the state of your flocks before the shock; lay up in the good years.',
+      discussionPrompts: [
+        'Which price in your family’s week has the most oil in it, and how would you find the record that says so?',
+        'The central bank said the inflation the oil price caused was largely beyond its control. What does that tell you about where a family’s safety in a shock actually comes from?',
+        'The company admitted the trust and denied the conspiracy. How do you weigh an admission and a denial from the same witness?',
       ],
     },
   },
@@ -700,6 +1104,8 @@ export function exportBusinessResearchCurriculumMarkdown(startISO = null) {
 /** Hosts a business voice may cite: the record-keepers the runner probed. */
 export const BUSINESS_SOURCE_HOSTS = [
   'wondery.com', 'www.justice.gov', 'www.sec.gov', 'www.wto.org', 'thewaltdisneycompany.com',
+  'web.archive.org', // the Wayback Machine's dated copy of a page the company has since removed (Hastings, 2011)
+  'www.eia.gov', 'www.energy.gov', // the oil records (DR-0602): the Energy Information Administration and the Energy Department; the Federal Reserve's history and the Court are already on the History lists the shared gate accepts
 ];
 
 // The History gates, re-used whole; the host list is the one thing that
@@ -713,6 +1119,8 @@ export function businessResearchVoiceFaults(m) {
   });
 }
 export const businessResearchTimelineFaults = historyTimelineFaults;
+/** The worked case (DR-0601): an actual claim processed with the data — the same gate the History course carries. */
+export const businessResearchWorkedCaseFaults = historyWorkedCaseFaults;
 
 export function businessResearchRefs(modules = BUSINESS_RESEARCH_MODULES) {
   const out = [];

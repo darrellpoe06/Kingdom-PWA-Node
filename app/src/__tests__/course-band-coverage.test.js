@@ -106,8 +106,8 @@ describe('the debt, recorded as it actually is', () => {
     // NOT move with any of them. That is the shape a new course is supposed to
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
-    expect(baseline.total).toBe(374); // 374 on 2026-09-23: the Business department's second course (business-research-wars, DR-0594), both bands on every lesson
-    expect(baseline.allFour).toBe(0);
+    expect(baseline.total).toBe(375); // 375 on 2026-09-24: the ninth lesson of business-research-wars, the oil (DR-0602), both bands; 374 on 2026-09-23: the Business department's second course (business-research-wars, DR-0594), both bands on every lesson
+    expect(baseline.allFour).toBe(8); // 8 on 2026-09-24: the rebuilt historical-research-1619 (DR-0597) carries child, youth, teen and senior on every lesson — the first catalog course with all four bands; a course may only add to this number
     expect(baseline.adultOnly).toBe(37);
   });
 

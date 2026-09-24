@@ -75,6 +75,7 @@ import BiblicalTimeline from './BiblicalTimeline.jsx';
 // still win; the rest derive from the Scripture each lesson cites), which
 // replaced the direct epochsForLesson/getEpoch lookups this file used to do.
 import { timelineContextFor, timelineContextText } from '../lib/lesson-timeline-context.js';
+import { workedCaseText } from '../lib/worked-case.js';
 import Presenter from './Presenter.jsx';
 import DiscernmentStages from './DiscernmentStages.jsx';
 import { coursePresentable, lessonPresentable } from '../lib/presentable.js';
@@ -2426,6 +2427,64 @@ function CourseView({
                   <div className="ts-chrome-region flex justify-end mt-1">{sec('Timeline', m.timeline.map((t) => `${t.year} — ${t.event} (Record: ${t.record})`).join('\n'))}</div>
                 </div>
               )}
+              {/* WORK THE CASE (DR-0601). Darrell 2026-09-24: "not bringing data
+                  driven claims into the classroom about how to process a claim...
+                  with an actual claim... just hypothetically explaining... show
+                  historical experiences, events and situations that had risk,
+                  opportunities and constraints... economics of each for students
+                  to See How" — and "Humans behave behind closed doors and now in
+                  the light of day... the biblical scriptures also explain the same
+                  thing about us human beings." One actual claim, the dated event,
+                  what was hidden and how the record lit it, the risk, the
+                  opportunity, the constraint, the figures with their records, the
+                  competency applied step by step, and what is settled and open. */}
+              {m.workedCase && (
+                <div className="mt-2 border-l-4 border-[#1A1815] bg-[#1A1815]/[0.04] pl-3 py-2" data-testid="lesson-worked-case">
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#1A1815] font-semibold mb-1">
+                    Work the case — an actual claim, with the data
+                  </div>
+                  <blockquote className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>“{m.workedCase.claim?.words}”</blockquote>
+                  <p className="text-[0.6875rem] text-[#5A5751] mt-0.5">
+                    — {m.workedCase.claim?.by}.{' '}
+                    {m.workedCase.claim?.source?.url && <a href={m.workedCase.claim.source.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-[#B85838]">{m.workedCase.claim.source.title}</a>}
+                  </p>
+                  {m.workedCase.event && <p className="text-sm text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}><strong>The event, {m.workedCase.event.year}.</strong> {m.workedCase.event.what}</p>}
+                  {m.workedCase.closedDoors && (
+                    <div className="mt-1 text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                      <p><strong>Behind closed doors.</strong> {m.workedCase.closedDoors.hidden}</p>
+                      <p><strong>In the light of day.</strong> {m.workedCase.closedDoors.light}</p>
+                      <WordInline text={`The Word on it — ${m.workedCase.closedDoors.verse || ''}`} refsBelow className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }} />
+                      {m.workedCase.closedDoors.heart && <WordInline text={`Why we do it — ${m.workedCase.closedDoors.heart}`} refsBelow className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }} />}
+                    </div>
+                  )}
+                  <dl className="grid grid-cols-1 sm:grid-cols-3 gap-x-3 gap-y-1 mt-1 text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <div><dt className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold">Risk</dt><dd>{m.workedCase.risk}</dd></div>
+                    <div><dt className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">Opportunity</dt><dd>{m.workedCase.opportunity}</dd></div>
+                    <div><dt className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Constraint</dt><dd>{m.workedCase.constraint}</dd></div>
+                  </dl>
+                  {Array.isArray(m.workedCase.economics) && m.workedCase.economics.length > 0 && (
+                    <table className="mt-1 w-full text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                      <caption className="text-left text-[0.625rem] uppercase tracking-wider text-[#1A1815] font-semibold">The economics — figures from the record</caption>
+                      <tbody>
+                        {m.workedCase.economics.map((e, i) => (
+                          <tr key={i} className="align-top border-t border-[#E8E4DC]">
+                            <td className="pr-2 py-0.5 whitespace-nowrap font-semibold">{e.figure}</td>
+                            <td className="py-0.5">{e.meaning} <span className="text-[0.6875rem] text-[#5A5751]">Record: {e.record}</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                  {Array.isArray(m.workedCase.steps) && (
+                    <ol className="mt-1 list-decimal pl-5 text-sm text-[#1A1815] space-y-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                      {m.workedCase.steps.map((st, i) => <li key={i}>{st}</li>)}
+                    </ol>
+                  )}
+                  <p className="text-sm text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}><strong>Settled.</strong> {m.workedCase.settled}</p>
+                  <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}><strong>Still open.</strong> {m.workedCase.stillOpen}</p>
+                  <div className="ts-chrome-region flex justify-end mt-1">{sec('Work the case', workedCaseText(m.workedCase))}</div>
+                </div>
+              )}
                 </>);
               })()}
               {/* THE LORD'S MATRIX (Darrell 2026-08-10) — the other lessons
@@ -2900,6 +2959,10 @@ function CourseView({
               <><p><strong>Timeline — the record, dated</strong></p>
               <ul>{m.timeline.map((t, i) => <li key={i}>{t.year} — {t.event} Record: {t.record}</li>)}</ul></>
             )}
+            {m.workedCase && (
+              <><p><strong>Work the case — an actual claim, with the data</strong></p>
+              <p style={{ whiteSpace: 'pre-line' }}>{workedCaseText(m.workedCase)}</p></>
+            )}
             {/* The printed guide carries the same integrations the screen shows —
                 a facilitator working from paper sees the cross-lesson web AND
                 where the lesson sits in time, with the years. */}
@@ -3300,7 +3363,17 @@ export default function ChurchLearn({
             wall is what Darrell called garbage on 2026-09-19. Counting the
             cross-listed courses here only decides whether the control is worth
             showing; it never changes a course count anywhere (DR-0516). */}
-        {(visibleCourses.length + gatheredCourses.length) > 1 && !lessonFocus && (
+        {/* AND IT IS AT THE TOP OF EVERY DEPARTMENT TAB, EVEN A ONE-COURSE ONE
+            (Darrell 2026-09-24, on History's shelf reading "1 course · 8 lessons
+            · 17 more lessons taught across the curriculum" with no dropdown:
+            "Already said this but the drop down needs to be at the top of the
+            tab for choices!"). The previous rule showed the control only when
+            there were two places to go; a department with one course of its own
+            and none serving it had NO dropdown, and its seventeen gathered
+            lessons were the first thing on the tab. The dropdown is the
+            department's choice control; it renders whenever the department has
+            a course at all (DR-0598). */}
+        {visibleCourses.length >= 1 && !lessonFocus && (
           <div className="flex flex-wrap items-end gap-3 mb-5 border-b border-[#E8E4DC] pb-3">
             <div className="grow min-w-[14rem]">
               {/* A SELECTOR, not a section title (Darrell 2026-09-06: "even more
@@ -3346,7 +3419,7 @@ export default function ChurchLearn({
                 className={`w-full min-h-[48px] px-3 py-2 bg-white border-2 text-sm font-semibold focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${courseChosen ? 'border-[#1A1815]' : 'border-[#B85838]'}`}
                 style={{ fontFamily: '"Fraunces", serif' }}
               >
-                <option value="">Choose another course · {visibleCourses.length}{dept && gatheredCourses.length ? ` + ${gatheredCourses.length} that serve it` : ''} to choose from</option>
+                <option value="">{(visibleCourses.length + (dept ? gatheredCourses.length : 0)) === 1 ? `This department's course · 1 · pick it to open` : `Choose another course · ${visibleCourses.length}${dept && gatheredCourses.length ? ` + ${gatheredCourses.length} that serve it` : ''} to choose from`}</option>
                 {organizeCourses(visibleCourses, courseSort).map((g) => (
                   <optgroup key={g.label} label={g.label}>
                     {g.courses.map((c) => (
@@ -3408,39 +3481,6 @@ export default function ChurchLearn({
 
             The courses that serve a department are already options INSIDE the
             picker (DR-0516), so the picker alone is enough to choose one. */}
-            {dept && gathered.length > 0 && (
-              <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="learn-crosslisted">
-                <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">
-                  Also taught across the curriculum · {gathered.length}
-                </p>
-                <p className="text-[0.625rem] text-[#5A5751] leading-snug mb-2">
-                  These lessons live in their own courses and are taught there. Open one here and it
-                  opens where it lives — so it counts once, whichever shelf you found it on.
-                </p>
-                <ul className="space-y-2">
-                  {gathered.map((r) => (
-                    <li key={`${r.courseKey}-${r.lessonId}`}>
-                      <button
-                        type="button"
-                        className="text-left w-full focus:outline focus:outline-2 focus:outline-[#B85838]"
-                        onClick={() => {
-                          setDeptId('all');
-                          setActiveKey(r.courseKey);
-                          setResumeOpenGuide(false);
-                          setResumeLessonId(r.lessonId);
-                        }}
-                      >
-                        <span className="block text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{r.title}</span>
-                        <span className="block text-[0.625rem] text-[#5A5751]">
-                          {r.courseTitle} · {r.unitLabel}{r.ref ? ` · ${r.ref}` : ''}
-                        </span>
-                        <span className="block text-[0.625rem] text-[#5A5751]">{r.why}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
             {dept && dept.id === 'the-eternal-algorithms' && (
               <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="eternal-study-in-learn">
                 <React.Suspense fallback={<p className="text-xs text-[#5A5751]">Opening the study…</p>}>
@@ -3608,6 +3648,52 @@ export default function ChurchLearn({
             </nav>
           );
         })()}
+
+        {/* THE COURSE'S OWN LESSONS COME FIRST; THE GATHERED ONES FOLLOW (Darrell
+            2026-09-24, with a screenshot of History where the "also taught
+            across the curriculum" rows sat ABOVE the course's pick-a-lesson
+            list: "This should be at the top!"). This block used to render
+            inside the picker's row, so on any department that gathers lessons
+            it landed between the dropdown and the course's own lessons. It now
+            renders here, after the by-title index, and the order is pinned in
+            learn-crosslisted-in-the-picker.test.jsx (DR-0598). */}
+        {courses.length > 1 && !lessonFocus && (
+          <>
+        {dept && gathered.length > 0 && (
+          <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="learn-crosslisted">
+            <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">
+              Also taught across the curriculum · {gathered.length}
+            </p>
+            <p className="text-[0.625rem] text-[#5A5751] leading-snug mb-2">
+              These lessons live in their own courses and are taught there. Open one here and it
+              opens where it lives — so it counts once, whichever shelf you found it on.
+            </p>
+            <ul className="space-y-2">
+              {gathered.map((r) => (
+                <li key={`${r.courseKey}-${r.lessonId}`}>
+                  <button
+                    type="button"
+                    className="text-left w-full focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    onClick={() => {
+                      setDeptId('all');
+                      setActiveKey(r.courseKey);
+                      setResumeOpenGuide(false);
+                      setResumeLessonId(r.lessonId);
+                    }}
+                  >
+                    <span className="block text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{r.title}</span>
+                    <span className="block text-[0.625rem] text-[#5A5751]">
+                      {r.courseTitle} · {r.unitLabel}{r.ref ? ` · ${r.ref}` : ''}
+                    </span>
+                    <span className="block text-[0.625rem] text-[#5A5751]">{r.why}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+          </>
+        )}
 
         {/* LESSON FINDER (Darrell 2026-08-18: "We need a better way to look up
             and review the available lessons... not obvious how to find a lesson

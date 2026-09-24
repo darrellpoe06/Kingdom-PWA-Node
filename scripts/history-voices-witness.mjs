@@ -124,6 +124,18 @@ async function witness(modules) {
       }
       rows.push({ lesson: m.id, speaker: v.speaker, year: v.year, url: v.source.url, status: page.status, tier, error: page.error || '', retried: page.retried || 0, refused: !!page.refused, hint });
     }
+    // DATED ENTRIES WITH A SOURCE (DR-0597): a timeline entry that names a
+    // record by URL is held to the same witness as a voice — the page must
+    // answer and hold the entry's phrase. An entry without a source is still
+    // allowed by the gate for the older courses; a new course cites by URL.
+    for (const t of m.timeline || []) {
+      if (!t || !t.source || !t.source.url) continue;
+      const page = await fetchText(t.source.url);
+      const tier = page.status === 200 ? tierOf(page.text, t.source.phrase) : '';
+      let hint = '';
+      if (!tier && page.status === 200) hint = `title: «${page.title || ''}» · the phrase is not on the page`;
+      rows.push({ lesson: m.id, speaker: `record for ${t.year}: ${t.source.title}`, year: t.year, url: t.source.url, status: page.status, tier, error: page.error || '', retried: page.retried || 0, refused: !!page.refused, hint });
+    }
   }
   return rows;
 }

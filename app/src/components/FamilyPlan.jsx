@@ -13,6 +13,7 @@
 // that (DR-0076).
 import React, { useEffect, useState } from 'react';
 import supabase from '../lib/supabase.js';
+import { useInstanceRole } from '../lib/instance-role.js';
 import LegacyProvisions from './LegacyProvisions.jsx';
 import { aboutFor } from '../lib/surface-help.js';
 import SectionTabs from './SectionTabs.jsx';
@@ -122,31 +123,62 @@ function PlanTable({ columns, rows, caption, totals }) {
 // page and the bill calendar — the part you actually need on a Tuesday — sat
 // past eight screens of scrolling. Now each worksheet is its own tab.
 // -----------------------------------------------------------------------------
+// BOUNDED, SCOPED, RETRYABLE (2026-09-24, the Books → Plan end-to-end review).
+// Three things the first version assumed: that the network answers (no
+// timeout — a hung request left "Loading the family plan…" on screen for
+// ever), that a member belongs to one instance (no instance_id filter — RLS
+// alone, so a person in two households got the newest row across both), and
+// that a failed load is final (no retry). Each is now explicit: an
+// AbortController bounds the fetch at PLAN_FETCH_TIMEOUT_MS, the query is
+// pinned to the resolved instance when one is known (RLS remains the wall,
+// DR-0060), and the error state offers a retry.
+export const PLAN_FETCH_TIMEOUT_MS = 8000;
+
+export async function fetchNewestPlan(client, { instanceId = null, signal = null } = {}) {
+  let q = client.from('family_plans').select('title, plan, updated_at');
+  if (instanceId && typeof q.eq === 'function') q = q.eq('instance_id', instanceId);
+  q = q.order('updated_at', { ascending: false }).limit(1);
+  if (signal && typeof q.abortSignal === 'function') q = q.abortSignal(signal);
+  return q;
+}
+
+export function planFetchError(e) {
+  if (e && (e.name === 'AbortError' || /aborted|abort/i.test(String(e.message || '')))) {
+    return `no answer within ${Math.round(PLAN_FETCH_TIMEOUT_MS / 1000)} seconds`;
+  }
+  return (e && e.message) || 'load failed';
+}
+
 function usePlan() {
+  const { instanceId } = useInstanceRole();
+  const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState({ loading: true, plan: null, title: '', updatedAt: null, error: null });
 
   useEffect(() => {
     let alive = true;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), PLAN_FETCH_TIMEOUT_MS);
+    setState((cur) => ({ ...cur, loading: true, error: null }));
     (async () => {
       try {
-        // RLS scopes this to the signed-in member's instance; newest plan wins.
-        const { data, error } = await supabase
-          .from('family_plans')
-          .select('title, plan, updated_at')
-          .order('updated_at', { ascending: false })
-          .limit(1);
+        // RLS scopes this to the signed-in member's instances; the filter pins
+        // the one instance the shell resolved; newest plan wins.
+        const { data, error } = await fetchNewestPlan(supabase, { instanceId, signal: ctrl.signal });
         if (!alive) return;
         if (error) throw error;
         const row = data && data[0];
         setState({ loading: false, plan: row ? row.plan : null, title: row ? row.title : '', updatedAt: row ? row.updated_at : null, error: null });
       } catch (e) {
-        if (alive) setState({ loading: false, plan: null, title: '', updatedAt: null, error: e.message || 'load failed' });
+        if (alive) setState({ loading: false, plan: null, title: '', updatedAt: null, error: planFetchError(e) });
+      } finally {
+        clearTimeout(timer);
       }
     })();
-    return () => { alive = false; };
-  }, []);
+    return () => { alive = false; clearTimeout(timer); ctrl.abort(); };
+  }, [instanceId, attempt]);
 
-  return state;
+  const retry = () => setAttempt((n) => n + 1);
+  return { ...state, retry };
 }
 
 // Loading, failed, or nothing published yet — the three states that are ABOUT
@@ -160,6 +192,15 @@ function planNotice(state) {
     return (
       <Section label="Family plan">
         <p className="text-xs text-[#B85838]" style={serif}>The plan could not be loaded: {state.error}</p>
+        {typeof state.retry === 'function' && (
+          <button
+            type="button"
+            onClick={state.retry}
+            className="mt-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4 focus:outline-none focus:ring-2 focus:ring-[#B85838]"
+          >
+            Try again
+          </button>
+        )}
       </Section>
     );
   }

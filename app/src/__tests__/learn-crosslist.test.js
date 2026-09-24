@@ -281,10 +281,14 @@ describe('a pointer, never a copy', () => {
     // course, business-research-wars (8 lessons, DR-0594) — Darrell: "use the
     // podcast business wars as context for our business courses... Word first
     // research 1 institution level" — so both numbers move.
+    // And to 49 / 713 on 2026-09-24 for the ninth lesson of business-research-wars
+    // (br9-follow-the-oil, DR-0602) — Darrell: "Tie all the money tied to oil and
+    // how that impacts the economy worldwide" — a lesson into an existing course,
+    // so the course count holds at 49 and only the lesson total moves.
     expect(courses).toHaveLength(49);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(712);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(713);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(712);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(713);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {

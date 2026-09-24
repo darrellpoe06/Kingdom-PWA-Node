@@ -128,6 +128,7 @@ import { submitInterest as submitAppInterest } from './lib/interest-sync.js';
 import { makeSyncedListCrud, wireLiveRails } from './lib/live-rails.js';
 import { SEED_CONCERNS } from './lib/concerns.js';
 import { buildDemoPersonas, DEMO_PERSONA_META } from './lib/demo-data.js';
+import { withReleaseMeta } from './lib/release-meta.js';
 import { motionBehavior } from './lib/gentle-motion.js';
 import VerifyBalances from './components/VerifyBalances.jsx';
 // Overview dashboard — statically imported (NOT registry/lazy): overview is the
@@ -1686,6 +1687,7 @@ export default function PoeFinancialSystem() {
           if (parsed.data) setData(d => ({
             ...d,
             ...parsed.data,
+            meta: withReleaseMeta(parsed.data.meta || d.meta, SEED_DATA.meta), // the footer names the RELEASE, never a saved demo label (DR-0599; why: lib/release-meta.js)
             // Multi-user Layer A — backfill `visibleTo` on saved entities so
             // existing devices loading old data continue working. Defaults
             // match the seed: owner sees all, family-rollup includes business

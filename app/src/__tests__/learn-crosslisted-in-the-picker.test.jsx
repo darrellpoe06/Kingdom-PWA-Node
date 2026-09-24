@@ -118,3 +118,44 @@ describe('a pointer never inflates a count (DR-0516 / DR-0448)', () => {
     expect(prompt.textContent).toMatch(/Choose another course · 2 \+ \d+ that serve it/);
   });
 });
+
+// THE DROPDOWN IS AT THE TOP OF EVERY DEPARTMENT TAB, EVEN A ONE-COURSE ONE
+// (Darrell 2026-09-24: "Already said this but the drop down needs to be at the
+// top of the tab for choices!" — on History's shelf, which read "1 course · 8
+// lessons · 17 more lessons taught across the curriculum" with no dropdown at
+// all; the gathered lessons were the first thing on the tab). DR-0598.
+describe('a one-course department still gets its dropdown, above the gathered lessons', () => {
+  it('with History mounted as one course and nothing serving it, the picker renders there, first', () => {
+    // Two courses in two departments, so the department tabs render; History
+    // then has exactly ONE course and no mounted course serving it — the shape
+    // Darrell photographed (before the rule the previous condition hid the
+    // control on exactly this shape).
+    const two = extraCourses.filter((c) => c.meta.key === 'history-truth' || c.meta.key === 'rent-to-own-business');
+    expect(two.map((c) => c.meta.key).sort()).toEqual(['history-truth', 'rent-to-own-business']);
+    mount({ extraCourses: two });
+    clickTab('History');
+    const sel = picker();
+    expect(sel, 'no dropdown on a one-course History tab').toBeTruthy();
+    expect(sel.querySelector('option[value=""]').textContent).toMatch(/This department's course · 1/);
+    const crosslisted = container.querySelector('[data-testid="learn-crosslisted"]');
+    if (crosslisted) expect(sel.compareDocumentPosition(crosslisted) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
+
+// THE COURSE'S OWN LESSONS COME FIRST ON THE TAB; THE GATHERED ONES FOLLOW
+// (Darrell 2026-09-24, History: "This should be at the top!"). DR-0598.
+describe('on a department that gathers lessons from other courses, the course’s own by-title list precedes them', () => {
+  it('History: the pick-a-lesson index renders before the "also taught across the curriculum" block, and the dropdown before both', () => {
+    mount();
+    clickTab('History');
+    const sel = picker();
+    const index = container.querySelector('[data-testid="course-lessons-first"]');
+    const crosslisted = container.querySelector('[data-testid="learn-crosslisted"]');
+    expect(sel, 'no dropdown').toBeTruthy();
+    expect(index, 'no by-title index').toBeTruthy();
+    expect(crosslisted, 'History gathers lessons; the block must render').toBeTruthy();
+    const before = (a, b) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(before(sel, index), 'dropdown must precede the lesson list').toBe(true);
+    expect(before(index, crosslisted), 'the course’s own lessons must precede the gathered ones').toBe(true);
+  });
+});

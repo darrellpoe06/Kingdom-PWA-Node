@@ -12,6 +12,7 @@ import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
 import ChurchLearn from '../components/ChurchLearn.jsx';
 import { buildCatalogCourseDescriptors } from '../lib/learn-catalog.js';
+import { BUSINESS_RESEARCH_MODULES } from '../lib/business-research-course.js';
 import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
 import { firstAnchorBook, divisionOf, sectionLessons, wantsSections, sectionHolding, SECTION_MIN_LESSONS, LESSON_DIVISIONS } from '../lib/lesson-sections.js';
 
@@ -120,12 +121,15 @@ describe('on the real Learn tree', () => {
     expect((nav.textContent || '')).toMatch(new RegExp(`by title · ${LIVING_LESSONS_MODULES.length}`));
   });
 
-  it('PROVEN-TO-CATCH: an eight-lesson course keeps the flat list — no sections', () => {
+  it('PROVEN-TO-CATCH: a short course keeps the flat list — no sections', () => {
     mount();
     pick(/Business Research, Level 1/);
     const nav = container.querySelector('[data-testid="course-lessons-first"]');
     expect(nav).toBeTruthy();
     expect(nav.querySelector('[data-testid="course-lesson-sections"]')).toBe(null);
-    expect(nav.querySelectorAll('ol > li').length).toBe(8);
+    // Eight lessons when this was written; nine since the oil lesson (DR-0602) —
+    // the count is read from the course so the pin proves the flat list, not the number.
+    expect(nav.querySelectorAll('ol > li').length).toBe(BUSINESS_RESEARCH_MODULES.length);
+    expect(BUSINESS_RESEARCH_MODULES.length).toBe(9);
   });
 });

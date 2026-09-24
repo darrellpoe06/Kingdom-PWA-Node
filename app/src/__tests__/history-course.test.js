@@ -621,5 +621,12 @@ describe('the surface shows the voices and the record (DR-0580 source pins)', ()
     expect(src).toContain('<a href={v.source?.url} target="_blank" rel="noopener noreferrer"');
     expect((src.match(/Voices of the time/g) || []).length).toBeGreaterThanOrEqual(3);
     expect((src.match(/Timeline — the record, dated/g) || []).length).toBe(2);
+    // WORK THE CASE (DR-0601): an actual claim with the data renders on screen,
+    // reads aloud / shares as one section, and prints with the guide.
+    expect(src).toContain('data-testid="lesson-worked-case"');
+    expect(src).toContain("sec('Work the case'");
+    expect((src.match(/Work the case — an actual claim, with the data/g) || []).length).toBe(2);
+    expect(src).toContain('The economics — figures from the record');
+    expect(src).toContain('Behind closed doors.');
   });
 });

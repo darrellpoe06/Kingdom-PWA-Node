@@ -756,6 +756,24 @@ export function LegacyProvisions() {
     return () => { if (typeof unsub === 'function') unsub(); };
   }, []);
 
+  // BACK-FILL (2026-09-24, the Books → Plan end-to-end review). Before this,
+  // a record made while signed out — or one whose INSERT failed after its
+  // three retries — stayed on that one device for ever: subscribe only pulls
+  // the cloud down, and nothing ever pushed the device's pending rows up.
+  // initialSync uploads every local row that has no remoteUuid (a row that
+  // WAS synced and is now absent was deleted remotely and is left alone), then
+  // hands back the merged list. Signed out it returns { skipped } and the
+  // surface keeps working on its device-local records, exactly as before.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const res = await familyTrustSync.initialSync(loadTrustEntries());
+      if (cancelled || !res || !Array.isArray(res.merged)) return;
+      setEntries((cur) => mergeRemoteTrustRecords(cur, res.merged));
+    })().catch((e) => { console.warn('[legacy-provisions] initial sync failed:', e); });
+    return () => { cancelled = true; };
+  }, []);
+
   // The roster is the locally-kept list UNION every person named by an entry, so
   // a record synced from another device brings its person along instead of
   // silently disappearing from the standing table.

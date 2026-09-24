@@ -709,6 +709,25 @@ export const HISTORY_SOURCE_HOSTS = [
 ];
 
 const YEAR_RE = /\b(1[5-9]\d\d|20[0-2]\d)\b/g;
+// RECORD HOSTS FOR DATED ENTRIES (2026-09-24, DR-0597). Darrell: "Where did the
+// rigor for this lesson come from?! Not our process!" A timeline entry may name
+// a record in prose and still rest on memory. From this record on, a dated
+// entry that carries a `source` ({ title, url, phrase }) is PROBED by the
+// witness like a voice: the page must answer and hold the phrase. The hosts
+// below are the ones that answered a GitHub runner with 200 on 2026-09-24
+// (history-voices-witness probe run); a page that refused the runner is not
+// on this list and cannot be cited.
+export const HISTORY_RECORD_HOSTS = [
+  // answered a GitHub runner with HTTP 200 and their text on 2026-09-24
+  // (history-voices-witness probe runs 35941837965, 35942295758):
+  'web.archive.org',              // the Wayback Machine: the Times, Politico and The Atlantic AS PUBLISHED, dated — the live pages refuse a runner (403)
+  'www.wsws.org',                 // the four historians' interviews of October–November 2019, in their own words
+  'www.federalreservehistory.org', // the Federal Reserve's own history of redlining
+  'www.fhwa.dot.gov',             // the Federal Highway Administration's own history of the Interstate System
+  'www.transportation.gov',       // the Department of Transportation's own Reconnecting Communities program
+  'americanarchive.org',          // the American Archive of Public Broadcasting: Baldwin's 1963 conversation, transcribed
+  'dsl.richmond.edu',             // Mapping Inequality: the HOLC maps themselves
+];
 const HISTORY_NOT_PROSE = new Set(['stories', 'voices', 'timeline']);
 const walkText = (node, fn) => {
   if (typeof node === 'string') fn(node);
@@ -752,7 +771,7 @@ export function historyVoiceFaults(m) {
     let host = '';
     try { host = new URL(String((v.source && v.source.url) || '')).host; } catch { /* not a URL — reported below */ }
     if (!/^https:\/\//.test(String((v.source && v.source.url) || ''))) faults.push(`${at}: source url is not https`);
-    else if (!HISTORY_SOURCE_HOSTS.includes(host)) faults.push(`${at}: source host ${host} is not a listed primary-record host`);
+    else if (!HISTORY_SOURCE_HOSTS.includes(host) && !HISTORY_RECORD_HOSTS.includes(host)) faults.push(`${at}: source host ${host} is not a listed primary-record host`);
     if (wordCount(v.words) < 8) faults.push(`${at}: fewer than eight words quoted`);
     if (/\.\.\.|…/.test(String(v.words || ''))) faults.push(`${at}: elision inside a quotation`);
     if (/\([1-3]?\s?[A-Za-z]+\s+\d+:[\d\-,\s]+\)/.test(String(v.words || ''))) faults.push(`${at}: a Scripture reference inside a historical quotation`);
@@ -775,6 +794,16 @@ export function historyTimelineFaults(m) {
     else { if (t.year < last) faults.push(`${at}: ${t.year} is out of order after ${last}`); last = t.year; }
     if (wordCount(t.event) < 5) faults.push(`${at}: event is not a sentence`);
     if (wordCount(t.record) < 3) faults.push(`${at}: no record named`);
+    if (t.source != null) {
+      const src = t.source && typeof t.source === 'object' ? t.source : {};
+      if (wordCount(src.title) < 2) faults.push(`${at}: source has no title`);
+      let host = '';
+      try { host = new URL(String(src.url || '')).host; } catch { /* reported below */ }
+      if (!/^https:\/\//.test(String(src.url || ''))) faults.push(`${at}: source url is not https`);
+      else if (!HISTORY_SOURCE_HOSTS.includes(host) && !HISTORY_RECORD_HOSTS.includes(host)) faults.push(`${at}: source host ${host} is not a listed record host`);
+      if (wordCount(src.phrase) < 3) faults.push(`${at}: source phrase is under three words (the witness needs words to find on the page)`);
+      if (/\.\.\.|…/.test(String(src.phrase || ''))) faults.push(`${at}: elision inside the source phrase`);
+    }
   });
   const on = new Set(tl.map((t) => t && t.year));
   const named = historyYearsNamed(m);
@@ -783,6 +812,61 @@ export function historyTimelineFaults(m) {
   for (const y of voiced) if (!on.has(y)) faults.push(`${id}: a voice carries ${y} and the timeline does not`);
   const known = new Set([...named, ...voiced]);
   for (const y of on) if (!known.has(y)) faults.push(`${id}: the timeline carries ${y} and neither the lesson nor a voice names it`);
+  return faults;
+}
+
+// THE WORKED CASE (2026-09-24, DR-0601). Darrell, on lesson 1 of the first
+// build: "This lesson is not bringing data driven claims into the classroom
+// about how to process a claim... with an actual claim... just hypothetically
+// explaining... we need more substance and clarity by showing historical
+// experiences, events and situations that had risk, opportunities and
+// constraints etc... economics of each for students to See How!" — and,
+// minutes later: "Humans behave behind closed doors and now in the light of
+// day... same thing would have been hidden." So every research lesson carries
+// ONE actual claim worked through the competency with the data: the claim in
+// the words of the one who made it, the dated event, what was done or said
+// behind closed doors and how the record brought it into the light, the risk,
+// the opportunity, the constraint, the economics as figures from fetched
+// records, the steps applied to THIS claim, and what the record settled and
+// what it left open. Nothing here is hypothetical, and no figure is invented:
+// the gate refuses a case with no figure, a figure with no record, a step list
+// under three, or a missing part.
+export const WORKED_CASE_PARTS = ['claim', 'event', 'closedDoors', 'risk', 'opportunity', 'constraint', 'economics', 'steps', 'settled', 'stillOpen'];
+
+export function historyWorkedCaseFaults(m) {
+  const faults = [];
+  const id = (m && m.id) || '?';
+  const c = m && m.workedCase;
+  if (!c || typeof c !== 'object') return [`${id}: no worked case — an actual claim processed with the data`];
+  for (const k of WORKED_CASE_PARTS) if (c[k] == null || c[k] === '') faults.push(`${id}.workedCase.${k}: missing`);
+  if (c.claim) {
+    if (wordCount(c.claim.words) < 6) faults.push(`${id}.workedCase.claim: fewer than six quoted words`);
+    if (wordCount(c.claim.by) < 2) faults.push(`${id}.workedCase.claim: no one is named as making it`);
+    if (!c.claim.source || !/^https:\/\//.test(String(c.claim.source.url || ''))) faults.push(`${id}.workedCase.claim: no https source for the claim`);
+    if (/\.\.\.|…/.test(String(c.claim.words || ''))) faults.push(`${id}.workedCase.claim: elision inside the quoted claim`);
+  }
+  if (c.event) {
+    if (!Number.isInteger(c.event.year) || c.event.year < 1500 || c.event.year > 2030) faults.push(`${id}.workedCase.event: year is not a four-digit year`);
+    if (wordCount(c.event.what) < 5) faults.push(`${id}.workedCase.event: not a sentence`);
+  }
+  if (c.closedDoors) {
+    if (wordCount(c.closedDoors.hidden) < 8) faults.push(`${id}.workedCase.closedDoors: what was hidden is not stated`);
+    if (wordCount(c.closedDoors.light) < 8) faults.push(`${id}.workedCase.closedDoors: how the record brought it to light is not stated`);
+    if (!/\([1-3]?\s?[A-Za-z]+\s+\d+:[\d\-,\s]+\)/.test(String(c.closedDoors.verse || ''))) faults.push(`${id}.workedCase.closedDoors: no verse tag on the Word's word about it`);
+  }
+  for (const k of ['risk', 'opportunity', 'constraint', 'settled', 'stillOpen']) if (c[k] != null && wordCount(c[k]) < 8) faults.push(`${id}.workedCase.${k}: under eight words`);
+  const econ = Array.isArray(c.economics) ? c.economics : [];
+  if (econ.length < 1) faults.push(`${id}.workedCase.economics: no figure`);
+  econ.forEach((e, i) => {
+    const at = `${id}.workedCase.economics[${i}]`;
+    if (!e || typeof e !== 'object') { faults.push(`${at}: not an object`); return; }
+    if (!/\d/.test(String(e.figure || '')) && !/nine-tenths|two hundred|thirty|fifty|twenty|hundred|thousand|million|billion/i.test(String(e.figure || ''))) faults.push(`${at}: the figure carries no number`);
+    if (wordCount(e.meaning) < 6) faults.push(`${at}: no meaning for the figure`);
+    if (wordCount(e.record) < 3) faults.push(`${at}: no record named for the figure`);
+  });
+  const steps = Array.isArray(c.steps) ? c.steps : [];
+  if (steps.length < 3) faults.push(`${id}.workedCase.steps: fewer than three steps`);
+  steps.forEach((st, i) => { if (wordCount(st) < 8) faults.push(`${id}.workedCase.steps[${i}]: under eight words`); });
   return faults;
 }
 
