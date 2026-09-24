@@ -16,7 +16,7 @@ import { readdirSync, existsSync, mkdtempSync, writeFileSync, readFileSync, stat
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { execFileSync } from 'node:child_process';
+import { chromium } from 'playwright-core';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(HERE, '..', 'app', 'public');
@@ -79,6 +79,12 @@ function pngSize(path) {
 const chrome = findChrome();
 const tmp = mkdtempSync(join(tmpdir(), 'poe-icons-'));
 let failed = 0;
+// THE PAGE, NOT THE WINDOW (2026-09-24, Darrell: "the logos are cut off half
+// way"). Chrome's CLI --screenshot with --window-size counts the browser frame,
+// so the page viewport came out SHORTER than the icon and everything below it
+// was blank: 18 icons, the home-screen icons among them. A page whose viewport
+// is set exactly, and asserted before the shot, cannot do that.
+const browser = await chromium.launch({ executablePath: chrome, args: ['--no-sandbox'] });
 
 for (const [src, out, size] of TARGETS) {
   const srcPath = join(PUBLIC, src);
@@ -94,14 +100,15 @@ for (const [src, out, size] of TARGETS) {
   writeFileSync(htmlPath, html);
   const outPath = join(PUBLIC, out);
 
-  execFileSync(chrome, [
-    '--headless', '--no-sandbox', '--disable-gpu', '--hide-scrollbars',
-    '--force-device-scale-factor=1',
-    `--screenshot=${outPath}`,
-    `--window-size=${size},${size}`,
-    '--default-background-color=00000000',
-    `file://${htmlPath}`,
-  ], { stdio: ['ignore', 'ignore', 'ignore'] });
+  const page = await browser.newPage({ viewport: { width: size, height: size }, deviceScaleFactor: 1 });
+  await page.goto(`file://${htmlPath}`);
+  const vp = await page.evaluate(() => [window.innerWidth, window.innerHeight]);
+  if (vp[0] !== size || vp[1] !== size) {
+    console.error(`FAIL  ${out} — the page viewport is ${vp[0]}x${vp[1]}, not ${size}x${size}; the icon would be cut off`);
+    failed++; await page.close(); continue;
+  }
+  await page.screenshot({ path: outPath, omitBackground: true, clip: { x: 0, y: 0, width: size, height: size } });
+  await page.close();
 
   const dim = existsSync(outPath) ? pngSize(outPath) : null;
   if (!dim || dim.w !== size || dim.h !== size) {
@@ -112,5 +119,6 @@ for (const [src, out, size] of TARGETS) {
   }
 }
 
+await browser.close();
 if (failed) { console.error(`\n${failed} icon(s) failed to generate.`); process.exit(1); }
 console.log(`\nAll ${TARGETS.length} icons generated into app/public/.`);

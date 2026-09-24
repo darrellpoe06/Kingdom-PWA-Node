@@ -18,6 +18,7 @@ import React, { useState } from 'react';
 import { readDraft, writeDraft, clearDraft } from '../lib/draft-autosave.js';
 import OneVoiceInput from './OneVoiceInput.jsx';
 import PromptHistory from './PromptHistory.jsx';
+import LessonInbox from './LessonInbox.jsx';
 
 const THE_TEST = [
   ['True', 'Is it factual — or a fear wearing facts?'],
@@ -127,6 +128,10 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
       {/* YOUR PROMPTS (DR-0615): dated, sortable, searchable for similar ones,
           reusable in one tap; private to the person. */}
       <PromptHistory refreshKey={promptsSeen} />
+
+      {/* YOUR LESSONS (DR-0622): the speaker's own receipt — each lesson sent
+          from the app, where it stands, and the words Whisper wrote down. */}
+      <LessonInbox refreshKey={promptsSeen} />
 
       <section>
         <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
