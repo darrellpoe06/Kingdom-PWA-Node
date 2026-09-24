@@ -464,7 +464,22 @@ export default defineConfig({
             if (/[\\/]node_modules[\\/](react|react-dom|scheduler|use-sync-external-store)[\\/]/.test(id)) {
               return 'react-vendor';
             }
+            return undefined;
           }
+          // DR-0595 (2026-09-23, post-incident): Cloudflare Pages refuses any
+          // single file over 25 MiB, and the entry chunk crossed it on the
+          // #1756 merge (26.1 MiB measured by wrangler) — the deploy failed and
+          // the site served a stale build. The course libraries are the bulk:
+          // living-lessons-class.js alone is ~11 MB of source and every other
+          // course adds 130–860 KB. They are still imported eagerly (nothing
+          // about load order changes — index.html modulepreloads every static
+          // chunk), but each lands in its OWN file, so no file approaches the
+          // cap and the entry chunk stops growing with every lesson. The
+          // asset-size guard in ci.yml fails the build before a merge if any
+          // file is within 1 MiB of the cap.
+          if (/[\\/]src[\\/]lib[\\/]living-lessons-class\.js$/.test(id)) return 'living-lessons';
+          if (/[\\/]src[\\/]lib[\\/][a-z0-9-]+-(course|class|study)\.js$/.test(id)) return 'learn-courses';
+          return undefined;
         },
       },
     },
