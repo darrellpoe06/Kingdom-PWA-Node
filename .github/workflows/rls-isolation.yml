@@ -114,9 +114,12 @@ jobs:
           # own sovereign-noise-thought-isolation.yml — the exact per-feature
           # drift class this matrix was created to end, reintroduced the same
           # day the matrix landed. One matrix, every proof, no siblings.
+          # 0237 (DR-0635) redefines agent_inbox_read (each person reads only
+          # their own rows) and adds the Governor's member-lesson review, so it
+          # rides this leg after 0127 and its smoke runs here.
           - feature: sovereign-noise-thought
-            migrations: "0127-sovereign-noise-and-thought.sql"
-            smokes: "0127-sovereign-noise-thought-smoke.sql"
+            migrations: "0127-sovereign-noise-and-thought.sql 0237-a-members-lesson-is-reviewed-by-the-governor-before-it-is-written.sql"
+            smokes: "0127-sovereign-noise-thought-smoke.sql 0237-member-lesson-review-smoke.sql"
           # Added 2026-09-24 (DR-0615): each person's prompt history is private
           # to its author, even inside the same instance.
           - feature: saved-prompts
