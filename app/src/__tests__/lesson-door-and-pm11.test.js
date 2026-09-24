@@ -61,7 +61,10 @@ describe('the Lesson door on the router (DR-0608)', () => {
 
   it('both surfaces carry the confirmation and the honest failure line', () => {
     for (const k of ['church', 'notes']) {
-      expect(SURFACES[k].confirmations.lesson).toMatch(/Learn intake/);
+      // DR-0630: the intake line is the Governor's; a member is told the truth
+      // (kept, reviewed before a lesson is published) — lessons-for-situation.test.jsx.
+      expect(SURFACES[k].confirmations.lessonGovernor).toMatch(/Learn intake/);
+      expect(SURFACES[k].confirmations.lesson).toMatch(/reviewed before it is published/);
       expect(SURFACES[k].confirmations.lessonFailed).toMatch(/\{reason\}/);
     }
   });

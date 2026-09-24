@@ -13,6 +13,7 @@ import AppFirmUp from './AppFirmUp.jsx';
 import AriReview from './AriReview.jsx';
 import MinistryOps from './MinistryOps.jsx';
 import GovernanceQueue from './GovernanceQueue.jsx';
+import MemberLessonQueue from './MemberLessonQueue.jsx';
 import DecisionIntelligence from './DecisionIntelligence.jsx';
 import OperationsIntelligence from './OperationsIntelligence.jsx';
 import { deriveAppDecisions } from '../lib/decisions.js';
@@ -383,6 +384,8 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
         <div className="space-y-6">
           <DecisionIntelligence concerns={concerns} projects={projects} discussions={discussions} boardTasks={boardTasks} feedback={feedback} incidents={incidents} record={!!currentUserId} />
           <OperationsIntelligence loopData={loopData} loopEnv={{ financialDocAt }} discussions={discussions} />
+          {/* DR-0635: members' lessons wait here for the Governor's word. */}
+          <MemberLessonQueue signedIn={!!currentUserId} />
           <GovernanceQueue
             appDecisions={deriveAppDecisions({ discussions, concerns })}
             familyInstanceId={(concerns.find((c) => c && c.tenantId)?.tenantId) || null}
