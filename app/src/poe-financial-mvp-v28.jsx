@@ -4235,7 +4235,7 @@ ${THEME_CSS}
             the header is collapsed AND the reader is above Normal: at 1x there
             is nothing to escape, so the tucked-away header stays as clean as
             Darrell built it. DR-0276 rule 3 — always reversible. */}
-        <TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} siteName={churchBrand ? 'The Love Corner' : 'PoeTech'} />
+        <TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} siteName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} siteTagline={churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} />
         <nav className="border-t border-[#E8E4DC]">
           {/* v28+ MVP v1.5 — Nav reordered (round 3): primary financial tabs
               first, About anchors the right side of the primary group, then a

@@ -1,0 +1,144 @@
+# voice-intake-health -- is a spoken recording actually becoming words, on the
+# LIVE database? (DR-0611 lessons, DR-0622 recorded conversations)
+#
+# WHY THIS EXISTS (2026-09-24). Darrell recorded a conversation on the Notes
+# box and nothing was saved. The fix records the audio and lets Whisper on our
+# own machines write the words -- and "the rider ran" is not proof that it did.
+# The proof is rows on the database the app reads (HOLD-THE-HAND, DR-0621):
+# a voice row in, a transcript row out, with the rung that wrote it.
+#
+# WHAT IT READS (read-only; no write anywhere):
+#   1. The live database (scripts/live-sql.sh: tailnet -> ssh -> psql in
+#      supabase-db): agent_inbox voice rows by class -- lesson+voice,
+#      note+voice, voice-transcript, voice-failed -- with counts and newest
+#      timestamps, which Whisper rung wrote each transcript, the rows still
+#      owed, and what waits in the lesson-audio bucket. Never a body: a
+#      transcript holds a person's words, and this output is public to the repo.
+#   2. The NAS side of the same road: is the tower's Whisper answering, is
+#      the CPU rung (faster-whisper) installed, the rider's own last lines.
+#
+# BRAKES: dispatch or a push that touches the road; ONE query + one read-only
+# ssh per fire, 8-minute cap, single-instance. Not a timer, spawns nothing.
+name: voice-intake-health
+
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - '.github/workflows/voice-intake-health.yml'
+      - 'infra/nas-lesson-voice/**'
+
+concurrency:
+  group: voice-intake-health
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check secrets (unknown is never reported as healthy)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "::warning::TS_AUTHKEY / NAS_SSH_KEY not set -- cannot read the live database. UNKNOWN."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Voice rows on the live database (read-only)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          out=$(bash scripts/live-sql.sh '|' <<'SQL'
+          SELECT 'class', k, count(*), coalesce(to_char(max(created_at),'YYYY-MM-DD"T"HH24:MI:SS"Z"'),'-')
+          FROM (
+            SELECT created_at, CASE
+              WHEN tags @> '["voice-transcript"]' AND tags @> '["lesson"]' THEN 'transcript (lesson)'
+              WHEN tags @> '["voice-transcript"]' AND tags @> '["note"]' THEN 'transcript (note)'
+              WHEN tags @> '["voice-transcript"]' THEN 'transcript (other)'
+              WHEN tags @> '["voice-failed"]' AND NOT tags @> '["voice"]' THEN 'failure report'
+              WHEN tags @> '["voice"]' AND tags @> '["lesson"]' THEN 'lesson recording'
+              WHEN tags @> '["voice"]' AND tags @> '["note"]' THEN 'note recording'
+              WHEN tags @> '["voice"]' THEN 'other recording'
+            END AS k
+            FROM agent_inbox
+            WHERE tags @> '["voice"]' OR tags @> '["voice-transcript"]' OR tags @> '["voice-failed"]'
+          ) s WHERE k IS NOT NULL GROUP BY k;
+          SELECT 'rung', coalesce((SELECT t FROM jsonb_array_elements_text(tags::jsonb) t WHERE t LIKE 'whisper:%' LIMIT 1),'whisper:?'),
+                 count(*), to_char(max(created_at),'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+          FROM agent_inbox WHERE tags @> '["voice-transcript"]' GROUP BY 2;
+          SELECT 'recording', left(id::text,8), to_char(created_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'), source,
+                 CASE WHEN tags @> '["voice-transcribed"]' THEN 'transcribed'
+                      WHEN tags @> '["voice-failed"]' THEN 'failed'
+                      ELSE 'owed' END,
+                 coalesce((SELECT string_agg(t, ',') FROM jsonb_array_elements_text(tags::jsonb) t
+                           WHERE t IN ('lesson','note','mirrored','consent:all-agreed')),'')
+          FROM agent_inbox WHERE tags @> '["voice"]' ORDER BY created_at DESC LIMIT 20;
+          SELECT 'of', left(id::text,8), to_char(created_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+                 coalesce((SELECT string_agg(t, ',') FROM jsonb_array_elements_text(tags::jsonb) t
+                           WHERE t LIKE 'of:%' OR t LIKE 'whisper:%' OR t IN ('voice-transcript','voice-failed')),'')
+          FROM agent_inbox WHERE tags @> '["voice-transcript"]' OR (tags @> '["voice-failed"]' AND NOT tags @> '["voice"]')
+          ORDER BY created_at DESC LIMIT 20;
+          SELECT 'bucket', count(*), coalesce(to_char(max(created_at),'YYYY-MM-DD"T"HH24:MI:SS"Z"'),'-')
+          FROM storage.objects WHERE bucket_id = 'lesson-audio';
+          SELECT 'bucket-exists', count(*) FROM storage.buckets WHERE id = 'lesson-audio';
+          SQL
+          ) || { echo "::warning::live query failed -- UNKNOWN, never healthy"; echo "$out"; exit 0; }
+          echo "$out"
+          {
+            echo "### Voice intake on the live database"
+            echo ""
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: The NAS side of the road (read-only)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS' || echo "::warning::NAS did not answer"
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          LOOPS=$REPO/infra/nas-loops
+          echo "=== repo HEAD on the NAS (is the rider the one on main?) ==="
+          git -C "$REPO" log -1 --format='%h %cI %s' 2>/dev/null | cut -c1-120 || echo "repo unreadable"
+          echo "=== rung 1: the tower's Whisper, from the NAS ==="
+          curl -s --max-time 8 -o /dev/null -w 'tlcmediadpt:8771 /health HTTP %{http_code}\n' http://tlcmediadpt:8771/health 2>&1 || echo "tower whisper unreachable"
+          echo "=== last rung: faster-whisper on the NAS CPU ==="
+          V=/volume1/PoeTech/venvs/lesson-voice
+          if [ -x "$V/bin/python" ]; then
+            ${SUDO} "$V/bin/python" -c "import faster_whisper,sys; print('faster_whisper', faster_whisper.__version__, 'python', sys.version.split()[0])" 2>&1 | tail -1
+          else
+            echo "no venv at $V"
+          fi
+          python3 --version 2>&1
+          ${SUDO} cat /volume1/PoeTech/lesson-voice/.pip-attempt 2>/dev/null | sed 's/^/last pip attempt epoch: /' || echo "no pip-attempt stamp"
+          echo "=== rider state (attempts per row, lock, kept audio) ==="
+          ${SUDO} cat /volume1/PoeTech/lesson-voice/attempts.json 2>/dev/null | head -c 600 || echo "no attempts.json (the rider has not failed a row, or has never run)"
+          ${SUDO} ls -la /volume1/PoeTech/lesson-voice/ 2>&1 | head -12
+          ${SUDO} find /volume1/PoeTech/lesson-voice/audio -type f 2>/dev/null | wc -l | sed 's/^/audio files kept on the NAS: /'
+          echo "=== the rider's own last words (services-sync cycle log) ==="
+          ${SUDO} grep -a "lesson-voice\|lesson_voice\|transcribe" "$LOOPS/events/cron-services-sync.log" 2>/dev/null | tail -25 || echo "no lesson-voice lines in the cycle log"
+          echo "=== the rider's newest JSON report, if the cycle log kept it ==="
+          ${SUDO} grep -a -A12 '"transcribe"' "$LOOPS/events/cron-services-sync.log" 2>/dev/null | tail -30 || true
+          EOS
