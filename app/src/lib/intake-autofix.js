@@ -1,5 +1,5 @@
 // =============================================================================
-// intake-autofix — the brakes of the low-hanging-fruit fix lane (DR-0622)
+// intake-autofix — the brakes of the low-hanging-fruit fix lane (DR-0625)
 // =============================================================================
 // Darrell 2026-09-24: "if it's low hanging fruit, then we fix it. The system
 // fixes it automatically". The fixer is an AI session (a Claude Code Routine),

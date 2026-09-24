@@ -1,5 +1,5 @@
 // =============================================================================
-// The low-hanging-fruit fix lane keeps the FULL brake set (DR-0622; CLAUDE.md
+// The low-hanging-fruit fix lane keeps the FULL brake set (DR-0625; CLAUDE.md
 // "Autonomous Automation Requires Three Brakes" as amended by DR-0247/0248 —
 // the AI class keeps budget, lock AND kill-switch). Each brake is proven to
 // CATCH here, and the lane is proven to GO when every brake is clear.

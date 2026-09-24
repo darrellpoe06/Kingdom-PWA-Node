@@ -218,7 +218,7 @@ if [ "$MODE" = "feedback" ]; then
                  ' newest='||coalesce(max(submitted_at)::text,'none')
             FROM public.feedback"
 elif [ "$MODE" = "intake" ]; then
-  # INTAKE CENSUS (DR-0622): every non-confidential feedback row, and every
+  # INTAKE CENSUS (DR-0625): every non-confidential feedback row, and every
   # door_feedback row when that table exists, handed to the RUNNER as one JSON
   # document between markers. The runner categorizes them with the app's own
   # module (scripts/intake-census.mjs) and prints counts only; these raw rows

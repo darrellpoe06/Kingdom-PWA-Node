@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // =============================================================================
-// intake-autofix — the runner side of the low-hanging-fruit lane (DR-0622)
+// intake-autofix — the runner side of the low-hanging-fruit lane (DR-0625)
 // =============================================================================
 // Called by .github/workflows/intake-autofix.yml with one JSON document the
 // workflow gathered (the live feedback rows, the fix queue, the intake-fix pull

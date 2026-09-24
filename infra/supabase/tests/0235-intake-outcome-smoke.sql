@@ -1,7 +1,7 @@
 -- =============================================================================
--- 0234 INTAKE OUTCOME SMOKE — the outcome and the fix queue (DR-0622)
+-- 0235 INTAKE OUTCOME SMOKE — the outcome and the fix queue (DR-0625)
 -- =============================================================================
--- Run as postgres AFTER applying 0234, in a transaction that ROLLS BACK.
+-- Run as postgres AFTER applying 0235, in a transaction that ROLLS BACK.
 -- PROVES:
 --   * a member sends a note carrying its category and basis, and it lands;
 --   * a member CANNOT write an outcome onto their own note (outcome columns
@@ -31,8 +31,8 @@ VALUES
   ('00000000-0000-0000-0000-000000000000', :'g', 'authenticated','authenticated','g0234@test.local','', now(), now());
 
 INSERT INTO instances (id, slug, display_name, instance_type) VALUES
-  (:'instF', 'fam-0234', 'Intake smoke family', 'family'),
-  (:'instG', 'fam2-0234','Intake smoke other',  'family');
+  (:'instF', 'fam-0235', 'Intake smoke family', 'family'),
+  (:'instG', 'fam2-0235','Intake smoke other',  'family');
 INSERT INTO instance_members (instance_id, user_id, role, display_name) VALUES
   (:'instF', :'o', 'owner',     'Owner O'),
   (:'instF', :'m', 'member',    'Member M'),

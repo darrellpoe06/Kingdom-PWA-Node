@@ -310,7 +310,7 @@ jobs:
       - name: table a11y guard (screen-reader navigability)
         working-directory: ${{ github.workspace }}
         run: node scripts/table-a11y-guard.mjs
-      # Intake auto-fix scope gate (DR-0622). A claude/intake-fix-* branch is a
+      # Intake auto-fix scope gate (DR-0625). A claude/intake-fix-* branch is a
       # SYSTEM fix of a low-hanging note, made by an AI session: it may change
       # only components, stylesheets and tests, 30 lines at most, with no link,
       # email, phone number or bright-line subject added. Every other branch

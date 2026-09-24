@@ -142,7 +142,7 @@ describe('the feedback loop closes', () => {
     const src = read('app', 'src', 'components', 'FeedbackCenter.jsx');
     for (const label of ['Working on it', 'Fixed', 'Need more info', 'Decline']) expect(src).toContain(`label: '${label}'`);
     expect((src.match(/triage\(f, 'promoted'\);/g) || []).length).toBe(4);
-    // The sender's reason now renders in the outcome list (DR-0622).
+    // The sender's reason now renders in the outcome list (DR-0625).
     expect(read('app', 'src', 'components', 'IntakeOutcomeList.jsx')).toMatch(/data-testid="receipt-reason"/);
     expect(read('app', 'src', 'lib', 'feedback-sync.js')).toMatch(/triageNotes: row\.triage_notes \|\| ''/);
   });

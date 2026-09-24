@@ -1,5 +1,5 @@
 // =============================================================================
-// intake-ledger — the decision ledger for node-side intake work (DR-0622)
+// intake-ledger — the decision ledger for node-side intake work (DR-0625)
 // =============================================================================
 // The app reads the ledger at build time as __DR_LEDGER__ (app/vite.config.js
 // readDecisionLedger). The runner-side census and the fix queue need the same

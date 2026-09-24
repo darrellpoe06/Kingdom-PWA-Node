@@ -1,5 +1,5 @@
 // =============================================================================
-// The loop closes into Decision Intelligence (DR-0622): the intake's state
+// The loop closes into Decision Intelligence (DR-0625): the intake's state
 // feeds the operations readouts, and a sender's reply re-enters as a decision
 // a person makes. Proven to catch and proven quiet.
 // =============================================================================

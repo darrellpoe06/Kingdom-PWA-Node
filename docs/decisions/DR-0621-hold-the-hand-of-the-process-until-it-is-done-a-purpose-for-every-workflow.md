@@ -33,6 +33,14 @@ The same day showed both the failure and the Way.
 - **The failure.** The harvest monitor had flagged a stall on the same rolling incident many times without anyone carrying it through. Its alarm came from a retired database and a wrong count.
 - **The Way.** Once someone held its hand, it went: analyze, fix, re-measure, analyze again, fix again, re-measure. At that point the live data showed 874 of 874 answered and the incident closed itself (DR-0618).
 
+## What was measured
+
+The same day's worked example, measured rather than asserted:
+- harvest-health run 36029928554 read 754 transcribed plus 120 answered as no-caption, 874 of 874, with nothing owed;
+- the rolling incident #1617 was closed by that run itself.
+
+Before the hand was held, the monitor raised the same stall alarm on the same rolling incident many times. It was reading a retired database, and it counted "no captions" answers as owed (DR-0618).
+
 ## Decision
 
 1. **Done is defined.** A process is done when it works end to end in the live system, the live data proves it, its output seeds the next process, and people can use it now. A flag, a named gap or a tracked item is not done.

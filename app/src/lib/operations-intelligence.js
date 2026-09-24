@@ -25,7 +25,7 @@
 //      update past its limit is an escalation; "never ran" and "awaiting a
 //      source" need the page's full context and are left to the Loops view.
 //   5. HAND-OFFS — a hand-off still open past STALL_DAYS is an escalation.
-//   6. INTAKE (DR-0622) — every note, categorized by lib/intake-outcome.js.
+//   6. INTAKE (DR-0625) — every note, categorized by lib/intake-outcome.js.
 //      A sender's REPLY to an outcome still untouched is a decision required
 //      (the automatic answer did not land; a person decides). Real work no
 //      steward has moved past STALL_DAYS is one escalation, counted. System

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // =============================================================================
-// intake-autofix-scope-guard — a system fix stays inside its allowlist (DR-0622)
+// intake-autofix-scope-guard — a system fix stays inside its allowlist (DR-0625)
 // =============================================================================
 // The low-hanging-fruit lane (lib/intake-autofix.js) hands a note to an AI
 // fixer, which pushes a `claude/intake-fix-*` branch that rides the ordinary

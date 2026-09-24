@@ -1,6 +1,6 @@
 // =============================================================================
 // IntakeOutcomeList — what the SENDER sees: each note they sent and its outcome
-// (DR-0622, building DR-0621 item 3a)
+// (DR-0625, building DR-0621 item 3a)
 // =============================================================================
 // Darrell 2026-09-24: "so people can feel heard when they're heard and we can
 // communicate that but ... i don't want humans to have to communicate that".

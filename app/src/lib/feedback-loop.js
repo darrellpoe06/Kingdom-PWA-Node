@@ -52,7 +52,7 @@ export async function setFeedbackTriage({ supabase, id, status, notes = '', nowM
   try {
     const patch = { triage_status: status };
     if (why) patch.triage_notes = why.slice(0, 2000);
-    // DR-0622: "fixed" carries WHAT CHANGED and WHEN onto the note, so the
+    // DR-0625: "fixed" carries WHAT CHANGED and WHEN onto the note, so the
     // sender reads the change and the measured window has its end point.
     if (status === 'fixed') {
       patch.outcome_at = new Date(Number.isFinite(nowMs) ? nowMs : Date.now()).toISOString();
@@ -60,7 +60,7 @@ export async function setFeedbackTriage({ supabase, id, status, notes = '', nowM
     }
     let { data, error } = await supabase.from('feedback').update(patch).eq('id', id).select('id');
     if (error && patch.outcome_at && isMissingColumn(error)) {
-      // 0234 not applied yet: the status still lands, without the outcome columns.
+      // 0235 not applied yet: the status still lands, without the outcome columns.
       const { outcome_at: _a, outcome_note: _n, ...lean } = patch;
       ({ data, error } = await supabase.from('feedback').update(lean).eq('id', id).select('id'));
     }

@@ -328,7 +328,7 @@ export const FEEDBACK_CATEGORIES = [
 // The sender's own notes, read live (lib/feedback-sync fetchMyFeedback) and
 // merged with this device's local copies not yet in the database, newest
 // first. The live read is what carries a steward's triage and a fix's outcome
-// back to the person (DR-0622); the local copy never changes after it is
+// back to the person (DR-0625); the local copy never changes after it is
 // written. The delivery record gives each on-board note its measured window.
 const OUTCOME_DEPS = {
   fetchMine: fetchMyFeedback,
@@ -383,7 +383,7 @@ export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey =
   // and the image silently vanished (Darrell 2026-07-07: "couldn't upload an
   // image last time I tried into the Feedback importer").
   const [readingImages, setReadingImages] = useState(false);
-  // DR-0622: the sender's notes with their outcomes, and the note a reply answers.
+  // DR-0625: the sender's notes with their outcomes, and the note a reply answers.
   const [myRemote, setMyRemote] = useState([]);
   const [delivery, setDelivery] = useState(null);
   const [replyTo, setReplyTo] = useState(null);
@@ -668,7 +668,7 @@ function feedbackSummary(f, maxLen = 60) {
   return summary.length > maxLen ? summary.slice(0, maxLen - 3) + '...' : summary;
 }
 
-// The steward's view of every intake (DR-0622): each note's category and the
+// The steward's view of every intake (DR-0625): each note's category and the
 // basis it stands on, and the exact outcome the sender reads, so nobody writes
 // a reply by hand and every automatic answer can be checked.
 const PANEL_LEDGER = (typeof __DR_LEDGER__ !== 'undefined') ? __DR_LEDGER__ : { ok: false, items: [] };

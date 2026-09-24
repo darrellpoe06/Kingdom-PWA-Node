@@ -34,16 +34,16 @@ import { postToChat, formatFeedbackMessage } from './synology-chat.js';
 import { currentDoor, PERSONAL_DOOR } from './app-doors.js';
 import { categorizeIntake } from './intake-outcome.js';
 
-// THE OUTCOME RIDES BESIDE THE LIST (DR-0622, migration 0234). The category
+// THE OUTCOME RIDES BESIDE THE LIST (DR-0625, migration 0235). The category
 // and its basis, what changed and when, and the note a reply answers. Asked
 // for with the list and dropped honestly on a database that has not applied
-// 0234 yet, so the board never goes dark over a column that is on its way.
+// 0235 yet, so the board never goes dark over a column that is on its way.
 const FEEDBACK_INTAKE_COLUMNS = ['intake_category', 'intake_basis', 'outcome_note', 'outcome_ref', 'outcome_at', 'reply_to'];
 const INTAKE_INSERT_KEYS = ['intake_category', 'intake_basis', 'reply_to'];
 const LEDGER = (typeof __DR_LEDGER__ !== 'undefined') ? __DR_LEDGER__ : null;
 
 /**
- * One of the OUTCOME columns is missing (0234 not applied yet), as PostgREST
+ * One of the OUTCOME columns is missing (0235 not applied yet), as PostgREST
  * or Postgres says it. Named, never generic: a different missing column (the
  * screenshots degrade below) must keep its own fallback.
  */
@@ -63,7 +63,7 @@ async function withIntakeColumns(base, build) {
 
 // The id is minted on the device, so the reference code the sender is handed
 // the moment they submit is the SAME code the steward sees on the board. Until
-// DR-0622 the local copy was `fb-<time>` and the database minted its own uuid:
+// DR-0625 the local copy was `fb-<time>` and the database minted its own uuid:
 // two codes for one note, and the sender's could never be looked up.
 export function newFeedbackId() {
   try {
@@ -258,7 +258,7 @@ export async function uploadFeedback(item, meta = {}) {
     is_confidential: !!item.isConfidential,
     triage_status: 'new',
   };
-  // DR-0622: the device's own id (one reference code for one note), the note a
+  // DR-0625: the device's own id (one reference code for one note), the note a
   // reply answers, and the category with its basis, decided at birth by the
   // same rules the board and the runner use.
   if (UUID_RE.test(String(item.id || ''))) row.id = item.id;
@@ -283,7 +283,7 @@ export async function uploadFeedback(item, meta = {}) {
   // schema-cache miss so the text feedback always lands. Worst case (a column
   // not live yet at deploy): images 2..N, then all images, are dropped — only
   // in that brief window, and never the feedback itself.
-  // One more degrade, for the outcome columns (0234) not being live yet: the
+  // One more degrade, for the outcome columns (0235) not being live yet: the
   // note still lands, and the runner categorizes it on its next pass.
   const insertRow = async (payload) => {
     let res = await supabase.from('feedback').insert(payload);
@@ -370,7 +370,7 @@ export async function fetchFeedbackImages(id) {
 
 /**
  * The signed-in person's OWN notes, newest first, with their outcomes
- * (DR-0622). The board's list leaves these out on purpose (they are already in
+ * (DR-0625). The board's list leaves these out on purpose (they are already in
  * the local store), which also meant the SENDER never read a steward's triage
  * or a fix's outcome: the local copy never changes after it is written. This is
  * the read the sender's receipt uses. { ok, items, reason }; signed out or
@@ -430,7 +430,7 @@ export function subscribeFeedback(onRemote) {
     // user-id filter) so the merge logic stays simple. Family-scale
     // traffic is single-digit inserts/day.
     // INSERT and UPDATE: a steward's triage and the fix lane's outcome are
-    // UPDATEs, and until DR-0622 the board never heard them without a reload.
+    // UPDATEs, and until DR-0625 the board never heard them without a reload.
     const refresh = () => {
       fetchOthers().then((refreshed) => {
         if (refreshed) onRemote(refreshed.map(toPrototypeShape));
@@ -493,7 +493,7 @@ function toPrototypeShape(row) {
     triageStatus: row.triage_status,
     triageNotes: row.triage_notes || '',
     userId: row.user_id || null,
-    // DR-0622: the outcome the sender reads, and its basis.
+    // DR-0625: the outcome the sender reads, and its basis.
     intakeCategory: row.intake_category || null,
     intakeBasis: row.intake_basis || null,
     outcomeNote: row.outcome_note || '',

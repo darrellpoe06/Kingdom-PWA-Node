@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // =============================================================================
-// intake-census — how many REAL intake rows land in each category (DR-0622)
+// intake-census — how many REAL intake rows land in each category (DR-0625)
 // =============================================================================
 // Runs on the GitHub runner inside sovereign-read's `intake` mode, over EVERY
 // non-confidential row of public.feedback (and public.door_feedback when that

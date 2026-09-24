@@ -1,5 +1,5 @@
 // =============================================================================
-// The outcome reaches the sender (DR-0622). Measured before this record: the
+// The outcome reaches the sender (DR-0625). Measured before this record: the
 // board's read left the sender's own notes out (neq user_id) and listened to
 // INSERT only, and the sender's local copy never changed after it was written,
 // so no steward's triage and no fix ever reached the person who sent the note.
@@ -71,7 +71,7 @@ describe('the category is decided at birth, with its basis', () => {
     await uploadFeedback({ id: UUID, replyTo: '22222222-2222-4222-8222-222222222222', whatsNot: 'it is still wrong for me' }, {});
     expect(insertRows[0]).toMatchObject({ reply_to: '22222222-2222-4222-8222-222222222222', intake_category: 'work', intake_basis: { kind: 'reply' } });
   });
-  it('PROVEN TO CATCH: a database without 0234 still receives the note, without the new columns', async () => {
+  it('PROVEN TO CATCH: a database without 0235 still receives the note, without the new columns', async () => {
     resultQueue = [{ error: MISSING }, { error: null }];
     const res = await uploadFeedback({ id: UUID, whatsNot: 'typo on the bus page title' }, {});
     expect(res).toEqual({ uploaded: true });
@@ -97,7 +97,7 @@ describe('the sender reads their own notes back, with outcomes', () => {
     expect(selects[0]).toMatch(/outcome_note/);
     expect(r.items[0]).toMatchObject({ id: UUID, mine: true, triageStatus: 'fixed', outcomeNote: 'Spelled right.', outcomeRef: '#9', userId: 'u1', intakeCategory: 'fix' });
   });
-  it('falls back to the base columns on a database without 0234', async () => {
+  it('falls back to the base columns on a database without 0235', async () => {
     resultQueue = [{ error: MISSING }, { error: null, data: [{ id: UUID, feedback_text: 'x', triage_status: 'new' }] }];
     const r = await fetchMyFeedback();
     expect(r.ok).toBe(true);
@@ -123,7 +123,7 @@ describe('a steward’s "Fixed" carries what changed and when', () => {
     expect(r.ok).toBe(true);
     expect(c.patches[0]).toEqual({ triage_status: 'fixed', triage_notes: 'The bus title is spelled right.', outcome_note: 'The bus title is spelled right.', outcome_at: '2026-09-24T20:00:00.000Z' });
   });
-  it('PROVEN TO CATCH: on a database without 0234 the status still lands', async () => {
+  it('PROVEN TO CATCH: on a database without 0235 the status still lands', async () => {
     const c = client([{ data: null, error: { code: '42703', message: 'column feedback.outcome_at does not exist' } }, { data: [{ id: 'f1' }], error: null }]);
     const r = await setFeedbackTriage({ supabase: c.supabase, id: 'f1', status: 'fixed', notes: 'x' });
     expect(r.ok).toBe(true);

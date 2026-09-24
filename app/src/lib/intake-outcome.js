@@ -1,6 +1,6 @@
 // =============================================================================
 // intake-outcome — every intake is carried to an outcome the ecosystem
-// communicates (DR-0621 item 3a; built as DR-0622)
+// communicates (DR-0621 item 3a; built as DR-0625)
 // =============================================================================
 // Darrell, 2026-09-24: "any direction you get it from intake, however it comes,
 // it should go through our workflow system and be categorized in a way where if
@@ -37,7 +37,7 @@
 // No model is called here. Where a model would help (CLAUDE-TOOL-ROUTING), it
 // belongs on the sovereign NAS path and its answer would be recorded as a
 // basis of kind 'model'; nothing in this build needs one, and the census on
-// the live rows (DR-0622) is the measurement that says whether it ever will.
+// the live rows (DR-0625) is the measurement that says whether it ever will.
 // =============================================================================
 import { evaluateFeedback, feedbackText, feedbackScreenshotCount } from './feedback-triage.js';
 

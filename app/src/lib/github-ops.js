@@ -257,7 +257,7 @@ async function fetchOpsUncached(opts = {}) {
   return out;
 }
 
-// --- The delivery record (DR-0622) -------------------------------------------
+// --- The delivery record (DR-0625) -------------------------------------------
 // The measured window a sender is given ("changes like this have merged in a
 // median of ...") comes from REAL merged pull requests: when each was opened
 // and when it merged. One unauthenticated read of the newest 100 closed pull

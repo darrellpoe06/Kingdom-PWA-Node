@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # intake-autofix-over-tailnet — read the intake state from the database the app
-# reads, and apply one planned transaction to it (DR-0622)
+# reads, and apply one planned transaction to it (DR-0625)
 # =============================================================================
 # The same proven transport as sovereign-read-over-tailnet.sh and nas-health:
 # tailnet -> ssh -> docker exec psql, the password read ON the NAS and never

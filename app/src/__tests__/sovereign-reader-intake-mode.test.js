@@ -1,6 +1,6 @@
 // =============================================================================
 // sovereign-read's `intake` mode reads every note for the census, and prints
-// none of them (DR-0622). The rows are data for scripts/intake-census.mjs on
+// none of them (DR-0625). The rows are data for scripts/intake-census.mjs on
 // the runner; the log gets counts and short masked audit snippets only.
 // Proven by RUNNING the cut the script uses on planted output, not by reading.
 // =============================================================================

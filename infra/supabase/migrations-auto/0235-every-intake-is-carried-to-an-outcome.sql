@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0234 — every intake is carried to an outcome (DR-0622, building DR-0621 3a)
+-- 0235 — every intake is carried to an outcome (DR-0625, building DR-0621 3a)
 -- =============================================================================
 -- Darrell 2026-09-24: "it should go through our workflow system and be
 -- categorized ... if it's low hanging fruit, then we fix it. The system fixes it
@@ -27,7 +27,7 @@
 --    working state, and the sender reads the outcome on their own note.
 --
 -- Instance-scoped, the overlays applied (assistant scope, viewer read-only).
--- Proven by infra/supabase/tests/0234-intake-outcome-smoke.sql in the RLS
+-- Proven by infra/supabase/tests/0235-intake-outcome-smoke.sql in the RLS
 -- matrix. IDEMPOTENT: IF NOT EXISTS, DROP-then-CREATE. Additive.
 -- =============================================================================
 
@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS public.intake_fix_queue (
 CREATE INDEX IF NOT EXISTS intake_fix_queue_status_idx ON public.intake_fix_queue (status, created_at);
 CREATE INDEX IF NOT EXISTS intake_fix_queue_instance_idx ON public.intake_fix_queue (instance_id, created_at DESC);
 
-COMMENT ON TABLE public.intake_fix_queue IS 'Low-hanging-fruit notes the gated fix lane drains, one row per note. DR-0622.';
+COMMENT ON TABLE public.intake_fix_queue IS 'Low-hanging-fruit notes the gated fix lane drains, one row per note. DR-0625.';
 
 ALTER TABLE public.intake_fix_queue ENABLE ROW LEVEL SECURITY;
 

@@ -1,5 +1,5 @@
 // =============================================================================
-// Every intake is carried to an outcome the ecosystem communicates (DR-0622,
+// Every intake is carried to an outcome the ecosystem communicates (DR-0625,
 // building DR-0621 item 3a). Every categorizer rule and every receipt state is
 // pinned here, each one proven to catch (the wrong input lands elsewhere) and
 // proven quiet (the right input is not over-claimed).

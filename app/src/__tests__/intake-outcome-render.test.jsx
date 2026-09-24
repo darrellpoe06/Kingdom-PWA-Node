@@ -1,5 +1,5 @@
 // =============================================================================
-// The outcome on the screen (DR-0622): what the sender reads for each category,
+// The outcome on the screen (DR-0625): what the sender reads for each category,
 // the reply that re-enters intake, and the steward's categorized queue with
 // each note's basis. Rendered, not read from source.
 // =============================================================================
