@@ -302,6 +302,12 @@ jobs:
           echo "=== voice road: does the forwarder pass the studio's answer through? ==="
           curl -s --max-time 8 -w '\nforwarder /health HTTP %{http_code}\n' http://127.0.0.1:8771/health 2>&1 | tail -2 || echo "forwarder unreachable (poetech-voice-forwarder not running)"
           ${SUDO} systemctl is-active poetech-voice-forwarder 2>&1 | sed 's/^/poetech-voice-forwarder: /' || true
+          # The Whisper ladder (DR-0611): the spoken-lesson rider tries the 4070
+          # tower first. 200 = Whisper answers from the NAS; anything else = the
+          # rider falls to the NAS CPU rung. Plus the rider's own last words.
+          echo "=== whisper ladder: does the tower's Whisper answer from the NAS? ==="
+          curl -s --max-time 8 -w '\nwhisper tlcmediadpt:8771 /health HTTP %{http_code}\n' http://tlcmediadpt:8771/health 2>&1 | tail -2 || echo "tower whisper unreachable"
+          ${SUDO} grep -a "lesson-voice" "$LOOPS/events/cron-services-sync.log" 2>/dev/null | tail -5 || echo "no lesson-voice lines yet"
           echo "=== the installer's own words (nas-supabase lines, cron log) ==="
           ${SUDO} grep -a "nas-supabase:" "$LOOPS/events/cron-services-sync.log" 2>/dev/null | tail -10 || echo "no cron log readable"
           # FOURTH blindness (2026-08-15 22:52Z): the cron log records only
