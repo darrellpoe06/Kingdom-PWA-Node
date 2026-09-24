@@ -16,6 +16,31 @@
 // the consolidation (PR #154) characterization test protects, and what this
 // extraction preserves byte-for-byte.
 
+import { declaredPersonOf } from './admin-allowlist.js';
+
+// THE LESSON DOOR, SAID TRUE FOR EVERYONE (DR-0630). The reader Routine writes
+// new lessons from Darrell's own rows; a member's row is kept and counted, and
+// a lesson written for their situation is reviewed before it is published
+// (DR-0608, DR-0312). So a member is told exactly that, and the lessons that
+// already speak to their words are shown to them on the spot.
+export const LESSON_MEMBER_CONFIRMATION = '📖 Heard. The lessons from the Word shown here are for you now. Your words are kept, and a new lesson written for your situation is reviewed before it is published.';
+
+// SAID BEFORE THEY SEND (Darrell 2026-09-24: "Make sure they know this could
+// be used in a lesson... so they know"). Shown above Send every time the
+// Lesson chip is chosen, on every surface that offers it.
+export const LESSON_NOTICE = 'What you share here may be used to write a lesson from the Word that others read. Your name is never used, and personal details are changed so no one can tell it was you.';
+
+/** Whose lesson row is read straight into a new lesson: the Governor's own
+ *  sign-in doors (DR-0608). Everyone else gets the member confirmation. */
+export function isLessonDoorOwner(email) {
+  return declaredPersonOf(email) === 'darrell';
+}
+
+/** The confirmation key for a delivered lesson, by who sent it. */
+export function lessonConfirmationKey(email) {
+  return isLessonDoorOwner(email) ? 'lessonGovernor' : 'lesson';
+}
+
 export const SURFACES = {
   church: {
     defaultRoute: 'prayer',
@@ -27,16 +52,19 @@ export const SURFACES = {
     saveNoteOnCounseling: false,
     confirmations: {
       prayer:     '🙏 On the prayer list. The church is standing with you.',
-      conference: '🎪 Received for the Assembly — it goes straight onto the build list.',
-      poetech:    '💡 PoeTech heard you — program processes and procedures begin. It’s on the build inbox.',
+      conference: '🎪 Received for the Assembly — it is in the feedback queue; its status shows under Your feedback.',
+      poetech:    '💡 PoeTech heard you — it is in the feedback queue, and its status shows under Your feedback.',
       work:       '🛠 On the Action Queue as a work order — it can dispatch to a worker from Big Picture.',
       counseling: '💚 The practice knows you’d like to talk — your words stayed private here. Reaching out took courage.',
       serve:      '🤝 Leadership will see your serving hands — thank you.',
       pastor:     '⛪ A note to the pastors — received.',
       voice:      '💬 Heard and kept. Thank you for your voice.',
-      lesson:     '📖 Heard as a lesson — it is in the Learn intake. The Word-first lesson it becomes is reported back to you.',
+      lesson:     LESSON_MEMBER_CONFIRMATION,
+      lessonGovernor: '📖 Heard as a lesson — it is in the Learn intake. The Word-first lesson it becomes is reported back to you.',
       lessonFailed: '📖 Not sent as a lesson ({reason}) — sign in and send it again, or keep it as a note.',
+      signedOut:  'Kept on this device only — you are signed out, so it has not reached anyone yet. Sign in and send it again so it reaches them.',
     },
+    lessonNotice: LESSON_NOTICE,
   },
   notes: {
     defaultRoute: 'private',
@@ -52,16 +80,19 @@ export const SURFACES = {
     counselingNote: 'Requested counseling via Thinking Space. Their words stay private on their device — TLC connects directly.',
     saveNoteOnCounseling: true,
     confirmations: {
-      poetech:    '💡 PoeTech heard you — it’s on the build inbox. You shape what gets built.',
+      poetech:    '💡 PoeTech heard you — it is in the feedback queue, and its status shows under Your feedback. You shape what gets built.',
       prayer:     '🙏 On the prayer list. The church is standing with you.',
       pastor:     '⛪ A note to the pastors — they’ll see it on the Church tab.',
       serve:      '🤝 Leadership will see your serving hands — thank you.',
       work:       '🛠 On the Action Queue as a work order — dispatch it to a worker from Big Picture.',
       counseling: '💚 The practice knows you’d like to talk — your words stayed private here, for you to share with them directly. Reaching out took courage.',
       private:    '📓 Kept — private to you. Come back to it anytime.',
-      lesson:     '📖 Heard as a lesson — it is in the Learn intake. The Word-first lesson it becomes is reported back to you.',
+      lesson:     LESSON_MEMBER_CONFIRMATION,
+      lessonGovernor: '📖 Heard as a lesson — it is in the Learn intake. The Word-first lesson it becomes is reported back to you.',
       lessonFailed: '📖 Not sent as a lesson ({reason}) — sign in and send it again, or keep it as a private note.',
+      signedOut:  'Kept on this device only — you are signed out, so it has not reached anyone yet. Sign in and send it again so it reaches them, or keep it as a private note.',
     },
+    lessonNotice: LESSON_NOTICE,
   },
 };
 

@@ -43,6 +43,26 @@ export function pickRun(runs) {
   if (list.length && list.every((r) => r && r.conclusion === 'skipped')) return { conclusion: 'off', updated_at: list[0].updated_at, html_url: list[0].html_url };
   return null;
 }
+// Which runs judge a workflow, measured by the second proof run (36062392420):
+//   'main'        — a scheduled witness: its runs on main (it runs there);
+//   'any'         — a hand-dispatched tool: its latest decisive run anywhere
+//                   (people dispatch it from the branch they are working on);
+//   'any-success' — a lane workflow whose runs are per-PR (ci, auto-merge): a
+//                   red PR is the gate working, not the workflow broken, so it
+//                   is healthy when it has succeeded recently anywhere.
+export function runRuleFor(node, yamlText) {
+  if (node && node.runRule) return node.runRule;
+  return /\bcron:/.test(String(yamlText || '')) ? 'main' : 'any';
+}
+export function pickByRule(rule, mainRuns, anyRuns) {
+  if (rule === 'any-success') {
+    const ok = (anyRuns || []).find((r) => r && r.conclusion === 'success');
+    return ok || pickRun(anyRuns);
+  }
+  if (rule === 'main') return pickRun(mainRuns) || pickRun(anyRuns);
+  return pickRun(anyRuns) || pickRun(mainRuns);
+}
+
 export function runRow(file, run) {
   if (!run) return { resource: `gh:run:${file}`, written: 0, newest_at: null, consumed: null, note: 'no completed run on record' };
   if (run.conclusion === 'off') return { resource: `gh:run:${file}`, written: 1, newest_at: run.updated_at || null, consumed: null, note: `off ${run.html_url || ''}`.trim() };
@@ -66,19 +86,18 @@ async function fetchRuns() {
   const repo = process.env.GITHUB_REPOSITORY || 'darrellpoe06/Kingdom-PWA-Node';
   const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
   const out = [];
-  for (const file of workflowFiles()) {
-    // Its recent completed runs on main; any branch only when main has none.
+  const ctx = realContext();
+  for (const node of SYSTEM_FLOW.nodes.filter((n) => n.workflow)) {
+    const file = node.workflow;
+    const rule = runRuleFor(node, ctx.fileText(node.file));
     const base = `https://api.github.com/repos/${repo}/actions/workflows/${file}/runs?status=completed&per_page=20`;
     const headers = { Accept: 'application/vnd.github+json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     try {
-      let res = await fetch(`${base}&branch=main`, { headers });
-      if (!res.ok) { out.push({ ...runRow(file, null), written: null, note: `GitHub answered ${res.status}` }); continue; }
-      let runs = (await res.json()).workflow_runs || [];
-      if (!pickRun(runs)) {
-        res = await fetch(base, { headers });
-        if (res.ok) runs = (await res.json()).workflow_runs || [];
-      }
-      out.push(runRow(file, pickRun(runs)));
+      const [resMain, resAny] = await Promise.all([fetch(`${base}&branch=main`, { headers }), fetch(base, { headers })]);
+      if (!resMain.ok || !resAny.ok) { out.push({ ...runRow(file, null), written: null, note: `GitHub answered ${resMain.status}/${resAny.status}` }); continue; }
+      const mainRuns = (await resMain.json()).workflow_runs || [];
+      const anyRuns = (await resAny.json()).workflow_runs || [];
+      out.push(runRow(file, pickByRule(rule, mainRuns, anyRuns)));
     } catch (e) {
       out.push({ resource: `gh:run:${file}`, written: null, newest_at: null, consumed: null, note: `could not ask GitHub: ${e.message}` });
     }
@@ -88,8 +107,8 @@ async function fetchRuns() {
 
 export function parseOutput(text) {
   return String(text || '').split('\n').filter((l) => l.includes('|')).map((l) => {
-    const [resource, written, newest_at, consumed, error] = l.split('|');
-    return { resource, written: written === '' ? null : Number(written), newest_at: newest_at || null, consumed: consumed === '' ? null : Number(consumed), error: error || null };
+    const [resource, written, newest_at, consumed, error, note] = l.split('|');
+    return { resource, written: written === '' ? null : Number(written), newest_at: newest_at || null, consumed: consumed === '' ? null : Number(consumed), error: error || null, note: note || null };
   });
 }
 

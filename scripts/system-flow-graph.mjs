@@ -340,7 +340,7 @@ BEGIN
 ${lines.join('\n')}
   DELETE FROM public.system_flow_proof WHERE measured_at < now() - interval '30 days';
 END $flow$;
-SELECT resource, coalesce(written::text,''), coalesce(to_char(newest_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS"Z"'),''), coalesce(consumed::text,''), coalesce(error,'')
+SELECT resource, coalesce(written::text,''), coalesce(to_char(newest_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS"Z"'),''), coalesce(consumed::text,''), coalesce(error,''), coalesce(replace(note, '|', '/'),'')
   FROM public.system_flow_proof WHERE run_id = ${q(runId)} ORDER BY resource;`;
 }
 
