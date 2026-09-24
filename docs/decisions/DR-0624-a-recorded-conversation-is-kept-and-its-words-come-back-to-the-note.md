@@ -82,6 +82,14 @@ Measured 2026-09-24 after #1780 merged (5c2891c7), by one nas-bootstrap services
 
 No recorded conversation from the Notes box exists yet on the live database; the first one Darrell records is the next row this witness reports.
 
+## Amended same day: spoken words filed as a work order
+
+Darrell's screenshot (Big Picture → Now → Action Queue) showed raw spoken conversation as an INCIDENT. The witness read the row on the live database: **`in-1785775461623`**, filed **2026-08-03 16:44 UTC**, category maintenance, status open, **29,197 characters**, lifecycle log `"from Thinking Space"`. It is the conference review of 2026-08-03 (the word "paint" flipped the Notes route to Work; `one-voice-long-dictation.test.jsx` pinned the long-text fix that day), and the row itself was never moved back. It has sat open for seven weeks. It is not today's recording.
+
+The door was the Speak box's own suggestion: every finalized chunk of speech re-ran the destination suggestion, and under 400 characters a spoken "paint", "roof" or "fix" still flipped the chip to Work. **Fixed: spoken words only append; they never move the chip.** Typed words may still suggest; a tap on a chip still wins. Proven-to-catch in `record-a-conversation.test.jsx` (reverting to the old line fails two tests).
+
+The words are kept, not deleted: the expanded Action Queue item now carries **"Not a work order: keep these words as a private note"**, which adds every word as a private note under Your thoughts (headed with where it came from and the date) and marks the item resolved. Notes live only on his phone (never synced, by design), so the move is one tap on his phone rather than a server write.
+
 ## Limits, stated
 
 - **Keeping the audio alongside dictation** (both at once) is not done: on Android the speech engine and a recorder cannot share the microphone, and trying risks breaking the dictation that works. The Record button is the fallback. re-review: 2026-10-08.

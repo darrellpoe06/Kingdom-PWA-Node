@@ -91,8 +91,15 @@ export function OneVoiceInput({
   // first and was a lid on the second. Opt in and the cap becomes three hours,
   // the same self-stop workflow-scribe already uses for a long capture.
   const [wholeThing, setWholeThing] = useState(false);
+  // SPOKEN WORDS NEVER MOVE THE ROUTE (2026-09-24, Darrell's Action Queue
+  // screenshot: a spoken conversation filed as an INCIDENT). Typed words may
+  // suggest a destination; dictated words only append. A conversation says
+  // "paint", "roof" or "fix" in passing, and under 400 characters the
+  // suggestion used to flip the chip to Work between one sentence and the
+  // next, so Save filed his words as a work order. Speech keeps the chip the
+  // person chose (or the surface's own default); a tap on a chip still wins.
   const mic = useVoiceDictation({
-    onTranscript: (t) => onText((latestText.current ? `${latestText.current} ${t}` : t).trim()),
+    onTranscript: (t) => setText((latestText.current ? `${latestText.current} ${t}` : t).trim()),
     capMs: wholeThing ? LONG_FORM_SESSION_CAP_MS : VOICE_SESSION_CAP_MS,
   });
 

@@ -23,6 +23,7 @@ import { LifeGallery } from './LifeGallery.jsx';
 import { fmt, fmtCompact } from '../lib/format.js';
 import { relativeWhen } from '../lib/calendar-shared.js';
 import { getAssignments, summarize as summarizeAssignments } from '../lib/assignments.js';
+import { incidentNoteText } from '../lib/recorded-note.js';
 import {
   traceNetCashFlow, traceCollectionRate, traceToDebt,
   traceReserves, traceDebtFree, traceRentalsFree,
@@ -95,7 +96,7 @@ export function TryLifeHubButton() {
 // =============================================================================
 // BIG PICTURE — v7 dashboard horizontal-first
 // =============================================================================
-export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, capexItems = [], watchlist = [], rentals = [], incidents = [], projects = [], resolveIncident, skillProfiles = [], addIncident, addProject, entities = [], ingestData = null, setBooksView = null, contractors = [], workerOps = {}, lifePhotos = [], addLifePhotos, updateLifePhoto, deleteLifePhoto }) {
+export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pressure, setPressure, pressureCalc, projection, rentalSnowball, flaggedRentals, flaggedOpportunities, entityRollups, reserves, upcomingEvents, welcomeDismissed, dismissWelcome, setView, setFeedbackOpen, bufferTarget = 0, bufferCurrent = 0, setBufferCurrent, capexItems = [], watchlist = [], rentals = [], incidents = [], projects = [], resolveIncident, skillProfiles = [], addIncident, addProject, entities = [], ingestData = null, setBooksView = null, contractors = [], workerOps = {}, lifePhotos = [], addLifePhotos, updateLifePhoto, deleteLifePhoto, addNote = null }) {
   // Round 16/17 — Action Queue per-row inline expansion. Tracks which queue
   // item (if any) is currently expanded. Tapping the row body opens the full
   // details + lifecycle log + jump-link inline, so the user never loses
@@ -474,6 +475,20 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
                         <div className="px-3 pb-3 pt-2 bg-[#FAF8F4] border-t border-[#E8E4DC] space-y-3">
                           {fullDescription && fullDescription !== q.title && (
                             <p className="text-sm text-[#1A1815] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{fullDescription}</p>
+                          )}
+                          {/* WORDS THAT WERE NEVER A WORK ORDER (DR-0624, 2026-09-24:
+                              a spoken conversation filed here as an incident). One
+                              tap keeps every word as a private note under Your
+                              thoughts and resolves the item; nothing is deleted. */}
+                          {q.kind === 'incident' && sourceItem && addNote && (
+                            <button
+                              type="button"
+                              data-testid="incident-to-note"
+                              onClick={(e) => { e.stopPropagation(); addNote(incidentNoteText(sourceItem)); if (resolveIncident) resolveIncident(q.id); }}
+                              className="text-xs uppercase tracking-wider px-3 py-2 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white min-h-[44px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                            >
+                              Not a work order: keep these words as a private note
+                            </button>
                           )}
                           {/* Dispatch — the path from "needs fixed" to a 1099 worker's
                               phone. Renders for any incident; pulls the linked
