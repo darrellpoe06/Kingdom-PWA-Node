@@ -396,6 +396,18 @@ jobs:
       - name: Read-highlight probe — the follow-along highlight actually paints
         run: node scripts/read-highlight-probe.mjs
         working-directory: ${{ github.workspace }}
+      # Microphone probe (DR-0636, "Never recorded" on 2026-09-24): the real
+      # spoken-lesson recorder, bundled and driven in Chromium with a fake
+      # microphone fed a voice-level tone. Record 5 s: bytes captured, the
+      # level bar moves, the take decodes to sound, playback shows. The
+      # selftest mutes the microphone first and must see the silence alert and
+      # "Nothing was recorded" (anti-theater, DR-0076 §3).
+      - name: Microphone probe — selftest (a muted mic must be told apart)
+        run: node scripts/mic-record-probe.mjs --selftest-break
+        working-directory: ${{ github.workspace }}
+      - name: Microphone probe — the recorder really records in a real browser
+        run: node scripts/mic-record-probe.mjs
+        working-directory: ${{ github.workspace }}
 
       # SCRIPTURE INFERENCE (DR-0281). The verse-verbatim gates prove every quote
       # matches the KJV; they cannot see an error living BETWEEN two correct

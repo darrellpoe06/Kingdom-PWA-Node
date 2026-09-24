@@ -251,12 +251,13 @@ const NODES = [
   }),
   app('app/src/components/LessonInbox.jsx', {
     id: 'lesson-inbox', name: 'Your lessons (sent, heard, written down)',
-    purpose: 'The speaker sees each lesson they sent: received, transcribed, and the words Whisper wrote.',
+    purpose: 'The speaker sees each lesson they sent: received, transcribed, and the words Whisper wrote — shown under the Lesson recorder and on the Notes tab; "Put these words in the box" hands them back to send again (DR-0636).',
     reads: [
       { res: 'db:agent_inbox#lesson', file: 'app/src/lib/lesson-inbox.js', token: "from('agent_inbox')" },
       { res: 'db:agent_inbox#voice-transcript', file: 'app/src/lib/lesson-inbox.js', token: 'voice-transcript' },
     ],
-    seeds: [],
+    writes: [{ res: 'event:use-prompt', file: 'app/src/components/LessonInbox.jsx', token: 'sendPromptToBox' }],
+    seeds: ['lesson-door'],
   }),
 
   // ===========================================================================
@@ -877,6 +878,7 @@ const LOOPS = [
   { id: 'prompt-loop', name: 'Prompt sent → kept → put back in the box → sent again', path: ['one-voice', 'prompt-history'] },
   { id: 'monitor-loop', name: 'Every workflow’s run → the flow proof → the operations board', path: ['site-health', 'flow-proof', 'ops-board'],
     open: { blocker: 'The board’s escalations reach a steward, who fixes and ships; the next proof run shows the connection flowing again. That return passes through a person by design (the Governor decides), so this loop closes through the delivery lane, not a table.', reReview: '2026-10-24' } },
+  { id: 'spoken-lesson-loop', name: 'A spoken lesson → our own Whisper → its words back to the speaker → the box', path: ['lesson-door', 'lesson-voice', 'lesson-inbox'] },
   { id: 'scribe-loop', name: 'A recording → our own Whisper → its words back on the Scribe screen', path: ['scribe-surface', 'scribe'] },
   { id: 'lane-loop', name: 'Merge → deploy → site witness → heal → deploy', path: ['deploy', 'site-health'] },
 ];

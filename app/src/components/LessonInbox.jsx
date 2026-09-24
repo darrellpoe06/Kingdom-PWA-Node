@@ -10,6 +10,9 @@
 // =============================================================================
 import React, { useCallback, useEffect, useState } from 'react';
 import { fetchMyLessons, transcriptWords } from '../lib/lesson-inbox.js';
+// The words go back to the box on the same road Your prompts uses
+// (USE_PROMPT_EVENT), to edit or send again: the loop closes (DR-0636).
+import { sendPromptToBox } from '../lib/saved-prompts.js';
 import supabase from '../lib/supabase.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -60,13 +63,15 @@ export default function LessonInbox({ deps = LIVE, refreshKey = 0 }) {
               </p>
               <p className={`text-xs font-semibold ${TONE[it.state] || 'text-[#5A5751]'}`} style={SERIF} data-testid="lesson-state">{it.label}</p>
               {!it.spoken && <p className="text-sm text-[#1A1815] whitespace-pre-wrap break-words" style={SERIF}>{it.body.replace(/^Lesson\.\s*/, '')}</p>}
-              {it.state === 'failed' && it.why && <p className="text-[0.6875rem] text-[#1A1815] mt-0.5" style={SERIF}>{it.why}</p>}
+              {it.state === 'failed' && it.why && <p className="text-[0.6875rem] text-[#1A1815] mt-0.5" style={SERIF} data-testid="lesson-why">{it.why}</p>}
+              {it.state === 'failed' && <p className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={SERIF}>The recording is kept on our own machine and is tried again by itself as soon as a Whisper computer answers.</p>}
               {words && (
                 <>
-                  <button type="button" onClick={() => setOpen((o) => ({ ...o, [it.id]: !o[it.id] }))} aria-expanded={!!open[it.id]} className="text-[0.625rem] uppercase tracking-wider px-2 min-h-[44px] border border-[#1A1815] text-[#1A1815] mt-1 focus:outline focus:outline-2 focus:outline-[#B85838]">
-                    {open[it.id] ? 'Hide the words' : 'Read the words Whisper wrote'}
+                  <button type="button" onClick={() => setOpen((o) => ({ ...o, [it.id]: o[it.id] === false }))} aria-expanded={open[it.id] !== false} className="text-[0.625rem] uppercase tracking-wider px-2 min-h-[44px] border border-[#1A1815] text-[#1A1815] mt-1 focus:outline focus:outline-2 focus:outline-[#B85838]">
+                    {open[it.id] !== false ? 'Hide the words' : 'Read the words Whisper wrote'}
                   </button>
-                  {open[it.id] && <p className="text-sm text-[#1A1815] whitespace-pre-wrap break-words mt-1" style={SERIF} data-testid="lesson-words">{words}</p>}
+                  {open[it.id] !== false && <p className="text-sm text-[#1A1815] whitespace-pre-wrap break-words mt-1" style={SERIF} data-testid="lesson-words">{words}</p>}
+                  <button type="button" data-testid="lesson-words-to-box" onClick={() => sendPromptToBox(words)} className="text-[0.625rem] uppercase tracking-wider px-2 min-h-[44px] border border-[#5A6E3D] text-[#5A6E3D] mt-1 ml-1 focus:outline focus:outline-2 focus:outline-[#B85838]">Put these words in the box</button>
                 </>
               )}
             </li>
