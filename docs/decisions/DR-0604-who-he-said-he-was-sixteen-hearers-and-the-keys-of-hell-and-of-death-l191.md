@@ -8,6 +8,10 @@
 - **Principles:** SOURCE-OF-ANSWERS (the Word only), DR-0098 (teach the Word; name a question to educate past it), DR-0100 (state what the text says plainly — including where it differs from the question as asked), DR-0076 §1/§3/§4 (every span fetched verbatim, the gates proven-to-catch, the bands measured), DR-0459 (no elision inside a quotation), DR-0210 (Yahweh in our voice; KJV untouched), DR-0331 (his words rendered for meaning)
 - **Grounds:** Darrell, 2026-09-24, three messages minutes apart: *"Lesson. Didn't Jesus tell pilot He was from eternity and others in other ways how many ways and what were the situations claims to be?"* — *"What are the keys of hell and death?"* — *"All in the lesson"*.
 
+## Context — the question
+
+Two spoken questions, minutes apart, then "All in the lesson". Per Layer 0 a spoken question is build input: it is captured into the surface it belongs in, every verse fetched verbatim, shipped the same session, and reported back as what it became. The surface is Living Lessons, the course his own questions have grown since L1.
+
 ## What his words became
 
 **L191 — Who He Said He Was — Every Hearer, Every Situation, and the Keys of Hell and of Death.** One lesson, both questions, answered by record rather than summary. The lesson walks sixteen hearers in the order the Gospels give them — Nathanael, Nazareth, the woman at the well, the scribes at Capernaum, the Jews in the temple, Peter, Martha, the man born blind, the upper room, the Father in prayer, the garden, the high priest under oath, Pilate, the thief, the risen Lord to His own, and John on Patmos — and states what each heard. It then counts (more than two dozen distinct forms, stated as a count of the record with "the Gospels hold more"), and ends where the second question begins: Patmos and the keys.
@@ -23,6 +27,13 @@ The question as asked put the eternity claim in Pilate's hearing. The record doe
 - **Why He holds them:** He went through both and came out — Acts 2:24, Romans 6:9, John 10:18. Won, not conferred.
 - **What the devil lost:** never the keys (the Word never gives him keys); "the power of death" (Hebrews 2:14), a grip through fear, broken at the cross so as to "deliver them who through fear of death were all their lifetime subject to bondage" (Hebrews 2:15). The lesson states "the devil never held the keys" in every band, pinned.
 - **What He does with them:** opens the graves (John 5:28-29), has abolished death (2 Timothy 1:10), fulfils Hosea 13:14 in 1 Corinthians 15:55, and finally shuts both doors — Revelation 20:14, 21:4.
+
+## Decision
+
+1. L191 ships as one lesson carrying both questions, in the order he asked them: the hearers first, the keys last, because Patmos is where the record itself joins them.
+2. The Pilate correction is stated in words, first, in the adult text and every band, and pinned; the lesson never gives Pilate a line the record gives to the temple and the Father.
+3. The keys are taught only from the Word's own definition (Isaiah 22:22; Revelation 3:7) and pairing (Revelation 6:8; 20:13-14); no lexicon claim is made beyond naming hades once.
+4. The count is stated as a count of the record walked, with "the Gospels hold more" pinned.
 
 ## What was measured
 
