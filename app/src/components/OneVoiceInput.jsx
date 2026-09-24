@@ -112,7 +112,7 @@ export function OneVoiceInput({
         // honest: signed-out or a refused insert is SAID on the surface, never
         // swallowed, and the words stay in the box for the person to keep.
         relayThought({ body: t, tags: ['lesson'], source: cfg.sourceTag }).then((res) => {
-          if (!res.ok) setConfirmation(String(c.lessonFailed || '📖 Not sent — {reason}').replace('{reason}', res.reason || 'unknown'));
+          if (!res.ok) setConfirmation(String(c.lessonFailed || 'Not sent as a lesson ({reason}) — keep it as a note and send it again signed in.').replace('{reason}', res.reason || 'unknown'));
         });
         break;
       case 'prayer':     addPrayerRequest({ requester: who || 'church family', request: t, shareWithChurch: true }); break;
