@@ -96,7 +96,10 @@ describe('they are options in the picker instead', () => {
 });
 
 describe('a pointer never inflates a count (DR-0516 / DR-0448)', () => {
-  it('still calls Business one course, not fifteen', () => {
+  // 2026-09-23: the Business department's OWN count moved 1 → 2 with the
+  // Business Research course (DR-0594); the pointer rule is unchanged — the
+  // heading still counts own courses, never own + cross-listed.
+  it('still counts Business by its own courses (two), not fifteen', () => {
     mount();
     clickTab('Business');
     const label = container.querySelector('label[for="learn-course-pick"]');
@@ -105,13 +108,13 @@ describe('a pointer never inflates a count (DR-0516 / DR-0448)', () => {
     // The heading counts the department's OWN courses. If this ever starts
     // reporting own+crosslisted, the pointer rule has been broken in the
     // surface even though the data is still correct.
-    expect(label.textContent).toMatch(/select one of 1$/);
+    expect(label.textContent).toMatch(/select one of 2$/);
   });
 
   it('the prompt offers the extras honestly, as courses that SERVE it', () => {
     mount();
     clickTab('Business');
     const prompt = picker().querySelector('option[value=""]');
-    expect(prompt.textContent).toMatch(/Choose another course · 1 \+ \d+ that serve it/);
+    expect(prompt.textContent).toMatch(/Choose another course · 2 \+ \d+ that serve it/);
   });
 });

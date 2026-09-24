@@ -277,10 +277,14 @@ describe('a pointer, never a copy', () => {
     // And to 48 / 704 on 2026-09-23 for the HISTORY department's second
     // course, historical-research-1619 (8 lessons, DR-0590) — the craft of
     // research taught Word-first on one case, so both numbers move.
-    expect(courses).toHaveLength(48);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(704);
+    // And to 49 / 712 on 2026-09-23 for the BUSINESS department's second
+    // course, business-research-wars (8 lessons, DR-0594) — Darrell: "use the
+    // podcast business wars as context for our business courses... Word first
+    // research 1 institution level" — so both numbers move.
+    expect(courses).toHaveLength(49);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(712);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(704);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(712);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
