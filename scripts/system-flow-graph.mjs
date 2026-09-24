@@ -25,6 +25,9 @@
 //   unseeded   — a declared `seeds` target that shares no resource with it;
 //   uncovered  — a workflow file, NAS rider/loop, or a table created after the
 //                baseline, with no declared place in the graph;
+//   no-route   — an app↔NAS connection over a same-origin route the NAS's
+//                public Funnel does not actually mount (infra/nas-transport/
+//                RECORDED-STATE.md): wired in the code, reaching nothing;
 //   open-loop  — a declared continuous loop that does not close, unless it
 //                carries a named blocker AND a re-review date.
 //
@@ -266,6 +269,17 @@ export function checkGraph(registry, ctx) {
   }
   for (const t of baseline) if (declaredTables.has(t)) f('uncovered', `db:${t}`, `table ${t} is now in the graph — remove it from the baseline so the list only shrinks`);
 
+  // every NAS route a connection rides is really mounted on the Funnel
+  if (ctx.mountedRoutes) {
+    for (const res of g.resources) {
+      const route = (resources[res] || {}).route;
+      if (!route) continue;
+      if (!ctx.mountedRoutes.includes(route) && !openOk((resources[res] || {}).open)) {
+        f('no-route', res, `${res} rides ${route}, which the NAS's public Funnel does not mount (infra/nas-transport/RECORDED-STATE.md) — the connection reaches nothing`);
+      }
+    }
+  }
+
   // declared continuous loops close, or carry a named blocker + date
   for (const l of loops) {
     const path = l.path || [];
@@ -363,6 +377,14 @@ export function resourceMetas(registry, fileText) {
 }
 
 // --- assemble for the app + the CLI ------------------------------------------
+// The routes the public Funnel mounts: the table rows of RECORDED-STATE.md
+// above its UNACTUATED ledger.
+export function parseMountedRoutes(md) {
+  const text = String(md || '');
+  const head = text.split(/^## UNACTUATED/m)[0];
+  return [...head.matchAll(/^\|\s*`(\/[a-z0-9-]+)`\s*\|/gim)].map((m) => m[1]);
+}
+
 export function realContext() {
   const cache = new Map();
   const fileText = (p) => {
@@ -376,7 +398,8 @@ export function realContext() {
   try { baseline = JSON.parse(readFileSync(join(ROOT, 'scripts/system-flow-baseline.json'), 'utf8')); } catch { /* none */ }
   const BORN_AFTER = baseline.after || '0233';
   const newTables = tablesByMigration().filter((x) => x.file.slice(0, 4) > BORN_AFTER);
-  return { schema: readSchema(), fileText, workflows: listWorkflows(), riders: listNasRiders(), newTables, baseline };
+  const mountedRoutes = parseMountedRoutes(fileText('infra/nas-transport/RECORDED-STATE.md'));
+  return { schema: readSchema(), fileText, workflows: listWorkflows(), riders: listNasRiders(), newTables, baseline, mountedRoutes };
 }
 
 export function buildFlowGraph(registry, ctx = realContext()) {

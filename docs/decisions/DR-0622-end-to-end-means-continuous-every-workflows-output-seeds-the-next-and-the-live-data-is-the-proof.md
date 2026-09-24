@@ -45,12 +45,18 @@ Named (each one on the surface in red, with its blocker and date; the gate refus
 
 | gap | blocker | re-review |
 | --- | --- | --- |
-| a shipped fix does not mark the note it fixes | being built in the next push of this series | 2026-09-25 |
-| `sermon_video_stats` has no live producer (`scripts/load-video-engagement.mjs` runs nowhere) | being wired in the next push of this series | 2026-09-26 |
-| Scribe transcripts and minutes are written on the NAS and read back by nothing | the read-back route and list are the next push of this series | 2026-09-26 |
+| a shipped fix does not mark the note it fixes | closed in the second push (below) | done |
+| `sermon_video_stats` has no live producer (`scripts/load-video-engagement.mjs` runs nowhere) | closed in the second push (below) | done |
+| Scribe transcripts and minutes are written on the NAS and read back by nothing | closed in the second push (below) | done |
 | office pushes wait in `push_outbox` | the drain ships off until a real phone is proven to receive (DR-0400 / DR-0334): a phone in a person's hand | 2026-10-01 |
 | the n8n wf18 bearer's only reader is n8n | n8n leaves by Darrell's decision (DR-0617); this workflow leaves with it once wf18's replacement is proven | 2026-10-01 |
 | the monitors' escalations return to the data through a person | by design: the Governor decides the fix; the next proof run shows it flowing again | 2026-10-24 |
+
+## Impact, continued — the second push closed three of them
+
+1. **The fix loop closes.** `.github/workflows/feedback-fixed.yml` (hourly; budget + lock; stop-path `FEEDBACK_FIXED_ENABLED='false'`) reads the commits on the DEPLOYED build (the head of the latest successful deploy run, never merely merged) and marks every open note a commit names — by the reference the board shows (`fixes feedback 7KQ-M4X`) or its id (`feedback 1a2b3c4d`) — as `fixed`, writing which change fixed it where the sender reads it (`scripts/feedback-fixed.mjs`). A declined note is never reopened; an unnamed note is never touched. Proven on a local Postgres 16: two named notes marked, a declined one left, a second run marked none.
+2. **The orphan has a producer.** `.github/workflows/video-stats.yml` (every 6 hours) reads each recent service video's public views and likes from the channel's own feed — no key, no quota, the feed the Church tab already reads — and upserts them onto the videos the service record holds (`scripts/video-stats-feed.mjs`). Proven on a local Postgres 16: the join wrote the one held video and skipped the other; a second run updated in place.
+3. **The Scribe chain reaches the NAS and comes back.** Measured: the app sent no credential while the server required its own token, and `/scribe` was listed UNACTUATED in `infra/nas-transport/RECORDED-STATE.md` since 2026-09-06 — no recording from the app could have landed. Now the server accepts the family key every device already provisions (DR-0613), `infra/nas-scribe/install.sh` mounts `/scribe` on the Funnel (funnel, never serve) and restarts the server when its code changes, and `GET /scribe/sessions` + `/scribe/session/{id}` give back each recording's state, transcript and minutes, shown under "Your recordings" on the Scribe screen (`app/src/components/ScribeRecordings.jsx`). A new gate, `no-route`, fails the build when a connection rides a route the Funnel does not mount; proven by removing `/scribe` from the mounted table.
 
 ## Verification
 

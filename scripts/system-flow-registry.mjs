@@ -59,6 +59,16 @@ const NODES = [
     ],
     seeds: ['feedback-receipt', 'projects', 'itsm-incidents'],
   }),
+  wf('feedback-fixed.yml', {
+    id: 'feedback-fixed', name: 'The shipped fix marks its note Fixed',
+    purpose: 'Once a change that names a note (its board reference or its id) is on the deployed build, the note reads Fixed and says which change fixed it.',
+    reads: [
+      { res: 'db:feedback', token: 'FROM public.feedback' },
+      { res: 'gh:run:deploy-cloudflare-pages.yml', token: 'deploy-cloudflare-pages.yml/runs' },
+    ],
+    writes: [{ res: 'db:feedback#triaged', file: 'scripts/feedback-fixed.mjs', token: "SET triage_status = 'fixed'" }],
+    seeds: ['feedback-receipt', 'feedback-door'],
+  }),
   app('app/src/lib/feedback-receipt.js', {
     id: 'feedback-receipt', name: "Sender's receipt",
     purpose: 'The sender reads where their note stands — received, being worked on, fixed, or declined with the reason.',
@@ -401,6 +411,16 @@ const NODES = [
     writes: [{ res: 'gh:incident', token: '--label incident' }, { res: 'gh:heal-nas', token: 'gh workflow run nas-bootstrap.yml' }],
     seeds: ['ops-surface', 'nas-bootstrap'],
   }),
+  wf('video-stats.yml', {
+    id: 'video-stats', name: 'Video reach from the channel’s own feed',
+    purpose: 'Each recent service video’s public views and likes, onto the service record the Pulpit ranks by.',
+    reads: [
+      { res: 'yt:channel', file: 'scripts/video-stats-feed.mjs', token: 'FEED_URL' },
+      { res: 'db:choir_sermons', file: 'scripts/video-stats-feed.mjs', token: 'choir_sermons' },
+    ],
+    writes: [{ res: 'db:sermon_video_stats', file: 'scripts/video-stats-feed.mjs', token: 'INSERT INTO public.sermon_video_stats' }],
+    seeds: ['sermon-reader'],
+  }),
   wf('corpus-reconcile.yml', {
     id: 'corpus-reconcile', name: 'Corpus reconcile (the channel vs our record)',
     purpose: 'Compares the channel’s videos with the service record so none is missing.',
@@ -675,15 +695,19 @@ const NODES = [
   }),
   rider('service:scribe', 'infra/nas-scribe/scribe_ingest_server.py', {
     id: 'scribe', name: 'Scribe ingest (recordings in)', purpose: 'Takes each Scribe recording in and queues it for transcription.',
-    reads: [{ res: 'http:scribe-upload', token: 'complete' }], writes: [{ res: 'nas:scribe-queue', token: 'whisper-queue.jsonl' }], seeds: ['scribe-transcribe'],
+    reads: [{ res: 'http:scribe-upload', token: 'complete' }, { res: 'nas:scribe-minutes', file: 'infra/nas-scribe/scribe_results.py', token: 'minutes.md' }],
+    writes: [{ res: 'nas:scribe-queue', token: 'whisper-queue.jsonl' }, { res: 'http:scribe-results', token: '/scribe/sessions' }],
+    seeds: ['scribe-transcribe', 'scribe-surface'],
   }),
   app('app/src/components/WorkflowScribe.jsx', {
     id: 'scribe-surface', name: 'Scribe (record a workflow or a meeting)', purpose: 'Records, uploads, and hands the recording to our own box.',
-    writes: [{ res: 'http:scribe-upload', token: '/scribe/complete' }], seeds: ['scribe'],
+    writes: [{ res: 'http:scribe-upload', token: '/scribe/complete' }],
+    reads: [{ res: 'http:scribe-results', file: 'app/src/components/ScribeRecordings.jsx', token: 'fetchScribeSessions' }],
+    seeds: ['scribe'],
   }),
   rider('loop:scribe-transcribe', 'infra/nas-scribe/scribe_queue_consumer.py', {
     id: 'scribe-transcribe', name: 'Scribe transcription (queue → words → minutes)', purpose: 'Turns each recording into a transcript and minutes.',
-    reads: [{ res: 'nas:scribe-queue', token: 'whisper-queue.jsonl' }], writes: [{ res: 'nas:scribe-minutes', token: 'minutes.md' }], seeds: [],
+    reads: [{ res: 'nas:scribe-queue', token: 'whisper-queue.jsonl' }], writes: [{ res: 'nas:scribe-minutes', token: 'minutes.md' }], seeds: ['scribe'],
   }),
   rider('service:property-photos', 'infra/nas-property-photos/photo_server.py', {
     id: 'property-photos', name: 'Photo server', purpose: 'Serves property, family and album photos from our own box.',
@@ -775,7 +799,7 @@ const RESOURCES = {
   'db:choir_songs': { label: 'songs', proof: { ts: 'updated_at', fresh: 30 } },
   'db:video_transcripts': { label: 'service transcripts', proof: { ts: 'created_at', fresh: 7, consumed: "length(coalesce(text,'')) > 0" } },
   'db:video_harvests': { label: 'harvests recorded', proof: { ts: 'updated_at', fresh: 60 } },
-  'db:sermon_video_stats': { label: 'video reach', proof: { ts: 'fetched_at', fresh: 60 }, open: { blocker: 'No live code writes it: scripts/load-video-engagement.mjs is run by no workflow or rider. Wiring it to a rider is the next fix in this series.', reReview: '2026-09-26' } },
+  'db:sermon_video_stats': { label: 'video reach', proof: { ts: 'fetched_at', fresh: 2 } },
   'db:church_service_segments': { label: 'order of service', proof: { ts: 'updated_at', fresh: 30 } },
   'db:_schema_migrations': { label: 'migration ledger', proof: { ts: 'applied_at', fresh: 30 } },
 
@@ -802,10 +826,10 @@ const RESOURCES = {
   'gh:review-issue': { label: 'due re-review items', sink: 'A due re-review opens an issue a steward works; the ledger itself is the record.' },
   'site:poetech.us': { label: 'the live site' },
   'hosted:db': { label: 'the retired hosted database' },
-  'http:nas-photos': { label: 'photo server on the NAS' },
-  'http:voice': { label: 'the reading voice studio' },
-  'http:taxes': { label: 'the tax archive on the NAS' },
-  'http:taxes-upload': { label: 'a tax document uploaded' },
+  'http:nas-photos': { label: 'photo server on the NAS', route: '/nas-photos' },
+  'http:voice': { label: 'the reading voice studio', route: '/voice' },
+  'http:taxes': { label: 'the tax archive on the NAS', route: '/taxes' },
+  'http:taxes-upload': { label: 'a tax document uploaded', route: '/taxes' },
   'nas:mirror': { label: 'the NAS repo mirror' },
   'nas:clock': { label: 'the NAS loop clock' },
   'nas:services': { label: 'installed NAS services' },
@@ -814,7 +838,8 @@ const RESOURCES = {
   'nas:storage': { label: 'the live file storage' },
   'nas:agent-credential': { label: 'the NAS agent’s credential' },
   'nas:scribe-queue': { label: 'Scribe recordings waiting' },
-  'nas:scribe-minutes': { label: 'Scribe transcripts + minutes', open: { blocker: 'Written on the NAS and read back by nothing: the Scribe screen never shows the transcript it made. The read-back route + in-app list is the next fix in this series.', reReview: '2026-09-26' } },
+  'nas:scribe-minutes': { label: 'Scribe transcripts + minutes' },
+  'http:scribe-results': { label: 'what each recording became, read back', route: '/scribe' },
   'nas:ytzero-inbox': { label: 'the chosen-channels inbox', sink: 'Darrell reads it himself at its LAN page (port 3701); it is a personal inbox by design, not data another workflow uses.' },
   'nas:wf18-bearer': { label: 'the n8n wf18 bearer', open: { blocker: 'Its only reader is n8n wf18, which leaves by Darrell’s decision (DR-0617, PR #1774). This workflow leaves with n8n once wf18’s replacement is proven.', reReview: '2026-10-01' } },
   'auth:users': { label: 'sign-in accounts' },
@@ -832,8 +857,8 @@ const RESOURCES = {
   'http:mcp': { label: 'the MCP server' },
   'web:primary-records': { label: 'the historical primary records', source: 'Yale Avalon, Cornell LII, the National Archives, Gutenberg and the other named record holders.' },
   'file:source-transcripts': { label: 'a sent video’s transcript text' },
-  'http:scribe-upload': { label: 'a Scribe recording uploaded' },
-  'http:supabase': { label: 'the live database’s API' },
+  'http:scribe-upload': { label: 'a Scribe recording uploaded', route: '/scribe' },
+  'http:supabase': { label: 'the live database’s API', route: '/sb' },
   'http:funnel': { label: 'the NAS’s public routes' },
 };
 
@@ -842,27 +867,28 @@ const RESOURCES = {
 // ---------------------------------------------------------------------------
 const LOOPS = [
   { id: 'feedback-loop', name: 'Feedback → triage → the sender’s receipt → new feedback', path: ['feedback-door', 'feedback-queue'] },
-  { id: 'fix-loop', name: 'Feedback → work → the fix ships → the sender’s note reads Fixed', path: ['feedback-queue', 'projects', 'deploy', 'feedback-receipt'],
-    open: { blocker: 'A shipped fix does not yet mark the note it fixes: a steward presses Fixed by hand. The merge that names a receipt code marking that note Fixed is the next push in this series.', reReview: '2026-09-25' } },
+  { id: 'fix-loop', name: 'Feedback → the fix ships naming it → the note reads Fixed → the sender', path: ['feedback-door', 'feedback-fixed'] },
   { id: 'ops-loop', name: 'Ops command → NAS runner → outcome back in the app', path: ['ops-queue', 'ops-runner'] },
   { id: 'models-loop', name: 'Question → NAS agent → answer in the pane', path: ['chat-pane', 'agent-consumer'] },
   { id: 'prompt-loop', name: 'Prompt sent → kept → put back in the box → sent again', path: ['one-voice', 'prompt-history'] },
   { id: 'monitor-loop', name: 'Every workflow’s run → the flow proof → the operations board', path: ['site-health', 'flow-proof', 'ops-board'],
     open: { blocker: 'The board’s escalations reach a steward, who fixes and ships; the next proof run shows the connection flowing again. That return passes through a person by design (the Governor decides), so this loop closes through the delivery lane, not a table.', reReview: '2026-10-24' } },
+  { id: 'scribe-loop', name: 'A recording → our own Whisper → its words back on the Scribe screen', path: ['scribe-surface', 'scribe'] },
   { id: 'lane-loop', name: 'Merge → deploy → site witness → heal → deploy', path: ['deploy', 'site-health'] },
 ];
 
 // Chains shown on the surface, in reading order (phone-first list).
 const CHAINS = [
-  { id: 'feedback', name: 'Feedback and triage', nodes: ['feedback-door', 'feedback-queue', 'feedback-receipt', 'concerns-board', 'projects', 'itsm-incidents', 'board-tasks', 'decision-board'] },
+  { id: 'feedback', name: 'Feedback and triage', nodes: ['feedback-door', 'feedback-queue', 'feedback-fixed', 'feedback-receipt', 'concerns-board', 'projects', 'itsm-incidents', 'board-tasks', 'decision-board'] },
   { id: 'lessons', name: 'Lesson intake', nodes: ['lesson-mail-watch', 'lesson-door', 'lesson-voice', 'voice-intake-health', 'lesson-inbox', 'lesson-capture', 'learn'] },
   { id: 'prompts', name: 'Prompt history', nodes: ['one-voice', 'prompt-history'] },
   { id: 'ops', name: 'Operations queue', nodes: ['ops-queue', 'ops-runner', 'ops-queue-health', 'ops-surface'] },
   { id: 'models', name: 'Ask the models', nodes: ['chat-pane', 'agent-consumer'] },
-  { id: 'sermons', name: 'Transcripts → sermons → The Word', nodes: ['choir-dates', 'transcript-trickle', 'transcript-backfill', 'content-sync', 'sermon-store', 'sermon-reader', 'harvest-ledger', 'scripture-web', 'library', 'songbook', 'harvest-health', 'corpus-reconcile'] },
+  { id: 'sermons', name: 'Transcripts → sermons → The Word', nodes: ['choir-dates', 'transcript-trickle', 'transcript-backfill', 'video-stats', 'content-sync', 'sermon-store', 'sermon-reader', 'harvest-ledger', 'scripture-web', 'library', 'songbook', 'harvest-health', 'corpus-reconcile'] },
   { id: 'family-key', name: 'The family key', nodes: ['family-key', 'bridge-provision', 'nas-photos', 'voice-studio', 'books-taxes'] },
   { id: 'health', name: 'Site health → incidents → operations readout', nodes: ['site-health', 'level-witness', 'node-availability', 'harvest-health', 'ops-queue-health', 'ops-surface', 'ops-board'] },
   { id: 'decisions', name: 'Decision readouts, the flow proof and the operations board', nodes: ['decision-board', 'flow-proof', 'ops-board', 'flow-surface'] },
+  { id: 'scribe', name: 'Scribe: recording → words → back to the person', nodes: ['scribe-surface', 'scribe', 'scribe-transcribe'] },
   { id: 'lane', name: 'Delivery lane', nodes: ['auto-open-pr', 'ci', 'auto-merge', 'deploy', 'deploy-freshness', 'db-migrate', 'migrate-freshness', 'rls-isolation', 'schema-health', 'pr-janitor'] },
 ];
 
