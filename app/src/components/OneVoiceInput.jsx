@@ -17,6 +17,7 @@
 // the inputs to make a master multiinput").
 import React, { useState, useRef, useEffect } from 'react';
 import { suggestDestination, destinationsFor, planDispatch, composeNoteText } from '../lib/one-voice-routing.js';
+import { uploadFeedback } from '../lib/feedback-sync.js';
 import { resolveSurface, lessonConfirmationKey } from '../lib/one-voice-surfaces.js';
 import { useVoiceDictation, LONG_FORM_SESSION_CAP_MS, VOICE_SESSION_CAP_MS, capMinutes } from '../lib/voice-dictation.js';
 import { readDraft, writeDraft, clearDraft } from '../lib/draft-autosave.js';
@@ -28,6 +29,9 @@ import { isMicCaptureSupported } from '../lib/workflow-scribe.js';
 import { rememberPrompt, AUTO_REMEMBERED, USE_PROMPT_EVENT } from '../lib/saved-prompts.js';
 import supabase from '../lib/supabase.js';
 import { getInstanceId } from '../lib/table-sync.js';
+
+// What a signed-out sender is told (DR-0622): the words are kept, where they are.
+export const SIGNED_OUT_SAID = 'Kept on this device only — you are signed out, so it has not reached anyone yet. Sign in and send it again so it reaches them.';
 
 export function OneVoiceInput({
   surface = 'church',
@@ -166,7 +170,14 @@ export function OneVoiceInput({
       case 'prayer':     addPrayerRequest({ requester: who || 'church family', request: t, shareWithChurch: true }); break;
       case 'pastor':     voiceNote('pastor'); break;
       case 'serve':      voiceNote('serve'); break;
-      case 'conference': updateConference({ feedback: [...((conference && conference.feedback) || []), { id: `cf-${Date.now()}`, text: t, from: who, at: new Date().toISOString() }] }); break;
+      case 'conference':
+        updateConference({ feedback: [...((conference && conference.feedback) || []), { id: `cf-${Date.now()}`, text: t, from: who, at: new Date().toISOString() }] });
+        // The Assembly feedback line had no reader: conference.feedback is
+        // written here and read by nothing (DR-0622). The same words now take
+        // the Conference module's own road — the feedback table, triaged in the
+        // steward's queue, its status on the sender's receipt.
+        uploadFeedback({ text: t, currentView: 'Conference · One Voice' }, { activeTab: 'conference' }).catch(() => {});
+        break;
       case 'work':       addIncident({ category: 'maintenance', description: t, urgency: 'incident', status: 'open', _note: cfg.sourceLabel }); break;
       case 'counseling':
         // TLC bright line: inquiries is pre-intake, non-PHI, cloud-synced —
@@ -191,6 +202,16 @@ export function OneVoiceInput({
     const msg = dispatch(route, t, name.trim());
     if (msg) setConfirmation(msg);
     else if (route === 'lesson') setConfirmation(null); // its own line arrives with the relay's answer
+    // SIGNED OUT, SAID PLAINLY (DR-0622: connected is not the same as
+    // answered, for every audience). Signed out, every door but the private
+    // note keeps the words on this device only — nobody else can read them —
+    // so the screen says that instead of "received". The lesson door already
+    // says its own refusal (lessonFailed).
+    if (route !== 'private' && route !== 'lesson' && supabase && supabase.auth) {
+      Promise.resolve(supabase.auth.getSession()).then((res) => {
+        if (!(res && res.data && res.data.session)) setConfirmation(cfg.confirmations.signedOut || SIGNED_OUT_SAID);
+      }).catch(() => {});
+    }
     // A lesson or a PoeTech request is remembered in Your prompts (DR-0615).
     // Private notes and the rest are not: they are kept only on request.
     if (AUTO_REMEMBERED.includes(route)) remember(t, route, false);
