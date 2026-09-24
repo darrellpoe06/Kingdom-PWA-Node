@@ -15696,9 +15696,16 @@ export function resolveLivingLessonsCohort(localCohort = null) {
   return resolveCohortGeneric(localCohort, LIVING_LESSONS_CONFIRMED_COHORT, LIVING_LESSONS_PROPOSED_COHORT_START);
 }
 
+import { LIVING_LESSONS_ADDED } from './living-lessons-dates.js';
+
 // Self-paced: one row per lesson with its lesson number, but NO computed date.
+// `added` is the real day the lesson joined the course (living-lessons-dates.js
+// — a recorded day, not a cohort date; null when a lesson has none).
+function withAdded(m) {
+  return { ...m, added: LIVING_LESSONS_ADDED[m.id] || null };
+}
 export function buildLivingLessonsSchedule() {
-  return LIVING_LESSONS_MODULES.map((m, i) => ({ ...m, week: i + 1, date: null, weekday: null }));
+  return LIVING_LESSONS_MODULES.map((m, i) => ({ ...withAdded(m), week: i + 1, date: null, weekday: null }));
 }
 
 export function livingLessonsProgressSummary(progress = {}) {
@@ -15707,7 +15714,7 @@ export function livingLessonsProgressSummary(progress = {}) {
 
 export function exportLivingLessonsCurriculumMarkdown() {
   return exportCurriculumMarkdownFor(
-    { meta: LIVING_LESSONS_META, sessionFlow: LIVING_LESSONS_SESSION_FLOW, modules: LIVING_LESSONS_MODULES },
+    { meta: LIVING_LESSONS_META, sessionFlow: LIVING_LESSONS_SESSION_FLOW, modules: LIVING_LESSONS_MODULES.map(withAdded) },
     null,
   );
 }
