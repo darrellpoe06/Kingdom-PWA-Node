@@ -17,6 +17,7 @@ import { fetchOps, landOrder, GITHUB_SLUG } from '../lib/github-ops.js';
 import { fetchSiteHealth } from '../lib/site-health.js';
 import { fetchHarvestHealth } from '../lib/harvest-health.js';
 import DataIntegrityReport from './DataIntegrityReport.jsx';
+import { REPEATABLE_GOVERNANCE } from '../lib/purpose.js';
 
 function laneBadge(lane) {
   if (lane === 'parallel-safe') return { status: 'good', label: 'parallel-safe' };
@@ -173,6 +174,16 @@ export default function OpsBoard() {
           </button>
         </div>
       </div>
+
+      {/* WHY THIS BOARD EXISTS, in the Governor's declared words (DR-0607, read
+          from lib/purpose.js): a governance surface recognizes patterns,
+          surfaces risks, and helps the decision — without depending on one
+          person's institutional knowledge. This board is that purpose applied
+          to the delivery lane: the lane's state lives HERE, read live, never in
+          one steward's memory of which PR was parked. */}
+      <p className="text-[0.6875rem] leading-relaxed text-[#5A5751] mb-2" data-testid="ops-board-purpose" style={{ fontFamily: '"Fraunces", serif' }}>
+        {REPEATABLE_GOVERNANCE.statement} This board is that purpose applied to the delivery lane: what merged, what is in flight, what is parked, and whether the site is up — read live, never from one person's memory.
+      </p>
 
       {/* The model, documented beside its live proof (DR-0103 / DR-0065). This
           is static-by-design operating documentation; the state BELOW it is the

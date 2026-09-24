@@ -8,6 +8,7 @@ import AppStore from './AppStore.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import TrustedDevices from './TrustedDevices.jsx';
 import AdoptPoeTech from './AdoptPoeTech.jsx';
+import { REPEATABLE_GOVERNANCE } from '../lib/purpose.js';
 import BlueprintFieldGuide from './BlueprintFieldGuide.jsx';
 import { ARI } from '../lib/ari.js';
 import { feedbackText, feedbackScreenshotCount } from '../lib/feedback-triage.js';
@@ -302,6 +303,29 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
         <p className="text-sm leading-relaxed mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
           <strong>Local-first by default.</strong> Your data stays on your devices. Cloud sync is opt-in for historical stability across devices. We do not sell or mine your family's data — that's foundational, not a feature.
         </p>
+        {/* WHAT POETECH DESIGNS (Darrell 2026-09-24, DR-0607): "PoeTech App should
+            be Designing repeatable governance systems that help organizations
+            recognize patterns, surface risks, and make better decisions without
+            depending on one person's institutional knowledge." Read from
+            lib/purpose.js — the one place the sentence lives — so the About page,
+            the OpsBoard and the decision record carry the same words. The Word
+            behind it is quoted verbatim from the KJV and referenced. */}
+        <div className="mb-4 border-l-2 border-[#5A6E3D] pl-3" data-testid="about-purpose-repeatable-governance">
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] mb-1 font-semibold">What PoeTech designs</div>
+          <p className="text-base leading-relaxed mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+            <strong>{REPEATABLE_GOVERNANCE.statement}</strong>
+          </p>
+          <ul className="text-sm leading-relaxed mb-2 list-disc pl-5" style={{ fontFamily: '"Fraunces", serif' }}>
+            {REPEATABLE_GOVERNANCE.verbs.map((v) => (
+              <li key={v.key}>A governance surface in this app must help a community <strong>{v.does}</strong>, {REPEATABLE_GOVERNANCE.without}.</li>
+            ))}
+          </ul>
+          <p className="text-sm leading-relaxed text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+            {REPEATABLE_GOVERNANCE.word.map((w, i) => (
+              <span key={w.ref}>{i > 0 ? ' ' : ''}<em>"{w.text}"</em> ({w.ref})</span>
+            ))}
+          </p>
+        </div>
         {/* 2026-06-03 — Body-of-Christ economic-stewardship lens per Darrell's mission
             unification (docs/00-foundations/_root/BODY-OF-CHRIST-ECONOMIC-STEWARDSHIP.md).
             Multi-racial Body (1 Pet 2:9), Black Church as exemplar; soul-first order (3 John 1:2),
