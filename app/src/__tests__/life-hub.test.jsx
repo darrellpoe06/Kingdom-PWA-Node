@@ -116,6 +116,18 @@ describe('nobody is moved off the front door they already have', () => {
     expect(text()).not.toContain('Life Hub’s');
   });
 
+  it('rides at the end of the Overview tab row, never on a line of its own', () => {
+    // Darrell 2026-09-24, of the button alone on a full-width row above the
+    // tabs: "Try the hub is taking up a lot of space... why?!"
+    render(createElement(Home, { data: world, setView: noop, dismissWelcome: noop, totals: {}, entityRollups: [], reserves: {}, upcomingEvents: [] }));
+    const btn = container.querySelector('[data-testid="try-life-hub"]');
+    const row = container.querySelector('[data-testid="overview-tab-row"]');
+    expect(btn).toBeTruthy();
+    expect(row).toBeTruthy();
+    expect(row.contains(btn)).toBe(true);
+    expect(row.querySelector('[role="tab"]')).toBeTruthy();
+  });
+
   it('and switches to the hub only when the preference says so', () => {
     act(() => setHomeView('lifehub'));
     render(createElement(Home, { data: world, setView: noop, setData: noop }));

@@ -320,6 +320,12 @@ const NODES = [
     reads: [{ res: 'device:family-key', token: 'bridgeToken' }, { res: 'http:nas-photos', token: '/nas-photos' }],
     seeds: [],
   }),
+  app('app/src/lib/clip-queue.js', {
+    id: 'reader-audio-voice', name: 'Reader audio voice (keeps playing when you switch apps)',
+    purpose: 'The reading as real audio clips from the NAS voice, so a phone keeps playing it in the background (DR-0627).',
+    reads: [{ res: 'device:family-key', file: 'app/src/lib/voice-service.js', token: 'bridgeToken' }, { res: 'http:voice-lite', file: 'app/src/lib/voice-service.js', token: '/voice-lite' }],
+    seeds: [],
+  }),
   app('app/src/components/VoiceStudio.jsx', {
     id: 'voice-studio', name: 'Voice studio',
     purpose: 'The reading voice, spoken by our own studio.',
@@ -725,6 +731,14 @@ const NODES = [
     id: 'voice-transport', name: 'Voice transport (the road to the studio)', purpose: 'Carries the app’s /voice requests to the studio on the tower.',
     reads: [{ res: 'tower:voice-studio', token: 'tlcmediadpt' }], writes: [{ res: 'http:voice', token: '/voice' }], seeds: ['voice-studio'],
   }),
+  rider('service:voice-lite', 'infra/nas-voice-lite/voice_lite_server.py', {
+    id: 'voice-lite', name: 'NAS audio voice (Piper)', purpose: 'Speaks a paragraph as a real audio clip on the NAS CPU, so the stand-in voice keeps playing in the background (DR-0627).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'voice-lite' }], writes: [{ res: 'http:voice-lite', token: '/voice-lite' }], seeds: ['reader-audio-voice'],
+  }),
+  wf('voice-lite-probe.yml', {
+    id: 'voice-lite-probe', name: 'Voice-lite probe (a real clip, end to end)', purpose: 'Asks /voice-lite for a paragraph the way the app does and keeps the clip.',
+    reads: [{ res: 'http:voice-lite', token: 'voice-lite' }], writes: [], seeds: [],
+  }),
   rider('service:funnel', 'infra/nas-loops/loops/funnel_watchdog.py', {
     id: 'funnel', name: 'Public Funnel (the NAS’s front door)', purpose: 'Keeps the recorded sovereign routes served to the app’s proxy.',
     reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'funnel' }], writes: [{ res: 'http:funnel', token: 'funnel' }], seeds: ['transport'],
@@ -832,6 +846,7 @@ const RESOURCES = {
   'hosted:db': { label: 'the retired hosted database' },
   'http:nas-photos': { label: 'photo server on the NAS', route: '/nas-photos' },
   'http:voice': { label: 'the reading voice studio', route: '/voice' },
+  'http:voice-lite': { label: 'the NAS audio voice (Piper)', route: '/voice-lite' },
   'http:taxes': { label: 'the tax archive on the NAS', route: '/taxes' },
   'http:taxes-upload': { label: 'a tax document uploaded', route: '/taxes' },
   'nas:mirror': { label: 'the NAS repo mirror' },
