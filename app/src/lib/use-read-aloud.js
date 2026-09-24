@@ -22,7 +22,8 @@ import {
 import { mergeVoiceCatalog, canCloneVoice, isVoiceEntitled, resolveVoiceProvider, KIND, SYSTEM_VOICE } from './voice-registry.js';
 import { buildStandInAssignments, resolveVoiceURIForId, standInPitch } from './voice-assignment.js';
 import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
-import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService, voiceErrorReason, speakTimeoutFor, mayAttemptStudio, isStudioRoadProblem } from './voice-service.js';
+import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService, voiceErrorReason, speakTimeoutFor, mayAttemptStudio, isStudioRoadProblem, synthesizeLite, mayTryLiteVoice, markLiteVoiceDown, LITE_FIRST_TIMEOUT_MS } from './voice-service.js';
+import { chunkForClips, createClipQueue } from './clip-queue.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
 import { createBackgroundAudio } from './background-audio.js';
@@ -85,11 +86,18 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // prints it beside Reading/Paused. Nothing here is a popup and nothing here
   // is the reader's to fix; the house sees the studio through nas-health.
   const [standInWhy, setStandInWhy] = useState('');
+  // WHICH KIND OF VOICE IS SPEAKING, because only one of them survives the
+  // app leaving the screen: 'audio' (a real clip — studio or NAS voice, keeps
+  // playing in the background) or 'device' (the phone's Web Speech, which
+  // Android stops when you switch apps). '' before the first read.
+  const [audioVoice, setAudioVoice] = useState('');
   const setNotice = useCallback((msg, action = null) => {
     setNoticeRaw(msg);
     setNoticeAction(msg ? action : null);
   }, []);
   const audioRef = useRef(null);
+  // The paragraph-clip player for the NAS audio voice (lib/clip-queue.js).
+  const queueRef = useRef(null);
   // THE SPEED CHIP HAS TO REACH THE CLIP (2026-09-18). A cloud read is one
   // audio element, and playbackRate was never touched on it — so on the
   // sovereign/bridge path (which since DR-0382 carries the SYSTEM voice, the
@@ -106,6 +114,9 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const setRate = useCallback((r) => {
     rateRef.current = r;
     tts.setRate(r);
+    // The clip queue re-applies its own speed on every new piece, so it must
+    // hear the change too, or the next paragraph snaps back to the old speed.
+    if (queueRef.current) queueRef.current.setRate(r);
     const a = audioRef.current;
     if (a) {
       // An audio element takes a live rate change mid-play, unlike an
@@ -201,6 +212,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   }, []);
 
   const stop = useCallback(() => {
+    if (queueRef.current) { queueRef.current.stop(); queueRef.current = null; }
     try { tts.stop(); } catch (_) {}
     if (audioRef.current) { try { audioRef.current.pause(); } catch (_) {} audioRef.current = null; }
     setCloudPlaying(false);
@@ -228,6 +240,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // (via the full stop()) immediately before the first speak() is swallowed on
   // Chrome/mobile — the "tap Read, nothing happens" race. So we don't pre-cancel.
   const stopCloud = useCallback(() => {
+    if (queueRef.current) { queueRef.current.stop(); queueRef.current = null; }
     if (audioRef.current) { try { audioRef.current.pause(); } catch (_) {} audioRef.current = null; }
     setCloudPlaying(false);
     setCloudProgress(0);
@@ -247,8 +260,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     if (!session) return;
     const reading = tts.isReading || cloudPlaying;
     if (!reading) { session.stop(); return; }
-    session.setState(tts.isPaused ? 'paused' : 'playing');
-  }, [tts.isReading, tts.isPaused, cloudPlaying]);
+    session.setState((tts.isPaused || cloudPaused) ? 'paused' : 'playing');
+  }, [tts.isReading, tts.isPaused, cloudPlaying, cloudPaused]);
 
   useEffect(() => () => { if (bgRef.current) bgRef.current.stop(); }, []);
 
@@ -282,6 +295,56 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       session.setState('playing');
     } catch (_) { /* no audio session is a degraded read, never a broken one */ }
   }, [bg]);
+
+  // Which NAS voice stands in: a man's stand-in reads as a man (DR-0138).
+  const liteVoiceFor = useCallback(() => {
+    if (isPersonVoiceId(voiceId)) {
+      const v = personalVoices.find((x) => x.personKey === personKeyOf(voiceId));
+      return v && v.gender === 'female' ? 'female' : 'male';
+    }
+    return SYSTEM_VOICE.gender === 'male' ? 'male' : 'female';
+  }, [voiceId, personalVoices]);
+
+  /** Play `clean` in the NAS audio voice. Resolves true once the first piece plays. */
+  const playLiteVoice = useCallback(async (clean) => {
+    const voice = liteVoiceFor();
+    const chunks = chunkForClips(toSpokenForm(clean));
+    if (!chunks.length || typeof Audio === 'undefined') return false;
+    // The first piece decides: if the NAS voice cannot answer it in time, the
+    // device voice speaks instead and the road is not asked again for a while.
+    const first = await synthesizeLite({ text: chunks[0].text, voice, timeoutMs: LITE_FIRST_TIMEOUT_MS });
+    if (first.error || !first.url) { markLiteVoiceDown(); return false; }
+    const a = new Audio();
+    let served = false;
+    const q = createClipQueue({
+      chunks,
+      audio: a,
+      rate: rateRef.current,
+      fetchClip: (t) => {
+        if (!served) { served = true; return Promise.resolve(first); }
+        return synthesizeLite({ text: t, voice });
+      },
+      revoke: (u) => { try { URL.revokeObjectURL(u); } catch (_) { /* ignore */ } },
+      onProgress: (f) => setCloudProgress(f),
+      onEnd: () => { if (queueRef.current === q) { queueRef.current = null; audioRef.current = null; setCloudPlaying(false); setCloudPaused(false); setCloudProgress(0); } },
+      // A piece that cannot be had: the rest of the reading continues in the
+      // device voice rather than stopping (and the panel says which voice).
+      onFallback: (rest) => {
+        if (queueRef.current !== q) return;
+        queueRef.current = null; audioRef.current = null;
+        markLiteVoiceDown();
+        setCloudPlaying(false); setCloudProgress(0);
+        setAudioVoice('device');
+        if (rest && tts.supported) tts.speak(rest, resolveSpeakURI(voiceId));
+      },
+    });
+    queueRef.current = q;
+    audioRef.current = a;
+    setCloudPlaying(true); setCloudPaused(false); setCloudProgress(0);
+    setAudioVoice('audio');
+    const ok = await q.start();
+    return ok || queueRef.current === null;
+  }, [liteVoiceFor, tts, resolveSpeakURI, voiceId]);
 
   const read = useCallback(async (text, { title } = {}) => {
     const clean = String(text || '').trim();
@@ -321,7 +384,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
               setNotice('Read in your voice via the vendor bridge — a recorded gap; arming the church’s own voice studio closes it.');
             }
             try {
-              const a = new Audio(url); audioRef.current = a; setCloudPlaying(true); setCloudProgress(0);
+              const a = new Audio(url); audioRef.current = a; setCloudPlaying(true); setCloudProgress(0); setAudioVoice('audio');
               // The chosen speed applies to the clip from its first second, and a
               // device that refuses the rate says so instead of quietly reading slow.
               const rateApplied = applyClipRate(a, rateRef.current);
@@ -407,7 +470,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
           setNotice('Read via the vendor bridge — a recorded gap; arming the church’s own voice studio closes it.');
         }
         try {
-          const a = new Audio(url); audioRef.current = a; setCloudPlaying(true); setCloudProgress(0);
+          const a = new Audio(url); audioRef.current = a; setCloudPlaying(true); setCloudProgress(0); setAudioVoice('audio');
           // The chosen speed applies to the clip from its first second, and a
           // device that refuses the rate says so instead of quietly reading slow.
           const rateApplied = applyClipRate(a, rateRef.current);
@@ -447,6 +510,19 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       // sovereignty notice above already covers the case that matters.
     }
 
+    // THE STAND-IN IS AUDIO WHEN IT CAN BE (Darrell 2026-09-24: "Why doesn't
+    // the player remain playing in the background when I switch between
+    // apps?!!? Fix it."). Everything below this point is the phone's Web
+    // Speech engine, which Android stops the moment the app leaves the screen.
+    // So before falling to it, the System voice and a person's stand-in ask
+    // the NAS's own voice (/voice-lite, Piper) for REAL AUDIO, played piece by
+    // piece through one <audio> element: media, which the phone keeps playing.
+    // A browser accent the listener picked on purpose is left as their choice.
+    if ((isSystemVoiceId(voiceId) || isPersonVoiceId(voiceId)) && mayTryLiteVoice()) {
+      const played = await playLiteVoice(clean);
+      if (played) return;
+    }
+    setAudioVoice('device');
     if (!tts.supported) { setNotice('This device can’t read aloud — try a different browser.'); return; }
     // Close the cold-start gap: on a fresh mobile load the device voice list can
     // still be empty at the tap; a read resolved then falls to the raw OS default
@@ -515,7 +591,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     const cid = catalogIdOf(voiceId);
     const pitch = cid ? standInPitch(fullCatalog, liveAssignments, cid) : undefined;
     tts.speak(clean, uri, pitch);
-  }, [voiceId, personalVoices, sovereignVoiceReady, attemptStudio, studioHealth, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio, setNotice]);
+  }, [voiceId, personalVoices, sovereignVoiceReady, attemptStudio, studioHealth, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio, setNotice, playLiteVoice]);
 
   // The OS media buttons drive the SAME controls the panel does — kept in a ref
   // so a lock-screen tap can never call a stale closure.
@@ -541,6 +617,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     cloudProgress,
     voiceId, setVoiceId, catalog, currentItem, notice,
     standInWhy,
+    audioVoice,
     // setNotice is exported so the panel can DISMISS a notice (2026-09-22).
     // Before this the only clear was at the start of the next read, so a
     // fault message stayed on top of the lesson indefinitely.

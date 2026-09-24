@@ -366,3 +366,60 @@ export function speakTimeoutFor(health) {
 export function mayAttemptStudio() {
   return isVoiceServiceReady();
 }
+
+// -----------------------------------------------------------------------------
+// THE NAS'S OWN AUDIO VOICE — so the stand-in keeps playing in the background
+// -----------------------------------------------------------------------------
+// Darrell 2026-09-24, on his Android phone: "Why doesn't the player remain
+// playing in the background when I switch between apps?!!? Fix it." With the
+// GPU studio dark the reader fell back to the phone's Web Speech, which Android
+// stops when the app leaves the screen. /voice-lite is Piper on the NAS CPU
+// (infra/nas-voice-lite): always AUDIO, so a reading in it plays on like music.
+// Same lock as /voice (the family bridge bearer). A miss is remembered briefly
+// so a dark road is paid for once, not on every paragraph.
+export const LITE_VOICE_PATH = '/voice-lite/speak';
+export const LITE_FIRST_TIMEOUT_MS = 15000;   // the first, short piece on a NAS CPU
+export const LITE_TIMEOUT_MS = 60000;         // later pieces are prefetched while one plays
+export const LITE_DOWN_MS = 2 * 60 * 1000;
+let liteDownUntil = 0;
+
+/** False for a short while after the audio voice failed, so it is not re-asked per paragraph. */
+export function mayTryLiteVoice(now = Date.now()) { return now >= liteDownUntil; }
+export function markLiteVoiceDown(now = Date.now()) { liteDownUntil = now + LITE_DOWN_MS; }
+/** Tests only. */
+export function _resetLiteVoiceForTests() { liteDownUntil = 0; }
+
+/**
+ * One piece of a reading as a real audio clip from the NAS voice.
+ * @returns {Promise<{url:string}|{error:string}>}
+ */
+export async function synthesizeLite({ text, voice = 'male', timeoutMs = LITE_TIMEOUT_MS, fetchImpl, origin } = {}) {
+  const body = String(text || '').trim();
+  if (!body) return { error: 'empty-text' };
+  const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
+  if (!f) return { error: 'no-fetch' };
+  const base = origin != null ? origin : (typeof window !== 'undefined' && window.location ? window.location.origin : '');
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; try { if (ctrl) ctrl.abort(); } catch (_) { /* ignore */ } }, timeoutMs);
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = bridgeToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const res = await f(`${base}${LITE_VOICE_PATH}`, {
+      method: 'POST', headers, body: JSON.stringify({ text: body, voice }), signal: ctrl ? ctrl.signal : undefined,
+    });
+    if (!res || !res.ok) return { error: `voice-lite-${res ? res.status : 'no-response'}` };
+    const ctype = (res.headers && typeof res.headers.get === 'function' && res.headers.get('Content-Type')) || '';
+    // A route that fell through to the app shell answers 200 with HTML; that
+    // is not a voice, and must never be played as one.
+    if (ctype && !/^audio\//i.test(ctype)) return { error: 'voice-lite-not-audio' };
+    const blob = await res.blob();
+    if (!blob || !blob.size) return { error: 'voice-lite-empty' };
+    return { url: URL.createObjectURL(blob) };
+  } catch (e) {
+    return { error: timedOut ? 'voice-lite-timeout' : ((e && e.message) || 'voice-lite-error') };
+  } finally {
+    clearTimeout(timer);
+  }
+}
