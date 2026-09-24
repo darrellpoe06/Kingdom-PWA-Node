@@ -8,6 +8,10 @@
 - **Principles:** DO-NOT-RE-ASK (DR-0111 — he stated the preference; pick the default and proceed), REALITY-TRACE (DR-0061 — the running app as he met it), PERPETUAL-IMPROVEMENT (DR-0075 — the path not taken carries a re-review date), VERIFICATION-DOCTRINE (DR-0076 §3 proven-to-catch, §6 the real tree), DR-0219 (SHOULD → ARE → GAPS → CLOSE)
 - **Grounds:** Darrell 2026-09-24, with a screenshot of Living Lessons on his Fold folded into collapsed sections: *"I would rather have the long list than this! Or give actual lessons inside of multiple courses inside of the department like we already do and did!!!!!!!!!!!!!!!!! This is just totally different feel and process!!!!!! Why?!!!!!!!!"*
 
+## Context — the question
+
+His question was "Why?", with the screenshot. The answer is two records shipped from his own words in the last day; the fix is the feel he named.
+
 ## Why it looked different — the answer to his question
 
 Two records shipped in the last day from his own words, and together they changed the feel of one course:
@@ -41,6 +45,12 @@ So on his screen the newest department opened to a dropdown with one course in i
 | leaving and returning | after opening Business Research (no select there) and returning, 189 rows again |
 | a short course | Business Research: flat list, 9 rows, no select |
 | gates | `living-lessons-sections` 11/11, `learn-crosslisted-in-the-picker` 13/13, `learn-course-picker-is-first`, `learn-lesson-index-is-next` — 40 in one run; eslint 0 on the component and the test |
+
+## Limits, stated
+
+1. **The eight-true-courses road is not taken today** (Decision item 5): a surface-only split keeps every lesson id, saved place, share link and progress row where it is. `re-review: 2026-10-07` with the question put to him plainly.
+2. **The pick is per session and per course, not remembered.** A reader who wants "The Letters" every time will pick it every time. If that friction is real, the remembered-course store in `learn-organize.js` is where a remembered shelf would live. `re-review: 2026-10-07`.
+3. **Only Living Lessons crosses the 30-lesson threshold today** (the next-longest courses are 18, 17, 14), so the select has one live course to prove itself on; the pin covers the threshold both ways.
 
 ## Verification
 
