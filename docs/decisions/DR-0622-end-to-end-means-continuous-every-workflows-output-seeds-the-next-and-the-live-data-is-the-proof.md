@@ -113,3 +113,16 @@ The seven still broken, and what holds each:
 | `nas-agent-arm.yml`, `nas-storage-sync.yml`, `source-transcript.yml`, `transcript-backfill.yml` | dispatch-only tools whose last hand-run failed. `source-transcript` is replaced by `source-transcript-nas` (flowing). `transcript-backfill` is replaced by the NAS trickle (874 transcripts live). | **named**: combine each replaced pair once the combined path is proven, never retire it outright (DR-0621). `re-review: 2026-10-01` |
 
 The stale and empty rows are unchanged, and each one is carried as an escalation on the operations board. Nothing is painted green.
+
+## The four red lanes, carried to the route that works (2026-09-24, same push)
+
+The "combine later, re-review 2026-10-01" line above is replaced: each lane was worked now (DR-0621, DR-0236). The root cause below was read from each lane's own failing run.
+
+| lane | failing run and its root cause | fix |
+| --- | --- | --- |
+| `source-transcript.yml` | 35673574195: `Sign in to confirm you're not a bot`. YouTube challenges the runner's datacenter address. | **combined**: a challenge no longer ends the run. The same dispatch reads the video id from the link and calls `source-transcript-nas.yml`, which now also accepts `workflow_call`, from the NAS's residential address. A transcript already on main word for word is a success, not an empty failed commit. |
+| `transcript-backfill.yml` | 29162978378: 50 of 50 attempts blocked from the runner address. | **combined**: without proxy secrets, a dispatch runs the NAS trickle rider (`transcript_trickle_install.sh`) with its own stamp and budget, capped at 8 per dispatch (the runner lane asked 50). The runner lane stays as the proxy-only second lane. |
+| `nas-agent-arm.yml` | 31860587442: `install.sh: No such file`, because the NAS copy of the repo had not pulled the installer yet. The deeper fault: it placed `SUPABASE_DB_URL`, the retired hosted database, so every chat row sent after the 2026-08-19 repoint went unanswered (the live `agent_tasks` newest row is 2026-08-22). | **fixed at the root**: `agent_consumer.resolve_db` follows `REPOINT-ARMED` to the NAS's own Postgres (127.0.0.1:5433, password read on the box itself), so no credential moves through CI. The lane runs the consumer once from its own checkout and is red unless the consumer says it serves the sovereign database. It no longer overwrites `agent.env`. Selftest 26/26, including the new check that catches the retired database. |
+| `nas-storage-sync.yml` | 35906520553: dispatched from a feature branch for a private bucket. `HOSTED_SERVICE_ROLE_KEY` in `agent.env` is not a Supabase key (57 bytes, starts `cdn`). | **public route re-run on main** (moore-showcase). The six private buckets wait on the hosted service key. Moving the project's most privileged credential through CI is a decision only Darrell makes (the lane's own header), and the key is a value only he can mint. `re-review: 2026-10-01`, beside `nas-email-door`. |
+
+Proofs: `broken-lanes-combined-with-their-working-twins.test.js`, 10 tests, each pinning one combination against being quietly reverted. The flow graph's `unseeded` gate caught the new source-transcript to NAS seed until the NAS route declared what it reads from the call.

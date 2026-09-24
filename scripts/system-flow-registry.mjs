@@ -456,11 +456,11 @@ const NODES = [
     seeds: [],
   }),
   wf('transcript-backfill.yml', {
-    id: 'transcript-backfill', name: 'Transcript backfill (hosted, retired side)',
-    purpose: 'The CI caption harvest; it still writes the retired hosted database.',
+    id: 'transcript-backfill', name: 'Transcript backfill (runs the NAS trickle on demand)',
+    purpose: 'A hand dispatch runs the transcript-trickle rider on the NAS, under the trickle’s own stamp and budget (DR-0622: combined with its working twin); the runner lane runs only with residential proxy secrets.',
     reads: [{ res: 'yt:channel', file: 'infra/nas-sme-pipeline/transcript-backfill-ci.py', token: 'youtube' }],
-    writes: [{ res: 'hosted:db', token: 'SUPABASE_DB_URL' }],
-    seeds: ['content-sync'],
+    writes: [{ res: 'db:video_transcripts', token: 'transcript_trickle_install.sh' }, { res: 'hosted:db', token: 'SUPABASE_DB_URL' }],
+    seeds: ['content-sync', 'sermon-reader'],
   }),
   wf('sovereign-content-sync.yml', {
     id: 'content-sync', name: 'Sovereign content sync (retired → live)',
@@ -612,7 +612,7 @@ const NODES = [
     writes: [], seeds: [],
   }),
   wf('nas-agent-arm.yml', {
-    id: 'nas-agent-arm', name: 'Arm the NAS agent', purpose: 'Places the agent’s database credential on the NAS.',
+    id: 'nas-agent-arm', name: 'Arm the NAS agent', purpose: 'Runs the agent consumer once from this checkout and proves it serves the database the app reads (DR-0622: it no longer carries a credential).',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'nas:agent-credential', token: 'agent' }], seeds: ['agent-consumer'],
   }),
   wf('nas-email-door.yml', {
@@ -686,12 +686,12 @@ const NODES = [
     reads: [{ res: 'web:primary-records', token: 'history-voices-witness.mjs' }], writes: [], seeds: [],
   }),
   wf('source-transcript.yml', {
-    id: 'source-transcript', name: 'Source transcript (runner)', purpose: 'Turns a video Darrell sends into text the capture session can read.',
-    reads: [{ res: 'yt:channel', token: 'youtube' }], writes: [{ res: 'file:source-transcripts', token: 'docs/99-session-notes/sources/' }], seeds: ['lesson-capture'],
+    id: 'source-transcript', name: 'Source transcript (runner, then the NAS)', purpose: 'Turns a video Darrell sends into text the capture session can read; when YouTube challenges the runner, the same run hands the link to the NAS route (DR-0622).',
+    reads: [{ res: 'yt:channel', token: 'youtube' }], writes: [{ res: 'file:source-transcripts', token: 'docs/99-session-notes/sources/' }, { res: 'gh:call:source-transcript-nas', token: 'uses: ./.github/workflows/source-transcript-nas.yml' }], seeds: ['lesson-capture', 'source-transcript-nas'],
   }),
   wf('source-transcript-nas.yml', {
     id: 'source-transcript-nas', name: 'Source transcript (NAS address)', purpose: 'The same, fetched from the NAS’s residential address YouTube does not block.',
-    reads: [{ res: 'yt:channel', token: 'youtube' }], writes: [{ res: 'file:source-transcripts', token: 'transcripts' }], seeds: ['lesson-capture'],
+    reads: [{ res: 'yt:channel', token: 'youtube' }, { res: 'gh:call:source-transcript-nas', token: 'workflow_call' }], writes: [{ res: 'file:source-transcripts', token: 'transcripts' }], seeds: ['lesson-capture'],
   }),
   wf('sovereign-read.yml', {
     id: 'sovereign-read', name: 'Ask the live database', purpose: 'A session reads the database the app reads — feedback, tables, and the lessons waiting.',
