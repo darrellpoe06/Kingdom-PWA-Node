@@ -8,7 +8,7 @@
 - **Principles:** SPEC-CONFORMANCE (DR-0219), VERIFICATION-DOCTRINE (DR-0076), REALITY-TRACE (DR-0061), APP-IS-PRIMARY (DR-0065), PERPETUAL-IMPROVEMENT (DR-0075), DO-THE-WORK (DR-0111)
 - **Grounds:** DR-0262 (every lesson its own space; the place survives both directions), DR-0418 (Refresh first), DR-0450 (if it is over, it is over), DR-0552 (the reader takes you back), the 2026-09-14 exact-location work, DR-0151 (device-local vs a synced store is its own decision)
 
-## What he said
+## Context — what he said
 
 Darrell, 2026-09-24, from using the live app:
 
@@ -29,7 +29,7 @@ Darrell, 2026-09-24, from using the live app:
 
 So continuing SHOULD: bring you back to the same lesson, part, step **and sentence**, whatever you did in between (reload, another tab, another course, another lesson, listening); be one obvious tap from where you look, with the course picker still first; offer a refresher; treat a finished lesson as finished; and never lose one lesson's place to another.
 
-## ARE — the real journeys, measured before the change
+## What was measured — ARE: the real journeys, before the change
 
 Driven in real Chromium at a 390×844 phone viewport against a production build of `main` (signed out; Learn renders at `?view=church&sub=learn`). Screens: `before-*.png` in the session's `continue-lesson/` folder.
 
@@ -58,7 +58,11 @@ Also measured: opening a lesson grows the page to ~67,500 DOM nodes **in both bu
 9. **Content updates.** The sentence is matched by fingerprint (survives re-pacing); a lesson removed from the catalog offered nothing. Holding, but a changed sentence fell back silently.
 10. **Across devices** the place does not follow the reader (device-local by design — see the open decision).
 
-## CLOSE — what was built
+## Impact
+
+Unresolved, a reader who left a lesson — by a reload, another tab, another course or another lesson — came back to the right step at best, at the top of the page, with the only way back two and a half screens down; a second lesson erased the first. Resolved, every lesson begun is one tap from the first screen, and the tap puts the reader on the sentence they left, marked. Nothing about a lesson's text leaves the device.
+
+## Decision — CLOSE: what was built
 
 1. **One place per lesson** (`learn-resume.js`). The record is a small map keyed `course::lesson`, newest first, capped at 60 (begun lessons kept ahead of mere glances; the latest never dropped). `getPlace()` still means "the latest", `recordPlace()` still merges — into **that lesson's own** record, so returning to a lesson picks up its part and step. The old single key is migrated on first read and kept as a mirror of the latest, so an older tab of the app keeps working and its writes are folded in. `started` separates beginning a lesson (Start / Continue / Play / any move) from glancing at its card.
 2. **Continue, one tap, where a person looks** (`LessonContinue.jsx`):
@@ -66,24 +70,39 @@ Also measured: opening a lesson grows the page to ~67,500 DOM nodes **in both bu
    - **In the sticky lessons bar**: the open course's lesson in progress. The bar never scrolls away.
    - **On each row of the lesson list**: Continue on a lesson begun, "✓ Finished" on one done.
    - **On the lesson's own card**: "Start this lesson →" becomes "Continue this lesson →".
-3. **The landing** (`lesson-landing.js`). Continue opens the guide at the saved part and step, finds the saved sentence **by fingerprint** in the rendered lesson (the guide first), scrolls it to just under the pinned chrome, and marks it for six seconds in the Continue control's own olive (never red, DR-0099). If the sentence is gone (the lesson changed), it lands on the saved step and **says so**; a bare index is never followed.
-4. **The eye writes the sentence** into the same record the voice does: after a scroll the person made (wheel, touch, keys — never the reader's follow-scroll or the landing's own), the sentence at the reading line is saved. The separate scroll record for lessons is retired, so there is **one** place, not two.
+3. **The landing** (`lesson-landing.js`). Continue opens the guide at the saved part and step, finds the saved sentence **by fingerprint** in the rendered lesson (the guide first), scrolls it to 44 px under ALL the pinned chrome (measured, not assumed), and marks it for six seconds in the Continue control's own olive (never red, DR-0099). If the sentence cannot be found, it lands on the saved step and **says only what it knows**: "Picked up at part 2, step 3, at the start of that step — your exact sentence could not be found in it." A bare index is never followed.
+4. **The eye writes the sentence** into the same record the voice does: after a scroll the person made (wheel, a finger dragging the page, scroll keys — never the reader's follow-scroll, the landing's own scroll, or a tap), the sentence **nearest** the reading line is saved. The separate scroll record for lessons is retired, so there is **one** place, not two.
+7. **The lesson is named by its own number, and Prev / Next walk the reader's order** (with DR-0622, merged in). DR-0622 put the list in number order; inside a lesson the counter still printed the array position — "191 / 191" on L192 in Darrell's screenshot — and Prev / Next walked the written array, where L61 is stored before L60, so Next from L60 skipped L61. Now the counter reads "L192" (with "· 191 of 191" beside it on a wider screen), Prev / Next and the hands-free advance walk the order picked in the list (number by default; newest first or by the Word's divisions when chosen), and every Continue names a lesson by its own number. Built on `lib/lesson-order.js` (DR-0622's helpers), not beside it.
 5. **Leaving by the end door is finishing**; a finished lesson is not offered to continue, and its row says Finished.
 6. **Start fresh asks first** (`confirmThen`) and forgets **only the lesson it names**; the others keep their places.
 
 ### After — the same journeys
 
-Screens: `after-*.png` beside the before screens. Results: `after-results.json`.
+Screens: `after-*.png` beside the before screens. Results: `after-results-J1-7.json`.
 
-AFTER_TABLE
+| Journey | Where it lands now (same build, same driver, same phone viewport) |
+|---|---|
+| J1 reload | Learn opens with "Pick up where you left off" at **y ≈ 637 — on the first screen**, a 110-px button. One tap: L1, part 2, step 3, and **the exact sentence the reader left** ("The Eastern Christian tradition speaks of theosis…") 44 px under the pinned chrome, marked, with "Picked up where you left off — part 2, step 3. Your sentence is marked." |
+| J2 another tab and back | The same, the offer at y ≈ 596; the same sentence, on screen, marked. |
+| J3 another course and back | The offer at the top, the course's own Continue in the sticky lessons bar, and Continue on the lesson's row; the same sentence, on screen, marked. |
+| J4 a second lesson, then back | Both offered on the first screen: "Continue Week 1 · What is A.I., really?" (y ≈ 596) and, under "Also in progress · 1", L1 (y ≈ 780). The record kept both lessons. Tapping L1 lands on its part 2, step 3 and its exact sentence. |
+| J5 listen, stop, continue | The sentence the reader saved survives leaving by another tab (it did not, until the tap fix below), and Continue lands on it and marks it (scrollY 1,625, the mark on "The Eastern Christian tradition…"). |
+| J6 finish | Leaving by the end door records it finished: L1's row reads "✓ Finished", it is no longer offered to continue, and it reopens at part one. |
+| J7 Start fresh | Asks first; forgets only the lesson it names (the A.I. lesson); L1 keeps its own record. |
+
+**Two defects the journeys caught in this change before it shipped, each fixed and pinned:**
+
+- **The nearest sentence, not the next.** The first after-run came back ~130 px lower than the reader left: the reading line fell on the Back / Next buttons, and "the first sentence below the line" was a story heading 150 px down. The rule now takes the sentence nearest the line (`continue-a-lesson-landing.test.js`, "across a gap of controls"). Run against the first rule: `first-below rule: 1 -> FAIL (expected 0)`; against the shipped rule: `nearest rule: 0 -> PASS`.
+- **A tap is not a scroll.** With a tap counted as the reader moving, tapping the Scripture tab to leave recorded the view under the finger over the sentence the read-aloud had saved (traced: the record went from `lgl5tf` to `5ur3fq` on the tap). Only wheel, touch-drag and scroll keys count now (`the-exact-location-is-kept.test.js`, "a tap is not a scroll").
 
 ## Verification
 
 - `continue-a-lesson.test.js` (14) — the per-lesson record, in-progress, Start fresh per lesson, legacy migration both ways, the cap, the words.
-- `continue-a-lesson-landing.test.js` (10) — the reading line, fingerprint-only matching, the landing and its honest fallback.
+- `continue-a-lesson-landing.test.js` (11) — the reading line (nearest sentence), fingerprint-only matching, the landing and its honest fallback.
+- `continue-a-lesson-numbers.test.jsx` (7) — L192 is named L192 in the lesson and in every Continue; Next from L60 opens L61; L192 is last by number; "Newest first" picked in the list is what Next follows. **Proven-to-catch:** run over this file's pre-change ChurchLearn and LessonContinue, 4 of 7 fail — the offer reads "Lesson 191 · Two Hours…", the counter is not L192, Next from L60 opens L62, and Newest first is ignored.
 - `continue-a-lesson-render.test.jsx` (9) — the offer lists every lesson begun, sits under the picker and above the list; Continue on the older lesson opens it at its own part and step; the bar chip; the row states; the card's own Continue; Start fresh confirms and forgets one; the end door finishes.
 - Updated on purpose: `learn-resume.test.js` (the shape now carries `started`), `learn-resume-render.test.jsx` and `learn-lesson-space.test.jsx` ("Continue →", and Start fresh confirms), `the-exact-location-is-kept.test.js` (pins the single record instead of the retired scroll record), `learn-course-picker-is-first.test.jsx` (its "picker before resume" check returned early when no place existed — a check that could not fail; it now seeds a real place).
-- **Proven-to-catch.** The core assertion ("going back to lesson A after lesson B picks up A where it was", old API only) run against the pre-change `learn-resume.js` from `origin/main`: `reopened ll1 at stage 0, step 0 -> FAIL`; against the new module: `stage 1, step 2 -> PASS`. The render file run over the pre-change ChurchLearn: CATCH_RENDER.
+- **Proven-to-catch.** The core assertion ("going back to lesson A after lesson B picks up A where it was", old API only) run against the pre-change `learn-resume.js` from `origin/main`: `reopened ll1 at stage 0, step 0 -> FAIL`; against the new module: `stage 1, step 2 -> PASS`. `continue-a-lesson-render.test.jsx` run over the pre-change Learn screen (the ChurchLearn before this change, over the new record): **9 of 9 fail**; over the new screen, 9 of 9 pass.
 - Full suite and lint: SUITE_LINE.
 
 ## The open decision — the place across devices
