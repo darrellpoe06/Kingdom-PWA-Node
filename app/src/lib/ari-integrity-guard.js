@@ -131,6 +131,9 @@ export const REVIEW_DIMENSIONS = Object.freeze([
   // eight; without this row the guard would keep certifying as "comprehensive" a
   // review that never touched the Word's own accuracy.
   { id: 'word-accuracy', re: /verbatim|KJV|cross.verse|Scripture(-| )bearing|DR-0281|scripture.inference|what each (one |number )?measures/i },
+  // Dimension 10 (DR-0622): continuity — every output seeds the next, and the
+  // connection's LIVE numbers are shown, not a claim that it is wired.
+  { id: 'continuity', re: /seeds the next|dead end|flow (graph|proof)|live numbers|DR-0622/i },
 ]);
 const MIN_DIMENSIONS_SHOWN = 4;
 
