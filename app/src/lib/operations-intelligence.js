@@ -25,6 +25,12 @@
 //      update past its limit is an escalation; "never ran" and "awaiting a
 //      source" need the page's full context and are left to the Loops view.
 //   5. HAND-OFFS — a hand-off still open past STALL_DAYS is an escalation.
+//   6. THE SYSTEM FLOW PROOF (DR-0622) — every 6 hours system-flow-proof.yml
+//      measures each connection of the whole-system flow graph on the live
+//      database, and each workflow's latest run. lib/system-flow.js
+//      flowEscalations() turns every broken, stale, empty, unconsumed or open
+//      one into an item; they join the escalations here as they are, so the
+//      monitors' own output seeds this readout.
 //
 // PURE and deterministic; the clock is an argument. No input → ok:false with
 // the reason, never a painted zero (DR-0076).
@@ -46,7 +52,7 @@ function isoDay(ms) {
   return new Date(ms).toISOString().slice(0, 10);
 }
 
-export function deriveOperations({ ledger = null, incidents = null, loopData = null, loopEnv = {}, discussions = [], nowMs } = {}) {
+export function deriveOperations({ ledger = null, incidents = null, loopData = null, loopEnv = {}, discussions = [], flows = null, nowMs } = {}) {
   const now = Number.isFinite(nowMs) ? nowMs : NaN;
   const today = Number.isFinite(now) ? isoDay(now) : '';
   const out = { ok: false, read: {}, risks: [], escalations: [], timelineThreats: [], decisionsRequired: [], sources: [] };
@@ -113,6 +119,17 @@ export function deriveOperations({ ledger = null, incidents = null, loopData = n
       if (age != null && age >= STALL_DAYS) {
         out.escalations.push({ id: `handoff-${d.id}`, title: d.title || 'Hand-off', kind: 'handoff', days: age, sources: [d.id], why: `A hand-off open for ${age} days (threshold ${STALL_DAYS}).` });
       }
+    }
+  }
+
+  // 6. The system flow proof: null = not read (said by the surface), [] = read,
+  //    and every connection is flowing.
+  if (Array.isArray(flows)) {
+    out.read.flows = flows.length;
+    out.sources.push('the system flow proof (every connection, measured live)');
+    for (const x of flows) {
+      if (!x || !x.id) continue;
+      out.escalations.push({ id: x.id, title: x.title, kind: 'flow', days: Number(x.days) || 0, sources: x.sources || [x.id], why: x.why });
     }
   }
 
