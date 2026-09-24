@@ -95,6 +95,9 @@ const dep = (x) => ({
   // links.depends_on / links.blocked_by: a concern id, a project slug, or a list of either
   ids: [].concat(x.links.depends_on || [], x.links.blocked_by || [], x.links.blockedBy || []).map(String).filter(Boolean),
   projectSlug: x.links.project_slug || x.links.projectSlug || '',
+  // links.waits_on: a dependency named in words (the paste-in intake, DR-0610),
+  // not yet a row on this board. Still a dependency; said as such.
+  text: String(x.links.waits_on || x.links.waitsOn || '').trim(),
 });
 
 // deriveDecisionIntelligence — the whole readout in one pass.
@@ -153,6 +156,9 @@ export function deriveDecisionIntelligence({ concerns = [], projects = [], discu
         sources: [c.id, id],
         why: target ? `Waits on ${target.kind} "${target.label}" which is ${target.status || 'not done'}.` : `Waits on "${id}", which is not a row this board holds.`,
       });
+    }
+    if (d.text) {
+      dependencies.push({ id: c.id, title: c.label, waitsOn: '', waitsOnTitle: d.text, sources: [c.id], why: `Waits on "${d.text.slice(0, 140)}", named in the row's own words and not yet a row on this board.` });
     }
   }
   for (const p of ps) {

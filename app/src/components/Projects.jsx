@@ -14,6 +14,7 @@ import AriReview from './AriReview.jsx';
 import MinistryOps from './MinistryOps.jsx';
 import GovernanceQueue from './GovernanceQueue.jsx';
 import DecisionIntelligence from './DecisionIntelligence.jsx';
+import DecisionIntake from './DecisionIntake.jsx';
 import { deriveAppDecisions } from '../lib/decisions.js';
 import { useBoardTasks } from '../lib/use-board-tasks.js';
 import { boardDueByMonth, boardTimelineLanes, phaseCompletions } from '../lib/board.js';
@@ -377,6 +378,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       {subView === 'clients' && isGovernor && <ClientDiscovery />}
       {subView === 'governance' && isGovernor && (
         <div className="space-y-6">
+          <DecisionIntake addConcern={addConcern} />
           <DecisionIntelligence concerns={concerns} projects={projects} discussions={discussions} />
           <GovernanceQueue
             appDecisions={deriveAppDecisions({ discussions, concerns })}
