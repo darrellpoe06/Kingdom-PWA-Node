@@ -2,7 +2,7 @@
 // `meta.unit`, so this returns the original "week"/"Week"/"weeks" wording and the
 // cohort framing — byte-for-byte unchanged. A self-paced lesson series (Living
 // Lessons) sets meta.unit to relabel rows as "Lesson(s)" and drop the cohort clock.
-// Lifted out of ChurchLearn.jsx (DR-0623) so the Continue offers name a lesson
+// Lifted out of ChurchLearn.jsx (DR-0631) so the Continue offers name a lesson
 // exactly as its course does, from ONE definition.
 export function unitLabels(meta) {
   const u = (meta && meta.unit) || {};

@@ -1,4 +1,4 @@
-# DR-0623 — Continuing a lesson lands on your sentence, and every lesson keeps its own place
+# DR-0631 — Continuing a lesson lands on your sentence, and every lesson keeps its own place
 
 - **Status:** accepted (built); one open decision recorded below (cross-device), with a recommendation
 - **Tier:** A for what shipped (device-local record, no schema, no money, no identity change). The open decision is Tier B (it would add a table and move the place off the device).
@@ -39,7 +39,7 @@ Driven in real Chromium at a 390×844 phone viewport against a production build 
 | J2 **another tab** of the app and back | same, scrollY 2,238 | same: Resume at y = 2,043 (off the first screen); after the tap, right step, **scrollY 0**. |
 | J3 **another course** and back | same | **No Continue anywhere** on the course: the banner is read once per mount and nulled on use. Landed in the lesson list at scrollY 4,210. |
 | J4 **a second lesson** in another course, then back to the first | L1 part 2, step 3 | The record now named the A.I. course lesson — **L1's place was overwritten**; no Continue for L1 on the Learn top, its course, or its list. Reopening L1 by hand started at part 1. |
-| J5 **listen**, stop, continue | the reader stores `{sentence, sentenceKey}` per spoken sentence | Continue opened the right step; nothing scrolled to or marked the sentence (scrollY stayed where the page was). |
+| J5 **listen**, stop, continue | the reader stores `{sentence, sentenceKey}` per spoken sentence | Continue opened the right step at scrollY 285, with the saved sentence 1,007 px below the chrome, off screen and unmarked. |
 | J6 **finish** a lesson (walk to the end, leave by the end door) | part 5 of 5 | Not recorded as finished (only the read-aloud's last sentence could mark it); after reload the banner offered **Resume → part 5** (off-screen at y = 2,084). |
 | J7 **Start fresh** | banner present | Worked, **without asking**, and wiped the device's only place. |
 
@@ -57,6 +57,7 @@ Also measured: opening a lesson grows the page to ~67,500 DOM nodes **in both bu
 8. **Start fresh destroyed without asking** and could only forget everything (J7).
 9. **Content updates.** The sentence is matched by fingerprint (survives re-pacing); a lesson removed from the catalog offered nothing. Holding, but a changed sentence fell back silently.
 10. **Across devices** the place does not follow the reader (device-local by design — see the open decision).
+11. **The lesson named by its array position** (found with DR-0626's list change): the in-lesson counter read "191 / 191" on L192, Prev / Next walked the written array (Next from L60 skipped L61), and the Continue offers named lessons the same way.
 
 ## Impact
 
@@ -103,7 +104,8 @@ Screens: `after-*.png` beside the before screens. Results: `after-results-J1-7.j
 - `continue-a-lesson-render.test.jsx` (9) — the offer lists every lesson begun, sits under the picker and above the list; Continue on the older lesson opens it at its own part and step; the bar chip; the row states; the card's own Continue; Start fresh confirms and forgets one; the end door finishes.
 - Updated on purpose: `learn-resume.test.js` (the shape now carries `started`), `learn-resume-render.test.jsx` and `learn-lesson-space.test.jsx` ("Continue →", and Start fresh confirms), `the-exact-location-is-kept.test.js` (pins the single record instead of the retired scroll record), `learn-course-picker-is-first.test.jsx` (its "picker before resume" check returned early when no place existed — a check that could not fail; it now seeds a real place).
 - **Proven-to-catch.** The core assertion ("going back to lesson A after lesson B picks up A where it was", old API only) run against the pre-change `learn-resume.js` from `origin/main`: `reopened ll1 at stage 0, step 0 -> FAIL`; against the new module: `stage 1, step 2 -> PASS`. `continue-a-lesson-render.test.jsx` run over the pre-change Learn screen (the ChurchLearn before this change, over the new record): **9 of 9 fail**; over the new screen, 9 of 9 pass.
-- Full suite and lint: SUITE_LINE.
+- Full suite and lint, on the merged branch: `npm run lint` clean; `npx vitest run` — 1,200 files, **20,157 tests passing**. One worker process was killed mid-run by memory pressure from other sessions on the machine (no test failed); the one file it held, `the-title-stays-in-view.test.jsx`, was then run alone: 19 of 19 pass. All CI guard scripts (`npm run verify:gates`) pass, and the consistency, UI-standards and legibility guards hold (legibility health: one more passing page).
+- **Number.** This record was first written as DR-0621, then DR-0623; both were taken by concurrent branches while it was being built. DR-0631 was free on every remote branch when it was pushed.
 
 ## The open decision — the place across devices
 

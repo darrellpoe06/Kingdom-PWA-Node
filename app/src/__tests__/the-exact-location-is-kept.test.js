@@ -27,7 +27,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8');
 
-describe('lessons keep ONE place record — the sentence, not a second scroll record (DR-0623)', () => {
+describe('lessons keep ONE place record — the sentence, not a second scroll record (DR-0631)', () => {
   // 2026-09-14 wired lessons to reading-position.js (a scroll offset kept
   // BESIDE the lesson's place record). Measured 2026-09-24 in a real browser:
   // after a reload, a tab away or a course switch the lesson came back at the
@@ -84,7 +84,7 @@ describe('lessons keep ONE place record — the sentence, not a second scroll re
 });
 
 describe('arrival no longer discards the place', () => {
-  it('skips the top-scroll when a place exists — and LANDS on it instead (DR-0623)', () => {
+  it('skips the top-scroll when a place exists — and LANDS on it instead (DR-0631)', () => {
     const src = read('components/ChurchLearn.jsx');
     const i = src.indexOf('ARRIVAL NO LONGER JUMPS TO THE TOP');
     expect(i).toBeGreaterThan(-1);

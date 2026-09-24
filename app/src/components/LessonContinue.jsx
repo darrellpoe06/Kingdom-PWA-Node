@@ -1,5 +1,5 @@
 // =============================================================================
-// LessonContinue — every way back into a lesson you started (DR-0623)
+// LessonContinue — every way back into a lesson you started (DR-0631)
 // =============================================================================
 // Darrell 2026-09-24, from the live app: "Continuing a lesson doesn't work
 // well... it needs to be way better..."

@@ -1,5 +1,5 @@
 // =============================================================================
-// Continue a lesson — one place per LESSON, not one per device (DR-0623)
+// Continue a lesson — one place per LESSON, not one per device (DR-0631)
 // =============================================================================
 // Darrell 2026-09-24, from the live app: "Continuing a lesson doesn't work
 // well... it needs to be way better..."
@@ -10,7 +10,7 @@
 // Continue for it existed anywhere. These pins hold the per-lesson record.
 //
 // PROVEN-TO-CATCH (DR-0076 §3): the first test below uses ONLY the API the
-// old module had (recordPlace / getPlace). Against the pre-DR-0623
+// old module had (recordPlace / getPlace). Against the pre-DR-0631
 // learn-resume.js it fails — reopening lesson A after lesson B reads stage 0,
 // because B's write replaced A's. See the DR for the recorded run.
 // =============================================================================

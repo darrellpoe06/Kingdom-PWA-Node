@@ -1,6 +1,6 @@
 // =============================================================================
 // Inside a lesson, the lesson is named by ITS OWN number, and Prev / Next walk
-// the order the reader chose in the list (DR-0623, agreeing with DR-0626)
+// the order the reader chose in the list (DR-0631, agreeing with DR-0626)
 // =============================================================================
 // DR-0626 put the Living Lessons LIST in number order and named each row by
 // its own number (the digits in its id). The inside of a lesson still read the

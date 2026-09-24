@@ -1,6 +1,6 @@
 // =============================================================================
 // Continue lands ON the words — the sentence is the place for the eye too
-// (lib/lesson-landing.js, DR-0623)
+// (lib/lesson-landing.js, DR-0631)
 // =============================================================================
 // Measured before: a Continue brought the reader to the right step and left
 // the view at scrollY 0 — the course header on screen, the words a long scroll

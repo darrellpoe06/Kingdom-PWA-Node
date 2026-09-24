@@ -1,5 +1,5 @@
 // =============================================================================
-// Continue a lesson — the RENDERED contract in the real Learn tree (DR-0623)
+// Continue a lesson — the RENDERED contract in the real Learn tree (DR-0631)
 // =============================================================================
 // Darrell 2026-09-24: "Continuing a lesson doesn't work well... it needs to be
 // way better..."  Measured before (the before-*.png journeys): one Continue
@@ -12,7 +12,7 @@
 //   • the lesson's own button says Continue when it is in progress;
 //   • Start fresh asks first, and forgets only the lesson it names;
 //   • leaving by the end door records the lesson as finished.
-// PROVEN-TO-CATCH: against the pre-DR-0623 ChurchLearn, the first, second and
+// PROVEN-TO-CATCH: against the pre-DR-0631 ChurchLearn, the first, second and
 // third tests fail (no "Also in progress", no offer under the picker, and the
 // older lesson could not be reached) — see the DR for the recorded run.
 // =============================================================================

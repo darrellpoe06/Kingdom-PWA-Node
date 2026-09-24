@@ -34,7 +34,7 @@
 // Pure over an injected `storage` + `now`, so the logic is unit-tested without
 // a browser (DR-0076).
 //
-// ONE PLACE PER LESSON, NOT ONE PER DEVICE (2026-09-24, DR-0623). Darrell,
+// ONE PLACE PER LESSON, NOT ONE PER DEVICE (2026-09-24, DR-0631). Darrell,
 // from the live app: "Continuing a lesson doesn't work well... it needs to be
 // way better." Measured in a real browser before this change: the record was
 // ONE object per device, so starting a second lesson in another course
@@ -346,7 +346,7 @@ export function placeIsFinished(place) {
  * write works, and why it guards on the lesson it is reading. The lesson's
  * OWN saved place is the base the patch merges into, so going back to a
  * lesson after another picks up that lesson's stage and step instead of
- * starting it over (the defect DR-0623 closes). A lesson with no saved place
+ * starting it over (the defect DR-0631 closes). A lesson with no saved place
  * starts at 0 — a stale "step 5" never leaks into a freshly opened lesson.
  * @param {{courseKey?:string, lessonId?:string, stage?:number, step?:number,
  *   sentence?:number, sentenceKey?:string, done?:boolean, started?:boolean}} patch

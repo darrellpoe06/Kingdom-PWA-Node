@@ -85,7 +85,7 @@ describe('Learn resume-your-place', () => {
   });
 
   it('Start fresh asks first, then clears the record from the device', () => {
-    // DR-0623: forgetting a place is destructive, so it goes through
+    // DR-0631: forgetting a place is destructive, so it goes through
     // confirmThen (lib/confirm-action.js) — declined, nothing is forgotten.
     const realConfirm = window.confirm;
     window.localStorage.setItem(PLACE_KEY, JSON.stringify(savedPlace));

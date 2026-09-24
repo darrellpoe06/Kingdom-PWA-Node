@@ -2,7 +2,7 @@
 // lesson-landing — the SENTENCE is the place, for the eye as well as the ear
 // =============================================================================
 // Darrell 2026-09-24, from the live app: "Continuing a lesson doesn't work
-// well... it needs to be way better." (DR-0623.)
+// well... it needs to be way better." (DR-0631.)
 //
 // MEASURED in a real browser at 390x844 before this file existed: a reader
 // three steps into a lesson and half-way down the teaching, who reloaded,

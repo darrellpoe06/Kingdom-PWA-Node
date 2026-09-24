@@ -1085,7 +1085,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   // place still names this lesson — that is how the reader knows it was heard
   // — but it is no longer a place to resume INTO, so the arc opens at its top
   // instead of at the last part with nothing left to play (learn-resume.js).
-  // THIS LESSON'S OWN PLACE, not the device's latest (DR-0623). With one
+  // THIS LESSON'S OWN PLACE, not the device's latest (DR-0631). With one
   // record per device, opening lesson A after lesson B found B's place, so A
   // reopened at part one — the reader's place in A had been overwritten the
   // moment B was opened. Each lesson now keeps its own.
@@ -1466,9 +1466,9 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
 // descriptor so both the youth class and the broadcast training share this code.
 // -----------------------------------------------------------------------------
 // Label layer for the unit of curriculum: lib/learn-units.js (one definition,
-// shared with the Continue offers — DR-0623).
+// shared with the Continue offers — DR-0631).
 
-// THE READER'S ORDER, as one list with no headings (DR-0623 with DR-0626):
+// THE READER'S ORDER, as one list with no headings (DR-0631 with DR-0626):
 // what the lesson list shows for the order picked there — by number, newest
 // first, or by the Word's divisions (number order inside each) — and what
 // Prev / Next and the hands-free advance walk inside a lesson. Composed from
@@ -1623,7 +1623,7 @@ function CourseView({
 
   // THE EXACT LOCATION IS KEPT AND RESTORED (Darrell 2026-09-14: "Lessons keep
   // being interrupted and I'm loosing my exact location!!! Fix it!!!") — and,
-  // since DR-0623, kept in ONE place record rather than two.
+  // since DR-0631, kept in ONE place record rather than two.
   //
   // 2026-09-14 wired lessons to lib/reading-position.js, which remembered a
   // SCROLL OFFSET beside the lesson's place record. Measured in a real browser
@@ -1697,7 +1697,7 @@ function CourseView({
     };
   }, [focusId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // LANDING — every Continue ends ON the words (DR-0623). Asked for by the
+  // LANDING — every Continue ends ON the words (DR-0631). Asked for by the
   // doors that mean "take me back": the Continue offers, the lesson's own
   // Continue button, Refresh first. Waits for the guide to paint at the saved
   // part and step (TutorPanel opens there itself), then scrolls the saved
@@ -1796,7 +1796,7 @@ function CourseView({
   const advanceFrom = (id) => {
     if (!advanceFromRef.current[id]) {
       advanceFromRef.current[id] = () => {
-        // The reader's order, not the written array (DR-0623).
+        // The reader's order, not the written array (DR-0631).
         const list = sequenceRef.current || scheduleRef.current || [];
         const i = list.findIndex((m) => m.id === id);
         const nextM = i >= 0 && i < list.length - 1 ? list[i + 1] : null;
@@ -1846,7 +1846,7 @@ function CourseView({
     // this cross-course door (the finder, the shelf, Resume) did not, so a
     // lesson reached that way was one a reader could lose again on reload.
     // Arriving with the guide open is beginning (or continuing) the lesson;
-    // arriving to browse its card is not (DR-0623 — see `started`).
+    // arriving to browse its card is not (DR-0631 — see `started`).
     savePlace({ lessonId: resumeLessonId, ...(resumeOpenGuide ? { started: true } : {}) });
     recordUse(resumeLessonId);
     // ARRIVAL NO LONGER JUMPS TO THE TOP WHEN THERE IS A PLACE TO RETURN TO.
@@ -1855,7 +1855,7 @@ function CourseView({
     // on every return. useReadingPosition above restores the sentence, so the
     // top-scroll is now only for a lesson with NO saved sentence -- a genuinely
     // fresh open, where the top IS the right place.
-    // DR-0623: "not jumping to the top" was only half of it — measured, the
+    // DR-0631: "not jumping to the top" was only half of it — measured, the
     // view then sat wherever the page happened to be (scrollY 0 after a
     // reload). A Continue arrival now LANDS: on the saved sentence, else on
     // the saved step, with the guide open at the saved part.
@@ -2068,7 +2068,7 @@ function CourseView({
           WORDS grow and the frame stays a frame. Same for the catalog's
           lessons-bar below, which reuses this exact shape. */}
       {focusModule && (() => {
-        // PREV / NEXT WALK THE ORDER THE READER CHOSE IN THE LIST (DR-0623,
+        // PREV / NEXT WALK THE ORDER THE READER CHOSE IN THE LIST (DR-0631,
         // agreeing with DR-0626). They walked the WRITTEN array, where L61 is
         // stored before L60 and there is no L79 — so Next from L60 skipped
         // L61, and the counter printed the array position ("191 / 191" on
@@ -2118,7 +2118,7 @@ function CourseView({
                   grows the words and the frame stays a frame (DR-0410). */}
               ← All {U.noun}s
             </button>
-            {/* THE LESSON'S OWN NUMBER (DR-0623 with DR-0626): "L192", and on a
+            {/* THE LESSON'S OWN NUMBER (DR-0631 with DR-0626): "L192", and on a
                 wider screen where it sits in the reader's order. A course whose
                 lessons carry no number of their own keeps "Week 3 of 8". */}
             <span className="text-[0.6875rem] text-[#5A5751] whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }} data-testid="lesson-bar-number" data-lesson-number={ownNumber(focusModule, schedule)}>
@@ -2265,7 +2265,7 @@ function CourseView({
               </div>
             </div>
           )}
-          {/* WHERE A CONTINUE LANDED, SAID PLAINLY (DR-0623) — for a few
+          {/* WHERE A CONTINUE LANDED, SAID PLAINLY (DR-0631) — for a few
               seconds, then gone. When the exact sentence could not be found
               (the lesson was updated, say), it says only that rather than letting a
               wrong landing pass as a right one. */}
@@ -2333,7 +2333,7 @@ function CourseView({
                   title="Copy a link that opens exactly this lesson"
                   text={() => lessonUrl({ courseKey: course.meta.key, lessonId: m.id })}
                 />
-                {/* START, OR CONTINUE (DR-0623). A lesson the reader has begun
+                {/* START, OR CONTINUE (DR-0631). A lesson the reader has begun
                     says so on its own button, and the tap lands on their place
                     (the saved part, step and sentence) instead of part one. */}
                 <button
@@ -2823,7 +2823,7 @@ function CourseView({
                        Start over puts the reader back at part 1 AND clears the
                        saved place, which is what "if it's over, it's over"
                        requires — otherwise the next read resumes at the end. */
-                    /* LEAVING BY THE END DOOR IS FINISHING (DR-0623). Before
+                    /* LEAVING BY THE END DOOR IS FINISHING (DR-0631). Before
                        this, only the read-aloud's last sentence could mark a
                        lesson finished; a reader who walked it to the end by hand
                        left it "in progress" forever, and Continue offered them
@@ -3297,7 +3297,7 @@ export default function ChurchLearn({
   // one (never a painted list).
   const [lessonQuery, setLessonQuery] = useState('');
   // Resume-your-place (Darrell 2026-07-30), ONE PLACE PER LESSON since
-  // DR-0623. Read live on every render (client-only app; the same
+  // DR-0631. Read live on every render (client-only app; the same
   // read-in-render pattern as ux-signals' "Recently opened"), so leaving a
   // lesson brings its Continue straight back — the old banner was read once
   // on mount and nulled on its first use, and measured, it did not return
@@ -3492,7 +3492,7 @@ export default function ChurchLearn({
   // Resolve the saved places against the MOUNTED catalog (verify before
   // relying on them): a course or lesson that no longer exists offers nothing
   // — no Continue can ever point at a dead door. Every lesson begun and not
-  // finished, newest first (DR-0623).
+  // finished, newest first (DR-0631).
   const inProgress = resolvePlaces(listPlaces({ inProgress: true }), courses);
   const activeContinue = inProgress.find((it) => it.course.key === active.key) || null;
   const activePlaces = Object.fromEntries(listPlaces({ courseKey: active.key }).map((p) => [p.lessonId, p]));
@@ -3736,7 +3736,7 @@ export default function ChurchLearn({
         )}
 
         {/* PICK UP WHERE YOU LEFT OFF — directly under the course picker
-            (DR-0623). Darrell has said twice that the picker comes first,
+            (DR-0631). Darrell has said twice that the picker comes first,
             "even above where you left off" (2026-09-06), so this is the first
             thing AFTER it. Measured before: the only Continue on the tab sat
             at y≈2,084 on an 844-px phone, below the whole lesson index and the
@@ -3969,7 +3969,7 @@ export default function ChurchLearn({
                       </span>
                       <span className="block">{m.title}</span>
                     </button>
-                    {/* The lesson's own state, on its own row (DR-0623):
+                    {/* The lesson's own state, on its own row (DR-0631):
                         Continue on a lesson begun, Finished on one done. */}
                     <RowContinue
                       place={activePlaces[m.id] && (activePlaces[m.id].done || placeInProgress(activePlaces[m.id])) ? activePlaces[m.id] : null}
@@ -4271,7 +4271,7 @@ export default function ChurchLearn({
           <span className="text-[0.6875rem] text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
             {active.meta.title}
           </span>
-          {/* THIS COURSE'S CONTINUE, WHERE IT NEVER SCROLLS AWAY (DR-0623).
+          {/* THIS COURSE'S CONTINUE, WHERE IT NEVER SCROLLS AWAY (DR-0631).
               The bar is sticky, so a reader anywhere in the course's lesson
               list is one tap from the lesson they have in progress here. */}
           <ContinueChip item={activeContinue} onContinue={resumeNow} />

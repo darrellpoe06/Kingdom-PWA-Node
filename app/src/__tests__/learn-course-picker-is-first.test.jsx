@@ -100,7 +100,7 @@ describe('the course picker comes FIRST on the Learn tab', () => {
   it('comes before RESUME — Darrell: "even above where you left off"', () => {
     // The resume offer only renders when a saved place resolves against the
     // mounted catalog. This used to mount with NO place and return early —
-    // a check that could never fail (DR-0623 found it vacuous). A real place
+    // a check that could never fail (DR-0631 found it vacuous). A real place
     // is seeded now, so the order is actually asserted.
     window.localStorage.setItem('poe-learn-place', JSON.stringify({ courseKey: 'living-lessons', lessonId: 'll3-bodybuilding-christ', stage: 1, step: 2, at: 1 }));
     mountWithCatalog();
