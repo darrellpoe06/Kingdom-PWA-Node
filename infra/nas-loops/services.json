@@ -9,6 +9,12 @@
       "description": "Drain the transcript backlog (2026-08-05 harvest review: 81/858 transcribed, loader parked on a manual app button while the CI path is YouTube-IP-blocked). Rides the ALREADY-ARMED services-sync clock (choir-dates pattern, zero new DSM entries): stamp-gated to ~8 fires/day x 4 captions from the NAS's residential IP (~32 videos/day = ~64-96 HTTP calls against the measured ~180/day IpBlocked ceiling), draining ~770 gaps in ~4 weeks then keeping pace with the channel. Registered FIRST so a slow sibling (docker pull, the choir-dates drain) can never starve it before the cycle-wide timeout. Loader carries --max budget + single-flight lock + a TIME-DECAYED backoff that clears itself (DR-0248; the 2026-08-06 fix -- the previous human-cleared pause pointed at ops-runner.py, which nothing installs, so it would have stopped the drain permanently and silently). Witness: harvest-health.yml probes the count from OUTSIDE the NAS and files an incident when it stops advancing."
     },
     {
+      "name": "family-key",
+      "install": "infra/nas-bridge-publish/install.sh",
+      "enabled": true,
+      "description": "The NAS publishes the family key itself (DR-0613), so no steward pastes it: measured 2026-09-24, family_secure_config held zero rows and the Voice page told people to paste the key by hand. Each services-sync cycle calls box_publish_family_bridge_token (0231, service role only) with the key the photo and voice installers already minted and the committed owners.txt; it writes only to non-church instances a named family account owns or administers, and only when the key differs (steady state writes nothing). Every family device then provisions itself (lib/bridge-provision.js). Missing pieces are a named quiet no-op; the key is never printed. Proofs: test_publish_family_key.py (7) in ci.yml; the no-leak smoke 0231 in the RLS matrix."
+    },
+    {
       "name": "lesson-voice",
       "install": "infra/nas-lesson-voice/install.sh",
       "enabled": true,

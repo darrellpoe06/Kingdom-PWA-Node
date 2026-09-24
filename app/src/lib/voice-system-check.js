@@ -162,8 +162,8 @@ export function buildVoiceChecks(m = {}) {
     // row told the person to "provision this device" by hand while that
     // machine path existed and only Real Estate ever ran it. The studio and
     // the read now ask for the key themselves; this row reports what came
-    // back, and names the one human step that remains -- a steward publishes
-    // the key once -- only when the family genuinely has none published.
+    // back. The steward's paste that used to remain is gone (DR-0613): the NAS
+    // publishes the key itself (migration 0231, infra/nas-bridge-publish).
     id: 'bridge-key',
     label: 'This device holds the family key the studio requires',
     state: bridgeKey ? PASS : FAIL,
@@ -175,7 +175,7 @@ export function buildVoiceChecks(m = {}) {
     fix: bridgeKey ? ''
       : !signedIn ? 'Sign in. A signed-in family device asks the family for the key itself; until then reads fall back to the labelled stand-in voice.'
         : bridgeProvision === 'none'
-          ? 'This device asked the family for the key itself and got none: either no steward has published it yet (a steward pastes it once in Real Estate \u2192 Photos, and every family device picks it up from then on), or this account is not a member of a family space. Until then reads fall back to the labelled stand-in voice.'
+          ? 'Nothing for you to do. The family\u2019s NAS publishes the key itself every 15 minutes while it is on, and this device picks it up the next time you open this page. If this row stays red after the NAS has been on for a while, this account is not an owner or admin of the family space. Until then reads play in the labelled stand-in voice.'
           : 'This device asks the family for the key itself the moment you open the studio signed in; if this row is still failing after a moment, reopen the tab.',
     where: 'infra/voice-studio/voice_forwarder.py (401) \u00b7 lib/bridge-provision.js (get_family_bridge_token, migration 0128) \u00b7 lib/nas-photos.js (bridgeToken)',
   });

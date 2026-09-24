@@ -41,8 +41,10 @@ if [ -f "$ENVFILE" ]; then
   set +a
 fi
 
-if [ ! -s "$SECRETS" ] && [ -z "$SUPABASE_SERVICE_KEY" ]; then
-  echo "lesson-voice: no credential ($SECRETS absent and SUPABASE_SERVICE_KEY unset) - nothing to poll with"
+# The job follows the database the app reads (DR-0614): the NAS's own Supabase
+# when REPOINT-ARMED is merged, else the hosted project in the secrets file.
+if [ ! -s "$SECRETS" ] && [ -z "$SUPABASE_SERVICE_KEY" ] && [ ! -s /volume1/docker/supabase/.env ]; then
+  echo "lesson-voice: no credential (no secrets file, no env key, no sovereign stack) - nothing to poll with"
   exit 0
 fi
 

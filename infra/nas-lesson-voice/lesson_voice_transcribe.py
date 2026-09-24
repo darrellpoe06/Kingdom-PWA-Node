@@ -45,10 +45,17 @@ load-transcripts.py has written 872 transcripts with.
 """
 import json
 import os
+import sys
 import time
 import urllib.parse
 import urllib.request
 import uuid
+
+# WHICH DATABASE IS LIVE (DR-0614): the app follows REPOINT-ARMED to the NAS's
+# own Supabase; so must this job. One resolver, shared by every NAS writer.
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, "..", "nas-supabase"))
+from sovereign_target import resolve_target  # noqa: E402
 
 BUCKET = "lesson-audio"
 DATA = os.environ.get("LESSON_VOICE_DATA", "/volume1/PoeTech/lesson-voice")
@@ -232,13 +239,58 @@ def run_once(io, data_dir=DATA, env=None, clock=time.monotonic):
 
 # --- the real I/O (stdlib only) ------------------------------------------------
 
-def load_secrets(env=None, path=SECRETS):
-    env = env if env is not None else os.environ
-    if env.get("SUPABASE_URL") and env.get("SUPABASE_SERVICE_KEY"):
-        return env["SUPABASE_URL"].rstrip("/"), env["SUPABASE_SERVICE_KEY"]
-    with open(path, encoding="utf-8") as f:
-        s = json.load(f)
-    return s["url"].rstrip("/"), s["service_key"]
+def load_live(path=SECRETS, resolver=resolve_target):
+    """(source, url, key) of the database the APP reads (sovereign when armed)."""
+    return resolver(path)
+
+
+def load_hosted(path=SECRETS):
+    """(url, key) of the hosted project named in the secrets file, or ('', '')."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            s = json.load(f)
+        return (s.get("url") or "").rstrip("/"), s.get("service_key") or s.get("service_role_key") or ""
+    except (OSError, ValueError):
+        return "", ""
+
+
+# THE MIRROR (DR-0614). The app writes to the NAS's own database, but the lesson
+# reader runs in the cloud and can reach only the hosted project. So every
+# lesson row the reader must see (a typed lesson, a transcript, a failure) is
+# copied to the hosted agent_inbox under the SAME id (a repeat is a harmless
+# duplicate refusal), and the original is tagged `mirrored`. A raw `voice` row
+# is not copied: its words arrive as the transcript row.
+MAX_MIRROR_PER_RUN = int(os.environ.get("LESSON_MIRROR_MAX", "20"))
+
+
+def rows_to_mirror(rows):
+    out = []
+    for r in rows or []:
+        tags = r.get("tags") or []
+        if "lesson" not in tags or "mirrored" in tags:
+            continue
+        if "voice" in tags and "voice-transcript" not in tags and "voice-failed" not in tags:
+            continue
+        out.append(r)
+    return out[:MAX_MIRROR_PER_RUN]
+
+
+def mirror_once(list_live, insert_hosted, tag_live):
+    """Copy what the cloud reader must see; returns {mirrored, failed}. Never raises."""
+    report = {"mirrored": [], "failed": []}
+    try:
+        rows = rows_to_mirror(list_live())
+    except Exception as e:
+        report["failed"].append({"id": None, "error": f"list: {e}"})
+        return report
+    for r in rows:
+        try:
+            insert_hosted({k: r[k] for k in ("id", "instance_id", "created_by", "body", "tags", "source", "created_at") if k in r})
+            tag_live(r, ["mirrored"])
+            report["mirrored"].append(r["id"])
+        except Exception as e:
+            report["failed"].append({"id": r.get("id"), "error": str(e)})
+    return report
 
 
 class SupabaseIO:
@@ -256,6 +308,16 @@ class SupabaseIO:
     def list_rows(self):
         q = "select=id,instance_id,created_by,tags,created_at&tags=cs." + urllib.parse.quote('["voice"]') + "&order=created_at.asc&limit=50"
         return json.loads(self._req("GET", "/rest/v1/agent_inbox?" + q).decode("utf-8"))
+
+    def list_lesson_rows(self):
+        q = "select=id,instance_id,created_by,body,tags,source,created_at&tags=cs." + urllib.parse.quote('["lesson"]') + "&order=created_at.asc&limit=100"
+        return json.loads(self._req("GET", "/rest/v1/agent_inbox?" + q).decode("utf-8"))
+
+    def insert_mirror(self, row):
+        # Same id on the hosted side: a second copy is refused as a duplicate,
+        # which ignore-duplicates turns into a quiet no-op.
+        self._req("POST", "/rest/v1/agent_inbox?on_conflict=id", json.dumps(row).encode("utf-8"),
+                  {"Content-Type": "application/json", "Prefer": "resolution=ignore-duplicates,return=minimal"})
 
     def has_transcript(self, rid):
         q = "select=id&tags=cs." + urllib.parse.quote(json.dumps(["voice-transcript", f"of:{rid}"])) + "&limit=1"
@@ -331,5 +393,17 @@ def transcribe_ladder(local, env=None, post=post_whisper, local_fn=local_whisper
 
 
 if __name__ == "__main__":
-    url, key = load_secrets()
-    print(json.dumps(run_once(SupabaseIO(url, key)), indent=2))
+    source, url, key = load_live()
+    if not (url and key):
+        print(json.dumps({"ran": False, "stopped": "no Supabase credential on this NAS"}))
+        sys.exit(0)
+    live = SupabaseIO(url, key)
+    out = {"target": source, "transcribe": run_once(live)}
+    if source == "sovereign":
+        hurl, hkey = load_hosted()
+        if hurl and hkey and hurl != url:
+            hosted = SupabaseIO(hurl, hkey)
+            out["mirror"] = mirror_once(live.list_lesson_rows, hosted.insert_mirror, live.add_tags)
+        else:
+            out["mirror"] = {"skipped": "no hosted credential to mirror to"}
+    print(json.dumps(out, indent=2))
