@@ -170,6 +170,13 @@ def _call_tool(name, args):
     return None
 
 
+# The public Funnel's `--set-path /mcp` STRIPS the mount point, so a call to
+# https://<funnel>/mcp arrives here as POST / (the same stripping the /voice
+# row in infra/nas-transport/RECORDED-STATE.md records). Serving only "/mcp"
+# answered every outside call 404 {"detail":"Not Found"} -- measured by
+# mcp-health run 36062034869 (2026-09-24), the witness red since 2026-08-04.
+# Both spellings are the one handler (DR-0622).
+@app.post("/")
 @app.post("/mcp")
 async def mcp(request: Request):
     # Bearer auth first; an unset token refuses everything (a missing brake is

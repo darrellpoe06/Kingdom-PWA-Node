@@ -280,9 +280,15 @@ const NODES = [
   app('app/src/components/OneVoiceInput.jsx', {
     id: 'one-voice', name: 'One Voice box',
     purpose: 'The one box every lesson and request is sent from; each one is kept.',
-    writes: [{ res: 'db:saved_prompts', file: 'app/src/lib/saved-prompts.js', token: "rpc('remember_prompt'" }],
+    writes: [
+      { res: 'db:saved_prompts', file: 'app/src/lib/saved-prompts.js', token: "rpc('remember_prompt'" },
+      // The PoeTech and Conference chips reach the steward's feedback queue (DR-0622).
+      { res: 'db:feedback', file: 'app/src/lib/poetech-request.js', token: 'uploadFeedback' },
+      { res: 'db:feedback', token: "currentView: 'Conference · One Voice'" },
+      { res: 'db:agent_inbox#poetech', file: 'app/src/lib/poetech-request.js', token: "'tell-poetech'" },
+    ],
     reads: [{ res: 'event:use-prompt', token: 'USE_PROMPT_EVENT' }],
-    seeds: ['prompt-history'],
+    seeds: ['prompt-history', 'feedback-queue'],
   }),
   app('app/src/components/PromptHistory.jsx', {
     id: 'prompt-history', name: 'Your prompts',
@@ -488,15 +494,15 @@ const NODES = [
   // 11. THE DELIVERY LANE — branch → PR → gates → merge → deploy → witness
   // ===========================================================================
   wf('auto-open-pr.yml', {
-    id: 'auto-open-pr', name: 'Auto-open PR', purpose: 'A pushed branch becomes a PR.',
+    id: 'auto-open-pr', name: 'Auto-open PR', runRule: 'any-success', purpose: 'A pushed branch becomes a PR.',
     reads: [{ res: 'gh:branch', token: 'push:' }], writes: [{ res: 'gh:pr', token: 'gh pr create' }], seeds: ['ci', 'auto-merge', 'pr-janitor'],
   }),
   wf('ci.yml', {
-    id: 'ci', name: 'CI — every gate', purpose: 'Lint, the full test suite, every guard (this graph’s included) and a real build.',
+    id: 'ci', name: 'CI — every gate', runRule: 'any-success', purpose: 'Lint, the full test suite, every guard (this graph’s included) and a real build.',
     reads: [{ res: 'gh:pr', token: 'pull_request' }], writes: [{ res: 'gh:check', token: 'npx vitest run' }], seeds: ['auto-merge'],
   }),
   wf('auto-merge.yml', {
-    id: 'auto-merge', name: 'Auto-merge on green', purpose: 'Merges the PR the moment its gates pass; dispatches the deploy.',
+    id: 'auto-merge', name: 'Auto-merge on green', runRule: 'any-success', purpose: 'Merges the PR the moment its gates pass; dispatches the deploy.',
     reads: [{ res: 'gh:pr', token: 'gh pr list' }, { res: 'gh:check', token: 'workflow_run' }],
     writes: [{ res: 'gh:main', token: 'gh pr merge' }, { res: 'gh:deploy-heal', token: 'gh workflow run deploy-cloudflare-pages.yml' }],
     seeds: ['deploy', 'db-migrate', 'deploy-freshness'],
@@ -824,6 +830,8 @@ const RESOURCES = {
   'db:agent_inbox#voice': { label: 'spoken lessons waiting for Whisper', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice'", consumed: "tags ? 'voice-transcribed' OR tags ? 'voice-failed'" } },
   'db:agent_inbox#lesson-review': { label: 'members\u2019 lessons the Governor decided', proof: { ts: 'reviewed_at', fresh: 30, where: "tags ? 'lesson-approved' OR tags ? 'lesson-declined'", consumed: "tags ? 'review-mirrored'" } },
   'db:agent_inbox#voice-transcript': { label: 'spoken lessons written down', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice-transcript'", consumed: "tags ? 'mirrored'" } },
+  'db:agent_inbox#poetech': { label: 'PoeTech requests relayed to the inbox', proof: { ts: 'created_at', fresh: 60, where: "tags ? 'tell-poetech'" },
+    open: { blocker: 'Nothing reads these rows (measured 2026-09-24: no code, NAS job or routine reads the tell-poetech tag). The same words now also reach the feedback queue; this relay retires once a PoeTech request is seen landing there on the live database, not before (never dismantle what may still deliver until its replacement is proven).', reReview: '2026-10-01' } },
   'hosted:lesson-mirror': { label: 'lessons carried to the cloud reader (DR-0614)' },
   'db:saved_prompts': { label: 'kept prompts', proof: { ts: 'last_used_at', fresh: 30, consumed: 'use_count > 1' } },
   'db:agent_tasks': { label: 'questions to the models', proof: { ts: 'created_at', fresh: 30, consumed: "status <> 'queued'" } },
