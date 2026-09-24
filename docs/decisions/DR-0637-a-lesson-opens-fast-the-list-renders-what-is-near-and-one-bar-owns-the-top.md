@@ -85,6 +85,10 @@ In the browser: scrolling the list, no light card was ever on screen (they fill 
 
 **Tests:** `lesson-opens-fast.test.jsx` (4): the first 6 cards full and the rest light, with their id and title; a light card fills when near and stays; without IntersectionObserver every card is full; the print copy is absent on screen, mounted for `beforeprint` with every lesson, and gone after `afterprint`. `learn-open.test.jsx` (8). **Proven-to-catch:** over the ChurchLearn before this change, 3 of the 4 `lesson-opens-fast` tests fail (every card full; the print copy always mounted); the no-observer test passes on both, as it should.
 
+**Full suite and lint on this branch** (with #1793 and main merged in): `npm run lint` clean; `npx vitest run` — 1,205 files, **20,219 tests, all passing**; `npm run verify:gates`, the consistency, UI-standards and legibility guards all pass.
+
+**Number.** The orchestrator named DR-0636 for this record; that id was already taken on a concurrent branch (a spoken lesson really records), so it is DR-0637.
+
 ## Honest remainder
 
 - Find-in-page (the browser's own search) finds text only in cards that have filled in. The lesson finder above the list searches every lesson and is unaffected. **re-review: 2026-10-08.**
