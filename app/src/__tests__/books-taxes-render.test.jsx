@@ -17,7 +17,7 @@ vi.mock('../lib/bridge-provision.js', () => ({
   provisionBridgeToken: async (client) => { provisionCalls.push(client); if (provisionAnswer === 'provisioned') keyHeld = true; return provisionAnswer; },
 }));
 vi.mock('../lib/supabase.js', () => ({ supabase: { rpc: async () => ({ data: null, error: null }) } }));
-vi.mock('../lib/n8n-base.js', () => ({ resolveN8nBearer: () => (keyHeld ? 'tok-family' : null) }));
+vi.mock('../lib/bridge-auth.js', () => ({ resolveBridgeBearer: () => (keyHeld ? 'tok-family' : null) }));
 import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { __setTaxFetcher } from '../lib/tax-archive.js';

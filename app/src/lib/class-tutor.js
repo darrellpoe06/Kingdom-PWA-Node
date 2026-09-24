@@ -28,7 +28,7 @@
 // The class itself teaches this: the tutor is a tool, tested and verified, not a
 // source of truth (week 1 + week 3). Its replies carry the same caution.
 // =============================================================================
-import { n8nAuthHeaders } from './n8n-base.js';
+import { bridgeAuthHeaders } from './bridge-auth.js';
 import { ariSystemPrompt } from './ari.js';
 
 // The sovereign, local-first model the tutor asks for. Kept as a constant so the
@@ -118,7 +118,7 @@ export async function askTutor(module, messages = [], { signal, courseMeta = nul
   try {
     const r = await fetch(tutorEndpoint(), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...n8nAuthHeaders(true) },
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...bridgeAuthHeaders(true) },
       body: JSON.stringify(buildTutorPayload(module, messages, courseMeta)),
       signal,
     });
