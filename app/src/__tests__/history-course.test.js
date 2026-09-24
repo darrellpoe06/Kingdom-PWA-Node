@@ -628,5 +628,14 @@ describe('the surface shows the voices and the record (DR-0580 source pins)', ()
     expect((src.match(/Work the case — an actual claim, with the data/g) || []).length).toBe(2);
     expect(src).toContain('The economics — figures from the record');
     expect(src).toContain('Behind closed doors.');
+    // THE ECONOMICS FIT A PHONE (DR-0602 live review on the built bundle at
+    // 412px): the figures were a two-column table whose figure cell could not
+    // wrap, so one long figure pushed the table off the phone's edge and the
+    // meaning column collapsed to a sliver. The figures are a stacked list now;
+    // a table, or a no-wrap figure, must never come back to this block.
+    const block = src.slice(src.indexOf('data-testid="lesson-worked-case"'), src.indexOf("sec('Work the case'"));
+    expect(block).toContain('data-testid="lesson-worked-case-economics"');
+    expect(block).not.toMatch(/<table|whitespace-nowrap/);
+    expect(block).toContain('break-words');
   });
 });
