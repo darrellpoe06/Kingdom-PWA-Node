@@ -69,8 +69,8 @@ Darrell, 5:03pm, on his Fold, verbatim: "Also need to be able to go back to the 
 2. **Follow along, never yank.** The highlight always follows the voice. The scroll follows only until the listener scrolls on their own; then a "Back to the voice" chip offers the way back.
 3. **Show the text.**
    - On the page being read, the spoken sentence is brought into view and lit.
-   - From another tab, the reading's own page is asked to open it (`lib/reading-source.js`). For a lesson, that is the one Learn landing (#1793, `lib/learn-open.js` `requestOpenLesson`), read through `import.meta.glob`, so nothing is forked and nothing breaks before it lands. The shell switches to Learn on the existing TTSControl line (`onOpenLearn`, no new shell lines).
-   - Until #1793 merges, a lesson opened from another tab is not yet taken there. That is the named gap.
+   - From another tab, the reading's own page is asked to open it (`lib/reading-source.js`). For a lesson, that is the one Learn landing (`lib/learn-open.js` `requestOpenLesson`, DR-0642 on claude/lesson-opens-fast), read through `import.meta.glob`, so nothing is forked and nothing breaks before it lands. The shell switches to Learn on the existing TTSControl line (`onOpenLearn`, no new shell lines).
+   - Until DR-0642 merges, a lesson opened from another tab is not yet taken there. That is the named gap.
 4. **The dark screen.**
    - The AUDIO voice (DR-0627) plays on through it, and nothing is done.
    - The PHONE voice is handed over, the same sentence, to the audio voice as the page hides, when that voice is reachable.
