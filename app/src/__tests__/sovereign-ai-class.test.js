@@ -18,9 +18,9 @@ import { tutorSystemPrompt } from '../lib/class-tutor.js';
 import { resolveForAge, lessonPlanForAge } from '../lib/learn-framework.js';
 
 describe('curriculum shape', () => {
-  it('has the full 24-week module set (week 23: the swarm that agreed together and the plumbline held from outside, forwarded 2026-09-18; week 24: changing the engine in flight and the Word that is not a schema, forwarded 2026-09-17)', () => {
-    expect(SOVEREIGN_AI_MODULES).toHaveLength(24);
-    expect(SOVEREIGN_AI_META.weeks).toBe(24);
+  it('has the full 26-week module set (week 25: the ten-day test and the one hidden in the ninety and nine, forwarded 2026-09-24; week 26: the roll the king burned and the roll written again, forwarded 2026-09-24)', () => {
+    expect(SOVEREIGN_AI_MODULES).toHaveLength(26);
+    expect(SOVEREIGN_AI_META.weeks).toBe(26);
     expect(SOVEREIGN_AI_MODULES.every((m) => m.id && m.title && m.bigIdea && m.inApp && m.anchor?.ref)).toBe(true);
     const ids = SOVEREIGN_AI_MODULES.map((m) => m.id);
     expect(ids).toContain('sov1-generator-in-the-garage');     // the thesis
@@ -33,6 +33,8 @@ describe('curriculum shape', () => {
     expect(ids).toContain('sov19-the-servant-under-authority-who-keeps-the-guardrails'); // who keeps powerful A.I. under control - the servant under authority (forwarded 2026-09-15)
     expect(ids).toContain('sov23-the-swarm-that-agreed-together-and-the-plumbline-held-from-outside'); // cooperation without a standard becomes collusion; the plumbline is held from outside (forwarded 2026-09-18)
     expect(ids).toContain('sov24-changing-the-engine-in-flight-and-the-word-that-is-not-a-schema'); // migration at 30,000 feet; the system migrates, the Word does not (forwarded 2026-09-17)
+    expect(ids).toContain('sov25-the-ten-day-test-and-the-one-hidden-in-the-ninety-and-nine'); // deployed is not released; Daniel's ten days; the one measured separately; never put the Word in a variant (forwarded 2026-09-24)
+    expect(ids).toContain('sov26-the-roll-the-king-burned-and-the-roll-written-again'); // disaster recovery that has been restored; the Word is not our data (forwarded 2026-09-24)
   });
   it('every module id is unique and prefixed sov*', () => {
     const ids = SOVEREIGN_AI_MODULES.map((m) => m.id);
@@ -169,16 +171,16 @@ describe('no fabrication of the "provider banned a model" scenario (DR-0076)', (
 describe('shared machinery (computed timeline, progress, export, cohort, tutor)', () => {
   it('the timeline is COMPUTED (not painted) from the cohort start', () => {
     const sched = buildSovereignAiSchedule('2026-08-01');
-    expect(sched).toHaveLength(24);
+    expect(sched).toHaveLength(26);
     expect(sched[0].week).toBe(1);
     expect(sched[0].date instanceof Date).toBe(true);
     expect(sched[1].date.getTime() - sched[0].date.getTime()).toBe(7 * 86400000);
   });
   it('progress is counted from the real record', () => {
     const r = sovereignAiProgressSummary({ 'sov1-generator-in-the-garage': true, 'sov2-what-a-model-costs-to-run': true });
-    expect(r.total).toBe(24);
+    expect(r.total).toBe(26);
     expect(r.done).toBe(2);
-    expect(r.pct).toBe(8);   // Math.round(2 / 24 * 100) === 8; it was 9 at 22 and 23 weeks (8.69… rounds up), and 24 weeks is where it finally moves
+    expect(r.pct).toBe(8);   // Math.round(2 / 26 * 100) === 8 (7.69… rounds up); 8 at 24 weeks too, 9 at 22 and 23
   });
   it('the cohort starts PROPOSED (not confirmed) until Darrell locks it', () => {
     expect(SOVEREIGN_AI_CONFIRMED_COHORT.confirmed).toBe(false);
