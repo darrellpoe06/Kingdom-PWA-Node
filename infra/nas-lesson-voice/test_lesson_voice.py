@@ -267,6 +267,31 @@ class TheMirror(unittest.TestCase):
             raise OSError("down")
         self.assertEqual(lv.mirror_once(boom, None, None)["failed"][0]["error"], "list: down")
 
+    def test_the_governors_decision_reaches_the_hosted_copy(self):
+        # DR-0635: a member's row mirrored BEFORE review gets its decision merged
+        # onto the hosted copy, then is marked so it is carried only once.
+        rows = [
+            {"id": "m1", "tags": ["lesson", "mirrored", "lesson-approved"]},
+            {"id": "m2", "tags": ["lesson", "mirrored", "lesson-declined"]},
+            {"id": "m3", "tags": ["lesson", "mirrored"]},                                   # undecided
+            {"id": "m4", "tags": ["lesson", "lesson-approved"]},                            # not yet mirrored
+            {"id": "m5", "tags": ["lesson", "mirrored", "lesson-approved", "review-mirrored"]},
+        ]
+        self.assertEqual([r["id"] for r in lv.rows_to_sync_review(rows)], ["m1", "m2"])
+        merged, tagged = [], []
+        rep = lv.sync_reviews_once(lambda: rows, lambda rid, t: merged.append((rid, t)), lambda r, t: tagged.append((r["id"], t)))
+        self.assertEqual(rep["synced"], ["m1", "m2"])
+        self.assertEqual(merged, [("m1", ["lesson", "lesson-approved"]), ("m2", ["lesson", "lesson-declined"])])
+        self.assertEqual(tagged, [("m1", ["review-mirrored"]), ("m2", ["review-mirrored"])])
+
+    def test_a_failed_decision_carry_is_retried_next_run(self):
+        def boom(rid, t):
+            raise OSError("hosted refused")
+        tagged = []
+        rep = lv.sync_reviews_once(lambda: [{"id": "m1", "tags": ["lesson", "mirrored", "lesson-approved"]}], boom, lambda r, t: tagged.append(r["id"]))
+        self.assertEqual(tagged, [])
+        self.assertEqual(len(rep["failed"]), 1)
+
     def test_the_job_follows_the_database_the_app_reads(self):
         src = open(lv.__file__, encoding="utf-8").read()
         self.assertIn("from sovereign_target import resolve_target", src)
