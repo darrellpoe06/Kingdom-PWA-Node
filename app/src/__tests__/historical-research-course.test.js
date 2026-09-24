@@ -28,9 +28,9 @@ import {
   HISTORICAL_RESEARCH_MODULES, HISTORICAL_RESEARCH_META, HISTORICAL_RESEARCH_CARE_NOTE,
   HISTORICAL_RESEARCH_SESSION_FLOW, HISTORICAL_RESEARCH_TUTOR_META,
   buildHistoricalResearchSchedule, historicalResearchProgressSummary, exportHistoricalResearchCurriculumMarkdown,
-  historicalResearchRefs, historicalResearchTimeline, historicalResearchSources,
+  historicalResearchRefs, historicalResearchTimeline, historicalResearchSources, historicalResearchWorkedCaseFaults,
 } from '../lib/historical-research-course.js';
-import { historyVoiceFaults, historyTimelineFaults, historyYearsNamed, historyVoiceYears, HISTORY_SOURCE_HOSTS, HISTORY_RECORD_HOSTS } from '../lib/history-course.js';
+import { historyVoiceFaults, historyTimelineFaults, historyYearsNamed, historyVoiceYears, HISTORY_SOURCE_HOSTS, HISTORY_RECORD_HOSTS, WORKED_CASE_PARTS } from '../lib/history-course.js';
 import { LEARN_CATALOG } from '../lib/learn-catalog.js';
 import { learnDepartments } from '../lib/learn-organize.js';
 import { COURSE_CROSS_LISTINGS, coursesWithNoShelfDeclaration } from '../lib/learn-crosslist.js';
@@ -352,6 +352,66 @@ describe('the eight competencies each teach their own thing — from the fetched
   });
 });
 
+
+describe('work the case: an ACTUAL claim processed with the data, in every lesson (DR-0601)', () => {
+  // Darrell 2026-09-24: "not bringing data driven claims into the classroom
+  // about how to process a claim... with an actual claim... just hypothetically
+  // explaining... show historical experiences, events and situations that had
+  // risk, opportunities and constraints... economics of each for students to
+  // See How" — and "Humans behave behind closed doors and now in the light of
+  // day... the biblical scriptures also explain the same thing about us."
+  it('every lesson carries a worked case with all ten parts and no fault', () => {
+    for (const m of M) {
+      expect(m.workedCase, `${m.id} has no worked case`).toBeTruthy();
+      for (const k of WORKED_CASE_PARTS) expect(m.workedCase[k], `${m.id} workedCase.${k}`).toBeTruthy();
+      expect(historicalResearchWorkedCaseFaults(m), m.id).toEqual([]);
+    }
+  });
+
+  it('the claim is a real person’s or page’s words on a fetched record, and the event is a year on the lesson’s own timeline', () => {
+    for (const m of M) {
+      const c = m.workedCase;
+      expect(c.claim.source && /^https:\/\//.test(c.claim.source.url), `${m.id} claim source`).toBe(true);
+      expect([...HISTORY_SOURCE_HOSTS, ...HISTORY_RECORD_HOSTS], `${m.id} claim host`).toContain(new URL(c.claim.source.url).host);
+      expect(m.timeline.map((t) => t.year), `${m.id} event year ${c.event.year} is not on the timeline`).toContain(c.event.year);
+    }
+  });
+
+  it('the economics are figures with a record, never a mood: 20 figures across the eight lessons, every one naming its record', () => {
+    const all = M.flatMap((m) => m.workedCase.economics);
+    expect(all.length).toBe(20);
+    for (const e of all) { expect(e.figure).toMatch(/\d|nine-tenths|two hundred|thirty|fifty|twenty|hundred|thousand|million|billion/i); expect(words(e.record)).toBeGreaterThanOrEqual(3); }
+  });
+
+  it('behind closed doors → in the light of day, and the Word on why we do it: every case, every verse verbatim', () => {
+    for (const m of M) {
+      const d = m.workedCase.closedDoors;
+      expect(quotationFaults(d.verse), `${m.id} verse`).toEqual([]);
+      expect(quotationFaults(d.heart), `${m.id} heart`).toEqual([]);
+      expect(spansWithRef(d.verse).length).toBeGreaterThanOrEqual(1);
+      expect(spansWithRef(d.heart).length).toBeGreaterThanOrEqual(1);
+    }
+    const verses = M.map((m) => m.workedCase.closedDoors.verse).join('\n');
+    expect(verses).toMatch(/nothing covered, that shall not be revealed|nothing is secret|spoken in darkness shall be heard in the light|doeth truth cometh to the light|hateth the light|naked and opened|every secret thing|reproved are made manifest/);
+  });
+
+  it('the steps apply THIS competency to THIS claim: at least three per case, none a generality', () => {
+    for (const m of M) {
+      expect(m.workedCase.steps.length, m.id).toBeGreaterThanOrEqual(3);
+      for (const st of m.workedCase.steps) expect(words(st), `${m.id}: ${st.slice(0, 40)}`).toBeGreaterThanOrEqual(8);
+    }
+  });
+
+  it('proven-to-catch: a case without a figure, a figure without a record, two steps, or a missing part is refused', () => {
+    const m = M[0]; const c = m.workedCase;
+    expect(historicalResearchWorkedCaseFaults({ ...m, workedCase: { ...c, economics: [] } }).join('\n')).toMatch(/no figure/);
+    expect(historicalResearchWorkedCaseFaults({ ...m, workedCase: { ...c, economics: [{ figure: '$200', meaning: 'a fee paid for the right to work', record: '' }] } }).join('\n')).toMatch(/no record named/);
+    expect(historicalResearchWorkedCaseFaults({ ...m, workedCase: { ...c, steps: c.steps.slice(0, 2) } }).join('\n')).toMatch(/fewer than three steps/);
+    expect(historicalResearchWorkedCaseFaults({ ...m, workedCase: { ...c, risk: '' } }).join('\n')).toMatch(/risk: missing/);
+    expect(historicalResearchWorkedCaseFaults({ ...m, workedCase: undefined }).join('\n')).toMatch(/no worked case/);
+  });
+});
+
 describe('it is wired into the school as the History department’s second course', () => {
   const row = LEARN_CATALOG.find((c) => c.key === 'historical-research-1619');
 
@@ -450,8 +510,8 @@ describe('the record, dated: every timeline entry carries a source the witness p
       expect(historyTimelineFaults(m), `${m.id}`).toEqual([]);
       for (const t of m.timeline) { entries += 1; if (t.source) sourced += 1; else expect(t.event, `${m.id} ${t.year} unsourced`).toMatch(/page not found|could not|answered/i); }
     }
-    expect(entries).toBe(46);
-    expect(sourced).toBe(45);
+    expect(entries).toBe(51); // 46 + the five entries the worked cases name (1865; 1911, 1934, 1948, 1968)
+    expect(sourced).toBe(50);
   });
 
   it('every year the lesson names is on its timeline, and every timeline year is named by the lesson or a voice', () => {

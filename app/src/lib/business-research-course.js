@@ -81,7 +81,7 @@
 // every year the lesson names and names every year it carries.
 // =============================================================================
 import { buildScheduleFor, progressSummaryFor } from './church-classes.js';
-import { historyVoiceFaults, historyTimelineFaults } from './history-course.js';
+import { historyVoiceFaults, historyTimelineFaults, historyWorkedCaseFaults } from './history-course.js';
 
 export const BUSINESS_RESEARCH_CARE_NOTE =
   'Teaching, not a substitute for the record. This course teaches the eight Level-1 competencies of business research on a set of cases the Business Wars podcast tells as drama, and states the documented facts it names, with their dates and their record. It is not a history of any company and it is not investment advice. Every quoted verse is the KJV verbatim; every quoted voice was fetched from its named source before it was written in. Where the record is silent on a motive, the course says so.';
@@ -194,6 +194,32 @@ export const BUSINESS_RESEARCH_MODULES = [
       { year: 2012, event: 'Netflix files its annual report for 2011 on February 10, stating its incorporation and its offering dates.', record: 'EDGAR accession 0001193125-12-053009.' },
       { year: 2018, event: 'Wondery introduces Business Wars on January 19; the first episode, on Netflix and Blockbuster, follows on February 6.', record: 'The Business Wars show page, episode list.' },
     ],
+    workedCase: {
+      claim: { words: "Companies rarely die from moving too fast, and they frequently die from moving too slowly.", by: "Reed Hastings, chief executive of Netflix, September 18, 2011", source: SRC.hastings },
+      event: { year: 2011, what: "Netflix raises its prices and announces a split of its DVD service; two months of member anger later the chief executive apologises in public." },
+      closedDoors: {
+        hidden: "The decision to raise prices and split the service was made inside the company; members learned of it when it was announced, and the reasoning stayed inside until the apology.",
+        light: "The chief executive published the reasoning himself, and the company’s signed letter to shareholders put the damage on the record with the Securities and Exchange Commission.",
+        verse: "\"But he that doeth truth cometh to the light, that his deeds may be made manifest, that they are wrought in God\" (John 3:21).",
+        heart: "\"He that loveth silver shall not be satisfied with silver; nor he that loveth abundance with increase: this is also vanity\" (Ecclesiastes 5:10).",
+      },
+      risk: "The letter names it: the company “greatly upset many domestic Netflix members” and, in doing so, hurt its reputation and stalled its domestic growth.",
+      opportunity: "The same letter names the prize: to be one of the leaders of the internet’s transformation of video, with the best streaming subscription service on the planet.",
+      constraint: "Streaming and DVD by mail had become, in the chief executive’s words, two quite different businesses with very different cost structures; one price could not carry both.",
+      economics: [
+        { figure: "$7.99", meaning: "The price of the unlimited streaming service the letter says the company dramatically improved while it upset its members on the DVD side.", record: "Netflix, Inc., letter to shareholders of October 24, 2011, exhibit 99.1 (EDGAR)" },
+        { figure: "2×, more than doubled", meaning: "What the company did to its domestic spending on streaming content over the prior year: the cost it was counting when it moved fast.", record: "Netflix, Inc., letter to shareholders of October 24, 2011, exhibit 99.1 (EDGAR)" },
+        { figure: "over 10 years", meaning: "How long the company had mailed DVDs when its chief executive wrote that it was hard to split the service; the sunk cost he chose to move past.", record: "Reed Hastings, the Netflix blog, September 18, 2011, as archived by the Wayback Machine" },
+      ],
+      steps: [
+        "Quote the claim and mark it as a claim about cost: moving slowly is the more expensive error, in the words of the one who paid for moving fast.",
+        "Open the filed letter and find the actual costs: members upset, reputation hurt, domestic growth stalled, in the company’s own signed words.",
+        "Set the figures beside the claim — the $7.99 price, the doubled content spend, the ten years of DVDs — and count what the move risked against what it protected.",
+        "State what the record settles: the company counted the cost of moving slowly higher than the cost of moving fast, and paid the second cost in public.",
+      ],
+      settled: "The company’s own filed letter records the price, the spending and the damage, and its chief executive’s own post records the reasoning; the cost was counted after the fact, in public.",
+      stillOpen: "How many members left, and what the stalled growth cost in dollars, are figures the letter’s excerpt this course fetched does not carry; the full letter is the record still to read.",
+    },
     quiz: {
       questions: [
         { q: '"Blockbuster lost because it missed the internet." What kind of claim is that?', options: ['A fact claim, settled by one filing', 'A cause claim about motive and reason, settled only by what the actors said and did at the time', 'A frame claim, neither true nor false'], answer: 1, explain: 'Why a company won or lost is a cause claim; a filing gives you the dates, not the reason.' },
@@ -264,6 +290,33 @@ export const BUSINESS_RESEARCH_MODULES = [
       { year: 2019, event: 'The fiscal year Boeing’s annual report covers ends on December 31; the report is filed the next January.', record: 'The Boeing Company, Form 10-K for the year ended December 31, 2019, cover page.' },
       { year: 2020, event: 'Boeing files its annual report for 2019 on January 31, naming Airbus among the aggressive international competitors it faces.', record: 'The Boeing Company, Form 10-K for 2019, Item 1, “Competition.”' },
     ],
+    workedCase: {
+      claim: { words: "After a careful and thorough analysis, we determined that the process announced today provides the optimal path for recapitalizing our balance sheet and positioning Blockbuster for the future", by: "Jim Keyes, chairman and chief executive of Blockbuster, September 23, 2010", source: SRC.blockbusterRelease },
+      event: { year: 2010, what: "Blockbuster files for chapter 11 and files the press release with the Securities and Exchange Commission the next day: the last day the company’s own words are on the record as a going concern." },
+      closedDoors: {
+        hidden: "The analysis the chairman calls careful and thorough was done inside the company with its noteholders; the plan support agreement was negotiated before the public heard a word.",
+        light: "The filing put the whole arrangement on the record: the financing, the store count, the library, and which debt would be exchanged for the equity of the reorganized company.",
+        verse: "\"Neither is there any creature that is not manifest in his sight: but all things are naked and opened unto the eyes of him with whom we have to do\" (Hebrews 4:13).",
+        heart: "\"The rich ruleth over the poor, and the borrower is servant to the lender\" (Proverbs 22:7).",
+      },
+      risk: "A company that cannot pay its senior notes hands the company to the people who hold them; the release says so in one sentence about what the notes would be exchanged for.",
+      opportunity: "The release names the assets the reorganized company would keep: a well-established brand, a library of more than 125,000 titles, and stores, kiosks, mail and digital under one name.",
+      constraint: "The senior secured notes, at eleven and three-quarters percent, set the terms; the borrower’s path was the one its lenders would fund.",
+      economics: [
+        { figure: "$125 million", meaning: "The debtor-in-possession financing the senior noteholders committed so the company could pay customers, suppliers and employees during the recapitalization.", record: "Blockbuster Inc., press release of September 23, 2010, exhibit 99.1 to the Form 8-K (EDGAR)" },
+        { figure: "3,000 stores", meaning: "The number of United States stores the release says would remain open, while the company evaluated its store portfolio.", record: "Blockbuster Inc., press release of September 23, 2010, exhibit 99.1 to the Form 8-K (EDGAR)" },
+        { figure: "more than 125,000 titles", meaning: "The library the release counts as an exceptional asset of the reorganized company.", record: "Blockbuster Inc., press release of September 23, 2010, exhibit 99.1 to the Form 8-K (EDGAR)" },
+        { figure: "11¾ percent", meaning: "The rate on the senior secured notes that, under the proposed plan, would be exchanged for the equity of a reorganized Blockbuster.", record: "Blockbuster Inc., press release of September 23, 2010, exhibit 99.1 to the Form 8-K (EDGAR)" },
+      ],
+      steps: [
+        "Go past the retelling to the filing: the press release is exhibit 99.1 to a Form 8-K on EDGAR, filed the day after the chapter 11 filing.",
+        "Read the chairman’s sentence as a claim of judgment (optimal path) resting on facts the same document states.",
+        "Pull the figures — the financing, the stores, the titles, the rate — and notice each comes from the company under its own signature, not from a narrator.",
+        "State the finding: on the day it filed, the company’s own record shows what it owed, what it kept, and to whom the equity would go.",
+      ],
+      settled: "The financing, the store count, the library and the note exchange are on the record in the company’s own filed release, dated to the day.",
+      stillOpen: "What the reorganized company was worth, and what the noteholders recovered, are figures in later filings this course did not fetch.",
+    },
     quiz: {
       questions: [
         { q: 'Which is the record and which is the retelling?', options: ['The podcast episode is the record; the 10-K is the retelling', 'The 10-K signed by the company is the record; the episode is a retelling', 'Both are records'], answer: 1, explain: 'A filing is the company on itself under the law; an episode is someone else telling it.' },
@@ -332,6 +385,31 @@ export const BUSINESS_RESEARCH_MODULES = [
       { year: 2006, event: 'The Dispute Settlement Body establishes the DS353 panel on February 17; the last year of the counted period.', record: 'WTO dispute DS353, Secretariat summary.' },
       { year: 2011, event: 'The DS353 panel report is circulated to members on March 31.', record: 'WTO dispute DS353, Secretariat summary.' },
     ],
+    workedCase: {
+      claim: { words: "I messed up. I owe everyone an explanation.", by: "Reed Hastings, chief executive of Netflix, September 18, 2011", source: SRC.hastings },
+      event: { year: 2011, what: "The same event is on the record twice: the chief executive’s post on September 18, and the company’s letter to shareholders on October 24, which calls the rebranding proposed and now cancelled." },
+      closedDoors: {
+        hidden: "The chief executive’s account of what went wrong could have stayed a private post-mortem; the shareholders’ letter could have described the quarter without naming the damage.",
+        light: "Both were published: the post under his name on the company’s blog, the letter under the company’s signature with the Securities and Exchange Commission; two witnesses to one event, both in the light.",
+        verse: "\"Therefore whatsoever ye have spoken in darkness shall be heard in the light; and that which ye have spoken in the ear in closets shall be proclaimed upon the housetops\" (Luke 12:3).",
+        heart: "\"He that covereth his sins shall not prosper: but whoso confesseth and forsaketh them shall have mercy\" (Proverbs 28:13).",
+      },
+      risk: "One witness alone can be dismissed as a mood or a public-relations move; the second, a filed document, makes the first a matter of record.",
+      opportunity: "Two independent records of the same event let a researcher establish it the way the Word requires, at the mouth of two witnesses, without trusting either one alone.",
+      constraint: "The two witnesses are not independent of the company — one is its chief executive, the other its signed letter — so a third, outside witness would be needed to establish anything they both omit.",
+      economics: [
+        { figure: "2 records, 36 days apart", meaning: "The post of September 18 and the letter of October 24: the same price change and rebranding described twice, once by the man and once by the company under its filing obligation.", record: "Reed Hastings, the Netflix blog, September 18, 2011, as archived by the Wayback Machine; Netflix, Inc., letter to shareholders of October 24, 2011, exhibit 99.1 (EDGAR)" },
+        { figure: "2 charges", meaning: "What a member subscribing to both services would have seen under the split the post announced: two entries on a credit card statement, one for each business.", record: "Reed Hastings, the Netflix blog, September 18, 2011, as archived by the Wayback Machine" },
+      ],
+      steps: [
+        "Take the first witness — the post — and note what it establishes: an apology, a reason, and a plan to split the service.",
+        "Take the second — the filed letter — and note what it establishes: the damage, and that the rebranding was proposed and then cancelled.",
+        "Mark what both share (the price change, the split, the harm) as established, and what only one carries (the reasoning; the cancellation) as single-witness.",
+        "Name the outside witness that would complete the case — a member count from a later filing — and that this course did not fetch it.",
+      ],
+      settled: "The price change, the announced split and the damage to members and reputation are established by two records of the company’s own, thirty-six days apart.",
+      stillOpen: "The number of members lost is in neither excerpt this course fetched; a later filing would be the third witness.",
+    },
     quiz: {
       questions: [
         { q: 'Reading only DS316, what has a researcher established?', options: ['That Airbus cheated', 'That the United States formally accused the European side, on a date, of named measures', 'Nothing at all'], answer: 1, explain: 'One record establishes its own dispute — who complained, when, of what — not the whole matter.' },
@@ -398,6 +476,32 @@ export const BUSINESS_RESEARCH_MODULES = [
       { year: 2009, event: 'Disney announces on August 31 that it has agreed to acquire Marvel Entertainment for about $4 billion.', record: 'The Walt Disney Company press release of August 31, 2009.' },
       { year: 2018, event: 'Business Wars begins; its show page describes the unauthorized, real story and stages its episodes as scenes.', record: 'The Business Wars show page, description and episode list.' },
     ],
+    workedCase: {
+      claim: { words: "Based on the closing price of Disney stock on Friday, August 28, the transaction value is $50 per Marvel share or approximately $4 billion.", by: "The Walt Disney Company, press release of August 31, 2009", source: SRC.disney },
+      event: { year: 2009, what: "Disney announces it will acquire Marvel; the release states the price, the assets and both chief executives’ words on the same day." },
+      closedDoors: {
+        hidden: "The negotiation between the two companies — who wanted what, what was offered and refused — happened in private and is not in the release.",
+        light: "What the release does put in the light is the price, the count of characters, and the two executives’ own sentences; a dramatization may fill the room with invented dialogue, but only those are on the record.",
+        verse: "\"For nothing is secret, that shall not be made manifest; neither any thing hid, that shall not be known and come abroad\" (Luke 8:17).",
+        heart: "\"A just weight and balance are the LORD’s: all the weights of the bag are his work\" (Proverbs 16:11).",
+      },
+      risk: "A reenactment that invents a boardroom line teaches the listener a motive nobody recorded; repeated as fact, it displaces the two sentences the executives actually said.",
+      opportunity: "The release gives the researcher exactly what a dramatization cannot: a price per share, a total, a character count and two quotations with names attached.",
+      constraint: "The release states the value “based on the closing price” of one Friday, so the $4 billion is a computation on a date, not a fixed sum; the record itself says so.",
+      economics: [
+        { figure: "$50 per share", meaning: "The transaction value per Marvel share, on the release’s own basis of Disney’s closing price on Friday, August 28.", record: "The Walt Disney Company, press release of August 31, 2009" },
+        { figure: "approximately $4 billion", meaning: "The total value the release states for the acquisition, on the same basis.", record: "The Walt Disney Company, press release of August 31, 2009" },
+        { figure: "more than 5,000 characters", meaning: "What Disney said it would acquire ownership of: the library the buyer named as the asset.", record: "The Walt Disney Company, press release of August 31, 2009" },
+      ],
+      steps: [
+        "Separate what the release records (price, total, characters, two quotations) from what a dramatization adds (scenes, dialogue, motive).",
+        "Read the two executives’ sentences as the only words either man is on record saying about the deal that day.",
+        "Check the computation the release describes: the total rests on one closing price, which the release names.",
+        "Teach the listener to keep the record’s figures and hold the reenactment as illustration, never as source.",
+      ],
+      settled: "The price per share, the approximate total, the character count and the two executives’ words are on the record in the buyer’s own release, dated to the day.",
+      stillOpen: "What was said in the negotiation, and what Marvel’s owner would have accepted, are in no record this course fetched; any dramatization of them is invention.",
+    },
     quiz: {
       questions: [
         { q: 'A scene in which two executives argue across a table is:', options: ['A record, because the show says it is real', 'A reenactment, unless a document carries the words', 'Always false'], answer: 1, explain: 'Could a document say this? If not, it is appearance — to be enjoyed and credited, never cited.' },
@@ -465,6 +569,32 @@ export const BUSINESS_RESEARCH_MODULES = [
       { year: 1999, event: 'Trial ends June 24; the record closes July 28; Judge Jackson signs 412 findings of fact on November 5.', record: 'The Court’s Findings of Fact, U.S. v. Microsoft, November 5, 1999.' },
       { year: 2001, event: 'The Court of Appeals issues its opinion on June 28, the first of the courts the findings went to next.', record: 'The Antitrust Division’s case page, frequently requested documents.' },
     ],
+    workedCase: {
+      claim: { words: "this alone won't get people to switch away from Netscape", by: "Bill Gates, in his May 1995 memorandum, as the Court quoted it in its Findings of Fact", source: SRC.findings },
+      event: { year: 1999, what: "The Court finds the facts: what Microsoft’s chairman wrote to his executives in 1995, what the company spent on its browser, and what it gave away." },
+      closedDoors: {
+        hidden: "An internal memorandum from a chairman to his executive staff is written for a closed room; it names the rival and what a decent product will not accomplish by itself.",
+        light: "The memorandum was entered into a federal court’s findings of fact and is quoted there in his own words; the closed room is now a public record with paragraph numbers.",
+        verse: "\"For there is nothing covered, that shall not be revealed; neither hid, that shall not be known\" (Luke 12:2).",
+        heart: "\"Divers weights are an abomination unto the LORD; and a false balance is not good\" (Proverbs 20:23).",
+      },
+      risk: "A company that decides quality alone will not win, and then spends and gives away to make sure, is weighed by a court on its own words; the memorandum became the weight.",
+      opportunity: "The findings carry the figures — the spending, the headcount, the free product — so the weighing can be done by a reader with the record open, not by a narrator’s side.",
+      constraint: "The findings are the Court’s account of the facts, not the company’s; the company’s own reply is in other documents on the same case page, and a just weight reads both.",
+      economics: [
+        { figure: "more than $100 million a year", meaning: "What Microsoft spent each year from 1995 onward developing Internet Explorer, by the Court’s finding.", record: "U.S. v. Microsoft, the Court’s Findings of Fact, November 5, 1999 (Department of Justice)" },
+        { figure: "from five or six to more than one thousand", meaning: "The number of developers working on the browser, early 1995 to 1999, by the Court’s finding.", record: "U.S. v. Microsoft, the Court’s Findings of Fact, November 5, 1999 (Department of Justice)" },
+        { figure: "$0, free", meaning: "The price at which the company gave the browser away, while also giving other firms things of value to build its usage share, by the Court’s finding.", record: "U.S. v. Microsoft, the Court’s Findings of Fact, November 5, 1999 (Department of Justice)" },
+      ],
+      steps: [
+        "Quote the chairman’s own words as the Court quotes them, and mark them as the defendant’s account of his own strategy.",
+        "Set the Court’s figures beside them: the spending, the headcount, the free product.",
+        "Weigh without respect of persons: a large company and a small one are read by the same record, and the record here is the Court’s.",
+        "Name the other side’s documents on the case page as the record to read before the weight is final.",
+      ],
+      settled: "The chairman’s words, the annual spending and the growth in developers are in the Court’s findings of fact with their paragraph numbers.",
+      stillOpen: "What the browser strategy earned or cost the company in dollars is not in the excerpt this course fetched; the company’s filings are the record for that.",
+    },
     quiz: {
       questions: [
         { q: 'What did the court write before it weighed?', options: ['Its opinion of Microsoft', 'Its standard of proof: facts proved by a preponderance of the evidence', 'Nothing'], answer: 1, explain: 'A just weight states the standard first; the findings open by naming it.' },
@@ -535,6 +665,31 @@ export const BUSINESS_RESEARCH_MODULES = [
       { year: 2010, event: 'Blockbuster names the going-concern risk and the chapter 11 cases in its own exhibit on September 23.', record: 'Blockbuster Inc., Form 8-K, exhibit 99.1.' },
       { year: 2011, event: 'Reed Hastings publishes his apology on September 18; the letter to shareholders of October 24 calls the rebranding proposed-and-now-cancelled.', record: 'The Netflix blog as archived by the Wayback Machine; the letter to shareholders, exhibit 99.1.' },
     ],
+    workedCase: {
+      claim: { words: "In hindsight, I slid into arrogance based upon past success.", by: "Reed Hastings, chief executive of Netflix, September 18, 2011", source: SRC.hastings },
+      event: { year: 2011, what: "The chief executive corrects himself in public on September 18; by October 24 the company’s filed letter records the rebranding as proposed and now cancelled." },
+      closedDoors: {
+        hidden: "Arrogance based on past success is a private condition; nobody outside the company saw it forming, and the man who had it did not see it until the members answered.",
+        light: "He named it himself, in public, under his own name; and thirty-six days later the company’s filed letter recorded that the plan he announced had been cancelled.",
+        verse: "\"But all things that are reproved are made manifest by the light: for whatsoever doth make manifest is light\" (Ephesians 5:13).",
+        heart: "\"He that covereth his sins shall not prosper: but whoso confesseth and forsaketh them shall have mercy\" (Proverbs 28:13).",
+      },
+      risk: "The post’s own plan — two websites, two charges, ratings that do not carry across — was the risk the members judged; the letter records that the judgment stood and the plan fell.",
+      opportunity: "A correction made in the open, with the reason stated, is the one asset a company can create in a bad quarter; the record shows it was made.",
+      constraint: "The price increase was not reversed — the post says it would not have changed the price — so the correction was of the manner and the split, not of the cost to the member.",
+      economics: [
+        { figure: "2 websites, 2 charges", meaning: "What the split would have meant for a member of both services: two sites that did not share ratings or a credit card, and two entries on the statement; the cost the members refused.", record: "Reed Hastings, the Netflix blog, September 18, 2011, as archived by the Wayback Machine" },
+        { figure: "36 days", meaning: "From the post of September 18 to the letter of October 24 that records the rebranding as cancelled: the time from the correction of the manner to the correction of the plan.", record: "Reed Hastings, the Netflix blog, September 18, 2011, as archived by the Wayback Machine; Netflix, Inc., letter to shareholders of October 24, 2011, exhibit 99.1 (EDGAR)" },
+      ],
+      steps: [
+        "Read the first correction — the apology and the named fault — for what it changed (the manner) and what it left standing (the price).",
+        "Read the second — the filed letter — for what it changed (the plan itself, cancelled) and what it left standing (the pricing).",
+        "Tell an open correction from a quiet one: both here carry a name and a date, one on the blog and one in a filing.",
+        "Keep the dated copy: the blog page is gone from the company’s site and lives only in the archive, which is why it can still be quoted.",
+      ],
+      settled: "The chief executive corrected the manner in public and the company cancelled the plan within thirty-six days; both are on dated records in their own words.",
+      stillOpen: "What the cancelled rebranding had already cost — the name, the site, the team — is not in the excerpts this course fetched.",
+    },
     quiz: {
       questions: [
         { q: 'A researcher cites the 1999 findings as the last word on the Microsoft case. What has he missed?', options: ['Nothing; findings are final', 'Four dated documents through 2006 in which courts corrected and modified the record', 'The podcast'], answer: 1, explain: 'The case page lists an appeals opinion, a final judgment, a second opinion and a modified judgment, through September 7, 2006.' },
@@ -604,7 +759,33 @@ export const BUSINESS_RESEARCH_MODULES = [
       { year: 2006, event: 'The last year of the counted period in the European Communities’ estimate.', record: 'WTO dispute DS353, Secretariat summary.' },
       { year: 2010, event: 'Blockbuster names the going-concern risk in its own exhibit on September 23.', record: 'Blockbuster Inc., Form 8-K, exhibit 99.1.' },
       { year: 2011, event: 'The DS353 panel report, carrying the $19.1 billion estimate, is circulated on March 31.', record: 'WTO dispute DS353, Secretariat summary.' },
+      { year: 2019, event: 'On October 2 the United States trade office announces a $7.5 billion award in the Airbus subsidies case, the other side of the pair of disputes.', record: 'Office of the United States Trade Representative, press release of October 2, 2019.' },
     ],
+    workedCase: {
+      claim: { words: "The European Communities estimated that the total amount of the alleged subsidies was $19.1 billion between 1989 and 2006", by: "The World Trade Organization Secretariat, summarizing dispute DS353", source: SRC.ds353 },
+      event: { year: 2011, what: "The panel report in the Boeing dispute is circulated to members on March 31, with the claimed subsidies counted by category and by amount." },
+      closedDoors: {
+        hidden: "Tax breaks, research payments and access to government facilities are granted in legislatures and agencies, line by line, and each side keeps its own accounting of what the other received.",
+        light: "The dispute forced both accountings into one public record: ten categories of claimed measures, an estimated total, and years later an award the trade office announced to the dollar.",
+        verse: "\"For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil\" (Ecclesiastes 12:14).",
+        heart: "\"A false balance is abomination to the LORD: but a just weight is his delight\" (Proverbs 11:1).",
+      },
+      risk: "Each side’s figure is a claim by a party to the dispute; a reader who takes either as settled has let the party weigh its own cause.",
+      opportunity: "The Word settles the standard — a just weight, no respect of persons — before any panel sits, so the researcher knows what to ask of the record: who counted, and by what measure.",
+      constraint: "The Secretariat’s summary reports what the complainant estimated, not what the panel found in every category; the panel report itself is the record for the finding.",
+      economics: [
+        { figure: "$19.1 billion, 1989–2006", meaning: "The European Communities’ estimate of the alleged subsidies to Boeing’s large civil aircraft division, across ten categories of measures.", record: "World Trade Organization, dispute DS353, the Secretariat’s summary" },
+        { figure: "$7.5 billion", meaning: "The award the United States trade office announced on October 2, 2019 in the Airbus subsidies case, the other side of the same pair of disputes.", record: "Office of the United States Trade Representative, press release of October 2, 2019" },
+      ],
+      steps: [
+        "Mark what the Word settles before the record is opened: the weight must be just and the same for both parties.",
+        "Read the claim as a party’s estimate, name who made it and over what years, and keep it apart from the panel’s finding.",
+        "Set the other side’s figure beside it — the award the trade office announced — and notice both numbers come from parties, not from a neutral scale.",
+        "Name the panel reports as the record where the weighing was actually done, and that this course fetched the summaries, not the reports.",
+      ],
+      settled: "The complainant’s estimate, its period and its categories are on the Secretariat’s record; the award figure is on the trade office’s record; the Word’s standard for weighing them is settled.",
+      stillOpen: "What the panels found subsidy by subsidy, and what each side actually paid or withdrew, is in the panel reports and later filings this course did not fetch.",
+    },
     quiz: {
       questions: [
         { q: 'Which question belongs on the settled list?', options: ['Whether Microsoft’s share stood above ninety percent', 'Whether keeping back wages by fraud is wrong', 'When the DS316 consultations began'], answer: 1, explain: '"which is of you kept back by fraud, crieth" (James 5:4) — settled by the Word before any research began, and never reopened by any rivalry or any retelling.' },
@@ -674,6 +855,7 @@ export const BUSINESS_RESEARCH_MODULES = [
       { year: 2002, event: 'Netflix completes its initial public offering in May; the Final Judgment in the Microsoft case is entered November 12.', record: 'Netflix, Inc., Form 10-K for 2011; the Antitrust Division’s case page.' },
       { year: 2004, event: 'A second Court of Appeals opinion issues on June 30.', record: 'The Antitrust Division’s case page.' },
       { year: 2006, event: 'The Modified Final Judgment is entered on September 7.', record: 'The Antitrust Division’s case page.' },
+      { year: 2009, event: 'On August 31 Disney announces it will acquire Marvel for about $4 billion, $50 a Marvel share on that Friday’s closing price; a figure in the brief.', record: 'The Walt Disney Company, press release, “Disney to Acquire Marvel Entertainment,” August 31, 2009.' },
       { year: 2010, event: 'Blockbuster files its chapter 11 exhibit on September 23.', record: 'Blockbuster Inc., Form 8-K, exhibit 99.1.' },
       { year: 2011, event: 'The fiscal year the Netflix report covers ends on December 31.', record: 'Netflix, Inc., Form 10-K for the year ended December 31, 2011, cover page.' },
       { year: 2012, event: 'Netflix files its annual report for 2011 on February 10.', record: 'EDGAR accession 0001193125-12-053009.' },
@@ -681,6 +863,34 @@ export const BUSINESS_RESEARCH_MODULES = [
       { year: 2019, event: 'The fiscal year Boeing’s annual report covers ends on December 31; the report is filed the next January.', record: 'The Boeing Company, Form 10-K for the year ended December 31, 2019, cover page.' },
       { year: 2020, event: 'Boeing files its annual report for 2019 on January 31, naming Airbus among the aggressive international competitors it faces.', record: 'The Boeing Company, Form 10-K for 2019, Item 1, “Competition.”' },
     ],
+    workedCase: {
+      claim: { words: "We face aggressive international competitors who are intent on increasing their market share, such as Airbus and other entrants from Russia, China and Japan.", by: "The Boeing Company, in its annual report for 2019, filed January 31, 2020", source: SRC.boeing10k },
+      event: { year: 2020, what: "Boeing files its annual report and names its competitors under its own signature; the sentence closes the course’s timeline from a founding in 1997 to a sworn filing." },
+      closedDoors: {
+        hidden: "A company’s view of its rivals is formed in strategy rooms; what it fears and what it plans are not said aloud to the market by choice.",
+        light: "The securities law puts a version of it in the light every year: the annual report must state the competition the company faces, under its signature, and this one names Airbus, Russia, China and Japan.",
+        verse: "\"Neither is there any creature that is not manifest in his sight: but all things are naked and opened unto the eyes of him with whom we have to do\" (Hebrews 4:13).",
+        heart: "\"Take heed, and beware of covetousness: for a man’s life consisteth not in the abundance of the things which he possesseth\" (Luke 12:15).",
+      },
+      risk: "A brief written from podcasts and memory will carry dates and figures no filing supports, and a reader who checks one will discard the rest.",
+      opportunity: "Every figure in this course sits on a filing, a finding, a summary or a release with a date, so the case brief can be written in order with a record under every line.",
+      constraint: "The brief may state only what the fetched records carry; where the record is a party’s estimate or a company’s own view, the brief must say whose it is.",
+      economics: [
+        { figure: "$125 million · 3,000 stores · 125,000 titles", meaning: "Blockbuster on the day it filed: the financing, the stores, the library, from the company’s own release.", record: "Blockbuster Inc., press release of September 23, 2010, exhibit 99.1 to the Form 8-K (EDGAR)" },
+        { figure: "$7.99 · more than doubled", meaning: "Netflix in the quarter it apologised: the streaming price and the growth in content spending, from the filed letter.", record: "Netflix, Inc., letter to shareholders of October 24, 2011, exhibit 99.1 (EDGAR)" },
+        { figure: "$50 a share · about $4 billion · 5,000 characters", meaning: "Disney buying Marvel, from the buyer’s release.", record: "The Walt Disney Company, press release of August 31, 2009" },
+        { figure: "more than $100 million a year · 5 or 6 to more than 1,000 developers", meaning: "Microsoft building the browser, from the Court’s findings.", record: "U.S. v. Microsoft, the Court’s Findings of Fact, November 5, 1999 (Department of Justice)" },
+        { figure: "$19.1 billion claimed · $7.5 billion awarded", meaning: "Boeing and Airbus, from the Secretariat’s summary and the trade office’s release.", record: "World Trade Organization, dispute DS353, the Secretariat’s summary; Office of the United States Trade Representative, press release of October 2, 2019" },
+      ],
+      steps: [
+        "Lay the figures out in date order from the founding in 1997 to the filing in 2020, each with the record it came from.",
+        "Write one sentence per figure that names whose figure it is: the company’s, the Court’s, the complainant’s, the trade office’s.",
+        "Keep the settled and the open in the same brief: what the records carry and what this course did not fetch.",
+        "Close with the Word that stood before any of it: a just weight, and a man’s life not measured by what he possesses.",
+      ],
+      settled: "Every figure in the brief is on a dated record in the words of the party that filed, found, summarized or announced it.",
+      stillOpen: "The panel reports, the later Netflix and Blockbuster filings, and the negotiation behind the Marvel deal are the records the brief names as still to open.",
+    },
     quiz: {
       questions: [
         { q: 'A sentence in your brief has no record behind it. What do you do?', options: ['Leave it; it sounds right', 'Give it a record, or give it the honest words: the record I have does not say', 'Cite the podcast scene'], answer: 1, explain: 'Every sentence carries its record or carries the honest words; a scene is a doorway, not a record.' },
@@ -749,6 +959,8 @@ export function businessResearchVoiceFaults(m) {
   });
 }
 export const businessResearchTimelineFaults = historyTimelineFaults;
+/** The worked case (DR-0601): an actual claim processed with the data — the same gate the History course carries. */
+export const businessResearchWorkedCaseFaults = historyWorkedCaseFaults;
 
 export function businessResearchRefs(modules = BUSINESS_RESEARCH_MODULES) {
   const out = [];

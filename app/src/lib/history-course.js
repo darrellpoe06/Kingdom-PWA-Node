@@ -815,6 +815,61 @@ export function historyTimelineFaults(m) {
   return faults;
 }
 
+// THE WORKED CASE (2026-09-24, DR-0601). Darrell, on lesson 1 of the first
+// build: "This lesson is not bringing data driven claims into the classroom
+// about how to process a claim... with an actual claim... just hypothetically
+// explaining... we need more substance and clarity by showing historical
+// experiences, events and situations that had risk, opportunities and
+// constraints etc... economics of each for students to See How!" — and,
+// minutes later: "Humans behave behind closed doors and now in the light of
+// day... same thing would have been hidden." So every research lesson carries
+// ONE actual claim worked through the competency with the data: the claim in
+// the words of the one who made it, the dated event, what was done or said
+// behind closed doors and how the record brought it into the light, the risk,
+// the opportunity, the constraint, the economics as figures from fetched
+// records, the steps applied to THIS claim, and what the record settled and
+// what it left open. Nothing here is hypothetical, and no figure is invented:
+// the gate refuses a case with no figure, a figure with no record, a step list
+// under three, or a missing part.
+export const WORKED_CASE_PARTS = ['claim', 'event', 'closedDoors', 'risk', 'opportunity', 'constraint', 'economics', 'steps', 'settled', 'stillOpen'];
+
+export function historyWorkedCaseFaults(m) {
+  const faults = [];
+  const id = (m && m.id) || '?';
+  const c = m && m.workedCase;
+  if (!c || typeof c !== 'object') return [`${id}: no worked case — an actual claim processed with the data`];
+  for (const k of WORKED_CASE_PARTS) if (c[k] == null || c[k] === '') faults.push(`${id}.workedCase.${k}: missing`);
+  if (c.claim) {
+    if (wordCount(c.claim.words) < 6) faults.push(`${id}.workedCase.claim: fewer than six quoted words`);
+    if (wordCount(c.claim.by) < 2) faults.push(`${id}.workedCase.claim: no one is named as making it`);
+    if (!c.claim.source || !/^https:\/\//.test(String(c.claim.source.url || ''))) faults.push(`${id}.workedCase.claim: no https source for the claim`);
+    if (/\.\.\.|…/.test(String(c.claim.words || ''))) faults.push(`${id}.workedCase.claim: elision inside the quoted claim`);
+  }
+  if (c.event) {
+    if (!Number.isInteger(c.event.year) || c.event.year < 1500 || c.event.year > 2030) faults.push(`${id}.workedCase.event: year is not a four-digit year`);
+    if (wordCount(c.event.what) < 5) faults.push(`${id}.workedCase.event: not a sentence`);
+  }
+  if (c.closedDoors) {
+    if (wordCount(c.closedDoors.hidden) < 8) faults.push(`${id}.workedCase.closedDoors: what was hidden is not stated`);
+    if (wordCount(c.closedDoors.light) < 8) faults.push(`${id}.workedCase.closedDoors: how the record brought it to light is not stated`);
+    if (!/\([1-3]?\s?[A-Za-z]+\s+\d+:[\d\-,\s]+\)/.test(String(c.closedDoors.verse || ''))) faults.push(`${id}.workedCase.closedDoors: no verse tag on the Word's word about it`);
+  }
+  for (const k of ['risk', 'opportunity', 'constraint', 'settled', 'stillOpen']) if (c[k] != null && wordCount(c[k]) < 8) faults.push(`${id}.workedCase.${k}: under eight words`);
+  const econ = Array.isArray(c.economics) ? c.economics : [];
+  if (econ.length < 1) faults.push(`${id}.workedCase.economics: no figure`);
+  econ.forEach((e, i) => {
+    const at = `${id}.workedCase.economics[${i}]`;
+    if (!e || typeof e !== 'object') { faults.push(`${at}: not an object`); return; }
+    if (!/\d/.test(String(e.figure || '')) && !/nine-tenths|two hundred|thirty|fifty|twenty|hundred|thousand|million|billion/i.test(String(e.figure || ''))) faults.push(`${at}: the figure carries no number`);
+    if (wordCount(e.meaning) < 6) faults.push(`${at}: no meaning for the figure`);
+    if (wordCount(e.record) < 3) faults.push(`${at}: no record named for the figure`);
+  });
+  const steps = Array.isArray(c.steps) ? c.steps : [];
+  if (steps.length < 3) faults.push(`${id}.workedCase.steps: fewer than three steps`);
+  steps.forEach((st, i) => { if (wordCount(st) < 8) faults.push(`${id}.workedCase.steps[${i}]: under eight words`); });
+  return faults;
+}
+
 /** The whole course on one line of years — every lesson's dated record, merged and sorted. */
 export function historyTimeline(modules = HISTORY_MODULES) {
   const out = [];

@@ -21,7 +21,7 @@ import {
   BUSINESS_RESEARCH_SESSION_FLOW, BUSINESS_RESEARCH_TUTOR_META,
   buildBusinessResearchSchedule, businessResearchProgressSummary, exportBusinessResearchCurriculumMarkdown,
   businessResearchRefs, businessResearchTimeline, businessResearchVoiceFaults, businessResearchTimelineFaults,
-  BUSINESS_SOURCE_HOSTS,
+  BUSINESS_SOURCE_HOSTS, businessResearchWorkedCaseFaults,
 } from '../lib/business-research-course.js';
 import { historyVoiceFaults, historyYearsNamed, historyVoiceYears, HISTORY_SOURCE_HOSTS } from '../lib/history-course.js';
 import { LEARN_CATALOG } from '../lib/learn-catalog.js';
@@ -155,7 +155,7 @@ describe('His words, fetched not remembered', () => {
   it('walks every quoted span in the WHOLE module, not only the reader texts', () => {
     let spans = 0; const faults = [];
     for (const m of M) walkStrings(m, m.id, (t, path) => { spans += spansWithRef(t).length; for (const f of quotationFaults(t)) faults.push(`${path}: ${f}`); });
-    expect(spans).toBe(148); // 148 in the modules; the meta frame carries two more, walked below
+    expect(spans).toBe(164); // 148 + 16 verse spans in the worked cases (DR-0601) // 148 in the modules; the meta frame carries two more, walked below
     expect(faults).toEqual([]);
   });
 
@@ -435,5 +435,30 @@ describe('proven-to-catch (DR-0076 §3)', () => {
   it('catches a voice without a listed source host', () => {
     const m = M[0]; const v = m.voices[0];
     expect(businessResearchVoiceFaults({ ...m, voices: [v, { ...v, source: { title: 'x y', url: 'https://example.com/x' } }] }).join('\n')).toMatch(/not a listed primary-record host/);
+  });
+});
+
+describe('work the case: an ACTUAL claim processed with the data, in every lesson (DR-0601)', () => {
+  it('every lesson carries a worked case with every part, a figure with its record, three or more steps, and no fault', () => {
+    for (const m of M) {
+      expect(m.workedCase, `${m.id} has no worked case`).toBeTruthy();
+      expect(businessResearchWorkedCaseFaults(m), m.id).toEqual([]);
+      expect(m.workedCase.economics.length, m.id).toBeGreaterThanOrEqual(2);
+      expect(m.workedCase.steps.length, m.id).toBeGreaterThanOrEqual(3);
+      expect(m.timeline.map((t) => t.year), `${m.id} event year`).toContain(m.workedCase.event.year);
+    }
+  });
+  it('the figures are the filings’, the Court’s, the Secretariat’s and the releases’ own: 24 across eight lessons', () => {
+    const all = M.flatMap((m) => m.workedCase.economics);
+    expect(all.length).toBe(24);
+    for (const e of all) expect(e.record).toMatch(/EDGAR|Wayback|Department of Justice|World Trade Organization|Trade Representative|press release/);
+  });
+  it('behind closed doors → the light, with the Word verbatim on both the hiding and the heart', () => {
+    for (const m of M) {
+      const d = m.workedCase.closedDoors;
+      expect(d.hidden.length).toBeGreaterThan(40); expect(d.light.length).toBeGreaterThan(40);
+      expect(d.verse).toMatch(/\((Luke|John|Hebrews|Ecclesiastes|Ephesians|Proverbs) \d+:\d+\)/);
+      expect(d.heart).toMatch(/\((Proverbs|Ecclesiastes|Luke|1 Timothy|James|Jeremiah) \d+:\d+\)/);
+    }
   });
 });

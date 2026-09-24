@@ -1,0 +1,46 @@
+# DR-0601 — Every research lesson works an actual claim with the data: the event, what was done behind closed doors and how the record brought it to light, the risk, the opportunity, the constraint, and the economics as figures from the record, so students see how
+
+- **Status:** accepted
+- **Tier:** A (a new block on two Learn courses, a gate, a renderer section; no schema, no transport, no money)
+- **Type:** feature
+- **Date:** 2026-09-24
+- **Scope:** `app/src/lib/history-course.js` (`WORKED_CASE_PARTS`, `historyWorkedCaseFaults`); `app/src/lib/historical-research-course.js` and `app/src/lib/business-research-course.js` (a `workedCase` on all sixteen lessons; six timeline entries added for the years the cases name (1865, 1911, 1934, 1948, 1968 in History; 2009 in Business); re-exports of the gate); `app/src/lib/worked-case.js` (`workedCaseText`, the one flat rendering for read-aloud, share and print); `app/src/components/ChurchLearn.jsx` (the "Work the case" block on screen and in the printed guide); tests in `history-course.test.js`, `historical-research-course.test.js`, `business-research-course.test.js`
+- **Principles:** REALITY-TRACE (DR-0061 — the lesson runs on real data, not on a hypothetical), SPEAK-ESTABLISHED-FACT (DR-0100), VERIFICATION-DOCTRINE (DR-0076 — every figure names its record), THEIR-WORDS-FETCHED-NOT-REMEMBERED (DR-0580 / DR-0597), SPOKEN-TEACHINGS-ARE-BUILD-INPUT, WORD-FIRST (DR-0097), DO-NOT-RE-ASK (DR-0111), NOTHING-WAITS (DR-0236)
+- **Grounds:** Darrell 2026-09-24, on lesson 1 of the History course on the live build: *"This lesson is not bringing data driven claims into the classroom about how to process a claim... historical claims... with an actual claim... just hypothetically explaining... we need more substance and clarity by showing historical experiences, events and situations that had risk, opportunities and constraints etc... economics of each for students to See How!"* Then: *"Humans behave behind closed doors and now in the light of day... same thing would have been hidden."* Then: *"The biblical scriptures also explain the same thing about us human beings."* And, for the wider build: *"Tie all the money tied to oil and how that impacts the economy worldwide... comprehensive data driven understanding from all industries which is why business wars was a source I gave for context especially in American culture and history."*
+
+## Context
+
+Both research courses taught a competency and then illustrated it; the illustration was a scene, not a case. A student finished lesson 1 knowing how to sort a claim and never having sorted one with figures in front of him. The witnesses (DR-0597, DR-0600) put real people in every lesson; this record puts a real claim, with its money, in every lesson, and works it in the open the way a class would.
+
+His three words in a row are one design. A worked case is the competency applied to one actual claim with the data. The data is where humans behaved behind closed doors and the record brought it into the light: the fact-checker's email, the chairman's memorandum, the covenant on one street, the chief executive's private arrogance confessed in public. And the Word explains the behavior before any historian does, so each case carries two verses verbatim: the Word on the hiding, and the Word on the heart.
+
+## What was measured
+
+| what | measured |
+| --- | --- |
+| the shape, gated | ten parts, every one required: `claim` (quoted words, who said them, an https source), `event` (a year on the lesson's own timeline, a sentence), `closedDoors` (`hidden`, `light`, `verse`, `heart`), `risk`, `opportunity`, `constraint`, `economics` (figures, each with a meaning and a named record), `steps` (three or more, each applying the competency to this claim), `settled`, `stillOpen`; `historyWorkedCaseFaults` refuses a missing part, a figure with no number, a figure with no record, a step list under three, a claim under six words, and an elided claim |
+| cases | 16 (eight History, eight Business); 44 figures (20 History, 24 Business), every one from a record the runner fetched: the Jacobs narrative ($200 a year), Lincoln's second inaugural (250 years), Wilentz (five colonies, 1769–1774; 1787), the editor's update (11 scholars), the Wayback capture banner (477 captures), Kruse (nine-tenths; 60,000 then 100,000; two hours a week), Shelley v. Kraemer (30 of 39 owners; 50 years), Federal Reserve History (1934 to the 1960s; 1968), the Netflix letter ($7.99; spending more than doubled), the Hastings post (10 years; two websites, two charges), the Blockbuster release ($125 million; 3,000 stores; 125,000 titles; 11¾ percent), the Disney release ($50 a share; about $4 billion; 5,000 characters), the Court's findings ($100 million a year; 5 or 6 to more than 1,000 developers; free), the WTO summary ($19.1 billion, 1989–2006), the trade office ($7.5 billion) |
+| what was NOT invented | where a figure the claim needs was not fetched (a plantation ledger, the price paid at Point Comfort, members lost, the panel's own findings), the case says so under *still open* and names the record |
+| the Word | 32 verse spans added (two per case), all KJV verbatim, walked by the course tests: Luke 8:17, Luke 12:2, Luke 12:3, John 3:20, John 3:21, Ecclesiastes 12:14, Hebrews 4:13, Ephesians 5:13 on the hiding; 1 Timothy 6:10, Proverbs 22:7, Proverbs 22:16, Proverbs 29:25, Jeremiah 17:9, Proverbs 28:13, Isaiah 10:1, James 5:4, Ecclesiastes 5:10, Proverbs 16:11, Proverbs 20:23, Proverbs 11:1, Luke 12:15 on the heart |
+| the surface | one block per lesson on Church → Learn, after the timeline: the claim quoted with its record linked, the event dated, behind closed doors and in the light with both verses, risk / opportunity / constraint side by side, the economics as a table (figure, meaning, record), the steps numbered, settled and still open; the same text reads aloud, shares as one section, and prints with the facilitator's guide (`workedCaseText`) |
+| gates | course suites green with the new pins (every lesson, every part, the figure counts, the verses verbatim, the event year on the timeline, proven-to-catch on the gate); the year gate holds both ways over the new text (six timeline entries added so no year the cases name is unlisted); lint 0 |
+| oil, in flight | the runner answered on the Federal Reserve's oil-shock histories ($2.90 to $11.65 a barrel after the 1973 embargo; Iranian output down 4.8 million barrels a day, 7 percent of world production, by January 1979; prices more than doubling April 1979 to April 1980), the Energy Department's reserve (714 million barrels of capacity), and the Supreme Court's Standard Oil opinion (221 U.S. 1); the Energy Information Administration's pages answered but their figures sit below the navigation and a second probe is reading them; OPEC's own page refuses a runner. The oil lesson ships as the Business course's ninth lesson in the next record, on those records only |
+
+## Impact
+
+Without a worked case a lesson teaches the shape of a competency and leaves the student to meet his first real claim alone; with one, he watches an actual claim sorted, dated, opened, weighed and costed, with every figure pointing at a record he can open himself, and he hears the Word say why people hid what the record found. The cost is a longer lesson page (one block) and a gate that every future research lesson must satisfy before it ships.
+
+## Decision
+
+1. Every lesson of a research course carries a worked case in the gated shape; a lesson without one does not ship.
+2. A figure in a case is a number from a fetched record with the record named beside it; a figure the case needs and the runner did not fetch is written under *still open* with the record to open, never estimated.
+3. Every case carries the hiding and the heart: what was done behind closed doors, how the record brought it into the light, the Word on the hiding, and the Word on why we do it — two verses, verbatim.
+4. The block renders on screen, reads aloud and shares as one section, and prints with the guide; the three go through one text function so they cannot drift.
+5. The oil thread (money tied to oil, every industry, worldwide) is built as the ninth Business lesson on the records the runner answered, with its own worked case, under the next record number.
+
+## Verification
+
+- `historical-research-course.test.js`, `business-research-course.test.js`, `history-course.test.js`, `course-band-coverage`, `learn-crosslist` green in one run; lint 0.
+- Proven-to-catch pinned: no figure, a figure with no record, two steps, a blank part, no case at all — each refused by name.
+- After merge: DR-0104 live review on a phone — open History lesson 7 and Business lesson 2 and read the case block end to end, including the table.
+- re-review: 2026-10-22 with DR-0597's re-probe — re-fetch every record a figure names; any that moved or changed turns the figure's record line red.
