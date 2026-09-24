@@ -38,7 +38,7 @@
 // Charter gate proven for class-tutor.
 // =============================================================================
 import { ariSystemPrompt, ARI } from './ari.js';
-import { n8nAuthHeaders } from './n8n-base.js';
+import { bridgeAuthHeaders } from './bridge-auth.js';
 
 // The sovereign, local-first model the explanation asks for (same as the tutor /
 // finalizer). Kept as a constant so a test can prove the client routes local.
@@ -252,7 +252,7 @@ export async function talkAboutSurface(digest, { signal, fetchImpl } = {}) {
   try {
     const r = await doFetch(talkAboutEndpoint(), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...n8nAuthHeaders(true) },
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...bridgeAuthHeaders(true) },
       body: JSON.stringify(buildTalkPayload(digest)),
       signal,
     });
