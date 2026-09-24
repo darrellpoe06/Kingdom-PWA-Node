@@ -17,12 +17,14 @@ def voice_row(i, extra=None):
 
 
 class FakeIO:
-    def __init__(self, rows, text="In the beginning was the Word.", fail=None, has=None):
+    def __init__(self, rows, text="In the beginning was the Word.", fail=None, has=None, available=False, results=None):
         self.rows = rows
         self.text = text
         self.fail = fail or set()
         self.has = has or set()
-        self.inserted, self.tagged, self.deleted, self.downloaded = [], [], [], []
+        self.available = available
+        self.results = list(results or [])  # scripted ladder answers, in order
+        self.inserted, self.tagged, self.deleted, self.downloaded, self.texts, self.ladder_calls = [], [], [], [], [], []
 
     def list_rows(self):
         return self.rows
@@ -34,10 +36,19 @@ class FakeIO:
         self.downloaded.append(path)
         return "/tmp/" + path.replace("/", "_")
 
-    def transcribe_ladder(self, local):
+    def transcribe_ladder(self, local, resume_at=0.0, deadline=None):
+        self.ladder_calls.append(resume_at)
+        if self.results:
+            return self.results.pop(0)
         if any(f in local for f in self.fail):
             raise RuntimeError("tower dark and no CPU whisper")
-        return {"text": self.text, "rung": "the 4070 tower", "rung_key": "tlcmediadpt", "model": "large-v3-turbo", "duration_sec": 75}
+        return {"text": self.text, "rung": "the 4070 tower", "rung_key": "tlcmediadpt", "model": "large-v3-turbo", "duration_sec": 75, "done": True}
+
+    def rung_available(self):
+        return self.available
+
+    def put_text(self, path, text):
+        self.texts.append((path, text))
 
     def insert_row(self, row):
         self.inserted.append(row)
@@ -243,6 +254,170 @@ class TheMirror(unittest.TestCase):
         self.assertIn("from sovereign_target import resolve_target", src)
         self.assertIn('if source == "sovereign":', src)
         self.assertEqual(lv.load_live(resolver=lambda p: ("sovereign", "http://127.0.0.1:8800", "k"))[0], "sovereign")
+
+
+def note_row(i, extra=None):
+    return {"id": f"note-{i}", "instance_id": INST, "created_by": UID,
+            "tags": ["note", "voice", f"audio:{UID}/2026-n{i}.webm", f"note:nt-{i}", "consent:all-agreed"] + (extra or [])}
+
+
+class TheRecordedNote(unittest.TestCase):
+    """DR-0624: a conversation recorded on the Notes box comes back as words
+    in the person's own note. One rider serves lessons and notes."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+
+    def test_a_note_recording_is_owed_like_a_lesson(self):
+        self.assertTrue(lv.needs_transcript(note_row(1)))
+        self.assertEqual(lv.kind_of(note_row(1)["tags"]), "note")
+        self.assertEqual(lv.note_id_of(note_row(1)["tags"]), "nt-1")
+
+    def test_the_words_go_to_the_owners_folder_and_never_into_the_shared_inbox(self):
+        io = FakeIO([note_row(2)], text="We agreed to meet Tuesday about the roof.")
+        r = lv.run_once(io, data_dir=self.dir)
+        self.assertEqual(r["transcribed"][0]["kind"], "note")
+        self.assertEqual(io.texts, [(f"{UID}/2026-n2.webm.txt", "We agreed to meet Tuesday about the roof.")])
+        row = io.inserted[0]
+        self.assertIn("voice-transcript", row["tags"])
+        self.assertIn("note", row["tags"])
+        self.assertIn("of:note-2", row["tags"])
+        self.assertIn("note:nt-2", row["tags"])
+        self.assertNotIn("lesson", row["tags"])  # never reaches the lesson reader or the mirror
+        self.assertNotIn("roof", row["body"])    # the proof, never the words
+        self.assertIn("8 words", row["body"])
+        self.assertIn("voice-transcribed", io.rows[0]["tags"])
+        self.assertEqual(io.deleted, [f"{UID}/2026-n2.webm"])
+
+    def test_a_note_transcript_is_never_mirrored_to_the_hosted_reader(self):
+        rows = [{"id": "c", "tags": ["note", "voice-transcript", "of:b"], "body": "x"},
+                {"id": "f", "tags": ["note", "voice-failed", "of:b"], "body": "x"}]
+        self.assertEqual(lv.rows_to_mirror(rows), [])
+
+    def test_a_failed_note_says_so_in_note_words(self):
+        rows = [note_row(3)]
+        io = FakeIO(rows, fail={"2026-n3"})
+        for _ in range(lv.MAX_ATTEMPTS):
+            lv.run_once(io, data_dir=self.dir)
+        self.assertEqual(len(io.inserted), 1)
+        self.assertEqual(io.inserted[0]["tags"], ["note", "voice-failed", "of:note-3"])
+        self.assertIn("recorded note", io.inserted[0]["body"])
+
+
+class TheFailedRecordingIsWorkedOnAgain(unittest.TestCase):
+    """HOLD-THE-HAND: the spoken lesson of 2026-09-24 failed while every rung
+    was dark. It is not left for dead: when a rung is back, it is tried again,
+    and a retry that fails again is never re-announced."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+
+    def test_a_failed_row_waits_while_every_rung_is_dark(self):
+        io = FakeIO([voice_row(50, ["voice-failed"])], available=False)
+        r = lv.run_once(io, data_dir=self.dir)
+        self.assertFalse(r["retry_failed"])
+        self.assertEqual(io.ladder_calls, [])
+
+    def test_a_failed_row_is_transcribed_once_a_rung_is_back(self):
+        rows = [voice_row(51, ["voice-failed"])]
+        io = FakeIO(rows, available=True)
+        r = lv.run_once(io, data_dir=self.dir)
+        self.assertTrue(r["retry_failed"])
+        self.assertEqual(len(r["transcribed"]), 1)
+        self.assertIn("voice-transcribed", rows[0]["tags"])
+        self.assertIn("voice-transcript", io.inserted[0]["tags"])
+
+    def test_a_retry_that_fails_again_is_not_announced_twice(self):
+        rows = [voice_row(52, ["voice-failed"])]
+        io = FakeIO(rows, available=True, fail={"2026-52"})
+        for _ in range(lv.MAX_ATTEMPTS + 1):
+            lv.run_once(io, data_dir=self.dir)
+        self.assertEqual(io.inserted, [])
+
+    def test_the_gate_asks_the_rungs(self):
+        self.assertTrue(lv.rung_available(env={}, health=lambda u: True, cpu=lambda: False))
+        self.assertTrue(lv.rung_available(env={}, health=lambda u: False, cpu=lambda: True))
+        self.assertFalse(lv.rung_available(env={}, health=lambda u: False, cpu=lambda: False))
+        self.assertFalse(lv.rung_available(env={"WHISPER_LOCAL": "0"}, health=lambda u: False, cpu=lambda: True))
+
+
+class Seg:
+    def __init__(self, text, end):
+        self.text, self.end = text, end
+
+
+class Info:
+    duration = 3600.0
+
+
+class TheLongRecordingResumes(unittest.TestCase):
+    """An hour-long conversation on the NAS CPU cannot finish in one 400 s
+    pass. The pass stops at its deadline, keeps the words so far, and the next
+    pass resumes from the second it reached."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+
+    def test_the_cpu_rung_stops_at_the_deadline_and_says_where(self):
+        ticks = iter([0, 1, 999])
+        out = lv.consume_segments(iter([Seg("one", 10.0), Seg("two", 20.0), Seg("three", 30.0)]), Info(), "small",
+                                  deadline=5, now=lambda: next(ticks))
+        self.assertFalse(out["done"])
+        self.assertEqual(out["text"], "one\ntwo\nthree")
+        self.assertEqual(out["resume_at"], 30.0)
+
+    def test_without_a_deadline_it_finishes(self):
+        out = lv.consume_segments(iter([Seg("a", 1.0), Seg(" ", 2.0)]), Info(), "small")
+        self.assertTrue(out["done"])
+        self.assertEqual(out["text"], "a")
+
+    def test_two_passes_make_one_transcript(self):
+        rows = [note_row(60)]
+        first = {"text": "the first half", "done": False, "resume_at": 380.0, "resumed_from": 0.0,
+                 "rung": "the NAS CPU", "rung_key": "nas-cpu", "model": "small"}
+        second = {"text": "the second half", "done": True, "resume_at": 700.0, "resumed_from": 380.0,
+                  "rung": "the NAS CPU", "rung_key": "nas-cpu", "model": "small", "duration_sec": 700}
+        io = FakeIO(rows, results=[first, second])
+        r1 = lv.run_once(io, data_dir=self.dir)
+        self.assertEqual(r1["in_progress"][0]["resume_at"], 380.0)
+        self.assertEqual(io.inserted, [])
+        self.assertNotIn("voice-transcribed", rows[0]["tags"])
+        r2 = lv.run_once(io, data_dir=self.dir)
+        self.assertEqual(io.ladder_calls, [0.0, 380.0])
+        self.assertEqual(len(r2["transcribed"]), 1)
+        self.assertEqual(io.texts[0][1], "the first half\nthe second half")
+        self.assertIn("whisper:nas-cpu", io.inserted[0]["tags"])
+        self.assertIsNone(lv.read_partial(self.dir, "note-60"))
+
+    def test_the_ladder_passes_resume_and_deadline_to_the_cpu_rung(self):
+        seen = {}
+
+        def cpu(local, model, resume_at=0.0, deadline=None):
+            seen.update(resume_at=resume_at, deadline=deadline)
+            return {"text": "", "done": False, "resume_at": resume_at + 100}
+
+        def post(url, local):
+            raise OSError("dark")
+
+        out = lv.transcribe_ladder("/x.webm", env={}, post=post, local_fn=cpu, resume_at=50.0, deadline=9)
+        self.assertEqual(seen, {"resume_at": 50.0, "deadline": 9})
+        self.assertEqual(out["rung"], "the NAS CPU")
+        self.assertFalse(out["done"])
+
+
+class TheInstallerFixesTheCpuRung(unittest.TestCase):
+    """Measured 2026-09-24: faster-whisper was not importable on the NAS
+    (Python 3.8) and the reason was hidden. The installer now upgrades pip,
+    pins the 3.8-compatible line, logs the attempt, and retries on a recipe change."""
+
+    def test_install_recipe(self):
+        src = open(os.path.join(os.path.dirname(lv.__file__), "install.sh"), encoding="utf-8").read()
+        self.assertIn("-m pip install --upgrade --quiet pip", src)
+        self.assertIn('"faster-whisper<1.1"', src)
+        self.assertIn('> "$LOG" 2>&1', src)
+        self.assertIn('[ "$recipe" != "$PIP_RECIPE" ]', src)
+        self.assertIn('export HF_HOME="$DATA/hf"', src)
+        self.assertIn("LEFT=$((440 -", src)
 
 
 if __name__ == "__main__":

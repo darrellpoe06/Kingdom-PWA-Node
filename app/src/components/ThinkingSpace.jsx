@@ -18,6 +18,7 @@ import React, { useState } from 'react';
 import { readDraft, writeDraft, clearDraft } from '../lib/draft-autosave.js';
 import OneVoiceInput from './OneVoiceInput.jsx';
 import PromptHistory from './PromptHistory.jsx';
+import { useRecordedNoteSync, voiceStatusLine, syncRecordedNotes, defaultSyncDeps } from '../lib/recorded-note.js';
 
 const THE_TEST = [
   ['True', 'Is it factual — or a fear wearing facts?'],
@@ -32,7 +33,7 @@ const THE_TEST = [
 
 const fieldCls = 'w-full p-3 border border-[#1A1815] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
 
-export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, togglePinNote, toggleNoteSource, sendToPoeTech, appDirectives = [], addPrayerRequest, addChurchVoice, addIncident, addInquiry }) {
+export function ThinkingSpace({ notes = [], addNote, patchNote = null, recordingDeps = null, updateNote, deleteNote, togglePinNote, toggleNoteSource, sendToPoeTech, appDirectives = [], addPrayerRequest, addChurchVoice, addIncident, addInquiry }) {
   const [sourcesOnly, setSourcesOnly] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState('');
@@ -41,6 +42,14 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
   const [testForId, setTestForId] = useState(null);
   const [promptsSeen, setPromptsSeen] = useState(0);
   const [query, setQuery] = useState('');
+
+  // A recorded conversation (DR-0624) is saved at once and its words come
+  // back into the note by themselves; this keeps asking while any wait.
+  useRecordedNoteSync({ notes, patchNote, deps: recordingDeps });
+  const sendAgain = (n) => {
+    if (!patchNote || !n.voice) return;
+    syncRecordedNotes({ notes: [{ ...n, voice: { ...n.voice, status: 'not-sent' } }], patchNote, ...(recordingDeps || defaultSyncDeps()) });
+  };
 
   // Editing an existing note keeps the Google-Doc contract too (DR-0151,
   // Darrell 2026-07-10: "will the notes sections auto save notes for return to
@@ -116,6 +125,7 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
         placeholder="What are you thinking? A worry, an idea, a prayer, a repair, a question for the pastors…"
         submitLabel="Save"
         addNote={addNote}
+        patchNote={patchNote}
         sendToPoeTech={sendToPoeTech}
         addPrayerRequest={addPrayerRequest}
         addChurchVoice={addChurchVoice}
@@ -161,6 +171,17 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
                 ) : (
                   <>
                     <p className="text-sm whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{n.pinned ? '📌 ' : ''}{n.spiritualSource ? '📖 ' : ''}{n.text} {n.sentToPoeTech && <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838]">· on the build list</span>}</p>
+                    {n.voice && (
+                      <div className="mt-1.5 text-[0.8125rem]" style={{ fontFamily: '"Fraunces", serif' }} data-testid="note-voice">
+                        <p className={n.voice.status === 'done' ? 'text-[#5A6E3D]' : 'text-[#B85838] font-semibold'} role="status" data-testid="note-voice-status">{voiceStatusLine(n.voice)}</p>
+                        {n.voice.status === 'not-sent' && (
+                          <button type="button" data-testid="note-voice-send-again" onClick={() => sendAgain(n)} className="mt-1 text-[0.75rem] uppercase tracking-wider px-3 py-2 min-h-[44px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white">Send again</button>
+                        )}
+                        {n.voice.consent && n.voice.consent.allConsented && (
+                          <p className="text-[0.75rem] text-[#5A5751]">Everyone here agreed to be recorded{n.voice.consent.at ? ` · ${new Date(n.voice.consent.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : ''}.</p>
+                        )}
+                      </div>
+                    )}
                     {(n.links || []).length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-1.5">
                         {(n.links || []).map(l => (

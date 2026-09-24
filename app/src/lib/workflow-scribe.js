@@ -165,6 +165,46 @@ export function createChunkUploader({ endpoint, token, fetchImpl, retries = 3, b
   };
 }
 
+// THE MICROPHONE THAT GIVES SILENCE (2026-09-24). Darrell recorded a
+// conversation with a friend who was on a phone call, spoke right at the mic,
+// and nothing was captured, not even his own voice. On Android a live call
+// owns the microphone: a page on the same phone gets digital silence (true
+// zeros), or is refused. A recorder that shows "recording" over zeros is the
+// failure. So the stream is measured (an AnalyserNode on the same stream) and
+// a run of digital silence is SAID on screen.
+export const DIGITAL_SILENCE_PEAK = 0.0005;   // about -66 dBFS; a real room is never this quiet with processing off
+export const SILENCE_WARN_SECONDS = 5;
+
+/** The loudest sample in a frame of float samples (-1..1). Pure. */
+export function peakLevel(samples) {
+  let peak = 0;
+  if (!samples) return 0;
+  for (let i = 0; i < samples.length; i += 1) {
+    const v = Math.abs(samples[i] || 0);
+    if (v > peak) peak = v;
+  }
+  return peak;
+}
+
+/**
+ * Plain words for a run of digital silence, or '' while the mic is hearing.
+ * Counts CONSECUTIVE silent seconds, so a call that takes the mic mid-way is
+ * caught too; a quiet room is never true zeros. Pure.
+ */
+export function silenceMessage({ silentSeconds }) {
+  if ((Number(silentSeconds) || 0) < SILENCE_WARN_SECONDS) return '';
+  return "The phone isn't letting the app hear the microphone — a phone call may be using it. On a call, put it on speaker and record from a second device, or record after the call.";
+}
+
+/** getUserMedia refusals, in words a person can act on. Pure. */
+export function explainMicError(e) {
+  const name = (e && e.name) || '';
+  if (name === 'NotAllowedError' || name === 'SecurityError') return 'Microphone permission is off for PoeTech. Allow the microphone for this site in the browser settings, then try again.';
+  if (name === 'NotReadableError' || name === 'AbortError') return "The phone won't give the app the microphone. A phone call or another app is using it. Record after the call, or from a second device with the call on speaker.";
+  if (name === 'NotFoundError' || name === 'OverconstrainedError') return 'No microphone was found on this device.';
+  return 'Could not start recording. Check the microphone and try again.';
+}
+
 function newSessionId() {
   try { return crypto.randomUUID(); } catch (_) {
     return `scribe-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -185,6 +225,12 @@ export function useWorkflowScribe() {
   const [steps, setSteps] = useState([]);
   const [result, setResult] = useState(null); // { blob, url, manifest }
   const [error, setError] = useState('');
+  const [errorMessage, setErrorMessage] = useState(''); // the same refusal, in plain words
+  const [silentSeconds, setSilentSeconds] = useState(0);
+  const [heardSound, setHeardSound] = useState(false);
+  const levelRef = useRef(null);  // { ctx, analyser, buf } while a mic stream is measured
+  const silentRef = useRef(0);
+  const heardRef = useRef(false);
 
   const mrRef = useRef(null);
   const streamRef = useRef(null);
@@ -202,6 +248,24 @@ export function useWorkflowScribe() {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     try { wakeRef.current && wakeRef.current.release && wakeRef.current.release(); } catch (_) {}
     wakeRef.current = null;
+    try { levelRef.current && levelRef.current.ctx && levelRef.current.ctx.close && levelRef.current.ctx.close(); } catch (_) {}
+    levelRef.current = null;
+  };
+
+  // One reading per second of the loudest sample on the recording stream.
+  const measureLevel = () => {
+    const lv = levelRef.current;
+    if (!lv) return;
+    try {
+      lv.analyser.getFloatTimeDomainData(lv.buf);
+      if (peakLevel(lv.buf) < DIGITAL_SILENCE_PEAK) {
+        silentRef.current += 1;
+      } else {
+        silentRef.current = 0;
+        if (!heardRef.current) { heardRef.current = true; setHeardSound(true); }
+      }
+      setSilentSeconds(silentRef.current);
+    } catch (_) { /* a meter that cannot read never blocks the recording */ }
   };
 
   const stop = useCallback(() => {
@@ -209,21 +273,41 @@ export function useWorkflowScribe() {
     catch (_) { cleanup(); setRecording(false); }
   }, []);
 
-  const start = useCallback(async ({ kind, consent }) => {
+  // Options (2026-09-24, the recorded conversation on the Notes box):
+  //   audio              — getUserMedia audio constraints for a 'meeting'
+  //   audioBitsPerSecond — so three hours of speech fits the 50 MB upload
+  //   measureLevel       — watch the stream for digital silence (see above)
+  const start = useCallback(async ({ kind, consent, audio, audioBitsPerSecond, measureLevel: watchLevel = false }) => {
     const supported = kind === 'workflow' ? screenSupported : micSupported;
     const gate = canStartCapture({ kind, supported, consent });
-    if (!gate.ok) { setError(gate.reason); return gate; }
-    setError(''); setResult(null); setSteps([]); setSeconds(0);
+    if (!gate.ok) { setError(gate.reason); setErrorMessage(''); return gate; }
+    setError(''); setErrorMessage(''); setResult(null); setSteps([]); setSeconds(0);
+    setSilentSeconds(0); setHeardSound(false); silentRef.current = 0; heardRef.current = false;
     chunksRef.current = []; stepsRef.current = []; secondsRef.current = 0;
     try { if (urlRef.current) URL.revokeObjectURL(urlRef.current); } catch (_) {}
     urlRef.current = '';
     try {
       const stream = kind === 'workflow'
         ? await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
-        : await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+        : await navigator.mediaDevices.getUserMedia({ audio: audio || { echoCancellation: true, noiseSuppression: true } });
       streamRef.current = stream;
+      if (watchLevel) {
+        try {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) {
+            const ctx = new AC();
+            const analyser = ctx.createAnalyser();
+            analyser.fftSize = 2048;
+            ctx.createMediaStreamSource(stream).connect(analyser);
+            levelRef.current = { ctx, analyser, buf: new Float32Array(analyser.fftSize) };
+          }
+        } catch (_) { levelRef.current = null; }
+      }
       const mimeType = kind === 'workflow' ? '' : pickRecorderMime();
-      const mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      const opts = {};
+      if (mimeType) opts.mimeType = mimeType;
+      if (audioBitsPerSecond) opts.audioBitsPerSecond = audioBitsPerSecond;
+      const mr = new MediaRecorder(stream, Object.keys(opts).length ? opts : undefined);
       mrRef.current = mr;
       const session = { id: newSessionId(), kind, consent, startedAtIso: new Date().toISOString(), mime: mr.mimeType || mimeType || '' };
       sessionRef.current = session;
@@ -231,14 +315,16 @@ export function useWorkflowScribe() {
       mr.onstop = () => {
         const type = mr.mimeType || 'video/webm';
         const blob = new Blob(chunksRef.current, { type });
-        const url = URL.createObjectURL(blob);
+        // A preview URL is a convenience; the recording must never be lost to it.
+        let url;
+        try { url = URL.createObjectURL(blob); } catch (_) { url = ''; }
         urlRef.current = url;
         const manifest = buildManifest({
           sessionId: session.id, kind: session.kind, mime: type, startedAtIso: session.startedAtIso,
           seconds: secondsRef.current, chunkCount: chunksRef.current.length,
           steps: stepsRef.current, consent: session.consent,
         });
-        setResult({ blob, url, manifest, chunks: chunksRef.current.slice() });
+        setResult({ blob, url, manifest, chunks: chunksRef.current.slice(), measured: !!levelRef.current, heardSound: heardRef.current });
         cleanup();
         setRecording(false);
       };
@@ -250,12 +336,14 @@ export function useWorkflowScribe() {
       setRecording(true);
       timerRef.current = setInterval(() => {
         secondsRef.current += 1;
+        measureLevel();
         setSeconds(secondsRef.current);
         if (capExceeded(secondsRef.current)) stop();
       }, 1000);
       return { ok: true, reason: '' };
     } catch (e) {
       setError(e && e.name === 'NotAllowedError' ? 'permission-blocked' : 'start-failed');
+      setErrorMessage(explainMicError(e));
       cleanup();
       setRecording(false);
       return { ok: false, reason: 'start-failed' };
@@ -273,5 +361,5 @@ export function useWorkflowScribe() {
 
   useEffect(() => () => { cleanup(); try { if (urlRef.current) URL.revokeObjectURL(urlRef.current); } catch (_) {} }, []);
 
-  return { screenSupported, micSupported, recording, seconds, steps, result, error, start, stop, markStep };
+  return { screenSupported, micSupported, recording, seconds, steps, result, error, errorMessage, silentSeconds, heardSound, start, stop, markStep };
 }
