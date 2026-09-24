@@ -454,4 +454,10 @@ Recorded for the ledger as **DR-0111**; the operational capstone of DRIVE-DONT-D
 
 ---
 
+## Hold the Hand of the Process (DR-0621)
+
+**A flag is where the work starts. We never discard what does not work; we work on it until it works:** detect, analyze, fix, re-measure on live data, repeat, integrate. Done = works end to end, proven by live data, seeds the next process, usable now. Every workflow has a purpose and a place in the whole; new ones join at birth. Full Way: `docs/00-foundations/_root/HOLD-THE-HAND-OF-THE-PROCESS.md`.
+
+---
+
 **End of additions.** Existing CLAUDE.md content (capitalization bindings, repo conventions, etc.) remains in force.
