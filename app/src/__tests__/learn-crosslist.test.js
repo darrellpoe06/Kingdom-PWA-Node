@@ -285,10 +285,16 @@ describe('a pointer, never a copy', () => {
     // (br9-follow-the-oil, DR-0602) — Darrell: "Tie all the money tied to oil and
     // how that impacts the economy worldwide" — a lesson into an existing course,
     // so the course count holds at 49 and only the lesson total moves.
+    // And to 49 / 714 on 2026-09-24 for L191 (Who He Said He Was — Every Hearer,
+    // Every Situation, and the Keys of Hell and of Death, DR-0604) — Darrell's two
+    // questions in one lesson ("Didn't Jesus tell pilot He was from eternity...
+    // how many ways and what were the situations" / "What are the keys of hell
+    // and death?" / "All in the lesson"); a lesson into the existing Living
+    // Lessons course, so the course count holds at 49 and only the total moves.
     expect(courses).toHaveLength(49);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(713);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(714);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(713);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(714);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
