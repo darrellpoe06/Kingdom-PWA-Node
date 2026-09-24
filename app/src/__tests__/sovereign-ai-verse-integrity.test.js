@@ -3840,3 +3840,504 @@ describe('sov26 — the roll the king burned and the roll written again quotes i
     expect(drifted).not.toContain(SOV26_FRAGMENTS['Jeremiah 36:28']);
   });
 });
+
+// =============================================================================
+// sov27 — the seed is in itself, and every workflow seeds the next
+// =============================================================================
+// Week 27, captured 2026-09-24 from Darrell's SPOKEN teaching ("Lesson also,
+// might as well."). His words lead, rendered for meaning (DR-0331) and
+// allow-listed verbatim below. This house's own day is cited exactly: the
+// harvest monitor read the retired database and raised a false alarm; the live
+// count proved the whole, 754 + 120 = 874 of 874 (DR-0618). The whole-system
+// flow graph shipped the same day (DR-0622) is named with what it does not yet
+// prove (DR-0076). Recorded as DR-0637.
+// =============================================================================
+const sov27 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov27-the-seed-is-in-itself-and-every-workflow-seeds-the-next');
+
+const SOV27_FRAGMENTS = {
+  "Genesis 1:11": "And God said, Let the earth bring forth grass, the herb yielding seed, and the fruit tree yielding fruit after his kind, whose seed is in itself, upon the earth: and it was so.",
+  "Genesis 1:12": "And the earth brought forth grass, and herb yielding seed after his kind, and the tree yielding fruit, whose seed was in itself, after his kind: and God saw that it was good.",
+  "Genesis 8:22": "While the earth remaineth, seedtime and harvest, and cold and heat, and summer and winter, and day and night shall not cease.",
+  "Isaiah 46:10": "Declaring the end from the beginning, and from ancient times the things that are not yet done, saying, My counsel shall stand, and I will do all my pleasure:",
+  "Ecclesiastes 1:6": "The wind goeth toward the south, and turneth about unto the north; it whirleth about continually, and the wind returneth again according to his circuits.",
+  "Ecclesiastes 1:7": "All the rivers run into the sea; yet the sea is not full; unto the place from whence the rivers come, thither they return again.",
+  "Isaiah 55:10": "For as the rain cometh down, and the snow from heaven, and returneth not thither, but watereth the earth, and maketh it bring forth and bud, that it may give seed to the sower, and bread to the eater:",
+  "2 Corinthians 9:10": "Now he that ministereth seed to the sower both minister bread for your food, and multiply your seed sown, and increase the fruits of your righteousness;)",
+  "Isaiah 55:11": "So shall my word be that goeth forth out of my mouth: it shall not return unto me void, but it shall accomplish that which I please, and it shall prosper in the thing whereto I sent it.",
+  "Ephesians 4:16": "From whom the whole body fitly joined together and compacted by that which every joint supplieth, according to the effectual working in the measure of every part, maketh increase of the body unto the edifying of itself in love.",
+  "Colossians 2:19": "And not holding the Head, from which all the body by joints and bands having nourishment ministered, and knit together, increaseth with the increase of God.",
+  "Exodus 26:6": "And thou shalt make fifty taches of gold, and couple the curtains together with the taches: and it shall be one tabernacle.",
+  "Exodus 26:11": "And thou shalt make fifty taches of brass, and put the taches into the loops, and couple the tent together, that it may be one.",
+  "Nehemiah 4:6": "So built we the wall; and all the wall was joined together unto the half thereof: for the people had a mind to work.",
+  "John 15:1": "I am the true vine, and my Father is the husbandman.",
+  "John 15:4": "Abide in me, and I in you. As the branch cannot bear fruit of itself, except it abide in the vine; no more can ye, except ye abide in me.",
+  "John 15:5": "I am the vine, ye are the branches: He that abideth in me, and I in him, the same bringeth forth much fruit: for without me ye can do nothing.",
+  "John 15:2": "every branch that beareth fruit, he purgeth it, that it may bring forth more fruit",
+  "John 15:8": "Herein is my Father glorified, that ye bear much fruit; so shall ye be my disciples.",
+  "John 15:16": "Ye have not chosen me, but I have chosen you, and ordained you, that ye should go and bring forth fruit, and that your fruit should remain: that whatsoever ye shall ask of the Father in my name, he may give it you.",
+  "Psalms 127:1": "Except the LORD build the house, they labour in vain that build it: except the LORD keep the city, the watchman waketh but in vain.",
+  "Mark 4:26": "And he said, So is the kingdom of God, as if a man should cast seed into the ground;",
+  "Mark 4:27": "And should sleep, and rise night and day, and the seed should spring and grow up, he knoweth not how.",
+  "Mark 4:28": "For the earth bringeth forth fruit of herself; first the blade, then the ear, after that the full corn in the ear.",
+  "Mark 4:29": "But when the fruit is brought forth, immediately he putteth in the sickle, because the harvest is come.",
+  "Matthew 7:16": "Ye shall know them by their fruits. Do men gather grapes of thorns, or figs of thistles?",
+  "Matthew 7:17": "Even so every good tree bringeth forth good fruit; but a corrupt tree bringeth forth evil fruit.",
+  "Matthew 7:18": "A good tree cannot bring forth evil fruit, neither can a corrupt tree bring forth good fruit.",
+  "Matthew 7:20": "Wherefore by their fruits ye shall know them.",
+  "Acts 1:3": "To whom also he shewed himself alive after his passion by many infallible proofs, being seen of them forty days, and speaking of the things pertaining to the kingdom of God:",
+  "1 John 1:1": "That which was from the beginning, which we have heard, which we have seen with our eyes, which we have looked upon, and our hands have handled, of the Word of life;",
+  "1 Thessalonians 5:21": "Prove all things; hold fast that which is good.",
+  "Proverbs 27:23": "Be thou diligent to know the state of thy flocks, and look well to thy herds.",
+  "Proverbs 11:1": "A false balance is abomination to the LORD: but a just weight is his delight.",
+  "Proverbs 20:10": "Divers weights, and divers measures, both of them are alike abomination to the LORD.",
+  "Proverbs 18:17": "He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him.",
+  "Genesis 41:47": "And in the seven plenteous years the earth brought forth by handfuls.",
+  "Genesis 41:48": "And he gathered up all the food of the seven years, which were in the land of Egypt, and laid up the food in the cities: the food of the field, which was round about every city, laid he up in the same.",
+  "Genesis 41:49": "And Joseph gathered corn as the sand of the sea, very much, until he left numbering; for it was without number.",
+  "Genesis 41:54": "And the seven years of dearth began to come, according as Joseph had said: and the dearth was in all lands; but in all the land of Egypt there was bread.",
+  "Genesis 41:57": "And all countries came into Egypt to Joseph for to buy corn; because that the famine was so sore in all lands.",
+  "Genesis 47:23": "Then Joseph said unto the people, Behold, I have bought you this day and your land for Pharaoh: lo, here is seed for you, and ye shall sow the land.",
+  "Genesis 47:24": "And it shall come to pass in the increase, that ye shall give the fifth part unto Pharaoh, and four parts shall be your own, for seed of the field, and for your food, and for them of your households, and for food for your little ones.",
+  "John 4:36": "And he that reapeth receiveth wages, and gathereth fruit unto life eternal: that both he that soweth and he that reapeth may rejoice together.",
+  "John 4:37": "And herein is that saying true, One soweth, and another reapeth.",
+  "John 4:38": "I sent you to reap that whereon ye bestowed no labour: other men laboured, and ye are entered into their labours.",
+  "Galatians 6:7": "Be not deceived; God is not mocked: for whatsoever a man soweth, that shall he also reap.",
+  "1 Corinthians 12:12": "For as the body is one, and hath many members, and all the members of that one body, being many, are one body: so also is Christ.",
+  "Ephesians 2:21": "In whom all the building fitly framed together groweth unto an holy temple in the Lord:",
+  "Proverbs 24:3": "Through wisdom is an house builded; and by understanding it is established:",
+  "Proverbs 24:4": "And by knowledge shall the chambers be filled with all precious and pleasant riches.",
+  "1 Corinthians 3:6": "I have planted, Apollos watered; but God gave the increase.",
+  "1 Corinthians 3:9": "For we are labourers together with God: ye are God’s husbandry, ye are God’s building.",
+};
+
+const SOV27_CORPUS = {
+  "Genesis 1:11": ["Genesis",1,11],
+  "Genesis 1:12": ["Genesis",1,12],
+  "Genesis 8:22": ["Genesis",8,22],
+  "Isaiah 46:10": ["Isaiah",46,10],
+  "Ecclesiastes 1:6": ["Ecclesiastes",1,6],
+  "Ecclesiastes 1:7": ["Ecclesiastes",1,7],
+  "Isaiah 55:10": ["Isaiah",55,10],
+  "2 Corinthians 9:10": ["2Corinthians",9,10],
+  "Isaiah 55:11": ["Isaiah",55,11],
+  "Ephesians 4:16": ["Ephesians",4,16],
+  "Colossians 2:19": ["Colossians",2,19],
+  "Exodus 26:6": ["Exodus",26,6],
+  "Exodus 26:11": ["Exodus",26,11],
+  "Nehemiah 4:6": ["Nehemiah",4,6],
+  "John 15:1": ["John",15,1],
+  "John 15:4": ["John",15,4],
+  "John 15:5": ["John",15,5],
+  "John 15:2": ["John",15,2],
+  "John 15:8": ["John",15,8],
+  "John 15:16": ["John",15,16],
+  "Psalms 127:1": ["Psalms",127,1],
+  "Mark 4:26": ["Mark",4,26],
+  "Mark 4:27": ["Mark",4,27],
+  "Mark 4:28": ["Mark",4,28],
+  "Mark 4:29": ["Mark",4,29],
+  "Matthew 7:16": ["Matthew",7,16],
+  "Matthew 7:17": ["Matthew",7,17],
+  "Matthew 7:18": ["Matthew",7,18],
+  "Matthew 7:20": ["Matthew",7,20],
+  "Acts 1:3": ["Acts",1,3],
+  "1 John 1:1": ["1John",1,1],
+  "1 Thessalonians 5:21": ["1Thessalonians",5,21],
+  "Proverbs 27:23": ["Proverbs",27,23],
+  "Proverbs 11:1": ["Proverbs",11,1],
+  "Proverbs 20:10": ["Proverbs",20,10],
+  "Proverbs 18:17": ["Proverbs",18,17],
+  "Genesis 41:47": ["Genesis",41,47],
+  "Genesis 41:48": ["Genesis",41,48],
+  "Genesis 41:49": ["Genesis",41,49],
+  "Genesis 41:54": ["Genesis",41,54],
+  "Genesis 41:57": ["Genesis",41,57],
+  "Genesis 47:23": ["Genesis",47,23],
+  "Genesis 47:24": ["Genesis",47,24],
+  "John 4:36": ["John",4,36],
+  "John 4:37": ["John",4,37],
+  "John 4:38": ["John",4,38],
+  "Galatians 6:7": ["Galatians",6,7],
+  "1 Corinthians 12:12": ["1Corinthians",12,12],
+  "Ephesians 2:21": ["Ephesians",2,21],
+  "Proverbs 24:3": ["Proverbs",24,3],
+  "Proverbs 24:4": ["Proverbs",24,4],
+  "1 Corinthians 3:6": ["1Corinthians",3,6],
+  "1 Corinthians 3:9": ["1Corinthians",3,9],
+};
+
+const SOV27_ALLOWED = [
+  "\"Lesson also, might as well.\"",
+  "\"We should have no reason why the interconnectivity of the application is not sound and solid.\"",
+  "\"We should have rigorous connection points between the database and the fields within the app that go through workflows that are, in the end, continuous loops that produce data.\"",
+  "\"The data should be the proof of the whole end-to-end process, so we can actually see, and that data should seed the next process.\"",
+  "\"And so that's what I mean when I say end to end: it is not to end with one workflow.\"",
+  "\"All workflows will flow into another workflow, and all those will have a comprehensive, overall, solid, sound workflow.\"",
+  "\"That's what we're looking for. In Jesus' name, amen.\"",
+  "\"Their green and red describe a database the app does not use.\"",
+  "\"754 transcribed + 120 no-caption verdicts = 874 of 874, 0 owed.\""
+];
+
+describe('sov27 — the seed is in itself and every workflow seeds the next quotes its whole spine verbatim, Word first', () => {
+  it('the week exists, anchored on the seed in itself and the body fitly joined', () => {
+    expect(sov27).toBeTruthy();
+    expect(sov27.anchor.ref).toContain('Genesis 1:11');
+    expect(sov27.anchor.ref).toContain('Ephesians 4:16');
+    expect(sov27.anchor.theme).toContain(SOV27_FRAGMENTS['Genesis 1:11']);
+    expect(sov27.anchor.theme).toContain(SOV27_FRAGMENTS['Ephesians 4:16']);
+  });
+  wordFirstChecks(sov27, SOV27_FRAGMENTS, SOV27_CORPUS, 'sov27');
+  it('the Word LEADS, then his words: Genesis 1:11 opens the lesson before his teaching is quoted', () => {
+    expect(sov27.lesson.indexOf('FIRST, THE SEED IS IN ITSELF')).toBe(0);
+    expect(sov27.lesson.indexOf(SOV27_FRAGMENTS['Genesis 1:11'])).toBeLessThan(sov27.lesson.indexOf('SECOND,'));
+    expect(sov27.lesson.indexOf(SOV27_FRAGMENTS['Genesis 8:22'])).toBeLessThan(sov27.lesson.indexOf('SECOND,'));
+  });
+  it('his framing leads: every one of his sentences is carried, in his order, and his own seal is quoted', () => {
+    const his = [
+      'We should have no reason why the interconnectivity of the application is not sound and solid.',
+      'We should have rigorous connection points between the database and the fields within the app',
+      'The data should be the proof of the whole end-to-end process, so we can actually see, and that data should seed the next process.',
+      'it is not to end with one workflow.',
+      'All workflows will flow into another workflow',
+      'In Jesus\' name, amen.',
+    ];
+    let last = sov27.lesson.indexOf('SECOND,');
+    for (const s of his) {
+      const at = sov27.lesson.indexOf(s);
+      expect(at, `his words must lead in order: ${s}`).toBeGreaterThan(last);
+      last = at;
+    }
+    expect(sov27.lesson).toContain('"Lesson also, might as well."');
+    expect(sov27.bigIdea).toContain('Lesson also, might as well.');
+  });
+  it('the load-bearing teaching is carried in its named movements', () => {
+    for (const heading of [
+      'SECOND, WHAT HE SAID - HIS WORDS LEAD, AND THIS IS WHAT HE MEANS BY END TO END',
+      'THIRD, THE CIRCUITS RETURN - A LOOP IS THE SHAPE OF THE SYSTEMS YAHWEH MADE',
+      'FOURTH, FITLY JOINED - RIGOROUS CONNECTION POINTS ARE A PATTERN IN THE WORD',
+      'FIFTH, THE VINE AND THE BRANCHES - NO BRANCH BEARS FRUIT OF ITSELF',
+      'SIXTH, FIRST THE BLADE, THEN THE EAR',
+      'SEVENTH, BY THEIR FRUITS - THE DATA IS THE PROOF, SO WE CAN ACTUALLY SEE',
+      'EIGHTH, OUR OWN HOUSE THE SAME DAY',
+      'NINTH, JOSEPH\'S STORE BECAME THE NEXT YEAR\'S SEED',
+      'TENTH, ONE HOUSE, ONE BODY',
+    ]) expect(sov27.lesson).toContain(heading);
+    // The two consumers of every output, and the joints specified before anything was hung.
+    expect(sov27.lesson).toContain('Seed to the sower, and bread to the eater. That is the exact shape of a sound workflow.');
+    expect(sov27.lesson).toContain('Fifty taches, into the loops, so that it may be one.');
+    // Joseph's store became seed — the handoff is in the text.
+    expect(sov27.lesson).toContain(SOV27_FRAGMENTS['Genesis 47:23']);
+    expect(sov27.inApp).toMatch(/Church - Harvest/);
+    expect(sov27.inApp).toMatch(/Admin - Systems/);
+  });
+  it('the bright lines are drawn: the Vine is Christ and nothing makes a workflow holy; the Word is never one of the outputs we measure; nothing is discarded for not working', () => {
+    expect(sov27.lesson).toContain('the Vine is Christ, and we are the branches. Our systems are not the Vine, and nothing in this lesson makes a workflow holy.');
+    expect(sov27.lesson).toContain('We test our pipes; we never test the Word.');
+    expect(sov27.lesson).toContain(SOV27_FRAGMENTS['Isaiah 55:11']);
+    expect(sov27.lesson).toContain('this house does not get rid of what does not work; it works on it until it works');
+    expect(sov27.lesson).toContain('combine them so every option remains and the app stays lean');
+  });
+  it('this house is cited EXACTLY: the retired database, the side-by-side, the two counting errors, and 754 + 120 = 874', () => {
+    expect(sov27.lesson).toContain('"Their green and red describe a database the app does not use."');
+    expect(sov27.lesson).toContain('the retired database said 752 of 874 transcribed; the live one said 754 of 874');
+    expect(sov27.lesson).toContain('"754 transcribed + 120 no-caption verdicts = 874 of 874, 0 owed."');
+    expect(sov27.lesson).toContain('two counting errors in the monitor itself');
+    expect(sov27.bigIdea).toContain('754 transcribed plus 120 answered with a verdict, 874 of 874');
+    expect(754 + 120).toBe(874);
+  });
+  it('honest limits: the flow graph shipped the same day is named with what it does NOT yet prove; the 120 handoff is planned with a date, not done', () => {
+    expect(sov27.lesson).toContain('went live in the app the same day he spoke');
+    expect(sov27.lesson).toContain('a connection with no live number is never shown as flowing, and every known gap is shown with its blocker and its date');
+    expect(sov27.lesson).toContain('the map\'s first live proof runs are the before-picture, and the gaps it names are being closed one by one');
+    expect(sov27.lesson).toContain('a map is not yet a harvest');
+    expect(sov27.inApp).toContain('Admin - Quality proof - Interconnect');
+    expect(sov27.lesson).toContain('re-review date on the record (2026-10-01). It is named here as planned work, not claimed as done.');
+    // Never over-claimed: the map does not make every connection flow.
+    expect(JSON.stringify(sov27)).not.toMatch(/every (workflow|connection) (now )?flows/i);
+  });
+  it('provenance honesty: the only non-Scripture double-quoted spans in the lesson are his words or the day\'s own record', () => {
+    const isWord = (q) => Object.values(SOV27_FRAGMENTS).some((f) => q.includes(f) || f.includes(q.slice(1, -1)));
+    const nonScripture = (sov27.lesson.match(/"[^"]+"/g) || []).filter((q) => !isWord(q));
+    expect(nonScripture.length).toBeGreaterThanOrEqual(8);
+    for (const q of nonScripture) expect(SOV27_ALLOWED, `unexpected non-Scripture quote: ${q}`).toContain(q);
+  });
+  it('tamper-catch: the pinned ground-truth lines are themselves exact, and a one-word drift fails', () => {
+    expect(SOV27_FRAGMENTS['Genesis 1:11']).toBe('And God said, Let the earth bring forth grass, the herb yielding seed, and the fruit tree yielding fruit after his kind, whose seed is in itself, upon the earth: and it was so.');
+    expect(SOV27_FRAGMENTS['Ephesians 4:16']).toBe('From whom the whole body fitly joined together and compacted by that which every joint supplieth, according to the effectual working in the measure of every part, maketh increase of the body unto the edifying of itself in love.');
+    expect(SOV27_FRAGMENTS['Isaiah 55:10']).toContain('that it may give seed to the sower, and bread to the eater');
+    expect(SOV27_FRAGMENTS['Genesis 8:22']).toBe('While the earth remaineth, seedtime and harvest, and cold and heat, and summer and winter, and day and night shall not cease.');
+    const drifted = sov27.lesson.split('whose seed is in itself').join('whose seed is within itself');
+    expect(drifted).not.toContain(SOV27_FRAGMENTS['Genesis 1:11']);
+  });
+});
+
+// =============================================================================
+// sov28 — holding the hand of the process until it is finished
+// =============================================================================
+// Week 28, the companion of week 27, captured 2026-09-24 from Darrell's SPOKEN
+// teaching ("Lessons."), with his correction the same hour: "We don't get rid of
+// what doesn't work. What we do is we work on it until it works." So the barren
+// tree's cutting is NOT taught as a rule for systems; the dresser's answer is
+// (Luke 13:8). Leanness comes from COMBINING similar workflows so every option
+// remains. The Way is DR-0621 (docs/00-foundations/_root/HOLD-THE-HAND-OF-THE-PROCESS.md).
+// Recorded as DR-0638.
+// =============================================================================
+const sov28 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov28-holding-the-hand-of-the-process-until-it-is-finished');
+
+const SOV28_FRAGMENTS = {
+  "Philippians 1:6": "Being confident of this very thing, that he which hath begun a good work in you will perform it until the day of Jesus Christ:",
+  "Genesis 2:1": "Thus the heavens and the earth were finished, and all the host of them.",
+  "Genesis 2:2": "And on the seventh day God ended his work which he had made; and he rested on the seventh day from all his work which he had made.",
+  "Psalms 138:8": "The LORD will perfect that which concerneth me: thy mercy, O LORD, endureth for ever: forsake not the works of thine own hands.",
+  "Numbers 23:19": "God is not a man, that he should lie; neither the son of man, that he should repent: hath he said, and shall he not do it? or hath he spoken, and shall he not make it good?",
+  "John 4:34": "Jesus saith unto them, My meat is to do the will of him that sent me, and to finish his work.",
+  "John 17:4": "I have glorified thee on the earth: I have finished the work which thou gavest me to do.",
+  "John 19:30": "When Jesus therefore had received the vinegar, he said, It is finished: and he bowed his head, and gave up the ghost.",
+  "Isaiah 41:10": "Fear thou not; for I am with thee: be not dismayed; for I am thy God: I will strengthen thee; yea, I will help thee; yea, I will uphold thee with the right hand of my righteousness.",
+  "Isaiah 41:13": "For I the LORD thy God will hold thy right hand, saying unto thee, Fear not; I will help thee.",
+  "Isaiah 42:6": "I the LORD have called thee in righteousness, and will hold thine hand, and will keep thee, and give thee for a covenant of the people, for a light of the Gentiles;",
+  "Psalms 37:23": "The steps of a good man are ordered by the LORD: and he delighteth in his way.",
+  "Psalms 37:24": "Though he fall, he shall not be utterly cast down: for the LORD upholdeth him with his hand.",
+  "Isaiah 40:11": "He shall feed his flock like a shepherd: he shall gather the lambs with his arm, and carry them in his bosom, and shall gently lead those that are with young.",
+  "Luke 13:6": "He spake also this parable; A certain man had a fig tree planted in his vineyard; and he came and sought fruit thereon, and found none.",
+  "Luke 13:7": "Then said he unto the dresser of his vineyard, Behold, these three years I come seeking fruit on this fig tree, and find none: cut it down; why cumbereth it the ground?",
+  "Proverbs 27:23": "Be thou diligent to know the state of thy flocks, and look well to thy herds.",
+  "Luke 13:8": "And he answering said unto him, Lord, let it alone this year also, till I shall dig about it, and dung it:",
+  "Mark 8:22": "And he cometh to Bethsaida; and they bring a blind man unto him, and besought him to touch him.",
+  "Mark 8:23": "And he took the blind man by the hand, and led him out of the town; and when he had spit on his eyes, and put his hands upon him, he asked him if he saw ought.",
+  "Mark 8:24": "And he looked up, and said, I see men as trees, walking.",
+  "Mark 8:25": "After that he put his hands again upon his eyes, and made him look up: and he was restored, and saw every man clearly.",
+  "Jeremiah 18:3": "Then I went down to the potter’s house, and, behold, he wrought a work on the wheels.",
+  "Jeremiah 18:4": "And the vessel that he made of clay was marred in the hand of the potter: so he made it again another vessel, as seemed good to the potter to make it.",
+  "Proverbs 24:16": "For a just man falleth seven times, and riseth up again: but the wicked shall fall into mischief.",
+  "James 1:4": "But let patience have her perfect work, that ye may be perfect and entire, wanting nothing.",
+  "Luke 14:28": "For which of you, intending to build a tower, sitteth not down first, and counteth the cost, whether he have sufficient to finish it?",
+  "Luke 14:29": "Lest haply, after he hath laid the foundation, and is not able to finish it, all that behold it begin to mock him,",
+  "Luke 14:30": "Saying, This man began to build, and was not able to finish.",
+  "Nehemiah 2:6": "And the king said unto me, (the queen also sitting by him,) For how long shall thy journey be? and when wilt thou return? So it pleased the king to send me; and I set him a time.",
+  "Nehemiah 6:15": "So the wall was finished in the twenty and fifth day of the month Elul, in fifty and two days.",
+  "Habakkuk 2:2": "And the LORD answered me, and said, Write the vision, and make it plain upon tables, that he may run that readeth it.",
+  "Habakkuk 2:3": "For the vision is yet for an appointed time, but at the end it shall speak, and not lie: though it tarry, wait for it; because it will surely come, it will not tarry.",
+  "Zechariah 4:9": "The hands of Zerubbabel have laid the foundation of this house; his hands shall also finish it; and thou shalt know that the LORD of hosts hath sent me unto you.",
+  "Ecclesiastes 7:8": "Better is the end of a thing than the beginning thereof: and the patient in spirit is better than the proud in spirit.",
+  "1 Corinthians 12:14": "For the body is not one member, but many.",
+  "1 Corinthians 12:18": "But now hath God set the members every one of them in the body, as it hath pleased him.",
+  "1 Corinthians 12:20": "But now are they many members, yet but one body.",
+  "1 Corinthians 12:21": "And the eye cannot say unto the hand, I have no need of thee: nor again the head to the feet, I have no need of you.",
+  "1 Corinthians 12:22": "Nay, much more those members of the body, which seem to be more feeble, are necessary:",
+  "Ezekiel 37:17": "And join them one to another into one stick; and they shall become one in thine hand.",
+  "Ephesians 4:16": "fitly joined together and compacted by that which every joint supplieth",
+  "Ecclesiastes 3:1": "To every thing there is a season, and a time to every purpose under the heaven:",
+  "Exodus 3:7": "And the LORD said, I have surely seen the affliction of my people which are in Egypt, and have heard their cry by reason of their taskmasters; for I know their sorrows;",
+  "Psalms 34:6": "This poor man cried, and the LORD heard him, and saved him out of all his troubles.",
+  "Psalms 34:15": "The eyes of the LORD are upon the righteous, and his ears are open unto their cry.",
+  "Exodus 18:17": "And Moses’ father in law said unto him, The thing that thou doest is not good.",
+  "Exodus 18:18": "Thou wilt surely wear away, both thou, and this people that is with thee: for this thing is too heavy for thee; thou art not able to perform it thyself alone.",
+  "Exodus 18:22": "And let them judge the people at all seasons: and it shall be, that every great matter they shall bring unto thee, but every small matter they shall judge: so shall it be easier for thyself, and they shall bear the burden with thee.",
+  "Exodus 18:26": "And they judged the people at all seasons: the hard causes they brought unto Moses, but every small matter they judged themselves.",
+  "Acts 6:1": "And in those days, when the number of the disciples was multiplied, there arose a murmuring of the Grecians against the Hebrews, because their widows were neglected in the daily ministration.",
+  "Acts 6:2": "Then the twelve called the multitude of the disciples unto them, and said, It is not reason that we should leave the word of God, and serve tables.",
+  "Acts 6:3": "Wherefore, brethren, look ye out among you seven men of honest report, full of the Holy Ghost and wisdom, whom we may appoint over this business.",
+  "Acts 6:4": "But we will give ourselves continually to prayer, and to the ministry of the word.",
+  "Acts 6:7": "And the word of God increased; and the number of the disciples multiplied in Jerusalem greatly; and a great company of the priests were obedient to the faith.",
+  "John 10:3": "To him the porter openeth; and the sheep hear his voice: and he calleth his own sheep by name, and leadeth them out.",
+  "John 10:4": "And when he putteth forth his own sheep, he goeth before them, and the sheep follow him: for they know his voice.",
+  "John 10:14": "I am the good shepherd, and know my sheep, and am known of mine.",
+  "Galatians 6:2": "Bear ye one another’s burdens, and so fulfil the law of Christ.",
+  "Psalms 34:8": "O taste and see that the LORD is good: blessed is the man that trusteth in him.",
+  "Acts 1:1": "The former treatise have I made, O Theophilus, of all that Jesus began both to do and teach,",
+  "Luke 24:19": "And he said unto them, What things? And they said unto him, Concerning Jesus of Nazareth, which was a prophet mighty in deed and word before God and all the people:",
+  "John 10:25": "Jesus answered them, I told you, and ye believed not: the works that I do in my Father’s name, they bear witness of me.",
+  "1 John 3:18": "My little children, let us not love in word, neither in tongue; but in deed and in truth.",
+  "James 2:18": "Yea, a man may say, Thou hast faith, and I have works: shew me thy faith without thy works, and I will shew thee my faith by my works.",
+  "1 Thessalonians 5:21": "Prove all things; hold fast that which is good.",
+  "Colossians 4:17": "And say to Archippus, Take heed to the ministry which thou hast received in the Lord, that thou fulfil it.",
+  "2 Timothy 4:7": "I have fought a good fight, I have finished my course, I have kept the faith:",
+  "Hebrews 12:2": "Looking unto Jesus the author and finisher of our faith; who for the joy that was set before him endured the cross, despising the shame, and is set down at the right hand of the throne of God.",
+};
+
+const SOV28_CORPUS = {
+  "Philippians 1:6": ["Philippians",1,6],
+  "Genesis 2:1": ["Genesis",2,1],
+  "Genesis 2:2": ["Genesis",2,2],
+  "Psalms 138:8": ["Psalms",138,8],
+  "Numbers 23:19": ["Numbers",23,19],
+  "John 4:34": ["John",4,34],
+  "John 17:4": ["John",17,4],
+  "John 19:30": ["John",19,30],
+  "Isaiah 41:10": ["Isaiah",41,10],
+  "Isaiah 41:13": ["Isaiah",41,13],
+  "Isaiah 42:6": ["Isaiah",42,6],
+  "Psalms 37:23": ["Psalms",37,23],
+  "Psalms 37:24": ["Psalms",37,24],
+  "Isaiah 40:11": ["Isaiah",40,11],
+  "Luke 13:6": ["Luke",13,6],
+  "Luke 13:7": ["Luke",13,7],
+  "Proverbs 27:23": ["Proverbs",27,23],
+  "Luke 13:8": ["Luke",13,8],
+  "Mark 8:22": ["Mark",8,22],
+  "Mark 8:23": ["Mark",8,23],
+  "Mark 8:24": ["Mark",8,24],
+  "Mark 8:25": ["Mark",8,25],
+  "Jeremiah 18:3": ["Jeremiah",18,3],
+  "Jeremiah 18:4": ["Jeremiah",18,4],
+  "Proverbs 24:16": ["Proverbs",24,16],
+  "James 1:4": ["James",1,4],
+  "Luke 14:28": ["Luke",14,28],
+  "Luke 14:29": ["Luke",14,29],
+  "Luke 14:30": ["Luke",14,30],
+  "Nehemiah 2:6": ["Nehemiah",2,6],
+  "Nehemiah 6:15": ["Nehemiah",6,15],
+  "Habakkuk 2:2": ["Habakkuk",2,2],
+  "Habakkuk 2:3": ["Habakkuk",2,3],
+  "Zechariah 4:9": ["Zechariah",4,9],
+  "Ecclesiastes 7:8": ["Ecclesiastes",7,8],
+  "1 Corinthians 12:14": ["1Corinthians",12,14],
+  "1 Corinthians 12:18": ["1Corinthians",12,18],
+  "1 Corinthians 12:20": ["1Corinthians",12,20],
+  "1 Corinthians 12:21": ["1Corinthians",12,21],
+  "1 Corinthians 12:22": ["1Corinthians",12,22],
+  "Ezekiel 37:17": ["Ezekiel",37,17],
+  "Ephesians 4:16": ["Ephesians",4,16],
+  "Ecclesiastes 3:1": ["Ecclesiastes",3,1],
+  "Exodus 3:7": ["Exodus",3,7],
+  "Psalms 34:6": ["Psalms",34,6],
+  "Psalms 34:15": ["Psalms",34,15],
+  "Exodus 18:17": ["Exodus",18,17],
+  "Exodus 18:18": ["Exodus",18,18],
+  "Exodus 18:22": ["Exodus",18,22],
+  "Exodus 18:26": ["Exodus",18,26],
+  "Acts 6:1": ["Acts",6,1],
+  "Acts 6:2": ["Acts",6,2],
+  "Acts 6:3": ["Acts",6,3],
+  "Acts 6:4": ["Acts",6,4],
+  "Acts 6:7": ["Acts",6,7],
+  "John 10:3": ["John",10,3],
+  "John 10:4": ["John",10,4],
+  "John 10:14": ["John",10,14],
+  "Galatians 6:2": ["Galatians",6,2],
+  "Psalms 34:8": ["Psalms",34,8],
+  "Acts 1:1": ["Acts",1,1],
+  "Luke 24:19": ["Luke",24,19],
+  "John 10:25": ["John",10,25],
+  "1 John 3:18": ["1John",3,18],
+  "James 2:18": ["James",2,18],
+  "1 Thessalonians 5:21": ["1Thessalonians",5,21],
+  "Colossians 4:17": ["Colossians",4,17],
+  "2 Timothy 4:7": ["2Timothy",4,7],
+  "Hebrews 12:2": ["Hebrews",12,2],
+};
+
+const SOV28_ALLOWED = [
+  "\"Lessons.\"",
+  "\"It's more than just flagged when it doesn't work. It's actually analyzed and iteratively fixed. So it's done. So we can use it now.\"",
+  "\"This is called holding the hand of the process until the process is totally, completely done, working end to end, all workflows integrated.\"",
+  "\"New workflows come into the integration of the workflow.\"",
+  "\"There's no reason to have code or workflows that are not working if they don't integrate into another one.\"",
+  "\"There's a purpose for every workflow. That's standard. That's our Ways and documentation.\"",
+  "\"We want to make sure that we are iteratively developing our systems to guarantee outcomes right away. In Jesus' name.\"",
+  "\"We don't get rid of what doesn't work. What we do is we work on it until it works. But the things that do work, those things are live.\"",
+  "\"Doesn't it cut down as we combine workflows that are similar, so we have all options available while keeping the app lean?\"",
+  "\"processes that should produce outcomes so people can feel heard\"",
+  "\"I want the PoeTech whole ecosystem to do the work\"",
+  "\"the leg work of guaranteeing high quality outcomes and hand holding stakeholders through processes and coming up with timelines and windows\"",
+  "\"So actions speak louder than words. That's the type of app we're trying to build in Jesus' name. Just like the King is. His actions speak louder than His words. We want you to be able to taste and see that this thing is good.\"",
+  "\"754 transcribed + 120 no-caption verdicts = 874 of 874, 0 owed.\""
+];
+
+describe('sov28 — holding the hand of the process until it is finished quotes its whole spine verbatim, Word first', () => {
+  it('the week exists, anchored on the good work performed and the dresser who dug about it', () => {
+    expect(sov28).toBeTruthy();
+    expect(sov28.anchor.ref).toContain('Philippians 1:6');
+    expect(sov28.anchor.ref).toContain('Luke 13:8');
+    expect(sov28.anchor.theme).toContain(SOV28_FRAGMENTS['Philippians 1:6']);
+    expect(sov28.anchor.theme).toContain(SOV28_FRAGMENTS['Luke 13:8']);
+  });
+  wordFirstChecks(sov28, SOV28_FRAGMENTS, SOV28_CORPUS, 'sov28');
+  it('the Word LEADS, then his words: Philippians 1:6 and "It is finished" precede his teaching', () => {
+    expect(sov28.lesson.indexOf('FIRST, HE WHICH HATH BEGUN A GOOD WORK WILL PERFORM IT')).toBe(0);
+    expect(sov28.lesson.indexOf(SOV28_FRAGMENTS['Philippians 1:6'])).toBeLessThan(sov28.lesson.indexOf('SECOND,'));
+    expect(sov28.lesson.indexOf(SOV28_FRAGMENTS['John 19:30'])).toBeLessThan(sov28.lesson.indexOf('SECOND,'));
+  });
+  it('his framing leads, including his correction: nothing is discarded for not working, and similar workflows combine', () => {
+    const his = [
+      'It\'s more than just flagged when it doesn\'t work. It\'s actually analyzed and iteratively fixed.',
+      'This is called holding the hand of the process until the process is totally, completely done',
+      'New workflows come into the integration of the workflow.',
+      'There\'s a purpose for every workflow.',
+      'We don\'t get rid of what doesn\'t work. What we do is we work on it until it works.',
+      'combine workflows that are similar, so we have all options available while keeping the app lean',
+      'processes that should produce outcomes so people can feel heard',
+      'We want you to be able to taste and see that this thing is good.',
+    ];
+    let last = sov28.lesson.indexOf('SECOND,');
+    for (const s of his) {
+      const at = sov28.lesson.indexOf(s);
+      expect(at, `his words must lead in order: ${s}`).toBeGreaterThan(last);
+      last = at;
+    }
+    expect(sov28.lesson).toContain('"Lessons."');
+    expect(sov28.lesson).toContain('Nothing is discarded for not working - it is worked on until it works, and what works is live.');
+  });
+  it('his correction is honored in the Word: the dresser (Luke 13:8) is taught; the cutting of Luke 13:9 is NOT quoted and not made a rule for systems', () => {
+    expect(sov28.lesson).toContain(`"${SOV28_FRAGMENTS['Luke 13:8']}" (Luke 13:8)`);
+    expect(SOV28_FRAGMENTS['Luke 13:9']).toBeUndefined();
+    expect(JSON.stringify(sov28)).not.toContain('then after that thou shalt cut it down');
+    expect(sov28.lesson).toContain('this lesson does not turn it into a rule for discarding systems');
+    // The buried talent and the cursed fig tree are not used as "discard what doesn't work".
+    expect(SOV28_FRAGMENTS['Matthew 25:25']).toBeUndefined();
+    expect(SOV28_FRAGMENTS['Mark 11:14']).toBeUndefined();
+    // Leanness by joining: Ezekiel's two sticks become one, nothing lost.
+    expect(sov28.lesson).toContain(SOV28_FRAGMENTS['Ezekiel 37:17']);
+    expect(sov28.lesson).toContain('leanness comes the way the Word shows it - by joining, not by amputating');
+  });
+  it('the load-bearing teaching is carried in its named movements', () => {
+    for (const heading of [
+      'SECOND, WHAT HE SAID - HOLDING THE HAND OF THE PROCESS',
+      'THIRD, THE LORD HOLDS THE HAND - THE PICTURE HE CHOSE IS FROM THE WORD',
+      'FOURTH, NOT JUST FLAGGED - THE DRESSER DUG ABOUT IT',
+      'FIFTH, HE TOOK HIM BY THE HAND, AND TOUCHED AGAIN - UNTIL HE SAW EVERY MAN CLEARLY',
+      'SIXTH, THE POTTER MADE IT AGAIN - ITERATION IS NOT FAILURE',
+      'SEVENTH, COUNT THE COST TO FINISH, AND SET A TIME - TIMELINES AND WINDOWS',
+      'EIGHTH, MANY MEMBERS, ONE BODY - NOTHING DISCARDED, SIMILAR THINGS JOINED, THE APP KEPT LEAN',
+      'NINTH, THE ECOSYSTEM DOES THE LEG WORK - EVERY VOICE HEARD, AND CARRIED TO AN OUTCOME',
+      'TENTH, TASTE AND SEE - HIS ACTIONS SPEAK LOUDER THAN WORDS',
+    ]) expect(sov28.lesson).toContain(heading);
+    // Mark 8:22-25 is quoted WHOLE — the hand, the check, the partial report, the second touch.
+    for (const v of ['Mark 8:22', 'Mark 8:23', 'Mark 8:24', 'Mark 8:25']) {
+      expect(sov28.lesson).toContain(`"${SOV28_FRAGMENTS[v]}" (${v})`);
+      expect(sov28.lesson.indexOf(`(${v})`)).toBeGreaterThan(sov28.lesson.indexOf('FIFTH,'));
+    }
+    expect(sov28.lesson).toContain('The Word does not tell us why this healing came in two touches, and we will not guess');
+    expect(SOV28_FRAGMENTS['Psalms 34:8']).toBe('O taste and see that the LORD is good: blessed is the man that trusteth in him.');
+    expect(sov28.inApp).toMatch(/Admin - Systems/);
+  });
+  it('this house is cited EXACTLY: the monitor held by the hand — analyze, fix, re-measure, again — to 874 of 874', () => {
+    expect(sov28.lesson).toContain('Analyze: it was reading a retired database the app no longer uses.');
+    expect(sov28.lesson).toContain('Re-measure: it still said stalled. It was not silenced');
+    expect(sov28.lesson).toContain('"754 transcribed + 120 no-caption verdicts = 874 of 874, 0 owed."');
+    expect(sov28.lesson).toContain('the monitor closed its own open incident');
+  });
+  it('honest limits: the intake routing and the flow map are being built and NOT claimed; the 120 handoff is dated', () => {
+    expect(sov28.lesson).toContain('It is being built, and this lesson does not claim it as finished.');
+    expect(sov28.lesson).toContain('the whole-system map of which workflow feeds which shipped the same day, and the gaps it names are still being closed one by one');
+    expect(sov28.lesson).toContain('re-review date of 2026-10-01 and not yet done');
+    expect(sov28.inApp).toContain('is being built and is not finished');
+  });
+  it('provenance honesty: the only non-Scripture double-quoted spans in the lesson are his words or the day\'s own record', () => {
+    const isWord = (q) => Object.values(SOV28_FRAGMENTS).some((f) => q.includes(f) || f.includes(q.slice(1, -1)));
+    const nonScripture = (sov28.lesson.match(/"[^"]+"/g) || []).filter((q) => !isWord(q));
+    expect(nonScripture.length).toBeGreaterThanOrEqual(12);
+    for (const q of nonScripture) expect(SOV28_ALLOWED, `unexpected non-Scripture quote: ${q}`).toContain(q);
+  });
+  it('tamper-catch: the pinned ground-truth lines are themselves exact, and a one-word drift fails', () => {
+    expect(SOV28_FRAGMENTS['Philippians 1:6']).toBe('Being confident of this very thing, that he which hath begun a good work in you will perform it until the day of Jesus Christ:');
+    expect(SOV28_FRAGMENTS['Luke 13:8']).toBe('And he answering said unto him, Lord, let it alone this year also, till I shall dig about it, and dung it:');
+    expect(SOV28_FRAGMENTS['Mark 8:25']).toBe('After that he put his hands again upon his eyes, and made him look up: and he was restored, and saw every man clearly.');
+    expect(SOV28_FRAGMENTS['Isaiah 41:13']).toBe('For I the LORD thy God will hold thy right hand, saying unto thee, Fear not; I will help thee.');
+    // The corpus apostrophe is typographic; a straight one would be a silent drift.
+    expect(SOV28_FRAGMENTS['Exodus 18:17']).toContain('Moses’ father in law');
+    const drifted = sov28.lesson.split('let it alone this year also').join('leave it alone this year also');
+    expect(drifted).not.toContain(SOV28_FRAGMENTS['Luke 13:8']);
+  });
+});
