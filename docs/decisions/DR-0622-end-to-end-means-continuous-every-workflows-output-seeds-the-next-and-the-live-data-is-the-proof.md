@@ -84,3 +84,32 @@ The BEFORE state, on the database the app reads: 77 resources measured — **38 
 - `app/src/__tests__/system-flow-graph.test.jsx`: every gate caught its planted break; the verdict never reads unknown as flowing; the proof SQL writes only its own table; the surfaces render the live numbers and say plainly when there are none.
 - The 0234 smoke passed on a local Postgres 16 and raised `LEAK: a poe-family VIEWER read 1 proof rows` when an open policy was planted.
 - After merge: the first dispatched `system-flow-proof.yml` run records the before-state of every connection; the fixes that follow are measured against it.
+
+## The after-state, measured live (run 36072180867, 2026-09-24 23:21 UTC)
+
+| state | before (run 36059041587, 21:04) | after (run 36072180867, 23:21) |
+| --- | --- | --- |
+| flowing | 38 | 48 |
+| empty | 18 | 16 |
+| stale | 9 | 9 |
+| broken | 10 | 7 |
+| unconsumed | 1 | 1 |
+| off | 0 | 1 |
+| unknown | 1 | 0 |
+
+**Now flowing** (on the live database, not a claim):
+- `sermon_video_stats`: 14 rows.
+- `_sovereign_replay`: 242 rows, newest 22:32 UTC.
+- `agent_inbox#voice-transcript`.
+- `ci`, `native-shell`, `harvest-health` and `deploy-cloudflare-pages`. The two deploys went out at bb093bc0 and da2d4c6e.
+
+The seven still broken, and what holds each:
+
+| connection | measured | state |
+| --- | --- | --- |
+| `auto-merge.yml` | 20 of its 20 latest completed runs ended `cancelled` or `action_required`, while #1788 and #1790 merged and their deploys ran (36070357006, 36071748931). A waiting run is cancelled when a newer event supersedes it, so its own run conclusion cannot prove it. | **fixed** in this push. Auto-merge is now judged by what it produced: the latest deploy that the lane's bot dispatched (`product:deploy-cloudflare-pages.yml`). The test proves the gate still catches a failed bot deploy, and that a hand dispatch never stands in for the lane. |
+| `mcp-health.yml` | `HTTP 404 {"detail":"Not Found"}` at 23:17 UTC (run 36071934551). The fix (#1788, which adds the `/` route and restarts on a code-hash change) is on main. The NAS copy of the repo has not pulled it: services-sync reached its 96-calls-a-day budget today (nas-bootstrap run 36065727995, `calls_today=96`), and the cap resets at 00:00 UTC. | **waiting on the budget, not bypassed.** Re-probe after the 00:00 and 00:15 UTC cycles. If it still returns 404 on current code, it is fixed then. |
+| `nas-email-door.yml` | needs the Google App Password, which only Darrell can create | **named**: a value only he holds. `re-review: 2026-10-01` |
+| `nas-agent-arm.yml`, `nas-storage-sync.yml`, `source-transcript.yml`, `transcript-backfill.yml` | dispatch-only tools whose last hand-run failed. `source-transcript` is replaced by `source-transcript-nas` (flowing). `transcript-backfill` is replaced by the NAS trickle (874 transcripts live). | **named**: combine each replaced pair once the combined path is proven, never retire it outright (DR-0621). `re-review: 2026-10-01` |
+
+The stale and empty rows are unchanged, and each one is carried as an escalation on the operations board. Nothing is painted green.

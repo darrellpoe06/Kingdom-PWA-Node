@@ -455,6 +455,20 @@ describe('what the first live proof run taught the measurement (run 36059041587)
     expect(runRuleFor({}, "on:\n  schedule:\n    - cron: '0 * * * *'")).toBe('main');
     expect(runRuleFor({}, 'on: workflow_dispatch')).toBe('any');
     expect(runRuleFor({ runRule: 'any-success' }, '')).toBe('any-success');
+    // auto-merge is judged by its product: the deploy the lane's bot dispatched
+    // (its own runs end cancelled by design — 20 of 20 on 2026-09-24).
+    const { pickProductRun, productOf } = await import('../../../scripts/system-flow-proof.mjs');
+    const bot = { login: 'github-actions[bot]' };
+    expect(productOf(SYSTEM_FLOW.nodes.find((n) => n.id === 'auto-merge').runRule)).toBe('deploy-cloudflare-pages.yml');
+    expect(productOf('any-success')).toBe(null);
+    const deployOk = { conclusion: 'success', event: 'workflow_dispatch', actor: bot, updated_at: 'c' };
+    const deployBad = { conclusion: 'failure', event: 'workflow_dispatch', actor: bot, updated_at: 'd' };
+    const byHand = { conclusion: 'success', event: 'workflow_dispatch', actor: { login: 'darrellpoe06' }, updated_at: 'e' };
+    expect(pickProductRun([deployOk]).conclusion).toBe('success');
+    // proven to catch: the bot's latest deploy failed -> broken, even when a hand dispatch after it succeeded
+    expect(pickProductRun([byHand, deployBad, deployOk]).conclusion).toBe('failure');
+    // a deploy no bot dispatched never proves the lane
+    expect(pickProductRun([byHand])).toBe(null);
     // the runner's summary carries the note, so a switched-off drain is never read as broken
     const row = parse('gh:run:push-outbox-drain.yml|1|2026-09-24T20:54:01Z|||off https://x')[0];
     expect(resourceVerdict({ run: { fresh: 2 } }, row, NOW).state).toBe('off');

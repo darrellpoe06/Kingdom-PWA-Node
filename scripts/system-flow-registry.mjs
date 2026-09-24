@@ -502,7 +502,7 @@ const NODES = [
     reads: [{ res: 'gh:pr', token: 'pull_request' }], writes: [{ res: 'gh:check', token: 'npx vitest run' }], seeds: ['auto-merge'],
   }),
   wf('auto-merge.yml', {
-    id: 'auto-merge', name: 'Auto-merge on green', runRule: 'any-success', purpose: 'Merges the PR the moment its gates pass; dispatches the deploy.',
+    id: 'auto-merge', name: 'Auto-merge on green', runRule: 'product:deploy-cloudflare-pages.yml', purpose: 'Merges the PR the moment its gates pass; dispatches the deploy.',
     reads: [{ res: 'gh:pr', token: 'gh pr list' }, { res: 'gh:check', token: 'workflow_run' }],
     writes: [{ res: 'gh:main', token: 'gh pr merge' }, { res: 'gh:deploy-heal', token: 'gh workflow run deploy-cloudflare-pages.yml' }],
     seeds: ['deploy', 'db-migrate', 'deploy-freshness'],
