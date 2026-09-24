@@ -11,6 +11,12 @@
 //   variant="header" — compact, lives beside the theme swatches in the header.
 //   variant="panel"  — prominent labeled card for the reading-heavy areas
 //                       (The Word, Learn, Conference) and the About/Settings page.
+//   variant="compact" — ONE small dropdown holding all five sizes, for the
+//                       collapsed row on a phone (Darrell 2026-09-24: "can the
+//                       text sizes fit in the top right corner of smaller screen
+//                       or a drop down with all options?" / "Keeping the screen
+//                       real-estate as clear as possible?"). A native select: the
+//                       phone's own picker, keyboard and screen-reader ready.
 import React from 'react';
 import { useTextSize } from '../lib/text-size.js';
 import UiIcon from './UiIcon.jsx';
@@ -94,6 +100,29 @@ export default function TextSizeControl({ variant = 'header', className = '' }) 
     </div>
   );
 
+  if (variant === 'compact') {
+    const current = steps.find((s) => s.key === active) || steps[0];
+    return (
+      <label ref={rootRef} className={`flex items-center gap-1 text-[#1A1815] font-semibold ${className}`} style={{ fontSize: 'calc(12px / var(--ts-chrome-scale, 1))' }}>
+        <span aria-hidden="true" className="text-[#5A5751] leading-none select-none">
+          <span style={{ fontSize: '0.75em' }}>A</span>a
+        </span>
+        <select
+          data-testid="text-size-compact"
+          aria-label={`Text size — now ${current.name}`}
+          value={active}
+          onChange={(e) => setSize(e.target.value)}
+          className="bg-white text-[#1A1815] border-2 border-[#1A1815] rounded-md px-1.5 py-1 min-h-[2rem] font-semibold focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"
+          style={{ fontSize: 'calc(13px / var(--ts-chrome-scale, 1))' }}
+        >
+          {steps.map((s) => (
+            <option key={s.key} value={s.key} aria-label={`${s.name} text size`}>{s.label}</option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+
   if (!isPanel) {
     // Header variant: an aA icon hint + the stepper, kept tight.
     return (
@@ -166,13 +195,14 @@ export default function TextSizeControl({ variant = 'header', className = '' }) 
 // is sticky, measured: position:sticky at top 0), and the existing index.css
 // rules still take over at the sizes that trap harder — sticky at Larger, a
 // fixed bottom bar at Largest and Big Print. No new layout mechanism.
-export function TextSizeEscapeHatch({ collapsed, onShowHeader = null, siteName = '' }) {
+export function TextSizeEscapeHatch({ collapsed, onShowHeader = null, siteName = '', siteTagline = '' }) {
   // Read so the row re-renders on every step, and so the ts-hatch-h publisher
   // inside TextSizeControl re-measures when the position flips.
   useTextSize();
   // Only when the header is tucked away — at ANY size (see above).
   if (!collapsed) return null;
   const name = String(siteName || '').trim();
+  const tagline = String(siteTagline || '').trim();
   return (
     <div className="ts-chrome-region ts-escape-hatch bg-[#FAF8F4] border-t border-[#E8E4DC] px-3 py-1.5 flex items-center justify-end gap-2 flex-wrap">
       {/* THE WAY BACK FROM THE HIDEAWAY, IN WORDS, ON THE LEFT (Darrell
@@ -184,13 +214,20 @@ export function TextSizeEscapeHatch({ collapsed, onShowHeader = null, siteName =
           the one thing that always renders while the header is tucked away,
           so the way back lives here too, as words a person can read, on the
           side the tab row never pushes off. */}
+      {/* THE WAY BACK AND THE BRAND TRAVEL TOGETHER, ON THE LEFT (Darrell
+          2026-09-24: "Hopefully it looks good on a smaller screen too...
+          make sure"). Measured at 320 px: with the two as separate row items,
+          the button wrapped alone to the RIGHT. One left-anchored group keeps
+          the way back on the left at every width, the lockup beside it (or
+          just under it on the narrowest phones). */}
+      <div data-testid="collapsed-left-group" className="mr-auto flex-1 flex items-center gap-x-2 gap-y-1 flex-wrap min-w-0">
       {onShowHeader && (
         <button
           type="button"
           onClick={onShowHeader}
           data-testid="show-full-header"
           aria-label="Show the full header (name, account, voice, font, theme controls)"
-          className={`${name ? '' : 'mr-auto '}flex items-center gap-1 px-2 py-1 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]`}
+          className={`flex items-center gap-1 px-2 py-1 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]`}
           style={{ fontSize: 'calc(11px / var(--ts-chrome-scale, 1))' }}
         >
           <UiIcon name="chevronDown" /> Show header
@@ -203,22 +240,53 @@ export function TextSizeEscapeHatch({ collapsed, onShowHeader = null, siteName =
           the room, so the name the person opened rides here, in the same
           face the header uses for it. Fixed px like the row's other words,
           so it never compounds with the text-size setting. */}
+      {/* THE WHOLE BRAND, NOT A BLAND WORD (Darrell 2026-09-24, a screenshot
+          of this row beside the header lockup: "make the short tab fit this in
+          that space... to promote what it is... Currently it shows a bland
+          PoeTech" / "Next to show header"). The row carries the header's own
+          lockup: the name in its display face, the tagline in its small
+          uppercase accent beneath. The name WRAPS rather than cuts off mid-word
+          (the 2026-07-06 rule for the header name). Fixed px like the row's
+          other words, so it never compounds with the text-size setting. */}
       {name && (
-        <span
-          data-testid="collapsed-site-name"
-          className="mr-auto min-w-0 truncate text-[#1A1815] font-semibold"
-          style={{ fontFamily: '"Fraunces", serif', fontSize: 'calc(15px / var(--ts-chrome-scale, 1))', letterSpacing: '-0.01em' }}
-        >
-          {name}
+        <span className="min-w-0 flex flex-col leading-tight">
+          <span
+            data-testid="collapsed-site-name"
+            className="text-[#1A1815] font-semibold break-words"
+            style={{ fontFamily: '"Fraunces", serif', fontSize: 'calc(15px / var(--ts-chrome-scale, 1))', letterSpacing: '-0.01em' }}
+          >
+            {name}
+          </span>
+          {tagline && (
+            <span
+              data-testid="collapsed-site-tagline"
+              className="uppercase text-[#B85838] font-semibold break-words"
+              style={{ fontSize: 'calc(9px / var(--ts-chrome-scale, 1))', letterSpacing: '0.2em' }}
+            >
+              {tagline}
+            </span>
+          )}
         </span>
       )}
+      </div>
       {/* Plain words, not an icon: the reader who needs this is the reader who
           could not find it. Fixed px (like the control's own labels) so the
           way out never compounds with the setting it undoes. */}
-      <span className="text-[#5A5751] font-semibold whitespace-nowrap" style={{ fontSize: 'calc(11px / var(--ts-chrome-scale, 1))' }}>
-        Text size
-      </span>
-      <TextSizeControl variant="header" />
+      {/* ON A PHONE, ONE DROPDOWN IN THE CORNER (Darrell 2026-09-24: "can the
+          text sizes fit in the top right corner of smaller screen or a drop
+          down with all options?" / "Keeping the screen real-estate as clear as
+          possible?"). Below 640 px the five buttons took a line of their own;
+          the dropdown holds all five in one control beside the way back. From
+          640 px up the full row fits and stays. */}
+      <div className="sm:hidden">
+        <TextSizeControl variant="compact" />
+      </div>
+      <div className="hidden sm:flex items-center gap-2">
+        <span className="text-[#5A5751] font-semibold whitespace-nowrap" style={{ fontSize: 'calc(11px / var(--ts-chrome-scale, 1))' }}>
+          Text size
+        </span>
+        <TextSizeControl variant="header" />
+      </div>
     </div>
   );
 }

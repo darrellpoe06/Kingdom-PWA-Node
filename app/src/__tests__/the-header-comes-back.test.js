@@ -49,20 +49,25 @@ describe('the tab-row wrapper is allowed to shrink', () => {
 
 describe('the way back from the hideaway is in words, on the left', () => {
   it('the tucked-away row renders a Show header button when given the toggle', () => {
-    expect(HATCH).toMatch(/export function TextSizeEscapeHatch\(\{ collapsed, onShowHeader = null, siteName = '' \}\)/);
+    expect(HATCH).toMatch(/export function TextSizeEscapeHatch\(\{ collapsed, onShowHeader = null, siteName = '', siteTagline = '' \}\)/);
     expect(HATCH).toMatch(/data-testid="show-full-header"/);
     expect(HATCH).toMatch(/onClick=\{onShowHeader\}/);
     expect(HATCH).toMatch(/aria-label="Show the full header \(name, account, voice, font, theme controls\)"/);
   });
 
   it('sits on the LEFT (mr-auto), the side the tab row never pushes off', () => {
-    const block = HATCH.slice(HATCH.indexOf('data-testid="show-full-header"'), HATCH.indexOf('data-testid="show-full-header"') + 500);
-    expect(block).toMatch(/mr-auto/);
+    // The way back and the brand lockup share ONE left-anchored group, so the
+    // button stays on the left at every width (measured at 320 px, 2026-09-24:
+    // as separate row items the button wrapped alone to the right).
+    const g = HATCH.indexOf('data-testid="collapsed-left-group"');
+    expect(g).toBeGreaterThan(-1);
+    expect(HATCH.slice(g, g + 200)).toMatch(/className="mr-auto /);
+    expect(HATCH.indexOf('data-testid="show-full-header"')).toBeGreaterThan(g);
   });
 
   it('both header mounts wire the toggle into it', () => {
     // The shell also names the door on the row (2026-09-23); the toggle wiring is unchanged.
-    expect(SHELL).toMatch(/<TextSizeEscapeHatch collapsed=\{headerCollapsed\} onShowHeader=\{toggleHeaderChrome\} siteName=\{[^}]+\} \/>/);
+    expect(SHELL).toMatch(/<TextSizeEscapeHatch collapsed=\{headerCollapsed\} onShowHeader=\{toggleHeaderChrome\} siteName=\{[^}]+\} siteTagline=\{[^}]+\} \/>/);
     expect(TLC).toMatch(/<TextSizeEscapeHatch collapsed=\{headerCollapsed\} onShowHeader=\{toggleHeaderChrome\} \/>/);
   });
 
