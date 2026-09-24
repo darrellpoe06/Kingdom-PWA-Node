@@ -129,7 +129,7 @@ describe('on the real Learn tree', () => {
     expect(nav.querySelector('[data-testid="course-lesson-sections"]')).toBe(null);
     expect(rows(nav).length).toBe(LIVING_LESSONS_MODULES.length);
     expect(nav.querySelector('[data-testid="course-lesson-list"]').getAttribute('data-shelf')).toBe('all');
-    // Since DR-0622 the list opens in lesson-NUMBER order ("They are
+    // Since DR-0626 the list opens in lesson-NUMBER order ("They are
     // numbered!!!!!!!"); the divisions view is one pick away in the Order
     // select, and it renders exactly as DR-0603 pinned it.
     expect(headings(nav).length, 'number order carries no division heading rows').toBe(0);

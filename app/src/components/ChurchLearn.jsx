@@ -3608,7 +3608,7 @@ export default function ChurchLearn({
           const sections = wantsSections(schedule) ? sectionLessons(schedule) : null;
           const shelf = (sections && lessonShelfPick.courseKey === active.key && sections.some((x) => x.key === lessonShelfPick.shelf)) ? lessonShelfPick.shelf : 'all';
           const shown = shelf === 'all' ? schedule : sections.find((x) => x.key === shelf).lessons;
-          // THE ORDER (DR-0622). A numbered course offers "By number, first to
+          // THE ORDER (DR-0626). A numbered course offers "By number, first to
           // last" (the default) and "Newest first"; a course shelved by the
           // Word's divisions adds that view. The row's number is the lesson's
           // own (its id), never its place in the list.

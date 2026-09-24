@@ -1,5 +1,5 @@
 ---
-id: DR-0622
+id: DR-0626
 title: The lessons list in number order by default — each row carries the lesson's own number and the day it was added, the order is the reader's pick and the device remembers it, and the .md export and print run in number order too
 status: accepted
 date: 2026-09-24
