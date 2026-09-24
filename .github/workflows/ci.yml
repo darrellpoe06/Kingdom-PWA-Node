@@ -48,7 +48,7 @@ jobs:
           cache-dependency-path: app/package-lock.json
       # Python is here for the transcript-loader unit tests below (stdlib only —
       # the pure caption-grace / verdict logic imports without youtube-transcript-api).
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
       - run: npm ci
