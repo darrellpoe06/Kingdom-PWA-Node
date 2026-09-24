@@ -1476,7 +1476,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
 // Prev / Next and the hands-free advance walk inside a lesson. Composed from
 // lib/lesson-order.js; a course whose lessons carry no number of their own
 // keeps its authored order.
-// The lesson list's lazy cards (DR-0637): how many render in full up front,
+// The lesson list's lazy cards (DR-0642): how many render in full up front,
 // and the height a light card reserves (the measured median of a full card at
 // a phone width, so the scrollbar does not jump as cards fill in).
 const EAGER_CARDS = 6;
@@ -1830,7 +1830,7 @@ function CourseView({
     return () => { if (onFocusChange) onFocusChange(false); };
   }, [!!focusModule]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // THE LESSON BAR OWNS THE TOP WHILE A LESSON IS OPEN (DR-0637). Measured
+  // THE LESSON BAR OWNS THE TOP WHILE A LESSON IS OPEN (DR-0642). Measured
   // 2026-09-24 at 390x844 with the header collapsed, scrolled into the
   // reading: this space's sticky bar (0-89px) and the app's sticky header
   // (0-219px) were BOTH pinned at the top, the bar painted over the header, and
@@ -1851,7 +1851,7 @@ function CourseView({
     if (focusId !== null || !lastFocusRef.current) return undefined;
     const id = lastFocusRef.current;
     // The lesson just left renders in full before the list scrolls to it
-    // (DR-0637), so the landing is on the real card, not a light one.
+    // (DR-0642), so the landing is on the real card, not a light one.
     showCard(id);
     const t = setTimeout(() => {
       const el = typeof document !== 'undefined' && document.getElementById(`learn-lesson-${id}`);
@@ -1970,7 +1970,7 @@ function CourseView({
     try { window.print(); } catch (e) { /* no-op */ }
   };
 
-  // THE LESSON LIST RENDERS WHAT IS NEAR THE READER (DR-0637). Measured
+  // THE LESSON LIST RENDERS WHAT IS NEAR THE READER (DR-0642). Measured
   // 2026-09-24 in Chromium at 390x844: the Learn tab rendered EVERY lesson's
   // full card — 191 cards, 19,023 elements — before a reader had scrolled to
   // any of them, and a Continue tap spent most of its 1.7 s of script tearing
@@ -3235,7 +3235,7 @@ function CourseView({
       </div>
 
       {/* ===== Print-only full curriculum (paper) =====
-          MOUNTED ONLY WHILE PRINTING (DR-0637). It was 9,919 hidden elements
+          MOUNTED ONLY WHILE PRINTING (DR-0642). It was 9,919 hidden elements
           on every screen of Learn, inside every open lesson, never seen. */}
       {printing && (
       <div className="hidden print:block text-black">

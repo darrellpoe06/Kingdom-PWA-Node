@@ -112,7 +112,7 @@ html[data-text-size='bigprint'] .ts-safe-sticky {
   overflow-x: clip;
 }
 
-/* ONE PINNED BAR OVER A LESSON (DR-0637). While a lesson's own space is open
+/* ONE PINNED BAR OVER A LESSON (DR-0642). While a lesson's own space is open
    (ChurchLearn sets data-lesson-space), the app header flows with the page and
    the lesson bar alone holds the top. Measured before: both pinned at top 0,
    the header's tab row showing beneath the lesson bar, the first readable line
