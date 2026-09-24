@@ -132,6 +132,57 @@ export function decideOnEngineEnd({ active, startedAt, now, capMs = VOICE_SESSIO
 }
 
 /**
+ * From a continuous-recognition event, return the words still being heard
+ * (not yet final), so the box can show them live. Pure.
+ */
+export function extractInterimTranscript(event) {
+  const all = (event && event.results) ? Array.from(event.results) : [];
+  const from = (event && typeof event.resultIndex === 'number') ? event.resultIndex : 0;
+  return all.slice(from)
+    .filter(res => res && res.isFinal === false)
+    .map(res => (res && res[0] && res[0].transcript) ? res[0].transcript : '')
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// THE PHONE THAT HEARS NOTHING (Darrell, 2026-09-24: "it shows like it's
+// recording however at the end there are not text in the text box"). The
+// engine's error codes, said in words a person can act on. 'audio-capture'
+// is what Android reports when something else holds the microphone, and a
+// phone call on the same phone always does.
+export function explainVoiceError(code) {
+  switch (code) {
+    case 'audio-capture':
+      return "The phone isn't letting the app hear the microphone. A phone call or another app may be using it. Record after the call, or record from a second device with the call on speaker.";
+    case 'not-allowed':
+    case 'service-not-allowed':
+      return 'Microphone permission is off for PoeTech. Allow the microphone for this site in the browser settings, then try again.';
+    case 'network':
+      return 'Speaking to type needs an internet connection on this phone. Record instead: the recording is kept and written out later.';
+    case 'language-not-supported':
+      return 'This phone cannot turn English speech into text here. Record instead.';
+    default:
+      return `Voice input stopped (${code || 'unknown'}). Type instead, or record.`;
+  }
+}
+
+// How long a session may run with nothing heard before the surface says so,
+// instead of showing "listening" over silence.
+export const NOTHING_HEARD_MS = 8000;
+
+/**
+ * The verdict when a dictation session ends, pure: did it produce words?
+ * 'words' | 'no-words' (the session ran and wrote nothing) | 'none' (no
+ * session). The Speak box turns 'no-words' into a plain message, never a
+ * silently empty box (the 2026-09-24 defect).
+ */
+export function sessionOutcome({ ran, finalWords }) {
+  if (!ran) return 'none';
+  return (Number(finalWords) || 0) > 0 ? 'words' : 'no-words';
+}
+
+/**
  * useVoiceDictation — "type or speak" for any input surface, PUSH-TO-END.
  *
  *   const mic = useVoiceDictation({ onTranscript: t => appendToField(t) });
@@ -144,39 +195,78 @@ export function decideOnEngineEnd({ active, startedAt, now, capMs = VOICE_SESSIO
  * onTranscript receives each newly-finalized chunk as the speaker talks;
  * pauses do not end the session — only the Stop tap (or the 5-minute cap).
  * The caller decides how to merge chunks (append, replace, etc.).
+ *
+ * Also returned (2026-09-24): `interim`, the words being heard right now,
+ * shown live; `heard`, anything at all reached the engine; `nothingHeard`,
+ * the session has run NOTHING_HEARD_MS with nothing heard; and `outcome` of
+ * the last session ('words' | 'no-words' | 'none').
  */
 export function useVoiceDictation({ onTranscript, lang = 'en-US', capMs = VOICE_SESSION_CAP_MS } = {}) {
   const [listening, setListening] = useState(false);
   const [error, setError] = useState('');
+  const [interim, setInterim] = useState('');
+  const [heard, setHeard] = useState(false);
+  const [nothingHeard, setNothingHeard] = useState(false);
+  const [outcome, setOutcome] = useState('none');
   const recognitionRef = useRef(null);
   const activeRef = useRef(false);   // the SPEAKER's intent — true until they tap Stop
   const startedAtRef = useRef(0);
+  const finalWordsRef = useRef(0);
+  const heardRef = useRef(false);
+  const sessionOpenRef = useRef(false);
+  const watchRef = useRef(null);
 
   const SR = detectSpeechRecognition();
   const supported = !!SR;
+
+  const endSession = () => {
+    if (watchRef.current) { clearTimeout(watchRef.current); watchRef.current = null; }
+    if (!sessionOpenRef.current) return;
+    sessionOpenRef.current = false;
+    setInterim('');
+    setNothingHeard(false);
+    setOutcome(sessionOutcome({ ran: true, finalWords: finalWordsRef.current }));
+  };
+
+  const markHeard = () => {
+    if (heardRef.current) return;
+    heardRef.current = true;
+    setHeard(true);
+    setNothingHeard(false);
+  };
 
   const stop = () => {
     activeRef.current = false;
     try { recognitionRef.current?.stop(); } catch (_) { /* ignore */ }
     setListening(false);
+    endSession();
   };
 
   const startEngine = () => {
     const r = new SR();
     r.continuous = true;        // keep collecting through pauses where honored
-    r.interimResults = false;
+    r.interimResults = true;    // show the words as they are heard (2026-09-24)
     r.lang = lang;
+    r.onsoundstart = markHeard;
+    r.onspeechstart = markHeard;
     r.onresult = (e) => {
+      const live = extractInterimTranscript(e);
       const chunk = extractNewFinalTranscript(e);
-      if (chunk && typeof onTranscript === 'function') onTranscript(chunk);
+      if (live || chunk) markHeard();
+      setInterim(live);
+      if (chunk) {
+        finalWordsRef.current += chunk.split(/\s+/).filter(Boolean).length;
+        if (typeof onTranscript === 'function') onTranscript(chunk);
+      }
     };
     r.onerror = (e) => {
       const code = (e && e.error) || 'unknown';
       // A pause is not an error — onend will restart the session.
       if (activeRef.current && PAUSE_ERRORS.includes(code)) return;
-      setError(`Voice input error: ${code} — type instead.`);
+      setError(explainVoiceError(code));
       activeRef.current = false;
       setListening(false);
+      endSession();
     };
     r.onend = () => {
       const verdict = decideOnEngineEnd({
@@ -199,6 +289,7 @@ export function useVoiceDictation({ onTranscript, lang = 'en-US', capMs = VOICE_
       }
       activeRef.current = false;
       setListening(false);
+      endSession();
     };
     recognitionRef.current = r;
     r.start();
@@ -211,11 +302,21 @@ export function useVoiceDictation({ onTranscript, lang = 'en-US', capMs = VOICE_
     }
     if (listening) { stop(); return; }
     setError('');
+    setInterim('');
+    setOutcome('none');
+    setHeard(false);
+    setNothingHeard(false);
+    heardRef.current = false;
+    finalWordsRef.current = 0;
     activeRef.current = true;
     startedAtRef.current = Date.now();
     try {
       startEngine();
+      sessionOpenRef.current = true;
       setListening(true);
+      // Never show "listening" over silence: if nothing at all reaches the
+      // engine, the surface says so in words.
+      watchRef.current = setTimeout(() => { if (activeRef.current && !heardRef.current) setNothingHeard(true); }, NOTHING_HEARD_MS);
     } catch (_) {
       setError('Could not start voice input — type instead.');
       activeRef.current = false;
@@ -223,5 +324,8 @@ export function useVoiceDictation({ onTranscript, lang = 'en-US', capMs = VOICE_
     }
   };
 
-  return { supported, listening, error, toggle, stop, clearError: () => setError('') };
+  return {
+    supported, listening, error, toggle, stop, interim, heard, nothingHeard, outcome,
+    clearError: () => setError(''), clearOutcome: () => setOutcome('none'),
+  };
 }
