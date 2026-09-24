@@ -234,7 +234,10 @@ def resolve_db(env=None, armed_path=ARMED_PATH, supa_env=SUPA_ENV):
     if os.path.exists(armed_path):
         pw = _env_value(supa_env, "POSTGRES_PASSWORD")
         if pw:
-            return "sovereign", {"user": "postgres", "password": pw, "host": SOVEREIGN_PG_HOST,
+            # supabase_admin, as live-sql.sh and the stack's installer connect:
+            # measured 2026-09-24 (nas-agent-arm run 36073583089), the image's
+            # "postgres" role is refused on agent_tasks (42501).
+            return "sovereign", {"user": "supabase_admin", "password": pw, "host": SOVEREIGN_PG_HOST,
                                  "port": SOVEREIGN_PG_PORT, "database": "postgres", "tls": False}
     url = env.get("AGENT_DB_URL", "")
     if url:
