@@ -16,7 +16,9 @@
 // no later edit can soften them:
 //
 //   1. the question Jesus asked first (Mark 8:36-37; Matthew 16:26; Luke 4:6-8);
-//   2. one morsel: how a birthright is sold (Genesis 25:30-34; Hebrews 12:16-17);
+//   2. one morsel: how a birthright is sold (Hebrews 12:16-17; the Genesis 25
+//      account is told in prose and never cited, because the Appraisal course
+//      owns those verses and pins that no other course shares one);
 //   3. the son before the role (Romans 8:14-16; Galatians 4:7; 1 John 3:1;
 //      Matthew 3:17);
 //   4. the snare of approval (Proverbs 29:25; John 12:43; John 5:44;
@@ -187,9 +189,12 @@ describe('the answer is the Word\'s, and each movement is actually in the lesson
   });
 
   it('2. one morsel: desperation talked Esau out of his birthright', () => {
-    carries('Behold, I am at the point to die: and what profit shall this birthright do to me?');
-    carries('thus Esau despised his birthright');
     carries('who for one morsel of meat sold his birthright');
+    carries('he found no place of repentance, though he sought it carefully with tears');
+    expect(L().lesson).toMatch(/He was not about to die\. He was hungry\./);
+    // The Appraisal course owns Genesis 25:29-34 and pins that no other
+    // course cites one of its verses; this lesson tells the story in prose.
+    for (const text of SURFACES()) expect(String(text)).not.toMatch(/Genesis 25/);
   });
 
   it('3. the son before the role — approval before the work', () => {

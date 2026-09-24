@@ -4,7 +4,7 @@
 - **Tier:** A (one lesson into an existing course; no schema, no transport, no money)
 - **Type:** word (a "Lesson" Darrell sent → a Living Lesson, per DR-0312 and the Layer 0 rule "Spoken Teachings Are Build Input")
 - **Date:** 2026-09-24
-- **Scope:** `app/src/lib/living-lessons-class.js` (L193, all nine fields, four bands; `weeks` 191 → 192); `app/src/lib/living-lessons-dates.js` (L193's day, joined at birth per DR-0621); `app/src/__tests__/living-lessons-l193-verses.test.js` (new, 27 checks, three of them proven-to-catch); `app/src/__tests__/living-lessons-order.test.jsx` (the newest-first and export pins now read the highest number from the course instead of naming L192); `app/src/__tests__/learn-crosslist.test.js` (school total 718 → 719); the per-lesson baselines moved by one
+- **Scope:** `app/src/lib/living-lessons-class.js` (L193, all nine fields, four bands; `weeks` 191 → 192); `app/src/lib/living-lessons-dates.js` (L193's day, joined at birth per DR-0621); `app/src/__tests__/living-lessons-l193-verses.test.js` (new, 27 checks, three of them proven-to-catch); `app/src/__tests__/living-lessons-order.test.jsx` (the newest-first and export pins now read the highest number from the course instead of naming L192); `app/src/__tests__/learn-crosslist.test.js` (school total 720 → 721 after the merge with main); the six per-lesson baselines (band differentiation, course quotation integrity, stage reaches reader, full levels, reading level, title in narrative) moved by one
 - **Principles:** SOURCE-OF-ANSWERS (the Word only), DR-0098 (teach the Word; do not stage denominational camps), DR-0100 (depression, anxiety and pregnancy loss stated plainly as real), DR-0076 §1/§3/§8 (every span fetched verbatim; the gate proven to catch; provenance honest), DR-0210 (Yahweh in our voice; KJV untouched), DR-0331 (a living man's words rendered, never quoted as if Scripture)
 - **Grounds:** Darrell, 2026-09-24, sent as "Lesson": a written summary, with timestamps, of a video conversation between the host Bryce Crawford and the actor David Henrie on Hollywood, child stardom, and his return to the Catholic faith.
 
@@ -33,7 +33,7 @@ The summary's points and its timestamps (kept here, not in the reader's text, wh
 Ten movements, macro and micro, each answered from the Word:
 
 1. **The question Jesus asked first.** Mark 8:36-37; Matthew 16:26. The soul is lost by *exchange*, which is how Henrie describes it. The first offer of the world for worship was made to Jesus, and He answered from the Word (Luke 4:5-8).
-2. **One morsel.** Esau, faint, reasoned "what profit shall this birthright do to me?" (Genesis 25:29-34); Hebrews 12:16-17. Desperation makes a small price look like life; the refusal is settled before the hungry hour.
+2. **One morsel.** Esau's sale is told in prose and taught from Hebrews 12:16-17. Desperation makes a small price look like life, so the refusal is settled before the hungry hour. The Genesis 25:29-34 verses are deliberately **not** cited: the Appraisal course owns them and pins that no other course in the catalog shares one of its verses (`appraisal-course.test.js`). The first CI run caught this (Genesis 25:30, 32 and 34). The lesson now points the reader to the Appraisal course for that chapter.
 3. **The son before the role.** Romans 8:14-16; Galatians 4:7; 2 Corinthians 6:18; 1 John 3:1; Matthew 3:17 (the Father's approval spoken before the public work); Ephesians 1:6; Isaiah 43:1.
 4. **The snare.** Proverbs 29:25; John 12:43; John 5:44; Galatians 1:10; Proverbs 27:21.
 5. **Train up a child.** Proverbs 22:6; Deuteronomy 6:7; Ephesians 6:4; Luke 2:51-52.
@@ -67,13 +67,13 @@ A reader who meets 'selling your soul' as a Hollywood phrase leaves with the Wor
 
 | what | measured |
 | --- | --- |
-| quoted spans | 361 on every surface, 361 verbatim against the in-repo KJV; every double-quoted span carries its reference; no curly double quotes; no elision; no record id; no percentage; no summary timestamp |
-| fullness (authored prose, quotes removed) | adult 2,347 words; child 0.57 (floor 0.5) · youth 0.63 · teen 0.64 · senior 0.65 (floor 0.6) |
-| reading grade (authored) | child 1.0 (new-lesson ceiling 5.0) · youth 3.9 · teen 6.3 · senior 7.1 · adult 4.8; not inverted |
+| quoted spans | 347 on every surface, 347 verbatim against the in-repo KJV; every double-quoted span carries its reference; no curly double quotes; no elision; no record id; no percentage; no summary timestamp |
+| fullness (authored prose, quotes removed) | adult 2,401 words; child 0.56 (floor 0.5) · youth 0.62 · teen 0.63 · senior 0.65 (floor 0.6) |
+| reading grade (authored) | child 1.0 (new-lesson ceiling 5.0) · youth 3.9 · teen 6.2 · senior 7.1 · adult 4.9; not inverted |
 | band differentiation | worst pair 0.03 (ceiling 0.5) |
 | title in narrative | all four bands name the lesson in their opening window |
-| school totals | 49 courses, 719 lessons (was 718); Living Lessons 192 modules; `weeks` equals the module count |
-| first draft, corrected by the gates before commit | youth 0.57 and teen 0.51 under the 0.6 fullness floor; filled with teaching (the hungry hour as a sales method, a self-test for the snare, none of the way back walked alone, refusals are mostly small, what to do for a family after a loss) |
+| school totals | 49 courses, 721 lessons (720 after Sovereign A.I. weeks 27 and 28 merged the same day); Living Lessons 192 modules; `weeks` equals the module count |
+| first draft, corrected by the gates before commit | youth 0.57 and teen 0.51 under the 0.6 fullness floor, filled with teaching (the hungry hour as a sales method, a self-test for the snare, none of the way back walked alone, refusals are mostly small, what to do for a family after a loss); then in CI, three Genesis 25 verses owned by the Appraisal course, retold in prose, and the hard word "assay" in the senior band (the plain-meaning gate), replaced with plain words |
 
 **Proven to catch (DR-0076 §3), inside the test itself:** one word of Mark 8:36 changed ("gain" to "win") makes the verbatim scan report a fault; a phrase put in Henrie's mouth that the summary did not quote is caught by the phrase check; "The devil" opening a sentence and a capitalized "Satan" are caught by the adversary check, while "satan" inside a verse is left as the corpus writes it.
 
