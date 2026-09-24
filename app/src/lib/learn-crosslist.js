@@ -326,7 +326,7 @@ export const COURSE_CROSS_LISTINGS = [
   // witnesses, a just weight, reproof regarded, written in order — so it sits
   // on the Word's shelf as well as at home (measured: 32 distinct Scripture
   // anchors across eight lessons; the course test walks every quoted span).
-  { department: 'The Word & The Way', courseKey: 'historical-research-1619', why: 'The historian’s craft taught as the Word commands it — prove all things, go to the eyewitness, two or three witnesses, a just weight, reproof regarded, written in order — worked on the 1619 Project as the case (measured: 32 Scripture anchors across eight lessons).' },
+  { department: 'The Word & The Way', courseKey: 'historical-research-1619', why: 'The historian’s craft taught as the Word commands it — prove all things, go to the record, hear the witnesses in their own words, two or three witnesses, fact against interpretation, the open correction and the quiet edit, the city read as a record, written in order for the children — worked on the 1619 Project as the case (measured: 31 Scripture anchors across eight lessons).' },
   // The Business department's second course (DR-0594) teaches the researcher's
   // craft as the Word commands it — count the cost, hear before you answer, two
   // or three witnesses, a just weight, reproof regarded, written plain upon
