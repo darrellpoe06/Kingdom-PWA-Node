@@ -93,7 +93,8 @@ import { crossListingsFor, resolveCrossListed, crossListedCount, courseCrossList
 // under its own department here, loaded only when that department opens.
 const EternalAlgorithmsStudyLazy = React.lazy(() => import('./EternalAlgorithmsStudy.jsx'));
 import { organizeCourses, learnDepartments, courseLessonCount, COURSE_SORTS, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey } from '../lib/learn-organize.js';
-import { wantsSections, sectionLessons } from '../lib/lesson-sections.js';
+import { wantsSections, sectionLessons, divisionOf } from '../lib/lesson-sections.js';
+import { isNumberedCourse, ownNumber, inNumberOrder, numberLabel, ordersFor, orderLessons, withMonthHeadings, formatAdded, DEFAULT_LESSON_ORDER, rememberedLessonOrder, rememberLessonOrder } from '../lib/lesson-order.js';
 import { subscribeTextSize } from '../lib/text-size.js';
 import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
@@ -2287,7 +2288,7 @@ function CourseView({
             <li key={m.id} id={`learn-lesson-${m.id}`} className={focusModule ? 'scroll-mt-28' : 'border border-[#E8E4DC] p-4 scroll-mt-28'}>
               <div className="flex items-baseline justify-between gap-3 flex-wrap">
                 <span className="text-sm font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-                  {U.cap} {m.week} · {m.title}
+                  {U.cap} {ownNumber(m, schedule)} · {m.title}
                 </span>
                 {!U.selfPaced && (
                   <span className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -2577,7 +2578,7 @@ function CourseView({
                         className="text-[0.625rem] uppercase tracking-wider px-2.5 min-h-[2.75rem] border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
                         payload={() => sectionSharePayload(m, {
                           label: 'The Lord’s Matrix — where else this Word stands',
-                          text: kin.map((k) => `L${k.week} ${k.title} — same Word: ${k.shared.join(', ')}`).join('\n'),
+                          text: kin.map((k) => `L${ownNumber(k, schedule)} ${k.title} — same Word: ${k.shared.join(', ')}`).join('\n'),
                           url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id }),
                           courseTitle: course.meta.title || '',
                         })}
@@ -2591,7 +2592,7 @@ function CourseView({
                             onClick={() => openLesson(k.id)}
                             className="text-left underline decoration-[#B85838]/40 hover:decoration-[#B85838]"
                           >
-                            L{k.week} {k.title}
+                            L{ownNumber(k, schedule)} {k.title}
                           </button>
                           <span className="text-[#5A5751]"> — same Word: {k.shared.join(', ')}</span>
                         </li>
@@ -2612,7 +2613,7 @@ function CourseView({
                             onClick={() => openLesson(next.id)}
                             className="text-left underline decoration-[#B85838]/50 hover:decoration-[#B85838]"
                           >
-                            L{next.week} {next.title}
+                            L{ownNumber(next, schedule)} {next.title}
                           </button>
                           <span className="text-[#5A5751]"> — {next.why}</span>
                         </p>
@@ -3007,9 +3008,9 @@ function CourseView({
         <p><em>{meta.tagline}</em></p>
         <p>For {meta.audience}. {meta.format}.</p>
         <hr />
-        {schedule.map((m) => (
+        {inNumberOrder(schedule).map((m) => (
           <div key={m.id} style={{ pageBreakInside: 'avoid', marginBottom: '14px' }}>
-            <h2 style={{ fontSize: '0.9375rem', fontWeight: 700 }}>{U.cap} {m.week} — {m.title}{!U.selfPaced && m.date ? ` · ${fmtDate(m.date)}` : ''}</h2>
+            <h2 style={{ fontSize: '0.9375rem', fontWeight: 700 }}>{U.cap} {ownNumber(m, schedule)} — {m.title}{!U.selfPaced && m.date ? ` · ${fmtDate(m.date)}` : ''}</h2>
             <p><strong>Big idea.</strong> {m.bigIdea}</p>
             {Array.isArray(m.benefits) && m.benefits.length > 0 && (
               <><p><strong>What this frees in you</strong></p>
@@ -3305,6 +3306,15 @@ export default function ChurchLearn({
   // by default. The choice is held per course and forgotten on leaving it.
   const [lessonShelfPick, setLessonShelfPick] = useState({ courseKey: '', shelf: 'all' });
   React.useEffect(() => { setLessonShelfPick({ courseKey: '', shelf: 'all' }); }, [active.key]);
+  // THE ORDER IS THE READER'S, AND THE DEVICE REMEMBERS IT (Darrell 2026-09-24:
+  // "There's no way to see the list in chronological order?!!!" / "They are
+  // numbered!!!!!!!"). By number, first to last, is the default; the pick is
+  // kept per course on this device (lib/lesson-order.js, storage guarded).
+  const [lessonOrderPick, setLessonOrderPick] = useState({});
+  const pickLessonOrder = (courseKey, order) => {
+    setLessonOrderPick((p) => ({ ...p, [courseKey]: order }));
+    rememberLessonOrder(courseKey, order);
+  };
 
   // Resolve the saved place against the MOUNTED catalog (verify before relying
   // on it): a course or lesson that no longer exists offers nothing — the
@@ -3531,7 +3541,7 @@ export default function ChurchLearn({
               </select>
             </div>
             <div>
-              <label htmlFor="learn-course-sort" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Sort</label>
+              <label htmlFor="learn-course-sort" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Sort courses</label>
               <select
                 id="learn-course-sort"
                 value={courseSort}
@@ -3598,6 +3608,22 @@ export default function ChurchLearn({
           const sections = wantsSections(schedule) ? sectionLessons(schedule) : null;
           const shelf = (sections && lessonShelfPick.courseKey === active.key && sections.some((x) => x.key === lessonShelfPick.shelf)) ? lessonShelfPick.shelf : 'all';
           const shown = shelf === 'all' ? schedule : sections.find((x) => x.key === shelf).lessons;
+          // THE ORDER (DR-0626). A numbered course offers "By number, first to
+          // last" (the default) and "Newest first"; a course shelved by the
+          // Word's divisions adds that view. The row's number is the lesson's
+          // own (its id), never its place in the list.
+          const numbered = isNumberedCourse(schedule);
+          const dated = schedule.some((m) => m.added);
+          const orders = ordersFor({ numbered, hasSections: !!sections, dated });
+          const pickedOrder = lessonOrderPick[active.key] || rememberedLessonOrder(active.key) || DEFAULT_LESSON_ORDER;
+          const order = orders.some((o) => o.key === pickedOrder) ? pickedOrder : ((orders[0] && orders[0].key) || 'course');
+          const inOrder = (list) => (numbered ? orderLessons(list, 'number') : list);
+          const items = order === 'divisions'
+            ? (shelf === 'all' ? sections.flatMap((sec) => [{ heading: sec }, ...inOrder(sec.lessons)]) : inOrder(shown))
+            : (order === 'number' || order === 'newest')
+              ? (dated ? withMonthHeadings(orderLessons(shown, order)) : orderLessons(shown, order))
+              : shown;
+          const showDivision = !!sections && order !== 'divisions' && shelf === 'all';
           const open = (id) => { setActiveKey(active.key); setResumeOpenGuide(false); setResumeLessonId(id); setResumeNonce((n) => n + 1); };
           return (
             <nav
@@ -3662,25 +3688,46 @@ export default function ChurchLearn({
                   Word's eight divisions with their counts (lib/lesson-sections.js,
                   real data from each lesson's own anchor). Picking one narrows
                   the flat list to that shelf; the default is everything. */}
-              {sections && (
-                <div className="mb-2">
-                  <label htmlFor="learn-lesson-shelf" className="block text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1">
-                    Show
-                  </label>
-                  <select
-                    id="learn-lesson-shelf"
-                    data-testid="course-lesson-shelf"
-                    data-shelf={shelf}
-                    value={shelf}
-                    onChange={(e) => setLessonShelfPick({ courseKey: active.key, shelf: e.target.value })}
-                    className="w-full min-h-[44px] px-2 py-2 bg-white border border-[#E8E4DC] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-                    style={{ fontFamily: '"Fraunces", serif' }}
-                  >
-                    <option value="all">All {U.noun}s · {schedule.length}</option>
-                    {sections.map((sec) => (
-                      <option key={sec.key} value={sec.key}>{sec.label} · {sec.lessons.length}</option>
-                    ))}
-                  </select>
+              {(sections || orders.length > 1) && (
+                <div className={`mb-2 grid gap-2 grid-cols-1 ${sections && orders.length > 1 ? 'sm:grid-cols-2' : ''}`}>
+                  {sections && (
+                    <div className="min-w-0">
+                      <label htmlFor="learn-lesson-shelf" className="block text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1">
+                        Show
+                      </label>
+                      <select
+                        id="learn-lesson-shelf"
+                        data-testid="course-lesson-shelf"
+                        data-shelf={shelf}
+                        value={shelf}
+                        onChange={(e) => setLessonShelfPick({ courseKey: active.key, shelf: e.target.value })}
+                        className="w-full min-h-[44px] px-2 py-2 bg-white border border-[#E8E4DC] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                        style={{ fontFamily: '"Fraunces", serif' }}
+                      >
+                        <option value="all">All {U.noun}s · {schedule.length}</option>
+                        {sections.map((sec) => (
+                          <option key={sec.key} value={sec.key}>{sec.label} · {sec.lessons.length}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  {orders.length > 1 && (
+                    <div className="min-w-0">
+                      <label htmlFor="learn-lesson-order" className="block text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1">
+                        Order
+                      </label>
+                      <select
+                        id="learn-lesson-order"
+                        data-testid="course-lesson-order"
+                        value={order}
+                        onChange={(e) => pickLessonOrder(active.key, e.target.value)}
+                        className="w-full min-h-[44px] px-2 py-2 bg-white border border-[#E8E4DC] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                        style={{ fontFamily: '"Fraunces", serif' }}
+                      >
+                        {orders.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+                      </select>
+                    </div>
+                  )}
                 </div>
               )}
               {/* THE DIVISION NAMES STAY IN THE LONG LIST (Darrell 2026-09-24,
@@ -3690,26 +3737,39 @@ export default function ChurchLearn({
                   long course has divisions, each division's name stands as an
                   inline heading row above its lessons — a label, never a fold.
                   Every lesson still shows what it belongs with; nothing is
-                  hidden behind a tap. A narrowed shelf needs no headings. */}
-              <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1" data-testid="course-lesson-list" data-shelf={shelf}>
-                {(sections && shelf === 'all'
-                  ? sections.flatMap((sec) => [{ heading: sec }, ...sec.lessons])
-                  : shown
-                ).map((m) => (m.heading ? (
-                  <li key={`heading-${m.heading.key}`} data-shelf-heading={m.heading.key} className="pt-2 pb-1 text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D] font-semibold border-t border-[#E8E4DC] flex items-center justify-between">
+                  hidden behind a tap. A narrowed shelf needs no headings.
+                  That is the "By the Word's divisions" order; in number order
+                  the month each lesson was added heads its run instead (labels
+                  too), and each row names its division in small type. */}
+              <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1" data-testid="course-lesson-list" data-shelf={shelf} data-order={order}>
+                {items.map((m) => (m.heading ? (
+                  <li
+                    key={`heading-${m.heading.key}`}
+                    {...(m.heading.lessons ? { 'data-shelf-heading': m.heading.key } : { 'data-month-heading': m.heading.key })}
+                    className="pt-2 pb-1 text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D] font-semibold border-t border-[#E8E4DC] flex items-center justify-between"
+                  >
                     <span>{m.heading.label}</span>
-                    <span className="text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.heading.lessons.length}</span>
+                    <span className="text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.heading.lessons ? m.heading.lessons.length : m.heading.count}</span>
                   </li>
                 ) : (
                   <li key={m.id} data-lesson-id={m.id} className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => open(m.id)}
-                      className="flex-1 text-left py-2 min-h-[44px] text-sm text-[#1A1815] hover:text-[#B85838] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
+                      className="flex-1 min-w-0 text-left py-2 min-h-[44px] text-sm text-[#1A1815] hover:text-[#B85838] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
                       style={{ fontFamily: '"Fraunces", serif' }}
                     >
-                      <span className="text-[#5A5751] text-[0.6875rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{U.cap} {m.week}</span>
-                      {' · '}{m.title}
+                      {/* THE LESSON'S OWN NUMBER, AND ITS DAY (Darrell 2026-09-24:
+                          "They are numbered!!!!!!!" / "There are dates in the
+                          lessons..."). The number is read from the lesson's id;
+                          the day from living-lessons-dates.js; a lesson with no
+                          recorded day shows its number alone. */}
+                      <span className="block text-[#5A5751] text-[0.6875rem] leading-snug" style={{ fontFamily: '"JetBrains Mono", monospace' }} data-lesson-number={ownNumber(m, schedule)}>
+                        <span className="whitespace-nowrap">{numberLabel(m, numbered, U.cap)}</span>
+                        {formatAdded(m.added) ? <>{' · '}<span className="whitespace-nowrap">{formatAdded(m.added)}</span></> : null}
+                        {showDivision ? <>{' · '}<span className="whitespace-nowrap">{divisionOf(m).label}</span></> : null}
+                      </span>
+                      <span className="block">{m.title}</span>
                     </button>
                     {/* The SAME action the card list's ▶ Play performs — the big
                         full-screen reader on this one, read yourself or read to
@@ -3964,7 +4024,7 @@ export default function ChurchLearn({
           <div className="mb-4 border-2 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] p-3">
             <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">Pick up where you left off</div>
             <p className="text-sm text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-              <strong>{placeCourse.meta.title}</strong> — {unitLabels(placeCourse.meta).cap} {placeLesson.week} · {placeLesson.title}
+              <strong>{placeCourse.meta.title}</strong> — {unitLabels(placeCourse.meta).cap} {ownNumber(placeLesson, placeCourse.schedule)} · {placeLesson.title}
               {savedPlace.stage > 0 || savedPlace.step > 0 ? (
                 <span className="text-[#5A5751]"> (part {savedPlace.stage + 1}{savedPlace.step > 0 ? `, step ${savedPlace.step + 1}` : ''})</span>
               ) : null}
