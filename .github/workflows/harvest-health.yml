@@ -77,6 +77,32 @@ jobs:
       # the month this instrument was born from.
       STALL_HOURS: '48'
     steps:
+      # SIDE BY SIDE (DR-0618): the app has read the NAS's own database since
+      # the repoint (2026-08-19), while the step below still reads the hosted
+      # project. Before the hosted read is removed, the SAME query runs on the
+      # live database here and both answers are printed together. Proving
+      # first, dismantling after (Darrell 2026-09-24: "make sure it works end
+      # to end before dismantling anything"). This step cannot fail the run.
+      - uses: actions/checkout@v4
+      - name: Join the tailnet (to read the live database)
+        continue-on-error: true
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Measure on the LIVE database (side by side)
+        id: live
+        continue-on-error: true
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          if row=$(printf '%s' "SELECT (SELECT count(*) FROM video_transcripts WHERE length(trim(coalesce(text,''))) > 0), (SELECT count(*) FROM choir_sermons WHERE video_id IS NOT NULL), COALESCE((SELECT round(extract(epoch FROM (now() - max(created_at)))/3600)::int FROM video_transcripts WHERE length(trim(coalesce(text,''))) > 0), -1);" | bash scripts/live-sql.sh '|'); then
+            echo "row=$row" >> "$GITHUB_OUTPUT"
+            echo "live: transcribed|total|newest-success-hours = $row"
+          else
+            echo "row=unread" >> "$GITHUB_OUTPUT"
+            echo "::warning::the live database could not be read on this run"
+          fi
       - name: Measure coverage + freshness (read-only)
         id: probe
         env:
@@ -167,6 +193,17 @@ jobs:
       # bounded + read-mostly. It is NOT attempted for BLOCKED — re-syncing a
       # running-but-refused rider would spend YouTube budget against a block
       # that clears itself.
+      - name: Compare the hosted and live readings (DR-0618)
+        if: always()
+        run: |
+          {
+            echo "### Hosted vs live database (proving before the hosted read is removed)"
+            echo ""
+            echo "| database | reading |"
+            echo "| --- | --- |"
+            echo "| hosted (retired, still read today) | ${{ steps.probe.outputs.done_n }}|${{ steps.probe.outputs.total }}|${{ steps.probe.outputs.age_h }} |"
+            echo "| live (the NAS's own, the app's) | ${{ steps.live.outputs.row || 'not read' }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Heal a SILENT pipeline (one services-sync, never for BLOCKED)
         if: ${{ steps.probe.outputs.shape == 'SILENT' }}
         continue-on-error: true
