@@ -46,7 +46,7 @@
 
 ## Limits, stated
 
-1. **Whether Whisper answers on the tower today is not measured.** This sandbox cannot reach the NAS or the tower. If the tower is dark, the NAS CPU rung carries the lesson more slowly; the first CPU transcription also downloads the `small` model, which can take more than one pass. The first real voice lesson's transcript row names the rung that wrote it: that is the measurement. `re-review: 2026-10-01`.
+1. **The tower rung is dark today (measured).** The NAS health run 36017773837 (2026-09-24 15:07 UTC, from the NAS over the tailnet) read `whisper tlcmediadpt:8771 /health HTTP 000` (no answer) and the voice forwarder's pass-through of the tower studio `HTTP 502` (studio dark). So spoken lessons ride the NAS CPU rung until the tower's Whisper is running; the first CPU transcription also downloads the `small` model, which can take more than one pass. The NAS health workflow now reads this rung on every run, and each transcript row names the rung that wrote it. `re-review: 2026-10-01`.
 2. **The recorder's own loop (`scribe-transcribe`) still has no clock**, and `/scribe` still has no Funnel mount. Meetings are not part of this record; the fixes above make the consumer correct for the day it is clocked. `re-review: 2026-10-07`, with the Decision Intelligence review's phase 4.
 3. **The report back to the sender** remains DR-0608's open item: the reader reports in this chat, not yet on the Speak box.
 
