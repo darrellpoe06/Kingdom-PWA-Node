@@ -150,6 +150,9 @@ function makeRepo() {
   const g = (...args) => execFileSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', '-c', 'commit.gpgsign=false', ...args], { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   const w = (p, s) => { mkdirSync(dirname(join(dir, p)), { recursive: true }); writeFileSync(join(dir, p), s); };
   g('init', '-q', '-b', 'main');
+  // A CI runner has no global identity, and `git merge` needs one even with
+  // --no-commit (measured: CI run 36074321364 failed exactly here).
+  g('config', 'user.email', 't@t'); g('config', 'user.name', 't'); g('config', 'commit.gpgsign', 'false');
   mkdirSync(join(dir, 'scripts'), { recursive: true });
   copyFileSync(join(REPO, 'scripts/business-systems-guard.mjs'), join(dir, 'scripts/business-systems-guard.mjs'));
   // Stand-in generator: deterministic output from the pages in app/src/pages.
