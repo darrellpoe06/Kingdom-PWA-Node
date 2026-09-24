@@ -42,5 +42,6 @@ Without a worked case a lesson teaches the shape of a competency and leaves the 
 
 - `historical-research-course.test.js`, `business-research-course.test.js`, `history-course.test.js`, `course-band-coverage`, `learn-crosslist` green in one run; lint 0.
 - Proven-to-catch pinned: no figure, a figure with no record, two steps, a blank part, no case at all — each refused by name.
+- Caught by CI on the push (run 35949389412, `the-words-get-the-whole-width`): the lesson card's share-control gate counts every prose section's Share control as pinned chrome, and the worked-case block added a sixth section (eight capped controls); the pin is moved to six and eight with this reason, in the same commit as DR-0602. The gate did its job: a new section that grew with its text would have been caught the same way.
 - After merge: DR-0104 live review on a phone — open History lesson 7 and Business lesson 2 and read the case block end to end, including the table.
 - re-review: 2026-10-22 with DR-0597's re-probe — re-fetch every record a figure names; any that moved or changed turns the figure's record line red.

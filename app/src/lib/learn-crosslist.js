@@ -333,7 +333,7 @@ export const COURSE_CROSS_LISTINGS = [
   // tables — so it sits on the Word's shelf as well as at home (measured: 27
   // distinct Scripture anchors across eight lessons; the course test walks
   // every quoted span).
-  { department: 'The Word & The Way', courseKey: 'business-research-wars', why: 'The business researcher’s craft taught as the Word commands it — count the cost, hear the matter before answering, two or three witnesses, a just weight, reproof regarded, written plain upon tables — worked on the rivalries Business Wars tells as drama (measured: 27 Scripture anchors across eight lessons).' },
+  { department: 'The Word & The Way', courseKey: 'business-research-wars', why: 'The business researcher’s craft taught as the Word commands it — count the cost, hear the matter before answering, two or three witnesses, a just weight, reproof regarded, written plain upon tables — worked on the rivalries Business Wars tells as drama, then followed to the money tied to oil (measured: 30 Scripture anchors across nine lessons).' },
 ];
 
 /** The course declarations shelved into one department, in authored order. */

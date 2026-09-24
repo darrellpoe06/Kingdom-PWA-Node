@@ -23,7 +23,7 @@ import {
   businessResearchRefs, businessResearchTimeline, businessResearchVoiceFaults, businessResearchTimelineFaults,
   BUSINESS_SOURCE_HOSTS, businessResearchWorkedCaseFaults,
 } from '../lib/business-research-course.js';
-import { historyVoiceFaults, historyYearsNamed, historyVoiceYears, HISTORY_SOURCE_HOSTS } from '../lib/history-course.js';
+import { historyVoiceFaults, historyYearsNamed, historyVoiceYears, HISTORY_SOURCE_HOSTS, HISTORY_RECORD_HOSTS } from '../lib/history-course.js';
 import { LEARN_CATALOG } from '../lib/learn-catalog.js';
 import { learnDepartments } from '../lib/learn-organize.js';
 import { COURSE_CROSS_LISTINGS, coursesWithNoShelfDeclaration } from '../lib/learn-crosslist.js';
@@ -89,7 +89,7 @@ const byId = (id) => M.find((m) => m.id === id);
 const lessonText = (m) => [m.bigIdea, m.lesson, m.levels.teen, m.levels.senior].join('\n');
 
 describe('the course exists, and it is shaped like a course', () => {
-  it('carries eight competencies in the order the craft runs', () => {
+  it('carries eight competencies in the order the craft runs, then the ninth that follows all eight to the oil (DR-0602)', () => {
     expect(M.map((m) => m.id)).toEqual([
       'br1-count-the-cost',
       'br2-go-to-the-filing',
@@ -99,6 +99,7 @@ describe('the course exists, and it is shaped like a course', () => {
       'br6-the-correction',
       'br7-what-the-word-settles',
       'br8-write-it-in-order',
+      'br9-follow-the-oil',
     ]);
     expect(BUSINESS_RESEARCH_META.weeks).toBe(M.length);
   });
@@ -155,7 +156,7 @@ describe('His words, fetched not remembered', () => {
   it('walks every quoted span in the WHOLE module, not only the reader texts', () => {
     let spans = 0; const faults = [];
     for (const m of M) walkStrings(m, m.id, (t, path) => { spans += spansWithRef(t).length; for (const f of quotationFaults(t)) faults.push(`${path}: ${f}`); });
-    expect(spans).toBe(164); // 148 + 16 verse spans in the worked cases (DR-0601) // 148 in the modules; the meta frame carries two more, walked below
+    expect(spans).toBe(180); // 164 + 16 in the ninth lesson, the oil (DR-0602) // 148 + 16 verse spans in the worked cases (DR-0601) // 148 in the modules; the meta frame carries two more, walked below
     expect(faults).toEqual([]);
   });
 
@@ -270,7 +271,7 @@ describe('the eight competencies each teach their own thing — and his words la
 
   it('cites every anchor it names, and every anchor resolves in the corpus', () => {
     const refs = businessResearchRefs();
-    expect(refs.length).toBe(27);
+    expect(refs.length).toBe(30); // 27 + the three anchors of the oil lesson (DR-0602)
     for (const m of M) for (const part of String(m.anchor.ref).split(';')) expect(refs, `${m.id} anchor ${part.trim()}`).toContain(part.trim());
     for (const ref of refs) {
       const m = /^([1-3]?\s?[A-Za-z]+)\s+(\d+):(.+)$/.exec(ref);
@@ -309,10 +310,10 @@ describe('it is wired into the school as the Business department’s second cour
 
   it('builds a real schedule, summarises progress, and exports its curriculum', () => {
     const rows = row.buildScheduleRows();
-    expect(rows).toHaveLength(8);
+    expect(rows).toHaveLength(9);
     const done = businessResearchProgressSummary({ [M[0].id]: true });
     expect(done.done).toBe(1);
-    expect(done.total).toBe(8);
+    expect(done.total).toBe(9);
     const md = exportBusinessResearchCurriculumMarkdown(null);
     expect(md).toContain('Business Research');
     expect(md).toContain('Count the cost');
@@ -333,17 +334,20 @@ describe('voices of the record: their own words, dated, sourced, probed on a run
       expect(m.voices.length, `${m.id} voices`).toBeGreaterThanOrEqual(2);
       // A WITNESS in every lesson (DR-0600, Darrell: "Any actual testimonies from witnesses?!"):
       // a named person or the company under its own signature, speaking in the first person.
-      expect(m.voices.some((v) => /Hastings|Keyes|Iger|Perlmutter|Gates/.test(v.speaker) || (/letter to shareholders|in its annual report/.test(v.speaker) && /\b(we|We|our)\b/.test(v.words))), `${m.id} has no witness in his own words`).toBe(true);
+      // br9 (DR-0602): Arthur Burns in 1974 ("our industrial plant") and Standard Oil's own appellants in their brief ("they deny") — the person and the company under its own name.
+      expect(m.voices.some((v) => /Hastings|Keyes|Iger|Perlmutter|Gates|Arthur Burns/.test(v.speaker) || (/letter to shareholders|in its annual report|in their own brief/.test(v.speaker) && /\b(we|We|our|they)\b/.test(v.words))), `${m.id} has no witness in his own words`).toBe(true);
       expect(businessResearchVoiceFaults(m), `${m.id}`).toEqual([]);
     }
   });
 
-  it('measures something: 16 voices, 8 distinct sources, every source on a listed record host (the SEC, the Antitrust Division, the WTO, Disney, the show page)', () => {
+  it('measures something: 43 voices, 21 distinct sources, every source on a listed record host (the SEC, the Antitrust Division, the WTO, Disney, the show page, the Fed, the EIA, the Court, the Energy Department)', () => {
     const all = M.flatMap((m) => m.voices);
-    expect(all.length).toBe(32); // 16 records + 16 witness voices (DR-0600)
+    expect(all.length).toBe(43); // 32 + the 11 voices of the oil lesson (DR-0602) // 16 records + 16 witness voices (DR-0600)
     const urls = new Set(all.map((v) => v.source.url));
-    expect(urls.size).toBe(12);
-    for (const u of urls) expect(BUSINESS_SOURCE_HOSTS, u).toContain(new URL(u).host);
+    expect(urls.size).toBe(21); // 12 + 9 oil records (DR-0602)
+    const listed = new Set([...BUSINESS_SOURCE_HOSTS, ...HISTORY_SOURCE_HOSTS, ...HISTORY_RECORD_HOSTS]);
+    for (const u of urls) expect(listed.has(new URL(u).host), u).toBe(true);
+    expect(BUSINESS_SOURCE_HOSTS).toEqual(expect.arrayContaining(['www.eia.gov', 'www.energy.gov'])); // the two oil hosts on no History list (DR-0602)
     expect(BUSINESS_SOURCE_HOSTS).toEqual(expect.arrayContaining(['www.sec.gov', 'www.justice.gov', 'www.wto.org', 'thewaltdisneycompany.com', 'wondery.com', 'web.archive.org']));
   });
 
@@ -392,12 +396,12 @@ describe('the record, dated: the timeline is managed by a gate, not typed by han
     }
   });
 
-  it('the whole course lines up on one timeline, sorted, from 1989 to 2020', () => {
+  it('the whole course lines up on one timeline, sorted, from 1870 to 2026', () => {
     const all = businessResearchTimeline();
     expect(all.length).toBe(M.reduce((n, m) => n + m.timeline.length, 0));
     for (let i = 1; i < all.length; i += 1) expect(all[i].year).toBeGreaterThanOrEqual(all[i - 1].year);
-    expect(all[0].year).toBe(1989);
-    expect(all[all.length - 1].year).toBe(2020); // Boeing's 10-K for 2019, filed January 2020 (DR-0600)
+    expect(all[0].year).toBe(1870); // the Standard Oil conspiracy as the bill alleged it (DR-0602); 1989 before the oil lesson
+    expect(all[all.length - 1].year).toBe(2026); // the day the oil records were fetched on the runner (DR-0602); 2020, Boeing's 10-K, before it (DR-0600)
   });
 
   it('the dates the course states are on the record with what to check them against', () => {
@@ -448,17 +452,41 @@ describe('work the case: an ACTUAL claim processed with the data, in every lesso
       expect(m.timeline.map((t) => t.year), `${m.id} event year`).toContain(m.workedCase.event.year);
     }
   });
-  it('the figures are the filings’, the Court’s, the Secretariat’s and the releases’ own: 24 across eight lessons', () => {
+  it('the figures are the filings’, the Court’s, the Secretariat’s, the releases’, the Fed’s, the EIA’s and the Energy Department’s own: 42 across nine lessons', () => {
     const all = M.flatMap((m) => m.workedCase.economics);
-    expect(all.length).toBe(24);
-    for (const e of all) expect(e.record).toMatch(/EDGAR|Wayback|Department of Justice|World Trade Organization|Trade Representative|press release/);
+    expect(all.length).toBe(42); // 24 + 18 in the oil lesson (DR-0602)
+    for (const e of all) expect(e.record).toMatch(/EDGAR|Wayback|Department of Justice|World Trade Organization|Trade Representative|press release|Federal Reserve History|Energy Information Administration|221 U\.S\. 1|Department of Energy/);
   });
   it('behind closed doors → the light, with the Word verbatim on both the hiding and the heart', () => {
     for (const m of M) {
       const d = m.workedCase.closedDoors;
       expect(d.hidden.length).toBeGreaterThan(40); expect(d.light.length).toBeGreaterThan(40);
       expect(d.verse).toMatch(/\((Luke|John|Hebrews|Ecclesiastes|Ephesians|Proverbs) \d+:\d+\)/);
-      expect(d.heart).toMatch(/\((Proverbs|Ecclesiastes|Luke|1 Timothy|James|Jeremiah) \d+:\d+\)/);
+      expect(d.heart).toMatch(/\((Proverbs|Ecclesiastes|Luke|1 Timothy|James|Jeremiah|Deuteronomy) \d+:\d+\)/);
     }
+  });
+});
+
+describe('the ninth lesson follows the money to the oil (DR-0602): every figure from a fetched record, the witness in his own words, the reserve as Joseph’s pattern', () => {
+  const m = M.find((x) => x.id === 'br9-follow-the-oil');
+  it('carries the three scales — the shock, the nation, the company — and the reserve, each on its record', () => {
+    const t = lessonText(m);
+    expect(t).toMatch(/\$2\.90/); expect(t).toMatch(/\$11\.65/); expect(t).toMatch(/4\.8 million barrels/); expect(t).toMatch(/66\.6/); expect(t).toMatch(/714 million barrels/);
+    expect(t).toMatch(/ninety per cent|90 per cent/); expect(t).toMatch(/net exporter/); expect(t).toMatch(/Joseph/);
+    expect(m.voices.length).toBe(11);
+    expect(m.voices.some((v) => /Arthur Burns/.test(v.speaker) && /our industrial plant/.test(v.words))).toBe(true);
+    expect(m.voices.some((v) => /appellants/.test(v.speaker) && /they deny all the allegations/.test(v.words))).toBe(true);
+    expect(new Set(m.voices.map((v) => new URL(v.source.url).host))).toEqual(new Set(['www.federalreservehistory.org', 'www.eia.gov', 'www.law.cornell.edu', 'www.energy.gov']));
+  });
+  it('never quotes OPEC’s own page (it refused the runner) and says so under still open', () => {
+    for (const v of m.voices) expect(v.source.url).not.toMatch(/opec\.org|bea\.gov/);
+    expect(m.workedCase.stillOpen).toMatch(/OPEC/);
+    expect(m.workedCase.economics.length).toBe(18);
+    expect(m.workedCase.event.year).toBe(1973);
+  });
+  it('anchors on the store, the reserve and the heart, verbatim', () => {
+    expect(m.anchor.ref).toBe('Proverbs 21:20; Genesis 41:35-36; Deuteronomy 8:17-18');
+    expect(lessonText(m)).toMatch(/"There is treasure to be desired and oil in the dwelling of the wise; but a foolish man spendeth it up" \(Proverbs 21:20\)/);
+    expect(m.workedCase.closedDoors.heart).toMatch(/My power and the might of mine hand hath gotten me this wealth" \(Deuteronomy 8:17\)/);
   });
 });
