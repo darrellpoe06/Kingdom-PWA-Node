@@ -145,7 +145,10 @@ describe('the answer is the Word’s, and each movement is actually in the lesso
     carries('there shall be no more death');
     // The Word never gives the devil keys, and the lesson says so in words rather
     // than letting a familiar picture stand in for the text.
-    expect(L().lesson).toMatch(/The devil never held the keys/);
+    // Sentence-initial 'The devil' is a capitalised NAME by this house's rule
+    // (adversary-is-never-capitalized.test.js caught the first draft in CI), so
+    // the sentence is built to keep the name lower case mid-sentence.
+    expect(L().lesson).toMatch(/the devil never held them, and the Word never says he did/);
     for (const b of FULL_BANDS) {
       expect(L().levels[b], `${b} must say the devil never had the keys`).toMatch(/never (had|held|gives him|assigns him) (the )?keys/);
     }

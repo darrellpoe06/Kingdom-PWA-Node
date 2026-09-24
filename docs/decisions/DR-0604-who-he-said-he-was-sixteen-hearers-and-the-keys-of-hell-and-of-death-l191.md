@@ -45,7 +45,7 @@ The question as asked put the eternity claim in Pilate's hearing. The record doe
 | band differentiation | worst pair 0.11 (ceiling 0.5) |
 | title in narrative | all four bands name the lesson in their opening window |
 | school totals | 49 courses, 714 lessons (was 713); Living Lessons 190; `weeks` = module count |
-| first draft, corrected by the gates before commit | three bands under the fullness floor (0.46 / 0.52 / 0.55) — filled with teaching, not padding; seven quoted spans without a reference beside them (two in the adult text, three in quiz options, one in the teen band, one talking point) — referenced or rephrased |
+| first draft, corrected by the gates before commit | three bands under the fullness floor (0.46 / 0.52 / 0.55) — filled with teaching, not padding; seven quoted spans without a reference beside them (two in the adult text, three in quiz options, one in the teen band, one talking point) — referenced or rephrased; three sentences opening "The devil" (child band, one quiz explanation, the adult text) caught by the adversary-is-never-capitalized gate on the first CI run and rebuilt so the name stays lower case mid-sentence; the record itself missing its Decision heading, caught by the decision-chain gate |
 
 ## Verification
 
