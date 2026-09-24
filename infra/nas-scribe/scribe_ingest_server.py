@@ -22,10 +22,18 @@ whisper-gpu FastAPI multipart precedent.
       Verifies every chunk the manifest claims is on disk, writes manifest.json,
       assembles the chunks into one recording file, and appends a queue line to
       whisper-queue.jsonl for the GPU transcription consumer.
-  GET  /scribe/session/{id} -> { ok, state, chunks }
+  GET  /scribe/session/{id} -> { ok, session, chunks, transcript, minutes }
+      The words the consumer wrote come BACK (DR-0622): transcript.json as
+      text and minutes.md, when they exist (scribe_results.py).
+  GET  /scribe/sessions  -> { ok, sessions: [{ sessionId, kind, createdAt, state }] }
+      Every recording and where it stands (recording / queued / transcribed /
+      minuted), newest first, states only.
   GET  /health           -> { ok: true }
 
-Security (PERPETUAL-PIPELINE-HEALTH): bearer auth (env SCRIBE_TOKEN);
+Security (PERPETUAL-PIPELINE-HEALTH): bearer auth -- the Scribe token (env
+SCRIBE_TOKEN) OR the family key every family device already provisions itself
+(DR-0613; /volume1/PoeTech/secrets/chat-bridge-token.txt), so the app's own
+upload is no longer refused for want of a second secret (DR-0622);
 path-guarded session ids and indexes (no traversal); per-chunk size cap; all
 persistence on the bind mount (env SCRIBE_DATA). The NAS is Tailscale/LAN-only,
 so this is defense in depth, not the only wall.
@@ -49,6 +57,8 @@ import time
 from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse
 
+from scribe_results import FAMILY_KEY_FILE, bearer_ok, list_sessions, read_key, session_summary
+
 MAX_CHUNK_BYTES = 64 * 1024 * 1024  # one minute of screen video fits easily
 MAX_DURATION_SECONDS = 180 * 60     # aligned with ministry-meetings / workflow-scribe.js
 KINDS = ("workflow", "meeting")
@@ -59,9 +69,8 @@ app = FastAPI()
 
 
 def _authorized(request: Request) -> bool:
-    if not TOKEN:
-        return True
-    return request.headers.get("authorization", "") == ("Bearer " + TOKEN)
+    family = read_key(os.environ.get("SCRIBE_FAMILY_KEY_FILE", FAMILY_KEY_FILE))
+    return bearer_ok(request.headers.get("authorization", ""), [TOKEN, family])
 
 
 def _safe_session_id(s) -> str:
@@ -207,4 +216,14 @@ def session_state(session_id: str, request: Request):
     chunks = sorted(os.listdir(chunk_dir)) if os.path.isdir(chunk_dir) else []
     record["chunks"] = chunks
     record["complete"] = os.path.isfile(os.path.join(sdir, "manifest.json"))
-    return {"ok": True, "session": record}
+    words = session_summary(sdir, with_words=True) or {}
+    record["state"] = words.get("state") or record.get("state")
+    return {"ok": True, "session": record, "transcript": words.get("transcript", ""), "minutes": words.get("minutes", "")}
+
+
+@app.get("/scribe/sessions")
+@app.get("/sessions")
+def sessions(request: Request):
+    if not _authorized(request):
+        return JSONResponse({"error": "unauthorized"}, status_code=401)
+    return {"ok": True, "sessions": list_sessions(DATA)}

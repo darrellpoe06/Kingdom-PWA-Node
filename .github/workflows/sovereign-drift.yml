@@ -117,11 +117,17 @@ jobs:
             done
           fi
           [ -n "$DOCKER" ] || { echo "docker binary not found (checked PATH, /usr/local/bin, /usr/bin)" >&2; exit 4; }
-          Q="select filename from public._schema_migrations order by filename"
-          "$DOCKER" exec -e PGPASSWORD="$PW" supabase-db \
-            psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$Q" 2>/tmp/e1 && exit 0
-          sudo -n "$DOCKER" exec -e PGPASSWORD="$PW" supabase-db \
-            psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$Q" 2>/tmp/e2 && exit 0
+          # The live ledger is public._sovereign_replay (infra/nas-supabase/
+          # replay_migrations.sh records every file it applies there); the
+          # _schema_migrations copy on this database stopped at the repoint
+          # (2026-08-19, measured by system-flow-proof run 36059041587, DR-0622).
+          # Read the live one first; the old one only where the live one is absent.
+          for Q in "select fname from public._sovereign_replay order by fname" "select filename from public._schema_migrations order by filename"; do
+            "$DOCKER" exec -e PGPASSWORD="$PW" supabase-db \
+              psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$Q" 2>>/tmp/e1 && exit 0
+            sudo -n "$DOCKER" exec -e PGPASSWORD="$PW" supabase-db \
+              psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$Q" 2>>/tmp/e2 && exit 0
+          done
           cat /tmp/e1 /tmp/e2 >&2
           exit 5
           REMOTE

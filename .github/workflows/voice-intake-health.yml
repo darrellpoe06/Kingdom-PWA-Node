@@ -1,5 +1,5 @@
 # voice-intake-health -- is a spoken recording actually becoming words, on the
-# LIVE database? (DR-0611 lessons, DR-0622 recorded conversations)
+# LIVE database? (DR-0611 lessons, DR-0624 recorded conversations)
 #
 # WHY THIS EXISTS (2026-09-24). Darrell recorded a conversation on the Notes
 # box and nothing was saved. The fix records the audio and lets Whisper on our
@@ -123,7 +123,7 @@ jobs:
           echo "=== repo HEAD on the NAS (is the rider the one on main?) ==="
           git -C "$REPO" log -1 --format='%h %cI %s' 2>/dev/null | cut -c1-120 || echo "repo unreadable"
           echo "=== rung 1: the tower's Whisper, from the NAS ==="
-          curl -s --max-time 8 -o /dev/null -w 'tlcmediadpt:8771 /health HTTP %{http_code}\n' http://tlcmediadpt:8771/health 2>&1 || echo "tower whisper unreachable"
+          for u in http://tlcmediadpt.tail5a2f35.ts.net:8771 http://100.69.19.13:8771 http://tlcmediadpt:8771; do curl -s --max-time 8 -o /dev/null -w "$u /health HTTP %{http_code}\n" $u/health 2>&1 || echo "$u unreachable"; done
           echo "=== last rung: faster-whisper on the NAS CPU ==="
           V=/volume1/PoeTech/venvs/lesson-voice
           if [ -x "$V/bin/python" ]; then
@@ -132,7 +132,15 @@ jobs:
             echo "no venv at $V"
           fi
           python3 --version 2>&1
-          ${SUDO} cat /volume1/PoeTech/lesson-voice/.pip-attempt 2>/dev/null | sed 's/^/last pip attempt epoch: /' || echo "no pip-attempt stamp"
+          uname -m; nproc 2>/dev/null | sed 's/^/cpus: /'; grep -m1 'model name' /proc/cpuinfo 2>/dev/null
+          free -m 2>/dev/null | head -2
+          ldd --version 2>&1 | head -1
+          [ -x "$V/bin/pip" ] && ${SUDO} "$V/bin/python" -m pip --version 2>&1 | tail -1 || echo "no pip in $V"
+          ${SUDO} cat /volume1/PoeTech/lesson-voice/.pip-attempt 2>/dev/null | sed 's/^/last pip attempt stamp: /' || echo "no pip-attempt stamp"
+          echo "--- the CPU rung's install log (tail) ---"
+          ${SUDO} tail -25 /volume1/PoeTech/lesson-voice/pip.log 2>/dev/null || echo "no pip.log yet"
+          echo "--- a transcription still in progress on the CPU rung ---"
+          ${SUDO} ls -la /volume1/PoeTech/lesson-voice/partial 2>/dev/null || echo "none"
           echo "=== rider state (attempts per row, lock, kept audio) ==="
           ${SUDO} cat /volume1/PoeTech/lesson-voice/attempts.json 2>/dev/null | head -c 600 || echo "no attempts.json (the rider has not failed a row, or has never run)"
           ${SUDO} ls -la /volume1/PoeTech/lesson-voice/ 2>&1 | head -12
@@ -141,4 +149,5 @@ jobs:
           ${SUDO} grep -a "lesson-voice\|lesson_voice\|transcribe" "$LOOPS/events/cron-services-sync.log" 2>/dev/null | tail -25 || echo "no lesson-voice lines in the cycle log"
           echo "=== the rider's newest JSON report, if the cycle log kept it ==="
           ${SUDO} grep -a -A12 '"transcribe"' "$LOOPS/events/cron-services-sync.log" 2>/dev/null | tail -30 || true
+          ${SUDO} tail -c 1500 /volume1/PoeTech/lesson-voice/last-run.json 2>/dev/null || echo "no last-run.json yet"
           EOS

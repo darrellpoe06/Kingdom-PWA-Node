@@ -1,0 +1,61 @@
+# video-stats — the church channel's public reach reaches The Word (DR-0622)
+#
+# THE ORPHAN THIS CLOSES (measured 2026-09-24 by the whole-system flow graph):
+# the Pulpit reads sermon_video_stats to rank services by reach
+# (app/src/lib/sermon-library-sync.js), and nothing wrote it. Its only
+# producer, scripts/load-video-engagement.mjs, needs a YouTube Data API key
+# that infra/nas-loops/services.json records as rejected, and no workflow or
+# rider ever ran it.
+#
+# WHAT IT DOES. Reads the channel's PUBLIC feed (no key, no quota, no tracker;
+# the same feed the Church tab reads through /api/church-recent), takes each
+# recent video's views and likes, and upserts them onto the videos the service
+# record already holds, on the database the app reads (scripts/live-sql.sh).
+#
+# BRAKES (deterministic class, DR-0248: budget + lock): one feed request, one
+# SQL statement, 5 minutes; concurrency group `video-stats`; stop-path repo
+# variable VIDEO_STATS_ENABLED='false'. Every 6 hours: reach moves in days.
+
+name: video-stats
+
+on:
+  schedule:
+    - cron: '53 */6 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: video-stats
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  load:
+    if: ${{ vars.VIDEO_STATS_ENABLED != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Read the channel's public feed
+        run: |
+          set -euo pipefail
+          URL=$(node -e "import('./scripts/video-stats-feed.mjs').then((m) => console.log(m.FEED_URL))")
+          curl -fsSL --max-time 30 "$URL" -o feed.xml
+          echo "feed: $(wc -c < feed.xml) bytes, $(grep -c '<entry' feed.xml) entries"
+          node scripts/video-stats-feed.mjs sql < feed.xml > stats.sql
+      - name: Join the tailnet (to reach the live database)
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Upsert the reach onto the live service record
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          out=$(bash scripts/live-sql.sh '|' < stats.sql) || { echo "::error::the live database did not take the upsert"; exit 1; }
+          echo "live database: $out"
+          echo "### Video reach: $out" >> "$GITHUB_STEP_SUMMARY"

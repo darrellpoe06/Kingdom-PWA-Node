@@ -17,7 +17,7 @@
 // Pairs with WorkflowStatus (the n8n fleet) on the Build board: that is "what
 // automation is running"; this is "what models are hot."
 import React, { useEffect, useState } from 'react';
-import { n8nAuthHeaders } from '../lib/n8n-base.js';
+import { bridgeAuthHeaders } from '../lib/bridge-auth.js';
 import { KpiDot } from './KpiDot.jsx';
 import { kpiColor } from '../lib/kpi-status.js';
 
@@ -79,7 +79,7 @@ export default function LlmHealth() {
     (async () => {
       try {
         const url = '/llm/health';
-        const r = await fetch(url, { headers: { Accept: 'application/json', ...n8nAuthHeaders(true) } });
+        const r = await fetch(url, { headers: { Accept: 'application/json', ...bridgeAuthHeaders(true) } });
         const json = await r.json().catch(() => null);
         if (cancelled) return;
         const norm = normalizeLlmHealth(json);
