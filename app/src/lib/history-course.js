@@ -709,6 +709,17 @@ export const HISTORY_SOURCE_HOSTS = [
 ];
 
 const YEAR_RE = /\b(1[5-9]\d\d|20[0-2]\d)\b/g;
+// RECORD HOSTS FOR DATED ENTRIES (2026-09-24, DR-0597). Darrell: "Where did the
+// rigor for this lesson come from?! Not our process!" A timeline entry may name
+// a record in prose and still rest on memory. From this record on, a dated
+// entry that carries a `source` ({ title, url, phrase }) is PROBED by the
+// witness like a voice: the page must answer and hold the phrase. The hosts
+// below are the ones that answered a GitHub runner with 200 on 2026-09-24
+// (history-voices-witness probe run); a page that refused the runner is not
+// on this list and cannot be cited.
+export const HISTORY_RECORD_HOSTS = [
+  // filled from the probe run's answering hosts in the commit that cites them
+];
 const HISTORY_NOT_PROSE = new Set(['stories', 'voices', 'timeline']);
 const walkText = (node, fn) => {
   if (typeof node === 'string') fn(node);
@@ -775,6 +786,16 @@ export function historyTimelineFaults(m) {
     else { if (t.year < last) faults.push(`${at}: ${t.year} is out of order after ${last}`); last = t.year; }
     if (wordCount(t.event) < 5) faults.push(`${at}: event is not a sentence`);
     if (wordCount(t.record) < 3) faults.push(`${at}: no record named`);
+    if (t.source != null) {
+      const src = t.source && typeof t.source === 'object' ? t.source : {};
+      if (wordCount(src.title) < 2) faults.push(`${at}: source has no title`);
+      let host = '';
+      try { host = new URL(String(src.url || '')).host; } catch { /* reported below */ }
+      if (!/^https:\/\//.test(String(src.url || ''))) faults.push(`${at}: source url is not https`);
+      else if (!HISTORY_SOURCE_HOSTS.includes(host) && !HISTORY_RECORD_HOSTS.includes(host)) faults.push(`${at}: source host ${host} is not a listed record host`);
+      if (wordCount(src.phrase) < 3) faults.push(`${at}: source phrase is under three words (the witness needs words to find on the page)`);
+      if (/\.\.\.|…/.test(String(src.phrase || ''))) faults.push(`${at}: elision inside the source phrase`);
+    }
   });
   const on = new Set(tl.map((t) => t && t.year));
   const named = historyYearsNamed(m);
