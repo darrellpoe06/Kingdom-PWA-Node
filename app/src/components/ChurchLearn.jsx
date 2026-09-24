@@ -61,6 +61,8 @@ import { walkState, stepParagraph, stepPoint } from '../lib/lesson-walk.js';
 import { useOpenWithTheWord } from '../lib/show-the-word.js';
 import { setReadTarget, clearReadTarget, requestRead } from '../lib/read-target.js';
 import { currentSentence, landOnPlace } from '../lib/lesson-landing.js';
+import { usePrinting } from '../lib/use-printing.js';
+import { takeOpenLessonRequest, subscribeOpenLesson } from '../lib/learn-open.js';
 import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload, courseSharePayload, sectionSharePayload } from '../lib/lesson-links.js';
 import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture-matrix.js';
 import CopyButton from './CopyButton.jsx';
@@ -1474,6 +1476,12 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
 // Prev / Next and the hands-free advance walk inside a lesson. Composed from
 // lib/lesson-order.js; a course whose lessons carry no number of their own
 // keeps its authored order.
+// The lesson list's lazy cards (DR-0636): how many render in full up front,
+// and the height a light card reserves (the measured median of a full card at
+// a phone width, so the scrollbar does not jump as cards fill in).
+const EAGER_CARDS = 6;
+const LAZY_CARD_MIN_HEIGHT = '180rem'; // measured 2026-09-24: median full card 2,876px at 390px (min 1,419, max 20,830)
+
 function lessonSequence(schedule, courseKey, picked) {
   const list = Array.isArray(schedule) ? schedule : [];
   if (!isNumberedCourse(list)) return list;
@@ -1822,11 +1830,29 @@ function CourseView({
     return () => { if (onFocusChange) onFocusChange(false); };
   }, [!!focusModule]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // THE LESSON BAR OWNS THE TOP WHILE A LESSON IS OPEN (DR-0636). Measured
+  // 2026-09-24 at 390x844 with the header collapsed, scrolled into the
+  // reading: this space's sticky bar (0-89px) and the app's sticky header
+  // (0-219px) were BOTH pinned at the top, the bar painted over the header, and
+  // the header's Church tab row showed beneath it over the lesson — the first
+  // readable line at 219px, a quarter of a phone gone. While the space is open
+  // the header flows with the page instead (index.css, data-lesson-space); it
+  // is one flick up, and this bar already carries All courses / All lessons.
+  React.useEffect(() => {
+    if (!focusModule || typeof document === 'undefined') return undefined;
+    const html = document.documentElement;
+    html.setAttribute('data-lesson-space', 'open');
+    return () => { html.removeAttribute('data-lesson-space'); };
+  }, [!!focusModule]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Leaving the space (back button/bar): put the index back at the lesson the
   // reader just left — their place in the LIST survives the round trip too.
   React.useEffect(() => {
     if (focusId !== null || !lastFocusRef.current) return undefined;
     const id = lastFocusRef.current;
+    // The lesson just left renders in full before the list scrolls to it
+    // (DR-0636), so the landing is on the real card, not a light one.
+    showCard(id);
     const t = setTimeout(() => {
       const el = typeof document !== 'undefined' && document.getElementById(`learn-lesson-${id}`);
       if (el) el.scrollIntoView({ behavior: 'auto', block: 'center' });
@@ -1939,9 +1965,34 @@ function CourseView({
     }
   };
 
+  const printing = usePrinting();
   const printCurriculum = () => {
     try { window.print(); } catch (e) { /* no-op */ }
   };
+
+  // THE LESSON LIST RENDERS WHAT IS NEAR THE READER (DR-0636). Measured
+  // 2026-09-24 in Chromium at 390x844: the Learn tab rendered EVERY lesson's
+  // full card — 191 cards, 19,023 elements — before a reader had scrolled to
+  // any of them, and a Continue tap spent most of its 1.7 s of script tearing
+  // that list down. Now the first few cards render in full and the rest as a
+  // light card (the same id, the same title row, a reserved height); a card
+  // fills in once it comes within about two screens of view, and stays filled.
+  // The id stays on every card, so "back to the list" still scrolls to the
+  // lesson just left. A browser without IntersectionObserver (and the test
+  // DOM) renders every card in full, exactly as before.
+  const lazyCards = !focusModule && typeof window !== 'undefined' && typeof window.IntersectionObserver === 'function';
+  const [shownCards, setShownCards] = useState(() => new Set());
+  const listRef = React.useRef(null);
+  const showCard = (id) => setShownCards((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
+  React.useEffect(() => {
+    if (!lazyCards || !listRef.current) return undefined;
+    const io = new window.IntersectionObserver((entries) => {
+      const near = entries.filter((e) => e.isIntersecting).map((e) => e.target.getAttribute('data-lazy-card')).filter(Boolean);
+      if (near.length) setShownCards((prev) => { const next = new Set(prev); near.forEach((id) => next.add(id)); return next; });
+    }, { rootMargin: '1600px 0px' });
+    listRef.current.querySelectorAll('[data-lazy-card]').forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [lazyCards, schedule, shownCards]);
 
   // Live two-screen teaching takes over the whole surface (presenter console here,
   // projected class screen in a popped window). Governor-only; entered below.
@@ -2289,10 +2340,21 @@ function CourseView({
       {focusModule && !awake.supported && touchDevice && (
         <p className="ts-chrome-region mb-3 pl-2 border-l-2 border-[#B85838] text-[0.625rem] text-[#5A5751]" data-testid="screen-timeout-hint" style={{ fontFamily: '"Fraunces", serif' }}>{awake.hint}</p>
       )}
-      <ol className="space-y-3">
-        {(focusModule ? [focusModule] : schedule).map((m) => {
+      <ol className="space-y-3" ref={listRef}>
+        {(focusModule ? [focusModule] : schedule).map((m, cardIndex) => {
           const done = !!progress[m.id];
           const tutorOpen = openTutorId === m.id;
+          // The light card (see lazyCards above): same id, same title row, a
+          // reserved height so the page does not jump as cards fill in.
+          if (lazyCards && cardIndex >= EAGER_CARDS && !tutorOpen && !shownCards.has(m.id)) {
+            return (
+              <li key={m.id} id={`learn-lesson-${m.id}`} data-lazy-card={m.id} className="border border-[#E8E4DC] p-4 scroll-mt-28" style={{ minHeight: LAZY_CARD_MIN_HEIGHT }}>
+                <span className="text-sm font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                  {U.cap} {ownNumber(m, schedule)} · {m.title}
+                </span>
+              </li>
+            );
+          }
           // PRIMARY ACTIONS AT THE HEAD (Darrell 2026-08-18: "The lesson
           // options are at the bottom of the lessons... make it primary so it
           // is at the beginning users are asked these questions... start...
@@ -3172,7 +3234,10 @@ function CourseView({
       )}
       </div>
 
-      {/* ===== Print-only full curriculum (paper) ===== */}
+      {/* ===== Print-only full curriculum (paper) =====
+          MOUNTED ONLY WHILE PRINTING (DR-0636). It was 9,919 hidden elements
+          on every screen of Learn, inside every open lesson, never seen. */}
+      {printing && (
       <div className="hidden print:block text-black">
         <h1 style={{ fontSize: '1.25rem', fontWeight: 700 }}>{meta.title}</h1>
         <p><em>{meta.tagline}</em></p>
@@ -3231,6 +3296,7 @@ function CourseView({
           </div>
         ))}
       </div>
+      )}
     </>
   );
 }
@@ -3507,6 +3573,24 @@ export default function ChurchLearn({
     setResumeLessonId(place.lessonId);
     setResumeNonce((n) => n + 1);
   };
+  // THE DOOR FROM ANYWHERE (lib/learn-open.js): the read-aloud's "Show the
+  // text", or any surface, asks for a lesson at a sentence; Learn answers it
+  // through this same Continue path — on mount if the request came first, or
+  // at once if Learn is already on screen. The course is resolved against the
+  // MOUNTED catalog, so a request for a lesson that is gone opens nothing.
+  const resumeNowRef = React.useRef(resumeNow);
+  resumeNowRef.current = resumeNow;
+  React.useEffect(() => {
+    const answer = (req) => {
+      if (!req || !req.lessonId) return;
+      const list = coursesRef.current || [];
+      const course = (req.courseKey && list.find((c) => c.key === req.courseKey && (c.schedule || []).some((m) => m.id === req.lessonId)))
+        || list.find((c) => (c.schedule || []).some((m) => m.id === req.lessonId));
+      if (course) resumeNowRef.current({ courseKey: course.key, lessonId: req.lessonId });
+    };
+    answer(takeOpenLessonRequest());
+    return subscribeOpenLesson(() => answer(takeOpenLessonRequest()));
+  }, []);
   // START FRESH forgets ONE lesson's place — the one named on the button.
   const startFresh = (place) => {
     clearPlace(place ? { courseKey: place.courseKey, lessonId: place.lessonId } : {});

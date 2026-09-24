@@ -112,6 +112,15 @@ html[data-text-size='bigprint'] .ts-safe-sticky {
   overflow-x: clip;
 }
 
+/* ONE PINNED BAR OVER A LESSON (DR-0636). While a lesson's own space is open
+   (ChurchLearn sets data-lesson-space), the app header flows with the page and
+   the lesson bar alone holds the top. Measured before: both pinned at top 0,
+   the header's tab row showing beneath the lesson bar, the first readable line
+   at 219px of an 844px phone. */
+html[data-lesson-space='open'] header.ts-safe-sticky {
+  position: static;
+}
+
 /* .ts-escape-hatch — the comfort-controls row (text size, voice, theme) pins to
    the BOTTOM edge of the scrolling .ts-safe-sticky header at big sizes, so the
    escape hatch is on screen WITHOUT scrolling no matter how tall the header
