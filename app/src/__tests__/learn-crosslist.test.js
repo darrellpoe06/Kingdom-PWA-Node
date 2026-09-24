@@ -301,9 +301,10 @@ describe('a pointer, never a copy', () => {
     // decision-ready intelligence and our ways inspected; a lesson into the
     // existing Project Management course, so only the total moves.
     expect(courses).toHaveLength(49);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(716);
+    // And to 718 on 2026-09-24 for Sovereign A.I. weeks 25 and 26 (DR-0619, DR-0620).
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(718);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(716);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(718);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
