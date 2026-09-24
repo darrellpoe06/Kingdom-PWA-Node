@@ -32,17 +32,22 @@ describe('the request itself', () => {
     expect(takeOpenLessonRequest()).toBeNull();
   });
 
+  it('an id this device knows as no lesson returns false and posts nothing, so another opener can try', () => {
+    expect(requestOpenLesson({ lessonId: 'scripture-study' })).toBe(false);
+    expect(takeOpenLessonRequest()).toBeNull();
+  });
+
   it('lapses if nothing takes it in time', () => {
-    requestOpenLesson({ lessonId: LESSON }, { now: 1000 });
+    requestOpenLesson({ lessonId: LESSON, courseKey: 'living-lessons' }, { now: 1000 });
     expect(takeOpenLessonRequest(1000 + OPEN_LESSON_MAX_AGE_MS + 1)).toBeNull();
   });
 
   it('tells subscribers, and unsubscribing stops it', () => {
     const heard = [];
     const off = subscribeOpenLesson((r) => heard.push(r.lessonId));
-    requestOpenLesson({ lessonId: LESSON });
+    requestOpenLesson({ lessonId: LESSON, courseKey: 'living-lessons' });
     off();
-    requestOpenLesson({ lessonId: LESSON });
+    requestOpenLesson({ lessonId: LESSON, courseKey: 'living-lessons' });
     expect(heard).toEqual([LESSON]);
   });
 });
@@ -65,16 +70,16 @@ describe('Learn answers it through Continue', () => {
     expect(panel.textContent).toMatch(/[^\d]2 \/ \d+ · ~/);
   });
 
-  it('a request made while Learn is on screen opens it at once, the course resolved from the catalog', () => {
+  it('a request made while Learn is on screen opens it at once (the course checked against the catalog)', () => {
     mount();
     expect(container.querySelector(`#tutor-panel-${LESSON}`)).toBeNull();
-    act(() => { requestOpenLesson({ lessonId: LESSON }); });
+    act(() => { requestOpenLesson({ lessonId: LESSON, courseKey: 'living-lessons' }); });
     expect(container.querySelector(`#tutor-panel-${LESSON}`)).toBeTruthy();
   });
 
   it('a lesson that is not in the catalog opens nothing', () => {
     mount();
-    act(() => { requestOpenLesson({ lessonId: 'no-such-lesson' }); });
+    act(() => { requestOpenLesson({ lessonId: 'no-such-lesson', courseKey: 'living-lessons' }); });
     expect(container.querySelector('[data-testid="lesson-space-bar"]')).toBeNull();
   });
 });

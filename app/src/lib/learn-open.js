@@ -26,16 +26,22 @@ function nowMs() { try { return Date.now(); } catch { return 0; } }
 
 /**
  * Ask the Learn tab to open a lesson at a sentence. Returns false (and does
- * nothing) without a lesson id. `courseKey` may be omitted when the lesson
- * already has a place on this device; Learn resolves the course from its
- * mounted catalog otherwise.
+ * nothing) without a lesson id, or for an id that is neither given a course
+ * nor has a place on this device. `courseKey` may be omitted when the lesson
+ * already has a place; Learn checks it against its mounted catalog either way.
  */
 export function requestOpenLesson({ lessonId, sentence, sentenceKey, courseKey = null } = {}, opts = {}) {
   if (typeof lessonId !== 'string' || !lessonId) return false;
   const now = typeof opts.now === 'number' ? opts.now : nowMs();
   const own = getPlaceFor(courseKey, lessonId, opts);
   const course = courseKey || (own && own.courseKey) || null;
-  if (course && (sentenceKey !== undefined || sentence !== undefined)) {
+  // NOT A LESSON THIS DEVICE KNOWS → false, and nothing is posted, so a caller
+  // routing every reading's owner through here (a Bible chapter, a presenter)
+  // can let another opener try. A lesson being read always has a place: its
+  // guide writes one when it opens. The full catalog is not imported here on
+  // purpose — it is the heaviest module in the app.
+  if (!course) return false;
+  if (sentenceKey !== undefined || sentence !== undefined) {
     recordPlace({
       courseKey: course,
       lessonId,

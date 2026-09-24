@@ -1,5 +1,5 @@
 // =============================================================================
-// usePrinting — true only while the page is being printed (DR-0636)
+// usePrinting — true only while the page is being printed (DR-0637)
 // =============================================================================
 // Measured 2026-09-24 in Chromium at 390x844: the Learn tab kept a print-only
 // copy of the WHOLE curriculum in the page at all times — 9,919 elements,
