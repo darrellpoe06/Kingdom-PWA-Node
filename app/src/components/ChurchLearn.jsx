@@ -3622,9 +3622,25 @@ export default function ChurchLearn({
                   </select>
                 </div>
               )}
+              {/* THE DIVISION NAMES STAY IN THE LONG LIST (Darrell 2026-09-24,
+                  after the unfold: "I do like the the lessons sections say what
+                  they should be associated with... just felt locked out of the
+                  flow"). So the whole course scrolls as ONE list, and where a
+                  long course has divisions, each division's name stands as an
+                  inline heading row above its lessons — a label, never a fold.
+                  Every lesson still shows what it belongs with; nothing is
+                  hidden behind a tap. A narrowed shelf needs no headings. */}
               <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1" data-testid="course-lesson-list" data-shelf={shelf}>
-                {shown.map((m) => (
-                  <li key={m.id} className="flex items-center gap-2">
+                {(sections && shelf === 'all'
+                  ? sections.flatMap((sec) => [{ heading: sec }, ...sec.lessons])
+                  : shown
+                ).map((m) => (m.heading ? (
+                  <li key={`heading-${m.heading.key}`} data-shelf-heading={m.heading.key} className="pt-2 pb-1 text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D] font-semibold border-t border-[#E8E4DC] flex items-center justify-between">
+                    <span>{m.heading.label}</span>
+                    <span className="text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.heading.lessons.length}</span>
+                  </li>
+                ) : (
+                  <li key={m.id} data-lesson-id={m.id} className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => open(m.id)}
@@ -3648,7 +3664,7 @@ export default function ChurchLearn({
                       ▶ Play
                     </button>
                   </li>
-                ))}
+                )))}
               </ol>
             </nav>
           );

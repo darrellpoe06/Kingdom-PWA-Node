@@ -112,7 +112,8 @@ describe('on the real Learn tree', () => {
   // "Show" select whose first option is the whole course and whose others are
   // the Word's divisions with their counts. No <details> folds anything away.
   const shelfSelect = () => container.querySelector('#learn-lesson-shelf');
-  const rows = (nav) => nav.querySelectorAll('[data-testid="course-lesson-list"] > li');
+  const rows = (nav) => nav.querySelectorAll('[data-testid="course-lesson-list"] > li[data-lesson-id]');
+  const headings = (nav) => [...nav.querySelectorAll('[data-testid="course-lesson-list"] > li[data-shelf-heading]')];
   const choose = (sel, value) => act(() => {
     const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
     setter.call(sel, value);
@@ -128,6 +129,20 @@ describe('on the real Learn tree', () => {
     expect(nav.querySelector('[data-testid="course-lesson-sections"]')).toBe(null);
     expect(rows(nav).length).toBe(LIVING_LESSONS_MODULES.length);
     expect(nav.querySelector('[data-testid="course-lesson-list"]').getAttribute('data-shelf')).toBe('all');
+    // THE DIVISION NAMES STAY, AS INLINE HEADINGS IN THE ONE LIST (Darrell
+    // 2026-09-24: "I do like the the lessons sections say what they should be
+    // associated with... just felt locked out of the flow"). A heading row per
+    // division, in canonical order, counts beside it, and every lesson row
+    // sits under its own division; none of it folds.
+    const heads = headings(nav);
+    expect(heads.length).toBe(sectionLessons(LIVING_LESSONS_MODULES).length);
+    expect(heads[0].textContent).toMatch(/^The Law/);
+    expect(heads.map((h) => h.getAttribute('data-shelf-heading'))).toEqual(sectionLessons(LIVING_LESSONS_MODULES).map((s) => s.key));
+    const all = [...nav.querySelectorAll('[data-testid="course-lesson-list"] > li')];
+    const firstLaw = all.indexOf(heads[0]);
+    const firstHistory = all.indexOf(heads[1]);
+    expect(all.slice(firstLaw + 1, firstHistory).every((li) => li.hasAttribute('data-lesson-id'))).toBe(true);
+    expect(all.slice(firstLaw + 1, firstHistory).length).toBe(sectionLessons(LIVING_LESSONS_MODULES)[0].lessons.length);
     // The stated count on the heading still matches the course.
     expect((nav.textContent || '')).toMatch(new RegExp(`by title · ${LIVING_LESSONS_MODULES.length}`));
   });
@@ -161,6 +176,7 @@ describe('on the real Learn tree', () => {
     choose(shelfSelect(), 'law');
     expect(nav.querySelector('[data-testid="course-lesson-list"]').getAttribute('data-shelf')).toBe('law');
     expect(rows(nav).length).toBe(law.lessons.length);
+    expect(headings(nav).length, 'a narrowed shelf needs no headings').toBe(0);
     expect(nav.querySelector('details')).toBe(null);
     expect([...rows(nav)].map((li) => li.textContent)).toEqual(expect.arrayContaining([expect.stringContaining(law.lessons[0].title)]));
     choose(shelfSelect(), 'all');
@@ -186,6 +202,7 @@ describe('on the real Learn tree', () => {
     expect(nav).toBeTruthy();
     expect(nav.querySelector('[data-testid="course-lesson-sections"]')).toBe(null);
     expect(shelfSelect()).toBe(null);
+    expect(headings(nav).length).toBe(0);
     // Eight lessons when this was written; nine since the oil lesson (DR-0602) —
     // the count is read from the course so the pin proves the flat list, not the number.
     expect(rows(nav).length).toBe(BUSINESS_RESEARCH_MODULES.length);

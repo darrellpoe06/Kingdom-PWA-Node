@@ -6,7 +6,7 @@
 - **Date:** 2026-09-24
 - **Scope:** `app/src/components/ChurchLearn.jsx` (the by-title index renders ONE flat list for every course; a course of 30+ lessons adds a `Show` select — the whole course first, then the Word’s eight divisions with counts — that narrows the same list; the collapsed `<details>` sections are removed; the pick belongs to the course and is forgotten on leaving it); `app/src/__tests__/living-lessons-sections.test.jsx` (the real-tree pins rewritten: 11 checks, incl. proven-to-catch that no `<details>` returns)
 - **Principles:** DO-NOT-RE-ASK (DR-0111 — he stated the preference; pick the default and proceed), REALITY-TRACE (DR-0061 — the running app as he met it), PERPETUAL-IMPROVEMENT (DR-0075 — the path not taken carries a re-review date), VERIFICATION-DOCTRINE (DR-0076 §3 proven-to-catch, §6 the real tree), DR-0219 (SHOULD → ARE → GAPS → CLOSE)
-- **Grounds:** Darrell 2026-09-24, with a screenshot of Living Lessons on his Fold folded into collapsed sections: *"I would rather have the long list than this! Or give actual lessons inside of multiple courses inside of the department like we already do and did!!!!!!!!!!!!!!!!! This is just totally different feel and process!!!!!! Why?!!!!!!!!"*
+- **Grounds:** Darrell 2026-09-24, with a screenshot of Living Lessons on his Fold folded into collapsed sections: *"I would rather have the long list than this! Or give actual lessons inside of multiple courses inside of the department like we already do and did!!!!!!!!!!!!!!!!! This is just totally different feel and process!!!!!! Why?!!!!!!!!"* — and, minutes later, the clarification that shaped the final form: *"I do like the the lessons sections say what they should be associated with... just felt locked out of the flow and intuitive system."*
 
 ## Context — the question
 
@@ -30,7 +30,7 @@ So on his screen the newest department opened to a dropdown with one course in i
 
 ## Decision
 
-1. **The flat list is the default for every course, whatever its length.** No lesson is folded away on arrival.
+1. **The flat list is the default for every course, whatever its length.** No lesson is folded away on arrival. **The division names stay, as inline heading rows inside the one scrolling list** (his clarification): each division's name and count stands above its lessons in canonical order, a label and never a fold, so every lesson shows what it belongs with while the flow stays one list.
 2. **A course of 30+ lessons adds a `Show` select above the list** (`#learn-lesson-shelf`): the first option is the whole course with its count; the others are the Word’s divisions with their counts, from `lib/lesson-sections.js` (real data — each lesson’s own first anchor, DR-0596’s helper unchanged). Picking a division narrows the SAME flat list to that shelf; picking the first option restores the whole course.
 3. **The pick belongs to the course.** Leaving Living Lessons and returning shows the whole course again. Nothing is persisted.
 4. **DR-0598 stands as written** — the dropdown on every department tab, the course’s own lessons before the gathered ones, Living Lessons a department. This record does not reopen it.
@@ -40,11 +40,11 @@ So on his screen the newest department opened to a dropdown with one course in i
 
 | what | measured |
 | --- | --- |
-| the real tree, Living Lessons picked | 189 `li` rows in one `ol`; zero `<details>`; the `Show` select renders inside the by-title index above the list; its first option reads `All lessons · 189`; the eight division options’ counts sum to 189 |
-| picking `The Law` | 22 rows, still one flat `ol`, `data-shelf="law"`; picking `All` restores 189 |
+| the real tree, Living Lessons picked | 189 lesson rows in one `ol` under 8 inline division heading rows (The Law first, keys in canonical order, the 22 Law lessons directly beneath their heading); zero `<details>`; the `Show` select renders inside the by-title index above the list; its first option reads `All lessons · 189`; the eight division options’ counts sum to 189 |
+| picking `The Law` | 22 rows, still one flat `ol`, no heading rows (a narrowed shelf needs none), `data-shelf="law"`; picking `All` restores 189 under their headings |
 | leaving and returning | after opening Business Research (no select there) and returning, 189 rows again |
 | a short course | Business Research: flat list, 9 rows, no select |
-| gates | `living-lessons-sections` 11/11, `learn-crosslisted-in-the-picker` 13/13, `learn-course-picker-is-first`, `learn-lesson-index-is-next` — 40 in one run; eslint 0 on the component and the test |
+| gates | `living-lessons-sections` 11/11 (heading rows, their order and their holding pinned), `learn-crosslisted-in-the-picker` 13/13, `learn-course-picker-is-first`, `learn-lesson-index-is-next` — 40 in one run; eslint 0 on the component and the test |
 
 ## Limits, stated
 
