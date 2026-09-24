@@ -164,6 +164,14 @@ jobs:
       - name: scribe queue-consumer brake tests
         working-directory: infra/nas-scribe
         run: python3 -m unittest test_scribe_consumer -v
+      # Spoken-lesson Whisper loop proofs (DR-0611): the road (voice row ->
+      # transcript row -> cloud copy removed), idempotency by the database, the
+      # Whisper ladder order (tower first, NAS CPU last), multipart upload shape,
+      # path traversal refused, budget + lock, and the honest voice-failed row
+      # after three tries. Proven-to-catch; gates merge.
+      - name: lesson-voice whisper loop proofs
+        working-directory: infra/nas-lesson-voice
+        run: python3 -m unittest test_lesson_voice -v
       # Sovereign photo server selftest (DR-0218 zero-n8n / DR-0076): the offline
       # logic checks for the property + family photo image server, including the
       # new list_uploaded family read-back. Proven-to-catch: fails if dest path

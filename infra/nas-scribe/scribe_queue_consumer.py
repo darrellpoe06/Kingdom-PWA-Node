@@ -33,7 +33,7 @@ activation step, taken with the standing witnesses live.
 
 Run (activation is the Governor's step, not the merge's):
     SCRIBE_CONSUMER_ACTIVE=1 SCRIBE_DATA=/data/poetech-scribe \
-      WHISPER_URL=http://127.0.0.1:8771 LLM_URL=http://127.0.0.1:8772 \
+      WHISPER_URL=http://tlcmediadpt:8771 LLM_URL=http://127.0.0.1:8772 \
       python3 scribe_queue_consumer.py
 """
 import json
@@ -225,13 +225,27 @@ def run_once(data_dir=DATA, transcribe=None, summarize=None, env=None, clock=tim
         release_lock(data_dir)
 
 
+def multipart_body(filename, data):
+    """whisper-gpu reads a multipart `file` field (or JSON {path}); a raw
+    octet-stream body is refused with 400 file-or-path-required. Found by the
+    DR-0611 review: every queued recording would have failed three times and
+    auto-paused the consumer."""
+    import uuid
+    boundary = "----poetech" + uuid.uuid4().hex
+    head = ('--%s\r\nContent-Disposition: form-data; name="file"; filename="%s"\r\n'
+            'Content-Type: audio/webm\r\n\r\n' % (boundary, filename)).encode("utf-8")
+    return head + data + ("\r\n--%s--\r\n" % boundary).encode("utf-8"), "multipart/form-data; boundary=" + boundary
+
+
 def _default_transcribe(entry):
-    """POST the recording to whisper-gpu. Import-light so tests never need requests."""
+    """POST the recording to whisper-gpu. Import-light so tests never need requests.
+    The default is the 4070 tower: on the NAS, 127.0.0.1:8771 is the voice
+    forwarder (infra/voice-studio), not Whisper (DR-0611)."""
     import urllib.request
-    url = os.environ.get("WHISPER_URL", "http://127.0.0.1:8771") + "/transcribe"
+    url = os.environ.get("WHISPER_URL", "http://tlcmediadpt:8771") + "/transcribe"
     with open(entry["path"], "rb") as f:
-        body = f.read()
-    req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/octet-stream"})
+        body, ctype = multipart_body(os.path.basename(entry["path"]), f.read())
+    req = urllib.request.Request(url, data=body, headers={"Content-Type": ctype})
     with urllib.request.urlopen(req, timeout=600) as res:
         transcript = json.loads(res.read().decode("utf-8"))
     sdir = os.path.dirname(entry["path"])

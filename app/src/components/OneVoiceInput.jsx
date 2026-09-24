@@ -21,6 +21,7 @@ import { resolveSurface } from '../lib/one-voice-surfaces.js';
 import { useVoiceDictation, LONG_FORM_SESSION_CAP_MS, VOICE_SESSION_CAP_MS, capMinutes } from '../lib/voice-dictation.js';
 import { readDraft, writeDraft, clearDraft } from '../lib/draft-autosave.js';
 import { relayThought } from '../lib/agent-inbox-sync.js';
+import VoiceLessonRecorder from './VoiceLessonRecorder.jsx';
 
 export function OneVoiceInput({
   surface = 'church',
@@ -233,6 +234,9 @@ export function OneVoiceInput({
           </button>
         ))}
       </div>
+      {/* A SPOKEN LESSON (DR-0611): with the Lesson chip chosen, the lesson can
+          be recorded and transcribed by Whisper on our own machines. */}
+      {route === 'lesson' && <VoiceLessonRecorder note={text} source={cfg.sourceTag} />}
       <div className="flex gap-1.5 mt-2 flex-wrap items-center">
         <span className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>→ {active.hint}</span>
         {showName && (
