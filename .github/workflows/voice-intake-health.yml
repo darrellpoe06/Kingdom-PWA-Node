@@ -123,7 +123,7 @@ jobs:
           echo "=== repo HEAD on the NAS (is the rider the one on main?) ==="
           git -C "$REPO" log -1 --format='%h %cI %s' 2>/dev/null | cut -c1-120 || echo "repo unreadable"
           echo "=== rung 1: the tower's Whisper, from the NAS ==="
-          curl -s --max-time 8 -o /dev/null -w 'tlcmediadpt:8771 /health HTTP %{http_code}\n' http://tlcmediadpt:8771/health 2>&1 || echo "tower whisper unreachable"
+          for u in http://tlcmediadpt.tail5a2f35.ts.net:8771 http://100.69.19.13:8771 http://tlcmediadpt:8771; do curl -s --max-time 8 -o /dev/null -w "$u /health HTTP %{http_code}\n" $u/health 2>&1 || echo "$u unreachable"; done
           echo "=== last rung: faster-whisper on the NAS CPU ==="
           V=/volume1/PoeTech/venvs/lesson-voice
           if [ -x "$V/bin/python" ]; then

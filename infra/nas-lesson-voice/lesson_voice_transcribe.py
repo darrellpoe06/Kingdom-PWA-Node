@@ -76,7 +76,14 @@ from sovereign_target import resolve_target  # noqa: E402
 BUCKET = "lesson-audio"
 DATA = os.environ.get("LESSON_VOICE_DATA", "/volume1/PoeTech/lesson-voice")
 SECRETS = os.environ.get("LESSON_VOICE_SECRETS", "/volume1/PoeTech/secrets/supabase.json")
-WHISPER_URLS_DEFAULT = "http://tlcmediadpt:8771"
+# THE TOWER BY A NAME THE NAS CAN RESOLVE (measured 2026-09-24, failure row
+# ffa896bb: "http://tlcmediadpt:8771: <urlopen error [Errno -2] Name or service
+# not known>"). The bare host name does not resolve on the NAS; its tailnet
+# MagicDNS name and tailnet address do (the same candidates voice-studio's
+# installer uses for the 4070). NOT 127.0.0.1:8771: on the NAS that port is the
+# reading-voice forwarder, not Whisper.
+TOWER_KEYS = ("tlcmediadpt", "100.69.19.13")
+WHISPER_URLS_DEFAULT = "http://tlcmediadpt.tail5a2f35.ts.net:8771,http://100.69.19.13:8771"
 LOCAL_MODEL_DEFAULT = "small"
 MAX_ITEMS_PER_RUN = int(os.environ.get("LESSON_VOICE_MAX_ITEMS", "3"))
 MAX_RUN_SECONDS = int(os.environ.get("LESSON_VOICE_MAX_SECONDS", "1500"))
@@ -172,7 +179,12 @@ def note_transcript_body(text, rung, model, seconds):
 
 def rung_name(url):
     host = urllib.parse.urlparse(url).hostname or url
-    return "the 4070 tower" if host == "tlcmediadpt" else host
+    return "the 4070 tower" if rung_key(url) == "tlcmediadpt" else host
+
+
+def rung_key(url):
+    host = urllib.parse.urlparse(url).hostname or url
+    return "tlcmediadpt" if any(host == k or host.startswith(k + ".") for k in TOWER_KEYS) else host
 
 
 def multipart(field, filename, data, content_type):
@@ -574,19 +586,26 @@ def rung_available(env=None, health=health_ok, cpu=cpu_rung_installed):
     return env.get("WHISPER_LOCAL", "1") != "0" and bool(cpu())
 
 
-def transcribe_ladder(local, env=None, post=post_whisper, local_fn=local_whisper, resume_at=0.0, deadline=None):
+def transcribe_ladder(local, env=None, post=post_whisper, local_fn=local_whisper, resume_at=0.0, deadline=None, health=None):
     """Each network rung in order, then this machine's CPU. First words win.
     A network rung transcribes the whole recording in one call; the CPU rung
     may stop at the pass's deadline and return done=False with the second it
     reached, which run_once keeps and resumes from."""
     env = env if env is not None else os.environ
     errors = []
+    # A dark rung is skipped after a 6-second /health, never waited on for the
+    # 900-second transcription timeout (that would spend the whole pass).
+    if health is None:
+        health = health_ok if post is post_whisper else (lambda u: True)
     for url in whisper_urls(env):
+        if not health(url):
+            errors.append(f"{url}: no answer on /health")
+            continue
         try:
             out = post(url, local)
             if (out or {}).get("text", "").strip():
                 return {**out, "done": True, "resumed_from": 0.0, "rung": rung_name(url),
-                        "rung_key": urllib.parse.urlparse(url).hostname or "net"}
+                        "rung_key": rung_key(url)}
             errors.append(f"{url}: no words")
         except Exception as e:
             errors.append(f"{url}: {e}")

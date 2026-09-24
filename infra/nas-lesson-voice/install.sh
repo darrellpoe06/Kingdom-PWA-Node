@@ -15,7 +15,9 @@
 #   2. one pass of lesson_voice_transcribe.py: budget 3 rows and 400 s (inside
 #      services-sync's 480 s per-installer ceiling), single-flight lock.
 #
-# THE WHISPER LADDER is WHISPER_URLS (default the 4070 tower, tlcmediadpt:8771),
+# THE WHISPER LADDER is WHISPER_URLS (default the 4070 tower by its tailnet name
+# tlcmediadpt.tail5a2f35.ts.net:8771, then 100.69.19.13:8771; the bare name does
+# not resolve on the NAS, measured 2026-09-24),
 # then this NAS's CPU. Add a place by setting WHISPER_URLS in
 # /volume1/PoeTech/secrets/lesson-voice.env, e.g.
 #   WHISPER_URLS=http://tlcmediadpt:8771,http://tower2:8771

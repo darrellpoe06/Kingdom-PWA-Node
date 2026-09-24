@@ -158,8 +158,26 @@ class TheBrakes(unittest.TestCase):
 
 class TheLadder(unittest.TestCase):
     def test_default_rung_is_the_4070_tower(self):
-        self.assertEqual(lv.whisper_urls({}), ["http://tlcmediadpt:8771"])
-        self.assertEqual(lv.rung_name("http://tlcmediadpt:8771"), "the 4070 tower")
+        # Measured 2026-09-24: the bare name did not resolve on the NAS. The
+        # default is the tower's tailnet name, then its tailnet address.
+        self.assertEqual(lv.whisper_urls({}), ["http://tlcmediadpt.tail5a2f35.ts.net:8771", "http://100.69.19.13:8771"])
+        self.assertNotIn("http://tlcmediadpt:8771", lv.whisper_urls({}))
+        self.assertNotIn("127.0.0.1:8771", lv.WHISPER_URLS_DEFAULT)  # the NAS's :8771 is the reading voice
+        for u in lv.whisper_urls({}) + ["http://tlcmediadpt:8771"]:
+            self.assertEqual(lv.rung_name(u), "the 4070 tower")
+            self.assertEqual(lv.rung_key(u), "tlcmediadpt")
+
+    def test_a_dark_rung_is_skipped_on_health_never_waited_on(self):
+        posted = []
+
+        def post(url, local):
+            posted.append(url)
+            return {"text": "words", "model": "large-v3-turbo"}
+
+        out = lv.transcribe_ladder("/x.webm", env={}, post=post, local_fn=lambda *a, **k: {"text": "cpu"},
+                                   health=lambda u: "100.69.19.13" in u)
+        self.assertEqual(posted, ["http://100.69.19.13:8771"])
+        self.assertEqual(out["rung_key"], "tlcmediadpt")
 
     def test_more_places_are_one_env_line(self):
         env = {"WHISPER_URLS": "http://tlcmediadpt:8771, http://tower2:8771/ ,"}

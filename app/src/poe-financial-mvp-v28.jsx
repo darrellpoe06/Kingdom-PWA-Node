@@ -3344,17 +3344,12 @@ export default function PoeFinancialSystem() {
       } catch (_) { /* same */ }
     });
   };
-  // `extra` (DR-0624): a recorded conversation is saved the moment Stop is
-  // tapped, with its own id and a `voice` record (status, consent, the inbox
-  // row that asks for its words), so the words can find their way back.
-  const addNote = (text, extra = null) => {
+  const addNote = (text, extra = null) => { // DR-0624: a recorded note is saved on Stop with its own id + `voice` record
     const id = (extra && extra.id) || `nt-${Date.now()}`;
     const urls = extractNoteUrls(text);
     setData(d => ({ ...d, notes: [...(d.notes || []), { id, text, createdAt: new Date().toISOString(), pinned: false, sentToPoeTech: false, links: urls.map(u => ({ url: u, title: '' })), ...(extra && extra.voice ? { voice: extra.voice } : {}) }] }));
-    if (urls.length) enrichNoteLinks(id, urls);
-    return id;
+    if (urls.length) enrichNoteLinks(id, urls); return id;
   };
-  // Merge into one note; `voice` merges field by field (DR-0624).
   const patchNote = (id, patch) => setData(d => ({ ...d, notes: (d.notes || []).map(n => n.id === id ? { ...n, ...patch, ...(patch && patch.voice ? { voice: { ...(n.voice || {}), ...patch.voice } } : {}), updatedAt: new Date().toISOString() } : n) }));
   // 📖 Spiritual-source flag — notes marked as sources (e.g. Yahweh Speaks
   // links) feed the spiritual module's source review. Word-senior posture:
