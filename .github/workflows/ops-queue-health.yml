@@ -68,54 +68,53 @@ jobs:
       # far short of the eight weeks this instrument was born from.
       STALL_MINUTES: '60'
     steps:
-      # SIDE BY SIDE (DR-0618): the app has read the NAS's own database since
-      # the repoint (2026-08-19), while the step below still reads the hosted
-      # project. Before the hosted read is removed, the SAME query runs on the
-      # live database here and both answers are printed together. Proving
-      # first, dismantling after (Darrell 2026-09-24: "make sure it works end
-      # to end before dismantling anything"). This step cannot fail the run.
+      # THE VERDICT READS THE LIVE DATABASE (DR-0618 step 3). The app and the
+      # NAS ops-runner use the NAS's own database since the repoint
+      # (2026-08-19). Proven on run 36028453391: both read 0 queued, and the live
+      # queue holds the real history. The hosted project is read below only as
+      # a side-by-side line until the 2026-09-26 re-review removes it; it can
+      # never fail the run or raise the alarm.
       - uses: actions/checkout@v4
       - name: Join the tailnet (to read the live database)
         continue-on-error: true
         uses: tailscale/github-action@v3
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
-      - name: Measure on the LIVE database (side by side)
-        id: live
+      - name: Read the retired hosted database (comparison only)
+        id: hosted
         continue-on-error: true
-        env:
-          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
-        run: |
-          set -uo pipefail
-          if row=$(printf '%s' "SELECT COALESCE((SELECT round(extract(epoch FROM (now() - min(created_at)))/60)::int FROM ops_commands WHERE status = 'queued'), -1), (SELECT count(*) FROM ops_commands WHERE status = 'queued'), COALESCE((SELECT round(extract(epoch FROM (now() - max(coalesce(finished_at, updated_at, created_at))))/60)::int FROM ops_commands WHERE status IN ('done','failed','skipped')), -1);" | bash scripts/live-sql.sh '|'); then
-            echo "row=$row" >> "$GITHUB_OUTPUT"
-            echo "live: oldest-queued-min|queued|since-last-finish-min = $row"
-          else
-            echo "row=unread" >> "$GITHUB_OUTPUT"
-            echo "::warning::the live database could not be read on this run"
-          fi
-      - name: Measure the queue (read-only)
-        id: probe
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           set -uo pipefail
-          if [ -z "${DATABASE_URL:-}" ]; then
-            echo "::warning::SUPABASE_DB_URL not set — cannot measure. Unknown is NEVER reported as healthy (DR-0076)."
+          CLEAN_URL=$(printf '%s' "${DATABASE_URL:-}" | tr -d '[:space:]')
+          if [ -n "$CLEAN_URL" ] && row=$(psql "$CLEAN_URL" -At -F '|' -c "SELECT COALESCE((SELECT round(extract(epoch FROM (now() - min(created_at)))/60)::int FROM ops_commands WHERE status = 'queued'), -1), (SELECT count(*) FROM ops_commands WHERE status = 'queued'), COALESCE((SELECT round(extract(epoch FROM (now() - max(coalesce(finished_at, updated_at, created_at))))/60)::int FROM ops_commands WHERE status IN ('done','failed','skipped')), -1);"); then
+            echo "row=$row" >> "$GITHUB_OUTPUT"
+          else
+            echo "row=unread" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Measure the queue on the live database (read-only)
+        id: probe
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          if [ -z "${NAS_SSH_KEY:-}" ]; then
+            echo "::warning::NAS_SSH_KEY not set — cannot measure. Unknown is NEVER reported as healthy (DR-0076)."
             echo "unknown=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          # Whitespace-stripped like the migrate lane (a trailing newline in the
-          # secret made psql ask for a database named "postgres\n" — DR-0145).
-          CLEAN_URL=$(printf '%s' "$DATABASE_URL" | tr -d '[:space:]')
-          row=$(psql "$CLEAN_URL" -At -F '|' -c "
+          # Read on the database the app and the ops-runner use: tailnet -> ssh
+          # -> psql inside supabase-db (scripts/live-sql.sh).
+          row=$(bash scripts/live-sql.sh '|' <<SQL
             SELECT
               COALESCE((SELECT round(extract(epoch FROM (now() - min(created_at)))/60)::int
                         FROM ops_commands WHERE status = 'queued'), -1),
               (SELECT count(*) FROM ops_commands WHERE status = 'queued'),
               COALESCE((SELECT round(extract(epoch FROM (now() - max(coalesce(finished_at, updated_at, created_at))))/60)::int
                         FROM ops_commands WHERE status IN ('done','failed','skipped')), -1);
-          ") || { echo "::warning::query failed — reporting UNKNOWN, never healthy"; echo "unknown=true" >> "$GITHUB_OUTPUT"; exit 0; }
+          SQL
+          ) || { echo "::warning::query failed — reporting UNKNOWN, never healthy"; echo "unknown=true" >> "$GITHUB_OUTPUT"; exit 0; }
 
           stuck_m=$(echo "$row" | cut -d'|' -f1)   # age of the OLDEST queued command
           queued_n=$(echo "$row" | cut -d'|' -f2)  # how many are waiting
@@ -147,12 +146,12 @@ jobs:
         if: always()
         run: |
           {
-            echo "### Hosted vs live database (proving before the hosted read is removed)"
+            echo "### Live vs retired hosted database (the verdict reads live)"
             echo ""
-            echo "| database | reading |"
+            echo "| database | oldest queued (min), queued, since last finish (min) |"
             echo "| --- | --- |"
-            echo "| hosted (retired, still read today) | ${{ steps.probe.outputs.stuck_m }}|${{ steps.probe.outputs.queued_n }}|${{ steps.probe.outputs.drain_m }} |"
-            echo "| live (the NAS's own, the app's) | ${{ steps.live.outputs.row || 'not read' }} |"
+            echo "| live (the NAS's own, the app's; the verdict) | ${{ steps.probe.outputs.stuck_m }}, ${{ steps.probe.outputs.queued_n }}, ${{ steps.probe.outputs.drain_m }} |"
+            echo "| hosted (retired; comparison until 2026-09-26) | ${{ steps.hosted.outputs.row || 'not read' }} |"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: File or update the rolling incident
         if: steps.probe.outputs.state == 'stalled' || steps.probe.outputs.unknown == 'true'

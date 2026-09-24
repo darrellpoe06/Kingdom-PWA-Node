@@ -43,4 +43,7 @@ Unresolved: a stall on the live database would never be seen, and a stall on the
 
 ## Limits, stated
 
-1. The switch (step 3) is a later change, made only with the proven runs cited. `re-review: 2026-09-26`.
+1. **The switch is made (step 3), 2026-09-24, citing the runs above.** harvest-health and ops-queue-health now decide on the live reading. If the NAS cannot be read, the result is UNKNOWN, never healthy. An unknown harvest never closes its incident, and an unknown queue files one. The hosted project is read only as a comparison line that cannot fail a run.
+   - Dry runs of the extracted steps: a live row of 754 / 874 at 51 h reads as a stall; an unreachable NAS reads as unknown; a queue of 2 held for 75 minutes reads as stalled.
+   - The comparison line is removed at the re-review. `re-review: 2026-09-26`.
+2. rls-isolation, corpus-reconcile and site-health's backend step follow the same two steps next. `re-review: 2026-10-01`.

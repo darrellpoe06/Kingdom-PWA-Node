@@ -77,47 +77,44 @@ jobs:
       # the month this instrument was born from.
       STALL_HOURS: '48'
     steps:
-      # SIDE BY SIDE (DR-0618): the app has read the NAS's own database since
-      # the repoint (2026-08-19), while the step below still reads the hosted
-      # project. Before the hosted read is removed, the SAME query runs on the
-      # live database here and both answers are printed together. Proving
-      # first, dismantling after (Darrell 2026-09-24: "make sure it works end
-      # to end before dismantling anything"). This step cannot fail the run.
+      # THE VERDICT READS THE LIVE DATABASE (DR-0618 step 3). The app has read
+      # the NAS's own database since the repoint (2026-08-19). Proven on run
+      # 36028450599: hosted said 752/874 and 235h (a false SILENT, a false
+      # heal); live said 754/874 and 51h. The hosted project is read below only
+      # as a side-by-side line until the 2026-09-26 re-review removes it; it
+      # can never fail the run or raise the alarm.
       - uses: actions/checkout@v4
       - name: Join the tailnet (to read the live database)
         continue-on-error: true
         uses: tailscale/github-action@v3
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
-      - name: Measure on the LIVE database (side by side)
-        id: live
+      - name: Read the retired hosted database (comparison only)
+        id: hosted
         continue-on-error: true
-        env:
-          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
-        run: |
-          set -uo pipefail
-          if row=$(printf '%s' "SELECT (SELECT count(*) FROM video_transcripts WHERE length(trim(coalesce(text,''))) > 0), (SELECT count(*) FROM choir_sermons WHERE video_id IS NOT NULL), COALESCE((SELECT round(extract(epoch FROM (now() - max(created_at)))/3600)::int FROM video_transcripts WHERE length(trim(coalesce(text,''))) > 0), -1);" | bash scripts/live-sql.sh '|'); then
-            echo "row=$row" >> "$GITHUB_OUTPUT"
-            echo "live: transcribed|total|newest-success-hours = $row"
-          else
-            echo "row=unread" >> "$GITHUB_OUTPUT"
-            echo "::warning::the live database could not be read on this run"
-          fi
-      - name: Measure coverage + freshness (read-only)
-        id: probe
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           set -uo pipefail
-          if [ -z "${DATABASE_URL:-}" ]; then
-            echo "::warning::SUPABASE_DB_URL not set — cannot measure. Unknown is NEVER reported as healthy (DR-0076)."
+          CLEAN_URL=$(printf '%s' "${DATABASE_URL:-}" | tr -d '[:space:]')
+          if [ -n "$CLEAN_URL" ] && row=$(psql "$CLEAN_URL" -At -F '|' -c "SELECT (SELECT count(*) FROM video_transcripts WHERE length(trim(coalesce(text,''))) > 0), (SELECT count(*) FROM choir_sermons WHERE video_id IS NOT NULL), COALESCE((SELECT round(extract(epoch FROM (now() - max(created_at)))/3600)::int FROM video_transcripts WHERE length(trim(coalesce(text,''))) > 0), -1);"); then
+            echo "row=$row" >> "$GITHUB_OUTPUT"
+          else
+            echo "row=unread" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Measure coverage + freshness on the live database (read-only)
+        id: probe
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          if [ -z "${NAS_SSH_KEY:-}" ]; then
+            echo "::warning::NAS_SSH_KEY not set — cannot measure. Unknown is NEVER reported as healthy (DR-0076)."
             echo "unknown=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          # ONE query, read-only, no writes anywhere. Whitespace-stripped like the
-          # migrate lane (a trailing newline in the secret made psql ask for a
-          # database literally named "postgres\n" — DR-0145 lineage).
-          CLEAN_URL=$(printf '%s' "$DATABASE_URL" | tr -d '[:space:]')
+          # ONE query, read-only, no writes anywhere, on the database the app
+          # reads: tailnet -> ssh -> psql inside supabase-db (scripts/live-sql.sh).
           # FRESHNESS IS MEASURED ON SUCCESSES, NOT ON ROWS (fixed 2026-08-11).
           # video_transcripts stores FAILURES as rows too — 56 of its 137 rows
           # were errors — so the old `max(created_at)` over ALL rows meant the
@@ -127,7 +124,7 @@ jobs:
           # That is LESSONS P22 inside the instrument built to enforce it.
           # Attempt-age and the recent-error count are measured SEPARATELY, and
           # only to tell the two failure shapes apart.
-          row=$(psql "$CLEAN_URL" -At -F '|' -c "
+          row=$(bash scripts/live-sql.sh '|' <<SQL
             SELECT
               (SELECT count(*) FROM video_transcripts WHERE length(trim(coalesce(text,''))) > 0),
               (SELECT count(*) FROM choir_sermons WHERE video_id IS NOT NULL),
@@ -137,7 +134,8 @@ jobs:
                         FROM video_transcripts), -1),
               (SELECT count(*) FROM video_transcripts
                  WHERE error IS NOT NULL AND created_at > now() - ('$STALL_HOURS hours')::interval);
-          ") || { echo "::warning::query failed — reporting UNKNOWN, never healthy"; echo "unknown=true" >> "$GITHUB_OUTPUT"; exit 0; }
+          SQL
+          ) || { echo "::warning::query failed — reporting UNKNOWN, never healthy"; echo "unknown=true" >> "$GITHUB_OUTPUT"; exit 0; }
 
           done_n=$(echo "$row" | cut -d'|' -f1)
           total=$(echo "$row"  | cut -d'|' -f2)
@@ -197,12 +195,12 @@ jobs:
         if: always()
         run: |
           {
-            echo "### Hosted vs live database (proving before the hosted read is removed)"
+            echo "### Live vs retired hosted database (the verdict reads live)"
             echo ""
-            echo "| database | reading |"
+            echo "| database | transcribed, total, newest success (h) |"
             echo "| --- | --- |"
-            echo "| hosted (retired, still read today) | ${{ steps.probe.outputs.done_n }}|${{ steps.probe.outputs.total }}|${{ steps.probe.outputs.age_h }} |"
-            echo "| live (the NAS's own, the app's) | ${{ steps.live.outputs.row || 'not read' }} |"
+            echo "| live (the NAS's own, the app's; the verdict) | ${{ steps.probe.outputs.done_n }}, ${{ steps.probe.outputs.total }}, ${{ steps.probe.outputs.age_h }} |"
+            echo "| hosted (retired; comparison until 2026-09-26) | ${{ steps.hosted.outputs.row || 'not read' }} |"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Heal a SILENT pipeline (one services-sync, never for BLOCKED)
         if: ${{ steps.probe.outputs.shape == 'SILENT' }}
