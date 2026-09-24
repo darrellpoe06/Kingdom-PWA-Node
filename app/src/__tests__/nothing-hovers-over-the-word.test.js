@@ -62,6 +62,22 @@ describe('the sticky lesson title has a ceiling, so it can never be a lid', () =
     expect(block).toMatch(/maxHeight: '2\.8em'/);
   });
 
+  it('the ceiling is the RESTING state and the reader can open it (DR-0605): a fold control sits beside the title', () => {
+    // Darrell 2026-09-24: "The title to lessons are getting cut off!!!!!! Fix
+    // it..." The two-line ceiling stays (a sticky label never covers the
+    // Word); the reader now owns the lid with a control, rendered only when
+    // the title really overflows. The render pins live in
+    // the-title-stays-in-view.test.jsx; this one keeps the control next to
+    // the clamp in the source so neither can be removed without the other.
+    const block = CHURCH_LEARN.slice(
+      CHURCH_LEARN.indexOf('data-testid="lesson-space-title"') - 400,
+      CHURCH_LEARN.indexOf('data-testid="lesson-space-title"') + 2400,
+    );
+    expect(block).toMatch(/data-testid="lesson-space-title-toggle"/);
+    expect(block).toMatch(/aria-expanded=\{titleOpen\}/);
+    expect(block).toMatch(/titleOpen \|\| titleOverflows/);
+  });
+
   it('the full title is still reachable rather than silently truncated', () => {
     const block = CHURCH_LEARN.slice(
       CHURCH_LEARN.indexOf('data-testid="lesson-space-title"') - 400,
