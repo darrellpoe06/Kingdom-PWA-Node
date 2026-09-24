@@ -86,8 +86,8 @@ DEFAULT_FUNCTIONS='list_instance_members,my_church_instance_id,church_member_rec
 DEFAULT_TABLES='board_tasks,rentals,rental_tenancies,property_rooms,feedback'
 
 case "$MODE" in
-  feedback|definitions|tables|instances) ;;
-  *) echo "::error::unknown mode '$MODE' (feedback|definitions|tables|instances)"; exit 2 ;;
+  feedback|definitions|tables|instances|intake) ;;
+  *) echo "::error::unknown mode '$MODE' (feedback|definitions|tables|instances|intake)"; exit 2 ;;
 esac
 case "$DAYS" in
   ''|*[!0-9]*) echo "::error::days must be a whole number, got '$DAYS'"; exit 2 ;;
@@ -217,6 +217,23 @@ if [ "$MODE" = "feedback" ]; then
                  ' confidential_withheld='||count(*) FILTER (WHERE coalesce(is_confidential,false))||
                  ' newest='||coalesce(max(submitted_at)::text,'none')
             FROM public.feedback"
+elif [ "$MODE" = "intake" ]; then
+  # INTAKE CENSUS (DR-0622): every non-confidential feedback row, and every
+  # door_feedback row when that table exists, handed to the RUNNER as one JSON
+  # document between markers. The runner categorizes them with the app's own
+  # module (scripts/intake-census.mjs) and prints counts only; these raw rows
+  # are cut out of the output before anything is printed (see INTAKE below).
+  echo "---INTAKE-JSON-BEGIN---"
+  psql_q "SELECT json_build_object(
+            'feedback', (SELECT coalesce(json_agg(t ORDER BY t.submitted_at DESC), '[]'::json) FROM (
+               SELECT id, submitted_at, which_tab, feedback_text, triage_status, triage_notes,
+                      has_screenshot, screenshot_count
+                 FROM public.feedback
+                WHERE coalesce(is_confidential, false) = false) t),
+            'door', CASE WHEN to_regclass('public.door_feedback') IS NULL THEN '[]'::json
+                         ELSE (SELECT coalesce(json_agg(d), '[]'::json) FROM (SELECT id, body, status, created_at FROM public.door_feedback) d) END
+          )::text"
+  echo "---INTAKE-JSON-END---"
 elif [ "$MODE" = "instances" ]; then
   echo "---INSTANCES---"
   # Each instance, with how many rows of each asked-about table point at it.
@@ -379,6 +396,31 @@ if [ $RC -ne 0 ]; then
   say '```'
   echo "::error::the sovereign read failed (rc=$RC)"
   exit "$RC"
+fi
+
+# INTAKE: the rows above are data for the census, never for the log. Cut them
+# out, categorize them here on the runner, and print the census in their place.
+if [ "$MODE" = "intake" ]; then
+  ROWS_FILE="$(mktemp)"
+  printf '%s\n' "$OUT" | sed -n '/^---INTAKE-JSON-BEGIN---$/,/^---INTAKE-JSON-END---$/p' | sed '1d;$d' > "$ROWS_FILE"
+  if ! grep -q '^{' "$ROWS_FILE"; then
+    rm -f "$ROWS_FILE"
+    say "## Sovereign read - intake FAILED"
+    say ""
+    say "The rows did not come back as one JSON document, so nothing is counted (DR-0076)."
+    say '```'
+    say "$(printf '%s\n' "$OUT" | grep -v '^{' | head -20)"
+    say '```'
+    echo "::error::intake rows unreadable"
+    exit 4
+  fi
+  CENSUS="$(node "$(dirname "$0")/intake-census.mjs" "$ROWS_FILE" 2>&1)"
+  CRC=$?
+  rm -f "$ROWS_FILE"
+  OUT="$(printf '%s\n' "$OUT" | sed '/^---INTAKE-JSON-BEGIN---$/,/^---INTAKE-JSON-END---$/d')
+---INTAKE-CENSUS---
+$CENSUS"
+  if [ $CRC -ne 0 ]; then echo "::error::the intake census failed (rc=$CRC)"; fi
 fi
 
 # MASKING, on the runner, over everything about to be printed. Same convention
