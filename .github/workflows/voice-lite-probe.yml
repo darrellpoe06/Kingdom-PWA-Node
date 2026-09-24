@@ -1,0 +1,116 @@
+# voice-lite-probe — PROVE the reader's audio voice answers, end to end.
+#
+# Darrell 2026-09-24: "Why doesn't the player remain playing in the background
+# when I switch between apps?!!? Fix it." The fix is a stand-in voice that is
+# REAL AUDIO (infra/nas-voice-lite, Piper on the NAS) reached at the same-origin
+# /voice-lite route. This workflow is the witness (DR-0076: measure, don't
+# claim): it asks the route for a real paragraph the way the app does and
+# keeps the clip it got back as an artifact anyone can listen to.
+#
+#   1. on the NAS (ssh): the service's own /health and a local synthesis, timed;
+#   2. from THIS runner (the outside; the sandbox has no route to poetech.us):
+#      GET https://poetech.us/voice-lite/health, then POST /voice-lite/speak
+#      with the family bearer, exactly the app's call, saved as voice-lite.wav.
+#
+# Read-only apart from the NAS's own clip cache. Dispatch-only, one bounded job,
+# never a timer (not the three-brakes class). The bearer is read over ssh,
+# masked in the log, and never printed or stored.
+name: voice-lite-probe
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: voice-lite-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY and NAS_SSH_KEY, then re-dispatch."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: On the NAS — service health and a timed local synthesis
+        if: steps.gate.outputs.go == 'true'
+        id: nas
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS'
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          echo "=== unit ==="
+          systemctl is-active poetech-voice-lite 2>&1 || true
+          echo "=== files ==="
+          ls -la /volume1/PoeTech/voice-lite/piper/piper /volume1/PoeTech/voice-lite/voices 2>&1 | head -12
+          echo "=== local health ==="
+          curl -s -m 8 -w ' HTTP %{http_code}\n' http://127.0.0.1:8772/health || echo "no answer on 127.0.0.1:8772"
+          echo "=== local synthesis (timed) ==="
+          TOK="$($SUDO cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null)"
+          if [ -n "$TOK" ]; then
+            curl -s -m 90 -o /tmp/vl-local.wav -w 'HTTP %{http_code} type %{content_type} bytes %{size_download} seconds %{time_total}\n' \
+              -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' \
+              -d '{"text":"This is the reading voice from our own server. It keeps playing when you switch apps.","voice":"male"}' \
+              http://127.0.0.1:8772/speak || echo "local speak failed"
+            head -c 4 /tmp/vl-local.wav 2>/dev/null | od -c | head -1
+          else
+            echo "token file not readable"
+          fi
+          echo "=== funnel mount ==="
+          TS="$(command -v tailscale 2>/dev/null || ls /var/packages/Tailscale/target/bin/tailscale 2>/dev/null)"
+          [ -n "$TS" ] && ($SUDO "$TS" funnel status 2>/dev/null | grep -E "voice" || echo "no /voice* mount listed")
+          echo "=== last install output (journal) ==="
+          $SUDO journalctl -u poetech-voice-lite -n 15 --no-pager 2>/dev/null || true
+          EOS
+          TOK="$($SSH 'T=$(cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null || sudo -n cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null); printf %s "$T"')"
+          if [ -n "$TOK" ]; then
+            echo "::add-mask::$TOK"
+            echo "tok=$TOK" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Outside-in — the app's own call through https://poetech.us/voice-lite
+        if: steps.gate.outputs.go == 'true'
+        env:
+          TOK: ${{ steps.nas.outputs.tok }}
+        run: |
+          curl -s -m 20 -w ' HTTP %{http_code}\n' https://poetech.us/voice-lite/health || echo "health unreachable"
+          if [ -z "$TOK" ]; then echo "no bearer available from the NAS — cannot make the authorized call"; exit 0; fi
+          curl -s -m 90 -o voice-lite.wav \
+            -w 'OUTSIDE-IN POST /voice-lite/speak HTTP %{http_code} type %{content_type} bytes %{size_download} seconds %{time_total}\n' \
+            -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' \
+            -d '{"text":"Hold the hand of the process until it works. This paragraph came from the house voice, as real audio.","voice":"male"}' \
+            https://poetech.us/voice-lite/speak || echo "speak unreachable"
+          echo "first bytes:"; head -c 12 voice-lite.wav | od -c | head -1
+          if [ "$(head -c 4 voice-lite.wav 2>/dev/null)" = "RIFF" ]; then
+            echo "PROVEN: a real WAV clip came back through the public route."
+          else
+            echo "::warning::no WAV came back through the public route"
+            head -c 300 voice-lite.wav; echo
+          fi
+      - name: Keep the clip (listen to what the reader will play)
+        if: steps.gate.outputs.go == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: voice-lite-clip
+          path: voice-lite.wav
+          if-no-files-found: ignore
