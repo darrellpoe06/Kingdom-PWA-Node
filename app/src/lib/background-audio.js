@@ -114,6 +114,9 @@ export function createBackgroundAudio({ win, makeAudio, uri } = {}) {
     try { el.setAttribute && el.setAttribute('playsinline', ''); } catch (_) { /* not fatal */ }
     return el;
   };
+  // True once this session has taken the lock screen (start / onControl).
+  let claimed = false;
+
   const api = {
     /** True while the keep-alive session is held. */
     get active() { return !!el && el.paused === false; },
@@ -121,6 +124,7 @@ export function createBackgroundAudio({ win, makeAudio, uri } = {}) {
     start() {
       const a = build();
       if (!a) return false;
+      claimed = true;
       try {
         const p = a.play();
         // A rejected play() means the tap window was lost — the read still
@@ -132,6 +136,12 @@ export function createBackgroundAudio({ win, makeAudio, uri } = {}) {
 
     stop() {
       if (el) { try { el.pause(); } catch (_) { /* ignore */ } }
+      // Only the session that CLAIMED the lock screen clears it. Several
+      // readers can exist in one page (the Help button, the Bible reader),
+      // and one of them standing down must never wipe the card and buttons
+      // of the reader that is actually playing (DR-0633).
+      if (!claimed) return true;
+      claimed = false;
       const ms = mediaSession();
       if (ms) {
         try { ms.playbackState = 'none'; } catch (_) { /* ignore */ }
@@ -192,6 +202,7 @@ export function createBackgroundAudio({ win, makeAudio, uri } = {}) {
      */
     onControl({ onPlay, onPause, onStop, onNext, onPrev } = {}) {
       handlers = { onPlay, onPause, onStop, onNext, onPrev };
+      claimed = true;
       const ms = mediaSession();
       if (!ms || typeof ms.setActionHandler !== 'function') return false;
       const safe = (fn) => (typeof fn === 'function' ? () => { try { fn(); } catch (_) { /* a handler error never kills the session */ } } : null);

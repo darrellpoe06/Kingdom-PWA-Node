@@ -38,6 +38,7 @@ import { talkAboutSurface } from '../lib/talk-about.js';
 import { useIdleReveal } from '../lib/use-idle-reveal.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import { useScreenAwake, NO_WAKE_LOCK_HINT } from '../lib/screen-awake.js';
+import { mayTryLiteVoice } from '../lib/voice-service.js';
 // COMFORT CONTROLS IN THE READER (DR-0524). Darrell, reading L179 on his phone:
 // "Can't change the text side nor etc on o cellphone reader fix it."
 // WHAT WAS ACTUALLY WRONG, measured at 360px mid-lesson after a first reading
@@ -210,6 +211,19 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   const [interrupted, setInterrupted] = useState(false);
   const readingRef = useRef(false);
   readingRef.current = isReading;
+  // LIKE A RADIO (Darrell 2026-09-24: "the player should be able to play no
+  // matter what's going on... It is like a radio in the background... Stop
+  // trying to constrain it."). Which voice is speaking decides what the dark
+  // screen does: a real audio clip plays on through it, the phone's own
+  // speech engine is stopped by the OS. So on the way into the dark the
+  // phone's voice hands over to the audio voice when there is one, and on the
+  // way back a reading that died is picked up again without being asked.
+  const deviceVoiceRef = useRef(false);
+  deviceVoiceRef.current = isReading && !isPaused && (audioVoice === 'device' || (audioVoice !== 'audio' && deviceRead));
+  const pausedRef = useRef(false);
+  pausedRef.current = isPaused;
+  const handOverRef = useRef(null);   // phone voice -> audio voice, same sentence
+  const pickUpRef = useRef(null);     // a reading that died in the dark, continued
   const hidWhileReadingRef = useRef(false);
 
   // A NOTICE IS NOT A POPUP (Darrell 2026-09-23, a lesson page with the
@@ -225,11 +239,26 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     if (typeof document === 'undefined') return undefined;
     let timer = null;
     const onVis = () => {
-      if (document.visibilityState === 'hidden') { hidWhileReadingRef.current = readingRef.current; return; }
+      if (document.visibilityState === 'hidden') {
+        hidWhileReadingRef.current = readingRef.current;
+        // The phone's own voice is about to be stopped by the OS: hand the
+        // same sentence to the audio voice, which a phone keeps playing.
+        if (deviceVoiceRef.current && mayTryLiteVoice() && handOverRef.current) {
+          try { handOverRef.current(); } catch (_) { /* the backstop below still runs */ }
+        }
+        return;
+      }
       if (!hidWhileReadingRef.current) return;
       hidWhileReadingRef.current = false;
       if (timer) clearTimeout(timer);
-      timer = setTimeout(() => { if (!readingRef.current) setInterrupted(true); }, INTERRUPT_GRACE_MS);
+      timer = setTimeout(() => {
+        if (readingRef.current) return;
+        // Picked up again without being asked (never a deliberate pause —
+        // paused still counts as reading). The offer shows too, and clears
+        // itself once the reading has stayed live.
+        if (pickUpRef.current) { try { pickUpRef.current(); } catch (_) { /* offer below */ } }
+        setInterrupted(true);
+      }, INTERRUPT_GRACE_MS);
     };
     document.addEventListener('visibilitychange', onVis);
     return () => { document.removeEventListener('visibilitychange', onVis); if (timer) clearTimeout(timer); };
@@ -959,6 +988,15 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     if (isPaused) { resume(); return; }
     const f = followRef.current;
     if (f && f.follow) jumpToSegment(currentGlobalSegment()); else start();
+  };
+  // The radio's two automatic moves (see the visibility effect above).
+  handOverRef.current = () => {
+    const f = followRef.current;
+    if (f && f.follow) jumpToSegment(currentGlobalSegment());
+  };
+  pickUpRef.current = () => {
+    const f = followRef.current;
+    if (f && f.follow && !pausedRef.current) jumpToSegment(currentGlobalSegment());
   };
 
   // START WHERE I LEFT OFF, AND START ANYWHERE (Darrell 2026-09-24). The
