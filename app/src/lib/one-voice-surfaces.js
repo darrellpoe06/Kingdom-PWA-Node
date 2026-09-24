@@ -27,8 +27,8 @@ export const SURFACES = {
     saveNoteOnCounseling: false,
     confirmations: {
       prayer:     '🙏 On the prayer list. The church is standing with you.',
-      conference: '🎪 Received for the Assembly — it goes straight onto the build list.',
-      poetech:    '💡 PoeTech heard you — program processes and procedures begin. It’s on the build inbox.',
+      conference: '🎪 Received for the Assembly — it is in the feedback queue; its status shows under Your feedback.',
+      poetech:    '💡 PoeTech heard you — it is in the feedback queue, and its status shows under Your feedback.',
       work:       '🛠 On the Action Queue as a work order — it can dispatch to a worker from Big Picture.',
       counseling: '💚 The practice knows you’d like to talk — your words stayed private here. Reaching out took courage.',
       serve:      '🤝 Leadership will see your serving hands — thank you.',
@@ -36,6 +36,7 @@ export const SURFACES = {
       voice:      '💬 Heard and kept. Thank you for your voice.',
       lesson:     '📖 Heard as a lesson — it is in the Learn intake. The Word-first lesson it becomes is reported back to you.',
       lessonFailed: '📖 Not sent as a lesson ({reason}) — sign in and send it again, or keep it as a note.',
+      signedOut:  'Kept on this device only — you are signed out, so it has not reached anyone yet. Sign in and send it again so it reaches them.',
     },
   },
   notes: {
@@ -52,7 +53,7 @@ export const SURFACES = {
     counselingNote: 'Requested counseling via Thinking Space. Their words stay private on their device — TLC connects directly.',
     saveNoteOnCounseling: true,
     confirmations: {
-      poetech:    '💡 PoeTech heard you — it’s on the build inbox. You shape what gets built.',
+      poetech:    '💡 PoeTech heard you — it is in the feedback queue, and its status shows under Your feedback. You shape what gets built.',
       prayer:     '🙏 On the prayer list. The church is standing with you.',
       pastor:     '⛪ A note to the pastors — they’ll see it on the Church tab.',
       serve:      '🤝 Leadership will see your serving hands — thank you.',
@@ -61,6 +62,7 @@ export const SURFACES = {
       private:    '📓 Kept — private to you. Come back to it anytime.',
       lesson:     '📖 Heard as a lesson — it is in the Learn intake. The Word-first lesson it becomes is reported back to you.',
       lessonFailed: '📖 Not sent as a lesson ({reason}) — sign in and send it again, or keep it as a private note.',
+      signedOut:  'Kept on this device only — you are signed out, so it has not reached anyone yet. Sign in and send it again so it reaches them, or keep it as a private note.',
     },
   },
 };

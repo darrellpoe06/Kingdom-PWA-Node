@@ -265,9 +265,15 @@ const NODES = [
   app('app/src/components/OneVoiceInput.jsx', {
     id: 'one-voice', name: 'One Voice box',
     purpose: 'The one box every lesson and request is sent from; each one is kept.',
-    writes: [{ res: 'db:saved_prompts', file: 'app/src/lib/saved-prompts.js', token: "rpc('remember_prompt'" }],
+    writes: [
+      { res: 'db:saved_prompts', file: 'app/src/lib/saved-prompts.js', token: "rpc('remember_prompt'" },
+      // The PoeTech and Conference chips reach the steward's feedback queue (DR-0622).
+      { res: 'db:feedback', file: 'app/src/lib/poetech-request.js', token: 'uploadFeedback' },
+      { res: 'db:feedback', token: "currentView: 'Conference · One Voice'" },
+      { res: 'db:agent_inbox#poetech', file: 'app/src/lib/poetech-request.js', token: "'tell-poetech'" },
+    ],
     reads: [{ res: 'event:use-prompt', token: 'USE_PROMPT_EVENT' }],
-    seeds: ['prompt-history'],
+    seeds: ['prompt-history', 'feedback-queue'],
   }),
   app('app/src/components/PromptHistory.jsx', {
     id: 'prompt-history', name: 'Your prompts',
@@ -794,6 +800,8 @@ const RESOURCES = {
   'db:agent_inbox#lesson': { label: 'lessons sent from the app', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'lesson' AND NOT tags ? 'voice' AND NOT tags ? 'voice-transcript' AND NOT tags ? 'voice-failed'", consumed: "tags ? 'mirrored'" } },
   'db:agent_inbox#voice': { label: 'spoken lessons waiting for Whisper', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice'", consumed: "tags ? 'voice-transcribed' OR tags ? 'voice-failed'" } },
   'db:agent_inbox#voice-transcript': { label: 'spoken lessons written down', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice-transcript'", consumed: "tags ? 'mirrored'" } },
+  'db:agent_inbox#poetech': { label: 'PoeTech requests relayed to the inbox', proof: { ts: 'created_at', fresh: 60, where: "tags ? 'tell-poetech'" },
+    open: { blocker: 'Nothing reads these rows (measured 2026-09-24: no code, NAS job or routine reads the tell-poetech tag). The same words now also reach the feedback queue; this relay retires once a PoeTech request is seen landing there on the live database, not before (never dismantle what may still deliver until its replacement is proven).', reReview: '2026-10-01' } },
   'hosted:lesson-mirror': { label: 'lessons carried to the cloud reader (DR-0614)' },
   'db:saved_prompts': { label: 'kept prompts', proof: { ts: 'last_used_at', fresh: 30, consumed: 'use_count > 1' } },
   'db:agent_tasks': { label: 'questions to the models', proof: { ts: 'created_at', fresh: 30, consumed: "status <> 'queued'" } },

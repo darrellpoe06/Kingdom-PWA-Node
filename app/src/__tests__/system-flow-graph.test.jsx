@@ -532,3 +532,28 @@ describe('the Scribe chain: reaches the NAS, and its words come back', () => {
     expect(read('infra', 'nas-scribe', 'install.sh')).toMatch(/funnel --bg --set-path \/scribe http:\/\/127\.0\.0\.1:8791/);
   });
 });
+
+describe('connected is not answered: the PoeTech and Conference doors reach a reader and come back', () => {
+  it('a PoeTech request is relayed AND filed in the steward’s feedback queue (tell-poetech rows had no reader)', async () => {
+    const { sendPoeTechRequest, POETECH_REQUEST_AREA } = await import('../lib/poetech-request.js');
+    const calls = [];
+    const res = await sendPoeTechRequest({
+      body: 'Show giving statements',
+      directiveId: 'ad-1',
+      relay: async (x) => { calls.push(['relay', x.tags]); return { ok: true }; },
+      upload: async (item, meta) => { calls.push(['upload', item.currentView, meta.activeTab]); return { uploaded: true }; },
+    });
+    expect(res).toEqual({ relayed: true, filed: true, reason: '' });
+    expect(calls).toEqual([['relay', ['tell-poetech', 'poetech-app']], ['upload', POETECH_REQUEST_AREA, 'poetech']]);
+    const out = await sendPoeTechRequest({ body: 'x', relay: async () => ({ ok: false, reason: 'signed-out' }), upload: async () => ({ skipped: 'signed-out' }) });
+    expect(out).toEqual({ relayed: false, filed: false, reason: 'signed-out' });
+    expect(read('app', 'src', 'poe-financial-mvp-v28.jsx')).toMatch(/sendPoeTechRequest\(\{/);
+  });
+  it('the Conference chip takes the Conference module’s own road, and a signed-out sender is told the truth', () => {
+    const src = read('app', 'src', 'components', 'OneVoiceInput.jsx');
+    expect(src).toMatch(/uploadFeedback\(\{ text: t, currentView: 'Conference · One Voice' \}, \{ activeTab: 'conference' \}\)/);
+    expect(src).toMatch(/cfg\.confirmations\.signedOut \|\| SIGNED_OUT_SAID/);
+    const surfaces = read('app', 'src', 'lib', 'one-voice-surfaces.js');
+    expect(surfaces).not.toMatch(/build inbox|build list/);
+  });
+});
