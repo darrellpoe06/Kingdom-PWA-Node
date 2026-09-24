@@ -45,7 +45,15 @@ if [ "$NEED_RELOAD" = "1" ]; then
   systemctl daemon-reload
 fi
 systemctl enable poetech-mcp >/dev/null 2>&1 || true
-systemctl is-active --quiet poetech-mcp || systemctl restart poetech-mcp
+# Restart when the server CODE changed (a hash stamp): before 2026-09-24 a
+# running server was never restarted, so a merged fix stayed un-served (DR-0622).
+STAMP=/volume1/PoeTech/secrets/.mcp-server-code.sha
+CODE_SHA="$(sha256sum "$SRC/mcp_server.py" 2>/dev/null | cut -c1-16)"
+if [ "$NEED_RELOAD" = "1" ] || [ "$(cat "$STAMP" 2>/dev/null)" != "$CODE_SHA" ]; then
+  systemctl restart poetech-mcp && echo "$CODE_SHA" > "$STAMP" && echo "  restarted (unit or code changed: $CODE_SHA)"
+else
+  systemctl is-active --quiet poetech-mcp || systemctl restart poetech-mcp
+fi
 
 echo "== mcp install: caddy route (best-effort) =="
 ROUTE='handle /mcp { reverse_proxy 127.0.0.1:8795 }'

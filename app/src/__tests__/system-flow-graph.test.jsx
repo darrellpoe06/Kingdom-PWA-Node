@@ -455,6 +455,21 @@ describe('what the first live proof run taught the measurement (run 36059041587)
   });
 });
 
+describe('a Funnel mount strips its path: every NAS server answers the stripped spelling too', () => {
+  it('the MCP server answers POST / (mcp-health run 36062034869 measured 404 on the stripped call)', () => {
+    const src = read('infra', 'nas-mcp', 'mcp_server.py');
+    expect(src).toMatch(/@app\.post\("\/"\)\n@app\.post\("\/mcp"\)/);
+    expect(read('infra', 'nas-mcp', 'install.sh')).toMatch(/restarted \(unit or code changed/);
+  });
+  it('the Scribe server answers both spellings of every route it serves', () => {
+    const src = read('infra', 'nas-scribe', 'scribe_ingest_server.py');
+    for (const r of ['session', 'chunk', 'complete', 'sessions']) {
+      expect(src).toContain(`@app.${r === 'sessions' ? 'get' : 'post'}("/scribe/${r}")`);
+      expect(src).toContain(`@app.${r === 'sessions' ? 'get' : 'post'}("/${r}")`);
+    }
+  });
+});
+
 describe('the Scribe chain: reaches the NAS, and its words come back', () => {
   it('no-route gate: a connection over a route the Funnel does not mount is caught (proven on the real registry)', () => {
     const c = realContext();
