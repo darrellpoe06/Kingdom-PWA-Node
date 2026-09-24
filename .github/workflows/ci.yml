@@ -27,6 +27,11 @@ on:
   # Required checks must also run inside the merge queue's temporary ref, or a
   # queued PR would wait forever. Harmless when the queue is off.
   merge_group:
+  # keep-prs-current.yml (DR-0644) merges main into a PR branch with
+  # GITHUB_TOKEN, whose push fires no `push`/`pull_request` run — so it
+  # dispatches this workflow on the branch, and the required check lands on
+  # the new head. The one event a GITHUB_TOKEN may fire.
+  workflow_dispatch:
 
 jobs:
   app:
