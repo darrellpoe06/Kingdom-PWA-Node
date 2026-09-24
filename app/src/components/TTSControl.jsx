@@ -39,6 +39,7 @@ import { useIdleReveal } from '../lib/use-idle-reveal.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import { useScreenAwake, NO_WAKE_LOCK_HINT } from '../lib/screen-awake.js';
 import { mayTryLiteVoice } from '../lib/voice-service.js';
+import { openReadingSource } from '../lib/reading-source.js';
 // COMFORT CONTROLS IN THE READER (DR-0524). Darrell, reading L179 on his phone:
 // "Can't change the text side nor etc on o cellphone reader fix it."
 // WHAT WAS ACTUALLY WRONG, measured at 360px mid-lesson after a first reading
@@ -297,6 +298,30 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // mapping where the mode supports it), wordable }.
   const followRef = useRef(null);
   const lastCloudIdxRef = useRef(-1);
+  // FOLLOW ALONG, BUT NEVER YANK (DR-0633; Darrell: "need to be able to go
+  // back to the reading page to see the text when I want"). The highlight
+  // always follows the voice; the SCROLL follows only until the listener
+  // scrolls on their own. Then a "Back to the voice" chip offers the way back
+  // instead of pulling the page out from under them.
+  const awayRef = useRef(false);
+  const [userAway, setUserAway] = useState(false);
+  useEffect(() => {
+    if (!isReading) { awayRef.current = false; setUserAway(false); return undefined; }
+    if (typeof window === 'undefined') return undefined;
+    const away = (e) => {
+      if (e && e.type === 'keydown' && !['PageDown', 'PageUp', 'ArrowDown', 'ArrowUp', 'Home', 'End', ' '].includes(e.key)) return;
+      if (e && e.target && e.target.closest && e.target.closest('.tts-controls')) return;
+      if (!awayRef.current) { awayRef.current = true; setUserAway(true); }
+    };
+    window.addEventListener('wheel', away, { passive: true });
+    window.addEventListener('touchmove', away, { passive: true });
+    window.addEventListener('keydown', away);
+    return () => {
+      window.removeEventListener('wheel', away);
+      window.removeEventListener('touchmove', away);
+      window.removeEventListener('keydown', away);
+    };
+  }, [isReading]);
   // A LEVEL SWITCH MID-READ KEEPS THE PLACE (DR-0426). When the listener picks
   // a level from this panel while a lesson is being read, the lesson
   // re-registers its target with the new level's words; this remembers how
@@ -367,7 +392,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     const r = followRef.current.ranges[segmentIndex] || null;
     highlightSegment(r);
     highlightWord(null); // a new sentence clears the previous word
-    followRange(r);
+    if (!awayRef.current) followRange(r);
     // The sentence just reached IS the place. `base` is the offset this run
     // started at, so the stored index is absolute within the lesson.
     const st = followRef.current;
@@ -384,7 +409,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     lastCloudIdxRef.current = idx;
     const r = followRef.current.ranges[idx] || null;
     highlightSegment(r);
-    followRange(r);
+    if (!awayRef.current) followRange(r);
     // THE CLOUD VOICE KEEPS THE PLACE TOO (Darrell 2026-09-14: "Lessons keep
     // being interrupted and I'm loosing my exact location"). The sentence write
     // shipped only in the DEVICE-voice effect above, so listening in the
@@ -1017,6 +1042,54 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   };
   const selectClass = 'w-full text-[0.6875em] border border-[#1A1815] bg-white text-[#1A1815] px-[0.5em] py-[0.5em] min-h-[2.75em] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]';
 
+  // SHOW THE TEXT (Darrell 2026-09-24, on his Fold: "Also need to be able
+  // to go back to the reading page to see the text when I want or any
+  // user!!!!!!!"). On the page being read: bring the spoken sentence into
+  // view, lit, and let the scroll follow the voice again. From another tab:
+  // open the reading's own page at that sentence (openReadingSource).
+  const spokenRange = () => {
+    const f = followRef.current;
+    if (!f || !f.ranges) return null;
+    const local = deviceRead ? segmentIndex : Math.max(0, lastCloudIdxRef.current);
+    return f.ranges[local] || null;
+  };
+  const showTheText = () => {
+    awayRef.current = false;
+    setUserAway(false);
+    const r = spokenRange();
+    const node = r && r.startContainer;
+    if (node && node.isConnected) { highlightSegment(r); followRange(r); return; }
+    openReadingSource(followRef.current && followRef.current.owner, currentGlobalSegment());
+  };
+
+  const fab = (
+        // .ts-chrome-region caps it so it does NOT grow with the text-size
+        // control — chrome, not reading text (Pattern 2b/2d). Idle-reveal dims +
+        // settles it when idle, springs it back on scroll/touch.
+        // While reading it never dims and never hides: it wears the reading
+        // state (a live badge + an honest label) so a closed panel still shows
+        // the Word is playing and Stop is one tap away — including after the
+        // user has left the app and come back (background playback).
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          aria-label={notice ? `A message is waiting: ${notice} — open read-aloud controls` : isReading ? (isPaused ? 'Reading paused — open read-aloud controls' : 'Reading aloud — open read-aloud controls') : 'Open read-aloud controls'}
+          title={notice ? notice : isReading ? 'Reading aloud — tap for pause, speed and stop' : 'Read aloud'}
+          className={`ts-chrome-region relative ${isReading ? 'bg-[#B85838]' : 'bg-[#1A1815]'} text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg hover:bg-[#B85838] flex items-center justify-center text-xl sm:text-2xl border-2 border-[#FAF8F4] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] transition-all duration-500 hover:opacity-100 focus:opacity-100 ${(revealFab || isReading) ? 'opacity-100 translate-y-0' : 'opacity-40 translate-y-2'}`}
+        >
+          🔊
+          {isReading && (
+            <span aria-hidden="true" className="absolute -top-1 -right-1 bg-[#1A1815] text-white text-[0.5rem] leading-none px-1.5 py-1 rounded-full border border-[#FAF8F4]">
+              {isPaused ? '❚❚' : '▶'}
+            </span>
+          )}
+          {/* THE MARK ON THE BUTTON: a notice is waiting inside. */}
+          {notice && !isReading && (
+            <span aria-hidden="true" data-testid="read-aloud-notice-mark" className="absolute -top-1 -right-1 bg-[#B85838] text-white text-[0.625rem] font-bold leading-none px-1.5 py-1 rounded-full border border-[#FAF8F4]">!</span>
+          )}
+        </button>
+  );
+
   const close = () => {
     if (!isReading) stopAll(); // idle: also stands down an armed tap-to-start
     setArmed(false);
@@ -1086,6 +1159,9 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
         </div>
       )}
       {scrollTopBtn}
+      {isReading && userAway && (
+        <button type="button" onClick={showTheText} data-testid="reader-back-to-voice" className="ts-chrome-region bg-white text-[#1A1815] border-2 border-[#1A1815] rounded-full shadow-lg px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Back to the voice</button>
+      )}
       {supported && (isOpen && minimized && isReading ? (
         /* THE READING PILL (DR-0265): while the voice is reading, the full card
            would sit on top of the very words being read + highlighted — so it
@@ -1438,33 +1514,26 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
             Only <strong>Stop</strong> stops the voice. Close puts this panel away and keeps reading. <span data-testid="reader-background-line">{backgroundLine({ isReading, audioVoice })}</span>
           </p>
         </div>
-      ) : (
-        // .ts-chrome-region caps it so it does NOT grow with the text-size
-        // control — chrome, not reading text (Pattern 2b/2d). Idle-reveal dims +
-        // settles it when idle, springs it back on scroll/touch.
-        // While reading it never dims and never hides: it wears the reading
-        // state (a live badge + an honest label) so a closed panel still shows
-        // the Word is playing and Stop is one tap away — including after the
-        // user has left the app and come back (background playback).
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          aria-label={notice ? `A message is waiting: ${notice} — open read-aloud controls` : isReading ? (isPaused ? 'Reading paused — open read-aloud controls' : 'Reading aloud — open read-aloud controls') : 'Open read-aloud controls'}
-          title={notice ? notice : isReading ? 'Reading aloud — tap for pause, speed and stop' : 'Read aloud'}
-          className={`ts-chrome-region relative ${isReading ? 'bg-[#B85838]' : 'bg-[#1A1815]'} text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg hover:bg-[#B85838] flex items-center justify-center text-xl sm:text-2xl border-2 border-[#FAF8F4] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] transition-all duration-500 hover:opacity-100 focus:opacity-100 ${(revealFab || isReading) ? 'opacity-100 translate-y-0' : 'opacity-40 translate-y-2'}`}
-        >
-          🔊
-          {isReading && (
-            <span aria-hidden="true" className="absolute -top-1 -right-1 bg-[#1A1815] text-white text-[0.5rem] leading-none px-1.5 py-1 rounded-full border border-[#FAF8F4]">
-              {isPaused ? '❚❚' : '▶'}
-            </span>
+      ) : isReading ? (
+        /* THE MINI-PLAYER (DR-0633; "It is like a radio in the background").
+           On every tab while the Word is playing: show the text, back a
+           paragraph, play / pause, forward a paragraph, and the full panel.
+           Icon-first so it fits at 320 px without reaching the Feedback
+           button on the left or the Give button above. */
+        <div data-testid="reader-mini-bar" role="group" aria-label="Now reading" className="ts-chrome-region flex items-center gap-[0.25rem] bg-white border-2 border-[#1A1815] rounded-full shadow-lg p-[0.125rem] pl-[0.25rem]">
+          <button type="button" onClick={showTheText} data-testid="reader-show-text" aria-label="Show the text being read" title="Show the text being read" className="h-10 min-w-10 px-2 rounded-full flex items-center justify-center gap-1 text-[#1A1815] text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
+            <UiIcon name="book" /><span className="hidden min-[360px]:inline">Text</span>
+          </button>
+          {canJump && (
+            <button type="button" onClick={() => jumpParagraph(-1)} data-testid="reader-mini-back" aria-label="Back a paragraph" title="Back a paragraph" className="h-10 w-10 rounded-full flex items-center justify-center text-[#1A1815] text-sm font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">↩¶</button>
           )}
-          {/* THE MARK ON THE BUTTON: a notice is waiting inside. */}
-          {notice && !isReading && (
-            <span aria-hidden="true" data-testid="read-aloud-notice-mark" className="absolute -top-1 -right-1 bg-[#B85838] text-white text-[0.625rem] font-bold leading-none px-1.5 py-1 rounded-full border border-[#FAF8F4]">!</span>
+          <button type="button" onClick={isPaused ? resume : pause} data-testid="reader-mini-playpause" aria-label={isPaused ? 'Play' : 'Pause'} title={isPaused ? 'Play' : 'Pause'} className="h-10 w-10 rounded-full flex items-center justify-center bg-[#1A1815] text-white text-sm font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">{isPaused ? '▶' : '❚❚'}</button>
+          {canJump && (
+            <button type="button" onClick={() => jumpParagraph(1)} data-testid="reader-mini-forward" aria-label="Forward a paragraph" title="Forward a paragraph" className="h-10 w-10 rounded-full flex items-center justify-center text-[#1A1815] text-sm font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">↪¶</button>
           )}
-        </button>
-      ))}
+          {fab}
+        </div>
+      ) : fab)}
     </div>
   );
 }
