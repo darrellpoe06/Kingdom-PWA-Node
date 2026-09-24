@@ -291,10 +291,15 @@ describe('a pointer, never a copy', () => {
     // how many ways and what were the situations" / "What are the keys of hell
     // and death?" / "All in the lesson"); a lesson into the existing Living
     // Lessons course, so the course count holds at 49 and only the total moves.
+    // And to 49 / 715 on 2026-09-24 for L192 (Two Hours Became Six — the Pattern,
+    // the Yea, the Inspection, and the Faithful Man, DR-0606) — Darrell's spoken
+    // case of a contractor whose agreed two hours became six and whose work came
+    // back different; a lesson into the existing Living Lessons course, so the
+    // course count holds at 49 and only the total moves.
     expect(courses).toHaveLength(49);
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(714);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(715);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(714);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(715);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {

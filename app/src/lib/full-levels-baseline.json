@@ -6,7 +6,7 @@
     "senior": 0.6
   },
   "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added. 2026-09-20: ll57 (Power to Tread) was re-authored whole — the child band rewritten from grade 10.1 to 1.5, a youth band authored where none existed, and teen and senior extended past the floor. It leaves this list because its CONTENT changed, not because an entry was edited out. All four of its bands now clear their floors (child 0.59, youth 0.68, teen 0.71, senior 0.66), so it is removed rather than reduced; lessonsShort 68 -> 67.",
-  "measuredLessons": 190,
+  "measuredLessons": 191,
   "lessonsShort": 67,
   "short": {
     "ll10-strength-and-honour-are-her-clothing": [
