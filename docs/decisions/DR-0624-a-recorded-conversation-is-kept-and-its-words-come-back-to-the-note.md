@@ -70,7 +70,17 @@ Nothing he said reached the app, and the app said nothing about it. A spoken les
 
 ## Verification after merge
 
-Pending the first services-sync cycle after merge; recorded here in the follow-up commit.
+Measured 2026-09-24 after #1780 merged (5c2891c7), by one nas-bootstrap services-sync (run 36062077759) and the witness (voice-intake-health run 36062422009), on the live database:
+
+| what | measured |
+| --- | --- |
+| The CPU rung | installed on the first cycle: `faster-whisper 1.0.3`, `ctranslate2 4.5.0`, pip 25.0.1 in the venv, `exit=0` in `pip.log`. NAS: Xeon D-1527, 8 CPUs, 64 GB. |
+| The tower | `tlcmediadpt.tail5a2f35.ts.net:8771` and `100.69.19.13:8771` both HTTP 000: the 4070 is off. The CPU rung carried the load. |
+| Darrell's spoken lesson `b1a79408` (16:05Z) | **transcribed at 21:33:39Z by the NAS CPU (Whisper small)**, retried automatically because a rung answered again (`retry_failed: true`), tagged `voice-transcribed`. |
+| The transcript row | `9f70cd51`, tags `lesson, voice-transcript, of:b1a79408…, whisper:nas-cpu`; mirrored to the hosted reader the same pass. |
+| Counts | lesson recordings 1 · transcripts 1 (newest 21:33:39Z) · failure reports 1 (the earlier one, kept as history) · bucket objects 0 (the cloud copy removed; the NAS keeps the audio). |
+
+No recorded conversation from the Notes box exists yet on the live database; the first one Darrell records is the next row this witness reports.
 
 ## Limits, stated
 
