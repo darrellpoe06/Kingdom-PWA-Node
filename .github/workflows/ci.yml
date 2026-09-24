@@ -310,6 +310,16 @@ jobs:
       - name: table a11y guard (screen-reader navigability)
         working-directory: ${{ github.workspace }}
         run: node scripts/table-a11y-guard.mjs
+      # Intake auto-fix scope gate (DR-0622). A claude/intake-fix-* branch is a
+      # SYSTEM fix of a low-hanging note, made by an AI session: it may change
+      # only components, stylesheets and tests, 30 lines at most, with no link,
+      # email, phone number or bright-line subject added. Every other branch
+      # passes untouched. Selftest first, so a guard that stopped catching is red.
+      - name: intake auto-fix scope guard (a system fix stays small)
+        working-directory: ${{ github.workspace }}
+        run: |
+          node scripts/intake-autofix-scope-guard.mjs --selftest-break
+          node scripts/intake-autofix-scope-guard.mjs
       # GPU preemption gate (DR-0012 §3). A compose service that is ollama/ollama
       # AND reserves `driver: nvidia` must set OLLAMA_KEEP_ALIVE=0 — the reasoner
       # frees VRAM within ~1 s when any non-Ollama CUDA process (Premiere, C4D,

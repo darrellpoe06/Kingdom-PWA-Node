@@ -382,7 +382,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       {subView === 'governance' && isGovernor && (
         <div className="space-y-6">
           <DecisionIntelligence concerns={concerns} projects={projects} discussions={discussions} boardTasks={boardTasks} feedback={feedback} incidents={incidents} record={!!currentUserId} />
-          <OperationsIntelligence loopData={loopData} loopEnv={{ financialDocAt }} discussions={discussions} />
+          <OperationsIntelligence loopData={loopData} loopEnv={{ financialDocAt }} discussions={discussions} feedback={feedback} />
           <GovernanceQueue
             appDecisions={deriveAppDecisions({ discussions, concerns })}
             familyInstanceId={(concerns.find((c) => c && c.tenantId)?.tenantId) || null}

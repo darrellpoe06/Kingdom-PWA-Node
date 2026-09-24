@@ -122,6 +122,14 @@ jobs:
           - feature: saved-prompts
             migrations: "0232-your-prompts-are-kept-dated-and-yours-alone.sql"
             smokes: "0232-saved-prompts-smoke.sql"
+          # Added 2026-09-24 (DR-0622): every intake carried to an outcome. A
+          # sender cannot write an outcome onto their own note; the owner writes
+          # it and the sender reads it; the fix queue is the stewards' room —
+          # member, viewer, assistant and outsider read none of it, nobody
+          # signed in inserts into it, only the owner/admin moves a row.
+          - feature: intake-outcome
+            migrations: "0233-a-feedback-note-can-be-in-progress-and-fixed.sql 0234-every-intake-is-carried-to-an-outcome.sql"
+            smokes: "0234-intake-outcome-smoke.sql"
           # Added 2026-09-24 (DR-0613): the NAS publishes the family key; only
           # the family's own instances receive it, only the service role can
           # publish, a church or unnamed owner never receives it.

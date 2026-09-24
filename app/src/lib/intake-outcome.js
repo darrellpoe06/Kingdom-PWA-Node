@@ -133,7 +133,11 @@ export function ledgerIndex(ledger) {
   for (const d of docs) for (const t of d.tokens) df.set(t, (df.get(t) || 0) + 1);
   const n = Math.max(1, docs.length);
   const idf = (t) => Math.log((n + 1) / ((df.get(t) || 0) + 1));
-  const out = { docs, idf, n };
+  // RARE is relative to the ledger's size, so the rule means the same thing on
+  // 448 records and on a test's 13: a word in at most rareShare of records.
+  const rareMax = Math.max(1, Math.floor(docs.length * DECIDED_MATCH.rareShare));
+  const isRare = (t) => (df.get(t) || 0) <= rareMax;
+  const out = { docs, idf, isRare, n };
   if (ledger && typeof ledger === 'object') indexCache.set(ledger, out);
   return out;
 }
@@ -144,7 +148,7 @@ export function ledgerIndex(ledger) {
 // `newerWithin`: the ledger is append-only (DR-0011), so a NEWER record on the
 // same subject governs the older one it amends (DR-0248 amends DR-0110's kill-
 // switch). A newer candidate within this much coverage of the best one wins.
-export const DECIDED_MATCH = Object.freeze({ minShared: 4, minRareShared: 3, minCoverage: 0.6, minTitleShared: 2, rareIdf: 2.3, newerWithin: 0.1 });
+export const DECIDED_MATCH = Object.freeze({ minShared: 4, minRareShared: 3, minCoverage: 0.6, minTitleShared: 2, rareShare: 0.1, newerWithin: 0.1 });
 
 const drNum = (id) => parseInt(String(id || '').replace(/\D/g, ''), 10) || 0;
 
@@ -166,7 +170,7 @@ export function matchDecision(text, ledger) {
       shared.push(t);
       const i = idx.idf(t);
       w += i;
-      if (i >= DECIDED_MATCH.rareIdf) rare += 1;
+      if (idx.isRare(t)) rare += 1;
       if (d.titleTokens.has(t)) titleShared += 1;
     }
     if (shared.length < DECIDED_MATCH.minShared || rare < DECIDED_MATCH.minRareShared || titleShared < DECIDED_MATCH.minTitleShared) continue;

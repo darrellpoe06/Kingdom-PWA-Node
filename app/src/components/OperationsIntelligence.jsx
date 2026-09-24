@@ -25,7 +25,7 @@ const PANELS = [
 ];
 const LIVE = { fetchSiteHealth };
 
-export default function OperationsIntelligence({ loopData = null, loopEnv = {}, discussions = [], ledger = LEDGER, nowMs = Date.now(), deps = LIVE }) {
+export default function OperationsIntelligence({ loopData = null, loopEnv = {}, discussions = [], feedback = null, ledger = LEDGER, nowMs = Date.now(), deps = LIVE }) {
   const [health, setHealth] = useState({ ok: false, incidents: null, notice: 'reading the incident ledger' });
   useEffect(() => {
     let live = true;
@@ -34,8 +34,8 @@ export default function OperationsIntelligence({ loopData = null, loopEnv = {}, 
   }, [deps]);
 
   const r = useMemo(
-    () => deriveOperations({ ledger, incidents: health.ok ? health.incidents : null, loopData, loopEnv, discussions, nowMs }),
-    [ledger, health, loopData, loopEnv, discussions, nowMs],
+    () => deriveOperations({ ledger, incidents: health.ok ? health.incidents : null, loopData, loopEnv, discussions, feedback, nowMs }),
+    [ledger, health, loopData, loopEnv, discussions, feedback, nowMs],
   );
 
   return (
@@ -46,6 +46,11 @@ export default function OperationsIntelligence({ loopData = null, loopEnv = {}, 
           The platform&apos;s own signals, from workflows that already run: the health probes&apos; incident issues, each decision record&apos;s re-review date and decision, the family&apos;s data loops, and open hand-offs.
           {r.ok ? ` Read from: ${r.sources.join(' · ')}.` : ' Unavailable: no operations signal could be read.'}
         </p>
+        {r.read.intake && (
+          <p className="text-[0.6875rem] text-[#1A1815] mt-1" style={SERIF} data-testid="ops-intake">
+            Intake, every note categorized: {r.read.intake.fix} low-hanging (the system fixes) · {r.read.intake.decided} already decided (answered with the record) · {r.read.intake.work} real work · {r.read.intake.ask} asked for one thing · {r.read.intake.thanks} praise · {r.read.intake.signal} telemetry.
+          </p>
+        )}
         {!health.ok && <p className="text-[0.6875rem] text-[#B85838] mt-1" style={SERIF} data-testid="ops-incidents-unread">Incidents not read: {health.notice}. The other signals still show.</p>}
         <p className="text-[0.625rem] text-[#5A5751] mt-1" style={MONO}>
           incident open {INCIDENT_HOURS}h = escalation · the same failure ×{REPEAT_OBSERVATIONS} = risk · re-review due within {DUE_SOON_REVIEW_DAYS}d or passed · hand-off open {STALL_DAYS}d

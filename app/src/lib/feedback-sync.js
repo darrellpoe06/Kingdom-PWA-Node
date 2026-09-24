@@ -32,6 +32,46 @@
 import supabase from './supabase.js';
 import { postToChat, formatFeedbackMessage } from './synology-chat.js';
 import { currentDoor, PERSONAL_DOOR } from './app-doors.js';
+import { categorizeIntake } from './intake-outcome.js';
+
+// THE OUTCOME RIDES BESIDE THE LIST (DR-0622, migration 0234). The category
+// and its basis, what changed and when, and the note a reply answers. Asked
+// for with the list and dropped honestly on a database that has not applied
+// 0234 yet, so the board never goes dark over a column that is on its way.
+const FEEDBACK_INTAKE_COLUMNS = ['intake_category', 'intake_basis', 'outcome_note', 'outcome_ref', 'outcome_at', 'reply_to'];
+const INTAKE_INSERT_KEYS = ['intake_category', 'intake_basis', 'reply_to'];
+const LEDGER = (typeof __DR_LEDGER__ !== 'undefined') ? __DR_LEDGER__ : null;
+
+/**
+ * One of the OUTCOME columns is missing (0234 not applied yet), as PostgREST
+ * or Postgres says it. Named, never generic: a different missing column (the
+ * screenshots degrade below) must keep its own fallback.
+ */
+export function isMissingColumn(error, names = FEEDBACK_INTAKE_COLUMNS) {
+  if (!error) return false;
+  const msg = String(error.message || '');
+  if (!(error.code === '42703' || error.code === 'PGRST204' || /column .* does not exist|could not find the .* column/i.test(msg))) return false;
+  return names.some((n) => msg.includes(n));
+}
+
+/** Run a list query with the outcome columns, and without them if they are not there yet. */
+async function withIntakeColumns(base, build) {
+  const first = await build(`${base}, ${FEEDBACK_INTAKE_COLUMNS.join(', ')}`);
+  if (first && first.error && isMissingColumn(first.error)) return build(base);
+  return first;
+}
+
+// The id is minted on the device, so the reference code the sender is handed
+// the moment they submit is the SAME code the steward sees on the board. Until
+// DR-0622 the local copy was `fb-<time>` and the database minted its own uuid:
+// two codes for one note, and the sender's could never be looked up.
+export function newFeedbackId() {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  } catch { /* fall through */ }
+  return `fb-${Date.now()}`;
+}
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // THE LIST NEVER CARRIES THE IMAGES.
 //
@@ -218,6 +258,16 @@ export async function uploadFeedback(item, meta = {}) {
     is_confidential: !!item.isConfidential,
     triage_status: 'new',
   };
+  // DR-0622: the device's own id (one reference code for one note), the note a
+  // reply answers, and the category with its basis, decided at birth by the
+  // same rules the board and the runner use.
+  if (UUID_RE.test(String(item.id || ''))) row.id = item.id;
+  if (UUID_RE.test(String(item.replyTo || ''))) row.reply_to = item.replyTo;
+  try {
+    const cat = categorizeIntake({ ...item, text: composedBody, replyTo: row.reply_to || null, screenshotCount: 0 }, { ledger: LEDGER });
+    row.intake_category = cat.category;
+    row.intake_basis = cat.basis;
+  } catch { /* the runner categorizes it on its next pass */ }
 
   // Optional screenshots (compressed JPEG data URLs). The legacy single-image
   // `screenshot` text column (migration 0003) keeps the FIRST image for back-
@@ -233,19 +283,30 @@ export async function uploadFeedback(item, meta = {}) {
   // schema-cache miss so the text feedback always lands. Worst case (a column
   // not live yet at deploy): images 2..N, then all images, are dropped — only
   // in that brief window, and never the feedback itself.
+  // One more degrade, for the outcome columns (0234) not being live yet: the
+  // note still lands, and the runner categorizes it on its next pass.
+  const insertRow = async (payload) => {
+    let res = await supabase.from('feedback').insert(payload);
+    if (res && res.error && isMissingColumn(res.error)) {
+      const lean = { ...payload };
+      for (const k of INTAKE_INSERT_KEYS) delete lean[k];
+      res = await supabase.from('feedback').insert(lean);
+    }
+    return res || {};
+  };
   let error;
   if (shots.length > 0) {
-    ({ error } = await supabase.from('feedback').insert({ ...row, screenshot: firstShot, screenshots: shots }));
+    ({ error } = await insertRow({ ...row, screenshot: firstShot, screenshots: shots }));
     if (error) {
       console.warn('[feedback-sync] insert with screenshots[] failed, retrying with single screenshot:', error);
-      ({ error } = await supabase.from('feedback').insert({ ...row, screenshot: firstShot }));
+      ({ error } = await insertRow({ ...row, screenshot: firstShot }));
     }
     if (error) {
       console.warn('[feedback-sync] insert with screenshot failed, retrying without image:', error);
-      ({ error } = await supabase.from('feedback').insert(row));
+      ({ error } = await insertRow(row));
     }
   } else {
-    ({ error } = await supabase.from('feedback').insert(row));
+    ({ error } = await insertRow(row));
   }
   if (error) {
     console.warn('[feedback-sync] upload failed:', error);
@@ -307,6 +368,33 @@ export async function fetchFeedbackImages(id) {
   return { screenshots: data.screenshot ? [data.screenshot] : [] };
 }
 
+/**
+ * The signed-in person's OWN notes, newest first, with their outcomes
+ * (DR-0622). The board's list leaves these out on purpose (they are already in
+ * the local store), which also meant the SENDER never read a steward's triage
+ * or a fix's outcome: the local copy never changes after it is written. This is
+ * the read the sender's receipt uses. { ok, items, reason }; signed out or
+ * unreadable is said, never an empty list pretending to be an answer.
+ */
+export const MY_FEEDBACK_LIMIT = 50;
+export async function fetchMyFeedback(client = supabase) {
+  try {
+    const { data: s } = await client.auth.getSession();
+    const uid = s && s.session && s.session.user && s.session.user.id;
+    if (!uid) return { ok: false, items: [], reason: 'signed-out' };
+    const { data, error } = await withIntakeColumns(FEEDBACK_LIST_COLUMNS, (cols) => client
+      .from('feedback')
+      .select(cols)
+      .eq('user_id', uid)
+      .order('submitted_at', { ascending: false })
+      .limit(MY_FEEDBACK_LIMIT));
+    if (error) return { ok: false, items: [], reason: error.message || 'unreadable' };
+    return { ok: true, items: (data || []).map((r) => ({ ...toPrototypeShape(r), mine: true })), reason: '' };
+  } catch (e) {
+    return { ok: false, items: [], reason: e?.message || 'unreadable' };
+  }
+}
+
 export function subscribeFeedback(onRemote) {
   let channel = null;
   let cancelled = false;
@@ -320,14 +408,14 @@ export function subscribeFeedback(onRemote) {
     // already in local data.feedback via addFeedback — surfacing them
     // again from the remote stream would create visual duplicates.
     const fetchOthers = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await withIntakeColumns(FEEDBACK_LIST_COLUMNS, (cols) => supabase
         .from('feedback')
-        .select(FEEDBACK_LIST_COLUMNS)
+        .select(cols)
         .neq('user_id', myUserId)
         // DESCENDING, so the cap drops the oldest rows and never the newest.
         // Ascending + limit is what made every recent submission invisible.
         .order('submitted_at', { ascending: false })
-        .limit(FEEDBACK_LIST_LIMIT);
+        .limit(FEEDBACK_LIST_LIMIT));
       if (error) {
         console.warn('[feedback-sync] fetch failed:', error);
         return null;
@@ -341,17 +429,17 @@ export function subscribeFeedback(onRemote) {
     // Realtime subscription on inserts. Re-fetch (with the same
     // user-id filter) so the merge logic stays simple. Family-scale
     // traffic is single-digit inserts/day.
+    // INSERT and UPDATE: a steward's triage and the fix lane's outcome are
+    // UPDATEs, and until DR-0622 the board never heard them without a reload.
+    const refresh = () => {
+      fetchOthers().then((refreshed) => {
+        if (refreshed) onRemote(refreshed.map(toPrototypeShape));
+      });
+    };
     channel = supabase
       .channel('feedback-stream')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'feedback' },
-        () => {
-          fetchOthers().then((refreshed) => {
-            if (refreshed) onRemote(refreshed.map(toPrototypeShape));
-          });
-        }
-      )
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'feedback' }, refresh)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'feedback' }, refresh)
       .subscribe();
   })();
 
@@ -404,6 +492,14 @@ function toPrototypeShape(row) {
     deviceLabel: row.device_label,
     triageStatus: row.triage_status,
     triageNotes: row.triage_notes || '',
+    userId: row.user_id || null,
+    // DR-0622: the outcome the sender reads, and its basis.
+    intakeCategory: row.intake_category || null,
+    intakeBasis: row.intake_basis || null,
+    outcomeNote: row.outcome_note || '',
+    outcomeRef: row.outcome_ref || '',
+    outcomeAt: row.outcome_at || null,
+    replyTo: row.reply_to || null,
     screenshot: row.screenshot || null,
     // Full image set when the `screenshots` jsonb column is live; otherwise the
     // single legacy `screenshot` stands in so older rows still render.

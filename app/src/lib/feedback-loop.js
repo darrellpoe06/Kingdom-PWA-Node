@@ -17,6 +17,8 @@
 // hold 'in-progress' and 'fixed'.
 // =============================================================================
 
+import { isMissingColumn } from './feedback-sync.js';
+
 export const TRIAGE_STATES = Object.freeze([
   { key: 'new', label: 'Not triaged' },
   { key: 'reviewed', label: 'Reviewed' },
@@ -43,14 +45,25 @@ export function reasonRequired(status) {
  * that never reached the database, or a steward without the admin role, is
  * said plainly instead of pretending.
  */
-export async function setFeedbackTriage({ supabase, id, status, notes = '' }) {
+export async function setFeedbackTriage({ supabase, id, status, notes = '', nowMs = NaN }) {
   if (!KEYS.has(status)) return { ok: false, reason: `unknown status "${status}"` };
   const why = String(notes || '').trim();
   if (reasonRequired(status) && !why) return { ok: false, reason: 'a reason is required so the sender is told why' };
   try {
     const patch = { triage_status: status };
     if (why) patch.triage_notes = why.slice(0, 2000);
-    const { data, error } = await supabase.from('feedback').update(patch).eq('id', id).select('id');
+    // DR-0622: "fixed" carries WHAT CHANGED and WHEN onto the note, so the
+    // sender reads the change and the measured window has its end point.
+    if (status === 'fixed') {
+      patch.outcome_at = new Date(Number.isFinite(nowMs) ? nowMs : Date.now()).toISOString();
+      if (why) patch.outcome_note = why.slice(0, 2000);
+    }
+    let { data, error } = await supabase.from('feedback').update(patch).eq('id', id).select('id');
+    if (error && patch.outcome_at && isMissingColumn(error)) {
+      // 0234 not applied yet: the status still lands, without the outcome columns.
+      const { outcome_at: _a, outcome_note: _n, ...lean } = patch;
+      ({ data, error } = await supabase.from('feedback').update(lean).eq('id', id).select('id'));
+    }
     if (error) return { ok: false, reason: error.message };
     if (!Array.isArray(data) || data.length === 0) return { ok: false, reason: 'no row changed (the note is not in the database, or this account is not an owner or admin)' };
     return { ok: true, reason: '' };

@@ -25,12 +25,20 @@
 //      update past its limit is an escalation; "never ran" and "awaiting a
 //      source" need the page's full context and are left to the Loops view.
 //   5. HAND-OFFS — a hand-off still open past STALL_DAYS is an escalation.
+//   6. INTAKE (DR-0622) — every note, categorized by lib/intake-outcome.js.
+//      A sender's REPLY to an outcome still untouched is a decision required
+//      (the automatic answer did not land; a person decides). Real work no
+//      steward has moved past STALL_DAYS is one escalation, counted. System
+//      fixes that failed REPEAT_OBSERVATIONS+ times are a risk. The counts per
+//      category are read into `read.intake`, so the board shows the loop.
 //
 // PURE and deterministic; the clock is an argument. No input → ok:false with
 // the reason, never a painted zero (DR-0076).
 // =============================================================================
 import { STALL_DAYS, daysBetween } from './decision-intelligence.js';
 import { assessLoops } from './loop-health.js';
+import { categorizeIntake, categoryCounts } from './intake-outcome.js';
+import { receiptCode } from './feedback-receipt.js';
 
 export const INCIDENT_HOURS = 24;
 export const REPEAT_OBSERVATIONS = 3;
@@ -46,7 +54,7 @@ function isoDay(ms) {
   return new Date(ms).toISOString().slice(0, 10);
 }
 
-export function deriveOperations({ ledger = null, incidents = null, loopData = null, loopEnv = {}, discussions = [], nowMs } = {}) {
+export function deriveOperations({ ledger = null, incidents = null, loopData = null, loopEnv = {}, discussions = [], feedback = null, nowMs } = {}) {
   const now = Number.isFinite(nowMs) ? nowMs : NaN;
   const today = Number.isFinite(now) ? isoDay(now) : '';
   const out = { ok: false, read: {}, risks: [], escalations: [], timelineThreats: [], decisionsRequired: [], sources: [] };
@@ -113,6 +121,28 @@ export function deriveOperations({ ledger = null, incidents = null, loopData = n
       if (age != null && age >= STALL_DAYS) {
         out.escalations.push({ id: `handoff-${d.id}`, title: d.title || 'Hand-off', kind: 'handoff', days: age, sources: [d.id], why: `A hand-off open for ${age} days (threshold ${STALL_DAYS}).` });
       }
+    }
+  }
+
+  // 6. Intake.
+  if (Array.isArray(feedback)) {
+    const cats = feedback.filter((f) => f && f.id).map((f) => ({ f, c: categorizeIntake(f, { ledger, history: feedback }) }));
+    out.read.intake = categoryCounts(cats.map((x) => x.c));
+    out.sources.push('intake (every note, categorized)');
+    const untouched = (f) => (f.triageStatus || f.triage_status || 'new') === 'new';
+    for (const { f, c } of cats) {
+      if (c.basis.kind === 'reply' && untouched(f)) {
+        out.decisionsRequired.push({ id: `reply-${f.id}`, title: `A reply to an outcome (${receiptCode(f.id)})`, decision: 'Read the reply and decide the next step.', impact: 'The sender pushed back on an automatic answer; replies always go to a person.', sources: [receiptCode(f.id)], why: 'A sender replied to the outcome they were given and no steward has moved it yet.' });
+      }
+    }
+    const stale = cats.filter(({ f, c }) => c.category === 'work' && untouched(f) && (daysBetween(f.createdAt || f.submittedAt || f.submitted_at, now) ?? -1) >= STALL_DAYS);
+    if (stale.length) {
+      const oldest = Math.max(...stale.map(({ f }) => daysBetween(f.createdAt || f.submittedAt || f.submitted_at, now) || 0));
+      out.escalations.push({ id: 'intake-stale-work', title: `${stale.length} note${stale.length === 1 ? '' : 's'} of real work untouched`, kind: 'intake', days: oldest, sources: stale.slice(0, 5).map(({ f }) => receiptCode(f.id)), why: `${stale.length} note${stale.length === 1 ? ' has' : 's have'} waited ${STALL_DAYS}+ days with no steward move (oldest ${oldest} days).` });
+    }
+    const failedFixes = cats.filter(({ f }) => ((f.intakeBasis || f.intake_basis || {}).kind) === 'fix-failed');
+    if (failedFixes.length >= REPEAT_OBSERVATIONS) {
+      out.risks.push({ key: 'intake-fix-failures', title: 'System fixes are failing', count: failedFixes.length, sources: failedFixes.slice(0, 5).map(({ f }) => receiptCode(f.id)), why: `${failedFixes.length} low-hanging notes went back to a person after the system fix failed.` });
     }
   }
 

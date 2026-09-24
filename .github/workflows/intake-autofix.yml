@@ -1,0 +1,115 @@
+# intake-autofix — the low-hanging-fruit lane's runner (DR-0622)
+#
+# Darrell 2026-09-24: "if it's low hanging fruit, then we fix it. The system
+# fixes it automatically". This workflow is the deterministic half of that
+# lane; the fixer is a Claude Code Routine that dispatches `handout`, makes the
+# one small change on the branch it is given, and pushes it into the ordinary
+# lane (lint, the full suite, every guard, scripts/intake-autofix-scope-guard
+# .mjs, auto-merge on green).
+#
+#   handout    categorize every live note (the app's own module), enqueue the
+#              low-hanging ones, reconcile open fixes with their pull requests
+#              (writing "fixed, with what changed" onto the sender's note when
+#              one merged), then hand out AT MOST ONE item behind the brakes in
+#              app/src/lib/intake-autofix.js. The item is printed in the step
+#              summary for the fixer.
+#   reconcile  the same without handing anything out. Also runs hourly, so a
+#              merged fix reaches the sender's receipt without waiting for the
+#              fixer's next run. That timer is the DETERMINISTIC class: it
+#              spawns no AI and no work, and carries a budget (timeout) and a
+#              lock (the concurrency group).
+#   release    the fixer could not do it: the item is marked failed and the
+#              note goes to a person (the sender reads "on the board").
+#
+# BRAKES (the AI class keeps all three; CLAUDE.md as amended by DR-0247/0248):
+# budget = one item per run, DAILY_MAX a day, MAX_ATTEMPTS per note; lock = one
+# open fix at a time; kill = infra/intake-autofix/PAUSED on record, and the lane
+# pauses itself after FAIL_STREAK failures in a row. Armed by record (DR-0247):
+# infra/intake-autofix/ARMED-BY-RECORD on main is the arm.
+name: intake-autofix
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'handout (categorize, reconcile, hand out one), reconcile (no handout), or release (give an item back to a person)'
+        type: choice
+        options: [handout, reconcile, release]
+        default: reconcile
+      item:
+        description: 'release only: the queue id'
+        type: string
+        default: ''
+      reason:
+        description: 'release only: why the fixer could not do it'
+        type: string
+        default: ''
+  schedule:
+    - cron: '23 * * * *'
+
+concurrency:
+  group: intake-autofix
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check secrets
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: need TS_AUTHKEY and NAS_SSH_KEY." >> "$GITHUB_STEP_SUMMARY"
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Join the tailnet
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Read the intake state, the fix pull requests, and plan
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          ACTION: ${{ github.event_name == 'schedule' && 'reconcile' || inputs.action }}
+          ITEM: ${{ inputs.item }}
+          REASON: ${{ inputs.reason }}
+        run: |
+          set -euo pipefail
+          W="$RUNNER_TEMP/intake"
+          mkdir -p "$W"
+          bash scripts/intake-autofix-over-tailnet.sh read "$W/db.json"
+          # The fix branches' pull requests, newest 100 of any state.
+          gh api "repos/${GITHUB_REPOSITORY}/pulls?state=all&per_page=100&sort=created&direction=desc" \
+            --jq '[.[] | select(.head.ref | startswith("claude/intake-fix-")) | {number, title, branch: .head.ref, state, merged: (.merged_at != null), createdAt: .created_at, closedAt: .closed_at}]' > "$W/prs.json"
+          node -e 'const fs=require("fs");const w=process.argv[1];const db=JSON.parse(fs.readFileSync(w+"/db.json","utf8"));db.prs=JSON.parse(fs.readFileSync(w+"/prs.json","utf8"));fs.writeFileSync(w+"/state.json",JSON.stringify(db));' "$W"
+          node scripts/intake-autofix.mjs "$ACTION" "$W/state.json" "$W/out" --release-id "$ITEM" --reason "$REASON"
+      - name: Apply the plan (one transaction)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: bash scripts/intake-autofix-over-tailnet.sh apply "$RUNNER_TEMP/intake/out/apply.sql"
+      - name: Close stale fixes, and report
+        if: steps.gate.outputs.go == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          W="$RUNNER_TEMP/intake/out"
+          while read -r n; do
+            [ -n "$n" ] || continue
+            gh pr close "$n" --repo "$GITHUB_REPOSITORY" --comment "The system fix did not pass the checks in time; the note goes to a person (DR-0622)." || true
+          done < "$W/close.txt"
+          { echo "## intake-autofix"; echo; cat "$W/summary.md"; } >> "$GITHUB_STEP_SUMMARY"

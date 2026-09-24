@@ -256,3 +256,42 @@ async function fetchOpsUncached(opts = {}) {
   }
   return out;
 }
+
+// --- The delivery record (DR-0622) -------------------------------------------
+// The measured window a sender is given ("changes like this have merged in a
+// median of ...") comes from REAL merged pull requests: when each was opened
+// and when it merged. One unauthenticated read of the newest 100 closed pull
+// requests, normalized to five fields and held in memory for DELIVERY_TTL_MS,
+// so a screen full of receipts spends one request, never one per note. The
+// bodies are NOT kept (they are large, and the ETag cache persists what it
+// holds to localStorage). A failed read is { ok: false } and the receipt says
+// it has no window, never a painted one (DR-0076).
+export const DELIVERY_TTL_MS = 10 * 60 * 1000;
+let deliveryLast = { at: 0, data: null };
+let deliveryInflight = null;
+
+export function normalizeMerges(json) {
+  if (!Array.isArray(json)) return [];
+  return json
+    .filter((p) => p && p.merged_at && p.created_at)
+    .map((p) => ({ number: p.number, title: String(p.title || ''), branch: String((p.head && p.head.ref) || ''), createdAt: p.created_at, mergedAt: p.merged_at }));
+}
+
+export async function fetchDeliveryRecord(opts = {}) {
+  const f = opts.fetch || (typeof fetch !== 'undefined' ? fetch : null);
+  if (!f) return { ok: false, merges: [], notice: 'no fetch' };
+  if (!opts.fetch && deliveryLast.data && Date.now() - deliveryLast.at < DELIVERY_TTL_MS) return deliveryLast.data;
+  if (!opts.fetch && deliveryInflight) return deliveryInflight;
+  const run = (async () => {
+    try {
+      const r = await f(`${API}/pulls?state=closed&per_page=100&sort=updated&direction=desc`, { headers: { Accept: 'application/vnd.github+json' } });
+      if (!r.ok) return { ok: false, merges: [], notice: r.status === 403 || r.status === 429 ? 'rate-limited' : `http ${r.status}` };
+      return { ok: true, merges: normalizeMerges(await r.json()), notice: '' };
+    } catch (e) {
+      return { ok: false, merges: [], notice: (e && e.message) || 'unreachable' };
+    }
+  })();
+  if (opts.fetch) return run;
+  deliveryInflight = run.then((data) => { deliveryLast = { at: Date.now(), data }; deliveryInflight = null; return data; });
+  return deliveryInflight;
+}
