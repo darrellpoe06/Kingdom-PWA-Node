@@ -2463,17 +2463,25 @@ function CourseView({
                     <div><dt className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Constraint</dt><dd>{m.workedCase.constraint}</dd></div>
                   </dl>
                   {Array.isArray(m.workedCase.economics) && m.workedCase.economics.length > 0 && (
-                    <table className="mt-1 w-full text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-                      <caption className="text-left text-[0.625rem] uppercase tracking-wider text-[#1A1815] font-semibold">The economics — figures from the record</caption>
-                      <tbody>
+                    // A STACKED LIST, NOT A GRID (2026-09-24, DR-0602 live review on the
+                    // built bundle at 412px): the two-column grid gave the figure cell a
+                    // no-wrap class, so one long figure ("14.7 · 13.2 · 12.7 · 5.6 · 5.5
+                    // per cent · 80.75 million barrels · 98 countries") pushed the grid
+                    // past the phone's edge and starved the meaning column to a sliver
+                    // ~270px tall per row. Each figure now takes its own line and wraps;
+                    // the meaning and its record sit beneath it at any width. The render
+                    // pin in history-course.test.js refuses a grid or a no-wrap figure here.
+                    <div className="mt-1 text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }} data-testid="lesson-worked-case-economics">
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#1A1815] font-semibold">The economics — figures from the record</div>
+                      <ul className="list-none pl-0 m-0">
                         {m.workedCase.economics.map((e, i) => (
-                          <tr key={i} className="align-top border-t border-[#E8E4DC]">
-                            <td className="pr-2 py-0.5 whitespace-nowrap font-semibold">{e.figure}</td>
-                            <td className="py-0.5">{e.meaning} <span className="text-[0.6875rem] text-[#5A5751]">Record: {e.record}</span></td>
-                          </tr>
+                          <li key={i} className="border-t border-[#E8E4DC] py-0.5">
+                            <div className="font-semibold break-words">{e.figure}</div>
+                            <div>{e.meaning} <span className="text-[0.6875rem] text-[#5A5751]">Record: {e.record}</span></div>
+                          </li>
                         ))}
-                      </tbody>
-                    </table>
+                      </ul>
+                    </div>
                   )}
                   {Array.isArray(m.workedCase.steps) && (
                     <ol className="mt-1 list-decimal pl-5 text-sm text-[#1A1815] space-y-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
