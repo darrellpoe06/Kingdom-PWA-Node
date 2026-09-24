@@ -65,7 +65,7 @@ export default function VoiceLessonRecorder({ note = '', source = 'church-one-vo
         )}
         {rec.blob && !rec.recording && (
           <>
-            {rec.url && <audio controls src={rec.url} className="h-9 max-w-full" data-testid="voice-lesson-playback" />}
+            {rec.url && <audio controls src={rec.url} className="h-9 w-full sm:w-auto" data-testid="voice-lesson-playback" />}
             <button type="button" data-testid="voice-lesson-send" onClick={doSend} disabled={busy || !!problem} className={`${BTN} bg-[#1A1815] text-white border-[#1A1815]`}>{busy ? 'Sending' : 'Send the spoken lesson'}</button>
             <button type="button" data-testid="voice-lesson-discard" onClick={() => { rec.reset(); setStatus(''); }} disabled={busy} className={`${BTN} border-[#E8E4DC] text-[#5A5751]`}>Discard</button>
           </>
