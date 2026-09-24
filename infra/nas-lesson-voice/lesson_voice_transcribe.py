@@ -497,6 +497,42 @@ def sync_reviews_once(list_live, merge_hosted_tags, tag_live):
     return report
 
 
+# PUBLISHED, CARRIED BACK (DR-0639). The reader writes on the hosted copy: when
+# a member's lesson is published it tags that copy `lesson-published` +
+# `lesson-id:<id>`. The member and the Governor's queue read the app's own
+# database, so those two tags are merged back onto the live row (same id) and
+# the hosted copy is marked `published-returned`, carried once.
+PUBLISH_TAGS_PREFIX = ("lesson-published", "lesson-id:")
+
+
+def rows_to_return_published(rows):
+    out = []
+    for r in rows or []:
+        tags = r.get("tags") or []
+        if "lesson-published" not in tags or "published-returned" in tags:
+            continue
+        out.append(r)
+    return out[:MAX_MIRROR_PER_RUN]
+
+
+def return_published_once(list_hosted, merge_live_tags, tag_hosted):
+    """Carry each published tag back to the live row; returns {returned, failed}. Never raises."""
+    report = {"returned": [], "failed": []}
+    try:
+        rows = rows_to_return_published(list_hosted())
+    except Exception as e:
+        report["failed"].append({"id": None, "error": f"list: {e}"})
+        return report
+    for r in rows:
+        try:
+            merge_live_tags(r["id"], [t for t in r.get("tags") or [] if t.startswith(PUBLISH_TAGS_PREFIX)])
+            tag_hosted(r, ["published-returned"])
+            report["returned"].append(r["id"])
+        except Exception as e:
+            report["failed"].append({"id": r.get("id"), "error": str(e)})
+    return report
+
+
 class SupabaseIO:
     def __init__(self, url, key, data_dir=DATA, env=None):
         self.url, self.key, self.data_dir = url, key, data_dir
@@ -529,6 +565,10 @@ class SupabaseIO:
             q = "select=id,tags&tags=cs." + urllib.parse.quote(json.dumps(["lesson", tag])) + "&order=created_at.asc&limit=100"
             out.extend(json.loads(self._req("GET", "/rest/v1/agent_inbox?" + q).decode("utf-8")))
         return out
+
+    def list_published_rows(self):
+        q = "select=id,tags&tags=cs." + urllib.parse.quote(json.dumps(["lesson", "lesson-published"])) + "&order=created_at.asc&limit=100"
+        return json.loads(self._req("GET", "/rest/v1/agent_inbox?" + q).decode("utf-8"))
 
     def merge_tags(self, rid, extra):
         """Union `extra` into the row's tags on THIS project (the hosted copy)."""
@@ -693,6 +733,7 @@ if __name__ == "__main__":
             hosted = SupabaseIO(hurl, hkey)
             out["mirror"] = mirror_once(live.list_lesson_rows, hosted.insert_mirror, live.add_tags)
             out["review"] = sync_reviews_once(live.list_reviewed_rows, hosted.merge_tags, live.add_tags)
+            out["published"] = return_published_once(hosted.list_published_rows, live.merge_tags, hosted.add_tags)
         else:
             out["mirror"] = {"skipped": "no hosted credential to mirror to"}
     print(json.dumps(out, indent=2))

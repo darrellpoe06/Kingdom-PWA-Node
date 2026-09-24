@@ -292,6 +292,23 @@ class TheMirror(unittest.TestCase):
         self.assertEqual(tagged, [])
         self.assertEqual(len(rep["failed"]), 1)
 
+    def test_a_published_lesson_is_carried_back_to_the_member(self):
+        # DR-0639: the reader tags the hosted copy; the live row gets the two
+        # publish tags, and the hosted copy is marked so it is carried once.
+        rows = [
+            {"id": "p1", "tags": ["lesson", "lesson-approved", "lesson-published", "lesson-id:ll193-x", "lesson-captured"]},
+            {"id": "p2", "tags": ["lesson", "lesson-approved"]},
+            {"id": "p3", "tags": ["lesson", "lesson-published", "lesson-id:ll194-y", "published-returned"]},
+        ]
+        self.assertEqual([r["id"] for r in lv.rows_to_return_published(rows)], ["p1"])
+        merged, tagged = [], []
+        rep = lv.return_published_once(lambda: rows, lambda rid, t: merged.append((rid, t)), lambda r, t: tagged.append((r["id"], t)))
+        self.assertEqual(rep["returned"], ["p1"])
+        self.assertEqual(merged, [("p1", ["lesson-published", "lesson-id:ll193-x"])])
+        self.assertEqual(tagged, [("p1", ["published-returned"])])
+        src = open(lv.__file__, encoding="utf-8").read()
+        self.assertIn('out["published"] = return_published_once(hosted.list_published_rows, live.merge_tags, hosted.add_tags)', src)
+
     def test_the_job_follows_the_database_the_app_reads(self):
         src = open(lv.__file__, encoding="utf-8").read()
         self.assertIn("from sovereign_target import resolve_target", src)
