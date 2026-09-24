@@ -50,7 +50,9 @@ CREATE POLICY decision_readouts_update ON public.decision_readouts FOR UPDATE
 
 GRANT SELECT, INSERT, UPDATE ON public.decision_readouts TO authenticated;
 
--- The viewer read-only overlay covers the new instance-scoped table (DR-0241).
+-- The overlays cover the new instance-scoped table: the assistant scope
+-- (migration 0130's gate) and the viewer read-only deny (DR-0241).
+SELECT public.apply_assistant_scope_overlay();
 SELECT public.apply_viewer_readonly_overlay();
 
 NOTIFY pgrst, 'reload schema';
