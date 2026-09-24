@@ -35,11 +35,12 @@ The same day showed both the failure and the Way.
 
 ## What was measured
 
-The same day's worked example, measured rather than asserted:
-- harvest-health run 36029928554 read 754 transcribed plus 120 answered as no-caption, 874 of 874, with nothing owed;
-- the rolling incident #1617 was closed by that run itself.
-
-Before the hand was held, the monitor raised the same stall alarm on the same rolling incident many times. It was reading a retired database, and it counted "no captions" answers as owed (DR-0618).
+- **The flag without the hand.** Incident #1617 ("harvest-health: the transcript pipeline has stopped advancing") had been commented on by the monitor run after run. On 2026-09-24, runs 36028450599 and 36028779384 each commented on it and dispatched a heal, while the pipeline was not stalled.
+- **The hand, carried through.**
+  - Run 36028450599: hosted 752 / 874 at 235 h, live 754 / 874 at 51 h. The database was wrong.
+  - Run 36028779384: the live verdict still read SILENT. The count was wrong: retries measured on `created_at`, and no-caption verdicts counted as owed.
+  - Run 36029928554, with both fixed: 754 + 120 = 874 of 874, 0 owed. The incident closed by itself (DR-0618).
+- **The Word's texts** quoted in the Way were each read from `app/public/bible/kjv/*.json` before quoting.
 
 ## Decision
 
