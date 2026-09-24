@@ -40,3 +40,13 @@ Until the fix lands, poetech.us serves the build before #1756: the family and CO
 - Local stub build sizes and the Chromium boot probe as measured above.
 - After merge: the deploy run on the merge commit succeeds; `deploy-freshness` / `site-health` read the served build's stamp equal to main's tip; DR-0104 live review of Books → Owed, Books → Taxes, Projects → Governance and Church → Learn on the served build.
 - re-review: 2026-10-07 — move `__DR_LEDGER__` and `__UIUX_REVIEWS__` out of the entry chunk (a fetched JSON or a lazy chunk), and read the guard's largest-file line on the latest deploy to see how much headroom the entry chunk has left.
+
+## Measured after merge (2026-09-24, appended per DR-0107)
+
+| what | measured |
+| --- | --- |
+| merge | PR #1757 squash-merged at 00:26:42Z as `4bcaa14` on main |
+| the deploy the lane dispatched | run 35938478450 on `4bcaa14`: build 30 s; **asset-size guard PASS on the production dist** (step 8, 00:28:03Z); wrangler uploaded 597 files and answered "Deployment complete" at 00:28:23Z; the boot-check job booted the domain, the pages.dev origin, the Moore door and the Church tab in a real browser — BOOT OK ×4 at 00:28:48–51Z; run conclusion `success` at 00:28:53Z |
+| the site's own witness | site-health run 35938587332 (dispatched 00:28:38Z): **UP. Fresh.** served build `4bcaa14` · main tip `4bcaa14`; pages.dev shell 200; sovereign auth transport 200; the open `incident`-labeled issue from the stale window was closed by the probe with "RECOVERED: probe green (served build 4bcaa14)"; the rolling run log carries the line on issue #1693 |
+| stale window | from the refused deploy at 23:45:01Z (run 35935020945) to the accepted one at 00:28:23Z: 43 minutes serving the pre-#1756 build; the second refused attempt (deploy-freshness heal, run 35936279199, 00:00:46Z) is on the record too |
+| carried, not this fix's | the probe's order-path selfcheck on the sovereign backend answered "Invalid authentication credentials" (its own note: RPC absent on that backend or anon-key mismatch) and is marked NOT MEASURED with a warning, not a failure; it belongs to the sovereign-parity thread (DR-0582/DR-0583) and is read at the next nas-health check-in |
