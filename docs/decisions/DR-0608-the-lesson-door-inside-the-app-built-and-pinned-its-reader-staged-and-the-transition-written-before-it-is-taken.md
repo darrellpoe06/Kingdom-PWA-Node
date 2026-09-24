@@ -10,15 +10,15 @@
 
 ## Context — the question (SHOULD → ARE → GAPS, DR-0219)
 
-**SHOULD.** A teaching sent into the platform is build input (Layer 0, 2026-07-03). The inbox is a lesson door with a written protocol and an idempotency ledger (DR-0312). A directive spoken into the app persists to the sovereign `agent_inbox` table, RLS-scoped, polled outbound, never an inbound webhook (DR-0218 / DR-0132). The app is the primary artifact: a capability that can live in the app should (DR-0065).
+**SHOULD** (cited per DR-0219 §"The decision", `docs/decisions/DR-0219-spec-conformance-review-should-then-prove.md:32`). A teaching sent into the platform is build input (`CLAUDE.md:335`, "Spoken Teachings Are Build Input"). The inbox is a lesson door with a written protocol and an idempotency ledger (`DR-0312:8` "The Way"; `DR-0312:30` the `Lesson-Captured` label; `DR-0312:34` placement; `DR-0312:89` the lock brake). A directive spoken into the app persists to the sovereign `agent_inbox` table, RLS-scoped, polled outbound, never an inbound webhook (`app/src/lib/agent-inbox-sync.js:6`, citing migration 0127 and DR-0218). The app is the primary artifact: a capability that can live in the app should (`CLAUDE.md:301`).
 
 **ARE (measured 2026-09-24).**
 
 | door | state |
 | --- | --- |
 | this chat | live; the spoken-teaching law; every lesson today came through it or the inbox |
-| Gmail "Lesson" marker | live; the 4-hourly Routine ran at 12:48 today and found nothing new; the 5-minute event watcher is **dormant** — its run log reads "watcher dormant: GMAIL_WATCH_APP_PASSWORD secret not set (honest no-op)" (run 35985894117) |
-| in-app Speak box | 8 destinations; `poetech` writes a build directive; **no lesson destination**; the sovereign relay `relayThought()` existed with **no caller** in the app (grep: only its own definition) and `agent_inbox` holds **0 rows** |
+| Gmail "Lesson" marker | live; the 4-hourly Routine ran at 12:48 today and found nothing new; the 5-minute event watcher is **dormant** — `.github/workflows/lesson-mail-watch.yml:15` says so by design, and its run log reads "watcher dormant: GMAIL_WATCH_APP_PASSWORD secret not set (honest no-op)" (run 35985894117) |
+| in-app Speak box | 8 destinations (`app/src/lib/one-voice-routing.js:31`); `poetech` writes a build directive; **no lesson destination**; the sovereign relay `relayThought()` (`app/src/lib/agent-inbox-sync.js:15`) existed with **no caller** in the app (grep: only its own definition) and `agent_inbox` holds **0 rows** (SQL count on the live project) |
 | instance-authored courses | `courses` / `lessons` tables exist (0 rows, `lessons.audio` column present) with no writer in `app/src` — a separate authored-course path, not the lesson lane |
 | voice | dictation is browser speech-to-text (`voice-dictation.js`, 5-minute cap, 3-hour long-form opt-in); the TRANSCRIPT is the record, no audio is kept; in-app audio capture exists only for voice enrollment (`voice-recording.js`: getUserMedia + MediaRecorder, 8-second floor, 30-second good sample) |
 
@@ -26,7 +26,7 @@
 
 ## What was built (the door)
 
-1. **A `📖 Lesson` chip on both Speak surfaces** (Church One Voice and the Thinking Space), suggested automatically when the text begins with the word *Lesson* — the same marker the inbox door reads — and placed FIRST in the rule table so no other keyword steals a marked lesson (pinned).
+1. **A `📖 Lesson` chip on both Speak surfaces** (`one-voice-routing.js:47` the destination, `:54` the marker rule first, `:131` the dispatch case; `OneVoiceInput.jsx:104` the handler is the relay itself, `:109` the action) (Church One Voice and the Thinking Space), suggested automatically when the text begins with the word *Lesson* — the same marker the inbox door reads — and placed FIRST in the rule table so no other keyword steals a marked lesson (pinned).
 2. **Send relays the words to `agent_inbox`** tagged `['lesson']` with the surface's source tag, through the existing sovereign relay; a signed-out or refused insert is said on the surface with its reason, never swallowed; the words stay in the box.
 3. **Nothing reads it yet.** That is deliberate (below).
 
