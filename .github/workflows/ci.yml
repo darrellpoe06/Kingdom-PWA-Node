@@ -194,6 +194,14 @@ jobs:
       - name: sovereign voice forwarder selftest
         working-directory: infra/voice-studio
         run: python3 voice_forwarder.py --selftest
+      # Voice-lite selftest (DR-0627): the NAS's own real-audio reading voice
+      # (Piper), which keeps the reader playing when the phone leaves the app.
+      # Proven-to-catch: fails if /speak accepts a missing or wrong bearer, if
+      # /health ever reads 200 without piper installed, if a cached paragraph
+      # is synthesized twice, or if the concurrency cap stops refusing at once.
+      - name: voice-lite selftest
+        working-directory: infra/nas-voice-lite
+        run: python3 voice_lite_server.py --selftest
       # Sovereign review-queue server selftest (DR-0218 zero-n8n / DR-0076): the
       # byte-faithful port of wf-review-feed + wf-review-action. Proven-to-catch:
       # fails if the dismissed-filter, id path-containment, or status-write

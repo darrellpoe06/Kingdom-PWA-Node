@@ -136,6 +136,24 @@ function readablePageText() {
   return (clone.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 32000);
 }
 
+// WHAT HAPPENS WHEN YOU SWITCH APPS — said per voice, never one claim for all
+// (Darrell 2026-09-24: "Why doesn't the player remain playing in the background
+// when I switch between apps?!!? Fix it."). The panel used to promise "the
+// reading carries on when you leave the app" whatever was speaking. That is
+// true of a real audio clip and FALSE of the phone's own Web Speech voice,
+// which Android stops when the app leaves the screen — and the phone's voice
+// is exactly what spoke on the night the studio was offline.
+export const BACKGROUND_LINES = {
+  audio: 'This voice keeps playing when you switch apps — your phone’s own play/pause controls it.',
+  device: 'This voice stops when you switch apps — the audio voice is offline.',
+  idle: 'The audio voice keeps playing when you switch apps. If it is offline, the phone’s own voice reads instead, and that one stops when you switch apps.',
+};
+export function backgroundLine({ isReading, audioVoice } = {}) {
+  if (isReading && audioVoice === 'device') return BACKGROUND_LINES.device;
+  if (isReading && audioVoice === 'audio') return BACKGROUND_LINES.audio;
+  return BACKGROUND_LINES.idle;
+}
+
 export default function TTSControl({ isOwner = false, view, churchView, booksView }) {
   const [isOpen, setIsOpen] = useState(false);
   // Same switch as the in-lesson bar: one module store, never two states.
@@ -171,6 +189,8 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     setNotice,
     noticeAction,
     standInWhy,
+    // 'audio' | 'device' | '' — only an audio voice survives switching apps.
+    audioVoice,
   } = useReadAloud({ isOwner });
 
   // THE SCREEN STAYS ON WHILE IT READS (DR-0439; Darrell 2026-09-16: his phone
@@ -1066,6 +1086,14 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
               >×</button>
             </div>
           )}
+          {/* SAID WHERE IT IS SEEN: while the phone's own voice is reading, the
+              one fact that matters most on a phone is that it will stop if
+              they switch apps. Not a popup — a line in the panel they opened. */}
+          {isReading && audioVoice === 'device' && (
+            <div data-testid="reader-device-voice-warning" className="text-[0.625em] text-[#1A1815] border-l-4 border-[#B85838] pl-[0.5em] mb-[0.75em]" style={{ fontFamily: '"Fraunces", serif' }}>
+              {BACKGROUND_LINES.device}
+            </div>
+          )}
           {/* THE SCREEN STAYS ON WHILE IT READS (DR-0439) — the per-device switch,
               and the honest line where the browser has no wake lock. */}
           <div className="flex items-center justify-between gap-[0.5em] mb-[0.75em]" data-testid="screen-awake-row">
@@ -1255,7 +1283,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
             {target ? `Read ${target.label} opens every part of that one piece and reads it start to finish — nothing else on the page mixed in. ` : ''}Read this page opens what is collapsed on it and recites it from the top; Start where I tap begins at the word you touch; Talk about this has Ari explain what is on it — all in your chosen voice{currentItem && currentItem.ai ? ' (AI-generated)' : ''}, on every page.
           </p>
           <p className="text-[0.5625em] text-[#5A5751] leading-snug mt-[0.375em]" style={{ fontFamily: '"Fraunces", serif' }}>
-            Only <strong>Stop</strong> stops the voice. Close puts this panel away and keeps reading, and the reading carries on when you leave the app — your phone’s own play/pause controls it.
+            Only <strong>Stop</strong> stops the voice. Close puts this panel away and keeps reading. <span data-testid="reader-background-line">{backgroundLine({ isReading, audioVoice })}</span>
           </p>
         </div>
       ) : (
