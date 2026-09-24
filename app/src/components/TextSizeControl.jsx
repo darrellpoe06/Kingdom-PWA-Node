@@ -166,13 +166,14 @@ export default function TextSizeControl({ variant = 'header', className = '' }) 
 // is sticky, measured: position:sticky at top 0), and the existing index.css
 // rules still take over at the sizes that trap harder — sticky at Larger, a
 // fixed bottom bar at Largest and Big Print. No new layout mechanism.
-export function TextSizeEscapeHatch({ collapsed, onShowHeader = null, siteName = '' }) {
+export function TextSizeEscapeHatch({ collapsed, onShowHeader = null, siteName = '', siteTagline = '' }) {
   // Read so the row re-renders on every step, and so the ts-hatch-h publisher
   // inside TextSizeControl re-measures when the position flips.
   useTextSize();
   // Only when the header is tucked away — at ANY size (see above).
   if (!collapsed) return null;
   const name = String(siteName || '').trim();
+  const tagline = String(siteTagline || '').trim();
   return (
     <div className="ts-chrome-region ts-escape-hatch bg-[#FAF8F4] border-t border-[#E8E4DC] px-3 py-1.5 flex items-center justify-end gap-2 flex-wrap">
       {/* THE WAY BACK FROM THE HIDEAWAY, IN WORDS, ON THE LEFT (Darrell
@@ -184,13 +185,20 @@ export function TextSizeEscapeHatch({ collapsed, onShowHeader = null, siteName =
           the one thing that always renders while the header is tucked away,
           so the way back lives here too, as words a person can read, on the
           side the tab row never pushes off. */}
+      {/* THE WAY BACK AND THE BRAND TRAVEL TOGETHER, ON THE LEFT (Darrell
+          2026-09-24: "Hopefully it looks good on a smaller screen too...
+          make sure"). Measured at 320 px: with the two as separate row items,
+          the button wrapped alone to the RIGHT. One left-anchored group keeps
+          the way back on the left at every width, the lockup beside it (or
+          just under it on the narrowest phones). */}
+      <div data-testid="collapsed-left-group" className="mr-auto flex items-center gap-x-2 gap-y-1 flex-wrap min-w-0">
       {onShowHeader && (
         <button
           type="button"
           onClick={onShowHeader}
           data-testid="show-full-header"
           aria-label="Show the full header (name, account, voice, font, theme controls)"
-          className={`${name ? '' : 'mr-auto '}flex items-center gap-1 px-2 py-1 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]`}
+          className={`flex items-center gap-1 px-2 py-1 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]`}
           style={{ fontSize: 'calc(11px / var(--ts-chrome-scale, 1))' }}
         >
           <UiIcon name="chevronDown" /> Show header
@@ -203,15 +211,35 @@ export function TextSizeEscapeHatch({ collapsed, onShowHeader = null, siteName =
           the room, so the name the person opened rides here, in the same
           face the header uses for it. Fixed px like the row's other words,
           so it never compounds with the text-size setting. */}
+      {/* THE WHOLE BRAND, NOT A BLAND WORD (Darrell 2026-09-24, a screenshot
+          of this row beside the header lockup: "make the short tab fit this in
+          that space... to promote what it is... Currently it shows a bland
+          PoeTech" / "Next to show header"). The row carries the header's own
+          lockup: the name in its display face, the tagline in its small
+          uppercase accent beneath. The name WRAPS rather than cuts off mid-word
+          (the 2026-07-06 rule for the header name). Fixed px like the row's
+          other words, so it never compounds with the text-size setting. */}
       {name && (
-        <span
-          data-testid="collapsed-site-name"
-          className="mr-auto min-w-0 truncate text-[#1A1815] font-semibold"
-          style={{ fontFamily: '"Fraunces", serif', fontSize: 'calc(15px / var(--ts-chrome-scale, 1))', letterSpacing: '-0.01em' }}
-        >
-          {name}
+        <span className="min-w-0 flex flex-col leading-tight">
+          <span
+            data-testid="collapsed-site-name"
+            className="text-[#1A1815] font-semibold break-words"
+            style={{ fontFamily: '"Fraunces", serif', fontSize: 'calc(15px / var(--ts-chrome-scale, 1))', letterSpacing: '-0.01em' }}
+          >
+            {name}
+          </span>
+          {tagline && (
+            <span
+              data-testid="collapsed-site-tagline"
+              className="uppercase text-[#B85838] font-semibold break-words"
+              style={{ fontSize: 'calc(9px / var(--ts-chrome-scale, 1))', letterSpacing: '0.2em' }}
+            >
+              {tagline}
+            </span>
+          )}
         </span>
       )}
+      </div>
       {/* Plain words, not an icon: the reader who needs this is the reader who
           could not find it. Fixed px (like the control's own labels) so the
           way out never compounds with the setting it undoes. */}
