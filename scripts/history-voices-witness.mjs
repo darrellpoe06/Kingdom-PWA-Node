@@ -72,21 +72,30 @@ async function fetchOnce(url) {
     return { status: 0, text: '', error: String(e && e.message || e) };
   } finally { clearTimeout(timer); }
 }
-// ONE RETRY ON A FETCH THAT NEVER REACHED THE PAGE (2026-09-24, run 35938701897):
-// a docs-only push read "hr1-fact-and-interpretation · Dunmore, 1775 · HTTP 0
-// fetch failed · NOT IN SOURCE" and the re-run found the same voice on the same
-// page 56/56. A status-0 fetch is the network's answer, not the record's, and a
-// gate must not call a voice missing on a socket error (DR-0076 §4: measure the
-// artifact). So a status 0 is tried once more after a short pause; a page that
-// answers (any HTTP status) is judged as before, and a second status 0 stays a
-// FAIL with both errors on the line.
+// RETRY WHAT THE NETWORK OR THE HOST'S GATE ANSWERED, NOT THE RECORD
+// (2026-09-24, runs 35938701897 and 35938904116): a docs-only push read
+// "Dunmore, 1775 · HTTP 0 fetch failed" and the re-run found the voice 56/56;
+// three minutes and three runs later teachingamericanhistory.org answered
+// HTTP 403 to four voices it had served at 200 twice in the same window — a
+// rate limit on the runner, not a missing phrase. A status 0 (socket), 403,
+// 429 or 5xx is tried again after 5 s and then 20 s; a page that answers
+// 200 is judged as before; a refusal that persists is reported as SOURCE
+// REFUSED THE RUNNER with the status, so the line names the host's gate and
+// never says "NOT IN SOURCE" about words it could not read. It still FAILS —
+// a witness that could not read the page has not witnessed (DR-0076 §4).
+const RETRY_WAITS_MS = [5000, 20000];
+const shouldRetry = (r) => r.status === 0 || r.status === 403 || r.status === 429 || r.status >= 500;
 async function fetchText(url) {
   if (cache.has(url)) return cache.get(url);
   let text = await fetchOnce(url);
-  if (text.status === 0) {
-    await new Promise((r) => setTimeout(r, 3000));
+  let attempts = 1;
+  for (const wait of RETRY_WAITS_MS) {
+    if (!shouldRetry(text)) break;
+    await new Promise((r) => setTimeout(r, wait));
     const again = await fetchOnce(url);
-    text = again.status === 0 ? { ...again, error: `${text.error}; retried once: ${again.error}` } : { ...again, retried: true };
+    attempts += 1;
+    const errs = [text.error, again.error].filter(Boolean).join('; ');
+    text = shouldRetry(again) ? { ...again, error: errs, refused: again.status !== 0 } : { ...again, retried: attempts };
   }
   cache.set(url, text);
   return text;
@@ -113,7 +122,7 @@ async function witness(modules) {
         }
         hint = `title: «${page.title || ''}» · ${found || 'no three-word window of the quotation is on the page'}`;
       }
-      rows.push({ lesson: m.id, speaker: v.speaker, year: v.year, url: v.source.url, status: page.status, tier, error: page.error || '', retried: !!page.retried, hint });
+      rows.push({ lesson: m.id, speaker: v.speaker, year: v.year, url: v.source.url, status: page.status, tier, error: page.error || '', retried: page.retried || 0, refused: !!page.refused, hint });
     }
   }
   return rows;
@@ -161,7 +170,7 @@ const main = async () => {
   for (const r of rows) {
     const ok = r.tier !== '';
     if (!ok) bad += 1;
-    console.log(`${ok ? 'OK  ' : 'FAIL'} ${r.lesson} · ${r.speaker}, ${r.year} · HTTP ${r.status}${r.error ? ' ' + r.error : ''}${r.retried ? ' (answered on the retry)' : ''} · ${r.tier || 'NOT IN SOURCE'} · ${r.url}`);
+    console.log(`${ok ? 'OK  ' : 'FAIL'} ${r.lesson} · ${r.speaker}, ${r.year} · HTTP ${r.status}${r.error ? ' ' + r.error : ''}${r.retried ? ` (answered on attempt ${r.retried})` : ''} · ${r.tier || (r.refused ? `SOURCE REFUSED THE RUNNER (HTTP ${r.status}, after retries)` : r.status === 0 ? 'UNREACHABLE (after retries)' : 'NOT IN SOURCE')} · ${r.url}`);
     if (r.hint) console.log(`     ${r.hint}`);
   }
   if (selftest) {
