@@ -27,14 +27,28 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8');
 
-describe('lessons use the SHARED resume primitive rather than a second one', () => {
-  it('ChurchLearn calls useReadingResume for the focused lesson', () => {
+describe('lessons keep ONE place record — the sentence, not a second scroll record (DR-0623)', () => {
+  // 2026-09-14 wired lessons to reading-position.js (a scroll offset kept
+  // BESIDE the lesson's place record). Measured 2026-09-24 in a real browser:
+  // after a reload, a tab away or a course switch the lesson came back at the
+  // right step and scrollY 0 — the two records disagreed, which is the very
+  // drift the "no parallel implementation" pin below exists to prevent. The
+  // eye now writes the sentence into the same record the voice writes.
+  it('ChurchLearn no longer keeps a separate scroll record for lessons', () => {
     const src = read('components/ChurchLearn.jsx');
-    expect(src).toMatch(/useReadingResume\(\{ userKey: 'learn', surface: 'lesson', itemId: focusId/);
+    expect(src).not.toMatch(/useReadingResume\(\{ userKey: 'learn', surface: 'lesson'/);
+  });
+
+  it("the reader's eye records the sentence into the lesson's own place", () => {
+    const src = read('components/ChurchLearn.jsx');
+    expect(src).toMatch(/const cur = currentSentence\(root\);/);
+    expect(src).toMatch(/savePlace\(\{ lessonId: focusId, sentence: cur\.index, sentenceKey: cur\.key \}\)/);
   });
 
   it('keys the position to the LESSON, so lessons do not blur together', () => {
-    expect(read('components/ChurchLearn.jsx')).toMatch(/surface: 'lesson', itemId: focusId \|\| ''/);
+    // the record is per lesson (learn-resume placeKey), read back per lesson
+    expect(read('lib/learn-resume.js')).toMatch(/export function getPlaceFor\(courseKey, lessonId/);
+    expect(read('components/ChurchLearn.jsx')).toMatch(/getPlaceFor\(course\.key, focusId\)/);
   });
 
   it('no parallel implementation was left behind', () => {
@@ -57,12 +71,12 @@ describe('lessons use the SHARED resume primitive rather than a second one', () 
 });
 
 describe('arrival no longer discards the place', () => {
-  it('skips the top-scroll when a place exists', () => {
+  it('skips the top-scroll when a place exists — and LANDS on it instead (DR-0623)', () => {
     const src = read('components/ChurchLearn.jsx');
     const i = src.indexOf('ARRIVAL NO LONGER JUMPS TO THE TOP');
     expect(i).toBeGreaterThan(-1);
-    const block = src.slice(i, i + 900);
-    expect(block).toMatch(/if \(hasPlace\) return undefined;/);
+    const block = src.slice(i, i + 1400);
+    expect(block).toMatch(/if \(hasPlace\) \{ landAt\(resumeLessonId\); return undefined; \}/);
   });
 
   it('still scrolls to the top for a genuinely fresh open', () => {
@@ -70,7 +84,7 @@ describe('arrival no longer discards the place', () => {
     // conditional, not the removal of the behaviour.
     const src = read('components/ChurchLearn.jsx');
     const i = src.indexOf('ARRIVAL NO LONGER JUMPS TO THE TOP');
-    expect(src.slice(i, i + 900)).toMatch(/window\.scrollTo\(\{ top: 0/);
+    expect(src.slice(i, i + 1400)).toMatch(/window\.scrollTo\(\{ top: 0/);
   });
 });
 

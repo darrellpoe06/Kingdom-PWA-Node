@@ -56,7 +56,7 @@ const buttonByText = (text) =>
 const savedPlace = { courseKey: 'living-lessons', lessonId: 'll3-bodybuilding-christ', stage: 1, step: 2, at: 1 };
 
 describe('Learn resume-your-place', () => {
-  it('a saved place renders the banner with the real course + lesson, and Resume opens that lesson', () => {
+  it('a saved place renders the banner with the real course + lesson, and Continue opens that lesson', () => {
     window.localStorage.setItem(PLACE_KEY, JSON.stringify(savedPlace));
     mount();
 
@@ -64,7 +64,7 @@ describe('Learn resume-your-place', () => {
     expect(container.textContent).toContain('Living Lessons from the Word');
     expect(container.textContent).toContain('Bodybuilding Christ');
 
-    click(buttonByText('Resume →'));
+    click(buttonByText('Continue →'));
 
     // The saved course is now active and the saved lesson's guide is OPEN —
     // the tutor panel exists for exactly that lesson.
@@ -84,10 +84,18 @@ describe('Learn resume-your-place', () => {
     expect(container.textContent).not.toContain('Pick up where you left off');
   });
 
-  it('Start fresh clears the record from the device', () => {
+  it('Start fresh asks first, then clears the record from the device', () => {
+    // DR-0623: forgetting a place is destructive, so it goes through
+    // confirmThen (lib/confirm-action.js) — declined, nothing is forgotten.
+    const realConfirm = window.confirm;
     window.localStorage.setItem(PLACE_KEY, JSON.stringify(savedPlace));
     mount();
+    window.confirm = () => false;
     click(buttonByText('Start fresh'));
+    expect(getPlace()).toBeTruthy();
+    window.confirm = () => true;
+    click(buttonByText('Start fresh'));
+    window.confirm = realConfirm;
     expect(container.textContent).not.toContain('Pick up where you left off');
     expect(getPlace()).toBeNull();
   });
@@ -110,7 +118,7 @@ describe('Learn resume-your-place', () => {
   it('Refresh first is not offered at the first step — there is nothing behind it to replay', () => {
     window.localStorage.setItem(PLACE_KEY, JSON.stringify({ ...savedPlace, step: 0 }));
     mount();
-    expect(buttonByText('Resume →')).toBeTruthy();
+    expect(buttonByText('Continue →')).toBeTruthy();
     expect(buttonByText('Refresh first')).toBeFalsy();
   });
 

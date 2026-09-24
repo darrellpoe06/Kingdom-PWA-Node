@@ -241,6 +241,17 @@ html[data-text-size='bigprint'] .church-give-floater {
   background-color: rgba(251, 146, 60, 0.42);
   color: #ffffff;
 }
+/* "You were here" — the sentence a Continue lands on (DR-0623). The house
+   olive of the Continue control itself, so the mark reads as the answer to the
+   tap that made it; distinct from the rust reading wash, and never red
+   (DR-0099). */
+::highlight(poe-resume-mark) {
+  background-color: rgba(90, 110, 61, 0.28);
+}
+[data-theme="midnight"] ::highlight(poe-resume-mark) {
+  background-color: rgba(163, 190, 120, 0.42);
+  color: #ffffff;
+}
 [data-theme="midnight"] ::highlight(poe-read-word) {
   background-color: #FB923C;
   color: #0A0A0A;
@@ -327,6 +338,14 @@ html[data-text-size='bigprint'] .church-give-floater {
 }
 .poe-hl-poe-read-word {
   background-color: rgba(184, 88, 56, 0.85);
+}
+.poe-hl-poe-resume-mark {
+  background-color: rgba(90, 110, 61, 0.28);
+  mix-blend-mode: multiply;
+}
+[data-theme="midnight"] .poe-hl-poe-resume-mark {
+  background-color: rgba(163, 190, 120, 0.42);
+  mix-blend-mode: screen;
 }
 /* Midnight repeats the themed strengths of the API path (DR-0424): a 22% rust
    wash on OLED black reads as a smudge, not a highlight. `screen` rather than

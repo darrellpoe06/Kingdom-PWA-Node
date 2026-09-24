@@ -98,13 +98,18 @@ describe('the course picker comes FIRST on the Learn tab', () => {
   });
 
   it('comes before RESUME — Darrell: "even above where you left off"', () => {
-    // The resume banner only renders when a saved place resolves against the
-    // mounted catalog, so this asserts order only when it is actually present.
-    mount();
-    const resume = [...container.querySelectorAll('div')]
-      .find((d) => /pick up where you left off/i.test(d.textContent || '') && d.children.length < 8);
-    if (!resume) return; // no saved place in this environment — nothing to order against
+    // The resume offer only renders when a saved place resolves against the
+    // mounted catalog. This used to mount with NO place and return early —
+    // a check that could never fail (DR-0623 found it vacuous). A real place
+    // is seeded now, so the order is actually asserted.
+    window.localStorage.setItem('poe-learn-place', JSON.stringify({ courseKey: 'living-lessons', lessonId: 'll3-bodybuilding-christ', stage: 1, step: 2, at: 1 }));
+    mountWithCatalog();
+    const resume = container.querySelector('[data-testid="continue-offer"]');
+    expect(resume, 'a seeded place must render the offer').toBeTruthy();
+    expect(resume.textContent).toMatch(/pick up where you left off/i);
     expect(isBefore(picker(), resume), 'the picker must precede the resume banner').toBe(true);
+    window.localStorage.removeItem('poe-learn-place');
+    window.localStorage.removeItem('poe-learn-places');
   });
 
   it('comes before the sticky lessons bar and the lesson finder — the scroll and the lookup sit BELOW it', () => {
