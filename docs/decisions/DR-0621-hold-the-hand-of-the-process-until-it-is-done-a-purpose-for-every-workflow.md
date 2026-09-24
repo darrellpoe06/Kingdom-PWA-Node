@@ -33,6 +33,15 @@ The same day showed both the failure and the Way.
 - **The failure.** The harvest monitor had flagged a stall on the same rolling incident many times without anyone carrying it through. Its alarm came from a retired database and a wrong count.
 - **The Way.** Once someone held its hand, it went: analyze, fix, re-measure, analyze again, fix again, re-measure. At that point the live data showed 874 of 874 answered and the incident closed itself (DR-0618).
 
+## What was measured
+
+- **The flag without the hand.** Incident #1617 ("harvest-health: the transcript pipeline has stopped advancing") had been commented on by the monitor run after run. On 2026-09-24, runs 36028450599 and 36028779384 each commented on it and dispatched a heal, while the pipeline was not stalled.
+- **The hand, carried through.**
+  - Run 36028450599: hosted 752 / 874 at 235 h, live 754 / 874 at 51 h. The database was wrong.
+  - Run 36028779384: the live verdict still read SILENT. The count was wrong: retries measured on `created_at`, and no-caption verdicts counted as owed.
+  - Run 36029928554, with both fixed: 754 + 120 = 874 of 874, 0 owed. The incident closed by itself (DR-0618).
+- **The Word's texts** quoted in the Way were each read from `app/public/bible/kjv/*.json` before quoting.
+
 ## Decision
 
 1. **Done is defined.** A process is done when it works end to end in the live system, the live data proves it, its output seeds the next process, and people can use it now. A flag, a named gap or a tracked item is not done.
