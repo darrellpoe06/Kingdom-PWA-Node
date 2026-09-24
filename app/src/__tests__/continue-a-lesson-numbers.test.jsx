@@ -1,8 +1,8 @@
 // =============================================================================
 // Inside a lesson, the lesson is named by ITS OWN number, and Prev / Next walk
-// the order the reader chose in the list (DR-0623, agreeing with DR-0622)
+// the order the reader chose in the list (DR-0623, agreeing with DR-0626)
 // =============================================================================
-// DR-0622 put the Living Lessons LIST in number order and named each row by
+// DR-0626 put the Living Lessons LIST in number order and named each row by
 // its own number (the digits in its id). The inside of a lesson still read the
 // WRITTEN array: Darrell's screenshot shows "191 / 191" on L192 "Two Hours
 // Became Six", and because the array holds L61 before L60, Next from L60

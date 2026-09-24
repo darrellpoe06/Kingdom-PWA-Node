@@ -1468,7 +1468,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
 // Label layer for the unit of curriculum: lib/learn-units.js (one definition,
 // shared with the Continue offers — DR-0623).
 
-// THE READER'S ORDER, as one list with no headings (DR-0623 with DR-0622):
+// THE READER'S ORDER, as one list with no headings (DR-0623 with DR-0626):
 // what the lesson list shows for the order picked there — by number, newest
 // first, or by the Word's divisions (number order inside each) — and what
 // Prev / Next and the hands-free advance walk inside a lesson. Composed from
@@ -1533,7 +1533,7 @@ function CourseView({
   presentRequest = null,
   onFocusChange = null,  // tells the wrapper a lesson space is open (it hides the course picker)
   onAllCourses = null,   // leave the lesson AND the course — the way out of a hidden-chrome space
-  lessonOrder = null,    // the order picked in this course's lesson list (DR-0622); Prev/Next follow it
+  lessonOrder = null,    // the order picked in this course's lesson list (DR-0626); Prev/Next follow it
 }) {
   const [showFacilitator, setShowFacilitator] = useState(false);
   const [openTutorId, setOpenTutorId] = useState(null);
@@ -2069,7 +2069,7 @@ function CourseView({
           lessons-bar below, which reuses this exact shape. */}
       {focusModule && (() => {
         // PREV / NEXT WALK THE ORDER THE READER CHOSE IN THE LIST (DR-0623,
-        // agreeing with DR-0622). They walked the WRITTEN array, where L61 is
+        // agreeing with DR-0626). They walked the WRITTEN array, where L61 is
         // stored before L60 and there is no L79 — so Next from L60 skipped
         // L61, and the counter printed the array position ("191 / 191" on
         // L192, Darrell's screenshot). Both now read the same sequence the
@@ -2118,7 +2118,7 @@ function CourseView({
                   grows the words and the frame stays a frame (DR-0410). */}
               ← All {U.noun}s
             </button>
-            {/* THE LESSON'S OWN NUMBER (DR-0623 with DR-0622): "L192", and on a
+            {/* THE LESSON'S OWN NUMBER (DR-0623 with DR-0626): "L192", and on a
                 wider screen where it sits in the reader's order. A course whose
                 lessons carry no number of their own keeps "Week 3 of 8". */}
             <span className="text-[0.6875rem] text-[#5A5751] whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }} data-testid="lesson-bar-number" data-lesson-number={ownNumber(focusModule, schedule)}>

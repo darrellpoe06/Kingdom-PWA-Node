@@ -53,7 +53,7 @@ export function resolvePlaces(places, courses) {
   return out;
 }
 
-// The lesson by ITS OWN number (DR-0622): "Lesson 192", never its place in
+// The lesson by ITS OWN number (DR-0626): "Lesson 192", never its place in
 // the written array ("Lesson 191" was L192's array position).
 function lessonLabel(course, lesson) {
   const U = unitLabels(course.meta || {});
