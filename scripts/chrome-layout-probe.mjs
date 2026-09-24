@@ -601,7 +601,11 @@ try {
     const m = await page.evaluate(() => {
       const doc = document.documentElement;
       const vw = window.innerWidth, vh = window.innerHeight;
-      const hatch = [...document.querySelectorAll('button')]
+      // A phone's collapsed row carries the sizes as ONE dropdown (2026-09-24,
+      // "a drop down with all options"); the five buttons are the 640px-and-up
+      // form. Either is a way out of big text, so both count — and neither
+      // on screen is still the failure.
+      const hatch = [...document.querySelectorAll('button, select')]
         .filter((b) => /text size/i.test(b.getAttribute('aria-label') || ''));
       const reachable = hatch.some((b) => {
         const r = b.getBoundingClientRect();

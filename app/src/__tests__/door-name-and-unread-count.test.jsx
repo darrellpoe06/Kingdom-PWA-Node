@@ -65,8 +65,41 @@ describe('the collapsed header row names the door', () => {
 
   it('the shell passes the same name the header wordmark shows', () => {
     const shell = readFileSync(join(HERE, '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
-    expect(shell).toMatch(/<TextSizeEscapeHatch [^\n]*siteName=\{churchBrand \? 'The Love Corner' : 'PoeTech'\}/);
-    expect(shell).toMatch(/\{churchBrand \? 'The Love Corner' : 'PoeTech'\}<\/span>/);
+    // The row carries the header's own lockup (Darrell 2026-09-24): the same
+    // name the header shows at tablet width, and the same tagline beneath it.
+    expect(shell).toMatch(/<TextSizeEscapeHatch [^\n]*siteName=\{churchBrand \? 'The Love Corner' : 'Family Operating Systems'\}/);
+    expect(shell).toMatch(/\{churchBrand \? 'The Love Corner' : 'Family Operating Systems'\}<\/span>/);
+    expect(shell).toMatch(/<TextSizeEscapeHatch [^\n]*siteTagline=\{churchBrand \? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'\}/);
+    expect(shell).toMatch(/\{churchBrand \? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'\}/);
+  });
+
+  it('carries the tagline under the name, and draws no empty tagline', async () => {
+    const el = await mount(TextSizeEscapeHatch, { collapsed: true, onShowHeader: () => {}, siteName: 'Family Operating Systems', siteTagline: 'PoeTech · Life, Soul & Money' });
+    expect(el.querySelector('[data-testid="collapsed-site-name"]').textContent).toBe('Family Operating Systems');
+    expect(el.querySelector('[data-testid="collapsed-site-tagline"]').textContent).toBe('PoeTech · Life, Soul & Money');
+    // The name wraps; it is never cut off mid-word (the 2026-07-06 rule).
+    expect(el.querySelector('[data-testid="collapsed-site-name"]').className).not.toMatch(/truncate/);
+    const bare = await mount(TextSizeEscapeHatch, { collapsed: true, onShowHeader: () => {}, siteName: 'PoeTech' });
+    expect(bare.querySelector('[data-testid="collapsed-site-tagline"]')).toBeNull();
+  });
+});
+
+describe('on a phone the text sizes are one dropdown in the corner', () => {
+  // Darrell 2026-09-24: "can the text sizes fit in the top right corner of
+  // smaller screen or a drop down with all options?" / "Keeping the screen
+  // real-estate as clear as possible?"
+  it('offers all five sizes in one dropdown, and choosing one sets the size', async () => {
+    const el = await mount(TextSizeEscapeHatch, { collapsed: true, onShowHeader: () => {}, siteName: 'Family Operating Systems', siteTagline: 'PoeTech · Life, Soul & Money' });
+    const sel = el.querySelector('[data-testid="text-size-compact"]');
+    expect(sel, 'the compact dropdown renders on the collapsed row').toBeTruthy();
+    expect([...sel.options].map((o) => o.textContent)).toEqual(['A', 'A+', 'A++', 'A+++', 'A44']);
+    // Phones get the dropdown; the full button row is kept for 640 px and up.
+    expect(sel.closest('.sm\\:hidden')).toBeTruthy();
+    await act(async () => {
+      sel.value = 'larger';
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    expect(localStorage.getItem('poe-text-size')).toBe('larger');
   });
 });
 
