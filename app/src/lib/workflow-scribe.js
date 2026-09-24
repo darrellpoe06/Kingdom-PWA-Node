@@ -275,3 +275,50 @@ export function useWorkflowScribe() {
 
   return { screenSupported, micSupported, recording, seconds, steps, result, error, start, stop, markStep };
 }
+
+// ---------------------------------------------------------------------------
+// WHAT A RECORDING BECAME, read back (DR-0622). The whole-system flow graph
+// found this chain ending in the dark: the NAS consumer wrote transcript.json
+// and minutes.md, and nothing ever read them back to the person who recorded.
+// The ingest server now serves them (GET /scribe/sessions, /scribe/session/:id,
+// infra/nas-scribe/scribe_results.py). The door opens with the family key the
+// device already provisioned (lib/bridge-provision.js), the same key the photo
+// and voice doors take — before this, the app sent no credential at all and
+// every upload was refused.
+// ---------------------------------------------------------------------------
+export const scribeAuth = (token) => (token ? { Authorization: `Bearer ${token}` } : {});
+
+export const SCRIBE_STATES = Object.freeze({
+  recording: 'Started, not finished uploading',
+  queued: 'Waiting for Whisper',
+  transcribed: 'Written down',
+  minuted: 'Written down, with minutes',
+});
+
+/** { ok, sessions, reason } — every recording and where it stands. */
+export async function fetchScribeSessions({ token = '', fetchImpl } = {}) {
+  const doFetch = fetchImpl || (typeof fetch !== 'undefined' ? fetch : null);
+  if (!doFetch) return { ok: false, sessions: [], reason: 'no-fetch' };
+  try {
+    const res = await doFetch('/scribe/sessions', { headers: scribeAuth(token) });
+    if (!res || !res.ok) return { ok: false, sessions: [], reason: `http-${res ? res.status : 'no-response'}` };
+    const j = await res.json();
+    return { ok: true, sessions: Array.isArray(j && j.sessions) ? j.sessions : [], reason: '' };
+  } catch (e) {
+    return { ok: false, sessions: [], reason: (e && e.message) || 'network-error' };
+  }
+}
+
+/** { ok, transcript, minutes, reason } — the words of one recording. */
+export async function fetchScribeWords(sessionId, { token = '', fetchImpl } = {}) {
+  const doFetch = fetchImpl || (typeof fetch !== 'undefined' ? fetch : null);
+  if (!doFetch) return { ok: false, transcript: '', minutes: '', reason: 'no-fetch' };
+  try {
+    const res = await doFetch(`/scribe/session/${encodeURIComponent(sessionId)}`, { headers: scribeAuth(token) });
+    if (!res || !res.ok) return { ok: false, transcript: '', minutes: '', reason: `http-${res ? res.status : 'no-response'}` };
+    const j = await res.json();
+    return { ok: true, transcript: String((j && j.transcript) || ''), minutes: String((j && j.minutes) || ''), reason: '' };
+  } catch (e) {
+    return { ok: false, transcript: '', minutes: '', reason: (e && e.message) || 'network-error' };
+  }
+}

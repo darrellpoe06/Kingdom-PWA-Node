@@ -17,9 +17,11 @@
 import { useState } from 'react';
 import { formatDuration } from '../lib/voice-recording.js';
 import {
-  useWorkflowScribe, buildConsent, createChunkUploader,
+  useWorkflowScribe, buildConsent, createChunkUploader, scribeAuth,
   SCRIBE_MAX_DURATION_MIN,
 } from '../lib/workflow-scribe.js';
+import { bridgeToken } from '../lib/nas-photos.js';
+import ScribeRecordings from './ScribeRecordings.jsx';
 import { buildGuide } from '../lib/scribe-guide.js';
 
 const box = 'rounded-xl border border-[#E5E0D8] bg-white p-4';
@@ -31,6 +33,7 @@ export function WorkflowScribe({ isSteward = false }) {
   const [parties, setParties] = useState([{ name: '', consented: false }]);
   const [stepLabel, setStepLabel] = useState('');
   const [upload, setUpload] = useState({ state: 'idle', message: '' });
+  const [recordingsSeen, setRecordingsSeen] = useState(0);
 
   const consent = buildConsent(parties);
   const supported = kind === 'workflow' ? scribe.screenSupported : scribe.micSupported;
@@ -41,14 +44,16 @@ export function WorkflowScribe({ isSteward = false }) {
     const { manifest, chunks } = scribe.result || {};
     if (!manifest) return;
     setUpload({ state: 'uploading', message: 'Uploading to the sovereign ingest…' });
+    // The family key this device provisioned opens the Scribe door (DR-0622).
+    const token = bridgeToken();
     try {
       const res = await fetch('/scribe/session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...scribeAuth(token) },
         body: JSON.stringify({ sessionId: manifest.sessionId, kind: manifest.kind, consent: manifest.consent }),
       });
       if (!res.ok) throw new Error(`session http-${res.status}`);
-      const uploader = createChunkUploader({ endpoint: '/scribe' });
+      const uploader = createChunkUploader({ endpoint: '/scribe', token });
       for (let i = 0; i < chunks.length; i += 1) {
         const put = await uploader.put({ sessionId: manifest.sessionId, index: i, track: 'main' }, chunks[i]);
         if (!put.ok) throw new Error(`chunk ${i}: ${put.error}`);
@@ -56,11 +61,12 @@ export function WorkflowScribe({ isSteward = false }) {
       }
       const done = await fetch('/scribe/complete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...scribeAuth(token) },
         body: JSON.stringify({ sessionId: manifest.sessionId, manifest }),
       });
       if (!done.ok) throw new Error(`complete http-${done.status}`);
-      setUpload({ state: 'done', message: 'Uploaded and queued for transcription on the NAS.' });
+      setUpload({ state: 'done', message: 'Uploaded and queued for transcription on the NAS. Its words appear under Your recordings below once Whisper has written them.' });
+      setRecordingsSeen((n) => n + 1);
     } catch (e) {
       setUpload({
         state: 'failed',
@@ -242,6 +248,9 @@ export function WorkflowScribe({ isSteward = false }) {
           })()}
         </div>
       )}
+
+      {/* YOUR RECORDINGS (DR-0622): what each recording became, read back. */}
+      <ScribeRecordings refreshKey={recordingsSeen} />
     </div>
   );
 }

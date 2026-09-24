@@ -1,0 +1,77 @@
+# feedback-fixed — the fix that ships marks the note it fixes (DR-0622)
+#
+# THE OPEN LOOP THIS CLOSES (measured 2026-09-24 by the whole-system flow
+# graph): feedback → triage → work → the fix ships → and the sender's note
+# stayed "being worked on" until a steward remembered to press Fixed. The fix
+# and the note never met in data.
+#
+# Now they meet in the commit. A change that fixes a note names it — "fixes
+# feedback 7KQ-M4X" (the reference the board shows) or "feedback 1a2b3c4d"
+# (its id). Once that commit is on the DEPLOYED build (the head of the latest
+# successful deploy-cloudflare-pages run, never merely merged), this marks the
+# note fixed on the live database and writes which change fixed it; the
+# sender's receipt then reads Fixed. Only a named note is touched; a declined
+# note is never reopened (scripts/feedback-fixed.mjs).
+#
+# BRAKES (deterministic class, DR-0248: budget + lock): two SQL statements and
+# one API call, 5 minutes; concurrency group `feedback-fixed`; stop-path repo
+# variable FEEDBACK_FIXED_ENABLED='false'. Hourly: a sender hears within the
+# hour of the fix going live.
+
+name: feedback-fixed
+
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: feedback-fixed
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  close:
+    if: ${{ vars.FEEDBACK_FIXED_ENABLED != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 400
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: The commits on the deployed build (last 21 days)
+        run: |
+          set -euo pipefail
+          SHA=$(gh api "repos/$REPO/actions/workflows/deploy-cloudflare-pages.yml/runs?status=success&per_page=1" --jq '.workflow_runs[0].head_sha // ""')
+          if [ -z "$SHA" ] || ! git cat-file -e "$SHA^{commit}" 2>/dev/null; then
+            echo "::warning::the deployed commit could not be read; nothing is marked (a merged-but-undeployed fix is never called fixed)"
+            : > commits.txt
+          else
+            echo "deployed: $SHA"
+            git log --since=21.days --format='%h%x09%s%x09%b%x1e' "$SHA" > commits.txt
+          fi
+          echo "commits naming feedback: $(grep -ciE 'feedback' commits.txt || true)"
+      - name: Join the tailnet (to reach the live database)
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Mark the named notes fixed on the live database
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          printf '%s' "SELECT id FROM public.feedback WHERE triage_status NOT IN ('fixed','declined');" | bash scripts/live-sql.sh '|' > open.txt || { echo "::error::could not read the open notes"; exit 1; }
+          echo "open notes: $(wc -l < open.txt)"
+          node scripts/feedback-fixed.mjs sql commits.txt open.txt > fix.sql
+          out=$(bash scripts/live-sql.sh '|' < fix.sql) || { echo "::error::the live database did not take the update"; exit 1; }
+          echo "live database: $out"
+          echo "### Feedback marked fixed by shipped changes: $out" >> "$GITHUB_STEP_SUMMARY"
