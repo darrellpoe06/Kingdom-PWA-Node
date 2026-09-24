@@ -1,7 +1,7 @@
 {
   "window": 200,
   "note": "Shrink-only debt (Darrell 2026-09-17). Each entry names the bands of a lesson whose OPENING does not name its own lesson. A newly-unnamed band fails the build; entries are removed as bands are authored to carry the title, never added. Read the entries — this measures DIFFERENCE, not absence: a band may name its lesson in a synonym the author chose on purpose. 2026-09-20: ll57 (Power to Tread) leaves this list entirely. Its child band was re-authored from scratch and its teen and senior openings now name the lesson, so all three recorded bands HEALED and a newly authored youth band was written naming it from the first sentence rather than added as fresh debt.",
-  "measuredLessons": 189,
+  "measuredLessons": 190,
   "lessonsUnnamed": 145,
   "bandsUnnamed": 428,
   "perBand": {
