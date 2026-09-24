@@ -221,13 +221,17 @@ const NODES = [
   }),
   app('app/src/lib/agent-inbox-sync.js', {
     id: 'lesson-door', name: 'In-app lesson door (One Voice)',
-    purpose: 'A lesson typed or spoken into the app is filed for capture.',
+    purpose: 'A lesson typed or spoken into the app is filed for capture, and the lessons already written from the Word for those words are shown on the spot (DR-0630).',
     writes: [
       { res: 'db:agent_inbox#lesson', token: "from('agent_inbox')" },
       { res: 'db:agent_inbox#voice', file: 'app/src/lib/lesson-voice.js', token: 'voiceLessonTags' },
     ],
-    reads: [{ res: 'event:use-prompt', file: 'app/src/components/OneVoiceInput.jsx', token: 'USE_PROMPT_EVENT' }],
-    seeds: ['lesson-voice', 'lesson-inbox'],
+    reads: [
+      { res: 'event:use-prompt', file: 'app/src/components/OneVoiceInput.jsx', token: 'USE_PROMPT_EVENT' },
+      // DR-0630: the published lessons, ranked for the person's own words.
+      { res: 'code:lessons', file: 'app/src/lib/lessons-for-situation.js', token: 'buildSelfPacedDescriptors' },
+    ],
+    seeds: ['lesson-voice', 'lesson-inbox', 'member-lesson-queue'],
   }),
   rider('service:lesson-voice', 'infra/nas-lesson-voice/lesson_voice_transcribe.py', {
     id: 'lesson-voice', name: 'Whisper + the lesson mirror',
@@ -236,6 +240,8 @@ const NODES = [
       { res: 'db:agent_inbox#voice', token: '/rest/v1/agent_inbox' },
       { res: 'db:agent_inbox#lesson', token: 'list_lesson_rows' },
       { res: 'db:agent_inbox#voice-transcript', token: 'rows_to_mirror' },
+      // DR-0635: the Governor's decision on a member's lesson reaches the reader.
+      { res: 'db:agent_inbox#lesson-review', token: 'list_reviewed_rows' },
     ],
     writes: [
       { res: 'db:agent_inbox#voice-transcript', token: '"voice-transcript"' },
@@ -255,8 +261,17 @@ const NODES = [
     reads: [
       { res: 'db:agent_inbox#lesson', file: 'app/src/lib/lesson-inbox.js', token: "from('agent_inbox')" },
       { res: 'db:agent_inbox#voice-transcript', file: 'app/src/lib/lesson-inbox.js', token: 'voice-transcript' },
+      // DR-0635: approved (being written, name not used) or declined with the reason.
+      { res: 'db:agent_inbox#lesson-review', file: 'app/src/lib/lesson-inbox.js', token: 'review_reason' },
     ],
     seeds: [],
+  }),
+  app('app/src/components/MemberLessonQueue.jsx', {
+    id: 'member-lesson-queue', name: 'Members\u2019 lessons to review (the Governor)',
+    purpose: 'A member\u2019s lesson is reviewed by the Governor \u2192 a lesson (approved; the reader writes it, name never used) or a reason (declined; the member reads it beside the lessons they were shown). DR-0635.',
+    reads: [{ res: 'db:agent_inbox#lesson', file: 'app/src/lib/member-lesson-review.js', token: "rpc('member_lesson_queue')" }],
+    writes: [{ res: 'db:agent_inbox#lesson-review', file: 'app/src/lib/member-lesson-review.js', token: "rpc('review_member_lesson'" }],
+    seeds: ['lesson-voice', 'lesson-inbox'],
   }),
 
   // ===========================================================================
@@ -324,6 +339,12 @@ const NODES = [
     id: 'nas-photos', name: 'Photos from the family NAS',
     purpose: 'Property, family and album photos served from our own box.',
     reads: [{ res: 'device:family-key', token: 'bridgeToken' }, { res: 'http:nas-photos', token: '/nas-photos' }],
+    seeds: [],
+  }),
+  app('app/src/lib/clip-queue.js', {
+    id: 'reader-audio-voice', name: 'Reader audio voice (keeps playing when you switch apps)',
+    purpose: 'The reading as real audio clips from the NAS voice, so a phone keeps playing it in the background (DR-0627).',
+    reads: [{ res: 'device:family-key', file: 'app/src/lib/voice-service.js', token: 'bridgeToken' }, { res: 'http:voice-lite', file: 'app/src/lib/voice-service.js', token: '/voice-lite' }],
     seeds: [],
   }),
   app('app/src/components/VoiceStudio.jsx', {
@@ -731,6 +752,14 @@ const NODES = [
     id: 'voice-transport', name: 'Voice transport (the road to the studio)', purpose: 'Carries the app’s /voice requests to the studio on the tower.',
     reads: [{ res: 'tower:voice-studio', token: 'tlcmediadpt' }], writes: [{ res: 'http:voice', token: '/voice' }], seeds: ['voice-studio'],
   }),
+  rider('service:voice-lite', 'infra/nas-voice-lite/voice_lite_server.py', {
+    id: 'voice-lite', name: 'NAS audio voice (Piper)', purpose: 'Speaks a paragraph as a real audio clip on the NAS CPU, so the stand-in voice keeps playing in the background (DR-0627).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'voice-lite' }], writes: [{ res: 'http:voice-lite', token: '/voice-lite' }], seeds: ['reader-audio-voice'],
+  }),
+  wf('voice-lite-probe.yml', {
+    id: 'voice-lite-probe', name: 'Voice-lite probe (a real clip, end to end)', purpose: 'Asks /voice-lite for a paragraph the way the app does and keeps the clip.',
+    reads: [{ res: 'http:voice-lite', token: 'voice-lite' }], writes: [], seeds: [],
+  }),
   rider('service:funnel', 'infra/nas-loops/loops/funnel_watchdog.py', {
     id: 'funnel', name: 'Public Funnel (the NAS’s front door)', purpose: 'Keeps the recorded sovereign routes served to the app’s proxy.',
     reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'funnel' }], writes: [{ res: 'http:funnel', token: 'funnel' }], seeds: ['transport'],
@@ -799,6 +828,7 @@ const RESOURCES = {
   'db:ops_commands#finished': { label: 'operations finished by the NAS', proof: { ts: 'finished_at', fresh: 30, where: 'finished_at IS NOT NULL' } },
   'db:agent_inbox#lesson': { label: 'lessons sent from the app', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'lesson' AND NOT tags ? 'voice' AND NOT tags ? 'voice-transcript' AND NOT tags ? 'voice-failed'", consumed: "tags ? 'mirrored'" } },
   'db:agent_inbox#voice': { label: 'spoken lessons waiting for Whisper', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice'", consumed: "tags ? 'voice-transcribed' OR tags ? 'voice-failed'" } },
+  'db:agent_inbox#lesson-review': { label: 'members\u2019 lessons the Governor decided', proof: { ts: 'reviewed_at', fresh: 30, where: "tags ? 'lesson-approved' OR tags ? 'lesson-declined'", consumed: "tags ? 'review-mirrored'" } },
   'db:agent_inbox#voice-transcript': { label: 'spoken lessons written down', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice-transcript'", consumed: "tags ? 'mirrored'" } },
   'db:agent_inbox#poetech': { label: 'PoeTech requests relayed to the inbox', proof: { ts: 'created_at', fresh: 60, where: "tags ? 'tell-poetech'" },
     open: { blocker: 'Nothing reads these rows (measured 2026-09-24: no code, NAS job or routine reads the tell-poetech tag). The same words now also reach the feedback queue; this relay retires once a PoeTech request is seen landing there on the live database, not before (never dismantle what may still deliver until its replacement is proven).', reReview: '2026-10-01' } },
@@ -840,6 +870,7 @@ const RESOURCES = {
   'hosted:db': { label: 'the retired hosted database' },
   'http:nas-photos': { label: 'photo server on the NAS', route: '/nas-photos' },
   'http:voice': { label: 'the reading voice studio', route: '/voice' },
+  'http:voice-lite': { label: 'the NAS audio voice (Piper)', route: '/voice-lite' },
   'http:taxes': { label: 'the tax archive on the NAS', route: '/taxes' },
   'http:taxes-upload': { label: 'a tax document uploaded', route: '/taxes' },
   'nas:mirror': { label: 'the NAS repo mirror' },

@@ -47,6 +47,7 @@ export const REHOMED_ROUTES = Object.freeze([
   '/scribe/',
   '/store/',
   '/voice/',
+  '/voice-lite/',
   '/ways/',
   '/automation-status',
   '/interest',
