@@ -92,6 +92,7 @@ import { crossListingsFor, resolveCrossListed, crossListedCount, courseCrossList
 // under its own department here, loaded only when that department opens.
 const EternalAlgorithmsStudyLazy = React.lazy(() => import('./EternalAlgorithmsStudy.jsx'));
 import { organizeCourses, learnDepartments, courseLessonCount, COURSE_SORTS, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey } from '../lib/learn-organize.js';
+import { wantsSections, sectionLessons, sectionHolding } from '../lib/lesson-sections.js';
 import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
 import { getPlace, recordPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished } from '../lib/learn-resume.js';
@@ -3525,6 +3526,56 @@ export default function ChurchLearn({
                   </div>
                 </div>
               )}
+              {/* SECTIONS FOR A LONG COURSE (Darrell 2026-09-23, from the
+                  picker showing "Living Lessons from the Word · 189 lessons":
+                  "Living Lessons may need their own Sections..."). At or above
+                  SECTION_MIN_LESSONS the list is shelved by where in the Word
+                  each lesson stands — its FIRST anchor's book, in the Word's own
+                  divisions and canonical order (lib/lesson-sections.js, DR-0596).
+                  Real data, never a typed theme; every lesson appears once and
+                  the section counts add up to the course. The section holding
+                  the last-opened lesson starts open; shorter courses keep the
+                  flat list unchanged. */}
+              {wantsSections(schedule) ? (() => {
+                const sections = sectionLessons(schedule);
+                const openKey = sectionHolding(sections, recentIds[0]);
+                return (
+                  <div className="space-y-1 max-h-[45vh] overflow-y-auto pr-1" data-testid="course-lesson-sections">
+                    {sections.map((sec) => (
+                      <details key={sec.key} open={sec.key === openKey} className="border-t border-[#E8E4DC] pt-1" data-testid={`lesson-section-${sec.key}`}>
+                        <summary className="cursor-pointer py-2 min-h-[44px] flex items-center justify-between text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">
+                          <span>{sec.label}</span>
+                          <span className="text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{sec.lessons.length}</span>
+                        </summary>
+                        <ol className="space-y-0.5 pb-1">
+                          {sec.lessons.map((m) => (
+                            <li key={m.id} className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => open(m.id)}
+                                className="flex-1 text-left py-2 min-h-[44px] text-sm text-[#1A1815] hover:text-[#B85838] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
+                                style={{ fontFamily: '"Fraunces", serif' }}
+                              >
+                                <span className="text-[#5A5751] text-[0.6875rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{U.cap} {m.week}</span>
+                                {' · '}{m.title}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => playLesson(active.key, m.id)}
+                                aria-label={`Play ${m.title} in the big full-screen view`}
+                                title={`Open ${m.title} in the big full-screen view — read it yourself or have it read aloud`}
+                                className="shrink-0 text-[0.625rem] uppercase tracking-wider px-2 py-2 min-h-[44px] border-2 border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                              >
+                                ▶ Play
+                              </button>
+                            </li>
+                          ))}
+                        </ol>
+                      </details>
+                    ))}
+                  </div>
+                );
+              })() : (
               <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1">
                 {schedule.map((m) => (
                   <li key={m.id} className="flex items-center gap-2">
@@ -3553,6 +3604,7 @@ export default function ChurchLearn({
                   </li>
                 ))}
               </ol>
+              )}
             </nav>
           );
         })()}

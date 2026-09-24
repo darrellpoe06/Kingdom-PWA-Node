@@ -327,6 +327,13 @@ export const COURSE_CROSS_LISTINGS = [
   // on the Word's shelf as well as at home (measured: 32 distinct Scripture
   // anchors across eight lessons; the course test walks every quoted span).
   { department: 'The Word & The Way', courseKey: 'historical-research-1619', why: 'The historian’s craft taught as the Word commands it — prove all things, go to the eyewitness, two or three witnesses, a just weight, reproof regarded, written in order — worked on the 1619 Project as the case (measured: 32 Scripture anchors across eight lessons).' },
+  // The Business department's second course (DR-0594) teaches the researcher's
+  // craft as the Word commands it — count the cost, hear before you answer, two
+  // or three witnesses, a just weight, reproof regarded, written plain upon
+  // tables — so it sits on the Word's shelf as well as at home (measured: 27
+  // distinct Scripture anchors across eight lessons; the course test walks
+  // every quoted span).
+  { department: 'The Word & The Way', courseKey: 'business-research-wars', why: 'The business researcher’s craft taught as the Word commands it — count the cost, hear the matter before answering, two or three witnesses, a just weight, reproof regarded, written plain upon tables — worked on the rivalries Business Wars tells as drama (measured: 27 Scripture anchors across eight lessons).' },
 ];
 
 /** The course declarations shelved into one department, in authored order. */

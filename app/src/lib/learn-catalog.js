@@ -58,6 +58,7 @@ import { EVICTIONS_META, EVICTIONS_SESSION_FLOW, buildEvictionsSchedule, evictio
 import { APPRAISAL_META, APPRAISAL_SESSION_FLOW, buildAppraisalSchedule, appraisalProgressSummary, exportAppraisalCurriculumMarkdown, APPRAISAL_INTEREST_TAG, APPRAISAL_HELPER_TAG, APPRAISAL_TUTOR_META } from './appraisal-course.js';
 import { MATHEMATICS_META, MATHEMATICS_SESSION_FLOW, buildMathematicsSchedule, mathematicsProgressSummary, exportMathematicsCurriculumMarkdown, MATHEMATICS_INTEREST_TAG, MATHEMATICS_HELPER_TAG, MATHEMATICS_TUTOR_META } from './mathematics-class.js';
 import { RTO_BUSINESS_META, RTO_BUSINESS_SESSION_FLOW, buildRtoBusinessSchedule, rtoBusinessProgressSummary, exportRtoBusinessCurriculumMarkdown, RTO_BUSINESS_INTEREST_TAG, RTO_BUSINESS_HELPER_TAG, RTO_BUSINESS_TUTOR_META } from './rent-to-own-business-class.js';
+import { BUSINESS_RESEARCH_META, BUSINESS_RESEARCH_SESSION_FLOW, buildBusinessResearchSchedule, businessResearchProgressSummary, exportBusinessResearchCurriculumMarkdown, BUSINESS_RESEARCH_INTEREST_TAG, BUSINESS_RESEARCH_HELPER_TAG, BUSINESS_RESEARCH_TUTOR_META } from './business-research-course.js';
 import { DEVELOPMENT_META, DEVELOPMENT_SESSION_FLOW, buildDevelopmentSchedule, developmentProgressSummary, exportDevelopmentCurriculumMarkdown, DEVELOPMENT_INTEREST_TAG, DEVELOPMENT_HELPER_TAG, DEVELOPMENT_TUTOR_META } from './development-class.js';
 import { HEALTHY_LIVING_META, HEALTHY_LIVING_SESSION_FLOW, buildHealthyLivingSchedule, healthyLivingProgressSummary, exportHealthyLivingCurriculumMarkdown, HEALTHY_LIVING_INTEREST_TAG, HEALTHY_LIVING_HELPER_TAG, HEALTHY_LIVING_TUTOR_META } from './healthy-living-course.js';
 import { PROJECT_MANAGEMENT_META, PROJECT_MANAGEMENT_SESSION_FLOW, buildProjectManagementSchedule, projectManagementProgressSummary, exportProjectManagementCurriculumMarkdown, PROJECT_MANAGEMENT_INTEREST_TAG, PROJECT_MANAGEMENT_HELPER_TAG, PROJECT_MANAGEMENT_TUTOR_META } from './project-management-course.js';
@@ -167,6 +168,24 @@ export const LEARN_CATALOG = [
       blurb: 'Slice 1 is the rent-to-own operating system — the seats, the model and the just weight, inventory control, sales, collections, customer service, covenant over contract, and marketing. Tell Darrell which part of running a business you need next and he will add it, taught from the floor with the Word above it.',
       cta: 'I want more business lessons',
       sent: '✓ Sent — Darrell will see it. Seest thou a man diligent in his business?',
+    },
+  },
+  {
+    // The Business department's second course (DR-0594): the CRAFT of business
+    // research — eight Level-1 competencies — with Business Wars (Wondery) as
+    // the case, Word first. Every verse verbatim; every voice on a listed
+    // record host, probed on a runner before it was written in.
+    key: 'business-research-wars', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...BUSINESS_RESEARCH_META, key: 'business-research-wars', category: 'Business' }, sessionFlow: BUSINESS_RESEARCH_SESSION_FLOW,
+    buildScheduleRows: () => buildBusinessResearchSchedule(null), progressSummary: (p) => businessResearchProgressSummary(p),
+    exportMarkdown: () => exportBusinessResearchCurriculumMarkdown(null), downloadName: 'business-research-level-1-business-wars-as-the-case-curriculum.md',
+    interestTag: BUSINESS_RESEARCH_INTEREST_TAG, helperTag: BUSINESS_RESEARCH_HELPER_TAG, tutorCourseMeta: BUSINESS_RESEARCH_TUTOR_META,
+    interestText: (who) => `${BUSINESS_RESEARCH_INTEREST_TAG} ${who} wants a hand working a company, a filing or a rivalry through the eight competencies.`,
+    interestCopy: {
+      heading: 'Want a hand with a company of your own?',
+      blurb: 'Tell Darrell you want help working the eight competencies on a real business — a claim to count the cost of, a filing to open, a second witness to find, a scene to sort from a document, a rivalry to weigh, a correction to trace, or the two-paragraph brief to write with its sources. Teaching, not a substitute for the record: every filing and page this course names can be read in full where it points, and you are meant to check it.',
+      cta: 'I want help with mine',
+      sent: '✓ Sent — Darrell will reach out. Count the cost; establish every word at the mouth of two or three witnesses.',
     },
   },
   // DEVELOPMENT — the second half of the 2026-09-17 directive ("and also uh,

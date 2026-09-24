@@ -115,6 +115,7 @@ export const COURSE_PLAIN_WORDS = {
   'management-stewardship': ['landlord', 'rent', 'tenant', 'repairs', 'work'],
   // --- Business / Development / Project Management --------------------------
   'rent-to-own-business': ['rent', 'business', 'selling', 'money', 'boss', 'work'],
+  'business-research-wars': ['business', 'company', 'money', 'truth', 'questions', 'records'],
   'development': ['code', 'software', 'computers', 'apps', 'data', 'truth'],
   'project-management': ['planning', 'deadline', 'team', 'cost', 'work', 'project'],
   'software-project-management': ['software', 'code', 'team', 'deadline', 'project'],

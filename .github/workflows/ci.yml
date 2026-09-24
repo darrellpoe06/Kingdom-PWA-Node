@@ -328,6 +328,16 @@ jobs:
         env:
           VITE_SUPABASE_URL: https://test-stub.supabase.co
           VITE_SUPABASE_ANON_KEY: test-stub-anon-key
+      # Asset-size guard (DR-0595, 2026-09-23 post-incident): Cloudflare Pages
+      # refuses any single file over 25 MiB, and the #1756 merge's entry chunk
+      # was 26.1 MiB — CI green, deploy failed, site stale. This measures the
+      # REAL dist this job just built and fails within 1 MiB of the cap, so the
+      # next course or lesson that would take the site stale is caught here,
+      # before a merge, not by wrangler after one. Selftest first (DR-0076 §3).
+      - name: Asset-size guard — selftest (must be able to fail)
+        run: node ../scripts/asset-size-guard.mjs --selftest
+      - name: Asset-size guard — no built file within 1 MiB of the Pages cap
+        run: node ../scripts/asset-size-guard.mjs dist
       # Service-worker-controlled navigation gate (DR-0076 / 2026-07-10 outage):
       # a fresh browser's FIRST visit is never SW-controlled, so a broken worker
       # fetch handler passes lint, vitest, the build, verify-boot, AND

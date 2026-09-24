@@ -26,6 +26,7 @@
 // =============================================================================
 import { HISTORY_MODULES } from '../app/src/lib/history-course.js';
 import { HISTORICAL_RESEARCH_MODULES } from '../app/src/lib/historical-research-course.js';
+import { BUSINESS_RESEARCH_MODULES, BUSINESS_SOURCE_HOSTS } from '../app/src/lib/business-research-course.js';
 
 const ENTITIES = {
   amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
@@ -129,8 +130,9 @@ async function probe(spec) {
 const main = async () => {
   if (process.argv.includes('--probe')) { await probe(process.env.PROBES); process.exit(0); }
   const selftest = process.argv.includes('--selftest-break');
-  // Both History courses carry voices; the witness reads every one.
-  let modules = [...HISTORY_MODULES, ...HISTORICAL_RESEARCH_MODULES];
+  // Both History courses and the Business Research course carry voices; the
+  // witness reads every one.
+  let modules = [...HISTORY_MODULES, ...HISTORICAL_RESEARCH_MODULES, ...BUSINESS_RESEARCH_MODULES];
   if (selftest) {
     // The true words must be FOUND and the altered words REFUSED, in the same
     // page. A dark network refuses both, and that is not a catch — it is a
