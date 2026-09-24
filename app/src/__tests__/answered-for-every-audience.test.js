@@ -5,8 +5,10 @@
 // someone signed out): the chip is taken through the real planDispatch with
 // the handlers each surface really mounts, and the declared outcome for that
 // audience must name a return path that exists in the code. A door whose
-// outcome is "none" with no genuine blocker FAILS — that is the Lesson chip
-// for a member today, and this gate stays red until the real answer lands.
+// outcome is "none" with no genuine blocker FAILS. It first failed on the
+// Lesson chip for a member (CI run 36064236827) and turned green only when the
+// real answer landed: the matched lessons (DR-0630) and the Governor's review
+// queue (DR-0635).
 // =============================================================================
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';

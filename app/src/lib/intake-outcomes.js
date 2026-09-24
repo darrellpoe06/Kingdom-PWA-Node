@@ -45,14 +45,14 @@ export const INTAKE_DOORS = Object.freeze([
     id: 'lesson', route: 'lesson', name: 'Lesson',
     outcomes: {
       governor: { kind: 'answer', where: 'the lesson, written into the class (the armed reader and the Gmail Way, DR-0610 / DR-0312)', proof: { file: 'app/src/lib/sovereign-ai-class.js', token: 'Gmail-lesson-intake Way' } },
-      // THE GAP THIS GATE EXISTS FOR. Declared as it is, never waived: the
-      // member-side answer (three matched Word-first lessons at once, then the
-      // Governor's approve-or-decline with its reason) is being built on
-      // claude/lessons-for-your-situation and claude/member-lessons-review-queue.
-      // This line changes to that answer when it lands — and only then does
-      // the gate turn green.
-      member: { kind: 'none', where: 'nowhere: the reader counts a member’s row and never captures it; the box said "Heard as a lesson"', proof: { file: 'docs/decisions/DR-0610-both-lesson-doors-run-in-parallel-until-the-governor-is-confident-the-in-app-reader-is-armed-for-the-parallel-run.md', token: 'in-app' } },
-      'signed-out': { kind: 'refused', where: '"Not sent as a lesson (signed-out) — sign in and send it again", in the box', proof: { file: 'app/src/lib/one-voice-surfaces.js', token: 'lessonFailed' } },
+      // THE GAP THIS GATE WAS BUILT FOR, CLOSED BY THE REAL ANSWER (DR-0629):
+      // at once, the lessons already written from the Word for their words
+      // (DR-0630); then the Governor's approve-or-decline, said on their own
+      // row with his reason (DR-0635).
+      member: { kind: 'answer', where: 'at once, three lessons from the Word matched to their words under the Lesson chip; then, on their own row in the Lesson inbox, Approved or Not written with the Governor’s reason', proof: { file: 'app/src/components/OneVoiceInput.jsx', token: '<LessonsForSituation words={lessonWords} />' }, via: { file: 'app/src/components/LessonInbox.jsx', token: 'data-testid="lesson-review"' } },
+      // Signed out, nothing is relayed (the box says so), but the matched
+      // lessons are shown all the same.
+      'signed-out': { kind: 'answer', where: 'the lessons from the Word matched to their words, shown under the Lesson chip; the box says the words were not sent', proof: { file: 'app/src/components/OneVoiceInput.jsx', token: '<LessonsForSituation words={lessonWords} />' }, via: { file: 'app/src/lib/one-voice-surfaces.js', token: 'lessonFailed' } },
     },
   },
   {

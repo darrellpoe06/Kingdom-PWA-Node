@@ -56,3 +56,12 @@ Adopt the rule. The walk (`answered-for-every-audience.test.js`) runs in the ful
   - a chip that silently falls through to another route (the conference chip on Notes).
 - **The real gap is caught:** `lesson · member` fails on this branch.
 - **The receipt fix is proven:** with the fix reverted, the signed-out receipt test fails 1 of 2. With the fix in place it passes 2 of 2, and the signed-in receipt is unchanged.
+
+## Verification, continued — the member's lesson is answered (2026-09-24)
+
+- **The fix itself:** both halves of the member answer reached main in #1794 (c3c02362):
+  - the matched lessons (DR-0630): `LessonsForSituation` under the Lesson chip, shown whether or not the sender is signed in;
+  - the Governor's review queue (DR-0635): `MemberLessonQueue`, with each outcome said on the member's own row in the Lesson inbox (`data-testid="lesson-review"`).
+- **The declaration now matches the code:** `lesson · member` changed from `none` to `answer`. `lesson · signed-out` changed from `refused` to `answer`: the matched lessons are shown, and the box still says the words were not sent.
+- **The walk:** it passes 60 of 60 locally, and its proof tokens are checked against the merged files. It failed before the fix (CI run 36064236827: 1 failed, 20163 passed, the one failure `lesson · member`) and was not waived to pass.
+- **Still open:** counseling stays open on its bright line, with re-review 2026-10-01.
