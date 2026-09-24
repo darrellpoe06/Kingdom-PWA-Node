@@ -14,7 +14,7 @@ scope:
   - app/src/components/IntakeOutcomeList.jsx, app/src/components/FeedbackCenter.jsx (what the sender sees, the reply; the steward's categorized queue with each basis)
   - app/src/lib/operations-intelligence.js, app/src/components/OperationsIntelligence.jsx, app/src/components/Projects.jsx (the loop into Decision Intelligence)
   - app/src/poe-financial-mvp-v28.jsx (one line in place: the id is minted on the device; the frozen budget holds at 5356)
-  - infra/supabase/migrations-auto/0235-every-intake-is-carried-to-an-outcome.sql + infra/supabase/tests/0235-intake-outcome-smoke.sql + the rls-isolation leg
+  - infra/supabase/migrations-auto/0236-every-intake-is-carried-to-an-outcome.sql + infra/supabase/tests/0236-intake-outcome-smoke.sql + the rls-isolation leg
   - app/src/lib/intake-autofix.js, scripts/intake-autofix.mjs, scripts/intake-autofix-over-tailnet.sh, .github/workflows/intake-autofix.yml, scripts/intake-autofix-scope-guard.mjs (+ its CI step), infra/intake-autofix/ARMED-BY-RECORD (the fix lane and its brakes)
 principles: [HOLD-THE-HAND (DR-0621), VERIFICATION-DOCTRINE (DR-0076), THREE-BRAKES, STARTED-BY-DEFAULT (DR-0247), BRAKES-ARE-BUILD-REQUIREMENTS (DR-0225), APP-IS-PRIMARY (DR-0065), DECISION-RECORDS (DR-0011)]
 grounds:
@@ -90,7 +90,7 @@ Traced in the code and read from the live system before building, 2026-09-24:
    - a decision required for each untouched reply.
 10. **Low-hanging fruit is fixed by the system, through the lane, with the full brake set.** The flow:
    - `intake-autofix.yml` categorizes every live note with the same module and backfills `intake_category` and `intake_basis` onto every row.
-   - It enqueues the low-hanging ones in `intake_fix_queue` (migration 0235: stewards read it; nobody signed in inserts).
+   - It enqueues the low-hanging ones in `intake_fix_queue` (migration 0236: stewards read it; nobody signed in inserts).
    - It reconciles each claimed fix with its pull request, writing "fixed, with what changed" onto the sender's note when the fix merged.
    - It hands out at most one item.
    - The fixer is a Claude Code Routine. It dispatches `handout` and makes the one small change on the branch it is given (`claude/intake-fix-<queue id>`). It pushes into the ordinary lane: lint, the full suite, every guard, and auto-merge on green.
@@ -114,11 +114,11 @@ Traced in the code and read from the live system before building, 2026-09-24:
   - reconcile (merged, closed, stale, a claim that opened nothing);
   - the scope guard (a lib, the monolith, a migration, a workflow, a link, an email, a phone number, a bright-line word, over 30 lines, an empty change);
   - the runner's plan (one transaction; a note or title cannot close its literal; a non-uuid row is never written).
-- `app/src/__tests__/intake-sync.test.js`: one id per note; the category written at birth; a reply carries reply_to; the sender's own notes read back with outcomes; "fixed" writes what changed and when. The rest still holds on a database without 0235: a different missing column is not mistaken for these.
+- `app/src/__tests__/intake-sync.test.js`: one id per note; the category written at birth; a reply carries reply_to; the sender's own notes read back with outcomes; "fixed" writes what changed and when. The rest still holds on a database without 0236: a different missing column is not mistaken for these.
 - `app/src/__tests__/intake-outcome-render.test.jsx`: rendered, not read. It covers the sender's outcomes per state; Reply carrying reply_to into the next note; and the steward's category counts, basis and "the sender reads".
 - `app/src/__tests__/intake-loop.test.jsx`: intake in the operations readouts. A reply is a decision required, stale real work is an escalation, and failing fixes are a risk.
 - `app/src/__tests__/sovereign-reader-intake-mode.test.js`: the census rows are cut from the log before anything prints (run, not read).
-- `infra/supabase/tests/0235-intake-outcome-smoke.sql` in the rls-isolation matrix (leg `intake-outcome`):
+- `infra/supabase/tests/0236-intake-outcome-smoke.sql` in the rls-isolation matrix (leg `intake-outcome`):
   - a sender cannot write an outcome onto their own note;
   - the owner writes it and the sender reads it;
   - the fix queue is read and moved only by the owner/admin, and nobody signed in inserts into it.
@@ -128,6 +128,6 @@ Traced in the code and read from the live system before building, 2026-09-24:
 ## Limits, stated
 
 1. **The Routine that makes the fixes needs one grant only Darrell can give.** Routine `trig_011FhkURbUT5VH1VpS6WFHup` ("Intake auto-fix (DR-0625)", every four hours) was created with its full prompt. The platform stored it with no repository source and no connectors, because none can be passed from an agent session. Its sessions could not dispatch the workflow or push the branch, so it is PAUSED rather than firing sessions that must fail. The fix: open it in the claude.ai Routines page, attach the repository `darrellpoe06/Kingdom-PWA-Node` and the GitHub connector (https://claude.ai/customize/connectors), and turn it on. Everything else in the lane works without it: every note is categorized and enqueued, reconciled, and answered. `re-review: 2026-10-01`.
-2. **The live census runs once this branch merges and 0235 is applied.** `sovereign-read` mode `intake` is dispatchable on this branch. `intake-autofix.yml` reads the 0235 columns, so it answers after db-migrate applies 0235 on merge; until then it fails with the reason, never a painted zero.
+2. **The live census runs once this branch merges and 0236 is applied.** `sovereign-read` mode `intake` is dispatchable on this branch. `intake-autofix.yml` reads the 0236 columns, so it answers after db-migrate applies 0236 on merge; until then it fails with the reason, never a painted zero.
 3. **Other doors.** `door_feedback` (the church door's own intake) is counted by the census with the same categorizer. Its office already answers it in place (DR-0216); its outcome on the sender's side stays its own until that door is folded into this loop. `re-review: 2026-10-07`. Site-health incidents already flow to the operations readouts (DR-0616) and are carried by the monitors (DR-0618). The Gmail routine and lesson intake are not feedback and keep their own outcomes.
 4. **Where a model would help.** The categorizer calls none: the rules and the ledger match are deterministic. If the census shows real notes that the rules leave as unknown in numbers worth a model, that model runs on the sovereign NAS path (CLAUDE-TOOL-ROUTING) and records its basis as kind `model`. That is a measured decision for later, not a default now.

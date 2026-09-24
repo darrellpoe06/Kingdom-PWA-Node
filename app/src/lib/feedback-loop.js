@@ -60,7 +60,7 @@ export async function setFeedbackTriage({ supabase, id, status, notes = '', nowM
     }
     let { data, error } = await supabase.from('feedback').update(patch).eq('id', id).select('id');
     if (error && patch.outcome_at && isMissingColumn(error)) {
-      // 0235 not applied yet: the status still lands, without the outcome columns.
+      // 0236 not applied yet: the status still lands, without the outcome columns.
       const { outcome_at: _a, outcome_note: _n, ...lean } = patch;
       ({ data, error } = await supabase.from('feedback').update(lean).eq('id', id).select('id'));
     }

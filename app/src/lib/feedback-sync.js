@@ -34,16 +34,16 @@ import { postToChat, formatFeedbackMessage } from './synology-chat.js';
 import { currentDoor, PERSONAL_DOOR } from './app-doors.js';
 import { categorizeIntake } from './intake-outcome.js';
 
-// THE OUTCOME RIDES BESIDE THE LIST (DR-0625, migration 0235). The category
+// THE OUTCOME RIDES BESIDE THE LIST (DR-0625, migration 0236). The category
 // and its basis, what changed and when, and the note a reply answers. Asked
 // for with the list and dropped honestly on a database that has not applied
-// 0235 yet, so the board never goes dark over a column that is on its way.
+// 0236 yet, so the board never goes dark over a column that is on its way.
 const FEEDBACK_INTAKE_COLUMNS = ['intake_category', 'intake_basis', 'outcome_note', 'outcome_ref', 'outcome_at', 'reply_to'];
 const INTAKE_INSERT_KEYS = ['intake_category', 'intake_basis', 'reply_to'];
 const LEDGER = (typeof __DR_LEDGER__ !== 'undefined') ? __DR_LEDGER__ : null;
 
 /**
- * One of the OUTCOME columns is missing (0235 not applied yet), as PostgREST
+ * One of the OUTCOME columns is missing (0236 not applied yet), as PostgREST
  * or Postgres says it. Named, never generic: a different missing column (the
  * screenshots degrade below) must keep its own fallback.
  */
@@ -283,7 +283,7 @@ export async function uploadFeedback(item, meta = {}) {
   // schema-cache miss so the text feedback always lands. Worst case (a column
   // not live yet at deploy): images 2..N, then all images, are dropped — only
   // in that brief window, and never the feedback itself.
-  // One more degrade, for the outcome columns (0235) not being live yet: the
+  // One more degrade, for the outcome columns (0236) not being live yet: the
   // note still lands, and the runner categorizes it on its next pass.
   const insertRow = async (payload) => {
     let res = await supabase.from('feedback').insert(payload);

@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0235 — every intake is carried to an outcome (DR-0625, building DR-0621 3a)
+-- 0236 — every intake is carried to an outcome (DR-0625, building DR-0621 3a)
 -- =============================================================================
 -- Darrell 2026-09-24: "it should go through our workflow system and be
 -- categorized ... if it's low hanging fruit, then we fix it. The system fixes it
@@ -27,7 +27,7 @@
 --    working state, and the sender reads the outcome on their own note.
 --
 -- Instance-scoped, the overlays applied (assistant scope, viewer read-only).
--- Proven by infra/supabase/tests/0235-intake-outcome-smoke.sql in the RLS
+-- Proven by infra/supabase/tests/0236-intake-outcome-smoke.sql in the RLS
 -- matrix. IDEMPOTENT: IF NOT EXISTS, DROP-then-CREATE. Additive.
 -- =============================================================================
 
