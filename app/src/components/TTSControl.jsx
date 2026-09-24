@@ -186,11 +186,11 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // ALOUD button — never destructured it. Darrell hit it on a Fire TV:
     // pressed read, heard nothing, was told nothing.
     notice,
+    // 'audio' | 'device' | '' — only an audio voice survives switching apps.
+    audioVoice,
     setNotice,
     noticeAction,
     standInWhy,
-    // 'audio' | 'device' | '' — only an audio voice survives switching apps.
-    audioVoice,
   } = useReadAloud({ isOwner });
 
   // THE SCREEN STAYS ON WHILE IT READS (DR-0439; Darrell 2026-09-16: his phone
