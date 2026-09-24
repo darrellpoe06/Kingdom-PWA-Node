@@ -1120,6 +1120,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
     if (text) {
       setReadTarget(module.id, {
         label: `this ${unitNoun}`,
+        title: module.title || '',
         text,
         elementId: `learn-read-${module.id}`,
         prepare: (on) => setReadAll(!!on),
