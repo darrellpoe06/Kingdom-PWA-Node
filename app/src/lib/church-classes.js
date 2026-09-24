@@ -20,6 +20,8 @@
 // as a translation).
 // =============================================================================
 
+import { isNumberedCourse, orderLessons, lessonNumber, formatAdded } from './lesson-order.js';
+
 // Proposed start for Cohort 1. Governor-editable in-app (data.classCohort.startDate).
 // Labeled "proposed" in the UI until Darrell confirms — honest, not painted.
 export const PROPOSED_COHORT_START = '2026-07-11'; // a Saturday; the UI shows the real weekday
@@ -496,9 +498,16 @@ export function exportCurriculumMarkdownFor(course, startISO = null) {
   const unitCap = unit.cap || 'Week';
   const unitSessionLabel = unit.sessionLabel || 'How to run the 75 minutes';
   const minutes = sessionFlow.reduce((t, s) => t + (s.minutes || 0), 0);
+  // THE .md IS IN NUMBER ORDER TOO (Darrell 2026-09-24, on the lesson list:
+  // "MD too" / "They are numbered!!!!!!!"). A self-paced course whose lessons
+  // carry their own numbers (lib/lesson-order.js) prints them lowest first,
+  // each under ITS number — never its position. A dated cohort keeps its weeks.
+  const numbered = !startISO && isNumberedCourse(modules);
   const rows = startISO
     ? buildScheduleFor(modules, startISO)
-    : modules.map((m, i) => ({ ...m, week: i + 1, date: null, weekday: null }));
+    : numbered
+      ? orderLessons(modules, 'number').map((m) => ({ ...m, week: lessonNumber(m), date: null, weekday: null }))
+      : modules.map((m, i) => ({ ...m, week: i + 1, date: null, weekday: null }));
   const fmt = (d) => (d && !Number.isNaN(d.getTime?.())
     ? `${weekday(d)}, ${d.toISOString().slice(0, 10)}`
     : null);
@@ -524,6 +533,7 @@ export function exportCurriculumMarkdownFor(course, startISO = null) {
     const dateStr = fmt(m.date);
     lines.push(`## ${unitCap} ${m.week} — ${m.title}`);
     if (dateStr) lines.push(`*${dateStr}*`);
+    else if (formatAdded(m.added)) lines.push(`*Added ${formatAdded(m.added)}*`);
     lines.push('');
     lines.push(`**Big idea.** ${m.bigIdea}`);
     lines.push('');

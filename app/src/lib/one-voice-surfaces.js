@@ -16,6 +16,31 @@
 // the consolidation (PR #154) characterization test protects, and what this
 // extraction preserves byte-for-byte.
 
+import { declaredPersonOf } from './admin-allowlist.js';
+
+// THE LESSON DOOR, SAID TRUE FOR EVERYONE (DR-0630). The reader Routine writes
+// new lessons from Darrell's own rows; a member's row is kept and counted, and
+// a lesson written for their situation is reviewed before it is published
+// (DR-0608, DR-0312). So a member is told exactly that, and the lessons that
+// already speak to their words are shown to them on the spot.
+export const LESSON_MEMBER_CONFIRMATION = '📖 Heard. The lessons from the Word shown here are for you now. Your words are kept, and a new lesson written for your situation is reviewed before it is published.';
+
+// SAID BEFORE THEY SEND (Darrell 2026-09-24: "Make sure they know this could
+// be used in a lesson... so they know"). Shown above Send every time the
+// Lesson chip is chosen, on every surface that offers it.
+export const LESSON_NOTICE = 'What you share here may be used to write a lesson from the Word that others read. Your name is never used, and personal details are changed so no one can tell it was you.';
+
+/** Whose lesson row is read straight into a new lesson: the Governor's own
+ *  sign-in doors (DR-0608). Everyone else gets the member confirmation. */
+export function isLessonDoorOwner(email) {
+  return declaredPersonOf(email) === 'darrell';
+}
+
+/** The confirmation key for a delivered lesson, by who sent it. */
+export function lessonConfirmationKey(email) {
+  return isLessonDoorOwner(email) ? 'lessonGovernor' : 'lesson';
+}
+
 export const SURFACES = {
   church: {
     defaultRoute: 'prayer',
@@ -34,9 +59,11 @@ export const SURFACES = {
       serve:      '🤝 Leadership will see your serving hands — thank you.',
       pastor:     '⛪ A note to the pastors — received.',
       voice:      '💬 Heard and kept. Thank you for your voice.',
-      lesson:     '📖 Heard as a lesson — it is in the Learn intake. The Word-first lesson it becomes is reported back to you.',
+      lesson:     LESSON_MEMBER_CONFIRMATION,
+      lessonGovernor: '📖 Heard as a lesson — it is in the Learn intake. The Word-first lesson it becomes is reported back to you.',
       lessonFailed: '📖 Not sent as a lesson ({reason}) — sign in and send it again, or keep it as a note.',
     },
+    lessonNotice: LESSON_NOTICE,
   },
   notes: {
     defaultRoute: 'private',
@@ -59,9 +86,11 @@ export const SURFACES = {
       work:       '🛠 On the Action Queue as a work order — dispatch it to a worker from Big Picture.',
       counseling: '💚 The practice knows you’d like to talk — your words stayed private here, for you to share with them directly. Reaching out took courage.',
       private:    '📓 Kept — private to you. Come back to it anytime.',
-      lesson:     '📖 Heard as a lesson — it is in the Learn intake. The Word-first lesson it becomes is reported back to you.',
+      lesson:     LESSON_MEMBER_CONFIRMATION,
+      lessonGovernor: '📖 Heard as a lesson — it is in the Learn intake. The Word-first lesson it becomes is reported back to you.',
       lessonFailed: '📖 Not sent as a lesson ({reason}) — sign in and send it again, or keep it as a private note.',
     },
+    lessonNotice: LESSON_NOTICE,
   },
 };
 
