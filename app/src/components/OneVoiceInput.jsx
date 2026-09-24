@@ -22,6 +22,8 @@ import { useVoiceDictation, LONG_FORM_SESSION_CAP_MS, VOICE_SESSION_CAP_MS, capM
 import { readDraft, writeDraft, clearDraft } from '../lib/draft-autosave.js';
 import { relayThought } from '../lib/agent-inbox-sync.js';
 import VoiceLessonRecorder from './VoiceLessonRecorder.jsx';
+import ConversationRecorder from './ConversationRecorder.jsx';
+import { isMicCaptureSupported } from '../lib/workflow-scribe.js';
 import { rememberPrompt, AUTO_REMEMBERED, USE_PROMPT_EVENT } from '../lib/saved-prompts.js';
 import supabase from '../lib/supabase.js';
 import { getInstanceId } from '../lib/table-sync.js';
@@ -43,6 +45,9 @@ export function OneVoiceInput({
   // a general voice note). This is what unifies the two old dispatch copies.
   addPrayerRequest, updateConference, conference, sendToPoeTech,
   addIncident, addInquiry, addChurchVoice, addNote,
+  // Fills a saved note in place (DR-0624): a recorded conversation is saved
+  // on Stop and its words are added when they arrive.
+  patchNote = null,
   // Optional: the church-office email. When set, a SENT entry offers an
   // explicit secondary "email a copy" link — target _blank, clearly labeled —
   // so the surface itself NEVER navigates (Darrell 2026-07-09: the old raw
@@ -90,6 +95,18 @@ export function OneVoiceInput({
     onTranscript: (t) => onText((latestText.current ? `${latestText.current} ${t}` : t).trim()),
     capMs: wholeThing ? LONG_FORM_SESSION_CAP_MS : VOICE_SESSION_CAP_MS,
   });
+
+  // RECORD A CONVERSATION (DR-0624, Darrell 2026-09-24: "it would not even
+  // save the note"). Where this surface keeps notes and the browser can
+  // record, the long-listening job moves from the speech engine (which writes
+  // nothing when it is unsure, and hears nothing during a phone call) to a
+  // recording that is saved on Stop and written out afterwards. It takes the
+  // place of "Listen to the whole thing" here; surfaces that keep no notes
+  // keep that option.
+  const canRecord = !!addNote && isMicCaptureSupported();
+  const [recordRequest, setRecordRequest] = useState(0);
+  // Shown in the box while speaking: the words as they are heard.
+  const shownText = mic.listening && mic.interim ? `${text}${text ? ' ' : ''}${mic.interim}` : text;
 
   // YOUR PROMPTS (DR-0615): a prompt chosen in the history comes back into
   // this box through one window event; the person still chooses where it goes.
@@ -188,8 +205,10 @@ export function OneVoiceInput({
         className="w-full p-3 border border-[#1A1815] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
         rows="2"
         placeholder={placeholder}
-        value={text}
+        value={shownText}
+        readOnly={mic.listening && !!mic.interim}
         onChange={e => onText(e.target.value)}
+        data-testid="one-voice-text"
       />
       {restoredDraft && (
         <p role="status" className="text-[0.6875rem] text-[#5A6E3D] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -213,7 +232,7 @@ export function OneVoiceInput({
               {mic.listening ? '⏹ Stop' : '🎤 Speak'}
             </button>
           )}
-          {mic.supported && (
+          {mic.supported && !canRecord && (
             <label className="flex items-center gap-1.5 text-[0.625rem] text-[#5A5751] cursor-pointer" style={{ fontFamily: '"Fraunces", serif' }}>
               <input
                 type="checkbox"
@@ -226,12 +245,18 @@ export function OneVoiceInput({
               Listen to the whole thing
             </label>
           )}
-          {mic.listening && (
+          {mic.listening && !mic.nothingHeard && (
             <span className="text-[0.625rem] text-[#B85838] uppercase tracking-wider" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-              listening… stops itself after {capMinutes(wholeThing ? LONG_FORM_SESSION_CAP_MS : VOICE_SESSION_CAP_MS)}
+              {mic.heard ? 'listening…' : 'starting the microphone…'} stops itself after {capMinutes(wholeThing ? LONG_FORM_SESSION_CAP_MS : VOICE_SESSION_CAP_MS)}
             </span>
           )}
-          {mic.supported && wholeThing && !mic.listening && (
+          {mic.listening && mic.nothingHeard && (
+            /* NEVER "LISTENING" OVER SILENCE (2026-09-24). */
+            <span role="alert" className="text-[0.75rem] text-[#B85838] font-semibold" style={{ fontFamily: '"Fraunces", serif' }} data-testid="dictation-nothing-heard">
+              Not hearing anything yet. If a phone call is on, the call is holding the microphone.
+            </span>
+          )}
+          {mic.supported && wholeThing && !mic.listening && !canRecord && (
             /* THE LIMIT, SAID BEFORE HE RELIES ON IT. A web page cannot reach
                inside another app and take its audio; what this has is the
                microphone. So it hears a reel, a sermon or a class the way a
@@ -243,10 +268,27 @@ export function OneVoiceInput({
             </span>
           )}
           {mic.error && (
-            <span role="alert" className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>{mic.error}</span>
+            <span role="alert" className="text-[0.75rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>{mic.error}</span>
           )}
         </div>
       )}
+      {/* THE EMPTY BOX, SAID (the 2026-09-24 defect): a session that wrote no
+          words never leaves a silently empty box. */}
+      {!mic.listening && mic.outcome === 'no-words' && (
+        <div role="alert" className="mt-1.5 flex items-center gap-2 flex-wrap" data-testid="dictation-no-words">
+          <span className="text-[0.8125rem] text-[#B85838] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
+            The phone heard no words, so nothing was written and nothing was saved.
+            {canRecord ? ' Record instead: a recording is always kept, and the words are written afterwards.' : ' Try again closer to the phone, or type it.'}
+          </span>
+          {canRecord && (
+            <button type="button" data-testid="record-instead" onClick={() => { mic.clearOutcome(); setRecordRequest((n) => n + 1); }}
+              className="text-[0.75rem] uppercase tracking-wider px-3 py-2 min-h-[44px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white">
+              Record instead
+            </button>
+          )}
+        </div>
+      )}
+      {canRecord && <ConversationRecorder addNote={addNote} patchNote={patchNote} startRequest={recordRequest} />}
       <div className="flex items-center gap-1.5 mt-2 flex-wrap">
         {DESTS.map(d => (
           <button

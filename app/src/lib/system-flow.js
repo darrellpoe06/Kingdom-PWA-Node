@@ -25,6 +25,7 @@ export const FLOW_STATES = Object.freeze({
   empty: { tone: 'attention', label: 'nothing written yet' },
   broken: { tone: 'problem', label: 'broken' },
   open: { tone: 'problem', label: 'open — being fixed' },
+  off: { tone: 'idle', label: 'switched off' },
   unknown: { tone: 'idle', label: 'not measured yet' },
 });
 
@@ -38,6 +39,7 @@ export function resourceVerdict(meta, row, nowMs) {
   if (String(row.resource || '').startsWith('gh:run:')) {
     if (row.written == null || Number.isNaN(Number(row.written))) return { state: 'unknown', say: `its runs could not be read${row.note ? ` (${row.note})` : ''}` };
     if (Number(row.written) === 0) return { state: 'empty', say: 'it has never run' };
+    if (String(row.note || '').startsWith('off')) return { state: 'off', say: 'switched off by its stop-path: its recent fires were all skipped' };
     const t = row.newest_at ? Date.parse(row.newest_at) : NaN;
     const age = Number.isFinite(t) ? Math.floor((nowMs - t) / DAY_MS) : null;
     if (Number(row.consumed) === 0) return { state: 'broken', say: `its last run did not succeed${row.note ? ` (${String(row.note).split(' ')[0]})` : ''}`, age };

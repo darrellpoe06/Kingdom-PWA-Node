@@ -45,12 +45,37 @@ Named (each one on the surface in red, with its blocker and date; the gate refus
 
 | gap | blocker | re-review |
 | --- | --- | --- |
-| a shipped fix does not mark the note it fixes | being built in the next push of this series | 2026-09-25 |
-| `sermon_video_stats` has no live producer (`scripts/load-video-engagement.mjs` runs nowhere) | being wired in the next push of this series | 2026-09-26 |
-| Scribe transcripts and minutes are written on the NAS and read back by nothing | the read-back route and list are the next push of this series | 2026-09-26 |
+| a shipped fix does not mark the note it fixes | closed in the second push (below) | done |
+| `sermon_video_stats` has no live producer (`scripts/load-video-engagement.mjs` runs nowhere) | closed in the second push (below) | done |
+| Scribe transcripts and minutes are written on the NAS and read back by nothing | closed in the second push (below) | done |
 | office pushes wait in `push_outbox` | the drain ships off until a real phone is proven to receive (DR-0400 / DR-0334): a phone in a person's hand | 2026-10-01 |
 | the n8n wf18 bearer's only reader is n8n | n8n leaves by Darrell's decision (DR-0617); this workflow leaves with it once wf18's replacement is proven | 2026-10-01 |
 | the monitors' escalations return to the data through a person | by design: the Governor decides the fix; the next proof run shows it flowing again | 2026-10-24 |
+
+## Impact, continued — the second push closed three of them
+
+1. **The fix loop closes.** `.github/workflows/feedback-fixed.yml` (hourly; budget + lock; stop-path `FEEDBACK_FIXED_ENABLED='false'`) reads the commits on the DEPLOYED build (the head of the latest successful deploy run, never merely merged) and marks every open note a commit names — by the reference the board shows (`fixes feedback 7KQ-M4X`) or its id (`feedback 1a2b3c4d`) — as `fixed`, writing which change fixed it where the sender reads it (`scripts/feedback-fixed.mjs`). A declined note is never reopened; an unnamed note is never touched. Proven on a local Postgres 16: two named notes marked, a declined one left, a second run marked none.
+2. **The orphan has a producer.** `.github/workflows/video-stats.yml` (every 6 hours) reads each recent service video's public views and likes from the channel's own feed — no key, no quota, the feed the Church tab already reads — and upserts them onto the videos the service record holds (`scripts/video-stats-feed.mjs`). Proven on a local Postgres 16: the join wrote the one held video and skipped the other; a second run updated in place.
+3. **The Scribe chain reaches the NAS and comes back.** Measured: the app sent no credential while the server required its own token, and `/scribe` was listed UNACTUATED in `infra/nas-transport/RECORDED-STATE.md` since 2026-09-06 — no recording from the app could have landed. Now the server accepts the family key every device already provisions (DR-0613), `infra/nas-scribe/install.sh` mounts `/scribe` on the Funnel (funnel, never serve) and restarts the server when its code changes, and `GET /scribe/sessions` + `/scribe/session/{id}` give back each recording's state, transcript and minutes, shown under "Your recordings" on the Scribe screen (`app/src/components/ScribeRecordings.jsx`). A new gate, `no-route`, fails the build when a connection rides a route the Funnel does not mount; proven by removing `/scribe` from the mounted table.
+
+## What the first live measurement found (run 36059041587, 2026-09-24 21:04 UTC)
+
+The BEFORE state, on the database the app reads: 77 resources measured — **38 flowing, 18 empty, 9 stale, 10 broken, 1 unconsumed, 1 unknown**. What each finding became:
+
+| finding | root cause | state now |
+| --- | --- | --- |
+| `ci.yml`, `auto-merge.yml` read "broken" | the measurement took the newest run on any branch, a PR's `action_required` | **fixed**: runs on main first, only success/failure/timeout decide (`pickRun`) |
+| `push-outbox-drain.yml` read "broken" | every fire is `skipped` by its stop-path (DR-0400) | **fixed**: reads "switched off", never broken |
+| migration ledger 36 days stale (151 rows, newest 2026-08-19) | the live replay records in `_sovereign_replay`; `_schema_migrations` there is the repoint's frozen copy, and the app's migration panel (0060) and `sovereign-drift.yml` both read the frozen copy | **fixed**: 0235 reads the live ledger; sovereign-drift reads it first |
+| `choir_songs` "unknown" (7 rows, no date) | the rows carry no `updated_at` | **fixed**: measured on `created_at` |
+| `sermon_video_stats` empty | no producer | **fixed** in the second push (video-stats.yml); fills on its first run |
+| feedback: 60 notes, 0 answered | triage shipped today (DR-0616) | **carried** by the operations board: the escalation is on the steward's screen now |
+| empty: concerns, discussions, decision_readouts, video_harvests, saved_prompts, door_feedback, church_service_segments, push_outbox, agent_inbox lessons/transcripts | nothing yet written on the live database (several shipped this week) | **carried**: each reads "nothing written yet" and turns flowing on its first row; none is painted |
+| stale: ops_commands (80 days), projects (91), incidents (92), board_tasks (34), agent_tasks (33) | no one has used these doors since; the queue drains (ops-queue-health green) | **carried** as escalations on the operations board |
+| `mcp-health`, `nas-agent-arm`, `nas-storage-sync`, `source-transcript`, `transcript-backfill` last runs failed | dispatch-only tools whose last hand-run failed (Aug–Sep); `source-transcript` is superseded by `source-transcript-nas` (YouTube challenges runner IPs), `transcript-backfill` by the NAS trickle (874 transcripts live) | **named**: re-dispatch each when used; combining the superseded pairs is the next leanness step, `re-review: 2026-10-01` |
+| `nas-email-door` failed | needs the Google App Password only Darrell mints (DR-0111 §2) | **named**: his value, `re-review: 2026-10-01` |
+| `harvest-health` failed on schedule | the transcript stall incident it exists to raise; its live-read rewrite is DR-0618's (PR #1772) | **carried** by DR-0618 |
+| `ari-comprehensive-review` schedule stopped (59 days) | its weekly schedule has not fired since July | **named**, `re-review: 2026-10-01` |
 
 ## Verification
 
