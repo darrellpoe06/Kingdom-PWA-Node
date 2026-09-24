@@ -31,6 +31,7 @@ import React from 'react';
 import { placeAgo, placeWhere } from '../lib/learn-resume.js';
 import { confirmThen } from '../lib/confirm-action.js';
 import { unitLabels } from '../lib/learn-units.js';
+import { ownNumber } from '../lib/lesson-order.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const MONO = { fontFamily: '"JetBrains Mono", monospace' };
@@ -52,9 +53,11 @@ export function resolvePlaces(places, courses) {
   return out;
 }
 
+// The lesson by ITS OWN number (DR-0622): "Lesson 192", never its place in
+// the written array ("Lesson 191" was L192's array position).
 function lessonLabel(course, lesson) {
   const U = unitLabels(course.meta || {});
-  return `${U.cap} ${lesson.week} · ${lesson.title}`;
+  return `${U.cap} ${ownNumber(lesson, course.schedule)} · ${lesson.title}`;
 }
 
 /** The top-of-Learn offer: the latest lesson, then every other one begun. */
@@ -140,10 +143,10 @@ export function ContinueChip({ item, onContinue }) {
       onClick={() => onContinue(place)}
       data-testid="continue-chip"
       aria-label={`Continue ${lesson.title}, ${placeWhere(place)}`}
-      title={`Continue ${U.noun} ${lesson.week} · ${lesson.title} — ${placeWhere(place)}`}
+      title={`Continue ${U.noun} ${ownNumber(lesson, course.schedule)} · ${lesson.title} — ${placeWhere(place)}`}
       className={`text-[0.6875rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#5A6E3D] bg-[#5A6E3D] text-white font-semibold hover:bg-[#4a5a31] ${FOCUS}`}
     >
-      Continue <span style={MONO}>{U.cap.charAt(0)}{lesson.week}</span>
+      Continue <span style={MONO}>{U.cap.charAt(0)}{ownNumber(lesson, course.schedule)}</span>
     </button>
   );
 }

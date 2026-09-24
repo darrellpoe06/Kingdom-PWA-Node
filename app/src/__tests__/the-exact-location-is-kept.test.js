@@ -45,6 +45,19 @@ describe('lessons keep ONE place record — the sentence, not a second scroll re
     expect(src).toMatch(/savePlace\(\{ lessonId: focusId, sentence: cur\.index, sentenceKey: cur\.key \}\)/);
   });
 
+  it('a tap is not a scroll: only wheel, touch-drag and scroll keys count as the reader moving', () => {
+    // Measured in the browser journeys: with pointerdown counted, tapping the
+    // Scripture tab to leave recorded the view under the finger over the
+    // sentence the read-aloud had saved.
+    const src = read('components/ChurchLearn.jsx');
+    const i = src.indexOf('A TAP IS NOT A SCROLL');
+    expect(i).toBeGreaterThan(-1);
+    const block = src.slice(i, i + 1400);
+    expect(block).toMatch(/addEventListener\('wheel'/);
+    expect(block).toMatch(/addEventListener\('touchmove'/);
+    expect(block).not.toMatch(/addEventListener\('pointerdown'/);
+  });
+
   it('keys the position to the LESSON, so lessons do not blur together', () => {
     // the record is per lesson (learn-resume placeKey), read back per lesson
     expect(read('lib/learn-resume.js')).toMatch(/export function getPlaceFor\(courseKey, lessonId/);
