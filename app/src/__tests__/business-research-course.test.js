@@ -331,17 +331,20 @@ describe('voices of the record: their own words, dated, sourced, probed on a run
   it('every lesson carries at least two voices and none has a fault under the business host list', () => {
     for (const m of M) {
       expect(m.voices.length, `${m.id} voices`).toBeGreaterThanOrEqual(2);
+      // A WITNESS in every lesson (DR-0600, Darrell: "Any actual testimonies from witnesses?!"):
+      // a named person or the company under its own signature, speaking in the first person.
+      expect(m.voices.some((v) => /Hastings|Keyes|Iger|Perlmutter|Gates/.test(v.speaker) || (/letter to shareholders|in its annual report/.test(v.speaker) && /\b(we|We|our)\b/.test(v.words))), `${m.id} has no witness in his own words`).toBe(true);
       expect(businessResearchVoiceFaults(m), `${m.id}`).toEqual([]);
     }
   });
 
   it('measures something: 16 voices, 8 distinct sources, every source on a listed record host (the SEC, the Antitrust Division, the WTO, Disney, the show page)', () => {
     const all = M.flatMap((m) => m.voices);
-    expect(all.length).toBe(16);
+    expect(all.length).toBe(32); // 16 records + 16 witness voices (DR-0600)
     const urls = new Set(all.map((v) => v.source.url));
-    expect(urls.size).toBe(8);
+    expect(urls.size).toBe(12);
     for (const u of urls) expect(BUSINESS_SOURCE_HOSTS, u).toContain(new URL(u).host);
-    expect(BUSINESS_SOURCE_HOSTS).toEqual(expect.arrayContaining(['www.sec.gov', 'www.justice.gov', 'www.wto.org', 'thewaltdisneycompany.com', 'wondery.com']));
+    expect(BUSINESS_SOURCE_HOSTS).toEqual(expect.arrayContaining(['www.sec.gov', 'www.justice.gov', 'www.wto.org', 'thewaltdisneycompany.com', 'wondery.com', 'web.archive.org']));
   });
 
   it('the business hosts are the ONLY relief from the History host list — every other fault still stands', () => {
@@ -389,12 +392,12 @@ describe('the record, dated: the timeline is managed by a gate, not typed by han
     }
   });
 
-  it('the whole course lines up on one timeline, sorted, from 1989 to 2018', () => {
+  it('the whole course lines up on one timeline, sorted, from 1989 to 2020', () => {
     const all = businessResearchTimeline();
     expect(all.length).toBe(M.reduce((n, m) => n + m.timeline.length, 0));
     for (let i = 1; i < all.length; i += 1) expect(all[i].year).toBeGreaterThanOrEqual(all[i - 1].year);
     expect(all[0].year).toBe(1989);
-    expect(all[all.length - 1].year).toBe(2018);
+    expect(all[all.length - 1].year).toBe(2020); // Boeing's 10-K for 2019, filed January 2020 (DR-0600)
   });
 
   it('the dates the course states are on the record with what to check them against', () => {

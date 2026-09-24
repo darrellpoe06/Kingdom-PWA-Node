@@ -61,6 +61,11 @@
 //
 // THEIR WORDS, FETCHED NOT REMEMBERED (DR-0580). Every voice below was probed
 // on a GitHub runner against its named source before it was written in
+// WITNESSES ADDED 2026-09-24 (DR-0600): a person who was there, in his own
+// words, in every lesson — Hastings (2011), the Netflix letter (2011), Keyes
+// (2010), Iger and Perlmutter (2009), Gates as the Court quoted his memo
+// (1999), Boeing's own 10-K (2020); probed on a runner first (runs
+// 35946339324, 35946488040, 35946756879).
 // (history-voices-witness runs 35933697006, 35933806953, 35933917730,
 // 35934034007, 35934089153, 35934134357 and 35934157081, 2026-09-23): the
 // Wondery show page (served through Audible), the Antitrust Division's
@@ -131,6 +136,14 @@ const SRC = {
   disney: { title: 'The Walt Disney Company — press release, “Disney to Acquire Marvel Entertainment,” August 31, 2009', url: 'https://thewaltdisneycompany.com/disney-to-acquire-marvel-entertainment/' },
   netflix10k: { title: 'U.S. Securities and Exchange Commission, EDGAR — Netflix, Inc., annual report on Form 10-K for the year ended December 31, 2011, filed February 10, 2012', url: 'https://www.sec.gov/Archives/edgar/data/1065280/000119312512053009/d260328d10k.htm' },
   blockbuster8k: { title: 'U.S. Securities and Exchange Commission, EDGAR — Blockbuster Inc., exhibit 99.1 to the current report on Form 8-K filed September 23, 2010', url: 'https://www.sec.gov/Archives/edgar/data/1085734/000119312510215624/dex991.htm' },
+  // WITNESSES — people who were there, in their own words (2026-09-24, DR-0600;
+  // Darrell: "Any actual testimonies from witnesses?! For these lessons?!"
+  // — "Fix them too!"). Probed on a runner before they were written in:
+  // history-voices-witness runs 35946339324, 35946488040, 35946756879.
+  hastings: { title: 'Reed Hastings, chief executive of Netflix — “An Explanation and Some Reflections,” the Netflix blog, September 18, 2011, as archived by the Wayback Machine (the live page is gone)', url: 'https://web.archive.org/web/2011/https://blog.netflix.com/2011/09/explanation-and-some-reflections.html' },
+  netflixLetter: { title: 'U.S. Securities and Exchange Commission, EDGAR — Netflix, Inc., letter to shareholders of October 24, 2011, exhibit 99.1 to the current report on Form 8-K', url: 'https://www.sec.gov/Archives/edgar/data/1065280/000119312511278716/d246709dex991.htm' },
+  blockbusterRelease: { title: 'U.S. Securities and Exchange Commission, EDGAR — Blockbuster Inc., press release of September 23, 2010 (the chapter 11 filing), exhibit 99.1 to the current report on Form 8-K filed September 24, 2010', url: 'https://www.sec.gov/Archives/edgar/data/1085734/000119312510215765/dex991.htm' },
+  boeing10k: { title: 'U.S. Securities and Exchange Commission, EDGAR — The Boeing Company, annual report on Form 10-K for the year ended December 31, 2019, filed January 31, 2020', url: 'https://www.sec.gov/Archives/edgar/data/12927/000001292720000014/a201912dec3110k.htm' },
 };
 
 export const BUSINESS_RESEARCH_MODULES = [
@@ -170,6 +183,8 @@ export const BUSINESS_RESEARCH_MODULES = [
     voices: [
       { speaker: 'Wondery, the show page for Business Wars', year: 2018, where: 'The show’s own description, on its page as served through Audible, beside the first episode of February 6, 2018.', source: SRC.wondery, words: 'Business Wars gives you the unauthorized, real story of what drives these companies and their leaders, innovators, investors and executives to new heights - or to ruin.', why: 'The case states its own posture in one sentence, and every word of it is a claim the course teaches how to sort.' },
       { speaker: 'Netflix, Inc., in its annual report for 2011', year: 2012, where: 'Item 1 of the Form 10-K for the year ended December 31, 2011, filed with the Securities and Exchange Commission on February 10, 2012.', source: SRC.netflix10k, words: 'We were incorporated in Delaware in August 1997 and completed our initial public offering in May 2002.', why: 'A fact claim answered by the company’s own filing: the date the story says it started, on the record.' },
+      { speaker: 'Reed Hastings, chief executive of Netflix', year: 2011, where: 'The same post, on why he moved the company as fast as he did.', source: SRC.hastings, words: 'Companies rarely die from moving too fast, and they frequently die from moving too slowly.', why: 'The cost he counted, stated by the one who counted it.' },
+      { speaker: 'Jim Keyes, chairman and chief executive of Blockbuster', year: 2010, where: 'The company’s press release on the day it filed for chapter 11, September 23, 2010, filed with the Securities and Exchange Commission.', source: SRC.blockbusterRelease, words: 'After a careful and thorough analysis, we determined that the process announced today provides the optimal path for recapitalizing our balance sheet and positioning Blockbuster for the future as we continue to transform our business model to meet the evolving preferences of our customers.', why: 'The man at the head of the losing company, on the day, in his own words on the record.' },
     ],
     timeline: [
       { year: 1997, event: 'Netflix is incorporated in Delaware in August, by its own later account.', record: 'Netflix, Inc., Form 10-K for 2011, Item 1, “Other Information.”' },
@@ -237,6 +252,8 @@ export const BUSINESS_RESEARCH_MODULES = [
     voices: [
       { speaker: 'Netflix, Inc., in its annual report for 2011', year: 2012, where: 'Item 1, “Competition,” of the Form 10-K for the year ended December 31, 2011, filed February 10, 2012.', source: SRC.netflix10k, words: 'The market for entertainment video is intensely competitive and subject to rapid change. New competitors may be able to launch new businesses at relatively low cost.', why: 'The company describes its own market in the register of a filing, not a scene; the reader can hold the two side by side.' },
       { speaker: 'Blockbuster Inc., in an exhibit filed the day it entered chapter 11', year: 2010, where: 'Exhibit 99.1 to the current report on Form 8-K filed with the Securities and Exchange Commission on September 23, 2010.', source: SRC.blockbuster8k, words: 'the ability of the Company to continue as a going concern, the Company’s ability to obtain bankruptcy court approval with respect to motions in the chapter 11 cases', why: 'The company names its own condition on the day, in its own words; no retelling is needed to date the turn.' },
+      { speaker: 'Netflix, Inc., in its letter to shareholders', year: 2011, where: 'The letter of October 24, 2011, filed with the Securities and Exchange Commission as exhibit 99.1: its second paragraph.', source: SRC.netflixLetter, words: 'The last few months, however, have been difficult for shareholders, employees, and most unfortunately, many members of Netflix.', why: 'The company under its own signature, on the record, saying what the quarter cost.' },
+      { speaker: 'The Boeing Company, in its annual report', year: 2020, where: 'Item 1 of the Form 10-K for the year ended December 31, 2019, filed January 31, 2020: the paragraph headed Competition.', source: SRC.boeing10k, words: 'We face aggressive international competitors who are intent on increasing their market share, such as Airbus and other entrants from Russia, China and Japan.', why: 'One party to the dispute naming the other, under its own signature, in a sworn filing.' },
     ],
     timeline: [
       { year: 1997, event: 'Netflix is incorporated in Delaware in August.', record: 'Netflix, Inc., Form 10-K for 2011, Item 1, “Other Information.”' },
@@ -244,6 +261,8 @@ export const BUSINESS_RESEARCH_MODULES = [
       { year: 2010, event: 'Blockbuster files a current report on September 23 whose exhibit names the chapter 11 cases and the going-concern risk.', record: 'Blockbuster Inc., Form 8-K, exhibit 99.1, EDGAR accession 0001193125-10-215624.' },
       { year: 2011, event: 'The fiscal year the Netflix report covers ends on December 31.', record: 'Netflix, Inc., Form 10-K for the year ended December 31, 2011, cover page.' },
       { year: 2012, event: 'Netflix files its annual report for 2011 on February 10.', record: 'EDGAR accession 0001193125-12-053009, primary document d260328d10k.htm.' },
+      { year: 2019, event: 'The fiscal year Boeing’s annual report covers ends on December 31; the report is filed the next January.', record: 'The Boeing Company, Form 10-K for the year ended December 31, 2019, cover page.' },
+      { year: 2020, event: 'Boeing files its annual report for 2019 on January 31, naming Airbus among the aggressive international competitors it faces.', record: 'The Boeing Company, Form 10-K for 2019, Item 1, “Competition.”' },
     ],
     quiz: {
       questions: [
@@ -303,6 +322,8 @@ export const BUSINESS_RESEARCH_MODULES = [
     voices: [
       { speaker: 'The WTO Secretariat, summarising dispute DS316', year: 2004, where: 'The Secretariat’s summary of the dispute on the WTO’s site, under “Consultations,” the complaint by the United States.', source: SRC.ds316, words: 'On 6 October 2004, the United States requested consultations with the governments of Germany, France, the United Kingdom, and Spain', why: 'The first witness: who complained, against whom, on what date, in the record-keeper’s own words.' },
       { speaker: 'The WTO Secretariat, summarising dispute DS353', year: 2011, where: 'The Secretariat’s summary of the dispute on the WTO’s site, under “Summary of key findings,” the European Communities’ complaint against the United States.', source: SRC.ds353, words: 'The European Communities estimated that the total amount of the alleged subsidies was $19.1 billion between 1989 and 2006.', why: 'The second witness: the other side’s complaint, with its own number and its own dates, so neither accusation stands alone.' },
+      { speaker: 'Reed Hastings, chief executive of Netflix', year: 2011, where: 'His post on the Netflix blog, September 18, 2011, the first words after the title.', source: SRC.hastings, words: 'I messed up. I owe everyone an explanation.', why: 'The man who made the decision, in his own words, before any narrator retells it.' },
+      { speaker: 'Netflix, Inc., in its letter to shareholders', year: 2011, where: 'The same letter, on the pricing change and the rebranding it had cancelled.', source: SRC.netflixLetter, words: 'we greatly upset many domestic Netflix members with our significant DVD-related pricing changes, and to a lesser degree, with the proposed-and-now-cancelled rebranding of our DVD service', why: 'The second witness to the same event, in a filed document: the blog and the letter agree.' },
     ],
     timeline: [
       { year: 1989, event: 'The first year of the period over which the European Communities later counted alleged subsidies to Boeing.', record: 'WTO dispute DS353, Secretariat summary of key findings.' },
@@ -369,6 +390,8 @@ export const BUSINESS_RESEARCH_MODULES = [
     voices: [
       { speaker: 'Wondery, the show page for Business Wars', year: 2018, where: 'The show’s own description beside its first episode on the page as served through Audible, February 6, 2018.', source: SRC.wondery, words: 'Netflix vs. HBO. Nike vs. Adidas. Business is war. Sometimes the prize is your wallet or your attention.', why: 'The frame in the show’s own words: a lens the researcher names before sorting the scenes it frames.' },
       { speaker: 'The Walt Disney Company, in its press release', year: 2009, where: 'The release “Disney to Acquire Marvel Entertainment,” Burbank and New York, August 31, 2009, still on Disney’s own site.', source: SRC.disney, words: 'Based on the closing price of Disney stock on Friday, August 28, the transaction value is $50 per Marvel share or approximately $4 billion.', why: 'A document with a date, a number and a name: the model of what may be cited, set beside a scene that may not.' },
+      { speaker: 'Robert A. Iger, president and chief executive of The Walt Disney Company', year: 2009, where: 'The company’s press release of August 31, 2009, announcing the Marvel acquisition.', source: SRC.disney, words: 'We believe that adding Marvel to Disney\'s unique portfolio of brands provides significant opportunities for long-term growth and value creation', why: 'The buyer, in his own words, on the day: what a dramatization must be checked against.' },
+      { speaker: 'Ike Perlmutter, chief executive of Marvel', year: 2009, where: 'The same press release: the seller’s own words.', source: SRC.disney, words: 'Disney is the perfect home for Marvel\'s fantastic library of characters given its proven ability to expand content creation and licensing businesses', why: 'The seller as a witness beside the buyer, both on the record the same day.' },
     ],
     timeline: [
       { year: 1999, event: 'The Court’s Findings of Fact in the Microsoft case are signed on November 5, a document a researcher may cite word for word.', record: 'The Court’s Findings of Fact, U.S. v. Microsoft, on the Antitrust Division’s site.' },
@@ -433,8 +456,11 @@ export const BUSINESS_RESEARCH_MODULES = [
     voices: [
       { speaker: 'Judge Thomas Penfield Jackson, in the Court’s Findings of Fact', year: 1999, where: 'Finding 33, under “Microsoft’s Power in the Relevant Market,” signed November 5, 1999, on the Antitrust Division’s site.', source: SRC.findings, words: 'In other words, Microsoft enjoys monopoly power in the relevant market.', why: 'A finding of conduct weighed against a stated standard, in the court’s own words, numbered so anyone can check it.' },
       { speaker: 'Judge Thomas Penfield Jackson, in the Court’s Findings of Fact', year: 1999, where: 'Finding 35, under “Market Share,” signed November 5, 1999, on the Antitrust Division’s site.', source: SRC.findings, words: 'Every year for the last decade, Microsoft’s share of the market for Intel-compatible PC operating systems has stood above ninety percent.', why: 'The number beneath the finding: a just weight is a measured one, not a felt one.' },
+      { speaker: 'Bill Gates, chairman and chief executive of Microsoft, in a memorandum to his executives', year: 1999, where: 'His “Internet Tidal Wave” memorandum of May 1995, as the Court quoted it in its Findings of Fact of November 5, 1999.', source: SRC.findings, words: 'pursuing a multi-platform strategy where they move the key API into the client to commoditize the underlying operating system', why: 'The defendant’s own words about his rival, entered into the court’s record: the weight is his, not the narrator’s.' },
+      { speaker: 'Bill Gates, chairman and chief executive of Microsoft, in a memorandum to his executives', year: 1999, where: 'The same memorandum, as the Court quoted it: what a decent product could and could not do.', source: SRC.findings, words: 'this alone won\'t get people to switch away from Netscape', why: 'His own words, weighed by the Court, on why quality alone would not win the browser.' },
     ],
     timeline: [
+      { year: 1995, event: 'In May Bill Gates sends his “Internet Tidal Wave” memorandum to Microsoft’s executives, naming Netscape as a new competitor; the Court quotes it four years later.', record: 'U.S. v. Microsoft, the Court’s Findings of Fact, paragraphs 72 and 134.' },
       { year: 1998, event: 'The United States’ case against Microsoft opens on May 18; trial begins October 19.', record: 'The Antitrust Division’s case page (case open date) and the Court’s Findings of Fact (trial dates).' },
       { year: 1999, event: 'Trial ends June 24; the record closes July 28; Judge Jackson signs 412 findings of fact on November 5.', record: 'The Court’s Findings of Fact, U.S. v. Microsoft, November 5, 1999.' },
       { year: 2001, event: 'The Court of Appeals issues its opinion on June 28, the first of the courts the findings went to next.', record: 'The Antitrust Division’s case page, frequently requested documents.' },
@@ -497,6 +523,8 @@ export const BUSINESS_RESEARCH_MODULES = [
     voices: [
       { speaker: 'The Antitrust Division’s case page for U.S. v. Microsoft Corporation', year: 2001, where: 'The list of frequently requested documents on the case page, each with its date, including the appeals opinion of June 28, 2001.', source: SRC.casePage, words: 'Court of Appeals Opinion (June 30, 2004) Final Judgment (November 12, 2002) Court’s Findings of Fact (November 5, 1999)', why: 'The chain of corrections as the record-keeper lists it: dated documents after the findings, which a researcher must read in order.' },
       { speaker: 'Blockbuster Inc., in an exhibit filed the day it entered chapter 11', year: 2010, where: 'Exhibit 99.1 to the current report on Form 8-K filed September 23, 2010, in its cautionary note.', source: SRC.blockbuster8k, words: 'those described in filings made by the Company with the U.S. Bankruptcy Court for the Southern District of New York, the ability of the Company to continue as a going concern', why: 'A company correcting its own story in the present tense, on the day, in its own filing.' },
+      { speaker: 'Reed Hastings, chief executive of Netflix', year: 2011, where: 'The same post, on what he got wrong.', source: SRC.hastings, words: 'In hindsight, I slid into arrogance based upon past success.', why: 'A correction in the first person: the witness names his own fault.' },
+      { speaker: 'Netflix, Inc., in its letter to shareholders', year: 2011, where: 'The same letter, on the pricing change and the rebranding it had cancelled.', source: SRC.netflixLetter, words: 'we greatly upset many domestic Netflix members with our significant DVD-related pricing changes, and to a lesser degree, with the proposed-and-now-cancelled rebranding of our DVD service', why: 'The second witness to the same event, in a filed document: the blog and the letter agree.' },
     ],
     timeline: [
       { year: 1999, event: 'The Court’s Findings of Fact are signed on November 5.', record: 'The Antitrust Division’s case page, frequently requested documents.' },
@@ -505,6 +533,7 @@ export const BUSINESS_RESEARCH_MODULES = [
       { year: 2004, event: 'A second Court of Appeals opinion issues on June 30.', record: 'The Antitrust Division’s case page, frequently requested documents.' },
       { year: 2006, event: 'The Modified Final Judgment is entered on September 7.', record: 'The Antitrust Division’s case page, frequently requested documents.' },
       { year: 2010, event: 'Blockbuster names the going-concern risk and the chapter 11 cases in its own exhibit on September 23.', record: 'Blockbuster Inc., Form 8-K, exhibit 99.1.' },
+      { year: 2011, event: 'Reed Hastings publishes his apology on September 18; the letter to shareholders of October 24 calls the rebranding proposed-and-now-cancelled.', record: 'The Netflix blog as archived by the Wayback Machine; the letter to shareholders, exhibit 99.1.' },
     ],
     quiz: {
       questions: [
@@ -564,6 +593,8 @@ export const BUSINESS_RESEARCH_MODULES = [
     voices: [
       { speaker: 'Judge Thomas Penfield Jackson, in the Court’s Findings of Fact', year: 1999, where: 'Finding 412, the last of the findings, signed November 5, 1999, on the Antitrust Division’s site.', source: SRC.findings, words: 'Most harmful of all is the message that Microsoft’s actions have conveyed to every enterprise with the potential to innovate in the computer industry.', why: 'A record-list sentence: a court’s finding of effect, which is what research supplies and a verse does not.' },
       { speaker: 'The WTO Secretariat, summarising dispute DS353', year: 2011, where: 'The Secretariat’s summary of the dispute, under “Summary of key findings,” the European Communities’ estimate of subsidies to Boeing.', source: SRC.ds353, words: 'More than half of this amount was accounted for by the value of the alleged NASA R&D subsidies, which, according to the European Communities, was $10.4 billion in this period.', why: 'A record-list number with its own attribution — what a record supplies, stated as the record states it.' },
+      { speaker: 'Jim Keyes, chairman and chief executive of Blockbuster', year: 2010, where: 'The company’s press release on the day it filed for chapter 11, September 23, 2010, filed with the Securities and Exchange Commission.', source: SRC.blockbusterRelease, words: 'After a careful and thorough analysis, we determined that the process announced today provides the optimal path for recapitalizing our balance sheet and positioning Blockbuster for the future as we continue to transform our business model to meet the evolving preferences of our customers.', why: 'The man at the head of the losing company, on the day, in his own words on the record.' },
+      { speaker: 'Reed Hastings, chief executive of Netflix', year: 2011, where: 'The same post, announcing the split of the DVD service.', source: SRC.hastings, words: 'It\'s hard for me to write this after over 10 years of mailing DVDs with pride, but we think it is necessary and best', why: 'The decision as he announced it, so the later reversal can be read against his own words.' },
     ],
     timeline: [
       { year: 1989, event: 'The first year of the period over which the European Communities counted alleged subsidies to Boeing.', record: 'WTO dispute DS353, Secretariat summary.' },
@@ -632,6 +663,8 @@ export const BUSINESS_RESEARCH_MODULES = [
     voices: [
       { speaker: 'Wondery, the episode note for the first Business Wars episode', year: 2018, where: 'The note beside “Netflix vs Blockbuster - Sudden Death,” episode 1, February 6, 2018, on the show page as served through Audible.', source: SRC.wondery, words: 'This is episode 1 of an 8-part series on the brutal business battle between Netflix and Blockbuster, and later HBO.', why: 'The doorway credited in its own words, by date, in the brief that walks through it to the record.' },
       { speaker: 'Netflix, Inc., in its annual report for 2011', year: 2012, where: 'Item 1, “Competition,” of the Form 10-K for the year ended December 31, 2011, filed February 10, 2012.', source: SRC.netflix10k, words: 'DVD rental outlets and kiosk services, such as Blockbuster and Redbox; entertainment video retailers, such as Best Buy, Wal-Mart and Amazon.com.', why: 'The record naming the rival in the company’s own filing: the sentence the brief cites instead of the scene.' },
+      { speaker: 'The Boeing Company, in its annual report', year: 2020, where: 'Item 1 of the Form 10-K for the year ended December 31, 2019, filed January 31, 2020: the paragraph headed Competition.', source: SRC.boeing10k, words: 'We face aggressive international competitors who are intent on increasing their market share, such as Airbus and other entrants from Russia, China and Japan.', why: 'One party to the dispute naming the other, under its own signature, in a sworn filing.' },
+      { speaker: 'Jim Keyes, chairman and chief executive of Blockbuster', year: 2010, where: 'The company’s press release on the day it filed for chapter 11, September 23, 2010, filed with the Securities and Exchange Commission.', source: SRC.blockbusterRelease, words: 'After a careful and thorough analysis, we determined that the process announced today provides the optimal path for recapitalizing our balance sheet and positioning Blockbuster for the future as we continue to transform our business model to meet the evolving preferences of our customers.', why: 'The man at the head of the losing company, on the day, in his own words on the record.' },
     ],
     timeline: [
       { year: 1997, event: 'Netflix is incorporated in Delaware in August; the podcast later places the story’s beginning around this year.', record: 'Netflix, Inc., Form 10-K for 2011; the Business Wars episode note.' },
@@ -645,6 +678,8 @@ export const BUSINESS_RESEARCH_MODULES = [
       { year: 2011, event: 'The fiscal year the Netflix report covers ends on December 31.', record: 'Netflix, Inc., Form 10-K for the year ended December 31, 2011, cover page.' },
       { year: 2012, event: 'Netflix files its annual report for 2011 on February 10.', record: 'EDGAR accession 0001193125-12-053009.' },
       { year: 2018, event: 'Wondery introduces Business Wars on January 19; the first episode follows on February 6.', record: 'The Business Wars show page, episode list.' },
+      { year: 2019, event: 'The fiscal year Boeing’s annual report covers ends on December 31; the report is filed the next January.', record: 'The Boeing Company, Form 10-K for the year ended December 31, 2019, cover page.' },
+      { year: 2020, event: 'Boeing files its annual report for 2019 on January 31, naming Airbus among the aggressive international competitors it faces.', record: 'The Boeing Company, Form 10-K for 2019, Item 1, “Competition.”' },
     ],
     quiz: {
       questions: [
@@ -700,6 +735,7 @@ export function exportBusinessResearchCurriculumMarkdown(startISO = null) {
 /** Hosts a business voice may cite: the record-keepers the runner probed. */
 export const BUSINESS_SOURCE_HOSTS = [
   'wondery.com', 'www.justice.gov', 'www.sec.gov', 'www.wto.org', 'thewaltdisneycompany.com',
+  'web.archive.org', // the Wayback Machine's dated copy of a page the company has since removed (Hastings, 2011)
 ];
 
 // The History gates, re-used whole; the host list is the one thing that

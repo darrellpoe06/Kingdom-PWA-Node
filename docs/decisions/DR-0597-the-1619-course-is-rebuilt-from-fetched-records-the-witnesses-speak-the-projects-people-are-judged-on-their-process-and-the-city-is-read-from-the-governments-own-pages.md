@@ -51,6 +51,6 @@ The course now does what he asked in the order he asked it: the witnesses speak,
 
 - `npx vitest run src/__tests__/historical-research-course.test.js` — 51/51.
 - The shared suites that read the catalog — 167/167 in one run; `course-band-coverage` reads allFour 8 against the raised baseline.
-- `history-voices-witness` runs on the push (paths include the course file): every voice and every timeline source must be found on its page, or the build is red. The run id is recorded in the PR.
+- `history-voices-witness` ran on the push (run 35946373712, 2026-09-24T02:14Z, success): every voice and every timeline source of the rebuilt course was found on its page, on the runner, before the PR could merge.
 - After merge: DR-0104 live review — open Church → Learn → History → the second course on a phone width, read lesson 3 (the witnesses) and lesson 7 (the city) at the child band; site-health first.
 - re-review: 2026-10-22 — re-probe the 21 records (a Wayback copy or a government page can move); if the Rolfe letter is reachable on a listed host by then, quote it in lesson 2 and source the 1620 entry.
