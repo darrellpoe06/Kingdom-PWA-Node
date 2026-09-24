@@ -63,6 +63,7 @@ The following foundation documents in `docs/00-foundations/_root/` are authorita
 - `docs/00-foundations/_root/FAMILY-ACCESS-PROCESS.md`
 - `docs/00-foundations/_root/FATHERS-PROVOKE-TO-GOOD-WORKS.md`
 - `docs/00-foundations/_root/FOUNDERS-CONFESSION.md`
+- `docs/00-foundations/_root/HOLD-THE-HAND-OF-THE-PROCESS.md`
 - `docs/00-foundations/_root/IDENTITY-ROLES-AUDIT.md`
 - `docs/00-foundations/_root/IN-PLACE-FIRST.md`
 - `docs/00-foundations/_root/INFRASTRUCTURE-PIPELINE.md`
