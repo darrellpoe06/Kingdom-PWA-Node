@@ -14,8 +14,8 @@
   "baselinePct": 12.6,
   "targetPct": 20.0,
   "moduleLedger": {
-    "monolithLines": 5356,
-    "frozenBudget": 5356,
+    "monolithLines": 5357,
+    "frozenBudget": 5357,
     "surfaces": 59
   },
   "previousPct": 16.67,

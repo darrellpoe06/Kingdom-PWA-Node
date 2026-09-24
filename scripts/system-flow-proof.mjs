@@ -28,11 +28,24 @@ export function workflowFiles(registry = SYSTEM_FLOW) {
   return registry.nodes.filter((n) => n.workflow).map((n) => n.workflow).sort();
 }
 
-// The latest completed run of one workflow → one proof row. A run that did
-// not succeed is written with consumed = 0 and its conclusion in `note`; a
-// workflow that never ran is written = 0 (never painted as fine).
+// The latest DECISIVE run of one workflow → one proof row. Measured by the
+// first proof run (36059041587): "latest completed run on any branch" judged
+// ci.yml and auto-merge.yml broken on a PR's `action_required`, and judged a
+// switched-off drain broken on its `skipped` fires. So: runs on main first;
+// only success / failure / timed_out decide; a workflow whose recent fires
+// were all skipped is OFF by its stop-path (note 'off'), never broken; one that
+// never ran is written = 0 (never painted as fine).
+const DECISIVE = new Set(['success', 'failure', 'timed_out']);
+export function pickRun(runs) {
+  const list = Array.isArray(runs) ? runs : [];
+  const decisive = list.find((r) => DECISIVE.has(r && r.conclusion));
+  if (decisive) return decisive;
+  if (list.length && list.every((r) => r && r.conclusion === 'skipped')) return { conclusion: 'off', updated_at: list[0].updated_at, html_url: list[0].html_url };
+  return null;
+}
 export function runRow(file, run) {
   if (!run) return { resource: `gh:run:${file}`, written: 0, newest_at: null, consumed: null, note: 'no completed run on record' };
+  if (run.conclusion === 'off') return { resource: `gh:run:${file}`, written: 1, newest_at: run.updated_at || null, consumed: null, note: `off ${run.html_url || ''}`.trim() };
   const ok = run.conclusion === 'success';
   return {
     resource: `gh:run:${file}`,
@@ -54,13 +67,18 @@ async function fetchRuns() {
   const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
   const out = [];
   for (const file of workflowFiles()) {
-    // One call per workflow: its latest completed run on any branch.
-    const url = `https://api.github.com/repos/${repo}/actions/workflows/${file}/runs?status=completed&per_page=1`;
+    // Its recent completed runs on main; any branch only when main has none.
+    const base = `https://api.github.com/repos/${repo}/actions/workflows/${file}/runs?status=completed&per_page=20`;
+    const headers = { Accept: 'application/vnd.github+json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     try {
-      const res = await fetch(url, { headers: { Accept: 'application/vnd.github+json', ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+      let res = await fetch(`${base}&branch=main`, { headers });
       if (!res.ok) { out.push({ ...runRow(file, null), written: null, note: `GitHub answered ${res.status}` }); continue; }
-      const j = await res.json();
-      out.push(runRow(file, (j.workflow_runs || [])[0] || null));
+      let runs = (await res.json()).workflow_runs || [];
+      if (!pickRun(runs)) {
+        res = await fetch(base, { headers });
+        if (res.ok) runs = (await res.json()).workflow_runs || [];
+      }
+      out.push(runRow(file, pickRun(runs)));
     } catch (e) {
       out.push({ resource: `gh:run:${file}`, written: null, newest_at: null, consumed: null, note: `could not ask GitHub: ${e.message}` });
     }
