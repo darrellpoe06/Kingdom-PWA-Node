@@ -45,6 +45,12 @@ Traced in the code and read from the live system before building, 2026-09-24:
   - web addresses are cut out before matching;
   - a note the sender tagged as a bug is serious, so it is never answered "already decided";
   - money and security subjects are never answered automatically.
+- **The census after the three corrections** (sovereign-read `intake`, run 36058471162): of the same 60 notes from people,
+  - 0 were low-hanging fruit;
+  - 0 were already decided (the wrong match is gone);
+  - 43 were real work (22 of them no rule matched, 12 feature requests, 3 bugs, 2 questions, 2 privacy, 1 sign-in, 1 data loss);
+  - 8 were asked for one thing;
+  - 9 were praise.
 - **The categorizer on real text.** Evaluated raw, the composed body's own "Not working:" label made every note read as a bug; the complaint words are now judged on their own.
 
 ## Decision
