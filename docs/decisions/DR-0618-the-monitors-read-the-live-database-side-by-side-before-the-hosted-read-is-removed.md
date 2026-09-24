@@ -36,6 +36,10 @@ Unresolved: a stall on the live database would never be seen, and a stall on the
 
 - The workflow guard suites (603) green; both files parse; `bash -n scripts/live-sql.sh` clean.
 - Proof on real runs: harvest-health and ops-queue-health dispatched on this branch; each run's summary shows the hosted and the live reading together.
+- **Measured 2026-09-24, on commit 4922e28e.** Both runs joined the tailnet and read the live database through `scripts/live-sql.sh`.
+  - harvest-health, run 36028450599: hosted **752 / 874** transcribed, newest success **235 h** old. Live **754 / 874**, newest success **51 h** old. The hosted reading called the pipeline SILENT, commented on incident #1617 and dispatched a heal (run 36028499586). Both came from the dead database's ten-day-old picture. The live pipeline has written in the last three days. It is still 3 h past the 48 h threshold, so a stall on the live side remains a real reading, not a false one.
+  - ops-queue-health, run 36028453391: both databases show **0** stuck commands. The oldest-row field differs: hosted 34,251, live 116,114. The live queue holds the real history.
+  - This shows the harvest monitor's alarm was raised from the wrong database. The switch (step 3) is the fix.
 
 ## Limits, stated
 
