@@ -3381,12 +3381,12 @@ export default function PoeFinancialSystem() {
     // SOVEREIGN (DR-0218): relay to the RLS-scoped agent_inbox table (migration
     // 0127), the DR-0132 outbound-poll bus — never n8n. Best-effort: signed-out
     // or offline leaves the local record above canonical (the old behavior).
-    import('./lib/agent-inbox-sync.js')
-      .then(({ relayThought }) => relayThought({
-        body: text, tags: ['tell-poetech', 'poetech-app'], source: 'thinking-space', directiveId: id,
+    import('./lib/poetech-request.js')
+      .then(({ sendPoeTechRequest }) => sendPoeTechRequest({
+        body: text, directiveId: id, // relayed AND filed in the steward's Feedback queue, where it is answered (DR-0622)
       }))
       .then((res) => {
-        if (res && res.ok) setData(d => ({ ...d, appDirectives: (d.appDirectives || []).map(a => a.id === id ? { ...a, relayed: true } : a) }));
+        if (res && (res.relayed || res.filed)) setData(d => ({ ...d, appDirectives: (d.appDirectives || []).map(a => a.id === id ? { ...a, relayed: !!res.relayed, filed: !!res.filed } : a) }));
       })
       .catch(() => { /* offline — local record stands; the relay is best-effort */ });
   };
