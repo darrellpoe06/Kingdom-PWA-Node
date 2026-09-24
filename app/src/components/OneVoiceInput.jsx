@@ -20,6 +20,7 @@ import { suggestDestination, destinationsFor, planDispatch, composeNoteText } fr
 import { resolveSurface } from '../lib/one-voice-surfaces.js';
 import { useVoiceDictation, LONG_FORM_SESSION_CAP_MS, VOICE_SESSION_CAP_MS, capMinutes } from '../lib/voice-dictation.js';
 import { readDraft, writeDraft, clearDraft } from '../lib/draft-autosave.js';
+import { relayThought } from '../lib/agent-inbox-sync.js';
 
 export function OneVoiceInput({
   surface = 'church',
@@ -98,10 +99,22 @@ export function OneVoiceInput({
     const has = {
       poetech: !!sendToPoeTech, prayer: !!addPrayerRequest, churchVoice: !!addChurchVoice,
       conference: !!updateConference, incident: !!addIncident, inquiry: !!addInquiry, note: !!addNote,
+      // The lesson door needs no surface handler: it is the sovereign relay
+      // itself (agent_inbox, DR-0218), the same one every surface shares.
+      lesson: true,
     };
     const plan = planDispatch(r, has, cfg.saveNoteOnCounseling);
     switch (plan.action) {
       case 'poetech':    sendToPoeTech(t); break;
+      case 'lesson':
+        // THE LESSON DOOR (DR-0608): persist the words to the sovereign inbox,
+        // tagged so the staged intake routine can find them. Best-effort and
+        // honest: signed-out or a refused insert is SAID on the surface, never
+        // swallowed, and the words stay in the box for the person to keep.
+        relayThought({ body: t, tags: ['lesson'], source: cfg.sourceTag }).then((res) => {
+          if (!res.ok) setConfirmation(String(c.lessonFailed || 'Not sent as a lesson ({reason}) — keep it as a note and send it again signed in.').replace('{reason}', res.reason || 'unknown'));
+        });
+        break;
       case 'prayer':     addPrayerRequest({ requester: who || 'church family', request: t, shareWithChurch: true }); break;
       case 'pastor':     voiceNote('pastor'); break;
       case 'serve':      voiceNote('serve'); break;

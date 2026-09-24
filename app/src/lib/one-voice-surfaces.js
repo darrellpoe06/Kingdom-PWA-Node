@@ -34,6 +34,8 @@ export const SURFACES = {
       serve:      '🤝 Leadership will see your serving hands — thank you.',
       pastor:     '⛪ A note to the pastors — received.',
       voice:      '💬 Heard and kept. Thank you for your voice.',
+      lesson:     '📖 Heard as a lesson — it is in the Learn intake. The Word-first lesson it becomes is reported back to you.',
+      lessonFailed: '📖 Not sent as a lesson ({reason}) — sign in and send it again, or keep it as a note.',
     },
   },
   notes: {
@@ -57,6 +59,8 @@ export const SURFACES = {
       work:       '🛠 On the Action Queue as a work order — dispatch it to a worker from Big Picture.',
       counseling: '💚 The practice knows you’d like to talk — your words stayed private here, for you to share with them directly. Reaching out took courage.',
       private:    '📓 Kept — private to you. Come back to it anytime.',
+      lesson:     '📖 Heard as a lesson — it is in the Learn intake. The Word-first lesson it becomes is reported back to you.',
+      lessonFailed: '📖 Not sent as a lesson ({reason}) — sign in and send it again, or keep it as a private note.',
     },
   },
 };
