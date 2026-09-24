@@ -172,6 +172,12 @@ jobs:
       - name: lesson-voice whisper loop proofs
         working-directory: infra/nas-lesson-voice
         run: python3 -m unittest test_lesson_voice -v
+      # The NAS publishes the family key itself (DR-0613): publish to named
+      # owners, steady state writes nothing, missing pieces are quiet no-ops,
+      # a failed call never raises, the key is never printed. Gates merge.
+      - name: family-key publisher proofs
+        working-directory: infra/nas-bridge-publish
+        run: python3 -m unittest test_publish_family_key -v
       # Sovereign photo server selftest (DR-0218 zero-n8n / DR-0076): the offline
       # logic checks for the property + family photo image server, including the
       # new list_uploaded family read-back. Proven-to-catch: fails if dest path

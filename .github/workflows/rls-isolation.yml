@@ -117,6 +117,12 @@ jobs:
           - feature: sovereign-noise-thought
             migrations: "0127-sovereign-noise-and-thought.sql"
             smokes: "0127-sovereign-noise-thought-smoke.sql"
+          # Added 2026-09-24 (DR-0613): the NAS publishes the family key; only
+          # the family's own instances receive it, only the service role can
+          # publish, a church or unnamed owner never receives it.
+          - feature: box-family-key
+            migrations: "0128-family-bridge-token-provisioning.sql 0231-the-nas-publishes-the-family-key-itself.sql"
+            smokes: "0231-box-publishes-family-key-smoke.sql"
           # Added 2026-09-24 (DR-0612): the Decision Intelligence board's daily
           # readout record: members write their own day, viewers read, non-
           # members see nothing.
