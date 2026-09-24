@@ -23,14 +23,11 @@ const TAP_MS = 320;
 
 function Controls({ isReading, isPaused, canJump, onPlayPause, onBack, onForward, rate, rateSteps, onRate }) {
   const playing = isReading && !isPaused;
-  const base = 'min-h-[44px] min-w-[44px] px-2 flex items-center justify-center rounded border-2 border-[#1A1815] text-sm font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-40';
-  const btn = `${base} text-[#1A1815] bg-white hover:bg-[#1A1815] hover:text-white`;
-  const primary = `${base} text-white bg-[#1A1815] hover:bg-[#5A6E3D]`;
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <button type="button" className={btn} onClick={onBack} disabled={!canJump} aria-label="Back a paragraph" data-testid="float-back">↩¶</button>
-      <button type="button" className={primary} onClick={onPlayPause} aria-label={playing ? 'Pause' : 'Play'} data-testid="float-playpause">{playing ? '❚❚' : '▶'}</button>
-      <button type="button" className={btn} onClick={onForward} disabled={!canJump} aria-label="Forward a paragraph" data-testid="float-forward">↪¶</button>
+      <button type="button" className="min-h-[44px] min-w-[44px] px-2 flex items-center justify-center rounded border-2 border-[#1A1815] text-sm font-semibold text-[#1A1815] bg-white hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-40" onClick={onBack} disabled={!canJump} aria-label="Back a paragraph" data-testid="float-back">↩¶</button>
+      <button type="button" className="min-h-[44px] min-w-[44px] px-2 flex items-center justify-center rounded border-2 border-[#1A1815] text-sm font-semibold text-white bg-[#1A1815] hover:bg-[#5A6E3D] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-40" onClick={onPlayPause} aria-label={playing ? 'Pause' : 'Play'} data-testid="float-playpause">{playing ? '❚❚' : '▶'}</button>
+      <button type="button" className="min-h-[44px] min-w-[44px] px-2 flex items-center justify-center rounded border-2 border-[#1A1815] text-sm font-semibold text-[#1A1815] bg-white hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-40" onClick={onForward} disabled={!canJump} aria-label="Forward a paragraph" data-testid="float-forward">↪¶</button>
       <label className="flex items-center">
         <span className="sr-only">Reading speed</span>
         <select value={String(rate)} onChange={(e) => onRate(Number(e.target.value))} aria-label="Reading speed" data-testid="float-speed"
@@ -80,7 +77,7 @@ export default function FloatingReader({
       <div className="h-full flex flex-col bg-white" data-testid="float-pip">
         <div className="flex items-center justify-between px-3 py-2 border-b-2 border-[#1A1815]">
           <span className="font-semibold truncate text-[#1A1815]">{title}</span>
-          <button type="button" onClick={onDock} className="min-h-[44px] px-3 border-2 border-[#1A1815] rounded font-semibold text-[#1A1815]" aria-label="Dock — back to the normal reader">⤓ Dock</button>
+          <button type="button" onClick={onDock} className="min-h-[44px] px-3 border-2 border-[#1A1815] rounded font-semibold text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" aria-label="Dock — back to the normal reader">⤓ Dock</button>
         </div>
         <Words sentences={sentences} placeholder={placeholder} />
         <div className="p-2 border-t border-[#E8E4DC]"><Controls {...controls} /></div>

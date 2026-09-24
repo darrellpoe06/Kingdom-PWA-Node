@@ -1183,7 +1183,6 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
       onRate={setRate}
     />
   ) : null;
-  const popOutBtnClass = 'col-span-3 flex items-center justify-center gap-[0.375em] border-2 border-[#1A1815] text-[#1A1815] px-[0.75em] py-[0.625em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]';
 
   const fab = (
         // .ts-chrome-region caps it so it does NOT grow with the text-size
@@ -1457,13 +1456,13 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
                 {/* TALK ABOUT THIS — Ari explains the current screen (its real
                     numbers, or what the tab is), spoken in the chosen voice. */}
                 <button type="button" onClick={talkAbout} disabled={talking} className="col-span-3 flex items-center justify-center gap-[0.375em] border border-[#B85838] text-[#B85838] px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"><UiIcon name="volume" /> {talking ? 'Thinking…' : 'Talk about this'}</button>
-                <button type="button" onClick={popOut} data-testid="reader-pop-out" aria-label="Pop out — a reader window you can move" className={popOutBtnClass}>⧉ Pop out</button>
+                <button type="button" onClick={popOut} data-testid="reader-pop-out" aria-label="Pop out — a reader window you can move" className="col-span-3 flex items-center justify-center gap-[0.375em] border-2 border-[#1A1815] text-[#1A1815] px-[0.75em] py-[0.625em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⧉ Pop out</button>
               </>
             ) : (
               <>
                 <button type="button" onClick={isPaused ? resume : pause} className="bg-[#1A1815] text-white px-[0.5em] py-[0.625em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">{isPaused ? '▶ Resume' : '⏸ Pause'}</button>
                 <button type="button" onClick={stopAll} className="col-span-2 border border-[#1A1815] text-[#1A1815] px-[0.5em] py-[0.625em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⏹ Stop</button>
-                <button type="button" onClick={popOut} data-testid="reader-pop-out" aria-label="Pop out — a reader window you can move" className={popOutBtnClass}>⧉ Pop out</button>
+                <button type="button" onClick={popOut} data-testid="reader-pop-out" aria-label="Pop out — a reader window you can move" className="col-span-3 flex items-center justify-center gap-[0.375em] border-2 border-[#1A1815] text-[#1A1815] px-[0.75em] py-[0.625em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⧉ Pop out</button>
                 {/* Move by the unit a listener thinks in: re-listen the
                     paragraph just heard (again = further back), skip the next,
                     or start the whole reading over from the top. */}
