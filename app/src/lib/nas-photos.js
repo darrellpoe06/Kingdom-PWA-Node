@@ -1,5 +1,5 @@
 // =============================================================================
-// nas-photos — live photo reads from the family NAS (wf-property-photos)
+// nas-photos — live photo reads from the family NAS (sovereign photo server)
 // =============================================================================
 // 2026-06-12, Darrell: "the images are already there for each rental and my
 // home... why should I [file them] when you can start it — I'll adjust after."
@@ -43,7 +43,8 @@ export const CHAT_BRIDGE_TOKEN_KEY = 'poetech-chat-bridge-token';
 // old n8n->SSH->resolver chain's thumbnail-path assumption drifted. One
 // deterministic Python process now owns the whole path -- no n8n hop. The
 // wire contract is unchanged: { count, total, photos:[{id,date,name,text,thumb}] }.
-// (family/album galleries are separate workflows and still ride `/n8n`.)
+// (The family/album galleries ride this same /nas-photos base too — no n8n
+// anywhere on the photo path; DR-0617.)
 export const NAS_PHOTO_BASE = '/nas-photos';
 
 export function propertyPhotosUrl(channel, { limit = 24, offset = 0 } = {}) {

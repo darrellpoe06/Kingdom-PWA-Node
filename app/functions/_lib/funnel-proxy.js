@@ -11,8 +11,9 @@
 // fetches from poetech.us with HTTP 503 *before* they reach the NAS. Routing
 // through a same-origin proxy makes the Funnel see ONE trusted client
 // (Cloudflare egress) instead of every family browser, eliminating the
-// throttle. Full rationale: app/src/lib/n8n-base.js and
-// docs/99-session-notes/2026-06-01-research-review-wf18-unreachable.md.
+// throttle. Full rationale:
+// docs/99-session-notes/2026-06-01-research-review-wf18-unreachable.md
+// (formerly also in app/src/lib/n8n-base.js, removed with DR-0617).
 //
 // Before this factory existed, functions/n8n/[[path]].js and
 // functions/nas-photos/[[path]].js were ~90% identical copies — and the NINE

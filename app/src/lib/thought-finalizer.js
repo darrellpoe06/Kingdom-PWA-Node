@@ -46,7 +46,7 @@
 // Pure helpers are exported + unit-tested (proven-to-catch); the only I/O is the
 // single fetch in askFinalizer, which fails soft.
 // =============================================================================
-import { n8nAuthHeaders } from './n8n-base.js';
+import { bridgeAuthHeaders } from './bridge-auth.js';
 import { normalizeFinalization } from './study-space.js';
 
 // The sovereign, local-first model the finalizer asks for (matches class-tutor /
@@ -275,7 +275,7 @@ export async function askFinalizer(entry, { signal } = {}) {
   try {
     const r = await fetch(finalizeEndpoint(), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...n8nAuthHeaders(true) },
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...bridgeAuthHeaders(true) },
       body: JSON.stringify(buildFinalizePayload(entry)),
       signal,
     });
