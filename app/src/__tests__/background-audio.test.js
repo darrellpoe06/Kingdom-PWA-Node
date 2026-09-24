@@ -99,7 +99,52 @@ describe('the phone’s own controls drive the reader', () => {
     const bg = createBackgroundAudio({ win, makeAudio: fakeAudio });
     expect(bg.describe({ title: 'Study 1 · Conditional Truth' })).toBe(true);
     expect(win._ms.metadata.title).toBe('Study 1 · Conditional Truth');
-    expect(win._ms.metadata.artist).toContain('Read Aloud');
+    // The car display and lock screen say who made it (DR-0628): PoeTech,
+    // with the app icon as the artwork.
+    expect(win._ms.metadata.artist).toBe('PoeTech');
+    expect(win._ms.metadata.artwork.map((a) => a.sizes)).toEqual(['192x192', '512x512']);
+  });
+
+  it('the skip buttons (headset double/triple tap, car wheel) reach the reader — proven to catch', () => {
+    const win = fakeWin();
+    const bg = createBackgroundAudio({ win, makeAudio: fakeAudio });
+    const onNext = vi.fn(); const onPrev = vi.fn();
+    bg.onControl({ onNext, onPrev });
+    // Before DR-0628 only play/pause/stop were wired: these handlers did not
+    // exist and every skip button did nothing.
+    expect(typeof win._ms.handlers.nexttrack).toBe('function');
+    expect(typeof win._ms.handlers.previoustrack).toBe('function');
+    win._ms.handlers.nexttrack();
+    win._ms.handlers.seekforward();
+    win._ms.handlers.previoustrack();
+    win._ms.handlers.seekbackward();
+    expect(onNext).toHaveBeenCalledTimes(2);
+    expect(onPrev).toHaveBeenCalledTimes(2);
+  });
+
+  it('an action this browser does not know costs only itself', () => {
+    const win = fakeWin();
+    win._ms.setActionHandler = vi.fn(function set(name, fn) {
+      if (name === 'seekforward') throw new TypeError('unsupported');
+      this.handlers[name] = fn;
+    });
+    const bg = createBackgroundAudio({ win, makeAudio: fakeAudio });
+    expect(bg.onControl({ onNext: () => {}, onPlay: () => {} })).toBe(true);
+    expect(typeof win._ms.handlers.nexttrack).toBe('function');
+    expect(typeof win._ms.handlers.play).toBe('function');
+  });
+
+  it('stop hands every button back, so the person’s own audio keeps its buttons', () => {
+    const win = fakeWin();
+    const bg = createBackgroundAudio({ win, makeAudio: fakeAudio });
+    bg.start();
+    bg.onControl({ onPlay: () => {}, onPause: () => {}, onNext: () => {}, onPrev: () => {} });
+    expect(bg.wired).toBe(true);
+    bg.stop();
+    expect(bg.wired).toBe(false);
+    for (const a of ['play', 'pause', 'stop', 'nexttrack', 'previoustrack', 'seekforward', 'seekbackward']) {
+      expect(win._ms.handlers[a], `${a} still held after stop`).toBe(null);
+    }
   });
 
   it('play/pause/stop from the OS call the reader’s OWN controls', () => {

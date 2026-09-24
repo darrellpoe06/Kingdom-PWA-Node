@@ -28,6 +28,7 @@ import { getReadTarget, subscribeReadTarget, pendingRead, takeRead, subscribeRea
 import { useShowTheWord, toggleShowTheWord } from '../lib/show-the-word.js';
 import { getPlace, recordPlace, sentenceKeyOf, findSentence, finishPlace, placeIsFinished } from '../lib/learn-resume.js';
 import { IDLE as RETURN_IDLE, foldReturn, offersReturn, returnPlan, returnLabel } from '../lib/reader-return.js';
+import { getBookmark, saveBookmark, offersResume, resumeLabel, paragraphOf, paragraphLabels } from '../lib/reader-bookmarks.js';
 import { subscribeReadRequest } from '../lib/read-request.js';
 import { revealAllForReading, settled, afterRender } from '../lib/read-reveal.js';
 import UiIcon from './UiIcon.jsx';
@@ -188,6 +189,8 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     notice,
     // 'audio' | 'device' | '' — only an audio voice survives switching apps.
     audioVoice,
+    // The OS skip buttons get the bar's paragraph step (optional in mocks).
+    setSkipHandlers,
     setNotice,
     noticeAction,
     standInWhy,
@@ -283,6 +286,25 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // is honest rather than a lint silencer.
   const rememberSentence = useCallback((absIndex, text) => {
     if (!text) return;
+    // THE BOOKMARK FOR THIS READING (Darrell 2026-09-24: "start where I left
+    // off"). Written for the reading the follow map was built from — never for
+    // a tap-started or whole-page read that happens to run while a lesson is
+    // registered — so each lesson, chapter or page keeps its own place.
+    try {
+      const f = followRef.current;
+      const t = getReadTarget();
+      if (f && f.owner && t && t.owner === f.owner && f.follow && f.follow.segments) {
+        if (!f.paraStarts) f.paraStarts = paragraphStarts(f.follow);
+        const total = f.follow.segments.length;
+        saveBookmark(f.owner, {
+          sentence: absIndex,
+          key: sentenceKeyOf(text),
+          para: paragraphOf(f.paraStarts, absIndex),
+          paras: f.paraStarts.length,
+          done: total > 0 && absIndex >= total - 1,
+        });
+      }
+    } catch { /* a bookmark that cannot be written never breaks a read */ }
     try {
       const t = getReadTarget();
       const place = getPlace();
@@ -408,9 +430,15 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
 
 
   /** Where a lesson read should START, or -1 for the top. */
-  const savedStartIndex = (segments) => {
+  const savedStartIndex = (segments, owner) => {
     const place = placeLessonIfMine();
-    if (!place) return -1;
+    if (!place) {
+      // Not the lesson the app-wide place names: this reading's own bookmark.
+      const b = owner ? getBookmark(owner) : null;
+      if (!offersResume(b)) return -1;
+      const hit = findSentence((segments || []).map((g) => (g && g.text) || ''), { sentence: b.sentence, sentenceKey: b.key });
+      return hit.how === 'exact' || hit.how === 'moved' || hit.how === 'index-only' ? hit.index : -1;
+    }
     // A FINISHED LESSON BEGINS AGAIN. Without this, the saved sentence IS the
     // last sentence, and "Read this lesson — start to finish" spoke one line
     // and stopped — which is exactly what re-listening looked like from his
@@ -443,6 +471,8 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // lib/read-target.js), reading THAT start-to-finish is the primary action;
   // whole-page reading stays as the fallback below it.
   const [target, setTarget] = useState(() => getReadTarget());
+  // "Start at" — the paragraphs of the registered reading, listed on request.
+  const [pickList, setPickList] = useState(null); // { owner, labels } | null
   useEffect(() => subscribeReadTarget(setTarget), []);
   // DECLARED BELOW `target` ON PURPOSE. The first placement of this block sat
   // above the useState above — the same temporal-dead-zone trap this file
@@ -535,6 +565,18 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // unsupported-device early return — so hook order never varies.
   const jumpingRef = useRef(false);
   useEffect(() => { if (isReading) jumpingRef.current = false; }, [isReading]);
+  // THE HEADSET'S, THE CAR'S AND THE LOCK SCREEN'S SKIP BUTTONS step one
+  // paragraph, exactly as the bar's ↪¶ and ↩¶ do. Reached through a ref: the
+  // step is defined below the unsupported-device early return.
+  const jumpParaRef = useRef(null);
+  useEffect(() => {
+    if (typeof setSkipHandlers !== 'function') return undefined;
+    setSkipHandlers({
+      next: () => { if (jumpParaRef.current) jumpParaRef.current(1); },
+      prev: () => { if (jumpParaRef.current) jumpParaRef.current(-1); },
+    });
+    return () => setSkipHandlers(null);
+  }, [setSkipHandlers]);
   // readTargetNow is defined below the unsupported-device early return; the run
   // loop reaches it through this ref so the effect never depends on definition
   // order.
@@ -724,7 +766,27 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // spoken has a range, word-level follow works again, and nothing deeper is
   // skipped. The composed text remains the honest fallback for a surface that
   // registers no element (or one that isn't in the DOM).
-  const readTargetNow = async (t, { continuing = false, startFraction = null } = {}) => {
+  // "START AT": map the piece to list its paragraphs, and read nothing — no
+  // run, no audio claim, the surface's paced view put back afterwards.
+  const listParagraphs = async (t) => {
+    if (!t) return;
+    let el = typeof document !== 'undefined'
+      ? ((t.elementId ? document.getElementById(t.elementId) : null) || (t.owner ? document.getElementById(`learn-lesson-${t.owner}`) : null))
+      : null;
+    if (t.prepare) {
+      try { t.prepare(true); } catch (_) { /* never blocks */ }
+      if (!el) { await afterRender(); el = t.elementId ? document.getElementById(t.elementId) : null; }
+      await settled(el, { requireChange: true });
+    }
+    if (el) { await revealAllForReading(el); await settled(el); }
+    const follow = el ? buildFollowMap(el) : null;
+    const labels = follow && follow.segments && follow.segments.length
+      ? paragraphLabels(follow.segments, paragraphStarts(follow)) : [];
+    if (t.prepare && !isReading) { try { t.prepare(false); } catch (_) { /* best-effort */ } }
+    setPickList({ owner: t.owner, labels });
+  };
+
+  const readTargetNow = async (t, { continuing = false, startFraction = null, startSentence = null } = {}) => {
     if (!t) return;
     // A target read is always a RUN: it keeps going to the next piece unless
     // the listener stops it.
@@ -776,16 +838,18 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
       // run advanced into, so it starts at its top; only a read the listener
       // themselves started resumes. Unresolvable saved sentence -> the top,
       // never a guess.
-      const at = startFraction != null
-        ? startIndexForFraction(startFraction, follow.segments.length)
-        : (continuing ? -1 : savedStartIndex(follow.segments));
+      const at = startSentence != null
+        ? Math.max(0, Math.min(follow.segments.length - 1, startSentence))
+        : startFraction != null
+          ? startIndexForFraction(startFraction, follow.segments.length)
+          : (continuing ? -1 : savedStartIndex(follow.segments, t.owner));
       if (at > 0 && follow.segments[at]) {
-        followRef.current = pageFollowState(follow, at);
+        followRef.current = { ...pageFollowState(follow, at), owner: t.owner };
         setMinimized(true);
         read(follow.text.slice(follow.segments[at].start));
         return;
       }
-      followRef.current = pageFollowState(follow);
+      followRef.current = { ...pageFollowState(follow), owner: t.owner };
       setMinimized(true);
       read(follow.text);
       return;
@@ -871,7 +935,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // A jump can flicker the engine through a not-reading render; the guard
     // keeps the hands-free run from mistaking that for "the piece ended".
     jumpingRef.current = true;
-    followRef.current = { ...pageFollowState(f.follow, idx), paraStarts };
+    followRef.current = { ...pageFollowState(f.follow, idx), paraStarts, owner: f.owner };
     read(f.follow.text.slice(seg.start));
   };
   const jumpParagraph = (dir) => {
@@ -887,6 +951,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     if (f && f.follow && isReading) jumpToSegment(0);
   };
   const canJump = isReading && !!(followRef.current && followRef.current.follow);
+  jumpParaRef.current = jumpParagraph;
   // ▶ Continue after the screen went dark: resume a pause, else re-speak from
   // the held sentence when a follow map exists, else start the page read.
   const continueReading = () => {
@@ -895,6 +960,24 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     const f = followRef.current;
     if (f && f.follow) jumpToSegment(currentGlobalSegment()); else start();
   };
+
+  // START WHERE I LEFT OFF, AND START ANYWHERE (Darrell 2026-09-24). The
+  // bookmark is this reading's own (lib/reader-bookmarks.js); the paragraphs
+  // come from the same follow map the paragraph steps use.
+  const bookmarkNow = target ? getBookmark(target.owner) : null;
+  const readingParagraphs = () => {
+    const f = followRef.current;
+    if (!isReading || !f || !f.follow || !f.follow.segments) return [];
+    try {
+      if (!f.paraStarts) f.paraStarts = paragraphStarts(f.follow);
+      return paragraphLabels(f.follow.segments, f.paraStarts);
+    } catch (_) { return []; }
+  };
+  const currentParagraph = () => {
+    const f = followRef.current;
+    return f && f.paraStarts ? paragraphOf(f.paraStarts, currentGlobalSegment()) : -1;
+  };
+  const selectClass = 'w-full text-[0.6875em] border border-[#1A1815] bg-white text-[#1A1815] px-[0.5em] py-[0.5em] min-h-[2.75em] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]';
 
   const close = () => {
     if (!isReading) stopAll(); // idle: also stands down an armed tap-to-start
@@ -1110,6 +1193,23 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
                 {target && (
                   <button type="button" onClick={() => readTargetNow(target)} className="col-span-3 bg-[#5A6E3D] text-white px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read {target.label} — start to finish</button>
                 )}
+                {/* RESUME — where this reading was left, said in paragraphs. */}
+                {target && offersResume(bookmarkNow) && (
+                  <button type="button" data-testid="reader-resume" onClick={() => readTargetNow(target, { startSentence: bookmarkNow.sentence })} className="col-span-3 border-2 border-[#5A6E3D] text-[#1A1815] px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ {resumeLabel(bookmarkNow)}</button>
+                )}
+                {/* START AT ANY PARAGRAPH — listed on request, because listing
+                    means laying the whole piece out first. */}
+                {target && (pickList && pickList.owner === target.owner && pickList.labels.length ? (
+                  <label className="col-span-3 block">
+                    <span className="block text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Start at</span>
+                    <select data-testid="reader-start-at" aria-label="Start reading at this paragraph" className={selectClass} value="" onChange={(e) => { const n = Number(e.target.value); if (Number.isFinite(n)) readTargetNow(target, { startSentence: n }); }}>
+                      <option value="" disabled>Pick a paragraph…</option>
+                      {pickList.labels.map((l) => <option key={l.index} value={l.sentence}>{l.label}</option>)}
+                    </select>
+                  </label>
+                ) : (
+                  <button type="button" data-testid="reader-start-at-open" onClick={() => listParagraphs(target)} className="col-span-3 border border-[#1A1815] text-[#1A1815] px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">Start at a paragraph…</button>
+                ))}
                 <button type="button" onClick={start} className={`col-span-3 px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${target ? 'border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white' : 'bg-[#1A1815] text-white hover:bg-[#B85838]'}`}>▶ Read this page</button>
                 {/* START WHERE I TAP — arm, then the next tap on the page picks
                     the word reading begins from (Esc or Cancel to stand down). */}
@@ -1134,6 +1234,20 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
                     <button type="button" onClick={() => jumpParagraph(-1)} aria-label="Back — re-listen this paragraph; tap again for the one before" className="border border-[#E8E4DC] text-[#5A5751] px-[0.5em] py-[0.625em] min-h-[2.75em] text-[0.6875em] uppercase tracking-wider hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">↩¶ Back</button>
                     <button type="button" onClick={() => jumpParagraph(1)} aria-label="Forward — skip to the next paragraph" className="border border-[#E8E4DC] text-[#5A5751] px-[0.5em] py-[0.625em] min-h-[2.75em] text-[0.6875em] uppercase tracking-wider hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">↪¶ Next</button>
                     <button type="button" onClick={jumpTop} aria-label="Back to the top — and if a reading is running, it starts again from the first line" className="border border-[#E8E4DC] text-[#5A5751] px-[0.5em] py-[0.625em] min-h-[2.75em] text-[0.6875em] uppercase tracking-wider hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⏮ Top</button>
+                    {(() => {
+                      const paras = readingParagraphs();
+                      if (paras.length < 2) return null;
+                      const cur = currentParagraph();
+                      return (
+                        <label className="col-span-3 block">
+                          <span className="block text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Go to{cur >= 0 ? ` — now paragraph ${cur + 1} of ${paras.length}` : ''}</span>
+                          <select data-testid="reader-go-to" aria-label="Jump the reading to this paragraph" className={selectClass} value="" onChange={(e) => { const n = Number(e.target.value); if (Number.isFinite(n)) jumpToSegment(n); }}>
+                            <option value="" disabled>Pick a paragraph…</option>
+                            {paras.map((l) => <option key={l.index} value={l.sentence}>{l.label}</option>)}
+                          </select>
+                        </label>
+                      );
+                    })()}
                   </>
                 )}
               </>
