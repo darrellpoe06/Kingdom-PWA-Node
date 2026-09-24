@@ -39,9 +39,11 @@ import {
 import { normalizeInterconnect, loopRowStatus, interconnectHeadline } from '../lib/interconnect-loops.js';
 import { extractReReviews, sortReReviews, reReviewStatus, reReviewSummary } from '../lib/re-reviews.js';
 import { useStaleBuild } from '../lib/freshness.js';
+import SystemFlowProof from './SystemFlowProof.jsx';
 
 const MANIFEST = normalizeManifest(typeof __QUALITY_PROOF__ !== 'undefined' ? __QUALITY_PROOF__ : null);
-const INTERCONNECT = normalizeInterconnect(typeof __INTERCONNECT_LOOPS__ !== 'undefined' ? __INTERCONNECT_LOOPS__ : null);
+const INTERCONNECT_RAW = typeof __INTERCONNECT_LOOPS__ !== 'undefined' ? __INTERCONNECT_LOOPS__ : null;
+const INTERCONNECT = normalizeInterconnect(INTERCONNECT_RAW);
 const REVIEWS = normalizeReviews(typeof __UIUX_REVIEWS__ !== 'undefined' ? __UIUX_REVIEWS__ : null);
 // The DR ledger is already injected for the Governor board; re-review dates live
 // in both it and the review findings, so the backlog reads from both (raw guard
@@ -216,6 +218,11 @@ export default function QualityProof({ defaultSection = 'gates' }) {
             label: `Interconnect (${INTERCONNECT.loops.length})`,
             render: () => (
               <>
+                {/* THE WHOLE SYSTEM (DR-0622): every workflow, NAS job and screen,
+                    each connection with its live numbers; the file-verified pairs
+                    below are the part of it that was proven first. */}
+                <SystemFlowProof graph={INTERCONNECT_RAW ? INTERCONNECT_RAW.graph : null} />
+                <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">The module pairs, file-verified</div>
                 <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
                   {interconnectHeadline(INTERCONNECT.summary)} Each loop names a real source and the destination that reads it; the wiring is file-verified at build. A loop that lost its wiring reads <span className="text-[#DC2626]">went static</span> — it can’t silently go dead.
                 </p>

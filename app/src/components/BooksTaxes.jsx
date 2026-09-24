@@ -18,7 +18,7 @@ import { fetchTaxArchive, printableUrl } from '../lib/tax-archive.js';
 import { groupByYear, buildTaxHistory, hasFigures, TAX_FIGURE_KEYS, TAX_DOC_KINDS } from '../lib/tax-documents.js';
 import { uploadTaxDoc, uploadFailureMessage, validateUpload } from '../lib/tax-upload.js';
 import PaymentsLedgerPanel from './PaymentsLedgerPanel.jsx';
-import { resolveN8nBearer } from '../lib/n8n-base.js';
+import { resolveBridgeBearer } from '../lib/bridge-auth.js';
 import { hasBridgeToken } from '../lib/nas-photos.js';
 import { provisionBridgeToken } from '../lib/bridge-provision.js';
 import { supabase } from '../lib/supabase.js';
@@ -100,7 +100,7 @@ export default function BooksTaxes({ entities = [] }) {
       const r = await provisionBridgeToken(supabase);
       setKeyState(r || 'none');
     }
-    const token = (() => { try { return resolveN8nBearer(typeof window !== 'undefined' ? window : undefined); } catch { return null; } })();
+    const token = (() => { try { return resolveBridgeBearer(typeof window !== 'undefined' ? window : undefined); } catch { return null; } })();
     const res = await uploadTaxDoc(uploadReq, { token });
     setBusy(false);
     if (res && res.ok) {

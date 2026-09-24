@@ -1,6 +1,6 @@
 # CI — the mechanical floor under RELEASE-TIERS.md.
 # Every PR and every push to main runs lint + the Vitest suite + a real
-# production build + the wf36 Quality Gatekeeper harness. Nothing merges with a
+# production build. (The wf36 n8n harness job left with n8n, DR-0617.) Nothing merges with a
 # red suite, regardless of tier. Added per
 # docs/99-session-notes/2026-06-11-test-coverage-analysis.md (P2); the suite runs
 # without app/.env.local because vitest.config.js stubs the Supabase env (P1).
@@ -422,6 +422,15 @@ jobs:
         run: node scripts/scripture-inference-guard.mjs
         working-directory: ${{ github.workspace }}
 
+  # THE REQUIRED CHECK KEEPS ITS NAME; ITS JOB CHANGED (DR-0617). Branch
+  # protection requires a check with this exact name, and removing the job
+  # left every PR waiting on it forever (measured 2026-09-24: #1774 green on
+  # lint + vitest and still "blocked"). The n8n exports and the wf36 harness
+  # are gone, so the job now proves what replaced them: n8n stays contained to
+  # the files held until their replacement is proven (business-systems-guard),
+  # and the guard test that fails on any new n8n call. Renaming the check is a
+  # branch-protection change for the repository admin; until then the name
+  # stays and the work under it is real.
   workflows:
     name: n8n workflows — wf36 gatekeeper harness
     runs-on: ubuntu-latest
@@ -430,4 +439,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node scripts/test-wf36-quality-gatekeeper.js
+      - name: n8n stays contained to the held files (the ledger and transport guard)
+        run: node scripts/business-systems-guard.mjs

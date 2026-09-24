@@ -142,6 +142,12 @@ jobs:
           - feature: decision-readouts
             migrations: "0230-the-board-keeps-a-daily-record-of-what-it-saw.sql"
             smokes: "0230-decision-readouts-smoke.sql"
+          # Added 2026-09-24 (DR-0622): the whole-system flow proof. The
+          # platform's live numbers are read by the poe-family governors only
+          # (never a viewer, never another instance) and written by no client.
+          - feature: system-flow-proof
+            migrations: "0234-every-connection-leaves-its-live-numbers.sql"
+            smokes: "0234-system-flow-proof-smoke.sql"
           # Added 2026-07-30 (REV-0216 access-evaluation carried item): the
           # core-books ROLE wall. 0082 (child walled / successor read-only) and
           # 0100 (assistant walled) both shipped their DB gate but had NO live
