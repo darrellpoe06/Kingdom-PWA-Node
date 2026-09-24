@@ -17,11 +17,17 @@
 // so the phone's own controls really control the reader.
 //
 // HONEST LIMITS (DR-0076 — say what is not proven):
-//   • Android / Chromium (Darrell's device, Samsung Internet, Chrome): this is
-//     the path that works — audio session + media notification.
-//   • iOS Safari suspends Web Speech when the tab leaves the foreground even
-//     with an audio element playing. A CLONED-voice read (a real audio clip)
-//     does continue there; a device-voice read on iOS may not. Not claimed.
+//   • CORRECTED 2026-09-24. This header used to say Android / Chromium was
+//     "the path that works". Darrell's own Android phone (Samsung, Chrome,
+//     installed app) contradicted it: with the GPU studio offline the reader
+//     used the phone's Web Speech voice, and switching apps STOPPED the
+//     reading. This element keeps the PAGE alive; it does not keep Web Speech
+//     speaking. What keeps playing in the background is a REAL AUDIO clip —
+//     the studio's voice or the NAS's own voice (/voice-lite, lib/clip-queue.js)
+//     — which the reader now prefers, and the panel says per voice which one
+//     survives switching apps (TTSControl backgroundLine).
+//   • iOS Safari suspends Web Speech the same way. An audio-clip read is the
+//     path there too. Neither platform is claimed without a device test.
 //   • Nothing here can survive the tab being CLOSED — background means
 //     backgrounded, not terminated.
 //

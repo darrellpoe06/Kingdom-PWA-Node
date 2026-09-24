@@ -1,0 +1,21 @@
+# PoeTech voice-lite -- the NAS's own real-audio reading voice (Piper, CPU).
+# Request-driven (no timers): it does no work until a reader asks for a clip.
+# The Funnel mounts /voice-lite here. The family bridge bearer is read from
+# /volume1/PoeTech/secrets/chat-bridge-token.txt at start (never a second token).
+# Installed + kept running by infra/nas-voice-lite/install.sh via services-sync;
+# the @...@ values are filled in by the installer.
+[Unit]
+Description=PoeTech voice-lite (Piper reading voice, /voice-lite)
+After=network-online.target
+
+[Service]
+Type=simple
+Environment=VOICE_LITE_HOME=@HOME@
+WorkingDirectory=@SRC@
+ExecStart=@PYTHON@ @SRC@/voice_lite_server.py --port @PORT@ --home @HOME@
+Restart=on-failure
+RestartSec=5
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
