@@ -430,7 +430,9 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
 
 
   /** Where a lesson read should START, or -1 for the top. */
-  const savedStartIndex = (segments, owner) => {
+  const savedStartIndex = (segments) => {
+    // The reading being started is the run readTargetNow just set.
+    const owner = runRef.current && runRef.current.owner;
     const place = placeLessonIfMine();
     if (!place) {
       // Not the lesson the app-wide place names: this reading's own bookmark.
@@ -842,7 +844,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
         ? Math.max(0, Math.min(follow.segments.length - 1, startSentence))
         : startFraction != null
           ? startIndexForFraction(startFraction, follow.segments.length)
-          : (continuing ? -1 : savedStartIndex(follow.segments, t.owner));
+          : (continuing ? -1 : savedStartIndex(follow.segments));
       if (at > 0 && follow.segments[at]) {
         followRef.current = { ...pageFollowState(follow, at), owner: t.owner };
         setMinimized(true);

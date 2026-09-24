@@ -89,6 +89,19 @@ describe('Resume — where this reading was left', () => {
     expect(String(readSpy.mock.calls.at(-1)[0])).toMatch(/^The second paragraph teaches the middle\./);
   });
 
+  it('the plain Read also begins at the saved sentence: the first spoken words ARE the bookmark', async () => {
+    // Behavioral pin for resume-at-the-sentence on the bookmark path: the
+    // bookmark (sentence 2) decides where "start to finish" begins. Proven to
+    // catch: with the saved index dropped (savedStartIndex returning -1), the
+    // first spoken words are the lesson's top and this fails.
+    saveBookmark(OWNER, { sentence: 2, key: sentenceKeyOf('The second paragraph teaches the middle.'), para: 1, paras: 3 });
+    openPanel();
+    const read = [...container.querySelectorAll('button')].find((b) => /Read this lesson — start to finish/.test(b.textContent));
+    act(() => { read.click(); });
+    await settle();
+    expect(String(readSpy.mock.calls.at(-1)[0])).toMatch(/^The second paragraph teaches the middle\./);
+  });
+
   it('offers nothing for a reading never started', () => {
     openPanel();
     expect(q('reader-resume')).toBeNull();
