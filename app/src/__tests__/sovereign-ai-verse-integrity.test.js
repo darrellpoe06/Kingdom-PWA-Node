@@ -3850,7 +3850,7 @@ describe('sov26 — the roll the king burned and the roll written again quotes i
 // harvest monitor read the retired database and raised a false alarm; the live
 // count proved the whole, 754 + 120 = 874 of 874 (DR-0618). The whole-system
 // flow graph shipped the same day (DR-0622) is named with what it does not yet
-// prove (DR-0076). Recorded as DR-0623.
+// prove (DR-0076). Recorded as DR-0637.
 // =============================================================================
 const sov27 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov27-the-seed-is-in-itself-and-every-workflow-seeds-the-next');
 
@@ -4080,7 +4080,7 @@ describe('sov27 — the seed is in itself and every workflow seeds the next quot
 // tree's cutting is NOT taught as a rule for systems; the dresser's answer is
 // (Luke 13:8). Leanness comes from COMBINING similar workflows so every option
 // remains. The Way is DR-0621 (docs/00-foundations/_root/HOLD-THE-HAND-OF-THE-PROCESS.md).
-// Recorded as DR-0628.
+// Recorded as DR-0638.
 // =============================================================================
 const sov28 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov28-holding-the-hand-of-the-process-until-it-is-finished');
 

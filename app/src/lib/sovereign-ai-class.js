@@ -2005,7 +2005,7 @@ export const SOVEREIGN_AI_MODULES = [
   // the harvest monitor read a retired database and raised a false alarm; the
   // live count proved the whole, 754 + 120 = 874 of 874 (DR-0618). The flow
   // graph shipped the same day (DR-0622) is named with what it does not yet
-  // prove. Recorded as DR-0623. Every verse filled from the repo KJV corpus.
+  // prove. Recorded as DR-0637. Every verse filled from the repo KJV corpus.
   // ---------------------------------------------------------------------------
   {
     id: 'sov27-the-seed-is-in-itself-and-every-workflow-seeds-the-next',
@@ -2168,7 +2168,7 @@ export const SOVEREIGN_AI_MODULES = [
   // to finish and set a time (Luke 14:28-30; Nehemiah 2:6); one body, joined not
   // discarded (1 Corinthians 12; Ezekiel 37:17); triage and the heard complaint
   // (Exodus 18; Acts 6); taste and see (Psalms 34:8). The Way is DR-0621;
-  // recorded as DR-0628. Every verse filled from the repo KJV corpus and pinned.
+  // recorded as DR-0638. Every verse filled from the repo KJV corpus and pinned.
   // ---------------------------------------------------------------------------
   {
     id: 'sov28-holding-the-hand-of-the-process-until-it-is-finished',

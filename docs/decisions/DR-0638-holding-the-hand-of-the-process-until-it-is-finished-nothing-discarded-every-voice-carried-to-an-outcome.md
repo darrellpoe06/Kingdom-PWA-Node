@@ -1,5 +1,5 @@
 ---
-id: DR-0628
+id: DR-0638
 title: Sovereign A.I. week 28 — holding the hand of the process until it is finished; not just flagged but analyzed, fixed and done, nothing discarded, similar things joined, every voice carried to an outcome (from Darrell's spoken teaching, "Lessons.")
 status: accepted
 date: 2026-09-24
@@ -7,16 +7,16 @@ tier: B
 type: word
 declared_by: Darrell
 scope:
-  - app/src/lib/sovereign-ai-class.js (the sov28 module; SOVEREIGN_AI_META.weeks 26 -> 28 with DR-0623)
+  - app/src/lib/sovereign-ai-class.js (the sov28 module; SOVEREIGN_AI_META.weeks 26 -> 28 with DR-0637)
   - app/src/__tests__/sovereign-ai-verse-integrity.test.js (SOV28_FRAGMENTS + SOV28_CORPUS + SOV28_ALLOWED + describe block)
-  - counts moved together with DR-0623 (sovereign-ai-class, learn-crosslist, course-band-coverage + baseline, quotation-integrity and stage-reaches-reader baselines)
+  - counts moved together with DR-0637 (sovereign-ai-class, learn-crosslist, course-band-coverage + baseline, quotation-integrity and stage-reaches-reader baselines)
 principles: [WORD-FIRST, HOLD-THE-HAND (DR-0621), SPOKEN-TEACHINGS-ARE-BUILD-INPUT, SPEAK-ESTABLISHED-FACT (DR-0100), TEACH-DONT-DEBATE (DR-0098), VERIFICATION-DOCTRINE (DR-0076)]
 grounds:
   - Darrell's spoken teachings, 2026-09-24 (below), rendered for meaning per DR-0331
   - DR-0621 — Hold the Hand of the Process, the Way (docs/00-foundations/_root/HOLD-THE-HAND-OF-THE-PROCESS.md; merged #1777)
   - DR-0618 — the harvest monitor carried from a false alarm to 874 of 874
   - DR-0612 — the Decision Intelligence board reads the boards, the feedback and the incidents
-  - DR-0623 — the companion week 27
+  - DR-0637 — the companion week 27
 ---
 
 ## Context — his words
@@ -54,7 +54,7 @@ In-app: Admin → Systems (is each red or amber reading only flagged, or held by
 
 ## Impact
 
-Counts move together with DR-0623 (28 weeks; 720 program lessons; band coverage 380; walks 571). The lesson carries his correction into the Word handling itself: the barren tree's cutting, the buried talent and the cursed fig tree are not used as a rule for systems, and a test pins their absence. Readers are never handed our bookkeeping: record ids appear only in the facilitator's talking points.
+Counts move together with DR-0637 (28 weeks; 720 program lessons; band coverage 380; walks 571). The lesson carries his correction into the Word handling itself: the barren tree's cutting, the buried talent and the cursed fig tree are not used as a rule for systems, and a test pins their absence. Readers are never handed our bookkeeping: record ids appear only in the facilitator's talking points.
 
 ## Verification
 
@@ -66,5 +66,5 @@ Counts move together with DR-0623 (28 weeks; 720 program lessons; band coverage 
 
 ## Re-review
 
-- **2026-10-01** — the 120 no-caption videos' handoff (shared with DR-0623).
+- **2026-10-01** — the 120 no-caption videos' handoff (shared with DR-0637).
 - **When the intake routing of movement nine ships** (DR-0621's Way) — teach it from its live data: which doors, which categories, what the system fixed, and what each person was told.

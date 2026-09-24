@@ -302,7 +302,7 @@ describe('a pointer, never a copy', () => {
     // existing Project Management course, so only the total moves.
     expect(courses).toHaveLength(49);
     // And to 718 on 2026-09-24 for Sovereign A.I. weeks 25 and 26 (DR-0619, DR-0620);
-    // and to 720 the same day for weeks 27 and 28, from Darrell's spoken teachings (DR-0623, DR-0628).
+    // and to 720 the same day for weeks 27 and 28, from Darrell's spoken teachings (DR-0637, DR-0638).
     expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(720);
     const depts = learnDepartments(courses);
     expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(720);
