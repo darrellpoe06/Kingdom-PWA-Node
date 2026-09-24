@@ -126,3 +126,19 @@ The "combine later, re-review 2026-10-01" line above is replaced: each lane was 
 | `nas-storage-sync.yml` | 35906520553: dispatched from a feature branch for a private bucket. `HOSTED_SERVICE_ROLE_KEY` in `agent.env` is not a Supabase key (57 bytes, starts `cdn`). | **public route re-run on main** (moore-showcase). The six private buckets wait on the hosted service key. Moving the project's most privileged credential through CI is a decision only Darrell makes (the lane's own header), and the key is a value only he can mint. `re-review: 2026-10-01`, beside `nas-email-door`. |
 
 Proofs: `broken-lanes-combined-with-their-working-twins.test.js`, 10 tests, each pinning one combination against being quietly reverted. The flow graph's `unseeded` gate caught the new source-transcript to NAS seed until the NAS route declared what it reads from the call.
+
+**Proven on live runs, dispatched from this branch before merge:**
+
+- `nas-agent-arm` run 36073835760, green:
+  - it printed `agent-consumer: serving the sovereign database (127.0.0.1:5433)`, then `{"done": 1, "failed": 0}`;
+  - the chat request waiting since the repoint (sent 2026-08-22) is answered;
+  - the first try (run 36073583089) was refused as `postgres` (42501 on `agent_tasks`), so the consumer now connects as `supabase_admin`, the role `live-sql.sh` uses.
+- `source-transcript` run 36073587348, green:
+  - the runner was challenged, and the same run handed the link to `source-transcript-nas`;
+  - the NAS fetched the captions from its residential address;
+  - the transcript matched main word for word, so nothing needed pushing.
+- `transcript-backfill` run 36073585409, green:
+  - the runner lane was skipped because no proxy secrets are set, and the NAS trickle ran;
+  - it answered `fired 9556s ago (< 10800s gap) - no-op this cycle`, so the shared budget held;
+  - whether new transcripts are arriving is shown by `db:video_transcripts` and `harvest-health`, not by this lane.
+- `nas-storage-sync` run 36072894624 (main, public gallery): green.
