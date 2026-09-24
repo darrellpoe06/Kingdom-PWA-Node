@@ -21,6 +21,10 @@ DR-0594 built the course on records, which was right, and stopped short of testi
 | gates | `businessResearchVoiceFaults` and `businessResearchTimelineFaults` 0 on every lesson; every voice ≥ 8 verbatim words, no elision, on a listed host; every year a voice carries on its lesson's timeline (1995, 2019, 2020 added); the witness pin requires a named person, or the company under its own signature speaking as "we", in every lesson |
 | the whole course | 32 voices on 12 records; timeline 1989 → 2020; `history-voices-witness` runs on the push and must find every voice on its page |
 
+## Impact
+
+Without witnesses, a research course on rivalries teaches a reader to trust summaries about people it never lets speak, the exact gap the 1619 rebuild closed the same day. With them, every lesson holds at least one person under his own name or signature, probed on a runner, and the pin keeps it that way; the cost is sixteen voices, three timeline years and one host added to the business list.
+
 ## Decision
 
 1. A course that teaches research on a case carries, in every lesson, at least one person who was there in his own words, fetched on a runner; a record that only describes people is not a witness.

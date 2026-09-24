@@ -28,6 +28,10 @@ The Plan tab reads one `family_plans` row under RLS and renders eight worksheets
 | enforcement | the render/journey/engine/import suites in CI (58 tests re-run green with the new ones); `rls-isolation.yml` dispatch-only with no SELECT smoke for either table |
 | after this DR | plan fetch bounded at 8 s with an honest error and Try again (pinned by a hung-request test that exercises the abort path); instance filter applied when the shell has resolved one (pinned); footer takes `releaseLabel`, `releaseNote`, `appVersion` from the seed on every hydration (pinned against the demo persona); provisions back-fill on mount, skipped signed out, failure logged not thrown (pinned); two smokes added to the product-forms leg, replay-order guard OK |
 
+## Impact
+
+Without these closes, a hung request loads for ever on a trust surface, a member of two households can read the wrong plan, a real plan sits under a demo label, an offline ledger entry never reaches the family, and two RLS walls stand on policy text alone. With them, every one of those is either fixed and pinned by a test or proven live on the runner; the cost is two lines in the frozen shell (raised with its reason) and one more leg-minute in the isolation matrix.
+
 ## Decision
 
 1. Every async read on a Books surface carries an explicit bound and a structural fallback; `fetchNewestPlan` is the pattern (AbortController, named error, retry).
