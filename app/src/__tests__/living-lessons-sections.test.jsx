@@ -6,7 +6,9 @@
 // Pinned here: the helper places a lesson by its FIRST anchor's book into the
 // Word's own divisions in canonical order; every lesson lands exactly once and
 // the counts add up; and on the REAL component tree the Living Lessons picker
-// renders those sections while an eight-lesson course keeps its flat list.
+// renders ONE flat list with a shelf select (DR-0603 — the long list is the
+// default; a division is a lens the reader picks), while a short course keeps
+// the flat list with no select.
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -103,33 +105,90 @@ describe('on the real Learn tree', () => {
     });
   };
 
-  it('Living Lessons renders its lessons in sections whose counts add up to the course, one section open', () => {
+  // THE LONG LIST IS THE DEFAULT (Darrell 2026-09-24, shown the collapsed
+  // sections on Living Lessons: "I would rather have the long list than this!
+  // ... This is just totally different feel and process!!!!!!"). DR-0603: the
+  // flat list renders for every course the same way; a long course adds a
+  // "Show" select whose first option is the whole course and whose others are
+  // the Word's divisions with their counts. No <details> folds anything away.
+  const shelfSelect = () => container.querySelector('#learn-lesson-shelf');
+  const rows = (nav) => nav.querySelectorAll('[data-testid="course-lesson-list"] > li');
+  const choose = (sel, value) => act(() => {
+    const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+    setter.call(sel, value);
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+
+  it('Living Lessons renders the whole course as ONE flat list by default — nothing folded, no <details>', () => {
     mount();
     pick(/Living Lessons from the Word/);
     const nav = container.querySelector('[data-testid="course-lessons-first"]');
     expect(nav, 'the by-title index must render').toBeTruthy();
-    const shelf = nav.querySelector('[data-testid="course-lesson-sections"]');
-    expect(shelf, 'the long course must be shelved in sections').toBeTruthy();
-    const details = [...shelf.querySelectorAll('details')];
-    expect(details.length).toBeGreaterThanOrEqual(7);
-    const counted = details.reduce((n, d) => n + Number((d.querySelector('summary span:last-child') || {}).textContent || 0), 0);
-    expect(counted).toBe(LIVING_LESSONS_MODULES.length);
-    expect(shelf.querySelectorAll('li').length).toBe(LIVING_LESSONS_MODULES.length);
-    expect(details.filter((d) => d.open).length).toBe(1);
-    expect(details[0].textContent).toMatch(/The Law/);
+    expect(nav.querySelector('details'), 'PROVEN-TO-CATCH: a collapsed section must never return').toBe(null);
+    expect(nav.querySelector('[data-testid="course-lesson-sections"]')).toBe(null);
+    expect(rows(nav).length).toBe(LIVING_LESSONS_MODULES.length);
+    expect(nav.querySelector('[data-testid="course-lesson-list"]').getAttribute('data-shelf')).toBe('all');
     // The stated count on the heading still matches the course.
     expect((nav.textContent || '')).toMatch(new RegExp(`by title · ${LIVING_LESSONS_MODULES.length}`));
   });
 
-  it('PROVEN-TO-CATCH: a short course keeps the flat list — no sections', () => {
+  it('the shelf select offers the whole course first, then the Word’s divisions with counts that add up to the course', () => {
+    mount();
+    pick(/Living Lessons from the Word/);
+    const sel = shelfSelect();
+    expect(sel, 'a long course must offer the shelf select').toBeTruthy();
+    const opts = [...sel.querySelectorAll('option')];
+    expect(opts[0].value).toBe('all');
+    expect(opts[0].textContent).toMatch(new RegExp(`· ${LIVING_LESSONS_MODULES.length}$`));
+    const divisions = opts.slice(1);
+    expect(divisions.length).toBeGreaterThanOrEqual(7);
+    expect(divisions[0].textContent).toMatch(/^The Law · \d+$/);
+    const counted = divisions.reduce((n, o) => n + Number((o.textContent.match(/· (\d+)$/) || [])[1] || 0), 0);
+    expect(counted).toBe(LIVING_LESSONS_MODULES.length);
+    // The select sits ABOVE the list, inside the by-title index.
+    const nav = container.querySelector('[data-testid="course-lessons-first"]');
+    const list = nav.querySelector('[data-testid="course-lesson-list"]');
+    expect(nav.contains(sel)).toBe(true);
+    expect(!!(sel.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+  });
+
+  it('picking a division narrows the SAME flat list to that shelf, and "all" brings the whole course back', () => {
+    mount();
+    pick(/Living Lessons from the Word/);
+    const nav = container.querySelector('[data-testid="course-lessons-first"]');
+    const expected = sectionLessons(LIVING_LESSONS_MODULES);
+    const law = expected.find((s) => s.key === 'law');
+    choose(shelfSelect(), 'law');
+    expect(nav.querySelector('[data-testid="course-lesson-list"]').getAttribute('data-shelf')).toBe('law');
+    expect(rows(nav).length).toBe(law.lessons.length);
+    expect(nav.querySelector('details')).toBe(null);
+    expect([...rows(nav)].map((li) => li.textContent)).toEqual(expect.arrayContaining([expect.stringContaining(law.lessons[0].title)]));
+    choose(shelfSelect(), 'all');
+    expect(rows(nav).length).toBe(LIVING_LESSONS_MODULES.length);
+  });
+
+  it('the shelf choice belongs to the course: leaving Living Lessons and coming back shows the whole course again', () => {
+    mount();
+    pick(/Living Lessons from the Word/);
+    choose(shelfSelect(), 'gospels');
+    const nav = () => container.querySelector('[data-testid="course-lessons-first"]');
+    expect(rows(nav()).length).toBeLessThan(LIVING_LESSONS_MODULES.length);
+    pick(/Business Research, Level 1/);
+    expect(shelfSelect(), 'a short course offers no shelf select').toBe(null);
+    pick(/Living Lessons from the Word/);
+    expect(rows(nav()).length).toBe(LIVING_LESSONS_MODULES.length);
+  });
+
+  it('PROVEN-TO-CATCH: a short course keeps the flat list and gets no shelf select', () => {
     mount();
     pick(/Business Research, Level 1/);
     const nav = container.querySelector('[data-testid="course-lessons-first"]');
     expect(nav).toBeTruthy();
     expect(nav.querySelector('[data-testid="course-lesson-sections"]')).toBe(null);
+    expect(shelfSelect()).toBe(null);
     // Eight lessons when this was written; nine since the oil lesson (DR-0602) —
     // the count is read from the course so the pin proves the flat list, not the number.
-    expect(nav.querySelectorAll('ol > li').length).toBe(BUSINESS_RESEARCH_MODULES.length);
+    expect(rows(nav).length).toBe(BUSINESS_RESEARCH_MODULES.length);
     expect(BUSINESS_RESEARCH_MODULES.length).toBe(9);
   });
 });

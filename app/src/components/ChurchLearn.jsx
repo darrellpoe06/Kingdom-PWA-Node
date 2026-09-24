@@ -93,7 +93,7 @@ import { crossListingsFor, resolveCrossListed, crossListedCount, courseCrossList
 // under its own department here, loaded only when that department opens.
 const EternalAlgorithmsStudyLazy = React.lazy(() => import('./EternalAlgorithmsStudy.jsx'));
 import { organizeCourses, learnDepartments, courseLessonCount, COURSE_SORTS, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey } from '../lib/learn-organize.js';
-import { wantsSections, sectionLessons, sectionHolding } from '../lib/lesson-sections.js';
+import { wantsSections, sectionLessons } from '../lib/lesson-sections.js';
 import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
 import { getPlace, recordPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished } from '../lib/learn-resume.js';
@@ -3234,6 +3234,17 @@ export default function ChurchLearn({
   // screen so the space holds ONLY the lesson. Set by CourseView.
   const [lessonFocus, setLessonFocus] = useState(false);
 
+  // THE LONG LIST IS THE DEFAULT; A SHELF IS A LENS THE READER PICKS (Darrell
+  // 2026-09-24, shown Living Lessons folded into eight collapsed sections:
+  // "I would rather have the long list than this! ... This is just totally
+  // different feel and process!!!!!!"). Every course lists its lessons the
+  // same way — one flat list — and a long course ADDS a select naming the
+  // Word's divisions (lib/lesson-sections.js) so a reader who wants "the ones
+  // in Proverbs" can narrow the list to that shelf. Nothing is folded away
+  // by default. The choice is held per course and forgotten on leaving it.
+  const [lessonShelfPick, setLessonShelfPick] = useState({ courseKey: '', shelf: 'all' });
+  React.useEffect(() => { setLessonShelfPick({ courseKey: '', shelf: 'all' }); }, [active.key]);
+
   // Resolve the saved place against the MOUNTED catalog (verify before relying
   // on it): a course or lesson that no longer exists offers nothing — the
   // banner can never point at a dead door.
@@ -3523,6 +3534,9 @@ export default function ChurchLearn({
           const schedule = active.schedule;
           const U = unitLabels(active.meta);
           const recentIds = recentUsed(3).filter((id) => schedule.some((m) => m.id === id));
+          const sections = wantsSections(schedule) ? sectionLessons(schedule) : null;
+          const shelf = (sections && lessonShelfPick.courseKey === active.key && sections.some((x) => x.key === lessonShelfPick.shelf)) ? lessonShelfPick.shelf : 'all';
+          const shown = shelf === 'all' ? schedule : sections.find((x) => x.key === shelf).lessons;
           const open = (id) => { setActiveKey(active.key); setResumeOpenGuide(false); setResumeLessonId(id); setResumeNonce((n) => n + 1); };
           return (
             <nav
@@ -3574,58 +3588,42 @@ export default function ChurchLearn({
                   </div>
                 </div>
               )}
-              {/* SECTIONS FOR A LONG COURSE (Darrell 2026-09-23, from the
-                  picker showing "Living Lessons from the Word · 189 lessons":
-                  "Living Lessons may need their own Sections..."). At or above
-                  SECTION_MIN_LESSONS the list is shelved by where in the Word
-                  each lesson stands — its FIRST anchor's book, in the Word's own
-                  divisions and canonical order (lib/lesson-sections.js, DR-0596).
-                  Real data, never a typed theme; every lesson appears once and
-                  the section counts add up to the course. The section holding
-                  the last-opened lesson starts open; shorter courses keep the
-                  flat list unchanged. */}
-              {wantsSections(schedule) ? (() => {
-                const sections = sectionLessons(schedule);
-                const openKey = sectionHolding(sections, recentIds[0]);
-                return (
-                  <div className="space-y-1 max-h-[45vh] overflow-y-auto pr-1" data-testid="course-lesson-sections">
+              {/* THE LONG LIST STAYS; A LONG COURSE ADDS A SHELF SELECT (DR-0603).
+                  DR-0596 folded a course of 30+ lessons into collapsed
+                  <details> sections by the Word's divisions. Darrell, shown it
+                  on Living Lessons the next day: "I would rather have the long
+                  list than this! ... This is just totally different feel and
+                  process!!!!!! Why?!!!!!!!!" So the list below is the SAME flat
+                  list every course renders — the feel and the process do not
+                  change with the course's length. The divisions are kept as a
+                  LENS: a select above the list (only on a long course) whose
+                  first option is the whole course and whose others are the
+                  Word's eight divisions with their counts (lib/lesson-sections.js,
+                  real data from each lesson's own anchor). Picking one narrows
+                  the flat list to that shelf; the default is everything. */}
+              {sections && (
+                <div className="mb-2">
+                  <label htmlFor="learn-lesson-shelf" className="block text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1">
+                    Show
+                  </label>
+                  <select
+                    id="learn-lesson-shelf"
+                    data-testid="course-lesson-shelf"
+                    data-shelf={shelf}
+                    value={shelf}
+                    onChange={(e) => setLessonShelfPick({ courseKey: active.key, shelf: e.target.value })}
+                    className="w-full min-h-[44px] px-2 py-2 bg-white border border-[#E8E4DC] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                    style={{ fontFamily: '"Fraunces", serif' }}
+                  >
+                    <option value="all">All {U.noun}s · {schedule.length}</option>
                     {sections.map((sec) => (
-                      <details key={sec.key} open={sec.key === openKey} className="border-t border-[#E8E4DC] pt-1" data-testid={`lesson-section-${sec.key}`}>
-                        <summary className="cursor-pointer py-2 min-h-[44px] flex items-center justify-between text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">
-                          <span>{sec.label}</span>
-                          <span className="text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{sec.lessons.length}</span>
-                        </summary>
-                        <ol className="space-y-0.5 pb-1">
-                          {sec.lessons.map((m) => (
-                            <li key={m.id} className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => open(m.id)}
-                                className="flex-1 text-left py-2 min-h-[44px] text-sm text-[#1A1815] hover:text-[#B85838] hover:underline focus:outline focus:outline-2 focus:outline-[#B85838]"
-                                style={{ fontFamily: '"Fraunces", serif' }}
-                              >
-                                <span className="text-[#5A5751] text-[0.6875rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{U.cap} {m.week}</span>
-                                {' · '}{m.title}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => playLesson(active.key, m.id)}
-                                aria-label={`Play ${m.title} in the big full-screen view`}
-                                title={`Open ${m.title} in the big full-screen view — read it yourself or have it read aloud`}
-                                className="shrink-0 text-[0.625rem] uppercase tracking-wider px-2 py-2 min-h-[44px] border-2 border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-                              >
-                                ▶ Play
-                              </button>
-                            </li>
-                          ))}
-                        </ol>
-                      </details>
+                      <option key={sec.key} value={sec.key}>{sec.label} · {sec.lessons.length}</option>
                     ))}
-                  </div>
-                );
-              })() : (
-              <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1">
-                {schedule.map((m) => (
+                  </select>
+                </div>
+              )}
+              <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1" data-testid="course-lesson-list" data-shelf={shelf}>
+                {shown.map((m) => (
                   <li key={m.id} className="flex items-center gap-2">
                     <button
                       type="button"
@@ -3652,7 +3650,6 @@ export default function ChurchLearn({
                   </li>
                 ))}
               </ol>
-              )}
             </nav>
           );
         })()}
