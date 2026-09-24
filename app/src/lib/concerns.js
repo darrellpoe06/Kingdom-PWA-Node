@@ -390,7 +390,7 @@ export function feedbackToConcernCards(feedback = []) {
         : (f.screenshot ? [f.screenshot] : []);
       // A triaged-as-resolved feedback row reads as done; everything else is an
       // open concern, now carrying its auto-evaluation.
-      const status = f.triageStatus === 'resolved' || f.triageStatus === 'done' ? 'done' : 'open';
+      const status = ['resolved', 'done', 'fixed', 'declined'].includes(f.triageStatus) ? 'done' : 'open';
       const evaluation = evaluateFeedback(f);
       return {
         id: `fb-${f.id}`,

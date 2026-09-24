@@ -403,6 +403,7 @@ function toPrototypeShape(row) {
     displayName: row.display_name,
     deviceLabel: row.device_label,
     triageStatus: row.triage_status,
+    triageNotes: row.triage_notes || '',
     screenshot: row.screenshot || null,
     // Full image set when the `screenshots` jsonb column is live; otherwise the
     // single legacy `screenshot` stands in so older rows still render.
