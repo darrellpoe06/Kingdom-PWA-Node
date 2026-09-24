@@ -457,6 +457,46 @@ def mirror_once(list_live, insert_hosted, tag_live):
     return report
 
 
+# THE GOVERNOR'S WORD CARRIED OVER (DR-0635). A member's lesson is captured
+# only when it carries `lesson-approved`, written in the app by the Governor's
+# review (migration 0237). The reader sees only the hosted copy, which was made
+# before the review, so each decided row's decision tag is merged onto its
+# hosted copy (same id) and the live row is marked `review-mirrored`. A row not
+# yet mirrored carries its decision over with the ordinary mirror.
+REVIEW_TAGS = ("lesson-approved", "lesson-declined")
+LOCAL_ONLY_TAGS = ("mirrored", "review-mirrored")
+
+
+def rows_to_sync_review(rows):
+    out = []
+    for r in rows or []:
+        tags = r.get("tags") or []
+        if "lesson" not in tags or "review-mirrored" in tags or "mirrored" not in tags:
+            continue
+        if not any(t in tags for t in REVIEW_TAGS):
+            continue
+        out.append(r)
+    return out[:MAX_MIRROR_PER_RUN]
+
+
+def sync_reviews_once(list_live, merge_hosted_tags, tag_live):
+    """Carry each decision to the hosted copy; returns {synced, failed}. Never raises."""
+    report = {"synced": [], "failed": []}
+    try:
+        rows = rows_to_sync_review(list_live())
+    except Exception as e:
+        report["failed"].append({"id": None, "error": f"list: {e}"})
+        return report
+    for r in rows:
+        try:
+            merge_hosted_tags(r["id"], [t for t in r.get("tags") or [] if t not in LOCAL_ONLY_TAGS])
+            tag_live(r, ["review-mirrored"])
+            report["synced"].append(r["id"])
+        except Exception as e:
+            report["failed"].append({"id": r.get("id"), "error": str(e)})
+    return report
+
+
 class SupabaseIO:
     def __init__(self, url, key, data_dir=DATA, env=None):
         self.url, self.key, self.data_dir = url, key, data_dir
@@ -482,6 +522,21 @@ class SupabaseIO:
         # which ignore-duplicates turns into a quiet no-op.
         self._req("POST", "/rest/v1/agent_inbox?on_conflict=id", json.dumps(row).encode("utf-8"),
                   {"Content-Type": "application/json", "Prefer": "resolution=ignore-duplicates,return=minimal"})
+
+    def list_reviewed_rows(self):
+        out = []
+        for tag in REVIEW_TAGS:
+            q = "select=id,tags&tags=cs." + urllib.parse.quote(json.dumps(["lesson", tag])) + "&order=created_at.asc&limit=100"
+            out.extend(json.loads(self._req("GET", "/rest/v1/agent_inbox?" + q).decode("utf-8")))
+        return out
+
+    def merge_tags(self, rid, extra):
+        """Union `extra` into the row's tags on THIS project (the hosted copy)."""
+        q = "select=id,tags&id=eq." + urllib.parse.quote(rid)
+        rows = json.loads(self._req("GET", "/rest/v1/agent_inbox?" + q).decode("utf-8"))
+        if not rows:
+            raise RuntimeError("no hosted copy of " + rid)
+        self.add_tags(rows[0], extra)
 
     def has_transcript(self, rid):
         q = "select=id&tags=cs." + urllib.parse.quote(json.dumps(["voice-transcript", f"of:{rid}"])) + "&limit=1"
@@ -637,6 +692,7 @@ if __name__ == "__main__":
         if hurl and hkey and hurl != url:
             hosted = SupabaseIO(hurl, hkey)
             out["mirror"] = mirror_once(live.list_lesson_rows, hosted.insert_mirror, live.add_tags)
+            out["review"] = sync_reviews_once(live.list_reviewed_rows, hosted.merge_tags, live.add_tags)
         else:
             out["mirror"] = {"skipped": "no hosted credential to mirror to"}
     print(json.dumps(out, indent=2))
