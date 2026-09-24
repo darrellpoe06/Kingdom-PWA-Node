@@ -1,4 +1,4 @@
-# DR-0642 — A lesson opens fast: the list renders what is near the reader, the print copy exists only while printing, and one bar owns the top of an open lesson
+# DR-0652 — A lesson opens fast: the list renders what is near the reader, the print copy exists only while printing, and one bar owns the top of an open lesson
 
 - **Status:** accepted
 - **Tier:** A (rendering and layout; no schema, no money, no identity change)
@@ -87,7 +87,7 @@ In the browser: scrolling the list, no light card was ever on screen (they fill 
 
 **Full suite and lint on this branch** (with #1793 and main merged in): `npm run lint` clean; `npx vitest run` — 1,205 files, **20,219 tests, all passing**; `npm run verify:gates`, the consistency, UI-standards and legibility guards all pass.
 
-**Number.** The orchestrator named DR-0636 for this record; that id was already taken on a concurrent branch (a spoken lesson really records), and DR-0637 then turned out to be taken too (every workflow seeds the next), so it is DR-0642, above every id in use on any branch.
+**Number.** The orchestrator named DR-0636 for this record; that id was already taken on a concurrent branch (a spoken lesson really records), and DR-0637 then turned out to be taken too (every workflow seeds the next); it was next filed as DR-0652, which the orchestrator had already given the Henrie lesson, so it is DR-0652, above every id allocated to an open branch (DR-0639 through DR-0651).
 
 ## Honest remainder
 

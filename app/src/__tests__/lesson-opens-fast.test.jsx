@@ -1,8 +1,8 @@
 // =============================================================================
 // A lesson opens fast: the list renders what is near the reader, and the
-// print-only curriculum exists only while printing (DR-0642)
+// print-only curriculum exists only while printing (DR-0652)
 // =============================================================================
-// Measured 2026-09-24 in Chromium at 390x844 (DR-0642): the Learn tab held
+// Measured 2026-09-24 in Chromium at 390x844 (DR-0652): the Learn tab held
 // 34,022 elements — 19,023 of them every lesson's full card, 9,919 a hidden
 // print-only copy of the curriculum — and a Continue tap spent 1.5–1.75 s of
 // script tearing them down. These pins hold the fix in the real Learn tree.
