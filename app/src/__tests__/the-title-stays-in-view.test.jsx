@@ -227,4 +227,92 @@ describe('the in-app reader keeps the title at the top while you read', () => {
     const title = container.querySelector('[data-testid="lesson-space-title"]');
     expect(title.textContent.trim()).toBe(real.title);
   });
+
+  // ...AND NEVER CUT OFF (Darrell 2026-09-24, two Big Print screenshots of
+  // Lesson 101 ending in "...": "The title to lessons are getting cut off!!!!!!
+  // Fix it..."). The two-line ceiling (2026-09-22) stays as the resting state;
+  // a fold control beside the title opens the whole of it inside the sticky
+  // block and folds it again. The control renders only when the title really
+  // overflows, MEASURED on the element — jsdom lays nothing out (0/0), so the
+  // pins below stand in for the browser's layout with a getter on the one
+  // element, and prove both branches: an overflowing title gets the handle,
+  // a fitting one gets none.
+  describe('the title is never cut off: the fold control opens the whole of it (DR-0605)', () => {
+    const TITLE = '[data-testid="lesson-space-title"]';
+    const TOGGLE = '[data-testid="lesson-space-title-toggle"]';
+    let restore = () => {};
+    const layTitleOut = (overflowing) => {
+      const sh = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollHeight');
+      const ch = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientHeight');
+      Object.defineProperty(HTMLElement.prototype, 'scrollHeight', { configurable: true, get() { return this.dataset && this.dataset.testid === 'lesson-space-title' ? (overflowing ? 120 : 40) : 0; } });
+      Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, get() { return this.dataset && this.dataset.testid === 'lesson-space-title' ? 40 : 0; } });
+      restore = () => {
+        if (sh) Object.defineProperty(HTMLElement.prototype, 'scrollHeight', sh); else delete HTMLElement.prototype.scrollHeight;
+        if (ch) Object.defineProperty(HTMLElement.prototype, 'clientHeight', ch); else delete HTMLElement.prototype.clientHeight;
+      };
+    };
+    afterEach(() => { restore(); restore = () => {}; });
+    const openLesson = () => { mount(); openLivingLessons(); act(() => { buttonByText('Bodybuilding Christ').click(); }); };
+
+    it('an overflowing title shows the fold control, folded, with the two-line ceiling in force', () => {
+      layTitleOut(true);
+      openLesson();
+      const title = container.querySelector(TITLE);
+      const toggle = container.querySelector(TOGGLE);
+      expect(toggle, 'a cut title must offer a way to open it').toBeTruthy();
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      expect(toggle.getAttribute('aria-controls')).toBe(title.id);
+      expect(title.getAttribute('data-open')).toBe('false');
+      expect(title.style.webkitLineClamp || title.style.WebkitLineClamp || title.getAttribute('style')).toMatch(/2/);
+      expect(title.className).toContain('overflow-hidden');
+      // The control is chrome, capped at Big Print like every other control.
+      expect(toggle.className).toContain('ts-chrome-region');
+      expect(Number((toggle.className.match(/min-h-\[(\d+)px\]/) || [])[1])).toBeGreaterThanOrEqual(44);
+    });
+
+    it('one tap opens the WHOLE title inside the sticky block; the words are all there and nothing clamps them', () => {
+      layTitleOut(true);
+      openLesson();
+      const opened = container.querySelector('li[id^="learn-lesson-"]');
+      const real = LIVING_LESSONS_MODULES.find((m) => m.id === opened.id.replace('learn-lesson-', ''));
+      act(() => { container.querySelector(TOGGLE).click(); });
+      const title = container.querySelector(TITLE);
+      const toggle = container.querySelector(TOGGLE);
+      expect(toggle.getAttribute('aria-expanded')).toBe('true');
+      expect(title.getAttribute('data-open')).toBe('true');
+      expect(title.className).not.toContain('overflow-hidden');
+      expect(title.getAttribute('style') || '').not.toMatch(/line-clamp|max-height/i);
+      expect(title.textContent.trim()).toBe(real.title);
+      // Still inside the sticky block: opening it never takes it off the top.
+      expect(container.querySelector('[data-testid="lesson-space-sticky"]').contains(title)).toBe(true);
+      // A second tap folds it.
+      act(() => { toggle.click(); });
+      expect(container.querySelector(TITLE).getAttribute('data-open')).toBe('false');
+    });
+
+    it('opening the next lesson folds the title again — the lid is the reader\'s choice per lesson', () => {
+      layTitleOut(true);
+      openLesson();
+      act(() => { container.querySelector(TOGGLE).click(); });
+      expect(container.querySelector(TITLE).getAttribute('data-open')).toBe('true');
+      const next = [...container.querySelectorAll('[data-testid="lesson-space-bar"] button')].find((b) => /→/.test(b.textContent || ''));
+      act(() => { next.click(); });
+      expect(container.querySelector(TITLE).getAttribute('data-open')).toBe('false');
+    });
+
+    it('PROVEN-TO-CATCH: a title that fits in two lines shows no fold control', () => {
+      layTitleOut(false);
+      openLesson();
+      expect(container.querySelector(TITLE)).toBeTruthy();
+      expect(container.querySelector(TOGGLE), 'no overflow, no handle').toBe(null);
+    });
+
+    it('the full title also stands in the flow at the head of the lesson card, read whole on arrival without a tap', () => {
+      layTitleOut(true);
+      openLesson();
+      const opened = container.querySelector('li[id^="learn-lesson-"]');
+      const real = LIVING_LESSONS_MODULES.find((m) => m.id === opened.id.replace('learn-lesson-', ''));
+      expect(opened.textContent).toContain(real.title);
+    });
+  });
 });

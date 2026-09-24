@@ -94,6 +94,7 @@ import { crossListingsFor, resolveCrossListed, crossListedCount, courseCrossList
 const EternalAlgorithmsStudyLazy = React.lazy(() => import('./EternalAlgorithmsStudy.jsx'));
 import { organizeCourses, learnDepartments, courseLessonCount, COURSE_SORTS, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey } from '../lib/learn-organize.js';
 import { wantsSections, sectionLessons, sectionHolding } from '../lib/lesson-sections.js';
+import { subscribeTextSize } from '../lib/text-size.js';
 import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
 import { getPlace, recordPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished } from '../lib/learn-resume.js';
@@ -1625,6 +1626,39 @@ function CourseView({
   // place and moving between them does not blur them together.
   useReadingResume({ userKey: 'learn', surface: 'lesson', itemId: focusId || '', enabled: !!focusId });
   const focusModule = focusId ? (schedule.find((m) => m.id === focusId) || null) : null;
+  // THE STICKY TITLE OPENS ON A TAP (Darrell 2026-09-24, two Big Print
+  // screenshots of Lesson 101 whose title ended in "...": "The title to
+  // lessons are getting cut off!!!!!! Fix it..."). Three of his words hold at
+  // once here and none may lose: the title stays at the top through a long
+  // read (2026-09-17); a sticky label never covers the Word at Big Print
+  // (2026-09-22, the two-line ceiling); and the title is never cut off (now).
+  // So the ceiling stays as the RESTING state, and the reader owns the lid:
+  // a tap on the fold control opens the whole title inside the sticky block,
+  // a second tap folds it, and opening the next lesson folds it again. A
+  // title that fits in two lines shows no fold control at all. The full
+  // title also stands in the flow at the head of the lesson card, so on
+  // arrival it is read whole without any tap.
+  const [titleOpen, setTitleOpen] = useState(false);
+  React.useEffect(() => { setTitleOpen(false); }, [focusId]);
+  const titleRef = React.useRef(null);
+  const [titleOverflows, setTitleOverflows] = useState(false);
+  React.useLayoutEffect(() => {
+    const el = titleRef.current;
+    if (!el) { setTitleOverflows(false); return undefined; }
+    // Measured, not guessed: the clamp hides overflow, so scrollHeight past
+    // clientHeight is the one true sign that a line was cut. Re-measured on
+    // resize and on any text-size change (both move the line count), and a
+    // browser with no layout (the test DOM) reads 0/0 and shows no control —
+    // which is why the render pins force the state rather than the size.
+    const measure = () => { if (!titleOpen) setTitleOverflows(el.scrollHeight > el.clientHeight + 1); };
+    measure();
+    if (typeof window === 'undefined') return undefined;
+    window.addEventListener('resize', measure);
+    // The size change lands as a root-scale change on the next frame, so the
+    // measurement waits one frame before reading the new line count.
+    const unsubscribe = subscribeTextSize(() => { window.requestAnimationFrame(measure); });
+    return () => { window.removeEventListener('resize', measure); unsubscribe(); };
+  }, [focusId, titleOpen]);
   // THE SCREEN STAYS ON WHILE A LESSON IS OPEN (DR-0439; Darrell 2026-09-16:
   // "my Zfold 7 allows 10 minutes until it goes black"). One shared wake-lock
   // holder named for the lesson space; released when the reader leaves it.
@@ -2013,20 +2047,47 @@ function CourseView({
               the full title rides the `title` attribute for anyone who wants
               it. The fix is a CEILING, not a shrink — at Normal nothing about
               this changes. */}
-          <h2
-            data-testid="lesson-space-title"
-            title={focusModule.title}
-            className="border border-[#1A1815] border-b-0 px-2 sm:px-3 py-1.5 text-[0.875rem] font-semibold text-[#1A1815] leading-snug overflow-hidden"
-            style={{
-              fontFamily: '"Fraunces", serif',
-              display: '-webkit-box',
-              WebkitBoxOrient: 'vertical',
-              WebkitLineClamp: 2,
-              maxHeight: '2.8em',
-            }}
-          >
-            {focusModule.title}
-          </h2>
+          {/* ...AND NEVER CUT OFF (Darrell 2026-09-24: "The title to lessons are
+              getting cut off!!!!!! Fix it..."). The ceiling is the resting
+              state; the fold control beside the title opens the whole of it
+              inside the sticky block on one tap and folds it on the next. The
+              control renders only when the title actually overflows two lines
+              (measured on the element, never guessed from its length), so a
+              short title shows a plain line and a long one shows a handle
+              rather than a silent "...". See titleOpen above. */}
+          <div className="border border-[#1A1815] border-b-0 px-2 sm:px-3 py-1.5 flex items-start gap-2" data-testid="lesson-space-title-row">
+            <h2
+              data-testid="lesson-space-title"
+              id="lesson-space-title"
+              title={focusModule.title}
+              data-open={titleOpen ? 'true' : 'false'}
+              ref={titleRef}
+              className={`flex-1 min-w-0 text-[0.875rem] font-semibold text-[#1A1815] leading-snug ${titleOpen ? '' : 'overflow-hidden'}`}
+              style={titleOpen ? { fontFamily: '"Fraunces", serif' } : {
+                fontFamily: '"Fraunces", serif',
+                display: '-webkit-box',
+                WebkitBoxOrient: 'vertical',
+                WebkitLineClamp: 2,
+                maxHeight: '2.8em',
+              }}
+            >
+              {focusModule.title}
+            </h2>
+            {(titleOpen || titleOverflows) && (
+              <button
+                type="button"
+                onClick={() => setTitleOpen((v) => !v)}
+                aria-expanded={titleOpen}
+                aria-controls="lesson-space-title"
+                aria-label={titleOpen ? 'Fold the title back to two lines' : 'Show the whole title'}
+                title={titleOpen ? 'Fold the title back to two lines' : 'Show the whole title'}
+                data-testid="lesson-space-title-toggle"
+                className="ts-chrome-region shrink-0 min-h-[44px] min-w-[44px] px-2 text-[0.75rem] font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+              >
+                {titleOpen ? '▴' : '▾'}
+              </button>
+            )}
+          </div>
           {/* HOW FAR THROUGH, WHERE IT CANNOT SCROLL AWAY (Darrell 2026-09-17).
               The bar spans the FULL width on purpose: the inline one is 96px
               wide, which is legible enough beside its own label but useless as
