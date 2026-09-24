@@ -74,20 +74,28 @@ export const RECEIPT_STATES = {
     key: 'working', label: 'Being worked on',
     detail: 'Someone has picked this up. It is in progress.',
   },
+  // The two the loop could not say before DR-0616: the steward writes the
+  // reason (triage_notes) and the sender reads it here, word for word.
+  needsInfo: {
+    key: 'needs-info', label: 'We need a little more from you',
+    detail: 'Someone read this and needs one more detail to act on it. Send another note with it.',
+  },
+  declined: {
+    key: 'declined', label: 'Not changing this',
+    detail: 'Someone read this and decided not to change it. The reason is below. If it still matters to you, send another note and say why.',
+  },
   fixed: {
     key: 'fixed', label: 'Fixed',
     detail: 'This one is done. If it is still happening for you, send another note and say so — that matters more than the status.',
   },
 };
 
-const isResolved = (item) => {
-  const t = item.triageStatus || item.triage_status || '';
-  return t === 'resolved' || t === 'done' || t === 'fixed';
-};
-const isWorking = (item) => {
-  const t = item.triageStatus || item.triage_status || '';
-  return t === 'in-progress' || t === 'working' || t === 'reviewing';
-};
+// The statuses the database holds (migration 0233): new, reviewed, promoted,
+// in-progress, needs-info, fixed, declined. Each maps to what the sender reads.
+const statusOf = (item) => item.triageStatus || item.triage_status || '';
+const isResolved = (item) => ['fixed', 'resolved', 'done'].includes(statusOf(item));
+const isWorking = (item) => ['in-progress', 'promoted', 'reviewed', 'working', 'reviewing'].includes(statusOf(item));
+const reasonOf = (item) => String(item.triageNotes || item.triage_notes || '').trim();
 
 // receiptStatus — where THIS note stands, told to the person who sent it.
 // `allFeedback` is the whole board: without it the status is still correct, it
@@ -95,6 +103,8 @@ const isWorking = (item) => {
 export function receiptStatus(item, allFeedback = null) {
   if (!item) return { ...RECEIPT_STATES.received, othersCount: 0 };
   if (isResolved(item)) return { ...RECEIPT_STATES.fixed, othersCount: 0 };
+  if (statusOf(item) === 'declined') return { ...RECEIPT_STATES.declined, reason: reasonOf(item), othersCount: 0 };
+  if (statusOf(item) === 'needs-info') return { ...RECEIPT_STATES.needsInfo, reason: reasonOf(item), othersCount: 0 };
 
   // How many OTHER people said the same thing — the number that turns "we got
   // your note" into "this is a known issue." Measured, never estimated.
