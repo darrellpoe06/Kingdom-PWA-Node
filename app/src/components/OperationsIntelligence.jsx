@@ -13,6 +13,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { deriveOperations, INCIDENT_HOURS, REPEAT_OBSERVATIONS, DUE_SOON_REVIEW_DAYS } from '../lib/operations-intelligence.js';
 import { STALL_DAYS } from '../lib/decision-intelligence.js';
 import { fetchSiteHealth } from '../lib/site-health.js';
+import { fetchFlowProof, flowEscalations, normalizeGraph } from '../lib/system-flow.js';
+import supabase from '../lib/supabase.js';
 
 const LEDGER = (typeof __DR_LEDGER__ !== 'undefined') ? __DR_LEDGER__ : { ok: false, count: 0, items: [] };
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -23,10 +25,21 @@ const PANELS = [
   { key: 'risks', title: 'Risks · what keeps failing', text: 'text-[#B85838]', border: 'border-[#B85838]', empty: 'No health probe has recorded the same failure repeatedly.' },
   { key: 'decisionsRequired', title: 'Decisions required · records still proposed', text: 'text-[#5A6E3D]', border: 'border-[#5A6E3D]', empty: 'No decision record is still waiting to be decided.' },
 ];
-const LIVE = { fetchSiteHealth };
+const LIVE = { fetchSiteHealth, supabase };
+// The whole-system flow graph, file-verified at build (DR-0622); its live
+// numbers come from system_flow_proof.
+const GRAPH = normalizeGraph(typeof __INTERCONNECT_LOOPS__ !== 'undefined' && __INTERCONNECT_LOOPS__ ? __INTERCONNECT_LOOPS__.graph : null);
 
-export default function OperationsIntelligence({ loopData = null, loopEnv = {}, discussions = [], ledger = LEDGER, nowMs = Date.now(), deps = LIVE }) {
+export default function OperationsIntelligence({ loopData = null, loopEnv = {}, discussions = [], ledger = LEDGER, nowMs = Date.now(), deps = LIVE, graph = GRAPH }) {
   const [health, setHealth] = useState({ ok: false, incidents: null, notice: 'reading the incident ledger' });
+  const [proof, setProof] = useState({ ok: false, rows: {}, reason: 'reading the flow proof' });
+  useEffect(() => {
+    let live = true;
+    if (deps && deps.supabase) fetchFlowProof(deps).then((p) => { if (live) setProof(p); });
+    else setProof({ ok: false, rows: {}, reason: 'no database in this view' });
+    return () => { live = false; };
+  }, [deps]);
+  const flows = useMemo(() => (proof.ok ? flowEscalations(graph, proof, nowMs) : null), [graph, proof, nowMs]);
   useEffect(() => {
     let live = true;
     deps.fetchSiteHealth().then((h) => { if (live) setHealth(h || { ok: false, incidents: null, notice: 'no answer' }); }, (e) => { if (live) setHealth({ ok: false, incidents: null, notice: e?.message || 'unreadable' }); });
@@ -34,8 +47,8 @@ export default function OperationsIntelligence({ loopData = null, loopEnv = {}, 
   }, [deps]);
 
   const r = useMemo(
-    () => deriveOperations({ ledger, incidents: health.ok ? health.incidents : null, loopData, loopEnv, discussions, nowMs }),
-    [ledger, health, loopData, loopEnv, discussions, nowMs],
+    () => deriveOperations({ ledger, incidents: health.ok ? health.incidents : null, loopData, loopEnv, discussions, flows, nowMs }),
+    [ledger, health, loopData, loopEnv, discussions, flows, nowMs],
   );
 
   return (
@@ -47,6 +60,11 @@ export default function OperationsIntelligence({ loopData = null, loopEnv = {}, 
           {r.ok ? ` Read from: ${r.sources.join(' · ')}.` : ' Unavailable: no operations signal could be read.'}
         </p>
         {!health.ok && <p className="text-[0.6875rem] text-[#B85838] mt-1" style={SERIF} data-testid="ops-incidents-unread">Incidents not read: {health.notice}. The other signals still show.</p>}
+        <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={SERIF} data-testid="ops-flow-proof">
+          {proof.ok
+            ? `System flow proof, measured on the live database ${String(proof.measuredAt || '').slice(0, 16).replace('T', ' ')} UTC: ${flows.length} connection(s) broken, gone quiet or open appear under Escalation.`
+            : `System flow proof not read (${proof.reason}); no connection is counted as healthy.`}
+        </p>
         <p className="text-[0.625rem] text-[#5A5751] mt-1" style={MONO}>
           incident open {INCIDENT_HOURS}h = escalation · the same failure ×{REPEAT_OBSERVATIONS} = risk · re-review due within {DUE_SOON_REVIEW_DAYS}d or passed · hand-off open {STALL_DAYS}d
         </p>

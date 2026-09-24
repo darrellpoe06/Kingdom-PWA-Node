@@ -8,9 +8,9 @@
 2. **Unmeasured dimension** — the header wordmark collapse survived *every* gate and multiple UI/UX passes because all review was source-level; jsdom cannot measure geometry, and no instrument looked at the rendered chrome at real widths.
 3. **Recorded context unapplied** — a Gmail runbook shipped desktop PowerShell blocks to a principal whose recorded shell is ConnectBot on the NAS (REV-0207 had already established this); the delivery step didn't consult the bench.
 
-A review may only be called **comprehensive** when all **nine** dimensions below have run. Skipping one is allowed only with a named why + `re-review:` date (DR-0075) — never silently.
+A review may only be called **comprehensive** when all **ten** dimensions below have run. Skipping one is allowed only with a named why + `re-review:` date (DR-0075) — never silently.
 
-## The nine dimensions
+## The ten dimensions
 
 1. **SHOULD/ARE — spec-conformance (DR-0219).** Cite what the Ways/docs say it should do (`file:line`), trace what it actually does, name every gap, close or date each.
 2. **JOURNEY WALKS.** Enumerate the surface's real user journeys — persona × entry point × device — and walk each end-to-end *as that user*, not as the code's author. The messaging miss lived exactly here: "owner saves a phone-only contact and tries to message him" was a two-minute walk no component-level trace ever took. A journey that cannot be completed is a finding even when every component passes.
@@ -40,8 +40,10 @@ A review may only be called **comprehensive** when all **nine** dimensions below
    **The machine check is `scripts/surface-hollow-guard.mjs`**, run in `verify:gates` every push: zero blank presenter panels across the whole corpus, shrink-only ceilings on point-less lessons, no constant placeholder label in the presenter, and every substantial lesson section proven present in the deck. Proven-to-catch by `app/src/__tests__/surface-hollow-guard.test.js`, which feeds each break and requires a finding — including the case where the guard's *first* version cried on correct code, because a guard that cries wolf teaches people to ignore it. Its second run found a second real defect nobody had reported: six lessons with no authored run-of-show had their entire teaching dropped from the deck.
 
 
+10. **CONTINUITY — EVERY OUTPUT SEEDS THE NEXT; THE LIVE DATA IS THE PROOF (DR-0622).** For the flow under review, name what it reads, what it writes, and which workflow or screen its output seeds next, and show the connection's LIVE numbers — rows written, the newest one, rows picked up downstream — from `system_flow_proof`, never a claim that "it's wired". A connection that ends nowhere, starts from nothing, or has no live number is a finding, fixed in the same session or carried with its named blocker and date. **The machine check is the flow graph** (`scripts/system-flow-registry.mjs` + `scripts/system-flow-graph.mjs`, run by `interconnect-guard.mjs` in CI): dead ends, orphans, missing tables, false consumers, and any workflow, NAS job or table with no place fail the build, each proven to catch in `app/src/__tests__/system-flow-graph.test.jsx`. Sibling Way: DR-0621 — hold the hand of the process until it is done.
+
 ## Operating rule
 
-When Darrell asks for a "comprehensive review," the response *names these nine dimensions and shows each one's result* — run, or skipped-with-why-and-date. The O&C (opportunities and constraints) output is the product of the nine, not a substitute for them. This standard itself improves under DR-0075: every future miss adds its class here **and** its gate in CI, in the same session it is found.
+When Darrell asks for a "comprehensive review," the response *names these ten dimensions and shows each one's result* — run, or skipped-with-why-and-date. The O&C (opportunities and constraints) output is the product of the ten, not a substitute for them. This standard itself improves under DR-0075: every future miss adds its class here **and** its gate in CI, in the same session it is found.
 
 Pairs with: REALITY-TRACE (DR-0061 — real data before building), SPEC-CONFORMANCE (DR-0219 — the SHOULD/ARE spine), WAYS-REVIEW (DR-0108 — the methods reviewed), VERIFICATION-DOCTRINE (DR-0076 — evidence not claims), NOTHING-WAITS (DR-0236 — findings are work), LESSONS-LEARNED (the historical record these classes are mined from).

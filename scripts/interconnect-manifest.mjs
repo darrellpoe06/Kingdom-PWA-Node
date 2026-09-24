@@ -33,6 +33,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildFlowGraph } from './system-flow-graph.mjs';
+import { SYSTEM_FLOW } from './system-flow-registry.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -275,11 +277,17 @@ export function verifyLoop(loop) {
 // --- assemble ----------------------------------------------------------------
 export function buildInterconnectManifest() {
   const loops = INTERCONNECT_REGISTRY.map(verifyLoop);
+  // The WHOLE-SYSTEM flow graph (DR-0622): the pairs above, widened to every
+  // workflow, NAS rider and surface, with the gates' findings. Its live
+  // numbers are read at runtime from system_flow_proof.
+  let graph;
+  try { graph = buildFlowGraph(SYSTEM_FLOW); } catch (e) { graph = { ok: false, error: (e && e.message) || 'graph unavailable', nodes: [], edges: [], resources: [], loops: [], chains: [], findings: [], summary: {} }; }
   const live = loops.filter((l) => l.status === 'live');
   const building = loops.filter((l) => l.status === 'building');
   return {
     ok: true,
     loops,
+    graph,
     summary: {
       total: loops.length,
       live: live.length,

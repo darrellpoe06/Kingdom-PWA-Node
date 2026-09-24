@@ -50,7 +50,9 @@ describe('AriReview — the surface renders its dimensions', () => {
     const host = mount({ concerns: [], feedback: [] });
     const text = host.textContent;
     expect(text).not.toMatch(/clean — no open findings/);
-    expect(text).toMatch(/cannot see its own workflow registry/);
+    // n8n is retired (DR-0617): the registry is empty on purpose and
+    // the surface says so in words rather than reading as blind.
+    expect(text).toMatch(/n8n workflows are retired/);
     expect(text).toMatch(/live system was not measured/);
   });
 

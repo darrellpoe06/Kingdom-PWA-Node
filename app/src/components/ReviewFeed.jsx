@@ -36,7 +36,7 @@ export const REVIEW_ACTION_URL = '/review-action';
 
 // Review token — PER-DEVICE first (typed once, localStorage, never in the
 // bundle). The VITE_ transition fallback is DELETED (2026-07-30 access
-// evaluation, same class-close as the n8n bearer in lib/n8n-base.js): a VITE_
+// evaluation, same class-close as the bridge bearer in lib/bridge-auth.js): a VITE_
 // var is inlined into the PUBLIC bundle, extractable by any visitor, and the
 // 2026-07-03 transition window has closed. The per-device token is the only
 // source; rotate the NAS-side value to finish (N8N-WEBHOOK-AUTH-PATTERN.md).
