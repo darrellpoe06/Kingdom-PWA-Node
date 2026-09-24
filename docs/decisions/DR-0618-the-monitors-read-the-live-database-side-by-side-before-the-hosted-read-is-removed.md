@@ -46,4 +46,9 @@ Unresolved: a stall on the live database would never be seen, and a stall on the
 1. **The switch is made (step 3), 2026-09-24, citing the runs above.** harvest-health and ops-queue-health now decide on the live reading. If the NAS cannot be read, the result is UNKNOWN, never healthy. An unknown harvest never closes its incident, and an unknown queue files one. The hosted project is read only as a comparison line that cannot fail a run.
    - Dry runs of the extracted steps: a live row of 754 / 874 at 51 h reads as a stall; an unreachable NAS reads as unknown; a queue of 2 held for 75 minutes reads as stalled.
    - The comparison line is removed at the re-review. `re-review: 2026-09-26`.
+   - **Proven after the switch, on real runs.** ops-queue-health run 36028782655 passed on the live verdict. harvest-health run 36028779384 still called the live pipeline stalled, and that exposed two counting errors in the monitor:
+     - It read attempt age from `created_at`. The loader upserts and stamps `fetched_at`, so `created_at` never moves on a retry.
+     - It counted videos with no captions as owed. The loader writes one verdict per such video and never retries it (`load-transcripts.py` VERDICT_ERRORS).
+   - With both corrected, run 36029928554 read: **754 transcribed + 120 no-caption verdicts = 874 of 874, 0 owed.** The caption drain is complete; it was never stalled. The run closed incident #1617, which had been fed from the wrong database with the wrong count.
+   - The 120 no-caption videos remain for Whisper to transcribe, a separate queue. `re-review: 2026-10-01`.
 2. rls-isolation, corpus-reconcile and site-health's backend step follow the same two steps next. `re-review: 2026-10-01`.
