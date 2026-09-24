@@ -42,7 +42,7 @@ export function resourceVerdict(meta, row, nowMs) {
     if (String(row.note || '').startsWith('off')) return { state: 'off', say: 'switched off by its stop-path: its recent fires were all skipped' };
     const t = row.newest_at ? Date.parse(row.newest_at) : NaN;
     const age = Number.isFinite(t) ? Math.floor((nowMs - t) / DAY_MS) : null;
-    if (Number(row.consumed) === 0) return { state: 'broken', say: `its last run did not succeed${row.note ? ` (${String(row.note).split(' ')[0]})` : ''}`, age };
+    if (row.consumed != null && row.consumed !== '' && Number(row.consumed) === 0) return { state: 'broken', say: `its last run did not succeed${row.note ? ` (${String(row.note).split(' ')[0]})` : ''}`, age };
     const fresh = meta && meta.run ? meta.run.fresh : null;
     if (fresh != null && age != null && age > fresh) return { state: 'stale', say: `its schedule stopped: last run ${age} days ago (expected within ${fresh})`, age };
     return { state: 'flowing', say: fresh == null ? 'its last run succeeded (it runs when asked)' : 'its last run succeeded, on schedule', age };
