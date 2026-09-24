@@ -5,6 +5,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SORTS, sortPrompts, searchPrompts, dateText, listPrompts, setKept, deletePrompt, sendPromptToBox } from '../lib/saved-prompts.js';
 import supabase from '../lib/supabase.js';
+import { confirmThen } from '../lib/confirm-action.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const MONO = { fontFamily: '"JetBrains Mono", monospace' };
@@ -71,7 +72,7 @@ export default function PromptHistory({ deps = LIVE, refreshKey = 0 }) {
               <button type="button" data-testid="prompt-use" onClick={() => { sendPromptToBox(p.body); setSaid('Put in the box above. Choose where it goes, then send.'); }} className={`${BTN} border-[#1A1815] text-[#1A1815]`}>Put it in the box</button>
               <button type="button" onClick={() => copy(p.body)} className={`${BTN} border-[#E8E4DC] text-[#5A5751]`}>Copy</button>
               <button type="button" data-testid="prompt-keep" aria-pressed={!!p.kept} onClick={async () => { if (await setKept({ ...deps, id: p.id, kept: !p.kept })) load(); }} className={`${BTN} ${p.kept ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'border-[#5A6E3D] text-[#5A6E3D]'}`}>{p.kept ? 'Kept' : 'Keep'}</button>
-              <button type="button" data-testid="prompt-delete" onClick={async () => { if (await deletePrompt({ ...deps, id: p.id })) load(); }} className={`${BTN} border-[#E8E4DC] text-[#B85838]`}>Delete</button>
+              <button type="button" data-testid="prompt-delete" onClick={confirmThen('Delete this prompt from your history? This cannot be undone.', async () => { if (await deletePrompt({ ...deps, id: p.id })) load(); })} className={`${BTN} border-[#E8E4DC] text-[#B85838]`}>Delete</button>
             </div>
           </li>
         ))}
