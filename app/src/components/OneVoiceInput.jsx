@@ -22,6 +22,9 @@ import { useVoiceDictation, LONG_FORM_SESSION_CAP_MS, VOICE_SESSION_CAP_MS, capM
 import { readDraft, writeDraft, clearDraft } from '../lib/draft-autosave.js';
 import { relayThought } from '../lib/agent-inbox-sync.js';
 import VoiceLessonRecorder from './VoiceLessonRecorder.jsx';
+import { rememberPrompt, AUTO_REMEMBERED, USE_PROMPT_EVENT } from '../lib/saved-prompts.js';
+import supabase from '../lib/supabase.js';
+import { getInstanceId } from '../lib/table-sync.js';
 
 export function OneVoiceInput({
   surface = 'church',
@@ -45,6 +48,9 @@ export function OneVoiceInput({
   // so the surface itself NEVER navigates (Darrell 2026-07-09: the old raw
   // mailto Send yanked the app into the mail client; "humans can get dizzy").
   officeEmail = null,
+  // Called after a prompt is remembered (DR-0615), so a history on the same
+  // page can refresh.
+  onRemembered = null,
 }) {
   const cfg = resolveSurface(surface, surfaceConfig);
   const DESTS = destinations || destinationsFor(surface === 'notes' ? 'notes' : 'church');
@@ -84,6 +90,23 @@ export function OneVoiceInput({
     onTranscript: (t) => onText((latestText.current ? `${latestText.current} ${t}` : t).trim()),
     capMs: wholeThing ? LONG_FORM_SESSION_CAP_MS : VOICE_SESSION_CAP_MS,
   });
+
+  // YOUR PROMPTS (DR-0615): a prompt chosen in the history comes back into
+  // this box through one window event; the person still chooses where it goes.
+  useEffect(() => {
+    const onUse = (e) => {
+      const body = String(e?.detail?.body || '');
+      if (!body) return;
+      setText(body);
+      setRestoredDraft(false);
+      if (!touchedRoute) setRoute(suggestDestination(body, cfg.defaultRoute, DESTS.map(d => d.key)));
+    };
+    window.addEventListener(USE_PROMPT_EVENT, onUse);
+    return () => window.removeEventListener(USE_PROMPT_EVENT, onUse);
+  }, [touchedRoute, cfg.defaultRoute, DESTS]);
+
+  const remember = (body, destination, keep) => rememberPrompt({ supabase, getInstanceId, body, destination, keep })
+    .then((res) => { if (res.ok && onRemembered) onRemembered(); return res; });
 
   // Persist the draft as they type (lightly debounced); an emptied box clears it.
   useEffect(() => {
@@ -141,6 +164,9 @@ export function OneVoiceInput({
     if (!t) return;
     const msg = dispatch(route, t, name.trim());
     if (msg) setConfirmation(msg);
+    // A lesson or a PoeTech request is remembered in Your prompts (DR-0615).
+    // Private notes and the rest are not: they are kept only on request.
+    if (AUTO_REMEMBERED.includes(route)) remember(t, route, false);
     setLastSent({ text: t, who: name.trim() });
     setText('');
     setTouchedRoute(false);
@@ -243,6 +269,15 @@ export function OneVoiceInput({
           <input className="flex-1 min-w-[140px] p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder={cfg.namePlaceholder || 'Your name (optional)'} value={name} onChange={e => setName(e.target.value)} />
         )}
         <button type="button" onClick={send} disabled={!text.trim()} className="bg-[#1A1815] text-white px-5 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] min-h-[36px] disabled:opacity-30">{submitLabel}</button>
+        <button
+          type="button"
+          data-testid="save-as-prompt"
+          onClick={() => remember(text.trim(), route, true).then((res) => setConfirmation(res.ok ? 'Saved to Your prompts. It stays in the box too.' : `Not saved to Your prompts (${res.reason}).`))}
+          disabled={!text.trim()}
+          className="border border-[#1A1815] text-[#1A1815] px-3 py-2 text-xs uppercase tracking-wider min-h-[36px] disabled:opacity-30"
+        >
+          Save as prompt
+        </button>
       </div>
       {confirmation && <p className="text-[0.6875rem] text-[#5A6E3D] font-semibold mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{confirmation}</p>}
       {confirmation && lastSent && officeEmail && (

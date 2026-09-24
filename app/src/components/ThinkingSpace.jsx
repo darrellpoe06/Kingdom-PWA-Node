@@ -17,6 +17,7 @@
 import React, { useState } from 'react';
 import { readDraft, writeDraft, clearDraft } from '../lib/draft-autosave.js';
 import OneVoiceInput from './OneVoiceInput.jsx';
+import PromptHistory from './PromptHistory.jsx';
 
 const THE_TEST = [
   ['True', 'Is it factual — or a fear wearing facts?'],
@@ -38,6 +39,7 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
   const [updatingId, setUpdatingId] = useState(null);
   const [updateText, setUpdateText] = useState('');
   const [testForId, setTestForId] = useState(null);
+  const [promptsSeen, setPromptsSeen] = useState(0);
   const [query, setQuery] = useState('');
 
   // Editing an existing note keeps the Google-Doc contract too (DR-0151,
@@ -119,7 +121,12 @@ export function ThinkingSpace({ notes = [], addNote, updateNote, deleteNote, tog
         addChurchVoice={addChurchVoice}
         addIncident={addIncident}
         addInquiry={addInquiry}
+        onRemembered={() => setPromptsSeen((n) => n + 1)}
       />
+
+      {/* YOUR PROMPTS (DR-0615): dated, sortable, searchable for similar ones,
+          reusable in one tap; private to the person. */}
+      <PromptHistory refreshKey={promptsSeen} />
 
       <section>
         <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
