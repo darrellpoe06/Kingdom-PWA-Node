@@ -42,7 +42,7 @@ import { mayTryLiteVoice } from '../lib/voice-service.js';
 import { openReadingSource, registerReadingOpener } from '../lib/reading-source.js';
 import FloatingReader from './FloatingReader.jsx';
 import { loadFloat, saveFloat, clampRect, avoidRects, defaultRect } from '../lib/float-geometry.js';
-// THE ONE LESSON LANDING (#1793, lib/learn-open.js): opens a lesson at a
+// THE ONE LESSON LANDING (lib/learn-open.js, DR-0642): opens a lesson at a
 // saved sentence, scrolls it under the top bars and marks it. Read through a
 // glob so this file does not fork it or break before it lands: while the
 // module is absent the map is empty and "Show the text" says it cannot open
