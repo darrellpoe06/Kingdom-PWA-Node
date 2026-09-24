@@ -5164,7 +5164,7 @@ ${THEME_CSS}
         {view === 'books' && booksView === 'debts' && <TherapyReminder />}
         </Suspense>
       </main>
-      <TTSControl isOwner={isFamilyMember} view={view} churchView={churchView} booksView={booksView} />
+      <TTSControl isOwner={isFamilyMember} view={view} churchView={churchView} booksView={booksView} onOpenLearn={() => { setView('church'); setChurchView('learn'); }} />
       <FloatingPlayer />
       <InstallPrompt />
       <UpdatePrompt />

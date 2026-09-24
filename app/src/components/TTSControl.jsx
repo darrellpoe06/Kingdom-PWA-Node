@@ -39,7 +39,13 @@ import { useIdleReveal } from '../lib/use-idle-reveal.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import { useScreenAwake, NO_WAKE_LOCK_HINT } from '../lib/screen-awake.js';
 import { mayTryLiteVoice } from '../lib/voice-service.js';
-import { openReadingSource } from '../lib/reading-source.js';
+import { openReadingSource, registerReadingOpener } from '../lib/reading-source.js';
+// THE ONE LESSON LANDING (#1793, lib/learn-open.js): opens a lesson at a
+// saved sentence, scrolls it under the top bars and marks it. Read through a
+// glob so this file does not fork it or break before it lands: while the
+// module is absent the map is empty and "Show the text" says it cannot open
+// the page from here, rather than pretending.
+const LEARN_OPEN = Object.values(import.meta.glob('../lib/learn-open.js', { eager: true }))[0] || null;
 // COMFORT CONTROLS IN THE READER (DR-0524). Darrell, reading L179 on his phone:
 // "Can't change the text side nor etc on o cellphone reader fix it."
 // WHAT WAS ACTUALLY WRONG, measured at 360px mid-lesson after a first reading
@@ -157,7 +163,7 @@ export function backgroundLine({ isReading, audioVoice } = {}) {
   return BACKGROUND_LINES.idle;
 }
 
-export default function TTSControl({ isOwner = false, view, churchView, booksView }) {
+export default function TTSControl({ isOwner = false, view, churchView, booksView, onOpenLearn = null }) {
   const [isOpen, setIsOpen] = useState(false);
   // Same switch as the in-lesson bar: one module store, never two states.
   const showWord = useShowTheWord();
@@ -527,7 +533,8 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   const [target, setTarget] = useState(() => getReadTarget());
   // "Start at" — the paragraphs of the registered reading, listed on request.
   const [pickList, setPickList] = useState(null); // { owner, labels } | null
-  useEffect(() => subscribeReadTarget(setTarget), []);
+  // Re-read on subscribe: a reading registered before this mounted is not missed.
+  useEffect(() => { setTarget(getReadTarget()); return subscribeReadTarget(setTarget); }, []);
   // DECLARED BELOW `target` ON PURPOSE. The first placement of this block sat
   // above the useState above — the same temporal-dead-zone trap this file
   // already records costing 67 render failures at rememberSentence. A
@@ -623,6 +630,20 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // paragraph, exactly as the bar's ↪¶ and ↩¶ do. Reached through a ref: the
   // step is defined below the unsupported-device early return.
   const jumpParaRef = useRef(null);
+  // "Show the text" for a LESSON: the Learn landing opens it at the sentence,
+  // and the shell switches to Learn. Any other reading's page registers its
+  // own opener in lib/reading-source.js.
+  const onOpenLearnRef = useRef(onOpenLearn);
+  onOpenLearnRef.current = onOpenLearn;
+  useEffect(() => registerReadingOpener(({ owner, sentence }) => {
+    if (!LEARN_OPEN || typeof LEARN_OPEN.requestOpenLesson !== 'function') return false;
+    const f = followRef.current;
+    const seg = f && f.follow && f.follow.segments ? f.follow.segments[sentence] : null;
+    let ok;
+    try { ok = !!LEARN_OPEN.requestOpenLesson({ lessonId: owner, sentence, sentenceKey: seg ? sentenceKeyOf(seg.text) : '' }); } catch (_) { ok = false; }
+    if (ok && typeof onOpenLearnRef.current === 'function') onOpenLearnRef.current();
+    return ok;
+  }), []);
   useEffect(() => {
     if (typeof setSkipHandlers !== 'function') return undefined;
     setSkipHandlers({
@@ -1057,8 +1078,11 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     awayRef.current = false;
     setUserAway(false);
     const r = spokenRange();
+    // A range over words that left the page does not vanish: the browser
+    // collapses it onto the nearest surviving ancestor. Collapsed means the
+    // words are gone, so the page has to be opened again.
     const node = r && r.startContainer;
-    if (node && node.isConnected) { highlightSegment(r); followRange(r); return; }
+    if (r && !r.collapsed && node && node.isConnected) { highlightSegment(r); followRange(r); return; }
     openReadingSource(followRef.current && followRef.current.owner, currentGlobalSegment());
   };
 
@@ -1078,11 +1102,9 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           className={`ts-chrome-region relative ${isReading ? 'bg-[#B85838]' : 'bg-[#1A1815]'} text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg hover:bg-[#B85838] flex items-center justify-center text-xl sm:text-2xl border-2 border-[#FAF8F4] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] transition-all duration-500 hover:opacity-100 focus:opacity-100 ${(revealFab || isReading) ? 'opacity-100 translate-y-0' : 'opacity-40 translate-y-2'}`}
         >
           🔊
-          {isReading && (
-            <span aria-hidden="true" className="absolute -top-1 -right-1 bg-[#1A1815] text-white text-[0.5rem] leading-none px-1.5 py-1 rounded-full border border-[#FAF8F4]">
-              {isPaused ? '❚❚' : '▶'}
-            </span>
-          )}
+          {/* No play/pause badge here: while reading this button sits inside
+              the mini-player, whose own ❚❚ / ▶ says the state. A ▶ badge on
+              a PLAYING reader read as "press to play" (Darrell's Fold). */}
           {/* THE MARK ON THE BUTTON: a notice is waiting inside. */}
           {notice && !isReading && (
             <span aria-hidden="true" data-testid="read-aloud-notice-mark" className="absolute -top-1 -right-1 bg-[#B85838] text-white text-[0.625rem] font-bold leading-none px-1.5 py-1 rounded-full border border-[#FAF8F4]">!</span>
