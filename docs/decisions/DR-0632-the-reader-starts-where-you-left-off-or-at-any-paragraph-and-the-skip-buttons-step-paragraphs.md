@@ -1,5 +1,5 @@
 ---
-id: DR-0628
+id: DR-0632
 title: The reader starts where you left off, or at any paragraph you pick, and the headset's, car's and lock screen's skip buttons step one paragraph
 status: accepted
 date: 2026-09-24

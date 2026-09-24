@@ -99,7 +99,7 @@ describe('the phone’s own controls drive the reader', () => {
     const bg = createBackgroundAudio({ win, makeAudio: fakeAudio });
     expect(bg.describe({ title: 'Study 1 · Conditional Truth' })).toBe(true);
     expect(win._ms.metadata.title).toBe('Study 1 · Conditional Truth');
-    // The car display and lock screen say who made it (DR-0628): PoeTech,
+    // The car display and lock screen say who made it (DR-0632): PoeTech,
     // with the app icon as the artwork.
     expect(win._ms.metadata.artist).toBe('PoeTech');
     expect(win._ms.metadata.artwork.map((a) => a.sizes)).toEqual(['192x192', '512x512']);
@@ -110,7 +110,7 @@ describe('the phone’s own controls drive the reader', () => {
     const bg = createBackgroundAudio({ win, makeAudio: fakeAudio });
     const onNext = vi.fn(); const onPrev = vi.fn();
     bg.onControl({ onNext, onPrev });
-    // Before DR-0628 only play/pause/stop were wired: these handlers did not
+    // Before DR-0632 only play/pause/stop were wired: these handlers did not
     // exist and every skip button did nothing.
     expect(typeof win._ms.handlers.nexttrack).toBe('function');
     expect(typeof win._ms.handlers.previoustrack).toBe('function');
