@@ -433,6 +433,28 @@ describe('the fix loop closed: a shipped fix marks the note it names', () => {
   });
 });
 
+describe('what the first live proof run taught the measurement (run 36059041587)', () => {
+  it('a PR’s action_required or a cancelled run never judges a workflow broken; skipped fires read as switched off', async () => {
+    const { pickRun } = await import('../../../scripts/system-flow-proof.mjs');
+    expect(pickRun([{ conclusion: 'action_required' }, { conclusion: 'cancelled' }, { conclusion: 'success', updated_at: 't' }]).conclusion).toBe('success');
+    expect(pickRun([{ conclusion: 'skipped', updated_at: 't' }, { conclusion: 'skipped' }]).conclusion).toBe('off');
+    expect(pickRun([{ conclusion: 'action_required' }])).toBe(null);
+    const off = runRow('push-outbox-drain.yml', pickRun([{ conclusion: 'skipped', updated_at: '2026-09-24T20:54:00Z' }]));
+    expect(resourceVerdict({ run: { fresh: 2 } }, off, NOW).state).toBe('off');
+  });
+  it('the migration ledger read is the live database’s own (_sovereign_replay), in the graph and in the app’s function', () => {
+    const g = buildFlowGraph(SYSTEM_FLOW);
+    const r = g.resources.find((x) => x.id === 'db:_sovereign_replay');
+    expect(r.writers).toEqual(expect.arrayContaining(['db-migrate', 'sovereign-replay']));
+    expect(r.readers).toEqual(expect.arrayContaining(['schema-health', 'sovereign-drift']));
+    expect(g.resources.find((x) => x.id === 'db:_schema_migrations')).toBeUndefined();
+    const fn = read('infra', 'supabase', 'migrations-auto', '0235-the-migration-ledger-the-app-shows-is-the-live-ones.sql');
+    expect(fn).toMatch(/RETURNS jsonb/);
+    expect(fn).toMatch(/i\.slug = 'poe-family'/);
+    expect(read('.github', 'workflows', 'sovereign-drift.yml')).toMatch(/select fname from public\._sovereign_replay order by fname/);
+  });
+});
+
 describe('the Scribe chain: reaches the NAS, and its words come back', () => {
   it('no-route gate: a connection over a route the Funnel does not mount is caught (proven on the real registry)', () => {
     const c = realContext();

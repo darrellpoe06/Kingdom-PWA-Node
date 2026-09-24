@@ -493,7 +493,11 @@ const NODES = [
   wf('db-migrate.yml', {
     id: 'db-migrate', name: 'Migration lane', purpose: 'A merged migration is applied to the live database and recorded in its ledger.',
     reads: [{ res: 'gh:main', token: 'migrations-auto' }, { res: 'gh:migrate-heal', token: 'workflow_dispatch' }],
-    writes: [{ res: 'db:_schema_migrations', token: '_schema_migrations' }, { res: 'gh:rls-dispatch', token: 'rls-isolation' }],
+    writes: [
+      { res: 'db:_sovereign_replay', file: 'infra/nas-supabase/replay_migrations.sh', token: 'INSERT INTO public._sovereign_replay' },
+      { res: 'hosted:db', file: 'scripts/db-migrate-apply.sh', token: '_schema_migrations' },
+      { res: 'gh:rls-dispatch', token: 'rls-isolation' },
+    ],
     seeds: ['rls-isolation', 'schema-health'],
   }),
   wf('migrate-freshness.yml', {
@@ -507,7 +511,7 @@ const NODES = [
   app('app/src/lib/db-health.js', {
     id: 'schema-health', name: 'Schema health (migration ledger in the app)',
     purpose: 'Which migrations reached the live database, read in the app.',
-    reads: [{ res: 'db:_schema_migrations', token: 'schema_migrations_health' }], seeds: [],
+    reads: [{ res: 'db:_sovereign_replay', file: 'infra/supabase/migrations-auto/0235-the-migration-ledger-the-app-shows-is-the-live-ones.sql', token: 'FROM public._sovereign_replay' }], seeds: [],
   }),
   wf('pr-janitor.yml', {
     id: 'pr-janitor', name: 'PR janitor', purpose: 'Closes PRs that carry nothing beyond main.',
@@ -669,11 +673,11 @@ const NODES = [
   }),
   wf('sovereign-drift.yml', {
     id: 'sovereign-drift', name: 'Migration drift witness', purpose: 'Which migrations the live database is missing.',
-    reads: [{ res: 'db:_schema_migrations', token: '_schema_migrations' }], writes: [], seeds: [],
+    reads: [{ res: 'db:_sovereign_replay', token: '_sovereign_replay' }], writes: [], seeds: [],
   }),
   wf('sovereign-replay.yml', {
     id: 'sovereign-replay', name: 'Migration replay (by hand)', purpose: 'Replays the migrations the live database is missing.',
-    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'db:_schema_migrations', file: 'scripts/sovereign-replay-over-tailnet.sh', token: 'replay' }], seeds: ['schema-health'],
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'db:_sovereign_replay', file: 'infra/nas-supabase/replay_migrations.sh', token: 'INSERT INTO public._sovereign_replay' }], seeds: ['schema-health'],
   }),
 
   // ===========================================================================
@@ -796,12 +800,12 @@ const RESOURCES = {
   'db:agent_tasks#answered': { label: 'answers from the NAS agent', proof: { ts: 'updated_at', fresh: 30, where: "status IN ('done','failed','error')" } },
   'db:family_secure_config': { label: 'family key published', proof: { ts: 'updated_at', fresh: 365 } },
   'db:choir_sermons': { label: 'service record', proof: { ts: 'updated_at', fresh: 14, consumed: 'service_date IS NOT NULL' } },
-  'db:choir_songs': { label: 'songs', proof: { ts: 'updated_at', fresh: 30 } },
+  'db:choir_songs': { label: 'songs', proof: { ts: 'created_at', fresh: 60 } },
   'db:video_transcripts': { label: 'service transcripts', proof: { ts: 'created_at', fresh: 7, consumed: "length(coalesce(text,'')) > 0" } },
   'db:video_harvests': { label: 'harvests recorded', proof: { ts: 'updated_at', fresh: 60 } },
   'db:sermon_video_stats': { label: 'video reach', proof: { ts: 'fetched_at', fresh: 2 } },
   'db:church_service_segments': { label: 'order of service', proof: { ts: 'updated_at', fresh: 30 } },
-  'db:_schema_migrations': { label: 'migration ledger', proof: { ts: 'applied_at', fresh: 30 } },
+  'db:_sovereign_replay': { label: 'the live database’s migration ledger', proof: { ts: 'applied_at', fresh: 30 } },
 
   'event:use-prompt': { label: '“Put it in the box” (reuse a prompt)' },
   'device:family-key': { label: 'the family key on this device' },

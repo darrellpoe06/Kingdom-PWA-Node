@@ -101,7 +101,7 @@ export function parseSchema(sqlTexts) {
 }
 
 // The migration lane creates its own ledger table (scripts/db-migrate-apply.sh).
-const SCHEMA_EXTRA = ['scripts/db-migrate-apply.sh'];
+const SCHEMA_EXTRA = ['scripts/db-migrate-apply.sh', 'infra/nas-supabase/replay_migrations.sh'];
 export function readSchema() {
   const texts = [];
   for (const p of SCHEMA_EXTRA) if (existsSync(join(ROOT, p))) texts.push(readFileSync(join(ROOT, p), 'utf8'));
