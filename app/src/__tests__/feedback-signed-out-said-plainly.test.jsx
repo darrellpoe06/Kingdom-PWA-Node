@@ -1,5 +1,5 @@
 // =============================================================================
-// Feedback, signed out, said plainly (DR-0625). Signed out, a feedback note is
+// Feedback, signed out, said plainly (DR-0629). Signed out, a feedback note is
 // kept on this device only — no steward can read it — so the receipt must say
 // that, not "your note is in" with a status that will never move.
 // =============================================================================

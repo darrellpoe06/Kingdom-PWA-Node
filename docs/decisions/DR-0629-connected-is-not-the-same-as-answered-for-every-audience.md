@@ -1,4 +1,4 @@
-# DR-0625 — Connected is not the same as answered, for every audience
+# DR-0629 — Connected is not the same as answered, for every audience
 
 - **Status:** accepted
 - **Tier:** B (a build gate over every intake door; copy changes a signed-out sender sees)

@@ -1,6 +1,6 @@
 // =============================================================================
 // intake-outcomes — every door a person speaks into, and what comes BACK to
-// them, declared per audience (DR-0625: connected is not the same as answered)
+// them, declared per audience (DR-0629: connected is not the same as answered)
 // =============================================================================
 // Darrell, 2026-09-24, on the Speak box's Lesson chip: a member spoke their
 // situation, was told "Heard as a lesson", and got nothing back. The flow graph

@@ -24,7 +24,7 @@ import UiIcon from './UiIcon.jsx';
 import { setFeedbackTriage, triageLabel } from '../lib/feedback-loop.js';
 import supabase from '../lib/supabase.js';
 
-// What a signed-out sender is told (DR-0625): the note is kept, where it is.
+// What a signed-out sender is told (DR-0629): the note is kept, where it is.
 const SIGNED_OUT_RECEIPT = 'You are signed out, so this note stayed on this device and no one has read it yet. Sign in and send it again so a steward sees it and you can follow its status under Your feedback.';
 
 // Round 12 — Feedback form refreshed to reflect every surface we've actually
@@ -418,7 +418,7 @@ export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey =
     // close as before rather than inventing one.
     if (saved && saved.id) {
       setReceipt(receiptMessage(saved.id));
-      // SIGNED OUT, SAID PLAINLY (DR-0625: connected is not answered, for
+      // SIGNED OUT, SAID PLAINLY (DR-0629: connected is not answered, for
       // every audience). Signed out, the note is kept on this device only —
       // no steward can read it — so the receipt says that instead of a status
       // that will never move.
