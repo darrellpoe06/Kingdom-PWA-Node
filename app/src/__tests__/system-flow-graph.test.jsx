@@ -19,6 +19,12 @@ import {
 } from '../lib/system-flow.js';
 import { deriveOperations } from '../lib/operations-intelligence.js';
 import { lessonItems, fetchMyLessons, transcriptWords } from '../lib/lesson-inbox.js';
+import { parseFeedStats, statsSql, FEED_URL } from '../../../scripts/video-stats-feed.mjs';
+import { namedNotes, matchNotes, fixSql, parseCommits } from '../../../scripts/feedback-fixed.mjs';
+import { receiptCode } from '../lib/feedback-receipt.js';
+import { fetchScribeSessions, fetchScribeWords, scribeAuth } from '../lib/workflow-scribe.js';
+import { parseMountedRoutes } from '../../../scripts/system-flow-graph.mjs';
+import ScribeRecordings from '../components/ScribeRecordings.jsx';
 import SystemFlowProof from '../components/SystemFlowProof.jsx';
 import LessonInbox from '../components/LessonInbox.jsx';
 
@@ -372,5 +378,125 @@ describe('the pieces are really wired', () => {
     expect(read('app', 'src', 'components', 'QualityProof.jsx')).toMatch(/<SystemFlowProof graph=/);
     expect(read('app', 'src', 'components', 'ThinkingSpace.jsx')).toMatch(/<LessonInbox /);
     expect(read('scripts', 'interconnect-guard.mjs')).toMatch(/g\.findings\.length > 0/);
+  });
+});
+
+// =============================================================================
+// Push 2 (DR-0622): the gaps the graph found, closed edge by edge.
+// =============================================================================
+describe('the orphan closed: video reach has a producer', () => {
+  const FEED = '<feed><entry><yt:videoId>abcDEF12345</yt:videoId><media:group><media:community><media:starRating count="12" average="5.00"/><media:statistics views="345"/></media:community></media:group></entry><entry><yt:videoId>noStats0001</yt:videoId></entry></feed>';
+  it('reads views and likes from the channel’s public feed, with no key', () => {
+    expect(FEED_URL).toMatch(/feeds\/videos\.xml\?channel_id=UC821pJh7YR5llBNnWUJj-ZA$/);
+    expect(parseFeedStats(FEED)).toEqual([{ videoId: 'abcDEF12345', views: 345, likes: 12 }]);
+    expect(parseFeedStats('garbage')).toEqual([]);
+  });
+  it('writes only onto videos the service record already holds, idempotently', () => {
+    const sql = statsSql(parseFeedStats(FEED));
+    expect(sql).toMatch(/JOIN public\.choir_sermons cs ON cs\.video_id = f\.video_id/);
+    expect(sql).toMatch(/ON CONFLICT \(instance_id, video_id\) DO UPDATE/);
+    expect(statsSql([])).toMatch(/no-stats/);
+  });
+  it('the graph now has a writer for sermon_video_stats and no open gap on it', () => {
+    const r = buildFlowGraph(SYSTEM_FLOW).resources.find((x) => x.id === 'db:sermon_video_stats');
+    expect(r.writers).toContain('video-stats');
+    expect(r.open).toBe(null);
+  });
+});
+
+describe('the fix loop closed: a shipped fix marks the note it names', () => {
+  const open = ['00c981a4-1111-4222-8333-444455556666', '9f1e2d3c-aaaa-4bbb-8ccc-dddddddddddd'];
+  const commits = parseCommits(`abc1234\tFix the bell (fixes feedback ${receiptCode(open[0])})\t\x1edef5678\tAnother\tthis is feedback 9f1e2d3c\x1eeee0000\tNothing named here, just feedback in general\t\x1e`);
+  it('finds a note named by its board reference or by its id, and nothing else', () => {
+    const refs = namedNotes(commits);
+    expect(refs.map((r) => r.sha)).toEqual(['abc1234', 'def5678']);
+    expect(matchNotes(refs, open).map((x) => x.id).sort()).toEqual([...open].sort());
+  });
+  it('proven quiet: a reference to no open note marks nothing', () => {
+    expect(matchNotes(namedNotes(commits), ['11111111-2222-4333-8444-555566667777'])).toEqual([]);
+    expect(fixSql([])).toMatch(/SELECT 'fixed', 0/);
+  });
+  it('never reopens a declined note, and says which change fixed it', () => {
+    const sql = fixSql(matchNotes(namedNotes(commits), open));
+    expect(sql).toMatch(/triage_status NOT IN \('fixed', 'declined'\)/);
+    expect(sql).toMatch(/Fixed by the update abc1234/);
+    expect([...sql.matchAll(/\bUPDATE\s+public\.([a-z_]+)/g)].map((x) => x[1])).toEqual(['feedback']);
+  });
+  it('the workflow marks only what the DEPLOYED build carries, braked', () => {
+    const y = read('.github', 'workflows', 'feedback-fixed.yml');
+    expect(y).toMatch(/deploy-cloudflare-pages\.yml\/runs\?status=success/);
+    expect(y).toMatch(/timeout-minutes: 5/);
+    expect(y).toMatch(/group: feedback-fixed/);
+  });
+  it('the fix loop now closes in the graph', () => {
+    expect(buildFlowGraph(SYSTEM_FLOW).loops.find((x) => x.id === 'fix-loop').closed).toBe(true);
+  });
+});
+
+describe('what the first live proof run taught the measurement (run 36059041587)', () => {
+  it('a PR’s action_required or a cancelled run never judges a workflow broken; skipped fires read as switched off', async () => {
+    const { pickRun } = await import('../../../scripts/system-flow-proof.mjs');
+    expect(pickRun([{ conclusion: 'action_required' }, { conclusion: 'cancelled' }, { conclusion: 'success', updated_at: 't' }]).conclusion).toBe('success');
+    expect(pickRun([{ conclusion: 'skipped', updated_at: 't' }, { conclusion: 'skipped' }]).conclusion).toBe('off');
+    expect(pickRun([{ conclusion: 'action_required' }])).toBe(null);
+    const off = runRow('push-outbox-drain.yml', pickRun([{ conclusion: 'skipped', updated_at: '2026-09-24T20:54:00Z' }]));
+    expect(resourceVerdict({ run: { fresh: 2 } }, off, NOW).state).toBe('off');
+  });
+  it('the migration ledger read is the live database’s own (_sovereign_replay), in the graph and in the app’s function', () => {
+    const g = buildFlowGraph(SYSTEM_FLOW);
+    const r = g.resources.find((x) => x.id === 'db:_sovereign_replay');
+    expect(r.writers).toEqual(expect.arrayContaining(['db-migrate', 'sovereign-replay']));
+    expect(r.readers).toEqual(expect.arrayContaining(['schema-health', 'sovereign-drift']));
+    expect(g.resources.find((x) => x.id === 'db:_schema_migrations')).toBeUndefined();
+    const fn = read('infra', 'supabase', 'migrations-auto', '0235-the-migration-ledger-the-app-shows-is-the-live-ones.sql');
+    expect(fn).toMatch(/RETURNS jsonb/);
+    expect(fn).toMatch(/i\.slug = 'poe-family'/);
+    expect(read('.github', 'workflows', 'sovereign-drift.yml')).toMatch(/select fname from public\._sovereign_replay order by fname/);
+  });
+});
+
+describe('the Scribe chain: reaches the NAS, and its words come back', () => {
+  it('no-route gate: a connection over a route the Funnel does not mount is caught (proven on the real registry)', () => {
+    const c = realContext();
+    expect(c.mountedRoutes).toEqual(expect.arrayContaining(['/sb', '/nas-photos', '/taxes', '/voice', '/scribe']));
+    const without = { ...c, mountedRoutes: c.mountedRoutes.filter((r) => r !== '/scribe') };
+    const f = checkGraph(SYSTEM_FLOW, without);
+    expect(f.filter((x) => x.gate === 'no-route').map((x) => x.id).sort()).toEqual(['http:scribe-results', 'http:scribe-upload']);
+    expect(parseMountedRoutes('| `/a` | x |\n## UNACTUATED\n| `/b` | y |')).toEqual(['/a']);
+  });
+
+  it('the app sends the family key, and reads each recording back', async () => {
+    expect(scribeAuth('k')).toEqual({ Authorization: 'Bearer k' });
+    expect(scribeAuth('')).toEqual({});
+    const calls = [];
+    const fetchImpl = async (url, init) => {
+      calls.push([url, init.headers]);
+      if (url === '/scribe/sessions') return { ok: true, json: async () => ({ sessions: [{ sessionId: 's-12345678', kind: 'meeting', createdAt: '2026-09-24T10:00:00Z', state: 'minuted' }] }) };
+      return { ok: true, json: async () => ({ transcript: 'Welcome. Let us begin.', minutes: 'Decided: meet weekly.' }) };
+    };
+    const list = await fetchScribeSessions({ token: 'fam', fetchImpl });
+    expect(list.sessions[0].state).toBe('minuted');
+    expect(calls[0][1]).toEqual({ Authorization: 'Bearer fam' });
+    expect((await fetchScribeWords('s-12345678', { token: 'fam', fetchImpl })).minutes).toBe('Decided: meet weekly.');
+    expect((await fetchScribeSessions({ fetchImpl: async () => ({ ok: false, status: 401 }) })).reason).toBe('http-401');
+
+    const host = document.createElement('div'); document.body.appendChild(host);
+    const root = createRoot(host);
+    await act(async () => { root.render(<ScribeRecordings deps={{ token: 'fam', fetchImpl }} />); });
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    expect(host.textContent).toMatch(/Your recordings · 1/);
+    expect(host.textContent).toMatch(/Written down, with minutes/);
+    const btn = [...host.querySelectorAll('button')].find((b) => /Read what was said/.test(b.textContent));
+    await act(async () => { btn.click(); });
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    expect(host.querySelector('[data-testid="scribe-words"]').textContent).toBe('Welcome. Let us begin.');
+    act(() => root.unmount()); host.remove();
+  });
+
+  it('the upload itself now carries the family key (the first hop was refused before)', () => {
+    const src = read('app', 'src', 'components', 'WorkflowScribe.jsx');
+    expect(src).toMatch(/createChunkUploader\(\{ endpoint: '\/scribe', token \}\)/);
+    expect((src.match(/\.\.\.scribeAuth\(token\)/g) || []).length).toBe(2);
+    expect(read('infra', 'nas-scribe', 'install.sh')).toMatch(/funnel --bg --set-path \/scribe http:\/\/127\.0\.0\.1:8791/);
   });
 });

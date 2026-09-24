@@ -78,6 +78,16 @@ export function recordingProblem({ blob, seconds }) {
 export async function sendVoiceLesson({ blob, seconds, note = '', source = 'church-one-voice', supabase, relay, nowMs = Date.now(), suffix }) {
   const problem = recordingProblem({ blob, seconds });
   if (problem) return { ok: false, reason: problem, path: '', id: null };
+  return sendRecording({ blob, body: voiceLessonBody(note, seconds), tagsFor: voiceLessonTags, source, supabase, relay, nowMs, suffix });
+}
+
+/**
+ * sendRecording — the one upload-then-relay road every recording rides (a
+ * spoken lesson, a recorded conversation, DR-0624). Same bucket, same owner
+ * folder, same waiting-room rule; only the body and tags differ.
+ */
+export async function sendRecording({ blob, body, tagsFor, source, supabase, relay, nowMs = Date.now(), suffix }) {
+  if (!blob || !blob.size) return { ok: false, reason: 'Nothing was recorded.', path: '', id: null };
   let uid;
   try {
     const { data } = await supabase.auth.getSession();
@@ -89,7 +99,7 @@ export async function sendVoiceLesson({ blob, seconds, note = '', source = 'chur
   const bucket = supabase.storage.from(LESSON_AUDIO_BUCKET);
   const up = await bucket.upload(path, blob, { contentType: blob.type || 'audio/webm', upsert: false });
   if (up && up.error) return { ok: false, reason: `upload: ${up.error.message || up.error}`, path: '', id: null };
-  const res = await relay({ body: voiceLessonBody(note, seconds), tags: voiceLessonTags(path), source });
+  const res = await relay({ body, tags: tagsFor(path), source });
   if (!res || !res.ok) {
     try { await bucket.remove([path]); } catch (_) { /* best-effort cleanup */ }
     return { ok: false, reason: (res && res.reason) || 'relay-failed', path: '', id: null };
