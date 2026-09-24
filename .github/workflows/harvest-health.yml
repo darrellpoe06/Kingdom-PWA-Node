@@ -130,10 +130,13 @@ jobs:
               (SELECT count(*) FROM choir_sermons WHERE video_id IS NOT NULL),
               COALESCE((SELECT round(extract(epoch FROM (now() - max(created_at)))/3600)::int
                         FROM video_transcripts WHERE length(trim(coalesce(text,''))) > 0), -1),
-              COALESCE((SELECT round(extract(epoch FROM (now() - max(created_at)))/3600)::int
+              COALESCE((SELECT round(extract(epoch FROM (now() - max(coalesce(fetched_at, created_at))))/3600)::int
                         FROM video_transcripts), -1),
               (SELECT count(*) FROM video_transcripts
-                 WHERE error IS NOT NULL AND created_at > now() - ('$STALL_HOURS hours')::interval);
+                 WHERE error IS NOT NULL AND coalesce(fetched_at, created_at) > now() - ('$STALL_HOURS hours')::interval),
+              (SELECT count(*) FROM video_transcripts
+                 WHERE length(trim(coalesce(text,''))) = 0
+                   AND split_part(coalesce(error,''), ':', 1) IN ('TranscriptsDisabled','NoTranscriptFound','VideoUnavailable','InvalidVideoId','AgeRestricted','VideoUnplayable','NotTranslatable','TranslationLanguageNotAvailable'));
           SQL
           ) || { echo "::warning::query failed — reporting UNKNOWN, never healthy"; echo "unknown=true" >> "$GITHUB_OUTPUT"; exit 0; }
 
@@ -142,12 +145,21 @@ jobs:
           age_h=$(echo "$row"  | cut -d'|' -f3)   # hours since the newest SUCCESS
           try_h=$(echo "$row"  | cut -d'|' -f4)   # hours since the newest ATTEMPT
           errs=$(echo "$row"   | cut -d'|' -f5)   # error rows inside the window
-          gaps=$(( total - done_n ))
+          verdicts=$(echo "$row" | cut -d'|' -f6) # durable no-caption verdicts
+          # OWED = no text AND no verdict. The loader writes a verdict row once
+          # per video that has no captions (load-transcripts.py VERDICT_ERRORS)
+          # and never retries it; those are answered, not owed, and the trickle
+          # has nothing left to do for them (Whisper's queue, reported apart).
+          # Counting them as owed made a finished drain read as a stall forever.
+          # Attempt age reads fetched_at: the loader upserts, so created_at is
+          # only the FIRST write and never moves on a retry.
+          gaps=$(( total - done_n - verdicts ))
+          [ "$gaps" -lt 0 ] && gaps=0
 
-          echo "transcribed=$done_n / $total  ·  gaps=$gaps  ·  newest SUCCESS ${age_h}h old  ·  newest attempt ${try_h}h  ·  ${errs} recent errors"
+          echo "transcribed=$done_n / $total  ·  no-caption verdicts=$verdicts  ·  owed=$gaps  ·  newest SUCCESS ${age_h}h old  ·  newest attempt ${try_h}h  ·  ${errs} recent errors"
           {
             echo "done_n=$done_n"; echo "total=$total"; echo "gaps=$gaps"; echo "age_h=$age_h"
-            echo "try_h=$try_h"; echo "errs=$errs"
+            echo "try_h=$try_h"; echo "errs=$errs"; echo "verdicts=$verdicts"
           } >> "$GITHUB_OUTPUT"
 
           # WHICH WAY IS IT BROKEN? The two shapes have opposite next actions and
@@ -171,7 +183,7 @@ jobs:
           {
             echo "### Harvest health"
             echo ""
-            echo "- Transcribed: **${done_n} / ${total}** (${gaps} still owed)"
+            echo "- Transcribed: **${done_n} / ${total}**; **${verdicts}** have no captions (answered, Whisper's queue); **${gaps}** still owed"
             echo "- Newest SUCCESSFUL transcript: **${age_h}h** old"
             echo "- Newest attempt of any kind: **${try_h}h** old (${errs} error rows in ${STALL_HOURS}h)"
             echo ""
