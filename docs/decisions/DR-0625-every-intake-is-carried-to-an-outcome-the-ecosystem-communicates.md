@@ -34,6 +34,17 @@ Traced in the code and read from the live system before building, 2026-09-24:
 - **Two codes for one note.** The local row's id was `fb-<time>` (the shell's addFeedback) while the database minted its own uuid, so the reference the sender was handed was not the one a steward saw. The sender's "Your feedback" list also filtered on a `mine` flag or a user id that no local row carried, so it was always empty.
 - **The live table.** sovereign-read run 36042714313 read 992 rows in the database the app reads, newest minutes old, none confidential. All 200 newest were Learn telemetry (`[Learn engagement] ...`), not notes from people, which is why the census counts telemetry as its own category.
 - **The delivery record.** Over the last 99 merged pull requests, the median open-to-merge time was 26 minutes, and 9 in 10 merged within 1.2 hours.
+- **The first live census** (sovereign-read `intake`, run 36058113426, on this branch) read all 1,000 non-confidential rows. 940 were Learn telemetry. Of the 60 from people:
+  - 0 were low-hanging fruit;
+  - 1 was already decided;
+  - 42 were real work (22 of them no rule matched, 11 feature requests, 3 bugs, 2 questions, 2 privacy, 1 sign-in, 1 data loss);
+  - 8 were asked for one thing (7 a picture or rating with no words, 1 too short);
+  - 9 were praise.
+
+  The one "already decided" was WRONG. A note asking to add the church's giving link was matched to DR-0133 (the church's own door) on "com" and the domain name. Three corrections ship with the finding, each proven to catch on that exact case:
+  - web addresses are cut out before matching;
+  - a note the sender tagged as a bug is serious, so it is never answered "already decided";
+  - money and security subjects are never answered automatically.
 - **The categorizer on real text.** Evaluated raw, the composed body's own "Not working:" label made every note read as a bug; the complaint words are now judged on their own.
 
 ## Decision

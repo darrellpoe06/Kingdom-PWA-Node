@@ -145,6 +145,17 @@ describe('already decided: the ledger match cites the record and its reason', ()
     const m = matchDecision('the kill switch should be back on the deterministic automation loops', REAL_LEDGER);
     expect(m && m.id).toBe('DR-0248');
   });
+  it('PROVEN TO CATCH (the first live census): a giving-link note is never "already decided" by a domain name', () => {
+    const t = 'Missing: Add the giving link from the church website thechurchofthelivinggod.com | [bug, idea]';
+    expect(matchDecision('Add the giving link from the church website thechurchofthelivinggod.com', REAL_LEDGER)).toBeNull();
+    expect(cat(t, { ledger: REAL_LEDGER }).category).toBe('work');
+    expect([...tokensOf('visit https://poetech.us/x and www.example.org or thechurchofthelivinggod.com')]).toEqual(['visit']);
+  });
+  it('PROVEN TO CATCH: a note tagged as a bug, or about money or security, is never answered "already decided"', () => {
+    expect(cat('Missing: please send an email receipt for my feedback through a mail transport | [bug]', { ledger: LEDGER }).category).toBe('work');
+    expect(cat('Missing: please send an email receipt for my giving through a mail transport', { ledger: LEDGER }).category).toBe('work');
+    expect(cat('Missing: please send an email receipt for my feedback through a mail transport', { ledger: LEDGER }).category).toBe('decided');
+  });
   it('the real ledger is read, and records without a decision cannot answer', () => {
     expect(REAL_LEDGER.count).toBeGreaterThan(500);
     expect(REAL_LEDGER.items.some((i) => i.decision)).toBe(true);

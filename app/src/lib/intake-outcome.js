@@ -101,9 +101,15 @@ function stem(w) {
   return w;
 }
 
+// Web addresses are topic labels, not words of a request: the first live census
+// (sovereign-read run 36058113426) matched "add the giving link from the church
+// website <domain>.com" to DR-0133 on "com" and the domain name. They are cut
+// out before a note is tokenized.
+const URLISH = /\b(?:https?:\/\/|www\.)\S+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|org|net|us|app|io|gov|edu)\b\S*/gi;
+
 export function tokensOf(text) {
   const out = new Set();
-  for (const raw of String(text || '').toLowerCase().split(/[^a-z0-9]+/)) {
+  for (const raw of String(text || '').toLowerCase().replace(URLISH, ' ').split(/[^a-z0-9]+/)) {
     if (raw.length < 3 || STOP.has(raw) || /^\d+$/.test(raw)) continue;
     const s = stem(raw);
     if (s.length >= 3 && !STOP.has(s)) out.add(s);
@@ -233,6 +239,9 @@ export const NEVER_AUTOFIX = /\b(money|pay|paid|payment|giving|give|gave|donat\w
 
 export const FIX_MAX_CHARS = 400;
 
+// Subjects a person always answers, never an automatic "already decided".
+export const DECIDED_NEVER = /\b(money|pay|paid|payment|giving|give|gave|donat\w*|tithe|offering|bank|tax|taxes|refund|password|passcode|privacy|private|secur\w*)\b/;
+
 // --- Ownership: the role that carries a note, never an invented person ----------
 export function ownerRoleFor(category, area = '') {
   const a = String(area || '').toLowerCase();
@@ -295,7 +304,8 @@ export function categorizeIntake(item = {}, { ledger = null, history = [] } = {}
   }
 
   // 7. Serious classes are always real work, never auto-answered or auto-fixed.
-  const serious = ['data-loss', 'privacy-tenancy', 'auth', 'broken'].includes(evalRow.category);
+  // A note the sender TAGGED as a bug is serious too, whatever its words say.
+  const serious = ['data-loss', 'privacy-tenancy', 'auth', 'broken'].includes(evalRow.category) || p.tags.includes('bug');
 
   // 8. Low-hanging fruit (allowlisted, small, never a bright-line subject).
   if (!serious && complaint.length <= FIX_MAX_CHARS && !NEVER_AUTOFIX.test(lower)) {
@@ -307,7 +317,9 @@ export function categorizeIntake(item = {}, { ledger = null, history = [] } = {}
   // 9. Already decided: first a steward's earlier word on the same thing,
   //    then the decision ledger. Never for a serious class (a bug report is
   //    never answered with "already decided").
-  if (!serious) {
+  // Money and security are never answered automatically as "already decided":
+  // a person answers them (the same live case: a note about the giving link).
+  if (!serious && !DECIDED_NEVER.test(lower)) {
     const past = matchHistory(complaint, history, item.id);
     if (past && past.status === 'declined' && past.reason) {
       return res('decided', basisOf('history', { earlierId: past.id, reason: past.reason, similarity: past.jaccard }));
