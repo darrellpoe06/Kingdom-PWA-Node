@@ -37,10 +37,21 @@ export const DESTINATIONS = [
   { key: 'serve',      label: '🤝 Serve',      hint: 'tells leadership you want to help' },
   { key: 'work',       label: '🛠 Work',       hint: 'becomes a work order on the Action Queue' },
   { key: 'counseling', label: '💚 Counseling', hint: 'a private intake note to the practice' },
+  // THE LESSON DOOR (DR-0608). Darrell 2026-09-24: "get a lesson or courses
+  // created like we currently do just make you source it from the intake
+  // inside the app". The same marker the inbox door reads (DR-0312, the word
+  // "Lesson" first) now has a chip here; the words persist to the sovereign
+  // agent_inbox tagged 'lesson' (RLS-scoped, DR-0218) and the staged intake
+  // routine reads them by the same protocol the Gmail door runs. Nothing
+  // routes invisibly: the chip is visible and the person has the last word.
+  { key: 'lesson',     label: '📖 Lesson',     hint: 'a teaching or a question that becomes a lesson in Learn' },
 ];
 
 const RULES = [
   // Order matters: more specific intents first.
+  // The lesson marker is the FIRST word, exactly as the inbox door reads it
+  // (DR-0312): 'Lesson.' / 'Lesson:' / 'lesson —' at the start of the text.
+  { key: 'lesson',     re: /^\s*lesson\b/i },
   { key: 'counseling', re: /\b(counsel|counseling|therapy|therapist|anxiety|depress|grief support|marriage counsel|session with|mental health)\b/i },
   { key: 'work',       re: /\b(fix(ed|ing)?|broken|leak(s|ed|ing)?|repair(s|ed|ing)?|furnace|plumb(ing|er)?|roof|electric(al|ian)?|contractor|work order|maintenance|handyman|paint(ing)?|install(ed|ing|ation)?)\b/i },
   { key: 'poetech',    re: /\b(app|build|feature|pipeline|develop|development|software|bug|screen|button|module|poetech|program process|procedure)\b/i },
@@ -57,6 +68,9 @@ const RULES = [
 // text is a long-form note, not a request, and it STAYS on the surface
 // default; the person can still tap a chip (they always have the last word).
 export const SUGGEST_MAX_CHARS = 400;
+// The rule table, exported read-only for the pins that hold its ORDER (the
+// lesson marker must stay first, DR-0608).
+export const RULES_FOR_TEST = RULES;
 
 // Suggests a destination for the text. `surfaceDefault` is the entry page's
 // expectation (Notes: 'private', Church: 'prayer') — used only when the
@@ -102,7 +116,7 @@ export function destinationsFor(surface) {
 // did: a route whose handler is absent falls through to the surface fallback
 // (a private note where the surface keeps one, else a general voice note).
 //
-// `has` = { poetech, prayer, churchVoice, conference, incident, inquiry, note }
+// `has` = { poetech, prayer, churchVoice, conference, incident, inquiry, note, lesson }
 //   — booleans for which handlers the surface passed.
 // Returns { action, confirmationKey, savesPrivateNote }.
 export function planDispatch(route, has = {}, saveNoteOnCounseling = false) {
@@ -114,6 +128,7 @@ export function planDispatch(route, has = {}, saveNoteOnCounseling = false) {
     case 'conference': if (has.conference)  return { action: 'conference', confirmationKey: 'conference', savesPrivateNote: false }; break;
     case 'work':       if (has.incident)    return { action: 'work', confirmationKey: 'work', savesPrivateNote: false }; break;
     case 'counseling': if (has.inquiry)     return { action: 'counseling', confirmationKey: 'counseling', savesPrivateNote: !!(saveNoteOnCounseling && has.note) }; break;
+    case 'lesson':     if (has.lesson)      return { action: 'lesson', confirmationKey: 'lesson', savesPrivateNote: false }; break;
     case 'private':    if (has.note)        return { action: 'private', confirmationKey: 'private', savesPrivateNote: true }; break;
     default: break;
   }

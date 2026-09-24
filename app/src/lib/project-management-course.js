@@ -61,7 +61,7 @@ export const PROJECT_MANAGEMENT_META = {
   audience: 'Anyone who has been handed a project and the responsibility for finishing it — a church building or renovation, a rehab, a property turn, a ministry launch, a move, a business build. No certification required, and none assumed.',
   tagline: 'Count the cost before you break ground. Know who should work and who should not. Put a date on it, secure the experts who can actually see, and get down to the root cause of what you need to do — and what you do not. The Word gave this discipline a worked case and a named consequence long before the industry gave it an acronym.',
   cadenceDays: 7,
-  weeks: 10, // keep in step with PROJECT_MANAGEMENT_MODULES.length (asserted in the test)
+  weeks: 11, // keep in step with PROJECT_MANAGEMENT_MODULES.length (asserted in the test) — 11 on 2026-09-24: pm11 (DR-0609)
   handsOnLabel: 'Work it on a real project',
   unit: {
     noun: 'lesson', nounPlural: 'lessons', cap: 'Lesson', selfPaced: true,
@@ -617,6 +617,72 @@ export const PROJECT_MANAGEMENT_MODULES = [
           ],
           answer: 1,
           explain: '"He that is faithful in that which is least is faithful also in much." The small project closed out properly is the evidence for the larger one.',
+        },
+      ],
+    },
+  },
+  {
+    id: 'pm11-how-the-organization-learns-prioritizes-and-decides',
+    title: 'How the organization learns, prioritizes and decides — from information to decision-ready intelligence, with our ways inspected',
+    bigIdea: 'Darrell brought the next evolution of this course in two sentences on 2026-09-24. The first: PoeTech designs repeatable governance systems that help organizations recognize patterns, surface risks, and make better decisions without depending on one person\'s institutional knowledge. The second: senior leaders are not drowning in tasks; they are drowning in information. Every organization already has meetings, emails, tickets, project boards, documents and recordings, and the challenge is that no one can see the pattern across them. That is where intelligence becomes valuable. And he added the part that keeps it from being a management lesson: the same work is prudence, and it is how we show Yahweh our love, by letting our ways be inspected for their quality and their quantity from His perspective, so that His will is done in earth as it is in heaven. The Word has the whole shape first. Moses sat alone from morning to evening while the people stood, and his father in law named the failure of a governance system that lived in one head: "Thou wilt surely wear away, both thou, and this people that is with thee: for this thing is too heavy for thee; thou art not able to perform it thyself alone" (Exodus 18:18). The remedy was a repeatable structure with an escalation rule, "every great matter they shall bring unto thee, but every small matter they shall judge" (Exodus 18:22). Joseph read a fourteen-year pattern nobody else could see and turned it into a system with officers and a stored fifth (Genesis 41:34). The men of Issachar "had understanding of the times, to know what Israel ought to do" (1 Chronicles 12:32). The apostles, drowning in tables, prioritized by calling and delegated the rest (Acts 6:2-4). And the standard for the whole enterprise is inspection from Yahweh\'s side, not ours: "Consider your ways" (Haggai 1:5), with a ledger of quantities beside it, and "Wherefore by their fruits ye shall know them" (Matthew 7:20) for the quality. The industry calls this decision intelligence and decision support. The Word calls it prudence, counsel, and a written vision that others can run.',
+    inApp: 'Take one organization you serve — a church office, a ministry, a family business, a board. Name its six information streams on one line each: meetings, emails, tickets or requests, project boards, documents, recordings. Then write the one pattern across them that nobody has said out loud (the same request arriving through three streams; a risk visible in the recordings that never reaches the board). Under it, write two inspections from Yahweh\'s side: the quantity (what was sown and what came in, Haggai 1:6) and the quality (the fruit, Matthew 7:16). Finally write who else could run this page if you were gone. If the answer is nobody, that is the finding. In the app: open Admin → OpsBoard and read the purpose line at its top, then read the lane below it and ask which of the three verbs each row serves.',
+    anchor: {
+      ref: 'Exodus 18:13-23; Genesis 41:33-36; 1 Chronicles 12:32; Acts 6:1-4; Haggai 1:5-7; Matthew 7:16-20; Matthew 6:10; Proverbs 11:14; Habakkuk 2:2',
+      theme: 'Jethro names the governance system that lives in one head as the thing that wears everyone away, and gives Moses a repeatable structure with an escalation rule; Joseph reads the pattern across the years and turns it into officers and a stored fifth; Issachar understands the times so Israel knows what to do; the apostles prioritize by calling. The standard over all of it is inspection from Yahweh\'s side, quantity and quality, so that His will is done in earth as it is in heaven.',
+    },
+    benefits: [
+      'You stop reading Exodus 18 as a story about a tired man and start reading it as the first governance design in the Word: a structure, an escalation rule, and a named consequence for keeping it all in one head.',
+      'You learn to name the information streams an organization already has, and to look for the pattern across them rather than the task inside one of them.',
+      'Prioritization gets a biblical test: the apostles did not do everything; they kept prayer and the Word and appointed seven for the tables. What is your calling, and what belongs to the seven?',
+      'Inspection stops being something done to you and becomes something you invite from Yahweh\'s side, in two columns: how much, and of what sort.',
+      'Prudence gets its plain definition: "the prudent man looketh well to his going" (Proverbs 14:15). Seeing the pattern before the loss is prudence, and prudence is love shown by keeping His commandments.',
+      'The industry\'s names — decision intelligence, decision support, governance — become a vocabulary for a shape the Word gave first, which is why they are easier to hold once the Word\'s case is in you.',
+    ],
+    levels: {
+      teen: 'Moses had a real problem: everybody with a question stood in line for him from morning until night. His father in law Jethro watched one day and said what nobody else would: "The thing that thou doest is not good" (Exodus 18:17). Not because Moses was lazy. Because the whole system lived inside one person, and "thou art not able to perform it thyself alone" (Exodus 18:18). Jethro gave him a design: leaders over thousands, hundreds, fifties and tens, with one rule for what goes up the chain, "every great matter they shall bring unto thee, but every small matter they shall judge" (Exodus 18:22). That is a governance system. It does not depend on Moses remembering everything. Joseph did something like it in Egypt: he saw a pattern across fourteen years that nobody else could see, and instead of just knowing it, he built officers and storehouses so the country could act on it (Genesis 41:34). The apostles did it too when the widows were being missed: they did not try to do everything; they kept prayer and the Word and appointed seven people for the tables (Acts 6:3-4). That is prioritizing by calling. Darrell said leaders today are not drowning in tasks; they are drowning in information: meetings, emails, tickets, boards, documents, recordings. Nobody can see the pattern across all of it. Seeing that pattern and turning it into something a whole organization can act on is the job. And here is the part that makes it more than business: Yahweh inspects our ways too, and we let Him, because we love Him. "Consider your ways" (Haggai 1:5), He said, and then He gave the numbers: "Ye have sown much, and bring in little" (Haggai 1:6). That is quantity. "Wherefore by their fruits ye shall know them" (Matthew 7:20). That is quality. Jesus taught us to pray "Thy will be done in earth, as it is in heaven" (Matthew 6:10). A system that helps a whole organization see, decide and be inspected is one way that prayer gets answered on the ground. The industry calls it decision intelligence. The Word called it prudence a long time ago.',
+      senior: 'The industry has a name for the capability Darrell described: decision intelligence, sometimes decision support, the discipline of turning an organization\'s scattered information into something a leader can decide on. Its premise is his sentence exactly: executives are not drowning in tasks; they are drowning in information, and the pattern across meetings, emails, tickets, project boards, documents and recordings is what no one can see. The Word supplied the shape and the consequence first, in a case with names. Exodus 18 is a governance design. The failure mode is stated in full: "Thou wilt surely wear away, both thou, and this people that is with thee: for this thing is too heavy for thee; thou art not able to perform it thyself alone" (Exodus 18:18). Note that both parties wear away, the leader and the people; a system that lives in one head costs everyone, not only the one. The remedy has three parts a modern designer would recognize: a taught standard, "thou shalt teach them ordinances and laws, and shalt shew them the way wherein they must walk" (Exodus 18:20); a tiered structure with qualified people, "able men, such as fear God, men of truth, hating covetousness" (Exodus 18:21); and an escalation rule, "every great matter they shall bring unto thee, but every small matter they shall judge" (Exodus 18:22). Genesis 41 is the pattern-recognition case: fourteen years read from two dreams, and the reading immediately converted into a repeatable system, "let him appoint officers over the land, and take up the fifth part of the land of Egypt in the seven plenteous years" (Genesis 41:34). Pharaoh\'s own verdict on Joseph names the capability, "there is none so discreet and wise as thou art" (Genesis 41:39). 1 Chronicles 12:32 gives the two-part definition of the intelligence function in one clause: understanding of the times, and knowing what to do, "men that had understanding of the times, to know what Israel ought to do". Acts 6 is prioritization by calling under load: the apostles refused to become the operations team, "It is not reason that we should leave the word of God, and serve tables" (Acts 6:2), delegated to seven qualified men, and kept the work only they could do, "we will give ourselves continually to prayer, and to the ministry of the word" (Acts 6:4). Nehemiah viewed the wall by night before he built (Nehemiah 2:13); Habakkuk was told to write the vision plain enough for a reader to run on it (Habakkuk 2:2); Solomon located safety in the multitude of counsellors, not the memory of one (Proverbs 11:14). Every one of those is a governance system that does not depend on one person\'s institutional knowledge, which is the sentence PoeTech now carries as its purpose. Then the correction Darrell added, which prevents this from becoming a management seminar. The work is prudence, "the prudent man looketh well to his going" (Proverbs 14:15), and it is love, because "If ye love me, keep my commandments" (John 14:15). And the inspection is from Yahweh\'s side, in two registers. Quantitative: "Consider your ways" (Haggai 1:5) is followed by a ledger, "Ye have sown much, and bring in little; ye eat, but ye have not enough" (Haggai 1:6), and the returning lord in the parable "reckoneth with them" (Matthew 25:19) to know how much each had gained. Qualitative: "the fire shall try every man’s work of what sort it is" (1 Corinthians 3:13), and "by their fruits ye shall know them" (Matthew 7:20). He sees what a dashboard cannot, "the LORD pondereth the hearts" (Proverbs 21:2), and we invite it, "Search me, O God, and know my heart" (Psalms 139:23). The purpose of decision-ready intelligence in a Kingdom organization is therefore not efficiency. It is "Thy will be done in earth, as it is in heaven" (Matthew 6:10): an organization that can see, decide, and be inspected is an organization that can do His will on the ground instead of one man\'s memory of it. The vocabulary is the industry\'s. The design is Jethro\'s, Joseph\'s, Issachar\'s and the apostles\'. The standard is His.',
+    },
+    quiz: {
+      questions: [
+        {
+          q: 'What did Jethro name as the failure of the way Moses was governing?',
+          options: [
+            'Moses was judging unfairly',
+            'The whole system lived in one person, so both he and the people would wear away',
+            'The people were asking too many questions',
+          ],
+          answer: 1,
+          explain: '"thou art not able to perform it thyself alone" (Exodus 18:18). The remedy was a structure and an escalation rule, "every great matter they shall bring unto thee, but every small matter they shall judge" (Exodus 18:22).',
+        },
+        {
+          q: 'What did Joseph do with the pattern he read across fourteen years?',
+          options: [
+            'Kept it as private knowledge that made him indispensable',
+            'Turned it into a repeatable system: officers over the land and a stored fifth',
+            'Warned Pharaoh and left the decision to him',
+          ],
+          answer: 1,
+          explain: '"let him appoint officers over the land, and take up the fifth part of the land of Egypt in the seven plenteous years" (Genesis 41:34). Reading the pattern was intelligence; the officers and the storehouses made it decision-ready for a nation.',
+        },
+        {
+          q: 'How did the apostles prioritize when the daily ministration was failing?',
+          options: [
+            'They did everything themselves until it was fixed',
+            'They stopped preaching to serve tables',
+            'They kept prayer and the Word, which only they could do, and appointed seven qualified men over the tables',
+          ],
+          answer: 2,
+          explain: '"It is not reason that we should leave the word of God, and serve tables" (Acts 6:2); "we will give ourselves continually to prayer, and to the ministry of the word" (Acts 6:4). Prioritization by calling, with the rest delegated to the qualified.',
+        },
+        {
+          q: 'In what two registers does the Word inspect our ways, and what makes the inspection an act of love?',
+          options: [
+            'Speed and cost; because results matter',
+            'Quantity (consider your ways, sown much and brought in little) and quality (by their fruits); because we love Him and keep His commandments',
+            'Only intention; the outcome does not matter',
+          ],
+          answer: 1,
+          explain: '"Consider your ways" (Haggai 1:5) with its ledger, "Ye have sown much, and bring in little" (Haggai 1:6), and "by their fruits ye shall know them" (Matthew 7:20). "If ye love me, keep my commandments" (John 14:15).',
         },
       ],
     },
