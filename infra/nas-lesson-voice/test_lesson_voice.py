@@ -201,5 +201,49 @@ class TheLadder(unittest.TestCase):
         self.assertEqual(lv.audio_path_of([f"audio:{UID}/a.webm"]), f"{UID}/a.webm")
 
 
+class TheMirror(unittest.TestCase):
+    """DR-0614: the app writes to the NAS's own database; the cloud reader sees
+    only the hosted one, so lesson rows are copied across under the same id."""
+
+    def rows(self):
+        return [
+            {"id": "a", "tags": ["lesson"], "instance_id": INST, "created_by": UID, "body": "Lesson. typed", "source": "notes", "created_at": "t"},
+            {"id": "b", "tags": ["lesson", "voice", "audio:x"], "instance_id": INST, "created_by": UID, "body": "Lesson. spoken", "source": "notes", "created_at": "t"},
+            {"id": "c", "tags": ["lesson", "voice-transcript", "of:b"], "instance_id": INST, "created_by": UID, "body": "Lesson. words", "source": "lesson-voice-transcribe", "created_at": "t"},
+            {"id": "d", "tags": ["lesson", "mirrored"], "instance_id": INST, "created_by": UID, "body": "done", "source": "notes", "created_at": "t"},
+            {"id": "e", "tags": ["private"], "instance_id": INST, "created_by": UID, "body": "not a lesson", "source": "notes", "created_at": "t"},
+        ]
+
+    def test_copies_typed_lessons_and_transcripts_not_raw_audio_rows(self):
+        self.assertEqual([r["id"] for r in lv.rows_to_mirror(self.rows())], ["a", "c"])
+
+    def test_copies_under_the_same_id_then_tags_the_original(self):
+        sent, tagged = [], []
+        rep = lv.mirror_once(lambda: self.rows(), sent.append, lambda r, t: tagged.append((r["id"], t)))
+        self.assertEqual(rep["mirrored"], ["a", "c"])
+        self.assertEqual([r["id"] for r in sent], ["a", "c"])
+        self.assertEqual(sent[0]["created_by"], UID)
+        self.assertEqual(tagged, [("a", ["mirrored"]), ("c", ["mirrored"])])
+
+    def test_a_failed_copy_is_not_tagged_and_is_retried_next_run(self):
+        def boom(row):
+            raise OSError("hosted refused")
+        tagged = []
+        rep = lv.mirror_once(lambda: self.rows(), boom, lambda r, t: tagged.append(r["id"]))
+        self.assertEqual(tagged, [])
+        self.assertEqual(len(rep["failed"]), 2)
+
+    def test_a_failed_list_never_raises(self):
+        def boom():
+            raise OSError("down")
+        self.assertEqual(lv.mirror_once(boom, None, None)["failed"][0]["error"], "list: down")
+
+    def test_the_job_follows_the_database_the_app_reads(self):
+        src = open(lv.__file__, encoding="utf-8").read()
+        self.assertIn("from sovereign_target import resolve_target", src)
+        self.assertIn('if source == "sovereign":', src)
+        self.assertEqual(lv.load_live(resolver=lambda p: ("sovereign", "http://127.0.0.1:8800", "k"))[0], "sovereign")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,8 @@
+# The family accounts whose instances receive the family key (DR-0613).
+# The key opens the family NAS: an instance receives it ONLY when one of these
+# accounts is its owner or admin, and never a church instance. One email per
+# line; lines starting with # are ignored. Adding a line here and merging IS
+# the change; there is nothing to paste anywhere.
+darrellpoe06@gmail.com
+15636502416@phone.poetech.us
+mrspoe06@gmail.com

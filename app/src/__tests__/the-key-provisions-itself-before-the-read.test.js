@@ -98,13 +98,14 @@ describe('the row says what came back, and names the one human step only when it
     expect(r.fix).toMatch(/asks the family for the key itself/);
   });
 
-  it('signed in and the family returned none: the ONE human step is named, and only here', () => {
+  it('signed in and the family returned none: no human step remains, the NAS publishes the key itself (DR-0613)', () => {
     const r = row({ bridgeKey: false, bridgeProvision: 'none' });
     expect(r.state).toBe(FAIL);
-    expect(r.fix).toMatch(/got none/);
-    expect(r.fix).toMatch(/published it yet/);
-    expect(r.fix).toMatch(/Real Estate → Photos/);
-    expect(r.fix).toMatch(/not a member of a family space/);
+    expect(r.fix).toMatch(/^Nothing for you to do\./);
+    expect(r.fix).toMatch(/NAS publishes the key itself/);
+    expect(r.fix).toMatch(/not an owner or admin of the family space/);
+    // PROVEN-TO-CATCH: the old paste chore never returns.
+    expect(r.fix).not.toMatch(/pastes|Real Estate → Photos/);
   });
 
   it('signed in and not yet answered: no chore is assigned', () => {
