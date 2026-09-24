@@ -221,12 +221,16 @@ const NODES = [
   }),
   app('app/src/lib/agent-inbox-sync.js', {
     id: 'lesson-door', name: 'In-app lesson door (One Voice)',
-    purpose: 'A lesson typed or spoken into the app is filed for capture.',
+    purpose: 'A lesson typed or spoken into the app is filed for capture, and the lessons already written from the Word for those words are shown on the spot (DR-0630).',
     writes: [
       { res: 'db:agent_inbox#lesson', token: "from('agent_inbox')" },
       { res: 'db:agent_inbox#voice', file: 'app/src/lib/lesson-voice.js', token: 'voiceLessonTags' },
     ],
-    reads: [{ res: 'event:use-prompt', file: 'app/src/components/OneVoiceInput.jsx', token: 'USE_PROMPT_EVENT' }],
+    reads: [
+      { res: 'event:use-prompt', file: 'app/src/components/OneVoiceInput.jsx', token: 'USE_PROMPT_EVENT' },
+      // DR-0630: the published lessons, ranked for the person's own words.
+      { res: 'code:lessons', file: 'app/src/lib/lessons-for-situation.js', token: 'buildSelfPacedDescriptors' },
+    ],
     seeds: ['lesson-voice', 'lesson-inbox'],
   }),
   rider('service:lesson-voice', 'infra/nas-lesson-voice/lesson_voice_transcribe.py', {
