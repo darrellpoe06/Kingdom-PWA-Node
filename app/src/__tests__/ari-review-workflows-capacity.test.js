@@ -74,10 +74,14 @@ describe('PROVEN-TO-CATCH — the gap Darrell named: an unread signal must not r
     expect(d.metrics.deployFresh).toBe(null);
   });
 
-  it('an empty registry is named as a gap, not silently accepted', () => {
+  it('an empty registry states the n8n retirement in words (DR-0617) — never silently accepted, never a false alarm', () => {
     const d = dim(buildAppReview({ workflows: [], loops: FRESH_LOOPS }, NOW), 'workflows');
-    expect(titles(d).join(' | ')).toMatch(/cannot see its own workflow registry/);
-    expect(d.findings.find((f) => /registry/.test(f.title)).evidence).toMatch(/0 rows/);
+    expect(titles(d).join(' | ')).not.toMatch(/cannot see its own workflow registry/);
+    const f = d.findings.find((x) => /n8n workflows are retired/.test(x.title));
+    expect(f).toBeTruthy();
+    expect(f.severity).toBe('nit');
+    expect(f.evidence).toMatch(/DR-0617/);
+    expect(d.metrics.registryChecked).toBe(true);
   });
 
   it('a failed live read surfaces its real notice rather than a generic clear', () => {

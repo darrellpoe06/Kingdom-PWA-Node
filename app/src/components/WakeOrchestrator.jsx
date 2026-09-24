@@ -19,7 +19,7 @@
 // instead of painting a status. Ships INERT: the default state is kill-switch
 // engaged; arming is a deliberate, confirmed, Tier C act done by Darrell.
 import React, { useCallback, useEffect, useState } from 'react';
-import { n8nAuthHeaders } from '../lib/n8n-base.js';
+import { bridgeAuthHeaders } from '../lib/bridge-auth.js';
 import { KpiDot } from './KpiDot.jsx';
 import { kpiColor } from '../lib/kpi-status.js';
 import {
@@ -56,7 +56,7 @@ export default function WakeOrchestrator() {
 
   const load = useCallback(async () => {
     try {
-      const r = await fetch(FEED_URL, { headers: { Accept: 'application/json', ...n8nAuthHeaders(true) }, mode: 'cors' });
+      const r = await fetch(FEED_URL, { headers: { Accept: 'application/json', ...bridgeAuthHeaders(true) }, mode: 'cors' });
       const json = await r.json().catch(() => null);
       const norm = normalizeWakeState(json);
       if (!norm.ok) { setState({ phase: 'offline', data: null, error: norm.error }); return; }
@@ -85,7 +85,7 @@ export default function WakeOrchestrator() {
     try {
       const r = await fetch(CONTROL_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...n8nAuthHeaders(true) },
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...bridgeAuthHeaders(true) },
         mode: 'cors',
         body: JSON.stringify({ action }),
       });

@@ -19,7 +19,7 @@
 // Family-private per the TLC firewall: transactions never leave the family's own
 // box — the local model is the only thing that sees them.
 // =============================================================================
-import { n8nAuthHeaders } from './n8n-base.js';
+import { bridgeAuthHeaders } from './bridge-auth.js';
 
 // The family's local 14b model (matches wf34). A constant so a test can prove the
 // client routes LOCAL, not to a vendor.
@@ -156,7 +156,7 @@ export async function analyzeSkills(transactions, { signal, personaHint = '', mo
   try {
     const r = await fetch(skillEndpoint(), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...n8nAuthHeaders(true) },
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...bridgeAuthHeaders(true) },
       body: JSON.stringify(buildSkillAnalyticsPayload(txns, { stats, personaHint, monthsOfHistory })),
       signal,
     });

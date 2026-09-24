@@ -1,13 +1,14 @@
 // Autonomous fruit-loop batch 1 (DR-0057 additive-test class). Pure helpers
-// the scout flagged untested: the Synology-chat message formatters + the n8n
-// base/auth resolver. All pure or env-deterministic; zero source changes.
+// the scout flagged untested: the Synology-chat message formatters + the bridge
+// auth resolver (formerly lib/n8n-base.js; renamed with DR-0617 — its absence
+// is pinned in n8n-is-gone.test.js). All pure or env-deterministic.
 import { describe, it, expect } from 'vitest';
 import {
   isChatConfigured, postToChat,
   formatFeedbackMessage, formatProjectCreatedMessage,
   formatChangeRequestMessage, formatCycleItemCompletedMessage,
 } from '../lib/synology-chat.js';
-import { N8N_BASE, n8nAuthHeaders, resolveN8nBearer, N8N_DEVICE_TOKEN_KEY } from '../lib/n8n-base.js';
+import { bridgeAuthHeaders, resolveBridgeBearer, BRIDGE_DEVICE_TOKEN_KEY } from '../lib/bridge-auth.js';
 
 describe('synology-chat formatters', () => {
   it('feedback message: leads with first name, encodes sentiment + tab', () => {
@@ -36,38 +37,29 @@ describe('synology-chat transport (unconfigured in test env)', () => {
   });
 });
 
-describe('n8n base resolver', () => {
-  it('defaults to EMPTY — n8n is RETIRED (DR-0218, 2026-07-30); no app code calls it', () => {
-    expect(N8N_BASE).toBe('');
-  });
-  it.skip('LEGACY (pre-retirement): defaulted to the same-origin /n8n proxy', () => {
-    // 2026-07-05: production moved to Cloudflare Pages, whose Pages Function
-    // (app/functions/n8n/[[path]].js) proxies the Funnel same-origin. The
-    // browser must NEVER call the Funnel cross-origin — it throttles those
-    // with 503s before the request reaches n8n. (The 2026-06-17 Funnel-direct
-    // era existed only because Vercel's router couldn't TLS-handshake to
-    // *.ts.net; that constraint left with Vercel.)
-    expect(N8N_BASE).toBe('/n8n');
+describe('bridge auth resolver', () => {
+  it('the rename kept the device key — tokens already typed on family devices still work', () => {
+    expect(BRIDGE_DEVICE_TOKEN_KEY).toBe('poetech-chat-bridge-token');
   });
 
-  it('n8nAuthHeaders sends nothing when unauthorized or no bearer is configured', () => {
-    expect(n8nAuthHeaders(false)).toEqual({});
-    expect(n8nAuthHeaders(true)).toEqual({}); // no VITE_N8N_BEARER in the test env -> deny
+  it('bridgeAuthHeaders sends nothing when unauthorized or no bearer is configured', () => {
+    expect(bridgeAuthHeaders(false)).toEqual({});
+    expect(bridgeAuthHeaders(true)).toEqual({}); // no device token in the test env -> deny
   });
 
   // 2026-07-03: the bearer's PRIMARY source is the per-device bridge token
   // (never in the public bundle); the VITE_ var is a transition fallback only.
   it('the per-device bridge token authorizes, and unauthorized callers still send nothing', () => {
-    const win = { localStorage: { getItem: (k) => (k === N8N_DEVICE_TOKEN_KEY ? '  device-tok-9  ' : null) } };
-    expect(resolveN8nBearer(win)).toBe('device-tok-9'); // trimmed
-    expect(n8nAuthHeaders(true, win)).toEqual({ Authorization: 'Bearer device-tok-9' });
-    expect(n8nAuthHeaders(false, win)).toEqual({}); // authorization gate still holds
+    const win = { localStorage: { getItem: (k) => (k === BRIDGE_DEVICE_TOKEN_KEY ? '  device-tok-9  ' : null) } };
+    expect(resolveBridgeBearer(win)).toBe('device-tok-9'); // trimmed
+    expect(bridgeAuthHeaders(true, win)).toEqual({ Authorization: 'Bearer device-tok-9' });
+    expect(bridgeAuthHeaders(false, win)).toEqual({}); // authorization gate still holds
   });
 
   it('a blocked/absent localStorage falls back honestly (no token in the test env -> deny)', () => {
     const blocked = { localStorage: { getItem() { throw new Error('private mode'); } } };
-    expect(resolveN8nBearer(blocked)).toBe('');
-    expect(n8nAuthHeaders(true, blocked)).toEqual({});
-    expect(resolveN8nBearer({ localStorage: { getItem: () => null } })).toBe('');
+    expect(resolveBridgeBearer(blocked)).toBe('');
+    expect(bridgeAuthHeaders(true, blocked)).toEqual({});
+    expect(resolveBridgeBearer({ localStorage: { getItem: () => null } })).toBe('');
   });
 });

@@ -485,15 +485,24 @@ function reviewWorkflows({ workflows = null, loops = null } = {}) {
   const rows = Array.isArray(workflows) ? workflows.filter((r) => r && r.file) : null;
   const assessed = Array.isArray(loops) ? loops : null;
 
-  if (rows == null || rows.length === 0) {
+  if (rows == null) {
     findings.push(finding(
       'workflows', 'warning',
       'The app cannot see its own workflow registry',
-      rows == null
-        ? 'No workflow registry was handed to the review — the build-time registry (vite.config.js buildWorkflowRegistry, DR-0158) is absent here'
-        : 'The workflow registry resolved to 0 rows, so no workflow state can be checked against what is running',
-      'Confirm the build injects __WORKFLOW_REGISTRY__; until it does, Ari is blind to workflow currency and says so rather than reporting clear',
+      'No workflow registry was handed to the review, so whether the app\'s picture of its workflows is current is unknown here',
+      'Pass the registry (lib/workflow-registry storedWorkflowRegistry) into the review; unmeasured is reported, never silently read as clear',
       { count: 0, principle: 'DR-0158' },
+    ));
+  } else if (rows.length === 0) {
+    // The app lists no n8n workflows (DR-0617): an EMPTY registry is the true,
+    // deliberate state, not an injection failure. Said in words, lowest severity,
+    // so the surface states the retirement instead of alarming over it.
+    findings.push(finding(
+      'workflows', 'nit',
+      'n8n workflows are retired — the house stores none',
+      'The workflow registry is empty on purpose: n8n was retired (DR-0132, DR-0218) and on 2026-09-24 the app stopped listing n8n workflows (DR-0617); what still touches the live NAS n8n is held until its replacement is proven',
+      'Nothing to restore in the app; the running automation is the sovereign loop fleet (infra/nas-loops), read through loop currency below',
+      { count: 0, principle: 'DR-0617' },
     ));
   }
 
@@ -543,7 +552,7 @@ function reviewWorkflows({ workflows = null, loops = null } = {}) {
     key: 'workflows',
     findings,
     metrics: {
-      registryChecked: rows != null && rows.length > 0,
+      registryChecked: rows != null,
       workflows: rows ? rows.length : 0,
       activeWorkflows: rows ? rows.filter((r) => r.active === true).length : 0,
       loopsChecked: assessed != null,
