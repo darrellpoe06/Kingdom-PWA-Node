@@ -460,7 +460,7 @@ jobs:
             exit 0
           fi
           last_sha=$(gh api "repos/$REPO/actions/workflows/db-migrate.yml/runs?status=success&per_page=1" \
-            --jq '.workflow_runs[0].head_sha // ""' 2>&1) || { echo "re-check: could not read last deploy: $last_deployed"; last_deployed=""; }
+            --jq '.workflow_runs[0].head_sha // ""' 2>&1) || { echo "re-check: could not read the last migration run: $last_sha"; last_sha=""; }
           if [ "$main_sha" = "$last_sha" ]; then
             echo "db-migrate already ran against main's tip ($main_sha); nothing to re-dispatch."
             exit 0
