@@ -203,8 +203,8 @@ describe('the live measurement is read-only, per-resource, and never blanks', ()
   });
   it('parses the psql output back into rows', () => {
     expect(parseOutput('db:feedback|12|2026-09-24T01:00:00Z|3|\ndb:x||||relation does not exist')).toEqual([
-      { resource: 'db:feedback', written: 12, newest_at: '2026-09-24T01:00:00Z', consumed: 3, error: null },
-      { resource: 'db:x', written: null, newest_at: null, consumed: null, error: 'relation does not exist' },
+      { resource: 'db:feedback', written: 12, newest_at: '2026-09-24T01:00:00Z', consumed: 3, error: null, note: null },
+      { resource: 'db:x', written: null, newest_at: null, consumed: null, error: 'relation does not exist', note: null },
     ]);
   });
   it('a schedule implies its freshness; no schedule runs when asked', () => {
@@ -441,6 +441,23 @@ describe('what the first live proof run taught the measurement (run 36059041587)
     expect(pickRun([{ conclusion: 'action_required' }])).toBe(null);
     const off = runRow('push-outbox-drain.yml', pickRun([{ conclusion: 'skipped', updated_at: '2026-09-24T20:54:00Z' }]));
     expect(resourceVerdict({ run: { fresh: 2 } }, off, NOW).state).toBe('off');
+  });
+  it('each workflow is judged by the runs that mean something for it (run 36062392420)', async () => {
+    const { pickByRule, runRuleFor, parseOutput: parse } = await import('../../../scripts/system-flow-proof.mjs');
+    const fail = { conclusion: 'failure', updated_at: 'a' };
+    const ok = { conclusion: 'success', updated_at: 'b' };
+    // a lane workflow: a red PR is the gate working — healthy if it succeeded recently
+    expect(pickByRule('any-success', [fail], [fail, { conclusion: 'action_required' }, ok]).conclusion).toBe('success');
+    // a scheduled witness: its runs on main decide
+    expect(pickByRule('main', [fail], [ok]).conclusion).toBe('failure');
+    // a hand-dispatched tool: its latest decisive run anywhere
+    expect(pickByRule('any', [fail], [ok, fail]).conclusion).toBe('success');
+    expect(runRuleFor({}, "on:\n  schedule:\n    - cron: '0 * * * *'")).toBe('main');
+    expect(runRuleFor({}, 'on: workflow_dispatch')).toBe('any');
+    expect(runRuleFor({ runRule: 'any-success' }, '')).toBe('any-success');
+    // the runner's summary carries the note, so a switched-off drain is never read as broken
+    const row = parse('gh:run:push-outbox-drain.yml|1|2026-09-24T20:54:01Z|||off https://x')[0];
+    expect(resourceVerdict({ run: { fresh: 2 } }, row, NOW).state).toBe('off');
   });
   it('the migration ledger read is the live database’s own (_sovereign_replay), in the graph and in the app’s function', () => {
     const g = buildFlowGraph(SYSTEM_FLOW);

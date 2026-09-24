@@ -467,15 +467,15 @@ const NODES = [
   // 11. THE DELIVERY LANE — branch → PR → gates → merge → deploy → witness
   // ===========================================================================
   wf('auto-open-pr.yml', {
-    id: 'auto-open-pr', name: 'Auto-open PR', purpose: 'A pushed branch becomes a PR.',
+    id: 'auto-open-pr', name: 'Auto-open PR', runRule: 'any-success', purpose: 'A pushed branch becomes a PR.',
     reads: [{ res: 'gh:branch', token: 'push:' }], writes: [{ res: 'gh:pr', token: 'gh pr create' }], seeds: ['ci', 'auto-merge', 'pr-janitor'],
   }),
   wf('ci.yml', {
-    id: 'ci', name: 'CI — every gate', purpose: 'Lint, the full test suite, every guard (this graph’s included) and a real build.',
+    id: 'ci', name: 'CI — every gate', runRule: 'any-success', purpose: 'Lint, the full test suite, every guard (this graph’s included) and a real build.',
     reads: [{ res: 'gh:pr', token: 'pull_request' }], writes: [{ res: 'gh:check', token: 'npx vitest run' }], seeds: ['auto-merge'],
   }),
   wf('auto-merge.yml', {
-    id: 'auto-merge', name: 'Auto-merge on green', purpose: 'Merges the PR the moment its gates pass; dispatches the deploy.',
+    id: 'auto-merge', name: 'Auto-merge on green', runRule: 'any-success', purpose: 'Merges the PR the moment its gates pass; dispatches the deploy.',
     reads: [{ res: 'gh:pr', token: 'gh pr list' }, { res: 'gh:check', token: 'workflow_run' }],
     writes: [{ res: 'gh:main', token: 'gh pr merge' }, { res: 'gh:deploy-heal', token: 'gh workflow run deploy-cloudflare-pages.yml' }],
     seeds: ['deploy', 'db-migrate', 'deploy-freshness'],
