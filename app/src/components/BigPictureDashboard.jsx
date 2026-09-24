@@ -85,7 +85,8 @@ export function TryLifeHubButton() {
     <button
       type="button"
       onClick={() => setHomeView('lifehub')}
-      className="border border-[#E8E4DC] px-2 py-1 text-[0.625rem] uppercase tracking-wider min-h-[36px] hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+      data-testid="try-life-hub"
+      className="border border-[#E8E4DC] px-2 py-1 text-[0.625rem] uppercase tracking-wider whitespace-nowrap min-h-[36px] hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]"
     >
       Try the Life Hub
     </button>
@@ -236,13 +237,6 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
   }).length;
   return (
     <div className="space-y-3 sm:space-y-4">
-      {/* THE WAY IN, offered once and easy to ignore. It sits above the screen
-          rather than inside it, so nothing a reader already uses moves; the
-          Life Hub carries the way back in its own header, so the choice is
-          reversible from either side without hunting through settings. */}
-      <div className="flex justify-end">
-        <TryLifeHubButton />
-      </div>
       {/* WELCOME PANEL — only shows until dismissed */}
       {!welcomeDismissed && (
         <section className="bg-white border-2 border-[#B85838] p-5 sm:p-6">
@@ -290,7 +284,12 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
         </section>
       )}
 
+      {/* THE WAY IN, offered once and easy to ignore: it rides at the end of
+          the Overview tab row rather than on a line of its own (Darrell
+          2026-09-24: "Try the hub is taking up a lot of space... why?!").
+          The Life Hub carries the way back in its own header. */}
       <SectionTabs
+        trailing={<TryLifeHubButton />}
         ariaLabel="Overview"
         idBase="overview"
         defaultId="now"

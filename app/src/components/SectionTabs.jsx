@@ -51,6 +51,11 @@ export default function SectionTabs({
   // reader to a sister tab ("Open Training"). Uncontrolled by default.
   activeId = null,
   onActiveChange = null,
+  // Optional control that rides at the END of the tab row instead of taking a
+  // row of its own (Darrell 2026-09-24, of "Try the Life Hub" alone on a full
+  // line: "taking up a lot of space... why?!"). The tabs keep the room and
+  // scroll; the control never shrinks.
+  trailing = null,
 }) {
   const valid = sections.filter(Boolean);
   const [activeState, setActiveState] = useState(() => {
@@ -83,37 +88,46 @@ export default function SectionTabs({
   const current = valid.find((s) => s.id === active) || valid[0];
   const sub = variant === 'sub';
 
+  const strip = (
+    <TabScroll label={ariaLabel} rowClassName={sub ? 'items-center gap-1.5 py-0.5' : 'items-stretch'} className={sub || trailing ? '' : 'border-b border-[#E8E4DC]'}>
+      {valid.map((s) => {
+        const on = s.id === current.id;
+        // Sub (3rd-row) tabs are chips — active fills with ink — so a nested
+        // strip never reads as a duplicate of the underline row above it.
+        const cls = sub
+          ? `px-2.5 py-1.5 whitespace-nowrap text-[0.6875rem] uppercase tracking-wider border transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 ${on ? 'bg-[#1A1815] border-[#1A1815] text-white font-medium' : 'bg-transparent border-[#C9BFA8] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815]'}`
+          : `px-2.5 sm:px-3 py-2.5 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 ${on ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`;
+        return (
+          <button
+            key={s.id}
+            type="button"
+            ref={(el) => { btnRefs.current[s.id] = el; }}
+            role="tab"
+            id={`${idBase}-tab-${s.id}`}
+            aria-selected={on}
+            aria-controls={`${idBase}-panel-${s.id}`}
+            tabIndex={on ? 0 : -1}
+            onClick={() => setActive(s.id)}
+            onKeyDown={onKeyDown}
+            className={cls}
+          >
+            {s.icon ? <UiIcon name={s.icon} /> : null}
+            {s.label}
+            {s.done === true ? <span role="img" aria-label="complete" title="Complete" className={`inline-flex items-center justify-center w-4 h-4 rounded-full ${on ? 'bg-white text-[#1A1815]' : 'bg-[#5A6E3D] text-white'}`}><UiIcon name="check" className="w-3 h-3" /></span> : null}
+          </button>
+        );
+      })}
+    </TabScroll>
+  );
+
   return (
     <div className={sub ? 'space-y-3' : 'space-y-4'}>
-      <TabScroll label={ariaLabel} rowClassName={sub ? 'items-center gap-1.5 py-0.5' : 'items-stretch'} className={sub ? '' : 'border-b border-[#E8E4DC]'}>
-        {valid.map((s) => {
-          const on = s.id === current.id;
-          // Sub (3rd-row) tabs are chips — active fills with ink — so a nested
-          // strip never reads as a duplicate of the underline row above it.
-          const cls = sub
-            ? `px-2.5 py-1.5 whitespace-nowrap text-[0.6875rem] uppercase tracking-wider border transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 ${on ? 'bg-[#1A1815] border-[#1A1815] text-white font-medium' : 'bg-transparent border-[#C9BFA8] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815]'}`
-            : `px-2.5 sm:px-3 py-2.5 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 ${on ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`;
-          return (
-            <button
-              key={s.id}
-              type="button"
-              ref={(el) => { btnRefs.current[s.id] = el; }}
-              role="tab"
-              id={`${idBase}-tab-${s.id}`}
-              aria-selected={on}
-              aria-controls={`${idBase}-panel-${s.id}`}
-              tabIndex={on ? 0 : -1}
-              onClick={() => setActive(s.id)}
-              onKeyDown={onKeyDown}
-              className={cls}
-            >
-              {s.icon ? <UiIcon name={s.icon} /> : null}
-              {s.label}
-              {s.done === true ? <span role="img" aria-label="complete" title="Complete" className={`inline-flex items-center justify-center w-4 h-4 rounded-full ${on ? 'bg-white text-[#1A1815]' : 'bg-[#5A6E3D] text-white'}`}><UiIcon name="check" className="w-3 h-3" /></span> : null}
-            </button>
-          );
-        })}
-      </TabScroll>
+      {trailing ? (
+        <div className={`flex items-center gap-2 ${sub ? '' : 'border-b border-[#E8E4DC]'}`} data-testid={`${idBase}-tab-row`}>
+          <div className="min-w-0 flex-1">{strip}</div>
+          <div className="shrink-0">{trailing}</div>
+        </div>
+      ) : strip}
       {current.explain ? (
         <p id={`${idBase}-explain-${current.id}`} className="text-[0.6875rem] text-[#5A5751] leading-relaxed flex flex-wrap items-baseline gap-x-2" aria-live="polite">
           <span>{current.explain}</span>
