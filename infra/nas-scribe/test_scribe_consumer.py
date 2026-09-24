@@ -138,6 +138,18 @@ class ScribeConsumerBrakes(unittest.TestCase):
         c.run_once(self.dir, transcribe=lambda e: {"text": "ok"}, env=self.active)
         self.assertFalse(os.path.isfile(c.lock_path(self.dir)))
 
+    # --- DR-0611: the upload is the shape whisper-gpu reads ---------------------
+    def test_upload_is_multipart_not_octet_stream(self):
+        body, ctype = c.multipart_body("recording.webm", b"AUDIO")
+        self.assertTrue(ctype.startswith("multipart/form-data; boundary="))
+        self.assertIn(b'name="file"; filename="recording.webm"', body)
+        self.assertIn(b"AUDIO", body)
+
+    def test_default_whisper_is_the_tower_not_the_voice_forwarder_port(self):
+        src = open(c.__file__, encoding="utf-8").read()
+        self.assertIn('"WHISPER_URL", "http://tlcmediadpt:8771"', src)
+        self.assertNotIn('"WHISPER_URL", "http://127.0.0.1:8771"', src)
+
 
 if __name__ == "__main__":
     unittest.main()

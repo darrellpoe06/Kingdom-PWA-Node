@@ -11,5 +11,6 @@
 REPO="${POETECH_REPO:-/volume1/PoeTech/repos/Kingdom-PWA-Node}"
 export SCRIBE_CONSUMER_ACTIVE=1
 export SCRIBE_DATA="${SCRIBE_DATA:-/data/poetech-scribe}"
-export WHISPER_URL="${WHISPER_URL:-http://127.0.0.1:8771}"
+# 127.0.0.1:8771 on the NAS is the voice forwarder, not Whisper (DR-0611).
+export WHISPER_URL="${WHISPER_URL:-http://tlcmediadpt:8771}"
 exec python3 "$REPO/infra/nas-scribe/scribe_queue_consumer.py"
