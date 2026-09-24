@@ -302,9 +302,11 @@ describe('a pointer, never a copy', () => {
     // existing Project Management course, so only the total moves.
     expect(courses).toHaveLength(49);
     // And to 718 on 2026-09-24 for Sovereign A.I. weeks 25 and 26 (DR-0619, DR-0620).
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(718);
+    // And to 719 on 2026-09-24 for L193 (What It Costs to Keep Your Soul, DR-0642),
+    // a lesson into the existing Living Lessons course, so only the total moves.
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(719);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(718);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(719);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
