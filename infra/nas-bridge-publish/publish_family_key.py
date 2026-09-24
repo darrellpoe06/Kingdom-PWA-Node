@@ -24,9 +24,14 @@ missing (no key yet, no credential): a quiet, honest no-op, never a crash.
 """
 import json
 import os
+import sys
 import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+# The key must land in the database the APP reads: the NAS's own Supabase when
+# REPOINT-ARMED is merged (DR-0614), via the one resolver every NAS writer uses.
+sys.path.insert(0, os.path.join(HERE, "..", "nas-supabase"))
+from sovereign_target import resolve_target  # noqa: E402
 TOKEN_FILE = os.environ.get("BRIDGE_TOKEN_FILE", "/volume1/PoeTech/secrets/chat-bridge-token.txt")
 SECRETS = os.environ.get("BRIDGE_PUBLISH_SECRETS", "/volume1/PoeTech/secrets/supabase.json")
 OWNERS = os.environ.get("BRIDGE_OWNERS_FILE", os.path.join(HERE, "owners.txt"))
@@ -48,16 +53,10 @@ def read_token(path=TOKEN_FILE):
         return ""
 
 
-def load_secrets(env=None, path=SECRETS):
-    env = env if env is not None else os.environ
-    if env.get("SUPABASE_URL") and env.get("SUPABASE_SERVICE_KEY"):
-        return env["SUPABASE_URL"].rstrip("/"), env["SUPABASE_SERVICE_KEY"]
-    try:
-        with open(path, encoding="utf-8") as f:
-            s = json.load(f)
-        return s["url"].rstrip("/"), s["service_key"]
-    except (OSError, ValueError, KeyError):
-        return "", ""
+def load_secrets(path=SECRETS, resolver=resolve_target):
+    """(url, key) of the database the app reads; ('', '') when none is found."""
+    source, url, key = resolver(path)
+    return (url or ""), (key or "")
 
 
 def call_rpc(url, key, token, owners, timeout=30):

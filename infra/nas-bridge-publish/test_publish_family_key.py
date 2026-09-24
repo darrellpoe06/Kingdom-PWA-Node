@@ -50,6 +50,10 @@ class Publish(unittest.TestCase):
         self.assertNotIn("print(token", src)
         self.assertNotIn("print(t)", src)
 
+    def test_the_key_goes_to_the_database_the_app_reads(self):
+        self.assertEqual(p.load_secrets(resolver=lambda path: ("sovereign", "http://127.0.0.1:8800", "sk")), ("http://127.0.0.1:8800", "sk"))
+        self.assertEqual(p.load_secrets(resolver=lambda path: (None, None, None)), ("", ""))
+
 
 if __name__ == "__main__":
     unittest.main()
