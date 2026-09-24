@@ -85,6 +85,12 @@
       "install": "infra/nas-ytzero/install.sh",
       "enabled": true,
       "description": "YT Zero (ghcr.io/pelski/ytzero pinned 0.25.3) -- sovereign chosen-channels-only YouTube inbox on host port 3701. Public RSS -> own SQLite at /volume1/docker/ytzero; no Google account, no API key, no recommendation feed; optional yt-dlp downloads; LAN/Tailscale only. Runbook: infra/nas-ytzero/README.md."
+    },
+    {
+      "name": "voice-lite",
+      "install": "infra/nas-voice-lite/install.sh",
+      "enabled": true,
+      "description": "The NAS's own REAL-AUDIO reading voice (DR-0627): Piper on the NAS CPU behind /voice-lite. Born 2026-09-24 from Darrell on his Android phone: \"Why doesn't the player remain playing in the background when I switch between apps?!!? Fix it.\" With the GPU studio dark the reader fell back to Web Speech, which Android stops when the app leaves the screen; a real audio clip keeps playing like music. The installer downloads piper + two voices once (ryan = male, amy = female), PROVES piper synthesizes a real sentence on this box, installs poetech-voice-lite.service (voice_lite_server.py, 127.0.0.1:8772, family bearer, 2 in flight, 1500 chars, 90 s, 400 MB cache), and mounts /voice-lite only after /health answers 200. Any failed step mounts nothing, says which, and exits 0. Registered LAST so its one-time downloads (one file per cycle, bounded) can never starve a sibling. Request-driven, no timers. Proof: voice_lite_server.py --selftest gates merge in ci.yml."
     }
   ]
 }
