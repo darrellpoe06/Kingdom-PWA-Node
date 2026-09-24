@@ -3300,7 +3300,17 @@ export default function ChurchLearn({
             wall is what Darrell called garbage on 2026-09-19. Counting the
             cross-listed courses here only decides whether the control is worth
             showing; it never changes a course count anywhere (DR-0516). */}
-        {(visibleCourses.length + gatheredCourses.length) > 1 && !lessonFocus && (
+        {/* AND IT IS AT THE TOP OF EVERY DEPARTMENT TAB, EVEN A ONE-COURSE ONE
+            (Darrell 2026-09-24, on History's shelf reading "1 course · 8 lessons
+            · 17 more lessons taught across the curriculum" with no dropdown:
+            "Already said this but the drop down needs to be at the top of the
+            tab for choices!"). The previous rule showed the control only when
+            there were two places to go; a department with one course of its own
+            and none serving it had NO dropdown, and its seventeen gathered
+            lessons were the first thing on the tab. The dropdown is the
+            department's choice control; it renders whenever the department has
+            a course at all (DR-0598). */}
+        {visibleCourses.length >= 1 && !lessonFocus && (
           <div className="flex flex-wrap items-end gap-3 mb-5 border-b border-[#E8E4DC] pb-3">
             <div className="grow min-w-[14rem]">
               {/* A SELECTOR, not a section title (Darrell 2026-09-06: "even more
@@ -3346,7 +3356,7 @@ export default function ChurchLearn({
                 className={`w-full min-h-[48px] px-3 py-2 bg-white border-2 text-sm font-semibold focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${courseChosen ? 'border-[#1A1815]' : 'border-[#B85838]'}`}
                 style={{ fontFamily: '"Fraunces", serif' }}
               >
-                <option value="">Choose another course · {visibleCourses.length}{dept && gatheredCourses.length ? ` + ${gatheredCourses.length} that serve it` : ''} to choose from</option>
+                <option value="">{(visibleCourses.length + (dept ? gatheredCourses.length : 0)) === 1 ? `This department's course · 1 · pick it to open` : `Choose another course · ${visibleCourses.length}${dept && gatheredCourses.length ? ` + ${gatheredCourses.length} that serve it` : ''} to choose from`}</option>
                 {organizeCourses(visibleCourses, courseSort).map((g) => (
                   <optgroup key={g.label} label={g.label}>
                     {g.courses.map((c) => (
@@ -3408,39 +3418,6 @@ export default function ChurchLearn({
 
             The courses that serve a department are already options INSIDE the
             picker (DR-0516), so the picker alone is enough to choose one. */}
-            {dept && gathered.length > 0 && (
-              <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="learn-crosslisted">
-                <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">
-                  Also taught across the curriculum · {gathered.length}
-                </p>
-                <p className="text-[0.625rem] text-[#5A5751] leading-snug mb-2">
-                  These lessons live in their own courses and are taught there. Open one here and it
-                  opens where it lives — so it counts once, whichever shelf you found it on.
-                </p>
-                <ul className="space-y-2">
-                  {gathered.map((r) => (
-                    <li key={`${r.courseKey}-${r.lessonId}`}>
-                      <button
-                        type="button"
-                        className="text-left w-full focus:outline focus:outline-2 focus:outline-[#B85838]"
-                        onClick={() => {
-                          setDeptId('all');
-                          setActiveKey(r.courseKey);
-                          setResumeOpenGuide(false);
-                          setResumeLessonId(r.lessonId);
-                        }}
-                      >
-                        <span className="block text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{r.title}</span>
-                        <span className="block text-[0.625rem] text-[#5A5751]">
-                          {r.courseTitle} · {r.unitLabel}{r.ref ? ` · ${r.ref}` : ''}
-                        </span>
-                        <span className="block text-[0.625rem] text-[#5A5751]">{r.why}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
             {dept && dept.id === 'the-eternal-algorithms' && (
               <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="eternal-study-in-learn">
                 <React.Suspense fallback={<p className="text-xs text-[#5A5751]">Opening the study…</p>}>
@@ -3608,6 +3585,52 @@ export default function ChurchLearn({
             </nav>
           );
         })()}
+
+        {/* THE COURSE'S OWN LESSONS COME FIRST; THE GATHERED ONES FOLLOW (Darrell
+            2026-09-24, with a screenshot of History where the "also taught
+            across the curriculum" rows sat ABOVE the course's pick-a-lesson
+            list: "This should be at the top!"). This block used to render
+            inside the picker's row, so on any department that gathers lessons
+            it landed between the dropdown and the course's own lessons. It now
+            renders here, after the by-title index, and the order is pinned in
+            learn-crosslisted-in-the-picker.test.jsx (DR-0598). */}
+        {courses.length > 1 && !lessonFocus && (
+          <>
+        {dept && gathered.length > 0 && (
+          <div className="mt-3 mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="learn-crosslisted">
+            <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">
+              Also taught across the curriculum · {gathered.length}
+            </p>
+            <p className="text-[0.625rem] text-[#5A5751] leading-snug mb-2">
+              These lessons live in their own courses and are taught there. Open one here and it
+              opens where it lives — so it counts once, whichever shelf you found it on.
+            </p>
+            <ul className="space-y-2">
+              {gathered.map((r) => (
+                <li key={`${r.courseKey}-${r.lessonId}`}>
+                  <button
+                    type="button"
+                    className="text-left w-full focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    onClick={() => {
+                      setDeptId('all');
+                      setActiveKey(r.courseKey);
+                      setResumeOpenGuide(false);
+                      setResumeLessonId(r.lessonId);
+                    }}
+                  >
+                    <span className="block text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{r.title}</span>
+                    <span className="block text-[0.625rem] text-[#5A5751]">
+                      {r.courseTitle} · {r.unitLabel}{r.ref ? ` · ${r.ref}` : ''}
+                    </span>
+                    <span className="block text-[0.625rem] text-[#5A5751]">{r.why}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+          </>
+        )}
 
         {/* LESSON FINDER (Darrell 2026-08-18: "We need a better way to look up
             and review the available lessons... not obvious how to find a lesson

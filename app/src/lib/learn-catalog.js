@@ -105,7 +105,14 @@ export const LEARN_CATALOG = [
   },
   {
     key: 'living-lessons', wiring: 'self-paced', unitCap: 'Lesson',
-    meta: { ...LIVING_LESSONS_META, key: 'living-lessons', category: 'The Word & The Way' }, sessionFlow: LIVING_LESSONS_SESSION_FLOW,
+    // LIVING LESSONS IS A DEPARTMENT OF ITS OWN (Darrell 2026-09-24: "I was
+    // thinking Living Lessons could be a department... why not?"). At 189 of
+    // the school's lessons it is larger than any department it could sit
+    // inside; the department is derived from this category as every other one
+    // is (learn-organize.js), its code from the label (LL), and it stays first
+    // because this is the registry's first row. The eight sections inside the
+    // course (DR-0596) remain. DR-0598.
+    meta: { ...LIVING_LESSONS_META, key: 'living-lessons', category: 'Living Lessons' }, sessionFlow: LIVING_LESSONS_SESSION_FLOW,
     buildScheduleRows: () => buildLivingLessonsSchedule(), progressSummary: (p) => livingLessonsProgressSummary(p),
     exportMarkdown: () => exportLivingLessonsCurriculumMarkdown(), downloadName: 'living-lessons-from-the-word.md',
     interestTag: LIVING_LESSONS_INTEREST_TAG, helperTag: LIVING_LESSONS_HELPER_TAG, tutorCourseMeta: LIVING_LESSONS_TUTOR_META,

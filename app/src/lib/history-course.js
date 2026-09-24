@@ -718,7 +718,15 @@ const YEAR_RE = /\b(1[5-9]\d\d|20[0-2]\d)\b/g;
 // (history-voices-witness probe run); a page that refused the runner is not
 // on this list and cannot be cited.
 export const HISTORY_RECORD_HOSTS = [
-  // filled from the probe run's answering hosts in the commit that cites them
+  // answered a GitHub runner with HTTP 200 and their text on 2026-09-24
+  // (history-voices-witness probe runs 35941837965, 35942295758):
+  'web.archive.org',              // the Wayback Machine: the Times, Politico and The Atlantic AS PUBLISHED, dated — the live pages refuse a runner (403)
+  'www.wsws.org',                 // the four historians' interviews of October–November 2019, in their own words
+  'www.federalreservehistory.org', // the Federal Reserve's own history of redlining
+  'www.fhwa.dot.gov',             // the Federal Highway Administration's own history of the Interstate System
+  'www.transportation.gov',       // the Department of Transportation's own Reconnecting Communities program
+  'americanarchive.org',          // the American Archive of Public Broadcasting: Baldwin's 1963 conversation, transcribed
+  'dsl.richmond.edu',             // Mapping Inequality: the HOLC maps themselves
 ];
 const HISTORY_NOT_PROSE = new Set(['stories', 'voices', 'timeline']);
 const walkText = (node, fn) => {
@@ -763,7 +771,7 @@ export function historyVoiceFaults(m) {
     let host = '';
     try { host = new URL(String((v.source && v.source.url) || '')).host; } catch { /* not a URL — reported below */ }
     if (!/^https:\/\//.test(String((v.source && v.source.url) || ''))) faults.push(`${at}: source url is not https`);
-    else if (!HISTORY_SOURCE_HOSTS.includes(host)) faults.push(`${at}: source host ${host} is not a listed primary-record host`);
+    else if (!HISTORY_SOURCE_HOSTS.includes(host) && !HISTORY_RECORD_HOSTS.includes(host)) faults.push(`${at}: source host ${host} is not a listed primary-record host`);
     if (wordCount(v.words) < 8) faults.push(`${at}: fewer than eight words quoted`);
     if (/\.\.\.|…/.test(String(v.words || ''))) faults.push(`${at}: elision inside a quotation`);
     if (/\([1-3]?\s?[A-Za-z]+\s+\d+:[\d\-,\s]+\)/.test(String(v.words || ''))) faults.push(`${at}: a Scripture reference inside a historical quotation`);
