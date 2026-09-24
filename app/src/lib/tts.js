@@ -536,7 +536,17 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc } = {})
     },
 
     stop() {
-      try { this.synth.cancel(); } catch (_) { /* ignore */ }
+      // ONLY SILENCE WHAT THIS ENGINE IS SAYING (Darrell 2026-09-24: "Leaving
+      // a tab should not make the player stop playing... It is like a radio
+      // in the background"). speechSynthesis is ONE object for the whole page,
+      // and several surfaces hold their own engine (a lesson's quiz, the
+      // lesson teacher, a study). Each stops its engine when it unmounts — and
+      // this line used to cancel UNCONDITIONALLY, so leaving the Learn tab
+      // unmounted an idle quiz engine whose stop() silenced the reader's
+      // voice mid-sentence. An engine that is idle has nothing to cancel.
+      if (this.status !== 'idle') {
+        try { this.synth.cancel(); } catch (_) { /* ignore */ }
+      }
       this._gen += 1; // invalidate any pending callbacks
       this._finish();
     },
