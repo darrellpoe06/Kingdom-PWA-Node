@@ -7,9 +7,9 @@ tier: B
 type: word
 declared_by: Darrell
 scope:
-  - app/src/lib/sovereign-ai-class.js (the sov27 module; SOVEREIGN_AI_META.weeks 26 -> 28 with DR-0627)
+  - app/src/lib/sovereign-ai-class.js (the sov27 module; SOVEREIGN_AI_META.weeks 26 -> 28 with DR-0628)
   - app/src/__tests__/sovereign-ai-verse-integrity.test.js (SOV27_FRAGMENTS + SOV27_CORPUS + SOV27_ALLOWED + describe block)
-  - app/src/__tests__/sovereign-ai-class.test.js, learn-crosslist.test.js, course-band-coverage.test.js + baseline, course-quotation-integrity and stage-reaches-reader baselines (counts moved together with DR-0627)
+  - app/src/__tests__/sovereign-ai-class.test.js, learn-crosslist.test.js, course-band-coverage.test.js + baseline, course-quotation-integrity and stage-reaches-reader baselines (counts moved together with DR-0628)
 principles: [WORD-FIRST, SPOKEN-TEACHINGS-ARE-BUILD-INPUT, SPEAK-ESTABLISHED-FACT (DR-0100), TEACH-DONT-DEBATE (DR-0098), VERIFICATION-DOCTRINE (DR-0076), DECISION-RECORDS (DR-0011)]
 grounds:
   - Darrell's spoken teaching, 2026-09-24 (below), rendered for meaning per DR-0331
@@ -52,7 +52,7 @@ In-app: Church → Harvest (the coverage ledger: "one source, many harvests", re
 
 ## Impact
 
-Sovereign A.I. grows from 26 to 28 weeks with DR-0627; program lessons 718 -> 720; band-coverage total 378 -> 380; the quotation-integrity and stage-reaches-reader walks 569 -> 571. The lesson names open work in this house instead of smoothing it over: the flow graph shipped the same day but its named gaps still have to be carried until their live numbers flow, and the 120-video handoff is planned. Teaching "the data is the proof" obligates us to show that proof for our own workflows as each gap closes. Readers are never handed our bookkeeping: record ids appear only in the facilitator's talking points.
+Sovereign A.I. grows from 26 to 28 weeks with DR-0628; program lessons 718 -> 720; band-coverage total 378 -> 380; the quotation-integrity and stage-reaches-reader walks 569 -> 571. The lesson names open work in this house instead of smoothing it over: the flow graph shipped the same day but its named gaps still have to be carried until their live numbers flow, and the 120-video handoff is planned. Teaching "the data is the proof" obligates us to show that proof for our own workflows as each gap closes. Readers are never handed our bookkeeping: record ids appear only in the facilitator's talking points.
 
 ## Verification
 

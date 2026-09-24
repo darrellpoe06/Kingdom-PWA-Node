@@ -2168,7 +2168,7 @@ export const SOVEREIGN_AI_MODULES = [
   // to finish and set a time (Luke 14:28-30; Nehemiah 2:6); one body, joined not
   // discarded (1 Corinthians 12; Ezekiel 37:17); triage and the heard complaint
   // (Exodus 18; Acts 6); taste and see (Psalms 34:8). The Way is DR-0621;
-  // recorded as DR-0627. Every verse filled from the repo KJV corpus and pinned.
+  // recorded as DR-0628. Every verse filled from the repo KJV corpus and pinned.
   // ---------------------------------------------------------------------------
   {
     id: 'sov28-holding-the-hand-of-the-process-until-it-is-finished',

@@ -4080,7 +4080,7 @@ describe('sov27 — the seed is in itself and every workflow seeds the next quot
 // tree's cutting is NOT taught as a rule for systems; the dresser's answer is
 // (Luke 13:8). Leanness comes from COMBINING similar workflows so every option
 // remains. The Way is DR-0621 (docs/00-foundations/_root/HOLD-THE-HAND-OF-THE-PROCESS.md).
-// Recorded as DR-0627.
+// Recorded as DR-0628.
 // =============================================================================
 const sov28 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov28-holding-the-hand-of-the-process-until-it-is-finished');
 

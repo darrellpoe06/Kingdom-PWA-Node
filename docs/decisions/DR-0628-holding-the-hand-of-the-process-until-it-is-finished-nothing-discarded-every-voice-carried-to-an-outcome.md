@@ -1,5 +1,5 @@
 ---
-id: DR-0627
+id: DR-0628
 title: Sovereign A.I. week 28 — holding the hand of the process until it is finished; not just flagged but analyzed, fixed and done, nothing discarded, similar things joined, every voice carried to an outcome (from Darrell's spoken teaching, "Lessons.")
 status: accepted
 date: 2026-09-24

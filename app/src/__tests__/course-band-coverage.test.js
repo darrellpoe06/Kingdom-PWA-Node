@@ -106,7 +106,7 @@ describe('the debt, recorded as it actually is', () => {
     // NOT move with any of them. That is the shape a new course is supposed to
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
-    expect(baseline.total).toBe(380); // 380 on 2026-09-24: Sovereign A.I. weeks 27 and 28 from Darrell's spoken teachings (DR-0623, DR-0627), child, teen and senior bands on both; 378 on 2026-09-24: Sovereign A.I. weeks 25 and 26 (DR-0619, DR-0620), child, teen and senior bands on both; 376 on 2026-09-24: pm11, the eleventh lesson of Project Management (DR-0609), both bands; 375 on 2026-09-24: the ninth lesson of business-research-wars, the oil (DR-0602), both bands; 374 on 2026-09-23: the Business department's second course (business-research-wars, DR-0594), both bands on every lesson
+    expect(baseline.total).toBe(380); // 380 on 2026-09-24: Sovereign A.I. weeks 27 and 28 from Darrell's spoken teachings (DR-0623, DR-0628), child, teen and senior bands on both; 378 on 2026-09-24: Sovereign A.I. weeks 25 and 26 (DR-0619, DR-0620), child, teen and senior bands on both; 376 on 2026-09-24: pm11, the eleventh lesson of Project Management (DR-0609), both bands; 375 on 2026-09-24: the ninth lesson of business-research-wars, the oil (DR-0602), both bands; 374 on 2026-09-23: the Business department's second course (business-research-wars, DR-0594), both bands on every lesson
     expect(baseline.allFour).toBe(8); // 8 on 2026-09-24: the rebuilt historical-research-1619 (DR-0597) carries child, youth, teen and senior on every lesson — the first catalog course with all four bands; a course may only add to this number
     expect(baseline.adultOnly).toBe(37);
   });
