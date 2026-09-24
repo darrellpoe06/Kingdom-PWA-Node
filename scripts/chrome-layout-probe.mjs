@@ -120,12 +120,20 @@ let presenterMeasured = 0;
 let measured = 0;
 let tsMeasured = 0;
 const fail = (msg) => { failures += 1; console.error(`LAYOUT FAIL  ${msg}`); };
+// How long a chrome case waits for the network to go quiet (DR-0645).
+// Measured on CI run 36073585592: every view settled in ~1.3 s except
+// `markets`, which polls outside quote relays that never go idle from a
+// runner, so it sat out the full 45 s timeout at each of four widths —
+// 3 of the sweep's 5 minutes spent waiting on nothing the probe measures.
+// Past the cap the header is measured exactly as before: the h1 wait
+// below still has to find the header, and every invariant still runs.
+const CHROME_IDLE_CAP_MS = 10000;
 
 try {
   for (const view of VIEWS) for (const width of WIDTHS) {
     const url = `${origin}${BASE}/?view=${view}`;
     const page = await browser.newPage({ viewport: { width, height: 900 } });
-    await page.goto(url, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+    await page.goto(url, { waitUntil: 'networkidle', timeout: CHROME_IDLE_CAP_MS }).catch(() => {});
     await page.waitForSelector('header h1', { timeout: 20000 }).catch(() => {});
     if (SELFTEST) {
       // The pre-fix collapse, reproduced deliberately: the brand is forced to
