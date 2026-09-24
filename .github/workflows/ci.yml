@@ -28,7 +28,6 @@ on:
   # queued PR would wait forever. Harmless when the queue is off.
   merge_group:
 
-jobs:
 # PARALLEL, NOT SERIAL (DR-0645, 2026-09-24). Darrell: "Our processes work way
 # faster than this!" The one required job used to run every gate in a single
 # line: ~20 minutes a PR (run 36066491340: 22:16:29 -> 22:36:28; vitest 11:34 of
