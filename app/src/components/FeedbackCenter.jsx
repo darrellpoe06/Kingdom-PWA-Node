@@ -21,6 +21,8 @@ import { saveExtraction } from '../lib/use-discovery.js';
 // "~46" was already stale at 49 when the 2026-07-10 static-data hunt found it).
 import { OPPORTUNITY_LIBRARY } from '../lib/opportunity-capacity.js';
 import UiIcon from './UiIcon.jsx';
+import { setFeedbackTriage, triageLabel } from '../lib/feedback-loop.js';
+import supabase from '../lib/supabase.js';
 
 // Round 12 — Feedback form refreshed to reflect every surface we've actually
 // shipped through MVP v1.5. Area dropdown now mirrors the live nav + the major
@@ -468,6 +470,7 @@ export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey =
                           <span className={`text-[0.625rem] uppercase tracking-wider font-semibold ${st.key === 'fixed' ? 'text-[#5A6E3D]' : st.key === 'received' ? 'text-[#5A5751]' : 'text-[#B85838]'}`}>{st.label}</span>
                         </div>
                         <p className="text-xs text-[#5A5751] mt-0.5">{st.detail}</p>
+                        {st.reason && <p className="text-xs text-[#1A1815] mt-0.5" data-testid="receipt-reason">Reason: {st.reason}</p>}
                       </li>
                     );
                   })}
@@ -635,7 +638,27 @@ function feedbackSummary(f, maxLen = 60) {
   return summary.length > maxLen ? summary.slice(0, maxLen - 3) + '...' : summary;
 }
 
-export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFeedback }) {
+export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFeedback, triageDeps = null }) {
+  // THE LOOP CLOSES HERE (DR-0616): every move a steward makes is written to
+  // the note's row, and the sender's receipt reads it. `triaged` shows the move
+  // at once while the realtime refresh catches up.
+  const [triaged, setTriaged] = React.useState({});
+  const [triageSaid, setTriageSaid] = React.useState('');
+  const triage = async (f, status, askWhy = '') => {
+    let notes = '';
+    if (askWhy) {
+      notes = window.prompt(askWhy) || '';
+      if (!notes.trim()) { setTriageSaid('Not changed: a reason is needed so the sender is told why.'); return; }
+    }
+    const res = await setFeedbackTriage({ ...(triageDeps || { supabase }), id: f.id, status, notes });
+    if (res.ok) {
+      setTriaged((t) => ({ ...t, [f.id]: status }));
+      setTriageSaid(`Marked "${triageLabel(status)}". The sender sees it on their receipt.`);
+    } else {
+      setTriageSaid(`Not saved (${res.reason}).`);
+    }
+  };
+  const statusOf = (f) => triaged[f.id] || f.triageStatus || 'new';
   if (!feedback || feedback.length === 0) return null;
   const sorted = [...feedback].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   // Staleness made legible (DR-0120 / P30): a queue is WORKED, not stored.
@@ -653,6 +676,7 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
       _note: `promoted from feedback (${f.area || 'tester note'})`,
     });
     alert(`Project created: "${name}"`);
+    triage(f, 'promoted');
   };
 
   const promoteToIncident = (f) => {
@@ -668,6 +692,7 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
       _note: `promoted from feedback (${f.area || 'tester note'})`,
     });
     alert('Incident created. Fill in amount + entity on the incident.');
+    triage(f, 'promoted');
   };
 
   // → Requirements (DR-0121 item 10): the family's own feedback words ride the
@@ -684,6 +709,7 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
     if (!parsed.items.length) { alert('No requirement-shaped sentences found in this feedback — promote it as a Project/Change instead.'); return; }
     const n = await saveExtraction(parsed);
     alert(`${n} requirement item${n === 1 ? '' : 's'} sent to the Requirements review gate (Projects → Clients)${parsed.unclear.length ? ` · ${parsed.unclear.length} sentence(s) kept aside as unclear` : ''}. Confirm each there to put it on a build board.`);
+    triage(f, 'promoted');
   };
 
   const promoteToChange = (f) => {
@@ -700,6 +726,7 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
       _note: `promoted from feedback as change-request (${f.area || 'tester note'})`,
     });
     alert(`Change request created (tagged as 'change-request' in projects).`);
+    triage(f, 'promoted');
   };
 
   return (
@@ -712,6 +739,7 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
           <span className="text-[#5A5751]"> — a queue is worked, not stored. Promote each to a Change / Incident / Project, or delete it.</span>
         </div>
       )}
+      {triageSaid && <p role="status" className="text-xs text-[#5A6E3D] mb-2" style={{ fontFamily: '"Fraunces", serif' }} data-testid="feedback-triage-said">{triageSaid}</p>}
       <Queue
         title="Feedback Log · Promote queue"
         subtitle="Focused item is in full detail at top. Browse the rest below and click any card to bring it into focus."
@@ -723,6 +751,9 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
         pageSizeOptions={[5, 25, 50]}
         renderFocus={(f) => (
           <div>
+            <p className="text-[0.625rem] uppercase tracking-wider mb-1 text-[#2A5A8E] font-semibold" data-testid="feedback-triage-status">
+              Status: {triageLabel(statusOf(f))}
+            </p>
             <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
               <div className="text-[0.625rem] uppercase tracking-wider">
                 <span className="font-semibold text-[#B85838]">{f.area || 'Note'}</span>
@@ -803,6 +834,13 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
           { label: '+ Change', onClick: promoteToChange, color: '#5A6E3D' },
           { label: '+ Incident', onClick: promoteToIncident, color: '#B85838' },
           { label: '+ Project', onClick: promoteToProject, color: '#1A1815' },
+          // THE LOOP'S OWN MOVES (DR-0616): each is written to the note and
+          // shown on the sender's receipt; a decline or a question carries the
+          // reason the sender reads.
+          { label: 'Working on it', onClick: (f) => triage(f, 'in-progress'), color: '#2A5A8E' },
+          { label: 'Fixed', onClick: (f) => triage(f, 'fixed'), color: '#5A6E3D' },
+          { label: 'Need more info', onClick: (f) => triage(f, 'needs-info', 'What do you need from the sender? They will read this.'), color: '#8B6F47' },
+          { label: 'Decline', onClick: (f) => triage(f, 'declined', 'Why is this not changing? The sender will read this.'), color: '#5A5751' },
           { label: '× Delete', onClick: (f) => { if (confirm('Delete this feedback? It will be removed from the queue but any projects/incidents/changes you already created from it remain.')) deleteFeedback(f.id); }, secondary: true },
         ]}
       />
