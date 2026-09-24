@@ -145,6 +145,44 @@ html[data-text-size='bigprint'] .ts-safe-sticky .ts-escape-hatch {
   box-shadow: 0 -1px 0 rgba(128, 128, 128, 0.6);
   z-index: 60;
 }
+/* THE ONE-TAB DOOR'S TOP ROW KEEPS THE BRAND WHEN THE COLLAPSED ROW LEAVES IT
+   (DR-0640; components/TopNavRow.jsx). On a one-tab door the collapsed row
+   rides INSIDE the top row, brand and all, so the row's own lockup yields to
+   it. At the two sizes above, that collapsed row becomes the fixed bottom bar
+   and leaves the top row, so the top row's lockup comes back: the brand in
+   both places, as Darrell asked ("Both places are good... why not"). Same
+   selectors as the rule above, so the two can never disagree. */
+.one-tab-brand--float {
+  display: none;
+}
+html[data-text-size='largest'] .ts-safe-sticky .one-tab-brand--float,
+html[data-text-size='bigprint'] .ts-safe-sticky .one-tab-brand--float {
+  display: flex;
+}
+/* ON A PHONE, THE MERGED ROW ORDERS ITSELF (DR-0640). Measured at 320 px with
+   the collapsed row inside the one-tab row: back/forward + chevron held 101 px,
+   "Show header" + the size dropdown needed 220 px of the 187 px left, the
+   lockup squeezed to ~125 px ("The Love / Corner"), and the merged row came
+   out TALLER than the two rows it replaced. So below 640 px, while the row is
+   in the flow (not Largest / Big Print, where it is the bottom bar and keeps
+   its own layout): the way back and the dropdown share line one, the lockup
+   takes the full width under them, and the chevron yields to "Show header",
+   which does the same thing on the same row. */
+@media (max-width: 639.98px) {
+  html:not([data-text-size='largest']):not([data-text-size='bigprint']) .ts-hatch-inline [data-testid='collapsed-left-group'] {
+    display: contents;
+  }
+  html:not([data-text-size='largest']):not([data-text-size='bigprint']) .ts-hatch-inline [data-testid='show-full-header'] {
+    margin-right: auto;
+  }
+  html:not([data-text-size='largest']):not([data-text-size='bigprint']) .ts-hatch-inline .brand-lockup {
+    order: 9999;
+    flex-basis: 100%;
+  }
+  html:not([data-text-size='largest']):not([data-text-size='bigprint']) .one-tab-chevron-yields {
+    display: none;
+  }
+}
 
 /* THE CONTROLS NEVER GET BIGGER, AND THE TEXT DOMINATES (Darrell 2026-09-16,
    DR-0438, three phone screenshots of a lesson at A++/A+++: "We need the text

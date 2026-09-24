@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react';
-import { SectionTitle, MetricCell, TabScroll, NavControls, DmUnreadBadge } from './components/shared.jsx';
+import { SectionTitle, MetricCell, TabScroll, DmUnreadBadge } from './components/shared.jsx';
 // Contextual help — the discrete "?" that explains the current tab/tool (Ari's
 // voice) + the optional first-run roadmap tour. lib/help-content.js is the one
 // help registry every surface reads from. Small + always-present chrome, so it
@@ -72,6 +72,7 @@ import NetworkStatus from './components/NetworkStatus.jsx';
 import TTSControl from './components/TTSControl.jsx';
 import FloatingPlayer from './components/FloatingPlayer.jsx';
 import TextSizeControl, { TextSizeEscapeHatch } from './components/TextSizeControl.jsx';
+import TopNavRow from './components/TopNavRow.jsx';
 import ReadingVoiceControl from './components/ReadingVoiceControl.jsx';
 import HeaderAuthButton from './components/HeaderAuthButton.jsx';
 import PublicWelcome from './components/PublicWelcome.jsx';
@@ -4236,34 +4237,10 @@ ${THEME_CSS}
             the header is collapsed AND the reader is above Normal: at 1x there
             is nothing to escape, so the tucked-away header stays as clean as
             Darrell built it. DR-0276 rule 3 — always reversible. */}
-        <TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} siteName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} siteTagline={churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} />
-        <nav className="border-t border-[#E8E4DC]">
-          {/* v28+ MVP v1.5 — Nav reordered (round 3): primary financial tabs
-              first, About anchors the right side of the primary group, then a
-              visible vertical divider separates the secondary "life" tabs
-              (Church + Markets) which live to the far right. */}
-          {/* THE reference tab row Darrell loves ("easy and fluid," "classy").
-              Routed through the shared <TabScroll> primitive so every other tab
-              strip in the app inherits this exact right-to-left scroll feel.
-              `chrome` = .ts-chrome-region caps the whole row (tab font + padding)
-              via zoom so the menu stays roughly fixed while body content scales
-              (text-size scope split). Holds only rem tabs — no fixed-px control
-              lives here, so nothing already-fixed is shrunk. */}
-          {/* Browser-like Back/Forward, pinned left of the tab row so it never
-              scrolls away. Real window.history nav (lib/nav-history.js): Back
-              returns to the exact prior view/sub-view across every tab. */}
-          {/* THE reference tab row Darrell loves ("easy and fluid," "classy") —
-              ONE flat row of every top-level surface, routed through the shared
-              <TabScroll> primitive (horizontal scroll reaches every tab). A 6-area
-              cluster nav was tried (#381) and reverted 2026-06-26: grouping the
-              familiar tabs behind areas read as "lost the tabs" on the live app.
-              The anti-sprawl goal stands, but the regrouping must be visually
-              obvious before it ships again — until then, every surface is one tap. */}
-          <div className="flex items-stretch">
-            <div className="pl-1 sm:pl-6 lg:pl-8 flex items-stretch">
-              <NavControls chrome {...navHistory} />
-            </div>
-            <TabScroll chrome className="pr-1 sm:pr-6 lg:pr-8 min-w-0 flex-1" rowClassName="sm:text-sm items-stretch">
+        {/* The nav row, the header chevron, and on a one-tab door the brand row
+            (components/TopNavRow.jsx, DR-0640: "Both places are good... why not"). */}
+        <TopNavRow navHistory={navHistory} collapsed={headerCollapsed} onToggleHeader={toggleHeaderChrome} brandName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} brandTagline={churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'}
+          hatch={<TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} siteName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} siteTagline={churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} />}>
               {[
                 ['overview','Big Picture'],
                 ['books','Books'],
@@ -4387,30 +4364,7 @@ ${THEME_CSS}
                   <button key={id} onClick={() => setView(id)} className={`px-2.5 sm:px-3 py-2.5 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${view === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 );
               })}
-            </TabScroll>
-            {/* HEADER HIDEAWAY toggle — pinned to the right of the tab row so it
-                is ALWAYS visible (it never scrolls with the tabs and it is the
-                one control that survives a collapse). One tap hides the whole top
-                chrome (date/time, build line, account/subscribe row, voice + font
-                controls, theme swatches, Sample banner) for max dashboard room;
-                one tap brings it all back. The chevron points UP to "tuck away"
-                and DOWN to "bring back." Preference persists per device. The
-                color is a chrome token (#5A5751 -> 5.9:1 on the bar, remapped to
-                #888888 on midnight) and the icon inherits it via currentColor, so
-                it stays WCAG-legible in every theme. */}
-            <button
-              type="button"
-              onClick={toggleHeaderChrome}
-              aria-expanded={!headerCollapsed}
-              aria-label={headerCollapsed ? 'Show the full header (date, account, voice, font, theme controls)' : 'Hide the top bar — keep only the tabs for more room'}
-              title={headerCollapsed ? 'Show the full header' : 'Hide the top bar (keep tabs)'}
-              className="ts-chrome-region shrink-0 self-stretch px-2.5 sm:px-3 flex items-center justify-center border-l border-[#E8E4DC] text-[#5A5751] hover:text-[#1A1815] hover:bg-[#E8E4DC] focus:outline focus:outline-2 focus:outline-[#B85838]"
-            >
-              <UiIcon name={headerCollapsed ? 'chevronDown' : 'chevronUp'} className="text-base" />
-              <span className="sr-only">{headerCollapsed ? 'Show header' : 'Hide header'}</span>
-            </button>
-          </div>
-        </nav>
+        </TopNavRow>
         {view === 'books' && (
           <div className="border-t border-[#E8E4DC] bg-white">
             {/* Books sub-nav routes through the shared <TabScroll> primitive
