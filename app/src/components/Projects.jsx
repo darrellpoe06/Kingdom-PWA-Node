@@ -288,12 +288,15 @@ const SCOPE_TEMPLATES = [
   { id: 'tmpl-blank', name: 'Custom Scope (blank)', type: 'custom', description: 'Start from scratch', entityId: 'e-personal', defaults: { title: 'Service Agreement', scopeOfWork: '', deliverables: '', materials: '', schedule: '', paymentTerms: '', acceptanceCriteria: '', requirements: '', warranty: '', terminationClause: '' }},
 ];
 
-function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], transactions = [], debts = [], feedbackPanel = null, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false, loopData = {}, loopDecisions = {}, onLoopDecision = null, financialDocAt = null, discussions = [], addDiscussion = null, updateDiscussion = null, deleteDiscussion = null, wakeData = null, onNavigate = null, concerns = [], feedback = [], addConcern = null, updateConcern = null, deleteConcern = null, demoRowIds = null }) {
+function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], transactions = [], debts = [], feedbackPanel = null, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false, loopData = {}, loopDecisions = {}, onLoopDecision = null, financialDocAt = null, discussions = [], addDiscussion = null, updateDiscussion = null, deleteDiscussion = null, wakeData = null, onNavigate = null, concerns = [], feedback = [], addConcern = null, updateConcern = null, deleteConcern = null, demoRowIds = null, incidents = [] }) {
   const [subView, setSubView] = useState('list');
   // Back returns from a Projects sub-tab (Discussions/Concerns/Scopes/etc.) to
   // the timeline list, then on up the app history — the device Back button no
   // longer jumps straight out of Projects. (lib/nav-history.js; base = 'list'.)
   useHistoryValue(subView, setSubView, { base: 'list', key: 'projects-sub' });
+  // The board's own tasks (board_tasks, the Monday-style boards) feed the
+  // Decision Intelligence readouts (DR-0612).
+  const boardTasks = useBoardTasks();
   // The governance queue names credentials, spend, and Tier-C activations — it
   // shows only for a signed-in family/governor account.
   // Feedback rides its OWN visible sub-tab with a live count (Darrell
@@ -377,7 +380,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       {subView === 'clients' && isGovernor && <ClientDiscovery />}
       {subView === 'governance' && isGovernor && (
         <div className="space-y-6">
-          <DecisionIntelligence concerns={concerns} projects={projects} discussions={discussions} />
+          <DecisionIntelligence concerns={concerns} projects={projects} discussions={discussions} boardTasks={boardTasks} feedback={feedback} incidents={incidents} record={!!currentUserId} />
           <GovernanceQueue
             appDecisions={deriveAppDecisions({ discussions, concerns })}
             familyInstanceId={(concerns.find((c) => c && c.tenantId)?.tenantId) || null}
