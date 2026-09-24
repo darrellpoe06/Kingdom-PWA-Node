@@ -4341,3 +4341,222 @@ describe('sov28 — holding the hand of the process until it is finished quotes 
     expect(drifted).not.toContain(SOV28_FRAGMENTS['Luke 13:8']);
   });
 });
+
+// =============================================================================
+// sov29 — the song that goes with you, and the servant who keeps serving
+// =============================================================================
+// Week 29, captured 2026-09-24 from Darrell's SPOKEN teaching (4:57pm, "Lesson.").
+// His words lead, rendered for meaning (DR-0331) and allow-listed verbatim below.
+// This house's own day is cited exactly from its record (DR-0627): the panel's
+// false promise, the cause, the real-audio voice built the same day, and the
+// live proof still owed. Paths his word adds (leaving a tab, moving) are named
+// as NOT measured (DR-0076). Recorded as DR-0634.
+// =============================================================================
+const sov29 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov29-the-song-that-goes-with-you-and-the-servant-who-keeps-serving');
+
+const SOV29_FRAGMENTS = {
+  "Deuteronomy 6:6": "And these words, which I command thee this day, shall be in thine heart:",
+  "Deuteronomy 6:7": "And thou shalt teach them diligently unto thy children, and shalt talk of them when thou sittest in thine house, and when thou walkest by the way, and when thou liest down, and when thou risest up.",
+  "Deuteronomy 6:8": "And thou shalt bind them for a sign upon thine hand, and they shall be as frontlets between thine eyes.",
+  "Deuteronomy 6:9": "And thou shalt write them upon the posts of thy house, and on thy gates.",
+  "Proverbs 6:22": "When thou goest, it shall lead thee; when thou sleepest, it shall keep thee; and when thou awakest, it shall talk with thee.",
+  "Joshua 1:8": "This book of the law shall not depart out of thy mouth; but thou shalt meditate therein day and night, that thou mayest observe to do according to all that is written therein: for then thou shalt make thy way prosperous, and then thou shalt have good success.",
+  "Psalms 1:2": "But his delight is in the law of the LORD; and in his law doth he meditate day and night.",
+  "Psalms 119:97": "O how love I thy law! it is my meditation all the day.",
+  "Psalms 121:3": "He will not suffer thy foot to be moved: he that keepeth thee will not slumber.",
+  "Psalms 121:4": "Behold, he that keepeth Israel shall neither slumber nor sleep.",
+  "Psalms 121:5": "The LORD is thy keeper: the LORD is thy shade upon thy right hand.",
+  "Psalms 121:8": "The LORD shall preserve thy going out and thy coming in from this time forth, and even for evermore.",
+  "Isaiah 40:28": "Hast thou not known? hast thou not heard, that the everlasting God, the LORD, the Creator of the ends of the earth, fainteth not, neither is weary? there is no searching of his understanding.",
+  "Lamentations 3:22": "It is of the LORD’s mercies that we are not consumed, because his compassions fail not.",
+  "Lamentations 3:23": "They are new every morning: great is thy faithfulness.",
+  "Psalms 139:7": "Whither shall I go from thy spirit? or whither shall I flee from thy presence?",
+  "Psalms 139:9": "If I take the wings of the morning, and dwell in the uttermost parts of the sea;",
+  "Psalms 139:10": "Even there shall thy hand lead me, and thy right hand shall hold me.",
+  "Exodus 13:21": "And the LORD went before them by day in a pillar of a cloud, to lead them the way; and by night in a pillar of fire, to give them light; to go by day and night:",
+  "Exodus 13:22": "He took not away the pillar of the cloud by day, nor the pillar of fire by night, from before the people.",
+  "Exodus 33:14": "And he said, My presence shall go with thee, and I will give thee rest.",
+  "Joshua 1:9": "Have not I commanded thee? Be strong and of a good courage; be not afraid, neither be thou dismayed: for the LORD thy God is with thee whithersoever thou goest.",
+  "Matthew 28:20": "Teaching them to observe all things whatsoever I have commanded you: and, lo, I am with you alway, even unto the end of the world. Amen.",
+  "Hebrews 13:5": "Let your conversation be without covetousness; and be content with such things as ye have: for he hath said, I will never leave thee, nor forsake thee.",
+  "John 14:16": "And I will pray the Father, and he shall give you another Comforter, that he may abide with you for ever;",
+  "John 14:17": "Even the Spirit of truth; whom the world cannot receive, because it seeth him not, neither knoweth him: but ye know him; for he dwelleth with you, and shall be in you.",
+  "Exodus 27:20": "And thou shalt command the children of Israel, that they bring thee pure oil olive beaten for the light, to cause the lamp to burn always.",
+  "Leviticus 6:13": "The fire shall ever be burning upon the altar; it shall never go out.",
+  "Luke 12:35": "Let your loins be girded about, and your lights burning;",
+  "Luke 12:36": "And ye yourselves like unto men that wait for their lord, when he will return from the wedding; that when he cometh and knocketh, they may open unto him immediately.",
+  "Luke 12:37": "Blessed are those servants, whom the lord when he cometh shall find watching: verily I say unto you, that he shall gird himself, and make them to sit down to meat, and will come forth and serve them.",
+  "Psalms 42:8": "Yet the LORD will command his lovingkindness in the day time, and in the night his song shall be with me, and my prayer unto the God of my life.",
+  "Psalms 63:6": "When I remember thee upon my bed, and meditate on thee in the night watches.",
+  "Psalms 34:1": "I will bless the LORD at all times: his praise shall continually be in my mouth.",
+  "1 Thessalonians 5:17": "Pray without ceasing.",
+  "Acts 16:25": "And at midnight Paul and Silas prayed, and sang praises unto God: and the prisoners heard them.",
+  "Colossians 3:16": "Let the word of Christ dwell in you richly in all wisdom; teaching and admonishing one another in psalms and hymns and spiritual songs, singing with grace in your hearts to the Lord.",
+  "Mark 10:45": "For even the Son of man came not to be ministered unto, but to minister",
+  "Galatians 5:13": "by love serve one another",
+  "1 Peter 4:10": "As every man hath received the gift, even so minister the same one to another, as good stewards of the manifold grace of God.",
+  "1 Corinthians 4:2": "Moreover it is required in stewards, that a man be found faithful.",
+  "Proverbs 25:13": "As the cold of snow in the time of harvest, so is a faithful messenger to them that send him: for he refresheth the soul of his masters.",
+  "2 Timothy 2:9": "Wherein I suffer trouble, as an evil doer, even unto bonds; but the word of God is not bound.",
+  "Acts 28:31": "Preaching the kingdom of God, and teaching those things which concern the Lord Jesus Christ, with all confidence, no man forbidding him.",
+  "Numbers 11:23": "And the LORD said unto Moses, Is the LORD’s hand waxed short? thou shalt see now whether my word shall come to pass unto thee or not.",
+  "Isaiah 59:1": "Behold, the LORD’s hand is not shortened, that it cannot save; neither his ear heavy, that it cannot hear:",
+  "Proverbs 3:27": "Withhold not good from them to whom it is due, when it is in the power of thine hand to do it.",
+  "Proverbs 27:23": "Be thou diligent to know the state of thy flocks, and look well to thy herds.",
+  "Proverbs 11:1": "A false balance is abomination to the LORD: but a just weight is his delight.",
+  "Philippians 4:19": "But my God shall supply all your need according to his riches in glory by Christ Jesus.",
+  "Isaiah 40:31": "But they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint.",
+  "Psalms 16:8": "I have set the LORD always before me: because he is at my right hand, I shall not be moved.",
+};
+
+const SOV29_CORPUS = {
+  "Deuteronomy 6:6": ["Deuteronomy",6,6],
+  "Deuteronomy 6:7": ["Deuteronomy",6,7],
+  "Deuteronomy 6:8": ["Deuteronomy",6,8],
+  "Deuteronomy 6:9": ["Deuteronomy",6,9],
+  "Proverbs 6:22": ["Proverbs",6,22],
+  "Joshua 1:8": ["Joshua",1,8],
+  "Psalms 1:2": ["Psalms",1,2],
+  "Psalms 119:97": ["Psalms",119,97],
+  "Psalms 121:3": ["Psalms",121,3],
+  "Psalms 121:4": ["Psalms",121,4],
+  "Psalms 121:5": ["Psalms",121,5],
+  "Psalms 121:8": ["Psalms",121,8],
+  "Isaiah 40:28": ["Isaiah",40,28],
+  "Lamentations 3:22": ["Lamentations",3,22],
+  "Lamentations 3:23": ["Lamentations",3,23],
+  "Psalms 139:7": ["Psalms",139,7],
+  "Psalms 139:9": ["Psalms",139,9],
+  "Psalms 139:10": ["Psalms",139,10],
+  "Exodus 13:21": ["Exodus",13,21],
+  "Exodus 13:22": ["Exodus",13,22],
+  "Exodus 33:14": ["Exodus",33,14],
+  "Joshua 1:9": ["Joshua",1,9],
+  "Matthew 28:20": ["Matthew",28,20],
+  "Hebrews 13:5": ["Hebrews",13,5],
+  "John 14:16": ["John",14,16],
+  "John 14:17": ["John",14,17],
+  "Exodus 27:20": ["Exodus",27,20],
+  "Leviticus 6:13": ["Leviticus",6,13],
+  "Luke 12:35": ["Luke",12,35],
+  "Luke 12:36": ["Luke",12,36],
+  "Luke 12:37": ["Luke",12,37],
+  "Psalms 42:8": ["Psalms",42,8],
+  "Psalms 63:6": ["Psalms",63,6],
+  "Psalms 34:1": ["Psalms",34,1],
+  "1 Thessalonians 5:17": ["1Thessalonians",5,17],
+  "Acts 16:25": ["Acts",16,25],
+  "Colossians 3:16": ["Colossians",3,16],
+  "Mark 10:45": ["Mark",10,45],
+  "Galatians 5:13": ["Galatians",5,13],
+  "1 Peter 4:10": ["1Peter",4,10],
+  "1 Corinthians 4:2": ["1Corinthians",4,2],
+  "Proverbs 25:13": ["Proverbs",25,13],
+  "2 Timothy 2:9": ["2Timothy",2,9],
+  "Acts 28:31": ["Acts",28,31],
+  "Numbers 11:23": ["Numbers",11,23],
+  "Isaiah 59:1": ["Isaiah",59,1],
+  "Proverbs 3:27": ["Proverbs",3,27],
+  "Proverbs 27:23": ["Proverbs",27,23],
+  "Proverbs 11:1": ["Proverbs",11,1],
+  "Philippians 4:19": ["Philippians",4,19],
+  "Isaiah 40:31": ["Isaiah",40,31],
+  "Psalms 16:8": ["Psalms",16,8],
+};
+
+const SOV29_ALLOWED = [
+  "\"Lesson.\"",
+  "\"Leaving a tab should not make the player stop playing.\"",
+  "\"The player should be able to play no matter what's going on, whether I move, leave the tab, whether I do whatever, it should still be able to play.\"",
+  "\"It is like a radio in the background. It's like I'm able to use it anytime I want.\"",
+  "\"Stop trying to constrain it, give it the ability to support and do what I'm asking.\"",
+  "\"Praise the Lord. Thanks. In Jesus' name, amen.\"",
+  "\"Why doesn't the player remain playing in the background when I switch between apps?!!? Fix it.\"",
+  "\"the reading carries on when you leave the app — your phone's own play/pause controls it.\"",
+  "\"On his phone that promise was false. Switching apps stopped the reading.\"",
+  "\"This voice keeps playing when you switch apps — your phone's own play/pause controls it.\"",
+  "\"This voice stops when you switch apps — the audio voice is offline.\"",
+  "\"Until that run is green, the NAS voice is built and not yet proven live.\""
+];
+
+describe('sov29 — the song that goes with you and the servant who keeps serving quotes its whole spine verbatim, Word first', () => {
+  it('the week exists, anchored on the Word that goes with you and the Keeper who never slumbers', () => {
+    expect(sov29).toBeTruthy();
+    expect(sov29.anchor.ref).toContain('Proverbs 6:22');
+    expect(sov29.anchor.ref).toContain('Psalms 121:4');
+    expect(sov29.anchor.theme).toContain(SOV29_FRAGMENTS['Proverbs 6:22']);
+    expect(sov29.anchor.theme).toContain(SOV29_FRAGMENTS['Psalms 121:4']);
+  });
+  wordFirstChecks(sov29, SOV29_FRAGMENTS, SOV29_CORPUS, 'sov29');
+  it('the Word LEADS, then his words: Deuteronomy 6:7 and Proverbs 6:22 precede his teaching', () => {
+    expect(sov29.lesson.indexOf('FIRST, THE WORD GOES WITH YOU')).toBe(0);
+    expect(sov29.lesson.indexOf(SOV29_FRAGMENTS['Deuteronomy 6:7'])).toBeLessThan(sov29.lesson.indexOf('SECOND,'));
+    expect(sov29.lesson.indexOf(SOV29_FRAGMENTS['Proverbs 6:22'])).toBeLessThan(sov29.lesson.indexOf('SECOND,'));
+  });
+  it('his framing leads: every one of his sentences is carried, in his order, with his seal', () => {
+    const his = [
+      'Leaving a tab should not make the player stop playing.',
+      'whether I move, leave the tab, whether I do whatever, it should still be able to play.',
+      'It is like a radio in the background.',
+      'Stop trying to constrain it, give it the ability to support and do what I\'m asking.',
+      'Praise the Lord. Thanks. In Jesus\' name, amen.',
+    ];
+    let last = sov29.lesson.indexOf('SECOND,');
+    for (const s of his) {
+      const at = sov29.lesson.indexOf(s);
+      expect(at, `his words must lead in order: ${s}`).toBeGreaterThan(last);
+      last = at;
+    }
+    expect(sov29.lesson).toContain('"Lesson."');
+  });
+  it('the load-bearing teaching is carried in its named movements', () => {
+    for (const heading of [
+      'SECOND, WHAT HE SAID - A RADIO IN THE BACKGROUND',
+      'THIRD, HE THAT KEEPETH THEE WILL NOT SLUMBER',
+      'FOURTH, THE PILLAR WAS NOT TAKEN AWAY',
+      'FIFTH, THE LAMP TO BURN ALWAYS',
+      'SIXTH, THE SONG IN THE NIGHT - WHAT A RADIO IN THE BACKGROUND IS FOR',
+      'SEVENTH, THE SERVANT SERVES',
+      'EIGHTH, STOP CONSTRAINING IT - THE WORD IS NOT BOUND',
+      'NINTH, OUR OWN HOUSE THE SAME DAY',
+      'TENTH, WHAT WE ARE LOOKING FOR',
+    ]) expect(sov29.lesson).toContain(heading);
+    expect(sov29.lesson).toContain(SOV29_FRAGMENTS['2 Timothy 2:9']);
+    expect(sov29.lesson).toContain(SOV29_FRAGMENTS['Proverbs 3:27']);
+    expect(sov29.inApp).toMatch(/Read Aloud/);
+  });
+  it('the bright lines are drawn: no tool is the Presence or a Keeper; the Holy Spirit abides and nothing we build shares that', () => {
+    expect(sov29.lesson).toContain('no tool we build is the Presence of Yahweh, and no player is a Keeper');
+    expect(sov29.lesson).toContain('The Holy Spirit dwells with His people and in them; that is His, and nothing we build shares in it.');
+    expect(sov29.lesson).toContain('Our player is a small servant; He is the Keeper.');
+    expect(sov29.lesson).toContain(SOV29_FRAGMENTS['John 14:16']);
+  });
+  it('this house is cited EXACTLY from its record: the false promise, the cause, the fix, and the proof still owed', () => {
+    expect(sov29.lesson).toContain('"On his phone that promise was false. Switching apps stopped the reading."');
+    expect(sov29.lesson).toContain('That engine is not treated as media, and the phone stops it when the app leaves the screen.');
+    expect(sov29.lesson).toContain('"This voice keeps playing when you switch apps — your phone\'s own play/pause controls it."');
+    expect(sov29.lesson).toContain('"Until that run is green, the NAS voice is built and not yet proven live."');
+    expect(sov29.lesson).toContain('re-review date of 2026-10-01');
+  });
+  it('honest limits: the paths his word adds are named as NOT measured, never claimed', () => {
+    expect(sov29.lesson).toContain('Whether every one of those paths keeps playing on every device has not been measured here, and this lesson does not claim it.');
+    expect(sov29.inApp).toContain('not every path has been measured yet');
+    // Never claimed in the reader's own fields (a quiz may offer it as the wrong answer).
+    expect(JSON.stringify({ l: sov29.lesson, b: sov29.bigIdea, i: sov29.inApp, v: sov29.levels, f: sov29.benefits })).not.toMatch(/(every|all) (paths?|devices?) (now )?keeps? playing/i);
+    expect(sov29.quiz.questions.find((q) => q.options.some((o) => /Every path keeps playing on every device/.test(o))).answer).toBe(1);
+  });
+  it('provenance honesty: the only non-Scripture double-quoted spans in the lesson are his words or the day\'s own record', () => {
+    const isWord = (q) => Object.values(SOV29_FRAGMENTS).some((f) => q.includes(f) || f.includes(q.slice(1, -1)));
+    const nonScripture = (sov29.lesson.match(/"[^"]+"/g) || []).filter((q) => !isWord(q));
+    expect(nonScripture.length).toBeGreaterThanOrEqual(10);
+    for (const q of nonScripture) expect(SOV29_ALLOWED, `unexpected non-Scripture quote: ${q}`).toContain(q);
+  });
+  it('tamper-catch: the pinned ground-truth lines are themselves exact, and a one-word drift fails', () => {
+    expect(SOV29_FRAGMENTS['Proverbs 6:22']).toBe('When thou goest, it shall lead thee; when thou sleepest, it shall keep thee; and when thou awakest, it shall talk with thee.');
+    expect(SOV29_FRAGMENTS['Psalms 121:4']).toBe('Behold, he that keepeth Israel shall neither slumber nor sleep.');
+    expect(SOV29_FRAGMENTS['2 Timothy 2:9']).toBe('Wherein I suffer trouble, as an evil doer, even unto bonds; but the word of God is not bound.');
+    expect(SOV29_FRAGMENTS['Exodus 13:22']).toBe('He took not away the pillar of the cloud by day, nor the pillar of fire by night, from before the people.');
+    const drifted = sov29.lesson.split('when thou sleepest, it shall keep thee').join('when thou sleepest, it shall guard thee');
+    expect(drifted).not.toContain(SOV29_FRAGMENTS['Proverbs 6:22']);
+  });
+});
