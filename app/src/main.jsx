@@ -102,8 +102,29 @@ captureInstallPrompt(window);
 //                 screen opens ?room=CODE&board=1 (board + host); phones scan the
 //                 QR it shows and open ?room=CODE (a player's controller). A lean
 //                 boot like the others — the full PWA never loads here.
+//   ?link=CODE  — the PHONE approves a TV (DR-0658). poetech.us/link?c=CODE (the
+//                 TV's QR, functions/link.js) lands here. Also re-entered when a
+//                 Google full-page redirect dropped the query: the code was
+//                 stashed in sessionStorage first (lib/device-link.js).
 const __params = new URLSearchParams(window.location.search);
+const __linkCode = __params.get('link') || (() => {
+  // Only a return FROM Google (a token in the hash, or a PKCE ?code=) may
+  // resume a stashed code, and only once: a stash left behind by an abandoned
+  // approval must never hijack an ordinary visit. Read inline: importing
+  // device-link.js here would put it in the entry chunk.
+  try {
+    const fromGoogle = /access_token=|error_description=/.test(window.location.hash || '')
+      || /^\?code=/.test(window.location.search || '');
+    if (!fromGoogle || __params.get('oauth_popup')) return '';
+    const raw = window.sessionStorage.getItem('pt-device-link');
+    if (!raw) return '';
+    window.sessionStorage.removeItem('pt-device-link');
+    const { code, at } = JSON.parse(raw);
+    return (typeof code === 'string' && Date.now() - at < 10 * 60 * 1000) ? code : '';
+  } catch { return ''; }
+})();
 const __standalone = __params.get('join') === '1' || __params.get('invites') === '1'
+  || !!__linkCode
   || __params.get('register') === '1' || __params.get('audience') === '1'
   || __params.get('output') === '1'
   || __params.get('teach') === '1' || __params.get('login') === '1'
@@ -128,6 +149,11 @@ if (__params.get('oauth_popup') === '1') {
     </React.StrictMode>
   );
   import('./lib/oauth-popup.js').then(({ completeOAuthPopup }) => { completeOAuthPopup(); }).catch(() => {});
+} else if (__linkCode) {
+  // The phone half of "sign in to the TV from the phone in your hand" (DR-0658).
+  import('./components/DeviceLinkApprove.jsx').then(({ default: DeviceLinkApprove }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><DeviceLinkApprove initialCode={__linkCode === '1' ? '' : __linkCode} /></ErrorBoundary></React.StrictMode>);
+  }).catch((err) => { console.warn('link boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
 } else if (__params.get('join') === '1') {
   // Each standalone boot dynamically imports ONLY its own component so the
   // always-loaded entry chunk (index.js) no longer carries every boot surface
