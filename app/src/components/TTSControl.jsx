@@ -42,6 +42,8 @@ import { mayTryLiteVoice } from '../lib/voice-service.js';
 import { openReadingSource, registerReadingOpener } from '../lib/reading-source.js';
 import FloatingReader from './FloatingReader.jsx';
 import { loadFloat, saveFloat, clampRect, avoidRects, defaultRect } from '../lib/float-geometry.js';
+import { loadFollowPrefs, saveFollowPrefs } from '../lib/reader-follow-prefs.js';
+import { deviceClipCache, rememberReadingKeys, recallReadingKeys, formatSaved, loadCapMb, saveCapMb, CAP_CHOICES_MB } from '../lib/clip-cache.js';
 // THE ONE LESSON LANDING (lib/learn-open.js, DR-0642): opens a lesson at a
 // saved sentence, scrolls it under the top bars and marks it. Read through a
 // glob so this file does not fork it or break before it lands: while the
@@ -198,6 +200,8 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // pressed read, heard nothing, was told nothing.
     notice,
     // 'audio' | 'device' | '' — only an audio voice survives switching apps.
+    // Kept on the device (DR-0657; optional in mocks).
+    offline, saveForListening, usesNasVoice, liteVoice,
     audioVoice,
     // The OS skip buttons get the bar's paragraph step (optional in mocks).
     setSkipHandlers,
@@ -313,6 +317,23 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // instead of pulling the page out from under them.
   const awayRef = useRef(false);
   const [userAway, setUserAway] = useState(false);
+  // THE LISTENER'S OWN FOLLOW CHOICES (DR-0657): follow the voice or not,
+  // light the sentence or not, and where on the screen it lands. Kept on this
+  // device; read through a ref inside the per-sentence effects so a change
+  // takes hold on the very next sentence without re-running them.
+  const [followPrefs, setFollowPrefs] = useState(() => loadFollowPrefs());
+  const prefsRef = useRef(followPrefs);
+  const setFollowPref = (key, value) => {
+    const next = saveFollowPrefs({ ...prefsRef.current, [key]: value });
+    prefsRef.current = next;
+    setFollowPrefs(next);
+    return next;
+  };
+  const lightSentence = (r) => highlightSegment(prefsRef.current.highlight === 'off' ? null : r);
+  const scrollToVoice = (r) => {
+    if (!prefsRef.current.follow || awayRef.current) return;
+    followRange(r, { place: prefsRef.current.place });
+  };
   useEffect(() => {
     if (!isReading) { awayRef.current = false; setUserAway(false); return undefined; }
     if (typeof window === 'undefined') return undefined;
@@ -398,9 +419,9 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
       return;
     }
     const r = followRef.current.ranges[segmentIndex] || null;
-    highlightSegment(r);
+    lightSentence(r);
     highlightWord(null); // a new sentence clears the previous word
-    if (!awayRef.current) followRange(r);
+    scrollToVoice(r);
     // The sentence just reached IS the place. `base` is the offset this run
     // started at, so the stored index is absolute within the lesson.
     const st = followRef.current;
@@ -421,8 +442,8 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     if (idx < 0 || idx === lastCloudIdxRef.current) return;
     lastCloudIdxRef.current = idx;
     const r = followRef.current.ranges[idx] || null;
-    highlightSegment(r);
-    if (!awayRef.current) followRange(r);
+    lightSentence(r);
+    scrollToVoice(r);
     // THE CLOUD VOICE KEEPS THE PLACE TOO (Darrell 2026-09-14: "Lessons keep
     // being interrupted and I'm loosing my exact location"). The sentence write
     // shipped only in the DEVICE-voice effect above, so listening in the
@@ -460,7 +481,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
       const f = followRef.current;
       if (!f || !f.wordable) return;
       const r = wordRange(f.follow, f.base + segIdx, charIndex);
-      if (r) highlightWord(r);
+      if (r && prefsRef.current.highlight !== 'off') highlightWord(r);
     });
     return () => setBoundaryHandler(null);
   }, [setBoundaryHandler]);
@@ -818,6 +839,35 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // A device that can't speak still scrolls: the read-aloud card stays hidden
   // below but Back-to-top renders in the ONE corner wrapper (the fab-overlap
   // guard rightly counts anchors — one anchor, one wrapper, both features).
+  // KEPT ON THE DEVICE (DR-0657): the panel's truthful count for a lesson.
+  const [offlineNote, setOfflineNote] = useState(null);
+  const saveSigRef = useRef(null);
+  // While the NAS voice reads from the top, the fetch-ahead IS a save: its
+  // count is the truth about this reading, and its keys are the lesson's.
+  useEffect(() => {
+    if (!offline) return;
+    const f = followRef.current;
+    const owner = f && f.owner;
+    if (!owner) return;
+    if (!f.base) rememberReadingKeys(owner, offline.voice, offline.keys);
+    if (saveSigRef.current) return;
+    setOfflineNote({ owner, saved: offline.saved, total: offline.total, bytes: offline.bytes, running: offline.saved < offline.total, partialRead: !!f.base });
+  }, [offline]);
+  // Opening the panel on a lesson: say what is on the device for it.
+  const [cacheUse, setCacheUse] = useState(null);
+  const [capMb, setCapMbState] = useState(() => loadCapMb());
+  useEffect(() => {
+    if (!isOpen || !target || !usesNasVoice) return undefined;
+    let live = true;
+    deviceClipCache().totalBytes().then((b) => { if (live) setCacheUse(b); });
+    if (offlineNote && offlineNote.owner === target.owner) return () => { live = false; };
+    const keys = recallReadingKeys(target.owner, liteVoice);
+    if (!keys) setOfflineNote({ owner: target.owner, unknown: true });
+    else deviceClipCache().status(keys).then((s) => { if (live) setOfflineNote({ owner: target.owner, ...s }); });
+    return () => { live = false; };
+    // offlineNote is read, not watched: a note for this lesson is kept as is.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, target, usesNasVoice, liteVoice]);
   if (!supported && !scrollTopBtn) return null;
 
   const start = async () => {
@@ -871,8 +921,11 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // registers no element (or one that isn't in the DOM).
   // "START AT": map the piece to list its paragraphs, and read nothing — no
   // run, no audio claim, the surface's paced view put back afterwards.
-  const listParagraphs = async (t) => {
-    if (!t) return;
+  // Map a registered piece the way a read does, without reading it: the
+  // surface renders the whole piece, it is mapped, and its paced view is put
+  // back (unless it is being read). Used by "Start at" and by the offline save.
+  const mapTarget = async (t) => {
+    if (!t) return null;
     let el = typeof document !== 'undefined'
       ? ((t.elementId ? document.getElementById(t.elementId) : null) || (t.owner ? document.getElementById(`learn-lesson-${t.owner}`) : null))
       : null;
@@ -883,10 +936,44 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     }
     if (el) { await revealAllForReading(el); await settled(el); }
     const follow = el ? buildFollowMap(el) : null;
+    if (t.prepare && !isReading) { try { t.prepare(false); } catch (_) { /* best-effort */ } }
+    return follow;
+  };
+  const listParagraphs = async (t) => {
+    if (!t) return;
+    const follow = await mapTarget(t);
     const labels = follow && follow.segments && follow.segments.length
       ? paragraphLabels(follow.segments, paragraphStarts(follow)) : [];
-    if (t.prepare && !isReading) { try { t.prepare(false); } catch (_) { /* best-effort */ } }
     setPickList({ owner: t.owner, labels });
+  };
+
+  // SAVE THIS LESSON FOR LISTENING OFFLINE (DR-0657; Darrell: "Can't we give
+  // everything it needs for quality without needing to reconnect with the
+  // nas?"). The text is the one a read speaks (the mapped element), so the
+  // pieces saved are exactly the pieces played.
+  const saveOffline = async () => {
+    const t = target;
+    if (!t || typeof saveForListening !== 'function') return;
+    const sig = { aborted: false };
+    saveSigRef.current = sig;
+    setOfflineNote({ owner: t.owner, saved: 0, total: 0, bytes: 0, running: true });
+    const follow = await mapTarget(t);
+    const text = follow && follow.text ? follow.text : t.text;
+    const res = await saveForListening(text, {
+      signal: sig,
+      onProgress: (p) => { if (saveSigRef.current === sig) setOfflineNote({ owner: t.owner, ...p, running: true }); },
+    });
+    if (res && res.keys) rememberReadingKeys(t.owner, res.voice, res.keys);
+    if (saveSigRef.current === sig) {
+      saveSigRef.current = null;
+      setOfflineNote({ owner: t.owner, saved: res.saved, total: res.total, bytes: res.bytes, failed: res.failed, running: false, cancelled: sig.aborted });
+    }
+  };
+  const cancelSave = () => { if (saveSigRef.current) { saveSigRef.current.aborted = true; } };
+  const pickCap = (mb) => {
+    const n = saveCapMb(mb);
+    setCapMbState(n);
+    deviceClipCache().evict().then((b) => setCacheUse(b));
   };
 
   const readTargetNow = async (t, { continuing = false, startFraction = null, startSentence = null } = {}) => {
@@ -1110,8 +1197,40 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // collapses it onto the nearest surviving ancestor. Collapsed means the
     // words are gone, so the page has to be opened again.
     const node = r && r.startContainer;
-    if (r && !r.collapsed && node && node.isConnected) { highlightSegment(r); followRange(r); return; }
+    if (r && !r.collapsed && node && node.isConnected) { lightSentence(r); followRange(r, { place: prefsRef.current.place }); return; }
     openReadingSource(followRef.current && followRef.current.owner, currentGlobalSegment());
+  };
+  // Is the text being read on THIS page? A range over words that left the
+  // page is collapsed (see above), so "Follow" has nothing to follow here and
+  // the button offers to open the text instead.
+  const textHere = (() => {
+    const r = isReading ? spokenRange() : null;
+    const node = r && r.startContainer;
+    return !!(r && !r.collapsed && node && node.isConnected);
+  })();
+  // FOLLOWING, SAID IN WORDS (Darrell 2026-09-24, from his phone: "text
+  // orange means follow!!!!!" — he had read the focus ring as a state). The
+  // mini-bar button and the panel's "Follow the voice" are ONE control: the
+  // same stored choice, the same word on both.
+  const following = followPrefs.follow && !userAway;
+  const setFollow = (on) => {
+    setFollowPref('follow', on);
+    if (on) showTheText();
+  };
+  const onFollowButton = () => {
+    if (!textHere) { showTheText(); return; }
+    setFollow(!following);
+  };
+  const setHighlight = (value) => {
+    setFollowPref('highlight', value);
+    if (value === 'off') { highlightSegment(null); highlightWord(null); return; }
+    const r = spokenRange();
+    if (r && !r.collapsed) highlightSegment(r);
+  };
+  const setPlace = (value) => {
+    setFollowPref('place', value);
+    const r = spokenRange();
+    if (r && !r.collapsed && following) followRange(r, { place: value });
   };
 
   // --- the floating reader ---------------------------------------------------
@@ -1173,6 +1292,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
       onDock={dock}
       title={(target && (target.title || target.label)) || 'Read Aloud'}
       sentences={floatSentences()}
+      place={followPrefs.place}
       placeholder={isReading ? 'Reading…' : 'Press play to start reading.'}
       pipSupported={pipSupported}
       onPip={openPip}
@@ -1197,12 +1317,15 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
         // state (a live badge + an honest label) so a closed panel still shows
         // the Word is playing and Stop is one tap away — including after the
         // user has left the app and come back (background playback).
+        // Only opacity and position ease (DR-0657): with transition-all the
+        // focus ring faded in over half a second, and a Fire TV remote's user
+        // landed on a button with no ring (measured 0 px, then 1 px).
         <button
           type="button"
           onClick={() => setIsOpen(true)}
           aria-label={notice ? `A message is waiting: ${notice} — open read-aloud controls` : isReading ? (isPaused ? 'Reading paused — open read-aloud controls' : 'Reading aloud — open read-aloud controls') : 'Open read-aloud controls'}
           title={notice ? notice : isReading ? 'Reading aloud — tap for pause, speed and stop' : 'Read aloud'}
-          className={`ts-chrome-region relative ${isReading ? 'bg-[#B85838]' : 'bg-[#1A1815]'} text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg hover:bg-[#B85838] flex items-center justify-center text-xl sm:text-2xl border-2 border-[#FAF8F4] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] transition-all duration-500 hover:opacity-100 focus:opacity-100 ${(revealFab || isReading) ? 'opacity-100 translate-y-0' : 'opacity-40 translate-y-2'}`}
+          className={`ts-chrome-region relative ${isReading ? 'bg-[#B85838]' : 'bg-[#1A1815]'} text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg hover:bg-[#B85838] flex items-center justify-center text-xl sm:text-2xl border-2 border-[#FAF8F4] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] transition-[opacity,transform] duration-500 hover:opacity-100 focus:opacity-100 ${(revealFab || isReading) ? 'opacity-100 translate-y-0' : 'opacity-40 translate-y-2'}`}
         >
           🔊
           {/* No play/pause badge here: while reading this button sits inside
@@ -1284,7 +1407,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
         </div>
       )}
       {scrollTopBtn}
-      {isReading && userAway && (
+      {isReading && userAway && followPrefs.follow && (
         <button type="button" onClick={showTheText} data-testid="reader-back-to-voice" className="ts-chrome-region bg-white text-[#1A1815] border-2 border-[#1A1815] rounded-full shadow-lg px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Back to the voice</button>
       )}
       {floatEl}
@@ -1300,8 +1423,12 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
            2.75em is the same 44px at Normal and follows the cap above it. The
            expanded panel's buttons had the same escape and the same fix. */
         <div
-          className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.5em] py-[0.375em] flex items-center gap-[0.375em]"
-          style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}
+          className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.5em] py-[0.375em] flex flex-wrap justify-end items-center gap-[0.375em]"
+          // KEPT ON THE SCREEN (DR-0657): at 412 px and A+++ the pill measured
+          // 462 px and ran 82 px off the left edge. It wraps inside the screen
+          // instead. A floating control's clamp to the viewport, not a
+          // surface width cap (the consistency guard's max-w rule).
+          style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))', maxWidth: 'calc(100vw - 2rem)' }}
           role="region"
           aria-label="Reading controls (minimized)"
         >
@@ -1552,6 +1679,69 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
             </div>
           </div>
 
+          {/* FOLLOW ALONG (DR-0657; Darrell: "Still need the reader to keep up
+              with the sentence when users want to... do we have all options?").
+              The listener's choices, kept on this device. "Follow the voice"
+              is the same choice as the mini-bar's Following button. */}
+          <div className="mb-[0.5em]" data-testid="reader-follow-options" role="group" aria-label="Follow along">
+            <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Follow along</div>
+            <button type="button" onClick={() => setFollow(!followPrefs.follow)} aria-pressed={followPrefs.follow} data-testid="reader-follow-toggle"
+              className={`w-full mb-[0.375em] px-[0.5em] py-[0.375em] min-h-[2.75em] text-[0.6875em] uppercase tracking-wider font-semibold border-2 text-left focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${followPrefs.follow ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>
+              Follow the voice: {followPrefs.follow ? 'On — the page keeps the sentence in view' : 'Off — the page stays where you put it'}
+            </button>
+            <div className="flex flex-wrap items-center gap-[0.25em] mb-[0.25em]" role="group" aria-label="Highlight">
+              <span className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mr-[0.25em]">Highlight</span>
+              {[['sentence', 'The sentence'], ['off', 'Off']].map(([v, label]) => (
+                <button key={v} type="button" onClick={() => setHighlight(v)} aria-pressed={followPrefs.highlight === v} data-testid={`reader-highlight-${v}`}
+                  className={`px-[0.5em] py-[0.375em] min-h-[2.25em] text-[0.625em] font-semibold border focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${followPrefs.highlight === v ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>{label}</button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-[0.25em]" role="group" aria-label="Where the sentence sits on the screen">
+              <span className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mr-[0.25em]">Sentence sits</span>
+              {[['top', 'Top of the screen'], ['centre', 'Centre']].map(([v, label]) => (
+                <button key={v} type="button" onClick={() => setPlace(v)} aria-pressed={followPrefs.place === v} data-testid={`reader-place-${v}`}
+                  className={`px-[0.5em] py-[0.375em] min-h-[2.25em] text-[0.625em] font-semibold border focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${followPrefs.place === v ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>{label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* ON THIS DEVICE (DR-0657; Darrell: "Can't we give everything it
+              needs for quality without needing to reconnect with the nas?").
+              Says plainly whether this lesson is kept here, and saves it. */}
+          {target && usesNasVoice && typeof saveForListening === 'function' && (() => {
+            const note = offlineNote && offlineNote.owner === target.owner ? offlineNote : null;
+            const whole = note && !note.unknown && note.total > 0 && note.saved === note.total;
+            const line = !note || note.unknown
+              ? 'Not saved on this device yet — it needs the NAS to play.'
+              : note.running
+                ? `Saving for listening offline: ${formatSaved(note)}`
+                : whole
+                  ? `The whole ${target.label.replace(/^this /, '')} is on this device (${formatSaved(note)}) — it plays without the NAS.`
+                  : `On this device: ${formatSaved(note)}${note.partialRead ? ' of the part being read' : ''} — the rest still needs the NAS.`;
+            return (
+              <div className="mb-[0.5em]" data-testid="reader-offline" role="group" aria-label="Kept on this device">
+                <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">On this device</div>
+                <p className="text-[0.625em] text-[#1A1815] mb-[0.375em]" data-testid="reader-offline-status" aria-live="polite" style={{ fontFamily: '"Fraunces", serif' }}>
+                  {line}{note && note.failed ? ` ${note.failed} piece${note.failed === 1 ? '' : 's'} could not be fetched; each is asked for again when it is reached.` : ''}
+                </p>
+                {note && note.running && !isReading ? (
+                  <button type="button" onClick={cancelSave} data-testid="reader-offline-cancel" className="px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.6875em] uppercase tracking-wider border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Stop saving</button>
+                ) : !whole && !(note && note.running) ? (
+                  <button type="button" onClick={saveOffline} data-testid="reader-offline-save" className="w-full px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.6875em] uppercase tracking-wider font-semibold border-2 border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
+                    Save {target.label} for listening offline
+                  </button>
+                ) : null}
+                <label className="flex flex-wrap items-center gap-[0.375em] mt-[0.375em] text-[0.5625em] text-[#5A5751]">
+                  <span>Keep up to</span>
+                  <select value={capMb} onChange={(e) => pickCap(Number(e.target.value))} data-testid="reader-offline-cap" aria-label="How much reading voice to keep on this device" className="min-h-[2.25em] border-2 border-[#E8E4DC] bg-white text-[#1A1815] px-[0.25em] focus:outline focus:outline-2 focus:outline-[#B85838]">
+                    {CAP_CHOICES_MB.map((mb) => <option key={mb} value={mb}>{mb >= 1000 ? `${mb / 1000} GB` : `${mb} MB`}</option>)}
+                  </select>
+                  <span>of reading voice{cacheUse != null ? ` · using ${Math.round(cacheUse / (1024 * 1024))} MB` : ''}. The oldest is cleared first.</span>
+                </label>
+              </div>
+            );
+          })()}
+
           {/* WHO IS LEARNING — the level, switchable from the reader (DR-0426).
               Same row the lesson shows at every stage; a pick mid-read keeps
               the place and resumes in the new words. */}
@@ -1649,8 +1839,18 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
            Icon-first so it fits at 320 px without reaching the Feedback
            button on the left or the Give button above. */
         <div data-testid="reader-mini-bar" role="group" aria-label="Now reading" className="ts-chrome-region flex items-center gap-[0.25rem] bg-white border-2 border-[#1A1815] rounded-full shadow-lg p-[0.125rem] pl-[0.25rem]">
-          <button type="button" onClick={showTheText} data-testid="reader-show-text" aria-label="Show the text being read" title="Show the text being read" className="h-10 min-w-10 px-2 rounded-full flex items-center justify-center gap-1 text-[#1A1815] text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
-            <UiIcon name="book" /><span className="hidden min-[360px]:inline">Text</span>
+          {/* FOLLOW, AS A WORD AND A FILL (DR-0657). Three states, each said:
+              "Following" (filled, pressed) — the page keeps the spoken
+              sentence in view; "Follow" (outlined) — the sentence is lit but
+              the page stays put, tap to follow again; "Text" — the words are
+              on another page, tap to open them. The orange ring is only the
+              focus ring (a remote's D-pad needs it), never the state. */}
+          <button type="button" onClick={onFollowButton} data-testid="reader-show-text" data-state={!textHere ? 'elsewhere' : following ? 'following' : 'not-following'}
+            aria-pressed={textHere ? following : undefined}
+            aria-label={!textHere ? 'Show the text being read' : following ? 'Following the voice — tap to stop the page moving' : 'Not following — tap to follow the voice'}
+            title={!textHere ? 'Show the text being read' : following ? 'Following the voice' : 'Follow the voice'}
+            className={`h-10 min-w-10 px-2 rounded-full flex items-center justify-center gap-1 text-xs uppercase tracking-wider font-semibold focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${textHere && following ? 'bg-[#1A1815] text-white hover:bg-[#B85838]' : 'text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}>
+            <UiIcon name="book" /><span className="hidden min-[360px]:inline">{!textHere ? 'Text' : following ? 'Following' : 'Follow'}</span>
           </button>
           {canJump && (
             <button type="button" onClick={() => jumpParagraph(-1)} data-testid="reader-mini-back" aria-label="Back a paragraph" title="Back a paragraph" className="h-10 w-10 rounded-full flex items-center justify-center text-[#1A1815] text-sm font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">↩¶</button>

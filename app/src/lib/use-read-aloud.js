@@ -24,6 +24,7 @@ import { buildStandInAssignments, resolveVoiceURIForId, standInPitch } from './v
 import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
 import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService, voiceErrorReason, speakTimeoutFor, mayAttemptStudio, isStudioRoadProblem, synthesizeLite, mayTryLiteVoice, markLiteVoiceMiss, isPlayRefusal, liteVoiceReasonText, LITE_FIRST_TIMEOUT_MS } from './voice-service.js';
 import { chunkForClips, createClipQueue } from './clip-queue.js';
+import { clipKey, createClipSource, deviceClipCache } from './clip-cache.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
 import { createBackgroundAudio, silentWavDataUri } from './background-audio.js';
@@ -80,6 +81,10 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // Which reading segment the NAS voice is speaking (-1 when it is not). The
   // pieces ARE the segments, so this is exact, never a guess from the clock.
   const [cloudPiece, setCloudPiece] = useState(-1);
+  // How much of the reading now playing is on the device (DR-0657):
+  // { saved, total, bytes, keys } while the fetch-ahead runs, else null.
+  const [offline, setOffline] = useState(null);
+  const aheadRef = useRef(null);
   // A NOTICE MAY CARRY A DOOR (2026-09-22). Most notices are just news. One of
   // them tells the reader to go and do something in another tab, and telling is
   // where it failed him — so a notice can hand over `{ href, label }` and the
@@ -266,6 +271,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const silenceAudio = useCallback(() => {
     heldLiteRef.current = '';
     if (queueRef.current) { queueRef.current.stop(); queueRef.current = null; }
+    if (aheadRef.current) { aheadRef.current.aborted = true; aheadRef.current = null; }
     setCloudPiece(-1);
     for (const el of [audioRef.current, liteAudioRef.current]) {
       if (!el) continue;
@@ -416,11 +422,25 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
         await new Promise((r) => setTimeout(r, 600 * (tries + 1)));
         got = await synthesizeLite({ text: toSpokenForm(t), voice, timeoutMs });
       }
+      // The source keeps the blob and makes its own URL for the player.
+      if (got.url) { try { URL.revokeObjectURL(got.url); } catch (_) { /* ignore */ } }
       return got;
     };
+    // EVERY PIECE FROM THE DEVICE FIRST (DR-0657; Darrell: "Can't we give
+    // everything it needs for quality without needing to reconnect with the
+    // nas?"). A piece played once is kept on the device (lib/clip-cache.js):
+    // a replay, a resume, a jump or a dropped connection plays from here.
+    const keys = chunks.map((c) => clipKey({ voice, text: toSpokenForm(c.text) }));
+    const source = createClipSource({
+      keys,
+      cache: deviceClipCache(),
+      fetchBlob: (i, timeoutMs) => speakPiece(chunks[i].text, timeoutMs),
+      makeUrl: (b) => URL.createObjectURL(b),
+    });
     // The first piece decides: if the NAS voice cannot answer it in time, the
     // device voice speaks instead and the road is not asked again for a while.
-    const first = await speakPiece(chunks[0].text, LITE_FIRST_TIMEOUT_MS);
+    // From the device if it is kept there, else from the NAS (and then kept).
+    const first = await source.clip(0, LITE_FIRST_TIMEOUT_MS);
     // The reason is KEPT (DR-0654): the notice names what the NAS voice said.
     if (first.error || !first.url) { liteMissRef.current = first.error || 'voice-lite-empty'; markLiteVoiceMiss(liteMissRef.current); return false; }
     liteMissRef.current = '';
@@ -431,9 +451,9 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       chunks,
       audio: a,
       rate: rateRef.current,
-      fetchClip: (t) => {
+      fetchClip: (t, i) => {
         if (!served) { served = true; return Promise.resolve(first); }
-        return speakPiece(t);
+        return source.clip(i);
       },
       revoke: (u) => { try { URL.revokeObjectURL(u); } catch (_) { /* ignore */ } },
       onProgress: (f) => setCloudProgress(f),
@@ -471,6 +491,16 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     setCloudPlaying(true); setCloudPaused(false); setCloudProgress(0);
     setAudioVoice('audio');
     const ok = await q.start();
+    // CACHE-AHEAD: with the first piece playing, the rest of the reading comes
+    // down three at a time (the NAS answers a piece in about a second), so the
+    // whole reading is on the device within a minute or two and the rest of it
+    // no longer needs the NAS. Stopped with the reading.
+    if (ok && queueRef.current === q) {
+      const signal = { aborted: false };
+      aheadRef.current = signal;
+      source.ahead({ concurrency: 3, signal, onProgress: (p) => { if (aheadRef.current === signal) setOffline({ ...p, keys, voice }); } })
+        .catch(() => { /* a piece not kept is fetched when it is reached */ });
+    }
     return ok || queueRef.current === null;
   }, [liteVoiceFor, setNotice]);
 
@@ -525,6 +555,43 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
+
+  // SAVE A READING FOR LISTENING OFFLINE (DR-0657). The same pieces, the same
+  // keys and the same NAS call the player uses, fetched ahead three at a time
+  // without playing anything. Resolves with { saved, total, bytes, failed }.
+  const liteKeysFor = useCallback((text) => {
+    const voice = liteVoiceFor();
+    const chunks = chunkForClips(String(text || '').trim());
+    return { voice, chunks, keys: chunks.map((c) => clipKey({ voice, text: toSpokenForm(c.text) })) };
+  }, [liteVoiceFor]);
+  const saveForListening = useCallback(async (text, { onProgress, signal } = {}) => {
+    const { voice, chunks, keys } = liteKeysFor(text);
+    if (!chunks.length) return { saved: 0, total: 0, bytes: 0, failed: 0 };
+    // The same family key a read asks for first (DR-0654): without it every
+    // piece is a 401.
+    try { if (!hasBridgeToken()) await provisionBridgeToken(supabase); } catch (_) { /* the pieces say why */ }
+    const source = createClipSource({
+      keys,
+      cache: deviceClipCache(),
+      fetchBlob: async (i) => {
+        let got = await synthesizeLite({ text: toSpokenForm(chunks[i].text), voice });
+        for (let tries = 0; got.error === 'voice-lite-503' && tries < 4; tries++) {
+          await new Promise((r) => setTimeout(r, 600 * (tries + 1)));
+          got = await synthesizeLite({ text: toSpokenForm(chunks[i].text), voice });
+        }
+        if (got.url) { try { URL.revokeObjectURL(got.url); } catch (_) { /* ignore */ } }
+        return got;
+      },
+      makeUrl: (b) => URL.createObjectURL(b),
+    });
+    const res = await source.ahead({ concurrency: 3, onProgress, signal });
+    return { ...res, keys, voice };
+  }, [liteKeysFor]);
+  /** How much of this reading is on the device: { saved, total, bytes }. */
+  const offlineStatus = useCallback(async (text) => {
+    const { keys } = liteKeysFor(text);
+    return deviceClipCache().status(keys);
+  }, [liteKeysFor]);
 
   const read = useCallback(async (text, { title } = {}) => {
     const clean = String(text || '').trim();
@@ -855,6 +922,12 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     cloudProgress,
     // The NAS voice's piece IS the reading segment (-1 when not playing one).
     cloudPiece,
+    // Kept on the device (DR-0657): the reading now playing, a save, a count.
+    offline, saveForListening, offlineStatus,
+    // The NAS voice reads for the System voice and a person's stand-in; a
+    // browser accent picked on purpose is the device's own voice.
+    usesNasVoice: isSystemVoiceId(voiceId) || isPersonVoiceId(voiceId),
+    liteVoice: liteVoiceFor(),
     voiceId, setVoiceId, catalog, currentItem, notice,
     standInWhy,
     audioVoice,

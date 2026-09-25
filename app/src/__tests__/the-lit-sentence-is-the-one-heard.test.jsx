@@ -40,6 +40,7 @@ vi.mock('../lib/voice-service.js', async (importOriginal) => {
 
 import { useReadAloud } from '../lib/use-read-aloud.js';
 import { _resetLiteVoiceForTests } from '../lib/voice-service.js';
+import { _setDeviceClipCacheForTests } from '../lib/clip-cache.js';
 import { CHAT_BRIDGE_TOKEN_KEY } from '../lib/nas-photos.js';
 import { segmentText } from '../lib/tts.js';
 import { toSpokenForm } from '../lib/speech-text.js';
@@ -58,6 +59,7 @@ beforeEach(() => {
   localStorage.clear();
   localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, 'fam-key');
   _resetLiteVoiceForTests();
+  _setDeviceClipCacheForTests(null); // nothing kept on the device from before
   road.texts = []; urlText.clear(); pendingText = []; el = null;
   globalThis.fetch = vi.fn(async (url, init) => {
     if (!String(url).includes('/voice-lite/')) return { ok: false, status: 404, headers: { get: () => null } };

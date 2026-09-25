@@ -44,6 +44,7 @@ vi.mock('../lib/voice-service.js', async (importOriginal) => {
 
 import { useReadAloud } from '../lib/use-read-aloud.js';
 import { _resetLiteVoiceForTests, mayTryLiteVoice, liteVoiceReasonText, liteRestFor } from '../lib/voice-service.js';
+import { _setDeviceClipCacheForTests } from '../lib/clip-cache.js';
 import { CHAT_BRIDGE_TOKEN_KEY } from '../lib/nas-photos.js';
 import { deviceVoiceForPin, newReadingPin } from '../lib/reading-voice-pin.js';
 
@@ -127,6 +128,9 @@ beforeEach(async () => {
   road.calls = []; road.answer = null;
   media.plays = []; media.strict = false; media.gesture = false; media.overlaps = 0;
   _resetLiteVoiceForTests();
+  // Each device starts with no voice kept on it (DR-0657): a clip a previous
+  // test kept would be played from the device and the NAS never asked.
+  _setDeviceClipCacheForTests(null);
   globalThis.fetch = vi.fn(voiceLiteFetch);
   URL.createObjectURL = () => `blob:clip-${Math.random().toString(36).slice(2, 8)}`;
   URL.revokeObjectURL = () => {};
