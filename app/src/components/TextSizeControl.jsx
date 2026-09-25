@@ -152,6 +152,39 @@ export default function TextSizeControl({ variant = 'header', className = '' }) 
 }
 
 
+// THE BRAND LOCKUP, ONE DEFINITION FOR BOTH PLACES IT RIDES (DR-0640). The
+// collapsed row carries it, and on a one-tab door the top row carries it too
+// (components/TopNavRow.jsx). Darrell 2026-09-24, asked whether the brand
+// should move to the top row or stay on the collapsed row: "Both places are
+// good... why not". One component, so the two places can never drift apart in
+// face, size or wrap rule. Fixed px (divided by --ts-chrome-scale), so it
+// never compounds with the text-size setting.
+export function BrandLockup({ name = '', tagline = '', nameTestId = 'collapsed-site-name', taglineTestId = 'collapsed-site-tagline', className = '' }) {
+  const n = String(name || '').trim();
+  const t = String(tagline || '').trim();
+  if (!n) return null;
+  return (
+    <span className={`brand-lockup min-w-0 flex flex-col leading-tight ${className}`}>
+      <span
+        data-testid={nameTestId}
+        className="text-[#1A1815] font-semibold break-words"
+        style={{ fontFamily: '"Fraunces", serif', fontSize: 'calc(15px / var(--ts-chrome-scale, 1))', letterSpacing: '-0.01em' }}
+      >
+        {n}
+      </span>
+      {t && (
+        <span
+          data-testid={taglineTestId}
+          className="uppercase text-[#B85838] font-semibold break-words"
+          style={{ fontSize: 'calc(9px / var(--ts-chrome-scale, 1))', letterSpacing: '0.2em' }}
+        >
+          {t}
+        </span>
+      )}
+    </span>
+  );
+}
+
 // =============================================================================
 // TextSizeEscapeHatch — the way OUT of big text survives the header hideaway
 // =============================================================================
@@ -195,16 +228,20 @@ export default function TextSizeControl({ variant = 'header', className = '' }) 
 // is sticky, measured: position:sticky at top 0), and the existing index.css
 // rules still take over at the sizes that trap harder — sticky at Larger, a
 // fixed bottom bar at Largest and Big Print. No new layout mechanism.
-export function TextSizeEscapeHatch({ collapsed, onShowHeader = null, siteName = '', siteTagline = '' }) {
+// `inline` (DR-0640): on a one-tab door the row is mounted INSIDE the top nav
+// row, between the back/forward pair and the header chevron, so the lone tab
+// row and this row become ONE row. It then drops its own top border and takes
+// the row's free width. At Largest and Big Print the index.css rule still
+// lifts it out to the fixed bottom bar, exactly as before. On a phone the
+// in-row order is set in index.css (.ts-hatch-inline), measured at 320 px.
+export function TextSizeEscapeHatch({ collapsed, onShowHeader = null, siteName = '', siteTagline = '', inline = false }) {
   // Read so the row re-renders on every step, and so the ts-hatch-h publisher
   // inside TextSizeControl re-measures when the position flips.
   useTextSize();
   // Only when the header is tucked away — at ANY size (see above).
   if (!collapsed) return null;
-  const name = String(siteName || '').trim();
-  const tagline = String(siteTagline || '').trim();
   return (
-    <div className="ts-chrome-region ts-escape-hatch bg-[#FAF8F4] border-t border-[#E8E4DC] px-3 py-1.5 flex items-center justify-end gap-2 flex-wrap">
+    <div data-testid="collapsed-row" className={`ts-chrome-region ts-escape-hatch bg-[#FAF8F4] ${inline ? 'ts-hatch-inline flex-1 min-w-0' : 'border-t border-[#E8E4DC]'} px-3 py-1.5 flex items-center justify-end gap-2 flex-wrap`}>
       {/* THE WAY BACK FROM THE HIDEAWAY, IN WORDS, ON THE LEFT (Darrell
           2026-09-23, Fold: "Lost the whole header?!!!!!!!!!!!" / "What
           happened to the features?!"). The only control that brought the
@@ -248,26 +285,7 @@ export function TextSizeEscapeHatch({ collapsed, onShowHeader = null, siteName =
           uppercase accent beneath. The name WRAPS rather than cuts off mid-word
           (the 2026-07-06 rule for the header name). Fixed px like the row's
           other words, so it never compounds with the text-size setting. */}
-      {name && (
-        <span className="min-w-0 flex flex-col leading-tight">
-          <span
-            data-testid="collapsed-site-name"
-            className="text-[#1A1815] font-semibold break-words"
-            style={{ fontFamily: '"Fraunces", serif', fontSize: 'calc(15px / var(--ts-chrome-scale, 1))', letterSpacing: '-0.01em' }}
-          >
-            {name}
-          </span>
-          {tagline && (
-            <span
-              data-testid="collapsed-site-tagline"
-              className="uppercase text-[#B85838] font-semibold break-words"
-              style={{ fontSize: 'calc(9px / var(--ts-chrome-scale, 1))', letterSpacing: '0.2em' }}
-            >
-              {tagline}
-            </span>
-          )}
-        </span>
-      )}
+      <BrandLockup name={siteName} tagline={siteTagline} />
       </div>
       {/* Plain words, not an icon: the reader who needs this is the reader who
           could not find it. Fixed px (like the control's own labels) so the
