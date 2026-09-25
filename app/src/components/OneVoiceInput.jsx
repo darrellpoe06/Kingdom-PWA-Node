@@ -23,6 +23,8 @@ import { useVoiceDictation, LONG_FORM_SESSION_CAP_MS, VOICE_SESSION_CAP_MS, capM
 import { readDraft, writeDraft, clearDraft } from '../lib/draft-autosave.js';
 import { relayThought } from '../lib/agent-inbox-sync.js';
 import VoiceLessonRecorder from './VoiceLessonRecorder.jsx';
+import LessonInbox from './LessonInbox.jsx';
+import { sendVoiceLesson, formatClock } from '../lib/lesson-voice.js';
 import LessonsForSituation from './LessonsForSituation.jsx';
 import ConversationRecorder from './ConversationRecorder.jsx';
 import { isMicCaptureSupported } from '../lib/workflow-scribe.js';
@@ -96,8 +98,15 @@ export function OneVoiceInput({
   // first and was a lid on the second. Opt in and the cap becomes three hours,
   // the same self-stop workflow-scribe already uses for a long capture.
   const [wholeThing, setWholeThing] = useState(false);
+  // SPOKEN WORDS NEVER MOVE THE ROUTE (2026-09-24, Darrell's Action Queue
+  // screenshot: a spoken conversation filed as an INCIDENT). Typed words may
+  // suggest a destination; dictated words only append. A conversation says
+  // "paint", "roof" or "fix" in passing, and under 400 characters the
+  // suggestion used to flip the chip to Work between one sentence and the
+  // next, so Save filed his words as a work order. Speech keeps the chip the
+  // person chose (or the surface's own default); a tap on a chip still wins.
   const mic = useVoiceDictation({
-    onTranscript: (t) => onText((latestText.current ? `${latestText.current} ${t}` : t).trim()),
+    onTranscript: (t) => setText((latestText.current ? `${latestText.current} ${t}` : t).trim()),
     capMs: wholeThing ? LONG_FORM_SESSION_CAP_MS : VOICE_SESSION_CAP_MS,
   });
 
@@ -110,8 +119,27 @@ export function OneVoiceInput({
   // keep that option.
   const canRecord = !!addNote && isMicCaptureSupported();
   const [recordRequest, setRecordRequest] = useState(0);
-  // Shown in the box while speaking: the words as they are heard.
-  const shownText = mic.listening && mic.interim ? `${text}${text ? ' ' : ''}${mic.interim}` : text;
+  // ONE SEND FOR A SPOKEN LESSON (DR-0636, Darrell 2026-09-24: "Can't push
+  // send because nothing populated in the text box... make sense?!!!"). The
+  // recorder records; the box always says what is happening; the box's own
+  // Send sends the recording (with any typed words). There is no second send.
+  const [lessonTake, setLessonTake] = useState(null);     // { blob, url, seconds, verdict }
+  const [lessonLive, setLessonLive] = useState({ recording: false, seconds: 0 });
+  const [lessonsSeen, setLessonsSeen] = useState(0);
+  const [sending, setSending] = useState(false);
+  const lessonRecording = route === 'lesson' && lessonLive.recording;
+  const takeReady = route === 'lesson' && !!(lessonTake && lessonTake.verdict && lessonTake.verdict.ok);
+  const onLessonTake = (take) => {
+    setLessonTake(take);
+    if (take && take.verdict && take.verdict.ok && !latestText.current.trim()) {
+      setText(spokenLessonLine(take.seconds));
+    }
+  };
+  // What the box shows: the words as they are heard while speaking, and a
+  // plain line while a lesson records, so it is never an empty box.
+  const shownText = lessonRecording
+    ? (text.trim() ? text : `Recording your lesson… ${formatClock(lessonLive.seconds)}`)
+    : (mic.listening && mic.interim ? `${text}${text ? ' ' : ''}${mic.interim}` : text);
 
   // YOUR PROMPTS (DR-0615): a prompt chosen in the history comes back into
   // this box through one window event; the person still chooses where it goes.
@@ -196,9 +224,30 @@ export function OneVoiceInput({
     return plan.confirmationKey ? c[plan.confirmationKey] : null;
   };
 
+  const sendSpokenLesson = async (t) => {
+    setSending(true);
+    const note = isSpokenLessonLine(t) ? '' : t;
+    const res = await sendVoiceLesson({ blob: lessonTake.blob, seconds: lessonTake.seconds, note, source: cfg.sourceTag, supabase, relay: relayThought });
+    setSending(false);
+    if (!res.ok) {
+      setConfirmation(`Not sent (${res.reason}). The recording and your words are still here; send again when signed in.`);
+      return;
+    }
+    setConfirmation('Sent. Whisper on our own machines writes the words; they appear under Your lessons.');
+    setLessonTake(null);
+    setLessonsSeen((n) => n + 1);
+    remember(t, 'lesson', false);
+    setText('');
+    setTouchedRoute(false);
+    setRoute(cfg.defaultRoute);
+    setRestoredDraft(false);
+    clearDraft(surface);
+  };
+
   const send = () => {
     const t = text.trim();
-    if (!t) return;
+    if (!t || sending || lessonRecording) return;
+    if (takeReady) { sendSpokenLesson(t); return; }
     const msg = dispatch(route, t, name.trim());
     if (msg) setConfirmation(msg);
     else if (route === 'lesson') setConfirmation(null); // its own line arrives with the relay's answer
@@ -227,7 +276,7 @@ export function OneVoiceInput({
   // FROM THE WORD FOR THIS (DR-0630): the words being written under the Lesson
   // chip, or — once sent — the words just sent as a lesson, so the lessons
   // stay on screen with the confirmation instead of vanishing with the text.
-  const lessonWords = route === 'lesson' && text.trim()
+  const lessonWords = route === 'lesson' && text.trim() && !isSpokenLessonLine(text) && !lessonRecording
     ? text
     : (!text.trim() && lastSent && lastSent.route === 'lesson' ? lastSent.text : '');
   const recentItems = recent ? (recent || []).slice(-3).reverse() : null;
@@ -241,9 +290,9 @@ export function OneVoiceInput({
       <textarea
         className="w-full p-3 border border-[#1A1815] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]"
         rows="2"
-        placeholder={placeholder}
+        placeholder={mic.listening ? 'Listening… your words appear here as you speak.' : placeholder}
         value={shownText}
-        readOnly={mic.listening && !!mic.interim}
+        readOnly={lessonRecording || (mic.listening && !!mic.interim)}
         onChange={e => onText(e.target.value)}
         data-testid="one-voice-text"
       />
@@ -258,6 +307,7 @@ export function OneVoiceInput({
             <button
               type="button"
               onClick={mic.toggle}
+              disabled={lessonRecording}
               aria-pressed={mic.listening}
               aria-label={mic.listening ? 'Stop voice input' : 'Start voice input — speak instead of typing'}
               className={`text-[0.6875rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-[#B85838] ${
@@ -341,7 +391,17 @@ export function OneVoiceInput({
       </div>
       {/* A SPOKEN LESSON (DR-0611): with the Lesson chip chosen, the lesson can
           be recorded and transcribed by Whisper on our own machines. */}
-      {route === 'lesson' && <VoiceLessonRecorder note={text} source={cfg.sourceTag} />}
+      {route === 'lesson' && (
+        <VoiceLessonRecorder
+          take={lessonTake}
+          onTake={onLessonTake}
+          onRecordingChange={setLessonLive}
+          onDiscard={() => { setLessonTake(null); if (isSpokenLessonLine(text)) setText(''); }}
+        />
+      )}
+      {/* THE SENDER SEES WHAT HAPPENED (DR-0636): every lesson they sent, its
+          state, and the words Whisper wrote. The Notes tab shows it below. */}
+      {route === 'lesson' && surface !== 'notes' && <LessonInbox refreshKey={lessonsSeen} />}
       {lessonWords && <LessonsForSituation words={lessonWords} />}
       {route === 'lesson' && cfg.lessonNotice && (
         /* SAID BEFORE THEY SEND (Darrell 2026-09-24): every time, above Send. */
@@ -354,7 +414,7 @@ export function OneVoiceInput({
         {showName && (
           <input className="flex-1 min-w-[140px] p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder={cfg.namePlaceholder || 'Your name (optional)'} value={name} onChange={e => setName(e.target.value)} />
         )}
-        <button type="button" onClick={send} disabled={!text.trim()} className="bg-[#1A1815] text-white px-5 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] min-h-[36px] disabled:opacity-30">{submitLabel}</button>
+        <button type="button" data-testid="one-voice-send" onClick={send} disabled={!text.trim() || sending || lessonRecording} className="bg-[#1A1815] text-white px-5 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] min-h-[44px] disabled:opacity-30 focus:outline focus:outline-2 focus:outline-[#B85838]">{sending ? 'Sending' : (takeReady ? 'Send the lesson' : submitLabel)}</button>
         <button
           type="button"
           data-testid="save-as-prompt"
@@ -397,6 +457,14 @@ ${lastSent.text}${lastSent.who ? `
       )}
     </section>
   );
+}
+
+// The line the box holds for a spoken lesson with no typed words (DR-0636).
+export function spokenLessonLine(seconds) {
+  return `Spoken lesson, ${formatClock(seconds)} (the words come back from Whisper)`;
+}
+export function isSpokenLessonLine(t) {
+  return /^Spoken lesson, \d+:\d\d \(the words come back from Whisper\)$/.test(String(t || '').trim());
 }
 
 export default OneVoiceInput;
