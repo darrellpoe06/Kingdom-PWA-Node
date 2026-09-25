@@ -556,8 +556,10 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
         : undefined);
     let uri = resolveSpeakURI(voiceId);
     let liveAssignments = assignments;
+    let deviceVoices = tts.voices || [];
     if (!(tts.voices || []).length && typeof window !== 'undefined' && window.speechSynthesis) {
       const fresh = await waitForVoices(window.speechSynthesis);
+      deviceVoices = fresh;
       if (fresh.length) {
         liveAssignments = buildStandInAssignments(fullCatalog, fresh);
         const overrides = loadPersonaVoiceMap();
@@ -604,6 +606,14 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
             : 'This device has no voice of its own — and the church’s own voice service has not answered yet. Once it is up, the lesson reads aloud HERE, on this screen, with no device voice needed.');
         return;
       }
+    }
+    // A PHONE VOICE PICKED ON PURPOSE IS NEVER SWAPPED IN SILENCE (2026-09-25).
+    // A pick made on another device (it follows the account) may not exist on
+    // this one; the engine then speaks its default. Say so, rather than let the
+    // listener think the pick was ignored.
+    if (!isSystemVoiceId(voiceId) && !isPersonVoiceId(voiceId) && deviceVoices.length
+      && !deviceVoices.some((v) => v && v.voiceURI === voiceId)) {
+      setNotice('The voice you picked is not on this device, so it is reading in the phone’s default voice. Pick again from the Voice list to change it.');
     }
     const cid = catalogIdOf(voiceId);
     const pitch = cid ? standInPitch(fullCatalog, liveAssignments, cid) : undefined;

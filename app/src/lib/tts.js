@@ -125,6 +125,16 @@ export function waitForVoices(synth, { timeoutMs = 1200, stepMs = 100 } = {}) {
 }
 
 /**
+ * The BCP-47 language an utterance must carry for a picked device voice to be
+ * honoured. Android reports some voices as "en_US"; the utterance wants
+ * "en-US". Returns '' when there is no voice or no language. Pure.
+ */
+export function utteranceLangFor(voice) {
+  const raw = voice && typeof voice.lang === 'string' ? voice.lang.trim() : '';
+  return raw ? raw.replace(/_/g, '-') : '';
+}
+
+/**
  * Split text into short, sentence-sized segments. Pure + unit-tested. Each
  * segment becomes its own utterance so (a) a rate change can restart the CURRENT
  * segment at the new speed, and (b) we avoid Chrome's long-utterance cutoff and
@@ -355,6 +365,15 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc } = {})
       u.rate = clampRate(this.rate);
       u.pitch = this.pitch;
       if (this.voice) u.voice = this.voice;
+      // THE LANGUAGE CARRIES THE PICK ON ANDROID (Darrell 2026-09-25: "I did
+      // it didn't work!!!!!"). Chrome on Android chooses the engine voice from
+      // the utterance's LANGUAGE, and `lang` was never set here, so the
+      // utterance inherited the page's English and every pick ("English United
+      // Kingdom", "English India"...) spoke in the one default voice. Setting
+      // both is what every engine honours; desktop engines already obeyed
+      // `voice` alone and are unchanged by this.
+      const lang = utteranceLangFor(this.voice);
+      if (lang) u.lang = lang;
       this._started = false;
       u.onstart = () => {
         if (gen !== this._gen) return;
