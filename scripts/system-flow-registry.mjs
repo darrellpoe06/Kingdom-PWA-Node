@@ -72,7 +72,8 @@ const NODES = [
   app('app/src/lib/feedback-receipt.js', {
     id: 'feedback-receipt', name: "Sender's receipt",
     purpose: 'The sender reads where their note stands — received, being worked on, fixed, or declined with the reason.',
-    reads: [{ res: 'db:feedback#triaged', file: 'app/src/components/FeedbackCenter.jsx', token: 'receiptStatus(f, myFeedback)' }],
+    // DR-0625: the sender's own notes, each with its outcome, read by IntakeOutcomeList.
+    reads: [{ res: 'db:feedback#triaged', file: 'app/src/components/IntakeOutcomeList.jsx', token: 'receiptStatus(n, board)' }],
     seeds: [],
   }),
   app('app/src/components/ConcernsBoard.jsx', {
@@ -183,6 +184,19 @@ const NODES = [
     ],
     seeds: ['ops-queue', 'sermon-reader'],
   }),
+  wf('intake-autofix.yml', {
+    id: 'intake-autofix', name: 'Intake autofix (sort, queue, hand out one fix)',
+    purpose: 'Sorts every live note into its category, queues the low-hanging ones, matches each fix to its pull request and hands out one at a time (DR-0625).',
+    reads: [
+      { res: 'db:feedback', file: 'scripts/intake-autofix-over-tailnet.sh', token: 'FROM public.feedback' },
+      { res: 'db:intake_fix_queue', file: 'scripts/intake-autofix-over-tailnet.sh', token: 'FROM public.intake_fix_queue' },
+    ],
+    writes: [
+      { res: 'db:feedback#triaged', file: 'scripts/intake-autofix.mjs', token: 'UPDATE public.feedback' },
+      { res: 'db:intake_fix_queue', file: 'scripts/intake-autofix.mjs', token: 'INSERT INTO public.intake_fix_queue' },
+    ],
+    seeds: ['feedback-receipt'],
+  }),
   wf('ops-queue-health.yml', {
     id: 'ops-queue-health', name: 'Ops-queue health witness',
     purpose: 'Proves from outside the NAS that the queue still drains.',
@@ -263,7 +277,7 @@ const NODES = [
   }),
   app('app/src/components/LessonInbox.jsx', {
     id: 'lesson-inbox', name: 'Your lessons (sent, heard, written down)',
-    purpose: 'The speaker sees each lesson they sent: received, transcribed, and the words Whisper wrote.',
+    purpose: 'The speaker sees each lesson they sent: received, transcribed, and the words Whisper wrote — shown under the Lesson recorder and on the Notes tab; "Put these words in the box" hands them back to send again (DR-0636).',
     reads: [
       { res: 'db:agent_inbox#lesson', file: 'app/src/lib/lesson-inbox.js', token: "from('agent_inbox')" },
       { res: 'db:agent_inbox#voice-transcript', file: 'app/src/lib/lesson-inbox.js', token: 'voice-transcript' },
@@ -271,7 +285,8 @@ const NODES = [
       { res: 'db:agent_inbox#lesson-review', file: 'app/src/lib/lesson-inbox.js', token: 'review_reason' },
       { res: 'db:agent_inbox#lesson-published', file: 'app/src/lib/lesson-inbox.js', token: 'publishedLessonOf' },
     ],
-    seeds: [],
+    writes: [{ res: 'event:use-prompt', file: 'app/src/components/LessonInbox.jsx', token: 'sendPromptToBox' }],
+    seeds: ['lesson-door'],
   }),
   app('app/src/components/MemberLessonQueue.jsx', {
     id: 'member-lesson-queue', name: 'Members\u2019 lessons to review (the Governor)',
@@ -295,9 +310,15 @@ const NODES = [
   app('app/src/components/OneVoiceInput.jsx', {
     id: 'one-voice', name: 'One Voice box',
     purpose: 'The one box every lesson and request is sent from; each one is kept.',
-    writes: [{ res: 'db:saved_prompts', file: 'app/src/lib/saved-prompts.js', token: "rpc('remember_prompt'" }],
+    writes: [
+      { res: 'db:saved_prompts', file: 'app/src/lib/saved-prompts.js', token: "rpc('remember_prompt'" },
+      // The PoeTech and Conference chips reach the steward's feedback queue (DR-0622).
+      { res: 'db:feedback', file: 'app/src/lib/poetech-request.js', token: 'uploadFeedback' },
+      { res: 'db:feedback', token: "currentView: 'Conference · One Voice'" },
+      { res: 'db:agent_inbox#poetech', file: 'app/src/lib/poetech-request.js', token: "'tell-poetech'" },
+    ],
     reads: [{ res: 'event:use-prompt', token: 'USE_PROMPT_EVENT' }],
-    seeds: ['prompt-history'],
+    seeds: ['prompt-history', 'feedback-queue'],
   }),
   app('app/src/components/PromptHistory.jsx', {
     id: 'prompt-history', name: 'Your prompts',
@@ -465,11 +486,11 @@ const NODES = [
     seeds: [],
   }),
   wf('transcript-backfill.yml', {
-    id: 'transcript-backfill', name: 'Transcript backfill (hosted, retired side)',
-    purpose: 'The CI caption harvest; it still writes the retired hosted database.',
+    id: 'transcript-backfill', name: 'Transcript backfill (runs the NAS trickle on demand)',
+    purpose: 'A hand dispatch runs the transcript-trickle rider on the NAS, under the trickle’s own stamp and budget (DR-0622: combined with its working twin); the runner lane runs only with residential proxy secrets.',
     reads: [{ res: 'yt:channel', file: 'infra/nas-sme-pipeline/transcript-backfill-ci.py', token: 'youtube' }],
-    writes: [{ res: 'hosted:db', token: 'SUPABASE_DB_URL' }],
-    seeds: ['content-sync'],
+    writes: [{ res: 'db:video_transcripts', token: 'transcript_trickle_install.sh' }, { res: 'hosted:db', token: 'SUPABASE_DB_URL' }],
+    seeds: ['content-sync', 'sermon-reader'],
   }),
   wf('sovereign-content-sync.yml', {
     id: 'content-sync', name: 'Sovereign content sync (retired → live)',
@@ -503,16 +524,16 @@ const NODES = [
   // 11. THE DELIVERY LANE — branch → PR → gates → merge → deploy → witness
   // ===========================================================================
   wf('auto-open-pr.yml', {
-    id: 'auto-open-pr', name: 'Auto-open PR', purpose: 'A pushed branch becomes a PR.',
+    id: 'auto-open-pr', name: 'Auto-open PR', runRule: 'any-success', purpose: 'A pushed branch becomes a PR.',
     reads: [{ res: 'gh:branch', token: 'push:' }], writes: [{ res: 'gh:pr', token: 'gh pr create' }], seeds: ['ci', 'auto-merge', 'pr-janitor'],
   }),
   wf('ci.yml', {
-    id: 'ci', name: 'CI — every gate', purpose: 'Lint, the full test suite, every guard (this graph’s included) and a real build.',
-    reads: [{ res: 'gh:pr', token: 'pull_request' }], writes: [{ res: 'gh:check', token: 'npx vitest run' }], seeds: ['auto-merge'],
+    id: 'ci', name: 'CI — every gate', runRule: 'any-success', purpose: 'Lint, the full test suite, every guard (this graph’s included) and a real build.',
+    reads: [{ res: 'gh:pr', token: 'pull_request' }, { res: 'gh:ci-dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'gh:check', token: 'npx vitest run' }], seeds: ['auto-merge'],
   }),
   wf('auto-merge.yml', {
-    id: 'auto-merge', name: 'Auto-merge on green', purpose: 'Merges the PR the moment its gates pass; dispatches the deploy.',
-    reads: [{ res: 'gh:pr', token: 'gh pr list' }, { res: 'gh:check', token: 'workflow_run' }],
+    id: 'auto-merge', name: 'Auto-merge on green', runRule: 'product:deploy-cloudflare-pages.yml', purpose: 'Merges the PR the moment its gates pass; dispatches the deploy.',
+    reads: [{ res: 'gh:pr', token: 'gh pr list' }, { res: 'gh:check', token: 'workflow_run' }, { res: 'gh:automerge-dispatch', token: 'workflow_dispatch' }],
     writes: [{ res: 'gh:main', token: 'gh pr merge' }, { res: 'gh:deploy-heal', token: 'gh workflow run deploy-cloudflare-pages.yml' }],
     seeds: ['deploy', 'db-migrate', 'deploy-freshness'],
   }),
@@ -552,6 +573,16 @@ const NODES = [
   wf('pr-janitor.yml', {
     id: 'pr-janitor', name: 'PR janitor', purpose: 'Closes PRs that carry nothing beyond main.',
     reads: [{ res: 'gh:pr', token: 'gh pr list' }], writes: [], seeds: [],
+  }),
+  wf('keep-prs-current.yml', {
+    id: 'keep-prs-current', name: 'Keep PRs current (DR-0644)',
+    purpose: 'Main is merged into every live agent PR; the two ledger files resolve themselves, anything else is named to its owner.',
+    reads: [{ res: 'gh:main', token: 'origin/main' }, { res: 'gh:pr', token: 'gh pr list' }],
+    writes: [
+      { res: 'gh:automerge-dispatch', token: 'gh workflow run auto-merge.yml' },
+      { res: 'gh:ci-dispatch', token: 'gh workflow run ci.yml' },
+    ],
+    seeds: ['ci', 'auto-merge'],
   }),
   wf('install-health.yml', {
     id: 'install-health', name: 'Install health witness', purpose: 'Proves the site installs as an app.',
@@ -621,7 +652,7 @@ const NODES = [
     writes: [], seeds: [],
   }),
   wf('nas-agent-arm.yml', {
-    id: 'nas-agent-arm', name: 'Arm the NAS agent', purpose: 'Places the agent’s database credential on the NAS.',
+    id: 'nas-agent-arm', name: 'Arm the NAS agent', purpose: 'Runs the agent consumer once from this checkout and proves it serves the database the app reads (DR-0622: it no longer carries a credential).',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'nas:agent-credential', token: 'agent' }], seeds: ['agent-consumer'],
   }),
   wf('nas-email-door.yml', {
@@ -695,12 +726,12 @@ const NODES = [
     reads: [{ res: 'web:primary-records', token: 'history-voices-witness.mjs' }], writes: [], seeds: [],
   }),
   wf('source-transcript.yml', {
-    id: 'source-transcript', name: 'Source transcript (runner)', purpose: 'Turns a video Darrell sends into text the capture session can read.',
-    reads: [{ res: 'yt:channel', token: 'youtube' }], writes: [{ res: 'file:source-transcripts', token: 'docs/99-session-notes/sources/' }], seeds: ['lesson-capture'],
+    id: 'source-transcript', name: 'Source transcript (runner, then the NAS)', purpose: 'Turns a video Darrell sends into text the capture session can read; when YouTube challenges the runner, the same run hands the link to the NAS route (DR-0622).',
+    reads: [{ res: 'yt:channel', token: 'youtube' }], writes: [{ res: 'file:source-transcripts', token: 'docs/99-session-notes/sources/' }, { res: 'gh:call:source-transcript-nas', token: 'uses: ./.github/workflows/source-transcript-nas.yml' }], seeds: ['lesson-capture', 'source-transcript-nas'],
   }),
   wf('source-transcript-nas.yml', {
     id: 'source-transcript-nas', name: 'Source transcript (NAS address)', purpose: 'The same, fetched from the NAS’s residential address YouTube does not block.',
-    reads: [{ res: 'yt:channel', token: 'youtube' }], writes: [{ res: 'file:source-transcripts', token: 'transcripts' }], seeds: ['lesson-capture'],
+    reads: [{ res: 'yt:channel', token: 'youtube' }, { res: 'gh:call:source-transcript-nas', token: 'workflow_call' }], writes: [{ res: 'file:source-transcripts', token: 'transcripts' }], seeds: ['lesson-capture'],
   }),
   wf('sovereign-read.yml', {
     id: 'sovereign-read', name: 'Ask the live database', purpose: 'A session reads the database the app reads — feedback, tables, and the lessons waiting.',
@@ -842,6 +873,8 @@ const RESOURCES = {
   'hosted:lesson-published': { label: 'a member\u2019s lesson marked published by the reader (DR-0639)' },
   'db:agent_inbox#lesson-published': { label: 'members\u2019 lessons published', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'lesson-published'", consumed: "tags ? 'messaged:published'" } },
   'db:direct_messages': { label: 'Messages', sink: 'The member reads the Message in their own Messages thread and may reply; a reply is an ordinary Message to Darrell (DR-0639).' },
+  'db:agent_inbox#poetech': { label: 'PoeTech requests relayed to the inbox', proof: { ts: 'created_at', fresh: 60, where: "tags ? 'tell-poetech'" },
+    open: { blocker: 'Nothing reads these rows (measured 2026-09-24: no code, NAS job or routine reads the tell-poetech tag). The same words now also reach the feedback queue; this relay retires once a PoeTech request is seen landing there on the live database, not before (never dismantle what may still deliver until its replacement is proven).', reReview: '2026-10-01' } },
   'hosted:lesson-mirror': { label: 'lessons carried to the cloud reader (DR-0614)' },
   'db:saved_prompts': { label: 'kept prompts', proof: { ts: 'last_used_at', fresh: 30, consumed: 'use_count > 1' } },
   'db:agent_tasks': { label: 'questions to the models', proof: { ts: 'created_at', fresh: 30, consumed: "status <> 'queued'" } },
@@ -864,6 +897,8 @@ const RESOURCES = {
   'mail:lesson': { label: 'forwarded “Lesson.” mail', source: 'Darrell forwards a lesson from his own mailbox.' },
   'yt:channel': { label: 'the church’s YouTube channel', source: 'The church publishes each service on its channel.' },
   'gh:branch': { label: 'a pushed branch', source: 'An agent session or a person pushes a branch.' },
+  'gh:ci-dispatch': { label: 'CI dispatched on a refreshed PR branch' },
+  'gh:automerge-dispatch': { label: 'the auto-merge sweep dispatched after PRs were refreshed' },
   'gh:dispatch': { label: 'a hand dispatch', source: 'A person or a session dispatches a remote-hands workflow on purpose.' },
   'gh:signal-pr': { label: 'the lesson signal PR (#1346)' },
   'gh:pr': { label: 'pull requests' },
@@ -926,6 +961,7 @@ const LOOPS = [
   { id: 'prompt-loop', name: 'Prompt sent → kept → put back in the box → sent again', path: ['one-voice', 'prompt-history'] },
   { id: 'monitor-loop', name: 'Every workflow’s run → the flow proof → the operations board', path: ['site-health', 'flow-proof', 'ops-board'],
     open: { blocker: 'The board’s escalations reach a steward, who fixes and ships; the next proof run shows the connection flowing again. That return passes through a person by design (the Governor decides), so this loop closes through the delivery lane, not a table.', reReview: '2026-10-24' } },
+  { id: 'spoken-lesson-loop', name: 'A spoken lesson → our own Whisper → its words back to the speaker → the box', path: ['lesson-door', 'lesson-voice', 'lesson-inbox'] },
   { id: 'scribe-loop', name: 'A recording → our own Whisper → its words back on the Scribe screen', path: ['scribe-surface', 'scribe'] },
   { id: 'lane-loop', name: 'Merge → deploy → site witness → heal → deploy', path: ['deploy', 'site-health'] },
 ];
@@ -942,7 +978,7 @@ const CHAINS = [
   { id: 'health', name: 'Site health → incidents → operations readout', nodes: ['site-health', 'level-witness', 'node-availability', 'harvest-health', 'ops-queue-health', 'ops-surface', 'ops-board'] },
   { id: 'decisions', name: 'Decision readouts, the flow proof and the operations board', nodes: ['decision-board', 'flow-proof', 'ops-board', 'flow-surface'] },
   { id: 'scribe', name: 'Scribe: recording → words → back to the person', nodes: ['scribe-surface', 'scribe', 'scribe-transcribe'] },
-  { id: 'lane', name: 'Delivery lane', nodes: ['auto-open-pr', 'ci', 'auto-merge', 'deploy', 'deploy-freshness', 'db-migrate', 'migrate-freshness', 'rls-isolation', 'schema-health', 'pr-janitor'] },
+  { id: 'lane', name: 'Delivery lane', nodes: ['auto-open-pr', 'ci', 'auto-merge', 'deploy', 'deploy-freshness', 'db-migrate', 'migrate-freshness', 'rls-isolation', 'schema-health', 'pr-janitor', 'keep-prs-current'] },
 ];
 
 export const SYSTEM_FLOW = { nodes: NODES, resources: RESOURCES, loops: LOOPS, chains: CHAINS };

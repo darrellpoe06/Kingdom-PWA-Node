@@ -48,3 +48,17 @@
 *.otf   binary
 *.mp3   binary
 *.mp4   binary
+
+# -----------------------------------------------------------------------------
+# The decisions ledger merges itself (DR-0644)
+# -----------------------------------------------------------------------------
+# Every PR appends an INDEX.md row and edits its one "**Next ID:**" line, so
+# nearly every merge of main into a PR conflicted there. The `dr-ledger` driver
+# unions the rows by DR id and folds the pointer. It is INERT until configured
+# (git falls back to its normal text merge — proven in
+# resolve-ledger-conflicts.test.js); keep-prs-current.yml configures it in CI.
+# To use it locally, once per clone:
+#   git config merge.dr-ledger.driver "node scripts/resolve-ledger-conflicts.mjs --driver %O %A %B"
+# Either way, `node scripts/resolve-ledger-conflicts.mjs` after a conflicted
+# `git merge` resolves INDEX.md + legibility-health.json and verifies both.
+docs/decisions/INDEX.md merge=dr-ledger

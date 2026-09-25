@@ -23,22 +23,39 @@
 // =============================================================================
 import { segmentText } from './tts.js';
 
+/** Where the reading is cut (tts.js segmentText breathes at about this length). */
+export const PIECE_CUT = 180;
+/** The hard ceiling on what the voice is handed at once; a cut can run a word long. */
+export const PIECE_MAX = 200;
+
 /**
- * Split a reading into pieces for synthesis: whole sentences, the first piece
- * short (fast start), the rest up to `max` characters.
+ * Split a reading into pieces for synthesis: ONE PIECE PER READING SEGMENT.
+ *
+ * WHY NOT BIGGER PIECES (Darrell 2026-09-24, on L191 in the NAS voice: "it
+ * reads however it loses the words and actually degrades into undetectable
+ * gibberish... after initially sounding like a man", and "its all down hill
+ * after the first like 15 - 30 seconds"). The first version glued segments
+ * back together into pieces of up to 600 characters. Piper splits its input
+ * only at . ! ?, so a run of semicolon clauses (L191's summary sentence is 866
+ * characters with no full stop) reached the model as ONE utterance, and a VITS
+ * voice drifts into mush on long utterances. The first piece was short and
+ * clean; every piece after it was ~570 characters. Measured on L191: 28
+ * pieces, 27 of them 406–599 characters.
+ *
+ * segmentText already cuts where a person breathes, at about PIECE_CUT
+ * characters (never past PIECE_MAX). Using its segments AS the pieces keeps every request short, and
+ * makes piece i the SAME sentence as highlight segment i, so the highlight
+ * follows the piece that is playing instead of a guess from the clock.
  * @returns {{text:string, len:number}[]}
  */
-export function chunkForClips(text, { firstMax = 220, max = 600 } = {}) {
-  const sentences = segmentText(String(text || ''), 180).filter((s) => s && s.trim());
-  const out = [];
-  let cur = '';
-  for (const s of sentences) {
-    const limit = out.length === 0 ? firstMax : max;
-    if (cur && (cur.length + 1 + s.length) > limit) { out.push(cur); cur = s; } else cur = cur ? `${cur} ${s}` : s;
-  }
-  if (cur) out.push(cur);
-  return out.map((t) => ({ text: t, len: t.length }));
+export function chunkForClips(text) {
+  return segmentText(String(text || ''), PIECE_CUT)
+    .filter((s) => s && s.trim())
+    .map((t) => ({ text: t, len: t.length }));
 }
+
+/** How many pieces ahead are fetched while one plays (the NAS takes 2 at once). */
+export const PREFETCH_AHEAD = 2;
 
 /** 0..1 through the whole reading, from the piece index and the piece's own fraction. */
 export function overallFraction(chunks, index, pieceFraction) {
@@ -101,7 +118,7 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
     }
     index = i;
     if (i > 0) release(i - 1);
-    want(i + 1); // prefetch while this one plays
+    for (let k = 1; k <= PREFETCH_AHEAD; k++) want(i + k); // prefetch while this one plays
     try { audio.src = got.url; } catch (_) { /* fake */ }
     applyRate();
     if (onPiece) onPiece(i);
@@ -124,7 +141,7 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
 
   return {
     /** Start from piece 0. Resolves true when the first piece is playing. */
-    start() { want(0); want(1); return playAt(0); },
+    start() { want(0); return playAt(0); },
     stop() {
       stopped = true;
       try { audio.pause(); } catch (_) { /* ignore */ }

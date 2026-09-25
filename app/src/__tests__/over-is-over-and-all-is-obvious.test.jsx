@@ -269,7 +269,9 @@ describe('the way back to ALL is not a little bitty button', () => {
     // Part one first, then the host clears the record — both, in that order.
     expect(flow).toMatch(/onClick=\{\(\) => \{ goTo\(0\); onStartOver\(\); \}\}/);
     const learn = src('ChurchLearn.jsx');
-    expect(learn).toMatch(/onAllUnits=\{focusModule \? \(\) => setFocusId\(null\) : null\}/);
+    // DR-0631: leaving by the end door also records the lesson finished, so
+    // Continue stops offering a lesson that was read to its end — then leaves.
+    expect(learn).toMatch(/onAllUnits=\{focusModule \? \(\) => \{ finishPlace\(\{ courseKey: course\.key, lessonId: m\.id \}\); setFocusId\(null\); \} : null\}/);
     expect(learn).toMatch(/onStartOver=\{\(\) => \{ savePlace\(\{ lessonId: m\.id, stage: 0, step: 0 \}\); \}\}/);
   });
 

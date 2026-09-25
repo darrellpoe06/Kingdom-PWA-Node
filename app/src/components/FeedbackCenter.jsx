@@ -14,7 +14,11 @@ import { Queue } from './Queue.jsx';
 import { queueFreshness, QUEUE_STALE_DAYS } from '../lib/queue-freshness.js';
 import { compressImageFile, isLikelyImageFile } from '../lib/image.js';
 import { filesFromClipboardEvent } from '../lib/paste-input.js';
-import { receiptMessage, receiptCode, receiptStatus, mineOnly } from '../lib/feedback-receipt.js';
+import { receiptMessage, receiptCode } from '../lib/feedback-receipt.js';
+import IntakeOutcomeList from './IntakeOutcomeList.jsx';
+import { fetchMyFeedback } from '../lib/feedback-sync.js';
+import { fetchDeliveryRecord } from '../lib/github-ops.js';
+import { categorizeIntake, basisLine, outcomeFor, INTAKE_CATEGORIES, CATEGORY_ORDER, categoryCounts } from '../lib/intake-outcome.js';
 import { extractRequirementsFromThoughts } from '../lib/requirements-intake.js';
 import { saveExtraction } from '../lib/use-discovery.js';
 // The library count derives from the registry itself (DR-0121 — the hand-typed
@@ -23,6 +27,9 @@ import { OPPORTUNITY_LIBRARY } from '../lib/opportunity-capacity.js';
 import UiIcon from './UiIcon.jsx';
 import { setFeedbackTriage, triageLabel } from '../lib/feedback-loop.js';
 import supabase from '../lib/supabase.js';
+
+// What a signed-out sender is told (DR-0629): the note is kept, where it is.
+const SIGNED_OUT_RECEIPT = 'You are signed out, so this note stayed on this device and no one has read it yet. Sign in and send it again so a steward sees it and you can follow its status under Your feedback.';
 
 // Round 12 — Feedback form refreshed to reflect every surface we've actually
 // shipped through MVP v1.5. Area dropdown now mirrors the live nav + the major
@@ -321,7 +328,22 @@ export const FEEDBACK_CATEGORIES = [
   { key: 'praise',       label: '✨ Praise',         accent: '#5A6E3D' },
 ];
 
-export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey = null, myFeedback = [] }) {
+// The sender's own notes, read live (lib/feedback-sync fetchMyFeedback) and
+// merged with this device's local copies not yet in the database, newest
+// first. The live read is what carries a steward's triage and a fix's outcome
+// back to the person (DR-0625); the local copy never changes after it is
+// written. The delivery record gives each on-board note its measured window.
+const OUTCOME_DEPS = {
+  fetchMine: fetchMyFeedback,
+  fetchDelivery: () => ((import.meta.env && import.meta.env.MODE === 'test') ? Promise.resolve({ ok: false, merges: [] }) : fetchDeliveryRecord()),
+};
+export function mergeMine(remote = [], local = []) {
+  const seen = new Set((remote || []).map((r) => r && r.id));
+  return [...(remote || []), ...(local || []).filter((l) => l && !seen.has(l.id))]
+    .sort((a, b) => String(b.createdAt || b.submittedAt || '').localeCompare(String(a.createdAt || a.submittedAt || '')));
+}
+
+export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey = null, myFeedback = [], outcomeDeps = OUTCOME_DEPS }) {
   const [rating, setRating] = useState('');
   // Pre-fill area from the currently-active view if it maps to an area key.
   // `initialAreaKey` wins: a surface that KNOWS what this note is about (the
@@ -364,6 +386,21 @@ export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey =
   // and the image silently vanished (Darrell 2026-07-07: "couldn't upload an
   // image last time I tried into the Feedback importer").
   const [readingImages, setReadingImages] = useState(false);
+  // DR-0625: the sender's notes with their outcomes, and the note a reply answers.
+  const [myRemote, setMyRemote] = useState([]);
+  const [delivery, setDelivery] = useState(null);
+  const [replyTo, setReplyTo] = useState(null);
+  const refreshMine = React.useCallback(() => {
+    Promise.resolve(outcomeDeps.fetchMine()).then((r) => { if (r && r.ok) setMyRemote(r.items); }, () => {});
+  }, [outcomeDeps]);
+  React.useEffect(() => {
+    refreshMine();
+    let live = true;
+    Promise.resolve(outcomeDeps.fetchDelivery()).then((d) => { if (live && d && d.ok) setDelivery({ merges: d.merges }); }, () => {});
+    return () => { live = false; };
+  }, [outcomeDeps, refreshMine]);
+  const myNotes = mergeMine(myRemote, myFeedback);
+  const outcomeDelivery = delivery ? { ...delivery, outcomes: myRemote.filter((n) => n.outcomeAt).map((n) => ({ submittedAt: n.submittedAt, outcomeAt: n.outcomeAt, category: n.intakeCategory })) } : null;
 
   const toggleCategory = (k) => setCategories(prev => prev.includes(k) ? prev.filter(c => c !== k) : [...prev, k]);
 
@@ -409,12 +446,22 @@ export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey =
       setFormError('Pick a rating, a category, jot a note, or attach an image — anything is helpful.');
       return;
     }
-    const saved = onSubmit({ rating, area, categories, whatsWorking, whatsNot, whatsMissing, screenshots });
+    const saved = onSubmit({ rating, area, categories, whatsWorking, whatsNot, whatsMissing, screenshots, ...(replyTo ? { replyTo: replyTo.id } : {}) });
+    setReplyTo(null);
+    setTimeout(refreshMine, 1500);
     // Hand the sender their reference instead of closing on them. If the host
     // did not give us back a stored row there is no honest code to show, so we
     // close as before rather than inventing one.
-    if (saved && saved.id) setReceipt(receiptMessage(saved.id));
-    else onClose();
+    if (saved && saved.id) {
+      setReceipt(receiptMessage(saved.id));
+      // SIGNED OUT, SAID PLAINLY (DR-0629: connected is not answered, for
+      // every audience). Signed out, the note is kept on this device only —
+      // no steward can read it — so the receipt says that instead of a status
+      // that will never move.
+      Promise.resolve(supabase && supabase.auth ? supabase.auth.getSession() : null).then((res) => {
+        if (!(res && res.data && res.data.session)) setReceipt((r) => (r ? { ...r, headline: 'Kept on this device only.', body: SIGNED_OUT_RECEIPT } : r));
+      }).catch(() => {});
+    } else onClose();
   };
 
   // The filtered list the picker actually renders, plus the count the hint
@@ -440,7 +487,6 @@ export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey =
   // issue, N people reported it, we're working on it" sentence Darrell
   // described giving people by hand, now said by the app itself.
   if (receipt) {
-    const mine = mineOnly(myFeedback);
     return (
       <div data-read-skip className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-6 print:hidden" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }} onClick={onClose}>
         <div className="bg-white border-2 border-[#1A1815] w-full max-h-[90vh] overflow-y-auto" style={{ maxWidth: '32rem' }} onClick={(e) => e.stopPropagation()}>
@@ -457,26 +503,7 @@ export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey =
 
             <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{receipt.body}</p>
 
-            {mine.length > 0 && (
-              <div>
-                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">Your feedback</div>
-                <ul className="divide-y divide-[#E8E4DC] border-t border-[#E8E4DC]">
-                  {mine.slice(0, 8).map((f) => {
-                    const st = receiptStatus(f, myFeedback);
-                    return (
-                      <li key={f.id} className="py-2">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] tabular-nums">{receiptCode(f.id)}</span>
-                          <span className={`text-[0.625rem] uppercase tracking-wider font-semibold ${st.key === 'fixed' ? 'text-[#5A6E3D]' : st.key === 'received' ? 'text-[#5A5751]' : 'text-[#B85838]'}`}>{st.label}</span>
-                        </div>
-                        <p className="text-xs text-[#5A5751] mt-0.5">{st.detail}</p>
-                        {st.reason && <p className="text-xs text-[#1A1815] mt-0.5" data-testid="receipt-reason">Reason: {st.reason}</p>}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            )}
+            <IntakeOutcomeList notes={myNotes} board={myFeedback} delivery={outcomeDelivery} onReply={(n) => { setReceipt(null); setReplyTo(n); }} />
 
             <div className="flex gap-2 pt-2 border-t border-[#E8E4DC]">
               <button type="button" onClick={() => { setReceipt(null); setRating(''); setCategories([]); setWhatsWorking(''); setWhatsNot(''); setWhatsMissing(''); setScreenshots([]); setFormError(''); }}
@@ -508,6 +535,20 @@ export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey =
             </div>
             <button type="button" onClick={onClose} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
           </div>
+          {replyTo && (
+            <div className="mb-3 border border-[#2A5A8E] bg-[#FAF8F4] p-3 text-sm text-[#1A1815]" role="status" data-testid="feedback-replying">
+              Replying to <span className="font-semibold tabular-nums">{receiptCode(replyTo.id)}</span>. A reply always goes to a person.
+              <button type="button" onClick={() => setReplyTo(null)} className="ml-2 min-h-[44px] px-2 text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Cancel reply</button>
+            </div>
+          )}
+          {myNotes.length > 0 && !replyTo && (
+            <details className="mb-3 border border-[#E8E4DC] p-3">
+              <summary className="cursor-pointer text-xs uppercase tracking-wider text-[#1A1815] font-semibold min-h-[44px] flex items-center">Your earlier feedback ({myNotes.length}): where each one stands</summary>
+              <div className="mt-2">
+                <IntakeOutcomeList notes={myNotes} board={myFeedback} delivery={outcomeDelivery} onReply={(n) => setReplyTo(n)} />
+              </div>
+            </details>
+          )}
           <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
             Anything you share helps. Skip any section — partial feedback is more useful than no feedback. When you send it you get a reference code to keep; we don&apos;t send email about feedback, so the status lives here in the app.
           </p>
@@ -638,17 +679,36 @@ function feedbackSummary(f, maxLen = 60) {
   return summary.length > maxLen ? summary.slice(0, maxLen - 3) + '...' : summary;
 }
 
-export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFeedback, triageDeps = null }) {
+// The steward's view of every intake (DR-0625): each note's category and the
+// basis it stands on, and the exact outcome the sender reads, so nobody writes
+// a reply by hand and every automatic answer can be checked.
+const PANEL_LEDGER = (typeof __DR_LEDGER__ !== 'undefined') ? __DR_LEDGER__ : { ok: false, items: [] };
+const INTAKE_FILTERS = [['people', 'All from people'], ...CATEGORY_ORDER.map((k) => [k, INTAKE_CATEGORIES[k].label])];
+
+export function categorizeBoard(feedback = [], ledger = PANEL_LEDGER) {
+  const history = feedback || [];
+  const byId = new Map();
+  for (const f of history) {
+    if (!f || !f.id) continue;
+    const cat = categorizeIntake(f, { ledger, history });
+    byId.set(f.id, { cat, out: outcomeFor(f, cat) });
+  }
+  return byId;
+}
+
+export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFeedback, triageDeps = null, ledger = PANEL_LEDGER }) {
   // THE LOOP CLOSES HERE (DR-0616): every move a steward makes is written to
   // the note's row, and the sender's receipt reads it. `triaged` shows the move
   // at once while the realtime refresh catches up.
   const [triaged, setTriaged] = React.useState({});
   const [triageSaid, setTriageSaid] = React.useState('');
-  const triage = async (f, status, askWhy = '') => {
+  const triage = async (f, status, askWhy = '', optional = false) => {
     let notes = '';
     if (askWhy) {
-      notes = window.prompt(askWhy) || '';
-      if (!notes.trim()) { setTriageSaid('Not changed: a reason is needed so the sender is told why.'); return; }
+      const said = window.prompt(askWhy);
+      if (said === null) { setTriageSaid('Not changed.'); return; }
+      notes = said || '';
+      if (!notes.trim() && !optional) { setTriageSaid('Not changed: a reason is needed so the sender is told why.'); return; }
     }
     const res = await setFeedbackTriage({ ...(triageDeps || { supabase }), id: f.id, status, notes });
     if (res.ok) {
@@ -659,8 +719,17 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
     }
   };
   const statusOf = (f) => triaged[f.id] || f.triageStatus || 'new';
+  const [intakeFilter, setIntakeFilter] = React.useState('people');
+  const board = React.useMemo(() => categorizeBoard(feedback, ledger), [feedback, ledger]);
   if (!feedback || feedback.length === 0) return null;
-  const sorted = [...feedback].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const counts = categoryCounts([...board.values()].map((b) => b.cat));
+  const people = feedback.length - counts.signal;
+  const inFilter = (f) => {
+    const c = board.get(f.id);
+    if (!c) return intakeFilter === 'people';
+    return intakeFilter === 'people' ? c.cat.category !== 'signal' : c.cat.category === intakeFilter;
+  };
+  const sorted = [...feedback].filter(inFilter).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   // Staleness made legible (DR-0120 / P30): a queue is WORKED, not stored.
   // When items have waited past the threshold, the queue says so at the top —
   // an unworked queue must never look fine.
@@ -740,6 +809,24 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
         </div>
       )}
       {triageSaid && <p role="status" className="text-xs text-[#5A6E3D] mb-2" style={{ fontFamily: '"Fraunces", serif' }} data-testid="feedback-triage-said">{triageSaid}</p>}
+      <div className="mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="intake-queue">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Every intake, categorized by rule</div>
+        <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          Each note is placed by the rules in lib/intake-outcome.js, and the sender reads the outcome without anyone writing it. Tap a category to see its notes and the basis for each.
+        </p>
+        <div className="flex flex-wrap gap-1.5 mt-2" role="group" aria-label="Show notes by category">
+          {INTAKE_FILTERS.map(([k, label]) => {
+            const n = k === 'people' ? people : counts[k];
+            const on = intakeFilter === k;
+            return (
+              <button key={k} type="button" aria-pressed={on} onClick={() => setIntakeFilter(k)} data-testid={`intake-filter-${k}`}
+                className={`min-h-[44px] px-3 text-xs uppercase tracking-wider border focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'bg-[#1A1815] text-[#FAF8F4] border-[#1A1815]' : 'bg-white text-[#1A1815] border-[#E8E4DC]'}`}>
+                {label} · {n}
+              </button>
+            );
+          })}
+        </div>
+      </div>
       <Queue
         title="Feedback Log · Promote queue"
         subtitle="Focused item is in full detail at top. Browse the rest below and click any card to bring it into focus."
@@ -754,6 +841,17 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
             <p className="text-[0.625rem] uppercase tracking-wider mb-1 text-[#2A5A8E] font-semibold" data-testid="feedback-triage-status">
               Status: {triageLabel(statusOf(f))}
             </p>
+            {board.get(f.id) && (() => {
+              const { cat, out } = board.get(f.id);
+              return (
+                <div className="mb-2 border-l-2 pl-2" style={{ borderColor: INTAKE_CATEGORIES[cat.category]?.accent || '#5A5751' }} data-testid="intake-basis">
+                  <p className="text-xs text-[#1A1815]"><span className="font-semibold">{INTAKE_CATEGORIES[cat.category]?.label}</span>: {INTAKE_CATEGORIES[cat.category]?.steward}</p>
+                  <p className="text-xs text-[#5A5751]">Basis: {basisLine(cat)}</p>
+                  <p className="text-xs text-[#5A5751]">The sender reads: <span className="text-[#1A1815]">{out.label}</span>{out.reason ? `, "${out.reason}"` : ''}{out.cite ? ` (${out.cite})` : ''}</p>
+                  {out.owner && <p className="text-xs text-[#5A5751]">Owner: {out.owner}</p>}
+                </div>
+              );
+            })()}
             <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
               <div className="text-[0.625rem] uppercase tracking-wider">
                 <span className="font-semibold text-[#B85838]">{f.area || 'Note'}</span>
@@ -818,6 +916,7 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
                 <div className="text-[0.625rem] uppercase tracking-wider">
                   <span className="font-semibold text-[#B85838]">{f.area || 'Note'}</span>
                   {f.rating && <span className="text-[#5A5751]"> · {f.rating}</span>}
+                  {board.get(f.id) && <span className="text-[#2A5A8E]"> · {INTAKE_CATEGORIES[board.get(f.id).cat.category]?.label}</span>}
                 </div>
                 <div className="text-sm truncate" style={{ fontFamily: '"Fraunces", serif' }}>
                   {feedbackSummary(f, 80)}
@@ -838,7 +937,7 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
           // shown on the sender's receipt; a decline or a question carries the
           // reason the sender reads.
           { label: 'Working on it', onClick: (f) => triage(f, 'in-progress'), color: '#2A5A8E' },
-          { label: 'Fixed', onClick: (f) => triage(f, 'fixed'), color: '#5A6E3D' },
+          { label: 'Fixed', onClick: (f) => triage(f, 'fixed', 'What changed? The sender reads this.', true), color: '#5A6E3D' },
           { label: 'Need more info', onClick: (f) => triage(f, 'needs-info', 'What do you need from the sender? They will read this.'), color: '#8B6F47' },
           { label: 'Decline', onClick: (f) => triage(f, 'declined', 'Why is this not changing? The sender will read this.'), color: '#5A5751' },
           { label: '× Delete', onClick: (f) => { if (confirm('Delete this feedback? It will be removed from the queue but any projects/incidents/changes you already created from it remain.')) deleteFeedback(f.id); }, secondary: true },

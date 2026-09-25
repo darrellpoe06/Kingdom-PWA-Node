@@ -203,8 +203,8 @@ describe('the live measurement is read-only, per-resource, and never blanks', ()
   });
   it('parses the psql output back into rows', () => {
     expect(parseOutput('db:feedback|12|2026-09-24T01:00:00Z|3|\ndb:x||||relation does not exist')).toEqual([
-      { resource: 'db:feedback', written: 12, newest_at: '2026-09-24T01:00:00Z', consumed: 3, error: null },
-      { resource: 'db:x', written: null, newest_at: null, consumed: null, error: 'relation does not exist' },
+      { resource: 'db:feedback', written: 12, newest_at: '2026-09-24T01:00:00Z', consumed: 3, error: null, note: null },
+      { resource: 'db:x', written: null, newest_at: null, consumed: null, error: 'relation does not exist', note: null },
     ]);
   });
   it('a schedule implies its freshness; no schedule runs when asked', () => {
@@ -342,15 +342,19 @@ describe('the surfaces', () => {
     const sb = fakeSb({ agent_inbox: rows });
     const r = await fetchMyLessons({ supabase: sb });
     expect(r.ok).toBe(true);
-    expect(sb.q.calls[0].filters).toEqual(expect.arrayContaining([['contains', 'tags', ['lesson']], ['eq', 'created_by', 'u1']]));
+    // tags is jsonb: the filter is JSON. An array went out as cs.{lesson}, not
+    // JSON, and the read failed on the live database every time (DR-0636).
+    expect(sb.q.calls[0].filters).toEqual(expect.arrayContaining([['contains', 'tags', '["lesson"]'], ['eq', 'created_by', 'u1']]));
     expect((await fetchMyLessons({ supabase: fakeSb({}, { uid: null }) })).reason).toBe('signed-out');
     const el = await mount(<LessonInbox deps={{ supabase: sb }} />);
     expect(el.textContent).toMatch(/Your lessons · 3/);
     expect(el.textContent).toMatch(/Waiting for Whisper to write it down/);
     expect(el.textContent).toMatch(/Written down by Whisper/);
-    const btn = [...el.querySelectorAll('button')].find((b) => /Read the words/.test(b.textContent));
-    await act(async () => { btn.click(); });
+    // The words are SHOWN, not hidden behind a tap (DR-0636: "never saw anything").
     expect(el.querySelector('[data-testid="lesson-words"]').textContent).toBe('The keys of hell and death.');
+    const btn = [...el.querySelectorAll('button')].find((b) => /Hide the words/.test(b.textContent));
+    await act(async () => { btn.click(); });
+    expect(el.querySelector('[data-testid="lesson-words"]')).toBeNull();
   });
 });
 
@@ -442,6 +446,42 @@ describe('what the first live proof run taught the measurement (run 36059041587)
     const off = runRow('push-outbox-drain.yml', pickRun([{ conclusion: 'skipped', updated_at: '2026-09-24T20:54:00Z' }]));
     expect(resourceVerdict({ run: { fresh: 2 } }, off, NOW).state).toBe('off');
   });
+  it('each workflow is judged by the runs that mean something for it (run 36062392420)', async () => {
+    const { pickByRule, runRuleFor, parseOutput: parse } = await import('../../../scripts/system-flow-proof.mjs');
+    const fail = { conclusion: 'failure', updated_at: 'a' };
+    const ok = { conclusion: 'success', updated_at: 'b' };
+    // a lane workflow: a red PR is the gate working — healthy if it succeeded recently
+    expect(pickByRule('any-success', [fail], [fail, { conclusion: 'action_required' }, ok]).conclusion).toBe('success');
+    // a scheduled witness: its runs on main decide
+    expect(pickByRule('main', [fail], [ok]).conclusion).toBe('failure');
+    // a hand-dispatched tool: its latest decisive run anywhere
+    expect(pickByRule('any', [fail], [ok, fail]).conclusion).toBe('success');
+    expect(runRuleFor({}, "on:\n  schedule:\n    - cron: '0 * * * *'")).toBe('main');
+    expect(runRuleFor({}, 'on: workflow_dispatch')).toBe('any');
+    // proven to catch (run 36077477281): a commented-out schedule is not a schedule
+    expect(runRuleFor({}, "on:\n  workflow_dispatch: {}\n  # schedule:\n  #   - cron: '0 * * * *'")).toBe('any');
+    const { cronFreshDays: fresh } = await import('../../../scripts/system-flow-graph.mjs');
+    expect(fresh("on:\n  # schedule:\n  #   - cron: '0 13 * * 1'")).toBe(null);
+    expect(fresh("on:\n  schedule:\n    - cron: '0 13 * * 1'")).toBe(8);
+    expect(runRuleFor({ runRule: 'any-success' }, '')).toBe('any-success');
+    // auto-merge is judged by its product: the deploy the lane's bot dispatched
+    // (its own runs end cancelled by design — 20 of 20 on 2026-09-24).
+    const { pickProductRun, productOf } = await import('../../../scripts/system-flow-proof.mjs');
+    const bot = { login: 'github-actions[bot]' };
+    expect(productOf(SYSTEM_FLOW.nodes.find((n) => n.id === 'auto-merge').runRule)).toBe('deploy-cloudflare-pages.yml');
+    expect(productOf('any-success')).toBe(null);
+    const deployOk = { conclusion: 'success', event: 'workflow_dispatch', actor: bot, updated_at: 'c' };
+    const deployBad = { conclusion: 'failure', event: 'workflow_dispatch', actor: bot, updated_at: 'd' };
+    const byHand = { conclusion: 'success', event: 'workflow_dispatch', actor: { login: 'darrellpoe06' }, updated_at: 'e' };
+    expect(pickProductRun([deployOk]).conclusion).toBe('success');
+    // proven to catch: the bot's latest deploy failed -> broken, even when a hand dispatch after it succeeded
+    expect(pickProductRun([byHand, deployBad, deployOk]).conclusion).toBe('failure');
+    // a deploy no bot dispatched never proves the lane
+    expect(pickProductRun([byHand])).toBe(null);
+    // the runner's summary carries the note, so a switched-off drain is never read as broken
+    const row = parse('gh:run:push-outbox-drain.yml|1|2026-09-24T20:54:01Z|||off https://x')[0];
+    expect(resourceVerdict({ run: { fresh: 2 } }, row, NOW).state).toBe('off');
+  });
   it('the migration ledger read is the live database’s own (_sovereign_replay), in the graph and in the app’s function', () => {
     const g = buildFlowGraph(SYSTEM_FLOW);
     const r = g.resources.find((x) => x.id === 'db:_sovereign_replay');
@@ -452,6 +492,21 @@ describe('what the first live proof run taught the measurement (run 36059041587)
     expect(fn).toMatch(/RETURNS jsonb/);
     expect(fn).toMatch(/i\.slug = 'poe-family'/);
     expect(read('.github', 'workflows', 'sovereign-drift.yml')).toMatch(/select fname from public\._sovereign_replay order by fname/);
+  });
+});
+
+describe('a Funnel mount strips its path: every NAS server answers the stripped spelling too', () => {
+  it('the MCP server answers POST / (mcp-health run 36062034869 measured 404 on the stripped call)', () => {
+    const src = read('infra', 'nas-mcp', 'mcp_server.py');
+    expect(src).toMatch(/@app\.post\("\/"\)\n@app\.post\("\/mcp"\)/);
+    expect(read('infra', 'nas-mcp', 'install.sh')).toMatch(/restarted \(unit or code changed/);
+  });
+  it('the Scribe server answers both spellings of every route it serves', () => {
+    const src = read('infra', 'nas-scribe', 'scribe_ingest_server.py');
+    for (const r of ['session', 'chunk', 'complete', 'sessions']) {
+      expect(src).toContain(`@app.${r === 'sessions' ? 'get' : 'post'}("/scribe/${r}")`);
+      expect(src).toContain(`@app.${r === 'sessions' ? 'get' : 'post'}("/${r}")`);
+    }
   });
 });
 
@@ -498,5 +553,30 @@ describe('the Scribe chain: reaches the NAS, and its words come back', () => {
     expect(src).toMatch(/createChunkUploader\(\{ endpoint: '\/scribe', token \}\)/);
     expect((src.match(/\.\.\.scribeAuth\(token\)/g) || []).length).toBe(2);
     expect(read('infra', 'nas-scribe', 'install.sh')).toMatch(/funnel --bg --set-path \/scribe http:\/\/127\.0\.0\.1:8791/);
+  });
+});
+
+describe('connected is not answered: the PoeTech and Conference doors reach a reader and come back', () => {
+  it('a PoeTech request is relayed AND filed in the steward’s feedback queue (tell-poetech rows had no reader)', async () => {
+    const { sendPoeTechRequest, POETECH_REQUEST_AREA } = await import('../lib/poetech-request.js');
+    const calls = [];
+    const res = await sendPoeTechRequest({
+      body: 'Show giving statements',
+      directiveId: 'ad-1',
+      relay: async (x) => { calls.push(['relay', x.tags]); return { ok: true }; },
+      upload: async (item, meta) => { calls.push(['upload', item.currentView, meta.activeTab]); return { uploaded: true }; },
+    });
+    expect(res).toEqual({ relayed: true, filed: true, reason: '' });
+    expect(calls).toEqual([['relay', ['tell-poetech', 'poetech-app']], ['upload', POETECH_REQUEST_AREA, 'poetech']]);
+    const out = await sendPoeTechRequest({ body: 'x', relay: async () => ({ ok: false, reason: 'signed-out' }), upload: async () => ({ skipped: 'signed-out' }) });
+    expect(out).toEqual({ relayed: false, filed: false, reason: 'signed-out' });
+    expect(read('app', 'src', 'poe-financial-mvp-v28.jsx')).toMatch(/sendPoeTechRequest\(\{/);
+  });
+  it('the Conference chip takes the Conference module’s own road, and a signed-out sender is told the truth', () => {
+    const src = read('app', 'src', 'components', 'OneVoiceInput.jsx');
+    expect(src).toMatch(/uploadFeedback\(\{ text: t, currentView: 'Conference · One Voice' \}, \{ activeTab: 'conference' \}\)/);
+    expect(src).toMatch(/cfg\.confirmations\.signedOut \|\| SIGNED_OUT_SAID/);
+    const surfaces = read('app', 'src', 'lib', 'one-voice-surfaces.js');
+    expect(surfaces).not.toMatch(/build inbox|build list/);
   });
 });

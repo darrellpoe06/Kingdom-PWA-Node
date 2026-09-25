@@ -125,6 +125,16 @@ export function waitForVoices(synth, { timeoutMs = 1200, stepMs = 100 } = {}) {
 }
 
 /**
+ * The BCP-47 language an utterance must carry for a picked device voice to be
+ * honoured. Android reports some voices as "en_US"; the utterance wants
+ * "en-US". Returns '' when there is no voice or no language. Pure.
+ */
+export function utteranceLangFor(voice) {
+  const raw = voice && typeof voice.lang === 'string' ? voice.lang.trim() : '';
+  return raw ? raw.replace(/_/g, '-') : '';
+}
+
+/**
  * Split text into short, sentence-sized segments. Pure + unit-tested. Each
  * segment becomes its own utterance so (a) a rate change can restart the CURRENT
  * segment at the new speed, and (b) we avoid Chrome's long-utterance cutoff and
@@ -355,6 +365,15 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc } = {})
       u.rate = clampRate(this.rate);
       u.pitch = this.pitch;
       if (this.voice) u.voice = this.voice;
+      // THE LANGUAGE CARRIES THE PICK ON ANDROID (Darrell 2026-09-25: "I did
+      // it didn't work!!!!!"). Chrome on Android chooses the engine voice from
+      // the utterance's LANGUAGE, and `lang` was never set here, so the
+      // utterance inherited the page's English and every pick ("English United
+      // Kingdom", "English India"...) spoke in the one default voice. Setting
+      // both is what every engine honours; desktop engines already obeyed
+      // `voice` alone and are unchanged by this.
+      const lang = utteranceLangFor(this.voice);
+      if (lang) u.lang = lang;
       this._started = false;
       u.onstart = () => {
         if (gen !== this._gen) return;
@@ -536,7 +555,17 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc } = {})
     },
 
     stop() {
-      try { this.synth.cancel(); } catch (_) { /* ignore */ }
+      // ONLY SILENCE WHAT THIS ENGINE IS SAYING (Darrell 2026-09-24: "Leaving
+      // a tab should not make the player stop playing... It is like a radio
+      // in the background"). speechSynthesis is ONE object for the whole page,
+      // and several surfaces hold their own engine (a lesson's quiz, the
+      // lesson teacher, a study). Each stops its engine when it unmounts — and
+      // this line used to cancel UNCONDITIONALLY, so leaving the Learn tab
+      // unmounted an idle quiz engine whose stop() silenced the reader's
+      // voice mid-sentence. An engine that is idle has nothing to cancel.
+      if (this.status !== 'idle') {
+        try { this.synth.cancel(); } catch (_) { /* ignore */ }
+      }
       this._gen += 1; // invalidate any pending callbacks
       this._finish();
     },
@@ -619,8 +648,18 @@ export function useTextToSpeech() {
 
   // Once voices exist, resolve the active voice: saved choice, else most natural.
   // Persist a first-run natural pick so the choice is stable across sessions.
+  //
+  // NEVER MID-READING (DR-0654, Darrell 2026-09-25: "the voices change on
+  // their own at times... female to male etc.. different female voices").
+  // Android fires voiceschanged more than once, and each refresh set the
+  // engine's voice back to the saved default. A reading is speaking in the
+  // voice speak() handed it (a man's stand-in, a pinned voice), and setVoice()
+  // restarts the current sentence, so every refresh restarted the sentence in
+  // a different voice. A reading keeps its voice; the default is resolved
+  // again only while nothing is being read.
   useEffect(() => {
     if (!supported || !engineRef.current || !voices.length) return;
+    if (engineRef.current.status !== 'idle') return;
     const chosen = pickDefaultVoice(voices, prefs.voiceURI);
     engineRef.current.setVoice(chosen);
     if (prefs.voiceURI == null && chosen) {

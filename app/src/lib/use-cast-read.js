@@ -104,7 +104,11 @@ export function useCastRead() {
     return () => {
       clearInterval(timer);
       try { synth.removeEventListener('voiceschanged', load); } catch (_) { /* ignore */ }
-      try { synth.cancel(); } catch (_) { /* ignore */ }
+      // Silence only what THIS cast is saying (DR-0633): speechSynthesis is
+      // one object for the page, and an unconditional cancel on unmount
+      // killed the app-wide reader when the Bible tab was left.
+      const p = playerRef.current;
+      if (p && p.isPlaying()) { try { p.stop(); } catch (_) { /* ignore */ } }
     };
   }, [supported]);
 

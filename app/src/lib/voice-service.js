@@ -382,18 +382,100 @@ export const LITE_FIRST_TIMEOUT_MS = 15000;   // the first, short piece on a NAS
 export const LITE_TIMEOUT_MS = 60000;         // later pieces are prefetched while one plays
 export const LITE_DOWN_MS = 2 * 60 * 1000;
 let liteDownUntil = 0;
+// The key the miss was paid with (DR-0654). A miss with NO key is a locked
+// door, not a dark road: the moment this device has a key it did not have
+// then (the reader signed in, the family key provisioned), the road is asked
+// again at once. Without this a Fire TV that signed in after a refused read
+// stayed silent for the rest of the two minutes.
+let liteDownKey = '';
 
 /** False for a short while after the audio voice failed, so it is not re-asked per paragraph. */
-export function mayTryLiteVoice(now = Date.now()) { return now >= liteDownUntil; }
-export function markLiteVoiceDown(now = Date.now()) { liteDownUntil = now + LITE_DOWN_MS; }
+export function mayTryLiteVoice(now = Date.now()) {
+  if (now >= liteDownUntil) return true;
+  return bridgeToken() !== liteDownKey;
+}
+export function markLiteVoiceDown(now = Date.now()) { liteDownUntil = now + LITE_DOWN_MS; liteDownKey = bridgeToken(); }
 /** Tests only. */
-export function _resetLiteVoiceForTests() { liteDownUntil = 0; }
+export function _resetLiteVoiceForTests() { liteDownUntil = 0; liteDownKey = ''; }
+
+// A MISS IS REMEMBERED FOR AS LONG AS ITS CAUSE LASTS, NOT A FLAT TWO MINUTES
+// (DR-0654, Darrell's Firestick and his phone the same evening). One slow
+// piece from a busy NAS used to rest the voice for two minutes, and every read
+// in that window went to the phone's Web Speech, which Android stops in the
+// background: "stopped working in the background" again. A busy NAS (503) or a
+// play the screen refused is not a dark road at all; a slow answer rests the
+// road briefly; a locked door or a missing route rests it longer (and a locked
+// door opens again the moment the device holds a new key, mayTryLiteVoice).
+export const LITE_REST_MS = Object.freeze({ timeout: 30 * 1000, road: 45 * 1000, locked: LITE_DOWN_MS });
+/** Is this a play the browser refused (a gesture matter), not a voice fault? Pure. */
+export function isPlayRefusal(reason) {
+  return /^(NotAllowedError|AbortError|play-refused)$/.test(String(reason || ''));
+}
+/** How long the NAS voice rests after a miss with this reason, in ms. Pure. */
+export function liteRestFor(reason) {
+  const r = String(reason || '');
+  if (!r || isPlayRefusal(r) || r === 'voice-lite-503' || r === 'empty-text') return 0;
+  if (r === 'voice-lite-timeout') return LITE_REST_MS.timeout;
+  if (/^voice-lite-(401|403|404|not-audio)$/.test(r)) return LITE_REST_MS.locked;
+  return LITE_REST_MS.road;
+}
+/** Remember a miss for as long as its cause lasts. */
+export function markLiteVoiceMiss(reason, now = Date.now()) {
+  const ms = liteRestFor(reason);
+  if (ms <= 0) return;
+  liteDownUntil = Math.max(liteDownUntil, now + ms);
+  liteDownKey = bridgeToken();
+}
+
+/**
+ * The NAS voice's own reason, in words a listener can act on (DR-0654). The
+ * notice used to name only the GPU studio, whatever the NAS voice had said, so
+ * a Firestick told "the church's voice service did not answer" had no way to
+ * know it was a key, a slow machine, or the screen refusing to play. Pure.
+ */
+export function liteVoiceReasonText(reason, { hasKey = true } = {}) {
+  const r = String(reason || '');
+  if (r === 'voice-lite-401' || r === 'voice-lite-403') {
+    return hasKey
+      ? 'the church’s reading voice did not accept this device’s key. Sign out and in again to fetch a fresh one'
+      : 'the church’s reading voice opens only to a signed-in family account. Sign in on this screen, then press play again';
+  }
+  if (r === 'voice-lite-timeout') return 'the church’s reading voice took longer than 15 seconds to answer. Press play once more';
+  if (r === 'voice-lite-503') return 'the church’s reading voice is busy reading for someone else. Press play again in a moment';
+  if (r === 'voice-lite-not-audio' || r === 'voice-lite-404') return 'the road to the church’s reading voice is not open on this site yet';
+  if (isPlayRefusal(r)) return 'this screen would not start the sound. Press play once more';
+  if (!r) return 'the church’s reading voice did not answer';
+  return `the church’s reading voice did not answer (${r.replace(/^voice-lite-/, '')})`;
+}
+
+// A piece is asked again before the reading gives up on it: a road that
+// dropped one request (a network blip, a 5xx from the Funnel, a busy NAS) is
+// not a road that is down. A locked door, a missing route or a slow answer is
+// not asked again here: asking again cannot open it, and a slow NAS asked
+// twice is twice as slow.
+export const LITE_RETRIES = 2;
+const LITE_RETRY_BASE_MS = 600;
+function liteTransient(err) {
+  const e = String(err || '');
+  if (!e || e === 'voice-lite-timeout' || e === 'empty-text' || e === 'no-fetch') return false;
+  if (/^voice-lite-(401|403|404|not-audio|empty)$/.test(e)) return false;
+  return true;
+}
 
 /**
  * One piece of a reading as a real audio clip from the NAS voice.
  * @returns {Promise<{url:string}|{error:string}>}
  */
-export async function synthesizeLite({ text, voice = 'male', timeoutMs = LITE_TIMEOUT_MS, fetchImpl, origin } = {}) {
+export async function synthesizeLite({ retries = LITE_RETRIES, retryDelayMs = LITE_RETRY_BASE_MS, ...opts } = {}) {
+  let out = await synthesizeLiteOnce(opts);
+  for (let n = 0; out.error && n < retries && liteTransient(out.error); n += 1) {
+    await new Promise((r) => setTimeout(r, retryDelayMs * (n + 1)));
+    out = await synthesizeLiteOnce(opts);
+  }
+  return out;
+}
+
+async function synthesizeLiteOnce({ text, voice = 'male', timeoutMs = LITE_TIMEOUT_MS, fetchImpl, origin } = {}) {
   const body = String(text || '').trim();
   if (!body) return { error: 'empty-text' };
   const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);

@@ -65,6 +65,15 @@ class TheRoad(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.mkdtemp()
 
+    def test_the_members_naming_choice_travels_to_the_transcript(self):
+        io = FakeIO([voice_row(1, ["lesson-name-ok", "lesson-name:Sister Mae"]), voice_row(2)])
+        lv.run_once(io, data_dir=self.dir)
+        named = [r for r in io.inserted if "of:row-1" in r["tags"]][0]
+        plain = [r for r in io.inserted if "of:row-2" in r["tags"]][0]
+        self.assertIn("lesson-name-ok", named["tags"])
+        self.assertIn("lesson-name:Sister Mae", named["tags"])
+        self.assertFalse(any(str(t).startswith("lesson-name") for t in plain["tags"]))
+
     def test_a_voice_row_becomes_a_transcript_row_and_the_cloud_copy_goes(self):
         io = FakeIO([voice_row(1)])
         r = lv.run_once(io, data_dir=self.dir)

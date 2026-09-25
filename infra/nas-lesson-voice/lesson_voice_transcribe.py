@@ -143,6 +143,19 @@ def note_id_of(tags):
     return ""
 
 
+def naming_tags_of(tags):
+    """The member's naming choice on a spoken lesson (DR-0639), carried to its
+    transcript row: the reader and the Governor's queue read the transcript, so
+    the choice made above the one Send must travel with the words. Absent means
+    anonymous, as before."""
+    out = []
+    for t in tags or []:
+        t = str(t)
+        if t in ("lesson-name-ok", "lesson-anonymous") or t.startswith("lesson-name:"):
+            out.append(t)
+    return out
+
+
 def transcript_text_path(audio_path):
     """Where a note's words wait for their owner: beside the audio, in the
     owner's own folder of the private bucket (0229's owner-folder policy), so
@@ -369,7 +382,7 @@ def run_once(io, data_dir=DATA, env=None, clock=time.monotonic):
                         "instance_id": row["instance_id"],
                         "created_by": row["created_by"],
                         "body": transcript_body(text, rung, model, secs),
-                        "tags": ["lesson", "voice-transcript", f"of:{rid}", rung_tag],
+                        "tags": ["lesson", "voice-transcript", f"of:{rid}", rung_tag] + naming_tags_of(row.get("tags")),
                         "source": "lesson-voice-transcribe",
                     })
                 io.add_tags(row, ["voice-transcribed"])
