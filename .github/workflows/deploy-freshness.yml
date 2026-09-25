@@ -158,6 +158,10 @@ jobs:
             echo "STALE: main $main_sha != last-deployed ${last_deployed:-<none>} — dispatching deploy."
             gh workflow run deploy-cloudflare-pages.yml --repo "$REPO" --ref main \
               || echo "::warning::could not dispatch deploy (it can be run manually)."
+            # A merge nobody deployed is also a merge nobody refreshed the
+            # other PRs for (DR-0644): the same dispatch auto-merge makes.
+            gh workflow run keep-prs-current.yml --repo "$REPO" --ref main \
+              || echo "::warning::could not dispatch keep-prs-current (its schedule is the fallback)."
             return 0
           }
           i=1
