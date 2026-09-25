@@ -14,7 +14,9 @@
 # `claude/*`, from this repository, NOT labeled `hold`, with a human commit in
 # the last IDLE_HOURS (the zombies pr-janitor documents are left alone):
 #   1. behind main? if not, skip (costs nothing, not counted against the budget)
-#   2. `git merge --no-commit origin/main` into the branch
+#   2. `git merge --no-commit origin/main` into the branch; NO conflict ->
+#      abort and leave it (main does not require up-to-date, and this token's
+#      push would make it wait for an approval; see below)
 #   3. scripts/resolve-ledger-conflicts.mjs (the copy on MAIN, never the
 #      branch's): resolves ONLY INDEX.md + legibility-health.json, refuses if
 #      anything else conflicts, then business-systems-guard + a zero-marker
@@ -144,10 +146,11 @@ jobs:
           RESOLVER="$RUNNER_TEMP/resolve-ledger-conflicts.mjs"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # The .gitattributes merge driver for INDEX.md (DR-0644). Where the
-          # branch's own .gitattributes predates it, the post-merge resolver
-          # below does the same work from the conflict stages.
-          git config merge.dr-ledger.driver "node $RESOLVER --driver %O %A %B"
+          # The dr-ledger merge driver is deliberately NOT configured here:
+          # this job must see the conflict GitHub sees (a plain text merge),
+          # because only a conflicted PR is touched (see "BEHIND IS NOT
+          # BLOCKED" below). The post-merge resolver does the same work from
+          # the conflict stages. The driver stays for local merges.
           echo "Push credential: $([ "$HAS_PUSH_TOKEN" = "true" ] && echo 'LANE_PUSH_TOKEN (push fires CI)' || echo 'GITHUB_TOKEN (CI is dispatched)')"
 
           deadline=$(( $(date +%s) + DEADLINE_MIN * 60 ))
@@ -216,6 +219,19 @@ jobs:
             git checkout -q -B keep-current "origin/$b"
             git merge --no-ff --no-commit origin/main > "$RUNNER_TEMP/merge.log" 2>&1
             conflicted=$(git diff --name-only --diff-filter=U | tr '\n' ' ')
+            # BEHIND IS NOT BLOCKED (measured 2026-09-25 from the ruleset,
+            # GET /rules/branches/main): strict_required_status_checks_policy
+            # is FALSE, so a PR that merges cleanly lands without being
+            # current. Only a CONFLICT stops it. And the ruleset sets
+            # require_extra_approval_for_unattributed_changes, so a push made
+            # by this token turns a mergeable PR into one waiting for an
+            # approval (#1809 was refreshed with no conflict and went from
+            # mergeable to "blocked"). So: no conflict, no push.
+            if [ -z "$conflicted" ]; then
+              git merge --abort
+              note "$n" "$b" "behind by $behind but merges cleanly (main does not require up-to-date); left alone"
+              continue
+            fi
             node "$RESOLVER" > "$RUNNER_TEMP/resolve.log" 2>&1; rc=$?
             cat "$RUNNER_TEMP/resolve.log"
             if [ "$rc" = "2" ]; then
@@ -264,6 +280,13 @@ jobs:
             else
               if timeout 30 gh workflow run ci.yml --repo "$REPO" --ref "$b"; then
                 note "$n" "$b" "updated to ${new_head:0:8} (behind by $behind; conflicts: ${conflicted:-none}); CI dispatched"
+                # MEASURED (#1814, 2026-09-25): refreshed, green on every
+                # required check, auto-merge armed, and still "blocked": the
+                # ruleset's require_extra_approval_for_unattributed_changes
+                # holds a PR whose head was pushed by this token. The owner's
+                # next push clears it (#1815 merged after exactly that), or
+                # one approval. LANE_PUSH_TOKEN removes the wait.
+                comment_once "$n" "unattributed:$new_head" "**keep-prs-current** resolved this PR's conflict with \`main\` (the ledger files only: $conflicted) and pushed \`${new_head:0:8}\`; CI is running on it. The \`main\` ruleset asks for an approval on changes pushed by the workflow token, so this PR merges after one approval, or after your next push to the branch (DR-0644)."
               else
                 note "$n" "$b" "updated to ${new_head:0:8} but the CI dispatch FAILED — push to the branch or dispatch ci.yml"
                 echo "::warning::could not dispatch CI for $b ($new_head)"
