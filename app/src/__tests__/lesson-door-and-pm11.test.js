@@ -72,7 +72,7 @@ describe('the Lesson door on the router (DR-0608)', () => {
   it('the Speak box relays it to the sovereign inbox tagged lesson and says failure on the surface (source pins)', () => {
     expect(SRC).toMatch(/import \{ relayThought \} from '\.\.\/lib\/agent-inbox-sync\.js'/);
     expect(SRC).toMatch(/case 'lesson':/);
-    expect(SRC).toMatch(/relayThought\(\{ body: t, tags: \['lesson'\], source: cfg\.sourceTag \}\)/);
+    expect(SRC).toMatch(/relayThought\(\{ body: t, tags: \['lesson', \.\.\.lessonNameTags\(nameOk, lessonName\)\], source: cfg\.sourceTag \}\)/); // DR-0639: the name choice rides the same insert
     expect(SRC).toMatch(/lessonFailed/);
     expect(SRC).toMatch(/lesson: true,/);
   });

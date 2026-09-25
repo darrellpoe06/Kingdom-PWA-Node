@@ -65,6 +65,15 @@ class TheRoad(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.mkdtemp()
 
+    def test_the_members_naming_choice_travels_to_the_transcript(self):
+        io = FakeIO([voice_row(1, ["lesson-name-ok", "lesson-name:Sister Mae"]), voice_row(2)])
+        lv.run_once(io, data_dir=self.dir)
+        named = [r for r in io.inserted if "of:row-1" in r["tags"]][0]
+        plain = [r for r in io.inserted if "of:row-2" in r["tags"]][0]
+        self.assertIn("lesson-name-ok", named["tags"])
+        self.assertIn("lesson-name:Sister Mae", named["tags"])
+        self.assertFalse(any(str(t).startswith("lesson-name") for t in plain["tags"]))
+
     def test_a_voice_row_becomes_a_transcript_row_and_the_cloud_copy_goes(self):
         io = FakeIO([voice_row(1)])
         r = lv.run_once(io, data_dir=self.dir)
@@ -291,6 +300,23 @@ class TheMirror(unittest.TestCase):
         rep = lv.sync_reviews_once(lambda: [{"id": "m1", "tags": ["lesson", "mirrored", "lesson-approved"]}], boom, lambda r, t: tagged.append(r["id"]))
         self.assertEqual(tagged, [])
         self.assertEqual(len(rep["failed"]), 1)
+
+    def test_a_published_lesson_is_carried_back_to_the_member(self):
+        # DR-0639: the reader tags the hosted copy; the live row gets the two
+        # publish tags, and the hosted copy is marked so it is carried once.
+        rows = [
+            {"id": "p1", "tags": ["lesson", "lesson-approved", "lesson-published", "lesson-id:ll193-x", "lesson-captured"]},
+            {"id": "p2", "tags": ["lesson", "lesson-approved"]},
+            {"id": "p3", "tags": ["lesson", "lesson-published", "lesson-id:ll194-y", "published-returned"]},
+        ]
+        self.assertEqual([r["id"] for r in lv.rows_to_return_published(rows)], ["p1"])
+        merged, tagged = [], []
+        rep = lv.return_published_once(lambda: rows, lambda rid, t: merged.append((rid, t)), lambda r, t: tagged.append((r["id"], t)))
+        self.assertEqual(rep["returned"], ["p1"])
+        self.assertEqual(merged, [("p1", ["lesson-published", "lesson-id:ll193-x"])])
+        self.assertEqual(tagged, [("p1", ["published-returned"])])
+        src = open(lv.__file__, encoding="utf-8").read()
+        self.assertIn('out["published"] = return_published_once(hosted.list_published_rows, live.merge_tags, hosted.add_tags)', src)
 
     def test_the_job_follows_the_database_the_app_reads(self):
         src = open(lv.__file__, encoding="utf-8").read()
