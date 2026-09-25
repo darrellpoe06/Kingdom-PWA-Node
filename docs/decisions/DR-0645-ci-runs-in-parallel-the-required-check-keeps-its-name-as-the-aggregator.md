@@ -21,7 +21,7 @@ Every PR waited on one job, `app — lint + vitest`, which ran every gate one af
 1. **The gates run as parallel legs.** No gate was removed; each one moved to a leg.
    - `guards` runs lint and every `node ../scripts/*-guard` step.
    - `vitest` is a matrix of **4 shards** (`npx vitest run --shard=i/4`). The shards are disjoint parts of the file list, and together they are the whole suite. `fail-fast: false`, so every failing test is reported.
-   - `probes` runs the python selftests, the table-a11y, GPU and surface-audit guards, the real build, the asset-size guard, the SW-navigation gate, the chrome-layout **selftest**, read-highlight and scripture inference.
+   - `probes` runs the python selftests, the table-a11y, GPU and surface-audit guards, the real build, the asset-size guard, the SW-navigation gate, the chrome-layout **selftest**, read-highlight, the microphone probe (DR-0636, which landed on main during this work and merged into this leg) and scripture inference.
    - `layout` runs its own build and the chrome-layout **sweep**.
 2. **The required check keeps its exact name.** The job `app`, named `app — lint + vitest`, is now the aggregator. It `needs: [guards, vitest, probes, layout]` and runs `if: always()`. It fails unless every leg's `result` is `success`.
    - Without `always()`, a failed leg would leave this job **skipped**, and a skipped required check counts as passing.
