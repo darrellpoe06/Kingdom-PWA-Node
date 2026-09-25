@@ -224,8 +224,12 @@ const NODES = [
       { res: 'hosted:lesson-mirror', file: 'docs/decisions/DR-0614-the-nas-jobs-follow-the-database-the-app-reads-and-lesson-rows-are-mirrored-to-where-the-reader-can-see-them.md', token: 'the lesson reader picks it up' },
       { res: 'file:source-transcripts', file: '.github/workflows/source-transcript.yml', token: 'docs/99-session-notes/sources/' },
     ],
-    writes: [{ res: 'code:lessons', file: 'app/src/lib/sovereign-ai-class.js', token: 'Gmail-lesson-intake Way' }],
-    seeds: ['learn'],
+    writes: [
+      { res: 'code:lessons', file: 'app/src/lib/sovereign-ai-class.js', token: 'Gmail-lesson-intake Way' },
+      // DR-0639: a member's lesson, once published, is tagged on the hosted copy.
+      { res: 'hosted:lesson-published', file: 'app/src/lib/lesson-review-messages.js', token: "PUBLISHED_TAG = 'lesson-published'" },
+    ],
+    seeds: ['learn', 'lesson-voice'],
   },
   app('app/src/lib/sovereign-ai-class.js', {
     id: 'learn', name: 'Learn (the classes)',
@@ -256,10 +260,12 @@ const NODES = [
       { res: 'db:agent_inbox#voice-transcript', token: 'rows_to_mirror' },
       // DR-0635: the Governor's decision on a member's lesson reaches the reader.
       { res: 'db:agent_inbox#lesson-review', token: 'list_reviewed_rows' },
+      { res: 'hosted:lesson-published', token: 'list_published_rows' },
     ],
     writes: [
       { res: 'db:agent_inbox#voice-transcript', token: '"voice-transcript"' },
       { res: 'hosted:lesson-mirror', token: 'insert_hosted' },
+      { res: 'db:agent_inbox#lesson-published', token: 'return_published_once' },
     ],
     seeds: ['lesson-capture', 'lesson-inbox'],
   }),
@@ -277,6 +283,7 @@ const NODES = [
       { res: 'db:agent_inbox#voice-transcript', file: 'app/src/lib/lesson-inbox.js', token: 'voice-transcript' },
       // DR-0635: approved (being written, name not used) or declined with the reason.
       { res: 'db:agent_inbox#lesson-review', file: 'app/src/lib/lesson-inbox.js', token: 'review_reason' },
+      { res: 'db:agent_inbox#lesson-published', file: 'app/src/lib/lesson-inbox.js', token: 'publishedLessonOf' },
     ],
     writes: [{ res: 'event:use-prompt', file: 'app/src/components/LessonInbox.jsx', token: 'sendPromptToBox' }],
     seeds: ['lesson-door'],
@@ -284,8 +291,16 @@ const NODES = [
   app('app/src/components/MemberLessonQueue.jsx', {
     id: 'member-lesson-queue', name: 'Members\u2019 lessons to review (the Governor)',
     purpose: 'A member\u2019s lesson is reviewed by the Governor \u2192 a lesson (approved; the reader writes it, name never used) or a reason (declined; the member reads it beside the lessons they were shown). DR-0635.',
-    reads: [{ res: 'db:agent_inbox#lesson', file: 'app/src/lib/member-lesson-review.js', token: "rpc('member_lesson_queue')" }],
-    writes: [{ res: 'db:agent_inbox#lesson-review', file: 'app/src/lib/member-lesson-review.js', token: "rpc('review_member_lesson'" }],
+    reads: [
+      { res: 'db:agent_inbox#lesson', file: 'app/src/lib/member-lesson-review.js', token: "rpc('member_lesson_queue')" },
+      // DR-0639: what is still owed a Message (published, or a decision not yet sent).
+      { res: 'db:agent_inbox#lesson-published', file: 'app/src/lib/member-lesson-review.js', token: "rpc('member_lesson_outbox')" },
+    ],
+    writes: [
+      { res: 'db:agent_inbox#lesson-review', file: 'app/src/lib/member-lesson-review.js', token: "rpc('review_member_lesson'" },
+      // DR-0639: the outcome, sent to the member as an encrypted Message from his client.
+      { res: 'db:direct_messages', file: 'app/src/lib/lesson-review-messages.js', token: 'deps.sendDirectMessage' },
+    ],
     seeds: ['lesson-voice', 'lesson-inbox'],
   }),
 
@@ -855,6 +870,9 @@ const RESOURCES = {
   'db:agent_inbox#voice': { label: 'spoken lessons waiting for Whisper', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice'", consumed: "tags ? 'voice-transcribed' OR tags ? 'voice-failed'" } },
   'db:agent_inbox#lesson-review': { label: 'members\u2019 lessons the Governor decided', proof: { ts: 'reviewed_at', fresh: 30, where: "tags ? 'lesson-approved' OR tags ? 'lesson-declined'", consumed: "tags ? 'review-mirrored'" } },
   'db:agent_inbox#voice-transcript': { label: 'spoken lessons written down', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice-transcript'", consumed: "tags ? 'mirrored'" } },
+  'hosted:lesson-published': { label: 'a member\u2019s lesson marked published by the reader (DR-0639)' },
+  'db:agent_inbox#lesson-published': { label: 'members\u2019 lessons published', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'lesson-published'", consumed: "tags ? 'messaged:published'" } },
+  'db:direct_messages': { label: 'Messages', sink: 'The member reads the Message in their own Messages thread and may reply; a reply is an ordinary Message to Darrell (DR-0639).' },
   'db:agent_inbox#poetech': { label: 'PoeTech requests relayed to the inbox', proof: { ts: 'created_at', fresh: 60, where: "tags ? 'tell-poetech'" },
     open: { blocker: 'Nothing reads these rows (measured 2026-09-24: no code, NAS job or routine reads the tell-poetech tag). The same words now also reach the feedback queue; this relay retires once a PoeTech request is seen landing there on the live database, not before (never dismantle what may still deliver until its replacement is proven).', reReview: '2026-10-01' } },
   'hosted:lesson-mirror': { label: 'lessons carried to the cloud reader (DR-0614)' },

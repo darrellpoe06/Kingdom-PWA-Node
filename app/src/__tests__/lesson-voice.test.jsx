@@ -98,6 +98,12 @@ describe('the send', () => {
     expect(sb.calls.upload[0].path.startsWith(`${UID}/`)).toBe(true);
     expect(relay.mock.calls[0][0].tags).toEqual(['lesson', 'voice', `audio:${UID}/20260924T153000Z-x1.webm`]);
   });
+  it('carries the member\u2019s naming choice on the spoken lesson (DR-0639)', async () => {
+    const sb = fakeSupabase();
+    const relay = vi.fn(async () => ({ ok: true, id: 'row-1' }));
+    await sendVoiceLesson({ blob: blob(), seconds: 40, supabase: sb, relay, nowMs: NOW, suffix: 'x1', extraTags: ['lesson-name-ok', 'lesson-name:Sister Mae'] });
+    expect(relay.mock.calls[0][0].tags).toEqual(['lesson', 'voice', `audio:${UID}/20260924T153000Z-x1.webm`, 'lesson-name-ok', 'lesson-name:Sister Mae']);
+  });
   it('signed out: nothing uploaded, nothing filed', async () => {
     const sb = fakeSupabase({ uid: null });
     const relay = vi.fn();
