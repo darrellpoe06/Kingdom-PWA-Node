@@ -519,8 +519,8 @@ export function exportCurriculumMarkdownFor(course, startISO = null) {
   if (meta.audience) lines.push(`**For:** ${meta.audience}`);
   if (meta.format) lines.push(`**Format:** ${meta.format}`);
   lines.push(unit.selfPaced
-    ? `**Length:** ${meta.weeks || rows.length} ${(meta.weeks || rows.length) === 1 ? (unit.noun || 'lesson') : (unit.nounPlural || 'lessons')} · self-paced · ~${minutes} min each`
-    : `**Length:** ${meta.weeks || rows.length} weekly sessions · ~${minutes} min each`);
+    ? `**Length:** ${rows.length || meta.weeks} ${(rows.length || meta.weeks) === 1 ? (unit.noun || 'lesson') : (unit.nounPlural || 'lessons')} · self-paced · ~${minutes} min each`
+    : `**Length:** ${rows.length || meta.weeks} weekly sessions · ~${minutes} min each`);
   lines.push('');
   lines.push('## Every session follows the same rhythm');
   lines.push('');
