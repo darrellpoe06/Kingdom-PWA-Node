@@ -20,6 +20,10 @@
 
 The INDEX.md conflict is structural: every PR appends a row and edits the single `**Next ID:** DR-NNNN.` line, so any two PRs conflict. `app/src/lib/legibility-health.json` is the second file of the same class: generated, and `legibility-guard.test.js` requires it byte-identical to a fresh scan. So each merge to main knocked every other PR out of date, a human or an agent resolved the same two files by hand, CI re-ran (~20 minutes), and another merge landed meanwhile. Hand resolution also went wrong once: a commit shipped with conflict markers inside INDEX.md.
 
+## Impact
+
+Unresolved, every merge to main costs every other open agent PR a hand resolution of the same two files and a fresh ~20-minute CI run, and the lane stalls exactly when it is busiest: the "we don't move when I'm not pushing" constraint DR-0103 removed, back through a different door. Hand resolution is also where the ledger gets damaged (a commit shipped conflict markers inside INDEX.md). The call obligates: a timer-driven job that pushes to other sessions' branches must refuse anything it does not own (only the two ledger files, never forced, never an idle PR, never a `hold`), and must say out loud what it left.
+
 ## The decision
 
 **1. The two ledger files resolve themselves.** `scripts/resolve-ledger-conflicts.mjs`, run in a tree mid-merge:
