@@ -216,5 +216,5 @@ export const LIVING_LESSONS_ADDED = {
   'll190-were-the-parables-real-the-one-who-made-the-ages-told-them': '2026-09-23', // commit 2a5a9bf9
   'll191-who-he-said-he-was-every-hearer-every-situation-and-the-keys-of-hell-and-of-death': '2026-09-24', // commit 0c8ebcbd
   'll192-two-hours-became-six-the-pattern-the-yea-the-inspection-and-the-faithful-man': '2026-09-24', // commit 806b6c63
-  'll193-how-yahweh-keeps-his-word-the-promise-the-test-and-the-open-record': '2026-09-24', // added with the lesson (DR-0643)
+  'll195-how-yahweh-keeps-his-word-the-promise-the-test-and-the-open-record': '2026-09-24', // added with the lesson (DR-0643)
 };

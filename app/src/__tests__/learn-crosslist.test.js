@@ -303,7 +303,7 @@ describe('a pointer, never a copy', () => {
     expect(courses).toHaveLength(49);
     // And to 718 on 2026-09-24 for Sovereign A.I. weeks 25 and 26 (DR-0619, DR-0620);
     // and to 720 the same day for weeks 27 and 28, from Darrell's spoken teachings (DR-0637, DR-0638);
-    // and to 721 the same day for L193 (How Yahweh Keeps His Word, DR-0643), a lesson
+    // and to 721 the same day for L195 (How Yahweh Keeps His Word, DR-0643), a lesson
     // into the existing Living Lessons course, so the course count holds at 49.
     expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(721);
     const depts = learnDepartments(courses);

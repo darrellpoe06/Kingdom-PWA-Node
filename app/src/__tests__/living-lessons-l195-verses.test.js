@@ -1,6 +1,6 @@
 // @vitest-environment node
 // =============================================================================
-// L193 — How Yahweh Keeps His Word — the Promise, the Test, and the Open Record
+// L195 — How Yahweh Keeps His Word — the Promise, the Test, and the Open Record
 // =============================================================================
 // Darrell, 2026-09-24, sent as "Lesson": the SUMMARY of a video debate
 // (0:00-29:35) on the textual preservation of the Quran compared with the
@@ -36,17 +36,17 @@ import { measureLesson, isInverted, breachesChildCeiling, NEW_LESSON_CHILD_CEILI
 import { measureDifferentiation, DIFF_CEILING } from '../../../scripts/band-differentiation.mjs';
 import { namesItsLesson } from '../../../scripts/title-in-narrative.mjs';
 
-const ID = 'll193-how-yahweh-keeps-his-word-the-promise-the-test-and-the-open-record';
+const ID = 'll195-how-yahweh-keeps-his-word-the-promise-the-test-and-the-open-record';
 const L = () => {
   const m = LIVING_LESSONS_MODULES.find((x) => x.id === ID);
-  expect(m, 'L193 must be in the series').toBeTruthy();
+  expect(m, 'L195 must be in the series').toBeTruthy();
   return m;
 };
 const ALL = () => quotedTexts(L()).map(([, t]) => t).join(' ');
 const PROSE = () => ALL().replace(/"[^"]*"/g, ' ');
 const BANDS_AND_LESSON = () => [L().lesson, ...FULL_BANDS.map((b) => L().levels[b])];
 
-describe('L193 is really in the series', () => {
+describe('L195 is really in the series', () => {
   it('carries all the fields and four authored bands', () => {
     const m = L();
     expect(m.title).toBe('How Yahweh Keeps His Word — the Promise, the Test, and the Open Record');
