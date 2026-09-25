@@ -8,7 +8,7 @@
 // capitalize on that somehow...".
 // Pinned here: the number is read from the lesson's own id (never its place);
 // "By number, first to last" is the default and puts L1 first; "Newest first"
-// puts L192 first; the pick is kept per course on the device; every lesson
+// puts L193 first; the pick is kept per course on the device; every lesson
 // carries a recorded day and a new lesson cannot join without one; the .md
 // export runs in number order under each lesson's own number. PROVEN-TO-CATCH:
 // the division order (the old default) fails the by-number check.
@@ -64,13 +64,13 @@ describe('the number is the lesson’s own, read from its id', () => {
 });
 
 describe('the orders', () => {
-  it('by number puts the lowest first; newest first puts L192 first', () => {
+  it('by number puts the lowest first; newest first puts L193 first', () => {
     const sched = buildLivingLessonsSchedule();
     const byNum = orderLessons(sched, 'number');
     expect(byNum[0].id.startsWith('ll1-')).toBe(true);
     expect(ascending(byNum)).toBe(true);
     const newest = orderLessons(sched, 'newest');
-    expect(newest[0].id.startsWith('ll192-')).toBe(true);
+    expect(newest[0].id.startsWith('ll193-')).toBe(true);
     expect(newest[newest.length - 1].id.startsWith('ll1-')).toBe(true);
     expect(sched.map((m) => m.id), 'the input is never reordered in place').toEqual(buildLivingLessonsSchedule().map((m) => m.id));
   });
@@ -146,12 +146,12 @@ describe('the pick is kept per course on this device', () => {
 });
 
 describe('the .md export (Darrell: "MD too") runs in number order under each lesson’s own number', () => {
-  it('prints Lesson 1 first, Lesson 192 last, each with its day', () => {
+  it('prints Lesson 1 first, Lesson 193 last, each with its day', () => {
     const md = exportLivingLessonsCurriculumMarkdown();
     const nums = [...md.matchAll(/^## Lesson (\d+) — /gm)].map((m) => Number(m[1]));
     expect(nums.length).toBe(LIVING_LESSONS_MODULES.length);
     expect(nums[0]).toBe(1);
-    expect(nums[nums.length - 1]).toBe(192);
+    expect(nums[nums.length - 1]).toBe(193);
     expect(nums.every((n, i) => i === 0 || n > nums[i - 1])).toBe(true);
     const l192 = LIVING_LESSONS_MODULES.find((m) => m.id.startsWith('ll192-'));
     expect(md).toContain(`## Lesson 192 — ${l192.title}\n*Added Sep 24, 2026*`);
@@ -210,19 +210,19 @@ describe('on the real Learn tree', () => {
     expect(nav().querySelector('details')).toBe(null);
   });
 
-  it('Newest first puts L192 on top, and the pick survives leaving and coming back (kept on the device)', () => {
+  it('Newest first puts L193 on top, and the pick survives leaving and coming back (kept on the device)', () => {
     mount();
     pick(/Living Lessons from the Word/);
     choose(container.querySelector('#learn-lesson-order'), 'newest');
-    expect(firstRow().getAttribute('data-lesson-id').startsWith('ll192-')).toBe(true);
-    expect(rowNums()[0]).toBe(192);
+    expect(firstRow().getAttribute('data-lesson-id').startsWith('ll193-')).toBe(true);
+    expect(rowNums()[0]).toBe(193);
     expect(rememberedLessonOrder('living-lessons')).toBe('newest');
     act(() => root.unmount());
     root = createRoot(container);
     mount();
     pick(/Living Lessons from the Word/);
     expect(container.querySelector('#learn-lesson-order').value).toBe('newest');
-    expect(rowNums()[0]).toBe(192);
+    expect(rowNums()[0]).toBe(193);
   });
 
   it('a short numbered course gets the same Order control, without the divisions view', () => {
