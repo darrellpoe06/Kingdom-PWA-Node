@@ -122,53 +122,84 @@ describe('the send', () => {
   });
 });
 
-describe('the recorder on the Speak box', () => {
-  const rec = (over = {}) => ({ supported: true, recording: false, seconds: 0, blob: null, url: '', error: '', start: vi.fn(), stop: vi.fn(), reset: vi.fn(), ...over });
+describe('the recorder on the Speak box (DR-0636: it records; the box sends)', () => {
+  const rec = (over = {}) => ({
+    micSupported: true, recording: false, seconds: 0, result: null, errorMessage: '',
+    silentSeconds: 0, heardSound: false, bytes: 0, level: 0,
+    start: vi.fn(async () => ({ ok: true })), stop: vi.fn(), ...over,
+  });
 
-  it('offers Record, then Stop while recording', async () => {
+  it('Record asks for a one-second timeslice, the level meter and the lesson constraints', async () => {
     const r1 = rec();
-    const { rerender } = render(<VoiceLessonRecorder recorder={r1} />);
+    render(<VoiceLessonRecorder recorder={r1} />);
     await click(byId('voice-lesson-record'));
-    expect(r1.start).toHaveBeenCalled();
-    const r2 = rec({ recording: true, seconds: 12 });
-    rerender(<VoiceLessonRecorder recorder={r2} />);
+    expect(r1.start.mock.calls[0][0]).toMatchObject({ kind: 'meeting', timesliceMs: 1000, measureLevel: true });
+    expect(r1.start.mock.calls[0][0].consent.allConsented).toBe(true);
+  });
+
+  it('while recording: Stop, the clock, a live level bar and the bytes captured', async () => {
+    const r2 = rec({ recording: true, seconds: 12, heardSound: true, bytes: 48 * 1024, level: 0.2 });
+    render(<VoiceLessonRecorder recorder={r2} />);
     expect(byId('voice-lesson-clock').textContent).toMatch(/0:12/);
+    expect(byId('voice-lesson-bytes').textContent).toMatch(/Hearing you\. 48 KB captured/);
+    expect(byId('voice-lesson-level').style.width).toBe('50%');
+    expect(byId('voice-lesson-silence')).toBeNull();
     await click(byId('voice-lesson-stop'));
     expect(r2.stop).toHaveBeenCalled();
   });
 
+  it('PROVEN-TO-CATCH ("Never recorded"): 3 s with no bytes is said, with the cause and Start again', () => {
+    render(<VoiceLessonRecorder recorder={rec({ recording: true, seconds: 3, bytes: 0 })} />);
+    expect(byId('voice-lesson-silence').textContent).toMatch(/isn't giving the app any sound — a phone call, another app, or the Speak button may be holding the microphone/);
+    expect(byId('voice-lesson-restart')).toBeTruthy();
+  });
+
+  it('PROVEN-TO-CATCH: 3 s of digital silence is said too; 2 s is not yet', () => {
+    const { rerender } = render(<VoiceLessonRecorder recorder={rec({ recording: true, seconds: 2, bytes: 4000, silentSeconds: 2 })} />);
+    expect(byId('voice-lesson-silence')).toBeNull();
+    rerender(<VoiceLessonRecorder recorder={rec({ recording: true, seconds: 3, bytes: 6000, silentSeconds: 3 })} />);
+    expect(byId('voice-lesson-silence').textContent).toMatch(/phone call may be using it/);
+  });
+
+  it('on stop the take goes to the box with its verdict; an empty take is never ready to send', async () => {
+    const onTake = vi.fn();
+    const r = rec();
+    const { rerender } = render(<VoiceLessonRecorder recorder={r} onTake={onTake} />);
+    await click(byId('voice-lesson-record'));
+    rerender(<VoiceLessonRecorder recorder={rec({ result: { blob: { size: 0 }, manifest: { seconds: 22 }, measured: true, heardSound: false } })} onTake={onTake} />);
+    const take = onTake.mock.calls.at(-1)[0];
+    expect(take.seconds).toBe(22);
+    expect(take.verdict.ok).toBe(false);
+    expect(take.verdict.reason).toMatch(/^Nothing was recorded — the phone gave the app no sound at all/);
+  });
+
+  it('a take with audio has playback; an empty one says "Nothing was recorded" and offers no playback', () => {
+    const { rerender } = render(<VoiceLessonRecorder recorder={rec()} take={{ blob: blob(), url: 'blob:x', seconds: 22, verdict: { ok: true } }} />);
+    expect(byId('voice-lesson-playback')).toBeTruthy();
+    expect(byId('voice-lesson-nothing')).toBeNull();
+    rerender(<VoiceLessonRecorder recorder={rec()} take={{ blob: { size: 0 }, url: '', seconds: 22, verdict: { ok: false, reason: 'Nothing was recorded — silence.' } }} />);
+    expect(byId('voice-lesson-playback')).toBeNull();
+    expect(byId('voice-lesson-nothing').textContent).toBe('Nothing was recorded — silence.');
+  });
+
+  it('there is no second send button inside the recorder', () => {
+    render(<VoiceLessonRecorder recorder={rec()} take={{ blob: blob(), url: 'blob:x', seconds: 22, verdict: { ok: true } }} />);
+    expect(byId('voice-lesson-send')).toBeNull();
+  });
+
   it('stops itself at the cap', () => {
-    const r = rec({ recording: true, seconds: MAX_LESSON_SECONDS });
+    const r = rec({ recording: true, seconds: MAX_LESSON_SECONDS, bytes: 1, heardSound: true });
     render(<VoiceLessonRecorder recorder={r} />);
     expect(r.stop).toHaveBeenCalled();
   });
 
-  it('sends with the typed words and says it was sent', async () => {
-    const r = rec({ blob: blob(), seconds: 40, url: 'blob:x' });
-    const send = vi.fn(async () => ({ ok: true }));
-    render(<VoiceLessonRecorder recorder={r} note="keys of hell and death" source="church-one-voice" send={send} deps={{ supabase: {}, relay: () => {} }} />);
-    await click(byId('voice-lesson-send'));
-    expect(byId('voice-lesson-status').textContent).toMatch(/Sent/);
-    expect(send.mock.calls[0][0]).toMatchObject({ seconds: 40, note: 'keys of hell and death', source: 'church-one-voice' });
-    expect(r.reset).toHaveBeenCalled();
-  });
-
-  it('a failed send says why and keeps the recording', async () => {
-    const r = rec({ blob: blob(), seconds: 40 });
-    const send = vi.fn(async () => ({ ok: false, reason: 'signed-out' }));
-    render(<VoiceLessonRecorder recorder={r} send={send} deps={{ supabase: {}, relay: () => {} }} />);
-    await click(byId('voice-lesson-send'));
-    expect(byId('voice-lesson-status').textContent).toMatch(/Not sent \(signed-out\)/);
-    expect(r.reset).not.toHaveBeenCalled();
-  });
-
   it('says so plainly where the browser cannot record', () => {
-    render(<VoiceLessonRecorder recorder={rec({ supported: false })} />);
+    render(<VoiceLessonRecorder recorder={rec({ micSupported: false })} />);
     expect(byId('voice-lesson-unsupported')).toBeTruthy();
   });
 
   it('appears on the Speak box only under the Lesson chip (source pin)', () => {
     const src = readFileSync(join(HERE, '..', 'components', 'OneVoiceInput.jsx'), 'utf8');
-    expect(src).toMatch(/\{route === 'lesson' && <VoiceLessonRecorder note=\{text\} source=\{cfg\.sourceTag\} \/>\}/);
+    expect(src).toMatch(/\{route === 'lesson' && \(\n\s*<VoiceLessonRecorder/);
   });
 });
