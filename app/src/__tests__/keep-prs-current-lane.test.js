@@ -142,40 +142,85 @@ function world(script) {
     },
   });
   const origin = (...a) => g(root, '--git-dir', join(root, 'origin.git'), ...a);
-  return { root, run, origin, log: () => readFileSync(join(root, 'gh.log'), 'utf8'), cleanup: () => rmSync(root, { recursive: true, force: true }) };
+  // main moves on by one unrelated commit (a new main SHA).
+  const advanceMain = () => {
+    g(seed, 'checkout', '-q', 'main');
+    w('app/src/pages/later.jsx', `${Date.now()};\n`);
+    g(seed, 'add', '-A'); g(seed, 'commit', '-qm', 'main moves');
+    g(root, '--git-dir', join(root, 'origin.git'), 'fetch', '-q', seed, 'main:main');
+    return g(seed, 'rev-parse', 'main').trim();
+  };
+  return { root, run, origin, advanceMain, log: () => readFileSync(join(root, 'gh.log'), 'utf8'), cleanup: () => rmSync(root, { recursive: true, force: true }) };
 }
 
 describe('keep-prs-current — the sweep script under `bash -e`, end to end', () => {
-  it('brings the ledger-only PR current, dispatches its CI, names the other PR\'s file once', () => {
+  it('WITHOUT LANE_PUSH_TOKEN: pushes nothing, dispatches nothing, asks the owner once per main commit', () => {
+    // Measured 2026-09-25: every token push flipped a PR to "approval
+    // required" (#1808, #1800, #1809, #1814, #1803, #1824).
     const w = world(sweepScript(KEEP));
     try {
+      const heads = () => ['one', 'two', 'three'].map((b) => w.origin('rev-parse', `claude/${b}`));
+      const before = heads();
+      const main1 = w.origin('rev-parse', 'main').trim();
       const r = w.run();
       expect(r.status, r.stdout + r.stderr).toBe(0);
-      expect(r.stdout).toMatch(/#1 claude\/one: updated to [0-9a-f]{8} .*CI dispatched/);
+      expect(heads()).toEqual(before); // not one branch moved
+      expect(w.log()).not.toContain('gh workflow run'); // no CI, no auto-merge dispatch
+      expect(r.stdout).toMatch(/#1 claude\/one: conflicts only in the ledger files .*owner asked to merge main/);
+      const c1 = w.log().split('\n').filter((l) => l.startsWith('gh pr comment 1 '));
+      expect(c1).toHaveLength(1);
+      expect(c1[0]).toContain('owner, merge main');
+      expect(c1[0]).toContain(main1.slice(0, 8));
       expect(r.stdout).toMatch(/#2 claude\/two: left alone: other files conflict \(app\/src\/pages\/a\.jsx/);
+      expect(r.stdout).toMatch(/#3 claude\/three: behind by \d+ but merges cleanly/);
+      expect(w.log()).not.toMatch(/gh pr comment 3 /); // clean: main does not require up-to-date
+      expect(r.stdout.match(/idle > 72h/g)).toHaveLength(26);
+      // Same main commit: no second comment on #1 or #2.
+      expect(w.run().status).toBe(0);
+      expect(w.log().match(/gh pr comment 1 /g)).toHaveLength(1);
+      expect(w.log().match(/gh pr comment 2 /g)).toHaveLength(1);
+      // main moves: #1 is told once more, naming the new commit.
+      const main2 = w.advanceMain();
+      expect(w.run().status).toBe(0);
+      const c1b = w.log().split('\n').filter((l) => l.startsWith('gh pr comment 1 '));
+      expect(c1b).toHaveLength(2);
+      expect(c1b[1]).toContain(main2.slice(0, 8));
+      expect(heads()).toEqual(before);
+    } finally { w.cleanup(); }
+  }, 90000);
+
+  it('WITH LANE_PUSH_TOKEN: pushes the resolved merge, lets the push start CI, dispatches only auto-merge', () => {
+    const w = world(sweepScript(KEEP));
+    try {
+      const threeBefore = w.origin('rev-parse', 'claude/three');
+      const r = w.run({ HAS_PUSH_TOKEN: 'true' });
+      expect(r.status, r.stdout + r.stderr).toBe(0);
+      expect(r.stdout).toMatch(/#1 claude\/one: updated to [0-9a-f]{8} .*CI starts from the push/);
       expect(w.origin('log', '-1', '--format=%s', 'claude/one')).toMatch(/^Merge main into claude\/one/);
       const index = w.origin('show', 'claude/one:docs/decisions/INDEX.md');
       expect(index).toContain('| [DR-0101](DR-0101-one.md) | one |\n| [DR-0102](DR-0102-main.md) | main |');
       expect(index).toContain('**Next ID:** DR-0103.');
-      expect(w.log()).toContain('gh workflow run ci.yml --repo o/r --ref claude/one');
-      expect(w.log()).toContain('gh pr comment 2');
+      expect(w.log()).not.toContain('gh workflow run ci.yml'); // the attributed push starts CI
       expect(w.log()).toContain('gh workflow run auto-merge.yml');
-      // The refreshed PR is told it now waits on one approval or its owner's
-      // next push (the ruleset's unattributed-changes rule, measured on #1814).
-      expect(w.log().match(/gh pr comment 1 /g)).toHaveLength(1);
-      // Behind but clean: NOT pushed (main does not require up-to-date, and a
-      // token push would make it wait for an approval — #1809).
-      const threeBefore = w.origin('rev-parse', 'claude/three');
-      expect(r.stdout).toMatch(/#3 claude\/three: behind by \d+ but merges cleanly/);
-      expect(w.log()).not.toContain('--ref claude/three');
-      expect(w.origin('rev-parse', 'claude/three')).toBe(threeBefore);
-      // The 26 idle PRs are skipped, and cost no budget (both live PRs still attempted).
-      expect(r.stdout.match(/idle > 72h/g)).toHaveLength(26);
-      // A second fire finds #1 current and does not comment on #2 again.
-      const again = w.run();
-      expect(again.status).toBe(0);
+      expect(w.log()).not.toMatch(/gh pr comment 1 /);
+      expect(r.stdout).toMatch(/#2 claude\/two: left alone: other files conflict/);
+      expect(w.origin('rev-parse', 'claude/three')).toBe(threeBefore); // clean: untouched
+      const again = w.run({ HAS_PUSH_TOKEN: 'true' });
       expect(again.stdout).toMatch(/#1 claude\/one: current/);
-      expect(w.log().match(/gh pr comment 2/g)).toHaveLength(1);
+      expect(w.log().match(/gh pr comment 2 /g)).toHaveLength(1);
+    } finally { w.cleanup(); }
+  }, 60000);
+
+  it('CATCHES the churn: the push-without-token script moves the branch the owner then has to fight', () => {
+    // Remove the no-token guard and the same world shows the defect: the
+    // owner's branch is moved by the workflow token.
+    const shipped = sweepScript(KEEP).replace(/if \[ "\$HAS_PUSH_TOKEN" != "true" \]; then(\n\s*main_sha=)/, 'if false; then$1');
+    expect(shipped).not.toBe(sweepScript(KEEP)); // the substitution took
+    const w = world(shipped);
+    try {
+      const before = w.origin('rev-parse', 'claude/one');
+      expect(w.run().status).toBe(0);
+      expect(w.origin('rev-parse', 'claude/one')).not.toBe(before);
     } finally { w.cleanup(); }
   }, 60000);
 
@@ -183,7 +228,7 @@ describe('keep-prs-current — the sweep script under `bash -e`, end to end', ()
     const w = world(sweepScript(KEEP));
     try {
       writeFileSync(join(w.root, 'prs.txt'), '3 claude/three\n1 claude/one\n');
-      const r = w.run({ MAX_PRS: '1' });
+      const r = w.run({ MAX_PRS: '1', HAS_PUSH_TOKEN: 'true' });
       expect(r.status, r.stdout + r.stderr).toBe(0);
       expect(r.stdout).toMatch(/#3 claude\/three: behind by \d+ but merges cleanly/);
       expect(r.stdout).toMatch(/#1 claude\/one: updated to [0-9a-f]{8}/);

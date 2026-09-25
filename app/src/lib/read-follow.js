@@ -536,8 +536,26 @@ export function stickyBottomInset(win = (typeof window !== 'undefined' ? window 
   }
 }
 
+// WHERE THE SENTENCE LANDS (DR-0659; Darrell 2026-09-24: "Still need the
+// reader to keep up with the sentence"). With a `place`, every new sentence is
+// brought to the same line of the reading band — the top third, or the centre
+// — so the eye stays in one spot and the text moves under it. Without one, the
+// original rule holds: move only when the sentence has left the band.
+// PLACE_SLACK is how close counts as there, so a sentence already on its line
+// does not nudge the page by a pixel or two.
+export const PLACE_SLACK = 12;
+// TOP (the default; Darrell 2026-09-25: "the reader should keep the reading at
+// the top of the page as much as possible... currently it's almost at the
+// bottom of the page"). The sentence sits TOP_GAP below whatever is pinned at
+// the top (measured, never a constant), with one line of what came before
+// still visible above it when there is room for it.
+//
+// Why it sat at the bottom: without a place, this moved the page only once
+// the sentence had LEFT the band, and then only far enough to bring its
+// bottom edge back inside — so every next sentence landed on the bottom edge.
+export const TOP_GAP = 14;
 export function readingScrollDelta({
-  rangeTop = 0, rangeBottom = 0, topInset = 0, bottomInset = 0, viewportHeight = 0, margin = 24,
+  rangeTop = 0, rangeBottom = 0, topInset = 0, bottomInset = 0, viewportHeight = 0, margin = 24, place, lineHeight = 0,
 } = {}) {
   const vh = Number(viewportHeight) || 0;
   if (!vh) return 0;
@@ -546,6 +564,26 @@ export function readingScrollDelta({
   const bottom = Number(rangeBottom) || top;
   const restTop = safeTop + margin;          // first line that is genuinely readable
   const restBottom = vh - (Number(bottomInset) || 0) - margin;
+
+  if (place === 'top' || place === 'centre') {
+    const height = Math.max(0, bottom - top);
+    const line = Math.max(0, Number(lineHeight) || 0);
+    let target;
+    if (place === 'top') {
+      const first = safeTop + TOP_GAP;
+      const floor = vh - (Number(bottomInset) || 0) - TOP_GAP;
+      // One line of context above, when the sentence still fits below it.
+      target = first + line + height <= floor ? first + line : first;
+      target = Math.max(first, Math.min(target, floor - height));
+    } else {
+      // Centre: the sentence's middle on the band's middle; a sentence taller
+      // than the room starts at the top of the band, never above it.
+      const room = Math.max(0, restBottom - restTop);
+      target = Math.max(restTop, Math.min(restTop + (room - height) / 2, restBottom - height));
+    }
+    const d = Math.round(top - target);
+    return Math.abs(d) <= PLACE_SLACK ? 0 : d;
+  }
 
   // Hidden behind the chrome, or above the viewport entirely: bring it down to
   // just under the chrome. This is the case Darrell hit.
@@ -616,7 +654,7 @@ export function scrollContainerFor(el, win = (typeof window !== 'undefined' ? wi
   return null;
 }
 
-export function followRange(range) {
+export function followRange(range, { place } = {}) {
   if (!range) return;
   try {
     const win = typeof window !== 'undefined' ? window : null;
@@ -641,6 +679,13 @@ export function followRange(range) {
     // mirror): the container IS the viewport. Its box replaces the window's,
     // the app's sticky chrome is outside it and does not apply, and the
     // container — not the window — is what moves.
+    // The text's own line, for the one line of context above a TOP sentence.
+    let lineHeight = 0;
+    try {
+      const cs = textEl ? win.getComputedStyle(textEl) : null;
+      const lh = cs ? parseFloat(cs.lineHeight) : NaN;
+      lineHeight = Number.isFinite(lh) ? lh : (cs ? (parseFloat(cs.fontSize) || 16) * 1.5 : 24);
+    } catch (_) { lineHeight = 24; }
     const container = scrollContainerFor(textEl, win, doc);
     if (container && typeof container.getBoundingClientRect === 'function') {
       const box = container.getBoundingClientRect();
@@ -651,6 +696,8 @@ export function followRange(range) {
         bottomInset: 0,
         viewportHeight: box.height,
         margin: readingMargin(textEl, win),
+        place,
+        lineHeight,
       });
       if (!inner) return;
       if (typeof container.scrollBy === 'function') container.scrollBy({ top: inner, behavior: motionBehavior() });
@@ -664,6 +711,8 @@ export function followRange(range) {
       bottomInset: stickyBottomInset(win, doc),
       viewportHeight: win.innerHeight || 0,
       margin: readingMargin(textEl, win),
+      place,
+      lineHeight,
     });
     if (!delta) return;
     if (typeof win.scrollBy === 'function') win.scrollBy({ top: delta, behavior: motionBehavior() });

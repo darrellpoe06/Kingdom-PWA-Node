@@ -38,6 +38,13 @@
 //      "always reversible" means from every state the reader can actually be
 //      in, not only the one the probe happened to load.
 //
+// READER pass (rides --sweep; DR-0659): a real reading of L191 in the NAS
+// voice (answered here with a tone) at 412x915 A+++, 390x844 and 1920x1080 —
+// the reader's pill and mini-bar are on screen, the lit sentence stays in
+// view while following, and at 1920 a remote's focus walks the mini-bar with
+// a ring and Enter works. Its selftest takes the ring away and requires the
+// remote check to trip.
+//
 // Proven-to-catch (DR-0076 §3, anti-theater): --selftest-break injects a CSS
 // override that forces the brand column to 10px (the pre-fix collapse) and
 // REQUIRES the invariants to FAIL — a probe that cannot fail is a painted
@@ -80,8 +87,29 @@ const MIME = {
   '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.png': 'image/png',
 };
 
+// A short tone in the NAS voice's own format (16-bit mono PCM WAV, 22050 Hz),
+// so the reader pass can start a REAL reading: the app's /voice-lite call is
+// answered here exactly as the NAS answers it (DR-0659).
+function toneWav(seconds = 1.2, hz = 330, rate = 22050) {
+  const n = Math.round(seconds * rate);
+  const buf = Buffer.alloc(44 + n * 2);
+  buf.write('RIFF', 0); buf.writeUInt32LE(36 + n * 2, 4); buf.write('WAVE', 8);
+  buf.write('fmt ', 12); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20); buf.writeUInt16LE(1, 22);
+  buf.writeUInt32LE(rate, 24); buf.writeUInt32LE(rate * 2, 28); buf.writeUInt16LE(2, 32); buf.writeUInt16LE(16, 34);
+  buf.write('data', 36); buf.writeUInt32LE(n * 2, 40);
+  for (let i = 0; i < n; i++) buf.writeInt16LE(Math.round(Math.sin((2 * Math.PI * hz * i) / rate) * 6000), 44 + i * 2);
+  return buf;
+}
+const TONE = toneWav();
+
 const server = createServer((req, res) => {
   let path = (req.url || '/').split('?')[0];
+  if (path === '/voice-lite/speak') {
+    res.writeHead(200, { 'Content-Type': 'audio/wav', 'Content-Length': TONE.length });
+    res.end(TONE);
+    return;
+  }
+  if (path.startsWith('/voice/') || path.startsWith('/voice-lite/')) { res.writeHead(404); res.end(); return; }
   if (path.startsWith(BASE)) path = path.slice(BASE.length) || '/';
   if (path === '/') path = '/index.html';
   const file = normalize(join(DIST, path));
@@ -98,18 +126,21 @@ const server = createServer((req, res) => {
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const origin = `http://127.0.0.1:${server.address().port}`;
 
+const AUDIO_ARGS = ['--autoplay-policy=no-user-gesture-required'];
 const launchOpts = process.env.PLAYWRIGHT_CHROMIUM_PATH
-  ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH }
-  : { channel: 'chrome' };
+  ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH, args: AUDIO_ARGS }
+  : { channel: 'chrome', args: AUDIO_ARGS };
 let browser;
 try { browser = await chromium.launch(launchOpts); }
-catch { browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }); }
+catch { browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: AUDIO_ARGS }); }
 
 let failures = 0;
 let tsFailuresBefore = 0;
 let lessonFailuresBefore = 0;
 let lessonMeasured = 0;
 let presenterMeasured = 0;
+let readerMeasured = 0;
+let readerFailuresBefore = 0;
 // COVERAGE, counted — not assumed (DR-0323). This probe reported `exit 0` on
 // 2026-09-03 having measured only 8 of its 11 views: no failure was raised, so
 // the run read as a clean pass while a third of the surfaces — including the
@@ -825,6 +856,172 @@ try {
   }
   if (presenterMeasured !== 2) fail(`coverage: ${presenterMeasured}/2 presenter cases measured`);
 
+  // ---------------------------------------------------------------------------
+  // THE READER WHILE THE WORD IS PLAYING (DR-0659). No instrument had ever
+  // looked at the page WHILE READING. Darrell 2026-09-24: "Still need the
+  // reader to keep up with the sentence", and the Fire TV: the mini-bar must
+  // be reachable and usable with a D-pad at 1920x1080 over the NAS voice.
+  // (Where the app's own floaters sit — Feedback, Give, the network dot —
+  // moves into the header in its own lane; this pass measures the reader.)
+  // A real reading is started (the NAS voice is answered by this server with
+  // a tone, exactly the app's /voice-lite call), then measured:
+  //   R2. THE READER IS ON SCREEN — the pill ran 82 px off the left at 412.
+  //   R3. FOLLOWING KEEPS THE SENTENCE AT THE TOP — as the voice moves on, the
+  //       lit sentence's top stays within 120 px under whatever is pinned at
+  //       the top (measured here, like the reader measures it). Darrell
+  //       2026-09-25: "keep the reading at the top of the page as much as
+  //       possible... currently it's almost at the bottom of the page".
+  //   R4. THE REMOTE CAN DRIVE IT (1920) — each mini-bar button takes focus in
+  //       order with a visible ring, and Enter on Follow changes its state.
+  // ---------------------------------------------------------------------------
+  readerFailuresBefore = failures;
+  const READER_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons&lesson=ll191-who-he-said-he-was-every-hearer-every-situation-and-the-keys-of-hell-and-of-death`;
+  const READER_CASES = SELFTEST
+    ? [{ w: 1920, h: 1080, sz: 'normal', tv: true }]
+    : (SWEEP ? [{ w: 412, h: 915, sz: 'largest' }, { w: 390, h: 844, sz: 'normal' }, { w: 1920, h: 1080, sz: 'normal', tv: true }] : []);
+  for (const rc of READER_CASES) {
+    const where = `reader@${rc.w}x${rc.h} [${rc.sz}]`;
+    const page = await browser.newPage({ viewport: { width: rc.w, height: rc.h } });
+    await page.addInitScript((sz) => {
+      try {
+        localStorage.setItem('poetech.help.tour.v1', 'seen');
+        if (sz !== 'normal') localStorage.setItem('poe-text-size', sz); else localStorage.removeItem('poe-text-size');
+        localStorage.removeItem('poe-reader-follow');
+      } catch (_) { /* private mode */ }
+      window.__audios = [];
+      const ce = document.createElement.bind(document);
+      document.createElement = (t, o) => { const el = ce(t, o); if (String(t).toLowerCase() === 'audio') window.__audios.push(el); return el; };
+      const A = window.Audio;
+      window.Audio = function (...a) { const x = new A(...a); window.__audios.push(x); return x; };
+    }, rc.sz);
+    await page.goto(READER_URL, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
+    await page.waitForSelector('[data-testid="lesson-space-bar"]', { timeout: 30000 }).catch(() => {});
+    await page.waitForTimeout(1200);
+    let started = false;
+    try {
+      await page.click('button[aria-label*="read-aloud controls"]', { timeout: 10000 });
+      await page.getByRole('button', { name: /Read this lesson — start to finish/ }).click({ timeout: 10000 });
+      started = await page.waitForFunction(() => (window.__audios || []).some((a) => String(a.src).startsWith('blob:') && !a.paused && a.currentTime > 0.2), null, { timeout: 25000 }).then(() => true).catch(() => false);
+    } catch (_) { started = false; }
+    if (!started) { fail(`${where}: the reading never started playing the NAS voice — nothing was measured`); await page.close(); continue; }
+    if (SELFTEST) {
+      // The break: no focus ring on the mini-bar — a remote's user would not
+      // see where they are. R4 must trip.
+      await page.addStyleTag({ content: '[data-testid="reader-mini-bar"] button:focus, [data-testid="reader-mini-bar"] button:focus-visible { outline: none !important }' });
+    }
+    const measureFloaters = () => page.evaluate(() => {
+      const r = (el) => { const b = el.getBoundingClientRect(); return (b.width < 2 || b.height < 2) ? null : { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
+      const items = {};
+      const els = {};
+      const nameOf = (el, i) => (el.getAttribute('data-testid') || el.getAttribute('aria-label') || String(el.className || '').split(' ').find((c) => /floater|hatch/.test(c)) || `${el.tagName}${i}`).slice(0, 36);
+      [...document.querySelectorAll('body *')].forEach((el, i) => {
+        if (el.closest('.tts-controls')) return;
+        const cs = getComputedStyle(el);
+        if (cs.position !== 'fixed' || cs.display === 'none' || cs.visibility === 'hidden') return;
+        const x = r(el);
+        if (!x || x.b - x.t > innerHeight * 0.6 || x.t < innerHeight / 2) return;
+        const n = nameOf(el, i);
+        items[n] = x; els[n] = el;
+      });
+      const stack = document.querySelector('.tts-controls');
+      [...(stack ? stack.children : [])].forEach((el, i) => { const x = r(el); if (x) { const n = `reader:${nameOf(el, i)}`; items[n] = x; els[n] = el; } });
+      const names = Object.keys(items);
+      const hit = (a, b) => !(a.r <= b.l + 0.5 || b.r <= a.l + 0.5 || a.b <= b.t + 0.5 || b.b <= a.t + 0.5);
+      const overlaps = [];
+      for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
+        if (names[i].startsWith('reader:') && names[j].startsWith('reader:')) continue;
+        // One floater nested in another (a fixed child of a fixed bar) is one
+        // floater, not two.
+        if (els[names[i]].contains(els[names[j]]) || els[names[j]].contains(els[names[i]])) continue;
+        if (hit(items[names[i]], items[names[j]])) overlaps.push(`${names[i]} x ${names[j]}`);
+      }
+      const off = names.filter((k) => { const x = items[k]; return x.l < -0.5 || x.t < -0.5 || x.r > innerWidth + 0.5 || x.b > innerHeight + 0.5; });
+      return { overlaps, off, count: names.length };
+    });
+    // Scroll so back-to-top shows, then measure the pill.
+    await page.mouse.wheel(0, 700);
+    await page.waitForTimeout(800);
+    const pill = await measureFloaters();
+    // Put the panel away: the mini-bar.
+    await page.locator('button[aria-label="Hide reading controls — keeps reading"]').click({ timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(600);
+    const mini = await measureFloaters();
+    const rbefore = failures;
+    for (const [state, m] of [['pill', pill], ['mini-bar', mini]]) {
+      const offReader = m.off.filter((k) => k.startsWith('reader:'));
+      if (offReader.length) fail(`${where} ${state}: the reader runs off the screen — ${offReader.join(', ')}`);
+    }
+    // R3: follow on — bring the voice back, then look three times as pieces
+    // go by: the lit sentence sits just under the pinned top every time.
+    await page.locator('[data-testid="reader-back-to-voice"]').click({ timeout: 3000 }).catch(() => {});
+    const looks = [];
+    for (let k = 0; k < 3; k++) {
+      await page.waitForTimeout(1400);
+      looks.push(await page.evaluate(() => {
+        const h = window.CSS && CSS.highlights && CSS.highlights.get('poe-read-seg');
+        const rng = h ? [...h][0] : null;
+        const el = document.querySelector('[data-testid="reader-show-text"]');
+        // What is pinned at the top, measured the way the reader measures it.
+        let pinned = 0;
+        for (const x of [innerWidth * 0.25, innerWidth * 0.5, innerWidth * 0.75]) {
+          for (const e of document.elementsFromPoint(Math.round(x), 2)) {
+            const pos = getComputedStyle(e).position;
+            if (pos !== 'fixed' && pos !== 'sticky') continue;
+            const r = e.getBoundingClientRect();
+            if (r.height >= innerHeight * 0.9) continue;
+            if (r.top <= 2 && r.bottom > pinned) pinned = r.bottom;
+          }
+        }
+        if (!rng) return { none: true, state: el && el.getAttribute('data-state') };
+        const b = rng.getClientRects()[0] || rng.getBoundingClientRect();
+        return { t: b.top, pinned: Math.min(pinned, innerHeight * 0.45), text: rng.toString().slice(0, 40), state: el && el.getAttribute('data-state') };
+      }));
+    }
+    const litNone = looks.find((l) => l.none);
+    if (litNone) fail(`${where}: no sentence is lit while the NAS voice reads`);
+    else if (looks.some((l) => l.state !== 'following')) fail(`${where}: the mini-bar says "${looks.find((l) => l.state !== 'following').state}", not following, after "Back to the voice"`);
+    else {
+      const far = looks.filter((l) => l.t < l.pinned - 2 || l.t - l.pinned > 120);
+      if (far.length) fail(`${where}: following is on but the lit sentence is not at the top — ${far.map((l) => `"${l.text}" at ${Math.round(l.t)}px, pinned top ends at ${Math.round(l.pinned)}px`).join('; ')}`);
+      if (new Set(looks.map((l) => l.text)).size < 2) console.log(`reader note  ${where}: the voice stayed on one sentence across the three looks`);
+    }
+    // R4: the remote. Focus walks the mini-bar in order with a visible ring,
+    // and Enter on Follow flips it.
+    if (rc.tv) {
+      const dpad = await page.evaluate(() => {
+        const bar = document.querySelector('[data-testid="reader-mini-bar"]');
+        const btns = bar ? [...bar.querySelectorAll('button')] : [];
+        return btns.map((b) => b.getAttribute('data-testid') || b.getAttribute('aria-label'));
+      });
+      if (dpad.length < 3) fail(`${where}: the mini-bar has ${dpad.length} buttons — nothing for a remote to drive`);
+      await page.focus('[data-testid="reader-show-text"]').catch(() => {});
+      const walked = [];
+      for (let i = 0; i < dpad.length; i++) {
+        const f = await page.evaluate(() => {
+          const a = document.activeElement;
+          const cs = a ? getComputedStyle(a) : null;
+          return { id: a ? (a.getAttribute('data-testid') || a.getAttribute('aria-label')) : null, ring: cs ? (cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) >= 2) : false };
+        });
+        walked.push(f);
+        await page.keyboard.press('Tab');
+      }
+      const order = walked.map((x) => x.id);
+      if (order.join('|') !== dpad.join('|')) fail(`${where}: focus does not walk the mini-bar in order — got ${order.join(' > ')}, want ${dpad.join(' > ')}`);
+      const noRing = walked.filter((x) => !x.ring).map((x) => x.id);
+      if (noRing.length) fail(`${where}: no visible focus ring on ${noRing.join(', ')} — a remote user cannot see where they are`);
+      await page.focus('[data-testid="reader-show-text"]').catch(() => {});
+      const s0 = await page.getAttribute('[data-testid="reader-show-text"]', 'data-state').catch(() => null);
+      await page.keyboard.press('Enter');
+      await page.waitForTimeout(300);
+      const s1 = await page.getAttribute('[data-testid="reader-show-text"]', 'data-state').catch(() => null);
+      if (!s0 || s0 === s1) fail(`${where}: Enter on Follow did nothing (${s0} -> ${s1})`);
+    }
+    readerMeasured += 1;
+    if (failures === rbefore) console.log(`reader ok  ${where} — pill and mini-bar on screen, the lit sentence within 120 px under the pinned top while following${rc.tv ? ', D-pad walks the mini-bar with a ring and Enter works' : ''}`);
+    await page.close();
+  }
+  if (readerMeasured !== READER_CASES.length) fail(`coverage: ${readerMeasured}/${READER_CASES.length} reader cases measured`);
+
   await browser.close();
 
 
@@ -835,17 +1032,20 @@ if (SELFTEST) {
   // BOTH passes must prove they can fail: the chrome pass's collapse AND the
   // text-scale pass's trap + blowout (>=2 textscale trips: overflow, hatch).
   // And the lesson pass's width-short + boxed-control break (>=2 lesson trips).
-  const tsTripped = failures - tsFailuresBefore;
+  const tsTripped = readerFailuresBefore - tsFailuresBefore;
+  // The reader pass (DR-0659): the mini-bar with its focus ring taken away
+  // must trip the remote check.
+  const readerTripped = failures - readerFailuresBefore;
   const lessonTripped = tsFailuresBefore - lessonFailuresBefore;
   const chromeTripped = lessonFailuresBefore;
   // The lesson pass now trips SEVEN ways: width-short, boxed control, a wall of
   // chips, an over-long block, the ballooned bar at Big Print, chrome that grew
   // with the text, and floaters on the comfort bar (DR-0438).
-  if (failures > 0 && chromeTripped > 0 && lessonTripped >= 7 && tsTripped >= 2) {
-    console.log(`SELFTEST-BREAK OK — the probe CAN fail (${failures} tripped: ${chromeTripped} chrome, ${lessonTripped} lesson, ${tsTripped} textscale)`);
+  if (failures > 0 && chromeTripped > 0 && lessonTripped >= 7 && tsTripped >= 2 && readerTripped >= 1) {
+    console.log(`SELFTEST-BREAK OK — the probe CAN fail (${failures} tripped: ${chromeTripped} chrome, ${lessonTripped} lesson, ${tsTripped} textscale, ${readerTripped} reader)`);
     process.exit(0);
   }
-  console.error(`SELFTEST-BREAK FAILED — a deliberate break tripped nothing (chrome: ${chromeTripped}, lesson: ${lessonTripped}, textscale: ${tsTripped}); the probe is theater`);
+  console.error(`SELFTEST-BREAK FAILED — a deliberate break tripped nothing (chrome: ${chromeTripped}, lesson: ${lessonTripped}, textscale: ${tsTripped}, reader: ${readerTripped}); the probe is theater`);
   process.exit(1);
 }
 // The coverage assertion. A short run is a FAILED run, however clean its
@@ -861,7 +1061,7 @@ if (measured !== expectedChrome) {
   console.error(`COVERAGE FAIL — measured ${lessonMeasured} of ${expectedLesson} lesson widths. A lesson that never rendered is not a pass.`);
   failures += 1;
 } else {
-  console.log(`coverage ok  ${measured}/${expectedChrome} chrome cases, ${lessonMeasured}/${expectedLesson} lesson cases, ${tsMeasured} text-scale cases measured.`);
+  console.log(`coverage ok  ${measured}/${expectedChrome} chrome cases, ${lessonMeasured}/${expectedLesson} lesson cases, ${tsMeasured} text-scale cases, ${readerMeasured} reader cases measured.`);
 }
 
 process.exit(failures > 0 ? 1 : 0);
