@@ -19,6 +19,9 @@
 //      move on past a list, and OK opens it.
 //   4. Record was offered on a device with no microphone, and failed on the
 //      first press. It is no longer offered; the reason is said.
+//   5. A tab strip was a cage: Up and Down stepped the strip and wrapped, so
+//      30 presses of Down on Learn cycled the department row and never
+//      reached the lessons. Up and Down now leave a strip.
 // =============================================================================
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React, { act } from 'react';
@@ -36,6 +39,7 @@ import { isTvUserAgent, markTvDevice, isTvDocument } from '../lib/tv-device.js';
 import { handleRemoteKey, caretAtEdge } from '../lib/remote-navigation.js';
 import { micPresentFrom, probeMicPresent, NO_MICROPHONE_LINE } from '../lib/mic-presence.js';
 import OneVoiceInput from '../components/OneVoiceInput.jsx';
+import SectionTabs from '../components/SectionTabs.jsx';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -206,5 +210,27 @@ describe('4. no microphone, no Record button', () => {
     install(undefined);
     await renderBox();
     expect(container.querySelector('[data-testid="record-conversation"]')).not.toBe(null);
+  });
+});
+
+describe('5. a tab strip is a row, and Up and Down leave it', () => {
+  let container; let rroot;
+  afterEach(async () => { if (rroot) await act(async () => rroot.unmount()); if (container) container.remove(); rroot = null; container = null; });
+
+  it('Down on a tab neither moves along the strip nor changes the section; Right still does', async () => {
+    container = document.createElement('div'); document.body.appendChild(container);
+    rroot = createRoot(container);
+    const sections = ['Courses', 'Living Lessons', 'History'].map((label) => ({ id: label, label, render: () => <p>{label} page</p> }));
+    await act(async () => { rroot.render(<SectionTabs sections={sections} ariaLabel="Departments" />); });
+    const tabs = [...container.querySelectorAll('button')].filter((b) => sections.some((x) => (b.textContent || '').includes(x.label)));
+    tabs[0].focus();
+    const down = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true });
+    await act(async () => { tabs[0].dispatchEvent(down); });
+    expect(document.activeElement, 'Down stepped along the strip (the Learn cage)').toBe(tabs[0]);
+    expect(down.defaultPrevented, 'Down was kept by the strip, so the remote could not leave it').toBe(false);
+    expect(container.textContent).toContain('Courses page');
+    const right = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true });
+    await act(async () => { tabs[0].dispatchEvent(right); });
+    expect(container.textContent).toContain('Living Lessons page');
   });
 });
