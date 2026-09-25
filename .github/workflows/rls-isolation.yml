@@ -122,6 +122,15 @@ jobs:
             smokes: "0127-sovereign-noise-thought-smoke.sql 0237-member-lesson-review-smoke.sql 0238-member-lesson-name-smoke.sql"
           # Added 2026-09-24 (DR-0615): each person's prompt history is private
           # to its author, even inside the same instance.
+          # Added 2026-09-25 (DR-0658): the TV signs in from the phone in your
+          # hand. anon starts and polls and reads no row; only a signed-in
+          # person looks up or approves; only the service role claims, once;
+          # the user_code, a denied link or an expired link claims nothing;
+          # the 21st look-up in ten minutes is refused. 0222 first: 0239
+          # replaces its functions and grants.
+          - feature: device-link
+            migrations: "0222-sign-in-to-the-television-from-the-phone-in-your-hand.sql 0239-the-television-signs-in-from-the-phone-in-your-hand.sql"
+            smokes: "0239-device-link-smoke.sql"
           - feature: saved-prompts
             migrations: "0232-your-prompts-are-kept-dated-and-yours-alone.sql"
             smokes: "0232-saved-prompts-smoke.sql"
