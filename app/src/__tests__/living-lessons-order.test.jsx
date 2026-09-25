@@ -30,6 +30,9 @@ import {
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 const ascending = (list) => list.every((m, i) => i === 0 || lessonNumber(m) > lessonNumber(list[i - 1]));
+// The highest lesson number in the course today, read from the course so a new
+// lesson does not have to edit the pins below (L193 on 2026-09-24, DR-0642).
+const TOP = Math.max(...LIVING_LESSONS_MODULES.map((m) => lessonNumber(m)));
 
 describe('the number is the lesson’s own, read from its id', () => {
   it('reads the digits after the course prefix, never the position', () => {
@@ -64,13 +67,17 @@ describe('the number is the lesson’s own, read from its id', () => {
 });
 
 describe('the orders', () => {
-  it('by number puts the lowest first; newest first puts the newest, L194, first', () => {
+  it('by number puts the lowest first; newest first puts the highest-numbered lesson first', () => {
     const sched = buildLivingLessonsSchedule();
     const byNum = orderLessons(sched, 'number');
     expect(byNum[0].id.startsWith('ll1-')).toBe(true);
     expect(ascending(byNum)).toBe(true);
     const newest = orderLessons(sched, 'newest');
-    expect(newest[0].id.startsWith('ll194-')).toBe(true);
+    // The newest is whichever lesson carries the highest number today (L193 on
+    // 2026-09-24, DR-0642) — read from the course, so a new lesson does not
+    // have to edit this line.
+    expect(lessonNumber(newest[0])).toBe(Math.max(...sched.map((m) => lessonNumber(m))));
+    expect(lessonNumber(newest[0])).toBeGreaterThanOrEqual(193);
     expect(newest[newest.length - 1].id.startsWith('ll1-')).toBe(true);
     expect(sched.map((m) => m.id), 'the input is never reordered in place').toEqual(buildLivingLessonsSchedule().map((m) => m.id));
   });
@@ -146,12 +153,13 @@ describe('the pick is kept per course on this device', () => {
 });
 
 describe('the .md export (Darrell: "MD too") runs in number order under each lesson’s own number', () => {
-  it('prints Lesson 1 first, the newest lesson (194) last, each with its day', () => {
+  it('prints Lesson 1 first, the highest-numbered lesson last, each with its day', () => {
     const md = exportLivingLessonsCurriculumMarkdown();
     const nums = [...md.matchAll(/^## Lesson (\d+) — /gm)].map((m) => Number(m[1]));
     expect(nums.length).toBe(LIVING_LESSONS_MODULES.length);
     expect(nums[0]).toBe(1);
-    expect(nums[nums.length - 1]).toBe(194);
+    expect(nums[nums.length - 1]).toBe(TOP);
+    expect(TOP).toBeGreaterThanOrEqual(193);
     expect(nums.every((n, i) => i === 0 || n > nums[i - 1])).toBe(true);
     const l192 = LIVING_LESSONS_MODULES.find((m) => m.id.startsWith('ll192-'));
     expect(md).toContain(`## Lesson 192 — ${l192.title}\n*Added Sep 24, 2026*`);
@@ -210,19 +218,19 @@ describe('on the real Learn tree', () => {
     expect(nav().querySelector('details')).toBe(null);
   });
 
-  it('Newest first puts L194 on top, and the pick survives leaving and coming back (kept on the device)', () => {
+  it('Newest first puts the highest-numbered lesson on top, and the pick survives leaving and coming back (kept on the device)', () => {
     mount();
     pick(/Living Lessons from the Word/);
     choose(container.querySelector('#learn-lesson-order'), 'newest');
-    expect(firstRow().getAttribute('data-lesson-id').startsWith('ll194-')).toBe(true);
-    expect(rowNums()[0]).toBe(194);
+    expect(firstRow().getAttribute('data-lesson-id').startsWith(`ll${TOP}-`)).toBe(true);
+    expect(rowNums()[0]).toBe(TOP);
     expect(rememberedLessonOrder('living-lessons')).toBe('newest');
     act(() => root.unmount());
     root = createRoot(container);
     mount();
     pick(/Living Lessons from the Word/);
     expect(container.querySelector('#learn-lesson-order').value).toBe('newest');
-    expect(rowNums()[0]).toBe(194);
+    expect(rowNums()[0]).toBe(TOP);
   });
 
   it('a short numbered course gets the same Order control, without the divisions view', () => {
