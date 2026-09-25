@@ -150,7 +150,8 @@ describe('the reader wires it up', () => {
     const { readFileSync } = await import('node:fs');
     const path = await import('node:path');
     const code = readFileSync(path.resolve(__dirname, '../lib/use-read-aloud.js'), 'utf8');
-    expect(code).toMatch(/isSystemVoiceId\(voiceId\)\s*&&\s*sovereignVoiceReady/);
+    // `vid` is the voice being read (the pick, or a sample's voice; DR-0655).
+    expect(code).toMatch(/isSystemVoiceId\(vid\)\s*&&\s*sovereignVoiceReady/);
     expect(code).toMatch(/allowBuiltIn:\s*true/);
     // The fall-through IS the safety: a refused built-in never early-returns,
     // so the device voice below still speaks. Sounding better or the same —

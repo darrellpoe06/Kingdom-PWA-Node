@@ -7,85 +7,57 @@
 // control in the header (the accessibility / settings slot), with a fuller panel
 // variant for the About/Settings page.
 //
-// Grouped <select> (System / Your voices / Voices & accents) so it scales to many
-// browser voices and accents. A "Test" button speaks a short sample in the pick so
-// the choice is audible before it's committed. Personal (cloned) voices are
-// AI-labeled; until the voice studio is live they play a stand-in (honest).
+// EVERY VOICE IS CHOOSABLE (DR-0655): the list is VoicePicker — the same one
+// the reader panel shows — with the church studio voice, the house (NAS)
+// voices, and every phone voice, each with its one-line truth, and a sample
+// played as a voice is picked. It is shown even on a device with no speech
+// engine of its own (the house voices play as audio there), which is why the
+// old `if (!supported) return null` is gone.
 import React from 'react';
 import { useReadAloud } from '../lib/use-read-aloud.js';
-
-const SAMPLE = 'This is your reading voice. The Lord is my shepherd; I shall not want.';
+import VoicePicker from './VoicePicker.jsx';
 
 export default function ReadingVoiceControl({ variant = 'header', isOwner = false, className = '' }) {
   const ra = useReadAloud({ isOwner });
   const isPanel = variant === 'panel';
 
-  if (!ra.supported) return null; // device can't read aloud — show nothing
-
-  // Group the catalog for the <select> (System, Your voices, Voices & accents).
-  const groups = ra.catalog.reduce((acc, item) => {
-    (acc[item.group] = acc[item.group] || []).push(item);
-    return acc;
-  }, {});
-  const order = ['Default', 'Your voices', 'Voices & accents'];
-  const orderedGroups = order.filter((g) => groups[g] && groups[g].length);
-
-  const onChange = (e) => {
-    const item = ra.catalog.find((c) => c.id === e.target.value);
-    if (item && !item.usable) return; // entitlement-gated (subscriber voice)
-    ra.setVoiceId(e.target.value);
-  };
-
-  const select = (
-    <select
-      aria-label="Reading voice — used everywhere read-aloud is offered"
-      value={ra.voiceId}
-      onChange={onChange}
-      className={[
-        'border-2 bg-white text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]',
-        isPanel ? 'w-full text-sm border-[#E8E4DC] px-3 py-2.5 rounded-md' : 'text-[0.6875rem] border-[#E8E4DC] px-2 py-1.5 rounded-md max-w-[10rem]',
-      ].join(' ')}
-    >
-      {orderedGroups.map((g) => (
-        <optgroup key={g} label={g}>
-          {groups[g].map((item) => (
-            <option key={item.id} value={item.id} disabled={!item.usable}>
-              {item.label}{item.ai ? ' · AI' : ''}{item.standIn ? ' (stand-in)' : ''}{item.deviceVoice ? ` · ${item.deviceVoice}` : ''}{!item.usable ? ' — subscriber' : ''}
-            </option>
-          ))}
-        </optgroup>
-      ))}
-    </select>
+  const picker = (
+    <VoicePicker
+      id={isPanel ? 'reading-voice-panel' : 'reading-voice-header'}
+      label={isPanel ? 'Reading voice' : 'Reading voice — used everywhere read-aloud is offered'}
+      catalog={ra.catalog}
+      voiceId={ra.voiceId}
+      setVoiceId={ra.setVoiceId}
+      preview={ra.preview}
+      isReading={ra.isReading}
+      compact={!isPanel}
+      showNote={isPanel}
+      showHear={isPanel}
+    />
   );
 
   if (!isPanel) {
     return (
       <div className={`flex items-center gap-1 ${className}`}>
         <span aria-hidden="true" className="text-sm" title="Reading voice">🔊</span>
-        {select}
+        {picker}
       </div>
     );
   }
 
   return (
-    <div className={className}>
-      <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-semibold mb-1">🔊 Reading voice</div>
-      <p className="text-[0.75rem] text-[#5A5751] mb-2 leading-relaxed">
-        Pick the voice that reads to you anywhere in the app. It’s saved to your account, so it
-        follows you to any device.
+    <div className={className} style={{ fontSize: '1.25rem' }}>
+      <div className="text-[0.5rem] uppercase tracking-[0.2em] text-[#B85838] font-semibold mb-1">🔊 Reading voice</div>
+      <p className="text-[0.6rem] text-[#5A5751] mb-2 leading-relaxed">
+        Pick the voice that reads to you anywhere in the app. Each one plays a short sample as you pick it.
+        It’s saved to your account, so it follows you to any device.
       </p>
-      {select}
-      <div className="mt-2 flex items-center gap-2">
-        {!ra.isReading ? (
-          <button type="button" onClick={() => ra.read(SAMPLE)}
-            className="text-[0.6875rem] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Test</button>
-        ) : (
-          <button type="button" onClick={ra.stop}
-            className="text-[0.6875rem] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⏹ Stop</button>
-        )}
-        {ra.currentItem && ra.currentItem.ai && <span className="text-[0.625rem] text-[#5A5751]">AI-generated voice{ra.currentItem.standIn ? ' — stand-in until the studio is live' : ''}</span>}
-      </div>
-      {ra.notice && <p className="text-[0.6875rem] text-[#5A5751] mt-2">{ra.notice}</p>}
+      {picker}
+      {ra.isReading && (
+        <button type="button" onClick={ra.stop}
+          className="mt-2 text-[0.55rem] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⏹ Stop</button>
+      )}
+      {ra.notice && <p className="text-[0.55rem] text-[#5A5751] mt-2">{ra.notice}</p>}
     </div>
   );
 }

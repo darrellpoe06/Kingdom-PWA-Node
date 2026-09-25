@@ -18,11 +18,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTextToSpeech, waitForVoices } from './tts.js';
 import {
   useReadingVoice, isPersonVoiceId, personKeyOf, isSystemVoiceId, SYSTEM_VOICE_ID, personVoiceId,
+  isHouseVoiceId, houseModelOf, houseVoiceId, isDeviceVoiceId,
 } from './reading-voice.js';
 import { mergeVoiceCatalog, canCloneVoice, isVoiceEntitled, resolveVoiceProvider, KIND, SYSTEM_VOICE } from './voice-registry.js';
 import { buildStandInAssignments, resolveVoiceURIForId, standInPitch } from './voice-assignment.js';
 import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
-import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService, voiceErrorReason, speakTimeoutFor, mayAttemptStudio, isStudioRoadProblem, synthesizeLite, mayTryLiteVoice, markLiteVoiceMiss, isPlayRefusal, liteVoiceReasonText, LITE_FIRST_TIMEOUT_MS } from './voice-service.js';
+import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService, voiceErrorReason, speakTimeoutFor, mayAttemptStudio, isStudioRoadProblem, synthesizeLite, mayTryLiteVoice, markLiteVoiceMiss, isPlayRefusal, liteVoiceReasonText, LITE_FIRST_TIMEOUT_MS, fetchHouseVoices } from './voice-service.js';
 import { chunkForClips, createClipQueue } from './clip-queue.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
@@ -35,6 +36,73 @@ import { hrefForView } from './nav-history.js';
 import { hasBridgeToken } from './nas-photos.js';
 import { provisionBridgeToken } from './bridge-provision.js';
 import { newReadingPin, deviceVoiceForPin, genderOfDeviceVoice } from './reading-voice-pin.js';
+
+// =============================================================================
+// EVERY VOICE IS CHOOSABLE (DR-0655)
+// =============================================================================
+// Darrell 2026-09-25, Android, Living Lesson 191 at 1.5x: "I can only pic this
+// fake dying voice!!!!!! Why limitations are built into the app!!!!! Fix
+// it!!!!!" The picker offered "System voice" (which quietly meant the NAS's one
+// male Piper voice while the studio was dark), his cloned voice, and only the
+// ENGLISH phone voices; the NAS's own voices were never named at all. Now one
+// list, in this order, each entry carrying a one-line truth about itself:
+//   1. the church's studio voice, with its honest state;
+//   2. every house (NAS Piper) voice the NAS REPORTS as installed;
+//   3. every phone voice, English first, natural/Google voices first.
+// Your cloned voices sit between the studio and the house, as before.
+export const VOICE_GROUPS = {
+  STUDIO: 'Church studio',
+  PERSONAL: 'Your voices',
+  HOUSE: 'House voices (church server)',
+  PHONE: 'Phone voices',
+};
+
+export const VOICE_SAMPLE = 'The Lord is my shepherd; I shall not want.';
+
+const PHONE_NOTE = 'Your phone’s own voice. On Android it stops when you switch apps or the screen goes off.';
+const PHONE_ONLINE_NOTE = 'Your phone’s own voice, from the internet. On Android it stops when you switch apps or the screen goes off.';
+const HOUSE_NOTE = 'Real audio from the church’s own server. Keeps playing when you switch apps.';
+
+const NATURAL_VOICE = /natural|neural|google|online|enhanced|premium|wavenet|siri/i;
+
+/**
+ * The phone's voices in the order a listener wants them: English first,
+ * natural / Google voices first within that, then US English, then by name.
+ * De-duplicated by voiceURI. Nothing is filtered out. Pure.
+ */
+export function rankDeviceVoices(voices) {
+  const seen = new Set();
+  const list = [];
+  for (const v of (Array.isArray(voices) ? voices : [])) {
+    if (!v || !v.voiceURI || seen.has(v.voiceURI)) continue;
+    seen.add(v.voiceURI);
+    list.push(v);
+  }
+  const score = (v) => {
+    let s = 0;
+    if (/^en/i.test(v.lang || '')) s += 100;
+    if (NATURAL_VOICE.test(v.name || '') || NATURAL_VOICE.test(v.voiceURI || '')) s += 10;
+    if (/^en[-_]?US/i.test(v.lang || '')) s += 2;
+    return s;
+  };
+  return list
+    .map((v, i) => ({ v, i }))
+    .sort((a, b) => (score(b.v) - score(a.v)) || String(a.v.name || '').localeCompare(String(b.v.name || '')) || (a.i - b.i))
+    .map((x) => x.v);
+}
+
+/**
+ * The studio entry's honest state and line. `studio` is the probe
+ * ('up' | 'down' | 'unknown'); `ready` is the display readiness.
+ */
+export function studioVoiceNote({ studio, ready, houseUp }) {
+  if (ready && studio === 'up') return { state: 'up', note: 'The church’s own studio voice. Real audio; keeps playing when you switch apps.' };
+  const until = houseUp
+    ? 'reads in the house voice Ryan until it is back. Real audio; keeps playing when you switch apps.'
+    : 'reads in the phone’s voice until it is back. On Android that stops when you switch apps.';
+  if (studio === 'down') return { state: 'offline', note: `The studio is offline right now, so this ${until}` };
+  return { state: 'unknown', note: `The studio has not answered yet, so this ${until}` };
+}
 
 /**
  * @param {object} opts
@@ -74,6 +142,14 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const attemptStudio = readyOverride !== undefined ? readyOverride : mayAttemptStudio();
   const { voiceId, setVoiceId } = useReadingVoice(supabase);
   const [profiles, setProfiles] = useState([]);
+  // The house voices AS THE NAS REPORTS THEM (never a painted list).
+  // loaded=false until the NAS has answered or failed once.
+  const [house, setHouse] = useState({ loaded: false, voices: [], error: null });
+  useEffect(() => {
+    let alive = true;
+    fetchHouseVoices().then((r) => { if (alive) setHouse({ loaded: true, voices: r.voices || [], error: r.error || null }); });
+    return () => { alive = false; };
+  }, []);
   const [cloudPlaying, setCloudPlaying] = useState(false);
   const [cloudPaused, setCloudPaused] = useState(false);
   const [cloudProgress, setCloudProgress] = useState(0); // 0..1 through the cloud clip
@@ -176,7 +252,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const resolveSpeakURI = useCallback((id) => {
     const overrides = loadPersonaVoiceMap();
     const available = tts.voices;
-    if (isSystemVoiceId(id)) return resolveVoiceURIForId(SYSTEM_VOICE.id, { assignments, overrides, available });
+    // A house voice that cannot answer falls back like the studio voice does.
+    if (isSystemVoiceId(id) || isHouseVoiceId(id)) return resolveVoiceURIForId(SYSTEM_VOICE.id, { assignments, overrides, available });
     if (isPersonVoiceId(id)) {
       const c = fullCatalog.find((x) => x.personKey === personKeyOf(id));
       return c ? resolveVoiceURIForId(c.id, { assignments, overrides, available }) : undefined;
@@ -184,29 +261,86 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     return id; // a specific browser voice / accent
   }, [assignments, fullCatalog, tts.voices]);
 
-  // The merged catalog every picker renders: System (free) + personal (cloned) +
-  // browser voices/accents. Each item is { id, label, group, ai, entitled, usable }.
+  // The ONE list every picker renders, in order (see VOICE_GROUPS above). Each
+  // item is { id, label, group, ai, entitled, usable, note, background } —
+  // `note` is the one-line truth shown for it, `background` whether it keeps
+  // playing when the listener switches apps.
+  //
+  // Nothing is filtered away any more. This used to keep only ENGLISH phone
+  // voices (`/^en/` on v.lang) and never named the NAS's voices at all; the
+  // studio entry was called "System voice" and quietly read in the NAS's one
+  // male voice while the studio was dark (DR-0655).
   const catalog = useMemo(() => {
     const sysDev = assignments[SYSTEM_VOICE.id];
-    const out = [{ id: SYSTEM_VOICE_ID, label: 'System voice', group: 'Default', ai: false, entitled: true, usable: true, deviceVoice: sysDev ? sysDev.name : null }];
+    const studio = studioVoiceNote({ studio: studioHealth, ready: sovereignVoiceReady, houseUp: house.voices.length > 0 });
+    const out = [{
+      id: SYSTEM_VOICE_ID,
+      label: studio.state === 'up' ? 'Church studio voice' : `Church studio voice (${studio.state === 'offline' ? 'offline now' : 'not answering yet'})`,
+      group: VOICE_GROUPS.STUDIO, ai: false, entitled: true, usable: true,
+      deviceVoice: sysDev ? sysDev.name : null, note: studio.note, state: studio.state,
+      background: studio.state === 'up' || house.voices.length > 0,
+    }];
     for (const v of personalVoices) {
       if (!canCloneVoice(v)) continue; // only consented personal voices are offerable
       const dev = assignments[v.id];
+      const standIn = !resolveVoiceProvider(v, { sovereignVoiceReady }).real;
       out.push({
-        id: personVoiceId(v.personKey), label: v.name, group: 'Your voices', ai: true,
+        id: personVoiceId(v.personKey), label: v.name, group: VOICE_GROUPS.PERSONAL, ai: true,
         entitled: isVoiceEntitled(v, ctx), usable: isVoiceEntitled(v, ctx),
-        standIn: !resolveVoiceProvider(v, { sovereignVoiceReady }).real,
+        standIn,
         deviceVoice: dev ? dev.name : null,
+        note: standIn
+          ? 'A cloned voice (AI). The studio that makes it is not answering, so a stand-in reads for now, and says so.'
+          : 'A cloned voice (AI), made by the church’s studio. Keeps playing when you switch apps.',
+        background: !standIn || house.voices.length > 0,
       });
     }
-    const browser = (tts.voices || []).filter((v) => v && /^en/i.test(v.lang || ''));
-    const list = browser.length ? browser : (tts.voices || []);
-    for (const v of list) {
-      out.push({ id: v.voiceURI, label: `${v.name}${v.localService ? '' : ' (online)'}`, group: 'Voices & accents', ai: false, entitled: true, usable: true });
+    // THE HOUSE: exactly what the NAS reported as installed.
+    const houseIds = new Set();
+    for (const v of house.voices) {
+      const gender = v.gender === 'male' ? 'man' : v.gender === 'female' ? 'woman' : '';
+      const detail = [v.accent, gender].filter(Boolean).join(' ');
+      houseIds.add(houseVoiceId(v.id));
+      out.push({
+        id: houseVoiceId(v.id), label: `${v.label}${detail ? ` · ${detail}` : ''}${v.quality === 'high' ? ' · slower' : ''}`,
+        group: VOICE_GROUPS.HOUSE, ai: false, entitled: true, usable: true,
+        note: v.note || HOUSE_NOTE, background: true, quality: v.quality, model: v.id,
+      });
+    }
+    // A house voice the listener picked stays visible and chosen when the NAS
+    // does not answer — with its honest state, never silently replaced.
+    if (isHouseVoiceId(voiceId) && !houseIds.has(voiceId)) {
+      out.push({
+        id: voiceId, label: `${houseModelOf(voiceId)} (not answering right now)`, group: VOICE_GROUPS.HOUSE,
+        ai: false, entitled: true, usable: true, background: false,
+        note: 'The church server is not answering, so this reads in the phone’s voice until it is back, and says so.',
+      });
+    } else if (house.loaded && !house.voices.length) {
+      out.push({
+        id: 'house:', label: 'House voices are not answering right now', group: VOICE_GROUPS.HOUSE,
+        ai: false, entitled: true, usable: false, background: false,
+        note: 'The church server did not list its voices. They return here when it answers.',
+      });
+    }
+    // THE PHONE: every voice its engine reports, English + natural first.
+    const phone = rankDeviceVoices(tts.voices || []);
+    for (const v of phone) {
+      out.push({
+        id: v.voiceURI, label: `${v.name}${v.localService === false ? ' (online)' : ''}`,
+        group: VOICE_GROUPS.PHONE, ai: false, entitled: true, usable: true,
+        note: v.localService === false ? PHONE_ONLINE_NOTE : PHONE_NOTE, background: false, lang: v.lang || '',
+      });
+    }
+    if (isDeviceVoiceId(voiceId) && phone.length && !phone.some((v) => v.voiceURI === voiceId)) {
+      out.push({
+        id: voiceId, label: `${voiceId} (not on this device)`, group: VOICE_GROUPS.PHONE,
+        ai: false, entitled: true, usable: true, background: false,
+        note: 'Picked on another device. This phone does not have it, so the phone’s default voice reads, and says so.',
+      });
     }
     return out;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [personalVoices, tts.voices, isOwner, sovereignVoiceReady, assignments]);
+  }, [personalVoices, tts.voices, isOwner, sovereignVoiceReady, studioHealth, assignments, house, voiceId]);
 
   const currentItem = useMemo(() => catalog.find((c) => c.id === voiceId) || catalog[0], [catalog, voiceId]);
 
@@ -220,7 +354,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const appliedVoiceRef = useRef(null);
   useEffect(() => {
     if (!tts.supported) return;
-    if (isSystemVoiceId(voiceId) || isPersonVoiceId(voiceId)) return; // system/clone handled at read()
+    if (!isDeviceVoiceId(voiceId)) return; // studio/clone/house handled at read()
     const newPick = appliedVoiceRef.current !== voiceId;
     if (!newPick && tts.isReading) return;
     appliedVoiceRef.current = voiceId;
@@ -388,19 +522,47 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     } catch (_) { /* a device without media still reads in its own voice */ }
   }, [bg, osControls]);
 
-  // Which NAS voice stands in: a man's stand-in reads as a man (DR-0138).
-  const liteVoiceFor = useCallback(() => {
-    if (isPersonVoiceId(voiceId)) {
-      const v = personalVoices.find((x) => x.personKey === personKeyOf(voiceId));
+  // Which NAS voice reads: a house voice the listener PICKED is that model,
+  // exactly; a man's stand-in reads as a man (DR-0138).
+  const liteVoiceFor = useCallback((vid) => {
+    if (isHouseVoiceId(vid)) return houseModelOf(vid);
+    if (isPersonVoiceId(vid)) {
+      const v = personalVoices.find((x) => x.personKey === personKeyOf(vid));
       return v && v.gender === 'female' ? 'female' : 'male';
     }
     return SYSTEM_VOICE.gender === 'male' ? 'male' : 'female';
-  }, [voiceId, personalVoices]);
+  }, [personalVoices]);
 
-  /** Play `clean` in the NAS audio voice. Resolves true once the first piece plays. */
-  const playLiteVoice = useCallback(async (clean) => {
-    // The reading's pinned gender (DR-0654), never a fresh choice mid-reading.
-    const voice = (readingPinRef.current && readingPinRef.current.gender) || liteVoiceFor();
+  // THE PICK IS THE READING'S PIN (DR-0655 with DR-0654). One mechanism: the
+  // voice the listener picked is written into the pin when a reading starts,
+  // with the gender it speaks in, and every hand-off in that reading (the NAS
+  // voice, the phone's voice, a pick-up after the dark) reads it from the pin.
+  // Nothing re-resolves the pick mid-reading.
+  const pinFor = useCallback((vid) => {
+    let gender;
+    if (isHouseVoiceId(vid)) {
+      const h = house.voices.find((v) => v.id === houseModelOf(vid));
+      gender = h && h.gender === 'female' ? 'female' : 'male';
+    } else {
+      gender = liteVoiceFor(vid);
+    }
+    const pin = newReadingPin(gender);
+    pin.voiceId = vid;
+    return pin;
+  }, [liteVoiceFor, house.voices]);
+
+  /**
+   * Play `clean` in the NAS audio voice. `vid` defaults to the reading's pin.
+   * A picked HOUSE voice is that exact model; otherwise the pinned gender
+   * (DR-0654), never a fresh choice mid-reading. Resolves true once the first
+   * piece plays.
+   */
+  const playLiteVoice = useCallback(async (clean, vidArg) => {
+    const pin = readingPinRef.current;
+    const vid = vidArg || (pin && pin.voiceId) || voiceId;
+    const voice = isHouseVoiceId(vid)
+      ? houseModelOf(vid)
+      : ((pin && pin.gender) || liteVoiceFor(vid));
     // Pieces are cut from the text AS WRITTEN, so piece i is highlight segment
     // i; each piece is turned into its spoken form on its own way out
     // (DR-0653). Cutting the SPOKEN form moves the cuts wherever the spoken
@@ -463,6 +625,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
         // the NAS voice is not rested, and the listener is told the one thing
         // that works.
         if (isPlayRefusal(reason)) { setNotice(`${sentenceCase(liteVoiceReasonText(reason))}.`); return; }
+        // A picked house voice that stopped answering says so on the status line.
+        if (isHouseVoiceId(vid)) setStandInWhy('house-offline');
         deviceRestRef.current(rest, reason);
       },
     });
@@ -472,7 +636,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     setAudioVoice('audio');
     const ok = await q.start();
     return ok || queueRef.current === null;
-  }, [liteVoiceFor, setNotice]);
+  }, [liteVoiceFor, setNotice, voiceId]);
 
   // THE ONE HAND-OFF TO THE DEVICE VOICE (DR-0654). Every path that moves a
   // reading from an audio voice to the phone's own voice comes through here:
@@ -483,7 +647,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // (a Fire TV) hears nothing from a hand-off, so it is told why instead.
   deviceRestRef.current = async (rest, reason) => {
     silenceAudio();
-    const pin = readingPinRef.current || (readingPinRef.current = newReadingPin(liteVoiceFor()));
+    const pin = readingPinRef.current || (readingPinRef.current = pinFor(voiceId));
     // The voice list can still be empty on a cold phone; wait for it rather
     // than let the phone's default (any gender) take the reading.
     let voices = tts.voices || [];
@@ -496,7 +660,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       setNotice(`The reading stopped: ${why}.`);
       return;
     }
-    const pick = deviceVoiceForPin(pin, { voices, preferredURI: resolveSpeakURI(voiceId) });
+    const pick = deviceVoiceForPin(pin, { voices, preferredURI: resolveSpeakURI(pin.voiceId || voiceId) });
     pin.uri = pick.uri; pin.matched = pick.matched;
     if (rest) tts.speak(rest, pick.uri);
     const man = pin.gender === 'male';
@@ -526,14 +690,21 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
 
-  const read = useCallback(async (text, { title } = {}) => {
+  // `voice` reads THIS once in a given voice without changing the pick — the
+  // tap-to-hear sample in the picker. Otherwise the listener's pick reads.
+  const read = useCallback(async (text, { title, voice } = {}) => {
     const clean = String(text || '').trim();
     if (!clean) return;
     // ONE READING, ONE VOICE (DR-0654). A read called while a reading is live
     // (a paragraph jump, the hand-over into the dark, a pick-up) CONTINUES
-    // that reading and keeps its pin; a read from rest starts a new one.
-    const continuing = readingNowRef.current && !!readingPinRef.current;
-    if (!continuing) readingPinRef.current = newReadingPin(liteVoiceFor());
+    // that reading and keeps its pin; a read from rest starts a new one. The
+    // PICK is part of the pin (DR-0655): a new pick, or a sample in another
+    // voice, starts a new pin; the same pick keeps the reading's voice.
+    const requested = voice || voiceId;
+    const continuing = readingNowRef.current && !!readingPinRef.current
+      && readingPinRef.current.voiceId === requested;
+    if (!continuing) readingPinRef.current = pinFor(requested);
+    const vid = readingPinRef.current.voiceId;
     setNotice('');
     setStandInWhy('');
     stopCloud();
@@ -548,7 +719,10 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // voices) that was silence. Measured in Chromium at 960x540 with a family
     // key waiting at the RPC: one POST, Authorization absent, 401, nothing
     // heard. Asking here, once, costs one RPC on a device without the key.
-    const nasRead = isSystemVoiceId(voiceId) || isPersonVoiceId(voiceId);
+    // A house pick is a NAS read too (DR-0655), and so is a phone pick on a
+    // device that cannot speak (it reads in the house voice).
+    const nasRead = isSystemVoiceId(vid) || isPersonVoiceId(vid) || isHouseVoiceId(vid)
+      || (isDeviceVoiceId(vid) && !tts.supported);
     if (nasRead && !hasBridgeToken()) await provisionBridgeToken(supabase);
     // ONE VOICE AT A TIME (DR-0654). An audio voice is about to be tried, so
     // the phone's own voice stops first; before this, a hand-over or a jump
@@ -558,8 +732,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // well clear of the speak() it could otherwise swallow.
     if (nasRead) { try { tts.stop(); } catch (_) { /* nothing to stop */ } }
 
-    if (isPersonVoiceId(voiceId)) {
-      const personKey = personKeyOf(voiceId);
+    if (isPersonVoiceId(vid)) {
+      const personKey = personKeyOf(vid);
       const voice = personalVoices.find((v) => v.personKey === personKey);
       if (voice && attemptStudio) {
         // THE KEY PROVISIONS ITSELF BEFORE THE READ (DR-0574). /speak is gated
@@ -662,7 +836,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // built-in request, or errors, this falls straight through to exactly the
     // device-voice path below. It can only ever sound better, never worse, and
     // a refusal is remembered so the round trip is paid once.
-    if (isSystemVoiceId(voiceId) && sovereignVoiceReady && builtInVoiceSupport() !== 'no') {
+    if (isSystemVoiceId(vid) && sovereignVoiceReady && builtInVoiceSupport() !== 'no') {
       const { url, error } = await synthesizeSpeech({
         text: toSpokenForm(clean), voiceId: SYSTEM_VOICE.id, allowBuiltIn: true,
       });
@@ -720,10 +894,31 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // the NAS's own voice (/voice-lite, Piper) for REAL AUDIO, played piece by
     // piece through one <audio> element: media, which the phone keeps playing.
     // A browser accent the listener picked on purpose is left as their choice.
-    if ((isSystemVoiceId(voiceId) || isPersonVoiceId(voiceId)) && mayTryLiteVoice()) {
-      const played = await playLiteVoice(clean);
+    // A HOUSE voice the listener picked (DR-0655) is that exact NAS voice; if
+    // the NAS cannot answer, the phone's voice reads and the status says why.
+    //
+    // A DEVICE WITH NO VOICES NEVER GETS A PHONE VOICE (Fire TV, 2026-09-25).
+    // Silk exposes speechSynthesis and reports no voices at all. A phone voice
+    // picked on another device follows the account here; reading it would be
+    // silence. On such a device every read goes to the house voice instead.
+    let noDeviceVoices = !tts.supported;
+    if (isDeviceVoiceId(vid) && !noDeviceVoices && !(tts.voices || []).length
+      && typeof window !== 'undefined' && window.speechSynthesis) {
+      noDeviceVoices = !(await waitForVoices(window.speechSynthesis)).length;
+    }
+    if (isDeviceVoiceId(vid) && noDeviceVoices) {
+      // The family key first, as for every NAS read (DR-0654).
+      if (!hasBridgeToken()) await provisionBridgeToken(supabase);
+      if (mayTryLiteVoice() && await playLiteVoice(clean, SYSTEM_VOICE_ID)) {
+        setNotice('This device has no voice of its own, so the church’s house voice is reading.');
+        return;
+      }
+    }
+    if ((isSystemVoiceId(vid) || isPersonVoiceId(vid) || isHouseVoiceId(vid)) && mayTryLiteVoice()) {
+      const played = await playLiteVoice(clean, vid);
       if (played) return;
     }
+    if (isHouseVoiceId(vid)) setStandInWhy('house-offline');
     setAudioVoice('device');
     if (!tts.supported) { setNotice('This device can’t read aloud — try a different browser.'); return; }
     // Close the cold-start gap: on a fresh mobile load the device voice list can
@@ -734,12 +929,12 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // The PROSODY diversifier rides the same resolution: on a device whose voice
     // list can't produce a man or two distinct people (the Android one-female-
     // voice report, 2026-07-10), the person's deterministic PITCH does.
-    const catalogIdOf = (id) => (isSystemVoiceId(id)
+    const catalogIdOf = (id) => ((isSystemVoiceId(id) || isHouseVoiceId(id))
       ? SYSTEM_VOICE.id
       : isPersonVoiceId(id)
         ? (fullCatalog.find((x) => x.personKey === personKeyOf(id)) || {}).id
         : undefined);
-    let uri = resolveSpeakURI(voiceId);
+    let uri = resolveSpeakURI(vid);
     let liveAssignments = assignments;
     let deviceVoices = tts.voices || [];
     if (!(tts.voices || []).length && typeof window !== 'undefined' && window.speechSynthesis) {
@@ -748,7 +943,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       if (fresh.length) {
         liveAssignments = buildStandInAssignments(fullCatalog, fresh);
         const overrides = loadPersonaVoiceMap();
-        const cidFresh = catalogIdOf(voiceId);
+        const cidFresh = catalogIdOf(vid);
         if (cidFresh) uri = resolveVoiceURIForId(cidFresh, { assignments: liveAssignments, overrides, available: fresh });
       } else {
         // NO VOICES AT ALL, after waiting. This is NOT the cold-start case the
@@ -808,11 +1003,11 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // A pick made on another device (it follows the account) may not exist on
     // this one; the engine then speaks its default. Say so, rather than let the
     // listener think the pick was ignored.
-    if (!isSystemVoiceId(voiceId) && !isPersonVoiceId(voiceId) && deviceVoices.length
-      && !deviceVoices.some((v) => v && v.voiceURI === voiceId)) {
+    if (isDeviceVoiceId(vid) && deviceVoices.length
+      && !deviceVoices.some((v) => v && v.voiceURI === vid)) {
       setNotice('The voice you picked is not on this device, so it is reading in the phone’s default voice. Pick again from the Voice list to change it.');
     }
-    const cid = catalogIdOf(voiceId);
+    const cid = catalogIdOf(vid);
     const pitch = cid ? standInPitch(fullCatalog, liveAssignments, cid) : undefined;
     // THE READING KEEPS ITS VOICE (DR-0654). A reading that already chose a
     // device voice keeps it through every jump and hand-off; a new reading
@@ -826,7 +1021,11 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       pin.gender = genderOfDeviceVoice(uri, deviceVoices) || pin.gender;
     }
     tts.speak(clean, uri, pitch);
-  }, [voiceId, personalVoices, sovereignVoiceReady, attemptStudio, studioHealth, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio, setNotice, playLiteVoice, liteVoiceFor]);
+  }, [voiceId, personalVoices, sovereignVoiceReady, attemptStudio, studioHealth, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio, setNotice, playLiteVoice, pinFor]);
+
+  // HEAR BEFORE CHOOSING (DR-0655): a short sample in one voice, without
+  // touching the listener's pick or a reading already under way.
+  const preview = useCallback((id, text = VOICE_SAMPLE) => read(text, { voice: id, title: 'Voice sample' }), [read]);
 
   // The OS media buttons drive the SAME controls the panel does — kept in a ref
   // so a lock-screen tap can never call a stale closure.
@@ -856,6 +1055,9 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // The NAS voice's piece IS the reading segment (-1 when not playing one).
     cloudPiece,
     voiceId, setVoiceId, catalog, currentItem, notice,
+    // Tap-to-hear, and whether the house (NAS) list has answered yet.
+    preview,
+    houseVoicesLoaded: house.loaded,
     standInWhy,
     audioVoice,
     // setNotice is exported so the panel can DISMISS a notice (2026-09-22).

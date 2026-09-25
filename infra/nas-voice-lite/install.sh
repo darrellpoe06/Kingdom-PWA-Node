@@ -19,7 +19,10 @@
 #
 # Brakes: request-driven server (no timers); MAX_INFLIGHT / MAX_CHARS /
 # SYNTH_TIMEOUT / cache cap live in voice_lite_server.py. This installer only
-# downloads when a file is missing (~26 MB piper + ~2 x 63 MB voices, once).
+# downloads when a file is missing (~26 MB piper once, then one voice model per
+# cycle: eight medium models and one high model, DR-0655). Sizes are not
+# written here because Hugging Face could not be reached to measure them; the
+# per-cycle limit bounds the cost either way.
 # RECORDED-STATE: infra/nas-transport/RECORDED-STATE.md (the /voice-lite row).
 set -e
 
@@ -30,7 +33,7 @@ TOKEN_FILE=/volume1/PoeTech/secrets/chat-bridge-token.txt
 UNIT=/etc/systemd/system/poetech-voice-lite.service
 PORT=8772
 PIPER_TAG=2023.11.14-2
-VOICE_BASE=https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US
+VOICE_ROOT=https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en
 
 echo "== voice-lite install: token =="
 if [ ! -s "$TOKEN_FILE" ]; then
@@ -63,9 +66,17 @@ else
 fi
 
 echo "== voice-lite install: voices (at most one large file per cycle) =="
+# EVERY VOICE IS CHOOSABLE (DR-0655). The house voices, as locale:speaker:quality.
+# Each name was checked against rhasspy/piper's VOICES.md index of the
+# rhasspy/piper-voices v1.0.0 files. Order matters: ryan + amy first (the
+# male/female aliases and the install probe), the rest one large file per
+# cycle after that. Keep in step with VOICES in voice_lite_server.py.
+HOUSE_VOICES="en_US:ryan:medium en_US:amy:medium en_US:lessac:medium en_US:joe:medium en_US:hfc_male:medium en_US:hfc_female:medium en_GB:alan:medium en_GB:northern_english_male:medium en_US:ryan:high"
 BIG_DONE=0
-for V in ryan amy; do
-  NAME="en_US-$V-medium"
+for SPEC in $HOUSE_VOICES; do
+  LOC="${SPEC%%:*}"; REST="${SPEC#*:}"; SPK="${REST%%:*}"; Q="${REST#*:}"
+  NAME="$LOC-$SPK-$Q"
+  # The config first (small) so a model never sits on disk without it.
   for EXT in onnx.json onnx; do
     F="$HOME_DIR/voices/$NAME.$EXT"
     [ -s "$F" ] && continue
@@ -73,7 +84,7 @@ for V in ryan amy; do
       echo "  $NAME.onnx waits for the next cycle"
       continue
     fi
-    curl -fsSL -m 200 -o "$F.part" "$VOICE_BASE/$V/medium/$NAME.$EXT" \
+    curl -fsSL -m 300 -o "$F.part" "$VOICE_ROOT/$LOC/$SPK/$Q/$NAME.$EXT" \
       && mv "$F.part" "$F" && echo "  downloaded $NAME.$EXT" \
       || { rm -f "$F.part"; echo "  download of $NAME.$EXT FAILED (retried next cycle)"; }
     [ "$EXT" = "onnx" ] && BIG_DONE=1
@@ -95,6 +106,26 @@ else
   echo "  piper did NOT produce audio on this box -- nothing mounted (check glibc / arch)"
   exit 0
 fi
+
+echo "== voice-lite install: prove each other voice speaks, once =="
+# A model is proven once (a .proven mark beside it); one that cannot make a
+# clip is removed so it downloads fresh next cycle, and the server never
+# lists it meanwhile (it counts a model only with its config on disk).
+for M in "$HOME_DIR"/voices/*.onnx; do
+  [ -s "$M" ] || continue
+  [ -s "$M.json" ] || continue
+  [ -f "$M.proven" ] && continue
+  rm -f "$PROBE_WAV"
+  if echo "In the beginning was the Word." | "$HOME_DIR/piper/piper" --model "$M" --output_file "$PROBE_WAV" >/dev/null 2>&1 \
+     && [ -s "$PROBE_WAV" ]; then
+    touch "$M.proven"
+    echo "  $(basename "$M" .onnx) speaks ($(wc -c < "$PROBE_WAV") bytes)"
+  else
+    rm -f "$M" "$M.json"
+    echo "  $(basename "$M" .onnx) did NOT speak -- removed, downloads again next cycle"
+  fi
+done
+rm -f "$PROBE_WAV"
 
 echo "== voice-lite install: systemd unit =="
 PY="$(command -v python3 || true)"

@@ -82,6 +82,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 // jsdom has no media playback; the silent keep-alive element only needs to exist.
 window.HTMLMediaElement.prototype.play = function play() { return Promise.resolve(); };
 window.HTMLMediaElement.prototype.pause = function pause() {};
+window.HTMLMediaElement.prototype.load = function load() {};
 
 beforeEach(() => {
   localStorage.clear();
