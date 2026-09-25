@@ -233,13 +233,30 @@ describe('resolve-ledger-conflicts — end to end in a real merge', () => {
     } finally { r.cleanup(); }
   });
 
-  it('CATCHES a conflict marker left in another merge-touched file (fails loudly, exit 1)', () => {
+  it('a file main carries WITH markers on purpose (a test fixture) does not block the merge', () => {
+    // The first live run (2026-09-25) refused six PRs over
+    // app/src/__tests__/fixtures/ledger-conflict-1793.txt, brought in verbatim
+    // from main. Only files this resolution produced are scanned.
     const r = makeRepo(); r.g.dir = r.dir;
     try {
-      twoSides(r, { extraOnMain: () => r.w('notes.md', 'a\n<<<<<<< HEAD\nb\n=======\nc\n>>>>>>> x\n') });
+      twoSides(r, { extraOnMain: () => r.w('app/src/__tests__/fixtures/ledger-conflict-1793.txt', 'a\n<<<<<<< HEAD\nb\n=======\nc\n>>>>>>> x\n') });
+      const out = run(r.dir);
+      expect(out.stderr).toBe('');
+      expect(out.status).toBe(0);
+    } finally { r.cleanup(); }
+  });
+
+  it('CATCHES a conflict marker left in a file the resolution produced (fails loudly, exit 1)', () => {
+    // A generator that leaves a marker in the health file it writes: the
+    // scan still covers every file this resolution wrote.
+    const r = makeRepo(); r.g.dir = r.dir;
+    try {
+      r.w('scripts/legibility-guard.mjs', "import { writeFileSync } from 'node:fs';\nwriteFileSync('app/src/lib/legibility-health.json', '<<<<<<< ours\\n{}\\n=======\\n{}\\n>>>>>>> theirs\\n');\nconsole.log('wrote');\n");
+      r.g('add', '-A'); r.g('commit', '-qm', 'a broken generator');
+      twoSides(r);
       const out = run(r.dir);
       expect(out.status).toBe(1);
-      expect(out.stderr).toMatch(/conflict markers left behind[\s\S]*notes\.md/);
+      expect(out.stderr).toMatch(/conflict markers left behind[\s\S]*legibility-health\.json/);
     } finally { r.cleanup(); }
   });
 
