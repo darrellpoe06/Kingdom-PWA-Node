@@ -569,7 +569,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     if (!chunks.length) return { saved: 0, total: 0, bytes: 0, failed: 0 };
     // The same family key a read asks for first (DR-0654): without it every
     // piece is a 401.
-    try { if (!hasBridgeToken()) await provisionBridgeToken(supabase); } catch (_) { /* the pieces say why */ }
+    if (!hasBridgeToken()) await provisionBridgeToken(supabase).catch(() => { /* the pieces say why */ });
     const source = createClipSource({
       keys,
       cache: deviceClipCache(),
