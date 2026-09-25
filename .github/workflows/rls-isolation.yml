@@ -231,16 +231,17 @@ jobs:
           # the key alone does nothing without this executor).
           #
           # ONE TRANSACTION for the pre-step AND the whole chain (2026-09-25,
-          # db-migrate run 36090407494). This leg runs against the LIVE
-          # database. The pre-step used to commit its DROP on its own, and the
+          # db-migrate run 36090407494). This leg runs against SUPABASE_DB_URL,
+          # the HOSTED project; the app has read the sovereign database since
+          # REPOINT-ARMED (2026-08-19), so no visitor reads what this leg
+          # touches. The pre-step used to commit its DROP on its own, and the
           # chain then rebuilt the function file by file, so for the length of
-          # the chain the function did not exist in production: poe-properties
-          # drops public_vacancies(), and every anonymous visitor to the
-          # vacancies page got an error for ~40 seconds per run. The
-          # live-definition witness of a concurrent db-migrate caught it
-          # ("public_vacancies — absent from the live database"). Inside one
-          # transaction, other sessions see the old definition until COMMIT and
-          # then the newest, never nothing. Pinned by
+          # the chain (~40 s) the hosted project had no public_vacancies(). The
+          # live-definition witness of a concurrent db-migrate, which also reads
+          # hosted, read that gap ("public_vacancies — absent from the live
+          # database") and failed the run. Inside one transaction, other
+          # sessions see the old definition until COMMIT and then the newest,
+          # never nothing. Pinned by
           # scripts/rls-isolation-matrix-guard.mjs (checkAtomicApply).
           PRE=${{ toJSON(matrix.pre || '') }}
           ARGS=()

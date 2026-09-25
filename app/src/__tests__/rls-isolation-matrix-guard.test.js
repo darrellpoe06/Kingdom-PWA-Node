@@ -105,9 +105,10 @@ describe('rls-isolation-matrix-guard — every referenced file exists (DR-0239 g
   });
 });
 
-// Proven-to-catch (DR-0076 Section 3): the shape that left production without
-// public_vacancies() for the length of a chain (db-migrate run 36090407494).
-describe('rls-isolation-matrix-guard — each leg is ONE transaction against the live database', () => {
+// Proven-to-catch (DR-0076 Section 3): the shape that left the hosted project
+// without public_vacancies() for the length of a chain, which failed
+// db-migrate run 36090407494's witness.
+describe('rls-isolation-matrix-guard — each leg is ONE transaction', () => {
   const OLD = [
     '        run: |',
     "          PRE=${{ toJSON(matrix.pre || '') }}",

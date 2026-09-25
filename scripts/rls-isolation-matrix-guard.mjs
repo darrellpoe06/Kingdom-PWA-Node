@@ -114,13 +114,14 @@ export function checkMatrix(workflowText, { migExists, smokeExists, smokesOnDisk
 }
 
 // ── ONE TRANSACTION PER LEG (2026-09-25, db-migrate run 36090407494) ────────
-// Each leg re-applies its chain against the LIVE database. When the pre-step
+// Each leg re-applies its chain against SUPABASE_DB_URL (the hosted project,
+// which db-migrate's apply step and live-definition witness also use; the app
+// has read the sovereign database since REPOINT-ARMED). When the pre-step
 // (a DROP FUNCTION) committed on its own and the chain rebuilt the function
-// file by file, production had NO such function for the length of the chain:
-// the live-definition witness of a concurrent db-migrate read
-// "public_vacancies — absent from the live database" while the poe-properties
-// leg was mid-chain, and every anonymous visitor to the vacancies page got an
-// error for those seconds. The apply must be ONE psql --single-transaction that
+// file by file, that database had NO such function for the length of the
+// chain: the witness of a concurrent db-migrate read "public_vacancies —
+// absent from the live database" while the poe-properties leg was mid-chain,
+// and failed the run. The apply must be ONE psql --single-transaction that
 // carries the pre-step and every migration, so other sessions see the old
 // definition until COMMIT and the newest after, never nothing.
 export function checkAtomicApply(workflowText) {
@@ -133,7 +134,7 @@ export function checkAtomicApply(workflowText) {
   }
   const loop = /for\s+mig\s+in[\s\S]*?\bdone\b/.exec(code);
   if (loop && /\bpsql\b/.test(loop[0])) {
-    problems.push('the leg applies each migration in its own psql transaction; a chain that drops and rebuilds a function leaves production without it between files. Apply the whole chain in ONE psql --single-transaction');
+    problems.push('the leg applies each migration in its own psql transaction; a chain that drops and rebuilds a function leaves the database without it between files. Apply the whole chain in ONE psql --single-transaction');
   }
   if (!/psql\s+"\$DBURL"\s+--single-transaction[^\n]*"\$\{ARGS\[@\]\}"/.test(code)) {
     problems.push('no single psql --single-transaction call carries the leg\'s pre-step and chain ("${ARGS[@]}")');
