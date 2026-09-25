@@ -28,13 +28,34 @@ on:
   # queued PR would wait forever. Harmless when the queue is off.
   merge_group:
 
+# A newer commit on the same branch (or PR) supersedes the older run: the old
+# run's legs are cancelled so they stop holding runners the new commit needs
+# (DR-0645; measured 2026-09-24, 17 CI runs queued at once). Push runs and
+# pull_request runs have different refs, so they never cancel each other, and
+# main is never cancelled — every main commit keeps its full run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+# PARALLEL, NOT SERIAL (DR-0645, 2026-09-24). Darrell: "Our processes work way
+# faster than this!" The one required job used to run every gate in a single
+# line: ~20 minutes a PR (run 36066491340: 22:16:29 -> 22:36:28; vitest 11:34 of
+# it, the chrome-layout sweep 5:48, everything else ~2 min). The same gates now
+# run as parallel legs, and the required check keeps its exact name as the
+# AGGREGATOR at the bottom (job id `app`): it `needs:` every leg, runs
+# `if: always()`, and fails unless EVERY leg reported success. A red, cancelled
+# or skipped leg is a red required check, so nothing that used to block a merge
+# stops blocking it. No gate was removed; each one moved to a leg.
+#
+# Test coverage is whole: `vitest --shard=i/N` splits the file list into N
+# disjoint parts that together are the full suite, and every shard must pass.
+
 jobs:
-  app:
-    # Name is load-bearing: the main-lane ruleset requires a status check named
-    # exactly "app — lint + vitest". Do NOT rename this job — the build step
-    # below runs INSIDE this job, so a failed build still fails this required
-    # check. Renaming would orphan the required check and block every PR.
-    name: app — lint + vitest
+  # Lint + every node guard. Kept textually BEFORE the vitest step: the
+  # verify-covers-ci-guards test reads the guard list between `npm run lint`
+  # and `npx vitest run`.
+  guards:
+    name: app — lint + guards
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -46,11 +67,6 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: app/package-lock.json
-      # Python is here for the transcript-loader unit tests below (stdlib only —
-      # the pure caption-grace / verdict logic imports without youtube-transcript-api).
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
       - run: npm ci
       - run: npm run lint
       # Hybrid-modular boundary gate (DR-0078 §4.1 / DR-0076): the surface-mount
@@ -139,7 +155,53 @@ jobs:
       # silently dies on a phone. Fails the build if a prompt() input dialog
       # returns to app/src. Proven-to-catch in no-prompt-guard.test.js.
       - run: node ../scripts/no-prompt-guard.mjs
-      - run: npx vitest run
+
+  # The Vitest suite, split into disjoint shards that run at the same time.
+  # fail-fast is OFF so a red shard still lets the others finish and report
+  # every failing test, not just the first shard's.
+  vitest:
+    name: app — vitest shard ${{ matrix.shard }}/${{ strategy.job-total }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: npm ci
+      - run: npx vitest run --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+
+  # Python selftests, the repo-root guards, the real production build and the
+  # browser probes that judge it (SW navigation, read-highlight, scripture).
+  probes:
+    name: app — selftests + build + probes
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      # Python for the infra unit tests and selftests (stdlib only).
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: npm ci
       # Transcript-loader unit tests (DR-0076 / 2026-07-06): the caption-grace
       # classification — a fresh upload's missing captions are TRANSIENT (YouTube
       # is still processing them), not a durable no-caption verdict. Proven-to-catch:
@@ -377,18 +439,11 @@ jobs:
       - name: SW-controlled navigation gate
         run: node scripts/sw-nav-check.mjs
         working-directory: ${{ github.workspace }}
-      # Chrome-layout probe (DR-0239 / COMPREHENSIVE-REVIEW-STANDARD dim 4):
-      # the header/chrome is MEASURED in a real browser at phone/tablet/laptop
-      # widths — no page overflow, the brand reads horizontally, nothing
-      # overlaps the name. jsdom cannot measure geometry, which is how the
-      # 2026-07-28 letter-stacked-wordmark defect survived every prior gate.
-      # The selftest-break run FIRST proves the probe can fail (anti-theater,
-      # DR-0076 §3); then the real pass judges the built dist.
+      # Chrome-layout probe selftest (DR-0239 / DR-0076 §3): proves the probe
+      # CAN fail on this commit's build. The real sweep runs in the `layout`
+      # leg in parallel (DR-0645); both must pass for the required check.
       - name: Chrome-layout probe — selftest (must be able to fail)
         run: node scripts/chrome-layout-probe.mjs --selftest-break
-        working-directory: ${{ github.workspace }}
-      - name: Chrome-layout probe — chrome measured at real widths (surface sweep)
-        run: node scripts/chrome-layout-probe.mjs --sweep
         working-directory: ${{ github.workspace }}
       # Read-highlight probe (DR-0264/DR-0265 follow-along; the 2026-08-06 miss):
       # the follow-along highlight is PAINTED, not merely called. jsdom has no
@@ -431,6 +486,65 @@ jobs:
       - name: Scripture inference guard — reasoning across verses holds
         run: node scripts/scripture-inference-guard.mjs
         working-directory: ${{ github.workspace }}
+  # The chrome-layout sweep (real-browser page loads, the longest single
+  # step) gets its own leg with its own build, so it runs beside the shards
+  # instead of after them.
+  layout:
+    name: app — chrome-layout probe
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://test-stub.supabase.co
+          VITE_SUPABASE_ANON_KEY: test-stub-anon-key
+      - name: Install playwright-core (drives the runner's installed Chrome)
+        run: npm install --no-save playwright-core@1
+        working-directory: ${{ github.workspace }}
+      # Chrome-layout probe (DR-0239 / COMPREHENSIVE-REVIEW-STANDARD dim 4):
+      # the header/chrome is MEASURED in a real browser at phone/tablet/laptop
+      # widths — no page overflow, the brand reads horizontally, nothing
+      # overlaps the name. jsdom cannot measure geometry, which is how the
+      # 2026-07-28 letter-stacked-wordmark defect survived every prior gate.
+      # The selftest-break run FIRST proves the probe can fail (anti-theater,
+      # DR-0076 §3) — that selftest runs in the `probes` leg on its own build
+      # of the same commit, beside this sweep (DR-0645); the real pass here
+      # judges the built dist.
+      - name: Chrome-layout probe — chrome measured at real widths (surface sweep)
+        run: node scripts/chrome-layout-probe.mjs --sweep
+        working-directory: ${{ github.workspace }}
+
+  # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
+  # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.
+  # It runs `if: always()` because a job whose `needs` failed is otherwise
+  # SKIPPED, and a skipped required check counts as passing. Here, anything but
+  # success in any leg (failure, cancelled, skipped) turns this check red.
+  app:
+    name: app — lint + vitest
+    if: always()
+    needs: [guards, vitest, probes, layout]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout)
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          bad=$(echo "$NEEDS" | jq -r '[to_entries[] | select(.value.result != "success") | .key] | join(", ")')
+          if [ -n "$bad" ]; then
+            echo "::error::required legs did not pass: $bad"
+            exit 1
+          fi
+          echo "All legs passed."
 
   # THE REQUIRED CHECK KEEPS ITS NAME; ITS JOB CHANGED (DR-0617). Branch
   # protection requires a check with this exact name, and removing the job
