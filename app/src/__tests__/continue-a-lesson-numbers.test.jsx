@@ -19,7 +19,8 @@ import { createRoot } from 'react-dom/client';
 import ChurchLearn from '../components/ChurchLearn.jsx';
 import { buildCatalogCourseDescriptors } from '../lib/learn-catalog.js';
 import { recordPlace } from '../lib/learn-resume.js';
-import { orderLessons } from '../lib/lesson-order.js';
+import { orderLessons, lessonNumber } from '../lib/lesson-order.js';
+import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -41,8 +42,8 @@ beforeEach(() => {
 });
 afterEach(() => { act(() => root.unmount()); container.remove(); window.localStorage.clear(); });
 
-const mount = () => act(() => root.render(createElement(ChurchLearn, {
-  extraCourses, progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {},
+const mount = (courses = extraCourses) => act(() => root.render(createElement(ChurchLearn, {
+  extraCourses: courses, progress: {}, toggleModule: () => {}, quizState: {}, recordQuiz: () => {},
   learnLevel: 'auto', setLearnLevel: () => {}, ageBand: 'adult', setAgeBand: () => {},
 })));
 const click = (el) => act(() => { el.click(); });
@@ -93,14 +94,38 @@ describe('Prev / Next walk the reader\'s order', () => {
     expect(openedLessonId()).toBe(fullId('ll61-'));
   });
 
-  it('L192 is the last by number: Next is off and Prev opens L191', () => {
-    recordPlace({ courseKey: 'living-lessons', lessonId: fullId('ll192-'), stage: 1 });
-    mount();
+  // The newest lesson and the one before it are READ from the catalog by
+  // number, never named, so each new lesson (L193, L194, …) keeps this true.
+  const lastByNumber = (courses) => {
+    const course = courses.find((c) => c.meta.key === 'living-lessons');
+    const byNum = orderLessons(course.schedule, 'number');
+    const newest = byNum[byNum.length - 1];
+    const before = byNum[byNum.length - 2];
+    recordPlace({ courseKey: 'living-lessons', lessonId: newest.id, stage: 1 });
+    mount(courses);
     click(byTestId('continue-latest'));
+    expect(openedLessonId()).toBe(newest.id);
     const btns = barButtons();
-    expect(btns[btns.length - 1].disabled).toBe(true);
+    expect(btns[btns.length - 1].disabled, `Next is off on the newest, ${newest.id}`).toBe(true);
     click(btns[btns.length - 2]);
-    expect(openedLessonId()).toBe(fullId('ll191-'));
+    expect(openedLessonId()).toBe(before.id);
+  };
+
+  it('the newest lesson by number is last: Next is off and Prev opens the one before it', () => {
+    const byNum = orderLessons(LIVING_LESSONS_MODULES, 'number');
+    expect(lessonNumber(byNum[byNum.length - 1])).toBe(Math.max(...LIVING_LESSONS_MODULES.map(lessonNumber)));
+    lastByNumber(extraCourses);
+  });
+
+  it('stays true when a new lesson lands after the newest (a fake next lesson is appended)', () => {
+    const courses = buildCatalogCourseDescriptors().map((c) => {
+      if (c.meta.key !== 'living-lessons') return c;
+      const top = Math.max(...c.schedule.map(lessonNumber));
+      const last = c.schedule[c.schedule.length - 1];
+      const added = { ...last, id: `ll${top + 1}-a-lesson-that-just-landed`, title: 'A Lesson That Just Landed', week: c.schedule.length + 1 };
+      return { ...c, schedule: [...c.schedule, added] };
+    });
+    lastByNumber(courses);
   });
 
   it('"Newest first" picked in the list: Next follows that order instead', () => {

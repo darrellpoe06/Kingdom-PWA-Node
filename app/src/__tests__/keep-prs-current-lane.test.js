@@ -105,6 +105,10 @@ function world(script) {
   g(seed, 'checkout', '-qb', 'claude/two', 'main');
   w('app/src/pages/a.jsx', '"two";\n');
   g(seed, 'add', '-A'); g(seed, 'commit', '-qm', 'two');
+  // PR three: behind main but merges cleanly (touches neither ledger file).
+  g(seed, 'checkout', '-qb', 'claude/three', 'main');
+  w('app/src/pages/three.jsx', '3;\n');
+  g(seed, 'add', '-A'); g(seed, 'commit', '-qm', 'three');
   g(seed, 'checkout', '-q', 'main');
   w('docs/decisions/DR-0102-main.md', '# main\n');
   w('docs/decisions/INDEX.md', '| [DR-0100](DR-0100-a.md) | a |\n| [DR-0102](DR-0102-main.md) | main |\n\n**Next ID:** DR-0103. (DR-0102 = main.)\n');
@@ -115,7 +119,7 @@ function world(script) {
   mkdirSync(join(root, 'bin')); mkdirSync(join(root, 'tmp'));
   // 28 candidates like the real run: the 26 idle ones FIRST (the stub ignores
   // --jq, so this is the worst order), then the two live ones.
-  const prs = [...Array.from({ length: 26 }, (_, k) => `${100 + k} claude/idle-${k + 1}`), '1 claude/one', '2 claude/two'];
+  const prs = [...Array.from({ length: 26 }, (_, k) => `${100 + k} claude/idle-${k + 1}`), '1 claude/one', '2 claude/two', '3 claude/three'];
   writeFileSync(join(root, 'prs.txt'), prs.join('\n') + '\n');
   writeFileSync(join(root, 'bin', 'gh'), [
     '#!/bin/bash', 'echo "gh $*" >> "$SIMLOG"',
@@ -127,14 +131,14 @@ function world(script) {
   ].join('\n'));
   chmodSync(join(root, 'bin', 'gh'), 0o755);
   writeFileSync(join(root, 'sweep.sh'), script);
-  const run = () => spawnSync('bash', ['-e', join(root, 'sweep.sh')], {
+  const run = (extra = {}) => spawnSync('bash', ['-e', join(root, 'sweep.sh')], {
     cwd: join(root, 'runner'), encoding: 'utf8',
     env: {
       ...process.env, PATH: `${join(root, 'bin')}:${process.env.PATH}`, SIMLOG: join(root, 'gh.log'),
       PRLIST: join(root, 'prs.txt'), COMMENTS: join(root, 'comments.txt'),
       RUNNER_TEMP: join(root, 'tmp'), GITHUB_STEP_SUMMARY: join(root, 'summary.md'),
       REPO: 'o/r', OWNER: 'o', HAS_PUSH_TOKEN: 'false', ONLY_PR: '', MAX_PRS: '6', IDLE_HOURS: '72', DEADLINE_MIN: '15',
-      GIT_AUTHOR_NAME: 'github-actions[bot]', GIT_COMMITTER_NAME: 'github-actions[bot]',
+      GIT_AUTHOR_NAME: 'github-actions[bot]', GIT_COMMITTER_NAME: 'github-actions[bot]', ...extra,
     },
   });
   const origin = (...a) => g(root, '--git-dir', join(root, 'origin.git'), ...a);
@@ -156,6 +160,15 @@ describe('keep-prs-current — the sweep script under `bash -e`, end to end', ()
       expect(w.log()).toContain('gh workflow run ci.yml --repo o/r --ref claude/one');
       expect(w.log()).toContain('gh pr comment 2');
       expect(w.log()).toContain('gh workflow run auto-merge.yml');
+      // The refreshed PR is told it now waits on one approval or its owner's
+      // next push (the ruleset's unattributed-changes rule, measured on #1814).
+      expect(w.log().match(/gh pr comment 1 /g)).toHaveLength(1);
+      // Behind but clean: NOT pushed (main does not require up-to-date, and a
+      // token push would make it wait for an approval — #1809).
+      const threeBefore = w.origin('rev-parse', 'claude/three');
+      expect(r.stdout).toMatch(/#3 claude\/three: behind by \d+ but merges cleanly/);
+      expect(w.log()).not.toContain('--ref claude/three');
+      expect(w.origin('rev-parse', 'claude/three')).toBe(threeBefore);
       // The 26 idle PRs are skipped, and cost no budget (both live PRs still attempted).
       expect(r.stdout.match(/idle > 72h/g)).toHaveLength(26);
       // A second fire finds #1 current and does not comment on #2 again.
@@ -163,6 +176,18 @@ describe('keep-prs-current — the sweep script under `bash -e`, end to end', ()
       expect(again.status).toBe(0);
       expect(again.stdout).toMatch(/#1 claude\/one: current/);
       expect(w.log().match(/gh pr comment 2/g)).toHaveLength(1);
+    } finally { w.cleanup(); }
+  }, 60000);
+
+  it('a clean PR listed first does not spend the budget a conflicted PR behind it needs (run 36087218396)', () => {
+    const w = world(sweepScript(KEEP));
+    try {
+      writeFileSync(join(w.root, 'prs.txt'), '3 claude/three\n1 claude/one\n');
+      const r = w.run({ MAX_PRS: '1' });
+      expect(r.status, r.stdout + r.stderr).toBe(0);
+      expect(r.stdout).toMatch(/#3 claude\/three: behind by \d+ but merges cleanly/);
+      expect(r.stdout).toMatch(/#1 claude\/one: updated to [0-9a-f]{8}/);
+      expect(r.stdout).not.toMatch(/budget reached/);
     } finally { w.cleanup(); }
   }, 60000);
 
@@ -184,7 +209,7 @@ describe('keep-prs-current — the sweep script under `bash -e`, end to end', ()
     try {
       const r = w.run();
       expect(r.status).not.toBe(0);
-      expect(r.stdout).toMatch(/Candidates: 28/);
+      expect(r.stdout).toMatch(/Candidates: 29/);
       expect(r.stdout).not.toMatch(/^#/m); // died before touching a single PR
     } finally { w.cleanup(); }
   }, 60000);
