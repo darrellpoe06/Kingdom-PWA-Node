@@ -44,6 +44,13 @@ Rendered in Chromium on `/?lovecorner=1&view=church` with the header collapsed, 
 
 **Why the collapsed row was at the BOTTOM in his screenshot.** It is intended. At Largest (A+++) and Big Print (A44), `index.css` makes `.ts-safe-sticky .ts-escape-hatch` a fixed bottom bar (DR-0438), so the way out of big text is on screen by construction. At Normal, Large and Larger it sits in the flow above the nav. His screenshot matches the Largest / Big Print state.
 
+## Impact
+
+- **Rows saved.** At Normal, Large and Larger, the church door with the header tucked away loses one whole row at every width. Measured: 43 px at 1812 (Darrell's Fold), 30 px at 390, 41 px at 320. The page starts that much higher.
+- **Who it affects.** Everyone who opens The Love Corner door (`?lovecorner=1`, or the installed church app) with the header collapsed. The family shell and every other door with more than one top tab render exactly as before.
+- **The A+++ / A44 no-gain case.** At Largest and Big Print the collapsed row is already the fixed bottom bar (DR-0438), so no second top row exists to remove. There the lone "Church" row becomes the brand row at about the same height: 3 px saved at 1812, 1 px more at 390. This is the state his screenshot shows. The gain there is the brand in the top row, the "Love Corner tag in the space" half of his question, not space.
+- **Phones.** Below 640 px, in the merged state only, the header chevron yields to "Show header" on the same row, so one way back shows instead of two side by side.
+
 ## Decision
 
 When the top tab list holds exactly one tab, the row stops being a tab row (`components/TopNavRow.jsx`):
