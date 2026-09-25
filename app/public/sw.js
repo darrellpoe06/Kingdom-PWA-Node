@@ -123,7 +123,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// KEPT ACROSS DEPLOYS (DR-0655). A cache whose name starts with KEEP_PREFIX
+// KEPT ACROSS DEPLOYS (DR-0656). A cache whose name starts with KEEP_PREFIX
 // holds what the person chose to put on the device -- the on-device reading
 // voice (~63 MB model + runtime, lib/device-voice.js). Deleting it with the
 // per-deploy caches would silently re-download 63 MB after every merge and

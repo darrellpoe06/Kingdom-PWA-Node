@@ -73,7 +73,7 @@ manifests and lockfiles.
 3a. THIRD-PARTY SOFTWARE AND DATA — CONVEYED TO A DEVICE ON REQUEST
 --------------------------------------------------------------------
 
-The on-device reading voice (DR-0655; Voice -> On this device) is downloaded
+The on-device reading voice (DR-0656; Voice -> On this device) is downloaded
 only when a person presses "Download the voice to this device". What it
 carries to that device, and on what terms:
 
@@ -98,7 +98,7 @@ carries to that device, and on what terms:
                                      Ryan voice's dataset is licensed
                                      CC BY-NC-SA 4.0 (its MODEL_CARD). The
                                      Amy card was not verified here. Terms
-                                     are under Governor review (DR-0655,
+                                     are under Governor review (DR-0656,
                                      re-review 2026-10-02).
 
 

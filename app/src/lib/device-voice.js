@@ -1,5 +1,5 @@
 // =============================================================================
-// device-voice — the Piper reading voice, made ON the phone (DR-0655)
+// device-voice — the Piper reading voice, made ON the phone (DR-0656)
 // =============================================================================
 // Darrell, 2026-09-25 00:55 UTC: "So we need a direct connection to the nas for
 // a good reading?!!! Can't we give everything it needs for quality without
@@ -33,7 +33,7 @@
 //   checkDeviceVoice({ voice })         -> { state: 'ready'|'downloadable'|'unsupported', reason }
 //   downloadDeviceVoice({ voice, onProgress }) -> { ok, bytes } | { error }
 //
-// Not wired into the reader yet (DR-0655: after the clip-queue / read-aloud
+// Not wired into the reader yet (DR-0656: after the clip-queue / read-aloud
 // PRs land). The card in the Voice surface is the only caller today.
 // =============================================================================
 import ortWasmUrl from 'onnxruntime-web/ort-wasm-simd-threaded.wasm?url';
@@ -155,7 +155,7 @@ export async function checkDeviceVoice({ voice = 'male', cachesImpl, env } = {})
   const verdict = assessDeviceVoice({
     wasm, simd, worker: typeof g.Worker === 'function', cacheStorage: !!cs,
     // 84.9 MB measured for the largest pair (a 70.6 MB model + the 14.2 MB
-    // runtime, DR-0655), rounded up so a device right at the edge is told first.
+    // runtime, DR-0656), rounded up so a device right at the edge is told first.
     freeBytes, needBytes: 90e6, cached,
   });
   return { ...verdict, cached, freeBytes };

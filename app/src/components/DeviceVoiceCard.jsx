@@ -1,5 +1,5 @@
 // =============================================================================
-// DeviceVoiceCard — "Voice on this device (no connection needed)" (DR-0655)
+// DeviceVoiceCard — "Voice on this device (no connection needed)" (DR-0656)
 // =============================================================================
 // Darrell, 2026-09-25: "Can't we give everything it needs for quality without
 // needing to reconnect with the nas?" This card is where that is done: the
@@ -13,7 +13,7 @@
 //   * the speed is timed on THIS device when Sample is pressed, and judged by
 //     speedVerdict (lib/device-voice.js).
 // It does NOT change what the reader uses. Wiring it in waits on the
-// clip-queue / read-aloud work landing (DR-0655 Decision §4).
+// clip-queue / read-aloud work landing (DR-0656 Decision §4).
 // =============================================================================
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {

@@ -1,6 +1,6 @@
 // @vitest-environment node
 // =============================================================================
-// The voice can live on the device (DR-0655). Proven-to-catch, each block:
+// The voice can live on the device (DR-0656). Proven-to-catch, each block:
 //   * PARITY — the ids our recipe feeds the model equal, byte for byte, the ids
 //     the NAS's own piper binary (2023.11.14-2) fed it for the same text. Break
 //     the clause rule, the terminator handling or the pad rule and it fails.

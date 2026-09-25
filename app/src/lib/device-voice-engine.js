@@ -1,5 +1,5 @@
 // =============================================================================
-// device-voice-engine — Piper inference itself (DR-0655)
+// device-voice-engine — Piper inference itself (DR-0656)
 // =============================================================================
 // The work the on-device voice does, apart from HOW it is called: the app runs
 // it inside device-voice.worker.js (off the main thread); the measurement
@@ -12,7 +12,7 @@
 //
 // LICENSE NOTE: phonemizer.js is Apache-2.0 but EMBEDS espeak-ng, which is
 // GPL-3.0-or-later. It is loaded only in the worker chunk, only after the
-// person asks for the on-device voice. See NOTICE and DR-0655.
+// person asks for the on-device voice. See NOTICE and DR-0656.
 // =============================================================================
 import * as ort from 'onnxruntime-web/wasm';
 import { phonemize } from 'phonemizer';
@@ -25,7 +25,7 @@ export async function createEngine({ model, wasmBinary, config, numThreads = 1 }
   const t0 = now();
   ort.env.wasm.wasmBinary = wasmBinary;
   // One thread: more needs SharedArrayBuffer, which needs COOP/COEP headers
-  // on the whole app (DR-0655 measured what those would break).
+  // on the whole app (DR-0656 measured what those would break).
   ort.env.wasm.numThreads = numThreads;
   ort.env.wasm.proxy = false;
   const session = await ort.InferenceSession.create(new Uint8Array(model), {

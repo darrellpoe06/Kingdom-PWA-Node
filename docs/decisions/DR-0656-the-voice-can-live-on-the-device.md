@@ -1,4 +1,4 @@
-# DR-0655 — The voice can live on the device: the NAS's Piper voice, downloaded once and made on the phone with no connection
+# DR-0656 — The voice can live on the device: the NAS's Piper voice, downloaded once and made on the phone with no connection
 
 - **Status:** accepted
 - **Tier:** B (a new user-facing card, a new third-party download, and a GPL component conveyed to devices; the reader is NOT switched over by this record)

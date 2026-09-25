@@ -20,7 +20,7 @@
 // Piper's own output is measured, not assumed: against the piper binary the
 // NAS runs (2023.11.14-2), 10 of 10 test passages gave byte-identical id
 // sequences, sentence by sentence. The ids are pinned in
-// __tests__/device-voice.test.js (DR-0655 carries the measurement).
+// __tests__/device-voice.test.js (DR-0656 carries the measurement).
 //
 // Pure. The espeak call is injected, so this runs in a worker, a test, or Node.
 // =============================================================================
