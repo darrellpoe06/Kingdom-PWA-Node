@@ -175,7 +175,9 @@ describe('the panel says honestly what happens when you switch apps', () => {
 
   it('the stand-in reaches for the NAS audio voice BEFORE the phone voice', () => {
     const hook = readFileSync(join(HERE, '..', 'lib', 'use-read-aloud.js'), 'utf8');
-    const lite = hook.indexOf('await playLiteVoice(clean)');
+    // The voice being read is `vid` since DR-0653 (a sample reads in a voice
+    // other than the pick); the order this pins is unchanged.
+    const lite = hook.indexOf('await playLiteVoice(clean, vid)');
     const device = hook.indexOf("setNotice('This device can’t read aloud");
     expect(lite).toBeGreaterThan(0);
     expect(device).toBeGreaterThan(lite);

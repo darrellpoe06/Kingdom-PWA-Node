@@ -29,6 +29,16 @@ export function isPersonVoiceId(id) { return typeof id === 'string' && id.starts
 export function personKeyOf(id) { return isPersonVoiceId(id) ? id.slice(PERSON_PREFIX.length) : null; }
 export function isSystemVoiceId(id) { return !id || id === SYSTEM_VOICE_ID; }
 
+// A HOUSE voice: one of the Piper voices on the church's NAS, by model id,
+// e.g. 'house:en_GB-alan-medium' (DR-0653). Real audio, so it keeps playing
+// when the listener switches apps.
+const HOUSE_PREFIX = 'house:';
+export function houseVoiceId(modelId) { return `${HOUSE_PREFIX}${modelId}`; }
+export function isHouseVoiceId(id) { return typeof id === 'string' && id.startsWith(HOUSE_PREFIX) && id.length > HOUSE_PREFIX.length; }
+export function houseModelOf(id) { return isHouseVoiceId(id) ? id.slice(HOUSE_PREFIX.length) : null; }
+/** A voice of the phone's own engine (anything that is not system/person/house). */
+export function isDeviceVoiceId(id) { return !isSystemVoiceId(id) && !isPersonVoiceId(id) && !isHouseVoiceId(id); }
+
 /** Read the saved voice id from a store (localStorage). Never throws. */
 export function loadReadingVoiceId(store = (typeof localStorage !== 'undefined' ? localStorage : undefined)) {
   return loadReadingVoicePick(store).voiceId;

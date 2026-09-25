@@ -32,6 +32,7 @@ import { getBookmark, saveBookmark, offersResume, resumeLabel, paragraphOf, para
 import { subscribeReadRequest } from '../lib/read-request.js';
 import { revealAllForReading, settled, afterRender } from '../lib/read-reveal.js';
 import UiIcon from './UiIcon.jsx';
+import VoicePicker from './VoicePicker.jsx';
 import { helpFor } from '../lib/help-content.js';
 import { buildSurfaceDigest } from '../lib/surface-digest.js';
 import { talkAboutSurface } from '../lib/talk-about.js';
@@ -185,6 +186,8 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   const {
     supported, isReading, isPaused, rate, read, pause, resume, stop, setRate, claimAudio,
     catalog, voiceId, setVoiceId, currentItem,
+    // Tap-to-hear a voice before keeping it (DR-0653; optional in mocks).
+    preview,
     segmentIndex, setBoundaryHandler, deviceRead, cloudProgress,
     // `notice` WAS NOT TAKEN HERE until 2026-09-20, and that single omission
     // broke the engine's own guarantee at its very last hop. tts.js runs a
@@ -1122,15 +1125,16 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
 
   // Grouped voice options (System / Your voices / Voices & accents) — same global
   // preference the header picker and Voice tab write.
-  const groups = catalog.reduce((acc, item) => { (acc[item.group] = acc[item.group] || []).push(item); return acc; }, {});
-  const order = ['Default', 'Your voices', 'Voices & accents'].filter((g) => groups[g] && groups[g].length);
-  const onVoice = (e) => { const item = catalog.find((c) => c.id === e.target.value); if (item && !item.usable) return; setVoiceId(e.target.value); };
+  // (Voice grouping lives in VoicePicker: the catalog's own order, every
+  // group it has — the hardcoded group list here dropped any group it did not
+  // name, DR-0653.)
   // WHICH VOICE, AND WHY, on the status line (Darrell 2026-09-23: "No
   // headaches!!!!"). A dark studio is not a message to dismiss; it is a
   // word beside Reading.
   const standInNote = standInWhy === 'studio-offline'
     ? ' · stand-in voice, the studio is offline'
-    : standInWhy === 'studio-unarmed' ? ' · stand-in voice until the studio is armed' : '';
+    : standInWhy === 'studio-unarmed' ? ' · stand-in voice until the studio is armed'
+      : standInWhy === 'house-offline' ? ' · phone voice, the house voice is not answering' : '';
   const statusLabel = (isReading ? (isPaused ? 'Paused' : 'Reading…') : 'Ready') + standInNote;
 
   return (
@@ -1509,25 +1513,11 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
             </div>
           </div>
 
-          {catalog.length > 1 ? (
+          {/* EVERY VOICE IS CHOOSABLE (DR-0653): shown even when there is one
+              entry, because that entry's line tells the truth about it. */}
+          {catalog.length ? (
             <div className="mb-[0.5em]">
-              <label htmlFor="tts-voice" className="block text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Voice (used everywhere)</label>
-              <select
-                id="tts-voice"
-                value={voiceId}
-                onChange={onVoice}
-                className="w-full text-[0.6875em] border border-[#E8E4DC] bg-white text-[#1A1815] px-[0.5em] py-[0.5em] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"
-              >
-                {order.map((g) => (
-                  <optgroup key={g} label={g}>
-                    {groups[g].map((item) => (
-                      <option key={item.id} value={item.id} disabled={!item.usable}>
-                        {item.label}{item.ai ? ' · AI' : ''}{item.standIn ? ' (stand-in)' : ''}{!item.usable ? ' — subscriber' : ''}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
+              <VoicePicker id="tts-voice" catalog={catalog} voiceId={voiceId} setVoiceId={setVoiceId} preview={preview} isReading={isReading} />
             </div>
           ) : null}
 

@@ -22,14 +22,18 @@
 # Contract (the Funnel mount /voice-lite is STRIPPED by tailscale, so the bare
 # paths arrive; the prefixed spellings are served too, for a proxy that does
 # not strip):
-#   GET  /health, /voice-lite/health -> 200 {"ok":true,"voices":[..]} only when
-#        the piper binary and at least one voice model are really on disk;
+#   GET  /health, /voice-lite/health -> 200 {"ok":true,"voices":[ids..]} only
+#        when the piper binary and at least one voice model are really on disk;
 #        503 otherwise. Open (says nothing worth guarding).
+#   GET  /voices, /voice-lite/voices -> 200 {"ok":true,"voices":[{id,label,
+#        gender,accent,quality,note}], "aliases":{...}, "default":id} -- the
+#        voices REALLY installed on this box, so the app lists what is there
+#        and never a painted list (DR-0653). 503 when none. Open.
 #   POST /speak,  /voice-lite/speak  -> Authorization: Bearer <family token>.
-#        Body {"text": "...", "voice": "male"|"female"}. Returns audio/wav.
-#        401 bad/missing bearer, 400 empty, 413 too long, 503 busy.
+#        Body {"text": "...", "voice": "<model id>"|"male"|"female"}. Returns
+#        audio/wav. 401 bad/missing bearer, 400 empty, 413 too long, 503 busy.
 #
-# Cached by sha256(voice + text): a paragraph read twice is synthesized once.
+# Cached by sha256(model + text): a paragraph read twice is synthesized once.
 #
 # Brakes (request-driven, not the timer class; a public door still has bounds):
 #   * MAX_INFLIGHT concurrent syntheses; the next gets 503 immediately.
@@ -61,16 +65,64 @@ MAX_CHARS = int(os.environ.get("VOICE_LITE_MAX_CHARS", "1500"))
 SYNTH_TIMEOUT = float(os.environ.get("VOICE_LITE_TIMEOUT", "90"))
 CACHE_MAX_BYTES = int(os.environ.get("VOICE_LITE_CACHE_BYTES", str(400 * 1024 * 1024)))
 
-# The voices the installer downloads, by the word the app sends. A stand-in for
-# a man reads in a man's voice (DR-0138); anything unknown gets the default.
+# The voices the installer downloads (DR-0653, "Every voice is choosable").
+# Darrell 2026-09-25: "I can only pic this fake dying voice!!!!!! Why
+# limitations are built into the app!!!!! Fix it!!!!!" Two voices were all the
+# house had. Every name below was checked against rhasspy/piper's own
+# VOICES.md index of the rhasspy/piper-voices v1.0.0 files; install.sh fetches
+# each model WITH its .onnx.json config, and a model only counts as installed
+# when both are on disk.
+#
+# A HIGH model is a larger network: it reads more naturally and costs the NAS
+# CPU more per paragraph. It is labelled, never blocked -- the listener chooses.
 VOICES = {
-    "male": "en_US-ryan-medium",
-    "female": "en_US-amy-medium",
+    "en_US-ryan-medium": {"label": "Ryan", "gender": "male", "accent": "American", "quality": "medium"},
+    "en_US-amy-medium": {"label": "Amy", "gender": "female", "accent": "American", "quality": "medium"},
+    "en_US-lessac-medium": {"label": "Lessac", "gender": "female", "accent": "American", "quality": "medium"},
+    "en_US-joe-medium": {"label": "Joe", "gender": "male", "accent": "American", "quality": "medium"},
+    "en_US-hfc_male-medium": {"label": "HFC (man)", "gender": "male", "accent": "American", "quality": "medium"},
+    "en_US-hfc_female-medium": {"label": "HFC (woman)", "gender": "female", "accent": "American", "quality": "medium"},
+    "en_GB-alan-medium": {"label": "Alan", "gender": "male", "accent": "British", "quality": "medium"},
+    "en_GB-northern_english_male-medium": {"label": "Northern English", "gender": "male", "accent": "British (Northern)", "quality": "medium"},
+    "en_US-ryan-high": {"label": "Ryan (high quality)", "gender": "male", "accent": "American", "quality": "high"},
 }
+# The words the app sent before voices were named, kept working: a stand-in
+# for a man reads in a man's voice (DR-0138); anything unknown gets the default.
+ALIASES = {"male": "en_US-ryan-medium", "female": "en_US-amy-medium"}
 DEFAULT_VOICE = "male"
+DEFAULT_MODEL = ALIASES[DEFAULT_VOICE]
+
+
+def resolve_voice(name):
+    """The model id a request's `voice` means: an alias, a known model, or the default."""
+    if name in ALIASES:
+        return ALIASES[name]
+    if name in VOICES:
+        return name
+    return DEFAULT_MODEL
+
+
+def voice_note(meta):
+    """The one-line truth the app shows beside this voice."""
+    if meta.get("quality") == "high":
+        return ("Most natural of the house voices, and the slowest: the NAS works harder, "
+                "so the first paragraph takes longer. Keeps playing when you switch apps.")
+    return "Real audio from the church's own server. Keeps playing when you switch apps."
+
+
+def describe_voices(installed):
+    """The /voices answer for the model ids really on disk, in catalog order."""
+    out = []
+    for vid, meta in VOICES.items():
+        if vid in installed:
+            out.append({"id": vid, "label": meta["label"], "gender": meta["gender"],
+                        "accent": meta["accent"], "quality": meta["quality"], "note": voice_note(meta)})
+    return out
+
 
 SPEAK_PATHS = {"/speak", "/voice-lite/speak"}
 HEALTH_PATHS = {"/health", "/voice-lite/health"}
+VOICES_PATHS = {"/voices", "/voice-lite/voices"}
 
 
 def expected_token(token_file=None):
@@ -96,18 +148,20 @@ class Piper:
         self.home = home
         self.binary = os.path.join(home, "piper", "piper")
 
-    def model_path(self, voice):
-        return os.path.join(self.home, "voices", VOICES.get(voice, VOICES[DEFAULT_VOICE]) + ".onnx")
+    def model_path(self, model_id):
+        return os.path.join(self.home, "voices", (model_id if model_id in VOICES else DEFAULT_MODEL) + ".onnx")
 
     def available_voices(self):
+        """Model ids whose model AND config are both on disk (piper needs both)."""
         if not (os.path.isfile(self.binary) and os.access(self.binary, os.X_OK)):
             return []
-        return [k for k in VOICES if os.path.isfile(self.model_path(k))]
+        return [k for k in VOICES
+                if os.path.isfile(self.model_path(k)) and os.path.isfile(self.model_path(k) + ".json")]
 
-    def synthesize(self, text, voice, out_path):
-        model = self.model_path(voice)
+    def synthesize(self, text, model_id, out_path):
+        model = self.model_path(model_id)
         if not os.path.isfile(model):
-            model = self.model_path(DEFAULT_VOICE)
+            model = self.model_path(DEFAULT_MODEL)
         subprocess.run(
             [self.binary, "--model", model, "--output_file", out_path],
             input=text.encode("utf-8"), check=True, timeout=SYNTH_TIMEOUT,
@@ -170,12 +224,16 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT):
 
         def do_GET(self):
             path = self.path.split("?", 1)[0]
-            if path not in HEALTH_PATHS:
+            if path not in HEALTH_PATHS and path not in VOICES_PATHS:
                 return self._json(404, {"error": "not-found"})
             voices = engine.available_voices()
             if not voices:
                 return self._json(503, {"ok": False, "error": "piper-not-installed"})
-            return self._json(200, {"ok": True, "voices": voices})
+            if path in VOICES_PATHS:
+                default = DEFAULT_MODEL if DEFAULT_MODEL in voices else voices[0]
+                return self._json(200, {"ok": True, "voices": describe_voices(voices),
+                                        "aliases": dict(ALIASES), "default": default})
+            return self._json(200, {"ok": True, "voices": voices, "aliases": dict(ALIASES)})
 
         def do_POST(self):
             path = self.path.split("?", 1)[0]
@@ -196,13 +254,19 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT):
             except ValueError:
                 return self._json(400, {"error": "bad-json"})
             text = " ".join(str(body.get("text") or "").split())
-            voice = body.get("voice") if body.get("voice") in VOICES else DEFAULT_VOICE
+            requested = body.get("voice")
+            voice = resolve_voice(requested if isinstance(requested, str) else "")
             if not text:
                 return self._json(400, {"error": "text-required"})
             if len(text) > MAX_CHARS:
                 return self._json(413, {"error": "text-too-long", "max": MAX_CHARS})
-            if not engine.available_voices():
+            installed = engine.available_voices()
+            if not installed:
                 return self._json(503, {"ok": False, "error": "piper-not-installed"})
+            # A voice picked in the app but not downloaded yet reads in the
+            # default rather than failing (the app lists only installed ones).
+            if voice not in installed:
+                voice = DEFAULT_MODEL if DEFAULT_MODEL in installed else installed[0]
             out = os.path.join(cache_dir, cache_key(voice, text) + ".wav")
             if os.path.isfile(out) and os.path.getsize(out) > 44:
                 try:
@@ -255,9 +319,11 @@ def _selftest():
             self.installed = True
             self.slow = 0.0
             self.voices_seen = []
+            # Which models are "on disk" -- a subset, as on a NAS mid-download.
+            self.models = list(VOICES)
 
         def available_voices(self):
-            return list(VOICES) if self.installed else []
+            return [m for m in VOICES if m in self.models] if self.installed else []
 
         def synthesize(self, text, voice, out_path):
             self.calls += 1
@@ -307,12 +373,62 @@ def _selftest():
 
     s, ctype, b = req("POST", "/speak", {"text": "In the beginning was the Word.", "voice": "female"})
     check(s == 200 and ctype == "audio/wav" and b[:4] == b"RIFF", "speak returns a WAV clip")
-    check(eng.voices_seen[-1] == "female", "the requested voice reaches the synthesizer")
+    check(eng.voices_seen[-1] == "en_US-amy-medium", "the 'female' alias still reaches its model")
     calls = eng.calls
     s, _, b = req("POST", "/voice-lite/speak", {"text": "In the beginning  was the Word.", "voice": "female"})
     check(s == 200 and eng.calls == calls, "the same paragraph is served from the cache, not re-synthesized")
     req("POST", "/speak", {"text": "Unknown voice.", "voice": "robot"})
-    check(eng.voices_seen[-1] == DEFAULT_VOICE, "an unknown voice falls back to the default")
+    check(eng.voices_seen[-1] == DEFAULT_MODEL, "an unknown voice falls back to the default")
+    req("POST", "/speak", {"text": "Male alias.", "voice": "male"})
+    check(eng.voices_seen[-1] == "en_US-ryan-medium", "the 'male' alias still reaches its model")
+
+    # EVERY VOICE IS CHOOSABLE (DR-0653): a model named by id is the one used.
+    req("POST", "/speak", {"text": "A British reader.", "voice": "en_GB-alan-medium"})
+    check(eng.voices_seen[-1] == "en_GB-alan-medium", "a voice picked by model id reaches the synthesizer")
+    s, _, b = req("GET", "/voices", auth=None)
+    listed = json.loads(b) if s == 200 else {}
+    ids = [v.get("id") for v in listed.get("voices", [])]
+    check(s == 200 and ids == list(VOICES), "/voices lists every installed model, in catalog order")
+    check(all(v.get("label") and v.get("note") and v.get("gender") for v in listed.get("voices", [])),
+          "every listed voice carries a label, a gender and a one-line note")
+    high = [v for v in listed.get("voices", []) if v.get("quality") == "high"]
+    check(bool(high) and all("slow" in v["note"] for v in high), "a high model is labelled as slower, not hidden")
+    check(listed.get("aliases") == ALIASES and listed.get("default") == DEFAULT_MODEL, "/voices reports the aliases and the default")
+    s, _, _ = req("GET", "/voice-lite/voices", auth=None)
+    check(s == 200, "prefixed /voices spelling answers too")
+
+    # Mid-download: only what is really on disk is listed, and a pick of a
+    # model not there yet reads in the default instead of failing.
+    eng.models = ["en_US-ryan-medium", "en_US-joe-medium"]
+    s, _, b = req("GET", "/voices", auth=None)
+    ids = [v["id"] for v in json.loads(b)["voices"]] if s == 200 else []
+    check(ids == ["en_US-ryan-medium", "en_US-joe-medium"], "/voices never lists a model that is not on disk")
+    s, _, _ = req("POST", "/speak", {"text": "Not downloaded yet.", "voice": "en_GB-alan-medium"})
+    check(s == 200 and eng.voices_seen[-1] == DEFAULT_MODEL, "a model not on disk yet reads in the default")
+    eng.models = ["en_US-joe-medium"]
+    s, _, b = req("GET", "/voices", auth=None)
+    check(s == 200 and json.loads(b).get("default") == "en_US-joe-medium", "the default is one that is really installed")
+    eng.models = list(VOICES)
+    eng.installed = False
+    s, _, _ = req("GET", "/voices", auth=None)
+    check(s == 503, "/voices is 503, never an empty 200, when piper is missing")
+    eng.installed = True
+
+    # The real engine counts a model only when its config sits beside it.
+    home = tempfile.mkdtemp()
+    os.makedirs(os.path.join(home, "piper"))
+    os.makedirs(os.path.join(home, "voices"))
+    binp = os.path.join(home, "piper", "piper")
+    with open(binp, "w") as fh:
+        fh.write("#!/bin/sh\n")
+    os.chmod(binp, 0o755)
+    real = Piper(home)
+    for m in ("en_US-ryan-medium", "en_GB-alan-medium"):
+        with open(real.model_path(m), "wb") as fh:
+            fh.write(b"x")
+    with open(real.model_path("en_US-ryan-medium") + ".json", "w") as fh:
+        fh.write("{}")
+    check(real.available_voices() == ["en_US-ryan-medium"], "a model without its .onnx.json config is not counted as installed")
 
     # Busy: one slow synthesis holds the only slot; a second is refused at once.
     eng.slow = 1.0

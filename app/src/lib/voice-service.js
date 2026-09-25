@@ -389,6 +389,62 @@ export function markLiteVoiceDown(now = Date.now()) { liteDownUntil = now + LITE
 /** Tests only. */
 export function _resetLiteVoiceForTests() { liteDownUntil = 0; }
 
+// -----------------------------------------------------------------------------
+// THE HOUSE VOICES, AS THE NAS REPORTS THEM (DR-0653, "Every voice is choosable")
+// -----------------------------------------------------------------------------
+// Darrell 2026-09-25: "I can only pic this fake dying voice!!!!!!" The NAS had
+// voices the app never offered by name. /voice-lite/voices answers with the
+// Piper models REALLY on disk (infra/nas-voice-lite), so the list is never a
+// painted one: a voice still downloading is simply not there yet.
+export const LITE_VOICES_PATH = '/voice-lite/voices';
+const HOUSE_CACHE_MS = 5 * 60 * 1000;
+let houseCache = null; // { at, result }
+
+/** Tests only. */
+export function _resetHouseVoicesForTests() { houseCache = null; }
+
+/**
+ * The NAS's installed voices: { voices: [{id,label,gender,accent,quality,note}], default }
+ * or { error, voices: [] }. Cached five minutes; `force` re-asks. Never throws.
+ */
+export async function fetchHouseVoices({ fetchImpl, origin, timeoutMs = 8000, force = false, now = Date.now() } = {}) {
+  if (!force && houseCache && now - houseCache.at < HOUSE_CACHE_MS) return houseCache.result;
+  const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
+  if (!f) return { error: 'no-fetch', voices: [] };
+  const base = origin != null ? origin : (typeof window !== 'undefined' && window.location ? window.location.origin : '');
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = setTimeout(() => { try { if (ctrl) ctrl.abort(); } catch (_) { /* ignore */ } }, timeoutMs);
+  let result;
+  try {
+    const res = await f(`${base}${LITE_VOICES_PATH}`, { method: 'GET', signal: ctrl ? ctrl.signal : undefined });
+    const ctype = (res && res.headers && typeof res.headers.get === 'function' && res.headers.get('Content-Type')) || '';
+    if (!res || !res.ok) result = { error: `voice-lite-${res ? res.status : 'no-response'}`, voices: [] };
+    // The app shell answering 200 with HTML is not a voice list.
+    else if (ctype && !/json/i.test(ctype)) result = { error: 'voice-lite-not-json', voices: [] };
+    else {
+      const body = await res.json();
+      const voices = (body && Array.isArray(body.voices) ? body.voices : [])
+        .filter((v) => v && typeof v.id === 'string' && v.id)
+        .map((v) => ({
+          id: v.id,
+          label: String(v.label || v.id),
+          gender: v.gender === 'male' || v.gender === 'female' ? v.gender : 'unknown',
+          accent: String(v.accent || ''),
+          quality: String(v.quality || ''),
+          note: String(v.note || ''),
+        }));
+      result = { voices, default: body && typeof body.default === 'string' ? body.default : (voices[0] ? voices[0].id : null) };
+    }
+  } catch (e) {
+    result = { error: (e && e.name === 'AbortError') ? 'voice-lite-timeout' : 'voice-lite-error', voices: [] };
+  } finally {
+    clearTimeout(timer);
+  }
+  // A failure is cached for a shorter while than a real list.
+  houseCache = { at: result.error ? now - HOUSE_CACHE_MS + 30 * 1000 : now, result };
+  return result;
+}
+
 /**
  * One piece of a reading as a real audio clip from the NAS voice.
  * @returns {Promise<{url:string}|{error:string}>}
