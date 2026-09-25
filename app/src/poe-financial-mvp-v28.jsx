@@ -81,7 +81,7 @@ import { useBrowserHistoryNav, useHistoryToggle, initialBooksView, initialChurch
 import { useIdleReveal } from './lib/use-idle-reveal.js';
 import { isReviewerModeOn, ReviewerModeBanner } from './lib/reviewer-mode.jsx';
 import { onAuthChange, signOut } from './lib/supabase.js';
-import { ensureTenantMembership, uploadFeedback, subscribeFeedback } from './lib/feedback-sync.js';
+import { ensureTenantMembership, uploadFeedback, subscribeFeedback, newFeedbackId } from './lib/feedback-sync.js';
 import { reportPresence } from './lib/access-metrics-sync.js';
 import { entitiesSync } from './lib/entities-sync.js';
 import { accountsSync, accountsMerge } from './lib/accounts-sync.js';
@@ -2935,7 +2935,7 @@ export default function PoeFinancialSystem() {
       ...rest,
       hasScreenshot: imgs.length > 0,
       screenshotCount: imgs.length,
-      id: `fb-${Date.now()}`,
+      id: newFeedbackId(),
       createdAt: nowIso,
       status: initialStatus,
       lifecycle: {

@@ -458,6 +458,11 @@ describe('what the first live proof run taught the measurement (run 36059041587)
     expect(pickByRule('any', [fail], [ok, fail]).conclusion).toBe('success');
     expect(runRuleFor({}, "on:\n  schedule:\n    - cron: '0 * * * *'")).toBe('main');
     expect(runRuleFor({}, 'on: workflow_dispatch')).toBe('any');
+    // proven to catch (run 36077477281): a commented-out schedule is not a schedule
+    expect(runRuleFor({}, "on:\n  workflow_dispatch: {}\n  # schedule:\n  #   - cron: '0 * * * *'")).toBe('any');
+    const { cronFreshDays: fresh } = await import('../../../scripts/system-flow-graph.mjs');
+    expect(fresh("on:\n  # schedule:\n  #   - cron: '0 13 * * 1'")).toBe(null);
+    expect(fresh("on:\n  schedule:\n    - cron: '0 13 * * 1'")).toBe(8);
     expect(runRuleFor({ runRule: 'any-success' }, '')).toBe('any-success');
     // auto-merge is judged by its product: the deploy the lane's bot dispatched
     // (its own runs end cancelled by design — 20 of 20 on 2026-09-24).

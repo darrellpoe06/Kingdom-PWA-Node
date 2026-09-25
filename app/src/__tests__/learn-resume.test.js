@@ -23,19 +23,19 @@ beforeEach(() => { storage = memStorage(); });
 describe('learn-resume — record and read the place', () => {
   it('round-trips a full place', () => {
     recordPlace({ courseKey: 'living-lessons', lessonId: 'll3', stage: 1, step: 2 }, { storage, now: 1000 });
-    expect(getPlace({ storage })).toEqual({ courseKey: 'living-lessons', lessonId: 'll3', sentence: 0, sentenceKey: '', stage: 1, step: 2, done: false, at: 1000 });
+    expect(getPlace({ storage })).toEqual({ courseKey: 'living-lessons', lessonId: 'll3', sentence: 0, sentenceKey: '', stage: 1, step: 2, done: false, started: true, at: 1000 });
   });
 
   it('merges a partial patch into the SAME lesson (a step move keeps the stage)', () => {
     recordPlace({ courseKey: 'living-lessons', lessonId: 'll3', stage: 1, step: 2 }, { storage, now: 1000 });
     recordPlace({ lessonId: 'll3', step: 4 }, { storage, now: 2000 });
-    expect(getPlace({ storage })).toEqual({ courseKey: 'living-lessons', lessonId: 'll3', sentence: 0, sentenceKey: '', stage: 1, step: 4, done: false, at: 2000 });
+    expect(getPlace({ storage })).toEqual({ courseKey: 'living-lessons', lessonId: 'll3', sentence: 0, sentenceKey: '', stage: 1, step: 4, done: false, started: true, at: 2000 });
   });
 
   it('opening a DIFFERENT lesson resets stage/step — a stale step never leaks into a fresh lesson', () => {
     recordPlace({ courseKey: 'living-lessons', lessonId: 'll3', stage: 3, step: 5 }, { storage, now: 1000 });
     recordPlace({ courseKey: 'living-lessons', lessonId: 'll7' }, { storage, now: 2000 });
-    expect(getPlace({ storage })).toEqual({ courseKey: 'living-lessons', lessonId: 'll7', sentence: 0, sentenceKey: '', stage: 0, step: 0, done: false, at: 2000 });
+    expect(getPlace({ storage })).toEqual({ courseKey: 'living-lessons', lessonId: 'll7', sentence: 0, sentenceKey: '', stage: 0, step: 0, done: false, started: false, at: 2000 });
   });
 
   it('a stage move on the same lesson keeps the course key without re-passing it', () => {
