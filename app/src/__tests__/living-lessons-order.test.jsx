@@ -8,7 +8,7 @@
 // capitalize on that somehow...".
 // Pinned here: the number is read from the lesson's own id (never its place);
 // "By number, first to last" is the default and puts L1 first; "Newest first"
-// puts L192 first; the pick is kept per course on the device; every lesson
+// puts the newest (L194) first; the pick is kept per course on the device; every lesson
 // carries a recorded day and a new lesson cannot join without one; the .md
 // export runs in number order under each lesson's own number. PROVEN-TO-CATCH:
 // the division order (the old default) fails the by-number check.

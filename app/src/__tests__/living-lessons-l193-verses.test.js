@@ -87,9 +87,14 @@ describe('L193 is really in the series', () => {
     for (const b of FULL_BANDS) expect(typeof m.levels[b], `${b} must be authored`).toBe('string');
   });
 
-  it('is the 193rd lesson, is the last in the course, and joins the date ledger at birth', () => {
+  it('is lesson 193, sits right after L192 in the course, and joins the date ledger at birth', () => {
     expect(LIVING_LESSONS_META.weeks).toBe(LIVING_LESSONS_MODULES.length);
-    expect(LIVING_LESSONS_MODULES[LIVING_LESSONS_MODULES.length - 1].id).toBe(L().id);
+    // L194 landed on main before L193 (DR-0646), so L193 is not the last
+    // module; it is the one immediately after L192, in number order.
+    const i = LIVING_LESSONS_MODULES.findIndex((x) => x.id === L().id);
+    expect(LIVING_LESSONS_MODULES[i - 1].id.startsWith('ll192-')).toBe(true);
+    const next = LIVING_LESSONS_MODULES[i + 1];
+    if (next) expect(Number(/^ll(\d+)-/.exec(next.id)[1])).toBeGreaterThan(193);
     expect(LIVING_LESSONS_ADDED[L().id]).toBe('2026-09-24');
   });
 });

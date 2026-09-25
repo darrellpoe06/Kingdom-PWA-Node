@@ -88,3 +88,4 @@ A reader who meets 'selling your soul' as a Hollywood phrase leaves with the Wor
 
 - `living-lessons-l193-verses.test.js`, the order and crosslist tests, and the full Vitest suite green in one run; counts recorded on the PR. ESLint clean. `node scripts/business-systems-guard.mjs` and `node scripts/legibility-guard.mjs --health` run before commit.
 - After merge: DR-0104 live review. Church → Learn → Living Lessons → L193 on a phone: the provenance sentence at the top, the ten headings, the suffering movement, the ten-losses movement, the close.
+- **Landed after L194 (2026-09-25).** L194 (DR-0646) merged to main while this PR was in flight and held 193 open in `KNOWN_MISSING`. The merge that brought L194 in fills 193: the module sits between L192 and L194, `weeks` is 193, the school total is 722, the six per-lesson baselines count both lessons, and 193 is deleted from `KNOWN_MISSING` in `living-lessons-id-collision.test.js`.

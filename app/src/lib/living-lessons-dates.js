@@ -217,4 +217,5 @@ export const LIVING_LESSONS_ADDED = {
   'll191-who-he-said-he-was-every-hearer-every-situation-and-the-keys-of-hell-and-of-death': '2026-09-24', // commit 0c8ebcbd
   'll192-two-hours-became-six-the-pattern-the-yea-the-inspection-and-the-faithful-man': '2026-09-24', // commit 806b6c63
   'll193-what-it-costs-to-keep-your-soul-the-morsel-the-son-the-snare-and-the-finished-work': '2026-09-24', // added with the lesson (DR-0642); the day it was sent and authored
+  'll194-i-am-who-he-said-he-was-every-hearer-all-of-them': '2026-09-24', // branch claude/lesson-every-hearer-all-of-them (DR-0646)
 };
