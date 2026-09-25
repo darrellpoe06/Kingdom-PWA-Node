@@ -94,8 +94,17 @@ function countMatches(src, re) {
 // that same span, so a tab wrapper one line away is still counted. Comment
 // lines are stripped first, for the same reason fixedPx strips them — a header
 // that names `max-w-md` while explaining the rule is documentation, not drift.
+//
+// The same class, handed to the shared dialog shell by name: `<Modal
+// maxWidthClass="max-w-4xl">`. Modal.jsx paints that value on the panel inside
+// its own `fixed inset-0` overlay, so the cap IS an overlay cap; it only reads
+// as a bare span because it travels as a prop. Found 2026-09-25 (DR-0658) when
+// the sign-in dialog gained a TV width so it fits a 960x540 Fire TV: the rule
+// allows modals and this is one. Only the prop value is exempt; a max-w
+// anywhere else in the same file still counts.
+export const MODAL_WIDTH_PROP_RE = /\bmaxWidthClass=(?:"[^"]*"|'[^']*'|\{\s*(?:"[^"]*"|'[^']*')\s*\})/g;
 export function countWidthCaps(src) {
-  const code = stripCommentLines(src);
+  const code = stripCommentLines(src).replace(MODAL_WIDTH_PROP_RE, ' ');
   let total = 0;
   for (const span of code.match(CLASS_SPAN_RE) || []) {
     const caps = countMatches(span, WIDTH_CAP_RE);
