@@ -15,11 +15,20 @@
 // what it shows is the engine's real state. Where the browser offers a real
 // always-on-top window (Document Picture-in-Picture, Chrome on a computer) it
 // can go there too; everywhere else, including Android, it stays in the app.
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { clampRect } from '../lib/float-geometry.js';
 
 const TAP_MS = 320;
+// One press of a D-pad arrow in Move mode moves the window this far (DR-0655).
+export const MOVE_STEP_PX = 32;
+
+/** The rect after one Move-mode arrow press, kept on screen. Pure. */
+export function stepRect(rect, key, vw, vh, step = MOVE_STEP_PX) {
+  const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[key];
+  if (!d) return null;
+  return clampRect({ ...rect, x: rect.x + d[0], y: rect.y + d[1] }, vw, vh);
+}
 
 function Controls({ isReading, isPaused, canJump, onPlayPause, onBack, onForward, rate, rateSteps, onRate }) {
   const playing = isReading && !isPaused;
@@ -70,6 +79,12 @@ export default function FloatingReader({
 }) {
   const drag = useRef(null);
   const lastTap = useRef(0);
+  // MOVE WITHOUT A DRAG (DR-0655). A Fire TV remote has no pointer to drag
+  // with; measured on a Fire-TV-shaped Chromium, the title bar could not take
+  // focus and nothing moved the window. Move is now a button: OK starts it,
+  // the arrows move the window, OK or Back ends it. Reset is a button too
+  // (the double-tap's twin).
+  const [moving, setMoving] = useState(false);
 
   // IN A REAL PICTURE-IN-PICTURE WINDOW: fill it, no dragging.
   if (pipWindow) {
@@ -134,6 +149,22 @@ export default function FloatingReader({
         title="Drag to move · double-tap to reset"
       >
         <span className="flex-1 truncate text-sm font-semibold" data-testid="float-title">{title}</span>
+        <button
+          type="button" onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => { if (moving) { setMoving(false); onCommit(); } else setMoving(true); }}
+          onKeyDown={(e) => {
+            if (!moving) return;
+            const next = stepRect(rect, e.key, vw(), vh());
+            if (next) { e.preventDefault(); e.stopPropagation(); onMove(next); return; }
+            if (e.key === 'Escape') { e.preventDefault(); setMoving(false); onCommit(); }
+          }}
+          onBlur={() => { if (moving) { setMoving(false); onCommit(); } }}
+          aria-pressed={moving}
+          aria-label={moving ? 'Moving: use the arrows, then OK to set it here' : 'Move the window with the arrows'}
+          data-testid="float-move"
+          className={`min-h-[44px] px-2 text-xs uppercase tracking-wider font-semibold rounded focus:outline focus:outline-2 focus:outline-[#B85838] ${moving ? 'bg-white text-[#1A1815]' : 'border border-white hover:bg-white hover:text-[#1A1815]'}`}
+        >{moving ? 'Set' : '✥ Move'}</button>
+        <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={onReset} data-testid="float-reset" aria-label="Put the window back where it started" className="min-h-[44px] px-2 text-xs uppercase tracking-wider font-semibold hover:text-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">⟲</button>
         {pipSupported && onPip && (
           <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={onPip} data-testid="float-pip-open" aria-label="Pop out of the app — a window that stays on top" className="min-h-[44px] px-2 text-xs uppercase tracking-wider font-semibold hover:text-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Out of app</button>
         )}

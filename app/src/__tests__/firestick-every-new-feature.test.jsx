@@ -26,6 +26,8 @@
 //      sticky tab, connection badge, Feedback, then content. From a control
 //      in the page, a move stays in the page when the page has anything
 //      that way; the floaters are still reached at the end or sideways.
+//   7. The floating reader moved only by a pointer drag and reset only by a
+//      double-tap. It now has Move (OK, arrows, OK) and Reset buttons.
 // =============================================================================
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React, { act } from 'react';
@@ -44,6 +46,7 @@ import { handleRemoteKey, caretAtEdge } from '../lib/remote-navigation.js';
 import { micPresentFrom, probeMicPresent, NO_MICROPHONE_LINE } from '../lib/mic-presence.js';
 import OneVoiceInput from '../components/OneVoiceInput.jsx';
 import SectionTabs from '../components/SectionTabs.jsx';
+import FloatingReader, { stepRect, MOVE_STEP_PX } from '../components/FloatingReader.jsx';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -257,5 +260,37 @@ describe('6. the page before the floaters', () => {
     expect(handleRemoteKey(key('ArrowDown'), root, opts)).toBe(null);
     root.querySelector('#feedback').focus();
     expect(handleRemoteKey(key('ArrowUp'), root, opts)).toBe(root.querySelector('#a'));
+  });
+});
+
+describe('7. the floating reader moves without a drag', () => {
+  let container; let rroot;
+  afterEach(async () => { if (rroot) await act(async () => rroot.unmount()); if (container) container.remove(); rroot = null; container = null; });
+
+  it('Move, then an arrow, moves the window one step; OK sets it; Reset is a button', async () => {
+    container = document.createElement('div'); document.body.appendChild(container);
+    rroot = createRoot(container);
+    const onMove = vi.fn(); const onCommit = vi.fn(); const onReset = vi.fn();
+    const rect = { x: 100, y: 100, w: 360, h: 220 };
+    await act(async () => { rroot.render(<FloatingReader rect={rect} onMove={onMove} onCommit={onCommit} onReset={onReset} onDock={() => {}} onPlayPause={() => {}} onBack={() => {}} onForward={() => {}} rate={1} rateSteps={[1]} onRate={() => {}} />); });
+    const move = document.querySelector('[data-testid="float-move"]');
+    expect(move, 'no way to move the window without a pointer drag').not.toBe(null);
+    move.focus();
+    await act(async () => { move.click(); });
+    expect(move.getAttribute('aria-pressed')).toBe('true');
+    const right = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true });
+    await act(async () => { move.dispatchEvent(right); });
+    expect(onMove).toHaveBeenCalledWith(expect.objectContaining({ x: 100 + MOVE_STEP_PX, y: 100 }));
+    expect(right.defaultPrevented, 'the arrow also walked the D-pad away').toBe(true);
+    await act(async () => { move.click(); });
+    expect(onCommit).toHaveBeenCalledTimes(1);
+    const reset = document.querySelector('[data-testid="float-reset"]');
+    await act(async () => { reset.click(); });
+    expect(onReset).toHaveBeenCalledTimes(1);
+  });
+
+  it('pure: a step never leaves the screen', () => {
+    expect(stepRect({ x: 0, y: 0, w: 300, h: 200 }, 'ArrowLeft', 960, 540).x).toBeGreaterThanOrEqual(0);
+    expect(stepRect({ x: 0, y: 0, w: 300, h: 200 }, 'Enter', 960, 540)).toBe(null);
   });
 });
