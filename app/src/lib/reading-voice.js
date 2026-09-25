@@ -17,6 +17,7 @@
 //   'person:<key>'      -> a personal CLONED voice (stand-in until the studio is
 //                          live, then the real voice — same preference, better
 //                          backend; see lib/voice-service.js).
+//   'house:<model>'     -> one of the church NAS's Piper voices (DR-0655).
 import { useCallback, useEffect, useState } from 'react';
 
 const KEY = 'poe-reading-voice';
@@ -30,7 +31,7 @@ export function personKeyOf(id) { return isPersonVoiceId(id) ? id.slice(PERSON_P
 export function isSystemVoiceId(id) { return !id || id === SYSTEM_VOICE_ID; }
 
 // A HOUSE voice: one of the Piper voices on the church's NAS, by model id,
-// e.g. 'house:en_GB-alan-medium' (DR-0653). Real audio, so it keeps playing
+// e.g. 'house:en_GB-alan-medium' (DR-0655). Real audio, so it keeps playing
 // when the listener switches apps.
 const HOUSE_PREFIX = 'house:';
 export function houseVoiceId(modelId) { return `${HOUSE_PREFIX}${modelId}`; }

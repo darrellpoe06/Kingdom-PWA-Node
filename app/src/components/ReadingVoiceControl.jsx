@@ -7,7 +7,7 @@
 // control in the header (the accessibility / settings slot), with a fuller panel
 // variant for the About/Settings page.
 //
-// EVERY VOICE IS CHOOSABLE (DR-0653): the list is VoicePicker — the same one
+// EVERY VOICE IS CHOOSABLE (DR-0655): the list is VoicePicker — the same one
 // the reader panel shows — with the church studio voice, the house (NAS)
 // voices, and every phone voice, each with its one-line truth, and a sample
 // played as a voice is picked. It is shown even on a device with no speech

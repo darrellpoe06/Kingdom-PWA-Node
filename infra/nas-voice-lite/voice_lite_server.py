@@ -28,7 +28,7 @@
 #   GET  /voices, /voice-lite/voices -> 200 {"ok":true,"voices":[{id,label,
 #        gender,accent,quality,note}], "aliases":{...}, "default":id} -- the
 #        voices REALLY installed on this box, so the app lists what is there
-#        and never a painted list (DR-0653). 503 when none. Open.
+#        and never a painted list (DR-0655). 503 when none. Open.
 #   POST /speak,  /voice-lite/speak  -> Authorization: Bearer <family token>.
 #        Body {"text": "...", "voice": "<model id>"|"male"|"female"}. Returns
 #        audio/wav. 401 bad/missing bearer, 400 empty, 413 too long, 503 busy.
@@ -65,7 +65,7 @@ MAX_CHARS = int(os.environ.get("VOICE_LITE_MAX_CHARS", "1500"))
 SYNTH_TIMEOUT = float(os.environ.get("VOICE_LITE_TIMEOUT", "90"))
 CACHE_MAX_BYTES = int(os.environ.get("VOICE_LITE_CACHE_BYTES", str(400 * 1024 * 1024)))
 
-# The voices the installer downloads (DR-0653, "Every voice is choosable").
+# The voices the installer downloads (DR-0655, "Every voice is choosable").
 # Darrell 2026-09-25: "I can only pic this fake dying voice!!!!!! Why
 # limitations are built into the app!!!!! Fix it!!!!!" Two voices were all the
 # house had. Every name below was checked against rhasspy/piper's own
@@ -382,7 +382,7 @@ def _selftest():
     req("POST", "/speak", {"text": "Male alias.", "voice": "male"})
     check(eng.voices_seen[-1] == "en_US-ryan-medium", "the 'male' alias still reaches its model")
 
-    # EVERY VOICE IS CHOOSABLE (DR-0653): a model named by id is the one used.
+    # EVERY VOICE IS CHOOSABLE (DR-0655): a model named by id is the one used.
     req("POST", "/speak", {"text": "A British reader.", "voice": "en_GB-alan-medium"})
     check(eng.voices_seen[-1] == "en_GB-alan-medium", "a voice picked by model id reaches the synthesizer")
     s, _, b = req("GET", "/voices", auth=None)

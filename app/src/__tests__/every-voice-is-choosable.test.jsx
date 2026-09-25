@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // =============================================================================
-// Every voice is choosable (DR-0653)
+// Every voice is choosable (DR-0655)
 // =============================================================================
 // Darrell 2026-09-25, Android, The Love Corner → Church → Learn, Living Lesson
 // 191 at 1.5x, the panel reading "Ready · stand-in voice, the studio is
@@ -228,6 +228,33 @@ describe('Fire TV: a device that reports NO voices', () => {
     await flush();
     expect(nas.calls.length, 'the phone pick went to a device with no voices').toBeGreaterThan(0);
     expect(synth.spoken).toHaveLength(0);
+  });
+});
+
+describe('the NAS server and its installer name the same voices', () => {
+  it('VOICES in voice_lite_server.py matches HOUSE_VOICES in install.sh, ryan + amy first', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const dir = resolve(__dirname, '../../../infra/nas-voice-lite');
+    const py = readFileSync(resolve(dir, 'voice_lite_server.py'), 'utf8');
+    const sh = readFileSync(resolve(dir, 'install.sh'), 'utf8');
+    const block = py.slice(py.indexOf('VOICES = {'), py.indexOf('\n}\n', py.indexOf('VOICES = {')));
+    const serverIds = [...block.matchAll(/^\s+"([A-Za-z_]+-[A-Za-z_]+-(?:low|medium|high))":/gm)].map((m) => m[1]);
+    const shLine = (sh.match(/^HOUSE_VOICES="([^"]+)"/m) || [])[1] || '';
+    const installIds = shLine.split(/\s+/).filter(Boolean).map((s) => s.split(':').join('-'));
+    expect(serverIds.length).toBeGreaterThanOrEqual(9);
+    expect(installIds).toEqual(serverIds);
+    expect(installIds.slice(0, 2)).toEqual(['en_US-ryan-medium', 'en_US-amy-medium']);
+    // The aliases keep working.
+    expect(py).toMatch(/ALIASES = \{"male": "en_US-ryan-medium", "female": "en_US-amy-medium"\}/);
+    // Checked 2026-09-25 against rhasspy/piper VOICES.md (the index of the
+    // rhasspy/piper-voices v1.0.0 files); a name outside it would 404 forever.
+    const VERIFIED = [
+      'en_US-ryan-medium', 'en_US-amy-medium', 'en_US-lessac-medium', 'en_US-joe-medium',
+      'en_US-hfc_male-medium', 'en_US-hfc_female-medium', 'en_GB-alan-medium',
+      'en_GB-northern_english_male-medium', 'en_US-ryan-high',
+    ];
+    for (const id of installIds) expect(VERIFIED, `${id} was not verified against piper's index`).toContain(id);
   });
 });
 

@@ -186,7 +186,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   const {
     supported, isReading, isPaused, rate, read, pause, resume, stop, setRate, claimAudio,
     catalog, voiceId, setVoiceId, currentItem,
-    // Tap-to-hear a voice before keeping it (DR-0653; optional in mocks).
+    // Tap-to-hear a voice before keeping it (DR-0655; optional in mocks).
     preview,
     segmentIndex, setBoundaryHandler, deviceRead, cloudProgress,
     // `notice` WAS NOT TAKEN HERE until 2026-09-20, and that single omission
@@ -1127,7 +1127,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // preference the header picker and Voice tab write.
   // (Voice grouping lives in VoicePicker: the catalog's own order, every
   // group it has — the hardcoded group list here dropped any group it did not
-  // name, DR-0653.)
+  // name, DR-0655.)
   // WHICH VOICE, AND WHY, on the status line (Darrell 2026-09-23: "No
   // headaches!!!!"). A dark studio is not a message to dismiss; it is a
   // word beside Reading.
@@ -1513,7 +1513,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
             </div>
           </div>
 
-          {/* EVERY VOICE IS CHOOSABLE (DR-0653): shown even when there is one
+          {/* EVERY VOICE IS CHOOSABLE (DR-0655): shown even when there is one
               entry, because that entry's line tells the truth about it. */}
           {catalog.length ? (
             <div className="mb-[0.5em]">

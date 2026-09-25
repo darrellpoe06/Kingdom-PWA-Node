@@ -37,7 +37,7 @@ import { hasBridgeToken } from './nas-photos.js';
 import { provisionBridgeToken } from './bridge-provision.js';
 
 // =============================================================================
-// EVERY VOICE IS CHOOSABLE (DR-0653)
+// EVERY VOICE IS CHOOSABLE (DR-0655)
 // =============================================================================
 // Darrell 2026-09-25, Android, Living Lesson 191 at 1.5x: "I can only pic this
 // fake dying voice!!!!!! Why limitations are built into the app!!!!! Fix
@@ -248,7 +248,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // Nothing is filtered away any more. This used to keep only ENGLISH phone
   // voices (`/^en/` on v.lang) and never named the NAS's voices at all; the
   // studio entry was called "System voice" and quietly read in the NAS's one
-  // male voice while the studio was dark (DR-0653).
+  // male voice while the studio was dark (DR-0655).
   const catalog = useMemo(() => {
     const sysDev = assignments[SYSTEM_VOICE.id];
     const studio = studioVoiceNote({ studio: studioHealth, ready: sovereignVoiceReady, houseUp: house.voices.length > 0 });
@@ -675,7 +675,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // the NAS's own voice (/voice-lite, Piper) for REAL AUDIO, played piece by
     // piece through one <audio> element: media, which the phone keeps playing.
     // A browser accent the listener picked on purpose is left as their choice.
-    // A HOUSE voice the listener picked (DR-0653) is that exact NAS voice; if
+    // A HOUSE voice the listener picked (DR-0655) is that exact NAS voice; if
     // the NAS cannot answer, the phone's voice reads and the status says why.
     //
     // A DEVICE WITH NO VOICES NEVER GETS A PHONE VOICE (Fire TV, 2026-09-25).
@@ -779,7 +779,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     tts.speak(clean, uri, pitch);
   }, [voiceId, personalVoices, sovereignVoiceReady, attemptStudio, studioHealth, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio, setNotice, playLiteVoice]);
 
-  // HEAR BEFORE CHOOSING (DR-0653): a short sample in one voice, without
+  // HEAR BEFORE CHOOSING (DR-0655): a short sample in one voice, without
   // touching the listener's pick or a reading already under way.
   const preview = useCallback((id, text = VOICE_SAMPLE) => read(text, { voice: id, title: 'Voice sample' }), [read]);
 

@@ -390,7 +390,7 @@ export function markLiteVoiceDown(now = Date.now()) { liteDownUntil = now + LITE
 export function _resetLiteVoiceForTests() { liteDownUntil = 0; }
 
 // -----------------------------------------------------------------------------
-// THE HOUSE VOICES, AS THE NAS REPORTS THEM (DR-0653, "Every voice is choosable")
+// THE HOUSE VOICES, AS THE NAS REPORTS THEM (DR-0655, "Every voice is choosable")
 // -----------------------------------------------------------------------------
 // Darrell 2026-09-25: "I can only pic this fake dying voice!!!!!!" The NAS had
 // voices the app never offered by name. /voice-lite/voices answers with the

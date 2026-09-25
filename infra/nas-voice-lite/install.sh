@@ -20,7 +20,7 @@
 # Brakes: request-driven server (no timers); MAX_INFLIGHT / MAX_CHARS /
 # SYNTH_TIMEOUT / cache cap live in voice_lite_server.py. This installer only
 # downloads when a file is missing (~26 MB piper once, then one voice model per
-# cycle: eight medium models and one high model, DR-0653). Sizes are not
+# cycle: eight medium models and one high model, DR-0655). Sizes are not
 # written here because Hugging Face could not be reached to measure them; the
 # per-cycle limit bounds the cost either way.
 # RECORDED-STATE: infra/nas-transport/RECORDED-STATE.md (the /voice-lite row).
@@ -66,7 +66,7 @@ else
 fi
 
 echo "== voice-lite install: voices (at most one large file per cycle) =="
-# EVERY VOICE IS CHOOSABLE (DR-0653). The house voices, as locale:speaker:quality.
+# EVERY VOICE IS CHOOSABLE (DR-0655). The house voices, as locale:speaker:quality.
 # Each name was checked against rhasspy/piper's VOICES.md index of the
 # rhasspy/piper-voices v1.0.0 files. Order matters: ryan + amy first (the
 # male/female aliases and the install probe), the rest one large file per
