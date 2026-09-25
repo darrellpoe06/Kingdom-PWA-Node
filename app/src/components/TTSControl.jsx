@@ -188,7 +188,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   const {
     supported, isReading, isPaused, rate, read, pause, resume, stop, setRate, claimAudio,
     catalog, voiceId, setVoiceId, currentItem,
-    segmentIndex, setBoundaryHandler, deviceRead, cloudProgress,
+    segmentIndex, setBoundaryHandler, deviceRead, cloudProgress, cloudPiece,
     // `notice` WAS NOT TAKEN HERE until 2026-09-20, and that single omission
     // broke the engine's own guarantee at its very last hop. tts.js runs a
     // start watchdog whose comment reads "Truly silent after a retry — report
@@ -416,7 +416,12 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // sentence granularity. Only re-highlights when the sentence changes.
   useEffect(() => {
     if (!isReading || deviceRead || !followRef.current) return;
-    const idx = segmentIndexAtFraction(followRef.current.lens, cloudProgress);
+    // The NAS voice plays one piece per segment, so the piece playing IS the
+    // sentence to light (DR-0653). The clip fraction stays for the studio's
+    // single long clip, where there is nothing better to go on.
+    const idx = typeof cloudPiece === 'number' && cloudPiece >= 0
+      ? cloudPiece
+      : segmentIndexAtFraction(followRef.current.lens, cloudProgress);
     if (idx < 0 || idx === lastCloudIdxRef.current) return;
     lastCloudIdxRef.current = idx;
     const r = followRef.current.ranges[idx] || null;
@@ -431,7 +436,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     const st = followRef.current;
     const seg = st.follow && st.follow.segments ? st.follow.segments[st.base + idx] : null;
     if (seg && seg.text) rememberSentence(st.base + idx, seg.text);
-  }, [cloudProgress, isReading, deviceRead, rememberSentence]);
+  }, [cloudProgress, cloudPiece, isReading, deviceRead, rememberSentence]);
   // Reading over (or never started) → the full card comes back next open.
   useEffect(() => { if (!isReading) setMinimized(false); }, [isReading]);
   // PLAY MEANS READ IT. A Play press records a want (read-target.js) and this
