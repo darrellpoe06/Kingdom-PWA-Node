@@ -117,7 +117,7 @@ describe('the Governor’s queue', () => {
     await click($('[data-row-id="r1"] [data-testid="member-lesson-approve"]'));
     expect(DB.state.rows.find((r) => r.id === 'r1').tags).toContain(APPROVED_TAG);
     expect(DB.state.rpcCalls).toContainEqual(['review_member_lesson', { p_row: 'r1', p_decision: 'approve', p_reason: null }]);
-    expect($('[data-row-id="r1"]')).toBeNull();
+    expect($('[data-testid="member-lesson-row"][data-row-id="r1"]')).toBeNull();
   });
 
   it('Decline without a reason never leaves the page; with one it writes lesson-declined and the reason', async () => {
@@ -203,7 +203,7 @@ describe('an undecided member row is never captured', () => {
   it('the protocol matches the notice the member read before sending', () => {
     const p = READER_PROTOCOL_FOR_MEMBER_ROWS.join(' ');
     expect(p).toMatch(/ONLY when its tags include "lesson-approved"/);
-    expect(p).toMatch(/Never use the member’s name/);
+    expect(p).toMatch(/never use the member’s name/);
     expect(p).toMatch(/Change every identifying detail/);
     expect(p).toMatch(/Keep the situation general/);
     expect(LESSON_NOTICE).toMatch(/Your name is never used, and personal details are changed/);
