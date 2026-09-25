@@ -13,6 +13,7 @@ import { captureInstallPrompt } from './lib/install-app.js';
 import { startDmNotifications } from './lib/dm-notify.js';
 import { captureDeepLink } from './lib/app-doors.js';
 import { wireRemoteNavigation } from './lib/remote-navigation.js';
+import { markTvDevice } from './lib/tv-device.js';
 import { installNativeShell, isNativeShell } from './lib/native-shell.js';
 import { registerDoorWorker, rowMoverFor } from './lib/sw-door-scope.js';
 
@@ -40,6 +41,10 @@ window.storage = storage;
 // browser route onto a Fire TV / streaming stick is only usable if arrows move
 // focus spatially. Bubbling listener: any surface that owns its own arrows
 // keeps them (remote-navigation.js).
+// A Fire TV is 960 CSS pixels wide, so width cannot tell a TV; its user agent
+// can (DR-0657). Marked before the listener so the remote's rules and the TV
+// focus ring both know from the first key.
+markTvDevice();
 wireRemoteNavigation();
 
 // Self-heal a stale-deploy lazy-chunk 404 (e.g. opening the Voice tab after a newer

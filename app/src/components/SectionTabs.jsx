@@ -66,14 +66,24 @@ export default function SectionTabs({
   const setActive = useCallback((id) => { setActiveState(id); if (onActiveChange) onActiveChange(id); }, [onActiveChange]);
   const btnRefs = useRef({});
 
-  // Arrow / Home / End move focus AND selection along the strip (roving tabindex).
+  // Left / Right / Home / End move focus AND selection along the strip
+  // (roving tabindex).
+  //
+  // UP AND DOWN ARE NOT THE STRIP'S (DR-0657). They used to step the strip
+  // too, wrapping at the ends, and on a TV that was a cage: measured on a
+  // Fire-TV-shaped Chromium, 30 presses of Down on Learn cycled the department
+  // row (Courses, Living Lessons, ... Development, Courses...) and never
+  // reached the lessons or the Continue offer below it, changing the
+  // department on every press. The strip is a row; Up and Down now leave it
+  // (the remote's spatial move, lib/remote-navigation.js), as a person with a
+  // remote expects.
   const onKeyDown = useCallback((e) => {
     if (!valid.length) return;
     const idx = valid.findIndex((s) => s.id === active);
     if (idx < 0) return;
     let next = null;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = valid[(idx + 1) % valid.length];
-    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = valid[(idx - 1 + valid.length) % valid.length];
+    if (e.key === 'ArrowRight') next = valid[(idx + 1) % valid.length];
+    else if (e.key === 'ArrowLeft') next = valid[(idx - 1 + valid.length) % valid.length];
     else if (e.key === 'Home') next = valid[0];
     else if (e.key === 'End') next = valid[valid.length - 1];
     if (next) {

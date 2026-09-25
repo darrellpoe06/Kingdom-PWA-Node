@@ -71,6 +71,7 @@ const LEARN_OPEN = Object.values(import.meta.glob('../lib/learn-open.js', { eage
 // with speed and voice in it and no text size.
 import { useTextSize } from '../lib/text-size.js';
 import { THEMES, useThemePref } from '../lib/theme-css.js';
+import { useKeepFocusIn, pickReaderFocus } from '../lib/focus-keeper.js';
 
 // After the page comes back from dark, the engine's own foreground recovery
 // (lib/tts.js _recoverForeground) gets this long to bring the audio back before
@@ -305,6 +306,9 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // segment char lengths — cloud fraction mapping), follow + base (word-level
   // mapping where the mode supports it), wordable }.
   const followRef = useRef(null);
+  // Focus is never dropped to the page when the reader folds or unfolds (DR-0657).
+  const readerRootRef = useRef(null);
+  useKeepFocusIn(readerRootRef, pickReaderFocus, !!supported);
   const lastCloudIdxRef = useRef(-1);
   // FOLLOW ALONG, BUT NEVER YANK (DR-0633; Darrell: "need to be able to go
   // back to the reading page to see the text when I want"). The highlight
@@ -1253,7 +1257,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // reader stays reachable wherever it can be started, and still below the
     // true modal layer — HelpWalkthrough (110), Modal/Lightbox (120) — which
     // must keep covering it.
-    <div className="tts-controls fixed bottom-4 right-4 z-[80] print:hidden flex flex-col items-end gap-2">
+    <div ref={readerRootRef} className="tts-controls fixed bottom-4 right-4 z-[80] print:hidden flex flex-col items-end gap-2">
       {/* THE FAILURE THE ENGINE ALREADY DETECTED, finally shown. Fire TV is the
           case that exposed it: Silk exposes speechSynthesis and
           SpeechSynthesisUtterance, so isTTSSupported() answers true, but the

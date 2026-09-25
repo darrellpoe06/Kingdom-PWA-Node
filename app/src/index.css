@@ -352,6 +352,21 @@ html[data-text-size='bigprint'] .church-give-floater {
   }
 }
 
+/* THE TV THAT IS 960 PIXELS WIDE (DR-0657). A Fire TV lays the page out at
+   960x540 and scales it up to the set, so the width rule above never switched
+   on for it. Measured on a Fire-TV-shaped Chromium: the reader's controls
+   showed a 2px ring (their own focus:outline-2 wins over the :where() rule),
+   and the reader's speaker button faded its ring in over half a second from
+   1px near-white (transition-all). lib/tv-device.js marks a TV by what it
+   says it is; the ring there is 4px from the first frame, whatever the
+   control's own classes say. The colour stays each control's own. */
+:root[data-device='tv'] :focus-visible {
+  outline-style: solid;
+  outline-width: 4px;
+  outline-offset: 3px;
+  transition-property: opacity, transform, background-color, color, border-color;
+}
+
 /* =============================================================================
    Reading highlight — the fallback layer, for browsers without CSS.highlights
    =============================================================================

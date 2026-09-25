@@ -28,6 +28,7 @@ import { sendVoiceLesson, formatClock } from '../lib/lesson-voice.js';
 import LessonsForSituation from './LessonsForSituation.jsx';
 import ConversationRecorder from './ConversationRecorder.jsx';
 import { isMicCaptureSupported } from '../lib/workflow-scribe.js';
+import { useMicPresent, NO_MICROPHONE_LINE } from '../lib/mic-presence.js';
 import { rememberPrompt, AUTO_REMEMBERED, USE_PROMPT_EVENT } from '../lib/saved-prompts.js';
 import supabase from '../lib/supabase.js';
 import { getInstanceId } from '../lib/table-sync.js';
@@ -148,7 +149,11 @@ export function OneVoiceInput({
   // recording that is saved on Stop and written out afterwards. It takes the
   // place of "Listen to the whole thing" here; surfaces that keep no notes
   // keep that option.
-  const canRecord = !!addNote && isMicCaptureSupported();
+  // NO MICROPHONE, NO RECORD BUTTON (DR-0657). A TV has the recording API
+  // and no microphone; Record was offered and failed on the first press.
+  const micPresent = useMicPresent();
+  const noMic = micPresent === false;
+  const canRecord = !!addNote && isMicCaptureSupported() && !noMic;
   const [recordRequest, setRecordRequest] = useState(0);
   // ONE SEND FOR A SPOKEN LESSON (DR-0636, Darrell 2026-09-24: "Can't push
   // send because nothing populated in the text box... make sense?!!!"). The
@@ -332,7 +337,10 @@ export function OneVoiceInput({
           Your unsent words were kept — everything here saves as you type, no Save needed.
         </p>
       )}
-      {(mic.supported || mic.error) && (
+      {noMic && (
+        <p className="text-[0.75rem] text-[#5A5751] italic mt-1.5" style={{ fontFamily: '"Fraunces", serif' }} data-testid="no-microphone">{NO_MICROPHONE_LINE}</p>
+      )}
+      {!noMic && (mic.supported || mic.error) && (
         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
           {mic.supported && (
             <button
