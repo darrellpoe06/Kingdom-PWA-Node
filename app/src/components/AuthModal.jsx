@@ -24,11 +24,23 @@ import PasswordAuth from './PasswordAuth.jsx';
 import { signInWithGoogle } from '../lib/supabase.js';
 import { signInWithGooglePopup } from '../lib/oauth-popup.js';
 import { primeAuthProviders, guardProviderCached, guardProvider, resetAuthProvidersCache } from '../lib/auth-providers.js';
+import PhoneSignInPanel from './PhoneSignInPanel.jsx';
+import { tvClassFromWindow } from '../lib/device-link.js';
 
-export default function AuthModal({ open, onClose, onSignedIn = null, mode = 'signup' }) {
+// SIGN IN WITH YOUR PHONE (DR-0658). Darrell on the Fire TV, 2026-09-25: "Hard
+// to sign in on a Firestick... what happened to the qr code ways?" The phone
+// door sits at the TOP of this dialog on every device. On a television (Silk /
+// Fire TV / a big screen with no touch and no mouse) it is the door focus
+// lands on, Enter shows the QR, and the typed doors fold behind one button so
+// the whole dialog fits a 960x540 TV viewport instead of running off the
+// bottom of the screen, which is what his screenshot showed.
+export default function AuthModal({ open, onClose, onSignedIn = null, mode = 'signup', tv: tvProp = null }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const googleRef = useRef(null);
+  const phoneRef = useRef(null);
+  const [tv] = useState(() => (tvProp == null ? tvClassFromWindow() : !!tvProp));
+  const [showTyped, setShowTyped] = useState(false);
 
   // Ask GoTrue which providers are live the moment the dialog opens, so the
   // answer is already in hand when the member taps. Fire-and-forget on
@@ -89,39 +101,86 @@ export default function AuthModal({ open, onClose, onSignedIn = null, mode = 'si
     if (!recheck.ok) setError(recheck.message);
   };
 
-  return (
-    <Modal open={open} onClose={onClose} labelledBy="auth-modal-h" maxWidthClass="max-w-sm" closeLabel="Close sign-in" initialFocusRef={googleRef}>
+  const googleButton = (
+    <button
+      ref={googleRef}
+      type="button"
+      onClick={handleGoogle}
+      disabled={busy}
+      className="w-full inline-flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#1A1815] text-[#1A1815] bg-white hover:bg-[#FAF8F4] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+    >
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.91c1.7-1.57 2.69-3.88 2.69-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.26c-.81.54-1.84.86-3.05.86-2.35 0-4.34-1.59-5.05-3.71H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.71a5.4 5.4 0 0 1 0-3.42V4.96H.96a9 9 0 0 0 0 8.08l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.59C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.96l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
+      {busy ? 'Opening Google…' : 'Continue with Google'}
+    </button>
+  );
+
+  const orRule = (
+    <div className="flex items-center gap-3 my-3" aria-hidden="true">
+      <span className="h-px flex-grow bg-[#E8E4DC]" />
+      <span className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">or</span>
+      <span className="h-px flex-grow bg-[#E8E4DC]" />
+    </div>
+  );
+
+  const header = (
+    <>
       <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">PoeTech · Welcome</div>
       <h2
         id="auth-modal-h"
-        className="text-2xl mt-1 mb-1"
+        className={tv ? 'text-xl mt-1 mb-1' : 'text-2xl mt-1 mb-1'}
         style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}
       >
         Sign in or create your profile
       </h2>
-      <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+      <p className={tv ? 'text-sm text-[#5A5751] mb-3' : 'text-sm text-[#5A5751] mb-4'} style={{ fontFamily: '"Fraunces", serif' }}>
         Sign in to sync across your devices. It’s free, built for our community, and never sold.
       </p>
-
       {error && <p className="text-xs text-[#7A1F1F] mb-3" role="alert" aria-live="assertive">{error}</p>}
+    </>
+  );
 
-      {/* PRIMARY: Google, in a popup so you keep your place. */}
-      <button
-        ref={googleRef}
-        type="button"
-        onClick={handleGoogle}
-        disabled={busy}
-        className="w-full inline-flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#1A1815] text-[#1A1815] bg-white hover:bg-[#FAF8F4] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-      >
-        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.91c1.7-1.57 2.69-3.88 2.69-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.26c-.81.54-1.84.86-3.05.86-2.35 0-4.34-1.59-5.05-3.71H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.71a5.4 5.4 0 0 1 0-3.42V4.96H.96a9 9 0 0 0 0 8.08l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.59C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.96l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
-        {busy ? 'Opening Google…' : 'Continue with Google'}
-      </button>
+  if (tv) {
+    // A television: the phone door first and focused, the typed doors beside
+    // it, folded until asked for. Two columns so it all fits 960x540.
+    return (
+      <Modal open={open} onClose={onClose} labelledBy="auth-modal-h" maxWidthClass="max-w-4xl" closeLabel="Close sign-in" initialFocusRef={phoneRef}>
+        {header}
+        <div className="grid grid-cols-2 gap-4 items-start">
+          <PhoneSignInPanel tv buttonRef={phoneRef} onSignedIn={handleSignedIn} />
+          <div>
+            {googleButton}
+            {orRule}
+            {showTyped ? (
+              <PasswordAuth mode={mode} embedded onSignedIn={handleSignedIn} />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowTyped(true)}
+                data-testid="auth-typed-doors"
+                className="w-full text-xs font-semibold uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#1A1815] text-[#1A1815] bg-white hover:bg-[#FAF8F4] focus:outline focus:outline-4 focus:outline-offset-2 focus:outline-[#B85838]"
+              >
+                Type a phone number and PIN, or email
+              </button>
+            )}
+          </div>
+        </div>
+      </Modal>
+    );
+  }
 
-      <div className="flex items-center gap-3 my-4" aria-hidden="true">
-        <span className="h-px flex-grow bg-[#E8E4DC]" />
-        <span className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">or</span>
-        <span className="h-px flex-grow bg-[#E8E4DC]" />
-      </div>
+  return (
+    <Modal open={open} onClose={onClose} labelledBy="auth-modal-h" maxWidthClass="max-w-sm" closeLabel="Close sign-in" initialFocusRef={googleRef}>
+      {header}
+
+      {/* At the top everywhere: a laptop, a shared screen, a TV browser that
+          hides its name. On a phone it is one row and Google keeps focus. */}
+      <PhoneSignInPanel buttonRef={phoneRef} onSignedIn={handleSignedIn} />
+      {orRule}
+
+      {/* PRIMARY on a phone: Google, in a popup so you keep your place. */}
+      {googleButton}
+
+      {orRule}
 
       {/* SECONDARY: email + password, with the Royalty Link fallback inside. */}
       <PasswordAuth mode={mode} embedded onSignedIn={handleSignedIn} />

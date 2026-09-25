@@ -828,6 +828,38 @@ const NODES = [
     id: 'transcript-backfill-loop', name: 'Transcript backfill (dedicated clock, off by record)', purpose: 'The same loader as the trickle on its own clock; combined into the trickle, off by record.',
     reads: [{ res: 'nas:clock', file: 'infra/nas-loops/registry.json', token: 'transcript-backfill' }], writes: [{ res: 'db:video_transcripts', token: 'load-transcripts.py' }], seeds: ['sermon-reader'],
   }),
+
+  // ===========================================================================
+  // 15. THE TV SIGNS IN FROM THE PHONE IN YOUR HAND (DR-0658)
+  // ===========================================================================
+  app('app/src/components/PhoneSignInPanel.jsx', {
+    id: 'tv-signin', name: 'Sign in with your phone (the TV)',
+    purpose: 'The TV shows a QR and a short code, waits for the phone, and becomes signed in.',
+    writes: [{ res: 'db:device_link', file: 'app/src/lib/device-link-client.js', token: "rpc('device_link_start'" }],
+    reads: [
+      { res: 'db:device_link#approved', file: 'app/src/lib/device-link-client.js', token: "rpc('device_link_poll'" },
+      { res: 'auth:session#tv', file: 'app/src/lib/device-link-client.js', token: 'auth.setSession' },
+    ],
+    seeds: ['tv-signin-approve'],
+  }),
+  app('app/src/components/DeviceLinkApprove.jsx', {
+    id: 'tv-signin-approve', name: 'Sign in the TV? (the phone, /link)',
+    purpose: 'A signed-in person sees which screen is asking and approves or denies it.',
+    reads: [{ res: 'db:device_link', file: 'app/src/lib/device-link-client.js', token: "rpc('device_link_describe'" }],
+    writes: [
+      { res: 'db:device_link#approved', file: 'app/src/lib/device-link-client.js', token: "rpc('device_link_decide'" },
+      // Every look-up and decision is metered per person (20 per 10 minutes).
+      { res: 'db:device_link_rate', file: 'infra/supabase/migrations-auto/0239-the-television-signs-in-from-the-phone-in-your-hand.sql', token: 'device_link_meter' },
+    ],
+    seeds: ['tv-signin-mint'],
+  }),
+  app('app/functions/api/device-link.js', {
+    id: 'tv-signin-mint', name: '/api/device-link (turns an approval into a session)',
+    purpose: 'Claims an approved link once with the service role and hands the TV a one-time session.',
+    reads: [{ res: 'db:device_link#approved', token: 'device_link_claim' }],
+    writes: [{ res: 'auth:session#tv', token: '/auth/v1/verify' }],
+    seeds: ['tv-signin'],
+  }),
 ];
 
 // Every service rider and loop reads nas:services (the install services-sync
@@ -887,6 +919,13 @@ const RESOURCES = {
   'db:sermon_video_stats': { label: 'video reach', proof: { ts: 'fetched_at', fresh: 2 } },
   'db:church_service_segments': { label: 'order of service', proof: { ts: 'updated_at', fresh: 30 } },
   'db:_sovereign_replay': { label: 'the live database’s migration ledger', proof: { ts: 'applied_at', fresh: 30 } },
+  // TV sign-in rows live at most ten minutes plus the hour-late sweep, so a
+  // freshness reading would read "stale" on any quiet day; they are carriers,
+  // not records (DR-0658).
+  'db:device_link': { label: 'TV sign-in requests (ten minutes each)' },
+  'db:device_link#approved': { label: 'TV sign-in requests a phone approved' },
+  'db:device_link_rate': { label: 'TV sign-in look-ups, metered per person', sink: 'Read only by device_link_meter inside the database to refuse the 21st look-up in ten minutes; swept after an hour.' },
+  'auth:session#tv': { label: 'a TV’s signed-in session', sink: 'The television keeps it and uses the app as that person; nothing else reads it.' },
 
   'event:use-prompt': { label: '“Put it in the box” (reuse a prompt)' },
   'device:family-key': { label: 'the family key on this device' },
