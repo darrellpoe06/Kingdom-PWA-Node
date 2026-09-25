@@ -32,7 +32,9 @@ The NAS voice (DR-0627) reached Darrell's phone that evening, a man's voice read
   - Speed is set only in the browser (`playbackRate`); the server passes no `length_scale`. So speed was not applied twice.
 - **Why the highlight was off.** For these pieces it came from the clip's clock, spread evenly across up to 600 characters. Speech is not even across characters, so the lit sentence landed one early or one late, and further off inside long pieces.
 - **The new cut, measured across the whole Living Lessons corpus:** 11,604 texts give 133,628 pieces. The longest is 181 characters, and none is over 200. L191's summary becomes 6 pieces (181, 159, 161, 175, 172 and 13 characters).
-- **The live before/after WAVs** come from `voice-lite-probe.yml` (below). They are named in the PR and listed here once the run is back.
+- **The live before/after, through `https://poetech.us/voice-lite`** (voice-lite-probe run 36077630714, artifact `voice-lite-clip`: `before-whole-sentence.wav`, `after-piece-0..5.wav`, `after-pieces-joined.wav`):
+  - Before, the whole 866-character sentence as one request: 21.2 s of audio, **40.8 characters a second**, about twice a speaking pace. The voice ran the words together and dropped them. That is the gibberish.
+  - After, the six pieces: 10.1, 8.2, 8.8, 6.9, 9.2 and 0.9 s, **18 to 25 characters a second** (15 on the 13-character tail), 44.0 s in all. Every piece is at a speaking pace.
 
 ## Impact
 
