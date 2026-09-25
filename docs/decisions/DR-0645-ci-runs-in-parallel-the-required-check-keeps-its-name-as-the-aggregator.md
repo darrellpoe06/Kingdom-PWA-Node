@@ -8,9 +8,11 @@
 - **Principles:** STREAMLINED-DELIVERY (DR-0103), VERIFICATION-DOCTRINE (DR-0076 §3, proven-to-catch), PROVE-THE-DEPLOY (DR-0107), SPEAK-ESTABLISHED-FACT (DR-0100), PERPETUAL-IMPROVEMENT (DR-0075)
 - **Grounds:** Darrell, 2026-09-24: *"Our processes work way faster than this!!!!!!!!!!!!!!!"*
 
-## Context: what was measured
+## Context
 
-Every PR waited on one job, `app — lint + vitest`, which ran every gate one after another.
+Every PR waited on one job, `app — lint + vitest`, which ran every gate one after another. Darrell said the processes should run far faster than they did.
+
+## What was measured
 
 - **Run 36066491340** (the "before"): the required check ran **22:16:29 → 22:36:28, 20.0 minutes**. Its steps: setup + lint 0:45; node guards 0:02; **vitest 11:34**; python selftests 0:05; build 0:35; SW-nav 0:13; **chrome-layout selftest 0:45; chrome-layout sweep 5:48**; read-highlight + scripture 0:04.
 - A full vitest run logged 668.70 s: collect 585 s, environment 430 s. The suite is about 1,200 files and 20,100 tests.
@@ -39,7 +41,7 @@ Every PR waited on one job, `app — lint + vitest`, which ran every gate one af
 | 6 | 1.4, 2.2, 2.4, 2.4, 2.4, 2.4 min | 36073585592 |
 | 4 | 2.5, 3.2, 3.4, 3.4 min | 36074351607 |
 
-Six shards save under a minute per shard, because per-file collect and environment setup dominate. They cost two more runners per run on an account whose runners were already saturated (see Findings). The chrome-layout leg is the long pole either way. **Four shards were picked.**
+Six shards save under a minute per shard, because per-file collect and environment setup dominate. They cost two more runners per run on an account whose runners were already saturated (see Impact). The chrome-layout leg is the long pole either way. **Four shards were picked.**
 
 ## Before and after (the required check, same PR lane)
 
@@ -52,6 +54,7 @@ Six shards save under a minute per shard, because per-file collect and environme
 
 - **Scratch branch:** `claude/scratch-red-shard-proof`, PR #1806, closed unmerged.
 - **What it did:** one deliberately failing test (`expect(1).toBe(2)`) was pushed there. Run **36073643722**: `app — vitest shard 2/6` → **failure**, and the aggregator `app — lint + vitest` → **failure** (job 107882477688). The log reads: `guards: success / vitest: failure / probes: success / layout: success`, then `##[error]required legs did not pass: vitest`.
+- **A second, unplanned proof on this PR's own lane:** run **36076894850** (head 1b94758). `app — vitest shard 3/4` caught a real defect. `decision-chain.test.js` found that this record was missing its evidence and impact headings. The aggregator went red, and native auto-merge did not merge PR #1805. The same run shows the superseded-run cancel working: the older run for 9e64efd, 36076811323, ended **cancelled** when 1b94758 was pushed. The run took **6.4 min** from creation to the red aggregator (00:18:03 → 00:24:27).
 - **Cleanup:**
   - The branch was then force-reset to `main`'s tip (88f445c6), so the failing test exists on no branch.
   - The session's git proxy refused the ref **deletion** itself ("Write access to this GitHub API path is not permitted through this proxy"). The empty branch name remains for a one-click delete.
@@ -65,7 +68,7 @@ Six shards save under a minute per shard, because per-file collect and environme
 - **`verify-covers-ci-guards.test.js`** reads the guard list between `npm run lint` and `npx vitest run`. The `guards` job is written first in the file so that list is unchanged. `npx vitest run --shard=…` still matches, and so does `system-flow-registry.mjs`'s `npx vitest run` token.
 - **After merge:** the deploy run (`deploy-cloudflare-pages.yml`) whose `head_sha` equals `main` is recorded in the PR thread (DR-0107).
 
-## Findings, with dates
+## Impact: what remains open, with dates
 
 - **The runner pool, not the suite, is now the ceiling.**
   - Each commit pushed to a branch with an open PR runs CI **twice**, once for `push` and once for `pull_request`, on the same SHA. That doubles runner use.
