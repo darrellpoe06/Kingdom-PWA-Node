@@ -43,6 +43,12 @@ jobs:
           else
             echo "go=true" >> "$GITHUB_OUTPUT"
           fi
+      # The fixture for the before/after step (checked out FIRST: a later
+      # checkout would clean the workspace and take the probe's clip with it).
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.go == 'true'
+        with:
+          sparse-checkout: infra/nas-voice-lite/fixtures
       - name: Join the tailnet (ephemeral)
         if: steps.gate.outputs.go == 'true'
         uses: tailscale/github-action@v3
@@ -107,10 +113,60 @@ jobs:
             echo "::warning::no WAV came back through the public route"
             head -c 300 voice-lite.wav; echo
           fi
-      - name: Keep the clip (listen to what the reader will play)
+      # BEFORE AND AFTER, on L191's own words (DR-0653). "before" is the shape
+      # the reader used to send: the whole 866-character summary sentence as
+      # one request. "after" is the shape it sends now: the app's own cut
+      # (infra/nas-voice-lite/fixtures/l191-summary.json, pinned to
+      # chunkForClips by a test), one request per piece, joined here only so a
+      # person can listen to it in one file. Durations come from each WAV's
+      # own header.
+      - name: Before and after — L191's summary through /voice-lite
+        if: steps.gate.outputs.go == 'true'
+        env:
+          TOK: ${{ steps.nas.outputs.tok }}
+        run: |
+          if [ -z "$TOK" ]; then echo "no bearer — skipped"; exit 0; fi
+          python3 - <<'PY'
+          import json, os, subprocess, time, wave, io
+          fx = json.load(open('infra/nas-voice-lite/fixtures/l191-summary.json'))
+          tok = os.environ['TOK']
+          def speak(text, out):
+              body = json.dumps({'text': text, 'voice': 'male'})
+              for attempt in range(5):
+                  r = subprocess.run(['curl', '-s', '-m', '120', '-o', out, '-w', '%{http_code}', '-H', 'Authorization: Bearer ' + tok,
+                                      '-H', 'Content-Type: application/json', '-d', body, 'https://poetech.us/voice-lite/speak'],
+                                     capture_output=True, text=True)
+                  code = r.stdout.strip()
+                  if code != '503': return code
+                  time.sleep(2 * (attempt + 1))
+              return code
+          def secs(path):
+              with wave.open(path) as w: return w.getnframes() / float(w.getframerate()), w.getframerate()
+          code = speak(fx['whole'], 'before-whole-sentence.wav')
+          d, sr = secs('before-whole-sentence.wav') if code == '200' else (0, 0)
+          print(f"BEFORE: one request, {len(fx['whole'])} chars -> HTTP {code}, {d:.1f} s at {sr} Hz, {len(fx['whole'])/max(d,0.01):.1f} chars/s")
+          frames = []; params = None; total = 0
+          for i, t in enumerate(fx['pieces']):
+              out = f'after-piece-{i}.wav'
+              code = speak(t, out)
+              if code != '200': print(f"AFTER piece {i}: HTTP {code}"); continue
+              with wave.open(out) as w:
+                  params = params or w.getparams(); frames.append(w.readframes(w.getnframes()))
+                  d = w.getnframes() / float(w.getframerate()); total += d
+              print(f"AFTER piece {i}: {len(t)} chars -> {d:.1f} s, {len(t)/max(d,0.01):.1f} chars/s")
+          if params:
+              with wave.open('after-pieces-joined.wav', 'wb') as w:
+                  w.setparams(params); [w.writeframes(f) for f in frames]
+              print(f"AFTER: {len(fx['pieces'])} requests, {sum(len(t) for t in fx['pieces'])} chars -> {total:.1f} s")
+          PY
+      - name: Keep the clips (listen to what the reader will play)
         if: steps.gate.outputs.go == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: voice-lite-clip
-          path: voice-lite.wav
+          path: |
+            voice-lite.wav
+            before-whole-sentence.wav
+            after-pieces-joined.wav
+            after-piece-*.wav
           if-no-files-found: ignore

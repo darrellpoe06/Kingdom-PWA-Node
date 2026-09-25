@@ -71,6 +71,9 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const [cloudPlaying, setCloudPlaying] = useState(false);
   const [cloudPaused, setCloudPaused] = useState(false);
   const [cloudProgress, setCloudProgress] = useState(0); // 0..1 through the cloud clip
+  // Which reading segment the NAS voice is speaking (-1 when it is not). The
+  // pieces ARE the segments, so this is exact, never a guess from the clock.
+  const [cloudPiece, setCloudPiece] = useState(-1);
   // A NOTICE MAY CARRY A DOOR (2026-09-22). Most notices are just news. One of
   // them tells the reader to go and do something in another tab, and telling is
   // where it failed him — so a notice can hand over `{ href, label }` and the
@@ -213,6 +216,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
 
   const stop = useCallback(() => {
     if (queueRef.current) { queueRef.current.stop(); queueRef.current = null; }
+    setCloudPiece(-1);
     try { tts.stop(); } catch (_) {}
     if (audioRef.current) { try { audioRef.current.pause(); } catch (_) {} audioRef.current = null; }
     setCloudPlaying(false);
@@ -241,6 +245,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // Chrome/mobile — the "tap Read, nothing happens" race. So we don't pre-cancel.
   const stopCloud = useCallback(() => {
     if (queueRef.current) { queueRef.current.stop(); queueRef.current = null; }
+    setCloudPiece(-1);
     if (audioRef.current) { try { audioRef.current.pause(); } catch (_) {} audioRef.current = null; }
     setCloudPlaying(false);
     setCloudProgress(0);
@@ -308,11 +313,23 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   /** Play `clean` in the NAS audio voice. Resolves true once the first piece plays. */
   const playLiteVoice = useCallback(async (clean) => {
     const voice = liteVoiceFor();
-    const chunks = chunkForClips(toSpokenForm(clean));
+    // Pieces are cut from the text AS WRITTEN, so piece i is highlight segment
+    // i; each piece is turned into its spoken form on its own way out.
+    const chunks = chunkForClips(clean);
     if (!chunks.length || typeof Audio === 'undefined') return false;
+    // The NAS takes two syntheses at once and answers a third with 503 busy:
+    // that is a wait, not a failure, so a busy piece is asked again shortly.
+    const speakPiece = async (t, timeoutMs) => {
+      let got = await synthesizeLite({ text: toSpokenForm(t), voice, timeoutMs });
+      for (let tries = 0; got.error === 'voice-lite-503' && tries < 4; tries++) {
+        await new Promise((r) => setTimeout(r, 600 * (tries + 1)));
+        got = await synthesizeLite({ text: toSpokenForm(t), voice, timeoutMs });
+      }
+      return got;
+    };
     // The first piece decides: if the NAS voice cannot answer it in time, the
     // device voice speaks instead and the road is not asked again for a while.
-    const first = await synthesizeLite({ text: chunks[0].text, voice, timeoutMs: LITE_FIRST_TIMEOUT_MS });
+    const first = await speakPiece(chunks[0].text, LITE_FIRST_TIMEOUT_MS);
     if (first.error || !first.url) { markLiteVoiceDown(); return false; }
     const a = new Audio();
     let served = false;
@@ -322,18 +339,19 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       rate: rateRef.current,
       fetchClip: (t) => {
         if (!served) { served = true; return Promise.resolve(first); }
-        return synthesizeLite({ text: t, voice });
+        return speakPiece(t);
       },
       revoke: (u) => { try { URL.revokeObjectURL(u); } catch (_) { /* ignore */ } },
       onProgress: (f) => setCloudProgress(f),
-      onEnd: () => { if (queueRef.current === q) { queueRef.current = null; audioRef.current = null; setCloudPlaying(false); setCloudPaused(false); setCloudProgress(0); } },
+      onPiece: (i) => { if (queueRef.current === q) setCloudPiece(i); },
+      onEnd: () => { if (queueRef.current === q) { queueRef.current = null; audioRef.current = null; setCloudPlaying(false); setCloudPaused(false); setCloudProgress(0); setCloudPiece(-1); } },
       // A piece that cannot be had: the rest of the reading continues in the
       // device voice rather than stopping (and the panel says which voice).
       onFallback: (rest) => {
         if (queueRef.current !== q) return;
         queueRef.current = null; audioRef.current = null;
         markLiteVoiceDown();
-        setCloudPlaying(false); setCloudProgress(0);
+        setCloudPlaying(false); setCloudProgress(0); setCloudPiece(-1);
         setAudioVoice('device');
         if (rest && tts.supported) tts.speak(rest, resolveSpeakURI(voiceId));
       },
@@ -615,6 +633,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     setBoundaryHandler: tts.setBoundaryHandler,
     deviceRead: !cloudPlaying,
     cloudProgress,
+    // The NAS voice's piece IS the reading segment (-1 when not playing one).
+    cloudPiece,
     voiceId, setVoiceId, catalog, currentItem, notice,
     standInWhy,
     audioVoice,
