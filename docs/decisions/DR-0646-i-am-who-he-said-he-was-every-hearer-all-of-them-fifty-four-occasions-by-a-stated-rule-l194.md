@@ -108,6 +108,7 @@ L191 walks sixteen hearers and says, in its own opening, "The Gospels hold more;
 ## Verification
 
 - `living-lessons-l194-verses.test.js` (24 checks) and `living-lessons-l191-verses.test.js` pass, together with the full Vitest suite, `node scripts/business-systems-guard.mjs` and `node scripts/legibility-guard.mjs --health`. The run is recorded on the PR.
+- 2026-09-25, re-checked after main (b074860a) was merged in, including #1822, which reads the newest lesson from the catalog: `business-systems-guard` OK (newest DR-0656, pointer correct); `legibility-guard --health` 258/271; the L194, L191, id-collision, order, crosslist, continue-a-lesson-numbers, course-picker, doubled-word and spelling suites pass together (129 tests). L193 (#1803) is not on main yet, so 193 stays recorded as held; the merge after it lands removes that entry and reconciles the counts.
 - After merge, a live review under DR-0104: Church → Learn → Living Lessons → L194 on a phone. Check that the fifty-four headings are readable, that the count and the rule are on screen, and that L191 shows its one line pointing to L194.
 
 ## Limits, stated
