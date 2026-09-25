@@ -30,6 +30,40 @@ export const LESSON_MEMBER_CONFIRMATION = '📖 Heard. The lessons from the Word
 // Lesson chip is chosen, on every surface that offers it.
 export const LESSON_NOTICE = 'What you share here may be used to write a lesson from the Word that others read. Your name is never used, and personal details are changed so no one can tell it was you.';
 
+// THE NAME, BY THE MEMBER'S CHOICE (DR-0639; Darrell 2026-09-24: "Name is used
+// if they want to though... make sense?"). Off by default. Ticked, the notice
+// says exactly which name will be used; the row carries the choice as tags so
+// the reader never guesses: `lesson-name-ok` + `lesson-name:<name>`.
+export const LESSON_NAME_OK_TAG = 'lesson-name-ok';
+export const LESSON_NAME_TAG_PREFIX = 'lesson-name:';
+export const LESSON_NAME_MAX = 60;
+
+/** The name as it will be used: one line, trimmed, at most LESSON_NAME_MAX. */
+export function cleanLessonName(name) {
+  return String(name || '').replace(/\s+/g, ' ').trim().slice(0, LESSON_NAME_MAX).trim();
+}
+
+/** The tags a lesson row carries for the name choice ([] = anonymous). */
+export function lessonNameTags(nameOk, name) {
+  const n = cleanLessonName(name);
+  return nameOk && n ? [LESSON_NAME_OK_TAG, `${LESSON_NAME_TAG_PREFIX}${n}`] : [];
+}
+
+/** The name a row allows, or '' (anonymous). */
+export function lessonNameOf(tags) {
+  const list = Array.isArray(tags) ? tags : [];
+  if (!list.includes(LESSON_NAME_OK_TAG)) return '';
+  const t = list.find((x) => String(x).startsWith(LESSON_NAME_TAG_PREFIX));
+  return t ? cleanLessonName(String(t).slice(LESSON_NAME_TAG_PREFIX.length)) : '';
+}
+
+/** The notice above Send, true for the choice made. */
+export function lessonNotice(nameOk, name) {
+  const n = cleanLessonName(name);
+  if (!nameOk || !n) return LESSON_NOTICE;
+  return `What you share here may be used to write a lesson from the Word that others read. Your name will be used as you wrote it: ${n}. Other personal details are still changed.`;
+}
+
 /** Whose lesson row is read straight into a new lesson: the Governor's own
  *  sign-in doors (DR-0608). Everyone else gets the member confirmation. */
 export function isLessonDoorOwner(email) {

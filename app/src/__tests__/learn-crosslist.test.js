@@ -302,12 +302,17 @@ describe('a pointer, never a copy', () => {
     // existing Project Management course, so only the total moves.
     expect(courses).toHaveLength(49);
     // And to 718 on 2026-09-24 for Sovereign A.I. weeks 25 and 26 (DR-0619, DR-0620);
-    // and to 720 the same day for weeks 27 and 28, from Darrell's spoken teachings (DR-0637, DR-0638);
-    // and to 721 the same day for L195 (How Yahweh Keeps His Word, DR-0643), a lesson
-    // into the existing Living Lessons course, so the course count holds at 49.
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(721);
+    // and to 720 the same day for weeks 27 and 28, from Darrell's spoken teachings (DR-0637, DR-0638).
+    // And to 721 on 2026-09-24 for L194 (I AM: Who He Said He Was — Every Hearer, All of
+    // Them, DR-0646) — Darrell: "Lesson with all of them not just 16"; a lesson into the
+    // existing Living Lessons course, so the course count holds at 49 and only the total moves.
+    // And to 722 the same day for L193 (What It Costs to Keep Your Soul, DR-0642),
+    // a lesson into the existing Living Lessons course, so only the total moves.
+    // And to 723 the same day for L195 (How Yahweh Keeps His Word, DR-0643),
+    // a lesson into the existing Living Lessons course, so only the total moves.
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(723);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(721);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(723);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {

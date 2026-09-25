@@ -2,7 +2,7 @@
   "ceiling": 0.5,
   "shingle": 8,
   "note": "Shrink-only debt (Darrell 2026-09-18: \"Last lessons don't have diversity of lessons for all reading levels... why not?\"). Overlap is the share of 8-word phrases the smaller band shares with the larger, measured on AUTHORED PROSE with quotations removed — every band quotes the same verses, so counting them would punish a well-differentiated lesson. A lesson newly over the ceiling FAILS the build; entries are removed as bands are genuinely re-authored, never added. Differentiation is not abbreviation: the full-levels floor and the reading ladder stay in force at the same time (DR-0418). 2026-09-20: ll57 (Power to Tread) was re-authored whole — the child band rewritten from grade 10.1 to 1.5, a youth band authored where none existed, and teen and senior extended past the floor. It leaves this list because its CONTENT changed, not because an entry was edited out. It now carries all four bands, so the count of four-band lessons this measure reads rises 120 -> 121; its worst pair is 0.02 against a ceiling of 0.50.",
-  "measuredLessons": 125,
+  "measuredLessons": 127,
   "lessonsDuplicated": 0,
   "duplicated": {}
 }

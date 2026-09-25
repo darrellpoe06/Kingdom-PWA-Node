@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseLegs, checkMatrix } from '../../../scripts/rls-isolation-matrix-guard.mjs';
+import { parseLegs, checkMatrix, checkAtomicApply } from '../../../scripts/rls-isolation-matrix-guard.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 const WORKFLOW = readFileSync(join(REPO, '.github/workflows/rls-isolation.yml'), 'utf8');
@@ -102,5 +102,30 @@ describe('rls-isolation-matrix-guard — every referenced file exists (DR-0239 g
     expect(leg).toBeTruthy();
     expect(leg.smokes).toContain('0082-successor-books-smoke.sql');
     expect(leg.smokes).toContain('0100-assistant-books-smoke.sql');
+  });
+});
+
+// Proven-to-catch (DR-0076 Section 3): the shape that left the hosted project
+// without public_vacancies() for the length of a chain, which failed
+// db-migrate run 36090407494's witness.
+describe('rls-isolation-matrix-guard — each leg is ONE transaction', () => {
+  const OLD = [
+    '        run: |',
+    "          PRE=${{ toJSON(matrix.pre || '') }}",
+    '          if [ -n "$PRE" ]; then',
+    '            psql "$DBURL" -v ON_ERROR_STOP=1 -c "$PRE"',
+    '          fi',
+    '          for mig in ${{ matrix.migrations }}; do',
+    '            psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 -f "infra/supabase/migrations-auto/${mig}"',
+    '          done',
+  ].join('\n');
+  it('CATCHES a pre-step that commits on its own and a per-file chain', () => {
+    const p = checkAtomicApply(OLD);
+    expect(p.some((x) => /pre-step runs as its own psql command/.test(x))).toBe(true);
+    expect(p.some((x) => /each migration in its own psql transaction/.test(x))).toBe(true);
+    expect(p.some((x) => /no single psql --single-transaction/.test(x))).toBe(true);
+  });
+  it('the real workflow applies pre-step + chain in one psql --single-transaction', () => {
+    expect(checkAtomicApply(WORKFLOW)).toEqual([]);
   });
 });

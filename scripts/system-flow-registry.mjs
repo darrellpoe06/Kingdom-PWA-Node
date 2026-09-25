@@ -224,8 +224,12 @@ const NODES = [
       { res: 'hosted:lesson-mirror', file: 'docs/decisions/DR-0614-the-nas-jobs-follow-the-database-the-app-reads-and-lesson-rows-are-mirrored-to-where-the-reader-can-see-them.md', token: 'the lesson reader picks it up' },
       { res: 'file:source-transcripts', file: '.github/workflows/source-transcript.yml', token: 'docs/99-session-notes/sources/' },
     ],
-    writes: [{ res: 'code:lessons', file: 'app/src/lib/sovereign-ai-class.js', token: 'Gmail-lesson-intake Way' }],
-    seeds: ['learn'],
+    writes: [
+      { res: 'code:lessons', file: 'app/src/lib/sovereign-ai-class.js', token: 'Gmail-lesson-intake Way' },
+      // DR-0639: a member's lesson, once published, is tagged on the hosted copy.
+      { res: 'hosted:lesson-published', file: 'app/src/lib/lesson-review-messages.js', token: "PUBLISHED_TAG = 'lesson-published'" },
+    ],
+    seeds: ['learn', 'lesson-voice'],
   },
   app('app/src/lib/sovereign-ai-class.js', {
     id: 'learn', name: 'Learn (the classes)',
@@ -256,10 +260,12 @@ const NODES = [
       { res: 'db:agent_inbox#voice-transcript', token: 'rows_to_mirror' },
       // DR-0635: the Governor's decision on a member's lesson reaches the reader.
       { res: 'db:agent_inbox#lesson-review', token: 'list_reviewed_rows' },
+      { res: 'hosted:lesson-published', token: 'list_published_rows' },
     ],
     writes: [
       { res: 'db:agent_inbox#voice-transcript', token: '"voice-transcript"' },
       { res: 'hosted:lesson-mirror', token: 'insert_hosted' },
+      { res: 'db:agent_inbox#lesson-published', token: 'return_published_once' },
     ],
     seeds: ['lesson-capture', 'lesson-inbox'],
   }),
@@ -277,6 +283,7 @@ const NODES = [
       { res: 'db:agent_inbox#voice-transcript', file: 'app/src/lib/lesson-inbox.js', token: 'voice-transcript' },
       // DR-0635: approved (being written, name not used) or declined with the reason.
       { res: 'db:agent_inbox#lesson-review', file: 'app/src/lib/lesson-inbox.js', token: 'review_reason' },
+      { res: 'db:agent_inbox#lesson-published', file: 'app/src/lib/lesson-inbox.js', token: 'publishedLessonOf' },
     ],
     writes: [{ res: 'event:use-prompt', file: 'app/src/components/LessonInbox.jsx', token: 'sendPromptToBox' }],
     seeds: ['lesson-door'],
@@ -284,8 +291,16 @@ const NODES = [
   app('app/src/components/MemberLessonQueue.jsx', {
     id: 'member-lesson-queue', name: 'Members\u2019 lessons to review (the Governor)',
     purpose: 'A member\u2019s lesson is reviewed by the Governor \u2192 a lesson (approved; the reader writes it, name never used) or a reason (declined; the member reads it beside the lessons they were shown). DR-0635.',
-    reads: [{ res: 'db:agent_inbox#lesson', file: 'app/src/lib/member-lesson-review.js', token: "rpc('member_lesson_queue')" }],
-    writes: [{ res: 'db:agent_inbox#lesson-review', file: 'app/src/lib/member-lesson-review.js', token: "rpc('review_member_lesson'" }],
+    reads: [
+      { res: 'db:agent_inbox#lesson', file: 'app/src/lib/member-lesson-review.js', token: "rpc('member_lesson_queue')" },
+      // DR-0639: what is still owed a Message (published, or a decision not yet sent).
+      { res: 'db:agent_inbox#lesson-published', file: 'app/src/lib/member-lesson-review.js', token: "rpc('member_lesson_outbox')" },
+    ],
+    writes: [
+      { res: 'db:agent_inbox#lesson-review', file: 'app/src/lib/member-lesson-review.js', token: "rpc('review_member_lesson'" },
+      // DR-0639: the outcome, sent to the member as an encrypted Message from his client.
+      { res: 'db:direct_messages', file: 'app/src/lib/lesson-review-messages.js', token: 'deps.sendDirectMessage' },
+    ],
     seeds: ['lesson-voice', 'lesson-inbox'],
   }),
 
@@ -514,7 +529,7 @@ const NODES = [
   }),
   wf('ci.yml', {
     id: 'ci', name: 'CI — every gate', runRule: 'any-success', purpose: 'Lint, the full test suite, every guard (this graph’s included) and a real build.',
-    reads: [{ res: 'gh:pr', token: 'pull_request' }, { res: 'gh:ci-dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'gh:check', token: 'npx vitest run' }], seeds: ['auto-merge'],
+    reads: [{ res: 'gh:pr', token: 'pull_request' }], writes: [{ res: 'gh:check', token: 'npx vitest run' }], seeds: ['auto-merge'],
   }),
   wf('auto-merge.yml', {
     id: 'auto-merge', name: 'Auto-merge on green', runRule: 'product:deploy-cloudflare-pages.yml', purpose: 'Merges the PR the moment its gates pass; dispatches the deploy.',
@@ -565,9 +580,9 @@ const NODES = [
     reads: [{ res: 'gh:main', token: 'origin/main' }, { res: 'gh:pr', token: 'gh pr list' }],
     writes: [
       { res: 'gh:automerge-dispatch', token: 'gh workflow run auto-merge.yml' },
-      { res: 'gh:ci-dispatch', token: 'gh workflow run ci.yml' },
+      { res: 'gh:pr-advice', token: 'owner, merge main' },
     ],
-    seeds: ['ci', 'auto-merge'],
+    seeds: ['auto-merge'],
   }),
   wf('install-health.yml', {
     id: 'install-health', name: 'Install health witness', purpose: 'Proves the site installs as an app.',
@@ -813,6 +828,38 @@ const NODES = [
     id: 'transcript-backfill-loop', name: 'Transcript backfill (dedicated clock, off by record)', purpose: 'The same loader as the trickle on its own clock; combined into the trickle, off by record.',
     reads: [{ res: 'nas:clock', file: 'infra/nas-loops/registry.json', token: 'transcript-backfill' }], writes: [{ res: 'db:video_transcripts', token: 'load-transcripts.py' }], seeds: ['sermon-reader'],
   }),
+
+  // ===========================================================================
+  // 15. THE TV SIGNS IN FROM THE PHONE IN YOUR HAND (DR-0658)
+  // ===========================================================================
+  app('app/src/components/PhoneSignInPanel.jsx', {
+    id: 'tv-signin', name: 'Sign in with your phone (the TV)',
+    purpose: 'The TV shows a QR and a short code, waits for the phone, and becomes signed in.',
+    writes: [{ res: 'db:device_link', file: 'app/src/lib/device-link-client.js', token: "rpc('device_link_start'" }],
+    reads: [
+      { res: 'db:device_link#approved', file: 'app/src/lib/device-link-client.js', token: "rpc('device_link_poll'" },
+      { res: 'auth:session#tv', file: 'app/src/lib/device-link-client.js', token: 'auth.setSession' },
+    ],
+    seeds: ['tv-signin-approve'],
+  }),
+  app('app/src/components/DeviceLinkApprove.jsx', {
+    id: 'tv-signin-approve', name: 'Sign in the TV? (the phone, /link)',
+    purpose: 'A signed-in person sees which screen is asking and approves or denies it.',
+    reads: [{ res: 'db:device_link', file: 'app/src/lib/device-link-client.js', token: "rpc('device_link_describe'" }],
+    writes: [
+      { res: 'db:device_link#approved', file: 'app/src/lib/device-link-client.js', token: "rpc('device_link_decide'" },
+      // Every look-up and decision is metered per person (20 per 10 minutes).
+      { res: 'db:device_link_rate', file: 'infra/supabase/migrations-auto/0239-the-television-signs-in-from-the-phone-in-your-hand.sql', token: 'device_link_meter' },
+    ],
+    seeds: ['tv-signin-mint'],
+  }),
+  app('app/functions/api/device-link.js', {
+    id: 'tv-signin-mint', name: '/api/device-link (turns an approval into a session)',
+    purpose: 'Claims an approved link once with the service role and hands the TV a one-time session.',
+    reads: [{ res: 'db:device_link#approved', token: 'device_link_claim' }],
+    writes: [{ res: 'auth:session#tv', token: '/auth/v1/verify' }],
+    seeds: ['tv-signin'],
+  }),
 ];
 
 // Every service rider and loop reads nas:services (the install services-sync
@@ -855,6 +902,9 @@ const RESOURCES = {
   'db:agent_inbox#voice': { label: 'spoken lessons waiting for Whisper', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice'", consumed: "tags ? 'voice-transcribed' OR tags ? 'voice-failed'" } },
   'db:agent_inbox#lesson-review': { label: 'members\u2019 lessons the Governor decided', proof: { ts: 'reviewed_at', fresh: 30, where: "tags ? 'lesson-approved' OR tags ? 'lesson-declined'", consumed: "tags ? 'review-mirrored'" } },
   'db:agent_inbox#voice-transcript': { label: 'spoken lessons written down', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice-transcript'", consumed: "tags ? 'mirrored'" } },
+  'hosted:lesson-published': { label: 'a member\u2019s lesson marked published by the reader (DR-0639)' },
+  'db:agent_inbox#lesson-published': { label: 'members\u2019 lessons published', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'lesson-published'", consumed: "tags ? 'messaged:published'" } },
+  'db:direct_messages': { label: 'Messages', sink: 'The member reads the Message in their own Messages thread and may reply; a reply is an ordinary Message to Darrell (DR-0639).' },
   'db:agent_inbox#poetech': { label: 'PoeTech requests relayed to the inbox', proof: { ts: 'created_at', fresh: 60, where: "tags ? 'tell-poetech'" },
     open: { blocker: 'Nothing reads these rows (measured 2026-09-24: no code, NAS job or routine reads the tell-poetech tag). The same words now also reach the feedback queue; this relay retires once a PoeTech request is seen landing there on the live database, not before (never dismantle what may still deliver until its replacement is proven).', reReview: '2026-10-01' } },
   'hosted:lesson-mirror': { label: 'lessons carried to the cloud reader (DR-0614)' },
@@ -869,6 +919,13 @@ const RESOURCES = {
   'db:sermon_video_stats': { label: 'video reach', proof: { ts: 'fetched_at', fresh: 2 } },
   'db:church_service_segments': { label: 'order of service', proof: { ts: 'updated_at', fresh: 30 } },
   'db:_sovereign_replay': { label: 'the live database’s migration ledger', proof: { ts: 'applied_at', fresh: 30 } },
+  // TV sign-in rows live at most ten minutes plus the hour-late sweep, so a
+  // freshness reading would read "stale" on any quiet day; they are carriers,
+  // not records (DR-0658).
+  'db:device_link': { label: 'TV sign-in requests (ten minutes each)' },
+  'db:device_link#approved': { label: 'TV sign-in requests a phone approved' },
+  'db:device_link_rate': { label: 'TV sign-in look-ups, metered per person', sink: 'Read only by device_link_meter inside the database to refuse the 21st look-up in ten minutes; swept after an hour.' },
+  'auth:session#tv': { label: 'a TV’s signed-in session', sink: 'The television keeps it and uses the app as that person; nothing else reads it.' },
 
   'event:use-prompt': { label: '“Put it in the box” (reuse a prompt)' },
   'device:family-key': { label: 'the family key on this device' },
@@ -879,7 +936,7 @@ const RESOURCES = {
   'mail:lesson': { label: 'forwarded “Lesson.” mail', source: 'Darrell forwards a lesson from his own mailbox.' },
   'yt:channel': { label: 'the church’s YouTube channel', source: 'The church publishes each service on its channel.' },
   'gh:branch': { label: 'a pushed branch', source: 'An agent session or a person pushes a branch.' },
-  'gh:ci-dispatch': { label: 'CI dispatched on a refreshed PR branch' },
+  'gh:pr-advice': { label: 'the "owner, merge main" comment on a PR', sink: 'The owner of the PR reads it and merges main (DR-0644); nothing else reads it.' },
   'gh:automerge-dispatch': { label: 'the auto-merge sweep dispatched after PRs were refreshed' },
   'gh:dispatch': { label: 'a hand dispatch', source: 'A person or a session dispatches a remote-hands workflow on purpose.' },
   'gh:signal-pr': { label: 'the lesson signal PR (#1346)' },

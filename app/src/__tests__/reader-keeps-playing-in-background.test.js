@@ -137,7 +137,8 @@ describe('the NAS audio voice road (/voice-lite)', () => {
   it('a real audio answer becomes a playable clip, asked of the same-origin route', async () => {
     const fetchImpl = vi.fn(async () => res(200, 'audio/wav'));
     const out = await synthesizeLite({ text: 'In the beginning was the Word.', voice: 'male', fetchImpl, origin: 'https://poetech.us' });
-    expect(out).toEqual({ url: 'blob:clip' });
+    // The blob rides along so the clip can be kept on the device (DR-0659).
+    expect(out).toEqual({ url: 'blob:clip', blob: { size: 1000 } });
     expect(fetchImpl.mock.calls[0][0]).toBe('https://poetech.us/voice-lite/speak');
     expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({ text: 'In the beginning was the Word.', voice: 'male' });
   });

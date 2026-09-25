@@ -114,14 +114,23 @@ jobs:
           # own sovereign-noise-thought-isolation.yml — the exact per-feature
           # drift class this matrix was created to end, reintroduced the same
           # day the matrix landed. One matrix, every proof, no siblings.
-          # 0237 (DR-0635) redefines agent_inbox_read (each person reads only
+          # 0237 (DR-0635) and 0238 (DR-0639, the name choice) redefines agent_inbox_read (each person reads only
           # their own rows) and adds the Governor's member-lesson review, so it
           # rides this leg after 0127 and its smoke runs here.
           - feature: sovereign-noise-thought
-            migrations: "0127-sovereign-noise-and-thought.sql 0237-a-members-lesson-is-reviewed-by-the-governor-before-it-is-written.sql"
-            smokes: "0127-sovereign-noise-thought-smoke.sql 0237-member-lesson-review-smoke.sql"
+            migrations: "0127-sovereign-noise-and-thought.sql 0237-a-members-lesson-is-reviewed-by-the-governor-before-it-is-written.sql 0238-a-member-may-choose-to-be-named-and-the-governor-may-keep-it-anonymous.sql"
+            smokes: "0127-sovereign-noise-thought-smoke.sql 0237-member-lesson-review-smoke.sql 0238-member-lesson-name-smoke.sql"
           # Added 2026-09-24 (DR-0615): each person's prompt history is private
           # to its author, even inside the same instance.
+          # Added 2026-09-25 (DR-0658): the TV signs in from the phone in your
+          # hand. anon starts and polls and reads no row; only a signed-in
+          # person looks up or approves; only the service role claims, once;
+          # the user_code, a denied link or an expired link claims nothing;
+          # the 21st look-up in ten minutes is refused. 0222 first: 0239
+          # replaces its functions and grants.
+          - feature: device-link
+            migrations: "0222-sign-in-to-the-television-from-the-phone-in-your-hand.sql 0239-the-television-signs-in-from-the-phone-in-your-hand.sql"
+            smokes: "0239-device-link-smoke.sql"
           - feature: saved-prompts
             migrations: "0232-your-prompts-are-kept-dated-and-yours-alone.sql"
             smokes: "0232-saved-prompts-smoke.sql"
@@ -220,16 +229,31 @@ jobs:
           # e.g. role-control drops list_instance_members so 0111 can recreate
           # it and 0143/0144 can rebuild it to the current shape (run 33 proved
           # the key alone does nothing without this executor).
+          #
+          # ONE TRANSACTION for the pre-step AND the whole chain (2026-09-25,
+          # db-migrate run 36090407494). This leg runs against SUPABASE_DB_URL,
+          # the HOSTED project; the app has read the sovereign database since
+          # REPOINT-ARMED (2026-08-19), so no visitor reads what this leg
+          # touches. The pre-step used to commit its DROP on its own, and the
+          # chain then rebuilt the function file by file, so for the length of
+          # the chain (~40 s) the hosted project had no public_vacancies(). The
+          # live-definition witness of a concurrent db-migrate, which also reads
+          # hosted, read that gap ("public_vacancies — absent from the live
+          # database") and failed the run. Inside one transaction, other
+          # sessions see the old definition until COMMIT and then the newest,
+          # never nothing. Pinned by
+          # scripts/rls-isolation-matrix-guard.mjs (checkAtomicApply).
           PRE=${{ toJSON(matrix.pre || '') }}
+          ARGS=()
           if [ -n "$PRE" ]; then
-            echo "=== running pre-step SQL ==="
-            psql "$DBURL" -v ON_ERROR_STOP=1 -c "$PRE"
+            echo "=== pre-step SQL (inside the chain's transaction) ==="
+            ARGS+=(-c "$PRE")
           fi
           for mig in ${{ matrix.migrations }}; do
-            echo "=== applying ${mig} (idempotent) ==="
-            psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 \
-              -f "infra/supabase/migrations-auto/${mig}"
+            echo "=== will apply ${mig} (idempotent) ==="
+            ARGS+=(-f "infra/supabase/migrations-auto/${mig}")
           done
+          psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 "${ARGS[@]}"
           for smoke in ${{ matrix.smokes }}; do
             echo "=== running ${smoke} (rolls back) ==="
             psql "$DBURL" -v ON_ERROR_STOP=1 \

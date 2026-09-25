@@ -59,6 +59,21 @@ describe('L195 is really in the series', () => {
     for (const b of FULL_BANDS) expect(typeof m.levels[b], `${b} must be authored`).toBe('string');
   });
 
+  it('follows L194 and L193: its number is the next after theirs, and it is the newest', () => {
+    // Minted as L193; renumbered to L195 when #1803 (L193) and #1809 (L194)
+    // claimed the numbers first (DR-0052). This pins the order it landed in.
+    const num = (m) => Number((/^ll(\d+)-/.exec(m.id) || [])[1]);
+    const l193 = LIVING_LESSONS_MODULES.find((m) => m.id.startsWith('ll193-'));
+    const l194 = LIVING_LESSONS_MODULES.find((m) => m.id.startsWith('ll194-'));
+    expect(l193, 'L193 is on main before L195').toBeTruthy();
+    expect(l194, 'L194 is on main before L195').toBeTruthy();
+    expect(num(L())).toBe(num(l194) + 1);
+    expect(num(l194)).toBe(num(l193) + 1);
+    expect(LIVING_LESSONS_MODULES.indexOf(L())).toBeGreaterThan(LIVING_LESSONS_MODULES.indexOf(l194));
+    expect(Math.max(...LIVING_LESSONS_MODULES.map(num).filter(Number.isFinite))).toBe(195);
+    expect(LIVING_LESSONS_ADDED[l194.id] <= LIVING_LESSONS_ADDED[ID]).toBe(true);
+  });
+
   it('the week count equals the module count, and the lesson carries its day', () => {
     expect(LIVING_LESSONS_META.weeks).toBe(LIVING_LESSONS_MODULES.length);
     expect(LIVING_LESSONS_ADDED[ID]).toBe('2026-09-24');

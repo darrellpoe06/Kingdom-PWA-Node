@@ -87,7 +87,7 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
 
   const want = (i) => {
     if (i < 0 || i >= chunks.length) return null;
-    if (!urls.has(i)) urls.set(i, Promise.resolve().then(() => fetchClip(chunks[i].text)).catch((e) => ({ error: (e && e.message) || 'fetch-failed' })));
+    if (!urls.has(i)) urls.set(i, Promise.resolve().then(() => fetchClip(chunks[i].text, i)).catch((e) => ({ error: (e && e.message) || 'fetch-failed' })));
     return urls.get(i);
   };
 

@@ -18,6 +18,7 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { clampRect } from '../lib/float-geometry.js';
+import { readingScrollDelta } from '../lib/read-follow.js';
 
 const TAP_MS = 320;
 
@@ -39,20 +40,30 @@ function Controls({ isReading, isPaused, canJump, onPlayPause, onBack, onForward
   );
 }
 
-function Words({ sentences, placeholder }) {
+function Words({ sentences, placeholder, place = 'top' }) {
   const boxRef = useRef(null);
   const current = sentences.findIndex((s) => s.current);
-  // Keep the spoken sentence in view inside the float, gently.
+  // THE SPOKEN SENTENCE AT THE TOP OF THE BOX (DR-0659; Darrell: "keep the
+  // reading at the top of the page as much as possible"). It used to move only
+  // once the sentence had left the box, so each next one sat at the bottom.
+  // Now every new sentence is placed like the page's: just under the box's
+  // top, one line of what came before above it (or centred, if chosen).
   useEffect(() => {
     const box = boxRef.current;
     if (!box) return;
     const el = box.querySelector('[data-current="true"]');
     if (!el) return;
-    const top = el.offsetTop - box.offsetTop;
-    if (top < box.scrollTop || top + el.offsetHeight > box.scrollTop + box.clientHeight) {
-      box.scrollTop = Math.max(0, top - 8);
-    }
-  }, [current, sentences.length]);
+    const b = box.getBoundingClientRect();
+    const r = el.getClientRects && el.getClientRects().length ? el.getClientRects()[0] : el.getBoundingClientRect();
+    const last = el.getClientRects && el.getClientRects().length ? el.getClientRects()[el.getClientRects().length - 1] : r;
+    let lineHeight = 0;
+    try { lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 0; } catch (_) { /* jsdom */ }
+    const d = readingScrollDelta({
+      rangeTop: r.top - b.top, rangeBottom: last.bottom - b.top,
+      topInset: 0, bottomInset: 0, viewportHeight: box.clientHeight, margin: 8, place, lineHeight,
+    });
+    if (d) box.scrollTop = Math.max(0, box.scrollTop + d);
+  }, [current, sentences.length, place]);
   return (
     <div ref={boxRef} data-testid="float-words" className="flex-1 min-h-0 overflow-y-auto px-3 py-2 text-[#1A1815] leading-relaxed" style={{ fontFamily: '"Fraunces", serif', fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>
       {sentences.length ? sentences.map((s, i) => (
@@ -64,7 +75,7 @@ function Words({ sentences, placeholder }) {
 
 export default function FloatingReader({
   rect, onMove, onCommit, onReset, onDock,
-  title = 'Reading', sentences = [], placeholder = 'Press play to start reading.',
+  title = 'Reading', sentences = [], placeholder = 'Press play to start reading.', place = 'top',
   pipSupported = false, onPip = null, pipWindow = null,
   ...controls
 }) {
@@ -79,7 +90,7 @@ export default function FloatingReader({
           <span className="font-semibold truncate text-[#1A1815]">{title}</span>
           <button type="button" onClick={onDock} className="min-h-[44px] px-3 border-2 border-[#1A1815] rounded font-semibold text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" aria-label="Dock — back to the normal reader">⤓ Dock</button>
         </div>
-        <Words sentences={sentences} placeholder={placeholder} />
+        <Words sentences={sentences} placeholder={placeholder} place={place} />
         <div className="p-2 border-t border-[#E8E4DC]"><Controls {...controls} /></div>
       </div>,
       pipWindow.document.body,
@@ -139,7 +150,7 @@ export default function FloatingReader({
         )}
         <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={onDock} data-testid="float-dock" aria-label="Dock — back to the normal reader" className="min-h-[44px] px-2 text-xs uppercase tracking-wider font-semibold border border-white rounded hover:bg-white hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">⤓ Dock</button>
       </div>
-      <Words sentences={sentences} placeholder={placeholder} />
+      <Words sentences={sentences} placeholder={placeholder} place={place} />
       <div className="px-2 py-2 border-t border-[#E8E4DC]"><Controls {...controls} /></div>
       <div
         data-testid="float-resize" aria-hidden="true"

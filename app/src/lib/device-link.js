@@ -36,6 +36,7 @@
 // Everything here is pure. The table and the privileged endpoint are named in
 // the migration beside this file; the invariants that keep the flow safe are
 // decided here, where they can be tested exhaustively.
+import { isTvUserAgent, isTvDocument } from './tv-device.js';
 
 // No 0/O, 1/I/L, 2/Z, 5/S, 8/B. A code is read off a television across a room
 // and typed on a phone; a character pair that looks alike at that distance is a
@@ -165,4 +166,126 @@ export function stateMessage(state) {
     case STATE.CONSUMED: return 'This code has already been used. Press the button for a fresh one.';
     default: return 'Something is not right with this code. Press the button for a fresh one.';
   }
+}
+
+// =============================================================================
+// Wiring (2026-09-25, DR-0658). Darrell on the Fire TV, 02:30 UTC: "Hard to
+// sign in on a Firestick... what happened to the qr code ways?" Everything
+// above was written on 2026-09-20 and nothing in the app called it. What
+// follows is the rest of the flow, still pure where it can be.
+// =============================================================================
+
+/** The only shape a device_code may have: 32 bytes as lowercase hex. */
+export const DEVICE_CODE_RE = /^[0-9a-f]{64}$/;
+/** A stored user_code: exactly eight characters of the alphabet. */
+export const USER_CODE_RE = new RegExp(`^[${CODE_ALPHABET}]{${USER_CODE_LEN}}$`);
+
+export function isDeviceCode(s) { return DEVICE_CODE_RE.test(String(s || '')); }
+export function isUserCode(s) { return USER_CODE_RE.test(String(s || '')); }
+
+/**
+ * SHA-256 of the device_code, hex. The TV sends this hash to start and poll;
+ * the privileged endpoint recomputes it from the raw code when the TV claims.
+ * So a leaked database row (which holds only the hash) cannot claim anything:
+ * the endpoint wants the preimage. The same function runs on the TV and in the
+ * Pages Function, so the two can never disagree about what was stored.
+ */
+export async function hashDeviceCode(deviceCode, crypto) {
+  const c = crypto || (typeof globalThis !== 'undefined' ? globalThis.crypto : null);
+  if (!c || !c.subtle || typeof c.subtle.digest !== 'function') {
+    throw new Error('device-link: no SubtleCrypto available');
+  }
+  const bytes = new TextEncoder().encode(String(deviceCode));
+  const digest = new Uint8Array(await c.subtle.digest('SHA-256', bytes));
+  let s = '';
+  for (const b of digest) s += b.toString(16).padStart(2, '0');
+  return s;
+}
+
+/**
+ * Is this a television? This decides only which sign-in door is shown FIRST;
+ * every door stays available on every device, so a wrong guess costs one press.
+ *
+ *   - the user agent names a TV (lib/tv-device.js, the ONE list the app uses
+ *     for this: its AFT… Fire TV model check, DR-0657 Firestick sweep), or
+ *   - Silk with no touch points (a Fire TV, not a Fire tablet, which runs
+ *     Silk too but has a touchscreen), or
+ *   - a large screen with no touch and no fine pointer (a TV browser that
+ *     hides its name: nothing to tap, nothing to click, only a remote).
+ */
+export function isTvClass({ userAgent = '', maxTouchPoints = 0, width = 0, anyFinePointer = true } = {}) {
+  const ua = String(userAgent || '');
+  if (isTvUserAgent(ua)) return true;
+  const touch = Number(maxTouchPoints) > 0;
+  if (/\bSilk\b/i.test(ua) && !touch) return true;
+  if (!touch && !anyFinePointer && Number(width) >= 900) return true;
+  return false;
+}
+
+/** Read the browser into isTvClass's shape. Never throws. */
+export function tvClassFromWindow(win) {
+  try {
+    const w = win || (typeof window !== 'undefined' ? window : null);
+    if (!w) return false;
+    if (isTvDocument(w.document)) return true;
+    const nav = w.navigator || {};
+    // Unknown is NOT "no pointer": a browser that cannot answer the media
+    // query keeps the default, so only a real "no fine pointer" counts.
+    let anyFinePointer = true;
+    try {
+      if (typeof w.matchMedia === 'function') anyFinePointer = !!w.matchMedia('(any-pointer: fine)').matches;
+    } catch { /* keep default */ }
+    return isTvClass({
+      userAgent: nav.userAgent,
+      maxTouchPoints: nav.maxTouchPoints,
+      width: w.innerWidth,
+      anyFinePointer,
+    });
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * What the phone is shown so a person can tell their own living room from a
+ * stranger's request. Displayed only, never trusted.
+ */
+export function deviceLabel(userAgent) {
+  const ua = String(userAgent || '');
+  if (/\bAFT[A-Z0-9]{1,8}\b/.test(ua) || (/\bSilk\b/i.test(ua) && !/\bKF[A-Z]{2,}\b/.test(ua))) return 'Fire TV';
+  if (/Android TV|GoogleTV|Google TV|\bCrKey\b/i.test(ua)) return 'Android TV';
+  if (/\bTizen\b|SMART-TV|SmartTV/i.test(ua)) return 'Samsung TV';
+  if (/Web0S|webOS/i.test(ua)) return 'LG TV';
+  if (/\bRoku\b/i.test(ua)) return 'Roku';
+  if (/iPad|Android/i.test(ua)) return 'a tablet';
+  if (/Macintosh|Windows|X11|CrOS/i.test(ua)) return 'a computer';
+  return 'a screen';
+}
+
+/** "just now", "2 minutes ago", for the approval card. */
+export function askedAgo(createdAt, now = Date.now()) {
+  const t = Date.parse(createdAt);
+  if (!Number.isFinite(t)) return '';
+  const mins = Math.floor(Math.max(0, now - t) / 60000);
+  if (mins < 1) return 'just now';
+  return mins === 1 ? '1 minute ago' : `${mins} minutes ago`;
+}
+
+/** The redirect-fallback stash: Google's full-page redirect drops ?link=. */
+export const LINK_STASH_KEY = 'pt-device-link';
+export function stashLinkCode(storage, code, now = Date.now()) {
+  try { if (storage && isUserCode(code)) storage.setItem(LINK_STASH_KEY, JSON.stringify({ code, at: now })); } catch { /* storage blocked */ }
+}
+export function readLinkStash(storage, now = Date.now()) {
+  try {
+    const raw = storage && storage.getItem(LINK_STASH_KEY);
+    if (!raw) return '';
+    const { code, at } = JSON.parse(raw);
+    // A stash older than a link's whole life can only point at a dead code.
+    if (!isUserCode(code) || !(now - at < LINK_TTL_MS)) { storage.removeItem(LINK_STASH_KEY); return ''; }
+    return code;
+  } catch { return ''; }
+}
+export function clearLinkStash(storage) {
+  try { if (storage) storage.removeItem(LINK_STASH_KEY); } catch { /* storage blocked */ }
 }

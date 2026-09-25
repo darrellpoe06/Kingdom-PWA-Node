@@ -79,6 +79,13 @@ export default function LessonInbox({ deps = LIVE, refreshKey = 0 }) {
               {!state.owner && it.review && (
                 <p className={`text-[0.75rem] mt-0.5 ${it.review.state === 'approved' ? 'text-[#5A6E3D] font-semibold' : 'text-[#1A1815]'}`} style={SERIF} data-testid="lesson-review">{reviewLine(it)}</p>
               )}
+              {it.published && (
+                /* PUBLISHED (DR-0639): the lesson written from their situation. */
+                <p className="text-[0.75rem] mt-0.5 font-semibold text-[#5A6E3D]" style={SERIF} data-testid="lesson-published">
+                  Published: {[it.published.number, it.published.title].filter(Boolean).join(' ') || it.published.lessonId}{' '}
+                  <a href={it.published.href} className="underline text-[#B85838] hover:text-[#1A1815]" data-testid="lesson-published-link">→ open it</a>
+                </p>
+              )}
               {!state.owner && it.review && it.review.state === 'declined' && (
                 <LessonsForSituation words={it.spoken ? transcriptWords(it.words) : it.body} />
               )}
