@@ -55,21 +55,30 @@
 #            a new fire while one runs waits; at most one waits (GitHub drops
 #            older pending runs), so fires never stack.
 #
-# Triggers: push to main (a human merge); workflow_run on the Cloudflare
-# deploy completing (auto-merges push with GITHUB_TOKEN and emit no push, but
-# every one is followed by a deploy run, and workflow_run on a workflow's
-# completion is NOT suppressed — measured in DR-0458); a 30-minute schedule as
-# the fallback (GitHub delivers busy-repo schedules late — measured in
-# deploy-freshness.yml — so it is the net, not the promptness); dispatch.
+# Triggers: push to main (a human merge); a DISPATCH from auto-merge.yml's
+# heal-deploy and from deploy-freshness.yml at the moment each dispatches the
+# deploy for a new main tip (that is when an auto-merge has landed); a
+# 30-minute schedule as the fallback (GitHub delivers busy-repo schedules
+# late — measured in deploy-freshness.yml — so it is the net, not the
+# promptness); manual dispatch.
+#
+# NOT workflow_run on the deploy (the first shape, 2026-09-24): MEASURED
+# 2026-09-25, deploy #1312 for #1807's own merge completed at 00:49:54 and
+# this workflow got no run, nor for #1812's deploy after it. Those deploys are
+# dispatched by GITHUB_TOKEN, and a run started by that token emits no
+# workflow_run either. (DR-0458's workflow_run on Auto-merge fires because
+# Auto-merge is started by check_suite, not by the token.)
+#
+# AND `set +e` (2026-09-25, runs 1 and 2 both died at their first PR): the
+# Actions default shell is `bash -e`, so `git merge` returning 1 on a conflict
+# — the very case this job exists for — and a `grep` killed by `head` under
+# pipefail each ended the whole run. Every status here is checked by hand.
 
 name: Keep PRs current
 
 on:
   push:
     branches: [main]
-  workflow_run:
-    workflows: ["Deploy (Cloudflare Pages)"]
-    types: [completed]
   schedule:
     - cron: '7,37 * * * *'
   workflow_dispatch:
@@ -120,6 +129,9 @@ jobs:
           IDLE_HOURS: '72'
           DEADLINE_MIN: '15'
         run: |
+          # The default shell is `bash -e`: turn it OFF (see the header). A
+          # conflicting `git merge` exits 1 and must not end the run.
+          set +e
           set -uo pipefail
           # The resolver comes from MAIN: a branch may carry an older copy, or none.
           cp scripts/resolve-ledger-conflicts.mjs "$RUNNER_TEMP/resolve-ledger-conflicts.mjs"
@@ -143,7 +155,10 @@ jobs:
           comment_once() {
             local n="$1" key="$2" body="$3"
             local marker="<!-- keep-prs-current:$(printf '%s' "$key" | sha1sum | cut -c1-12) -->"
-            if timeout 30 gh api "repos/$REPO/issues/$n/comments" --paginate --jq '.[].body' 2>/dev/null | grep -qF "$marker"; then
+            # To a file first: `gh | grep -q` under pipefail reads a FOUND
+            # marker as not-found (grep exits early, gh takes SIGPIPE).
+            timeout 30 gh api "repos/$REPO/issues/$n/comments" --paginate --jq '.[].body' > "$RUNNER_TEMP/comments.txt" 2>/dev/null
+            if grep -qF "$marker" "$RUNNER_TEMP/comments.txt"; then
               echo "  (already commented on #$n for this; not repeating)"
               return 0
             fi
@@ -157,10 +172,12 @@ jobs:
           else
             filter="select(.isDraft == false)"
           fi
+          # Most recently updated first: the budget goes to the live PRs, not
+          # to the zombies at the back of the list (28 candidates, 6 attempts).
           mapfile -t rows < <(
             timeout 60 gh pr list --repo "$REPO" --state open --base main --limit 100 \
-              --json number,headRefName,isDraft,labels,headRepositoryOwner \
-              --jq ".[] | $filter
+              --json number,headRefName,isDraft,labels,headRepositoryOwner,updatedAt \
+              --jq "sort_by(.updatedAt) | reverse | .[] | $filter
                     | select(.headRefName | startswith(\"claude/\"))
                     | select(.headRepositoryOwner.login == \"$OWNER\")
                     | select(any(.labels[].name; . == \"hold\") | not)
@@ -176,7 +193,11 @@ jobs:
             behind=$(git rev-list --count "origin/$b..origin/main")
             if [ "$behind" = "0" ]; then note "$n" "$b" "current"; continue; fi
             if [ -z "$ONLY_PR" ]; then
-              last_human=$(git log --format='%ct %an' "origin/$b" | grep -v -E '^[0-9]+ github-actions' | head -1 | cut -d' ' -f1)
+              # No pipe into an early-exiting reader (run 2 died on
+              # `grep: write error: Broken pipe` under -e + pipefail): write
+              # the log to a file, then read the file whole.
+              git log -n 200 --format='%ct %an' "origin/$b" > "$RUNNER_TEMP/authors.txt"
+              last_human=$(awk '$2 !~ /^github-actions/ { if (!t) t = $1 } END { print t }' "$RUNNER_TEMP/authors.txt")
               if [ -n "$last_human" ] && [ $(( now - last_human )) -gt $(( IDLE_HOURS * 3600 )) ]; then
                 note "$n" "$b" "idle > ${IDLE_HOURS}h; left for its owner / pr-janitor"; continue
               fi
