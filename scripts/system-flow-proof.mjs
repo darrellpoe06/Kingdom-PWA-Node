@@ -19,7 +19,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildProofSql, resourceVerdict, resourceMetas, realContext, ROOT } from './system-flow-graph.mjs';
+import { buildProofSql, resourceVerdict, resourceMetas, realContext, liveYaml, ROOT } from './system-flow-graph.mjs';
 import { SYSTEM_FLOW } from './system-flow-registry.mjs';
 
 const q = (s) => (s == null ? 'NULL' : `'${String(s).replace(/'/g, "''")}'`);
@@ -69,7 +69,11 @@ export function productOf(rule) {
 
 export function runRuleFor(node, yamlText) {
   if (node && node.runRule) return node.runRule;
-  return /\bcron:/.test(String(yamlText || '')) ? 'main' : 'any';
+  // Only a LIVE schedule makes a witness. Measured 2026-09-25 (run
+  // 36077477281): transcript-backfill.yml carries its schedule commented out
+  // ("#   - cron: ..."), was judged by its runs on main only, and so read broken
+  // on a July failure while its combined route had just run green.
+  return /\bcron:/.test(liveYaml(yamlText)) ? 'main' : 'any';
 }
 export function pickByRule(rule, mainRuns, anyRuns) {
   if (rule === 'any-success') {
