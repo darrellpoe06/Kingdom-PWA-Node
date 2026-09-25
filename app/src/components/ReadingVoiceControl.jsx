@@ -32,14 +32,15 @@ export default function ReadingVoiceControl({ variant = 'header', isOwner = fals
       isReading={ra.isReading}
       compact={!isPanel}
       showNote={isPanel}
+      showHear={isPanel}
     />
   );
 
   if (!isPanel) {
     return (
-      <div className={`flex items-center gap-1 max-w-[16rem] ${className}`} style={{ fontSize: '1rem' }}>
+      <div className={`flex items-center gap-1 ${className}`}>
         <span aria-hidden="true" className="text-sm" title="Reading voice">🔊</span>
-        <div className="min-w-0 flex-1 [&_label]:sr-only">{picker}</div>
+        {picker}
       </div>
     );
   }

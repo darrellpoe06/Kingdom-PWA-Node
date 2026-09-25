@@ -39,11 +39,15 @@ export function optionText(item) {
 
 export default function VoicePicker({
   catalog, voiceId, setVoiceId, preview, isReading = false,
-  id = 'voice-picker', label = 'Voice (used everywhere)', compact = false, showNote = true,
+  id = 'voice-picker', label = 'Voice (used everywhere)', compact = false, showNote = true, showHear = true,
 }) {
   const groups = groupCatalog(catalog);
   const current = (catalog || []).find((c) => c.id === voiceId) || (catalog || [])[0] || null;
   const canHear = typeof preview === 'function';
+  // The header slot keeps its old footprint (a 10rem select, no button): a
+  // wider header wraps on a phone and eats the lesson's first screen (the
+  // chrome-layout probe's 460px budget at 360px). Picking still plays a sample.
+  const hearButton = canHear && showHear;
 
   const onChange = (e) => {
     const next = e.target.value;
@@ -54,6 +58,37 @@ export default function VoicePicker({
     if (canHear && !isReading) preview(next);
   };
 
+  const options = groups.map((g) => (
+    <optgroup key={g.name} label={g.name}>
+      {g.items.map((item) => (
+        <option key={item.id} value={item.id} disabled={!item.usable}>{optionText(item)}</option>
+      ))}
+    </optgroup>
+  ));
+
+  // COMPACT (the header slot) is the bare <select>, exactly the element the
+  // header always had: a flex child that shrinks. Wrapped in extra boxes it
+  // took its longest option's width and pushed the header onto a new row at
+  // 360px, over the chrome-layout probe's 460px lesson budget (measured:
+  // header 343px -> 375px). A closed select is as wide as its longest option,
+  // and the honest labels ("Church studio voice (not answering yet)") are
+  // long, so it is capped near the old "System voice" width; the open list
+  // shows every label in full. Picking still plays a sample here.
+  if (compact) {
+    return (
+      <select
+        id={id}
+        data-testid="voice-picker-select"
+        aria-label={label}
+        value={current ? current.id : ''}
+        onChange={onChange}
+        className={`border-2 bg-white text-[#1A1815] text-[0.6875rem] border-[#E8E4DC] px-2 py-1.5 rounded-md max-w-[6.5rem] ${FOCUS}`}
+      >
+        {options}
+      </select>
+    );
+  }
+
   return (
     <div data-testid="voice-picker">
       <label htmlFor={id} className="block text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">{label}</label>
@@ -63,17 +98,11 @@ export default function VoicePicker({
           data-testid="voice-picker-select"
           value={current ? current.id : ''}
           onChange={onChange}
-          className={`min-w-0 flex-1 ${compact ? 'text-[0.6875rem] px-2 py-1.5' : 'text-[0.6875em] px-[0.5em] py-[0.5em]'} border border-[#E8E4DC] bg-white text-[#1A1815] ${FOCUS}`}
+          className={`min-w-0 flex-1 text-[0.6875em] px-[0.5em] py-[0.5em] border border-[#E8E4DC] bg-white text-[#1A1815] ${FOCUS}`}
         >
-          {groups.map((g) => (
-            <optgroup key={g.name} label={g.name}>
-              {g.items.map((item) => (
-                <option key={item.id} value={item.id} disabled={!item.usable}>{optionText(item)}</option>
-              ))}
-            </optgroup>
-          ))}
+          {options}
         </select>
-        {canHear && current && current.usable !== false && (
+        {hearButton && current && current.usable !== false && (
           <button
             type="button"
             data-testid="voice-picker-hear"
