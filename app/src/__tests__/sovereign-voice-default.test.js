@@ -157,7 +157,11 @@ describe('the reader wires it up', () => {
     // so the device voice below still speaks. Sounding better or the same —
     // never worse, and never silent.
     expect(code).toMatch(/builtInVoiceSupport\(\)\s*!==\s*'no'/);
-    expect(code).toMatch(/a\.onerror[\s\S]{0,200}tts\.speak/);
+    // DR-0654: the clip's error goes through the ONE hand-off to the device
+    // voice, which silences the audio first and speaks in the reading's
+    // pinned voice; that hand-off still ends in tts.speak.
+    expect(code).toMatch(/a\.onerror[\s\S]{0,200}deviceRestRef\.current\(/);
+    expect(code).toMatch(/deviceRestRef\.current = async \(rest, reason\) => \{[\s\S]{0,2000}tts\.speak\(rest, pick\.uri\)/);
   });
 });
 

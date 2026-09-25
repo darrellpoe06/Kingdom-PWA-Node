@@ -23,11 +23,11 @@ import {
 import { mergeVoiceCatalog, canCloneVoice, isVoiceEntitled, resolveVoiceProvider, KIND, SYSTEM_VOICE } from './voice-registry.js';
 import { buildStandInAssignments, resolveVoiceURIForId, standInPitch } from './voice-assignment.js';
 import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
-import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService, voiceErrorReason, speakTimeoutFor, mayAttemptStudio, isStudioRoadProblem, synthesizeLite, mayTryLiteVoice, markLiteVoiceDown, LITE_FIRST_TIMEOUT_MS, fetchHouseVoices } from './voice-service.js';
+import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService, voiceErrorReason, speakTimeoutFor, mayAttemptStudio, isStudioRoadProblem, synthesizeLite, mayTryLiteVoice, markLiteVoiceMiss, isPlayRefusal, liteVoiceReasonText, LITE_FIRST_TIMEOUT_MS, fetchHouseVoices } from './voice-service.js';
 import { chunkForClips, createClipQueue } from './clip-queue.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
-import { createBackgroundAudio } from './background-audio.js';
+import { createBackgroundAudio, silentWavDataUri } from './background-audio.js';
 import { toSpokenForm } from './speech-text.js';
 import { clipFraction, estimateClipSeconds, seekableEndOf } from './clip-progress.js';
 import { applyClipRate, clipRateNotice } from './clip-rate.js';
@@ -35,6 +35,7 @@ import { supabase } from './supabase.js';
 import { hrefForView } from './nav-history.js';
 import { hasBridgeToken } from './nas-photos.js';
 import { provisionBridgeToken } from './bridge-provision.js';
+import { newReadingPin, deviceVoiceForPin, genderOfDeviceVoice } from './reading-voice-pin.js';
 
 // =============================================================================
 // EVERY VOICE IS CHOOSABLE (DR-0655)
@@ -108,6 +109,11 @@ export function studioVoiceNote({ studio, ready, houseUp }) {
  * @param {boolean} opts.isOwner       entitled to personal (subscriber) voices
  * @param {boolean} opts.sovereignVoiceReady  override (defaults to the endpoint config)
  */
+// The silent clip that unlocks the voice element inside the tap (DR-0654).
+const UNLOCK_WAV = silentWavDataUri(0.05);
+const pageHidden = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
+const sentenceCase = (t) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
+
 export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverride } = {}) {
   const tts = useTextToSpeech();
   // READY MEANS ANSWERING (DR-0440): configured is not the same as alive. A
@@ -147,6 +153,9 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const [cloudPlaying, setCloudPlaying] = useState(false);
   const [cloudPaused, setCloudPaused] = useState(false);
   const [cloudProgress, setCloudProgress] = useState(0); // 0..1 through the cloud clip
+  // Which reading segment the NAS voice is speaking (-1 when it is not). The
+  // pieces ARE the segments, so this is exact, never a guess from the clock.
+  const [cloudPiece, setCloudPiece] = useState(-1);
   // A NOTICE MAY CARRY A DOOR (2026-09-22). Most notices are just news. One of
   // them tells the reader to go and do something in another tab, and telling is
   // where it failed him — so a notice can hand over `{ href, label }` and the
@@ -174,6 +183,18 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const audioRef = useRef(null);
   // The paragraph-clip player for the NAS audio voice (lib/clip-queue.js).
   const queueRef = useRef(null);
+  // The NAS voice (DR-0654): ONE element, unlocked in the tap and reused; the
+  // reason of the last miss, so the notice can name it; and a reading held
+  // while the page was hidden, resumed in the same voice when it is seen.
+  const liteAudioRef = useRef(null);
+  const liteMissRef = useRef('');
+  const heldLiteRef = useRef('');
+  const resumeHeldRef = useRef(() => false);
+  // One reading, one voice (DR-0654): the pin made when a reading starts, the
+  // one hand-off to the device voice, and whether a reading is live now.
+  const readingPinRef = useRef(null);
+  const deviceRestRef = useRef(() => {});
+  const readingNowRef = useRef(false);
   // THE SPEED CHIP HAS TO REACH THE CLIP (2026-09-18). A cloud read is one
   // audio element, and playbackRate was never touched on it — so on the
   // sovereign/bridge path (which since DR-0382 carries the SYSTEM voice, the
@@ -324,9 +345,19 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const currentItem = useMemo(() => catalog.find((c) => c.id === voiceId) || catalog[0], [catalog, voiceId]);
 
   // Apply a chosen BROWSER voice to the engine so System/accent picks read in it.
+  //
+  // A VOICE-LIST REFRESH NEVER RESTARTS A READING (DR-0654). This effect ran on
+  // every refresh of the phone's voice list, and setVoiceURI restarts the
+  // sentence being spoken; a refresh in which the picked voice was briefly
+  // missing restarted it in the default voice. A NEW PICK still applies at
+  // once, mid-reading; a refresh of the same pick waits until nothing is read.
+  const appliedVoiceRef = useRef(null);
   useEffect(() => {
     if (!tts.supported) return;
     if (!isDeviceVoiceId(voiceId)) return; // studio/clone/house handled at read()
+    const newPick = appliedVoiceRef.current !== voiceId;
+    if (!newPick && tts.isReading) return;
+    appliedVoiceRef.current = voiceId;
     tts.setVoiceURI(voiceId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceId, tts.supported, tts.voices]);
@@ -361,14 +392,32 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     onPrev: () => { const k = skipRef.current; if (k.prev) k.prev(); },
   }), []);
 
-  const stop = useCallback(() => {
+  // SILENCE EVERY AUDIO VOICE, AND LET NONE OF THEM SPEAK AGAIN (DR-0654).
+  // Pausing was not enough: a studio clip's onerror handed its text to the
+  // phone's voice, so a clip torn down during a hand-off could start a second
+  // voice after the new one had begun. Handlers are detached before the pause
+  // and the source is dropped, so a silenced element stays silent.
+  const silenceAudio = useCallback(() => {
+    heldLiteRef.current = '';
     if (queueRef.current) { queueRef.current.stop(); queueRef.current = null; }
+    setCloudPiece(-1);
+    for (const el of [audioRef.current, liteAudioRef.current]) {
+      if (!el) continue;
+      try { el.onerror = null; el.onended = null; el.ontimeupdate = null; } catch (_) { /* a fake */ }
+      try { el.pause(); } catch (_) { /* ignore */ }
+      try { if (el.getAttribute && el.getAttribute('src') && !String(el.src).startsWith('data:audio/wav')) { el.removeAttribute('src'); if (el.load) el.load(); } } catch (_) { /* ignore */ }
+    }
+    audioRef.current = null;
+  }, []);
+
+  const stop = useCallback(() => {
+    silenceAudio();
     try { tts.stop(); } catch (_) {}
-    if (audioRef.current) { try { audioRef.current.pause(); } catch (_) {} audioRef.current = null; }
+    readingPinRef.current = null;
     setCloudPlaying(false);
     setCloudPaused(false);
     if (bgRef.current) bgRef.current.stop();
-  }, [tts]);
+  }, [tts, silenceAudio]);
 
   // Pause / continue must work in BOTH voices — a cloned-voice reading is an
   // audio clip, not an utterance, and the panel's one Pause button has to hold
@@ -379,6 +428,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   }, [tts]);
 
   const resume = useCallback(() => {
+    // A reading held while the page was hidden picks up in the NAS voice.
+    if (heldLiteRef.current && resumeHeldRef.current()) return;
     if (audioRef.current) {
       try { const p = audioRef.current.play(); if (p && p.catch) p.catch(() => {}); setCloudPaused(false); } catch (_) {}
     }
@@ -390,11 +441,10 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // (via the full stop()) immediately before the first speak() is swallowed on
   // Chrome/mobile — the "tap Read, nothing happens" race. So we don't pre-cancel.
   const stopCloud = useCallback(() => {
-    if (queueRef.current) { queueRef.current.stop(); queueRef.current = null; }
-    if (audioRef.current) { try { audioRef.current.pause(); } catch (_) {} audioRef.current = null; }
+    silenceAudio();
     setCloudPlaying(false);
     setCloudProgress(0);
-  }, []);
+  }, [silenceAudio]);
 
   // Surface a silent-start miss (mobile blocked/suspended synth) instead of a dead
   // button — the engine flips `failed` when a tap produces no audio at all.
@@ -445,6 +495,31 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       session.onControl(osControls());
       session.setState('playing');
     } catch (_) { /* no audio session is a degraded read, never a broken one */ }
+    // ONE VOICE ELEMENT, UNLOCKED INSIDE THE TAP (DR-0654). The NAS voice's
+    // first piece arrives seconds after the press (a CPU synthesis, a
+    // Funnel), and a browser that asks for a user gesture refuses a play()
+    // made that late on a NEW element. So the element the voice will use is
+    // made and played here, silent, while the gesture is live, and the queue
+    // reuses it. Measured with a strict-gesture Chromium profile: a fresh
+    // element after the await was refused; this one plays.
+    try {
+      if (typeof Audio !== 'undefined') {
+        if (!liteAudioRef.current) liteAudioRef.current = new Audio();
+        const el = liteAudioRef.current;
+        if (!el.dataset || el.dataset.unlocked !== '1') {
+          el.src = UNLOCK_WAV;
+          const p = el.play();
+          const done = () => {
+            if (el.dataset) el.dataset.unlocked = '1';
+            // Only the silent clip is paused; a voice piece that already took
+            // the element is left playing.
+            try { if (String(el.src).startsWith('data:audio/wav')) el.pause(); } catch (_) { /* ignore */ }
+          };
+          if (p && typeof p.then === 'function') p.then(done, () => { /* refused: the queue says so */ });
+          else done();
+        }
+      }
+    } catch (_) { /* a device without media still reads in its own voice */ }
   }, [bg, osControls]);
 
   // Which NAS voice reads: a house voice the listener PICKED is that model,
@@ -458,16 +533,61 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     return SYSTEM_VOICE.gender === 'male' ? 'male' : 'female';
   }, [personalVoices]);
 
-  /** Play `clean` in the NAS audio voice for `vid`. Resolves true once the first piece plays. */
-  const playLiteVoice = useCallback(async (clean, vid) => {
-    const voice = liteVoiceFor(vid);
-    const chunks = chunkForClips(toSpokenForm(clean));
+  // THE PICK IS THE READING'S PIN (DR-0655 with DR-0654). One mechanism: the
+  // voice the listener picked is written into the pin when a reading starts,
+  // with the gender it speaks in, and every hand-off in that reading (the NAS
+  // voice, the phone's voice, a pick-up after the dark) reads it from the pin.
+  // Nothing re-resolves the pick mid-reading.
+  const pinFor = useCallback((vid) => {
+    let gender;
+    if (isHouseVoiceId(vid)) {
+      const h = house.voices.find((v) => v.id === houseModelOf(vid));
+      gender = h && h.gender === 'female' ? 'female' : 'male';
+    } else {
+      gender = liteVoiceFor(vid);
+    }
+    const pin = newReadingPin(gender);
+    pin.voiceId = vid;
+    return pin;
+  }, [liteVoiceFor, house.voices]);
+
+  /**
+   * Play `clean` in the NAS audio voice. `vid` defaults to the reading's pin.
+   * A picked HOUSE voice is that exact model; otherwise the pinned gender
+   * (DR-0654), never a fresh choice mid-reading. Resolves true once the first
+   * piece plays.
+   */
+  const playLiteVoice = useCallback(async (clean, vidArg) => {
+    const pin = readingPinRef.current;
+    const vid = vidArg || (pin && pin.voiceId) || voiceId;
+    const voice = isHouseVoiceId(vid)
+      ? houseModelOf(vid)
+      : ((pin && pin.gender) || liteVoiceFor(vid));
+    // Pieces are cut from the text AS WRITTEN, so piece i is highlight segment
+    // i; each piece is turned into its spoken form on its own way out
+    // (DR-0653). Cutting the SPOKEN form moves the cuts wherever the spoken
+    // form drops a full stop ("2 Tim." -> "2nd Timothy"), and from there on
+    // the lit sentence is not the one being heard.
+    const chunks = chunkForClips(clean);
     if (!chunks.length || typeof Audio === 'undefined') return false;
+    // The NAS takes two syntheses at once and answers a third with 503 busy:
+    // that is a wait, not a failure, so a busy piece is asked again shortly.
+    const speakPiece = async (t, timeoutMs) => {
+      let got = await synthesizeLite({ text: toSpokenForm(t), voice, timeoutMs });
+      for (let tries = 0; got.error === 'voice-lite-503' && tries < 4; tries++) {
+        await new Promise((r) => setTimeout(r, 600 * (tries + 1)));
+        got = await synthesizeLite({ text: toSpokenForm(t), voice, timeoutMs });
+      }
+      return got;
+    };
     // The first piece decides: if the NAS voice cannot answer it in time, the
     // device voice speaks instead and the road is not asked again for a while.
-    const first = await synthesizeLite({ text: chunks[0].text, voice, timeoutMs: LITE_FIRST_TIMEOUT_MS });
-    if (first.error || !first.url) { markLiteVoiceDown(); return false; }
-    const a = new Audio();
+    const first = await speakPiece(chunks[0].text, LITE_FIRST_TIMEOUT_MS);
+    // The reason is KEPT (DR-0654): the notice names what the NAS voice said.
+    if (first.error || !first.url) { liteMissRef.current = first.error || 'voice-lite-empty'; markLiteVoiceMiss(liteMissRef.current); return false; }
+    liteMissRef.current = '';
+    const a = liteAudioRef.current || new Audio();
+    liteAudioRef.current = a;
     let served = false;
     const q = createClipQueue({
       chunks,
@@ -475,21 +595,39 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       rate: rateRef.current,
       fetchClip: (t) => {
         if (!served) { served = true; return Promise.resolve(first); }
-        return synthesizeLite({ text: t, voice });
+        return speakPiece(t);
       },
       revoke: (u) => { try { URL.revokeObjectURL(u); } catch (_) { /* ignore */ } },
       onProgress: (f) => setCloudProgress(f),
-      onEnd: () => { if (queueRef.current === q) { queueRef.current = null; audioRef.current = null; setCloudPlaying(false); setCloudPaused(false); setCloudProgress(0); } },
+      onPiece: (i) => { if (queueRef.current === q) setCloudPiece(i); },
+      onEnd: () => { if (queueRef.current === q) { queueRef.current = null; audioRef.current = null; setCloudPlaying(false); setCloudPaused(false); setCloudProgress(0); setCloudPiece(-1); } },
       // A piece that cannot be had: the rest of the reading continues in the
       // device voice rather than stopping (and the panel says which voice).
-      onFallback: (rest) => {
+      onFallback: (rest, _i, reason) => {
         if (queueRef.current !== q) return;
         queueRef.current = null; audioRef.current = null;
-        markLiteVoiceDown();
+        setCloudPiece(-1);
+        liteMissRef.current = reason || 'voice-lite-error';
+        markLiteVoiceMiss(liteMissRef.current);
+        // THE SCREEN IS OFF OR ANOTHER APP IS UP: never hand to Web Speech
+        // (DR-0654). Android stops Web Speech in the background, so that
+        // hand-off WAS the "stopped working in the background" report. The
+        // place is held, the reading shows as paused, and it resumes in the
+        // NAS voice the moment the page is seen again (or Play is pressed).
+        if (pageHidden()) {
+          heldLiteRef.current = rest || '';
+          setCloudPlaying(true); setCloudPaused(true);
+          try { if (bgRef.current) bgRef.current.setState('paused'); } catch (_) { /* ignore */ }
+          return;
+        }
         setCloudPlaying(false); setCloudProgress(0);
-        setAudioVoice('device');
+        // A play the screen refused is a gesture matter, not a voice fault:
+        // the NAS voice is not rested, and the listener is told the one thing
+        // that works.
+        if (isPlayRefusal(reason)) { setNotice(`${sentenceCase(liteVoiceReasonText(reason))}.`); return; }
+        // A picked house voice that stopped answering says so on the status line.
         if (isHouseVoiceId(vid)) setStandInWhy('house-offline');
-        if (rest && tts.supported) tts.speak(rest, resolveSpeakURI(vid));
+        deviceRestRef.current(rest, reason);
       },
     });
     queueRef.current = q;
@@ -498,20 +636,101 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     setAudioVoice('audio');
     const ok = await q.start();
     return ok || queueRef.current === null;
-  }, [liteVoiceFor, tts, resolveSpeakURI]);
+  }, [liteVoiceFor, setNotice, voiceId]);
+
+  // THE ONE HAND-OFF TO THE DEVICE VOICE (DR-0654). Every path that moves a
+  // reading from an audio voice to the phone's own voice comes through here:
+  // the audio element is silenced first (its handlers detached, so a late
+  // error cannot start a second voice), then the phone speaks in the voice
+  // PINNED for this reading, never a fresh pick from a list that may still be
+  // empty. The switch is said in one line. A device with no voice of its own
+  // (a Fire TV) hears nothing from a hand-off, so it is told why instead.
+  deviceRestRef.current = async (rest, reason) => {
+    silenceAudio();
+    const pin = readingPinRef.current || (readingPinRef.current = pinFor(voiceId));
+    // The voice list can still be empty on a cold phone; wait for it rather
+    // than let the phone's default (any gender) take the reading.
+    let voices = tts.voices || [];
+    if (!voices.length && typeof window !== 'undefined' && window.speechSynthesis) {
+      try { voices = await waitForVoices(window.speechSynthesis); } catch (_) { voices = []; }
+    }
+    setAudioVoice('device');
+    if (!tts.supported || !voices.length) {
+      const why = String(reason || '').startsWith('studio') ? 'the studio clip failed' : liteVoiceReasonText(reason, { hasKey: hasBridgeToken() });
+      setNotice(`The reading stopped: ${why}.`);
+      return;
+    }
+    const pick = deviceVoiceForPin(pin, { voices, preferredURI: resolveSpeakURI(pin.voiceId || voiceId) });
+    pin.uri = pick.uri; pin.matched = pick.matched;
+    if (rest) tts.speak(rest, pick.uri);
+    const man = pin.gender === 'male';
+    setNotice(pick.matched
+      ? `The church’s reading voice stopped, so the rest reads in this phone’s own voice: ${man ? 'a man’s' : 'a woman’s'} voice, as before.`
+      : `The church’s reading voice stopped, so the rest reads in this phone’s own voice. This phone has no ${man ? 'man’s' : 'woman’s'} voice to match it.`);
+  };
+  // A reading held in the background resumes in the NAS voice, from the piece
+  // that failed, once the page is seen (DR-0654). If the NAS voice still
+  // cannot answer then, the page is visible, so the device voice may take it.
+  resumeHeldRef.current = () => {
+    const rest = heldLiteRef.current;
+    if (!rest) return false;
+    heldLiteRef.current = '';
+    setCloudPaused(false);
+    playLiteVoice(rest).then((played) => {
+      if (played) return;
+      setCloudPlaying(false); setCloudProgress(0);
+      deviceRestRef.current(rest, liteMissRef.current);
+    });
+    return true;
+  };
+  useEffect(() => {
+    if (typeof document === 'undefined' || !document.addEventListener) return undefined;
+    const onVisible = () => { if (!pageHidden() && heldLiteRef.current) resumeHeldRef.current(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
 
   // `voice` reads THIS once in a given voice without changing the pick — the
   // tap-to-hear sample in the picker. Otherwise the listener's pick reads.
   const read = useCallback(async (text, { title, voice } = {}) => {
     const clean = String(text || '').trim();
     if (!clean) return;
-    const vid = voice || voiceId;
+    // ONE READING, ONE VOICE (DR-0654). A read called while a reading is live
+    // (a paragraph jump, the hand-over into the dark, a pick-up) CONTINUES
+    // that reading and keeps its pin; a read from rest starts a new one. The
+    // PICK is part of the pin (DR-0655): a new pick, or a sample in another
+    // voice, starts a new pin; the same pick keeps the reading's voice.
+    const requested = voice || voiceId;
+    const continuing = readingNowRef.current && !!readingPinRef.current
+      && readingPinRef.current.voiceId === requested;
+    if (!continuing) readingPinRef.current = pinFor(requested);
+    const vid = readingPinRef.current.voiceId;
     setNotice('');
     setStandInWhy('');
     stopCloud();
     // Claim the audio session INSIDE the user's tap — after an await the
     // gesture is spent and the browser refuses to start it.
     claimAudio(title);
+    // THE KEY BEFORE ANY NAS READ, WHATEVER THE VOICE (DR-0654). DR-0574 put
+    // this ask inside the cloned-voice branch only, so the System voice, the
+    // default nobody changes, went to /voice-lite with NO bearer on any device
+    // that had never opened Real Estate, Taxes, the Gallery or the Voice
+    // studio. The NAS answered 401, and on a Fire TV (Silk reports no device
+    // voices) that was silence. Measured in Chromium at 960x540 with a family
+    // key waiting at the RPC: one POST, Authorization absent, 401, nothing
+    // heard. Asking here, once, costs one RPC on a device without the key.
+    // A house pick is a NAS read too (DR-0655), and so is a phone pick on a
+    // device that cannot speak (it reads in the house voice).
+    const nasRead = isSystemVoiceId(vid) || isPersonVoiceId(vid) || isHouseVoiceId(vid)
+      || (isDeviceVoiceId(vid) && !tts.supported);
+    if (nasRead && !hasBridgeToken()) await provisionBridgeToken(supabase);
+    // ONE VOICE AT A TIME (DR-0654). An audio voice is about to be tried, so
+    // the phone's own voice stops first; before this, a hand-over or a jump
+    // started the NAS clip while Web Speech was still mid-sentence, and the
+    // reading spoke in two voices at once. tts.stop() only cancels speech this
+    // reader's own engine is speaking (#1796), and the awaits below keep it
+    // well clear of the speak() it could otherwise swallow.
+    if (nasRead) { try { tts.stop(); } catch (_) { /* nothing to stop */ } }
 
     if (isPersonVoiceId(vid)) {
       const personKey = personKeyOf(vid);
@@ -572,7 +791,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
                 if (f != null) setCloudProgress(f);
               };
               a.onended = () => { setCloudPlaying(false); setCloudProgress(0); try { URL.revokeObjectURL(url); } catch (_) {} };
-              a.onerror = () => { setCloudPlaying(false); setCloudProgress(0); if (tts.supported) tts.speak(clean, resolveSpeakURI(vid)); };
+              a.onerror = () => { setCloudPlaying(false); setCloudProgress(0); deviceRestRef.current(clean, 'studio-clip-error'); };
               await a.play();
               return;
             } catch (_) { setCloudPlaying(false); setCloudProgress(0); }
@@ -656,7 +875,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
           // engine so the reader keeps hearing the lesson.
           a.onerror = () => {
             setCloudPlaying(false); setCloudProgress(0);
-            if (tts.supported) tts.speak(clean, resolveSpeakURI(vid));
+            deviceRestRef.current(clean, 'studio-clip-error');
           };
           await a.play();
           return;
@@ -688,6 +907,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       noDeviceVoices = !(await waitForVoices(window.speechSynthesis)).length;
     }
     if (isDeviceVoiceId(vid) && noDeviceVoices) {
+      // The family key first, as for every NAS read (DR-0654).
+      if (!hasBridgeToken()) await provisionBridgeToken(supabase);
       if (mayTryLiteVoice() && await playLiteVoice(clean, SYSTEM_VOICE_ID)) {
         setNotice('This device has no voice of its own, so the church’s house voice is reading.');
         return;
@@ -758,6 +979,18 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
         // answer" on a night when it was simply never switched on. Same defect
         // class as DR-0440, which is quoted three files away: a config check
         // reading as armed. The studio is ASKED instead.
+        //
+        // THE NAS VOICE'S OWN REASON IS THE CAUSE (DR-0654). This notice
+        // used to name only the GPU studio, whatever the NAS voice had said.
+        // On Darrell's Firestick the NAS voice refused a device with no key
+        // (401) and the screen said "the church's voice service did not
+        // answer", sending him to wait for a service that was up. When the
+        // NAS voice was asked, its answer is what is said: no key (sign in),
+        // slow, busy, a missing route, or a play the screen refused.
+        if (nasRead && liteMissRef.current) {
+          setNotice(`This device has no voice of its own, and ${liteVoiceReasonText(liteMissRef.current, { hasKey: hasBridgeToken() })}.`);
+          return;
+        }
         setNotice(studioHealth === 'down'
           ? 'This device has no voice of its own, and the church’s voice service did not answer. The text is all here to read; the reading voice returns when the service is back.'
           : studioHealth === 'up'
@@ -776,8 +1009,19 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     }
     const cid = catalogIdOf(vid);
     const pitch = cid ? standInPitch(fullCatalog, liveAssignments, cid) : undefined;
+    // THE READING KEEPS ITS VOICE (DR-0654). A reading that already chose a
+    // device voice keeps it through every jump and hand-off; a new reading
+    // pins the voice it starts in, and its gender, so a later hand-over to the
+    // NAS voice speaks as the same kind of voice.
+    const pin = readingPinRef.current;
+    if (pin && continuing && pin.uri) uri = pin.uri;
+    else if (pin) {
+      pin.uri = uri;
+      pin.matched = true;
+      pin.gender = genderOfDeviceVoice(uri, deviceVoices) || pin.gender;
+    }
     tts.speak(clean, uri, pitch);
-  }, [voiceId, personalVoices, sovereignVoiceReady, attemptStudio, studioHealth, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio, setNotice, playLiteVoice]);
+  }, [voiceId, personalVoices, sovereignVoiceReady, attemptStudio, studioHealth, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio, setNotice, playLiteVoice, pinFor]);
 
   // HEAR BEFORE CHOOSING (DR-0655): a short sample in one voice, without
   // touching the listener's pick or a reading already under way.
@@ -786,6 +1030,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // The OS media buttons drive the SAME controls the panel does — kept in a ref
   // so a lock-screen tap can never call a stale closure.
   ctrlRef.current = { pause, resume, stop };
+  readingNowRef.current = !!(tts.isReading || cloudPlaying || heldLiteRef.current);
 
   return {
     supported: tts.supported,
@@ -807,6 +1052,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     setBoundaryHandler: tts.setBoundaryHandler,
     deviceRead: !cloudPlaying,
     cloudProgress,
+    // The NAS voice's piece IS the reading segment (-1 when not playing one).
+    cloudPiece,
     voiceId, setVoiceId, catalog, currentItem, notice,
     // Tap-to-hear, and whether the house (NAS) list has answered yet.
     preview,

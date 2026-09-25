@@ -41,6 +41,8 @@ import { motionBehavior } from '../lib/gentle-motion.js';
 import { useScreenAwake, NO_WAKE_LOCK_HINT } from '../lib/screen-awake.js';
 import { mayTryLiteVoice } from '../lib/voice-service.js';
 import { openReadingSource, registerReadingOpener } from '../lib/reading-source.js';
+import FloatingReader from './FloatingReader.jsx';
+import { loadFloat, saveFloat, clampRect, avoidRects, defaultRect } from '../lib/float-geometry.js';
 // THE ONE LESSON LANDING (lib/learn-open.js, DR-0642): opens a lesson at a
 // saved sentence, scrolls it under the top bars and marks it. Read through a
 // glob so this file does not fork it or break before it lands: while the
@@ -188,7 +190,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     catalog, voiceId, setVoiceId, currentItem,
     // Tap-to-hear a voice before keeping it (DR-0655; optional in mocks).
     preview,
-    segmentIndex, setBoundaryHandler, deviceRead, cloudProgress,
+    segmentIndex, setBoundaryHandler, deviceRead, cloudProgress, cloudPiece,
     // `notice` WAS NOT TAKEN HERE until 2026-09-20, and that single omission
     // broke the engine's own guarantee at its very last hop. tts.js runs a
     // start watchdog whose comment reads "Truly silent after a retry — report
@@ -413,7 +415,12 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // sentence granularity. Only re-highlights when the sentence changes.
   useEffect(() => {
     if (!isReading || deviceRead || !followRef.current) return;
-    const idx = segmentIndexAtFraction(followRef.current.lens, cloudProgress);
+    // The NAS voice plays one piece per segment, so the piece playing IS the
+    // sentence to light (DR-0653). The clip fraction stays for the studio's
+    // single long clip, where there is nothing better to go on.
+    const idx = typeof cloudPiece === 'number' && cloudPiece >= 0
+      ? cloudPiece
+      : segmentIndexAtFraction(followRef.current.lens, cloudProgress);
     if (idx < 0 || idx === lastCloudIdxRef.current) return;
     lastCloudIdxRef.current = idx;
     const r = followRef.current.ranges[idx] || null;
@@ -428,7 +435,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     const st = followRef.current;
     const seg = st.follow && st.follow.segments ? st.follow.segments[st.base + idx] : null;
     if (seg && seg.text) rememberSentence(st.base + idx, seg.text);
-  }, [cloudProgress, isReading, deviceRead, rememberSentence]);
+  }, [cloudProgress, cloudPiece, isReading, deviceRead, rememberSentence]);
   // Reading over (or never started) → the full card comes back next open.
   useEffect(() => { if (!isReading) setMinimized(false); }, [isReading]);
   // PLAY MEANS READ IT. A Play press records a want (read-target.js) and this
@@ -635,6 +642,25 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // paragraph, exactly as the bar's ↪¶ and ↩¶ do. Reached through a ref: the
   // step is defined below the unsupported-device early return.
   const jumpParaRef = useRef(null);
+  // THE FLOATING READER (DR-0641; Darrell: "Maybe be a popout reader that
+  // floating around? Then can be reset back to normal?"). Floating or docked,
+  // and where, is remembered per device (lib/float-geometry.js).
+  const [floatState, setFloatState] = useState(() => loadFloat());
+  const floatRectRef = useRef(null);
+  const [pipWin, setPipWin] = useState(null);
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    // Rotate, or the Fold opening from 904 to 1812: the float stays on screen.
+    const onResize = () => setFloatState((st) => {
+      if (!st.rect) return st;
+      const next = { ...st, rect: clampRect(st.rect, window.innerWidth, window.innerHeight) };
+      saveFloat(next);
+      return next;
+    });
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+    return () => { window.removeEventListener('resize', onResize); window.removeEventListener('orientationchange', onResize); };
+  }, []);
   // "Show the text" for a LESSON: the Learn landing opens it at the sentence,
   // and the shell switches to Learn. Any other reading's page registers its
   // own opener in lib/reading-source.js.
@@ -1091,6 +1117,81 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     openReadingSource(followRef.current && followRef.current.owner, currentGlobalSegment());
   };
 
+  // --- the floating reader ---------------------------------------------------
+  const floatAvoid = () => {
+    if (typeof document === 'undefined') return [];
+    return ['button[aria-label="Open feedback"]', '.church-give-floater'].map((sel) => {
+      const el = document.querySelector(sel);
+      if (!el) return null;
+      const b = el.getBoundingClientRect();
+      return b.width > 0 && b.height > 0 ? { l: b.left, r: b.right, t: b.top, b: b.bottom } : null;
+    }).filter(Boolean);
+  };
+  const viewW = typeof window !== 'undefined' ? window.innerWidth : 390;
+  const viewH = typeof window !== 'undefined' ? window.innerHeight : 844;
+  const floatRect = floatState.rect
+    ? clampRect(floatState.rect, viewW, viewH)
+    : avoidRects(defaultRect(viewW, viewH), floatAvoid(), viewW, viewH);
+  floatRectRef.current = floatRect;
+  const setFloat = (next) => { setFloatState(next); saveFloat(next); };
+  const popOut = () => { setIsOpen(false); setArmed(false); setFloat({ floating: true, rect: floatState.rect || floatRect }); };
+  const dock = () => {
+    if (pipWin) { try { pipWin.close(); } catch (_) { /* already closed */ } }
+    setPipWin(null);
+    setFloat({ floating: false, rect: floatState.rect });
+  };
+  const floatSentences = () => {
+    const f = followRef.current;
+    if (!isReading || !f || !f.follow || !f.follow.segments) return [];
+    try {
+      if (!f.paraStarts) f.paraStarts = paragraphStarts(f.follow);
+      const cur = currentGlobalSegment();
+      const p = paragraphOf(f.paraStarts, cur);
+      const from = f.paraStarts[p] || 0;
+      const to = p + 1 < f.paraStarts.length ? f.paraStarts[p + 1] : f.follow.segments.length;
+      return f.follow.segments.slice(from, to).map((sg, i) => ({ text: sg ? sg.text : '', current: from + i === cur }));
+    } catch (_) { return []; }
+  };
+  const floatPlayPause = () => {
+    if (isReading) { if (isPaused) resume(); else pause(); return; }
+    if (target) readTargetNow(target); else start();
+  };
+  const pipSupported = typeof window !== 'undefined' && !!window.documentPictureInPicture
+    && typeof window.documentPictureInPicture.requestWindow === 'function';
+  const openPip = async () => {
+    try {
+      const w = await window.documentPictureInPicture.requestWindow({ width: floatRect.w, height: floatRect.h });
+      // The app's styles travel with it, so the window looks like the app.
+      [...document.querySelectorAll('link[rel="stylesheet"], style')].forEach((n) => { try { w.document.head.appendChild(n.cloneNode(true)); } catch (_) { /* one sheet */ } });
+      w.addEventListener('pagehide', () => setPipWin(null));
+      setPipWin(w);
+    } catch (_) { /* refused or unsupported: it stays in the app */ }
+  };
+  const floatEl = supported && floatState.floating ? (
+    <FloatingReader
+      rect={floatRect}
+      onMove={(r) => setFloatState((st) => ({ ...st, rect: r }))}
+      onCommit={() => setFloat({ floating: true, rect: avoidRects(floatRectRef.current, floatAvoid(), viewW, viewH) })}
+      onReset={() => setFloat({ floating: true, rect: avoidRects(defaultRect(viewW, viewH), floatAvoid(), viewW, viewH) })}
+      onDock={dock}
+      title={(target && (target.title || target.label)) || 'Read Aloud'}
+      sentences={floatSentences()}
+      placeholder={isReading ? 'Reading…' : 'Press play to start reading.'}
+      pipSupported={pipSupported}
+      onPip={openPip}
+      pipWindow={pipWin}
+      isReading={isReading}
+      isPaused={isPaused}
+      canJump={canJump}
+      onPlayPause={floatPlayPause}
+      onBack={() => jumpParagraph(-1)}
+      onForward={() => jumpParagraph(1)}
+      rate={rate}
+      rateSteps={RATE_STEPS}
+      onRate={setRate}
+    />
+  ) : null;
+
   const fab = (
         // .ts-chrome-region caps it so it does NOT grow with the text-size
         // control — chrome, not reading text (Pattern 2b/2d). Idle-reveal dims +
@@ -1190,7 +1291,8 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
       {isReading && userAway && (
         <button type="button" onClick={showTheText} data-testid="reader-back-to-voice" className="ts-chrome-region bg-white text-[#1A1815] border-2 border-[#1A1815] rounded-full shadow-lg px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Back to the voice</button>
       )}
-      {supported && (isOpen && minimized && isReading ? (
+      {floatEl}
+      {supported && !floatState.floating && (isOpen && minimized && isReading ? (
         /* THE READING PILL (DR-0265): while the voice is reading, the full card
            would sit on top of the very words being read + highlighted — so it
            collapses to this slim pill. Pause/resume, stop, and expand only;
@@ -1363,11 +1465,13 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
                 {/* TALK ABOUT THIS — Ari explains the current screen (its real
                     numbers, or what the tab is), spoken in the chosen voice. */}
                 <button type="button" onClick={talkAbout} disabled={talking} className="col-span-3 flex items-center justify-center gap-[0.375em] border border-[#B85838] text-[#B85838] px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]"><UiIcon name="volume" /> {talking ? 'Thinking…' : 'Talk about this'}</button>
+                <button type="button" onClick={popOut} data-testid="reader-pop-out" aria-label="Pop out — a reader window you can move" className="col-span-3 flex items-center justify-center gap-[0.375em] border-2 border-[#1A1815] text-[#1A1815] px-[0.75em] py-[0.625em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⧉ Pop out</button>
               </>
             ) : (
               <>
                 <button type="button" onClick={isPaused ? resume : pause} className="bg-[#1A1815] text-white px-[0.5em] py-[0.625em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">{isPaused ? '▶ Resume' : '⏸ Pause'}</button>
                 <button type="button" onClick={stopAll} className="col-span-2 border border-[#1A1815] text-[#1A1815] px-[0.5em] py-[0.625em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⏹ Stop</button>
+                <button type="button" onClick={popOut} data-testid="reader-pop-out" aria-label="Pop out — a reader window you can move" className="col-span-3 flex items-center justify-center gap-[0.375em] border-2 border-[#1A1815] text-[#1A1815] px-[0.75em] py-[0.625em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⧉ Pop out</button>
                 {/* Move by the unit a listener thinks in: re-listen the
                     paragraph just heard (again = further back), skip the next,
                     or start the whole reading over from the top. */}
@@ -1545,6 +1649,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           {canJump && (
             <button type="button" onClick={() => jumpParagraph(1)} data-testid="reader-mini-forward" aria-label="Forward a paragraph" title="Forward a paragraph" className="h-10 w-10 rounded-full flex items-center justify-center text-[#1A1815] text-sm font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">↪¶</button>
           )}
+          <button type="button" onClick={popOut} data-testid="reader-mini-pop-out" aria-label="Pop out — a reader window you can move" title="Pop out" className="hidden min-[400px]:flex h-10 w-10 rounded-full items-center justify-center text-[#1A1815] text-base font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">⧉</button>
           {fab}
         </div>
       ) : fab)}

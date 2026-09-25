@@ -70,6 +70,38 @@ Work, and remain governed by their own licenses as declared in their respective
 manifests and lockfiles.
 
 
+3a. THIRD-PARTY SOFTWARE AND DATA — CONVEYED TO A DEVICE ON REQUEST
+--------------------------------------------------------------------
+
+The on-device reading voice (DR-0656; Voice -> On this device) is downloaded
+only when a person presses "Download the voice to this device". What it
+carries to that device, and on what terms:
+
+  onnxruntime-web 1.30.0             MIT License (Microsoft). Bundled into the
+                                     app build; its .wasm runtime is a build
+                                     asset.
+  phonemizer 1.2.1 (xenova)          Apache License 2.0, as declared.
+    embeds eSpeak NG                 GNU General Public License v3.0 or later.
+                                     It is compiled to WebAssembly inside
+                                     phonemizer and bundled, unmodified, into
+                                     the voice's worker chunk only. The
+                                     corresponding source is at
+                                     https://github.com/espeak-ng/espeak-ng
+                                     (eSpeak NG) and
+                                     https://github.com/xenova/phonemizer.js
+                                     (the WebAssembly build). This Work offers
+                                     that source to anyone who receives the
+                                     worker chunk.
+  Piper voice models                 Downloaded by the device directly from
+    en_US-ryan-medium                rhasspy/piper-voices on Hugging Face and
+    en_US-amy-medium                 not redistributed from this Work. The
+                                     Ryan voice's dataset is licensed
+                                     CC BY-NC-SA 4.0 (its MODEL_CARD). The
+                                     Amy card was not verified here. Terms
+                                     are under Governor review (DR-0656,
+                                     re-review 2026-10-02).
+
+
 4. TRADEMARKS
 -------------
 

@@ -33,7 +33,7 @@ vi.mock('../lib/voice-service.js', async (importOriginal) => {
   return {
     ...real,
     fetchHouseVoices: async () => nas.list,
-    synthesizeLite: async (args) => { nas.calls.push(args); return nas.speakOk ? { url: 'blob:clip' } : { error: 'voice-lite-503' }; },
+    synthesizeLite: async (args) => { nas.calls.push(args); return nas.speakOk ? { url: 'blob:clip' } : { error: 'voice-lite-502' }; },
     synthesizeSpeech: async () => ({ error: 'studio-test' }),
     isVoiceServiceReady: () => false,
     mayAttemptStudio: () => false,
@@ -47,6 +47,7 @@ import VoicePicker, { groupCatalog } from '../components/VoicePicker.jsx';
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 window.HTMLMediaElement.prototype.play = function play() { return Promise.resolve(); };
 window.HTMLMediaElement.prototype.pause = function pause() {};
+window.HTMLMediaElement.prototype.load = function load() {};
 if (!URL.revokeObjectURL) URL.revokeObjectURL = () => {};
 
 const ALAN = { id: 'en_GB-alan-medium', label: 'Alan', gender: 'male', accent: 'British', quality: 'medium', note: 'Real audio from the church’s own server. Keeps playing when you switch apps.' };
@@ -175,6 +176,26 @@ describe('a picked house voice is the voice the NAS is asked for', () => {
     await flush();
     expect(synth.spoken.length).toBeGreaterThan(0);
     expect(api.standInWhy).toBe('house-offline');
+  });
+
+  it('the pick IS the reading’s pin: a jump keeps it, a new pick starts a new one (one mechanism with DR-0654)', async () => {
+    installSynth([US]);
+    await mount();
+    await act(async () => api.setVoiceId('house:en_GB-alan-medium'));
+    await flush();
+    await act(async () => { await api.read('First paragraph.'); });
+    await flush();
+    expect(api.isReading, 'the house reading is live').toBe(true);
+    // A paragraph jump while reading continues the same reading, same voice.
+    await act(async () => { await api.read('A later paragraph.'); });
+    await flush();
+    expect(nas.calls.map((c) => c.voice)).toEqual(['en_GB-alan-medium', 'en_GB-alan-medium']);
+    // A NEW pick mid-reading is honoured at the next read, never swallowed by the old pin.
+    await act(async () => api.setVoiceId('house:en_US-joe-medium'));
+    await flush();
+    await act(async () => { await api.read('The next paragraph.'); });
+    await flush();
+    expect(nas.calls[nas.calls.length - 1].voice, 'the old pin kept the reading after a new pick').toBe('en_US-joe-medium');
   });
 
   it('a sample plays in a voice WITHOUT changing the pick', async () => {
