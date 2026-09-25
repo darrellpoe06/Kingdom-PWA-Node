@@ -707,6 +707,7 @@ try {
     ? [{ key: false, breakMark: false, trap: false }, { key: true, breakMark: true, trap: true }]
     : [{ key: true, breakMark: false, trap: false }];
   const tvBeforeAll = failures;
+  const tvT0 = Date.now();
   for (const tvCase of TV_CASES) {
     const TV_UA = 'Mozilla/5.0 (Linux; Android 9; AFTKA Build/PS7633) AppleWebKit/537.36 (KHTML, like Gecko) Silk/118.3.1 like Chrome/118.0.5993.144 Safari/537.36';
     const tvBefore = failures;
@@ -834,7 +835,7 @@ try {
               if (!paused) tv('Enter on the mini-player pause did not pause the voice');
             }
           }
-          if (failures === tvBefore) console.log(`tv ok  960x540 DPR2, Silk, no device voices — reader in ${toFab} presses, NAS voice playing (${keyed} keyed request(s)), mini-player reachable with a 3px+ ring at 3:1+, Enter pauses`);
+          if (failures === tvBefore) console.log(`tv ok  960x540 DPR2, Silk, no device voices — reader in ${toFab} presses, NAS voice playing (${keyed} keyed request(s)), mini-player reachable with a 3px+ ring at 3:1+, Enter pauses (${Math.round((Date.now() - tvT0) / 1000)} s)`);
         }
       }
       tvMeasured += 1;
