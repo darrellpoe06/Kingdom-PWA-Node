@@ -229,16 +229,30 @@ jobs:
           # e.g. role-control drops list_instance_members so 0111 can recreate
           # it and 0143/0144 can rebuild it to the current shape (run 33 proved
           # the key alone does nothing without this executor).
+          #
+          # ONE TRANSACTION for the pre-step AND the whole chain (2026-09-25,
+          # db-migrate run 36090407494). This leg runs against the LIVE
+          # database. The pre-step used to commit its DROP on its own, and the
+          # chain then rebuilt the function file by file, so for the length of
+          # the chain the function did not exist in production: poe-properties
+          # drops public_vacancies(), and every anonymous visitor to the
+          # vacancies page got an error for ~40 seconds per run. The
+          # live-definition witness of a concurrent db-migrate caught it
+          # ("public_vacancies — absent from the live database"). Inside one
+          # transaction, other sessions see the old definition until COMMIT and
+          # then the newest, never nothing. Pinned by
+          # scripts/rls-isolation-matrix-guard.mjs (checkAtomicApply).
           PRE=${{ toJSON(matrix.pre || '') }}
+          ARGS=()
           if [ -n "$PRE" ]; then
-            echo "=== running pre-step SQL ==="
-            psql "$DBURL" -v ON_ERROR_STOP=1 -c "$PRE"
+            echo "=== pre-step SQL (inside the chain's transaction) ==="
+            ARGS+=(-c "$PRE")
           fi
           for mig in ${{ matrix.migrations }}; do
-            echo "=== applying ${mig} (idempotent) ==="
-            psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 \
-              -f "infra/supabase/migrations-auto/${mig}"
+            echo "=== will apply ${mig} (idempotent) ==="
+            ARGS+=(-f "infra/supabase/migrations-auto/${mig}")
           done
+          psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 "${ARGS[@]}"
           for smoke in ${{ matrix.smokes }}; do
             echo "=== running ${smoke} (rolls back) ==="
             psql "$DBURL" -v ON_ERROR_STOP=1 \
