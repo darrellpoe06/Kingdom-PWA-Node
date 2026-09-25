@@ -274,11 +274,17 @@ function isTextFile(abs) {
   } catch { return false; }
 }
 
-/** Files the merge touched (staged vs HEAD, plus the unstaged working tree). */
-function touchedFiles(cwd) {
-  const a = git(['diff', '--cached', '--name-only'], { cwd }).split('\n');
-  const b = git(['diff', '--name-only'], { cwd }).split('\n');
-  return [...new Set([...a, ...b].filter(Boolean))];
+/**
+ * The files whose content THIS resolution produced: every file that was in
+ * conflict when it started, plus the two ledger files it writes. NOT every
+ * file the merge brought in — main carries files with markers on purpose
+ * (this script's own test fixture, ledger-conflict-1793.txt), and scanning
+ * those refused every PR merge on the first live run (2026-09-25, #1793,
+ * #1802, #1808, #1809, #1811, #1814). A clean auto-merge never writes a marker;
+ * a marker can only come from a hunk someone resolved.
+ */
+function resolvedFiles(unmergedAtStart) {
+  return [...new Set([...unmergedAtStart, ...LEDGER_FILES])];
 }
 
 export function resolveInTree(cwd, { log = console.log, err = console.error } = {}) {
@@ -334,7 +340,7 @@ export function resolveInTree(cwd, { log = console.log, err = console.error } = 
     return { code: 1 };
   }
   const marked = [];
-  for (const f of touchedFiles(cwd)) {
+  for (const f of resolvedFiles(unmerged)) {
     const abs = join(cwd, f);
     if (!isTextFile(abs)) continue;
     const at = conflictMarkerLines(readFileSync(abs, 'utf8'));

@@ -109,7 +109,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          # The commit this run's workflow file came from: main for every
+          # automatic fire (dispatches name --ref main; schedules and pushes run
+          # on main), so the resolver is main's. A hand dispatch from a branch
+          # tests that branch's resolver against the real PRs, before merge.
+          ref: ${{ github.sha }}
           fetch-depth: 0
           # The push credential. LANE_PUSH_TOKEN when the secret exists (its
           # pushes fire CI and may carry workflow-file changes); else GITHUB_TOKEN.
@@ -187,7 +191,6 @@ jobs:
 
           for row in "${rows[@]}"; do
             n="${row%% *}"; b="${row#* }"
-            if [ "$attempts" -ge "$MAX_PRS" ]; then note "$n" "$b" "budget reached ($MAX_PRS attempts); next run"; continue; fi
             if [ "$(date +%s)" -ge "$deadline" ]; then note "$n" "$b" "deadline reached; next run"; continue; fi
             if ! timeout 60 git fetch -q origin "+refs/heads/$b:refs/remotes/origin/$b"; then note "$n" "$b" "fetch failed"; continue; fi
             behind=$(git rev-list --count "origin/$b..origin/main")
@@ -202,6 +205,10 @@ jobs:
                 note "$n" "$b" "idle > ${IDLE_HOURS}h; left for its owner / pr-janitor"; continue
               fi
             fi
+            # The budget is spent only on real attempts, so it is checked here,
+            # after "current" and "idle" (the first live run reported 21 idle
+            # zombies as "budget reached", hiding which were live).
+            if [ "$attempts" -ge "$MAX_PRS" ]; then note "$n" "$b" "budget reached ($MAX_PRS attempts); next run"; continue; fi
             attempts=$((attempts + 1))
             head_before=$(git rev-parse "origin/$b")  # for the log: what we merged onto
             git checkout -q -B keep-current "origin/$b"
