@@ -498,7 +498,9 @@ async function synthesizeLiteOnce({ text, voice = 'male', timeoutMs = LITE_TIMEO
     if (ctype && !/^audio\//i.test(ctype)) return { error: 'voice-lite-not-audio' };
     const blob = await res.blob();
     if (!blob || !blob.size) return { error: 'voice-lite-empty' };
-    return { url: URL.createObjectURL(blob) };
+    // The blob rides along so the reader can keep the clip on the device
+    // (lib/clip-cache.js, DR-0659).
+    return { url: URL.createObjectURL(blob), blob };
   } catch (e) {
     return { error: timedOut ? 'voice-lite-timeout' : ((e && e.message) || 'voice-lite-error') };
   } finally {
