@@ -80,8 +80,32 @@ const MIME = {
   '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.png': 'image/png',
 };
 
+// THE NAS VOICE, STUBBED FOR THE TV PASS (DR-0655): a bearer-locked
+// /voice-lite/speak that answers a short WAV, the shape of the real door
+// (infra/nas-voice-lite: 401 without the family key).
+const TV_KEY = 'probe-family-key';
+function tinyWav(seconds = 1.2, rate = 8000) {
+  const n = Math.round(seconds * rate);
+  const b = Buffer.alloc(44 + n * 2);
+  b.write('RIFF', 0); b.writeUInt32LE(36 + n * 2, 4); b.write('WAVE', 8); b.write('fmt ', 12);
+  b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22); b.writeUInt32LE(rate, 24);
+  b.writeUInt32LE(rate * 2, 28); b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34); b.write('data', 36); b.writeUInt32LE(n * 2, 40);
+  for (let i = 0; i < n; i += 1) b.writeInt16LE(Math.round(6000 * Math.sin(2 * Math.PI * 220 * i / rate)), 44 + i * 2);
+  return b;
+}
+const TV_CLIP = tinyWav();
+const voiceLiteLog = [];
 const server = createServer((req, res) => {
   let path = (req.url || '/').split('?')[0];
+  if (path.startsWith('/voice-lite/')) {
+    const auth = req.headers.authorization || '';
+    voiceLiteLog.push({ path, keyed: auth === `Bearer ${TV_KEY}` });
+    if (auth !== `Bearer ${TV_KEY}`) { res.writeHead(401, { 'Content-Type': 'application/json' }); res.end('{"error":"unauthorized"}'); return; }
+    req.resume();
+    req.on('end', () => { res.writeHead(200, { 'Content-Type': 'audio/wav' }); res.end(TV_CLIP); });
+    return;
+  }
+  if (path.startsWith('/voice/')) { res.writeHead(502, { 'Content-Type': 'application/json' }); res.end('{"error":"dark"}'); return; }
   if (path.startsWith(BASE)) path = path.slice(BASE.length) || '/';
   if (path === '/') path = '/index.html';
   const file = normalize(join(DIST, path));
@@ -110,6 +134,8 @@ let tsFailuresBefore = 0;
 let lessonFailuresBefore = 0;
 let lessonMeasured = 0;
 let presenterMeasured = 0;
+let tvMeasured = 0;
+let tvTripped = 0;
 // COVERAGE, counted — not assumed (DR-0323). This probe reported `exit 0` on
 // 2026-09-03 having measured only 8 of its 11 views: no failure was raised, so
 // the run read as a clean pass while a third of the surfaces — including the
@@ -656,6 +682,167 @@ try {
     else if (!m.reachable) fail(`textscale ${where}: text-size controls exist but none is on screen — reader trapped in big text (viewport ${m.vw}x${m.vh}, header ${m.headerH}px tall, controls: ${m.rects.join(' ')})`);
     if (failures === before) console.log(`textscale ok  ${where} — Big Print holds, escape hatch on screen (${m.hatchCount} controls)`);
   }
+  // ---------------------------------------------------------------------------
+  // THE FIRESTICK pass (DR-0655). Darrell 2026-09-25: "Will this work with the
+  // Firestick still?" and "All new features too?", then "We want the voice on
+  // too... can it read?!" He reads on a Fire TV Stick in Silk with a D-pad.
+  // The page is loaded the way that stick meets it: a Silk user agent, a
+  // 960x540 CSS viewport at DPR 2 (Amazon's Fire TV web-app display), a
+  // speechSynthesis that reports NO voices, no microphone, and the NAS voice
+  // behind its family-key lock (stubbed above; the family RPC answers the key).
+  // Driven with the arrow keys and Enter only. Invariants:
+  //  19. THE DOCUMENT KNOWS IT IS A TV (html[data-device="tv"]).
+  //  20. THE LESSON READS ALOUD WITH SOUND: "Read this lesson" sends the key
+  //      to /voice-lite and a real clip plays, with no device voice at all.
+  //  21. THE D-PAD REACHES THE READER AND EVERY MINI-PLAYER CONTROL, and each
+  //      shows a focus ring at least 3px wide at 3:1 against what is behind it.
+  //  22. ENTER WORKS: the mini-player's pause pauses the voice.
+  //  23. NO PAGE OVERFLOW at 960 wide.
+  // Self-test, two cases so each break is seen on its own: the family key
+  // withheld (401, silence); then, with the voice playing, the TV mark
+  // removed (the ring falls to 2px) and every arrow swallowed inside the
+  // mini-player (a trap). All MUST trip.
+  // ---------------------------------------------------------------------------
+  const TV_CASES = SELFTEST
+    ? [{ key: false, breakMark: false, trap: false }, { key: true, breakMark: true, trap: true }]
+    : [{ key: true, breakMark: false, trap: false }];
+  const tvBeforeAll = failures;
+  for (const tvCase of TV_CASES) {
+    const TV_UA = 'Mozilla/5.0 (Linux; Android 9; AFTKA Build/PS7633) AppleWebKit/537.36 (KHTML, like Gecko) Silk/118.3.1 like Chrome/118.0.5993.144 Safari/537.36';
+    const tvBefore = failures;
+    const ctx = await browser.newContext({ viewport: { width: 960, height: 540 }, deviceScaleFactor: 2, userAgent: TV_UA });
+    await ctx.route('https://test-stub.supabase.co/**', (route) => {
+      const u = route.request().url();
+      if (u.includes('/rpc/get_family_bridge_token')) return route.fulfill({ status: 200, contentType: 'application/json', body: tvCase.key ? JSON.stringify(TV_KEY) : 'null' });
+      if (u.includes('/auth/')) return route.fulfill({ status: 401, contentType: 'application/json', body: '{}' });
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+    });
+    await ctx.addInitScript(() => {
+      try { localStorage.setItem('poetech.help.tour.v1', 'seen'); } catch (_) { /* private mode */ }
+      if (window.speechSynthesis) { window.speechSynthesis.getVoices = () => []; window.speechSynthesis.speak = () => {}; }
+      if (navigator.mediaDevices) {
+        navigator.mediaDevices.getUserMedia = () => Promise.reject(new DOMException('Requested device not found', 'NotFoundError'));
+        navigator.mediaDevices.enumerateDevices = () => Promise.resolve([]);
+      }
+      window.__voiceClip = null;
+      const play = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function tvPlay() {
+        const p = play.call(this);
+        if (String(this.src || '').startsWith('blob:')) { const el = this; p.then(() => { window.__voiceClip = el; }, () => {}); }
+        return p;
+      };
+    });
+    const page = await ctx.newPage();
+    const tv = (msg) => fail(`tv@960x540: ${msg}`);
+    // A person with a remote: press toward the control; the other axis when
+    // nothing moves. Returns the number of presses, or -1.
+    const dpadTo = async (sel, max = 45) => {
+      for (let i = 0; i < max; i += 1) {
+        const st = await page.evaluate((q) => {
+          const t = document.querySelector(q);
+          if (!t) return { none: true };
+          const a = document.activeElement;
+          if (a && a !== document.body && (a === t || t.contains(a))) return { at: true };
+          const tr = t.getBoundingClientRect();
+          const ar = a && a !== document.body ? a.getBoundingClientRect() : null;
+          return { dx: tr.left + tr.width / 2 - (ar ? ar.left + ar.width / 2 : 0), dy: tr.top + tr.height / 2 - (ar ? ar.top + ar.height / 2 : 0), none: false, fresh: !ar };
+        }, sel);
+        if (st.none) return -1;
+        if (st.at) return i;
+        const v = st.dy > 0 ? 'ArrowDown' : 'ArrowUp'; const h = st.dx > 0 ? 'ArrowRight' : 'ArrowLeft';
+        const order = st.fresh ? ['ArrowDown'] : (Math.abs(st.dy) < 12 ? [h, v] : (Math.abs(st.dy) >= Math.abs(st.dx) ? [v, h] : [h, v]));
+        let moved = false;
+        for (const k of order) {
+          const was = await page.evaluate(() => { const a = document.activeElement; return a ? (a.dataset.tvp || (a.dataset.tvp = String(Math.random()))) : ''; });
+          await page.keyboard.press(k);
+          await page.waitForTimeout(40);
+          const now = await page.evaluate(() => { const a = document.activeElement; return a ? a.dataset.tvp || '' : ''; });
+          if (now !== was) { moved = true; break; }
+        }
+        if (!moved) return -1;
+      }
+      return -1;
+    };
+    const ringOf = () => page.evaluate(() => {
+      const a = document.activeElement;
+      if (!a || a === document.body) return null;
+      const cs = getComputedStyle(a);
+      const rgb = (c) => (c.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+      const lum = (c) => { const [r, g, b] = rgb(c).map((v) => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+      let bg = 'rgb(255, 255, 255)';
+      for (let e = a.parentElement; e; e = e.parentElement) {
+        const c = getComputedStyle(e).backgroundColor;
+        if (c && !/rgba\(0, 0, 0, 0\)|transparent/.test(c) && !(c.startsWith('rgba') && Number(c.split(',')[3]) < 0.5)) { bg = c; break; }
+      }
+      const l1 = lum(cs.outlineColor); const l2 = lum(bg);
+      return { width: cs.outlineStyle === 'none' ? 0 : parseFloat(cs.outlineWidth), contrast: Math.round(((Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)) * 100) / 100 };
+    });
+    try {
+      await page.goto(`${origin}${BASE}/?view=church&sub=learn&course=living-lessons&lesson=ll1-the-perfect-yahweh-expects`, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+      await page.waitForSelector('[data-testid="lesson-space-bar"]', { timeout: 20000 }).catch(() => {});
+      await page.waitForTimeout(400);
+      if (tvCase.breakMark) await page.evaluate(() => document.documentElement.removeAttribute('data-device'));
+      if (tvCase.trap) {
+        await page.evaluate(() => {
+          // A trap: every arrow inside the mini-player is swallowed.
+          document.addEventListener('keydown', (e) => { if (e.target && e.target.closest && e.target.closest('[data-testid="reader-mini-bar"]') && /^Arrow/.test(e.key)) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+        });
+      }
+      const marked = await page.evaluate(() => document.documentElement.getAttribute('data-device') === 'tv');
+      if (!marked) tv('the document is not marked as a TV (html[data-device="tv"]); a Fire TV is 960 wide, so nothing keyed to width can know');
+      const ov = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      if (ov > 1) tv(`the lesson page overflows horizontally by ${ov}px`);
+      const toFab = await dpadTo('button[aria-label*="read-aloud controls"]', 60);
+      if (toFab < 0) tv('the D-pad never reached the reader (🔊) from the top of the lesson');
+      else {
+        await page.keyboard.press('Enter');
+        await page.waitForTimeout(300);
+        await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find((x) => /start to finish/.test(x.textContent || '')); if (b) b.setAttribute('data-tv-read', '1'); });
+        const toRead = await dpadTo('[data-tv-read]', 40);
+        if (toRead < 0) tv('Enter on the reader did not open a reachable "Read this lesson" control');
+        else {
+          voiceLiteLog.length = 0;
+          await page.keyboard.press('Enter');
+          await page.waitForTimeout(2500);
+          const clip = await page.evaluate(() => !!window.__voiceClip && !window.__voiceClip.paused);
+          const keyed = voiceLiteLog.filter((l) => l.keyed).length;
+          if (!clip) tv(`"Read this lesson" made no sound: ${voiceLiteLog.length} /voice-lite request(s), ${keyed} with the family key, no clip playing (the device has no voices)`);
+          // Into the mini-player: hide the panel (it keeps reading), then every control.
+          // The panel is either the full card (× Close) or, once reading, the
+          // minimized bar (×, "Hide reading controls"); either one keeps reading.
+          await page.evaluate(() => {
+            const b = document.querySelector('button[aria-label="Hide reading controls — keeps reading"]')
+              || [...document.querySelectorAll('button')].find((x) => /Close/.test(x.textContent || '') && /keeps going|Close/.test(x.getAttribute('title') || ''));
+            if (b) b.setAttribute('data-tv-hide', '1');
+          });
+          const toHide = await dpadTo('[data-tv-hide]', 60);
+          if (toHide >= 0) { await page.keyboard.press('Enter'); await page.waitForTimeout(300); }
+          const hasMini = await page.$('[data-testid="reader-mini-bar"]');
+          if (!hasMini) tv(`no mini-player after hiding the panel while reading (the hide control ${toHide < 0 ? 'was not reached by the D-pad' : 'was pressed'}; reading: ${clip})`);
+          else {
+            for (const id of ['reader-show-text', 'reader-mini-back', 'reader-mini-playpause', 'reader-mini-forward']) {
+              const n = await dpadTo(`[data-testid="${id}"]`, 30);
+              if (n < 0) { tv(`the D-pad cannot reach the mini-player's ${id}`); continue; }
+              const rg = await ringOf();
+              if (!rg || rg.width < 3) tv(`the focus ring on ${id} is ${rg ? rg.width : 0}px — under 3px, thin across a room`);
+              else if (rg.contrast < 3) tv(`the focus ring on ${id} is ${rg.contrast}:1 against its background — under 3:1`);
+            }
+            if (clip && (await dpadTo('[data-testid="reader-mini-playpause"]', 10)) >= 0) {
+              await page.keyboard.press('Enter');
+              await page.waitForTimeout(300);
+              const paused = await page.evaluate(() => !!window.__voiceClip && window.__voiceClip.paused);
+              if (!paused) tv('Enter on the mini-player pause did not pause the voice');
+            }
+          }
+          if (failures === tvBefore) console.log(`tv ok  960x540 DPR2, Silk, no device voices — reader in ${toFab} presses, NAS voice playing (${keyed} keyed request(s)), mini-player reachable with a 3px+ ring at 3:1+, Enter pauses`);
+        }
+      }
+      tvMeasured += 1;
+    } finally {
+      await ctx.close();
+    }
+  }
+  tvTripped = failures - tvBeforeAll;
 } finally {
   // ---------------------------------------------------------------------------
   // THE PRESENTER IS CHROME TOO (DR-0451). It was the largest surface in the
@@ -723,6 +910,7 @@ try {
     if (failures === pbefore) console.log(`presenter ok  ${pwhere} — bar ${pm.h}px of ${pm.vh}px, capped, safe-sticky, foldable, one-tap jump present`);
   }
   if (presenterMeasured !== 2) fail(`coverage: ${presenterMeasured}/2 presenter cases measured`);
+  if (tvMeasured !== (SELFTEST ? 2 : 1)) fail(`coverage: ${tvMeasured}/${SELFTEST ? 2 : 1} Firestick (TV) cases measured`);
 
   await browser.close();
 
@@ -734,17 +922,18 @@ if (SELFTEST) {
   // BOTH passes must prove they can fail: the chrome pass's collapse AND the
   // text-scale pass's trap + blowout (>=2 textscale trips: overflow, hatch).
   // And the lesson pass's width-short + boxed-control break (>=2 lesson trips).
-  const tsTripped = failures - tsFailuresBefore;
+  const tsTripped = failures - tsFailuresBefore - tvTripped;
   const lessonTripped = tsFailuresBefore - lessonFailuresBefore;
   const chromeTripped = lessonFailuresBefore;
   // The lesson pass now trips SEVEN ways: width-short, boxed control, a wall of
   // chips, an over-long block, the ballooned bar at Big Print, chrome that grew
   // with the text, and floaters on the comfort bar (DR-0438).
-  if (failures > 0 && chromeTripped > 0 && lessonTripped >= 7 && tsTripped >= 2) {
-    console.log(`SELFTEST-BREAK OK — the probe CAN fail (${failures} tripped: ${chromeTripped} chrome, ${lessonTripped} lesson, ${tsTripped} textscale)`);
+  // The TV pass trips three ways: the mark gone, the key withheld, the trap.
+  if (failures > 0 && chromeTripped > 0 && lessonTripped >= 7 && tsTripped >= 2 && tvTripped >= 3) {
+    console.log(`SELFTEST-BREAK OK — the probe CAN fail (${failures} tripped: ${chromeTripped} chrome, ${lessonTripped} lesson, ${tsTripped} textscale, ${tvTripped} tv)`);
     process.exit(0);
   }
-  console.error(`SELFTEST-BREAK FAILED — a deliberate break tripped nothing (chrome: ${chromeTripped}, lesson: ${lessonTripped}, textscale: ${tsTripped}); the probe is theater`);
+  console.error(`SELFTEST-BREAK FAILED — a deliberate break tripped nothing (chrome: ${chromeTripped}, lesson: ${lessonTripped}, textscale: ${tsTripped}, tv: ${tvTripped}); the probe is theater`);
   process.exit(1);
 }
 // The coverage assertion. A short run is a FAILED run, however clean its
