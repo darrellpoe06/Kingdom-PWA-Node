@@ -308,9 +308,11 @@ describe('a pointer, never a copy', () => {
     // existing Living Lessons course, so the course count holds at 49 and only the total moves.
     // And to 722 the same day for L193 (What It Costs to Keep Your Soul, DR-0642),
     // a lesson into the existing Living Lessons course, so only the total moves.
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(722);
+    // And to 723 the same day for L195 (How Yahweh Keeps His Word, DR-0643),
+    // a lesson into the existing Living Lessons course, so only the total moves.
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(723);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(722);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(723);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {

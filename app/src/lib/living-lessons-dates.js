@@ -218,4 +218,5 @@ export const LIVING_LESSONS_ADDED = {
   'll192-two-hours-became-six-the-pattern-the-yea-the-inspection-and-the-faithful-man': '2026-09-24', // commit 806b6c63
   'll193-what-it-costs-to-keep-your-soul-the-morsel-the-son-the-snare-and-the-finished-work': '2026-09-24', // added with the lesson (DR-0642); the day it was sent and authored
   'll194-i-am-who-he-said-he-was-every-hearer-all-of-them': '2026-09-24', // branch claude/lesson-every-hearer-all-of-them (DR-0646)
+  'll195-how-yahweh-keeps-his-word-the-promise-the-test-and-the-open-record': '2026-09-24', // added with the lesson (DR-0643)
 };
