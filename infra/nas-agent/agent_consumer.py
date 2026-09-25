@@ -201,18 +201,64 @@ def build_ssl_context():
     return ctx
 
 
+# WHICH DATABASE THE AGENT SERVES (DR-0614 / DR-0442, measured 2026-09-24).
+# The app has written agent_tasks to the NAS's own Postgres since the repoint
+# (REPOINT-ARMED, 2026-08-19); AGENT_DB_URL, placed by nas-agent-arm from the
+# SUPABASE_DB_URL repo secret, names the RETIRED hosted pooler. So a chat row
+# sent after 2026-08-19 (the live table's newest is 2026-08-22) was never seen
+# by this consumer. It now follows the same record every NAS writer follows:
+# REPOINT-ARMED present AND the sovereign stack's .env readable on THIS box ->
+# the stack's own Postgres on the loopback port it publishes (127.0.0.1:5433,
+# infra/nas-supabase/docker-compose.yml), no credential carried through CI.
+SUPA_ENV = os.environ.get("SUPABASE_DATA", "/volume1/docker/supabase") + "/.env"
+ARMED_PATH = os.environ.get("AGENT_ARMED_PATH") or os.path.join(HERE, "..", "nas-supabase", "REPOINT-ARMED")
+SOVEREIGN_PG_HOST = os.environ.get("SOVEREIGN_PG_HOST", "127.0.0.1")
+SOVEREIGN_PG_PORT = int(os.environ.get("SOVEREIGN_PG_PORT", "5433"))
+
+
+def _env_value(path, key):
+    try:
+        with open(path, "r") as fh:
+            for line in fh:
+                if line.startswith(key + "="):
+                    return line.rstrip("\n").split("=", 1)[1].strip().strip('"')
+    except OSError:
+        return None
+    return None
+
+
+def resolve_db(env=None, armed_path=ARMED_PATH, supa_env=SUPA_ENV):
+    """-> (source, params) where params feeds pg8000; source names the door
+    ('sovereign' | 'env' | None) and never carries the password into a log."""
+    env = os.environ if env is None else env
+    if os.path.exists(armed_path):
+        pw = _env_value(supa_env, "POSTGRES_PASSWORD")
+        if pw:
+            # supabase_admin, as live-sql.sh and the stack's installer connect:
+            # measured 2026-09-24 (nas-agent-arm run 36073583089), the image's
+            # "postgres" role is refused on agent_tasks (42501).
+            return "sovereign", {"user": "supabase_admin", "password": pw, "host": SOVEREIGN_PG_HOST,
+                                 "port": SOVEREIGN_PG_PORT, "database": "postgres", "tls": False}
+    url = env.get("AGENT_DB_URL", "")
+    if url:
+        from urllib.parse import urlparse
+        u = urlparse(url)
+        return "env", {"user": u.username, "password": u.password, "host": u.hostname,
+                       "port": u.port or 5432, "database": (u.path or "/postgres").lstrip("/"), "tls": True}
+    return None, None
+
+
 def db_run(max_rows):
     import pg8000.native  # vendored by install.sh; fails loudly if absent
-    url = os.environ.get("AGENT_DB_URL", "")
-    if not url:
-        print("agent-consumer: AGENT_DB_URL not set -- the installer writes it; nothing to do", file=sys.stderr)
+    source, p = resolve_db()
+    if not source:
+        print("agent-consumer: no database door (REPOINT-ARMED with the sovereign .env, or AGENT_DB_URL) -- nothing to do", file=sys.stderr)
         return 2
-    from urllib.parse import urlparse
-    u = urlparse(url)
+    print("agent-consumer: serving the {} database ({}:{})".format(source, p["host"], p["port"]))
     con = pg8000.native.Connection(
-        user=u.username, password=u.password, host=u.hostname,
-        port=u.port or 5432, database=(u.path or "/postgres").lstrip("/"),
-        ssl_context=build_ssl_context(), timeout=30)
+        user=p["user"], password=p["password"], host=p["host"],
+        port=p["port"], database=p["database"],
+        ssl_context=build_ssl_context() if p["tls"] else None, timeout=30)
     try:
         con.run("SET statement_timeout = '20s'")
 
@@ -352,6 +398,23 @@ def selftest():
         check("hostname checking is ON", _ctx.check_hostname is True)
     except Exception as e:  # noqa: BLE001 - a context that cannot build is a FAIL, not a crash
         check("ssl context builds without error ({})".format(e), False)
+
+    # THE DOOR FOLLOWS THE RECORD (DR-0614): proven with temp files, no db.
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        armed = os.path.join(td, "REPOINT-ARMED")
+        senv = os.path.join(td, ".env")
+        with open(senv, "w") as f:
+            f.write("POSTGRES_PASSWORD=pw\nSERVICE_ROLE_KEY=k\n")
+        hosted = {"AGENT_DB_URL": "postgres://u:p@hosted.example:6543/postgres"}
+        src, p = resolve_db(env=hosted, armed_path=armed, supa_env=senv)
+        check("no repoint record -> the hosted URL (the old behaviour)", src == "env" and p["host"] == "hosted.example" and p["tls"])
+        open(armed, "w").close()
+        src, p = resolve_db(env=hosted, armed_path=armed, supa_env=senv)
+        check("CATCHES the retired door: repoint armed -> the NAS's own Postgres, not the hosted URL",
+              src == "sovereign" and p["host"] == SOVEREIGN_PG_HOST and p["port"] == SOVEREIGN_PG_PORT and not p["tls"])
+        src, p = resolve_db(env={}, armed_path=armed, supa_env=os.path.join(td, "missing.env"))
+        check("armed but no readable stack .env and no URL -> no door (never a guess)", src is None)
 
     print("\n{}/{} passed".format(passed, passed + failed))
     return 1 if failed else 0

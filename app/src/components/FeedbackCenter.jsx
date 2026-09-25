@@ -28,6 +28,9 @@ import UiIcon from './UiIcon.jsx';
 import { setFeedbackTriage, triageLabel } from '../lib/feedback-loop.js';
 import supabase from '../lib/supabase.js';
 
+// What a signed-out sender is told (DR-0629): the note is kept, where it is.
+const SIGNED_OUT_RECEIPT = 'You are signed out, so this note stayed on this device and no one has read it yet. Sign in and send it again so a steward sees it and you can follow its status under Your feedback.';
+
 // Round 12 — Feedback form refreshed to reflect every surface we've actually
 // shipped through MVP v1.5. Area dropdown now mirrors the live nav + the major
 // in-tab features (Action Queue, Capacity meter, Buffer Fund, Property
@@ -449,8 +452,16 @@ export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey =
     // Hand the sender their reference instead of closing on them. If the host
     // did not give us back a stored row there is no honest code to show, so we
     // close as before rather than inventing one.
-    if (saved && saved.id) setReceipt(receiptMessage(saved.id));
-    else onClose();
+    if (saved && saved.id) {
+      setReceipt(receiptMessage(saved.id));
+      // SIGNED OUT, SAID PLAINLY (DR-0629: connected is not answered, for
+      // every audience). Signed out, the note is kept on this device only —
+      // no steward can read it — so the receipt says that instead of a status
+      // that will never move.
+      Promise.resolve(supabase && supabase.auth ? supabase.auth.getSession() : null).then((res) => {
+        if (!(res && res.data && res.data.session)) setReceipt((r) => (r ? { ...r, headline: 'Kept on this device only.', body: SIGNED_OUT_RECEIPT } : r));
+      }).catch(() => {});
+    } else onClose();
   };
 
   // The filtered list the picker actually renders, plus the count the hint

@@ -30,6 +30,7 @@
 // Everything below the hook is pure and unit-tested; the hook is thin glue.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { pickRecorderMime } from './voice-recording.js';
+import { releaseSpeechRecognition } from './voice-dictation.js';
 
 // Aligned with lib/ministry-meetings.js maxDurationMin — one ceiling, one truth.
 export const SCRIBE_MAX_DURATION_MIN = 180;
@@ -191,9 +192,33 @@ export function peakLevel(samples) {
  * Counts CONSECUTIVE silent seconds, so a call that takes the mic mid-way is
  * caught too; a quiet room is never true zeros. Pure.
  */
-export function silenceMessage({ silentSeconds }) {
-  if ((Number(silentSeconds) || 0) < SILENCE_WARN_SECONDS) return '';
+export function silenceMessage({ silentSeconds, warnAfter = SILENCE_WARN_SECONDS, recordingSeconds = null, bytes = null }) {
+  // No bytes at all after the recorder should have handed some over (it
+  // hands a slice every second) is the same failure seen from the other side.
+  if (bytes === 0 && typeof recordingSeconds === 'number' && recordingSeconds >= warnAfter) {
+    return "The phone isn't giving the app any sound — a phone call, another app, or the Speak button may be holding the microphone. Stop, close the other app or end the call, and start again.";
+  }
+  if ((Number(silentSeconds) || 0) < warnAfter) return '';
   return "The phone isn't letting the app hear the microphone — a phone call may be using it. On a call, put it on speaker and record from a second device, or record after the call.";
+}
+
+/**
+ * The verdict on a finished take, pure: is there something to send?
+ * { ok, reason } — never offers Send for an empty or silent take.
+ */
+export function takeVerdict(result) {
+  const blob = result && result.blob;
+  if (!blob || !blob.size) return { ok: false, reason: 'Nothing was recorded — the phone gave the app no sound at all. A phone call, another app, or the Speak button may have been holding the microphone.' };
+  if (result.measured && !result.heardSound) return { ok: false, reason: 'Nothing was recorded — the microphone gave only silence the whole time. A phone call, another app, or the Speak button may have been holding it.' };
+  return { ok: true, reason: '' };
+}
+
+/** "12 KB" for a byte count, for the live "captured" line. Pure. */
+export function formatBytes(n) {
+  const b = Math.max(0, Number(n) || 0);
+  if (b < 1024) return `${b} bytes`;
+  if (b < 1024 * 1024) return `${Math.round(b / 1024)} KB`;
+  return `${(b / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 /** getUserMedia refusals, in words a person can act on. Pure. */
@@ -228,6 +253,10 @@ export function useWorkflowScribe() {
   const [errorMessage, setErrorMessage] = useState(''); // the same refusal, in plain words
   const [silentSeconds, setSilentSeconds] = useState(0);
   const [heardSound, setHeardSound] = useState(false);
+  const sampleTimerRef = useRef(null);
+  const [bytes, setBytes] = useState(0);
+  const [level, setLevel] = useState(0);
+  const bytesRef = useRef(0);
   const levelRef = useRef(null);  // { ctx, analyser, buf } while a mic stream is measured
   const silentRef = useRef(0);
   const heardRef = useRef(false);
@@ -248,17 +277,47 @@ export function useWorkflowScribe() {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     try { wakeRef.current && wakeRef.current.release && wakeRef.current.release(); } catch (_) {}
     wakeRef.current = null;
+    if (sampleTimerRef.current) { clearInterval(sampleTimerRef.current); sampleTimerRef.current = null; }
     try { levelRef.current && levelRef.current.ctx && levelRef.current.ctx.close && levelRef.current.ctx.close(); } catch (_) {}
     levelRef.current = null;
   };
 
   // One reading per second of the loudest sample on the recording stream.
+  // MEASURED IN A REAL CHROMIUM (scripts/mic-record-probe.mjs, 2026-09-24):
+  // an AudioContext made after the await for the microphone starts SUSPENDED
+  // (the tap's permission to play sound has lapsed), and a suspended context
+  // reads true zeros while the recorder is capturing real audio. Counting
+  // those zeros would have told a person "Nothing was recorded" about a good
+  // take. So the context is made inside the tap, resumed, and a reading only
+  // counts while it is actually running; an unmeasured take is never called
+  // silent (unknown is not silence).
+  const measuredRef = useRef(0);
+  // The loudest moment of each second: five short looks a second, not one
+  // 40-millisecond glance that can land between two words.
+  const windowPeakRef = useRef(-1);
+  const sampleLevel = () => {
+    const lv = levelRef.current;
+    if (!lv) return;
+    try {
+      if (lv.ctx && lv.ctx.state && lv.ctx.state !== 'running') {
+        try { lv.ctx.resume && lv.ctx.resume(); } catch (_) { /* next look */ }
+        return;
+      }
+      lv.analyser.getFloatTimeDomainData(lv.buf);
+      windowPeakRef.current = Math.max(windowPeakRef.current, peakLevel(lv.buf));
+    } catch (_) { /* a meter that cannot read never blocks the recording */ }
+  };
   const measureLevel = () => {
     const lv = levelRef.current;
     if (!lv) return;
     try {
-      lv.analyser.getFloatTimeDomainData(lv.buf);
-      if (peakLevel(lv.buf) < DIGITAL_SILENCE_PEAK) {
+      const got = windowPeakRef.current;
+      windowPeakRef.current = -1;
+      if (got < 0) return; // nothing measured this second: unknown, never silence
+      measuredRef.current += 1;
+      const peak = got;
+      setLevel(peak);
+      if (peak < DIGITAL_SILENCE_PEAK) {
         silentRef.current += 1;
       } else {
         silentRef.current = 0;
@@ -277,12 +336,26 @@ export function useWorkflowScribe() {
   //   audio              — getUserMedia audio constraints for a 'meeting'
   //   audioBitsPerSecond — so three hours of speech fits the 50 MB upload
   //   measureLevel       — watch the stream for digital silence (see above)
-  const start = useCallback(async ({ kind, consent, audio, audioBitsPerSecond, measureLevel: watchLevel = false }) => {
+  //   timesliceMs        — how often the recorder hands over audio (1000 for a
+  //                        lesson, so bytes are seen arriving every second)
+  const start = useCallback(async ({ kind, consent, audio, audioBitsPerSecond, measureLevel: watchLevel = false, timesliceMs = SCRIBE_CHUNK_MS }) => {
     const supported = kind === 'workflow' ? screenSupported : micSupported;
     const gate = canStartCapture({ kind, supported, consent });
     if (!gate.ok) { setError(gate.reason); setErrorMessage(''); return gate; }
     setError(''); setErrorMessage(''); setResult(null); setSteps([]); setSeconds(0);
     setSilentSeconds(0); setHeardSound(false); silentRef.current = 0; heardRef.current = false;
+    setBytes(0); setLevel(0); bytesRef.current = 0;
+    // One microphone, one holder: a live Speak session is stopped first.
+    if (kind === 'meeting') releaseSpeechRecognition();
+    // The meter's AudioContext is made NOW, inside the tap, and resumed.
+    measuredRef.current = 0;
+    let meterCtx = null;
+    if (watchLevel) {
+      try {
+        const AC = (typeof window !== 'undefined') && (window.AudioContext || window.webkitAudioContext);
+        if (AC) { meterCtx = new AC(); if (meterCtx.resume) meterCtx.resume().catch(() => {}); }
+      } catch (_) { meterCtx = null; }
+    }
     chunksRef.current = []; stepsRef.current = []; secondsRef.current = 0;
     try { if (urlRef.current) URL.revokeObjectURL(urlRef.current); } catch (_) {}
     urlRef.current = '';
@@ -291,16 +364,18 @@ export function useWorkflowScribe() {
         ? await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
         : await navigator.mediaDevices.getUserMedia({ audio: audio || { echoCancellation: true, noiseSuppression: true } });
       streamRef.current = stream;
-      if (watchLevel) {
+      if (meterCtx) {
         try {
-          const AC = window.AudioContext || window.webkitAudioContext;
-          if (AC) {
-            const ctx = new AC();
-            const analyser = ctx.createAnalyser();
-            analyser.fftSize = 2048;
-            ctx.createMediaStreamSource(stream).connect(analyser);
-            levelRef.current = { ctx, analyser, buf: new Float32Array(analyser.fftSize) };
-          }
+          const analyser = meterCtx.createAnalyser();
+          analyser.fftSize = 2048;
+          // The source node is HELD (source: below). Measured in Chromium: a
+          // MediaStreamAudioSourceNode that nothing references is collected,
+          // and the analyser behind it then reads true zeros for the whole take.
+          const source = meterCtx.createMediaStreamSource(stream);
+          source.connect(analyser);
+          levelRef.current = { ctx: meterCtx, analyser, source, buf: new Float32Array(analyser.fftSize) };
+          windowPeakRef.current = -1;
+          sampleTimerRef.current = setInterval(sampleLevel, 200);
         } catch (_) { levelRef.current = null; }
       }
       const mimeType = kind === 'workflow' ? '' : pickRecorderMime();
@@ -311,7 +386,13 @@ export function useWorkflowScribe() {
       mrRef.current = mr;
       const session = { id: newSessionId(), kind, consent, startedAtIso: new Date().toISOString(), mime: mr.mimeType || mimeType || '' };
       sessionRef.current = session;
-      mr.ondataavailable = (e) => { if (e.data && e.data.size) chunksRef.current.push(e.data); };
+      mr.ondataavailable = (e) => {
+        if (e.data && e.data.size) {
+          chunksRef.current.push(e.data);
+          bytesRef.current += e.data.size;
+          setBytes(bytesRef.current);
+        }
+      };
       mr.onstop = () => {
         const type = mr.mimeType || 'video/webm';
         const blob = new Blob(chunksRef.current, { type });
@@ -324,7 +405,7 @@ export function useWorkflowScribe() {
           seconds: secondsRef.current, chunkCount: chunksRef.current.length,
           steps: stepsRef.current, consent: session.consent,
         });
-        setResult({ blob, url, manifest, chunks: chunksRef.current.slice(), measured: !!levelRef.current, heardSound: heardRef.current });
+        setResult({ blob, url, manifest, chunks: chunksRef.current.slice(), measured: measuredRef.current > 0, heardSound: heardRef.current });
         cleanup();
         setRecording(false);
       };
@@ -332,7 +413,7 @@ export function useWorkflowScribe() {
       try { stream.getVideoTracks().forEach((t) => { t.onended = () => stop(); }); } catch (_) {}
       // Wake lock so a phone/tablet doesn't sleep a long recording (best-effort).
       try { wakeRef.current = navigator.wakeLock ? await navigator.wakeLock.request('screen') : null; } catch (_) { wakeRef.current = null; }
-      mr.start(SCRIBE_CHUNK_MS);
+      mr.start(timesliceMs);
       setRecording(true);
       timerRef.current = setInterval(() => {
         secondsRef.current += 1;
@@ -361,7 +442,7 @@ export function useWorkflowScribe() {
 
   useEffect(() => () => { cleanup(); try { if (urlRef.current) URL.revokeObjectURL(urlRef.current); } catch (_) {} }, []);
 
-  return { screenSupported, micSupported, recording, seconds, steps, result, error, errorMessage, silentSeconds, heardSound, start, stop, markStep };
+  return { screenSupported, micSupported, recording, seconds, steps, result, error, errorMessage, silentSeconds, heardSound, bytes, level, start, stop, markStep };
 }
 
 // ---------------------------------------------------------------------------

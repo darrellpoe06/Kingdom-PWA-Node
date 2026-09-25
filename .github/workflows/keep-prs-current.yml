@@ -1,0 +1,251 @@
+# Keep PRs current: main is merged into every live agent PR, and the two
+# ledger files resolve themselves (DR-0644).
+#
+# THE TREADMILL (measured 2026-09-24 23:15 UTC): every open agent PR (#1782,
+# #1793, #1795, #1796 ...) was green and could not merge. GitHub's
+# update-branch said "merge conflict between base and head" on all four, and
+# the conflict was only ever in docs/decisions/INDEX.md (every PR appends a row
+# and edits the one "**Next ID:**" line) and app/src/lib/legibility-health.json
+# (generated). Each merge to main knocked every other PR out of date; the same
+# two files were resolved BY HAND; CI re-ran (~20 min); another merge landed
+# meanwhile. Hand resolution once shipped conflict markers inside INDEX.md.
+#
+# What one run does, for each open, non-draft PR to main whose head branch is
+# `claude/*`, from this repository, NOT labeled `hold`, with a human commit in
+# the last IDLE_HOURS (the zombies pr-janitor documents are left alone):
+#   1. behind main? if not, skip (costs nothing, not counted against the budget)
+#   2. `git merge --no-commit origin/main` into the branch
+#   3. scripts/resolve-ledger-conflicts.mjs (the copy on MAIN, never the
+#      branch's): resolves ONLY INDEX.md + legibility-health.json, refuses if
+#      anything else conflicts, then business-systems-guard + a zero-marker
+#      check must pass
+#   4. resolved -> commit the merge and push it (never forced; if the owner
+#      pushed meanwhile, the push is refused and the next run retries)
+#      refused/failed -> comment ONCE per distinct file set naming the files,
+#      and leave the PR alone
+#
+# THE GITHUB_TOKEN PUSH GAP (auto-open-pr.yml / auto-merge.yml): a push made
+# with GITHUB_TOKEN fires NO push or pull_request workflow, so CI would never
+# run on the new head and the PR would sit with no required check. Two paths:
+#   · secret LANE_PUSH_TOKEN set (a token with contents + workflows +
+#     pull-requests write): the push is an ordinary push, ci.yml's `push`
+#     trigger runs CI on the new head by itself — no dispatch needed.
+#   · otherwise GITHUB_TOKEN pushes and this job DISPATCHES ci.yml on the
+#     branch (workflow_dispatch is the one event a GITHUB_TOKEN may fire —
+#     the same mechanism auto-merge uses for the deploy). The dispatched run's
+#     "app — lint + vitest" check lands on the new head SHA.
+#   A GITHUB_TOKEN push that changes .github/workflows/* is refused by GitHub
+#   unless the token has the `workflows` permission, which GITHUB_TOKEN cannot
+#   be granted (GitHub's documented rule — ~23% of main's commits since
+#   2026-09-10 touch a workflow). The job does not assume it: it tries the
+#   push, and when a refusal naming the workflow scope comes back on a merge
+#   that carries workflow files, the PR gets one comment saying so and is left
+#   for its owner — never a silent skip. LANE_PUSH_TOKEN closes that gap.
+#
+# After any update, auto-merge.yml is dispatched so its heal-deploy poll is
+# watching when the refreshed PR's CI goes green and it merges (the merge of a
+# GITHUB_TOKEN-driven run emits no event of its own).
+#
+# BRAKES (CLAUDE.md "three brakes", deterministic class per DR-0248: budget +
+# lock; stop-paths are the `hold` label per PR and disabling this workflow):
+#   Budget — at most MAX_PRS (default 6) merge attempts per run; a 15-minute
+#            in-script deadline checked before each PR; job timeout 20 minutes;
+#            every network git/gh call carries its own timeout.
+#   Lock   — concurrency group `keep-prs-current`, never cancelled in flight:
+#            a new fire while one runs waits; at most one waits (GitHub drops
+#            older pending runs), so fires never stack.
+#
+# Triggers: push to main (a human merge); workflow_run on the Cloudflare
+# deploy completing (auto-merges push with GITHUB_TOKEN and emit no push, but
+# every one is followed by a deploy run, and workflow_run on a workflow's
+# completion is NOT suppressed — measured in DR-0458); a 30-minute schedule as
+# the fallback (GitHub delivers busy-repo schedules late — measured in
+# deploy-freshness.yml — so it is the net, not the promptness); dispatch.
+
+name: Keep PRs current
+
+on:
+  push:
+    branches: [main]
+  workflow_run:
+    workflows: ["Deploy (Cloudflare Pages)"]
+    types: [completed]
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: 'Only this PR number (blank = sweep every eligible PR)'
+        required: false
+        default: ''
+      max_prs:
+        description: 'Budget: at most this many merge attempts in this run'
+        required: false
+        default: '6'
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write   # dispatch ci.yml on a refreshed branch, and auto-merge.yml
+
+concurrency:
+  group: keep-prs-current
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: merge main into live claude/* PRs; ledger conflicts resolve themselves
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          # The push credential. LANE_PUSH_TOKEN when the secret exists (its
+          # pushes fire CI and may carry workflow-file changes); else GITHUB_TOKEN.
+          token: ${{ secrets.LANE_PUSH_TOKEN || secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Sweep the live claude/* PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
+          HAS_PUSH_TOKEN: ${{ secrets.LANE_PUSH_TOKEN != '' }}
+          ONLY_PR: ${{ inputs.pr || '' }}
+          MAX_PRS: ${{ inputs.max_prs || '6' }}
+          IDLE_HOURS: '72'
+          DEADLINE_MIN: '15'
+        run: |
+          set -uo pipefail
+          # The resolver comes from MAIN: a branch may carry an older copy, or none.
+          cp scripts/resolve-ledger-conflicts.mjs "$RUNNER_TEMP/resolve-ledger-conflicts.mjs"
+          RESOLVER="$RUNNER_TEMP/resolve-ledger-conflicts.mjs"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # The .gitattributes merge driver for INDEX.md (DR-0644). Where the
+          # branch's own .gitattributes predates it, the post-merge resolver
+          # below does the same work from the conflict stages.
+          git config merge.dr-ledger.driver "node $RESOLVER --driver %O %A %B"
+          echo "Push credential: $([ "$HAS_PUSH_TOKEN" = "true" ] && echo 'LANE_PUSH_TOKEN (push fires CI)' || echo 'GITHUB_TOKEN (CI is dispatched)')"
+
+          deadline=$(( $(date +%s) + DEADLINE_MIN * 60 ))
+          now=$(date +%s)
+          attempts=0; updated=0
+          summary="$RUNNER_TEMP/summary.md"
+          echo "| PR | branch | outcome |" > "$summary"; echo "|---|---|---|" >> "$summary"
+          note() { echo "| #$1 | \`$2\` | $3 |" >> "$summary"; echo "#$1 $2: $3"; }
+
+          # Comment ONCE per PR per distinct reason (the marker carries a hash).
+          comment_once() {
+            local n="$1" key="$2" body="$3"
+            local marker="<!-- keep-prs-current:$(printf '%s' "$key" | sha1sum | cut -c1-12) -->"
+            if timeout 30 gh api "repos/$REPO/issues/$n/comments" --paginate --jq '.[].body' 2>/dev/null | grep -qF "$marker"; then
+              echo "  (already commented on #$n for this; not repeating)"
+              return 0
+            fi
+            timeout 30 gh pr comment "$n" --repo "$REPO" --body "$(printf '%s\n\n%s' "$body" "$marker")" \
+              || echo "::warning::could not comment on #$n"
+          }
+
+          timeout 60 git fetch -q origin main || { echo "::error::could not fetch main"; exit 1; }
+          if [ -n "$ONLY_PR" ]; then
+            filter="select(.number == $ONLY_PR)"
+          else
+            filter="select(.isDraft == false)"
+          fi
+          mapfile -t rows < <(
+            timeout 60 gh pr list --repo "$REPO" --state open --base main --limit 100 \
+              --json number,headRefName,isDraft,labels,headRepositoryOwner \
+              --jq ".[] | $filter
+                    | select(.headRefName | startswith(\"claude/\"))
+                    | select(.headRepositoryOwner.login == \"$OWNER\")
+                    | select(any(.labels[].name; . == \"hold\") | not)
+                    | \"\(.number) \(.headRefName)\""
+          )
+          echo "Candidates: ${#rows[@]}"
+
+          for row in "${rows[@]}"; do
+            n="${row%% *}"; b="${row#* }"
+            if [ "$attempts" -ge "$MAX_PRS" ]; then note "$n" "$b" "budget reached ($MAX_PRS attempts); next run"; continue; fi
+            if [ "$(date +%s)" -ge "$deadline" ]; then note "$n" "$b" "deadline reached; next run"; continue; fi
+            if ! timeout 60 git fetch -q origin "+refs/heads/$b:refs/remotes/origin/$b"; then note "$n" "$b" "fetch failed"; continue; fi
+            behind=$(git rev-list --count "origin/$b..origin/main")
+            if [ "$behind" = "0" ]; then note "$n" "$b" "current"; continue; fi
+            if [ -z "$ONLY_PR" ]; then
+              last_human=$(git log --format='%ct %an' "origin/$b" | grep -v -E '^[0-9]+ github-actions' | head -1 | cut -d' ' -f1)
+              if [ -n "$last_human" ] && [ $(( now - last_human )) -gt $(( IDLE_HOURS * 3600 )) ]; then
+                note "$n" "$b" "idle > ${IDLE_HOURS}h; left for its owner / pr-janitor"; continue
+              fi
+            fi
+            attempts=$((attempts + 1))
+            head_before=$(git rev-parse "origin/$b")  # for the log: what we merged onto
+            git checkout -q -B keep-current "origin/$b"
+            git merge --no-ff --no-commit origin/main > "$RUNNER_TEMP/merge.log" 2>&1
+            conflicted=$(git diff --name-only --diff-filter=U | tr '\n' ' ')
+            node "$RESOLVER" > "$RUNNER_TEMP/resolve.log" 2>&1; rc=$?
+            cat "$RUNNER_TEMP/resolve.log"
+            if [ "$rc" = "2" ]; then
+              others=$(sed -n 's/^  - //p' "$RUNNER_TEMP/resolve.log" | sort | tr '\n' ' ')
+              git merge --abort
+              note "$n" "$b" "left alone: other files conflict ($others)"
+              comment_once "$n" "conflict:$others" "**keep-prs-current** could not bring this branch up to date with \`main\`: files other than the two ledger files conflict, and those are the owner's call.
+
+          Conflicting: $(for f in $others; do printf '`%s` ' "$f"; done)
+
+          \`docs/decisions/INDEX.md\` and \`app/src/lib/legibility-health.json\` resolve themselves (DR-0644); once the files above are resolved by hand, the next run keeps this PR current."
+              continue
+            fi
+            if [ "$rc" != "0" ]; then
+              git merge --abort
+              note "$n" "$b" "resolver FAILED verification (exit $rc); left alone"
+              comment_once "$n" "verify:$(git rev-parse origin/main)" "**keep-prs-current** merged \`main\` into this branch and the ledger check did not pass afterwards, so nothing was pushed. Resolver output:
+
+          \`\`\`
+          $(tail -20 "$RUNNER_TEMP/resolve.log")
+          \`\`\`"
+              continue
+            fi
+            wf=$(git diff --cached --name-only HEAD -- .github/workflows | tr '\n' ' ')
+            git commit -q -m "Merge main into $b: the ledger files resolved themselves (keep-prs-current, DR-0644)" \
+              -m "Conflicted before resolution: ${conflicted:-none}. INDEX.md unioned by DR id with the Next ID pointer re-derived from disk; legibility-health.json regenerated; business-systems-guard green; zero conflict markers."
+            new_head=$(git rev-parse HEAD)
+            # A plain fast-forward push, never forced: if the owner pushed in
+            # between, the branch is no longer $head_before, GitHub refuses the
+            # non-fast-forward, and nothing of theirs is lost.
+            if ! timeout 60 git push -q origin "HEAD:refs/heads/$b" 2> "$RUNNER_TEMP/push.log"; then
+              cat "$RUNNER_TEMP/push.log"
+              git checkout -q --detach origin/main
+              if [ -n "$wf" ] && grep -qi 'workflow' "$RUNNER_TEMP/push.log"; then
+                # Measured, not assumed: the refusal names the workflow scope.
+                note "$n" "$b" "push refused: main's merge carries workflow changes ($wf) and this token may not push them"
+                comment_once "$n" "workflows:$wf" "**keep-prs-current** resolved this branch's merge with \`main\` but GitHub refused the push: the merge carries changes to \`.github/workflows/\` ($wf), which the workflow token may not push. Merge \`main\` in by hand once (for the ledger files: \`git merge --no-commit origin/main\` then \`node scripts/resolve-ledger-conflicts.mjs\`), or add the \`LANE_PUSH_TOKEN\` secret so this runs itself (DR-0644)."
+              else
+                note "$n" "$b" "push refused (the branch moved meanwhile?); next run retries"
+              fi
+              continue
+            fi
+            updated=$((updated + 1))
+            if [ "$HAS_PUSH_TOKEN" = "true" ]; then
+              note "$n" "$b" "updated to ${new_head:0:8} (behind by $behind; conflicts: ${conflicted:-none}); CI starts from the push"
+            else
+              if timeout 30 gh workflow run ci.yml --repo "$REPO" --ref "$b"; then
+                note "$n" "$b" "updated to ${new_head:0:8} (behind by $behind; conflicts: ${conflicted:-none}); CI dispatched"
+              else
+                note "$n" "$b" "updated to ${new_head:0:8} but the CI dispatch FAILED — push to the branch or dispatch ci.yml"
+                echo "::warning::could not dispatch CI for $b ($new_head)"
+              fi
+            fi
+            git checkout -q --detach origin/main
+          done
+
+          if [ "$updated" -gt 0 ]; then
+            # The refreshed PRs will merge when their CI goes green; make sure
+            # the deploy healer is watching when they do.
+            timeout 30 gh workflow run auto-merge.yml --repo "$REPO" --ref main \
+              || echo "::warning::could not dispatch auto-merge (deploy-freshness is the outer net)"
+          fi
+          { echo "### keep-prs-current: $updated updated, $attempts attempted (budget $MAX_PRS)"; cat "$summary"; } >> "$GITHUB_STEP_SUMMARY"

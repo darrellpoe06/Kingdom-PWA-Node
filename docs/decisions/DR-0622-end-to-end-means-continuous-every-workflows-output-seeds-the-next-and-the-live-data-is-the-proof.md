@@ -72,7 +72,8 @@ The BEFORE state, on the database the app reads: 77 resources measured — **38 
 | feedback: 60 notes, 0 answered | triage shipped today (DR-0616) | **carried** by the operations board: the escalation is on the steward's screen now |
 | empty: concerns, discussions, decision_readouts, video_harvests, saved_prompts, door_feedback, church_service_segments, push_outbox, agent_inbox lessons/transcripts | nothing yet written on the live database (several shipped this week) | **carried**: each reads "nothing written yet" and turns flowing on its first row; none is painted |
 | stale: ops_commands (80 days), projects (91), incidents (92), board_tasks (34), agent_tasks (33) | no one has used these doors since; the queue drains (ops-queue-health green) | **carried** as escalations on the operations board |
-| `mcp-health`, `nas-agent-arm`, `nas-storage-sync`, `source-transcript`, `transcript-backfill` last runs failed | dispatch-only tools whose last hand-run failed (Aug–Sep); `source-transcript` is superseded by `source-transcript-nas` (YouTube challenges runner IPs), `transcript-backfill` by the NAS trickle (874 transcripts live) | **named**: re-dispatch each when used; combining the superseded pairs is the next leanness step, `re-review: 2026-10-01` |
+| `mcp-health` red since 2026-08-04 | re-dispatched (run 36062034869): `HTTP 404 {"detail":"Not Found"}` — the Funnel's `--set-path /mcp` strips the mount, the call arrives as `POST /`, and the server routed only `/mcp`; its installer also never restarted a running server, so a code fix would not have been served | **fixed**: the server answers `/` and `/mcp`; the installer restarts on a code change (hash stamp), as the Scribe installer now does |
+| `nas-agent-arm`, `nas-storage-sync`, `source-transcript`, `transcript-backfill` last runs failed | dispatch-only tools whose last hand-run failed (Aug–Sep); `source-transcript` is superseded by `source-transcript-nas` (YouTube challenges runner IPs), `transcript-backfill` by the NAS trickle (874 transcripts live) | **named**: re-dispatch each when used; combining the superseded pairs is the next leanness step, `re-review: 2026-10-01` |
 | `nas-email-door` failed | needs the Google App Password only Darrell mints (DR-0111 §2) | **named**: his value, `re-review: 2026-10-01` |
 | `harvest-health` failed on schedule | the transcript stall incident it exists to raise; its live-read rewrite is DR-0618's (PR #1772) | **carried** by DR-0618 |
 | `ari-comprehensive-review` schedule stopped (59 days) | its weekly schedule has not fired since July | **named**, `re-review: 2026-10-01` |
@@ -83,3 +84,83 @@ The BEFORE state, on the database the app reads: 77 resources measured — **38 
 - `app/src/__tests__/system-flow-graph.test.jsx`: every gate caught its planted break; the verdict never reads unknown as flowing; the proof SQL writes only its own table; the surfaces render the live numbers and say plainly when there are none.
 - The 0234 smoke passed on a local Postgres 16 and raised `LEAK: a poe-family VIEWER read 1 proof rows` when an open policy was planted.
 - After merge: the first dispatched `system-flow-proof.yml` run records the before-state of every connection; the fixes that follow are measured against it.
+
+## The after-state, measured live (run 36072180867, 2026-09-24 23:21 UTC)
+
+| state | before (run 36059041587, 21:04) | after (run 36072180867, 23:21) |
+| --- | --- | --- |
+| flowing | 38 | 48 |
+| empty | 18 | 16 |
+| stale | 9 | 9 |
+| broken | 10 | 7 |
+| unconsumed | 1 | 1 |
+| off | 0 | 1 |
+| unknown | 1 | 0 |
+
+**Now flowing** (on the live database, not a claim):
+- `sermon_video_stats`: 14 rows.
+- `_sovereign_replay`: 242 rows, newest 22:32 UTC.
+- `agent_inbox#voice-transcript`.
+- `ci`, `native-shell`, `harvest-health` and `deploy-cloudflare-pages`. The two deploys went out at bb093bc0 and da2d4c6e.
+
+The seven still broken, and what holds each:
+
+| connection | measured | state |
+| --- | --- | --- |
+| `auto-merge.yml` | 20 of its 20 latest completed runs ended `cancelled` or `action_required`, while #1788 and #1790 merged and their deploys ran (36070357006, 36071748931). A waiting run is cancelled when a newer event supersedes it, so its own run conclusion cannot prove it. | **fixed** in this push. Auto-merge is now judged by what it produced: the latest deploy that the lane's bot dispatched (`product:deploy-cloudflare-pages.yml`). The test proves the gate still catches a failed bot deploy, and that a hand dispatch never stands in for the lane. |
+| `mcp-health.yml` | `HTTP 404 {"detail":"Not Found"}` at 23:17 UTC (run 36071934551). The fix (#1788, which adds the `/` route and restarts on a code-hash change) is on main. The NAS copy of the repo has not pulled it: services-sync reached its 96-calls-a-day budget today (nas-bootstrap run 36065727995, `calls_today=96`), and the cap resets at 00:00 UTC. | **waiting on the budget, not bypassed.** Re-probe after the 00:00 and 00:15 UTC cycles. If it still returns 404 on current code, it is fixed then. |
+| `nas-email-door.yml` | needs the Google App Password, which only Darrell can create | **named**: a value only he holds. `re-review: 2026-10-01` |
+| `nas-agent-arm.yml`, `nas-storage-sync.yml`, `source-transcript.yml`, `transcript-backfill.yml` | dispatch-only tools whose last hand-run failed. `source-transcript` is replaced by `source-transcript-nas` (flowing). `transcript-backfill` is replaced by the NAS trickle (874 transcripts live). | **named**: combine each replaced pair once the combined path is proven, never retire it outright (DR-0621). `re-review: 2026-10-01` |
+
+The stale and empty rows are unchanged, and each one is carried as an escalation on the operations board. Nothing is painted green.
+
+## The four red lanes, carried to the route that works (2026-09-24, same push)
+
+The "combine later, re-review 2026-10-01" line above is replaced: each lane was worked now (DR-0621, DR-0236). The root cause below was read from each lane's own failing run.
+
+| lane | failing run and its root cause | fix |
+| --- | --- | --- |
+| `source-transcript.yml` | 35673574195: `Sign in to confirm you're not a bot`. YouTube challenges the runner's datacenter address. | **combined**: a challenge no longer ends the run. The same dispatch reads the video id from the link and calls `source-transcript-nas.yml`, which now also accepts `workflow_call`, from the NAS's residential address. A transcript already on main word for word is a success, not an empty failed commit. |
+| `transcript-backfill.yml` | 29162978378: 50 of 50 attempts blocked from the runner address. | **combined**: without proxy secrets, a dispatch runs the NAS trickle rider (`transcript_trickle_install.sh`) with its own stamp and budget, capped at 8 per dispatch (the runner lane asked 50). The runner lane stays as the proxy-only second lane. |
+| `nas-agent-arm.yml` | 31860587442: `install.sh: No such file`, because the NAS copy of the repo had not pulled the installer yet. The deeper fault: it placed `SUPABASE_DB_URL`, the retired hosted database, so every chat row sent after the 2026-08-19 repoint went unanswered (the live `agent_tasks` newest row is 2026-08-22). | **fixed at the root**: `agent_consumer.resolve_db` follows `REPOINT-ARMED` to the NAS's own Postgres (127.0.0.1:5433, password read on the box itself), so no credential moves through CI. The lane runs the consumer once from its own checkout and is red unless the consumer says it serves the sovereign database. It no longer overwrites `agent.env`. Selftest 26/26, including the new check that catches the retired database. |
+| `nas-storage-sync.yml` | 35906520553: dispatched from a feature branch for a private bucket. `HOSTED_SERVICE_ROLE_KEY` in `agent.env` is not a Supabase key (57 bytes, starts `cdn`). | **public route re-run on main** (moore-showcase). The six private buckets wait on the hosted service key. Moving the project's most privileged credential through CI is a decision only Darrell makes (the lane's own header), and the key is a value only he can mint. `re-review: 2026-10-01`, beside `nas-email-door`. |
+
+Proofs: `broken-lanes-combined-with-their-working-twins.test.js`, 10 tests, each pinning one combination against being quietly reverted. The flow graph's `unseeded` gate caught the new source-transcript to NAS seed until the NAS route declared what it reads from the call.
+
+**Proven on live runs, dispatched from this branch before merge:**
+
+- `nas-agent-arm` run 36073835760, green:
+  - it printed `agent-consumer: serving the sovereign database (127.0.0.1:5433)`, then `{"done": 1, "failed": 0}`;
+  - the chat request waiting since the repoint (sent 2026-08-22) is answered;
+  - the first try (run 36073583089) was refused as `postgres` (42501 on `agent_tasks`), so the consumer now connects as `supabase_admin`, the role `live-sql.sh` uses.
+- `source-transcript` run 36073587348, green:
+  - the runner was challenged, and the same run handed the link to `source-transcript-nas`;
+  - the NAS fetched the captions from its residential address;
+  - the transcript matched main word for word, so nothing needed pushing.
+- `transcript-backfill` run 36073585409, green:
+  - the runner lane was skipped because no proxy secrets are set, and the NAS trickle ran;
+  - it answered `fired 9556s ago (< 10800s gap) - no-op this cycle`, so the shared budget held;
+  - whether new transcripts are arriving is shown by `db:video_transcripts` and `harvest-health`, not by this lane.
+- `nas-storage-sync` run 36072894624 (main, public gallery): green.
+
+## The closing measurement (run 36077477281, 2026-09-25 00:26 UTC)
+
+| state | first (21:04) | after the first push (23:21) | now (00:26) |
+| --- | --- | --- | --- |
+| flowing | 38 | 48 | 54 |
+| empty | 18 | 16 | 16 |
+| stale | 9 | 9 | 8 |
+| broken | 10 | 7 | 2 |
+| unconsumed | 1 | 1 | 1 |
+| off | 0 | 1 | 1 |
+| unknown | 1 | 0 | 0 |
+
+Newly flowing since the 23:21 measurement:
+- `mcp-health`: HTTP 401 at 00:22 UTC. The server is up and refuses unauthenticated calls. It picked up the #1788 fix on the sync cycles after the daily budget reset at 00:00 UTC; the budget was not bypassed.
+- `auto-merge`: now judged by the deploy it dispatched.
+- `nas-agent-arm`, `source-transcript` and `nas-storage-sync`.
+- `agent_tasks#answered`: newest 2026-09-24 23:41, the chat row that had waited since the repoint.
+
+The two still broken:
+- `nas-email-door`: waits on a value only Darrell holds. `re-review: 2026-10-01`.
+- `transcript-backfill`: a measurement fault, fixed in this push. Its schedule is commented out (`#   - cron:`), yet the proof read it as a scheduled witness and judged it only by a July failure on main. Its combined route had just run green (36073585409). `ari-comprehensive-review`, "schedule stopped 59 days", was the same fault: its schedule is also commented out. Both `runRuleFor` and `cronFreshDays` now ignore commented lines. Proven to catch: the test now fails if a commented cron is read as a schedule.
