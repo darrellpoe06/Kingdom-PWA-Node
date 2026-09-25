@@ -199,7 +199,10 @@ export function resolveDmInstance(contactInstanceId, fallbackInstanceId) {
   return contactInstanceId || fallbackInstanceId || null;
 }
 
-export async function sendDirectMessage(recipientUserId, body, displayName, contactInstanceId) {
+// `opts.requireEncryption` (DR-0639): a sender that must never ship plaintext
+// — the lesson-review Messages, which carry a member's own situation — gets
+// { skipped: 'no-key' } instead of the plaintext fallback, and nothing is sent.
+export async function sendDirectMessage(recipientUserId, body, displayName, contactInstanceId, opts = {}) {
   const text = (body || '').trim();
   if (!text) return { skipped: 'empty' };
   if (!recipientUserId) return { skipped: 'no-recipient' };
@@ -220,6 +223,7 @@ export async function sendDirectMessage(recipientUserId, body, displayName, cont
       if (sealed) { wire = sealed; encrypted = true; }
     }
   } catch { /* plaintext fallback */ }
+  if (opts && opts.requireEncryption && !encrypted) return { skipped: 'no-key' };
   const senderName = resolveName(session, displayName);
   // `select('id')` so the new row's id is available as the push dedupe key —
   // a message is a unique row, so its id IS the natural key and a retried

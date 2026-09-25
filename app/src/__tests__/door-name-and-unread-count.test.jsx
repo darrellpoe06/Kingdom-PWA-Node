@@ -84,6 +84,28 @@ describe('the collapsed header row names the door', () => {
   });
 });
 
+describe('the collapsed row keeps the brand when it rides inside the one-tab row (DR-0640)', () => {
+  // Darrell 2026-09-24, asked whether the brand should move off this row once
+  // the one-tab door's top row carries it: "Both places are good... why not".
+  it('inline, it still carries the name, the tagline, the way back and the sizes, and drops its own top border', async () => {
+    const el = await mount(TextSizeEscapeHatch, { collapsed: true, inline: true, onShowHeader: () => {}, siteName: 'The Love Corner', siteTagline: 'The Church of the Living God' });
+    expect(el.querySelector('[data-testid="collapsed-site-name"]').textContent).toBe('The Love Corner');
+    expect(el.querySelector('[data-testid="collapsed-site-tagline"]').textContent).toBe('The Church of the Living God');
+    expect(el.querySelector('[data-testid="show-full-header"]')).toBeTruthy();
+    expect(el.querySelector('[data-testid="text-size-compact"]')).toBeTruthy();
+    const rowEl = el.querySelector('[data-testid="collapsed-row"]');
+    expect(rowEl.className).toMatch(/\bts-hatch-inline\b/);
+    expect(rowEl.className).not.toMatch(/border-t/);
+  });
+
+  it('standalone (every other door), it reads exactly as before', async () => {
+    const el = await mount(TextSizeEscapeHatch, { collapsed: true, onShowHeader: () => {}, siteName: 'Family Operating Systems' });
+    const rowEl = el.querySelector('[data-testid="collapsed-row"]');
+    expect(rowEl.className).toMatch(/border-t border-\[#E8E4DC\]/);
+    expect(rowEl.className).not.toMatch(/ts-hatch-inline/);
+  });
+});
+
 describe('on a phone the text sizes are one dropdown in the corner', () => {
   // Darrell 2026-09-24: "can the text sizes fit in the top right corner of
   // smaller screen or a drop down with all options?" / "Keeping the screen
