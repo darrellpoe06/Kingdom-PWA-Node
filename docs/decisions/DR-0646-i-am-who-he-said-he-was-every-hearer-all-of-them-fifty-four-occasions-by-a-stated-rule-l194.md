@@ -10,6 +10,8 @@
   - `app/src/__tests__/living-lessons-l194-verses.test.js`: new, 24 checks, including three proven-to-catch.
   - `app/src/__tests__/learn-crosslist.test.js`: the school total goes 720 → 721.
   - The six series baselines each count one more lesson.
+  - `app/src/__tests__/living-lessons-order.test.jsx`: the newest lesson is now L194.
+  - `app/src/__tests__/living-lessons-id-collision.test.js`: 193 is recorded as held for L193, which is in flight on PR #1803. That PR deletes the entry when it lands.
 - **Principles:**
   - SOURCE-OF-ANSWERS: the answer comes from the Word only.
   - DR-0098: teach the Word, don't debate it.

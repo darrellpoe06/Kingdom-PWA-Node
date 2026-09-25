@@ -87,7 +87,7 @@ describe('L194 is really in the series, and L191 is kept', () => {
   });
 
   it('carries no color field: nothing here can put red on anything but the Blood (DR-0099)', () => {
-    for (const k of Object.keys(L())) expect(/color|colour|highlight/i.test(k), `field ${k}`).toBe(false);
+    for (const k of Object.keys(L())) expect(/colou?r|highlight/i.test(k), `field ${k}`).toBe(false);
   });
 });
 

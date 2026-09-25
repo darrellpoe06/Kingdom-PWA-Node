@@ -50,7 +50,11 @@ const numbered = (mods) => mods.map((m) => {
 // The one historical gap, measured 2026-09-02. THIS LIST MAY ONLY SHRINK: fill
 // the gap and delete the entry. A gap that is NOT in this list is a session that
 // skipped a number, which is the same race that produced the duplicate above.
-const KNOWN_MISSING = [79];
+// 193 (2026-09-24, DR-0646): NOT skipped — held for L193 (What It Costs to Keep
+// Your Soul, DR-0642), in flight on PR #1803 when L194 took the next free number.
+// When L193 lands on main, "no number in the record has quietly been filled"
+// below names 193, and the merge deletes it here.
+const KNOWN_MISSING = [79, 193];
 
 describe('every lesson id is shaped ll<number>-<slug>', () => {
   it('no lesson carries an unparseable id', () => {
