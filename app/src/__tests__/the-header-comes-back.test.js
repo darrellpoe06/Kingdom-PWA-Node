@@ -49,7 +49,8 @@ describe('the tab-row wrapper is allowed to shrink', () => {
 
 describe('the way back from the hideaway is in words, on the left', () => {
   it('the tucked-away row renders a Show header button when given the toggle', () => {
-    expect(HATCH).toMatch(/export function TextSizeEscapeHatch\(\{ collapsed, onShowHeader = null, siteName = '', siteTagline = '' \}\)/);
+    // `inline` (DR-0640): on the one-tab door this row rides inside the top row.
+    expect(HATCH).toMatch(/export function TextSizeEscapeHatch\(\{ collapsed, onShowHeader = null, siteName = '', siteTagline = '', inline = false \}\)/);
     expect(HATCH).toMatch(/data-testid="show-full-header"/);
     expect(HATCH).toMatch(/onClick=\{onShowHeader\}/);
     expect(HATCH).toMatch(/aria-label="Show the full header \(name, account, voice, font, theme controls\)"/);
@@ -93,5 +94,29 @@ describe('the browser proves it, at every width, and can fail', () => {
   it('the self-test breaks the WRAPPER, which is the pre-fix shape, and demands two trips', () => {
     expect(PROBE).toMatch(/header nav div:has\(> \.tab-scroll\) \{ min-width: 2600px !important \}/);
     expect(PROBE).toMatch(/hideawayTripped < 2/);
+  });
+});
+
+describe('the one-tab door spends no row on a lone tab (DR-0640)', () => {
+  // Darrell 2026-09-24: "Why does the Church tab space need that? Can we save
+  // even more space if not... can we add another Love Corner etc tag in the
+  // space?" and "Both places are good... why not".
+  it('the probe has a one-tab pass with its invariants, quoting him', () => {
+    expect(PROBE).toMatch(/THE ONE-TAB ROW CARRIES THE BRAND pass \(DR-0640\)/);
+    expect(PROBE).toMatch(/Both places are\s*\/\/\s*good\.\.\. why not/);
+    expect(PROBE).toMatch(/the top nav draws a lone tab row/);
+    expect(PROBE).toMatch(/the brand is not in the top row, on screen/);
+    expect(PROBE).toMatch(/two rows where one fits/);
+    expect(PROBE).toMatch(/the bottom bar lost the brand/);
+  });
+
+  it('measures the door at 320, 390 and the Fold, and at the bottom-bar sizes', () => {
+    expect(PROBE).toMatch(/\{ width: 320, size: 'normal' \}, \{ width: 390, size: 'normal' \}, \{ width: 1812, size: 'normal' \}, \{ width: 390, size: 'largest' \}, \{ width: 1812, size: 'bigprint' \}/);
+    expect(PROBE).toMatch(/\/\?lovecorner=1&view=church/);
+  });
+
+  it('the self-test puts a lone tab strip back and hides the brand, and demands two trips', () => {
+    expect(PROBE).toMatch(/strip\.innerHTML = '<button type="button">Church<\/button>'/);
+    expect(PROBE).toMatch(/oneTabTripped < 2/);
   });
 });
