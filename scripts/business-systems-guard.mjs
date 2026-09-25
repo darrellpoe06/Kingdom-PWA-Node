@@ -60,6 +60,27 @@ export function drLedgerFindings({ indexText, diskIds }) {
       findings.push(`INDEX.md has no row for ${tag} — a decision file exists on disk that the ledger does not know.`);
     }
   }
+  // THE MERGE-SHAPED BREAKS (DR-0644, 2026-09-24). Every PR edits INDEX.md,
+  // so every merge of main into a PR touched it — and hand resolution shipped
+  // conflict markers inside it once, and a union can leave a row twice or two
+  // "**Next ID:**" lines (the regex below reads only the FIRST, so a wrong
+  // second pointer was invisible). Each is now a finding.
+  const lines = indexText.split('\n');
+  const markers = lines.filter((l) => /^(<{7}|>{7}|\|{7})(?: |$)/.test(l));
+  if (markers.length) {
+    findings.push(`INDEX.md carries ${markers.length} conflict-marker line(s) — a merge was committed unresolved (scripts/resolve-ledger-conflicts.mjs resolves it).`);
+  }
+  const seenRows = new Set();
+  for (const l of lines) {
+    const r = /^\| \[DR-(\d{4})\]/.exec(l);
+    if (!r) continue;
+    if (seenRows.has(r[1])) findings.push(`INDEX.md has DR-${r[1]} as a row twice — a merge kept both sides' copy.`);
+    seenRows.add(r[1]);
+  }
+  const nextLines = lines.filter((l) => /^\*\*Next ID:\*\*/.test(l)).length;
+  if (nextLines > 1) {
+    findings.push(`INDEX.md has ${nextLines} "**Next ID:**" lines — there must be exactly one pointer.`);
+  }
   const max = diskIds.length ? diskIds[diskIds.length - 1] : 0;
   const m = /\*\*Next ID:\*\*\s*DR-(\d{4})/.exec(indexText);
   if (!m) {
