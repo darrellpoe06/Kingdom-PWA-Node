@@ -230,6 +230,13 @@ jobs:
             if [ -z "$conflicted" ]; then
               git merge --abort
               note "$n" "$b" "behind by $behind but merges cleanly (main does not require up-to-date); left alone"
+              # A clean trial merge is cheap and changes nothing, so it gives
+              # its attempt back. Otherwise the most recently updated clean
+              # PRs (sorted first) spend the whole budget every run, and a
+              # conflicted PR further down is never reached. Measured on run
+              # 36087218396: five clean PRs, then #1817, then "budget reached"
+              # for #1802. The deadline still bounds the run.
+              attempts=$((attempts - 1))
               continue
             fi
             node "$RESOLVER" > "$RUNNER_TEMP/resolve.log" 2>&1; rc=$?
