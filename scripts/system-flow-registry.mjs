@@ -72,7 +72,8 @@ const NODES = [
   app('app/src/lib/feedback-receipt.js', {
     id: 'feedback-receipt', name: "Sender's receipt",
     purpose: 'The sender reads where their note stands — received, being worked on, fixed, or declined with the reason.',
-    reads: [{ res: 'db:feedback#triaged', file: 'app/src/components/FeedbackCenter.jsx', token: 'receiptStatus(f, myFeedback)' }],
+    // DR-0625: the sender's own notes, each with its outcome, read by IntakeOutcomeList.
+    reads: [{ res: 'db:feedback#triaged', file: 'app/src/components/IntakeOutcomeList.jsx', token: 'receiptStatus(n, board)' }],
     seeds: [],
   }),
   app('app/src/components/ConcernsBoard.jsx', {
@@ -182,6 +183,19 @@ const NODES = [
       { res: 'db:video_transcripts', token: 'load-transcripts.py' },
     ],
     seeds: ['ops-queue', 'sermon-reader'],
+  }),
+  wf('intake-autofix.yml', {
+    id: 'intake-autofix', name: 'Intake autofix (sort, queue, hand out one fix)',
+    purpose: 'Sorts every live note into its category, queues the low-hanging ones, matches each fix to its pull request and hands out one at a time (DR-0625).',
+    reads: [
+      { res: 'db:feedback', file: 'scripts/intake-autofix-over-tailnet.sh', token: 'FROM public.feedback' },
+      { res: 'db:intake_fix_queue', file: 'scripts/intake-autofix-over-tailnet.sh', token: 'FROM public.intake_fix_queue' },
+    ],
+    writes: [
+      { res: 'db:feedback#triaged', file: 'scripts/intake-autofix.mjs', token: 'UPDATE public.feedback' },
+      { res: 'db:intake_fix_queue', file: 'scripts/intake-autofix.mjs', token: 'INSERT INTO public.intake_fix_queue' },
+    ],
+    seeds: ['feedback-receipt'],
   }),
   wf('ops-queue-health.yml', {
     id: 'ops-queue-health', name: 'Ops-queue health witness',
