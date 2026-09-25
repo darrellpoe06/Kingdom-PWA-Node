@@ -306,7 +306,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // segment char lengths — cloud fraction mapping), follow + base (word-level
   // mapping where the mode supports it), wordable }.
   const followRef = useRef(null);
-  // Focus is never dropped to the page when the reader folds or unfolds (DR-0655).
+  // Focus is never dropped to the page when the reader folds or unfolds (DR-0657).
   const readerRootRef = useRef(null);
   useKeepFocusIn(readerRootRef, pickReaderFocus, !!supported);
   const lastCloudIdxRef = useRef(-1);

@@ -42,7 +42,7 @@ window.storage = storage;
 // focus spatially. Bubbling listener: any surface that owns its own arrows
 // keeps them (remote-navigation.js).
 // A Fire TV is 960 CSS pixels wide, so width cannot tell a TV; its user agent
-// can (DR-0655). Marked before the listener so the remote's rules and the TV
+// can (DR-0657). Marked before the listener so the remote's rules and the TV
 // focus ring both know from the first key.
 markTvDevice();
 wireRemoteNavigation();

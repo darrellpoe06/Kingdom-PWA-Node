@@ -2,7 +2,7 @@
 // tv-device — is this page on a television?
 // =============================================================================
 // Darrell 2026-09-25: "Will this work with the Firestick still?" and "All new
-// features too?" (DR-0655). The app already had a TV ring in index.css, keyed
+// features too?" (DR-0657). The app already had a TV ring in index.css, keyed
 // to `(min-width: 1600px)`: "any viewport this wide is a television". A Fire
 // TV is not that wide. Amazon's Fire TV web-app FAQ gives its app display as
 // 960x540, scaled up to the set. So the TV ring never switched on for the one

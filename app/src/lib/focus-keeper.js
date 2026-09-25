@@ -1,7 +1,7 @@
 // =============================================================================
 // focus-keeper — focus is never dropped to the page when a control changes shape
 // =============================================================================
-// Darrell reads on a Fire TV with a D-pad (DR-0655). Measured on a
+// Darrell reads on a Fire TV with a D-pad (DR-0657). Measured on a
 // Fire-TV-shaped Chromium: pressing "Read this lesson" folds the reader's
 // panel into its small bar, the button that held focus is unmounted, and focus
 // falls to <body>. The next D-pad press then adopts the FIRST control on the

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // =============================================================================
-// Every new feature works on the Firestick (DR-0655)
+// Every new feature works on the Firestick (DR-0657)
 // =============================================================================
 // Darrell 2026-09-25: "Will this work with the Firestick still?" and "All new
 // features too?" He reads on an Amazon Fire TV Stick, in Silk, with a D-pad

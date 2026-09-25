@@ -20,7 +20,7 @@ import { createPortal } from 'react-dom';
 import { clampRect } from '../lib/float-geometry.js';
 
 const TAP_MS = 320;
-// One press of a D-pad arrow in Move mode moves the window this far (DR-0655).
+// One press of a D-pad arrow in Move mode moves the window this far (DR-0657).
 export const MOVE_STEP_PX = 32;
 
 /** The rect after one Move-mode arrow press, kept on screen. Pure. */
@@ -79,7 +79,7 @@ export default function FloatingReader({
 }) {
   const drag = useRef(null);
   const lastTap = useRef(0);
-  // MOVE WITHOUT A DRAG (DR-0655). A Fire TV remote has no pointer to drag
+  // MOVE WITHOUT A DRAG (DR-0657). A Fire TV remote has no pointer to drag
   // with; measured on a Fire-TV-shaped Chromium, the title bar could not take
   // focus and nothing moved the window. Move is now a button: OK starts it,
   // the arrows move the window, OK or Back ends it. Reset is a button too

@@ -2,7 +2,7 @@
 // mic-presence — does this device have a microphone at all?
 // =============================================================================
 // Darrell 2026-09-25, asking whether every new feature works on the Firestick
-// (DR-0655). A television usually has no microphone the browser can reach.
+// (DR-0657). A television usually has no microphone the browser can reach.
 // Silk still has getUserMedia and MediaRecorder, so "can this browser record"
 // answered yes, and the app offered "Record a conversation" and "Record the
 // lesson". Measured on a Fire-TV-shaped Chromium (getUserMedia refused with

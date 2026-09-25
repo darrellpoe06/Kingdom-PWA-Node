@@ -205,7 +205,7 @@ export function focusAndReveal(el) {
   }
 }
 
-// ON A TELEVISION, A FIELD IS NOT A DEAD END (DR-0655). Measured in Chromium
+// ON A TELEVISION, A FIELD IS NOT A DEAD END (DR-0657). Measured in Chromium
 // on a Fire-TV-shaped page (Silk user agent, 960x540): on the Notes tab the
 // D-pad walked down into the one-voice text box and every later press stayed
 // there, 25 of 25, while "Record a conversation" sat 200px below. A keyboard
@@ -239,7 +239,7 @@ function onTv(doc) {
  * Handle one keydown. Returns the element focused, or null when the event was
  * left alone — which is the common case and must stay cheap and predictable.
  */
-// THE PAGE BEFORE THE FLOATERS (DR-0655). Feedback, Give, the reader's
+// THE PAGE BEFORE THE FLOATERS (DR-0657). Feedback, Give, the reader's
 // speaker, a connection badge and a sticky tab row sit over the page at fixed
 // places. Measured on a Fire-TV-shaped Chromium (960x540), every Down on a
 // long page went content -> "Church" (sticky) -> "4G" (fixed) -> "Open
@@ -274,7 +274,7 @@ export function handleRemoteKey(event, root, { rectOf, isVisible, tv, pinned } =
   const isTv = tv != null ? !!tv : onTv(doc);
   const isSelect = !!active && String(active.tagName || '').toUpperCase() === 'SELECT';
 
-  // OK on a list, on a TV, opens the list (DR-0655). With the arrows no longer
+  // OK on a list, on a TV, opens the list (DR-0657). With the arrows no longer
   // changing it, the picker is how a remote chooses.
   if (isTv && isSelect && event.key === 'Enter' && typeof active.showPicker === 'function') {
     try { active.showPicker(); if (typeof event.preventDefault === 'function') event.preventDefault(); return active; } catch (_) { return null; }
@@ -283,7 +283,7 @@ export function handleRemoteKey(event, root, { rectOf, isVisible, tv, pinned } =
   const dir = DIRECTIONS[event.key];
   if (!dir) return null;
 
-  // A LIST DOES NOT CHANGE ITSELF UNDER A PASSING D-PAD, ON A TV (DR-0655).
+  // A LIST DOES NOT CHANGE ITSELF UNDER A PASSING D-PAD, ON A TV (DR-0657).
   // Measured: one Down on the reader's "Start at" list chose paragraph 1 and
   // started reading, and the arrows could never leave the list. On a TV the
   // arrows move on past it and OK opens it.

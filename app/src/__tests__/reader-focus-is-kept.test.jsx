@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // =============================================================================
-// The reader keeps the remote's place when it folds (DR-0655)
+// The reader keeps the remote's place when it folds (DR-0657)
 // =============================================================================
 // Measured on a Fire-TV-shaped Chromium: "Read this lesson" folds the panel
 // into its small bar, the button holding focus is unmounted, focus falls to

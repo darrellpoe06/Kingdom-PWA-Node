@@ -69,7 +69,7 @@ export default function SectionTabs({
   // Left / Right / Home / End move focus AND selection along the strip
   // (roving tabindex).
   //
-  // UP AND DOWN ARE NOT THE STRIP'S (DR-0655). They used to step the strip
+  // UP AND DOWN ARE NOT THE STRIP'S (DR-0657). They used to step the strip
   // too, wrapping at the ends, and on a TV that was a cage: measured on a
   // Fire-TV-shaped Chromium, 30 presses of Down on Learn cycled the department
   // row (Courses, Living Lessons, ... Development, Courses...) and never

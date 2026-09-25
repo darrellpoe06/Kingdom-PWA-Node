@@ -80,7 +80,7 @@ const MIME = {
   '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.png': 'image/png',
 };
 
-// THE NAS VOICE, STUBBED FOR THE TV PASS (DR-0655): a bearer-locked
+// THE NAS VOICE, STUBBED FOR THE TV PASS (DR-0657): a bearer-locked
 // /voice-lite/speak that answers a short WAV, the shape of the real door
 // (infra/nas-voice-lite: 401 without the family key).
 const TV_KEY = 'probe-family-key';
@@ -683,7 +683,7 @@ try {
     if (failures === before) console.log(`textscale ok  ${where} — Big Print holds, escape hatch on screen (${m.hatchCount} controls)`);
   }
   // ---------------------------------------------------------------------------
-  // THE FIRESTICK pass (DR-0655). Darrell 2026-09-25: "Will this work with the
+  // THE FIRESTICK pass (DR-0657). Darrell 2026-09-25: "Will this work with the
   // Firestick still?" and "All new features too?", then "We want the voice on
   // too... can it read?!" He reads on a Fire TV Stick in Silk with a D-pad.
   // The page is loaded the way that stick meets it: a Silk user agent, a

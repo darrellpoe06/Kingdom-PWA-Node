@@ -118,7 +118,7 @@ export function OneVoiceInput({
   // recording that is saved on Stop and written out afterwards. It takes the
   // place of "Listen to the whole thing" here; surfaces that keep no notes
   // keep that option.
-  // NO MICROPHONE, NO RECORD BUTTON (DR-0655). A TV has the recording API
+  // NO MICROPHONE, NO RECORD BUTTON (DR-0657). A TV has the recording API
   // and no microphone; Record was offered and failed on the first press.
   const micPresent = useMicPresent();
   const noMic = micPresent === false;

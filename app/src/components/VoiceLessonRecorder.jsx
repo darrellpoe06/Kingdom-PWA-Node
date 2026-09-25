@@ -75,7 +75,7 @@ export default function VoiceLessonRecorder({
   }, [rec.result]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A device with no microphone (a TV) is offered no Record that cannot work
-  // (DR-0655). The Speak box above already says why, in NO_MICROPHONE_LINE,
+  // (DR-0657). The Speak box above already says why, in NO_MICROPHONE_LINE,
   // so this says nothing more. A take already made still shows as before.
   if (micPresent === false && !take && !rec.recording) return null;
   if (!rec.micSupported) {
