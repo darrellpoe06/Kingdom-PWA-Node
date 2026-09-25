@@ -50,6 +50,14 @@
 #   delete this file in a PR. There is no schedule — it fires only when a link
 #   is actually sent, which is the only time it has anything to do.
 
+# COMBINED 2026-09-24 (DR-0621 / DR-0622, measured). Its only run (35673574195)
+# was red: "Sign in to confirm you're not a bot". The working twin is
+# source-transcript-nas.yml (flowing, run of 2026-09-22). So a bot challenge no
+# longer ends the run: the same dispatch hands the link to the NAS route (the
+# residential IP), and the run is green when that route writes the transcript.
+# The runner stays the first, cheap probe: if YouTube stops challenging runner
+# IPs, its own success says so and the NAS is not asked.
+
 name: source-transcript
 
 on:
@@ -72,6 +80,9 @@ jobs:
     timeout-minutes: 12
     permissions:
       contents: write
+    outputs:
+      refused: ${{ steps.fetch.outputs.refused }}
+      video_id: ${{ steps.fetch.outputs.video_id }}
     steps:
       - uses: actions/checkout@v4
 
@@ -111,6 +122,9 @@ jobs:
           set -o pipefail
           OUT="docs/99-session-notes/sources/$SLUG"
           mkdir -p "$OUT"
+          # The video id, for the NAS route if the runner is challenged.
+          VID=$(printf '%s' "$URL" | sed -nE 's#.*(youtu\.be/|[?&]v=|/shorts/|/live/|/embed/)([A-Za-z0-9_-]{11}).*#\2#p' | head -1)
+          echo "video_id=$VID" >> "$GITHUB_OUTPUT"
 
           # A cookie jar, IF one is configured. Measured 2026-09-22: without it a
           # GitHub runner IP gets "Sign in to confirm you're not a bot." from
@@ -137,10 +151,13 @@ jobs:
             echo 'METADATA FETCH REFUSED — the runner could not read this video.'
             if grep -qi "confirm you.re not a bot\|Sign in to confirm" "$OUT/meta.txt"; then
               echo 'CAUSE: YouTube challenged this runner IP as a bot. This is NOT a caption problem and NOT a code defect.'
-              echo 'The two real routes, neither of which is guesswork:'
-              echo '  1. Run the same fetch from the NAS, which has a residential IP that is not challenged this way.'
-              echo '  2. Configure the optional YTDLP_COOKIES secret (a Netscape cookie jar for youtube.com).'
-              echo 'Route 1 needs no credential and is preferred; route 2 puts an account session into CI.'
+              rm -f "$OUT/meta.txt"
+              if [ -n "$VID" ]; then
+                echo 'Handing this link to the NAS route (source-transcript-nas, the residential IP) in the same run.'
+                echo "refused=true" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+              echo "No video id could be read from '$URL', so the NAS route cannot be asked. Send the youtu.be or watch?v= link."
             fi
             rm -f "$OUT/meta.txt"
             exit 1
@@ -164,6 +181,7 @@ jobs:
           echo "out=$OUT" >> "$GITHUB_OUTPUT"
 
       - name: Flatten the VTT to readable text, keeping a timestamp every ~30s
+        if: steps.fetch.outputs.refused != 'true'
         env:
           VTT: ${{ steps.fetch.outputs.vtt }}
           OUT: ${{ steps.fetch.outputs.out }}
@@ -179,9 +197,16 @@ jobs:
             || { echo 'Flattened transcript is under 500 bytes — refusing to commit it.'; exit 1; }
 
       - name: Push the transcript (the lane opens the PR)
+        if: steps.fetch.outputs.refused != 'true'
         env:
           SLUG: ${{ inputs.slug }}
         run: |
+          # Already on main word for word: nothing to send, and that is a
+          # success (the text the lesson author reads is already there).
+          if [ -f "docs/99-session-notes/sources/$SLUG/transcript.txt" ] && git diff --quiet HEAD -- "docs/99-session-notes/sources/$SLUG/transcript.txt" 2>/dev/null && git ls-files --error-unmatch "docs/99-session-notes/sources/$SLUG/transcript.txt" >/dev/null 2>&1; then
+            echo "The transcript for $SLUG is already on main, word for word: nothing to push."
+            exit 0
+          fi
           BR="fix/source-transcript-$SLUG-$(date -u +%Y%m%d-%H%M)"
           git config user.name 'source-transcript'
           git config user.email 'actions@users.noreply.github.com'
@@ -190,3 +215,15 @@ jobs:
           git commit -m "Transcript fetched for $SLUG (source-transcript run ${GITHUB_RUN_ID})"
           git push -u origin "$BR"
           echo "Pushed $BR — read docs/99-session-notes/sources/$SLUG/transcript.txt"
+
+  # The route that works today, asked only when the runner was challenged.
+  nas:
+    needs: transcript
+    if: needs.transcript.outputs.refused == 'true'
+    permissions:
+      contents: write
+    uses: ./.github/workflows/source-transcript-nas.yml
+    with:
+      video_id: ${{ needs.transcript.outputs.video_id }}
+      slug: ${{ inputs.slug }}
+    secrets: inherit

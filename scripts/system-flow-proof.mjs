@@ -19,7 +19,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildProofSql, resourceVerdict, resourceMetas, realContext, ROOT } from './system-flow-graph.mjs';
+import { buildProofSql, resourceVerdict, resourceMetas, realContext, liveYaml, ROOT } from './system-flow-graph.mjs';
 import { SYSTEM_FLOW } from './system-flow-registry.mjs';
 
 const q = (s) => (s == null ? 'NULL' : `'${String(s).replace(/'/g, "''")}'`);
@@ -50,9 +50,30 @@ export function pickRun(runs) {
 //   'any-success' — a lane workflow whose runs are per-PR (ci, auto-merge): a
 //                   red PR is the gate working, not the workflow broken, so it
 //                   is healthy when it has succeeded recently anywhere.
+//   'product:<file>' — a workflow whose own runs never end in success by design
+//                   (auto-merge: every waiting run is cancelled when a newer
+//                   event supersedes it, measured 2026-09-24 — 20 of 20 recent
+//                   runs cancelled or action_required while PRs merged and
+//                   deployed). It is judged by what it PRODUCED: the latest
+//                   run of <file> that the lane's bot dispatched.
+export const LANE_BOT = 'github-actions[bot]';
+export function pickProductRun(productRuns) {
+  const mine = (Array.isArray(productRuns) ? productRuns : []).filter((r) => r && r.event === 'workflow_dispatch' && r.actor && r.actor.login === LANE_BOT);
+  const run = pickRun(mine);
+  return run ? { ...run, conclusion: run.conclusion, html_url: run.html_url, product: true } : null;
+}
+export function productOf(rule) {
+  const m = /^product:(.+\.ya?ml)$/.exec(String(rule || ''));
+  return m ? m[1] : null;
+}
+
 export function runRuleFor(node, yamlText) {
   if (node && node.runRule) return node.runRule;
-  return /\bcron:/.test(String(yamlText || '')) ? 'main' : 'any';
+  // Only a LIVE schedule makes a witness. Measured 2026-09-25 (run
+  // 36077477281): transcript-backfill.yml carries its schedule commented out
+  // ("#   - cron: ..."), was judged by its runs on main only, and so read broken
+  // on a July failure while its combined route had just run green.
+  return /\bcron:/.test(liveYaml(yamlText)) ? 'main' : 'any';
 }
 export function pickByRule(rule, mainRuns, anyRuns) {
   if (rule === 'any-success') {
@@ -72,7 +93,7 @@ export function runRow(file, run) {
     written: 1,
     newest_at: run.updated_at || run.created_at || null,
     consumed: ok ? 1 : 0,
-    note: `${run.conclusion || run.status} ${run.html_url || ''}`.trim(),
+    note: `${run.product ? 'its product (the deploy it dispatched): ' : ''}${run.conclusion || run.status} ${run.html_url || ''}`.trim(),
   };
 }
 
@@ -92,6 +113,17 @@ async function fetchRuns() {
     const rule = runRuleFor(node, ctx.fileText(node.file));
     const base = `https://api.github.com/repos/${repo}/actions/workflows/${file}/runs?status=completed&per_page=20`;
     const headers = { Accept: 'application/vnd.github+json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+    const product = productOf(rule);
+    if (product) {
+      try {
+        const res = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/${product}/runs?status=completed&event=workflow_dispatch&per_page=20`, { headers });
+        if (!res.ok) { out.push({ ...runRow(file, null), written: null, note: `GitHub answered ${res.status}` }); continue; }
+        out.push(runRow(file, pickProductRun((await res.json()).workflow_runs || [])));
+      } catch (e) {
+        out.push({ resource: `gh:run:${file}`, written: null, newest_at: null, consumed: null, note: `could not ask GitHub: ${e.message}` });
+      }
+      continue;
+    }
     try {
       const [resMain, resAny] = await Promise.all([fetch(`${base}&branch=main`, { headers }), fetch(base, { headers })]);
       if (!resMain.ok || !resAny.ok) { out.push({ ...runRow(file, null), written: null, note: `GitHub answered ${resMain.status}/${resAny.status}` }); continue; }

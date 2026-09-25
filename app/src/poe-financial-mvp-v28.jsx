@@ -80,7 +80,7 @@ import { useBrowserHistoryNav, useHistoryToggle, initialBooksView, initialChurch
 import { useIdleReveal } from './lib/use-idle-reveal.js';
 import { isReviewerModeOn, ReviewerModeBanner } from './lib/reviewer-mode.jsx';
 import { onAuthChange, signOut } from './lib/supabase.js';
-import { ensureTenantMembership, uploadFeedback, subscribeFeedback } from './lib/feedback-sync.js';
+import { ensureTenantMembership, uploadFeedback, subscribeFeedback, newFeedbackId } from './lib/feedback-sync.js';
 import { reportPresence } from './lib/access-metrics-sync.js';
 import { entitiesSync } from './lib/entities-sync.js';
 import { accountsSync, accountsMerge } from './lib/accounts-sync.js';
@@ -2934,7 +2934,7 @@ export default function PoeFinancialSystem() {
       ...rest,
       hasScreenshot: imgs.length > 0,
       screenshotCount: imgs.length,
-      id: `fb-${Date.now()}`,
+      id: newFeedbackId(),
       createdAt: nowIso,
       status: initialStatus,
       lifecycle: {
@@ -4454,7 +4454,7 @@ ${THEME_CSS}
             <AdvisementBanner />
           </div>
         )}
-        {view === 'overview' && <SectionBoundary name="Overview"><Home setData={setData} setChurchView={setChurchView} data={data} snowballExtra={snowballExtra} totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} workerOps={workerOps} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} /></SectionBoundary>}
+        {view === 'overview' && <SectionBoundary name="Overview"><Home setData={setData} setChurchView={setChurchView} data={data} addNote={addNote} snowballExtra={snowballExtra} totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} workerOps={workerOps} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} /></SectionBoundary>}
         {view === 'books' && (
           <PrivateGate area="Financial" onCancel={() => setView('overview')} onForgot={handleForgotPin}>
           {/* Router-level backstop (2026-06-25): every Books sub-tab degrades to a
@@ -5164,7 +5164,7 @@ ${THEME_CSS}
         {view === 'books' && booksView === 'debts' && <TherapyReminder />}
         </Suspense>
       </main>
-      <TTSControl isOwner={isFamilyMember} view={view} churchView={churchView} booksView={booksView} />
+      <TTSControl isOwner={isFamilyMember} view={view} churchView={churchView} booksView={booksView} onOpenLearn={() => { setView('church'); setChurchView('learn'); }} />
       <FloatingPlayer />
       <InstallPrompt />
       <UpdatePrompt />
