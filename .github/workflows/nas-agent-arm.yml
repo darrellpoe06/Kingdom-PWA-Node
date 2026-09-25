@@ -3,8 +3,17 @@
 # is the ONE piece the repo cannot carry (a credential onto a device); this
 # workflow moves it from the repo secret store over the proven tailnet+SSH
 # channel, never echoed to the log. Dispatch-only; mutates, so never a timer.
-# The MEASURED bypass this enables: Supabase's REST gateway is 402-restricted
-# until Aug 23, but the DIRECT pooler answers -- so the pane works NOW.
+#
+# CHANGED 2026-09-24 (DR-0622, measured). The only run (31860587442) wrote
+# agent.env and then failed on "install.sh: No such file" -- the NAS mirror had
+# not pulled yet. Worse, what it wrote was SUPABASE_DB_URL: the RETIRED hosted
+# pooler. Since REPOINT-ARMED (2026-08-19) the app writes agent_tasks to the
+# NAS's own Postgres, so a chat row sent after that was never answered (the
+# live table's newest row is 2026-08-22). The consumer now finds the sovereign
+# database on the box itself (agent_consumer.resolve_db, DR-0614), so this lane
+# no longer carries any credential: it runs the installer from THIS checkout's
+# files, proves the consumer answers, and never overwrites agent.env (which
+# also holds lines other lanes placed).
 name: nas-agent-arm
 on:
   workflow_dispatch: {}
@@ -18,15 +27,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
+      - uses: actions/checkout@v4
       - name: Check secrets
         id: gate
         env:
           TS: ${{ secrets.TS_AUTHKEY != '' }}
           KEY: ${{ secrets.NAS_SSH_KEY != '' }}
-          DB: ${{ secrets.SUPABASE_DB_URL != '' }}
         run: |
-          if [ "$TS" != "true" ] || [ "$KEY" != "true" ] || [ "$DB" != "true" ]; then
-            echo "NOT CONFIGURED: need TS_AUTHKEY, NAS_SSH_KEY, SUPABASE_DB_URL repo secrets."
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: need TS_AUTHKEY and NAS_SSH_KEY repo secrets."
             echo "go=false" >> "$GITHUB_OUTPUT"
           else
             echo "go=true" >> "$GITHUB_OUTPUT"
@@ -36,15 +45,26 @@ jobs:
         uses: tailscale/github-action@v3
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
-      - name: Write agent.env (0600, never echoed) and prove the loop answers
+      - name: Run the consumer once from this checkout and prove which database it serves
         if: steps.gate.outputs.go == 'true'
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
-          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
+          set -o pipefail
           umask 077
           printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
           SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
-          printf 'AGENT_DB_URL=%s\n' "$DB_URL" | $SSH 'umask 077; mkdir -p /volume1/docker/poetech; cat > /volume1/docker/poetech/agent.env; echo "agent.env written ($(wc -c < /volume1/docker/poetech/agent.env) bytes, 0600)"'
-          # Prove, do not claim (DR-0076): run the installer once, right now.
-          $SSH 'sh /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-agent/install.sh'
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          # The consumer and installer come from THIS checkout (never a stale
+          # mirror); the vendored pg8000 and the repoint record are the
+          # mirror's own, which the box already holds.
+          STAGE=/tmp/nas-agent-arm-$GITHUB_RUN_ID
+          $SSH "mkdir -p $STAGE"
+          tar -C infra/nas-agent -cf - agent_consumer.py supabase-prod-ca-2021.crt | $SSH "tar -C $STAGE -xf -"
+          # root reads the sovereign stack's .env (0600); sudo -n is the measured
+          # pattern for dpoe on this box (the docker socket, /etc/crontab).
+          $SSH "sudo -n sh -c 'AGENT_ARMED_PATH=$REPO/infra/nas-supabase/REPOINT-ARMED; export AGENT_ARMED_PATH; cd $STAGE; PYTHONPATH=$REPO/infra/nas-agent/.vendor python3 agent_consumer.py --selftest | tail -1 && PYTHONPATH=$REPO/infra/nas-agent/.vendor AGENT_LOCK=/tmp/poetech-agent-arm.lock python3 agent_consumer.py --max 5'" 2>&1 | tee /tmp/arm.log
+          $SSH "rm -rf $STAGE" || true
+          grep -q "serving the sovereign database" /tmp/arm.log \
+            || { echo "::error::the consumer did not reach the database the app reads (see the lines above)"; exit 1; }
+          echo "PROVEN: the consumer serves the sovereign database and answered its queue."

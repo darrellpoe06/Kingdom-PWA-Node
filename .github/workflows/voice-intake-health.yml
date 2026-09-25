@@ -107,6 +107,26 @@ jobs:
             echo "$out"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Spoken words that landed as an Action Queue item (read-only)
+        # 2026-09-24, Darrell's screenshot: raw spoken conversation shown as
+        # an INCIDENT on Big Picture -> Now -> Action Queue. Which door wrote
+        # it is answered by the row itself: the slug stamps the moment, the
+        # lifecycle log names who. Never the words (this log is public).
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          bash scripts/live-sql.sh '|' <<'SQL' || echo "::warning::incident query failed"
+          SELECT 'incident', slug, to_char(created_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+                 CASE WHEN slug ~ '^in-[0-9]{13}$' THEN to_char(to_timestamp(substr(slug,4)::bigint/1000.0),'YYYY-MM-DD"T"HH24:MI:SS"Z"') ELSE '-' END,
+                 category, urgency, status, length(description),
+                 (description ILIKE '%paint and everything else%')::text,
+                 coalesce(left(lifecycle::text, 160), '-')
+          FROM incidents
+          WHERE length(description) > 300 OR description ILIKE '%paint and everything else%'
+          ORDER BY created_at DESC LIMIT 10;
+          SQL
       - name: The NAS side of the road (read-only)
         if: steps.gate.outputs.go == 'true'
         env:
