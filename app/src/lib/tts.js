@@ -648,8 +648,18 @@ export function useTextToSpeech() {
 
   // Once voices exist, resolve the active voice: saved choice, else most natural.
   // Persist a first-run natural pick so the choice is stable across sessions.
+  //
+  // NEVER MID-READING (DR-0654, Darrell 2026-09-25: "the voices change on
+  // their own at times... female to male etc.. different female voices").
+  // Android fires voiceschanged more than once, and each refresh set the
+  // engine's voice back to the saved default. A reading is speaking in the
+  // voice speak() handed it (a man's stand-in, a pinned voice), and setVoice()
+  // restarts the current sentence, so every refresh restarted the sentence in
+  // a different voice. A reading keeps its voice; the default is resolved
+  // again only while nothing is being read.
   useEffect(() => {
     if (!supported || !engineRef.current || !voices.length) return;
+    if (engineRef.current.status !== 'idle') return;
     const chosen = pickDefaultVoice(voices, prefs.voiceURI);
     engineRef.current.setVoice(chosen);
     if (prefs.voiceURI == null && chosen) {

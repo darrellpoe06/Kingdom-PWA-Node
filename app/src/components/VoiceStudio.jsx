@@ -46,6 +46,7 @@ import SectionTabs from './SectionTabs.jsx';
 import { buildVoiceChecks, overallVerdict, VOICE_SYSTEM_DOCS, PASS, FAIL } from '../lib/voice-system-check.js';
 import { detectVoiceDevice, deviceVoiceRoute } from '../lib/device-voice-route.js';
 import { isNativeShell } from '../lib/native-shell.js';
+import DeviceVoiceCard from './DeviceVoiceCard.jsx';
 
 const SAMPLE = 'Welcome. This is your chosen reading voice. Paste any message, lesson, or passage below and press Read to hear it aloud in this voice.';
 const SAMPLE_SHORT = 'For God so loved the world. The Lord is my shepherd; I shall not want.';
@@ -724,6 +725,16 @@ export default function VoiceStudio({ personaKey = null, isOwner = false, review
         })}
       </div>
       ),
+    },
+    // ON THIS DEVICE (DR-0656) — the reading voice downloaded once and made on
+    // the device, with no NAS and no connection (Darrell 2026-09-25: "Can't we
+    // give everything it needs for quality without needing to reconnect with
+    // the nas?"). Its own tab, apart from the voice picker above.
+    {
+      id: 'device',
+      label: 'On this device',
+      icon: 'phone',
+      render: () => <DeviceVoiceCard />,
     },
     // DOES IT WORK? — the dependency chain, checked in front of the person.
     // ALWAYS present, including when enrolment is off, because the whole point
