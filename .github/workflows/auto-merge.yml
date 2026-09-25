@@ -313,6 +313,14 @@ jobs:
               echo "main tip $main_sha not yet deployed (last deployed $last_deployed) — dispatching CF Pages deploy."
               if timeout 25 gh workflow run deploy-cloudflare-pages.yml --repo "$REPO" --ref main; then
                 dispatched_for="$main_sha"
+                # Main just advanced, so every other open PR is now behind it.
+                # keep-prs-current (DR-0644) brings the live ones current. It is
+                # dispatched HERE because this is the one place that sees an
+                # auto-merge land: MEASURED 2026-09-25, its `workflow_run` on
+                # the deploy never fired for deploy #1312 (dispatched by this
+                # token), the same suppression as the merge's own push.
+                timeout 25 gh workflow run keep-prs-current.yml --repo "$REPO" --ref main \
+                  || echo "::warning::could not dispatch keep-prs-current (its schedule is the fallback)"
               else
                 echo "::warning::could not dispatch deploy for $main_sha — will retry next pass (it can also be run manually)"
               fi
