@@ -74,7 +74,10 @@ The real-time factor is seconds of work per second of speech. Below 1 keeps up w
    - (a) in the reader's engine choice, prefer `synthesizeOnDevice` when `checkDeviceVoice` is `ready` **and** the measured factor on this device is ≤ 1.0, otherwise voice-lite;
    - (b) let cache-ahead pre-render a lesson on the device when the NAS is unreachable;
    - (c) keep one sentence per clip, as voice-lite does;
-   - (d) call `releaseDeviceVoice` when the reader closes.
+   - (d) call `releaseDeviceVoice` when the reader closes;
+   - (e) honour DR-0654 §6, one reading and one voice. The device voice takes the reading's pinned gender (`'female'` for the System voice, whose NAS voice is Amy), and a hand-over between the NAS and the device never changes who is speaking.
+
+   The Firestick path DR-0654 fixed (NAS voice-lite with the family key) stays that device's path. That agrees with the measurement above.
 5. **Licences go to the Governor** with a recommendation. Keep the card as an explicit opt-in, and carry the espeak-ng source offer in NOTICE (done). Decide whether PoeTech's use sits inside the Ryan dataset's non-commercial terms, or move the default voice to one whose dataset licence is permissive. re-review: 2026-10-02.
 
 ## Verification
