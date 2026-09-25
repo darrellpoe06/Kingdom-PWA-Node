@@ -70,6 +70,48 @@ export function numberLabel(lesson, numbered, unitCap = 'Lesson') {
   return unitCap === 'Lesson' ? `L${n}` : `${unitCap} ${n}`;
 }
 
+/**
+ * How many lessons a course really has, and — for a numbered course — the span
+ * of their own numbers and any number never used. Darrell 2026-09-25, on the
+ * Living Lessons index: "We need the count correct 191 or 192?" The count
+ * (191) was right and the newest row (L192) was right: Living Lessons has no
+ * L79. The two only disagree when a number is unused, so the header names the
+ * span and the gap instead of leaving the reader to reconcile them. Everything
+ * here is read from the schedule itself — never a hand-kept figure — so it
+ * stays right as each new lesson lands.
+ */
+export function lessonSpan(schedule) {
+  const list = Array.isArray(schedule) ? schedule : [];
+  const count = list.length;
+  if (!numberedSchedule(list)) return { count, numbered: false, first: null, last: null, missing: [] };
+  const nums = list.map(lessonNumber);
+  const first = Math.min(...nums);
+  const last = Math.max(...nums);
+  const have = new Set(nums);
+  const missing = [];
+  for (let n = first; n <= last; n += 1) if (!have.has(n)) missing.push(n);
+  return { count, numbered: true, first, last, missing };
+}
+
+/**
+ * The count line for a course: "191 lessons · L1–L192 · no L79" when the
+ * numbers run past the count, "12 lessons" otherwise. Unit words come from the
+ * course (unitLabels: noun, plural, cap), so a weekly course reads "8 weeks".
+ */
+export function lessonCountLabel(schedule, units = {}) {
+  const { noun = 'lesson', plural = 'lessons', cap = 'Lesson' } = units;
+  const s = lessonSpan(schedule);
+  const head = `${s.count} ${s.count === 1 ? noun : plural}`;
+  if (!s.numbered || (s.first === 1 && s.last === s.count)) return head;
+  const L = (n) => numberLabel({ number: n }, true, cap);
+  const span = `${L(s.first)}–${L(s.last)}`;
+  if (!s.missing.length) return `${head} · ${span}`;
+  const gap = s.missing.length <= 3
+    ? `no ${s.missing.map(L).join(', ')}`
+    : `${s.missing.length} numbers unused`;
+  return `${head} · ${span} · ${gap}`;
+}
+
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 function isoParts(iso) {
