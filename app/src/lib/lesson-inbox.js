@@ -21,6 +21,7 @@
 
 import { memberOutcome } from './member-lesson-review.js';
 import { isLessonDoorOwner } from './one-voice-surfaces.js';
+import { publishedLessonOf } from './lesson-review-messages.js';
 
 const has = (row, t) => Array.isArray(row && row.tags) && row.tags.includes(t);
 const ofTag = (row) => (Array.isArray(row && row.tags) ? (row.tags.find((t) => String(t).startsWith('of:')) || '').slice(3) : '');
@@ -65,6 +66,8 @@ export function lessonItems(rows) {
       // DR-0635: the Governor's review of a member's lesson, read from the row
       // that carries the words (the transcript, for a spoken one).
       review: memberOutcome(spoken ? (transcript || {}) : r),
+      // DR-0639: the reader tags the row `lesson-published` + `lesson-id:<id>`.
+      published: publishedLessonOf((spoken ? (transcript || {}) : r).tags || []),
     });
   }
   return items.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
