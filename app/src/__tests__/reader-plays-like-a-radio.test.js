@@ -14,10 +14,11 @@
 // whole page, so leaving a tab silenced the app-wide reader mid-sentence.
 //
 // Proven-to-catch: each test here fails against the unconditional cancel /
-// its Bible-cast twin.
+// the unconditional lock-screen clear it replaces.
 import { describe, it, expect, vi } from 'vitest';
 import { createBrowserTTS } from '../lib/tts.js';
 import { createCastPlayer } from '../lib/use-cast-read.js';
+import { createBackgroundAudio } from '../lib/background-audio.js';
 
 function fakeSynth() {
   return {
@@ -54,5 +55,24 @@ describe('leaving a tab never silences the reader', () => {
     // cast has nothing to cancel.
     if (cast.isPlaying()) cast.stop();
     expect(synth.cancel).not.toHaveBeenCalled();
+  });
+
+  it('a reader that never took the lock screen cannot wipe the one that did', () => {
+    const ms = { metadata: null, playbackState: 'none', handlers: {}, setActionHandler(n, f) { this.handlers[n] = f; } };
+    const win = { navigator: { mediaSession: ms }, MediaMetadata: function M(i) { Object.assign(this, i); } };
+    const fakeAudio = () => ({ paused: true, play() { this.paused = false; return Promise.resolve(); }, pause() { this.paused = true; }, setAttribute() {} });
+    const main = createBackgroundAudio({ win, makeAudio: fakeAudio });
+    const help = createBackgroundAudio({ win, makeAudio: fakeAudio });
+    main.start();
+    main.describe({ title: 'Lesson 12' });
+    main.onControl({ onPlay: () => {}, onPause: () => {}, onNext: () => {} });
+    main.setState('playing');
+    help.stop(); // e.g. the Help button's reader standing down on another tab
+    expect(ms.metadata && ms.metadata.title).toBe('Lesson 12');
+    expect(ms.playbackState).toBe('playing');
+    expect(typeof ms.handlers.nexttrack).toBe('function');
+    main.stop();
+    expect(ms.metadata).toBe(null);
+    expect(ms.handlers.nexttrack).toBe(null);
   });
 });

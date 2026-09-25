@@ -206,10 +206,26 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // limits (Android/Chromium is the proven path; iOS suspends device speech).
   const bgRef = useRef(null);
   const ctrlRef = useRef({});
+  // NEXT / BACK FROM THE HEADSET, THE CAR AND THE LOCK SCREEN (Darrell
+  // 2026-09-24: start anywhere, step through). The paragraph steps live in the
+  // reader bar (it holds the follow map), so the bar hands them in here and
+  // the OS 'nexttrack' / 'previoustrack' buttons call exactly what the bar's
+  // forward and back buttons call.
+  const skipRef = useRef({});
+  const setSkipHandlers = useCallback((h) => { skipRef.current = h || {}; }, []);
+  const titleRef = useRef('');
   const bg = useCallback(() => {
     if (!bgRef.current) bgRef.current = createBackgroundAudio();
     return bgRef.current;
   }, []);
+  // The OS buttons, always reading the CURRENT controls through refs.
+  const osControls = useCallback(() => ({
+    onPlay: () => { const c = ctrlRef.current; if (c.resume) c.resume(); },
+    onPause: () => { const c = ctrlRef.current; if (c.pause) c.pause(); },
+    onStop: () => { const c = ctrlRef.current; if (c.stop) c.stop(); },
+    onNext: () => { const k = skipRef.current; if (k.next) k.next(); },
+    onPrev: () => { const k = skipRef.current; if (k.prev) k.prev(); },
+  }), []);
 
   const stop = useCallback(() => {
     if (queueRef.current) { queueRef.current.stop(); queueRef.current = null; }
@@ -260,8 +276,12 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     if (!session) return;
     const reading = tts.isReading || cloudPlaying;
     if (!reading) { session.stop(); return; }
+    // Stop hands every OS button back (background-audio release). A paragraph
+    // jump restarts the engine and can flicker through not-reading, so the
+    // buttons are put back the moment reading is live again.
+    if (!session.wired) { session.describe({ title: titleRef.current }); session.onControl(osControls()); }
     session.setState((tts.isPaused || cloudPaused) ? 'paused' : 'playing');
-  }, [tts.isReading, tts.isPaused, cloudPlaying, cloudPaused]);
+  }, [tts.isReading, tts.isPaused, cloudPlaying, cloudPaused, osControls]);
 
   useEffect(() => () => { if (bgRef.current) bgRef.current.stop(); }, []);
 
@@ -286,15 +306,12 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     try {
       const session = bg();
       session.start();
-      session.describe({ title: title || (typeof document !== 'undefined' && document.title) || 'Reading' });
-      session.onControl({
-        onPlay: () => { const c = ctrlRef.current; if (c.resume) c.resume(); },
-        onPause: () => { const c = ctrlRef.current; if (c.pause) c.pause(); },
-        onStop: () => { const c = ctrlRef.current; if (c.stop) c.stop(); },
-      });
+      titleRef.current = title || (typeof document !== 'undefined' && document.title) || 'Reading';
+      session.describe({ title: titleRef.current });
+      session.onControl(osControls());
       session.setState('playing');
     } catch (_) { /* no audio session is a degraded read, never a broken one */ }
-  }, [bg]);
+  }, [bg, osControls]);
 
   // Which NAS voice stands in: a man's stand-in reads as a man (DR-0138).
   const liteVoiceFor = useCallback(() => {
@@ -603,6 +620,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // awaits a reveal. Omitting it here is what made claimAudio undefined at
     // the call site and threw on every press — caught by the reader suite.
     claimAudio,
+    // The bar's paragraph steps, handed in for the OS skip buttons.
+    setSkipHandlers,
     isReading: tts.isReading || cloudPlaying,
     isPaused: tts.isPaused || cloudPaused,
     rate: tts.rate,

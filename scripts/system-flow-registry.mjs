@@ -257,14 +257,15 @@ const NODES = [
   }),
   app('app/src/components/LessonInbox.jsx', {
     id: 'lesson-inbox', name: 'Your lessons (sent, heard, written down)',
-    purpose: 'The speaker sees each lesson they sent: received, transcribed, and the words Whisper wrote.',
+    purpose: 'The speaker sees each lesson they sent: received, transcribed, and the words Whisper wrote — shown under the Lesson recorder and on the Notes tab; "Put these words in the box" hands them back to send again (DR-0636).',
     reads: [
       { res: 'db:agent_inbox#lesson', file: 'app/src/lib/lesson-inbox.js', token: "from('agent_inbox')" },
       { res: 'db:agent_inbox#voice-transcript', file: 'app/src/lib/lesson-inbox.js', token: 'voice-transcript' },
       // DR-0635: approved (being written, name not used) or declined with the reason.
       { res: 'db:agent_inbox#lesson-review', file: 'app/src/lib/lesson-inbox.js', token: 'review_reason' },
     ],
-    seeds: [],
+    writes: [{ res: 'event:use-prompt', file: 'app/src/components/LessonInbox.jsx', token: 'sendPromptToBox' }],
+    seeds: ['lesson-door'],
   }),
   app('app/src/components/MemberLessonQueue.jsx', {
     id: 'member-lesson-queue', name: 'Members\u2019 lessons to review (the Governor)',
@@ -456,11 +457,11 @@ const NODES = [
     seeds: [],
   }),
   wf('transcript-backfill.yml', {
-    id: 'transcript-backfill', name: 'Transcript backfill (hosted, retired side)',
-    purpose: 'The CI caption harvest; it still writes the retired hosted database.',
+    id: 'transcript-backfill', name: 'Transcript backfill (runs the NAS trickle on demand)',
+    purpose: 'A hand dispatch runs the transcript-trickle rider on the NAS, under the trickle’s own stamp and budget (DR-0622: combined with its working twin); the runner lane runs only with residential proxy secrets.',
     reads: [{ res: 'yt:channel', file: 'infra/nas-sme-pipeline/transcript-backfill-ci.py', token: 'youtube' }],
-    writes: [{ res: 'hosted:db', token: 'SUPABASE_DB_URL' }],
-    seeds: ['content-sync'],
+    writes: [{ res: 'db:video_transcripts', token: 'transcript_trickle_install.sh' }, { res: 'hosted:db', token: 'SUPABASE_DB_URL' }],
+    seeds: ['content-sync', 'sermon-reader'],
   }),
   wf('sovereign-content-sync.yml', {
     id: 'content-sync', name: 'Sovereign content sync (retired → live)',
@@ -502,7 +503,7 @@ const NODES = [
     reads: [{ res: 'gh:pr', token: 'pull_request' }, { res: 'gh:ci-dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'gh:check', token: 'npx vitest run' }], seeds: ['auto-merge'],
   }),
   wf('auto-merge.yml', {
-    id: 'auto-merge', name: 'Auto-merge on green', runRule: 'any-success', purpose: 'Merges the PR the moment its gates pass; dispatches the deploy.',
+    id: 'auto-merge', name: 'Auto-merge on green', runRule: 'product:deploy-cloudflare-pages.yml', purpose: 'Merges the PR the moment its gates pass; dispatches the deploy.',
     reads: [{ res: 'gh:pr', token: 'gh pr list' }, { res: 'gh:check', token: 'workflow_run' }, { res: 'gh:automerge-dispatch', token: 'workflow_dispatch' }],
     writes: [{ res: 'gh:main', token: 'gh pr merge' }, { res: 'gh:deploy-heal', token: 'gh workflow run deploy-cloudflare-pages.yml' }],
     seeds: ['deploy', 'db-migrate', 'deploy-freshness'],
@@ -622,7 +623,7 @@ const NODES = [
     writes: [], seeds: [],
   }),
   wf('nas-agent-arm.yml', {
-    id: 'nas-agent-arm', name: 'Arm the NAS agent', purpose: 'Places the agent’s database credential on the NAS.',
+    id: 'nas-agent-arm', name: 'Arm the NAS agent', purpose: 'Runs the agent consumer once from this checkout and proves it serves the database the app reads (DR-0622: it no longer carries a credential).',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'nas:agent-credential', token: 'agent' }], seeds: ['agent-consumer'],
   }),
   wf('nas-email-door.yml', {
@@ -696,12 +697,12 @@ const NODES = [
     reads: [{ res: 'web:primary-records', token: 'history-voices-witness.mjs' }], writes: [], seeds: [],
   }),
   wf('source-transcript.yml', {
-    id: 'source-transcript', name: 'Source transcript (runner)', purpose: 'Turns a video Darrell sends into text the capture session can read.',
-    reads: [{ res: 'yt:channel', token: 'youtube' }], writes: [{ res: 'file:source-transcripts', token: 'docs/99-session-notes/sources/' }], seeds: ['lesson-capture'],
+    id: 'source-transcript', name: 'Source transcript (runner, then the NAS)', purpose: 'Turns a video Darrell sends into text the capture session can read; when YouTube challenges the runner, the same run hands the link to the NAS route (DR-0622).',
+    reads: [{ res: 'yt:channel', token: 'youtube' }], writes: [{ res: 'file:source-transcripts', token: 'docs/99-session-notes/sources/' }, { res: 'gh:call:source-transcript-nas', token: 'uses: ./.github/workflows/source-transcript-nas.yml' }], seeds: ['lesson-capture', 'source-transcript-nas'],
   }),
   wf('source-transcript-nas.yml', {
     id: 'source-transcript-nas', name: 'Source transcript (NAS address)', purpose: 'The same, fetched from the NAS’s residential address YouTube does not block.',
-    reads: [{ res: 'yt:channel', token: 'youtube' }], writes: [{ res: 'file:source-transcripts', token: 'transcripts' }], seeds: ['lesson-capture'],
+    reads: [{ res: 'yt:channel', token: 'youtube' }, { res: 'gh:call:source-transcript-nas', token: 'workflow_call' }], writes: [{ res: 'file:source-transcripts', token: 'transcripts' }], seeds: ['lesson-capture'],
   }),
   wf('sovereign-read.yml', {
     id: 'sovereign-read', name: 'Ask the live database', purpose: 'A session reads the database the app reads — feedback, tables, and the lessons waiting.',
@@ -928,6 +929,7 @@ const LOOPS = [
   { id: 'prompt-loop', name: 'Prompt sent → kept → put back in the box → sent again', path: ['one-voice', 'prompt-history'] },
   { id: 'monitor-loop', name: 'Every workflow’s run → the flow proof → the operations board', path: ['site-health', 'flow-proof', 'ops-board'],
     open: { blocker: 'The board’s escalations reach a steward, who fixes and ships; the next proof run shows the connection flowing again. That return passes through a person by design (the Governor decides), so this loop closes through the delivery lane, not a table.', reReview: '2026-10-24' } },
+  { id: 'spoken-lesson-loop', name: 'A spoken lesson → our own Whisper → its words back to the speaker → the box', path: ['lesson-door', 'lesson-voice', 'lesson-inbox'] },
   { id: 'scribe-loop', name: 'A recording → our own Whisper → its words back on the Scribe screen', path: ['scribe-surface', 'scribe'] },
   { id: 'lane-loop', name: 'Merge → deploy → site witness → heal → deploy', path: ['deploy', 'site-health'] },
 ];

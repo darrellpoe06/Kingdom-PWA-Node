@@ -171,6 +171,22 @@ export function explainVoiceError(code) {
 // instead of showing "listening" over silence.
 export const NOTHING_HEARD_MS = 8000;
 
+// ONE MICROPHONE, ONE HOLDER (2026-09-24, "Never recorded"). A phone gives
+// the microphone to one taker. If the Speak button's speech engine is still
+// listening when a recording starts, the recording can get silence. Every
+// live dictation session registers its stop here; a recorder calls
+// releaseSpeechRecognition() before it asks for the microphone.
+const liveSessions = new Set();
+export function releaseSpeechRecognition() {
+  const n = liveSessions.size;
+  for (const stopIt of Array.from(liveSessions)) {
+    try { stopIt(); } catch (_) { /* a stop that throws is already stopped */ }
+  }
+  liveSessions.clear();
+  return n;
+}
+export function liveSpeechSessions() { return liveSessions.size; }
+
 /**
  * The verdict when a dictation session ends, pure: did it produce words?
  * 'words' | 'no-words' (the session ran and wrote nothing) | 'none' (no
@@ -220,6 +236,7 @@ export function useVoiceDictation({ onTranscript, lang = 'en-US', capMs = VOICE_
   const supported = !!SR;
 
   const endSession = () => {
+    liveSessions.delete(registered.current);
     if (watchRef.current) { clearTimeout(watchRef.current); watchRef.current = null; }
     if (!sessionOpenRef.current) return;
     sessionOpenRef.current = false;
@@ -235,12 +252,17 @@ export function useVoiceDictation({ onTranscript, lang = 'en-US', capMs = VOICE_
     setNothingHeard(false);
   };
 
+  // The registry holds ONE stable function per hook that calls the latest stop.
+  const latestStop = useRef(null);
+  const registered = useRef(() => { if (latestStop.current) latestStop.current(); });
   const stop = () => {
     activeRef.current = false;
+    liveSessions.delete(registered.current);
     try { recognitionRef.current?.stop(); } catch (_) { /* ignore */ }
     setListening(false);
     endSession();
   };
+  latestStop.current = stop;
 
   const startEngine = () => {
     const r = new SR();
@@ -313,6 +335,7 @@ export function useVoiceDictation({ onTranscript, lang = 'en-US', capMs = VOICE_
     try {
       startEngine();
       sessionOpenRef.current = true;
+      liveSessions.add(registered.current);
       setListening(true);
       // Never show "listening" over silence: if nothing at all reaches the
       // engine, the surface says so in words.
