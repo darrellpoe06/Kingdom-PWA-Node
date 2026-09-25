@@ -33,9 +33,27 @@
 //
 // Pure over an injected `storage` + `now`, so the logic is unit-tested without
 // a browser (DR-0076).
+//
+// ONE PLACE PER LESSON, NOT ONE PER DEVICE (2026-09-24, DR-0631). Darrell,
+// from the live app: "Continuing a lesson doesn't work well... it needs to be
+// way better." Measured in a real browser before this change: the record was
+// ONE object per device, so starting a second lesson in another course
+// silently overwrote the first — the reader who went back found no way to
+// continue it anywhere, and the lesson reopened at part one. The record is now
+// a small map keyed by course + lesson (`poe-learn-places`), newest first,
+// capped, with `last` naming the lesson most recently touched. Every existing
+// caller keeps its meaning: getPlace() is still "the place" (the most recent
+// one), recordPlace() still merges, and the reader's sentence write still
+// lands on the lesson it is reading. The old single key is migrated on first
+// read and kept as a mirror of the latest place, so an older tab of the app
+// open beside this one keeps working and its writes are picked up.
+// The bright line above is unchanged: keys and indexes only, this device only.
 // =============================================================================
 
-const KEY = 'poe-learn-place';
+const KEY = 'poe-learn-place';          // legacy single record — migrated, then mirrored
+const MAP_KEY = 'poe-learn-places';     // { v, last, mirror, byLesson: { 'course::lesson': place } }
+/** How many lessons' places a device keeps; the oldest untouched fall off first. */
+export const PLACES_CAP = 60;
 
 function defaultStorage() {
   try { return typeof window !== 'undefined' ? window.localStorage : null; }
@@ -121,33 +139,161 @@ export function findSentence(sentences, place) {
   return { index: -1, how: 'unknown' };
 }
 
+/** Validate one stored place into the shape every caller reads, or null. */
+function normPlace(p) {
+  if (!p || typeof p !== 'object' || Array.isArray(p)) return null;
+  if (typeof p.courseKey !== 'string' || !p.courseKey) return null;
+  if (typeof p.lessonId !== 'string' || !p.lessonId) return null;
+  return {
+    courseKey: p.courseKey,
+    lessonId: p.lessonId,
+    stage: idx(p.stage),
+    step: idx(p.step),
+    sentence: idx(p.sentence),
+    sentenceKey: typeof p.sentenceKey === 'string' ? p.sentenceKey.slice(0, 16) : '',
+    // IF IT IS OVER, IT IS OVER (see finishPlace below). Absent in every
+    // place written before this shipped, which reads as false — an old
+    // record keeps resuming exactly as it did.
+    done: p.done === true,
+    // STARTED — the reader pressed Start/Continue/Play on this lesson, or
+    // moved inside it. Merely glancing at a lesson's card (a title tap) is
+    // not starting it, so a browse never shows up as "in progress" beside
+    // the lessons a person is actually working through.
+    started: p.started === true,
+    at: typeof p.at === 'number' ? p.at : 0,
+  };
+}
+
+/** The map key for one lesson's place. */
+export function placeKey(courseKey, lessonId) {
+  return `${String(courseKey || '')}::${String(lessonId || '')}`;
+}
+
+// Read the whole map, validated, with the legacy single record folded in.
+// Never writes: a read that migrates would make every render a write.
+function readMap(storage) {
+  const empty = { v: 1, last: '', mirror: '', byLesson: {} };
+  if (!storage) return empty;
+  let map = empty;
+  try {
+    const raw = storage.getItem(MAP_KEY);
+    const m = raw ? JSON.parse(raw) : null;
+    if (m && typeof m === 'object' && !Array.isArray(m) && m.byLesson && typeof m.byLesson === 'object') {
+      const byLesson = {};
+      for (const [k, v] of Object.entries(m.byLesson)) {
+        const p = normPlace(v);
+        if (p && k === placeKey(p.courseKey, p.lessonId)) byLesson[k] = p;
+      }
+      map = {
+        v: 1,
+        last: typeof m.last === 'string' && byLesson[m.last] ? m.last : '',
+        mirror: typeof m.mirror === 'string' ? m.mirror : '',
+        byLesson,
+      };
+    }
+  } catch { map = empty; }
+  // THE OLD RECORD STILL COUNTS. A device upgraded from the one-place record
+  // has it only under the legacy key; an older tab of the app still writes
+  // there. Whenever the legacy key holds something this module did not write
+  // itself (it differs from the mirror we last left there), it is the newest
+  // word on where the reader is, so it is folded in and becomes the latest.
+  try {
+    const legacyRaw = storage.getItem(KEY);
+    if (legacyRaw && legacyRaw !== map.mirror) {
+      const lp = normPlace(JSON.parse(legacyRaw));
+      if (lp) {
+        const k = placeKey(lp.courseKey, lp.lessonId);
+        // A record written before `started` existed was offered as THE place,
+        // so it keeps being offered.
+        map = { ...map, last: k, byLesson: { ...map.byLesson, [k]: { ...lp, started: true } } };
+      }
+    }
+  } catch { /* a malformed legacy record is simply not a place */ }
+  return map;
+}
+
+// Keep the map small: the current lesson always stays; started lessons are
+// kept ahead of mere browses; newest first within each.
+function pruneMap(map, cap = PLACES_CAP) {
+  const entries = Object.entries(map.byLesson);
+  if (entries.length <= cap) return map;
+  entries.sort((a, b) => {
+    if (a[0] === map.last) return -1;
+    if (b[0] === map.last) return 1;
+    if (a[1].started !== b[1].started) return a[1].started ? -1 : 1;
+    return (b[1].at || 0) - (a[1].at || 0);
+  });
+  return { ...map, byLesson: Object.fromEntries(entries.slice(0, cap)) };
+}
+
+function writeMap(storage, map) {
+  if (!storage) return;
+  const pruned = pruneMap(map);
+  const latest = pruned.last ? pruned.byLesson[pruned.last] : null;
+  const mirror = latest ? JSON.stringify(latest) : '';
+  try {
+    storage.setItem(MAP_KEY, JSON.stringify({ v: 1, last: pruned.last, mirror, byLesson: pruned.byLesson }));
+    if (mirror) storage.setItem(KEY, mirror);
+    else storage.removeItem(KEY);
+  } catch { /* quota / private mode — ignore */ }
+}
+
 /**
- * Read the saved place, validated. Returns
- * `{ courseKey, lessonId, stage, step, at }` or null when nothing usable is
- * stored (missing, malformed, or not carrying both keys).
+ * Read the saved place — the lesson most recently touched — validated.
+ * Returns `{ courseKey, lessonId, stage, step, sentence, sentenceKey, done,
+ * started, at }` or null when nothing usable is stored.
  */
 export function getPlace(opts = {}) {
   const storage = opts.storage || defaultStorage();
   try {
-    const raw = storage && storage.getItem(KEY);
-    const p = raw ? JSON.parse(raw) : null;
-    if (!p || typeof p !== 'object' || Array.isArray(p)) return null;
-    if (typeof p.courseKey !== 'string' || !p.courseKey) return null;
-    if (typeof p.lessonId !== 'string' || !p.lessonId) return null;
-    return {
-      courseKey: p.courseKey,
-      lessonId: p.lessonId,
-      stage: idx(p.stage),
-      step: idx(p.step),
-      sentence: idx(p.sentence),
-      sentenceKey: typeof p.sentenceKey === 'string' ? p.sentenceKey.slice(0, 16) : '',
-      // IF IT IS OVER, IT IS OVER (see finishPlace below). Absent in every
-      // place written before this shipped, which reads as false — an old
-      // record keeps resuming exactly as it did.
-      done: p.done === true,
-      at: typeof p.at === 'number' ? p.at : 0,
-    };
+    const map = readMap(storage);
+    return map.last ? { ...map.byLesson[map.last] } : null;
   } catch { return null; }
+}
+
+/**
+ * The saved place for ONE lesson (the thing a lesson's own space needs), or
+ * null. `courseKey` may be omitted: lesson ids name one home (DR-0448), and the
+ * most recent place with that id is the reader's.
+ */
+export function getPlaceFor(courseKey, lessonId, opts = {}) {
+  if (!lessonId) return null;
+  const storage = opts.storage || defaultStorage();
+  try {
+    const map = readMap(storage);
+    if (courseKey) {
+      const hit = map.byLesson[placeKey(courseKey, lessonId)];
+      return hit ? { ...hit } : null;
+    }
+    let best = null;
+    for (const p of Object.values(map.byLesson)) {
+      if (p.lessonId === lessonId && (!best || p.at > best.at)) best = p;
+    }
+    return best ? { ...best } : null;
+  } catch { return null; }
+}
+
+/** True when a place is a lesson the reader has begun and not finished. */
+export function placeInProgress(place) {
+  if (!place || place.done === true) return false;
+  return place.started === true || place.stage > 0 || place.step > 0 || !!place.sentenceKey;
+}
+
+/**
+ * Every saved place, newest first. `courseKey` narrows to one course;
+ * `inProgress` keeps only lessons begun and not finished (what a Continue
+ * offer lists).
+ */
+export function listPlaces(opts = {}) {
+  const storage = opts.storage || defaultStorage();
+  try {
+    const map = readMap(storage);
+    return Object.values(map.byLesson)
+      .filter((p) => (!opts.courseKey || p.courseKey === opts.courseKey))
+      .filter((p) => (!opts.inProgress || placeInProgress(p)))
+      .sort((a, b) => (b.at || 0) - (a.at || 0))
+      .map((p) => ({ ...p }));
+  } catch { return []; }
 }
 
 /**
@@ -193,23 +339,44 @@ export function placeIsFinished(place) {
 }
 
 /**
- * Record (merge) the learner's place. A patch that names a DIFFERENT lesson
- * than the saved one resets stage/step to 0 unless the patch sets them —
- * a stale "step 5" must never leak into a freshly opened lesson.
- * @param {{courseKey?:string, lessonId?:string, stage?:number, step?:number}} patch
+ * Record (merge) the learner's place for ONE lesson and make it the latest.
+ *
+ * The patch names the lesson (`lessonId`, optionally `courseKey`); a patch
+ * without one lands on the latest place — which is how the reader's sentence
+ * write works, and why it guards on the lesson it is reading. The lesson's
+ * OWN saved place is the base the patch merges into, so going back to a
+ * lesson after another picks up that lesson's stage and step instead of
+ * starting it over (the defect DR-0631 closes). A lesson with no saved place
+ * starts at 0 — a stale "step 5" never leaks into a freshly opened lesson.
+ * @param {{courseKey?:string, lessonId?:string, stage?:number, step?:number,
+ *   sentence?:number, sentenceKey?:string, done?:boolean, started?:boolean}} patch
  */
 export function recordPlace(patch, opts = {}) {
   const storage = opts.storage || defaultStorage();
   if (!storage || !patch || typeof patch !== 'object') return;
   const now = typeof opts.now === 'number' ? opts.now : nowMs();
-  const prev = getPlace({ storage });
-  const sameLesson = prev && (!patch.lessonId || patch.lessonId === prev.lessonId);
-  // A DIFFERENT lesson starts unfinished: `done` belongs to the lesson that
-  // was heard, and must never carry onto the next one.
-  const base = sameLesson ? prev : { stage: 0, step: 0, sentence: 0, sentenceKey: '', done: false };
+  const map = readMap(storage);
+  const latest = map.last ? map.byLesson[map.last] : null;
+  const named = typeof patch.lessonId === 'string' && patch.lessonId ? patch.lessonId : '';
+  const lessonId = named || (latest ? latest.lessonId : '');
+  if (!lessonId) return; // never store a half place
+  let courseKey = named && typeof patch.courseKey === 'string' && patch.courseKey ? patch.courseKey : '';
+  if (!courseKey) {
+    // No course named with the lesson: the lesson's own record knows it (a
+    // stage move re-uses the course key without re-passing it), else the
+    // latest place does.
+    const own = named ? getPlaceFor(null, lessonId, { storage }) : latest;
+    courseKey = (own && own.courseKey) || (latest ? latest.courseKey : '');
+  }
+  if (!courseKey) return;
+  const k = placeKey(courseKey, lessonId);
+  // A lesson with no record starts unfinished: `done` belongs to the lesson
+  // that was heard, and must never carry onto the next one.
+  const base = map.byLesson[k] || { stage: 0, step: 0, sentence: 0, sentenceKey: '', done: false, started: false };
+  const moves = patch.stage !== undefined || patch.step !== undefined || patch.sentence !== undefined;
   const next = {
-    courseKey: typeof patch.courseKey === 'string' && patch.courseKey ? patch.courseKey : (base.courseKey || (prev && prev.courseKey) || ''),
-    lessonId: typeof patch.lessonId === 'string' && patch.lessonId ? patch.lessonId : (base.lessonId || ''),
+    courseKey,
+    lessonId,
     stage: patch.stage !== undefined ? idx(patch.stage) : idx(base.stage),
     step: patch.step !== undefined ? idx(patch.step) : idx(base.step),
     // A step move with no sentence named CLEARS the sentence rather than keeping
@@ -225,17 +392,15 @@ export function recordPlace(patch, opts = {}) {
     // starts at the top, and the sentence it then stores resumes normally.
     // A patch that only re-names the lesson (opening it again) keeps the flag,
     // which is what lets the lesson space reopen at part one.
-    done: patch.done !== undefined
-      ? patch.done === true
-      : ((patch.stage !== undefined || patch.step !== undefined || patch.sentence !== undefined)
-        ? false : base.done === true),
+    done: patch.done !== undefined ? patch.done === true : (moves ? false : base.done === true),
+    // Started is sticky for the lesson: once begun, a lesson stays begun until
+    // it is finished or forgotten. Moving inside it is beginning it.
+    started: patch.started === true || moves || base.started === true,
     at: now,
   };
-  if (!next.courseKey || !next.lessonId) return; // never store a half place
-  try { storage.setItem(KEY, JSON.stringify(next)); } catch { /* quota / private mode — ignore */ }
+  writeMap(storage, { ...map, last: k, byLesson: { ...map.byLesson, [k]: next } });
 }
 
-/** The user's control: forget the saved place on this device. */
 // REFRESH FIRST (Darrell 2026-09-15: "I like making sure they start where
 // they left last time... so it can be a refresher if they wanted it"). A
 // returning learner — a child especially — often wants the last few steps
@@ -244,7 +409,8 @@ export function recordPlace(patch, opts = {}) {
 // the refresher instead of the frontier. At the first step of a stage it
 // stays at step 0 (a stage is its own unit; the learner can still step back
 // by hand). Returns the place it recorded, or null when there was nothing to
-// resume. DR-0418.
+// resume. DR-0418. With `lessonId` (and optionally `courseKey`) it refreshes
+// THAT lesson — the Continue offer names one per lesson; without, the latest.
 export const REFRESH_BACK_STEPS = 2;
 export function backUpPlace(place, back = REFRESH_BACK_STEPS) {
   if (!place || typeof place !== 'object' || !place.lessonId) return null;
@@ -253,16 +419,76 @@ export function backUpPlace(place, back = REFRESH_BACK_STEPS) {
 }
 export function refreshPlace(opts = {}) {
   const storage = opts.storage || defaultStorage();
-  const prev = getPlace({ storage });
+  const prev = opts.lessonId ? getPlaceFor(opts.courseKey || null, opts.lessonId, { storage }) : getPlace({ storage });
   const next = backUpPlace(prev, opts.back);
   if (!next) return null;
-  recordPlace({ courseKey: next.courseKey, lessonId: next.lessonId, stage: next.stage, step: next.step, sentence: 0, sentenceKey: '' }, { storage, now: opts.now });
-  return getPlace({ storage });
+  recordPlace({ courseKey: next.courseKey, lessonId: next.lessonId, stage: next.stage, step: next.step, sentence: 0, sentenceKey: '', started: true }, { storage, now: opts.now });
+  return getPlaceFor(next.courseKey, next.lessonId, { storage });
 }
 
+/**
+ * The user's control: forget ONE lesson's place on this device (the Continue
+ * offer's "Start fresh"). Every other lesson's place is untouched — starting
+ * one lesson over must never cost the reader their place in another. When the
+ * forgotten lesson was the latest, the next most recent becomes the latest.
+ * With no lesson named it forgets the latest place (the original meaning).
+ */
 export function clearPlace(opts = {}) {
   const storage = opts.storage || defaultStorage();
-  try { if (storage) storage.removeItem(KEY); } catch { /* ignore */ }
+  if (!storage) return;
+  try {
+    const map = readMap(storage);
+    let k = map.last;
+    if (opts.lessonId) {
+      k = opts.courseKey
+        ? placeKey(opts.courseKey, opts.lessonId)
+        : (Object.keys(map.byLesson).find((key) => map.byLesson[key].lessonId === opts.lessonId) || '');
+    }
+    if (!k || !map.byLesson[k]) {
+      // Nothing of ours to forget — but a legacy record the map never folded
+      // in must still go, or "Start fresh" would appear to do nothing.
+      if (!opts.lessonId) storage.removeItem(KEY);
+      return;
+    }
+    const byLesson = { ...map.byLesson };
+    delete byLesson[k];
+    let last = map.last;
+    if (last === k) {
+      last = Object.keys(byLesson).sort((x, y) => (byLesson[y].at || 0) - (byLesson[x].at || 0))[0] || '';
+    }
+    writeMap(storage, { ...map, last, byLesson });
+  } catch { /* ignore */ }
+}
+
+/** Forget every lesson's place on this device. */
+export function clearAllPlaces(opts = {}) {
+  const storage = opts.storage || defaultStorage();
+  try { if (storage) { storage.removeItem(MAP_KEY); storage.removeItem(KEY); } } catch { /* ignore */ }
+}
+
+/**
+ * "5 min ago" / "yesterday" — how long since a place was touched, in the
+ * words a person uses. Pure; `now` is injectable. An unknown time says
+ * nothing rather than something false.
+ */
+export function placeAgo(at, now = nowMs()) {
+  const t = Number(at);
+  if (!Number.isFinite(t) || t <= 0) return '';
+  const min = Math.floor((now - t) / 60000);
+  if (min < 1) return 'just now';
+  if (min < 60) return `${min} min ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} hr ago`;
+  const d = Math.floor(hr / 24);
+  if (d === 1) return 'yesterday';
+  return `${d} days ago`;
+}
+
+/** "part 2, step 3" — where in the lesson, in the lesson's own words. */
+export function placeWhere(place) {
+  if (!place) return '';
+  const part = `part ${idx(place.stage) + 1}`;
+  return idx(place.step) > 0 ? `${part}, step ${idx(place.step) + 1}` : part;
 }
 
 // =============================================================================

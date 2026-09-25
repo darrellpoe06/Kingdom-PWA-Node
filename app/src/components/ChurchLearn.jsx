@@ -60,7 +60,7 @@ import { formatLessonText, lessonPoints, lessonSectionPlan } from '../lib/lesson
 import { walkState, stepParagraph, stepPoint } from '../lib/lesson-walk.js';
 import { useOpenWithTheWord } from '../lib/show-the-word.js';
 import { setReadTarget, clearReadTarget, requestRead } from '../lib/read-target.js';
-import { useReadingResume } from '../lib/reading-position.js';
+import { currentSentence, landOnPlace } from '../lib/lesson-landing.js';
 import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload, courseSharePayload, sectionSharePayload } from '../lib/lesson-links.js';
 import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture-matrix.js';
 import CopyButton from './CopyButton.jsx';
@@ -94,11 +94,13 @@ import { crossListingsFor, resolveCrossListed, crossListedCount, courseCrossList
 const EternalAlgorithmsStudyLazy = React.lazy(() => import('./EternalAlgorithmsStudy.jsx'));
 import { organizeCourses, learnDepartments, courseLessonCount, COURSE_SORTS, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey } from '../lib/learn-organize.js';
 import { wantsSections, sectionLessons, divisionOf } from '../lib/lesson-sections.js';
-import { isNumberedCourse, ownNumber, inNumberOrder, numberLabel, ordersFor, orderLessons, withMonthHeadings, formatAdded, DEFAULT_LESSON_ORDER, rememberedLessonOrder, rememberLessonOrder } from '../lib/lesson-order.js';
+import { isNumberedCourse, ownNumber, inNumberOrder, numberLabel, lessonCountLabel, ordersFor, orderLessons, withMonthHeadings, formatAdded, DEFAULT_LESSON_ORDER, rememberedLessonOrder, rememberLessonOrder } from '../lib/lesson-order.js';
 import { subscribeTextSize } from '../lib/text-size.js';
 import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
-import { getPlace, recordPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished } from '../lib/learn-resume.js';
+import { getPlace, getPlaceFor, listPlaces, placeInProgress, placeWhere, recordPlace, finishPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished } from '../lib/learn-resume.js';
+import { unitLabels } from '../lib/learn-units.js';
+import { ContinueOffer, ContinueChip, RowContinue, resolvePlaces } from './LessonContinue.jsx';
 import { useHistoryValue } from '../lib/nav-history.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import UiIcon from './UiIcon.jsx';
@@ -1083,9 +1085,13 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   // place still names this lesson — that is how the reader knows it was heard
   // — but it is no longer a place to resume INTO, so the arc opens at its top
   // instead of at the last part with nothing left to play (learn-resume.js).
+  // THIS LESSON'S OWN PLACE, not the device's latest (DR-0631). With one
+  // record per device, opening lesson A after lesson B found B's place, so A
+  // reopened at part one — the reader's place in A had been overwritten the
+  // moment B was opened. Each lesson now keeps its own.
   const savedHere = (() => {
-    const p = getPlace();
-    if (!p || p.lessonId !== module.id) return null;
+    const p = getPlaceFor(null, module.id);
+    if (!p) return null;
     return placeIsFinished(p) ? null : p;
   })();
 
@@ -1460,19 +1466,23 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
 // CourseView — renders ONE course (the active one). Generic over a `course`
 // descriptor so both the youth class and the broadcast training share this code.
 // -----------------------------------------------------------------------------
-// Label layer for the unit of curriculum. The four weekly cohort courses set no
-// `meta.unit`, so this returns the original "week"/"Week"/"weeks" wording and the
-// cohort framing — byte-for-byte unchanged. A self-paced lesson series (Living
-// Lessons) sets meta.unit to relabel rows as "Lesson(s)" and drop the cohort clock.
-function unitLabels(meta) {
-  const u = (meta && meta.unit) || {};
-  return {
-    noun: u.noun || 'week',          // "this {noun}"
-    plural: u.nounPlural || 'weeks',  // "The N {plural}"
-    cap: u.cap || 'Week',             // "{cap} N · title"
-    selfPaced: !!u.selfPaced,
-    sessionLabel: u.sessionLabel || 'How to run the 75 minutes',
-  };
+// Label layer for the unit of curriculum: lib/learn-units.js (one definition,
+// shared with the Continue offers — DR-0631).
+
+// THE READER'S ORDER, as one list with no headings (DR-0631 with DR-0626):
+// what the lesson list shows for the order picked there — by number, newest
+// first, or by the Word's divisions (number order inside each) — and what
+// Prev / Next and the hands-free advance walk inside a lesson. Composed from
+// lib/lesson-order.js; a course whose lessons carry no number of their own
+// keeps its authored order.
+function lessonSequence(schedule, courseKey, picked) {
+  const list = Array.isArray(schedule) ? schedule : [];
+  if (!isNumberedCourse(list)) return list;
+  const order = picked || rememberedLessonOrder(courseKey) || DEFAULT_LESSON_ORDER;
+  if (order === 'divisions' && wantsSections(list)) {
+    return sectionLessons(list).flatMap((sec) => orderLessons(sec.lessons, 'number'));
+  }
+  return orderLessons(list, order === 'newest' ? 'newest' : 'number');
 }
 
 function CourseView({
@@ -1524,6 +1534,7 @@ function CourseView({
   presentRequest = null,
   onFocusChange = null,  // tells the wrapper a lesson space is open (it hides the course picker)
   onAllCourses = null,   // leave the lesson AND the course — the way out of a hidden-chrome space
+  lessonOrder = null,    // the order picked in this course's lesson list (DR-0626); Prev/Next follow it
 }) {
   const [showFacilitator, setShowFacilitator] = useState(false);
   const [openTutorId, setOpenTutorId] = useState(null);
@@ -1612,22 +1623,122 @@ function CourseView({
   useHistoryValue(focusId, setFocusId, { base: null, key: 'learn-lesson-focus' });
 
   // THE EXACT LOCATION IS KEPT AND RESTORED (Darrell 2026-09-14: "Lessons keep
-  // being interrupted and I'm loosing my exact location!!! Fix it!!!").
+  // being interrupted and I'm loosing my exact location!!! Fix it!!!") — and,
+  // since DR-0631, kept in ONE place record rather than two.
   //
-  // THE PRIMITIVE FOR THIS ALREADY EXISTED AND LESSONS WERE NEVER WIRED TO IT.
-  // lib/reading-position.js was built 2026-06-25 for exactly this -- "the user
-  // should start reading wherever they are reading from... not have to start
-  // from the top" -- and it persists on scroll (debounced), on
-  // visibilitychange and on unmount, then restores after two frames via a
-  // stable anchor with a scrollY fallback. The book Reader (Library) and the
-  // Pulpit both use it. LESSONS DID NOT, which is why the place survived in
-  // those surfaces and was lost here.
+  // 2026-09-14 wired lessons to lib/reading-position.js, which remembered a
+  // SCROLL OFFSET beside the lesson's place record. Measured in a real browser
+  // on 2026-09-24 (Darrell: "Continuing a lesson doesn't work well... it needs
+  // to be way better"): after a reload, a tab away, or a course switch, the
+  // lesson came back at the right step and at scrollY 0 — the course header
+  // on screen, the words a long scroll below. A lesson has no reading anchors,
+  // so the offset was a bare scrollY, saved on unmount AFTER the page had
+  // already changed under it; and the place record, which knew the step, knew
+  // nothing finer for a reader using their eyes. Two records, disagreeing —
+  // exactly the drift the 2026-09-14 note warned about.
   //
-  // So this is three lines against a proven primitive rather than a second
-  // implementation of it. The lesson is the ITEM, so each lesson keeps its own
-  // place and moving between them does not blur them together.
-  useReadingResume({ userKey: 'learn', surface: 'lesson', itemId: focusId || '', enabled: !!focusId });
+  // Now the reader's eye writes the SAME thing the reader's voice does: the
+  // sentence at the reading line (just under the sticky chrome), as its
+  // fingerprint, into the lesson's own place (lib/lesson-landing.js). Only a
+  // scroll the PERSON made counts — the read-aloud's follow-scroll and the
+  // landing's own scroll are not the reader moving, and the voice records its
+  // own sentence anyway. A finished lesson is left finished: looking back
+  // over it is not starting it again.
   const focusModule = focusId ? (schedule.find((m) => m.id === focusId) || null) : null;
+  // The order the reader picked in this course's list (see lessonSequence).
+  const sequence = useMemo(() => lessonSequence(schedule, course.key, lessonOrder), [schedule, course.key, lessonOrder]);
+  const sequenceRef = React.useRef(sequence);
+  sequenceRef.current = sequence;
+  // This course's saved places, one parse per render, for the cards' own
+  // Start/Continue buttons.
+  const placeByLesson = Object.fromEntries(listPlaces({ courseKey: course.key }).map((p) => [p.lessonId, p]));
+  React.useEffect(() => {
+    if (!focusId || typeof window === 'undefined') return undefined;
+    let userAt = 0;
+    let timer = null;
+    const SCROLL_KEYS = new Set(['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' ', 'Spacebar']);
+    const touched = () => { userAt = Date.now(); };
+    const keyed = (e) => { if (e && SCROLL_KEYS.has(e.key)) userAt = Date.now(); };
+    const onScroll = () => {
+      if (Date.now() - userAt > 1500) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = null;
+        try {
+          const own = getPlaceFor(course.key, focusId);
+          if (own && own.done) return;
+          const root = document.getElementById(`learn-lesson-${focusId}`);
+          // A lesson being left (hidden, detached, or the page gone to the
+          // background) is not being read.
+          if (!root || !root.isConnected || document.hidden) return;
+          const box = root.getBoundingClientRect();
+          if (!(box.height > 0)) return;
+          const cur = currentSentence(root);
+          if (!cur) return;
+          savePlace({ lessonId: focusId, sentence: cur.index, sentenceKey: cur.key });
+        } catch (_) { /* a place that cannot be written never breaks the lesson */ }
+      }, 450);
+    };
+    // A TAP IS NOT A SCROLL. Measured in the browser journeys: with a tap
+    // counted as the reader moving, tapping the Scripture tab to leave made
+    // the navigation's own scroll record the view under the finger — over the
+    // sentence the read-aloud had saved. Only a wheel, a finger dragging the
+    // page, or a scroll key is the reader moving.
+    const opts = { passive: true };
+    window.addEventListener('wheel', touched, opts);
+    window.addEventListener('touchmove', touched, opts);
+    window.addEventListener('keydown', keyed);
+    window.addEventListener('scroll', onScroll, opts);
+    return () => {
+      if (timer) clearTimeout(timer);
+      window.removeEventListener('wheel', touched, opts);
+      window.removeEventListener('touchmove', touched, opts);
+      window.removeEventListener('keydown', keyed);
+      window.removeEventListener('scroll', onScroll, opts);
+    };
+  }, [focusId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // LANDING — every Continue ends ON the words (DR-0631). Asked for by the
+  // doors that mean "take me back": the Continue offers, the lesson's own
+  // Continue button, Refresh first. Waits for the guide to paint at the saved
+  // part and step (TutorPanel opens there itself), then scrolls the saved
+  // sentence to just under the chrome and marks it; with no findable sentence
+  // it lands on the saved step and the note says so honestly.
+  const [landing, setLanding] = useState(null);      // { lessonId, nonce }
+  const [landNote, setLandNote] = useState(null);    // { lessonId, how, where }
+  const landAt = (id) => setLanding({ lessonId: id, nonce: Date.now() });
+  React.useEffect(() => {
+    if (!landing || typeof document === 'undefined') return undefined;
+    let tries = 0;
+    let t = null;
+    const attempt = () => {
+      t = null;
+      const root = document.getElementById(`learn-lesson-${landing.lessonId}`);
+      const guide = document.getElementById(`learn-read-${landing.lessonId}`);
+      if ((!root || !guide) && tries < 25) { tries += 1; t = setTimeout(attempt, 80); return; }
+      const place = getPlaceFor(course.key, landing.lessonId);
+      if (!root || !place) return;
+      // The paced step's own box when the reader was inside the teaching;
+      // else the part's box.
+      const boxes = guide ? guide.querySelectorAll('[aria-live="polite"]') : [];
+      const stepEl = boxes.length ? boxes[boxes.length - 1] : null;
+      // The guide is searched first: when a sentence also appears in the card
+      // above it, the reader belongs back in the lesson they were walking.
+      let res = guide ? landOnPlace(guide, place, { stepEl }) : { how: 'none' };
+      if (res.how !== 'sentence') res = landOnPlace(root, place, { stepEl });
+      if (res.how === 'none') {
+        try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (_) { /* no-op */ }
+      }
+      setLandNote(res.how === 'none' ? null : { lessonId: landing.lessonId, how: res.how, why: res.why, where: placeWhere(place) });
+    };
+    t = setTimeout(attempt, 140);
+    return () => { if (t) clearTimeout(t); };
+  }, [landing]); // eslint-disable-line react-hooks/exhaustive-deps
+  React.useEffect(() => {
+    if (!landNote) return undefined;
+    const t = setTimeout(() => setLandNote(null), 7000);
+    return () => clearTimeout(t);
+  }, [landNote]);
   // THE STICKY TITLE OPENS ON A TAP (Darrell 2026-09-24, two Big Print
   // screenshots of Lesson 101 whose title ended in "...": "The title to
   // lessons are getting cut off!!!!!! Fix it..."). Three of his words hold at
@@ -1686,7 +1797,8 @@ function CourseView({
   const advanceFrom = (id) => {
     if (!advanceFromRef.current[id]) {
       advanceFromRef.current[id] = () => {
-        const list = scheduleRef.current || [];
+        // The reader's order, not the written array (DR-0631).
+        const list = sequenceRef.current || scheduleRef.current || [];
         const i = list.findIndex((m) => m.id === id);
         const nextM = i >= 0 && i < list.length - 1 ? list[i + 1] : null;
         if (!nextM) return false;
@@ -1734,7 +1846,9 @@ function CourseView({
     // DR-0262 — the place survives in BOTH directions. openLesson() records it;
     // this cross-course door (the finder, the shelf, Resume) did not, so a
     // lesson reached that way was one a reader could lose again on reload.
-    savePlace({ lessonId: resumeLessonId });
+    // Arriving with the guide open is beginning (or continuing) the lesson;
+    // arriving to browse its card is not (DR-0631 — see `started`).
+    savePlace({ lessonId: resumeLessonId, ...(resumeOpenGuide ? { started: true } : {}) });
     recordUse(resumeLessonId);
     // ARRIVAL NO LONGER JUMPS TO THE TOP WHEN THERE IS A PLACE TO RETURN TO.
     // `scrollTo({top: 0})` here was the most-felt half of "I'm losing my exact
@@ -1742,10 +1856,13 @@ function CourseView({
     // on every return. useReadingPosition above restores the sentence, so the
     // top-scroll is now only for a lesson with NO saved sentence -- a genuinely
     // fresh open, where the top IS the right place.
-    const saved = getPlace();
-    const hasPlace = saved && saved.lessonId === resumeLessonId
-      && (saved.sentenceKey || saved.sentence > 0);
-    if (hasPlace) return undefined;
+    // DR-0631: "not jumping to the top" was only half of it — measured, the
+    // view then sat wherever the page happened to be (scrollY 0 after a
+    // reload). A Continue arrival now LANDS: on the saved sentence, else on
+    // the saved step, with the guide open at the saved part.
+    const saved = getPlaceFor(course.key, resumeLessonId);
+    const hasPlace = resumeOpenGuide && placeInProgress(saved);
+    if (hasPlace) { landAt(resumeLessonId); return undefined; }
     const t = setTimeout(() => {
       try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { /* no-op */ }
     }, 80);
@@ -1761,7 +1878,7 @@ function CourseView({
     const m = schedule.find((x) => x.id === presentRequest.lessonId);
     if (!m) return;   // a hit from another course: that course's view answers it
     recordUse(m.id);
-    savePlace({ lessonId: m.id });
+    savePlace({ lessonId: m.id, started: true });
     // THE SECOND PLAY ROUTE ALSO READS (Darrell 2026-09-14, found by DRIVING
     // the app rather than reading it: pressing Play produced ZERO speech calls
     // and opened the presenter anyway). The card's Play was changed; THIS one --
@@ -1867,7 +1984,7 @@ function CourseView({
         <div>
       {/* The timeline + curriculum */}
       <div className="flex items-baseline justify-between gap-2 mb-1">
-        <h3 className="text-lg font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{U.selfPaced ? (meta.weeks === 1 ? `The ${U.noun}` : `The ${meta.weeks} ${U.plural}`) : `The ${meta.weeks} ${U.plural}`}</h3>
+        <h3 className="text-lg font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{U.selfPaced && schedule.length === 1 ? `The ${U.noun}` : `The ${schedule.length} ${U.plural}`}</h3>
         <span className={`text-[0.625rem] uppercase tracking-wider px-2 py-0.5 border ${U.selfPaced ? 'text-[#5A6E3D] border-[#5A6E3D]' : cohortConfirmed ? 'text-[#5A6E3D] border-[#5A6E3D]' : 'text-[#B85838] border-[#B85838]'}`}>
           {U.selfPaced ? 'Self-paced' : (cohortConfirmed ? 'Cohort 1 · confirmed' : 'Cohort 1 · proposed')}
         </span>
@@ -1934,7 +2051,7 @@ function CourseView({
           onClick={() => setTeaching(true)}
           className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
         >
-          ▶ Play the overview (all {meta.weeks} at a glance)
+          ▶ Play the overview (all {schedule.length} at a glance)
         </button>
         <p className="mt-2 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
           Opens the big full-screen view — read it yourself in large type, or press <strong>Read aloud</strong> and let it read to you. Every {U.noun} below has its own <strong className="text-[#5A6E3D]">▶ Play</strong>; this one plays the whole series at a glance.
@@ -1952,9 +2069,16 @@ function CourseView({
           WORDS grow and the frame stays a frame. Same for the catalog's
           lessons-bar below, which reuses this exact shape. */}
       {focusModule && (() => {
-        const idx = schedule.findIndex((m) => m.id === focusModule.id);
-        const prev = idx > 0 ? schedule[idx - 1] : null;
-        const next = idx >= 0 && idx < schedule.length - 1 ? schedule[idx + 1] : null;
+        // PREV / NEXT WALK THE ORDER THE READER CHOSE IN THE LIST (DR-0631,
+        // agreeing with DR-0626). They walked the WRITTEN array, where L61 is
+        // stored before L60 and there is no L79 — so Next from L60 skipped
+        // L61, and the counter printed the array position ("191 / 191" on
+        // L192, Darrell's screenshot). Both now read the same sequence the
+        // lesson list shows.
+        const idx = sequence.findIndex((m) => m.id === focusModule.id);
+        const prev = idx > 0 ? sequence[idx - 1] : null;
+        const next = idx >= 0 && idx < sequence.length - 1 ? sequence[idx + 1] : null;
+        const numbered = isNumberedCourse(schedule);
         return (
           <div className="sticky top-0 z-30 mb-3 bg-[#FAF8F4]" data-testid="lesson-space-sticky">
           <div className="ts-chrome-region border border-[#1A1815] border-b-0 px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 flex-nowrap sm:flex-wrap" data-testid="lesson-space-bar">
@@ -1995,8 +2119,20 @@ function CourseView({
                   grows the words and the frame stays a frame (DR-0410). */}
               ← All {U.noun}s
             </button>
-            <span className="text-[0.6875rem] text-[#5A5751] whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-              <span className="hidden sm:inline">{U.cap} </span>{focusModule.week}<span className="sm:hidden"> / </span><span className="hidden sm:inline"> of </span>{schedule.length}
+            {/* THE LESSON'S OWN NUMBER (DR-0631 with DR-0626): "L192", and on a
+                wider screen where it sits in the reader's order. A course whose
+                lessons carry no number of their own keeps "Week 3 of 8". */}
+            <span className="text-[0.6875rem] text-[#5A5751] whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }} data-testid="lesson-bar-number" data-lesson-number={ownNumber(focusModule, schedule)}>
+              {numbered ? (
+                <>
+                  {numberLabel(focusModule, true, U.cap)}
+                  <span className="hidden sm:inline"> · {idx + 1} of {sequence.length}</span>
+                </>
+              ) : (
+                <>
+                  <span className="hidden sm:inline">{U.cap} </span>{focusModule.week}<span className="sm:hidden"> / </span><span className="hidden sm:inline"> of </span>{schedule.length}
+                </>
+              )}
             </span>
             <span className="flex-1" />
             <button
@@ -2130,6 +2266,24 @@ function CourseView({
               </div>
             </div>
           )}
+          {/* WHERE A CONTINUE LANDED, SAID PLAINLY (DR-0631) — for a few
+              seconds, then gone. When the exact sentence could not be found
+              (the lesson was updated, say), it says only that rather than letting a
+              wrong landing pass as a right one. */}
+          {landNote && landNote.lessonId === focusModule.id && (
+            <p
+              role="status"
+              data-testid="continue-landed"
+              className="border border-[#5A6E3D] border-t-0 px-2 sm:px-3 py-1 bg-[#5A6E3D] text-white text-[0.75rem]"
+              style={{ fontFamily: '"Fraunces", serif' }}
+            >
+              {landNote.how === 'sentence'
+                ? `Picked up where you left off — ${landNote.where}. Your sentence is marked.`
+                : (landNote.why === 'no-sentence'
+                  ? `Picked up where you left off — ${landNote.where}.`
+                  : `Picked up at ${landNote.where}, at the start of that step — your exact sentence could not be found in it.`)}
+            </p>
+          )}
           </div>
         );
       })()}
@@ -2180,14 +2334,25 @@ function CourseView({
                   title="Copy a link that opens exactly this lesson"
                   text={() => lessonUrl({ courseKey: course.meta.key, lessonId: m.id })}
                 />
+                {/* START, OR CONTINUE (DR-0631). A lesson the reader has begun
+                    says so on its own button, and the tap lands on their place
+                    (the saved part, step and sentence) instead of part one. */}
                 <button
                   type="button"
-                  onClick={() => { if (!tutorOpen) { recordUse(m.id); savePlace({ lessonId: m.id }); } setOpenTutorId(tutorOpen ? null : m.id); }}
+                  onClick={() => {
+                    if (tutorOpen) { setOpenTutorId(null); return; }
+                    const resumeHere = placeInProgress(placeByLesson[m.id]);
+                    recordUse(m.id);
+                    savePlace({ lessonId: m.id, started: true });
+                    setOpenTutorId(m.id);
+                    if (resumeHere) landAt(m.id);
+                  }}
                   aria-expanded={tutorOpen}
                   aria-controls={`tutor-panel-${m.id}`}
-                  className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${tutorOpen ? 'border-[#B85838] text-[#B85838]' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
+                  title={!tutorOpen && placeInProgress(placeByLesson[m.id]) ? `Continue where you left off — ${placeWhere(placeByLesson[m.id])}` : undefined}
+                  className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${tutorOpen ? 'border border-[#B85838] text-[#B85838]' : (placeInProgress(placeByLesson[m.id]) ? 'border-2 border-[#5A6E3D] bg-[#5A6E3D] text-white font-semibold hover:bg-[#4a5a31]' : 'border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white')}`}
                 >
-                  {tutorOpen ? 'Close the guide' : `Start this ${U.noun} →`}
+                  {tutorOpen ? 'Close the guide' : (placeInProgress(placeByLesson[m.id]) ? `Continue this ${U.noun} →` : `Start this ${U.noun} →`)}
                 </button>
                 {/* ▶ PLAY THIS ONE — opens the big full-screen reader on this
                     {U.noun} alone (Read aloud · Full screen · Speaker view), timed
@@ -2212,7 +2377,7 @@ function CourseView({
                 <button
                   type="button"
                   onClick={() => {
-                    recordUse(m.id); savePlace({ lessonId: m.id });
+                    recordUse(m.id); savePlace({ lessonId: m.id, started: true });
                     // The guide must be OPEN for the lesson to register its
                     // reading, so Play opens it and then asks for the read.
                     openLesson(m.id); setOpenTutorId(m.id); requestRead(m.id);
@@ -2659,7 +2824,12 @@ function CourseView({
                        Start over puts the reader back at part 1 AND clears the
                        saved place, which is what "if it's over, it's over"
                        requires — otherwise the next read resumes at the end. */
-                    onAllUnits={focusModule ? () => setFocusId(null) : null}
+                    /* LEAVING BY THE END DOOR IS FINISHING (DR-0631). Before
+                       this, only the read-aloud's last sentence could mark a
+                       lesson finished; a reader who walked it to the end by hand
+                       left it "in progress" forever, and Continue offered them
+                       the send-off they had just read. */
+                    onAllUnits={focusModule ? () => { finishPlace({ courseKey: course.key, lessonId: m.id }); setFocusId(null); } : null}
                     onStartOver={() => { savePlace({ lessonId: m.id, stage: 0, step: 0 }); }}
                   />
                 </div>
@@ -3127,10 +3297,13 @@ export default function ChurchLearn({
   // the resume banner drives, so a found lesson opens exactly like a resumed
   // one (never a painted list).
   const [lessonQuery, setLessonQuery] = useState('');
-  // Resume-your-place (Darrell 2026-07-30): the device's saved Learn place,
-  // read once on mount (client-only app; same read-in-render pattern as
-  // ux-signals' "Recently opened"). Cleared from view on resume/dismiss.
-  const [savedPlace, setSavedPlace] = useState(() => getPlace());
+  // Resume-your-place (Darrell 2026-07-30), ONE PLACE PER LESSON since
+  // DR-0631. Read live on every render (client-only app; the same
+  // read-in-render pattern as ux-signals' "Recently opened"), so leaving a
+  // lesson brings its Continue straight back — the old banner was read once
+  // on mount and nulled on its first use, and measured, it did not return
+  // until Learn remounted. `placesTick` re-renders after a place is forgotten.
+  const [, setPlacesTick] = useState(0);
   // The lesson CourseView should open + scroll to after a resume tap.
   const [resumeLessonId, setResumeLessonId] = useState(null);
   // Rises on every open() — see resumeNonce on the inner component: re-opening
@@ -3317,29 +3490,36 @@ export default function ChurchLearn({
     rememberLessonOrder(courseKey, order);
   };
 
-  // Resolve the saved place against the MOUNTED catalog (verify before relying
-  // on it): a course or lesson that no longer exists offers nothing — the
-  // banner can never point at a dead door.
-  const placeCourse = savedPlace ? courses.find((c) => c.key === savedPlace.courseKey) : null;
-  const placeLesson = placeCourse ? ((placeCourse.schedule || []).find((m) => m.id === savedPlace.lessonId) || null) : null;
-  // Redundant while the saved lesson's guide is already the one open on screen.
-  const showResume = !!placeLesson && !(activeKey === savedPlace.courseKey && resumeLessonId === savedPlace.lessonId);
-  const resumeNow = () => {
-    setActiveKey(savedPlace.courseKey);
+  // Resolve the saved places against the MOUNTED catalog (verify before
+  // relying on them): a course or lesson that no longer exists offers nothing
+  // — no Continue can ever point at a dead door. Every lesson begun and not
+  // finished, newest first (DR-0631).
+  const inProgress = resolvePlaces(listPlaces({ inProgress: true }), courses);
+  const activeContinue = inProgress.find((it) => it.course.key === active.key) || null;
+  const activePlaces = Object.fromEntries(listPlaces({ courseKey: active.key }).map((p) => [p.lessonId, p]));
+  // CONTINUE — one path for every Continue on the page. Opens the lesson's
+  // course (leaving a department filter that would hide it), opens its space
+  // with the guide at the saved part and step, and lands on the sentence.
+  const resumeNow = (place) => {
+    if (!place) return;
+    if (dept && !dept.courses.some((c) => c.key === place.courseKey)) setDeptId('all');
+    setActiveKey(place.courseKey);
     setResumeOpenGuide(true);
-    setResumeLessonId(savedPlace.lessonId);
-    setSavedPlace(null);
+    setResumeLessonId(place.lessonId);
+    setResumeNonce((n) => n + 1);
   };
-  const startFresh = () => {
-    clearPlace();
-    setSavedPlace(null);
+  // START FRESH forgets ONE lesson's place — the one named on the button.
+  const startFresh = (place) => {
+    clearPlace(place ? { courseKey: place.courseKey, lessonId: place.lessonId } : {});
+    setPlacesTick((n) => n + 1);
   };
   // REFRESH FIRST (DR-0418): back the saved place up a couple of paced steps,
-  // then resume exactly as Resume does — the lesson space reads the place live,
-  // so it opens on the refresher rather than the frontier.
-  const refreshFirst = () => {
-    refreshPlace();
-    resumeNow();
+  // then resume exactly as Continue does — the lesson space reads the place
+  // live, so it opens on the refresher rather than the frontier.
+  const refreshFirst = (place) => {
+    if (!place) return;
+    refreshPlace({ courseKey: place.courseKey, lessonId: place.lessonId });
+    resumeNow(place);
   };
 
   // Engagement-by-age: TutorPanel emits (signal, moduleId); the wrapper injects the
@@ -3556,6 +3736,24 @@ export default function ChurchLearn({
           </div>
         )}
 
+        {/* PICK UP WHERE YOU LEFT OFF — directly under the course picker
+            (DR-0631). Darrell has said twice that the picker comes first,
+            "even above where you left off" (2026-09-06), so this is the first
+            thing AFTER it. Measured before: the only Continue on the tab sat
+            at y≈2,084 on an 844-px phone, below the whole lesson index and the
+            finder, and it named one lesson per device. Now: the latest lesson
+            as one big button, every other lesson begun beneath it, each one
+            tap, each resolved against the mounted catalog (LessonContinue.jsx;
+            lib/learn-resume.js). Hidden only while a lesson is open. */}
+        {!lessonFocus && inProgress.length > 0 && (
+          <ContinueOffer
+            items={inProgress}
+            onContinue={resumeNow}
+            onRefresh={refreshFirst}
+            onForget={startFresh}
+          />
+        )}
+
         {/* THE CROSS-LIST BLOCKS SIT BELOW THE PICKER, NEVER ABOVE IT.
             Darrell, 2026-09-19, with a screenshot of the Business tab:
             "Where is the drop-down?!!!!!!!!!! For all tabs..."
@@ -3633,7 +3831,7 @@ export default function ChurchLearn({
               className="mb-4 border border-[#E8E4DC] bg-[#FAF8F4] p-3"
             >
               <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-2">
-                {active.meta.title} · pick a {U.noun} by title · {schedule.length}
+                {active.meta.title} · pick a {U.noun} by title · <span data-testid="course-lesson-count">{lessonCountLabel(schedule, U)}</span>
               </div>
               {recentIds.length > 0 && (
                 <div className="mb-2 pb-2 border-b border-[#E8E4DC]">
@@ -3772,6 +3970,13 @@ export default function ChurchLearn({
                       </span>
                       <span className="block">{m.title}</span>
                     </button>
+                    {/* The lesson's own state, on its own row (DR-0631):
+                        Continue on a lesson begun, Finished on one done. */}
+                    <RowContinue
+                      place={activePlaces[m.id] && (activePlaces[m.id].done || placeInProgress(activePlaces[m.id])) ? activePlaces[m.id] : null}
+                      title={m.title}
+                      onContinue={resumeNow}
+                    />
                     {/* The SAME action the card list's ▶ Play performs — the big
                         full-screen reader on this one, read yourself or read to
                         you. The title still opens the lesson's space; this opens
@@ -4013,51 +4218,6 @@ export default function ChurchLearn({
           </p>
         )}
 
-        {/* Resume-your-place (Darrell 2026-07-30: "It's too easy to lose your
-            place inside of the Learn space after starting one self-paced
-            lesson"). The device's saved place — course, lesson, arc stage,
-            paced step — offered back as ONE tap, above the picker so it is the
-            first thing a returning learner meets. Device-local + private
-            (lib/learn-resume.js); verified against the mounted catalog, so a
-            renamed/removed lesson silently offers nothing instead of a dead
-            door. */}
-        {showResume && !lessonFocus && (
-          <div className="mb-4 border-2 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] p-3">
-            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">Pick up where you left off</div>
-            <p className="text-sm text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-              <strong>{placeCourse.meta.title}</strong> — {unitLabels(placeCourse.meta).cap} {ownNumber(placeLesson, placeCourse.schedule)} · {placeLesson.title}
-              {savedPlace.stage > 0 || savedPlace.step > 0 ? (
-                <span className="text-[#5A5751]"> (part {savedPlace.stage + 1}{savedPlace.step > 0 ? `, step ${savedPlace.step + 1}` : ''})</span>
-              ) : null}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={resumeNow}
-                className="text-[0.625rem] uppercase tracking-wider px-4 py-2 min-h-[40px] border-2 border-[#5A6E3D] bg-[#5A6E3D] text-white hover:bg-[#4a5a31] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-              >
-                Resume →
-              </button>
-              {(savedPlace.step > 0) && (
-                <button
-                  type="button"
-                  onClick={refreshFirst}
-                  title="Replay the last couple of steps before the new one"
-                  className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[40px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-                >
-                  Refresh first
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={startFresh}
-                className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[40px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-              >
-                Start fresh
-              </button>
-            </div>
-          </div>
-        )}
 
 
       </div>
@@ -4112,6 +4272,10 @@ export default function ChurchLearn({
           <span className="text-[0.6875rem] text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
             {active.meta.title}
           </span>
+          {/* THIS COURSE'S CONTINUE, WHERE IT NEVER SCROLLS AWAY (DR-0631).
+              The bar is sticky, so a reader anywhere in the course's lesson
+              list is one tap from the lesson they have in progress here. */}
+          <ContinueChip item={activeContinue} onContinue={resumeNow} />
           <span className="text-[0.6875rem] text-[#5A5751] ml-auto" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
             {courses.reduce((t, c) => t + ((c.schedule && c.schedule.length) || 0), 0)} lessons<span className="hidden sm:inline"> · {courses.length} courses</span>
           </span>
@@ -4159,6 +4323,7 @@ export default function ChurchLearn({
         presentRequest={presentRequest}
         onFocusChange={setLessonFocus}
         onAllCourses={() => { setResumeLessonId(null); setResumeOpenGuide(false); setDeptId('all'); }}
+        lessonOrder={lessonOrderPick[active.key] || null}
       />
     </section>
   );
