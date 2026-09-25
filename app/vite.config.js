@@ -358,6 +358,10 @@ const NAS_PHOTOS_DEV_TARGET = process.env.NAS_PHOTOS_DEV_TARGET || 'http://192.1
 export default defineConfig({
   base: BASE,
   plugins: [react(), swVersionStamp(), modulepreloadMonolith()],
+  // The on-device voice's worker (lib/device-voice.worker.js, DR-0656) imports
+  // onnxruntime-web's ESM build, which reads import.meta.url; the default
+  // 'iife' worker format cannot carry that, so workers are built as modules.
+  worker: { format: 'es' },
   build: {
     rollupOptions: {
       // MPA inputs (DR-0258 install-scope split): the church's app page at

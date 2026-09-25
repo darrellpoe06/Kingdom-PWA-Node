@@ -349,8 +349,15 @@ SELECT resource, coalesce(written::text,''), coalesce(to_char(newest_at AT TIME 
 // How often a workflow is expected to have run, from its own schedule: a
 // daily-or-faster cron → 2 days; a weekly cron → 8; a monthly one → 32; no
 // schedule (dispatch / push / PR only) → null, "runs when asked".
+// A schedule commented out is not a schedule (measured 2026-09-25, run
+// 36077477281: transcript-backfill and ari-comprehensive-review both carry a
+// "#   - cron:" line and were judged as stopped witnesses).
+export function liveYaml(yamlText) {
+  return String(yamlText || '').split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+}
+
 export function cronFreshDays(yamlText) {
-  const crons = [...String(yamlText || '').matchAll(/cron:\s*['"]([^'"]+)['"]/g)].map((m) => m[1].trim().split(/\s+/));
+  const crons = [...liveYaml(yamlText).matchAll(/cron:\s*['"]([^'"]+)['"]/g)].map((m) => m[1].trim().split(/\s+/));
   if (!crons.length) return null;
   let best = null;
   for (const c of crons) {

@@ -383,7 +383,7 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       {subView === 'governance' && isGovernor && (
         <div className="space-y-6">
           <DecisionIntelligence concerns={concerns} projects={projects} discussions={discussions} boardTasks={boardTasks} feedback={feedback} incidents={incidents} record={!!currentUserId} />
-          <OperationsIntelligence loopData={loopData} loopEnv={{ financialDocAt }} discussions={discussions} />
+          <OperationsIntelligence loopData={loopData} loopEnv={{ financialDocAt }} discussions={discussions} feedback={feedback} />
           {/* DR-0635: members' lessons wait here for the Governor's word. */}
           <MemberLessonQueue signedIn={!!currentUserId} />
           <GovernanceQueue

@@ -378,6 +378,12 @@ export const WORD_HIGHLIGHT = 'poe-read-word';
 
 export function highlightSegment(range, win) { return setNamed(SEGMENT_HIGHLIGHT, range, win); }
 export function highlightWord(range, win) { return setNamed(WORD_HIGHLIGHT, range, win); }
+// "YOU WERE HERE" (DR-0631). The sentence a Continue lands on is marked for a
+// few seconds so the eye finds it without searching. Its own name, never the
+// reading wash: a read that starts right after the landing must not have its
+// highlight cleared by the landing's timer, and vice versa. Pass null to clear.
+export const RESUME_HIGHLIGHT = 'poe-resume-mark';
+export function highlightResume(range, win) { return setNamed(RESUME_HIGHLIGHT, range, win); }
 export function clearReadingHighlights(win = typeof window !== 'undefined' ? window : null) {
   // Clear BOTH mechanisms unconditionally. Clearing only the one this browser
   // is using would strand the other's boxes on screen if support ever changed
