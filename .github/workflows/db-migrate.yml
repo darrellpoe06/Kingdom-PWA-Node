@@ -164,6 +164,25 @@ jobs:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
         run: bash scripts/sovereign-replay-over-tailnet.sh
 
+      # THE PROOFS' THROWAWAY DATABASE (2026-09-25). rls-isolation no longer
+      # touches any real database: each leg restores this schema-only dump of
+      # the live shape into its own container. Taken here, after the replay,
+      # so the proofs dispatched below test the schema this merge produced.
+      # Read-only (pg_dump); no person's rows (scripts/test-db-baseline-over-tailnet.sh).
+      - name: Take the test-database baseline (schema only, for the isolation proofs)
+        if: ${{ success() && hashFiles('infra/nas-supabase/REPOINT-ARMED') != '' }}
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: bash scripts/test-db-baseline-over-tailnet.sh "$RUNNER_TEMP/test-db-baseline.sql.gz"
+      - name: Hand the baseline to the isolation proofs
+        if: ${{ success() && hashFiles('infra/nas-supabase/REPOINT-ARMED') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-db-baseline
+          path: ${{ runner.temp }}/test-db-baseline.sql.gz
+          retention-days: 30
+          if-no-files-found: error
+
       - name: Dispatch the isolation proofs (all features, one matrix)
         if: success()
         env:

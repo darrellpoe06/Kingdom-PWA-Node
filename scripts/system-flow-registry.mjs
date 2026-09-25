@@ -562,7 +562,7 @@ const NODES = [
     reads: [{ res: 'gh:main', token: 'main' }], writes: [{ res: 'gh:migrate-heal', token: 'gh workflow run db-migrate.yml' }], seeds: ['db-migrate'],
   }),
   wf('rls-isolation.yml', {
-    id: 'rls-isolation', name: 'RLS isolation matrix', purpose: 'Proves on the real database that no tenant reads another’s rows.',
+    id: 'rls-isolation', name: 'RLS isolation matrix', purpose: 'Proves on a throwaway copy of the live schema that no tenant reads another’s rows.',
     reads: [{ res: 'gh:rls-dispatch', token: 'workflow_run' }], writes: [], seeds: [],
   }),
   app('app/src/lib/db-health.js', {

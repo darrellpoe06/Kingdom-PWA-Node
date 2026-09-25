@@ -122,10 +122,15 @@ jobs:
       - run: node ../scripts/lessons-gate-coverage.mjs
       # rls-isolation matrix file-reference guard (DR-0239 gate-the-class): every
       # migration + smoke the isolation matrix names by string must exist on disk.
-      # The matrix runs only when db-migrate dispatches it against prod, so a
-      # dangling reference is otherwise invisible until a prod dispatch — this
-      # makes it RED here. Proven-to-catch in rls-isolation-matrix-guard.test.js.
+      # The matrix runs only when db-migrate dispatches it, so a dangling
+      # reference is otherwise invisible until that dispatch — this makes it RED
+      # here. Proven-to-catch in rls-isolation-matrix-guard.test.js.
       - run: node ../scripts/rls-isolation-matrix-guard.mjs
+      # A test lane never touches a real database (DR-0659): rls-isolation and
+      # any smoke/e2e lane run on the throwaway container; every other lane that
+      # reaches a live database is registered with its reason.
+      # Proven-to-catch in live-db-reach-guard.test.js.
+      - run: node ../scripts/live-db-reach-guard.mjs
       # A replay must converge on the CURRENT definition, never restore an older
       # one (measured live 2026-08-27: the matrix had been reverting 0144's
       # set_member_role and 0151's claim_property_access on production).

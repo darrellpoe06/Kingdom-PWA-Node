@@ -17,9 +17,9 @@ on:
   workflow_dispatch:
     inputs:
       what:
-        description: 'intake (every note counted by outcome category, no text but short audit snippets; DR-0625), feedback (what people said), definitions (which functions), tables (which tables exist, with RLS and ever-inserted/deleted), or instances (WHICH instance holds the rows)'
+        description: 'intake (every note counted by outcome category, no text but short audit snippets; DR-0625), feedback (what people said), definitions (which functions), tables (which tables exist, with RLS and ever-inserted/deleted), instances (WHICH instance holds the rows), or baseline (the schema-only dump the isolation proofs restore into a throwaway container; no person''s rows)'
         type: choice
-        options: [feedback, definitions, tables, instances, intake]
+        options: [feedback, definitions, tables, instances, intake, baseline]
         default: feedback
       days:
         description: 'how many days back to read (feedback only)'
@@ -50,6 +50,24 @@ jobs:
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
       - name: Ask the sovereign database
+        if: ${{ inputs.what != 'baseline' }}
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
         run: bash scripts/sovereign-read-over-tailnet.sh "${{ inputs.what }}" "${{ inputs.days }}" "${{ inputs.functions }}" "${{ inputs.tables }}"
+      # BASELINE: the schema-only shape the rls-isolation proofs restore into a
+      # disposable container (scripts/test-db-baseline-over-tailnet.sh). Read-only;
+      # no person's rows. db-migrate takes the same dump before every dispatch of
+      # the proofs; this mode exists so a branch can refresh it by hand.
+      - name: Take the test-database baseline (schema only)
+        if: ${{ inputs.what == 'baseline' }}
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: bash scripts/test-db-baseline-over-tailnet.sh "$RUNNER_TEMP/test-db-baseline.sql.gz"
+      - name: Hand the baseline to the isolation proofs
+        if: ${{ inputs.what == 'baseline' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-db-baseline
+          path: ${{ runner.temp }}/test-db-baseline.sql.gz
+          retention-days: 30
+          if-no-files-found: error

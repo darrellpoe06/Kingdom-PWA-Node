@@ -1,7 +1,7 @@
-# rls-isolation — ONE matrix workflow proves every feature's RLS isolation
-# against the real database, replacing six near-identical copies
-# (choir-claim / delegated-pm / role-control / support-door / tv-sharing /
-# viewer-readonly), 362 lines -> this file (2026-07-30 comprehensive review).
+# rls-isolation — ONE matrix workflow proves every feature's RLS isolation,
+# replacing six near-identical copies (choir-claim / delegated-pm /
+# role-control / support-door / tv-sharing / viewer-readonly), 362 lines ->
+# this file (2026-07-30 comprehensive review).
 #
 # WHY ONE FILE (gate-the-class, DR-0239): the 2026-07-29 never-firing
 # workflow_run fix was applied to viewer-readonly only; the other five stayed
@@ -10,19 +10,28 @@
 # drift feature-by-feature: db-migrate dispatches THIS file once and every
 # proof runs.
 #
-# WHY max-parallel: 1 — the smokes run against the REAL production database
-# (same SUPABASE_DB_URL secret db-migrate uses), and migration 0075 runs
-# ALTER PUBLICATION supabase_realtime, the statement class that deadlocked two
-# concurrent runs on 2026-07-01 (db-migrate.yml's own lock exists for this).
-# Serial keeps the proofs deadlock-free; fail-fast: false keeps each feature's
+# WHERE THE PROOFS RUN (2026-09-25). On a THROWAWAY database, one per leg: a
+# container of the NAS's own image versions on the runner, restored from the
+# newest schema-only baseline of the live shape (scripts/test-db-throwaway.sh,
+# baseline taken by scripts/test-db-baseline-over-tailnet.sh in db-migrate).
+# Until that day every leg re-applied its chain, DROP pre-steps included,
+# against SUPABASE_DB_URL -- a real database -- and db-migrate run 36090407494
+# read the result: public_vacancies() absent for the length of a chain. A test
+# lane never mutates a database anyone depends on; only db-migrate does.
+# scripts/live-db-reach-guard.mjs fails the build if this file names a live
+# database again.
+#
+# Legs no longer share a database, so they no longer need to run one at a time
+# (max-parallel: 1 existed because two legs on one database deadlocked on
+# ALTER PUBLICATION, 2026-07-01). fail-fast: false keeps each feature's
 # red/green independent, visible per matrix leg.
 #
-# Each leg is self-contained + idempotent, safe against prod:
-#   1. Applies the feature's migrations (idempotent; db-migrate applies them on
-#      merge anyway — this just removes ordering doubt).
+# Each leg:
+#   1. Applies the feature's migrations over the baseline, pre-step and chain in
+#      one transaction (what a real apply of the chain does).
 #   2. Runs the feature's isolation smoke(s): each sets up its actors IN A
-#      TRANSACTION, asserts the isolation contract, then ROLLS BACK (leaves no
-#      data). A leak RAISEs -> psql exits non-zero -> RED.
+#      TRANSACTION, asserts the isolation contract, then ROLLS BACK. A leak
+#      RAISEs -> psql exits non-zero -> RED.
 #
 # Fired by db-migrate's explicit workflow_dispatch call after every migration
 # apply (workflow_run from token-driven runs is suppressed — the DR-0107
@@ -41,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: 1
+      max-parallel: 6
       matrix:
         include:
           - feature: tv-sharing
@@ -207,22 +216,33 @@ jobs:
             migrations: "0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
             smokes: "0130-assistant-scope-smoke.sql"
     name: isolate — ${{ matrix.feature }}
+    # Reads the baseline artifact; asks for nothing else.
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@v4
       - name: Install postgresql-client
         run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
-      - name: Apply ${{ matrix.feature }} migrations (idempotent) then run the isolation smoke(s)
+      # A THROWAWAY DATABASE, never a real one (2026-09-25). This workflow used
+      # to run against SUPABASE_DB_URL; on 2026-09-25 a leg's pre-step DROP left
+      # that database without public_vacancies() mid-chain and db-migrate's
+      # witness read the gap (run 36090407494). Each leg now restores the
+      # newest schema-only baseline into its own container of the NAS's image
+      # versions. scripts/live-db-reach-guard.mjs fails the build if this file
+      # ever names a live database again.
+      - name: Fetch the newest test-database baseline (schema only)
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/test-db-throwaway.sh fetch "$RUNNER_TEMP/baseline.sql.gz"
+      - name: Start a throwaway database from the NAS images and restore the baseline
+        run: bash scripts/test-db-throwaway.sh up "$RUNNER_TEMP/baseline.sql.gz" | tee "$RUNNER_TEMP/up.log"
+      - name: Apply ${{ matrix.feature }} migrations (idempotent) then run the isolation smoke(s)
         run: |
           set -euo pipefail
-          # Sanitize the URL EXACTLY like scripts/db-migrate-apply.sh does — the
-          # SUPABASE_DB_URL secret carries a trailing newline, and raw
-          # `psql "$SUPABASE_DB_URL"` reads it into the dbname (FATAL: database
-          # "postgres\n" does not exist). Match its proven handling.
-          DBURL=$(printf '%s' "${SUPABASE_DB_URL:-}" | tr -d '[:space:]')
+          DBURL=$(sed -n 's/^DBURL=//p' "$RUNNER_TEMP/up.log" | tail -1)
           if [ -z "$DBURL" ]; then
-            echo "::error::SUPABASE_DB_URL secret is not set (same secret db-migrate uses)."
+            echo "::error::the throwaway database did not report its address."
             exit 1
           fi
           # A leg's optional pre-step SQL (matrix.pre) runs BEFORE its chain —
@@ -231,18 +251,9 @@ jobs:
           # the key alone does nothing without this executor).
           #
           # ONE TRANSACTION for the pre-step AND the whole chain (2026-09-25,
-          # db-migrate run 36090407494). This leg runs against SUPABASE_DB_URL,
-          # the HOSTED project; the app has read the sovereign database since
-          # REPOINT-ARMED (2026-08-19), so no visitor reads what this leg
-          # touches. The pre-step used to commit its DROP on its own, and the
-          # chain then rebuilt the function file by file, so for the length of
-          # the chain (~40 s) the hosted project had no public_vacancies(). The
-          # live-definition witness of a concurrent db-migrate, which also reads
-          # hosted, read that gap ("public_vacancies — absent from the live
-          # database") and failed the run. Inside one transaction, other
-          # sessions see the old definition until COMMIT and then the newest,
-          # never nothing. Pinned by
-          # scripts/rls-isolation-matrix-guard.mjs (checkAtomicApply).
+          # #1826). Kept on the throwaway database too: it is what a real apply
+          # of the chain does, and it keeps the leg an honest rehearsal. Pinned
+          # by scripts/rls-isolation-matrix-guard.mjs (checkAtomicApply).
           PRE=${{ toJSON(matrix.pre || '') }}
           ARGS=()
           if [ -n "$PRE" ]; then
