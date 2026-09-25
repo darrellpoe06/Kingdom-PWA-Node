@@ -96,9 +96,13 @@ function installSynth(voices) {
     speak(u) { s.spoken.push(u); s.speaking = true; if (media.plays.some((p) => p.blob && p.ok && !p.el._paused)) media.overlaps += 1; if (u.onstart) u.onstart(); },
     cancel() { s.cancels += 1; s.speaking = false; },
     pause() {}, resume() {},
-    getVoices() { return voices; },
-    addEventListener() {}, removeEventListener() {},
+    getVoices() { return [...voices]; },
+    listeners: [],
+    addEventListener(t, fn) { if (t === 'voiceschanged') s.listeners.push(fn); },
+    removeEventListener(t, fn) { s.listeners = s.listeners.filter((f) => f !== fn); },
     onvoiceschanged: null,
+    // The phone refreshes its list (Android does, more than once).
+    fireVoicesChanged() { for (const f of s.listeners) f(); if (s.onvoiceschanged) s.onvoiceschanged(); },
   };
   window.speechSynthesis = s;
   window.SpeechSynthesisUtterance = FakeUtterance;
@@ -256,6 +260,25 @@ describe('THE ANDROID PHONE: one voice at a time, the same voice all the way', (
     const spokeAs = last.voice === MAN ? 'male' : (last.voice === WOMAN || last.voice === WOMAN2) ? 'female' : 'unknown';
     expect(spokeAs, `the NAS voice was ${nasVoice}; the phone took over as ${spokeAs}`).toBe(nasVoice);
     expect(api.notice).toMatch(/phone’s own voice/);
+  });
+
+  it('a refresh of the phone’s voice list mid-reading never restarts the sentence in another voice', async () => {
+    const voices = [MAN, WOMAN, WOMAN2];
+    const s = installSynth(voices);
+    // The device's saved default is a different voice from the reading's own.
+    localStorage.setItem('poe-tts-prefs', JSON.stringify({ rate: 1, pitch: 1, voiceURI: WOMAN2.voiceURI }));
+    await mount();
+    road.answer = () => 401; // the NAS voice is resting: the reading is in the phone's voice
+    await press();
+    const first = s.spoken.at(-1);
+    expect(first, 'the phone voice never started').toBeTruthy();
+    const count = s.spoken.length;
+    // Android refreshes its list mid-sentence; the list briefly reorders.
+    voices.reverse();
+    await act(async () => { s.fireVoicesChanged(); });
+    await flush();
+    const after = s.spoken.slice(count);
+    expect(after.filter((u) => u.voice !== first.voice).map((u) => u.voice && u.voice.voiceURI), 'the sentence restarted in a different voice').toEqual([]);
   });
 
   it('with the screen off, a failed piece is HELD, never handed to Web Speech, and resumes in the NAS voice', async () => {

@@ -10,6 +10,7 @@ scope:
   - app/src/lib/use-read-aloud.js — the family key before any NAS read; one voice element unlocked in the tap; the NAS voice's reason kept and said; no Web Speech hand-off while the page is hidden; one hand-off function; a reading pins its voice
   - app/src/lib/voice-service.js — a miss rests the NAS voice for as long as its cause lasts; a new key reopens it; a dropped request is asked again; the reason in words
   - app/src/lib/reading-voice-pin.js (new) — the pinned voice, pure
+  - app/src/lib/tts.js — a refresh of the voice list never changes the voice of a reading in progress
   - app/src/__tests__/firestick-reads-aloud.test.jsx (new, 12 checks); sovereign-voice-default.test.js (one pin moved to the hand-off)
 principles: [VERIFICATION-DOCTRINE (DR-0076), HOLD-THE-HAND (DR-0621), REALITY-TRACE, DO-NOT-RE-ASK (DR-0111)]
 grounds:
@@ -35,6 +36,7 @@ The same evening, on his Android phone, he reported that the reader *"stopped wo
   - A hand-over from the phone voice to the NAS voice started the NAS clip while Web Speech was still speaking. `read()` stopped only the audio, never the phone's voice.
   - The NAS voice for the System voice is a woman's. The phone's System stand-in resolved to a **man's** voice (`en-us-male`). So a failed NAS piece handed the rest of a woman's reading to a man.
   - A studio clip's `onerror` spoke its text in the phone's voice even after the clip had been torn down.
+  - **The voice list refreshing mid-reading restarted the sentence in another voice.** Android fires `voiceschanged` more than once. On each refresh `tts.js` set the engine back to the saved default, and `setVoice()` restarts the sentence being spoken. With a saved default of `en-gb-female` and the reading in its own voice, one refresh restarted the sentence as `en-gb-female`. That is "different female voices". `use-read-aloud.js` also re-applied the phone pick on every refresh (the voice-choice agent's flag).
 - **The background.** A failed NAS piece handed the rest to Web Speech even with the page hidden, and Android stops Web Speech in the background. One slow piece rested the NAS voice for a flat 2 minutes, and every read in that window went to Web Speech.
 
 ## Impact
@@ -55,11 +57,12 @@ A Firestick could not hear a lesson at all unless that device had once opened a 
 5. **One voice at a time.** Before an audio voice starts, the phone's voice is stopped. Silencing an audio voice detaches its handlers and drops its source, so a torn-down clip cannot start a second voice. Every hand-off to the phone's voice goes through one function.
 6. **One reading, one voice.** A reading pins its voice when it starts: the gender, and once chosen, the one device voice. Jumps and hand-overs keep the pin. A fallback speaks in a device voice of the pinned gender and says so in one line. If the phone has no voice of that gender, the line says that too. A cold, empty voice list is waited for rather than defaulted.
 7. **Nothing goes to Web Speech while the page is hidden.** The place is held and shown as paused. It resumes in the NAS voice when the page is seen again, or when Play is pressed.
+8. **A voice-list refresh never touches a reading.** The default voice is resolved again only while nothing is being read. A new pick still applies at once, mid-reading. A refresh of the same pick waits.
 
 ## Verification
 
-- `firestick-reads-aloud.test.jsx` has 12 checks against the real hook, the real `synthesizeLite` and the real clip queue.
-  - 11 fail on origin/main's `use-read-aloud.js` + `voice-service.js`, each on its own assertion:
+- `firestick-reads-aloud.test.jsx` has 13 checks against the real hook, the real `synthesizeLite` and the real clip queue.
+  - 12 fail on origin/main's `use-read-aloud.js` + `voice-service.js` + `tts.js`, each on its own assertion:
     - no key on the first request (`''` vs `Bearer fam-key`);
     - "did not answer" instead of the sign-in line;
     - a new key did not reopen the road;
@@ -69,9 +72,10 @@ A Firestick could not hear a lesson at all unless that device had once opened a 
     - the NAS clip started while the phone voice spoke (1 overlap);
     - the NAS voice was female and the phone took over as male;
     - Web Speech started in the background;
+    - a voice-list refresh restarted the sentence as `en-gb-female`;
     - two pure checks on the new reasons.
   - The pin check is new code and passes on both.
-- The related suites pass: 47 files, 538 tests. They include the background, notice, key, voice-pick and sovereign-voice suites. One pin moved from `a.onerror … tts.speak` to the hand-off function, which still ends in `tts.speak`.
+- The related suites pass: 55 files, 631 tests. They include the background, notice, key, voice-pick and sovereign-voice suites. One pin moved from `a.onerror … tts.speak` to the hand-off function, which still ends in `tts.speak`.
 - **Chromium, TV profile:** with the key at the RPC, 6 authorized requests and the NAS audio playing. Without it, the sign-in line.
 - **Chromium, Android profile:**
   - The NAS voice (female) fails on piece 2, and the rest speaks as `en-us-female`. Before the fix it was `en-us-male`.
