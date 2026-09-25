@@ -131,14 +131,14 @@ function world(script) {
   ].join('\n'));
   chmodSync(join(root, 'bin', 'gh'), 0o755);
   writeFileSync(join(root, 'sweep.sh'), script);
-  const run = () => spawnSync('bash', ['-e', join(root, 'sweep.sh')], {
+  const run = (extra = {}) => spawnSync('bash', ['-e', join(root, 'sweep.sh')], {
     cwd: join(root, 'runner'), encoding: 'utf8',
     env: {
       ...process.env, PATH: `${join(root, 'bin')}:${process.env.PATH}`, SIMLOG: join(root, 'gh.log'),
       PRLIST: join(root, 'prs.txt'), COMMENTS: join(root, 'comments.txt'),
       RUNNER_TEMP: join(root, 'tmp'), GITHUB_STEP_SUMMARY: join(root, 'summary.md'),
       REPO: 'o/r', OWNER: 'o', HAS_PUSH_TOKEN: 'false', ONLY_PR: '', MAX_PRS: '6', IDLE_HOURS: '72', DEADLINE_MIN: '15',
-      GIT_AUTHOR_NAME: 'github-actions[bot]', GIT_COMMITTER_NAME: 'github-actions[bot]',
+      GIT_AUTHOR_NAME: 'github-actions[bot]', GIT_COMMITTER_NAME: 'github-actions[bot]', ...extra,
     },
   });
   const origin = (...a) => g(root, '--git-dir', join(root, 'origin.git'), ...a);
@@ -176,6 +176,18 @@ describe('keep-prs-current — the sweep script under `bash -e`, end to end', ()
       expect(again.status).toBe(0);
       expect(again.stdout).toMatch(/#1 claude\/one: current/);
       expect(w.log().match(/gh pr comment 2/g)).toHaveLength(1);
+    } finally { w.cleanup(); }
+  }, 60000);
+
+  it('a clean PR listed first does not spend the budget a conflicted PR behind it needs (run 36087218396)', () => {
+    const w = world(sweepScript(KEEP));
+    try {
+      writeFileSync(join(w.root, 'prs.txt'), '3 claude/three\n1 claude/one\n');
+      const r = w.run({ MAX_PRS: '1' });
+      expect(r.status, r.stdout + r.stderr).toBe(0);
+      expect(r.stdout).toMatch(/#3 claude\/three: behind by \d+ but merges cleanly/);
+      expect(r.stdout).toMatch(/#1 claude\/one: updated to [0-9a-f]{8}/);
+      expect(r.stdout).not.toMatch(/budget reached/);
     } finally { w.cleanup(); }
   }, 60000);
 
