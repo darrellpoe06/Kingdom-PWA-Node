@@ -27,7 +27,11 @@ export const AUDIENCES = Object.freeze(['governor', 'member', 'signed-out']);
 export const PASSING = new Set(['answer', 'receipt', 'kept', 'refused']);
 export const BLOCKERS = new Set(['bright-line', 'his-value', 'physical']);
 
-const FEEDBACK_RECEIPT = { file: 'app/src/components/FeedbackCenter.jsx', token: 'receiptStatus(f, myFeedback)' };
+// The sender's status is read back live and rendered by the outcome list
+// (DR-0625): FeedbackCenter mounts it on the form and on the receipt, and each
+// note's outcome is computed from its stored status, the categorizer's basis
+// and the measured window (IntakeOutcomeList.jsx outcomeFor).
+const FEEDBACK_RECEIPT = { file: 'app/src/components/FeedbackCenter.jsx', token: '<IntakeOutcomeList notes={myNotes}' };
 const SIGNED_OUT_SAID = { file: 'app/src/components/OneVoiceInput.jsx', token: 'cfg.confirmations.signedOut || SIGNED_OUT_SAID' };
 
 // One entry per door. `route` doors are OneVoiceInput chips (walked through
