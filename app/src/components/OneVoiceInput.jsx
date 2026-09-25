@@ -18,7 +18,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { suggestDestination, destinationsFor, planDispatch, composeNoteText } from '../lib/one-voice-routing.js';
 import { uploadFeedback } from '../lib/feedback-sync.js';
-import { resolveSurface, lessonConfirmationKey } from '../lib/one-voice-surfaces.js';
+import { resolveSurface, lessonConfirmationKey, lessonNameTags, lessonNotice, cleanLessonName } from '../lib/one-voice-surfaces.js';
 import { useVoiceDictation, LONG_FORM_SESSION_CAP_MS, VOICE_SESSION_CAP_MS, capMinutes } from '../lib/voice-dictation.js';
 import { readDraft, writeDraft, clearDraft } from '../lib/draft-autosave.js';
 import { relayThought } from '../lib/agent-inbox-sync.js';
@@ -79,6 +79,37 @@ export function OneVoiceInput({
   const [restoredDraft, setRestoredDraft] = useState(!!draft);
   const [confirmation, setConfirmation] = useState(null);
   const [lastSent, setLastSent] = useState(null); // the last delivered text — feeds the email-a-copy link
+
+  // THE NAME, BY THEIR CHOICE (DR-0639; Darrell 2026-09-24: "Name is used if
+  // they want to though... make sense?"). Off by default. Remembered per
+  // person on this device; the name is prefilled from their account and is
+  // theirs to edit ("Sister Mae", a first name only).
+  const [nameOk, setNameOk] = useState(false);
+  const [lessonName, setLessonName] = useState('');
+  const nameKey = useRef('poetech:lesson-name-choice:anon');
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      let user;
+      try { const { data } = await supabase.auth.getSession(); user = data?.session?.user || null; } catch (e) { user = null; }
+      if (!alive) return;
+      nameKey.current = `poetech:lesson-name-choice:${user?.id || 'anon'}`;
+      const meta = user?.user_metadata || {};
+      const fromAccount = cleanLessonName(meta.display_name || meta.full_name || meta.name || '');
+      let saved;
+      try { saved = JSON.parse(localStorage.getItem(nameKey.current) || 'null'); } catch (e) { saved = null; }
+      if (saved && typeof saved === 'object') {
+        setNameOk(!!saved.ok);
+        setLessonName(cleanLessonName(saved.name) || fromAccount);
+      } else {
+        setLessonName(fromAccount);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+  const rememberNameChoice = (ok, n) => {
+    try { localStorage.setItem(nameKey.current, JSON.stringify({ ok: !!ok, name: cleanLessonName(n) })); } catch (e) { /* private mode: the choice holds for this visit */ }
+  };
 
   const onText = (v) => {
     setText(v);
@@ -185,7 +216,7 @@ export function OneVoiceInput({
         // tagged so the staged intake routine can find them. Best-effort and
         // honest: signed-out or a refused insert is SAID on the surface, never
         // swallowed, and the words stay in the box for the person to keep.
-        relayThought({ body: t, tags: ['lesson'], source: cfg.sourceTag }).then(async (res) => {
+        relayThought({ body: t, tags: ['lesson', ...lessonNameTags(nameOk, lessonName)], source: cfg.sourceTag }).then(async (res) => {
           if (!res.ok) { setConfirmation(String(c.lessonFailed || 'Not sent as a lesson ({reason}) — keep it as a note and send it again signed in.').replace('{reason}', res.reason || 'unknown')); return; }
           // SAID TRUE FOR WHO SENT IT (DR-0630): the Governor's own row is read
           // into a new lesson; a member's is kept and reviewed first, and the
@@ -227,7 +258,7 @@ export function OneVoiceInput({
   const sendSpokenLesson = async (t) => {
     setSending(true);
     const note = isSpokenLessonLine(t) ? '' : t;
-    const res = await sendVoiceLesson({ blob: lessonTake.blob, seconds: lessonTake.seconds, note, source: cfg.sourceTag, supabase, relay: relayThought });
+    const res = await sendVoiceLesson({ blob: lessonTake.blob, seconds: lessonTake.seconds, note, source: cfg.sourceTag, supabase, relay: relayThought, extraTags: lessonNameTags(nameOk, lessonName) });
     setSending(false);
     if (!res.ok) {
       setConfirmation(`Not sent (${res.reason}). The recording and your words are still here; send again when signed in.`);
@@ -406,8 +437,33 @@ export function OneVoiceInput({
       {route === 'lesson' && cfg.lessonNotice && (
         /* SAID BEFORE THEY SEND (Darrell 2026-09-24): every time, above Send. */
         <p className="text-[0.75rem] text-[#1A1815] mt-2 border-l-2 border-[#B85838] pl-2" style={{ fontFamily: '"Fraunces", serif' }} data-testid="lesson-notice">
-          {cfg.lessonNotice}
+          {lessonNotice(nameOk, lessonName)}
         </p>
+      )}
+      {route === 'lesson' && cfg.lessonNotice && (
+        <div className="mt-1 flex items-center gap-2 flex-wrap">
+          <label className="flex items-center gap-1.5 text-[0.75rem] text-[#1A1815] cursor-pointer min-h-[36px]" style={{ fontFamily: '"Fraunces", serif' }}>
+            <input
+              type="checkbox"
+              data-testid="lesson-name-ok"
+              checked={nameOk}
+              onChange={(e) => { setNameOk(e.target.checked); rememberNameChoice(e.target.checked, lessonName); }}
+              className="accent-[#B85838]"
+            />
+            You may use my name in the lesson
+          </label>
+          {nameOk && (
+            <input
+              data-testid="lesson-name"
+              aria-label="Name to use"
+              placeholder="Name to use (e.g. Sister Mae, or a first name)"
+              value={lessonName}
+              maxLength={60}
+              onChange={(e) => { setLessonName(e.target.value); rememberNameChoice(true, e.target.value); }}
+              className="flex-1 min-w-[160px] p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]"
+            />
+          )}
+        </div>
       )}
       <div className="flex gap-1.5 mt-2 flex-wrap items-center">
         <span className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>→ {active.hint}</span>
