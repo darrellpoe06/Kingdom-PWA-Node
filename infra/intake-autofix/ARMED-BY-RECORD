@@ -1,0 +1,27 @@
+ARMED BY RECORD — DR-0625 under DR-0247 (Darrell, 2026-09-24)
+
+"if it's low hanging fruit, then we fix it. The system fixes it automatically"
+
+This committed file IS the arm for the intake auto-fix lane: merging it to
+main starts the lane, per DR-0247 (agreed work starts itself through the lane;
+the Governor's hand is the BRAKE, never the starter).
+
+The lane's fixer is an AI session, so it is the AI class and keeps the FULL
+brake set (CLAUDE.md "Autonomous Automation Requires Three Brakes" as amended:
+the heavier AI-class gates keep budget, lock AND kill-switch). Proven to catch
+in app/src/__tests__/intake-autofix.test.js:
+  - BUDGET: one item per run; at most 3 system fixes opened in any 24 hours;
+    at most 2 tries per note (app/src/lib/intake-autofix.js AUTOFIX).
+  - LOCK: one at a time — an open intake-fix pull request, or a claim under
+    2 hours old, makes the next run skip.
+  - KILL: commit infra/intake-autofix/PAUSED to stop everything; the lane also
+    pauses ITSELF after 3 failed fixes in a row, until a person commits
+    infra/intake-autofix/RESUME-AFTER with a date later than the last failure.
+  - SCOPE: only notes categorized as low-hanging fruit (wording, a wrong
+    label, legibility), and the branch diff is judged again in CI by
+    scripts/intake-autofix-scope-guard.mjs (components, stylesheets and tests
+    only; 30 lines; no links, emails or phone numbers; no bright-line subject).
+  - GATES: every fix is an ordinary claude/* branch through lint, the full
+    suite, every guard, and auto-merge on green. A red fix never merges.
+
+Stop-paths: commit PAUSED, delete this file, or put the `hold` label on a fix.
