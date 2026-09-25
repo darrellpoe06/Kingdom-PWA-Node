@@ -42,7 +42,11 @@ export function lessonItems(rows) {
   }
   const items = [];
   for (const r of list) {
-    if (!has(r, 'lesson') || has(r, 'voice-transcript') || has(r, 'voice-failed')) continue;
+    // A child row (a transcript or a failure report) names its parent with
+    // of:<id>. The PARENT can carry `voice-failed` too — the rider tags the
+    // original when it gives up — so the tag must not hide it: Darrell's own
+    // spoken lesson of 2026-09-24 was invisible for exactly that (DR-0636).
+    if (!has(r, 'lesson') || ofTag(r)) continue;
     const spoken = has(r, 'voice');
     const transcript = children.get(`${r.id}:transcript`) || null;
     const failure = children.get(`${r.id}:failed`) || null;
@@ -76,7 +80,9 @@ export async function fetchMyLessons({ supabase, limit = 100 } = {}) {
     const read = (cols) => supabase
       .from('agent_inbox')
       .select(cols)
-      .contains('tags', ['lesson'])
+      // tags is jsonb: the filter must be JSON ('["lesson"]'). An array here
+      // is sent as cs.{lesson}, which is not JSON, and the read fails every time.
+      .contains('tags', JSON.stringify(['lesson']))
       .eq('created_by', uid)
       .order('created_at', { ascending: false })
       .limit(limit);
