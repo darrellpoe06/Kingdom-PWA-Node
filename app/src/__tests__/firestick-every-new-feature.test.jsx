@@ -22,6 +22,10 @@
 //   5. A tab strip was a cage: Up and Down stepped the strip and wrapped, so
 //      30 presses of Down on Learn cycled the department row and never
 //      reached the lessons. Up and Down now leave a strip.
+//   6. The floaters caught every step: each Down on a long page went content,
+//      sticky tab, connection badge, Feedback, then content. From a control
+//      in the page, a move stays in the page when the page has anything
+//      that way; the floaters are still reached at the end or sideways.
 // =============================================================================
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React, { act } from 'react';
@@ -232,5 +236,26 @@ describe('5. a tab strip is a row, and Up and Down leave it', () => {
     const right = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true });
     await act(async () => { tabs[0].dispatchEvent(right); });
     expect(container.textContent).toContain('Living Lessons page');
+  });
+});
+
+describe('6. the page before the floaters', () => {
+  const build = () => {
+    root.innerHTML = '<button id="a">Lesson 1</button><button id="feedback">Open feedback</button><button id="b">Lesson 2</button>';
+    const rects = { a: r(0, 0), feedback: r(0, 100), b: r(0, 300) };
+    return { rectOf: (el) => rects[el.id], isVisible: () => true, pinned: (el) => !!el && el.id === 'feedback' };
+  };
+  it('Down from a lesson goes to the next lesson, not to the fixed Feedback button in between', () => {
+    const opts = build();
+    root.querySelector('#a').focus();
+    expect(handleRemoteKey(key('ArrowDown'), root, opts)).toBe(root.querySelector('#b'));
+  });
+  it('the floater is still reached when the page has nothing that way, and from a floater the rule is off', () => {
+    const opts = build();
+    root.querySelector('#b').focus();
+    // Nothing in the page below Lesson 2 and Feedback is not below it either: stay put.
+    expect(handleRemoteKey(key('ArrowDown'), root, opts)).toBe(null);
+    root.querySelector('#feedback').focus();
+    expect(handleRemoteKey(key('ArrowUp'), root, opts)).toBe(root.querySelector('#a'));
   });
 });

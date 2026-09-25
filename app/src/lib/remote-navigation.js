@@ -239,7 +239,35 @@ function onTv(doc) {
  * Handle one keydown. Returns the element focused, or null when the event was
  * left alone — which is the common case and must stay cheap and predictable.
  */
-export function handleRemoteKey(event, root, { rectOf, isVisible, tv } = {}) {
+// THE PAGE BEFORE THE FLOATERS (DR-0655). Feedback, Give, the reader's
+// speaker, a connection badge and a sticky tab row sit over the page at fixed
+// places. Measured on a Fire-TV-shaped Chromium (960x540), every Down on a
+// long page went content -> "Church" (sticky) -> "4G" (fixed) -> "Open
+// feedback" (fixed) -> the next content, so walking a lesson list took four
+// presses a step. From a control IN the page, the move now stays in the page
+// when the page has anything that way; the floaters are reached when it does
+// not (at the end of the page) or from each other, or sideways.
+export function isPinned(el) {
+  try {
+    const view = el && el.ownerDocument && el.ownerDocument.defaultView;
+    if (!view || typeof view.getComputedStyle !== 'function') return false;
+    for (let p = el; p && p.nodeType === 1; p = p.offsetParent || null) {
+      const pos = view.getComputedStyle(p).position;
+      if (pos === 'fixed' || pos === 'sticky') return true;
+      if (!p.offsetParent) {
+        // A fixed element has no offsetParent; neither does <body>. Ask once more of the parent chain.
+        for (let q = p.parentElement; q; q = q.parentElement) {
+          const qp = view.getComputedStyle(q).position;
+          if (qp === 'fixed' || qp === 'sticky') return true;
+        }
+        return false;
+      }
+    }
+    return false;
+  } catch (_) { return false; }
+}
+
+export function handleRemoteKey(event, root, { rectOf, isVisible, tv, pinned } = {}) {
   if (!event || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return null;
   const doc = root && root.ownerDocument ? root.ownerDocument : (root || null);
   const active = doc && doc.activeElement ? doc.activeElement : null;
@@ -279,7 +307,17 @@ export function handleRemoteKey(event, root, { rectOf, isVisible, tv } = {}) {
     return items[0];
   }
 
-  const next = nextInDirection(items.map(measure), fromIndex, dir);
+  const rects = items.map(measure);
+  const pinnedOf = pinned || isPinned;
+  let next = -1;
+  if (!pinnedOf(active)) {
+    // The page first: the same search over the in-page controls only.
+    const inPage = [];
+    items.forEach((el, i) => { if (i === fromIndex || !pinnedOf(el)) inPage.push(i); });
+    const k = nextInDirection(inPage.map((i) => rects[i]), inPage.indexOf(fromIndex), dir);
+    if (k !== -1) next = inPage[k];
+  }
+  if (next === -1) next = nextInDirection(rects, fromIndex, dir);
   if (next === -1) return null; // At the edge: stay put, and let the page scroll.
   if (typeof event.preventDefault === 'function') event.preventDefault();
   focusAndReveal(items[next]);
