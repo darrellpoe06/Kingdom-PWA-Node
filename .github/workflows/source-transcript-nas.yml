@@ -54,6 +54,16 @@ on:
       slug:
         description: 'Folder name under docs/99-session-notes/sources/ (lowercase, dashes)'
         required: true
+  # source-transcript.yml calls this route when YouTube challenges the runner
+  # (DR-0622, 2026-09-24): one link, one dispatch, the route that works.
+  workflow_call:
+    inputs:
+      video_id:
+        type: string
+        required: true
+      slug:
+        type: string
+        required: true
 
 concurrency:
   group: youtube-captions-residential
@@ -198,6 +208,12 @@ jobs:
         env:
           SLUG: ${{ inputs.slug }}
         run: |
+          # Already on main word for word: nothing to send, and that is a
+          # success (the text the lesson author reads is already there).
+          if [ -f "docs/99-session-notes/sources/$SLUG/transcript.txt" ] && git diff --quiet HEAD -- "docs/99-session-notes/sources/$SLUG/transcript.txt" 2>/dev/null && git ls-files --error-unmatch "docs/99-session-notes/sources/$SLUG/transcript.txt" >/dev/null 2>&1; then
+            echo "The transcript for $SLUG is already on main, word for word: nothing to push."
+            exit 0
+          fi
           BR="fix/source-transcript-$SLUG-$(date -u +%Y%m%d-%H%M)"
           git config user.name 'source-transcript-nas'
           git config user.email 'actions@users.noreply.github.com'

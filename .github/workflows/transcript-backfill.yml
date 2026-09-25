@@ -40,6 +40,16 @@
 #
 # One-time setup: SUPABASE_DB_URL must be set as a repository secret
 #   (Settings > Secrets > Actions). This is the same secret used by db-migrate.
+#
+# COMBINED 2026-09-24 (DR-0621 / DR-0622, measured). Its last run (29162978378)
+# was red for the reason above: 50 of 50 attempts blocked from the runner IP.
+# The working twin is the NAS transcript-trickle (874 transcripts live). So a
+# dispatch now runs THAT rider on the NAS over the remote-hands channel, by the
+# rider's own script, stamp and budget: a hand dispatch can never add volume
+# beyond the trickle's cadence against the ~180/day ceiling (inside the
+# trickle's 3-hour gap it answers "no-op this cycle", which is the budget
+# working). The runner lane below runs only when residential proxy secrets
+# exist, as the documented second lane.
 
 name: transcript-backfill
 
@@ -74,7 +84,60 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  backfill:
+  route:
+    runs-on: ubuntu-latest
+    outputs:
+      proxy: ${{ steps.p.outputs.proxy }}
+    steps:
+      - id: p
+        env:
+          W: ${{ secrets.WEBSHARE_PROXY_USERNAME != '' }}
+          Y: ${{ secrets.YT_PROXY_URL != '' }}
+        run: |
+          if [ "$W" = "true" ] || [ "$Y" = "true" ]; then echo "proxy=true" >> "$GITHUB_OUTPUT"; else echo "proxy=false" >> "$GITHUB_OUTPUT"; fi
+
+  # THE WORKING ROUTE: the trickle rider on the NAS's residential IP, writing to
+  # the database the app reads (its loader resolves the sovereign door itself).
+  nas:
+    needs: route
+    if: needs.route.outputs.proxy != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check the remote-hands channel is configured
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "::error::NOT CONFIGURED: TS_AUTHKEY and NAS_SSH_KEY (the secrets nas-health uses)."; exit 1
+          fi
+      - uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Run the transcript-trickle rider once on the NAS (its own stamp and budget)
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          MAX: ${{ inputs.max || '4' }}
+        run: |
+          set -o pipefail
+          case "$MAX" in ''|*[!0-9]*) MAX=4 ;; esac
+          # The rider's per-fire budget is 4; a hand dispatch may ask for at
+          # most 8, never the runner lane's 50, so the ceiling is never at risk.
+          if [ "$MAX" -gt 8 ]; then MAX=8; fi
+          if [ "$MAX" -lt 1 ]; then MAX=4; fi
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          RIDER=/volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-sme-pipeline/transcript_trickle_install.sh
+          # The rider runs as root on the services-sync clock and owns its
+          # stamp and out/ as root, so the dispatch runs it the same way.
+          $SSH "sudo -n env TRANSCRIPTS_MAX=$MAX sh $RIDER" 2>&1 | tee /tmp/rider.log
+          echo "rider finished green (a no-op inside the 3-hour gap is the shared budget working)"
+
+  runner:
+    needs: route
+    if: needs.route.outputs.proxy == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
