@@ -27,6 +27,7 @@ import {
 import { formatClock, MAX_LESSON_SECONDS } from '../lib/lesson-voice.js';
 import { confirmThen } from '../lib/confirm-action.js';
 import { NOTE_RECORDING_AUDIO, NOTE_RECORDING_BITRATE } from '../lib/recorded-note.js';
+import { useMicPresent } from '../lib/mic-presence.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const BTN = 'text-[0.75rem] uppercase tracking-wider px-3 py-2 min-h-[44px] border focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-40';
@@ -37,6 +38,7 @@ export default function VoiceLessonRecorder({
 }) {
   const own = useWorkflowScribe();
   const rec = recorder || own;
+  const micPresent = useMicPresent();
   const startedRef = useRef(false);
   const handledRef = useRef(null);
 
@@ -72,6 +74,10 @@ export default function VoiceLessonRecorder({
     onTake({ blob: r.blob, url: r.url || '', seconds: secs, verdict: takeVerdict(r) });
   }, [rec.result]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // A device with no microphone (a TV) is offered no Record that cannot work
+  // (DR-0655). The Speak box above already says why, in NO_MICROPHONE_LINE,
+  // so this says nothing more. A take already made still shows as before.
+  if (micPresent === false && !take && !rec.recording) return null;
   if (!rec.micSupported) {
     return <p className="text-[0.75rem] text-[#5A5751] italic mt-2" style={SERIF} data-testid="voice-lesson-unsupported">This browser cannot record audio. Type the lesson, or open PoeTech in Chrome or Safari to speak it.</p>;
   }

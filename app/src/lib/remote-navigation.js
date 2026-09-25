@@ -205,18 +205,65 @@ export function focusAndReveal(el) {
   }
 }
 
+// ON A TELEVISION, A FIELD IS NOT A DEAD END (DR-0655). Measured in Chromium
+// on a Fire-TV-shaped page (Silk user agent, 960x540): on the Notes tab the
+// D-pad walked down into the one-voice text box and every later press stayed
+// there, 25 of 25, while "Record a conversation" sat 200px below. A keyboard
+// has Tab; a remote does not, so a field that keeps every arrow is a trap.
+// On a TV an arrow leaves a text field when the caret can go no further that
+// way: at the start for Left and Up, at the end for Right and Down (a
+// single-line field has no lines, so Up and Down always leave it). A caret
+// with room to move still moves. Off a TV nothing changes: a keyboard user
+// typing at the end of a field keeps Right to themselves.
+export function caretAtEdge(el, dir) {
+  try {
+    if (!el || el.isContentEditable) return false;
+    const tag = String(el.tagName || '').toUpperCase();
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    if (start == null || end == null || start !== end) return false;
+    const len = String(el.value == null ? '' : el.value).length;
+    if (tag === 'INPUT' && (dir === 'up' || dir === 'down')) return true;
+    if (dir === 'left' || dir === 'up') return start === 0;
+    if (dir === 'right' || dir === 'down') return end === len;
+    return false;
+  } catch (_) { return false; }
+}
+
+/** Does the document say it is a TV (lib/tv-device.js)? */
+function onTv(doc) {
+  try { return !!(doc && doc.documentElement && doc.documentElement.getAttribute('data-device') === 'tv'); } catch (_) { return false; }
+}
+
 /**
  * Handle one keydown. Returns the element focused, or null when the event was
  * left alone — which is the common case and must stay cheap and predictable.
  */
-export function handleRemoteKey(event, root, { rectOf, isVisible } = {}) {
+export function handleRemoteKey(event, root, { rectOf, isVisible, tv } = {}) {
   if (!event || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return null;
+  const doc = root && root.ownerDocument ? root.ownerDocument : (root || null);
+  const active = doc && doc.activeElement ? doc.activeElement : null;
+  const isTv = tv != null ? !!tv : onTv(doc);
+  const isSelect = !!active && String(active.tagName || '').toUpperCase() === 'SELECT';
+
+  // OK on a list, on a TV, opens the list (DR-0655). With the arrows no longer
+  // changing it, the picker is how a remote chooses.
+  if (isTv && isSelect && event.key === 'Enter' && typeof active.showPicker === 'function') {
+    try { active.showPicker(); if (typeof event.preventDefault === 'function') event.preventDefault(); return active; } catch (_) { return null; }
+  }
+
   const dir = DIRECTIONS[event.key];
   if (!dir) return null;
 
-  const doc = root && root.ownerDocument ? root.ownerDocument : (root || null);
-  const active = doc && doc.activeElement ? doc.activeElement : null;
-  if (consumesArrows(active)) return null;
+  // A LIST DOES NOT CHANGE ITSELF UNDER A PASSING D-PAD, ON A TV (DR-0655).
+  // Measured: one Down on the reader's "Start at" list chose paragraph 1 and
+  // started reading, and the arrows could never leave the list. On a TV the
+  // arrows move on past it and OK opens it.
+  if (isTv && isSelect) {
+    if (typeof event.preventDefault === 'function') event.preventDefault();
+  } else if (consumesArrows(active) && !(isTv && editsText(active) && caretAtEdge(active, dir))) {
+    return null;
+  }
 
   const items = focusableIn(root, { isVisible });
   if (!items.length) return null;
