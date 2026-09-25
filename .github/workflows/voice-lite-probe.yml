@@ -99,7 +99,10 @@ jobs:
         env:
           TOK: ${{ steps.nas.outputs.tok }}
         run: |
-          curl -s -m 20 -w ' HTTP %{http_code}\n' https://poetech.us/voice-lite/health || echo "health unreachable"
+          # The first 200 bytes only: before the mount exists, the Funnel root
+          # (n8n) answers with a whole editor page (run 36066026655).
+          H=$(curl -s -m 20 -o /tmp/vl-health -w '%{http_code} %{content_type}' https://poetech.us/voice-lite/health || echo "000")
+          echo "OUTSIDE-IN GET /voice-lite/health HTTP $H :: $(head -c 200 /tmp/vl-health 2>/dev/null | tr '\n' ' ')"
           if [ -z "$TOK" ]; then echo "no bearer available from the NAS — cannot make the authorized call"; exit 0; fi
           curl -s -m 90 -o voice-lite.wav \
             -w 'OUTSIDE-IN POST /voice-lite/speak HTTP %{http_code} type %{content_type} bytes %{size_download} seconds %{time_total}\n' \

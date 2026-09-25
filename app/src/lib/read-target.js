@@ -64,6 +64,9 @@ export function setReadTarget(owner, target) {
   current = {
     owner: String(owner),
     label: (target.label || 'this').trim() || 'this',
+    // What a floating reader and the lock screen name (DR-0641): the piece's
+    // own title. Optional; '' when not given.
+    title: target && typeof target.title === 'string' ? target.title.trim() : '',
     text,
     elementId: target && typeof target.elementId === 'string' && target.elementId ? target.elementId : null,
     prepare: target && typeof target.prepare === 'function' ? target.prepare : null,
