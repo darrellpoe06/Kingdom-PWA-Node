@@ -151,10 +151,10 @@ describe('the lesson\'s own space — no more losing your place', () => {
     expect(count(m.bigIdea)).toBe(1);
   });
 
-  it('Resume from the banner lands IN the lesson\'s own space with its guide open', () => {
+  it('Continue from the offer lands IN the lesson\'s own space with its guide open', () => {
     window.localStorage.setItem(PLACE_KEY, JSON.stringify({ courseKey: 'living-lessons', lessonId: 'll3-bodybuilding-christ', stage: 1, step: 2, at: 1 }));
     mount();
-    click(buttonByText('Resume →'));
+    click(buttonByText('Continue →'));
 
     const cards = lessonCards();
     expect(cards.length).toBe(1); // contained — not a scroll into the ocean

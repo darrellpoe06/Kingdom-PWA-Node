@@ -40,11 +40,10 @@ const flush = () => new Promise((r) => setTimeout(r, 0));
 const LESSON = 'In the beginning was the Word. And the Word was with God. And the Word was God. The same was in the beginning with God. All things were made by Him. And without Him was not any thing made that was made. In Him was life. And the life was the light of men.';
 
 describe('the reading is cut into pieces a voice can speak', () => {
-  it('whole sentences, a short first piece for a quick start, nothing lost', () => {
-    const chunks = chunkForClips(LESSON, { firstMax: 60, max: 120 });
+  it('one piece per reading segment, each short, nothing lost (DR-0653)', () => {
+    const chunks = chunkForClips(LESSON);
     expect(chunks.length).toBeGreaterThan(2);
-    expect(chunks[0].len).toBeLessThanOrEqual(60);
-    for (const c of chunks) expect(c.len).toBeLessThanOrEqual(120);
+    for (const c of chunks) expect(c.len).toBeLessThanOrEqual(180);
     expect(chunks.map((c) => c.text).join(' ').replace(/\s+/g, ' ')).toBe(LESSON);
   });
 
@@ -58,7 +57,7 @@ describe('the reading is cut into pieces a voice can speak', () => {
 
 describe('the clip queue plays real audio, piece after piece', () => {
   let chunks;
-  beforeEach(() => { chunks = chunkForClips(LESSON, { firstMax: 60, max: 120 }); });
+  beforeEach(() => { chunks = chunkForClips(LESSON); });
 
   it('plays the first piece through ONE audio element and PREFETCHES the next', async () => {
     const audio = fakeAudio();
@@ -67,8 +66,9 @@ describe('the clip queue plays real audio, piece after piece', () => {
     expect(await q.start()).toBe(true);
     expect(audio.play).toHaveBeenCalledTimes(1);
     expect(audio.src).toMatch(/^blob:/);
-    // Piece 0 and piece 1 were both asked for before piece 0 finished.
-    expect(fetchClip.mock.calls.map((c) => c[0])).toEqual([chunks[0].text, chunks[1].text]);
+    // Pieces 1 and 2 were asked for before piece 0 finished (two ahead,
+    // because the pieces are short and the NAS CPU takes two at once).
+    expect(fetchClip.mock.calls.map((c) => c[0])).toEqual([chunks[0].text, chunks[1].text, chunks[2].text]);
   });
 
   it('advances to the next paragraph when a piece ends, and ends after the last', async () => {
