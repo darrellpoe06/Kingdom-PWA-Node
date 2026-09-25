@@ -1,0 +1,78 @@
+| [DR-0624](DR-0624-a-recorded-conversation-is-kept-and-its-words-come-back-to-the-note.md) | **A recorded conversation is kept, and its words come back to t… |
+| [DR-0626](DR-0626-the-lessons-list-in-number-order-by-default-each-row-carries-its-own-number-and-the-day-it-was-added.md) | **The lessons list in number o… |
+<<<<<<< origin/main
+| [DR-0637](DR-0637-every-workflow-seeds-the-next-the-seed-is-in-itself-and-the-data-is-the-proof-of-the-whole.md) | **Sovereign A.I. week 27 — the seed is i… |
+| [DR-0638](DR-0638-holding-the-hand-of-the-process-until-it-is-finished-nothing-discarded-every-voice-carried-to-an-outcome.md) | **Sovereign A.I. week 28 —… |
+| [DR-0629](DR-0629-connected-is-not-the-same-as-answered-for-every-audience.md) | **Connected is not the same as answered, for every audience.** Darrell 202… |
+=======
+| [DR-0627](DR-0627-the-reader-keeps-playing-when-you-switch-apps-the-stand-in-voice-is-real-audio.md) | **The reader keeps playing when you switch apps: the… |
+| [DR-0630](DR-0630-the-lesson-chip-answers-with-the-lessons-already-written-from-the-word-for-your-situation.md) | **The Lesson chip answers with the lesson… |
+| [DR-0631](DR-0631-continuing-a-lesson-lands-on-your-sentence-every-lesson-keeps-its-own-place.md) | **Continuing a lesson lands on your sentence, and every… |
+| [DR-0635](DR-0635-a-members-own-situation-becomes-a-lesson-only-through-the-governors-review-queue.md) | **A member's own situation becomes a lesson only t… |
+>>>>>>> origin/claude/continue-a-lesson-way-better
+| [DR-0585](DR-0585-phone-photos-back-up-to-the-nas-as-originals-from-a-card-that-connects-itself.md) | **Phone photos back up to the NAS as originals, from … |
+| [DR-0584](DR-0584-the-notification-is-credited-to-the-app-and-the-tab-carries-the-count.md) | **The notification is credited to the app, not the browser; t… |
+| [DR-0583](DR-0583-the-five-migrations-that-never-lived-here-come-home.md) | **The five migrations that never lived here come home.** The first post-repoint… |
+| [DR-0582](DR-0582-a-rider-that-cannot-work-today-does-not-red-the-fleet.md) | **A rider that cannot work today does not red the fleet; parity asks by name … |
+| [DR-0528](DR-0528-real-estate-course-twelve-appraisal.md) | Real Estate course twelve: Appraisal — What a Thing Is Actually Worth | accepted | 2026-09-19 |… |
+| [DR-0527](DR-0527-real-estate-course-eleven-evictions.md) | Real Estate course eleven: Evictions Handled Righteously — What the Word Restrains When Somebod… |
+| [DR-0526](DR-0526-liability-is-four-words-not-one.md) | `liability` is four words, not one: correcting DR-0523’s reason and retiring its date | accepted | … |
+| [DR-0525](DR-0525-real-estate-course-ten-inspections.md) | Real Estate course ten: Inspections — What You Look At Before You Sign | accepted | 2026-09-19 |… |
+| [DR-0524](DR-0524-the-reader-can-change-how-it-looks.md) | The reader can change how it looks, from inside the lesson | accepted | 2026-09-19 | defect |
+| [DR-0523](DR-0523-real-estate-course-nine-insurance-and-risk.md) | Real Estate course nine: Insurance and Risk — What You Cannot Afford to Lose | accepted … |
+| [DR-0522](DR-0522-banking-what-the-bank-does-with-your-money.md) | Banking: What the Bank Does With Your Money | accepted | 2026-09-19 | content |
+| [DR-0521](DR-0521-the-plain-meaning-comes-first.md) | The plain meaning comes first | accepted | 2026-09-19 | defect |
+| [DR-0520](DR-0520-the-points-are-numbered-once-per-lesson.md) | The numbers belong to the lesson, not to the step on screen | accepted | 2026-09-19 | defect |
+| [DR-0519](DR-0519-the-simple-word-beside-the-title.md) | The simple word beside the title: connection, never rename | accepted | 2026-09-19 | architecture |
+| [DR-0518](DR-0518-l179-heartfelt-the-heart-is-the-deep-mind.md) | L179: Heartfelt — the heart is the deep mind, and what heartfelt actually claims | accept… |
+| [DR-0517](DR-0517-the-fleet-witness-was-silent-for-fifteen-days.md) | The fleet witness was silent for fifteen days, and nobody could tell why | accepted |… |
+| [DR-0516](DR-0516-a-course-has-one-home-and-many-shelves.md) | A course has one home and many shelves: how we differentiate when everything integrates | ac… |
+| [DR-0515](DR-0515-real-estate-course-eight-taxes-and-records.md) | Real Estate course eight: Taxes and Records: What You Owe and What You Can Show | accept… |
+| [DR-0514](DR-0514-the-site-witness-leaves-a-run-log-and-the-class-is-gated.md) | The site's own witness leaves a run log, and the class is gated | accepted… |
+| [DR-0513](DR-0513-real-estate-course-seven-financing-the-debt-you-sign.md) | Real Estate course seven: Financing: The Debt You Sign and the Lender You Face… |
+| [DR-0512](DR-0512-the-catalog-courses-get-the-elision-ratchet-the-series-has-had.md) | The catalog courses get the elision ratchet the series has had since… |
+| [DR-0511](DR-0511-the-send-off-reaches-the-reader-in-every-course.md) | The Send-off reaches the reader in every course, and the debt file hits zero | acce… |
+| [DR-0510](DR-0510-real-estate-course-six-partnerships-who-you-build-with.md) | Real Estate course six: Partnerships: Who You Build With | accepted | 2026-0… |
+| [DR-0509](DR-0509-the-send-off-was-a-heading-with-nothing-under-it.md) | The Send-off was a heading with nothing under it | accepted | 2026-09-18 | gate |
+| [DR-0508](DR-0508-real-estate-course-five-maintenance-repairs-and-the-trades.md) | Real Estate course five: Maintenance, Repairs and the Trades | accepted … |
+| [DR-0507](DR-0507-real-estate-course-four-leasing-and-tenant-selection.md) | Real Estate course four: Leasing and Tenant Selection | accepted | 2026-09-18 … |
+| [DR-0504](DR-0504-real-estate-course-three-buying-price-terms-and-the-count-to-finish.md) | Real Estate course three: Buying: Price, Terms and the Count to… |
+| [DR-0505](DR-0505-the-swarm-that-agreed-together-and-the-plumbline-held-from-outside.md) | **The swarm that agreed together, and the plumbline held from ou… |
+| [DR-0506](DR-0506-changing-the-engine-in-flight-and-the-word-that-is-not-a-schema.md) | **Sovereign A.I. week 24 — changing the engine in flight, and the W… |
+| [DR-0490](DR-0490-four-more-lessons-and-a-word-typed-twice-that-nothing-was-watching-for.md) | Four more lessons, and a word typed twice that nothing was w… |
+| [DR-0489](DR-0489-four-more-lessons-and-the-repair-that-broke-a-floor.md) | Four more lessons, and the repair that broke a floor | accepted | 2026-09-18 | … |
+| [DR-0488](DR-0488-two-reference-dense-lessons-and-the-difference-between-editing-a-band-and-writing-one.md) | Two reference-dense lessons, and the differen… |
+| [DR-0487](DR-0487-four-more-cloned-youth-bands-written-and-the-quiet-shrink-in-a-neighbouring-baseline.md) | Four more cloned youth bands written, and the … |
+| [DR-0486](DR-0486-l172-was-one-band-wearing-four-labels-and-the-break-harness-that-was-breaking-other-lessons.md) | L172 was one band wearing four labels, … |
+| [DR-0485](DR-0485-l173-gets-four-real-bands-and-a-proven-to-catch-that-went-stale-the-moment-it-worked.md) | L173 gets four real bands, and a proven-to-cat… |
+| [DR-0484](DR-0484-four-age-versions-or-one-repeated-four-times.md) | Four age versions, or one repeated four times? | accepted | 2026-09-18 | gate |
+| [DR-0483](DR-0483-the-order-is-the-teaching-and-a-gate-that-only-read-five-fields.md) | The order is the teaching, and a gate that only read five fields | … |
+| [DR-0482](DR-0482-the-levels-of-disrespect-and-a-lesson-that-grew-five-times-while-it-was-being-built.md) | The levels of disrespect, and a lesson that gre… |
+| [DR-0481](DR-0481-l81-tongues-drained-and-an-elision-in-a-field-the-ratchet-never-reads.md) | L81 brought to every band — the first lesson in this pass who… |
+| [DR-0480](DR-0480-l82-love-fulfils-the-law-drained-and-an-arc-whose-order-was-never-checked.md) | L82 brought to every band with youth created and the seni… |
+| [DR-0479](DR-0479-l83-keep-thy-heart-drained-and-an-ellipsis-chain-through-the-test-itself.md) | L83 brought to every band with youth created and the senio… |
+| [DR-0478](DR-0478-l84-blessed-and-highly-favored-drained-and-the-clause-that-was-the-thesis.md) | L84 brought to every band with youth created and the seni… |
+| [DR-0477](DR-0477-l85-the-kings-code-drained-and-the-clause-the-elision-took-was-the-strongest-one.md) | L85’s King’s Code brought to every band with youth… |
+| [DR-0476](DR-0476-l86-the-luke-survey-drained-and-a-caps-emphasis-pinned-as-a-survey-answer.md) | L86’s Luke survey brought to every band with youth create… |
+| [DR-0475](DR-0475-l87-drained-and-half-the-movements-a-reader-never-saw.md) | L87 brought to every band with youth created and teen/senior down from FK 13.… |
+| [DR-0474](DR-0474-l88-the-four-soils-drained-and-a-helper-defined-six-lines-above-the-check-that-needed-it.md) | L88’s four soils brought to every band wit… |
+| [DR-0473](DR-0473-736-elisions-of-his-own-words-measured-and-ratcheted.md) | Two consecutive lessons shipping the same two defects turned into a series-wid… |
+| [DR-0472](DR-0472-l89-gets-its-youth-band-and-a-gate-that-called-three-bands-full-coverage.md) | L89 (Hebrews 10:26) gets the youth band it never had and a… |
+| [DR-0471](DR-0471-pmp-and-itil-are-in-the-word-two-courses-and-a-check-a-tagline-could-answer.md) | Project Management and Software Project Management as t… |
+| [DR-0470](DR-0470-humility-is-the-strength-and-a-load-bearing-clause-that-left-him-unnamed.md) | Humility is the intake and not the price, no shame that ne… |
+| [DR-0469](DR-0469-how-long-this-takes-at-his-own-two-speeds-and-the-progress-bar-that-was-never-gone.md) | How long a course takes at 1× and 1.5× from the … |
+| [DR-0397](DR-0397-the-door-reports-itself-on-every-seam-not-just-the-order-form.md) | **The door reports itself on every seam, not just the order form.** D… |
+| [DR-0396](DR-0396-the-account-strip-becomes-two-status-icons-and-the-pii-leaves-the-chrome.md) | **The signed-in strip becomes two status icons, and the ra… |
+| [DR-0395](DR-0395-how-can-the-son-not-know-what-the-father-knows.md) | **How can the Son not know what the Father knows?** Darrell 2026-09-14: *"How can th… |
+| [DR-0394](DR-0394-a-fresh-local-edit-is-never-clobbered-by-a-stale-remote-on-a-pull.md) | **A fresh local edit is never clobbered by a stale remote on a pu… |
+| [DR-0393](DR-0393-the-base-can-move-while-you-verify-and-a-successful-push-can-be-the-failure.md) | **The base can move while you verify, and a successful … |
+
+| [DR-0530](DR-0530-the-resources-are-capitalized-knowledge-understanding-wisdom-love.md) | **The Resources are capitalized — Knowledge, Understanding, Wisdo… |
+
+<<<<<<< origin/main
+**Next ID:** DR-0639. (DR-0629 = connected-is-not-the-same-as-answered-for-every-audience, 2026-09-24.) (DR-0635 = a-members-own-situation-becomes-a-lesson-only-through-the-governors-review-queue, 2026-09-24.) (DR-0638 = holding-the-hand-of-the-process-until-it-is-finished-nothing-discarded-every-voice-carried-to-an-outcome, 2026-09-24.) (DR-0637 = every-workflow-seeds-the-next-the-seed-is-in-itself-and-the-data-is-the-proof-of-the-whole, 2026-09-24.) (DR-0623, DR-0628 through DR-0633 and DR-0636 are held by concurrent branches; DR-0634 is reserved for Sovereign A.I. week 29.) (DR-0627 = the-reader-keeps-playing-when-you-switch-apps-the-stand-in-voice-is-real-audio, 2026-09-24; DR-0623 to DR-0626 claimed by lanes in flight.) (DR-0631 through DR-0634 are held by concurrent branches.) (DR-0630 = the-lesson-chip-answers-with-the-lessons-already-written-from-the-word-for-your-situation, 2026-09-24.)
+=======
+**Next ID:** DR-0636. (DR-0635 = a-members-own-situation-becomes-a-lesson-only-through-the-governors-review-queue, 2026-09-24.) (DR-0627 = the-reader-keeps-playing-when-you-switch-apps-the-stand-in-voice-is-real-audio, 2026-09-24; DR-0623 to DR-0626 claimed by lanes in flight.) (DR-0631 = continuing-a-lesson-lands-on-your-sentence-every-lesson-keeps-its-own-place, 2026-09-24.) (DR-0632 through DR-0634 are held by concurrent branches.) (DR-0630 = the-lesson-chip-answers-with-the-lessons-already-written-from-the-word-for-your-situation, 2026-09-24.) (DR-0626 = the-lessons-list-in-number-order-by-default-each-row-carries-its-own-number-and-the-day-it-was-added, 2026-09-24.) (DR-0625, DR-0628 and DR-0629 are held by concurrent branches.) (DR-0624 = a-recorded-conversation-is-kept-and-its-words-come-back-to-the-note, 2026-09-24.)
+>>>>>>> origin/claude/continue-a-lesson-way-better
+> **Ledger-drift finding (2026-09-13, found while committing the next change):** commits **#1558, #1559, #1560, #1561 an…
+
