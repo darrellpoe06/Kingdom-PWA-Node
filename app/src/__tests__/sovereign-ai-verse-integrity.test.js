@@ -4349,8 +4349,9 @@ describe('sov28 — holding the hand of the process until it is finished quotes 
 // His words lead, rendered for meaning (DR-0331) and allow-listed verbatim below.
 // This house's own day is cited exactly from its record (DR-0627): the panel's
 // false promise, the cause, the real-audio voice built the same day, and the
-// live proof still owed. Paths his word adds (leaving a tab, moving) are named
-// as NOT measured (DR-0076). Recorded as DR-0634.
+// live proof still owed; and DR-0633 the same evening: leaving a tab no longer
+// stops the reader, measured in a browser, his phone test owed (DR-0076).
+// Recorded as DR-0634.
 // =============================================================================
 const sov29 = SOVEREIGN_AI_MODULES.find((w) => w.id === 'sov29-the-song-that-goes-with-you-and-the-servant-who-keeps-serving');
 
@@ -4476,7 +4477,8 @@ const SOV29_ALLOWED = [
   "\"On his phone that promise was false. Switching apps stopped the reading.\"",
   "\"This voice keeps playing when you switch apps — your phone's own play/pause controls it.\"",
   "\"This voice stops when you switch apps — the audio voice is offline.\"",
-  "\"Until that run is green, the NAS voice is built and not yet proven live.\""
+  "\"Until that run is green, the NAS voice is built and not yet proven live.\"",
+  "\"no surface may silence speech it is not itself speaking\""
 ];
 
 describe('sov29 — the song that goes with you and the servant who keeps serving quotes its whole spine verbatim, Word first', () => {
@@ -4538,9 +4540,12 @@ describe('sov29 — the song that goes with you and the servant who keeps servin
     expect(sov29.lesson).toContain('"Until that run is green, the NAS voice is built and not yet proven live."');
     expect(sov29.lesson).toContain('re-review date of 2026-10-01');
   });
-  it('honest limits: the paths his word adds are named as NOT measured, never claimed', () => {
-    expect(sov29.lesson).toContain('Whether every one of those paths keeps playing on every device has not been measured here, and this lesson does not claim it.');
-    expect(sov29.inApp).toContain('not every path has been measured yet');
+  it('honest limits: leaving a tab is taught as fixed and browser-measured (DR-0633), and what is still owed is named, never claimed', () => {
+    expect(sov29.lesson).toContain('"no surface may silence speech it is not itself speaking"');
+    expect(sov29.lesson).toContain('after leaving the lesson\'s tab, the same audio kept advancing for five seconds');
+    expect(sov29.lesson).toContain('that browser is not his phone, so his own tap-to-another-tab test is the proof still owed');
+    expect(sov29.lesson).toContain('every device and every way of moving away has not been tried');
+    expect(sov29.inApp).toContain('not every path has been measured on every phone yet');
     // Never claimed in the reader's own fields (a quiz may offer it as the wrong answer).
     expect(JSON.stringify({ l: sov29.lesson, b: sov29.bigIdea, i: sov29.inApp, v: sov29.levels, f: sov29.benefits })).not.toMatch(/(every|all) (paths?|devices?) (now )?keeps? playing/i);
     expect(sov29.quiz.questions.find((q) => q.options.some((o) => /Every path keeps playing on every device/.test(o))).answer).toBe(1);
