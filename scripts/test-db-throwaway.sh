@@ -90,6 +90,46 @@ docker rm -f testauth >/dev/null
 NMIG=$(SQL -tAc 'select count(1) from auth.schema_migrations')
 echo "throwaway: auth schema migrated, $NMIG GoTrue migrations"
 
+# Storage-api owns the storage schema the same way (measured on the first real
+# run, 36093447316: the image's own storage.buckets has no `public` column, so
+# 0187 and 0201 could not create their buckets). Run the NAS's version once.
+STOREIMG=$(pinned supabase/storage-api)
+[ -n "$STOREIMG" ] || { echo "::error::could not read the pinned storage-api image from $COMPOSE"; exit 3; }
+SQL -c "ALTER ROLE supabase_storage_admin WITH LOGIN PASSWORD '$PW';" >/dev/null
+docker run -d --name teststore --network testdb \
+  -e ANON_KEY=throwaway -e SERVICE_KEY=throwaway -e AUTH_JWT_SECRET="$JWT" -e PGRST_JWT_SECRET="$JWT" \
+  -e DATABASE_URL="postgres://supabase_storage_admin:$PW@testdb:5432/postgres" \
+  -e FILE_SIZE_LIMIT=52428800 -e STORAGE_BACKEND=file -e FILE_STORAGE_BACKEND_PATH=/tmp/storage \
+  -e TENANT_ID=stub -e REGION=stub -e GLOBAL_S3_BUCKET=stub \
+  "$STOREIMG" >/dev/null
+up=0
+for _ in $(seq 1 60); do
+  if docker logs teststore 2>&1 | grep -qiE 'Server listening|started server|listening at'; then up=1; break; fi
+  if [ "$(docker inspect -f '{{.State.Running}}' teststore)" != "true" ]; then break; fi
+  sleep 2
+done
+docker logs teststore 2>&1 | tail -3
+[ "$up" = 1 ] || { echo "::error::storage-api did not migrate the storage schema"; exit 5; }
+docker rm -f teststore >/dev/null
+NMIG=$(SQL -tAc 'select count(1) from storage.migrations')
+echo "throwaway: storage schema migrated, $NMIG storage-api migrations"
+
+# A leg applies up to fourteen migrations in ONE transaction (#1826), and the
+# policy overlays those migrations rebuild take a lock per table they touch:
+# measured on run 36093447316, the poe-properties chain ran out of lock slots
+# at the default of 64. A throwaway database can simply be given more.
+SQL -c "ALTER SYSTEM SET max_locks_per_transaction = 1024;" >/dev/null
+docker restart testdb >/dev/null
+ok=0
+for _ in $(seq 1 60); do
+  if docker exec -e PGPASSWORD="$PW" testdb psql -U supabase_admin -h 127.0.0.1 -d postgres -tAc 'select 1' >/dev/null 2>&1; then
+    ok=$((ok + 1)); [ "$ok" -ge 2 ] && break
+  else ok=0; fi
+  sleep 2
+done
+[ "$ok" -ge 2 ] || { echo "::error::the throwaway database did not come back after the lock setting"; exit 4; }
+echo "throwaway: max_locks_per_transaction = $(SQL -tAc 'show max_locks_per_transaction')"
+
 # The platform pieces the migrations assume, asserted exactly as the NAS
 # replay asserts them (infra/nas-supabase/replay_migrations.sh).
 SQL >/dev/null <<'PRE'
