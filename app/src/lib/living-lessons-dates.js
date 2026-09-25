@@ -216,4 +216,5 @@ export const LIVING_LESSONS_ADDED = {
   'll190-were-the-parables-real-the-one-who-made-the-ages-told-them': '2026-09-23', // commit 2a5a9bf9
   'll191-who-he-said-he-was-every-hearer-every-situation-and-the-keys-of-hell-and-of-death': '2026-09-24', // commit 0c8ebcbd
   'll192-two-hours-became-six-the-pattern-the-yea-the-inspection-and-the-faithful-man': '2026-09-24', // commit 806b6c63
+  'll194-i-am-who-he-said-he-was-every-hearer-all-of-them': '2026-09-24', // branch claude/lesson-every-hearer-all-of-them (DR-0646)
 };
