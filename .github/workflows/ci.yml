@@ -28,6 +28,15 @@ on:
   # queued PR would wait forever. Harmless when the queue is off.
   merge_group:
 
+# A newer commit on the same branch (or PR) supersedes the older run: the old
+# run's legs are cancelled so they stop holding runners the new commit needs
+# (DR-0645; measured 2026-09-24, 17 CI runs queued at once). Push runs and
+# pull_request runs have different refs, so they never cancel each other, and
+# main is never cancelled — every main commit keeps its full run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 # PARALLEL, NOT SERIAL (DR-0645, 2026-09-24). Darrell: "Our processes work way
 # faster than this!" The one required job used to run every gate in a single
 # line: ~20 minutes a PR (run 36066491340: 22:16:29 -> 22:36:28; vitest 11:34 of
