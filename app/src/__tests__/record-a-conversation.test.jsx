@@ -15,6 +15,9 @@
 // =============================================================================
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React, { act, useState } from 'react';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createRoot } from 'react-dom/client';
 
 const UID = 'f13843f2-742b-4f8a-82af-7ecfbdc536ec';
@@ -68,7 +71,7 @@ import ConversationRecorder, { plainSendReason } from '../components/Conversatio
 import OneVoiceInput from '../components/OneVoiceInput.jsx';
 import {
   noteVoiceTags, recordingConsent, recordedNoteText, fillNoteText, noteRecordingProblem,
-  sendNoteRecording, checkNoteTranscript, syncRecordedNotes, voiceStatusLine,
+  sendNoteRecording, checkNoteTranscript, syncRecordedNotes, voiceStatusLine, incidentNoteText,
   NOTE_RECORDING_AUDIO, NOTE_RECORDING_BITRATE,
 } from '../lib/recorded-note.js';
 import { silenceMessage, peakLevel, explainMicError, SILENCE_WARN_SECONDS } from '../lib/workflow-scribe.js';
@@ -333,6 +336,30 @@ describe('the Speak button: words live, and never a silently empty box', () => {
     expect(byId('dictation-no-words')).toBeNull();
   });
 
+  it('PROVEN-TO-CATCH (the Action Queue screenshot): spoken words that say "paint" stay a private note, never a work order', async () => {
+    const addNote = vi.fn();
+    const addIncident = vi.fn();
+    await render(<OneVoiceInput surface="notes" submitLabel="Save" addNote={addNote} addIncident={addIncident} />);
+    const speak = [...container.querySelectorAll('button')].find((b) => /Speak/.test(b.textContent));
+    await click(speak);
+    await act(async () => { FakeRecognition.last.onresult({ resultIndex: 0, results: [result('get all that paint and everything else out of the sanctuary', true)] }); });
+    const stop = [...container.querySelectorAll('button')].find((b) => /Stop/.test(b.textContent));
+    await click(stop);
+    // The chip did not move: Private is still the chosen destination.
+    const privateChip = [...container.querySelectorAll('button')].find((b) => /Private/i.test(b.textContent) && b.getAttribute('aria-pressed') !== null);
+    expect(privateChip.getAttribute('aria-pressed')).toBe('true');
+    const save = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Save');
+    await click(save);
+    expect(addIncident).not.toHaveBeenCalled();
+    expect(addNote).toHaveBeenCalledWith('get all that paint and everything else out of the sanctuary');
+  });
+
+  it('typed words may still suggest (the suggestion is for typing, not for speech)', () => {
+    const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'OneVoiceInput.jsx'), 'utf8');
+    expect(src).toMatch(/onTranscript: \(t\) => setText\(/);
+    expect(src).toMatch(/onChange=\{e => onText\(e\.target\.value\)\}/);
+  });
+
   it('nothing heard for a while is said instead of "listening"', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     await render(<OneVoiceInput surface="notes" submitLabel="Save" addNote={vi.fn()} />);
@@ -420,6 +447,16 @@ describe('the pure road (lib/recorded-note.js)', () => {
     expect(did[0].sent).toBe(true);
     expect(patches[0].p.voice.status).toBe('transcribing');
     expect(kept['nt-5']).toBeUndefined();
+  });
+
+  it('an Action Queue item that was really spoken words becomes a private note, every word kept', () => {
+    const words = 'or do in person Q&A and it is open to anyone like Bible topics';
+    expect(incidentNoteText({ description: words, createdAt: '2026-08-03T12:00:00Z' })).toBe(`From the Action Queue (filed there 2026-08-03)\n\n${words}`);
+    const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'BigPictureDashboard.jsx'), 'utf8');
+    expect(src).toMatch(/data-testid="incident-to-note"/);
+    expect(src).toMatch(/addNote\(incidentNoteText\(sourceItem\)\); if \(resolveIncident\) resolveIncident\(q\.id\);/);
+    const shell = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
+    expect(shell).toMatch(/<Home [^\n]*addNote=\{addNote\}/);
   });
 
   it('status lines are plain words', () => {

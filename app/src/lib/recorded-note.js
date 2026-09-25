@@ -87,6 +87,17 @@ export function fillNoteText(existing, words) {
   return a ? `${a}\n\n${b}` : b;
 }
 
+/**
+ * The words of an Action Queue item, kept whole as a private note, with one
+ * line saying where they came from (2026-09-24: spoken words filed as a work
+ * order). Every word is kept; nothing is trimmed.
+ */
+export function incidentNoteText(item) {
+  const words = String((item && item.description) || '').trim();
+  const when = String((item && (item.createdAt || item.date)) || '').slice(0, 10);
+  return `From the Action Queue${when ? ` (filed there ${when})` : ''}\n\n${words}`;
+}
+
 /** Why a recording cannot be sent, or ''. */
 export function noteRecordingProblem({ blob, seconds }) {
   if (!blob || !blob.size) return 'Nothing was recorded.';

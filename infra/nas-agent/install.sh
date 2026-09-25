@@ -33,12 +33,18 @@ if ! PYTHONPATH="$VENDOR" python3 -c 'import pg8000' >/dev/null 2>&1; then
     echo "nas-agent: could not vendor pg8000 (no pip route worked AND the committed .vendor is missing -- was it checked out?)" >&2; exit 1; }
 fi
 
-if [ ! -f "$ENVF" ]; then
-  echo "nas-agent: installed (pg8000 vendored, selftest green). WAITING for $ENVF"
-  echo "nas-agent: dispatch .github/workflows/nas-agent-arm.yml to place AGENT_DB_URL -- then this loop answers on its next cycle."
+# The consumer follows the database the app reads (DR-0614): with REPOINT-ARMED
+# merged and the sovereign stack's .env on this box it needs no placed
+# credential at all. agent.env stays optional: it carries GEMINI_API_KEY and,
+# only for a box without the sovereign stack, AGENT_DB_URL.
+ARMED="$REPO/infra/nas-supabase/REPOINT-ARMED"
+SUPA_ENVF="${SUPABASE_DATA:-/volume1/docker/supabase}/.env"
+if [ -f "$ENVF" ]; then
+  . "$ENVF"
+elif [ ! -f "$ARMED" ] || [ ! -r "$SUPA_ENVF" ]; then
+  echo "nas-agent: installed (pg8000 vendored, selftest green). WAITING for a database door: $ENVF (AGENT_DB_URL), or REPOINT-ARMED with a readable $SUPA_ENVF"
   exit 0
 fi
-. "$ENVF"
 # GEMINI_API_KEY lights the @gemini route (2026-08-24); absent = the route
 # stays dark and rows fail with the why -- same honesty as before.
 export AGENT_DB_URL OLLAMA_MODEL GEMINI_API_KEY GEMINI_MODEL

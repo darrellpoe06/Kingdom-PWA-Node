@@ -79,6 +79,15 @@ export function silentWavDataUri(seconds = 0.5, sampleRate = 8000) {
  * @param {Window} [opts.win]        injected for tests
  * @param {Function} [opts.makeAudio] injected element factory for tests
  */
+/** Every OS media action the reader answers, so release() can hand them all back. */
+export const MEDIA_ACTIONS = ['play', 'pause', 'stop', 'nexttrack', 'previoustrack', 'seekforward', 'seekbackward'];
+
+/** The app icon (app/public) for the car display and the lock-screen art. */
+export const DEFAULT_ARTWORK = [
+  { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+  { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+];
+
 export function createBackgroundAudio({ win, makeAudio, uri } = {}) {
   const w = win || (typeof window !== 'undefined' ? window : null);
   const src = uri || silentWavDataUri();
@@ -105,6 +114,8 @@ export function createBackgroundAudio({ win, makeAudio, uri } = {}) {
     try { el.setAttribute && el.setAttribute('playsinline', ''); } catch (_) { /* not fatal */ }
     return el;
   };
+  // True once this session has taken the lock screen (start / onControl).
+  let claimed = false;
 
   const api = {
     /** True while the keep-alive session is held. */
@@ -113,6 +124,7 @@ export function createBackgroundAudio({ win, makeAudio, uri } = {}) {
     start() {
       const a = build();
       if (!a) return false;
+      claimed = true;
       try {
         const p = a.play();
         // A rejected play() means the tap window was lost — the read still
@@ -124,36 +136,108 @@ export function createBackgroundAudio({ win, makeAudio, uri } = {}) {
 
     stop() {
       if (el) { try { el.pause(); } catch (_) { /* ignore */ } }
+      // Only the session that CLAIMED the lock screen clears it. Several
+      // readers can exist in one page (the Help button, the Bible reader),
+      // and one of them standing down must never wipe the card and buttons
+      // of the reader that is actually playing (DR-0633).
+      if (!claimed) return true;
+      claimed = false;
       const ms = mediaSession();
       if (ms) {
         try { ms.playbackState = 'none'; } catch (_) { /* ignore */ }
         try { ms.metadata = null; } catch (_) { /* ignore */ }
       }
+      // LET GO OF THE BUTTONS WHEN NOTHING IS READING (Darrell 2026-09-24:
+      // "we can have it playing while others are listening to their own
+      // stuff... options not locked either way"). A page that keeps its
+      // media-key handlers after the reading ends can keep answering the
+      // headset or the car, and the person's own music or podcast would lose
+      // those buttons to a reader that is not even playing. Stop hands every
+      // button back.
+      api.release();
       return true;
     },
 
-    /** What the lock screen / notification says is playing. */
-    describe({ title, artist = 'PoeTech · Read Aloud', album = '' } = {}) {
+    /** Hand every OS media button back (no handler left on any action). */
+    release() {
+      handlers = {};
+      const ms = mediaSession();
+      if (!ms || typeof ms.setActionHandler !== 'function') return false;
+      for (const action of MEDIA_ACTIONS) {
+        try { ms.setActionHandler(action, null); } catch (_) { /* an action this browser does not know */ }
+      }
+      return true;
+    },
+
+    /** True while any OS button is wired to the reader. */
+    get wired() { return Object.values(handlers).some((fn) => typeof fn === 'function'); },
+
+    /**
+     * What the lock screen, the notification, the headset app and the CAR'S
+     * DISPLAY say is playing: title = the lesson, artist = PoeTech, album =
+     * the course, artwork = the app icon.
+     */
+    describe({ title, artist = 'PoeTech', album = '', artwork = DEFAULT_ARTWORK } = {}) {
       const ms = mediaSession();
       if (!ms || !w || typeof w.MediaMetadata !== 'function') return false;
       try {
-        ms.metadata = new w.MediaMetadata({ title: String(title || 'Reading'), artist, album });
+        ms.metadata = new w.MediaMetadata({ title: String(title || 'Reading'), artist, album: String(album || ''), artwork });
         return true;
       } catch (_) { return false; }
     },
 
-    /** Wire the OS transport buttons to the reader's real controls. */
-    onControl({ onPlay, onPause, onStop } = {}) {
-      handlers = { onPlay, onPause, onStop };
+    /**
+     * Wire the OS transport buttons to the reader's real controls.
+     *
+     * NEXT AND PREVIOUS ARE THE CAR'S BUTTONS (Darrell 2026-09-24: "a popout
+     * option for when you're driving and want to still push play pause etc").
+     * Steering-wheel skip buttons (Bluetooth AVRCP) and a headset's double /
+     * triple tap reach the page as 'nexttrack' / 'previoustrack'; some head
+     * units send seek instead. All four go to the SAME paragraph steps as the
+     * bar's forward and back buttons. Before this only play, pause and stop
+     * were wired, and every skip button did nothing.
+     *
+     * Each action is set on its own: a browser that does not know one action
+     * throws for that one only, and must not cost the others.
+     */
+    onControl({ onPlay, onPause, onStop, onNext, onPrev } = {}) {
+      handlers = { onPlay, onPause, onStop, onNext, onPrev };
+      claimed = true;
       const ms = mediaSession();
       if (!ms || typeof ms.setActionHandler !== 'function') return false;
       const safe = (fn) => (typeof fn === 'function' ? () => { try { fn(); } catch (_) { /* a handler error never kills the session */ } } : null);
+      const wiring = {
+        play: handlers.onPlay,
+        pause: handlers.onPause,
+        stop: handlers.onStop,
+        nexttrack: handlers.onNext,
+        previoustrack: handlers.onPrev,
+        seekforward: handlers.onNext,
+        seekbackward: handlers.onPrev,
+      };
+      let any = false;
+      for (const action of MEDIA_ACTIONS) {
+        try { ms.setActionHandler(action, safe(wiring[action])); any = true; } catch (_) { /* unsupported action */ }
+      }
+      return any;
+    },
+
+    /**
+     * Where the reading is, for the progress bar on the lock screen or the
+     * car display. The device voice has no clock, so the caller passes an
+     * ESTIMATE; a missing or bad value clears the bar rather than painting a
+     * wrong one.
+     */
+    setPosition({ duration, position, playbackRate = 1 } = {}) {
+      const ms = mediaSession();
+      if (!ms || typeof ms.setPositionState !== 'function') return false;
       try {
-        ms.setActionHandler('play', safe(handlers.onPlay));
-        ms.setActionHandler('pause', safe(handlers.onPause));
-        ms.setActionHandler('stop', safe(handlers.onStop));
+        const d = Number(duration);
+        const p = Number(position);
+        if (!(d > 0) || !(p >= 0)) { ms.setPositionState(); return false; }
+        ms.setPositionState({ duration: d, position: Math.min(p, d), playbackRate: Number(playbackRate) > 0 ? Number(playbackRate) : 1 });
+        return true;
       } catch (_) { return false; }
-      return true;
     },
 
     /** 'playing' | 'paused' | 'none' — keeps the OS control in step with ours. */
