@@ -75,10 +75,13 @@ export function recordingProblem({ blob, seconds }) {
  * { ok, reason, path, id }. A failed upload files nothing; a failed row after
  * a good upload removes the uploaded audio, so no orphan waits in the bucket.
  */
-export async function sendVoiceLesson({ blob, seconds, note = '', source = 'church-one-voice', supabase, relay, nowMs = Date.now(), suffix }) {
+export async function sendVoiceLesson({ blob, seconds, note = '', source = 'church-one-voice', supabase, relay, nowMs = Date.now(), suffix, extraTags = [] }) {
   const problem = recordingProblem({ blob, seconds });
   if (problem) return { ok: false, reason: problem, path: '', id: null };
-  return sendRecording({ blob, body: voiceLessonBody(note, seconds), tagsFor: voiceLessonTags, source, supabase, relay, nowMs, suffix });
+  // The member's naming choice (DR-0639) rides the spoken lesson too: the same
+  // notice sits above the one Send, so the same choice must reach the reader.
+  const extra = Array.isArray(extraTags) ? extraTags.filter((t) => typeof t === 'string' && t) : [];
+  return sendRecording({ blob, body: voiceLessonBody(note, seconds), tagsFor: (path) => [...voiceLessonTags(path), ...extra], source, supabase, relay, nowMs, suffix });
 }
 
 /**
