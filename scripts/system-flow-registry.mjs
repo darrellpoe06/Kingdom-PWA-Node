@@ -72,7 +72,8 @@ const NODES = [
   app('app/src/lib/feedback-receipt.js', {
     id: 'feedback-receipt', name: "Sender's receipt",
     purpose: 'The sender reads where their note stands — received, being worked on, fixed, or declined with the reason.',
-    reads: [{ res: 'db:feedback#triaged', file: 'app/src/components/FeedbackCenter.jsx', token: 'receiptStatus(f, myFeedback)' }],
+    // DR-0625: the sender's own notes, each with its outcome, read by IntakeOutcomeList.
+    reads: [{ res: 'db:feedback#triaged', file: 'app/src/components/IntakeOutcomeList.jsx', token: 'receiptStatus(n, board)' }],
     seeds: [],
   }),
   app('app/src/components/ConcernsBoard.jsx', {
@@ -182,6 +183,19 @@ const NODES = [
       { res: 'db:video_transcripts', token: 'load-transcripts.py' },
     ],
     seeds: ['ops-queue', 'sermon-reader'],
+  }),
+  wf('intake-autofix.yml', {
+    id: 'intake-autofix', name: 'Intake autofix (sort, queue, hand out one fix)',
+    purpose: 'Sorts every live note into its category, queues the low-hanging ones, matches each fix to its pull request and hands out one at a time (DR-0625).',
+    reads: [
+      { res: 'db:feedback', file: 'scripts/intake-autofix-over-tailnet.sh', token: 'FROM public.feedback' },
+      { res: 'db:intake_fix_queue', file: 'scripts/intake-autofix-over-tailnet.sh', token: 'FROM public.intake_fix_queue' },
+    ],
+    writes: [
+      { res: 'db:feedback#triaged', file: 'scripts/intake-autofix.mjs', token: 'UPDATE public.feedback' },
+      { res: 'db:intake_fix_queue', file: 'scripts/intake-autofix.mjs', token: 'INSERT INTO public.intake_fix_queue' },
+    ],
+    seeds: ['feedback-receipt'],
   }),
   wf('ops-queue-health.yml', {
     id: 'ops-queue-health', name: 'Ops-queue health witness',
@@ -500,11 +514,11 @@ const NODES = [
   }),
   wf('ci.yml', {
     id: 'ci', name: 'CI — every gate', runRule: 'any-success', purpose: 'Lint, the full test suite, every guard (this graph’s included) and a real build.',
-    reads: [{ res: 'gh:pr', token: 'pull_request' }], writes: [{ res: 'gh:check', token: 'npx vitest run' }], seeds: ['auto-merge'],
+    reads: [{ res: 'gh:pr', token: 'pull_request' }, { res: 'gh:ci-dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'gh:check', token: 'npx vitest run' }], seeds: ['auto-merge'],
   }),
   wf('auto-merge.yml', {
     id: 'auto-merge', name: 'Auto-merge on green', runRule: 'product:deploy-cloudflare-pages.yml', purpose: 'Merges the PR the moment its gates pass; dispatches the deploy.',
-    reads: [{ res: 'gh:pr', token: 'gh pr list' }, { res: 'gh:check', token: 'workflow_run' }],
+    reads: [{ res: 'gh:pr', token: 'gh pr list' }, { res: 'gh:check', token: 'workflow_run' }, { res: 'gh:automerge-dispatch', token: 'workflow_dispatch' }],
     writes: [{ res: 'gh:main', token: 'gh pr merge' }, { res: 'gh:deploy-heal', token: 'gh workflow run deploy-cloudflare-pages.yml' }],
     seeds: ['deploy', 'db-migrate', 'deploy-freshness'],
   }),
@@ -544,6 +558,16 @@ const NODES = [
   wf('pr-janitor.yml', {
     id: 'pr-janitor', name: 'PR janitor', purpose: 'Closes PRs that carry nothing beyond main.',
     reads: [{ res: 'gh:pr', token: 'gh pr list' }], writes: [], seeds: [],
+  }),
+  wf('keep-prs-current.yml', {
+    id: 'keep-prs-current', name: 'Keep PRs current (DR-0644)',
+    purpose: 'Main is merged into every live agent PR; the two ledger files resolve themselves, anything else is named to its owner.',
+    reads: [{ res: 'gh:main', token: 'origin/main' }, { res: 'gh:pr', token: 'gh pr list' }],
+    writes: [
+      { res: 'gh:automerge-dispatch', token: 'gh workflow run auto-merge.yml' },
+      { res: 'gh:ci-dispatch', token: 'gh workflow run ci.yml' },
+    ],
+    seeds: ['ci', 'auto-merge'],
   }),
   wf('install-health.yml', {
     id: 'install-health', name: 'Install health witness', purpose: 'Proves the site installs as an app.',
@@ -855,6 +879,8 @@ const RESOURCES = {
   'mail:lesson': { label: 'forwarded “Lesson.” mail', source: 'Darrell forwards a lesson from his own mailbox.' },
   'yt:channel': { label: 'the church’s YouTube channel', source: 'The church publishes each service on its channel.' },
   'gh:branch': { label: 'a pushed branch', source: 'An agent session or a person pushes a branch.' },
+  'gh:ci-dispatch': { label: 'CI dispatched on a refreshed PR branch' },
+  'gh:automerge-dispatch': { label: 'the auto-merge sweep dispatched after PRs were refreshed' },
   'gh:dispatch': { label: 'a hand dispatch', source: 'A person or a session dispatches a remote-hands workflow on purpose.' },
   'gh:signal-pr': { label: 'the lesson signal PR (#1346)' },
   'gh:pr': { label: 'pull requests' },
@@ -934,7 +960,7 @@ const CHAINS = [
   { id: 'health', name: 'Site health → incidents → operations readout', nodes: ['site-health', 'level-witness', 'node-availability', 'harvest-health', 'ops-queue-health', 'ops-surface', 'ops-board'] },
   { id: 'decisions', name: 'Decision readouts, the flow proof and the operations board', nodes: ['decision-board', 'flow-proof', 'ops-board', 'flow-surface'] },
   { id: 'scribe', name: 'Scribe: recording → words → back to the person', nodes: ['scribe-surface', 'scribe', 'scribe-transcribe'] },
-  { id: 'lane', name: 'Delivery lane', nodes: ['auto-open-pr', 'ci', 'auto-merge', 'deploy', 'deploy-freshness', 'db-migrate', 'migrate-freshness', 'rls-isolation', 'schema-health', 'pr-janitor'] },
+  { id: 'lane', name: 'Delivery lane', nodes: ['auto-open-pr', 'ci', 'auto-merge', 'deploy', 'deploy-freshness', 'db-migrate', 'migrate-freshness', 'rls-isolation', 'schema-health', 'pr-janitor', 'keep-prs-current'] },
 ];
 
 export const SYSTEM_FLOW = { nodes: NODES, resources: RESOURCES, loops: LOOPS, chains: CHAINS };

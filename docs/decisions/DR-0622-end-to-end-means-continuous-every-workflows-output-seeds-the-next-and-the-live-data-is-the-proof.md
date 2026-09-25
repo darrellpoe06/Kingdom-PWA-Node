@@ -142,3 +142,25 @@ Proofs: `broken-lanes-combined-with-their-working-twins.test.js`, 10 tests, each
   - it answered `fired 9556s ago (< 10800s gap) - no-op this cycle`, so the shared budget held;
   - whether new transcripts are arriving is shown by `db:video_transcripts` and `harvest-health`, not by this lane.
 - `nas-storage-sync` run 36072894624 (main, public gallery): green.
+
+## The closing measurement (run 36077477281, 2026-09-25 00:26 UTC)
+
+| state | first (21:04) | after the first push (23:21) | now (00:26) |
+| --- | --- | --- | --- |
+| flowing | 38 | 48 | 54 |
+| empty | 18 | 16 | 16 |
+| stale | 9 | 9 | 8 |
+| broken | 10 | 7 | 2 |
+| unconsumed | 1 | 1 | 1 |
+| off | 0 | 1 | 1 |
+| unknown | 1 | 0 | 0 |
+
+Newly flowing since the 23:21 measurement:
+- `mcp-health`: HTTP 401 at 00:22 UTC. The server is up and refuses unauthenticated calls. It picked up the #1788 fix on the sync cycles after the daily budget reset at 00:00 UTC; the budget was not bypassed.
+- `auto-merge`: now judged by the deploy it dispatched.
+- `nas-agent-arm`, `source-transcript` and `nas-storage-sync`.
+- `agent_tasks#answered`: newest 2026-09-24 23:41, the chat row that had waited since the repoint.
+
+The two still broken:
+- `nas-email-door`: waits on a value only Darrell holds. `re-review: 2026-10-01`.
+- `transcript-backfill`: a measurement fault, fixed in this push. Its schedule is commented out (`#   - cron:`), yet the proof read it as a scheduled witness and judged it only by a July failure on main. Its combined route had just run green (36073585409). `ari-comprehensive-review`, "schedule stopped 59 days", was the same fault: its schedule is also commented out. Both `runRuleFor` and `cronFreshDays` now ignore commented lines. Proven to catch: the test now fails if a commented cron is read as a schedule.
