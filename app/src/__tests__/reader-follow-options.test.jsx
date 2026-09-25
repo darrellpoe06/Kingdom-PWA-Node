@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // =============================================================================
-// Follow the voice — the listener's own choices, said in words (DR-0657)
+// Follow the voice — the listener's own choices, said in words (DR-0659)
 // =============================================================================
 // Darrell 2026-09-24: "Still need the reader to keep up with the sentence when
 // users want to... do we have all options?" And from his phone: "text orange

@@ -128,7 +128,7 @@ beforeEach(async () => {
   road.calls = []; road.answer = null;
   media.plays = []; media.strict = false; media.gesture = false; media.overlaps = 0;
   _resetLiteVoiceForTests();
-  // Each device starts with no voice kept on it (DR-0657): a clip a previous
+  // Each device starts with no voice kept on it (DR-0659): a clip a previous
   // test kept would be played from the device and the NAS never asked.
   _setDeviceClipCacheForTests(null);
   globalThis.fetch = vi.fn(voiceLiteFetch);

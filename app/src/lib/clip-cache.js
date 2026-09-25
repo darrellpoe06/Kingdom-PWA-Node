@@ -1,5 +1,5 @@
 // =============================================================================
-// clip-cache — the NAS voice's clips kept ON THE DEVICE (DR-0657)
+// clip-cache — the NAS voice's clips kept ON THE DEVICE (DR-0659)
 // =============================================================================
 // Darrell 2026-09-24: "So we need a direct connection to the nas for a good
 // reading?!!! Can't we give everything it needs for quality without needing to
@@ -227,7 +227,7 @@ export async function cacheAhead({ keys, fetchPiece, cache, concurrency = 3, onP
 }
 
 /**
- * ONE READING'S PIECES, FROM THE DEVICE FIRST (DR-0657).
+ * ONE READING'S PIECES, FROM THE DEVICE FIRST (DR-0659).
  * The player (clip-queue) and the fetch-ahead share this: a piece on the
  * device is played from the device; a piece that is not is fetched ONCE (the
  * player and the fetch-ahead wait on the same request), kept, and played.

@@ -43,7 +43,7 @@ function Controls({ isReading, isPaused, canJump, onPlayPause, onBack, onForward
 function Words({ sentences, placeholder, place = 'top' }) {
   const boxRef = useRef(null);
   const current = sentences.findIndex((s) => s.current);
-  // THE SPOKEN SENTENCE AT THE TOP OF THE BOX (DR-0657; Darrell: "keep the
+  // THE SPOKEN SENTENCE AT THE TOP OF THE BOX (DR-0659; Darrell: "keep the
   // reading at the top of the page as much as possible"). It used to move only
   // once the sentence had left the box, so each next one sat at the bottom.
   // Now every new sentence is placed like the page's: just under the box's

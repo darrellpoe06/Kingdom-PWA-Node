@@ -1,5 +1,5 @@
 ---
-id: DR-0657
+id: DR-0659
 title: The reader keeps up with the sentence, says when it is following, and keeps the voice on the device
 status: accepted
 date: 2026-09-25

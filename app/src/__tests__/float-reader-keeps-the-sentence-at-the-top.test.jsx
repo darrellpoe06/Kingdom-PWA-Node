@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // =============================================================================
-// The floating reader keeps the spoken sentence at the TOP of its box (DR-0657)
+// The floating reader keeps the spoken sentence at the TOP of its box (DR-0659)
 // =============================================================================
 // Darrell 2026-09-25: "the reader should keep the reading at the top of the
 // page as much as possible... currently it's almost at the bottom of the page."

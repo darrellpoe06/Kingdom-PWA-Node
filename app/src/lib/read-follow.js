@@ -536,7 +536,7 @@ export function stickyBottomInset(win = (typeof window !== 'undefined' ? window 
   }
 }
 
-// WHERE THE SENTENCE LANDS (DR-0657; Darrell 2026-09-24: "Still need the
+// WHERE THE SENTENCE LANDS (DR-0659; Darrell 2026-09-24: "Still need the
 // reader to keep up with the sentence"). With a `place`, every new sentence is
 // brought to the same line of the reading band — the top third, or the centre
 // — so the eye stays in one spot and the text moves under it. Without one, the

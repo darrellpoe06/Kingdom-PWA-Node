@@ -38,7 +38,7 @@
 //      "always reversible" means from every state the reader can actually be
 //      in, not only the one the probe happened to load.
 //
-// READER pass (rides --sweep; DR-0657): a real reading of L191 in the NAS
+// READER pass (rides --sweep; DR-0659): a real reading of L191 in the NAS
 // voice (answered here with a tone) at 412x915 A+++, 390x844 and 1920x1080 —
 // the reader's pill and mini-bar are on screen, the lit sentence stays in
 // view while following, and at 1920 a remote's focus walks the mini-bar with
@@ -89,7 +89,7 @@ const MIME = {
 
 // A short tone in the NAS voice's own format (16-bit mono PCM WAV, 22050 Hz),
 // so the reader pass can start a REAL reading: the app's /voice-lite call is
-// answered here exactly as the NAS answers it (DR-0657).
+// answered here exactly as the NAS answers it (DR-0659).
 function toneWav(seconds = 1.2, hz = 330, rate = 22050) {
   const n = Math.round(seconds * rate);
   const buf = Buffer.alloc(44 + n * 2);
@@ -857,7 +857,7 @@ try {
   if (presenterMeasured !== 2) fail(`coverage: ${presenterMeasured}/2 presenter cases measured`);
 
   // ---------------------------------------------------------------------------
-  // THE READER WHILE THE WORD IS PLAYING (DR-0657). No instrument had ever
+  // THE READER WHILE THE WORD IS PLAYING (DR-0659). No instrument had ever
   // looked at the page WHILE READING. Darrell 2026-09-24: "Still need the
   // reader to keep up with the sentence", and the Fire TV: the mini-bar must
   // be reachable and usable with a D-pad at 1920x1080 over the NAS voice.
@@ -1033,7 +1033,7 @@ if (SELFTEST) {
   // text-scale pass's trap + blowout (>=2 textscale trips: overflow, hatch).
   // And the lesson pass's width-short + boxed-control break (>=2 lesson trips).
   const tsTripped = readerFailuresBefore - tsFailuresBefore;
-  // The reader pass (DR-0657): the mini-bar with its focus ring taken away
+  // The reader pass (DR-0659): the mini-bar with its focus ring taken away
   // must trip the remote check.
   const readerTripped = failures - readerFailuresBefore;
   const lessonTripped = tsFailuresBefore - lessonFailuresBefore;

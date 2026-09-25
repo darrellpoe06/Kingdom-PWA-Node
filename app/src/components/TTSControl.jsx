@@ -200,7 +200,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // pressed read, heard nothing, was told nothing.
     notice,
     // 'audio' | 'device' | '' — only an audio voice survives switching apps.
-    // Kept on the device (DR-0657; optional in mocks).
+    // Kept on the device (DR-0659; optional in mocks).
     offline, saveForListening, usesNasVoice, liteVoice,
     audioVoice,
     // The OS skip buttons get the bar's paragraph step (optional in mocks).
@@ -317,7 +317,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // instead of pulling the page out from under them.
   const awayRef = useRef(false);
   const [userAway, setUserAway] = useState(false);
-  // THE LISTENER'S OWN FOLLOW CHOICES (DR-0657): follow the voice or not,
+  // THE LISTENER'S OWN FOLLOW CHOICES (DR-0659): follow the voice or not,
   // light the sentence or not, and where on the screen it lands. Kept on this
   // device; read through a ref inside the per-sentence effects so a change
   // takes hold on the very next sentence without re-running them.
@@ -839,7 +839,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // A device that can't speak still scrolls: the read-aloud card stays hidden
   // below but Back-to-top renders in the ONE corner wrapper (the fab-overlap
   // guard rightly counts anchors — one anchor, one wrapper, both features).
-  // KEPT ON THE DEVICE (DR-0657): the panel's truthful count for a lesson.
+  // KEPT ON THE DEVICE (DR-0659): the panel's truthful count for a lesson.
   const [offlineNote, setOfflineNote] = useState(null);
   const saveSigRef = useRef(null);
   // While the NAS voice reads from the top, the fetch-ahead IS a save: its
@@ -947,7 +947,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     setPickList({ owner: t.owner, labels });
   };
 
-  // SAVE THIS LESSON FOR LISTENING OFFLINE (DR-0657; Darrell: "Can't we give
+  // SAVE THIS LESSON FOR LISTENING OFFLINE (DR-0659; Darrell: "Can't we give
   // everything it needs for quality without needing to reconnect with the
   // nas?"). The text is the one a read speaks (the mapped element), so the
   // pieces saved are exactly the pieces played.
@@ -1317,7 +1317,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
         // state (a live badge + an honest label) so a closed panel still shows
         // the Word is playing and Stop is one tap away — including after the
         // user has left the app and come back (background playback).
-        // Only opacity and position ease (DR-0657): with transition-all the
+        // Only opacity and position ease (DR-0659): with transition-all the
         // focus ring faded in over half a second, and a Fire TV remote's user
         // landed on a button with no ring (measured 0 px, then 1 px).
         <button
@@ -1424,7 +1424,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
            expanded panel's buttons had the same escape and the same fix. */
         <div
           className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.5em] py-[0.375em] flex flex-wrap justify-end items-center gap-[0.375em]"
-          // KEPT ON THE SCREEN (DR-0657): at 412 px and A+++ the pill measured
+          // KEPT ON THE SCREEN (DR-0659): at 412 px and A+++ the pill measured
           // 462 px and ran 82 px off the left edge. It wraps inside the screen
           // instead. A floating control's clamp to the viewport, not a
           // surface width cap (the consistency guard's max-w rule).
@@ -1679,7 +1679,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
             </div>
           </div>
 
-          {/* FOLLOW ALONG (DR-0657; Darrell: "Still need the reader to keep up
+          {/* FOLLOW ALONG (DR-0659; Darrell: "Still need the reader to keep up
               with the sentence when users want to... do we have all options?").
               The listener's choices, kept on this device. "Follow the voice"
               is the same choice as the mini-bar's Following button. */}
@@ -1705,7 +1705,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
             </div>
           </div>
 
-          {/* ON THIS DEVICE (DR-0657; Darrell: "Can't we give everything it
+          {/* ON THIS DEVICE (DR-0659; Darrell: "Can't we give everything it
               needs for quality without needing to reconnect with the nas?").
               Says plainly whether this lesson is kept here, and saves it. */}
           {target && usesNasVoice && typeof saveForListening === 'function' && (() => {
@@ -1839,7 +1839,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
            Icon-first so it fits at 320 px without reaching the Feedback
            button on the left or the Give button above. */
         <div data-testid="reader-mini-bar" role="group" aria-label="Now reading" className="ts-chrome-region flex items-center gap-[0.25rem] bg-white border-2 border-[#1A1815] rounded-full shadow-lg p-[0.125rem] pl-[0.25rem]">
-          {/* FOLLOW, AS A WORD AND A FILL (DR-0657). Three states, each said:
+          {/* FOLLOW, AS A WORD AND A FILL (DR-0659). Three states, each said:
               "Following" (filled, pressed) — the page keeps the spoken
               sentence in view; "Follow" (outlined) — the sentence is lit but
               the page stays put, tap to follow again; "Text" — the words are

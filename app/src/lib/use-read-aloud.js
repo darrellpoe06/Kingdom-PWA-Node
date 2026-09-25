@@ -81,7 +81,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // Which reading segment the NAS voice is speaking (-1 when it is not). The
   // pieces ARE the segments, so this is exact, never a guess from the clock.
   const [cloudPiece, setCloudPiece] = useState(-1);
-  // How much of the reading now playing is on the device (DR-0657):
+  // How much of the reading now playing is on the device (DR-0659):
   // { saved, total, bytes, keys } while the fetch-ahead runs, else null.
   const [offline, setOffline] = useState(null);
   const aheadRef = useRef(null);
@@ -426,7 +426,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       if (got.url) { try { URL.revokeObjectURL(got.url); } catch (_) { /* ignore */ } }
       return got;
     };
-    // EVERY PIECE FROM THE DEVICE FIRST (DR-0657; Darrell: "Can't we give
+    // EVERY PIECE FROM THE DEVICE FIRST (DR-0659; Darrell: "Can't we give
     // everything it needs for quality without needing to reconnect with the
     // nas?"). A piece played once is kept on the device (lib/clip-cache.js):
     // a replay, a resume, a jump or a dropped connection plays from here.
@@ -556,7 +556,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
 
-  // SAVE A READING FOR LISTENING OFFLINE (DR-0657). The same pieces, the same
+  // SAVE A READING FOR LISTENING OFFLINE (DR-0659). The same pieces, the same
   // keys and the same NAS call the player uses, fetched ahead three at a time
   // without playing anything. Resolves with { saved, total, bytes, failed }.
   const liteKeysFor = useCallback((text) => {
@@ -922,7 +922,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     cloudProgress,
     // The NAS voice's piece IS the reading segment (-1 when not playing one).
     cloudPiece,
-    // Kept on the device (DR-0657): the reading now playing, a save, a count.
+    // Kept on the device (DR-0659): the reading now playing, a save, a count.
     offline, saveForListening, offlineStatus,
     // The NAS voice reads for the System voice and a person's stand-in; a
     // browser accent picked on purpose is the device's own voice.
