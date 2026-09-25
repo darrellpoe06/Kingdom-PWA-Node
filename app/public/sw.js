@@ -123,10 +123,18 @@ self.addEventListener('install', (event) => {
   );
 });
 
+// KEPT ACROSS DEPLOYS (DR-0656). A cache whose name starts with KEEP_PREFIX
+// holds what the person chose to put on the device -- the on-device reading
+// voice (~63 MB model + runtime, lib/device-voice.js). Deleting it with the
+// per-deploy caches would silently re-download 63 MB after every merge and
+// leave the device voiceless offline until it did. Everything else is still
+// dropped on activate, exactly as before.
+var KEEP_PREFIX = 'poetech-keep-';
+
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+      Promise.all(keys.filter((k) => k !== CACHE && k.indexOf(KEEP_PREFIX) !== 0).map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
