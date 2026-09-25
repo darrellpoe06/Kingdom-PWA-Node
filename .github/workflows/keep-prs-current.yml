@@ -21,34 +21,31 @@
 #      branch's): resolves ONLY INDEX.md + legibility-health.json, refuses if
 #      anything else conflicts, then business-systems-guard + a zero-marker
 #      check must pass
-#   4. resolved -> commit the merge and push it (never forced; if the owner
-#      pushed meanwhile, the push is refused and the next run retries)
+#   4. resolved (ledger-only):
+#      · WITH the LANE_PUSH_TOKEN secret: commit the merge and push it with
+#        that token (never forced; if the owner pushed meanwhile, the push is
+#        refused and the next run retries). It is an ordinary attributed push,
+#        so ci.yml's own `push` trigger runs CI on the new head.
+#      · WITHOUT it: push NOTHING and dispatch nothing. Abort the merge and
+#        comment ONCE per PR per main commit: "owner: merge main", naming the
+#        main commit and the two commands that resolve the ledger files.
+#        MEASURED 2026-09-25: every GITHUB_TOKEN push flipped the PR to
+#        "approval required" under the ruleset's
+#        require_extra_approval_for_unattributed_changes (#1808, #1800, #1809,
+#        #1814, #1803, #1824); owners force-pushed over the bot to unblock and
+#        the next run re-merged. Advising stops that churn until the token is
+#        added, which is the lasting fix.
 #      refused/failed -> comment ONCE per distinct file set naming the files,
 #      and leave the PR alone
 #
-# THE GITHUB_TOKEN PUSH GAP (auto-open-pr.yml / auto-merge.yml): a push made
-# with GITHUB_TOKEN fires NO push or pull_request workflow, so CI would never
-# run on the new head and the PR would sit with no required check. Two paths:
-#   · secret LANE_PUSH_TOKEN set (a token with contents + workflows +
-#     pull-requests write): the push is an ordinary push, ci.yml's `push`
-#     trigger runs CI on the new head by itself — no dispatch needed.
-#   · otherwise GITHUB_TOKEN pushes and this job DISPATCHES ci.yml on the
-#     branch (workflow_dispatch is the one event a GITHUB_TOKEN may fire —
-#     the same mechanism auto-merge uses for the deploy). The dispatched run's
-#     "app — lint + vitest" check lands on the new head SHA.
-#   WORKFLOW FILES, MEASURED (run 36080708300, 2026-09-25): merging main's
-#   workflow changes into a branch and pushing with GITHUB_TOKEN is ACCEPTED
-#   (#1808, #1809, #1793, #1802 all carried main's new ci.yml and
-#   keep-prs-current.yml). What GitHub refuses ("refusing to allow a GitHub
-#   App to create or update workflow ... without `workflows` permission") is
-#   workflow content that exists nowhere on main: #1811's branch edits
-#   voice-lite-probe.yml itself, so the merged file was new. The job tries the
-#   push, and on that refusal comments once and leaves the PR to its owner,
-#   never a silent skip. LANE_PUSH_TOKEN would close even that case.
+# WORKFLOW FILES, MEASURED (run 36080708300, 2026-09-25): GitHub refuses a push
+# of workflow content that exists nowhere on main ("refusing to allow a GitHub
+# App to create or update workflow ... without `workflows` permission"), e.g.
+# #1811, whose branch edits voice-lite-probe.yml itself. LANE_PUSH_TOKEN needs
+# the Workflows permission for that case; on the refusal the job comments once.
 #
-# After any update, auto-merge.yml is dispatched so its heal-deploy poll is
-# watching when the refreshed PR's CI goes green and it merges (the merge of a
-# GITHUB_TOKEN-driven run emits no event of its own).
+# After any push, auto-merge.yml is dispatched so its heal-deploy poll is
+# watching when the refreshed PR's CI goes green and it merges.
 #
 # BRAKES (CLAUDE.md "three brakes", deterministic class per DR-0248: budget +
 # lock; stop-paths are the `hold` label per PR and disabling this workflow):
@@ -262,6 +259,22 @@ jobs:
           \`\`\`"
               continue
             fi
+            # WITHOUT LANE_PUSH_TOKEN: ADVISE, NEVER PUSH (2026-09-25, measured
+            # that night). Every workflow-token push flipped the PR to
+            # "approval required" (#1808, #1800, #1809, #1814, #1803, #1824);
+            # the owner then force-pushed over it to unblock, and the next run
+            # re-merged when main moved (#1809: 8ea1da60, right after the
+            # owner's push). The resolution above is still run in full: it is
+            # the proof that the conflict is ledger-only. The owner is told
+            # once per main commit, and nothing is dispatched.
+            if [ "$HAS_PUSH_TOKEN" != "true" ]; then
+              main_sha=$(git rev-parse origin/main)
+              git merge --abort
+              note "$n" "$b" "conflicts only in the ledger files (${conflicted}) against main ${main_sha:0:8}; owner asked to merge main (no push without LANE_PUSH_TOKEN)"
+              comment_once "$n" "advise:$main_sha" "**keep-prs-current**: owner, merge main. This branch conflicts with \`main\` at \`${main_sha:0:8}\` only in the ledger files ($conflicted), and those resolve themselves. Run \`git merge --no-commit origin/main\` then \`node scripts/resolve-ledger-conflicts.mjs\`, then commit and push. Nothing was pushed here: pushes by the workflow token make a PR wait for an approval, so this job only advises until the \`LANE_PUSH_TOKEN\` secret exists (DR-0644)."
+              attempts=$((attempts - 1))
+              continue
+            fi
             wf=$(git diff --cached --name-only HEAD -- .github/workflows | tr '\n' ' ')
             git commit -q -m "Merge main into $b: the ledger files resolved themselves (keep-prs-current, DR-0644)" \
               -m "Conflicted before resolution: ${conflicted:-none}. INDEX.md unioned by DR id with the Next ID pointer re-derived from disk; legibility-health.json regenerated; business-systems-guard green; zero conflict markers."
@@ -282,23 +295,10 @@ jobs:
               continue
             fi
             updated=$((updated + 1))
-            if [ "$HAS_PUSH_TOKEN" = "true" ]; then
-              note "$n" "$b" "updated to ${new_head:0:8} (behind by $behind; conflicts: ${conflicted:-none}); CI starts from the push"
-            else
-              if timeout 30 gh workflow run ci.yml --repo "$REPO" --ref "$b"; then
-                note "$n" "$b" "updated to ${new_head:0:8} (behind by $behind; conflicts: ${conflicted:-none}); CI dispatched"
-                # MEASURED (#1814, 2026-09-25): refreshed, green on every
-                # required check, auto-merge armed, and still "blocked": the
-                # ruleset's require_extra_approval_for_unattributed_changes
-                # holds a PR whose head was pushed by this token. The owner's
-                # next push clears it (#1815 merged after exactly that), or
-                # one approval. LANE_PUSH_TOKEN removes the wait.
-                comment_once "$n" "unattributed:$new_head" "**keep-prs-current** resolved this PR's conflict with \`main\` (the ledger files only: $conflicted) and pushed \`${new_head:0:8}\`; CI is running on it. The \`main\` ruleset asks for an approval on changes pushed by the workflow token, so this PR merges after one approval, or after your next push to the branch (DR-0644)."
-              else
-                note "$n" "$b" "updated to ${new_head:0:8} but the CI dispatch FAILED — push to the branch or dispatch ci.yml"
-                echo "::warning::could not dispatch CI for $b ($new_head)"
-              fi
-            fi
+            # Only reached with LANE_PUSH_TOKEN: that push is an ordinary,
+            # attributed push, so ci.yml's own push trigger runs CI on the new
+            # head and the ruleset's unattributed-changes approval does not apply.
+            note "$n" "$b" "updated to ${new_head:0:8} (behind by $behind; conflicts: ${conflicted:-none}); CI starts from the push"
             git checkout -q --detach origin/main
           done
 

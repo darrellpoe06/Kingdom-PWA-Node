@@ -529,7 +529,7 @@ const NODES = [
   }),
   wf('ci.yml', {
     id: 'ci', name: 'CI — every gate', runRule: 'any-success', purpose: 'Lint, the full test suite, every guard (this graph’s included) and a real build.',
-    reads: [{ res: 'gh:pr', token: 'pull_request' }, { res: 'gh:ci-dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'gh:check', token: 'npx vitest run' }], seeds: ['auto-merge'],
+    reads: [{ res: 'gh:pr', token: 'pull_request' }], writes: [{ res: 'gh:check', token: 'npx vitest run' }], seeds: ['auto-merge'],
   }),
   wf('auto-merge.yml', {
     id: 'auto-merge', name: 'Auto-merge on green', runRule: 'product:deploy-cloudflare-pages.yml', purpose: 'Merges the PR the moment its gates pass; dispatches the deploy.',
@@ -580,9 +580,9 @@ const NODES = [
     reads: [{ res: 'gh:main', token: 'origin/main' }, { res: 'gh:pr', token: 'gh pr list' }],
     writes: [
       { res: 'gh:automerge-dispatch', token: 'gh workflow run auto-merge.yml' },
-      { res: 'gh:ci-dispatch', token: 'gh workflow run ci.yml' },
+      { res: 'gh:pr-advice', token: 'owner, merge main' },
     ],
-    seeds: ['ci', 'auto-merge'],
+    seeds: ['auto-merge'],
   }),
   wf('install-health.yml', {
     id: 'install-health', name: 'Install health witness', purpose: 'Proves the site installs as an app.',
@@ -936,7 +936,7 @@ const RESOURCES = {
   'mail:lesson': { label: 'forwarded “Lesson.” mail', source: 'Darrell forwards a lesson from his own mailbox.' },
   'yt:channel': { label: 'the church’s YouTube channel', source: 'The church publishes each service on its channel.' },
   'gh:branch': { label: 'a pushed branch', source: 'An agent session or a person pushes a branch.' },
-  'gh:ci-dispatch': { label: 'CI dispatched on a refreshed PR branch' },
+  'gh:pr-advice': { label: 'the "owner, merge main" comment on a PR', sink: 'The owner of the PR reads it and merges main (DR-0644); nothing else reads it.' },
   'gh:automerge-dispatch': { label: 'the auto-merge sweep dispatched after PRs were refreshed' },
   'gh:dispatch': { label: 'a hand dispatch', source: 'A person or a session dispatches a remote-hands workflow on purpose.' },
   'gh:signal-pr': { label: 'the lesson signal PR (#1346)' },
