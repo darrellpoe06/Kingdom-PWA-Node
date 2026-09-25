@@ -96,7 +96,7 @@ import { crossListingsFor, resolveCrossListed, crossListedCount, courseCrossList
 const EternalAlgorithmsStudyLazy = React.lazy(() => import('./EternalAlgorithmsStudy.jsx'));
 import { organizeCourses, learnDepartments, courseLessonCount, COURSE_SORTS, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey } from '../lib/learn-organize.js';
 import { wantsSections, sectionLessons, divisionOf } from '../lib/lesson-sections.js';
-import { isNumberedCourse, ownNumber, inNumberOrder, numberLabel, ordersFor, orderLessons, withMonthHeadings, formatAdded, DEFAULT_LESSON_ORDER, rememberedLessonOrder, rememberLessonOrder } from '../lib/lesson-order.js';
+import { isNumberedCourse, ownNumber, inNumberOrder, numberLabel, lessonCountLabel, ordersFor, orderLessons, withMonthHeadings, formatAdded, DEFAULT_LESSON_ORDER, rememberedLessonOrder, rememberLessonOrder } from '../lib/lesson-order.js';
 import { subscribeTextSize } from '../lib/text-size.js';
 import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
@@ -1129,6 +1129,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
     if (text) {
       setReadTarget(module.id, {
         label: `this ${unitNoun}`,
+        title: module.title || '',
         text,
         elementId: `learn-read-${module.id}`,
         prepare: (on) => setReadAll(!!on),
@@ -2034,7 +2035,7 @@ function CourseView({
         <div>
       {/* The timeline + curriculum */}
       <div className="flex items-baseline justify-between gap-2 mb-1">
-        <h3 className="text-lg font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{U.selfPaced ? (meta.weeks === 1 ? `The ${U.noun}` : `The ${meta.weeks} ${U.plural}`) : `The ${meta.weeks} ${U.plural}`}</h3>
+        <h3 className="text-lg font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{U.selfPaced && schedule.length === 1 ? `The ${U.noun}` : `The ${schedule.length} ${U.plural}`}</h3>
         <span className={`text-[0.625rem] uppercase tracking-wider px-2 py-0.5 border ${U.selfPaced ? 'text-[#5A6E3D] border-[#5A6E3D]' : cohortConfirmed ? 'text-[#5A6E3D] border-[#5A6E3D]' : 'text-[#B85838] border-[#B85838]'}`}>
           {U.selfPaced ? 'Self-paced' : (cohortConfirmed ? 'Cohort 1 · confirmed' : 'Cohort 1 · proposed')}
         </span>
@@ -2101,7 +2102,7 @@ function CourseView({
           onClick={() => setTeaching(true)}
           className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
         >
-          ▶ Play the overview (all {meta.weeks} at a glance)
+          ▶ Play the overview (all {schedule.length} at a glance)
         </button>
         <p className="mt-2 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
           Opens the big full-screen view — read it yourself in large type, or press <strong>Read aloud</strong> and let it read to you. Every {U.noun} below has its own <strong className="text-[#5A6E3D]">▶ Play</strong>; this one plays the whole series at a glance.
@@ -3914,7 +3915,7 @@ export default function ChurchLearn({
               className="mb-4 border border-[#E8E4DC] bg-[#FAF8F4] p-3"
             >
               <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-2">
-                {active.meta.title} · pick a {U.noun} by title · {schedule.length}
+                {active.meta.title} · pick a {U.noun} by title · <span data-testid="course-lesson-count">{lessonCountLabel(schedule, U)}</span>
               </div>
               {recentIds.length > 0 && (
                 <div className="mb-2 pb-2 border-b border-[#E8E4DC]">
