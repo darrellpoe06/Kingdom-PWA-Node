@@ -30,7 +30,7 @@ const LIVE = { fetchSiteHealth, supabase };
 // numbers come from system_flow_proof.
 const GRAPH = normalizeGraph(typeof __INTERCONNECT_LOOPS__ !== 'undefined' && __INTERCONNECT_LOOPS__ ? __INTERCONNECT_LOOPS__.graph : null);
 
-export default function OperationsIntelligence({ loopData = null, loopEnv = {}, discussions = [], ledger = LEDGER, nowMs = Date.now(), deps = LIVE, graph = GRAPH }) {
+export default function OperationsIntelligence({ loopData = null, loopEnv = {}, discussions = [], feedback = null, ledger = LEDGER, nowMs = Date.now(), deps = LIVE, graph = GRAPH }) {
   const [health, setHealth] = useState({ ok: false, incidents: null, notice: 'reading the incident ledger' });
   const [proof, setProof] = useState({ ok: false, rows: {}, reason: 'reading the flow proof' });
   useEffect(() => {
@@ -47,8 +47,8 @@ export default function OperationsIntelligence({ loopData = null, loopEnv = {}, 
   }, [deps]);
 
   const r = useMemo(
-    () => deriveOperations({ ledger, incidents: health.ok ? health.incidents : null, loopData, loopEnv, discussions, flows, nowMs }),
-    [ledger, health, loopData, loopEnv, discussions, flows, nowMs],
+    () => deriveOperations({ ledger, incidents: health.ok ? health.incidents : null, loopData, loopEnv, discussions, feedback, flows, nowMs }),
+    [ledger, health, loopData, loopEnv, discussions, feedback, flows, nowMs],
   );
 
   return (
@@ -59,6 +59,11 @@ export default function OperationsIntelligence({ loopData = null, loopEnv = {}, 
           The platform&apos;s own signals, from workflows that already run: the health probes&apos; incident issues, each decision record&apos;s re-review date and decision, the family&apos;s data loops, and open hand-offs.
           {r.ok ? ` Read from: ${r.sources.join(' · ')}.` : ' Unavailable: no operations signal could be read.'}
         </p>
+        {r.read.intake && (
+          <p className="text-[0.6875rem] text-[#1A1815] mt-1" style={SERIF} data-testid="ops-intake">
+            Intake, every note categorized: {r.read.intake.fix} low-hanging (the system fixes) · {r.read.intake.decided} already decided (answered with the record) · {r.read.intake.work} real work · {r.read.intake.ask} asked for one thing · {r.read.intake.thanks} praise · {r.read.intake.signal} telemetry.
+          </p>
+        )}
         {!health.ok && <p className="text-[0.6875rem] text-[#B85838] mt-1" style={SERIF} data-testid="ops-incidents-unread">Incidents not read: {health.notice}. The other signals still show.</p>}
         <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={SERIF} data-testid="ops-flow-proof">
           {proof.ok

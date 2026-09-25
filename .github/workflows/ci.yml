@@ -27,6 +27,11 @@ on:
   # Required checks must also run inside the merge queue's temporary ref, or a
   # queued PR would wait forever. Harmless when the queue is off.
   merge_group:
+  # keep-prs-current.yml (DR-0644) merges main into a PR branch with
+  # GITHUB_TOKEN, whose push fires no `push`/`pull_request` run — so it
+  # dispatches this workflow on the branch, and the required check lands on
+  # the new head. The one event a GITHUB_TOKEN may fire.
+  workflow_dispatch:
 
 # A newer commit on the same branch (or PR) supersedes the older run: the old
 # run's legs are cancelled so they stop holding runners the new commit needs
@@ -380,6 +385,16 @@ jobs:
       - name: table a11y guard (screen-reader navigability)
         working-directory: ${{ github.workspace }}
         run: node scripts/table-a11y-guard.mjs
+      # Intake auto-fix scope gate (DR-0625). A claude/intake-fix-* branch is a
+      # SYSTEM fix of a low-hanging note, made by an AI session: it may change
+      # only components, stylesheets and tests, 30 lines at most, with no link,
+      # email, phone number or bright-line subject added. Every other branch
+      # passes untouched. Selftest first, so a guard that stopped catching is red.
+      - name: intake auto-fix scope guard (a system fix stays small)
+        working-directory: ${{ github.workspace }}
+        run: |
+          node scripts/intake-autofix-scope-guard.mjs --selftest-break
+          node scripts/intake-autofix-scope-guard.mjs
       # GPU preemption gate (DR-0012 §3). A compose service that is ollama/ollama
       # AND reserves `driver: nvidia` must set OLLAMA_KEEP_ALIVE=0 — the reasoner
       # frees VRAM within ~1 s when any non-Ollama CUDA process (Premiere, C4D,
