@@ -208,9 +208,19 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const currentItem = useMemo(() => catalog.find((c) => c.id === voiceId) || catalog[0], [catalog, voiceId]);
 
   // Apply a chosen BROWSER voice to the engine so System/accent picks read in it.
+  //
+  // A VOICE-LIST REFRESH NEVER RESTARTS A READING (DR-0654). This effect ran on
+  // every refresh of the phone's voice list, and setVoiceURI restarts the
+  // sentence being spoken; a refresh in which the picked voice was briefly
+  // missing restarted it in the default voice. A NEW PICK still applies at
+  // once, mid-reading; a refresh of the same pick waits until nothing is read.
+  const appliedVoiceRef = useRef(null);
   useEffect(() => {
     if (!tts.supported) return;
     if (isSystemVoiceId(voiceId) || isPersonVoiceId(voiceId)) return; // system/clone handled at read()
+    const newPick = appliedVoiceRef.current !== voiceId;
+    if (!newPick && tts.isReading) return;
+    appliedVoiceRef.current = voiceId;
     tts.setVoiceURI(voiceId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceId, tts.supported, tts.voices]);
