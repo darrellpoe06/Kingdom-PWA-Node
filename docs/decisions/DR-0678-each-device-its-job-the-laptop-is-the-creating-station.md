@@ -64,6 +64,12 @@ This can be undone by reverting one commit.
 - `--selftest-break`: the device pass trips on the collapsed laptop grid ("SELFTEST-BREAK OK … 1 device").
 - An earlier sweep in this memory-starved sandbox crashed its Chromium target on the lesson pass at 1440 px before reaching the end. The re-run passed cleanly. The crash is in the lesson pass, not this change, and CI's runner is the authority.
 
+## Proven to catch
+
+- The layout probe's `--selftest-break` trips the device pass on a collapsed laptop grid ("SELFTEST-BREAK OK … 1 device").
+- `device-roles.test.js`: the validator refuses each kind of broken roles file (missing class, a role field that would block, a panel left out of an order, a fake view).
+- `creating-station.test.jsx`, measured 2026-09-29 at the merge with main: removing the `<LessonReviewQueue />` mount from the decide panel fails 1 of 15 tests; putting it back makes all 15 pass. `TowerParity` is asserted mounted with `signedIn` and absent when signed out.
+
 ## Gaps, each with a why and a date
 
 - **No laptop is named in the fleet.** The app does not need one, because it measures the screen. The fleet witness would, if the laptop ever carries pipeline work. Only Darrell can say which machine it is, or whether `kingdom-home` is it. **re-review: 2026-10-06.**
