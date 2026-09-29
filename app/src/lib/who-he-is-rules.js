@@ -150,6 +150,7 @@ export const SCENE_JOINS = Object.freeze([
   ['Mark 9:1', 'The same saying: the chapter break falls inside His words (Mark 8:38).'],
   ['Mark 9:7', 'The same scene on the mountain: the cloud and the voice.'],
   ['Mark 9:21', 'The same healing of the father’s son.'],
+  ['Mark 4:39', 'The same storm: He arose and rebuked the wind.'],
   ['Acts 2:18', 'Inside Peter’s quotation of Joel; in those days is Joel’s phrase.'],
   ['Acts 7:23', 'Inside Stephen’s speech to the council (7:2-53).'],
   ['Acts 7:26', 'Inside Stephen’s speech to the council (7:2-53).'],
@@ -395,6 +396,7 @@ export const EDGE_TABLE = Object.freeze([
   { refs: ['Zechariah 6:12', 'Zechariah 6:13'], tie: ['Hebrews 8:1'], reason: 'The man "whose name is The BRANCH" (Zechariah 6:12), "a priest upon his throne" (Zechariah 6:13). Hebrews speaks of the priest on the throne but does not quote the verse.' },
   { refs: ['Zechariah 14:4'], tie: ['Acts 1:11', 'Acts 1:12'], reason: 'His feet on the mount of Olives. He went up from Olivet and will come in like manner; the verse is not quoted.' },
   { refs: ['Malachi 4:2'], tie: ['Luke 1:78'], reason: 'The Sun of righteousness with healing in His wings. Zacharias speaks of the dayspring from on high; the verse is not quoted.' },
+  { refs: ['Exodus 3:14'], tie: ['John 8:58'], reason: 'The name at the bush, "I AM THAT I AM" (Exodus 3:14). He said, "Before Abraham was, I am" (John 8:58), and L196 reads the two together, but John does not quote Exodus, so the rule does not reach it.' },
   { refs: ['Genesis 18:1', 'Genesis 18:2'], tie: ['John 8:56'], reason: 'Yahweh appeared to Abraham. He says Abraham rejoiced to see His day, but names no passage.' },
   { refs: ['Proverbs 8:22', 'Proverbs 8:23', 'Proverbs 8:30'], tie: [], reason: 'Wisdom set up from everlasting. No New Testament verse names this chapter; held for the elders.' },
 ]);
@@ -402,17 +404,31 @@ export const EDGE_TABLE = Object.freeze([
 // ---- Where, when, how: the tables the generator reads ---------------------
 // Place names the Gospels and Acts use. "where" for a scene lists the ones the
 // passage itself names, in the order named. It says "named in the passage":
-// a place named in speech may not be where the speaker stood.
+// a place named in speech may not be where the speaker stood. When none of
+// these is in the passage, the entry says the verses name no place.
 export const PLACES = Object.freeze([
-  'Bethlehem', 'Nazareth', 'Galilee', 'Capernaum', 'Jerusalem', 'the temple', 'Jordan', 'the wilderness',
-  'Judaea', 'Samaria', 'Sychar', 'Cana', 'Bethany', 'Bethphage', 'the mount of Olives', 'Gethsemane',
-  'Golgotha', 'Calvary', 'Emmaus', 'Jericho', 'Caesarea Philippi', 'Caesarea', 'Tyre', 'Sidon',
-  'Decapolis', 'Gadarenes', 'Gergesenes', 'Gennesaret', 'Bethsaida', 'Chorazin', 'Nain', 'Egypt',
-  'Magdala', 'the sea of Galilee', 'the sea of Tiberias', 'Bethabara', 'Aenon', 'Siloam', 'Bethesda',
-  'Solomon’s porch', 'Damascus', 'Antioch', 'Iconium', 'Lystra', 'Derbe', 'Philippi', 'Thessalonica',
-  'Berea', 'Athens', 'Corinth', 'Ephesus', 'Troas', 'Miletus', 'Rome', 'Cyprus', 'Crete', 'Melita',
-  'Gaza', 'Azotus', 'Lydda', 'Joppa', 'Patmos', 'the synagogue', 'a mountain', 'the judgment hall',
-  'the sepulchre', 'the high priest’s palace', 'the garden',
+  // Every place name the narrative books (Matthew to Acts, and Revelation) put
+  // after "in / into / to / unto / from / at / out of / toward / through / of"
+  // that is a town, land, region or landmark (people and tribes left out),
+  // gathered from the text itself on 2026-09-29, plus the common settings.
+  'Bethlehem', 'Nazareth', 'Galilee', 'Capernaum', 'Jerusalem', 'Jordan', 'Judaea', 'Samaria', 'Sychar',
+  'Cana', 'Bethany', 'Bethphage', 'the mount of Olives', 'Gethsemane', 'Golgotha', 'Calvary', 'Emmaus',
+  'Jericho', 'Caesarea Philippi', 'Caesarea', 'Tyre', 'Sidon', 'Decapolis', 'Gadarenes', 'Gergesenes',
+  'Gennesaret', 'Bethsaida', 'Chorazin', 'Nain', 'Egypt', 'Magdala', 'Dalmanutha', 'Idumaea', 'Ituraea',
+  'Trachonitis', 'Abilene', 'Arimathaea', 'Zabulon', 'Nephthalim', 'Tiberias', 'Bethabara', 'Aenon', 'Salim',
+  'Siloam', 'Bethesda', 'Solomon’s porch', 'Ephraim', 'Sion', 'Juda', 'Jewry', 'Sarepta', 'Sodom', 'Nineve',
+  'Nineveh', 'Canaan', 'Chanaan', 'Cyrene', 'Libya', 'Mesopotamia', 'Charran', 'Sychem', 'Madian',
+  'Damascus', 'Antioch', 'Iconium', 'Lystra', 'Derbe', 'Lycaonia', 'Philippi', 'Thessalonica', 'Berea',
+  'Athens', 'Areopagus', 'Corinth', 'Cenchrea', 'Achaia', 'Greece', 'Macedonia', 'Ephesus', 'Troas',
+  'Miletus', 'Assos', 'Mitylene', 'Samos', 'Trogyllium', 'Coos', 'Rhodes', 'Patara', 'Phenicia', 'Phenice',
+  'Ptolemais', 'Antipatris', 'Adramyttium', 'Myra', 'Lycia', 'Lasea', 'Adria', 'Syracuse', 'Rhegium',
+  'Puteoli', 'Rome', 'Italy', 'Cyprus', 'Salamis', 'Paphos', 'Perga', 'Pamphylia', 'Pisidia', 'Attalia',
+  'Seleucia', 'Cilicia', 'Tarsus', 'Syria', 'Galatia', 'Mysia', 'Bithynia', 'Pontus', 'Asia', 'Samothracia',
+  'Neapolis', 'Amphipolis', 'Crete', 'Melita', 'Alexandria', 'Ethiopia', 'Gaza', 'Azotus', 'Lydda', 'Joppa',
+  'Babylon', 'Patmos', 'Smyrna', 'Pergamos', 'Thyatira', 'Sardis', 'Philadelphia', 'Laodicea',
+  'the temple', 'the wilderness', 'the synagogue', 'a mountain', 'the judgment hall', 'the sepulchre',
+  'the high priest’s palace', 'the garden', 'the hill country', 'the city of David', 'a desert place',
+  'the sea', 'a ship', 'an upper room', 'a large upper room',
 ]);
 
 // When a Gospel or Acts passage happened. [book, from 'c:v', to 'c:v', era].

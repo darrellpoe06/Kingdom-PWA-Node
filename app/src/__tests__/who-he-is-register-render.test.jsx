@@ -8,6 +8,7 @@ import { createRoot } from 'react-dom/client';
 import WhoHeIsRegister from '../components/WhoHeIsRegister.jsx';
 import { WHO_HE_IS_LESSON_SPECS } from '../lib/who-he-is-course.js';
 import { registerFor, byBook, WHO_HE_IS_EDGE } from '../lib/who-he-is.js';
+import { setShowTheWord, __resetShowTheWord } from '../lib/show-the-word.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -18,6 +19,7 @@ beforeEach(() => {
   root = createRoot(container);
 });
 afterEach(() => {
+  act(() => { __resetShowTheWord(); });
   act(() => root.unmount());
   container.remove();
 });
@@ -41,12 +43,15 @@ describe('WhoHeIsRegister — every passage, made plain', () => {
     for (const label of ['Where:', 'When:', 'What:', 'How:', 'Was He there:', 'Who He Is:']) expect(card).toContain(label);
   });
 
-  it('"Open all" shows every passage in the lesson at once', () => {
+  it('the Show the Word switch opens every book at once, and a book still folds on its own on top of it', () => {
     const s = spec('whohe11-the-letters-who-he-is-to-the-churches');
     const { primary } = registerFor(s);
     act(() => root.render(createElement(WhoHeIsRegister, { spec: s })));
-    click(button(/^Open all/));
+    expect(container.querySelectorAll('li[data-entry]').length).toBe(0);
+    act(() => { setShowTheWord(true); });
     expect(container.querySelectorAll('li[data-entry]').length).toBe(primary.length);
+    click(button(/^▾ Romans/));
+    expect(container.querySelectorAll('li[data-entry]').length).toBeLessThan(primary.length);
   });
 
   it('a lesson with nothing set in its era says so, and lists what points there', () => {

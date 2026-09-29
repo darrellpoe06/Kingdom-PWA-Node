@@ -360,7 +360,7 @@ function build() {
       presentReason = seen ? 'He speaks or is seen in the passage.' : 'No word of His and no sight of Him in this part of the vision.';
     } else {
       const places = placesIn(text);
-      where = { text: places.length ? `Named in the passage: ${joinList(places)}.` : (era === 'before-time' ? 'Before time, in the beginning: "the Word was with God" (John 1:1).' : 'The passage does not name the place.'), places, basis: '' };
+      where = { text: places.length ? `Named in the passage: ${joinList(places)}.` : (era === 'before-time' ? 'Before time, in the beginning: "the Word was with God" (John 1:1).' : 'These verses do not name a place.'), places, basis: '' };
       how = { mode: 'narration', by: `the book of ${p.book}`, to: '', speakers, text: `Told in the book of ${p.book}.${speakers.length ? ` Speaking in the passage: ${joinList(speakers)}.` : ''}` };
       if (era === 'before-time') { present = 'pre-incarnate'; presentDetail = 'before time, with the Father'; presentReason = '"In the beginning was the Word, and the Word was with God" (John 1:1).'; } else if (p.book === 'Acts' && era === 'church') { present = 'no'; presentDetail = 'spoken of by His witnesses'; presentReason = 'After He was taken up, the witnesses speak of Him.'; } else { present = 'yes'; presentDetail = era === 'resurrection' ? 'risen, in the scene' : 'in the flesh, in the scene'; presentReason = 'The Gospel scene tells what He did and said there.'; }
     }
