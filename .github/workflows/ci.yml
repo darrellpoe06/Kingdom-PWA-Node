@@ -603,6 +603,9 @@ jobs:
           npx vite-node ../scripts/curriculum-cli.mjs --parity "$RUNNER_TEMP/readback.json" --gate-db "$RUNNER_TEMP/readback.json" | grep -v '^PARITY-JSON='
       - name: PROVEN-TO-CATCH — one altered band in the database is named by lesson and field
         run: |
+          # The runner's default shell is `bash -e`; the parity call is EXPECTED
+          # to exit 1 here, so -e is turned off to read its exit code.
+          set +e
           set -uo pipefail
           psql -qc "update curriculum_lesson_bands set text = text || ' (edited)' where (course_key, lesson_id, band) = (select course_key, lesson_id, band from curriculum_lesson_bands order by lesson_id, band limit 1)"
           psql -At -f "$RUNNER_TEMP/readback.sql" > "$RUNNER_TEMP/drifted.json"
