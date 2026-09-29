@@ -86,7 +86,8 @@ describe('THE LIVE SERIES — measured, not asserted', () => {
     const fresh = buildFullLevelsBaseline(scan);
     expect(fresh.short).toEqual(baseline.short);
     expect(fresh.lessonsShort).toBe(baseline.lessonsShort);
-    expect(fresh.measuredLessons).toBe(baseline.measuredLessons);
+    // DERIVED (DR-0677): the count comes from the data, so a new lesson never edits a baseline line.
+    expect(fresh.measuredLessons).toBe(LIVING_LESSONS_MODULES.length);
   });
 
   it('the debt is real — this gate is not decoration (it flips to zero when the last level is full)', () => {

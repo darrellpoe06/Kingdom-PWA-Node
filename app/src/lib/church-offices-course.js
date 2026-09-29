@@ -50,7 +50,10 @@ export const CHURCH_OFFICES_META = {
   audience: 'Church of the Living God leaders, staff, and every member who wants to know what the titles really mean',
   tagline: 'Deacon, elder, bishop, pastor, apostle, prophet, evangelist — who they are, where each name comes from, every place the Word uses it (counted from the text, not from memory), and how the functions shape what we build now.',
   cadenceDays: 7,
-  weeks: 7, // keep in step with CHURCH_OFFICES_MODULES.length (asserted in the test)
+  // DERIVED (DR-0677): the count is the series' own length, read at use —
+  // never a literal a new lesson must edit.
+  get weeks() { return CHURCH_OFFICES_MODULES.length; },
+  // Until DR-0677 the count was a literal with this note, kept as history: keep in step with CHURCH_OFFICES_MODULES.length (asserted in the test)
   handsOnLabel: 'Open the Word',
   unit: {
     noun: 'lesson', nounPlural: 'lessons', cap: 'Lesson', selfPaced: true,

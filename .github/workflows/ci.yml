@@ -547,6 +547,84 @@ jobs:
         run: node scripts/chrome-layout-probe.mjs --sweep
         working-directory: ${{ github.workspace }}
 
+  # THE NAS COPY OF THE CURRICULUM (DR-0677). The lessons stay in the code;
+  # the sovereign database holds a synchronized copy. This leg proves, on a real
+  # PostgreSQL before anything merges: 0242 applies twice (idempotent); every
+  # curriculum gate passes on the code and the sync SQL is written only then;
+  # the sync applies twice and the second writes nothing; the preview wall holds
+  # (the 0242 smoke, which also opens the wall and must see the leak); the copy
+  # READ BACK from the database is lesson-for-lesson equal to the code (parity)
+  # and passes every gate AS THE DATABASE HOLDS IT; and — proven-to-catch — one
+  # altered band in the database is reported by lesson id and field.
+  curriculum:
+    name: app — curriculum NAS copy (snapshot through PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: 0242 applies, twice (idempotent)
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f ../scripts/curriculum-ci-bootstrap.sql
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f ../infra/supabase/migrations-auto/0242-the-lessons-have-a-home-on-the-nas-kept-in-step-with-the-code.sql; done
+      - name: Every curriculum gate on the code, then the sync SQL (refused on any failure)
+        run: npx vite-node ../scripts/curriculum-cli.mjs --sql "$RUNNER_TEMP/sync.sql" --commit "${{ github.sha }}"
+      - name: The sync applies, and a second sync writes nothing
+        run: |
+          set -euo pipefail
+          psql -At -f "$RUNNER_TEMP/sync.sql" | tee "$RUNNER_TEMP/first.txt"
+          psql -At -f "$RUNNER_TEMP/sync.sql" | tee "$RUNNER_TEMP/second.txt"
+          grep -qx 'WRITTEN=0' "$RUNNER_TEMP/second.txt" || { echo "::error::a second sync of the same code wrote rows"; exit 1; }
+      - name: The preview wall (0242 smoke; rolls back)
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -f ../infra/supabase/tests/0242-curriculum-preview-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'CURRICULUM PREVIEW SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
+      - name: Read the copy back; parity with the code, and every gate on the database copy
+        run: |
+          set -euo pipefail
+          node -e "import('../scripts/curriculum-snapshot.mjs').then((m) => process.stdout.write(m.READ_BACK_SQL))" > "$RUNNER_TEMP/readback.sql"
+          psql -At -f "$RUNNER_TEMP/readback.sql" > "$RUNNER_TEMP/readback.json"
+          npx vite-node ../scripts/curriculum-cli.mjs --parity "$RUNNER_TEMP/readback.json" --gate-db "$RUNNER_TEMP/readback.json" | grep -v '^PARITY-JSON='
+      - name: PROVEN-TO-CATCH — one altered band in the database is named by lesson and field
+        run: |
+          # The runner's default shell is `bash -e`; the parity call is EXPECTED
+          # to exit 1 here, so -e is turned off to read its exit code.
+          set +e
+          set -uo pipefail
+          psql -qc "update curriculum_lesson_bands set text = text || ' (edited)' where (course_key, lesson_id, band) = (select course_key, lesson_id, band from curriculum_lesson_bands order by lesson_id, band limit 1)"
+          psql -At -f "$RUNNER_TEMP/readback.sql" > "$RUNNER_TEMP/drifted.json"
+          npx vite-node ../scripts/curriculum-cli.mjs --parity "$RUNNER_TEMP/drifted.json" > "$RUNNER_TEMP/drift.txt" 2>&1
+          rc=$?
+          grep -v '^PARITY-JSON=' "$RUNNER_TEMP/drift.txt" | head -5
+          [ "$rc" -eq 1 ] || { echo "::error::parity did not fail on an altered band (exit $rc) - the witness is theater"; exit 1; }
+          grep -q ':: levels' "$RUNNER_TEMP/drift.txt" || { echo "::error::parity failed without naming the field"; exit 1; }
+          echo "parity caught the altered band, by lesson and field."
+
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.
   # It runs `if: always()` because a job whose `needs` failed is otherwise
@@ -555,10 +633,10 @@ jobs:
   app:
     name: app — lint + vitest
     if: always()
-    needs: [guards, vitest, probes, layout]
+    needs: [guards, vitest, probes, layout, curriculum]
     runs-on: ubuntu-latest
     steps:
-      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout)
+      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum)
         env:
           NEEDS: ${{ toJSON(needs) }}
         run: |

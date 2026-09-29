@@ -228,6 +228,8 @@ const NODES = [
       { res: 'code:lessons', file: 'app/src/lib/sovereign-ai-class.js', token: 'Gmail-lesson-intake Way' },
       // DR-0639: a member's lesson, once published, is tagged on the hosted copy.
       { res: 'hosted:lesson-published', file: 'app/src/lib/lesson-review-messages.js', token: "PUBLISHED_TAG = 'lesson-published'" },
+      // DR-0672: the builder's progress (captured, its PR, the lesson id) on the hosted copy.
+      { res: 'hosted:lesson-progress', file: 'app/src/lib/lesson-pipeline.js', token: "PR_TAG = 'lesson-pr:'" },
     ],
     seeds: ['learn', 'lesson-voice'],
   },
@@ -235,6 +237,41 @@ const NODES = [
     id: 'learn', name: 'Learn (the classes)',
     purpose: 'The lessons a person reads, week by week.',
     reads: [{ res: 'code:lessons', token: 'buildSovereignAiSchedule' }],
+    seeds: [],
+  }),
+  // THE NAS COPY OF THE CURRICULUM (DR-0677): the code stays the master; after
+  // every deploy the copy is synced to the database the app reads and proven
+  // lesson by lesson; the reader overlays it (previews for Darrell and the
+  // Governor, the whole copy in the 'nas' mode) with the bundle as the floor.
+  wf('lessons-sync.yml', {
+    id: 'lessons-sync', name: 'Lessons sync (the code -> the NAS copy, then parity)',
+    purpose: 'After each deploy, gates the lessons in the code, writes them to the NAS copy, reads the copy back and proves it matches lesson by lesson (DR-0677).',
+    reads: [
+      { res: 'code:lessons', file: 'scripts/curriculum-snapshot.mjs', token: 'LEARN_CATALOG' },
+      { res: 'gh:run:deploy-cloudflare-pages.yml', file: '.github/workflows/deploy-cloudflare-pages.yml', token: 'lessons-sync.yml/dispatches' },
+    ],
+    writes: [
+      { res: 'db:curriculum_courses', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_courses' },
+      { res: 'db:curriculum_lessons', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lessons' },
+      { res: 'db:curriculum_lesson_bands', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lesson_bands' },
+      { res: 'db:curriculum_lesson_quiz', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lesson_quiz' },
+      { res: 'db:curriculum_lesson_movements', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lesson_movements' },
+      { res: 'db:curriculum_lesson_provenance', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lesson_provenance' },
+      { res: 'db:curriculum_lesson_verse_spans', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lesson_verse_spans' },
+      { res: 'db:curriculum_sync_runs', file: 'scripts/lessons-sync-over-tailnet.sh', token: 'insert into curriculum_sync_runs' },
+    ],
+    seeds: ['lesson-store'],
+  }),
+  app('app/src/lib/lesson-store.js', {
+    id: 'lesson-store', name: 'Learn reads the NAS copy (bundle first, previews for the Governor)',
+    purpose: 'Overlays the NAS copy on the bundled lessons without ever blanking them: a gated preview for Darrell and the Governor, the whole copy in the nas mode (DR-0677).',
+    reads: [
+      { res: 'db:curriculum_lessons', token: "from('curriculum_lessons')" },
+      { res: 'db:curriculum_lesson_bands', token: 'curriculum_lesson_bands(*)' },
+      { res: 'db:curriculum_lesson_quiz', token: 'curriculum_lesson_quiz(*)' },
+      { res: 'db:curriculum_lesson_movements', token: 'curriculum_lesson_movements(*)' },
+      { res: 'db:curriculum_lesson_provenance', token: 'curriculum_lesson_provenance(*)' },
+    ],
     seeds: [],
   }),
   app('app/src/lib/agent-inbox-sync.js', {
@@ -261,11 +298,14 @@ const NODES = [
       // DR-0635: the Governor's decision on a member's lesson reaches the reader.
       { res: 'db:agent_inbox#lesson-review', token: 'list_reviewed_rows' },
       { res: 'hosted:lesson-published', token: 'list_published_rows' },
+      // DR-0672: the build's progress, carried back once each.
+      { res: 'hosted:lesson-progress', token: 'list_progress_rows' },
     ],
     writes: [
       { res: 'db:agent_inbox#voice-transcript', token: '"voice-transcript"' },
       { res: 'hosted:lesson-mirror', token: 'insert_hosted' },
       { res: 'db:agent_inbox#lesson-published', token: 'return_published_once' },
+      { res: 'db:agent_inbox#lesson-progress', token: 'return_progress_once' },
     ],
     seeds: ['lesson-capture', 'lesson-inbox'],
   }),
@@ -284,6 +324,14 @@ const NODES = [
       // DR-0635: approved (being written, name not used) or declined with the reason.
       { res: 'db:agent_inbox#lesson-review', file: 'app/src/lib/lesson-inbox.js', token: 'review_reason' },
       { res: 'db:agent_inbox#lesson-published', file: 'app/src/lib/lesson-inbox.js', token: 'publishedLessonOf' },
+      // DR-0672: each lesson's road, arrival to live — the Governor's two doors
+      // through my_lesson_rows() (0241), the build's progress, the PR read live
+      // through the OpsBoard's reads. (lesson_versions and lesson_decisions,
+      // defined by DR-0669's migration 0240, join this list once that migration
+      // is on main: the graph refuses a db: read of a table no migration creates.)
+      { res: 'db:agent_inbox#lesson', file: 'app/src/lib/lesson-inbox.js', token: "rpc('my_lesson_rows'" },
+      { res: 'db:agent_inbox#lesson-progress', file: 'app/src/lib/lesson-inbox.js', token: 'progressTags' },
+      { res: 'gh:pr', file: 'app/src/lib/lesson-pipeline.js', token: 'fetchLessonPrs' },
     ],
     writes: [{ res: 'event:use-prompt', file: 'app/src/components/LessonInbox.jsx', token: 'sendPromptToBox' }],
     seeds: ['lesson-door'],
@@ -551,6 +599,19 @@ const NODES = [
     id: 'ops-surface', name: 'OpsBoard uptime + incident ledger',
     purpose: 'Every outage and stall the witnesses recorded, with its duration.',
     reads: [{ res: 'gh:incident', token: 'labels=incident' }],
+    seeds: [],
+  }),
+  wf('openclaw-tower.yml', {
+    id: 'openclaw-tower', name: 'OpenClaw on the 4070 tower (DR-0670)',
+    purpose: 'Ships OpenClaw to the GPU tower behind its brakes, fires the report-only pilot on the lane facts, and records what it measured.',
+    reads: [{ res: 'gh:pr', token: 'pulls?state=open' }, { res: 'file:openclaw-registry', token: 'infra/openclaw-tower/registry.json' }],
+    writes: [{ res: 'tower:openclaw', token: 'docker compose up -d openclaw-gateway' }, { res: 'gh:openclaw-tower', token: '--label openclaw-tower' }],
+    seeds: ['openclaw-tower-surface'],
+  }),
+  app('app/src/lib/openclaw-tower.js', {
+    id: 'openclaw-tower-surface', name: 'OpsBoard OpenClaw tower strip',
+    purpose: 'Up, model, last run and brakes of OpenClaw on the tower, read live; unknown when unknown.',
+    reads: [{ res: 'gh:openclaw-tower', token: 'labels=openclaw-tower' }],
     seeds: [],
   }),
 
@@ -944,6 +1005,8 @@ const RESOURCES = {
   'db:agent_inbox#poetech': { label: 'PoeTech requests relayed to the inbox', proof: { ts: 'created_at', fresh: 60, where: "tags ? 'tell-poetech'" },
     open: { blocker: 'Nothing reads these rows (measured 2026-09-24: no code, NAS job or routine reads the tell-poetech tag). The same words now also reach the feedback queue; this relay retires once a PoeTech request is seen landing there on the live database, not before (never dismantle what may still deliver until its replacement is proven).', reReview: '2026-10-01' } },
   'hosted:lesson-mirror': { label: 'lessons carried to the cloud reader (DR-0614)' },
+  'hosted:lesson-progress': { label: 'the lesson builder\u2019s progress on the hosted copy: captured, its PR, the lesson id (DR-0672)' },
+  'db:agent_inbox#lesson-progress': { label: 'lessons the builder has captured', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'lesson-captured'" } },
   'db:saved_prompts': { label: 'kept prompts', proof: { ts: 'last_used_at', fresh: 30, consumed: 'use_count > 1' } },
   'db:agent_tasks': { label: 'questions to the models', proof: { ts: 'created_at', fresh: 30, consumed: "status <> 'queued'" } },
   'db:agent_tasks#answered': { label: 'answers from the NAS agent', proof: { ts: 'updated_at', fresh: 30, where: "status IN ('done','failed','error')" } },
@@ -966,6 +1029,9 @@ const RESOURCES = {
   'event:use-prompt': { label: '“Put it in the box” (reuse a prompt)' },
   'device:family-key': { label: 'the family key on this device' },
   'code:lessons': { label: 'lessons written into the classes' },
+  'db:curriculum_courses': { label: 'the NAS copy: courses', sink: 'Carried with each lesson so the copy is whole; the reader takes course facts from the bundle today (DR-0677 Phase 2 reads them).' },
+  'db:curriculum_lesson_verse_spans': { label: 'the NAS copy: every quotation and the verse it names', sink: 'Derived from the lessons for the verse gate and for looking a verse up across the school; rewritten whole on every sync (DR-0677).' },
+  'db:curriculum_sync_runs': { label: 'the receipt of every lessons sync and its parity verdict', sink: 'A steward reads the verdict and the drifted lesson ids; the workflow summary carries the same (DR-0677).' },
   'file:audit-findings': { label: 'surface audit findings', source: 'Written by scripts/surface-audit.mjs, run on the NAS every 30 minutes and by an agent before a commit; the committed file is what the app reads.' },
   'file:decision-ledger': { label: 'the decision ledger', source: 'The decision records in docs/decisions, written by the sessions that decide.' },
 
@@ -1015,6 +1081,8 @@ const RESOURCES = {
   'push:phone': { label: 'a notification on a phone', sink: 'A person reads it on their phone.' },
   'cf:push-env': { label: 'the push sender’s settings' },
   'tower:voice-studio': { label: 'the reading-voice studio on the tower' },
+  'tower:openclaw': { label: 'the OpenClaw gateway on the tower', sink: 'Runs on the tower loopback behind the poetech-gate plugin; a person on the tower talks to it (role a, no channel paired), and the lane measures it into the openclaw-tower record (DR-0670).' },
+  'file:openclaw-registry': { label: 'the OpenClaw role registry + ARMED-BY-RECORD', source: 'Committed in infra/openclaw-tower by the PRs that arm, stop or resume a role (DR-0670).' },
   'auth:hook': { label: 'the renter-portal sign-in hook', sink: 'GoTrue calls it on every renter sign-in; its effect is the renter portal’s own access, proven by the renter-portal isolation smokes.' },
   'tailnet:nodes': { label: 'the always-on devices', source: 'The tailnet itself reports which devices answer.' },
   'http:mcp': { label: 'the MCP server' },
@@ -1050,7 +1118,7 @@ const CHAINS = [
   { id: 'models', name: 'Ask the models', nodes: ['chat-pane', 'agent-consumer'] },
   { id: 'sermons', name: 'Transcripts → sermons → The Word', nodes: ['choir-dates', 'transcript-trickle', 'transcript-backfill', 'video-stats', 'content-sync', 'sermon-store', 'sermon-reader', 'harvest-ledger', 'scripture-web', 'library', 'songbook', 'harvest-health', 'corpus-reconcile'] },
   { id: 'family-key', name: 'The family key', nodes: ['family-key', 'bridge-provision', 'nas-photos', 'voice-studio', 'books-taxes'] },
-  { id: 'health', name: 'Site health → incidents → operations readout', nodes: ['site-health', 'level-witness', 'node-availability', 'harvest-health', 'ops-queue-health', 'ops-surface', 'ops-board'] },
+  { id: 'health', name: 'Site health → incidents → operations readout', nodes: ['site-health', 'level-witness', 'node-availability', 'harvest-health', 'ops-queue-health', 'ops-surface', 'ops-board', 'openclaw-tower', 'openclaw-tower-surface'] },
   { id: 'decisions', name: 'Decision readouts, the flow proof and the operations board', nodes: ['decision-board', 'flow-proof', 'ops-board', 'flow-surface'] },
   { id: 'scribe', name: 'Scribe: recording → words → back to the person', nodes: ['scribe-surface', 'scribe', 'scribe-transcribe'] },
   { id: 'lane', name: 'Delivery lane', nodes: ['auto-open-pr', 'ci', 'auto-merge', 'deploy', 'deploy-freshness', 'db-migrate', 'migrate-freshness', 'rls-isolation', 'schema-health', 'pr-janitor', 'keep-prs-current'] },

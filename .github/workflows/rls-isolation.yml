@@ -116,10 +116,12 @@ jobs:
           # day the matrix landed. One matrix, every proof, no siblings.
           # 0237 (DR-0635) and 0238 (DR-0639, the name choice) redefines agent_inbox_read (each person reads only
           # their own rows) and adds the Governor's member-lesson review, so it
-          # rides this leg after 0127 and its smoke runs here.
+          # rides this leg after 0127 and its smoke runs here. 0241 (DR-0672)
+          # adds my_lesson_rows(): the Governor reads his own two doors' lessons,
+          # a member only their own; its smoke proves no member row reaches him.
           - feature: sovereign-noise-thought
-            migrations: "0127-sovereign-noise-and-thought.sql 0237-a-members-lesson-is-reviewed-by-the-governor-before-it-is-written.sql 0238-a-member-may-choose-to-be-named-and-the-governor-may-keep-it-anonymous.sql"
-            smokes: "0127-sovereign-noise-thought-smoke.sql 0237-member-lesson-review-smoke.sql 0238-member-lesson-name-smoke.sql"
+            migrations: "0127-sovereign-noise-and-thought.sql 0237-a-members-lesson-is-reviewed-by-the-governor-before-it-is-written.sql 0238-a-member-may-choose-to-be-named-and-the-governor-may-keep-it-anonymous.sql 0241-your-lessons-reads-the-governors-own-two-doors.sql"
+            smokes: "0127-sovereign-noise-thought-smoke.sql 0237-member-lesson-review-smoke.sql 0238-member-lesson-name-smoke.sql 0241-my-lesson-rows-smoke.sql"
           # Added 2026-09-24 (DR-0615): each person's prompt history is private
           # to its author, even inside the same instance.
           # Added 2026-09-25 (DR-0658): the TV signs in from the phone in your
@@ -168,6 +170,14 @@ jobs:
           - feature: system-flow-proof
             migrations: "0234-every-connection-leaves-its-live-numbers.sql"
             smokes: "0234-system-flow-proof-smoke.sql"
+          # Added 2026-09-29 (DR-0677): the curriculum's NAS copy. Anyone reads
+          # a PUBLIC lesson; a PREVIEW (gated, not yet merged code) is read only
+          # by Darrell's two sign-ins and the Governor; only the service writes a
+          # public row; no row without a passed gate over exactly its content.
+          # The smoke opens the wall at the end and must SEE the leak it guards.
+          - feature: curriculum-preview
+            migrations: "0242-the-lessons-have-a-home-on-the-nas-kept-in-step-with-the-code.sql"
+            smokes: "0242-curriculum-preview-smoke.sql"
           # Added 2026-07-30 (REV-0216 access-evaluation carried item): the
           # core-books ROLE wall. 0082 (child walled / successor read-only) and
           # 0100 (assistant walled) both shipped their DB gate but had NO live
