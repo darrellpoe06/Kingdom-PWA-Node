@@ -318,6 +318,31 @@ class TheMirror(unittest.TestCase):
         src = open(lv.__file__, encoding="utf-8").read()
         self.assertIn('out["published"] = return_published_once(hosted.list_published_rows, live.merge_tags, hosted.add_tags)', src)
 
+    def test_the_builds_progress_is_carried_back_once_each(self):
+        # DR-0672: capture, the PR, the lesson id and a comparison all come back
+        # to the live row; each tag once; a tag written later is carried later.
+        rows = [
+            {"id": "g1", "tags": ["lesson", "voice-transcript", "of:x", "lesson-captured", "lesson-pr:1901", "lesson-id:ll200-rest"]},
+            {"id": "g2", "tags": ["lesson", "lesson-captured", "parallel-compared", "returned:lesson-captured", "returned:parallel-compared"]},
+            {"id": "g3", "tags": ["lesson", "lesson-captured", "returned:lesson-captured", "lesson-pr:1902"]},
+            {"id": "g4", "tags": ["lesson"]},
+            {"id": "g5", "tags": ["note", "lesson-captured"]},
+        ]
+        self.assertEqual([r["id"] for r in lv.rows_to_return_progress(rows)], ["g1", "g3"])
+        merged, tagged = [], []
+        rep = lv.return_progress_once(lambda: rows, lambda rid, t: merged.append((rid, t)), lambda r, t: tagged.append((r["id"], t)))
+        self.assertEqual(rep["returned"], ["g1", "g3"])
+        self.assertEqual(merged, [("g1", ["lesson-captured", "lesson-pr:1901", "lesson-id:ll200-rest"]), ("g3", ["lesson-pr:1902"])])
+        self.assertEqual(tagged[1], ("g3", ["returned:lesson-pr:1902"]))
+        # A failed carry marks nothing, so the next run tries again.
+        def boom(rid, t):
+            raise OSError("live refused")
+        again = []
+        rep = lv.return_progress_once(lambda: [{"id": "g6", "tags": ["lesson", "lesson-captured"]}], boom, lambda r, t: again.append(r["id"]))
+        self.assertEqual((again, len(rep["failed"])), ([], 1))
+        src = open(lv.__file__, encoding="utf-8").read()
+        self.assertIn('out["progress"] = return_progress_once(hosted.list_progress_rows, live.merge_tags, hosted.add_tags)', src)
+
     def test_the_job_follows_the_database_the_app_reads(self):
         src = open(lv.__file__, encoding="utf-8").read()
         self.assertIn("from sovereign_target import resolve_target", src)

@@ -48,6 +48,8 @@ export function normalizePulls(json) {
     autoMerge: !!(p && p.auto_merge),
     hold: Array.isArray(p && p.labels) && p.labels.some((l) => l && l.name === 'hold'),
     updatedAt: (p && p.updated_at) || null,
+    // DR-0672: when the PR opened, so Your lessons can time the step.
+    createdAt: (p && p.created_at) || null,
   }));
 }
 
@@ -294,4 +296,13 @@ export async function fetchDeliveryRecord(opts = {}) {
   if (opts.fetch) return run;
   deliveryInflight = run.then((data) => { deliveryLast = { at: Date.now(), data }; deliveryInflight = null; return data; });
   return deliveryInflight;
+}
+
+// --- One pull request by number (DR-0672) -------------------------------------
+// Your lessons names a lesson's PR by number. Open PRs come from fetchOps and
+// merged ones from fetchDeliveryRecord; this reads one that is in neither,
+// through the same ETag cache and rate budget (a 304 is free).
+export async function fetchPull(number, fetchImpl) {
+  if (!Number.isInteger(number) || number <= 0) throw new Error('bad pr number');
+  return getJson(`${API}/pulls/${number}`, fetchImpl);
 }
