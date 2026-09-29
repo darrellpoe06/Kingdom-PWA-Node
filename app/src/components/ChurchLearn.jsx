@@ -73,6 +73,7 @@ import { engagementRowsByAge } from '../lib/learn-engagement.js';
 import { LessonFlowAudience, LessonRunOfShow, TimeFit } from './LessonFlow.jsx';
 import StoryExplorer from './games/StoryExplorer.jsx';
 import BiblicalTimeline from './BiblicalTimeline.jsx';
+import WhoHeIsRegister from './WhoHeIsRegister.jsx';
 // Timeline context now comes from lesson-timeline-context (curated placements
 // still win; the rest derive from the Scripture each lesson cites), which
 // replaced the direct epochsForLesson/getEpoch lookups this file used to do.
@@ -1265,6 +1266,9 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
             )}
             {/* Multi-modal media — diagrams, POV SOP clips, embedded videos */}
             <MediaList module={module} />
+            {/* Who He Is (DR-0675): every passage this lesson carries, with where,
+                when, what, how, whether He was there, and Who He Is. */}
+            {module.whoHeIs && <WhoHeIsRegister spec={module.whoHeIs} />}
             {/* Christian's home path — go find + safely touch the real device */}
             <HardwarePairing hardware={module.hardware} />
             {/* Honest venue / generative-visual disclosure (build target) */}

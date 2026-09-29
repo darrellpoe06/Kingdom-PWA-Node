@@ -413,6 +413,9 @@ export default defineConfig({
           // cap and the entry chunk stops growing with every lesson. The
           // asset-size guard in ci.yml fails the build before a merge if any
           // file is within 1 MiB of the cap.
+          // DR-0675: the Who He Is data (every passage of the whole Word that
+          // tells Who He Is, ~0.8 MB) rides in its own file, like the courses.
+          if (/[\\/]src[\\/]lib[\\/]who-he-is(-data\.json|-rules\.js|\.js)$/.test(id)) return 'who-he-is';
           if (/[\\/]src[\\/]lib[\\/]living-lessons-class\.js$/.test(id)) return 'living-lessons';
           if (/[\\/]src[\\/]lib[\\/][a-z0-9-]+-(course|class|study)\.js$/.test(id)) return 'learn-courses';
           return undefined;

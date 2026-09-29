@@ -300,7 +300,9 @@ describe('a pointer, never a copy', () => {
     // prioritizes and decides, DR-0609) — Darrell's spoken teaching on
     // decision-ready intelligence and our ways inspected; a lesson into the
     // existing Project Management course, so only the total moves.
-    expect(courses).toHaveLength(49);
+    // And to 50 / 743 on 2026-09-29 for Who He Is, the whole Word (14 lessons, DR-0675) —
+    // Darrell: "We needed a lesson wide curriculum with all" — a new course, so both numbers move.
+    expect(courses).toHaveLength(50);
     // And to 718 on 2026-09-24 for Sovereign A.I. weeks 25 and 26 (DR-0619, DR-0620);
     // and to 720 the same day for weeks 27 and 28, from Darrell's spoken teachings (DR-0637, DR-0638).
     // And to 721 on 2026-09-24 for L194 (I AM: Who He Said He Was — Every Hearer, All of
@@ -322,9 +324,9 @@ describe('a pointer, never a copy', () => {
     // existing course, so only the total moves.
     // And to 729 on 2026-09-29 for World Issues issue 19 (the student in the gap, DR-0666), a lesson into an
     // existing course, so only the total moves.
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(729);
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(743);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(729);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(743);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
