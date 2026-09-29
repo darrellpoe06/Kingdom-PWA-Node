@@ -56,7 +56,9 @@ export const SOFTWARE_PM_META = {
   audience: 'Anyone shipping software, or paying for it, or accountable for it staying up — including the person who has to explain to a congregation why the app was down. No certification required.',
   tagline: 'A requirement is a vow, not a wish list. An estimate that hides its unknown is a false balance. An incident is not a problem and a problem is not a change. A green pipeline is not a deployed site. And a test that always passes is a lie. Taught Word-first, with this house’s own outages as the case studies.',
   cadenceDays: 7,
-  weeks: 10, // keep in step with SOFTWARE_PM_MODULES.length (asserted in the test)
+  // DERIVED (DR-0677): the count is the series' own length, read at use —
+  // never a literal a new lesson must edit.
+  get weeks() { return SOFTWARE_PM_MODULES.length; },
   handsOnLabel: 'Work it on a real system',
   unit: {
     noun: 'lesson', nounPlural: 'lessons', cap: 'Lesson', selfPaced: true,

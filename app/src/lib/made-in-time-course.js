@@ -54,7 +54,9 @@ export const MADE_IN_TIME_META = {
   tagline: 'You were made to grow through time — and the One who made your mind is stronger than the one who studies it.',
   format: 'Self-paced · read it alone, as a family, or in a class · paced to your age',
   cadenceDays: 7,
-  weeks: 18, // L1 The Design in Time · L2 The Young He Called · L3 How the Enemy Imports Strategy · L4 The Renewed Mind · L5 Those Who Know Their God · L6 Effort, Attention & Rest (Huberman) · L7 Systems Over Willpower (Sung) · L8 Deep Over Busy (the Two-Hour Vault) · L9 Power Into Knowledge (PPIK/Ackerman) · L10 Wired to Survive (trauma, pastoral) · L11 The Attention War (Ryan Mak) · L12 Predictive Brain & Body Budget (Barrett) · L13 The Reward Is in the Race (Erin Meryl, dopamine/effort) · L14 The Mind Is a Servant, Not a god (Joseph Murphy, discernment) · L15 Hide the Word in Your Heart (memory techniques, the Beatitudes) · L16 Doers, Not Hearers Only (Sejnowski, procedural learning) · L17 Beholding Him — the Mind Rewired (mirror neurons/epigenetics as witness; timeline-defilement + legal-roots handled as discernment) · L18 Think About Your Thinking (metacognition as witness; NOTICE→TEST→CAPTURE→REDIRECT the captive thought); grows as the house teaches more
+  // DERIVED (DR-0677): the count is the series' own length, read at use —
+  // never a literal a new lesson must edit.
+  get weeks() { return MADE_IN_TIME_MODULES.length; },
   handsOnLabel: 'Take it with you',
   unit: {
     noun: 'lesson',

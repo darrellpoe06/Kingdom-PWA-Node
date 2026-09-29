@@ -237,6 +237,41 @@ const NODES = [
     reads: [{ res: 'code:lessons', token: 'buildSovereignAiSchedule' }],
     seeds: [],
   }),
+  // THE NAS COPY OF THE CURRICULUM (DR-0677): the code stays the master; after
+  // every deploy the copy is synced to the database the app reads and proven
+  // lesson by lesson; the reader overlays it (previews for Darrell and the
+  // Governor, the whole copy in the 'nas' mode) with the bundle as the floor.
+  wf('lessons-sync.yml', {
+    id: 'lessons-sync', name: 'Lessons sync (the code -> the NAS copy, then parity)',
+    purpose: 'After each deploy, gates the lessons in the code, writes them to the NAS copy, reads the copy back and proves it matches lesson by lesson (DR-0677).',
+    reads: [
+      { res: 'code:lessons', file: 'scripts/curriculum-snapshot.mjs', token: 'LEARN_CATALOG' },
+      { res: 'gh:run:deploy-cloudflare-pages.yml', file: '.github/workflows/deploy-cloudflare-pages.yml', token: 'lessons-sync.yml/dispatches' },
+    ],
+    writes: [
+      { res: 'db:curriculum_courses', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_courses' },
+      { res: 'db:curriculum_lessons', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lessons' },
+      { res: 'db:curriculum_lesson_bands', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lesson_bands' },
+      { res: 'db:curriculum_lesson_quiz', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lesson_quiz' },
+      { res: 'db:curriculum_lesson_movements', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lesson_movements' },
+      { res: 'db:curriculum_lesson_provenance', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lesson_provenance' },
+      { res: 'db:curriculum_lesson_verse_spans', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lesson_verse_spans' },
+      { res: 'db:curriculum_sync_runs', file: 'scripts/lessons-sync-over-tailnet.sh', token: 'insert into curriculum_sync_runs' },
+    ],
+    seeds: ['lesson-store'],
+  }),
+  app('app/src/lib/lesson-store.js', {
+    id: 'lesson-store', name: 'Learn reads the NAS copy (bundle first, previews for the Governor)',
+    purpose: 'Overlays the NAS copy on the bundled lessons without ever blanking them: a gated preview for Darrell and the Governor, the whole copy in the nas mode (DR-0677).',
+    reads: [
+      { res: 'db:curriculum_lessons', token: "from('curriculum_lessons')" },
+      { res: 'db:curriculum_lesson_bands', token: 'curriculum_lesson_bands(*)' },
+      { res: 'db:curriculum_lesson_quiz', token: 'curriculum_lesson_quiz(*)' },
+      { res: 'db:curriculum_lesson_movements', token: 'curriculum_lesson_movements(*)' },
+      { res: 'db:curriculum_lesson_provenance', token: 'curriculum_lesson_provenance(*)' },
+    ],
+    seeds: [],
+  }),
   app('app/src/lib/agent-inbox-sync.js', {
     id: 'lesson-door', name: 'In-app lesson door (One Voice)',
     purpose: 'A lesson typed or spoken into the app is filed for capture, and the lessons already written from the Word for those words are shown on the spot (DR-0630).',
@@ -930,6 +965,9 @@ const RESOURCES = {
   'event:use-prompt': { label: '“Put it in the box” (reuse a prompt)' },
   'device:family-key': { label: 'the family key on this device' },
   'code:lessons': { label: 'lessons written into the classes' },
+  'db:curriculum_courses': { label: 'the NAS copy: courses', sink: 'Carried with each lesson so the copy is whole; the reader takes course facts from the bundle today (DR-0677 Phase 2 reads them).' },
+  'db:curriculum_lesson_verse_spans': { label: 'the NAS copy: every quotation and the verse it names', sink: 'Derived from the lessons for the verse gate and for looking a verse up across the school; rewritten whole on every sync (DR-0677).' },
+  'db:curriculum_sync_runs': { label: 'the receipt of every lessons sync and its parity verdict', sink: 'A steward reads the verdict and the drifted lesson ids; the workflow summary carries the same (DR-0677).' },
   'file:audit-findings': { label: 'surface audit findings', source: 'Written by scripts/surface-audit.mjs, run on the NAS every 30 minutes and by an agent before a commit; the committed file is what the app reads.' },
   'file:decision-ledger': { label: 'the decision ledger', source: 'The decision records in docs/decisions, written by the sessions that decide.' },
 

@@ -63,7 +63,9 @@ export const SOUND_BOARD_META = {
   tagline: 'Mix so the Word is heard and the worship carries — skillfully, and in order.',
   format: 'Self-paced · learn right at the board, alone or with the sound engineer · paced to your experience',
   cadenceDays: 7,
-  weeks: 8, // eight lessons today; the track grows as the sound engineer teaches more
+  // DERIVED (DR-0677): the count is the series' own length, read at use —
+  // never a literal a new lesson must edit.
+  get weeks() { return SOUND_BOARD_MODULES.length; },
   handsOnLabel: 'Take it to the board',
   unit: {
     noun: 'lesson',

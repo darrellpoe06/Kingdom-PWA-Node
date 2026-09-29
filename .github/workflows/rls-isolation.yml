@@ -160,6 +160,14 @@ jobs:
           - feature: system-flow-proof
             migrations: "0234-every-connection-leaves-its-live-numbers.sql"
             smokes: "0234-system-flow-proof-smoke.sql"
+          # Added 2026-09-29 (DR-0677): the curriculum's NAS copy. Anyone reads
+          # a PUBLIC lesson; a PREVIEW (gated, not yet merged code) is read only
+          # by Darrell's two sign-ins and the Governor; only the service writes a
+          # public row; no row without a passed gate over exactly its content.
+          # The smoke opens the wall at the end and must SEE the leak it guards.
+          - feature: curriculum-preview
+            migrations: "0242-the-lessons-have-a-home-on-the-nas-kept-in-step-with-the-code.sql"
+            smokes: "0242-curriculum-preview-smoke.sql"
           # Added 2026-07-30 (REV-0216 access-evaluation carried item): the
           # core-books ROLE wall. 0082 (child walled / successor read-only) and
           # 0100 (assistant walled) both shipped their DB gate but had NO live
