@@ -84,8 +84,9 @@ describe('pm11 — how the organization learns, prioritizes and decides (DR-0609
 
   it('is the eleventh lesson and the week count follows', () => {
     expect(m, 'pm11 must be in the course').toBeTruthy();
-    expect(PROJECT_MANAGEMENT_MODULES.length).toBe(11);
-    expect(PROJECT_MANAGEMENT_META.weeks).toBe(11);
+    // pm11 is the eleventh; pm12 (Titles and fruits, DR-0664) followed it.
+    expect(PROJECT_MANAGEMENT_MODULES.indexOf(m)).toBe(10);
+    expect(PROJECT_MANAGEMENT_META.weeks).toBe(PROJECT_MANAGEMENT_MODULES.length);
   });
 
   it('the Word’s cases come first: Jethro, Joseph, Issachar, the apostles — before the industry’s name', () => {

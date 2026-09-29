@@ -61,7 +61,7 @@ export const PROJECT_MANAGEMENT_META = {
   audience: 'Anyone who has been handed a project and the responsibility for finishing it — a church building or renovation, a rehab, a property turn, a ministry launch, a move, a business build. No certification required, and none assumed.',
   tagline: 'Count the cost before you break ground. Know who should work and who should not. Put a date on it, secure the experts who can actually see, and get down to the root cause of what you need to do — and what you do not. The Word gave this discipline a worked case and a named consequence long before the industry gave it an acronym.',
   cadenceDays: 7,
-  weeks: 11, // keep in step with PROJECT_MANAGEMENT_MODULES.length (asserted in the test) — 11 on 2026-09-24: pm11 (DR-0609)
+  weeks: 12, // keep in step with PROJECT_MANAGEMENT_MODULES.length (asserted in the test) — 12 on 2026-09-29: pm12 (DR-0664); 11 on 2026-09-24: pm11 (DR-0609)
   handsOnLabel: 'Work it on a real project',
   unit: {
     noun: 'lesson', nounPlural: 'lessons', cap: 'Lesson', selfPaced: true,
@@ -683,6 +683,82 @@ export const PROJECT_MANAGEMENT_MODULES = [
           ],
           answer: 1,
           explain: '"Consider your ways" (Haggai 1:5) with its ledger, "Ye have sown much, and bring in little" (Haggai 1:6), and "by their fruits ye shall know them" (Matthew 7:20). "If ye love me, keep my commandments" (John 14:15).',
+        },
+      ],
+    },
+  },
+  {
+    id: 'pm12-titles-and-fruits-capability-shown-in-outcomes',
+    title: 'Titles and fruits — potential judged by the title, capability shown in outcomes, and the ownership that does not wait',
+    bigIdea: 'Darrell sent this in as a lesson on 2026-09-25 and again on 2026-09-28. The text he sent is written as an assistant’s reply to him, summing up what he had described about his own work; the wording is the assistant’s, and the experience and the point are his. The point: organizations often judge potential by titles, while capability is shown in outcomes. His retail years are the case. He opened and stabilized several rent-to-own stores, carried the profit and loss, hired, trained and coached the staff, sat in multi-store performance reviews built on business data, helped retrain managers at other locations, ran one of the highest-performing stores in the market, and was named by his market manager as a candidate for advancement, and the title never became market manager. A screening committee reads that as store-level management; the behaviors underneath are leadership. And he drew the conclusion himself: understanding that this is simply how it is drives him to ownership. The Word had this case long before the resume. Saul screened David by category, a youth, and David answered with outcomes, the lion and the bear (1 Samuel 17:33-37). Man looks on the outward appearance (1 Samuel 16:7); we are known by fruits (Matthew 7:20); faithful in the least is faithful in much (Luke 16:10); the ant works with no guide, overseer, or ruler (Proverbs 6:7).',
+    inApp: 'Write your own fruit register on one page. Column one: the title you held. Column two: the outcomes, stated as evidence rather than adjectives (stores opened and stabilized, a profit and loss carried, people hired and developed, managers retrained, a stakeholder group that stayed willing to work with you). Column three: who could confirm each outcome, because the Word says let another praise thee (Proverbs 27:2). Then mark the one outcome you have been waiting for someone to notice, and write the next thing you will own without waiting for a title (Proverbs 6:6-8). In the app: open your Projects page and add the register as a note on the project it came from, so the record lives where the work does.',
+    anchor: {
+      ref: '1 Samuel 17:33-37; 1 Samuel 17:39; 1 Samuel 16:7; Matthew 7:20; Luke 16:10; Genesis 39:4; Proverbs 6:6-8; Ecclesiastes 9:15',
+      theme: 'Saul judged David by the category, but a youth, and David answered with a record of outcomes and gave Yahweh the credit for them. Men look on the outward appearance; fruit is how the Word says we are known; faithfulness in the least is the proof of the much. Where the title does not come, the ant, the cupbearer and the servant in the prison show the ownership that does not wait for one.',
+    },
+    benefits: [
+      'You learn to tell the two things apart that committees often merge: the title you held, and the capability your outcomes show.',
+      'You read 1 Samuel 17 as the Word’s own interview: a category on one side of the table, but a youth, and a record of outcomes on the other, the lion and the bear.',
+      'You stop treating a screening committee as an enemy: the industry itself says hiring often optimizes for risk reduction, which checks what is easy to verify. The Word names the same limit in Samuel, who looked on the stature too.',
+      'You gain a way to present your work as fruit, evidence another person can confirm, instead of adjectives about yourself (Proverbs 27:2).',
+      'You see ownership as the Word’s answer to a title that has not come: the ant needs no overseer, the cupbearer took up a wall, and Joseph ran a prison from inside it.',
+      'The industry’s names, competency-based assessment and stakeholder engagement, become a vocabulary for a case the Word gave first.',
+    ],
+    levels: {
+      teen: 'Titles and fruits: here is the idea Darrell sent in. People often judge what you could do by your title, but what you can actually do shows up in your results. He lived it. In retail he opened and stabilized several stores, managed the money side, hired and trained the team, helped retrain managers at other stores, and ran one of the best stores in his market. His boss even named him as someone ready to move up. The title never came. The Word has a story just like that. When a giant named Goliath challenged Israel, a teenager named David offered to fight. King Saul looked at him and saw a category: "for thou art but a youth" (1 Samuel 17:33). David did not argue about his age. He gave a record of results: "Thy servant kept his father’s sheep, and there came a lion, and a bear" (1 Samuel 17:34). "Thy servant slew both the lion and the bear" (1 Samuel 17:36). And he gave Yahweh the credit: "The LORD that delivered me out of the paw of the lion, and out of the paw of the bear, he will deliver me out of the hand of this Philistine" (1 Samuel 17:37). Then Saul tried to dress David in his own armor. It did not fit. David said, "I cannot go with these; for I have not proved them" (1 Samuel 17:39). Do not let someone else’s category remake you into a shape you have never tested. Even the prophet Samuel judged by looks once, and Yahweh corrected him: "for man looketh on the outward appearance, but the LORD looketh on the heart" (1 Samuel 16:7). Jesus gave the test that still works: "Wherefore by their fruits ye shall know them" (Matthew 7:20). And small jobs are not wasted: "He that is faithful in that which is least is faithful also in much" (Luke 16:10). Darrell’s answer to a missing title was ownership: keep learning, keep building, take on problems instead of waiting for permission. The Word points to the ant, "Which having no guide, overseer, or ruler" (Proverbs 6:7), still does the work. In project management the industry calls this competency-based assessment: judging someone by what they have shown they can do. Start a list of your results this week, with a name beside each one who could confirm it.',
+      senior: 'Titles and fruits, taught for the one who has carried real responsibility without the title that usually goes with it. The text Darrell sent is written as an assistant’s reply to him, summarizing experiences he had described. We say so plainly: the phrasing belongs to the assistant, and the experiences and the conclusion belong to him. Its thesis is sound and worth teaching: organizations often evaluate potential through titles, while capability is demonstrated through outcomes. His retail years supply the case. He opened and stabilized several rent-to-own locations, held profit and loss accountability, hired, trained and coached staff, participated in multi-store performance reviews built on business data, assisted in retraining managers at other locations, operated one of the highest-performing stores in the market, and was identified by his market manager as a candidate for advancement. The title of market manager did not follow. A search committee may still file all of that as store-level management, because that is how resumes are screened; the leadership behaviors underneath it are real. A second case in the same text makes the point from another angle: he entered a systems transformation project that already had years of history and reluctant stakeholders, gathered objective evidence rather than opinions, used recordings and workflow validation to establish the facts, reached outcomes quickly, and left the stakeholders still willing to work with him. That is not task management; it is trust-building, facilitation and alignment. ONE. THE INTERVIEW IN THE VALLEY OF ELAH. The Word’s own case is an evaluation. Saul screened David by category: "Thou art not able to go against this Philistine to fight with him: for thou art but a youth, and he a man of war from his youth" (1 Samuel 17:33). David answered with outcomes, not credentials: "Thy servant kept his father’s sheep, and there came a lion, and a bear, and took a lamb out of the flock" (1 Samuel 17:34); "Thy servant slew both the lion and the bear" (1 Samuel 17:36). He attributed the record correctly, which is what keeps a record from becoming a boast: "The LORD that delivered me out of the paw of the lion, and out of the paw of the bear, he will deliver me out of the hand of this Philistine" (1 Samuel 17:37). Saul then did what institutions often do with a capable person they have just accepted: he tried to fit him to the institution’s own equipment. David declined: "I cannot go with these; for I have not proved them" (1 Samuel 17:39). Present your proven tools, not borrowed armor. TWO. WHY COMMITTEES READ TITLES. The reply Darrell sent names a real dynamic: hiring processes often optimize for risk reduction rather than capability identification, because a title is easy to verify and judgment is not. The Word is not surprised by this, and it does not make the committee a villain. The prophet Samuel himself looked at Eliab’s stature and was corrected: "Look not on his countenance, or on the height of his stature" (1 Samuel 16:7), "for man looketh on the outward appearance, but the LORD looketh on the heart" (1 Samuel 16:7). Honor remains due to those who decide (Romans 13:7). Understanding the limit lets you answer it with evidence rather than resentment. THREE. KNOWN BY FRUIT. "Ye shall know them by their fruits" (Matthew 7:16); "Even a child is known by his doings, whether his work be pure, and whether it be right" (Proverbs 20:11). Joseph shows fruit creating authority before any title. In Potiphar’s house, "his master saw that the LORD was with him, and that the LORD made all that he did to prosper in his hand" (Genesis 39:3), "and he made him overseer over his house" (Genesis 39:4). In prison, with no rank at all, "the keeper of the prison committed to Joseph’s hand all the prisoners that were in the prison" (Genesis 39:22). FOUR. FAITHFUL IN THE LEAST, AND HONEST ABOUT THE FORGETTING. "He that is faithful in that which is least is faithful also in much" (Luke 16:10). A store is not a small thing in the Word’s accounting; it is exactly the "very little" of the parable, "because thou hast been faithful in a very little, have thou authority over ten cities" (Luke 19:17). And the Word does not pretend recognition always follows. "Now there was found in it a poor wise man, and he by his wisdom delivered the city; yet no man remembered that same poor man" (Ecclesiastes 9:15). The Preacher’s verdict stands anyway: "Wisdom is better than strength" (Ecclesiastes 9:16). FIVE. THE OWNERSHIP THAT DOES NOT WAIT. Darrell’s own conclusion, as the reply records it, is the most important line: understanding that this is how it is drives him to ownership. Many answer a title limitation with frustration; he answered with learning, building, experimenting, creating systems and developing capability, from church technology and years of media ministry to the app this lesson lives in. The Word has the pattern. The ant works "having no guide, overseer, or ruler" (Proverbs 6:7). Nehemiah was a cupbearer, "For I was the king’s cupbearer" (Nehemiah 1:11), and he took ownership of a city wall: "come, and let us build up the wall of Jerusalem" (Nehemiah 2:17). And the motive is settled: "And whatsoever ye do, do it heartily, as to the Lord, and not unto men" (Colossians 3:23). SIX. PRESENT THE FRUIT. What the industry calls competency-based assessment, or behavioral evidence, is the Word’s fruit test in hiring language, and PMBOK’s stakeholder engagement is the name for what he did on that transformation project. Write your outcomes as evidence another person can confirm; the Word prefers it that way: "Let another man praise thee, and not thine own mouth" (Proverbs 27:2). The people you trained and the managers you helped retrain are your letter, "Ye are our epistle written in our hearts, known and read of all men" (2 Corinthians 3:2). Then keep being "a pattern of good works" (Titus 2:7), because "The hand of the diligent shall bear rule" (Proverbs 12:24).',
+    },
+    quiz: {
+      questions: [
+        {
+          q: 'How did David answer when Saul judged him by the category but a youth?',
+          options: [
+            'He argued that age does not matter',
+            'He gave a record of outcomes, the lion and the bear, and credited Yahweh for them',
+            'He asked for a title first',
+            'He walked away',
+          ],
+          answer: 1,
+          explain: '"Thy servant slew both the lion and the bear" (1 Samuel 17:36), and "The LORD that delivered me out of the paw of the lion, and out of the paw of the bear, he will deliver me out of the hand of this Philistine" (1 Samuel 17:37). Evidence, attributed rightly.',
+        },
+        {
+          q: 'Why did David refuse Saul’s armor?',
+          options: [
+            'It was too expensive',
+            'He had not proved it, and would not fight in equipment he had never tested',
+            'He wanted to look humble',
+            'Saul took it back',
+          ],
+          answer: 1,
+          explain: '"I cannot go with these; for I have not proved them" (1 Samuel 17:39). Do not let an institution’s category remake you into a shape you have never tested.',
+        },
+        {
+          q: 'What does the Word say about how people are known?',
+          options: [
+            'By their titles',
+            'By their fruits and their doings',
+            'By who they know',
+            'By how long they have waited',
+          ],
+          answer: 1,
+          explain: '"Wherefore by their fruits ye shall know them" (Matthew 7:20), and "Even a child is known by his doings" (Proverbs 20:11). Fruit is the Word’s own performance evidence.',
+        },
+        {
+          q: 'What is the Word’s answer to a title that has not come?',
+          options: [
+            'Stop working until it does',
+            'Ownership that does not wait: the ant with no overseer, the cupbearer who built a wall, the servant who ran the prison',
+            'Complain to the committee',
+            'Pretend you already have it',
+          ],
+          answer: 1,
+          explain: 'The ant works "having no guide, overseer, or ruler" (Proverbs 6:7); Nehemiah, "the king’s cupbearer" (Nehemiah 1:11), said "come, and let us build up the wall of Jerusalem" (Nehemiah 2:17). Darrell named it himself: understanding it drives him to ownership.',
+        },
+        {
+          q: 'What does the industry call judging a person by the capability they have shown?',
+          options: ['Title inflation', 'Competency-based assessment', 'Scope creep', 'Sunk cost'],
+          answer: 1,
+          explain: 'Competency-based assessment is the industry’s name for the Word’s fruit test. The Word gave the case first, in the valley of Elah, where a record of outcomes answered a category.',
         },
       ],
     },
