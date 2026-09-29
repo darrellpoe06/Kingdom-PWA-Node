@@ -200,7 +200,7 @@ This is the crux. OpenClaw is, by design, an agent that **executes actions auton
 > **Decision:** approve a **Tier-C, inactive, NAS-hosted, Ollama-local-only** evaluation of OpenClaw for role (a) + a **report-only** pilot for role (b) — **conditioned on** the three brakes (budget / concurrency-lock / kill-switch) wrapping it, a per-action approval gate in front, the bright-line classes hard-denied, and turn-on only while watched. **Not adopted for build/CI (role c).**
 > **Track:** local agent (this/cloud session can't reach the LAN; OpenClaw runs on the NAS).
 > **Recommendation:** approve the bounded evaluation; it is the safest rung and proves the family-executor loop with zero unattended spend and no bright-line exposure.
-> **Governs:** Darrell. `DECISION:` __________
+> **Governs:** Darrell. `DECISION:` **decided 2026-09-29 by Darrell: *"Can we make the open claw work on the towers?"* The verdict stands, and OpenClaw is made to work on the 4070 tower (tlcmediadpt), not the NAS: the NAS has no GPU, and the tower is the designated AI worker. It runs local-first on `ollama/qwen3:8b`, behind all three brakes and the `poetech-gate` approval gate. Role (b) is a live, report-only pilot; role (a) is under evaluation with no channel paired; role (c) is never adopted. See [DR-0670](../decisions/DR-0670-openclaw-works-on-the-tower-local-first-behind-our-brakes.md) and `infra/openclaw-tower/`.**
 >
 > *On Darrell's approval, promote this verbatim to `docs/governance/decision-queue.md` as the next OPEN item and open a DR (next free id after DR-0078) recording the adoption scope + the brakes condition. Held here rather than written to the queue directly to avoid racing the concurrently-edited queue file.*
 

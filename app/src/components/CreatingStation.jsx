@@ -18,20 +18,20 @@
 //   every panel is on every device. Role gates (the Governor's queues) stay
 //   the same gates they are on Projects → Decisions; the database is the wall.
 //
-// It IMPORTS the existing components and never rewrites them. Two panels come
-// from work not yet on main, and are picked up the moment their files land:
-//   LessonReviewQueue.jsx — PR #1841 (claude/your-lessons-live @ 69c7e10),
-//                           default export, no required props;
-//   TowerParity*.jsx      — claude/tower-parity-loop (not yet pushed);
-// import.meta.glob resolves to nothing while they are absent, and the panel
-// says plainly where the work lives meanwhile (pinned by device-roles.test).
+// It IMPORTS the existing components and never rewrites them. The two that
+// came from parallel work are on main now and mounted directly, exactly as
+// Projects → Decisions mounts them:
+//   LessonReviewQueue.jsx — PR #1841 (DR-0672), default export, no required props;
+//   TowerParity.jsx       — PR #1845 (DR-0671), default export, { signedIn }.
 // =============================================================================
-import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import OneVoiceInput from './OneVoiceInput.jsx';
 import LessonInbox from './LessonInbox.jsx';
 import MemberLessonQueue from './MemberLessonQueue.jsx';
 import GovernanceQueue from './GovernanceQueue.jsx';
+import LessonReviewQueue from './LessonReviewQueue.jsx';
+import TowerParity from './TowerParity.jsx';
 import { deriveAppDecisions } from '../lib/decisions.js';
 import { useDeviceClass } from '../lib/use-device-class.js';
 import { ROLES, orderPanels, roleFor, shortcutTarget, handoffUrl, handoffTarget, panelFromSearch } from '../lib/device-roles.js';
@@ -41,20 +41,11 @@ import { POETECH_APP_URL } from '../lib/messages-invite.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 
-// Optional components from work not yet merged (see the header). Literal
-// patterns: Vite resolves them at build time, and an absent file is simply an
-// empty map.
-const OPTIONAL = import.meta.glob(['./LessonReviewQueue.jsx', './TowerParity*.jsx']);
-export const PINNED_OPTIONAL = Object.freeze({
-  decide: { pattern: './LessonReviewQueue.jsx', from: 'PR #1841 claude/your-lessons-live @ 69c7e10', export: 'default' },
-  towers: { pattern: './TowerParity', from: 'claude/tower-parity-loop (not yet pushed)', export: 'default' },
+// Where the two components from parallel work came from (pinned by the test).
+export const PINNED_FROM = Object.freeze({
+  decide: { file: './LessonReviewQueue.jsx', from: 'PR #1841 (DR-0672)', export: 'default' },
+  towers: { file: './TowerParity.jsx', from: 'PR #1845 (DR-0671)', export: 'default' },
 });
-function optionalComponent(prefix) {
-  const key = Object.keys(OPTIONAL).find((k) => k.startsWith(prefix));
-  return key ? lazy(OPTIONAL[key]) : null;
-}
-const LessonReviewQueue = optionalComponent('./LessonReviewQueue.jsx');
-const TowerParity = optionalComponent('./TowerParity');
 
 // Laptop: these read best at full width (side-by-side versions; a long queue).
 const WIDE_ON_LAPTOP = new Set(['your-lessons', 'governor']);
@@ -204,9 +195,7 @@ export default function CreatingStation({
     'your-lessons': signedIn ? <LessonInbox /> : signInLine,
     decide: !signedIn ? signInLine : !isGovernor ? governorLine : (
       <div className="space-y-3">
-        {LessonReviewQueue
-          ? <Suspense fallback={<p className="text-xs text-[#5A5751]">Reading the lessons to decide…</p>}><LessonReviewQueue /></Suspense>
-          : <p className="text-xs text-[#5A5751]" style={SERIF} data-testid="station-decide-pending">The side-by-side decision for lessons more than one writer wrote arrives with Your lessons (PR #1841). Members&rsquo; lessons are below.</p>}
+        <LessonReviewQueue />
         <MemberLessonQueue signedIn={signedIn} />
       </div>
     ),
@@ -217,19 +206,7 @@ export default function CreatingStation({
         signedIn={signedIn}
       />
     ),
-    towers: TowerParity ? (
-      <Suspense fallback={<p className="text-xs text-[#5A5751]">Reading the towers…</p>}><TowerParity /></Suspense>
-    ) : (
-      <div data-testid="station-towers-pending">
-        <p className="text-xs text-[#1A1815]" style={SERIF}>{ROLES.classes.tower.why}</p>
-        <p className="text-xs text-[#5A5751] mt-1" style={SERIF}>The tower parity panel lands with the tower parity loop. Until then the towers&rsquo; state is on the operations board.</p>
-        {isGovernor && (
-          <button type="button" onClick={() => go('admin')} className="mt-2 border border-[#1A1815] text-[#1A1815] text-xs uppercase tracking-wider px-3 min-h-[44px] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">
-            Open the operations board
-          </button>
-        )}
-      </div>
-    ),
+    towers: signedIn ? <TowerParity signedIn={signedIn} /> : signInLine,
     'read-listen': (
       <div className="flex flex-wrap gap-2" data-testid="station-read-listen">
         <button type="button" onClick={() => go('church', 'learn')} className={`bg-[#1A1815] text-white uppercase tracking-wider px-4 min-h-[48px] hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] ${tv ? 'text-base' : 'text-xs'}`}>

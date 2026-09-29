@@ -139,6 +139,20 @@ describe('the roles are data, and the data is sound', () => {
     expect(ROLES.laptop_recorded).toBe(laptopish.length > 0);
   });
 
+  it('his creating station is known by name: the Samsung laptop, class laptop, not on the tailnet (2026-09-29)', () => {
+    const st = (ROLES.known_stations || []).find((s) => s.name === 'Samsung laptop');
+    expect(st).toBeTruthy();
+    expect(st.class).toBe('laptop');
+    expect(st.role).toBe('creating station');
+    expect(st.tailnet).toBe('not joined');
+    expect(st.in_fleet).toBe(false);
+    expect(ROLES.classes[st.class].jobs).toContain('create');
+    // Not joined, so it is honestly absent from the fleet the witness probes.
+    expect(NODES.nodes.some((n) => /samsung/i.test(JSON.stringify(n)))).toBe(false);
+    // Only these fields: a name and a job, never an address or a username.
+    expect(Object.keys(st).sort()).toEqual(['class', 'in_fleet', 'name', 'recorded', 'role', 'tailnet', 'why']);
+  });
+
   it('the public roles file carries no addresses or users (it ships in the bundle)', () => {
     const raw = read('infra/device-availability/device-roles.json');
     expect(raw).not.toMatch(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/);

@@ -81,5 +81,16 @@
   },
   "unassigned_node_roles": ["workstation", "unknown"],
   "laptop_recorded": false,
-  "laptop_note": "No laptop is recorded in pipeline-nodes.json as of 2026-09-29. The two 'workstation' nodes (tlc-tech-team, kingdom-home) have unconfirmed roles and are not assumed to be his laptop. The app does not need a named laptop to know it is on one: it measures the screen. Naming the laptop matters only for the fleet witness."
+  "known_stations": [
+    {
+      "name": "Samsung laptop",
+      "class": "laptop",
+      "role": "creating station",
+      "tailnet": "not joined",
+      "in_fleet": false,
+      "recorded": "2026-09-29",
+      "why": "Darrell named his laptop, a Samsung laptop, as his creating station. It is not in pipeline-nodes.json and not on the tailnet, so it carries no pipeline work and the fleet witness does not probe it. The app does not need it named to treat it as a laptop: it measures the screen."
+    }
+  ],
+  "laptop_note": "laptop_recorded is about the FLEET: no laptop is in pipeline-nodes.json as of 2026-09-29. The two 'workstation' nodes (tlc-tech-team, kingdom-home) have unconfirmed roles and are not assumed to be his laptop. His creating station is known by name in known_stations (the Samsung laptop, 2026-09-29), not joined to the tailnet. The app measures the screen either way; naming the laptop in the fleet matters only if it ever carries pipeline work."
 }

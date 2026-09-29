@@ -70,7 +70,9 @@ export const SOVEREIGN_AI_META = {
   tagline: 'A generator in the garage. The grid can flicker; our lights stay on.',
   format: '9 weekly sessions · ~75 min each (paced to your age) · live time with Darrell plus hands-on with the real A.I. surfaces',
   cadenceDays: 7,
-  weeks: 29,
+  // DERIVED (DR-0677): the count is the series' own length, read at use —
+  // never a literal a new lesson must edit.
+  get weeks() { return SOVEREIGN_AI_MODULES.length; },
   handsOnLabel: 'Hands-on in the app',
   footer: '_Taught by Darrell Poe · The Church of the Living God + the Poe family · built on PoeTech. We run our A.I. on machines we own so the data serves the family and the community — and is never sold. Built to be handed on, at every age._',
 };

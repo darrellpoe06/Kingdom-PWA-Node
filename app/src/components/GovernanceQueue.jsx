@@ -41,6 +41,70 @@ export function normalizeGovernanceQueue(raw) {
   return { ok: q.ok === true, openCount: items.length, items };
 }
 
+// Pure shape-normalizer for the review findings the same file carries under
+// "## REVIEW FINDINGS" (lib/governance-queue-parse.js). Findings are NOT
+// decisions: they render in their own section so the queue never tells the
+// Governor a finding is waiting on him (DR-0239 dimension 3, surface-says-truth).
+export function normalizeReviewFindings(raw) {
+  const q = raw && typeof raw === 'object' ? raw : {};
+  const reviews = Array.isArray(q.reviews) ? q.reviews : [];
+  return reviews
+    .filter((g) => g && g.title && Array.isArray(g.findings))
+    .map((g) => ({
+      title: String(g.title),
+      source: String(g.source || ''),
+      findings: g.findings.filter((f) => f && f.id && f.finding).map((f) => ({
+        id: String(f.id),
+        finding: String(f.finding),
+        evidence: String(f.evidence || ''),
+        severity: ['high', 'medium', 'low'].includes(f.severity) ? f.severity : '',
+        owner: String(f.owner || ''),
+        closeBy: String(f.closeBy || ''),
+      })),
+    }))
+    .filter((g) => g.findings.length);
+}
+
+// Severity is a working priority, not a verdict; no true red (DR-0099).
+const severityColor = (s) => (s === 'high' ? '#B85838' : s === 'medium' ? '#8B6F47' : '#5A6E3D');
+
+function ReviewFindings({ reviews }) {
+  if (!reviews.length) return null;
+  return (
+    <div className="space-y-3" data-testid="review-findings">
+      <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#2A5A8E] font-semibold">Governance · Review findings</div>
+        <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+          What a governance review found, each with its evidence, who carries it and when it closes. These are not waiting on you; the decisions that are sit in the queue above.
+        </p>
+      </section>
+      {reviews.map((g) => (
+        <section key={g.title} className="bg-white border border-[#E8E4DC] p-4">
+          <h4 className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{g.title}</h4>
+          {g.source && <p className="text-[0.625rem] text-[#5A5751] mt-0.5 break-all" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{g.source}</p>}
+          <ol className="mt-2 space-y-2">
+            {g.findings.map((f) => (
+              <li key={f.id} data-testid="review-finding" className="border-l-4 pl-3 py-1" style={{ borderLeftColor: severityColor(f.severity) }}>
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{f.id}</span>
+                  {f.severity && <span className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: severityColor(f.severity) }}>{f.severity}</span>}
+                </div>
+                <p className="text-sm text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{f.finding}</p>
+                {f.evidence && <p className="text-xs text-[#5A5751] mt-0.5 break-words" style={{ fontFamily: '"Fraunces", serif' }}><span className="uppercase tracking-wider text-[0.625rem]">Evidence · </span>{f.evidence}</p>}
+                <p className="text-xs text-[#5A6E3D] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                  {f.owner && <><span className="uppercase tracking-wider text-[0.625rem]">Owner · </span>{f.owner}</>}
+                  {f.owner && f.closeBy && ' · '}
+                  {f.closeBy && <><span className="uppercase tracking-wider text-[0.625rem]">Close · </span>{f.closeBy}</>}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 // Pure shape-normalizer for the decided ledger (exported for tests).
 export function normalizeDecisionLedger(raw) {
   const q = raw && typeof raw === 'object' ? raw : {};
@@ -188,6 +252,9 @@ export default function GovernanceQueue({ appDecisions = [], familyInstanceId = 
           Bright lines (money, credentials, clinical data, the family&apos;s voice) are never auto-decided — they always wait here for you.
         </p>
       </div>
+
+      {/* ---- REVIEW FINDINGS: what a governance review found (not decisions) ---- */}
+      <ReviewFindings reviews={normalizeReviewFindings(QUEUE)} />
 
       {/* ---- RECORDED BY THE APP: live decisions the running system logged ---- */}
       <div className="space-y-3">

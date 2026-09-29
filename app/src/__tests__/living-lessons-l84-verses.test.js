@@ -86,7 +86,7 @@ describe('L84 exists in the catalog with its full shape', () => {
     for (const key of ['bigIdea:', 'inApp:', "ref: 'Luke 1:28'", 'child:', 'youth:', 'teen:', 'senior:', 'quiz:', 'facilitator:']) {
       expect(lesson).toContain(key);
     }
-    expect(src).toMatch(/weeks: \d+,/); // the catalog count grows with every new lesson; this lesson's presence is the real pin
+    expect(src).toMatch(/get weeks\(\) \{ return LIVING_LESSONS_MODULES\.length; \}/); // the count is DERIVED from the series (DR-0677)
     expect(src).toContain('L84 Blessed and Highly Favored');
   });
 });

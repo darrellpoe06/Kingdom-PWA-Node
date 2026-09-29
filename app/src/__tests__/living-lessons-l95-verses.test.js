@@ -102,7 +102,7 @@ describe('L95 exists in the catalog with its full shape', () => {
     for (const key of ['bigIdea:', 'inApp:', "ref: 'Proverbs 27:23; 1 Corinthians 9:22; Proverbs 23:5'", 'benefits:', 'child:', 'youth:', 'teen:', 'senior:', 'quiz:', 'facilitator:']) {
       expect(l).toContain(key);
     }
-    expect(src).toMatch(/weeks: \d+,/);
+    expect(src).toMatch(/get weeks\(\) \{ return LIVING_LESSONS_MODULES\.length; \}/); // the count is DERIVED from the series (DR-0677)
   });
 
   it('teaches the spoken spine, in order (hard times → flocks → meet people → presence → diligence → not the hype → build on Yahweh)', () => {

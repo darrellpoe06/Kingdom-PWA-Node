@@ -25,7 +25,10 @@ export const WORD_OUT_META = {
   audience: 'Church of the Living God staff and volunteers who post the messages — and anyone who shares them',
   tagline: 'One upload puts the newest message at the top of the app, in The Word archive, and in front of the Body — automatically. Learn the one habit, retire the busywork, and ask for what you want built.',
   cadenceDays: 7,
-  weeks: 5, // keep in step with WORD_OUT_MODULES.length (asserted in the test)
+  // DERIVED (DR-0677): the count is the series' own length, read at use —
+  // never a literal a new lesson must edit.
+  get weeks() { return WORD_OUT_MODULES.length; },
+  // Until DR-0677 the count was a literal with this note, kept as history: keep in step with WORD_OUT_MODULES.length (asserted in the test)
   handsOnLabel: 'Try it now',
   unit: {
     noun: 'lesson', nounPlural: 'lessons', cap: 'Lesson', selfPaced: true,

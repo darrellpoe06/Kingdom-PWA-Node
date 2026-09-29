@@ -42,7 +42,7 @@ He records lessons on his phone and reads and listens on the Firestick. The NAS 
    - On a laptop: two columns, with Your lessons and the Governor's queue at full width, and Alt+1..9 / Alt+0 shortcuts with the legend shown.
    - On a phone: one column, with the recorder (the Lesson chip already chosen) first, then the decisions, then "continue on your laptop".
    - On a TV: read and listen first, large, in one column.
-5. **Components are imported, never rewritten.** The station uses `OneVoiceInput` (through its `surfaceConfig` seam), `LessonInbox`, `MemberLessonQueue` and `GovernanceQueue`. `LessonReviewQueue` (#1841, not merged) and a tower parity panel (`claude/tower-parity-loop`, not pushed) are picked up by `import.meta.glob` the moment their files land. Their names and sources are pinned in `PINNED_OPTIONAL` and tested, and until they land the panel says where that work lives.
+5. **Components are imported, never rewritten.** The station uses `OneVoiceInput` (through its `surfaceConfig` seam), `LessonInbox`, `MemberLessonQueue`, `GovernanceQueue`, `LessonReviewQueue` (#1841, DR-0672) and `TowerParity` (#1845, DR-0671). The last two were placeholders while their PRs were open; both are on main now and are mounted directly, as Projects → Decisions mounts them (the review queue in the Governor's decide panel; `TowerParity` with `signedIn` in the Towers panel). Their files and sources are pinned in `PINNED_FROM` and tested.
 6. **The handoff is a link, not a device-link.** A link opens the station at one panel (`?view=create&panel=…`), shared from the phone or scanned from a QR on the laptop. The device-link mechanism (DR-0658) moves a **session** to a device that asks for one. A lesson waiting on review is not a session. The laptop, signed in as the same person, reads the same rows through RLS, so only *where to open* has to travel. The link carries no identity. When the laptop is not signed in, its door is the existing "Sign in with your phone", which is device-link. So the mechanism is reused where it fits, which is signing in, and not stretched to carry work.
 
 ## Impact
@@ -67,7 +67,7 @@ This can be undone by reverting one commit.
 ## Gaps, each with a why and a date
 
 - **No laptop is named in the fleet.** The app does not need one, because it measures the screen. The fleet witness would, if the laptop ever carries pipeline work. Only Darrell can say which machine it is, or whether `kingdom-home` is it. **re-review: 2026-10-06.**
-- **The tower parity panel** is not on any pushed branch. The Towers panel states the towers' job and points to the operations board until `TowerParity*.jsx` lands. **re-review: 2026-10-06**, or sooner when the branch is pushed.
-- **#1841's `LessonReviewQueue`** mounts automatically on merge. `legibility-health.json` will conflict with #1841, and `resolve-ledger-conflicts` regenerates it.
+- **His laptop is named (2026-09-29):** Darrell's creating station is his Samsung laptop, recorded in `device-roles.json` `known_stations` as class laptop, tailnet not joined, with no address or username.
+- **Closed at merge (2026-09-29):** the tower parity panel and #1841's `LessonReviewQueue` landed on main (#1845, #1841) and replace the placeholder panels; the ledger files were resolved with `resolve-ledger-conflicts`.
 - **The station's lesson entry shares Thinking Space's device-local draft** (the same `notes` surface key). A lesson started in one place is still there in the other. That is continuity, and it is deliberate for now. **re-review: 2026-10-13.**
 - **The landing view is unchanged by device.** A bare URL still opens the overview on every device. Changing the family's front door by device is a separate decision, and it is not taken here.

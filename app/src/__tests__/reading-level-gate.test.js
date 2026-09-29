@@ -299,7 +299,8 @@ describe('THE LIVE SERIES — measured, not asserted', () => {
     const fresh = buildBaseline(scan);
     expect(fresh.inverted).toEqual(baseline.inverted);
     expect(fresh.childOverCeiling).toEqual(baseline.childOverCeiling);
-    expect(fresh.measuredLessons).toBe(baseline.measuredLessons);
+    // DERIVED (DR-0677): the count comes from the data, so a new lesson never edits a baseline line.
+    expect(fresh.measuredLessons).toBe(LIVING_LESSONS_MODULES.length);
     expect(fresh.knownLessons).toEqual(baseline.knownLessons);
   });
 

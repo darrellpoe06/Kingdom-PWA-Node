@@ -48,7 +48,7 @@
 // worse, which is the smallest thing that turns an invisible need into a
 // visible one.
 import { describe, it, expect } from 'vitest';
-import { LEARN_CATALOG } from '../lib/learn-catalog.js';
+import { LEARN_CATALOG, learnCatalogSummary } from '../lib/learn-catalog.js';
 import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
 import {
   BANDS, bandsPresent, lessonsOfCourse, scanCourseBands, ratchetCourseBands,
@@ -63,7 +63,8 @@ describe('the measure reads the real catalog', () => {
   it('finds lessons in every course that has any', () => {
     // If the row-shape walk breaks, this whole file silently measures nothing,
     // which is the failure mode it exists to prevent. So the count is pinned.
-    expect(scan.total).toBe(baseline.total);
+    // DERIVED (DR-0677): the count comes from the data, so a new lesson never edits a baseline line.
+    expect(scan.total, 'the walk missed catalog lessons outside the Living Lessons').toBe(learnCatalogSummary().lessons - OWNED.size);
     expect(Object.keys(scan.courses).length).toBe(Object.keys(baseline.courses).length);
   });
 
@@ -106,7 +107,7 @@ describe('the debt, recorded as it actually is', () => {
     // NOT move with any of them. That is the shape a new course is supposed to
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
-    expect(baseline.total).toBe(384); // 384 on 2026-09-29: World Issues issue 19 (the student in the gap, DR-0666); 383 on 2026-09-29: World Issues issue 18 (the psychologists’ 2021 apology, DR-0665); 382 on 2026-09-29: pm12 (Titles and fruits, DR-0664); 381 on 2026-09-29: Sovereign A.I. week 29, the agent that went past the bound (DR-0662), child, teen and senior bands; 380 on 2026-09-24: Sovereign A.I. weeks 27 and 28 from Darrell's spoken teachings (DR-0637, DR-0638), child, teen and senior bands on both; 378 on 2026-09-24: Sovereign A.I. weeks 25 and 26 (DR-0619, DR-0620), child, teen and senior bands on both; 376 on 2026-09-24: pm11, the eleventh lesson of Project Management (DR-0609), both bands; 375 on 2026-09-24: the ninth lesson of business-research-wars, the oil (DR-0602), both bands; 374 on 2026-09-23: the Business department's second course (business-research-wars, DR-0594), both bands on every lesson
+    // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
     expect(baseline.allFour).toBe(8); // 8 on 2026-09-24: the rebuilt historical-research-1619 (DR-0597) carries child, youth, teen and senior on every lesson — the first catalog course with all four bands; a course may only add to this number
     expect(baseline.adultOnly).toBe(37);
   });

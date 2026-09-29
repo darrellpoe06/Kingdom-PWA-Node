@@ -76,9 +76,11 @@ const VIEWS = SWEEP
   // its own (its own manifest scope, its own served page) and had NO layout
   // instrument — the exact gap dimension 4 exists to close, found by running
   // this review against a surface the sweep list had never heard of.
+  // 'notes' added 2026-09-29 (DR-0672): the Thinking Space hosts Your lessons,
+  // whose road runs five across from 640px and stacks on a phone.
   // 'create' added 2026-09-29 (DR-0678): the Create station is the laptop's
   // creating workspace, and it is measured at every width like every face.
-  ? ['church', 'books', 'messages', 'about', 'crm', 'rentals', 'markets', 'library', 'games', 'admin', 'properties', 'create']
+  ? ['church', 'books', 'messages', 'about', 'crm', 'rentals', 'markets', 'library', 'games', 'admin', 'properties', 'notes', 'create']
   : ['church'];
 
 if (!existsSync(join(DIST, 'index.html'))) {

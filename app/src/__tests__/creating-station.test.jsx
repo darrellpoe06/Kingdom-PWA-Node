@@ -21,8 +21,10 @@ vi.mock('../components/OneVoiceInput.jsx', () => ({ default: (p) => createElemen
 vi.mock('../components/LessonInbox.jsx', () => ({ default: () => createElement('div', { 'data-testid': 'stub-inbox' }) }));
 vi.mock('../components/MemberLessonQueue.jsx', () => ({ default: () => createElement('div', { 'data-testid': 'stub-member-queue' }) }));
 vi.mock('../components/GovernanceQueue.jsx', () => ({ default: () => createElement('div', { 'data-testid': 'stub-governance' }) }));
+vi.mock('../components/LessonReviewQueue.jsx', () => ({ default: () => createElement('div', { 'data-testid': 'stub-review-queue' }) }));
+vi.mock('../components/TowerParity.jsx', () => ({ default: (p) => createElement('div', { 'data-testid': 'stub-tower-parity', 'data-signed-in': String(!!p.signedIn) }) }));
 
-const { default: CreatingStation, PINNED_OPTIONAL } = await import('../components/CreatingStation.jsx');
+const { default: CreatingStation, PINNED_FROM } = await import('../components/CreatingStation.jsx');
 const { PANEL_KEYS, orderPanels, CLIENT_CLASSES } = await import('../lib/device-roles.js');
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -104,27 +106,45 @@ describe('the Create station', () => {
   });
 });
 
-describe('the components from work not yet on main are pinned', () => {
-  it('each optional panel names its file and its source', () => {
-    expect(PINNED_OPTIONAL.decide.pattern).toBe('./LessonReviewQueue.jsx');
-    expect(PINNED_OPTIONAL.decide.from).toMatch(/#1841/);
-    expect(PINNED_OPTIONAL.towers.pattern).toBe('./TowerParity');
+describe('the components from parallel work are on main and mounted for real', () => {
+  it('each names its file and its source, and the file exists with a default export', () => {
+    expect(PINNED_FROM.decide.file).toBe('./LessonReviewQueue.jsx');
+    expect(PINNED_FROM.decide.from).toMatch(/#1841/);
+    expect(PINNED_FROM.towers.file).toBe('./TowerParity.jsx');
+    expect(PINNED_FROM.towers.from).toMatch(/#1845/);
+    const q = join(HERE, '../components/LessonReviewQueue.jsx');
+    const t = join(HERE, '../components/TowerParity.jsx');
+    expect(existsSync(q)).toBe(true);
+    expect(existsSync(t)).toBe(true);
+    expect(readFileSync(q, 'utf8')).toMatch(/export default function LessonReviewQueue\(/);
+    expect(readFileSync(t, 'utf8')).toMatch(/export default function TowerParity\(/);
   });
 
-  it('when #1841 lands, LessonReviewQueue is a default export the station can mount', () => {
-    const f = join(HERE, '../components/LessonReviewQueue.jsx');
-    if (!existsSync(f)) {
-      // Not merged yet: the station says so plainly instead of rendering nothing.
-      const el = mount({ deviceClass: 'laptop', signedIn: true, isGovernor: true });
-      expect(el.querySelector('[data-testid="station-decide-pending"]').textContent).toMatch(/#1841/);
-      return;
+  it('the Governor gets the real LessonReviewQueue beside the members\' queue, on every class; no placeholder remains', () => {
+    for (const cls of CLIENT_CLASSES) {
+      const el = mount({ deviceClass: cls, signedIn: true, isGovernor: true });
+      const decide = el.querySelector('#station-decide');
+      expect(decide.querySelector('[data-testid="stub-review-queue"]')).not.toBe(null);
+      expect(decide.querySelector('[data-testid="stub-member-queue"]')).not.toBe(null);
+      expect(el.querySelector('[data-testid="station-decide-pending"]')).toBe(null);
+      act(() => root.unmount()); host.remove(); root = null; host = null;
     }
-    expect(readFileSync(f, 'utf8')).toMatch(/export default function LessonReviewQueue\(/);
   });
 
-  it('until the tower parity panel lands, the towers panel says where the towers are', () => {
+  it('a non-Governor never mounts the review queue (the gate is unchanged)', () => {
+    const el = mount({ deviceClass: 'laptop', signedIn: true, isGovernor: false });
+    expect(el.querySelector('[data-testid="stub-review-queue"]')).toBe(null);
+  });
+
+  it('the Towers panel mounts the real TowerParity when signed in, and asks to sign in otherwise', () => {
     const el = mount({ deviceClass: 'laptop', signedIn: true, isGovernor: true });
-    const pending = el.querySelector('[data-testid="station-towers-pending"]');
-    if (pending) expect(pending.textContent).toMatch(/operations board/);
+    const tp = el.querySelector('#station-towers [data-testid="stub-tower-parity"]');
+    expect(tp).not.toBe(null);
+    expect(tp.getAttribute('data-signed-in')).toBe('true');
+    expect(el.querySelector('[data-testid="station-towers-pending"]')).toBe(null);
+    act(() => root.unmount()); host.remove(); root = null; host = null;
+    const out = mount({ deviceClass: 'laptop', signedIn: false });
+    expect(out.querySelector('[data-testid="stub-tower-parity"]')).toBe(null);
+    expect(out.querySelector('#station-towers').textContent).toMatch(/Sign in/);
   });
 });

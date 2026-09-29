@@ -26,7 +26,7 @@
 // actually put something on the learner's side of it?
 import { describe, it, expect } from 'vitest';
 import { buildLessonArc, ARC_KINDS } from '../lib/lesson-flow.js';
-import { LEARN_CATALOG } from '../lib/learn-catalog.js';
+import { LEARN_CATALOG, learnCatalogSummary } from '../lib/learn-catalog.js';
 import baseline from '../lib/stage-reaches-reader-baseline.json';
 
 const BANDS = ['child', 'youth', 'teen', 'senior', 'adult'];
@@ -63,7 +63,9 @@ describe('every arc stage that renders reaches the reader', () => {
   it('the walk covers a real catalog — it is not measuring nothing', () => {
     expect(COURSES.length).toBeGreaterThan(20);
     const total = COURSES.reduce((t, c) => t + lessonsOf(c).length, 0);
-    expect(total, 'no lessons walked').toBe(baseline.lessons);
+    // DERIVED (DR-0677): the count comes from the data, so a new lesson never edits a baseline line.
+    expect(total, 'the walk skipped lessons the catalog carries').toBe(learnCatalogSummary().lessons);
+    expect(total, 'no lessons walked').toBeGreaterThan(500);
   });
 
   it('no course is WORSE than the recorded debt, and an unrecorded course is at zero', () => {
