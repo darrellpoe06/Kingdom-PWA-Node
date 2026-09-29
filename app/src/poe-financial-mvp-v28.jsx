@@ -4780,6 +4780,15 @@ ${THEME_CSS}
               updateWorkspace={updateWorkspace}
               deleteWorkspace={deleteWorkspace}
               currentUserPersona={authSession ? personaOf(authSession.user?.email) : null}
+              station={{
+                // Each device its job (DR-0678): the lesson tools, ordered and
+                // laid out for this device. Same gates as Projects -> Decisions.
+                signedIn: !!authSession,
+                isGovernor: !!authSession && !reviewerMode && isFamilyEmail(authSession.user?.email),
+                voice: { addNote, patchNote, sendToPoeTech: sendNoteToPoeTech, addPrayerRequest, addChurchVoice, addIncident, addInquiry },
+                governance: { discussions: data.discussions || [], concerns: data.concerns || [] },
+                onNavigate: (v, sub) => { if (!v) return; setView(v); if (v === 'church' && sub) setChurchView(sub); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) { /* no scroll */ } },
+              }}
             />
           </SectionBoundary>
         )}

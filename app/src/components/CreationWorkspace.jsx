@@ -35,6 +35,7 @@ import {
 } from '../lib/creation-workspace.js';
 import Presenter from './Presenter.jsx';
 import { documentPresentable } from '../lib/presentable.js';
+import CreatingStation from './CreatingStation.jsx';
 
 const FORMAT_LABEL = { png: 'PNG', jpg: 'JPG', jpeg: 'JPG' };
 
@@ -52,6 +53,9 @@ export default function CreationWorkspace({
   updateWorkspace,
   deleteWorkspace,
   currentUserPersona = null,
+  // The creating station (DR-0678): the lesson tools, ordered and laid out for
+  // the device, above the document canvas. Omitted = the canvas alone.
+  station = null,
 }) {
   const editorRef = useRef(null);
   const [type, setType] = useState(WORKSPACE_TYPES[0].key);
@@ -248,6 +252,7 @@ export default function CreationWorkspace({
 
   return (
     <div className="w-full">
+      {station && <CreatingStation {...station} />}
       <div className="mb-4">
         <div className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#B85838]">Create</div>
         <h1 className="text-2xl text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Creation Workspace</h1>

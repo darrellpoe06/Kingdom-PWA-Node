@@ -1,0 +1,85 @@
+{
+  "v": 1,
+  "_comment": "EACH DEVICE ITS JOB (DR-0678). Darrell 2026-09-29: \"Laptop for creating... we need to be able to use the devices appropriately\". pipeline-nodes.json says WHICH machines exist; this file says what each CLASS of device is FOR, and which app surfaces it is best for, and why. The app reads it (app/src/lib/device-roles.js) to decide what comes FIRST and how it is laid out. It never decides what is ALLOWED: every surface stays reachable on every device (the never-blocked rule, pinned by app/src/__tests__/device-roles.test.js). No addresses, no users, no secrets here: this file ships in the public bundle.",
+  "classes": {
+    "phone": {
+      "label": "Phone",
+      "kind": "app-client",
+      "jobs": ["record", "listen", "quick approve"],
+      "why": "It is in his hand when the word comes. A phone has a microphone and a thumb, not a keyboard: it catches a lesson the moment it is spoken, plays one back on the road, and answers a waiting decision with one tap. Long comparison and merging are cramped at 390px and wait for the laptop, one link away.",
+      "first": ["record", "decide", "handoff", "your-lessons", "read-listen", "governor", "towers"],
+      "surfaces": [
+        { "view": "notes", "why": "Thinking Space holds the one input box: speak or type, and the Lesson chip sends it to the lesson intake." },
+        { "view": "create", "why": "The Create station opens with the recorder and the lessons waiting on a decision, and hands a long review to the laptop." },
+        { "view": "voice", "why": "Listen to anything in the chosen voice, hands free." }
+      ]
+    },
+    "tablet": {
+      "label": "Tablet",
+      "kind": "app-client",
+      "jobs": ["read", "record", "review"],
+      "why": "A middle screen with touch and no keyboard: wide enough to read a lesson whole and to look over a version, not built for long typing. Recorded here so a folded-open phone or a tablet gets a sensible order instead of a guess.",
+      "first": ["read-listen", "record", "your-lessons", "decide", "handoff", "governor", "towers"],
+      "surfaces": [
+        { "view": "church", "sub": "learn", "why": "The lessons read whole at a comfortable width." },
+        { "view": "create", "why": "Record, and look over a lesson's versions." }
+      ]
+    },
+    "laptop": {
+      "label": "Laptop or desktop",
+      "kind": "app-client",
+      "jobs": ["create", "edit", "compare", "merge", "review", "govern"],
+      "why": "Laptop for creating. A wide screen shows two writers' versions side by side, a real keyboard writes and edits long-form, and a fine pointer selects exactly. This is where a lesson is written, compared across the LLMs that drafted it, merged, and published, and where the Governor works his decision queue.",
+      "first": ["your-lessons", "decide", "record", "governor", "towers", "read-listen", "handoff"],
+      "surfaces": [
+        { "view": "create", "why": "The Create station: lesson entry, Your lessons (compare, merge, publish), the decision queues and the towers, laid out across the width with keyboard shortcuts." },
+        { "view": "projects", "why": "The Governor's full decision queue and the lessons waiting on his word." },
+        { "view": "admin", "why": "The operations board: what the NAS and the towers are doing." }
+      ]
+    },
+    "tv": {
+      "label": "TV or Firestick",
+      "kind": "app-client",
+      "jobs": ["read", "listen", "sign in from the phone"],
+      "why": "Read across the room and heard in the voice. A remote has arrows and OK, no keyboard and no pointer, so the TV reads and plays; signing in and anything that needs typing are done from the phone in his hand (DR-0658).",
+      "first": ["read-listen", "your-lessons", "decide", "record", "handoff", "governor", "towers"],
+      "surfaces": [
+        { "view": "church", "sub": "learn", "why": "The Living Lessons, read large and read aloud." },
+        { "view": "voice", "why": "Listen in the chosen voice." }
+      ]
+    },
+    "nas": {
+      "label": "NAS",
+      "kind": "infrastructure",
+      "jobs": ["home of data", "home of services"],
+      "why": "Always on. The lessons, the recordings and the services that turn a spoken word into a lesson live here (DR-0677); the app reaches it through the same-origin transport, never directly.",
+      "node_roles": ["nas"],
+      "surfaces": [
+        { "view": "admin", "why": "Its health and what it is doing, read live on the operations board." }
+      ]
+    },
+    "tower": {
+      "label": "Tower",
+      "kind": "infrastructure",
+      "jobs": ["AI compute"],
+      "why": "The RTX 4070 towers run the models: the Ollama lesson writers and OpenClaw on tlcmediadpt. The right tower feeds the wall and live work always wins it (DR-0012).",
+      "node_roles": ["gpu-worker", "gpu-presenter"],
+      "surfaces": [
+        { "view": "admin", "why": "The towers' state and parity, on the operations board." },
+        { "view": "create", "why": "The Towers panel shows which writers ran, beside the versions they wrote." }
+      ]
+    }
+  },
+  "panels": {
+    "record": { "label": "Record or type a lesson", "why": "Where a lesson begins: spoken or typed, sent to the lesson intake." },
+    "your-lessons": { "label": "Your lessons", "why": "Each lesson from arrival to live, and every writer's version side by side to compare, merge and publish (DR-0672)." },
+    "decide": { "label": "Lessons to decide", "why": "Lessons with more than one version, waiting for the Governor's decision." },
+    "governor": { "label": "Governor's decision queue", "why": "The decisions only the Governor makes, batched." },
+    "towers": { "label": "Towers", "why": "Which tower wrote what, and whether the towers agree." },
+    "read-listen": { "label": "Read and listen", "why": "The lessons to read and hear." },
+    "handoff": { "label": "Continue on another device", "why": "Send the work to the device that suits it." }
+  },
+  "unassigned_node_roles": ["workstation", "unknown"],
+  "laptop_recorded": false,
+  "laptop_note": "No laptop is recorded in pipeline-nodes.json as of 2026-09-29. The two 'workstation' nodes (tlc-tech-team, kingdom-home) have unconfirmed roles and are not assumed to be his laptop. The app does not need a named laptop to know it is on one: it measures the screen. Naming the laptop matters only for the fleet witness."
+}

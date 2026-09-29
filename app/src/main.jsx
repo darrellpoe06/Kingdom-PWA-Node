@@ -13,6 +13,8 @@ import { captureInstallPrompt } from './lib/install-app.js';
 import { startDmNotifications } from './lib/dm-notify.js';
 import { captureDeepLink } from './lib/app-doors.js';
 import { wireRemoteNavigation } from './lib/remote-navigation.js';
+import { markTvDevice } from './lib/tv-device.js';
+import { markDeviceClass } from './lib/device-roles.js';
 import { installNativeShell, isNativeShell } from './lib/native-shell.js';
 import { registerDoorWorker, rowMoverFor } from './lib/sw-door-scope.js';
 
@@ -41,6 +43,14 @@ window.storage = storage;
 // focus spatially. Bubbling listener: any surface that owns its own arrows
 // keeps them (remote-navigation.js).
 wireRemoteNavigation();
+
+// Each device its job (DR-0678): mark the document with what it IS before
+// anything paints — `data-device="tv"` from the TV list (tv-device.js, written
+// for this and never called until now), and `data-device-class` (phone /
+// tablet / laptop / tv) from what the browser measures. The class only orders
+// and lays out; it never blocks a surface. use-device-class re-measures live.
+markTvDevice();
+markDeviceClass(window);
 
 // Self-heal a stale-deploy lazy-chunk 404 (e.g. opening the Voice tab after a newer
 // deploy replaced its chunk hash): on a failed dynamic import, recover once to the

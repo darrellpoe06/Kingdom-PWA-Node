@@ -1,5 +1,7 @@
 {
   "v": 1,
+  "device_roles": "device-roles.json",
+  "_device_roles_comment": "What each CLASS of device is for (phone, tablet, laptop, TV, NAS, tower) and which app surfaces it is best for lives in the sibling device-roles.json (DR-0678). A node's `role` here maps to a class through that file's node_roles; 'workstation' and 'unknown' map to none until their role is confirmed.",
   "_comment": "The DECLARED set of devices the PoeTech pipeline depends on staying up. Darrell 2026-08-14: 'we need to come up with obstacles to turning off anything or device we use for this pipeline including creating master accounts on each cpu and using administrative procedures etc...' This manifest is the source of truth the availability witness probes against -- without a declared list, 'a node went dark' has no denominator and nobody can say whether it is normal. Tailnet addresses read from Darrell's live Tailscale admin view 2026-08-14 and cross-checked against app/src/lib/church-devices.js (SSH users + LAN IPs) and infra/gpu-scheduler/state/STREAMING_HOLD (LEFT/RIGHT tower naming). 'required' means the pipeline degrades when it is dark; 'expected_always_on' is the honest claim about whether being dark is a FAULT or just normal for that box -- a laptop that sleeps is not an incident, and a witness that cries wolf gets muted.",
   "nodes": [
     {
