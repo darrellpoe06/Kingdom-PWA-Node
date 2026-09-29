@@ -22,7 +22,7 @@
 // honestly beats both pretending and rushing.
 import { describe, it, expect } from 'vitest';
 import { scanQuotationIntegrity, ratchetQuotationIntegrity } from '../../../scripts/quotation-integrity.mjs';
-import { LEARN_CATALOG } from '../lib/learn-catalog.js';
+import { LEARN_CATALOG, learnCatalogSummary } from '../lib/learn-catalog.js';
 import baseline from '../lib/course-quotation-integrity-baseline.json';
 
 const COURSES = LEARN_CATALOG.filter((c) => typeof c.buildScheduleRows === 'function');
@@ -39,7 +39,8 @@ const scan = scanQuotationIntegrity(MODULES);
 describe('the catalog courses carry no NEW elided quotation', () => {
   it('the walk covers the real catalog — it is not measuring nothing', () => {
     expect(COURSES.length).toBeGreaterThan(20);
-    expect(MODULES.length, 'lesson count moved — re-measure the baseline').toBe(baseline.measuredLessons);
+    // DERIVED (DR-0677): the count comes from the data, so a new lesson never edits a baseline line.
+    expect(MODULES.length, 'a catalog lesson carries no text, or the walk skipped one').toBe(learnCatalogSummary().lessons);
   });
 
   it('the committed baseline is the REAL debt, not a painted number', () => {

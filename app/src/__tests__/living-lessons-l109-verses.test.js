@@ -50,7 +50,7 @@ describe('L109 exists in the catalog with its full shape', () => {
     for (const key of ['bigIdea:', 'inApp:', "ref: 'Psalm 34:8; Romans 5:8; Zephaniah 3:17'", 'benefits:', 'child:', 'teen:', 'senior:', 'quiz:', 'facilitator:']) {
       expect(l).toContain(key);
     }
-    expect(src).toMatch(/weeks: \d+,/);
+    expect(src).toMatch(/get weeks\(\) \{ return LIVING_LESSONS_MODULES\.length; \}/); // the count is DERIVED from the series (DR-0677)
   });
 
   it('teaches the whole arc in order — the four senses, knowing, and every age', () => {
