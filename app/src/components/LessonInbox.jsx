@@ -16,6 +16,14 @@ import { sendPromptToBox } from '../lib/saved-prompts.js';
 import supabase from '../lib/supabase.js';
 import LessonsForSituation from './LessonsForSituation.jsx';
 import { lessonsForSituation } from '../lib/lessons-for-situation.js';
+// DR-0672: each lesson's road, arrival to live, and (for the Governor) every
+// writer's version side by side. PR state reuses the OpsBoard's GitHub reads.
+import { deriveLessonPipeline, fetchLessonPrs, lessonPrOf, buildLessonNumberOf, branchPrefixForLesson } from '../lib/lesson-pipeline.js';
+import { fetchOps, fetchDeliveryRecord, fetchPull } from '../lib/github-ops.js';
+import { mayCompareVersions } from '../lib/lesson-versions.js';
+import { fetchReviewQueue } from '../lib/lesson-decisions.js';
+import LessonRoad from './LessonRoad.jsx';
+import LessonVersionsCompare from './LessonVersionsCompare.jsx';
 
 // A decline points to the lessons that already speak to it; when none is close
 // enough, the pointer is dropped rather than said falsely.
@@ -33,7 +41,10 @@ const TONE = {
   failed: 'text-[#B85838]',
   sent: 'text-[#2A5A8E]',
 };
-const LIVE = { supabase };
+const LIVE = {
+  supabase,
+  github: { fetchOps, fetchDeliveryRecord, getPull: (n) => fetchPull(n) },
+};
 
 function when(iso) {
   const t = Date.parse(iso || '');
@@ -43,18 +54,35 @@ function when(iso) {
 export default function LessonInbox({ deps = LIVE, refreshKey = 0 }) {
   const [state, setState] = useState({ ok: false, items: [], reason: 'loading' });
   const [open, setOpen] = useState({});
-  const load = useCallback(() => { fetchMyLessons(deps).then(setState); }, [deps]);
+  const [prs, setPrs] = useState({ prs: {}, read: 'ok' });
+  const [versions, setVersions] = useState({ state: 'idle', teachings: [], reason: '' });
+  const [comparing, setComparing] = useState({});
+  const load = useCallback(() => {
+    fetchMyLessons(deps).then((res) => {
+      setState(res);
+      if (!res.ok) return;
+      // GitHub is read only when a lesson names its PR (the 60/hr budget).
+      const numbers = res.items.map((it) => lessonPrOf(it.progressTags || [])).filter(Boolean);
+      // The NAS builder names its lesson number; its branch is claude/lesson-l<n>-<slug> (DR-0669).
+      const branchPrefixes = res.items.map((it) => buildLessonNumberOf(it.progressTags || [])).filter(Boolean).map(branchPrefixForLesson);
+      if ((numbers.length || branchPrefixes.length) && deps.github) fetchLessonPrs(numbers, { ...deps.github, branchPrefixes }).then(setPrs);
+      if (mayCompareVersions({ uid: res.uid, email: res.email })) {
+        fetchReviewQueue({ supabase: deps.supabase, uid: res.uid, email: res.email }).then(setVersions);
+      }
+    });
+  }, [deps]);
   useEffect(() => { load(); }, [load, refreshKey]);
+  const governor = state.ok && mayCompareVersions({ uid: state.uid, email: state.email });
 
   if (!state.ok && state.reason === 'signed-out') return null;
   return (
-    <section className="bg-white border border-[#E8E4DC] p-3 sm:p-4" data-testid="lesson-inbox">
+    <section id="your-lessons" className="bg-white border border-[#E8E4DC] p-3 sm:p-4" data-testid="lesson-inbox">
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <h2 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Your lessons · {state.items.length}</h2>
         <button type="button" onClick={load} className="text-[0.625rem] uppercase tracking-wider px-2 min-h-[44px] border border-[#E8E4DC] text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]">Refresh</button>
       </div>
       <p className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={SERIF}>
-        Every lesson you sent from the app: when it arrived, whether Whisper has written a spoken one down, and the words it wrote. Each one is handed to the lesson reader, who builds it into the class.
+        Every lesson you sent from the app, from arrival to live: when it arrived, when its words came, when it was built, its PR, and when it went live, with how long each step took. A step nothing has reported yet says so.
       </p>
       {!state.ok && state.reason !== 'loading' && (
         <p className="text-[0.6875rem] text-[#B85838] mt-2" style={SERIF} data-testid="lesson-inbox-unavailable">Your lessons could not be read ({state.reason}).</p>
@@ -65,6 +93,9 @@ export default function LessonInbox({ deps = LIVE, refreshKey = 0 }) {
       <ul className="mt-2 space-y-2">
         {state.items.map((it) => {
           const words = transcriptWords(it.words);
+          const road = deriveLessonPipeline(it, { prs: prs.prs, prRead: prs.read, owner: !!state.owner });
+          const teaching = governor ? (versions.teachings || []).find((t) => t.teachingRowId === it.id || (it.transcriptId && t.teachingRowId === it.transcriptId)) : null;
+          const mine = teaching ? teaching.versions : [];
           return (
             <li key={it.id} data-testid="lesson-row" className="border border-[#E8E4DC] p-2">
               <p className="text-[0.625rem] text-[#5A5751]" style={MONO}>
@@ -72,6 +103,24 @@ export default function LessonInbox({ deps = LIVE, refreshKey = 0 }) {
                 {it.withReader ? ' · with the lesson reader' : ''}
               </p>
               <p className={`text-xs font-semibold ${TONE[it.state] || 'text-[#5A5751]'}`} style={SERIF} data-testid="lesson-state">{it.label}</p>
+              <LessonRoad road={road} />
+              {/* COMPARE (DR-0672 over DR-0669): every writer's version of this
+                  lesson from the same prompt. The Governor only. */}
+              {governor && versions.state !== 'idle' && (
+                <>
+                  <button type="button" data-testid="lesson-compare-toggle" aria-expanded={!!comparing[it.id]} onClick={() => setComparing((c) => ({ ...c, [it.id]: !c[it.id] }))} className="text-[0.625rem] uppercase tracking-wider px-2 min-h-[44px] border border-[#2A5A8E] text-[#2A5A8E] mt-1 focus:outline focus:outline-2 focus:outline-[#B85838]">
+                    {comparing[it.id] ? 'Hide the versions' : `Compare versions${mine.length ? ` · ${mine.length}` : ''}`}
+                  </button>
+                  {comparing[it.id] && (
+                    <LessonVersionsCompare
+                      versions={mine}
+                      state={versions.state}
+                      reason={versions.reason}
+                      decide={teaching && mine.length > 1 ? { review: teaching, deps: { supabase: deps.supabase, uid: state.uid, email: state.email }, onPublished: load } : null}
+                    />
+                  )}
+                </>
+              )}
               {!it.spoken && <p className="text-sm text-[#1A1815] whitespace-pre-wrap break-words" style={SERIF}>{it.body.replace(/^Lesson\.\s*/, '')}</p>}
               {/* THE GOVERNOR'S REVIEW, SAID TO THE MEMBER (DR-0635). His own
                   lessons are read straight into the class; a member's waits for

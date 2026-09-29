@@ -14,6 +14,8 @@ import AriReview from './AriReview.jsx';
 import MinistryOps from './MinistryOps.jsx';
 import GovernanceQueue from './GovernanceQueue.jsx';
 import MemberLessonQueue from './MemberLessonQueue.jsx';
+import LessonReviewQueue from './LessonReviewQueue.jsx';
+import TowerParity from './TowerParity.jsx';
 import DecisionIntelligence from './DecisionIntelligence.jsx';
 import OperationsIntelligence from './OperationsIntelligence.jsx';
 import { deriveAppDecisions } from '../lib/decisions.js';
@@ -384,8 +386,29 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
         <div className="space-y-6">
           <DecisionIntelligence concerns={concerns} projects={projects} discussions={discussions} boardTasks={boardTasks} feedback={feedback} incidents={incidents} record={!!currentUserId} />
           <OperationsIntelligence loopData={loopData} loopEnv={{ financialDocAt }} discussions={discussions} feedback={feedback} />
+          {/* DR-0672: his own lessons, arrival to live, and every writer's
+              version side by side, live on the Thinking Space. */}
+          <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }} data-testid="governor-your-lessons-link">
+            Your own lessons, from arrival to live, with every writer&rsquo;s version side by side:{' '}
+            <button
+              type="button"
+              disabled={!onNavigate}
+              onClick={() => {
+                if (!onNavigate) return;
+                onNavigate('notes');
+                setTimeout(() => { try { document.getElementById('your-lessons')?.scrollIntoView({ block: 'start' }); } catch (e) { /* no scroll */ } }, 400);
+              }}
+              className="inline-flex items-center min-h-[44px] px-1 underline text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50"
+            >
+              Thinking Space &rarr; Your lessons
+            </button>
+          </p>
+          {/* DR-0672: lessons more than one writer wrote, waiting for his decision. */}
+          <LessonReviewQueue />
           {/* DR-0635: members' lessons wait here for the Governor's word. */}
           <MemberLessonQueue signedIn={!!currentUserId} />
+          {/* DR-0671: how close our own towers are to the reference lessons. */}
+          <TowerParity signedIn={!!currentUserId} />
           <GovernanceQueue
             appDecisions={deriveAppDecisions({ discussions, concerns })}
             familyInstanceId={(concerns.find((c) => c && c.tenantId)?.tenantId) || null}
