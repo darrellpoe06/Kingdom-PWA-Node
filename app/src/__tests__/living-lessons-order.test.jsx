@@ -21,7 +21,7 @@ import { LIVING_LESSONS_MODULES, buildLivingLessonsSchedule, exportLivingLessons
 import { LIVING_LESSONS_ADDED } from '../lib/living-lessons-dates.js';
 // Healthy Living's ids carry no lesson number ("hl-w3-…"), measured 2026-09-24.
 const HEALTHY_LIVING_MODULES = [{ id: 'hl-w3-setback-neuroscience', week: 1 }, { id: 'hl-w3-tre-circadian', week: 2 }];
-import { sectionLessons } from '../lib/lesson-sections.js';
+import { sectionLessons, SECTION_MIN_LESSONS } from '../lib/lesson-sections.js';
 import {
   lessonNumber, isNumberedCourse, orderLessons, ordersFor, numberLabel, formatAdded, monthOf,
   withMonthHeadings, rememberLessonOrder, rememberedLessonOrder, inNumberOrder, ownNumber,
@@ -235,8 +235,13 @@ describe('on the real Learn tree', () => {
   });
 
   it('a short numbered course gets the same Order control, without the divisions view', () => {
+    // Sovereign A.I. outgrew this example at 30 weeks (SECTION_MIN_LESSONS); the
+    // example is now a course pinned UNDER the line, so it cannot outgrow its premise.
+    const short = extraCourses.find((c) => /^Made in Time/.test(c.meta?.title || ''));
+    expect(short, 'made-in-time is registered').toBeTruthy();
+    expect(short.schedule.length).toBeLessThan(SECTION_MIN_LESSONS);
     mount();
-    pick(/Sovereign A\.I\./);
+    pick(/Made in Time/);
     const sel = container.querySelector('#learn-lesson-order');
     expect(sel).toBeTruthy();
     expect([...sel.querySelectorAll('option')].map((o) => o.value)).toEqual(['number', 'newest']);

@@ -9,6 +9,7 @@ declared_by: Darrell
 scope:
   - app/src/lib/sovereign-ai-class.js (the sov30 module; SOVEREIGN_AI_META.weeks is derived, so no count line moves)
   - app/src/__tests__/sovereign-ai-sov30-verses.test.js (new: SOV30_FRAGMENTS + SOV30_CORPUS + SOV30_ALLOWED + the third-pile placement check + a proven-to-catch block)
+  - app/src/__tests__/living-lessons-order.test.jsx (the short-course example moved to Made in Time; the course crossed SECTION_MIN_LESSONS at 30)
   - app/src/__tests__/sovereign-ai-class.test.js (the last literal 29s in this course's test, derived per DR-0677, with a floor of 30 and a contiguous sov1..sovN numbering check)
 principles: [WORD-FIRST, VERIFICATION-DOCTRINE (DR-0076), SPEAK-ESTABLISHED-FACT (DR-0100), TEACH-DONT-DEBATE (DR-0098), DERIVED-COUNTS (DR-0677)]
 grounds:
@@ -42,7 +43,7 @@ On **2026-09-29** Darrell forwarded The Daily Upside ("Nvidia's Rogue AI Slayer"
 
 ## Impact
 
-The count grows by one lesson. No count line was edited: the Sovereign A.I. meta, the school total, band coverage, quotation-integrity and stage-reaches-reader counts are all derived (DR-0677). The course test still had five literal `29`s. They are now derived too, with a floor, so the parallel week-31 lane (DR-0683) does not collide on them. The curriculum gate measured 50 courses, 744 lessons, 42,998 verse spans, **PASS**. Collision to watch: stale PR #1814 also claims a week-29 lesson; this lesson does not touch it.
+The count grows by one lesson. No count line was edited: the Sovereign A.I. meta, the school total, band coverage, quotation-integrity and stage-reaches-reader counts are all derived (DR-0677). The course test still had five literal `29`s. They are now derived too, with a floor, so the parallel week-31 lane (DR-0683) does not collide on them. The curriculum gate measured 50 courses, 744 lessons, 42,998 verse spans, **PASS**. At 30 weeks Sovereign A.I. reaches `SECTION_MIN_LESSONS` (30, `app/src/lib/lesson-sections.js:22`) and gets the divisions view by design. That turned red the one test that used it as its short-course example (`living-lessons-order.test.jsx`, which CI caught on shard 2). The example is now Made in Time, pinned under the line so it cannot outgrow its premise. The sov31 lane (#1855) found the same fix. Collision to watch: stale PR #1814 also claims a week-29 lesson; this lesson does not touch it.
 
 ## Decision — what his word became
 
