@@ -118,9 +118,14 @@ describe('L196 is really in the series, and it and L194 point at each other', ()
     for (const b of FULL_BANDS) expect(typeof m.levels[b], `${b} must be authored`).toBe('string');
   });
 
-  it('the week count equals the module count, and L196 is the last lesson', () => {
+  it('the week count equals the module count, and L196 comes after every lesson before it', () => {
     expect(LIVING_LESSONS_META.weeks).toBe(LIVING_LESSONS_MODULES.length);
-    expect(LIVING_LESSONS_MODULES[LIVING_LESSONS_MODULES.length - 1].id.startsWith('ll196-')).toBe(true);
+    // L196 was the last lesson when it landed; L197 (Think Soberly, DR-0663)
+    // followed it on 2026-09-29, so the pin is its place, not the end.
+    const i196 = LIVING_LESSONS_MODULES.findIndex((m) => m.id.startsWith('ll196-'));
+    const i195 = LIVING_LESSONS_MODULES.findIndex((m) => m.id.startsWith('ll195-'));
+    expect(i196).toBeGreaterThan(i195);
+    expect(LIVING_LESSONS_MODULES.slice(i196 + 1).every((m) => Number(/^ll(\d+)-/.exec(m.id)[1]) > 196)).toBe(true);
   });
 
   it('L194 carries ONE line pointing here, placed right after its six exclusions, and its fifty-four stand', () => {
