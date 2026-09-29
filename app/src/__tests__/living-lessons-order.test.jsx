@@ -110,7 +110,7 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     expect(back).toEqual([]);
     expect(byNum[0].added).toBe('2026-06-24');
     // The newest lesson's day: L196 joined on 2026-09-29 (DR-0661).
-    expect(byNum[byNum.length - 1].added).toBe('2026-09-29');
+    expect(byNum[byNum.length - 1].added).toBe('2026-09-29'); // L197 (DR-0663)
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {
