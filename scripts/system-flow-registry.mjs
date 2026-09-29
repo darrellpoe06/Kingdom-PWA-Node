@@ -519,6 +519,19 @@ const NODES = [
     reads: [{ res: 'gh:incident', token: 'labels=incident' }],
     seeds: [],
   }),
+  wf('openclaw-tower.yml', {
+    id: 'openclaw-tower', name: 'OpenClaw on the 4070 tower (DR-0670)',
+    purpose: 'Ships OpenClaw to the GPU tower behind its brakes, fires the report-only pilot on the lane facts, and records what it measured.',
+    reads: [{ res: 'gh:pr', token: 'pulls?state=open' }, { res: 'file:openclaw-registry', token: 'infra/openclaw-tower/registry.json' }],
+    writes: [{ res: 'tower:openclaw', token: 'docker compose up -d openclaw-gateway' }, { res: 'gh:openclaw-tower', token: '--label openclaw-tower' }],
+    seeds: ['openclaw-tower-surface'],
+  }),
+  app('app/src/lib/openclaw-tower.js', {
+    id: 'openclaw-tower-surface', name: 'OpsBoard OpenClaw tower strip',
+    purpose: 'Up, model, last run and brakes of OpenClaw on the tower, read live; unknown when unknown.',
+    reads: [{ res: 'gh:openclaw-tower', token: 'labels=openclaw-tower' }],
+    seeds: [],
+  }),
 
   // ===========================================================================
   // 11. THE DELIVERY LANE — branch → PR → gates → merge → deploy → witness
@@ -979,6 +992,8 @@ const RESOURCES = {
   'push:phone': { label: 'a notification on a phone', sink: 'A person reads it on their phone.' },
   'cf:push-env': { label: 'the push sender’s settings' },
   'tower:voice-studio': { label: 'the reading-voice studio on the tower' },
+  'tower:openclaw': { label: 'the OpenClaw gateway on the tower', sink: 'Runs on the tower loopback behind the poetech-gate plugin; a person on the tower talks to it (role a, no channel paired), and the lane measures it into the openclaw-tower record (DR-0670).' },
+  'file:openclaw-registry': { label: 'the OpenClaw role registry + ARMED-BY-RECORD', source: 'Committed in infra/openclaw-tower by the PRs that arm, stop or resume a role (DR-0670).' },
   'auth:hook': { label: 'the renter-portal sign-in hook', sink: 'GoTrue calls it on every renter sign-in; its effect is the renter portal’s own access, proven by the renter-portal isolation smokes.' },
   'tailnet:nodes': { label: 'the always-on devices', source: 'The tailnet itself reports which devices answer.' },
   'http:mcp': { label: 'the MCP server' },
@@ -1014,7 +1029,7 @@ const CHAINS = [
   { id: 'models', name: 'Ask the models', nodes: ['chat-pane', 'agent-consumer'] },
   { id: 'sermons', name: 'Transcripts → sermons → The Word', nodes: ['choir-dates', 'transcript-trickle', 'transcript-backfill', 'video-stats', 'content-sync', 'sermon-store', 'sermon-reader', 'harvest-ledger', 'scripture-web', 'library', 'songbook', 'harvest-health', 'corpus-reconcile'] },
   { id: 'family-key', name: 'The family key', nodes: ['family-key', 'bridge-provision', 'nas-photos', 'voice-studio', 'books-taxes'] },
-  { id: 'health', name: 'Site health → incidents → operations readout', nodes: ['site-health', 'level-witness', 'node-availability', 'harvest-health', 'ops-queue-health', 'ops-surface', 'ops-board'] },
+  { id: 'health', name: 'Site health → incidents → operations readout', nodes: ['site-health', 'level-witness', 'node-availability', 'harvest-health', 'ops-queue-health', 'ops-surface', 'ops-board', 'openclaw-tower', 'openclaw-tower-surface'] },
   { id: 'decisions', name: 'Decision readouts, the flow proof and the operations board', nodes: ['decision-board', 'flow-proof', 'ops-board', 'flow-surface'] },
   { id: 'scribe', name: 'Scribe: recording → words → back to the person', nodes: ['scribe-surface', 'scribe', 'scribe-transcribe'] },
   { id: 'lane', name: 'Delivery lane', nodes: ['auto-open-pr', 'ci', 'auto-merge', 'deploy', 'deploy-freshness', 'db-migrate', 'migrate-freshness', 'rls-isolation', 'schema-health', 'pr-janitor', 'keep-prs-current'] },
