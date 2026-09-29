@@ -28,6 +28,9 @@ const registrySrc = readFileSync(join(SRC, 'surfaces.js'), 'utf8');
 export function mountToken(s) {
   if (s.nav === 'top') return new RegExp(`view\\s*===\\s*['"\`]${s.view}['"\`]`);
   if (s.nav === 'church') return new RegExp(`churchView\\s*===\\s*['"\`]${s.sub}['"\`]`);
+  // Create's subs (DR-0679): the shell mounts the Create page and its level-2
+  // row on view === 'create'; the page mounts each sub (asserted below).
+  if (s.nav === 'create') return new RegExp(`view\\s*===\\s*['"\`]create['"\`]`);
   return new RegExp(`booksView\\s*===\\s*['"\`]${s.sub}['"\`]`);
 }
 export function findUnmounted(surfaces, src) {
@@ -45,11 +48,19 @@ describe('every registered surface has a render branch in the live shell', () =>
     const fakeSub = [{ id: 'ghost-sub', nav: 'church', sub: 'no-such-sub' }];
     expect(findUnmounted(fakeSub, shellSrc)).toEqual(['ghost-sub']);
   });
+  it("every Create sub has a page in the Create station (DR-0679)", () => {
+    const station = readFileSync(join(SRC, 'components/CreatingStation.jsx'), 'utf8');
+    const missing = SURFACES.filter((s) => s.nav === 'create')
+      .filter((s) => (s.sub === 'workspace' ? !/data-create-page="workspace"/.test(station) : !station.includes(s.sub.includes('-') ? `'${s.sub}':` : `${s.sub}:`)))
+      .map((s) => s.id);
+    expect(missing).toEqual([]);
+  });
+
   it('covers the whole registry (nothing skipped: every entry asserted)', () => {
     // The audit CLI skips nav!=='top' (documented limitation). Here NOTHING is
     // skipped — if a new nav kind appears, mountToken's books fallback would
     // silently mis-assert it, so pin the known kinds explicitly.
-    for (const s of SURFACES) expect(['top', 'church', 'books']).toContain(s.nav);
+    for (const s of SURFACES) expect(['top', 'church', 'books', 'create']).toContain(s.nav);
     expect(SURFACES.length).toBeGreaterThan(30);
   });
 });

@@ -122,6 +122,57 @@ export function orderPanels(cls, panels = PANEL_KEYS, roles = ROLES) {
   return out;
 }
 
+// ── the Create page's subtabs (DR-0679, amending DR-0678) ───────────────────
+// Darrell 2026-09-29: "Why take away my type texting place?!" then "Obviously
+// give us a actual tabs like so we can know!" then "Subtabs". The Create page
+// is a subtab bar: the Workspace (his writing canvas) FIRST and the DEFAULT on
+// every device, then one subtab per panel in the device's order. The role
+// orders the tabs after the Workspace; it never picks the default.
+
+/** The Workspace subtab: his Creation Workspace canvas. */
+export const WORKSPACE_TAB = 'workspace';
+/** Where this device remembers the subtab last chosen (per device, per browser). */
+export const CREATE_TAB_KEY = 'poetech.create.subtab.v1';
+
+/** The Create subtabs for a class: the Workspace, then every panel in order. */
+export function createTabs(cls, panels = PANEL_KEYS, roles = ROLES) {
+  return [WORKSPACE_TAB, ...orderPanels(cls, panels, roles)];
+}
+
+/** A subtab's short label: the roles file's `tab`, or its `label`. */
+export function tabLabel(key, roles = ROLES) {
+  if (key === WORKSPACE_TAB) return 'Workspace';
+  const p = (roles && roles.panels && roles.panels[key]) || null;
+  return (p && (p.tab || p.label)) || String(key || '');
+}
+
+function storeOf(storage) {
+  if (storage) return storage;
+  try { return typeof localStorage !== 'undefined' ? localStorage : null; } catch { return null; }
+}
+
+/**
+ * The subtab to open with: the one this device last chose, when it is still a
+ * real subtab, else the Workspace. Storage that is missing, blocked or throws
+ * reads as nothing remembered. Never throws.
+ */
+export function readRememberedTab(tabs, storage = null) {
+  const list = Array.isArray(tabs) && tabs.length ? tabs : [WORKSPACE_TAB];
+  try {
+    const s = storeOf(storage);
+    const v = s ? s.getItem(CREATE_TAB_KEY) : null;
+    return v && list.includes(v) ? v : WORKSPACE_TAB;
+  } catch { return WORKSPACE_TAB; }
+}
+
+/** Remember the chosen subtab on this device. Never throws. */
+export function rememberTab(id, storage = null) {
+  try {
+    const s = storeOf(storage);
+    if (s) s.setItem(CREATE_TAB_KEY, String(id));
+  } catch { /* private window, blocked storage: the Workspace opens next time */ }
+}
+
 /** Which device class a pipeline node's `role` belongs to, or null (unconfirmed). */
 export function classOfNodeRole(nodeRole, roles = ROLES) {
   const classes = (roles && roles.classes) || {};
@@ -177,8 +228,9 @@ export function roleLine(cls) {
 }
 
 // ── keyboard shortcuts (the laptop's) ──────────────────────────────────────
-// Alt+1..9 jumps to the Nth panel in the current order; Alt+0 returns to the
-// top. Alt keeps every plain key free for typing a lesson, and it is offered on
+// Alt+1..9 picks the Nth entry of the list it is given; Alt+0 returns 'top'.
+// The Create page gives it its subtabs (createTabs: Alt+1 the Workspace, Alt+2
+// on the panels, Alt+0 back to the Workspace, DR-0679). Alt keeps every plain key free for typing a lesson, and it is offered on
 // every class (a Bluetooth keyboard on a tablet works too); only the laptop
 // SHOWS the legend, because that is where a keyboard is certain.
 export function shortcutTarget(e, order) {

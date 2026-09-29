@@ -4,7 +4,7 @@ import { SectionTitle, MetricCell, TabScroll, DmUnreadBadge } from './components
 // voice) + the optional first-run roadmap tour. lib/help-content.js is the one
 // help registry every surface reads from. Small + always-present chrome, so it
 // rides the initial bundle rather than a lazy chunk.
-import LockedSurface from './components/LockedSurface.jsx';
+import LockedSurface from './components/LockedSurface.jsx'; import CreateSubNav from './components/CreateSubNav.jsx'; // Create's level-2 row (DR-0679)
 import HelpButton from './components/HelpButton.jsx';
 import HelpWalkthrough from './components/HelpWalkthrough.jsx';
 import { UpdatePrompt, InstallPrompt } from './components/PwaPrompts.jsx';
@@ -4377,7 +4377,7 @@ ${THEME_CSS}
             </TabScroll>
           </div>
         )}
-        {!authSession && churchBrandRoute && <PublicWelcome placement="top" />}
+        {!authSession && churchBrandRoute && <PublicWelcome placement="top" />}{view === 'create' && <CreateSubNav viewer={surfaceViewer} surfaces={Object.values(surfaceById)} />}
         {view === 'church' && (
           <div className="border-t border-[#E8E4DC] bg-white">
             {/* Church sub-nav rides <TabScroll>; chrome caps the row via zoom. */}

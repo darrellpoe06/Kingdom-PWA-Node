@@ -30,9 +30,10 @@ const pick = (loader, name) =>
 
 // The registry. One entry per lazy-loaded surface. `load` is the single source
 // of the chunk boundary; `component` is derived from it once, below.
-//   nav : 'top' | 'church' | 'books'  — which nav group mounts it
+//   nav : 'top' | 'church' | 'books' | 'create'  — which nav group mounts it
 //   view: the top-level `view ===` id  (for nav:'top' this IS the route id)
-//   sub : the sub-view id within church/books (churchView/booksView), else null
+//   sub : the sub-view id within church/books/create (churchView/booksView,
+//         the Create row's sub, lib/create-sub.js), else null
 //   gate: human-readable note on the gate the render switch applies today —
 //         the prose, for a reader
 //   requires    : the MACHINE-READABLE requirement (lib/surface-access.js
@@ -119,6 +120,26 @@ export const SURFACES = [
   { id: 'my-record',        label: 'My Record',     nav: 'church', view: 'church', sub: 'my-record',  requires: 'signed-in', whenDenied: 'lock', gate: 'any signed-in member reads and fills THEIR OWN record; the roll area inside is church owner/admin and the DB is the wall (0209)', load: () => import('./components/ChurchMemberSpace.jsx') },
   { id: 'church-members',   label: 'Members',       nav: 'church', view: 'church', sub: 'members',    requires: 'signed-in', whenDenied: 'lock', gate: 'signed-in sees the way in; church owner/admin (list_my_admin_instances) governs — the DB is the wall (DR-0348)', load: () => import('./components/ChurchMembers.jsx') },
   { id: 'giving-book',      label: 'Giving Book',   nav: 'church', view: 'church', sub: 'giving-book', requires: 'signed-in', whenDenied: 'lock', gate: 'the church OFFICE only (owner/admin) — the office\'s own contribution book; 0214 RLS is the wall, and it is never the member\'s private ledger (0184) nor the pastoral roll (0209)', load: () => import('./components/ChurchGivingBook.jsx') },
+
+  // ── create sub-surfaces (view === 'create', the Create row's sub === sub) ─
+  // DR-0679, amending DR-0678. Darrell 2026-09-29: "Why take away my type
+  // texting place?!!!!!!!!!!!! Where is it?!!!!!!!!!!!!!!", "Obviously give us
+  // a actual tabs like so we can know!!!!!!!!!!!!!!!!", "Subtabs". Create's
+  // second row, under the main nav exactly like Church's, is DERIVED from these
+  // entries (components/CreateSubNav.jsx). 'workspace' is first and the default
+  // everywhere. The page module mounts every sub (components/CreatingStation.jsx);
+  // the gates are the ones the station already applies (the Governor's two
+  // queues are family-only, locked so he can see where they are; the lesson
+  // lists want a sign-in). The order after the Workspace is the device's,
+  // applied by the row; this registry stays device-free.
+  { id: 'create-workspace',   label: 'Workspace',         nav: 'create', view: 'create', sub: 'workspace',    requires: 'anyone',    whenDenied: 'lock', gate: 'open: the Creation Workspace canvas; saving syncs when signed in', load: () => import('./components/CreationWorkspace.jsx') },
+  { id: 'create-record',      label: 'Lesson entry',      nav: 'create', view: 'create', sub: 'record',       requires: 'anyone',    whenDenied: 'lock', gate: 'open: the one-voice input with the Lesson chip chosen', load: () => import('./components/CreationWorkspace.jsx') },
+  { id: 'create-lessons',     label: 'Your lessons',      nav: 'create', view: 'create', sub: 'your-lessons', requires: 'signed-in', whenDenied: 'lock', gate: 'signed-in: the person\'s own lessons (RLS is the wall)', load: () => import('./components/CreationWorkspace.jsx') },
+  { id: 'create-decide',      label: 'Lessons to decide', nav: 'create', view: 'create', sub: 'decide',       requires: 'family',    whenDenied: 'lock', gate: 'the Governor (signed in, not reviewer mode, a family email), as on Projects -> Decisions', load: () => import('./components/CreationWorkspace.jsx') },
+  { id: 'create-governor',    label: "Governor's queue",  nav: 'create', view: 'create', sub: 'governor',     requires: 'family',    whenDenied: 'lock', gate: 'the Governor (signed in, not reviewer mode, a family email), as on Projects -> Decisions', load: () => import('./components/CreationWorkspace.jsx') },
+  { id: 'create-towers',      label: 'Towers',            nav: 'create', view: 'create', sub: 'towers',       requires: 'signed-in', whenDenied: 'lock', gate: 'signed-in: which tower wrote what', load: () => import('./components/CreationWorkspace.jsx') },
+  { id: 'create-read-listen', label: 'Read and listen',   nav: 'create', view: 'create', sub: 'read-listen',  requires: 'anyone',    whenDenied: 'lock', gate: 'open: links to Learn and Voice', load: () => import('./components/CreationWorkspace.jsx') },
+  { id: 'create-handoff',     label: 'Hand off',          nav: 'create', view: 'create', sub: 'handoff',      requires: 'anyone',    whenDenied: 'lock', gate: 'open: a link that opens Create at a sub on another device', load: () => import('./components/CreationWorkspace.jsx') },
 
   // ── books sub-surfaces (view === 'books', booksView === sub) ────────────
   { id: 'transactions', label: 'Transactions', nav: 'books', view: 'books', sub: 'transactions', load: () => import('./components/BooksTransactions.jsx') },

@@ -47,18 +47,28 @@ const TOOLS = [
   { cmd: 'underline', label: 'U', title: 'Underline', style: { textDecoration: 'underline' } },
 ];
 
-export default function CreationWorkspace({
+// The Create page (DR-0679, amending DR-0678). Darrell 2026-09-29: "Why take
+// away my type texting place?!!!!!!!!!!!! Where is it?!!!!!!!!!!!!!!" then
+// "Obviously give us a actual tabs like so we can know!!!!!!!!!!!!!!!!" then
+// "Subtabs". With a station, the page is a subtab bar and the canvas below is
+// its FIRST subtab, "Workspace", the default on every device and kept mounted
+// while another subtab is open (CreatingStation). Without one it is the canvas
+// alone, as before. The shell passes the station on ONE line: isGovernor is
+// the same predicate Projects -> Decisions uses (signed in, not reviewer mode,
+// a family email), and voice carries the Thinking Space write paths so the
+// lesson entry saves the same way.
+export default function CreationWorkspace({ station = null, ...canvasProps }) {
+  const canvas = <WorkspaceCanvas {...canvasProps} />;
+  return station ? <CreatingStation {...station} workspace={canvas} /> : canvas;
+}
+
+// The Creation Workspace canvas itself, exactly as it was before DR-0678.
+function WorkspaceCanvas({
   workspaces = [],
   addWorkspace,
   updateWorkspace,
   deleteWorkspace,
   currentUserPersona = null,
-  // The creating station (DR-0678): the lesson tools, ordered and laid out for
-  // the device, above the document canvas. Omitted = the canvas alone. The
-  // shell passes it on ONE line: isGovernor is the same predicate Projects ->
-  // Decisions uses (signed in, not reviewer mode, a family email), and voice
-  // carries the Thinking Space write paths so the lesson entry saves the same way.
-  station = null,
 }) {
   const editorRef = useRef(null);
   const [type, setType] = useState(WORKSPACE_TYPES[0].key);
@@ -501,11 +511,6 @@ export default function CreationWorkspace({
         .creation-canvas ul, .creation-canvas ol { margin: 0 0 .625rem 1.5rem; }
         .creation-canvas li { margin: 0 0 .25rem; }
       `}</style>
-      {/* The lesson tools (DR-0678) sit BELOW the workspace: Darrell 2026-09-29,
-          "Why take away my type texting place?!" - on a phone the station's
-          panels stacked above the canvas and pushed his writing place out of
-          sight. Create opens on his own workspace; the tools follow it. */}
-      {station && <div className="mt-8"><CreatingStation {...station} /></div>}
     </div>
   );
 }

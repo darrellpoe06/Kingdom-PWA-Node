@@ -9,14 +9,26 @@
 // live, and every writer's version to compare, merge and publish, DR-0672),
 // the lessons waiting on a decision, the Governor's queue, and the towers.
 //
-// The device decides ORDER and LAYOUT, never access (lib/device-roles.js):
-//   laptop — two columns across the width, Your lessons and the Governor's
-//            queue full width, Alt+1..9 to jump between panels;
-//   phone  — one column, the recorder first, then the quick decisions, and a
-//            "continue on your laptop" link for the long review;
-//   TV     — reading and listening first, large, one column;
-//   every panel is on every device. Role gates (the Governor's queues) stay
-//   the same gates they are on Projects → Decisions; the database is the wall.
+// SUBS, WORKSPACE FIRST (DR-0679, amending DR-0678). Darrell 2026-09-29:
+// "Why take away my type texting place?!!!!!!!!!!!! Where is it?!!!!!!!!!!!!!!"
+// then "Obviously give us a actual tabs like so we can know!!!!!!!!!!!!!!!!"
+// then "Subtabs". DR-0678 stacked seven panels ABOVE his writing canvas; on a
+// phone that buried it. Now Create has a real second row under the main nav,
+// the same row Church has (components/CreateSubNav.jsx, derived from the
+// registry, surfaces.js nav:'create'), and this page shows ONE sub at a time:
+//   Workspace — his Creation Workspace canvas, exactly as it was, FIRST and
+//               the DEFAULT on every device. It stays mounted (hidden) while
+//               another sub is open, so nothing he typed is lost by looking away;
+//   then one sub per panel, labelled by the registry.
+// The open sub lives in lib/create-sub.js (remembered per device; a handoff
+// link, ?view=create&panel=, opens its sub). Alt+1 is the Workspace and
+// Alt+2..8 the panels in this device's order (Alt+0 back to the Workspace).
+//
+// The device decides ORDER only, never access and never the default
+// (lib/device-roles.js createTabs): the panels after the Workspace follow the
+// role's `first` list. Every panel is on every device. Role gates (the
+// Governor's queues) stay the same gates they are on Projects -> Decisions; the
+// database is the wall.
 //
 // It IMPORTS the existing components and never rewrites them. The two that
 // came from parallel work are on main now and mounted directly, exactly as
@@ -34,8 +46,8 @@ import LessonReviewQueue from './LessonReviewQueue.jsx';
 import TowerParity from './TowerParity.jsx';
 import { deriveAppDecisions } from '../lib/decisions.js';
 import { useDeviceClass } from '../lib/use-device-class.js';
-import { ROLES, orderPanels, roleFor, shortcutTarget, handoffUrl, handoffTarget, panelFromSearch } from '../lib/device-roles.js';
-import { consumeStationPanel } from '../lib/app-doors.js';
+import { ROLES, orderPanels, roleFor, shortcutTarget, handoffUrl, handoffTarget, createTabs, tabLabel, WORKSPACE_TAB } from '../lib/device-roles.js';
+import { useCreateSub, setCreateSub, takeOpenedFrom } from '../lib/create-sub.js';
 import { isNativeShell } from '../lib/native-shell.js';
 import { POETECH_APP_URL } from '../lib/messages-invite.js';
 
@@ -47,9 +59,6 @@ export const PINNED_FROM = Object.freeze({
   towers: { file: './TowerParity.jsx', from: 'PR #1845 (DR-0671)', export: 'default' },
 });
 
-// Laptop: these read best at full width (side-by-side versions; a long queue).
-const WIDE_ON_LAPTOP = new Set(['your-lessons', 'governor']);
-
 function stationOrigin() {
   try {
     if (typeof window === 'undefined' || isNativeShell(window)) return { origin: POETECH_APP_URL, base: '' };
@@ -57,14 +66,13 @@ function stationOrigin() {
   } catch { return { origin: POETECH_APP_URL, base: '' }; }
 }
 
-function Panel({ k, label, why, wide, tv, children }) {
+function Panel({ k, label, why, tv, children }) {
   return (
     <section
       id={`station-${k}`}
       data-panel={k}
       aria-labelledby={`station-${k}-h`}
       className="bg-white border border-[#E8E4DC] p-3 sm:p-4 min-w-0"
-      style={wide ? { gridColumn: '1 / -1' } : undefined}
     >
       <h2 id={`station-${k}-h`} tabIndex={-1} className={`${tv ? 'text-sm' : 'text-[0.6875rem]'} uppercase tracking-[0.25em] text-[#1A1815] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]`}>
         {label}
@@ -136,44 +144,34 @@ export default function CreatingStation({
   governance = {},          // { discussions, concerns } — the same inputs Projects → Decisions reads
   onNavigate = null,
   deviceClass = null,
+  workspace = null,         // the Creation Workspace canvas: the first sub, the default
 }) {
   const cls = useDeviceClass(deviceClass);
   const role = roleFor(cls);
   const order = useMemo(() => orderPanels(cls), [cls]);
-  const orderRef = useRef(order);
-  orderRef.current = order;
-  const [notice, setNotice] = useState('');
+  const tabs = useMemo(() => createTabs(cls), [cls]);
+  const tabsRef = useRef(tabs);
+  tabsRef.current = tabs;
+  const active = useCreateSub();
+  const [notice] = useState(() => {
+    const p = takeOpenedFrom();
+    return p ? `Opened here from another device: ${tabLabel(p)}.` : '';
+  });
   const tv = cls === 'tv';
   const laptop = cls === 'laptop';
 
-  const jump = (key) => {
-    if (key === 'top') { try { document.getElementById('creating-station')?.scrollIntoView({ block: 'start' }); } catch { /* no scroll */ } return; }
-    const h = typeof document !== 'undefined' ? document.getElementById(`station-${key}-h`) : null;
-    if (!h) return;
-    try { h.scrollIntoView({ block: 'start' }); } catch { /* no scroll */ }
-    try { h.focus({ preventScroll: true }); } catch { /* no focus */ }
-  };
-
-  // Alt+1..9 jumps to a panel, Alt+0 to the top. Alt leaves every plain key to
-  // the lesson being typed.
+  // Alt+1 opens the Workspace, Alt+2..8 the panels in this device's order, and
+  // Alt+0 goes back to the Workspace. Alt leaves every plain key to the lesson
+  // or the document being typed.
   useEffect(() => {
     const onKey = (e) => {
-      const t = shortcutTarget(e, orderRef.current);
+      const t = shortcutTarget(e, tabsRef.current);
       if (!t) return;
       e.preventDefault();
-      jump(t);
+      setCreateSub(t === 'top' ? WORKSPACE_TAB : t);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
-
-  // A handoff link (?view=create&panel=…) opens at its panel, once.
-  useEffect(() => {
-    const p = panelFromSearch(`?panel=${consumeStationPanel()}`);
-    if (!p) return undefined;
-    setNotice(`Opened here from another device: ${ROLES.panels[p].label}.`);
-    const t = setTimeout(() => jump(p), 300);
-    return () => clearTimeout(t);
   }, []);
 
   const go = (view, sub) => { if (onNavigate) onNavigate(view, sub); };
@@ -181,7 +179,7 @@ export default function CreatingStation({
   const governorLine = <p className="text-xs text-[#5A5751]" style={SERIF} data-testid="station-governor-only">These are the Governor&rsquo;s to decide. Your own lessons and their versions are in Your lessons.</p>;
 
   const body = {
-    record: (
+    record: () => (
       <OneVoiceInput
         surface="notes"
         surfaceConfig={{ defaultRoute: 'lesson' }}
@@ -192,22 +190,22 @@ export default function CreatingStation({
         {...voice}
       />
     ),
-    'your-lessons': signedIn ? <LessonInbox /> : signInLine,
-    decide: !signedIn ? signInLine : !isGovernor ? governorLine : (
+    'your-lessons': () => (signedIn ? <LessonInbox /> : signInLine),
+    decide: () => (!signedIn ? signInLine : !isGovernor ? governorLine : (
       <div className="space-y-3">
         <LessonReviewQueue />
         <MemberLessonQueue signedIn={signedIn} />
       </div>
-    ),
-    governor: !signedIn ? signInLine : !isGovernor ? governorLine : (
+    )),
+    governor: () => (!signedIn ? signInLine : !isGovernor ? governorLine : (
       <GovernanceQueue
         appDecisions={deriveAppDecisions({ discussions: governance.discussions || [], concerns: governance.concerns || [] })}
         familyInstanceId={((governance.concerns || []).find((c) => c && c.tenantId) || {}).tenantId || null}
         signedIn={signedIn}
       />
-    ),
-    towers: signedIn ? <TowerParity signedIn={signedIn} /> : signInLine,
-    'read-listen': (
+    )),
+    towers: () => (signedIn ? <TowerParity signedIn={signedIn} /> : signInLine),
+    'read-listen': () => (
       <div className="flex flex-wrap gap-2" data-testid="station-read-listen">
         <button type="button" onClick={() => go('church', 'learn')} className={`bg-[#1A1815] text-white uppercase tracking-wider px-4 min-h-[48px] hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] ${tv ? 'text-base' : 'text-xs'}`}>
           Read the lessons
@@ -217,37 +215,41 @@ export default function CreatingStation({
         </button>
       </div>
     ),
-    handoff: <HandoffPanel cls={cls} />,
+    handoff: () => <HandoffPanel cls={cls} />,
   };
 
-  const gridStyle = laptop
-    ? { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1rem', alignItems: 'start' }
-    : { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: tv ? '1.25rem' : '0.75rem' };
+  // What this device is for, and the keys: shown at the head of every panel
+  // sub, never above the Workspace (his writing place opens clean).
+  const deviceLine = (
+    <div className="mb-3" data-testid="station-device">
+      <p className={`${tv ? 'text-base' : 'text-sm'} text-[#1A1815]`} style={SERIF} data-testid="station-role">
+        <strong>{role.label}</strong>: {role.jobs.join(', ')}. {role.why}
+      </p>
+      {laptop && (
+        <p className="text-[0.6875rem] text-[#5A5751] mt-1" data-testid="station-shortcuts">
+          Keys: {tabs.slice(0, 9).map((k, i) => `Alt+${i + 1} ${tabLabel(k)}`).join(' · ')}
+        </p>
+      )}
+    </div>
+  );
 
+  // Exactly one sub shows. The Workspace is always mounted and only hidden, so
+  // his canvas keeps what he typed; a panel mounts only while it is open.
+  const onPanel = active !== WORKSPACE_TAB && order.includes(active) ? active : null;
   return (
-    <div id="creating-station" data-testid="creating-station" data-device-class={cls} className="mb-6 min-w-0">
-      <header className="mb-3">
-        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">Create · this device</div>
-        <p className={`${tv ? 'text-base' : 'text-sm'} text-[#1A1815] mt-1`} style={SERIF} data-testid="station-role">
-          <strong>{role.label}</strong>: {role.jobs.join(', ')}. {role.why}
-        </p>
-        <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={SERIF}>
-          Everything is here on every device; this one puts {ROLES.panels[order[0]].label.toLowerCase()} first.
-        </p>
-        {laptop && (
-          <p className="text-[0.6875rem] text-[#5A5751] mt-1" data-testid="station-shortcuts">
-            Keys: {order.slice(0, 9).map((k, i) => `Alt+${i + 1} ${ROLES.panels[k].label}`).join(' · ')} · Alt+0 top
-          </p>
-        )}
-        {notice && <p className="text-xs text-[#5A6E3D] mt-1" role="status">{notice}</p>}
-      </header>
-      <div style={gridStyle} data-testid="station-grid">
-        {order.map((k) => (
-          <Panel key={k} k={k} label={ROLES.panels[k].label} why={ROLES.panels[k].why} wide={laptop && WIDE_ON_LAPTOP.has(k)} tv={tv}>
-            {body[k]}
-          </Panel>
-        ))}
+    <div id="creating-station" data-testid="creating-station" data-device-class={cls} data-active-sub={active} className="min-w-0">
+      {notice && <p className="text-xs text-[#5A6E3D] mb-2" role="status" data-testid="create-opened-from">{notice}</p>}
+      <div id="create-sub-workspace" data-create-page="workspace" hidden={onPanel !== null}>
+        {workspace}
       </div>
+      {order.map((k) => (k === onPanel ? (
+        <div key={k} id={`create-sub-${k}`} data-create-page={k}>
+          {deviceLine}
+          <Panel k={k} label={ROLES.panels[k].label} why={ROLES.panels[k].why} tv={tv}>
+            {body[k]()}
+          </Panel>
+        </div>
+      ) : null))}
     </div>
   );
 }
