@@ -164,6 +164,9 @@ class FakeDb:
     def remove_tags(self, rid, names):
         self.rows[rid]["tags"] = [t for t in self.rows[rid]["tags"] if t not in names]
 
+    def write_preview(self, rows):
+        self.previews = getattr(self, "previews", []) + [rows]
+
     def insert_version(self, r):
         lb.refuse_published_backfill(r)
         rec = dict(r, id="v{}".format(len(self.versions_rows) + 1))
@@ -789,21 +792,42 @@ class Stages(unittest.TestCase):
             src = f.read()
         m = lb.lesson_module(make_lesson(), 196)
         out = lb.insert_module(src, lb.module_js(m))
-        out, weeks = lb.bump_weeks(out, 196, m["title"], "2026-09-29")
-        self.assertIn("id: 'll196-the-keeper", out)
-        self.assertEqual(out.count("export const LIVING_LESSONS_MODULES"), 1)
+        out2, weeks = lb.bump_weeks(out, 196, m["title"], "2026-09-29")
+        self.assertIn("id: 'll196-the-keeper", out2)
+        self.assertEqual(out2.count("export const LIVING_LESSONS_MODULES"), 1)
         with open(os.path.join(REPO, lb.CROSSLIST), encoding="utf-8") as f:
-            cl, n = lb.bump_crosslist(f.read(), 196, m["title"], 670, "2026-09-29")
-        self.assertIn("toBe({})".format(n), cl)
-        for path, key in lb.BASELINES:
-            with open(os.path.join(REPO, path), encoding="utf-8") as f:
-                before = json.load(f)[key]
-                f.seek(0)
-                after = json.loads(lb.bump_json_count(f.read(), key))[key]
-            self.assertEqual(after, before + 1, path)
+            cross = f.read()
+        cl, n = lb.bump_crosslist(cross, 196, m["title"], 670, "2026-09-29")
+        if lb.counts_derived(src):
+            # DR-0677: the real files derive their counts; the bumps edit nothing.
+            self.assertEqual((out2, weeks), (out, None))
+            self.assertEqual((cl, n), (cross, None))
+        else:
+            self.assertIn("toBe({})".format(n), cl)
+            for path, key in lb.BASELINES:
+                with open(os.path.join(REPO, path), encoding="utf-8") as f:
+                    before = json.load(f)[key]
+                    f.seek(0)
+                    after = json.loads(lb.bump_json_count(f.read(), key))[key]
+                self.assertEqual(after, before + 1, path)
         with open(os.path.join(REPO, lb.INDEX), encoding="utf-8") as f:
             idx = lb.update_index(f.read(), lb.index_row(670, "DR-0670-x.md", 196, m["title"], "s"), 670, "x", "2026-09-29")
         self.assertIn("[DR-0670](DR-0670-x.md)", idx)
+
+    def test_derived_counts_are_detected_and_pinned_counts_still_bump(self):
+        derived = "export const LIVING_LESSONS_META = {\n  get weeks() { return LIVING_LESSONS_MODULES.length; },\n};"
+        pinned = "export const LIVING_LESSONS_META = {\n  weeks: 195, // L195 x (2026-09-28) · \n};"
+        self.assertTrue(lb.counts_derived(derived))
+        self.assertFalse(lb.counts_derived(pinned))
+        self.assertEqual(lb.bump_weeks(derived, 196, "T", "2026-09-29"), (derived, None))
+        # PROVEN TO CATCH: the pinned regime still bumps, so detection is not a blanket skip.
+        out, n = lb.bump_weeks(pinned, 196, "T", "2026-09-29")
+        self.assertEqual(n, 196)
+        self.assertIn("weeks: 196, // L196 T", out)
+        self.assertEqual(lb.bump_crosslist("expect(mounted).toBeGreaterThanOrEqual(SCHOOL_FLOOR.lessons);", 196, "T", 670, "d")[1], None)
+        with self.assertRaises(ValueError):
+            lb.bump_weeks("no count at all", 196, "T", "d")
+        self.assertEqual(lb.bump_json_count('{"note": 1}', "measuredLessons"), '{"note": 1}')
 
     @unittest.skipIf(shutil.which("node") is None, "node not on this machine")
     def test_the_written_module_is_valid_javascript_and_round_trips(self):
@@ -846,6 +870,46 @@ class Road(unittest.TestCase):
             test = f.read()
         self.assertIn("PROVEN-TO-CATCH", test)
         self.assertIn(v("Psalms", 121, 4), test)
+
+    def preview_build(self, previewer):
+        db = FakeDb([row("r1", TEACHING, ["lesson", "lesson-building"])])
+        git = FakeGit()
+        b, rep = build(db, git, [ScriptedWriter("claude", make_lesson(), primary=True)], mode="primary", previewer=previewer)
+        return db, git, rep
+
+    def test_a_pushed_lesson_is_written_as_a_preview_through_the_publish_gate(self):
+        calls = []
+
+        def previewer(wt, course, lid, branch):
+            calls.append((course, lid, branch, os.path.isdir(wt)))
+            return {"passed": True, "rows": {"lessons": [{"lesson_id": lid, "status": "preview", "pr_url": "https://x/pr/1"}]}}
+        db, git, rep = self.preview_build(previewer)
+        self.assertEqual(rep["outcome"], "published")
+        self.assertEqual(calls, [("living-lessons", rep["lesson_id"], rep["branch"], True)])
+        self.assertEqual(len(db.previews), 1)
+        times = lb.stage_times(db.rows["r1"]["tags"])
+        self.assertTrue(times["pushed"] <= times["previewed"] <= times["published"])
+        self.assertTrue(rep["preview"]["written"])
+
+    def test_PROVEN_TO_CATCH_a_refused_preview_writes_nothing_and_never_blocks_the_lesson(self):
+        db, git, rep = self.preview_build(lambda *a: {"passed": False, "fresh": ["verse :: ll196 :: drift"]})
+        self.assertEqual(rep["outcome"], "published")
+        self.assertEqual(len(git.pushed), 1)
+        self.assertFalse(getattr(db, "previews", []))
+        self.assertNotIn("previewed", lb.stage_times(db.rows["r1"]["tags"]))
+        self.assertTrue(any("preview refused by the curriculum gate" in t for t in db.rows["r1"]["tags"]))
+        for res in ({"skipped": "no node_modules"}, RuntimeError("boom")):
+            def pv(*a, res=res):
+                if isinstance(res, Exception):
+                    raise res
+                return res
+            db, _, rep = self.preview_build(pv)
+            self.assertEqual(rep["outcome"], "published")
+            self.assertIn("skipped", rep["preview"])
+            self.assertFalse(getattr(db, "previews", []))
+
+    def test_the_node_previewer_says_so_without_node_modules(self):
+        self.assertIn("no node_modules", lb.node_preview(tempfile.mkdtemp(), "living-lessons", "ll1-x", "b")["skipped"])
 
     def test_PROVEN_TO_CATCH_a_failed_push_never_marks_the_row_captured(self):
         db = FakeDb([row("r1", TEACHING, ["lesson", "lesson-building"])])
@@ -1162,7 +1226,7 @@ class BackfillTests(unittest.TestCase):
 class Migration(unittest.TestCase):
     def test_the_migration_carries_the_shape_the_builder_writes(self):
         mig = [f for f in os.listdir(os.path.join(REPO, "infra/supabase/migrations-auto"))
-               if f.startswith("0241-the-lesson-builder")]
+               if f.startswith("0243-the-lesson-builder")]
         self.assertEqual(len(mig), 1)
         with open(os.path.join(REPO, "infra/supabase/migrations-auto", mig[0]), encoding="utf-8") as f:
             sql = f.read()

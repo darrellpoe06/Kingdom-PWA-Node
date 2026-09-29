@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0241 — the lesson builder rings on the words, keeps every version, and reads
+-- 0243 — the lesson builder rings on the words, keeps every version, and reads
 -- Darrell's decision (DR-0669)
 -- =============================================================================
 -- Darrell 2026-09-29: "Do we need claude? Can we build the workflows inside the
@@ -30,7 +30,7 @@
 -- READ: Darrell's two accounts and the Governor (is_lesson_governor, 0237).
 -- WRITE: versions and service columns by the service role only; decisions and
 -- the settings' control columns by the same stewards, their own rows only.
--- Proven by infra/supabase/tests/0241-lesson-builder-smoke.sql.
+-- Proven by infra/supabase/tests/0243-lesson-builder-smoke.sql.
 -- IDEMPOTENT: IF NOT EXISTS, DROP+CREATE POLICY/TRIGGER, CREATE OR REPLACE.
 -- =============================================================================
 
@@ -239,5 +239,5 @@ CREATE TRIGGER lesson_builder_settings_notify
   AFTER UPDATE ON lesson_builder_settings
   FOR EACH ROW EXECUTE FUNCTION public.lesson_builder_settings_notify();
 
--- The viewer overlay covers the two new instance-scoped tables (DR-0241).
+-- The viewer overlay covers the two new instance-scoped tables (DR-0243).
 SELECT public.apply_viewer_readonly_overlay();

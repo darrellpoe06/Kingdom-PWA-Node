@@ -1,0 +1,71 @@
+{
+  "models": {
+    "providers": {
+      "ollama": {
+        "baseUrl": "http://host.docker.internal:11434",
+        "apiKey": "ollama-local",
+        "api": "ollama",
+        "timeoutSeconds": 300,
+        "maxTokens": 4096,
+        "models": [
+          {
+            "id": "qwen3:8b",
+            "name": "qwen3:8b",
+            "reasoning": true,
+            "input": [
+              "text"
+            ],
+            "contextTokens": 32768,
+            "params": {
+              "num_ctx": 32768,
+              "thinking": false,
+              "keep_alive": 0
+            }
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "ollama/qwen3:8b"
+      },
+      "timeoutSeconds": 300,
+      "sandbox": {
+        "mode": "all",
+        "scope": "session",
+        "workspaceAccess": "none"
+      }
+    }
+  },
+  "tools": {
+    "profile": "minimal",
+    "deny": [
+      "group:runtime",
+      "group:fs",
+      "group:web",
+      "group:nodes",
+      "group:automation",
+      "group:ui",
+      "group:messaging",
+      "group:sessions",
+      "group:media"
+    ],
+    "loopDetection": {
+      "enabled": true
+    }
+  },
+  "plugins": {
+    "load": {
+      "paths": [
+        "/home/node/.openclaw/poetech/plugin/poetech-gate.mjs"
+      ]
+    },
+    "entries": {
+      "poetech-gate": {
+        "enabled": true
+      }
+    }
+  }
+}

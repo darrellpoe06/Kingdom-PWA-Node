@@ -1,8 +1,8 @@
 -- =============================================================================
--- 0241 LESSON BUILDER SMOKE — versions, decisions and the builder's settings
+-- 0243 LESSON BUILDER SMOKE — versions, decisions and the builder's settings
 -- (DR-0669)
 -- =============================================================================
--- Run as postgres AFTER applying 0237 and 0241, in a transaction that ROLLS
+-- Run as postgres AFTER applying 0237 and 0243, in a transaction that ROLLS
 -- BACK. The Governor's email list is swapped for a test address inside the
 -- transaction only. PROVES: the Governor reads lesson_versions and a household
 -- member reads none; no signed-in person can write a version; a backfill

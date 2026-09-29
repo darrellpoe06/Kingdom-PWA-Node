@@ -8,7 +8,7 @@ another lane!!!!!!! No limits!!!!"; "Why have any cap?!... If I push through
 1000 in a day get it done... period!!!!!!"; "I'm not trying to cut any
 quality...".
 
-THE TRIGGER (no polling interval). Migration 0241 puts a trigger on
+THE TRIGGER (no polling interval). Migration 0243 puts a trigger on
 agent_inbox: a row tagged `lesson` (and not yet `lesson-captured`) that is
 inserted, or whose tags change, calls pg_notify('lesson_inbox', <row id>).
 This service LISTENs on the NAS's own Postgres -- the database the app writes
@@ -24,7 +24,8 @@ in-app "Your lessons" screen (DR-0668) reads:
 
   claimed, grouped, verses-fetched, writing, written, gated, selected,
   numbered, files-written, test-generated, reconciled, tested, committed,
-  pushed, published
+  pushed, previewed (the gated lesson in the NAS copy as a preview, DR-0677),
+  published
   -- and on the other roads: failed, released, deferred, duplicate,
      skipped-test, awaiting-review (more than one version: Darrell decides in
      the app), decided (his decision row was read)
@@ -106,7 +107,7 @@ BASELINES = (
 DUP_SOURCES_PREFIX = ("app/src/lib/", "docs/decisions/")
 
 STAGES = ("claimed", "grouped", "verses-fetched", "writing", "written", "gated", "selected", "numbered",
-          "files-written", "test-generated", "reconciled", "tested", "committed", "pushed", "published")
+          "files-written", "test-generated", "reconciled", "tested", "committed", "pushed", "previewed", "published")
 OTHER_STAGES = ("failed", "released", "deferred", "duplicate", "skipped-test", "awaiting-review", "decided")
 
 
@@ -373,7 +374,22 @@ def insert_module(src, js):
     return src[:end + 1] + js + src[end + 1:]
 
 
+# DERIVED COUNTS (DR-0677, #1848): LIVING_LESSONS_META.weeks is a getter over
+# the modules, the school totals derive from the registry, and the baselines'
+# lesson counts are no longer pinned. A new lesson then edits NO count line:
+# every bump below detects that regime and does nothing.
+DERIVED_WEEKS = re.compile(r"get weeks\(\)\s*\{\s*return\s+LIVING_LESSONS_MODULES\.length")
+
+
+def counts_derived(living_src):
+    """True when the Living Lessons count is derived from the data (DR-0677)."""
+    return bool(DERIVED_WEEKS.search(living_src or ""))
+
+
 def bump_weeks(src, ll, title, date):
+    """(src, n). n is None when the count is derived: nothing to edit."""
+    if counts_derived(src):
+        return src, None
     m = re.search(r"weeks: (\d+), // ", src)
     if not m:
         raise ValueError("LIVING_LESSONS_META.weeks not found")
@@ -389,9 +405,10 @@ def insert_date(src, lid, date, dr):
 
 
 def bump_json_count(text, key):
+    """Used only while the counts are pinned; a key that is gone is left gone."""
     m = re.search(r'"{}": (\d+)'.format(re.escape(key)), text)
     if not m:
-        raise ValueError("{} not found".format(key))
+        return text
     return text[:m.start(1)] + str(int(m.group(1)) + 1) + text[m.end(1):]
 
 
@@ -400,7 +417,10 @@ CROSS_B = re.compile(r"(d\.lessons, 0\)\)\.toBe\()(\d+)(\))")
 
 
 def bump_crosslist(text, ll, title, dr, date):
+    """(text, n). n is None when the totals are derived (no literal pins)."""
     a, b = CROSS_A.search(text), CROSS_B.search(text)
+    if not a and not b:
+        return text, None
     if not (a and b) or a.group(2) != b.group(2):
         raise ValueError("learn-crosslist totals not found or not equal")
     n = int(a.group(2)) + 1
@@ -806,9 +826,13 @@ class BuildFailed(Exception):
 class Build:
     def __init__(self, group, db, git, writers, corpus, data_dir=DATA, owners=OWNER_IDS, hosted=None,
                  band_gates=None, local_tests=None, today=None, build_id=None, now=utc_now,
-                 writer_timeout=WRITER_MAX_SECONDS, mode=writer.DEFAULT_MODE, selected=(), fixes=None):
+                 writer_timeout=WRITER_MAX_SECONDS, mode=writer.DEFAULT_MODE, selected=(), fixes=None,
+                 previewer=None):
         self.group, self.db, self.git, self.writers, self.corpus = group, db, git, writers, corpus
         self.fixes = fixes  # the parity loop's fixes (DR-0671), tower writers only; None = not installed
+        # previewer(worktree, course_key, lesson_id, branch) -> the DR-0677 gate's
+        # verdict with the preview rows; None = no preview (the lesson still ships).
+        self.previewer = previewer
         self.data_dir, self.owners, self.hosted = data_dir, owners, hosted
         self.band_gates, self.local_tests, self.now = band_gates, local_tests, now
         self.today = today or datetime.date.today().isoformat()
@@ -1000,6 +1024,7 @@ class Build:
         self.stage("committed")
         self.git.push(self.worktree, branch)  # raises on failure: nothing below runs
         self.stage("pushed")
+        self._preview(module, branch)
         self._store(versions if store is None else store, chosen, module["id"])
         if on_stored:
             on_stored(module["id"], branch)
@@ -1012,6 +1037,36 @@ class Build:
         release_numbers(self.numbers, self.build_id)
         self._drop_worktree()
         return self.report
+
+    def _preview(self, module, branch):
+        """A+ (DR-0677): the pushed lesson, gated by gateLessonForPublish, is
+        written to the NAS copy as a PREVIEW (Darrell's two sign-ins and the
+        Governor read it at once; everyone else once it merges and syncs). The
+        preview never blocks the lesson: its PR is already pushed, and a gate
+        that says no, or a box without node, is recorded, not raised."""
+        if self.previewer is None:
+            self.report["preview"] = {"skipped": "no previewer"}
+            return
+        try:
+            res = self.previewer(self.worktree, "living-lessons", module["id"], branch) or {}
+        except Exception as e:  # noqa: BLE001
+            res = {"skipped": "preview could not run: {}".format(e)[:300]}
+        if res.get("skipped"):
+            self.report["preview"] = {"skipped": res["skipped"]}
+            return
+        if not res.get("passed") or not res.get("rows"):
+            self.report["preview"] = {"passed": False, "fresh": (res.get("fresh") or [])[:20]}
+            why = reason_tag("preview refused by the curriculum gate: " + "; ".join((res.get("fresh") or ["no rows"])[:2]))
+            for rid in self.ids:
+                self.db.add_tags(rid, [why])
+            return
+        try:
+            self.db.write_preview(res["rows"])
+        except Exception as e:  # noqa: BLE001
+            self.report["preview"] = {"passed": True, "written": False, "error": str(e)[:300]}
+            return
+        self.report["preview"] = {"passed": True, "written": True, "pr_url": res["rows"]["lessons"][0].get("pr_url")}
+        self.stage("previewed")
 
     @staticmethod
     def _gate_summary(g):
@@ -1073,6 +1128,10 @@ class Build:
 
     def _reconcile(self, module, ll, dr):
         wt = self.worktree
+        if counts_derived(self.git.read(wt, LIVING)):
+            # DR-0677: the counts derive from the data; a lesson edits no count line.
+            self.report["counts"] = "derived (DR-0677): no count line edited"
+            return
         for path, key in BASELINES:
             self.git.write(wt, path, bump_json_count(self.git.read(wt, path), key))
         text, _ = bump_crosslist(self.git.read(wt, CROSSLIST), ll, module["title"], dr, self.today)
@@ -1207,6 +1266,31 @@ def local_tests(wt, ll):
     return True, ""
 
 
+def node_preview(wt, course_key, lesson_id, branch, run=subprocess.run, pr_finder=None, timeout=900):
+    """The DR-0677 publish gate on the pushed worktree (preview_lesson.mjs under
+    vite-node), or {"skipped": why} on a box without node_modules. Never a pass
+    it did not measure."""
+    vite_node = os.path.join(wt, "app", "node_modules", ".bin", "vite-node")
+    shared = os.path.join(MIRROR, "app", "node_modules")
+    if not os.path.exists(vite_node) and os.path.exists(os.path.join(shared, ".bin", "vite-node")) \
+            and not os.path.lexists(os.path.join(wt, "app", "node_modules")):
+        os.symlink(shared, os.path.join(wt, "app", "node_modules"))  # the mirror's install, shared read-only
+    if not os.path.exists(vite_node):
+        return {"skipped": "no node_modules in the builder clone; the lesson goes public when its PR merges and syncs"}
+    pr_url = (pr_finder or find_pr)(branch, tries=3, wait=10) or \
+        "https://github.com/darrellpoe06/Kingdom-PWA-Node/tree/" + branch
+    commit = subprocess.run(["git", "-C", wt, "rev-parse", "HEAD"], capture_output=True).stdout.decode().strip()
+    req = json.dumps({"course_key": course_key, "lesson_id": lesson_id, "pr_url": pr_url, "commit": commit})
+    r = run([vite_node, "../infra/nas-lesson-builder/preview_lesson.mjs"], cwd=os.path.join(wt, "app"),
+            env=dict(os.environ, PREVIEW_REQUEST=req), capture_output=True, timeout=timeout)
+    if r.returncode != 0:
+        return {"skipped": "preview gate exit {}: {}".format(r.returncode, (r.stderr or b"")[-300:].decode("utf-8", "replace"))}
+    try:
+        return json.loads(r.stdout.decode("utf-8").strip().splitlines()[-1])
+    except (ValueError, IndexError):
+        return {"skipped": "the preview gate printed no JSON"}
+
+
 class Db:
     """pg8000 on the database the app reads (agent_consumer.resolve_db: the
     sovereign stack when REPOINT-ARMED, the same door the box agent uses)."""
@@ -1271,6 +1355,57 @@ class Db:
         r = rows[0]
         return {"mode": r[0], "selected": list(r[1] or []), "backfill_requested_at": r[2],
                 "backfill_done_at": r[3], "backfill_scope": r[4]}
+
+    def write_preview(self, rows):
+        """One transaction: the lesson's rows as a PREVIEW in the NAS copy
+        (DR-0677). A public row is never touched: a lesson already public is
+        the sync's, not the builder's. The 0242 trigger refuses the row unless
+        its gate verdict passed over exactly its content hash."""
+        doc = json.dumps(rows)
+        self.con.run("BEGIN")
+        try:
+            self.con.run(
+                "INSERT INTO public.curriculum_courses (course_key, position, title, category, wiring, unit_cap, meta, session_flow, entry) "
+                "SELECT c.course_key, c.position, c.title, c.category, c.wiring, c.unit_cap, c.meta, c.session_flow, c.entry "
+                "FROM jsonb_to_recordset(CAST(:doc AS jsonb)->'courses') AS c(course_key text, position int, title text, "
+                "category text, wiring text, unit_cap text, meta jsonb, session_flow jsonb, entry jsonb) "
+                "ON CONFLICT (course_key) DO NOTHING", doc=doc)
+            n = self.con.run(
+                "INSERT INTO public.curriculum_lessons (course_key, lesson_id, position, key_order, title, big_idea, in_app, "
+                "lesson_text, anchor, benefits, facilitator, child_keys, rest, content_sha256, status, pr_url, source_commit, gate_verdict) "
+                "SELECT l.course_key, l.lesson_id, l.position, l.key_order, l.title, l.big_idea, l.in_app, l.lesson_text, l.anchor, "
+                "l.benefits, l.facilitator, l.child_keys, l.rest, l.content_sha256, 'preview', l.pr_url, l.source_commit, l.gate_verdict "
+                "FROM jsonb_to_recordset(CAST(:doc AS jsonb)->'lessons') AS l(course_key text, lesson_id text, position int, "
+                "key_order text[], title text, big_idea text, in_app text, lesson_text text, anchor jsonb, benefits jsonb, "
+                "facilitator jsonb, child_keys text[], rest jsonb, content_sha256 text, pr_url text, source_commit text, gate_verdict jsonb) "
+                "ON CONFLICT (course_key, lesson_id) DO UPDATE SET position = EXCLUDED.position, key_order = EXCLUDED.key_order, "
+                "title = EXCLUDED.title, big_idea = EXCLUDED.big_idea, in_app = EXCLUDED.in_app, lesson_text = EXCLUDED.lesson_text, "
+                "anchor = EXCLUDED.anchor, benefits = EXCLUDED.benefits, facilitator = EXCLUDED.facilitator, "
+                "child_keys = EXCLUDED.child_keys, rest = EXCLUDED.rest, content_sha256 = EXCLUDED.content_sha256, "
+                "pr_url = EXCLUDED.pr_url, source_commit = EXCLUDED.source_commit, gate_verdict = EXCLUDED.gate_verdict, updated_at = now() "
+                "WHERE curriculum_lessons.status = 'preview' RETURNING lesson_id", doc=doc)
+            if not n:
+                raise ValueError("the lesson is already public in the NAS copy; the sync owns it")
+            for table, cols, types in (
+                    ("curriculum_lesson_bands", "band, position, text", "band text, position int, text text"),
+                    ("curriculum_lesson_quiz", "position, q, answer, question", "position int, q text, answer int, question jsonb"),
+                    ("curriculum_lesson_movements", "position, title, text, movement", "position int, title text, text text, movement jsonb"),
+                    ("curriculum_lesson_provenance", "position, kind, detail", "position int, kind text, detail jsonb"),
+                    ("curriculum_lesson_verse_spans", "position, field, quoted, book, chapter, verses",
+                     "position int, field text, quoted text, book text, chapter int, verses text")):
+                key = {"curriculum_lesson_provenance": "sources", "curriculum_lesson_verse_spans": "verse_spans"}.get(
+                    table, table.replace("curriculum_lesson_", ""))
+                self.con.run(
+                    "DELETE FROM public.{t} x USING jsonb_to_recordset(CAST(:doc AS jsonb)->'lessons') AS l(course_key text, lesson_id text) "
+                    "WHERE x.course_key = l.course_key AND x.lesson_id = l.lesson_id".format(t=table), doc=doc)
+                self.con.run(
+                    "INSERT INTO public.{t} (course_key, lesson_id, {c}) SELECT r.course_key, r.lesson_id, {rc} "
+                    "FROM jsonb_to_recordset(CAST(:doc AS jsonb)->'{k}') AS r(course_key text, lesson_id text, {ty})".format(
+                        t=table, c=cols, rc=", ".join("r." + x.strip() for x in cols.split(",")), k=key, ty=types), doc=doc)
+            self.con.run("COMMIT")
+        except Exception:
+            self.con.run("ROLLBACK")
+            raise
 
     def promotions(self):
         """Rows of public.lesson_parity_promotion (DR-0671), or None when the
@@ -1586,8 +1721,9 @@ class Decide:
     which check failed on which part and ship nothing."""
 
     def __init__(self, decision_id, db, git, corpus, data_dir=DATA, hosted=None, band_gates=None,
-                 local_tests=None, now=utc_now, pr_finder=find_pr):
+                 local_tests=None, now=utc_now, pr_finder=find_pr, previewer=None):
         self.id, self.db, self.git, self.corpus = decision_id, db, git, corpus
+        self.previewer = previewer
         self.data_dir, self.hosted, self.band_gates = data_dir, hosted, band_gates
         self.local_tests, self.now, self.pr_finder = local_tests, now, pr_finder
 
@@ -1623,7 +1759,7 @@ class Decide:
                   "elapsed_ms": 0, "usage": {}, "selection_why": "Darrell's decision {} ({} version(s){})".format(
                       self.id, len(used), ", edited" if "edit" in sources.values() else "")}
         b = Build(group, self.db, self.git, [], self.corpus, data_dir=self.data_dir, hosted=self.hosted,
-                  band_gates=self.band_gates, local_tests=self.local_tests, now=self.now)
+                  band_gates=self.band_gates, local_tests=self.local_tests, now=self.now, previewer=self.previewer)
         b.stage("decided", ["build-decision:" + self.id])
         for r in group:
             self.db.add_tags(r["id"], ["lesson-building"])
@@ -2052,7 +2188,7 @@ def child(spec, env=None):
     band = lambda m: gates.node_band_gates(m, repo=git.clone)  # noqa: E731
     if spec["mode"] == "decide":
         return Decide(spec["decision_id"], db, git, corpus, data_dir=data, hosted=hosted, band_gates=band,
-                      local_tests=local_tests).run()
+                      local_tests=local_tests, previewer=node_preview).run()
     ws, _ = writer.writers_from_configs(writer.load_writer_configs(env), env=env, extra_paths=writer_paths(env))
     primary_note = writer.promoted_primary(ws, db.promotions() if hasattr(db, "promotions") else None)
     fixes = writer.load_parity_fixes()
@@ -2064,7 +2200,8 @@ def child(spec, env=None):
         return Backfill(spec["lesson_id"], spec["title"], spec["source"], spec["source_ref"], db, ws, corpus,
                         mode=mode, selected=selected, band_gates=band, build_id=spec.get("build_id"), fixes=fixes).run()
     b = Build(spec["group"], db, git, ws, corpus, data_dir=data, hosted=hosted, band_gates=band,
-              local_tests=local_tests, build_id=spec.get("build_id"), mode=mode, selected=selected, fixes=fixes)
+              local_tests=local_tests, build_id=spec.get("build_id"), mode=mode, selected=selected, fixes=fixes,
+              previewer=node_preview)
     b.report["primary"] = primary_note
     b.report["parity_fixes"] = "installed" if fixes is not None else "not installed"
     return b.run()

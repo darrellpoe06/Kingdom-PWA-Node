@@ -68,7 +68,7 @@ describe('L102 exists in the catalog with its full shape', () => {
     for (const key of ['bigIdea:', 'inApp:', "ref: 'Proverbs 28:1; Proverbs 28:13; Romans 14:8'", 'benefits:', 'child:', 'youth:', 'teen:', 'senior:', 'quiz:', 'facilitator:']) {
       expect(l).toContain(key);
     }
-    expect(src).toMatch(/weeks: \d+,/);
+    expect(src).toMatch(/get weeks\(\) \{ return LIVING_LESSONS_MODULES\.length; \}/); // the count is DERIVED from the series (DR-0677)
   });
 
   it('teaches the whole arc in order — twelve movements + THE WHOLE OF IT', () => {

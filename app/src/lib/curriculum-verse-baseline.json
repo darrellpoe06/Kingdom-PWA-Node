@@ -1,0 +1,659 @@
+{
+  "note": "Shrink-only verse debt outside the zero-fault courses (DR-0677). Measured 2026-09-29 by scripts/quoted-verse-is-the-verse.mjs over every quoted surface (quotedTexts) of every course: these faults existed before the NAS copy did. A fault not listed here fails the publish gate and the CI snapshot job; entries may only be removed as lessons are repaired. living-lessons and little-learners may record nothing: they are held at zero, as their own test holds them.",
+  "measured": "2026-09-29",
+  "faults": {
+    "wk7-guard-heart-time": [
+      "not-the-verse | lesson | 1 Corinthians 6:12 | "
+    ],
+    "bc3-light": [
+      "not-the-verse | lesson | Genesis 1:3 | "
+    ],
+    "bc4-obs-switching": [
+      "not-the-verse | lesson | 1 Corinthians 14:40 | "
+    ],
+    "bc8-pov-sops": [
+      "not-the-verse | lesson | Habakkuk 2:2 | "
+    ],
+    "bc9-excellence-as-worship": [
+      "not-the-verse | lesson | 2 Timothy 2:2 | ",
+      "not-the-verse | levels.teen | Colossians 3:23 | "
+    ],
+    "inf6-local-ai": [
+      "not-the-verse | lesson | 1 Thessalonians 5:21 | "
+    ],
+    "inf9-keeping-it-alive": [
+      "not-the-verse | lesson | Luke 12:42 | "
+    ],
+    "inf10-build-right-raise-builders": [
+      "not-the-verse | lesson | 2 Timothy 2:2 | "
+    ],
+    "sov9-verification-earns-trust": [
+      "unresolvable | talkingPoints[0] | 1 Thess 5:21 | "
+    ],
+    "sov11-the-sealed-trace": [
+      "not-the-verse | lesson | Matthew 6:19-21 | ",
+      "not-the-verse | levels.senior | Luke 12:2 | ",
+      "not-the-verse | levels.teen | 1 Corinthians 5:6 | ",
+      "not-the-verse | talkingPoints[1] | 1 Corinthians 5:6 | ",
+      "not-the-verse | talkingPoints[2] | Proverbs 4:23 | "
+    ],
+    "sov12-the-engineering-disaster": [
+      "not-the-verse | talkingPoints[1] | Haggai 1:6 | "
+    ],
+    "sov13-the-whole-stack": [
+      "not-the-verse | bigIdea | Psalms 24:1 | ",
+      "not-the-verse | lesson | 1 Corinthians 10:26 | ",
+      "not-the-verse | lesson | Colossians 1:16-17 | ",
+      "not-the-verse | lesson | Deuteronomy 8:17-18 | ",
+      "not-the-verse | lesson | Genesis 47:20 | ",
+      "not-the-verse | lesson | Psalms 24:1 | ",
+      "not-the-verse | lesson | Psalms 24:1 | ",
+      "not-the-verse | levels.senior | 1 Corinthians 6:12 | ",
+      "not-the-verse | levels.senior | Genesis 47:20 | ",
+      "not-the-verse | levels.teen | 1 Corinthians 6:12 | ",
+      "not-the-verse | levels.teen | Genesis 47:20 | ",
+      "not-the-verse | levels.teen | Luke 14:28 | ",
+      "not-the-verse | levels.teen | Proverbs 11:1 | ",
+      "not-the-verse | levels.teen | Psalms 24:1 | ",
+      "not-the-verse | quiz[0].options[1] | 1 Corinthians 6:12 | ",
+      "not-the-verse | quiz[0].options[1] | Matthew 6:24 | ",
+      "not-the-verse | talkingPoints[0] | Psalms 24:1 | ",
+      "not-the-verse | talkingPoints[3] | 1 Corinthians 6:12 | "
+    ],
+    "sov14-the-doom-that-did-not-come": [
+      "not-the-verse | lesson | 1 John 4:18 | ",
+      "not-the-verse | lesson | 1 Peter 5:8 | ",
+      "not-the-verse | lesson | 2 Timothy 1:7 | ",
+      "not-the-verse | lesson | Ephesians 4:14 | ",
+      "not-the-verse | lesson | Isaiah 41:10 | ",
+      "not-the-verse | lesson | Matthew 7:24 | "
+    ],
+    "sov15-watch-brake-and-the-city-without-walls": [
+      "not-the-verse | lesson | Luke 12:47 | ",
+      "not-the-verse | lesson | Revelation 21:9 | ",
+      "not-the-verse | levels.teen | John 10:12-13 | ",
+      "not-the-verse | levels.teen | Proverbs 16:32 | "
+    ],
+    "sov16-trust-the-counsel-you-can-actually-trust": [
+      "not-the-verse | levels.senior | Matthew 6:19-21 | ",
+      "not-the-verse | levels.teen | James 1:8 | "
+    ],
+    "sov20-the-book-of-remembrance-and-the-tool-that-forgets": [
+      "not-the-verse | levels.teen | Malachi 3:16 | "
+    ],
+    "br3-two-or-three-witnesses": [
+      "not-the-verse | levels.teen | Deuteronomy 19:15 | "
+    ],
+    "mit1-the-design-in-time": [
+      "not-the-verse | benefits[0] | Ecclesiastes 3:1 | ",
+      "not-the-verse | benefits[4] | Ecclesiastes 3:11 | ",
+      "not-the-verse | inApp | Psalm 139:14 | ",
+      "not-the-verse | lesson | Ecclesiastes 3:11 | ",
+      "not-the-verse | lesson | Numbers 1:3 | ",
+      "not-the-verse | levels.senior | Ecclesiastes 3:1 | ",
+      "not-the-verse | levels.senior | Ecclesiastes 3:11 | ",
+      "not-the-verse | levels.teen | Numbers 1:3 | ",
+      "not-the-verse | quiz[1].options[1] | Ecclesiastes 3:1 | ",
+      "not-the-verse | talkingPoints[0] | Ecclesiastes 3:1 | ",
+      "not-the-verse | talkingPoints[2] | Numbers 1:3 | ",
+      "shouted | bigIdea | Numbers 1:3 | "
+    ],
+    "mit2-the-young-he-called": [
+      "not-the-verse | benefits[2] | Proverbs 22:6 | ",
+      "not-the-verse | levels.child | Jeremiah 1:7 | ",
+      "not-the-verse | levels.senior | Proverbs 22:6 | ",
+      "not-the-verse | levels.teen | Proverbs 22:6 | ",
+      "not-the-verse | quiz[2].options[1] | Proverbs 22:6 | ",
+      "not-the-verse | talkingPoints[2] | Proverbs 22:6 | "
+    ],
+    "mit3-how-the-enemy-imports-strategy": [
+      "not-the-verse | bigIdea | Mark 7:21 | ",
+      "not-the-verse | lesson | Mark 7:21 | ",
+      "not-the-verse | levels.senior | 2 Corinthians 2:11 | ",
+      "not-the-verse | levels.senior | Hosea 4:6 | ",
+      "not-the-verse | levels.teen | Hosea 4:6 | ",
+      "not-the-verse | quiz[1].options[1] | Hosea 4:6 | ",
+      "not-the-verse | quiz[2].options[1] | Mark 7:21 | ",
+      "not-the-verse | talkingPoints[1] | 1 Peter 5:8 | ",
+      "shouted | bigIdea | 1 Peter 5:8 | ",
+      "shouted | lesson | 1 Peter 5:8 | ",
+      "shouted | lesson | Hosea 4:6 | "
+    ],
+    "mit4-the-renewed-mind": [
+      "not-the-verse | benefits[0] | Romans 12:2 | ",
+      "not-the-verse | benefits[1] | 2 Corinthians 10:4-5 | ",
+      "not-the-verse | lesson | 2 Corinthians 10:4-5 | ",
+      "not-the-verse | lesson | Romans 12:2 | ",
+      "not-the-verse | levels.senior | 2 Corinthians 10:4-5 | ",
+      "shouted | bigIdea | 2 Corinthians 10:4-5 | ",
+      "shouted | bigIdea | Romans 12:2 | ",
+      "shouted | inApp | 2 Timothy 1:7 | ",
+      "shouted | levels.teen | 2 Corinthians 10:4-5 | "
+    ],
+    "mit5-those-who-know-their-god": [
+      "not-the-verse | benefits[2] | Matthew 28:18 | ",
+      "not-the-verse | bigIdea | Daniel 11:32 | ",
+      "not-the-verse | levels.senior | Matthew 28:18 | ",
+      "not-the-verse | levels.senior | Proverbs 31:25 | ",
+      "not-the-verse | quiz[1].options[1] | Matthew 28:18 | ",
+      "not-the-verse | talkingPoints[2] | Matthew 28:18 | ",
+      "not-the-verse | talkingPoints[4] | Proverbs 31:25 | ",
+      "shouted | benefits[3] | Ephesians 6:11 | ",
+      "shouted | bigIdea | 1 John 2:14 | ",
+      "shouted | bigIdea | Ephesians 6:11 | ",
+      "shouted | lesson | 1 John 2:14 | ",
+      "shouted | lesson | Daniel 11:32 | ",
+      "shouted | lesson | Ephesians 6:11-12 | ",
+      "shouted | lesson | Luke 10:19 | ",
+      "shouted | levels.teen | Daniel 11:32 | "
+    ],
+    "mit6-effort-attention-and-rest": [
+      "not-the-verse | benefits[1] | Colossians 3:2 | ",
+      "not-the-verse | benefits[1] | Proverbs 4:23 | ",
+      "not-the-verse | benefits[4] | Matthew 11:28 | ",
+      "not-the-verse | inApp | Colossians 3:2 | ",
+      "not-the-verse | inApp | Proverbs 4:23 | ",
+      "not-the-verse | inApp | Psalm 127:2 | ",
+      "not-the-verse | lesson | 2 Corinthians 10:4-5 | ",
+      "not-the-verse | lesson | Colossians 3:2 | ",
+      "not-the-verse | lesson | Exodus 20:9-10 | ",
+      "not-the-verse | lesson | Proverbs 4:23 | ",
+      "not-the-verse | levels.senior | Matthew 11:28 | ",
+      "not-the-verse | quiz[2].options[1] | Proverbs 4:23 | ",
+      "not-the-verse | talkingPoints[2] | Colossians 3:2 | ",
+      "not-the-verse | talkingPoints[2] | Proverbs 4:23 | "
+    ],
+    "mit7-systems-over-willpower": [
+      "not-the-verse | benefits[1] | Proverbs 22:3 | ",
+      "not-the-verse | benefits[3] | Proverbs 4:23 | ",
+      "not-the-verse | bigIdea | Luke 14:28 | ",
+      "not-the-verse | bigIdea | Proverbs 22:3 | ",
+      "not-the-verse | bigIdea | Proverbs 4:23 | ",
+      "not-the-verse | inApp | Proverbs 22:3 | ",
+      "not-the-verse | lesson | 1 Corinthians 14:40 | ",
+      "not-the-verse | lesson | 1 Corinthians 9:25 | ",
+      "not-the-verse | lesson | Luke 16:10 | ",
+      "not-the-verse | lesson | Proverbs 22:3 | ",
+      "not-the-verse | lesson | Proverbs 4:23 | ",
+      "not-the-verse | lesson | Proverbs 6:8 | ",
+      "not-the-verse | levels.senior | 1 Corinthians 14:40 | ",
+      "not-the-verse | levels.senior | Luke 16:10 | ",
+      "not-the-verse | levels.senior | Proverbs 22:3 | ",
+      "not-the-verse | levels.senior | Proverbs 4:23 | ",
+      "not-the-verse | levels.teen | Luke 14:28 | ",
+      "not-the-verse | levels.teen | Proverbs 22:3 | ",
+      "not-the-verse | quiz[1].options[1] | Proverbs 22:3 | ",
+      "not-the-verse | quiz[2].options[1] | Proverbs 4:23 | ",
+      "not-the-verse | talkingPoints[1] | Luke 14:28 | ",
+      "not-the-verse | talkingPoints[1] | Proverbs 22:3 | ",
+      "not-the-verse | talkingPoints[2] | Galatians 6:9 | ",
+      "not-the-verse | talkingPoints[2] | Luke 16:10 | ",
+      "not-the-verse | talkingPoints[3] | Proverbs 4:23 | ",
+      "shouted | bigIdea | Matthew 3:10 | ",
+      "shouted | lesson | Galatians 6:9 | ",
+      "shouted | lesson | Matthew 3:10 | ",
+      "shouted | lesson | Matthew 7:24-25 | "
+    ],
+    "mit8-deep-over-busy": [
+      "not-the-verse | benefits[3] | Ephesians 5:16 | ",
+      "not-the-verse | bigIdea | Ephesians 5:16 | ",
+      "not-the-verse | inApp | Ephesians 5:16 | ",
+      "not-the-verse | inApp | Luke 10:41-42 | ",
+      "not-the-verse | levels.senior | Ephesians 5:16 | ",
+      "not-the-verse | talkingPoints[2] | Ephesians 5:16 | ",
+      "shouted | bigIdea | Luke 10:40-42 | ",
+      "shouted | lesson | Ephesians 5:16 | ",
+      "shouted | lesson | Luke 10:40-42 | ",
+      "shouted | lesson | Philippians 3:13-14 | ",
+      "shouted | levels.senior | Luke 10:40-42 | ",
+      "shouted | levels.senior | Philippians 3:13-14 | "
+    ],
+    "mit9-power-into-knowledge": [
+      "not-the-verse | benefits[0] | Job 12:12 | ",
+      "not-the-verse | benefits[1] | Psalm 92:14 | ",
+      "not-the-verse | benefits[2] | Proverbs 9:9 | ",
+      "not-the-verse | benefits[3] | Colossians 2:3 | ",
+      "not-the-verse | benefits[4] | 1 Corinthians 8:1 | ",
+      "not-the-verse | bigIdea | Colossians 2:3 | ",
+      "not-the-verse | inApp | 1 Corinthians 8:1 | ",
+      "not-the-verse | inApp | Psalm 92:14 | ",
+      "not-the-verse | lesson | Colossians 2:3 | ",
+      "not-the-verse | levels.child | Job 12:12 | ",
+      "not-the-verse | levels.senior | 1 Corinthians 8:1 | ",
+      "not-the-verse | levels.senior | Colossians 2:3 | ",
+      "not-the-verse | levels.senior | Psalm 92:13-14 | ",
+      "not-the-verse | levels.teen | Colossians 2:3 | ",
+      "not-the-verse | levels.teen | Job 12:12 | ",
+      "not-the-verse | levels.teen | Psalm 92:14 | ",
+      "not-the-verse | quiz[1].options[1] | Job 12:12 | ",
+      "not-the-verse | quiz[2].options[1] | 1 Corinthians 8:1 | ",
+      "not-the-verse | talkingPoints[1] | Job 12:12 | ",
+      "not-the-verse | talkingPoints[1] | Proverbs 16:31 | ",
+      "not-the-verse | talkingPoints[3] | Colossians 2:3 | ",
+      "not-the-verse | talkingPoints[4] | 1 Corinthians 8:1 | ",
+      "shouted | bigIdea | Psalm 92:14 | ",
+      "shouted | lesson | 2 Peter 3:18 | ",
+      "shouted | lesson | Psalm 92:13-14 | "
+    ],
+    "mit10-wired-to-survive": [
+      "not-the-verse | benefits[0] | Romans 8:1 | ",
+      "not-the-verse | benefits[3] | Psalm 34:18 | ",
+      "not-the-verse | benefits[4] | 1 Peter 5:7 | ",
+      "not-the-verse | inApp | 1 Peter 5:7 | ",
+      "not-the-verse | inApp | 2 Corinthians 5:17 | ",
+      "not-the-verse | inApp | Romans 8:1 | ",
+      "not-the-verse | quiz[0].options[1] | Romans 8:1 | ",
+      "shouted | bigIdea | 2 Corinthians 5:17 | ",
+      "shouted | bigIdea | Romans 8:1 | ",
+      "shouted | lesson | 2 Corinthians 5:17 | "
+    ],
+    "mit11-the-attention-war": [
+      "not-the-verse | benefits[2] | Matthew 6:22-23 | ",
+      "not-the-verse | bigIdea | Matthew 6:22 | ",
+      "not-the-verse | inApp | Matthew 6:22 | ",
+      "not-the-verse | levels.teen | Romans 12:2 | "
+    ],
+    "mit12-predictive-brain-body-budget": [
+      "not-the-verse | benefits[3] | Ecclesiastes 4:9-10 | ",
+      "not-the-verse | benefits[3] | Proverbs 27:17 | ",
+      "not-the-verse | bigIdea | Ecclesiastes 4:9 | ",
+      "not-the-verse | inApp | Ecclesiastes 4:9-10 | ",
+      "not-the-verse | inApp | Proverbs 27:17 | ",
+      "not-the-verse | lesson | Ecclesiastes 4:9-10 | ",
+      "not-the-verse | lesson | Proverbs 27:17 | ",
+      "not-the-verse | lesson | Romans 8:29 | ",
+      "shouted | lesson | 1 John 3:2 | ",
+      "shouted | lesson | Colossians 3:3 | "
+    ],
+    "mit13-the-reward-is-in-the-race": [
+      "not-the-verse | benefits[3] | Psalm 126:5 | ",
+      "not-the-verse | benefits[4] | Hebrews 12:2 | ",
+      "not-the-verse | inApp | Psalm 126:5 | ",
+      "not-the-verse | lesson | 2 Timothy 3:4 | ",
+      "not-the-verse | lesson | Psalm 126:5-6 | ",
+      "not-the-verse | levels.child | Matthew 25:21 | ",
+      "not-the-verse | levels.senior | 2 Timothy 3:4 | ",
+      "not-the-verse | levels.senior | Psalm 126:5 | ",
+      "not-the-verse | quiz[2].explain | Galatians 6:9 | ",
+      "not-the-verse | talkingPoints[3] | 2 Timothy 3:4 | ",
+      "shouted | lesson | Hebrews 12:1-2 | "
+    ],
+    "mit14-the-mind-is-a-servant-not-a-god": [
+      "not-the-verse | benefits[3] | Jeremiah 17:9 | ",
+      "not-the-verse | benefits[4] | Colossians 2:8 | ",
+      "not-the-verse | bigIdea | Jeremiah 17:9 | ",
+      "not-the-verse | inApp | Colossians 2:8 | ",
+      "not-the-verse | lesson | 1 Thessalonians 5:21 | ",
+      "not-the-verse | lesson | Colossians 2:8 | ",
+      "not-the-verse | lesson | Isaiah 55:8-9 | ",
+      "not-the-verse | lesson | Jeremiah 17:9 | ",
+      "not-the-verse | levels.senior | Colossians 2:8 | ",
+      "not-the-verse | levels.senior | Isaiah 55:8 | ",
+      "not-the-verse | levels.senior | Jeremiah 17:9 | ",
+      "not-the-verse | levels.teen | Jeremiah 17:9 | ",
+      "not-the-verse | quiz[2].explain | Jeremiah 17:9 | ",
+      "not-the-verse | quiz[2].options[1] | Colossians 2:8 | ",
+      "not-the-verse | talkingPoints[3] | Jeremiah 17:9 | ",
+      "not-the-verse | talkingPoints[4] | Colossians 2:8 | ",
+      "shouted | benefits[1] | Mark 11:22 | ",
+      "shouted | bigIdea | Mark 11:22 | ",
+      "shouted | inApp | Mark 11:22 | ",
+      "shouted | lesson | 1 John 5:14 | ",
+      "shouted | lesson | Mark 11:22 | ",
+      "shouted | lesson | Matthew 6:8 | ",
+      "shouted | levels.senior | Mark 11:22 | ",
+      "shouted | levels.teen | Mark 11:22 | ",
+      "shouted | quiz[1].options[1] | Mark 11:22 | ",
+      "shouted | talkingPoints[1] | Mark 11:22 | "
+    ],
+    "mit15-hide-the-word-in-your-heart": [
+      "not-the-verse | benefits[0] | Psalm 119:11 | ",
+      "not-the-verse | benefits[4] | Colossians 3:16 | ",
+      "not-the-verse | bigIdea | Psalm 119:11 | ",
+      "not-the-verse | lesson | Colossians 3:16 | ",
+      "not-the-verse | lesson | Deuteronomy 6:6-7 | ",
+      "not-the-verse | levels.senior | Colossians 3:16 | ",
+      "not-the-verse | levels.senior | Deuteronomy 6:6-7 | ",
+      "not-the-verse | levels.teen | Colossians 3:16 | ",
+      "not-the-verse | levels.teen | Psalm 119:11 | ",
+      "not-the-verse | quiz[2].options[1] | Colossians 3:16 | ",
+      "not-the-verse | talkingPoints[0] | Deuteronomy 6:6-7 | ",
+      "not-the-verse | talkingPoints[0] | Psalm 119:11 | ",
+      "not-the-verse | talkingPoints[4] | Colossians 3:16 | ",
+      "shouted | inApp | Joshua 1:8 | ",
+      "shouted | lesson | Joshua 1:8 | ",
+      "shouted | levels.senior | Joshua 1:8 | ",
+      "shouted | levels.teen | Joshua 1:8 | "
+    ],
+    "mit16-doers-not-hearers-only": [
+      "not-the-verse | benefits[2] | John 13:17 | ",
+      "not-the-verse | benefits[3] | Ecclesiastes 5:12 | ",
+      "not-the-verse | benefits[4] | 1 Thessalonians 5:21 | ",
+      "not-the-verse | bigIdea | Ecclesiastes 5:12 | ",
+      "not-the-verse | bigIdea | John 13:17 | ",
+      "not-the-verse | inApp | 2 Timothy 2:15 | ",
+      "not-the-verse | inApp | Ecclesiastes 5:12 | ",
+      "not-the-verse | inApp | Philippians 4:9 | ",
+      "not-the-verse | lesson | 1 Thessalonians 5:21 | ",
+      "not-the-verse | lesson | 2 Timothy 2:15 | ",
+      "not-the-verse | lesson | Ecclesiastes 5:12 | ",
+      "not-the-verse | levels.senior | 1 Thessalonians 5:21 | ",
+      "not-the-verse | levels.senior | Ecclesiastes 5:12 | ",
+      "not-the-verse | levels.senior | James 1:22-25 | ",
+      "not-the-verse | levels.senior | John 13:17 | ",
+      "not-the-verse | levels.teen | James 1:22-24 | ",
+      "not-the-verse | levels.teen | John 13:17 | ",
+      "not-the-verse | quiz[2].options[1] | 1 Thessalonians 5:21 | ",
+      "not-the-verse | talkingPoints[4] | 1 Thessalonians 5:21 | ",
+      "shouted | lesson | James 1:23-25 | ",
+      "shouted | lesson | John 13:17 | ",
+      "shouted | lesson | Matthew 7:24 | ",
+      "shouted | lesson | Philippians 4:9 | ",
+      "shouted | levels.senior | Philippians 4:9 | "
+    ],
+    "mit17-beholding-him-the-mind-rewired": [
+      "not-the-verse | benefits[1] | Ezekiel 18:20 | ",
+      "not-the-verse | benefits[3] | Proverbs 18:21 | ",
+      "not-the-verse | bigIdea | Colossians 2:14-15 | ",
+      "not-the-verse | bigIdea | Colossians 3:2 | ",
+      "not-the-verse | bigIdea | Ezekiel 18:20 | ",
+      "not-the-verse | inApp | 2 Corinthians 10:4-5 | ",
+      "not-the-verse | inApp | 2 Corinthians 10:4-5 | ",
+      "not-the-verse | inApp | Ephesians 4:27 | ",
+      "not-the-verse | inApp | Ezekiel 18:20 | ",
+      "not-the-verse | inApp | Proverbs 18:21 | ",
+      "not-the-verse | lesson | 2 Corinthians 10:4-5 | ",
+      "not-the-verse | lesson | Colossians 2:14-15 | ",
+      "not-the-verse | lesson | Colossians 3:2 | ",
+      "not-the-verse | lesson | Ezekiel 18:20 | ",
+      "not-the-verse | lesson | Romans 6:16 | ",
+      "not-the-verse | levels.child | Ezekiel 18:20 | ",
+      "not-the-verse | levels.senior | Colossians 2:14-15 | ",
+      "not-the-verse | levels.senior | Ezekiel 18:20 | ",
+      "not-the-verse | levels.senior | Hebrews 12:2 | ",
+      "not-the-verse | levels.teen | Colossians 3:2 | ",
+      "not-the-verse | levels.teen | Ezekiel 18:20 | ",
+      "not-the-verse | quiz[1].options[1] | Ezekiel 18:20 | ",
+      "not-the-verse | talkingPoints[4] | Proverbs 18:21 | ",
+      "shouted | bigIdea | 2 Corinthians 3:18 | ",
+      "shouted | lesson | 2 Corinthians 3:18 | ",
+      "shouted | levels.senior | 2 Corinthians 3:18 | "
+    ],
+    "mit18-think-about-your-thinking": [
+      "not-the-verse | benefits[2] | 2 Corinthians 13:5 | ",
+      "not-the-verse | benefits[4] | 1 Corinthians 2:16 | ",
+      "not-the-verse | benefits[5] | Proverbs 16:32 | ",
+      "not-the-verse | bigIdea | 2 Corinthians 13:5 | ",
+      "not-the-verse | bigIdea | Proverbs 16:32 | ",
+      "not-the-verse | inApp | 2 Corinthians 13:5 | ",
+      "not-the-verse | inApp | Psalm 139:23-24 | ",
+      "not-the-verse | inApp | Psalm 19:14 | ",
+      "not-the-verse | lesson | 1 Thessalonians 5:21 | ",
+      "not-the-verse | lesson | Ephesians 4:26-27 | ",
+      "not-the-verse | lesson | Galatians 5:9 | ",
+      "not-the-verse | lesson | Proverbs 4:26 | ",
+      "not-the-verse | lesson | Psalm 139:23-24 | ",
+      "not-the-verse | lesson | Psalm 19:14 | ",
+      "not-the-verse | levels.senior | 2 Corinthians 13:5 | ",
+      "not-the-verse | levels.senior | Proverbs 4:26 | ",
+      "not-the-verse | levels.senior | Psalm 139:23-24 | ",
+      "not-the-verse | levels.senior | Psalm 19:14 | ",
+      "not-the-verse | quiz[1].options[1] | 2 Corinthians 13:5 | "
+    ],
+    "snd1-the-board-and-the-signal-chain": [
+      "unresolvable | talkingPoints[4] | 1 Cor 14:40 | "
+    ],
+    "snd3-eq-the-frequency-ranges": [
+      "unresolvable | talkingPoints[5] | Ps 33:3 | "
+    ],
+    "snd6-mixing-the-worship-team-and-choir": [
+      "unresolvable | talkingPoints[5] | 2 Chr 5:13 | "
+    ],
+    "hl-w3-tre-circadian": [
+      "not-the-verse | lesson | Ecclesiastes 10:17 | ",
+      "not-the-verse | levels.senior | Ecclesiastes 10:17 | ",
+      "not-the-verse | levels.teen | Ecclesiastes 10:17 | "
+    ],
+    "hl-w-haver-midlife-fasting": [
+      "not-the-verse | lesson | Ecclesiastes 10:17 | ",
+      "not-the-verse | levels.senior | Ecclesiastes 10:17 | ",
+      "not-the-verse | levels.teen | Ecclesiastes 10:17 | "
+    ],
+    "hl-w3-women-midlife-strength": [
+      "shouted | lesson | Zechariah 4:10 | ",
+      "shouted | levels.senior | Zechariah 4:10 | ",
+      "shouted | levels.teen | Zechariah 4:10 | "
+    ],
+    "wi-musk-creator-critique": [
+      "not-the-verse | lesson | Proverbs 15:3 | "
+    ],
+    "wi-beauty-supply-boycott": [
+      "not-the-verse | levels.teen | Exodus 23:2 | "
+    ],
+    "wi-musk-prophetic-lens": [
+      "not-the-verse | quiz[2].options[1] | Matthew 24:36 | "
+    ],
+    "wi-medical-establishment": [
+      "not-the-verse | lesson | Proverbs 11:1 | ",
+      "not-the-verse | lesson | Proverbs 14:15 | ",
+      "not-the-verse | lesson | Proverbs 20:10 | "
+    ],
+    "wi-ai-empire": [
+      "lowered | lesson |  | messiah",
+      "not-the-verse | lesson | 1 Timothy 6:9-10 | ",
+      "not-the-verse | lesson | John 3:20-21 | ",
+      "not-the-verse | lesson | Micah 6:8 | ",
+      "not-the-verse | lesson | Proverbs 14:15 | ",
+      "not-the-verse | lesson | Proverbs 18:17 | ",
+      "not-the-verse | levels.child | James 5:4 | ",
+      "shouted | lesson | Revelation 18:11-13 | "
+    ],
+    "wi-historical-trauma-two-aftermaths": [
+      "not-the-verse | lesson | Numbers 27:4 | ",
+      "not-the-verse | lesson | Proverbs 6:19 | ",
+      "not-the-verse | levels.senior | Isaiah 10:1 | ",
+      "not-the-verse | levels.senior | Numbers 27:7 | ",
+      "shouted | benefits[16] | James 3:17 | "
+    ],
+    "dsi4-how-modules-connect": [
+      "not-the-verse | lesson | John 6:12 | "
+    ],
+    "succ3-new-builder-new-work": [
+      "not-the-verse | lesson | Proverbs 13:22 | ",
+      "not-the-verse | levels.senior | Proverbs 13:22 | "
+    ],
+    "succ5-double-portion-hand-it-forward": [
+      "not-the-verse | lesson | Proverbs 13:22 | ",
+      "not-the-verse | levels.senior | Proverbs 13:22 | "
+    ],
+    "buy1-abraham-refused-the-gift-and-paid-in-public": [
+      "not-the-verse | levels.teen | Genesis 23:11 | "
+    ],
+    "buy4-surety-the-trap-you-talk-yourself-into": [
+      "not-the-verse | bigIdea | Proverbs 6:1, 2 | ",
+      "not-the-verse | bigIdea | Proverbs 6:5 | ",
+      "not-the-verse | lesson | Proverbs 6:1, 2 | ",
+      "not-the-verse | levels.senior | Proverbs 6:1, 2 | ",
+      "not-the-verse | levels.teen | Proverbs 6:5 | "
+    ],
+    "tax2-then-are-the-children-free": [
+      "not-the-verse | levels.senior | Matthew 17:25 | "
+    ],
+    "mgmt7-when-management-became-extraction-restore-this-day": [
+      "not-the-verse | levels.teen | Nehemiah 5:15 | "
+    ],
+    "prop6-the-field-before-the-house": [
+      "not-the-verse | levels.teen | Luke 14:28 | "
+    ],
+    "prop7-the-tenant-is-a-neighbour-and-the-wage-cannot-wait": [
+      "not-the-verse | levels.teen | Leviticus 19:13 | "
+    ],
+    "prop8-handed-forward-or-handed-to-a-fool": [
+      "not-the-verse | levels.teen | Ecclesiastes 2:18, 19 | "
+    ],
+    "hist1-the-standard-before-the-story": [
+      "not-the-verse | levels.senior | Psalms 78:6 | "
+    ],
+    "hist4-the-wage-that-could-not-wait": [
+      "not-the-verse | levels.teen | Leviticus 19:13 | "
+    ],
+    "hist5-two-weights-in-one-bag": [
+      "not-the-verse | levels.senior | Isaiah 10:2 | ",
+      "not-the-verse | levels.teen | Leviticus 19:15 | ",
+      "not-the-verse | quiz[0].explain | Deuteronomy 25:16 | "
+    ],
+    "hist6-the-fields-of-the-fatherless": [
+      "not-the-verse | quiz[0].explain | Deuteronomy 24:19 | "
+    ],
+    "hist8-two-or-three-witnesses": [
+      "not-the-verse | levels.teen | Matthew 18:16 | "
+    ],
+    "hr1-the-standard-before-the-claim": [
+      "not-the-verse | quiz[1].explain | Acts 17:11 | "
+    ],
+    "hr1-go-to-the-record": [
+      "not-the-verse | levels.senior | Luke 1:4 | ",
+      "not-the-verse | levels.teen | Luke 1:3 | ",
+      "not-the-verse | levels.teen | Luke 1:3 | ",
+      "not-the-verse | levels.teen | Proverbs 25:2 | "
+    ],
+    "hr1-the-witnesses": [
+      "not-the-verse | lesson | Exodus 21:16 | ",
+      "not-the-verse | lesson | Psalms 9:12 | ",
+      "not-the-verse | levels.child | Acts 17:26 | ",
+      "not-the-verse | levels.child | Exodus 21:16 | ",
+      "not-the-verse | levels.child | Genesis 4:10 | ",
+      "not-the-verse | levels.senior | Acts 17:26 | ",
+      "not-the-verse | levels.senior | Exodus 21:16 | ",
+      "not-the-verse | levels.senior | Genesis 1:27 | ",
+      "not-the-verse | levels.senior | Psalms 9:12 | ",
+      "not-the-verse | levels.teen | Exodus 21:16 | ",
+      "not-the-verse | levels.teen | Genesis 4:10 | ",
+      "not-the-verse | levels.youth | Exodus 21:16 | ",
+      "not-the-verse | levels.youth | Genesis 4:10 | ",
+      "not-the-verse | levels.youth | Psalms 9:12 | ",
+      "not-the-verse | quiz[0].explain | Genesis 4:10 | ",
+      "not-the-verse | quiz[1].explain | Exodus 21:16 | "
+    ],
+    "hr1-two-or-three-witnesses-the-process": [
+      "not-the-verse | levels.child | Deuteronomy 19:15 | ",
+      "not-the-verse | levels.teen | Deuteronomy 19:15 | ",
+      "not-the-verse | levels.youth | Deuteronomy 19:15 | ",
+      "not-the-verse | quiz[1].explain | Deuteronomy 19:15 | "
+    ],
+    "hr1-fact-and-interpretation": [
+      "not-the-verse | levels.teen | Proverbs 19:2 | "
+    ],
+    "hr1-the-correction-and-the-quiet-edit": [
+      "not-the-verse | levels.teen | Ephesians 4:25 | ",
+      "not-the-verse | levels.teen | Proverbs 13:18 | ",
+      "not-the-verse | levels.youth | Ephesians 4:25 | "
+    ],
+    "hr1-the-city-they-built": [
+      "not-the-verse | lesson | Micah 6:8 | ",
+      "not-the-verse | levels.child | Isaiah 58:12 | ",
+      "not-the-verse | levels.senior | Micah 6:8 | ",
+      "not-the-verse | levels.teen | Isaiah 58:12 | ",
+      "not-the-verse | levels.teen | Micah 6:8 | "
+    ],
+    "hr1-write-it-in-order-for-our-children": [
+      "not-the-verse | levels.teen | Deuteronomy 6:7 | ",
+      "not-the-verse | quiz[1].explain | Acts 17:26 | "
+    ],
+    "legacy6-hand-it-forward": [
+      "not-the-verse | lesson | Psalms 78:5-6 | "
+    ],
+    "econ1-soul-first": [
+      "not-the-verse | lesson | John 8:32 | ",
+      "not-the-verse | levels.senior | John 8:32 | "
+    ],
+    "econ2-ownership-vs-consumption": [
+      "not-the-verse | lesson | Genesis 2:15 | "
+    ],
+    "econ3-circulation": [
+      "not-the-verse | levels.senior | Acts 2:44-45 | ",
+      "not-the-verse | levels.senior | Acts 4:34 | "
+    ],
+    "econ4-group-economics": [
+      "not-the-verse | levels.senior | Ecclesiastes 4:9-12 | "
+    ],
+    "econ5-the-real-barriers": [
+      "not-the-verse | lesson | Proverbs 31:8-9 | "
+    ],
+    "econ6-accountability-and-judgment": [
+      "not-the-verse | lesson | Isaiah 10:1-2 | ",
+      "not-the-verse | lesson | Luke 12:2 | ",
+      "not-the-verse | lesson | Proverbs 22:22-23 | ",
+      "not-the-verse | lesson | Psalm 68:5-6 | ",
+      "not-the-verse | levels.senior | Isaiah 10:1-2 | ",
+      "not-the-verse | levels.senior | Proverbs 22:22-23 | ",
+      "not-the-verse | levels.senior | Psalm 68:5-6 | "
+    ],
+    "econ7-build-institutions": [
+      "not-the-verse | lesson | 1 Chronicles 28:20 | ",
+      "not-the-verse | levels.senior | 1 Chronicles 28:20 | ",
+      "not-the-verse | levels.senior | Proverbs 13:22 | "
+    ],
+    "econ8-test-build-multiply": [
+      "not-the-verse | bigIdea | James 4:15 | ",
+      "not-the-verse | levels.senior | Luke 14:28-30 | "
+    ],
+    "pv-price": [
+      "not-the-verse | lesson | Acts 10:34-35 | ",
+      "not-the-verse | lesson | Galatians 3:28 | ",
+      "not-the-verse | levels.senior | Acts 10:34-35 | ",
+      "not-the-verse | levels.senior | Galatians 3:28 | "
+    ],
+    "pv-darby": [
+      "not-the-verse | quiz[2].options[1] | Matthew 13:57 | ",
+      "not-the-verse | talkingPoints[4] | Matthew 13:57 | "
+    ],
+    "pv-obenga": [
+      "not-the-verse | lesson | Proverbs 12:19 | ",
+      "not-the-verse | levels.senior | Proverbs 12:19 | "
+    ],
+    "pv-williams": [
+      "not-the-verse | lesson | Hosea 4:6 | ",
+      "not-the-verse | lesson | Proverbs 23:23 | ",
+      "not-the-verse | levels.senior | Hosea 4:6 | ",
+      "not-the-verse | levels.senior | Proverbs 23:23 | "
+    ],
+    "pv-inventions": [
+      "not-the-verse | lesson | Luke 8:17 | ",
+      "not-the-verse | levels.senior | Luke 8:17 | ",
+      "not-the-verse | levels.senior | Proverbs 22:22-23 | "
+    ],
+    "ea-gh-sons-of-god-and-giants": [
+      "not-the-verse | anchor.theme | Genesis 6:2,4 | ",
+      "not-the-verse | bigIdea | Genesis 6:2,4 | ",
+      "not-the-verse | levels.senior | Genesis 6:2,4 | ",
+      "not-the-verse | levels.teen | Genesis 6:2,4 | "
+    ],
+    "ea-gh-not-my-will-but-thine": [
+      "not-the-verse | anchor.theme | 1 Peter 4:19 | ",
+      "not-the-verse | bigIdea | 1 Peter 4:19 | ",
+      "not-the-verse | levels.senior | 1 Peter 4:19 | ",
+      "not-the-verse | levels.teen | 1 Peter 4:19 | "
+    ],
+    "ea-gh-sheep-and-goats": [
+      "not-the-verse | anchor.theme | Matthew 25:32-33 | ",
+      "not-the-verse | bigIdea | Matthew 25:32-33 | ",
+      "not-the-verse | levels.senior | Matthew 25:32-33 | ",
+      "not-the-verse | levels.teen | Matthew 25:32-33 | "
+    ],
+    "ea-gh-handling-word-deceitfully": [
+      "not-the-verse | anchor.theme | Mark 7:13 | ",
+      "not-the-verse | bigIdea | Mark 7:13 | ",
+      "not-the-verse | lesson | 2 Timothy 2:15 | ",
+      "not-the-verse | levels.senior | 2 Timothy 2:15 | ",
+      "not-the-verse | levels.senior | Mark 7:13 | ",
+      "not-the-verse | levels.teen | Mark 7:13 | "
+    ],
+    "ea-gh-friendship-world-enmity": [
+      "not-the-verse | anchor.theme | James 4:4 | ",
+      "not-the-verse | bigIdea | James 4:4 | ",
+      "not-the-verse | levels.senior | James 4:4 | ",
+      "not-the-verse | levels.teen | James 4:4 | "
+    ]
+  }
+}
