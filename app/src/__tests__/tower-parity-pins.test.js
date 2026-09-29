@@ -107,7 +107,7 @@ describe('the lesson_versions shape the loop reads (the builder\u2019s own migra
   it('the builder\u2019s migration is on this checkout', () => {
     expect(builderFile, 'the lesson builder (#1837) must land first').toBeTruthy();
   });
-  const MIG = readFileSync(join(REPO, 'infra/supabase/migrations-auto/0242-a-tower-writer-is-measured-against-the-reference-until-it-matches.sql'), 'utf8');
+  const MIG = readFileSync(join(REPO, 'infra/supabase/migrations-auto/0244-a-tower-writer-is-measured-against-the-reference-until-it-matches.sql'), 'utf8');
   const LOOP = readFileSync(join(REPO, 'infra/nas-lesson-parity/parity_loop.py'), 'utf8');
   it('every column the loop selects is a column the builder creates', () => {
     const at = BUILDER.search(/CREATE TABLE IF NOT EXISTS (public\.)?lesson_versions \(/);

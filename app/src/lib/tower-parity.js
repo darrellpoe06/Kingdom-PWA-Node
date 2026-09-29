@@ -7,7 +7,7 @@
 // fixes for our workflows to work on the towers etc..."
 //
 // Reads what the NAS loop (infra/nas-lesson-parity) measured, from four
-// Governor-only tables (migration 0242): lesson_parity, lesson_crossref,
+// Governor-only tables (migration 0244): lesson_parity, lesson_crossref,
 // lesson_parity_fixes, lesson_parity_promotion. Every number shown is a stored
 // measurement; nothing here computes a score. His one write is the hold on a
 // promotion, through set_lesson_parity_hold().

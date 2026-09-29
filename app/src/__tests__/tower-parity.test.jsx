@@ -4,7 +4,7 @@
 // =============================================================================
 // Darrell 2026-09-29: "claude needs to create the specific algorithmic fixes for
 // our workflows to work on the towers". The panel shows what the NAS parity
-// loop measured, read over a fake database that answers like migration 0242:
+// loop measured, read over a fake database that answers like migration 0244:
 // the Governor reads the four tables, anyone else reads nothing; Hold goes
 // through set_lesson_parity_hold and a held ready writer stays 'ready'.
 import { describe, it, expect, vi, beforeEach } from 'vitest';

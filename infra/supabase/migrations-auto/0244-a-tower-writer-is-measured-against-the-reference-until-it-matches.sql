@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0242 — a tower writer is measured against the reference until it matches
+-- 0244 — a tower writer is measured against the reference until it matches
 -- (DR-0671)
 -- =============================================================================
 -- Darrell 2026-09-29: "The final goal is to not need any no local model... we
@@ -33,7 +33,7 @@
 -- (the ledger's one-file-per-ordinal guard, 0225), so that file stays byte for
 -- byte and this one carries the change:
 --   1. The first cut created lesson_versions "if not exists" in the
---      builder's documented shape; the builder's own migration (0241, DR-0669)
+--      builder's documented shape; the builder's own migration (0243, DR-0669)
 --      owns that table and brings any early copy to its full shape itself.
 --      This file does not touch lesson_versions.
 --   2. lesson_parity gains build_id; lesson_crossref is keyed by build_id.
@@ -43,7 +43,7 @@
 -- migration 0237). No insert/update/delete policy exists for anyone: the NAS
 -- writes with the service role. His one write is the hold, through
 -- set_lesson_parity_hold(), Governor-only.
--- Proven by infra/supabase/tests/0242-lesson-parity-smoke.sql (RLS matrix).
+-- Proven by infra/supabase/tests/0244-lesson-parity-smoke.sql (RLS matrix).
 -- IDEMPOTENT: IF NOT EXISTS, DROP+CREATE POLICY, CREATE OR REPLACE.
 -- =============================================================================
 

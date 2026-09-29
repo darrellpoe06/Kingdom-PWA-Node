@@ -7,7 +7,7 @@
 // fixes for our workflows to work on the towers etc..."
 //
 // Read LIVE from the four Governor-only tables the NAS parity loop writes
-// (migration 0242): each tower writer's parity over time, the gaps still open,
+// (migration 0244): each tower writer's parity over time, the gaps still open,
 // the fixes Claude was asked to write, the promotion status, and, per lesson,
 // every version against every other and what most writers agree on. It sits
 // beside the Compare view of the same lessons (DR-0668) under Projects →

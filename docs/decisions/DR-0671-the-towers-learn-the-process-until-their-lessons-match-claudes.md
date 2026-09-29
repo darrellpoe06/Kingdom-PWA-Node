@@ -72,7 +72,7 @@ Build the **parity loop**: measure, name the gap, fix, promote. It lives in `inf
 
 5. **Cross-reference, added by Darrell's word.** For each teaching, `parity_core.crossref` compares every version with every other, not only with Claude's. Its agreement matrix covers verses, movement themes, structure, gate agreement, quiz answers and quiz verses. The consensus sorts verses and themes by how many writers carry them: all, most, some, or one. A version that fails the verse gate (our check, or a stored `verse`/`kjv` gate) is excluded; the gates stay absolute. Something only one writer brought is a **candidate insight, never an error**. Claude remains the reference for promotion. The loop also records `reference_vs_consensus` per teaching (Claude's verse set against the consensus), so that a later record can decide, from measurement, whether consensus should become the reference.
 
-6. **Tables** (migration 0242). `lesson_parity`, `lesson_crossref`, `lesson_parity_fixes` and `lesson_parity_promotion` can be read only through `is_lesson_governor()` (his two sign-in doors, 0237). No write policy exists for anyone; the NAS writes with the service role. `lesson_versions` is the builder's own table (its migration 0240); 0242 never creates or alters it. A test pins that every column the loop reads is a column the builder creates. Comparisons are made within one `build_id`, the builder's single fan-out of one identical prompt to every writer. A version with an `error` or no body is not measured.
+6. **Tables** (migration 0244). `lesson_parity`, `lesson_crossref`, `lesson_parity_fixes` and `lesson_parity_promotion` can be read only through `is_lesson_governor()` (his two sign-in doors, 0237). No write policy exists for anyone; the NAS writes with the service role. `lesson_versions` is the builder's own table (its migration 0240); 0242 never creates or alters it. A test pins that every column the loop reads is a column the builder creates. Comparisons are made within one `build_id`, the builder's single fan-out of one identical prompt to every writer. A version with an `error` or no body is not measured.
 
 7. **In the app.** Projects → Decisions has a **Tower parity** panel (`TowerParity.jsx`) beside the member-lesson queue. It shows, per tower writer: the latest parity, the last 12 lessons as a table, the streak against N, the status, and Hold. It also lists open gap classes, the fixes Claude has written with their PRs, and, per lesson, the pair matrix, the consensus, the candidate insights and the excluded versions. It reads the tables; it does not edit the DR-0668 Compare view's files.
 
@@ -130,24 +130,24 @@ Nothing new. The fix step runs on the Claude Code CLI the builder already uses, 
 
 - `python3 -m unittest test_lesson_parity -v`: 48 proofs, covering determinism, every gap class, crossref and consensus, promotion and the hold, the measure pass (no count cap, time budget, idempotent), every brake, each fix carried to its outcome, and the first fix before and after.
 - `app/src/__tests__/tower-parity-pins.test.js`: the Python port gives the same numbers as the JS gates on 33 lessons, a planted misquote fails both, the corpus calibration holds, the `lesson_versions` shape is pinned, and no model identifier appears in the service.
-- `app/src/__tests__/tower-parity.test.jsx`: the panel over a fake database that answers like 0242.
-- `infra/supabase/tests/0242-lesson-parity-smoke.sql` (RLS matrix leg `lesson-parity`) passed on a local Postgres 16. It failed as it should when a member read policy or a write grant was planted.
+- `app/src/__tests__/tower-parity.test.jsx`: the panel over a fake database that answers like 0244.
+- `infra/supabase/tests/0244-lesson-parity-smoke.sql` (RLS matrix leg `lesson-parity`) passed on a local Postgres 16. It failed as it should when a member read policy or a write grant was planted.
 - The flow graph gains `lesson-parity` and `tower-parity`. `db:lesson_versions` is the builder's resource; this change reads it.
 
 ## Order of landing
 
-This record depends on the lesson builder (#1837, DR-0669). The builder owns `lesson_versions` in its migration 0241, and the fix step runs through its `lesson_writer` and `Git`. The parity tests read the builder's migration and writer code, so the follow-up lands after #1837, or together with it.
+**Landing order: #1837 (migration 0243), then #1846 (migration 0244).** This record depends on the lesson builder (#1837, DR-0669). The builder owns `lesson_versions` in its migration 0243, and the fix step runs through its `lesson_writer` and `Git`. The parity tests read the builder's migration and writer code, so the follow-up lands after #1837, or together with it.
 
 **The first cut was applied, so its file stays.** The first cut merged as #1845 with its tables in `0240-a-tower-writer-is-measured-...`. db-migrate applied it to the hosted and sovereign databases on 2026-09-29 at 06:24 UTC (run 36530830350).
 - Applied history is frozen: the ledger allows only one file per ordinal (0225). That file therefore stays byte for byte and keeps ordinal 0240.
-- It created `lesson_versions` "if not exists" in the documented shape. The builder's 0241 owns that table, and it brings any early copy to its full shape whichever file ran first.
+- It created `lesson_versions` "if not exists" in the documented shape. The builder's 0243 owns that table, and it brings any early copy to its full shape whichever file ran first.
 
-**0242 carries the change.**
+**0244 carries the change.** (0241 and 0242 are held by #1841 and #1848, DR-0677.)
 - `lesson_parity` gains `build_id`.
 - `lesson_crossref` is keyed by `build_id`.
-- 0242 does not touch `lesson_versions`.
+- 0244 does not touch `lesson_versions`.
 
-Proven on a local Postgres 16: the first cut, then the builder's migration, then 0242 twice ends in the right shapes, with the parity smoke passing.
+Proven on a local Postgres 16: the first cut, then the builder's migration, then 0244 twice ends in the right shapes, with the parity smoke passing.
 
 ## Links
 

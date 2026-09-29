@@ -1,8 +1,8 @@
 -- =============================================================================
--- 0242 LESSON PARITY SMOKE — the parity tables are the Governor's alone
+-- 0244 LESSON PARITY SMOKE — the parity tables are the Governor's alone
 -- (DR-0671)
 -- =============================================================================
--- Run as postgres AFTER applying 0242, in a transaction that ROLLS BACK.
+-- Run as postgres AFTER applying 0244, in a transaction that ROLLS BACK.
 -- The Governor's email list is swapped for a test address INSIDE the
 -- transaction only (lesson_governor_emails), so no real account is touched.
 -- PROVES:
