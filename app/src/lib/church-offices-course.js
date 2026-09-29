@@ -53,6 +53,7 @@ export const CHURCH_OFFICES_META = {
   // DERIVED (DR-0677): the count is the series' own length, read at use —
   // never a literal a new lesson must edit.
   get weeks() { return CHURCH_OFFICES_MODULES.length; },
+  // Until DR-0677 the count was a literal with this note, kept as history: keep in step with CHURCH_OFFICES_MODULES.length (asserted in the test)
   handsOnLabel: 'Open the Word',
   unit: {
     noun: 'lesson', nounPlural: 'lessons', cap: 'Lesson', selfPaced: true,

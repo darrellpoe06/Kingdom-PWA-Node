@@ -59,6 +59,7 @@ export const SOFTWARE_PM_META = {
   // DERIVED (DR-0677): the count is the series' own length, read at use —
   // never a literal a new lesson must edit.
   get weeks() { return SOFTWARE_PM_MODULES.length; },
+  // Until DR-0677 the count was a literal with this note, kept as history: keep in step with SOFTWARE_PM_MODULES.length (asserted in the test)
   handsOnLabel: 'Work it on a real system',
   unit: {
     noun: 'lesson', nounPlural: 'lessons', cap: 'Lesson', selfPaced: true,

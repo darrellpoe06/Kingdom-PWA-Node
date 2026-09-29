@@ -66,6 +66,7 @@ export const SOUND_BOARD_META = {
   // DERIVED (DR-0677): the count is the series' own length, read at use —
   // never a literal a new lesson must edit.
   get weeks() { return SOUND_BOARD_MODULES.length; },
+  // Until DR-0677 the count was a literal with this note, kept as history: eight lessons today; the track grows as the sound engineer teaches more
   handsOnLabel: 'Take it to the board',
   unit: {
     noun: 'lesson',

@@ -28,6 +28,7 @@ export const WORD_OUT_META = {
   // DERIVED (DR-0677): the count is the series' own length, read at use —
   // never a literal a new lesson must edit.
   get weeks() { return WORD_OUT_MODULES.length; },
+  // Until DR-0677 the count was a literal with this note, kept as history: keep in step with WORD_OUT_MODULES.length (asserted in the test)
   handsOnLabel: 'Try it now',
   unit: {
     noun: 'lesson', nounPlural: 'lessons', cap: 'Lesson', selfPaced: true,

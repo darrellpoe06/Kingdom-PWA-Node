@@ -64,6 +64,7 @@ export const PROJECT_MANAGEMENT_META = {
   // DERIVED (DR-0677): the count is the series' own length, read at use —
   // never a literal a new lesson must edit.
   get weeks() { return PROJECT_MANAGEMENT_MODULES.length; },
+  // Until DR-0677 the count was a literal with this note, kept as history: keep in step with PROJECT_MANAGEMENT_MODULES.length (asserted in the test) — 12 on 2026-09-29: pm12 (DR-0664); 11 on 2026-09-24: pm11 (DR-0609)
   handsOnLabel: 'Work it on a real project',
   unit: {
     noun: 'lesson', nounPlural: 'lessons', cap: 'Lesson', selfPaced: true,
