@@ -43,11 +43,11 @@ function WriterTile({ series, promo, onHold, busy }) {
       )}
       <table className="mt-2 w-full text-[0.6875rem]" data-testid="parity-history">
         <caption className="sr-only">Parity of the last {last.length} lessons, oldest first</caption>
-        <thead><tr><th className="text-left font-normal text-[#5A5751]">Lesson</th><th className="text-right font-normal text-[#5A5751]">Parity</th><th className="text-right font-normal text-[#5A5751]">Floors</th></tr></thead>
+        <thead><tr><th scope="col" className="text-left font-normal text-[#5A5751]">Lesson</th><th scope="col" className="text-right font-normal text-[#5A5751]">Parity</th><th scope="col" className="text-right font-normal text-[#5A5751]">Floors</th></tr></thead>
         <tbody>
           {last.map((p, i) => (
             <tr key={`${p.at}-${i}`}>
-              <td className="text-[#1A1815] truncate max-w-[12rem]">{p.lesson || '—'}</td>
+              <td className="text-[#1A1815]">{p.lesson || '—'}</td>
               <td className="text-right text-[#1A1815]">{scoreText(p.score)}</td>
               <td className="text-right text-[#1A1815]">{p.passed ? 'held' : 'broken'}</td>
             </tr>
@@ -73,9 +73,9 @@ function CrossRef({ row }) {
         <caption className="sr-only">Agreement between every pair of versions</caption>
         <thead>
           <tr className="text-[#5A5751]">
-            <th className="text-left font-normal">Pair</th><th className="text-right font-normal">Verses</th>
-            <th className="text-right font-normal">Points</th><th className="text-right font-normal">Parts</th>
-            <th className="text-right font-normal">Gates</th><th className="text-right font-normal">Quiz</th>
+            <th scope="col" className="text-left font-normal">Pair</th><th scope="col" className="text-right font-normal">Verses</th>
+            <th scope="col" className="text-right font-normal">Points</th><th scope="col" className="text-right font-normal">Parts</th>
+            <th scope="col" className="text-right font-normal">Gates</th><th scope="col" className="text-right font-normal">Quiz</th>
           </tr>
         </thead>
         <tbody>
