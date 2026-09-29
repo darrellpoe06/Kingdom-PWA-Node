@@ -304,6 +304,40 @@ const NODES = [
     seeds: ['lesson-voice', 'lesson-inbox'],
   }),
 
+  // DR-0671: the tower parity loop. Every tower version of a lesson is measured
+  // against the Claude reference, by code; recurring gaps become algorithmic
+  // fixes Claude writes as PRs; a tower that holds parity becomes primary.
+  rider('service:lesson-parity', 'infra/nas-lesson-parity/parity_loop.py', {
+    id: 'lesson-parity', name: 'Tower parity loop (measure, gap, fix, promote)',
+    purpose: 'Measures each tower lesson against the Claude reference with deterministic code, cross-references every version, asks Claude for an algorithmic fix to each recurring gap, and promotes a tower that holds parity (DR-0671).',
+    reads: [
+      { res: 'db:lesson_versions', token: 'lesson_versions' },
+      { res: 'db:lesson_parity_promotion#hold', token: 'list_promotions' },
+      { res: 'nas:services', file: 'infra/nas-lesson-parity/install.sh', token: 'services-sync' },
+    ],
+    writes: [
+      { res: 'db:lesson_parity', token: 'upsert_parity' },
+      { res: 'db:lesson_crossref', token: 'upsert_crossref' },
+      { res: 'db:lesson_parity_fixes', token: 'insert_fix' },
+      { res: 'db:lesson_parity_promotion', token: 'upsert_promotion' },
+    ],
+    // The fix step pushes a branch the lane opens as a PR (gh:branch is the
+    // lane's declared outside source, so it is not re-declared here).
+    seeds: ['tower-parity'],
+  }),
+  app('app/src/components/TowerParity.jsx', {
+    id: 'tower-parity', name: 'Tower parity (the Governor)',
+    purpose: 'Per tower writer: parity over time, open gap classes, fixes written, promotion status; per lesson: every version against every other and the consensus. His Hold is the brake on a promotion (DR-0671).',
+    reads: [
+      { res: 'db:lesson_parity', file: 'app/src/lib/tower-parity.js', token: "from('lesson_parity')" },
+      { res: 'db:lesson_crossref', file: 'app/src/lib/tower-parity.js', token: "from('lesson_crossref')" },
+      { res: 'db:lesson_parity_fixes', file: 'app/src/lib/tower-parity.js', token: "from('lesson_parity_fixes')" },
+      { res: 'db:lesson_parity_promotion', file: 'app/src/lib/tower-parity.js', token: "from('lesson_parity_promotion')" },
+    ],
+    writes: [{ res: 'db:lesson_parity_promotion#hold', file: 'app/src/lib/tower-parity.js', token: "rpc('set_lesson_parity_hold'" }],
+    seeds: ['lesson-parity'],
+  }),
+
   // ===========================================================================
   // 6. PROMPT HISTORY — what you sent comes back to be sent again
   // ===========================================================================
@@ -640,7 +674,7 @@ const NODES = [
     id: 'services-sync', name: 'NAS self-deploy (services-sync)', purpose: 'Merging a service to main IS its NAS deploy.',
     reads: [{ res: 'nas:mirror', token: 'services.json' }, { res: 'nas:clock', file: 'infra/nas-loops/install-clock.sh', token: 'run.mjs' }],
     writes: [{ res: 'nas:services', token: 'install' }],
-    seeds: ['ops-runner', 'lesson-voice', 'family-key', 'transcript-trickle', 'choir-dates', 'agent-consumer'],
+    seeds: ['ops-runner', 'lesson-voice', 'family-key', 'transcript-trickle', 'choir-dates', 'agent-consumer', 'lesson-parity'],
   }),
   wf('nas-clock.yml', {
     id: 'nas-clock', name: 'NAS clock', purpose: 'Gives the NAS loop fleet its clock.',
@@ -887,6 +921,8 @@ proof.reads = [
 // proof: { ts, fresh (days), consumed (SQL predicate), where (facet) }.
 // ---------------------------------------------------------------------------
 const RESOURCES = {
+  // DR-0671: written by the NAS lesson builder (DR-0669), which is in flight.
+  'db:lesson_versions': { label: 'every writer\u2019s version of a lesson', open: { blocker: 'Its writer is the NAS lesson builder (DR-0669, branch claude/nas-lesson-builder), not on main yet; 0240 creates the table in its documented shape so the parity loop and this graph stand now.', reReview: '2026-10-06' } },
   'db:feedback': { label: 'feedback notes', proof: { ts: 'submitted_at', fresh: 14, consumed: "triage_status <> 'new'", where: "feedback_text !~* '^\\s*\\[learn engagement\\]'" } },
   'db:feedback#triaged': { label: 'feedback notes a steward has answered', proof: { ts: 'submitted_at', fresh: 30, where: "triage_status <> 'new' AND feedback_text !~* '^\\s*\\[learn engagement\\]'", consumed: "triage_status IN ('fixed','declined')" } },
   'db:concerns': { label: 'concerns', proof: { ts: 'updated_at', fresh: 21 } },

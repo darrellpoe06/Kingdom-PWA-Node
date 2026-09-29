@@ -14,6 +14,7 @@ import AriReview from './AriReview.jsx';
 import MinistryOps from './MinistryOps.jsx';
 import GovernanceQueue from './GovernanceQueue.jsx';
 import MemberLessonQueue from './MemberLessonQueue.jsx';
+import TowerParity from './TowerParity.jsx';
 import DecisionIntelligence from './DecisionIntelligence.jsx';
 import OperationsIntelligence from './OperationsIntelligence.jsx';
 import { deriveAppDecisions } from '../lib/decisions.js';
@@ -386,6 +387,8 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
           <OperationsIntelligence loopData={loopData} loopEnv={{ financialDocAt }} discussions={discussions} feedback={feedback} />
           {/* DR-0635: members' lessons wait here for the Governor's word. */}
           <MemberLessonQueue signedIn={!!currentUserId} />
+          {/* DR-0671: how close our own towers are to the reference lessons. */}
+          <TowerParity signedIn={!!currentUserId} />
           <GovernanceQueue
             appDecisions={deriveAppDecisions({ discussions, concerns })}
             familyInstanceId={(concerns.find((c) => c && c.tenantId)?.tenantId) || null}
