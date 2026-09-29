@@ -135,6 +135,7 @@ export const COURSE_PLAIN_WORDS = {
   'living-lessons': ['bible', 'family', 'work', 'money', 'feelings', 'truth'],
   'little-learners': ['reading', 'counting', 'kids', 'school', 'parents'],
   'made-in-time': ['mind', 'attention', 'phone', 'screens', 'time', 'ages'],
+  'who-he-is': ['bible', 'history', 'time', 'truth', 'worship'],
   'church-offices': ['church', 'jobs', 'leaders', 'pastors', 'deacons', 'serving'],
   'healthy-living': ['food', 'sleep', 'exercise', 'health', 'body', 'eating'],
   'world-issues': ['news', 'truth', 'lies', 'government', 'war', 'questions'],

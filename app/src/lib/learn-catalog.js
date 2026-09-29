@@ -28,6 +28,7 @@ import { AI_LEGAL_BLUEPRINT_META, AI_LEGAL_BLUEPRINT_SESSION_FLOW, buildAiLegalB
 import { LIVING_LESSONS_META, LIVING_LESSONS_SESSION_FLOW, buildLivingLessonsSchedule, livingLessonsProgressSummary, exportLivingLessonsCurriculumMarkdown, LIVING_LESSONS_INTEREST_TAG, LIVING_LESSONS_HELPER_TAG, LIVING_LESSONS_TUTOR_META } from './living-lessons-class.js';
 import { LITTLE_LEARNERS_META, LITTLE_LEARNERS_SESSION_FLOW, buildLittleLearnersSchedule, littleLearnersProgressSummary, exportLittleLearnersCurriculumMarkdown, LITTLE_LEARNERS_INTEREST_TAG, LITTLE_LEARNERS_HELPER_TAG, LITTLE_LEARNERS_TUTOR_META } from './little-learners-class.js';
 import { MADE_IN_TIME_META, MADE_IN_TIME_SESSION_FLOW, buildMadeInTimeSchedule, madeInTimeProgressSummary, exportMadeInTimeCurriculumMarkdown, MADE_IN_TIME_INTEREST_TAG, MADE_IN_TIME_HELPER_TAG, MADE_IN_TIME_TUTOR_META } from './made-in-time-course.js';
+import { WHO_HE_IS_META, WHO_HE_IS_SESSION_FLOW, buildWhoHeIsSchedule, whoHeIsProgressSummary, exportWhoHeIsCurriculumMarkdown, WHO_HE_IS_INTEREST_TAG, WHO_HE_IS_HELPER_TAG, WHO_HE_IS_TUTOR_META } from './who-he-is-course.js';
 import { SOUND_BOARD_META, SOUND_BOARD_SESSION_FLOW, buildSoundBoardSchedule, soundBoardProgressSummary, exportSoundBoardCurriculumMarkdown, SOUND_BOARD_INTEREST_TAG, SOUND_BOARD_HELPER_TAG, SOUND_BOARD_TUTOR_META } from './sound-board-class.js';
 import { WORD_OUT_META, WORD_OUT_SESSION_FLOW, buildWordOutSchedule, wordOutProgressSummary, exportWordOutCurriculumMarkdown, WORD_OUT_INTEREST_TAG, WORD_OUT_HELPER_TAG, WORD_OUT_TUTOR_META } from './word-out-course.js';
 import { CHURCH_OFFICES_META, CHURCH_OFFICES_SESSION_FLOW, buildChurchOfficesSchedule, churchOfficesProgressSummary, exportChurchOfficesCurriculumMarkdown, CHURCH_OFFICES_INTEREST_TAG, CHURCH_OFFICES_HELPER_TAG, CHURCH_OFFICES_TUTOR_META } from './church-offices-course.js';
@@ -226,6 +227,25 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell which ages, mind-and-brain questions, or spiritual-warfare topics to cover next, and he’ll add them — Word-first, with science as a witness, never over the Word.',
       cta: 'I’d like more',
       sent: '✓ Sent — Darrell will see what you’re hungry for.',
+    },
+  },
+  {
+    // WHO HE IS: THE WHOLE WORD (DR-0675). Darrell 2026-09-29, reacting to
+    // L196: "We needed a lesson wide curriculum with all ... No matter if He
+    // was there or not ... Clarity clarification of where when what how
+    // timeless timelines and Who He Is." Every passage the written rule
+    // reaches, one era per lesson, each lesson carrying its full register.
+    key: 'who-he-is', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...WHO_HE_IS_META, key: 'who-he-is', category: 'The Word & The Way' }, sessionFlow: WHO_HE_IS_SESSION_FLOW,
+    buildScheduleRows: () => buildWhoHeIsSchedule(null), progressSummary: (p) => whoHeIsProgressSummary(p),
+    exportMarkdown: () => exportWhoHeIsCurriculumMarkdown(null), downloadName: 'who-he-is-the-whole-word.md',
+    interestTag: WHO_HE_IS_INTEREST_TAG, helperTag: WHO_HE_IS_HELPER_TAG, tutorCourseMeta: WHO_HE_IS_TUTOR_META,
+    interestText: (who) => `${WHO_HE_IS_INTEREST_TAG} ${who} wants to walk the whole line of Who He Is.`,
+    interestCopy: {
+      heading: 'Want to walk it with someone?',
+      blurb: 'Tell Darrell which era you want to walk first, or which passage at the edge you want the elders to rule on. Every passage here is on one line from before time to for ever, with where, when, what and how.',
+      cta: 'I want to walk it',
+      sent: '✓ Sent — Darrell will see it. Jesus Christ the same yesterday, and to day, and for ever.',
     },
   },
   {
