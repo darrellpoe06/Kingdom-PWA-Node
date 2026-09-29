@@ -90,9 +90,12 @@ describe('the orders', () => {
   });
 
   it('offers divisions only on a shelved course, and says "Last to first" when no day is recorded', () => {
-    expect(ordersFor({ numbered: true, hasSections: true, dated: true }).map((o) => o.key)).toEqual(['number', 'newest', 'divisions']);
-    expect(ordersFor({ numbered: true, hasSections: false, dated: false }).map((o) => o.label)).toEqual(['By number, first to last', 'Last to first']);
-    expect(ordersFor({ numbered: false, hasSections: false, dated: false })).toEqual([]);
+    // DR-0686: A to Z / Z to A join every course; a dated course names its
+    // by-number order "oldest first" (the same list — one option, not two).
+    expect(ordersFor({ numbered: true, hasSections: true, dated: true }).map((o) => o.key)).toEqual(['number', 'newest', 'title', 'title-desc', 'divisions']);
+    expect(ordersFor({ numbered: true, hasSections: true, dated: true })[0].label).toBe('By number, oldest first');
+    expect(ordersFor({ numbered: true, hasSections: false, dated: false }).map((o) => o.label)).toEqual(['By number, first to last', 'Last to first', 'A to Z', 'Z to A']);
+    expect(ordersFor({ numbered: false, hasSections: false, dated: false }).map((o) => o.key)).toEqual(['course', 'title', 'title-desc']);
   });
 });
 
@@ -207,7 +210,7 @@ describe('on the real Learn tree', () => {
     const sel = container.querySelector('#learn-lesson-order');
     expect(sel, 'the Order select must render beside Show').toBeTruthy();
     expect(sel.value).toBe('number');
-    expect([...sel.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['By number, first to last', 'Newest first', 'By the Word’s divisions']);
+    expect([...sel.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['By number, oldest first', 'Newest first', 'A to Z', 'Z to A', 'By the Word’s divisions']);
     const nums = rowNums();
     expect(nums.length).toBe(LIVING_LESSONS_MODULES.length);
     expect(nums[0]).toBe(1);
@@ -244,7 +247,7 @@ describe('on the real Learn tree', () => {
     pick(/Made in Time/);
     const sel = container.querySelector('#learn-lesson-order');
     expect(sel).toBeTruthy();
-    expect([...sel.querySelectorAll('option')].map((o) => o.value)).toEqual(['number', 'newest']);
+    expect([...sel.querySelectorAll('option')].map((o) => o.value)).toEqual(['number', 'newest', 'title', 'title-desc']);
     expect(container.querySelector('#learn-lesson-shelf')).toBe(null);
     expect(rowNums()[0]).toBe(1);
   });

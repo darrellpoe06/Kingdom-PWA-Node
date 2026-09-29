@@ -13,12 +13,34 @@
 
 import { plainWordsFor } from './learn-plain-words.js';
 
+// EVERY ORDER THE APP KNOWS, AT THE COURSE LEVEL (DR-0686). Darrell
+// 2026-09-29, two screenshots of Learn: "Can we make the top sort work to do
+// all sorting options? Also the latest created lessons?" The top sort had four
+// orders while the lesson list inside a course had others; now the top sort
+// carries every order whose DATA exists, applied to courses:
+//   - titles and lesson counts: the course descriptors themselves;
+//   - "Recently added": the newest recorded day among a course's lessons
+//     (m.added — living-lessons-dates.js, a real commit day per lesson);
+//   - "Recently opened by you" and the progress orders: this device's saved
+//     places (lib/learn-resume.js) and the signed-in lesson record (progress).
+// An order whose data is absent is not offered (courseSortsFor), so the list
+// never holds a control that silently does nothing. Ties keep course order.
+// `needs` names the data an order reads; courseSortsFor checks it.
 export const COURSE_SORTS = [
   { key: 'authored', label: 'Course order' },
   { key: 'title', label: 'A to Z' },
+  { key: 'title-desc', label: 'Z to A' },
   { key: 'lessons-desc', label: 'Most lessons' },
-  { key: 'lessons-asc', label: 'Shortest first' },
+  { key: 'lessons-asc', label: 'Fewest lessons first' },
+  { key: 'added-newest', label: 'Recently added', needs: 'dated' },
+  { key: 'added-oldest', label: 'Oldest first', needs: 'dated-many' },
+  { key: 'opened', label: 'Recently opened by you', needs: 'opened' },
+  { key: 'in-progress', label: 'In progress first', needs: 'progress' },
+  { key: 'not-started', label: 'Not started first', needs: 'progress' },
+  { key: 'completed', label: 'Completed first', needs: 'progress' },
+  { key: 'latest', label: 'Latest lessons, every course', needs: 'dated' },
 ];
+export const DEFAULT_COURSE_SORT = 'authored';
 
 export function courseLessonCount(course) {
   return (course && course.schedule && course.schedule.length) || 0;
@@ -31,18 +53,136 @@ export function isDeepProcessing(course) {
   return String((course && course.key) || '').startsWith('eternal-');
 }
 
-function sortCourses(list, sortKey) {
-  const c = [...list];
+const ISO_DAY = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+/** A lesson's recorded day ('YYYY-MM-DD'), or null. Never a cohort date — `added` only. */
+export function lessonAdded(m) {
+  const d = m && m.added;
+  return typeof d === 'string' && ISO_DAY.test(d) ? d : null;
+}
+
+/** The newest and oldest recorded days among a course's lessons; nulls when it records none. */
+export function courseAddedSpan(course) {
+  let newest = null;
+  let oldest = null;
+  for (const m of ((course && course.schedule) || [])) {
+    const d = lessonAdded(m);
+    if (!d) continue;
+    if (!newest || d > newest) newest = d;
+    if (!oldest || d < oldest) oldest = d;
+  }
+  return { newest, oldest };
+}
+
+// A lesson counts as done when the signed-in record says so (progress, keyed
+// by lesson id) or this device finished reading it (a place marked done); it
+// counts as begun when a place shows it opened and not finished.
+function placeBegun(p) {
+  return !!p && p.done !== true && (p.started === true || p.stage > 0 || p.step > 0 || !!p.sentenceKey);
+}
+
+/**
+ * Where the reader stands in a course, from real records only:
+ * { state: 'not-started' | 'in-progress' | 'completed', done, begun, lastOpened }.
+ * `places` is lib/learn-resume.js listPlaces(); `progress` the lesson record.
+ */
+export function courseStanding(course, { places = [], progress = {} } = {}) {
+  const key = course && course.key;
+  const schedule = (course && course.schedule) || [];
+  const mine = (Array.isArray(places) ? places : []).filter((p) => p && p.courseKey === key);
+  const doneIds = new Set(mine.filter((p) => p.done === true).map((p) => p.lessonId));
+  let done = 0;
+  for (const m of schedule) if (m && m.id && (doneIds.has(m.id) || (progress && progress[m.id]))) done += 1;
+  const begun = mine.filter(placeBegun).length;
+  const lastOpened = mine.reduce((t, p) => Math.max(t, typeof p.at === 'number' ? p.at : 0), 0) || null;
+  const state = schedule.length && done >= schedule.length ? 'completed' : (done || begun ? 'in-progress' : 'not-started');
+  return { state, done, begun, lastOpened };
+}
+
+/** The orders this catalog can honestly offer — an order whose data is absent is left out. */
+export function courseSortsFor(courses, ctx = {}) {
+  const list = Array.isArray(courses) ? courses.filter(Boolean) : [];
+  const dated = list.filter((c) => courseAddedSpan(c).newest).length;
+  const standings = list.map((c) => courseStanding(c, ctx));
+  const has = {
+    dated: dated >= 1,
+    // With one dated course, oldest-first is the same list as recently-added;
+    // it is offered once a second course records its days.
+    'dated-many': dated >= 2,
+    opened: standings.some((s) => s.lastOpened),
+    progress: standings.some((s) => s.state !== 'not-started'),
+  };
+  return COURSE_SORTS.filter((o) => !o.needs || has[o.needs]);
+}
+
+// Newest/oldest/most-recent keys, with the courses that lack the fact AFTER the
+// ones that have it (in course order) — an undated course is never guessed in.
+const byFact = (fact, dir) => (a, b) => {
+  const fa = fact(a);
+  const fb = fact(b);
+  if (fa == null && fb == null) return 0;
+  if (fa == null) return 1;
+  if (fb == null) return -1;
+  if (fa === fb) return 0;
+  return (fa < fb ? -1 : 1) * dir;
+};
+const STANDING_RANK = {
+  'in-progress': { 'in-progress': 0, 'not-started': 1, completed: 2 },
+  'not-started': { 'not-started': 0, 'in-progress': 1, completed: 2 },
+  completed: { completed: 0, 'in-progress': 1, 'not-started': 2 },
+};
+const titleOf = (c) => String(c.meta?.title || '');
+
+export function sortCourses(list, sortKey, ctx = {}) {
+  const c = [...(Array.isArray(list) ? list : [])];
   switch (sortKey) {
     case 'title':
-      return c.sort((a, b) => String(a.meta?.title || '').localeCompare(String(b.meta?.title || '')));
+      return c.sort((a, b) => titleOf(a).localeCompare(titleOf(b)));
+    case 'title-desc':
+      return c.sort((a, b) => titleOf(b).localeCompare(titleOf(a)));
     case 'lessons-desc':
       return c.sort((a, b) => courseLessonCount(b) - courseLessonCount(a));
     case 'lessons-asc':
       return c.sort((a, b) => courseLessonCount(a) - courseLessonCount(b));
+    case 'added-newest':
+    case 'latest':
+      return c.sort(byFact((x) => courseAddedSpan(x).newest, -1));
+    case 'added-oldest':
+      return c.sort(byFact((x) => courseAddedSpan(x).oldest, 1));
+    case 'opened':
+      return c.sort(byFact((x) => courseStanding(x, ctx).lastOpened, -1));
+    case 'in-progress':
+    case 'not-started':
+    case 'completed': {
+      const rank = STANDING_RANK[sortKey];
+      return c.sort((a, b) => rank[courseStanding(a, ctx).state] - rank[courseStanding(b, ctx).state]);
+    }
     default:
       return c; // 'authored' — the registry's own order
   }
+}
+
+// THE LATEST LESSONS, EVERY COURSE (DR-0686; "Also the latest created
+// lessons?"). Every lesson in the mounted catalog that carries a recorded day,
+// newest first (same day: higher lesson number first, then course order), each
+// naming its HOME course so a tap opens it there. A lesson without a recorded
+// day is left out and counted, never dated by guess (DR-0076).
+export function latestLessons(courses) {
+  const list = Array.isArray(courses) ? courses.filter(Boolean) : [];
+  const rows = [];
+  let undated = 0;
+  list.forEach((c, ci) => {
+    (c.schedule || []).forEach((m, mi) => {
+      if (!m || !m.id) return;
+      const added = lessonAdded(m);
+      if (!added) { undated += 1; return; }
+      const num = /^[a-z]+(\d+)-/i.exec(String(m.id));
+      rows.push({ courseKey: c.key, courseTitle: titleOf(c) || String(c.key || ''), lessonId: m.id, title: String(m.title || ''), added, n: num ? Number(num[1]) : null, ci, mi });
+    });
+  });
+  rows.sort((a, b) => (a.added !== b.added ? (a.added < b.added ? 1 : -1)
+    : ((b.n ?? -1) - (a.n ?? -1)) || (a.ci - b.ci) || (a.mi - b.mi)));
+  const courseCount = new Set(rows.map((r) => r.courseKey)).size;
+  return { rows, undated, courseCount };
 }
 
 // THE SCHOOL (DR-0432; Darrell 2026-09-15: "Add the Courses as a tab with
@@ -132,8 +272,8 @@ export function learnDepartments(courses) {
 // Group + sort for the picker: one group per department (DR-0149), in the
 // department order above, each sorted by the reader's chosen sort. Empty
 // groups cannot exist (a department is made of its courses).
-export function organizeCourses(courses, sortKey = 'authored') {
-  return learnDepartments(courses).map((d) => ({ label: d.label, code: d.code, courses: sortCourses(d.courses, sortKey) }));
+export function organizeCourses(courses, sortKey = 'authored', ctx = {}) {
+  return learnDepartments(courses).map((d) => ({ label: d.label, code: d.code, courses: sortCourses(d.courses, sortKey, ctx) }));
 }
 
 // =============================================================================
@@ -302,3 +442,18 @@ export function rememberCourseKey(key, store = storeOrNull()) {
   } catch (_) { /* a full or blocked store never breaks the picker */ }
 }
 
+
+// THE TOP SORT, REMEMBERED ON THIS DEVICE (DR-0686) — the same guarded
+// pattern as the remembered course above. An unknown stored key reads as null.
+export const COURSE_SORT_MEMORY_KEY = 'poetech.learn.courseSort';
+
+export function rememberedCourseSort(store = storeOrNull()) {
+  try {
+    const v = store ? store.getItem(COURSE_SORT_MEMORY_KEY) : null;
+    return COURSE_SORTS.some((o) => o.key === v) ? v : null;
+  } catch (_) { return null; }
+}
+
+export function rememberCourseSort(key, store = storeOrNull()) {
+  try { if (store && key) store.setItem(COURSE_SORT_MEMORY_KEY, String(key)); } catch (_) { /* the pick holds for this visit */ }
+}
