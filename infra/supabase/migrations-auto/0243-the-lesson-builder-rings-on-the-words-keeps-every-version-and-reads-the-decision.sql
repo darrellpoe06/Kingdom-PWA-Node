@@ -239,5 +239,6 @@ CREATE TRIGGER lesson_builder_settings_notify
   AFTER UPDATE ON lesson_builder_settings
   FOR EACH ROW EXECUTE FUNCTION public.lesson_builder_settings_notify();
 
--- The viewer overlay covers the two new instance-scoped tables (DR-0243).
+-- The assistant scope overlay (0130) and the viewer overlay (DR-0243) cover the two new instance-scoped tables, in 0232's order.
+SELECT public.apply_assistant_scope_overlay();
 SELECT public.apply_viewer_readonly_overlay();
