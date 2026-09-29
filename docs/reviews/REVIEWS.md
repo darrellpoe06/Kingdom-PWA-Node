@@ -14,6 +14,14 @@
 
 ## Records
 
+### REV-0255 · Comprehensive review — the lesson pipeline end to end: one session carries both lanes, the lock never comes home, and "Published" arrives before the lesson
+- **Date:** 2026-09-29
+- **Surface:** the in-app lesson door (OneVoiceInput, VoiceLessonRecorder, LessonInbox) · agent_inbox (hosted mirror) · infra/nas-lesson-voice · the two lesson Routines (trig_01KnByrzx8yYCURwfRKUrvTq, trig_01DAcB2dKRE5vuKAtT2NWbLw) · the delivery lane (ci.yml, auto-merge.yml, keep-prs-current.yml, deploy-cloudflare-pages.yml, site-health.yml) · app/src/components/GovernanceQueue.jsx · app/src/lib/governance-queue-parse.js (new) · app/src/lib/ari-integrity-guard.js · CLAUDE.md
+- **Type:** comprehensive (DR-0239, ten dimensions) · orchestration (DR-0108 Ways review)
+- **Status:** logged
+- **Findings:** Darrell 2026-09-29 asked for a governance review of the lesson pipeline, "Flexibility with rigorous control of the system and processes", read through PM11 (DR-0609). Sixteen findings, ranked in the session note and shown in the app under Projects → ⚖ Decisions → Review findings. **Top finding:** both Routines wake one chat session, and "SUCCEEDED" means only that the wake was delivered (00:18:30.720 to .730Z). A spoken lesson waited 85 h 26 min (row 2e5c8f2e to L197 live). Main took no merges for 95 h 30 min. Nothing alerted. **Capture state:** it lives in jsonb tags on the hosted mirror only, with no time, and never returns to the row the app reads. **Published too early:** 5 of 7 `lesson-published` tags name lessons not yet on main. **Collisions:** parallel lesson PRs serialize on literal count pins (learn-crosslist.test.js:319; keep-prs-current run 36522715781 refused #1833 and #1834; L193 to L195 took 218 to 290 min). **Phantom red:** 32 of 49 red or approval-waiting runs on lesson branches had zero jobs. **Witness cadence:** site-health `*/10` fired 8 times in 32 h. **Email window:** the email lane's `newer_than:7d` window can age a lesson out. **Unshipped:** the L194 recount to 58 was not in PR #1831. **Fixed in the PR, proven to catch (5 breaks):** the Governor queue's parser read OPEN-5 (credentials) as Tier A; the review standard (10), its guard (9) and CLAUDE.md (8) disagreed on what "comprehensive" means. Decisions raised as OPEN-11 to OPEN-13.
+- **Source:** docs/99-session-notes/2026-09-29-lesson-pipeline-governance-review.md
+
 ### REV-0254 · Comprehensive review — every member workflow to its end: why "Notifications on" buzzed nobody, a text says Seen, every button on the church door tapped
 - **Date:** 2026-09-09
 - **Surface:** .github/workflows/push-sender-credentials.yml (new) · app/functions/api/push-send.js · app/src/lib/push-send-policy.js · app/public/sw.js · app/public/badge-96.png (new) · app/src/lib/dm-notify.js · app/src/lib/direct-messages.js · app/src/components/DirectMessages.jsx · app/src/__tests__/member-surfaces-every-control-acts.test.js (new)
