@@ -7,7 +7,7 @@
 // fixes for our workflows to work on the towers etc..."
 //
 // Read LIVE from the four Governor-only tables the NAS parity loop writes
-// (migration 0240): each tower writer's parity over time, the gaps still open,
+// (migration 0242): each tower writer's parity over time, the gaps still open,
 // the fixes Claude was asked to write, the promotion status, and, per lesson,
 // every version against every other and what most writers agree on. It sits
 // beside the Compare view of the same lessons (DR-0668) under Projects →
@@ -67,7 +67,7 @@ function WriterTile({ series, promo, onHold, busy }) {
 function CrossRef({ row }) {
   const c = consensusView(row);
   return (
-    <div className="border border-[#E8E4DC] bg-white p-3" data-testid="parity-crossref" data-teaching={row.teaching_row_id}>
+    <div className="border border-[#E8E4DC] bg-white p-3" data-testid="parity-crossref" data-build={row.build_id || row.teaching_row_id}>
       <p className={small} style={serif}><span className="font-semibold text-[#1A1815]">{row.lesson_id || row.teaching_row_id}</span> · {(row.versions || []).map((v) => v.writer).join(', ')}</p>
       <table className="mt-2 w-full text-[0.6875rem]" data-testid="parity-matrix">
         <caption className="sr-only">Agreement between every pair of versions</caption>
@@ -188,7 +188,7 @@ export default function TowerParity({ signedIn = false }) {
               <span className="sr-only">Lesson</span>
               <select value={lessonIx} onChange={(e) => setLessonIx(Number(e.target.value))} data-testid="parity-lesson-pick"
                 className="border border-[#E8E4DC] bg-white p-1 text-[0.6875rem] min-h-[36px]">
-                {xref.map((r, i) => <option key={r.teaching_row_id} value={i}>{r.lesson_id || r.teaching_row_id}</option>)}
+                {xref.map((r, i) => <option key={r.build_id || r.teaching_row_id} value={i}>{r.lesson_id || r.teaching_row_id}</option>)}
               </select>
             </label>
           </div>

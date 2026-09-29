@@ -921,8 +921,6 @@ proof.reads = [
 // proof: { ts, fresh (days), consumed (SQL predicate), where (facet) }.
 // ---------------------------------------------------------------------------
 const RESOURCES = {
-  // DR-0671: written by the NAS lesson builder (DR-0669), which is in flight.
-  'db:lesson_versions': { label: 'every writer\u2019s version of a lesson', open: { blocker: 'Its writer is the NAS lesson builder (DR-0669, branch claude/nas-lesson-builder), not on main yet; 0240 creates the table in its documented shape so the parity loop and this graph stand now.', reReview: '2026-10-06' } },
   'db:feedback': { label: 'feedback notes', proof: { ts: 'submitted_at', fresh: 14, consumed: "triage_status <> 'new'", where: "feedback_text !~* '^\\s*\\[learn engagement\\]'" } },
   'db:feedback#triaged': { label: 'feedback notes a steward has answered', proof: { ts: 'submitted_at', fresh: 30, where: "triage_status <> 'new' AND feedback_text !~* '^\\s*\\[learn engagement\\]'", consumed: "triage_status IN ('fixed','declined')" } },
   'db:concerns': { label: 'concerns', proof: { ts: 'updated_at', fresh: 21 } },

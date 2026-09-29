@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0240 — a tower writer is measured against the reference until it matches
+-- 0242 — a tower writer is measured against the reference until it matches
 -- (DR-0671)
 -- =============================================================================
 -- Darrell 2026-09-29: "The final goal is to not need any no local model... we
@@ -23,36 +23,22 @@
 --                            status (reference-only / ready / primary), and the
 --                            Governor's hold.
 --
--- lesson_versions is created HERE only if the builder's own migration has not
--- created it first (the documented shape, DR-0669; IF NOT EXISTS so the two
--- converge in either order).
+-- lesson_versions is the builder's own table (migration 0240, DR-0669): this
+-- migration reads it and never creates or alters it. Rows here carry the
+-- builder's build_id, so every comparison is between versions that received
+-- the identical prompt.
 --
 -- READABLE ONLY BY THE GOVERNOR (his two sign-in doors, is_lesson_governor(),
 -- migration 0237). No insert/update/delete policy exists for anyone: the NAS
 -- writes with the service role. His one write is the hold, through
 -- set_lesson_parity_hold(), Governor-only.
--- Proven by infra/supabase/tests/0240-lesson-parity-smoke.sql (RLS matrix).
+-- Proven by infra/supabase/tests/0242-lesson-parity-smoke.sql (RLS matrix).
 -- IDEMPOTENT: IF NOT EXISTS, DROP+CREATE POLICY, CREATE OR REPLACE.
 -- =============================================================================
 
-CREATE TABLE IF NOT EXISTS public.lesson_versions (
-  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  teaching_row_id  uuid,
-  lesson_id        text,
-  writer           text NOT NULL,
-  model_label      text,
-  prompt_sha256    text,
-  prompt_text      text,
-  body             jsonb,
-  gate_results     jsonb,
-  elapsed_ms       integer,
-  created_at       timestamptz NOT NULL DEFAULT now(),
-  published        boolean NOT NULL DEFAULT false
-);
-CREATE INDEX IF NOT EXISTS lesson_versions_teaching_idx ON public.lesson_versions (teaching_row_id, created_at);
-
 CREATE TABLE IF NOT EXISTS public.lesson_parity (
   id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  build_id              uuid,
   teaching_row_id       uuid,
   lesson_id             text,
   version_id            uuid NOT NULL,
@@ -76,7 +62,8 @@ CREATE TABLE IF NOT EXISTS public.lesson_parity (
 CREATE INDEX IF NOT EXISTS lesson_parity_writer_idx ON public.lesson_parity (writer_family, model_label, version_created_at);
 
 CREATE TABLE IF NOT EXISTS public.lesson_crossref (
-  teaching_row_id         uuid PRIMARY KEY,
+  build_id                uuid PRIMARY KEY,
+  teaching_row_id         uuid,
   lesson_id               text,
   version_ids             text[] NOT NULL DEFAULT '{}',
   versions                jsonb NOT NULL DEFAULT '[]'::jsonb,
@@ -132,12 +119,28 @@ CREATE TABLE IF NOT EXISTS public.lesson_parity_promotion (
   PRIMARY KEY (writer_family, model_label)
 );
 
+-- CONVERGE the first shape (#1845 merged these four tables as 0240-a-tower-
+-- writer-is-measured-...; the file was renamed here). A database that ran it
+-- has lesson_parity without build_id and lesson_crossref keyed by
+-- teaching_row_id. Bring both to this shape; a fresh database already is.
+ALTER TABLE public.lesson_parity ADD COLUMN IF NOT EXISTS build_id uuid;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                  WHERE table_schema = 'public' AND table_name = 'lesson_crossref' AND column_name = 'build_id') THEN
+    ALTER TABLE public.lesson_crossref ADD COLUMN build_id uuid;
+    UPDATE public.lesson_crossref SET build_id = teaching_row_id WHERE build_id IS NULL;
+    ALTER TABLE public.lesson_crossref DROP CONSTRAINT IF EXISTS lesson_crossref_pkey;
+    ALTER TABLE public.lesson_crossref ALTER COLUMN teaching_row_id DROP NOT NULL;
+    ALTER TABLE public.lesson_crossref ADD PRIMARY KEY (build_id);
+  END IF;
+END $$;
+
 COMMENT ON TABLE public.lesson_parity IS 'Each tower lesson version measured against the Claude reference, deterministic, with evidence. DR-0671.';
 COMMENT ON TABLE public.lesson_crossref IS 'Every version of a teaching against every other, and the consensus. DR-0671.';
 COMMENT ON TABLE public.lesson_parity_fixes IS 'The algorithmic fixes Claude was asked to write for recurring tower gaps. DR-0671.';
 COMMENT ON TABLE public.lesson_parity_promotion IS 'Per tower writer: the parity streak and whether it is the primary writer; the Governor holds. DR-0671.';
 
-ALTER TABLE public.lesson_versions         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lesson_parity           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lesson_crossref         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lesson_parity_fixes     ENABLE ROW LEVEL SECURITY;
@@ -152,17 +155,8 @@ DROP POLICY IF EXISTS lesson_parity_fixes_governor_read ON public.lesson_parity_
 CREATE POLICY lesson_parity_fixes_governor_read ON public.lesson_parity_fixes FOR SELECT USING (public.is_lesson_governor());
 DROP POLICY IF EXISTS lesson_parity_promotion_governor_read ON public.lesson_parity_promotion;
 CREATE POLICY lesson_parity_promotion_governor_read ON public.lesson_parity_promotion FOR SELECT USING (public.is_lesson_governor());
--- lesson_versions: a Governor read is added only when no policy exists yet, so
--- the builder's own policy (if it landed first) is never replaced.
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'lesson_versions') THEN
-    EXECUTE 'CREATE POLICY lesson_versions_governor_read ON public.lesson_versions FOR SELECT USING (public.is_lesson_governor())';
-  END IF;
-END $$;
-
 GRANT SELECT ON public.lesson_parity, public.lesson_crossref, public.lesson_parity_fixes,
-  public.lesson_parity_promotion, public.lesson_versions TO authenticated;
+  public.lesson_parity_promotion TO authenticated;
 REVOKE INSERT, UPDATE, DELETE ON public.lesson_parity, public.lesson_crossref, public.lesson_parity_fixes,
   public.lesson_parity_promotion FROM authenticated, anon;
 

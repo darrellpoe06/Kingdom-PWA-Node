@@ -17,13 +17,14 @@
 # infra/nas-loops/services.json (everything stops), fix_enabled:false (only the
 # Claude step stops), or delete infra/nas-loops/ARMED-BY-RECORD.
 #
-# NAS config (never in the repo): /volume1/PoeTech/secrets/lesson-parity.env
-#   PARITY_FIX_CMD         the headless writer, e.g. the builder's Claude Code path;
-#                          {max_turns} is replaced with the turn budget
-#   PARITY_FIX_MODEL_LABEL the label recorded on each fix row
-#   PARITY_FIX_WORKDIR     a repo checkout the writer may make worktrees from
-# With no PARITY_FIX_CMD the fix step stores the ready prompt as
-# 'awaiting-writer' and the app shows it; the measure pass runs either way.
+# THE WRITER needs no new config: the fix step runs on the SAME Claude Code CLI
+# the lesson builder writes with (its lesson-writers.json, DR-0669), and commits
+# and pushes with the builder's own clone and token. Optional overrides, in
+# /volume1/PoeTech/secrets/lesson-parity.env:
+#   PARITY_FIX_CMD         another writer command ({max_turns} is filled in)
+#   PARITY_FIX_MODEL_LABEL its label
+# With no local Claude writer reachable, the fix step stores the ready prompt
+# as 'awaiting-writer' with the reason; the measure pass runs either way.
 REPO="${POETECH_REPO:-/volume1/PoeTech/repos/Kingdom-PWA-Node}"
 SRC="$REPO/infra/nas-lesson-parity"
 DATA="${PARITY_DATA:-/volume1/PoeTech/lesson-parity}"

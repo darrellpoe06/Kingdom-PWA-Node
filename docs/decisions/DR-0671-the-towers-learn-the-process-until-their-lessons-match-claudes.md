@@ -53,7 +53,11 @@ Build the **parity loop**: measure, name the gap, fix, promote. It lives in `inf
 
 2. **Name the gaps.** Each shortfall becomes a fixable class, with its evidence and the kind of fix that closes it: `gate-failure`, `misquoted-verse`, `missing-verse-retrieval`, `missing-movement`, `weak-structure`, `missing-band`, `short-band`, `reading-level`, `band-order-inverted`, `quiz-count`, `quiz-errors`, `quiz-ungrounded`, `length-short`, `length-long`. A test plants each defect and requires its class to fire.
 
-3. **Claude writes the fix.** A gap class is recurring when it appears in 3 of a tower writer's last 10 teachings. For each recurring class, the fix step runs one headless Claude Code call on the NAS, through the writer path the builder uses. The command and the model label come from NAS config (`/volume1/PoeTech/secrets/lesson-parity.env`), never from the repo. The call is given the class, the measured evidence and the stored example. It writes ONE deterministic fix in `fixes/<name>.py` behind the interface `GAP_CLASS`, `STAGE` (pre or post), `apply(ctx)`. It adds a test that re-measures the stored example before and after, and pushes a normal PR through the lane. Each fix is then carried to its outcome by the measure pass (hold the hand, DR-0621):
+3. **Claude writes the fix.** A gap class is recurring when it appears in 3 of a tower writer's last 10 teachings. For each recurring class, the fix step runs one headless Claude Code call on the NAS. It uses **the same Claude Code CLI the lesson builder writes with** (DR-0669): the local Claude entry in the builder's `lesson-writers.json`, or the builder's default when that file is absent. The builder's own code resolves the binary, the signed-in user it runs as, the model and the label. So Darrell has no new step, and no model identifier is in the repo. `PARITY_FIX_CMD` exists only as an optional override.
+   - The call works in a fresh worktree of main made from the builder's own clone. It is given the class, the measured evidence and the stored example. It may read, edit and run `python3`, and nothing else: no git and no network tools.
+   - It writes ONE deterministic fix in `fixes/<name>.py` behind the interface `GAP_CLASS`, `STAGE` (pre or post), `apply(ctx)`, and adds a test that re-measures the stored example before and after.
+   - **The loop, not the model, decides whether it ships.** It re-runs the parity tests in that worktree and requires an enabled fix that declares the class. Only then does it commit and push with the builder's token, and the lane opens the PR. A fix whose tests fail is recorded as failed and never pushed.
+   Each fix is then carried to its outcome by the measure pass (hold the hand, DR-0621):
    - `pushed` becomes `merged` when its module is enabled on main;
    - `merged` becomes `closed-verified` only when the class shows in fewer of the writer's next 10 teachings than before;
    - otherwise it becomes `failed` ("the gap persists"), which frees the class for a new fix;
@@ -68,7 +72,7 @@ Build the **parity loop**: measure, name the gap, fix, promote. It lives in `inf
 
 5. **Cross-reference, added by Darrell's word.** For each teaching, `parity_core.crossref` compares every version with every other, not only with Claude's. Its agreement matrix covers verses, movement themes, structure, gate agreement, quiz answers and quiz verses. The consensus sorts verses and themes by how many writers carry them: all, most, some, or one. A version that fails the verse gate (our check, or a stored `verse`/`kjv` gate) is excluded; the gates stay absolute. Something only one writer brought is a **candidate insight, never an error**. Claude remains the reference for promotion. The loop also records `reference_vs_consensus` per teaching (Claude's verse set against the consensus), so that a later record can decide, from measurement, whether consensus should become the reference.
 
-6. **Tables** (migration 0240). `lesson_parity`, `lesson_crossref`, `lesson_parity_fixes` and `lesson_parity_promotion` can be read only through `is_lesson_governor()` (his two sign-in doors, 0237). No write policy exists for anyone; the NAS writes with the service role. `lesson_versions` is created there only if the builder's migration has not already created it, in the documented shape. The shape is pinned by a test.
+6. **Tables** (migration 0242). `lesson_parity`, `lesson_crossref`, `lesson_parity_fixes` and `lesson_parity_promotion` can be read only through `is_lesson_governor()` (his two sign-in doors, 0237). No write policy exists for anyone; the NAS writes with the service role. `lesson_versions` is the builder's own table (its migration 0240); 0242 never creates or alters it. A test pins that every column the loop reads is a column the builder creates. Comparisons are made within one `build_id`, the builder's single fan-out of one identical prompt to every writer. A version with an `error` or no body is not measured.
 
 7. **In the app.** Projects → Decisions has a **Tower parity** panel (`TowerParity.jsx`) beside the member-lesson queue. It shows, per tower writer: the latest parity, the last 12 lessons as a table, the streak against N, the status, and Hold. It also lists open gap classes, the fixes Claude has written with their PRs, and, per lesson, the pair matrix, the consensus, the candidate insights and the excluded versions. It reads the tables; it does not edit the DR-0668 Compare view's files.
 
@@ -120,15 +124,28 @@ This is the AI class. It spawns a vendor model on a clock, so it carries the ful
 
 ## What only Darrell can supply
 
-`PARITY_FIX_CMD` and `PARITY_FIX_MODEL_LABEL` in `/volume1/PoeTech/secrets/lesson-parity.env`. This is the headless writer command and its label: a value that lives on the NAS, never in the repo. If the builder (DR-0669) sets the same writer path, one line points at it. Until then, the fix step stores each ready prompt as `awaiting-writer`, and the panel shows it.
+Nothing new. The fix step runs on the Claude Code CLI the builder already uses, and pushes with the builder's token. When no local Claude writer is available (the builder is not installed, or its Claude entry is SSH-only), the fix step stores each ready prompt as `awaiting-writer` with the reason, and the panel shows it. It runs once a writer is available.
 
 ## Verification
 
-- `python3 -m unittest test_lesson_parity -v`: 41 proofs, covering determinism, every gap class, crossref and consensus, promotion and the hold, the measure pass (no count cap, time budget, idempotent), every brake, each fix carried to its outcome, and the first fix before and after.
+- `python3 -m unittest test_lesson_parity -v`: 48 proofs, covering determinism, every gap class, crossref and consensus, promotion and the hold, the measure pass (no count cap, time budget, idempotent), every brake, each fix carried to its outcome, and the first fix before and after.
 - `app/src/__tests__/tower-parity-pins.test.js`: the Python port gives the same numbers as the JS gates on 33 lessons, a planted misquote fails both, the corpus calibration holds, the `lesson_versions` shape is pinned, and no model identifier appears in the service.
-- `app/src/__tests__/tower-parity.test.jsx`: the panel over a fake database that answers like 0240.
-- `infra/supabase/tests/0240-lesson-parity-smoke.sql` (RLS matrix leg `lesson-parity`) passed on a local Postgres 16. It failed as it should when a member read policy or a write grant was planted.
-- The flow graph gains `lesson-parity` and `tower-parity`. `db:lesson_versions` is declared open until the builder lands (re-review 2026-10-06).
+- `app/src/__tests__/tower-parity.test.jsx`: the panel over a fake database that answers like 0242.
+- `infra/supabase/tests/0242-lesson-parity-smoke.sql` (RLS matrix leg `lesson-parity`) passed on a local Postgres 16. It failed as it should when a member read policy or a write grant was planted.
+- The flow graph gains `lesson-parity` and `tower-parity`. `db:lesson_versions` is the builder's resource; this change reads it.
+
+## Order of landing
+
+This record depends on the lesson builder (#1837, DR-0669): its migration 0240 creates `lesson_versions`, and its `lesson_writer` and `Git` are what the fix step runs through. #1841 (Your lessons, DR-0668) holds 0241. The parity tests and the flow graph read the builder's files, so this change lands after #1837.
+
+**A repair, and why.** The first cut of this record merged as #1845 with its tables in `0240-a-tower-writer-is-measured-...`, which also created `lesson_versions` "if not exists" in the documented shape. On a database that ran it, the builder's own `CREATE TABLE IF NOT EXISTS lesson_versions` would skip, and its index on `build_id` would then fail. The follow-up does three things:
+- It renames the parity migration to 0242.
+- It adds `0240-a-tower-writer-returns-lesson-versions-to-the-builder.sql`. That file sorts before the builder's 0240, so it runs first. It drops the early copy only when the table lacks `build_id` and holds no rows. The parity loop never writes that table.
+- It makes 0242 bring the already-created `lesson_parity` and `lesson_crossref` to the `build_id` shape.
+
+Both paths were proven on a local Postgres 16, followed by the builder's migration and the parity smoke:
+- a database that ran the first cut;
+- a fresh database.
 
 ## Links
 

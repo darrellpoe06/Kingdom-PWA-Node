@@ -43,10 +43,11 @@ THE BRAKES on the fix step (proven-to-catch in test_lesson_parity.py):
 
 Secrets: env SUPABASE_URL + SUPABASE_SERVICE_KEY, else the sovereign stack
 when REPOINT-ARMED is merged, else /volume1/PoeTech/secrets/supabase.json
-(infra/nas-supabase/sovereign_target.py). The writer command and the model
-label come from NAS config (PARITY_FIX_CMD, PARITY_FIX_MODEL_LABEL in
-/volume1/PoeTech/secrets/lesson-parity.env); no model identifier is written in
-this repository.
+(infra/nas-supabase/sovereign_target.py). The fix writer is the lesson
+builder's own Claude Code CLI writer (lesson-writers.json, read by the
+builder's lesson_writer), so the binary, user, model and label come from NAS
+config; PARITY_FIX_CMD is only an optional override. No model identifier is
+written in this repository.
 
 Run:  python3 parity_loop.py              # one measure pass, JSON report
       python3 parity_loop.py --fix-step   # one braked fix step, JSON report
@@ -200,11 +201,22 @@ class Budget:
 # MEASURE: pure planning over rows (the I/O object is passed in).
 # ---------------------------------------------------------------------------
 
-def group_teachings(versions):
-    """{teaching_row_id: [versions oldest first]}"""
+def measurable(v):
+    """A version the writer actually produced: a body, and no error."""
+    return isinstance(v.get("body"), dict) and bool(v.get("body")) and not v.get("error")
+
+
+def group_builds(versions):
+    """{build_id: [versions oldest first]}. One build is one teaching sent as
+    the IDENTICAL prompt to every writer (DR-0669), so only versions of the
+    same build are compared. A version the writer failed to produce (error,
+    no body) is not measured."""
     out = {}
     for v in sorted(versions, key=lambda v: (str(v.get("created_at") or ""), str(v.get("id")))):
-        out.setdefault(v.get("teaching_row_id") or v.get("lesson_id"), []).append(v)
+        if not measurable(v):
+            continue
+        key = v.get("build_id") or v.get("teaching_row_id") or v.get("lesson_id")
+        out.setdefault(key, []).append(v)
     return out
 
 
@@ -216,6 +228,7 @@ def reference_of(vs, family=REFERENCE_FAMILY):
 def parity_row(ref, cand, report):
     fam = pc.writer_family(cand)
     return {
+        "build_id": cand.get("build_id"),
         "teaching_row_id": cand.get("teaching_row_id"),
         "lesson_id": cand.get("lesson_id"),
         "version_id": cand.get("id"),
@@ -243,7 +256,7 @@ def promotion_rows(parity_rows, existing_promos, now_iso):
     by = {}
     for r in sorted(parity_rows, key=lambda r: (str(r.get("version_created_at") or ""), str(r.get("version_id")))):
         k = (r.get("writer_family"), r.get("model_label") or "")
-        by.setdefault(k, {})[r.get("teaching_row_id")] = r  # later version of a teaching replaces the earlier
+        by.setdefault(k, {})[r.get("teaching_row_id") or r.get("build_id")] = r  # a later build of a teaching replaces the earlier
     out = []
     for k, per_teaching in sorted(by.items()):
         rows = sorted(per_teaching.values(), key=lambda r: (str(r.get("version_created_at") or ""), str(r.get("version_id"))))
@@ -313,7 +326,7 @@ def measure_pass(io, budget=None, now_iso=None):
     versions = io.list_versions()
     done = io.measured_keys()
     xref_done = io.crossref_versions()
-    for tid, vs in group_teachings(versions).items():
+    for bid, vs in group_builds(versions).items():
         if budget.exceeded():
             report["stopped"] = "time-budget (the next pass continues; no count cap)"
             break
@@ -321,9 +334,10 @@ def measure_pass(io, budget=None, now_iso=None):
         ref = reference_of(vs)
         if len(vs) >= 2:
             ids = sorted(str(v.get("id")) for v in vs)
-            if xref_done.get(tid) != ids:
+            if xref_done.get(str(bid)) != ids:
                 x = pc.crossref(vs, REFERENCE_FAMILY)
-                io.upsert_crossref({"teaching_row_id": tid, "lesson_id": vs[-1].get("lesson_id"),
+                io.upsert_crossref({"build_id": bid, "teaching_row_id": vs[-1].get("teaching_row_id"),
+                                    "lesson_id": vs[-1].get("lesson_id"),
                                     "version_ids": ids, "versions": x["versions"], "matrix": x["matrix"],
                                     "consensus": x["consensus"], "insights": x["insights"],
                                     "excluded": x["excluded"], "reference_vs_consensus": x["referenceVsConsensus"],
@@ -401,47 +415,98 @@ def fix_prompt(gap, example_path):
         "MEASURED EVIDENCE: %s" % json.dumps(evidence)[:4000],
         "STORED EXAMPLE (reference + tower version bodies, the parity row): %s" % example_path,
         "",
-        "Write ONE deterministic algorithmic fix (no model call inside it) in",
-        "infra/nas-lesson-parity/fixes/<name>.py following the interface in fixes/__init__.py",
-        "(GAP_CLASS, STAGE, apply(ctx)), add it to fixes.ENABLED, and add a test in",
-        "infra/nas-lesson-parity/test_lesson_parity.py that copies the stored example into",
-        "infra/nas-lesson-parity/fixtures/ and re-measures it with parity_core BEFORE and AFTER",
-        "the fix: the gap must be present before and smaller or gone after (proven-to-catch).",
+        "The current directory is a fresh worktree of main. Write ONE deterministic algorithmic fix",
+        "(no model call inside it) in infra/nas-lesson-parity/fixes/<name>.py following the interface",
+        "in fixes/__init__.py (GAP_CLASS = \"%s\", STAGE, apply(ctx)), and add it to fixes.ENABLED." % cls,
+        "Copy the stored example into infra/nas-lesson-parity/fixtures/ and add a test class to",
+        "infra/nas-lesson-parity/test_lesson_parity.py that re-measures it with parity_core BEFORE and",
+        "AFTER the fix: the gap must be present before and smaller or gone after (proven-to-catch).",
         "Verses are quoted only from app/public/bible/kjv, verbatim. No model identifier in any file.",
-        "",
-        "Work in a fresh worktree off origin/main on branch claude/parity-fix-%s-%s." % (cls, time.strftime("%Y%m%d")),
-        "Run: cd infra/nas-lesson-parity && python3 -m unittest test_lesson_parity -v. Commit with a plain subject.",
-        "Push with git push -u origin <branch>; the lane opens the PR.",
-        "End your reply with two lines: BRANCH: <branch> and PR: <url or none>.",
+        "Run: cd infra/nas-lesson-parity && python3 -m unittest test_lesson_parity -v until it passes.",
+        "Do NOT commit or push: the loop re-runs the tests itself, then commits and pushes the branch.",
     ])
 
 
 def parse_writer_output(stdout):
     """The writer's JSON report (claude -p --output-format json) or plain text."""
     turns, text = None, stdout or ""
+    if isinstance(text, bytes):
+        text = text.decode("utf-8", "replace")
     try:
-        d = json.loads(stdout)
+        d = json.loads(text)
         if isinstance(d, dict):
             turns = d.get("num_turns")
             text = str(d.get("result") or "")
     except (ValueError, TypeError):
         pass
-    branch = pr = None
-    for line in text.splitlines():
-        s = line.strip()
-        if s.startswith("BRANCH:"):
-            branch = s.split(":", 1)[1].strip() or None
-        elif s.startswith("PR:"):
-            v = s.split(":", 1)[1].strip()
-            pr = None if v.lower() in ("", "none") else v
-    return {"turns": turns, "branch": branch, "pr": pr, "text": text[-2000:]}
+    return {"turns": turns, "text": text[-2000:]}
 
 
-def run_writer(cmd_template, prompt, cwd, max_seconds, max_turns, runner=subprocess.run):
-    """Run the configured writer once. The wall-clock ceiling kills it."""
-    cmd = shlex.split(cmd_template.replace("{max_turns}", str(max_turns)))
+# The tools the fix run may use: read and edit files in its worktree, and run
+# the Python tests. No git, no network tools: the loop owns commit and push.
+FIX_TOOLS = "Read Edit Write Glob Grep Bash(python3:*)"
+
+
+def builder_writer(env=None, loader=None):
+    """The fix writer, by default the SAME Claude Code CLI the NAS lesson
+    builder writes with (DR-0669): its entry in lesson-writers.json (or the
+    builder's default when that file is absent), resolved by the builder's own
+    code -- the binary, the signed-in user it runs as, and the model and label
+    from NAS config. -> ({argv_prefix, bin, model, label, name}, None) or
+    (None, why). Only a local CLI can edit this machine's worktree, so an
+    SSH-only Claude writer is reported, not used."""
+    env = os.environ if env is None else env
     try:
-        res = runner(cmd, input=prompt, capture_output=True, text=True, timeout=max_seconds, cwd=cwd)
+        lw = loader() if loader else _load_builder_writer()
+    except Exception as e:  # noqa: BLE001 -- the reason is the report
+        return None, "the lesson builder's writer code is not on this checkout (%s)" % e
+    configs = lw.load_writer_configs(env)
+    claude = [c for c in configs if str(c.get("kind")) == "cli-local"
+              and str(c.get("family") or "claude").lower() == "claude"]
+    if not claude:
+        return None, "no local Claude Code CLI writer in the builder's config (lesson-writers.json)"
+    cfg = sorted(claude, key=lambda c: (not c.get("primary"), str(c.get("name") or "")))[0]
+    b = lw.find_cli(cfg, env)
+    if not b:
+        return None, "the builder's Claude writer %r has no claude binary on this machine" % (cfg.get("name") or cfg.get("kind"))
+    prefix, _remote = lw._cli_prefix(cfg, env)
+    return {"prefix": prefix, "bin": b, "model": (cfg.get("model") or "").strip(),
+            "label": cfg.get("label") or cfg.get("model") or cfg.get("kind"),
+            "name": cfg.get("name") or cfg.get("kind")}, None
+
+
+def _load_builder_writer():
+    here = os.path.join(os.path.dirname(HERE), "nas-lesson-builder")
+    if here not in sys.path:
+        sys.path.insert(0, here)
+    import lesson_writer  # noqa: E402
+    return lesson_writer
+
+
+def writer_argv(env, max_turns, loader=None):
+    """-> (argv, label, None) or (None, None, why). PARITY_FIX_CMD is an
+    OPTIONAL override ({max_turns} is filled in); by default the builder's
+    Claude writer is used."""
+    override = (env.get("PARITY_FIX_CMD") or "").strip()
+    if override:
+        return shlex.split(override.replace("{max_turns}", str(max_turns))), env.get("PARITY_FIX_MODEL_LABEL", "override"), None
+    w, why = builder_writer(env, loader)
+    if w is None:
+        return None, None, why
+    argv = w["prefix"] + [w["bin"], "-p", "--output-format", "json", "--no-session-persistence",
+                          "--max-turns", str(max_turns), "--allowedTools", FIX_TOOLS]
+    if w["model"]:
+        argv += ["--model", w["model"]]
+    return argv, w["label"], None
+
+
+def run_writer(argv, prompt, cwd, max_seconds, max_turns, runner=subprocess.run):
+    """Run the writer once in the worktree. The wall-clock ceiling kills it;
+    the turn budget is passed to it and checked on its report."""
+    if isinstance(argv, str):
+        argv = shlex.split(argv.replace("{max_turns}", str(max_turns)))
+    try:
+        res = runner(argv, input=prompt, capture_output=True, text=True, timeout=max_seconds, cwd=cwd)
     except subprocess.TimeoutExpired:
         return {"status": "budget-stopped", "why": "wall-clock ceiling %ds reached; the run was killed" % max_seconds}
     except OSError as e:
@@ -450,13 +515,59 @@ def run_writer(cmd_template, prompt, cwd, max_seconds, max_turns, runner=subproc
     if out["turns"] is not None and out["turns"] > max_turns:
         return {"status": "budget-stopped", "why": "turn budget exceeded (%s > %d)" % (out["turns"], max_turns), **out}
     if res.returncode != 0:
-        return {"status": "failed", "why": "writer exited %d: %s" % (res.returncode, (res.stderr or "")[-500:]), **out}
-    if not out["branch"]:
-        return {"status": "failed", "why": "no BRANCH line: nothing was pushed", **out}
-    return {"status": "pushed", "why": "", **out}
+        return {"status": "failed", "why": "writer exited %d: %s" % (res.returncode, str(res.stderr or "")[-500:]), **out}
+    return {"status": "written", "why": "", **out}
 
 
-def fix_step(io, env=None, data_dir=DATA, repo=REPO, now=None, runner=subprocess.run):
+class Lane:
+    """The git side of a fix, owned by the loop (never by the model): the
+    builder's own Git (its clone, its token, DR-0669) in this service's data
+    dir. prepare -> a fresh worktree of main; verify -> the loop re-runs the
+    parity tests itself and requires a fix enabled for the class; publish ->
+    commit + push, and the lane opens the PR."""
+
+    def __init__(self, data_dir):
+        here = os.path.join(os.path.dirname(HERE), "nas-lesson-builder")
+        if here not in sys.path:
+            sys.path.insert(0, here)
+        import lesson_builder  # noqa: E402
+        # The builder's own clone and token (one clone on the box, never the
+        # services-sync mirror); each fix gets its own worktree and branch.
+        self.git = lesson_builder.Git(data_dir=lesson_builder.DATA)
+
+    def prepare(self, branch, key):
+        self.git.fetch()
+        wt = self.git.worktree_add(branch, key)
+        subprocess.run(["chmod", "-R", "a+rwX", wt], check=False)  # the signed-in writer edits here
+        return wt
+
+    def verify(self, wt, gap_class):
+        d = os.path.join(wt, "infra", "nas-lesson-parity")
+        t = subprocess.run(["python3", "-m", "unittest", "test_lesson_parity"], cwd=d, capture_output=True, text=True, timeout=900)
+        if t.returncode != 0:
+            return False, "the parity tests fail in the fix's worktree: " + (t.stderr or "")[-400:]
+        c = subprocess.run(["python3", "-c", "import fixes, json; print(json.dumps(fixes.closes()))"], cwd=d,
+                           capture_output=True, text=True, timeout=120)
+        try:
+            closes = json.loads(c.stdout or "{}")
+        except ValueError:
+            closes = {}
+        if gap_class not in closes:
+            return False, "no enabled fix declares GAP_CLASS %r" % gap_class
+        return True, ""
+
+    def publish(self, wt, branch, subject, body):
+        self.git.commit(wt, subject, body)
+        self.git.push(wt, branch)
+
+    def cleanup(self, wt):
+        try:
+            self.git.worktree_remove(wt)
+        except Exception:  # noqa: BLE001
+            pass
+
+
+def fix_step(io, env=None, data_dir=DATA, repo=REPO, now=None, runner=subprocess.run, lane=None, loader=None):
     env = os.environ if env is None else env
     now = time.time() if now is None else now
     go, why = kill_state(repo, "fix")
@@ -469,9 +580,10 @@ def fix_step(io, env=None, data_dir=DATA, repo=REPO, now=None, runner=subprocess
             time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(st["pausedUntil"])), FIX_MAX_FAILURES)}
     if not acquire_lock(data_dir, "fix", now):
         return {"ran": False, "stopped": "lock: a fix step is already running"}
+    wt = None
     try:
-        cmd = env.get("PARITY_FIX_CMD", "").strip()
-        gap = pick_gap(io.list_parity(), io.list_fixes(), now, writer_ready=bool(cmd))
+        argv, label, no_writer = writer_argv(env, FIX_MAX_TURNS, loader)
+        gap = pick_gap(io.list_parity(), io.list_fixes(), now, writer_ready=argv is not None)
         if gap is None:
             return {"ran": False, "stopped": "no recurring tower gap without an open fix"}
         ex = gap["example"]
@@ -481,6 +593,7 @@ def fix_step(io, env=None, data_dir=DATA, repo=REPO, now=None, runner=subprocess
         os.makedirs(os.path.dirname(ex_path), exist_ok=True)
         with open(ex_path, "w", encoding="utf-8") as f:
             json.dump(example, f, indent=1)
+        os.chmod(ex_path, 0o644)
         prompt = fix_prompt(gap, ex_path)
         row = {"gap_class": gap["gap_class"], "writer_family": gap["writer_family"], "occurrences": gap["count"],
                "example_parity_id": ex.get("id"), "example_version_id": ex.get("version_id"),
@@ -488,21 +601,33 @@ def fix_step(io, env=None, data_dir=DATA, repo=REPO, now=None, runner=subprocess
                           "evidence": next((g.get("evidence") for g in ex.get("gaps") or [] if g.get("class") == gap["gap_class"]), {})},
                "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(), "prompt_text": prompt,
                "budget": {"maxSeconds": FIX_MAX_SECONDS, "maxTurns": FIX_MAX_TURNS},
-               "writer_label": env.get("PARITY_FIX_MODEL_LABEL", "")}
-        if not cmd:
-            row.update({"status": "awaiting-writer",
-                        "detail": "PARITY_FIX_CMD is not set on this machine: the prompt is stored here, ready for the writer"})
+               "writer_label": label or ""}
+        if argv is None:
+            row.update({"status": "awaiting-writer", "detail": no_writer})
             io.insert_fix(row)
-            return {"ran": False, "stopped": "no writer configured (PARITY_FIX_CMD)", "gap": gap["gap_class"]}
+            return {"ran": False, "stopped": "no writer: " + no_writer, "gap": gap["gap_class"]}
+        lane = lane or Lane(data_dir)
+        branch = "claude/parity-fix-%s-%s" % (gap["gap_class"], time.strftime("%Y%m%d%H%M", time.gmtime(now)))
         t0 = time.monotonic()
-        res = run_writer(cmd, prompt, env.get("PARITY_FIX_WORKDIR") or repo, FIX_MAX_SECONDS, FIX_MAX_TURNS, runner)
+        wt = lane.prepare(branch, "fix-%s" % ex.get("version_id"))
+        res = run_writer(argv, prompt, wt, FIX_MAX_SECONDS, FIX_MAX_TURNS, runner)
+        if res["status"] == "written":
+            ok, why = lane.verify(wt, gap["gap_class"])
+            if ok:
+                lane.publish(wt, branch,
+                             "DR-0671 parity fix: %s for the %s tower writer" % (gap["gap_class"], gap["writer_family"]),
+                             "Seen in %d of the last %d teachings. Evidence: %s" % (gap["count"], RECURRING_WINDOW, json.dumps(row["before"]["evidence"])[:1500]))
+                res.update({"status": "pushed", "branch": branch})
+            else:
+                res.update({"status": "failed", "why": why})
         row.update({"status": res["status"], "detail": res.get("why") or "", "branch": res.get("branch"),
-                    "pr_url": res.get("pr"), "turns": res.get("turns"),
-                    "elapsed_ms": int((time.monotonic() - t0) * 1000)})
+                    "turns": res.get("turns"), "elapsed_ms": int((time.monotonic() - t0) * 1000)})
         io.insert_fix(row)
         note_outcome(data_dir, res["status"] == "pushed", now)
         return {"ran": True, "status": res["status"], "gap": gap["gap_class"], "branch": res.get("branch")}
     finally:
+        if wt and lane:
+            lane.cleanup(wt)
         release_lock(data_dir, "fix")
 
 
@@ -536,7 +661,8 @@ class SupabaseIO:
             offset += self.PAGE
 
     def list_versions(self):
-        return self._all("lesson_versions", "select=*&order=created_at.asc")
+        return self._all("lesson_versions", "select=id,build_id,teaching_row_id,lesson_id,writer,family,model_label,"
+                         "prompt_sha256,body,gate_results,error,backfill,created_at&order=created_at.asc")
 
     def get_version(self, vid):
         if not vid:
@@ -545,7 +671,7 @@ class SupabaseIO:
         return rows[0] if rows else None
 
     def list_parity(self):
-        return self._all("lesson_parity", "select=id,teaching_row_id,lesson_id,version_id,reference_version_id,"
+        return self._all("lesson_parity", "select=id,build_id,teaching_row_id,lesson_id,version_id,reference_version_id,"
                          "writer,writer_family,model_label,parity_score,passed,gaps,gap_classes,measure_version,"
                          "version_created_at,measured_at&measure_version=eq." + pc.MEASURE_VERSION + "&order=measured_at.asc")
 
@@ -553,8 +679,8 @@ class SupabaseIO:
         return set((str(r["version_id"]), str(r["reference_version_id"]), r["measure_version"]) for r in self.list_parity())
 
     def crossref_versions(self):
-        rows = self._all("lesson_crossref", "select=teaching_row_id,version_ids,measure_version")
-        return {r["teaching_row_id"]: sorted(r.get("version_ids") or []) for r in rows
+        rows = self._all("lesson_crossref", "select=build_id,version_ids,measure_version")
+        return {str(r["build_id"]): sorted(r.get("version_ids") or []) for r in rows
                 if r.get("measure_version") == pc.MEASURE_VERSION}
 
     def upsert_parity(self, row):
@@ -562,7 +688,7 @@ class SupabaseIO:
                   row, prefer="resolution=merge-duplicates,return=minimal")
 
     def upsert_crossref(self, row):
-        self._req("POST", "/rest/v1/lesson_crossref?on_conflict=teaching_row_id", row,
+        self._req("POST", "/rest/v1/lesson_crossref?on_conflict=build_id", row,
                   prefer="resolution=merge-duplicates,return=minimal")
 
     def list_promotions(self):

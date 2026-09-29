@@ -287,6 +287,88 @@ class MeasurePass(unittest.TestCase):
         self.assertEqual(io.promos[("ollama", "tower-a")]["status"], "ready")
 
 
+class FakeLW:
+    """Stands in for the builder's lesson_writer (DR-0669): the same three calls."""
+
+    def __init__(self, configs=None, binary="/usr/local/bin/claude"):
+        self.configs = configs if configs is not None else [
+            {"name": "claude-nas", "kind": "cli-local", "primary": True, "model": "from-nas-config", "label": "house-claude"},
+            {"name": "tower", "kind": "ollama", "family": "ollama"}]
+        self.binary = binary
+
+    def load_writer_configs(self, env):
+        return self.configs
+
+    def find_cli(self, cfg, env):
+        return self.binary
+
+    def _cli_prefix(self, cfg, env):
+        return ["sudo", "-n", "-u", "dpoe", "-H", "--"], False
+
+
+class FakeLane:
+    def __init__(self, tmp, verify=(True, "")):
+        self.tmp, self._verify, self.published, self.cleaned = tmp, verify, [], False
+
+    def prepare(self, branch, key):
+        wt = os.path.join(self.tmp, "wt-" + key)
+        os.makedirs(wt, exist_ok=True)
+        return wt
+
+    def verify(self, wt, gap_class):
+        return self._verify
+
+    def publish(self, wt, branch, subject, body):
+        self.published.append((branch, subject))
+
+    def cleanup(self, wt):
+        self.cleaned = True
+
+
+def ok_runner(turns=5):
+    def runner(cmd, **kw):
+        return subprocess.CompletedProcess(cmd, 0, json.dumps({"num_turns": turns, "result": "done"}), "")
+    return runner
+
+
+class TheFixWriterIsTheBuildersClaude(unittest.TestCase):
+    """No new step for Darrell: the fix runs on the same Claude Code CLI the builder writes with."""
+
+    def test_argv_comes_from_the_builders_config(self):
+        argv, label, why = pl.writer_argv({}, 40, loader=lambda: FakeLW())
+        self.assertIsNone(why)
+        self.assertEqual(argv[:7], ["sudo", "-n", "-u", "dpoe", "-H", "--", "/usr/local/bin/claude"])
+        self.assertIn("--max-turns", argv)
+        self.assertEqual(argv[argv.index("--max-turns") + 1], "40")
+        self.assertEqual(argv[argv.index("--model") + 1], "from-nas-config")
+        self.assertEqual(label, "house-claude")
+        self.assertNotIn("git", argv[argv.index("--allowedTools") + 1])  # the loop owns git
+
+    def test_no_model_in_config_means_no_model_flag(self):
+        argv, _, _ = pl.writer_argv({}, 40, loader=lambda: FakeLW([{"name": "c", "kind": "cli-local"}]))
+        self.assertNotIn("--model", argv)
+
+    def test_an_ssh_only_or_missing_claude_is_reported_not_guessed(self):
+        _, _, why = pl.writer_argv({}, 40, loader=lambda: FakeLW([{"name": "c", "kind": "cli-ssh", "target": "x"}]))
+        self.assertIn("no local Claude Code CLI writer", why)
+        _, _, why2 = pl.writer_argv({}, 40, loader=lambda: FakeLW(binary=""))
+        self.assertIn("no claude binary", why2)
+
+    def test_parity_fix_cmd_is_only_an_override(self):
+        argv, label, _ = pl.writer_argv({"PARITY_FIX_CMD": "mycli --turns {max_turns}", "PARITY_FIX_MODEL_LABEL": "x"}, 9,
+                                        loader=lambda: FakeLW())
+        self.assertEqual((argv, label), (["mycli", "--turns", "9"], "x"))
+
+    def test_the_real_builder_code_is_read(self):
+        # Against #1837's own lesson_writer (DR-0669): with no writers file, its
+        # default list starts with the local Claude CLI.
+        env = {"LESSON_WRITERS_FILE": "/nonexistent/lesson-writers.json", "LESSON_CLI_BIN": "/bin/sh"}
+        argv, label, why = pl.writer_argv(env, 12)
+        self.assertIsNone(why, why)
+        self.assertIn("/bin/sh", argv)
+        self.assertEqual(argv[argv.index("--max-turns") + 1], "12")
+
+
 class Brakes(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
@@ -364,40 +446,53 @@ class Brakes(unittest.TestCase):
         self.assertEqual(r["status"], "budget-stopped")
 
     # --- the step end to end ---------------------------------------------
-    def test_no_writer_configured_stores_the_ready_prompt(self):
-        r = pl.fix_step(self.io, env={}, data_dir=self.data, repo=self.repo)
+    def no_builder(self):
+        raise ImportError("no lesson_writer")
+
+    def test_no_writer_stores_the_ready_prompt_and_a_writer_then_runs_it(self):
+        r = pl.fix_step(self.io, env={}, data_dir=self.data, repo=self.repo, loader=self.no_builder)
         self.assertEqual(r["gap"], "missing-verse-retrieval")
         self.assertEqual(self.io.fixes[0]["status"], "awaiting-writer")
         self.assertIn("missing-verse-retrieval", self.io.fixes[0]["prompt_text"])
-        # an open fix blocks a second request for the same class
-        r2 = pl.fix_step(self.io, env={}, data_dir=self.data, repo=self.repo)
-        self.assertNotEqual(r2.get("gap"), "missing-verse-retrieval")
-        # once the writer is set on the NAS, the waiting class is run for real
-        def runner(cmd, **kw):
-            return subprocess.CompletedProcess(cmd, 0, "BRANCH: claude/parity-fix-y\nPR: none", "")
-        r3 = pl.fix_step(self.io, env={"PARITY_FIX_CMD": "claude -p"}, data_dir=self.data, repo=self.repo, runner=runner)
+        r2 = pl.fix_step(self.io, env={}, data_dir=self.data, repo=self.repo, loader=self.no_builder)
+        self.assertNotEqual(r2.get("gap"), "missing-verse-retrieval")  # an open request blocks a second
+        # once a writer exists, the waiting class is run for real
+        lane = FakeLane(self.tmp)
+        r3 = pl.fix_step(self.io, env={}, data_dir=self.data, repo=self.repo, runner=ok_runner(),
+                         lane=lane, loader=lambda: FakeLW())
         self.assertEqual((r3["gap"], r3["status"]), ("missing-verse-retrieval", "pushed"))
 
-    def test_a_pushed_fix_is_recorded(self):
-        def runner(cmd, **kw):
-            return subprocess.CompletedProcess(cmd, 0, json.dumps({"num_turns": 7, "result": "done\nBRANCH: claude/parity-fix-x\nPR: none"}), "")
-        r = pl.fix_step(self.io, env={"PARITY_FIX_CMD": "claude -p"}, data_dir=self.data, repo=self.repo, runner=runner)
-        self.assertEqual((r["status"], r["branch"]), ("pushed", "claude/parity-fix-x"))
+    def test_a_pushed_fix_is_verified_by_the_loop_then_published(self):
+        lane = FakeLane(self.tmp)
+        r = pl.fix_step(self.io, env={}, data_dir=self.data, repo=self.repo, runner=ok_runner(7),
+                        lane=lane, loader=lambda: FakeLW())
+        self.assertEqual(r["status"], "pushed")
+        self.assertTrue(r["branch"].startswith("claude/parity-fix-missing-verse-retrieval-"))
+        self.assertEqual(lane.published[0][0], r["branch"])
         self.assertEqual(self.io.fixes[0]["turns"], 7)
+        self.assertEqual(self.io.fixes[0]["writer_label"], "house-claude")
+        self.assertTrue(lane.cleaned)
         self.assertFalse(os.path.exists(os.path.join(self.data, "fix.lock")))  # released
+
+    def test_a_fix_whose_tests_fail_is_never_pushed(self):
+        lane = FakeLane(self.tmp, verify=(False, "the parity tests fail"))
+        r = pl.fix_step(self.io, env={}, data_dir=self.data, repo=self.repo, runner=ok_runner(),
+                        lane=lane, loader=lambda: FakeLW())
+        self.assertEqual(r["status"], "failed")
+        self.assertEqual(lane.published, [])  # PROVEN-TO-CATCH: the model's word is not the proof
 
     def test_auto_pause_after_three_failures_and_it_decays(self):
         def runner(cmd, **kw):
             return subprocess.CompletedProcess(cmd, 1, "", "boom")
         now = time.time()
+        kw = dict(env={}, data_dir=self.data, repo=self.repo, runner=runner, loader=lambda: FakeLW())
         for i in range(pl.FIX_MAX_FAILURES):
             self.io.fixes.clear()
-            pl.fix_step(self.io, env={"PARITY_FIX_CMD": "x"}, data_dir=self.data, repo=self.repo, now=now, runner=runner)
-        r = pl.fix_step(self.io, env={"PARITY_FIX_CMD": "x"}, data_dir=self.data, repo=self.repo, now=now + 60, runner=runner)
+            pl.fix_step(self.io, now=now, lane=FakeLane(self.tmp), **kw)
+        r = pl.fix_step(self.io, now=now + 60, lane=FakeLane(self.tmp), **kw)
         self.assertTrue(r["stopped"].startswith("auto-paused"))
-        later = now + pl.FIX_PAUSE_HOURS * 3600 + 1
         self.io.fixes.clear()
-        r2 = pl.fix_step(self.io, env={"PARITY_FIX_CMD": "x"}, data_dir=self.data, repo=self.repo, now=later, runner=runner)
+        r2 = pl.fix_step(self.io, now=now + pl.FIX_PAUSE_HOURS * 3600 + 1, lane=FakeLane(self.tmp), **kw)
         self.assertTrue(r2["ran"])
 
     def test_the_reference_writer_is_never_given_a_fix(self):

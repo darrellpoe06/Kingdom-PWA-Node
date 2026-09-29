@@ -4,7 +4,7 @@
 // =============================================================================
 // Darrell 2026-09-29: "claude needs to create the specific algorithmic fixes for
 // our workflows to work on the towers". The panel shows what the NAS parity
-// loop measured, read over a fake database that answers like migration 0240:
+// loop measured, read over a fake database that answers like migration 0242:
 // the Governor reads the four tables, anyone else reads nothing; Hold goes
 // through set_lesson_parity_hold and a held ready writer stays 'ready'.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -54,7 +54,7 @@ function seed() {
   DB.state.tables = {
     lesson_parity: [p(1, 0.81, false, ['missing-verse-retrieval', 'quiz-count']), p(2, 0.88, false, ['missing-verse-retrieval']), p(3, 0.97, true, [])],
     lesson_crossref: [{
-      teaching_row_id: 't3', lesson_id: 'll-3',
+      build_id: 'b3', teaching_row_id: 't3', lesson_id: 'll-3',
       versions: [{ id: 'c3', writer: 'claude' }, { id: 'o3', writer: 'ollama' }, { id: 'g3', writer: 'gemini' }],
       matrix: [{ a: 'c3', b: 'o3', aWriter: 'claude', bWriter: 'ollama', verses: 0.8, movements: 0.9, structure: 1, gates: 1, quizAnswers: 0.75 }],
       consensus: { eligible: 2, verses: { all: [{ verse: 'Deuteronomy 8:18' }], most: [], some: [], one: [] }, themes: { all: [], most: [], some: [], one: [] } },

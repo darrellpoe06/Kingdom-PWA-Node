@@ -7,7 +7,7 @@
 // fixes for our workflows to work on the towers etc..."
 //
 // Reads what the NAS loop (infra/nas-lesson-parity) measured, from four
-// Governor-only tables (migration 0240): lesson_parity, lesson_crossref,
+// Governor-only tables (migration 0242): lesson_parity, lesson_crossref,
 // lesson_parity_fixes, lesson_parity_promotion. Every number shown is a stored
 // measurement; nothing here computes a score. His one write is the hold on a
 // promotion, through set_lesson_parity_hold().
@@ -111,7 +111,7 @@ export async function fetchTowerParity({ supabase }) {
   try {
     const [p, x, f, pr] = await Promise.all([
       supabase.from('lesson_parity').select('id,teaching_row_id,lesson_id,version_id,writer,writer_family,model_label,parity_score,passed,floors,gap_classes,same_prompt,version_created_at,measured_at').order('measured_at', { ascending: false }).limit(500),
-      supabase.from('lesson_crossref').select('teaching_row_id,lesson_id,versions,matrix,consensus,insights,excluded,reference_vs_consensus,measured_at').order('measured_at', { ascending: false }).limit(50),
+      supabase.from('lesson_crossref').select('build_id,teaching_row_id,lesson_id,versions,matrix,consensus,insights,excluded,reference_vs_consensus,measured_at').order('measured_at', { ascending: false }).limit(50),
       supabase.from('lesson_parity_fixes').select('id,gap_class,writer_family,occurrences,status,branch,pr_url,before,after,turns,elapsed_ms,detail,created_at').order('created_at', { ascending: false }).limit(50),
       supabase.from('lesson_parity_promotion').select('writer_family,model_label,tower,streak,required_n,threshold,teachings,ready,status,held,last_score,status_changed_at,updated_at'),
     ]);

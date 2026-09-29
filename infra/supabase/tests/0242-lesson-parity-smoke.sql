@@ -1,8 +1,8 @@
 -- =============================================================================
--- 0240 LESSON PARITY SMOKE — the parity tables are the Governor's alone
+-- 0242 LESSON PARITY SMOKE — the parity tables are the Governor's alone
 -- (DR-0671)
 -- =============================================================================
--- Run as postgres AFTER applying 0240, in a transaction that ROLLS BACK.
+-- Run as postgres AFTER applying 0242, in a transaction that ROLLS BACK.
 -- The Governor's email list is swapped for a test address INSIDE the
 -- transaction only (lesson_governor_emails), so no real account is touched.
 -- PROVES:
@@ -17,19 +17,19 @@ BEGIN;
 
 INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, created_at, updated_at)
 VALUES
-  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-a000-000000000240', 'authenticated','authenticated','gov0240@test.local','', now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'b0000000-0000-4000-a000-000000000240', 'authenticated','authenticated','mem0240@test.local','', now(), now());
+  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-a000-000000000242', 'authenticated','authenticated','gov0242@test.local','', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'b0000000-0000-4000-a000-000000000242', 'authenticated','authenticated','mem0242@test.local','', now(), now());
 
 CREATE OR REPLACE FUNCTION public.lesson_governor_emails()
 RETURNS text[] LANGUAGE sql IMMUTABLE
-AS $$ SELECT ARRAY['gov0240@test.local']::text[] $$;
+AS $$ SELECT ARRAY['gov0242@test.local']::text[] $$;
 
 INSERT INTO public.lesson_parity (id, teaching_row_id, lesson_id, version_id, reference_version_id, writer, writer_family,
   model_label, parity_score, passed, measure_version)
-VALUES ('d0000000-0000-4000-a000-000000000240', 'e0000000-0000-4000-a000-000000000240', 'll-smoke',
-  'e1000000-0000-4000-a000-000000000240', 'e2000000-0000-4000-a000-000000000240', 'ollama', 'ollama', 'smoke-label', 0.9612, true, 'parity-v1');
-INSERT INTO public.lesson_crossref (teaching_row_id, lesson_id, measure_version)
-VALUES ('e0000000-0000-4000-a000-000000000240', 'll-smoke', 'parity-v1');
+VALUES ('d0000000-0000-4000-a000-000000000242', 'e0000000-0000-4000-a000-000000000242', 'll-smoke',
+  'e1000000-0000-4000-a000-000000000242', 'e2000000-0000-4000-a000-000000000242', 'ollama', 'ollama', 'smoke-label', 0.9612, true, 'parity-v1');
+INSERT INTO public.lesson_crossref (build_id, teaching_row_id, lesson_id, measure_version)
+VALUES ('e3000000-0000-4000-a000-000000000242', 'e0000000-0000-4000-a000-000000000242', 'll-smoke', 'parity-v1');
 INSERT INTO public.lesson_parity_fixes (gap_class, writer_family, status)
 VALUES ('missing-verse-retrieval', 'ollama', 'awaiting-writer');
 INSERT INTO public.lesson_parity_promotion (writer_family, model_label, streak, required_n, threshold, ready, status)
@@ -65,8 +65,8 @@ END $$;
 
 DO $$
 DECLARE
-  gov uuid := 'a0000000-0000-4000-a000-000000000240';
-  mem uuid := 'b0000000-0000-4000-a000-000000000240';
+  gov uuid := 'a0000000-0000-4000-a000-000000000242';
+  mem uuid := 'b0000000-0000-4000-a000-000000000242';
   t text;
   s text;
 BEGIN
