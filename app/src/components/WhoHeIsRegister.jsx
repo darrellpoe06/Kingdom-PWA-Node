@@ -15,11 +15,13 @@
 // fast and a D-pad can walk the book headings; each heading is a real button.
 // No inner scroll container, so the page scrolls as one on the Firestick.
 // =============================================================================
-import React, { useState } from 'react';
+import React from 'react';
 import {
   registerFor, byBook, describeEntry, eraLabel, readableRefs, WHO_HE_IS_EDGE, PRESENT_LABEL, HOW_LABEL,
 } from '../lib/who-he-is.js';
 import { verseCount } from '../lib/bible-kjv.js';
+import { useOpenWithTheWord } from '../lib/show-the-word.js';
+import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 import VerseChips from './VerseChips.jsx';
 
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -67,25 +69,59 @@ export function EntryCard({ entry, onOpenLesson = null, lessonLabel = null }) {
   );
 }
 
-function BookGroup({ book, entries, openAll }) {
-  const [open, setOpen] = useState(false);
-  const shown = open || openAll;
+function BookGroup({ book, entries }) {
+  // A fold that holds the Word follows the page's Show the Word switch; a tap
+  // flips this one book on top of it (lib/show-the-word.js).
+  const [bookOpen, toggleBook] = useOpenWithTheWord();
   return (
     <div className="mt-2">
       <button
         type="button"
-        aria-expanded={shown}
-        onClick={() => setOpen((v) => !v)}
-        className={`${btn} w-full text-left border-[#E8E4DC] text-[#1A1815] bg-[#FAF8F4] hover:bg-[#F0EDE6]`}
+        aria-expanded={bookOpen}
+        onClick={toggleBook}
+        className={`${btn} w-full text-left border-[#E8E4DC] text-[#1A1815] bg-[#FAF8F4] hover:border-[#5A6E3D]`}
         style={serif}
       >
-        {shown ? '▾' : '▸'} {book} — {entries.length} {entries.length === 1 ? 'passage' : 'passages'}
+        {bookOpen ? '▾' : '▸'} {book} — {entries.length} {entries.length === 1 ? 'passage' : 'passages'}
       </button>
-      {shown && (
+      {bookOpen && (
         <ul className="mt-2 space-y-2">
           {entries.map((e) => <EntryCard key={e.id} entry={e} />)}
         </ul>
       )}
+    </div>
+  );
+}
+
+function Pointing({ pointing }) {
+  const [pointingOpen, togglePointing] = useOpenWithTheWord();
+  const byEra = [];
+  for (const e of pointing) {
+    let g = byEra.find((x) => x.era === e.when.era);
+    if (!g) { g = { era: e.when.era, entries: [] }; byEra.push(g); }
+    g.entries.push(e);
+  }
+  return (
+    <div className="mt-4">
+      <button
+        type="button"
+        aria-expanded={pointingOpen}
+        onClick={togglePointing}
+        className={`${btn} w-full text-left border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white`}
+        style={serif}
+      >
+        {pointingOpen ? '▾' : '▸'} Passages from other times that point here — {pointing.length}
+      </button>
+      {pointingOpen && byEra.map((g) => (
+        <div key={g.era} className="mt-2">
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={mono}>
+            Given in: {eraLabel(g.era)} — {g.entries.length}
+          </div>
+          <ul className="mt-1 space-y-2">
+            {g.entries.map((e) => <EntryCard key={e.id} entry={e} />)}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 }
@@ -113,60 +149,26 @@ function Edge() {
 }
 
 export default function WhoHeIsRegister({ spec }) {
-  const [openAll, setOpenAll] = useState(false);
-  const [showPointing, setShowPointing] = useState(false);
   if (!spec) return null;
   if (spec.edge) return <div className="mt-3"><Edge /></div>;
   const { primary, pointing } = registerFor(spec);
   const groups = byBook(primary);
-  const pointingByEra = [];
-  for (const e of pointing) {
-    let g = pointingByEra.find((x) => x.era === e.when.era);
-    if (!g) { g = { era: e.when.era, entries: [] }; pointingByEra.push(g); }
-    g.entries.push(e);
-  }
   return (
     <section className="mt-3 border-t border-[#E8E4DC] pt-3" aria-label="Every passage in this lesson">
       <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold" style={mono}>
         Every passage set here — {primary.length}
       </div>
       <p className="text-[0.75rem] text-[#5A5751] mt-1" style={serif}>
-        Each shows where, when, what, how, whether He was there, and Who He Is. Tap a reference to read the whole passage.
+        Each shows where, when, what, how, whether He was there, and Who He Is. Tap a book to open it, or show the Word to open every one; tap a reference to read the whole passage.
       </p>
+      <div className="mt-2"><ShowTheWordToggle /></div>
       {primary.length === 0 && (
         <p className="text-[0.75rem] text-[#1A1815] mt-2" style={serif}>
           No passage is set in this part of the line. The passages below point here from other times.
         </p>
       )}
-      {groups.length > 1 && (
-        <button type="button" onClick={() => setOpenAll((v) => !v)} className={`${btn} mt-2 border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white`}>
-          {openAll ? 'Close every book' : `Open all ${primary.length}`}
-        </button>
-      )}
-      {groups.map((g) => <BookGroup key={g.book} book={g.book} entries={g.entries} openAll={openAll || groups.length === 1} />)}
-      {pointing.length > 0 && (
-        <div className="mt-4">
-          <button
-            type="button"
-            aria-expanded={showPointing}
-            onClick={() => setShowPointing((v) => !v)}
-            className={`${btn} w-full text-left border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white`}
-            style={serif}
-          >
-            {showPointing ? '▾' : '▸'} Passages from other times that point here — {pointing.length}
-          </button>
-          {showPointing && pointingByEra.map((g) => (
-            <div key={g.era} className="mt-2">
-              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={mono}>
-                Given in: {eraLabel(g.era)} — {g.entries.length}
-              </div>
-              <ul className="mt-1 space-y-2">
-                {g.entries.map((e) => <EntryCard key={e.id} entry={e} />)}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
+      {groups.map((g) => <BookGroup key={g.book} book={g.book} entries={g.entries} />)}
+      {pointing.length > 0 && <Pointing pointing={pointing} />}
     </section>
   );
 }

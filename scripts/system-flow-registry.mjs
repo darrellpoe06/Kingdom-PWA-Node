@@ -228,6 +228,8 @@ const NODES = [
       { res: 'code:lessons', file: 'app/src/lib/sovereign-ai-class.js', token: 'Gmail-lesson-intake Way' },
       // DR-0639: a member's lesson, once published, is tagged on the hosted copy.
       { res: 'hosted:lesson-published', file: 'app/src/lib/lesson-review-messages.js', token: "PUBLISHED_TAG = 'lesson-published'" },
+      // DR-0672: the builder's progress (captured, its PR, the lesson id) on the hosted copy.
+      { res: 'hosted:lesson-progress', file: 'app/src/lib/lesson-pipeline.js', token: "PR_TAG = 'lesson-pr:'" },
     ],
     seeds: ['learn', 'lesson-voice'],
   },
@@ -261,11 +263,14 @@ const NODES = [
       // DR-0635: the Governor's decision on a member's lesson reaches the reader.
       { res: 'db:agent_inbox#lesson-review', token: 'list_reviewed_rows' },
       { res: 'hosted:lesson-published', token: 'list_published_rows' },
+      // DR-0672: the build's progress, carried back once each.
+      { res: 'hosted:lesson-progress', token: 'list_progress_rows' },
     ],
     writes: [
       { res: 'db:agent_inbox#voice-transcript', token: '"voice-transcript"' },
       { res: 'hosted:lesson-mirror', token: 'insert_hosted' },
       { res: 'db:agent_inbox#lesson-published', token: 'return_published_once' },
+      { res: 'db:agent_inbox#lesson-progress', token: 'return_progress_once' },
     ],
     seeds: ['lesson-capture', 'lesson-inbox'],
   }),
@@ -284,6 +289,14 @@ const NODES = [
       // DR-0635: approved (being written, name not used) or declined with the reason.
       { res: 'db:agent_inbox#lesson-review', file: 'app/src/lib/lesson-inbox.js', token: 'review_reason' },
       { res: 'db:agent_inbox#lesson-published', file: 'app/src/lib/lesson-inbox.js', token: 'publishedLessonOf' },
+      // DR-0672: each lesson's road, arrival to live — the Governor's two doors
+      // through my_lesson_rows() (0241), the build's progress, the PR read live
+      // through the OpsBoard's reads. (lesson_versions and lesson_decisions,
+      // defined by DR-0669's migration 0240, join this list once that migration
+      // is on main: the graph refuses a db: read of a table no migration creates.)
+      { res: 'db:agent_inbox#lesson', file: 'app/src/lib/lesson-inbox.js', token: "rpc('my_lesson_rows'" },
+      { res: 'db:agent_inbox#lesson-progress', file: 'app/src/lib/lesson-inbox.js', token: 'progressTags' },
+      { res: 'gh:pr', file: 'app/src/lib/lesson-pipeline.js', token: 'fetchLessonPrs' },
     ],
     writes: [{ res: 'event:use-prompt', file: 'app/src/components/LessonInbox.jsx', token: 'sendPromptToBox' }],
     seeds: ['lesson-door'],
@@ -302,6 +315,40 @@ const NODES = [
       { res: 'db:direct_messages', file: 'app/src/lib/lesson-review-messages.js', token: 'deps.sendDirectMessage' },
     ],
     seeds: ['lesson-voice', 'lesson-inbox'],
+  }),
+
+  // DR-0671: the tower parity loop. Every tower version of a lesson is measured
+  // against the Claude reference, by code; recurring gaps become algorithmic
+  // fixes Claude writes as PRs; a tower that holds parity becomes primary.
+  rider('service:lesson-parity', 'infra/nas-lesson-parity/parity_loop.py', {
+    id: 'lesson-parity', name: 'Tower parity loop (measure, gap, fix, promote)',
+    purpose: 'Measures each tower lesson against the Claude reference with deterministic code, cross-references every version, asks Claude for an algorithmic fix to each recurring gap, and promotes a tower that holds parity (DR-0671).',
+    reads: [
+      { res: 'db:lesson_versions', token: 'lesson_versions' },
+      { res: 'db:lesson_parity_promotion#hold', token: 'list_promotions' },
+      { res: 'nas:services', file: 'infra/nas-lesson-parity/install.sh', token: 'services-sync' },
+    ],
+    writes: [
+      { res: 'db:lesson_parity', token: 'upsert_parity' },
+      { res: 'db:lesson_crossref', token: 'upsert_crossref' },
+      { res: 'db:lesson_parity_fixes', token: 'insert_fix' },
+      { res: 'db:lesson_parity_promotion', token: 'upsert_promotion' },
+    ],
+    // The fix step pushes a branch the lane opens as a PR (gh:branch is the
+    // lane's declared outside source, so it is not re-declared here).
+    seeds: ['tower-parity'],
+  }),
+  app('app/src/components/TowerParity.jsx', {
+    id: 'tower-parity', name: 'Tower parity (the Governor)',
+    purpose: 'Per tower writer: parity over time, open gap classes, fixes written, promotion status; per lesson: every version against every other and the consensus. His Hold is the brake on a promotion (DR-0671).',
+    reads: [
+      { res: 'db:lesson_parity', file: 'app/src/lib/tower-parity.js', token: "from('lesson_parity')" },
+      { res: 'db:lesson_crossref', file: 'app/src/lib/tower-parity.js', token: "from('lesson_crossref')" },
+      { res: 'db:lesson_parity_fixes', file: 'app/src/lib/tower-parity.js', token: "from('lesson_parity_fixes')" },
+      { res: 'db:lesson_parity_promotion', file: 'app/src/lib/tower-parity.js', token: "from('lesson_parity_promotion')" },
+    ],
+    writes: [{ res: 'db:lesson_parity_promotion#hold', file: 'app/src/lib/tower-parity.js', token: "rpc('set_lesson_parity_hold'" }],
+    seeds: ['lesson-parity'],
   }),
 
   // ===========================================================================
@@ -640,7 +687,7 @@ const NODES = [
     id: 'services-sync', name: 'NAS self-deploy (services-sync)', purpose: 'Merging a service to main IS its NAS deploy.',
     reads: [{ res: 'nas:mirror', token: 'services.json' }, { res: 'nas:clock', file: 'infra/nas-loops/install-clock.sh', token: 'run.mjs' }],
     writes: [{ res: 'nas:services', token: 'install' }],
-    seeds: ['ops-runner', 'lesson-voice', 'family-key', 'transcript-trickle', 'choir-dates', 'agent-consumer'],
+    seeds: ['ops-runner', 'lesson-voice', 'family-key', 'transcript-trickle', 'choir-dates', 'agent-consumer', 'lesson-parity'],
   }),
   wf('nas-clock.yml', {
     id: 'nas-clock', name: 'NAS clock', purpose: 'Gives the NAS loop fleet its clock.',
@@ -887,6 +934,8 @@ proof.reads = [
 // proof: { ts, fresh (days), consumed (SQL predicate), where (facet) }.
 // ---------------------------------------------------------------------------
 const RESOURCES = {
+  // DR-0671: written by the NAS lesson builder (DR-0669), which is in flight.
+  'db:lesson_versions': { label: 'every writer\u2019s version of a lesson', open: { blocker: 'Its writer is the NAS lesson builder (DR-0669, branch claude/nas-lesson-builder), not on main yet; 0240 creates the table in its documented shape so the parity loop and this graph stand now.', reReview: '2026-10-06' } },
   'db:feedback': { label: 'feedback notes', proof: { ts: 'submitted_at', fresh: 14, consumed: "triage_status <> 'new'", where: "feedback_text !~* '^\\s*\\[learn engagement\\]'" } },
   'db:feedback#triaged': { label: 'feedback notes a steward has answered', proof: { ts: 'submitted_at', fresh: 30, where: "triage_status <> 'new' AND feedback_text !~* '^\\s*\\[learn engagement\\]'", consumed: "triage_status IN ('fixed','declined')" } },
   'db:concerns': { label: 'concerns', proof: { ts: 'updated_at', fresh: 21 } },
@@ -908,6 +957,8 @@ const RESOURCES = {
   'db:agent_inbox#poetech': { label: 'PoeTech requests relayed to the inbox', proof: { ts: 'created_at', fresh: 60, where: "tags ? 'tell-poetech'" },
     open: { blocker: 'Nothing reads these rows (measured 2026-09-24: no code, NAS job or routine reads the tell-poetech tag). The same words now also reach the feedback queue; this relay retires once a PoeTech request is seen landing there on the live database, not before (never dismantle what may still deliver until its replacement is proven).', reReview: '2026-10-01' } },
   'hosted:lesson-mirror': { label: 'lessons carried to the cloud reader (DR-0614)' },
+  'hosted:lesson-progress': { label: 'the lesson builder\u2019s progress on the hosted copy: captured, its PR, the lesson id (DR-0672)' },
+  'db:agent_inbox#lesson-progress': { label: 'lessons the builder has captured', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'lesson-captured'" } },
   'db:saved_prompts': { label: 'kept prompts', proof: { ts: 'last_used_at', fresh: 30, consumed: 'use_count > 1' } },
   'db:agent_tasks': { label: 'questions to the models', proof: { ts: 'created_at', fresh: 30, consumed: "status <> 'queued'" } },
   'db:agent_tasks#answered': { label: 'answers from the NAS agent', proof: { ts: 'updated_at', fresh: 30, where: "status IN ('done','failed','error')" } },
