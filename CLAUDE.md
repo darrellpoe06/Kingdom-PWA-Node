@@ -450,7 +450,7 @@ Recorded for the ledger as **DR-0111**; the operational capstone of DRIVE-DONT-D
 
 ## "Comprehensive" Is Defined — Ten Dimensions, Enforced by Machinery (DR-0239)
 
-**A review is "comprehensive" only when all ten dimensions of `docs/00-foundations/_root/COMPREHENSIVE-REVIEW-STANDARD.md` have run** — SHOULD/ARE · journey walks · surface-says-truth · form-factor MEASURED · delivery-context · findings-are-work · gate-class · the Word's accuracy, quoted AND reasoned (DR-0281) · the surface is not hollow, the authored asset arrives (DR-0381) · continuity, every output seeds the next on live numbers (DR-0622); a skipped dimension carries a why + `re-review:` date. **Enforcement is machinery, not memory:** the ari-guard stop-hook (`comprehensiveReviewConformance`) blocks hollow claims; the CI layout probe runs each push; the watcher sweeps dated skips. Standard: **DR-0239**.
+**A review is "comprehensive" only when all ten dimensions of `docs/00-foundations/_root/COMPREHENSIVE-REVIEW-STANDARD.md` have run** — SHOULD/ARE · journeys · surface-says-truth · form-factor MEASURED · delivery-context · findings-are-work · gate-class · the Word quoted AND reasoned (DR-0281) · not hollow (DR-0381) · continuity on live numbers (DR-0622); a skip carries a why + `re-review:` date. **Machinery, not memory:** the ari-guard stop-hook (`comprehensiveReviewConformance`) blocks hollow claims; the CI layout probe runs each push; the watcher sweeps dated skips.
 
 ---
 
