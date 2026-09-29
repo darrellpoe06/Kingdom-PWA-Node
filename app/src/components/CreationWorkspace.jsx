@@ -47,18 +47,28 @@ const TOOLS = [
   { cmd: 'underline', label: 'U', title: 'Underline', style: { textDecoration: 'underline' } },
 ];
 
-export default function CreationWorkspace({
+// The Create page (DR-0679, amending DR-0678). Darrell 2026-09-29: "Why take
+// away my type texting place?!!!!!!!!!!!! Where is it?!!!!!!!!!!!!!!" then
+// "Obviously give us a actual tabs like so we can know!!!!!!!!!!!!!!!!" then
+// "Subtabs". With a station, the page is a subtab bar and the canvas below is
+// its FIRST subtab, "Workspace", the default on every device and kept mounted
+// while another subtab is open (CreatingStation). Without one it is the canvas
+// alone, as before. The shell passes the station on ONE line: isGovernor is
+// the same predicate Projects -> Decisions uses (signed in, not reviewer mode,
+// a family email), and voice carries the Thinking Space write paths so the
+// lesson entry saves the same way.
+export default function CreationWorkspace({ station = null, ...canvasProps }) {
+  const canvas = <WorkspaceCanvas {...canvasProps} />;
+  return station ? <CreatingStation {...station} workspace={canvas} /> : canvas;
+}
+
+// The Creation Workspace canvas itself, exactly as it was before DR-0678.
+function WorkspaceCanvas({
   workspaces = [],
   addWorkspace,
   updateWorkspace,
   deleteWorkspace,
   currentUserPersona = null,
-  // The creating station (DR-0678): the lesson tools, ordered and laid out for
-  // the device, above the document canvas. Omitted = the canvas alone. The
-  // shell passes it on ONE line: isGovernor is the same predicate Projects ->
-  // Decisions uses (signed in, not reviewer mode, a family email), and voice
-  // carries the Thinking Space write paths so the lesson entry saves the same way.
-  station = null,
 }) {
   const editorRef = useRef(null);
   const [type, setType] = useState(WORKSPACE_TYPES[0].key);
@@ -255,10 +265,17 @@ export default function CreationWorkspace({
 
   return (
     <div className="w-full">
-      <div className="mb-4">
-        <div className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#B85838]">Create</div>
-        <h1 className="text-2xl text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Creation Workspace</h1>
-        <p className="text-sm mt-1 text-[#5A5751]">
+      {/* SHORT SCREENS (DR-0679): on a Fire TV at 960x540, or any screen under
+          600px tall, the intro's eyebrow, its sentence and the type blurb fold
+          away and the mat's padding tightens, so the canvas itself starts above
+          the fold. Measured by the chrome-layout probe's device pass (the
+          Workspace canvas must start above the fold): before this it started
+          at 578px of a 540px screen, his writing place buried. The heading and
+          every control stay; only the explaining lines fold. */}
+      <div className="mb-4 [@media(max-height:600px)]:mb-2" data-testid="workspace-intro">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#B85838] [@media(max-height:600px)]:hidden">Create</div>
+        <h1 className="text-2xl [@media(max-height:600px)]:text-xl text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Creation Workspace</h1>
+        <p className="text-sm mt-1 text-[#5A5751] [@media(max-height:600px)]:hidden">
           A big space for composing a document — then save it, or export it as an image file.
         </p>
       </div>
@@ -267,7 +284,7 @@ export default function CreationWorkspace({
         {/* ---- working column: controls + canvas ---- */}
         <div>
           {/* Controls row: type dropdown + title */}
-          <div className="flex flex-wrap items-end gap-3 mb-3">
+          <div className="flex flex-wrap items-end gap-3 mb-3 [@media(max-height:600px)]:mb-2">
             <label className="block">
               <span className="block text-[0.625rem] uppercase tracking-wider mb-1 text-[#5A5751]">Workspace type</span>
               <select
@@ -299,7 +316,7 @@ export default function CreationWorkspace({
               />
             </label>
           </div>
-          <p className="text-xs mb-3 text-[#5A5751]">{cfg.blurb}</p>
+          <p className="text-xs mb-3 text-[#5A5751] [@media(max-height:600px)]:hidden">{cfg.blurb}</p>
 
           {/* Formatting toolbar. Colors ride themeable CLASSES (not inline hex),
               so [data-theme] remaps them per theme — under midnight the toolbar
@@ -338,7 +355,7 @@ export default function CreationWorkspace({
               WYSIWYG document you compose and rasterize to an image, so it stays
               a light page in every app theme, matching the exported artifact.
               (The chrome around it themes normally; only the paper is fixed.) */}
-          <div className="border p-4 sm:p-6 overflow-auto" style={{ borderColor: border, background: '#EDE9E1', maxHeight: '70vh' }}>
+          <div className="border p-4 sm:p-6 [@media(max-height:600px)]:p-2 overflow-auto" style={{ borderColor: border, background: '#EDE9E1', maxHeight: '70vh' }}>
             <div
               className="mx-auto shadow-sm"
               style={{
@@ -501,11 +518,6 @@ export default function CreationWorkspace({
         .creation-canvas ul, .creation-canvas ol { margin: 0 0 .625rem 1.5rem; }
         .creation-canvas li { margin: 0 0 .25rem; }
       `}</style>
-      {/* The lesson tools (DR-0678) sit BELOW the workspace: Darrell 2026-09-29,
-          "Why take away my type texting place?!" - on a phone the station's
-          panels stacked above the canvas and pushed his writing place out of
-          sight. Create opens on his own workspace; the tools follow it. */}
-      {station && <div className="mt-8"><CreatingStation {...station} /></div>}
     </div>
   );
 }

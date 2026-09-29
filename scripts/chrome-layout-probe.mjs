@@ -1032,18 +1032,25 @@ try {
   if (readerMeasured !== READER_CASES.length) fail(`coverage: ${readerMeasured}/${READER_CASES.length} reader cases measured`);
 
   // ---------------------------------------------------------------------------
-  // DEVICE pass (DR-0678). Darrell 2026-09-29: "Laptop for creating... we need
-  // to be able to use the devices appropriately". The Create station is opened
-  // as each device actually meets it (a laptop with a mouse, a phone with a
-  // finger, a Fire TV by its own user agent at its own 960x540) and MEASURED:
+  // DEVICE pass (DR-0678, remeasured for DR-0679). Darrell 2026-09-29:
+  // "Laptop for creating... we need to be able to use the devices
+  // appropriately", then "Why take away my type texting place?!" and
+  // "Subtabs". Create has a level-2 row under the main nav (the Church row's
+  // mechanism, components/CreateSubNav.jsx), opened as each device actually
+  // meets it (a laptop with a mouse, a phone with a finger, a Fire TV by its
+  // own user agent at its own 960x540) and MEASURED — the row plus the open
+  // sub's page, never a grid of panels:
   //   D1. the class the app derived is the device's (html[data-device-class]
-  //       and the station agree) — measured by the browser, not asserted by us;
-  //   D2. every panel is there (never blocked by device);
-  //   D3. the role's first panel is first (the roles file, read above);
-  //   D4. the laptop is laid out ACROSS the width: panels side by side, and the
-  //       grid uses the width; the phone and TV are one column;
-  //   D5. nothing runs past the right edge (page or panel).
-  // --selftest-break collapses the laptop grid to one column; D4 must trip.
+  //       and the page agree) — measured by the browser, not asserted by us;
+  //   D2. the tab row is there with every subtab (the Workspace + every panel;
+  //       never blocked by device), and the row itself sits on the screen;
+  //   D3. the Workspace is the first tab and the OPEN one, and its canvas is
+  //       on screen above the fold (his writing place is never buried); the
+  //       tab after it is the role's first panel (the roles file, read above);
+  //   D4. exactly one tab panel shows; the role's first panel, opened, shows
+  //       alone and uses the width (>= 60% on a laptop);
+  //   D5. nothing runs past the right edge (page, tab row box, panel).
+  // --selftest-break hides the row; D2 and D3 must trip.
   // ---------------------------------------------------------------------------
   deviceFailuresBefore = failures;
   const FIRE_TV_UA = 'Mozilla/5.0 (Linux; Android 9; AFTMM Build/PS7285) AppleWebKit/537.36 (KHTML, like Gecko) Silk/112.3.1 like Chrome/112.0.5615.213 Safari/537.36';
@@ -1056,7 +1063,35 @@ try {
       { cls: 'phone', w: 390, h: 844, mobile: true, ua: PHONE_UA },
       { cls: 'tv', w: 960, h: 540, ua: FIRE_TV_UA },
     ] : []);
-  const PANEL_COUNT = Object.keys(DEVICE_ROLES.panels).length;
+  const TAB_COUNT = 1 + Object.keys(DEVICE_ROLES.panels).length;
+  const measureCreate = () => {
+    const st = document.querySelector('[data-testid="creating-station"]');
+    const nav = document.querySelector('[data-testid="create-subnav"]');
+    if (!st || !nav) return { none: true, html: document.documentElement.getAttribute('data-device-class') };
+    const vw = document.documentElement.clientWidth;
+    const vh = window.innerHeight;
+    const box = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return { left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), w: Math.round(r.width), h: Math.round(r.height) }; };
+    const btns = [...nav.querySelectorAll('[data-create-sub]')].filter((b) => b.getBoundingClientRect().width > 0);
+    const lr = box(nav.querySelector('.tab-scroll') || nav);
+    const tabs = btns.map((b) => b.getAttribute('data-create-sub'));
+    const sel = nav.querySelector('[data-create-sub][aria-current="page"]');
+    const shown = [...st.querySelectorAll('[data-create-page]')].filter((p) => !p.hidden && p.getBoundingClientRect().height > 0);
+    const canvas = st.querySelector('#create-sub-workspace .creation-canvas, #create-sub-workspace [contenteditable]');
+    return {
+      html: document.documentElement.getAttribute('data-device-class'),
+      station: st.getAttribute('data-device-class'),
+      fine: matchMedia('(any-pointer: fine)').matches,
+      tabs,
+      rowVisible: !!(lr && lr.w > 0 && lr.h > 0),
+      row: lr,
+      selected: sel ? sel.getAttribute('data-create-sub') : null,
+      shown: shown.map((p) => ({ id: p.getAttribute('data-create-page'), ...box(p) })),
+      canvas: box(canvas),
+      vw,
+      vh,
+      scrollWidth: document.documentElement.scrollWidth,
+    };
+  };
   for (const dc of DEVICE_CASES) {
     const where = `device ${dc.cls}@${dc.w}x${dc.h}`;
     const ctx = await browser.newContext({
@@ -1067,50 +1102,56 @@ try {
     const page = await ctx.newPage();
     await page.addInitScript(() => { try { localStorage.setItem('poetech.help.tour.v1', 'seen'); } catch (_) { /* private mode */ } });
     await page.goto(`${origin}${BASE}/?view=create`, { waitUntil: 'networkidle', timeout: CHROME_IDLE_CAP_MS }).catch(() => {});
-    await page.waitForSelector('[data-testid="creating-station"] [data-panel]', { timeout: 30000 }).catch(() => {});
+    await page.waitForSelector('[data-testid="create-subnav"] [data-create-sub]', { timeout: 30000 }).catch(() => {});
+    await page.waitForSelector('[data-testid="creating-station"]', { timeout: 30000 }).catch(() => {});
+    // A fresh device first meets "Who's using this device?" (the shell's
+    // profile picker, a full-screen modal). It covers the row, so every click
+    // on a subtab lands on the modal. Before DR-0679 this pass never clicked,
+    // so it never met it; the first click run swallowed the intercept and read
+    // it as "the subtab did not open". Choose a profile the way a person does
+    // (a tap on the first profile), then prove the modal is gone.
+    const picker = '[role="dialog"][aria-labelledby="profile-picker-h"]';
+    if (await page.$(picker)) {
+      await page.click(`${picker} button`, { timeout: 5000 }).catch((e) => fail(`${where}: could not choose a profile in "Who's using this device?": ${String(e.message).split('\n')[0]}`));
+      await page.waitForSelector(picker, { state: 'detached', timeout: 5000 }).catch(() => fail(`${where}: "Who's using this device?" stayed over the Create page after a profile was chosen`));
+    }
     if (SELFTEST) {
-      await page.addStyleTag({ content: '[data-testid="station-grid"] { grid-template-columns: minmax(0, 1fr) !important }' });
+      await page.addStyleTag({ content: '[data-testid="create-subnav"] { display: none !important }' });
       await page.waitForTimeout(100);
     }
-    const m = await page.evaluate(() => {
-      const st = document.querySelector('[data-testid="creating-station"]');
-      if (!st) return { none: true, html: document.documentElement.getAttribute('data-device-class') };
-      const grid = st.querySelector('[data-testid="station-grid"]');
-      const vw = document.documentElement.clientWidth;
-      const ps = [...st.querySelectorAll('[data-panel]')].map((el) => {
-        const r = el.getBoundingClientRect();
-        return { k: el.getAttribute('data-panel'), left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), w: Math.round(r.width) };
-      });
-      const gr = grid.getBoundingClientRect();
-      return {
-        html: document.documentElement.getAttribute('data-device-class'),
-        station: st.getAttribute('data-device-class'),
-        fine: matchMedia('(any-pointer: fine)').matches,
-        panels: ps,
-        lefts: [...new Set(ps.map((p) => p.left))].length,
-        gridW: Math.round(gr.width),
-        vw,
-        scrollWidth: document.documentElement.scrollWidth,
-      };
-    });
-    await ctx.close();
+    const m = await page.evaluate(measureCreate);
     const dbefore = failures;
     deviceMeasured += 1;
-    if (m.none) { fail(`${where}: the Create station never rendered (html class ${m.html})`); continue; }
-    if (m.html !== dc.cls || m.station !== dc.cls) fail(`${where}: the app took this for a ${m.html} (station ${m.station}, any-pointer fine ${m.fine})`);
-    if (m.panels.length !== PANEL_COUNT) fail(`${where}: ${m.panels.length} of ${PANEL_COUNT} panels rendered — a device must never lose a panel`);
+    if (m.none) { await ctx.close(); fail(`${where}: the Create page never rendered (html class ${m.html})`); continue; }
+    if (m.html !== dc.cls || m.station !== dc.cls) fail(`${where}: the app took this for a ${m.html} (page ${m.station}, any-pointer fine ${m.fine})`);
+    if (m.tabs.length !== TAB_COUNT) fail(`${where}: ${m.tabs.length} of ${TAB_COUNT} subtabs — a device must never lose one`);
+    if (!m.rowVisible) fail(`${where}: the subtab row is not on the screen`);
+    if (m.tabs[0] !== 'workspace') fail(`${where}: "${m.tabs[0]}" is the first subtab, not the Workspace`);
+    if (m.selected !== 'workspace') fail(`${where}: Create opened on "${m.selected}", not the Workspace`);
+    if (!m.canvas || m.canvas.h <= 0) fail(`${where}: the Workspace canvas is not showing`);
+    else if (m.canvas.top >= m.vh) fail(`${where}: the Workspace canvas starts at ${m.canvas.top}px, below the ${m.vh}px fold — his writing place is buried`);
+    if (m.shown.length !== 1) fail(`${where}: ${m.shown.length} tab panels showing — only the open subtab shows`);
     const wantFirst = DEVICE_ROLES.classes[dc.cls].first[0];
-    if (m.panels[0] && m.panels[0].k !== wantFirst) fail(`${where}: "${m.panels[0].k}" comes first, the ${dc.cls}'s role puts "${wantFirst}" first`);
-    if (dc.cls === 'laptop') {
-      if (m.lefts < 2) fail(`${where}: the station is one column on a laptop — panels never sit side by side (${m.lefts} column edge)`);
-      if (m.gridW < m.vw * 0.6) fail(`${where}: the station uses ${m.gridW}px of a ${m.vw}px screen`);
-    } else if (m.lefts !== 1) {
-      fail(`${where}: ${m.lefts} column edges on a ${dc.cls} — it should be one column`);
+    if (m.tabs[1] !== wantFirst) fail(`${where}: "${m.tabs[1]}" comes after the Workspace, the ${dc.cls}'s role puts "${wantFirst}" there`);
+    if (m.row && m.row.right > m.vw + 1) fail(`${where}: the subtab row runs past the right edge (${m.row.right} > ${m.vw})`);
+    // Open the role's first panel and measure it alone.
+    let p = null;
+    if (m.rowVisible && m.tabs.includes(wantFirst)) {
+      // A click that cannot land is reported with its reason (what intercepted
+      // it), never swallowed and misread as a switch that failed.
+      await page.click(`[data-create-sub="${wantFirst}"]`, { timeout: 10000 }).catch((e) => fail(`${where}: clicking the "${wantFirst}" subtab could not land: ${String(e.message).split('\n').find((l) => /intercepts|Timeout/.test(l)) || String(e.message).split('\n')[0]}`));
+      await page.waitForTimeout(150);
+      p = await page.evaluate(measureCreate);
+      if (p.selected !== wantFirst) fail(`${where}: the "${wantFirst}" subtab did not open`);
+      if (p.shown.length !== 1 || (p.shown[0] && p.shown[0].id !== wantFirst)) fail(`${where}: opening "${wantFirst}" shows ${p.shown.map((x) => x.id).join(', ') || 'nothing'}`);
+      const ap = p.shown[0];
+      if (ap && dc.cls === 'laptop' && ap.w < p.vw * 0.6) fail(`${where}: the open panel uses ${ap.w}px of a ${p.vw}px screen`);
+      if (ap && ap.right > p.vw + 1) fail(`${where}: the open panel runs past the right edge (${ap.right} > ${p.vw})`);
+      if (p.scrollWidth > p.vw + 1) fail(`${where}: page overflows horizontally with "${wantFirst}" open (${p.scrollWidth} > ${p.vw})`);
     }
+    await ctx.close();
     if (m.scrollWidth > m.vw + 1) fail(`${where}: page overflows horizontally (${m.scrollWidth} > ${m.vw})`);
-    const past = m.panels.filter((p) => p.right > m.vw + 1).map((p) => p.k);
-    if (past.length) fail(`${where}: panels run past the right edge: ${past.join(', ')}`);
-    if (failures === dbefore) console.log(`device ok  ${where} — derived ${m.html}, ${m.panels.length} panels, "${m.panels[0].k}" first, ${m.lefts} column edge(s), grid ${m.gridW}px of ${m.vw}px`);
+    if (failures === dbefore) console.log(`device ok  ${where} — derived ${m.html}, ${m.tabs.length} subtabs, Workspace open with its canvas at ${m.canvas.top}px, "${m.tabs[1]}" next; opened it: ${p && p.shown[0] ? `${p.shown[0].w}px of ${p.vw}px` : 'not measured'}`);
   }
   if (deviceMeasured !== DEVICE_CASES.length) fail(`coverage: ${deviceMeasured}/${DEVICE_CASES.length} device cases measured`);
 
@@ -1128,7 +1169,7 @@ if (SELFTEST) {
   // The reader pass (DR-0659): the mini-bar with its focus ring taken away
   // must trip the remote check.
   const readerTripped = deviceFailuresBefore - readerFailuresBefore;
-  // The device pass (DR-0678): the laptop grid collapsed to one column must trip.
+  // The device pass (DR-0678/DR-0679): the subtab row hidden must trip.
   const deviceTripped = failures - deviceFailuresBefore;
   const lessonTripped = tsFailuresBefore - lessonFailuresBefore;
   const chromeTripped = lessonFailuresBefore;

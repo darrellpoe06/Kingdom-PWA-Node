@@ -244,7 +244,9 @@ export function stationPanelFrom(search) {
   try {
     const sp = new URLSearchParams(String(search || ''));
     if ((sp.get('view') || '').toLowerCase() !== 'create') return '';
-    return String(sp.get('panel') || '').slice(0, 40);
+    // `sub` is the app's own sub deep link (?view=church&sub=learn), honoured
+    // for Create too (DR-0679); `panel` is the handoff link's own name.
+    return String(sp.get('panel') || sp.get('sub') || '').slice(0, 40);
   } catch { return ''; }
 }
 
