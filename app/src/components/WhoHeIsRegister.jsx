@@ -15,57 +15,70 @@
 // fast and a D-pad can walk the book headings; each heading is a real button.
 // No inner scroll container, so the page scrolls as one on the Firestick.
 // =============================================================================
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  registerFor, byBook, describeEntry, eraLabel, readableRefs, WHO_HE_IS_EDGE, PRESENT_LABEL, HOW_LABEL,
+  registerFor, byBook, eraLabel, WHO_HE_IS_EDGE, WHO_HE_IS_ENTRIES, lessonLinksFor,
 } from '../lib/who-he-is.js';
-import { verseCount } from '../lib/bible-kjv.js';
+import { requestOpenLesson } from '../lib/learn-open.js';
 import { useOpenWithTheWord } from '../lib/show-the-word.js';
 import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 import VerseChips from './VerseChips.jsx';
+import { EntryCard } from './WhoHeIsEntryCard.jsx';
+import WhoHeIsTimeline from './WhoHeIsTimeline.jsx';
+
+export { EntryCard };
+
+/** Open a lesson of the Who He Is course from anywhere in Learn. */
+export const openWhoHeIsLesson = (lessonId) => requestOpenLesson({ lessonId, courseKey: 'who-he-is' });
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
 const btn = 'text-[0.6875rem] px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 
-function Row({ label, children }) {
+/** The whole line, opened in place from any lesson that carries a register. */
+export function TimelineToggle({ initialEra = null }) {
+  // Navigation (open the whole line), not a fold of this lesson's Word: it
+  // keeps its own state, named exempt in show-the-word.test.jsx.
+  const [timelineOpen, setTimelineOpen] = useState(false);
   return (
-    <p className="text-[0.75rem] text-[#1A1815] mt-1" style={serif}>
-      <strong className="text-[#5A6E3D]">{label}:</strong> {children}
-    </p>
+    <div className="mt-2">
+      <button
+        type="button"
+        aria-expanded={timelineOpen}
+        onClick={() => setTimelineOpen((v) => !v)}
+        className={`${btn} border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white`}
+      >
+        {timelineOpen ? 'Close the timeline' : 'Open the whole timeline: every passage, before time to for ever →'}
+      </button>
+      {timelineOpen && (
+        <div className="mt-2 border border-[#E8E4DC] bg-[#FAF8F4] p-3">
+          <WhoHeIsTimeline initialEra={initialEra} onOpenLesson={openWhoHeIsLesson} />
+        </div>
+      )}
+    </div>
   );
 }
 
-export function EntryCard({ entry, onOpenLesson = null, lessonLabel = null }) {
-  const d = describeEntry(entry);
-  const refs = readableRefs(entry.ref, (book, c) => verseCount(book, c));
+// L191, L194 and L196 counted the occasions in the Gospels (and the rest the
+// rule set aside). Each now points to the whole-Word curriculum, and says how
+// many of its own passages sit on the line, derived from its own references.
+export function WhoHeIsLinkCard({ module }) {
+  const counted = useMemo(() => WHO_HE_IS_ENTRIES.filter((e) => lessonLinksFor(e, [module]).length > 0), [module]);
   return (
-    <li className="border border-[#E8E4DC] bg-white p-3" data-entry={entry.id}>
-      <div className="flex flex-wrap items-baseline gap-x-2">
-        <span className="text-[0.8125rem] font-semibold text-[#1A1815]" style={serif}>{entry.ref}</span>
-        <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={mono}>
-          {HOW_LABEL[entry.how.mode]} · {PRESENT_LABEL[entry.present]}
-        </span>
+    <div className="mt-3 border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2" data-who-he-is-link={module.id}>
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold" style={mono}>
+        Who He Is: the whole Word
       </div>
-      <p className="text-[0.8125rem] italic text-[#1A1815] mt-1" style={serif}>
-        <span className="not-italic text-[#5A6E3D] font-semibold">{d.keyVerse.ref}</span>{' — '}{d.keyVerse.text}
+      <p className="text-[0.75rem] text-[#1A1815] mt-1" style={serif}>
+        The passages this lesson names sit in {counted.length} {counted.length === 1 ? 'passage' : 'passages'} of the whole-Word curriculum. It holds all {WHO_HE_IS_ENTRIES.length} passages that tell Who He Is, whether He was there or not, each with where, when, what and how, on one line from before time to for ever.
       </p>
-      <Row label="Where">{d.where}</Row>
-      <Row label="When">{d.when}</Row>
-      <Row label="What">{d.what}</Row>
-      <Row label="How">{d.how}</Row>
-      <Row label="Was He there">{`${PRESENT_LABEL[entry.present]}: ${entry.presentDetail}. ${entry.presentReason}`}</Row>
-      <Row label="Who He Is">{d.whoHeIs}</Row>
-      {entry.parallels.length > 0 && <Row label="Also told in">{entry.parallels.join('; ')}</Row>}
-      <div className="mt-2">
-        <VerseChips refs={refs} />
-      </div>
-      {onOpenLesson && lessonLabel && (
-        <button type="button" onClick={onOpenLesson} className={`${btn} mt-2 border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white`}>
-          {lessonLabel} →
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => openWhoHeIsLesson('whohe1-all-of-them-the-rule-the-line-and-the-edge')} className={`${btn} mt-2 border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white`}>
+          Open the course →
         </button>
-      )}
-    </li>
+      </div>
+      <TimelineToggle />
+    </div>
   );
 }
 
@@ -150,7 +163,7 @@ function Edge() {
 
 export default function WhoHeIsRegister({ spec }) {
   if (!spec) return null;
-  if (spec.edge) return <div className="mt-3"><Edge /></div>;
+  if (spec.edge) return <div className="mt-3"><TimelineToggle /><div className="mt-3"><Edge /></div></div>;
   const { primary, pointing } = registerFor(spec);
   const groups = byBook(primary);
   return (
@@ -161,6 +174,7 @@ export default function WhoHeIsRegister({ spec }) {
       <p className="text-[0.75rem] text-[#5A5751] mt-1" style={serif}>
         Each shows where, when, what, how, whether He was there, and Who He Is. Tap a book to open it, or show the Word to open every one; tap a reference to read the whole passage.
       </p>
+      <TimelineToggle initialEra={(spec.sits && spec.sits[0]) || (spec.points && spec.points[0]) || null} />
       <div className="mt-2"><ShowTheWordToggle /></div>
       {primary.length === 0 && (
         <p className="text-[0.75rem] text-[#1A1815] mt-2" style={serif}>
