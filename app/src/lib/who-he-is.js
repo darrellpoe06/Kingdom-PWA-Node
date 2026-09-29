@@ -179,3 +179,65 @@ export function lessonLinksFor(entry, modules) {
 export function isWhoHeIsLinkedLesson(id) {
   return LINKED_LESSON_PREFIXES.some((p) => String(id || '').startsWith(p));
 }
+
+// ---- the lesson registers ------------------------------------------------------
+// A lesson declares which part of the line it carries:
+//   { sits: [eraIds], books: [bookNames] | null, points: [eraIds] }
+// primary  = every entry that SITS in those eras (and books, when named);
+// pointing = every other entry whose words POINT to the `points` eras.
+// Every entry sits in exactly one era, and the church age is split by book, so
+// across the course every entry is in exactly one lesson's primary register
+// (pinned by who-he-is-course.test.js).
+export const LETTER_BOOKS = Object.freeze(['Romans', '1 Corinthians', '2 Corinthians', 'Galatians', 'Ephesians', 'Philippians', 'Colossians', '1 Thessalonians', '2 Thessalonians', '1 Timothy', '2 Timothy', 'Titus', 'Philemon', 'Hebrews', 'James', '1 Peter', '2 Peter', '1 John', '2 John', '3 John', 'Jude']);
+
+export function registerFor(spec = {}, entries = DATA.entries) {
+  const sits = new Set(spec.sits || []);
+  const books = spec.books ? new Set(spec.books) : null;
+  const points = new Set(spec.points || []);
+  const primary = entries.filter((e) => sits.has(e.when.era) && (!books || books.has(e.book)));
+  const inPrimary = new Set(primary.map((e) => e.id));
+  const pointing = points.size
+    ? entries.filter((e) => !inPrimary.has(e.id) && e.when.pointsTo.some((p) => points.has(p)))
+    : [];
+  return { primary, pointing };
+}
+
+/** Group a list of entries by book, in the Word's order. */
+export function byBook(entries) {
+  const groups = [];
+  for (const e of entries) {
+    let g = groups.find((x) => x.book === e.book);
+    if (!g) { g = { book: e.book, entries: [] }; groups.push(g); }
+    g.entries.push(e);
+  }
+  return groups.sort((a, b) => bookIndex(a.book) - bookIndex(b.book));
+}
+
+// A passage that crosses a chapter ("Mark 8:27-9:1") read as one range per
+// chapter, the shape the Bible reader opens (bible-kjv.js parseRef).
+export function readableRefs(ref, chapterLength) {
+  const m = /^(.+?) (\d+):(\d+)-(\d+):(\d+)$/.exec(ref);
+  if (!m) return [ref];
+  const [, book] = m;
+  const c1 = Number(m[2]); const v1 = Number(m[3]); const c2 = Number(m[4]); const v2 = Number(m[5]);
+  const out = [];
+  for (let c = c1; c <= c2; c++) {
+    const a = c === c1 ? v1 : 1;
+    const z = c === c2 ? v2 : chapterLength(book, c);
+    out.push(a === z ? `${book} ${c}:${a}` : `${book} ${c}:${a}-${z}`);
+  }
+  return out;
+}
+
+// ---- numbers in words, so a count in a sentence is still the derived count ----
+const ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+export function numberWords(n) {
+  const x = Math.floor(Number(n));
+  if (!Number.isFinite(x) || x < 0) return String(n);
+  if (x < 20) return ONES[x];
+  if (x < 100) return TENS[Math.floor(x / 10)] + (x % 10 ? `-${ONES[x % 10]}` : '');
+  if (x < 1000) return `${ONES[Math.floor(x / 100)]} hundred${x % 100 ? ` and ${numberWords(x % 100)}` : ''}`;
+  if (x < 1000000) return `${numberWords(Math.floor(x / 1000))} thousand${x % 1000 ? `${x % 1000 < 100 ? ' and' : ''} ${numberWords(x % 1000)}` : ''}`;
+  return String(x);
+}
