@@ -97,7 +97,7 @@ import { crossListingsFor, resolveCrossListed, crossListedCount, courseCrossList
 // functionality and flow"). The study surface is unchanged; it is mounted
 // under its own department here, loaded only when that department opens.
 const EternalAlgorithmsStudyLazy = React.lazy(() => import('./EternalAlgorithmsStudy.jsx'));
-import { organizeCourses, learnDepartments, courseLessonCount, COURSE_SORTS, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey } from '../lib/learn-organize.js';
+import { organizeCourses, learnDepartments, courseLessonCount, courseSortsFor, DEFAULT_COURSE_SORT, rememberedCourseSort, rememberCourseSort, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey } from '../lib/learn-organize.js';
 import { wantsSections, sectionLessons, divisionOf } from '../lib/lesson-sections.js';
 import { isNumberedCourse, ownNumber, inNumberOrder, numberLabel, lessonCountLabel, ordersFor, orderLessons, withMonthHeadings, formatAdded, DEFAULT_LESSON_ORDER, rememberedLessonOrder, rememberLessonOrder } from '../lib/lesson-order.js';
 import { subscribeTextSize } from '../lib/text-size.js';
@@ -106,6 +106,7 @@ import { recordUse, recentUsed } from '../lib/ux-signals.js';
 import { getPlace, getPlaceFor, listPlaces, placeInProgress, placeWhere, recordPlace, finishPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished } from '../lib/learn-resume.js';
 import { unitLabels } from '../lib/learn-units.js';
 import { ContinueOffer, ContinueChip, RowContinue, resolvePlaces } from './LessonContinue.jsx';
+import LatestLessons from './LatestLessons.jsx';
 import { useHistoryValue } from '../lib/nav-history.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import UiIcon from './UiIcon.jsx';
@@ -1493,8 +1494,9 @@ const LAZY_CARD_MIN_HEIGHT = '180rem'; // measured 2026-09-24: median full card 
 
 function lessonSequence(schedule, courseKey, picked) {
   const list = Array.isArray(schedule) ? schedule : [];
-  if (!isNumberedCourse(list)) return list;
   const order = picked || rememberedLessonOrder(courseKey) || DEFAULT_LESSON_ORDER;
+  if (order === 'title' || order === 'title-desc') return orderLessons(list, order); // DR-0686
+  if (!isNumberedCourse(list)) return list;
   if (order === 'divisions' && wantsSections(list)) {
     return sectionLessons(list).flatMap((sec) => orderLessons(sec.lessons, 'number'));
   }
@@ -3383,7 +3385,9 @@ export default function ChurchLearn({
     return place && place.courseKey ? place.courseKey : null;
   });
   const setActiveKey = useCallback((key) => { setActiveKeyState(key); rememberCourseKey(key); }, []);
-  const [courseSort, setCourseSort] = useState('authored'); // picker order (DR-0121: derived groups, live counts)
+  // Picker order (DR-0121: derived groups, live counts), kept on this device (DR-0686).
+  const [courseSort, setCourseSortState] = useState(() => rememberedCourseSort() || DEFAULT_COURSE_SORT);
+  const setCourseSort = (k) => { setCourseSortState(k); rememberCourseSort(k); };
   // The lesson finder (Darrell 2026-08-18: "not obvious how to find a lesson
   // unless you already know the course it is in") — one search box over EVERY
   // mounted course's live schedule. Results jump through the SAME real path
@@ -3594,6 +3598,11 @@ export default function ChurchLearn({
   const inProgress = resolvePlaces(listPlaces({ inProgress: true }), courses);
   const activeContinue = inProgress.find((it) => it.course.key === active.key) || null;
   const activePlaces = Object.fromEntries(listPlaces({ courseKey: active.key }).map((p) => [p.lessonId, p]));
+  // EVERY ORDER WHOSE DATA EXISTS (DR-0686): the top sort reads the same saved
+  // places and lesson record the Continue offer and progress bar read.
+  const sortCtx = { places: listPlaces(), progress };
+  const courseSorts = courseSortsFor(courses, sortCtx);
+  const sortNow = courseSorts.some((o) => o.key === courseSort) ? courseSort : DEFAULT_COURSE_SORT;
   // CONTINUE — one path for every Continue on the page. Opens the lesson's
   // course (leaving a department filter that would hide it), opens its space
   // with the guide at the saved part and step, and lands on the sentence.
@@ -3806,7 +3815,7 @@ export default function ChurchLearn({
                 style={{ fontFamily: '"Fraunces", serif' }}
               >
                 <option value="">{(visibleCourses.length + (dept ? gatheredCourses.length : 0)) === 1 ? `This department's course · 1 · pick it to open` : `Choose another course · ${visibleCourses.length}${dept && gatheredCourses.length ? ` + ${gatheredCourses.length} that serve it` : ''} to choose from`}</option>
-                {organizeCourses(visibleCourses, courseSort).map((g) => (
+                {organizeCourses(visibleCourses, sortNow, sortCtx).map((g) => (
                   <optgroup key={g.label} label={g.label}>
                     {g.courses.map((c) => (
                       <option key={c.key} value={c.key}>
@@ -3840,12 +3849,13 @@ export default function ChurchLearn({
               <label htmlFor="learn-course-sort" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Sort courses</label>
               <select
                 id="learn-course-sort"
-                value={courseSort}
+                value={sortNow}
+                data-testid="learn-course-sort"
                 onChange={(e) => setCourseSort(e.target.value)}
                 className="min-h-[44px] px-2 py-2 bg-white border border-[#E8E4DC] text-sm focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
                 style={{ fontFamily: '"Fraunces", serif' }}
               >
-                {COURSE_SORTS.map((sOpt) => <option key={sOpt.key} value={sOpt.key}>{sOpt.label}</option>)}
+                {courseSorts.map((sOpt) => <option key={sOpt.key} value={sOpt.key}>{sOpt.label}</option>)}
               </select>
             </div>
           </div>
@@ -3860,6 +3870,17 @@ export default function ChurchLearn({
             as one big button, every other lesson begun beneath it, each one
             tap, each resolved against the mounted catalog (LessonContinue.jsx;
             lib/learn-resume.js). Hidden only while a lesson is open. */}
+        {/* LATEST LESSONS, EVERY COURSE — shown when the reader picks it in
+            the sort above (DR-0686; why here: components/LatestLessons.jsx). */}
+        {!lessonFocus && sortNow === 'latest' && (
+          <LatestLessons
+            courses={courses}
+            onOpen={(courseKey, id) => {
+              if (dept && !visibleCourses.some((c) => c.key === courseKey)) setDeptId('all');
+              setActiveKey(courseKey); setResumeOpenGuide(false); setResumeLessonId(id); setResumeNonce((n) => n + 1);
+            }}
+          />
+        )}
         {!lessonFocus && inProgress.length > 0 && (
           <ContinueOffer
             items={inProgress}
@@ -3936,7 +3957,7 @@ export default function ChurchLearn({
             ? (shelf === 'all' ? sections.flatMap((sec) => [{ heading: sec }, ...inOrder(sec.lessons)]) : inOrder(shown))
             : (order === 'number' || order === 'newest')
               ? (dated ? withMonthHeadings(orderLessons(shown, order)) : orderLessons(shown, order))
-              : shown;
+              : (order === 'title' || order === 'title-desc') ? orderLessons(shown, order) : shown;
           const showDivision = !!sections && order !== 'divisions' && shelf === 'all';
           const open = (id) => { setActiveKey(active.key); setResumeOpenGuide(false); setResumeLessonId(id); setResumeNonce((n) => n + 1); };
           return (
