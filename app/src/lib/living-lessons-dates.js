@@ -221,4 +221,5 @@ export const LIVING_LESSONS_ADDED = {
   'll195-how-yahweh-keeps-his-word-the-promise-the-test-and-the-open-record': '2026-09-24', // added with the lesson (DR-0643)
   'll196-i-am-what-the-rest-of-the-word-tells-about-him-every-occasion-the-rule-left-out': '2026-09-29', // added with the lesson (DR-0661); the day it was asked for and authored
   'll197-think-soberly-overlooked-promoted-by-him-and-the-hands-that-build-the-house': '2026-09-29', // added with the lesson (DR-0663); spoken 2026-09-25, typed 2026-09-28; revised to answer his questions of 2026-09-29 (DR-0676)
+  'll199-faith-in-good-faith-no-false-witness-the-real-question-and-the-word-that-answers': '2026-09-29', // added with the lesson (DR-0681); from Darrell's forwarded Big Think email of 2026-09-29
 };
