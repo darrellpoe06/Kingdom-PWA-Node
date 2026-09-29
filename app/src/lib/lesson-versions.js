@@ -22,9 +22,10 @@
 import { GOVERNOR_LESSON_ACCOUNTS } from './lesson-inbox.js';
 import { isLessonDoorOwner } from './one-voice-surfaces.js';
 
-// THE SHAPE, as DR-0669's migration 0240 defines public.lesson_versions (read
-// from its branch, claude/nas-lesson-builder, 2026-09-29). Pinned by
-// your-lessons-live.test.jsx against that migration once it is on disk.
+// THE SHAPE, as DR-0669's migration defines public.lesson_versions (read from
+// its branch, claude/nas-lesson-builder, 2026-09-29; it owns the table even
+// where DR-0671's 0240 created a narrower one first). Pinned by
+// your-lessons-live.test.jsx against the resulting shape once it is on disk.
 export const LESSON_VERSION_COLUMNS = Object.freeze([
   'id', 'build_id', 'teaching_row_id', 'instance_id', 'lesson_id', 'writer', 'family', 'model_label',
   'prompt_sha256', 'prompt_text', 'body', 'gate_results', 'elapsed_ms', 'error', 'published', 'backfill', 'created_at',

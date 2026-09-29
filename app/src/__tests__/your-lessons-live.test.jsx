@@ -258,12 +258,25 @@ describe('the versions of one lesson, compared', () => {
       const src = readFileSync(gates, 'utf8');
       for (const k of ['"structure"', '"verse"', '"quotation"', '"voice"', '"repo_gates"', '"verse_passed"', '"passed"', '"spans"', '"verbatim"', '"faults"', '"counts"']) expect(src, `lesson_gates.py no longer writes ${k}`).toContain(k);
     }
+    // More than one migration may create lesson_versions: the tower parity
+    // loop's 0240 (DR-0671) creates a narrower one if it runs first, and
+    // DR-0669's own migration owns the table (ADD COLUMN IF NOT EXISTS). So the
+    // pin is on the shape the database ENDS with, every CREATE body plus every
+    // ADD COLUMN, once DR-0669's migration (its header names it) is on disk.
     const dir = join(REPO, 'infra/supabase/migrations-auto');
-    const creating = readdirSync(dir).map((f) => readFileSync(join(dir, f), 'utf8')).find((sql) => /CREATE TABLE[^;(]*\blesson_versions\b/i.test(sql));
-    if (creating) {
-      const table = creating.slice(creating.search(/CREATE TABLE[^;(]*\blesson_versions\b/i));
-      const body = table.slice(0, table.indexOf(');'));
-      for (const c of LESSON_VERSION_COLUMNS) expect(body, `lesson_versions is missing ${c}`).toMatch(new RegExp(`\\b${c}\\b`));
+    const sqls = readdirSync(dir).sort().map((f) => readFileSync(join(dir, f), 'utf8'));
+    const builderMigration = sqls.find((sql) => /\(DR-0669\)/.test(sql.split('\n').slice(0, 5).join('\n')) && /\blesson_versions\b/.test(sql));
+    if (builderMigration) {
+      const declared = new Set();
+      for (const sql of sqls) {
+        for (const m of sql.matchAll(/CREATE TABLE[^;(]*\blesson_versions\b\s*\(([\s\S]*?)\n\);/gi)) {
+          for (const line of m[1].split('\n')) { const c = /^\s+([a-z_][a-z0-9_]*)\s/.exec(line); if (c) declared.add(c[1]); }
+        }
+        for (const m of sql.matchAll(/ALTER TABLE[^;]*\blesson_versions\b([^;]*);/gi)) {
+          for (const c of m[1].matchAll(/ADD COLUMN IF NOT EXISTS\s+([a-z_][a-z0-9_]*)/gi)) declared.add(c[1]);
+        }
+      }
+      for (const c of LESSON_VERSION_COLUMNS) expect([...declared], `lesson_versions is missing ${c}`).toContain(c);
     }
   });
 
