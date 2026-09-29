@@ -223,4 +223,5 @@ export const LIVING_LESSONS_ADDED = {
   'll197-think-soberly-overlooked-promoted-by-him-and-the-hands-that-build-the-house': '2026-09-29', // added with the lesson (DR-0663); spoken 2026-09-25, typed 2026-09-28; revised to answer his questions of 2026-09-29 (DR-0676)
   'll198-the-goldilocks-zone-of-curiosity-what-he-hides-the-gap-he-shows-and-the-question-that-matters': '2026-09-29', // added with the lesson (DR-0680); forwarded from his inbox with Lesson on top and authored the same day
   'll199-faith-in-good-faith-no-false-witness-the-real-question-and-the-word-that-answers': '2026-09-29', // added with the lesson (DR-0681); from Darrell's forwarded Big Think email of 2026-09-29
+  'll200-how-did-they-know-the-record-they-read-the-son-of-david-the-colt-and-the-books-the-word-names': '2026-09-29', // added with the lesson (DR-0684); spoken into Thinking Space 2026-09-29 and authored the same day
 };
