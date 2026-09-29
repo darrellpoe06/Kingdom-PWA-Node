@@ -265,10 +265,17 @@ function WorkspaceCanvas({
 
   return (
     <div className="w-full">
-      <div className="mb-4">
-        <div className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#B85838]">Create</div>
-        <h1 className="text-2xl text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Creation Workspace</h1>
-        <p className="text-sm mt-1 text-[#5A5751]">
+      {/* SHORT SCREENS (DR-0679): on a Fire TV at 960x540, or any screen under
+          600px tall, the intro's eyebrow, its sentence and the type blurb fold
+          away and the mat's padding tightens, so the canvas itself starts above
+          the fold. Measured by the chrome-layout probe's device pass (the
+          Workspace canvas must start above the fold): before this it started
+          at 578px of a 540px screen, his writing place buried. The heading and
+          every control stay; only the explaining lines fold. */}
+      <div className="mb-4 [@media(max-height:600px)]:mb-2" data-testid="workspace-intro">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#B85838] [@media(max-height:600px)]:hidden">Create</div>
+        <h1 className="text-2xl [@media(max-height:600px)]:text-xl text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Creation Workspace</h1>
+        <p className="text-sm mt-1 text-[#5A5751] [@media(max-height:600px)]:hidden">
           A big space for composing a document — then save it, or export it as an image file.
         </p>
       </div>
@@ -277,7 +284,7 @@ function WorkspaceCanvas({
         {/* ---- working column: controls + canvas ---- */}
         <div>
           {/* Controls row: type dropdown + title */}
-          <div className="flex flex-wrap items-end gap-3 mb-3">
+          <div className="flex flex-wrap items-end gap-3 mb-3 [@media(max-height:600px)]:mb-2">
             <label className="block">
               <span className="block text-[0.625rem] uppercase tracking-wider mb-1 text-[#5A5751]">Workspace type</span>
               <select
@@ -309,7 +316,7 @@ function WorkspaceCanvas({
               />
             </label>
           </div>
-          <p className="text-xs mb-3 text-[#5A5751]">{cfg.blurb}</p>
+          <p className="text-xs mb-3 text-[#5A5751] [@media(max-height:600px)]:hidden">{cfg.blurb}</p>
 
           {/* Formatting toolbar. Colors ride themeable CLASSES (not inline hex),
               so [data-theme] remaps them per theme — under midnight the toolbar
@@ -348,7 +355,7 @@ function WorkspaceCanvas({
               WYSIWYG document you compose and rasterize to an image, so it stays
               a light page in every app theme, matching the exported artifact.
               (The chrome around it themes normally; only the paper is fixed.) */}
-          <div className="border p-4 sm:p-6 overflow-auto" style={{ borderColor: border, background: '#EDE9E1', maxHeight: '70vh' }}>
+          <div className="border p-4 sm:p-6 [@media(max-height:600px)]:p-2 overflow-auto" style={{ borderColor: border, background: '#EDE9E1', maxHeight: '70vh' }}>
             <div
               className="mx-auto shadow-sm"
               style={{

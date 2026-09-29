@@ -10,11 +10,11 @@
   - `app/src/components/CreateSubNav.jsx` (new): Create's level-2 row. It uses the band, the `<TabScroll chrome>` primitive (Show all / Less included) and the button classes of the Church row, and it is derived from the registry. A locked sub stays in the row, marked with the lock.
   - `app/src/lib/create-sub.js` (new): the open sub, shared by the row in the header and the page in `<main>`. The open sub is the handoff link's if there is one, then the device's remembered choice (localStorage, wrapped), then the Workspace.
   - `app/src/components/CreatingStation.jsx`: shows one sub at a time. The Workspace canvas stays mounted (hidden) while another sub is open. Alt+1 opens the Workspace, Alt+2..8 open the panels, and Alt+0 goes back to the Workspace.
-  - `app/src/components/CreationWorkspace.jsx`: the canvas, exactly as it was, is handed to the station as the Workspace. It is no longer a block below the station or above it.
+  - `app/src/components/CreationWorkspace.jsx`: the canvas, exactly as it was, is handed to the station as the Workspace. It is no longer a block below the station or above it. On a screen under 600px tall (the Fire TV's 960x540) the intro's eyebrow and sentence and the type blurb fold away and the mat's padding tightens, so the canvas starts above the fold; the heading and every control stay.
   - `app/src/poe-financial-mvp-v28.jsx`: **no new lines**. The import and the one header mount (`{view === 'create' && <CreateSubNav …/>}`, beside the Church row) ride existing lines. The file stays 5,312 lines, within its budget.
   - `app/src/lib/app-doors.js`: `?view=create&sub=` is honoured as well as the handoff's `&panel=`.
   - `infra/device-availability/device-roles.json`: each panel gets its short `tab` name (the same names the registry uses, pinned by a test). The prose now says the roles order the subs after the Workspace and never pick the default.
-  - `scripts/chrome-layout-probe.mjs`: the DEVICE pass measures the row and the open page, not a grid of panels.
+  - `scripts/chrome-layout-probe.mjs`: the DEVICE pass measures the row and the open page, not a grid of panels. It chooses a profile in "Who's using this device?" before clicking a sub, and a click that cannot land is reported with its reason instead of swallowed.
   - Tests: `creating-station.test.jsx` (rewritten), `thinking-space-untouched.test.jsx` (new), `surface-mount-integrity.test.js` (knows `nav: 'create'`).
 - **Principles:** DR-0061 / DR-0065 (the app is the primary artifact); DR-0076 §1/§3 (measured, proven-to-catch); DR-0111 (do the work); DR-0239 dimension 4 (form factor measured); DR-0657 (the TV).
 - **Grounds:** Darrell, 2026-09-29, verbatim, in order:
@@ -33,6 +33,14 @@ DR-0678 (PR #1847, merge 15cffb0d) put the Create station, seven stacked panels,
 - Church's row is a hand-written id list in the shell, not generated from `surfaces.js`. The registry does carry Church's subs (`nav: 'church'`, with `requires` and `whenDenied`), and gated tabs are read through `lib/surface-access.js`. Create's row is **derived** from the registry instead, so the shell carries only one mount.
 - Thinking Space (`notes`) holds its own typing box (`OneVoiceInput`) and "Your prompts" (`PromptHistory`). DR-0678 did not touch it, and neither does this DR. A new test renders it to prove the box and Your prompts are still there.
 
+## Impact
+
+- **Darrell's writing place is back first, everywhere.** Create opens on the Workspace canvas on every device, with its canvas measured above the fold: 519px of 900 on a 1440 laptop, 479px of 1080 on a 1920 laptop, 661px of 844 on a phone, and 479px of 540 on the Fire TV. Before this record the TV put it at 578px, below its 540px fold.
+- **Every Create tool is one tap away, and he can see them all.** The eight subs sit in a named row under the main nav, the same row he knows from Church, instead of a long stack to scroll through.
+- **Nothing he types is lost by looking away.** The Workspace stays mounted while another sub is open.
+- **The shell does not grow.** The monolith stays at 5,312 lines; the row is derived from the registry.
+- **A click on a sub is proven to switch the page in a real browser.** The first CI run reported "the subtab did not open" on every device. The cause was the shell's "Who's using this device?" profile picker, a full-screen modal on a fresh device, sitting over the row: every click landed on the modal, and the probe swallowed the click error. The switch itself (the row and the page share `lib/create-sub.js`) was sound. The probe now chooses a profile the way a person does, proves the modal is gone, and reports any click that cannot land with what intercepted it.
+
 ## Decision
 
 1. **Create has a level-2 row, the same as Church's.** It uses the same band, the same `TabScroll chrome` and the same button classes, sits in the header under the main nav, and is not `SectionTabs`. No new tab component is invented.
@@ -47,7 +55,7 @@ DR-0678 (PR #1847, merge 15cffb0d) put the Create station, seven stacked panels,
 
 - `creating-station.test.jsx` covers these cases: Workspace is the first tab and the open one on every class; every sub is reachable; only one page shows; the canvas keeps its text; the remembered choice survives a reload; bad storage falls back to the Workspace; every panel's deep link opens its sub; Alt+digit works; the D-pad is not caged, including with the real scorer; Create uses the same band, primitive and classes as the Church row, and its registry entries are gated. Proven-to-catch: a page that opens on a panel, DR-0678's stack, and a strip that swallows its arrows are each flagged.
 - `thinking-space-untouched.test.jsx`: the note input and `PromptHistory` render.
-- The layout probe's DEVICE pass measures the row (every sub present, on screen, not past the right edge) and checks that the Workspace is open with its canvas above the fold. It then opens the role's first sub and measures it alone. `--selftest-break` hides the row and must trip.
+- The layout probe's DEVICE pass measures the row (every sub present, on screen, not past the right edge) and checks that the Workspace is open with its canvas above the fold. It then opens the role's first sub and measures it alone. `--selftest-break` hides the row and must trip. Measured locally on the built dist: `device ok` for laptop@1440x900, laptop@1920x1080, phone@390x844 and tv@960x540, each opening the role's first sub and seeing it alone; the selftest tripped 4 device checks.
 - The monolith line count is unchanged (5,312).
 
 ## Re-review

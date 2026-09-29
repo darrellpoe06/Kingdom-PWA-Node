@@ -1104,6 +1104,17 @@ try {
     await page.goto(`${origin}${BASE}/?view=create`, { waitUntil: 'networkidle', timeout: CHROME_IDLE_CAP_MS }).catch(() => {});
     await page.waitForSelector('[data-testid="create-subnav"] [data-create-sub]', { timeout: 30000 }).catch(() => {});
     await page.waitForSelector('[data-testid="creating-station"]', { timeout: 30000 }).catch(() => {});
+    // A fresh device first meets "Who's using this device?" (the shell's
+    // profile picker, a full-screen modal). It covers the row, so every click
+    // on a subtab lands on the modal. Before DR-0679 this pass never clicked,
+    // so it never met it; the first click run swallowed the intercept and read
+    // it as "the subtab did not open". Choose a profile the way a person does
+    // (a tap on the first profile), then prove the modal is gone.
+    const picker = '[role="dialog"][aria-labelledby="profile-picker-h"]';
+    if (await page.$(picker)) {
+      await page.click(`${picker} button`, { timeout: 5000 }).catch((e) => fail(`${where}: could not choose a profile in "Who's using this device?": ${String(e.message).split('\n')[0]}`));
+      await page.waitForSelector(picker, { state: 'detached', timeout: 5000 }).catch(() => fail(`${where}: "Who's using this device?" stayed over the Create page after a profile was chosen`));
+    }
     if (SELFTEST) {
       await page.addStyleTag({ content: '[data-testid="create-subnav"] { display: none !important }' });
       await page.waitForTimeout(100);
@@ -1126,7 +1137,9 @@ try {
     // Open the role's first panel and measure it alone.
     let p = null;
     if (m.rowVisible && m.tabs.includes(wantFirst)) {
-      await page.click(`[data-create-sub="${wantFirst}"]`).catch(() => {});
+      // A click that cannot land is reported with its reason (what intercepted
+      // it), never swallowed and misread as a switch that failed.
+      await page.click(`[data-create-sub="${wantFirst}"]`, { timeout: 10000 }).catch((e) => fail(`${where}: clicking the "${wantFirst}" subtab could not land: ${String(e.message).split('\n').find((l) => /intercepts|Timeout/.test(l)) || String(e.message).split('\n')[0]}`));
       await page.waitForTimeout(150);
       p = await page.evaluate(measureCreate);
       if (p.selected !== wantFirst) fail(`${where}: the "${wantFirst}" subtab did not open`);
