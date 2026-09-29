@@ -78,7 +78,7 @@ describe('L88 exists in the catalog with its full shape', () => {
     for (const key of ['bigIdea:', 'inApp:', "ref: 'Luke 8:11, 15'", 'child:', 'youth:', 'teen:', 'senior:', 'quiz:', 'facilitator:']) {
       expect(lesson).toContain(key);
     }
-    expect(src).toMatch(/weeks: \d+,/);
+    expect(src).toMatch(/get weeks\(\) \{ return LIVING_LESSONS_MODULES\.length; \}/); // the count is DERIVED from the series (DR-0677)
     expect(src).toContain('L88 The King’s Program Part 2');
   });
   it("keeps the Governor's framing: heart/subconscious soils and the eternal King-program", () => {

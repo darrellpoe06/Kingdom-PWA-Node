@@ -68,7 +68,7 @@ describe('L103 exists in the catalog with its full shape', () => {
     for (const key of ['bigIdea:', 'inApp:', "ref: 'Revelation 1:6; Matthew 7:13-14; Deuteronomy 8:18'", 'benefits:', 'child:', 'teen:', 'senior:', 'quiz:', 'facilitator:']) {
       expect(l).toContain(key);
     }
-    expect(src).toMatch(/weeks: \d+,/);
+    expect(src).toMatch(/get weeks\(\) \{ return LIVING_LESSONS_MODULES\.length; \}/); // the count is DERIVED from the series (DR-0677)
   });
 
   it('teaches the whole arc in order — nine movements + THE WHOLE OF IT', () => {

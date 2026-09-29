@@ -61,7 +61,10 @@ export const PROJECT_MANAGEMENT_META = {
   audience: 'Anyone who has been handed a project and the responsibility for finishing it — a church building or renovation, a rehab, a property turn, a ministry launch, a move, a business build. No certification required, and none assumed.',
   tagline: 'Count the cost before you break ground. Know who should work and who should not. Put a date on it, secure the experts who can actually see, and get down to the root cause of what you need to do — and what you do not. The Word gave this discipline a worked case and a named consequence long before the industry gave it an acronym.',
   cadenceDays: 7,
-  weeks: 12, // keep in step with PROJECT_MANAGEMENT_MODULES.length (asserted in the test) — 12 on 2026-09-29: pm12 (DR-0664); 11 on 2026-09-24: pm11 (DR-0609)
+  // DERIVED (DR-0677): the count is the series' own length, read at use —
+  // never a literal a new lesson must edit.
+  get weeks() { return PROJECT_MANAGEMENT_MODULES.length; },
+  // Until DR-0677 the count was a literal with this note, kept as history: keep in step with PROJECT_MANAGEMENT_MODULES.length (asserted in the test) — 12 on 2026-09-29: pm12 (DR-0664); 11 on 2026-09-24: pm11 (DR-0609)
   handsOnLabel: 'Work it on a real project',
   unit: {
     noun: 'lesson', nounPlural: 'lessons', cap: 'Lesson', selfPaced: true,

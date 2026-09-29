@@ -128,7 +128,7 @@ describe('L92 exists in the catalog with its full shape', () => {
     for (const key of ['bigIdea:', 'inApp:', "ref: 'John 14:15; 2 Corinthians 10:5; Luke 17:21'", 'benefits:', 'child:', 'youth:', 'teen:', 'senior:', 'quiz:', 'facilitator:']) {
       expect(l).toContain(key);
     }
-    expect(src).toMatch(/weeks: \d+,/);
+    expect(src).toMatch(/get weeks\(\) \{ return LIVING_LESSONS_MODULES\.length; \}/); // the count is DERIVED from the series (DR-0677)
   });
 
   it('teaches the spoken spine, in order (love standardized → deeds → thoughts → study → Body → Kingdom → temple)', () => {

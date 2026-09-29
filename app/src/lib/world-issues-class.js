@@ -70,7 +70,10 @@ export const WORLD_ISSUES_META = {
   },
   format: 'Self-paced · one issue at a time · media literacy + biblical discernment · paced to your age',
   cadenceDays: 7,
-  weeks: 19, // nineteen published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex · the two aftermaths · the law of assumption · victorious emotions · college tuition and the 1965 Act · the EPA power-plant rules · the SCOTUS mail-in ruling · the Kennedy Center · Evanston's reparations · the trades are hiring · biology walks back the selfish gene · the psychologists’ 2021 apology · the student in the gap); the track grows as issues are added
+  // DERIVED (DR-0677): the count is the series' own length, read at use —
+  // never a literal a new lesson must edit.
+  get weeks() { return WORLD_ISSUES.length; },
+  // Until DR-0677 the count was a literal with this note, kept as history: nineteen published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex · the two aftermaths · the law of assumption · victorious emotions · college tuition and the 1965 Act · the EPA power-plant rules · the SCOTUS mail-in ruling · the Kennedy Center · Evanston's reparations · the trades are hiring · biology walks back the selfish gene · the psychologists’ 2021 apology · the student in the gap); the track grows as issues are added
   handsOnLabel: 'Practice the skill',
   unit: {
     noun: 'issue',

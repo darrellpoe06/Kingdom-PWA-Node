@@ -18,7 +18,7 @@ import {
   missingCrossListings, selfListedCrossListings, crossListedCount,
   COURSE_CROSS_LISTINGS, HOME_ONLY, coursesWithNoShelfDeclaration,
 } from '../lib/learn-crosslist.js';
-import { LEARN_CATALOG, catalogCategory, buildCatalogCourseDescriptors } from '../lib/learn-catalog.js';
+import { LEARN_CATALOG, catalogCategory, buildCatalogCourseDescriptors, learnCatalogSummary } from '../lib/learn-catalog.js';
 import { buildLessonIndex, courseLessonCount, learnDepartments } from '../lib/learn-organize.js';
 import { buildEternalProcessingCourses } from '../lib/eternal-algorithms-course.js';
 
@@ -30,6 +30,11 @@ const courses = [
   ...buildEternalProcessingCourses(),
 ];
 const index = buildLessonIndex(courses);
+
+// The school's size when the literal pins were retired (2026-09-29, DR-0677).
+// A FLOOR, not a pin: a new lesson or course never edits it; only a deliberate
+// retirement of lessons would, and that is a decision worth one line.
+const SCHOOL_FLOOR = { courses: 49, lessons: 729 };
 
 describe('every cross-listed lesson is a real, mounted lesson', () => {
   it('names nothing the catalog does not carry', () => {
@@ -71,262 +76,45 @@ describe('a pointer, never a copy', () => {
     expect(depts.length).toBeGreaterThan(1);
   });
 
-  it('leaves the program totals exactly where they were', () => {
-    // The department shelf grows; the catalog does not. 29 courses / 532
-    // lessons, measured 2026-09-18.
+  it('leaves the program totals exactly where they were — DERIVED, never re-typed (DR-0677)', () => {
+    // WHAT THIS PIN WAS, AND WHY IT IS DERIVED NOW. It read two literal numbers
+    // (49 courses / 729 lessons on 2026-09-29) and every lesson PR edited them,
+    // with a dated line of history each time: 19 edits to this file since
+    // 2026-09-20, and the reason parallel lesson PRs kept conflicting with each
+    // other (REV-0255 LP-04, PR #1840). The history lives in git (`git log -p`
+    // on this file, before DR-0677); the numbers now come from the data.
     //
-    // WHY THIS PIN MOVED, because a pin that moves silently is worthless. It
-    // read 25 / 487 (measured 2026-09-16). A genuinely NEW course was added on
-    // 2026-09-17 — the Business department's rent-to-own slice, 8 lessons
-    // (DR-0454) — which legitimately raises both numbers. It moved again the
-    // same day for the Development slice, another 8 real lessons. That is the
-    // ONLY reason this pin may ever move: real content entering the catalog.
-    // It moved to 27 / 504 on 2026-09-17 for L165 ("I Always Had Love",
-    // DR-0456) — a real LESSON added to an existing course, so the course
-    // count is unchanged at 27 while the lesson total rises by exactly one.
-    // That case was not spelled out when this comment was written and is
-    // written in now: a new course moves both numbers, a new lesson in an
-    // existing course moves only the second, and nothing else may move either.
-    // It moved again to 27 / 505 the same day for L166 ("Life Is
-    // Disrespectful, So Think On These Things", DR-0457) — a second real
-    // lesson into the same existing course — and to 27 / 506 for L167 ("Be a G
-    // About It", DR-0459), a third. It moved to 27 / 507 for L168 ("The King
-    // Through the Warrior's Lens", DR-0461), a fourth — same course, same
-    // reason, course count untouched. And to 27 / 508 for L169 ("Pour It Out",
-    // DR-0462), a fifth. And to 27 / 509 for L170 ("Through the Eyes of the
-    // People Closest to Him", DR-0463), a sixth.
-    //
-    // And to 27 / 510 for L171 ("Trend It Against the Shoreline", DR-0466), a
-    // seventh — same existing course, so the course count stays at 27 and only
-    // the lesson total moves, exactly as the rule above spells out.
-    //
-    // And to 27 / 511 for L172 ("The Spirit of Your Mind", DR-0468), an
-    // eighth — same existing course again, so only the lesson total moves.
-    //
-    // And to 27 / 512 for L173 ("Humility Is the Strength", DR-0470), a ninth
-    // — same existing course, so only the lesson total moves.
-    //
-    // And to 29 / 532 on 2026-09-18 for TWO genuinely new courses (DR-0471):
-    // Project Management: Count the Cost and Software Project Management:
-    // Prove It, 10 real lessons each, opening a new Project Management
-    // department. Both numbers move because both courses are real content —
-    // the first course-count move since the Development slice, and the rule
-    // above is unchanged: a new course moves both, a new lesson in an existing
-    // course moves only the second, and nothing else may move either.
-    //
-    // (Housekeeping done in the same pass: the sentence below had been cut in
-    // half by two earlier inserts landing inside it — it read "...is
-    // unaffected: a" and then resumed nine paragraphs later at "cross-listing
-    // is a POINTER". Rejoined, because a record nobody can read is not a
-    // record. Nothing about the check changed.)
-    //
-    // And to 29 / 533 on 2026-09-18 for L174 ("The Levels of Disrespect, and
-    // the Gap Between What He Means and What We Say", DR-0482) — a real lesson
-    // added to an existing course, so the COURSE count is unchanged at 29 and
-    // only the lesson total moves by exactly one, which is the shape the rule
-    // above spells out for that case.
-    //
-    // And to 29 / 534 on 2026-09-18 for L175 ("True Love Starts With an Act and
-    // a Sound Mind, and Feelings Come After the Test", DR-0483) — again a real
-    // lesson into an existing course, so only the lesson total moves.
-    //
-    // And to 29 / 535 on 2026-09-18 for L176 ("Faith Is the Substance and the
-    // Evidence, and He Made Me Then Died for Me", DR-0492) — a real lesson into
-    // an existing course, so the course count holds at 29 and only the lesson
-    // total moves by exactly one.
-    //
-    // And to 29 / 536 on 2026-09-18 for L177 ("Two Minds, and the One You Feed
-    // Is the One That Runs You", DR-0495) — spoken into the channel and marked
-    // a lesson the same day; again a real lesson into an existing course, so
-    // only the lesson total moves.
-    //
-    // And to 29 / 537 on 2026-09-18 for L178 ("Terms Change, Not the Need",
-    // DR-0496) — a real lesson into an existing course, so the course count
-    // holds at 29 and only the lesson total moves by exactly one.
-    //
-    // And to 30 / 545 on 2026-09-18 for the REAL ESTATE department's first
-    // course ("Why Owned Property Is a Principle", DR-0500) — a genuinely new
-    // course with eight lessons, so BOTH pins move: the course count by one and
-    // the lesson total by eight. It also opens a new department, which is the
-    // case this test most needs to keep honest, because a new shelf is exactly
-    // where a cross-listing would be tempted to double-count.
-    //
-    // And to 31 / 553 on 2026-09-18 for the Real Estate CAPSTONE ("Management
-    // Is Stewardship", DR-0501) — the other end Darrell named, again a real
-    // course of eight lessons, so both pins move again. It joins the EXISTING
-    // Real Estate shelf rather than opening a second one, which the course's
-    // own test pins directly.
-    //
-    // And to 32 / 561 on 2026-09-18 for the Real Estate department's third
-    // course ("Buying: Price, Terms and the Count to Finish", DR-0504) — the
-    // first one BETWEEN the two ends. Again both pins move, and again it joins
-    // the existing Real Estate shelf rather than opening a fourth department,
-    // which its own test pins directly.
-    //
-    // And to 33 / 571 on 2026-09-18 for the department's FOURTH course
-    // ("Leasing and Tenant Selection", DR-0505) — the person-facing side of
-    // the trade. Both pins move for its eight lessons, and it joins the same
-    // Real Estate shelf, which its own test pins directly.
-    //
-    // And to 34 / 579 on 2026-09-18 for the department's FIFTH course
-    // ("Maintenance, Repairs and the Trades", DR-0508) — the building itself.
-    // Both pins move for its eight lessons, same Real Estate shelf.
-    //
-    // And to 35 / 587 on 2026-09-18 for the department's SIXTH course
-    // ("Partnerships: Who You Build With", DR-0510) — the person standing next
-    // to you when you sign, and the first course to ship benefits AND stories
-    // from its first commit (DR-0509).
-    //
-    // And to 36 / 595 on 2026-09-18 for the department's SEVENTH course
-    // ("Financing: The Debt You Sign and the Lender You Face", DR-0513) — the
-    // money behind every other course in the department.
-    //
-    // And to 37 / 603 on 2026-09-18 for its EIGHTH course ("Taxes and Records:
-    // What You Owe and What You Can Show", DR-0515) — what the authorities take
-    // and what an owner can actually prove.
-    //
-    // And to 37 / 604 on 2026-09-19 for L179 ("Heartfelt: The Heart Is the
-    // Deep Mind", DR-0518) — a real lesson into an existing course, so the
-    // course count holds at 37 and only the lesson total moves by one.
-    //
-    // And to 38 / 612 on 2026-09-19 for the Banking course (DR-0522) — eight
-    // new lessons in a NEW course, so both numbers move: the course count by
-    // one and the lesson total by eight. Darrell named the gap in four words,
-    // "Banking courses etc...", in the same breath as the plain-words work.
-    //
-    // The pins then moved to 40 / 628 for the Insurance and Risk course
-    // (DR-0523) and the Inspections course (DR-0525) — eight lessons each, on
-    // the same Real Estate shelf — and those two bumps landed without a note
-    // here, which is recorded now rather than quietly carried forward.
-    //
-    // And to 41 / 636 on 2026-09-19 for the Evictions course (DR-0527) — eight
-    // new lessons in a NEW course, course count by one and lesson total by
-    // eight, Real Estate shelf again. Course eleven of that department.
-    //
-    // And to 42 / 644 on 2026-09-19 for the Appraisal course (DR-0528) — eight
-    // new lessons in a NEW course, Real Estate shelf, course twelve of that
-    // department. Both numbers move again, by one and by eight.
-    //
-    // What this test exists to catch has NOT changed and is unaffected: a
-    // cross-listing is a POINTER, so putting a lesson on another department's
-    // shelf must never add a course or a lesson to these totals. If a
-    // cross-listing ever inflates them, this fails — and the numbers above are
-    // the catalog's own, so the check still has teeth after the bump.
-    // And to 42 / 645 on 2026-09-19 for L180 ("He Sings", DR-0530) — Darrell's
-    // own spoken teaching, a real lesson into the existing Living Lessons
-    // course, so the course count stays at 42 and only the lesson total moves,
-    // exactly as the rule above spells out.
-    // And to 42 / 646 on 2026-09-19 for L181 ("Run It Through the Word",
-    // DR-0532) — Darrell's spoken teaching from his wife's choir rehearsal,
-    // another real lesson into the existing Living Lessons course, so again
-    // only the lesson total moves.
-    // And to 42 / 653 on 2026-09-19 when the concurrent branch merged again:
-    // main's own L185 (Knowledge Was Never the Savior) landed first, so our
-    // L185-L187 each moved up one per DR-0052 and one more real lesson joined
-    // the existing Living Lessons course -- again only the lesson total moves.
-    // And to 42 / 652 on 2026-09-19 for L187 (“The Acceptable Year and the Whole
-    // Counsel”, DR-0541) — Darrell’s two shouts over the Tony Evans interview,
-    // another real lesson into the existing Living Lessons course —
-    // And to 42 / 651 on 2026-09-19 for L186 ("The Unreasonable Standard", DR-0539) —
-    // and to 42 / 650 the same day for L185 ("Glory to Glory", DR-0537) —
-    // and to 42 / 649 the same day when the concurrent branch merged: main's own
-    // L180 (He Giveth Thee Power to Get Wealth) joined L181-L183 and L184
-    // (He Sings, renumbered from 180 per DR-0052) —
-    // and to 42 / 647 the same day for L182 ("Two Witnesses", DR-0533) —
-    // built from a debate Darrell sent; again a real lesson into the existing
-    // Living Lessons course, so only the lesson total moves.
-    // And to 42 / 650 on 2026-09-19 for L185 ("Knowledge Was Never the Savior")
-    // -- Darrell's spoken teaching on gnosticism plus his own question about
-    // the jealousy of Yahweh, a real lesson into the existing Living Lessons
-    // course, so the course count holds at 42 and only the lesson total moves.
-    // And to 42 / 654 on 2026-09-19 for L189 (“Follow the Leader — the
-    // Shepherd of Our Souls”, DR-0546) — Darrell spoke this one in pieces
-    // across an evening and then named it himself; again a real lesson into
-    // the existing Living Lessons course, so the course count holds at 42 and
-    // only the lesson total moves.
-    // And to 43 / 662 on 2026-09-19 when the STOCK MARKET department opened
-    // (Darrell: "Stock Market courses to explore and explain the world of
-    // stock and bonds and countries that trade and how investment works world
-    // wide."). Its first course, stocks, is 8 lessons and is the first course
-    // to add a whole DEPARTMENT rather than a shelf, so both numbers move —
-    // 42 to 43 and 654 to 662. DR-0548.
-    // And to 44 / 670 on 2026-09-20 for the Stock Market department's SECOND
-    // course, bonds (8 lessons, DR-0549) — the department stops being a shelf
-    // with a grand name and becomes a department with more than one course in
-    // it, which its own test now pins.
-    // And to 45 / 678 on 2026-09-20 for the department's THIRD course, world-market
-    // (8 lessons, DR-0553) — the "countries that trade" half of the sentence
-    // the first two courses did not answer, since each of them was about an
-    // instrument held by a person rather than the system it sits inside.
-    // And to 46 / 686 on 2026-09-20 for the department's FOURTH and final
-    // course, investing (8 lessons, DR-0554) — which completes the four
-    // Darrell named in one sentence, and is the only one of them about a
-    // DECISION rather than a piece of machinery.
-    // And to 46 / 687 on 2026-09-22 for World Issues issue 17 (biology walks
-    // back the selfish gene) — an issue added to an existing track, so the
-    // course count does not move and only the lesson total does.
-    // And to 47 / 695 on 2026-09-23 when the HISTORY department opened
-    // (Darrell: "We need history to reflect actual history... Build the
-    // History department"). Its first course, history-truth, is 8 lessons and
-    // is a whole new DEPARTMENT, so both numbers move — 46 to 47 and 687 to
-    // 695. DR-0572.
-    // And to 47 / 696 on 2026-09-23 for L190 ("Were the Parables Real? — the
-    // One Who Made the Ages Told Them") — Darrell's question, answered from
-    // the Word only; a real lesson into the existing Living Lessons course,
-    // so the course count holds at 47 and only the lesson total moves.
-    // And to 48 / 704 on 2026-09-23 for the HISTORY department's second
-    // course, historical-research-1619 (8 lessons, DR-0590) — the craft of
-    // research taught Word-first on one case, so both numbers move.
-    // And to 49 / 712 on 2026-09-23 for the BUSINESS department's second
-    // course, business-research-wars (8 lessons, DR-0594) — Darrell: "use the
-    // podcast business wars as context for our business courses... Word first
-    // research 1 institution level" — so both numbers move.
-    // And to 49 / 713 on 2026-09-24 for the ninth lesson of business-research-wars
-    // (br9-follow-the-oil, DR-0602) — Darrell: "Tie all the money tied to oil and
-    // how that impacts the economy worldwide" — a lesson into an existing course,
-    // so the course count holds at 49 and only the lesson total moves.
-    // And to 49 / 714 on 2026-09-24 for L191 (Who He Said He Was — Every Hearer,
-    // Every Situation, and the Keys of Hell and of Death, DR-0604) — Darrell's two
-    // questions in one lesson ("Didn't Jesus tell pilot He was from eternity...
-    // how many ways and what were the situations" / "What are the keys of hell
-    // and death?" / "All in the lesson"); a lesson into the existing Living
-    // Lessons course, so the course count holds at 49 and only the total moves.
-    // And to 49 / 715 on 2026-09-24 for L192 (Two Hours Became Six — the Pattern,
-    // the Yea, the Inspection, and the Faithful Man, DR-0606) — Darrell's spoken
-    // case of a contractor whose agreed two hours became six and whose work came
-    // back different; a lesson into the existing Living Lessons course, so the
-    // course count holds at 49 and only the total moves.
-    // And to 49 / 716 on 2026-09-24 for pm11 (How the organization learns,
-    // prioritizes and decides, DR-0609) — Darrell's spoken teaching on
-    // decision-ready intelligence and our ways inspected; a lesson into the
-    // existing Project Management course, so only the total moves.
-    // And to 50 / 743 on 2026-09-29 for Who He Is, the whole Word (14 lessons, DR-0675) —
-    // Darrell: "We needed a lesson wide curriculum with all" — a new course, so both numbers move.
-    expect(courses).toHaveLength(50);
-    // And to 718 on 2026-09-24 for Sovereign A.I. weeks 25 and 26 (DR-0619, DR-0620);
-    // and to 720 the same day for weeks 27 and 28, from Darrell's spoken teachings (DR-0637, DR-0638).
-    // And to 721 on 2026-09-24 for L194 (I AM: Who He Said He Was — Every Hearer, All of
-    // Them, DR-0646) — Darrell: "Lesson with all of them not just 16"; a lesson into the
-    // existing Living Lessons course, so the course count holds at 49 and only the total moves.
-    // And to 722 the same day for L193 (What It Costs to Keep Your Soul, DR-0642),
-    // a lesson into the existing Living Lessons course, so only the total moves.
-    // And to 723 the same day for L195 (How Yahweh Keeps His Word, DR-0643),
-    // a lesson into the existing Living Lessons course, so only the total moves.
-    // And to 724 on 2026-09-29 for Sovereign A.I. week 29 (the agent that went past the
-    // bound, DR-0662), a lesson into the existing Sovereign A.I. course, so only the total moves.
-    // And to 725 the same day for L196 (I AM: What the Rest of the Word Tells About Him,
-    // DR-0661), a lesson into the existing Living Lessons course, so only the total moves.
-    // And to 726 on 2026-09-29 for L197 (Think Soberly, DR-0663), a lesson into an
-    // existing course, so only the total moves.
-    // And to 727 on 2026-09-29 for pm12 (Titles and fruits, DR-0664), a lesson into an
-    // existing course, so only the total moves.
-    // And to 728 on 2026-09-29 for World Issues issue 18 (the psychologists’ 2021 apology, DR-0665), a lesson into an
-    // existing course, so only the total moves.
-    // And to 729 on 2026-09-29 for World Issues issue 19 (the student in the gap, DR-0666), a lesson into an
-    // existing course, so only the total moves.
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(743);
+    // WHAT IT STILL PROTECTS, measured two independent ways:
+    //   * the MOUNTED count (learn-organize's courseLessonCount over the
+    //     descriptors, the path the Learn header takes) equals the REGISTRY's
+    //     own count (learnCatalogSummary + the Eternal-Algorithms family) —
+    //     a lesson dropped or duplicated in transit fails here;
+    //   * the department shelves add up to the same number (next test);
+    //   * a FLOOR: the school never silently shrinks below what it held when
+    //     the pin was retired. A new lesson never touches this line.
+    // A lesson that disappears outright is also caught by its own pinned test
+    // (living-lessons-l<n>-verses.test.js and each course's test import it by id).
+    const registry = learnCatalogSummary();
+    const eternal = buildEternalProcessingCourses();
+    const registryLessons = registry.lessons + eternal.reduce((t, c) => t + c.schedule.length, 0);
+    const mounted = courses.reduce((t, c) => t + courseLessonCount(c), 0);
+    expect(courses).toHaveLength(registry.courses + eternal.length);
+    expect(mounted, 'the mounted catalog and the registry disagree on the lesson count').toBe(registryLessons);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(743);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(mounted);
+    expect(courses.length, 'the school lost a course').toBeGreaterThanOrEqual(SCHOOL_FLOOR.courses);
+    expect(mounted, 'the school lost lessons').toBeGreaterThanOrEqual(SCHOOL_FLOOR.lessons);
+  });
+
+  it('PROVEN-TO-CATCH: a lesson dropped or doubled in transit breaks the derived total', () => {
+    const registry = learnCatalogSummary();
+    const eternal = buildEternalProcessingCourses();
+    const registryLessons = registry.lessons + eternal.reduce((t, c) => t + c.schedule.length, 0);
+    const i = courses.findIndex((c) => c.key === 'living-lessons');
+    const dropped = courses.map((c, j) => (j === i ? { ...c, schedule: c.schedule.slice(1) } : c));
+    const doubled = courses.map((c, j) => (j === i ? { ...c, schedule: [...c.schedule, c.schedule[0]] } : c));
+    expect(dropped.reduce((t, c) => t + courseLessonCount(c), 0)).not.toBe(registryLessons);
+    expect(doubled.reduce((t, c) => t + courseLessonCount(c), 0)).not.toBe(registryLessons);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
