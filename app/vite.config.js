@@ -8,6 +8,7 @@ import { buildConflictManifest } from '../scripts/orchestration/conflict-analyti
 import { buildTestCensus } from '../scripts/test-census.mjs';
 import { buildLessonsManifest } from '../scripts/lessons-manifest.mjs';
 import { chainOf } from './src/lib/decision-chain.js';
+import { parseGovernanceQueue } from './src/lib/governance-queue-parse.js';
 
 // (The build-time n8n workflow counter + registry — countWorkflowFiles /
 // buildWorkflowRegistry, DR-0061 / DR-0158 — were removed when n8n left the
@@ -24,28 +25,11 @@ function readGovernanceQueue() {
   let raw = '';
   try {
     raw = readFileSync(fileURLToPath(new URL('../docs/governance/decision-queue.md', import.meta.url)), 'utf8');
-  } catch { return { ok: false, openCount: 0, items: [] }; }
-  // Isolate the "## OPEN" section (everything up to "## DECIDED").
-  const openSection = (raw.split(/^##\s+OPEN\b.*$/m)[1] || '').split(/^##\s+DECIDED\b/m)[0];
-  const blocks = openSection.split(/^###\s+/m).slice(1);
-  const field = (block, label) => {
-    const m = block.match(new RegExp(`\\*\\*${label}:\\*\\*\\s*([^\\n]+)`, 'i'));
-    return m ? m[1].trim() : '';
-  };
-  const items = blocks.map((b) => {
-    const head = (b.split('\n')[0] || '').trim();
-    const [idPart, ...titleParts] = head.split('·');
-    const tierMatch = b.match(/Tier\s+([ABC])\b/);
-    return {
-      id: (idPart || '').trim(),
-      title: titleParts.join('·').trim(),
-      unblocks: field(b, 'Unblocks'),
-      recommendation: field(b, 'My recommendation') || field(b, 'Recommendation'),
-      track: field(b, 'Track'),
-      tier: tierMatch ? tierMatch[1] : '',
-    };
-  }).filter((it) => /^OPEN-\d+/.test(it.id));
-  return { ok: true, openCount: items.length, items };
+  } catch { return { ok: false, openCount: 0, items: [], reviews: [] }; }
+  // The parser lives in src/lib so the tests prove exactly what the app shows;
+  // each section now ends at the next "## " heading (2026-09-29: the OPEN
+  // section used to run on into BUILD BACKLOG and mislabel OPEN-5's tier).
+  return parseGovernanceQueue(raw);
 }
 const governanceQueue = readGovernanceQueue();
 
