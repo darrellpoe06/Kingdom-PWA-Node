@@ -12,7 +12,9 @@
 
 Every lesson lives in JavaScript in `app/src/lib`: 43 registered courses plus the six Eternal-Algorithms courses, **729 lessons**, `living-lessons-class.js` alone 12,044,650 bytes. They are compiled into the bundle, so publishing one lesson is a PR, CI, a merge and a full deploy, and every lesson PR edited the same literal count lines. The app's data already lives on the sovereign NAS database (REPOINT-ARMED; the app reads through `poetech.us/sb`, the same-origin transport, DR-0307).
 
-## Every consumer of lesson content (characterized before any change, DR-0076 §5)
+## What was measured
+
+Every consumer of lesson content, characterized before any change (DR-0076 §5):
 
 Read, not assumed. Everything that reads a lesson today reads a course file, through one of these doors:
 
@@ -31,6 +33,10 @@ Read, not assumed. Everything that reads a lesson today reads a course file, thr
 | `lib/book-corpus.js`, `components/PerpetualReport.jsx`, `PublicWelcome.jsx`, `BiblicalTimeline.jsx`, `TeachMode.jsx`, `lib/teach-present.js`, `lesson-timeline-context.js`, `living-lessons-dates.js` | direct imports of course modules or the catalog (book export, counts, anchors, presentation) |
 | the gates (`scripts/quoted-verse-is-the-verse.mjs`, `quotation-integrity.mjs`, `full-levels.mjs`, `reading-level.mjs`, `band-differentiation.mjs`, `course-band-coverage.mjs`, `title-in-narrative.mjs`) and ~200 per-lesson tests | import the module arrays |
 | the NAS builder (PR #1837) | writes a module into `living-lessons-class.js` and bumps the count lines (`bump_weeks`, `bump_crosslist`, `bump_json_count`) |
+
+## Impact
+
+Without this, a lesson has no sovereign home: it exists only inside a 19 MB bundle, reaching the family takes a PR, CI, a merge and a full deploy, and parallel lesson PRs conflict on shared count lines. With it, the family's own database holds every lesson in step with the code and proves it after every deploy, Darrell reads a gated lesson the moment it passes, the bundle stays the floor so the site never goes blank, and a new lesson no longer edits a count line.
 
 ## Options
 

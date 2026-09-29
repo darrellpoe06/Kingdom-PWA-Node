@@ -3312,7 +3312,7 @@ function LessonPreviewBadge({ prUrl }) {
   return (
     <p
       data-lesson-preview
-      className="mt-1 text-[0.75rem] text-[#5A3A00] bg-[#FFF4D6] border border-[#E8C872] px-2 py-1"
+      className="mt-1 text-[0.75rem] text-[#1A1815] bg-[#FAF8F4] border border-[#B85838] px-2 py-1"
     >
       <strong>{PREVIEW_LABEL}.</strong>{' '}
       {prUrl
