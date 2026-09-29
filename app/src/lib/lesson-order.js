@@ -136,24 +136,44 @@ export function monthOf(iso) {
 
 // The orders a reader can pick. "divisions" is offered only on a course long
 // enough to be shelved by the Word's divisions (lib/lesson-sections.js).
+// DR-0686 (Darrell 2026-09-29: "Can we make the top sort work to do all
+// sorting options?") — the lesson list now carries the top sort's orders where
+// they apply to lessons: A to Z and Z to A on every course, and on a course
+// that records its days "By number" is labelled "Oldest first" too, because
+// there it IS oldest first (living-lessons-order.test.jsx holds that the days
+// never go backwards in number order) — one option, never two identical ones.
+// A course whose lessons carry no number keeps "Course order" as its default.
 export const LESSON_ORDERS = [
   { key: 'number', label: 'By number, first to last' },
+  { key: 'course', label: 'Course order' },
   { key: 'newest', label: 'Newest first' },
+  { key: 'title', label: 'A to Z' },
+  { key: 'title-desc', label: 'Z to A' },
   { key: 'divisions', label: 'By the Word’s divisions' },
 ];
 export const DEFAULT_LESSON_ORDER = 'number';
 
-/** The orders this course can offer: numbered → first/newest; shelved → divisions too. */
+/** The orders this course can offer: numbered → first/newest; unnumbered → course order; every course → A to Z / Z to A; shelved → divisions too. */
 export function ordersFor({ numbered, hasSections, dated }) {
   return LESSON_ORDERS
-    .filter((o) => (o.key === 'divisions' ? hasSections : numbered))
-    .map((o) => (o.key === 'newest' && !dated ? { ...o, label: 'Last to first' } : o));
+    .filter((o) => {
+      if (o.key === 'divisions') return !!hasSections;
+      if (o.key === 'course') return !numbered;
+      if (o.key === 'number' || o.key === 'newest') return !!numbered;
+      return true;
+    })
+    .map((o) => {
+      if (o.key === 'newest' && !dated) return { ...o, label: 'Last to first' };
+      if (o.key === 'number' && dated) return { ...o, label: 'By number, oldest first' };
+      return o;
+    });
 }
 
 /**
  * The lessons in the picked order. 'number' → lowest number first; 'newest' →
  * latest day first, then highest number (a lesson without a day sorts by its
- * number after the dated ones). Anything else returns the list as given.
+ * number after the dated ones); 'title' / 'title-desc' → by title, A to Z or
+ * Z to A. Anything else returns the list as given.
  * Never mutates the input; ties keep course order.
  */
 export function orderLessons(list, order) {
@@ -167,6 +187,10 @@ export function orderLessons(list, order) {
       if (da !== db) return da < db ? 1 : -1;
       return -byNumber(a, b);
     }).map((r) => r.m);
+  }
+  if (order === 'title' || order === 'title-desc') {
+    const dir = order === 'title' ? 1 : -1;
+    return rows.sort((a, b) => (dir * String(a.m.title || '').localeCompare(String(b.m.title || ''))) || (a.i - b.i)).map((r) => r.m);
   }
   return rows.map((r) => r.m);
 }
