@@ -330,10 +330,10 @@ describe('the surfaces', () => {
 
   it('the speaker sees each lesson: received, waiting, written down with the words, or why it failed', async () => {
     const rows = [
-      { id: 'v1', body: 'Lesson. A spoken lesson (1:02)…', tags: ['lesson', 'voice', 'audio:u1/x.webm', 'voice-transcribed'], created_at: '2026-09-24T10:00:00Z' },
-      { id: 't1', body: 'Lesson. A spoken lesson, transcribed by Whisper (large-v3-turbo) on the 4070 tower.\n\nThe keys of hell and death.', tags: ['lesson', 'voice-transcript', 'of:v1', 'mirrored'], created_at: '2026-09-24T10:05:00Z' },
-      { id: 'v2', body: 'Lesson. A spoken lesson (0:30)…', tags: ['lesson', 'voice', 'audio:u1/y.webm'], created_at: '2026-09-24T11:00:00Z' },
-      { id: 'x1', body: 'Lesson. Be ye doers of the word.', tags: ['lesson'], created_at: '2026-09-24T09:00:00Z' },
+      { id: 'v1', body: 'Lesson. A spoken lesson (1:02)…', tags: ['lesson', 'voice', 'audio:u1/x.webm', 'voice-transcribed'], created_at: '2026-09-24T10:00:00Z', created_by: 'u1' },
+      { id: 't1', body: 'Lesson. A spoken lesson, transcribed by Whisper (large-v3-turbo) on the 4070 tower.\n\nThe keys of hell and death.', tags: ['lesson', 'voice-transcript', 'of:v1', 'mirrored'], created_at: '2026-09-24T10:05:00Z', created_by: 'u1' },
+      { id: 'v2', body: 'Lesson. A spoken lesson (0:30)…', tags: ['lesson', 'voice', 'audio:u1/y.webm'], created_at: '2026-09-24T11:00:00Z', created_by: 'u1' },
+      { id: 'x1', body: 'Lesson. Be ye doers of the word.', tags: ['lesson'], created_at: '2026-09-24T09:00:00Z', created_by: 'u1' },
     ];
     const items = lessonItems(rows);
     expect(items.map((i) => [i.id, i.state])).toEqual([['v2', 'waiting'], ['v1', 'written'], ['x1', 'sent']]);

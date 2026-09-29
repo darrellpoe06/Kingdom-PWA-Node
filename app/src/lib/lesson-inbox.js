@@ -33,6 +33,28 @@ export const LESSON_STATES = Object.freeze({
   sent: 'Received',
 });
 
+// The rung a transcript names (whisper:<key>), in words.
+const RUNG_NAMES = Object.freeze({ 'nas-cpu': 'the NAS CPU', tlcmediadpt: 'the 4070 tower' });
+
+// DR-0672, THE TENANCY GUARD. Darrell sends from two sign-ins that are both his
+// (lesson_governor_emails() in migration 0237 lists their doors; these are the
+// two accounts behind them). The database is the real gate: my_lesson_rows()
+// (0241) gives a member only their own rows and the Governor only his two
+// doors'. This is the second lock, on the client: whatever a read returns,
+// Your lessons shows a member only rows they wrote, and the Governor only rows
+// his own two accounts wrote. Never another member's.
+export const GOVERNOR_LESSON_ACCOUNTS = Object.freeze([
+  'f13843f2-742b-4f8a-82af-7ecfbdc536ec',
+  'c2a6c39a-ae99-4ff7-83c6-b927e2e7f1cc',
+]);
+
+/** The rows this person may see in Your lessons. */
+export function ownLessonRows(rows, { uid, owner = false } = {}) {
+  if (!uid) return [];
+  const allowed = new Set([uid, ...(owner && GOVERNOR_LESSON_ACCOUNTS.includes(uid) ? GOVERNOR_LESSON_ACCOUNTS : [])]);
+  return (Array.isArray(rows) ? rows : []).filter((r) => r && allowed.has(r.created_by));
+}
+
 /** Rows → one item per lesson the person sent, newest first. */
 export function lessonItems(rows) {
   const list = Array.isArray(rows) ? rows : [];
@@ -53,9 +75,19 @@ export function lessonItems(rows) {
     const failure = children.get(`${r.id}:failed`) || null;
     const state = !spoken ? 'sent' : transcript ? 'written' : failure ? 'failed' : 'waiting';
     const carried = has(r, 'mirrored') || has(transcript, 'mirrored') || has(failure, 'mirrored');
+    // DR-0672: the builder's progress may sit on the parent or on the
+    // transcript it built from; the road reads both.
+    const progressTags = [...new Set([...(r.tags || []), ...((transcript && transcript.tags) || []), ...((failure && failure.tags) || [])])];
+    const rungTag = transcript ? (transcript.tags || []).find((t) => String(t).startsWith('whisper:')) : '';
     items.push({
       id: r.id,
       createdAt: r.created_at || '',
+      createdBy: r.created_by || '',
+      transcriptId: transcript ? transcript.id || '' : '',
+      transcriptAt: transcript ? transcript.created_at || '' : '',
+      failedAt: failure ? failure.created_at || '' : '',
+      rung: rungTag ? RUNG_NAMES[String(rungTag).slice(8)] || String(rungTag).slice(8) : '',
+      progressTags,
       spoken,
       state,
       label: LESSON_STATES[state],
@@ -79,7 +111,15 @@ export async function fetchMyLessons({ supabase, limit = 100 } = {}) {
     const { data: sess } = await supabase.auth.getSession();
     const uid = sess?.session?.user?.id || null;
     if (!uid) return { ok: false, items: [], reason: 'signed-out' };
-    const owner = isLessonDoorOwner(sess?.session?.user?.email || '');
+    const email = sess?.session?.user?.email || '';
+    const owner = isLessonDoorOwner(email);
+    // DR-0672: my_lesson_rows() (migration 0241) — own rows, and for the
+    // Governor both of his doors. A database that has not taken 0241 yet reads
+    // the table directly (own rows under 0237's policy), as before.
+    const rpc = typeof supabase.rpc === 'function' ? await supabase.rpc('my_lesson_rows', { p_limit: limit }) : { error: { message: 'no rpc' } };
+    if (!rpc.error && Array.isArray(rpc.data)) {
+      return { ok: true, items: lessonItems(ownLessonRows(rpc.data, { uid, owner })), reason: '', owner, uid, email };
+    }
     const read = (cols) => supabase
       .from('agent_inbox')
       .select(cols)
@@ -89,12 +129,12 @@ export async function fetchMyLessons({ supabase, limit = 100 } = {}) {
       .eq('created_by', uid)
       .order('created_at', { ascending: false })
       .limit(limit);
-    let { data, error } = await read('id, body, tags, created_at, review_reason');
+    let { data, error } = await read('id, body, tags, created_at, created_by, review_reason');
     // A database that has not yet taken 0237 has no review_reason column: the
     // lessons still read, and a decline shows without its reason until it does.
-    if (error && /review_reason/.test(String(error.message || ''))) ({ data, error } = await read('id, body, tags, created_at'));
+    if (error && /review_reason/.test(String(error.message || ''))) ({ data, error } = await read('id, body, tags, created_at, created_by'));
     if (error) return { ok: false, items: [], reason: error.message };
-    return { ok: true, items: lessonItems(data || []), reason: '', owner };
+    return { ok: true, items: lessonItems(ownLessonRows(data || [], { uid, owner })), reason: '', owner, uid, email };
   } catch (e) {
     return { ok: false, items: [], reason: e?.message || 'unknown' };
   }
