@@ -39,7 +39,7 @@ const RUNG_NAMES = Object.freeze({ 'nas-cpu': 'the NAS CPU', tlcmediadpt: 'the 4
 // DR-0672, THE TENANCY GUARD. Darrell sends from two sign-ins that are both his
 // (lesson_governor_emails() in migration 0237 lists their doors; these are the
 // two accounts behind them). The database is the real gate: my_lesson_rows()
-// (0240) gives a member only their own rows and the Governor only his two
+// (0241) gives a member only their own rows and the Governor only his two
 // doors'. This is the second lock, on the client: whatever a read returns,
 // Your lessons shows a member only rows they wrote, and the Governor only rows
 // his own two accounts wrote. Never another member's.
@@ -113,8 +113,8 @@ export async function fetchMyLessons({ supabase, limit = 100 } = {}) {
     if (!uid) return { ok: false, items: [], reason: 'signed-out' };
     const email = sess?.session?.user?.email || '';
     const owner = isLessonDoorOwner(email);
-    // DR-0672: my_lesson_rows() (migration 0240) — own rows, and for the
-    // Governor both of his doors. A database that has not taken 0240 yet reads
+    // DR-0672: my_lesson_rows() (migration 0241) — own rows, and for the
+    // Governor both of his doors. A database that has not taken 0241 yet reads
     // the table directly (own rows under 0237's policy), as before.
     const rpc = typeof supabase.rpc === 'function' ? await supabase.rpc('my_lesson_rows', { p_limit: limit }) : { error: { message: 'no rpc' } };
     if (!rpc.error && Array.isArray(rpc.data)) {

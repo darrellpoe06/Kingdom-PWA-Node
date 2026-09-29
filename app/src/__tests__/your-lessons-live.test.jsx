@@ -147,7 +147,7 @@ describe('the PR state reuses the OpsBoard reads', () => {
   it('no PR named, no GitHub read at all', async () => {
     let touched = 0;
     const r = await fetchLessonPrs([], { fetchOps: async () => { touched++; return {}; } });
-    expect([r.prs, touched]).toEqual([{}, 0]);
+    expect([r.prs, touched]).toEqual([{ byBranch: {} }, 0]);
   });
 });
 
@@ -196,7 +196,7 @@ describe('the tenancy guard — never another member’s rows', () => {
     expect(ownLessonRows(mixed, {})).toEqual([]);
     expect(ownLessonRows([{ id: 'z', tags: ['lesson'] }], { uid: MEMBER })).toEqual([]); // no author, not shown
   });
-  it('reads through my_lesson_rows(), and falls back to the own-rows table read when 0240 is not there', async () => {
+  it('reads through my_lesson_rows(), and falls back to the own-rows table read when 0241 is not there', async () => {
     const sb = fakeSb({ uid: MEMBER, rpcRows: mixed });
     const r = await fetchMyLessons({ supabase: sb });
     expect(sb.calls.rpc[0][0]).toBe('my_lesson_rows');
@@ -207,27 +207,28 @@ describe('the tenancy guard — never another member’s rows', () => {
     expect(old.calls.from[0].select).toMatch(/created_by/);
     expect(r2.items.map((i) => i.id)).toEqual(['a']);
   });
-  it('the database gate is written and proven in its own smoke (0240)', () => {
-    const mig = readFileSync(join(REPO, 'infra/supabase/migrations-auto/0240-your-lessons-reads-the-governors-own-two-doors.sql'), 'utf8');
+  it('the database gate is written and proven in its own smoke (0241)', () => {
+    const mig = readFileSync(join(REPO, 'infra/supabase/migrations-auto/0241-your-lessons-reads-the-governors-own-two-doors.sql'), 'utf8');
     expect(mig).toMatch(/is_lesson_governor\(\)\s+AND a\.created_by IN \(/);
     expect(mig).toMatch(/lesson_governor_emails\(\)/);
     expect(mig).not.toMatch(/DROP POLICY|CREATE POLICY/); // the read policy itself is untouched
-    const smoke = readFileSync(join(REPO, 'infra/supabase/tests/0240-my-lesson-rows-smoke.sql'), 'utf8');
+    const smoke = readFileSync(join(REPO, 'infra/supabase/tests/0241-my-lesson-rows-smoke.sql'), 'utf8');
     expect(smoke).toMatch(/LEAK: member A read/);
     const leg = readFileSync(join(REPO, '.github/workflows/rls-isolation.yml'), 'utf8');
-    expect(leg).toMatch(/0240-my-lesson-rows-smoke\.sql/);
+    expect(leg).toMatch(/0241-my-lesson-rows-smoke\.sql/);
   });
 });
 
 // --- 4. THE VERSIONS, COMPARED ---------------------------------------------------
 const SHA = 'a'.repeat(64);
 const vrow = (writer, model, extra = {}) => ({
-  id: `ver-${writer}`, build_id: 'b0000000-0000-4000-a000-000000000001', teaching_row_id: 't1', lesson_id: 'll200-rest-of-the-word', writer, model_label: model,
+  id: `ver-${writer}`, build_id: 'b0000000-0000-4000-a000-000000000001', teaching_row_id: 't1', instance_id: 'i1', lesson_id: 'll200-rest-of-the-word', writer, family: 'claude', model_label: model,
   prompt_sha256: SHA, prompt_text: 'THE STANDARD\n\nTHE TEACHING: Come unto me.',
   body: {
     verdict: 'lesson', title: `Rest by ${writer}`, anchor: { ref: 'Matthew 11:28; Hebrews 4:9' },
-    movements: ['1. Come unto Me (Matthew 11:28)', '2. The rest that remains (Hebrews 4:9-10)', '3. Enter in (Hebrews 4:11)'],
-    lesson: 'THE REST OF THE WORD. Matthew 11:28 and Hebrews 4:9. Jesus is the Lamb of Yahweh and the Eternal Son of Yahweh.',
+    lesson_intro: 'THE REST OF THE WORD.',
+    movements: [{ title: 'Come unto Me', text: 'Matthew 11:28.' }, { title: 'The rest that remains', text: 'Hebrews 4:9-10.' }, { title: 'Enter in', text: 'Hebrews 4:11.' }],
+    lesson_close: 'Jesus is the Lamb of Yahweh and the Eternal Son of Yahweh.',
   },
   gate_results: {
     structure: { passed: true, problems: [], counts: { movements: 3, bands: 4, quiz: 6 } },
@@ -235,19 +236,20 @@ const vrow = (writer, model, extra = {}) => ({
     quotation: { passed: true, problems: [] }, voice: { passed: true, problems: [] },
     repo_gates: { skipped: 'node is not on this machine' }, verse_passed: true, passed: true,
   },
-  elapsed_ms: 42000, created_at: '2026-09-29T10:10:00Z', published: false, ...extra,
+  elapsed_ms: 42000, error: null, backfill: false, created_at: '2026-09-29T10:10:00Z', published: false, ...extra,
 });
 
 describe('the versions of one lesson, compared', () => {
-  it('pins the documented lesson_versions shape; when its migration lands, every column must be in it', () => {
-    expect(LESSON_VERSION_COLUMNS).toEqual(['id', 'build_id', 'teaching_row_id', 'lesson_id', 'writer', 'model_label', 'prompt_sha256', 'prompt_text', 'body', 'gate_results', 'elapsed_ms', 'created_at', 'published']);
+  it('pins the lesson_versions shape to DR-0669\u2019s migration and the builder\u2019s own insert and gates, once they are on disk', () => {
+    expect(LESSON_VERSION_COLUMNS).toEqual(['id', 'build_id', 'teaching_row_id', 'instance_id', 'lesson_id', 'writer', 'family', 'model_label', 'prompt_sha256', 'prompt_text', 'body', 'gate_results', 'elapsed_ms', 'error', 'published', 'backfill', 'created_at']);
     // The builder's own insert (DR-0669), once it is on disk: every column this
     // view reads is one it writes (id and created_at are the table's defaults).
     const builder = join(REPO, 'infra/nas-lesson-builder/lesson_builder.py');
     if (existsSync(builder)) {
-      const insert = /INSERT INTO public\.lesson_versions \(([^)]+)\)/.exec(readFileSync(builder, 'utf8'));
+      // The INSERT is written across adjacent Python string literals: join them.
+      const insert = /INSERT INTO public\.lesson_versions \(([\s\S]*?)\) VALUES/.exec(readFileSync(builder, 'utf8'));
       expect(insert, 'lesson_builder.py no longer inserts into lesson_versions').not.toBe(null);
-      const written = insert[1].split(',').map((c) => c.trim());
+      const written = insert[1].replace(/"\s*"/g, '').replace(/"/g, '').split(',').map((c) => c.trim());
       for (const c of LESSON_VERSION_COLUMNS.filter((x) => x !== 'id' && x !== 'created_at')) expect(written, `the builder no longer writes ${c}`).toContain(c);
     }
     // And its gate record keeps the keys this view reads.
@@ -288,7 +290,7 @@ describe('the versions of one lesson, compared', () => {
       repo_gates: { skipped: 'node is not on this machine' },
     });
     expect(g.verses).toMatchObject({ measured: true, verbatim: 2, total: 3, allVerbatim: false });
-    expect(g.verses.mismatches[0]).toEqual({ ref: 'Hebrews 4:9', where: 'levels.child', why: 'not the verse as written; missing "a sabbath rest"' });
+    expect(g.verses.mismatches[0]).toEqual({ ref: 'Hebrews 4:9', where: 'levels.child', quoted: '', why: 'not the verse as written; missing "a sabbath rest"' });
     // A skipped layer is shown as not run and never counted as passed.
     expect(g.structure).toMatchObject({ ran: 2, passed: 1 });
     expect(g.structure.checks.find((c) => c.skipped).detail).toBe('not run: node is not on this machine');
@@ -297,7 +299,7 @@ describe('the versions of one lesson, compared', () => {
 
   it('names where they differ: a missing movement and a verse only one cites', () => {
     const b = vrow('api', 'claude-sonnet');
-    b.body = { ...b.body, movements: b.body.movements.slice(0, 2), lesson: b.body.lesson + ' Psalm 23:1.' };
+    b.body = { ...b.body, movements: b.body.movements.slice(0, 2), lesson_close: `Psalm 23:1. ${b.body.lesson_close}` };
     const vs = [vrow('claude-cli', 'claude-opus'), b].map(normalizeVersion);
     const d = compareVersions(vs);
     expect(d.movementCounts).toEqual([3, 2]);
@@ -422,14 +424,51 @@ describe('the screen', () => {
   });
 });
 
-// --- 6. REVIEW AND DECIDE: choose, merge part by part, or take all ----------------
+// --- 6. THE BUILDER'S OWN STAGES (DR-0669 vocabulary) ------------------------------
+describe('the road reads the NAS builder’s own stage tags', () => {
+  const T = (stage, at) => `build:${stage}@${at}`;
+  it('a live build shows where it is and since when; a pushed one is timed by its push; its PR is found by its branch', () => {
+    const [now] = lessonItems([typed('b1', DESK, '2026-09-29T09:00:00Z', ['lesson-building', T('claimed', '2026-09-29T09:00:05Z'), T('writing', '2026-09-29T09:01:00Z')])]);
+    const r1 = deriveLessonPipeline(now, { owner: true, catalog: CATALOG });
+    expect(r1.stages[2]).toMatchObject({ status: 'now', at: '2026-09-29T09:00:05Z' });
+    expect(r1.stages[2].line).toMatch(/^Now writing, since /);
+    const [done] = lessonItems([typed('b2', DESK, '2026-09-29T09:00:00Z', [T('claimed', '2026-09-29T09:00:05Z'), T('pushed', '2026-09-29T09:20:00Z'), 'lesson-captured', 'lesson-published', 'build-lesson:L200', 'lesson-id:ll200-rest-of-the-word'])]);
+    const prs = { byBranch: { 'claude/lesson-l200-': { number: 1900, branch: 'claude/lesson-l200-rest', createdAt: '2026-09-29T09:21:00Z', mergedAt: '2026-09-29T09:40:00Z', state: 'closed' } } };
+    const r2 = deriveLessonPipeline(done, { prs, owner: true, catalog: CATALOG });
+    expect(byStage(r2)).toEqual({ recorded: 'done', words: 'done', building: 'done', pr: 'done', live: 'done' });
+    expect(r2.stages.map((s) => s.elapsed)).toEqual([null, null, '20 min', '1 min', '19 min']);
+    expect(r2.stages[3].line).toBe('PR #1900 opened.');
+    expect(r2.prNumber).toBe(1900);
+  });
+  it('several versions wait for his decision; a failed build says why; a deferred one says where it went', () => {
+    const [review] = lessonItems([typed('b3', DESK, '2026-09-29T09:00:00Z', ['awaiting-review', T('awaiting-review', '2026-09-29T09:15:00Z')])]);
+    expect(deriveLessonPipeline(review, { owner: true, catalog: CATALOG }).stages[2]).toMatchObject({ status: 'waiting', line: expect.stringMatching(/waits for your decision/) });
+    const [failed] = lessonItems([typed('b4', DESK, '2026-09-29T09:00:00Z', [T('failed', '2026-09-29T09:30:00Z'), 'build-failed', 'build-reason:budget 2700 s reached'])]);
+    const r = deriveLessonPipeline(failed, { owner: true, catalog: CATALOG });
+    expect(r.stages[2]).toMatchObject({ status: 'failed', at: '2026-09-29T09:30:00Z', line: 'The builder stopped: budget 2700 s reached' });
+    expect(r.failed).toBe(true);
+    const [deferred] = lessonItems([typed('b5', DESK, '2026-09-29T09:00:00Z', [T('deferred', '2026-09-29T09:02:00Z'), 'build-reason:placed in Sovereign A.I.'])]);
+    expect(deriveLessonPipeline(deferred, { owner: true, catalog: CATALOG }).stages[2].line).toBe('Handed to the hourly lesson Routine: placed in Sovereign A.I.');
+  });
+  it('the PR read indexes open and merged PRs by the builder’s branch', async () => {
+    const { prs } = await fetchLessonPrs([], {
+      branchPrefixes: ['claude/lesson-l200-'],
+      fetchOps: async () => ({ ok: true, pulls: [{ number: 5, branch: 'claude/other', createdAt: 'x' }] }),
+      fetchDeliveryRecord: async () => ({ ok: true, merges: [{ number: 1900, branch: 'claude/lesson-l200-rest', createdAt: '2026-09-29T09:21:00Z', mergedAt: '2026-09-29T09:40:00Z' }] }),
+    });
+    expect(prs.byBranch['claude/lesson-l200-']).toMatchObject({ number: 1900, mergedAt: '2026-09-29T09:40:00Z' });
+  });
+});
+
+// --- 7. REVIEW AND DECIDE: choose, merge part by part, or take all ----------------
 const SPAN = '"Come unto me, all ye that labour and are heavy laden, and I will give you rest." (Matthew 11:28)';
 const drow = (writer, extra = {}, body = {}) => ({
   ...vrow(writer, `${writer}-model`),
   body: {
-    verdict: 'lesson', title: `Rest, by ${writer}`, anchor: { ref: 'Matthew 11:28' },
-    movements: ['1. Come (Matthew 11:28)', '2. Remain (Hebrews 4:9)', '3. Enter (Hebrews 4:11)'],
-    lesson: `THE REST. He said it plainly: ${SPAN} So we come. Jesus is the Lamb of Yahweh and the Eternal Son of Yahweh.`,
+    verdict: 'lesson', title: `Rest, by ${writer}`, anchor: { ref: 'Matthew 11:28' }, bigIdea: `Big idea by ${writer}.`,
+    lesson_intro: `He said it plainly: ${SPAN} So we come.`,
+    movements: [{ title: 'Come', text: 'Matthew 11:28.' }, { title: 'Remain', text: 'Hebrews 4:9.' }, { title: 'Enter', text: 'Hebrews 4:11.' }],
+    lesson_close: 'Jesus is the Lamb of Yahweh and the Eternal Son of Yahweh.',
     levels: { child: `Child band by ${writer}. ${SPAN}`, youth: `Youth by ${writer}.`, teen: `Teen by ${writer}.`, senior: `Senior by ${writer}.` },
     quiz: { questions: [{ q: `Q by ${writer}`, options: ['a', 'b'], answer: 0, explain: 'x' }] },
     ...body,
@@ -437,125 +476,124 @@ const drow = (writer, extra = {}, body = {}) => ({
   ...extra,
 });
 
-describe('the decision — the Governor chooses, merges, or takes all', () => {
+describe('the decision — the builder’s contract, from the Governor’s hand', () => {
   const A = normalizeVersion(drow('alpha'));
-  // Beta has one verse fault in its child band, is faster, and has only two movements.
+  // Beta: one verse fault in its child band, faster, two movements, a better title.
   const B = normalizeVersion(drow('beta', {
     elapsed_ms: 1000,
     gate_results: {
       structure: { passed: true, problems: [], counts: { movements: 2, quiz: 1 } },
-      verse: { passed: false, spans: 3, verbatim: 2, faults: [{ kind: 'not-the-verse', ref: 'Matthew 11:28', where: 'levels.child' }] },
+      verse: { passed: false, spans: 3, verbatim: 2, faults: [{ kind: 'not-the-verse', ref: 'Matthew 11:28', where: 'levels.child', quoted: 'Come unto me' }] },
       verse_passed: false, passed: false,
     },
-  }, { movements: ['1. Come (Matthew 11:28)', '2. Remain (Hebrews 4:9)'], title: 'Beta’s better title' }));
+  }, { movements: [{ title: 'Come', text: 'Matthew 11:28.' }, { title: 'Remain', text: 'Hebrews 4:9.' }], title: 'Beta’s better title' }));
   const vs = [A, B];
 
-  it('pins the lesson_decisions shape to its migration', () => {
-    expect(LESSON_DECISION_COLUMNS).toEqual(['id', 'teaching_row_id', 'build_id', 'mode', 'chosen_version_id', 'merge_map', 'edits', 'version_ids', 'decided_by', 'decided_at', 'status', 'gate_result', 'lesson_id', 'pr_number', 'updated_at']);
-    const mig = readFileSync(join(REPO, 'infra/supabase/migrations-auto/0241-the-governor-decides-which-version-ships.sql'), 'utf8');
-    const table = mig.slice(mig.indexOf('CREATE TABLE IF NOT EXISTS public.lesson_decisions'), mig.indexOf('CREATE INDEX'));
-    for (const c of LESSON_DECISION_COLUMNS) expect(table, `lesson_decisions is missing ${c}`).toMatch(new RegExp(`^\\s+${c}\\s`, 'm'));
-    expect(mig).toMatch(/lesson_decisions_insert[\s\S]*is_lesson_governor\(\) AND decided_by = auth\.uid\(\) AND status = 'pending'/);
-    expect(mig).toMatch(/REVOKE UPDATE, DELETE ON public\.lesson_decisions FROM authenticated, anon/);
+  it('pins lesson_decisions to DR-0669’s migration and the builder’s PART_KEYS, once they are on disk', () => {
+    expect(LESSON_DECISION_COLUMNS).toEqual(['id', 'build_id', 'teaching_row_id', 'instance_id', 'version_id', 'merge_map', 'edits', 'decided_by', 'decided_at', 'status', 'gate_result', 'lesson_id', 'branch', 'pr_url', 'processed_at']);
+    const dir = join(REPO, 'infra/supabase/migrations-auto');
+    const sql = readdirSync(dir).map((f) => readFileSync(join(dir, f), 'utf8')).find((x) => /CREATE TABLE IF NOT EXISTS (public\.)?lesson_decisions\b/.test(x));
+    if (sql) {
+      const table = sql.slice(sql.search(/CREATE TABLE IF NOT EXISTS (public\.)?lesson_decisions\b/));
+      const body = table.slice(0, table.indexOf(');'));
+      for (const c of LESSON_DECISION_COLUMNS) expect(body, `lesson_decisions is missing ${c}`).toMatch(new RegExp(`^\\s+${c}\\s`, 'm'));
+      expect(body).toMatch(/'decided', 'building', 'shipped', 'gate-failed', 'failed'/);
+    }
+    const builder = join(REPO, 'infra/nas-lesson-builder/lesson_builder.py');
+    if (existsSync(builder)) {
+      const keys = /PART_KEYS = \(([^)]+)\)/.exec(readFileSync(builder, 'utf8'))[1].match(/"([^"]+)"/g).map((k) => k.slice(1, -1));
+      for (const p of partsFor(vs).filter((x) => x !== 'base' && !x.startsWith('movements.'))) expect(keys, `the builder no longer merges ${p}`).toContain(p);
+      expect(readFileSync(builder, 'utf8')).toMatch(/movements\\\.\(\\d\+\)/);
+    }
   });
 
   it('the parts, and the best part of each for "take all"', () => {
-    expect(partsFor(vs)).toEqual(['base', 'title', 'movement:1', 'movement:2', 'movement:3', 'lesson', 'band:child', 'band:youth', 'band:teen', 'band:senior', 'quiz']);
-    expect(partOf(B, 'movement:3')).toBeUndefined();
+    expect(partsFor(vs)).toEqual(['base', 'title', 'bigIdea', 'lesson_intro', 'movements.0', 'movements.1', 'movements.2', 'lesson_close', 'levels.child', 'levels.youth', 'levels.teen', 'levels.senior', 'quiz', 'benefits', 'facilitator']);
+    expect(partOf(B, 'movements.2')).toBeUndefined();
     const picks = defaultPicks(vs);
     expect(picks.base).toBe('ver-alpha'); // passed every gate
-    expect(picks['band:child']).toBe('ver-alpha'); // beta's child band has the verse fault
-    expect(picks['movement:3']).toBe('ver-alpha'); // only alpha has it
+    expect(picks['levels.child']).toBe('ver-alpha'); // beta's child band carries the verse fault
+    expect(picks['movements.2']).toBe('ver-alpha'); // only alpha has it
   });
 
-  it('the preview is the composite: picked parts, edits laid in, the base for the rest', () => {
-    const picks = { ...defaultPicks(vs), title: 'ver-beta', 'band:youth': 'ver-beta' };
-    const out = composeLesson(vs, picks, { 'band:teen': 'Teen, edited.' });
+  it('the preview is the builder’s assembly: base, then merged parts, then edits', () => {
+    const out = composeLesson(vs, { base: 'ver-alpha', title: 'ver-beta', 'levels.youth': 'ver-beta' }, { 'levels.teen': 'Teen, edited.', 'movements.1.title': 'Abide' });
     expect(out.title).toBe('Beta’s better title');
     expect(out.levels).toMatchObject({ child: expect.stringMatching(/by alpha/), youth: 'Youth by beta.', teen: 'Teen, edited.' });
-    expect(out.movements).toHaveLength(3);
+    expect(out.movements.map((m) => m.title)).toEqual(['Come', 'Abide', 'Enter']);
     expect(out.anchor).toEqual({ ref: 'Matthew 11:28' });
   });
 
-  it('PROVEN-TO-CATCH: Scripture stays locked — the editor cannot touch a span, and the contract refuses any change to one', () => {
-    const text = A.body.lesson;
-    expect(scriptureSpans(text)).toEqual([SPAN]);
+  it('PROVEN-TO-CATCH: quoted Scripture stays locked — the editor cannot touch a span, and the contract refuses any change to one', () => {
+    const text = A.body.lesson_intro;
+    expect(scriptureSpans(text)).toEqual([SPAN.slice(1, SPAN.indexOf('" ('))]);
     const segs = splitLocked(text);
     expect(segs.map((x) => x.locked)).toEqual([false, true, false]);
-    // The editor only edits unlocked segments: an attempt on the span is ignored.
-    expect(joinSegments(editSegment(segs, 1, '"Come unto me, all ye that work" (Matthew 11:28)'))).toBe(text);
-    expect(joinSegments(editSegment(segs, 0, 'THE REST. Hear Him: '))).toBe(`THE REST. Hear Him: ${SPAN} So we come. Jesus is the Lamb of Yahweh and the Eternal Son of Yahweh.`);
-    const base = { teachingRowId: 't1', mode: 'choose', chosenVersionId: 'ver-alpha', versions: vs };
-    const changedWord = text.replace('heavy laden', 'weary');
-    const removed = text.replace(SPAN, '');
-    const added = `${text} "Rest in the LORD" (Psalm 37:7)`;
-    for (const bad of [changedWord, removed, added]) {
+    expect(joinSegments(editSegment(segs, 1, '"Come unto me, all ye that work"'))).toBe(text);
+    // A straight quote typed between spans cannot open a new span.
+    expect(scriptureSpans(joinSegments(editSegment(segs, 0, 'He said "rest" plainly: ')))).toEqual(scriptureSpans(text));
+    const base = { mode: 'choose', chosenVersionId: 'ver-alpha', versions: vs };
+    for (const bad of [text.replace('heavy laden', 'weary'), text.replace(SPAN.slice(0, SPAN.indexOf(' (')), ''), `${text} "Rest in the LORD" (Psalm 37:7)`]) {
       expect(editKeepsScripture(text, bad)).toBe(false);
-      const r = buildDecision({ ...base, edits: { lesson: bad } });
+      const r = buildDecision({ ...base, edits: { lesson_intro: bad } });
       expect(r.ok).toBe(false);
       expect(r.problems.join(' ')).toMatch(/Scripture stays exactly as written/);
     }
-    const ok = buildDecision({ ...base, edits: { lesson: text.replace('So we come.', 'So we come to Him.') } });
-    expect(ok.ok).toBe(true);
-    expect(ok.row.edits.lesson).toMatch(/So we come to Him\./);
+    const ok = buildDecision({ ...base, edits: { lesson_intro: text.replace('So we come.', 'So we come to Him.') } });
+    expect(ok.row.edits.lesson_intro).toMatch(/So we come to Him\./);
   });
 
   it('the publish contract: exactly the row the builder reads, or a refusal that says why', () => {
-    const choose = buildDecision({ teachingRowId: 't1', buildId: 'b1', mode: 'choose', chosenVersionId: 'ver-beta', versions: vs, edits: { title: 'Beta’s better title' } });
-    expect(choose).toMatchObject({ ok: true, row: { teaching_row_id: 't1', build_id: 'b1', mode: 'choose', chosen_version_id: 'ver-beta', merge_map: {}, edits: {}, version_ids: ['ver-alpha', 'ver-beta'], status: 'pending' } });
-    expect(Object.keys(choose.row).sort()).toEqual(['build_id', 'chosen_version_id', 'edits', 'merge_map', 'mode', 'status', 'teaching_row_id', 'version_ids']);
-    const merge = buildDecision({ teachingRowId: 't1', mode: 'merge', picks: { base: 'ver-alpha', title: 'ver-beta' }, versions: vs });
-    expect(merge.row.merge_map).toEqual({ base: 'ver-alpha', title: 'ver-beta' });
+    const choose = buildDecision({ mode: 'choose', chosenVersionId: 'ver-beta', versions: vs, edits: { title: 'Beta’s better title' } });
+    expect(choose.row).toEqual({ build_id: 'b0000000-0000-4000-a000-000000000001', teaching_row_id: 't1', instance_id: 'i1', version_id: 'ver-beta', merge_map: null, edits: {} });
+    const merge = buildDecision({ mode: 'merge', picks: { base: 'ver-alpha', title: 'ver-beta', 'levels.child': 'ver-alpha' }, versions: vs });
+    expect(merge.row).toMatchObject({ version_id: 'ver-alpha', merge_map: { title: 'ver-beta' } });
+    const all = buildDecision({ mode: 'all', picks: defaultPicks(vs), versions: vs });
+    expect(all.row.version_id).toBe('ver-alpha');
     const refusals = [
       [{ mode: 'choose', chosenVersionId: 'nope' }, /Choose one of these versions/],
       [{ mode: 'merge', picks: { base: 'ver-alpha', title: 'ver-alpha' } }, /at least two versions/],
       [{ mode: 'merge', picks: { title: 'ver-beta' } }, /Pick the base version/],
-      [{ mode: 'all', picks: { base: 'ver-alpha', 'movement:3': 'ver-beta' } }, /beta has no movement:3/],
+      [{ mode: 'all', picks: { base: 'ver-alpha', 'movements.2': 'ver-beta' } }, /beta has no movements\.2/],
       [{ mode: 'all', picks: { base: 'ver-alpha', nonsense: 'ver-beta' } }, /not a part of this lesson/],
       [{ mode: 'choose', chosenVersionId: 'ver-alpha', edits: { quiz: 'x' } }, /quiz cannot be edited here/],
       [{ mode: 'launch' }, /Unknown mode/],
     ];
     for (const [d, why] of refusals) {
-      const r = buildDecision({ teachingRowId: 't1', versions: vs, ...d });
+      const r = buildDecision({ versions: vs, ...d });
       expect(r.ok, String(why)).toBe(false);
       expect(r.problems.join(' ')).toMatch(why);
     }
-    expect(buildDecision({ teachingRowId: 't1', mode: 'choose', chosenVersionId: 'ver-alpha', versions: [A] }).problems.join(' ')).toMatch(/at least two versions/);
+    const otherBuild = normalizeVersion(drow('gamma', { build_id: 'b-other' }));
+    expect(buildDecision({ mode: 'choose', chosenVersionId: 'ver-alpha', versions: [A, otherBuild] }).problems.join(' ')).toMatch(/not from one build/);
   });
 
   it('PROVEN-TO-CATCH: only the Governor decides or reads the queue; a member never reaches either table', async () => {
     const member = fakeSb({ uid: MEMBER, versions: [drow('alpha'), drow('beta')] });
-    const r = await publishDecision({ supabase: member, uid: MEMBER, email: 'member@example.com', decision: { teachingRowId: 't1', mode: 'choose', chosenVersionId: 'ver-alpha', versions: vs } });
+    const r = await publishDecision({ supabase: member, uid: MEMBER, email: 'member@example.com', decision: { mode: 'choose', chosenVersionId: 'ver-alpha', versions: vs } });
     expect(r.ok).toBe(false);
     expect(member.calls.inserts).toEqual([]);
-    expect((await fetchReviewQueueSafe(member, MEMBER)).state).toBe('refused');
+    const { fetchReviewQueue } = await import('../lib/lesson-decisions.js');
+    expect((await fetchReviewQueue({ supabase: member, uid: MEMBER, email: 'member@example.com' })).state).toBe('refused');
     expect(member.calls.from).toEqual([]);
     const gov = fakeSb({ uid: DESK });
-    const sent = await publishDecision({ supabase: gov, uid: DESK, decision: { teachingRowId: 't1', mode: 'choose', chosenVersionId: 'ver-alpha', versions: vs } });
+    const sent = await publishDecision({ supabase: gov, uid: DESK, decision: { mode: 'choose', chosenVersionId: 'ver-alpha', versions: vs } });
     expect(sent.ok).toBe(true);
     expect(gov.calls.inserts[0][0]).toBe('lesson_decisions');
-    expect(gov.calls.inserts[0][1]).not.toHaveProperty('decided_by'); // the database stamps him
+    for (const k of ['decided_by', 'status', 'gate_result']) expect(gov.calls.inserts[0][1]).not.toHaveProperty(k); // the database's
   });
 
-  it('a failed gate on the composite names the check and the part; the queue state follows the newest decision', () => {
-    const f = gateFailures({ verse: { passed: false, faults: [{ kind: 'not-the-verse', ref: 'Matthew 11:28', where: 'levels.child' }] }, voice: { passed: false, problems: ['lesson: the generic "God" in our own voice (say Yahweh)'] } });
-    expect(f).toEqual([
-      { check: 'verse', part: 'band:child', detail: 'Matthew 11:28 not-the-verse' },
-      { check: 'voice', part: 'lesson', detail: 'lesson: the generic "God" in our own voice (say Yahweh)' },
-    ]);
-    expect(gateFailures({ failures: [{ check: 'structure', part: 'quiz', detail: 'fewer than 4 questions' }] })[0].part).toBe('quiz');
+  it('a failed gate on the composite names the check and the part; the queue follows the newest decision', () => {
+    expect(gateFailures({ passed: false, failures: [{ check: 'verse:not-the-verse', part: 'levels.child', detail: '(Matthew 11:28) Come unto me' }] }))
+      .toEqual([{ check: 'verse:not-the-verse', part: 'levels.child', detail: '(Matthew 11:28) Come unto me' }]);
     expect(reviewState(vs, []).state).toBe('awaiting');
     expect(reviewState([A], []).state).toBe('single');
-    const older = { status: 'gate-failed', decided_at: '2026-09-29T10:00:00Z', gate_result: { failures: [{ check: 'verse', part: 'band:child' }] } };
-    expect(reviewState(vs, [older])).toMatchObject({ state: 'gate-failed', failures: [{ check: 'verse', part: 'band:child' }] });
-    expect(reviewState(vs, [older, { status: 'pending', decided_at: '2026-09-29T11:00:00Z' }]).state).toBe('pending');
+    const older = { status: 'gate-failed', decided_at: '2026-09-29T10:00:00Z', gate_result: { failures: [{ check: 'voice', part: 'lesson_intro' }] } };
+    expect(reviewState(vs, [older])).toMatchObject({ state: 'gate-failed', failures: [{ check: 'voice', part: 'lesson_intro' }] });
+    expect(reviewState(vs, [older, { status: 'decided', decided_at: '2026-09-29T11:00:00Z' }]).state).toBe('pending');
+    expect(reviewState(vs, [{ status: 'shipped', decided_at: '2026-09-29T12:00:00Z' }]).state).toBe('shipped');
   });
 });
-
-async function fetchReviewQueueSafe(supabase, uid) {
-  const { fetchReviewQueue } = await import('../lib/lesson-decisions.js');
-  return fetchReviewQueue({ supabase, uid, email: 'member@example.com' });
-}
 
 describe('the review queue on the screen', () => {
   let host; let root;
@@ -568,44 +606,46 @@ describe('the review queue on the screen', () => {
     await settle();
     return host;
   };
-  const withGovernor = (extra = {}) => fakeSb({ uid: DESK, email: 'darrellpoe06@gmail.com', versions: [drow('alpha'), drow('beta')], ...extra });
+  const withGovernor = (extra = {}) => fakeSb({ uid: DESK, email: 'darrellpoe06@gmail.com', versions: [drow('alpha'), drow('beta'), drow('old', { backfill: true, build_id: 'b-backfill' })], ...extra });
+  const openFirst = async (el) => { await act(async () => { [...el.querySelectorAll('button')].find((b) => /Review and decide/.test(b.textContent)).click(); }); };
 
-  it('a lesson with two versions waits; he chooses one and publishes the row the builder reads', async () => {
+  it('a build with two versions waits; he chooses one and publishes the row the builder reads', async () => {
     const supabase = withGovernor();
     const el = await mount(<LessonReviewQueue deps={{ supabase }} />);
-    expect(el.textContent).toMatch(/Lessons to decide · 1/);
-    const item = el.querySelector('[data-testid="review-queue-item"]');
-    expect(item.getAttribute('data-state')).toBe('awaiting');
-    await act(async () => { [...item.querySelectorAll('button')].find((b) => /Review and decide/.test(b.textContent)).click(); });
+    expect(el.textContent).toMatch(/Lessons to decide · 1/); // the backfill row is never in the queue
+    expect(el.querySelector('[data-testid="review-queue-item"]').getAttribute('data-state')).toBe('awaiting');
+    await openFirst(el);
     expect(el.querySelector('[data-testid="decide-status"]').getAttribute('data-state')).toBe('awaiting');
-    // Take all is the default: the merge map is prefilled, one radio per part per version.
-    expect(el.querySelector('[data-testid="decide-merge-map"]').querySelectorAll('tbody tr')).toHaveLength(11);
+    expect(el.querySelector('[data-testid="decide-merge-map"]').querySelectorAll('tbody tr')).toHaveLength(15);
     await act(async () => { el.querySelector('[data-testid="decide-mode-choose"]').click(); });
-    const options = el.querySelectorAll('[data-testid="decide-choose-option"]');
-    await act(async () => { options[1].click(); });
+    await act(async () => { el.querySelectorAll('[data-testid="decide-choose-option"]')[1].click(); });
     expect(el.querySelector('[data-testid="decide-preview-title"]').textContent).toBe('Rest, by beta');
     await act(async () => { el.querySelector('[data-testid="decide-publish"]').click(); });
     await settle();
     expect(supabase.calls.inserts).toHaveLength(1);
-    expect(supabase.calls.inserts[0][1]).toMatchObject({ mode: 'choose', chosen_version_id: 'ver-beta', status: 'pending', teaching_row_id: 't1' });
+    expect(supabase.calls.inserts[0][1]).toEqual({ build_id: 'b0000000-0000-4000-a000-000000000001', teaching_row_id: 't1', instance_id: 'i1', version_id: 'ver-beta', merge_map: null, edits: {} });
   });
 
-  it('the editor shows each quoted verse locked, never as a field', async () => {
+  it('the editor shows each quoted span locked, never as a field', async () => {
     const el = await mount(<LessonReviewQueue deps={{ supabase: withGovernor() }} />);
-    await act(async () => { [...el.querySelectorAll('button')].find((b) => /Review and decide/.test(b.textContent)).click(); });
-    await act(async () => { el.querySelector('[data-testid="decide-edit-lesson"]').click(); });
-    const editor = el.querySelector('[data-testid="decide-editor-lesson"]');
-    expect(editor.querySelector('[data-testid="decide-locked-span"]').textContent).toContain(SPAN);
+    await openFirst(el);
+    await act(async () => { el.querySelector('[data-testid="decide-edit-lesson_intro"]').click(); });
+    const editor = el.querySelector('[data-testid="decide-editor-lesson_intro"]');
+    expect(editor.querySelector('[data-testid="decide-locked-span"]').textContent).toContain('heavy laden');
     for (const ta of editor.querySelectorAll('textarea')) expect(ta.value).not.toContain('heavy laden');
     expect(editor.querySelectorAll('textarea')).toHaveLength(2);
   });
 
-  it('a gate that failed on the final lesson comes back to the queue, naming the check and the part', async () => {
-    const supabase = withGovernor({ decisions: [{ teaching_row_id: 't1', mode: 'all', status: 'gate-failed', decided_at: '2026-09-29T11:00:00Z', gate_result: { failures: [{ check: 'verse', part: 'band:child', detail: 'Matthew 11:28 is not the verse as written' }] } }] });
-    const el = await mount(<LessonReviewQueue deps={{ supabase }} />);
+  it('a gate that failed on the final lesson comes back, naming the check and the part; a shipped one links its PR', async () => {
+    const failed = withGovernor({ decisions: [{ build_id: 'b0000000-0000-4000-a000-000000000001', status: 'gate-failed', decided_at: '2026-09-29T11:00:00Z', gate_result: { failures: [{ check: 'verse:not-the-verse', part: 'levels.child', detail: '(Matthew 11:28) Come unto me' }] } }] });
+    let el = await mount(<LessonReviewQueue deps={{ supabase: failed }} />);
     expect(el.querySelector('[data-testid="review-queue-item"]').getAttribute('data-state')).toBe('gate-failed');
-    await act(async () => { [...el.querySelectorAll('button')].find((b) => /Review and decide/.test(b.textContent)).click(); });
-    expect(el.querySelector('[data-testid="decide-gate-failures"]').textContent).toMatch(/verse · Child band: Matthew 11:28 is not the verse as written/);
+    await openFirst(el);
+    expect(el.querySelector('[data-testid="decide-gate-failures"]').textContent).toMatch(/verse:not-the-verse · Child band: \(Matthew 11:28\) Come unto me/);
+    act(() => root.unmount()); host.remove(); root = null;
+    const shipped = withGovernor({ decisions: [{ build_id: 'b0000000-0000-4000-a000-000000000001', status: 'shipped', decided_at: '2026-09-29T11:00:00Z', lesson_id: 'll200-rest', pr_url: 'https://github.com/darrellpoe06/Kingdom-PWA-Node/pull/1900' }] });
+    el = await mount(<LessonReviewQueue deps={{ supabase: shipped }} />);
+    expect(el.textContent).toMatch(/Nothing waiting for you/);
   });
 
   it('a member sees no queue at all', async () => {

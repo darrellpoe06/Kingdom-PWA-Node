@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0240 — Your lessons reads the Governor's own two doors, and no one else's
+-- 0241 — Your lessons reads the Governor's own two doors, and no one else's
 -- (DR-0672)
 -- =============================================================================
 -- Darrell 2026-09-29: "Yes build it all in the app!!!" Your lessons shows each
@@ -16,7 +16,7 @@
 --     by his other declared sign-in door. Never a member's row: the widening is
 --     by the Governor's own email list, not by instance, role or tag.
 -- The read policy on agent_inbox is NOT changed. Nothing is written.
--- Proven by infra/supabase/tests/0240-my-lesson-rows-smoke.sql.
+-- Proven by infra/supabase/tests/0241-my-lesson-rows-smoke.sql.
 -- IDEMPOTENT: CREATE OR REPLACE.
 -- =============================================================================
 

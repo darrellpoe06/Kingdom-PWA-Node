@@ -6,55 +6,61 @@
 // me to review their and the decide on which one or merge 2 of them or all of
 // them..."
 //
-// A lesson with more than one version waits in his review queue (the builder
-// does not auto-ship it, DR-0669). He decides here; the decision is a row in
-// public.lesson_decisions (migration 0241) that the builder reads. The builder
-// re-runs EVERY gate on the final composite and ships only if all pass; if one
-// fails, the row comes back `gate-failed` with the check and the part, and
-// nothing ships.
+// THE CONTRACT IS THE BUILDER'S (DR-0669; its migration 0240 defines
+// public.lesson_versions and public.lesson_decisions; lesson_builder.py
+// `assemble` reads the decision). A build that wrote more than one version is
+// tagged `awaiting-review` and ships nothing until he decides. A decision is
+// one INSERT into lesson_decisions:
+//   build_id, teaching_row_id, instance_id  — the build he decided on
+//   version_id   the base: the chosen version, or the one every part not
+//                picked comes from
+//   merge_map    { part: version id } — null when he takes one version
+//   edits        { part: text } — text parts only
+// born `decided`; the builder claims it, assembles the composite, re-runs EVERY
+// gate on it, and writes back `building` → `shipped` (lesson_id, branch,
+// pr_url) or `gate-failed` / `failed` with gate_result.failures
+// [{ check, part, detail }]. Nothing ships on a failed gate.
 //
-// THE PARTS a merge picks from: the title, each movement, the full lesson
-// text, each band (child, youth, teen, senior) and the quiz. Everything else
-// (anchor, bigIdea, inApp, benefits, talking points, placement, slug) comes
-// from the BASE version, which is also a pick.
+// THE PARTS are the builder's PART_KEYS: title, bigIdea, lesson_intro, each
+// movement (`movements.<i>`, 0-based, renumbered by the builder), lesson_close,
+// each band (`levels.child|youth|teen|senior`), quiz, benefits, facilitator;
+// anything else (anchor, inApp, slug, placement, dr_summary) comes from the base.
 //
-// SCRIPTURE IS LOCKED. A quoted verse span — "words" (Book C:V), the same
-// pattern the builder's verse gate and scripts/quoted-verse-is-the-verse.mjs
-// read — cannot be edited, removed, reordered or added by an edit. The editor
-// only offers the text between spans; the publish contract refuses any edit
-// whose spans differ from the part it edits.
+// SCRIPTURE IS LOCKED. The builder refuses an edit whose double-quoted spans
+// differ from the part's (lesson_builder.py quoted_spans_of): every "…" span,
+// in order. The editor here only offers the words between quoted spans, and
+// the publish contract refuses any edit that changes, adds or drops one.
 // Pure except fetchReviewQueue and publishDecision (Supabase injected).
 // =============================================================================
 import { mayCompareVersions, normalizeVersion, LESSON_VERSION_COLUMNS, LESSON_VERSIONS_TABLE } from './lesson-versions.js';
 
 export const LESSON_DECISIONS_TABLE = 'lesson_decisions';
-// The row the app writes and the builder reads (0241). Pinned by the test.
+// public.lesson_decisions as DR-0669's migration 0240 defines it. Pinned by the test.
 export const LESSON_DECISION_COLUMNS = Object.freeze([
-  'id', 'teaching_row_id', 'build_id', 'mode', 'chosen_version_id', 'merge_map', 'edits',
-  'version_ids', 'decided_by', 'decided_at', 'status', 'gate_result', 'lesson_id', 'pr_number', 'updated_at',
+  'id', 'build_id', 'teaching_row_id', 'instance_id', 'version_id', 'merge_map', 'edits', 'decided_by',
+  'decided_at', 'status', 'gate_result', 'lesson_id', 'branch', 'pr_url', 'processed_at',
 ]);
 export const DECISION_MODES = Object.freeze(['choose', 'merge', 'all']);
-// pending: sent, not yet taken; building: the builder has it; shipped: every
-// gate passed on the composite and it shipped; gate-failed: a gate failed and
-// nothing shipped; superseded: a newer decision replaced it.
-export const DECISION_STATUSES = Object.freeze(['pending', 'building', 'shipped', 'gate-failed', 'superseded']);
+export const DECISION_STATUSES = Object.freeze(['decided', 'building', 'shipped', 'gate-failed', 'failed']);
 export const BANDS = Object.freeze(['child', 'youth', 'teen', 'senior']);
+// The builder's PART_KEYS that a merge here offers, in reading order (movements expand per index).
+const LEAD_PARTS = ['title', 'bigIdea', 'lesson_intro'];
+const TAIL_PARTS = ['lesson_close', ...BANDS.map((b) => `levels.${b}`), 'quiz', 'benefits', 'facilitator'];
 
-// The same pattern as SPAN_WITH_REFERENCE in the builder's lesson_gates.py and
-// scripts/quoted-verse-is-the-verse.mjs: "quoted words" (Book C:V).
-const SPAN_RE = /"([^"]+)"\s*\(([1-3]?\s?[A-Za-z]+(?: of [A-Za-z]+)*)\s+(\d+):([\d\-,\s]+)\)/g;
+// Every double-quoted span, as the builder's lock reads them.
+const QUOTED = /"([^"]+)"/g;
 
-/** The locked Scripture spans in a text, in order. */
+/** The locked quoted spans in a text, in order (the quoted words). */
 export function scriptureSpans(text) {
-  return [...String(text || '').matchAll(SPAN_RE)].map((m) => m[0]);
+  return [...String(text || '').matchAll(QUOTED)].map((m) => m[1]);
 }
 
-/** Text → segments; the locked ones are quoted verse spans. */
+/** Text → segments; the locked ones are quoted spans. */
 export function splitLocked(text) {
   const s = String(text || '');
   const out = [];
   let at = 0;
-  for (const m of s.matchAll(SPAN_RE)) {
+  for (const m of s.matchAll(QUOTED)) {
     if (m.index > at) out.push({ locked: false, text: s.slice(at, m.index) });
     out.push({ locked: true, text: m[0] });
     at = m.index + m[0].length;
@@ -63,13 +69,15 @@ export function splitLocked(text) {
   return out;
 }
 
-/** Replace one unlocked segment; a locked one never changes. */
+/** Replace one unlocked segment; a locked one never changes. A straight `"` typed
+ *  into the words between spans would open a new span, so it becomes a closing
+ *  curly quote there. */
 export function editSegment(segments, index, value) {
-  return segments.map((seg, i) => (i === index && !seg.locked ? { ...seg, text: String(value) } : seg));
+  return segments.map((seg, i) => (i === index && !seg.locked ? { ...seg, text: String(value).replace(/"/g, '”') } : seg));
 }
 export const joinSegments = (segments) => segments.map((s) => s.text).join('');
 
-/** An edit keeps Scripture only if its spans are exactly the original's, in order. */
+/** An edit keeps Scripture only if its quoted spans are exactly the original's, in order. */
 export function editKeepsScripture(original, edited) {
   const a = scriptureSpans(original);
   const b = scriptureSpans(edited);
@@ -78,43 +86,73 @@ export function editKeepsScripture(original, edited) {
 
 // --- the parts ----------------------------------------------------------------------
 const bodyOf = (v) => (v && v.body && typeof v.body === 'object' ? v.body : {});
+const movementsOf = (v) => (Array.isArray(bodyOf(v).movements) ? bodyOf(v).movements : []);
 
 /** Every part a merge can pick, for these versions, in reading order. */
 export function partsFor(versions) {
-  const most = Math.max(0, ...versions.map((v) => (Array.isArray(bodyOf(v).movements) ? bodyOf(v).movements.length : 0)));
-  return ['base', 'title', ...Array.from({ length: most }, (_, i) => `movement:${i + 1}`), 'lesson', ...BANDS.map((b) => `band:${b}`), 'quiz'];
+  const most = Math.max(0, ...versions.map((v) => movementsOf(v).length));
+  return ['base', ...LEAD_PARTS, ...Array.from({ length: most }, (_, i) => `movements.${i}`), ...TAIL_PARTS];
 }
 
-/** A part's value in one version (string, the quiz object, or undefined if it lacks it). */
+/** A part's value in one version, or undefined if the version lacks it. */
 export function partOf(version, part) {
   const b = bodyOf(version);
-  if (part === 'title') return typeof b.title === 'string' ? b.title : undefined;
-  if (part === 'lesson') return typeof b.lesson === 'string' ? b.lesson : undefined;
-  if (part === 'quiz') return b.quiz && Array.isArray(b.quiz.questions) && b.quiz.questions.length ? b.quiz : undefined;
-  if (part.startsWith('movement:')) {
-    const i = Number(part.slice(9)) - 1;
-    return Array.isArray(b.movements) && i < b.movements.length ? String(b.movements[i]) : undefined;
+  if (part === 'base') return b;
+  if (part.startsWith('movements.')) {
+    const [, i, field] = part.split('.');
+    const m = movementsOf(version)[Number(i)];
+    if (m === undefined) return undefined;
+    if (field) return m && typeof m === 'object' ? m[field] : undefined;
+    return m;
   }
-  if (part.startsWith('band:')) {
-    const t = b.levels && b.levels[part.slice(5)];
+  if (part.startsWith('levels.')) {
+    const t = b.levels && b.levels[part.slice(7)];
     return typeof t === 'string' ? t : undefined;
   }
-  if (part === 'base') return b;
-  return undefined;
+  if (part === 'quiz') return b.quiz && Array.isArray(b.quiz.questions) && b.quiz.questions.length ? b.quiz : undefined;
+  const v = b[part];
+  if (v === undefined || v === null || v === '') return undefined;
+  return v;
 }
-export const isTextPart = (part) => part === 'title' || part === 'lesson' || part.startsWith('movement:') || part.startsWith('band:');
 
-// Where a verse fault sits (the builder's `where`) → the part it belongs to.
-export function partOfWhere(where) {
+/** The text keys an edit may name for a part (the builder's edit keys). */
+export function editKeysFor(part, version) {
+  if (/^movements\.\d+$/.test(part)) {
+    const m = partOf(version, part);
+    return m && typeof m === 'object' ? [`${part}.title`, `${part}.text`] : [];
+  }
+  if (['title', 'bigIdea', 'lesson_intro', 'lesson_close'].includes(part) || part.startsWith('levels.')) {
+    return typeof partOf(version, part) === 'string' ? [part] : [];
+  }
+  return [];
+}
+export const isEditKey = (key) => /^(title|bigIdea|lesson_intro|lesson_close|levels\.(child|youth|teen|senior)|movements\.\d+\.(title|text))$/.test(key);
+/** The part an edit key belongs to (movements.2.text → movements.2). */
+export const partOfEditKey = (key) => (key.startsWith('movements.') ? key.split('.').slice(0, 2).join('.') : key);
+
+/** Where a gate fault sits (the builder's `where`, plus the quoted words) → the part (its part_of). */
+export function partOfWhere(where, quoted, body) {
   const w = String(where || '');
-  if (w === 'lesson') return 'lesson';
-  if (w.startsWith('levels.')) return `band:${w.slice(7)}`;
-  if (w.startsWith('quiz[')) return 'quiz';
-  if (w === 'title') return 'title';
+  if (w.startsWith('levels.') || w === 'bigIdea' || w === 'inApp' || w === 'title') return w;
+  if (w.startsWith('quiz')) return 'quiz';
+  if (w.startsWith('talkingPoints')) return 'facilitator';
+  if (w.startsWith('benefits')) return 'benefits';
+  if (w === 'lesson') {
+    const b = body || {};
+    if (quoted && String(b.lesson_intro || '').includes(quoted)) return 'lesson_intro';
+    const ms = Array.isArray(b.movements) ? b.movements : [];
+    for (let i = 0; i < ms.length; i++) {
+      const m = ms[i];
+      const t = m && typeof m === 'object' ? `${m.title || ''} ${m.text || ''}` : String(m || '');
+      if (quoted && t.includes(quoted)) return `movements.${i}`;
+    }
+    if (quoted && String(b.lesson_close || '').includes(quoted)) return 'lesson_close';
+    return 'lesson_intro';
+  }
   return 'base';
 }
 
-/** The version-wide ranking the builder uses (lesson_gates.py score): verbatim, movements, quiz, faster. */
+/** The builder's own ranking (lesson_gates.py score): verse passed, all passed, verbatim, movements, quiz, faster. */
 export function versionScore(v) {
   const g = v.gates || {};
   const c = (g.structure && g.structure.counts) || {};
@@ -122,16 +160,16 @@ export function versionScore(v) {
 }
 const cmpScore = (a, b) => { for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return b[i] - a[i]; return 0; };
 
-/** Faults the builder found inside this part of this version. */
+/** Verse faults the builder found inside this part of this version. */
 export function faultsIn(v, part) {
   const m = (v.gates && v.gates.verses && v.gates.verses.mismatches) || [];
-  return m.filter((f) => partOfWhere(f.where) === part).length;
+  return m.filter((f) => partOfWhere(f.where, f.quoted, bodyOf(v)) === part).length;
 }
 
 /**
- * The default picks for "take ALL": for each part, the version that has it
- * with the fewest verse faults in that part, then the best version-wide score.
- * The base is the best version overall.
+ * The default picks for "take ALL": the base is the best version overall; each
+ * part comes from the version with the fewest verse faults in it, then the best
+ * version-wide score.
  */
 export function defaultPicks(versions) {
   const ranked = versions.slice().sort((a, b) => cmpScore(versionScore(a), versionScore(b)) || String(a.writer).localeCompare(String(b.writer)));
@@ -140,85 +178,114 @@ export function defaultPicks(versions) {
     if (part === 'base') { picks.base = ranked[0] && ranked[0].id; continue; }
     const have = ranked.filter((v) => partOf(v, part) !== undefined);
     if (!have.length) continue;
-    const best = have.slice().sort((a, b) => faultsIn(a, part) - faultsIn(b, part) || cmpScore(versionScore(a), versionScore(b)))[0];
-    picks[part] = best.id;
+    picks[part] = have.slice().sort((a, b) => faultsIn(a, part) - faultsIn(b, part) || cmpScore(versionScore(a), versionScore(b)))[0].id;
   }
   return picks;
 }
 
-/** The lesson as it will be: the base, with each picked part and each edit laid in. */
+function setEdit(body, key, value) {
+  if (key.startsWith('movements.')) {
+    const [, i, field] = key.split('.');
+    const ms = body.movements || [];
+    if (ms[Number(i)] && typeof ms[Number(i)] === 'object') ms[Number(i)] = { ...ms[Number(i)], [field]: value };
+    return;
+  }
+  if (key.startsWith('levels.')) { body.levels = { ...(body.levels || {}), [key.slice(7)]: value }; return; }
+  body[key] = value;
+}
+
+/** The lesson as it will be: the builder's `assemble` — base, then each merged part, then edits. */
 export function composeLesson(versions, picks, edits = {}) {
   const byId = Object.fromEntries(versions.map((v) => [v.id, v]));
   const base = byId[picks.base] || versions[0];
   const out = JSON.parse(JSON.stringify(bodyOf(base)));
   out.levels = { ...(out.levels || {}) };
-  const movements = [];
+  out.movements = Array.isArray(out.movements) ? out.movements.slice() : [];
   for (const part of partsFor(versions)) {
     if (part === 'base') continue;
     const v = byId[picks[part]];
-    if (!v) continue;
-    let val = partOf(v, part);
+    if (!v || v === base) continue;
+    const val = partOf(v, part);
     if (val === undefined) continue;
-    if (isTextPart(part) && typeof edits[part] === 'string') val = edits[part];
-    if (part === 'title') out.title = val;
-    else if (part === 'lesson') out.lesson = val;
-    else if (part === 'quiz') out.quiz = JSON.parse(JSON.stringify(val));
-    else if (part.startsWith('band:')) out.levels[part.slice(5)] = val;
-    else if (part.startsWith('movement:')) movements.push(val);
+    const copy = JSON.parse(JSON.stringify(val));
+    if (part.startsWith('movements.')) {
+      const i = Number(part.split('.')[1]);
+      if (i <= out.movements.length) out.movements[i] = copy; // never a gap, as the builder refuses one
+    } else if (part.startsWith('levels.')) out.levels[part.slice(7)] = copy;
+    else out[part] = copy;
   }
-  if (partsFor(versions).some((p) => p.startsWith('movement:'))) out.movements = movements;
+  for (const [key, value] of Object.entries(edits || {})) if (isEditKey(key)) setEdit(out, key, value);
+  out.verdict = 'lesson';
   return out;
+}
+
+/** The text an edit key replaces, in a lesson body. */
+export function editOriginal(body, key) {
+  if (key.startsWith('movements.')) {
+    const [, i, field] = key.split('.');
+    const m = ((body && body.movements) || [])[Number(i)];
+    return m && typeof m === 'object' ? m[field] : undefined;
+  }
+  if (key.startsWith('levels.')) return ((body && body.levels) || {})[key.slice(7)];
+  return body ? body[key] : undefined;
 }
 
 /**
  * THE PUBLISH CONTRACT. Returns { ok, problems, row }. `row` is exactly what is
- * inserted into lesson_decisions (decided_by and decided_at are the database's).
+ * inserted into lesson_decisions (decided_by, decided_at and status are the
+ * database's defaults: the Governor, now, `decided`).
  */
-export function buildDecision({ teachingRowId, buildId = null, mode, chosenVersionId = null, picks = {}, edits = {}, versions = [] }) {
+export function buildDecision({ mode, chosenVersionId = null, picks = {}, edits = {}, versions = [] }) {
   const problems = [];
-  const ids = new Set(versions.map((v) => v.id).filter(Boolean));
-  if (!teachingRowId) problems.push('No teaching row is named.');
-  if (versions.length < 2) problems.push('A decision needs at least two versions to decide between.');
+  const lessons = versions.filter((v) => v && v.id);
+  const ids = new Set(lessons.map((v) => v.id));
+  const byId = Object.fromEntries(lessons.map((v) => [v.id, v]));
+  if (lessons.length < 2) problems.push('A decision needs at least two versions to decide between.');
+  if (new Set(lessons.map((v) => v.buildId).filter(Boolean)).size !== 1) problems.push('These versions are not from one build (one prompt).');
   if (!DECISION_MODES.includes(mode)) problems.push(`Unknown mode "${mode}".`);
-  const byId = Object.fromEntries(versions.map((v) => [v.id, v]));
-  let mergeMap = {};
+  let base = null;
+  let mergeMap = null;
   if (mode === 'choose') {
     if (!ids.has(chosenVersionId)) problems.push('Choose one of these versions.');
+    else base = chosenVersionId;
   } else if (mode === 'merge' || mode === 'all') {
-    const parts = partsFor(versions);
+    const parts = partsFor(lessons);
+    if (!ids.has(picks.base)) problems.push('Pick the base version (it supplies every part not picked).');
+    else base = picks.base;
+    mergeMap = {};
     for (const [part, vid] of Object.entries(picks || {})) {
+      if (part === 'base') continue;
       if (!parts.includes(part)) { problems.push(`"${part}" is not a part of this lesson.`); continue; }
       if (!ids.has(vid)) { problems.push(`${part}: that version is not one of these.`); continue; }
       if (partOf(byId[vid], part) === undefined) { problems.push(`${part}: ${byId[vid].writer} has no ${part}.`); continue; }
-      mergeMap[part] = vid;
+      if (vid !== base) mergeMap[part] = vid;
     }
-    if (!mergeMap.base) problems.push('Pick the base version (it supplies every part not picked).');
-    if (mode === 'merge' && new Set(Object.values(mergeMap)).size < 2) problems.push('A merge uses parts from at least two versions; to use one version, choose it.');
+    if (mode === 'merge' && base && !Object.keys(mergeMap).length) problems.push('A merge uses parts from at least two versions; to use one version, choose it.');
+    if (!Object.keys(mergeMap).length) mergeMap = null;
   }
-  // Edits: text parts only, and Scripture spans exactly as the source part has them.
   const cleanEdits = {};
-  for (const [part, value] of Object.entries(edits || {})) {
-    if (!isTextPart(part)) { problems.push(`${part} cannot be edited here.`); continue; }
-    const sourceId = mode === 'choose' ? chosenVersionId : mergeMap[part];
-    const source = byId[sourceId];
-    const original = source ? partOf(source, part) : undefined;
-    if (original === undefined) { problems.push(`${part}: there is no picked text to edit.`); continue; }
-    if (!editKeepsScripture(original, value)) { problems.push(`${part}: a quoted verse was changed, removed or added. Scripture stays exactly as written.`); continue; }
-    if (String(value) !== original) cleanEdits[part] = String(value);
+  if (base && !problems.length) {
+    const composed = composeLesson(lessons, mode === 'choose' ? { base } : { ...picks, base });
+    for (const [key, value] of Object.entries(edits || {})) {
+      if (!isEditKey(key)) { problems.push(`${key} cannot be edited here.`); continue; }
+      const original = editOriginal(composed, key);
+      if (typeof original !== 'string') { problems.push(`${key}: there is no picked text to edit.`); continue; }
+      if (!editKeepsScripture(original, value)) { problems.push(`${key}: a quoted verse was changed, removed or added. Scripture stays exactly as written.`); continue; }
+      if (String(value) !== original) cleanEdits[key] = String(value);
+    }
   }
   if (problems.length) return { ok: false, problems, row: null };
+  const first = byId[base];
   return {
     ok: true,
     problems: [],
     row: {
-      teaching_row_id: teachingRowId,
-      build_id: buildId || null,
-      mode,
-      chosen_version_id: mode === 'choose' ? chosenVersionId : null,
-      merge_map: mode === 'choose' ? {} : mergeMap,
+      build_id: first.buildId,
+      teaching_row_id: first.teachingRowId || null,
+      instance_id: first.instanceId || null,
+      version_id: base,
+      merge_map: mergeMap,
       edits: cleanEdits,
-      version_ids: versions.map((v) => v.id),
-      status: 'pending',
     },
   };
 }
@@ -226,55 +293,53 @@ export function buildDecision({ teachingRowId, buildId = null, mode, chosenVersi
 /** What the builder said when a gate failed on the composite: [{ check, part, detail }]. */
 export function gateFailures(gateResult) {
   const g = gateResult && typeof gateResult === 'object' ? gateResult : {};
-  if (Array.isArray(g.failures)) return g.failures.map((f) => ({ check: String(f.check || 'a gate'), part: String(f.part || partOfWhere(f.where)), detail: String(f.detail || '') }));
-  const out = [];
-  for (const f of (g.verse && Array.isArray(g.verse.faults) ? g.verse.faults : [])) out.push({ check: 'verse', part: partOfWhere(f.where), detail: `${f.ref || ''} ${f.kind || ''}`.trim() });
-  for (const key of ['structure', 'quotation', 'voice']) {
-    const x = g[key];
-    if (x && x.passed === false) for (const p of (x.problems || [])) out.push({ check: key, part: partOfWhere(String(p).split(':')[0]), detail: String(p) });
-  }
-  if (g.repo_gates && g.repo_gates.passed === false) out.push({ check: 'the repository’s own gates', part: 'base', detail: 'did not pass' });
-  return out;
+  if (Array.isArray(g.failures)) return g.failures.map((f) => ({ check: String(f.check || 'a gate'), part: String(f.part || ''), detail: String(f.detail || '') }));
+  if (g.why || g.error) return [{ check: 'the builder', part: '', detail: String(g.why || g.error) }];
+  return [];
 }
 
-/** Each teaching's review state from its versions and its newest decision. */
+/** A build's review state from its versions and its newest decision. */
 export function reviewState(versions, decisions) {
   const latest = (decisions || []).slice().sort((a, b) => String(b.decided_at || '').localeCompare(String(a.decided_at || '')))[0] || null;
-  if (!versions || versions.length < 2) return { state: 'single', latest };
-  if (!latest || latest.status === 'superseded') return { state: 'awaiting', latest };
-  if (latest.status === 'gate-failed') return { state: 'gate-failed', latest, failures: gateFailures(latest.gate_result) };
+  const lessons = (versions || []).filter((v) => v.isLesson !== false);
+  if (lessons.length < 2) return { state: 'single', latest };
+  if (!latest) return { state: 'awaiting', latest };
+  if (latest.status === 'gate-failed' || latest.status === 'failed') return { state: latest.status, latest, failures: gateFailures(latest.gate_result) };
+  if (latest.status === 'decided') return { state: 'pending', latest };
   return { state: latest.status, latest };
 }
 
 // --- IO (Supabase injected) ------------------------------------------------------------
 const MISSING = /does not exist|could not find the table|schema cache|42P01|PGRST205/i;
 
-/** Every teaching with its versions and decisions; the queue = those with ≥ 2 versions awaiting or failed. */
+/** Every build with its versions and decisions. The queue = builds with ≥ 2 lesson versions awaiting or failed. */
 export async function fetchReviewQueue({ supabase, uid = '', email = '', limit = 300 } = {}) {
   if (!mayCompareVersions({ uid, email })) return { ok: false, state: 'refused', teachings: [], reason: 'The review queue is the Governor’s.' };
   try {
     const v = await supabase.from(LESSON_VERSIONS_TABLE).select(LESSON_VERSION_COLUMNS.join(', ')).order('created_at', { ascending: false }).limit(limit);
-    if (v.error) return { ok: false, state: MISSING.test(String(v.error.message || v.error.code || '')) ? 'not-yet' : 'error', teachings: [], reason: String(v.error.message || '') };
+    if (v.error) return { ok: false, state: MISSING.test(String(v.error.message || '') + String(v.error.code || '')) ? 'not-yet' : 'error', teachings: [], reason: String(v.error.message || '') };
     const d = await supabase.from(LESSON_DECISIONS_TABLE).select(LESSON_DECISION_COLUMNS.join(', ')).order('decided_at', { ascending: false }).limit(limit);
     const decisions = d.error ? [] : d.data || [];
-    const byTeaching = {};
+    const byBuild = {};
     for (const row of v.data || []) {
       const nv = normalizeVersion(row);
-      if (!nv.teachingRowId) continue;
-      (byTeaching[nv.teachingRowId] = byTeaching[nv.teachingRowId] || []).push(nv);
+      // A backfill re-writes an existing lesson for comparison only; it is never decided here.
+      if (nv.backfill || !nv.buildId) continue;
+      (byBuild[nv.buildId] = byBuild[nv.buildId] || []).push(nv);
     }
-    const teachings = Object.entries(byTeaching).map(([id, versions]) => {
+    const teachings = Object.entries(byBuild).map(([buildId, versions]) => {
       versions.sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
-      const mine = decisions.filter((x) => x.teaching_row_id === id);
-      return { teachingRowId: id, versions, decisions: mine, ...reviewState(versions, mine) };
-    });
+      const mine = decisions.filter((x) => x.build_id === buildId);
+      const teachingRowId = (versions.find((x) => x.teachingRowId) || {}).teachingRowId || '';
+      return { buildId, teachingRowId, createdAt: versions[0] ? versions[0].createdAt : '', versions, decisions: mine, ...reviewState(versions, mine) };
+    }).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
     return { ok: true, state: 'ok', teachings, decisionsReadable: !d.error, reason: d.error ? String(d.error.message || '') : '' };
   } catch (e) {
     return { ok: false, state: 'error', teachings: [], reason: (e && e.message) || 'unknown' };
   }
 }
 
-/** Send the decision. Refused client-side before any write unless the contract holds. */
+/** Send the decision. Refused before any write unless the caller is the Governor and the contract holds. */
 export async function publishDecision({ supabase, uid = '', email = '', decision }) {
   if (!mayCompareVersions({ uid, email })) return { ok: false, problems: ['Only the Governor decides.'] };
   const built = buildDecision(decision || {});

@@ -65,6 +65,38 @@ export function lessonIdOf(tags) {
   return tagValue(tags, LESSON_ID_TAG);
 }
 
+// THE BUILDER'S OWN STAGE TAGS (DR-0669, the NAS lesson builder): every stage
+// writes `build:<stage>@<UTC ISO>` on every row of the teaching, in this order;
+// the other roads are failed, released, deferred, duplicate, skipped-test,
+// awaiting-review and decided. `build-reason:` says why it stopped and
+// `build-lesson:L<n>` names the lesson number, whose branch is
+// claude/lesson-l<n>-<slug>.
+export const BUILD_STAGES = Object.freeze(['claimed', 'grouped', 'verses-fetched', 'writing', 'written', 'gated', 'selected', 'numbered', 'files-written', 'test-generated', 'reconciled', 'tested', 'committed', 'pushed', 'published']);
+export const BUILD_STAGE_WORDS = Object.freeze({
+  claimed: 'claimed', grouped: 'grouped with its twin', 'verses-fetched': 'fetching the verses', writing: 'writing',
+  written: 'written', gated: 'gated', selected: 'a version chosen', numbered: 'numbered', 'files-written': 'files written',
+  'test-generated': 'its verse test written', reconciled: 'counts reconciled', tested: 'tested', committed: 'committed',
+  pushed: 'pushed', published: 'published',
+});
+
+/** { stage: ISO time } from `build:<stage>@<time>` tags (the latest time per stage). */
+export function buildStageTimes(tags) {
+  const out = {};
+  for (const t of Array.isArray(tags) ? tags : []) {
+    const m = /^build:([a-z-]+)@(.+)$/.exec(String(t));
+    if (!m || !validIso(m[2])) continue;
+    if (!out[m[1]] || out[m[1]] < m[2]) out[m[1]] = m[2];
+  }
+  return out;
+}
+
+/** The lesson number the builder reserved (`build-lesson:L197`), or null. */
+export function buildLessonNumberOf(tags) {
+  const m = /^L?(\d+)$/i.exec(tagValue(tags, 'build-lesson:'));
+  return m ? Number(m[1]) : null;
+}
+export const branchPrefixForLesson = (n) => `claude/lesson-l${n}-`;
+
 // Every lesson the running build carries: the self-paced catalog (every course
 // Learn shows) plus the Sovereign A.I. class, whose weeks are a cohort course.
 let CATALOG = null;
@@ -102,6 +134,11 @@ export function formatSpan(ms) {
   return h % 24 ? `${d} d ${h % 24} h` : `${d} d`;
 }
 
+function shortTime(iso) {
+  const t = Date.parse(iso || '');
+  return Number.isFinite(t) ? new Date(t).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '';
+}
+
 const stage = (key, status, at, line) => ({ key, label: STAGE_LABELS[key], status, at: validIso(at), line });
 
 /**
@@ -137,44 +174,70 @@ export function deriveLessonPipeline(item, { prs = null, owner = false, prRead =
 
   // 3. BEING BUILT — the builder's own tags, after the Governor's word for a member.
   const captured = has(tags, 'lesson-captured');
-  const compared = has(tags, 'parallel-compared');
+  const compared = has(tags, 'parallel-compared') || has(tags, 'build-duplicate');
+  const times = buildStageTimes(tags);
+  const reason = tagValue(tags, 'build-reason:');
+  const lessonNumber = buildLessonNumberOf(tags);
   const prNumber = lessonPrOf(tags);
-  const pr = prNumber && prs ? prs[prNumber] || null : null;
-  const capturedAt = validIso(tagValue(tags, CAPTURED_AT_TAG)) || (pr && pr.createdAt) || null;
+  // The PR: named by the row (lesson-pr:<n>), or the builder's branch for its lesson number.
+  const pr = (prNumber && prs ? prs[prNumber] : null)
+    || (lessonNumber && prs && prs.byBranch ? prs.byBranch[branchPrefixForLesson(lessonNumber)] : null) || null;
+  const prLabel = pr ? `PR #${pr.number}` : prNumber ? `PR #${prNumber}` : '';
+  const pushedAt = times.pushed || times.published || validIso(tagValue(tags, CAPTURED_AT_TAG)) || null;
+  const capturedAt = pushedAt || (pr && pr.createdAt) || null;
+  const latest = BUILD_STAGES.filter((k) => times[k]).sort((a, b) => (times[a] < times[b] ? 1 : -1))[0] || null;
   const review = it.review || null;
   let buildDone = false;
   if (!wordsDone) {
     stages.push(stage('building', failed ? 'stopped' : 'waiting', null, failed ? 'Nothing to build until the words are written.' : 'Starts once the words arrive.'));
-  } else if (captured) {
+  } else if (captured || pushedAt) {
     buildDone = true;
     stages.push(stage('building', 'done', capturedAt, compared
       ? 'Already a lesson: the builder compared the two and built nothing new.'
-      : validIso(tagValue(tags, CAPTURED_AT_TAG)) ? 'Built and pushed.'
+      : pushedAt ? `Built and pushed${times.claimed ? ` (started ${shortTime(times.claimed)})` : ''}.`
         : capturedAt ? 'Built and pushed; timed by its PR opening.' : 'Built and pushed. When is not recorded on the row.'));
+  } else if (times.failed || has(tags, 'build-failed')) {
+    stages.push(stage('building', 'failed', times.failed || null, reason ? `The builder stopped: ${reason}` : 'The builder stopped without stating why.'));
+  } else if (compared) {
+    stages.push(stage('building', 'skipped', times.duplicate || null, 'Already a lesson: the builder compared the two and built nothing new.'));
+  } else if (times['skipped-test']) {
+    stages.push(stage('building', 'skipped', times['skipped-test'], 'A test of the recorder: nothing to build.'));
+  } else if (has(tags, 'awaiting-review') || times['awaiting-review']) {
+    stages.push(stage('building', 'waiting', times['awaiting-review'] || null, owner
+      ? 'Every version is written and waits for your decision (Lessons to decide).'
+      : 'Written, and waiting for the Governor to choose a version.'));
+  } else if (times.decided) {
+    stages.push(stage('building', 'now', times.decided, 'The decision is being gated and built.'));
+  } else if (times.deferred) {
+    stages.push(stage('building', 'waiting', times.deferred, reason ? `Handed to the hourly lesson Routine: ${reason}` : 'Handed to the hourly lesson Routine.'));
+  } else if (has(tags, 'lesson-building') || latest) {
+    stages.push(stage('building', 'now', times.claimed || null, latest ? `Now ${BUILD_STAGE_WORDS[latest] || latest}, since ${shortTime(times[latest])}.` : 'The builder has started on it.'));
   } else if (!owner && review && review.state === 'declined') {
-    stages.push(stage('building', 'stopped', null, 'Not written as a new lesson (see the Governor’s reason).'));
+    stages.push(stage('building', 'stopped', null, 'Not written as a new lesson (see the Governor\u2019s reason).'));
   } else if (!owner && !(review && review.state === 'approved')) {
-    stages.push(stage('building', 'waiting', null, 'Waiting for the Governor’s review.'));
-  } else if (has(tags, 'lesson-building')) {
-    stages.push(stage('building', 'now', null, 'The builder has started on it.'));
+    stages.push(stage('building', 'waiting', null, 'Waiting for the Governor\u2019s review.'));
   } else {
     stages.push(stage('building', 'unknown', null, it.withReader
       ? 'Handed to the lesson builder. It has not reported back to the app yet.'
       : 'The lesson builder has not reported back to the app yet.'));
   }
 
-  // 4. PR OPEN — the named pull request, as GitHub says it is right now.
+  // 4. PR OPEN — the lesson's pull request, as GitHub says it is right now.
   if (compared) {
     stages.push(stage('pr', 'skipped', null, 'No new PR: the teaching was already a lesson.'));
-  } else if (prNumber && pr) {
+  } else if (pr) {
     const closedUnmerged = !pr.mergedAt && (pr.state === 'closed' || pr.closedAt);
-    stages.push(stage('pr', closedUnmerged ? 'failed' : 'done', pr.createdAt, closedUnmerged ? `PR #${prNumber} was closed without merging.` : `PR #${prNumber} opened.`));
+    stages.push(stage('pr', closedUnmerged ? 'failed' : 'done', pr.createdAt, closedUnmerged ? `${prLabel} was closed without merging.` : `${prLabel} opened.`));
   } else if (prNumber) {
     stages.push(stage('pr', 'unknown', null, prRead === 'ok'
-      ? `PR #${prNumber} was not found among the pull requests read.`
-      : `PR #${prNumber}: GitHub could not be read just now (${prRead}).`));
+      ? `${prLabel} was not found among the pull requests read.`
+      : `${prLabel}: GitHub could not be read just now (${prRead}).`));
+  } else if (buildDone && lessonNumber) {
+    stages.push(stage('pr', 'unknown', null, prRead === 'ok'
+      ? `No pull request for L${lessonNumber} (${branchPrefixForLesson(lessonNumber)}\u2026) among those read.`
+      : `L${lessonNumber}: GitHub could not be read just now (${prRead}).`));
   } else if (buildDone) {
-    stages.push(stage('pr', 'unknown', null, 'The builder did not name its PR on the row.'));
+    stages.push(stage('pr', 'unknown', null, 'The builder did not name its PR or lesson number on the row.'));
   } else {
     stages.push(stage('pr', 'waiting', null, 'Opens when the lesson is pushed.'));
   }
@@ -192,11 +255,11 @@ export function deriveLessonPipeline(item, { prs = null, owner = false, prRead =
   } else if (compared) {
     stages.push(stage('live', 'skipped', null, 'The lesson it matched is already live.'));
   } else if (merged) {
-    stages.push(stage('live', 'unknown', null, `PR #${prNumber} merged, but the row does not name the lesson, so it cannot be found or linked.`));
+    stages.push(stage('live', 'unknown', null, `${prLabel} merged, but the row does not name the lesson, so it cannot be found or linked.`));
   } else if (stages[3].status === 'failed') {
     stages.push(stage('live', 'stopped', null, 'Not published.'));
   } else {
-    stages.push(stage('live', buildDone || prNumber ? 'unknown' : 'waiting', null, buildDone || prNumber ? 'Not in the app yet, as far as the row says.' : 'Goes live when its PR merges and deploys.'));
+    stages.push(stage('live', buildDone || pr || prNumber ? 'unknown' : 'waiting', null, buildDone || pr || prNumber ? 'Not in the app yet, as far as the row says.' : 'Goes live when its PR merges and deploys.'));
   }
 
   // Elapsed: each timed stage measured from the last earlier timed stage.
@@ -213,7 +276,7 @@ export function deriveLessonPipeline(item, { prs = null, owner = false, prRead =
   const total = liveStage.status === 'done' && liveStage.at ? formatSpan(Date.parse(liveStage.at) - Date.parse(stages[0].at || '')) : null;
   // Where it stands: the first stage that is not done or skipped.
   const current = stages.find((s) => s.status !== 'done' && s.status !== 'skipped') || liveStage;
-  return { stages, current, total, failed: !!failed, failReason: failed || '', prNumber, lesson };
+  return { stages, current, total, failed: !!failed || stages[2].status === 'failed', failReason: failed || (stages[2].status === 'failed' ? stages[2].line : ''), prNumber: pr ? pr.number : prNumber, lessonNumber, lesson };
 }
 
 // --- live PR state, reusing the OpsBoard's reads -----------------------------
@@ -223,29 +286,31 @@ export function deriveLessonPipeline(item, { prs = null, owner = false, prRead =
 // its own, at most MAX_DIRECT_PR_READS per render. No PR tag, no GitHub read.
 export const MAX_DIRECT_PR_READS = 4;
 
-export async function fetchLessonPrs(numbers, { fetchOps, fetchDeliveryRecord, getPull } = {}) {
+export async function fetchLessonPrs(numbers, { fetchOps, fetchDeliveryRecord, getPull, branchPrefixes = [] } = {}) {
   const want = [...new Set((numbers || []).filter((n) => Number.isInteger(n) && n > 0))];
-  const prs = {};
-  if (!want.length) return { prs, read: 'ok' };
+  const prefixes = [...new Set((branchPrefixes || []).filter(Boolean))];
+  const prs = { byBranch: {} };
+  if (!want.length && !prefixes.length) return { prs, read: 'ok' };
   let read = 'ok';
+  const keep = (p) => {
+    if (want.includes(p.number)) prs[p.number] = p;
+    const branch = String(p.branch || '');
+    for (const pre of prefixes) if (branch.startsWith(pre) && (!prs.byBranch[pre] || String(prs.byBranch[pre].createdAt) < String(p.createdAt))) prs.byBranch[pre] = p;
+  };
   try {
     const [ops, delivery] = await Promise.all([
       fetchOps ? fetchOps().catch(() => null) : null,
       fetchDeliveryRecord ? fetchDeliveryRecord().catch(() => null) : null,
     ]);
-    for (const p of (ops && ops.pulls) || []) {
-      if (want.includes(p.number)) prs[p.number] = { number: p.number, createdAt: p.createdAt || null, mergedAt: null, closedAt: null, state: 'open' };
-    }
-    for (const m of (delivery && delivery.merges) || []) {
-      if (want.includes(m.number)) prs[m.number] = { number: m.number, createdAt: m.createdAt, mergedAt: m.mergedAt, closedAt: m.mergedAt, state: 'closed' };
-    }
+    for (const p of (ops && ops.pulls) || []) keep({ number: p.number, branch: p.branch, createdAt: p.createdAt || null, mergedAt: null, closedAt: null, state: 'open' });
+    for (const m of (delivery && delivery.merges) || []) keep({ number: m.number, branch: m.branch, createdAt: m.createdAt, mergedAt: m.mergedAt, closedAt: m.mergedAt, state: 'closed' });
     if ((ops && ops.ok === false) || (delivery && delivery.ok === false)) read = (delivery && delivery.notice) || (ops && ops.notice) || 'unreachable';
     const missing = want.filter((n) => !prs[n]).slice(0, MAX_DIRECT_PR_READS);
     if (getPull) {
       for (const n of missing) {
         try {
           const p = await getPull(n);
-          if (p && p.number) prs[n] = { number: p.number, createdAt: p.created_at || null, mergedAt: p.merged_at || null, closedAt: p.closed_at || null, state: p.state || '' };
+          if (p && p.number) prs[n] = { number: p.number, branch: (p.head && p.head.ref) || '', createdAt: p.created_at || null, mergedAt: p.merged_at || null, closedAt: p.closed_at || null, state: p.state || '' };
         } catch (e) {
           read = e && e.rateLimited ? 'rate-limited' : (e && e.message) || 'unreachable';
         }

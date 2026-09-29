@@ -103,16 +103,13 @@ export default function LessonVersionsCompare({ versions, state = 'ok', reason =
             </p>
             {v.published && <p className="text-[0.625rem] uppercase tracking-wider font-semibold text-[#5A6E3D]" data-testid="version-shipped">Shipped</p>}
             {v.title && <p className="text-[0.75rem] text-[#1A1815] italic break-words" style={SERIF}>{v.title}</p>}
+            {v.error && <p className="text-[0.6875rem] text-[#B85838] break-words" style={SERIF} data-testid="version-error">This writer did not finish: {v.error}</p>}
+            {!v.error && v.verdict && v.verdict !== 'lesson' && <p className="text-[0.6875rem] text-[#5A5751] break-words" style={SERIF}>Its verdict: {v.verdict}.</p>}
             <p className="text-[0.625rem] text-[#5A5751]" style={MONO}>{v.movements.length} movements · {v.refs.length} references</p>
             <Gates v={v} />
             <details className="mt-1">
               <summary className={SUMMARY}>Read the full version</summary>
               <div data-testid="version-full">
-                {v.movements.length > 0 && (
-                  <ol className="list-decimal ml-4 text-[0.6875rem] text-[#1A1815] break-words" style={SERIF}>
-                    {v.movements.map((m, i) => <li key={i}>{m}</li>)}
-                  </ol>
-                )}
                 <p className="text-sm text-[#1A1815] whitespace-pre-wrap break-words mt-1" style={SERIF}>{v.lessonText || 'This version has no lesson text.'}</p>
               </div>
             </details>

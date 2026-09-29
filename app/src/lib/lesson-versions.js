@@ -22,14 +22,12 @@
 import { GOVERNOR_LESSON_ACCOUNTS } from './lesson-inbox.js';
 import { isLessonDoorOwner } from './one-voice-surfaces.js';
 
-// THE SHAPE, as DR-0669 documents it (coordinator, 2026-09-29), plus `id` and
-// `build_id`, which the builder's insert carries (lesson_builder.py
-// insert_version) and a decision names (lesson_decisions, 0241). Pinned by
-// your-lessons-live.test.jsx; when the table's migration lands, the same test
-// reads it and fails if any of these columns is missing from it.
+// THE SHAPE, as DR-0669's migration 0240 defines public.lesson_versions (read
+// from its branch, claude/nas-lesson-builder, 2026-09-29). Pinned by
+// your-lessons-live.test.jsx against that migration once it is on disk.
 export const LESSON_VERSION_COLUMNS = Object.freeze([
-  'id', 'build_id', 'teaching_row_id', 'lesson_id', 'writer', 'model_label', 'prompt_sha256',
-  'prompt_text', 'body', 'gate_results', 'elapsed_ms', 'created_at', 'published',
+  'id', 'build_id', 'teaching_row_id', 'instance_id', 'lesson_id', 'writer', 'family', 'model_label',
+  'prompt_sha256', 'prompt_text', 'body', 'gate_results', 'elapsed_ms', 'error', 'published', 'backfill', 'created_at',
 ]);
 export const LESSON_VERSIONS_TABLE = 'lesson_versions';
 
@@ -87,6 +85,7 @@ export function readGates(g) {
   const mismatches = v ? list(v.faults).map((f) => ({
     ref: text(f && f.ref),
     where: text(f && f.where),
+    quoted: text(f && f.quoted),
     why: [FAULT_WORDS[f && f.kind] || text(f && f.kind), list(f && f.missing).length ? `missing "${list(f.missing).join('", "')}"` : '', list(f && f.words).length ? list(f.words).join(', ') : ''].filter(Boolean).join('; '),
   })) : [];
   const checks = [];
@@ -117,33 +116,52 @@ export function readGates(g) {
   };
 }
 
+// A movement as the builder writes it ({ title, text }) or as a plain line.
+const movementTitle = (m) => (m && typeof m === 'object' ? text(m.title) || text(m.text).split('\n')[0] : String(m || ''));
+const movementText = (m) => (m && typeof m === 'object' ? [text(m.title), text(m.text)].filter(Boolean).join('\n') : String(m || ''));
+
+/** The whole lesson as a reader meets it: intro, each movement, close (or the older single `lesson`). */
+export function lessonTextOf(body) {
+  const b = body && typeof body === 'object' ? body : {};
+  if (typeof b.lesson === 'string' && !b.lesson_intro && !Array.isArray(b.movements)) return b.lesson;
+  const parts = [text(b.lesson_intro), ...list(b.movements).map((m, i) => `${i + 1}. ${movementText(m)}`), text(b.lesson_close)];
+  const joined = parts.filter(Boolean).join('\n\n');
+  return joined || text(b.lesson);
+}
+
 /** One lesson_versions row, shaped for the view. */
 export function normalizeVersion(row) {
   const r = row || {};
   const body = r.body && typeof r.body === 'object' ? r.body : {};
-  const movements = list(body.movements).map((m) => String(m));
-  const lessonText = text(body.lesson);
-  const refs = extractRefs([text(body.anchor && body.anchor.ref), ...movements, lessonText].join('\n'));
+  const movementTexts = list(body.movements).map(movementText);
+  const lessonText = lessonTextOf(body);
+  const refs = extractRefs([text(body.anchor && body.anchor.ref), lessonText].join('\n'));
   return {
     id: text(r.id),
     buildId: text(r.build_id),
+    instanceId: text(r.instance_id),
     key: text(r.id) || `${text(r.writer)}|${text(r.model_label)}|${text(r.created_at)}`,
     body,
     teachingRowId: text(r.teaching_row_id),
     lessonId: text(r.lesson_id),
     writer: text(r.writer) || 'unnamed writer',
+    family: text(r.family),
     model: text(r.model_label) || 'model not recorded',
     sha: text(r.prompt_sha256),
     promptText: text(r.prompt_text),
     title: text(body.title),
     verdict: text(body.verdict),
     placement: text(body.placement),
-    movements,
+    movements: list(body.movements).map(movementTitle),
+    movementTexts,
     lessonText,
     anchorRef: text(body.anchor && body.anchor.ref),
     refs,
     gates: readGates(r.gate_results),
     elapsedMs: num(r.elapsed_ms),
+    error: text(r.error),
+    backfill: r.backfill === true,
+    isLesson: text(body.verdict) === 'lesson',
     createdAt: text(r.created_at),
     published: r.published === true,
   };
@@ -173,7 +191,8 @@ export function compareVersions(versions) {
   const movements = [];
   for (let i = 0; i < most; i++) {
     const cells = vs.map((v) => (i < v.movements.length ? v.movements[i] : null));
-    movements.push({ index: i + 1, cells, differs: cells.some((c) => c === null), refsDiffer: new Set(cells.map((c) => (c === null ? '-' : extractRefs(c).join('|')))).size > 1 });
+    const full = vs.map((v) => (i < (v.movementTexts || v.movements).length ? (v.movementTexts || v.movements)[i] : null));
+    movements.push({ index: i + 1, cells, differs: cells.some((c) => c === null), refsDiffer: new Set(full.map((c) => (c === null ? '-' : extractRefs(c).join('|')))).size > 1 });
   }
   const allRefs = [];
   for (const v of vs) for (const r of v.refs) if (!allRefs.includes(r)) allRefs.push(r);

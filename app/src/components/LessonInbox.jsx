@@ -18,7 +18,7 @@ import LessonsForSituation from './LessonsForSituation.jsx';
 import { lessonsForSituation } from '../lib/lessons-for-situation.js';
 // DR-0672: each lesson's road, arrival to live, and (for the Governor) every
 // writer's version side by side. PR state reuses the OpsBoard's GitHub reads.
-import { deriveLessonPipeline, fetchLessonPrs, lessonPrOf } from '../lib/lesson-pipeline.js';
+import { deriveLessonPipeline, fetchLessonPrs, lessonPrOf, buildLessonNumberOf, branchPrefixForLesson } from '../lib/lesson-pipeline.js';
 import { fetchOps, fetchDeliveryRecord, fetchPull } from '../lib/github-ops.js';
 import { mayCompareVersions } from '../lib/lesson-versions.js';
 import { fetchReviewQueue } from '../lib/lesson-decisions.js';
@@ -63,7 +63,9 @@ export default function LessonInbox({ deps = LIVE, refreshKey = 0 }) {
       if (!res.ok) return;
       // GitHub is read only when a lesson names its PR (the 60/hr budget).
       const numbers = res.items.map((it) => lessonPrOf(it.progressTags || [])).filter(Boolean);
-      if (numbers.length && deps.github) fetchLessonPrs(numbers, deps.github).then(setPrs);
+      // The NAS builder names its lesson number; its branch is claude/lesson-l<n>-<slug> (DR-0669).
+      const branchPrefixes = res.items.map((it) => buildLessonNumberOf(it.progressTags || [])).filter(Boolean).map(branchPrefixForLesson);
+      if ((numbers.length || branchPrefixes.length) && deps.github) fetchLessonPrs(numbers, { ...deps.github, branchPrefixes }).then(setPrs);
       if (mayCompareVersions({ uid: res.uid, email: res.email })) {
         fetchReviewQueue({ supabase: deps.supabase, uid: res.uid, email: res.email }).then(setVersions);
       }
@@ -114,7 +116,7 @@ export default function LessonInbox({ deps = LIVE, refreshKey = 0 }) {
                       versions={mine}
                       state={versions.state}
                       reason={versions.reason}
-                      decide={teaching && mine.length > 1 ? { teachingRowId: teaching.teachingRowId, buildId: (mine[0] || {}).buildId || null, review: teaching, deps: { supabase: deps.supabase, uid: state.uid, email: state.email }, onPublished: load } : null}
+                      decide={teaching && mine.length > 1 ? { review: teaching, deps: { supabase: deps.supabase, uid: state.uid, email: state.email }, onPublished: load } : null}
                     />
                   )}
                 </>
