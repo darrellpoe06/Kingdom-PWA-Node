@@ -228,6 +228,8 @@ const NODES = [
       { res: 'code:lessons', file: 'app/src/lib/sovereign-ai-class.js', token: 'Gmail-lesson-intake Way' },
       // DR-0639: a member's lesson, once published, is tagged on the hosted copy.
       { res: 'hosted:lesson-published', file: 'app/src/lib/lesson-review-messages.js', token: "PUBLISHED_TAG = 'lesson-published'" },
+      // DR-0672: the builder's progress (captured, its PR, the lesson id) on the hosted copy.
+      { res: 'hosted:lesson-progress', file: 'app/src/lib/lesson-pipeline.js', token: "PR_TAG = 'lesson-pr:'" },
     ],
     seeds: ['learn', 'lesson-voice'],
   },
@@ -261,11 +263,14 @@ const NODES = [
       // DR-0635: the Governor's decision on a member's lesson reaches the reader.
       { res: 'db:agent_inbox#lesson-review', token: 'list_reviewed_rows' },
       { res: 'hosted:lesson-published', token: 'list_published_rows' },
+      // DR-0672: the build's progress, carried back once each.
+      { res: 'hosted:lesson-progress', token: 'list_progress_rows' },
     ],
     writes: [
       { res: 'db:agent_inbox#voice-transcript', token: '"voice-transcript"' },
       { res: 'hosted:lesson-mirror', token: 'insert_hosted' },
       { res: 'db:agent_inbox#lesson-published', token: 'return_published_once' },
+      { res: 'db:agent_inbox#lesson-progress', token: 'return_progress_once' },
     ],
     seeds: ['lesson-capture', 'lesson-inbox'],
   }),
@@ -284,6 +289,14 @@ const NODES = [
       // DR-0635: approved (being written, name not used) or declined with the reason.
       { res: 'db:agent_inbox#lesson-review', file: 'app/src/lib/lesson-inbox.js', token: 'review_reason' },
       { res: 'db:agent_inbox#lesson-published', file: 'app/src/lib/lesson-inbox.js', token: 'publishedLessonOf' },
+      // DR-0672: each lesson's road, arrival to live — the Governor's two doors
+      // through my_lesson_rows() (0241), the build's progress, the PR read live
+      // through the OpsBoard's reads. (lesson_versions and lesson_decisions,
+      // defined by DR-0669's migration 0240, join this list once that migration
+      // is on main: the graph refuses a db: read of a table no migration creates.)
+      { res: 'db:agent_inbox#lesson', file: 'app/src/lib/lesson-inbox.js', token: "rpc('my_lesson_rows'" },
+      { res: 'db:agent_inbox#lesson-progress', file: 'app/src/lib/lesson-inbox.js', token: 'progressTags' },
+      { res: 'gh:pr', file: 'app/src/lib/lesson-pipeline.js', token: 'fetchLessonPrs' },
     ],
     writes: [{ res: 'event:use-prompt', file: 'app/src/components/LessonInbox.jsx', token: 'sendPromptToBox' }],
     seeds: ['lesson-door'],
@@ -944,6 +957,8 @@ const RESOURCES = {
   'db:agent_inbox#poetech': { label: 'PoeTech requests relayed to the inbox', proof: { ts: 'created_at', fresh: 60, where: "tags ? 'tell-poetech'" },
     open: { blocker: 'Nothing reads these rows (measured 2026-09-24: no code, NAS job or routine reads the tell-poetech tag). The same words now also reach the feedback queue; this relay retires once a PoeTech request is seen landing there on the live database, not before (never dismantle what may still deliver until its replacement is proven).', reReview: '2026-10-01' } },
   'hosted:lesson-mirror': { label: 'lessons carried to the cloud reader (DR-0614)' },
+  'hosted:lesson-progress': { label: 'the lesson builder\u2019s progress on the hosted copy: captured, its PR, the lesson id (DR-0672)' },
+  'db:agent_inbox#lesson-progress': { label: 'lessons the builder has captured', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'lesson-captured'" } },
   'db:saved_prompts': { label: 'kept prompts', proof: { ts: 'last_used_at', fresh: 30, consumed: 'use_count > 1' } },
   'db:agent_tasks': { label: 'questions to the models', proof: { ts: 'created_at', fresh: 30, consumed: "status <> 'queued'" } },
   'db:agent_tasks#answered': { label: 'answers from the NAS agent', proof: { ts: 'updated_at', fresh: 30, where: "status IN ('done','failed','error')" } },
