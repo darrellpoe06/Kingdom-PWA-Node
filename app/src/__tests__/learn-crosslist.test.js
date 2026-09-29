@@ -316,9 +316,11 @@ describe('a pointer, never a copy', () => {
     // DR-0661), a lesson into the existing Living Lessons course, so only the total moves.
     // And to 726 on 2026-09-29 for L197 (Think Soberly, DR-0663), a lesson into an
     // existing course, so only the total moves.
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(726);
+    // And to 727 on 2026-09-29 for pm12 (Titles and fruits, DR-0664), a lesson into an
+    // existing course, so only the total moves.
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(727);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(726);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(727);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {
