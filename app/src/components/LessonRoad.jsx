@@ -12,7 +12,7 @@ import React from 'react';
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const MONO = { fontFamily: '"JetBrains Mono", monospace' };
 
-// Words, not only colour, carry the status (a colour-blind reader and a
+// Words, not only color, carry the status (a color-blind reader and a
 // screen reader get the same fact).
 export const STATUS_WORDS = Object.freeze({
   done: 'done',
