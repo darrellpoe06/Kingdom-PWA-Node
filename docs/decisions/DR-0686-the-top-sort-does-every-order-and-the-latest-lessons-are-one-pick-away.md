@@ -21,7 +21,7 @@ grounds:
   - DR-0432 — Learn as departments; the picker groups by department
 ---
 
-## His words (verbatim)
+## Context — his words (verbatim)
 
 Darrell, 2026-09-29, with two phone screenshots of Church → Learn:
 
@@ -29,11 +29,15 @@ Darrell, 2026-09-29, with two phone screenshots of Church → Learn:
 
 The first screenshot showed the top sort (above "Where you left off") offering only *Course order · A to Z · Most lessons · Shortest first*. The second showed the lesson sort inside Living Lessons ("All lessons · 197") offering *By number, first to last · Newest first · By the Word's divisions*.
 
-## Reality trace (before the code)
+## What was measured — the reality trace, before the code
 
 - **Real data.** Course titles and lesson counts come from the mounted course descriptors. The only per-lesson creation days in the app are `added` on Living Lessons (`lib/living-lessons-dates.js`: the git commit day each lesson first landed, one line per lesson). Measured on the real catalog: of 30+ mounted courses, **only Living Lessons carries a recorded day** (the test pins this). The cohort courses' `date` fields are *scheduled class dates* computed from a cohort start, not creation days, so they are not used. Where a reader has been comes from this device's saved places (`lib/learn-resume.js`, `listPlaces`, stamped `at`, `done`, `started`) and the signed-in lesson record (`progress`, keyed by lesson id).
 - **The surface he uses.** The top sort is `#learn-course-sort` in `ChurchLearn.jsx`. It orders courses within each department group of the `#learn-course-pick` dropdown. The lesson sort is `#learn-lesson-order` in the course's own lesson index.
 - **Premise stated.** "All the sorting options" means every order whose data exists, applied at the level it sorts. An order with no data behind it is not offered.
+
+## Impact
+
+Before this change, a reader who wanted the courses in any order other than the four offered, or wanted to see what had been added lately, had no way to do it from the top of Learn. The newest lessons could be seen only by opening Living Lessons and switching its own list to Newest first. Now the top sort is the one place for every order, and the newest lessons across the whole program are one pick away. The layout everyone else meets does not change: the picker stays first, and "Where you left off" stays directly under it unless the reader picks Latest lessons. The top sort had no memory before, and now it keeps the pick on the device.
 
 ## Decision
 
