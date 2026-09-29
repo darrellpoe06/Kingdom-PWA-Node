@@ -443,6 +443,168 @@ class SamePrompt(unittest.TestCase):
         self.assertFalse([t for t in tried if t["writer"] == "off"][0]["configured"])
 
 
+class FakeFixes:
+    """Stands in for the parity loop's fixes package (infra/nas-lesson-parity,
+    DR-0671): records every call so a test can prove who was passed through."""
+
+    def __init__(self, raise_on=None):
+        self.calls, self.raise_on = [], raise_on
+
+    def apply_stage(self, stage, ctx):
+        self.calls.append((stage, dict(ctx)))
+        if stage == self.raise_on:
+            raise RuntimeError("a broken fix")
+        out = dict(ctx)
+        if stage == "pre":
+            out["prompt"] = ctx["prompt"] + "\n[VERSES RETRIEVED]"
+        else:
+            out["body"] = dict(ctx["body"], parity_marker="post-fixed")
+        return out
+
+
+class ParityWiring(unittest.TestCase):
+    """The tower parity loop's fixes run for tower writers only (DR-0671 on
+    DR-0669); the parity module is optional; a promoted writer is primary."""
+
+    def mixed(self):
+        return [ScriptedWriter("claude", make_lesson(), primary=True, family="claude"),
+                ScriptedWriter("ollama", make_lesson(), family="ollama"),
+                ScriptedWriter("claw", make_lesson(), family="openclaw"),
+                ScriptedWriter("compat", make_lesson(), family="compat")]
+
+    def test_tower_writers_get_the_pre_fix_and_claude_gets_the_builds_prompt(self):
+        fx = FakeFixes()
+        ws = self.mixed()
+        res, _ = lw.fan_out(ws, "THE PROMPT", 10, fixes=fx, teaching=TEACHING)
+        self.assertEqual(ws[0].received, ["THE PROMPT"])
+        for w in ws[1:]:
+            self.assertEqual(w.received, ["THE PROMPT\n[VERSES RETRIEVED]"], w.name)
+        self.assertEqual(len(fx.calls), 3)
+        self.assertTrue(all(c[0] == "pre" and c[1]["teaching"] == TEACHING for c in fx.calls))
+        by = {r["writer"]: r for r in res}
+        self.assertTrue(all(r["ok"] and r["identical_prompt"] for r in res))
+        self.assertNotIn("parity_fixes", by["claude"])
+        self.assertTrue(by["ollama"]["parity_fixes"][0]["prompt_changed"])
+        # The build's prompt hash is the same for all; the fixed hash is kept beside it.
+        self.assertEqual(len({r["prompt_sha256"] for r in res}), 1)
+        self.assertEqual(by["ollama"]["parity_fixes"][0]["fixed_prompt_sha256"],
+                         lw.sha256_text("THE PROMPT\n[VERSES RETRIEVED]"))
+
+    def test_PROVEN_TO_CATCH_claude_is_never_passed_through_apply_stage(self):
+        fx = FakeFixes()
+        claude_only = [ScriptedWriter("cli-local", make_lesson(), primary=True, family="claude"),
+                       ScriptedWriter("api", make_lesson(), family="claude")]
+        lw.fan_out(claude_only, "P", 10, fixes=fx, teaching=TEACHING)
+        self.assertEqual(fx.calls, [])
+        self.assertEqual(lw.apply_post_fix(fx, {"family": "claude"}, TEACHING, {"a": 1}), {"a": 1})
+        self.assertEqual(fx.calls, [])
+        self.assertFalse(lw.is_tower("claude"))
+        # the check itself catches: had it been passed through, a call is recorded
+        lw.apply_fixes(fx, "pre", "ollama", {"teaching": "", "prompt": "P"})
+        self.assertEqual(len(fx.calls), 1)
+
+    def test_a_tower_that_alters_even_the_fixed_prompt_is_still_caught(self):
+        w = ScriptedWriter("ollama", make_lesson(), family="ollama", mutate=True)
+        res, _ = lw.fan_out([w], "P", 10, fixes=FakeFixes(), teaching=TEACHING)
+        self.assertFalse(res[0]["ok"])
+        self.assertIn("prompt-mismatch", res[0]["error"])
+
+    def test_the_post_fix_repairs_tower_bodies_before_gates_and_never_claudes(self):
+        fx = FakeFixes()
+        db = FakeDb([row("r1", TEACHING)])
+        ws = [ScriptedWriter("claude", make_lesson(), primary=True, family="claude"),
+              ScriptedWriter("ollama", make_lesson(), family="ollama")]
+        b, rep = build(db, FakeGit(), ws, mode="all-at-once", fixes=fx)
+        self.assertEqual(rep["outcome"], "awaiting-review")
+        stored = {r["writer"]: r for r in db.versions_rows}
+        self.assertEqual(stored["ollama"]["body"].get("parity_marker"), "post-fixed")
+        self.assertNotIn("parity_marker", stored["claude"]["body"])
+        self.assertEqual([c[0] for c in fx.calls], ["pre", "post"])
+        self.assertEqual([p["stage"] for p in stored["ollama"]["gate_results"]["parity_fixes"]], ["pre", "post"])
+        self.assertNotIn("parity_fixes", stored["claude"]["gate_results"])
+
+    def test_a_fix_that_raises_keeps_its_input_and_is_recorded(self):
+        w = ScriptedWriter("ollama", make_lesson(), family="ollama")
+        res, _ = lw.fan_out([w], "P", 10, fixes=FakeFixes(raise_on="pre"), teaching=TEACHING)
+        self.assertEqual(w.received, ["P"])
+        self.assertTrue(res[0]["ok"])
+        self.assertFalse(res[0]["parity_fixes"][0]["applied"])
+        self.assertIn("a broken fix", res[0]["parity_fixes"][0]["error"])
+
+    def test_the_parity_module_is_optional(self):
+        self.assertIsNone(lw.load_parity_fixes(os.path.join(tempfile.mkdtemp(), "nas-lesson-parity")))
+        w = ScriptedWriter("ollama", make_lesson(), family="ollama")
+        res, _ = lw.fan_out([w], "P", 10, fixes=None, teaching=TEACHING)
+        self.assertEqual(w.received, ["P"])
+        self.assertNotIn("parity_fixes", res[0])
+        d = tempfile.mkdtemp()
+        os.makedirs(os.path.join(d, "fixes"))
+        with open(os.path.join(d, "fixes", "__init__.py"), "w") as f:
+            f.write("def apply_stage(stage, ctx):\n    return ctx\n")
+        saved = sys.modules.pop("fixes", None)
+        try:
+            mod = lw.load_parity_fixes(d)
+            self.assertTrue(callable(mod.apply_stage))
+        finally:
+            sys.modules.pop("fixes", None)
+            if saved is not None:
+                sys.modules["fixes"] = saved
+            if d in sys.path:
+                sys.path.remove(d)
+
+    def test_the_real_parity_package_loads_when_it_is_in_the_repo(self):
+        path = os.path.join(REPO, "infra", "nas-lesson-parity")
+        if not os.path.isfile(os.path.join(path, "fixes", "__init__.py")):
+            self.skipTest("the parity loop (#1845) has not landed in this tree")
+        saved = sys.modules.pop("fixes", None)
+        try:
+            self.assertTrue(callable(lw.load_parity_fixes(path).apply_stage))
+        finally:
+            sys.modules.pop("fixes", None)
+            if saved is not None:
+                sys.modules["fixes"] = saved
+
+    def ws(self):
+        out = [ScriptedWriter("cli-local", {}, primary=True, family="claude"),
+               ScriptedWriter("tower-a", {}, family="ollama"), ScriptedWriter("tower-b", {}, family="compat")]
+        for w in out:
+            w.label = w.name  # the model label from NAS config
+        return out
+
+    def test_a_promoted_writer_is_primary(self):
+        ws = self.ws()
+        note = lw.promoted_primary(ws, [{"writer_family": "ollama", "model_label": "tower-a", "status": "primary", "held": False}])
+        self.assertEqual(lw.primary_name(ws), "tower-a")
+        self.assertEqual([w.primary for w in ws], [False, True, False])
+        self.assertIn("promoted", note)
+        ws2 = self.ws()
+        lw.promoted_primary(ws2, [{"writer_family": "compat", "model_label": "", "status": "primary", "held": False}])
+        self.assertEqual(lw.primary_name(ws2), "tower-b")
+
+    def test_PROVEN_TO_CATCH_no_promotion_keeps_the_config_primary(self):
+        for promos in (None, [], [{"writer_family": "ollama", "model_label": "tower-a", "status": "ready", "held": False}],
+                       [{"writer_family": "ollama", "model_label": "tower-a", "status": "primary", "held": True}],
+                       [{"writer_family": "ollama", "model_label": "another-model", "status": "primary", "held": False}]):
+            ws = self.ws()
+            note = lw.promoted_primary(ws, promos)
+            self.assertEqual(lw.primary_name(ws), "cli-local", promos)
+            self.assertIn("config", note)
+
+    def test_an_absent_promotion_table_reads_as_none(self):
+        class Con:
+            def run(self, *_a, **_k):
+                raise RuntimeError('relation "public.lesson_parity_promotion" does not exist')
+        db = object.__new__(lb.Db)
+        db.con = Con()
+        self.assertIsNone(db.promotions())
+
+        class Con2:
+            def run(self, *_a, **_k):
+                return [["ollama", "tower-a", "primary", False]]
+        db.con = Con2()
+        self.assertEqual(db.promotions()[0]["status"], "primary")
+
+
 class Modes(unittest.TestCase):
     def setUp(self):
         self.ws = [ScriptedWriter("claude", {}, primary=True), ScriptedWriter("gemini", {}), ScriptedWriter("gpt", {})]

@@ -877,7 +877,88 @@ def primary_name(writers):
     return writers[0].name if writers else ""
 
 
-def fan_out(writers, prompt, timeout, clock=time.monotonic):
+# --- the tower parity loop's fixes (DR-0671), tower writers ONLY -------------
+# The parity loop (infra/nas-lesson-parity) ships deterministic fixes that bring
+# a tower writer's lesson toward the reference. They are wired here: a "pre" pass
+# on the prompt before a tower writes, a "post" pass on its body before gates.
+# Claude IS the reference and is never passed through them. The parity module
+# is OPTIONAL: absent (not installed, or #1845 not landed), every writer runs
+# as before and nothing fails.
+TOWER_FAMILIES = ("ollama", "openclaw", "compat")
+PARITY_DIR = os.environ.get("LESSON_PARITY_DIR", os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "nas-lesson-parity"))
+
+
+def is_tower(w):
+    """A writer (or a family name) the parity fixes apply to. The claude family
+    is never a tower, whatever a config says."""
+    family = w if isinstance(w, str) else getattr(w, "family", "")
+    return family != "claude" and family in TOWER_FAMILIES
+
+
+def load_parity_fixes(path=None):
+    """The parity loop's fixes package (it exposes apply_stage(stage, ctx)), or
+    None when it is not installed. Never raises."""
+    path = path or PARITY_DIR
+    if not path or not os.path.isfile(os.path.join(path, "fixes", "__init__.py")):
+        return None
+    if path not in sys.path:
+        sys.path.insert(0, path)
+    try:
+        mod = importlib.import_module("fixes")
+    except Exception:  # noqa: BLE001 -- a broken parity install must not stop the builder
+        return None
+    return mod if callable(getattr(mod, "apply_stage", None)) else None
+
+
+def apply_fixes(fixes, stage, w, ctx):
+    """(ctx, record). Runs the parity loop's fixes of one stage for a TOWER
+    writer only. Claude, or no fixes installed, returns ctx untouched. A fix
+    that raises is recorded and its input kept: the gates still judge it."""
+    if fixes is None or not is_tower(w):
+        return ctx, None
+    try:
+        out = fixes.apply_stage(stage, dict(ctx))
+    except Exception as e:  # noqa: BLE001
+        return ctx, {"stage": stage, "applied": False, "error": str(e)[:300]}
+    if not isinstance(out, dict):
+        return ctx, {"stage": stage, "applied": False, "error": "fix returned {}".format(type(out).__name__)}
+    return out, {"stage": stage, "applied": True}
+
+
+def apply_post_fix(fixes, v, teaching, body):
+    """The post pass on a tower writer's parsed body (before its gates run).
+    v is the fan_out record; its parity_fixes list gains the record."""
+    if not isinstance(body, dict):
+        return body
+    ctx, rec = apply_fixes(fixes, "post", v.get("family", ""), {"teaching": teaching, "body": body})
+    if rec is None:
+        return body
+    v.setdefault("parity_fixes", []).append(rec)
+    return ctx.get("body") if isinstance(ctx.get("body"), dict) else body
+
+
+def promoted_primary(writers, promotions):
+    """THE PRIMARY WRITER. promotions: rows of public.lesson_parity_promotion
+    ({writer_family, model_label, status, held}) or None when that table does
+    not exist yet. A writer whose row reads status 'primary' (and is not under
+    the Governor's hold) becomes the primary; otherwise the config's primary
+    stands. Returns a note naming which rule chose it."""
+    if promotions is None:
+        return "primary from config (no promotion table)"
+    for p in promotions:
+        if p.get("status") != "primary" or p.get("held"):
+            continue
+        fam, label = p.get("writer_family") or "", p.get("model_label") or ""
+        for w in writers:
+            if w.family == fam and (not label or w.label == label):
+                for o in writers:
+                    o.primary = o is w
+                return "primary {} promoted by the parity loop ({} {})".format(w.name, fam, label or "any model")
+    return "primary from config (no writer promoted)"
+
+
+def fan_out(writers, prompt, timeout, clock=time.monotonic, fixes=None, teaching=""):
     """Probe every writer, then send THE SAME prompt to every reachable one in
     parallel. Returns (results, tried). Each result: writer, kind, model_label,
     primary, ok, text, usage, error, elapsed_ms, prompt_sha256 (the build's),
@@ -900,14 +981,24 @@ def fan_out(writers, prompt, timeout, clock=time.monotonic):
         rec = {"writer": w.name, "kind": w.kind, "family": w.family, "model_label": w.label, "primary": w.primary,
                "prompt_sha256": prompt_sha, "ok": False, "text": "", "usage": {}, "error": "",
                "sent_sha256": ""}
+        # A tower writer gets the build's prompt after the parity loop's pre
+        # fixes; the proof is then that it sent exactly THAT prompt, and both
+        # hashes are kept. Claude always gets the build's prompt unchanged.
+        ctx, fx = apply_fixes(fixes, "pre", w, {"teaching": teaching, "prompt": prompt})
+        wire_prompt = ctx.get("prompt") if isinstance(ctx.get("prompt"), str) else prompt
+        expect = prompt_sha if wire_prompt == prompt else sha256_text(wire_prompt)
+        if fx is not None:
+            fx["prompt_changed"] = wire_prompt != prompt
+            fx["fixed_prompt_sha256"] = expect
+            rec["parity_fixes"] = [fx]
         try:
-            out = w.send(prompt, timeout)
+            out = w.send(wire_prompt, timeout)
             rec.update(text=out.get("text", ""), usage=out.get("usage") or {}, sent_sha256=out.get("sent_sha256", ""))
             rec["ok"] = True
         except Exception as e:  # noqa: BLE001 -- every failure is kept, with its reason
             rec["error"] = str(e)[:600]
         rec["elapsed_ms"] = int((clock() - t0) * 1000)
-        rec["identical_prompt"] = rec["sent_sha256"] == prompt_sha
+        rec["identical_prompt"] = rec["sent_sha256"] == expect
         if rec["ok"] and not rec["identical_prompt"]:
             rec["ok"] = False
             rec["error"] = "prompt-mismatch: this writer sent a prompt whose sha256 differs from the build's"

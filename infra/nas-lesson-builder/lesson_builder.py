@@ -806,8 +806,9 @@ class BuildFailed(Exception):
 class Build:
     def __init__(self, group, db, git, writers, corpus, data_dir=DATA, owners=OWNER_IDS, hosted=None,
                  band_gates=None, local_tests=None, today=None, build_id=None, now=utc_now,
-                 writer_timeout=WRITER_MAX_SECONDS, mode=writer.DEFAULT_MODE, selected=()):
+                 writer_timeout=WRITER_MAX_SECONDS, mode=writer.DEFAULT_MODE, selected=(), fixes=None):
         self.group, self.db, self.git, self.writers, self.corpus = group, db, git, writers, corpus
+        self.fixes = fixes  # the parity loop's fixes (DR-0671), tower writers only; None = not installed
         self.data_dir, self.owners, self.hosted = data_dir, owners, hosted
         self.band_gates, self.local_tests, self.now = band_gates, local_tests, now
         self.today = today or datetime.date.today().isoformat()
@@ -892,7 +893,7 @@ class Build:
         run_writers, mode_note = writer.select_writers(self.writers, self.mode, self.selected)
         self.report["mode"] = mode_note
         self.stage("writing", ["build-prompt:" + sha[:16], "build-mode:" + self.mode])
-        results, tried = writer.fan_out(run_writers, prompt, self.writer_timeout)
+        results, tried = writer.fan_out(run_writers, prompt, self.writer_timeout, fixes=self.fixes, teaching=teaching)
         self.report["writers_tried"] = tried
         if not results:
             raise BuildFailed("no writer reachable: " + "; ".join("{} ({})".format(t["writer"], t["why"]) for t in tried))
@@ -908,11 +909,14 @@ class Build:
                     obj = gates.canonical_apostrophes(writer.extract_json(r["text"]))
                 except ValueError as e:
                     v["ok"], v["error"] = False, "unreadable reply: {}".format(e)
+            obj = writer.apply_post_fix(self.fixes, v, teaching, obj)
             v["body"] = obj
             if isinstance(obj, dict) and obj.get("verdict") == "lesson" and not writer.schema_problems(obj):
                 module = lesson_module(obj, 0)
             v["gates"] = gates.gate_version(obj, module, self.corpus, writer.schema_problems,
                                             band_gates=self.band_gates) if obj is not None else {"passed": False, "verse_passed": False}
+            if v.get("parity_fixes"):
+                v["gates"] = dict(v["gates"], parity_fixes=v["parity_fixes"])
             v["family"] = r.get("family")
             versions.append(v)
         self.stage("gated")
@@ -1267,6 +1271,15 @@ class Db:
         r = rows[0]
         return {"mode": r[0], "selected": list(r[1] or []), "backfill_requested_at": r[2],
                 "backfill_done_at": r[3], "backfill_scope": r[4]}
+
+    def promotions(self):
+        """Rows of public.lesson_parity_promotion (DR-0671), or None when the
+        parity loop's migration has not reached this database."""
+        try:
+            rows = self.con.run("SELECT writer_family, model_label, status, held FROM public.lesson_parity_promotion")
+        except Exception:  # noqa: BLE001 -- table absent: the config's primary stands
+            return None
+        return [{"writer_family": r[0], "model_label": r[1], "status": r[2], "held": r[3]} for r in rows]
 
     def publish_status(self, status):
         """What the service sees (writers tried, state) -- for the app's tick-boxes."""
@@ -1692,8 +1705,10 @@ def refuse_published_backfill(rec):
 
 class Backfill:
     def __init__(self, lesson_id, title, source, source_ref, db, writers, corpus, mode=writer.DEFAULT_MODE,
-                 selected=(), band_gates=None, owners=OWNER_IDS, writer_timeout=WRITER_MAX_SECONDS, build_id=None):
+                 selected=(), band_gates=None, owners=OWNER_IDS, writer_timeout=WRITER_MAX_SECONDS, build_id=None,
+                 fixes=None):
         self.lesson_id, self.title, self.source, self.source_ref = lesson_id, title, source, source_ref
+        self.fixes = fixes
         self.db, self.writers, self.corpus = db, writers, corpus
         self.mode, self.selected, self.band_gates, self.owners = mode, selected, band_gates, owners
         self.writer_timeout = writer_timeout
@@ -1705,7 +1720,7 @@ class Backfill:
             "{} -- BACKFILL: this lesson is already published; write it fresh from its recorded source, "
             "for comparison only".format(self.title)))
         run_writers, note = writer.select_writers(self.writers, self.mode, self.selected)
-        results, tried = writer.fan_out(run_writers, prompt, self.writer_timeout)
+        results, tried = writer.fan_out(run_writers, prompt, self.writer_timeout, fixes=self.fixes, teaching=self.source)
         stored, errors = 0, []
         for r in results:
             obj = None
@@ -1714,10 +1729,13 @@ class Backfill:
                     obj = gates.canonical_apostrophes(writer.extract_json(r["text"]))
                 except ValueError as e:
                     r["error"] = "unreadable reply: {}".format(e)
+            obj = writer.apply_post_fix(self.fixes, r, self.source, obj)
             module = lesson_module(obj, 0) if (isinstance(obj, dict) and obj.get("verdict") == "lesson"
                                               and not writer.schema_problems(obj)) else None
             g = gates.gate_version(obj, module, self.corpus, writer.schema_problems, band_gates=self.band_gates) \
                 if obj is not None else {"passed": False, "verse_passed": False}
+            if r.get("parity_fixes"):
+                g = dict(g, parity_fixes=r["parity_fixes"])
             rec = backfill_record({
                 "build_id": self.build_id, "teaching_row_id": None, "instance_id": None, "lesson_id": self.lesson_id,
                 "writer": r["writer"], "family": r.get("family"), "model_label": r.get("model_label"),
@@ -2036,15 +2054,20 @@ def child(spec, env=None):
         return Decide(spec["decision_id"], db, git, corpus, data_dir=data, hosted=hosted, band_gates=band,
                       local_tests=local_tests).run()
     ws, _ = writer.writers_from_configs(writer.load_writer_configs(env), env=env, extra_paths=writer_paths(env))
+    primary_note = writer.promoted_primary(ws, db.promotions() if hasattr(db, "promotions") else None)
+    fixes = writer.load_parity_fixes()
     st = db.settings() or {}
     cfg_mode, cfg_sel = writer.config_mode(env)
     mode = spec.get("writer_mode") or st.get("mode") or cfg_mode
     selected = spec.get("selected") or st.get("selected") or cfg_sel
     if spec["mode"] == "backfill":
         return Backfill(spec["lesson_id"], spec["title"], spec["source"], spec["source_ref"], db, ws, corpus,
-                        mode=mode, selected=selected, band_gates=band, build_id=spec.get("build_id")).run()
-    return Build(spec["group"], db, git, ws, corpus, data_dir=data, hosted=hosted, band_gates=band,
-                 local_tests=local_tests, build_id=spec.get("build_id"), mode=mode, selected=selected).run()
+                        mode=mode, selected=selected, band_gates=band, build_id=spec.get("build_id"), fixes=fixes).run()
+    b = Build(spec["group"], db, git, ws, corpus, data_dir=data, hosted=hosted, band_gates=band,
+              local_tests=local_tests, build_id=spec.get("build_id"), mode=mode, selected=selected, fixes=fixes)
+    b.report["primary"] = primary_note
+    b.report["parity_fixes"] = "installed" if fixes is not None else "not installed"
+    return b.run()
 
 
 def main(argv=None):
