@@ -55,6 +55,12 @@ A dense 14B at Q4 (~9 GB) leaves no room on 12 GB for OpenClaw's 32,768-token lo
 
 One s4.3 finding moved. OpenClaw now has exec approvals (`tools.exec`, session permission modes) and a plugin `before_tool_call` hook that can block or require approval. That hook is the mechanism our gate uses. It is not a general gate *of OpenClaw's own* on sends and posts, so the condition "a gate in front, supplied by us" still holds, and we supply it.
 
+## Impact
+
+- **If unresolved:** the s4.6 entry stays `DECISION: ____`, open since 2026-06-17, and Darrell's ask to make OpenClaw work on the towers is not built.
+- **What the call obligates:** an autonomous AI agent on a family machine runs only with all three brakes and our gate in front of every tool call. The bright lines (money, credentials, PHI, the family's theological voice, irreversible OS actions) are denied, and no approval lifts them. Role (a) stays unpaired until Darrell's word and his bot token. Build/CI is never in its reach. The OpsBoard strip never reads green without a fresh record.
+- **Until the CI key is trusted on the tower:** every fire records *unreachable* and goes red, and the strip reads unknown with that reason. Gateway health, the model's VRAM fit and the sandbox behaviour stay unmeasured until the first fire after the key is placed.
+
 ## Decision
 
 1. **OpenClaw runs on `tlcmediadpt`.** It uses the official image pinned by tag and digest, is published on `127.0.0.1:18789` only, and runs with no docker socket. Our config and gate are mounted read-only. The model is `church-ollama` on the same box, reached through `host.docker.internal`. The config has one provider, no fallbacks, no cloud host and no vendor key. Non-main sessions are sandboxed. DM policy is `pairing`, and no channel is enabled. Folder: `infra/openclaw-tower/`.
