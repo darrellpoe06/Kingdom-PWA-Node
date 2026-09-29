@@ -137,7 +137,8 @@ export function OneVoiceInput({
   // next, so Save filed his words as a work order. Speech keeps the chip the
   // person chose (or the surface's own default); a tap on a chip still wins.
   const mic = useVoiceDictation({
-    onTranscript: (t) => setText((latestText.current ? `${latestText.current} ${t}` : t).trim()),
+    // Functional append: two final chunks in one tick both land (DR-0685).
+    onTranscript: (t) => setText((cur) => (cur ? `${cur} ${t}` : t).trim()),
     capMs: wholeThing ? LONG_FORM_SESSION_CAP_MS : VOICE_SESSION_CAP_MS,
   });
 

@@ -86,7 +86,7 @@ function ThoughtsIntake() {
   const [raw, setRaw] = useState('');
   const [preview, setPreview] = useState(null);
   const [savedMsg, setSavedMsg] = useState('');
-  const { supported, listening, error, start, stop } = useVoiceDictation({
+  const { supported, listening, error, toggle, stop } = useVoiceDictation({
     onTranscript: (chunk) => setRaw((cur) => (cur ? `${cur} ${chunk}` : chunk)),
   });
   const runPreview = () => {
@@ -114,7 +114,7 @@ function ThoughtsIntake() {
         {supported && (
           <button type="button"
             className={`rounded-lg border px-3 py-1.5 text-sm font-semibold min-h-[36px] ${listening ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#B85838] text-[#B85838]'}`}
-            onClick={listening ? stop : start}
+            onClick={listening ? stop : toggle}
             aria-pressed={listening}>
             {listening ? '■ Stop listening' : <><UiIcon name="mic" /> Talk it in</>}
           </button>
