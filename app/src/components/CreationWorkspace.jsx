@@ -54,7 +54,10 @@ export default function CreationWorkspace({
   deleteWorkspace,
   currentUserPersona = null,
   // The creating station (DR-0678): the lesson tools, ordered and laid out for
-  // the device, above the document canvas. Omitted = the canvas alone.
+  // the device, above the document canvas. Omitted = the canvas alone. The
+  // shell passes it on ONE line: isGovernor is the same predicate Projects ->
+  // Decisions uses (signed in, not reviewer mode, a family email), and voice
+  // carries the Thinking Space write paths so the lesson entry saves the same way.
   station = null,
 }) {
   const editorRef = useRef(null);

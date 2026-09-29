@@ -101,7 +101,7 @@ function HandoffPanel({ cls }) {
         id="station-handoff-panel"
         value={panel}
         onChange={(e) => setPanel(e.target.value)}
-        className="border border-[#1A1815] bg-white text-sm px-2 min-h-[44px] mt-1 max-w-full"
+        className="border border-[#1A1815] bg-white text-sm px-2 min-h-[44px] mt-1 w-full sm:w-auto"
       >
         {Object.entries(ROLES.panels).filter(([k]) => k !== 'handoff').map(([k, p]) => <option key={k} value={k}>{p.label}</option>)}
       </select>
@@ -185,7 +185,7 @@ export default function CreatingStation({
       <OneVoiceInput
         surface="notes"
         surfaceConfig={{ defaultRoute: 'lesson' }}
-        heading="📖 A lesson, spoken or typed"
+        heading="A lesson, spoken or typed"
         intro="The Lesson chip is already chosen. Speak it or type it; it goes to the lesson intake, and you can still pick another destination."
         placeholder="Lesson: what the Word showed you…"
         submitLabel="Send"
