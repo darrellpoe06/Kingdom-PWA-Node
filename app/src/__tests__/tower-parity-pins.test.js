@@ -104,9 +104,8 @@ describe('the lesson_versions shape the loop reads (the builder\u2019s own migra
   const MIGS = join(REPO, 'infra/supabase/migrations-auto');
   const builderFile = readdirSync(MIGS).find((f) => /CREATE TABLE IF NOT EXISTS (public\.)?lesson_versions \(\s*\n\s*id\s[^;]*build_id/.test(readFileSync(join(MIGS, f), 'utf8')));
   const BUILDER = builderFile ? readFileSync(join(MIGS, builderFile), 'utf8') : '';
-  it('the builder\u2019s migration is on this checkout and sorts after the parity repair (0242)', () => {
+  it('the builder\u2019s migration is on this checkout', () => {
     expect(builderFile, 'the lesson builder (#1837) must land first').toBeTruthy();
-    expect(builderFile > '0242-').toBe(true);
   });
   const MIG = readFileSync(join(REPO, 'infra/supabase/migrations-auto/0242-a-tower-writer-is-measured-against-the-reference-until-it-matches.sql'), 'utf8');
   const LOOP = readFileSync(join(REPO, 'infra/nas-lesson-parity/parity_loop.py'), 'utf8');
@@ -121,8 +120,7 @@ describe('the lesson_versions shape the loop reads (the builder\u2019s own migra
   });
   it('the parity migration never creates or alters the builder\u2019s table', () => {
     expect(MIG).not.toMatch(/(CREATE|ALTER) TABLE[^;]*lesson_versions/);
-    // the one statement that touches it is the guarded removal of the empty early copy
-    expect(MIG).toMatch(/NOT EXISTS \(SELECT 1 FROM public\.lesson_versions\) THEN\s*\n\s*DROP TABLE public\.lesson_versions;/);
+    expect(MIG).not.toMatch(/DROP TABLE[^;]*lesson_versions/);
   });
   it('the parity tables are the Governor’s: no write policy, read only by is_lesson_governor()', () => {
     for (const t of ['lesson_parity', 'lesson_crossref', 'lesson_parity_fixes', 'lesson_parity_promotion']) {

@@ -33,12 +33,9 @@
 -- (the ledger's one-file-per-ordinal guard, 0225), so that file stays byte for
 -- byte and this one carries the change:
 --   1. The first cut created lesson_versions "if not exists" in the
---      builder's documented shape. The builder creates it with more columns
---      and an index on build_id; its CREATE TABLE IF NOT EXISTS would skip the
---      early copy and the index would fail. So the early copy is REMOVED here,
---      only when it is the parity loop's copy (no build_id column) AND holds no
---      rows. The builder's migration must sort AFTER this file (0243 or later):
---      ordinal 0240 is taken in the ledger by the first cut.
+--      builder's documented shape; the builder's own migration (0241, DR-0669)
+--      owns that table and brings any early copy to its full shape itself.
+--      This file does not touch lesson_versions.
 --   2. lesson_parity gains build_id; lesson_crossref is keyed by build_id.
 -- A fresh database runs the first cut and then this file, and ends the same.
 
@@ -50,22 +47,7 @@
 -- IDEMPOTENT: IF NOT EXISTS, DROP+CREATE POLICY, CREATE OR REPLACE.
 -- =============================================================================
 
--- 1) The early copy of the builder's table, removed only when it is ours and empty.
-DO $$
-BEGIN
-  IF to_regclass('public.lesson_versions') IS NOT NULL
-     AND NOT EXISTS (SELECT 1 FROM information_schema.columns
-                      WHERE table_schema = 'public' AND table_name = 'lesson_versions' AND column_name = 'build_id') THEN
-    IF NOT EXISTS (SELECT 1 FROM public.lesson_versions) THEN
-      DROP TABLE public.lesson_versions;
-      RAISE NOTICE 'lesson_versions: the parity loop''s empty early copy removed; the builder creates its own';
-    ELSE
-      RAISE NOTICE 'lesson_versions has rows and no build_id: left untouched for a person to look at';
-    END IF;
-  END IF;
-END $$;
-
--- 2) The parity tables, in their final shape (a fresh database; an existing one converges below).
+-- The parity tables, in their final shape (a fresh database; an existing one converges below).
 CREATE TABLE IF NOT EXISTS public.lesson_parity (
   id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   build_id              uuid,
