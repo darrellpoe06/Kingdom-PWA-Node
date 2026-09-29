@@ -68,6 +68,9 @@ const SWEEP = process.argv.includes('--sweep');
 const BASE = '/poetech-app';
 const DIST = args[0] || fileURLToPath(new URL('../app/dist', import.meta.url));
 const WIDTHS = [360, 768, 1440, 1920];
+// Each device its job (DR-0678): the roles file the app reads, read here too,
+// so the probe asserts the SAME order the station derives, never a copy.
+const DEVICE_ROLES = JSON.parse(readFileSync(fileURLToPath(new URL('../infra/device-availability/device-roles.json', import.meta.url)), 'utf8'));
 const VIEWS = SWEEP
   // 'properties' added 2026-08-27: the Poe Properties workspace is a face of
   // its own (its own manifest scope, its own served page) and had NO layout
@@ -75,7 +78,9 @@ const VIEWS = SWEEP
   // this review against a surface the sweep list had never heard of.
   // 'notes' added 2026-09-29 (DR-0672): the Thinking Space hosts Your lessons,
   // whose road runs five across from 640px and stacks on a phone.
-  ? ['church', 'books', 'messages', 'about', 'crm', 'rentals', 'markets', 'library', 'games', 'admin', 'properties', 'notes']
+  // 'create' added 2026-09-29 (DR-0678): the Create station is the laptop's
+  // creating workspace, and it is measured at every width like every face.
+  ? ['church', 'books', 'messages', 'about', 'crm', 'rentals', 'markets', 'library', 'games', 'admin', 'properties', 'notes', 'create']
   : ['church'];
 
 if (!existsSync(join(DIST, 'index.html'))) {
@@ -143,6 +148,8 @@ let lessonMeasured = 0;
 let presenterMeasured = 0;
 let readerMeasured = 0;
 let readerFailuresBefore = 0;
+let deviceFailuresBefore = 0;
+let deviceMeasured = 0;
 // COVERAGE, counted — not assumed (DR-0323). This probe reported `exit 0` on
 // 2026-09-03 having measured only 8 of its 11 views: no failure was raised, so
 // the run read as a clean pass while a third of the surfaces — including the
@@ -1024,6 +1031,89 @@ try {
   }
   if (readerMeasured !== READER_CASES.length) fail(`coverage: ${readerMeasured}/${READER_CASES.length} reader cases measured`);
 
+  // ---------------------------------------------------------------------------
+  // DEVICE pass (DR-0678). Darrell 2026-09-29: "Laptop for creating... we need
+  // to be able to use the devices appropriately". The Create station is opened
+  // as each device actually meets it (a laptop with a mouse, a phone with a
+  // finger, a Fire TV by its own user agent at its own 960x540) and MEASURED:
+  //   D1. the class the app derived is the device's (html[data-device-class]
+  //       and the station agree) — measured by the browser, not asserted by us;
+  //   D2. every panel is there (never blocked by device);
+  //   D3. the role's first panel is first (the roles file, read above);
+  //   D4. the laptop is laid out ACROSS the width: panels side by side, and the
+  //       grid uses the width; the phone and TV are one column;
+  //   D5. nothing runs past the right edge (page or panel).
+  // --selftest-break collapses the laptop grid to one column; D4 must trip.
+  // ---------------------------------------------------------------------------
+  deviceFailuresBefore = failures;
+  const FIRE_TV_UA = 'Mozilla/5.0 (Linux; Android 9; AFTMM Build/PS7285) AppleWebKit/537.36 (KHTML, like Gecko) Silk/112.3.1 like Chrome/112.0.5615.213 Safari/537.36';
+  const PHONE_UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36';
+  const DEVICE_CASES = SELFTEST
+    ? [{ cls: 'laptop', w: 1440, h: 900 }]
+    : (SWEEP ? [
+      { cls: 'laptop', w: 1440, h: 900 },
+      { cls: 'laptop', w: 1920, h: 1080 },
+      { cls: 'phone', w: 390, h: 844, mobile: true, ua: PHONE_UA },
+      { cls: 'tv', w: 960, h: 540, ua: FIRE_TV_UA },
+    ] : []);
+  const PANEL_COUNT = Object.keys(DEVICE_ROLES.panels).length;
+  for (const dc of DEVICE_CASES) {
+    const where = `device ${dc.cls}@${dc.w}x${dc.h}`;
+    const ctx = await browser.newContext({
+      viewport: { width: dc.w, height: dc.h },
+      ...(dc.mobile ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}),
+      ...(dc.ua ? { userAgent: dc.ua } : {}),
+    });
+    const page = await ctx.newPage();
+    await page.addInitScript(() => { try { localStorage.setItem('poetech.help.tour.v1', 'seen'); } catch (_) { /* private mode */ } });
+    await page.goto(`${origin}${BASE}/?view=create`, { waitUntil: 'networkidle', timeout: CHROME_IDLE_CAP_MS }).catch(() => {});
+    await page.waitForSelector('[data-testid="creating-station"] [data-panel]', { timeout: 30000 }).catch(() => {});
+    if (SELFTEST) {
+      await page.addStyleTag({ content: '[data-testid="station-grid"] { grid-template-columns: minmax(0, 1fr) !important }' });
+      await page.waitForTimeout(100);
+    }
+    const m = await page.evaluate(() => {
+      const st = document.querySelector('[data-testid="creating-station"]');
+      if (!st) return { none: true, html: document.documentElement.getAttribute('data-device-class') };
+      const grid = st.querySelector('[data-testid="station-grid"]');
+      const vw = document.documentElement.clientWidth;
+      const ps = [...st.querySelectorAll('[data-panel]')].map((el) => {
+        const r = el.getBoundingClientRect();
+        return { k: el.getAttribute('data-panel'), left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), w: Math.round(r.width) };
+      });
+      const gr = grid.getBoundingClientRect();
+      return {
+        html: document.documentElement.getAttribute('data-device-class'),
+        station: st.getAttribute('data-device-class'),
+        fine: matchMedia('(any-pointer: fine)').matches,
+        panels: ps,
+        lefts: [...new Set(ps.map((p) => p.left))].length,
+        gridW: Math.round(gr.width),
+        vw,
+        scrollWidth: document.documentElement.scrollWidth,
+      };
+    });
+    await ctx.close();
+    const dbefore = failures;
+    deviceMeasured += 1;
+    if (m.none) { fail(`${where}: the Create station never rendered (html class ${m.html})`); continue; }
+    if (m.html !== dc.cls || m.station !== dc.cls) fail(`${where}: the app took this for a ${m.html} (station ${m.station}, any-pointer fine ${m.fine})`);
+    if (m.panels.length !== PANEL_COUNT) fail(`${where}: ${m.panels.length} of ${PANEL_COUNT} panels rendered — a device must never lose a panel`);
+    const wantFirst = DEVICE_ROLES.classes[dc.cls].first[0];
+    if (m.panels[0] && m.panels[0].k !== wantFirst) fail(`${where}: "${m.panels[0].k}" comes first, the ${dc.cls}'s role puts "${wantFirst}" first`);
+    if (dc.cls === 'laptop') {
+      if (m.lefts < 2) fail(`${where}: the station is one column on a laptop — panels never sit side by side (${m.lefts} column edge)`);
+      if (m.gridW < m.vw * 0.6) fail(`${where}: the station uses ${m.gridW}px of a ${m.vw}px screen`);
+    } else if (m.lefts !== 1) {
+      fail(`${where}: ${m.lefts} column edges on a ${dc.cls} — it should be one column`);
+    }
+    if (m.scrollWidth > m.vw + 1) fail(`${where}: page overflows horizontally (${m.scrollWidth} > ${m.vw})`);
+    const past = m.panels.filter((p) => p.right > m.vw + 1).map((p) => p.k);
+    if (past.length) fail(`${where}: panels run past the right edge: ${past.join(', ')}`);
+    if (failures === dbefore) console.log(`device ok  ${where} — derived ${m.html}, ${m.panels.length} panels, "${m.panels[0].k}" first, ${m.lefts} column edge(s), grid ${m.gridW}px of ${m.vw}px`);
+  }
+  if (deviceMeasured !== DEVICE_CASES.length) fail(`coverage: ${deviceMeasured}/${DEVICE_CASES.length} device cases measured`);
+
   await browser.close();
 
 
@@ -1037,17 +1127,19 @@ if (SELFTEST) {
   const tsTripped = readerFailuresBefore - tsFailuresBefore;
   // The reader pass (DR-0659): the mini-bar with its focus ring taken away
   // must trip the remote check.
-  const readerTripped = failures - readerFailuresBefore;
+  const readerTripped = deviceFailuresBefore - readerFailuresBefore;
+  // The device pass (DR-0678): the laptop grid collapsed to one column must trip.
+  const deviceTripped = failures - deviceFailuresBefore;
   const lessonTripped = tsFailuresBefore - lessonFailuresBefore;
   const chromeTripped = lessonFailuresBefore;
   // The lesson pass now trips SEVEN ways: width-short, boxed control, a wall of
   // chips, an over-long block, the ballooned bar at Big Print, chrome that grew
   // with the text, and floaters on the comfort bar (DR-0438).
-  if (failures > 0 && chromeTripped > 0 && lessonTripped >= 7 && tsTripped >= 2 && readerTripped >= 1) {
-    console.log(`SELFTEST-BREAK OK — the probe CAN fail (${failures} tripped: ${chromeTripped} chrome, ${lessonTripped} lesson, ${tsTripped} textscale, ${readerTripped} reader)`);
+  if (failures > 0 && chromeTripped > 0 && lessonTripped >= 7 && tsTripped >= 2 && readerTripped >= 1 && deviceTripped >= 1) {
+    console.log(`SELFTEST-BREAK OK — the probe CAN fail (${failures} tripped: ${chromeTripped} chrome, ${lessonTripped} lesson, ${tsTripped} textscale, ${readerTripped} reader, ${deviceTripped} device)`);
     process.exit(0);
   }
-  console.error(`SELFTEST-BREAK FAILED — a deliberate break tripped nothing (chrome: ${chromeTripped}, lesson: ${lessonTripped}, textscale: ${tsTripped}, reader: ${readerTripped}); the probe is theater`);
+  console.error(`SELFTEST-BREAK FAILED — a deliberate break tripped nothing (chrome: ${chromeTripped}, lesson: ${lessonTripped}, textscale: ${tsTripped}, reader: ${readerTripped}, device: ${deviceTripped}); the probe is theater`);
   process.exit(1);
 }
 // The coverage assertion. A short run is a FAILED run, however clean its
@@ -1063,7 +1155,7 @@ if (measured !== expectedChrome) {
   console.error(`COVERAGE FAIL — measured ${lessonMeasured} of ${expectedLesson} lesson widths. A lesson that never rendered is not a pass.`);
   failures += 1;
 } else {
-  console.log(`coverage ok  ${measured}/${expectedChrome} chrome cases, ${lessonMeasured}/${expectedLesson} lesson cases, ${tsMeasured} text-scale cases, ${readerMeasured} reader cases measured.`);
+  console.log(`coverage ok  ${measured}/${expectedChrome} chrome cases, ${lessonMeasured}/${expectedLesson} lesson cases, ${tsMeasured} text-scale cases, ${readerMeasured} reader cases, ${deviceMeasured} device cases measured.`);
 }
 
 process.exit(failures > 0 ? 1 : 0);

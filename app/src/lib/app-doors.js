@@ -233,8 +233,27 @@ export function captureDeepLink(search) {
   const s = search != null
     ? search
     : (typeof window !== 'undefined' && window.location ? window.location.search : '');
-  snapshot = { dmPeer: dmPeerFrom(s) };
+  snapshot = { dmPeer: dmPeerFrom(s), stationPanel: stationPanelFrom(s) };
   return snapshot;
+}
+
+/** The Create station panel a handoff link names (`?view=create&panel=…`,
+ *  DR-0678), raw; the station validates it against its own panel list. The
+ *  same boot-time read as `dm=`: nav-history drops the param within a tick. */
+export function stationPanelFrom(search) {
+  try {
+    const sp = new URLSearchParams(String(search || ''));
+    if ((sp.get('view') || '').toLowerCase() !== 'create') return '';
+    return String(sp.get('panel') || '').slice(0, 40);
+  } catch { return ''; }
+}
+
+/** Take the snapshotted station panel, once. '' when none or already used. */
+export function consumeStationPanel() {
+  const snap = captureDeepLink();
+  const panel = snap.stationPanel || '';
+  snapshot = { ...snap, stationPanel: '' };
+  return panel;
 }
 
 /** Take the snapshotted DM peer, once. Null when there was none, or when it
