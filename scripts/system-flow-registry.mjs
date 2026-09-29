@@ -309,6 +309,28 @@ const NODES = [
     ],
     seeds: ['lesson-capture', 'lesson-inbox'],
   }),
+  rider('service:lesson-builder', 'infra/nas-lesson-builder/lesson_builder.py', {
+    id: 'lesson-builder', name: 'The NAS lesson builder (the words land, the lesson starts)',
+    purpose: 'Starts a lesson the moment a lesson row, a Whisper transcript or an approval is written (pg_notify, no polling): one teaching one lesson, the identical prompt to every configured writer, every version gated against the KJV corpus and kept, one version shipped through the lane or all of them held for Darrell\u2019s decision (DR-0669).',
+    reads: [
+      { res: 'db:agent_inbox#lesson', token: 'def pending' },
+      { res: 'db:agent_inbox#voice-transcript', token: '"voice-transcript"' },
+      { res: 'db:agent_inbox#lesson-review', token: '"lesson-approved"' },
+      { res: 'db:lesson_decisions', token: 'FROM public.lesson_decisions' },
+      { res: 'db:lesson_versions', token: 'FROM public.lesson_versions' },
+      { res: 'db:lesson_builder_settings', token: 'FROM public.lesson_builder_settings' },
+      { res: 'db:lesson_parity_promotion', token: 'FROM public.lesson_parity_promotion' },
+    ],
+    writes: [
+      { res: 'db:lesson_versions', token: 'INSERT INTO public.lesson_versions' },
+      { res: 'db:curriculum_lessons', token: 'INSERT INTO public.curriculum_lessons' },
+      { res: 'db:lesson_decisions', token: 'UPDATE public.lesson_decisions' },
+      { res: 'db:lesson_builder_settings', token: 'INSERT INTO public.lesson_builder_settings' },
+      { res: 'code:lessons', token: 'insert_module' },
+      { res: 'db:agent_inbox#lesson-published', token: '"lesson-published"' },
+    ],
+    seeds: ['learn', 'lesson-inbox'],
+  }),
   wf('voice-intake-health.yml', {
     id: 'voice-intake-health', name: 'Voice intake witness',
     purpose: 'Proves on the live database that a spoken recording becomes words: voice rows in, transcripts out, and which Whisper rung wrote each.',
@@ -982,8 +1004,6 @@ proof.reads = [
 // proof: { ts, fresh (days), consumed (SQL predicate), where (facet) }.
 // ---------------------------------------------------------------------------
 const RESOURCES = {
-  // DR-0671: written by the NAS lesson builder (DR-0669), which is in flight.
-  'db:lesson_versions': { label: 'every writer\u2019s version of a lesson', open: { blocker: 'Its writer is the NAS lesson builder (DR-0669, branch claude/nas-lesson-builder), not on main yet; 0240 creates the table in its documented shape so the parity loop and this graph stand now.', reReview: '2026-10-06' } },
   'db:feedback': { label: 'feedback notes', proof: { ts: 'submitted_at', fresh: 14, consumed: "triage_status <> 'new'", where: "feedback_text !~* '^\\s*\\[learn engagement\\]'" } },
   'db:feedback#triaged': { label: 'feedback notes a steward has answered', proof: { ts: 'submitted_at', fresh: 30, where: "triage_status <> 'new' AND feedback_text !~* '^\\s*\\[learn engagement\\]'", consumed: "triage_status IN ('fixed','declined')" } },
   'db:concerns': { label: 'concerns', proof: { ts: 'updated_at', fresh: 21 } },
@@ -1029,6 +1049,9 @@ const RESOURCES = {
   'event:use-prompt': { label: '“Put it in the box” (reuse a prompt)' },
   'device:family-key': { label: 'the family key on this device' },
   'code:lessons': { label: 'lessons written into the classes' },
+  'db:lesson_versions': { label: 'every writer\u2019s version of a teaching, gated and kept (DR-0669)' },
+  'db:lesson_decisions': { label: 'Darrell\u2019s choice or merge of the versions, and its outcome (DR-0669)' },
+  'db:lesson_builder_settings': { label: 'the writer mode, the backfill request, and what the builder sees (DR-0669)' },
   'db:curriculum_courses': { label: 'the NAS copy: courses', sink: 'Carried with each lesson so the copy is whole; the reader takes course facts from the bundle today (DR-0677 Phase 2 reads them).' },
   'db:curriculum_lesson_verse_spans': { label: 'the NAS copy: every quotation and the verse it names', sink: 'Derived from the lessons for the verse gate and for looking a verse up across the school; rewritten whole on every sync (DR-0677).' },
   'db:curriculum_sync_runs': { label: 'the receipt of every lessons sync and its parity verdict', sink: 'A steward reads the verdict and the drifted lesson ids; the workflow summary carries the same (DR-0677).' },

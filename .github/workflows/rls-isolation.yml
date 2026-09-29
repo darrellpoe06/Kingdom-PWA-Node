@@ -119,9 +119,13 @@ jobs:
           # rides this leg after 0127 and its smoke runs here. 0241 (DR-0672)
           # adds my_lesson_rows(): the Governor reads his own two doors' lessons,
           # a member only their own; its smoke proves no member row reaches him.
+          # 0243 (DR-0669) rides this leg after 0237: its stewards are the
+          # Governor's doors (is_lesson_governor), and its ring sits on
+          # agent_inbox. The smoke proves versions, decisions and the builder's
+          # settings are read and written only as the migration says.
           - feature: sovereign-noise-thought
-            migrations: "0127-sovereign-noise-and-thought.sql 0237-a-members-lesson-is-reviewed-by-the-governor-before-it-is-written.sql 0238-a-member-may-choose-to-be-named-and-the-governor-may-keep-it-anonymous.sql 0241-your-lessons-reads-the-governors-own-two-doors.sql"
-            smokes: "0127-sovereign-noise-thought-smoke.sql 0237-member-lesson-review-smoke.sql 0238-member-lesson-name-smoke.sql 0241-my-lesson-rows-smoke.sql"
+            migrations: "0127-sovereign-noise-and-thought.sql 0237-a-members-lesson-is-reviewed-by-the-governor-before-it-is-written.sql 0238-a-member-may-choose-to-be-named-and-the-governor-may-keep-it-anonymous.sql 0241-your-lessons-reads-the-governors-own-two-doors.sql 0243-the-lesson-builder-rings-on-the-words-keeps-every-version-and-reads-the-decision.sql"
+            smokes: "0127-sovereign-noise-thought-smoke.sql 0237-member-lesson-review-smoke.sql 0238-member-lesson-name-smoke.sql 0241-my-lesson-rows-smoke.sql 0243-lesson-builder-smoke.sql"
           # Added 2026-09-24 (DR-0615): each person's prompt history is private
           # to its author, even inside the same instance.
           # Added 2026-09-25 (DR-0658): the TV signs in from the phone in your

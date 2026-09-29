@@ -1,0 +1,19 @@
+[Unit]
+Description=PoeTech NAS lesson builder (DR-0669): a lesson starts the moment the words land
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+# NAS config (never in the repo): writer list, SSH target, optional keys' paths.
+EnvironmentFile=-/volume1/PoeTech/secrets/lesson-builder.env
+Environment=POETECH_REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+Environment=LESSON_BUILDER_DATA=/volume1/PoeTech/lesson-builder
+ExecStart=/usr/bin/python3 /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-lesson-builder/lesson_builder.py --listen
+Restart=always
+RestartSec=15
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
