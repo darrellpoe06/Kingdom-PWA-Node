@@ -312,9 +312,11 @@ describe('a pointer, never a copy', () => {
     // a lesson into the existing Living Lessons course, so only the total moves.
     // And to 724 on 2026-09-29 for Sovereign A.I. week 29 (the agent that went past the
     // bound, DR-0662), a lesson into the existing Sovereign A.I. course, so only the total moves.
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(724);
+    // And to 725 the same day for L196 (I AM: What the Rest of the Word Tells About Him,
+    // DR-0661), a lesson into the existing Living Lessons course, so only the total moves.
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(725);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(724);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(725);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {

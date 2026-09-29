@@ -70,7 +70,8 @@ describe('L195 is really in the series', () => {
     expect(num(L())).toBe(num(l194) + 1);
     expect(num(l194)).toBe(num(l193) + 1);
     expect(LIVING_LESSONS_MODULES.indexOf(L())).toBeGreaterThan(LIVING_LESSONS_MODULES.indexOf(l194));
-    expect(Math.max(...LIVING_LESSONS_MODULES.map(num).filter(Number.isFinite))).toBe(195);
+    // L195 was the newest when it landed; later lessons (L196, DR-0661) sit above it.
+    expect(Math.max(...LIVING_LESSONS_MODULES.map(num).filter(Number.isFinite))).toBeGreaterThanOrEqual(195);
     expect(LIVING_LESSONS_ADDED[l194.id] <= LIVING_LESSONS_ADDED[ID]).toBe(true);
   });
 
