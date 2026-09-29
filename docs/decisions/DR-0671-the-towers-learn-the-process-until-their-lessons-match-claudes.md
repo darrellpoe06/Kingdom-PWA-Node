@@ -136,16 +136,21 @@ Nothing new. The fix step runs on the Claude Code CLI the builder already uses, 
 
 ## Order of landing
 
-This record depends on the lesson builder (#1837, DR-0669): its migration 0240 creates `lesson_versions`, and its `lesson_writer` and `Git` are what the fix step runs through. #1841 (Your lessons, DR-0668) holds 0241. The parity tests and the flow graph read the builder's files, so this change lands after #1837.
+This record depends on the lesson builder (#1837, DR-0669). The builder owns `lesson_versions`, and the fix step runs through its `lesson_writer` and `Git`. #1841 (Your lessons, DR-0668) holds 0241. The parity tests read the builder's migration and writer code, so the follow-up lands after #1837, or together with it.
 
-**A repair, and why.** The first cut of this record merged as #1845 with its tables in `0240-a-tower-writer-is-measured-...`, which also created `lesson_versions` "if not exists" in the documented shape. On a database that ran it, the builder's own `CREATE TABLE IF NOT EXISTS lesson_versions` would skip, and its index on `build_id` would then fail. The follow-up does three things:
-- It renames the parity migration to 0242.
-- It adds `0240-a-tower-writer-returns-lesson-versions-to-the-builder.sql`. That file sorts before the builder's 0240, so it runs first. It drops the early copy only when the table lacks `build_id` and holds no rows. The parity loop never writes that table.
-- It makes 0242 bring the already-created `lesson_parity` and `lesson_crossref` to the `build_id` shape.
+**The first cut was applied, so its file stays.** The first cut merged as #1845 with its tables in `0240-a-tower-writer-is-measured-...`. db-migrate applied it to the hosted and sovereign databases on 2026-09-29 at 06:24 UTC (run 36530830350).
+- Applied history is frozen: the ledger allows only one file per ordinal (0225). That file therefore stays byte for byte, and ordinal 0240 is taken in the ledger.
+- **The builder's migration must take 0243 or later.** If it kept 0240, its ledger row would be rejected. It would also sort before the repair below.
 
-Both paths were proven on a local Postgres 16, followed by the builder's migration and the parity smoke:
-- a database that ran the first cut;
-- a fresh database.
+**The repair is 0242.**
+- The first cut created `lesson_versions` "if not exists" in the documented shape. 0242 removes that early copy, but only when the table lacks `build_id` and holds no rows. A table with rows is left for a person to look at.
+- The builder's migration then creates its own table, in its real shape.
+- 0242 also brings `lesson_parity` and `lesson_crossref` to the `build_id` shape.
+- The parity loop never writes `lesson_versions`.
+
+Proven on a local Postgres 16:
+- the first cut, then 0242, then the builder's migration, then 0242 again: the builder's shape, `lesson_crossref` keyed by `build_id`, and the parity smoke passing;
+- a `lesson_versions` that holds a row is left untouched.
 
 ## Links
 

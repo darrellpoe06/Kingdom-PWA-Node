@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0242 — a tower writer is measured against the reference until it matches
+-- 0240 — a tower writer is measured against the reference until it matches
 -- (DR-0671)
 -- =============================================================================
 -- Darrell 2026-09-29: "The final goal is to not need any no local model... we
@@ -23,52 +23,36 @@
 --                            status (reference-only / ready / primary), and the
 --                            Governor's hold.
 --
--- lesson_versions is the builder's own table (DR-0669): the parity loop reads
--- it and never writes it. Rows here carry the builder's build_id, so every
--- comparison is between versions that received the identical prompt.
+-- lesson_versions is created HERE only if the builder's own migration has not
+-- created it first (the documented shape, DR-0669; IF NOT EXISTS so the two
+-- converge in either order).
 --
--- WHY THIS FILE EXISTS BESIDE 0240-a-tower-writer-is-measured-... The first
--- cut merged (#1845) and was APPLIED to the hosted and sovereign databases
--- 2026-09-29 06:24 UTC (db-migrate run 36530830350). Applied history is frozen
--- (the ledger's one-file-per-ordinal guard, 0225), so that file stays byte for
--- byte and this one carries the change:
---   1. The first cut created lesson_versions "if not exists" in the
---      builder's documented shape. The builder creates it with more columns
---      and an index on build_id; its CREATE TABLE IF NOT EXISTS would skip the
---      early copy and the index would fail. So the early copy is REMOVED here,
---      only when it is the parity loop's copy (no build_id column) AND holds no
---      rows. The builder's migration must sort AFTER this file (0243 or later):
---      ordinal 0240 is taken in the ledger by the first cut.
---   2. lesson_parity gains build_id; lesson_crossref is keyed by build_id.
--- A fresh database runs the first cut and then this file, and ends the same.
-
 -- READABLE ONLY BY THE GOVERNOR (his two sign-in doors, is_lesson_governor(),
 -- migration 0237). No insert/update/delete policy exists for anyone: the NAS
 -- writes with the service role. His one write is the hold, through
 -- set_lesson_parity_hold(), Governor-only.
--- Proven by infra/supabase/tests/0242-lesson-parity-smoke.sql (RLS matrix).
+-- Proven by infra/supabase/tests/0240-lesson-parity-smoke.sql (RLS matrix).
 -- IDEMPOTENT: IF NOT EXISTS, DROP+CREATE POLICY, CREATE OR REPLACE.
 -- =============================================================================
 
--- 1) The early copy of the builder's table, removed only when it is ours and empty.
-DO $$
-BEGIN
-  IF to_regclass('public.lesson_versions') IS NOT NULL
-     AND NOT EXISTS (SELECT 1 FROM information_schema.columns
-                      WHERE table_schema = 'public' AND table_name = 'lesson_versions' AND column_name = 'build_id') THEN
-    IF NOT EXISTS (SELECT 1 FROM public.lesson_versions) THEN
-      DROP TABLE public.lesson_versions;
-      RAISE NOTICE 'lesson_versions: the parity loop''s empty early copy removed; the builder creates its own';
-    ELSE
-      RAISE NOTICE 'lesson_versions has rows and no build_id: left untouched for a person to look at';
-    END IF;
-  END IF;
-END $$;
+CREATE TABLE IF NOT EXISTS public.lesson_versions (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  teaching_row_id  uuid,
+  lesson_id        text,
+  writer           text NOT NULL,
+  model_label      text,
+  prompt_sha256    text,
+  prompt_text      text,
+  body             jsonb,
+  gate_results     jsonb,
+  elapsed_ms       integer,
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  published        boolean NOT NULL DEFAULT false
+);
+CREATE INDEX IF NOT EXISTS lesson_versions_teaching_idx ON public.lesson_versions (teaching_row_id, created_at);
 
--- 2) The parity tables, in their final shape (a fresh database; an existing one converges below).
 CREATE TABLE IF NOT EXISTS public.lesson_parity (
   id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  build_id              uuid,
   teaching_row_id       uuid,
   lesson_id             text,
   version_id            uuid NOT NULL,
@@ -92,8 +76,7 @@ CREATE TABLE IF NOT EXISTS public.lesson_parity (
 CREATE INDEX IF NOT EXISTS lesson_parity_writer_idx ON public.lesson_parity (writer_family, model_label, version_created_at);
 
 CREATE TABLE IF NOT EXISTS public.lesson_crossref (
-  build_id                uuid PRIMARY KEY,
-  teaching_row_id         uuid,
+  teaching_row_id         uuid PRIMARY KEY,
   lesson_id               text,
   version_ids             text[] NOT NULL DEFAULT '{}',
   versions                jsonb NOT NULL DEFAULT '[]'::jsonb,
@@ -149,28 +132,12 @@ CREATE TABLE IF NOT EXISTS public.lesson_parity_promotion (
   PRIMARY KEY (writer_family, model_label)
 );
 
--- CONVERGE the first shape (#1845 merged these four tables as 0240-a-tower-
--- writer-is-measured-...; the file was renamed here). A database that ran it
--- has lesson_parity without build_id and lesson_crossref keyed by
--- teaching_row_id. Bring both to this shape; a fresh database already is.
-ALTER TABLE public.lesson_parity ADD COLUMN IF NOT EXISTS build_id uuid;
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns
-                  WHERE table_schema = 'public' AND table_name = 'lesson_crossref' AND column_name = 'build_id') THEN
-    ALTER TABLE public.lesson_crossref ADD COLUMN build_id uuid;
-    UPDATE public.lesson_crossref SET build_id = teaching_row_id WHERE build_id IS NULL;
-    ALTER TABLE public.lesson_crossref DROP CONSTRAINT IF EXISTS lesson_crossref_pkey;
-    ALTER TABLE public.lesson_crossref ALTER COLUMN teaching_row_id DROP NOT NULL;
-    ALTER TABLE public.lesson_crossref ADD PRIMARY KEY (build_id);
-  END IF;
-END $$;
-
 COMMENT ON TABLE public.lesson_parity IS 'Each tower lesson version measured against the Claude reference, deterministic, with evidence. DR-0671.';
 COMMENT ON TABLE public.lesson_crossref IS 'Every version of a teaching against every other, and the consensus. DR-0671.';
 COMMENT ON TABLE public.lesson_parity_fixes IS 'The algorithmic fixes Claude was asked to write for recurring tower gaps. DR-0671.';
 COMMENT ON TABLE public.lesson_parity_promotion IS 'Per tower writer: the parity streak and whether it is the primary writer; the Governor holds. DR-0671.';
 
+ALTER TABLE public.lesson_versions         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lesson_parity           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lesson_crossref         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lesson_parity_fixes     ENABLE ROW LEVEL SECURITY;
@@ -185,8 +152,17 @@ DROP POLICY IF EXISTS lesson_parity_fixes_governor_read ON public.lesson_parity_
 CREATE POLICY lesson_parity_fixes_governor_read ON public.lesson_parity_fixes FOR SELECT USING (public.is_lesson_governor());
 DROP POLICY IF EXISTS lesson_parity_promotion_governor_read ON public.lesson_parity_promotion;
 CREATE POLICY lesson_parity_promotion_governor_read ON public.lesson_parity_promotion FOR SELECT USING (public.is_lesson_governor());
+-- lesson_versions: a Governor read is added only when no policy exists yet, so
+-- the builder's own policy (if it landed first) is never replaced.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'lesson_versions') THEN
+    EXECUTE 'CREATE POLICY lesson_versions_governor_read ON public.lesson_versions FOR SELECT USING (public.is_lesson_governor())';
+  END IF;
+END $$;
+
 GRANT SELECT ON public.lesson_parity, public.lesson_crossref, public.lesson_parity_fixes,
-  public.lesson_parity_promotion TO authenticated;
+  public.lesson_parity_promotion, public.lesson_versions TO authenticated;
 REVOKE INSERT, UPDATE, DELETE ON public.lesson_parity, public.lesson_crossref, public.lesson_parity_fixes,
   public.lesson_parity_promotion FROM authenticated, anon;
 
