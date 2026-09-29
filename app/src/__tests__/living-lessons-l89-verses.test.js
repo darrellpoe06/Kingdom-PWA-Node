@@ -81,7 +81,7 @@ describe('L89 exists in the catalog with its full shape', () => {
     for (const key of ['bigIdea:', 'inApp:', "ref: 'Hebrews 10:26; 1 John 1:9'", 'child:', 'youth:', 'teen:', 'senior:', 'quiz:', 'facilitator:']) {
       expect(lesson).toContain(key);
     }
-    expect(src).toMatch(/weeks: \d+,/);
+    expect(src).toMatch(/get weeks\(\) \{ return LIVING_LESSONS_MODULES\.length; \}/); // the count is DERIVED from the series (DR-0677)
   });
   it('reads the verse inside its chapter, names the hinge word, and holds the mercy', () => {
     expect(l).toContain('once for all'); // the finished sacrifice frames the warning

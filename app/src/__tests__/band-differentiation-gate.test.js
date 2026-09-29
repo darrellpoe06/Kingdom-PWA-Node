@@ -21,7 +21,7 @@
 import { describe, it, expect } from 'vitest';
 import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
 import {
-  shingles, overlap, measureDifferentiation, duplicatedBands,
+  shingles, overlap, measureDifferentiation, duplicatedBands, DIFF_BANDS,
   scanDifferentiation, ratchetDifferentiation, DIFF_CEILING, BAND_PAIRS,
 } from '../../../scripts/band-differentiation.mjs';
 import baseline from '../lib/band-differentiation-baseline.json';
@@ -73,7 +73,10 @@ describe('the measure, run on the real corpus', () => {
   const scan = scanDifferentiation(LIVING_LESSONS_MODULES);
 
   it('reads every lesson that carries all four bands', () => {
-    expect(scan.measuredLessons).toBe(baseline.measuredLessons);
+    // DERIVED (DR-0677): the count comes from the data, so a new lesson never edits a baseline line.
+    const fourBanded = LIVING_LESSONS_MODULES.filter((m) => m.levels && DIFF_BANDS.every((b) => m.levels[b])).length;
+    expect(fourBanded, 'no four-band lesson found; the walk is measuring nothing').toBeGreaterThan(100);
+    expect(scan.measuredLessons).toBe(fourBanded);
   });
 
   it('RETIRED 2026-09-18: the live-catch pin, because the debt reached zero', () => {

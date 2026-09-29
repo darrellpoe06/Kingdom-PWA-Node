@@ -239,6 +239,41 @@ const NODES = [
     reads: [{ res: 'code:lessons', token: 'buildSovereignAiSchedule' }],
     seeds: [],
   }),
+  // THE NAS COPY OF THE CURRICULUM (DR-0677): the code stays the master; after
+  // every deploy the copy is synced to the database the app reads and proven
+  // lesson by lesson; the reader overlays it (previews for Darrell and the
+  // Governor, the whole copy in the 'nas' mode) with the bundle as the floor.
+  wf('lessons-sync.yml', {
+    id: 'lessons-sync', name: 'Lessons sync (the code -> the NAS copy, then parity)',
+    purpose: 'After each deploy, gates the lessons in the code, writes them to the NAS copy, reads the copy back and proves it matches lesson by lesson (DR-0677).',
+    reads: [
+      { res: 'code:lessons', file: 'scripts/curriculum-snapshot.mjs', token: 'LEARN_CATALOG' },
+      { res: 'gh:run:deploy-cloudflare-pages.yml', file: '.github/workflows/deploy-cloudflare-pages.yml', token: 'lessons-sync.yml/dispatches' },
+    ],
+    writes: [
+      { res: 'db:curriculum_courses', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_courses' },
+      { res: 'db:curriculum_lessons', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lessons' },
+      { res: 'db:curriculum_lesson_bands', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lesson_bands' },
+      { res: 'db:curriculum_lesson_quiz', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lesson_quiz' },
+      { res: 'db:curriculum_lesson_movements', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lesson_movements' },
+      { res: 'db:curriculum_lesson_provenance', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lesson_provenance' },
+      { res: 'db:curriculum_lesson_verse_spans', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lesson_verse_spans' },
+      { res: 'db:curriculum_sync_runs', file: 'scripts/lessons-sync-over-tailnet.sh', token: 'insert into curriculum_sync_runs' },
+    ],
+    seeds: ['lesson-store'],
+  }),
+  app('app/src/lib/lesson-store.js', {
+    id: 'lesson-store', name: 'Learn reads the NAS copy (bundle first, previews for the Governor)',
+    purpose: 'Overlays the NAS copy on the bundled lessons without ever blanking them: a gated preview for Darrell and the Governor, the whole copy in the nas mode (DR-0677).',
+    reads: [
+      { res: 'db:curriculum_lessons', token: "from('curriculum_lessons')" },
+      { res: 'db:curriculum_lesson_bands', token: 'curriculum_lesson_bands(*)' },
+      { res: 'db:curriculum_lesson_quiz', token: 'curriculum_lesson_quiz(*)' },
+      { res: 'db:curriculum_lesson_movements', token: 'curriculum_lesson_movements(*)' },
+      { res: 'db:curriculum_lesson_provenance', token: 'curriculum_lesson_provenance(*)' },
+    ],
+    seeds: [],
+  }),
   app('app/src/lib/agent-inbox-sync.js', {
     id: 'lesson-door', name: 'In-app lesson door (One Voice)',
     purpose: 'A lesson typed or spoken into the app is filed for capture, and the lessons already written from the Word for those words are shown on the spot (DR-0630).',
@@ -564,6 +599,19 @@ const NODES = [
     id: 'ops-surface', name: 'OpsBoard uptime + incident ledger',
     purpose: 'Every outage and stall the witnesses recorded, with its duration.',
     reads: [{ res: 'gh:incident', token: 'labels=incident' }],
+    seeds: [],
+  }),
+  wf('openclaw-tower.yml', {
+    id: 'openclaw-tower', name: 'OpenClaw on the 4070 tower (DR-0670)',
+    purpose: 'Ships OpenClaw to the GPU tower behind its brakes, fires the report-only pilot on the lane facts, and records what it measured.',
+    reads: [{ res: 'gh:pr', token: 'pulls?state=open' }, { res: 'file:openclaw-registry', token: 'infra/openclaw-tower/registry.json' }],
+    writes: [{ res: 'tower:openclaw', token: 'docker compose up -d openclaw-gateway' }, { res: 'gh:openclaw-tower', token: '--label openclaw-tower' }],
+    seeds: ['openclaw-tower-surface'],
+  }),
+  app('app/src/lib/openclaw-tower.js', {
+    id: 'openclaw-tower-surface', name: 'OpsBoard OpenClaw tower strip',
+    purpose: 'Up, model, last run and brakes of OpenClaw on the tower, read live; unknown when unknown.',
+    reads: [{ res: 'gh:openclaw-tower', token: 'labels=openclaw-tower' }],
     seeds: [],
   }),
 
@@ -981,6 +1029,9 @@ const RESOURCES = {
   'event:use-prompt': { label: '“Put it in the box” (reuse a prompt)' },
   'device:family-key': { label: 'the family key on this device' },
   'code:lessons': { label: 'lessons written into the classes' },
+  'db:curriculum_courses': { label: 'the NAS copy: courses', sink: 'Carried with each lesson so the copy is whole; the reader takes course facts from the bundle today (DR-0677 Phase 2 reads them).' },
+  'db:curriculum_lesson_verse_spans': { label: 'the NAS copy: every quotation and the verse it names', sink: 'Derived from the lessons for the verse gate and for looking a verse up across the school; rewritten whole on every sync (DR-0677).' },
+  'db:curriculum_sync_runs': { label: 'the receipt of every lessons sync and its parity verdict', sink: 'A steward reads the verdict and the drifted lesson ids; the workflow summary carries the same (DR-0677).' },
   'file:audit-findings': { label: 'surface audit findings', source: 'Written by scripts/surface-audit.mjs, run on the NAS every 30 minutes and by an agent before a commit; the committed file is what the app reads.' },
   'file:decision-ledger': { label: 'the decision ledger', source: 'The decision records in docs/decisions, written by the sessions that decide.' },
 
@@ -1030,6 +1081,8 @@ const RESOURCES = {
   'push:phone': { label: 'a notification on a phone', sink: 'A person reads it on their phone.' },
   'cf:push-env': { label: 'the push sender’s settings' },
   'tower:voice-studio': { label: 'the reading-voice studio on the tower' },
+  'tower:openclaw': { label: 'the OpenClaw gateway on the tower', sink: 'Runs on the tower loopback behind the poetech-gate plugin; a person on the tower talks to it (role a, no channel paired), and the lane measures it into the openclaw-tower record (DR-0670).' },
+  'file:openclaw-registry': { label: 'the OpenClaw role registry + ARMED-BY-RECORD', source: 'Committed in infra/openclaw-tower by the PRs that arm, stop or resume a role (DR-0670).' },
   'auth:hook': { label: 'the renter-portal sign-in hook', sink: 'GoTrue calls it on every renter sign-in; its effect is the renter portal’s own access, proven by the renter-portal isolation smokes.' },
   'tailnet:nodes': { label: 'the always-on devices', source: 'The tailnet itself reports which devices answer.' },
   'http:mcp': { label: 'the MCP server' },
@@ -1065,7 +1118,7 @@ const CHAINS = [
   { id: 'models', name: 'Ask the models', nodes: ['chat-pane', 'agent-consumer'] },
   { id: 'sermons', name: 'Transcripts → sermons → The Word', nodes: ['choir-dates', 'transcript-trickle', 'transcript-backfill', 'video-stats', 'content-sync', 'sermon-store', 'sermon-reader', 'harvest-ledger', 'scripture-web', 'library', 'songbook', 'harvest-health', 'corpus-reconcile'] },
   { id: 'family-key', name: 'The family key', nodes: ['family-key', 'bridge-provision', 'nas-photos', 'voice-studio', 'books-taxes'] },
-  { id: 'health', name: 'Site health → incidents → operations readout', nodes: ['site-health', 'level-witness', 'node-availability', 'harvest-health', 'ops-queue-health', 'ops-surface', 'ops-board'] },
+  { id: 'health', name: 'Site health → incidents → operations readout', nodes: ['site-health', 'level-witness', 'node-availability', 'harvest-health', 'ops-queue-health', 'ops-surface', 'ops-board', 'openclaw-tower', 'openclaw-tower-surface'] },
   { id: 'decisions', name: 'Decision readouts, the flow proof and the operations board', nodes: ['decision-board', 'flow-proof', 'ops-board', 'flow-surface'] },
   { id: 'scribe', name: 'Scribe: recording → words → back to the person', nodes: ['scribe-surface', 'scribe', 'scribe-transcribe'] },
   { id: 'lane', name: 'Delivery lane', nodes: ['auto-open-pr', 'ci', 'auto-merge', 'deploy', 'deploy-freshness', 'db-migrate', 'migrate-freshness', 'rls-isolation', 'schema-health', 'pr-janitor', 'keep-prs-current'] },

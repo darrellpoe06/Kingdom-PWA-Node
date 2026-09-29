@@ -62,6 +62,7 @@ import { useOpenWithTheWord } from '../lib/show-the-word.js';
 import { setReadTarget, clearReadTarget, requestRead } from '../lib/read-target.js';
 import { currentSentence, landOnPlace } from '../lib/lesson-landing.js';
 import { usePrinting } from '../lib/use-printing.js';
+import { useCurriculumOverlay, PREVIEW_LABEL } from '../lib/lesson-store.js';
 import { takeOpenLessonRequest, subscribeOpenLesson } from '../lib/learn-open.js';
 import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload, courseSharePayload, sectionSharePayload } from '../lib/lesson-links.js';
 import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture-matrix.js';
@@ -2528,6 +2529,7 @@ function CourseView({
                   </span>
                 )}
               </div>
+              {m.nasPreview && <LessonPreviewBadge prUrl={m.nasPreview.prUrl} />}
               {actionsRow}
               {/* Where this lesson sits on the biblical timeline (Darrell 2026-07-15:
                   "a lesson ... that connects the others ... on their respective
@@ -3306,6 +3308,24 @@ function CourseView({
   );
 }
 
+// A lesson that passed every gate on the NAS but is not yet merged code
+// (DR-0677, option A+). Only Darrell and the Governor are ever handed one —
+// row level security decides that, not this badge — so the badge tells them
+// what they are reading and where its review is.
+function LessonPreviewBadge({ prUrl }) {
+  return (
+    <p
+      data-lesson-preview
+      className="mt-1 text-[0.75rem] text-[#1A1815] bg-[#FAF8F4] border border-[#B85838] px-2 py-1"
+    >
+      <strong>{PREVIEW_LABEL}.</strong>{' '}
+      {prUrl
+        ? <a href={prUrl} target="_blank" rel="noreferrer" className="underline">Its review (pull request)</a>
+        : 'Its pull request is being opened.'}
+    </p>
+  );
+}
+
 export default function ChurchLearn({
   cohortStart = PROPOSED_COHORT_START,
   cohortConfirmed = false,
@@ -3465,7 +3485,11 @@ export default function ChurchLearn({
   // re-typed (DR-0121).
   const eternalCourses = useMemo(() => buildEternalProcessingCourses(), []);
 
-  const courses = [aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras, ...eternalCourses];
+  // THE NAS COPY (DR-0677): the bundled lessons render first, always; what the
+  // sovereign database holds is overlaid only when it is known (a preview for
+  // Darrell and the Governor, or, in the 'nas' mode, a newer public copy). A
+  // NAS that is down changes nothing on screen (DR-0107).
+  const courses = useCurriculumOverlay([aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras, ...eternalCourses]);
   const chosenCourse = activeKey != null ? courses.find((c) => c.key === activeKey) : null;
   const courseChosen = !!chosenCourse;
   // THE DEFAULT COURSE IS LIVING LESSONS (Darrell 2026-09-11: "let the default
