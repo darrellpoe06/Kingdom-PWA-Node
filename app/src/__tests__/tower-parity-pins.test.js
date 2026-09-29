@@ -10,7 +10,7 @@
 // Also pins the documented lesson_versions shape (DR-0669) the loop reads.
 import { describe, it, expect } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, rmSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -99,13 +99,28 @@ describe('calibration on the whole house corpus (the numbers DR-0671 cites)', ()
   }, 60000);
 });
 
-describe('the lesson_versions shape the loop reads (DR-0669, documented)', () => {
-  const MIG = readFileSync(join(REPO, 'infra/supabase/migrations-auto/0240-a-tower-writer-is-measured-against-the-reference-until-it-matches.sql'), 'utf8');
-  it('carries every documented column', () => {
-    const table = MIG.slice(MIG.indexOf('CREATE TABLE IF NOT EXISTS public.lesson_versions'), MIG.indexOf('CREATE INDEX IF NOT EXISTS lesson_versions_teaching_idx'));
-    for (const col of ['teaching_row_id', 'lesson_id', 'writer', 'model_label', 'prompt_sha256', 'prompt_text', 'body', 'gate_results', 'elapsed_ms', 'created_at', 'published']) {
-      expect(table, col).toMatch(new RegExp(`\\n\\s+${col}\\s`));
-    }
+describe('the lesson_versions shape the loop reads (the builder\u2019s own migration, DR-0669)', () => {
+  // The builder's migration, found by what it creates (its ordinal is its own to choose).
+  const MIGS = join(REPO, 'infra/supabase/migrations-auto');
+  const builderFile = readdirSync(MIGS).find((f) => /CREATE TABLE IF NOT EXISTS (public\.)?lesson_versions \(\s*\n\s*id\s[^;]*build_id/.test(readFileSync(join(MIGS, f), 'utf8')));
+  const BUILDER = builderFile ? readFileSync(join(MIGS, builderFile), 'utf8') : '';
+  it('the builder\u2019s migration is on this checkout', () => {
+    expect(builderFile, 'the lesson builder (#1837) must land first').toBeTruthy();
+  });
+  const MIG = readFileSync(join(REPO, 'infra/supabase/migrations-auto/0244-a-tower-writer-is-measured-against-the-reference-until-it-matches.sql'), 'utf8');
+  const LOOP = readFileSync(join(REPO, 'infra/nas-lesson-parity/parity_loop.py'), 'utf8');
+  it('every column the loop selects is a column the builder creates', () => {
+    const at = BUILDER.search(/CREATE TABLE IF NOT EXISTS (public\.)?lesson_versions \(/);
+    const table = BUILDER.slice(at, BUILDER.indexOf(');', at));
+    const select = /"lesson_versions", "select=([^"]+)"\s*\n?\s*"([^"&]+)&/.exec(LOOP);
+    expect(select, 'the loop names its columns').toBeTruthy();
+    const cols = (select[1] + select[2]).split(',').map((c) => c.trim()).filter(Boolean);
+    expect(cols.length).toBeGreaterThanOrEqual(12);
+    for (const col of cols) expect(table, col).toMatch(new RegExp(`\\n\\s+${col}\\s`));
+  });
+  it('the parity migration never creates or alters the builder\u2019s table', () => {
+    expect(MIG).not.toMatch(/(CREATE|ALTER) TABLE[^;]*lesson_versions/);
+    expect(MIG).not.toMatch(/DROP TABLE[^;]*lesson_versions/);
   });
   it('the parity tables are the Governor’s: no write policy, read only by is_lesson_governor()', () => {
     for (const t of ['lesson_parity', 'lesson_crossref', 'lesson_parity_fixes', 'lesson_parity_promotion']) {

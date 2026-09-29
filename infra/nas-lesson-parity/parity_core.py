@@ -878,9 +878,9 @@ FAMILIES = ("claude", "gemini", "openai", "ollama", "openclaw", "compat")
 
 
 def writer_family(version):
-    """The writer family label: writer_family when the builder stores it, else
+    """The writer family label: the builder's `family` column (DR-0669), else
     read from the writer label ('claude-cli' -> claude, 'ollama:tower' -> ollama)."""
-    fam = str(version.get("writer_family") or "").strip().lower()
+    fam = str(version.get("writer_family") or version.get("family") or "").strip().lower()
     if fam in FAMILIES:
         return fam
     w = str(version.get("writer") or "").strip().lower()
