@@ -387,7 +387,7 @@ export const COURSE_CROSS_LISTINGS = [
 export const HOME_ONLY = Object.freeze([
   // The Word and the Way -- the Word's own subject. Its home IS the shelf.
   // (world-issues left this list when it measured real stewardship overlap.)
-  'living-lessons', 'little-learners', 'made-in-time', 'church-offices',
+  'living-lessons', 'little-learners', 'made-in-time', 'who-he-is', 'church-offices',
   'healthy-living', 'prophetic-voices',
   // Serve the House -- serving your own congregation, taught where it is served.
   // (datasystems left this list when it measured real Development overlap.)
