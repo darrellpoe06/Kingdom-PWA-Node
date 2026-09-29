@@ -17,7 +17,12 @@ grounds:
   - DR-0131 — one voice primitive for every input
 ---
 
-## Context — what was measured
+## Context
+
+A lesson Darrell spoke into Thinking Space on his phone came back as pages
+of stuttering repeats instead of what he said.
+
+## What was measured
 
 A lesson spoken into Thinking Space on Darrell's phone (Android, Chrome) on
 2026-09-29 17:59 UTC was saved to `public.agent_inbox` as **54,115
@@ -48,6 +53,22 @@ each sentence had been kept as new words.
   `ClientDiscovery`'s mic called `start`, which the hook never returned — the
   button did nothing.
 
+## Impact
+
+What the duplicate dictation cost: the lesson Darrell spoke on his phone was
+saved as 54,115 characters of growing repeats. The words he meant are in
+there, but buried, so the lesson intake could not use it as sent and he would
+have had to say it again or clean it by hand. Every Android phone dictating
+into any box on the shared voice hook had the same defect: Thinking Space,
+Creating Station, Church, Messages, Direct Messages, property captions,
+Study, and the rest. A second, quieter cost: the Client Discovery mic button
+did nothing when tapped.
+
+What the fix changes for Darrell: what he says on his phone lands in the box
+once, as he said it, and the words still show live while he speaks. The
+desktop behavior is unchanged. Spoken lessons reach the lesson door in a
+form that can be read.
+
 ## Decision
 
 - `createFinalCommitter()` owns final text for a dictation session. Each result
@@ -72,7 +93,7 @@ transcript back from the NAS; no interim results exist on that path, so it
 cannot produce this shape. `workflow-scribe` only calls
 `releaseSpeechRecognition()`.
 
-## Evidence
+## Verification
 
 - Characterized first: before the fix, the new surface test received
   `"lesson lesson or or how or how or how did or how did or how did the ..."`
