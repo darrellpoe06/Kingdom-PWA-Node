@@ -269,6 +269,26 @@ const NODES = [
     ],
     seeds: ['lesson-capture', 'lesson-inbox'],
   }),
+  rider('service:lesson-builder', 'infra/nas-lesson-builder/lesson_builder.py', {
+    id: 'lesson-builder', name: 'The NAS lesson builder (the words land, the lesson starts)',
+    purpose: 'Starts a lesson the moment a lesson row, a Whisper transcript or an approval is written (pg_notify, no polling): one teaching one lesson, the identical prompt to every configured writer, every version gated against the KJV corpus and kept, one version shipped through the lane or all of them held for Darrell\u2019s decision (DR-0669).',
+    reads: [
+      { res: 'db:agent_inbox#lesson', token: 'def pending' },
+      { res: 'db:agent_inbox#voice-transcript', token: '"voice-transcript"' },
+      { res: 'db:agent_inbox#lesson-review', token: '"lesson-approved"' },
+      { res: 'db:lesson_decisions', token: 'FROM public.lesson_decisions' },
+      { res: 'db:lesson_versions', token: 'FROM public.lesson_versions' },
+      { res: 'db:lesson_builder_settings', token: 'FROM public.lesson_builder_settings' },
+    ],
+    writes: [
+      { res: 'db:lesson_versions', token: 'INSERT INTO public.lesson_versions' },
+      { res: 'db:lesson_decisions', token: 'UPDATE public.lesson_decisions' },
+      { res: 'db:lesson_builder_settings', token: 'INSERT INTO public.lesson_builder_settings' },
+      { res: 'code:lessons', token: 'insert_module' },
+      { res: 'db:agent_inbox#lesson-published', token: '"lesson-published"' },
+    ],
+    seeds: ['learn', 'lesson-inbox'],
+  }),
   wf('voice-intake-health.yml', {
     id: 'voice-intake-health', name: 'Voice intake witness',
     purpose: 'Proves on the live database that a spoken recording becomes words: voice rows in, transcripts out, and which Whisper rung wrote each.',
@@ -966,6 +986,9 @@ const RESOURCES = {
   'event:use-prompt': { label: '“Put it in the box” (reuse a prompt)' },
   'device:family-key': { label: 'the family key on this device' },
   'code:lessons': { label: 'lessons written into the classes' },
+  'db:lesson_versions': { label: 'every writer\u2019s version of a teaching, gated and kept (DR-0669)' },
+  'db:lesson_decisions': { label: 'Darrell\u2019s choice or merge of the versions, and its outcome (DR-0669)' },
+  'db:lesson_builder_settings': { label: 'the writer mode, the backfill request, and what the builder sees (DR-0669)' },
   'file:audit-findings': { label: 'surface audit findings', source: 'Written by scripts/surface-audit.mjs, run on the NAS every 30 minutes and by an agent before a commit; the committed file is what the app reads.' },
   'file:decision-ledger': { label: 'the decision ledger', source: 'The decision records in docs/decisions, written by the sessions that decide.' },
 

@@ -254,6 +254,18 @@ jobs:
       - name: family-key publisher proofs
         working-directory: infra/nas-bridge-publish
         run: python3 -m unittest test_publish_family_key -v
+      # The NAS lesson builder proofs (DR-0669): the verse re-verification
+      # (a one-word change fails the build), the identical prompt to every
+      # writer (a writer that alters it is caught), the modes, the budget, the
+      # per-row lock, the stop-paths, dormant-until-a-writer, a failed push
+      # never marks the row, more than one version never auto-ships, the
+      # decision's composite gated again (a merged part with a drifted verse
+      # fails on that part), and a backfill never replaces a lesson. Parity:
+      # the repo's own gates (band_gates.mjs) agree with the Python gates on
+      # a published lesson. Gates merge.
+      - name: lesson-builder proofs
+        working-directory: infra/nas-lesson-builder
+        run: python3 -m unittest test_lesson_builder -v
       # Sovereign photo server selftest (DR-0218 zero-n8n / DR-0076): the offline
       # logic checks for the property + family photo image server, including the
       # new list_uploaded family read-back. Proven-to-catch: fails if dest path
