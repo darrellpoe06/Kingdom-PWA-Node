@@ -162,6 +162,22 @@ export const CROSS_LISTINGS = [
   { department: 'History', courseKey: 'prophetic-voices', lessonId: 'pv-diop', why: 'Dr. Cheikh Anta Diop’s scientific case, defended at Cairo in 1974, that ancient Kemet was a Black African civilization continuous with the rest of Africa (measured: 1923–1986).' },
   { department: 'History', courseKey: 'prophetic-voices', lessonId: 'pv-obenga', why: 'Dr. Théophile Obenga’s case from language — the tongue preserving the continuity the record-keepers tried to sever, presented at Cairo in 1974 (measured: 1936–1974).' },
   { department: 'History', courseKey: 'prophetic-voices', lessonId: 'pv-williams', why: 'Dr. Chancellor Williams’ sixteen years of research into the destruction of Black civilization, and the knowledge to rebuild (measured: 1893–2000).' },
+
+  // ===========================================================================
+  // THE LIVING LESSONS SHELF GATHERS THE TEACHINGS DARRELL SENT AS LESSONS
+  // BUT THAT LIVE IN ANOTHER COURSE (DR-0668)
+  // ===========================================================================
+  // Darrell 2026-09-29, after four of his queued teachings were built and three
+  // of them were placed outside Living Lessons (pm12 in Project Management,
+  // World Issues 18 and 19): "Cross reference or make sure it is offered in
+  // living lessons also correct?" Living Lessons is its own department
+  // (DR-0598), so its tab gathers these the same way History and A.I. The Way
+  // gather theirs: a pointer into the home course, one credit, one place
+  // record, the program totals unchanged. Each was sent into the app as a
+  // lesson, which is why a Living Lessons reader should find it there.
+  { department: 'Living Lessons', courseKey: 'project-management', lessonId: 'pm12-titles-and-fruits-capability-shown-in-outcomes', why: 'Darrell’s own lesson: potential judged by the title, capability shown in outcomes — David’s lion and bear before Saul’s “but a youth”, and the ownership that does not wait for a title.' },
+  { department: 'Living Lessons', courseKey: 'world-issues', lessonId: 'wi-apa-2021-apology-and-the-one-blood', why: 'Darrell’s own lesson: the psychologists’ 2021 apology quoted as written, the one blood the Word never doubted (Acts 17:26), and what a confession owes (Proverbs 28:13).' },
+  { department: 'Living Lessons', courseKey: 'world-issues', lessonId: 'wi-higher-ed-aid-2026-and-the-student-in-the-gap', why: 'A clip Darrell sent in as a lesson: the 2026 college-aid changes counted by the Word — count the cost (Luke 14:28), and open your hand to the student in the gap (1 John 3:18).' },
 ];
 
 /** The declarations shelved into one department, in their authored order. */

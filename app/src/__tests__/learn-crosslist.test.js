@@ -312,9 +312,19 @@ describe('a pointer, never a copy', () => {
     // a lesson into the existing Living Lessons course, so only the total moves.
     // And to 724 on 2026-09-29 for Sovereign A.I. week 29 (the agent that went past the
     // bound, DR-0662), a lesson into the existing Sovereign A.I. course, so only the total moves.
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(724);
+    // And to 725 the same day for L196 (I AM: What the Rest of the Word Tells About Him,
+    // DR-0661), a lesson into the existing Living Lessons course, so only the total moves.
+    // And to 726 on 2026-09-29 for L197 (Think Soberly, DR-0663), a lesson into an
+    // existing course, so only the total moves.
+    // And to 727 on 2026-09-29 for pm12 (Titles and fruits, DR-0664), a lesson into an
+    // existing course, so only the total moves.
+    // And to 728 on 2026-09-29 for World Issues issue 18 (the psychologists’ 2021 apology, DR-0665), a lesson into an
+    // existing course, so only the total moves.
+    // And to 729 on 2026-09-29 for World Issues issue 19 (the student in the gap, DR-0666), a lesson into an
+    // existing course, so only the total moves.
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(729);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(724);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(729);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {

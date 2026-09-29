@@ -70,7 +70,7 @@ export const WORLD_ISSUES_META = {
   },
   format: 'Self-paced · one issue at a time · media literacy + biblical discernment · paced to your age',
   cadenceDays: 7,
-  weeks: 17, // seventeen published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex · the two aftermaths · the law of assumption · victorious emotions · college tuition and the 1965 Act · the EPA power-plant rules · the SCOTUS mail-in ruling · the Kennedy Center · Evanston's reparations · the trades are hiring · biology walks back the selfish gene); the track grows as issues are added
+  weeks: 19, // nineteen published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex · the two aftermaths · the law of assumption · victorious emotions · college tuition and the 1965 Act · the EPA power-plant rules · the SCOTUS mail-in ruling · the Kennedy Center · Evanston's reparations · the trades are hiring · biology walks back the selfish gene · the psychologists’ 2021 apology · the student in the gap); the track grows as issues are added
   handsOnLabel: 'Practice the skill',
   unit: {
     noun: 'issue',
@@ -4727,7 +4727,713 @@ const NOBLE_BIOLOGY_ISSUE = {
   },
 };
 
-export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE, TUITION_1965_ISSUE, EPA_POWER_PLANT_ISSUE, SCOTUS_MAIL_IN_ISSUE, KENNEDY_CENTER_ISSUE, EVANSTON_REPARATIONS_ISSUE, TRADES_HIRING_ISSUE, NOBLE_BIOLOGY_ISSUE];
+// =============================================================================
+// ISSUE — The APA's 2021 apology (DR-0665). Darrell read a prepared text aloud
+// on 2026-09-27 (Whisper small, NAS CPU) and typed it again 2026-09-28. The
+// institution's own confession is stated plainly; the clip's "word for word"
+// wording is checked and NOT confirmed; the promised biomarker evidence never
+// arrives and nothing is carried for it. apa.org is blocked from the build
+// environment, so its wording is from cross-checked search excerpts, labeled.
+// =============================================================================
+const APA_APOLOGY_ISSUE = {
+  id: 'wi-apa-2021-apology-and-the-one-blood',
+  title: 'The Psychologists’ Apology of 2021 — the Confession, the Wording, and the One Blood the Word Never Doubted',
+  subject: {
+    name: 'the American Psychological Association’s October 2021 apology and the history it confessed',
+    kind: 'institution-and-history',
+    isNamedRealPerson: true,
+  },
+  skill: 'Take a charged clip about a real institutional apology and learn to weigh it the Word’s way: lead with what Yahweh settled before any science existed (one blood, one image, no respect of persons), state plainly what the institution itself confessed (the American Psychological Association’s governing council apologized on 2021-10-29 for its role in promoting, perpetuating and failing to challenge racism, naming its own history in intelligence testing, segregated schooling and the sterilization campaign), check the wording before you repeat it (the text the clip calls word for word is not the resolution’s wording), carry the parts no one proved as unproven, and ask the question Darrell asked with the Word behind it: was the repair as loud as the harm?',
+  source: {
+    creator: 'an unnamed written text Darrell read aloud, closing with his own question',
+    medium: 'voice recording (2 minutes 30 seconds) transcribed on our own NAS by Whisper, the small model on the CPU; the same words typed again the next day',
+    title: 'a text on the American Psychological Association’s October 2021 apology',
+    url: '',
+    asOf: '2026-09-27',
+    note: 'PROVENANCE, plainly. Darrell recorded this on 2026-09-27 and it reached us as a transcript made on our own machine (Whisper, the small model, on the NAS CPU); on 2026-09-28 he sent the same words again as typed text. He is reading a prepared text aloud, and its author is not named in the recording; the last sentence is his own question. The recording stops after the first point of a list the text promised (the full apology, the specific falsehoods, and biomarker evidence of lasting harm): only the first falsehood is reached, and no biomarker evidence is given, so none is carried here. The American Psychological Association’s own pages could not be opened from our build environment, which blocks that site; every statement below about the resolution’s wording is taken from search-engine excerpts of the apa.org pages, matched across two separate searches and one news report, and it is labeled that way. Nothing here is quoted from the recording as if it were the APA’s words.',
+  },
+  limits: [
+    {
+      id: 'lim-read-aloud',
+      text: 'The recording is Darrell reading a prepared text whose author is not named, followed by one question of his own. The text’s claims are carried as the text’s claims.',
+    },
+    {
+      id: 'lim-apa-unopened',
+      text: 'The APA’s own pages were blocked from our build environment. Their wording here comes from search-engine excerpts of those pages, cross-checked, and it is labeled that way. Read the resolution itself at apa.org before you quote it.',
+    },
+    {
+      id: 'lim-cut-off',
+      text: 'The recording stops after the first item of the list it promised. The promised biomarker evidence never arrives, so this lesson carries none.',
+    },
+  ],
+  claims: [
+    {
+      id: 'c-historic-apology',
+      text: 'The American Psychological Association issued a historic apology in October 2021, not for past mistakes in general, but for creating, packaging and marketing the lies that justified slavery, segregation, forced sterilization and over-policing.',
+      label: 'claim',
+      attribution: 'The text Darrell read aloud (author not named in the recording)',
+      note: 'The core is documented and is said plainly in Stage 2: the apology is real, it was adopted by the APA’s governing council on 2021-10-29, and it names psychology’s own part in scientific racism, segregated schooling and the sterilization campaign. The list as the text words it (slavery, over-policing) goes beyond what we could verify in the resolution’s excerpts, and those two items are carried as the text’s.',
+    },
+    {
+      id: 'c-word-for-word',
+      text: 'The apology, word for word, says the Association apologizes to Black communities for promoting and perpetuating systemic racism through psychological research, education and practice, for using its authority to label Black people as inherently pathological, justifying segregation, over-policing and forced sterilization, and for failing to challenge racist policies, and pledges to dismantle racist structures and repair the harm by returning resources to Black communities.',
+      label: 'claim',
+      attribution: 'The text Darrell read aloud, which calls its quotation word for word',
+      note: 'CHECKED AND NOT CONFIRMED AS WORDED. The resolution’s documented title and core sentence (Stage 2) are different words, and it is addressed to people of color, not to one community only. The phrase about returning resources did not appear in any portion we could verify. Because the full text could not be opened here, we say not found in what we verified, not absent. The substance overlaps; the words are not the resolution’s.',
+    },
+    {
+      id: 'c-lower-iq',
+      text: 'Among the falsehoods the Association confessed: that Black people have a lower IQ, a claim established in 1916 and carried from 1916 to the 1970s.',
+      label: 'claim',
+      attribution: 'The text Darrell read aloud',
+      note: 'The 1916 start is documented: the APA’s own history names Lewis Terman’s Stanford-Binet scale, published that year, and says he used score differences to justify segregated schooling. The end date, the 1970s, is the text’s range and was not verified here.',
+    },
+    {
+      id: 'c-not-as-loud',
+      text: 'How come their apology was not as loud as what they told us?',
+      label: 'opinion',
+      attribution: 'Darrell, in his own words, closing the recording',
+      note: 'A question, and a fair one. The harm was taught for decades from classrooms, courts and textbooks; the apology was a council resolution and a press release. How loud is loud enough is a judgment, and the Word gives a standard for it in Stage 4.',
+    },
+    {
+      id: 'c-biomarkers',
+      text: 'Biomarker evidence proves the damage is still in our bodies today.',
+      label: 'claim',
+      attribution: 'The text Darrell read aloud, as a promise of what it would show',
+      note: 'Promised and never delivered: the recording ends before any biomarker evidence is given. Nothing is asserted here either way.',
+    },
+  ],
+  verifiable: [
+    {
+      id: 'f-apology-adopted',
+      statement: 'On 2021-10-29 the APA Council of Representatives adopted a resolution titled "Apology to People of Color for APA’s Role in Promoting, Perpetuating, and Failing to Challenge Racism, Racial Discrimination, and Human Hierarchy in U.S." Its core sentence acknowledges that the APA "failed in its role leading the discipline of psychology, was complicit in contributing to systemic inequities, and hurt many through racism, racial discrimination, and denigration of people of color, thereby falling short on its mission to benefit society and improve lives." The APA states that it is profoundly sorry and accepts responsibility for, and owns, the actions and inactions of the APA itself, the discipline of psychology, and individual psychologists who stood as leaders of the organization and the field.',
+      status: 'documented',
+      sources: [
+        {
+          title: 'Apology to people of color for APA’s role in promoting, perpetuating, and failing to challenge racism, racial discrimination, and human hierarchy in U.S.',
+          publisher: 'American Psychological Association (apa.org/about/policy/racism-apology)',
+          url: 'https://www.apa.org/about/policy/racism-apology',
+          asOf: '2026-09-29',
+        },
+        {
+          title: 'APA apologizes for longstanding contributions to systemic racism (press release, October 2021)',
+          publisher: 'American Psychological Association',
+          url: 'https://www.apa.org/news/press/releases/2021/10/apology-systemic-racism',
+          asOf: '2026-09-29',
+        },
+        {
+          title: 'The American Psychological Association Apologizes for Its Past History of Racism',
+          publisher: 'Journal of Blacks in Higher Education',
+          url: 'https://jbhe.com/2021/11/the-american-psychological-association-apologizes-for-its-past-history-of-racism',
+          asOf: '2026-09-29',
+        },
+      ],
+      note: 'Verified 2026-09-29 by live web search. The apa.org pages were blocked from our build environment, so the wording is taken from search-engine excerpts of those pages, and the same core sentence appeared in two separate searches and in the news report. This is the institution’s own confession, which makes it the strongest source in the whole story: no one has to argue the APA into it.',
+    },
+    {
+      id: 'f-terman-goddard',
+      statement: 'The APA’s own account of its history names Lewis Terman, who created the Stanford-Binet intelligence scale (published 1916) and used score differences on it to justify a segregated system of education meant to make Black, Mexican and First Peoples children into efficient workers; and Henry Goddard, who served as psychology’s representative on a committee that recommended segregation and sterilization and called on psychology to help set the tests for choosing whom to sterilize.',
+      status: 'documented',
+      sources: [
+        {
+          title: 'Apology to People of Color for APA’s Role in Promoting, Perpetuating, and Failing to Challenge Racism (resolution, PDF)',
+          publisher: 'American Psychological Association',
+          url: 'https://www.apa.org/about/policy/resolution-racism-apology.pdf',
+          asOf: '2026-09-29',
+        },
+        {
+          title: 'Historical chronology',
+          publisher: 'American Psychological Association',
+          url: 'https://www.apa.org/about/apa/addressing-racism/historical-chronology',
+          asOf: '2026-09-29',
+        },
+      ],
+      note: 'Verified 2026-09-29 through search-engine excerpts of the APA’s own pages (the pages themselves blocked here). Stated plainly because it is documented damage confessed by the body that did it: an intelligence test was used as the warrant for sorting children by race, and psychology lent its authority to a sterilization campaign.',
+    },
+    {
+      id: 'f-scope-and-companions',
+      statement: 'The apology is addressed to people of color broadly, not to one community only, and it was one of three resolutions the APA Council passed on 2021-10-29. It followed a February 2021 commitment to catalogue the history of harm, for which the APA commissioned historical research from the Cummings Center for the History of Psychology at the University of Akron, together with listening sessions and surveys, and it was accompanied by a resolution on psychology’s role in dismantling systemic racism.',
+      status: 'documented',
+      sources: [
+        {
+          title: 'APA apologizes for longstanding contributions to systemic racism (press release, October 2021)',
+          publisher: 'American Psychological Association',
+          url: 'https://www.apa.org/news/press/releases/2021/10/apology-systemic-racism',
+          asOf: '2026-09-29',
+        },
+        {
+          title: 'APA’s commitment to addressing systemic racism',
+          publisher: 'American Psychological Association',
+          url: 'https://www.apa.org/about/apa/addressing-racism',
+          asOf: '2026-09-29',
+        },
+      ],
+      note: 'Verified 2026-09-29 through search-engine excerpts of the APA’s own pages. The scope matters for accuracy: the clip’s version addresses one community; the resolution addresses people of color, which includes that community.',
+    },
+    {
+      id: 'f-wording-differs',
+      statement: 'The quotation the clip calls word for word is not the resolution’s wording. The documented title and core sentence use different words, the resolution is addressed to people of color rather than to Black communities alone, and the pledge about returning resources to Black communities was not found in any portion of the resolution we could verify. The full text could not be opened from our build environment, so this is stated as not found in what we verified, not as proven absent.',
+      status: 'partly-documented',
+      sources: [
+        {
+          title: 'Apology to people of color for APA’s role in promoting, perpetuating, and failing to challenge racism, racial discrimination, and human hierarchy in U.S.',
+          publisher: 'American Psychological Association',
+          url: 'https://www.apa.org/about/policy/racism-apology',
+          asOf: '2026-09-29',
+        },
+      ],
+      note: 'This is the discernment point of the whole issue. A true thing carried in words the source never used gives every critic an easy way to dismiss the true thing. Quote the record; paraphrase the rest and say it is a paraphrase.',
+    },
+    {
+      id: 'f-coverage',
+      statement: 'The apology was reported when it was adopted, in outlets that include the Journal of Blacks in Higher Education and Business Insider, and the APA published its own follow-up a year later on moving from words to action.',
+      status: 'documented',
+      sources: [
+        {
+          title: 'The American Psychological Association says it is sorry for promoting racism in the US',
+          publisher: 'Business Insider',
+          url: 'https://www.businessinsider.nl/the-american-psychological-association-says-it-is-sorry-for-promoting-racism-in-the-us/',
+          asOf: '2026-09-29',
+        },
+        {
+          title: 'A year later: Moving from words to action on APA’s apology',
+          publisher: 'American Psychological Association',
+          url: 'https://www.apa.org/news/apa/2022/words-actions-apology',
+          asOf: '2026-09-29',
+        },
+      ],
+      note: 'Verified by search 2026-09-29. Stated so Darrell’s question is weighed fairly: the apology was published and reported. Whether it was as loud as the harm is the opinion his question asks us to weigh, and the Word supplies the scale in Stage 4.',
+    },
+  ],
+  interpretation: [
+    {
+      id: 'n-their-own-confession',
+      statement: 'THE STRONGEST WITNESS IS THE ONE WHO CONFESSED. No one has to prove to a skeptic that psychology lent its authority to racial ranking, segregated schooling and a sterilization campaign: the national body of the profession said so, by vote, in writing. Hedging that into "some say" would be under-claiming a confessed truth, which is its own false witness (Isaiah 5:20).',
+      restsOn: ['f-apology-adopted', 'f-terman-goddard'],
+    },
+    {
+      id: 'n-right-thing-wrong-words',
+      statement: 'A TRUE THING IN WORDS THE SOURCE NEVER USED. The clip is right about the substance and wrong about the wording it calls exact. That matters, because "Thou shalt not raise a false report" (Exodus 23:1) covers a misquotation that points in a direction we agree with. Quote the resolution as written, and the confession needs no help.',
+      restsOn: ['f-wording-differs', 'f-apology-adopted'],
+    },
+    {
+      id: 'n-healed-slightly',
+      statement: 'LOUD HARM, QUIET REPAIR. Darrell’s question has Scripture under it. The prophets named a repair that is smaller than the wound: "They have healed also the hurt of the daughter of my people slightly, saying, Peace, peace; when there is no peace" (Jeremiah 6:14). The Word’s standard for a wrong is confession AND recompense with a fifth added (Numbers 5:7), confession AND forsaking (Proverbs 28:13). A resolution is a real confession; whether the recompense matches the reach of the harm is the right question to keep asking.',
+      restsOn: ['f-coverage', 'f-apology-adopted'],
+    },
+    {
+      id: 'n-our-own-limit',
+      statement: 'OUR OWN LIMIT, STATED FIRST. We could not open the APA’s pages from our build environment. The wording we give is from search excerpts, cross-checked, and labeled; the text Darrell read is by an author the recording does not name; and the recording stops before the evidence it promised. A lesson about getting the words right has to say where its own words came from.',
+      restsOn: ['f-apology-adopted', 'f-wording-differs'],
+    },
+  ],
+  perspectives: [
+    {
+      id: 'p-the-harm-was-louder',
+      label: 'The harm was louder than the apology',
+      heldBy: 'The text Darrell read, and Darrell’s own closing question',
+      steelman: 'At its strongest: for most of a century the claim that some races were less intelligent was taught with the full authority of science, in textbooks, courtrooms, school systems and state legislatures, and it shaped who was sorted into which classroom and whose body a state could sterilize. That message reached every schoolchild. The correction reached members of a professional association and the readers of a few news stories. When the harm was a national curriculum and the repair is a council resolution, it is fair to ask why the correction is not taught as widely as the error was, and the people who carried the damage are the ones with the most right to ask it.',
+    },
+    {
+      id: 'p-the-institution-acted',
+      label: 'A formal confession backed by history and a plan is real repentance beginning',
+      heldBy: 'The American Psychological Association, as its published statements describe its course',
+      steelman: 'Heard fairly: institutions rarely confess anything, and this one did so by a vote of its governing council, after commissioning outside historians to document its own record rather than defending it, and it published a follow-up measuring its progress a year later. It named individuals from its own past, accepted responsibility for the discipline as a whole, and paired the apology with concrete commitments. Demanding that every apology be as loud as a century of harm may set a bar no institution can meet, and that can discourage the next institution from confessing at all.',
+    },
+    {
+      id: 'p-apology-is-cheap',
+      label: 'Apologies by the living for the dead cost little; watch present practice',
+      heldBy: 'Skeptics of institutional apologies, from several directions',
+      steelman: 'At its strongest: the people who did the harm are dead, and the people apologizing pay nothing personally for it. A statement can become a substitute for change, and an organization can gain moral standing from confessing old sins while its present methods go unexamined. On this view the only honest test is present practice: which tests are used today, on whom, with what consequences, and whether the same authority is still being lent to new rankings of people that will need their own apology in fifty years.',
+    },
+    {
+      id: 'p-word-first',
+      label: 'The Word never needed the apology, and still requires its fruit',
+      heldBy: 'Believers who hold Scripture as the frame for weighing any institution',
+      steelman: 'This reader does not wait for a council to settle what Yahweh settled: He "hath made of one blood all nations of men" (Acts 17:26), made every person in His image, and shows no respect of persons. So the false science was false before it was confessed, and the confession adds nothing to the truth. But the Word takes confession seriously for the one who confesses: it asks for forsaking, recompense and fruit, and it warns against healing a hurt slightly. This reader welcomes the apology, quotes it accurately, and keeps asking for the fruit, without contempt for anyone.',
+    },
+  ],
+  lens: {
+    fourD: {
+      deepSource: 'WORD FIRST — ONE BLOOD. Before any intelligence scale was drawn, Yahweh settled what a person is. "And hath made of one blood all nations of men for to dwell on all the face of the earth" (Acts 17:26). "So God created man in his own image, in the image of God created he him" (Genesis 1:27). "I will praise thee; for I am fearfully and wonderfully made" (Psalms 139:14). The ranking of peoples by race was never a finding that the Word had to wait on; it was a claim the Word had already contradicted. NO RESPECT OF PERSONS. He "regardeth not persons, nor taketh reward" (Deuteronomy 10:17). "Of a truth I perceive that God is no respecter of persons" (Acts 10:34). And the command to us: "But if ye have respect to persons, ye commit sin" (James 2:9); "It is not good to have respect of persons in judgment" (Proverbs 24:23). A test used to sort children by race into different futures is respect of persons carried out with a measuring tool. SCIENCE FALSELY SO CALLED — USED PRECISELY. Paul warned of "oppositions of science falsely so called" (1 Timothy 6:20) and of being spoiled "through philosophy and vain deceit, after the tradition of men" (Colossians 2:8). Used precisely, this names the worldview that rode in on the test, not the honest work of measurement; the psychologists who testified in Brown v. Board of Education used the same discipline to tell the truth. THE MULTITUDE OF EXPERTS. "Thou shalt not follow a multitude to do evil; neither shalt thou speak in a cause to decline after many to wrest judgment" (Exodus 23:2). A consensus of credentialed men is still a multitude, and the Word never gave it a veto over what He said. CONFESSION, AND WHAT IT OWES. "He that covereth his sins shall not prosper: but whoso confesseth and forsaketh them shall have mercy" (Proverbs 28:13). The Law asked more than words: "Then they shall confess their sin which they have done: and he shall recompense his trespass with the principal thereof, and add unto it the fifth part thereof" (Numbers 5:7). Zacchaeus went further, "I restore him fourfold" (Luke 19:8), and John the Baptist asked for "fruits meet for repentance" (Matthew 3:8). THE HURT HEALED SLIGHTLY. Darrell asked why the apology was not as loud as the harm. The Word has a name for a repair smaller than the wound: "They have healed also the hurt of the daughter of my people slightly, saying, Peace, peace; when there is no peace" (Jeremiah 6:14). And it promises that what was hidden will not stay quiet: "For there is nothing covered, that shall not be revealed; neither hid, that shall not be known" (Luke 12:2). THE SAME SCALE FOR US. "Thou shalt not raise a false report" (Exodus 23:1). A misquotation that flatters our side is still a false report, so the believer quotes the resolution as written, and applies the same honesty to his own house that he asks of the institution.',
+      scripture: 'Acts 17:26; Genesis 1:27; Psalms 139:14; Deuteronomy 10:17; Acts 10:34; James 2:9; Proverbs 24:23; 1 Timothy 6:20; Colossians 2:8; Exodus 23:1-2; Proverbs 28:13; Numbers 5:7; Luke 19:8; Matthew 3:8; Jeremiah 6:14; Luke 12:2',
+    },
+    threeD: 'Practically: when a clip says an institution confessed something, go to the confession itself and quote it as written. Here the record is strong enough without embellishment: on 2021-10-29 the American Psychological Association’s governing council apologized to people of color for its role in promoting, perpetuating and failing to challenge racism, and its own history names Terman’s 1916 intelligence scale used to justify segregated schooling and Goddard’s service on a committee that recommended sterilization. Say that plainly. Then mark what the clip added: its word for word quotation is not the resolution’s wording, and its biomarker evidence never arrives. Then take Darrell’s question seriously and weigh it by the Word: confession is owed, and so are forsaking, recompense and fruit.',
+    accountability: {
+      statement: 'THE TWO COURTS. In man’s court the institution has entered its own plea: it confessed, by vote, that it was complicit and hurt many, and it accepted responsibility for the discipline and its past leaders. That confession is on the record and should be quoted accurately. The Word asks what follows a confession: forsaking (Proverbs 28:13), recompense with a fifth added (Numbers 5:7), and fruit (Matthew 3:8), and it warns against healing a hurt slightly (Jeremiah 6:14). And no one who taught the ranking of peoples, living or dead, escapes the eternal court by the passage of time: "For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil" (Ecclesiastes 12:14); "and the dead were judged out of those things which were written in the books, according to their works" (Revelation 20:12). The verdict on any soul is His alone.',
+      scripture: 'Proverbs 28:13; Numbers 5:7; Matthew 3:8; Jeremiah 6:14; Ecclesiastes 12:14; Revelation 20:12',
+    },
+    benefits: [
+      'Both courts, honestly held: in man’s court the APA entered its own confession by vote, and in the eternal court after this life every work taught as science is judged (Ecclesiastes 12:14; Revelation 20:12). You can state the documented plainly without inventing a verdict on any soul.',
+      'The Word’s settled answer before any test was drawn: one blood (Acts 17:26), one image (Genesis 1:27), no respect of persons (Acts 10:34).',
+      'A habit that protects the truth: quote the confession as written, because a misquotation hands every critic a reason to dismiss what was really confessed (Exodus 23:1).',
+      'A biblical scale for any apology you hear: confession, forsaking, recompense and fruit (Proverbs 28:13; Numbers 5:7; Matthew 3:8), and the warning against healing a hurt slightly (Jeremiah 6:14).',
+      'Freedom from the multitude: a consensus of experts is still a multitude, and the Word never gave it a veto (Exodus 23:2).',
+      'Precision with "science falsely so called": aimed at the worldview that rode in on the test, never at honest measurement, which also helped undo segregation.',
+    ],
+    graceNote: 'No condemnation of any soul in this lesson. It pronounces no verdict on the American Psychological Association’s members, on the psychologists who confessed, on Lewis Terman or Henry Goddard, who have already stood before the only Judge, or on the unnamed author of the text Darrell read. Their hearts are Yahweh’s to judge. The deeds are named because the institution named them first; the souls are left with Him.',
+    stewardship: 'The deeper response is to build what the Word builds. Teach your children who they are before anyone tests them: made of one blood, in His image, fearfully and wonderfully made. Honor honest science and the scientists who told the truth when it cost them, and teach your house to quote any source exactly. Where a school, a test or a program still sorts children by assumptions rather than by the child in front of it, ask the plain question with meekness. And in the church, keep the same scale: if a teaching in our own history ranked people, confess it as written, forsake it, and bear the fruit.',
+    anchor: {
+      ref: 'Acts 17:26; Proverbs 28:13',
+      theme: 'Yahweh settled it before any test was drawn: "And hath made of one blood all nations of men for to dwell on all the face of the earth." And He set the standard for every confession: "He that covereth his sins shall not prosper: but whoso confesseth and forsaketh them shall have mercy."',
+    },
+  },
+  reflection: {
+    skill: 'When a clip tells you an institution confessed something: go to the confession and quote it as written, not as the clip remembers it. Say the documented parts plainly, especially when the institution confessed them itself. Mark what the clip added or promised and did not deliver. Then weigh the confession by the Word’s standard (confession, forsaking, recompense, fruit), and keep the verdict on every soul with Yahweh.',
+    practice: 'Write four lines. (1) One sentence of what the Word settled, with a reference, before you mention the APA. (2) The resolution’s title and its date, exactly. (3) One thing the clip said that you could not confirm, stated as not confirmed. (4) One sentence answering Darrell’s question by Numbers 5:7 or Jeremiah 6:14. Then do one thing: find one source you have been quoting from memory, and check its exact words this week.',
+    prompts: [
+      'Why is an institution’s own confession stronger evidence than any critic’s accusation? What changes when you quote it exactly?',
+      'The clip called its quotation word for word, and it was not. Why does that matter even when the substance is right (Exodus 23:1)?',
+      'Read Acts 17:26 and James 2:9 beside the history of intelligence testing used to sort children by race. What did the Word already settle?',
+      'Darrell asked why the apology was not as loud as the harm. Read Jeremiah 6:14 and Numbers 5:7. What would a repair as loud as the harm look like?',
+      'The recording promised biomarker evidence and never gave it. How do you carry a promised proof that never arrives?',
+      'Where might your own house or church need to confess something as written, forsake it, and bear fruit?',
+    ],
+  },
+  levels: {
+    child: 'The Psychologists’ Apology: this lesson is about saying sorry the right way, and about getting words right. A long time ago, some scientists made tests. They used the tests to say some kinds of people were smarter than others because of the color of their skin. That was not true. Yahweh made all people. "And hath made of one blood all nations of men" (Acts 17:26). That means all people come from the same family. Every person is made in His picture. "I am fearfully and wonderfully made" (Psalms 139:14). Many years later, in 2021, a big group of these scientists said sorry. They said their group had been wrong and had hurt many people. Saying sorry is good. The Bible says to tell the truth when you do wrong, and then stop doing it. "whoso confesseth and forsaketh them shall have mercy" (Proverbs 28:13). Darrell asked a good question. He said, why was the sorry so quiet, when the wrong thing was taught so loud? The Bible also says a real sorry tries to make things right. A man named Zacchaeus took money that was not his. When he met Jesus, he paid it back four times over. "I restore him fourfold" (Luke 19:8). Here is one more lesson. When you tell someone what another person said, use their real words. If you change the words, people may not believe the true part. So check the words before you say them. We do not decide who is good or bad on the inside. Only Yahweh knows hearts. We tell the truth, we are kind, and we treat every person the same.',
+    teen: 'A clip Darrell read aloud says the American Psychological Association made a historic apology in October 2021, and it quotes the apology word for word. Run the moves before you repeat it. (0) Lead with the Word. Yahweh "hath made of one blood all nations of men" (Acts 17:26), made each person in His image (Genesis 1:27), and shows no respect of persons (Acts 10:34). Ranking races by intelligence contradicted the Word long before anyone apologized for it. (1) What is documented, stated plainly: on 2021-10-29 the APA’s governing council adopted a resolution titled Apology to People of Color for APA’s Role in Promoting, Perpetuating, and Failing to Challenge Racism, Racial Discrimination, and Human Hierarchy in U.S. It says the APA was complicit in systemic inequities and hurt many people, and it accepts responsibility for its own leaders and the whole discipline. Its own history names Lewis Terman, whose 1916 intelligence scale was used to justify segregated schools, and Henry Goddard, who served on a committee recommending sterilization. The institution confessed this itself. (2) What the clip gets wrong: the words it calls word for word are not the resolution’s words, and the apology is addressed to people of color broadly. A true thing in false words hands critics an easy win, and "Thou shalt not raise a false report" (Exodus 23:1) applies even when the misquote helps our side. (3) What never arrived: the clip promised biomarker proof and the recording ends before it. Carry nothing. (4) Darrell’s question: why was the apology quieter than the harm? The Word gives the scale. A confession should come with forsaking (Proverbs 28:13) and repayment with extra added (Numbers 5:7), and the prophets condemned healing a wound "slightly" (Jeremiah 6:14). (5) The verdict on any person, living or dead, stays with Yahweh.',
+    senior: 'For the seasoned believer this issue is about three disciplines at once: holding a settled truth without needing an institution to confirm it, quoting an institution exactly when it does confess, and weighing the confession by the Word’s own standard. First, the frame, because it is prior to everything else: "And hath made of one blood all nations of men for to dwell on all the face of the earth" (Acts 17:26); "So God created man in his own image" (Genesis 1:27); He "regardeth not persons, nor taketh reward" (Deuteronomy 10:17). The ranking of peoples by race was false before it was measured and false after it was confessed. Second, the record. On 2021-10-29 the American Psychological Association’s Council of Representatives adopted an apology to people of color for the APA’s role in promoting, perpetuating and failing to challenge racism, racial discrimination and human hierarchy in the United States. It acknowledges that the APA failed in its role leading the discipline, was complicit in systemic inequities, and hurt many through racism and the denigration of people of color, and it accepts responsibility for the association, the discipline and the individual psychologists who led them. Its own history names Lewis Terman’s Stanford-Binet scale of 1916, used to justify segregated schooling aimed at making Black, Mexican and First Peoples children into efficient workers, and Henry Goddard’s service on a committee that recommended segregation and sterilization. We could not open the APA’s pages from our build environment; this wording comes from cross-checked search excerpts of those pages, and a reader should read the resolution itself before quoting it. Third, the clip. Its quotation, offered as word for word, is not the resolution’s wording; its scope is narrower than the resolution’s; its pledge about returning resources did not appear in anything we could verify; and the biomarker evidence it promised never arrives before the recording ends. The substance it points at is real, which is exactly why the misquotation matters: "Thou shalt not raise a false report" (Exodus 23:1). Fourth, Darrell’s question, which deserves a Scriptural answer rather than a shrug: why was the apology not as loud as the harm? The Law required confession and recompense "with the principal thereof, and add unto it the fifth part thereof" (Numbers 5:7); Proverbs requires confession and forsaking (Proverbs 28:13); John asked for "fruits meet for repentance" (Matthew 3:8); and Jeremiah condemned those who "have healed also the hurt of the daughter of my people slightly" (Jeremiah 6:14). A resolution is a real confession. Whether its recompense matches a century of national teaching is the right question to keep asking, with meekness and without contempt. The verdict on every soul in the story remains Yahweh’s: "For God shall bring every work into judgment" (Ecclesiastes 12:14).',
+  },
+  quiz: {
+    questions: [
+      {
+        q: 'What did the Word settle about the peoples of the earth before any intelligence test existed?',
+        options: [
+          'Nothing; it left the question to science',
+          'That Yahweh "hath made of one blood all nations of men" (Acts 17:26), each in His image, with no respect of persons',
+          'That some peoples are more capable than others',
+        ],
+        answer: 1,
+        explain: '"And hath made of one blood all nations of men for to dwell on all the face of the earth" (Acts 17:26). The ranking was false before it was confessed.',
+      },
+      {
+        q: 'What did the APA’s governing council adopt on 2021-10-29?',
+        options: [
+          'A statement that it had done nothing wrong',
+          'An apology to people of color for its role in promoting, perpetuating and failing to challenge racism, accepting responsibility for the discipline and its leaders',
+          'A new intelligence test',
+        ],
+        answer: 1,
+        explain: 'Documented from the APA’s own pages (through cross-checked search excerpts, since the pages were blocked from our build). The institution’s own confession is the strongest witness in the story.',
+      },
+      {
+        q: 'The clip calls its quotation of the apology word for word. What did checking find?',
+        options: [
+          'It matches exactly',
+          'The resolution’s documented wording and scope are different; the substance overlaps but the words are not the resolution’s',
+          'There was no apology at all',
+        ],
+        answer: 1,
+        explain: 'Quote the record as written. A true thing carried in words the source never used gives critics an easy dismissal, and "Thou shalt not raise a false report" (Exodus 23:1) applies to misquotes that help our side too.',
+      },
+      {
+        q: 'Which names does the APA’s own history give in its account of harm?',
+        options: [
+          'None',
+          'Lewis Terman, whose 1916 Stanford-Binet scale was used to justify segregated schooling, and Henry Goddard, who served on a committee recommending sterilization',
+          'Only people outside psychology',
+        ],
+        answer: 1,
+        explain: 'Documented damage, confessed by the body that did it, and said plainly here.',
+      },
+      {
+        q: 'How does the Word answer Darrell’s question about an apology quieter than the harm?',
+        options: [
+          'Any apology is enough',
+          'Confession should come with forsaking and recompense with a fifth added, and the prophets condemn healing a hurt slightly',
+          'Apologies are never needed',
+        ],
+        answer: 1,
+        explain: '"whoso confesseth and forsaketh them shall have mercy" (Proverbs 28:13); "he shall recompense his trespass with the principal thereof, and add unto it the fifth part thereof" (Numbers 5:7); "They have healed also the hurt of the daughter of my people slightly" (Jeremiah 6:14).',
+      },
+      {
+        q: 'The recording promised biomarker proof of lasting damage. What does this lesson carry?',
+        options: [
+          'That the proof exists',
+          'That the proof does not exist',
+          'Nothing either way: the recording ends before any evidence is given',
+        ],
+        answer: 2,
+        explain: 'A promised proof that never arrives is carried as promised and undelivered, never as evidence.',
+      },
+    ],
+  },
+};
+
+// =============================================================================
+// ISSUE — The student in the gap: 2026 college-aid changes (DR-0666). A third
+// party's clip (an unnamed student organizer) Darrell played into the app on
+// 2026-09-28 with no words of his own. Rule changes verified by live search
+// 2026-09-29 with as-of dates; the speaker's stories carried as testimony and
+// verdicts on motive as opinion.
+// =============================================================================
+const HIGHER_ED_AID_ISSUE = {
+  id: 'wi-higher-ed-aid-2026-and-the-student-in-the-gap',
+  title: 'The Student in the Gap — the 2026 College-Aid Changes, Counted by the Word',
+  subject: {
+    name: 'the 2025-2026 changes to federal college aid, accreditation and tax exemption, and the students caught between them',
+    kind: 'policy-and-public-figures',
+    isNamedRealPerson: true,
+  },
+  skill: 'Take an impassioned clip from a student organizer and learn to weigh it the Word’s way: lead with what Yahweh says about wisdom, debt and the neighbor in need; state plainly the rule changes that are documented (new federal loan caps and new Pell Grant limits from 2026-07-01, the order to close the Department of Education as far as the law allows, a proposed overhaul of accreditation, a staff finding against the American Bar Association as an accreditor, and a proposed rule that would end tax exemption for private schools that consider race); carry the speaker’s stories as testimony and the speaker’s verdicts as opinion; hear the case for the changes at its strongest; and then do what the Word says to do for the student standing in the gap, whatever anyone thinks of the policy.',
+  source: {
+    creator: 'a student organizer who is not named in the recording, speaking on camera; Darrell played the clip into the app',
+    medium: 'voice recording of a played clip (2 minutes 43 seconds), transcribed on our own NAS by Whisper, the small model on the CPU',
+    title: 'a clip on the crisis in higher education',
+    url: '',
+    asOf: '2026-09-28',
+    note: 'PROVENANCE, plainly. The words are not Darrell’s. He recorded a clip of a speaker who says they travel the country meeting college students and are rebuilding a national student association, and sent it in on 2026-09-28 as a lesson, adding no words of his own; the transcript was made on our own machine by Whisper (the small model, on the NAS CPU). The speaker’s name is not in the recording, so the speaker is not named here, and nothing here assumes who the speaker is. The machine misheard a few words, and we follow the plain meaning: higher education, not hack education; bawling, not balling; voter registration, not board registration. The stories of individual students are carried as the speaker’s testimony; they cannot be checked from here. Every rule change is checked against published sources below, with dates, and labeled by how well it is documented. Where a count or wording could not be confirmed, it is carried as the speaker’s.',
+  },
+  limits: [
+    {
+      id: 'lim-third-party',
+      text: 'These are a third party’s words, played by Darrell and sent in without comment. The speaker’s name is not in the recording. The stories and verdicts are carried as the speaker’s.',
+    },
+    {
+      id: 'lim-stories',
+      text: 'The students the speaker describes, the senior with an 11,000 dollar gap and the others, cannot be checked from here. They are carried as the speaker’s testimony, not as documented cases.',
+    },
+    {
+      id: 'lim-fast-moving',
+      text: 'Several of these rules were still proposals when this lesson was written (accreditation, the American Bar Association review, the tax-exemption rule). Check their status before you repeat them; proposals change.',
+    },
+  ],
+  claims: [
+    {
+      id: 'c-not-talked-about',
+      text: 'People are not talking enough about the crisis higher education is going through right now, and it is heartbreaking.',
+      label: 'opinion',
+      attribution: 'The unnamed speaker in the clip Darrell played',
+      note: 'A judgment about attention and about grief. Carried as the speaker’s.',
+    },
+    {
+      id: 'c-purged',
+      text: 'Students are being purged from their campuses, dropped for unpaid balances, because their financial aid, their Pell Grant and the loans they are now allowed to take no longer cover tuition.',
+      label: 'claim',
+      attribution: 'The unnamed speaker, from campus visits the speaker describes',
+      note: 'The mechanism is plausible and partly documented: the loan caps and Pell limits in Stage 2 are real. Whether students are being dropped in large numbers, and how many, is not measured here. The word purged is the speaker’s own, and the speaker calls it a horrible word.',
+    },
+    {
+      id: 'c-students-the-speaker-met',
+      text: 'The speaker met a senior who was crying because she has an 11,000 dollar payment gap; a student in California who received less Pell Grant money this year than last; and four students in one week who received no Pell Grant at all because the requirements changed.',
+      label: 'claim',
+      attribution: 'The unnamed speaker, as the speaker’s own testimony',
+      note: 'Testimony, and treated with the respect testimony is owed; it cannot be checked from here. The four who lost eligibility fit a documented change: from 2026-27 a student whose Student Aid Index is at least twice the maximum award, or whose cost is fully covered by other grants, is no longer eligible.',
+    },
+    {
+      id: 'c-ed-closure',
+      text: 'The administration said two years ago that it wanted to shut down the Department of Education, which shows it did not care about this anyway.',
+      label: 'opinion',
+      attribution: 'The unnamed speaker',
+      note: 'Two parts. The order is documented (Stage 2): an executive order of 2025-03-20 directed steps to close the Department to the extent the law permits. That it shows the administration does not care is the speaker’s inference about motive, and it stays labeled as opinion.',
+    },
+    {
+      id: 'c-tax-exempt',
+      text: 'Private institutions and historically Black colleges that do anything related to race face a proposal to lose their 501(c)(3) status, which affects the donations they can receive.',
+      label: 'claim',
+      attribution: 'The unnamed speaker',
+      note: 'Documented as a proposal (Stage 2): on 2026-09-03 the Treasury and the IRS proposed regulations to deny tax exemption to private schools, colleges included, that consider race in any program. Reporting expects historically Black colleges to be among those most affected. It was a proposal, not a final rule, when this lesson was written.',
+    },
+    {
+      id: 'c-accreditation',
+      text: 'The Department of Education released ten proposed rules in a hundred-page document to change how accreditation works, is going after the American Bar Association’s accreditation, and is telling schools that if they are not accredited under the new standards they will not get federal aid.',
+      label: 'claim',
+      attribution: 'The unnamed speaker',
+      note: 'The overhaul is documented (a proposed rule published 2026-08-20), and so is a Department staff finding in August 2026 against the American Bar Association as an accreditor. Federal aid already depends on accreditation by a recognized agency, which is why a change to recognition reaches every student. The counts, ten rules and a hundred pages, are the speaker’s and were not verified.',
+    },
+    {
+      id: 'c-attack',
+      text: 'This is an explicitly loud attack on higher education, and higher education will not exist if we do not do something about it.',
+      label: 'opinion',
+      attribution: 'The unnamed speaker',
+      note: 'A verdict on intent and a prediction. Supporters of the same changes describe them as reform (Stage 3). Carried as the speaker’s.',
+    },
+    {
+      id: 'c-student-association',
+      text: 'Support the organizers rebuilding a national student association so students have their own voice, because it is not funded enough or moving fast enough, and students face limits on campus campaigns, polling places and voter registration during the midterm election.',
+      label: 'call-to-action',
+      attribution: 'The unnamed speaker, for the association the speaker is building',
+      note: 'The speaker’s request, carried as such. The lesson’s own voice neither joins nor opposes the speaker’s organization; it points the reader to what the Word asks of every believer in Stage 4.',
+    },
+  ],
+  verifiable: [
+    {
+      id: 'f-loan-caps',
+      statement: 'The law signed on 2025-07-04, known as the One Big Beautiful Bill Act, changed federal student lending from 2026-07-01: the Graduate PLUS loan ends for new borrowers, and Parent PLUS loans are capped at 20,000 dollars per year and 65,000 dollars in total for each student, where before a parent could borrow up to the full cost of attendance. New Parent PLUS loans must be repaid on the standard plan.',
+      status: 'documented',
+      sources: [
+        {
+          title: 'Key Changes to Federal Student Loans Made in the One Big Beautiful Bill Act',
+          publisher: 'Harvard University Student Financial Services',
+          url: 'https://sfs.harvard.edu/changes-federal-student-loans',
+          asOf: '2026-09-29',
+        },
+        {
+          title: 'One Big Beautiful Bill Act: 2026–27 Changes to Federal Financial Aid',
+          publisher: 'Washington State University Student Financial Services',
+          url: 'https://financialaid.wsu.edu/2025/11/10/one-big-beautiful-bill-act-2026-27-changes-to-federal-financial-aid/',
+          asOf: '2026-09-29',
+        },
+        {
+          title: 'Federal Student Aid Changes (OB3 summary)',
+          publisher: 'NASFAA',
+          url: 'https://www.nasfaa.org/uploads/documents/Federal_Student_Aid_Change_OB3.pdf',
+          asOf: '2026-09-29',
+        },
+      ],
+      note: 'Verified by live web search 2026-09-29 across university aid offices and the aid administrators’ association. Stated plainly: a family that used to borrow the whole gap now cannot, and that is exactly the gap the speaker describes.',
+    },
+    {
+      id: 'f-pell-changes',
+      statement: 'For the 2026-27 award year the maximum Pell Grant is 7,395 dollars, and two new limits apply: a student whose Student Aid Index is at least twice the maximum award (14,790 dollars) is not eligible, and a student whose full cost of attendance is already covered by other grants and scholarships is not eligible. The same law created Workforce Pell for short career programs of 150 to 599 clock hours.',
+      status: 'documented',
+      sources: [
+        {
+          title: 'Federal Student Aid Changes with the One Big Beautiful Bill Act (OBBBA)',
+          publisher: 'University of Maine Student Financial Services',
+          url: 'https://umaine.edu/sfs/obbba/',
+          asOf: '2026-09-29',
+        },
+        {
+          title: 'NASFAA Deep Dive: ED Releases Final Rule for Pell Grant Provisions of OBBBA',
+          publisher: 'NASFAA',
+          url: 'https://www.nasfaa.org/news-item/38943/NASFAA_Deep_Dive_ED_Releases_Final_Rule_for_Pell_Grant_Provisions_of_OBBBA',
+          asOf: '2026-09-29',
+        },
+      ],
+      note: 'Verified 2026-09-29. This fits the speaker’s four students who lost Pell because the requirements changed. It is also true that the maximum award did not fall; a student who received less this year received less by his own calculation, not by a cut to the maximum. Both are said, because both are true.',
+    },
+    {
+      id: 'f-ed-closure-order',
+      statement: 'Executive Order 14242, signed on 2025-03-20, directs the Secretary of Education to take all necessary steps to facilitate the closure of the Department of Education and return authority over education to the states, to the maximum extent appropriate and permitted by law. Abolishing the Department itself requires an act of Congress.',
+      status: 'documented',
+      sources: [
+        {
+          title: 'Executive Order 14242 — Improving Education Outcomes by Empowering Parents, States, and Communities',
+          publisher: 'The American Presidency Project (UC Santa Barbara)',
+          url: 'https://www.presidency.ucsb.edu/node/376745',
+          asOf: '2026-09-29',
+        },
+        {
+          title: 'Executive Order Aims To Eliminate Department of Education',
+          publisher: 'Crowell & Moring',
+          url: 'https://www.crowell.com/en/insights/client-alerts/executive-order-aims-to-eliminate-department-of-education',
+          asOf: '2026-09-29',
+        },
+      ],
+      note: 'Verified 2026-09-29. The order is a documented fact; what it shows about anyone’s heart is not a fact, and this lesson does not say.',
+    },
+    {
+      id: 'f-accreditation-rule',
+      statement: 'On 2026-08-20 the Department of Education published a proposed rule overhauling how the Secretary recognizes accrediting agencies, following negotiated rulemaking in April and May 2026 under Executive Order 14279. Comments were due 2026-09-21, a final rule was targeted for 2026-11-01, and implementation was proposed for 2027-07-01. Federal student aid already depends on accreditation by a recognized agency. In August 2026 a Department staff report also found the American Bar Association’s accrediting council out of compliance and recommended against continued recognition; the next step is a hearing before the federal advisory committee, and the Association disputes the findings.',
+      status: 'documented',
+      sources: [
+        {
+          title: 'Accreditation, Innovation, and Modernization: The Secretary’s Recognition of Accrediting Agencies (proposed rule)',
+          publisher: 'Federal Register',
+          url: 'https://www.federalregister.gov/documents/2026/08/20/2026-17001/accreditation-innovation-and-modernization-the-secretarys-recognition-of-accrediting-agencies',
+          asOf: '2026-09-29',
+        },
+        {
+          title: 'Education Department issues Notice of Proposed Rulemaking for higher ed accreditation',
+          publisher: 'Nixon Peabody',
+          url: 'https://www.nixonpeabody.com/insights/alerts/2026/08/20/education-department-issues-notice-of-proposed-rulemaking-for-higher-ed-accreditation',
+          asOf: '2026-09-29',
+        },
+        {
+          title: 'Trump administration takes steps to chip away at American Bar Association’s power to accredit law schools',
+          publisher: 'Fox Business',
+          url: 'https://www.foxbusiness.com/politics/trump-administration-takes-steps-chip-away-american-bar-associations-power-accredit-law-schools',
+          asOf: '2026-09-29',
+        },
+      ],
+      note: 'Verified by search 2026-09-29. A proposal, not a final rule, when written. The speaker’s counts, ten rules and a hundred pages, were not confirmed and are carried as the speaker’s.',
+    },
+    {
+      id: 'f-tax-exempt-rule',
+      statement: 'On 2026-09-03 the Treasury Department and the IRS proposed regulations that would deny 501(c)(3) tax exemption to any private school, colleges and universities included, that considers race, color, or national or ethnic origin in any program or policy, including scholarships and financial aid. Comments are due 2026-11-03, and the rule would first apply to taxable years beginning after 2027-05-31. Loss of exemption would end the tax deduction for gifts, and reporting on the proposal expects historically Black colleges and minority-serving institutions to be among the most affected.',
+      status: 'documented',
+      sources: [
+        {
+          title: 'Treasury, IRS Propose Regulations Denying Tax-Exempt Status to Private Schools That Use Race in Admissions, Scholarships, Other Programs',
+          publisher: 'Gibson Dunn',
+          url: 'https://www.gibsondunn.com/treasury-irs-propose-regulations-denying-tax-exempt-status-to-private-schools-that-use-race-in-admissions-scholarships-other-programs/',
+          asOf: '2026-09-29',
+        },
+        {
+          title: 'Treasury proposes rule stripping tax-exempt status from colleges with race-based practices',
+          publisher: 'AACRAO',
+          url: 'https://www.aacrao.org/news/treasury-proposes-rule-stripping-tax-exempt-status-from-colleges-with-race-based-practices/',
+          asOf: '2026-09-29',
+        },
+        {
+          title: 'Trump administration targets tax-exempt status of schools with race-conscious programs',
+          publisher: 'theGrio',
+          url: 'https://thegrio.com/2026/09/03/trump-tax-exemption-schools-minority-students/',
+          asOf: '2026-09-29',
+        },
+      ],
+      note: 'Verified 2026-09-29. The speaker’s description is accurate as a description of a proposal. Which institutions it would reach in practice is a projection by the reporting, carried as that.',
+    },
+  ],
+  interpretation: [
+    {
+      id: 'n-rules-are-facts-motives-are-not',
+      statement: 'THE RULES ARE DOCUMENTED; THE MOTIVES ARE NOT. Every change the speaker names is real or really proposed, and saying so plainly is required. The speaker’s verdicts on why, an attack, a lack of care, are a reading of hearts, and the Word keeps that court for Yahweh (Romans 14:4). A believer can state every rule without borrowing anyone’s verdict on a soul.',
+      restsOn: [
+        'f-loan-caps',
+        'f-pell-changes',
+        'f-ed-closure-order',
+        'f-accreditation-rule',
+        'f-tax-exempt-rule',
+      ],
+    },
+    {
+      id: 'n-the-student-in-the-gap',
+      statement: 'THE STUDENT IN THE GAP IS REAL WHATEVER YOU THINK OF THE POLICY. A senior with a gap she cannot pay is a neighbor in need this semester, and the Word does not let the policy argument stand between us and her: "If a brother or sister be naked, and destitute of daily food" (James 2:15), and we say "be ye warmed and filled" (James 2:16) and give nothing, "what doth it profit?" (James 2:16).',
+      restsOn: ['f-loan-caps', 'f-pell-changes'],
+    },
+    {
+      id: 'n-caps-cut-both-ways',
+      statement: 'A LOAN CAP CUTS BOTH WAYS, AND THE WORD SEES BOTH EDGES. "the borrower is servant to the lender" (Proverbs 22:7), so a limit on borrowing protects some families from a servitude they could not see. And a limit that arrives mid-degree leaves a student with a gap she did not plan for. Both are true at once, and a Word-first reader holds both rather than choosing a slogan.',
+      restsOn: ['f-loan-caps'],
+    },
+    {
+      id: 'n-our-own-limit',
+      statement: 'OUR OWN LIMIT, STATED FIRST. These are a third party’s words, not Darrell’s; the speaker’s name is not in the recording; the students cannot be checked from here; and three of the five rule changes were still proposals when this was written. A lesson that asks the reader to check sources must say which of its own could not be checked.',
+      restsOn: ['f-accreditation-rule', 'f-tax-exempt-rule'],
+    },
+  ],
+  perspectives: [
+    {
+      id: 'p-higher-ed-under-attack',
+      label: 'Higher education and its students are under attack',
+      heldBy: 'The unnamed speaker, and many students, advocates and college leaders',
+      steelman: 'At its strongest: the changes arrive together and fall hardest on the students with the least. Lower borrowing limits, tighter Pell rules, pressure on accreditation, a threat to the tax status of colleges that serve minority students, and an order to wind down the agency that runs student aid, all within about eighteen months, leave working-class and first-generation students with gaps they did not create and cannot close mid-degree. Seniors are being asked to find thousands of dollars in weeks. A college that loses accreditation or donors does not only lose a program; its students lose the degree they were halfway through. Naming that loudly is not partisanship; it is what the people inside the gap have a right to ask.',
+    },
+    {
+      id: 'p-reform',
+      label: 'The changes are reform: stop the debt spiral and hold institutions accountable',
+      heldBy: 'Supporters of the 2025 law and the proposed rules, including the administration and many policy analysts',
+      steelman: 'Heard fairly: unlimited federal lending let prices rise while families carried the debt, and the Graduate PLUS and Parent PLUS programs let colleges charge whatever the loan would cover. Caps push prices down and protect parents from debts they cannot repay. Pell limits send grant money to the students with the greatest need rather than to families with high incomes or students already fully funded, and Workforce Pell opens aid to short career programs. On this view accreditors had become cartels that protected incumbents, and equal treatment regardless of race is what the Civil Rights Act already requires of institutions that receive public benefits. The pain of a transition is real, and the old system was producing its own victims in unpayable debt.',
+    },
+    {
+      id: 'p-word-first',
+      label: 'Count the cost, owe no man, and open your hand to the student in front of you',
+      heldBy: 'Believers who weigh policy by the Word rather than by party',
+      steelman: 'This reader does not need to win the policy argument before acting. The Word says count the cost before you build (Luke 14:28), warns that the borrower is servant to the lender (Proverbs 22:7), and says prepare the field before the house (Proverbs 24:27), so it counsels every family to plan a degree it can finish without bondage. It also says open thine hand wide to the brother in need (Deuteronomy 15:8) and not to love in word only (1 John 3:18), so the church helps the student already in the gap. It prays for those in authority (1 Timothy 2:1-2), pleads the cause of the poor by the Word (Proverbs 31:9), and puts no trust in princes of any party (Psalms 146:3).',
+    },
+  ],
+  lens: {
+    fourD: {
+      deepSource: 'WORD FIRST — WISDOM IS THE PRINCIPAL THING. Learning is not the world’s idea; it is a gift the Word honors. "Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding" (Proverbs 4:7). Of four young men educated in a foreign court the Word says, "God gave them knowledge and skill in all learning and wisdom" (Daniel 1:17). So a believer does not despise the college or the student; the question is how to get understanding without being sold into bondage for it. COUNT THE COST. "For which of you, intending to build a tower, sitteth not down first, and counteth the cost, whether he have sufficient to finish it?" (Luke 14:28). A degree is a tower, and the worst outcome in the speaker’s stories is the one Jesus names, "This man began to build, and was not able to finish" (Luke 14:30). "Prepare thy work without, and make it fit for thyself in the field; and afterwards build thine house" (Proverbs 24:27); "The thoughts of the diligent tend only to plenteousness; but of every one that is hasty only to want" (Proverbs 21:5). THE BORROWER. "The rich ruleth over the poor, and the borrower is servant to the lender" (Proverbs 22:7). "Owe no man any thing, but to love one another" (Romans 13:8). Nehemiah heard families cry that they had "borrowed money for the king’s tribute" (Nehemiah 5:4) until "neither is it in our power to redeem them" (Nehemiah 5:5). The Word does not treat borrowing as neutral, so a cap on borrowing is not only a loss; and the Word does not leave the borrower alone, so a gap is not only his problem. THE STUDENT IN THE GAP. "Withhold not good from them to whom it is due, when it is in the power of thine hand to do it" (Proverbs 3:27). "But whoso hath this world’s good, and seeth his brother have need, and shutteth up his bowels of compassion from him, how dwelleth the love of God in him?" (1 John 3:17). "My little children, let us not love in word, neither in tongue; but in deed and in truth" (1 John 3:18). "But thou shalt open thine hand wide unto him, and shalt surely lend him sufficient for his need" (Deuteronomy 15:8). "Bear ye one another’s burdens, and so fulfil the law of Christ" (Galatians 6:2). The first church shows it done: "Neither was there any among them that lacked" (Acts 4:34). And when a widow’s creditor came for her sons, Yahweh’s provision began with a question about what was already in the house (2 Kings 4:2). OPEN THY MOUTH, AND TRUST NO PRINCE. "Open thy mouth, judge righteously, and plead the cause of the poor and needy" (Proverbs 31:9): speaking for the student is commanded. But "Put not your trust in princes, nor in the son of man, in whom there is no help" (Psalms 146:3): not the princes who wrote the old system and not the princes who are changing it. PRAY, AND SEEK THE PEACE OF THE CITY. "I exhort therefore, that, first of all, supplications, prayers, intercessions, and giving of thanks, be made for all men" (1 Timothy 2:1), "For kings, and for all that are in authority" (1 Timothy 2:2). "And seek the peace of the city whither I have caused you to be carried away captives, and pray unto the LORD for it" (Jeremiah 29:7). HEAR BOTH. "He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him" (Proverbs 18:17). The speaker’s case is strong, and so is the case for reform; the Word asks us to hear both before we answer, and then to act for the neighbor regardless.',
+      scripture: 'Proverbs 4:7; Daniel 1:17; Luke 14:28-30; Proverbs 24:27; Proverbs 21:5; Proverbs 22:7; Romans 13:8; Nehemiah 5:4-5; Proverbs 3:27; 1 John 3:17-18; Deuteronomy 15:8; Galatians 6:2; Acts 4:34; 2 Kings 4:2; Proverbs 31:9; Psalms 146:3; 1 Timothy 2:1-2; Jeremiah 29:7; Proverbs 18:17',
+    },
+    threeD: 'Practically: when a clip like this reaches you, sort it before you share it. Say the documented plainly: from 2026-07-01 Parent PLUS is capped at 20,000 dollars a year and 65,000 in total and Graduate PLUS ends for new borrowers; Pell eligibility now ends at a Student Aid Index of twice the maximum award and for students already fully funded; an executive order of 2025-03-20 directed steps toward closing the Department of Education as far as the law allows; accreditation and tax-exemption overhauls were proposed in August and September 2026. Carry the stories as testimony and the verdicts as opinion. Then act where you are: if you have a student at home, count the cost of the whole degree before the first semester and plan it without bondage; if your church has a student with a gap, ask what is in the house and open your hand.',
+    accountability: {
+      statement: 'THE TWO COURTS. In man’s court these rules are being written in public: some are law, some are proposals open for comment, and their effects will be measured. Those who write them will answer for their fruit, and so will the institutions that raised prices on borrowed money, and so will anyone who uses a student’s pain for a cause without helping the student. The Word lets none of it drift into the dark: "For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil" (Ecclesiastes 12:14). And it holds us to account first for the neighbor in front of us: "notwithstanding ye give them not those things which are needful to the body; what doth it profit?" (James 2:16).',
+      scripture: 'Ecclesiastes 12:14; James 2:16; Proverbs 31:9; Psalms 146:3',
+    },
+    benefits: [
+      'Both courts, honestly held: in man’s court the rules are written in public and their fruit will be measured; in the eternal court after this life every work is judged (Ecclesiastes 12:14), including what we did for the student in the gap (James 2:16).',
+      'The documented changes in one place, with dates, so you can speak about them without either shrinking them or inflating them.',
+      'A way to hold a loan cap honestly: it protects some families from bondage (Proverbs 22:7) and leaves some students with a gap, and both are true.',
+      'The Word’s counsel for families planning college: count the cost of the whole tower (Luke 14:28-30) and prepare the field before the house (Proverbs 24:27).',
+      'A plain command for the church: open thine hand wide to the brother in need (Deuteronomy 15:8), and love in deed and in truth (1 John 3:18).',
+      'Freedom from party: speak for the poor (Proverbs 31:9), pray for every ruler (1 Timothy 2:1-2), and trust no prince (Psalms 146:3).',
+    ],
+    graceNote: 'No condemnation of any soul in this lesson. It pronounces no verdict on the speaker, whose name is not in the recording and whose care for students is plain; on President Trump, who signed the order; on the officials writing these rules; on the leaders of the American Bar Association or any college; or on the families who borrowed. Their hearts are Yahweh’s to judge. The rules are named because they are public; motives are left with Him.',
+    stewardship: 'The deeper response is to build what the Word builds. In your house, plan education the way the Word plans a tower: count the whole cost, prepare the field first, and choose a path your child can finish without bondage, whether a university, a community college, a trade or a short Workforce Pell program. In your church, keep a quiet fund or a ready list for the student with a gap, and ask first what is already in the house. Teach young people the Word’s view of learning, so they value understanding more than a credential. And when you speak about policy, speak for the poor by the Word, pray for every ruler by name, and do not hand your hope to any prince.',
+    anchor: {
+      ref: 'Luke 14:28; 1 John 3:18',
+      theme: 'Count the whole cost before you build: "For which of you, intending to build a tower, sitteth not down first, and counteth the cost, whether he have sufficient to finish it?" And do not let an argument stand between you and the neighbor in need: "My little children, let us not love in word, neither in tongue; but in deed and in truth."',
+    },
+  },
+  reflection: {
+    skill: 'When a passionate clip about policy reaches you: name who is speaking and whether the words are theirs or yours. Check each rule against a published source with a date, and say the documented plainly. Carry personal stories as testimony and verdicts on motive as opinion. Hear the other side at its strongest. Then ask the Word’s practical question: what does this require of me, for the person in front of me, this week?',
+    practice: 'Write four lines. (1) One verse on counting the cost and one on helping the neighbor in need, with references. (2) Two documented rule changes, each with its date. (3) One of the speaker’s claims you could not confirm, stated as not confirmed. (4) The strongest sentence for the other side. Then do one thing: if you know a student with a gap this semester, ask what is already in the house, and help.',
+    prompts: [
+      'Which of the speaker’s claims are documented rules, which are testimony, and which are verdicts about motive? How would you check each?',
+      'Read Proverbs 22:7 and then James 2:15-16. How can a loan cap protect some families and still leave a student in a gap?',
+      'Luke 14:28-30 speaks of a tower begun and not finished. What would counting the cost of a degree look like in your house?',
+      'Proverbs 31:9 commands us to plead the cause of the poor, and Psalms 146:3 says put not your trust in princes. How do you obey both at once?',
+      'What is already in your church’s house (2 Kings 4:2) that could close one student’s gap this semester?',
+      'Pray 1 Timothy 2:1-2 for the officials on every side of this issue by name. What changes in you when you do?',
+    ],
+  },
+  levels: {
+    child: 'The Student in the Gap: this lesson is about going to college, and about helping people who need help. College is a school some people go to after high school. It can cost a lot of money. Some students get help to pay. The help can be a gift, or it can be money they must pay back later. This year the rules changed. Some students get less help now. Some cannot borrow as much. A person in a video said they met a student who was crying. The student did not have enough money to finish school. That is sad. The Bible has wise words about this. Before you build something, count how much it costs. "For which of you, intending to build a tower, sitteth not down first, and counteth the cost" (Luke 14:28). That means plan before you start. The Bible also says owing money can make life hard. "the borrower is servant to the lender" (Proverbs 22:7). And the Bible says to help people who need help. Do not just say nice words. Help for real. "let us not love in word, neither in tongue; but in deed and in truth" (1 John 3:18). Grown ups do not all agree about the new rules. Some think the rules are hurting students. Some think the rules will fix big problems. We can listen to both, and we can pray for our leaders. "supplications, prayers, intercessions, and giving of thanks, be made for all men" (1 Timothy 2:1). Most of all, we can help the person in front of us. Only Yahweh knows every heart. We tell the truth, we are kind, and we share.',
+    teen: 'A clip Darrell played is a student organizer, unnamed in the recording, sounding an alarm that students are being dropped from college because their aid no longer covers tuition. These are the speaker’s words, not Darrell’s. Run the moves before you repeat any of it. (0) Lead with the Word. Learning is honored: "Wisdom is the principal thing; therefore get wisdom" (Proverbs 4:7). Debt is not neutral: "the borrower is servant to the lender" (Proverbs 22:7). Plans get counted before they start: "counteth the cost, whether he have sufficient to finish it" (Luke 14:28). And the neighbor in need gets help in deed, not just words (1 John 3:18). (1) What is documented, said plainly. From 2026-07-01, Parent PLUS loans are capped at 20,000 dollars a year and 65,000 total, and Graduate PLUS ends for new borrowers. Pell eligibility now ends when a Student Aid Index reaches twice the maximum award (the maximum is 7,395 dollars), and for students already fully covered by other grants. A 2025-03-20 executive order directed steps to close the Department of Education as far as the law allows. In August 2026 the Department proposed an accreditation overhaul, and its staff found against the American Bar Association as an accreditor. In September 2026 the Treasury proposed ending tax exemption for private schools that consider race in any program. (2) What is testimony: the students the speaker met, like the senior with an 11,000 dollar gap, are real to the speaker but cannot be checked from here. (3) What is opinion: that this is an attack, or that anyone does not care. (4) The other side at its strongest: unlimited loans pushed prices up and buried families in debt, and caps and targeted aid are meant to stop that. (5) The Word’s move for you: plan your own path so you can finish without bondage, and if a classmate is in a gap, help.',
+    senior: 'For the seasoned believer this issue is about keeping three things separate that a passionate clip runs together: the documented rules, the human stories, and the verdicts about motive. The speaker is a student organizer who is not named in the recording, and the words are the speaker’s; Darrell played the clip into the app and added none of his own. First, the frame. The Word honors learning, "Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding" (Proverbs 4:7); it refuses to treat debt as neutral, "the borrower is servant to the lender" (Proverbs 22:7); it counts the cost of a tower before the foundation is laid (Luke 14:28), and it names the tragedy of the unfinished one, "This man began to build, and was not able to finish" (Luke 14:30); and it will not let an argument stand between us and a neighbor in need, "let us not love in word, neither in tongue; but in deed and in truth" (1 John 3:18). Second, the documented record, stated plainly. The law signed on 2025-07-04 ended Graduate PLUS for new borrowers from 2026-07-01 and capped Parent PLUS at 20,000 dollars a year and 65,000 in total per student; for 2026-27 Pell eligibility ends at a Student Aid Index of twice the 7,395 dollar maximum and for students already fully funded by other grants, while Workforce Pell opens aid to short career programs. Executive Order 14242 of 2025-03-20 directed steps to close the Department of Education to the extent the law allows. A proposed accreditation overhaul was published on 2026-08-20; a Department staff report in August 2026 recommended against continued recognition of the American Bar Association as an accreditor, which the Association disputes; and on 2026-09-03 the Treasury and IRS proposed ending tax exemption for private schools, colleges included, that consider race in any program. Three of those were proposals when this was written. Third, the stories: a crying senior with an 11,000 dollar gap, a student with less Pell than last year, four who lost Pell under the new requirements. They are testimony, received with respect, and they fit the documented changes, but they cannot be checked from here. Fourth, the verdicts: an attack, a lack of care. Those are a reading of hearts, and the Word keeps that court for Yahweh (Romans 14:4). Hear the reform case at its strongest too: unlimited lending fed prices and debt, and caps and targeted aid are meant to break that cycle. Then do what the Word asks regardless of which case persuades you: counsel families to finish without bondage (Proverbs 24:27), open your hand to the student already in the gap (Deuteronomy 15:8), plead the cause of the poor (Proverbs 31:9), pray for every ruler (1 Timothy 2:1-2), and trust no prince (Psalms 146:3).',
+  },
+  quiz: {
+    questions: [
+      {
+        q: 'Whose words are in the clip Darrell played?',
+        options: [
+          'Darrell’s own',
+          'A student organizer who is not named in the recording; Darrell added no words of his own',
+          'A government official',
+        ],
+        answer: 1,
+        explain: 'Provenance first. The stories are carried as the speaker’s testimony and the verdicts as opinion; the rules the speaker names are checked against published sources.',
+      },
+      {
+        q: 'Which of these is a documented rule change for 2026-27?',
+        options: [
+          'College became free',
+          'Parent PLUS loans capped at 20,000 dollars a year and 65,000 in total, and Graduate PLUS ended for new borrowers',
+          'Pell Grants were abolished',
+        ],
+        answer: 1,
+        explain: 'Documented from university aid offices and NASFAA. The maximum Pell award did not fall; the new limits changed who is eligible.',
+      },
+      {
+        q: 'The speaker says the administration does not care about higher education. How does this lesson carry that?',
+        options: [
+          'As a documented fact',
+          'As the speaker’s opinion about motive, while the executive order to close the Department as far as the law allows is stated plainly as documented',
+          'As false',
+        ],
+        answer: 1,
+        explain: 'The order is a fact; what it shows about anyone’s heart is not. The Word keeps that court for Yahweh (Romans 14:4).',
+      },
+      {
+        q: 'What does Luke 14:28-30 counsel a family planning a degree?',
+        options: [
+          'Borrow whatever it takes',
+          'Count the whole cost before you begin, so you can finish',
+          'Never go to college',
+        ],
+        answer: 1,
+        explain: '"For which of you, intending to build a tower, sitteth not down first, and counteth the cost, whether he have sufficient to finish it?" (Luke 14:28). The worst outcome is the tower begun and not finished (Luke 14:30).',
+      },
+      {
+        q: 'How does the Word see a cap on borrowing?',
+        options: [
+          'Only as harm',
+          'As cutting both ways: the borrower is servant to the lender, so a cap protects some families, and a mid-degree gap is still a neighbor in need',
+          'Only as good',
+        ],
+        answer: 1,
+        explain: '"the borrower is servant to the lender" (Proverbs 22:7), and "let us not love in word, neither in tongue; but in deed and in truth" (1 John 3:18). Hold both.',
+      },
+      {
+        q: 'What does the Word ask of a church that knows a student with a gap?',
+        options: [
+          'Wait for the policy fight to end',
+          'Open its hand wide and help in deed, starting with what is already in the house',
+          'Tell the student to be warmed and filled',
+        ],
+        answer: 1,
+        explain: '"But thou shalt open thine hand wide unto him" (Deuteronomy 15:8); "what hast thou in the house?" (2 Kings 4:2); and James warns against words without help (James 2:16).',
+      },
+    ],
+  },
+};
+
+export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE, TUITION_1965_ISSUE, EPA_POWER_PLANT_ISSUE, SCOTUS_MAIL_IN_ISSUE, KENNEDY_CENTER_ISSUE, EVANSTON_REPARATIONS_ISSUE, TRADES_HIRING_ISSUE, NOBLE_BIOLOGY_ISSUE, APA_APOLOGY_ISSUE, HIGHER_ED_AID_ISSUE];
 
 // ---------------------------------------------------------------------------
 // Course-specific helpers — thin wrappers over the reusable discernment engine
