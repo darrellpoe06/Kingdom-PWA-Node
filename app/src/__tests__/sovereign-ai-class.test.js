@@ -18,9 +18,11 @@ import { tutorSystemPrompt } from '../lib/class-tutor.js';
 import { resolveForAge, lessonPlanForAge } from '../lib/learn-framework.js';
 
 describe('curriculum shape', () => {
-  it('has the full 29-week module set (week 29: the agent that went past the bound, forwarded 2026-09-28; week 27: the seed is in itself and every workflow seeds the next, spoken 2026-09-24; week 28: holding the hand of the process until it is finished, spoken 2026-09-24; week 25: the ten-day test and the one hidden in the ninety and nine, forwarded 2026-09-24; week 26: the roll the king burned and the roll written again, forwarded 2026-09-24)', () => {
-    expect(SOVEREIGN_AI_MODULES).toHaveLength(29);
-    expect(SOVEREIGN_AI_META.weeks).toBe(29);
+  it('has the full module set, counted from the data (week 31: whose errand does your agent carry, forwarded 2026-09-29; week 29: the agent that went past the bound, forwarded 2026-09-28; week 27: the seed is in itself and every workflow seeds the next, spoken 2026-09-24; week 28: holding the hand of the process until it is finished, spoken 2026-09-24; week 25: the ten-day test and the one hidden in the ninety and nine, forwarded 2026-09-24; week 26: the roll the king burned and the roll written again, forwarded 2026-09-24)', () => {
+    // DERIVED (DR-0677): the count comes from the data, so a new week never edits a count line.
+    // The floor keeps the course from silently shrinking (29 weeks on 2026-09-29, before sov30/sov31).
+    expect(SOVEREIGN_AI_MODULES.length).toBeGreaterThanOrEqual(29);
+    expect(SOVEREIGN_AI_META.weeks).toBe(SOVEREIGN_AI_MODULES.length);
     expect(SOVEREIGN_AI_MODULES.every((m) => m.id && m.title && m.bigIdea && m.inApp && m.anchor?.ref)).toBe(true);
     const ids = SOVEREIGN_AI_MODULES.map((m) => m.id);
     expect(ids).toContain('sov1-generator-in-the-garage');     // the thesis
@@ -36,6 +38,7 @@ describe('curriculum shape', () => {
     expect(ids).toContain('sov25-the-ten-day-test-and-the-one-hidden-in-the-ninety-and-nine'); // deployed is not released; Daniel's ten days; the one measured separately; never put the Word in a variant (forwarded 2026-09-24)
     expect(ids).toContain('sov26-the-roll-the-king-burned-and-the-roll-written-again');
     expect(ids).toContain('sov27-the-seed-is-in-itself-and-every-workflow-seeds-the-next'); // every workflow seeds the next; the data is the proof of the whole (spoken 2026-09-24)
+    expect(ids).toContain('sov31-whose-errand-does-your-agent-carry'); // one Mediator; Abraham's servant; no man can serve two masters; the owner answers for what he sets loose (forwarded 2026-09-29)
     expect(ids).toContain('sov29-the-agent-that-went-past-the-bound'); // agents chase the goal, not your rules; Yahweh sets the bound; proved before trusted (forwarded 2026-09-28)
     expect(ids).toContain('sov28-holding-the-hand-of-the-process-until-it-is-finished'); // not just flagged - analyzed, fixed and done; nothing discarded (spoken 2026-09-24) // disaster recovery that has been restored; the Word is not our data (forwarded 2026-09-24)
   });
@@ -174,16 +177,16 @@ describe('no fabrication of the "provider banned a model" scenario (DR-0076)', (
 describe('shared machinery (computed timeline, progress, export, cohort, tutor)', () => {
   it('the timeline is COMPUTED (not painted) from the cohort start', () => {
     const sched = buildSovereignAiSchedule('2026-08-01');
-    expect(sched).toHaveLength(29);
+    expect(sched).toHaveLength(SOVEREIGN_AI_MODULES.length);
     expect(sched[0].week).toBe(1);
     expect(sched[0].date instanceof Date).toBe(true);
     expect(sched[1].date.getTime() - sched[0].date.getTime()).toBe(7 * 86400000);
   });
   it('progress is counted from the real record', () => {
     const r = sovereignAiProgressSummary({ 'sov1-generator-in-the-garage': true, 'sov2-what-a-model-costs-to-run': true });
-    expect(r.total).toBe(29);
+    expect(r.total).toBe(SOVEREIGN_AI_MODULES.length);
     expect(r.done).toBe(2);
-    expect(r.pct).toBe(7);   // Math.round(2 / 29 * 100) === 7 (6.90… rounds up), and 7 at 28 weeks (7.14… rounds down); 8 at 24 and 26 weeks, 9 at 22 and 23
+    expect(r.pct).toBe(Math.round((2 / SOVEREIGN_AI_MODULES.length) * 100)); // derived (DR-0677): 7 at 29 weeks, 7 at 30, 6 at 31
   });
   it('the cohort starts PROPOSED (not confirmed) until Darrell locks it', () => {
     expect(SOVEREIGN_AI_CONFIRMED_COHORT.confirmed).toBe(false);
