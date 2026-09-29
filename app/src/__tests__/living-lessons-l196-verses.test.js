@@ -17,9 +17,10 @@
 //      per movement, per mark (its own scene / inside the fifty-four / the
 //      writer's own word), the five-movement total, and movement six's three
 //      parts; a fresh scene is counted in one movement only;
-//   3. every "inside the fifty-four: occasion n" names a real L194 occasion;
+//   3. every "inside the fifty-eight: occasion n" names a real L194 occasion;
 //   4. every quoted span is the verse it names, on every surface;
-//   5. the four scenes found on the way are named and not counted;
+//   5. the four scenes found on the way were counted in L194 by the same rule
+//      (DR-0673): its occasions 20, 44, 49 and 51, fifty-eight in all;
 //   6. the register gates, measured.
 // Each structural check is PROVEN TO CATCH on a deliberately broken copy.
 import { describe, it, expect } from 'vitest';
@@ -47,7 +48,7 @@ const ALL = () => quotedTexts(L()).map(([, t]) => t).join(' ');
 // ---------------------------------------------------------------------------
 const MARK_OWN = 'Its own scene.';
 const MARK_WRITER = "The writer's own word.";
-const MARK_INSIDE = /Inside the fifty-four: occasion (\d+)\.$/;
+const MARK_INSIDE = /Inside the fifty-eight: occasion (\d+)\.$/;
 
 function entries(lesson) {
   const text = String(lesson);
@@ -57,7 +58,7 @@ function entries(lesson) {
     // An entry's body stops at the next heading, or at the next ALL-CAPS section
     // head (a movement close, NAMED, PART, FOUND ON THE WAY, THE COUNT).
     let body = text.slice(h.index, end);
-    const cut = body.slice(h[0].length).search(/ (MOVEMENT [A-Z]+[,:]|NAMED, NOT COUNTED\.|PART [A-Z]+:|FOUND ON THE WAY\.|THE COUNT, CHECKED\.)/);
+    const cut = body.slice(h[0].length).search(/ (MOVEMENT [A-Z]+[,:]|NAMED, NOT COUNTED\.|PART [A-Z]+:|COUNTED AGAIN IN L194\.|THE COUNT, CHECKED\.)/);
     if (cut >= 0) body = body.slice(0, h[0].length + cut);
     body = body.trim();
     const kind = h[2] ? 'occasion' : h[4] ? 'witness' : 'foretold';
@@ -83,7 +84,7 @@ const WORDS = ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX'];
 // The stated close of movements one to five, as numbers.
 function statedMovementCounts(lesson) {
   const out = {};
-  for (const m of String(lesson).matchAll(/MOVEMENT (ONE|TWO|THREE|FOUR|FIVE), COUNTED: (\d+) occasions; (\d+) in scenes of their own, (\d+) inside the fifty-four(?:, (\d+) in the writers' own words)?\./g)) {
+  for (const m of String(lesson).matchAll(/MOVEMENT (ONE|TWO|THREE|FOUR|FIVE), COUNTED: (\d+) occasions; (\d+) in scenes of their own, (\d+) inside the fifty-eight(?:, (\d+) in the writers' own words)?\./g)) {
     out[WORDS.indexOf(m[1]) + 1] = { total: +m[2], own: +m[3], inside: +m[4], writer: m[5] ? +m[5] : 0 };
   }
   return out;
@@ -128,12 +129,12 @@ describe('L196 is really in the series, and it and L194 point at each other', ()
     expect(LIVING_LESSONS_MODULES.slice(i196 + 1).every((m) => Number(/^ll(\d+)-/.exec(m.id)[1]) > 196)).toBe(true);
   });
 
-  it('L194 carries ONE line pointing here, placed right after its six exclusions, and its fifty-four stand', () => {
+  it('L194 carries ONE line pointing here, placed right after its six exclusions, and holds fifty-eight after the recount', () => {
     const l = L194().lesson;
     const line = 'All the rest: L196, I AM: What the Rest of the Word Tells About Him — Every Occasion the Rule Left Out, walks every one of these six kinds by the same rule.';
     expect(l.split('All the rest: L196').length - 1).toBe(1);
     expect(l).toContain(`A reader who counts them in will reach a larger number, never a different Christ. ${line}`);
-    expect(l).toMatch(/By that rule the four Gospels record fifty-four occasions\./);
+    expect(l).toMatch(/By that rule the four Gospels record fifty-eight occasions\./);
   });
 
   it('L196 names L194 by its number and title at its start', () => {
@@ -176,7 +177,7 @@ describe('the rule is L194’s, kept the same', () => {
     expect(l).toContain('An occasion is still one scene, meaning one time, one place and one set of hearers.');
     expect(l).toContain('the parallels are joined and every reference is given');
     expect(l).toContain('Its own scene means L194 never walked that scene at all.');
-    expect(l).toContain('Inside the fifty-four means the words sit inside one of L194\'s scenes');
+    expect(l).toContain('Inside the fifty-eight means the words sit inside one of L194\'s scenes');
     expect(l).toContain('The writer\'s own word means a Gospel writer says it in his own telling');
     expect(l).toContain('it is counted once, in the movement where most of its words belong, and the other movement points to it');
     expect(l).toContain('Three things are named and not counted anywhere');
@@ -208,7 +209,7 @@ describe('every count is derived from the numbered entries, never typed beside t
     const l = L().lesson;
     const d = Object.values(derivedMovementCounts(entries(l)));
     const sum = (k) => d.reduce((t, c) => t + c[k], 0);
-    const m = l.match(/the first five movements gather (\d+) occasions: (\d+), (\d+), (\d+), (\d+) and (\d+)\. Of those, (\d+) stand in scenes of their own that L194 never walked, (\d+) sit inside its fifty-four, and (\d+) are the writers' own words\./);
+    const m = l.match(/the first five movements gather (\d+) occasions: (\d+), (\d+), (\d+), (\d+) and (\d+)\. Of those, (\d+) stand in scenes of their own that L194 never walked, (\d+) sit inside its fifty-eight, and (\d+) are the writers' own words\./);
     expect(m, 'the count sentence must be present').toBeTruthy();
     expect(+m[1]).toBe(sum('total'));
     expect([+m[2], +m[3], +m[4], +m[5], +m[6]]).toEqual(d.map((c) => c.total));
@@ -243,11 +244,11 @@ describe('every count is derived from the numbered entries, never typed beside t
     expect(new Set(own).size).toBe(own.length);
   });
 
-  it('every "inside the fifty-four" names a real L194 occasion (1..54)', () => {
+  it('every "inside the fifty-eight" names a real L194 occasion (1..58)', () => {
     const inside = entries(L().lesson).filter((e) => e.mark === 'inside');
     expect(inside.length).toBeGreaterThan(0);
     const real = new Set([...L194().lesson.matchAll(/OCCASION (\d+): /g)].map((x) => Number(x[1])));
-    expect(real.size).toBe(54);
+    expect(real.size).toBe(58);
     for (const e of inside) expect(real.has(e.inside), `${e.movement}.${e.k} names occasion ${e.inside}`).toBe(true);
   });
 
@@ -258,7 +259,7 @@ describe('every count is derived from the numbered entries, never typed beside t
     expect(inOrder(entries(dropped), 2)).toBe(false);
     expect(statedMovementCounts(dropped)).not.toEqual(derivedMovementCounts(entries(dropped)));
     // 2. One mark changed: movement three's split no longer matches what it states.
-    const remarked = l.replace('"Is not this the son of David?" (Matthew 12:23). Inside the fifty-four: occasion 16.', '"Is not this the son of David?" (Matthew 12:23). Its own scene.');
+    const remarked = l.replace('"Is not this the son of David?" (Matthew 12:23). Inside the fifty-eight: occasion 16.', '"Is not this the son of David?" (Matthew 12:23). Its own scene.');
     expect(remarked).not.toBe(l);
     expect(statedMovementCounts(remarked)).not.toEqual(derivedMovementCounts(entries(remarked)));
     // 3. A count typed by hand beside the list: caught.
@@ -266,7 +267,7 @@ describe('every count is derived from the numbered entries, never typed beside t
     expect(typed).not.toBe(l);
     expect(statedMovementCounts(typed)).not.toEqual(derivedMovementCounts(entries(typed)));
     // 4. A mark pointing at an occasion L194 does not have.
-    const ghost = entries(l.replace('Inside the fifty-four: occasion 53.', 'Inside the fifty-four: occasion 55.'));
+    const ghost = entries(l.replace('Inside the fifty-eight: occasion 57.', 'Inside the fifty-eight: occasion 59.'));
     const real = new Set([...L194().lesson.matchAll(/OCCASION (\d+): /g)].map((x) => Number(x[1])));
     expect(ghost.some((e) => e.mark === 'inside' && !real.has(e.inside))).toBe(true);
   });
@@ -348,16 +349,31 @@ describe('the movements carry the Word they name', () => {
     ]) carries(s);
   });
 
-  it('the scenes found on the way are named, not counted, and L194 is not silently changed', () => {
+  it('the scenes found on the way were counted in L194 by the same rule, and each points at a real L194 occasion', () => {
     const l = L().lesson;
-    const found = l.slice(l.indexOf('FOUND ON THE WAY.'), l.indexOf('THE COUNT, CHECKED.'));
-    expect(found.length).toBeGreaterThan(0);
-    for (const s of ['O my Father, if it be possible, let this cup pass from me', 'Father, forgive them; for they know not what they do', 'Father, into thy hands I commend my spirit', 'A prophet is not without honour, but in his own country']) {
-      expect(found).toContain(s);
+    const again = l.slice(l.indexOf('COUNTED AGAIN IN L194.'), l.indexOf('THE COUNT, CHECKED.'));
+    expect(again.length).toBeGreaterThan(0);
+    expect(again).not.toMatch(/OCCASION \d/);
+    expect(again).toContain('as its occasions 20, 44, 49 and 51, and L194 holds fifty-eight');
+    const parts = L194().lesson.split(/OCCASION \d+: /);
+    for (const [n, s, ref] of [
+      [44, 'O my Father, if it be possible, let this cup pass from me', 'Matthew 26:39'],
+      [49, 'Father, forgive them; for they know not what they do', 'Luke 23:34'],
+      [51, 'Father, into thy hands I commend my spirit', 'Luke 23:46'],
+      [20, 'A prophet is not without honour, but in his own country', 'Mark 6:4'],
+    ]) {
+      expect(again).toContain(s);
+      expect(again).toContain(`(${ref})`);
+      expect(parts[n], `L194 occasion ${n} carries ${ref}`).toContain(s);
+      expect(parts[n]).toContain(`(${ref})`);
     }
-    expect(found).toContain('They are named here and not counted in this lesson');
-    expect(found).not.toMatch(/OCCASION \d/);
-    expect(found).toContain('A reader who counts them in will reach a larger number, never a different Christ.');
+    // Gethsemane is no longer a fresh scene here: it is inside L194's occasion 44.
+    const geth = entries(l).find((e) => e.head.startsWith('GETHSEMANE'));
+    expect(geth.mark).toBe('inside');
+    expect(geth.inside).toBe(44);
+    // No fresh scene of L196 overlaps the verses of L194's new cross occasions.
+    const mockers = entries(l).find((e) => e.head.startsWith('THE MOCKERS AT THE CROSS'));
+    expect(mockers.refs).toBe('Matthew 27:39-44; Mark 15:29-32; Luke 23:35-37');
   });
 
   it('teaches the Word by the Word: Yahweh’s words applied to Jesus are shown side by side', () => {

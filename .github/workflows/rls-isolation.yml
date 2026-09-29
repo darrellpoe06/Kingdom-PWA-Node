@@ -134,6 +134,14 @@ jobs:
           - feature: saved-prompts
             migrations: "0232-your-prompts-are-kept-dated-and-yours-alone.sql"
             smokes: "0232-saved-prompts-smoke.sql"
+          # Added 2026-09-29 (DR-0671): the tower parity tables are the
+          # Governor's alone. A member and anon read nothing; nobody signed in
+          # writes a score; only the Governor holds a promotion, and a held
+          # ready writer stays 'ready' until he releases it. Rides 0237's
+          # is_lesson_governor(), already live.
+          - feature: lesson-parity
+            migrations: "0240-a-tower-writer-is-measured-against-the-reference-until-it-matches.sql"
+            smokes: "0240-lesson-parity-smoke.sql"
           # Added 2026-09-24 (DR-0625): every intake carried to an outcome. A
           # sender cannot write an outcome onto their own note; the owner writes
           # it and the sender reads it; the fix queue is the stewards' room —
