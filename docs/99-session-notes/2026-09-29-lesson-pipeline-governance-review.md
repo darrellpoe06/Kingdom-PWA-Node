@@ -25,7 +25,7 @@ The pattern across the pipeline is Exodus 18:18 again. Too much of the pipeline'
 
 | # | dimension | result |
 | --- | --- | --- |
-| 1 | SHOULD/ARE (DR-0219) | Run, and traced below. SHOULD comes from DR-0312, 0608, 0610, 0611, 0614, 0635, 0639 and 0667; ARE comes from the Routines, the rows, the runs and the code. Gaps LP-01 to LP-14. |
+| 1 | SHOULD/ARE (DR-0219) | Run, and traced below. SHOULD comes from DR-0312, 0608, 0610, 0611, 0614, 0635, 0639 and 0667; ARE comes from the Routines, the rows, the runs and the code. Gaps LP-01 to LP-14 and LP-17. |
 | 2 | Journey walks | Walked in code, not on a device. (1) Darrell speaks a lesson on his phone, and the lesson later appears in Learn. (2) A member sends a situation, the Governor approves or declines, and the member reads the outcome. (3) Darrell forwards an email marked "Lesson". Journey 1 took 85 h 26 min on its slowest row (LP-01). No live device walk was possible: the sandbox has no route to poetech.us (DR-0125). |
 | 3 | Surface-says-truth | Two defects. "Published: open it" can point to a lesson that is not live yet (LP-03). The Governor's queue labelled a credentials item Tier A (LP-15, fixed). |
 | 4 | Form-factor | The new findings section is one column. Every cell is its own line with `break-words`/`break-all` on long evidence, and there is no table on the phone. It is not measured in a browser here: the chrome-layout probe runs in CI on the PR. |
@@ -33,7 +33,7 @@ The pattern across the pipeline is Exodus 18:18 again. Too much of the pipeline'
 | 6 | Findings are a work queue | Every finding ends as fixed in this PR, fix now by a named system, or carried by a named lane with a date and the reason it waits (table below). |
 | 7 | Gate the class | Two new gates, both proven to catch: `governance-queue-parse.test.jsx` (5 of 5 breaks caught across both gates) and `ari-guard-dimensions.test.js`. |
 | 8 | The Word's accuracy | The only Scripture here is Exodus 18:18, quoted from PM11 as the lesson carries it. PM11's verses are pinned by `lesson-door-and-pm11.test.js`. No claim is made across verses. |
-| 9 | The surface is not hollow | The authored asset of the new section is the findings table. `governance-queue-parse.test.jsx` asserts that the real file's lesson-pipeline group arrives with 16 findings, each with evidence, an owner and a close, and that the empty state renders only when there are no reviews. |
+| 9 | The surface is not hollow | The authored asset of the new section is the findings table. `governance-queue-parse.test.jsx` asserts that the real file's lesson-pipeline group arrives with 17 findings, each with evidence, an owner and a close, and that the empty state renders only when there are no reviews. |
 | 10 | Continuity | The flow's live numbers: 10 lesson rows written; the newest `2026-09-29 00:01:13Z`; 10 of 10 tagged captured; 7 tagged published, but only 2 of those are live (LP-03); 0 carried back (`published-returned` 0 of 7 at 04:42Z). The reader's output does not yet seed the app's own row (LP-02). |
 
 ## Measurements
@@ -98,6 +98,7 @@ Ranked. The same rows appear in the app (Projects → ⚖ Decisions → Review f
 | LP-02 | Capture state is jsonb tags on the mirror only, with no time; the lock never returns to the app's row. | no `captured_at` (information_schema); `infra/nas-lesson-voice/lesson_voice_transcribe.py:518` carries only published tags back | high | DR-0669 lane (lesson_decisions) | carried by DR-0669; re-review: 2026-10-01 |
 | LP-03 | `lesson-published` is written before the lesson is live (5 of 7). | rows a0309835, f217103d, 4a1a43b3, 83dc69fc, 7eabab32; PRs #1833 to #1835 not merged | high | coordinator (prompt) + DR-0668 lane (Your lessons) | fix now: tag published only after the deploy SHA matches main; carried by DR-0668 |
 | LP-04 | Parallel lesson PRs serialize on shared literal count pins; DR-0667's up-front numbering has no mechanism. | `learn-crosslist.test.js:319` (19 edits since 09-20); keep-prs-current 36522715781 refused #1833 and #1834; L195's 12 red runs; L193 to L195 took 218 to 290 min | high | lane infrastructure | re-review: 2026-10-01, after #1833 to #1835 land |
+| LP-17 | Parallel branches choose DR numbers as "the next free one", and they keep colliding. DR-0668 was held for the your-lessons-live lane and taken by PR #1836. The coordinator has assigned DR numbers centrally since this review; nothing in the repo yet knows which numbers are held. | PR #1836 "(DR-0668)" opened 05:19:56Z; INDEX Next ID read DR-0668 at d890e8b6; earlier pairs 0642/0652, 0655/0656, 0657/0659, and the 0337 double mint (REV-0252); caught only after the fact (`ledger-uniqueness.test.js:59`) | high | coordinator (central assignment) | carried by the central assignment from 2026-09-29; re-review: 2026-10-06 (a held-numbers file the ledger guard reads) |
 | LP-05 | 32 of 49 red or approval-waiting runs had zero jobs: phantom red on every lesson PR. | CI 36518708890 and Auto-merge 36518708884 (0 jobs) beside green push CI 36518683659 | medium | lane infrastructure | re-review: 2026-10-01 (DR-0107 proof obligation) |
 | LP-06 | Scheduled witnesses do not keep their schedules: site-health `*/10` fired 8 times in 32 h; the mail watcher's `*/5` ran 2.9 to 7.0 h apart. | site-health runs 09-27 17:14Z to 09-29 01:13Z | medium | lane infrastructure | re-review: 2026-10-07 |
 | LP-07 | The email lane searches `newer_than:7d`, so an unlabeled Lesson email older than a week is never seen again. | email Routine prompt; DR-0312:30 | medium | coordinator | fix now: remove the window; the label is the ledger |
@@ -265,7 +266,7 @@ No date is given that the record cannot ground. Durations come from the measured
 
 **Darrell as Governor.** Projects → ⚖ Decisions shows:
 1. the member lesson queue (`Projects.jsx:388`),
-2. then the decision queue (`Projects.jsx:389`), now followed by **Review findings**: this review's 16 rows, each with its evidence, its owner and its close.
+2. then the decision queue (`Projects.jsx:389`), now followed by **Review findings**: this review's 17 rows, each with its evidence, its owner and its close.
 
 Why there: it is where he already decides (DR-0635). Findings stay visually and textually apart from decisions, so the count "these are the N that do" stays true.
 
@@ -282,7 +283,7 @@ Why there: it is where he already decides (DR-0635). Findings stay visually and 
 | Member review | Governor-only SECURITY DEFINER functions (0237, 0238); smoke tests in the RLS matrix; 13 + 19 app tests | — | `lesson-approved` / `lesson-declined` tags, `review_reason` |
 | **Reader capture** | the lesson's quality: verse pins, full suite, CI | which rows to take; skip rows a build owns; one teaching, one lesson; placement; the name rules; the capture tag written after the push; numbers "up front" | the `lesson-captured` tag **on the hosted copy only**; **session memory** for rows in flight |
 | Email lane | — | the search, the parallelism, the label written after the push | the Gmail label `Label_22` |
-| Lesson and DR numbers | caught after the fact: `ledger-uniqueness.test.js:59`, `living-lessons-id-collision.test.js:96`, `business-systems-guard.mjs:54` | "assign up front" (prompt) | the files on main; prose "held" notes in INDEX |
+| Lesson and DR numbers | caught after the fact: `ledger-uniqueness.test.js:59`, `living-lessons-id-collision.test.js:96`, `business-systems-guard.mjs:54` | "assign up front" (prompt); from 2026-09-29 the coordinator assigns DR numbers centrally (a session-held list) | the files on main; prose "held" notes in INDEX |
 | Lane | required checks, auto-merge, the deploy dispatch, keep-prs-current (ledger files only) | — | GitHub |
 | Governor queue and findings | `governance-queue-parse.test.jsx` (new) | — | `docs/governance/decision-queue.md` |
 
@@ -291,7 +292,7 @@ Why there: it is where he already decides (DR-0635). Findings stay visually and 
 1. **Rows a running build owns:** session memory only.
 2. **Darrell's two account ids:** hard-coded in the voice Routine's prompt. The app's identity lives in `lesson_governor_emails()`. The two can disagree.
 3. **Placement, the one-teaching search, the test-row judgment, and the member name rules:** prompt text. The member rule is also `READER_PROTOCOL_FOR_MEMBER_ROWS` in `member-lesson-review.js`, but nothing checks that the live prompt still matches it.
-4. **Lesson and DR number allocation:** prompt text. It has collided before (DR-0642/0652, 0655/0656, 0657/0659, and the 0337 double mint recorded in REV-0252). Today it produced #1834 and #1835 `dirty`.
+4. **Lesson and DR number allocation:** prompt text. It has collided before (DR-0642/0652, 0655/0656, 0657/0659, and the 0337 double mint recorded in REV-0252). Today it produced #1834 and #1835 `dirty`, and PR #1836 took DR-0668, which was held for another lane (LP-17).
 5. **What each firing did:** chat only; the trigger keeps `last_run` alone.
 6. **The capture lock:** hosted only; never returned to the row the app shows.
 
@@ -308,7 +309,7 @@ Why there: it is where he already decides (DR-0635). Findings stay visually and 
    - findings not rendered (1);
    - the guard losing dimension 9 (2);
    - CLAUDE.md back to "eight" (1).
-5. **No new DR.** No Way changed: the gates extend existing Ways (DR-0239, DR-0061/0065), and the queue file stays the one source. So no number was taken while DR-0661 to DR-0671 are held.
+5. **No new DR.** No Way changed: the gates extend existing Ways (DR-0239, DR-0061/0065), and the queue file stays the one source. The coordinator offered DR-0674 from its central assignment; it was not needed, so no number was taken (0668 to 0673 and 0675 are taken or held).
 
 **Not fixed here, with the why:**
 - LP-04 would touch the count files of four lessons in flight.
