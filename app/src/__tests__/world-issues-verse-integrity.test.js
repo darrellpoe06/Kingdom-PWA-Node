@@ -2079,3 +2079,183 @@ describe('Issue 17 — Biology walks back the selfish gene: every fragment verba
     expect(issue.levels.child).toMatch(/never make fun of scientists/i);
   });
 });
+
+// =============================================================================
+// Issue 18 — The psychologists’ 2021 apology (DR-0665). Darrell read a prepared
+// text aloud (2026-09-27, Whisper small on the NAS CPU) and typed it again the
+// next day. Every Scripture fragment below was fetched from app/public/bible/kjv
+// before it was written, and is generated from the issue’s own "..." (Ref)
+// spans so the list cannot go stale.
+// =============================================================================
+const APA_APOLOGY_QUOTES = [
+  { ref: 'Exodus 23:1', book: 'Exodus', ch: 23, v: 1, fragments: [
+    'Thou shalt not raise a false report',
+  ] },
+  { ref: 'Jeremiah 6:14', book: 'Jeremiah', ch: 6, v: 14, fragments: [
+    'They have healed also the hurt of the daughter of my people slightly, saying, Peace, peace; when there is no peace',
+    'slightly',
+    'have healed also the hurt of the daughter of my people slightly',
+    'They have healed also the hurt of the daughter of my people slightly',
+  ] },
+  { ref: 'Acts 17:26', book: 'Acts', ch: 17, v: 26, fragments: [
+    'hath made of one blood all nations of men',
+    'And hath made of one blood all nations of men for to dwell on all the face of the earth',
+    'And hath made of one blood all nations of men',
+  ] },
+  { ref: 'Genesis 1:27', book: 'Genesis', ch: 1, v: 27, fragments: [
+    'So God created man in his own image, in the image of God created he him',
+    'So God created man in his own image',
+  ] },
+  { ref: 'Psalms 139:14', book: 'Psalms', ch: 139, v: 14, fragments: [
+    'I will praise thee; for I am fearfully and wonderfully made',
+    'I am fearfully and wonderfully made',
+  ] },
+  { ref: 'Deuteronomy 10:17', book: 'Deuteronomy', ch: 10, v: 17, fragments: [
+    'regardeth not persons, nor taketh reward',
+  ] },
+  { ref: 'Acts 10:34', book: 'Acts', ch: 10, v: 34, fragments: [
+    'Of a truth I perceive that God is no respecter of persons',
+  ] },
+  { ref: 'James 2:9', book: 'James', ch: 2, v: 9, fragments: [
+    'But if ye have respect to persons, ye commit sin',
+  ] },
+  { ref: 'Proverbs 24:23', book: 'Proverbs', ch: 24, v: 23, fragments: [
+    'It is not good to have respect of persons in judgment',
+  ] },
+  { ref: '1 Timothy 6:20', book: '1Timothy', ch: 6, v: 20, fragments: [
+    'oppositions of science falsely so called',
+  ] },
+  { ref: 'Colossians 2:8', book: 'Colossians', ch: 2, v: 8, fragments: [
+    'through philosophy and vain deceit, after the tradition of men',
+  ] },
+  { ref: 'Exodus 23:2', book: 'Exodus', ch: 23, v: 2, fragments: [
+    'Thou shalt not follow a multitude to do evil; neither shalt thou speak in a cause to decline after many to wrest judgment',
+  ] },
+  { ref: 'Proverbs 28:13', book: 'Proverbs', ch: 28, v: 13, fragments: [
+    'He that covereth his sins shall not prosper: but whoso confesseth and forsaketh them shall have mercy',
+    'whoso confesseth and forsaketh them shall have mercy',
+  ] },
+  { ref: 'Numbers 5:7', book: 'Numbers', ch: 5, v: 7, fragments: [
+    'Then they shall confess their sin which they have done: and he shall recompense his trespass with the principal thereof, and add unto it the fifth part thereof',
+    'with the principal thereof, and add unto it the fifth part thereof',
+    'he shall recompense his trespass with the principal thereof, and add unto it the fifth part thereof',
+  ] },
+  { ref: 'Luke 19:8', book: 'Luke', ch: 19, v: 8, fragments: [
+    'I restore him fourfold',
+  ] },
+  { ref: 'Matthew 3:8', book: 'Matthew', ch: 3, v: 8, fragments: [
+    'fruits meet for repentance',
+  ] },
+  { ref: 'Luke 12:2', book: 'Luke', ch: 12, v: 2, fragments: [
+    'For there is nothing covered, that shall not be revealed; neither hid, that shall not be known',
+  ] },
+  { ref: 'Ecclesiastes 12:14', book: 'Ecclesiastes', ch: 12, v: 14, fragments: [
+    'For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil',
+    'For God shall bring every work into judgment',
+  ] },
+  { ref: 'Revelation 20:12', book: 'Revelation', ch: 20, v: 12, fragments: [
+    'and the dead were judged out of those things which were written in the books, according to their works',
+  ] },
+];
+
+describe('Issue 18 — The psychologists’ 2021 apology: every fragment verbatim from the repo KJV', () => {
+  const issue = WORLD_ISSUES.find((i) => i.id === 'wi-apa-2021-apology-and-the-one-blood');
+  const norm = (s) => s.replace(/[’‘]/g, "'").replace(/\s+/g, ' ');
+
+  it('the issue is published', () => {
+    expect(issue).toBeTruthy();
+    expect(WORLD_ISSUES.includes(issue)).toBe(true);
+  });
+
+  it('every quoted fragment is a verbatim substring of the cited KJV verse', () => {
+    const failures = [];
+    for (const q of APA_APOLOGY_QUOTES) {
+      const text = kjvVerse(q.book, q.ch, q.v);
+      for (const frag of q.fragments) {
+        if (!norm(text).includes(norm(frag))) failures.push(`${q.ref}: NOT VERBATIM — "${frag}" (verse reads: "${text}")`);
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it('EVERY "..." (Ref) span in the issue, on every field, is verbatim in the verse it names', () => {
+    // The fragment list above can hide a tamper when the same words appear
+    // twice; this reads the issue itself, span by span, so one changed word
+    // anywhere fails.
+    const text = JSON.stringify(issue).replace(/\\"/g, '"');
+    const re = /"([^"]+)"\s*\(([1-3]?\s?[A-Za-z]+(?: of [A-Za-z]+)*)\s+(\d+):(\d+)(?:-(\d+))?\)/g;
+    const bad = [];
+    let n = 0;
+    for (const m of text.matchAll(re)) {
+      const [, span, book, ch, a, b] = m;
+      const vs = [];
+      for (let v = Number(a); v <= Number(b || a); v += 1) vs.push(kjvVerse(book.replace(/ /g, ''), Number(ch), v));
+      n += 1;
+      if (!norm(vs.join(' ')).includes(norm(span))) bad.push(`${book} ${ch}:${a}: "${span}"`);
+    }
+    expect(n, 'a low count means the scan broke').toBeGreaterThan(20);
+    expect(bad).toEqual([]);
+  });
+
+  it('every fragment actually appears in the issue content (no stale list)', () => {
+    const blob = norm(JSON.stringify(issue));
+    const missing = APA_APOLOGY_QUOTES.flatMap((q) => q.fragments.filter((f) => !blob.includes(norm(f))).map((f) => `${q.ref}: "${f}"`));
+    expect(missing).toEqual([]);
+    expect(APA_APOLOGY_QUOTES.length).toBeGreaterThan(15);
+  });
+
+  it('PROVEN-TO-CATCH: a one-word tamper in the anchor verses fails', () => {
+    const blood = kjvVerse('Acts', 17, 26);
+    expect(norm(blood).includes(norm('hath made of one race all nations of men'))).toBe(false);
+    expect(norm(blood).includes(norm('hath made of one blood all nations of men'))).toBe(true);
+    const confess = kjvVerse('Proverbs', 28, 13);
+    expect(norm(confess).includes(norm('whoso confesseth and repeateth them shall have mercy'))).toBe(false);
+    expect(norm(confess).includes(norm('whoso confesseth and forsaketh them shall have mercy'))).toBe(true);
+  });
+
+  it('states the confession plainly as documented, from the institution itself', () => {
+    const f = issue.verifiable.find((v) => v.id === 'f-apology-adopted');
+    expect(f.status).toBe('documented');
+    expect(f.statement).toMatch(/2021-10-29/);
+    expect(f.statement).toMatch(/Apology to People of Color/);
+    expect(issue.verifiable.find((v) => v.id === 'f-terman-goddard').status).toBe('documented');
+    expect(issue.interpretation.find((n) => n.id === 'n-their-own-confession').statement).toMatch(/under-claiming a confessed truth/);
+  });
+
+  it('checks the "word for word" quotation and does NOT confirm it, narrowly', () => {
+    const c = issue.claims.find((x) => x.id === 'c-word-for-word');
+    expect(c.label).toBe('claim');
+    expect(c.note).toMatch(/NOT CONFIRMED AS WORDED/);
+    const f = issue.verifiable.find((v) => v.id === 'f-wording-differs');
+    expect(f.status).toBe('partly-documented');
+    expect(f.statement).toMatch(/not as proven absent/);
+  });
+
+  it('carries the undelivered biomarker promise as nothing, and Darrell’s question as his opinion', () => {
+    expect(issue.claims.find((x) => x.id === 'c-biomarkers').note).toMatch(/never delivered/);
+    const q = issue.claims.find((x) => x.id === 'c-not-as-loud');
+    expect(q.label).toBe('opinion');
+    expect(q.attribution).toMatch(/^Darrell/);
+  });
+
+  it('states its provenance: read aloud, Whisper on our own NAS, apa.org blocked and excerpts labeled', () => {
+    expect(issue.source.note).toMatch(/Whisper, the small model, on the NAS CPU/);
+    expect(issue.source.note).toMatch(/author is not named/);
+    expect(issue.source.note).toMatch(/could not be opened from our build environment/);
+    expect(issue.limits.map((l) => l.id)).toEqual(['lim-read-aloud', 'lim-apa-unopened', 'lim-cut-off']);
+  });
+
+  it('Word first, both courts, and a grace note that names every real person', () => {
+    expect(issue.lens.fourD.deepSource.indexOf('WORD FIRST — ONE BLOOD')).toBe(0);
+    expect(issue.lens.accountability.scripture).toMatch(/Ecclesiastes 12:14/);
+    expect(issue.lens.benefits.some((b) => /eternal court/.test(b) && /after this life/.test(b))).toBe(true);
+    for (const name of ['Terman', 'Goddard', 'American Psychological Association']) expect(issue.lens.graceNote).toContain(name);
+    expect(issue.lens.graceNote).toMatch(/No condemnation/);
+  });
+
+  it('keeps our voice on Yahweh and the adversary lowercase', () => {
+    const ours = [issue.skill, issue.lens.threeD, issue.lens.graceNote, issue.lens.stewardship, issue.lens.accountability.statement, ...issue.lens.benefits, ...issue.reflection.prompts, issue.levels.child, issue.levels.teen, issue.levels.senior].join(' ');
+    expect(/\bGod\b/.test(ours.replace(/"[^"]*"/g, ''))).toBe(false);
+    expect(/\b(Satan|Lucifer|Devil)\b/.test(ours)).toBe(false);
+  });
+});
