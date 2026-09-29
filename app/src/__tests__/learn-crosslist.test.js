@@ -318,9 +318,11 @@ describe('a pointer, never a copy', () => {
     // existing course, so only the total moves.
     // And to 727 on 2026-09-29 for pm12 (Titles and fruits, DR-0664), a lesson into an
     // existing course, so only the total moves.
-    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(727);
+    // And to 728 on 2026-09-29 for World Issues issue 18 (the psychologists’ 2021 apology, DR-0665), a lesson into an
+    // existing course, so only the total moves.
+    expect(courses.reduce((t, c) => t + courseLessonCount(c), 0)).toBe(728);
     const depts = learnDepartments(courses);
-    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(727);
+    expect(depts.reduce((t, d) => t + d.lessons, 0)).toBe(728);
   });
 
   it('and the totals move ONLY for a real course — a cross-listing adds nothing', () => {

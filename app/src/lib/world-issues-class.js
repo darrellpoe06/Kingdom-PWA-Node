@@ -70,7 +70,7 @@ export const WORLD_ISSUES_META = {
   },
   format: 'Self-paced · one issue at a time · media literacy + biblical discernment · paced to your age',
   cadenceDays: 7,
-  weeks: 17, // seventeen published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex · the two aftermaths · the law of assumption · victorious emotions · college tuition and the 1965 Act · the EPA power-plant rules · the SCOTUS mail-in ruling · the Kennedy Center · Evanston's reparations · the trades are hiring · biology walks back the selfish gene); the track grows as issues are added
+  weeks: 18, // eighteen published issues (Musk critique · beauty-supply boycott · The Game Changers · the prophetic-lens Musk video · the medical-establishment critique · the AI-empire journalism · the prison industrial complex · the two aftermaths · the law of assumption · victorious emotions · college tuition and the 1965 Act · the EPA power-plant rules · the SCOTUS mail-in ruling · the Kennedy Center · Evanston's reparations · the trades are hiring · biology walks back the selfish gene · the psychologists’ 2021 apology); the track grows as issues are added
   handsOnLabel: 'Practice the skill',
   unit: {
     noun: 'issue',
@@ -4727,7 +4727,341 @@ const NOBLE_BIOLOGY_ISSUE = {
   },
 };
 
-export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE, TUITION_1965_ISSUE, EPA_POWER_PLANT_ISSUE, SCOTUS_MAIL_IN_ISSUE, KENNEDY_CENTER_ISSUE, EVANSTON_REPARATIONS_ISSUE, TRADES_HIRING_ISSUE, NOBLE_BIOLOGY_ISSUE];
+// =============================================================================
+// ISSUE — The APA's 2021 apology (DR-0665). Darrell read a prepared text aloud
+// on 2026-09-27 (Whisper small, NAS CPU) and typed it again 2026-09-28. The
+// institution's own confession is stated plainly; the clip's "word for word"
+// wording is checked and NOT confirmed; the promised biomarker evidence never
+// arrives and nothing is carried for it. apa.org is blocked from the build
+// environment, so its wording is from cross-checked search excerpts, labeled.
+// =============================================================================
+const APA_APOLOGY_ISSUE = {
+  id: 'wi-apa-2021-apology-and-the-one-blood',
+  title: 'The Psychologists’ Apology of 2021 — the Confession, the Wording, and the One Blood the Word Never Doubted',
+  subject: {
+    name: 'the American Psychological Association’s October 2021 apology and the history it confessed',
+    kind: 'institution-and-history',
+    isNamedRealPerson: true,
+  },
+  skill: 'Take a charged clip about a real institutional apology and learn to weigh it the Word’s way: lead with what Yahweh settled before any science existed (one blood, one image, no respect of persons), state plainly what the institution itself confessed (the American Psychological Association’s governing council apologized on 2021-10-29 for its role in promoting, perpetuating and failing to challenge racism, naming its own history in intelligence testing, segregated schooling and the sterilization campaign), check the wording before you repeat it (the text the clip calls word for word is not the resolution’s wording), carry the parts no one proved as unproven, and ask the question Darrell asked with the Word behind it: was the repair as loud as the harm?',
+  source: {
+    creator: 'an unnamed written text Darrell read aloud, closing with his own question',
+    medium: 'voice recording (2 minutes 30 seconds) transcribed on our own NAS by Whisper, the small model on the CPU; the same words typed again the next day',
+    title: 'a text on the American Psychological Association’s October 2021 apology',
+    url: '',
+    asOf: '2026-09-27',
+    note: 'PROVENANCE, plainly. Darrell recorded this on 2026-09-27 and it reached us as a transcript made on our own machine (Whisper, the small model, on the NAS CPU); on 2026-09-28 he sent the same words again as typed text. He is reading a prepared text aloud, and its author is not named in the recording; the last sentence is his own question. The recording stops after the first point of a list the text promised (the full apology, the specific falsehoods, and biomarker evidence of lasting harm): only the first falsehood is reached, and no biomarker evidence is given, so none is carried here. The American Psychological Association’s own pages could not be opened from our build environment, which blocks that site; every statement below about the resolution’s wording is taken from search-engine excerpts of the apa.org pages, matched across two separate searches and one news report, and it is labeled that way. Nothing here is quoted from the recording as if it were the APA’s words.',
+  },
+  limits: [
+    {
+      id: 'lim-read-aloud',
+      text: 'The recording is Darrell reading a prepared text whose author is not named, followed by one question of his own. The text’s claims are carried as the text’s claims.',
+    },
+    {
+      id: 'lim-apa-unopened',
+      text: 'The APA’s own pages were blocked from our build environment. Their wording here comes from search-engine excerpts of those pages, cross-checked, and it is labeled that way. Read the resolution itself at apa.org before you quote it.',
+    },
+    {
+      id: 'lim-cut-off',
+      text: 'The recording stops after the first item of the list it promised. The promised biomarker evidence never arrives, so this lesson carries none.',
+    },
+  ],
+  claims: [
+    {
+      id: 'c-historic-apology',
+      text: 'The American Psychological Association issued a historic apology in October 2021, not for past mistakes in general, but for creating, packaging and marketing the lies that justified slavery, segregation, forced sterilization and over-policing.',
+      label: 'claim',
+      attribution: 'The text Darrell read aloud (author not named in the recording)',
+      note: 'The core is documented and is said plainly in Stage 2: the apology is real, it was adopted by the APA’s governing council on 2021-10-29, and it names psychology’s own part in scientific racism, segregated schooling and the sterilization campaign. The list as the text words it (slavery, over-policing) goes beyond what we could verify in the resolution’s excerpts, and those two items are carried as the text’s.',
+    },
+    {
+      id: 'c-word-for-word',
+      text: 'The apology, word for word, says the Association apologizes to Black communities for promoting and perpetuating systemic racism through psychological research, education and practice, for using its authority to label Black people as inherently pathological, justifying segregation, over-policing and forced sterilization, and for failing to challenge racist policies, and pledges to dismantle racist structures and repair the harm by returning resources to Black communities.',
+      label: 'claim',
+      attribution: 'The text Darrell read aloud, which calls its quotation word for word',
+      note: 'CHECKED AND NOT CONFIRMED AS WORDED. The resolution’s documented title and core sentence (Stage 2) are different words, and it is addressed to people of color, not to one community only. The phrase about returning resources did not appear in any portion we could verify. Because the full text could not be opened here, we say not found in what we verified, not absent. The substance overlaps; the words are not the resolution’s.',
+    },
+    {
+      id: 'c-lower-iq',
+      text: 'Among the falsehoods the Association confessed: that Black people have a lower IQ, a claim established in 1916 and carried from 1916 to the 1970s.',
+      label: 'claim',
+      attribution: 'The text Darrell read aloud',
+      note: 'The 1916 start is documented: the APA’s own history names Lewis Terman’s Stanford-Binet scale, published that year, and says he used score differences to justify segregated schooling. The end date, the 1970s, is the text’s range and was not verified here.',
+    },
+    {
+      id: 'c-not-as-loud',
+      text: 'How come their apology was not as loud as what they told us?',
+      label: 'opinion',
+      attribution: 'Darrell, in his own words, closing the recording',
+      note: 'A question, and a fair one. The harm was taught for decades from classrooms, courts and textbooks; the apology was a council resolution and a press release. How loud is loud enough is a judgment, and the Word gives a standard for it in Stage 4.',
+    },
+    {
+      id: 'c-biomarkers',
+      text: 'Biomarker evidence proves the damage is still in our bodies today.',
+      label: 'claim',
+      attribution: 'The text Darrell read aloud, as a promise of what it would show',
+      note: 'Promised and never delivered: the recording ends before any biomarker evidence is given. Nothing is asserted here either way.',
+    },
+  ],
+  verifiable: [
+    {
+      id: 'f-apology-adopted',
+      statement: 'On 2021-10-29 the APA Council of Representatives adopted a resolution titled "Apology to People of Color for APA’s Role in Promoting, Perpetuating, and Failing to Challenge Racism, Racial Discrimination, and Human Hierarchy in U.S." Its core sentence acknowledges that the APA "failed in its role leading the discipline of psychology, was complicit in contributing to systemic inequities, and hurt many through racism, racial discrimination, and denigration of people of color, thereby falling short on its mission to benefit society and improve lives." The APA states that it is profoundly sorry and accepts responsibility for, and owns, the actions and inactions of the APA itself, the discipline of psychology, and individual psychologists who stood as leaders of the organization and the field.',
+      status: 'documented',
+      sources: [
+        {
+          title: 'Apology to people of color for APA’s role in promoting, perpetuating, and failing to challenge racism, racial discrimination, and human hierarchy in U.S.',
+          publisher: 'American Psychological Association (apa.org/about/policy/racism-apology)',
+          url: 'https://www.apa.org/about/policy/racism-apology',
+          asOf: '2026-09-29',
+        },
+        {
+          title: 'APA apologizes for longstanding contributions to systemic racism (press release, October 2021)',
+          publisher: 'American Psychological Association',
+          url: 'https://www.apa.org/news/press/releases/2021/10/apology-systemic-racism',
+          asOf: '2026-09-29',
+        },
+        {
+          title: 'The American Psychological Association Apologizes for Its Past History of Racism',
+          publisher: 'Journal of Blacks in Higher Education',
+          url: 'https://jbhe.com/2021/11/the-american-psychological-association-apologizes-for-its-past-history-of-racism',
+          asOf: '2026-09-29',
+        },
+      ],
+      note: 'Verified 2026-09-29 by live web search. The apa.org pages were blocked from our build environment, so the wording is taken from search-engine excerpts of those pages, and the same core sentence appeared in two separate searches and in the news report. This is the institution’s own confession, which makes it the strongest source in the whole story: no one has to argue the APA into it.',
+    },
+    {
+      id: 'f-terman-goddard',
+      statement: 'The APA’s own account of its history names Lewis Terman, who created the Stanford-Binet intelligence scale (published 1916) and used score differences on it to justify a segregated system of education meant to make Black, Mexican and First Peoples children into efficient workers; and Henry Goddard, who served as psychology’s representative on a committee that recommended segregation and sterilization and called on psychology to help set the tests for choosing whom to sterilize.',
+      status: 'documented',
+      sources: [
+        {
+          title: 'Apology to People of Color for APA’s Role in Promoting, Perpetuating, and Failing to Challenge Racism (resolution, PDF)',
+          publisher: 'American Psychological Association',
+          url: 'https://www.apa.org/about/policy/resolution-racism-apology.pdf',
+          asOf: '2026-09-29',
+        },
+        {
+          title: 'Historical chronology',
+          publisher: 'American Psychological Association',
+          url: 'https://www.apa.org/about/apa/addressing-racism/historical-chronology',
+          asOf: '2026-09-29',
+        },
+      ],
+      note: 'Verified 2026-09-29 through search-engine excerpts of the APA’s own pages (the pages themselves blocked here). Stated plainly because it is documented damage confessed by the body that did it: an intelligence test was used as the warrant for sorting children by race, and psychology lent its authority to a sterilization campaign.',
+    },
+    {
+      id: 'f-scope-and-companions',
+      statement: 'The apology is addressed to people of color broadly, not to one community only, and it was one of three resolutions the APA Council passed on 2021-10-29. It followed a February 2021 commitment to catalogue the history of harm, for which the APA commissioned historical research from the Cummings Center for the History of Psychology at the University of Akron, together with listening sessions and surveys, and it was accompanied by a resolution on psychology’s role in dismantling systemic racism.',
+      status: 'documented',
+      sources: [
+        {
+          title: 'APA apologizes for longstanding contributions to systemic racism (press release, October 2021)',
+          publisher: 'American Psychological Association',
+          url: 'https://www.apa.org/news/press/releases/2021/10/apology-systemic-racism',
+          asOf: '2026-09-29',
+        },
+        {
+          title: 'APA’s commitment to addressing systemic racism',
+          publisher: 'American Psychological Association',
+          url: 'https://www.apa.org/about/apa/addressing-racism',
+          asOf: '2026-09-29',
+        },
+      ],
+      note: 'Verified 2026-09-29 through search-engine excerpts of the APA’s own pages. The scope matters for accuracy: the clip’s version addresses one community; the resolution addresses people of color, which includes that community.',
+    },
+    {
+      id: 'f-wording-differs',
+      statement: 'The quotation the clip calls word for word is not the resolution’s wording. The documented title and core sentence use different words, the resolution is addressed to people of color rather than to Black communities alone, and the pledge about returning resources to Black communities was not found in any portion of the resolution we could verify. The full text could not be opened from our build environment, so this is stated as not found in what we verified, not as proven absent.',
+      status: 'partly-documented',
+      sources: [
+        {
+          title: 'Apology to people of color for APA’s role in promoting, perpetuating, and failing to challenge racism, racial discrimination, and human hierarchy in U.S.',
+          publisher: 'American Psychological Association',
+          url: 'https://www.apa.org/about/policy/racism-apology',
+          asOf: '2026-09-29',
+        },
+      ],
+      note: 'This is the discernment point of the whole issue. A true thing carried in words the source never used gives every critic an easy way to dismiss the true thing. Quote the record; paraphrase the rest and say it is a paraphrase.',
+    },
+    {
+      id: 'f-coverage',
+      statement: 'The apology was reported when it was adopted, in outlets that include the Journal of Blacks in Higher Education and Business Insider, and the APA published its own follow-up a year later on moving from words to action.',
+      status: 'documented',
+      sources: [
+        {
+          title: 'The American Psychological Association says it is sorry for promoting racism in the US',
+          publisher: 'Business Insider',
+          url: 'https://www.businessinsider.nl/the-american-psychological-association-says-it-is-sorry-for-promoting-racism-in-the-us/',
+          asOf: '2026-09-29',
+        },
+        {
+          title: 'A year later: Moving from words to action on APA’s apology',
+          publisher: 'American Psychological Association',
+          url: 'https://www.apa.org/news/apa/2022/words-actions-apology',
+          asOf: '2026-09-29',
+        },
+      ],
+      note: 'Verified by search 2026-09-29. Stated so Darrell’s question is weighed fairly: the apology was published and reported. Whether it was as loud as the harm is the opinion his question asks us to weigh, and the Word supplies the scale in Stage 4.',
+    },
+  ],
+  interpretation: [
+    {
+      id: 'n-their-own-confession',
+      statement: 'THE STRONGEST WITNESS IS THE ONE WHO CONFESSED. No one has to prove to a skeptic that psychology lent its authority to racial ranking, segregated schooling and a sterilization campaign: the national body of the profession said so, by vote, in writing. Hedging that into "some say" would be under-claiming a confessed truth, which is its own false witness (Isaiah 5:20).',
+      restsOn: ['f-apology-adopted', 'f-terman-goddard'],
+    },
+    {
+      id: 'n-right-thing-wrong-words',
+      statement: 'A TRUE THING IN WORDS THE SOURCE NEVER USED. The clip is right about the substance and wrong about the wording it calls exact. That matters, because "Thou shalt not raise a false report" (Exodus 23:1) covers a misquotation that points in a direction we agree with. Quote the resolution as written, and the confession needs no help.',
+      restsOn: ['f-wording-differs', 'f-apology-adopted'],
+    },
+    {
+      id: 'n-healed-slightly',
+      statement: 'LOUD HARM, QUIET REPAIR. Darrell’s question has Scripture under it. The prophets named a repair that is smaller than the wound: "They have healed also the hurt of the daughter of my people slightly, saying, Peace, peace; when there is no peace" (Jeremiah 6:14). The Word’s standard for a wrong is confession AND recompense with a fifth added (Numbers 5:7), confession AND forsaking (Proverbs 28:13). A resolution is a real confession; whether the recompense matches the reach of the harm is the right question to keep asking.',
+      restsOn: ['f-coverage', 'f-apology-adopted'],
+    },
+    {
+      id: 'n-our-own-limit',
+      statement: 'OUR OWN LIMIT, STATED FIRST. We could not open the APA’s pages from our build environment. The wording we give is from search excerpts, cross-checked, and labeled; the text Darrell read is by an author the recording does not name; and the recording stops before the evidence it promised. A lesson about getting the words right has to say where its own words came from.',
+      restsOn: ['f-apology-adopted', 'f-wording-differs'],
+    },
+  ],
+  perspectives: [
+    {
+      id: 'p-the-harm-was-louder',
+      label: 'The harm was louder than the apology',
+      heldBy: 'The text Darrell read, and Darrell’s own closing question',
+      steelman: 'At its strongest: for most of a century the claim that some races were less intelligent was taught with the full authority of science, in textbooks, courtrooms, school systems and state legislatures, and it shaped who was sorted into which classroom and whose body a state could sterilize. That message reached every schoolchild. The correction reached members of a professional association and the readers of a few news stories. When the harm was a national curriculum and the repair is a council resolution, it is fair to ask why the correction is not taught as widely as the error was, and the people who carried the damage are the ones with the most right to ask it.',
+    },
+    {
+      id: 'p-the-institution-acted',
+      label: 'A formal confession backed by history and a plan is real repentance beginning',
+      heldBy: 'The American Psychological Association, as its published statements describe its course',
+      steelman: 'Heard fairly: institutions rarely confess anything, and this one did so by a vote of its governing council, after commissioning outside historians to document its own record rather than defending it, and it published a follow-up measuring its progress a year later. It named individuals from its own past, accepted responsibility for the discipline as a whole, and paired the apology with concrete commitments. Demanding that every apology be as loud as a century of harm may set a bar no institution can meet, and that can discourage the next institution from confessing at all.',
+    },
+    {
+      id: 'p-apology-is-cheap',
+      label: 'Apologies by the living for the dead cost little; watch present practice',
+      heldBy: 'Skeptics of institutional apologies, from several directions',
+      steelman: 'At its strongest: the people who did the harm are dead, and the people apologizing pay nothing personally for it. A statement can become a substitute for change, and an organization can gain moral standing from confessing old sins while its present methods go unexamined. On this view the only honest test is present practice: which tests are used today, on whom, with what consequences, and whether the same authority is still being lent to new rankings of people that will need their own apology in fifty years.',
+    },
+    {
+      id: 'p-word-first',
+      label: 'The Word never needed the apology, and still requires its fruit',
+      heldBy: 'Believers who hold Scripture as the frame for weighing any institution',
+      steelman: 'This reader does not wait for a council to settle what Yahweh settled: He "hath made of one blood all nations of men" (Acts 17:26), made every person in His image, and shows no respect of persons. So the false science was false before it was confessed, and the confession adds nothing to the truth. But the Word takes confession seriously for the one who confesses: it asks for forsaking, recompense and fruit, and it warns against healing a hurt slightly. This reader welcomes the apology, quotes it accurately, and keeps asking for the fruit, without contempt for anyone.',
+    },
+  ],
+  lens: {
+    fourD: {
+      deepSource: 'WORD FIRST — ONE BLOOD. Before any intelligence scale was drawn, Yahweh settled what a person is. "And hath made of one blood all nations of men for to dwell on all the face of the earth" (Acts 17:26). "So God created man in his own image, in the image of God created he him" (Genesis 1:27). "I will praise thee; for I am fearfully and wonderfully made" (Psalms 139:14). The ranking of peoples by race was never a finding that the Word had to wait on; it was a claim the Word had already contradicted. NO RESPECT OF PERSONS. He "regardeth not persons, nor taketh reward" (Deuteronomy 10:17). "Of a truth I perceive that God is no respecter of persons" (Acts 10:34). And the command to us: "But if ye have respect to persons, ye commit sin" (James 2:9); "It is not good to have respect of persons in judgment" (Proverbs 24:23). A test used to sort children by race into different futures is respect of persons carried out with a measuring tool. SCIENCE FALSELY SO CALLED — USED PRECISELY. Paul warned of "oppositions of science falsely so called" (1 Timothy 6:20) and of being spoiled "through philosophy and vain deceit, after the tradition of men" (Colossians 2:8). Used precisely, this names the worldview that rode in on the test, not the honest work of measurement; the psychologists who testified in Brown v. Board of Education used the same discipline to tell the truth. THE MULTITUDE OF EXPERTS. "Thou shalt not follow a multitude to do evil; neither shalt thou speak in a cause to decline after many to wrest judgment" (Exodus 23:2). A consensus of credentialed men is still a multitude, and the Word never gave it a veto over what He said. CONFESSION, AND WHAT IT OWES. "He that covereth his sins shall not prosper: but whoso confesseth and forsaketh them shall have mercy" (Proverbs 28:13). The Law asked more than words: "Then they shall confess their sin which they have done: and he shall recompense his trespass with the principal thereof, and add unto it the fifth part thereof" (Numbers 5:7). Zacchaeus went further, "I restore him fourfold" (Luke 19:8), and John the Baptist asked for "fruits meet for repentance" (Matthew 3:8). THE HURT HEALED SLIGHTLY. Darrell asked why the apology was not as loud as the harm. The Word has a name for a repair smaller than the wound: "They have healed also the hurt of the daughter of my people slightly, saying, Peace, peace; when there is no peace" (Jeremiah 6:14). And it promises that what was hidden will not stay quiet: "For there is nothing covered, that shall not be revealed; neither hid, that shall not be known" (Luke 12:2). THE SAME SCALE FOR US. "Thou shalt not raise a false report" (Exodus 23:1). A misquotation that flatters our side is still a false report, so the believer quotes the resolution as written, and applies the same honesty to his own house that he asks of the institution.',
+      scripture: 'Acts 17:26; Genesis 1:27; Psalms 139:14; Deuteronomy 10:17; Acts 10:34; James 2:9; Proverbs 24:23; 1 Timothy 6:20; Colossians 2:8; Exodus 23:1-2; Proverbs 28:13; Numbers 5:7; Luke 19:8; Matthew 3:8; Jeremiah 6:14; Luke 12:2',
+    },
+    threeD: 'Practically: when a clip says an institution confessed something, go to the confession itself and quote it as written. Here the record is strong enough without embellishment: on 2021-10-29 the American Psychological Association’s governing council apologized to people of color for its role in promoting, perpetuating and failing to challenge racism, and its own history names Terman’s 1916 intelligence scale used to justify segregated schooling and Goddard’s service on a committee that recommended sterilization. Say that plainly. Then mark what the clip added: its word for word quotation is not the resolution’s wording, and its biomarker evidence never arrives. Then take Darrell’s question seriously and weigh it by the Word: confession is owed, and so are forsaking, recompense and fruit.',
+    accountability: {
+      statement: 'THE TWO COURTS. In man’s court the institution has entered its own plea: it confessed, by vote, that it was complicit and hurt many, and it accepted responsibility for the discipline and its past leaders. That confession is on the record and should be quoted accurately. The Word asks what follows a confession: forsaking (Proverbs 28:13), recompense with a fifth added (Numbers 5:7), and fruit (Matthew 3:8), and it warns against healing a hurt slightly (Jeremiah 6:14). And no one who taught the ranking of peoples, living or dead, escapes the eternal court by the passage of time: "For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil" (Ecclesiastes 12:14); "and the dead were judged out of those things which were written in the books, according to their works" (Revelation 20:12). The verdict on any soul is His alone.',
+      scripture: 'Proverbs 28:13; Numbers 5:7; Matthew 3:8; Jeremiah 6:14; Ecclesiastes 12:14; Revelation 20:12',
+    },
+    benefits: [
+      'Both courts, honestly held: in man’s court the APA entered its own confession by vote, and in the eternal court after this life every work taught as science is judged (Ecclesiastes 12:14; Revelation 20:12). You can state the documented plainly without inventing a verdict on any soul.',
+      'The Word’s settled answer before any test was drawn: one blood (Acts 17:26), one image (Genesis 1:27), no respect of persons (Acts 10:34).',
+      'A habit that protects the truth: quote the confession as written, because a misquotation hands every critic a reason to dismiss what was really confessed (Exodus 23:1).',
+      'A biblical scale for any apology you hear: confession, forsaking, recompense and fruit (Proverbs 28:13; Numbers 5:7; Matthew 3:8), and the warning against healing a hurt slightly (Jeremiah 6:14).',
+      'Freedom from the multitude: a consensus of experts is still a multitude, and the Word never gave it a veto (Exodus 23:2).',
+      'Precision with "science falsely so called": aimed at the worldview that rode in on the test, never at honest measurement, which also helped undo segregation.',
+    ],
+    graceNote: 'No condemnation of any soul in this lesson. It pronounces no verdict on the American Psychological Association’s members, on the psychologists who confessed, on Lewis Terman or Henry Goddard, who have already stood before the only Judge, or on the unnamed author of the text Darrell read. Their hearts are Yahweh’s to judge. The deeds are named because the institution named them first; the souls are left with Him.',
+    stewardship: 'The deeper response is to build what the Word builds. Teach your children who they are before anyone tests them: made of one blood, in His image, fearfully and wonderfully made. Honor honest science and the scientists who told the truth when it cost them, and teach your house to quote any source exactly. Where a school, a test or a program still sorts children by assumptions rather than by the child in front of it, ask the plain question with meekness. And in the church, keep the same scale: if a teaching in our own history ranked people, confess it as written, forsake it, and bear the fruit.',
+    anchor: {
+      ref: 'Acts 17:26; Proverbs 28:13',
+      theme: 'Yahweh settled it before any test was drawn: "And hath made of one blood all nations of men for to dwell on all the face of the earth." And He set the standard for every confession: "He that covereth his sins shall not prosper: but whoso confesseth and forsaketh them shall have mercy."',
+    },
+  },
+  reflection: {
+    skill: 'When a clip tells you an institution confessed something: go to the confession and quote it as written, not as the clip remembers it. Say the documented parts plainly, especially when the institution confessed them itself. Mark what the clip added or promised and did not deliver. Then weigh the confession by the Word’s standard (confession, forsaking, recompense, fruit), and keep the verdict on every soul with Yahweh.',
+    practice: 'Write four lines. (1) One sentence of what the Word settled, with a reference, before you mention the APA. (2) The resolution’s title and its date, exactly. (3) One thing the clip said that you could not confirm, stated as not confirmed. (4) One sentence answering Darrell’s question by Numbers 5:7 or Jeremiah 6:14. Then do one thing: find one source you have been quoting from memory, and check its exact words this week.',
+    prompts: [
+      'Why is an institution’s own confession stronger evidence than any critic’s accusation? What changes when you quote it exactly?',
+      'The clip called its quotation word for word, and it was not. Why does that matter even when the substance is right (Exodus 23:1)?',
+      'Read Acts 17:26 and James 2:9 beside the history of intelligence testing used to sort children by race. What did the Word already settle?',
+      'Darrell asked why the apology was not as loud as the harm. Read Jeremiah 6:14 and Numbers 5:7. What would a repair as loud as the harm look like?',
+      'The recording promised biomarker evidence and never gave it. How do you carry a promised proof that never arrives?',
+      'Where might your own house or church need to confess something as written, forsake it, and bear fruit?',
+    ],
+  },
+  levels: {
+    child: 'The Psychologists’ Apology: this lesson is about saying sorry the right way, and about getting words right. A long time ago, some scientists made tests. They used the tests to say some kinds of people were smarter than others because of the color of their skin. That was not true. Yahweh made all people. "And hath made of one blood all nations of men" (Acts 17:26). That means all people come from the same family. Every person is made in His picture. "I am fearfully and wonderfully made" (Psalms 139:14). Many years later, in 2021, a big group of these scientists said sorry. They said their group had been wrong and had hurt many people. Saying sorry is good. The Bible says to tell the truth when you do wrong, and then stop doing it. "whoso confesseth and forsaketh them shall have mercy" (Proverbs 28:13). Darrell asked a good question. He said, why was the sorry so quiet, when the wrong thing was taught so loud? The Bible also says a real sorry tries to make things right. A man named Zacchaeus took money that was not his. When he met Jesus, he paid it back four times over. "I restore him fourfold" (Luke 19:8). Here is one more lesson. When you tell someone what another person said, use their real words. If you change the words, people may not believe the true part. So check the words before you say them. We do not decide who is good or bad on the inside. Only Yahweh knows hearts. We tell the truth, we are kind, and we treat every person the same.',
+    teen: 'A clip Darrell read aloud says the American Psychological Association made a historic apology in October 2021, and it quotes the apology word for word. Run the moves before you repeat it. (0) Lead with the Word. Yahweh "hath made of one blood all nations of men" (Acts 17:26), made each person in His image (Genesis 1:27), and shows no respect of persons (Acts 10:34). Ranking races by intelligence contradicted the Word long before anyone apologized for it. (1) What is documented, stated plainly: on 2021-10-29 the APA’s governing council adopted a resolution titled Apology to People of Color for APA’s Role in Promoting, Perpetuating, and Failing to Challenge Racism, Racial Discrimination, and Human Hierarchy in U.S. It says the APA was complicit in systemic inequities and hurt many people, and it accepts responsibility for its own leaders and the whole discipline. Its own history names Lewis Terman, whose 1916 intelligence scale was used to justify segregated schools, and Henry Goddard, who served on a committee recommending sterilization. The institution confessed this itself. (2) What the clip gets wrong: the words it calls word for word are not the resolution’s words, and the apology is addressed to people of color broadly. A true thing in false words hands critics an easy win, and "Thou shalt not raise a false report" (Exodus 23:1) applies even when the misquote helps our side. (3) What never arrived: the clip promised biomarker proof and the recording ends before it. Carry nothing. (4) Darrell’s question: why was the apology quieter than the harm? The Word gives the scale. A confession should come with forsaking (Proverbs 28:13) and repayment with extra added (Numbers 5:7), and the prophets condemned healing a wound "slightly" (Jeremiah 6:14). (5) The verdict on any person, living or dead, stays with Yahweh.',
+    senior: 'For the seasoned believer this issue is about three disciplines at once: holding a settled truth without needing an institution to confirm it, quoting an institution exactly when it does confess, and weighing the confession by the Word’s own standard. First, the frame, because it is prior to everything else: "And hath made of one blood all nations of men for to dwell on all the face of the earth" (Acts 17:26); "So God created man in his own image" (Genesis 1:27); He "regardeth not persons, nor taketh reward" (Deuteronomy 10:17). The ranking of peoples by race was false before it was measured and false after it was confessed. Second, the record. On 2021-10-29 the American Psychological Association’s Council of Representatives adopted an apology to people of color for the APA’s role in promoting, perpetuating and failing to challenge racism, racial discrimination and human hierarchy in the United States. It acknowledges that the APA failed in its role leading the discipline, was complicit in systemic inequities, and hurt many through racism and the denigration of people of color, and it accepts responsibility for the association, the discipline and the individual psychologists who led them. Its own history names Lewis Terman’s Stanford-Binet scale of 1916, used to justify segregated schooling aimed at making Black, Mexican and First Peoples children into efficient workers, and Henry Goddard’s service on a committee that recommended segregation and sterilization. We could not open the APA’s pages from our build environment; this wording comes from cross-checked search excerpts of those pages, and a reader should read the resolution itself before quoting it. Third, the clip. Its quotation, offered as word for word, is not the resolution’s wording; its scope is narrower than the resolution’s; its pledge about returning resources did not appear in anything we could verify; and the biomarker evidence it promised never arrives before the recording ends. The substance it points at is real, which is exactly why the misquotation matters: "Thou shalt not raise a false report" (Exodus 23:1). Fourth, Darrell’s question, which deserves a Scriptural answer rather than a shrug: why was the apology not as loud as the harm? The Law required confession and recompense "with the principal thereof, and add unto it the fifth part thereof" (Numbers 5:7); Proverbs requires confession and forsaking (Proverbs 28:13); John asked for "fruits meet for repentance" (Matthew 3:8); and Jeremiah condemned those who "have healed also the hurt of the daughter of my people slightly" (Jeremiah 6:14). A resolution is a real confession. Whether its recompense matches a century of national teaching is the right question to keep asking, with meekness and without contempt. The verdict on every soul in the story remains Yahweh’s: "For God shall bring every work into judgment" (Ecclesiastes 12:14).',
+  },
+  quiz: {
+    questions: [
+      {
+        q: 'What did the Word settle about the peoples of the earth before any intelligence test existed?',
+        options: [
+          'Nothing; it left the question to science',
+          'That Yahweh "hath made of one blood all nations of men" (Acts 17:26), each in His image, with no respect of persons',
+          'That some peoples are more capable than others',
+        ],
+        answer: 1,
+        explain: '"And hath made of one blood all nations of men for to dwell on all the face of the earth" (Acts 17:26). The ranking was false before it was confessed.',
+      },
+      {
+        q: 'What did the APA’s governing council adopt on 2021-10-29?',
+        options: [
+          'A statement that it had done nothing wrong',
+          'An apology to people of color for its role in promoting, perpetuating and failing to challenge racism, accepting responsibility for the discipline and its leaders',
+          'A new intelligence test',
+        ],
+        answer: 1,
+        explain: 'Documented from the APA’s own pages (through cross-checked search excerpts, since the pages were blocked from our build). The institution’s own confession is the strongest witness in the story.',
+      },
+      {
+        q: 'The clip calls its quotation of the apology word for word. What did checking find?',
+        options: [
+          'It matches exactly',
+          'The resolution’s documented wording and scope are different; the substance overlaps but the words are not the resolution’s',
+          'There was no apology at all',
+        ],
+        answer: 1,
+        explain: 'Quote the record as written. A true thing carried in words the source never used gives critics an easy dismissal, and "Thou shalt not raise a false report" (Exodus 23:1) applies to misquotes that help our side too.',
+      },
+      {
+        q: 'Which names does the APA’s own history give in its account of harm?',
+        options: [
+          'None',
+          'Lewis Terman, whose 1916 Stanford-Binet scale was used to justify segregated schooling, and Henry Goddard, who served on a committee recommending sterilization',
+          'Only people outside psychology',
+        ],
+        answer: 1,
+        explain: 'Documented damage, confessed by the body that did it, and said plainly here.',
+      },
+      {
+        q: 'How does the Word answer Darrell’s question about an apology quieter than the harm?',
+        options: [
+          'Any apology is enough',
+          'Confession should come with forsaking and recompense with a fifth added, and the prophets condemn healing a hurt slightly',
+          'Apologies are never needed',
+        ],
+        answer: 1,
+        explain: '"whoso confesseth and forsaketh them shall have mercy" (Proverbs 28:13); "he shall recompense his trespass with the principal thereof, and add unto it the fifth part thereof" (Numbers 5:7); "They have healed also the hurt of the daughter of my people slightly" (Jeremiah 6:14).',
+      },
+      {
+        q: 'The recording promised biomarker proof of lasting damage. What does this lesson carry?',
+        options: [
+          'That the proof exists',
+          'That the proof does not exist',
+          'Nothing either way: the recording ends before any evidence is given',
+        ],
+        answer: 2,
+        explain: 'A promised proof that never arrives is carried as promised and undelivered, never as evidence.',
+      },
+    ],
+  },
+};
+
+export const WORLD_ISSUES = [MUSK_ISSUE, BEAUTY_SUPPLY_ISSUE, GAME_CHANGERS_ISSUE, PROPHETIC_LENS_ISSUE, MEDICAL_ESTABLISHMENT_ISSUE, AI_EMPIRE_ISSUE, PRISON_INDUSTRIAL_ISSUE, HISTORICAL_TRAUMA_ISSUE, LAW_OF_ASSUMPTION_ISSUE, VICTORIOUS_EMOTIONS_ISSUE, TUITION_1965_ISSUE, EPA_POWER_PLANT_ISSUE, SCOTUS_MAIL_IN_ISSUE, KENNEDY_CENTER_ISSUE, EVANSTON_REPARATIONS_ISSUE, TRADES_HIRING_ISSUE, NOBLE_BIOLOGY_ISSUE, APA_APOLOGY_ISSUE];
 
 // ---------------------------------------------------------------------------
 // Course-specific helpers — thin wrappers over the reusable discernment engine
