@@ -2259,3 +2259,192 @@ describe('Issue 18 — The psychologists’ 2021 apology: every fragment verbati
     expect(/\b(Satan|Lucifer|Devil)\b/.test(ours)).toBe(false);
   });
 });
+
+// =============================================================================
+// Issue 19 — The student in the gap (DR-0666). A third party’s clip (an unnamed
+// student organizer) Darrell played into the app on 2026-09-28, adding no words
+// of his own. Fragments generated from the issue’s "..." (Ref) spans.
+// =============================================================================
+const HIGHER_ED_AID_QUOTES = [
+  { ref: 'James 2:15', book: 'James', ch: 2, v: 15, fragments: [
+    'If a brother or sister be naked, and destitute of daily food',
+  ] },
+  { ref: 'James 2:16', book: 'James', ch: 2, v: 16, fragments: [
+    'be ye warmed and filled',
+    'what doth it profit?',
+    'notwithstanding ye give them not those things which are needful to the body; what doth it profit?',
+  ] },
+  { ref: 'Proverbs 22:7', book: 'Proverbs', ch: 22, v: 7, fragments: [
+    'the borrower is servant to the lender',
+    'The rich ruleth over the poor, and the borrower is servant to the lender',
+  ] },
+  { ref: 'Proverbs 4:7', book: 'Proverbs', ch: 4, v: 7, fragments: [
+    'Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding',
+    'Wisdom is the principal thing; therefore get wisdom',
+  ] },
+  { ref: 'Daniel 1:17', book: 'Daniel', ch: 1, v: 17, fragments: [
+    'God gave them knowledge and skill in all learning and wisdom',
+  ] },
+  { ref: 'Luke 14:28', book: 'Luke', ch: 14, v: 28, fragments: [
+    'For which of you, intending to build a tower, sitteth not down first, and counteth the cost, whether he have sufficient to finish it?',
+    'For which of you, intending to build a tower, sitteth not down first, and counteth the cost',
+    'counteth the cost, whether he have sufficient to finish it',
+  ] },
+  { ref: 'Luke 14:30', book: 'Luke', ch: 14, v: 30, fragments: [
+    'This man began to build, and was not able to finish',
+  ] },
+  { ref: 'Proverbs 24:27', book: 'Proverbs', ch: 24, v: 27, fragments: [
+    'Prepare thy work without, and make it fit for thyself in the field; and afterwards build thine house',
+  ] },
+  { ref: 'Proverbs 21:5', book: 'Proverbs', ch: 21, v: 5, fragments: [
+    'The thoughts of the diligent tend only to plenteousness; but of every one that is hasty only to want',
+  ] },
+  { ref: 'Romans 13:8', book: 'Romans', ch: 13, v: 8, fragments: [
+    'Owe no man any thing, but to love one another',
+  ] },
+  { ref: 'Nehemiah 5:4', book: 'Nehemiah', ch: 5, v: 4, fragments: [
+    'borrowed money for the king’s tribute',
+  ] },
+  { ref: 'Nehemiah 5:5', book: 'Nehemiah', ch: 5, v: 5, fragments: [
+    'neither is it in our power to redeem them',
+  ] },
+  { ref: 'Proverbs 3:27', book: 'Proverbs', ch: 3, v: 27, fragments: [
+    'Withhold not good from them to whom it is due, when it is in the power of thine hand to do it',
+  ] },
+  { ref: '1 John 3:17', book: '1John', ch: 3, v: 17, fragments: [
+    'But whoso hath this world’s good, and seeth his brother have need, and shutteth up his bowels of compassion from him, how dwelleth the love of God in him?',
+  ] },
+  { ref: '1 John 3:18', book: '1John', ch: 3, v: 18, fragments: [
+    'My little children, let us not love in word, neither in tongue; but in deed and in truth',
+    'let us not love in word, neither in tongue; but in deed and in truth',
+  ] },
+  { ref: 'Deuteronomy 15:8', book: 'Deuteronomy', ch: 15, v: 8, fragments: [
+    'But thou shalt open thine hand wide unto him, and shalt surely lend him sufficient for his need',
+    'But thou shalt open thine hand wide unto him',
+  ] },
+  { ref: 'Galatians 6:2', book: 'Galatians', ch: 6, v: 2, fragments: [
+    'Bear ye one another’s burdens, and so fulfil the law of Christ',
+  ] },
+  { ref: 'Acts 4:34', book: 'Acts', ch: 4, v: 34, fragments: [
+    'Neither was there any among them that lacked',
+  ] },
+  { ref: 'Proverbs 31:9', book: 'Proverbs', ch: 31, v: 9, fragments: [
+    'Open thy mouth, judge righteously, and plead the cause of the poor and needy',
+  ] },
+  { ref: 'Psalms 146:3', book: 'Psalms', ch: 146, v: 3, fragments: [
+    'Put not your trust in princes, nor in the son of man, in whom there is no help',
+  ] },
+  { ref: '1 Timothy 2:1', book: '1Timothy', ch: 2, v: 1, fragments: [
+    'I exhort therefore, that, first of all, supplications, prayers, intercessions, and giving of thanks, be made for all men',
+    'supplications, prayers, intercessions, and giving of thanks, be made for all men',
+  ] },
+  { ref: '1 Timothy 2:2', book: '1Timothy', ch: 2, v: 2, fragments: [
+    'For kings, and for all that are in authority',
+  ] },
+  { ref: 'Jeremiah 29:7', book: 'Jeremiah', ch: 29, v: 7, fragments: [
+    'And seek the peace of the city whither I have caused you to be carried away captives, and pray unto the LORD for it',
+  ] },
+  { ref: 'Proverbs 18:17', book: 'Proverbs', ch: 18, v: 17, fragments: [
+    'He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him',
+  ] },
+  { ref: 'Ecclesiastes 12:14', book: 'Ecclesiastes', ch: 12, v: 14, fragments: [
+    'For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil',
+  ] },
+  { ref: '2 Kings 4:2', book: '2Kings', ch: 4, v: 2, fragments: [
+    'what hast thou in the house?',
+  ] },
+];
+
+describe('Issue 19 — The student in the gap: every fragment verbatim from the repo KJV', () => {
+  const issue = WORLD_ISSUES.find((i) => i.id === 'wi-higher-ed-aid-2026-and-the-student-in-the-gap');
+  const norm = (s) => s.replace(/[’‘]/g, "'").replace(/\s+/g, ' ');
+
+  it('the issue is published', () => {
+    expect(issue).toBeTruthy();
+    expect(WORLD_ISSUES.includes(issue)).toBe(true);
+    expect(WORLD_ISSUES_META.weeks).toBe(WORLD_ISSUES.length);
+  });
+
+  it('every quoted fragment is a verbatim substring of the cited KJV verse', () => {
+    const failures = [];
+    for (const q of HIGHER_ED_AID_QUOTES) {
+      const text = kjvVerse(q.book, q.ch, q.v);
+      for (const frag of q.fragments) {
+        if (!norm(text).includes(norm(frag))) failures.push(`${q.ref}: NOT VERBATIM — "${frag}" (verse reads: "${text}")`);
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it('EVERY "..." (Ref) span in the issue, on every field, is verbatim in the verse it names', () => {
+    // The fragment list above can hide a tamper when the same words appear
+    // twice; this reads the issue itself, span by span, so one changed word
+    // anywhere fails.
+    const text = JSON.stringify(issue).replace(/\\"/g, '"');
+    const re = /"([^"]+)"\s*\(([1-3]?\s?[A-Za-z]+(?: of [A-Za-z]+)*)\s+(\d+):(\d+)(?:-(\d+))?\)/g;
+    const bad = [];
+    let n = 0;
+    for (const m of text.matchAll(re)) {
+      const [, span, book, ch, a, b] = m;
+      const vs = [];
+      for (let v = Number(a); v <= Number(b || a); v += 1) vs.push(kjvVerse(book.replace(/ /g, ''), Number(ch), v));
+      n += 1;
+      if (!norm(vs.join(' ')).includes(norm(span))) bad.push(`${book} ${ch}:${a}: "${span}"`);
+    }
+    expect(n, 'a low count means the scan broke').toBeGreaterThan(20);
+    expect(bad).toEqual([]);
+  });
+
+  it('every fragment actually appears in the issue content (no stale list)', () => {
+    const blob = norm(JSON.stringify(issue));
+    const missing = HIGHER_ED_AID_QUOTES.flatMap((q) => q.fragments.filter((f) => !blob.includes(norm(f))).map((f) => `${q.ref}: "${f}"`));
+    expect(missing).toEqual([]);
+    expect(HIGHER_ED_AID_QUOTES.length).toBeGreaterThan(20);
+  });
+
+  it('PROVEN-TO-CATCH: a one-word tamper in the anchor verses fails', () => {
+    const tower = kjvVerse('Luke', 14, 28);
+    expect(norm(tower).includes(norm('sitteth not down first, and counteth the price'))).toBe(false);
+    expect(norm(tower).includes(norm('sitteth not down first, and counteth the cost'))).toBe(true);
+    const deed = kjvVerse('1John', 3, 18);
+    expect(norm(deed).includes(norm('let us not love in word, neither in tongue; but in deed and in spirit'))).toBe(false);
+    expect(norm(deed).includes(norm('let us not love in word, neither in tongue; but in deed and in truth'))).toBe(true);
+  });
+
+  it('says plainly that the words are a third party’s, unnamed, with no gender or identity assumed', () => {
+    expect(issue.source.note).toMatch(/The words are not Darrell’s/);
+    expect(issue.source.note).toMatch(/nothing here assumes who the speaker is/);
+    // The speaker is never given a pronoun the recording does not supply.
+    const aboutSpeaker = [issue.skill, issue.source.note, ...issue.limits.map((l) => l.text), ...issue.claims.map((c) => `${c.attribution} ${c.note}`), ...issue.interpretation.map((n) => n.statement), issue.levels.teen, issue.levels.senior].join(' ');
+    expect(/\bthe speaker\b[^.]{0,40}\b(she|her|he|his)\b/i.test(aboutSpeaker.replace(/"[^"]*"/g, ''))).toBe(false);
+  });
+
+  it('states the documented rule changes plainly, with dates, and labels motive as opinion', () => {
+    for (const id of ['f-loan-caps', 'f-pell-changes', 'f-ed-closure-order', 'f-accreditation-rule', 'f-tax-exempt-rule']) {
+      const f = issue.verifiable.find((v) => v.id === id);
+      expect(f.status, id).toBe('documented');
+      for (const s of f.sources) expect(s.asOf, id).toBe('2026-09-29');
+    }
+    expect(issue.verifiable.find((v) => v.id === 'f-loan-caps').statement).toMatch(/20,000 dollars per year and 65,000 dollars in total/);
+    expect(issue.verifiable.find((v) => v.id === 'f-pell-changes').statement).toMatch(/7,395 dollars/);
+    expect(issue.claims.find((c) => c.id === 'c-ed-closure').label).toBe('opinion');
+    expect(issue.claims.find((c) => c.id === 'c-attack').label).toBe('opinion');
+    expect(issue.claims.find((c) => c.id === 'c-student-association').label).toBe('call-to-action');
+    expect(issue.claims.find((c) => c.id === 'c-accreditation').note).toMatch(/were not verified/);
+  });
+
+  it('hears the reform case at its strongest, and the Word acts for the student either way', () => {
+    expect(issue.perspectives.find((p) => p.id === 'p-reform').steelman).toMatch(/unlimited federal lending/);
+    expect(issue.interpretation.find((n) => n.id === 'n-caps-cut-both-ways').statement).toMatch(/Both are true at once/);
+    expect(issue.lens.fourD.deepSource.indexOf('WORD FIRST — WISDOM IS THE PRINCIPAL THING')).toBe(0);
+    expect(issue.lens.fourD.deepSource).toContain('THE STUDENT IN THE GAP');
+    expect(issue.lens.benefits.some((b) => /eternal court/.test(b) && /after this life/.test(b))).toBe(true);
+  });
+
+  it('keeps our voice on Yahweh, the adversary lowercase, and the child band safe', () => {
+    const ours = [issue.skill, issue.lens.threeD, issue.lens.graceNote, issue.lens.stewardship, issue.lens.accountability.statement, ...issue.lens.benefits, ...issue.reflection.prompts, issue.levels.child, issue.levels.teen, issue.levels.senior].join(' ');
+    expect(/\bGod\b/.test(ours.replace(/"[^"]*"/g, ''))).toBe(false);
+    expect(/\b(Satan|Lucifer|Devil)\b/.test(ours)).toBe(false);
+    expect(issue.levels.child).toMatch(/Only Yahweh knows every heart/);
+  });
+});
