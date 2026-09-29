@@ -8,7 +8,7 @@ another lane!!!!!!! No limits!!!!"; "Why have any cap?!... If I push through
 1000 in a day get it done... period!!!!!!"; "I'm not trying to cut any
 quality...".
 
-THE TRIGGER (no polling interval). Migration 0240 puts a trigger on
+THE TRIGGER (no polling interval). Migration 0241 puts a trigger on
 agent_inbox: a row tagged `lesson` (and not yet `lesson-captured`) that is
 inserted, or whose tags change, calls pg_notify('lesson_inbox', <row id>).
 This service LISTENs on the NAS's own Postgres -- the database the app writes

@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0240 — the lesson builder rings on the words, keeps every version, and reads
+-- 0241 — the lesson builder rings on the words, keeps every version, and reads
 -- Darrell's decision (DR-0669)
 -- =============================================================================
 -- Darrell 2026-09-29: "Do we need claude? Can we build the workflows inside the
@@ -30,7 +30,7 @@
 -- READ: Darrell's two accounts and the Governor (is_lesson_governor, 0237).
 -- WRITE: versions and service columns by the service role only; decisions and
 -- the settings' control columns by the same stewards, their own rows only.
--- Proven by infra/supabase/tests/0240-lesson-builder-smoke.sql.
+-- Proven by infra/supabase/tests/0241-lesson-builder-smoke.sql.
 -- IDEMPOTENT: IF NOT EXISTS, DROP+CREATE POLICY/TRIGGER, CREATE OR REPLACE.
 -- =============================================================================
 
@@ -90,6 +90,48 @@ CREATE TABLE IF NOT EXISTS lesson_versions (
   created_at      timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT lesson_versions_backfill_never_published CHECK (NOT (backfill AND published))
 );
+-- The tower parity loop's 0240 (DR-0671) runs BEFORE this file and, where
+-- this table did not exist yet, created a narrower lesson_versions of its own.
+-- This migration OWNS the table: every column the builder writes is ensured
+-- here whichever file ran first, and the builder's NOT NULLs and the
+-- never-publish-a-backfill CHECK are laid on once no row would break them.
+ALTER TABLE lesson_versions
+  ADD COLUMN IF NOT EXISTS build_id        uuid,
+  ADD COLUMN IF NOT EXISTS teaching_row_id uuid,
+  ADD COLUMN IF NOT EXISTS instance_id     uuid REFERENCES instances(id) ON DELETE CASCADE,
+  ADD COLUMN IF NOT EXISTS lesson_id       text,
+  ADD COLUMN IF NOT EXISTS family          text,
+  ADD COLUMN IF NOT EXISTS model_label     text,
+  ADD COLUMN IF NOT EXISTS prompt_sha256   text,
+  ADD COLUMN IF NOT EXISTS prompt_text     text,
+  ADD COLUMN IF NOT EXISTS body            jsonb,
+  ADD COLUMN IF NOT EXISTS gate_results    jsonb NOT NULL DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS elapsed_ms      integer,
+  ADD COLUMN IF NOT EXISTS usage           jsonb NOT NULL DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS error           text,
+  ADD COLUMN IF NOT EXISTS published       boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS backfill        boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS source_ref      text,
+  ADD COLUMN IF NOT EXISTS created_at      timestamptz NOT NULL DEFAULT now();
+ALTER TABLE lesson_versions ALTER COLUMN gate_results SET DEFAULT '{}'::jsonb;
+UPDATE lesson_versions SET gate_results = '{}'::jsonb WHERE gate_results IS NULL;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM lesson_versions WHERE build_id IS NULL) THEN
+    ALTER TABLE lesson_versions ALTER COLUMN build_id SET NOT NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM lesson_versions WHERE prompt_sha256 IS NULL OR prompt_text IS NULL) THEN
+    ALTER TABLE lesson_versions ALTER COLUMN prompt_sha256 SET NOT NULL;
+    ALTER TABLE lesson_versions ALTER COLUMN prompt_text SET NOT NULL;
+  END IF;
+  ALTER TABLE lesson_versions ALTER COLUMN gate_results SET NOT NULL;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'lesson_versions_backfill_never_published'
+                  AND conrelid = 'public.lesson_versions'::regclass) THEN
+    ALTER TABLE lesson_versions ADD CONSTRAINT lesson_versions_backfill_never_published
+      CHECK (NOT (backfill AND published));
+  END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS lesson_versions_build_idx ON lesson_versions(build_id);
 CREATE INDEX IF NOT EXISTS lesson_versions_teaching_idx ON lesson_versions(teaching_row_id);
 CREATE INDEX IF NOT EXISTS lesson_versions_lesson_idx ON lesson_versions(lesson_id);

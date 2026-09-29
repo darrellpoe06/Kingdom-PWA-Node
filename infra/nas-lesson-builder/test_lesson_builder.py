@@ -1161,13 +1161,17 @@ class BackfillTests(unittest.TestCase):
 
 class Migration(unittest.TestCase):
     def test_the_migration_carries_the_shape_the_builder_writes(self):
-        mig = [f for f in os.listdir(os.path.join(REPO, "infra/supabase/migrations-auto")) if f.startswith("0240-")]
+        mig = [f for f in os.listdir(os.path.join(REPO, "infra/supabase/migrations-auto"))
+               if f.startswith("0241-the-lesson-builder")]
         self.assertEqual(len(mig), 1)
         with open(os.path.join(REPO, "infra/supabase/migrations-auto", mig[0]), encoding="utf-8") as f:
             sql = f.read()
         for col in ("build_id", "teaching_row_id", "lesson_id", "writer", "family", "model_label", "prompt_sha256",
                     "prompt_text", "body", "gate_results", "elapsed_ms", "usage", "error", "published", "backfill", "source_ref"):
             self.assertIn("  " + col + " ", sql, col)
+            if col != "writer":
+                # ensured even when the parity loop's 0240 (applied first) created a narrower table
+                self.assertRegex(sql, r"ADD COLUMN IF NOT EXISTS " + col + r"\s", col)
         self.assertIn("CHECK (NOT (backfill AND published))", sql)
         self.assertIn("pg_notify('lesson_inbox'", sql)
         self.assertIn("'decision:' || NEW.id::text", sql)
