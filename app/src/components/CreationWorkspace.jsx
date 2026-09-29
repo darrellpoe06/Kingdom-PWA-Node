@@ -255,7 +255,6 @@ export default function CreationWorkspace({
 
   return (
     <div className="w-full">
-      {station && <CreatingStation {...station} />}
       <div className="mb-4">
         <div className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#B85838]">Create</div>
         <h1 className="text-2xl text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Creation Workspace</h1>
@@ -502,6 +501,11 @@ export default function CreationWorkspace({
         .creation-canvas ul, .creation-canvas ol { margin: 0 0 .625rem 1.5rem; }
         .creation-canvas li { margin: 0 0 .25rem; }
       `}</style>
+      {/* The lesson tools (DR-0678) sit BELOW the workspace: Darrell 2026-09-29,
+          "Why take away my type texting place?!" - on a phone the station's
+          panels stacked above the canvas and pushed his writing place out of
+          sight. Create opens on his own workspace; the tools follow it. */}
+      {station && <div className="mt-8"><CreatingStation {...station} /></div>}
     </div>
   );
 }
