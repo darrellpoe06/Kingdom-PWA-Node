@@ -235,9 +235,8 @@ describe('on the real Learn tree', () => {
   });
 
   it('a short numbered course gets the same Order control, without the divisions view', () => {
-    // Sovereign A.I. was the example until it reached SECTION_MIN_LESSONS (30 weeks, 2026-09-29)
-    // and earned the divisions view by design; the example is now a course still under the line,
-    // and the line is checked here so the example cannot silently outgrow its premise.
+    // Sovereign A.I. outgrew this example at 30 weeks (SECTION_MIN_LESSONS); the
+    // example is now a course pinned UNDER the line, so it cannot outgrow its premise.
     const short = extraCourses.find((c) => /^Made in Time/.test(c.meta?.title || ''));
     expect(short, 'made-in-time is registered').toBeTruthy();
     expect(short.schedule.length).toBeLessThan(SECTION_MIN_LESSONS);

@@ -9,8 +9,7 @@ declared_by: Darrell
 scope:
   - app/src/lib/sovereign-ai-class.js (the sov31 module, placed directly after sov30; SOVEREIGN_AI_META.weeks is a getter, so no count line moves)
   - app/src/__tests__/sovereign-ai-sov31-verses.test.js (new: SOV31_FRAGMENTS + SOV31_CORPUS + SOV31_ALLOWED + the week-order guard + a proven-to-catch block)
-  - app/src/__tests__/sovereign-ai-class.test.js (its literal 29s become counts derived from the data, with a floor, per DR-0677)
-  - app/src/__tests__/living-lessons-order.test.jsx (its short-course example moves from Sovereign A.I., which reaches the 30-lesson divisions line by design, to Made in Time, with the line itself asserted)
+  - app/src/__tests__/sovereign-ai-class.test.js (sov31 named among the weeks; its counts were already derived by sov30, DR-0682, per DR-0677)
 principles: [WORD-FIRST, VERIFICATION-DOCTRINE (DR-0076), SPEAK-ESTABLISHED-FACT (DR-0100), TEACH-DONT-DEBATE (DR-0098)]
 grounds:
   - DR-0312 — the inbox is a lesson door (Gmail thread 1a0ed0f869d2d904, forwarded 2026-09-29 from dpoe@illinois.edu, marked "Lesson")
@@ -49,7 +48,7 @@ The whole thread was read (266 lines of plain text, with the tracking links stri
 
 ## Impact
 
-One week added to Sovereign A.I. (30 before, 31 after sov30 lands). No count line moves: `SOVEREIGN_AI_META.weeks` is already a getter, and this change turns the last literal 29s in `sovereign-ai-class.test.js` into derived counts with a floor, so the next week does not edit them either (DR-0677). The week-order guard in the new test fails until sov30 is on main, so this week cannot land ahead of it. One more premise moved with the count: at 30 lessons Sovereign A.I. crosses `SECTION_MIN_LESSONS` and earns the divisions view by design, so `living-lessons-order.test.jsx`, which used it as its short-course example, now uses Made in Time (18 lessons) and asserts the course is under the line, so the example cannot silently outgrow its premise again. sov30 alone would have crossed the line; whichever lands first carries this. Without the lesson, the forwarded question — whose errand does your agent carry — reaches no one; with it, the family reads it Word first, claims sorted.
+One week added to Sovereign A.I. (30 before, 31 after). No count line moves: `SOVEREIGN_AI_META.weeks` is a getter, and sov30 already made the course test's counts derived and contiguous (DR-0677), so this week edits no count. The week-order guard in the new test fails until sov30 is on main, so this week cannot land ahead of it. One more premise moved with the count: at 30 lessons Sovereign A.I. crosses `SECTION_MIN_LESSONS` and earns the divisions view by design, so `living-lessons-order.test.jsx` needed a new short-course example. This branch wrote that fix first (Made in Time, with the line asserted); sov30 landed the same fix, and main's copy was kept on merge. Without the lesson, the forwarded question — whose errand does your agent carry — reaches no one; with it, the family reads it Word first, claims sorted.
 
 ## Decision — what his word became
 
