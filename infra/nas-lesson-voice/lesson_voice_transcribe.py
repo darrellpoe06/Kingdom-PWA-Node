@@ -546,6 +546,56 @@ def return_published_once(list_hosted, merge_live_tags, tag_hosted):
     return report
 
 
+# THE BUILD'S PROGRESS, CARRIED BACK (DR-0672). "Your lessons" shows each
+# lesson from arrival to live, read from the app's own database. The builder
+# writes its progress on the hosted copy: `lesson-captured` after the push,
+# `parallel-compared` when the teaching was already a lesson, `lesson-pr:<n>`
+# naming the pull request, `lesson-id:<id>` naming the lesson, `captured-at:
+# <iso>` and `lesson-building` when it says so. Before this pass only the two
+# publish tags came back, so the app could never see a lesson being captured or
+# its PR. Each tag is carried once: the hosted copy is marked `returned:<tag>`,
+# and a tag written later (the PR after the capture) is carried on a later run.
+PROGRESS_TAG_PREFIXES = ("lesson-captured", "parallel-compared", "lesson-pr:", "lesson-id:",
+                         "lesson-published", "captured-at:", "lesson-building")
+RETURNED_PREFIX = "returned:"
+
+
+def progress_owed(row):
+    """The progress tags on a hosted row that the live row has not been given yet."""
+    tags = [str(t) for t in (row.get("tags") or [])]
+    done = {t[len(RETURNED_PREFIX):] for t in tags if t.startswith(RETURNED_PREFIX)}
+    return [t for t in tags if t.startswith(PROGRESS_TAG_PREFIXES) and t not in done]
+
+
+def rows_to_return_progress(rows):
+    out = []
+    for r in rows or []:
+        if "lesson" not in (r.get("tags") or []):
+            continue
+        if progress_owed(r):
+            out.append(r)
+    return out[:MAX_MIRROR_PER_RUN]
+
+
+def return_progress_once(list_hosted, merge_live_tags, tag_hosted):
+    """Carry the builder's progress back to the live row; returns {returned, failed}. Never raises."""
+    report = {"returned": [], "failed": []}
+    try:
+        rows = rows_to_return_progress(list_hosted())
+    except Exception as e:
+        report["failed"].append({"id": None, "error": f"list: {e}"})
+        return report
+    for r in rows:
+        owed = progress_owed(r)
+        try:
+            merge_live_tags(r["id"], owed)
+            tag_hosted(r, [RETURNED_PREFIX + t for t in owed])
+            report["returned"].append(r["id"])
+        except Exception as e:
+            report["failed"].append({"id": r.get("id"), "error": str(e)})
+    return report
+
+
 class SupabaseIO:
     def __init__(self, url, key, data_dir=DATA, env=None):
         self.url, self.key, self.data_dir = url, key, data_dir
@@ -582,6 +632,17 @@ class SupabaseIO:
     def list_published_rows(self):
         q = "select=id,tags&tags=cs." + urllib.parse.quote(json.dumps(["lesson", "lesson-published"])) + "&order=created_at.asc&limit=100"
         return json.loads(self._req("GET", "/rest/v1/agent_inbox?" + q).decode("utf-8"))
+
+    def list_progress_rows(self):
+        # Newest first, so rows already carried never crowd out a fresh capture.
+        out, seen = [], set()
+        for tag in ("lesson-captured", "lesson-building"):
+            q = "select=id,tags&tags=cs." + urllib.parse.quote(json.dumps(["lesson", tag])) + "&order=created_at.desc&limit=200"
+            for r in json.loads(self._req("GET", "/rest/v1/agent_inbox?" + q).decode("utf-8")):
+                if r.get("id") not in seen:
+                    seen.add(r.get("id"))
+                    out.append(r)
+        return out
 
     def merge_tags(self, rid, extra):
         """Union `extra` into the row's tags on THIS project (the hosted copy)."""
@@ -747,6 +808,7 @@ if __name__ == "__main__":
             out["mirror"] = mirror_once(live.list_lesson_rows, hosted.insert_mirror, live.add_tags)
             out["review"] = sync_reviews_once(live.list_reviewed_rows, hosted.merge_tags, live.add_tags)
             out["published"] = return_published_once(hosted.list_published_rows, live.merge_tags, hosted.add_tags)
+            out["progress"] = return_progress_once(hosted.list_progress_rows, live.merge_tags, hosted.add_tags)
         else:
             out["mirror"] = {"skipped": "no hosted credential to mirror to"}
     print(json.dumps(out, indent=2))

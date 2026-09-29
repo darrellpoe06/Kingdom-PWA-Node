@@ -105,6 +105,56 @@ Derived from DR-0064, `RELEASE-TIERS.md`, and the Tier-1 fix classes in the poli
 - **Gmail reconnect** → the banking-on-autopilot lane has an expired Gmail credential silently failing; one reconnect heals it.
 - `DECISION:` _____ (which, if any, to provision now)
 
+### OPEN-11 · End the lesson doors' parallel run, or keep it (DR-0610 §4: it ends only on your word)
+- **Unblocks:** the in-app lesson door becoming the primary lesson lane, with the chat and email as backups.
+- **Measured (2026-09-29 04:42 UTC, hosted `agent_inbox`):** 10 lesson rows, all captured; **0 canary rows and 0 `parallel-compared` tags**, so none of DR-0608's acceptance criteria has run yet. The longest wait from a row to its lesson going live was 85 h 26 min (row `2e5c8f2e`, 2026-09-25 → L197 live 2026-09-29).
+- **My recommendation:** not yet. First run DR-0608's canary three times and see the report back to the sender in the app (the DR-0668 lane). Then decide on those numbers.
+- **Default if you say nothing:** the parallel run continues; both doors stay lanes of record.
+- `DECISION:` _____
+
+### OPEN-12 · A monthly spend cap before any paid lesson writer runs (DR-0669's writer modes)
+- **Unblocks:** the pluggable lesson writers on the NAS builder (Claude API, Gemini, OpenAI). Those modes spend real money and need keys only you hold. The Claude Code CLI on the existing subscription, and Ollama on our own machines, do not.
+- **Track:** the `claude/nas-lesson-builder` lane (not on origin yet at 04:40 UTC, so this review could not read it). Vendor spend is the AI class that keeps its full brake set (DR-0248 §4): **Tier C**.
+- **My recommendation:** ship with only the CLI and Ollama writers switched on. Paid API modes stay off until you name a monthly cap, and the cap is enforced in code and proven to catch.
+- **Default if you say nothing:** paid modes off.
+- `DECISION:` _____
+
+### OPEN-13 · The Gmail lesson watcher: give it its secret, or retire it
+- **Unblocks:** email lessons noticed within minutes instead of at the Routine's 11:00, 13:00 and 15:00 Central clocks (your choice in DR-0667).
+- **Measured:** the watcher has been dormant since 2026-08-25. Run 36513616210 logged "GMAIL_WATCH_APP_PASSWORD secret not set". Its `*/5` schedule actually fired 2.9 to 7.0 hours apart (GitHub throttles schedules), so even when armed it would not be a five-minute watch.
+- **My recommendation:** retire it. The three daily clocks are the cadence you set, and the watcher adds a secret to keep for a schedule GitHub does not honor.
+- **Default if you say nothing:** it stays dormant, an honest no-op; nothing changes.
+- `DECISION:` _____
+
+---
+
+## REVIEW FINDINGS — what the governance reviews found (not decisions)
+
+These are findings, each with its evidence, who carries it and when it closes. They are shown in the app under Projects → ⚖ Decisions, below the queue, and are never counted as decisions waiting on you. Close-by is `fixed in` a PR, `fix now` by a named system, or a `re-review:` date with the reason it waits.
+
+### 2026-09-29 · The lesson pipeline, end to end: the governance review
+- **Source:** docs/99-session-notes/2026-09-29-lesson-pipeline-governance-review.md
+
+| id | finding | evidence | severity | owner | close-by |
+| --- | --- | --- | --- | --- | --- |
+| LP-01 | Both lesson Routines wake ONE chat session, and "last run: SUCCEEDED" means only that the wake was delivered. Nothing alerts when rows wait: a spoken lesson waited 85 h 26 min, and main took no merges for 95 h 30 min. | get_trigger: both persistent_session_id session_01BZ8phCUT3wxZNWfT4GCrB6; last_run 00:18:30.720 to .730 Z; row 2e5c8f2e created 2026-09-25 15:16 Z, L197 live 2026-09-29 04:43 Z (deploy 36522713427); main 2026-09-25 04:22 Z to 2026-09-29 03:52 Z | high | coordinator + DR-0669 lane (instant trigger) | carried by the DR-0669 lane; re-review: 2026-10-01 |
+| LP-02 | Capture state lives only in jsonb tags on the hosted mirror, with no time on it. The capture lock is never carried back to the row the app reads, so no surface can show how long a lesson has waited. | agent_inbox has 12 columns and no captured_at (information_schema); lesson_voice_transcribe.py:518 carries back only lesson-published and lesson-id | high | DR-0669 lane (lesson_decisions) | carried by the DR-0669 lane; re-review: 2026-10-01 |
+| LP-03 | Rows are tagged lesson-published before the lesson is live. 5 of the 7 published tags name lessons not on main, so "Published: open it" would link to a lesson that does not exist yet. | rows a0309835, f217103d (pm12, PR #1833 open), 4a1a43b3, 83dc69fc (World Issues APA, #1834 conflicting), 7eabab32 (#1835 conflicting); git log origin/main at 04:48 Z | high | coordinator (Routine prompt) + DR-0668 lane (Your lessons) | fix now: the Routine prompt tags published only after the deploy's SHA matches main; carried by the DR-0668 lane |
+| LP-04 | Parallel lesson PRs collide on shared literal count pins, so "parallel" builds land one at a time, with rebuilds in between. DR-0667's "numbers assigned up front" has no mechanism behind it. | learn-crosslist.test.js:319 edited by 19 commits since 09-20; keep-prs-current run 36522715781 refused #1833 and #1834 on it; L195 had 12 red CI runs (living-lessons-id-collision.test.js:96); L193 to L195 took 218 to 290 min open-to-merge, against 4.6 to 6.0 min today | high | lane infrastructure | re-review: 2026-10-01, after #1833 to #1835 land (changing those files now would conflict with all four in-flight lessons) |
+| LP-17 | Parallel branches choose DR numbers as "the next free one", and that keeps colliding. DR-0668 was held for the your-lessons-live lane and taken by PR #1836. The coordinator now assigns DR numbers centrally; nothing in the repo yet knows which numbers are held. | PR #1836 "(DR-0668)" opened 2026-09-29 05:19:56 Z; INDEX Next ID read DR-0668 at d890e8b6; earlier pairs DR-0642/0652, 0655/0656, 0657/0659, and the 0337 double mint (REV-0252); caught only after the fact (ledger-uniqueness.test.js:59) | high | coordinator (central assignment) | carried by the coordinator's central DR assignment from 2026-09-29; re-review: 2026-10-06 (a held-numbers file the ledger guard reads) |
+| LP-05 | Every lesson PR shows red runs that ran nothing: 32 of 49 red or approval-waiting runs on 15 lesson branches had zero jobs. A red that means nothing teaches people to ignore red. | CI 36518708890 and Auto-merge 36518708884 on sov29: failure, 0 jobs, while push CI 36518683659 passed | medium | lane infrastructure | re-review: 2026-10-01 (a lane change carries DR-0107's proof-of-deploy obligation) |
+| LP-06 | The scheduled witnesses do not run on their schedules. site-health `*/10` fired 8 times in 32 hours; the mail watcher's `*/5` ran 2.9 to 7.0 hours apart. | site-health runs 2026-09-27 17:14 Z to 2026-09-29 01:13 Z, gaps 2 h 55 min to 8 h 20 min; DR-0125 constraint | medium | lane infrastructure | re-review: 2026-10-07 |
+| LP-07 | The email lane searches only the last 7 days. An unlabeled Lesson email older than that is never seen again, although the label ledger exists so nothing is silently dropped. | Gmail Routine prompt: newer_than:7d; DR-0312:30 | medium | coordinator (Routine prompt) | fix now: drop newer_than:7d; the Lesson-Captured label is the ledger |
+| LP-08 | Rules that live only in a Routine prompt, with no repo copy or test: skip rows a running build owns; Darrell's two account ids; placement; the member-row rules; test-recording rows. Any edit to the prompt can change them silently. | get_trigger prompt text; the app keeps the Governor identity in the database (lesson_governor_emails, migration 0237) | medium | DR-0669 lane (identical prompts in the repo) | carried by the DR-0669 lane; re-review: 2026-10-01 |
+| LP-09 | DR-0608's acceptance criteria have not run: no canary, and no parallel-run comparison written. | SQL 2026-09-29 04:42 Z: canary 0, parallel-compared 0 of 10 lesson rows | medium | coordinator | re-review: 2026-10-07; decision OPEN-11 |
+| LP-10 | The L194 recount to fifty-eight did not ship. PR #1831 added one pointer sentence to L194; L194 still says and pins fifty-four. | living-lessons-l194-verses.test.js:131-133; DR-0661 §5 | medium | Living Lessons lane | re-review: 2026-10-13 (DR-0661's own date) |
+| LP-11 | A spoken teaching has been stranded for four days: PR #1814 (the song that goes with you) conflicts with main and claims week 29, which sov29 now holds. | #1814 mergeable_state dirty, last updated 2026-09-25 04:14 Z; keep-prs-current: idle over 72 h; DR-0662 Impact | medium | Sovereign A.I. lane | re-review: 2026-09-30 (renumber to sov30 and rebase) |
+| LP-12 | Spoken-lesson latency has been measured once: 1 h 08 min to a failure, 5 h 28 min to a transcript on the NAS CPU rung. The other originals are not mirrored, so their times are not visible from here. | row b1a79408 then ffa896bb and 9f70cd51; DR-0611 limit 1 (tower rung dark); DR-0614 decision 2 | medium | tower lane (DR-0671) | re-review: 2026-10-01 (DR-0611's date) |
+| LP-13 | The in-flight branches for DR-0668 to DR-0671 were not on origin, so this review could not read them; their numbers are held only in prose. | git ls-remote at 04:3x Z: no heads for your-lessons-live, nas-lesson-builder, openclaw-on-the-towers, tower-parity-loop | low | those lanes | re-review: 2026-09-30 |
+| LP-14 | This review's database numbers describe the hosted mirror. The app writes the NAS database, which the sandbox cannot reach. | DR-0614 lines 19 and 42 | low | coordinator | re-review: 2026-10-07 (DR-0614's date) |
+| LP-15 | The Governor's queue labelled OPEN-5 (credentials, a bright line) as Tier A, because the parser read on into the lane notes. | characterized on the real file: OPEN-5 tier "A" from a "(Tier A)" under LANE COORDINATION | medium | this review | fixed in this PR (governance-queue-parse.js + its test) |
+| LP-16 | "Comprehensive" meant three different counts: the standard ten, the enforcing guard nine (the hollow-surface dimension missing), CLAUDE.md eight. | COMPREHENSIVE-REVIEW-STANDARD.md; ari-integrity-guard.js REVIEW_DIMENSIONS; CLAUDE.md:451-453 | low | this review | fixed in this PR (ari-guard-dimensions.test.js holds all three together) |
+
 ---
 
 ## BUILD BACKLOG — what I'll work down on my own

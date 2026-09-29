@@ -16,6 +16,7 @@ import { KpiDot } from './KpiDot.jsx';
 import { fetchOps, landOrder, GITHUB_SLUG } from '../lib/github-ops.js';
 import { fetchSiteHealth } from '../lib/site-health.js';
 import { fetchHarvestHealth } from '../lib/harvest-health.js';
+import { fetchOpenclawTower } from '../lib/openclaw-tower.js';
 import DataIntegrityReport from './DataIntegrityReport.jsx';
 import { REPEATABLE_GOVERNANCE } from '../lib/purpose.js';
 
@@ -134,21 +135,61 @@ function UptimeStrip({ health }) {
   );
 }
 
+// OpenClaw on the 4070 tower (DR-0670) — up, model, last run, brakes armed,
+// read live from the witness record the openclaw-tower lane writes. Unknown is
+// drawn as unknown, with the reason in words; it is never drawn green.
+const brakeWord = (v) => (v === true ? 'armed' : v === false ? 'NOT armed' : 'unknown');
+
+export function OpenclawTowerStrip({ tower }) {
+  const t = tower && tower.status ? tower.status : null;
+  if (!t) return null;
+  const kpi = t.state === 'up'
+    ? { status: 'good', label: t.label }
+    : t.state === 'down'
+      ? { status: 'problem', label: t.label }
+      : { status: 'idle', label: 'unknown' };
+  const run = t.lastRun;
+  return (
+    <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-2 mb-3 text-[0.6875rem]" data-testid="openclaw-tower-strip">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <span className="font-semibold text-[#1A1815]">OpenClaw — the 4070 tower</span>
+        <KpiDot status={kpi.status} label={kpi.label} />
+      </div>
+      <p className="text-[0.625rem] text-[#5A5751] mt-1">
+        {t.state === 'unknown' ? <>State unknown: {t.reason}.{' '}</> : null}
+        Model: {t.model && t.model.name ? <span className="font-mono">{t.model.name}</span> : 'unknown'}
+        {t.model && t.model.present === false ? ' (not pulled)' : ''}.{' '}
+        Last run: {run && run.at
+          ? <>{run.role || 'run'} {run.verdict || ''} {String(run.at).slice(0, 16).replace('T', ' ')} UTC{run.reason ? ` — ${run.reason}` : ''}.{' '}</>
+          : <>none recorded.{' '}</>}
+        Brakes — budget {brakeWord(t.brakes.budget)}, lock {brakeWord(t.brakes.lock)}, kill {t.brakes.kill === true ? 'armed (every role live by record)' : t.brakes.kill === false ? `holding: ${t.brakes.killReason}` : 'unknown'}.{' '}
+        The chat-ops pilot is report-only; the family agent is under evaluation with no channel paired.{' '}
+        {tower.url
+          ? <a href={tower.url} target="_blank" rel="noopener noreferrer" className="text-[#B85838] underline">the record</a>
+          : null}
+      </p>
+    </div>
+  );
+}
+
 export default function OpsBoard() {
   const [state, setState] = useState({ phase: 'loading', data: null });
   const [health, setHealth] = useState(null);
   const [harvest, setHarvest] = useState(null);
+  const [tower, setTower] = useState(null);
 
   const load = useCallback(async () => {
     setState((s) => ({ phase: 'loading', data: s.data }));
-    const [data, sh, hh] = await Promise.all([
+    const [data, sh, hh, oc] = await Promise.all([
       fetchOps(),
       fetchSiteHealth().catch(() => null),
       fetchHarvestHealth().catch(() => null),
+      fetchOpenclawTower().catch(() => null),
     ]);
     setState({ phase: 'ready', data });
     setHealth(sh);
     setHarvest(hh);
+    setTower(oc);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -208,6 +249,7 @@ export default function OpsBoard() {
       {/* The site's own line — up + fresh, measured from outside (DR-0125). */}
       <UptimeStrip health={health} />
       <HarvestStrip harvest={harvest} />
+      <OpenclawTowerStrip tower={tower} />
 
       {/* Data-integrity standard report — how much of the app is verified
           live-data vs painted, and the trend over time (DR-0196; Darrell

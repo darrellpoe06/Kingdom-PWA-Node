@@ -14,10 +14,12 @@
 //
 // What is pinned here, so no later edit can soften it (DR-0604 pattern, DR-0646):
 //   1. L191 is kept as it was, carrying only one added line that points here;
-//   2. the COUNT is a count of the record under a STATED rule: fifty-four
+//   2. the COUNT is a count of the record under a STATED rule: fifty-eight
 //      numbered occasions in order, the rule and the six exclusions written
 //      out, the tallies by kind derived from the numbered list, and the L191
-//      reconciliation (eighteen matched, thirty-six new);
+//      reconciliation (eighteen matched, forty new); recounted 2026-09-29 from
+//      fifty-four to fifty-eight by the same rule (DR-0673): Nazareth again,
+//      Gethsemane, and the two words to the Father from the cross;
 //   3. every quoted span is the verse it names, on every surface;
 //   4. the science is stated to DR-0100 (established, with its basis; the
 //      approximate public figure labeled approximate; Darrell's numbers gently
@@ -82,7 +84,7 @@ describe('L194 is really in the series, and L191 is kept', () => {
     const l = L191().lesson;
     expect(l).toMatch(/This lesson walks sixteen of them\. The Gospels hold more; sixteen is enough to see the pattern and to count\./);
     expect(l.split('All of them: L194').length - 1).toBe(1);
-    expect(l).toContain('All of them: L194, I AM: Who He Said He Was — Every Hearer, All of Them, walks every occasion the four Gospels record, fifty-four by a stated rule.');
+    expect(l).toContain('All of them: L194, I AM: Who He Said He Was — Every Hearer, All of Them, walks every occasion the four Gospels record, fifty-eight by a stated rule.');
     expect(L191().title).toBe('Who He Said He Was — Every Hearer, Every Situation, and the Keys of Hell and of Death');
   });
 
@@ -128,16 +130,16 @@ describe('every quoted span is the verse it names', () => {
 });
 
 describe('the count is a count of the record, under a stated rule', () => {
-  it('fifty-four numbered occasions, in order, one to fifty-four', () => {
-    expect(inOrderOneTo(occasions(L().lesson), 54)).toBe(true);
-    expect(L().lesson).toMatch(/By that rule the four Gospels record fifty-four occasions\./);
+  it('fifty-eight numbered occasions, in order, one to fifty-eight', () => {
+    expect(inOrderOneTo(occasions(L().lesson), 58)).toBe(true);
+    expect(L().lesson).toMatch(/By that rule the four Gospels record fifty-eight occasions\./);
   });
 
   it('PROVEN TO CATCH: an occasion dropped or two swapped breaks the sequence', () => {
     const dropped = L().lesson.replace('OCCASION 27: ', 'THE TEMPLE: ');
-    expect(inOrderOneTo(occasions(dropped), 54)).toBe(false);
+    expect(inOrderOneTo(occasions(dropped), 58)).toBe(false);
     const swapped = L().lesson.replace('OCCASION 3: ', 'OCCASION X: ').replace('OCCASION 4: ', 'OCCASION 3: ').replace('OCCASION X: ', 'OCCASION 4: ');
-    expect(inOrderOneTo(occasions(swapped), 54)).toBe(false);
+    expect(inOrderOneTo(occasions(swapped), 58)).toBe(false);
   });
 
   it('the rule and the six exclusions are written out in words', () => {
@@ -161,28 +163,69 @@ describe('the count is a count of the record, under a stated rule', () => {
     for (const [count, list] of [[1, 2], [3, 4], [5, 6], [7, 8]]) {
       const ns = nums(m[list]);
       expect(ns.length).toBe(Number(m[count]));
-      for (const n of ns) expect(n >= 1 && n <= 54).toBe(true);
+      for (const n of ns) expect(n >= 1 && n <= 58).toBe(true);
     }
     expect(nums(m[8])).toEqual([8, 9, 14, 18]); // the four spirit occasions
     const union = new Set([2, 4, 6, 8].flatMap((i) => nums(m[i])));
-    expect(union.size, 'every occasion carries at least one kind').toBe(54);
+    expect(union.size, 'every occasion carries at least one kind').toBe(58);
   });
 
-  it('the L191 reconciliation: eighteen matched, one quoted-not-walked, thirty-six new — read from the tags', () => {
+  it('the L191 reconciliation: eighteen matched, one quoted-not-walked, forty new — read from the tags', () => {
     const t = tags(L().lesson);
-    expect(t).toHaveLength(54);
+    expect(t).toHaveLength(58);
     expect(t.every(Boolean)).toBe(true);
     const matched = t.filter((x) => x !== 'new' && !x.startsWith('quoted'));
     expect(matched).toHaveLength(18);
-    expect(t.filter((x) => x === 'new')).toHaveLength(35);
+    expect(t.filter((x) => x === 'new')).toHaveLength(39);
     expect(t.filter((x) => x.startsWith('quoted'))).toHaveLength(1);
-    expect(L().lesson).toMatch(/eighteen of the fifty-four are the scenes L191 walks/);
-    expect(L().lesson).toMatch(/Thirty-six occasions are new in this lesson\./);
+    expect(L().lesson).toMatch(/eighteen of the fifty-eight are the scenes L191 walks/);
+    expect(L().lesson).toMatch(/Forty occasions are new in this lesson\./);
     // L191's fifteen Gospel hearers all appear; its sixteenth is named as outside.
     for (const ord of ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'eleventh', 'twelfth', 'thirteenth', 'fourteenth', 'fifteenth']) {
       expect(matched.some((x) => x === `the ${ord} hearer`), `L191's ${ord} hearer`).toBe(true);
     }
     expect(L().lesson).toMatch(/its sixteenth, John on Patmos, stands outside the four Gospels/);
+  });
+
+  it('the recount (DR-0673): the same rule, applied to L194 itself, adds four scenes at 20, 44, 49 and 51', () => {
+    const l = L().lesson;
+    const at = (n) => {
+      const parts = l.split(/OCCASION \d+: /);
+      return parts[n];
+    };
+    expect(at(20)).toMatch(/^HIS OWN TOWN AGAIN, IN THE SYNAGOGUE AT NAZARETH \(Mark 6:1-6; Matthew 13:54-58\)/);
+    expect(at(20)).toContain('"A prophet is not without honour, but in his own country, and among his own kin, and in his own house" (Mark 6:4)');
+    expect(at(44)).toMatch(/^THE FATHER, IN GETHSEMANE \(Matthew 26:36-46; Mark 14:32-42; Luke 22:39-46\)/);
+    expect(at(44)).toContain('"O my Father, if it be possible, let this cup pass from me: nevertheless not as I will, but as thou wilt" (Matthew 26:39)');
+    expect(at(49)).toMatch(/^THE FATHER, FROM THE CROSS, AS THEY CRUCIFIED HIM \(Luke 23:33-34\)/);
+    expect(at(49)).toContain('"Then said Jesus, Father, forgive them; for they know not what they do" (Luke 23:34)');
+    expect(at(51)).toMatch(/^THE FATHER, FROM THE CROSS, AT THE NINTH HOUR \(Luke 23:44-46/);
+    expect(at(51)).toContain('"Father, into thy hands I commend my spirit" (Luke 23:46)');
+    for (const n of [20, 44, 49, 51]) expect(at(n).trimEnd().endsWith('New here.'), `occasion ${n} is new here`).toBe(true);
+    expect(l).toContain('This lesson first counted fifty-four.');
+    expect(l).toContain('so they are counted here, as occasions 20, 44, 49 and 51.');
+    // All four are of the first kind: they are in the named list, read from the tally.
+    const named = l.match(/He named who He was in (\d+) of them: ([\d, and]+)\./);
+    const ns = named[2].split(/,\s*|\s+and\s+/).map(Number);
+    expect(ns).toHaveLength(Number(named[1]));
+    for (const n of [20, 44, 49, 51]) expect(ns).toContain(n);
+    for (const b of FULL_BANDS) {
+      expect(L().levels[b], `${b} carries Gethsemane`).toContain('O my Father, if it be possible, let this cup pass from me');
+      expect(L().levels[b], `${b} carries the first word from the cross`).toContain('Father, forgive them; for they know not what they do');
+      expect(L().levels[b], `${b} carries the last word to the Father`).toContain('Father, into thy hands I commend my spirit');
+      expect(L().levels[b], `${b} carries Nazareth again`).toContain('A prophet is not without honour, but in his own country');
+    }
+  });
+
+  it('PROVEN TO CATCH: a recounted occasion removed breaks the count and the tally', () => {
+    const l = L().lesson;
+    const i = l.indexOf('OCCASION 49: ');
+    const j = l.indexOf('OCCASION 50: ');
+    const cut = l.slice(0, i) + l.slice(j);
+    expect(cut).not.toBe(l);
+    expect(inOrderOneTo(occasions(cut), 58)).toBe(false);
+    expect(occasions(cut)).toHaveLength(57);
+    expect(tags(cut).filter((x) => x === 'new')).not.toHaveLength(39);
   });
 
   it('the confessions, questions and spirits the brief named are all walked', () => {
@@ -274,7 +317,7 @@ describe('the movements are the Word’s, and the science is labeled', () => {
     expect(L().lesson.trimEnd().endsWith(end)).toBe(true);
     for (const b of FULL_BANDS) {
       expect(L().levels[b].trimEnd().endsWith(end), `${b} ends the way this house ends`).toBe(true);
-      expect(L().levels[b], `${b} gives the count`).toMatch(/fifty-four/i);
+      expect(L().levels[b], `${b} gives the count`).toMatch(/fifty-eight/i);
     }
   });
 });
