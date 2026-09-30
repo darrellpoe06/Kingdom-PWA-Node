@@ -23,7 +23,7 @@ import { scanQuotedVerses, describeFault } from '../../../scripts/quoted-verse-i
 import { quotedTexts } from '../../../scripts/quotation-integrity.mjs';
 import { formatLessonText } from '../lib/lesson-format.js';
 
-const COURSES = ['ai', 'little-learners', 'mathematics', 'development'];
+const COURSES = ['ai', 'little-learners', 'mathematics', 'development', 'rent-to-own-business'];
 
 const lessonsOf = (key) => {
   const c = LEARN_CATALOG.find((x) => x.key === key);
