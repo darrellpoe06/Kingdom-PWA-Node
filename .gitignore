@@ -64,6 +64,12 @@ credentials.json
 # ...but DO commit the shared project settings: the ari-guard Stop hook that
 # enforces DR-0111 must ship with the repo. Personal config stays ignored.
 !.claude/settings.json
+# Shared agent skills (Supabase's official skills, installed 2026-09-30) ship
+# with the repo so every session, cloud or desktop, loads them.
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/supabase/
+!.claude/skills/supabase-postgres-best-practices/
 
 # Supabase self-hosted — secrets and data volumes never committed
 infra/supabase/.env
