@@ -624,6 +624,15 @@ export function ChurchGivePanel({ church, onClose }) {
 // Word beneath; any scroll/touch re-reveals the full labeled pill as the gentle
 // "you know where to give" reminder. Same idle hook, same motion, same tap
 // target minimums — one Way, every floater.
+//
+// ONE ROW ON A PHONE (2026-09-30, the 360px lesson chrome budget, DR-0438's
+// ratchet). Stacked above the read-aloud button, the pill made a SECOND band of
+// chrome across the bottom of a phone (776-824px on a 900px screen) over the
+// lesson words. Below `sm` it now sits in the SAME row as the read-aloud button,
+// just to its left (right-20 = the read-aloud's 48px + its 16px inset + 16px of
+// air), and never reaches Feedback on the left (its expanded label ends at
+// 148px; this pill's revealed label starts near 190px). Wider screens keep the
+// stack, where a second band costs the reader nothing.
 export function ChurchGiveFloater({ church }) {
   const [open, setOpen] = React.useState(false);
   const reveal = useIdleReveal(); // idle-dim + reveal-on-scroll (Pattern 2d)
@@ -635,7 +644,7 @@ export function ChurchGiveFloater({ church }) {
           onClick={() => setOpen(true)}
           aria-label="Give to the church"
           title="Give to the church — and the blessing of giving according to the Word"
-          className={`ts-chrome-region church-give-floater fixed bottom-20 right-4 z-30 inline-flex items-center justify-center gap-1.5 bg-[#5A6E3D] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#5A6E3D] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden transition-all duration-500 hover:opacity-100 focus:opacity-100 ${reveal ? 'px-4 py-3 opacity-100 translate-y-0' : 'p-0 w-12 h-12 opacity-40 translate-y-1'}`}
+          className={`ts-chrome-region church-give-floater fixed bottom-4 right-20 sm:bottom-20 sm:right-4 z-30 inline-flex items-center justify-center gap-1.5 bg-[#5A6E3D] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#5A6E3D] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden transition-all duration-500 hover:opacity-100 focus:opacity-100 ${reveal ? 'px-4 py-3 opacity-100 translate-y-0' : 'p-0 w-12 h-12 opacity-40 translate-y-1'}`}
           style={{ borderRadius: '999px' }}
         >
           <GiftIcon />{reveal ? <span>Give</span> : null}
