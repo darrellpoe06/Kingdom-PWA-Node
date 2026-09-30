@@ -311,8 +311,12 @@ describe('the rule for "all of them" is derived from the New Testament, and ever
     const toPassage = found.filter((r) => !OF_HIM.includes(r) && !other.includes(r));
     for (const r of [...OF_HIM, ...other]) expect(found, `${r} is not a rule verse`).toContain(r);
     const l = L().lesson;
-    expect(l).toContain(`Read the whole New Testament by that rule and it gives ${found.length} verses. ${toPassage.length} of them point to a named Old Testament passage kept in Jesus or set on Him. ${OF_HIM.length} say that the Scriptures were fulfilled in Him without naming one passage: ${OF_HIM.join(', ')}.`);
-    expect(l).toContain(`The other ${other.length} use the same words for something else, and we name them so nothing is hidden: ${other.join(', ')}.`);
+    expect(l).toContain(`Read the whole New Testament by that rule and it gives ${found.length} verses. ${toPassage.length} of them point to a named Old Testament passage kept in Jesus or set on Him. ${OF_HIM.length} say that the Scriptures were fulfilled in Him without naming one passage.`);
+    expect(l).toContain(`The other ${other.length} use the same words for something else, and we name them so nothing is hidden.`);
+    // every one of them is named, one book name per book so the reader's reference strip stays short
+    const compact = (refs) => { const out = []; for (const r of refs) { const x = /^(.+) (\d+:\d+)$/.exec(r); const last = out[out.length - 1]; if (last && last.book === x[1]) last.cv.push(x[2]); else out.push({ book: x[1], cv: [x[2]] }); } return out.map((g) => `${g.book} ${g.cv.join(', ')}`).join('; '); };
+    expect(l).toContain(`without naming one passage. They are ${compact(OF_HIM)}.`);
+    expect(l).toContain(`so nothing is hidden. They are ${compact(other)}.`);
     // every rule verse that names a passage is the ground of a row on the line
     const vias = new Set(rows().flatMap((t) => t.prophecy.via || []));
     for (const r of toPassage) expect(vias.has(r), `${r} finds a passage with no row`).toBe(true);
@@ -473,7 +477,7 @@ describe('the years before the kings: the Word’s numbers, added to L201’s an
 describe('the Word first, and the movements are in order', () => {
   it('the Word leads, and all eleven movements plus the close come in order', () => {
     const t = L().lesson;
-    const heads = ['ONE. WHY DAVID CAME FIRST, AND WHY THE LINE IS OLDER', 'TWO. HOW WE KNOW WHICH PROMISES ARE HIS', 'THREE. THE YEARS BEFORE THE KINGS', 'FOUR. BEFORE THE FLOOD', 'FIVE. THE PATRIARCHS', 'SIX. MOSES AND THE LAW', 'SEVEN. JUDGES AND KINGS', 'EIGHT. THE PROPHETS BEFORE THE EXILE', 'NINE. AFTER THE EXILE', 'TEN. THE PROMISES THE WORD DOES NOT DATE', 'ELEVEN. THE WHOLE LINE ON ONE PAGE', 'THE CLOSE.'];
+    const heads = ['ONE. WHY DAVID CAME FIRST, AND THE OLDER LINE.', 'TWO. HOW WE KNOW WHICH PROMISES ARE HIS.', 'THREE. THE YEARS BEFORE THE KINGS.', 'FOUR. EDEN, THE SEED OF THE WOMAN, AND ENOCH.', 'FIVE. SHEM, ABRAHAM AND JUDAH.', 'SIX. THE LAMB, THE STAR AND THE PROPHET.', 'SEVEN. HANNAH, DAVID AND NATHAN.', 'EIGHT. JONAH, AMOS, HOSEA, MICAH, ISAIAH AND JEREMIAH.', 'NINE. ZECHARIAH AND MALACHI, AFTER THE RETURN.', 'TEN. THE PROMISES THE WORD DOES NOT DATE.', 'ELEVEN. THE WHOLE LINE ON ONE PAGE.', 'THE CLOSE.'];
     expect(t.indexOf('We begin in the Word.')).toBeGreaterThan(0);
     expect(t.indexOf('We begin in the Word.')).toBeLessThan(t.indexOf(heads[0]));
     let last = -1;
