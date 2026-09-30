@@ -488,6 +488,14 @@ try {
         // The header hideaway's own per-device key (lib/header-hideaway.js).
         if (cfg.collapsed) localStorage.setItem('poe-header-collapsed', '1'); else localStorage.removeItem('poe-header-collapsed');
       } catch { /* private mode */ }
+      // The live-service bar (LiveWorshipBar) opens app-wide inside a published
+      // service window read from the RUNNER's clock. On 2026-09-30 from about
+      // 21:30 UTC it was open, and every lesson case grew by the bar's height
+      // (360px: 440 -> 486, Big Print: 231 -> 449), failing every PR though no
+      // lesson had changed. The device pass already dismisses it (DR-0688);
+      // this pass measures the lesson's own chrome, so it does the same, as a
+      // person's x does. The bar is its own surface.
+      try { sessionStorage.setItem('poe.liveWorshipBar.dismissedSession', '1'); } catch { /* private mode */ }
     }, { sz: size, collapsed });
     await page.goto(LESSON_URL, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
     await page.waitForSelector('[data-testid="lesson-space-bar"]', { timeout: 20000 }).catch(() => {});
