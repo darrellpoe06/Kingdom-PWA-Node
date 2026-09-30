@@ -3,8 +3,8 @@
 // L202 — Prepared Before the Position — Homecoming, Legacy, Good Success, and
 // Represent (DR-0690)
 // =============================================================================
-// Darrell recorded a Bible study class on his phone on 2026-09-30 and sent it
-// into Thinking Space (agent_inbox d2f21ba3-ab40-496d-ae62-e4a3e2ff8298),
+// Darrell recorded a Bible study class inside the PoeTech app, in Thinking Space,
+// on 2026-09-30 (agent_inbox d2f21ba3-ab40-496d-ae62-e4a3e2ff8298),
 // naming the teaching for Bishop Gwin. Whisper transcribed it on the NAS CPU
 // rung (agent_inbox aed9557b-333e-4152-adbc-de0f9e695793, 16,511 characters).
 // The transcript never names the teacher, marks no speakers, and begins
@@ -86,7 +86,9 @@ describe('L202 is really in the series', () => {
 describe('provenance is said plainly (DR-0331: render for meaning, never guess)', () => {
   it('names the recording, the Whisper rung, the named teacher, and the three limits', () => {
     const l = L().lesson;
-    expect(l).toContain('recorded a Bible study class on his phone');
+    expect(l).toContain('recorded the class inside the PoeTech app itself');
+    expect(l).toContain('The Church of the Living God in Champaign, Illinois, in the normal weekly 1 p.m. Bible study with Bishop Gwin');
+    expect(l.includes('on his phone'), 'recorded inside the app, not on a phone and sent in').toBe(false);
     expect(l).toContain('named the teaching for Bishop Gwin');
     expect(l).toContain('Whisper, running on the server’s processor (the nas-cpu rung)');
     expect(l).toContain('begins partway through the message');
