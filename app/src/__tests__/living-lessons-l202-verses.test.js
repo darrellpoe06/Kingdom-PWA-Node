@@ -9,7 +9,7 @@
 // rung (agent_inbox aed9557b-333e-4152-adbc-de0f9e695793, 16,511 characters).
 // The transcript never names the teacher, marks no speakers, and begins
 // partway through the message; the lesson says so, and names who spoke from the
-// recording's context, Darrell's own account and Bishop Gwin's notes (DR-0699). Every quoted span is the
+// recording's context, Darrell's own account and Bishop Gwin's notes (DR-0704). Every quoted span is the
 // verse it names (the repo's scanQuotedVerses), and the teacher's own points
 // are pinned in the order he gave them.
 import { describe, it, expect } from 'vitest';
@@ -115,9 +115,9 @@ describe('provenance is said plainly (DR-0331: render for meaning, never guess)'
   });
 });
 
-// WHO SAID WHAT (DR-0699). Darrell 2026-09-30: "Differentiate between speakers...
+// WHO SAID WHAT (DR-0704). Darrell 2026-09-30: "Differentiate between speakers...
 // Bishop Gwin is BG... Darrell Poe is DP... Other congregation members are called
-// by BG..." and, deciding the privacy question (DR-0700): the church posts these
+// by BG..." and, deciding the privacy question (DR-0705): the church posts these
 // sessions publicly, so members are named as Bishop Gwin calls them. Every name
 // is pinned to the words the recording attaches it to, never guessed onto a voice.
 const SPEAKER_PINS = [
@@ -128,21 +128,29 @@ const SPEAKER_PINS = [
   ['lesson', 'Janelle, called by name just before she spoke, told of a university chancellor'],
   ['lesson', 'Names were said aloud in the room: Elder Mosley; Evangelist Gwin, as best the recording can be read (the machine wrote Evangelist Queen)'],
   ['lesson', 'the story of Christina, Darrell\'s wife (the machine wrote Christiana), who takes classes at the University of Illinois'],
-  ['lesson', 'The recording does not mark who told about Christina or who gave that rule.'],
-  ['lesson', 'Someone answered with the Word, and the recording does not mark who: "let God be true'],
+  ['lesson', 'the recording does not mark who told about Christina. The rule that followed is Darrell Poe\'s (DP), by his own account'],
+  ['lesson', 'Someone in the congregation answered with the Word, and the recording does not show the name: "let God be true'],
+  ['lesson', 'DP went on: you cannot read a few verses and think you have it, you have to stay in it'],
   ['youth', 'Bishop Gwin told his own story. He always tried to win his own way.'],
   ['youth', 'SEVEN. STAY IN THE WORD. DP, Darrell Poe, said people used to believe'],
   ['youth', 'Janelle told about a university chancellor'],
-  ['youth', 'Someone added, and the recording does not show who, "let God be true'],
+  ['youth', 'Someone in the congregation added, and the recording does not show the name, "let God be true'],
+  ['youth', 'DP gave the rule that goes with it: AI will tell you it makes mistakes'],
+  ['youth', 'DP added that you read a passage one year'],
   ['teen', 'Bishop Gwin admitted he chased success on his own terms'],
   ['teen', 'DP noted that scientists once believed'],
   ['teen', 'Janelle quoted a university chancellor'],
+  ['teen', 'a practical rule DP gave, by his own account'],
+  ['teen', 'DP added that you can reread a passage a year later'],
   ['senior', 'Bishop Gwin testified that he long wanted'],
   ['senior', 'DP observed that it was once generally believed'],
   ['senior', 'Janelle recalled a university chancellor'],
+  ['senior', 'a caution for a new age that DP gave, by his own account'],
+  ['senior', 'DP confessed what long readers know'],
   ['child', 'Bishop Gwin told the class he tried to win his own way.'],
   ['child', 'Darrell said that long ago, people thought'],
   ['child', 'Janelle told about a school leader who wants to be a good ancestor.'],
+  ['child', 'Darrell said we must check what a computer tells us'],
 ];
 const textOf = (m, where) => (where === 'lesson' ? m.lesson : m.levels[where]);
 function speakerFaults(m) {
@@ -162,7 +170,7 @@ function speakerFaults(m) {
   return faults;
 }
 
-describe('who said what: BG, DP, and the members as Bishop Gwin calls them (DR-0699, DR-0700)', () => {
+describe('who said what: BG, DP, and the members as Bishop Gwin calls them (DR-0704, DR-0705)', () => {
   it('every speaker is pinned to the words the recording attaches to them', () => {
     expect(speakerFaults(L())).toEqual([]);
   });
@@ -181,12 +189,14 @@ describe('who said what: BG, DP, and the members as Bishop Gwin calls them (DR-0
       for (const must of [/Bishop Gwin's (late )?wife/, /Christina's mother/, /school/, /website/]) expect(around, String(must)).toMatch(must);
     }
     expect(L().lesson).toContain('its south campus building bears her name');
+    expect(L().lesson).toContain('Evaluate, Meet, Enrich, Glorify');
+    expect(L().lesson).toContain('business and IT education');
   });
 
-  it('the AI rule and Romans 3:4 are not handed to anyone the recording does not show', () => {
+  it('Romans 3:4 is a member of the congregation, never handed to a named voice the recording does not show', () => {
     for (const t of [L().lesson, ...BANDS()]) {
       for (const s of t.split(/(?<=[.!?])\s+/)) {
-        if (/let God be true/.test(s)) expect(s, s).toMatch(/does not (show|mark) who|Someone/);
+        if (/let God be true/.test(s)) expect(s, s).toMatch(/Someone in the congregation/);
       }
     }
   });

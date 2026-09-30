@@ -331,7 +331,7 @@ export function chunkLessonForAge(text, ageBandId = DEFAULT_AGE_BAND) {
   if (!Number.isFinite(target)) return [clean];
   // Sentence-ish split that keeps the terminator with its sentence.
   const raw = clean.match(/[^.!?]+[.!?]*\s*/g) || [clean];
-  // Two pieces that are not sentences are glued back before pacing (DR-0698),
+  // Two pieces that are not sentences are glued back before pacing (DR-0703),
   // so a step never ends on a movement's number or opens on a quotation's tail.
   // Darrell 2026-09-30, L202 youth: "SEVEN." dangled at the end of one step and
   // its title opened the next; and a quotation ending in "?" left

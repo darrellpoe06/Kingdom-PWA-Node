@@ -1,10 +1,10 @@
-# DR-0700 — A church session the church posts publicly names its members as the teacher calls them
+# DR-0705 — A church session the church posts publicly names its members as the teacher calls them
 
 - **Status:** accepted
 - **Tier:** B (a privacy rule; an exception to DR-0333 §6, bounded)
 - **Type:** ways + privacy
 - **Date:** 2026-09-30
-- **Scope:** every lesson built from a church session; L202 first (DR-0699); the speaker-labeling pipeline and the lesson-builder rules (DR-0701).
+- **Scope:** every lesson built from a church session; L202 first (DR-0704); the speaker-labeling pipeline and the lesson-builder rules (DR-0706).
 - **Principles:** VERIFICATION-DOCTRINE (DR-0076), DECISION-RECORDS; DR-0333 §6 (private individuals never enter a lesson); DR-0639 (a member is named only by choice); DR-0331.
 - **Grounds:** Darrell, 2026-09-30, verbatim: *"the recordings are online and members already know they are public so this is an exception because we already by action know it's public so we use names to further personalise our collective experience... also I believe people will be more engaged because of these workflows..."*
 
@@ -14,7 +14,7 @@ DR-0333 §6 keeps congregation members named in services out of lessons, and DR-
 
 ## What was measured
 
-The church posts its services and weekly studies to its public channel (DR-0333, `choir_sermons` rows with `source = youtube`), and the members speak knowing the session is recorded and posted. The names in L202's transcript are listed in DR-0699.
+The church posts its services and weekly studies to its public channel (DR-0333, `choir_sermons` rows with `source = youtube`), and the members speak knowing the session is recorded and posted. The names in L202's transcript are listed in DR-0704.
 
 ## Impact
 
@@ -30,5 +30,5 @@ Named members make the lesson the church's own record of its study, and Darrell 
 
 ## Verification
 
-- L202's test pins each name to its words and fails when a name moves onto other words or a garbled name is guessed (DR-0699).
-- The speaker-labeling rules in DR-0701 carry the same limits into the pipeline.
+- L202's test pins each name to its words and fails when a name moves onto other words or a garbled name is guessed (DR-0704).
+- The speaker-labeling rules in DR-0706 carry the same limits into the pipeline.
