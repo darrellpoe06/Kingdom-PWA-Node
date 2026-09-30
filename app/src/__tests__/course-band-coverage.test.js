@@ -118,7 +118,7 @@ describe('the debt, recorded as it actually is', () => {
     // adultOnly at once, and the exact numbers live in the regenerated baseline,
     // which 'matches the live catalog exactly' below holds to the truth. These
     // two lines hold the direction: allFour may only rise, adultOnly only fall.
-    expect(baseline.allFour).toBeGreaterThanOrEqual(38); // 38 on 2026-09-30: property-principle and management-stewardship carry all four on all 16 lessons (DR-0696); 22 on 2026-09-29: Who He Is (DR-0675) carries all four bands on all 14 lessons; 8 on 2026-09-24: the rebuilt historical-research-1619 (DR-0597) carries child, youth, teen and senior on every lesson — the first catalog course with all four bands; a course may only add to this number
+    expect(baseline.allFour).toBeGreaterThanOrEqual(54); // 54 on 2026-09-30: leasing-tenants and maintenance-trades join (DR-0696); 38 on 2026-09-30: property-principle and management-stewardship carry all four on all 16 lessons (DR-0696); 22 on 2026-09-29: Who He Is (DR-0675) carries all four bands on all 14 lessons; 8 on 2026-09-24: the rebuilt historical-research-1619 (DR-0597) carries child, youth, teen and senior on every lesson — the first catalog course with all four bands; a course may only add to this number
     expect(baseline.adultOnly).toBeLessThanOrEqual(37);
   });
 
