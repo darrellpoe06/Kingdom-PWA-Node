@@ -83,6 +83,92 @@ export const RULES = [
 ];
 
 /**
+ * DON'T REPEAT — the failures this house already paid for, handed over as short
+ * pointers at the moment of writing (DR-0697; Darrell 2026-09-30: "Add
+ * reviewing the DRs... so we don't repeat obvious failures... unless we have
+ * another way..."). This IS the other way: the required-reading hook, extended
+ * from "which docs govern this path" to "which failures happened here before".
+ * Pointers, not documents: one line each, naming the LESSONS-LEARNED principle
+ * (P<n>) and the record, so the agent knows what not to do and where the why
+ * lives. A test asserts every P and DR named here exists, so a pointer can
+ * never cite a record that is not there (the 2026-09-30 citing miss).
+ *
+ * `edits: true` means the pointers also arrive when an EXISTING file in that
+ * area is edited, once per area per session: workflows and the lesson
+ * catalogs are where the day's failures landed on edits, not on new files.
+ */
+export const DONT_REPEAT = [
+  {
+    id: 'workflows',
+    match: (p) => /^\.github\/workflows\/[^/]+\.ya?ml$/.test(p),
+    edits: true,
+    points: [
+      'Decide by exact identity (runs?head_sha=<sha>), never by the first item of a runs list: it is not newest-first once filtered (P62; workflow-list-order-guard).',
+      'A concurrency group holds one running and ONE pending run; a third dispatch replaces the pending one. Dispatch one at a time and confirm each run (P64).',
+      'Data carried through a log is encoded so secret masking cannot touch it, then checked by a round-trip (P63; inbox-lesson-body.yml md5).',
+      'A standing lane never depends on one chat connector; it has a sovereign road through the NAS (P61).',
+      'A change to the merge, CI or deploy lane is done only when a real merge produced a real deploy (P26; DR-0107).',
+    ],
+  },
+  {
+    id: 'surfaces',
+    match: (p) => /^app\/src\/components\/.+\.jsx$/.test(p),
+    edits: false,
+    points: [
+      'A surface never goes blank: it says what it sees, what is missing, and the way to fix it (P15; DR-0381; DR-0691; big-picture-no-blank-subtab test).',
+      'Copy and behavior are tested together: if the prompt says Cancel keeps it out, a test presses Cancel and checks it stayed out (DR-0691).',
+      'A control lives where its scope lives: a whole-course control sits with the course, not above one open lesson (P68; DR-0688).',
+    ],
+  },
+  {
+    id: 'lesson-catalog',
+    match: (p) => /^app\/src\/lib\/([a-z0-9-]+-course|living-lessons-class|learn-catalog)\.js$/.test(p),
+    edits: true,
+    points: [
+      'Every new lesson carries all four bands (child, youth, teen, senior) from its first commit; two bands fail the build (P60; DR-0697; course-band-coverage).',
+      'Every verse is verbatim from the repo KJV and pinned in a test; our voice says Yahweh, Jesus, the Word, and He/His/Him (DR-0076; DR-0210).',
+      'Counts are derived from the data, never hand-written into a baseline line (DR-0677).',
+    ],
+  },
+  {
+    id: 'orchestration',
+    match: (p) => /^infra\/nas-loops\//.test(p)
+      || /^docs\/templates\/builder-brief\.md$/.test(p)
+      || /^docs\/00-foundations\/_root\/(ORCHESTRATION-AND-VERIFICATION-OPERATING-MODEL|AUTONOMOUS-OPERATING-MODEL|HOLD-THE-HAND-OF-THE-PROCESS)\.md$/.test(p),
+    edits: true,
+    points: [
+      'Work that must outlive a session gets a durable, braked driver, and it counts as working only after its first run is seen doing real work (P66; P10).',
+      'A spawned session gets a narrow brief (one outcome, what it must not touch) and is watched; scope creep is stopped at once (P67).',
+      'Measure before you throttle, and clean up every artifact a job leaves, not only worktrees (P65).',
+      'Every brief and routine prompt names the DRs and LESSONS-LEARNED principles to read first (DR-0697; docs/templates/builder-brief.md).',
+    ],
+  },
+];
+
+/**
+ * Deterministic: which don't-repeat pointers apply to these paths.
+ * `edit` true = the file already exists, so only areas marked `edits` apply.
+ */
+export function dontRepeatFor(paths, { edit = false } = {}) {
+  const list = (Array.isArray(paths) ? paths : [])
+    .filter((p) => typeof p === 'string')
+    .map((p) => p.replace(/^.*?(?=\.github\/|app\/|infra\/|docs\/|scripts\/)/, ''));
+  return DONT_REPEAT.filter((g) => (!edit || g.edits)
+    && list.some((p) => { try { return g.match(p); } catch { return false; } }))
+    .map((g) => ({ id: g.id, points: g.points }));
+}
+
+/** The pointer block: short, one line each, principle numbers included. */
+export function dontRepeatMessage(groups) {
+  if (!Array.isArray(groups) || !groups.length) return '';
+  return [
+    "don't-repeat (DR-0697): failures this area already had. Read the principle before you write:",
+    ...groups.flatMap((g) => g.points.map((pt) => `  - ${pt}`)),
+    '  Full entries: docs/00-foundations/_root/LESSONS-LEARNED.md (search the P number).',
+  ].join('\n');
+}
+
+/**
  * Deterministic: which documents govern these paths.
  * Pure function of its input — same paths in, same requirement out, no model.
  *
