@@ -141,6 +141,52 @@ let browser;
 try { browser = await chromium.launch(launchOpts); }
 catch { browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: AUDIO_ARGS }); }
 
+// THE PROBE READS THE SAME CLOCK AT EVERY HOUR (2026-09-30). The app changes
+// with the time: inside a published service window the pinned live-service bar
+// (LiveWorshipBar) opens across the top of every page. This probe used to read
+// the runner's own clock, so the same commit measured differently by the hour:
+// on 2026-09-30 every run inside the Wednesday windows passed and every run
+// after 21:30 UTC failed the 360px lesson budget, with no change to the app.
+// Every page now opens in Champaign's time zone at a pinned instant with no
+// service window (QUIET_HOUR). The live state is measured on purpose, by the
+// lesson cases that pass `at: SERVICE_HOUR`, never by the hour CI happens to run.
+//
+// ONLY THE DATE IS PINNED, NEVER THE TIMERS. Playwright's page.clock.install
+// fakes setTimeout too, and fires the app's timers from its own controller:
+// measured on lesson 1 at 360px, that deferred the lesson's 140ms landing timer
+// (ChurchLearn.jsx LANDING) until after the probe's Teach tap, so the page
+// scrolled 1469px down into the lesson and the chrome read 169px instead of
+// the 486px a real reader sees at the top. A pin that changes what the app does
+// is not a pin. So `Date` alone is shifted to the pinned instant (time still
+// flows from there) and every timer stays the browser's own.
+const PROBE_TZ = 'America/Chicago';
+const QUIET_HOUR = new Date('2026-09-29T10:00:00-05:00'); // a Tuesday morning: no service
+const SERVICE_HOUR = new Date('2026-09-30T18:10:00-05:00'); // Wednesday 6:10 PM: the evening Bible study is live
+async function pinClock(page, at) {
+  await page.addInitScript((target) => {
+    const RealDate = Date;
+    const off = target - RealDate.now();
+    class PinnedDate extends RealDate {
+      constructor(...a) { if (a.length === 0) super(RealDate.now() + off); else super(...a); }
+      static now() { return RealDate.now() + off; }
+    }
+    // Date() called without `new` returns a string, as the real one does.
+    globalThis.Date = new Proxy(PinnedDate, { apply: () => new PinnedDate().toString() });
+  }, (at || QUIET_HOUR).getTime());
+  return page;
+}
+{
+  const rawNewPage = browser.newPage.bind(browser);
+  browser.newPage = async ({ at, ...opts } = {}) => pinClock(await rawNewPage({ timezoneId: PROBE_TZ, ...opts }), at);
+  const rawNewContext = browser.newContext.bind(browser);
+  browser.newContext = async ({ at, ...opts } = {}) => {
+    const ctx = await rawNewContext({ timezoneId: PROBE_TZ, ...opts });
+    const rawCtxPage = ctx.newPage.bind(ctx);
+    ctx.newPage = async () => pinClock(await rawCtxPage(), at);
+    return ctx;
+  };
+}
+
 let failures = 0;
 let tsFailuresBefore = 0;
 let lessonFailuresBefore = 0;
@@ -474,12 +520,16 @@ try {
   const LESSON_CASES = SELFTEST
     ? [{ width: 360, size: 'normal', collapsed: true }, { width: 360, size: 'bigprint' }]
     : (SWEEP
-      ? [...WIDTHS.map((width) => ({ width, size: 'normal' })), { width: 360, size: 'normal', collapsed: true }, { width: 360, size: 'bigprint' }, { width: 360, size: 'bigprint', collapsed: true }]
+      ? [...WIDTHS.map((width) => ({ width, size: 'normal' })), { width: 360, size: 'normal', collapsed: true }, { width: 360, size: 'bigprint' }, { width: 360, size: 'bigprint', collapsed: true },
+        // BOTH CLOCK STATES (2026-09-30). The same lesson at 360px, read during
+        // the Wednesday evening Bible study: the pinned live-service bar is open
+        // across the top. Every other case reads the QUIET_HOUR, with no bar.
+        { width: 360, size: 'normal', at: 'service' }, { width: 360, size: 'normal', collapsed: true, at: 'service' }]
       : []);
   const LESSON_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons&lesson=ll1-the-perfect-yahweh-expects`;
   lessonFailuresBefore = failures;
-  for (const { width, size, collapsed = false } of LESSON_CASES) {
-    const page = await browser.newPage({ viewport: { width, height: 900 } });
+  for (const { width, size, collapsed = false, at = 'quiet' } of LESSON_CASES) {
+    const page = await browser.newPage({ viewport: { width, height: 900 }, at: at === 'service' ? SERVICE_HOUR : QUIET_HOUR });
     // The first-visit tour is chrome, not the lesson; a returning reader has seen it.
     await page.addInitScript((cfg) => {
       try {
@@ -541,9 +591,12 @@ try {
       const hdr = document.querySelector('header');
       const bar = document.querySelector('[data-testid="lesson-space-bar"]');
       const hatch = document.querySelector('.ts-escape-hatch');
+      // The pinned live-service bar is fixed at the very top during a service
+      // window; it is chrome over the first viewport like the header is.
+      const liveBar = document.querySelector('[role="region"][aria-label^="Live worship"]');
       const floaters = [document.querySelector('.tts-controls'), document.querySelector('button[aria-label="Open feedback"]'), document.querySelector('.church-give-floater')].filter(Boolean);
       const bands = [];
-      for (const el of [hdr, bar, hatch, ...floaters]) {
+      for (const el of [liveBar, hdr, bar, hatch, ...floaters]) {
         if (!el) continue;
         const r = el.getBoundingClientRect();
         if (r.height <= 0) continue;
@@ -558,6 +611,7 @@ try {
       const onTheBar = hatchFixed ? floaters.filter((f) => { const r = f.getBoundingClientRect(); return r.height > 0 && !(r.right <= hr.left || hr.right <= r.left || r.bottom <= hr.top || hr.bottom <= r.top); }).map((f) => (f.getAttribute('aria-label') || f.className || '?').toString().slice(0, 20)) : [];
       return {
         size: document.documentElement.getAttribute('data-text-size'),
+        liveBarPx: liveBar ? Math.round(liveBar.getBoundingClientRect().height) : 0,
         vh,
         covered: Math.round(covered),
         onTheBar,
@@ -647,8 +701,11 @@ try {
       };
     });
     await page.close();
-    const where = `lesson@${width}px${size === 'bigprint' ? ' [Big Print]' : ''}${collapsed ? ' [header collapsed]' : ''}`;
+    const where = `lesson@${width}px${size === 'bigprint' ? ' [Big Print]' : ''}${collapsed ? ' [header collapsed]' : ''}${at === 'service' ? ' [in a service window]' : ''}`;
     if (m.none) { fail(`${where}: the lesson prose never rendered (${m.paras} paragraphs) — nothing was measured`); continue; }
+    // The clock state must be the one asked for, or nothing about it was measured.
+    if (at === 'service' && !m.liveBarPx) { fail(`${where}: the live-service bar never opened at ${SERVICE_HOUR.toISOString()} — the in-window state was not measured`); continue; }
+    if (at === 'quiet' && m.liveBarPx) { fail(`${where}: the live-service bar is open at the quiet hour (${m.liveBarPx}px) — the pinned clock did not hold`); continue; }
     if (size === 'bigprint' && m.size !== 'bigprint') { fail(`${where}: data-text-size="${m.size}" — Big Print never applied, nothing was measured`); continue; }
     const before = failures;
     lessonMeasured += 1;
@@ -682,10 +739,10 @@ try {
       // Big-Print-expanded against Normal-COLLAPSED — a smaller number, so the
       // check would have failed for a reason that is not a defect. Keyed by
       // header state, each comparison is like-for-like.
-      const key = collapsed ? 'collapsed' : 'open';
+      const key = `${collapsed ? 'collapsed' : 'open'}${at === 'service' ? '-service' : ''}`;
       if (size === 'normal') {
         coveredNormal360[key] = m.covered;
-        if (m.covered > CHROME_BUDGET_360_NORMAL_PX) fail(`${where}: chrome covers ${m.covered}px of the ${m.vh}px first viewport — over the ${CHROME_BUDGET_360_NORMAL_PX}px budget; the text must dominate a phone`);
+        if (m.covered > CHROME_BUDGET_360_NORMAL_PX) fail(`${where}: chrome covers ${m.covered}px of the ${m.vh}px first viewport${m.liveBarPx ? ` (the live bar alone ${m.liveBarPx}px)` : ''} — over the ${CHROME_BUDGET_360_NORMAL_PX}px budget; the text must dominate a phone`);
       } else if (size === 'bigprint') {
         const base = coveredNormal360[key];
         if (base == null) fail(`${where}: no Normal measurement in the same header state to compare against — the never-bigger invariant was not checked`);
@@ -693,7 +750,7 @@ try {
         if (m.onTheBar.length) fail(`${where}: ${m.onTheBar.length} floater(s) sit on the fixed comfort bar: ${m.onTheBar.join(', ')}`);
       }
     }
-    if (failures === before) console.log(`lesson ok  ${where} — chrome covers ${m.covered}px of ${m.vh}px, prose ${m.prose}px of ${m.content}px, ${m.strips} strips (max ${m.maxChips} chips, max ${m.maxBlockLines} lines/block)${size === 'bigprint' ? `, bar buttons ${m.barButtonPx}px, chips ${m.chipPx}px` : ''}, nothing boxed in a sentence; mid-lesson at y${comfort.scrollY}: ${comfort.sizeReachable}/${comfort.sizeCount} size + ${comfort.themeReachable}/${comfort.themeCount} theme controls on screen`);
+    if (failures === before) console.log(`lesson ok  ${where} — chrome covers ${m.covered}px of ${m.vh}px${m.liveBarPx ? ` (live bar ${m.liveBarPx}px)` : ''}, prose ${m.prose}px of ${m.content}px, ${m.strips} strips (max ${m.maxChips} chips, max ${m.maxBlockLines} lines/block)${size === 'bigprint' ? `, bar buttons ${m.barButtonPx}px, chips ${m.chipPx}px` : ''}, nothing boxed in a sentence; mid-lesson at y${comfort.scrollY}: ${comfort.sizeReachable}/${comfort.sizeCount} size + ${comfort.themeReachable}/${comfort.themeCount} theme controls on screen`);
   }
   // ---------------------------------------------------------------------------
   // TEXT-SCALE pass — the layout is measured AT Big Print, not assumed to hold.
@@ -1202,7 +1259,7 @@ if (SELFTEST) {
 // checked," and only this line can tell them apart.
 const expectedChrome = VIEWS.length * WIDTHS.length;
 // WIDTHS at Normal + the collapsed Normal case + Big Print + Big Print collapsed.
-const expectedLesson = SWEEP ? WIDTHS.length + 3 : 0;
+const expectedLesson = SWEEP ? WIDTHS.length + 5 : 0;
 if (measured !== expectedChrome) {
   console.error(`COVERAGE FAIL — measured ${measured} of ${expectedChrome} view x width cases (${VIEWS.length} views x ${WIDTHS.length} widths). A run that skips its subjects is not a pass.`);
   failures += 1;
