@@ -1806,6 +1806,34 @@ function CourseView({
     recordUse(id);
     try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { /* no-op */ }
   };
+  // THE SPEAKER READS THE LESSON YOU ARE IN (DR-0702). Darrell 2026-09-30, on
+  // L202: "the reader should be asking me to read it from the beginning
+  // because I pushed the speaker while inside the lesson... it only works
+  // after I hit play... it should be both." The full reading registers only
+  // while the lesson's GUIDE is open (TutorPanel), so a lesson opened by its
+  // title showed the reader nothing to read but the page. While the lesson's
+  // own space is open and its guide is not, the lesson registers a DOOR: the
+  // reader's "Read this lesson" opens the guide and asks for the read, the
+  // exact path ▶ Play takes. Opening the guide replaces the door with the full
+  // reading; closing it brings the door back.
+  const readDoorRef = React.useRef(null);
+  readDoorRef.current = (id, opts) => {
+    recordUse(id);
+    savePlace({ lessonId: id, started: true });
+    setOpenTutorId(id);
+    requestRead(id, opts || null);
+  };
+  const doorId = focusModule && openTutorId !== focusModule.id ? focusModule.id : null;
+  const doorTitle = doorId ? (focusModule.title || '') : '';
+  React.useEffect(() => {
+    if (!doorId) return undefined;
+    setReadTarget(doorId, {
+      label: `this ${U.noun}`,
+      title: doorTitle,
+      open: (opts) => { if (readDoorRef.current) readDoorRef.current(doorId, opts); },
+    });
+    return () => clearReadTarget(doorId);
+  }, [doorId, doorTitle, U.noun]);
   // HANDS-FREE ADVANCE (Darrell 2026-08-10: "users should be able to listen to
   // the whole thing without needing to intervene"). Given a lesson, move to the
   // NEXT one in this course and open its guide — the same real path a Next tap
