@@ -134,10 +134,14 @@ describe('the debt, recorded as it actually is', () => {
     // course written for the youngest readers, reading at grade 0.3, must
     // never be counted the same as one reading at 12.4, or the number stops
     // being information and starts being an impression with a digit on it.
-    expect(baseline.courses['little-learners'].bandlessGrade).toBeLessThan(3);
-    expect(baseline.courses['little-learners'].adultRegister).toBe(0);
-    expect(baseline.courses.mathematics.bandlessGrade).toBeLessThan(3);
-    expect(baseline.courses.mathematics.adultRegister).toBe(0);
+    // Once a course carries all four bands it has no bandless lessons and so
+    // no bandless grade (DR-0691): the distinction is then moot, not violated.
+    for (const key of ['little-learners', 'mathematics']) {
+      const row = baseline.courses[key];
+      if (row.bandlessGrade !== undefined) expect(row.bandlessGrade, key).toBeLessThan(3);
+      else expect(row.adultOnly, `${key} has bandless lessons but no bandless grade`).toBe(0);
+      expect(row.adultRegister, key).toBe(0);
+    }
   });
 
   it('holds the register defect at zero, everywhere, now that the five are authored', () => {
@@ -308,8 +312,8 @@ describe('proven-to-catch (DR-0076 §3)', () => {
 
   it('sees a course that LOSES an authored band', () => {
     // The direction nobody watches: bands can be deleted as easily as added.
-    const padded = { ...baseline, courses: { ...baseline.courses, ai: { lessons: 8, allFour: 3, adultOnly: 7 } } };
-    expect(ratchetCourseBands(scan, padded).worse.join(' ')).toMatch(/ai: 0 four-band/);
+    const padded = { ...baseline, courses: { ...baseline.courses, ai: { ...baseline.courses.ai, allFour: scan.courses.ai.allFour + 1 } } };
+    expect(ratchetCourseBands(scan, padded).worse.join(' ')).toMatch(/ai: \d+ four-band lessons, baseline recorded/);
   });
 
   it('sees a WHOLE NEW COURSE that arrives unrecorded', () => {

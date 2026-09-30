@@ -2,14 +2,6 @@
   "note": "DR-0691, pinned 2026-09-30. The catalog lessons that did not carry all four age bands (child, youth, teen, senior) on the day the per-lesson rule landed. SHRINK-ONLY: a lesson leaves this list in the same commit that gives it all four bands, and nothing is ever added. A lesson missing a band that is not listed here fails course-band-coverage.test.js by name. Regenerate with `cd app && npx vite-node ../scripts/course-band-baseline-write.mjs`; never hand-merge.",
   "courses": {
     "ai": [
-      "wk1-what-is-ai",
-      "wk2-good-questions",
-      "wk3-the-test",
-      "wk4-ai-for-school",
-      "wk5-ai-that-serves",
-      "wk6-build-something",
-      "wk7-guard-heart-time",
-      "wk8-teach-next"
     ],
     "ai-legal-blueprint": [
       "aib1-the-one-rule",
@@ -241,12 +233,6 @@
       "legacy7-how-we-got-here"
     ],
     "little-learners": [
-      "lil1-a-is-for-adam-who-named-the-animals",
-      "lil2-count-the-days-one-to-seven",
-      "lil3-big-and-small-goliath-and-the-mustard-seed",
-      "lil4-sort-by-kind-two-by-two",
-      "lil5-first-words-from-the-word",
-      "lil6-how-many-loaves-how-many-baskets"
     ],
     "made-in-time": [
       "mit1-the-design-in-time",
