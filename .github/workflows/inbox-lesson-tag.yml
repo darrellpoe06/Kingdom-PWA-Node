@@ -66,7 +66,10 @@ jobs:
         run: |
           set -euo pipefail
           MERGE=$(gh api "repos/$REPO/pulls/$PR" --jq 'if .merged then .merge_commit_sha else "" end')
-          DEPLOYED=$(gh api "repos/$REPO/actions/workflows/deploy-cloudflare-pages.yml/runs?status=success&per_page=1" --jq '.workflow_runs[0].head_sha // ""')
+          # Newest successful deploy of main. Not ?status=success&per_page=1: with a status
+          # filter the API stops returning newest-first (2026-09-30 it answered an old run,
+          # ef3a87f1, minutes after a651130e deployed, and the lesson read as not live).
+          DEPLOYED=$(gh api "repos/$REPO/actions/workflows/deploy-cloudflare-pages.yml/runs?branch=main&per_page=30" --jq '[.workflow_runs[] | select(.conclusion == "success")] | sort_by(.created_at) | last | .head_sha // ""')
           LIVE=no
           if [ -n "$MERGE" ] && [ -n "$DEPLOYED" ] && git cat-file -e "$DEPLOYED^{commit}" 2>/dev/null && git merge-base --is-ancestor "$MERGE" "$DEPLOYED" 2>/dev/null; then LIVE=yes; fi
           echo "merge: ${MERGE:-not merged} · deployed: ${DEPLOYED:-unknown} · live: $LIVE"
