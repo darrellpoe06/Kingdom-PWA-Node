@@ -109,7 +109,7 @@ describe('the debt, recorded as it actually is', () => {
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
     // allFour is a FLOOR, not a literal (2026-09-30, the four-bands pass across five parallel lanes): it may only rise, and the exact number is pinned against the live scan in 'matches the live catalog exactly' below, so no lane has to edit this line to land its course.
-    expect(baseline.allFour).toBeGreaterThanOrEqual(50); // 50 on 2026-09-30: project-management carries all four bands on all 12 lessons (DR-0693); 38 on 2026-09-30: property-principle and management-stewardship carry child and youth beside teen and senior on all 16 lessons (DR-0696); 22 on 2026-09-29: Who He Is (DR-0675) carries all four bands on all 14 lessons; 8 on 2026-09-24: the rebuilt historical-research-1619 (DR-0597) carries child, youth, teen and senior on every lesson — the first catalog course with all four bands; a course may only add to this number
+    expect(baseline.allFour).toBeGreaterThanOrEqual(66); // 66 on 2026-09-30: project-management carries all four bands on all 12 lessons (DR-0693); 54 on 2026-09-30: leasing-tenants and maintenance-trades join them (DR-0696); 38 on 2026-09-30: property-principle and management-stewardship carry child and youth beside teen and senior on all 16 lessons (DR-0696); 22 on 2026-09-29: Who He Is (DR-0675) carries all four bands on all 14 lessons; 8 on 2026-09-24: the rebuilt historical-research-1619 (DR-0597) carries child, youth, teen and senior on every lesson — the first catalog course with all four bands; a course may only add to this number
     expect(baseline.adultOnly).toBe(37);
   });
 
