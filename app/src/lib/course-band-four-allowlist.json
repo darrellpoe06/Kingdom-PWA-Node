@@ -319,7 +319,6 @@
       "snd8-our-digital-console-yamaha-ql"
     ],
     "sovereign-ai": [
-      "sov1-generator-in-the-garage",
       "sov10-the-settled-word",
       "sov11-the-sealed-trace",
       "sov12-the-engineering-disaster",
@@ -330,7 +329,6 @@
       "sov17-the-judge-and-the-just-weight",
       "sov18-precept-upon-precept-the-voice-that-programs-the-world",
       "sov19-the-servant-under-authority-who-keeps-the-guardrails",
-      "sov2-what-a-model-costs-to-run",
       "sov20-the-book-of-remembrance-and-the-tool-that-forgets",
       "sov21-the-whole-system-and-the-stone-cut-without-hands",
       "sov22-the-needle-in-the-haystack-and-the-chunk-that-drops-its-condition",
@@ -341,14 +339,8 @@
       "sov27-the-seed-is-in-itself-and-every-workflow-seeds-the-next",
       "sov28-holding-the-hand-of-the-process-until-it-is-finished",
       "sov29-the-agent-that-went-past-the-bound",
-      "sov3-model-tier-landscape",
       "sov30-the-watcher-the-agent-cannot-see-and-the-door-with-no-hidden-hatch",
       "sov31-whose-errand-does-your-agent-carry",
-      "sov4-honest-ceiling",
-      "sov5-how-skos-runs-it",
-      "sov6-vendor-vs-local-tradeoffs",
-      "sov7-five-opportunities",
-      "sov8-build-sovereign-hand-it-on",
       "sov9-verification-earns-trust"
     ],
     "stocks": [

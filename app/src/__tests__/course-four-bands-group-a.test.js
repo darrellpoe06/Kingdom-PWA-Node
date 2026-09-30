@@ -24,19 +24,26 @@ import { quotedTexts } from '../../../scripts/quotation-integrity.mjs';
 import { formatLessonText } from '../lib/lesson-format.js';
 
 const COURSES = ['ai', 'little-learners', 'mathematics', 'development', 'rent-to-own-business'];
+// sovereign-ai is banded lesson by lesson; its banded lessons are held here.
+const PARTIAL = { 'sovereign-ai': ['sov1-', 'sov2-', 'sov3-', 'sov4-', 'sov5-', 'sov6-', 'sov7-', 'sov8-'] };
 
 const lessonsOf = (key) => {
   const c = LEARN_CATALOG.find((x) => x.key === key);
   if (!c) throw new Error(`course ${key} is gone — this file measures nothing`);
-  return lessonsOfCourse(c);
+  const all = lessonsOfCourse(c);
+  const only = PARTIAL[key];
+  return only ? all.filter((m) => only.some((p) => m.id.startsWith(p))) : all;
 };
-const ourVoice = (t) => String(t || '').replace(/"[^"]*"/g, ' ');
+// Quotations are the Word as written (DR-0076), and the church's own name,
+// the Church of the Living God, is a proper name; neither is our voice.
+const ourVoice = (t) => String(t || '').replace(/"[^"]*"/g, ' ').replace(/Church of the Living God/g, ' ');
 
-for (const key of COURSES) {
+for (const key of [...COURSES, ...Object.keys(PARTIAL)]) {
   describe(`${key}: all four bands, authored and sound`, () => {
     const lessons = lessonsOf(key);
 
     it('every lesson carries child, youth, teen and senior', () => {
+      expect(lessons.length, 'every listed lesson is still in the course').toBe(PARTIAL[key] ? PARTIAL[key].length : lessons.length);
       expect(lessons.length).toBeGreaterThan(0);
       for (const m of lessons) expect(bandsPresent(m), m.id).toEqual(BANDS);
     });
