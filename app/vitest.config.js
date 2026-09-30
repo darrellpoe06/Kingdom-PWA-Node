@@ -15,6 +15,11 @@ export default defineConfig({
   test: {
     include: ['src/__tests__/**/*.test.{js,jsx}'],
     environment: 'jsdom',
+    // One shared machine, many sessions (P65, DR-0697): outside CI a run
+    // waits for one of two slots and uses at most two workers, so parallel
+    // builders queue instead of filling memory. CI shards are unchanged.
+    globalSetup: ['./vitest.local-slot.js'],
+    ...(process.env.CI ? {} : { maxWorkers: Number(process.env.LOCAL_VITEST_WORKERS || 2), minWorkers: 1 }),
     globals: false,
     // Stub Supabase env so the suite runs on a clean checkout (CI, remote
     // sessions, new machines) where app/.env.local does not exist. Without
