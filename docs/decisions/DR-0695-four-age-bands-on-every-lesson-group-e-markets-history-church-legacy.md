@@ -50,7 +50,7 @@ Per course, as it lands:
 - `infra/nas-lesson-builder/band_gates.mjs` `gateDraft` run on every lesson of each course: all gates pass (share, grade order, child ceiling, overlap, title, verse).
 - stocks: grades child 1.0–2.0, youth 2.9–4.8, teen 4.9–6.2; shares child 0.52–0.59, youth 0.62–0.69, teen 0.60–0.73.
 - bonds: grades child 0.5–2.6, youth 3.4–4.7, teen 4.9–6.5; shares child 0.51–0.58, youth 0.61–0.70, teen 0.60–0.73.
-- `course-band-coverage-baseline.json` regenerated from a fresh scan: `allFour` 22 → 38.
+- `course-band-coverage-baseline.json` regenerated from a fresh scan of the real catalog in each PR: stocks and bonds add 16 to `allFour` (54 → 70 on the main they merged onto, after group D’s courses landed).
 - Tests: `course-band-coverage`, `course-bands-reach-the-reader`, `band-differentiation-gate`, `stocks-course`, `bonds-course`, `the-plain-meaning-comes-first`, `quoted-verse-is-the-verse`, `adversary-is-never-capitalized`, `decision-chain`.
 
 re-review: 2026-10-07 (every group E course banded and merged, the table above complete).
