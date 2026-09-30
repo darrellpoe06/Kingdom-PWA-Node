@@ -171,7 +171,7 @@ export function buildCourseBandBaseline(scan) {
 }
 
 // =============================================================================
-// ALL FOUR, ON EVERY LESSON FROM HERE ON (DR-0691)
+// ALL FOUR, ON EVERY LESSON FROM HERE ON (DR-0692)
 // =============================================================================
 // Darrell 2026-09-30: "Do we have all the lessons for each lessons age groups
 // yet? If not, why not when that has been requested and required?!"
@@ -208,7 +208,7 @@ export function ratchetFourBands(scan, allowlist, catalogLessons = null) {
       if (excused.has(id)) continue;
       const m = catalogLessons && catalogLessons[`${key}/${id}`];
       const lacks = m ? BANDS.filter((b) => !bandsPresent(m).includes(b)) : null;
-      fresh.push(`${key}/${id}: missing ${lacks ? lacks.join(', ') : 'a band'} — every lesson added after DR-0691 carries child, youth, teen and senior`);
+      fresh.push(`${key}/${id}: missing ${lacks ? lacks.join(', ') : 'a band'} — every lesson added after DR-0692 carries child, youth, teen and senior`);
     }
   }
   for (const [key, ids] of Object.entries(pinned)) {

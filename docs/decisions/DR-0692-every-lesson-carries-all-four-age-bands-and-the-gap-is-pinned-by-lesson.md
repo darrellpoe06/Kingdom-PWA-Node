@@ -1,5 +1,5 @@
 ---
-id: DR-0691
+id: DR-0692
 title: Every lesson carries all four age bands, and the gap is pinned by lesson until it is closed
 status: accepted
 date: 2026-09-30
@@ -63,4 +63,4 @@ A child, a youth or a senior opening 378 of the catalog's lessons got a fallback
 
 ## Progress
 
-- 2026-09-30: the gate lands; 22 of 400 carry all four, 378 pinned.
+- 2026-09-30: the gate lands. Group D (DR-0696) landed first, banding property-principle and management-stewardship, so the gate lands at 38 of 400 carrying all four and 362 pinned; the allFour floor is 38.

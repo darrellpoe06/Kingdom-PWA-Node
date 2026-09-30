@@ -114,11 +114,11 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    // FLOORS, not exact pins (DR-0691): five sessions raise allFour and lower
+    // FLOORS, not exact pins (DR-0692): five sessions raise allFour and lower
     // adultOnly at once, and the exact numbers live in the regenerated baseline,
     // which 'matches the live catalog exactly' below holds to the truth. These
     // two lines hold the direction: allFour may only rise, adultOnly only fall.
-    expect(baseline.allFour).toBeGreaterThanOrEqual(22); // 22 on 2026-09-29: Who He Is (DR-0675) carries all four bands on all 14 lessons; 8 on 2026-09-24: the rebuilt historical-research-1619 (DR-0597) carries child, youth, teen and senior on every lesson — the first catalog course with all four bands; a course may only add to this number
+    expect(baseline.allFour).toBeGreaterThanOrEqual(38); // 38 on 2026-09-30: property-principle and management-stewardship carry all four on all 16 lessons (DR-0696); 22 on 2026-09-29: Who He Is (DR-0675) carries all four bands on all 14 lessons; 8 on 2026-09-24: the rebuilt historical-research-1619 (DR-0597) carries child, youth, teen and senior on every lesson — the first catalog course with all four bands; a course may only add to this number
     expect(baseline.adultOnly).toBeLessThanOrEqual(37);
   });
 
@@ -182,7 +182,7 @@ describe('the debt, recorded as it actually is', () => {
 });
 
 // =============================================================================
-// ALL FOUR BANDS, ON EVERY LESSON FROM HERE ON (DR-0691)
+// ALL FOUR BANDS, ON EVERY LESSON FROM HERE ON (DR-0692)
 // =============================================================================
 // Darrell 2026-09-30: "Do we have all the lessons for each lessons age groups
 // yet? If not, why not when that has been requested and required?!"
@@ -198,7 +198,7 @@ for (const c of LEARN_CATALOG) for (const m of lessonsOfCourse(c)) if (c && c.ke
 const PINNED_2026_09_30 = 378;
 const pinnedCount = (a) => Object.values(a.courses).reduce((t, l) => t + l.length, 0);
 
-describe('every lesson carries child, youth, teen and senior (DR-0691)', () => {
+describe('every lesson carries child, youth, teen and senior (DR-0692)', () => {
   it('no lesson outside the pinned list is missing a band', () => {
     const { fresh } = ratchetFourBands(scan, allowlist, catalogLessons);
     expect(fresh, `lessons missing an age band:\n${fresh.join('\n')}`).toEqual([]);
@@ -241,7 +241,7 @@ const BAND_GATE_EXEMPT = new Set([
   'historical-research-1619/hr1-write-it-in-order-for-our-children',
 ]);
 
-describe('every four-band lesson passes the house band gates (DR-0691)', () => {
+describe('every four-band lesson passes the house band gates (DR-0692)', () => {
   it('share, ladder, child ceiling, differentiation and naming, on every lesson', () => {
     const faults = [];
     for (const [key, m] of Object.entries(catalogLessons)) {

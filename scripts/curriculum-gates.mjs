@@ -14,7 +14,7 @@
 //   reading     scripts/reading-level.mjs               (scanSeries + ratchet)
 //   bands       scripts/band-differentiation.mjs        (scan + ratchet)
 //   coverage    scripts/course-band-coverage.mjs        (scan + ratchet, and the
-//               per-lesson all-four rule against its pinned list, DR-0691)
+//               per-lesson all-four rule against its pinned list, DR-0692)
 //   structure   ids present, unique across the whole school, Living Lessons ids
 //               shaped ll<n>-slug with no number claimed twice
 //               (the living-lessons-id-collision.test.js contract).

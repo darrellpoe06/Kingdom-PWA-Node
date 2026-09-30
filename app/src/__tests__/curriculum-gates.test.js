@@ -75,7 +75,7 @@ describe('a publish write is gated before it is written', () => {
     expect(v.fresh.join('\n')).toContain(lesson.id);
   });
 
-  it('PROVEN-TO-CATCH: a NEW course lesson published without a youth band is refused (DR-0691)', () => {
+  it('PROVEN-TO-CATCH: a NEW course lesson published without a youth band is refused (DR-0692)', () => {
     const lesson = courses['who-he-is'][0];
     const fresh = { ...lesson, id: 'whohe99-published-without-youth', levels: { ...lesson.levels, youth: '' } };
     const v = gateLessonForPublish(courses, 'who-he-is', fresh);
