@@ -56,7 +56,7 @@ export default function LedgerFreshness({ table = 'transactions', label = 'Ledge
         <span className="text-[#5A5751]">{snap.stamp.rows.toLocaleString()} rows as of that sync</span>
       )}
       <button type="button" onClick={syncNow} disabled={busy}
-        className="text-[0.5625rem] uppercase tracking-wider px-2 py-1 min-h-[32px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-60">
+        className="text-[0.5625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-60">
         {busy ? 'Syncing…' : 'Sync now'}
       </button>
       {note && <span className="w-full text-[#B85838]">{note}</span>}
