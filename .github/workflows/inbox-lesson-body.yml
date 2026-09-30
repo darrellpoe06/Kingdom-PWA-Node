@@ -51,7 +51,7 @@ jobs:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
         run: |
           set -uo pipefail
-          SQL="SELECT created_by::text, tags::text, encode(convert_to(coalesce(body,''),'UTF8'),'base64') FROM public.agent_inbox WHERE id = '$ROW_ID' AND created_by IN ('f13843f2-742b-4f8a-82af-7ecfbdc536ec','c2a6c39a-ae99-4ff7-83c6-b927e2e7f1cc');"
+          SQL="SELECT created_by::text, tags::text, md5(convert_to(coalesce(body,''),'UTF8')), encode(convert_to(coalesce(body,''),'UTF8'),'base64') FROM public.agent_inbox WHERE id = '$ROW_ID' AND created_by IN ('f13843f2-742b-4f8a-82af-7ecfbdc536ec','c2a6c39a-ae99-4ff7-83c6-b927e2e7f1cc');"
           out=$(printf '%s' "$SQL" | bash scripts/live-sql.sh '|') || { echo "::error::could not read the live database"; exit 1; }
           [ -n "$out" ] || { echo "::error::no row $ROW_ID from Darrell's own accounts (a member's row is never read here)"; exit 1; }
           echo "row: $ROW_ID"
@@ -60,7 +60,19 @@ jobs:
           # base64, and blanked parts of L201's words (2026-09-30); a 3-character secret still caught one run. A '.' after
           # every 2 characters breaks every run longer than 2, so nothing can
           # match a secret; strip the dots, then base64-decode, to read.
-          echo "----- words (base64 with a '.' after every 2 characters; strip the dots, then decode) -----"
-          printf '%s' "$out" | cut -d'|' -f3- | tr -d '\n' | sed 's/../&./g'
+          # ROUND-TRIP (P63, DR-0697): the database's own md5 of the words is
+          # compared here with the md5 of what the runner decoded, so a
+          # transport that altered them fails the run; and the md5 is printed
+          # dotted the same way, so whoever reads the log checks the words they
+          # decoded against it (a masked character changes the md5).
+          b64=$(printf '%s' "$out" | cut -d'|' -f4- | tr -d '\n')
+          db_md5=$(printf '%s' "$out" | head -1 | cut -d'|' -f3)
+          got_md5=$(printf '%s' "$b64" | base64 -d | md5sum | cut -d' ' -f1)
+          [ "$db_md5" = "$got_md5" ] || { echo "::error::round-trip failed: the words decoded on the runner do not match the database (md5)"; exit 1; }
+          echo "round-trip: the runner's decode matches the database"
+          echo "md5 of the words (a '.' after every 2 characters): $(printf '%s' "$db_md5" | sed 's/../&./g')"
+          echo "bytes: $(printf '%s' "$b64" | base64 -d | wc -c)"
+          echo "----- words (base64 with a '.' after every 2 characters; strip the dots, then decode, then check the md5 above) -----"
+          printf '%s' "$b64" | sed 's/../&./g'
           echo
           echo "----- end -----"

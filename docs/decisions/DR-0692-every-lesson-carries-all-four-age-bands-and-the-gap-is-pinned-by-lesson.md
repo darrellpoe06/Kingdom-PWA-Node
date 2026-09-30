@@ -55,6 +55,8 @@ A child, a youth or a senior opening 378 of the catalog's lessons got a fallback
 5. **The NAS publish gate carries the same rule** (`curriculum-gates.mjs`, `four-bands ::`), so a lesson written by the NAS builder is held to it before the row is written.
 6. **The backfill, scheduled across five groups working in parallel, each course its own PR:** Group A (this record): ai, development, mathematics, rent-to-own-business, little-learners (the 37 with no band at all), then sovereign-ai (31, youth on every lesson and child on 17). Groups B to E: the remaining 33 courses on the list above, split across four sessions. Each PR authors all four bands, removes its lessons from the list, and regenerates the baseline in the same commit. Progress lines are added below as each course lands.
 
+**Beside DR-0697.** A parallel session landed DR-0697 the same afternoon, a course-level gap gate (`FOUR_BAND_GAP_CEILING`, frozen per-course ceilings). The two are complementary, not duplicates: DR-0697 holds each course's count of lessons without all four; this record holds each LESSON by id, names the missing bands in the failure, carries the rule to the NAS publish gate, and requires every four-band lesson to pass the house band gates. Both run.
+
 ## Verification
 
 - `course-band-coverage.test.js`: 30 tests pass on the real catalog.

@@ -23,6 +23,13 @@
 //   - anything already read this session is subtracted, so it never repeats
 //   - one block per path per session (a marker file), so a re-edit never nags
 //   - FAIL-OPEN on any error whatsoever
+//
+// DON'T-REPEAT POINTERS (DR-0697, 2026-09-30). The same moment now also hands
+// over the failures this area already had (required-reading.js DONT_REPEAT):
+// one line each, with the LESSONS-LEARNED principle number. For workflows,
+// the lesson catalogs and the orchestration docs they also arrive on an EDIT
+// of an existing file, because that is where the day's failures landed. Each
+// area's pointers block ONCE per session (a marker per area), then stay quiet.
 // =============================================================================
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -43,6 +50,19 @@ function evidenceFrom(transcriptPath) {
   } catch { return ''; }
 }
 
+// Where the once-per-session markers live. Overridable so a test never writes
+// into the working tree's own state.
+const STATE_DIR = process.env.REQUIRED_READING_STATE_DIR || join(ROOT, '.claude', '.required-reading');
+const keyOf = (sessionId, name) => join(STATE_DIR, `${(sessionId || 'session')}-${name.replace(/[^a-zA-Z0-9]/g, '_')}`);
+function seenOnce(key) {
+  try {
+    mkdirSync(STATE_DIR, { recursive: true });
+    if (existsSync(key)) return true;
+    writeFileSync(key, new Date().toISOString());
+  } catch { /* state is a nicety; never block on it */ }
+  return false;
+}
+
 async function main() {
   let input;
   try { input = JSON.parse(readStdin() || '{}'); } catch { return done(); }
@@ -53,35 +73,42 @@ async function main() {
   const filePath = input.tool_input && input.tool_input.file_path;
   if (typeof filePath !== 'string' || !filePath) return done();
 
-  // Only guard the creation of new files. Editing something that already exists
-  // means the area is already in play, and blocking there is pure friction.
-  if (existsSync(filePath)) return done();
-
-  let outstandingReading; let requiredReadingMessage;
+  let lib;
   try {
-    ({ outstandingReading, requiredReadingMessage } = await import(
-      join(ROOT, 'app', 'src', 'lib', 'required-reading.js')
-    ));
+    lib = await import(join(ROOT, 'app', 'src', 'lib', 'required-reading.js'));
   } catch { return done(); }
 
   const rel = filePath.replace(`${ROOT}/`, '');
-  const evidence = input.transcript_path ? evidenceFrom(input.transcript_path) : '';
+  const isEdit = existsSync(filePath);
 
-  let result;
-  try { result = outstandingReading([rel], evidence); } catch { return done(); }
-  if (!result || !result.missing.length) return done();
-
-  // One nag per path per session.
+  // The don't-repeat pointers: new files in any mapped area; edits only where
+  // the area says so. Each area blocks once per session.
+  let pointerGroups = [];
   try {
-    const stateDir = join(ROOT, '.claude', '.required-reading');
-    mkdirSync(stateDir, { recursive: true });
-    const key = join(stateDir, `${(input.session_id || 'session')}-${rel.replace(/[^a-zA-Z0-9]/g, '_')}`);
-    if (existsSync(key)) return done();
-    writeFileSync(key, new Date().toISOString());
-  } catch { /* state is a nicety; never block on it */ }
+    pointerGroups = (lib.dontRepeatFor ? lib.dontRepeatFor([rel], { edit: isEdit }) : [])
+      .filter((g) => !seenOnce(keyOf(input.session_id, `dont-repeat-${g.id}`)));
+  } catch { pointerGroups = []; }
+
+  // The required reading: only on the creation of a new file, as before.
+  let reading = null;
+  if (!isEdit) {
+    try {
+      const evidence = input.transcript_path ? evidenceFrom(input.transcript_path) : '';
+      const result = lib.outstandingReading([rel], evidence);
+      if (result && result.missing.length && !seenOnce(keyOf(input.session_id, rel))) reading = result;
+    } catch { reading = null; }
+  }
+
+  if (!reading && !pointerGroups.length) return done();
 
   let reason;
-  try { reason = requiredReadingMessage(result.missing, result.reasons); } catch { return done(); }
+  try {
+    reason = [
+      reading ? lib.requiredReadingMessage(reading.missing, reading.reasons) : '',
+      pointerGroups.length ? lib.dontRepeatMessage(pointerGroups) : '',
+      reading ? '' : 'Continue with the same write once you have them in mind; this block does not repeat this session.',
+    ].filter(Boolean).join('\n\n');
+  } catch { return done(); }
 
   process.stdout.write(JSON.stringify({
     hookSpecificOutput: {
