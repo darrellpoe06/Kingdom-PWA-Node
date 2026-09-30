@@ -48,15 +48,21 @@
 // worse, which is the smallest thing that turns an invisible need into a
 // visible one.
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { LEARN_CATALOG, learnCatalogSummary } from '../lib/learn-catalog.js';
 import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
 import {
   BANDS, bandsPresent, lessonsOfCourse, scanCourseBands, ratchetCourseBands,
   servedGrade, median, ADULT_REGISTER_CEILING,
+  ratchetFourBands, shrinkFourBandAllowlist, serializeFourBandAllowlist, fourBandGateFaults as bandGateFaults,
   FOUR_BAND_GAP_CEILING, fourBandGapFindings, buildCourseBandBaseline,
 } from '../../../scripts/course-band-coverage.mjs';
 import baseline from '../lib/course-band-coverage-baseline.json';
+import allowlist from '../lib/course-band-four-allowlist.json';
 
+const LIB = join(dirname(fileURLToPath(import.meta.url)), '..', 'lib');
 const OWNED = new Set(LIVING_LESSONS_MODULES.map((m) => m.id));
 const scan = scanCourseBands(LEARN_CATALOG, OWNED);
 
@@ -109,8 +115,12 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(54); // 54 on 2026-09-30: leasing-tenants and maintenance-trades join them (DR-0696); 38 on 2026-09-30: property-principle and management-stewardship carry child and youth beside teen and senior on all 16 lessons (DR-0696); 22 on 2026-09-29: Who He Is (DR-0675) carries all four bands on all 14 lessons; 8 on 2026-09-24: the rebuilt historical-research-1619 (DR-0597) carries child, youth, teen and senior on every lesson — the first catalog course with all four bands; a course may only add to this number
-    expect(baseline.adultOnly).toBe(37);
+    // FLOORS, not exact pins (DR-0692): five sessions raise allFour and lower
+    // adultOnly at once, and the exact numbers live in the regenerated baseline,
+    // which 'matches the live catalog exactly' below holds to the truth. These
+    // two lines hold the direction: allFour may only rise, adultOnly only fall.
+    expect(baseline.allFour).toBeGreaterThanOrEqual(54); // 54 on 2026-09-30: leasing-tenants and maintenance-trades join (DR-0696); 38 on 2026-09-30: property-principle and management-stewardship carry all four on all 16 lessons (DR-0696); 22 on 2026-09-29: Who He Is (DR-0675) carries all four bands on all 14 lessons; 8 on 2026-09-24: the rebuilt historical-research-1619 (DR-0597) carries child, youth, teen and senior on every lesson — the first catalog course with all four bands; a course may only add to this number
+    expect(baseline.adultOnly).toBeLessThanOrEqual(37);
   });
 
   it('matches the live catalog exactly', () => {
@@ -177,7 +187,126 @@ describe('the debt, recorded as it actually is', () => {
   });
 });
 
+// =============================================================================
+// ALL FOUR BANDS, ON EVERY LESSON FROM HERE ON (DR-0692)
+// =============================================================================
+// Darrell 2026-09-30: "Do we have all the lessons for each lessons age groups
+// yet? If not, why not when that has been requested and required?!"
+//
+// The honest answer was no: 22 of 398 catalog lessons carried all four bands.
+// The ratchet above only said "no worse", so a new course could land with two
+// bands and pass, and the gap never closed. From this commit the rule is per
+// LESSON: the 378 lessons missing a band on 2026-09-30 are pinned by id in
+// course-band-four-allowlist.json, that list may only shrink, and any other
+// lesson missing child, youth, teen or senior fails here by name.
+const catalogLessons = {};
+for (const c of LEARN_CATALOG) for (const m of lessonsOfCourse(c)) if (c && c.key) catalogLessons[`${c.key}/${m.id}`] = m;
+const PINNED_2026_09_30 = 378;
+const pinnedCount = (a) => Object.values(a.courses).reduce((t, l) => t + l.length, 0);
+
+describe('every lesson carries child, youth, teen and senior (DR-0692)', () => {
+  it('no lesson outside the pinned list is missing a band', () => {
+    const { fresh } = ratchetFourBands(scan, allowlist, catalogLessons);
+    expect(fresh, `lessons missing an age band:\n${fresh.join('\n')}`).toEqual([]);
+  });
+
+  it('the pinned list drops every lesson that now carries all four', () => {
+    // An excuse that outlives its debt is a licence: the next edit could strip
+    // that lesson's bands again and still pass. So a healed lesson must leave.
+    const { healed } = ratchetFourBands(scan, allowlist, catalogLessons);
+    expect(healed, `now carry all four — remove from course-band-four-allowlist.json (run scripts/course-band-baseline-write.mjs):\n${healed.join('\n')}`).toEqual([]);
+  });
+
+  it('the pinned list only shrinks, and names no course that did not exist on 2026-09-30', () => {
+    expect(pinnedCount(allowlist)).toBeLessThanOrEqual(PINNED_2026_09_30);
+    for (const key of Object.keys(allowlist.courses)) expect(baseline.courses[key], `${key} is not a catalog course`).toBeDefined();
+  });
+
+  it('is written the one way the regenerator writes it, so parallel shrinks merge cleanly', () => {
+    const text = readFileSync(join(LIB, 'course-band-four-allowlist.json'), 'utf8');
+    expect(text).toBe(serializeFourBandAllowlist(shrinkFourBandAllowlist(scan, allowlist), allowlist.note));
+  });
+});
+
+// A band is only a band if it passes the house's band gates — the same ones
+// Who He Is is held to (share of the adult lesson, a rising reading ladder
+// with the child band held to the age, four genuinely different texts, each
+// naming its lesson). Four empty-ish labels would satisfy a count, so every
+// four-band catalog lesson is judged. The eight historical-research-1619
+// lessons were banded before this rule and measure with an inverted ladder
+// (teen easier than youth) and bands that do not name their lesson; they are
+// recorded here, shrink-only, for their own course's pass. re-review: 2026-10-14.
+const BAND_GATE_EXEMPT = new Set([
+  'historical-research-1619/hr1-the-standard-before-the-claim',
+  'historical-research-1619/hr1-go-to-the-record',
+  'historical-research-1619/hr1-the-witnesses',
+  'historical-research-1619/hr1-two-or-three-witnesses-the-process',
+  'historical-research-1619/hr1-fact-and-interpretation',
+  'historical-research-1619/hr1-the-correction-and-the-quiet-edit',
+  'historical-research-1619/hr1-the-city-they-built',
+  'historical-research-1619/hr1-write-it-in-order-for-our-children',
+]);
+
+describe('every four-band lesson passes the house band gates (DR-0692)', () => {
+  it('share, ladder, child ceiling, differentiation and naming, on every lesson', () => {
+    const faults = [];
+    for (const [key, m] of Object.entries(catalogLessons)) {
+      if (OWNED.has(m.id) || BAND_GATE_EXEMPT.has(key) || bandsPresent(m).length !== 4) continue;
+      for (const x of bandGateFaults(m)) faults.push(`${key}: ${x}`);
+    }
+    expect(faults, faults.join('\n')).toEqual([]);
+  });
+
+  it('the exemption only shrinks, and each exempt lesson still fails (or it must leave)', () => {
+    expect(BAND_GATE_EXEMPT.size).toBeLessThanOrEqual(8);
+    for (const key of BAND_GATE_EXEMPT) {
+      expect(catalogLessons[key], `${key} is gone`).toBeDefined();
+      expect(bandGateFaults(catalogLessons[key]).length, `${key} now passes — remove it from BAND_GATE_EXEMPT`).toBeGreaterThan(0);
+    }
+  });
+});
+
 describe('proven-to-catch (DR-0076 §3)', () => {
+  it('a four-band lesson whose youth band is a two-line summary fails the band gates', () => {
+    const base = catalogLessons['who-he-is/whohe4-the-kings-and-the-psalms'];
+    expect(bandGateFaults(base)).toEqual([]);
+    const thin = { ...base, levels: { ...base.levels, youth: 'The Kings and the Psalms. It is short.' } };
+    expect(bandGateFaults(thin).join(' ')).toMatch(/youth share/);
+  });
+
+  it('a youth band that reads harder than the teen band fails the ladder', () => {
+    const base = catalogLessons['who-he-is/whohe4-the-kings-and-the-psalms'];
+    const inverted = { ...base, levels: { ...base.levels, youth: base.levels.senior, senior: base.levels.youth } };
+    expect(bandGateFaults(inverted).join(' ')).toMatch(/ladder/);
+  });
+
+  it('fails a NEW lesson that arrives without a youth band, and names it', () => {
+    const base = catalogLessons['who-he-is/whohe1-all-of-them-the-rule-the-line-and-the-edge'];
+    const noYouth = { ...base, id: 'whohe99-a-new-lesson', levels: { ...base.levels, youth: '' } };
+    const course = { key: 'who-he-is', buildScheduleRows: () => [...lessonsOfCourse(LEARN_CATALOG.find((c) => c.key === 'who-he-is')), noYouth] };
+    const withNew = scanCourseBands([course], OWNED);
+    const { fresh } = ratchetFourBands(withNew, allowlist, { 'who-he-is/whohe99-a-new-lesson': noYouth });
+    expect(fresh.join(' ')).toMatch(/who-he-is\/whohe99-a-new-lesson: missing youth/);
+  });
+
+  it('fails a four-band lesson that LOSES a band, because it is not on the pinned list', () => {
+    const base = catalogLessons['who-he-is/whohe2-before-time-and-the-beginning'];
+    const stripped = { ...base, levels: { ...base.levels, child: '' } };
+    const course = { key: 'who-he-is', buildScheduleRows: () => lessonsOfCourse(LEARN_CATALOG.find((c) => c.key === 'who-he-is')).map((m) => (m.id === base.id ? stripped : m)) };
+    const { fresh } = ratchetFourBands(scanCourseBands([course], OWNED), allowlist, { [`who-he-is/${base.id}`]: stripped });
+    expect(fresh.join(' ')).toMatch(/whohe2-before-time-and-the-beginning: missing child/);
+  });
+
+  it('reports a pinned lesson that has healed, so its excuse cannot outlive it', () => {
+    const padded = { courses: { ...allowlist.courses, 'who-he-is': ['whohe3-the-fathers-and-moses'] } };
+    expect(ratchetFourBands(scan, padded).healed).toContain('who-he-is/whohe3-the-fathers-and-moses');
+  });
+
+  it('the regenerator never adds: a fresh gap is not shrunk INTO the list', () => {
+    const fakeScan = { ...scan, missing: { ...scan.missing, 'who-he-is': ['whohe99-a-new-lesson'] } };
+    expect(shrinkFourBandAllowlist(fakeScan, allowlist)['who-he-is']).toEqual([]);
+  });
+
   it('sees a course that adds a bare lesson', () => {
     const worseScan = { ...scan, courses: { ...scan.courses, ai: { lessons: 9, allFour: 0, adultOnly: 8 } } };
     expect(ratchetCourseBands(worseScan, baseline).worse.join(' ')).toMatch(/ai: 8 adult-only/);

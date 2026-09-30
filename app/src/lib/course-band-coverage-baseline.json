@@ -18,7 +18,19 @@
       "adultOnly": 0,
       "adultRegister": 0
     },
+    "appraisal": {
+      "lessons": 8,
+      "allFour": 0,
+      "adultOnly": 0,
+      "adultRegister": 0
+    },
     "banking": {
+      "lessons": 8,
+      "allFour": 0,
+      "adultOnly": 0,
+      "adultRegister": 0
+    },
+    "bonds": {
       "lessons": 8,
       "allFour": 0,
       "adultOnly": 0,
@@ -61,6 +73,12 @@
       "adultRegister": 0,
       "bandlessGrade": 6.3
     },
+    "evictions": {
+      "lessons": 8,
+      "allFour": 0,
+      "adultOnly": 0,
+      "adultRegister": 0
+    },
     "financing-debt": {
       "lessons": 8,
       "allFour": 0,
@@ -79,6 +97,18 @@
       "adultOnly": 0,
       "adultRegister": 0
     },
+    "historical-research-1619": {
+      "lessons": 8,
+      "allFour": 8,
+      "adultOnly": 0,
+      "adultRegister": 0
+    },
+    "history-truth": {
+      "lessons": 8,
+      "allFour": 0,
+      "adultOnly": 0,
+      "adultRegister": 0
+    },
     "infrastructure": {
       "lessons": 10,
       "allFour": 0,
@@ -92,6 +122,12 @@
       "adultRegister": 0
     },
     "insurance-risk": {
+      "lessons": 8,
+      "allFour": 0,
+      "adultOnly": 0,
+      "adultRegister": 0
+    },
+    "investing": {
       "lessons": 8,
       "allFour": 0,
       "adultOnly": 0,
@@ -125,12 +161,6 @@
     "made-in-time": {
       "lessons": 18,
       "allFour": 0,
-      "adultOnly": 0,
-      "adultRegister": 0
-    },
-    "who-he-is": {
-      "lessons": 14,
-      "allFour": 14,
       "adultOnly": 0,
       "adultRegister": 0
     },
@@ -202,9 +232,21 @@
       "adultOnly": 0,
       "adultRegister": 0
     },
+    "stocks": {
+      "lessons": 8,
+      "allFour": 0,
+      "adultOnly": 0,
+      "adultRegister": 0
+    },
     "taxes-records": {
       "lessons": 8,
       "allFour": 0,
+      "adultOnly": 0,
+      "adultRegister": 0
+    },
+    "who-he-is": {
+      "lessons": 14,
+      "allFour": 14,
       "adultOnly": 0,
       "adultRegister": 0
     },
@@ -220,51 +262,9 @@
       "adultOnly": 0,
       "adultRegister": 0
     },
-    "evictions": {
-      "lessons": 8,
-      "allFour": 0,
-      "adultOnly": 0,
-      "adultRegister": 0
-    },
-    "appraisal": {
-      "lessons": 8,
-      "allFour": 0,
-      "adultOnly": 0,
-      "adultRegister": 0
-    },
-    "stocks": {
-      "lessons": 8,
-      "allFour": 0,
-      "adultOnly": 0,
-      "adultRegister": 0
-    },
-    "bonds": {
-      "lessons": 8,
-      "allFour": 0,
-      "adultOnly": 0,
-      "adultRegister": 0
-    },
     "world-market": {
       "lessons": 8,
       "allFour": 0,
-      "adultOnly": 0,
-      "adultRegister": 0
-    },
-    "investing": {
-      "lessons": 8,
-      "allFour": 0,
-      "adultOnly": 0,
-      "adultRegister": 0
-    },
-    "history-truth": {
-      "lessons": 8,
-      "allFour": 0,
-      "adultOnly": 0,
-      "adultRegister": 0
-    },
-    "historical-research-1619": {
-      "lessons": 8,
-      "allFour": 8,
       "adultOnly": 0,
       "adultRegister": 0
     }
