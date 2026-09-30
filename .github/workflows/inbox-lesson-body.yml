@@ -57,10 +57,10 @@ jobs:
           echo "row: $ROW_ID"
           echo "tags: $(printf '%s' "$out" | head -1 | cut -d'|' -f2)"
           # GitHub masks any run of characters that equals a secret, even inside
-          # base64, and blanked parts of L201's words (2026-09-30). A '.' after
-          # every 3 characters breaks every run longer than 3, so nothing can
+          # base64, and blanked parts of L201's words (2026-09-30); a 3-character secret still caught one run. A '.' after
+          # every 2 characters breaks every run longer than 2, so nothing can
           # match a secret; strip the dots, then base64-decode, to read.
-          echo "----- words (base64 with a '.' after every 3 characters; strip the dots, then decode) -----"
-          printf '%s' "$out" | cut -d'|' -f3- | tr -d '\n' | sed 's/.../&./g'
+          echo "----- words (base64 with a '.' after every 2 characters; strip the dots, then decode) -----"
+          printf '%s' "$out" | cut -d'|' -f3- | tr -d '\n' | sed 's/../&./g'
           echo
           echo "----- end -----"
