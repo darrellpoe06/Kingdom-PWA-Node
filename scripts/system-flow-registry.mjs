@@ -337,6 +337,12 @@ const NODES = [
     reads: [{ res: 'db:agent_inbox#voice', token: 'agent_inbox' }, { res: 'db:agent_inbox#voice-transcript', token: 'voice-transcript' }],
     writes: [], seeds: [],
   }),
+  wf('inbox-lessons-waiting.yml', {
+    id: 'inbox-lessons-waiting', name: 'Which lesson rows wait',
+    purpose: 'Lists the lesson rows not yet captured, building or awaiting review, from the live database the app reads (ids, tags and body length, never a body), so the hourly intake sees what waits without a chat connector.',
+    reads: [{ res: 'db:agent_inbox#lesson', token: 'FROM public.agent_inbox' }],
+    writes: [], seeds: [],
+  }),
   wf('inbox-lesson-tag.yml', {
     id: 'inbox-lesson-tag', name: 'A shipped lesson marks its row',
     purpose: 'Tags the agent_inbox row a lesson was built from (captured, lesson id, PR) on the live database, and published only once the deployed build contains the merge — the road that needs no chat connector.',
