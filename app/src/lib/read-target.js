@@ -60,7 +60,14 @@ function notify() {
  */
 export function setReadTarget(owner, target) {
   const text = target && typeof target.text === 'string' ? target.text.trim() : '';
-  if (!owner || !text) return;
+  // A DOOR (DR-0698): a lesson that is OPEN on screen but whose guide is not,
+  // so its full reading is not mounted yet. It registers `open(opts)` in place
+  // of text; the reader calls it, the lesson opens its guide the same way the
+  // lesson's own Play does, and the want below starts the reading the moment
+  // the full target registers. Before this, pressing the speaker inside such a
+  // lesson found NO target and offered only the generic page panel.
+  const open = target && typeof target.open === 'function' ? target.open : null;
+  if (!owner || (!text && !open)) return;
   current = {
     owner: String(owner),
     label: (target.label || 'this').trim() || 'this',
@@ -78,6 +85,7 @@ export function setReadTarget(owner, target) {
     level: target && typeof target.level === 'string' ? target.level : null,
     levels: target && Array.isArray(target.levels) ? target.levels : null,
     setLevel: target && typeof target.setLevel === 'function' ? target.setLevel : null,
+    open: text ? null : open,
   };
   notify();
 }
@@ -122,11 +130,22 @@ function notifyWant() {
   }
 }
 
-/** Ask for `owner`'s reading to begin as soon as that target is registered. */
-export function requestRead(owner) {
+/**
+ * Ask for `owner`'s reading to begin as soon as that target is registered.
+ * `opts` rides along to the reader: `{ startSentence: 0 }` is "from the
+ * beginning", `{ startSentence: n }` a chosen sentence, `{ resumePlace }` a
+ * saved place found by its fingerprint. None means the reader's default
+ * (where this reading was left, else the top), which is what Play asks for.
+ */
+export function requestRead(owner, opts = null) {
   if (!owner) return;
-  wanted = { owner, at: Date.now() };
+  wanted = { owner, at: Date.now(), opts: opts && typeof opts === 'object' ? { ...opts } : null };
   notifyWant();
+}
+
+/** A door target (see setReadTarget): open on screen, its reading not yet mounted. */
+export function isReadDoor(t) {
+  return !!(t && typeof t.open === 'function');
 }
 
 /** The pending want, or null when there is none or it has gone stale. */
@@ -136,7 +155,10 @@ export function pendingRead(now = Date.now()) {
   return wanted;
 }
 
-/** Consume the want for `owner`. Returns true when it was indeed theirs. */
+/**
+ * Consume the want for `owner`. Returns true when it was indeed theirs (the
+ * options it carried are read from pendingRead() before taking it).
+ */
 export function takeRead(owner, now = Date.now()) {
   const w = pendingRead(now);
   if (!w || w.owner !== owner) return false;

@@ -24,9 +24,9 @@ import {
 } from '../lib/read-follow.js';
 import { segmentText } from '../lib/tts.js';
 import { readFromPoint } from '../lib/read-from-here.js';
-import { getReadTarget, subscribeReadTarget, pendingRead, takeRead, subscribeRead, requestRead } from '../lib/read-target.js';
+import { getReadTarget, subscribeReadTarget, pendingRead, takeRead, subscribeRead, requestRead, isReadDoor } from '../lib/read-target.js';
 import { useShowTheWord, toggleShowTheWord } from '../lib/show-the-word.js';
-import { getPlace, recordPlace, sentenceKeyOf, findSentence, finishPlace, placeIsFinished } from '../lib/learn-resume.js';
+import { getPlace, getPlaceFor, recordPlace, sentenceKeyOf, findSentence, finishPlace, placeIsFinished } from '../lib/learn-resume.js';
 import { IDLE as RETURN_IDLE, foldReturn, offersReturn, returnPlan, returnLabel } from '../lib/reader-return.js';
 import { getBookmark, saveBookmark, offersResume, resumeLabel, paragraphOf, paragraphLabels } from '../lib/reader-bookmarks.js';
 import { subscribeReadRequest } from '../lib/read-request.js';
@@ -466,8 +466,10 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
       const t = getReadTarget();
       const w = pendingRead();
       if (!t || !w || t.owner !== w.owner) return;
+      if (isReadDoor(t)) return; // wait for the full lesson, never re-open a door (DR-0698)
+      const opts = w.opts || {};
       if (!takeRead(t.owner)) return;
-      if (readTargetRef.current) readTargetRef.current(t);
+      if (readTargetRef.current) readTargetRef.current(t, opts);
     };
     tryStart();
     const offWant = subscribeRead(tryStart);
@@ -976,8 +978,23 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     deviceClipCache().evict().then((b) => setCacheUse(b));
   };
 
-  const readTargetNow = async (t, { continuing = false, startFraction = null, startSentence = null } = {}) => {
+  const readTargetNow = async (t, { continuing = false, startFraction = null, startSentence = null, resumePlace = null } = {}) => {
     if (!t) return;
+    // THE SPEAKER INSIDE AN OPEN LESSON (DR-0698; Darrell 2026-09-30: "the
+    // reader should be asking me to read it from the beginning because I
+    // pushed the speaker while inside the lesson... it only works after I hit
+    // play... it should be both"). A lesson open with its guide closed has not
+    // mounted its reading yet, so it registers a door. Opening it is exactly
+    // what the lesson's own Play does (guide open, then a want the reader
+    // answers when the full lesson registers); the audio session is claimed
+    // HERE, inside the tap, so the screen-off / background path (DR-0627,
+    // DR-0654) holds from the press, not from a frame later.
+    if (isReadDoor(t)) {
+      claimAudio(t.title || t.label);
+      const opts = startSentence != null ? { startSentence } : (resumePlace ? { resumePlace } : null);
+      try { t.open(opts); } catch (_) { /* a door that will not open reads nothing, and says nothing wrong */ }
+      return;
+    }
     // A target read is always a RUN: it keeps going to the next piece unless
     // the listener stops it.
     runRef.current = t;
@@ -1028,8 +1045,13 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
       // run advanced into, so it starts at its top; only a read the listener
       // themselves started resumes. Unresolvable saved sentence -> the top,
       // never a guess.
+      const placed = resumePlace
+        ? findSentence(follow.segments.map((g) => (g && g.text) || ''), resumePlace)
+        : null;
       const at = startSentence != null
         ? Math.max(0, Math.min(follow.segments.length - 1, startSentence))
+        : placed
+          ? ((placed.how === 'exact' || placed.how === 'moved' || placed.how === 'index-only') ? placed.index : -1)
         : startFraction != null
           ? startIndexForFraction(startFraction, follow.segments.length)
           : (continuing ? -1 : savedStartIndex(follow.segments));
@@ -1164,6 +1186,21 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // bookmark is this reading's own (lib/reader-bookmarks.js); the paragraphs
   // come from the same follow map the paragraph steps use.
   const bookmarkNow = target ? getBookmark(target.owner) : null;
+  // RESUME IS OFFERED ONLY FOR A REAL PLACE (DR-0698). This reading's own
+  // bookmark first (the sentence the voice last reached); else, for a lesson,
+  // its saved place past the start (the sentence the reader's eye reached).
+  // Nothing saved, or saved at the very top, offers nothing: the primary
+  // button already starts at the beginning.
+  const resumeOffer = (() => {
+    if (!target) return null;
+    if (offersResume(bookmarkNow)) return { label: resumeLabel(bookmarkNow), opts: { startSentence: bookmarkNow.sentence } };
+    let p;
+    try { p = getPlaceFor(null, target.owner); } catch (_) { p = null; }
+    if (p && !p.done && p.sentence > 0) {
+      return { label: 'Resume where you left off', opts: { resumePlace: { sentence: p.sentence, sentenceKey: p.sentenceKey || '' } } };
+    }
+    return null;
+  })();
   const readingParagraphs = () => {
     const f = followRef.current;
     if (!isReading || !f || !f.follow || !f.follow.segments) return [];
@@ -1557,16 +1594,19 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
               <>
                 {/* One full piece, start to finish — primary when a surface has
                     registered its reading (the open lesson). Never the page mix. */}
+                {/* FROM THE BEGINNING — the first choice, always (DR-0698):
+                    "start to finish" means the top. Where the reader left off
+                    is its own button just below, and only when there is one. */}
                 {target && (
-                  <button type="button" onClick={() => readTargetNow(target)} className="col-span-3 bg-[#5A6E3D] text-white px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read {target.label} — start to finish</button>
+                  <button type="button" data-testid="reader-read-target" onClick={() => readTargetNow(target, { startSentence: 0 })} className="col-span-3 bg-[#5A6E3D] text-white px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read {target.label} — start to finish</button>
                 )}
                 {/* RESUME — where this reading was left, said in paragraphs. */}
-                {target && offersResume(bookmarkNow) && (
-                  <button type="button" data-testid="reader-resume" onClick={() => readTargetNow(target, { startSentence: bookmarkNow.sentence })} className="col-span-3 border-2 border-[#5A6E3D] text-[#1A1815] px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ {resumeLabel(bookmarkNow)}</button>
+                {target && resumeOffer && (
+                  <button type="button" data-testid="reader-resume" onClick={() => readTargetNow(target, resumeOffer.opts)} className="col-span-3 border-2 border-[#5A6E3D] text-[#1A1815] px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ {resumeOffer.label}</button>
                 )}
                 {/* START AT ANY PARAGRAPH — listed on request, because listing
                     means laying the whole piece out first. */}
-                {target && (pickList && pickList.owner === target.owner && pickList.labels.length ? (
+                {target && !isReadDoor(target) && (pickList && pickList.owner === target.owner && pickList.labels.length ? (
                   <label className="col-span-3 block">
                     <span className="block text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Start at</span>
                     <select data-testid="reader-start-at" aria-label="Start reading at this paragraph" className={selectClass} value="" onChange={(e) => { const n = Number(e.target.value); if (Number.isFinite(n)) readTargetNow(target, { startSentence: n }); }}>

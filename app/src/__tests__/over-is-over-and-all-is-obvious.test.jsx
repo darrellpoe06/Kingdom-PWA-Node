@@ -160,12 +160,12 @@ describe('Read this lesson — start to finish, after it is over', () => {
     setReadTarget('ll3', { label: 'this lesson', text: SENTENCES.join(' '), elementId: 'learn-read-ll3' });
   };
 
-  const pressStartToFinish = async () => {
+  const pressStartToFinish = async (label = /start to finish/) => {
     await act(async () => { root.render(createElement(TTSControl, { view: 'church' })); });
     const fab = container.querySelector('button[aria-label="Open read-aloud controls"]');
     await act(async () => { fab.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     const panel = container.querySelector('.tts-controls > div');
-    const btn = [...panel.querySelectorAll('button')].find((b) => /start to finish/.test(b.textContent));
+    const btn = [...panel.querySelectorAll('button')].find((b) => label.test(b.textContent));
     expect(btn).toBeTruthy();
     await act(async () => { btn.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     // The read path awaits reveal + settle (lib/read-reveal.js: up to ten
@@ -194,7 +194,9 @@ describe('Read this lesson — start to finish, after it is over', () => {
     recordPlace({ courseKey: 'living-lessons', lessonId: 'll3' });
     recordPlace({ sentence: 1, sentenceKey: '' }); // mid-lesson, never finished
     expect(placeIsFinished(getPlace())).toBe(false);
-    const spoken = await pressStartToFinish();
+    // Since DR-0698 "start to finish" means the top, and the place part-way is
+    // its own button, offered because this lesson has one.
+    const spoken = await pressStartToFinish(/Resume where you left off/);
     expect(spoken).not.toContain(SENTENCES[0]);
     expect(spoken).toContain(SENTENCES[1]);
   });
