@@ -1,0 +1,91 @@
+# inbox-lesson-tag — mark a lesson row on the database the app reads
+#
+# WHY (2026-09-30). The in-app lesson intake builds a lesson from an
+# agent_inbox row, then must tag that row (lesson-captured, lesson-id:,
+# lesson-pr:, and lesson-published once the deploy is live) so Darrell's
+# "Your lessons" screen shows what his word became. The tagging went through a
+# chat connector to the hosted Supabase project; when that connector dropped,
+# L200's row (8d290c20, PR #1860) stayed untagged. The app reads the NAS's own
+# database (scripts/live-sql.sh, REPOINT-ARMED), so the tag belongs there, and
+# this road reaches it without any chat connector.
+#
+# WHAT IT DOES: reads the row's tags; adds lesson-captured, lesson-id:<id> and
+# lesson-pr:<n>; adds lesson-published ONLY when the latest successful
+# deploy-cloudflare-pages run's commit contains the PR's merge commit (never
+# at push). Idempotent: a tag already present is not added twice. Reports the
+# row's tags before and after. Every input is validated before it reaches SQL.
+#
+# BRAKES (deterministic class, DR-0248: budget + lock): dispatch only, one row
+# per run, 5 minutes; concurrency group `inbox-lesson-tag`.
+
+name: inbox-lesson-tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      row_id:
+        description: 'agent_inbox row id (uuid)'
+        required: true
+      lesson_id:
+        description: 'lesson id (lowercase letters, digits, hyphens)'
+        required: true
+      pr:
+        description: 'PR number that shipped the lesson'
+        required: true
+
+concurrency:
+  group: inbox-lesson-tag
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      ROW_ID: ${{ inputs.row_id }}
+      LESSON_ID: ${{ inputs.lesson_id }}
+      PR: ${{ inputs.pr }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 400
+      - name: Validate the inputs
+        run: |
+          set -euo pipefail
+          [[ "$ROW_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || { echo "::error::row_id is not a uuid"; exit 1; }
+          [[ "$LESSON_ID" =~ ^[a-z0-9][a-z0-9-]{1,200}$ ]] || { echo "::error::lesson_id has characters outside a-z 0-9 -"; exit 1; }
+          [[ "$PR" =~ ^[0-9]{1,6}$ ]] || { echo "::error::pr is not a number"; exit 1; }
+      - name: Is the lesson live? (merged, and inside the deployed build)
+        run: |
+          set -euo pipefail
+          MERGE=$(gh api "repos/$REPO/pulls/$PR" --jq 'if .merged then .merge_commit_sha else "" end')
+          DEPLOYED=$(gh api "repos/$REPO/actions/workflows/deploy-cloudflare-pages.yml/runs?status=success&per_page=1" --jq '.workflow_runs[0].head_sha // ""')
+          LIVE=no
+          if [ -n "$MERGE" ] && [ -n "$DEPLOYED" ] && git cat-file -e "$DEPLOYED^{commit}" 2>/dev/null && git merge-base --is-ancestor "$MERGE" "$DEPLOYED" 2>/dev/null; then LIVE=yes; fi
+          echo "merge: ${MERGE:-not merged} · deployed: ${DEPLOYED:-unknown} · live: $LIVE"
+          echo "LIVE=$LIVE" >> "$GITHUB_ENV"
+      - name: Join the tailnet (to reach the live database)
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Tag the row on the live database
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          TAGS="\"lesson-captured\",\"lesson-id:$LESSON_ID\",\"lesson-pr:$PR\""
+          [ "$LIVE" = yes ] && TAGS="$TAGS,\"lesson-published\""
+          before=$(printf '%s' "SELECT tags::text FROM public.agent_inbox WHERE id = '$ROW_ID';" | bash scripts/live-sql.sh '|') || { echo "::error::could not read the row"; exit 1; }
+          [ -n "$before" ] || { echo "::error::row $ROW_ID is not on the live database"; exit 1; }
+          echo "before: $before"
+          SQL="UPDATE public.agent_inbox SET tags = tags || (SELECT coalesce(jsonb_agg(t), '[]'::jsonb) FROM jsonb_array_elements('[$TAGS]'::jsonb) t WHERE NOT (agent_inbox.tags @> jsonb_build_array(t))) WHERE id = '$ROW_ID'; SELECT tags::text FROM public.agent_inbox WHERE id = '$ROW_ID';"
+          after=$(printf '%s' "$SQL" | bash scripts/live-sql.sh '|') || { echo "::error::the live database did not take the update"; exit 1; }
+          echo "after: $after"
+          { echo "### agent_inbox $ROW_ID"; echo "- live: $LIVE"; echo "- before: \`$before\`"; echo "- after: \`$after\`"; } >> "$GITHUB_STEP_SUMMARY"

@@ -337,6 +337,16 @@ const NODES = [
     reads: [{ res: 'db:agent_inbox#voice', token: 'agent_inbox' }, { res: 'db:agent_inbox#voice-transcript', token: 'voice-transcript' }],
     writes: [], seeds: [],
   }),
+  wf('inbox-lesson-tag.yml', {
+    id: 'inbox-lesson-tag', name: 'A shipped lesson marks its row',
+    purpose: 'Tags the agent_inbox row a lesson was built from (captured, lesson id, PR) on the live database, and published only once the deployed build contains the merge — the road that needs no chat connector.',
+    reads: [
+      { res: 'db:agent_inbox#lesson', token: 'FROM public.agent_inbox' },
+      { res: 'gh:run:deploy-cloudflare-pages.yml', token: 'deploy-cloudflare-pages.yml/runs' },
+    ],
+    writes: [{ res: 'db:agent_inbox#lesson-published', token: 'lesson-published' }],
+    seeds: ['lesson-inbox'],
+  }),
   app('app/src/components/LessonInbox.jsx', {
     id: 'lesson-inbox', name: 'Your lessons (sent, heard, written down)',
     purpose: 'The speaker sees each lesson they sent: received, transcribed, and the words Whisper wrote — shown under the Lesson recorder and on the Notes tab; "Put these words in the box" hands them back to send again (DR-0636).',
