@@ -25,7 +25,7 @@ import { formatLessonText } from '../lib/lesson-format.js';
 
 const COURSES = ['ai', 'little-learners', 'mathematics', 'development', 'rent-to-own-business'];
 // sovereign-ai is banded lesson by lesson; its banded lessons are held here.
-const PARTIAL = { 'sovereign-ai': ['sov1-', 'sov2-', 'sov3-', 'sov4-', 'sov5-', 'sov6-', 'sov7-', 'sov8-'] };
+const PARTIAL = { 'sovereign-ai': ['sov1-', 'sov2-', 'sov3-', 'sov4-', 'sov5-', 'sov6-', 'sov7-', 'sov8-', 'sov14-', 'sov16-'] };
 
 const lessonsOf = (key) => {
   const c = LEARN_CATALOG.find((x) => x.key === key);
