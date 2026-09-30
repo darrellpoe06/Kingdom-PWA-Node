@@ -138,18 +138,18 @@ jobs:
            WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=t)
              AND NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename=t)
            ORDER BY 1;
-          \echo == 15. today's september rows by christina: count|first written (UTC)|last written (UTC) ==
+          \echo == 15. september rows christina wrote today: count|first written (UTC)|last written (UTC) ==
           SELECT count(*), to_char(min(created_at) AT TIME ZONE 'UTC','HH24:MI:SS'), to_char(max(created_at) AT TIME ZONE 'UTC','HH24:MI:SS')
             FROM transactions t JOIN auth.users u ON u.id=t.created_by
            WHERE lower(u.email)='mrspoe06@gmail.com' AND t.instance_id=(SELECT id FROM instances WHERE slug='poe-family')
              AND t.txn_date >= '2026-09-01' AND t.txn_date < '2026-10-01' AND t.created_at >= '2026-09-30';
-          \echo == 16. today's rows: slug|txn_date (ids and dates only) ==
+          \echo == 16. rows written today: slug|txn_date (ids and dates only) ==
           SELECT t.slug, t.txn_date FROM transactions t JOIN auth.users u ON u.id=t.created_by
            WHERE lower(u.email)='mrspoe06@gmail.com' AND t.instance_id=(SELECT id FROM instances WHERE slug='poe-family')
              AND t.txn_date >= '2026-09-01' AND t.txn_date < '2026-10-01' AND t.created_at >= '2026-09-30' ORDER BY 2,1;
           \echo == 17. family key published per instance (instance|updated) ==
           SELECT i.slug, f.updated_at::date FROM family_secure_config f JOIN instances i ON i.id=f.instance_id ORDER BY 1;
-          \echo == 18. the key christina's device is handed matches the key poe-family holds ==
+          \echo == 18. the key the device of christina is handed matches the key poe-family holds ==
           SELECT (SELECT f.chat_bridge_token FROM family_secure_config f JOIN instance_members im ON im.instance_id=f.instance_id JOIN instances i ON i.id=f.instance_id
                    WHERE im.user_id=(SELECT id FROM auth.users WHERE lower(email)='mrspoe06@gmail.com') AND coalesce(i.instance_type,'')<>'church' ORDER BY f.updated_at DESC LIMIT 1)
                = (SELECT f.chat_bridge_token FROM family_secure_config f JOIN instances i ON i.id=f.instance_id WHERE i.slug='poe-family');
