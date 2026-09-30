@@ -139,7 +139,7 @@ jobs:
              AND NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename=t)
            ORDER BY 1;
           \echo == 15. september rows christina wrote today: count|first written (UTC)|last written (UTC) ==
-          SELECT count(*), to_char(min(created_at) AT TIME ZONE 'UTC','HH24:MI:SS'), to_char(max(created_at) AT TIME ZONE 'UTC','HH24:MI:SS')
+          SELECT count(*), to_char(min(t.created_at) AT TIME ZONE 'UTC','HH24:MI:SS'), to_char(max(t.created_at) AT TIME ZONE 'UTC','HH24:MI:SS')
             FROM transactions t JOIN auth.users u ON u.id=t.created_by
            WHERE lower(u.email)='mrspoe06@gmail.com' AND t.instance_id=(SELECT id FROM instances WHERE slug='poe-family')
              AND t.txn_date >= '2026-09-01' AND t.txn_date < '2026-10-01' AND t.created_at >= '2026-09-30';
@@ -212,13 +212,14 @@ jobs:
           echo "funnel /taxes: $( (sudo -n $TS funnel status 2>/dev/null || $TS funnel status 2>/dev/null) | grep -c '/taxes')"
           echo "drop dir entities: $(ls /volume1/PoeTech/tax-documents 2>/dev/null | tr '\n' ' ')"
           echo "--- access lines (method path status) since 2026-09-28 ---"
-          (journalctl -u poetech-tax-upload --since '2026-09-28' --no-pager 2>/dev/null || sudo -n journalctl -u poetech-tax-upload --since '2026-09-28' --no-pager 2>/dev/null) \
-            | grep -E '"(POST|GET) |Error|error|Traceback|Exception' | sed -E 's/Bearer [A-Za-z0-9._-]+/Bearer ***/g' | tail -120
+          J=$(sudo -n journalctl -u poetech-tax-upload --since '2026-09-28' --no-pager 2>/dev/null || journalctl -u poetech-tax-upload --since '2026-09-28' --no-pager 2>&1)
+          echo "journal lines readable: $(printf '%s\n' "$J" | grep -c .)"
+          printf '%s\n' "$J" | grep -E '"(POST|GET) |Error|error|Traceback|Exception|No journal|permission' | sed -E 's/Bearer [A-Za-z0-9._-]+/Bearer ***/g' | tail -120
           REMOTE
           rm -f "$K"
 
   tax-write:
-    if: ${{ github.event.inputs.write_test == 'true' || github.event_name == 'push' }}
+    if: ${{ github.event.inputs.write_test == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
