@@ -141,8 +141,8 @@ jobs:
             FROM transactions t JOIN auth.users u ON u.id=t.created_by
            WHERE lower(u.email)='mrspoe06@gmail.com' AND t.instance_id=(SELECT id FROM instances WHERE slug='poe-family')
              AND t.txn_date >= '2026-09-01' AND t.txn_date < '2026-10-01' AND t.created_at >= '2026-09-30';
-          \echo == 16. rows written today: slug|txn_date (ids and dates only) ==
-          SELECT t.slug, t.txn_date FROM transactions t JOIN auth.users u ON u.id=t.created_by
+          \echo == 16. rows written today: row uuid|txn_date (ids and dates only; NEVER the slug, which for an import carries the amount, payee and balance) ==
+          SELECT t.id, t.txn_date FROM transactions t JOIN auth.users u ON u.id=t.created_by
            WHERE lower(u.email)='mrspoe06@gmail.com' AND t.instance_id=(SELECT id FROM instances WHERE slug='poe-family')
              AND t.txn_date >= '2026-09-01' AND t.txn_date < '2026-10-01' AND t.created_at >= '2026-09-30' ORDER BY 2,1;
           \echo == 17. family key published per instance (instance|updated) ==
@@ -160,7 +160,9 @@ jobs:
           [ -n "$dbmd5" ] && echo "::add-mask::$dbmd5" && echo "DBMD5=$dbmd5" >> "$GITHUB_ENV"
           out=$(printf '%s\n' "$out" | grep -v '^dbkeymd5=')
           printf '%s\n' "$out"
-          { echo "### Family ledger probe"; echo '```'; printf '%s\n' "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          # The step summary carries only the section headers and their row counts,
+          # never row values: this repository's run pages are public.
+          { echo "### Family ledger probe (section: lines)"; printf '%s\n' "$out" | awk '/^== /{if(h!="")print h": "n; h=$0; n=0; next}{n++} END{if(h!="")print h": "n}'; } >> "$GITHUB_STEP_SUMMARY"
       - name: Realtime container on the NAS (names and status only)
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
