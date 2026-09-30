@@ -120,21 +120,65 @@ export function parseServiceTime(time) {
   return hh * 60 + mm;
 }
 
-// liveStatus(services, now) -> { live, current, next }
+// THE SCHEDULE IS THE CHURCH'S CLOCK, NOT THE VIEWER'S (2026-09-30).
+// The posted times ("Wednesday 6:00 PM") are Champaign, Illinois wall-clock
+// times. liveStatus used to read them against the DEVICE's own time zone, so a
+// member travelling on Eastern time, a relative in California, or a CI runner
+// on UTC each saw a different window: on UTC the Wednesday 6 PM window ran
+// 17:40–21:30 UTC, i.e. 12:40–4:30 PM in Champaign, while the real service had
+// not begun. The window is now computed in the church's own time zone.
+export const CHURCH_TIME_ZONE = 'America/Chicago';
+
+// The wall-clock fields of `date` in `timeZone`, as a UTC-based millisecond
+// value (a "wall clock" number: comparable to other wall-clock numbers only).
+// Returns null when the runtime cannot resolve the zone (the caller then falls
+// back to the device's own clock rather than guessing).
+function wallClockMs(date, timeZone) {
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone, hourCycle: 'h23',
+      year: 'numeric', month: 'numeric', day: 'numeric',
+      hour: 'numeric', minute: 'numeric', second: 'numeric',
+    }).formatToParts(date);
+    const get = (t) => Number((parts.find((p) => p.type === t) || {}).value);
+    const ms = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour') % 24, get('minute'), get('second'));
+    return Number.isFinite(ms) ? ms : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+// liveStatus(services, now, { timeZone }) -> { live, current, next }
 //   live    : boolean — is `now` inside any online service's live window?
 //   current : the service whose window we're in (or null)
 //   next    : { ...service, at: Date } — the soonest upcoming service start
 //             (used for the offline card's "Next: Sunday 11:00 AM" hint), or null
 //
 // `now` is injectable for testing; defaults to the real clock in the app.
-// Only services with `online !== false` count — an in-person-only service
-// never lights the online player.
-export function liveStatus(services, now = new Date()) {
+// `timeZone` is the zone the service times are posted in (the church's own,
+// CHURCH_TIME_ZONE by default). Only services with `online !== false` count —
+// an in-person-only service never lights the online player.
+export function liveStatus(services, now = new Date(), { timeZone = CHURCH_TIME_ZONE } = {}) {
   const list = (Array.isArray(services) ? services : []).filter(
     (s) => s && s.online !== false && s.day in DAY_INDEX && parseServiceTime(s.time) != null,
   );
 
-  const nowMs = now.getTime();
+  const realMs = now.getTime();
+  // Work in the church's wall clock: `wall` holds the church-local fields of
+  // `now` in UTC slots, so every getUTC* below reads Champaign time. `offset`
+  // turns a wall-clock occurrence back into a real instant for `next.at`.
+  const zoned = timeZone ? wallClockMs(now, timeZone) : null;
+  const nowMs = zoned != null ? zoned : realMs;
+  const offset = zoned != null ? zoned - realMs : 0;
+  const wall = new Date(nowMs);
+  const dow = zoned != null ? wall.getUTCDay() : now.getDay();
+  const at = (y, mo, d, h, mi) => (zoned != null
+    ? Date.UTC(y, mo, d, h, mi, 0, 0)
+    : new Date(y, mo, d, h, mi, 0, 0).getTime());
+  const [Y, M, D] = zoned != null
+    ? [wall.getUTCFullYear(), wall.getUTCMonth(), wall.getUTCDate()]
+    : [now.getFullYear(), now.getMonth(), now.getDate()];
+
   let current = null;
   let next = null;
   let nextDelta = Infinity;
@@ -149,11 +193,8 @@ export function liveStatus(services, now = new Date()) {
     // wrap across a week boundary (e.g. late Saturday into "Sunday") and the
     // next upcoming start are both found correctly.
     for (let wk = -1; wk <= 1; wk++) {
-      const dayDelta = (targetDow - now.getDay()) + wk * 7;
-      const occ = new Date(
-        now.getFullYear(), now.getMonth(), now.getDate() + dayDelta, hh, mm, 0, 0,
-      );
-      const startMs = occ.getTime();
+      const dayDelta = (targetDow - dow) + wk * 7;
+      const startMs = at(Y, M, D + dayDelta, hh, mm);
       const winStart = startMs - PRE_ROLL_MIN * 60000;
       const winEnd = startMs + POST_ROLL_MIN * 60000;
 
@@ -161,7 +202,7 @@ export function liveStatus(services, now = new Date()) {
 
       if (startMs >= nowMs && startMs - nowMs < nextDelta) {
         nextDelta = startMs - nowMs;
-        next = { ...svc, at: occ };
+        next = { ...svc, at: new Date(startMs - offset) };
       }
     }
   }

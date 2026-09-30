@@ -134,7 +134,6 @@ function DocCard({ doc, onAnswer, onConfirm, busy, demo, today, acctName }) {
 export default function BooksUpload({ hint = null, data = {}, debts = [], demo = false, commitImportedRows, addAccount, updateAccount, onClose }) {
   const store = useMemo(() => intakeStore({ demoMode: demo }), [demo]);
   const inputRef = useRef(null);
-  const cameraRef = useRef(null);
   const [docs, setDocs] = useState([]);
   const [teach, setTeach] = useState([]);
   const [filter, setFilter] = useState('all');
@@ -226,14 +225,9 @@ export default function BooksUpload({ hint = null, data = {}, debts = [], demo =
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => inputRef.current && inputRef.current.click()} disabled={!!busy}
               className="inline-flex items-center gap-2 text-xs uppercase tracking-wider px-4 min-h-[44px] border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] hover:border-[#B85838] disabled:opacity-50">
-              <UiIcon name="upload" /> Choose files
-            </button>
-            <button type="button" onClick={() => cameraRef.current && cameraRef.current.click()} disabled={!!busy}
-              className="text-xs uppercase tracking-wider px-4 min-h-[44px] border border-[#1A1815] text-[#1A1815] bg-white hover:bg-[#FAF8F4] disabled:opacity-50">
-              Take a photo
+              <UiIcon name="upload" /> Choose files or take a photo
             </button>
             <input ref={inputRef} type="file" multiple className="sr-only" aria-label="Choose financial documents" data-testid="books-upload-input" onChange={(e) => { onFiles(e.target.files); e.target.value = ''; }} />
-            <input ref={cameraRef} type="file" accept="image/*" capture="environment" multiple className="sr-only" aria-label="Take a photo of a document" onChange={(e) => { onFiles(e.target.files); e.target.value = ''; }} />
           </div>
           {busy && <p className="text-xs text-[#5A5751]" role="status" aria-live="polite">{busy}</p>}
 
