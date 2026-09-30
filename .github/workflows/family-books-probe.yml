@@ -1,0 +1,258 @@
+# family-books-probe — measure the two Books defects of 2026-09-30 on the live road
+#
+# WHY (2026-09-30, Darrell + Christina, both on build aae49f9). Christina could
+# not upload the 2024 return from Books -> Taxes on her phone, and Books ->
+# Imported showed her 258 September rows of 3,405 while Darrell's desktop showed
+# 183 of 3,330. The sandbox has no route to the NAS or poetech.us, so the
+# runner is the eye (DR-0125): this workflow measures before anything is fixed
+# (DR-0076 section 4).
+#
+# WHAT IT READS
+#   ledger   (read-only): counts and ids from the database the app reads
+#            (scripts/live-sql.sh, inside BEGIN READ ONLY). Counts per member,
+#            per instance, per account slug; deletes from record_events; the
+#            watermark trigger and the realtime publication. Money appears only
+#            as yes/no against the figures the family already saw on screen,
+#            never as a row amount or a description.
+#   tax-road (read-only): the /taxes road from the outside, WITHOUT the family
+#            key, at growing body sizes. Every POST is refused 401 by the NAS
+#            before a byte is written, so what comes back says which hop a body
+#            of that size reaches. Plus the NAS service's own access lines
+#            (method, path, status; never a header) since 2026-09-28.
+#   tax-write (opt-in, input write_test=true): one real upload with the family
+#            key into a throwaway entity folder (zz-probe-delete-me, year 1900),
+#            then the folder is removed, the ingest re-run, and the archive
+#            checked clean. The token is masked and never printed.
+#
+# BRAKES (deterministic class, DR-0248: budget + lock): dispatch only;
+# 10 minutes per job; concurrency group `family-books-probe`.
+
+name: family-books-probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      write_test:
+        description: 'Also run one self-cleaning test upload with the family key (true/false)'
+        required: false
+        default: 'false'
+
+concurrency:
+  group: family-books-probe
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ledger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join the tailnet (to reach the live database)
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Count the family ledger (counts and ids only)
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          cat > /tmp/ledger.sql <<'SQL'
+          BEGIN READ ONLY;
+          \echo == 1. memberships of the two named members (who|instance|type|role|joined) ==
+          WITH lab AS (SELECT u.id, CASE WHEN lower(u.email)='darrellpoe06@gmail.com' THEN 'darrell' WHEN lower(u.email)='mrspoe06@gmail.com' THEN 'christina' ELSE 'user-'||left(u.id::text,8) END AS who FROM auth.users u)
+          SELECT lab.who, i.slug, i.instance_type, im.role, im.joined_at::date
+            FROM instance_members im JOIN instances i ON i.id=im.instance_id JOIN lab ON lab.id=im.user_id
+           WHERE lab.who IN ('darrell','christina') ORDER BY 1,5;
+          \echo == 2. the default instance each resolves to (0119 order) ==
+          WITH lab AS (SELECT u.id, CASE WHEN lower(u.email)='darrellpoe06@gmail.com' THEN 'darrell' WHEN lower(u.email)='mrspoe06@gmail.com' THEN 'christina' ELSE 'user-'||left(u.id::text,8) END AS who FROM auth.users u)
+          SELECT lab.who, (SELECT i.slug FROM instance_members im JOIN instances i ON i.id=im.instance_id
+                            WHERE im.user_id=lab.id AND i.instance_type<>'church'
+                            ORDER BY CASE WHEN i.instance_type='family' THEN 0 ELSE 1 END, im.joined_at, i.id LIMIT 1)
+            FROM lab WHERE lab.who IN ('darrell','christina');
+          \echo == 3. poe-family members (who|role) ==
+          WITH lab AS (SELECT u.id, CASE WHEN lower(u.email)='darrellpoe06@gmail.com' THEN 'darrell' WHEN lower(u.email)='mrspoe06@gmail.com' THEN 'christina' ELSE 'user-'||left(u.id::text,8) END AS who FROM auth.users u)
+          SELECT lab.who, im.role FROM instance_members im JOIN instances i ON i.id=im.instance_id JOIN lab ON lab.id=im.user_id
+           WHERE i.slug='poe-family' ORDER BY 1;
+          \echo == 4. poe-family ledger: total|september|sept IN matches 26414|matches 33727|sept OUT matches 25276|matches 33059 ==
+          WITH t AS (SELECT * FROM transactions WHERE instance_id=(SELECT id FROM instances WHERE slug='poe-family')),
+               s AS (SELECT * FROM t WHERE txn_date >= '2026-09-01' AND txn_date < '2026-10-01'
+                        AND NOT is_transfer AND lower(coalesce(category,'')) NOT IN ('transfer','balance-adjustment')),
+               m AS (SELECT round(coalesce(sum(amount) FILTER (WHERE amount>0),0)) AS i, round(coalesce(-sum(amount) FILTER (WHERE amount<0),0)) AS o FROM s)
+          SELECT (SELECT count(*) FROM t),
+                 (SELECT count(*) FROM t WHERE txn_date >= '2026-09-01' AND txn_date < '2026-10-01'),
+                 abs(m.i-26414)<=1, abs(m.i-33727)<=1, abs(m.o-25276)<=1, abs(m.o-33059)<=1 FROM m;
+          \echo == 5. every instance holding rows written by the two members (who|instance|total|september) ==
+          WITH lab AS (SELECT u.id, CASE WHEN lower(u.email)='darrellpoe06@gmail.com' THEN 'darrell' WHEN lower(u.email)='mrspoe06@gmail.com' THEN 'christina' ELSE 'user-'||left(u.id::text,8) END AS who FROM auth.users u)
+          SELECT lab.who, i.slug, count(*), count(*) FILTER (WHERE t.txn_date >= '2026-09-01' AND t.txn_date < '2026-10-01')
+            FROM transactions t JOIN instances i ON i.id=t.instance_id JOIN lab ON lab.id=t.created_by
+           GROUP BY 1,2 ORDER BY 1,2;
+          \echo == 6. poe-family september by writer and account slug (who|account_slug|rows|first created|last created) ==
+          WITH lab AS (SELECT u.id, CASE WHEN lower(u.email)='darrellpoe06@gmail.com' THEN 'darrell' WHEN lower(u.email)='mrspoe06@gmail.com' THEN 'christina' ELSE 'user-'||left(u.id::text,8) END AS who FROM auth.users u)
+          SELECT lab.who, coalesce(t.account_slug,'<null>'), count(*), min(t.created_at)::date, max(t.created_at)::date
+            FROM transactions t LEFT JOIN lab ON lab.id=t.created_by
+           WHERE t.instance_id=(SELECT id FROM instances WHERE slug='poe-family') AND t.txn_date >= '2026-09-01' AND t.txn_date < '2026-10-01'
+           GROUP BY 1,2 ORDER BY 1,2;
+          \echo == 7. transaction deletes in record_events since 2026-09-01 (day|deletes|of september rows) ==
+          SELECT occurred_at::date, count(*), count(*) FILTER (WHERE coalesce(before->>'date','') LIKE '2026-09%')
+            FROM record_events WHERE record_kind='transaction' AND action='delete'
+             AND instance_id=(SELECT id FROM instances WHERE slug='poe-family') AND occurred_at >= '2026-09-01'
+           GROUP BY 1 ORDER BY 1;
+          \echo == 8. deleted september rows: count|non-transfer IN matches 7313|OUT matches 7783 ==
+          WITH d AS (SELECT DISTINCT ON (record_id) record_id, before FROM record_events
+                      WHERE record_kind='transaction' AND action='delete' AND instance_id=(SELECT id FROM instances WHERE slug='poe-family')
+                        AND coalesce(before->>'date','') LIKE '2026-09%' ORDER BY record_id, occurred_at DESC),
+               n AS (SELECT (before->>'amount')::numeric AS a FROM d
+                      WHERE coalesce(before->>'isTransfer','false') <> 'true' AND lower(coalesce(before->>'category','')) NOT IN ('transfer','balance-adjustment'))
+          SELECT (SELECT count(*) FROM d), abs(round(coalesce(sum(a) FILTER (WHERE a>0),0))-7313)<=1, abs(round(coalesce(-sum(a) FILTER (WHERE a<0),0))-7783)<=1 FROM n;
+          \echo == 9. september exact-duplicate groups in the cloud (groups|extra rows) ==
+          WITH g AS (SELECT count(*) c FROM transactions WHERE instance_id=(SELECT id FROM instances WHERE slug='poe-family')
+                        AND txn_date >= '2026-09-01' AND txn_date < '2026-10-01'
+                      GROUP BY account_slug, txn_date, amount, lower(coalesce(description,'')) HAVING count(*)>1)
+          SELECT count(*), coalesce(sum(c-1),0) FROM g;
+          \echo == 10. sync plumbing: touch trigger present|transactions in supabase_realtime|rows with null updated_at|rows with updated_at < created_at ==
+          SELECT (SELECT count(*) FROM pg_trigger tg JOIN pg_class c ON c.oid=tg.tgrelid WHERE c.relname='transactions' AND tg.tgname='transactions_touch_updated_at'),
+                 (SELECT count(*) FROM pg_publication_tables WHERE pubname='supabase_realtime' AND tablename='transactions'),
+                 (SELECT count(*) FROM transactions WHERE updated_at IS NULL),
+                 (SELECT count(*) FROM transactions WHERE updated_at < created_at);
+          \echo == 11. poe-family entity slugs the NAS tax upload would refuse (null|bad shape|total) ==
+          SELECT count(*) FILTER (WHERE slug IS NULL), count(*) FILTER (WHERE slug IS NOT NULL AND slug !~ '^[A-Za-z0-9_-]{1,64}$'), count(*)
+            FROM entities WHERE instance_id=(SELECT id FROM instances WHERE slug='poe-family');
+          \echo == 12. september rows written in the last 10 days (created day|who|rows) ==
+          WITH lab AS (SELECT u.id, CASE WHEN lower(u.email)='darrellpoe06@gmail.com' THEN 'darrell' WHEN lower(u.email)='mrspoe06@gmail.com' THEN 'christina' ELSE 'user-'||left(u.id::text,8) END AS who FROM auth.users u)
+          SELECT t.created_at::date, lab.who, count(*) FROM transactions t LEFT JOIN lab ON lab.id=t.created_by
+           WHERE t.instance_id=(SELECT id FROM instances WHERE slug='poe-family') AND t.txn_date >= '2026-09-01' AND t.txn_date < '2026-10-01'
+             AND t.created_at >= now() - interval '10 days'
+           GROUP BY 1,2 ORDER BY 1,2;
+          \echo == 13. accounts in poe-family (slug|who created|rows all time) ==
+          WITH lab AS (SELECT u.id, CASE WHEN lower(u.email)='darrellpoe06@gmail.com' THEN 'darrell' WHEN lower(u.email)='mrspoe06@gmail.com' THEN 'christina' ELSE 'user-'||left(u.id::text,8) END AS who FROM auth.users u)
+          SELECT a.slug, lab.who, (SELECT count(*) FROM transactions t WHERE t.instance_id=a.instance_id AND t.account_slug=a.slug)
+            FROM accounts a LEFT JOIN lab ON lab.id=a.created_by
+           WHERE a.instance_id=(SELECT id FROM instances WHERE slug='poe-family') ORDER BY 1;
+          \echo == 14. synced tables NOT in the supabase_realtime publication (table) ==
+          SELECT t FROM unnest(ARRAY['accounts','advocacy_records','board_tasks','budget_goals','church_devices','church_voice','class_sessions','class_signups','concerns','contractors_1099','creation_workspaces','crm_leads','custom_orders','data_liberation_progress','debts','discovery_items','discussions','entities','family_subscriptions','family_trust_records','food_entries','food_library','forecast_snapshots','game_saves','health_programs','incidents','inquiries','inventory_count_lines','inventory_counts','inventory_items','inventory_movements','legal_documents','practice_ceu_entries','practice_leads','prayer_requests','projects','purchase_order_lines','purchase_orders','recipes','record_events','rentals','shop_inventory','skill_profiles','transactions','water_entries','weight_entries']) t
+           WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=t)
+             AND NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename=t)
+           ORDER BY 1;
+          \echo == 15. september rows christina wrote today: count|first written (UTC)|last written (UTC) ==
+          SELECT count(*), to_char(min(created_at) AT TIME ZONE 'UTC','HH24:MI:SS'), to_char(max(created_at) AT TIME ZONE 'UTC','HH24:MI:SS')
+            FROM transactions t JOIN auth.users u ON u.id=t.created_by
+           WHERE lower(u.email)='mrspoe06@gmail.com' AND t.instance_id=(SELECT id FROM instances WHERE slug='poe-family')
+             AND t.txn_date >= '2026-09-01' AND t.txn_date < '2026-10-01' AND t.created_at >= '2026-09-30';
+          \echo == 16. rows written today: slug|txn_date (ids and dates only) ==
+          SELECT t.slug, t.txn_date FROM transactions t JOIN auth.users u ON u.id=t.created_by
+           WHERE lower(u.email)='mrspoe06@gmail.com' AND t.instance_id=(SELECT id FROM instances WHERE slug='poe-family')
+             AND t.txn_date >= '2026-09-01' AND t.txn_date < '2026-10-01' AND t.created_at >= '2026-09-30' ORDER BY 2,1;
+          \echo == 17. family key published per instance (instance|updated) ==
+          SELECT i.slug, f.updated_at::date FROM family_secure_config f JOIN instances i ON i.id=f.instance_id ORDER BY 1;
+          \echo == 18. the key the device of christina is handed matches the key poe-family holds ==
+          SELECT (SELECT f.chat_bridge_token FROM family_secure_config f JOIN instance_members im ON im.instance_id=f.instance_id JOIN instances i ON i.id=f.instance_id
+                   WHERE im.user_id=(SELECT id FROM auth.users WHERE lower(email)='mrspoe06@gmail.com') AND coalesce(i.instance_type,'')<>'church' ORDER BY f.updated_at DESC LIMIT 1)
+               = (SELECT f.chat_bridge_token FROM family_secure_config f JOIN instances i ON i.id=f.instance_id WHERE i.slug='poe-family');
+          \echo == 19. md5 of the poe-family key (compared to the NAS file below, never printed whole) ==
+          SELECT 'dbkeymd5=' || md5(chat_bridge_token) FROM family_secure_config WHERE instance_id=(SELECT id FROM instances WHERE slug='poe-family');
+          ROLLBACK;
+          SQL
+          out=$(bash scripts/live-sql.sh '|' < /tmp/ledger.sql) || { echo "::error::could not read the live database"; printf '%s\n' "$out"; exit 1; }
+          dbmd5=$(printf '%s\n' "$out" | sed -n 's/^dbkeymd5=//p')
+          [ -n "$dbmd5" ] && echo "::add-mask::$dbmd5" && echo "DBMD5=$dbmd5" >> "$GITHUB_ENV"
+          out=$(printf '%s\n' "$out" | grep -v '^dbkeymd5=')
+          printf '%s\n' "$out"
+          { echo "### Family ledger probe"; echo '```'; printf '%s\n' "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Realtime container on the NAS (names and status only)
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          K=$(mktemp); printf '%s\n' "$NAS_SSH_KEY" > "$K"; chmod 600 "$K"
+          nasmd5=$(ssh -i "$K" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes -o LogLevel=ERROR dpoe@poetech.tail5a2f35.ts.net \
+            '(cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null || sudo -n cat /volume1/PoeTech/secrets/chat-bridge-token.txt) | tr -d "[:space:]" | md5sum | cut -d" " -f1')
+          echo "== 20. the NAS upload service's key file equals the key the database hands devices: $([ -n "$nasmd5" ] && [ "$nasmd5" = "${DBMD5:-}" ] && echo yes || echo no) =="
+          ssh -i "$K" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes -o LogLevel=ERROR dpoe@poetech.tail5a2f35.ts.net \
+            'D=$(command -v docker || echo /usr/local/bin/docker); ($D ps --format "{{.Names}} {{.Status}}" 2>/dev/null || sudo -n $D ps --format "{{.Names}} {{.Status}}") | grep -iE "realtime|kong|rest" || echo "no realtime/kong/rest container listed"'
+          rm -f "$K"
+
+  tax-road:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Join the tailnet (to read the NAS service log)
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: The /taxes road at growing sizes, without the family key (nothing is written)
+        run: |
+          set -uo pipefail
+          UA='Mozilla/5.0 (Linux; Android 14; SM-F946U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36'
+          U=https://poetech.us/poetech-app/taxes
+          echo "archive.json: $(curl -sS -A "$UA" -o /tmp/a.json -w '%{http_code}' "$U/archive.json") documents=$(python3 -c 'import json;print(len(json.load(open("/tmp/a.json")).get("documents",[])))' 2>/dev/null || echo '?')"
+          echo "GET upload: $(curl -sS -A "$UA" -o /dev/null -w '%{http_code}' "$U/upload")"
+          for MB in 1 10 24 30 60 95; do
+            { printf '%%PDF-1.4\n'; head -c $((MB*1024*1024)) /dev/zero; printf '\n%%%%EOF\n'; } > /tmp/p.pdf
+            code=$(curl -sS -A "$UA" -o /tmp/r.txt -w '%{http_code} %{time_total}s' --max-time 240 \
+              -F "file=@/tmp/p.pdf;type=application/pdf;filename=Taxes 2024.pdf" -F entityId=e-personal -F year=2024 -F kind=return "$U/upload" || echo "curl-failed")
+            echo "POST ${MB} MB no key -> $code body=$(head -c 160 /tmp/r.txt | tr -d '\n')"
+          done
+      - name: The NAS service itself (state, funnel mount, access lines since 2026-09-28)
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          K=$(mktemp); printf '%s\n' "$NAS_SSH_KEY" > "$K"; chmod 600 "$K"
+          ssh -i "$K" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes -o LogLevel=ERROR dpoe@poetech.tail5a2f35.ts.net 'bash -s' <<'REMOTE'
+          echo "unit: $(systemctl is-active poetech-tax-upload 2>&1)"
+          echo "health: $(curl -sS -m 10 http://127.0.0.1:8790/health 2>&1 | head -c 300)"
+          echo "multipart: $(/volume1/PoeTech/venvs/tax-upload/bin/pip show python-multipart 2>/dev/null | grep -i ^version || echo missing)"
+          echo "starlette: $(/volume1/PoeTech/venvs/tax-upload/bin/pip show starlette 2>/dev/null | grep -i ^version || echo missing)"
+          TS=$(command -v tailscale || echo /var/packages/Tailscale/target/bin/tailscale)
+          echo "funnel /taxes: $( (sudo -n $TS funnel status 2>/dev/null || $TS funnel status 2>/dev/null) | grep -c '/taxes')"
+          echo "drop dir entities: $(ls /volume1/PoeTech/tax-documents 2>/dev/null | tr '\n' ' ')"
+          echo "--- access lines (method path status) since 2026-09-28 ---"
+          (journalctl -u poetech-tax-upload --since '2026-09-28' --no-pager 2>/dev/null || sudo -n journalctl -u poetech-tax-upload --since '2026-09-28' --no-pager 2>/dev/null) \
+            | grep -E '"(POST|GET) |Error|error|Traceback|Exception' | sed -E 's/Bearer [A-Za-z0-9._-]+/Bearer ***/g' | tail -120
+          REMOTE
+          rm -f "$K"
+
+  tax-write:
+    if: ${{ github.event.inputs.write_test == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: One upload with the family key into a throwaway folder, then remove it
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          K=$(mktemp); printf '%s\n' "$NAS_SSH_KEY" > "$K"; chmod 600 "$K"
+          SSH="ssh -i $K -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes -o LogLevel=ERROR dpoe@poetech.tail5a2f35.ts.net"
+          TOK=$($SSH 'cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null || sudo -n cat /volume1/PoeTech/secrets/chat-bridge-token.txt' | tr -d '[:space:]')
+          [ -n "$TOK" ] || { echo "::error::no family token readable on the NAS"; exit 1; }
+          echo "::add-mask::$TOK"
+          UA='Mozilla/5.0 (Linux; Android 14; SM-F946U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36'
+          rc=0
+          for MB in 1 20; do
+            { printf '%%PDF-1.4\n'; head -c $((MB*1024*1024)) /dev/zero; printf '\n%%%%EOF\n'; } > /tmp/p.pdf
+            code=$(curl -sS -A "$UA" -o /tmp/r.json -w '%{http_code} %{time_total}s' --max-time 240 -H "authorization: Bearer $TOK" \
+              -F "file=@/tmp/p.pdf;type=application/pdf;filename=probe ${MB}mb.pdf" -F entityId=zz-probe-delete-me -F year=1900 -F kind=other \
+              https://poetech.us/poetech-app/taxes/upload || echo curl-failed)
+            ok=$(python3 -c 'import json;d=json.load(open("/tmp/r.json"));print(d.get("ok"), (d.get("record") or {}).get("bytes"))' 2>/dev/null || echo "not-json")
+            echo "TEST UPLOAD ${MB} MB with key -> $code ok,bytes=$ok"
+            case "$code" in 200*) ;; *) rc=1;; esac
+          done
+          echo "CLEANUP: removing zz-probe-delete-me from the drop and publish folders, re-running the ingest"
+          $SSH 'bash -s' <<'REMOTE'
+          for d in /volume1/PoeTech/tax-documents/zz-probe-delete-me /volume1/PoeTech/caddy/site/poetech-app/taxes/files/zz-probe-delete-me; do
+            rm -rf "$d" 2>/dev/null || sudo -n rm -rf "$d"
+            [ -e "$d" ] && echo "STILL PRESENT: $d" || echo "removed: $d"
+          done
+          cd /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-tax-ingest && (python3 tax_ingest.py 2>&1 || sudo -n python3 tax_ingest.py 2>&1) | tail -1
+          echo "probe entries left in archive: $(grep -c zz-probe-delete-me /volume1/PoeTech/caddy/site/poetech-app/taxes/archive.json 2>/dev/null || echo 0)"
+          REMOTE
+          rm -f "$K"
+          exit $rc
