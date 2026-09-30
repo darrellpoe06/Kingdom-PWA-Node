@@ -1,0 +1,62 @@
+# inbox-lesson-body — read the words of ONE of Darrell's own lesson rows
+#
+# WHY (2026-09-30). The in-app lesson intake builds a lesson from the words in
+# an agent_inbox row. It read them through a chat connector to the hosted
+# Supabase project; when that connector dropped, a lesson Darrell sent from
+# his phone could be listed (inbox-lessons-waiting.yml) but not built. This
+# reads the row's words from the NAS database the app reads
+# (scripts/live-sql.sh), so the build never waits on a connector.
+#
+# SCOPE, ON PURPOSE: ONLY a row created by one of Darrell's own two accounts
+# (the principal, who owns this repository and whose words already go into
+# the lesson's session notes). Any other member's row is REFUSED here, with no
+# body read: a member's words never reach a log (DR-0635 / DR-0639).
+#
+# BRAKES (deterministic class, DR-0248: budget + lock): dispatch only, one row
+# per run, 5 minutes; concurrency group `inbox-lesson-body`.
+
+name: inbox-lesson-body
+
+on:
+  workflow_dispatch:
+    inputs:
+      row_id:
+        description: 'agent_inbox row id (uuid) of one of Darrell''s own lesson rows'
+        required: true
+
+concurrency:
+  group: inbox-lesson-body
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ROW_ID: ${{ inputs.row_id }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate the input
+        run: |
+          [[ "$ROW_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || { echo "::error::row_id is not a uuid"; exit 1; }
+      - name: Join the tailnet (to reach the live database)
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Read the words (Darrell's own rows only)
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          SQL="SELECT created_by::text, tags::text, encode(convert_to(coalesce(body,''),'UTF8'),'base64') FROM public.agent_inbox WHERE id = '$ROW_ID' AND created_by IN ('f13843f2-742b-4f8a-82af-7ecfbdc536ec','c2a6c39a-ae99-4ff7-83c6-b927e2e7f1cc');"
+          out=$(printf '%s' "$SQL" | bash scripts/live-sql.sh '|') || { echo "::error::could not read the live database"; exit 1; }
+          [ -n "$out" ] || { echo "::error::no row $ROW_ID from Darrell's own accounts (a member's row is never read here)"; exit 1; }
+          echo "row: $ROW_ID"
+          echo "tags: $(printf '%s' "$out" | head -1 | cut -d'|' -f2)"
+          echo "----- words (base64; decode to read) -----"
+          printf '%s' "$out" | cut -d'|' -f3- | tr -d '\n'
+          echo
+          echo "----- end -----"
