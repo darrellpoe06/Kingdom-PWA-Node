@@ -104,6 +104,40 @@ fi
 # The model downloads once and is kept beside the data, not in root's home.
 export HF_HOME="$DATA/hf"
 
+# WHO SPOKE (DR-0701), INACTIVE UNTIL ARMED: only when lesson-voice.env sets
+# LESSON_VOICE_SPEAKERS=1. Then, once (and again only when the recipe
+# changes): sherpa-onnx into the same venv (a cp38 manylinux2014 wheel exists,
+# measured 2026-09-30: sherpa_onnx-1.13.8) and two small ONNX models from the
+# k2-fsa/sherpa-onnx GitHub releases into $DATA/models/speakers. No torch, no
+# account, no gated model, nothing leaves the NAS at run time.
+SPK_RECIPE="v1 sherpa-onnx pyannote-seg-3.0 titanet-small"
+SPK_DIR="$DATA/models/speakers"
+SPK_STAMP="$DATA/.speakers-recipe"
+if [ "${LESSON_VOICE_SPEAKERS:-0}" = "1" ] && [ "$(cat "$SPK_STAMP" 2>/dev/null)" != "$SPK_RECIPE" ]; then
+  mkdir -p "$SPK_DIR"
+  {
+    echo "=== $(date -u +%FT%TZ) speakers recipe: $SPK_RECIPE ==="
+    timeout 180 "$VENV/bin/python" -m pip install --prefer-binary "sherpa-onnx==1.13.8"
+    if [ ! -s "$SPK_DIR/segmentation.onnx" ]; then
+      curl -fsSL --max-time 120 -o "$SPK_DIR/seg.tar.bz2" \
+        https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-segmentation-models/sherpa-onnx-pyannote-segmentation-3-0.tar.bz2 \
+        && tar -xjf "$SPK_DIR/seg.tar.bz2" -C "$SPK_DIR" \
+        && cp "$SPK_DIR/sherpa-onnx-pyannote-segmentation-3-0/model.onnx" "$SPK_DIR/segmentation.onnx" \
+        && rm -rf "$SPK_DIR/seg.tar.bz2" "$SPK_DIR/sherpa-onnx-pyannote-segmentation-3-0"
+    fi
+    if [ ! -s "$SPK_DIR/embedding.onnx" ]; then
+      curl -fsSL --max-time 120 -o "$SPK_DIR/embedding.onnx" \
+        https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/nemo_en_titanet_small.onnx
+    fi
+  } > "$DATA/speakers-install.log" 2>&1
+  if "$VENV/bin/python" -c "import sherpa_onnx" 2>>"$DATA/speakers-install.log" && [ -s "$SPK_DIR/segmentation.onnx" ] && [ -s "$SPK_DIR/embedding.onnx" ]; then
+    echo "$SPK_RECIPE" > "$SPK_STAMP"
+    echo "lesson-voice: speaker marking installed"
+  else
+    echo "lesson-voice: speaker marking not installed this cycle: $(tail -3 "$DATA/speakers-install.log" | tr '\n' ' ' | cut -c1-300)"
+  fi
+fi
+
 cd "$SRC" || exit 1
 # The pip install above can spend most of a cycle; the transcription pass gets
 # what is left of services-sync's 480 s ceiling (440 s, a margin kept), never more.
