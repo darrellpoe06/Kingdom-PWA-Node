@@ -1,7 +1,7 @@
 // @vitest-environment node
 // =============================================================================
 // L203 — The Whole Line of Promise — Every Promise from Eden to Malachi, and
-// the Years to Jesus (DR-0692)
+// the Years to Jesus (DR-0698)
 // =============================================================================
 // Darrell read L201 on 2026-09-30 and asked, as a lesson: "How is David first
 // and not Moses or even Noah?", then "Isaiah? Job? Etc?", then "You can create
@@ -249,8 +249,8 @@ describe('Darrell’s question is answered first, plainly', () => {
     expect(l).toMatch(/how is David first, and not Moses, or even Noah\?/);
     expect(l).toMatch(/Then he asked about Isaiah, and Job, and the rest/);
     expect(l).toMatch(/make a new lesson with all of them, from the beginning/);
-    const dr = readdirSync(DR_DIR).find((f) => f.startsWith('DR-0692-'));
-    expect(dr, 'DR-0692 is written').toBeTruthy();
+    const dr = readdirSync(DR_DIR).find((f) => f.startsWith('DR-0698-'));
+    expect(dr, 'DR-0698 is written').toBeTruthy();
     const body = readFileSync(join(DR_DIR, dr), 'utf8');
     for (const w of ['How is David first and not Moses or even Noah?', 'Isaiah? Job? Etc?', 'You can create an new lesson with all of them from the beginning....']) expect(body).toContain(w);
   });

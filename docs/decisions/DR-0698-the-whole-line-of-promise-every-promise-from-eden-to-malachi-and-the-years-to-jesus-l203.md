@@ -1,4 +1,4 @@
-# DR-0692 — L203: The Whole Line of Promise — Every Promise from Eden to Malachi, and the Years to Jesus
+# DR-0698 — L203: The Whole Line of Promise — Every Promise from Eden to Malachi, and the Years to Jesus
 
 - **Status:** accepted
 - **Tier:** B
@@ -18,7 +18,7 @@ On 2026-09-30, after L201 (How Long Before It Came?, DR-0689) shipped, Darrell s
 
 **His point.** The promise did not start with David. L201 opened with David because its question named David; the Word's line of promise runs from Eden. The first plan was to extend L201 with movements before David; his third message changed it: leave L201 as it is, apart from one line pointing onward, and build a NEW lesson with every promise from the beginning. This record is that lesson.
 
-**Placement.** Living Lessons **L203**. L202 (Bishop Gwin, DR-0690, #1873) merged to `main` while this was built, so the next free number, derived from the data, was 203. DR-0691 was taken by the Capacity tab; this record is DR-0692, the `Next ID` on `origin/main` when written.
+**Placement.** Living Lessons **L203**. L202 (Bishop Gwin, DR-0690, #1873) merged to `main` while this was built, so the next free number, derived from the data, was 203. DR-0691 was taken by the Capacity tab, DR-0692 to DR-0695 are held for the parallel band groups, and DR-0696 and DR-0697 landed while this was built; this record is DR-0698, the `Next ID` on `origin/main` when it was pushed.
 
 **Neighbours linked, not repeated.** L201 (the years from David and the prophets; Daniel's weeks), L200 (what the first hearers had in hand), L196 (the promises gathered), and the Who He Is course timeline (the whole Word by era).
 
