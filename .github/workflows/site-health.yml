@@ -186,13 +186,19 @@ jobs:
             [ "$served_sha" != "$main_sha" ] && stale="true"
             note "- served build: **$served_sha** · main tip: **$main_sha**"
           else
-            # UNKNOWN never reads as fresh. Fall back to the deploy ledger:
-            # the last successful deploy's head_sha vs main's tip.
-            deployed_sha=$(gh api \
-              "repos/$REPO/actions/workflows/deploy-cloudflare-pages.yml/runs?status=success&per_page=1" \
-              --jq '.workflow_runs[0].head_sha // ""' 2>/dev/null | cut -c1-7 || echo "")
-            [ -n "$main_sha" ] && [ -n "$deployed_sha" ] && [ "$deployed_sha" != "$main_sha" ] && stale="true"
-            note "- served build: **unverified** (sw.js extraction missed) · last deployed: **${deployed_sha:-unknown}** · main tip: **${main_sha:-unknown}**"
+            # UNKNOWN never reads as fresh. Fall back to the deploy ledger,
+            # asked by EXACT commit (P62, DR-0697 -- the runs list is not
+            # newest-first once filtered): has main's full tip a successful
+            # deploy? No run for it means stale.
+            main_full=$(gh api "repos/$REPO/commits/main" --jq '.sha' 2>/dev/null || echo "")
+            deployed_sha=""
+            if [ -n "$main_full" ]; then
+              deployed_sha=$(gh api \
+                "repos/$REPO/actions/workflows/deploy-cloudflare-pages.yml/runs?status=success&head_sha=$main_full&per_page=1" \
+                --jq '.workflow_runs[0].head_sha // ""' 2>/dev/null | cut -c1-7 || echo "")
+              [ -z "$deployed_sha" ] && stale="true"
+            fi
+            note "- served build: **unverified** (sw.js extraction missed) · main tip deployed: **${deployed_sha:-no}** · main tip: **${main_sha:-unknown}**"
           fi
 
           # 5. ISOLATE: same shell check on the Pages project domain.
