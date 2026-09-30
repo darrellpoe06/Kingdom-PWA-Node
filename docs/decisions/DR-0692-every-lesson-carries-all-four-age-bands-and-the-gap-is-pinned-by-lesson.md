@@ -1,5 +1,5 @@
 ---
-id: DR-0691
+id: DR-0692
 title: Every lesson carries all four age bands, and the gap is pinned by lesson until it is closed
 status: accepted
 date: 2026-09-30
@@ -63,5 +63,5 @@ A child, a youth or a senior opening 378 of the catalog's lessons got a fallback
 
 ## Progress
 
-- 2026-09-30: the gate lands; 22 of 400 carry all four, 378 pinned.
-- 2026-09-30: **ai** (8) and **little-learners** (6) carry all four bands, every lesson passing the band gates and the verse gate (80 and 104 quoted spans, all verbatim). ai wk3's existing teen and senior bands now name their lesson; ai wk7's adult text quoted 1 Corinthians 6:12 in a paraphrase and named the generic term in our voice; both corrected to the KJV and Yahweh, and its verse-debt entry removed. Little Learners' youth, teen and senior bands are written for the older sibling, teen helper and grandparent who sit with the child; its child band stays the main one. allFour 36, adultOnly 24, 364 pinned. Held by `course-four-bands-group-a.test.js`.
+- 2026-09-30: the gate lands. Group D (DR-0696) landed first, banding property-principle and management-stewardship, so the gate lands at 38 of 400 carrying all four and 362 pinned; the allFour floor is 38.
+- 2026-09-30: **ai** (8) and **little-learners** (6) carry all four bands, every lesson passing the band gates and the verse gate (80 and 104 quoted spans, all verbatim). ai wk3's existing teen and senior bands now name their lesson; ai wk7's adult text quoted 1 Corinthians 6:12 in a paraphrase and named the generic term in our voice; both corrected to the KJV and Yahweh, and its verse-debt entry removed. Little Learners' youth, teen and senior bands are written for the older sibling, teen helper and grandparent who sit with the child; its child band stays the main one. allFour 52, adultOnly 24, 348 pinned. Held by `course-four-bands-group-a.test.js`.

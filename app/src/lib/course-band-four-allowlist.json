@@ -1,5 +1,5 @@
 {
-  "note": "DR-0691, pinned 2026-09-30. The catalog lessons that did not carry all four age bands (child, youth, teen, senior) on the day the per-lesson rule landed. SHRINK-ONLY: a lesson leaves this list in the same commit that gives it all four bands, and nothing is ever added. A lesson missing a band that is not listed here fails course-band-coverage.test.js by name. Regenerate with `cd app && npx vite-node ../scripts/course-band-baseline-write.mjs`; never hand-merge.",
+  "note": "DR-0692, pinned 2026-09-30. The catalog lessons that did not carry all four age bands (child, youth, teen, senior) on the day the per-lesson rule landed. SHRINK-ONLY: a lesson leaves this list in the same commit that gives it all four bands, and nothing is ever added. A lesson missing a band that is not listed here fails course-band-coverage.test.js by name. Regenerate with `cd app && npx vite-node ../scripts/course-band-baseline-write.mjs`; never hand-merge.",
   "courses": {
     "ai": [
     ],
@@ -265,14 +265,6 @@
       "maint8-the-repairer-of-the-breach"
     ],
     "management-stewardship": [
-      "mgmt1-faithful-is-the-measurement",
-      "mgmt2-entrusted-by-ability-judged-by-action",
-      "mgmt3-faithful-in-a-very-little-authority-over-ten-cities",
-      "mgmt4-the-manager-his-owner-stopped-worrying-about",
-      "mgmt5-the-battlement-safety-is-blood-not-a-line-item",
-      "mgmt6-their-portion-in-due-season",
-      "mgmt7-when-management-became-extraction-restore-this-day",
-      "mgmt8-the-account-given-with-joy-and-not-with-grief"
     ],
     "mathematics": [
       "mat1-count-and-place-value-the-numbers-he-recorded",
@@ -309,14 +301,6 @@
       "pm9-the-change-you-put-down"
     ],
     "property-principle": [
-      "prop1-the-land-is-his-and-it-was-given-by-name",
-      "prop2-the-landmark-is-a-moral-object",
-      "prop3-naboths-vineyard-when-the-process-is-lawful-and-the-act-is-murder",
-      "prop4-a-sale-was-a-lease-of-years",
-      "prop5-the-deed-the-witnesses-and-the-earthen-vessel",
-      "prop6-the-field-before-the-house",
-      "prop7-the-tenant-is-a-neighbour-and-the-wage-cannot-wait",
-      "prop8-handed-forward-or-handed-to-a-fool"
     ],
     "prophetic-voices": [
       "pv-darby",

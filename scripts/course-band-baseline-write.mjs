@@ -1,6 +1,6 @@
 // =============================================================================
 // course-band-baseline-write — regenerate the course-band numbers from the
-// real catalog, never by hand (DR-0691)
+// real catalog, never by hand (DR-0692)
 // =============================================================================
 // Five sessions author bands in parallel, and every one of them lowers the
 // same totals in app/src/lib/course-band-coverage-baseline.json. Hand-merging
