@@ -129,21 +129,28 @@ export default function PublicWelcome({ catalog = LEARN_CATALOG, placement = 'to
         </div>
       );
     }
+    // ONE LINE ON A PHONE TOO (2026-09-30, the 360px lesson chrome budget).
+    // At 360px this "one short line" was three rows (70px): the church's name
+    // wrapped, and × Hide dropped to a row of its own. On a phone the church's
+    // name is already printed in the brand directly above this line, so below
+    // `sm` the line says whose house and that it is free, with × on the same
+    // row: one row (about 28px). Wider screens keep the full sentence.
     return (
       <div
-        className="ts-chrome-region border-b border-[#E8E4DC] bg-[#1A1815] text-[#FAF8F4] px-4 py-1.5 flex items-center justify-between gap-3 flex-wrap print:hidden"
+        className="ts-chrome-region border-b border-[#E8E4DC] bg-[#1A1815] text-[#FAF8F4] px-4 py-1.5 flex items-center justify-between gap-2 sm:gap-3 flex-nowrap sm:flex-wrap print:hidden"
         data-testid="public-welcome-top"
       >
-        <span className="text-[0.625rem] uppercase tracking-[0.2em]" style={MONO}>
-          <strong className="text-[#B89838]">The Love Corner</strong> · The Church of the Living God — free to read, no account
+        <span className="min-w-0 text-[0.625rem] uppercase tracking-[0.1em] sm:tracking-[0.2em]" style={MONO}>
+          <strong className="text-[#B89838]">The Love Corner</strong><span className="hidden sm:inline"> · The Church of the Living God</span> — free to read, no account
         </span>
         <button
           type="button"
           onClick={() => { setRetreated(true); setAsked(true); }}
+          aria-label="Hide this line"
           title="Hide this line — tap The Love Corner strip to bring it back"
-          className="text-[0.625rem] uppercase tracking-wider text-[#D8D4CC] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+          className="shrink-0 text-[0.625rem] uppercase tracking-wider text-[#D8D4CC] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
         >
-          × Hide
+          ×<span className="hidden sm:inline"> Hide</span>
         </button>
       </div>
     );
