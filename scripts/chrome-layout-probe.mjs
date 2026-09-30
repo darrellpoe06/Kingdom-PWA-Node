@@ -1104,7 +1104,17 @@ try {
       ...(dc.ua ? { userAgent: dc.ua } : {}),
     });
     const page = await ctx.newPage();
-    await page.addInitScript(() => { try { localStorage.setItem('poetech.help.tour.v1', 'seen'); } catch (_) { /* private mode */ } });
+    // The live-service bar (LiveWorshipBar) shows app-wide inside a published
+    // service window, read from the RUNNER's clock, and pads the page by its
+    // own height (491px at 1440 wide). On 2026-09-30 at 13:15 UTC that window
+    // was open and this pass read the Workspace as "buried" at every size,
+    // though the Create page had not changed (DR-0688). It measures the Create
+    // page's own layout, so it starts with the bar dismissed for the session,
+    // exactly as a person's × does; the bar is its own surface.
+    await page.addInitScript(() => {
+      try { localStorage.setItem('poetech.help.tour.v1', 'seen'); } catch (_) { /* private mode */ }
+      try { sessionStorage.setItem('poe.liveWorshipBar.dismissedSession', '1'); } catch (_) { /* private mode */ }
+    });
     await page.goto(`${origin}${BASE}/?view=create`, { waitUntil: 'networkidle', timeout: CHROME_IDLE_CAP_MS }).catch(() => {});
     await page.waitForSelector('[data-testid="create-subnav"] [data-create-sub]', { timeout: 30000 }).catch(() => {});
     await page.waitForSelector('[data-testid="creating-station"]', { timeout: 30000 }).catch(() => {});
