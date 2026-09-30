@@ -11,6 +11,16 @@
 import supabase from './supabase.js';
 import { getInstanceId } from './table-sync.js';
 
+// THE BUILD THAT WROTE IT (DR-0697, LESSONS P69). On 2026-09-30 dictation
+// duplicates kept arriving after the DR-0685 fix shipped, and "a phone still on
+// the old cached app" could only be guessed: no row said which build wrote it.
+// Every row now carries `build:<sha>`, so that question is one query.
+const BUILD = (typeof __BUILD_SHA__ !== 'undefined' && __BUILD_SHA__) ? String(__BUILD_SHA__) : 'dev';
+export function withBuildTag(tags, build = BUILD) {
+  const list = Array.isArray(tags) ? tags.filter((t) => !String(t).startsWith('build:')) : [];
+  return [...list, `build:${build}`];
+}
+
 /** Relay one thought/directive into the agent inbox. {ok, reason, id}. */
 export async function relayThought({ body, tags = [], source = 'thinking-space', directiveId = null }) {
   if (!body || !String(body).trim()) return { ok: false, reason: 'empty-body', id: null };
@@ -21,7 +31,7 @@ export async function relayThought({ body, tags = [], source = 'thinking-space',
   try { instanceId = await getInstanceId(); } catch (e) { return { ok: false, reason: e.message, id: null }; }
   const { data, error } = await supabase
     .from('agent_inbox')
-    .insert({ instance_id: instanceId, body: String(body), tags, source, directive_id: directiveId, created_by: uid })
+    .insert({ instance_id: instanceId, body: String(body), tags: withBuildTag(tags), source, directive_id: directiveId, created_by: uid })
     .select('id')
     .single();
   if (error) return { ok: false, reason: error.message, id: null };
