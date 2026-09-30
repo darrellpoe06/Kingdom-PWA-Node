@@ -1934,7 +1934,7 @@ def job_of(payload):
 
 
 # =============================================================================
-# THE BELL (DR-0697) -- the notification that starts a build also wakes the
+# THE BELL (DR-0701) -- the notification that starts a build also wakes the
 # lesson intake session, instead of an hourly AI timer.
 # Darrell 2026-09-30: "I don't like timers... they cost more than we need...
 # don't we have a better solution/s?"
@@ -2077,7 +2077,7 @@ class Service:
                 self.write_status({"state": "stopped", "why": why})
                 return started
             # The bell rings for every lesson row, ready writer or not: the
-            # bell run decides whether anything waits (DR-0697).
+            # bell run decides whether anything waits (DR-0701).
             if self.bell is not None and job_of(payload)[0] == "row":
                 self.bell.ring()
             ready, st = self._ready_cached()

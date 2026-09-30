@@ -29,7 +29,7 @@ export async function relayThought({ body, tags = [], source = 'thinking-space',
   if (!uid) return { ok: false, reason: 'signed-out', id: null };
   let instanceId;
   try { instanceId = await getInstanceId(); } catch (e) { return { ok: false, reason: e.message, id: null }; }
-  // THE LESSON BELL (DR-0697): this insert IS the ring. A row tagged `lesson`
+  // THE LESSON BELL (DR-0701): this insert IS the ring. A row tagged `lesson`
   // lands on the NAS database, migration 0243's trigger calls pg_notify, and
   // the NAS lesson builder sends the `lesson-saved` dispatch. The browser holds
   // no GitHub token and sends nothing more, so a save is never slowed by it.

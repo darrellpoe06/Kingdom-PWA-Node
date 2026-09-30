@@ -1224,7 +1224,7 @@ class BackfillTests(unittest.TestCase):
 
 
 class BellTests(unittest.TestCase):
-    """DR-0697: a lesson row notification rings the bell once per burst, with a
+    """DR-0701: a lesson row notification rings the bell once per burst, with a
     trailing ring, an hourly ceiling and a kill; never an id or a word."""
 
     def clock(self, start=1000.0):

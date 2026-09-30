@@ -42,7 +42,7 @@ jobs:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
         run: |
           set -uo pipefail
-          # One definition of "waiting", shared with the bell (DR-0697).
+          # One definition of "waiting", shared with the bell (DR-0701).
           out=$(bash scripts/live-sql.sh '|' < scripts/lesson-inbox-waiting.sql) || { echo "::error::could not read the live database"; exit 1; }
           n=$(printf '%s' "$out" | grep -c . || true)
           echo "waiting lesson rows: $n"

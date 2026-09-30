@@ -1,5 +1,5 @@
 // =============================================================================
-// lesson-inbox-bell.test — the bell replaces the hourly AI timer (DR-0697)
+// lesson-inbox-bell.test — the bell replaces the hourly AI timer (DR-0701)
 // =============================================================================
 // Darrell 2026-09-30: "I don't like timers... they cost more than we need...
 // don't we have a better solution/s?"
@@ -45,7 +45,7 @@ describe('the bell decides (waiting-set diff, never a body)', () => {
   it('PROVEN TO CATCH: a row the NAS tried and handed back rings again; bookkeeping tags do not', () => {
     const before = parseWaiting(line(A, ['lesson']));
     const body = formatComment(before, waitingKeys(before));
-    const mirrored = parseWaiting(line(A, ['lesson', 'mirrored']));
+    const mirrored = parseWaiting(line(A, ['lesson', 'mirrored', 'build:0123abcd']));
     expect(decide(mirrored, [body]).post).toBe(false);
     const failed = parseWaiting(line(A, ['lesson', 'build:claimed@2026-09-30T12:01:00Z', 'build:failed@2026-09-30T12:09:00Z', 'build-failed']));
     expect(decide(failed, [body]).post).toBe(true);
@@ -140,7 +140,7 @@ describe('the app rings the bell by saving the lesson row', () => {
       const res = await relayThought({ body: 'a teaching', tags: ['lesson'] });
       expect(res).toEqual({ ok: true, reason: '', id: A });
       expect(insert).toHaveBeenCalledTimes(1);
-      expect(insert.mock.calls[0][0].tags).toEqual(['lesson']);
+      expect(insert.mock.calls[0][0].tags).toContain('lesson');
       expect(fetchSpy).not.toHaveBeenCalled();
     } finally {
       globalThis.fetch = had;
@@ -158,7 +158,7 @@ describe('the app rings the bell by saving the lesson row', () => {
   it('PROVEN TO CATCH: no browser code holds a dispatch to GitHub (the NAS rings)', () => {
     const src = read('app/src/lib/agent-inbox-sync.js');
     expect(src).not.toMatch(/api\.github\.com|repository_dispatch|dispatches/);
-    expect(src).toContain('THE LESSON BELL (DR-0697)');
+    expect(src).toContain('THE LESSON BELL (DR-0701)');
   });
 
   it('the NAS listener sends the lesson-saved dispatch from the notification', () => {

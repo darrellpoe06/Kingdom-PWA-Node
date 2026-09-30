@@ -221,8 +221,8 @@ const NODES = [
     purpose: 'The armed reader (every 4 hours) and the Gmail Way read each lesson, verify every verse, and write it into the class.',
     reads: [
       { res: 'gh:signal-pr', file: '.github/workflows/lesson-mail-watch.yml', token: 'wakes the subscribed capture session' },
-      // DR-0697: the in-app lane wakes on the bell PR's comment, not an hourly clock.
-      { res: 'gh:lesson-bell', file: 'docs/decisions/DR-0697-the-lesson-intake-rings-a-bell-instead-of-watching-a-clock.md', token: 'subscribed to the bell PR' },
+      // DR-0701: the in-app lane wakes on the bell PR's comment, not an hourly clock.
+      { res: 'gh:lesson-bell', file: 'docs/decisions/DR-0701-the-lesson-intake-rings-a-bell-instead-of-watching-a-clock.md', token: 'subscribed to the bell PR' },
       { res: 'hosted:lesson-mirror', file: 'docs/decisions/DR-0614-the-nas-jobs-follow-the-database-the-app-reads-and-lesson-rows-are-mirrored-to-where-the-reader-can-see-them.md', token: 'the lesson reader picks it up' },
       { res: 'file:source-transcripts', file: '.github/workflows/source-transcript.yml', token: 'docs/99-session-notes/sources/' },
     ],
@@ -330,7 +330,7 @@ const NODES = [
       { res: 'db:lesson_builder_settings', token: 'INSERT INTO public.lesson_builder_settings' },
       { res: 'code:lessons', token: 'insert_module' },
       { res: 'db:agent_inbox#lesson-published', token: '"lesson-published"' },
-      // DR-0697: the same notification rings the lesson inbox bell.
+      // DR-0701: the same notification rings the lesson inbox bell.
       { res: 'event:lesson-saved', token: 'BELL_EVENT = "lesson-saved"' },
     ],
     seeds: ['learn', 'lesson-inbox', 'lesson-inbox-bell'],
@@ -355,7 +355,7 @@ const NODES = [
   }),
   wf('lesson-inbox-bell.yml', {
     id: 'lesson-inbox-bell', name: 'The lesson inbox bell (a lesson waits, the intake wakes)',
-    purpose: 'Rung by the lesson-saved dispatch the NAS sends when a lesson row lands (and once a day as a safety net): reads which lesson rows wait and comments on the standing bell PR only when that set changed (ids, created_by, tags; never a body), so the intake session wakes only when a lesson waits instead of every hour (DR-0697).',
+    purpose: 'Rung by the lesson-saved dispatch the NAS sends when a lesson row lands (and once a day as a safety net): reads which lesson rows wait and comments on the standing bell PR only when that set changed (ids, created_by, tags; never a body), so the intake session wakes only when a lesson waits instead of every hour (DR-0701).',
     reads: [
       { res: 'event:lesson-saved', token: 'types: [lesson-saved]' },
       { res: 'db:agent_inbox#lesson', file: 'scripts/lesson-inbox-waiting.sql', token: 'FROM public.agent_inbox' },

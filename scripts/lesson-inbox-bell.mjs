@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // =============================================================================
-// lesson-inbox-bell.mjs -- the bell's decision, deterministic, no model (DR-0697)
+// lesson-inbox-bell.mjs -- the bell's decision, deterministic, no model (DR-0701)
 // =============================================================================
 // Darrell 2026-09-30: "I don't like timers... they cost more than we need...
 // don't we have a better solution/s?"
@@ -55,7 +55,9 @@ export function safeTags(tags) {
 
 /** One key per waiting row: its id, plus how many build stages it has seen. */
 export function rowKey(row) {
-  const builds = safeTags(row.tags).filter((t) => t.startsWith('build:')).length;
+  // Only the builder's stage tags (`build:<stage>@<time>`), never the app's
+  // own `build:<sha>` stamp (DR-0697), which every row carries from birth.
+  const builds = safeTags(row.tags).filter((t) => /^build:[a-z-]+@/.test(t)).length;
   return builds ? `${row.id}#b${builds}` : row.id;
 }
 
@@ -90,7 +92,7 @@ export function formatComment(rows, keys) {
     '',
     ...rows.map((r) => `- \`${r.id}\` by \`${r.created_by}\` · tags: ${safeTags(r.tags).map((t) => `\`${t}\``).join(', ') || '(none)'}`),
     '',
-    'Read the words with `inbox-lesson-body.yml`; mark a shipped lesson with `inbox-lesson-tag.yml` (DR-0697).',
+    'Read the words with `inbox-lesson-body.yml`; mark a shipped lesson with `inbox-lesson-tag.yml` (DR-0701).',
     '',
     `<!-- ${MARKER} keys=${keys.join(',')} -->`,
   ];
