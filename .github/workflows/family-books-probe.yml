@@ -133,9 +133,34 @@ jobs:
           SELECT a.slug, lab.who, (SELECT count(*) FROM transactions t WHERE t.instance_id=a.instance_id AND t.account_slug=a.slug)
             FROM accounts a LEFT JOIN lab ON lab.id=a.created_by
            WHERE a.instance_id=(SELECT id FROM instances WHERE slug='poe-family') ORDER BY 1;
+          \echo == 14. synced tables NOT in the supabase_realtime publication (table) ==
+          SELECT t FROM unnest(ARRAY['accounts','advocacy_records','board_tasks','budget_goals','church_devices','church_voice','class_sessions','class_signups','concerns','contractors_1099','creation_workspaces','crm_leads','custom_orders','data_liberation_progress','debts','discovery_items','discussions','entities','family_subscriptions','family_trust_records','food_entries','food_library','forecast_snapshots','game_saves','health_programs','incidents','inquiries','inventory_count_lines','inventory_counts','inventory_items','inventory_movements','legal_documents','practice_ceu_entries','practice_leads','prayer_requests','projects','purchase_order_lines','purchase_orders','recipes','record_events','rentals','shop_inventory','skill_profiles','transactions','water_entries','weight_entries']) t
+           WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=t)
+             AND NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename=t)
+           ORDER BY 1;
+          \echo == 15. today's september rows by christina: count|first written (UTC)|last written (UTC) ==
+          SELECT count(*), to_char(min(created_at) AT TIME ZONE 'UTC','HH24:MI:SS'), to_char(max(created_at) AT TIME ZONE 'UTC','HH24:MI:SS')
+            FROM transactions t JOIN auth.users u ON u.id=t.created_by
+           WHERE lower(u.email)='mrspoe06@gmail.com' AND t.instance_id=(SELECT id FROM instances WHERE slug='poe-family')
+             AND t.txn_date >= '2026-09-01' AND t.txn_date < '2026-10-01' AND t.created_at >= '2026-09-30';
+          \echo == 16. today's rows: slug|txn_date (ids and dates only) ==
+          SELECT t.slug, t.txn_date FROM transactions t JOIN auth.users u ON u.id=t.created_by
+           WHERE lower(u.email)='mrspoe06@gmail.com' AND t.instance_id=(SELECT id FROM instances WHERE slug='poe-family')
+             AND t.txn_date >= '2026-09-01' AND t.txn_date < '2026-10-01' AND t.created_at >= '2026-09-30' ORDER BY 2,1;
+          \echo == 17. family key published per instance (instance|updated) ==
+          SELECT i.slug, f.updated_at::date FROM family_secure_config f JOIN instances i ON i.id=f.instance_id ORDER BY 1;
+          \echo == 18. the key christina's device is handed matches the key poe-family holds ==
+          SELECT (SELECT f.chat_bridge_token FROM family_secure_config f JOIN instance_members im ON im.instance_id=f.instance_id JOIN instances i ON i.id=f.instance_id
+                   WHERE im.user_id=(SELECT id FROM auth.users WHERE lower(email)='mrspoe06@gmail.com') AND coalesce(i.instance_type,'')<>'church' ORDER BY f.updated_at DESC LIMIT 1)
+               = (SELECT f.chat_bridge_token FROM family_secure_config f JOIN instances i ON i.id=f.instance_id WHERE i.slug='poe-family');
+          \echo == 19. md5 of the poe-family key (compared to the NAS file below, never printed whole) ==
+          SELECT 'dbkeymd5=' || md5(chat_bridge_token) FROM family_secure_config WHERE instance_id=(SELECT id FROM instances WHERE slug='poe-family');
           ROLLBACK;
           SQL
           out=$(bash scripts/live-sql.sh '|' < /tmp/ledger.sql) || { echo "::error::could not read the live database"; printf '%s\n' "$out"; exit 1; }
+          dbmd5=$(printf '%s\n' "$out" | sed -n 's/^dbkeymd5=//p')
+          [ -n "$dbmd5" ] && echo "::add-mask::$dbmd5" && echo "DBMD5=$dbmd5" >> "$GITHUB_ENV"
+          out=$(printf '%s\n' "$out" | grep -v '^dbkeymd5=')
           printf '%s\n' "$out"
           { echo "### Family ledger probe"; echo '```'; printf '%s\n' "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       - name: Realtime container on the NAS (names and status only)
@@ -144,6 +169,9 @@ jobs:
         run: |
           set -uo pipefail
           K=$(mktemp); printf '%s\n' "$NAS_SSH_KEY" > "$K"; chmod 600 "$K"
+          nasmd5=$(ssh -i "$K" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes -o LogLevel=ERROR dpoe@poetech.tail5a2f35.ts.net \
+            '(cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null || sudo -n cat /volume1/PoeTech/secrets/chat-bridge-token.txt) | tr -d "[:space:]" | md5sum | cut -d" " -f1')
+          echo "== 20. the NAS upload service's key file equals the key the database hands devices: $([ -n "$nasmd5" ] && [ "$nasmd5" = "${DBMD5:-}" ] && echo yes || echo no) =="
           ssh -i "$K" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes -o LogLevel=ERROR dpoe@poetech.tail5a2f35.ts.net \
             'D=$(command -v docker || echo /usr/local/bin/docker); ($D ps --format "{{.Names}} {{.Status}}" 2>/dev/null || sudo -n $D ps --format "{{.Names}} {{.Status}}") | grep -iE "realtime|kong|rest" || echo "no realtime/kong/rest container listed"'
           rm -f "$K"
