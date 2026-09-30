@@ -54,7 +54,7 @@ const numbered = (mods) => mods.map((m) => {
 // in flight on PR #1803 and L194 landed first (DR-0646). L193 filled it in the
 // merge that brought L194 in, so the entry is deleted, as this list requires.
 // 203 is held for L203 (a promise-line lesson another session is authoring in
-// parallel) while L204 (The Word Checks Every Teller, DR-0698) lands first, the
+// parallel) while L204 (The Word Checks Every Teller, DR-0714) lands first, the
 // same way 193 was held. Delete the entry in the merge that brings L203 in.
 const KNOWN_MISSING = [79, 203];
 

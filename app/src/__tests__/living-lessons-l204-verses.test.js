@@ -1,7 +1,7 @@
 // @vitest-environment node
 // =============================================================================
 // L204 — The Word Checks Every Teller — Many Counsellors, All Under Him
-// (DR-0698)
+// (DR-0714)
 // =============================================================================
 // Darrell wrote this teaching into the build on 2026-09-30 while L202 was being
 // finished: the Word, sourced and researched outside the teller, corrects us
@@ -91,6 +91,11 @@ describe('Darrell’s framing is kept, in his order (DR-0331: render for meaning
     expect(l).toContain('sourced and researched outside of the teller');
     expect(l).toContain('so we all agree with Him first');
     expect(l).toContain('Every verse below is quoted from the King James text, word for word.');
+  });
+
+  it('says L202 was recorded inside the PoeTech app, never on a phone and sent in (Darrell, 2026-09-30)', () => {
+    expect(ALL()).toContain('inside the PoeTech app');
+    expect(ALL()).not.toMatch(/on (his|a) phone|into his phone|sent it into the app|Wednesday Bible study/i);
   });
 
   it('the movements are all present, in order, in the lesson', () => {

@@ -1,4 +1,4 @@
-# DR-0698 — L204: The Word Checks Every Teller — Many Counsellors, All Under Him
+# DR-0714 — L204: The Word Checks Every Teller — Many Counsellors, All Under Him
 
 - **Status:** accepted
 - **Tier:** B
@@ -16,7 +16,7 @@ On 2026-09-30, while L202 (a Bible study from the weekly 1 p.m. class at The Chu
 
 He ended it "Lesson", so it is build input and becomes a lesson the same session.
 
-**Placement and number.** Devotional, so Living Lessons. `origin/main` (9faac105, then d5e15304) ends at L202. The brief said another session is adding L203, a promise-line lesson, in the same file. No branch, open PR or `claude/*` ref carried an `ll203-` id when checked (`git grep` over the 40 most recent `claude/*` refs; open PR list). So this lesson takes **L204**, and 203 is held in `KNOWN_MISSING` in the collision gate, exactly as 193 was held for L193 (DR-0646). The merge that brings L203 in deletes the entry. DR-0698 was the INDEX Next ID (DR-0692 to DR-0695 are left for the parallel band groups).
+**Placement and number.** Devotional, so Living Lessons. `origin/main` (9faac105, then d5e15304) ends at L202. The brief said another session is adding L203, a promise-line lesson, in the same file. No branch, open PR or `claude/*` ref carried an `ll203-` id when checked (`git grep` over the 40 most recent `claude/*` refs; open PR list). So this lesson takes **L204**, and 203 is held in `KNOWN_MISSING` in the collision gate, exactly as 193 was held for L193 (DR-0646). The merge that brings L203 in deletes the entry. It first took DR-0698, which the lesson-share PR (#1906) also claimed, so it was renumbered to DR-0714 on 2026-09-30 (DR-0708 to DR-0713 are claimed by other open PRs).
 
 **What exists, checked before any claim (P58, P59).** `app/src/lib/ari.js` defines Ari as the app's AI and describes him as "a made tool that can be wrong". `app/src/lib/class-tutor.js` is the lesson guide: `tutorEndpoint()` is the same-origin `/llm/chat`, `TUTOR_MODEL` is `qwen2.5` on the NAS's own Ollama, and when the route does not answer the UI falls back to the authored lesson and "never fabricates an LLM answer". The file itself says the path degrades until "that server + its /llm/* Caddy route are stood up". So the lesson says only that the guide *is written to ask* a model on our own server and shows the written lesson when it does not answer. The children's course and asking our own AI anything are stated as a hope and a direction, in every band.
 
