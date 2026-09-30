@@ -18,8 +18,8 @@
 // text plainly; in demo mode the sheet opens, says so, and cannot save.
 // DR-0710.
 // =============================================================================
-import React, { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useId, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import Modal from './Modal.jsx';
 import {
   getLedgerEditor, applyLedgerEdit, undoLedgerEdit, rowsInScope, categoryOptionsFor,
   normalizeCategory, subscribeLedgerMarks, getLedgerMarks, addLedgerMark, dropLedgerMark, markFor,
@@ -61,13 +61,6 @@ function Sheet({ editor, txn, payee, categoryKey, show, onClose, onSaved }) {
   const [newCat, setNewCat] = useState('');
   const [catScope, setCatScope] = useState(txn ? 'payee' : (rollupOnly ? 'category' : 'payee'));
 
-  useEffect(() => {
-    try { firstRef.current && firstRef.current.focus(); } catch { /* focus is a nicety */ }
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   const scopeOpts = txn
     ? [['one', 'Just this transaction'], ['payee', `Every transaction from this payee (${payeeCount})`]]
     : [['payee', `Every transaction from this payee (${payeeCount})`]];
@@ -92,16 +85,12 @@ function Sheet({ editor, txn, payee, categoryKey, show, onClose, onSaved }) {
 
   const heading = rollupOnly ? `Category · ${categoryLabel(categoryKey) || 'Uncategorized'}` : (payeeName || 'Transaction');
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[#1A1815]/40" onClick={onClose} data-ledger-edit-sheet="">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full sm:max-w-md bg-[#FAF8F4] border-t-2 sm:border-2 border-[#1A1815] p-4 space-y-3 max-h-[90vh] overflow-y-auto"
-      >
-        <div>
+  // The app's one dialog primitive (focus trap, Esc, scroll lock, portal);
+  // its width prop is the sanctioned place for a modal's measure (DR-0246).
+  return (
+    <Modal open onClose={onClose} labelledBy={titleId} initialFocusRef={firstRef} maxWidthClass="sm:max-w-md">
+      <div className="space-y-3" data-ledger-edit-sheet="">
+        <div className="pr-10">
           <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-semibold">Edit</div>
           <h2 id={titleId} className="text-base text-[#1A1815] break-words" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{heading}</h2>
         </div>
@@ -157,8 +146,7 @@ function Sheet({ editor, txn, payee, categoryKey, show, onClose, onSaved }) {
           <button type="button" onClick={save} disabled={!!editor.demo} className={`${BTN} bg-[#1A1815] text-white disabled:opacity-50`}>Save</button>
         </div>
       </div>
-    </div>,
-    document.body,
+    </Modal>
   );
 }
 
@@ -192,13 +180,13 @@ export default function LedgerEdit({ txn = null, payee = null, categoryKey = nul
   };
 
   return (
-    <span className={`inline-flex items-center gap-1 flex-wrap max-w-full ${className}`} onClick={stop}>
+    <span className={`inline-flex items-center gap-1 flex-wrap min-w-0 ${className}`} onClick={stop}>
       <button
         type="button"
         data-ledger-edit={what}
         onClick={(e) => { stop(e); setOpen(true); }}
         aria-label={`Edit ${what} ${shown}`}
-        className="inline-flex items-center gap-1 min-h-[44px] max-w-full text-left underline decoration-dotted decoration-[#8A857B] underline-offset-2 hover:decoration-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
+        className="inline-flex items-center gap-1 min-h-[44px] min-w-0 text-left underline decoration-dotted decoration-[#8A857B] underline-offset-2 hover:decoration-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
       >
         <span className="truncate">{label}</span>
         <span aria-hidden="true" className="text-[#8A857B] text-[0.75em] shrink-0">✎</span>
