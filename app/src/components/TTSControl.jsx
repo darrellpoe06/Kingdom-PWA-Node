@@ -466,7 +466,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
       const t = getReadTarget();
       const w = pendingRead();
       if (!t || !w || t.owner !== w.owner) return;
-      if (isReadDoor(t)) return; // wait for the full lesson, never re-open a door (DR-0698)
+      if (isReadDoor(t)) return; // wait for the full lesson, never re-open a door (DR-0702)
       const opts = w.opts || {};
       if (!takeRead(t.owner)) return;
       if (readTargetRef.current) readTargetRef.current(t, opts);
@@ -980,7 +980,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
 
   const readTargetNow = async (t, { continuing = false, startFraction = null, startSentence = null, resumePlace = null } = {}) => {
     if (!t) return;
-    // THE SPEAKER INSIDE AN OPEN LESSON (DR-0698; Darrell 2026-09-30: "the
+    // THE SPEAKER INSIDE AN OPEN LESSON (DR-0702; Darrell 2026-09-30: "the
     // reader should be asking me to read it from the beginning because I
     // pushed the speaker while inside the lesson... it only works after I hit
     // play... it should be both"). A lesson open with its guide closed has not
@@ -1186,7 +1186,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // bookmark is this reading's own (lib/reader-bookmarks.js); the paragraphs
   // come from the same follow map the paragraph steps use.
   const bookmarkNow = target ? getBookmark(target.owner) : null;
-  // RESUME IS OFFERED ONLY FOR A REAL PLACE (DR-0698). This reading's own
+  // RESUME IS OFFERED ONLY FOR A REAL PLACE (DR-0702). This reading's own
   // bookmark first (the sentence the voice last reached); else, for a lesson,
   // its saved place past the start (the sentence the reader's eye reached).
   // Nothing saved, or saved at the very top, offers nothing: the primary
@@ -1594,7 +1594,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
               <>
                 {/* One full piece, start to finish — primary when a surface has
                     registered its reading (the open lesson). Never the page mix. */}
-                {/* FROM THE BEGINNING — the first choice, always (DR-0698):
+                {/* FROM THE BEGINNING — the first choice, always (DR-0702):
                     "start to finish" means the top. Where the reader left off
                     is its own button just below, and only when there is one. */}
                 {target && (

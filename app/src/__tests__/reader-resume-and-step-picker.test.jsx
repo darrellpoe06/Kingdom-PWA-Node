@@ -89,8 +89,8 @@ describe('Resume — where this reading was left', () => {
     expect(String(readSpy.mock.calls.at(-1)[0])).toMatch(/^The second paragraph teaches the middle\./);
   });
 
-  it('"start to finish" begins at the TOP even with a bookmark; Resume is its own button (DR-0698)', async () => {
-    // Changed 2026-09-30 (DR-0698). This used to pin the plain Read resuming
+  it('"start to finish" begins at the TOP even with a bookmark; Resume is its own button (DR-0702)', async () => {
+    // Changed 2026-09-30 (DR-0702). This used to pin the plain Read resuming
     // at the bookmark, which DR-0632 itself recorded as invisible. Darrell,
     // from the phone: "the reader should be asking me to read it from the
     // beginning". Start to finish now means the top; where the reading was

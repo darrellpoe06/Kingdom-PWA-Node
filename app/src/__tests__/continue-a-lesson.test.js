@@ -66,7 +66,7 @@ describe('a second lesson never costs the first its place', () => {
 });
 
 describe('what counts as "in progress"', () => {
-  it('a glance, a Start tap, or the first sentence is not progress; a move or a later sentence is (DR-0698)', () => {
+  it('a glance, a Start tap, or the first sentence is not progress; a move or a later sentence is (DR-0702)', () => {
     recordPlace({ courseKey: 'c', lessonId: 'browse' }, { storage, now: 1 });
     recordPlace({ courseKey: 'c', lessonId: 'started', started: true }, { storage, now: 2 });
     recordPlace({ courseKey: 'c', lessonId: 'moved', step: 1 }, { storage, now: 3 });

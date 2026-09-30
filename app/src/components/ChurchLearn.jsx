@@ -1806,7 +1806,7 @@ function CourseView({
     recordUse(id);
     try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { /* no-op */ }
   };
-  // THE SPEAKER READS THE LESSON YOU ARE IN (DR-0698). Darrell 2026-09-30, on
+  // THE SPEAKER READS THE LESSON YOU ARE IN (DR-0702). Darrell 2026-09-30, on
   // L202: "the reader should be asking me to read it from the beginning
   // because I pushed the speaker while inside the lesson... it only works
   // after I hit play... it should be both." The full reading registers only

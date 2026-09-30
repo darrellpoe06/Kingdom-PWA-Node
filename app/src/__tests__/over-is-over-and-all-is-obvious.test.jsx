@@ -194,7 +194,7 @@ describe('Read this lesson — start to finish, after it is over', () => {
     recordPlace({ courseKey: 'living-lessons', lessonId: 'll3' });
     recordPlace({ sentence: 1, sentenceKey: '' }); // mid-lesson, never finished
     expect(placeIsFinished(getPlace())).toBe(false);
-    // Since DR-0698 "start to finish" means the top, and the place part-way is
+    // Since DR-0702 "start to finish" means the top, and the place part-way is
     // its own button, offered because this lesson has one.
     const spoken = await pressStartToFinish(/Resume where you left off/);
     expect(spoken).not.toContain(SENTENCES[0]);

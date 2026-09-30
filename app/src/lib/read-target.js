@@ -60,7 +60,7 @@ function notify() {
  */
 export function setReadTarget(owner, target) {
   const text = target && typeof target.text === 'string' ? target.text.trim() : '';
-  // A DOOR (DR-0698): a lesson that is OPEN on screen but whose guide is not,
+  // A DOOR (DR-0702): a lesson that is OPEN on screen but whose guide is not,
   // so its full reading is not mounted yet. It registers `open(opts)` in place
   // of text; the reader calls it, the lesson opens its guide the same way the
   // lesson's own Play does, and the want below starts the reading the moment

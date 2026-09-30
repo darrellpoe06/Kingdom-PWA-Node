@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // =============================================================================
 // A lesson never read says Start, and the speaker inside a lesson reads THAT
-// lesson from the beginning (DR-0698)
+// lesson from the beginning (DR-0702)
 // =============================================================================
 // Darrell 2026-09-30, from his phone on L202 "Prepared Before the Position"
 // (L202 · 1 of 201): "I've never read this lesson and it's already asking me to
@@ -18,7 +18,7 @@
 //   2. The lesson's reading registered only while its GUIDE was open, so the
 //      speaker inside a lesson opened by its title found nothing to read but
 //      the page. And "start to finish" silently resumed at a bookmark.
-// PROVEN-TO-CATCH: against the pre-DR-0698 code 9 of these 11 fail (the
+// PROVEN-TO-CATCH: against the pre-DR-0702 code 9 of these 11 fail (the
 // recorded run is in the DR). The two that pass on both are controls, on
 // purpose: the generic panel on a page with no lesson, and a lesson with real
 // progress still saying Continue.

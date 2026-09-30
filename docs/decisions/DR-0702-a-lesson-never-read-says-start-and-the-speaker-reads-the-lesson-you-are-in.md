@@ -1,4 +1,4 @@
-# DR-0698 — A lesson never read says Start, and the speaker reads the lesson you are in from the beginning
+# DR-0702 — A lesson never read says Start, and the speaker reads the lesson you are in from the beginning
 
 - **Status:** accepted
 - **Tier:** A
@@ -7,7 +7,7 @@
 - **Declared by:** Darrell
 - **Scope:** `app/src/lib/learn-resume.js` (`placeInProgress`); `app/src/lib/read-target.js` (door targets, `requestRead` options, `isReadDoor`); `app/src/components/ChurchLearn.jsx` (the open lesson registers a door while its guide is closed); `app/src/components/TTSControl.jsx` (door path, "start to finish" from the top, Resume only for a real place, want options carried through); `app/src/__tests__/reader-lesson-start.test.jsx` (new); `app/src/__tests__/continue-a-lesson.test.js`, `app/src/__tests__/reader-resume-and-step-picker.test.jsx` and `app/src/__tests__/over-is-over-and-all-is-obvious.test.jsx` (pins changed on purpose, see Decision).
 - **Principles:** HOLD-THE-HAND (DR-0621), VERIFICATION-DOCTRINE (DR-0076), SPEC-CONFORMANCE (DR-0219), APP-IS-PRIMARY (DR-0065), DECISION-RECORDS (DR-0011)
-- **Grounds:** DR-0631 (one place per lesson, the lesson's own Start / Continue button); DR-0632 (the reader's bookmark and Resume button); DR-0627 and DR-0633 (the reader keeps playing with the screen off and between apps); DR-0439 (the screen stays on while it reads); DR-0654 (the voice element is unlocked inside the tap). The numbers DR-0692 to DR-0695 are reserved for the parallel band groups and DR-0697 is claimed by two open branches, so this record takes DR-0698.
+- **Grounds:** DR-0631 (one place per lesson, the lesson's own Start / Continue button); DR-0632 (the reader's bookmark and Resume button); DR-0627 and DR-0633 (the reader keeps playing with the screen off and between apps); DR-0439 (the screen stays on while it reads); DR-0654 (the voice element is unlocked inside the tap). The numbers DR-0692 to DR-0695 are reserved for the parallel band groups and DR-0697 is claimed by two open branches, so this record takes DR-0702.
 
 ## Context
 

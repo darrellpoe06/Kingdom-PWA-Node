@@ -287,7 +287,7 @@ export function getPlaceFor(courseKey, lessonId, opts = {}) {
  * the top. So a lesson opened once and never read said "Continue this lesson",
  * and Continue from part 1, step 1, sentence 1 is the same place Start opens.
  * `started` is still recorded (it orders what the map keeps); it just no
- * longer claims a place worth continuing. DR-0698.
+ * longer claims a place worth continuing. DR-0702.
  */
 export function placeInProgress(place) {
   if (!place || place.done === true) return false;
