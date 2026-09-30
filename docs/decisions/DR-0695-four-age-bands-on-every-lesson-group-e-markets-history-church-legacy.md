@@ -1,4 +1,4 @@
-# DR-0696 — Four age bands on every lesson: group E (markets, history, church, legacy)
+# DR-0695 — Four age bands on every lesson: group E (markets, history, church, legacy)
 
 - **Status:** accepted
 - **Tier:** A
