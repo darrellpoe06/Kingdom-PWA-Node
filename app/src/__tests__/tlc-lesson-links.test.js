@@ -4,6 +4,7 @@
 // "a link to serve the lessons like the Love Corner App does... so people can
 // taste and see what type of therapy and training TLC ... has to offer")
 // =============================================================================
+import { lessonSummary } from '../lib/lesson-share.js';
 import { describe, it, expect } from 'vitest';
 import {
   tlcLessonQuery, tlcLessonUrl, parseTlcLessonLink, resolveTlcLesson, everyTlcLessonId,
@@ -92,7 +93,8 @@ describe('what the share sheet gets', () => {
     const url = tlcLessonUrl({ courseId: course.id, lessonId: m.id });
     const p = tlcLessonSharePayload(m, { url, courseTitle: course.title });
     expect(p.title).toBe(m.title);
-    expect(p.text).toContain(m.bigIdea);
+    // A summary of the big idea, never the whole of it (DR-0698).
+    expect(p.text).toContain(lessonSummary(m));
     expect(p.text).toContain(course.title);
     expect(p.text).toContain('TLC Therapy Solutions');
     expect(p.url).toBe(url);

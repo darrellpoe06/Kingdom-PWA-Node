@@ -645,6 +645,40 @@ jobs:
           grep -q ':: levels' "$RUNNER_TEMP/drift.txt" || { echo "::error::parity failed without naming the field"; exit 1; }
           echo "parity caught the altered band, by lesson and field."
 
+  # THE SHARE RECORD'S WALLS, ON A REAL POSTGRESQL (DR-0698). 0244 applies
+  # twice (idempotent), then the smoke proves: a signed-out browser records a
+  # share and an open and reads nothing; a sharer reads only their own; opens
+  # row by row are the Governor's; shape and flood limits refuse. Every check
+  # RAISEs, so a leaked grant or a widened policy is a red leg.
+  lesson-shares:
+    name: app — lesson share record (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: 0244 applies, twice (idempotent), and every wall holds
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f scripts/curriculum-ci-bootstrap.sql
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0244-a-shared-lesson-link-keeps-its-record.sql; done
+          psql -v ON_ERROR_STOP=1 -q -f scripts/lesson-share-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'every wall held' "$RUNNER_TEMP/smoke.txt"
+
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.
   # It runs `if: always()` because a job whose `needs` failed is otherwise
@@ -653,10 +687,10 @@ jobs:
   app:
     name: app — lint + vitest
     if: always()
-    needs: [guards, vitest, probes, layout, curriculum]
+    needs: [guards, vitest, probes, layout, curriculum, lesson-shares]
     runs-on: ubuntu-latest
     steps:
-      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum)
+      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares)
         env:
           NEEDS: ${{ toJSON(needs) }}
         run: |
