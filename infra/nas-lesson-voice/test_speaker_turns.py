@@ -1,4 +1,4 @@
-"""Proofs for speaker_turns.py and the transcriber's speaker step (DR-0706).
+"""Proofs for speaker_turns.py and the transcriber's speaker step (DR-0712).
 Stdlib unittest; no model, no network. Each rule is proven-to-catch: the
 format, known voices only by voiceprint, unknown voices S1/S2 in order, a
 member named only as the teacher calls them, never a guessed name, and the
@@ -119,7 +119,7 @@ class NamingVoices(unittest.TestCase):
 
 
 class EnrollByWords(unittest.TestCase):
-    """DR-0706: BG and DP are enrolled from words a person who was there
+    """DR-0712: BG and DP are enrolled from words a person who was there
     attributed, never from a guess."""
     D = {"turns": TURNS, "centroids": CENTROIDS}
     BG = {"label": "BG", "words": "Number four, God defines success"}

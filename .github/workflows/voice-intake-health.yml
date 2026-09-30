@@ -170,7 +170,7 @@ jobs:
           echo "=== the rider's newest JSON report, if the cycle log kept it ==="
           ${SUDO} grep -a -A12 '"transcribe"' "$LOOPS/events/cron-services-sync.log" 2>/dev/null | tail -30 || true
           ${SUDO} tail -c 1500 /volume1/PoeTech/lesson-voice/last-run.json 2>/dev/null || echo "no last-run.json yet"
-          echo "=== who spoke (DR-0706): speaker marking, voiceprints, enrollment ==="
+          echo "=== who spoke (DR-0712): speaker marking, voiceprints, enrollment ==="
           ${SUDO} cat /volume1/PoeTech/lesson-voice/.speakers-recipe 2>/dev/null | sed 's/^/speakers recipe installed: /' || echo "speaker marking not installed yet"
           ${SUDO} ls -la /volume1/PoeTech/lesson-voice/models/speakers 2>/dev/null || echo "no speaker models yet"
           ${SUDO} tail -8 /volume1/PoeTech/lesson-voice/speakers-install.log 2>/dev/null || echo "no speakers-install.log yet"

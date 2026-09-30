@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-diarize_local.py -- who spoke when, measured on our own machine (DR-0706).
+diarize_local.py -- who spoke when, measured on our own machine (DR-0712).
 
 SOVEREIGN AND LIGHT: sherpa-onnx (onnxruntime only; no torch, no cloud, no
 account, no gated model). Two small ONNX models, downloaded once by install.sh
@@ -16,7 +16,7 @@ WHAT IT RETURNS (pure data; speaker_turns.py does the labelling):
 One centroid per voice: the mean of the embeddings of that voice's turns of at
 least MIN_TURN_SECONDS, so enrolled voiceprints (DP, BG) can be matched.
 
-ARMED BY RECORD (DR-0247, DR-0706): speakers_enabled() is true when both
+ARMED BY RECORD (DR-0247, DR-0712): speakers_enabled() is true when both
 models are on disk AND sherpa_onnx imports, unless
 LESSON_VOICE_SPEAKERS=0 in /volume1/PoeTech/secrets/lesson-voice.env (the
 stop-path). Anything missing -> false, and the transcript is written exactly

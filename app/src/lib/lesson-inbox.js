@@ -147,7 +147,7 @@ export function transcriptWords(body) {
   const i = s.indexOf('\n\n');
   return i >= 0 ? s.slice(i + 2).trim() : s.trim();
 }
-// WHO SPOKE (DR-0706). A transcript the NAS marked by voice carries a
+// WHO SPOKE (DR-0712). A transcript the NAS marked by voice carries a
 // "Speakers:" header above the blank line and one "LABEL: words" line per
 // turn (infra/nas-lesson-voice/speaker_turns.py). DP = Darrell Poe, BG =
 // Bishop Gwin, S1, S2 = voices not yet named, ? = no voice placed.

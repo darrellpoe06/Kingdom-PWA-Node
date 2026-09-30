@@ -181,7 +181,7 @@ def mmss(seconds):
 
 
 def transcript_body(text, rung, model, seconds, speakers=None):
-    """The transcript row's words. WHO SPOKE (DR-0706): with `speakers` (from
+    """The transcript row's words. WHO SPOKE (DR-0712): with `speakers` (from
     speaker_turns.speaker_transcript) every line is 'LABEL: words' under a
     Speakers header; without, the header says the speakers are not marked and
     the words are exactly what Whisper heard. "the words", never "his words":
@@ -393,7 +393,7 @@ def run_once(io, data_dir=DATA, env=None, clock=time.monotonic):
                     raise RuntimeError("empty-transcript: every Whisper rung returned no words")
                 rung, model, secs = result.get("rung", "?"), result.get("model", "?"), result.get("duration_sec")
                 rung_tag = f"whisper:{result.get('rung_key', 'unknown')}"
-                # WHO SPOKE (DR-0706): marked on our own machine when armed.
+                # WHO SPOKE (DR-0712): marked on our own machine when armed.
                 speakers = None
                 mark = getattr(io, "speaker_turns", None)
                 if mark is not None and getattr(io, "speakers_armed", lambda: False)():
@@ -739,7 +739,7 @@ class SupabaseIO:
         return diarize_local.speakers_enabled(self.data_dir, self.env)
 
     def speaker_turns(self, local, segments, rid):
-        """Mark who spoke (DR-0706). The timed segments are kept on the NAS
+        """Mark who spoke (DR-0712). The timed segments are kept on the NAS
         (DATA/segments/<id>.json) so name_voice.py can show a voice's words."""
         import diarize_local
         import speaker_turns as st

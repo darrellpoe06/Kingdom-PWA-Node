@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-name_voice.py -- teach the NAS whose voice is whose (DR-0706). Run by hand,
+name_voice.py -- teach the NAS whose voice is whose (DR-0712). Run by hand,
 once per voice, on the NAS (the voiceprints never leave it).
 
   1. LIST the voices in a recording the NAS already keeps:

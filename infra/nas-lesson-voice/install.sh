@@ -104,7 +104,7 @@ fi
 # The model downloads once and is kept beside the data, not in root's home.
 export HF_HOME="$DATA/hf"
 
-# WHO SPOKE (DR-0706), ARMED BY RECORD (DR-0247): on unless lesson-voice.env
+# WHO SPOKE (DR-0712), ARMED BY RECORD (DR-0247): on unless lesson-voice.env
 # sets LESSON_VOICE_SPEAKERS=0 (the stop-path). Once (and again only when the
 # recipe changes): sherpa-onnx into the same venv (a cp38 manylinux2014 wheel exists,
 # measured 2026-09-30: sherpa_onnx-1.13.8) and two small ONNX models from the
@@ -138,7 +138,7 @@ if [ "${LESSON_VOICE_SPEAKERS:-1}" != "0" ] && [ "$(cat "$SPK_STAMP" 2>/dev/null
   fi
 fi
 
-# ENROLL BY WORDS (DR-0706): BG and DP are named from words a person who was
+# ENROLL BY WORDS (DR-0712): BG and DP are named from words a person who was
 # there attributed (enroll.json, committed), so no one has to sit at the NAS
 # to say "voice 0 is Bishop Gwin". Runs only when speaker marking is installed
 # and a label in enroll.json has no voiceprint yet. It is long (a whole class
