@@ -19,6 +19,7 @@ import UiIcon from './UiIcon.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import TraceableNumber from './TraceableNumber.jsx';
 import { DispatchPanel } from './DispatchPanel.jsx';
+import { CapacityPanel } from './CapacityPanel.jsx';
 import { LifeGallery } from './LifeGallery.jsx';
 import { fmt, fmtCompact } from '../lib/format.js';
 import { relativeWhen } from '../lib/calendar-shared.js';
@@ -130,7 +131,7 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
         contractorIds: [],
         conversationLog: [],
       });
-      alert(`Added as Project (${decision.decision === 'add-tbd' ? 'TBD' : 'planning'}). Edit details on the Projects tab.`);
+      alert(`Added as Project (${decision.decision === 'add-tbd' ? 'TBD' : 'planning'}). Edit details on the Projects tab.${decision.note ? `\n\n${decision.note} Set weekly hours in Dev/Ops > My skills.` : ''}`);
     } else {
       addIncident && addIncident({
         date: new Date().toISOString().slice(0, 10),
@@ -559,48 +560,10 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
                     icon: 'users',
                     render: () => (
                       <>
-          {/* Round 11 — Family capacity meter. At-a-glance "do we have time?"
-              Shown only when skill profiles + projects both exist. Color-banded:
-              green <80%, amber 80-100%, rust >100% (over-committed). */}
-          {capacity.hasProfiles && (capacity.available > 0) && (
-            <section aria-labelledby="capacity-h" className="bg-white border border-[#1A1815] p-4 sm:p-5">
-              <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2">
-                <div>
-                  <h2 id="capacity-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Family Capacity · this week</h2>
-                  <p className="text-xs text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
-                    Sum of all active projects' hrs/wk vs sum of skill-profile hrs/wk. Healthy zone: under 80%. New projects past this line get parked as TBD by default.
-                  </p>
-                </div>
-                <div className="text-right">
-                  <div className={`text-2xl ${capacity.pct >= 100 ? 'text-[#B85838]' : capacity.pct >= 80 ? 'text-[#D97706]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 700 }}>
-                    {capacity.pct}%
-                  </div>
-                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                    {capacity.committed} / {capacity.available} hrs/wk · {capacity.remaining} free
-                  </div>
-                </div>
-              </div>
-              <div role="progressbar" aria-labelledby="capacity-h" aria-valuenow={capacity.pct} aria-valuemin="0" aria-valuemax="100">
-                <div className="w-full bg-[#FAF8F4] h-3 border border-[#E8E4DC]">
-                  <div
-                    className="h-full transition-all"
-                    style={{
-                      width: `${Math.min(100, capacity.pct)}%`,
-                      backgroundColor: capacity.pct >= 100 ? '#B85838' : capacity.pct >= 80 ? '#D97706' : '#5A6E3D',
-                    }}
-                  />
-                </div>
-                <div className="flex justify-between text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mt-1">
-                  <span>0%</span><span>healthy ≤80%</span><span>tight ≤100%</span><span>over</span>
-                </div>
-              </div>
-              {capacity.pct >= 80 && (
-                <p className={`text-xs mt-2 ${capacity.pct >= 100 ? 'text-[#B85838]' : 'text-[#D97706]'}`} style={{ fontFamily: '"Fraunces", serif' }}>
-                  <strong>{capacity.pct >= 100 ? 'Over-committed.' : 'Tight.'}</strong> New projects from Dev/Ops &quot;Wrap me&quot; or Tenant-as-Project will prompt before adding. {projects.filter(p => p.status === 'tbd').length > 0 && <> {projects.filter(p => p.status === 'tbd').length} project{projects.filter(p => p.status === 'tbd').length === 1 ? '' : 's'} already parked as TBD.</>}
-                </p>
-              )}
-            </section>
-          )}
+          {/* Round 11 capacity meter; DR-0690: the tab is never blank. With no
+              profiles or no weekly hours it says what is missing, what it CAN
+              measure, and links to where hours are set. */}
+          <CapacityPanel capacity={capacity} projects={projects} setView={setView} />
                       </>
                     ),
                   },
