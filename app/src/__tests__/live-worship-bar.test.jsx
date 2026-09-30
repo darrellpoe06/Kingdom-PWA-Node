@@ -30,8 +30,8 @@ beforeEach(() => {
 });
 afterEach(() => { act(() => root.unmount()); container.remove(); });
 
-const IN_WINDOW = new Date(2026, 5, 21, 11, 0, 0);   // Sunday 11:00 AM — service start
-const OFF_WINDOW = new Date(2026, 5, 23, 9, 0, 0);    // Tuesday 9:00 AM — no service
+const IN_WINDOW = new Date('2026-06-21T11:00:00-05:00');   // Sunday 11:00 AM — service start
+const OFF_WINDOW = new Date('2026-06-23T09:00:00-05:00');    // Tuesday 9:00 AM — no service
 
 const mount = (props = {}) =>
   act(() => root.render(createElement(LiveWorshipBar, {
@@ -144,6 +144,54 @@ describe('LiveWorshipBar — the viewer\'s remembered choice is honoured on the 
     root = createRoot(container);
     mount({ now: IN_WINDOW });
     expect(container.querySelector('button[aria-label="Expand the live service player"]')).toBeTruthy();
+  });
+
+  // READING ON A PHONE (2026-09-30): the 289px video over a lesson at 360px
+  // put the chrome at 686px of a 900px screen. With a lesson open on a phone
+  // and no choice made, the bar starts as its one-line strip.
+  describe('a lesson open on a phone', () => {
+    const realMM = window.matchMedia;
+    const phone = (on) => {
+      window.matchMedia = (q) => ({ matches: on && /max-width/.test(q), media: q, addEventListener() {}, removeEventListener() {} });
+    };
+    afterEach(() => {
+      window.matchMedia = realMM;
+      document.documentElement.removeAttribute('data-lesson-space');
+    });
+    const videoHidden = () => container.querySelector('iframe').parentElement.parentElement.classList.contains('hidden');
+
+    it('starts with the video folded to the strip', () => {
+      phone(true);
+      document.documentElement.setAttribute('data-lesson-space', 'open');
+      mount({ now: IN_WINDOW });
+      expect(videoHidden()).toBe(true);
+      expect(container.querySelector('button[aria-label="Expand the live service player"]')).toBeTruthy();
+    });
+    it('keeps the video open on a phone when no lesson is open, and in a lesson on a wide screen', () => {
+      phone(true);
+      mount({ now: IN_WINDOW });
+      expect(videoHidden()).toBe(false);
+      act(() => root.unmount());
+      root = createRoot(container);
+      phone(false);
+      document.documentElement.setAttribute('data-lesson-space', 'open');
+      mount({ now: IN_WINDOW });
+      expect(videoHidden()).toBe(false);
+    });
+    it('the viewer\'s choice to show the video wins over the phone default', () => {
+      phone(true);
+      document.documentElement.setAttribute('data-lesson-space', 'open');
+      act(() => setLiveBarCollapsed(false));
+      mount({ now: IN_WINDOW });
+      expect(videoHidden()).toBe(false);
+    });
+  });
+
+  it('publishes data-live-bar while open and clears it when the window closes', () => {
+    mount({ now: IN_WINDOW });
+    expect(document.documentElement.getAttribute('data-live-bar')).toBe('open');
+    mount({ now: OFF_WINDOW });
+    expect(document.documentElement.getAttribute('data-live-bar')).toBeNull();
   });
 
   it('barFrameStyle: large is full width; small is capped narrow; medium is the original', () => {
