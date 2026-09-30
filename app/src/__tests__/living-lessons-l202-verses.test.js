@@ -1,6 +1,6 @@
 // @vitest-environment node
 // =============================================================================
-// L202 — Prepared Before the Position — Homecoming, Legacy, Good Success, and
+// L202 — Prepared Before the Position — Homecoming, Mary Gwin's Legacy, Good Success, and
 // Represent (DR-0690)
 // =============================================================================
 // Darrell recorded a Bible study class inside the PoeTech app, in Thinking Space,
@@ -24,6 +24,7 @@ import { measureFullness, FULL_BANDS, FULL_FLOOR } from '../../../scripts/full-l
 import { measureLesson, isInverted, breachesChildCeiling, NEW_LESSON_CHILD_CEILING } from '../../../scripts/reading-level.mjs';
 import { measureDifferentiation, DIFF_CEILING } from '../../../scripts/band-differentiation.mjs';
 import { namesItsLesson } from '../../../scripts/title-in-narrative.mjs';
+import { buildLessonIndex, searchLessons } from '../lib/learn-organize.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const KJV = join(HERE, '..', '..', 'public', 'bible', 'kjv');
@@ -56,7 +57,7 @@ const MOVEMENTS = [
 describe('L202 is really in the series', () => {
   it('carries all the fields, four authored bands, a quiz, and facilitator points', () => {
     const m = L();
-    expect(m.title).toBe('Prepared Before the Position — Homecoming, Legacy, Good Success, and Represent');
+    expect(m.title).toBe("Prepared Before the Position — Homecoming, Mary Gwin's Legacy, Good Success, and Represent");
     for (const f of ['bigIdea', 'inApp', 'lesson']) expect(typeof m[f]).toBe('string');
     for (const r of ['Psalms 145:4', 'Exodus 17:9', 'Exodus 24:13', 'Numbers 27:18', 'Deuteronomy 34:9', 'Joshua 1:8', 'Luke 6:46', 'Romans 8:35']) expect(m.anchor.ref).toContain(r);
     expect(m.quiz.questions).toHaveLength(8);
@@ -169,6 +170,26 @@ function speakerFaults(m) {
   if (/Osia|Mama\b/.test(all)) faults.push('a garbled name was guessed');
   return faults;
 }
+
+describe('the finder finds L202 by Mary Gwin (Darrell, 2026-09-30: "so people can find it easily")', () => {
+  it('the title carries her name and the id never changed, so saved places, progress, shares and dates keep working', () => {
+    expect(L().title).toContain("Mary Gwin's Legacy");
+    expect(L().id).toBe(ID);
+    expect(LIVING_LESSONS_ADDED[ID]).toBe('2026-09-30');
+  });
+  it('"Mary Gwin", "Gwin", "E-MEG" and "Evangelist Mary E. Gwin" each return L202', () => {
+    const index = buildLessonIndex([{ key: 'living-lessons', meta: { title: 'Living Lessons' }, schedule: LIVING_LESSONS_MODULES }]);
+    for (const q of ['Mary Gwin', 'Gwin', 'E-MEG', 'Evangelist Mary E. Gwin']) {
+      const ids = searchLessons(index, q).map((e) => e.lessonId);
+      expect(ids, q).toContain(ID);
+    }
+    expect(searchLessons(index, 'Mary Gwin')[0].lessonId, 'her name in the title ranks L202 first').toBe(ID);
+    // PROVEN-TO-CATCH: without the tags, "E-MEG" finds nothing, so the check can fail.
+    const bare = LIVING_LESSONS_MODULES.map((m) => (m.id === ID ? { ...m, tags: [] } : m));
+    const bareIndex = buildLessonIndex([{ key: 'living-lessons', meta: { title: 'Living Lessons' }, schedule: bare }]);
+    expect(searchLessons(bareIndex, 'E-MEG').map((e) => e.lessonId)).not.toContain(ID);
+  });
+});
 
 describe('who said what: BG, DP, and the members as Bishop Gwin calls them (DR-0711)', () => {
   it('every speaker is pinned to the words the recording attaches to them', () => {
