@@ -69,10 +69,10 @@ const mount = (props = {}) => act(() => root.render(createElement(ChurchLearn, {
 
 const buttons = () => Array.from(container.querySelectorAll('button'));
 // The per-lesson control is exactly "▶ Play"; the series control reads
-// "▶ Play the overview …". Matched separately so a test about one can never be
+// "▶ Play the whole course overview …". Matched separately so a test about one can never be
 // silently satisfied by the other.
 const playButtons = () => buttons().filter((b) => /^▶\s*Play$/.test(b.textContent.trim()));
-const overviewButton = () => buttons().find((b) => /Play the overview/i.test(b.textContent));
+const overviewButton = () => buttons().find((b) => /Play the whole course overview/i.test(b.textContent));
 
 describe('▶ Play is there for a member — not only the Governor', () => {
   it('THE REPORTED CASE: a non-Governor sees play buttons on the lessons', () => {
