@@ -807,7 +807,10 @@ try {
   // width he was holding.
   // ---------------------------------------------------------------------------
   const PRESENTER_BAR_MAX_PX = 160;
-  const DECK_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons&lesson=ll1-the-perfect-yahweh-expects`;
+  // The course page, not a lesson: the whole-course overview lives with the
+  // course and never above an open lesson (DR-0688, Darrell 2026-09-30: "the
+  // over view should not be at the top of each lesson it is confusing").
+  const DECK_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons`;
   for (const size of ['normal', 'bigprint']) {
     const page = await browser.newPage({ viewport: { width: 360, height: 900 } });
     await page.addInitScript((sz) => {
@@ -817,15 +820,16 @@ try {
       } catch { /* private mode */ }
     }, size);
     await page.goto(DECK_URL, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
-    await page.waitForSelector('[data-testid="lesson-space-bar"]', { timeout: 20000 }).catch(() => {});
-    // Open the series deck the way a reader does — the overview play control.
+    await page.waitForSelector('[data-testid="course-overview-play"] button', { timeout: 20000 }).catch(() => {});
+    // Open the series deck the way a reader does — the whole-course overview
+    // play control on the course's own page.
     const opened = await page.evaluate(() => {
-      const b = [...document.querySelectorAll('button')].find((x) => /play the overview/i.test(x.textContent || ''));
+      const b = [...document.querySelectorAll('button')].find((x) => /play the whole course overview/i.test(x.textContent || ''));
       if (!b) return false;
       b.click();
       return true;
     });
-    if (!opened) { await page.close(); fail(`presenter@360px${size === 'bigprint' ? ' [Big Print]' : ''}: no way into the deck was found on the lesson page`); continue; }
+    if (!opened) { await page.close(); fail(`presenter@360px${size === 'bigprint' ? ' [Big Print]' : ''}: no way into the deck was found on the course page`); continue; }
     await page.waitForSelector('[data-testid="present-setup-bar"]', { timeout: 20000 }).catch(() => {});
     await page.evaluate(() => (document.fonts && document.fonts.ready ? document.fonts.ready : null)).catch(() => {});
     await page.evaluate(() => new Promise((r) => setTimeout(r, 400)));
