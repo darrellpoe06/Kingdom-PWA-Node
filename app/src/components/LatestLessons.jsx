@@ -14,16 +14,21 @@
 // other sort.
 //
 // REAL DAYS ONLY: every row is a mounted lesson with a recorded day (`added`,
-// from living-lessons-dates.js — the commit day each lesson first landed).
-// A lesson with no recorded day is left out and counted in the header, never
-// dated by guess (DR-0076). Tapping a row opens it in its HOME course.
+// the commit day each lesson first landed — living-lessons-dates.js, and for
+// every other course lesson-dates.js, DR-0687: Darrell 2026-09-30, "Add all
+// the days the lessons were created so we can have all of them in each course
+// so they can get done."). A lesson with no recorded day is left out and
+// counted in the header with its reason, never dated by guess (DR-0076).
+// Tapping a row opens it in its HOME course.
 // =============================================================================
 import React from 'react';
-import { latestLessons } from '../lib/learn-organize.js';
+import { latestLessons, latestCountLine } from '../lib/learn-organize.js';
 import { formatAdded, withMonthHeadings } from '../lib/lesson-order.js';
+import { undatedReason } from '../lib/lesson-dates.js';
 
 export default function LatestLessons({ courses, onOpen }) {
-  const { rows, undated, courseCount } = latestLessons(courses);
+  const latest = latestLessons(courses);
+  const { rows } = latest;
   if (!rows.length) return null;
   const items = withMonthHeadings(rows);
   return (
@@ -32,7 +37,7 @@ export default function LatestLessons({ courses, onOpen }) {
         Latest lessons · every course · newest first · <span data-testid="learn-latest-count">{rows.length}</span>
       </div>
       <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-        {courseCount === 1 ? 'One course records' : `${courseCount} courses record`} the day each lesson was added{undated ? ` · ${undated} lessons in other courses have no recorded day, so they are not listed` : ''}.
+        <span data-testid="learn-latest-line">{latestCountLine(latest, undatedReason)}</span>
       </p>
       <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1" data-testid="learn-latest-list">
         {items.map((r) => (r.heading ? (

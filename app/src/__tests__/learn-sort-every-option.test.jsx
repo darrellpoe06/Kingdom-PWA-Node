@@ -8,6 +8,11 @@
 // + the Eternal Algorithms courses), and every check is PROVEN-TO-CATCH: the
 // same check is run against the order a flipped comparator produces and must
 // fail, so a green here means the order is actually right.
+//
+// DR-0687 (Darrell 2026-09-30: "Add all the days the lessons were created so we
+// can have all of them in each course so they can get done."): every course now
+// carries its lessons' creation days (lib/lesson-dates.js), so the measurements
+// below read "every course dated" where they once read "only Living Lessons".
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createElement, act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -21,6 +26,7 @@ import {
 import { LIVING_LESSONS_ADDED } from '../lib/living-lessons-dates.js';
 import { orderLessons } from '../lib/lesson-order.js';
 import { getPlace } from '../lib/learn-resume.js';
+import { buildSchedule } from '../lib/church-classes.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -47,12 +53,15 @@ const newestFirst = (list, all) => {
 };
 
 describe('the course sorts, on the real catalog', () => {
-  it('MEASURED: the catalog has many courses, and only Living Lessons records the day each lesson was added', () => {
+  it('MEASURED (DR-0687): every course records the day each lesson was added — no lesson is left undated', () => {
     expect(CATALOG.length).toBeGreaterThan(20);
-    const dated = CATALOG.filter((c) => courseAddedSpan(c).newest).map((c) => c.key);
-    expect(dated).toEqual(['living-lessons']);
+    const undatedCourses = CATALOG.filter((c) => !courseAddedSpan(c).newest).map((c) => c.key);
+    expect(undatedCourses).toEqual([]);
+    const undatedLessons = CATALOG.flatMap((c) => c.schedule.filter((m) => !m.added).map((m) => `${c.key}/${m.id}`));
+    expect(undatedLessons).toEqual([]);
+    // Living Lessons keeps its own recorded days.
     const ll = CATALOG.find((c) => c.key === 'living-lessons');
-    expect(ll.schedule.filter((m) => m.added).length).toBe(Object.keys(LIVING_LESSONS_ADDED).length);
+    expect(ll.schedule.every((m) => m.added === LIVING_LESSONS_ADDED[m.id])).toBe(true);
   });
 
   it('A to Z and Z to A (proven-to-catch: each check fails on the other order)', () => {
@@ -80,18 +89,29 @@ describe('the course sorts, on the real catalog', () => {
 
   it('Recently added: the course with the newest recorded lesson leads; undated courses keep course order after it (proven-to-catch)', () => {
     const out = sortCourses(CATALOG, 'added-newest');
-    expect(out[0].key).toBe('living-lessons');
+    const newestDay = CATALOG.map((c) => courseAddedSpan(c).newest).sort().pop();
+    expect(courseAddedSpan(out[0]).newest).toBe(newestDay);
     expect(newestFirst(out, CATALOG)).toBe(true);
-    // A flipped comparator (undated first) fails the same check.
-    const flipped = [...out.slice(1), out[0]];
-    expect(newestFirst(flipped, CATALOG)).toBe(false);
-    // With a second dated course, the newer one wins — and oldest-first reverses them.
+    // A flipped comparator (oldest first) fails the same check.
+    expect(newestFirst([...out].reverse(), CATALOG)).toBe(false);
+    // An undated course goes AFTER every dated one, in course order.
+    const bare = { ...CATALOG[0], key: 'bare-copy', schedule: CATALOG[0].schedule.map((m) => ({ ...m, added: null })) };
+    const withBare = [bare, ...CATALOG];
+    const sorted = sortCourses(withBare, 'added-newest');
+    expect(sorted[sorted.length - 1].key).toBe('bare-copy');
+    expect(newestFirst(sorted, withBare)).toBe(true);
+    expect(newestFirst([bare, ...out], withBare)).toBe(false);
+    // A newer course wins — and oldest-first reverses the ends.
     const hl = CATALOG.find((c) => c.key !== 'living-lessons' && c.schedule.length > 2);
     const newer = { ...hl, schedule: hl.schedule.map((m) => ({ ...m, added: '2099-12-31' })) }; // a synthetic day later than any real one
-    const older = { ...hl, key: 'older-copy', schedule: hl.schedule.map((m) => ({ ...m, added: '2026-06-01' })) };
+    const older = { ...hl, key: 'older-copy', schedule: hl.schedule.map((m) => ({ ...m, added: '2026-01-01' })) }; // earlier than any real one
     const two = [older, ...CATALOG.filter((c) => c.key !== hl.key), newer];
-    expect(keys(sortCourses(two, 'added-newest')).slice(0, 3)).toEqual([hl.key, 'living-lessons', 'older-copy']);
-    expect(keys(sortCourses(two, 'added-oldest')).slice(0, 3)).toEqual(['older-copy', 'living-lessons', hl.key]);
+    const byNew = keys(sortCourses(two, 'added-newest'));
+    const byOld = keys(sortCourses(two, 'added-oldest'));
+    expect(byNew[0]).toBe(hl.key);
+    expect(byNew[byNew.length - 1]).toBe('older-copy');
+    expect(byOld[0]).toBe('older-copy');
+    expect(byOld[byOld.length - 1]).toBe(hl.key);
     expect(newestFirst(sortCourses(two, 'added-oldest'), two)).toBe(false);
   });
 
@@ -132,14 +152,17 @@ describe('the course sorts, on the real catalog', () => {
 
   it('offers only the orders whose data exists — and names what it leaves out', () => {
     const bare = courseSortsFor(CATALOG, { places: [], progress: {} }).map((o) => o.key);
-    expect(bare).toEqual(['authored', 'title', 'title-desc', 'lessons-desc', 'lessons-asc', 'added-newest', 'latest']);
-    // Oldest first waits for a second dated course (with one, it equals Recently added);
-    // the per-reader orders wait for this device to have opened something.
+    expect(bare).toEqual(['authored', 'title', 'title-desc', 'lessons-desc', 'lessons-asc', 'added-newest', 'added-oldest', 'latest']);
+    // Oldest first waits for a second dated course (with one, it equals Recently
+    // added) — every course is dated now (DR-0687), so it is offered; the proof
+    // it would be withheld is the one-dated-course catalog below.
+    const oneDated = CATALOG.map((c) => (c.key === 'living-lessons' ? c : { ...c, schedule: c.schedule.map((m) => ({ ...m, added: null })) }));
+    expect(courseSortsFor(oneDated, { places: [], progress: {} }).map((o) => o.key)).not.toContain('added-oldest');
+    // The per-reader orders wait for this device to have opened something.
     const used = courseSortsFor(CATALOG, {
       places: [{ courseKey: CATALOG[0].key, lessonId: CATALOG[0].schedule[0].id, at: 1, started: true }], progress: {},
     }).map((o) => o.key);
     expect(used).toEqual(expect.arrayContaining(['opened', 'in-progress', 'not-started', 'completed']));
-    expect(used).not.toContain('added-oldest');
     expect(COURSE_SORTS.map((o) => o.key)).toContain('added-oldest');
   });
 });
@@ -150,13 +173,13 @@ describe('the latest lessons, every course', () => {
   it('pulls every dated lesson in the catalog, newest first, each naming its home course (proven-to-catch)', () => {
     const { rows, undated, courseCount } = latestLessons(CATALOG);
     const total = CATALOG.reduce((t, c) => t + c.schedule.length, 0);
-    const datedTotal = CATALOG.reduce((t, c) => t + c.schedule.filter((m) => m.added).length, 0);
-    expect(rows.length).toBe(datedTotal);
-    expect(undated).toBe(total - datedTotal);
-    expect(courseCount).toBe(1);
+    // DR-0687: every lesson of every course is listed.
+    expect(rows.length).toBe(total);
+    expect(undated).toBe(0);
+    expect(courseCount).toBe(CATALOG.length);
     expect(newestFirstRows(rows)).toBe(true);
     expect(newestFirstRows([...rows].reverse())).toBe(false);
-    const newestDay = Object.values(LIVING_LESSONS_ADDED).sort().pop();
+    const newestDay = rows.map((r) => r.added).sort().pop();
     expect(rows[0].added).toBe(newestDay);
     for (const r of rows) {
       const home = CATALOG.find((c) => c.key === r.courseKey);
@@ -169,9 +192,11 @@ describe('the latest lessons, every course', () => {
     const withDay = { ...other, schedule: other.schedule.map((m, i) => (i === 0 ? { ...m, added: '2099-12-31' } : m)) }; // synthetic, later than any real day
     const list = CATALOG.map((c) => (c.key === other.key ? withDay : c));
     const { rows, courseCount } = latestLessons(list);
-    expect(courseCount).toBe(2);
+    expect(courseCount).toBe(CATALOG.length);
     expect(rows[0]).toMatchObject({ courseKey: other.key, lessonId: other.schedule[0].id, added: '2099-12-31' });
-    expect(rows[1].courseKey).toBe('living-lessons');
+    // The rows interleave courses: the newest real day holds lessons from more than one course.
+    const newestReal = rows[1].added;
+    expect(new Set(rows.filter((r) => r.added === newestReal).map((r) => r.courseKey)).size).toBeGreaterThan(1);
     expect(newestFirstRows(rows)).toBe(true);
   });
 
@@ -215,7 +240,7 @@ describe('on the real Learn tree', () => {
   it('the top sort lists the orders, Z to A reorders the picker, and the pick is kept on the device', () => {
     mount();
     const opts = [...sortSel().querySelectorAll('option')].map((o) => o.textContent);
-    expect(opts).toEqual(['Course order', 'A to Z', 'Z to A', 'Most lessons', 'Fewest lessons first', 'Recently added', 'Latest lessons, every course']);
+    expect(opts).toEqual(['Course order', 'A to Z', 'Z to A', 'Most lessons', 'Fewest lessons first', 'Recently added', 'Oldest first', 'Latest lessons, every course']);
     choose(sortSel(), 'title-desc');
     const group = [...container.querySelectorAll('#learn-course-pick optgroup')]
       .sort((a, b) => b.querySelectorAll('option').length - a.querySelectorAll('option').length)[0];
@@ -243,12 +268,18 @@ describe('on the real Learn tree', () => {
     const list = container.querySelector('[data-testid="learn-latest-lessons"]');
     expect(list).toBeTruthy();
     const rows = [...list.querySelectorAll('li[data-lesson-id]')];
-    expect(rows.length).toBe(Object.keys(LIVING_LESSONS_ADDED).length);
+    // DR-0687: every mounted lesson is listed — the catalog plus the A.I. course Learn mounts itself.
+    const mounted = CATALOG.reduce((t, c) => t + c.schedule.length, 0) + buildSchedule(null).length;
+    expect(rows.length).toBe(mounted);
+    expect(new Set(rows.map((r) => r.getAttribute('data-course-key'))).size).toBe(CATALOG.length + 1);
+    expect(list.querySelector('[data-testid="learn-latest-line"]').textContent)
+      .toBe(`All ${mounted} lessons across ${CATALOG.length + 1} courses, each on the day it was first added to the app.`);
+    expect(list.textContent).not.toMatch(/have no recorded day/);
     const days = rows.map((r) => r.getAttribute('data-added'));
+    expect(days.every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))).toBe(true);
     expect(days.every((d, i) => i === 0 || days[i - 1] >= d)).toBe(true);
-    const first = rows[0];
+    const first = rows.find((r) => r.getAttribute('data-course-key') === 'living-lessons');
     const id = first.getAttribute('data-lesson-id');
-    expect(first.getAttribute('data-course-key')).toBe('living-lessons');
     expect(first.textContent).toMatch(/Living Lessons/);
 
     act(() => { first.querySelector('button').click(); });

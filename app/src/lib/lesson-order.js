@@ -153,8 +153,21 @@ export const LESSON_ORDERS = [
 ];
 export const DEFAULT_LESSON_ORDER = 'number';
 
+/**
+ * True when every lesson carries a recorded day and, in number order, the days
+ * never go backwards — only then is "by number" also "oldest first" (DR-0687).
+ * Measured 2026-09-30: true for all 40 numbered courses; a course whose
+ * later-numbered lesson was written before an earlier-numbered one reads false.
+ */
+export function datesFollowNumbers(schedule) {
+  const list = Array.isArray(schedule) ? schedule : [];
+  if (!list.length || !isNumberedCourse(list)) return false;
+  const ordered = orderLessons(list, 'number');
+  return ordered.every((m, i) => !!monthOf(m.added) && (i === 0 || String(ordered[i - 1].added) <= String(m.added)));
+}
+
 /** The orders this course can offer: numbered → first/newest; unnumbered → course order; every course → A to Z / Z to A; shelved → divisions too. */
-export function ordersFor({ numbered, hasSections, dated }) {
+export function ordersFor({ numbered, hasSections, dated, numberIsOldest = dated }) {
   return LESSON_ORDERS
     .filter((o) => {
       if (o.key === 'divisions') return !!hasSections;
@@ -164,7 +177,7 @@ export function ordersFor({ numbered, hasSections, dated }) {
     })
     .map((o) => {
       if (o.key === 'newest' && !dated) return { ...o, label: 'Last to first' };
-      if (o.key === 'number' && dated) return { ...o, label: 'By number, oldest first' };
+      if (o.key === 'number' && numberIsOldest) return { ...o, label: 'By number, oldest first' };
       return o;
     });
 }
