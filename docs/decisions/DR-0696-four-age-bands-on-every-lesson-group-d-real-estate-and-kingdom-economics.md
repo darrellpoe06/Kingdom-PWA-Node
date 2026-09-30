@@ -39,6 +39,8 @@ Courses, as each lands:
 
 - **property-principle** — 8 lessons: child and youth written; teen and senior given a naming opening where they lacked one; three teen quotations corrected to the KJV's lower-case first letter.
 - **management-stewardship** — 8 lessons: child and youth written; teen and senior given a naming opening where they lacked one; one teen quotation corrected (Nehemiah 5:15).
+- **leasing-tenants** — 8 lessons: child and youth written; teen and senior given a naming opening where they lacked one.
+- **maintenance-trades** — 8 lessons: child and youth written; teen and senior given a naming opening where they lacked one.
 
 ## Verification after merge
 

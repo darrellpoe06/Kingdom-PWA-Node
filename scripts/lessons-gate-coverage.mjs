@@ -99,8 +99,10 @@ export function findUnguardedPrinciples(text) {
 // grandfather set: a NEW uncited principle fails; backfilling a citation removes
 // its id here; the baseline may only get smaller. The forward discipline: every
 // lesson added from now names its gate or its why-no-gate.
+// P15 left 2026-09-30 (DR-0697): big-picture-no-blank-subtab.test.jsx walks every
+// Big Picture tab with an empty household and fails on a panel that says nothing.
 export const UNCITED_BASELINE = new Set([
-  'P2', 'P4', 'P6', 'P8', 'P10', 'P11', 'P12', 'P13', 'P15', 'P16',
+  'P2', 'P4', 'P6', 'P8', 'P10', 'P11', 'P12', 'P13', 'P16',
   'P17', 'P18', 'P20', 'P21', 'P24', 'P25', 'P30', 'P34', 'P35',
   // Re-frozen 2026-08-14 (DR-0303). These nine were ALWAYS uncited; the
   // detector could not see it, because it credited any line mentioning a
