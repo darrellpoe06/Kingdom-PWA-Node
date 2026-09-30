@@ -337,6 +337,12 @@ const NODES = [
     reads: [{ res: 'db:agent_inbox#voice', token: 'agent_inbox' }, { res: 'db:agent_inbox#voice-transcript', token: 'voice-transcript' }],
     writes: [], seeds: [],
   }),
+  wf('inbox-lesson-body.yml', {
+    id: 'inbox-lesson-body', name: "The words of Darrell's own lesson row",
+    purpose: "Reads the words of one lesson row created by Darrell's own accounts from the live database the app reads, so a lesson he sends is built without a chat connector; any member's row is refused and never read.",
+    reads: [{ res: 'db:agent_inbox#lesson', token: 'FROM public.agent_inbox' }],
+    writes: [], seeds: [],
+  }),
   wf('inbox-lessons-waiting.yml', {
     id: 'inbox-lessons-waiting', name: 'Which lesson rows wait',
     purpose: 'Lists the lesson rows not yet captured, building or awaiting review, from the live database the app reads (ids, tags and body length, never a body), so the hourly intake sees what waits without a chat connector.',
