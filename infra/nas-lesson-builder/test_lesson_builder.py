@@ -1223,6 +1223,99 @@ class BackfillTests(unittest.TestCase):
         self.assertFalse(hasattr(lb.Backfill, "ship"))
 
 
+class BellTests(unittest.TestCase):
+    """DR-0697: a lesson row notification rings the bell once per burst, with a
+    trailing ring, an hourly ceiling and a kill; never an id or a word."""
+
+    def clock(self, start=1000.0):
+        t = {"now": start}
+        return t, (lambda: t["now"])
+
+    def test_a_row_rings_once_and_a_burst_is_one_ring_plus_a_trailing_ring(self):
+        t, clk = self.clock()
+        sent = []
+        bell = lb.Bell(post=lambda: (sent.append(1), (True, 204))[1], clock=clk, spacing=20, max_per_hour=30,
+                       enabled=True, log=lambda *_: None)
+        self.assertEqual(bell.ring(), "sent")
+        t["now"] += 1
+        self.assertEqual(bell.ring(), "wait")   # a burst: held, not dropped
+        self.assertEqual(bell.ring(), "wait")
+        self.assertEqual(len(sent), 1)
+        self.assertGreater(bell.wait_seconds(), 0)
+        t["now"] += 20
+        self.assertEqual(bell.flush(), "sent")   # the trailing ring
+        self.assertEqual(len(sent), 2)
+        self.assertEqual(bell.flush(), "idle")
+        self.assertIsNone(bell.wait_seconds())
+
+    def test_PROVEN_TO_CATCH_the_hourly_ceiling_holds_the_ring_and_the_kill_drops_it(self):
+        t, clk = self.clock()
+        sent = []
+        bell = lb.Bell(post=lambda: (sent.append(1), (True, 204))[1], clock=clk, spacing=0, max_per_hour=2,
+                       enabled=True, log=lambda *_: None)
+        bell.ring()
+        bell.ring()
+        self.assertEqual(bell.ring(), "budget")
+        self.assertEqual(len(sent), 2)
+        t["now"] += 3601
+        self.assertEqual(bell.flush(), "sent")   # the held ring goes once the window frees
+        off = lb.Bell(post=lambda: (sent.append(1), (True, 204))[1], clock=clk, enabled=False, log=lambda *_: None)
+        self.assertEqual(off.ring(), "off")
+        self.assertEqual(len(sent), 3)
+
+    def test_the_dispatch_carries_no_id_and_no_words(self):
+        tok = os.path.join(tempfile.mkdtemp(), "t")
+        with open(tok, "w") as f:
+            f.write("secret-token\n")
+        seen = []
+
+        def opener(req, timeout=None):
+            seen.append(req)
+
+            class R:
+                status = 204
+
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *a):
+                    return False
+            return R()
+        ok, code = lb.bell_dispatch(token_file=tok, repo="o/r", opener=opener)
+        self.assertTrue(ok)
+        self.assertEqual(code, 204)
+        body = json.loads(seen[0].data.decode("utf-8"))
+        self.assertEqual(body, {"event_type": "lesson-saved", "client_payload": {"source": "nas-lesson-builder"}})
+        self.assertTrue(seen[0].full_url.endswith("/repos/o/r/dispatches"))
+        self.assertFalse(lb.bell_dispatch(token_file=tok + "-missing")[0])
+
+    def test_the_listen_loop_flushes_the_trailing_ring_and_wakes_for_it(self):
+        import inspect
+        src = inspect.getsource(lb.Service.listen_forever)
+        self.assertIn("self.bell.flush()", src)
+        self.assertIn("self.bell.wait_seconds()", src)
+        self.assertIn("Service(None, bell=bell)", inspect.getsource(lb.main))
+
+    def test_the_service_rings_on_a_row_not_on_a_sweep_and_not_when_stopped(self):
+        rings = []
+
+        class B:
+            def ring(self):
+                rings.append(1)
+        db = FakeDb([row("a", TEACHING)])
+        svc = lb.Service(db, data_dir=tempfile.mkdtemp(), ready=lambda: (False, {"state": "waiting on a writer"}),
+                         kill=lambda: (False, ""), log=lambda *_: None, bell=B())
+        svc.consider("a")
+        self.assertEqual(len(rings), 1)          # rings even with no writer ready
+        svc.consider(None)
+        svc.consider("decision:x")
+        self.assertEqual(len(rings), 1)
+        stopped = lb.Service(db, data_dir=tempfile.mkdtemp(), kill=lambda: (True, "enabled:false"),
+                             log=lambda *_: None, bell=B())
+        stopped.consider("a")
+        self.assertEqual(len(rings), 1)
+
+
 class Migration(unittest.TestCase):
     def test_the_migration_carries_the_shape_the_builder_writes(self):
         mig = [f for f in os.listdir(os.path.join(REPO, "infra/supabase/migrations-auto"))

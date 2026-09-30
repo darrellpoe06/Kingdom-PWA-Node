@@ -221,6 +221,8 @@ const NODES = [
     purpose: 'The armed reader (every 4 hours) and the Gmail Way read each lesson, verify every verse, and write it into the class.',
     reads: [
       { res: 'gh:signal-pr', file: '.github/workflows/lesson-mail-watch.yml', token: 'wakes the subscribed capture session' },
+      // DR-0697: the in-app lane wakes on the bell PR's comment, not an hourly clock.
+      { res: 'gh:lesson-bell', file: 'docs/decisions/DR-0697-the-lesson-intake-rings-a-bell-instead-of-watching-a-clock.md', token: 'subscribed to the bell PR' },
       { res: 'hosted:lesson-mirror', file: 'docs/decisions/DR-0614-the-nas-jobs-follow-the-database-the-app-reads-and-lesson-rows-are-mirrored-to-where-the-reader-can-see-them.md', token: 'the lesson reader picks it up' },
       { res: 'file:source-transcripts', file: '.github/workflows/source-transcript.yml', token: 'docs/99-session-notes/sources/' },
     ],
@@ -328,8 +330,10 @@ const NODES = [
       { res: 'db:lesson_builder_settings', token: 'INSERT INTO public.lesson_builder_settings' },
       { res: 'code:lessons', token: 'insert_module' },
       { res: 'db:agent_inbox#lesson-published', token: '"lesson-published"' },
+      // DR-0697: the same notification rings the lesson inbox bell.
+      { res: 'event:lesson-saved', token: 'BELL_EVENT = "lesson-saved"' },
     ],
-    seeds: ['learn', 'lesson-inbox'],
+    seeds: ['learn', 'lesson-inbox', 'lesson-inbox-bell'],
   }),
   wf('voice-intake-health.yml', {
     id: 'voice-intake-health', name: 'Voice intake witness',
@@ -346,8 +350,18 @@ const NODES = [
   wf('inbox-lessons-waiting.yml', {
     id: 'inbox-lessons-waiting', name: 'Which lesson rows wait',
     purpose: 'Lists the lesson rows not yet captured, building or awaiting review, from the live database the app reads (ids, tags and body length, never a body), so the hourly intake sees what waits without a chat connector.',
-    reads: [{ res: 'db:agent_inbox#lesson', token: 'FROM public.agent_inbox' }],
+    reads: [{ res: 'db:agent_inbox#lesson', file: 'scripts/lesson-inbox-waiting.sql', token: 'FROM public.agent_inbox' }],
     writes: [], seeds: [],
+  }),
+  wf('lesson-inbox-bell.yml', {
+    id: 'lesson-inbox-bell', name: 'The lesson inbox bell (a lesson waits, the intake wakes)',
+    purpose: 'Rung by the lesson-saved dispatch the NAS sends when a lesson row lands (and once a day as a safety net): reads which lesson rows wait and comments on the standing bell PR only when that set changed (ids, created_by, tags; never a body), so the intake session wakes only when a lesson waits instead of every hour (DR-0697).',
+    reads: [
+      { res: 'event:lesson-saved', token: 'types: [lesson-saved]' },
+      { res: 'db:agent_inbox#lesson', file: 'scripts/lesson-inbox-waiting.sql', token: 'FROM public.agent_inbox' },
+    ],
+    writes: [{ res: 'gh:lesson-bell', token: 'BELL_PR' }],
+    seeds: ['lesson-capture'],
   }),
   wf('inbox-lesson-tag.yml', {
     id: 'inbox-lesson-tag', name: 'A shipped lesson marks its row',
@@ -1069,6 +1083,7 @@ const RESOURCES = {
   'auth:session#tv': { label: 'a TV’s signed-in session', sink: 'The television keeps it and uses the app as that person; nothing else reads it.' },
 
   'event:use-prompt': { label: '“Put it in the box” (reuse a prompt)' },
+  'event:lesson-saved': { label: 'the lesson-saved dispatch (a lesson row landed)' },
   'device:family-key': { label: 'the family key on this device' },
   'code:lessons': { label: 'lessons written into the classes' },
   'db:lesson_versions': { label: 'every writer\u2019s version of a teaching, gated and kept (DR-0669)' },
@@ -1087,6 +1102,7 @@ const RESOURCES = {
   'gh:automerge-dispatch': { label: 'the auto-merge sweep dispatched after PRs were refreshed' },
   'gh:dispatch': { label: 'a hand dispatch', source: 'A person or a session dispatches a remote-hands workflow on purpose.' },
   'gh:signal-pr': { label: 'the lesson signal PR (#1346)' },
+  'gh:lesson-bell': { label: 'the lesson inbox bell PR (#1879)' },
   'gh:pr': { label: 'pull requests' },
   'gh:check': { label: 'the gates’ verdict' },
   'gh:main': { label: 'main (merged)' },

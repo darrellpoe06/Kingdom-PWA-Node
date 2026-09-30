@@ -1933,10 +1933,104 @@ def job_of(payload):
     return "row", payload
 
 
+# =============================================================================
+# THE BELL (DR-0697) -- the notification that starts a build also wakes the
+# lesson intake session, instead of an hourly AI timer.
+# Darrell 2026-09-30: "I don't like timers... they cost more than we need...
+# don't we have a better solution/s?"
+# A row notification (0243's pg_notify) sends ONE repository_dispatch
+# `lesson-saved` -- no ids, no words -- and lesson-inbox-bell.yml reads which
+# rows wait and comments on the standing bell PR only when that set changed.
+# Brakes: spacing (a burst of notifications is one ring, flushed after the
+# spacing -- a trailing ring, so the last row of a burst is never missed); an
+# hourly ceiling (a ring past it waits for the window, never exceeds it); the
+# kill LESSON_BELL=off in lesson-builder.env. The token is read in place from
+# the NAS-resident secret the builder already pushes with; it is never logged.
+# The daily scheduled run of the bell is the net for a ring that never left.
+# =============================================================================
+BELL_EVENT = "lesson-saved"
+BELL_REPO = os.environ.get("LESSON_BELL_REPO", "darrellpoe06/Kingdom-PWA-Node")
+BELL_SPACING = int(os.environ.get("LESSON_BELL_SPACING_SECONDS", "20"))
+BELL_MAX_PER_HOUR = int(os.environ.get("LESSON_BELL_MAX_PER_HOUR", "30"))
+
+
+def bell_dispatch(token_file=TOKEN_FILE, repo=BELL_REPO, opener=None):
+    """POST one repository_dispatch. Returns (ok, http status or reason). Never raises."""
+    import urllib.request  # noqa: PLC0415
+    try:
+        with open(token_file) as f:
+            token = f.read().strip()
+    except OSError:
+        return False, "no push credential at " + token_file
+    body = json.dumps({"event_type": BELL_EVENT, "client_payload": {"source": "nas-lesson-builder"}}).encode("utf-8")
+    req = urllib.request.Request("https://api.github.com/repos/{}/dispatches".format(repo), data=body, method="POST")
+    req.add_header("Authorization", "Bearer " + token)
+    req.add_header("Accept", "application/vnd.github+json")
+    req.add_header("Content-Type", "application/json")
+    try:
+        with (opener or urllib.request.urlopen)(req, timeout=15) as r:
+            code = getattr(r, "status", None) or r.getcode()
+            return code == 204, code
+    except Exception as e:  # noqa: BLE001
+        return False, getattr(e, "code", None) or type(e).__name__
+
+
+class Bell:
+    def __init__(self, post=None, clock=time.monotonic, spacing=BELL_SPACING, max_per_hour=BELL_MAX_PER_HOUR,
+                 enabled=None, state_path=None, log=print):
+        self.post = post or bell_dispatch
+        self.clock, self.spacing, self.max_per_hour = clock, spacing, max_per_hour
+        self.enabled = (os.environ.get("LESSON_BELL", "on") != "off") if enabled is None else enabled
+        self.state_path, self.log = state_path, log
+        self.pending = False
+        self.sent = []
+        self.last = {}
+
+    def ring(self):
+        self.pending = True
+        return self.flush()
+
+    def wait_seconds(self):
+        """How long until a pending ring may go (None when nothing is pending)."""
+        if not self.pending or not self.enabled:
+            return None
+        now = self.clock()
+        self.sent = [t for t in self.sent if now - t < 3600]
+        waits = [0.0]
+        if self.sent:
+            waits.append(self.sent[-1] + self.spacing - now)
+        if len(self.sent) >= self.max_per_hour:
+            waits.append(self.sent[0] + 3600 - now)
+        return max(waits)
+
+    def flush(self):
+        if not self.pending:
+            return "idle"
+        if not self.enabled:
+            self.pending = False
+            return "off"
+        wait = self.wait_seconds()
+        if wait > 0:
+            return "budget" if len(self.sent) >= self.max_per_hour else "wait"
+        self.pending = False
+        self.sent.append(self.clock())
+        ok, code = self.post()
+        self.last = {"at": utc_now(), "ok": ok, "code": code, "rings_this_hour": len(self.sent)}
+        self.log("lesson-bell: rang {} -> {}".format(BELL_EVENT, code))
+        if self.state_path:
+            try:
+                with open(self.state_path, "w", encoding="utf-8") as f:
+                    json.dump(self.last, f)
+            except OSError:
+                pass
+        return "sent" if ok else "failed"
+
+
 class Service:
     def __init__(self, db, data_dir=DATA, parallel=PARALLEL, spawn=None, ready=readiness, kill=kill_state,
-                 now=utc_now, log=print, budget=None):
+                 now=utc_now, log=print, budget=None, bell=None):
         self.db, self.data_dir, self.parallel = db, data_dir, parallel
+        self.bell = bell
         self.spawn = spawn or self._spawn_child
         self.ready, self.kill, self.now, self.log = ready, kill, now, log
         self.budget = budget if budget is not None else BUILD_MAX_SECONDS
@@ -1982,6 +2076,10 @@ class Service:
             if stopped:
                 self.write_status({"state": "stopped", "why": why})
                 return started
+            # The bell rings for every lesson row, ready writer or not: the
+            # bell run decides whether anything waits (DR-0697).
+            if self.bell is not None and job_of(payload)[0] == "row":
+                self.bell.ring()
             ready, st = self._ready_cached()
             self.write_status(st)
             kind, ident = job_of(payload)
@@ -2160,12 +2258,16 @@ class Service:
                     if sweep["now"]:
                         sweep["now"] = False
                         self.consider(None)
+                    wait = self.bell.wait_seconds() if self.bell is not None else None
+                    timeout = 300 if wait is None else min(300, max(1, wait))
                     if sock is not None:
-                        select.select([sock], [], [], 300)
+                        select.select([sock], [], [], timeout)
                     else:
                         time.sleep(1)
                     for payload in db.drain():
                         self.consider(payload)
+                    if self.bell is not None:
+                        self.bell.flush()  # the trailing ring of a burst
             except Exception as e:  # noqa: BLE001 -- reconnect, then sweep what was missed
                 self.log("lesson-builder: connection lost ({}); reconnecting in {} s".format(e, backoff))
                 time.sleep(backoff)
@@ -2229,7 +2331,8 @@ def main(argv=None):
         if not source:
             print("lesson-builder: no database door (REPOINT-ARMED + the sovereign .env) -- nothing to listen on")
             return 0
-        Service(None).listen_forever(lambda: Db(params))
+        bell = Bell(state_path=os.path.join(DATA, "bell.json"))
+        Service(None, bell=bell).listen_forever(lambda: Db(params))
     ap.print_help()
     return 2
 
