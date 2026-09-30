@@ -319,6 +319,8 @@ export function resolveForAge(module, ageBandId = DEFAULT_AGE_BAND, levelOverrid
 // the presenter." So the adult band now chunks into comfortable ~200-word
 // sections too; every word still survives (chunked, never summarized), it just
 // reads as sections instead of a wall.
+const SPELLED_MARKER = /^(?:[A-Z]{3,} )?(?:ONE|TWO|THREE|FOUR|FIVE|SIX|SEVEN|EIGHT|NINE|TEN|ELEVEN|TWELVE)\.$/;
+const SPELLED_HEAD = /^(?:[A-Z]{3,} )?(?:ONE|TWO|THREE|FOUR|FIVE|SIX|SEVEN|EIGHT|NINE|TEN|ELEVEN|TWELVE)\.\s+[A-Z]/;
 const WORDS_PER_SEGMENT = { child: 45, youth: 90, teen: 140, adult: 200, senior: 120 };
 
 export function chunkLessonForAge(text, ageBandId = DEFAULT_AGE_BAND) {
@@ -328,12 +330,41 @@ export function chunkLessonForAge(text, ageBandId = DEFAULT_AGE_BAND) {
   const target = WORDS_PER_SEGMENT[band.id] ?? Infinity;
   if (!Number.isFinite(target)) return [clean];
   // Sentence-ish split that keeps the terminator with its sentence.
-  const sentences = clean.match(/[^.!?]+[.!?]*\s*/g) || [clean];
+  const raw = clean.match(/[^.!?]+[.!?]*\s*/g) || [clean];
+  // Two pieces that are not sentences are glued back before pacing (DR-0698),
+  // so a step never ends on a movement's number or opens on a quotation's tail.
+  // Darrell 2026-09-30, L202 youth: "SEVEN." dangled at the end of one step and
+  // its title opened the next; and a quotation ending in "?" left
+  // `" (Romans 8:35).` to open a step on its own. Only where the pieces JOIN
+  // changes; every character survives in order.
+  const sentences = [];
+  for (const piece of raw) {
+    const prev = sentences.length ? sentences[sentences.length - 1] : null;
+    const tail = prev != null ? /^(["”’)\]]+)(\s*)([\s\S]*)$/.exec(piece) : null;
+    if (tail && (!tail[3] || (tail[2] && /^[(,.;:)]/.test(tail[3])) || /^[,.;:)]/.test(tail[3]))) { sentences[sentences.length - 1] = prev + piece; continue; }
+    if (tail && tail[2] && /^[A-Z]/.test(tail[3])) {
+      // The quote closes the sentence before; what follows is a new sentence.
+      sentences[sentences.length - 1] = prev + tail[1] + tail[2];
+      if (SPELLED_MARKER.test(sentences[sentences.length - 1].trim())) { sentences[sentences.length - 1] += tail[3]; continue; }
+      sentences.push(tail[3]);
+      continue;
+    }
+    if (prev != null && SPELLED_MARKER.test(prev.trim())) { sentences[sentences.length - 1] = prev + piece; continue; }
+    sentences.push(piece);
+  }
   const segments = [];
   let buf = '';
   let words = 0;
   for (const s of sentences) {
     const w = s.trim().split(/\s+/).filter(Boolean).length;
+    // A numbered movement ("SEVEN. STAY IN THE WORD.") opens a step when the
+    // step so far is already well along, so its heading is never stranded at
+    // the foot of a step with its teaching on the next.
+    if (buf.trim() && words >= target * 0.6 && SPELLED_HEAD.test(s.trim())) {
+      segments.push(buf.trim());
+      buf = '';
+      words = 0;
+    }
     buf += s;
     words += w;
     if (words >= target) {

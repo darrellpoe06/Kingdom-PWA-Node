@@ -8,7 +8,8 @@
 // naming the teaching for Bishop Gwin. Whisper transcribed it on the NAS CPU
 // rung (agent_inbox aed9557b-333e-4152-adbc-de0f9e695793, 16,511 characters).
 // The transcript never names the teacher, marks no speakers, and begins
-// partway through the message; the lesson says so. Every quoted span is the
+// partway through the message; the lesson says so, and names who spoke from the
+// recording's context, Darrell's own account and Bishop Gwin's notes (DR-0699). Every quoted span is the
 // verse it names (the repo's scanQuotedVerses), and the teacher's own points
 // are pinned in the order he gave them.
 import { describe, it, expect } from 'vitest';
@@ -103,8 +104,100 @@ describe('provenance is said plainly (DR-0331: render for meaning, never guess)'
     expect(manifest).toContain('Bishop Lloyd E. Gwin');
   });
 
-  it('the class members are not named: the transcript does not mark who spoke', () => {
-    for (const name of ['Mosley', 'Janelle', 'Christiana', 'Evangelist Queen']) expect(ALL().includes(name), name).toBe(false);
+  it('the three witnesses are named: the in-app recording, Darrell\'s own account, and Bishop Gwin\'s notes', () => {
+    const l = L().lesson;
+    expect(l).toContain('the speakers were identified from the recording\'s context and Darrell\'s own account');
+    expect(l).toContain('name the message Once a Christian, Always a Christian');
+    expect(l).toContain('The recording opens inside the second.');
+    for (const b of BANDS()) expect(b).toMatch(/Once a Christian, Always a Christian|Bishop Gwin was the teacher/);
+    // The old line said the class stays unnamed; it must not come back beside the names.
+    expect(ALL()).not.toMatch(/stay unnamed|kept unnamed|are not named because/);
+  });
+});
+
+// WHO SAID WHAT (DR-0699). Darrell 2026-09-30: "Differentiate between speakers...
+// Bishop Gwin is BG... Darrell Poe is DP... Other congregation members are called
+// by BG..." and, deciding the privacy question (DR-0700): the church posts these
+// sessions publicly, so members are named as Bishop Gwin calls them. Every name
+// is pinned to the words the recording attaches it to, never guessed onto a voice.
+const SPEAKER_PINS = [
+  // [band or 'lesson', a sentence fragment that must carry the speaker]
+  ['lesson', 'Bishop Gwin gave his own testimony. He always wanted to succeed'],
+  ['lesson', 'Darrell Poe (DP) said that people used to think the human brain'],
+  ['lesson', 'Darrell Poe (DP), who works in technology, said his son asked him'],
+  ['lesson', 'Janelle, called by name just before she spoke, told of a university chancellor'],
+  ['lesson', 'Names were said aloud in the room: Elder Mosley; Evangelist Gwin, as best the recording can be read (the machine wrote Evangelist Queen)'],
+  ['lesson', 'the story of Christina, Darrell\'s wife (the machine wrote Christiana), who takes classes at the University of Illinois'],
+  ['lesson', 'The recording does not mark who told about Christina or who gave that rule.'],
+  ['lesson', 'Someone answered with the Word, and the recording does not mark who: "let God be true'],
+  ['youth', 'Bishop Gwin told his own story. He always tried to win his own way.'],
+  ['youth', 'SEVEN. STAY IN THE WORD. DP, Darrell Poe, said people used to believe'],
+  ['youth', 'Janelle told about a university chancellor'],
+  ['youth', 'Someone added, and the recording does not show who, "let God be true'],
+  ['teen', 'Bishop Gwin admitted he chased success on his own terms'],
+  ['teen', 'DP noted that scientists once believed'],
+  ['teen', 'Janelle quoted a university chancellor'],
+  ['senior', 'Bishop Gwin testified that he long wanted'],
+  ['senior', 'DP observed that it was once generally believed'],
+  ['senior', 'Janelle recalled a university chancellor'],
+  ['child', 'Bishop Gwin told the class he tried to win his own way.'],
+  ['child', 'Darrell said that long ago, people thought'],
+  ['child', 'Janelle told about a school leader who wants to be a good ancestor.'],
+];
+const textOf = (m, where) => (where === 'lesson' ? m.lesson : m.levels[where]);
+function speakerFaults(m) {
+  const faults = [];
+  for (const [where, frag] of SPEAKER_PINS) if (!textOf(m, where).includes(frag)) faults.push(`${where}: ${frag}`);
+  // A name the recording shows only in one place may not wander onto other words.
+  const all = [m.lesson, ...FULL_BANDS.map((b) => m.levels[b])].join(' ');
+  for (const s of all.split(/(?<=[.!?])\s+/)) {
+    if (/\bJanelle\b/.test(s) && !/chancellor|school leader|good ancestor/.test(s)) faults.push(`Janelle off her words: ${s.slice(0, 80)}`);
+    if (/\bChristina\b/.test(s) && !/University of Illinois|big school|who told about Christina|Christina's mother|his wife Christina|Darrell and Christina/.test(s)) faults.push(`Christina off her words: ${s.slice(0, 80)}`);
+    if (/\bChristiana\b/.test(s) && !/the machine wrote Christiana/.test(s)) faults.push(`the machine's spelling used as a name: ${s.slice(0, 80)}`);
+    if (/\bMosley\b/.test(s) && !/said (aloud|out loud)|named aloud|names were said/i.test(s)) faults.push(`a forebear's name off its line: ${s.slice(0, 80)}`);
+    if (/Evangelist Queen/.test(s) && !/the machine wrote Evangelist Queen/.test(s)) faults.push(`the machine's hearing used as a name: ${s.slice(0, 80)}`);
+  }
+  // The garbled third name is never guessed into a spelling.
+  if (/Osia|Mama\b/.test(all)) faults.push('a garbled name was guessed');
+  return faults;
+}
+
+describe('who said what: BG, DP, and the members as Bishop Gwin calls them (DR-0699, DR-0700)', () => {
+  it('every speaker is pinned to the words the recording attaches to them', () => {
+    expect(speakerFaults(L())).toEqual([]);
+  });
+
+  it('Evangelist Mary E. Gwin is honored in every band and the full lesson (Darrell, 2026-09-30)', () => {
+    // Darrell: "Make sure Bishop Gwin and my wife Christina's mother BG's late wife
+    // is named in this lesson she made sure I went back to school to get my degree
+    // and also sent me and my wife on my first development training to build the
+    // church website" / "Mary Gwin the churches south campus building is named
+    // after her". Her title and the building's name are the church's own.
+    for (const t of [L().lesson, ...BANDS()]) {
+      expect(t).toContain('Evangelist Mary E. Gwin');
+      expect(t).toContain('E-MEG Christian Center');
+      const at = t.indexOf('Evangelist Mary E. Gwin');
+      const around = t.slice(Math.max(0, at - 200), at + 700);
+      for (const must of [/Bishop Gwin's (late )?wife/, /Christina's mother/, /school/, /website/]) expect(around, String(must)).toMatch(must);
+    }
+    expect(L().lesson).toContain('its south campus building bears her name');
+  });
+
+  it('the AI rule and Romans 3:4 are not handed to anyone the recording does not show', () => {
+    for (const t of [L().lesson, ...BANDS()]) {
+      for (const s of t.split(/(?<=[.!?])\s+/)) {
+        if (/let God be true/.test(s)) expect(s, s).toMatch(/does not (show|mark) who|Someone/);
+      }
+    }
+  });
+
+  it('PROVEN-TO-CATCH: a name moved onto other words, a dropped speaker, and a guessed name each fire', () => {
+    const moved = { ...L(), lesson: L().lesson.replace('Bishop Gwin gave his own testimony.', 'Janelle gave her own testimony.') };
+    expect(speakerFaults(moved).length).toBeGreaterThan(0);
+    const dropped = { ...L(), levels: { ...L().levels, teen: L().levels.teen.replace('DP noted that scientists', 'A member noted that scientists') } };
+    expect(speakerFaults(dropped).length).toBeGreaterThan(0);
+    const guessed = { ...L(), lesson: `${L().lesson} Osia Mama was there.` };
+    expect(speakerFaults(guessed).length).toBeGreaterThan(0);
   });
 });
 
@@ -206,7 +299,7 @@ describe('the teaching is taught in the order it was given, and in our voice', (
     expect(L().lesson).toContain('the rod of God in mine hand" (Exodus 17:9)');
   });
 
-  it('PROVEN-TO-CATCH: a planted generic name, a misquote, a wrong reference, a dropped movement, and a named class member each fire', () => {
+  it('PROVEN-TO-CATCH: a planted generic name, a misquote, a wrong reference, and a dropped movement each fire', () => {
     const planted = { ...L(), lesson: `${L().lesson} God prepared Joshua.` };
     expect(quotedTexts(planted).map(([, t]) => t).join(' ').replace(/"[^"]*"/g, ' ').match(/\bGod\b/g)).not.toBe(null);
     const misquote = { ...L(), lesson: L().lesson.replace('then thou shalt have good success" (Joshua 1:8)', 'then thou shalt have great success" (Joshua 1:8)') };
@@ -217,8 +310,7 @@ describe('the teaching is taught in the order it was given, and in our voice', (
     expect(scanQuotedVerses([wrongRef], quotedTexts).faults.length).toBeGreaterThan(0);
     const dropped = L().lesson.replace('FIVE. THE HAND LAID ON IN PUBLIC.', 'FIVE.');
     expect(dropped.indexOf('FIVE. THE HAND LAID ON IN PUBLIC.')).toBe(-1);
-    const named = { ...L(), lesson: `${L().lesson} Janelle said it.` };
-    expect(quotedTexts(named).map(([, t]) => t).join(' ').includes('Janelle')).toBe(true);
+    
   });
 });
 
