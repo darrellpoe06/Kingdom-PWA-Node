@@ -2061,7 +2061,11 @@ function CourseView({
       {/* Governor-only: set / confirm the real start date + reveal the facilitator guide */}
       {isGovernor && (
         <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3 mb-4">
-          {setCohortStart && (
+          {/* The cohort date is COURSE-WIDE, so it lives with the course (the
+              lesson list), never above an open lesson (DR-0688). The facilitator
+              toggle below stays in both places: inside an open lesson it reveals
+              THAT lesson's own guide (m.facilitator on its card), nothing else. */}
+          {setCohortStart && !focusModule && (
             <>
               <label htmlFor={`cohort-start-${meta.key}`} className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Governor · cohort 1 start date</label>
               <div className="flex flex-wrap gap-2 items-center">
@@ -2107,18 +2111,30 @@ function CourseView({
           Governor-only block above, so from a staff or member account the whole
           affordance was invisible. That gate was the bug; the reader is not a
           privileged tool, it is how a person reads. */}
-      <div className="mb-4">
-        <button
-          type="button"
-          onClick={() => setTeaching(true)}
-          className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-        >
-          ▶ Play the overview (all {schedule.length} at a glance)
-        </button>
-        <p className="mt-2 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-          Opens the big full-screen view — read it yourself in large type, or press <strong>Read aloud</strong> and let it read to you. Every {U.noun} below has its own <strong className="text-[#5A6E3D]">▶ Play</strong>; this one plays the whole series at a glance.
-        </p>
-      </div>
+      {/* THE WHOLE-COURSE OVERVIEW LIVES WITH THE COURSE, NOT ABOVE A LESSON
+          (DR-0688). Darrell 2026-09-30, from his phone with L200 open and this
+          button sitting over it: "Also the over view should not be at the top
+          of each lesson it is confusing.... only play button should be to play
+          that specific lesson... the whole course overview can live somewhere
+          just not in a confusing place."
+          So it renders only on the course's own page (the lesson list, before
+          any lesson is opened), named plainly as the WHOLE course, with the
+          count read from the schedule. Inside an open lesson the only play
+          control is that lesson's own ▶ Play. */}
+      {!focusModule && (
+        <div className="mb-4" data-testid="course-overview-play">
+          <button
+            type="button"
+            onClick={() => setTeaching(true)}
+            className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+          >
+            ▶ Play the whole course overview ({schedule.length} {schedule.length === 1 ? U.noun : U.plural})
+          </button>
+          <p className="mt-2 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+            The whole course at a glance, in the big full-screen view — read it yourself in large type, or press <strong>Read aloud</strong> and let it read to you. To hear one {U.noun}, open it and press its own <strong className="text-[#5A6E3D]">▶ Play</strong>.
+          </p>
+        </div>
+      )}
       {/* The lesson's own space: a sticky bar naming where you are, the way
           back, and previous/next — the reader can never fall into the full
           list by accident. Rendered only while a lesson is open alone.

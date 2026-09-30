@@ -121,7 +121,7 @@ describe('on the real Learn tree', () => {
     pickLiving();
     expect(rows().length).toBe(COUNT + 1);
     expect(heading(), 'the course heading reads the schedule, not meta.weeks').toBe(`The ${COUNT + 1} lessons`);
-    expect(container.textContent).toContain(`all ${COUNT + 1} at a glance`);
+    expect(container.textContent).toContain(`whole course overview (${COUNT + 1} lessons)`);
     expect(allOption().textContent).toBe(`All lessons · ${COUNT + 1}`);
     expect(nav().querySelector('[data-testid="course-lesson-count"]').textContent)
       .toBe(`${COUNT + 1} lessons · L1–L${HIGHEST + 1} · no ${GAPS.map((g) => `L${g}`).join(', ')}`);
