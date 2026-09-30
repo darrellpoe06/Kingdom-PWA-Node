@@ -13,7 +13,8 @@
 //   full levels scripts/full-levels.mjs                 (scan + ratchet)
 //   reading     scripts/reading-level.mjs               (scanSeries + ratchet)
 //   bands       scripts/band-differentiation.mjs        (scan + ratchet)
-//   coverage    scripts/course-band-coverage.mjs        (scan + ratchet)
+//   coverage    scripts/course-band-coverage.mjs        (scan + ratchet, and the
+//               per-lesson all-four rule against its pinned list, DR-0691)
 //   structure   ids present, unique across the whole school, Living Lessons ids
 //               shaped ll<n>-slug with no number claimed twice
 //               (the living-lessons-id-collision.test.js contract).
@@ -42,7 +43,7 @@ import { quotedTexts, scanQuotationIntegrity, ratchetQuotationIntegrity } from '
 import { scanFullness, ratchetFullness } from './full-levels.mjs';
 import { scanSeries, ratchet as ratchetReading } from './reading-level.mjs';
 import { scanDifferentiation, ratchetDifferentiation } from './band-differentiation.mjs';
-import { scanCourseBands, ratchetCourseBands, lessonsOfCourse } from './course-band-coverage.mjs';
+import { scanCourseBands, ratchetCourseBands, lessonsOfCourse, ratchetFourBands, loadFourBandAllowlist } from './course-band-coverage.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const LIB = join(HERE, '..', 'app', 'src', 'lib');
@@ -157,7 +158,11 @@ export function gateCorpus(courses, { baselines = null } = {}) {
   const reading = ratchetReading(scanSeries(ll), b.reading);
   const bandDiff = ratchetDifferentiation(scanDifferentiation(ll), b.bandDiff);
   const llIds = new Set(ll.map((m) => m.id));
-  const courseBands = ratchetCourseBands(scanCourseBands(pseudoCatalog, llIds), b.courseBands);
+  const courseBandScan = scanCourseBands(pseudoCatalog, llIds);
+  const courseBands = ratchetCourseBands(courseBandScan, b.courseBands);
+  const byKey = {};
+  for (const key of catalogKeys) for (const m of lessonsOfCourse(pseudoCatalog.find((c) => c.key === key))) byKey[`${key}/${m.id}`] = m;
+  const fourBands = ratchetFourBands(courseBandScan, b.fourBands || loadFourBandAllowlist(), byKey);
 
   const fresh = [
     ...structure.map((x) => `structure :: ${x}`),
@@ -171,6 +176,7 @@ export function gateCorpus(courses, { baselines = null } = {}) {
     ...reading.freshOverNewCeiling.map((x) => `reading-level :: ${x} :: child band over the new-lesson ceiling`),
     ...bandDiff.fresh.map((x) => `band-differentiation :: ${x}`),
     ...courseBands.worse.map((x) => `course-bands :: ${x}`),
+    ...fourBands.fresh.map((x) => `four-bands :: ${x}`),
   ];
   return {
     passed: fresh.length === 0,
