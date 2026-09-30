@@ -273,10 +273,25 @@ export function getPlaceFor(courseKey, lessonId, opts = {}) {
   } catch { return null; }
 }
 
-/** True when a place is a lesson the reader has begun and not finished. */
+/**
+ * True when a place is a lesson with somewhere to CONTINUE to: a real position
+ * past its start (a later part, a later step, or a later sentence), not finished.
+ *
+ * A PLACE AT THE START IS NOT PROGRESS (Darrell 2026-09-30, on L202, a lesson he
+ * had never read: "I've never read this lesson and it's already asking me to
+ * continue?"). This used to count `started` on its own, and any saved sentence
+ * fingerprint, as "in progress". Both are written without any reading at all:
+ * arriving by a link, a Start or a Play tap sets `started` (ChurchLearn's
+ * resume door and the card's buttons), and the eye-scroll writer saves the
+ * FIRST sentence (index 0, with its fingerprint) the moment a finger drags at
+ * the top. So a lesson opened once and never read said "Continue this lesson",
+ * and Continue from part 1, step 1, sentence 1 is the same place Start opens.
+ * `started` is still recorded (it orders what the map keeps); it just no
+ * longer claims a place worth continuing. DR-0702.
+ */
 export function placeInProgress(place) {
   if (!place || place.done === true) return false;
-  return place.started === true || place.stage > 0 || place.step > 0 || !!place.sentenceKey;
+  return place.stage > 0 || place.step > 0 || place.sentence > 0;
 }
 
 /**
