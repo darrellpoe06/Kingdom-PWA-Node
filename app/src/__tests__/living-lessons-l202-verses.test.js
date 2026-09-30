@@ -9,7 +9,7 @@
 // rung (agent_inbox aed9557b-333e-4152-adbc-de0f9e695793, 16,511 characters).
 // The transcript never names the teacher, marks no speakers, and begins
 // partway through the message; the lesson says so, and names who spoke from the
-// recording's context, Darrell's own account and Bishop Gwin's notes (DR-0704). Every quoted span is the
+// recording's context, Darrell's own account and Bishop Gwin's notes (DR-0711). Every quoted span is the
 // verse it names (the repo's scanQuotedVerses), and the teacher's own points
 // are pinned in the order he gave them.
 import { describe, it, expect } from 'vitest';
@@ -115,9 +115,9 @@ describe('provenance is said plainly (DR-0331: render for meaning, never guess)'
   });
 });
 
-// WHO SAID WHAT (DR-0704). Darrell 2026-09-30: "Differentiate between speakers...
+// WHO SAID WHAT (DR-0711). Darrell 2026-09-30: "Differentiate between speakers...
 // Bishop Gwin is BG... Darrell Poe is DP... Other congregation members are called
-// by BG..." and, deciding the privacy question (DR-0705): the church posts these
+// by BG..." and, deciding the privacy question (DR-0711): the church posts these
 // sessions publicly, so members are named as Bishop Gwin calls them. Every name
 // is pinned to the words the recording attaches it to, never guessed onto a voice.
 const SPEAKER_PINS = [
@@ -170,7 +170,7 @@ function speakerFaults(m) {
   return faults;
 }
 
-describe('who said what: BG, DP, and the members as Bishop Gwin calls them (DR-0704, DR-0705)', () => {
+describe('who said what: BG, DP, and the members as Bishop Gwin calls them (DR-0711)', () => {
   it('every speaker is pinned to the words the recording attaches to them', () => {
     expect(speakerFaults(L())).toEqual([]);
   });

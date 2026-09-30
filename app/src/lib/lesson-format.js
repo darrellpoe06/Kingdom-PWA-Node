@@ -39,7 +39,7 @@ const MARKER_RES = [
   { re: /^(FIRST|SECOND|THIRD|FOURTH|FIFTH|SIXTH|SEVENTH|EIGHTH|NINTH|TENTH)\b[,—:]?/, num: (m) => ORDINALS[m[1]] },
   { re: /^(I{1,3}|IV|V|VI{0,3}|IX|X)\.\s+(?=[A-Z“"])/, num: (m) => ROMANS[m[1]] },
   { re: /^SOIL\s+(\d+)\b/, num: (m) => Number(m[1]) },
-  // "SEVEN. STAY IN THE WORD." -> a spelled number + its capital title (DR-0703).
+  // "SEVEN. STAY IN THE WORD." -> a spelled number + its capital title (DR-0712).
   // Darrell 2026-09-30, reading L202's youth band on his phone, saw "5STAY IN
   // THE WORD" with "SEVEN." left dangling at the end of the step before: the
   // author's own number was cut off as a sentence and the caps pass numbered
