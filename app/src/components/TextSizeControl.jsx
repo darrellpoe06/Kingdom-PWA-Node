@@ -18,7 +18,7 @@
 //                       real-estate as clear as possible?"). A native select: the
 //                       phone's own picker, keyboard and screen-reader ready.
 import React from 'react';
-import { useTextSize } from '../lib/text-size.js';
+import { useTextSize, stepTextSizeKey, DEFAULT_TEXT_SIZE } from '../lib/text-size.js';
 import UiIcon from './UiIcon.jsx';
 
 export default function TextSizeControl({ variant = 'header', className = '' }) {
@@ -147,6 +147,82 @@ export default function TextSizeControl({ variant = 'header', className = '' }) 
         <div className="text-xs font-semibold text-[#B85838] whitespace-nowrap">{current ? current.name : ''}</div>
       </div>
       {buttons}
+    </div>
+  );
+}
+
+// =============================================================================
+// TextSizeQuick — A- / A+ on every screen, without opening the reader (DR-0698)
+// =============================================================================
+// Darrell 2026-09-30: "Text sizes are the main reason why I keep opening the
+// reader... give an option for that on each screen even without the other
+// controls... make sense?"
+//
+// MEASURED, not assumed: inside an open lesson the app header flows away with
+// the page (DR-0652, one bar owns the top), so once he scrolls into the words
+// the header's five size buttons are gone, and the lesson bar carries none.
+// The only size control left on screen was inside the read-aloud panel; the
+// repo's own layout probe counted mid-lesson size controls only AFTER tapping
+// the reader open. So the reader became the text-size button.
+//
+// This pair rides beside the read-aloud button, which is already on every
+// screen of the app, in the corner that is already the floaters' corner, so
+// it adds no new region over the words. It walks the SAME five steps through
+// the SAME store (lib/text-size.js useTextSize -> setTextSize), so the header
+// row, the reader panel and this pair are one switch: change one, all reflect
+// it. The reset ("A", back to Normal) shows only when the size is above
+// Normal, and from 360px up (at 320px three buttons would reach the Feedback
+// button, so the narrowest phones get A- / A+ only). Chrome, not reading
+// text: .ts-chrome-region keeps it its Normal size at every step (DR-0438), so big text is always reversible (DR-0276 rule 3).
+// 44px targets (2.75rem inside the chrome cap = 44px on screen at every step).
+// `dim` mirrors the read-aloud button's idle-reveal so the pair settles back
+// with it and never sits bright over the words.
+export function TextSizeQuick({ dim = false, className = '' }) {
+  const [active, setSize, steps] = useTextSize();
+  const i = Math.max(0, steps.findIndex((s) => s.key === active));
+  const current = steps[i];
+  const atMin = i === 0;
+  const atMax = i === steps.length - 1;
+  const btn = 'w-11 h-11 flex items-center justify-center font-semibold leading-none text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#1A1815]';
+  return (
+    <div
+      role="group"
+      aria-label={`Text size — now ${current.name}`}
+      data-testid="text-size-quick"
+      data-text-size-now={current.key}
+      className={`ts-chrome-region flex items-center bg-white border-2 border-[#1A1815] rounded-full shadow-lg overflow-hidden transition-[opacity,transform] duration-500 hover:opacity-100 focus-within:opacity-100 ${dim ? 'opacity-40 translate-y-2' : 'opacity-100 translate-y-0'} ${className}`}
+    >
+      <button
+        type="button"
+        data-testid="text-size-quick-smaller"
+        onClick={() => setSize(stepTextSizeKey(active, -1))}
+        disabled={atMin}
+        aria-label={atMin ? 'Smaller text (already the smallest)' : `Smaller text size (now ${current.name})`}
+        title="Smaller text"
+        className={`${btn} rounded-l-full`}
+        style={{ fontSize: 'calc(14px / var(--ts-chrome-scale, 1))' }}
+      >A−</button>
+      {!atMin && (
+        <button
+          type="button"
+          data-testid="text-size-quick-reset"
+          onClick={() => setSize(DEFAULT_TEXT_SIZE)}
+          aria-label={`Back to Normal text size (now ${current.name})`}
+          title="Normal text"
+          className={`${btn} hidden min-[360px]:flex border-x border-[#E8E4DC]`}
+          style={{ fontSize: 'calc(12px / var(--ts-chrome-scale, 1))' }}
+        >A</button>
+      )}
+      <button
+        type="button"
+        data-testid="text-size-quick-bigger"
+        onClick={() => setSize(stepTextSizeKey(active, 1))}
+        disabled={atMax}
+        aria-label={atMax ? 'Bigger text (already the biggest)' : `Bigger text size (now ${current.name})`}
+        title="Bigger text"
+        className={`${btn} rounded-r-full`}
+        style={{ fontSize: 'calc(18px / var(--ts-chrome-scale, 1))' }}
+      >A+</button>
     </div>
   );
 }
