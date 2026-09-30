@@ -1,4 +1,4 @@
-// DR-0707 — the one Books upload. Every claim the pipeline makes is pinned
+// DR-0709 — the one Books upload. Every claim the pipeline makes is pinned
 // here, and each test was watched failing against a broken variant first
 // (see the DR's proven-to-catch notes).
 import { describe, it, expect, vi } from 'vitest';

@@ -1,6 +1,6 @@
 // =============================================================================
 // books-intake-reconcile — the math must add up, and every money fact keeps its
-// dates (DR-0707, the one Books upload)
+// dates (DR-0709, the one Books upload)
 // =============================================================================
 // Darrell 2026-09-30: "this is finance money and timelines... we want truth and
 // clarity." Two jobs, both pure:

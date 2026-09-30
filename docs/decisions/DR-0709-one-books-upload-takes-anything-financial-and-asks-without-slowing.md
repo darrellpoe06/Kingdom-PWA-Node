@@ -1,4 +1,4 @@
-# DR-0707 — One Books upload takes anything financial, keeps it first, and asks without slowing anything
+# DR-0709 — One Books upload takes anything financial, keeps it first, and asks without slowing anything
 
 - **Status:** accepted
 - **Tier:** A for slice 1 (a new surface behind the existing Financial PIN gate, writing only through paths that already exist; no schema). Slice 2's cloud queue table is Tier B.
