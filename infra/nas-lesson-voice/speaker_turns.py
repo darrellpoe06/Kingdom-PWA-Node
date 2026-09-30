@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-speaker_turns.py -- who is talking, written into the transcript (DR-0701).
+speaker_turns.py -- who is talking, written into the transcript (DR-0706).
 
 Darrell 2026-09-30, after the Bible study he recorded in the app came back as
 one unbroken block: "Differentiate between speakers... Bishop Gwin is BG...
@@ -33,7 +33,7 @@ THE RULES, each pinned in test_speaker_turns.py:
      once by an unknown voice, names that voice. The name goes in the header
      beside the S label; the lines keep the S label, so the raw record stays
      what the machine heard. Whether a lesson may USE the name is the builder's
-     rule (DR-0700: a church session the church posts publicly; never health,
+     rule (DR-0705: a church session the church posts publicly; never health,
      giving, family trouble or a confidence).
   4. No diarizer, no speakers: the header says the speakers are not marked,
      and the words are exactly what Whisper heard (the old transcript).

@@ -46,7 +46,7 @@ const LIVE = {
   github: { fetchOps, fetchDeliveryRecord, getPull: (n) => fetchPull(n) },
 };
 
-// WHO SPOKE (DR-0701): a transcript marked by voice reads as turns, the
+// WHO SPOKE (DR-0706): a transcript marked by voice reads as turns, the
 // label in bold beside each; an unmarked one reads as the words, as before.
 export function TranscriptWords({ words, speakers }) {
   const turns = speakerLines(words);

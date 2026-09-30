@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-diarize_local.py -- who spoke when, measured on our own machine (DR-0701).
+diarize_local.py -- who spoke when, measured on our own machine (DR-0706).
 
 SOVEREIGN AND LIGHT: sherpa-onnx (onnxruntime only; no torch, no cloud, no
 account, no gated model). Two small ONNX models, downloaded once by install.sh
@@ -16,10 +16,11 @@ WHAT IT RETURNS (pure data; speaker_turns.py does the labelling):
 One centroid per voice: the mean of the embeddings of that voice's turns of at
 least MIN_TURN_SECONDS, so enrolled voiceprints (DP, BG) can be matched.
 
-INACTIVE UNTIL ARMED: speakers_enabled() is false unless
-LESSON_VOICE_SPEAKERS=1 (set in /volume1/PoeTech/secrets/lesson-voice.env) AND
-both models are on disk AND sherpa_onnx imports. Anything missing -> None, and
-the transcript is written exactly as before with "Speakers: not marked".
+ARMED BY RECORD (DR-0247, DR-0706): speakers_enabled() is true when both
+models are on disk AND sherpa_onnx imports, unless
+LESSON_VOICE_SPEAKERS=0 in /volume1/PoeTech/secrets/lesson-voice.env (the
+stop-path). Anything missing -> false, and the transcript is written exactly
+as before with "Speakers: not marked".
 """
 import os
 
@@ -39,7 +40,7 @@ def model_paths(data_dir):
 
 def speakers_enabled(data_dir, env=None):
     env = env if env is not None else os.environ
-    if env.get("LESSON_VOICE_SPEAKERS", "0") != "1":
+    if env.get("LESSON_VOICE_SPEAKERS", "1") == "0":
         return False
     seg, emb = model_paths(data_dir)
     if not (os.path.isfile(seg) and os.path.isfile(emb)):

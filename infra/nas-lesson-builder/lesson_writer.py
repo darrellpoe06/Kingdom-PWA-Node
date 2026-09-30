@@ -210,7 +210,7 @@ def row_rules(rows, owner_ids):
             lines.append("- Its speakers are NOT marked; name a speaker only where the words or the sender's "
                          "own account show who spoke, and say so where they do not.")
         if "church-session-public" in tags:
-            lines.append("- This is a church session the church posts publicly (DR-0700): a member may be "
+            lines.append("- This is a church session the church posts publicly (DR-0705): a member may be "
                          "named, only as the teacher calls them in the recording; never health, giving, "
                          "family trouble or a confidence.")
         if "voice-transcript" in tags:

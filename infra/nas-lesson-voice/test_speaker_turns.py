@@ -1,4 +1,4 @@
-"""Proofs for speaker_turns.py and the transcriber's speaker step (DR-0701).
+"""Proofs for speaker_turns.py and the transcriber's speaker step (DR-0706).
 Stdlib unittest; no model, no network. Each rule is proven-to-catch: the
 format, known voices only by voiceprint, unknown voices S1/S2 in order, a
 member named only as the teacher calls them, never a guessed name, and the
@@ -116,6 +116,76 @@ class NamingVoices(unittest.TestCase):
         self.assertEqual(nv.parse_names(["0=bg", "3=DP"]), {0: "BG", 3: "DP"})
         with self.assertRaises(ValueError):
             nv.parse_names(["Bishop Gwin"])
+
+
+class EnrollByWords(unittest.TestCase):
+    """DR-0706: BG and DP are enrolled from words a person who was there
+    attributed, never from a guess."""
+    D = {"turns": TURNS, "centroids": CENTROIDS}
+    BG = {"label": "BG", "words": "Number four, God defines success"}
+    DP = {"label": "DP", "words": "I'm actually in technology"}
+
+    def test_the_voice_that_carries_the_words_gets_the_label(self):
+        import name_voice as nv
+        found, why = nv.enroll_by_words(self.D, SEGMENTS, [self.BG, self.DP])
+        self.assertEqual(found, {"BG": 0, "DP": 2})
+        self.assertEqual(why, [])
+
+    def test_matched_by_words_not_characters_and_a_miss_is_refused(self):
+        import name_voice as nv
+        segs = [dict(s) for s in SEGMENTS]
+        segs[4]["text"] = "Um, I'm actually in the technology."
+        found, _ = nv.enroll_by_words(self.D, segs, [self.DP])
+        self.assertEqual(found, {"DP": 2})  # the extra words do not matter
+        segs[4]["text"] = "I'm actually in technologies."
+        found, why = nv.enroll_by_words(self.D, segs, [self.DP])
+        self.assertEqual(found, {})  # 2 of 3 words is under 0.8: refused, not guessed
+        self.assertIn("not found", why[0])
+
+    def test_PROVEN_TO_CATCH_words_not_said_name_no_one(self):
+        import name_voice as nv
+        found, why = nv.enroll_by_words(self.D, SEGMENTS, [{"label": "BG", "words": "the Lord is my shepherd"}])
+        self.assertEqual(found, {})
+        self.assertIn("not found", why[0])
+
+    def test_PROVEN_TO_CATCH_two_labels_on_one_voice_enroll_nobody(self):
+        import name_voice as nv
+        found, why = nv.enroll_by_words(self.D, SEGMENTS, [self.BG, {"label": "DP", "words": "Joshua one, seven and eight"}])
+        self.assertEqual(found, {})
+        self.assertIn("nobody is enrolled", why[-1])
+
+    def test_PROVEN_TO_CATCH_words_across_two_voices_name_no_one(self):
+        import name_voice as nv
+        turns = [{"start": 12.3, "end": 15.0, "speaker": 2}, {"start": 15.0, "end": 20.0, "speaker": 1}]
+        found, why = nv.enroll_by_words({"turns": turns, "centroids": CENTROIDS}, SEGMENTS, [self.DP])
+        self.assertEqual(found, {})
+        self.assertIn("across voices", why[0])
+
+    def test_the_committed_spec_names_bg_and_dp_from_l202(self):
+        import json as _json
+        here = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(here, "enroll.json"), encoding="utf-8") as f:
+            spec = _json.load(f)
+        labels = [e["label"] for e in spec["entries"]]
+        self.assertEqual(sorted(labels), ["BG", "DP"])
+        for e in spec["entries"]:
+            self.assertTrue(e["audio"].endswith(".webm") and ".." not in e["audio"])
+            self.assertGreaterEqual(len(e["words"].split()), 6)
+
+
+class Armed(unittest.TestCase):
+    def test_armed_by_record_and_off_only_by_zero(self):
+        import diarize_local as dl
+        with tempfile.TemporaryDirectory() as d:
+            os.makedirs(os.path.join(d, "models", "speakers"))
+            for n in ("segmentation.onnx", "embedding.onnx"):
+                open(os.path.join(d, "models", "speakers", n), "w").close()
+            import importlib.util
+            has = importlib.util.find_spec("sherpa_onnx") is not None
+            self.assertEqual(dl.speakers_enabled(d, {}), has)
+            self.assertFalse(dl.speakers_enabled(d, {"LESSON_VOICE_SPEAKERS": "0"}))
+        with tempfile.TemporaryDirectory() as d:
+            self.assertFalse(dl.speakers_enabled(d, {}))  # no models, not armed
 
 
 class TheTranscriber(unittest.TestCase):

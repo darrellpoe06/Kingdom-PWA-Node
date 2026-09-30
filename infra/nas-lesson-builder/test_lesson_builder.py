@@ -270,7 +270,7 @@ def build(db, git, writers, group=None, **kw):
 # =============================================================================
 
 class WhoSpoke(unittest.TestCase):
-    """DR-0701: the writer is told who spoke, and never to guess (proven-to-catch)."""
+    """DR-0706: the writer is told who spoke, and never to guess (proven-to-catch)."""
     OWNER = "f13843f2-742b-4f8a-82af-7ecfbdc536ec"
 
     def rules(self, tags):

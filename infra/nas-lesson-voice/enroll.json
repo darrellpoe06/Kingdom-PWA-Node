@@ -1,0 +1,9 @@
+{
+  "why": "DR-0706. Voices named by words a person who was there attributed: Darrell's own account of L202 (DR-0704). BG gave the success testimony; DP said he is in technology and building the app. install.sh runs this once on the NAS when a label has no voiceprint yet.",
+  "entries": [
+    {"label": "BG", "row": "d2f21ba3-ab40-496d-ae62-e4a3e2ff8298", "audio": "c2a6c39a-ae99-4ff7-83c6-b927e2e7f1cc/20260930T190238Z-qbkcyo.webm",
+     "words": "I always wanted to succeed the way I wanted to succeed until I got in the Word"},
+    {"label": "DP", "row": "d2f21ba3-ab40-496d-ae62-e4a3e2ff8298", "audio": "c2a6c39a-ae99-4ff7-83c6-b927e2e7f1cc/20260930T190238Z-qbkcyo.webm",
+     "words": "I'm actually in technology so lately my son asked me to teach him stuff about tech"}
+  ]
+}
