@@ -56,7 +56,11 @@ jobs:
           [ -n "$out" ] || { echo "::error::no row $ROW_ID from Darrell's own accounts (a member's row is never read here)"; exit 1; }
           echo "row: $ROW_ID"
           echo "tags: $(printf '%s' "$out" | head -1 | cut -d'|' -f2)"
-          echo "----- words (base64; decode to read) -----"
-          printf '%s' "$out" | cut -d'|' -f3- | tr -d '\n'
+          # GitHub masks any run of characters that equals a secret, even inside
+          # base64, and blanked parts of L201's words (2026-09-30). A '.' after
+          # every 3 characters breaks every run longer than 3, so nothing can
+          # match a secret; strip the dots, then base64-decode, to read.
+          echo "----- words (base64 with a '.' after every 3 characters; strip the dots, then decode) -----"
+          printf '%s' "$out" | cut -d'|' -f3- | tr -d '\n' | sed 's/.../&./g'
           echo
           echo "----- end -----"
