@@ -26,6 +26,7 @@
 // =============================================================================
 import { GODHEAD_SECTIONS, GODHEAD_ALGORITHMS } from './godhead-study.js';
 import { progressSummaryFor, exportCurriculumMarkdownFor } from './church-classes.js';
+import { datedSchedule } from './lesson-dates.js';
 
 // One derived module per catalog pattern. The 4D leads; the 3D follows.
 // MULTI-NEUROLOGICAL LEVELS (Darrell 2026-07-08: "these lessons also need to
@@ -109,7 +110,8 @@ export function buildEternalProcessingCourses({ sections = GODHEAD_SECTIONS, cat
       key: meta.key,
       meta,
       sessionFlow: [],
-      schedule: modules.map((m, i) => ({ ...m, week: i + 1, date: null, weekday: null })),
+      // `added`: the day each pattern became a lesson (DR-0687, lesson-dates.js).
+      schedule: datedSchedule(meta.key, modules.map((m, i) => ({ ...m, week: i + 1, date: null, weekday: null }))),
       cohortStart: null,
       cohortConfirmed: false,
       setCohortStart: null,

@@ -20,7 +20,8 @@ import { plainWordsFor } from './learn-plain-words.js';
 // carries every order whose DATA exists, applied to courses:
 //   - titles and lesson counts: the course descriptors themselves;
 //   - "Recently added": the newest recorded day among a course's lessons
-//     (m.added — living-lessons-dates.js, a real commit day per lesson);
+//     (m.added — a real commit day per lesson: living-lessons-dates.js, and
+//     for every other course lesson-dates.js, DR-0687);
 //   - "Recently opened by you" and the progress orders: this device's saved
 //     places (lib/learn-resume.js) and the signed-in lesson record (progress).
 // An order whose data is absent is not offered (courseSortsFor), so the list
@@ -165,16 +166,19 @@ export function sortCourses(list, sortKey, ctx = {}) {
 // lessons?"). Every lesson in the mounted catalog that carries a recorded day,
 // newest first (same day: higher lesson number first, then course order), each
 // naming its HOME course so a tap opens it there. A lesson without a recorded
-// day is left out and counted, never dated by guess (DR-0076).
+// day is left out and counted (and named in `undatedLessons`), never dated by
+// guess (DR-0076). Since DR-0687 every course carries its days
+// (lib/lesson-dates.js), so this is the whole catalog.
 export function latestLessons(courses) {
   const list = Array.isArray(courses) ? courses.filter(Boolean) : [];
   const rows = [];
+  const undatedLessons = [];
   let undated = 0;
   list.forEach((c, ci) => {
     (c.schedule || []).forEach((m, mi) => {
       if (!m || !m.id) return;
       const added = lessonAdded(m);
-      if (!added) { undated += 1; return; }
+      if (!added) { undated += 1; undatedLessons.push({ courseKey: c.key, lessonId: m.id }); return; }
       const num = /^[a-z]+(\d+)-/i.exec(String(m.id));
       rows.push({ courseKey: c.key, courseTitle: titleOf(c) || String(c.key || ''), lessonId: m.id, title: String(m.title || ''), added, n: num ? Number(num[1]) : null, ci, mi });
     });
@@ -182,7 +186,25 @@ export function latestLessons(courses) {
   rows.sort((a, b) => (a.added !== b.added ? (a.added < b.added ? 1 : -1)
     : ((b.n ?? -1) - (a.n ?? -1)) || (a.ci - b.ci) || (a.mi - b.mi)));
   const courseCount = new Set(rows.map((r) => r.courseKey)).size;
-  return { rows, undated, courseCount };
+  return { rows, undated, undatedLessons, courseCount };
+}
+
+/**
+ * The Latest lessons header line (DR-0687): how many lessons are listed, across
+ * how many courses, and any left out, with why. `reasonOf(courseKey, id)` is
+ * the generator's recorded reason (lesson-dates.js undatedReason) — a lesson
+ * with none is simply newer than the last time the dates were derived.
+ */
+export function latestCountLine({ rows, undatedLessons = [], courseCount }, reasonOf = () => null) {
+  const n = rows.length;
+  const where = `${courseCount} ${courseCount === 1 ? 'course' : 'courses'}, each on the day it was first added to the app`;
+  if (!undatedLessons.length) return `All ${n} ${n === 1 ? 'lesson' : 'lessons'} across ${where}.`;
+  const untraced = undatedLessons.filter((u) => reasonOf(u.courseKey, u.lessonId)).length;
+  const fresh = undatedLessons.length - untraced;
+  const parts = [];
+  if (fresh) parts.push(`${fresh} too new to have ${fresh === 1 ? 'its day' : 'their days'} recorded yet`);
+  if (untraced) parts.push(`${untraced} whose first day the record cannot trace`);
+  return `${n} ${n === 1 ? 'lesson' : 'lessons'} across ${where} · ${undatedLessons.length} not listed: ${parts.join(', ')}.`;
 }
 
 // THE SCHOOL (DR-0432; Darrell 2026-09-15: "Add the Courses as a tab with

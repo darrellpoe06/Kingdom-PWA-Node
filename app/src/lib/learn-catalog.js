@@ -20,6 +20,7 @@
 //   list at render time (no static number — DR-0121).
 // =============================================================================
 
+import { datedSchedule } from './lesson-dates.js';
 import { CLASS_META, SESSION_FLOW, buildSchedule, progressSummary, exportCurriculumMarkdown, CLASS_INTEREST_TAG } from './church-classes.js';
 import { BROADCAST_META, BROADCAST_SESSION_FLOW, buildBroadcastSchedule, broadcastProgressSummary, exportBroadcastCurriculumMarkdown, BROADCAST_INTEREST_TAG, BROADCAST_HELPER_TAG, BROADCAST_TUTOR_META } from './broadcast-class.js';
 import { INFRA_META, INFRA_SESSION_FLOW, buildInfraSchedule, infraProgressSummary, exportInfraCurriculumMarkdown, INFRA_INTEREST_TAG, INFRA_HELPER_TAG, INFRA_TUTOR_META } from './infrastructure-class.js';
@@ -853,7 +854,7 @@ export function buildSelfPacedDescriptors({ submitInterestFor = null, rosterFor 
   return LEARN_CATALOG.filter((e) => e.wiring === 'self-paced').map((e) => ({
     meta: e.meta,
     sessionFlow: e.sessionFlow,
-    schedule: e.buildScheduleRows(),
+    schedule: datedSchedule(e.key, e.buildScheduleRows()), // `added` = the day each lesson was created (DR-0687)
     cohortStart: null,
     cohortConfirmed: false,
     setCohortStart: null,
@@ -876,7 +877,7 @@ export function buildCatalogCourseDescriptors() {
   return LEARN_CATALOG.filter((e) => e.wiring !== 'component').map((e) => ({
     meta: e.meta,
     sessionFlow: e.sessionFlow,
-    schedule: e.buildScheduleRows(),
+    schedule: datedSchedule(e.key, e.buildScheduleRows()), // `added` = the day each lesson was created (DR-0687)
     cohortStart: null,
     cohortConfirmed: false,
     setCohortStart: null,

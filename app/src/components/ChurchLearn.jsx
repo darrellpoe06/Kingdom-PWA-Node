@@ -99,7 +99,7 @@ import { crossListingsFor, resolveCrossListed, crossListedCount, courseCrossList
 const EternalAlgorithmsStudyLazy = React.lazy(() => import('./EternalAlgorithmsStudy.jsx'));
 import { organizeCourses, learnDepartments, courseLessonCount, courseSortsFor, DEFAULT_COURSE_SORT, rememberedCourseSort, rememberCourseSort, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey } from '../lib/learn-organize.js';
 import { wantsSections, sectionLessons, divisionOf } from '../lib/lesson-sections.js';
-import { isNumberedCourse, ownNumber, inNumberOrder, numberLabel, lessonCountLabel, ordersFor, orderLessons, withMonthHeadings, formatAdded, DEFAULT_LESSON_ORDER, rememberedLessonOrder, rememberLessonOrder } from '../lib/lesson-order.js';
+import { isNumberedCourse, ownNumber, inNumberOrder, numberLabel, lessonCountLabel, ordersFor, orderLessons, withMonthHeadings, formatAdded, datesFollowNumbers, DEFAULT_LESSON_ORDER, rememberedLessonOrder, rememberLessonOrder } from '../lib/lesson-order.js';
 import { subscribeTextSize } from '../lib/text-size.js';
 import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
@@ -107,6 +107,7 @@ import { getPlace, getPlaceFor, listPlaces, placeInProgress, placeWhere, recordP
 import { unitLabels } from '../lib/learn-units.js';
 import { ContinueOffer, ContinueChip, RowContinue, resolvePlaces } from './LessonContinue.jsx';
 import LatestLessons from './LatestLessons.jsx';
+import { withLessonDates } from '../lib/lesson-dates.js';
 import { useHistoryValue } from '../lib/nav-history.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import UiIcon from './UiIcon.jsx';
@@ -3496,7 +3497,8 @@ export default function ChurchLearn({
   // sovereign database holds is overlaid only when it is known (a preview for
   // Darrell and the Governor, or, in the 'nas' mode, a newer public copy). A
   // NAS that is down changes nothing on screen (DR-0107).
-  const courses = useCurriculumOverlay([aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras, ...eternalCourses]);
+  // Every lesson carries the day it was created (DR-0687, lib/lesson-dates.js).
+  const courses = withLessonDates(useCurriculumOverlay([aiCourse, ...(broadcastCourse ? [broadcastCourse] : []), ...builtExtras, ...eternalCourses]));
   const chosenCourse = activeKey != null ? courses.find((c) => c.key === activeKey) : null;
   const courseChosen = !!chosenCourse;
   // THE DEFAULT COURSE IS LIVING LESSONS (Darrell 2026-09-11: "let the default
@@ -3949,14 +3951,17 @@ export default function ChurchLearn({
           // own (its id), never its place in the list.
           const numbered = isNumberedCourse(schedule);
           const dated = schedule.some((m) => m.added);
-          const orders = ordersFor({ numbered, hasSections: !!sections, dated });
+          // "Oldest first" is claimed for number order only where the days
+          // really never go backwards by number (DR-0687).
+          const numberIsOldest = numbered && datesFollowNumbers(schedule);
+          const orders = ordersFor({ numbered, hasSections: !!sections, dated, numberIsOldest });
           const pickedOrder = lessonOrderPick[active.key] || rememberedLessonOrder(active.key) || DEFAULT_LESSON_ORDER;
           const order = orders.some((o) => o.key === pickedOrder) ? pickedOrder : ((orders[0] && orders[0].key) || 'course');
           const inOrder = (list) => (numbered ? orderLessons(list, 'number') : list);
           const items = order === 'divisions'
             ? (shelf === 'all' ? sections.flatMap((sec) => [{ heading: sec }, ...inOrder(sec.lessons)]) : inOrder(shown))
             : (order === 'number' || order === 'newest')
-              ? (dated ? withMonthHeadings(orderLessons(shown, order)) : orderLessons(shown, order))
+              ? ((order === 'newest' ? dated : numberIsOldest) ? withMonthHeadings(orderLessons(shown, order)) : orderLessons(shown, order))
               : (order === 'title' || order === 'title-desc') ? orderLessons(shown, order) : shown;
           const showDivision = !!sections && order !== 'divisions' && shelf === 'all';
           const open = (id) => { setActiveKey(active.key); setResumeOpenGuide(false); setResumeLessonId(id); setResumeNonce((n) => n + 1); };

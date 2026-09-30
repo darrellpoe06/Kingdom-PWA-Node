@@ -67,6 +67,10 @@ jobs:
         working-directory: app
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: the lesson-dates check below reads each lesson's
+          # first commit, which a shallow clone cannot see (DR-0687).
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -74,6 +78,10 @@ jobs:
           cache-dependency-path: app/package-lock.json
       - run: npm ci
       - run: npm run lint
+      # Every lesson's creation day (app/src/lib/lesson-dates.json) is re-derived
+      # from git and must match what is committed — no hand-edited day, no new
+      # lesson without one (DR-0687). Proven-to-catch in lesson-dates.test.js.
+      - run: npm run lesson-dates:check
       # Hybrid-modular boundary gate (DR-0078 §4.1 / DR-0076): the surface-mount
       # registry stays core — mounts via lazy thunks only, is shell-only, and no
       # feature reaches back into the monolith shell (outside the dated baseline).
