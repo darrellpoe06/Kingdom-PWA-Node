@@ -44,6 +44,7 @@ import { learnDepartments } from '../lib/learn-organize.js';
 import { ourProseOnly, fleschKincaidGrade } from '../../../scripts/reading-level.mjs';
 import { shingles, overlap, DIFF_CEILING } from '../../../scripts/band-differentiation.mjs';
 import { formatLessonText } from '../lib/lesson-format.js';
+import { fourBandFaults } from './fixtures/four-band-ladder.js';
 
 /**
  * DR-0459 forbids an ellipsis INSIDE a quotation. It PERMITS one in our own
@@ -390,4 +391,18 @@ describe('proven-to-catch (DR-0076 §3)', () => {
     expect(['teen', 'senior'].filter((b) => !bare.levels[b])).toEqual(['teen']);
     expect(bare.quiz.questions.length === 2, 'a one-question quiz passed').toBe(false);
   });
+});
+
+describe('four bands on every lesson, measured (DR-0696) — child and youth join the bands it shipped with', () => {
+  // Darrell 2026-09-30: "Do we have all the lessons for each lessons age groups
+  // yet? If not, why not when that has been requested and required?!" Every
+  // lesson now carries child, youth, teen and senior, each a retelling of the
+  // same lesson for that age, held to the one shared ladder
+  // (fixtures/four-band-ladder.js): share of the adult lesson, a rising
+  // reading ladder, no near copies, each band naming its lesson.
+  for (const m of M) {
+    it(`${m.id}: child, youth, teen and senior each carry the lesson, on a rising ladder`, () => {
+      expect(fourBandFaults(m)).toEqual([]);
+    });
+  }
 });
