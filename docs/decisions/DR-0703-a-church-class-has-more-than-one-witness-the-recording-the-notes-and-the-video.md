@@ -1,10 +1,10 @@
-# DR-0698 — A church class has more than one witness: the recording, the teacher's notes, and the church's video
+# DR-0703 — A church class has more than one witness: the recording, the teacher's notes, and the church's video
 
 - **Status:** accepted
 - **Tier:** A (a read-only workflow and a Way; nothing is written anywhere)
 - **Type:** ways + workflow
 - **Date:** 2026-09-30
-- **Scope:** `.github/workflows/church-video-witness.yml` (new, dispatch only, read-only); `scripts/system-flow-registry.mjs` (registered); the lesson-builder Way (carried into the builder rules by DR-0701).
+- **Scope:** `.github/workflows/church-video-witness.yml` (new, dispatch only, read-only); `scripts/system-flow-registry.mjs` (registered); the lesson-builder Way (carried into the builder rules by DR-0706).
 - **Principles:** VERIFICATION-DOCTRINE (DR-0076), WORD-FIRST, SPOKEN-TEACHINGS-ARE-BUILD-INPUT, HOLD-THE-HAND (DR-0621), DECISION-RECORDS
 - **Grounds:** Darrell, 2026-09-30, on L202: *"We will have a YouTube video uploaded to our church channel today... may already be there... use the transcription from that also to verify our lesson today from that Bible study session... We have workflows for that..."*; DR-0333 (the COLG sermon intake: the Wednesday email and the YouTube pass); DR-0168.
 

@@ -345,7 +345,7 @@ const NODES = [
   }),
   wf('church-video-witness.yml', {
     id: 'church-video-witness', name: 'The church video as a second witness',
-    purpose: "Reads, from the live database the app reads, whether a church class of a given date has reached the channel sync (choir_sermons) and the NAS transcript trickle (video_transcripts), with the sync's freshness, and on request prints that video's transcript encoded with an md5 round-trip, so a lesson built from an in-app recording is checked against the church's own video (DR-0698, DR-0333). Read-only; never fetches from YouTube.",
+    purpose: "Reads, from the live database the app reads, whether a church class of a given date has reached the channel sync (choir_sermons) and the NAS transcript trickle (video_transcripts), with the sync's freshness, and on request prints that video's transcript encoded with an md5 round-trip, so a lesson built from an in-app recording is checked against the church's own video (DR-0703, DR-0333). Read-only; never fetches from YouTube.",
     reads: [{ res: 'db:choir_sermons', token: 'FROM public.choir_sermons' }, { res: 'db:video_transcripts', token: 'public.video_transcripts' }],
     writes: [], seeds: [],
   }),
