@@ -31,8 +31,16 @@ export const SCALES = ['s', 'm', 'l'];
 function readScale() {
   try { const v = localStorage.getItem(LIVE_PLAYER_SCALE_KEY); return SCALES.includes(v) ? v : 'm'; } catch { return 'm'; }
 }
+// barCollapsed is THREE-valued (2026-09-30): true = the viewer hid the video,
+// false = the viewer chose to show it, null = no choice yet. With no choice the
+// bar decides by where the viewer is (a lesson open on a phone starts with the
+// video folded, LiveWorshipBar.jsx); a choice, either way, is honoured for the
+// session.
 function readCollapsed() {
-  try { return sessionStorage.getItem(LIVE_BAR_COLLAPSED_KEY) === '1'; } catch { return false; }
+  try {
+    const v = sessionStorage.getItem(LIVE_BAR_COLLAPSED_KEY);
+    return v === '1' ? true : v === '0' ? false : null;
+  } catch { return null; }
 }
 
 let state = { scale: readScale(), barCollapsed: readCollapsed() };
@@ -54,13 +62,13 @@ export function setLiveBarCollapsed(collapsed) {
   const v = Boolean(collapsed);
   if (v === state.barCollapsed) return;
   state = { ...state, barCollapsed: v };
-  try { if (v) sessionStorage.setItem(LIVE_BAR_COLLAPSED_KEY, '1'); else sessionStorage.removeItem(LIVE_BAR_COLLAPSED_KEY); } catch { /* ignore */ }
+  try { sessionStorage.setItem(LIVE_BAR_COLLAPSED_KEY, v ? '1' : '0'); } catch { /* ignore */ }
   emit();
 }
 
 /** For tests: forget everything and start from the defaults. */
 export function __resetLivePlayerPrefs() {
-  state = { scale: 'm', barCollapsed: false };
+  state = { scale: 'm', barCollapsed: null };
   try { localStorage.removeItem(LIVE_PLAYER_SCALE_KEY); } catch { /* ignore */ }
   try { sessionStorage.removeItem(LIVE_BAR_COLLAPSED_KEY); } catch { /* ignore */ }
   emit();

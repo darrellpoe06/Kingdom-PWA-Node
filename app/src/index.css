@@ -220,6 +220,20 @@ html[data-text-size='largest'] .church-give-floater,
 html[data-text-size='bigprint'] .church-give-floater {
   bottom: calc(5rem + var(--ts-hatch-h, 0px) / var(--ts-chrome-scale, 1));
 }
+/* On a phone the Give pill shares the read-aloud's row (ChurchGiving.jsx), so
+   at Big Print it steps above the comfort bar by the same 1rem the row does. */
+@media (max-width: 639.98px) {
+  html[data-text-size='largest'] .church-give-floater,
+  html[data-text-size='bigprint'] .church-give-floater {
+    bottom: calc(1rem + var(--ts-hatch-h, 0px) / var(--ts-chrome-scale, 1));
+  }
+  /* While the live-service bar is open it names the church at the very top
+     (LiveWorshipBar sets data-live-bar), so on a phone the public welcome line
+     beneath it folds away rather than stack a second band over the words. */
+  html[data-live-bar='open'] [data-testid='public-welcome-top'] {
+    display: none;
+  }
+}
 
 /* ===========================================================================
    Tab strips scroll horizontally — never overflow the page (Darrell 2026-06-18)
