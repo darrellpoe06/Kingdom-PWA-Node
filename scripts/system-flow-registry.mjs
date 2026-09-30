@@ -343,6 +343,12 @@ const NODES = [
     reads: [{ res: 'db:agent_inbox#lesson', token: 'FROM public.agent_inbox' }],
     writes: [], seeds: [],
   }),
+  wf('church-video-witness.yml', {
+    id: 'church-video-witness', name: 'The church video as a second witness',
+    purpose: "Reads, from the live database the app reads, whether a church class of a given date has reached the channel sync (choir_sermons) and the NAS transcript trickle (video_transcripts), with the sync's freshness, and on request prints that video's transcript encoded with an md5 round-trip, so a lesson built from an in-app recording is checked against the church's own video (DR-0698, DR-0333). Read-only; never fetches from YouTube.",
+    reads: [{ res: 'db:choir_sermons', token: 'FROM public.choir_sermons' }, { res: 'db:video_transcripts', token: 'public.video_transcripts' }],
+    writes: [], seeds: [],
+  }),
   wf('inbox-lessons-waiting.yml', {
     id: 'inbox-lessons-waiting', name: 'Which lesson rows wait',
     purpose: 'Lists the lesson rows not yet captured, building or awaiting review, from the live database the app reads (ids, tags and body length, never a body), so the hourly intake sees what waits without a chat connector.',

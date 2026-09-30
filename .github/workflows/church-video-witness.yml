@@ -1,0 +1,110 @@
+# church-video-witness -- is a church class on the channel yet, and what did it say?
+#
+# WHY (2026-09-30, DR-0698). Darrell, on L202, a Bible study he recorded inside
+# the app: "We will have a YouTube video uploaded to our church channel today...
+# use the transcription from that also to verify our lesson today from that
+# Bible study session... We have workflows for that." The church's own video of
+# a class is a SECOND, INDEPENDENT WITNESS next to the in-app recording: who
+# spoke, the points and their order, the part the phone missed, and every word
+# Whisper misheard.
+#
+# THE ROAD (DR-0333, measured): this sandbox and GitHub runners cannot reach
+# YouTube (runner IPs are blocked). The living road is the NAS: the channel sync
+# writes choir_sermons, and the transcript trickle on the NAS's residential IP
+# writes video_transcripts. This workflow only READS what that road has already
+# written, from the database the app reads (scripts/live-sql.sh). It never
+# fetches from YouTube and never writes anywhere.
+#
+# WHAT IT PRINTS:
+#   1. the sync's freshness: the newest service dates on the channel sync, so a
+#      stale sync is SEEN (DR-0333: a stale sync is a defect to raise, never a
+#      reason to skip the second pass);
+#   2. every choir_sermons row for the date asked, with its video id;
+#   3. for each, whether a transcript exists (length, words, source, verdict);
+#   4. only when print_text is true and exactly one video of that date carries
+#      words: the words, as base64 with a '.' after every 2 characters and an
+#      md5 round-trip (P63), so secret masking cannot alter them. A church
+#      video is public, but the text is still printed only on request.
+#
+# BRAKES (deterministic class, DR-0248: budget + lock): dispatch only, one
+# query per step, 5 minutes; concurrency group `church-video-witness`.
+
+name: church-video-witness
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'service date of the class (YYYY-MM-DD)'
+        required: true
+      print_text:
+        description: 'print the transcript words (true/false)'
+        required: false
+        default: 'false'
+
+concurrency:
+  group: church-video-witness
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SERVICE_DATE: ${{ inputs.date }}
+      PRINT_TEXT: ${{ inputs.print_text }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate the input
+        run: |
+          [[ "$SERVICE_DATE" =~ ^20[0-9]{2}-[01][0-9]-[0-3][0-9]$ ]] || { echo "::error::date is not YYYY-MM-DD"; exit 1; }
+      - name: Join the tailnet (to reach the live database)
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Read what the channel road has written
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          echo "----- the channel sync: newest service dates -----"
+          SQL="SELECT service_date, service_type, source, coalesce(video_id,''), created_at::date, left(title, 90) FROM public.choir_sermons WHERE video_id IS NOT NULL ORDER BY service_date DESC NULLS LAST, created_at DESC LIMIT 6;"
+          printf '%s' "$SQL" | bash scripts/live-sql.sh '|' || { echo "::error::could not read the live database"; exit 1; }
+          echo "----- rows for $SERVICE_DATE, and their transcripts -----"
+          SQL="SELECT s.service_date, s.service_type, coalesce(s.video_id,''), left(s.title, 120), coalesce(s.speaker,''), coalesce(length(t.text),0), coalesce(t.words,0), coalesce(t.source,''), coalesce(t.error,''), coalesce(t.fetched_at::text,'') FROM public.choir_sermons s LEFT JOIN public.video_transcripts t ON t.video_id = s.video_id WHERE s.service_date = '$SERVICE_DATE'::date ORDER BY s.created_at;"
+          rows=$(printf '%s' "$SQL" | bash scripts/live-sql.sh '|') || { echo "::error::could not read the live database"; exit 1; }
+          n=$(printf '%s' "$rows" | grep -c . || true)
+          printf '%s\n' "$rows"
+          echo "rows for $SERVICE_DATE: $n"
+          {
+            echo "### Church video witness for $SERVICE_DATE"
+            echo "rows: $n"
+            echo '```'; printf '%s\n' "$rows"; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$n" = "0" ]; then
+            echo "::notice::no channel row for $SERVICE_DATE yet: the video is not posted, or the channel sync has not pulled it in (see the freshness list above)"
+            exit 0
+          fi
+          [ "$PRINT_TEXT" = "true" ] || exit 0
+          with_words=$(printf '%s\n' "$rows" | awk -F'|' '$6 > 0' | grep -c . || true)
+          if [ "$with_words" != "1" ]; then
+            echo "::notice::$with_words videos of $SERVICE_DATE carry words; the text is printed only when exactly one does"
+            exit 0
+          fi
+          vid=$(printf '%s\n' "$rows" | awk -F'|' '$6 > 0 {print $3}')
+          [[ "$vid" =~ ^[A-Za-z0-9_-]{6,20}$ ]] || { echo "::error::unexpected video id"; exit 1; }
+          SQL="SELECT md5(convert_to(text,'UTF8')), encode(convert_to(text,'UTF8'),'base64') FROM public.video_transcripts WHERE video_id = '$vid' LIMIT 1;"
+          out=$(printf '%s' "$SQL" | bash scripts/live-sql.sh '|') || { echo "::error::could not read the live database"; exit 1; }
+          b64=$(printf '%s' "$out" | cut -d'|' -f2- | tr -d '\n')
+          db_md5=$(printf '%s' "$out" | head -1 | cut -d'|' -f1)
+          got_md5=$(printf '%s' "$b64" | base64 -d | md5sum | cut -d' ' -f1)
+          [ "$db_md5" = "$got_md5" ] || { echo "::error::round-trip failed: the decoded words do not match the database (md5)"; exit 1; }
+          echo "video: $vid"
+          echo "md5 of the words (a '.' after every 2 characters): $(printf '%s' "$db_md5" | sed 's/../&./g')"
+          echo "----- words (base64 with a '.' after every 2 characters; strip the dots, then decode, then check the md5 above) -----"
+          printf '%s' "$b64" | sed 's/../&./g'
+          echo
+          echo "----- end -----"
