@@ -1,0 +1,50 @@
+# inbox-lessons-waiting — which lesson rows wait, read from the database the app reads
+#
+# WHY (2026-09-30). The hourly in-app lesson intake read the waiting rows
+# through a chat connector to the hosted Supabase project. When that connector
+# dropped, the intake went blind. The app reads the NAS's own database
+# (scripts/live-sql.sh, REPOINT-ARMED), so the list of waiting rows comes from
+# there, through the same road inbox-lesson-tag.yml writes by.
+#
+# WHAT IT READS (read-only; no write anywhere): every agent_inbox row tagged
+# lesson that is not yet lesson-captured, lesson-building or awaiting-review:
+# its id, created_at, created_by, source, tags and body LENGTH. Never a body:
+# a lesson holds a person's words, and this output is visible to the repo
+# (the rule voice-intake-health.yml keeps).
+#
+# BRAKES (deterministic class, DR-0248: budget + lock): dispatch only, one
+# query per run, 5 minutes; concurrency group `inbox-lessons-waiting`.
+
+name: inbox-lessons-waiting
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: inbox-lessons-waiting
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join the tailnet (to reach the live database)
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: List the waiting lesson rows (never a body)
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          SQL="SELECT id, created_at, created_by, coalesce(source,''), tags::text, length(coalesce(body,'')) FROM public.agent_inbox WHERE tags ? 'lesson' AND NOT (tags ? 'lesson-captured') AND NOT (tags ? 'lesson-building') AND NOT (tags ? 'awaiting-review') ORDER BY created_at ASC;"
+          out=$(printf '%s' "$SQL" | bash scripts/live-sql.sh '|') || { echo "::error::could not read the live database"; exit 1; }
+          n=$(printf '%s' "$out" | grep -c . || true)
+          echo "waiting lesson rows: $n"
+          printf '%s\n' "$out"
+          { echo "### Waiting lesson rows: $n"; echo '```'; printf '%s\n' "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
