@@ -194,9 +194,15 @@ describe('the latest lessons, every course', () => {
     const { rows, courseCount } = latestLessons(list);
     expect(courseCount).toBe(CATALOG.length);
     expect(rows[0]).toMatchObject({ courseKey: other.key, lessonId: other.schedule[0].id, added: '2099-12-31' });
-    // The rows interleave courses: the newest real day holds lessons from more than one course.
-    const newestReal = rows[1].added;
-    expect(new Set(rows.filter((r) => r.added === newestReal).map((r) => r.courseKey)).size).toBeGreaterThan(1);
+    // The rows interleave courses: some real day holds lessons from more than one course, and those
+    // lessons sit together under that day. (Not pinned to the NEWEST real day: a single new lesson
+    // alone on a fresh day, as L201 was on 2026-09-30, is a true state, not a merge defect.)
+    const byDay = new Map();
+    for (const r of rows.slice(1)) byDay.set(r.added, new Set([...(byDay.get(r.added) || []), r.courseKey]));
+    const mixedDay = [...byDay].find(([, keys]) => keys.size > 1);
+    expect(mixedDay, 'no real day holds lessons from two courses').toBeTruthy();
+    const onDay = rows.map((r, i) => (r.added === mixedDay[0] ? i : -1)).filter((i) => i >= 0);
+    expect(onDay[onDay.length - 1] - onDay[0] + 1).toBe(onDay.length);
     expect(newestFirstRows(rows)).toBe(true);
   });
 
