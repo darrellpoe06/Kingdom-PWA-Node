@@ -57,6 +57,7 @@ import {
   BANDS, bandsPresent, lessonsOfCourse, scanCourseBands, ratchetCourseBands,
   servedGrade, median, ADULT_REGISTER_CEILING,
   ratchetFourBands, shrinkFourBandAllowlist, serializeFourBandAllowlist, fourBandGateFaults as bandGateFaults,
+  FOUR_BAND_GAP_CEILING, fourBandGapFindings, buildCourseBandBaseline,
 } from '../../../scripts/course-band-coverage.mjs';
 import baseline from '../lib/course-band-coverage-baseline.json';
 import allowlist from '../lib/course-band-four-allowlist.json';
@@ -118,7 +119,7 @@ describe('the debt, recorded as it actually is', () => {
     // adultOnly at once, and the exact numbers live in the regenerated baseline,
     // which 'matches the live catalog exactly' below holds to the truth. These
     // two lines hold the direction: allFour may only rise, adultOnly only fall.
-    expect(baseline.allFour).toBeGreaterThanOrEqual(38); // 38 on 2026-09-30: property-principle and management-stewardship carry all four on all 16 lessons (DR-0696); 22 on 2026-09-29: Who He Is (DR-0675) carries all four bands on all 14 lessons; 8 on 2026-09-24: the rebuilt historical-research-1619 (DR-0597) carries child, youth, teen and senior on every lesson — the first catalog course with all four bands; a course may only add to this number
+    expect(baseline.allFour).toBeGreaterThanOrEqual(54); // 54 on 2026-09-30: leasing-tenants and maintenance-trades join (DR-0696); 38 on 2026-09-30: property-principle and management-stewardship carry all four on all 16 lessons (DR-0696); 22 on 2026-09-29: Who He Is (DR-0675) carries all four bands on all 14 lessons; 8 on 2026-09-24: the rebuilt historical-research-1619 (DR-0597) carries child, youth, teen and senior on every lesson — the first catalog course with all four bands; a course may only add to this number
     expect(baseline.adultOnly).toBeLessThanOrEqual(37);
   });
 
@@ -177,6 +178,11 @@ describe('the debt, recorded as it actually is', () => {
   it('gets no worse — a course that loses bands, or a new bare lesson, fails here', () => {
     const { worse } = ratchetCourseBands(scan, baseline);
     expect(worse, `course band coverage went backwards:\n${worse.join('\n')}`).toEqual([]);
+  });
+
+  it('NEW WORK MEETS THE FULL STANDARD AT ONCE: no course gains a lesson without all four bands (DR-0697)', () => {
+    const findings = fourBandGapFindings(scan, FOUR_BAND_GAP_CEILING, baseline);
+    expect(findings, `the four-band requirement binds new work:\n${findings.join('\n')}`).toEqual([]);
   });
 
   it('records no course the catalog no longer carries', () => {
@@ -335,6 +341,34 @@ describe('proven-to-catch (DR-0076 §3)', () => {
     // otherwise the gate would silently stop watching the dimension.
     const unmeasured = { ...baseline, courses: { ...baseline.courses, ai: { lessons: 8, allFour: 0, adultOnly: 8 } } };
     expect(ratchetCourseBands(scan, unmeasured).worse.join(' ')).toMatch(/ai: no adultRegister recorded/);
+  });
+
+  it('THE 2026-09-30 MISS: sees a two-band lesson added to an existing course, which the old ratchet passed', () => {
+    // Teen + senior only: neither adult-only nor a lost four-band lesson, so
+    // ratchetCourseBands sees nothing. The gap gate must.
+    const row = scan.courses.banking;
+    const grown = { ...scan, courses: { ...scan.courses, banking: { ...row, lessons: row.lessons + 1 } } };
+    expect(ratchetCourseBands(grown, baseline).worse.filter((w) => w.startsWith('banking'))).toEqual([]);
+    expect(fourBandGapFindings(grown).join(' ')).toMatch(/banking: .*a lesson was added below the standard/);
+  });
+
+  it('THE 2026-09-30 MISS: sees a whole new course built to two bands, and passes one built to four', () => {
+    const twoBand = { ...scan, courses: { ...scan.courses, 'a-new-course': { lessons: 8, allFour: 0, adultOnly: 0, adultRegister: 0 } } };
+    expect(fourBandGapFindings(twoBand).join(' ')).toMatch(/a-new-course: a new course must carry child, youth, teen and senior/);
+    const fourBand = { ...scan, courses: { ...scan.courses, 'a-new-course': { lessons: 8, allFour: 8, adultOnly: 0, adultRegister: 0 } } };
+    expect(fourBandGapFindings(fourBand)).toEqual([]);
+  });
+
+  it('a course that closed its gap in the baseline is held there without editing the frozen table', () => {
+    // banking frozen at 8; once the baseline records it at 0, one two-band lesson fails.
+    const closed = { ...baseline, courses: { ...baseline.courses, banking: { ...baseline.courses.banking, lessons: 8, allFour: 8 } } };
+    const oneShort = { ...scan, courses: { ...scan.courses, banking: { ...scan.courses.banking, lessons: 9, allFour: 8 } } };
+    expect(fourBandGapFindings(oneShort, FOUR_BAND_GAP_CEILING, closed).join(' ')).toMatch(/banking: 1 lessons without all four bands, ceiling 0/);
+  });
+
+  it('the ceilings are frozen by hand and never written by the baseline generator', () => {
+    expect(Object.isFrozen(FOUR_BAND_GAP_CEILING)).toBe(true);
+    expect(buildCourseBandBaseline.toString()).not.toMatch(/FOUR_BAND_GAP_CEILING/);
   });
 
   it('sees a recorded course that has vanished from the catalog', () => {

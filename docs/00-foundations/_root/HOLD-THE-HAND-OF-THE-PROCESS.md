@@ -107,6 +107,14 @@ Being wired in "later" is the gap this Way closes. The enforcement is a build ga
 
 ---
 
+## Holding the hand includes the backlog and the driver (added 2026-09-30, DR-0697)
+
+- **A requirement binds new work the day it is required.** Its backlog gets an owner, a schedule and a done-condition. A shrink-only pin keeps old debt from growing; it is not a plan to pay it (P60). On 2026-09-30, 376 of 398 catalog lessons lacked the four age bands Darrell had required, while new courses kept arriving with two.
+- **The hand that carries the process must outlive the session.** Work that has to keep going gets a durable, braked driver, and that driver counts as working only after its first run is seen doing real work. "Created and enabled" is not "working" (P66).
+- **Every lane has a road we own.** A lane that reads through one chat connector goes blind when the connector drops; it needs a sovereign road (P61).
+
+---
+
 ## The only honest stopping points
 
 Holding the hand pauses only for one of these:
