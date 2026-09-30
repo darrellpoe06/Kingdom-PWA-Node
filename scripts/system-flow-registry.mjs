@@ -349,6 +349,15 @@ const NODES = [
     reads: [{ res: 'db:agent_inbox#lesson', token: 'FROM public.agent_inbox' }],
     writes: [], seeds: [],
   }),
+  wf('family-books-probe.yml', {
+    id: 'family-books-probe', name: 'Family Books probe (ledger parity + tax road)',
+    purpose: 'Measures from a runner on the tailnet why two members of one household saw different ledgers (counts and ids per member, instance and account; never a row amount or description), and how far a tax PDF of each size gets on the /taxes road; an opt-in test upload removes itself.',
+    reads: [
+      { res: 'db:transactions', token: 'FROM transactions' },
+      { res: 'http:taxes-upload', token: '/taxes/upload' },
+    ],
+    writes: [], seeds: [],
+  }),
   wf('inbox-lesson-tag.yml', {
     id: 'inbox-lesson-tag', name: 'A shipped lesson marks its row',
     purpose: 'Tags the agent_inbox row a lesson was built from (captured, lesson id, PR) on the live database, and published only once the deployed build contains the merge — the road that needs no chat connector.',
@@ -1078,6 +1087,7 @@ const RESOURCES = {
   'db:curriculum_lesson_verse_spans': { label: 'the NAS copy: every quotation and the verse it names', sink: 'Derived from the lessons for the verse gate and for looking a verse up across the school; rewritten whole on every sync (DR-0677).' },
   'db:curriculum_sync_runs': { label: 'the receipt of every lessons sync and its parity verdict', sink: 'A steward reads the verdict and the drifted lesson ids; the workflow summary carries the same (DR-0677).' },
   'file:audit-findings': { label: 'surface audit findings', source: 'Written by scripts/surface-audit.mjs, run on the NAS every 30 minutes and by an agent before a commit; the committed file is what the app reads.' },
+  'db:transactions': { label: 'the family ledger', source: 'Written by every family device through lib/transactions-sync.js (imports, edits, deletes); the family-books-probe counts it.' },
   'file:decision-ledger': { label: 'the decision ledger', source: 'The decision records in docs/decisions, written by the sessions that decide.' },
 
   'mail:lesson': { label: 'forwarded “Lesson.” mail', source: 'Darrell forwards a lesson from his own mailbox.' },
