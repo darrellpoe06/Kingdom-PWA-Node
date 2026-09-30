@@ -88,7 +88,7 @@ function Opportunities({ opportunities, totals, skillProfiles = [], addSkillProf
         make: '', model: '', serial: '',
       });
     }
-    alert(`Created a project "${projectTitle}" + a draft scope. Open the Projects tab to refine details.`);
+    alert(`Created a project "${projectTitle}" + a draft scope. Open the Projects tab to refine details.${decision.note ? `\n\n${decision.note} Set weekly hours on a profile under My skills.` : ''}`);
     if (setView) setView('projects');
   };
 

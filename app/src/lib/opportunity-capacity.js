@@ -46,35 +46,77 @@ export const dueDateFor = (urgencyKey, fromDate = new Date()) => {
 // over-capacity projects; they don't count until explicitly promoted).
 export const PROJECT_STATUSES_ACTIVE = ['planning', 'active', 'ending-soon'];
 
+// DR-0690 (Darrell 2026-09-30, "Capacity workflows work?", over a blank
+// Capacity tab): the snapshot now also says WHICH rows the number comes from
+// and WHICH state it is in, so the tab can never be empty and never paint a
+// number it cannot trace:
+//   state 'no-profiles' — nobody has a skill profile, so there is no supply side
+//   state 'no-hours'    — profiles exist but every weekly-hours value is 0/blank
+//   state 'measured'    — the meter is real (available > 0)
+// contributors = the active projects carrying hours, largest first;
+// unhoured = active projects with no hrs/wk set (they count as 0).
 export function capacitySnapshot(projects = [], skillProfiles = []) {
-  const committed = projects
-    .filter(p => PROJECT_STATUSES_ACTIVE.includes(p.status))
-    .reduce((s, p) => s + (parseFloat(p.hoursPerWeek) || 0), 0);
-  const available = skillProfiles.reduce((s, p) => s + (parseFloat(p.hoursPerWeek) || 0), 0);
+  const activeProjects = (projects || []).filter(p => p && PROJECT_STATUSES_ACTIVE.includes(p.status));
+  const hpw = (p) => parseFloat(p && p.hoursPerWeek) || 0;
+  const committed = activeProjects.reduce((s, p) => s + hpw(p), 0);
+  const profiles = skillProfiles || [];
+  const available = profiles.reduce((s, p) => s + hpw(p), 0);
   const remaining = Math.max(0, available - committed);
   const pct = available > 0 ? Math.round((committed / available) * 100) : 0;
-  return { committed, available, remaining, pct, hasProfiles: skillProfiles.length > 0 };
+  const hasProfiles = profiles.length > 0;
+  const contributors = activeProjects
+    .filter(p => hpw(p) > 0)
+    .map(p => ({ id: p.id, title: p.title || 'Untitled project', status: p.status, hoursPerWeek: hpw(p) }))
+    .sort((a, b) => b.hoursPerWeek - a.hoursPerWeek);
+  const unhoured = activeProjects.filter(p => hpw(p) <= 0).length;
+  const profilesWithHours = profiles.filter(p => hpw(p) > 0).length;
+  const state = !hasProfiles ? 'no-profiles' : (available > 0 ? 'measured' : 'no-hours');
+  return {
+    committed, available, remaining, pct, hasProfiles,
+    state, contributors, unhoured, activeCount: activeProjects.length,
+    profileCount: profiles.length, profilesWithHours,
+  };
 }
+// The flows that actually run this check (traced 2026-09-30, DR-0690). Kept
+// here so the Capacity tab names them from one list instead of prose that
+// drifts (the old copy named a "Tenant-as-Project" flow that does not exist).
+export const CAPACITY_CHECKED_FLOWS = [
+  'Action Queue · add item as Project',
+  'Dev/Ops · "Wrap me with the tech"',
+];
 // Capacity-aware project creation. Returns one of:
-//   { decision: 'add-active' }     — fits, proceed
+//   { decision: 'add-active' }     — fits (or cannot be measured: see note), proceed
 //   { decision: 'add-tbd' }        — user chose TBD
-//   { decision: 'cancel' }         — user backed out
+//   { decision: 'cancel' }         — user backed out (only offered when OVER 100%)
 // Uses confirm() prompts so it works without a custom modal system.
+//   no profiles / no hours set → add-active + note (not enforced; the caller shows the note)
+//   proposed <= 80%            → add-active, no prompt
+//   80% < proposed <= 100%     → prompt: OK = add-tbd, Cancel = add-active (accept the squeeze)
+//   proposed > 100%            → prompt: OK = add-tbd, Cancel = cancel (keep it out entirely)
+// DR-0690: before 2026-09-30 the over-100% Cancel returned add-active even
+// though the prompt said "Cancel to keep it out entirely", and a family whose
+// profiles all read 0 hrs/wk was waved through silently at "0%".
 export function capacityDecisionForNewProject(projects, skillProfiles, newProjectHpw, opts = {}) {
   const cap = capacitySnapshot(projects, skillProfiles);
   const proposed = cap.committed + (parseFloat(newProjectHpw) || 0);
-  const proposedPct = cap.available > 0 ? (proposed / cap.available) * 100 : 0;
   if (!cap.hasProfiles) {
-    // No skill profiles yet — can't enforce, just proceed but warn once.
+    // No skill profiles yet — can't enforce, just proceed but say so.
     return { decision: 'add-active', note: 'No skill profiles set yet; capacity not enforced.' };
   }
+  if (!(cap.available > 0)) {
+    return { decision: 'add-active', note: 'No weekly hours set on any skill profile; capacity not enforced.' };
+  }
+  const proposedPct = (proposed / cap.available) * 100;
   if (proposedPct <= 80) return { decision: 'add-active' };
   const label = opts.label || 'this project';
-  const msg = proposedPct > 100
+  const over = proposedPct > 100;
+  const msg = over
     ? `Heads up — adding ${label} would put the family at ${Math.round(proposedPct)}% of available hours/week (${proposed} hrs needed vs ${cap.available} hrs available).\n\nClick OK to add as TBD (parked until capacity opens up). Click Cancel to keep it out entirely.\n\nIf you really want to add it active anyway, you can promote it later from Projects > Inventory.`
     : `Tight fit — adding ${label} would push the family to ${Math.round(proposedPct)}% of available hours/week (${proposed} hrs needed vs ${cap.available} hrs available). The healthy zone is under 80%.\n\nClick OK to add as TBD (parked, doesn't count against workload). Click Cancel to add active anyway and accept the squeeze.`;
-  const useTbd = window.confirm(msg);
-  return useTbd ? { decision: 'add-tbd' } : { decision: 'add-active' };
+  const confirmFn = (typeof window !== 'undefined' && window.confirm) ? window.confirm.bind(window) : () => true;
+  const useTbd = confirmFn(msg);
+  if (useTbd) return { decision: 'add-tbd' };
+  return over ? { decision: 'cancel' } : { decision: 'add-active' };
 }
 
 // =============================================================================
