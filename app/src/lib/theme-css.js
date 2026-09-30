@@ -249,6 +249,27 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 [data-theme="midnight"] .hover\\:bg-\\[\\#1A1815\\]:hover{background-color:#2A2A2A!important;color:#E5E5E5!important}
 [data-theme="midnight"] .hover\\:bg-\\[\\#FAF8F4\\]:hover{background-color:#2A2A2A!important}
 [data-theme="midnight"] .hover\\:text-\\[\\#1A1815\\]:hover{color:#E5E5E5!important}
+/* LIGHT HOVER FILLS: the white bar on Books -> Imported (Darrell, screenshot
+   2026-09-30, black theme: "it looks bad on black view"). The "KPI's . Standard
+   reports" header carried hover:bg-white, and midnight had no hover remap for
+   it. A phone keeps :hover on whatever was last tapped, so after one tap the
+   bar painted pure white under the midnight ink #E5E5E5: measured 1.26:1.
+   Fifty-eight controls app-wide carry hover:bg-white, and five other light
+   hover fills had the same hole. They all hover DARK here now, and
+   contrast-guard.mjs (checkHoverCoverage) fails the build if a used hover
+   fill ever renders light in midnight again. DR-0713. */
+[data-theme="midnight"] .hover\\:bg-white:hover{background-color:#2A2A2A!important}
+[data-theme="midnight"] .hover\\:bg-\\[\\#E8E4DC\\]:hover{background-color:#2A2A2A!important}
+[data-theme="midnight"] .hover\\:bg-\\[\\#F0ECE4\\]:hover{background-color:#2A2A2A!important}
+[data-theme="midnight"] .hover\\:bg-\\[\\#F2F4EC\\]:hover{background-color:#16211A!important}
+[data-theme="midnight"] .hover\\:bg-\\[\\#E4EED6\\]:hover{background-color:#16211A!important}
+[data-theme="midnight"] .hover\\:bg-\\[\\#FAF1EC\\]:hover{background-color:#231614!important}
+/* THE SELECTED CHIP. A selected chip is filled bg-[#1A1815], which midnight
+   remaps to #1F1F1F, and an unselected chip is bg-white, remapped to #141414:
+   1.12:1 apart, so on black nothing looked selected. poe-selected inverts the
+   fill in midnight (#0A0A0A on #E5E5E5). The light themes keep their own dark
+   fill. Checked per theme by checkSelectedState in contrast-guard.mjs. DR-0713. */
+[data-theme="midnight"] .poe-selected{background-color:#E5E5E5!important;color:#0A0A0A!important;border-color:#E5E5E5!important}
 [data-theme="midnight"] input,[data-theme="midnight"] textarea,[data-theme="midnight"] select{color:#E5E5E5;background-color:#0A0A0A!important;border-color:#2A2A2A!important}
 /* #666666 measured 3.45:1 on the #0A0A0A field — below AA. #7C7C7C is 4.74:1
    and still reads as a hint rather than as typed text (2026-08-28). */

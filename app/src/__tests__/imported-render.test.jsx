@@ -38,6 +38,8 @@ async function mount(data) {
 describe('Imported — bank-convention view (real mount)', () => {
   beforeEach(() => {
     localStorage.clear();
+    // The chip picks ride the address bar (DR-0713); start every test clean.
+    window.history.replaceState(null, '', '/');
     localStorage.setItem('poe-current-profile', 'p1'); // pass the PII gate on localhost
   });
 
@@ -268,7 +270,7 @@ describe('Imported — bank-convention view (real mount)', () => {
     expect(html).not.toContain('2,099.93');             // itemized rows hidden while collapsed
   });
 
-  it('KPIs · Standard reports: collapsed by default, expands on tap (reclaims the top)', async () => {
+  it('Reports: OPEN by default, a labeled Hide collapses it, and the choice is remembered (DR-0713)', async () => {
     // 3 monthly same-payee outflows → a recurring pattern → the KPI panel exists.
     const RECUR = {
       accounts: [{ id: 'a1', name: 'Chase 7206', openingBalance: 5000 }],
@@ -279,16 +281,24 @@ describe('Imported — bank-convention view (real mount)', () => {
       ],
     };
     localStorage.removeItem('poe.imported.reportUsage.v1'); // start with no learned usage
+    localStorage.removeItem('poe-imported-reports-open');   // a first visit on this device
     const { container, click } = await mount(RECUR);
-    const toggle = [...container.querySelectorAll('button')].find((b) => /Standard reports/.test(b.textContent));
-    expect(toggle, 'the KPI’s · Standard reports header renders').toBeTruthy();
-    // collapsed by default — the panel bodies are hidden, so they do NOT eat the top
-    expect(container.innerHTML).not.toContain('your subscription audit');
-    expect(container.innerHTML).not.toContain('All outputs · every expense out');
-    expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    // one tap expands; with no learned usage the first standard report shows — the
-    // standard income/outputs pair leads (here only outputs exist), so All outputs shows
+    const toggle = [...container.querySelectorAll('button')].find((b) => /^(Hide|Show) report$/.test(b.textContent.trim()));
+    expect(toggle, 'the Reports section has a labeled show/hide button').toBeTruthy();
+    // OPEN by default (Darrell 2026-09-30: "Reports tab is hidden unless you
+    // know"): with no learned usage the first standard report shows; the
+    // income/outputs pair leads (here only outputs exist), so All outputs shows.
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(container.innerHTML).toContain('All outputs · every expense out');
+    // Hide collapses it, and this device remembers the choice
     await click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(toggle.textContent.trim()).toBe('Show report');
+    expect(container.innerHTML).not.toContain('All outputs · every expense out');
+    expect(localStorage.getItem('poe-imported-reports-open')).toBe('0');
+    // the report names stay on screen while hidden; picking one opens it again
+    const outTab = [...container.querySelectorAll('[role="tab"]')].find((b) => b.textContent.trim() === 'All outputs');
+    await click(outTab);
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
     expect(container.innerHTML).toContain('All outputs · every expense out');
     expect(container.innerHTML).toContain('key performance indicator'); // teaches the CONCEPT for learners
@@ -313,8 +323,7 @@ describe('Imported — bank-convention view (real mount)', () => {
     };
     localStorage.removeItem('poe.imported.reportUsage.v1');
     const { container, click } = await mount(SPEND);
-    const toggle = [...container.querySelectorAll('button')].find((b) => /Standard reports/.test(b.textContent));
-    await click(toggle);
+    // Reports are open by default (DR-0713): no header tap needed.
     const tabLabels = () => [...container.querySelectorAll('[role="tab"]')].map((t) => t.textContent.trim());
     expect(tabLabels()).toContain('Top categories');
     expect(tabLabels()).toContain('Top payees');
@@ -342,8 +351,7 @@ describe('Imported — bank-convention view (real mount)', () => {
     };
     localStorage.removeItem('poe.imported.reportUsage.v1');
     const { container, click } = await mount(FLOW);
-    const toggle = [...container.querySelectorAll('button')].find((b) => /Standard reports/.test(b.textContent));
-    await click(toggle);
+    // Reports are open by default (DR-0713): no header tap needed.
     const tabLabels = () => [...container.querySelectorAll('[role="tab"]')].map((t) => t.textContent.trim());
     expect(tabLabels()).toContain('All income');
     expect(tabLabels()).toContain('All outputs');
@@ -371,7 +379,7 @@ describe('Imported — bank-convention view (real mount)', () => {
     localStorage.removeItem('poe.imported.reportUsage.v1');
     localStorage.removeItem('poe.imported.recurringDecisions.v1');
     const { container, click } = await mount(RECUR);
-    await click([...container.querySelectorAll('button')].find((b) => /Standard reports/.test(b.textContent)));
+    // Reports are open by default (DR-0713).
     await click([...container.querySelectorAll('[role="tab"]')].find((t) => t.textContent.trim() === 'Recurring payments'));
     expect(container.innerHTML).toContain('your subscription audit');
     // before any decision: no "flagged" savings line
@@ -431,10 +439,8 @@ describe('Imported — bank-convention view (real mount)', () => {
     await act(async () => { createRoot(container).render(createElement(Imported, { data })); });
     const click = async (el) => { await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }); };
 
-    // open the Standard reports panel, then pick All income
-    const header = [...container.querySelectorAll('button')].find((b) => /Standard reports/i.test(b.textContent || ''));
-    expect(header, 'the Standard reports header renders').toBeTruthy();
-    await click(header);
+    // the Reports section is open by default (DR-0713); pick All income
+    expect(container.querySelector('[data-kpi-reports]'), 'the Reports section renders').toBeTruthy();
     const allIncomeTab = [...container.querySelectorAll('[role="tab"]')].find((b) => /All income/i.test(b.textContent || ''));
     if (allIncomeTab) await click(allIncomeTab);
 

@@ -29,7 +29,7 @@
 // the real component and proves 2026 lands on top.
 // =============================================================================
 
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
   sortByDate, sortRows, effectiveRange, periodRange, filterByRange, groupByMonth, groupByField, totals,
   monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalances, periodLabel, isTransferTxn,
@@ -46,6 +46,10 @@ import { loadLearnedDedupe, saveLearnedDedupe, learnFromCombine, findExactDuplic
 import { detectRecurring } from '../lib/recurring-payments.js';
 import { categoryLabel, TX_CATEGORIES, autoCategorizeSuggestions } from '../lib/categorize.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
+import {
+  normalizePicks, togglePick, rowMatchesPicks, splitDimension, splitSections,
+  initialPicks, saveStoredPicks, searchWithPicks,
+} from '../lib/imported-multi-filter.js';
 
 // How the register is grouped: by month (the statement default) or rolled up by a
 // field so repeated payees/categories/accounts show a combined subtotal.
@@ -68,6 +72,9 @@ function formatDate(s) {
   if (Number.isNaN(d.getTime())) return s;
   return d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 }
+
+// This device's choice to show or hide the standard reports (open unless closed).
+export const REPORTS_OPEN_KEY = 'poe-imported-reports-open';
 
 const fmtMoney = (n) => (n < 0 ? '-' : '') + '$' + Math.abs(Math.round(n || 0)).toLocaleString();
 
@@ -153,8 +160,12 @@ export function buildImportedView(data, filters, nowMs) {
 
   const q = (filters.search || '').trim().toLowerCase();
   const filtered = rows.filter(r => {
-    if (filters.institution && r.institution !== filters.institution) return false;
-    if (filters.category && (r.category || '') !== filters.category) return false;
+    // OR within a chip row, AND across rows (DR-0713). A legacy single string
+    // (filters.institution / filters.category) still means a one-chip pick.
+    if (!rowMatchesPicks(r, {
+      institutions: filters.institutions ?? filters.institution,
+      categories: filters.categories ?? filters.category,
+    })) return false;
     if (filters.since && String(r.posted || '') < filters.since) return false;
     if (q) {
       const hay = [r.name, r.category, r.institution].filter(Boolean).join(' ').toLowerCase();
@@ -189,7 +200,25 @@ export function buildImportedView(data, filters, nowMs) {
 }
 
 export default function Imported({ data = {}, deleteTransaction = null, recategorizePayee = null }) {
-  const [filters, setFilters] = useState({ institution: '', category: '', search: '' });
+  // Account + category chips are MULTI-select (Darrell 2026-09-30: "pick
+  // multiple options and they show below... together or separately"). The first
+  // load reads a shared link's address bar, then this device's last choice.
+  const [picksBoot] = useState(() => initialPicks(typeof window !== 'undefined' ? window.location.search : '', undefined));
+  const [filters, setFilters] = useState(() => ({ institutions: picksBoot.institutions, categories: picksBoot.categories, search: '' }));
+  const [pickLayout, setPickLayout] = useState(picksBoot.layout);
+  // Remember the selection on this device and mirror it into the address bar so
+  // it can be bookmarked or shared. replaceState keeps the nav history entry
+  // (and its state) untouched; only the Imported params change.
+  useEffect(() => {
+    const picks = { institutions: filters.institutions, categories: filters.categories, layout: pickLayout };
+    saveStoredPicks(picks);
+    try {
+      const next = searchWithPicks(window.location.search, picks);
+      if (next !== (window.location.search || '')) {
+        window.history.replaceState(window.history.state, '', window.location.pathname + next + (window.location.hash || ''));
+      }
+    } catch { /* no history API: the device copy still holds the choice */ }
+  }, [filters.institutions, filters.categories, pickLayout]);
   // View controls. period === null means "auto" (open on the newest month that
   // has data — the Mint pattern of landing on the latest activity). Any explicit
   // pick (segment or month-jump) sticks. sortDir defaults newest-first.
@@ -213,10 +242,19 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
   const [collapsed, setCollapsed] = useState(() => new Set());
   // The KPI money-insight panels (material changes / unusual months / recurring)
   // are grouped under one collapsible "KPIs · Standard reports" header so they
-  // don't eat the top of the tab; collapsed by default, one shown at a time, and
+  // don't eat the top of the tab; open by default (DR-0713), one shown at a time, and
   // ORDERED BY USAGE so the most-used surfaces first (Ari's recognition = the
   // frequency ranking; report-usage.js). `stdReportId` null = follow the ranking.
-  const [stdReportsOpen, setStdReportsOpen] = useState(false);
+  // OPEN by default (DR-0713, Darrell 2026-09-30: "Reports tab is hidden
+  // unless you know"). A person who closes it keeps it closed on this device.
+  const [stdReportsOpen, setStdReportsOpenRaw] = useState(() => {
+    try { return localStorage.getItem(REPORTS_OPEN_KEY) !== '0'; } catch { return true; }
+  });
+  const setStdReportsOpen = (next) => setStdReportsOpenRaw((o) => {
+    const v = typeof next === 'function' ? next(o) : next;
+    try { localStorage.setItem(REPORTS_OPEN_KEY, v ? '1' : '0'); } catch { /* private mode */ }
+    return v;
+  });
   const [stdReportId, setStdReportId] = useState(null);
   const [reportUsage, setReportUsage] = useState(() => loadReportUsage());
   // The subscription audit lives ON the auto-detected Recurring payments KPI
@@ -272,20 +310,31 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
   // combined subtotal, biggest-first, itemized rows still under each.
   const grouped = useMemo(() => {
     const windowed = filterByRange(view.filtered, sinceMs, untilMs);
-    let groups;
-    if (groupMode === 'month') {
-      groups = groupByMonth(sortByDate(windowed, 'desc'));
-    } else {
-      const getKey = groupMode === 'payee' ? (r) => r.name
-        : groupMode === 'account' ? (r) => r.institution
-          : (r) => r.category;
-      const labelFn = groupMode === 'category' ? (k) => (k ? categoryLabel(k) : '—') : (k) => k || '—';
-      groups = groupByField(windowed, getKey, { labelFn });
-    }
-    // Rows within each group sort by the active column (date/account/payee/…).
-    groups = groups.map((g) => ({ ...g, rows: sortRows(g.rows, sortKey, sortDir) }));
-    return { groups, windowed, windowTotals: totals(windowed), matched: windowed.length };
-  }, [view.filtered, sinceMs, untilMs, sortKey, sortDir, groupMode]);
+    const groupRows = (rows) => {
+      let groups;
+      if (groupMode === 'month') {
+        groups = groupByMonth(sortByDate(rows, 'desc'));
+      } else {
+        const getKey = groupMode === 'payee' ? (r) => r.name
+          : groupMode === 'account' ? (r) => r.institution
+            : (r) => r.category;
+        const labelFn = groupMode === 'category' ? (k) => (k ? categoryLabel(k) : '—') : (k) => k || '—';
+        groups = groupByField(rows, getKey, { labelFn });
+      }
+      // Rows within each group sort by the active column (date/account/payee/…).
+      return groups.map((g) => ({ ...g, rows: sortRows(g.rows, sortKey, sortDir) }));
+    };
+    const groups = groupRows(windowed);
+    // "Separately" (DR-0713): the SAME windowed rows cut into one section per
+    // picked chip, each grouped by the active Group-by. The sections partition
+    // the rows, so their subtotals add up to the Together total.
+    const picks = { institutions: filters.institutions, categories: filters.categories };
+    const sections = splitDimension(picks)
+      ? splitSections(windowed, picks, (dim, v) => (dim === 'category' ? categoryLabel(v) : v))
+        .map((sec) => ({ ...sec, groups: groupRows(sec.rows) }))
+      : null;
+    return { groups, sections, windowed, windowTotals: totals(windowed), matched: windowed.length };
+  }, [view.filtered, sinceMs, untilMs, sortKey, sortDir, groupMode, filters.institutions, filters.categories]);
 
   // Material-change watch (Darrell 2026-07-18: "always have a data-driven reason
   // for more or less than $500 in each account and overall, so we notice major
@@ -572,8 +621,8 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
   // downloaded/printed report ties out to the view (RLS-scoped — no leak).
   const reportMeta = () => ([
     { label: 'Period', value: periodLabel(activePeriod) },
-    { label: 'Account', value: filters.institution || 'All accounts' },
-    { label: 'Category', value: filters.category || 'All categories' },
+    { label: 'Account', value: normalizePicks(filters.institutions).join(' + ') || 'All accounts' },
+    { label: 'Category', value: normalizePicks(filters.categories).map(categoryLabel).join(' + ') || 'All categories' },
     { label: 'Grouped by', value: GROUP_MODES.find(([k]) => k === groupMode)?.[1] || 'Month' },
     { label: 'Generated', value: new Date().toLocaleString('en-US') },
   ]);
@@ -588,7 +637,8 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
   // Running-balance column — only when a single account is in view AND it carries
   // a real opening balance to anchor to (truthful-or-absent). Computed over the
   // account's FULL ledger so balances stay correct inside any narrowed window.
-  const singleAcct = filters.institution ? accounts.find(a => a.name === filters.institution) : null;
+  const pickedAccts = normalizePicks(filters.institutions);
+  const singleAcct = pickedAccts.length === 1 ? accounts.find(a => a.name === pickedAccts[0]) : null;
   const balByRow = useMemo(() => {
     if (!singleAcct) return null;
     const opening = singleAcct.openingBalance ?? singleAcct.balance;
@@ -598,7 +648,120 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
   }, [singleAcct, view.rows]);
   const showBalance = !!balByRow;
 
-  const chipCls = (active) => `px-2.5 py-1 text-[0.6875rem] rounded-full border whitespace-nowrap ${active ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`;
+  // A picked chip carries poe-selected: the theme's dark fill in the light
+  // themes, inverted to light in midnight, where the dark fill sat 1.12:1 from
+  // an unpicked chip (DR-0713). The check mark says "picked" without color.
+  const chipCls = (active) => `shrink-0 px-3 py-1.5 min-h-[36px] text-[0.6875rem] rounded-full border whitespace-nowrap ${active ? 'poe-selected bg-[#1A1815] text-white border-[#1A1815] font-semibold' : 'bg-white text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`;
+  const pickMark = (on) => (on ? <span aria-hidden="true" className="mr-1">✓</span> : null);
+  const pickAccount = (inst) => setFilters((f) => ({ ...f, institutions: togglePick(f.institutions, inst) }));
+  const pickCategory = (cat) => setFilters((f) => ({ ...f, categories: togglePick(f.categories, cat) }));
+  const splitDim = splitDimension({ institutions: filters.institutions, categories: filters.categories });
+  const showSeparately = pickLayout === 'separate' && !!grouped.sections;
+
+  // One register (grouped + sticky headers), used by Together and by each
+  // Separately section. `prefix` keeps collapse state per section.
+  const renderGroups = (groups, prefix = '') => groups.map((g) => {
+    const gk = prefix + g.key;
+    const isCollapsed = collapsed.has(gk);
+    return (
+    <div key={gk}>
+      <button
+        type="button"
+        onClick={() => toggleGroup(gk)}
+        aria-expanded={!isCollapsed}
+        className="sticky top-0 z-10 w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#FAF8F4] border-y border-[#E8E4DC] text-left hover:bg-white"
+      >
+        <span className="flex items-baseline gap-2">
+          <span className="text-[#5A5751] text-xs" aria-hidden="true">{isCollapsed ? '▸' : '▾'}</span>
+          <span className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{g.label}</span>
+          <span className="text-[0.625rem] text-[#5A5751]">{g.totals.count.toLocaleString()} tx</span>
+        </span>
+        <span className="flex items-center gap-2 text-[0.6875rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+          <span className="text-[#166534]">in {fmtMoney(g.totals.in)}</span>
+          <span className="text-[#B85838]">out {fmtMoney(g.totals.out)}</span>
+          <span className={g.totals.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'}>net {fmtMoney(g.totals.net)}</span>
+        </span>
+      </button>
+      {!isCollapsed && (
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead className="bg-white text-[#5A5751] uppercase tracking-wider text-[0.625rem]">
+            <tr>
+              <th scope="col" className="text-left px-2 py-1.5"><button type="button" onClick={() => toggleSort('date')} className="uppercase tracking-wider hover:text-[#1A1815]">Date{sortArrow('date')}</button></th>
+              <th scope="col" className="text-left px-2 py-1.5"><button type="button" onClick={() => toggleSort('account')} className="uppercase tracking-wider hover:text-[#1A1815]">Account{sortArrow('account')}</button></th>
+              <th scope="col" className="text-left px-2 py-1.5"><button type="button" onClick={() => toggleSort('payee')} className="uppercase tracking-wider hover:text-[#1A1815]">Payee / Description{sortArrow('payee')}</button></th>
+              <th scope="col" className="text-left px-2 py-1.5"><button type="button" onClick={() => toggleSort('category')} className="uppercase tracking-wider hover:text-[#1A1815]">Category{sortArrow('category')}</button></th>
+              <th scope="col" className="text-right px-2 py-1.5"><button type="button" onClick={() => toggleSort('amount')} className="uppercase tracking-wider hover:text-[#1A1815]">Amount{sortArrow('amount')}</button></th>
+              {showBalance && <th scope="col" className="text-right px-2 py-1.5">Balance</th>}
+              <th scope="col" className="w-6 px-1 py-1.5" aria-label="Details" />
+            </tr>
+          </thead>
+          <tbody>
+            {g.rows.map(t => {
+              const open = expandedId === t.id;
+              const cols = showBalance ? 7 : 6;
+              return (
+              <React.Fragment key={t.id}>
+              <tr className="border-t border-[#E8E4DC] hover:bg-[#FAF8F4] cursor-pointer" onClick={() => setExpandedId(open ? null : t.id)} aria-expanded={open}>
+                <td className="px-2 py-1.5 whitespace-nowrap">
+                  {canCombine && (
+                    <input type="checkbox" checked={selectedIds.has(t.id)} onClick={(e) => e.stopPropagation()} onChange={() => toggleSelect(t.id)} className="mr-1.5 align-middle" aria-label={`Select ${t.name} to combine`} />
+                  )}
+                  {formatDate(t.posted)}
+                </td>
+                <td className="px-2 py-1.5 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{t.institution}</td>
+                <td className={`px-2 py-1.5 ${selectedIds.has(t.id) ? 'whitespace-normal break-words' : 'truncate max-w-[16.25rem]'}`} title={t.name}>
+                  {t.name}
+                  {recurringIds.has(t.id) && <span className="ml-1.5 text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] border border-[#5A6E3D] rounded-full px-1.5 py-0.5" title="Part of a repeating payment pattern">↻ recurring</span>}
+                  {t.pending && <span className="ml-1.5 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] rounded-full px-1.5 py-0.5">pending</span>}
+                </td>
+                <td className="px-2 py-1.5 text-[#5A5751]" onClick={(e) => { if (canEditCat) e.stopPropagation(); }}>
+                  {canEditCat ? (
+                    <select
+                      value={(t.category || 'other').toLowerCase()}
+                      onChange={(e) => setRowCategory(t, e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="max-w-[8.5rem] text-[0.6875rem] bg-white border border-[#E8E4DC] px-1 py-0.5 focus:outline focus:outline-2 focus:outline-[#B85838]"
+                      aria-label={`Category for ${t.name}`}
+                    >
+                      {categoryOptions.map((c) => <option key={c} value={c}>{categoryLabel(c)}</option>)}
+                      <option value="__new__">+ New category…</option>
+                    </select>
+                  ) : (t.category ? categoryLabel(t.category) : '—')}
+                </td>
+                <td className={`px-2 py-1.5 text-right font-mono ${t.amount < 0 ? 'text-[#B85838]' : 'text-[#16A34A]'}`}>{formatAmount(t.amount)}</td>
+                {showBalance && (
+                  <td className="px-2 py-1.5 text-right font-mono text-[#5A5751]">
+                    {balByRow.has(t.id) ? formatAmount(balByRow.get(t.id)) : '—'}
+                  </td>
+                )}
+                <td className="px-1 py-1.5 text-center text-[#5A5751]" aria-hidden="true">{open ? '▾' : '▸'}</td>
+              </tr>
+              {open && (
+                <tr className="bg-[#FAF8F4]">
+                  <td colSpan={cols} className="px-3 py-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[0.6875rem]">
+                      <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Date</div><div className="text-[#1A1815]">{formatDate(t.posted)}</div></div>
+                      <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Account</div><div className="text-[#1A1815]">{t.institution}</div></div>
+                      <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</div><div className="text-[#1A1815]">{t.category ? categoryLabel(t.category) : '—'}</div></div>
+                      <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Amount</div><div className={`font-mono ${t.amount < 0 ? 'text-[#B85838]' : 'text-[#166534]'}`}>{formatAmount(t.amount)}</div></div>
+                      <div className="col-span-2 sm:col-span-3"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Full description</div><div className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{t.name}</div></div>
+                      <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Status</div><div className="text-[#1A1815]">{t.pending ? 'Pending' : 'Cleared'}</div></div>
+                      <div className="col-span-2 sm:col-span-4 border-t border-[#E8E4DC] pt-2"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Receipt</div><div className="text-[#5A5751] italic">No receipt on file — bank-imported rows carry no receipt image. Attach one from the Tx tab when receipt capture lands.</div></div>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      )}
+    </div>
+    );
+  });
 
   // Gate denied. This must render a CLEARLY VISIBLE, themed, self-explaining card
   // — never the old thin low-contrast strip, which on the OLED-black (Midnight)
@@ -774,8 +937,8 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
           {/* Standard reports — the money-insight panels (material changes,
               unusual months, recurring payments) are grouped under ONE collapsible
               header and shown one at a time, so they stop eating the top of the tab
-              (Darrell 2026-07-20). Collapsed by default; each panel is data-driven
-              off the live ledger — no static data (DR-0061 / P15). */}
+              (Darrell 2026-07-20). OPEN by default since DR-0713; each panel is
+              data-driven off the live ledger — no static data (DR-0061 / P15). */}
           {(() => {
             const stdReports = [];
             // The standard income/outputs pair leads (Darrell 2026-07-21: "all
@@ -1027,83 +1190,68 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
             // method, Darrell 2026-07-20); registry order is only the tiebreak.
             const ranked = rankReports(stdReports, reportUsage);
             const active = ranked.find((r) => r.id === stdReportId) || ranked[0];
-            const openReports = () => {
-              setStdReportsOpen((o) => {
-                // Opening counts as a "use" of the report shown (the most-used,
-                // or the one the family last picked) — that keeps the ranking live.
-                if (!o) setReportUsage((u) => bumpReportUsage(active.id, undefined, u));
-                return !o;
-              });
+            // Show / hide is a LABELED button, never a bare arrow, and the report
+            // tabs stay on screen either way; picking one opens it (DR-0713).
+            const toggleReports = () => {
+              if (!stdReportsOpen) setReportUsage((u) => bumpReportUsage(active.id, undefined, u));
+              setStdReportsOpen(!stdReportsOpen);
             };
+            const openReport = (id) => { pickStdReport(id); if (!stdReportsOpen) setStdReportsOpen(true); };
             return (
-              <div ref={kpiPanelRef} className="border border-[#E8E4DC] bg-[#FAF8F4] scroll-mt-2">
-                <button
-                  type="button"
-                  onClick={openReports}
-                  aria-expanded={stdReportsOpen}
-                  className="w-full flex items-center justify-between gap-2 px-3 py-3 min-h-[48px] text-left hover:bg-white focus:outline focus:outline-2 focus:outline-[#1A1815]"
-                >
-                  <span className="text-[0.8125rem] tracking-[0.08em] text-[#1A1815] font-semibold">
-                    KPI&rsquo;s &middot; Standard reports
-                  </span>
-                  <span className="flex items-center gap-2 min-w-0 shrink-0">
-                    <span className="text-[0.6875rem] text-[#5A5751] whitespace-nowrap">{ranked.length} report{ranked.length === 1 ? '' : 's'}</span>
-                    <span className="text-[#1A1815] text-sm" aria-hidden="true">{stdReportsOpen ? '\u25be' : '\u25b8'}</span>
-                  </span>
-                </button>
-
-                {/* THE REPORT NAMES ARE ALWAYS VISIBLE, INCLUDING ON A PHONE.
-                    Darrell 2026-08-11: "make KPI's more visible for Users...
-                    Christina is having a hard time locating it... getting
-                    aclimated." Measured cause: the names rendered at 9px behind
-                    `hidden sm:inline`, so on a phone the entire section was one
-                    faint collapsed strip with nothing in it to recognise. A
-                    person cannot look for a thing whose name is not on screen.
-                    Each chip now opens its own report directly — one tap from
-                    "I can see it" to "I am reading it" — and the row stays put
-                    whether the panel is open or closed so it never disappears
-                    again at a narrow width. */}
-                <div className="px-3 pb-3 -mt-1 flex flex-wrap gap-1.5" role="group" aria-label="Open a KPI report">
-                  {ranked.map((r) => (
-                    <button
-                      key={`peek-${r.id}`}
-                      type="button"
-                      onClick={() => pickStdReport(r.id)}
-                      aria-current={stdReportsOpen && active.id === r.id ? 'true' : undefined}
-                      className={`text-[0.6875rem] tracking-wide px-3 py-2 min-h-[36px] border ${stdReportsOpen && active.id === r.id ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#C9C3B8] text-[#1A1815] bg-white hover:bg-[#1A1815] hover:text-white'}`}
-                    >
-                      {r.label}
-                    </button>
-                  ))}
+              // DR-0713 (Darrell 2026-09-30, black theme: a white header bar, the
+              // reports hidden unless you know, and the same seven buttons twice).
+              // ONE section, labeled "Reports", open by default, remembered per
+              // device; ONE row of report tabs; every color is a theme-remapped
+              // class, and the selected tab carries poe-selected so it reads as
+              // selected on black too. Pinned by books-reports-theme.test.jsx.
+              <section ref={kpiPanelRef} data-kpi-reports="" aria-labelledby="kpi-reports-title" className="border border-[#E8E4DC] bg-[#FAF8F4] scroll-mt-2">
+                <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-2">
+                  <h3 id="kpi-reports-title" className="min-w-0 text-[0.8125rem] tracking-[0.04em] text-[#1A1815] font-semibold">
+                    Reports <span className="font-normal text-[#5A5751]">&middot; KPI&rsquo;s &middot; {ranked.length} standard</span>
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={toggleReports}
+                    aria-expanded={stdReportsOpen}
+                    aria-controls="kpi-report-panel"
+                    className="shrink-0 text-[0.6875rem] uppercase tracking-wider px-3 py-1.5 min-h-[36px] border border-[#E8E4DC] bg-[#FAF8F4] text-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#1A1815]"
+                  >
+                    {stdReportsOpen ? 'Hide report' : 'Show report'}
+                  </button>
+                </div>
+                {/* THE REPORT NAMES ARE ALWAYS VISIBLE, INCLUDING ON A PHONE
+                    (Darrell 2026-08-11: "Christina is having a hard time locating
+                    it"). One row, one tap from a name to its report. */}
+                <div className="px-3 pb-3 flex flex-wrap gap-1.5" role="tablist" aria-label="Standard reports">
+                  {ranked.map((r) => {
+                    const on = active.id === r.id;
+                    return (
+                      <button
+                        key={r.id}
+                        id={`kpi-tab-${r.id}`}
+                        type="button"
+                        role="tab"
+                        aria-selected={on}
+                        aria-controls="kpi-report-panel"
+                        onClick={() => openReport(r.id)}
+                        className={`text-[0.6875rem] tracking-wide px-3 py-2 min-h-[36px] border ${on ? 'poe-selected bg-[#1A1815] text-white border-[#1A1815] font-semibold' : 'border-[#C9C3B8] text-[#1A1815] bg-white hover:bg-[#FAF8F4]'}`}
+                      >
+                        {r.label}
+                      </button>
+                    );
+                  })}
                 </div>
                 {stdReportsOpen && (
-                  <div className="px-3 pb-3 pt-1 space-y-2">
-                    {/* Teach the CONCEPT for learners (Darrell 2026-07-20): explain
-                        what a KPI is and what each report reveals — context, not a
-                        narration of the obvious UI mechanics. */}
+                  <div id="kpi-report-panel" role="tabpanel" aria-labelledby={`kpi-tab-${active.id}`} className="px-3 pb-3 space-y-2">
+                    {active.node}
+                    {/* Teach the CONCEPT for learners (Darrell 2026-07-20): what a
+                        KPI is and what each report reveals. */}
                     <p className="text-[0.6875rem] text-[#5A5751] leading-snug">
                       <span className="font-semibold text-[#1A1815]">KPI</span> means <span className="italic">key performance indicator</span> &mdash; the few numbers that tell you the most about your money at a glance. Each reads live from your own ledger: <span className="font-semibold">Material changes</span> (the biggest moves and what drove them), <span className="font-semibold">Unusual months</span> (a month far off your normal), <span className="font-semibold">Recurring payments</span> (what repeats every cycle, so nothing hides), <span className="font-semibold">Top categories</span> (where the money goes), and <span className="font-semibold">Top payees</span> (who you pay most).
                     </p>
-                    {ranked.length > 1 && (
-                      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="KPI&rsquo;s · Standard reports">
-                        {ranked.map((r) => (
-                          <button
-                            key={r.id}
-                            type="button"
-                            role="tab"
-                            aria-selected={active.id === r.id}
-                            onClick={() => pickStdReport(r.id)}
-                            className={`text-[0.625rem] uppercase tracking-wider px-2.5 py-1 border ${active.id === r.id ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751] hover:bg-white'}`}
-                          >
-                            {r.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {active.node}
                   </div>
                 )}
-              </div>
+              </section>
             );
           })()}
 
@@ -1149,7 +1297,7 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                     type="button"
                     onClick={() => { setPeriod(key); }}
                     aria-pressed={active}
-                    className={`px-3 py-1 text-[0.6875rem] uppercase tracking-wider ${i > 0 ? 'border-l border-[#E8E4DC]' : ''} ${active ? 'bg-[#1A1815] text-white' : 'bg-white text-[#5A5751] hover:bg-[#FAF8F4]'}`}
+                    className={`px-3 py-1 text-[0.6875rem] uppercase tracking-wider ${i > 0 ? 'border-l border-[#E8E4DC]' : ''} ${active ? 'poe-selected bg-[#1A1815] text-white' : 'bg-white text-[#5A5751] hover:bg-[#FAF8F4]'}`}
                   >
                     {label}
                   </button>
@@ -1186,22 +1334,46 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
           )}
 
           {/* Account filter chips (tappable). */}
+          {/* Tap to add, tap again to remove; "All" clears the row (DR-0713). */}
           {view.institutions.length > 1 && (
-            <div className="flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Filter by account">
-              <button type="button" onClick={() => setFilters(f => ({ ...f, institution: '' }))} className={chipCls(!filters.institution)}>All accounts</button>
-              {view.institutions.map(inst => (
-                <button key={inst} type="button" onClick={() => setFilters(f => ({ ...f, institution: inst }))} className={chipCls(filters.institution === inst)}>{inst}</button>
-              ))}
+            <div className="flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Filter by account (pick one or more)">
+              <button type="button" aria-pressed={pickedAccts.length === 0} onClick={() => setFilters(f => ({ ...f, institutions: [] }))} className={chipCls(pickedAccts.length === 0)}>All accounts</button>
+              {view.institutions.map(inst => {
+                const on = pickedAccts.includes(inst);
+                return <button key={inst} type="button" aria-pressed={on} onClick={() => pickAccount(inst)} className={chipCls(on)}>{pickMark(on)}{inst}</button>;
+              })}
             </div>
           )}
 
           {/* Category filter chips (tappable, horizontally scrollable). */}
           {view.categories.length > 1 && (
-            <div className="flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Filter by category">
-              <button type="button" onClick={() => setFilters(f => ({ ...f, category: '' }))} className={chipCls(!filters.category)}>All categories</button>
-              {view.categories.map(cat => (
-                <button key={cat} type="button" onClick={() => setFilters(f => ({ ...f, category: cat }))} className={chipCls(filters.category === cat)}>{categoryLabel(cat)}</button>
-              ))}
+            <div className="flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Filter by category (pick one or more)">
+              <button type="button" aria-pressed={normalizePicks(filters.categories).length === 0} onClick={() => setFilters(f => ({ ...f, categories: [] }))} className={chipCls(normalizePicks(filters.categories).length === 0)}>All categories</button>
+              {view.categories.map(cat => {
+                const on = normalizePicks(filters.categories).includes(cat);
+                return <button key={cat} type="button" aria-pressed={on} onClick={() => pickCategory(cat)} className={chipCls(on)}>{pickMark(on)}{categoryLabel(cat)}</button>;
+              })}
+            </div>
+          )}
+
+          {/* Together or Separately: shown once a row holds two or more picks. */}
+          {splitDim && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Show picks</span>
+              <div className="inline-flex rounded-md border border-[#E8E4DC] overflow-hidden" role="group" aria-label="Show the picked chips together or separately">
+                {[['together', 'Together'], ['separate', 'Separately']].map(([key, label], i) => (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={pickLayout === key}
+                    onClick={() => setPickLayout(key)}
+                    className={`px-3 py-1.5 min-h-[36px] text-[0.6875rem] uppercase tracking-wider ${i > 0 ? 'border-l border-[#E8E4DC]' : ''} ${pickLayout === key ? 'poe-selected bg-[#1A1815] text-white font-semibold' : 'bg-white text-[#5A5751] hover:bg-[#FAF8F4]'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <span className="text-[0.625rem] text-[#5A5751]">{pickLayout === 'separate' ? `one section per ${splitDim === 'category' ? 'category' : 'account'}, each with its own subtotal` : 'one list, one set of totals'}</span>
             </div>
           )}
 
@@ -1227,7 +1399,7 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                   type="button"
                   onClick={() => { setGroupMode(key); setCollapsed(new Set()); }}
                   aria-pressed={groupMode === key}
-                  className={`px-3 py-1 text-[0.6875rem] uppercase tracking-wider ${i > 0 ? 'border-l border-[#E8E4DC]' : ''} ${groupMode === key ? 'bg-[#1A1815] text-white' : 'bg-white text-[#5A5751] hover:bg-[#FAF8F4]'}`}
+                  className={`px-3 py-1 text-[0.6875rem] uppercase tracking-wider ${i > 0 ? 'border-l border-[#E8E4DC]' : ''} ${groupMode === key ? 'poe-selected bg-[#1A1815] text-white' : 'bg-white text-[#5A5751] hover:bg-[#FAF8F4]'}`}
                 >
                   {label}
                 </button>
@@ -1260,109 +1432,38 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
             <div className="border border-[#E8E4DC] bg-white px-2 py-6 text-center text-[0.75rem] text-[#5A5751]">
               No transactions in this period. Try “All”, step to another month, or clear the filters.
             </div>
-          ) : (
-            <div className="border border-[#E8E4DC] bg-white">
-              {grouped.groups.map(g => {
-                const isCollapsed = collapsed.has(g.key);
+          ) : showSeparately ? (
+            // Separately (DR-0713): one section per picked chip, each with its
+            // own in/out/net. The sections partition the rows, so they add up
+            // to the Together line above.
+            <div className="space-y-3">
+              {grouped.sections.map((sec) => {
+                const st = externalTotals(sec.rows, internalIds);
                 return (
-                <div key={g.key}>
-                  <button
-                    type="button"
-                    onClick={() => toggleGroup(g.key)}
-                    aria-expanded={!isCollapsed}
-                    className="sticky top-0 z-10 w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#FAF8F4] border-y border-[#E8E4DC] text-left hover:bg-white"
-                  >
-                    <span className="flex items-baseline gap-2">
-                      <span className="text-[#5A5751] text-xs" aria-hidden="true">{isCollapsed ? '▸' : '▾'}</span>
-                      <span className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{g.label}</span>
-                      <span className="text-[0.625rem] text-[#5A5751]">{g.totals.count.toLocaleString()} tx</span>
-                    </span>
-                    <span className="flex items-center gap-2 text-[0.6875rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                      <span className="text-[#166534]">in {fmtMoney(g.totals.in)}</span>
-                      <span className="text-[#B85838]">out {fmtMoney(g.totals.out)}</span>
-                      <span className={g.totals.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'}>net {fmtMoney(g.totals.net)}</span>
-                    </span>
-                  </button>
-                  {!isCollapsed && (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead className="bg-white text-[#5A5751] uppercase tracking-wider text-[0.625rem]">
-                        <tr>
-                          <th scope="col" className="text-left px-2 py-1.5"><button type="button" onClick={() => toggleSort('date')} className="uppercase tracking-wider hover:text-[#1A1815]">Date{sortArrow('date')}</button></th>
-                          <th scope="col" className="text-left px-2 py-1.5"><button type="button" onClick={() => toggleSort('account')} className="uppercase tracking-wider hover:text-[#1A1815]">Account{sortArrow('account')}</button></th>
-                          <th scope="col" className="text-left px-2 py-1.5"><button type="button" onClick={() => toggleSort('payee')} className="uppercase tracking-wider hover:text-[#1A1815]">Payee / Description{sortArrow('payee')}</button></th>
-                          <th scope="col" className="text-left px-2 py-1.5"><button type="button" onClick={() => toggleSort('category')} className="uppercase tracking-wider hover:text-[#1A1815]">Category{sortArrow('category')}</button></th>
-                          <th scope="col" className="text-right px-2 py-1.5"><button type="button" onClick={() => toggleSort('amount')} className="uppercase tracking-wider hover:text-[#1A1815]">Amount{sortArrow('amount')}</button></th>
-                          {showBalance && <th scope="col" className="text-right px-2 py-1.5">Balance</th>}
-                          <th scope="col" className="w-6 px-1 py-1.5" aria-label="Details" />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {g.rows.map(t => {
-                          const open = expandedId === t.id;
-                          const cols = showBalance ? 7 : 6;
-                          return (
-                          <React.Fragment key={t.id}>
-                          <tr className="border-t border-[#E8E4DC] hover:bg-[#FAF8F4] cursor-pointer" onClick={() => setExpandedId(open ? null : t.id)} aria-expanded={open}>
-                            <td className="px-2 py-1.5 whitespace-nowrap">
-                              {canCombine && (
-                                <input type="checkbox" checked={selectedIds.has(t.id)} onClick={(e) => e.stopPropagation()} onChange={() => toggleSelect(t.id)} className="mr-1.5 align-middle" aria-label={`Select ${t.name} to combine`} />
-                              )}
-                              {formatDate(t.posted)}
-                            </td>
-                            <td className="px-2 py-1.5 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{t.institution}</td>
-                            <td className={`px-2 py-1.5 ${selectedIds.has(t.id) ? 'whitespace-normal break-words' : 'truncate max-w-[16.25rem]'}`} title={t.name}>
-                              {t.name}
-                              {recurringIds.has(t.id) && <span className="ml-1.5 text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] border border-[#5A6E3D] rounded-full px-1.5 py-0.5" title="Part of a repeating payment pattern">↻ recurring</span>}
-                              {t.pending && <span className="ml-1.5 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] rounded-full px-1.5 py-0.5">pending</span>}
-                            </td>
-                            <td className="px-2 py-1.5 text-[#5A5751]" onClick={(e) => { if (canEditCat) e.stopPropagation(); }}>
-                              {canEditCat ? (
-                                <select
-                                  value={(t.category || 'other').toLowerCase()}
-                                  onChange={(e) => setRowCategory(t, e.target.value)}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="max-w-[8.5rem] text-[0.6875rem] bg-white border border-[#E8E4DC] px-1 py-0.5 focus:outline focus:outline-2 focus:outline-[#B85838]"
-                                  aria-label={`Category for ${t.name}`}
-                                >
-                                  {categoryOptions.map((c) => <option key={c} value={c}>{categoryLabel(c)}</option>)}
-                                  <option value="__new__">+ New category…</option>
-                                </select>
-                              ) : (t.category ? categoryLabel(t.category) : '—')}
-                            </td>
-                            <td className={`px-2 py-1.5 text-right font-mono ${t.amount < 0 ? 'text-[#B85838]' : 'text-[#16A34A]'}`}>{formatAmount(t.amount)}</td>
-                            {showBalance && (
-                              <td className="px-2 py-1.5 text-right font-mono text-[#5A5751]">
-                                {balByRow.has(t.id) ? formatAmount(balByRow.get(t.id)) : '—'}
-                              </td>
-                            )}
-                            <td className="px-1 py-1.5 text-center text-[#5A5751]" aria-hidden="true">{open ? '▾' : '▸'}</td>
-                          </tr>
-                          {open && (
-                            <tr className="bg-[#FAF8F4]">
-                              <td colSpan={cols} className="px-3 py-3">
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[0.6875rem]">
-                                  <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Date</div><div className="text-[#1A1815]">{formatDate(t.posted)}</div></div>
-                                  <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Account</div><div className="text-[#1A1815]">{t.institution}</div></div>
-                                  <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</div><div className="text-[#1A1815]">{t.category ? categoryLabel(t.category) : '—'}</div></div>
-                                  <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Amount</div><div className={`font-mono ${t.amount < 0 ? 'text-[#B85838]' : 'text-[#166534]'}`}>{formatAmount(t.amount)}</div></div>
-                                  <div className="col-span-2 sm:col-span-3"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Full description</div><div className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{t.name}</div></div>
-                                  <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Status</div><div className="text-[#1A1815]">{t.pending ? 'Pending' : 'Cleared'}</div></div>
-                                  <div className="col-span-2 sm:col-span-4 border-t border-[#E8E4DC] pt-2"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Receipt</div><div className="text-[#5A5751] italic">No receipt on file — bank-imported rows carry no receipt image. Attach one from the Tx tab when receipt capture lands.</div></div>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                          </React.Fragment>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                  )}
-                </div>
+                  <section key={sec.key} data-pick-section={sec.key} aria-label={`${sec.label}: its own list and subtotal`} className="border border-[#1A1815]">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2 px-3 py-2 bg-[#E8E4DC]">
+                      <span className="flex items-baseline gap-2">
+                        <span className="text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>{sec.label}</span>
+                        <span className="text-[0.625rem] text-[#5A5751]">{sec.rows.length.toLocaleString()} tx</span>
+                      </span>
+                      <span className="flex items-center gap-2 text-[0.6875rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }} data-section-totals>
+                        <span className="text-[#166534]">in {fmtMoney(st.in)}</span>
+                        <span className="text-[#B85838]">out {fmtMoney(st.out)}</span>
+                        <span className={st.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'}>net {fmtMoney(st.net)}</span>
+                      </span>
+                    </div>
+                    {sec.rows.length === 0 ? (
+                      <div className="bg-white px-2 py-4 text-center text-[0.75rem] text-[#5A5751]">Nothing for {sec.label} in this period.</div>
+                    ) : (
+                      <div className="bg-white">{renderGroups(sec.groups, `${sec.key}::`)}</div>
+                    )}
+                  </section>
                 );
               })}
+            </div>
+          ) : (
+            <div className="border border-[#E8E4DC] bg-white">
+              {renderGroups(grouped.groups)}
             </div>
           )}
         </>

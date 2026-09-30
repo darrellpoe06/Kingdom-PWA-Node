@@ -362,14 +362,123 @@ export function scanTokenCoverage() {
   return { violations: checkTokenCoverage(remap, used), remap, used };
 }
 
+// --- hover fills in midnight (DR-0713) ---------------------------------------
+// parseMidnightRemap skips every :hover rule, so a light HOVER fill was never
+// checked. A phone keeps :hover on the last thing tapped, which made the Books
+// -> Imported reports header a white bar under light midnight ink (1.26:1,
+// Darrell's screenshot 2026-09-30). Every hover fill a component uses must
+// render DARK in midnight, through its own hover remap.
+export function parseMidnightHoverRemap(src) {
+  const bg = {};
+  for (const raw of src.split('\n')) {
+    if (!raw.includes(`[data-theme="${DARK_THEME}"]`)) continue;
+    const line = raw.replace(/\\\\/g, '').replace(/\\/g, '');
+    const m = line.match(/\.hover:bg-(?:\[(#[0-9a-f]{6})\]|(white|black)):hover\{background-color:\s*(#[0-9a-f]{6})/i);
+    if (m) bg[(m[1] || m[2]).toLowerCase()] = m[3];
+  }
+  return bg;
+}
+
+export function collectHoverBgTokens(src) {
+  const out = new Set();
+  for (const m of src.matchAll(/hover:bg-(?:\[(#[0-9A-Fa-f]{6})\]|(white|black))(?![\w-])/g)) out.add((m[1] || m[2]).toLowerCase());
+  return out;
+}
+
+export function checkHoverCoverage(hoverRemap, usedHover) {
+  const violations = [];
+  for (const key of usedHover) {
+    const rendered = hoverRemap[key] || (key === 'white' ? '#FFFFFF' : key === 'black' ? '#000000' : key);
+    const L = relLum(rendered);
+    if (L != null && L >= BG_TOO_LIGHT_LUM) {
+      violations.push({ theme: DARK_THEME, dir: 'light-on-light', what: `hover:bg-[${key}] hover fill`, rendered, lum: +L.toFixed(2) });
+    }
+  }
+  return violations;
+}
+
+function listJsx(dir) {
+  try {
+    return readdirSync(dir, { recursive: true }).map(String).filter((f) => f.endsWith('.jsx')).map((f) => join(dir, f));
+  } catch { return []; }
+}
+
+export function scanHoverCoverage() {
+  const themeSrc = existsSync(THEME_SOURCE) ? readFileSync(THEME_SOURCE, 'utf8') : '';
+  const monoSrc = existsSync(MONOLITH) ? readFileSync(MONOLITH, 'utf8') : '';
+  const hoverRemap = parseMidnightHoverRemap(monoSrc + '\n' + themeSrc);
+  const used = collectHoverBgTokens(monoSrc);
+  // Every .jsx under app/src (components, modules, the shells), tests excluded.
+  for (const f of listJsx(join(ROOT, 'app/src')).filter((x) => !x.includes(`${'__tests__'}`))) { try { collectHoverBgTokens(readFileSync(f, 'utf8')).forEach((x) => used.add(x)); } catch { /* unreadable */ } }
+  return { violations: checkHoverCoverage(hoverRemap, used), hoverRemap, used };
+}
+
+// --- the selected state of a chip, every theme (DR-0713) --------------------
+// A selected chip is `poe-selected bg-[#1A1815] text-white`; an unselected one
+// sits on bg-white. Its label must meet AA on the selected fill, and the fill
+// must stand 3:1 apart from the unselected chip (WCAG 1.4.11, a state that is
+// shown only by color still has to be seen). In midnight the plain dark fill
+// was 1.12:1 from the unselected chip, so nothing looked selected.
+export function parseSelectedOverrides(src) {
+  const out = {};
+  for (const raw of src.split('\n')) {
+    if (!raw.includes('.poe-selected{')) continue;
+    const tm = raw.match(/\[data-theme="([a-z]+)"\]/i); if (!tm) continue;
+    const bg = (raw.match(/background-color:\s*(#[0-9a-f]{6})/i) || [])[1];
+    const col = (raw.match(/(?<!background-)color:\s*(#[0-9a-f]{6})/i) || [])[1];
+    out[tm[1]] = { bg, fg: col };
+  }
+  return out;
+}
+
+// The theme registry (THEMES in lib/theme-css.js), read from source so the
+// check covers exactly the palettes a person can pick, and no example text.
+export function themeRegistryKeys(src) {
+  return [...String(src).matchAll(/\{\s*key:\s*'([a-z]+)'/g)].map((m) => m[1]);
+}
+
+export function selectedStateFor(themes, overrides, keys) {
+  const rows = [];
+  const names = keys && keys.length ? keys : ['cream', ...Object.keys(themes).filter((n) => n !== 'cream')];
+  for (const name of names) {
+    const t = themes[name] || DEFAULTS;
+    const o = overrides[name] || {};
+    const bg = o.bg || t.darkBtnBg;
+    const fg = o.fg || '#FFFFFF';
+    rows.push({ theme: name, bg, fg, unselectedBg: t.cardBg, label: +contrastRatio(fg, bg).toFixed(2), apart: +contrastRatio(bg, t.cardBg).toFixed(2) });
+  }
+  return rows;
+}
+
+export function checkSelectedState(themes, overrides, keys) {
+  const violations = [];
+  for (const r of selectedStateFor(themes, overrides, keys)) {
+    if (r.label < AA_NORMAL) violations.push({ theme: r.theme, what: 'selected chip label', fg: r.fg, bg: r.bg, ratio: r.label, need: AA_NORMAL });
+    if (r.apart < 3) violations.push({ theme: r.theme, what: 'selected chip vs unselected chip', fg: r.bg, bg: r.unselectedBg, ratio: r.apart, need: 3 });
+  }
+  return violations;
+}
+
+export function scanSelectedState() {
+  const src = (existsSync(MONOLITH) ? readFileSync(MONOLITH, 'utf8') : '') + '\n' + (existsSync(THEME_SOURCE) ? readFileSync(THEME_SOURCE, 'utf8') : '');
+  const themes = parseThemes(src);
+  const overrides = parseSelectedOverrides(src);
+  const keys = themeRegistryKeys(existsSync(THEME_SOURCE) ? readFileSync(THEME_SOURCE, 'utf8') : '');
+  return { violations: checkSelectedState(themes, overrides, keys), rows: selectedStateFor(themes, overrides, keys) };
+}
+
 // --- CLI -------------------------------------------------------------------
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const { themes, violations, warnings } = scanContrast();
   const { fails, warns } = scanInline();
   const { violations: tokenFails, used } = scanTokenCoverage();
+  const { violations: hoverFails, used: hoverUsed } = scanHoverCoverage();
+  const { violations: selFails, rows: selRows } = scanSelectedState();
   console.log('# CONTRAST GUARD (per-theme WCAG 2.1 AA + inline + token coverage)\n');
   console.log(`Themes parsed: ${Object.keys(themes).join(', ') || '(none)'}\n`);
   console.log(`Midnight token coverage: ${used.bg.size} bg + ${used.text.size} text classes checked (both directions)\n`);
+  console.log(`Midnight hover fills: ${hoverUsed.size} hover:bg classes checked`);
+  console.log(`Selected chip per theme: ${selRows.map((r) => `${r.theme} ${r.label}:1 label, ${r.apart}:1 apart`).join('; ')}\n`);
 
   if (warnings && warnings.length) {
     console.log('Allowlisted (documented + dated — see CONTRAST_ALLOWLIST):');
@@ -382,7 +491,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     console.log('');
   }
 
-  const hardFail = violations.length > 0 || fails.length > 0 || tokenFails.length > 0;
+  const hardFail = violations.length > 0 || fails.length > 0 || tokenFails.length > 0 || hoverFails.length > 0 || selFails.length > 0;
   if (!hardFail) {
     console.log(`PASS — every theme meets AA (body + accents, incl. midnight); ${GUARDED_INLINE_FILES.join(', ')} carry no un-themeable inline colors; every used color class renders AA in midnight (no dark-on-dark, no light-on-light).`);
     process.exit(0);
@@ -390,6 +499,14 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   if (violations.length) {
     console.log(`FAIL — ${violations.length} per-theme contrast violation(s):`);
     for (const v of violations) console.log(`  - [${v.theme}] ${v.what}: ${v.fg} on ${v.bg} = ${v.ratio || v.error} (need ${v.need || AA_NORMAL})`);
+  }
+  if (hoverFails.length) {
+    console.log(`FAIL — ${hoverFails.length} hover fill(s) render light in midnight:`);
+    for (const h of hoverFails) console.log(`  - ${h.what} renders ${h.rendered} (relLum ${h.lum})`);
+  }
+  if (selFails.length) {
+    console.log(`FAIL — ${selFails.length} selected-chip violation(s):`);
+    for (const v of selFails) console.log(`  - [${v.theme}] ${v.what}: ${v.fg} on ${v.bg} = ${v.ratio} (need ${v.need})`);
   }
   if (fails.length) {
     console.log(`FAIL — ${fails.length} un-themeable inline color(s) in guarded files:`);
