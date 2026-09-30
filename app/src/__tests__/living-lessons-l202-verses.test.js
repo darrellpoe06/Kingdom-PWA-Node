@@ -197,7 +197,9 @@ describe('the teaching is taught in the order it was given, and in our voice', (
   });
 
   it('Yahweh in our voice, the Godhead confessed, quoted KJV untouched, the adversary lowercase', () => {
-    const prose = PROSE();
+    // The church's own name is a proper name, not our voice naming the Father; Yahweh-in-our-voice governs our own prose.
+    const prose = PROSE().replace(/The Church of the Living God/g, 'The Church');
+    expect(PROSE()).toContain('The Church of the Living God');
     expect(prose.match(/\bGod\b/g)).toBe(null);
     expect(/\b(Satan|Lucifer|Devil|Baal)\b/.test(prose)).toBe(false);
     expect(L().lesson).toContain('Jesus is the Lamb of Yahweh, the Eternal Son of Yahweh');
