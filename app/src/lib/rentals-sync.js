@@ -24,7 +24,7 @@
 // conversationLog, lat/lon, market/lease/tenant sub-objects. Because of
 // that, the monolith merges remote rows INTO the local shape
 // (mergeRemoteRentals below) instead of replacing the list wholesale.
-import { createTableSync, getInstanceId } from './table-sync.js';
+import { createTableSync, getDoorsInstanceId } from './table-sync.js';
 import supabase from './supabase.js';
 import { syncLeaseForRental, syncAllLeases } from './lease-sync.js';
 
@@ -68,6 +68,9 @@ export function fromRemoteStatus(s) {
 export const rentalsSync = createTableSync({
   localKey: 'rentals',
   remoteTable: 'rentals',
+  // The doors live in the landlord instance since 0207 (DR-0365); reading them
+  // through the family instance showed 13 real doors as none (DR-0743).
+  instanceId: getDoorsInstanceId,
   // The live table's UNIQUE (instance_id, slug) index (partial: WHERE slug IS
   // NOT NULL). Lets upsert() heal an edit to a door whose local row never linked
   // to the cloud — resolve by slug and UPDATE, instead of silently skipping.
@@ -353,7 +356,7 @@ export function mergeRemoteRentals(localItems = [], remoteItems = []) {
 // -----------------------------------------------------------------------------
 async function leaseIds() {
   try {
-    const [tenantId, u] = await Promise.all([getInstanceId(), supabase.auth.getUser()]);
+    const [tenantId, u] = await Promise.all([getDoorsInstanceId(), supabase.auth.getUser()]);
     return { tenantId, userId: u && u.data && u.data.user ? u.data.user.id : null };
   } catch { return { tenantId: null, userId: null }; }
 }
