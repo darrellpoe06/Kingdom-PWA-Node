@@ -48,6 +48,13 @@ export const BIBLE_STUDY_SESSION_LESSONS = Object.freeze([
     evidence: 'Darrell, 2026-10-01: "The teacher in that specific lesson is BG"; DR-0711 speaker marks give BG the teaching and its numbered points (PR #1900); DR-0690',
     pending: Object.freeze({ pr: 1900, until: '2026-10-07', ceiling: 43 }),
   }),
+  Object.freeze({
+    id: 'll204-the-word-checks-every-teller-many-counsellors-all-under-him',
+    file: 'living-lessons-class.js',
+    date: '2026-09-30',
+    teacher: 'DP',
+    evidence: 'not a class: Darrell typed these lines into the build on 2026-09-30 about how a lesson is made (DR-0714); its prose names L202\'s weekly class only to describe the worked example; no recording, no one else taught it',
+  }),
 ]);
 
 export const BIBLE_STUDY_SESSION_IDS = Object.freeze(BIBLE_STUDY_SESSION_LESSONS.map((l) => l.id));
