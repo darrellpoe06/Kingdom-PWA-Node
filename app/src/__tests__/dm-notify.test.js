@@ -92,9 +92,19 @@ describe('applyAppBadge — the launcher icon carries the unread count', () => {
     const n = { setAppBadge() { throw new Error('nope'); } };
     expect(() => applyAppBadge(n, 1)).not.toThrow();
   });
-  it('the watcher wires it beside the title badge (source pin)', () => {
-    const src = readFileSync(join(HERE, '..', 'lib', 'dm-notify.js'), 'utf8');
-    expect(src).toContain('applyAppBadge(win.navigator, next)');
-    expect(src).toContain('applyAppBadge(win.navigator, 0)');
+  // WIDENED 2026-10-01 (DR-0728). The badge used to be set here, to unread
+  // MESSAGES alone. It is now set in ONE place, lib/arrivals-watch.js, from the
+  // combined count of every kind of arrival, and this watcher no longer writes
+  // it: two writers of one badge would fight, and the DM-only number was the
+  // defect Darrell named ("the number of them if I haven't checked them yet").
+  it('the badge has ONE writer, the arrivals watcher, and it is the combined count', () => {
+    const code = (s) => s.replace(/\/\*[\s\S]*?\*\//g, ' ').split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n');
+    const dm = code(readFileSync(join(HERE, '..', 'lib', 'dm-notify.js'), 'utf8'));
+    const watch = code(readFileSync(join(HERE, '..', 'lib', 'arrivals-watch.js'), 'utf8'));
+    expect(dm).not.toMatch(/applyAppBadge\(win\.navigator/);
+    expect(dm).not.toMatch(/applyTitleBadge\(win\.document/);
+    expect(watch).toContain('applyAppBadge(win.navigator, count)');
+    expect(watch).toContain('applyTitleBadge(win.document, badgeText(count))');
+    expect(watch).toContain('applyAppBadge(win.navigator, 0)');
   });
 });
