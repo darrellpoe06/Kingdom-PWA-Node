@@ -25,7 +25,10 @@
 export const LITE_MODELS = Object.freeze({ male: 'en_US-ryan-medium', female: 'en_US-amy-medium' });
 export const CAP_KEY = 'poe-voice-cache-cap-mb';
 export const DEFAULT_CAP_MB = 300;
-export const CAP_CHOICES_MB = [100, 300, 600, 1000];
+// 2 to 50 GB were added for downloaded lessons (DR-0722): a course with its
+// reading voice runs to gigabytes (every lesson, adult only: about 33 GB), and
+// the limit is the person's to raise. The device's free space still decides.
+export const CAP_CHOICES_MB = [100, 300, 600, 1000, 2000, 5000, 10000, 20000, 50000];
 const MB = 1024 * 1024;
 
 // cyrb53 — a fast 53-bit string hash; used twice with different seeds for a
@@ -72,6 +75,8 @@ export function memoryBackend() {
     async del(k) { blobs.delete(k); meta.delete(k); },
     async list() { return [...meta.values()]; },
     async touch(k, at) { const m = meta.get(k); if (m) meta.set(k, { ...m, at }); },
+    async getMeta(k) { return meta.has(k) ? meta.get(k) : null; },
+    async setMeta(k, m) { if (blobs.has(k)) meta.set(k, { ...m, key: k }); },
     get size() { return blobs.size; },
   };
 }
@@ -118,6 +123,8 @@ export function indexedDbBackend(name = 'poe-voice-clips') {
       const m = await req2p(store.get(k));
       if (m) store.put({ ...m, at }, k);
     }),
+    getMeta: (k) => run(['meta'], 'readonly', async (tx, set) => { set((await req2p(tx.objectStore('meta').get(k))) || null); }),
+    setMeta: (k, m) => run(['meta'], 'readwrite', (tx) => { tx.objectStore('meta').put({ ...m, key: k }, k); }),
   };
 }
 
@@ -131,6 +138,15 @@ export function createClipCache({ backend, capBytes, now = () => Date.now() } = 
   const store = backend || indexedDbBackend() || memoryBackend();
   const cap = typeof capBytes === 'function' ? capBytes : () => loadCapMb() * MB;
   let evicting = null;
+  const metaOf = async (k) => (typeof store.getMeta === 'function'
+    ? store.getMeta(k)
+    : ((await store.list()).find((m) => m.key === k) || null));
+  const setMetaOf = async (k, m) => {
+    if (typeof store.setMeta === 'function') return store.setMeta(k, m);
+    const blob = await store.get(k);
+    if (blob) await store.put(k, blob, m);
+    return undefined;
+  };
   const api = {
     async get(key) {
       try {
@@ -140,13 +156,63 @@ export function createClipCache({ backend, capBytes, now = () => Date.now() } = 
       } catch { return null; }
     },
     async has(key) { try { return !!(await store.get(key)); } catch { return false; } },
-    async put(key, blob) {
+    /** `pin` names a download that holds this clip (DR-0722): never evicted while held. */
+    async put(key, blob, { pin = null } = {}) {
       if (!blob || !blob.size) return false;
-      try { await store.put(key, blob, { bytes: blob.size, at: now() }); } catch { return false; }
+      // A hold already on this clip is kept: a replay never un-keeps a download.
+      let pins = pin ? [pin] : [];
+      try { const old = await metaOf(key); if (old && Array.isArray(old.pins)) pins = [...new Set([...old.pins, ...pins])]; } catch { /* a fresh clip */ }
+      try { await store.put(key, blob, { bytes: blob.size, at: now(), ...(pins.length ? { pins } : {}) }); } catch { return false; }
       await api.evict();
       return true;
     },
-    /** Least-recently-played first, until the total is under the cap. */
+    // KEPT ON PURPOSE (DR-0722). A clip a person downloaded is held by name
+    // ('<lesson>|<level>') and is never cleared to make room; only a clip
+    // nobody holds is. Removing a download lets go of its name, and a clip
+    // no download holds any more is deleted.
+    async pin(key, owner) {
+      try {
+        const m = await metaOf(key);
+        if (!m) return false;
+        const pins = [...new Set([...(Array.isArray(m.pins) ? m.pins : []), owner])];
+        await setMetaOf(key, { ...m, pins });
+        return true;
+      } catch { return false; }
+    },
+    /** Let go of `owner` on these keys; a clip held by nobody is deleted. Returns bytes freed. */
+    async unpin(keys, owner) {
+      let freed = 0;
+      for (const key of keys) {
+        try {
+          const m = await metaOf(key);
+          if (!m) continue;
+          const pins = (Array.isArray(m.pins) ? m.pins : []).filter((p) => p !== owner);
+          if (pins.length) { await setMetaOf(key, { ...m, pins }); continue; }
+          await store.del(key); freed += m.bytes || 0;
+        } catch { /* next */ }
+      }
+      return freed;
+    },
+    /** Let go of every download hold whose name starts with `prefix` ('' = all). */
+    async unpinWhere(test) {
+      let freed = 0;
+      try {
+        for (const m of await store.list()) {
+          const pins = Array.isArray(m.pins) ? m.pins : [];
+          if (!pins.length) continue;
+          const keep = pins.filter((p) => !test(p));
+          if (keep.length === pins.length) continue;
+          if (keep.length) await setMetaOf(m.key, { ...m, pins: keep });
+          else { await store.del(m.key); freed += m.bytes || 0; }
+        }
+      } catch { /* best-effort */ }
+      return freed;
+    },
+    /** Bytes held by downloads (never evicted). */
+    async pinnedBytes() {
+      try { return (await store.list()).reduce((n, m) => n + (Array.isArray(m.pins) && m.pins.length ? (m.bytes || 0) : 0), 0); } catch { return 0; }
+    },
+    /** Least-recently-played first, until the total is under the cap. A clip a download holds is never cleared. */
     async evict() {
       if (evicting) return evicting;
       evicting = (async () => {
@@ -156,6 +222,7 @@ export function createClipCache({ backend, capBytes, now = () => Date.now() } = 
           const limit = cap();
           for (const m of all) {
             if (total <= limit) break;
+            if (Array.isArray(m.pins) && m.pins.length) continue;
             try { await store.del(m.key); total -= m.bytes || 0; } catch { /* next */ }
           }
           return total;

@@ -154,6 +154,67 @@ html[data-text-size='bigprint'] .ts-safe-sticky .ts-escape-hatch {
   box-shadow: 0 -1px 0 rgba(128, 128, 128, 0.6);
   z-index: 60;
 }
+/* THE BOTTOM BLOCK FOLDS TO ONE ROW (DR-0716). Darrell 2026-10-01, at A44 on
+   his Fold: "How do I get rid of the below header?!!!!! I need a button!!!!"
+   The header's controls row is the fixed bottom block at the two sizes above;
+   only there does its Hide / Show controls toggle show (ComfortBarToggle), and
+   folded (<html data-comfort-bar="collapsed">, lib/comfort-bar.js) every other
+   item in the row is hidden, not unmounted: the toggle and the text-size
+   dropdown stay, so big text stays reversible and everything is one tap away. */
+.comfort-toggle-row {
+  display: none;
+}
+html[data-text-size='largest'] .ts-safe-sticky .header-comfort-row .comfort-toggle-row,
+html[data-text-size='bigprint'] .ts-safe-sticky .header-comfort-row .comfort-toggle-row {
+  display: flex;
+}
+html[data-text-size='largest'][data-comfort-bar='collapsed'] .ts-safe-sticky .header-comfort-row > :not(.comfort-toggle-row),
+html[data-text-size='bigprint'][data-comfort-bar='collapsed'] .ts-safe-sticky .header-comfort-row > :not(.comfort-toggle-row) {
+  display: none !important;
+}
+html[data-text-size='largest'][data-comfort-bar='collapsed'] .ts-safe-sticky .header-comfort-row,
+html[data-text-size='bigprint'][data-comfort-bar='collapsed'] .ts-safe-sticky .header-comfort-row {
+  justify-content: flex-start;
+}
+/* THE READER'S ONE SLIM ROW (DR-0716; Darrell 2026-10-01, the Fold folded,
+   L202 at A+++: "Bottom tab is too much!!!!! We needed less room undermining
+   the reader...."). Inside a lesson (data-lesson-space="open") the big-text
+   bottom block starts folded (lib/comfort-bar.js), and folded it is not even a
+   slim row of its own: the bottom bar (ChromeDock) is the one row, holding
+   Controls (which opens the block), A- / A+, Feedback, Give and the reader.
+   Both forms of the block fold (the header's controls row, and the collapsed
+   header's own row); nothing unmounts. */
+.chrome-dock .dock-controls {
+  display: none;
+}
+html[data-text-size='largest'] .chrome-dock .dock-controls,
+html[data-text-size='bigprint'] .chrome-dock .dock-controls {
+  display: inline-flex;
+}
+html[data-lesson-space='open'][data-text-size='largest'][data-comfort-bar='collapsed'] .ts-safe-sticky .ts-escape-hatch,
+html[data-lesson-space='open'][data-text-size='bigprint'][data-comfort-bar='collapsed'] .ts-safe-sticky .ts-escape-hatch {
+  display: none !important;
+}
+@media (max-width: 639.98px) {
+  /* In the reader on a phone, Top rides in More (the reader panel has its own). */
+  html[data-lesson-space='open'] .chrome-dock .dock-top-inline {
+    display: none;
+  }
+  /* While the Word plays, the mini-bar or pill takes its own line directly on
+     top of the row instead of crowding it. */
+  html[data-lesson-space='open'] .chrome-dock:has([data-testid='reader-mini-bar'], [aria-label='Reading controls (minimized)']) .chrome-dock-reader-wrap {
+    order: -1;
+    flex-basis: 100%;
+  }
+}
+@media (max-width: 399.98px) {
+  /* The narrowest phones: with Controls on the row, More waits until the
+     controls are opened, so the one row fits 360px. */
+  html[data-lesson-space='open'][data-text-size='largest'][data-comfort-bar='collapsed'] .chrome-dock .dock-more-wrap,
+  html[data-lesson-space='open'][data-text-size='bigprint'][data-comfort-bar='collapsed'] .chrome-dock .dock-more-wrap {
+    display: none;
+  }
+}
 /* THE ONE-TAB DOOR'S TOP ROW KEEPS THE BRAND WHEN THE COLLAPSED ROW LEAVES IT
    (DR-0640; components/TopNavRow.jsx). On a one-tab door the collapsed row
    rides INSIDE the top row, brand and all, so the row's own lockup yields to
@@ -208,17 +269,41 @@ html[data-text-size='bigprint'] .ts-safe-sticky .one-tab-brand--float {
    TextSizeControl from the bar's real box). The floaters that are themselves
    chrome regions are zoomed, and a zoomed element's offsets are zoomed with
    it, so their offset is divided by the zoom to land in viewport pixels. */
-html[data-text-size='largest'] .tts-controls,
-html[data-text-size='bigprint'] .tts-controls {
-  bottom: calc(1rem + var(--ts-hatch-h, 0px));
+/* THE FLOATERS ARE IN THE BAR NOW (DR-0716, Darrell 2026-09-30: "Put the
+   feedback and other floating options on the task bars somewhere they make
+   sense... make the reader better and less blocked"). Feedback, Give, the
+   network dot, back-to-top and the read-aloud button / mini-bar / pill live
+   in the bottom bar (components/ChromeDock.jsx), which stands on top of the
+   fixed comfort bar by --ts-hatch-h. What still rides the reader's fixed
+   stack (its open panel, a way-back notice) and the app's passing prompts
+   stand above BOTH bars: --chrome-dock-h is the bar's published height (0px
+   on a surface with no bar, so those surfaces keep their 16px corner). */
+.tts-controls.fixed {
+  bottom: calc(16px + var(--chrome-dock-h, 0px) + var(--ts-hatch-h, 0px));
 }
-html[data-text-size='largest'] button[aria-label="Open feedback"],
-html[data-text-size='bigprint'] button[aria-label="Open feedback"] {
-  bottom: calc(1rem + var(--ts-hatch-h, 0px) / var(--ts-chrome-scale, 1));
+.install-prompt.fixed,
+.update-confirm.fixed,
+[data-testid='notify-offer-layer'] {
+  bottom: calc(12px + var(--chrome-dock-h, 0px) + var(--ts-hatch-h, 0px));
 }
-html[data-text-size='largest'] .church-give-floater,
-html[data-text-size='bigprint'] .church-give-floater {
-  bottom: calc(5rem + var(--ts-hatch-h, 0px) / var(--ts-chrome-scale, 1));
+/* A modal owns the screen: while one is open the bar drops beneath its
+   backdrop (the app's dialogs are fixed inset-0 at z-50) rather than sit over
+   the dialog's own buttons. It stays above everything else. */
+body:has(.fixed.inset-0.z-50) .chrome-dock {
+  z-index: 40;
+}
+/* On a phone, while the reader's mini-bar or pill fills the bar, the inline
+   Top steps aside; the copy inside More carries it (ChromeDock.jsx). */
+@media (max-width: 639.98px) {
+  .chrome-dock:has([data-testid='reader-mini-bar'], [aria-label='Reading controls (minimized)']) .dock-top-inline {
+    display: none;
+  }
+  /* While the live-service bar is open it names the church at the very top
+     (LiveWorshipBar sets data-live-bar), so on a phone the public welcome line
+     beneath it folds away rather than stack a second band over the words. */
+  html[data-live-bar='open'] [data-testid='public-welcome-top'] {
+    display: none;
+  }
 }
 
 /* ===========================================================================

@@ -52,7 +52,9 @@ from fastapi.responses import FileResponse, JSONResponse
 
 import tax_ingest  # the deterministic ingest (same directory)
 
-MAX_BYTES = 25 * 1024 * 1024
+# 60 MB, matching the app's MAX_UPLOAD_MB (lib/tax-upload.js). Raised from 25 MB
+# 2026-09-30 (DR-0708): the road was measured carrying 95 MB to this service.
+MAX_BYTES = 60 * 1024 * 1024
 TOKEN = os.environ.get("TAX_UPLOAD_TOKEN", "")
 
 app = FastAPI()

@@ -40,6 +40,7 @@ import { listPendingClaims, confirmInvite } from '../lib/family-invite.js';
 import { canAddContacts, inviteShareText, smsHrefTo, telHref, isLikelyPhone, installPromptText } from '../lib/messages-invite.js';
 import { readContacts, upsertContact, removeContact } from '../lib/saved-contacts.js';
 import { consumeDmPeer, spaceLabel } from '../lib/app-doors.js';
+import ContactsImport from './ContactsImport.jsx';
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -159,7 +160,7 @@ function GroupsPanel({ session }) {
 // install the PoeTech App"). Reuses the proven Admin invite lane exactly
 // (inviteToSpace; two-party confirm per DR-0187, now surfaced here too) and
 // turns the invite into a ready-to-send text (share sheet / sms / copy).
-function AddContact({ onInvited }) {
+function AddContact({ onInvited, roster = [] }) {
   const [spaces, setSpaces] = useState([]);
   const [spaceId, setSpaceId] = useState('');
   const [name, setName] = useState('');
@@ -360,6 +361,10 @@ function AddContact({ onInvited }) {
           })}
         </div>
       )}
+      {/* BRING YOUR CONTACTS FROM YOUR PHONE (DR-0736): the picker where the
+          phone has it, a .vcf file everywhere; the plan shown before anything
+          is kept; kept on your own server (0247) and in this device's list. */}
+      <ContactsImport roster={roster} onSaved={refreshSaved} />
       {/* The old footer blamed the encryption key; the real gate is membership
           (list_dm_contacts projects instance_members — 2026-07-27 review GAP 1).
           Say the truth: email joins, phone only delivers, pending is visible. */}
@@ -451,7 +456,7 @@ export default function Messages({
             </p>
           )}
           <DirectMessages roster={contacts} invited={invited} title="Direct messages" openWithUserId={deepLinkPeer} />
-          <AddContact onInvited={() => {
+          <AddContact roster={contacts} onInvited={() => {
             loadDmContacts().then(setContacts).catch(() => {});
             loadDmInvited().then(setInvited).catch(() => {});
           }} />

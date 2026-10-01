@@ -22,8 +22,11 @@ describe('the scale is remembered on the device and defaults to medium', () => {
     setLiveBarCollapsed(true);
     expect(sessionStorage.getItem(LIVE_BAR_COLLAPSED_KEY)).toBe('1');
     expect(localStorage.getItem(LIVE_BAR_COLLAPSED_KEY)).toBeNull();
+    // Showing the video is a choice too (2026-09-30): it is remembered for the
+    // session, so a reader who opened the video on a phone lesson keeps it.
     setLiveBarCollapsed(false);
-    expect(sessionStorage.getItem(LIVE_BAR_COLLAPSED_KEY)).toBeNull();
+    expect(sessionStorage.getItem(LIVE_BAR_COLLAPSED_KEY)).toBe('0');
+    expect(localStorage.getItem(LIVE_BAR_COLLAPSED_KEY)).toBeNull();
   });
 });
 
