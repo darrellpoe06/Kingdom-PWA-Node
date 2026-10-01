@@ -57,7 +57,8 @@ const { default: HeaderAuthButton } = await import('../components/HeaderAuthButt
 const { default: ReadingVoiceControl } = await import('../components/ReadingVoiceControl.jsx');
 const { default: HelpButton } = await import('../components/HelpButton.jsx');
 const { default: TopNavRow } = await import('../components/TopNavRow.jsx');
-const { ChurchGiveFloater, ChurchGiveHeaderButton } = await import('../components/ChurchGiving.jsx');
+const { ChurchGiveHeaderButton } = await import('../components/ChurchGiving.jsx');
+const { default: ChromeDock } = await import('../components/ChromeDock.jsx');
 const { BooksUploadButton, BooksUploadMount } = await import('../components/BooksUploadButton.jsx');
 const { buildCatalogCourseDescriptors } = await import('../lib/learn-catalog.js');
 const { _resetScreenAwakeForTests } = await import('../lib/screen-awake.js');
@@ -189,9 +190,29 @@ const WALKS = {
     look(host);
   },
   'app-footer': async (look) => {
-    const { host } = mount(createElement(ChurchGiveFloater, { church: {} }));
-    await settle();
-    look(host);
+    // DR-0716: the floaters became ONE bottom bar (components/ChromeDock.jsx):
+    // Feedback, Give (Church only), the network dot, Top, A-/A+, the controls
+    // fold and the reader's slot. Give is mounted here as the Church view does.
+    // Two states a person reaches: a deep page outside the reader (Feedback,
+    // Give, More, Top inline), and inside the reader (the reading-comfort row:
+    // the controls fold and A-/A+; comfort-bar.js follows data-lesson-space).
+    const root = document.documentElement;
+    const scrollWas = Object.getOwnPropertyDescriptor(window, 'scrollY');
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 5000 });
+    try {
+      const dock = () => createElement(ChromeDock, { onFeedback: () => {}, feedbackOpen: false, church: {}, showGive: true });
+      const a = mount(dock());
+      await settle();
+      look(a.host);
+      unmountAll();
+      root.setAttribute('data-lesson-space', 'open');
+      const b = mount(dock());
+      await settle();
+      look(b.host);
+    } finally {
+      root.removeAttribute('data-lesson-space');
+      if (scrollWas) Object.defineProperty(window, 'scrollY', scrollWas); else Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
+    }
   },
   books: async (look) => {
     const { host } = mount(createElement('div', null,
@@ -286,7 +307,7 @@ describe('PROVEN-TO-CATCH: a control deleted from a real render is named', () =>
   });
 
   it('a source pin that no longer matches the shell is reported', () => {
-    expect(findInSource(SHELL, { source: 'aria-label="Open feedback"' })).toBe(true);
-    expect(findInSource(SHELL.replace('aria-label="Open feedback"', ''), { source: 'aria-label="Open feedback"' })).toBe(false);
+    expect(findInSource(SHELL, { source: '<ChromeDock ' })).toBe(true);
+    expect(findInSource(SHELL.replace('<ChromeDock ', ''), { source: '<ChromeDock ' })).toBe(false);
   });
 });
