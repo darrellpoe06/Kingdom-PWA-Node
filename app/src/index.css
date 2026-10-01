@@ -154,6 +154,28 @@ html[data-text-size='bigprint'] .ts-safe-sticky .ts-escape-hatch {
   box-shadow: 0 -1px 0 rgba(128, 128, 128, 0.6);
   z-index: 60;
 }
+/* THE BOTTOM BLOCK FOLDS TO ONE ROW (DR-0716). Darrell 2026-10-01, at A44 on
+   his Fold: "How do I get rid of the below header?!!!!! I need a button!!!!"
+   The header's controls row is the fixed bottom block at the two sizes above;
+   only there does its Hide / Show controls toggle show (ComfortBarToggle), and
+   folded (<html data-comfort-bar="collapsed">, lib/comfort-bar.js) every other
+   item in the row is hidden, not unmounted: the toggle and the text-size
+   dropdown stay, so big text stays reversible and everything is one tap away. */
+.comfort-toggle-row {
+  display: none;
+}
+html[data-text-size='largest'] .ts-safe-sticky .header-comfort-row .comfort-toggle-row,
+html[data-text-size='bigprint'] .ts-safe-sticky .header-comfort-row .comfort-toggle-row {
+  display: flex;
+}
+html[data-text-size='largest'][data-comfort-bar='collapsed'] .ts-safe-sticky .header-comfort-row > :not(.comfort-toggle-row),
+html[data-text-size='bigprint'][data-comfort-bar='collapsed'] .ts-safe-sticky .header-comfort-row > :not(.comfort-toggle-row) {
+  display: none !important;
+}
+html[data-text-size='largest'][data-comfort-bar='collapsed'] .ts-safe-sticky .header-comfort-row,
+html[data-text-size='bigprint'][data-comfort-bar='collapsed'] .ts-safe-sticky .header-comfort-row {
+  justify-content: flex-start;
+}
 /* THE ONE-TAB DOOR'S TOP ROW KEEPS THE BRAND WHEN THE COLLAPSED ROW LEAVES IT
    (DR-0640; components/TopNavRow.jsx). On a one-tab door the collapsed row
    rides INSIDE the top row, brand and all, so the row's own lockup yields to

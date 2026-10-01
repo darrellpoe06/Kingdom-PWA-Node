@@ -768,6 +768,65 @@ try {
     if (failures === before) console.log(`lesson ok  ${where} — chrome covers ${m.covered}px of ${m.vh}px${m.liveBarPx ? ` (live bar ${m.liveBarPx}px)` : ''}${m.dockPx ? ` (bottom bar ${m.dockPx}px)` : ''}, prose ${m.prose}px of ${m.content}px, ${m.strips} strips (max ${m.maxChips} chips, max ${m.maxBlockLines} lines/block)${size === 'bigprint' ? `, bar buttons ${m.barButtonPx}px, chips ${m.chipPx}px` : ''}, nothing boxed in a sentence; mid-lesson at y${comfort.scrollY}: ${comfort.sizeReachable}/${comfort.sizeCount} size + ${comfort.themeReachable}/${comfort.themeCount} theme controls on screen`);
   }
   // ---------------------------------------------------------------------------
+  // COMFORT pass (DR-0716) — the big-text bottom block folds to one slim row.
+  // Darrell 2026-10-01, at A44 on his Fold 7: "How do I get rid of the below
+  // header?!!!!! I need a button!!!!" At Big Print the header's controls row is
+  // the fixed bottom block; its Hide button folds it to "Show controls" + the
+  // text-size dropdown. Measured on the lesson at 360px and at the Fold open
+  // (900px), header open: the folded block is at most COMFORT_FOLDED_MAX_PX,
+  // smaller than open, still fixed, still offers a text-size control; the fold
+  // survives a reload; Show controls brings the whole block back.
+  // Selftest: the fold's CSS overridden (every item shown) MUST trip.
+  // ---------------------------------------------------------------------------
+  const COMFORT_FOLDED_MAX_PX = 64;
+  const COMFORT_CASES = SELFTEST ? [360] : (SWEEP ? [360, 900] : []);
+  for (const width of COMFORT_CASES) {
+    const where = `comfort@${width}px [Big Print]`;
+    const page = await browser.newPage({ viewport: { width, height: 900 } });
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('poetech.help.tour.v1', 'seen');
+        localStorage.setItem('poe-text-size', 'bigprint');
+        localStorage.removeItem('poe-header-collapsed');
+        if (!sessionStorage.getItem('comfort-probe-seeded')) { localStorage.removeItem('poe-comfort-bar-collapsed'); sessionStorage.setItem('comfort-probe-seeded', '1'); }
+      } catch { /* private mode */ }
+    });
+    await page.goto(LESSON_URL, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+    await page.waitForSelector('[data-testid="comfort-hide"]', { state: 'attached', timeout: 20000 }).catch(() => {});
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 300)));
+    if (SELFTEST) await page.addStyleTag({ content: '.header-comfort-row > * { display: flex !important }' });
+    const box = () => page.evaluate(() => {
+      const row = document.querySelector('.header-comfort-row');
+      if (!row) return null;
+      const r = row.getBoundingClientRect();
+      const sizes = [...row.querySelectorAll('button, select')].filter((b) => /text size/i.test(b.getAttribute('aria-label') || '') && b.getBoundingClientRect().height > 0).length;
+      return { h: Math.round(r.height), fixed: getComputedStyle(row).position === 'fixed', sizes, attr: document.documentElement.getAttribute('data-comfort-bar') };
+    });
+    const open = await box();
+    await page.locator('[data-testid="comfort-hide"]').click({ timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(250);
+    const folded = await box();
+    await page.reload({ waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+    await page.waitForSelector('[data-testid="comfort-show"]', { state: 'attached', timeout: 20000 }).catch(() => {});
+    await page.waitForTimeout(300);
+    if (SELFTEST) await page.addStyleTag({ content: '.header-comfort-row > * { display: flex !important }' });
+    const reloaded = await box();
+    await page.locator('[data-testid="comfort-show"]').click({ timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(250);
+    const restored = await box();
+    await page.close();
+    const before = failures;
+    if (!open || !folded || !reloaded || !restored) { fail(`${where}: the header controls row never rendered — nothing was measured`); continue; }
+    if (!open.fixed) fail(`${where}: the controls row is not the fixed bottom block at Big Print — the state was not measured`);
+    if (folded.attr !== 'collapsed') fail(`${where}: Hide did not fold the block (data-comfort-bar="${folded.attr}")`);
+    if (folded.h > COMFORT_FOLDED_MAX_PX) fail(`${where}: folded, the bottom block is ${folded.h}px — over ${COMFORT_FOLDED_MAX_PX}px (open: ${open.h}px)`);
+    if (folded.h >= open.h) fail(`${where}: folding did not make the block smaller (${open.h}px -> ${folded.h}px)`);
+    if (!folded.sizes) fail(`${where}: folded, no text-size control is left — big text is not reversible`);
+    if (reloaded.attr !== 'collapsed' || reloaded.h > COMFORT_FOLDED_MAX_PX) fail(`${where}: the fold did not survive a reload (${reloaded.attr}, ${reloaded.h}px)`);
+    if (restored.h < open.h - 2) fail(`${where}: Show controls did not bring the whole block back (${restored.h}px of ${open.h}px)`);
+    if (failures === before) console.log(`comfort ok  ${where} — bottom block ${open.h}px open, ${folded.h}px folded (${folded.sizes} size control), folded after reload ${reloaded.h}px, restored ${restored.h}px`);
+  }
+  // ---------------------------------------------------------------------------
   // TEXT-SCALE pass — the layout is measured AT Big Print, not assumed to hold.
   // Rides --sweep (real assertions) and --selftest-break (proves it can fail),
   // so ci.yml needs no new step. localStorage is seeded before boot exactly the
