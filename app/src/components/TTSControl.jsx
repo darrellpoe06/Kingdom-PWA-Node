@@ -1676,6 +1676,30 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
               {BACKGROUND_LINES.device}
             </div>
           )}
+          {/* WHO IS LEARNING — the level, switchable from the reader (DR-0426).
+              Same row the lesson shows at every stage; a pick mid-read keeps
+              the place and resumes in the new words.
+              FIRST IN THE PANEL (DR-0717). Darrell 2026-10-01: "In the
+              reader.... at the beginning before the lesson starts". It sat
+              below Text size, Colors and Follow along, under everything a
+              reader scrolls past; it now comes before Keep screen on and the
+              Read buttons, so the level is picked and THEN the reading starts. */}
+          {target && target.setLevel && Array.isArray(target.levels) && target.levels.length > 0 && (
+            <div className="mb-[0.5em]" data-testid="reader-level-control">
+              <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Who is learning?{isReading ? ' — switch and it keeps your place' : ' — sets the words and the pace'}</div>
+              <div className="flex flex-wrap gap-[0.25em]" role="radiogroup" aria-label="Who is learning? Sets the words and the pace">
+                {target.levels.map((b) => {
+                  const on = b.id === target.level;
+                  return (
+                    <button key={b.id} type="button" role="radio" aria-checked={on} onClick={() => pickLevel(b.id)}
+                      className={`px-[0.5em] py-[0.5em] min-h-[2.25em] text-[0.625em] uppercase tracking-wider border focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>
+                      {b.label}{b.range ? <span className="opacity-70"> {b.range}</span> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {/* THE SCREEN STAYS ON WHILE IT READS (DR-0439) — the per-device switch,
               and the honest line where the browser has no wake lock. */}
           <div className="flex items-center justify-between gap-[0.5em] mb-[0.75em]" data-testid="screen-awake-row">
@@ -1876,26 +1900,6 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
               </div>
             );
           })()}
-
-          {/* WHO IS LEARNING — the level, switchable from the reader (DR-0426).
-              Same row the lesson shows at every stage; a pick mid-read keeps
-              the place and resumes in the new words. */}
-          {target && target.setLevel && Array.isArray(target.levels) && target.levels.length > 0 && (
-            <div className="mb-[0.5em]" data-testid="reader-level-control">
-              <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Who is learning?{isReading ? ' — switch and it keeps your place' : ' — sets the words and the pace'}</div>
-              <div className="flex flex-wrap gap-[0.25em]" role="radiogroup" aria-label="Who is learning? Sets the words and the pace">
-                {target.levels.map((b) => {
-                  const on = b.id === target.level;
-                  return (
-                    <button key={b.id} type="button" role="radio" aria-checked={on} onClick={() => pickLevel(b.id)}
-                      className={`px-[0.5em] py-[0.5em] min-h-[2.25em] text-[0.625em] uppercase tracking-wider border focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>
-                      {b.label}{b.range ? <span className="opacity-70"> {b.range}</span> : null}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           {/* SHOW / HIDE THE WORD LIVES WITH THE PLAY CONTROLS (Darrell
               2026-09-14, from the lesson with this panel open: "I want that bar
