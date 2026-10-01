@@ -721,6 +721,40 @@ jobs:
           psql -v ON_ERROR_STOP=1 -q -f scripts/arrivals-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'every wall held' "$RUNNER_TEMP/smoke.txt"
 
+  # YOUR CONTACTS, YOURS ALONE, ON A REAL POSTGRESQL (DR-0736). 0247 applies
+  # twice (idempotent), then the smoke proves the walls: the owner reads their
+  # own rows, a re-import updates instead of duplicating, another signed-in
+  # person reads none and cannot insert, update or delete them, anon reads none,
+  # a blank key is refused. Every check RAISEs.
+  contacts-walls:
+    name: app — contacts walls (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: 0247 applies, twice (idempotent), and every wall holds
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f scripts/curriculum-ci-bootstrap.sql
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0247-your-contacts-come-with-you-from-the-phone-kept-on-the-nas-yours-alone.sql; done
+          psql -v ON_ERROR_STOP=1 -q -f scripts/contacts-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'every wall held' "$RUNNER_TEMP/smoke.txt"
+
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.
   # It runs `if: always()` because a job whose `needs` failed is otherwise
@@ -729,10 +763,10 @@ jobs:
   app:
     name: app — lint + vitest
     if: always()
-    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push]
+    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, contacts-walls]
     runs-on: ubuntu-latest
     steps:
-      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares, lesson arrival push)
+      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares, lesson arrival push, contacts walls)
         env:
           NEEDS: ${{ toJSON(needs) }}
         run: |
