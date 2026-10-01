@@ -180,7 +180,7 @@ export function latestLessons(courses) {
       const added = lessonAdded(m);
       if (!added) { undated += 1; undatedLessons.push({ courseKey: c.key, lessonId: m.id }); return; }
       const num = /^[a-z]+(\d+)-/i.exec(String(m.id));
-      rows.push({ courseKey: c.key, courseTitle: titleOf(c) || String(c.key || ''), lessonId: m.id, title: String(m.title || ''), added, n: num ? Number(num[1]) : null, ci, mi });
+      rows.push({ courseKey: c.key, courseTitle: titleOf(c) || String(c.key || ''), lessonId: m.id, title: String(m.title || ''), added, n: num ? Number(num[1]) : null, versions: lessonVersions(m).length, ci, mi });
     });
   });
   rows.sort((a, b) => (a.added !== b.added ? (a.added < b.added ? 1 : -1)
@@ -205,6 +205,138 @@ export function latestCountLine({ rows, undatedLessons = [], courseCount }, reas
   if (fresh) parts.push(`${fresh} too new to have ${fresh === 1 ? 'its day' : 'their days'} recorded yet`);
   if (untraced) parts.push(`${untraced} whose first day the record cannot trace`);
   return `${n} ${n === 1 ? 'lesson' : 'lessons'} across ${where} · ${undatedLessons.length} not listed: ${parts.join(', ')}.`;
+}
+
+// THE AGE VERSIONS EACH LESSON REALLY CARRIES (DR-0715; Darrell 2026-09-30:
+// "is the lesson count 349 or is that with every variation based on the age
+// number? I want both so it shows the scale... they will know their children
+// can read the same content in their age groups cognitive language and paced
+// for them too."). The reader's band picker (learn-framework.js AGE_BANDS)
+// offers Child, Youth, Teen, Adult and Senior; resolveForAge serves a band its
+// OWN authored text when `levels[key]` holds one, and otherwise falls back to
+// another band's text. A fallback is not a version, so it is never counted:
+// a band counts only when its own text is a non-empty string, and only when
+// that text is not a copy of a version already counted (the adult text handed
+// to a child under a child label is still one version). The Adult version is
+// `levels.standard` when authored, else the top-level `lesson` (resolveForAge:
+// "THE TOP-LEVEL `lesson` IS THE ADULT VERSION"). Nothing is assumed from a
+// course's reputation or a band's presence as a key (DR-0076).
+export const READING_VERSIONS = [
+  { id: 'child', label: 'Child', key: 'child' },
+  { id: 'youth', label: 'Youth', key: 'youth' },
+  { id: 'teen', label: 'Teen', key: 'teen' },
+  { id: 'adult', label: 'Adult', key: 'standard' },
+  { id: 'senior', label: 'Senior', key: 'senior' },
+];
+
+const versionText = (v) => (typeof v === 'string' ? v.trim() : '');
+// Two texts that differ only in spacing are one version. The whole texts are
+// compared only when their openings already match with spaces dropped, so two
+// different versions (the common case) never pay for a rewrite of the lesson.
+const bare = (t) => t.replace(/\s+/g, '');
+function sameVersion(a, b) {
+  if (a === b) return true;
+  const pa = bare(a.slice(0, 400));
+  const pb = bare(b.slice(0, 400));
+  const n = Math.min(pa.length, pb.length, 120);
+  if (pa.slice(0, n) !== pb.slice(0, n)) return false;
+  return bare(a) === bare(b);
+}
+
+// Learn re-dates its courses on every render (withLessonDates spreads each
+// lesson), but a lesson's `levels` object is carried through untouched, so the
+// answer is kept against that object and re-checked against the adult text.
+const VERSIONS_CACHE = new WeakMap();
+
+/** The age versions a lesson really carries, by band id, in picker order. */
+export function lessonVersions(m) {
+  if (!m || typeof m !== 'object') return [];
+  const hasLevels = m.levels && typeof m.levels === 'object';
+  if (!hasLevels) return versionText(m.lesson) ? ['adult'] : [];
+  const hit = VERSIONS_CACHE.get(m.levels);
+  if (hit && hit.lesson === m.lesson) return hit.ids.slice();
+  const ids = measureVersions(m, m.levels);
+  VERSIONS_CACHE.set(m.levels, { lesson: m.lesson, ids });
+  return ids.slice();
+}
+
+function measureVersions(m, levels) {
+  const textOf = (b) => versionText(levels[b.key]) || (b.id === 'adult' ? versionText(m.lesson) : '');
+  // The adult text is counted first, so a band that merely repeats it is seen as the copy it is.
+  const adult = READING_VERSIONS.find((b) => b.id === 'adult');
+  const order = [adult, ...READING_VERSIONS.filter((b) => b !== adult)];
+  const seen = [];
+  const have = new Set();
+  for (const b of order) {
+    const t = textOf(b);
+    if (!t || seen.some((s) => sameVersion(s, t))) continue;
+    seen.push(t);
+    have.add(b.id);
+  }
+  return READING_VERSIONS.filter((b) => have.has(b.id)).map((b) => b.id);
+}
+
+const YOUNGER = new Set(['child', 'youth', 'teen']);
+
+/**
+ * Every age version across a list of lessons: the total, how many of each
+ * band, and how many lessons carry a child, youth or teen version of their own.
+ */
+export function countReadings(lessons) {
+  const byBand = Object.fromEntries(READING_VERSIONS.map((b) => [b.id, 0]));
+  let readings = 0;
+  let lessonCount = 0;
+  let younger = 0;
+  for (const m of Array.isArray(lessons) ? lessons : []) {
+    if (!m || !m.id) continue;
+    lessonCount += 1;
+    const ids = lessonVersions(m);
+    for (const id of ids) { byBand[id] += 1; readings += 1; }
+    if (ids.some((id) => YOUNGER.has(id))) younger += 1;
+  }
+  return { lessons: lessonCount, readings, byBand, younger };
+}
+
+/** The same count over every lesson of every course. */
+export function catalogReadings(courses) {
+  const list = Array.isArray(courses) ? courses.filter(Boolean) : [];
+  return countReadings(list.flatMap((c) => c.schedule || []));
+}
+
+/** Plain count words: 2,917 rather than 2917. */
+export function countWords(n) {
+  return Number(n || 0).toLocaleString('en-US');
+}
+
+/**
+ * The scale line: every age version counted, naming only the bands that
+ * really hold at least one version.
+ */
+export function readingsLine({ readings, byBand }) {
+  const bands = READING_VERSIONS.filter((b) => byBand && byBand[b.id] > 0).map((b) => b.label.toLowerCase());
+  return `${countWords(readings)} ${readings === 1 ? 'reading' : 'readings'} counting every age version (${bands.join(', ')})`;
+}
+
+/**
+ * What the second number means, in one plain sentence, and only as far as it
+ * is true: "Most" when more than half the lessons carry a child, youth or teen
+ * version of their own, "Some" when fewer do, and nothing when none do.
+ */
+export function readingsMeaning({ lessons, younger }) {
+  if (!younger) return '';
+  const share = younger * 2 > lessons ? 'Most' : 'Some';
+  return `${share} lessons are written again for younger readers, so a child can read the same lesson in words and at a pace that fit them.`;
+}
+
+/** Each month heading's reading total: the sum of the `versions` of the rows under it. */
+export function monthReadings(items) {
+  const out = {};
+  let key = null;
+  for (const it of Array.isArray(items) ? items : []) {
+    if (it && it.heading) { key = it.heading.key; out[key] = out[key] || 0; continue; }
+    if (key && it) out[key] += Number(it.versions) || 0;
+  }
+  return out;
 }
 
 // THE SCHOOL (DR-0432; Darrell 2026-09-15: "Add the Courses as a tab with
