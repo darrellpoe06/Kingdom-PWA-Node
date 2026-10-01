@@ -748,7 +748,20 @@ class SupabaseIO:
         with open(os.path.join(d, f"{rid}.json"), "w", encoding="utf-8") as f:
             json.dump(segments, f)
         diarized = diarize_local.diarize(local, self.data_dir)
-        return st.speaker_transcript(segments, diarized, st.load_voiceprints(self.data_dir))
+        prints, names = self.consented_voiceprints()
+        return st.speaker_transcript(segments, diarized, prints, names)
+
+    def consented_voiceprints(self):
+        """Only the prints whose owner's consent stands at this moment (DR-0720),
+        read live from voice_enrollments. A failed read keeps only the two
+        word-attributed voices (BG, DP): it fails closed, never open."""
+        import speaker_turns as st
+        import voice_enroll as ve
+        try:
+            rows = json.loads(self._req("GET", "/rest/v1/voice_enrollments?select=user_id,label,display_name,enrolled_at&limit=500").decode("utf-8"))
+        except Exception:
+            rows = []
+        return ve.consented_prints(st.load_voiceprint_records(self.data_dir), rows)
 
 
 def post_whisper(url, local, timeout=900):
