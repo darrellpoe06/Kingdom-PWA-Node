@@ -312,6 +312,33 @@ const NODES = [
     writes: [],
     seeds: [],
   }),
+  // DR-0720: Add my voice. A person agrees, reads Psalm 23, and the NAS makes
+  // one voiceprint (kept only on the NAS) and writes back added or why not;
+  // removal deletes the consent, and the print on the next pass.
+  app('app/src/lib/voice-enroll.js', {
+    id: 'add-my-voice', name: 'Add my voice (My profile; linked from the recorder and Your lessons)',
+    purpose: 'A signed-in person agrees in plain words, reads Psalm 23 aloud, and sees whether their voice was added or why not; Remove my voice takes it back.',
+    reads: [
+      { res: 'db:voice_enrollments#result', token: "from('voice_enrollments')" },
+    ],
+    writes: [
+      { res: 'db:voice_enrollments', token: "'give_voice_consent'" },
+      { res: 'db:voice_enrollments#sample', token: "'send_voice_sample'" },
+    ],
+    seeds: ['voice-enroll'],
+  }),
+  rider('service:lesson-voice', 'infra/nas-lesson-voice/voice_enroll.py', {
+    id: 'voice-enroll', name: 'Voice enrollment by consent (NAS)',
+    purpose: 'Deletes every voiceprint whose owner removed consent, then turns each consented sample into one voiceprint on the NAS, or a plain reason why not.',
+    reads: [
+      { res: 'db:voice_enrollments', token: 'def list_rows' },
+      { res: 'db:voice_enrollments#sample', token: 'sample-sent' },
+    ],
+    writes: [
+      { res: 'db:voice_enrollments#result', token: 'def update_row' },
+    ],
+    seeds: ['add-my-voice', 'lesson-voice'],
+  }),
   rider('service:lesson-voice', 'infra/nas-lesson-voice/lesson_voice_transcribe.py', {
     id: 'lesson-voice', name: 'Whisper + the lesson mirror',
     purpose: 'Transcribes each spoken lesson on our own machines, and carries every lesson row to where the cloud reader can see it.',
@@ -324,6 +351,8 @@ const NODES = [
       { res: 'hosted:lesson-published', token: 'list_published_rows' },
       // DR-0672: the build's progress, carried back once each.
       { res: 'hosted:lesson-progress', token: 'list_progress_rows' },
+      // DR-0720: a self-added voice is named only while its consent stands.
+      { res: 'db:voice_enrollments#result', token: 'consented_voiceprints' },
     ],
     writes: [
       { res: 'db:agent_inbox#voice-transcript', token: '"voice-transcript"' },
