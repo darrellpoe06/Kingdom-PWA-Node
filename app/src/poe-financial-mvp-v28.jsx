@@ -5,7 +5,7 @@ import { SectionTitle, MetricCell, TabScroll, DmUnreadBadge } from './components
 // help registry every surface reads from. Small + always-present chrome, so it
 // rides the initial bundle rather than a lazy chunk.
 import LockedSurface from './components/LockedSurface.jsx'; import CreateSubNav from './components/CreateSubNav.jsx'; // Create's level-2 row (DR-0679)
-import HelpButton from './components/HelpButton.jsx';
+import HelpButton from './components/HelpButton.jsx'; import ArrivalsBell from './components/ArrivalsBell.jsx'; // every arrival counted (DR-0728)
 import HelpWalkthrough from './components/HelpWalkthrough.jsx';
 import { UpdatePrompt, InstallPrompt } from './components/PwaPrompts.jsx';
 import InstallAppButton from './components/InstallAppButton.jsx';
@@ -177,7 +177,7 @@ import { deriveAccountBalances, deriveEntityRollups, deriveDebts } from './lib/f
 import { createAccountsCrud } from './lib/books-accounts-crud.js';
 import { reconcileAccounts } from './lib/imported-view.js';
 import { TAX_CALENDAR_SEED } from './lib/tax-calendar-seed.js';
-import { payeeKey, applyCategoryToPayee } from './lib/categorize.js';
+import { payeeKey, applyCategoryToPayee, publishLedgerEditor } from './lib/ledger-edit.js';
 import { runVerifiedLedgerSync } from './lib/verified-ledger-sync.js';
 import { parseStatementText, isSpreadsheetFile, spreadsheetFileToCsv } from './lib/statement-import.js';
 import { matchServices } from './lib/matched-services.js';
@@ -3060,7 +3060,7 @@ export default function PoeFinancialSystem() {
       recordHistoryEvent({ recordKind: 'transaction', recordId: t.id, action: 'update', before: t, after: { ...t, category } });
     }
     return changed.length;
-  };
+  }; publishLedgerEditor({ updateTransaction, recategorizePayee, demo: isAnyDemoMode, transactions: data.transactions || [] }); // every surface edits through these two (lib/ledger-edit.js, DR-0710)
   const deleteTransaction = (idOrIds) => {
     // Accepts ONE id or an ARRAY. The dedupe removes THOUSANDS at once; firing that
     // many single cloud deletes floods the ~6-connection cap + rate limit so most
@@ -4200,6 +4200,7 @@ ${THEME_CSS}
                 setChurchView={setChurchView}
                 setBooksView={setBooksView}
               />
+              <ArrivalsBell />
               {/* Large-print control (WCAG 1.4.4). Sits beside the theme swatches —
                   the two "make this comfortable to look at" controls live together.
                   Scales the whole app from one place; choice saved per device. */}
