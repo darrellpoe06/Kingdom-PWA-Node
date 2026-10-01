@@ -13,7 +13,8 @@
 //    get healthy together... why not! We should be able to see Yahweh has been
 //    right!!!!!"
 //
-// MEASURED FIRST (DR-0076), on the whole catalog, 2026-10-01: 593 lessons;
+// MEASURED FIRST (DR-0076), on the 43 courses the scan covered (not the A.I.
+// course nor the six Eternal Algorithms courses; DR-0739), 2026-10-01: 593 lessons;
 // 12 prompted parents toward their children, 18 prompted children toward
 // their parents, 0 did both, 36 carried any family-talk language at all. So
 // no: almost none did it, and none did it both ways. This module is the fix.
