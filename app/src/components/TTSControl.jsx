@@ -235,14 +235,14 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     // Kept on the device (DR-0659; optional in mocks).
     offline, saveForListening, usesNasVoice, liteVoice,
     audioVoice,
+    // The last reading's trip (DR-0738; optional in mocks).
+    lastTrip,
     // The OS skip buttons get the bar's paragraph step (optional in mocks).
     setSkipHandlers,
     setNotice,
     noticeAction,
     standInWhy,
     myVoice,
-    // The last reading's trip (DR-0738; optional in mocks).
-    lastTrip,
   } = useReadAloud({ isOwner });
 
   // THE SCREEN STAYS ON WHILE IT READS (DR-0439; Darrell 2026-09-16: his phone
