@@ -24,6 +24,9 @@ import { mayCompareVersions } from '../lib/lesson-versions.js';
 import { fetchReviewQueue } from '../lib/lesson-decisions.js';
 import LessonRoad from './LessonRoad.jsx';
 import LessonVersionsCompare from './LessonVersionsCompare.jsx';
+// DR-0728: opening this screen is looking. Every lesson arrival (ready, decided,
+// published) is marked seen here, so the icon and the bell drop their number.
+import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
 
 // A decline points to the lessons that already speak to it; when none is close
 // enough, the pointer is dropped rather than said falsely.
@@ -78,6 +81,7 @@ export default function LessonInbox({ deps = LIVE, refreshKey = 0 }) {
     fetchMyLessons(deps).then((res) => {
       setState(res);
       if (!res.ok) return;
+      markArrivalsSeen(SCREEN_KINDS['your-lessons']);
       // GitHub is read only when a lesson names its PR (the 60/hr budget).
       const numbers = res.items.map((it) => lessonPrOf(it.progressTags || [])).filter(Boolean);
       // The NAS builder names its lesson number; its branch is claude/lesson-l<n>-<slug> (DR-0669).

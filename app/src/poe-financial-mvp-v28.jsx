@@ -5,7 +5,7 @@ import { SectionTitle, MetricCell, TabScroll, DmUnreadBadge } from './components
 // help registry every surface reads from. Small + always-present chrome, so it
 // rides the initial bundle rather than a lazy chunk.
 import LockedSurface from './components/LockedSurface.jsx'; import CreateSubNav from './components/CreateSubNav.jsx'; // Create's level-2 row (DR-0679)
-import HelpButton from './components/HelpButton.jsx';
+import HelpButton from './components/HelpButton.jsx'; import ArrivalsBell from './components/ArrivalsBell.jsx'; // every arrival counted (DR-0728)
 import HelpWalkthrough from './components/HelpWalkthrough.jsx';
 import { UpdatePrompt, InstallPrompt } from './components/PwaPrompts.jsx';
 import InstallAppButton from './components/InstallAppButton.jsx';
@@ -4201,6 +4201,7 @@ ${THEME_CSS}
                 setChurchView={setChurchView}
                 setBooksView={setBooksView}
               />
+              <ArrivalsBell />
               {/* Large-print control (WCAG 1.4.4). Sits beside the theme swatches —
                   the two "make this comfortable to look at" controls live together.
                   Scales the whole app from one place; choice saved per device. */}
