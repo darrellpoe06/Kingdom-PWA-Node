@@ -48,11 +48,17 @@ DOCKER=\$(command -v docker 2>/dev/null || echo /usr/local/bin/docker)
 REMOTE
 }
 
-# Pending rows + each instance's office (owner/admin) user ids, as one JSON blob.
+# Pending rows, each with the people it is for, as one JSON blob.
+#   kind door_fault  the instance's office (owner/admin), as DR-0400 built it;
+#   kind lesson      ONE person, the row's target_user (migration 0245, DR-0728):
+#                    the lesson is theirs and nobody else is told.
 PENDING="$(remote_psql "SELECT coalesce(json_agg(row_to_json(r)), '[]')::text FROM (
-  SELECT o.id, o.instance_id, o.fault_id, o.title, o.body,
-         (SELECT coalesce(json_agg(m.user_id), '[]'::json) FROM instance_members m
-           WHERE m.instance_id = o.instance_id AND m.role IN ('owner','admin')) AS user_ids
+  SELECT o.id, o.instance_id, o.fault_id, o.kind, o.title, o.body, o.url, o.dedupe_key,
+         CASE WHEN o.kind = 'lesson'
+              THEN (SELECT coalesce(json_agg(u), '[]'::json) FROM (SELECT o.target_user AS u WHERE o.target_user IS NOT NULL) t)
+              ELSE (SELECT coalesce(json_agg(m.user_id), '[]'::json) FROM instance_members m
+                     WHERE m.instance_id = o.instance_id AND m.role IN ('owner','admin'))
+         END AS user_ids
     FROM public.push_outbox o
    WHERE o.sent_at IS NULL
    ORDER BY o.created_at
@@ -74,10 +80,19 @@ for i in $(seq 0 $((COUNT-1))); do
     remote_psql "UPDATE public.push_outbox SET sent_at=now(), attempts=attempts+1 WHERE id='${id}'" >/dev/null
     continue
   fi
-  payload="$(printf '%s' "$row" | jq -c '{topic:"fault", instanceId:.instance_id, faultId:.fault_id, userIds:.user_ids, title:.title, body:.body}')"
+  kind="$(printf '%s' "$row" | jq -r '.kind // "door_fault"')"
+  if [ "$kind" = "lesson" ]; then
+    # A lesson notice is addressed to its one person (push-send-policy: topic
+    # lesson requires an explicit audience and carries its own dedupe key).
+    payload="$(printf '%s' "$row" | jq -c '{topic:"lesson", instanceId:.instance_id, userIds:.user_ids, title:.title, body:.body, url:.url, dedupeKey:.dedupe_key}')"
+  else
+    payload="$(printf '%s' "$row" | jq -c '{topic:"fault", instanceId:.instance_id, faultId:.fault_id, userIds:.user_ids, title:.title, body:.body}')"
+  fi
+  # The sender reads a machine caller's token from x-push-token (functions/api/
+  # push-send.js); a bearer header alone is taken for a person's JWT and refused.
   code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 -X POST "$PUSH_SEND_URL" \
     -H 'content-type: application/json' \
-    ${PUSH_SEND_TOKEN:+-H "authorization: Bearer ${PUSH_SEND_TOKEN}"} \
+    ${PUSH_SEND_TOKEN:+-H "x-push-token: ${PUSH_SEND_TOKEN}"} \
     -d "$payload" 2>/dev/null || echo 000)"
   case "$code" in
     2*) remote_psql "UPDATE public.push_outbox SET sent_at=now(), attempts=attempts+1 WHERE id='${id}'" >/dev/null; sent=$((sent+1)) ;;

@@ -407,8 +407,13 @@ const NODES = [
       { res: 'db:agent_inbox#lesson-progress', file: 'app/src/lib/lesson-inbox.js', token: 'progressTags' },
       { res: 'gh:pr', file: 'app/src/lib/lesson-pipeline.js', token: 'fetchLessonPrs' },
     ],
-    writes: [{ res: 'event:use-prompt', file: 'app/src/components/LessonInbox.jsx', token: 'sendPromptToBox' }],
-    seeds: ['lesson-door'],
+    writes: [
+      { res: 'event:use-prompt', file: 'app/src/components/LessonInbox.jsx', token: 'sendPromptToBox' },
+      // DR-0728: a lesson row gaining awaiting-review or lesson-published
+      // enqueues a push to its one person; the drain delivers it (0245).
+      { res: 'db:push_outbox', file: 'infra/supabase/migrations-auto/0245-every-arrival-is-counted-a-lesson-ready-or-published-enqueues-a-push.sql', token: 'INSERT INTO public.push_outbox' },
+    ],
+    seeds: ['lesson-door', 'push-outbox-drain'],
   }),
   app('app/src/components/MemberLessonQueue.jsx', {
     id: 'member-lesson-queue', name: 'Members\u2019 lessons to review (the Governor)',
