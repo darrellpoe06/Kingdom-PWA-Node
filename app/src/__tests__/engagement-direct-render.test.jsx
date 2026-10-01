@@ -34,6 +34,8 @@ vi.mock('../lib/direct-messages-sync.js', () => ({
   loadDmContacts: async () => [{ userId: 'u-ann', displayName: 'Sister Ann', role: 'member', instanceId: 'inst-church' }],
   loadDmInvited: async () => [],
   subscribeDirectMessages: (cb) => { cb([]); const off = () => {}; off.refresh = () => {}; return off; },
+  loadMyDmDevices: async () => [],
+  forgetDmDevice: async () => ({ forgotten: true }),
   sendDirectMessage: async () => ({ sent: true, encrypted: false, push: Promise.resolve({ ok: true, attempted: 0, succeeded: 0 }) }),
   markThreadRead: async () => {},
   markThreadReadLocal: (rows) => rows,

@@ -29,8 +29,8 @@ import { dirname, join } from 'path';
 
 // The shell's rule, mirrored here so it is asserted rather than described:
 //   wearsChurchBrand = churchDoorOnly || (!signedIn && publicChurchRoute)
-const wearsChurchBrand = ({ search = '', standalone = false, signedIn = false }) =>
-  isChurchDoorContext(search, { standalone }) || (!signedIn && isPublicChurchRoute(search));
+const wearsChurchBrand = ({ search = '', standalone = false, signedIn = false, pathname = '/poetech-app/' }) =>
+  isChurchDoorContext(search, { standalone, pathname }) || (!signedIn && isPublicChurchRoute(search));
 
 describe('the lessons open for anyone — the link IS the promotion', () => {
   it('the exact link Darrell sent opens with no login', () => {
@@ -65,8 +65,12 @@ describe('whose app am I in — the brand follows the DOOR, not the tab', () => 
     expect(wearsChurchBrand({ search: '?lovecorner=1', signedIn: true })).toBe(true);
   });
 
-  it('the installed Love Corner app still wears the church', () => {
-    expect(wearsChurchBrand({ search: '?view=church', standalone: true, signedIn: true })).toBe(true);
+  it('the installed Love Corner app still wears the church: it lives at its own path (DR-0258 / DR-0731)', () => {
+    expect(wearsChurchBrand({ search: '?view=church', standalone: true, signedIn: true, pathname: '/lovecorner/app/' })).toBe(true);
+  });
+
+  it('the installed PoeTech app on its Church tab is PoeTech, even standalone (Darrell 2026-10-01; DR-0731)', () => {
+    expect(wearsChurchBrand({ search: '?view=church&sub=learn', standalone: true, signedIn: true, pathname: '/poetech-app/' })).toBe(false);
   });
 
   it('a stranger opening a shared lesson link wears the church — they came for it', () => {

@@ -4,12 +4,6 @@
     "ai": [
     ],
     "ai-legal-blueprint": [
-      "aib1-the-one-rule",
-      "aib2-do-not-share-list",
-      "aib3-how-the-machine-remembers",
-      "aib4-the-law-plain",
-      "aib5-real-world-scenarios",
-      "aib6-safe-use-blueprint-sovereign"
     ],
     "appraisal": [
       "appr1-thy-estimation",
@@ -74,13 +68,6 @@
       "buy8-he-that-sweareth-to-his-own-hurt-and-changeth-not"
     ],
     "church-offices": [
-      "co1-names-and-numbers",
-      "co2-deacon",
-      "co3-elder",
-      "co4-bishop-overseer",
-      "co5-pastor-shepherd",
-      "co6-fivefold-and-body",
-      "co7-our-house-now"
     ],
     "datasystems": [
       "dsi1-what-poetech-is",
@@ -129,11 +116,6 @@
       "fin8-he-frankly-forgave-them-both"
     ],
     "handed-forward": [
-      "succ1-mission-not-map",
-      "succ2-read-before-you-rule",
-      "succ3-new-builder-new-work",
-      "succ4-cross-what-we-could-not",
-      "succ5-double-portion-hand-it-forward"
     ],
     "healthy-living": [
       "hl-w-haver-midlife-fasting",
@@ -152,26 +134,8 @@
     "historical-research-1619": [
     ],
     "history-truth": [
-      "hist1-the-standard-before-the-story",
-      "hist2-the-fatherless-the-widow-and-the-stranger",
-      "hist3-the-landmark-and-the-vineyard",
-      "hist4-the-wage-that-could-not-wait",
-      "hist5-two-weights-in-one-bag",
-      "hist6-the-fields-of-the-fatherless",
-      "hist7-no-respecter-of-persons",
-      "hist8-two-or-three-witnesses"
     ],
     "infrastructure": [
-      "inf1-what-is-sovereign",
-      "inf10-build-right-raise-builders",
-      "inf2-the-nas",
-      "inf3-storage-raid",
-      "inf4-network-gateway",
-      "inf5-remote-access",
-      "inf6-local-ai",
-      "inf7-gpu-vram-farm",
-      "inf8-church-stack",
-      "inf9-keeping-it-alive"
     ],
     "inspections": [
       "insp1-the-plague-in-the-walls",
@@ -194,14 +158,6 @@
       "ins8-it-beat-upon-that-house"
     ],
     "investing": [
-      "inv1-what-investing-actually-is",
-      "inv2-risk-is-four-things-wearing-one-word",
-      "inv3-time-is-the-only-free-ingredient",
-      "inv4-spreading-it-out-and-what-that-cannot-do",
-      "inv5-cost-is-the-one-number-known-in-advance",
-      "inv6-what-cannot-be-known-and-who-sells-certainty",
-      "inv7-the-stewards-question",
-      "inv8-enough"
     ],
     "kingdom-economics": [
       "econ1-soul-first",
@@ -216,13 +172,6 @@
     "leasing-tenants": [
     ],
     "legacy-provisions": [
-      "legacy1-why-it-vanishes",
-      "legacy2-constitution",
-      "legacy3-spendthrift",
-      "legacy4-forced-production",
-      "legacy5-heir-under-governors",
-      "legacy6-hand-it-forward",
-      "legacy7-how-we-got-here"
     ],
     "little-learners": [
     ],
@@ -261,28 +210,8 @@
       "mat8-quality-and-quantity-gideons-three-hundred-and-the-widows-two-mites"
     ],
     "partnerships": [
-      "part1-can-two-walk-together-except-they-be-agreed",
-      "part2-two-are-better-than-one",
-      "part3-unequally-yoked-what-a-yoke-actually-is",
-      "part4-and-the-ships-were-broken",
-      "part5-let-there-be-no-strife-separate-thyself",
-      "part6-the-contention-was-so-sharp",
-      "part7-in-the-multitude-of-counsellors",
-      "part8-the-people-had-a-mind-to-work"
     ],
     "project-management": [
-      "pm1-count-the-cost",
-      "pm10-the-record-that-outlives-it",
-      "pm11-how-the-organization-learns-prioritizes-and-decides",
-      "pm12-titles-and-fruits-capability-shown-in-outcomes",
-      "pm2-who-should-work",
-      "pm3-the-skill-is-given-and-named",
-      "pm4-what-we-do-not-need-to-do",
-      "pm5-timeline-and-milestones",
-      "pm6-the-counsellors-you-secure",
-      "pm7-the-watchman-and-the-risk",
-      "pm8-the-plumbline",
-      "pm9-the-change-you-put-down"
     ],
     "property-principle": [
     ],
@@ -305,16 +234,6 @@
       "rto8-marketing-vision-and-going-to-get-the-information"
     ],
     "software-project-management": [
-      "spm1-requirements-are-a-vow",
-      "spm10-handover-and-the-runbook",
-      "spm2-the-order-is-the-work",
-      "spm3-the-honest-unknown",
-      "spm4-incident-problem-change",
-      "spm5-no-silent-change",
-      "spm6-green-is-not-deployed",
-      "spm7-a-gate-that-always-passes",
-      "spm8-debt-named-and-dated",
-      "spm9-the-retrospective-that-is-not-a-blame-meeting"
     ],
     "sound-board": [
       "snd1-the-board-and-the-signal-chain",
@@ -370,23 +289,10 @@
       "stk8-the-question-the-screen-never-asks"
     ],
     "taxes-records": [
-      "tax1-render-unto-caesar",
-      "tax2-then-are-the-children-free",
-      "tax3-all-the-world-should-be-taxed",
-      "tax4-the-rich-shall-not-give-more",
-      "tax5-he-will-take-the-tenth",
-      "tax6-they-sought-their-register",
-      "tax7-restore-it-in-the-principal-and-add-the-fifth",
-      "tax8-will-a-man-rob-god"
     ],
     "who-he-is": [
     ],
     "word-out": [
-      "wo1-one-upload-everywhere",
-      "wo2-find-and-share",
-      "wo3-retire-the-old-site",
-      "wo4-when-it-looks-stale",
-      "wo5-ask-for-what-you-want"
     ],
     "world-issues": [
       "wi-ai-empire",
@@ -410,14 +316,6 @@
       "wi-victorious-emotions"
     ],
     "world-market": [
-      "wm1-why-anybody-trades-across-a-border",
-      "wm2-currency-the-price-of-one-money-in-another",
-      "wm3-a-trade-deficit-is-not-a-debt",
-      "wm4-what-still-has-to-be-dug-grown-and-shipped",
-      "wm5-what-a-central-bank-can-and-cannot-do",
-      "wm6-why-the-reserve-question-reaches-your-street",
-      "wm7-when-the-pipes-get-closed",
-      "wm8-the-just-weight-across-a-border"
     ]
   }
 }

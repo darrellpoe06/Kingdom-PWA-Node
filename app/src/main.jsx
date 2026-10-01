@@ -11,7 +11,9 @@ import { initTextSize } from './lib/text-size.js';
 import { wireDatePickerTap } from './lib/date-picker-tap.js';
 import { captureInstallPrompt } from './lib/install-app.js';
 import { startDmNotifications } from './lib/dm-notify.js';
+import { startArrivalsWatch } from './lib/arrivals-watch.js';
 import { captureDeepLink } from './lib/app-doors.js';
+import { captureShareOpen } from './lib/lesson-share-record.js';
 import { wireRemoteNavigation } from './lib/remote-navigation.js';
 import { markTvDevice } from './lib/tv-device.js';
 import { markDeviceClass } from './lib/device-roles.js';
@@ -30,6 +32,13 @@ installNativeShell(window);
 // imported, so it mounts after the param is gone. One synchronous read, taken
 // once, consumed by whichever surface owns the link (app-doors.js; DR-0444).
 captureDeepLink();
+
+// A SHARED LESSON LINK (`s=` token, DR-0698) is watched from here, before the
+// history seed can rewrite the URL: the surface that shows the lesson reports
+// 'ok', a stale link reports why, and a watchdog reports 'failed' if nothing
+// shows it in time (the DR-0296 class, where the lesson surface never mounts).
+// One event per open, with nothing about the person who opened it.
+try { captureShareOpen(window.location.search); } catch (_) { /* a record never blocks boot */ }
 
 // The entry module is ALIVE — public/watchdog.js watches for this flag and
 // retries the load once (cache-busted) if it never appears (LESSONS P32:
@@ -81,6 +90,14 @@ wireDatePickerTap();
 // off-screen. App-wide — it must work while the reader is on any tab, so it
 // mounts at boot, not inside the Messages surface. See lib/dm-notify.js.
 startDmNotifications(window);
+
+// EVERY ARRIVAL COUNTED (Darrell 2026-10-01: "the number of them if I haven't
+// checked them yet"). One watcher folds unread messages, a lesson that finished
+// building or went live, the Governor's member queue and a steward's answer on
+// a note into ONE count, sets the launcher and title badges to it, and feeds
+// the header bell. Started here, app-wide, right after the DM watcher it
+// listens to. See lib/arrivals-watch.js + lib/arrivals.js (DR-0728).
+startArrivalsWatch(window);
 
 // Catch the browser's one-shot PWA install event at boot so any surface (the
 // PwaPrompts banner, DownloadLatest's install offer) can fire the native

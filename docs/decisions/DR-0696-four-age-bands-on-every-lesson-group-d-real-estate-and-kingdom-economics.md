@@ -41,6 +41,8 @@ Courses, as each lands:
 - **management-stewardship** — 8 lessons: child and youth written; teen and senior given a naming opening where they lacked one; one teen quotation corrected (Nehemiah 5:15).
 - **leasing-tenants** — 8 lessons: child and youth written; teen and senior given a naming opening where they lacked one.
 - **maintenance-trades** — 8 lessons: child and youth written; teen and senior given a naming opening where they lacked one.
+- **partnerships** — 8 lessons: child and youth written; teen and senior given a naming opening where they lacked one.
+- **taxes-records** — 8 lessons: child and youth written; teen and senior given a naming opening where they lacked one; one senior quotation corrected to the KJV letter (Matthew 17:25), and two teen bands that said "God" in our own voice now say Yahweh (DR-0210).
 
 ## Verification after merge
 

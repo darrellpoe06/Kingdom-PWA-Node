@@ -193,7 +193,9 @@ describe('the presenter console gives the reader something to follow', () => {
 describe('the reader looks again after prepare() — the ordering fix', () => {
   it('resolves the element after prepare, not only before it', () => {
     const src = readSrc('TTSControl.jsx');
-    const body = src.slice(src.indexOf('const readTargetNow'), src.indexOf('const readTargetNow') + 4000);
+    // 8000 characters: the read path grew a comment on downloaded lessons
+    // (DR-0722) and the mapped call fell past the old 4000-character window.
+    const body = src.slice(src.indexOf('const readTargetNow'), src.indexOf('const readTargetNow') + 8000);
     const prepareAt = body.indexOf('t.prepare(true)');
     expect(prepareAt).toBeGreaterThan(-1);
     const after = body.slice(prepareAt);
