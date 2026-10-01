@@ -93,4 +93,43 @@ print("\n=== 5. empty text still 400 ===")
 r, f = run({"text":"  "}, ["A"])
 assert r.status_code==400 and r.content["error"]=="text-required"
 print("  PASS")
+print("\n=== 6. HIS RECORDING (webm/opus from the browser) is turned into WAV before XTTS (DR-0721) ===")
+converted = []
+real_to_wav = vs._to_wav
+def fake_to_wav(src):
+    converted.append(src)
+    out = src + ".ref.wav"
+    open(out, "wb").write(b"RIFFconverted")
+    return out
+vs._to_wav = fake_to_wav
+uri = "data:audio/webm;codecs=opus;base64," + base64.b64encode(b"webmbytes").decode()
+r, f = run({"text":"In the beginning was the Word","reference_audio":uri,"person_key":"darrell","voice":"voice-dp"}, ["Claribel Dervla"])
+wav = f.calls[0].get("speaker_wav") or ""
+print("  status:", r.status_code, "| converted from:", [c[-5:] for c in converted], "| XTTS got:", wav[-8:])
+assert r.status_code==200 and converted and converted[0].endswith(".webm") and wav.endswith(".wav") and f.calls[0].get("speaker") is None
+print("  PASS - a webm recording reaches XTTS as WAV, as the clone reference")
+
+print("\n=== 7. iOS records audio/mp4: no longer written to a .wav name ===")
+converted.clear()
+uri = "data:audio/mp4;base64," + base64.b64encode(b"mp4bytes").decode()
+r, f = run({"text":"hi","reference_audio":uri}, ["A"])
+assert r.status_code==200 and converted and converted[0].endswith(".m4a")
+print("  PASS - mp4 is converted, not mislabelled")
+
+print("\n=== 8. no ffmpeg: a named refusal, never a silent bad read ===")
+vs._to_wav = real_to_wav
+import shutil
+saved_path = os.environ.get("PATH", "")
+os.environ["PATH"] = "/nonexistent"
+r, f = run({"text":"hi","reference_audio":"data:audio/webm;base64," + base64.b64encode(b"x").decode()}, ["A"])
+os.environ["PATH"] = saved_path
+print("  status:", r.status_code, "| body:", r.content)
+assert r.status_code==400 and r.content["error"]=="bad-reference" and "ffmpeg" in r.content["detail"]
+print("  PASS - the studio says it needs ffmpeg")
+
+print("\n=== 9. /health says the studio clones ===")
+h = vs.health()
+assert h.get("ok") is True and h.get("clone") is True and "xtts" in h.get("model","")
+print("  PASS - health:", h)
+
 print("\nALL BEHAVIOURAL CHECKS PASSED against the real handler.")
