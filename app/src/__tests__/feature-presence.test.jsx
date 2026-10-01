@@ -205,6 +205,13 @@ const WALKS = {
     const scrollWas = Object.getOwnPropertyDescriptor(window, 'scrollY');
     Object.defineProperty(window, 'scrollY', { configurable: true, value: 5000 });
     try {
+      // Something has arrived, so the bar's arrivals button is drawn (DR-0741);
+      // the launch-open mark is set so the walk does not open the list.
+      window.__ptArrivals = { count: 3, items: [
+        { kind: 'message', id: 'message:m1', at: '2026-10-01T12:00:00Z', title: 'New message', count: 2, screen: 'messages' },
+        { kind: 'lesson-published', id: 'lesson-published:r1', at: '2026-10-01T13:00:00Z', title: 'Your lesson is published', screen: 'your-lessons' },
+      ], all: [] };
+      try { sessionStorage.setItem('poetech:arrivals-opened-on-launch', '1'); } catch { /* no storage here */ }
       const dock = () => createElement(ChromeDock, { onFeedback: () => {}, feedbackOpen: false, church: {}, showGive: true });
       const a = mount(dock());
       await settle();
