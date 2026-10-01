@@ -89,6 +89,11 @@ jobs:
           # join the rows with no spaces to get the line back.
           echo "== the same key in 32-character rows (join them, no spaces) =="
           ssh-keygen -y -f /tmp/k | fold -w 32 || true
+          # THE ROWS WERE MASKED TOO (run 36796348603, 2026-10-01: row 2 read
+          # "AAAAIMI9UAijUYeaiNzA1YeLr***j2aF"): a short line of the secret sits
+          # inside a 32-character row. Four-character groups cannot hold it.
+          echo "== the same key in 4-character groups (remove the spaces) =="
+          ssh-keygen -y -f /tmp/k | awk '{print $2}' | sed 's/.\{4\}/& /g' || true
 
       # THE LANE PLACES ITS OWN KEY (2026-09-23, DR-0581). Darrell: "You have
       # cli and ssh.... you do it!" A box that refuses the CI key used to end
@@ -299,6 +304,60 @@ jobs:
             $S 'test -s /tmp/v.wav && echo "SPOKE: $(stat -c%s /tmp/v.wav) bytes -- the studio is ARMED" || { echo "NO AUDIO. Read the two lines above before concluding anything: a 000/0-byte FIRST speak is a download that did not finish (re-dispatch, the weights are cached now); a 400 on the WARM speak is the model refusing a built-in speaker, which means it has no speaker bank and only cloned voices will work."; exit 1; }'
           fi
 
+      # A CLONE, NOT ONLY A BUILT-IN VOICE (DR-0721). The step above proves the
+      # studio speaks in its own voice; the reader's "My voice" needs it to
+      # speak NEW text in a voice it was handed as a recording. So: the warm
+      # built-in clip comes back to this runner, is re-encoded as webm/opus
+      # (exactly what a phone's recorder sends), and goes up as reference_audio
+      # with a lesson sentence. The cloned clip comes back and its length and
+      # duration are printed here, and kept as an artifact anyone can hear.
+      - name: Prove a clone from a recording (webm reference, new text)
+        if: ${{ github.event.inputs.arm == 'true' }}
+        run: |
+          H='${{ github.event.inputs.host }}'
+          U='${{ github.event.inputs.user }}'
+          D='${{ steps.probe.outputs.dialect }}'
+          S="ssh -i /tmp/k -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o ServerAliveInterval=30 $U@$H"
+          SCP="scp -i /tmp/k -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
+          if [ "$D" = powershell ]; then CURL='curl.exe'; REMOTE_REF='AppData/Local/Temp/v.wav'; else CURL='curl'; REMOTE_REF='/tmp/v.wav'; fi
+          mkdir -p clone-proof
+          $SCP "$U@$H:$REMOTE_REF" clone-proof/reference.wav
+          sudo apt-get install -y -qq ffmpeg >/dev/null 2>&1 || true
+          ffmpeg -y -loglevel error -i clone-proof/reference.wav -ac 1 -c:a libopus -b:a 48k clone-proof/reference.webm
+          python3 - <<'PY'
+          import base64, json
+          b = open("clone-proof/reference.webm", "rb").read()
+          body = {"text": "In the beginning was the Word, and the Word was with God, and the Word was God.",
+                  "reference_audio": "data:audio/webm;codecs=opus;base64," + base64.b64encode(b).decode(),
+                  "voice": "voice-proof", "person_key": "arm-proof", "language": "en"}
+          json.dump(body, open("clone-proof/clone-body.json", "w"))
+          print("reference: %d bytes of webm/opus" % len(b))
+          PY
+          $SCP clone-proof/clone-body.json "$U@$H:clone-body.json"
+          $S "$CURL -s -m 600 -X POST http://127.0.0.1:8770/speak -H \"Content-Type: application/json\" --data-binary '@clone-body.json' -o clone.wav -w \"clone speak: %{http_code} %{size_download} bytes in %{time_total}s\n\""
+          $SCP "$U@$H:clone.wav" clone-proof/clone.wav
+          python3 - <<'PY'
+          import os, sys, wave
+          p = "clone-proof/clone.wav"
+          n = os.path.getsize(p) if os.path.exists(p) else 0
+          try:
+              w = wave.open(p)
+              secs = w.getnframes() / float(w.getframerate())
+          except Exception as e:  # noqa: BLE001
+              print("CLONE FAILED: %d bytes came back and they are not a WAV (%s): %s" % (n, e, open(p, "rb").read(300) if n else b""))
+              sys.exit(1)
+          print("CLONE SPOKE: %d bytes, %.2f seconds of audio, cloned from a webm recording" % (n, secs))
+          sys.exit(0 if secs > 1.0 else 1)
+          PY
+
+      - name: Keep the cloned clip
+        if: ${{ always() && github.event.inputs.arm == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: clone-proof
+          path: clone-proof/
+          if-no-files-found: ignore
+
       # The road home, so the app can reach what was just armed. The NAS mounts
       # /voice on the Funnel itself on its next services-sync cycle (<=15 min,
       # infra/voice-studio/install.sh), but there is no reason to make the
@@ -319,6 +378,21 @@ jobs:
             test -n "$R" || { echo "no checkout carrying infra/voice-studio/install.sh on the NAS"; exit 1; }
             cd "$R" && git pull --ff-only || true
             sh "$R/infra/voice-studio/install.sh"'
+
+      # GREEN MEANS THE TOWER WAS REACHED (DR-0721). The road and the probe are
+      # continue-on-error so that every later diagnostic still prints, which
+      # left a run that never got past the tower's door reading as SUCCESS
+      # (run 36005924144, 2026-09-24: "dialect=none", "SSH FAILED", green).
+      # This last step says what the run actually found.
+      - name: Verdict
+        if: always()
+        run: |
+          echo "road: ${{ steps.road.outcome }} (${{ steps.road.outputs.road }})  probe: ${{ steps.probe.outcome }}  dialect: ${{ steps.probe.outputs.dialect }}"
+          if [ "${{ steps.probe.outputs.dialect }}" = "" ] || [ "${{ steps.probe.outputs.dialect }}" = "none" ]; then
+            echo "NOT REACHED: the CI key does not open ${{ github.event.inputs.user }}@${{ github.event.inputs.host }} -- nothing was probed or armed"
+            exit 1
+          fi
+          echo "the tower answered as ${{ steps.probe.outputs.dialect }}"
 
       - name: Always drop the key
         if: always()
