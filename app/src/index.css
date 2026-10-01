@@ -200,18 +200,21 @@ html[data-lesson-space='open'][data-text-size='bigprint'][data-comfort-bar='coll
   html[data-lesson-space='open'] .chrome-dock .dock-top-inline {
     display: none;
   }
-  /* While the Word plays, the mini-bar or pill takes its own line directly on
-     top of the row instead of crowding it. */
-  html[data-lesson-space='open'] .chrome-dock:has([data-testid='reader-mini-bar'], [aria-label='Reading controls (minimized)']) .chrome-dock-reader-wrap {
-    order: -1;
-    flex-basis: 100%;
+  /* While the Word plays it is STILL one row (DR-0744; Darrell 2026-10-01,
+     L206 on his phone: "the controls can't be further condensed to fit one
+     level together instead of two at the bottom?"). The mini-bar used to take
+     a second line above the row; now the row's own buttons fold into More
+     (ChromeDock.jsx, data-one-row) and the mini-bar has the line. */
+  html[data-lesson-space='open'] .chrome-dock[data-one-row='true'] .chrome-dock-reader-wrap {
+    flex: 1 1 auto;
   }
 }
 @media (max-width: 399.98px) {
   /* The narrowest phones: with Controls on the row, More waits until the
-     controls are opened, so the one row fits 360px. */
-  html[data-lesson-space='open'][data-text-size='largest'][data-comfort-bar='collapsed'] .chrome-dock .dock-more-wrap,
-  html[data-lesson-space='open'][data-text-size='bigprint'][data-comfort-bar='collapsed'] .chrome-dock .dock-more-wrap {
+     controls are opened, so the one row fits 360px. Never while the Word
+     plays: then More is where those controls went (DR-0744). */
+  html[data-lesson-space='open'][data-text-size='largest'][data-comfort-bar='collapsed'] .chrome-dock:not([data-one-row='true']) .dock-more-wrap,
+  html[data-lesson-space='open'][data-text-size='bigprint'][data-comfort-bar='collapsed'] .chrome-dock:not([data-one-row='true']) .dock-more-wrap {
     display: none;
   }
 }

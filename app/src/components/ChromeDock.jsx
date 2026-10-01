@@ -45,7 +45,7 @@ import { useTextSize } from '../lib/text-size.js';
 import { useComfortCollapsed, useInReader } from '../lib/comfort-bar.js';
 import {
   DOCK_BTN, DOCK_BTN_ON, DOCK_HEIGHT_PX, DOCK_ICON, DOCK_LABEL,
-  scrollPageToTop, setDockSlot, useScrolledDeep,
+  scrollPageToTop, setDockSlot, useScrolledDeep, usePhoneWidth, useReaderLive,
 } from '../lib/chrome-dock.js';
 
 export function DockLabel({ children }) {
@@ -60,7 +60,8 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
   const moreRef = useRef(null);
 
   // The reader's slot: TTSControl portals into it while it is mounted.
-  const slotRef = useCallback((el) => { setDockSlot(el); }, []);
+  const [slotEl, setSlotEl] = useState(null);
+  const slotRef = useCallback((el) => { setSlotEl(el || null); setDockSlot(el); }, []);
   useEffect(() => () => setDockSlot(null), []);
 
   // Publish the bar's real height so the reader's panel and the app's passing
@@ -101,6 +102,17 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
   // bottom block), A- / A+, Feedback and Give inline, More for the rest, and
   // the reader on the right.
   const inReader = useInReader();
+  // ONE ROW WHILE THE WORD PLAYS, TOO (DR-0744; Darrell 2026-10-01, L206 on
+  // his phone, the mini-bar on one line and Controls / A- / A+ / Feedback /
+  // Give / More on a second: "the controls can't be further condensed to fit
+  // one level together instead of two at the bottom?"). Twelve 44px buttons
+  // do not fit a phone's width on one line, so while the reader's mini-bar
+  // or pill is in the bar on a phone, the comfort buttons ride inside More
+  // (one tap away, nothing removed) and the row is: More, then the reader.
+  // Wider than a phone, everything stays inline as before.
+  const phone = usePhoneWidth();
+  const readerLive = useReaderLive(slotEl);
+  const oneRow = inReader && phone && readerLive;
   const [comfortCollapsed, setComfortCollapsed] = useComfortCollapsed();
   const [size, setSize, steps] = useTextSize();
   const sizeAt = Math.max(0, steps.findIndex((st) => st.key === size));
@@ -126,6 +138,43 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
   );
   const giveBtn = showGive ? <ChurchGiveDockButton church={church} /> : null;
 
+  // The reader's comfort buttons: inline on the slim row, or inside More
+  // while the Word plays on a phone (oneRow). One set of buttons either way.
+  const comfortButtons = (
+    <>
+      {/* Controls: open / fold the big-text block (account, Subscribe,
+          help, all sizes, voice, colors). Shown only where that block
+          is the bottom block (Largest, Big Print; index.css). */}
+      <button
+        type="button"
+        data-testid="dock-controls"
+        onClick={() => { setMoreOpen(false); setComfortCollapsed(!comfortCollapsed); }}
+        aria-expanded={!comfortCollapsed}
+        aria-label={comfortCollapsed ? 'Controls: show account, subscribe, help, every text size, voice and colors' : 'Controls: fold them away again'}
+        title={comfortCollapsed ? 'Show the controls' : 'Fold the controls'}
+        className={`dock-controls ${comfortCollapsed ? DOCK_BTN : DOCK_BTN_ON} ${FOCUS}`}
+      >
+        <span aria-hidden="true" className={DOCK_ICON}>{comfortCollapsed ? '▴' : '▾'}</span>
+        <DockLabel>Controls</DockLabel>
+      </button>
+      <button type="button" data-testid="dock-text-smaller" onClick={() => stepSize(-1)} disabled={sizeAt === 0}
+        aria-label={sizeAt === 0 ? 'Smaller text (already the smallest)' : `Smaller text size (now ${sizeNow.name})`} title="Smaller text"
+        className={`${DOCK_BTN} ${FOCUS} disabled:opacity-40`}>
+        <span aria-hidden="true" className="text-[0.875rem] leading-none">A−</span>
+      </button>
+      <button type="button" data-testid="dock-text-bigger" onClick={() => stepSize(1)} disabled={sizeAt === steps.length - 1}
+        aria-label={sizeAt === steps.length - 1 ? 'Bigger text (already the biggest)' : `Bigger text size (now ${sizeNow.name})`} title="Bigger text"
+        className={`${DOCK_BTN} ${FOCUS} disabled:opacity-40`}>
+        <span aria-hidden="true" className="text-[1.125rem] leading-none">A+</span>
+      </button>
+      {feedbackBtn}
+      {giveBtn}
+    </>
+  );
+  const moreLabel = oneRow
+    ? `More: Controls, text size, Feedback, Give, network status${netHealthy ? '' : ' (a connection check is failing)'}, back to top`
+    : `More: Feedback, Give, network status${netHealthy ? '' : ' (a connection check is failing)'}, back to top`;
+
   return (
     <>
       {/* The page's own room for the bar: the last line scrolls above it. */}
@@ -134,6 +183,7 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
         ref={barRef}
         data-testid="chrome-dock"
         data-in-reader={inReader ? 'true' : 'false'}
+        data-one-row={oneRow ? 'true' : 'false'}
         data-read-skip
         data-reading-chrome
         data-read-no-expand
@@ -149,38 +199,12 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
               it opens that list itself once per launch when something is new.
               Drawn only while N > 0, so the bar keeps its room otherwise. */}
           <ArrivalsBell variant="dock" />
-          {inReader && (
+          {inReader && !oneRow && (
             <div className="flex items-center gap-[3px] shrink-0" data-testid="dock-reader-row" role="group" aria-label="Reading comfort">
-              {/* Controls: open / fold the big-text block (account, Subscribe,
-                  help, all sizes, voice, colors). Shown only where that block
-                  is the bottom block (Largest, Big Print; index.css). */}
-              <button
-                type="button"
-                data-testid="dock-controls"
-                onClick={() => setComfortCollapsed(!comfortCollapsed)}
-                aria-expanded={!comfortCollapsed}
-                aria-label={comfortCollapsed ? 'Controls: show account, subscribe, help, every text size, voice and colors' : 'Controls: fold them away again'}
-                title={comfortCollapsed ? 'Show the controls' : 'Fold the controls'}
-                className={`dock-controls ${comfortCollapsed ? DOCK_BTN : DOCK_BTN_ON} ${FOCUS}`}
-              >
-                <span aria-hidden="true" className={DOCK_ICON}>{comfortCollapsed ? '▴' : '▾'}</span>
-                <DockLabel>Controls</DockLabel>
-              </button>
-              <button type="button" data-testid="dock-text-smaller" onClick={() => stepSize(-1)} disabled={sizeAt === 0}
-                aria-label={sizeAt === 0 ? 'Smaller text (already the smallest)' : `Smaller text size (now ${sizeNow.name})`} title="Smaller text"
-                className={`${DOCK_BTN} ${FOCUS} disabled:opacity-40`}>
-                <span aria-hidden="true" className="text-[0.875rem] leading-none">A−</span>
-              </button>
-              <button type="button" data-testid="dock-text-bigger" onClick={() => stepSize(1)} disabled={sizeAt === steps.length - 1}
-                aria-label={sizeAt === steps.length - 1 ? 'Bigger text (already the biggest)' : `Bigger text size (now ${sizeNow.name})`} title="Bigger text"
-                className={`${DOCK_BTN} ${FOCUS} disabled:opacity-40`}>
-                <span aria-hidden="true" className="text-[1.125rem] leading-none">A+</span>
-              </button>
-              {feedbackBtn}
-              {giveBtn}
+              {comfortButtons}
             </div>
           )}
-          <div ref={moreRef} className="dock-more-wrap relative flex items-center gap-[3px] shrink-0">
+          <div ref={moreRef} className="dock-more-wrap flex items-center gap-[3px] shrink-0">
             {/* Below 640px: ONE button holds the rest, so a 360px phone keeps
                 the read-aloud mini-bar on the same line. A mark on it when the
                 network status folded inside is not healthy. */}
@@ -190,7 +214,7 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
               onClick={() => setMoreOpen((o) => !o)}
               aria-expanded={moreOpen}
               aria-haspopup="true"
-              aria-label={netHealthy ? 'More: Feedback, Give, network status, back to top' : 'More: Feedback, Give, network status (a connection check is failing), back to top'}
+              aria-label={moreLabel}
               title="More"
               className={`sm:hidden ${moreOpen ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}
             >
@@ -201,13 +225,16 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
             {/* ONE list, two shapes: a menu above More on a phone, the bar's
                 own buttons from 640px up. One NetworkStatus instance either way,
                 so the connection is probed once, not twice. In the reader,
-                Feedback and Give ride the slim row instead. */}
+                Feedback and Give ride the slim row instead; while the Word
+                plays on a phone the whole slim row rides here (DR-0744), as a
+                wrapped row of the same square buttons. */}
             <div
               data-testid="dock-items"
               role="group"
-              aria-label="Feedback, giving and status"
-              className={`${moreOpen ? 'flex' : 'hidden'} absolute bottom-full left-0 mb-[4px] flex-col items-stretch gap-[4px] p-[4px] bg-[#FAF8F4] border-2 border-[#1A1815] shadow-lg min-w-[144px] sm:static sm:flex sm:flex-row sm:items-center sm:mb-0 sm:p-0 sm:border-0 sm:shadow-none sm:min-w-0 sm:bg-transparent`}
+              aria-label={oneRow ? 'Controls, text size, feedback, giving and status' : 'Feedback, giving and status'}
+              className={`${moreOpen ? 'flex' : 'hidden'} absolute bottom-full left-0 mb-[4px] flex-row flex-wrap items-center gap-[4px] p-[4px] bg-[#FAF8F4] border-2 border-[#1A1815] shadow-lg min-w-[144px] sm:static sm:flex sm:mb-0 sm:p-0 sm:border-0 sm:shadow-none sm:min-w-0 sm:bg-transparent`}
             >
+              {oneRow && comfortButtons}
               {!inReader && feedbackBtn}
               {!inReader && giveBtn}
               <NetworkStatus variant="dock" onHealthChange={onHealthChange} />
