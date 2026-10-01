@@ -309,6 +309,20 @@ describe('choir-dates yt-dlp wrapper is verified every cycle', () => {
     expect(src).toMatch(/failed its --version check/);
     expect(src).toMatch(/exit 1/);
   });
+
+  // DR-0723, measured 2026-10-01: every cycle said "yt-dlp not available".
+  // The NAS installs its own pinned, sha256-verified yt-dlp first; the docker
+  // wrapper is entered only when that is not ready, and the sovereign dir
+  // leads PATH so choir_dates_sync.py's `yt-dlp` lookup finds it.
+  it('installs the sovereign yt-dlp first and keeps docker as the fallback only', () => {
+    const src = installer();
+    expect(src).toMatch(/sh "\$REPO\/infra\/nas-yt-dlp\/install\.sh"/);
+    expect(src).toMatch(/if \[ "\$SOVEREIGN_OK" = "0" \] && ! python3 -c "import yt_dlp"/);
+    expect(src).toMatch(/PATH="\$SOVEREIGN_YTDLP_HOME:\$STATE:\$PATH"/);
+    const pin = readFileSync(join(ROOT, 'infra/nas-yt-dlp/install.sh'), 'utf8');
+    expect(pin).toMatch(/YTDLP_PIN_SHA256:-[0-9a-f]{64}\}/);
+    expect(pin).toMatch(/!= "\$YTDLP_SHA256"/);
+  });
 });
 
 // ===========================================================================
