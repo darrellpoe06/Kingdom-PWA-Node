@@ -1,7 +1,7 @@
 // =============================================================================
 // ChurchGiving — live render proof (Verification Doctrine: observe the REAL
-// surface). Mounts the actual Give floater + panel in jsdom and proves what
-// Darrell asked for: a distinct Give floater on Church (gift SVG, not an emoji),
+// surface). Mounts the actual Give bar button + panel in jsdom and proves what
+// Darrell asked for: a distinct Give button on Church (gift SVG, not an emoji),
 // a panel that links ONLY to the church's own giving destination (never an
 // invented URL), and the benefits of giving according to the Word with the six
 // anchor scriptures + the anti-prosperity-gospel bright line.
@@ -10,7 +10,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createElement } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChurchGiveFloater, ChurchGivePanel } from '../components/ChurchGiving.jsx';
+import { ChurchGiveDockButton, ChurchGivePanel } from '../components/ChurchGiving.jsx';
 import { GIVING_CHANNELS } from '../lib/giving.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -25,45 +25,39 @@ let container, root;
 beforeEach(() => { container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container); });
 afterEach(() => { act(() => root.unmount()); container.remove(); });
 
-describe('ChurchGiveFloater — the floater', () => {
-  it('renders a distinct Give pill with a cross-device SVG icon (not an emoji)', () => {
-    act(() => root.render(createElement(ChurchGiveFloater, { church: COLG })));
+// THE FLOATER BECAME A BAR BUTTON (DR-0716, Darrell 2026-09-30: "Put the
+// feedback and other floating options on the task bars somewhere they make
+// sense"). Pinned on purpose: the old "floats, bottom-right, idles to a dim
+// circle" expectations were the defect; Give now rides the bottom bar in the
+// text-size family and opens the same panel.
+describe('ChurchGiveDockButton — Give in the bottom bar', () => {
+  it('renders a distinct Give button with a cross-device SVG icon (not an emoji) and the word', () => {
+    act(() => root.render(createElement(ChurchGiveDockButton, { church: COLG })));
     const btn = container.querySelector('button[aria-label="Give to the church"]');
     expect(btn).toBeTruthy();
     expect(btn.textContent).toMatch(/Give/);
     expect(btn.querySelector('svg')).toBeTruthy();           // inline SVG gift icon
     expect(/[\u{1F300}-\u{1FAFF}]/u.test(btn.textContent)).toBe(false); // no emoji glyph
-    expect(btn.className).toMatch(/fixed/);                   // floats
-    expect(btn.className).toMatch(/right-4/);                 // bottom-right (Feedback owns left)
+    expect(btn.className).not.toMatch(/\bfixed\b/);           // a bar button, never a floater
+    expect(btn.className).toMatch(/border-\[#E8E4DC\]/);       // the text-size chip family
+    expect(btn.className).toMatch(/min-h-\[2\.75rem\]/);           // 44px tap floor
   });
 
   it('opens the panel on tap', () => {
-    act(() => root.render(createElement(ChurchGiveFloater, { church: COLG })));
+    act(() => root.render(createElement(ChurchGiveDockButton, { church: COLG })));
     const btn = container.querySelector('button[aria-label="Give to the church"]');
     act(() => btn.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     expect(container.querySelector('[role="dialog"]')).toBeTruthy();
   });
 
-  // THE WORD GETS PRIORITY (Darrell 2026-07-27): the pill must conform to the
-  // standing floater Way (Darrell 2026-07-14 idle-reveal + REV-0235 compact-
-  // when-idle) — at rest it settles to a dim icon-only circle so it stops
-  // covering the lesson text; motion re-reveals it as the gentle reminder.
-  it('settles out of the Word\'s way when idle (compact icon-only), and re-reveals on scroll', () => {
+  it('never dims or retracts its word: a bar button covers no words, so it has nothing to get out of the way of', () => {
     vi.useFakeTimers();
     try {
-      act(() => root.render(createElement(ChurchGiveFloater, { church: COLG })));
-      let btn = container.querySelector('button[aria-label="Give to the church"]');
-      expect(btn.textContent).toMatch(/Give/); // revealed at rest-arrival
-      act(() => { vi.advanceTimersByTime(4000); }); // past the 3500ms idle window
-      btn = container.querySelector('button[aria-label="Give to the church"]');
-      expect(btn.textContent).not.toMatch(/Give/);          // label retracts…
-      expect(btn.querySelector('svg')).toBeTruthy();        // …icon stays
-      expect(btn.className).toMatch(/opacity-40/);          // dimmed
-      expect(btn.className).toMatch(/w-12/);                // 48px circle — still tappable
-      expect(btn.getAttribute('aria-label')).toBe('Give to the church'); // still named for AT
-      act(() => { window.dispatchEvent(new Event('scroll')); }); // user moves the screen
-      btn = container.querySelector('button[aria-label="Give to the church"]');
-      expect(btn.textContent).toMatch(/Give/);              // the gentle reminder returns
+      act(() => root.render(createElement(ChurchGiveDockButton, { church: COLG })));
+      act(() => { vi.advanceTimersByTime(4000); });
+      const btn = container.querySelector('button[aria-label="Give to the church"]');
+      expect(btn.textContent).toMatch(/Give/);
+      expect(btn.className).not.toMatch(/opacity-40/);
     } finally {
       vi.useRealTimers();
     }

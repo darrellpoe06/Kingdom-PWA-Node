@@ -690,7 +690,7 @@ export default function AdminConsole({
           <LlmHealth />
           <LoopHealth data={data} decisions={data.loopDecisions || {}} onDecision={onLoopDecision} financialDocAt={financialDocAt} />
           <WorkflowStatus />
-          <NetworkStatus />
+          <NetworkStatus variant="inline" />
         </div>
       ),
     },

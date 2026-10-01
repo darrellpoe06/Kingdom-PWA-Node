@@ -1,10 +1,9 @@
 // =============================================================================
-// ChurchGiving — the "Give to the church" floater + panel (Church surfaces).
+// ChurchGiving — the "Give to the church" bar button + panel (Church surfaces).
 // =============================================================================
-// Mirrors the persistent 💬 Feedback floater pattern (a fixed pill button that
-// opens a clean panel), but is its OWN distinct surface: a "Give" floater that
-// shows only on the Church tab, sits bottom-RIGHT (Feedback owns bottom-left),
-// and carries a giving-green pill instead of the rust feedback one.
+// Sits beside Feedback in the app's bottom bar (ChromeDock, DR-0716; it was a
+// floating pill until 2026-09-30), but is its OWN distinct surface: a "Give"
+// button that shows only on the Church tab, with the giving-green gift icon.
 //
 // What it does:
 //   - Links OUT to the congregation's OWN confirmed giving destination
@@ -33,7 +32,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { resolveGiveDestination, GIVING_CHANNELS, GIVING_SCRIPTURES, GIVING_DOCTRINE } from '../lib/giving.js';
-import { useIdleReveal } from '../lib/use-idle-reveal.js';
+import { DOCK_BTN, DOCK_ICON, DOCK_LABEL } from '../lib/chrome-dock.js';
 import { callToGiveCoverage, TRANSCRIPT_PIPELINE_NOTE, LINKED_SERVICE_VIDEO } from '../lib/call-to-give.js';
 import { fetchCallToGiveArchive } from '../lib/call-to-give-sync.js';
 import {
@@ -48,7 +47,7 @@ import {
 // so it inherits the surrounding text color (contrast-correct in every theme)
 // and 1em so it tracks the global text size. Decorative; the text label carries
 // the meaning, so it is aria-hidden.
-function GiftIcon({ className = '', strokeWidth = 1.9 }) {
+export function GiftIcon({ className = '', strokeWidth = 1.9 }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -610,46 +609,33 @@ export function ChurchGivePanel({ church, onClose }) {
   );
 }
 
-// ChurchGiveFloater — the persistent pill on Church surfaces. Distinct from the
-// Give floater: bottom-RIGHT, stacked ABOVE the TTS floater (bottom-20 vs the
-// TTS bar's bottom-4) so the two never pile on one corner — giving-green, gift
-// icon. Manages its own open state so the monolith wiring is a single mount.
-//
-// THE WORD GETS PRIORITY (Darrell 2026-07-27, from live screenshots of L58: the
-// pill sat on top of the lesson text). This floater now conforms to the standing
-// floater Way — Darrell 2026-07-14 ("move out the way after a certain amount of
-// time and come up when the users move the screen as gentle reminders") +
-// REV-0235 compact-when-idle, the exact behavior the Feedback pill already has:
-// at rest it settles to a dim 48px icon-only circle so it stops occluding the
-// Word beneath; any scroll/touch re-reveals the full labeled pill as the gentle
-// "you know where to give" reminder. Same idle hook, same motion, same tap
-// target minimums — one Way, every floater.
-//
-// ONE ROW ON A PHONE (2026-09-30, the 360px lesson chrome budget, DR-0438's
-// ratchet). Stacked above the read-aloud button, the pill made a SECOND band of
-// chrome across the bottom of a phone (776-824px on a 900px screen) over the
-// lesson words. Below `sm` it now sits in the SAME row as the read-aloud button,
-// just to its left (right-20 = the read-aloud's 48px + its 16px inset + 16px of
-// air), and never reaches Feedback on the left (its expanded label ends at
-// 148px; this pill's revealed label starts near 190px). Wider screens keep the
-// stack, where a second band costs the reader nothing.
-export function ChurchGiveFloater({ church }) {
+// ChurchGiveDockButton — Give, in the bottom bar (DR-0716). It was a floater:
+// a green pill bottom-right, stacked above the read-aloud button, settling to a
+// dim 48px circle when idle (Darrell 2026-07-14 / REV-0235) so it covered the
+// Word a little less. Darrell 2026-09-30, from L202 on his Fold: "Put the
+// feedback and other floating options on the task bars somewhere they make
+// sense... they can still do what they do however it will make the reader
+// better and less blocked." And: "Like the text size etc..." So Give is now a
+// square bordered button in the app's bottom bar (components/ChromeDock.jsx),
+// the family look of the text-size chips, with the gift icon and the word
+// under it. It still opens the same ChurchGivePanel. Nothing idles or dims:
+// a bar button covers no words, so it has nothing to get out of the way of.
+// It manages its own open state so the bar mounts it in one line.
+export function ChurchGiveDockButton({ church, className = '' }) {
   const [open, setOpen] = React.useState(false);
-  const reveal = useIdleReveal(); // idle-dim + reveal-on-scroll (Pattern 2d)
   return (
     <>
-      {!open && (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label="Give to the church"
-          title="Give to the church — and the blessing of giving according to the Word"
-          className={`ts-chrome-region church-give-floater fixed bottom-4 right-20 sm:bottom-20 sm:right-4 z-30 inline-flex items-center justify-center gap-1.5 bg-[#5A6E3D] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#5A6E3D] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden transition-all duration-500 hover:opacity-100 focus:opacity-100 ${reveal ? 'px-4 py-3 opacity-100 translate-y-0' : 'p-0 w-12 h-12 opacity-40 translate-y-1'}`}
-          style={{ borderRadius: '999px' }}
-        >
-          <GiftIcon />{reveal ? <span>Give</span> : null}
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Give to the church"
+        title="Give to the church — and the blessing of giving according to the Word"
+        data-testid="dock-give"
+        className={`church-give-dock ${DOCK_BTN} ${className}`}
+      >
+        <span aria-hidden="true" className={`text-[#5A6E3D] ${DOCK_ICON}`}><GiftIcon /></span>
+        <span className={DOCK_LABEL}>Give</span>
+      </button>
       {open && <ChurchGivePanel church={church} onClose={() => setOpen(false)} />}
     </>
   );
@@ -688,8 +674,8 @@ export function ChurchGiveFloater({ church }) {
 // stays visible at every width rather than collapsing to a bare icon — the
 // word "Give" is only four characters and the row already wraps, so the label
 // always stays: a button you can find by name is the whole request.
-// `floaterPresent`: on the Church tab the ChurchGiveFloater is on the same
-// screen, so on a PHONE this header copy is the duplicate and steps aside
+// `floaterPresent`: on the Church tab the bottom bar's Give (ChurchGiveDockButton,
+// DR-0716; the old floater's place) is on the same screen, so on a PHONE this header copy is the duplicate and steps aside
 // ("only what is necessary when the screen is reduced" — DR-0438); from sm up,
 // and wherever the floater is absent, it stays.
 export function ChurchGiveHeaderButton({ church, floaterPresent = false }) {
@@ -710,4 +696,4 @@ export function ChurchGiveHeaderButton({ church, floaterPresent = false }) {
   );
 }
 
-export default ChurchGiveFloater;
+export default ChurchGiveDockButton;
