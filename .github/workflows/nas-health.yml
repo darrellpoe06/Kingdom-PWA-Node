@@ -459,6 +459,9 @@ jobs:
           PSQLA "SELECT 'jr standing: ' || coalesce(im.role,'<none>') || ' | relationship: ' || coalesce(im.relationship,'<unset>') || ' | classification: ' || coalesce(im.classification,'<unset>') FROM instance_members im JOIN instances i ON i.id=im.instance_id WHERE i.slug='poe-family' AND im.user_id='$JRU'::uuid;" || true
           echo "-- ground truth as admin: family books row counts"
           PSQLA "SELECT 'books ground truth: transactions=' || (SELECT count(*) FROM transactions) || ' accounts=' || (SELECT count(*) FROM accounts) || ' debts=' || (SELECT count(*) FROM debts);"
+          echo "-- DR-0708 witness: the books are in the realtime publication (an open screen hears another device's change)"
+          RTMISS=$(PSQLA "SELECT coalesce(string_agg(t, ','), '') FROM unnest(ARRAY['transactions','accounts','debts','entities','projects']) t WHERE NOT EXISTS (SELECT 1 FROM pg_publication_tables p WHERE p.pubname='supabase_realtime' AND p.schemaname='public' AND p.tablename=t);")
+          if [ -z "$RTMISS" ]; then echo "books realtime publication: whole"; else echo "::error::books missing from supabase_realtime (open screens go stale, DR-0708): $RTMISS"; fi
           echo "-- RLS AS THE CHILD (SET ROLE authenticated, jwt sub = jr): every count must be ZERO"
           PSQLA "SET ROLE authenticated; SELECT set_config('request.jwt.claims', '{\"sub\":\"$JRU\",\"role\":\"authenticated\"}', false); SELECT 'child sees: transactions=' || (SELECT count(*) FROM transactions) || ' accounts=' || (SELECT count(*) FROM accounts) || ' debts=' || (SELECT count(*) FROM debts);" | grep -a 'child sees' || echo "::error::0144 child-wall probe produced no output"
           echo "-- child WRITE refusal: an INSERT must die on the RLS wall"

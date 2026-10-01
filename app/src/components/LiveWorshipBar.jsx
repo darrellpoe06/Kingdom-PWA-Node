@@ -60,13 +60,53 @@ function churchDisplayName(c) {
   return c.name || 'Church';
 }
 
+// READING ON A PHONE (2026-09-30, the 360px lesson chrome budget). Inside a
+// service window the bar opened with its 16:9 video over the top of every page:
+// measured on lesson 1 at 360x900 during the Wednesday evening Bible study, the
+// bar alone was 289px and the chrome covered 686px of the 900px screen, the
+// lesson words squeezed into what was left. While a lesson is open on a phone
+// the bar now starts with the video folded to its one-line strip (LIVE, the
+// church, the ▸ that brings the video back). The viewer's own choice, either
+// way, is honoured for the session (live-player-prefs.js); nothing changes on
+// wider screens or anywhere but an open lesson.
+const PHONE_QUERY = '(max-width: 639.98px)';
+function readingOnPhoneNow() {
+  try {
+    return document.documentElement.getAttribute('data-lesson-space') === 'open'
+      && window.matchMedia(PHONE_QUERY).matches;
+  } catch (_) { return false; }
+}
+function useReadingOnPhone() {
+  const [on, setOn] = useState(readingOnPhoneNow);
+  useEffect(() => {
+    const update = () => setOn(readingOnPhoneNow());
+    let mo = null;
+    let mq = null;
+    try {
+      mo = new MutationObserver(update);
+      mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-lesson-space'] });
+    } catch (_) { mo = null; }
+    try { mq = window.matchMedia(PHONE_QUERY); mq.addEventListener('change', update); } catch (_) { mq = null; }
+    update();
+    return () => {
+      if (mo) mo.disconnect();
+      try { if (mq) mq.removeEventListener('change', update); } catch (_) { /* ignore */ }
+    };
+  }, []);
+  return on;
+}
+
 export function LiveWorshipBar({ church, view, churchView, onOpenChurch, now }) {
   // The viewer's remembered choices (lib/live-player-prefs.js): the scale they
   // chose on the Church home player is honoured HERE, on the automatic first
   // open, before any tap (Darrell 2026-09-09); show/hide video holds for the
   // session so a remount never flips it back.
   const { scale, barCollapsed: collapsed } = useLivePlayerPrefs();
-  const setCollapsed = (next) => setLiveBarCollapsed(typeof next === 'function' ? next(collapsed) : next);
+  // `collapsed` is the viewer's choice (null = none yet); `hideVideo` is what
+  // the bar does: the choice when there is one, else folded while reading on a phone.
+  const readingOnPhone = useReadingOnPhone();
+  const hideVideo = collapsed == null ? readingOnPhone : collapsed;
+  const setCollapsed = (next) => setLiveBarCollapsed(typeof next === 'function' ? next(hideVideo) : next);
   const [dismissed, setDismissed] = useState(() => {
     try { return sessionStorage.getItem(DISMISS_KEY) === '1'; } catch (_) { return false; }
   });
@@ -104,6 +144,10 @@ export function LiveWorshipBar({ church, view, churchView, onOpenChurch, now }) 
     if (typeof document === 'undefined') return;
     const h = visible && barRef.current ? barRef.current.offsetHeight : 0;
     document.documentElement.style.setProperty('--lwb-h', `${h}px`);
+    // The bar names the church at the top while it is open; index.css folds the
+    // public welcome line away beneath it on a phone.
+    if (visible) document.documentElement.setAttribute('data-live-bar', 'open');
+    else document.documentElement.removeAttribute('data-live-bar');
   }, [visible]);
 
   useEffect(() => {
@@ -119,12 +163,13 @@ export function LiveWorshipBar({ church, view, churchView, onOpenChurch, now }) 
       if (ro) ro.disconnect();
       window.removeEventListener('resize', publishHeight);
     };
-  }, [visible, collapsed, publishHeight]);
+  }, [visible, hideVideo, publishHeight]);
 
   // On unmount, never leave a stale offset behind.
   useEffect(() => () => {
     if (typeof document !== 'undefined') {
       document.documentElement.style.setProperty('--lwb-h', '0px');
+      document.documentElement.removeAttribute('data-live-bar');
     }
   }, []);
 
@@ -146,7 +191,7 @@ export function LiveWorshipBar({ church, view, churchView, onOpenChurch, now }) 
       className="ts-chrome-region fixed top-0 left-0 right-0 z-40 bg-[#1A1815] text-white shadow-lg print:hidden"
     >
       {/* Control strip — always visible; carries the honest LIVE label + actions. */}
-      <div className="flex items-center gap-2 px-3 sm:px-4 py-2">
+      <div className="flex items-center gap-2 px-3 sm:px-4 py-0.5 sm:py-2">
         <span className="inline-flex items-center gap-1.5 text-[0.625rem] sm:text-xs uppercase tracking-[0.2em] font-semibold text-white shrink-0">
           <span className="w-2 h-2 rounded-full bg-[#E86A4A] animate-pulse" aria-hidden="true" />
           Live service
@@ -167,12 +212,12 @@ export function LiveWorshipBar({ church, view, churchView, onOpenChurch, now }) 
           <button
             type="button"
             onClick={() => setCollapsed((v) => !v)}
-            aria-expanded={!collapsed}
-            aria-label={collapsed ? 'Expand the live service player' : 'Collapse the live service player'}
-            title={collapsed ? 'Show video' : 'Hide video'}
+            aria-expanded={!hideVideo}
+            aria-label={hideVideo ? 'Expand the live service player' : 'Collapse the live service player'}
+            title={hideVideo ? 'Show video' : 'Hide video'}
             className="text-sm px-2.5 py-1.5 border border-white/40 text-white hover:bg-white hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-white min-w-[36px]"
           >
-            {collapsed ? '▸' : '▾'}
+            {hideVideo ? '▸' : '▾'}
           </button>
           <button
             type="button"
@@ -189,7 +234,7 @@ export function LiveWorshipBar({ church, view, churchView, onOpenChurch, now }) 
       {/* The live broadcast — centered 16:9, height-capped so it pins to the top
           without eating the screen. Kept mounted while collapsed (display:none)
           so collapsing never interrupts playback. */}
-      <div className={`bg-black flex justify-center ${collapsed ? 'hidden' : ''}`}>
+      <div className={`bg-black flex justify-center ${hideVideo ? 'hidden' : ''}`}>
         <div className="relative" data-live-scale={scale} style={barFrameStyle(scale)}>
           <iframe
             src={src}
@@ -202,7 +247,7 @@ export function LiveWorshipBar({ church, view, churchView, onOpenChurch, now }) 
       </div>
 
       {/* Watch-out link — an escape hatch to the church's own channel. */}
-      {channelUrl && !collapsed && (
+      {channelUrl && !hideVideo && (
         <div className="px-3 sm:px-4 py-1.5 text-right">
           <a
             href={channelUrl}

@@ -104,6 +104,65 @@ fi
 # The model downloads once and is kept beside the data, not in root's home.
 export HF_HOME="$DATA/hf"
 
+# WHO SPOKE (DR-0712), ARMED BY RECORD (DR-0247): on unless lesson-voice.env
+# sets LESSON_VOICE_SPEAKERS=0 (the stop-path). Once (and again only when the
+# recipe changes): sherpa-onnx into the same venv (a cp38 manylinux2014 wheel exists,
+# measured 2026-09-30: sherpa_onnx-1.13.8) and two small ONNX models from the
+# k2-fsa/sherpa-onnx GitHub releases into $DATA/models/speakers. No torch, no
+# account, no gated model, nothing leaves the NAS at run time.
+SPK_RECIPE="v1 sherpa-onnx pyannote-seg-3.0 titanet-small"
+SPK_DIR="$DATA/models/speakers"
+SPK_STAMP="$DATA/.speakers-recipe"
+if [ "${LESSON_VOICE_SPEAKERS:-1}" != "0" ] && [ "$(cat "$SPK_STAMP" 2>/dev/null)" != "$SPK_RECIPE" ]; then
+  mkdir -p "$SPK_DIR"
+  {
+    echo "=== $(date -u +%FT%TZ) speakers recipe: $SPK_RECIPE ==="
+    timeout 180 "$VENV/bin/python" -m pip install --prefer-binary "sherpa-onnx==1.13.8"
+    if [ ! -s "$SPK_DIR/segmentation.onnx" ]; then
+      curl -fsSL --max-time 120 -o "$SPK_DIR/seg.tar.bz2" \
+        https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-segmentation-models/sherpa-onnx-pyannote-segmentation-3-0.tar.bz2 \
+        && tar -xjf "$SPK_DIR/seg.tar.bz2" -C "$SPK_DIR" \
+        && cp "$SPK_DIR/sherpa-onnx-pyannote-segmentation-3-0/model.onnx" "$SPK_DIR/segmentation.onnx" \
+        && rm -rf "$SPK_DIR/seg.tar.bz2" "$SPK_DIR/sherpa-onnx-pyannote-segmentation-3-0"
+    fi
+    if [ ! -s "$SPK_DIR/embedding.onnx" ]; then
+      curl -fsSL --max-time 120 -o "$SPK_DIR/embedding.onnx" \
+        https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/nemo_en_titanet_small.onnx
+    fi
+  } > "$DATA/speakers-install.log" 2>&1
+  if "$VENV/bin/python" -c "import sherpa_onnx" 2>>"$DATA/speakers-install.log" && [ -s "$SPK_DIR/segmentation.onnx" ] && [ -s "$SPK_DIR/embedding.onnx" ]; then
+    echo "$SPK_RECIPE" > "$SPK_STAMP"
+    echo "lesson-voice: speaker marking installed"
+  else
+    echo "lesson-voice: speaker marking not installed this cycle: $(tail -3 "$DATA/speakers-install.log" | tr '\n' ' ' | cut -c1-300)"
+  fi
+fi
+
+# ENROLL BY WORDS (DR-0712): BG and DP are named from words a person who was
+# there attributed (enroll.json, committed), so no one has to sit at the NAS
+# to say "voice 0 is Bishop Gwin". Runs only when speaker marking is installed
+# and a label in enroll.json has no voiceprint yet. It is long (a whole class
+# diarized and transcribed on the CPU), so it runs detached from this cycle,
+# with its own brakes: budget = timeout 3600 s at the lowest priority; lock =
+# one attempt per 24 h (the stamp is written before it starts, and the budget
+# is far inside the day, so two never overlap); stop-path =
+# LESSON_VOICE_SPEAKERS=0 or deleting enroll.json. The result is
+# $DATA/enroll-result.json and the log $DATA/enroll.log (voice-intake-health.yml).
+ENROLL_SPEC="$SRC/enroll.json"
+ENROLL_STAMP="$DATA/.enroll-attempt"
+if [ "${LESSON_VOICE_SPEAKERS:-1}" != "0" ] && [ -f "$ENROLL_SPEC" ] && [ "$(cat "$SPK_STAMP" 2>/dev/null)" = "$SPK_RECIPE" ] \
+   && { [ ! -s "$DATA/voiceprints/BG.json" ] || [ ! -s "$DATA/voiceprints/DP.json" ]; }; then
+  now=$(date +%s)
+  last=$(cat "$ENROLL_STAMP" 2>/dev/null || echo 0)
+  case "$last" in ''|*[!0-9]*) last=0 ;; esac
+  if [ $((now - last)) -ge 86400 ]; then
+    echo "$now" > "$ENROLL_STAMP"
+    ( cd "$SRC" && LESSON_VOICE_DATA="$DATA" HF_HOME="$DATA/hf" nohup nice -n 19 timeout 3600 \
+        "$VENV/bin/python" name_voice.py --enroll "$ENROLL_SPEC" > "$DATA/enroll.log" 2>&1 & )
+    echo "lesson-voice: enrolling BG and DP by their attributed words (detached, 3600 s budget; log: $DATA/enroll.log)"
+  fi
+fi
+
 cd "$SRC" || exit 1
 # The pip install above can spend most of a cycle; the transcription pass gets
 # what is left of services-sync's 480 s ceiling (440 s, a margin kept), never more.

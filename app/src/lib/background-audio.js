@@ -88,9 +88,26 @@ export const DEFAULT_ARTWORK = [
   { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
 ];
 
+/**
+ * How long the silent keep-alive file is, in seconds (DR-0718). It used to be
+ * half a second, looped. Chromium on Android treats a media file of five
+ * seconds or less as a short sound effect (a "transient" player), not as
+ * something being listened to, and a short sound gets no media notification
+ * and no hold on the app when it leaves the screen. Six seconds of silence,
+ * looped, is a "persistent" player: the reading owns the notification and its
+ * buttons for as long as it lasts. 48 KB, built once per reader.
+ * Source, read 2026-10-01: chromium media/base/media_content_type.cc
+ * (kMinimumContentDurationSecs = 5; duration <= 5 s -> kTransient) and
+ * content/browser/media/session/media_session_impl.cc (only a kPersistent
+ * player asks for AudioFocusType::kGain, and on Android IsControllable() is
+ * true only with kGain). Read from the source, not yet heard on Darrell's
+ * phone (DR-0076).
+ */
+export const KEEPALIVE_SECONDS = 6;
+
 export function createBackgroundAudio({ win, makeAudio, uri } = {}) {
   const w = win || (typeof window !== 'undefined' ? window : null);
-  const src = uri || silentWavDataUri();
+  const src = uri || silentWavDataUri(KEEPALIVE_SECONDS);
   let el = null;
   let handlers = {};
 

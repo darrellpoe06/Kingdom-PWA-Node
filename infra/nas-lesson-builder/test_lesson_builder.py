@@ -45,6 +45,12 @@ def q(book, c, n, span=None):
     return '"{}" ({} {}:{})'.format(t, book, c, n)
 
 
+# Every lesson sends you to someone (DR-0733): its OWN prompts in all three
+# directions, on the lesson and on every band, or the talk-together gate refuses it.
+TALK = ("TALK ABOUT IT TOGETHER. Parents, ask your children what this lesson shows about Yahweh and listen to the end "
+        "before you teach. Children, ask your mom or dad what the Keeper has kept them from. Friends, tell each other "
+        "one verse from this lesson and ask what you did with it.")
+
 def make_lesson(drift=False, title="The Keeper Never Sleeps — the Watch, the Scale, and the Proof"):
     """A writer's draft built from real KJV text (so the gates pass unless we
     break it on purpose)."""
@@ -57,7 +63,7 @@ def make_lesson(drift=False, title="The Keeper Never Sleeps — the Watch, the S
 
     def band(label, extra):
         return ("The Keeper Never Sleeps: the watch, the scale, and the proof. {} Yahweh keeps His people: {}. "
-                "He weighs with one scale: {}. We test what we hear: {}. {} {}").format(label, keeper, scale, prove, extra, CLOSE)
+                "He weighs with one scale: {}. We test what we hear: {}. {} {} {}").format(label, keeper, scale, prove, extra, TALK, CLOSE)
     return {
         "verdict": "lesson", "placement": "living-lessons", "title": title,
         "slug": "the-keeper-never-sleeps-the-watch-the-scale-and-the-proof",
@@ -74,7 +80,7 @@ def make_lesson(drift=False, title="The Keeper Never Sleeps — the Watch, the S
         "movements": [{"title": "The Keeper", "text": "Yahweh keeps: " + keeper},
                       {"title": "The scale", "text": "One weight: " + scale},
                       {"title": "The proof", "text": "Test it: " + prove}],
-        "lesson_close": "He gave His Son: " + love + " " + CLOSE,
+        "lesson_close": "He gave His Son: " + love + " " + TALK + " " + CLOSE,
         "dr_summary": "A spoken teaching on the Keeper, the scale and the proof.",
     }
 
@@ -268,6 +274,38 @@ def build(db, git, writers, group=None, **kw):
 # =============================================================================
 # the writers
 # =============================================================================
+
+class WhoSpoke(unittest.TestCase):
+    """DR-0712: the writer is told who spoke, and never to guess (proven-to-catch)."""
+    OWNER = "f13843f2-742b-4f8a-82af-7ecfbdc536ec"
+
+    def rules(self, tags):
+        return lw.row_rules([{"created_by": self.OWNER, "tags": tags}], {self.OWNER})
+
+    def test_the_standard_carries_the_speaker_rules(self):
+        for must in ("DP is Darrell Poe", "BG is Bishop Gwin", "S1, S2", "Never guess",
+                     "the church posts publicly", "health and sick lists", "further witnesses",
+                     "Name the teacher from the speaker marks (DR-0712: voice:BG) or the recording; when it is Bishop Gwin, say Bishop Gwin or BG, never 'the teacher' alone; never assume who taught."):
+            self.assertIn(must, lw.STANDARD)
+
+    def test_marked_unmarked_and_public_session_rows(self):
+        marked = self.rules(["lesson", "voice-transcript", "speakers:marked", "voice:BG", "voice:DP"])
+        self.assertIn("known voices heard: BG, DP", marked)
+        self.assertNotIn("NOT marked", marked)
+        unmarked = self.rules(["lesson", "voice-transcript", "speakers:unmarked"])
+        self.assertIn("speakers are NOT marked", unmarked)
+        self.assertIn("say so where they do not", unmarked)
+        public = self.rules(["lesson", "voice-transcript", "speakers:marked", "church-session-public"])
+        self.assertIn("only as the teacher calls them", public)
+        # DR-0719: speaker marks carrying BG name him; a name tag alone is not evidence he taught.
+        self.assertIn("never 'the teacher' alone", marked)
+        named_only = self.rules(["lesson", "voice-transcript", "lesson-name-ok", "lesson-name:Bishop Gwin"])
+        self.assertNotIn("The speaker marks carry BG", named_only)
+        self.assertNotIn("The speaker marks carry BG", unmarked)
+        # PROVEN-TO-CATCH: a row that is not a public church session never gets the naming line.
+        self.assertNotIn("posts publicly", unmarked)
+        self.assertNotIn("posts publicly", marked)
+
 
 class Writers(unittest.TestCase):
     def test_extract_json_tolerates_a_fence_and_a_sentence(self):
@@ -649,6 +687,17 @@ class Gates(unittest.TestCase):
         self.assertEqual(g["verse"]["verbatim"], g["verse"]["spans"])
         self.assertGreater(g["verse"]["spans"], 10)
 
+    def test_PROVEN_TO_CATCH_a_lesson_that_sends_you_to_no_one_fails_the_talk_together_gate(self):
+        quiet = make_lesson()
+        quiet["lesson_close"] = quiet["lesson_close"].replace(TALK, "")
+        quiet["levels"] = {b: t.replace(TALK, "") for b, t in quiet["levels"].items()}
+        g = gates.gate_version(quiet, self.module(quiet), CORPUS, lw.schema_problems)
+        self.assertFalse(g["talk_together"]["passed"])
+        self.assertEqual(sorted(g["talk_together"]["missing"]), ["children", "friends", "parents"])
+        self.assertFalse(g["passed"])
+        full = gates.gate_version(make_lesson(), self.module(), CORPUS, lw.schema_problems)
+        self.assertTrue(full["talk_together"]["passed"], json.dumps(full["talk_together"]))
+
     def test_PROVEN_TO_CATCH_one_changed_word_fails_the_verse_gate(self):
         g = gates.gate_version(make_lesson(drift=True), self.module(make_lesson(drift=True)), CORPUS, lw.schema_problems)
         self.assertFalse(g["verse_passed"])
@@ -711,17 +760,21 @@ class Gates(unittest.TestCase):
 
     @unittest.skipIf(shutil.which("node") is None, "node not on this machine")
     def test_parity_the_repo_own_gates_agree_with_python_on_a_published_lesson(self):
-        # L195, exported by node from the real catalog, gated by both layers.
+        # L205 (the first lesson under the talk-together rule, DR-0733), exported
+        # by node from the real catalog, gated by both layers.
         script = ("import('{}/app/src/lib/living-lessons-class.js').then(m => process.stdout.write("
-                  "JSON.stringify(m.LIVING_LESSONS_MODULES.find(x => x.id.startsWith('ll195-')))))").format(REPO)
+                  "JSON.stringify(m.LIVING_LESSONS_MODULES.find(x => x.id.startsWith('ll205-')))))").format(REPO)
         mod = json.loads(subprocess.run(["node", "-e", script], capture_output=True, check=True).stdout)
         js = gates.node_band_gates(mod, repo=REPO)
         self.assertNotIn("skipped", js, js)
         py = gates.verse_gate(mod, CORPUS)
         self.assertEqual((py["spans"], py["verbatim"]), (js["verse"]["spans"], js["verse"]["verbatim"]))
         self.assertTrue(js["passed"], js)
+        self.assertEqual(js["talkTogether"]["passed"], gates.talk_together_gate(mod)[0])
+        self.assertTrue(js["talkTogether"]["passed"])
         drift = json.loads(json.dumps(mod))
-        drift["lesson"] = drift["lesson"].replace("shall stand for ever", "shall stand for all time")
+        self.assertIn("let God be true, but every man a liar", drift["lesson"])
+        drift["lesson"] = drift["lesson"].replace("let God be true, but every man a liar", "let God be true, but every man a fool")
         self.assertFalse(gates.node_band_gates(drift, repo=REPO)["verse"]["passed"])
         self.assertFalse(gates.verse_gate(drift, CORPUS)["passed"])
 
