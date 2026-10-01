@@ -145,14 +145,14 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
           {inReader && (
             <div className="flex items-center gap-[3px] shrink-0" data-testid="dock-reader-row" role="group" aria-label="Reading comfort">
               {/* Controls: open / fold the big-text block (account, Subscribe,
-                  help, all sizes, voice, colours). Shown only where that block
+                  help, all sizes, voice, colors). Shown only where that block
                   is the bottom block (Largest, Big Print; index.css). */}
               <button
                 type="button"
                 data-testid="dock-controls"
                 onClick={() => setComfortCollapsed(!comfortCollapsed)}
                 aria-expanded={!comfortCollapsed}
-                aria-label={comfortCollapsed ? 'Controls: show account, subscribe, help, every text size, voice and colours' : 'Controls: fold them away again'}
+                aria-label={comfortCollapsed ? 'Controls: show account, subscribe, help, every text size, voice and colors' : 'Controls: fold them away again'}
                 title={comfortCollapsed ? 'Show the controls' : 'Fold the controls'}
                 className={`dock-controls ${comfortCollapsed ? DOCK_BTN : DOCK_BTN_ON} ${FOCUS}`}
               >
