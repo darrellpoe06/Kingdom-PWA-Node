@@ -167,7 +167,9 @@ describe('shell wiring — every narrowing + suppression point is present', () =
     const gatedPrompts = shell.split('setUserTier={(isFamilyMember || isAnyDemoMode) ? setUserTier : null}').length - 1;
     expect(gatedPrompts, 'all three UpgradePrompt sites pass setUserTier only to stewards/demo').toBeGreaterThanOrEqual(3);
     expect(/UpgradePrompt[^\n]*setUserTier=\{setUserTier\}/.test(shell), 'no UpgradePrompt may receive the raw setter').toBe(false);
-    expect(shell.includes('{(isFamilyMember || isAnyDemoMode) && (')).toBe(true);
+    // DR-0713 narrowed the footer seed reset further, to demo mode only: it sat
+    // under the family's REAL ledger (Darrell's screenshot 2026-09-30).
+    expect(shell.includes('{isAnyDemoMode && (<button type="button" onClick={resetToSeed}')).toBe(true);
   });
 
   it('the Admin entry (tab + console gate) is closed to a reviewer AND to a signed-in guest on the home host, both sites', () => {
