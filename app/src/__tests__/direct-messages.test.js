@@ -179,7 +179,7 @@ describe('the send result carries the push report (source pin, 2026-09-09)', () 
   it('sendDirectMessage returns { sent, encrypted, push } and the surface shows pushReportText', () => {
     const HERE2 = dirname(fileURLToPath(import.meta.url));
     const sync = readFileSync(join(HERE2, '..', 'lib', 'direct-messages-sync.js'), 'utf8');
-    expect(sync).toContain('return { sent: true, encrypted, push };');
+    expect(sync).toContain('return { sent: true, encrypted, sealedFor, push };');
     expect(sync).toContain(".catch(() => ({ ok: false, reason: 'unreachable' }))");
     const ui = readFileSync(join(HERE2, '..', 'components', 'DirectMessages.jsx'), 'utf8');
     expect(ui).toContain('setPushNote(pushReportText(p))');
