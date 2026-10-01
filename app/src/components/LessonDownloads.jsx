@@ -31,7 +31,7 @@ import { useScreenAwake } from '../lib/screen-awake.js';
 
 const MB = 1024 * 1024;
 const BTN = 'text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
-const BTN_DARK = `${BTN} border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white`;
+const BTN_DARK = `${BTN} focus:outline focus:outline-2 focus:outline-[#B85838] border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white`;
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const MONO = { fontFamily: '"JetBrains Mono", monospace' };
 
@@ -245,7 +245,7 @@ export function DownloadPanel({ items, scope, what, removeWhich, deps = null, on
     <div data-testid="lesson-download-panel" role="group" aria-label={`Download ${what}`} className="basis-full w-full border border-[#1A1815] bg-[#FAF8F4] p-3 mt-1">
       <div className="flex items-baseline justify-between gap-2">
         <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Download {what}</div>
-        {onClose && <button type="button" onClick={onClose} className="text-[0.75rem] min-h-[36px] min-w-[36px] text-[#5A5751] hover:text-[#1A1815]" aria-label="Close the download panel">✕</button>}
+        {onClose && <button type="button" onClick={onClose} className="text-[0.75rem] min-h-[36px] min-w-[36px] text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" aria-label="Close the download panel">✕</button>}
       </div>
       <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF}>
         Saved lessons open and read aloud with no connection. Reading levels {items.length === 1 ? 'this lesson has' : 'in these lessons'}: {versionsNote}.
@@ -328,8 +328,8 @@ export function DownloadPanel({ items, scope, what, removeWhich, deps = null, on
           {running && (
             <div className="flex flex-wrap gap-2 mt-2">
               {paused
-                ? <button type="button" onClick={resume} data-testid="download-resume" className={BTN_DARK}>Resume</button>
-                : <button type="button" onClick={pause} data-testid="download-pause" className={BTN_DARK}>Pause</button>}
+                ? <button type="button" onClick={resume} data-testid="download-resume" className={`${BTN_DARK} focus:outline focus:outline-2`}>Resume</button>
+                : <button type="button" onClick={pause} data-testid="download-pause" className={`${BTN_DARK} focus:outline focus:outline-2`}>Pause</button>}
               <button type="button" onClick={stop} data-testid="download-stop" className={`${BTN} border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]`}>Stop</button>
             </div>
           )}
