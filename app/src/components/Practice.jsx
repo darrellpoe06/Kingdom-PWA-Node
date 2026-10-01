@@ -513,7 +513,10 @@ function Practice({ inquiries, contractors, addInquiry, updateInquiry, deleteInq
       icon: 'bookOpen',
       render: () => (
         <SectionBoundary name="Practice Learn">
-          <PracticeLearn email={email} isStaff={isStaff} />
+          {/* Both places that show Practice already carry the one reader (the
+              app and the TLC door), so this Learn tab does not mount a second
+              one (DR-0718: two readers drew two panels in one corner). */}
+          <PracticeLearn email={email} isStaff={isStaff} readAloud={false} />
         </SectionBoundary>
       ),
     },
