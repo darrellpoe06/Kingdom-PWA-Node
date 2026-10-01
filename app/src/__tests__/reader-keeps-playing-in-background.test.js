@@ -171,7 +171,7 @@ describe('the panel says honestly what happens when you switch apps', () => {
     const src = readFileSync(join(HERE, '..', 'components', 'TTSControl.jsx'), 'utf8');
     const jsx = src.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
     expect(jsx).not.toMatch(/the reading carries on when you leave the app/);
-    expect(jsx).toMatch(/backgroundLine\(\{ isReading, audioVoice \}\)/);
+    expect(jsx).toMatch(/backgroundLine\(\{ isReading, audioVoice[,} ]/);
   });
 
   it('the stand-in reaches for the NAS audio voice BEFORE the phone voice', () => {
