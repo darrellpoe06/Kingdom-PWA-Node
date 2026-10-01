@@ -127,10 +127,14 @@ describe('and the surface is wired to it', () => {
   const SRC = new URL('../components/ChurchLearn.jsx', import.meta.url);
   const src = () => require('node:fs').readFileSync(SRC, 'utf8');
 
-  it('the control accepts branched and both call sites pass it', () => {
+  it('the control accepts branched and every call site passes it', () => {
     const s = src();
     expect(s).toMatch(/setLearnLevel = null, branched = true,/);
-    expect(s.match(/<LessonLevelControl[^>]*branched=\{/g) || [], 'a call site is not passing branched').toHaveLength(2);
+    // Three call sites: the paced core, the guide's stage row, and the
+    // before-the-lesson row (DR-0717). Every one must pass branched.
+    const sites = s.match(/<LessonLevelControl[^>]*>/g) || [];
+    expect(sites).toHaveLength(3);
+    expect(s.match(/<LessonLevelControl[^>]*branched=\{/g) || [], 'a call site is not passing branched').toHaveLength(sites.length);
   });
 
   it('the notice is gated on branched, not on levelId alone', () => {

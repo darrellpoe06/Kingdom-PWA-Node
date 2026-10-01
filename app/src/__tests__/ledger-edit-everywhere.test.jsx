@@ -101,7 +101,10 @@ describe('the walk: the shared editor is on every surface that shows a payee or 
     expect(c.querySelector('[data-ledger-edit="payee"]'), 'register payee').toBeTruthy();
     expect(c.querySelector('[data-ledger-edit="category"]'), 'register category').toBeTruthy();
     await click(btn(/All$/));
-    await click(btn(/KPI.s · Standard reports/));
+    // DR-0713: the Reports section is open by default and its header reads
+    // "Reports · KPI's · N standard" with a Show/Hide report button; the older
+    // "KPI's · Standard reports" toggle is kept for a build that still has it.
+    { const show = btn(/^Show report$/) || btn(/KPI.s · Standard reports/); if (show) await click(show); }
     for (const [tab, what] of [['Top payees', 'payee'], ['Top categories', 'category'], ['Recurring payments', 'payee']]) {
       await click(btn(new RegExp(`^${tab}$`)));
       const panel = c.querySelector('.scroll-mt-2');
@@ -193,7 +196,10 @@ describe('"all from this payee" updates the rollups at once', () => {
   it('renaming every SHELL row folds Top payees into one line, and Undo restores it', async () => {
     const c = await mount(importedHarness());
     await click(btn(/All$/));
-    await click(btn(/KPI.s · Standard reports/));
+    // DR-0713: the Reports section is open by default and its header reads
+    // "Reports · KPI's · N standard" with a Show/Hide report button; the older
+    // "KPI's · Standard reports" toggle is kept for a build that still has it.
+    { const show = btn(/^Show report$/) || btn(/KPI.s · Standard reports/); if (show) await click(show); }
     await click(btn(/^Top payees$/));
     const panel = () => c.querySelector('.scroll-mt-2');
     expect(panel().textContent).toContain('SHELL OIL 123');
@@ -212,7 +218,10 @@ describe('"all from this payee" updates the rollups at once', () => {
   it('moving a category rollup relabels its rows and Top categories recomputes', async () => {
     const c = await mount(importedHarness());
     await click(btn(/All$/));
-    await click(btn(/KPI.s · Standard reports/));
+    // DR-0713: the Reports section is open by default and its header reads
+    // "Reports · KPI's · N standard" with a Show/Hide report button; the older
+    // "KPI's · Standard reports" toggle is kept for a build that still has it.
+    { const show = btn(/^Show report$/) || btn(/KPI.s · Standard reports/); if (show) await click(show); }
     await click(btn(/^Top categories$/));
     const panel = () => c.querySelector('.scroll-mt-2');
     await click(panel().querySelector('[aria-label="Edit category Fuel"]'));

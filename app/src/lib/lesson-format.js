@@ -20,6 +20,14 @@ const ORDINALS = {
   FIRST: 1, SECOND: 2, THIRD: 3, FOURTH: 4, FIFTH: 5,
   SIXTH: 6, SEVENTH: 7, EIGHTH: 8, NINTH: 9, TENTH: 10,
 };
+const SPELLED = {
+  ONE: 1, TWO: 2, THREE: 3, FOUR: 4, FIVE: 5, SIX: 6,
+  SEVEN: 7, EIGHT: 8, NINE: 9, TEN: 10, ELEVEN: 11, TWELVE: 12,
+};
+// A spelled movement number standing alone at the START of a sentence ("SEVEN.")
+// is a marker, never a sentence of its own: its period belongs to the marker.
+const SPELLED_ALONE = /^(?:ONE|TWO|THREE|FOUR|FIVE|SIX|SEVEN|EIGHT|NINE|TEN|ELEVEN|TWELVE)\.$/;
+export function isSpelledMarker(fragment) { return SPELLED_ALONE.test(String(fragment || '').trim()); }
 const ROMANS = { I: 1, II: 2, III: 3, IV: 4, V: 5, VI: 6, VII: 7, VIII: 8, IX: 9, X: 10 };
 
 // A section marker at the START of a sentence. Each pattern yields its own
@@ -31,6 +39,12 @@ const MARKER_RES = [
   { re: /^(FIRST|SECOND|THIRD|FOURTH|FIFTH|SIXTH|SEVENTH|EIGHTH|NINTH|TENTH)\b[,—:]?/, num: (m) => ORDINALS[m[1]] },
   { re: /^(I{1,3}|IV|V|VI{0,3}|IX|X)\.\s+(?=[A-Z“"])/, num: (m) => ROMANS[m[1]] },
   { re: /^SOIL\s+(\d+)\b/, num: (m) => Number(m[1]) },
+  // "SEVEN. STAY IN THE WORD." -> a spelled number + its capital title (DR-0712).
+  // Darrell 2026-09-30, reading L202's youth band on his phone, saw "5STAY IN
+  // THE WORD" with "SEVEN." left dangling at the end of the step before: the
+  // author's own number was cut off as a sentence and the caps pass numbered
+  // only the titles it recognized (5 of 9). The author's number is the number.
+  { re: /^(ONE|TWO|THREE|FOUR|FIVE|SIX|SEVEN|EIGHT|NINE|TEN|ELEVEN|TWELVE)\.\s+(?=[A-Z“"])/, num: (m) => SPELLED[m[1]] },
 ];
 
 // THE HOUSE STYLE IS ITSELF A MARKER (Darrell 2026-09-13, from the pulpit's
@@ -109,6 +123,8 @@ function sentences(text) {
       // needs the marker attached to its title sentence. And never cut after
       // an abbreviation ("Dr.", "Mrs.", "vs.") — that period ends no sentence.
       if (/(?:^|\s)(?:[IVX]{1,4}|Dr|Mr|Mrs|Ms|Jr|Sr|St|vs)\.$/.test(candidate)) { from = m.index + 1; continue; }
+      // Nor a spelled movement number ("SEVEN.") from the title it numbers.
+      if (SPELLED_ALONE.test(candidate)) { from = m.index + 1; continue; }
       break;
     }
     if (!m) break;
