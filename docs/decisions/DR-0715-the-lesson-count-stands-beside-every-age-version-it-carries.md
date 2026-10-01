@@ -33,6 +33,12 @@ The Adult version is `levels.standard` when it is written, and otherwise the top
 
 By band across the catalog: child 348, youth 188, teen 677, adult 716, senior 712. Versions per lesson: 188 lessons carry all five, 123 carry four, 368 carry three, 34 carry two and 37 carry one. No band was dropped as a copy of the adult text, and no band is an empty string. One lesson carries a `levels.adult` key, which the reader never serves; it is not counted.
 
+## Impact
+
+- **Parents and families.** Opening Latest lessons or the Courses tab, a parent sees the scale: 750 lessons are 2,641 readings. The sentence under the number tells them a child can read the same lesson in words and at a pace that fit them. Before this, the one number hid that the child, youth and teen versions exist at all.
+- **Darrell and the team.** Each month now shows how much was written as well as how many lessons arrived. September added 349 lessons and 1,273 readings. As the band groups fill the child and youth versions, the readings number rises by itself, so their progress can be seen without a report.
+- **The truth of the surface.** The number counts only versions a reader can really be served. A band that falls back to another band's text is never counted, so the scale shown is never larger than what a child can actually read.
+
 ## Decision
 
 1. The Latest lessons header keeps its lesson line and adds one line under it: "2,641 readings counting every age version (child, youth, teen, adult, senior)." The bands named are only those that really hold a version.
