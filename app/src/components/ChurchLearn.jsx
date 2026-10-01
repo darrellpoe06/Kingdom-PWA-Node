@@ -2807,7 +2807,8 @@ function CourseView({
                   have the kids prompt the parents to have conversation about
                   Yahweh... Friends to each other... so we can all get healthy
                   together... We should be able to see Yahweh has been right."
-                  Measured first: of 593 lessons, 0 did both directions. Every
+                  Measured first: of the 593 lessons in the 43 courses the
+                  scan covered, 0 did both directions. Every
                   lesson now carries three prompts; a lesson's own words are used
                   where it wrote them, and the standing prompts stand elsewhere,
                   never claiming to be the lesson's. */}

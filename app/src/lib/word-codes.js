@@ -17,7 +17,7 @@
 // spans a lesson already carries (the same "quote" (Book c:v) shape the verse
 // gate checks), so every code shown is a verse the lesson quotes verbatim.
 //
-// Measured on the whole catalog on 2026-10-01 (593 lessons, 44,256 quoted
+// Measured on the 43 courses the scan covered on 2026-10-01 (593 lessons, 44,256 quoted
 // spans): 1,026 distinct codes in 271 lessons (a verse quoted in the full
 // lesson and again in its four bands counts once).
 // Pure over strings: no DOM, no fetch, no corpus read, so the reader can show

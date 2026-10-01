@@ -131,23 +131,27 @@ const SPEAKER_PINS = [
   ['lesson', 'the story of Christina, Darrell\'s wife (the machine wrote Christiana), who takes classes at the University of Illinois'],
   ['lesson', 'the recording does not mark who told about Christina. The rule that followed is Darrell Poe\'s (DP), by his own account'],
   ['lesson', 'Someone in the congregation answered with the Word, and the recording does not show the name: "let God be true'],
-  ['lesson', 'DP went on: you cannot read a few verses and think you have it, you have to stay in it'],
+  // Darrell, 2026-10-01: "Deacon Palmer said this piece... then I spoke right after" (DR-0739).
+  ['lesson', 'Deacon Palmer said it: you cannot read a few verses and think you have it, you have to stay in it'],
+  ['lesson', 'DP spoke right after him, by Darrell\'s own account'],
   ['youth', 'Bishop Gwin told his own story. He always tried to win his own way.'],
   ['youth', 'SEVEN. STAY IN THE WORD. DP, Darrell Poe, said people used to believe'],
   ['youth', 'Janelle told about a university chancellor'],
   ['youth', 'Someone in the congregation added, and the recording does not show the name, "let God be true'],
   ['youth', 'DP gave the rule that goes with it: AI will tell you it makes mistakes'],
-  ['youth', 'DP added that you read a passage one year'],
+  ['youth', 'Deacon Palmer added that you read a passage one year'],
+  ['youth', 'DP spoke right after him.'],
   ['teen', 'Bishop Gwin admitted he chased success on his own terms'],
   ['teen', 'DP noted that scientists once believed'],
   ['teen', 'Janelle quoted a university chancellor'],
   ['teen', 'a practical rule DP gave, by his own account'],
-  ['teen', 'DP added that you can reread a passage a year later'],
+  ['teen', 'Deacon Palmer added that you can reread a passage a year later and see far more, and DP spoke right after him'],
   ['senior', 'Bishop Gwin testified that he long wanted'],
   ['senior', 'DP observed that it was once generally believed'],
   ['senior', 'Janelle recalled a university chancellor'],
   ['senior', 'a caution for a new age that DP gave, by his own account'],
-  ['senior', 'DP confessed what long readers know'],
+  ['senior', 'Deacon Palmer confessed what long readers know'],
+  ['senior', 'DP spoke right after him, by Darrell\'s own account.'],
   ['child', 'Bishop Gwin told the class he tried to win his own way.'],
   ['child', 'Darrell said that long ago, people thought'],
   ['child', 'Janelle told about a school leader who wants to be a good ancestor.'],
@@ -170,6 +174,9 @@ function speakerFaults(m) {
     if (/\bChristiana\b/.test(s) && !/the machine wrote Christiana/.test(s)) faults.push(`the machine's spelling used as a name: ${s.slice(0, 80)}`);
     if (/\bMosley\b/.test(s) && !/said (aloud|out loud)|named aloud|names were said/i.test(s)) faults.push(`a forebear's name off its line: ${s.slice(0, 80)}`);
     if (/\b150\b/.test(s)) faults.push(`a count the recording does not carry: ${s.slice(0, 80)}`);
+    // Deacon Palmer's words (the few-verses / a-year-later piece) are never put on DP (DR-0739).
+    if (/(few verses|year later|passage one year|reread a passage)/.test(s) && /\bDP (went on|added|confessed|said)|Darrell Poe \(DP\) (said|added)/.test(s)) faults.push(`Deacon Palmer's words put on DP: ${s.slice(0, 80)}`);
+    if (/\bDeacon Palmer\b/.test(s) && !/(few verses|year later|passage one year|reread a passage|stay in it)/.test(s)) faults.push(`Deacon Palmer off his words: ${s.slice(0, 80)}`);
     if (/Evangelist Queen/.test(s) && !/the machine wrote Evangelist Queen/.test(s)) faults.push(`the machine's hearing used as a name: ${s.slice(0, 80)}`);
   }
   // The garbled third name is never guessed into a spelling.
@@ -265,6 +272,13 @@ describe('who said what: BG, DP, and the members as Bishop Gwin calls them (DR-0
     expect(speakerFaults(dropped).length).toBeGreaterThan(0);
     const guessed = { ...L(), lesson: `${L().lesson} Osia Mama was there.` };
     expect(speakerFaults(guessed).length).toBeGreaterThan(0);
+    // Deacon Palmer's piece put back on DP (the 2026-10-01 defect) fires in the lesson and in every band.
+    const onDP = { ...L(), lesson: L().lesson.replace('Deacon Palmer said it: you cannot read a few verses', 'DP went on: you cannot read a few verses') };
+    expect(speakerFaults(onDP).some((f) => /Deacon Palmer's words put on DP/.test(f))).toBe(true);
+    const seniorOnDP = { ...L(), levels: { ...L().levels, senior: L().levels.senior.replace('Deacon Palmer confessed what long readers know', 'DP confessed what long readers know') } };
+    expect(speakerFaults(seniorOnDP).some((f) => /Deacon Palmer's words put on DP|senior: Deacon Palmer confessed/.test(f))).toBe(true);
+    const wandered = { ...L(), lesson: `${L().lesson} Deacon Palmer gave his own testimony.` };
+    expect(speakerFaults(wandered).some((f) => /Deacon Palmer off his words/.test(f))).toBe(true);
   });
 });
 
@@ -454,17 +468,24 @@ describe('L202 tells the sound\'s steps: what the build does today, what we want
 // THE LEARNING CENTER (Darrell, 2026-10-01: "explain I'm building a Word first
 // digit learn center... with all subjects... list the current ones... so it
 // sparks curiosity"). The numbers are a dated snapshot read from the live
-// registry on 2026-10-01 (learnDepartments(buildCatalogCourseDescriptors()):
-// 12 departments, 43 courses, 593 lessons), and every reading says "when this
-// was written", so a catalog that grows does not make the lesson lie.
+// registry on 2026-10-01. First read as learnDepartments(buildCatalogCourseDescriptors())
+// (12 departments, 43 courses, 593 lessons) — but that set leaves out the A.I. course
+// and the six Eternal Algorithms courses the Learn tab also mounts (ChurchLearn.jsx:
+// [aiCourse, ...builtExtras, ...eternalCourses]). Darrell, 2026-10-01: "the count was
+// wrong... we have had 50 courses and 750 lessons... before this lesson". Measured
+// again the way the Learn tab assembles it (DR-0739): 13 departments, 50 courses,
+// 754 lessons on 2026-10-01, and 750 on 2026-09-30 before L203 to L206 landed — the
+// number he gave the class. Every reading says "when this was written", so a catalog
+// that grows does not make the lesson lie.
 describe('L202 names the Word-first learning center and its departments, so a reader is drawn to look', () => {
   const TEXTS = () => [L().lesson, ...BANDS()];
-  const DEPARTMENTS = ['Living Lessons', 'Real Estate', 'Stock Market', 'Project Management', 'Business', 'History', 'Mathematics', 'Development', 'A.I. The Way', 'Serve the House'];
+  const DEPARTMENTS = ['Living Lessons', 'The Eternal Algorithms', 'Real Estate', 'Stock Market', 'Project Management', 'Business', 'History', 'Mathematics', 'Development', 'A.I. The Way', 'Serve the House'];
 
   it('every reading says what is being built and gives the dated count', () => {
     for (const t of TEXTS()) {
       expect(t).toMatch(/learning center/);
-      expect(t).toMatch(/twelve departments, 43 courses and 593 lessons/);
+      expect(t).toMatch(/thirteen departments, 50 courses and 750 lessons/);
+      expect(t).not.toMatch(/43 courses|593 lessons|twelve departments/);
       expect(t).toMatch(/When (this|we)( lesson)? (was|wrote)/);
       expect(t).toMatch(/five (readings|ways)/);
       expect(t).toMatch(/More is added/);
