@@ -219,21 +219,7 @@ export async function uploadFeedback(item, meta = {}) {
   // categories + whatsWorking/whatsNot/whatsMissing). Compose a single
   // human-readable body from whichever fields are populated so the chat
   // message and the DB row both carry the substance, not just a label.
-  const composedBody = (() => {
-    if (item.text) return item.text;
-    if (item.feedback_text) return item.feedback_text;
-    const parts = [];
-    if (item.whatsWorking) parts.push('Working: ' + item.whatsWorking);
-    if (item.whatsNot) parts.push('Not working: ' + item.whatsNot);
-    if (item.whatsMissing) parts.push('Missing: ' + item.whatsMissing);
-    if (Array.isArray(item.categories) && item.categories.length > 0) {
-      parts.push('[' + item.categories.join(', ') + ']');
-    }
-    if (parts.length === 0 && item.rating) {
-      parts.push('Rated: ' + item.rating);
-    }
-    return parts.join(' | ');
-  })();
+  const composedBody = composeFeedbackBody(item);
 
   // Map FeedbackModal ratings to sentiment if not already provided.
   const sentimentFromRating = (() => {
@@ -452,6 +438,36 @@ export function subscribeFeedback(onRemote) {
 // -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
+
+/**
+ * One human-readable body from whichever fields the form filled, so the chat
+ * message and the row both carry the substance, not just a label. Pure.
+ *
+ * THE READER'S OWN TRIP RIDES ALONG (DR-0744; Darrell 2026-10-01: "Why are we
+ * not able to continue to listen when inside the downloaded app"). A note
+ * sent from a lesson used to say what the person saw and nothing of what the
+ * reader did; the fix was then aimed by guesswork. The form now hands in the
+ * last reading's trip line (lib/reader-trip.js: which voice, where it
+ * stopped, whether the screen went dark) and it closes the body, marked
+ * [reader], so the steward reads the measurement beside the complaint.
+ */
+export function composeFeedbackBody(item = {}) {
+  const trip = item.readerTrip ? String(item.readerTrip).trim() : '';
+  const withTrip = (body) => (trip && body ? `${body} | [reader] ${trip}` : (trip ? `[reader] ${trip}` : body));
+  if (item.text) return withTrip(item.text);
+  if (item.feedback_text) return withTrip(item.feedback_text);
+  const parts = [];
+  if (item.whatsWorking) parts.push('Working: ' + item.whatsWorking);
+  if (item.whatsNot) parts.push('Not working: ' + item.whatsNot);
+  if (item.whatsMissing) parts.push('Missing: ' + item.whatsMissing);
+  if (Array.isArray(item.categories) && item.categories.length > 0) {
+    parts.push('[' + item.categories.join(', ') + ']');
+  }
+  if (parts.length === 0 && item.rating) {
+    parts.push('Rated: ' + item.rating);
+  }
+  return withTrip(parts.join(' | '));
+}
 
 function detectDeviceLabel() {
   if (typeof navigator === 'undefined') return null;

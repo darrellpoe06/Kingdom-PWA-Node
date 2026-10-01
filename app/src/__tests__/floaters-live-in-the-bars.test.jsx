@@ -306,3 +306,83 @@ describe('in the lesson reader the bottom is ONE slim row (Darrell 2026-10-01: "
     expect(q('dock-reader-row')).toBeNull();
   });
 });
+
+describe('while the Word plays on a phone the bottom is STILL one row (DR-0744; Darrell 2026-10-01: "one level together instead of two")', () => {
+  const openReader = () => act(() => { document.documentElement.setAttribute('data-lesson-space', 'open'); });
+  const closeReader = () => act(() => { document.documentElement.removeAttribute('data-lesson-space'); });
+  const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+  // A phone: matchMedia answers the bar's phone query true.
+  const phone = (matches) => vi.stubGlobal('matchMedia', vi.fn((q) => ({ matches: matches && /639\.98px/.test(q), media: q, addEventListener() {}, removeEventListener() {} })));
+  const play = async () => {
+    act(() => { setReadTarget(OWNER, { label: 'this lesson', text: PARAS.join(' '), elementId: 'lesson-bars' }); });
+    state.isReading = true;
+    render();
+    await settle();
+  };
+  afterEach(() => { closeReader(); try { localStorage.removeItem('poe-text-size'); } catch { /* ignore */ } });
+
+  it('the slim row folds into More, and the row is More then the mini-bar', async () => {
+    phone(true);
+    render();
+    openReader();
+    await settle();
+    expect(q('dock-reader-row'), 'the slim row is inline before the Word plays').toBeTruthy();
+    await play();
+    expect(q('reader-mini-bar'), 'no mini-bar while reading').toBeTruthy();
+    expect(dock().getAttribute('data-one-row')).toBe('true');
+    expect(q('dock-reader-row'), 'the slim row still takes its own place beside the mini-bar').toBeNull();
+    const items = q('dock-items');
+    for (const id of ['dock-controls', 'dock-text-smaller', 'dock-text-bigger', 'dock-feedback', 'dock-give']) {
+      expect(items.querySelector(`[data-testid="${id}"]`), `${id} is not inside More`).toBeTruthy();
+      expect(container.querySelectorAll(`[data-testid="${id}"]`).length, `${id} is drawn twice`).toBe(1);
+    }
+    expect(q('dock-more').getAttribute('aria-label')).toMatch(/^More: Controls, text size, Feedback, Give/);
+    expect(dock().contains(q('reader-mini-bar'))).toBe(true);
+  });
+
+  it('inside More the same buttons still do what they did: A+ steps the text, Feedback calls the same action', async () => {
+    phone(true);
+    render();
+    openReader();
+    await play();
+    act(() => { q('dock-more').click(); });
+    expect(q('dock-items').className).not.toMatch(/\bhidden\b/);
+    act(() => { q('dock-text-bigger').click(); });
+    expect(document.documentElement.getAttribute('data-text-size')).toBe('large');
+    act(() => { q('dock-feedback').click(); });
+    expect(onFeedback).toHaveBeenCalledTimes(1);
+    expect(q('dock-items').className).toMatch(/\bhidden\b/); // Feedback closes the menu like the other items
+  });
+
+  it('when the reading stops, the slim row comes back inline', async () => {
+    phone(true);
+    render();
+    openReader();
+    await play();
+    expect(dock().getAttribute('data-one-row')).toBe('true');
+    state.isReading = false;
+    render();
+    await settle();
+    expect(q('reader-mini-bar')).toBeNull();
+    expect(dock().getAttribute('data-one-row')).toBe('false');
+    expect(q('dock-reader-row')).toBeTruthy();
+    expect(q('dock-items').querySelector('[data-testid="dock-feedback"]')).toBeNull();
+  });
+
+  it('PROVEN-TO-CATCH: wider than a phone, the row stays inline while the Word plays', async () => {
+    phone(false);
+    render();
+    openReader();
+    await play();
+    expect(q('reader-mini-bar')).toBeTruthy();
+    expect(dock().getAttribute('data-one-row')).toBe('false');
+    expect(q('dock-reader-row')).toBeTruthy();
+    expect(q('dock-items').querySelector('[data-testid="dock-controls"]')).toBeNull();
+  });
+
+  it('the bar no longer gives the mini-bar a second line: the CSS that did is gone, and More is never hidden while the Word plays', () => {
+    const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8');
+    expect(css).not.toMatch(/\.chrome-dock-reader-wrap\s*\{\s*order:\s*-1;\s*flex-basis:\s*100%/);
+    expect(css).toMatch(/\.chrome-dock:not\(\[data-one-row='true'\]\) \.dock-more-wrap/);
+  });
+});

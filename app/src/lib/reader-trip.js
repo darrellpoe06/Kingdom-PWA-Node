@@ -144,3 +144,21 @@ export function tripSummary(trip) {
   if (handoff) parts.push(`the phone’s voice took over: ${reasonText(handoff.reason)}`);
   return `${parts.join(' · ')}.`;
 }
+
+// THE TRIP RIDES WITH A FEEDBACK NOTE (DR-0744; Darrell 2026-10-01: "Why are
+// we not able to continue to listen when inside the downloaded app"). A note
+// about the reader is worth little without the reader's own account, and the
+// person should not have to copy a line out of the panel. A recent trip is
+// handed to the form as one line; an old one is not, so a note about
+// something else does not carry a stale reading.
+export const TRIP_RECENT_MS = 3 * 60 * 60 * 1000;
+
+/** The last trip's line when it started or ended within the window, else ''. Pure. */
+export function recentTripLine({ storage = defaultStorage(), now = () => Date.now(), withinMs = TRIP_RECENT_MS } = {}) {
+  const trip = createTripLog({ storage, now }).last();
+  if (!trip) return '';
+  const t = now();
+  const last = Math.max(Number(trip.endedAt) || 0, Number(trip.startedAt) || 0);
+  if (!last || t - last > withinMs) return '';
+  return tripSummary(trip);
+}
