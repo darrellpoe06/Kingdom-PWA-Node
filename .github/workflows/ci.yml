@@ -246,7 +246,7 @@ jobs:
       # after three tries. Proven-to-catch; gates merge.
       - name: lesson-voice whisper loop proofs
         working-directory: infra/nas-lesson-voice
-        run: python3 -m unittest test_lesson_voice -v
+        run: python3 -m unittest test_lesson_voice test_speaker_turns -v
       # Tower parity loop proofs (DR-0671): every measure deterministic, every
       # gap class fires on a planted defect, no single defect counts toward
       # promotion, the cross-reference excludes a verse-gate failure, the
