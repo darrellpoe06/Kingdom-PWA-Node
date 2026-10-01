@@ -166,27 +166,40 @@ export default function PushNotifications({
   // The browser's subscription is only meaningful if the server also has it.
   const on = status.subscribed && !unsaved;
 
+  // THE STATE IS READ AT A GLANCE, APART FROM THE ACTION (Darrell 2026-10-01:
+  // "The notification on or off is confusing... can we make it a green or
+  // not view so it can be obvious when we are getting them by choice?"). One
+  // button used to carry both the state and the opposite action in one line
+  // ("Notifications on — turn off"), behind a warning triangle, so ON read
+  // like a problem. Now a dot that is green ONLY when a real subscription
+  // exists (rule 1 still holds: live state, never a saved flag) names the
+  // state in words, the one line under it says this was the person's own
+  // choice, and the action is its own button that says only what it does.
+  const stateText = on ? 'Notifications on' : 'Notifications off';
+  const chosenText = topic === 'live'
+    ? 'Your choice: this device is told when a service goes live.'
+    : 'Your choice: this device is told when someone messages you.';
+  const actionText = busy ? (on ? 'Turning off…' : 'Turning on…') : (on ? 'Turn off' : 'Turn on');
+
   return (
-    <div className="space-y-1">
-      {on ? (
+    <div className="space-y-1" data-testid="push-control" data-on={on ? '1' : '0'}>
+      <div className={`flex items-center justify-between gap-2 border px-3 py-1.5 min-h-[36px] ${on ? 'border-[#5A6E3D]' : 'border-dashed border-[#C9BFA8]'}`}>
+        <span className="flex items-center gap-2 text-xs uppercase tracking-wider" data-testid="push-state" role="status">
+          <span aria-hidden="true" data-testid="push-state-dot" className={`inline-block w-2.5 h-2.5 rounded-full ${on ? 'bg-[#16A34A]' : 'bg-[#8A857B]'}`} />
+          <UiIcon name="bell" />
+          <span className={on ? 'text-[#5A6E3D] font-semibold' : 'text-[#5A5751]'}>{stateText}</span>
+        </span>
         <button
           type="button"
           disabled={busy}
-          onClick={turnOff}
-          className={`${BTN} w-full border border-[#C9BFA8] text-[#1A1815] hover:border-[#1A1815] disabled:opacity-60`}
+          onClick={on ? turnOff : turnOn}
+          data-testid="push-action"
+          className={`${BTN} border ${on ? 'border-[#C9BFA8] text-[#1A1815] hover:border-[#1A1815]' : 'border-[#1A1815] text-[#1A1815] bg-white hover:bg-[#FAF8F4]'} disabled:opacity-60`}
         >
-          <UiIcon name="alert" /> {busy ? 'Turning off…' : 'Notifications on — turn off'}
+          {actionText}
         </button>
-      ) : (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={turnOn}
-          className={`${BTN} w-full border border-dashed border-[#C9BFA8] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815] disabled:opacity-60`}
-        >
-          <UiIcon name="alert" /> {busy ? 'Turning on…' : label}
-        </button>
-      )}
+      </div>
+      <p className="text-xs text-[#5A5751]" data-testid="push-reason">{on ? chosenText : label}</p>
       {note && <p className="text-xs text-[#5A5751]" role="status">{note}</p>}
     </div>
   );
