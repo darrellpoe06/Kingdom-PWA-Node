@@ -595,8 +595,14 @@ try {
       // window; it is chrome over the first viewport like the header is.
       const liveBar = document.querySelector('[role="region"][aria-label^="Live worship"]');
       const floaters = [document.querySelector('.tts-controls'), document.querySelector('button[aria-label="Open feedback"]'), document.querySelector('.church-give-floater')].filter(Boolean);
+      // THE BOTTOM BAR (DR-0716) is chrome over the first viewport like the
+      // header: Feedback, Give, the dot, Top and the reader moved INTO it, so
+      // its whole band is counted (the controls inside it fall within it). It
+      // is a bar standing on the comfort bar, not a floater, so it is not in
+      // the on-the-bar list below.
+      const dockBar = document.querySelector('[data-testid="chrome-dock"]');
       const bands = [];
-      for (const el of [liveBar, hdr, bar, hatch, ...floaters]) {
+      for (const el of [liveBar, hdr, bar, hatch, dockBar, ...floaters]) {
         if (!el) continue;
         const r = el.getBoundingClientRect();
         if (r.height <= 0) continue;
@@ -608,10 +614,18 @@ try {
       if (cur) covered += cur[1] - cur[0];
       const hatchFixed = !!hatch && getComputedStyle(hatch).position === 'fixed';
       const hr = hatch ? hatch.getBoundingClientRect() : null;
-      const onTheBar = hatchFixed ? floaters.filter((f) => { const r = f.getBoundingClientRect(); return r.height > 0 && !(r.right <= hr.left || hr.right <= r.left || r.bottom <= hr.top || hr.bottom <= r.top); }).map((f) => (f.getAttribute('aria-label') || f.className || '?').toString().slice(0, 20)) : [];
+      const onTheBar = hatchFixed ? floaters.filter((f) => !(dockBar && dockBar.contains(f))).filter((f) => { const r = f.getBoundingClientRect(); return r.height > 0 && !(r.right <= hr.left || hr.right <= r.left || r.bottom <= hr.top || hr.bottom <= r.top); }).map((f) => (f.getAttribute('aria-label') || f.className || '?').toString().slice(0, 20)) : [];
       return {
         size: document.documentElement.getAttribute('data-text-size'),
         liveBarPx: liveBar ? Math.round(liveBar.getBoundingClientRect().height) : 0,
+        dockPx: dockBar ? Math.round(dockBar.getBoundingClientRect().height) : 0,
+        // The bar stands ON TOP of the fixed comfort bar, never over it: the
+        // vertical overlap of the two, in px (more than 1px is a bar on a bar).
+        dockOnHatch: (() => {
+          if (!hatchFixed || !dockBar) return 0;
+          const d = dockBar.getBoundingClientRect();
+          return Math.max(0, Math.round(Math.min(d.bottom, hr.bottom) - Math.max(d.top, hr.top)));
+        })(),
         vh,
         covered: Math.round(covered),
         onTheBar,
@@ -748,9 +762,10 @@ try {
         if (base == null) fail(`${where}: no Normal measurement in the same header state to compare against — the never-bigger invariant was not checked`);
         else if (m.covered > base + NEVER_BIGGER_ALLOWANCE_PX) fail(`${where}: chrome covers ${m.covered}px at Big Print vs ${base}px at Normal — the controls got bigger with the text`);
         if (m.onTheBar.length) fail(`${where}: ${m.onTheBar.length} floater(s) sit on the fixed comfort bar: ${m.onTheBar.join(', ')}`);
+        if (m.dockOnHatch > 1) fail(`${where}: the bottom bar sits ${m.dockOnHatch}px over the fixed comfort bar instead of standing on it (DR-0716)`);
       }
     }
-    if (failures === before) console.log(`lesson ok  ${where} — chrome covers ${m.covered}px of ${m.vh}px${m.liveBarPx ? ` (live bar ${m.liveBarPx}px)` : ''}, prose ${m.prose}px of ${m.content}px, ${m.strips} strips (max ${m.maxChips} chips, max ${m.maxBlockLines} lines/block)${size === 'bigprint' ? `, bar buttons ${m.barButtonPx}px, chips ${m.chipPx}px` : ''}, nothing boxed in a sentence; mid-lesson at y${comfort.scrollY}: ${comfort.sizeReachable}/${comfort.sizeCount} size + ${comfort.themeReachable}/${comfort.themeCount} theme controls on screen`);
+    if (failures === before) console.log(`lesson ok  ${where} — chrome covers ${m.covered}px of ${m.vh}px${m.liveBarPx ? ` (live bar ${m.liveBarPx}px)` : ''}${m.dockPx ? ` (bottom bar ${m.dockPx}px)` : ''}, prose ${m.prose}px of ${m.content}px, ${m.strips} strips (max ${m.maxChips} chips, max ${m.maxBlockLines} lines/block)${size === 'bigprint' ? `, bar buttons ${m.barButtonPx}px, chips ${m.chipPx}px` : ''}, nothing boxed in a sentence; mid-lesson at y${comfort.scrollY}: ${comfort.sizeReachable}/${comfort.sizeCount} size + ${comfort.themeReachable}/${comfort.themeCount} theme controls on screen`);
   }
   // ---------------------------------------------------------------------------
   // TEXT-SCALE pass — the layout is measured AT Big Print, not assumed to hold.

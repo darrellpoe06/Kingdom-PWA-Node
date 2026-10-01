@@ -163,7 +163,7 @@ export const WORD_OUT_MODULES = [
     id: 'wo4-when-it-looks-stale',
     title: 'When a page looks behind — what is true, what to do',
     bigIdea: 'Honesty about timing: after an upload, the app\'s pages follow within a few minutes (the channel feed is checked freshly, with a short cache so the whole church is not hammering YouTube). If a page you are looking at seems behind: give it a few minutes, then reopen the tab (or pull down to refresh on a phone). If it is STILL behind after that, that is worth reporting — and reporting is a feature, not a bother: the Feedback button files it straight to the builders with your words attached.',
-    inApp: 'Open the Church page and note the top video. If it ever seems behind the channel: wait a few minutes, reopen the tab, and check again. Still behind? Tap FEEDBACK (bottom-left), say which page and which video you expected, and send. That report lands in the build queue the same day — you are not bothering anyone; you are steering the system.',
+    inApp: 'Open the Church page and note the top video. If it ever seems behind the channel: wait a few minutes, reopen the tab, and check again. Still behind? Tap FEEDBACK in the bar at the bottom of the screen (on a phone, under More), say which page and which video you expected, and send. That report lands in the build queue the same day — you are not bothering anyone; you are steering the system.',
     anchor: {
       ref: 'Proverbs 27:23; Zechariah 4:10',
       theme: 'Know the state of your flocks — and do not despise the day of small things. Watching the surfaces honestly, and reporting the small stale thing, is how the whole system stays trustworthy.',

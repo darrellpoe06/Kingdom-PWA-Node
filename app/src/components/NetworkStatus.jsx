@@ -1,5 +1,5 @@
 // =============================================================================
-// NetworkStatus — small floating status pill (bottom-left, above Feedback)
+// NetworkStatus — the network status dot (in the app's bottom bar since DR-0716)
 // =============================================================================
 // Surfaces, at a glance, whether the device is reaching:
 //   1. the device's network (online / offline, WiFi vs cellular vs other)
@@ -23,6 +23,7 @@
 // =============================================================================
 
 import React, { useEffect, useRef, useState } from 'react';
+import { DOCK_BTN, DOCK_LABEL } from '../lib/chrome-dock.js';
 
 const COLOR = {
   ok: '#16A34A',          // green
@@ -139,7 +140,16 @@ async function runProbes(currentLastOk) {
   return { internet, nas, lastOk: next };
 }
 
-export default function NetworkStatus() {
+// variant (DR-0716):
+//   'floating' — the original fixed pill, bottom-left (kept for any caller
+//                that still wants it; nothing in the app shell uses it now).
+//   'dock'     — a square bar button inside the bottom bar (ChromeDock), the
+//                family look of the text-size chips; the detail opens upward
+//                above the bar instead of over the page.
+//   'inline'   — in the page flow (Admin > Systems), not fixed at all.
+// onHealthChange(healthy) lets the bar mark its overflow button when the
+// status is folded away on a phone and something is wrong.
+export default function NetworkStatus({ variant = 'floating', onHealthChange = null }) {
   const [net, setNet] = useState(() => readNetwork());
   const [probes, setProbes] = useState({ internet: 'pending', nas: 'pending' });
   const [lastOk, setLastOk] = useState({ internet: null, nas: null });
@@ -226,13 +236,49 @@ export default function NetworkStatus() {
   const healthy = deviceState === 'ok' && probes.internet === 'ok'
     && (probes.nas === 'ok' || probes.nas === 'not-configured');
 
+  const docked = variant === 'dock';
+  useEffect(() => {
+    if (typeof onHealthChange === 'function') onHealthChange(healthy);
+  }, [healthy, onHealthChange]);
+
+  const dots = healthy ? (
+    <span
+      className="w-2.5 h-2.5 rounded-full inline-block"
+      style={{ backgroundColor: dotColor('ok') }}
+      aria-label="All connections healthy — tap for detail"
+    />
+  ) : (
+    <span className="inline-flex items-center gap-1">
+      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor(deviceState) }} aria-label={`device ${deviceState}`} />
+      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor(probes.internet) }} aria-label={`internet ${probes.internet}`} />
+      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor(probes.nas) }} aria-label={`nas ${probes.nas}`} />
+    </span>
+  );
+
   // Compact pill: one dot when healthy; 3 dots + connection label when not.
   return (
     <div
-      data-read-skip className="fixed bottom-20 left-4 z-30 print:hidden"
+      data-read-skip
+      data-testid={docked ? 'dock-network' : undefined}
+      className={docked ? 'relative print:hidden' : variant === 'inline' ? 'relative inline-block print:hidden' : 'fixed bottom-20 left-4 z-30 print:hidden'}
       role="status"
       aria-label="Network status"
     >
+      {docked ? (
+        // THE DOT, DOCKED (DR-0716): the same one-dot-when-healthy rule, in a
+        // square bar button beside Feedback, with a word under it. When a
+        // check fails the three dots show and the word says which.
+        <button
+          type="button"
+          onClick={() => setExpanded(e => !e)}
+          className={DOCK_BTN}
+          title="Network status — tap for details"
+          aria-expanded={expanded}
+        >
+          <span className="h-[1rem] inline-flex items-center">{dots}</span>
+          <span className={DOCK_LABEL}>{healthy ? 'Online' : connLabel}</span>
+        </button>
+      ) : (
       <button
         type="button"
         onClick={() => setExpanded(e => !e)}
@@ -241,19 +287,9 @@ export default function NetworkStatus() {
         title="Network status — tap for details"
         aria-expanded={expanded}
       >
-        {healthy ? (
-          <span
-            className="w-2.5 h-2.5 rounded-full"
-            style={{ backgroundColor: dotColor('ok') }}
-            aria-label="All connections healthy — tap for detail"
-          />
-        ) : (
+        {healthy ? dots : (
           <>
-            <span className="inline-flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor(deviceState) }} aria-label={`device ${deviceState}`} />
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor(probes.internet) }} aria-label={`internet ${probes.internet}`} />
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor(probes.nas) }} aria-label={`nas ${probes.nas}`} />
-            </span>
+            {dots}
             {/* Color must mirror the pill background, which is OS-color-scheme driven
                 (bg-white/95 dark:bg-[#1A1815]/95) and theme-INDEPENDENT — the data-theme
                 remap doesn't touch these variant classes. So the label color tracks the
@@ -266,10 +302,11 @@ export default function NetworkStatus() {
           </>
         )}
       </button>
+      )}
 
       {expanded && (
         <div
-          className="absolute bottom-12 right-0 w-72 bg-white dark:bg-[#1A1815] text-[#1A1815] dark:text-[#FAF8F4] border border-[#1A1815]/20 shadow-xl p-3 text-xs"
+          className={`absolute ${docked ? 'bottom-full mb-2 left-0' : 'bottom-12 right-0'} w-72 bg-white dark:bg-[#1A1815] text-[#1A1815] dark:text-[#FAF8F4] border border-[#1A1815]/20 shadow-xl p-3 text-xs`}
           style={{ borderRadius: '12px' }}
           role="dialog"
           aria-label="Network status detail"

@@ -208,24 +208,34 @@ html[data-text-size='bigprint'] .ts-safe-sticky .one-tab-brand--float {
    TextSizeControl from the bar's real box). The floaters that are themselves
    chrome regions are zoomed, and a zoomed element's offsets are zoomed with
    it, so their offset is divided by the zoom to land in viewport pixels. */
-html[data-text-size='largest'] .tts-controls,
-html[data-text-size='bigprint'] .tts-controls {
-  bottom: calc(1rem + var(--ts-hatch-h, 0px));
+/* THE FLOATERS ARE IN THE BAR NOW (DR-0716, Darrell 2026-09-30: "Put the
+   feedback and other floating options on the task bars somewhere they make
+   sense... make the reader better and less blocked"). Feedback, Give, the
+   network dot, back-to-top and the read-aloud button / mini-bar / pill live
+   in the bottom bar (components/ChromeDock.jsx), which stands on top of the
+   fixed comfort bar by --ts-hatch-h. What still rides the reader's fixed
+   stack (its open panel, a way-back notice) and the app's passing prompts
+   stand above BOTH bars: --chrome-dock-h is the bar's published height (0px
+   on a surface with no bar, so those surfaces keep their 16px corner). */
+.tts-controls.fixed {
+  bottom: calc(16px + var(--chrome-dock-h, 0px) + var(--ts-hatch-h, 0px));
 }
-html[data-text-size='largest'] button[aria-label="Open feedback"],
-html[data-text-size='bigprint'] button[aria-label="Open feedback"] {
-  bottom: calc(1rem + var(--ts-hatch-h, 0px) / var(--ts-chrome-scale, 1));
+.install-prompt.fixed,
+.update-confirm.fixed,
+[data-testid='notify-offer-layer'] {
+  bottom: calc(12px + var(--chrome-dock-h, 0px) + var(--ts-hatch-h, 0px));
 }
-html[data-text-size='largest'] .church-give-floater,
-html[data-text-size='bigprint'] .church-give-floater {
-  bottom: calc(5rem + var(--ts-hatch-h, 0px) / var(--ts-chrome-scale, 1));
+/* A modal owns the screen: while one is open the bar drops beneath its
+   backdrop (the app's dialogs are fixed inset-0 at z-50) rather than sit over
+   the dialog's own buttons. It stays above everything else. */
+body:has(.fixed.inset-0.z-50) .chrome-dock {
+  z-index: 40;
 }
-/* On a phone the Give pill shares the read-aloud's row (ChurchGiving.jsx), so
-   at Big Print it steps above the comfort bar by the same 1rem the row does. */
+/* On a phone, while the reader's mini-bar or pill fills the bar, the inline
+   Top steps aside; the copy inside More carries it (ChromeDock.jsx). */
 @media (max-width: 639.98px) {
-  html[data-text-size='largest'] .church-give-floater,
-  html[data-text-size='bigprint'] .church-give-floater {
-    bottom: calc(1rem + var(--ts-hatch-h, 0px) / var(--ts-chrome-scale, 1));
+  .chrome-dock:has([data-testid='reader-mini-bar'], [aria-label='Reading controls (minimized)']) .dock-top-inline {
+    display: none;
   }
   /* While the live-service bar is open it names the church at the very top
      (LiveWorshipBar sets data-live-bar), so on a phone the public welcome line
