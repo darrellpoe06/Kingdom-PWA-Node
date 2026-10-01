@@ -1,4 +1,4 @@
-# DR-0698 — Text size on every screen, without opening the reader
+# DR-0724 — Text size on every screen, without opening the reader
 
 - **Status:** accepted
 - **Tier:** A (a comfort control in existing chrome; no schema, no money, no identity change)
@@ -30,7 +30,7 @@ Unresolved: text size mid-lesson costs a trip through the reader panel (speed, v
 2. **It rides beside the read-aloud button**, in the reader's idle row (`TTSControl.jsx`, `data-testid="reader-idle-row"`), so it is on every route with no new floating region over the words. It dims and settles with the button's idle-reveal. While the reader is open or reading, the panel and the mini-player own that corner and the panel's own size row is there.
 3. **A device that cannot speak still gets it.** `TTSControl` no longer returns null when speech is unsupported; it renders the pair alone.
 4. **Chrome, not reading text.** `.ts-chrome-region` with labels in `calc(px / var(--ts-chrome-scale, 1))`, so it is its Normal size at every step (DR-0438), and its buttons are 2.75rem inside the cap, 44 px on screen.
-5. **The probe now counts mid-lesson size controls with the reader closed**, and fails if there are none (DR-0698 message). The selftest break hides the pair as well as the panel row, so the break still proves the pass can fail.
+5. **The probe now counts mid-lesson size controls with the reader closed**, and fails if there are none (DR-0724 message). The selftest break hides the pair as well as the panel row, so the break still proves the pass can fail.
 6. **Kept as decided:** the collapsed row's dropdown on a phone (DR-0640) and the header's five buttons are unchanged.
 
 ## Verification

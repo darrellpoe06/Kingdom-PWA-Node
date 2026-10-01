@@ -152,7 +152,7 @@ export default function TextSizeControl({ variant = 'header', className = '' }) 
 }
 
 // =============================================================================
-// TextSizeQuick — A- / A+ on every screen, without opening the reader (DR-0698)
+// TextSizeQuick — A- / A+ on every screen, without opening the reader (DR-0724)
 // =============================================================================
 // Darrell 2026-09-30: "Text sizes are the main reason why I keep opening the
 // reader... give an option for that on each screen even without the other

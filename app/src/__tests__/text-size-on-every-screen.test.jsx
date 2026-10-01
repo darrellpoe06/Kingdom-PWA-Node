@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // =============================================================================
-// TEXT SIZE ON EVERY SCREEN, WITHOUT OPENING THE READER (DR-0698)
+// TEXT SIZE ON EVERY SCREEN, WITHOUT OPENING THE READER (DR-0724)
 // =============================================================================
 // Darrell 2026-09-30: "Text sizes are the main reason why I keep opening the
 // reader... give an option for that on each screen even without the other

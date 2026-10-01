@@ -73,7 +73,7 @@ const LEARN_OPEN = Object.values(import.meta.glob('../lib/learn-open.js', { eage
 // with speed and voice in it and no text size.
 import { useTextSize } from '../lib/text-size.js';
 // A- / A+ beside the read-aloud button on every screen, so text size no
-// longer needs the reader opened (DR-0698). Same store as the panel's row.
+// longer needs the reader opened (DR-0724). Same store as the panel's row.
 import { TextSizeQuick } from './TextSizeControl.jsx';
 import { THEMES, useThemePref } from '../lib/theme-css.js';
 
@@ -873,7 +873,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // offlineNote is read, not watched: a note for this lesson is kept as is.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, target, usesNasVoice, liteVoice]);
-  // No early return when speech is unsupported: the text-size pair (DR-0698)
+  // No early return when speech is unsupported: the text-size pair (DR-0724)
   // still belongs on the screen of a device that cannot speak.
 
   const start = async () => {

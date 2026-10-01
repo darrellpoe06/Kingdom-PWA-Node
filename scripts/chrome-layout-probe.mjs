@@ -664,13 +664,13 @@ try {
       // The break: the reader's own comfort row removed, which is precisely
       // the state this pass exists to refuse. The header is already scrolled
       // away by the scroll below, so this leaves genuinely nothing reachable.
-      // And the A- / A+ pair beside the read-aloud button (DR-0698), or the
+      // And the A- / A+ pair beside the read-aloud button (DR-0724), or the
       // pair alone would keep this case green and the break would prove nothing.
       await page.addStyleTag({ content: '[data-testid="reader-look-and-feel"], [data-testid="text-size-quick"] { display: none !important }' });
     }
     await page.evaluate(() => window.scrollTo(0, Math.max(900, Math.round(document.documentElement.scrollHeight * 0.4))));
     await page.evaluate(() => new Promise((r) => setTimeout(r, 200)));
-    // TEXT SIZE WITHOUT OPENING THE READER (DR-0698). Darrell 2026-09-30: "Text
+    // TEXT SIZE WITHOUT OPENING THE READER (DR-0724). Darrell 2026-09-30: "Text
     // sizes are the main reason why I keep opening the reader... give an option
     // for that on each screen even without the other controls." This pass used
     // to count size controls only AFTER tapping the reader open, which is how
@@ -738,7 +738,7 @@ try {
     }
     // MID-LESSON COMFORT (DR-0524) — the reader is scrolled into the words and
     // the header is gone; the reading panel must carry the way to change both.
-    if (comfort.scrollY && !closedSizeOnScreen) fail(`${where}: scrolled into the lesson with the reader CLOSED, no text-size control is on screen — the reader has to be opened just to change the words' size (DR-0698)`);
+    if (comfort.scrollY && !closedSizeOnScreen) fail(`${where}: scrolled into the lesson with the reader CLOSED, no text-size control is on screen — the reader has to be opened just to change the words' size (DR-0724)`);
     if (!comfort.scrollY) fail(`${where}: the page never scrolled — the mid-lesson state was not measured`);
     else if (!comfort.sizeCount) fail(`${where}: scrolled into the lesson, NO text-size control exists anywhere — the reader cannot change the words' size while reading (panel open: ${comfort.panelOpen})`);
     else if (!comfort.sizeReachable) fail(`${where}: scrolled into the lesson, ${comfort.sizeCount} text-size control(s) exist but none is on screen — viewport ${comfort.vh}px, controls: ${comfort.rects.join(' ')}`);
