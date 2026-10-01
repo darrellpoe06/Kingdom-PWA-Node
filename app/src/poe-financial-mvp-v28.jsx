@@ -5,7 +5,7 @@ import { SectionTitle, MetricCell, TabScroll, DmUnreadBadge } from './components
 // help registry every surface reads from. Small + always-present chrome, so it
 // rides the initial bundle rather than a lazy chunk.
 import LockedSurface from './components/LockedSurface.jsx'; import CreateSubNav from './components/CreateSubNav.jsx'; // Create's level-2 row (DR-0679)
-import HelpButton from './components/HelpButton.jsx';
+import HelpButton from './components/HelpButton.jsx'; import ArrivalsBell from './components/ArrivalsBell.jsx'; // every arrival counted (DR-0728)
 import HelpWalkthrough from './components/HelpWalkthrough.jsx';
 import { UpdatePrompt, InstallPrompt } from './components/PwaPrompts.jsx';
 import InstallAppButton from './components/InstallAppButton.jsx';
@@ -68,7 +68,6 @@ import { helperInterestText } from './lib/learn-framework.js';
 import { engagementFeedbackText, aggregateEngagementByAge } from './lib/learn-engagement.js';
 import { latestFinancialDocMs } from './lib/finance-activity.js';
 import PrivateGate from './components/PrivateGate.jsx';
-import NetworkStatus from './components/NetworkStatus.jsx';
 import TTSControl from './components/TTSControl.jsx';
 import FloatingPlayer from './components/FloatingPlayer.jsx';
 import TextSizeControl, { TextSizeEscapeHatch } from './components/TextSizeControl.jsx';
@@ -78,7 +77,6 @@ import HeaderAuthButton from './components/HeaderAuthButton.jsx';
 import PublicWelcome from './components/PublicWelcome.jsx';
 import Imported from './components/Imported.jsx';
 import { useBrowserHistoryNav, useHistoryToggle, initialBooksView, initialChurchView } from './lib/nav-history.js';
-import { useIdleReveal } from './lib/use-idle-reveal.js';
 import { isReviewerModeOn, ReviewerModeBanner } from './lib/reviewer-mode.jsx';
 import { onAuthChange, signOut } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback, newFeedbackId } from './lib/feedback-sync.js';
@@ -137,10 +135,13 @@ import VerifyBalances from './components/VerifyBalances.jsx';
 import { Home } from './components/BigPictureDashboard.jsx'; // the overview front door, or the Life Hub when the reader has chosen it
 import { dueDateFor, OPPORTUNITY_LIBRARY, matchOpportunities, capacityDecisionForNewProject } from './lib/opportunity-capacity.js';
 import { getAssignments, dispatchState, addAssignment, removeAssignment, markDone as markAssignmentDone, reopen as reopenAssignment, setPayout as setAssignmentPayout } from './lib/assignments.js';
-import { ChurchGiveFloater, ChurchGiveHeaderButton } from './components/ChurchGiving.jsx';
+import { ChurchGiveHeaderButton } from './components/ChurchGiving.jsx';
+import ChromeDock from './components/ChromeDock.jsx';
+import ComfortBarToggle from './components/ComfortBarToggle.jsx';
 import LiveWorshipBar from './components/LiveWorshipBar.jsx';
 import SectionBoundary from './components/SectionBoundary.jsx';
 import UiIcon from './components/UiIcon.jsx';
+import { BooksUploadButton, BooksUploadMount } from './components/BooksUploadButton.jsx';
 // Scroll-anchor primitive (same mechanism that powers reading-resume + the
 // font-size whiplash fix): capture the content element the reader is looking at,
 // let the sticky header change height, restore it to the same viewport spot — so
@@ -176,7 +177,7 @@ import { deriveAccountBalances, deriveEntityRollups, deriveDebts } from './lib/f
 import { createAccountsCrud } from './lib/books-accounts-crud.js';
 import { reconcileAccounts } from './lib/imported-view.js';
 import { TAX_CALENDAR_SEED } from './lib/tax-calendar-seed.js';
-import { payeeKey, applyCategoryToPayee } from './lib/categorize.js';
+import { payeeKey, applyCategoryToPayee, publishLedgerEditor } from './lib/ledger-edit.js';
 import { runVerifiedLedgerSync } from './lib/verified-ledger-sync.js';
 import { parseStatementText, isSpreadsheetFile, spreadsheetFileToCsv } from './lib/statement-import.js';
 import { matchServices } from './lib/matched-services.js';
@@ -1033,7 +1034,6 @@ export default function PoeFinancialSystem() {
   // fail-soft, signed-out no-op, aggregate-only to the governor (usage-events).
   useEffect(() => { recordView(view); }, [view]);
   const [feedbackOpen, setFeedbackOpen] = useState(false); // false | true | an area key to pre-pick
-  const feedbackReveal = useIdleReveal(); // idle-dim + reveal-on-scroll (Pattern 2d)
   // DR-0059 Phase 2 — a NEW non-family signed-in user gets a named welcome once,
   // instead of falling through to the family persona picker. Presentational only.
   const [selfServeWelcomeDismissed, setSelfServeWelcomeDismissed] = useState(() => {
@@ -3059,7 +3059,7 @@ export default function PoeFinancialSystem() {
       recordHistoryEvent({ recordKind: 'transaction', recordId: t.id, action: 'update', before: t, after: { ...t, category } });
     }
     return changed.length;
-  };
+  }; publishLedgerEditor({ updateTransaction, recategorizePayee, demo: isAnyDemoMode, transactions: data.transactions || [] }); // every surface edits through these two (lib/ledger-edit.js, DR-0710)
   const deleteTransaction = (idOrIds) => {
     // Accepts ONE id or an ARRAY. The dedupe removes THOUSANDS at once; firing that
     // many single cloud deletes floods the ~6-connection cap + rate limit so most
@@ -4153,7 +4153,9 @@ ${THEME_CSS}
               </h1>
               <div className="ts-chrome-region text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} <span className="text-[0.5rem] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end min-w-0 ts-chrome-region ts-escape-hatch bg-[#FAF8F4]">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end min-w-0 ts-chrome-region ts-escape-hatch header-comfort-row bg-[#FAF8F4]">
+              {/* "Hide ▾" / "Show controls ▴" when this row is the A44 bottom block (DR-0716; components/ComfortBarToggle.jsx). */}
+              <ComfortBarToggle />
               {/* GIVE, first in the row, on church surfaces only (rationale in components/ChurchGiving.jsx). */}
               {(churchBrand || view === 'church') && <ChurchGiveHeaderButton church={data.church} floaterPresent={view === 'church'} />}
               {/* Obvious top-right Log in / Log out box, like TLC, on every app (Darrell 2026-07-14). */}
@@ -4199,6 +4201,7 @@ ${THEME_CSS}
                 setChurchView={setChurchView}
                 setBooksView={setBooksView}
               />
+              <ArrivalsBell />
               {/* Large-print control (WCAG 1.4.4). Sits beside the theme swatches —
                   the two "make this comfortable to look at" controls live together.
                   Scales the whole app from one place; choice saved per device. */}
@@ -4366,15 +4369,14 @@ ${THEME_CSS}
               })}
         </TopNavRow>
         {view === 'books' && (
-          <div className="border-t border-[#E8E4DC] bg-white">
-            {/* Books sub-nav routes through the shared <TabScroll> primitive
-                (same fluid scroll as the main nav). `chrome` = .ts-chrome-region
-                caps the row via zoom while body text scales. */}
+          <div className="border-t border-[#E8E4DC] bg-white flex items-center">
+            {/* Books sub-nav: shared <TabScroll> (chrome caps the row via zoom); the ONE Upload sits top right on every sub-tab (DR-0709, components/BooksUploadButton.jsx). */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
                 {[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['owed','Owed'],['plan','Plan'],['transactions','Tx'],['imported','Imported'],['cart','Cart'],['k1099','1099s'],['taxes','Taxes'],['calendar','Calendar'],['legal', <><UiIcon name="lock" /> Legal</>]].filter(([id]) => !(id === 'imported' && !importedAllowed)).map(([id, label]) => (
                   <button key={id} onClick={() => setBooksView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${booksView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
             </TabScroll>
+            <BooksUploadButton />
           </div>
         )}
         {!authSession && churchBrandRoute && <PublicWelcome placement="top" />}{view === 'create' && <CreateSubNav viewer={surfaceViewer} surfaces={Object.values(surfaceById)} />}
@@ -4411,12 +4413,8 @@ ${THEME_CSS}
         {view === 'overview' && <SectionBoundary name="Overview"><Home setData={setData} setChurchView={setChurchView} data={data} addNote={addNote} snowballExtra={snowballExtra} totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} workerOps={workerOps} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} /></SectionBoundary>}
         {view === 'books' && (
           <PrivateGate area="Financial" onCancel={() => setView('overview')} onForgot={handleForgotPin}>
-          {/* Router-level backstop (2026-06-25): every Books sub-tab degrades to a
-              recoverable inline card instead of white-screening the whole app if it
-              throws on an unexpected data shape. Keyed by booksView so switching tabs
-              remounts a fresh boundary (a crash in one tab doesn't stick to the next).
-              Transactions keeps its own inner boundary too — defense in depth, and it
-              also catches that lazy chunk's load failures. */}
+          {/* Router-level backstop (2026-06-25): each Books sub-tab degrades to an inline card, keyed by booksView so a crash never sticks to the next tab. */}
+          <SectionBoundary name="Upload"><BooksUploadMount hint={booksView} data={data} debts={derivedDebts} demo={isAnyDemoMode || reviewerMode} commitImportedRows={commitImportedRows} addAccount={addAccount} updateAccount={updateAccount} /></SectionBoundary>
           <SectionBoundary key={booksView} name="Financial">
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} updateEntity={updateEntity} />}
             {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={visibleEntities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} setBufferTarget={setBufferTarget} totals={totals} ingestData={ingestData} accountReconciliation={accountReconciliation} transactions={data.transactions || []} categoryRules={data.categoryRules || {}} />}
@@ -4732,7 +4730,7 @@ ${THEME_CSS}
             setAgeBand={setLearnAgeBand}
             onEngagement={onLearnEngagement}
             submitHelper={submitHelper}
-            initialDept={churchView === 'eternal-algorithms' ? 'the-eternal-algorithms' : null} /* the retired Church route opens Learn on its department (DR-0432) */ eternalStudyProps={{ email: authSession?.user?.email, view, churchView, setView, setChurchView }}
+            initialDept={churchView === 'eternal-algorithms' ? 'the-eternal-algorithms' : null} /* the retired Church route opens Learn on its department (DR-0432) */ eternalStudyProps={{ email: authSession?.user?.email, view, churchView, setView, setChurchView }} signedIn={!!authSession} /* DR-0698: downloads ask a signed-out reader for an account */
           />;
         })()}
         {view === 'church' && churchView === 'conference' && (
@@ -5103,12 +5101,12 @@ ${THEME_CSS}
           />
         )}
 
-        {/* PoeTech platform footer — hidden in the focused church app (DR-0174). Reset-to-seed is steward/demo-only: never offer to overwrite a user's books with seed (REV-0239). */}
+        {/* PoeTech platform footer — hidden in the focused church app (DR-0174). Reset-to-seed is DEMO-only (DR-0713): it replaced the signed-in family's loaded ledger with SEED_DATA and saved that over this device's copy, and it showed under the real books. The guarded Admin action remains for the steward. */}
         {!authSession && churchBrandRoute && <PublicWelcome placement="end" />}
         {!churchDoorOnly && (
         <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden" data-read-skip>
           <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
-          {(isFamilyMember || isAnyDemoMode) && (<button type="button" onClick={resetToSeed} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4">Reset to seed data</button>)}
+          {isAnyDemoMode && (<button type="button" onClick={resetToSeed} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4">Reset to seed data</button>)}
         </footer>
         )}
         {!churchDoorOnly && view !== 'overview' && !(view === 'books' && booksView === 'debts') && (data.userTier === 'foundation' || !data.userTier) && (
@@ -5123,28 +5121,11 @@ ${THEME_CSS}
       <FloatingPlayer />
       <InstallPrompt />
       <UpdatePrompt />
-      <NetworkStatus />
-      {/* Round 15 — Persistent floating feedback button. Always reachable from
-          any tab; pre-fills the current view. Sits above TTS controls in the
-          stack. Hidden when the feedback modal is already open. */}
-      {!feedbackOpen && (
-        <button
-          type="button"
-          onClick={() => setFeedbackOpen(true)}
-          aria-label="Open feedback"
-          title="Tell us what's working / not working / missing"
-          // ts-chrome-region = no balloon; idle-reveal (2d). COMPACT WHEN IDLE (REV-0235): un-revealed = 48px circle so it stops occluding tappable content beneath; expands on reveal/hover/focus.
-          className={`ts-chrome-region fixed bottom-4 left-4 z-30 inline-flex items-center justify-center bg-[#B85838] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#B85838] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden transition-all duration-500 hover:opacity-100 focus:opacity-100 ${feedbackReveal ? 'px-4 py-3 opacity-100 translate-y-0' : 'p-0 w-12 h-12 opacity-40 translate-y-2'}`}
-          style={{ borderRadius: '999px' }}
-        >
-          💬{feedbackReveal ? ' Feedback' : ''}
-        </button>
-      )}
       {feedbackOpen && <FeedbackModal initialAreaKey={typeof feedbackOpen === 'string' ? feedbackOpen : null} onClose={closeFeedback} onSubmit={addFeedback} currentView={view} myFeedback={data.feedback || []} />}
-      {/* Give floater — Church surfaces only (bottom-right; Feedback owns
-          bottom-left). Links out to the congregation's own giving page + the
-          blessing of giving according to the Word. See components/ChurchGiving. */}
-      {view === 'church' && <ChurchGiveFloater church={data.church} />}
+      {/* THE BOTTOM BAR (DR-0716): Feedback, Give (Church only), the network
+          dot, Top and the read-aloud controls, in one bar; nothing floats over
+          the Word. See components/ChromeDock.jsx. */}
+      <ChromeDock onFeedback={() => setFeedbackOpen(true)} feedbackOpen={!!feedbackOpen} church={data.church} showGive={view === 'church'} />
     </div>
   );
 }

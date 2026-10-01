@@ -179,9 +179,23 @@ jobs:
           # by Darrell's two sign-ins and the Governor; only the service writes a
           # public row; no row without a passed gate over exactly its content.
           # The smoke opens the wall at the end and must SEE the leak it guards.
+          # Added 2026-09-30 (DR-0708): every table the app syncs is in the
+          # supabase_realtime publication, so an open screen hears a change made
+          # on another device. The NAS never received schema-v2.14's list; the
+          # ledger went unpublished and two family screens showed two ledgers.
+          - feature: realtime-publication
+            migrations: "0245-every-synced-table-tells-open-screens-when-it-changes.sql"
+            smokes: "0245-realtime-publication-smoke.sql"
           - feature: curriculum-preview
             migrations: "0242-the-lessons-have-a-home-on-the-nas-kept-in-step-with-the-code.sql"
             smokes: "0242-curriculum-preview-smoke.sql"
+          # Added 2026-10-01 (DR-0720): Add my voice. No sample without
+          # consent, each person reads only their own consent row, no client
+          # writes it, BG held, DP the Governor's, removal deletes the consent,
+          # the label list is the Governor's and carries no sample path.
+          - feature: voice-enrollment
+            migrations: "0248-a-person-adds-their-own-voice-and-can-take-it-back.sql"
+            smokes: "0248-voice-enrollment-smoke.sql"
           # Added 2026-07-30 (REV-0216 access-evaluation carried item): the
           # core-books ROLE wall. 0082 (child walled / successor read-only) and
           # 0100 (assistant walled) both shipped their DB gate but had NO live

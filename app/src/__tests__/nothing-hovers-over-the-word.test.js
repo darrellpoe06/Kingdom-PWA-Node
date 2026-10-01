@@ -34,6 +34,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { myVoiceLine, MY_VOICE } from '../lib/my-voice.js';
 
 const r = (p) => readFileSync(resolve(__dirname, p), 'utf8');
 const CHURCH_LEARN = r('../components/ChurchLearn.jsx');
@@ -158,7 +159,10 @@ describe('a notice does not hover at all — it lives inside the reader’s own 
 
 describe('a notice that tells the reader to do something NAMES WHERE', () => {
   it('the voice-sample notice names the Voice tab', () => {
-    expect(HOOK).toMatch(/Record a voice sample first in the Voice tab/);
+    // DR-0721: the sentence moved to lib/my-voice.js (one wording for the
+    // panel's status line and the notice), and still names the Voice tab.
+    expect(HOOK).toMatch(/myVoiceLine\(\{ name: voice\.name, status: MY_VOICE\.SAMPLE_MISSING \}\)/);
+    expect(myVoiceLine({ name: 'Darrell Poe', status: MY_VOICE.SAMPLE_MISSING })).toMatch(/Record or import it in the Voice tab/);
   });
 
   it('and now OFFERS the route instead of describing where to hunt for it', () => {
