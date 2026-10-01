@@ -39,6 +39,7 @@ import { hasBridgeToken } from './nas-photos.js';
 import { provisionBridgeToken } from './bridge-provision.js';
 import { setDownloadVoice } from './lesson-downloads.js';
 import { newReadingPin, deviceVoiceForPin, genderOfDeviceVoice } from './reading-voice-pin.js';
+import { createTripLog } from './reader-trip.js';
 
 /**
  * @param {object} opts
@@ -48,6 +49,13 @@ import { newReadingPin, deviceVoiceForPin, genderOfDeviceVoice } from './reading
 // The silent clip that unlocks the voice element inside the tap (DR-0654).
 const UNLOCK_WAV = silentWavDataUri(0.05);
 const pageHidden = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
+// TRIED AGAIN IN THE DARK (DR-0738; Darrell 2026-10-01: "It still stops when
+// in the background"). A piece that cannot be fetched while the screen is off
+// used to hold the reading at once, until the app was seen again; with the
+// keep-alive still playing, the same piece is asked for again, longer apart
+// each time, before the reading is held. A refusal to play without a tap is
+// never retried: no fetch can fix a gesture.
+export const DARK_RETRY_MS = [5000, 10000, 20000, 40000, 60000, 120000];
 const sentenceCase = (t) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
 
 export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverride } = {}) {
@@ -108,6 +116,22 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // playing in the background) or 'device' (the phone's Web Speech, which
   // Android stops when you switch apps). '' before the first read.
   const [audioVoice, setAudioVoice] = useState('');
+  // THE READING'S OWN TRIP LOG (DR-0738; lib/reader-trip.js): which voice,
+  // which sentence, the dark, every hand-off and retry, how it ended — kept
+  // on the device and said in one line in the panel, so a stop is measured.
+  const tripRef = useRef(null);
+  const trip = () => { if (!tripRef.current) tripRef.current = createTripLog(); return tripRef.current; };
+  const markVoice = useCallback((kind) => { setAudioVoice(kind); if (tripRef.current) tripRef.current.note('voice', { kind }); }, []);
+  // The retry is reached through a ref (the deviceRestRef pattern): it needs
+  // playLiteVoice, which is defined after the callbacks that call it.
+  const armDarkRetryRef = useRef(() => {});
+  // A piece that could not be had in the dark: the retry timer and its step.
+  const darkRetryRef = useRef({ timer: null, step: 0 });
+  const clearDarkRetry = () => {
+    const d = darkRetryRef.current;
+    if (d.timer) { try { clearTimeout(d.timer); } catch (_) { /* ignore */ } }
+    d.timer = null; d.step = 0;
+  };
   const setNotice = useCallback((msg, action = null) => {
     setNoticeRaw(msg);
     setNoticeAction(msg ? action : null);
@@ -336,12 +360,15 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   }, []);
 
   const stop = useCallback(() => {
+    clearDarkRetry();
+    heldLiteRef.current = '';
     silenceAudio();
     try { tts.stop(); } catch (_) {}
     readingPinRef.current = null;
     setCloudPlaying(false);
     setCloudPaused(false);
     if (bgRef.current) bgRef.current.stop();
+    trip().end('stopped');
   }, [tts, silenceAudio]);
 
   // Pause / continue must work in BOTH voices — a cloned-voice reading is an
@@ -469,6 +496,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // the lit sentence is not the one being heard.
     const chunks = chunkForClips(clean);
     if (!chunks.length || typeof Audio === 'undefined') return false;
+    trip().setPieces(chunks.length);
     // The NAS takes two syntheses at once and answers a third with 503 busy:
     // that is a wait, not a failure, so a busy piece is asked again shortly.
     const speakPiece = async (t, timeoutMs) => {
@@ -530,25 +558,29 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       onProgress: (f) => setCloudProgress(f),
       // The lock screen and the car show where in the lesson the voice is.
       onPosition: (pos) => { try { if (queueRef.current === q && bgRef.current) bgRef.current.setPosition(pos); } catch (_) { /* ignore */ } },
-      onPiece: (i) => { if (queueRef.current === q) setCloudPiece(i); },
-      onEnd: () => { if (queueRef.current === q) { queueRef.current = null; audioRef.current = null; setCloudPlaying(false); setCloudPaused(false); setCloudProgress(0); setCloudPiece(-1); } },
+      onPiece: (i) => { if (queueRef.current === q) { setCloudPiece(i); trip().note('piece', { i }); } },
+      onEnd: () => { if (queueRef.current === q) { queueRef.current = null; audioRef.current = null; setCloudPlaying(false); setCloudPaused(false); setCloudProgress(0); setCloudPiece(-1); trip().end('ended'); } },
       // A piece that cannot be had: the rest of the reading continues in the
       // device voice rather than stopping (and the panel says which voice).
-      onFallback: (rest, _i, reason) => {
+      onFallback: (rest, i, reason) => {
         if (queueRef.current !== q) return;
         queueRef.current = null; audioRef.current = null;
         setCloudPiece(-1);
         liteMissRef.current = reason || 'voice-lite-error';
         markLiteVoiceMiss(liteMissRef.current);
+        trip().note('fallback', { i, reason: liteMissRef.current, hidden: pageHidden() });
         // THE SCREEN IS OFF OR ANOTHER APP IS UP: never hand to Web Speech
         // (DR-0654). Android stops Web Speech in the background, so that
         // hand-off WAS the "stopped working in the background" report. The
         // place is held, the reading shows as paused, and it resumes in the
         // NAS voice the moment the page is seen again (or Play is pressed).
+        // Before it is only held, the piece is asked for again in the dark
+        // (DR-0738), with the keep-alive still playing, longer apart each time.
         if (pageHidden()) {
           heldLiteRef.current = rest || '';
           setCloudPlaying(true); setCloudPaused(true);
           try { if (bgRef.current) bgRef.current.setState('paused'); } catch (_) { /* ignore */ }
+          armDarkRetryRef.current(reason);
           return;
         }
         setCloudPlaying(false); setCloudProgress(0);
@@ -562,7 +594,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     queueRef.current = q;
     audioRef.current = a;
     setCloudPlaying(true); setCloudPaused(false); setCloudProgress(0);
-    setAudioVoice('audio');
+    markVoice('audio');
     if (whole) q.join(whole);
     const ok = await q.start();
     // CACHE-AHEAD: with the first piece playing, the rest of the reading comes
@@ -584,7 +616,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
         .catch(() => { /* a piece not kept is fetched when it is reached */ });
     }
     return ok || queueRef.current === null;
-  }, [liteVoiceFor, setNotice]);
+  }, [liteVoiceFor, setNotice, markVoice]);
 
   // THE ONE HAND-OFF TO THE DEVICE VOICE (DR-0654). Every path that moves a
   // reading from an audio voice to the phone's own voice comes through here:
@@ -595,6 +627,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // (a Fire TV) hears nothing from a hand-off, so it is told why instead.
   deviceRestRef.current = async (rest, reason) => {
     silenceAudio();
+    trip().note('handoff', { reason: reason || '' });
     const pin = readingPinRef.current || (readingPinRef.current = newReadingPin(liteVoiceFor()));
     // The voice list can still be empty on a cold phone; wait for it rather
     // than let the phone's default (any gender) take the reading.
@@ -602,7 +635,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     if (!voices.length && typeof window !== 'undefined' && window.speechSynthesis) {
       try { voices = await waitForVoices(window.speechSynthesis); } catch (_) { voices = []; }
     }
-    setAudioVoice('device');
+    markVoice('device');
     if (!tts.supported || !voices.length) {
       const why = String(reason || '').startsWith('studio') ? 'the studio clip failed' : liteVoiceReasonText(reason, { hasKey: hasBridgeToken() });
       setNotice(`The reading stopped: ${why}.`);
@@ -620,10 +653,12 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // that failed, once the page is seen (DR-0654). If the NAS voice still
   // cannot answer then, the page is visible, so the device voice may take it.
   resumeHeldRef.current = () => {
+    clearDarkRetry();
     const rest = heldLiteRef.current;
     if (!rest) return false;
     heldLiteRef.current = '';
     setCloudPaused(false);
+    trip().note('resumed', {});
     playLiteVoice(rest).then((played) => {
       if (played) return;
       setCloudPlaying(false); setCloudProgress(0);
@@ -631,9 +666,45 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     });
     return true;
   };
+  // TRIED AGAIN IN THE DARK (DR-0738). The held reading asks the NAS for its
+  // piece again while the screen is still off, DARK_RETRY_MS apart; a piece
+  // that comes continues the reading in the dark, and the trip says so. When
+  // every try has failed the reading stays held, as before, for the moment
+  // the app is seen. A refusal to play without a tap is never retried.
+  armDarkRetryRef.current = (reason) => {
+    const d = darkRetryRef.current;
+    if (isPlayRefusal(reason)) { trip().end('held', { reason }); return; }
+    if (d.step >= DARK_RETRY_MS.length) { trip().end('held', { reason }); return; }
+    const wait = DARK_RETRY_MS[d.step];
+    d.step += 1;
+    if (d.timer) { try { clearTimeout(d.timer); } catch (_) { /* ignore */ } }
+    d.timer = setTimeout(() => {
+      d.timer = null;
+      // Seen again meanwhile: the visible path resumes it. Stopped: nothing to do.
+      if (!pageHidden() || !heldLiteRef.current) return;
+      const rest = heldLiteRef.current;
+      heldLiteRef.current = '';
+      trip().note('retry', { step: d.step, wait });
+      playLiteVoice(rest).then((played) => {
+        if (played) {
+          d.step = 0;
+          setCloudPaused(false);
+          try { if (bgRef.current) bgRef.current.setState('playing'); } catch (_) { /* ignore */ }
+          trip().note('resumed-in-the-dark', {});
+          return;
+        }
+        // Still dark, still nothing: hold it again and wait longer. A failure
+        // past the first piece came through onFallback, which already re-armed.
+        if (!heldLiteRef.current) { heldLiteRef.current = rest; armDarkRetryRef.current(liteMissRef.current); }
+      });
+    }, wait);
+  };
   useEffect(() => {
     if (typeof document === 'undefined' || !document.addEventListener) return undefined;
-    const onVisible = () => { if (!pageHidden() && heldLiteRef.current) resumeHeldRef.current(); };
+    const onVisible = () => {
+      trip().note(pageHidden() ? 'hidden' : 'visible');
+      if (!pageHidden() && heldLiteRef.current) resumeHeldRef.current();
+    };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
@@ -731,10 +802,10 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     queueRef.current = q;
     audioRef.current = a;
     setCloudPlaying(true); setCloudPaused(false); setCloudProgress(0);
-    setAudioVoice('audio');
+    markVoice('audio');
     const ok = await q.start();
     return ok || queueRef.current === null ? { ok: true } : { error: 'play-refused' };
-  }, [studioHealth, setNotice, playLiteVoice]);
+  }, [studioHealth, setNotice, playLiteVoice, markVoice]);
 
   const read = useCallback(async (text, { title } = {}) => {
     const clean = String(text || '').trim();
@@ -744,6 +815,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // that reading and keeps its pin; a read from rest starts a new one.
     const continuing = readingNowRef.current && !!readingPinRef.current;
     if (!continuing) readingPinRef.current = newReadingPin(liteVoiceFor());
+    if (!continuing) { if (trip().open()) trip().end('left'); trip().start({ title: title || '' }); }
     setNotice('');
     setStandInWhy('');
     stopCloud();
@@ -856,7 +928,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
           setNotice('Read via the vendor bridge — a recorded gap; arming the church’s own voice studio closes it.');
         }
         try {
-          const a = new Audio(url); audioRef.current = a; setCloudPlaying(true); setCloudProgress(0); setAudioVoice('audio');
+          const a = new Audio(url); audioRef.current = a; setCloudPlaying(true); setCloudProgress(0); markVoice('audio');
           // The chosen speed applies to the clip from its first second, and a
           // device that refuses the rate says so instead of quietly reading slow.
           const rateApplied = applyClipRate(a, rateRef.current);
@@ -880,7 +952,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
             });
             if (f != null) setCloudProgress(f);
           };
-          a.onended = () => { setCloudPlaying(false); setCloudProgress(0); try { URL.revokeObjectURL(url); } catch (_) {} };
+          a.onended = () => { setCloudPlaying(false); setCloudProgress(0); try { URL.revokeObjectURL(url); } catch (_) {} trip().end('ended'); };
           // A mid-clip failure is NOT silence: hand the same text to the device
           // engine so the reader keeps hearing the lesson.
           a.onerror = () => {
@@ -913,7 +985,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       const played = await playLiteVoice(clean);
       if (played) return;
     }
-    setAudioVoice('device');
+    markVoice('device');
     if (!tts.supported) { setNotice('This device can’t read aloud — try a different browser.'); return; }
     // Close the cold-start gap: on a fresh mobile load the device voice list can
     // still be empty at the tap; a read resolved then falls to the raw OS default
@@ -1015,12 +1087,21 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       pin.gender = genderOfDeviceVoice(uri, deviceVoices) || pin.gender;
     }
     tts.speak(clean, uri, pitch);
-  }, [voiceId, personalVoices, sovereignVoiceReady, attemptStudio, studioHealth, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio, setNotice, playLiteVoice, liteVoiceFor, playMyVoice, savedOnDevice]);
+  }, [voiceId, personalVoices, sovereignVoiceReady, attemptStudio, studioHealth, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio, setNotice, playLiteVoice, liteVoiceFor, playMyVoice, savedOnDevice, markVoice]);
 
   // The OS media buttons drive the SAME controls the panel does — kept in a ref
   // so a lock-screen tap can never call a stale closure.
   ctrlRef.current = { pause, resume, stop };
   readingNowRef.current = !!(tts.isReading || cloudPlaying || heldLiteRef.current);
+  // A reading that ends without an 'ended' of its own (the phone's voice
+  // finishing, or the page left): the trip is closed once nothing has read
+  // for a moment, so a hand-off's short gap never closes it early.
+  const readingNow = readingNowRef.current;
+  useEffect(() => {
+    if (readingNow || !tripRef.current || !tripRef.current.open()) return undefined;
+    const t = setTimeout(() => { if (!readingNowRef.current && tripRef.current && tripRef.current.open()) tripRef.current.end('ended'); }, 1500);
+    return () => clearTimeout(t);
+  }, [readingNow]);
 
   return {
     supported: tts.supported,
@@ -1055,6 +1136,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // My voice, said plainly (DR-0721): { label, status, ready, line, ... } or null.
     myVoice,
     audioVoice,
+    // The last reading's trip, for the panel's one-line account (DR-0738).
+    lastTrip: () => trip().last(),
     // setNotice is exported so the panel can DISMISS a notice (2026-09-22).
     // Before this the only clear was at the start of the next read, so a
     // fault message stayed on top of the lesson indefinitely.
