@@ -34,3 +34,8 @@ A month heading is now a fold: tap it and its lessons close to one line that sti
 - `living-lessons-order.test.jsx`: on the real Learn tree, July's heading is sticky, folds on a tap (its count of rows leaves, June's L1 stays), opens again; fold-all leaves headings whose counts sum to the catalog and whose for-every-age counts sum to the derived number; the fold survives leaving and coming back.
 - `feature-presence` finds both controls; `ui-standards-set` and `consistency-guard` green.
 - Not measured here: the sticky heading on the Fold at Big Print. **re-review: 2026-10-08** against Darrell's screen.
+
+
+## Amendment 2026-10-01 — carried to the Latest lessons list
+
+Darrell, the same day, on Church > Learn > *Latest lessons, every course*, with three screenshots: *"October and September should stay at the top of the scroll with the count... remember... do you understand?"* The decision above had been built into the Church > The Word list only; `LatestLessons.jsx` (DR-0686) kept a plain heading that scrolled off with its first lesson, so by L203 the month and its two numbers were gone. The same heading now rides that list: sticky inside its scrolling `<ol>` with the list's own background, the whole row the fold, both of this list's numbers (lessons and readings) on it folded or open, a fold-all control, remembered on the device under `latest:every-course`. Controls registered (`learn-latest-month-fold`, `learn-latest-months-fold-all`). Proven in `lesson-age-versions-count.test.jsx`: the heading is sticky with the list background; a tap folds that month only and keeps both counts; fold all, open all, and the memory across a remount.
