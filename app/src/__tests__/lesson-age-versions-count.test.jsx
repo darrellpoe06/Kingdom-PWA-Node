@@ -128,6 +128,69 @@ describe('the Latest lessons header shows both numbers', () => {
   });
 });
 
+// THE MONTH STAYS AT THE TOP OF THE SCROLL, AND FOLDS (DR-0732, carried to this
+// list; Darrell 2026-10-01: "October and September should stay at the top of
+// the scroll with the count... remember"). Before this the heading scrolled off
+// with its first lesson.
+describe('the Latest lessons month heading stays at the top of the scroll, carries both counts, and folds', () => {
+  let container, root;
+  const courses = () => {
+    const dated = FIXTURE.filter((m) => m.id).map((m, i) => ({ ...m, title: m.id, added: i < 4 ? '2026-09-0' + (i + 1) : '2026-08-15' }));
+    return [{ key: 'fx', meta: { title: 'Fixture' }, schedule: dated }];
+  };
+  const mount = () => act(() => root.render(createElement(LatestLessons, { courses: courses(), onOpen: () => {} })));
+  const heading = (k) => container.querySelector(`li[data-month-heading="${k}"]`);
+  const fold = (k) => heading(k).querySelector('[data-testid="latest-month-fold"]');
+  const lessons = () => container.querySelectorAll('[data-testid="learn-latest-list"] li[data-lesson-id]').length;
+  const click = (el) => act(() => el.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+  beforeEach(() => { window.localStorage.clear(); container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container); });
+  afterEach(() => { act(() => root.unmount()); container.remove(); window.localStorage.clear(); });
+
+  it('each heading is sticky inside the scrolling list, with the list background, and the whole row is the fold', () => {
+    mount();
+    const sep = heading('month-2026-09');
+    expect(sep.className).toMatch(/\bsticky\b/);
+    expect(sep.className).toMatch(/\btop-0\b/);
+    expect(sep.className).toMatch(/bg-\[#FAF8F4\]/);
+    expect(container.querySelector('[data-testid="learn-latest-list"]').className).toMatch(/overflow-y-auto/);
+    const btn = fold('month-2026-09');
+    expect(btn.getAttribute('aria-expanded')).toBe('true');
+    expect(btn.getAttribute('aria-label')).toBe('September 2026, 4 lessons, 10 readings — fold this month');
+    expect(btn.className).toMatch(/min-h-\[44px\]/);
+  });
+
+  it('a tap folds that month only, keeps both counts on it, and a second tap opens it', () => {
+    mount();
+    expect(lessons()).toBe(6);
+    click(fold('month-2026-09'));
+    expect(lessons()).toBe(2);
+    expect(heading('month-2026-09').getAttribute('data-folded')).toBe('true');
+    expect(fold('month-2026-09').getAttribute('aria-expanded')).toBe('false');
+    expect(heading('month-2026-09').querySelector('[data-month-lessons]').textContent).toBe('4 lessons');
+    expect(heading('month-2026-09').querySelector('[data-month-readings]').textContent).toBe('10 readings');
+    expect(heading('month-2026-08').getAttribute('data-folded')).toBe('false');
+    click(fold('month-2026-09'));
+    expect(lessons()).toBe(6);
+  });
+
+  it('fold all leaves the headings with their counts; open all brings every lesson back; the fold is remembered', () => {
+    mount();
+    const all = () => container.querySelector('[data-testid="latest-months-fold-all"]');
+    expect(all().textContent).toBe('Fold all 2 months');
+    click(all());
+    expect(lessons()).toBe(0);
+    expect(container.querySelectorAll('li[data-month-heading]').length).toBe(2);
+    expect(all().textContent).toBe('Open all 2 months');
+    expect(JSON.parse(window.localStorage.getItem('poetech.lessonMonthFold.v1'))['latest:every-course'].sort()).toEqual(['month-2026-08', 'month-2026-09']);
+    act(() => root.unmount());
+    root = createRoot(container);
+    mount();
+    expect(lessons(), 'remembered across a remount').toBe(0);
+    click(all());
+    expect(lessons()).toBe(6);
+  });
+});
+
 describe('on the real catalog, the header equals the computed total', () => {
   const extraCourses = buildCatalogCourseDescriptors();
   const CATALOG = [...extraCourses, ...buildEternalProcessingCourses()];
