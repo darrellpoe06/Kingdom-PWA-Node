@@ -22,7 +22,16 @@
 // the DOM, because position is the entire complaint and the only thing that can
 // silently regress while every other test stays green.
 // =============================================================================
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+// ROOM TO BREATHE ON A STARVED RUNNER (2026-10-01). These tests mount the whole
+// Learn surface with the full catalog (206 lessons) and then walk the DOM. On
+// a quiet machine each takes well under a second; in CI shard 4/4, with the
+// runners starved (a 280 to 320 s shard), the same test crossed vitest's 5 s
+// default twice in one afternoon (#1935 at 13:55 UTC, #1938 at 14:29 UTC),
+// failing PRs that never touched the Learn tab. The work is real, not a hang,
+// so the limit is raised for this file; a true hang still fails at 20 s.
+vi.setConfig({ testTimeout: 20000 });
 import { createRoot } from 'react-dom/client';
 import { act } from 'react-dom/test-utils';
 import React from 'react';
