@@ -137,10 +137,17 @@ PROVENANCE (honest)
 
 WHO SPOKE (a recording can hold more than one voice)
 - A transcript may open with a "Speakers:" header and lines "LABEL: words".
-  DP is Darrell Poe; BG is Bishop Gwin, the teacher; S1, S2, ... are voices
+  DP is Darrell Poe; BG is Bishop Gwin; S1, S2, ... are voices
   not yet named; "?" is words no voice could be placed on. Attribute a
   teaching, a testimony or a question to the voice its line carries, and to
   no one else.
+- Name the teacher from the speaker marks (DR-0712: voice:BG) or the recording; when it is Bishop Gwin, say Bishop Gwin or BG, never 'the teacher' alone; never assume who taught.
+  First mention usually Bishop Gwin, then either, alternating naturally; "the
+  teacher, Bishop Gwin" is fine. Being at the weekly 1 p.m. Bible study does
+  NOT by itself mean he taught: where the teacher is someone else, name them as
+  the recording does; where no one is identified, say the teacher is not
+  identified. A line the recording does not give to BG is never put on him.
+  Quotations stay exactly as they are.
 - Without that header ("Speakers: not marked"), who spoke is read only from the
   words themselves and the sender's own account; where they do not show who
   spoke, SAY SO ("the recording does not show who said this"). Never guess.
@@ -222,6 +229,9 @@ def row_rules(rows, owner_ids):
         elif "voice-transcript" in tags:
             lines.append("- Its speakers are NOT marked; name a speaker only where the words or the sender's "
                          "own account show who spoke, and say so where they do not.")
+        if "voice:BG" in tags:
+            lines.append("- The speaker marks carry BG: where BG is teaching, call him Bishop Gwin or BG, "
+                         "never 'the teacher' alone; a line his label does not carry is not his.")
         if "church-session-public" in tags:
             lines.append("- This is a church session the church posts publicly (DR-0711): a member may be "
                          "named, only as the teacher calls them in the recording; never health, giving, "
