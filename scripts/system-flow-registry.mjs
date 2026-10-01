@@ -837,6 +837,11 @@ const NODES = [
     id: 'nas-email-door', name: 'Email door (sign-in mail from our own stack)', purpose: 'Wires the sovereign stack’s mail sender from the one secret only Darrell mints.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'nas:smtp', token: 'SMTP' }], seeds: ['supabase'],
   }),
+  wf('nas-claude-login.yml', {
+    id: 'nas-claude-login', name: 'Sign the Claude CLI in on the NAS (remote hands)',
+    purpose: 'Drives the CLI sign-in on the NAS under a pseudo-terminal from the runner, so the lesson builder’s primary writer is ready; only the sign-in URL and the one-time code pass through (DR-0669 writer; Darrell 2026-10-01 "You do it... cli... ssh").',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'nas:claude-signin', token: 'claude_login.py' }], seeds: ['lesson-builder'],
+  }),
   wf('nas-user-rescue.yml', {
     id: 'nas-user-rescue', name: 'Get a locked-out family member back in', purpose: 'Clears a PIN or resets a password on the live stack, by dispatch.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'auth:users', token: 'reset_password.sh' }], seeds: ['supabase'],
@@ -1151,6 +1156,7 @@ const RESOURCES = {
   'nas:smtp': { label: 'the sign-in mail sender' },
   'nas:storage': { label: 'the live file storage' },
   'nas:agent-credential': { label: 'the NAS agent’s credential' },
+  'nas:claude-signin': { label: 'the Claude CLI’s sign-in on the NAS (dpoe)' },
   'nas:scribe-queue': { label: 'Scribe recordings waiting' },
   'nas:scribe-minutes': { label: 'Scribe transcripts + minutes' },
   'http:scribe-results': { label: 'what each recording became, read back', route: '/scribe' },
