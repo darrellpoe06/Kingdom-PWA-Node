@@ -1,6 +1,6 @@
 // @vitest-environment node
 // =============================================================================
-// L202 — Prepared Before the Position — Homecoming, Legacy, Good Success, and
+// L202 — Prepared Before the Position — Homecoming, Mary Gwin's Legacy, Good Success, and
 // Represent (DR-0690)
 // =============================================================================
 // Darrell recorded a Bible study class inside the PoeTech app, in Thinking Space,
@@ -8,7 +8,8 @@
 // naming the teaching for Bishop Gwin. Whisper transcribed it on the NAS CPU
 // rung (agent_inbox aed9557b-333e-4152-adbc-de0f9e695793, 16,511 characters).
 // The transcript never names the teacher, marks no speakers, and begins
-// partway through the message; the lesson says so. Every quoted span is the
+// partway through the message; the lesson says so, and names who spoke from the
+// recording's context, Darrell's own account and Bishop Gwin's notes (DR-0711). Every quoted span is the
 // verse it names (the repo's scanQuotedVerses), and the teacher's own points
 // are pinned in the order he gave them.
 import { describe, it, expect } from 'vitest';
@@ -23,6 +24,7 @@ import { measureFullness, FULL_BANDS, FULL_FLOOR } from '../../../scripts/full-l
 import { measureLesson, isInverted, breachesChildCeiling, NEW_LESSON_CHILD_CEILING } from '../../../scripts/reading-level.mjs';
 import { measureDifferentiation, DIFF_CEILING } from '../../../scripts/band-differentiation.mjs';
 import { namesItsLesson } from '../../../scripts/title-in-narrative.mjs';
+import { buildLessonIndex, searchLessons } from '../lib/learn-organize.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const KJV = join(HERE, '..', '..', 'public', 'bible', 'kjv');
@@ -55,7 +57,7 @@ const MOVEMENTS = [
 describe('L202 is really in the series', () => {
   it('carries all the fields, four authored bands, a quiz, and facilitator points', () => {
     const m = L();
-    expect(m.title).toBe('Prepared Before the Position — Homecoming, Legacy, Good Success, and Represent');
+    expect(m.title).toBe("Prepared Before the Position — Homecoming, Mary Gwin's Legacy, Good Success, and Represent");
     for (const f of ['bigIdea', 'inApp', 'lesson']) expect(typeof m[f]).toBe('string');
     for (const r of ['Psalms 145:4', 'Exodus 17:9', 'Exodus 24:13', 'Numbers 27:18', 'Deuteronomy 34:9', 'Joshua 1:8', 'Luke 6:46', 'Romans 8:35']) expect(m.anchor.ref).toContain(r);
     expect(m.quiz.questions).toHaveLength(8);
@@ -103,8 +105,166 @@ describe('provenance is said plainly (DR-0331: render for meaning, never guess)'
     expect(manifest).toContain('Bishop Lloyd E. Gwin');
   });
 
-  it('the class members are not named: the transcript does not mark who spoke', () => {
-    for (const name of ['Mosley', 'Janelle', 'Christiana', 'Evangelist Queen']) expect(ALL().includes(name), name).toBe(false);
+  it('the three witnesses are named: the in-app recording, Darrell\'s own account, and Bishop Gwin\'s notes', () => {
+    const l = L().lesson;
+    expect(l).toContain('the speakers were identified from the recording\'s context and Darrell\'s own account');
+    expect(l).toContain('name the message Once a Christian, Always a Christian');
+    expect(l).toContain('The recording opens inside the second.');
+    for (const b of BANDS()) expect(b).toMatch(/Once a Christian, Always a Christian|Bishop Gwin taught the class/);
+    // The old line said the class stays unnamed; it must not come back beside the names.
+    expect(ALL()).not.toMatch(/stay unnamed|kept unnamed|are not named because/);
+  });
+});
+
+// WHO SAID WHAT (DR-0711). Darrell 2026-09-30: "Differentiate between speakers...
+// Bishop Gwin is BG... Darrell Poe is DP... Other congregation members are called
+// by BG..." and, deciding the privacy question (DR-0711): the church posts these
+// sessions publicly, so members are named as Bishop Gwin calls them. Every name
+// is pinned to the words the recording attaches it to, never guessed onto a voice.
+const SPEAKER_PINS = [
+  // [band or 'lesson', a sentence fragment that must carry the speaker]
+  ['lesson', 'Bishop Gwin gave his own testimony. He always wanted to succeed'],
+  ['lesson', 'Darrell Poe (DP) said that people used to think the human brain'],
+  ['lesson', 'Darrell Poe (DP), who works in technology, said his son asked him'],
+  ['lesson', 'Janelle, called by name just before she spoke, told of a university chancellor'],
+  ['lesson', 'Names were said aloud in the room: Elder Mosley; Evangelist Gwin, as best the recording can be read (the machine wrote Evangelist Queen)'],
+  ['lesson', 'the story of Christina, Darrell\'s wife (the machine wrote Christiana), who takes classes at the University of Illinois'],
+  ['lesson', 'the recording does not mark who told about Christina. The rule that followed is Darrell Poe\'s (DP), by his own account'],
+  ['lesson', 'Someone in the congregation answered with the Word, and the recording does not show the name: "let God be true'],
+  ['lesson', 'DP went on: you cannot read a few verses and think you have it, you have to stay in it'],
+  ['youth', 'Bishop Gwin told his own story. He always tried to win his own way.'],
+  ['youth', 'SEVEN. STAY IN THE WORD. DP, Darrell Poe, said people used to believe'],
+  ['youth', 'Janelle told about a university chancellor'],
+  ['youth', 'Someone in the congregation added, and the recording does not show the name, "let God be true'],
+  ['youth', 'DP gave the rule that goes with it: AI will tell you it makes mistakes'],
+  ['youth', 'DP added that you read a passage one year'],
+  ['teen', 'Bishop Gwin admitted he chased success on his own terms'],
+  ['teen', 'DP noted that scientists once believed'],
+  ['teen', 'Janelle quoted a university chancellor'],
+  ['teen', 'a practical rule DP gave, by his own account'],
+  ['teen', 'DP added that you can reread a passage a year later'],
+  ['senior', 'Bishop Gwin testified that he long wanted'],
+  ['senior', 'DP observed that it was once generally believed'],
+  ['senior', 'Janelle recalled a university chancellor'],
+  ['senior', 'a caution for a new age that DP gave, by his own account'],
+  ['senior', 'DP confessed what long readers know'],
+  ['child', 'Bishop Gwin told the class he tried to win his own way.'],
+  ['child', 'Darrell said that long ago, people thought'],
+  ['child', 'Janelle told about a school leader who wants to be a good ancestor.'],
+  ['child', 'Darrell said we must check what a computer tells us'],
+  ['child', 'He told the class he used AI to build it: 50 courses and 750 lessons.'],
+  ['youth', 'DP told the class he used AI to build its 50 courses and 750 lessons.'],
+  ['teen', 'DP told the class he used AI to build the app\'s 50 courses and 750 lessons.'],
+  ['senior', 'DP told the class he used AI to build the app\'s 50 courses and 750 lessons.'],
+  ['lesson', 'DP told the class he used AI to build the app\'s 50 courses and 750 lessons; the recording carries the numbers'],
+];
+const textOf = (m, where) => (where === 'lesson' ? m.lesson : m.levels[where]);
+function speakerFaults(m) {
+  const faults = [];
+  for (const [where, frag] of SPEAKER_PINS) if (!textOf(m, where).includes(frag)) faults.push(`${where}: ${frag}`);
+  // A name the recording shows only in one place may not wander onto other words.
+  const all = [m.lesson, ...FULL_BANDS.map((b) => m.levels[b])].join(' ');
+  for (const s of all.split(/(?<=[.!?])\s+/)) {
+    if (/\bJanelle\b/.test(s) && !/chancellor|school leader|good ancestor/.test(s)) faults.push(`Janelle off her words: ${s.slice(0, 80)}`);
+    if (/\bChristina\b/.test(s) && !/University of Illinois|big school|who told about Christina|Christina's mother|his wife Christina|Darrell and Christina|now directs the choir|had Christina (enroll|sign) him/.test(s)) faults.push(`Christina off her words: ${s.slice(0, 80)}`);
+    if (/\bChristiana\b/.test(s) && !/the machine wrote Christiana/.test(s)) faults.push(`the machine's spelling used as a name: ${s.slice(0, 80)}`);
+    if (/\bMosley\b/.test(s) && !/said (aloud|out loud)|named aloud|names were said/i.test(s)) faults.push(`a forebear's name off its line: ${s.slice(0, 80)}`);
+    if (/\b150\b/.test(s)) faults.push(`a count the recording does not carry: ${s.slice(0, 80)}`);
+    if (/Evangelist Queen/.test(s) && !/the machine wrote Evangelist Queen/.test(s)) faults.push(`the machine's hearing used as a name: ${s.slice(0, 80)}`);
+  }
+  // The garbled third name is never guessed into a spelling.
+  if (/Osia|Mama\b/.test(all)) faults.push('a garbled name was guessed');
+  return faults;
+}
+
+describe('the teacher is named: Bishop Gwin or BG, never "the teacher" alone (Darrell, 2026-10-01)', () => {
+  const bareTeacher = (m) => {
+    const hits = [];
+    for (const [where, text] of quotedTexts(m)) {
+      for (const r of String(text).matchAll(/\b[Tt]he teacher(?:'s|’s)?,? ?(\S*(?: \S+)?)/g)) {
+        if (!/^(Bishop Gwin|BG)\b/.test(r[1])) hits.push(`${where}: ${String(text).slice(Math.max(0, r.index - 40), r.index + 40)}`);
+      }
+    }
+    return hits;
+  };
+  it('no field of L202 says "the teacher" unless "Bishop Gwin" or "BG" follows', () => {
+    expect(bareTeacher(L())).toEqual([]);
+  });
+  it('PROVEN-TO-CATCH: a planted bare "the teacher" fires, and "the teacher, Bishop Gwin" does not', () => {
+    expect(bareTeacher({ ...L(), lesson: `${L().lesson} The teacher said it again.` }).length).toBe(1);
+    expect(bareTeacher({ ...L(), lesson: `${L().lesson} The teacher, Bishop Gwin, said it again.` })).toEqual([]);
+  });
+});
+
+describe('the finder finds L202 by Mary Gwin (Darrell, 2026-09-30: "so people can find it easily")', () => {
+  it('the title carries her name and the id never changed, so saved places, progress, shares and dates keep working', () => {
+    expect(L().title).toContain("Mary Gwin's Legacy");
+    expect(L().id).toBe(ID);
+    expect(LIVING_LESSONS_ADDED[ID]).toBe('2026-09-30');
+  });
+  it('"Mary Gwin", "Gwin", "E-MEG" and "Evangelist Mary E. Gwin" each return L202', () => {
+    const index = buildLessonIndex([{ key: 'living-lessons', meta: { title: 'Living Lessons' }, schedule: LIVING_LESSONS_MODULES }]);
+    for (const q of ['Mary Gwin', 'Gwin', 'E-MEG', 'Evangelist Mary E. Gwin']) {
+      const ids = searchLessons(index, q).map((e) => e.lessonId);
+      expect(ids, q).toContain(ID);
+    }
+    expect(searchLessons(index, 'Mary Gwin')[0].lessonId, 'her name in the title ranks L202 first').toBe(ID);
+    // PROVEN-TO-CATCH: without the tags, "E-MEG" finds nothing, so the check can fail.
+    const bare = LIVING_LESSONS_MODULES.map((m) => (m.id === ID ? { ...m, tags: [] } : m));
+    const bareIndex = buildLessonIndex([{ key: 'living-lessons', meta: { title: 'Living Lessons' }, schedule: bare }]);
+    expect(searchLessons(bareIndex, 'E-MEG').map((e) => e.lessonId)).not.toContain(ID);
+  });
+});
+
+describe('who said what: BG, DP, and the members as Bishop Gwin calls them (DR-0711)', () => {
+  it('every speaker is pinned to the words the recording attaches to them', () => {
+    expect(speakerFaults(L())).toEqual([]);
+  });
+
+  it('her service, by Darrell\'s own account (2026-10-01): the choir, adult education, Parkland College, the MBA', () => {
+    // Darrell: "Mary Gwin was also the choir director and taught Christina who is now the
+    // director... she was also an adult education teacher... had my wife enroll me into
+    // Parkland College to get my associates degree etc... I ended up getting my MBA-IT".
+    for (const t of [L().lesson, ...BANDS()]) {
+      for (const must of ['choir director', 'Christina, who now directs the choir', 'adult education', 'Parkland College', 'MBA', 'rent-to-own stores']) expect(t, must).toContain(must);
+      expect(t).toMatch(/Darrell( told us more about her after the class| added more|'s own account)/);
+      expect(t).toMatch(/thank(s)? (to )?Yahweh/);
+    }
+  });
+
+  it('Evangelist Mary E. Gwin is honored in every band and the full lesson (Darrell, 2026-09-30)', () => {
+    // Darrell: "Make sure Bishop Gwin and my wife Christina's mother BG's late wife
+    // is named in this lesson she made sure I went back to school to get my degree
+    // and also sent me and my wife on my first development training to build the
+    // church website" / "Mary Gwin the churches south campus building is named
+    // after her". Her title and the building's name are the church's own.
+    for (const t of [L().lesson, ...BANDS()]) {
+      expect(t).toContain('Evangelist Mary E. Gwin');
+      expect(t).toContain('E-MEG Christian Center');
+      const at = t.indexOf('Evangelist Mary E. Gwin');
+      const around = t.slice(Math.max(0, at - 200), at + 700);
+      for (const must of [/Bishop Gwin's (late )?wife/, /Christina's mother/, /school/, /website/]) expect(around, String(must)).toMatch(must);
+    }
+    expect(L().lesson).toContain('its south campus building bears her name');
+    expect(L().lesson).toContain('Evaluate, Meet, Enrich, Glorify');
+    expect(L().lesson).toContain('business and IT education');
+  });
+
+  it('Romans 3:4 is a member of the congregation, never handed to a named voice the recording does not show', () => {
+    for (const t of [L().lesson, ...BANDS()]) {
+      for (const s of t.split(/(?<=[.!?])\s+/)) {
+        if (/let God be true/.test(s)) expect(s, s).toMatch(/Someone in the congregation/);
+      }
+    }
+  });
+
+  it('PROVEN-TO-CATCH: a name moved onto other words, a dropped speaker, and a guessed name each fire', () => {
+    const moved = { ...L(), lesson: L().lesson.replace('Bishop Gwin gave his own testimony.', 'Janelle gave her own testimony.') };
+    expect(speakerFaults(moved).length).toBeGreaterThan(0);
+    const dropped = { ...L(), levels: { ...L().levels, teen: L().levels.teen.replace('DP noted that scientists', 'A member noted that scientists') } };
+    expect(speakerFaults(dropped).length).toBeGreaterThan(0);
+    const guessed = { ...L(), lesson: `${L().lesson} Osia Mama was there.` };
+    expect(speakerFaults(guessed).length).toBeGreaterThan(0);
   });
 });
 
@@ -183,7 +343,7 @@ describe('the teaching is taught in the order it was given, and in our voice', (
 
   it('the teacher’s own numbering is kept: legacy was point three, success point four, represent the last', () => {
     const l = L().lesson;
-    expect(l).toContain('This was the teacher\'s third point');
+    expect(l).toContain("This was BG's third point");
     expect(l).toContain('SIX. YAHWEH DEFINES SUCCESS. This was the fourth point.');
     expect(l).toContain('The last point was one word: represent.');
   });
@@ -206,7 +366,7 @@ describe('the teaching is taught in the order it was given, and in our voice', (
     expect(L().lesson).toContain('the rod of God in mine hand" (Exodus 17:9)');
   });
 
-  it('PROVEN-TO-CATCH: a planted generic name, a misquote, a wrong reference, a dropped movement, and a named class member each fire', () => {
+  it('PROVEN-TO-CATCH: a planted generic name, a misquote, a wrong reference, and a dropped movement each fire', () => {
     const planted = { ...L(), lesson: `${L().lesson} God prepared Joshua.` };
     expect(quotedTexts(planted).map(([, t]) => t).join(' ').replace(/"[^"]*"/g, ' ').match(/\bGod\b/g)).not.toBe(null);
     const misquote = { ...L(), lesson: L().lesson.replace('then thou shalt have good success" (Joshua 1:8)', 'then thou shalt have great success" (Joshua 1:8)') };
@@ -217,8 +377,7 @@ describe('the teaching is taught in the order it was given, and in our voice', (
     expect(scanQuotedVerses([wrongRef], quotedTexts).faults.length).toBeGreaterThan(0);
     const dropped = L().lesson.replace('FIVE. THE HAND LAID ON IN PUBLIC.', 'FIVE.');
     expect(dropped.indexOf('FIVE. THE HAND LAID ON IN PUBLIC.')).toBe(-1);
-    const named = { ...L(), lesson: `${L().lesson} Janelle said it.` };
-    expect(quotedTexts(named).map(([, t]) => t).join(' ').includes('Janelle')).toBe(true);
+    
   });
 });
 
@@ -240,5 +399,117 @@ describe('the register is ordered, and measured rather than asserted', () => {
   it('every band names its own lesson near its start', () => {
     const m = L();
     for (const b of FULL_BANDS) expect(namesItsLesson(m.title, m.levels[b]), b).toBe(true);
+  });
+});
+
+// HOW THIS LESSON CAME TO YOU (DR-0727). Darrell, 2026-10-01: explain in the
+// lesson how the class is also captured on video, how the build takes the
+// channel's transcription and cross-references it with the in-app recording,
+// "to describe how Yahweh helps us help us", that it adds to The Love Corner on
+// its own, "the sound steps so it's known... so it can spark a person to get
+// involved and or help build", and "explain the build and what it does vs what
+// we want and we expect and will make sure it's accomplished and He is pleased".
+// The witness run for 2026-09-30 (church-video-witness, run 36798050879) found
+// 0 channel rows: the video was not posted when the lesson was built. The
+// lesson says exactly that, never that the check happened.
+describe('L202 tells the sound\'s steps: what the build does today, what we want, and that He is pleased', () => {
+  const TEXTS = () => [L().lesson, ...BANDS()];
+
+  it('every reading walks the steps: record in the app, our own machine, words, the Word checked, five readings, both apps', () => {
+    for (const t of TEXTS()) {
+      expect(t).toContain('HOW THIS LESSON CAME TO YOU');
+      expect(t).toMatch(/pressed record (in|inside) the PoeTech app/);
+      expect(t).toMatch(/our own (machine|computer) at (home|our own house)|a computer at our own house/);
+      expect(t).toMatch(/not to a (company's cloud|big company)|never to a company's cloud/i);
+      expect(t).toMatch(/five ways/);
+      expect(t).toContain('The Love Corner');
+    }
+  });
+
+  it('tells the truth about the video: the church posts it, the check is wanted, and it had not run yet for this class', () => {
+    for (const t of TEXTS()) {
+      expect(t).toMatch(/video channel/);
+      expect(t).toMatch(/(not been posted|not posted|not up) yet/);
+      expect(t).toMatch(/still wait/);
+      expect(t).not.toMatch(/the video (was|has been) (read|checked|compared)|we checked the video/i);
+    }
+  });
+
+  it('says what we want and expect, that it will be accomplished, and that He is pleased, in every reading', () => {
+    for (const t of TEXTS()) {
+      expect(t).toMatch(/[Ww]hat we want/);
+      expect(t).toMatch(/make sure it (is accomplished|is finished|gets done)/);
+      expect(t).toMatch(/pleases Him|Yahweh (to be|is) pleased/);
+      expect(t).toMatch(/Yahweh help(s|ing) us help (one another|each other)/);
+      expect(t).toMatch(/get involved|help build/);
+    }
+  });
+
+  it('grounds the help in Galatians 6:2, quoted from the King James text', () => {
+    const want = verse('Galatians', 6, 2).replace(/\s+/g, ' ').trim().replace(/\.$/, ''); // the house quotes drop the closing period before the reference
+    for (const t of TEXTS()) expect(t).toContain(want);
+  });
+});
+
+// THE LEARNING CENTER (Darrell, 2026-10-01: "explain I'm building a Word first
+// digit learn center... with all subjects... list the current ones... so it
+// sparks curiosity"). The numbers are a dated snapshot read from the live
+// registry on 2026-10-01 (learnDepartments(buildCatalogCourseDescriptors()):
+// 12 departments, 43 courses, 593 lessons), and every reading says "when this
+// was written", so a catalog that grows does not make the lesson lie.
+describe('L202 names the Word-first learning center and its departments, so a reader is drawn to look', () => {
+  const TEXTS = () => [L().lesson, ...BANDS()];
+  const DEPARTMENTS = ['Living Lessons', 'Real Estate', 'Stock Market', 'Project Management', 'Business', 'History', 'Mathematics', 'Development', 'A.I. The Way', 'Serve the House'];
+
+  it('every reading says what is being built and gives the dated count', () => {
+    for (const t of TEXTS()) {
+      expect(t).toMatch(/learning center/);
+      expect(t).toMatch(/twelve departments, 43 courses and 593 lessons/);
+      expect(t).toMatch(/When (this|we)( lesson)? (was|wrote)/);
+      expect(t).toMatch(/five (readings|ways)/);
+      expect(t).toMatch(/More is added/);
+    }
+  });
+
+  it('the adult, youth, teen and senior readings list the departments by name', () => {
+    for (const t of [L().lesson, L().levels.youth, L().levels.teen, L().levels.senior]) {
+      for (const d of DEPARTMENTS) expect(t, d).toContain(d);
+      expect(t).toContain('The Word & The Way');
+      expect(t).toContain('Kingdom Life & Stewardship');
+    }
+  });
+
+  it('the child reading names the subjects in a child\'s words', () => {
+    const c = L().levels.child;
+    for (const w of ['reading and counting', 'math', 'history', 'banks and stocks', 'houses and land', 'A.I.', 'sound and the cameras']) expect(c).toContain(w);
+  });
+});
+
+// THE CODE (Darrell, 2026-10-01, on Numbers 27:20): "Yahweh wanted it public,
+// before the priest and the whole congregation, so that everyone would know
+// Joshua was the next leader. More importantly... so the children of Israel may
+// be obedient... it's a code" and "Leaders need to follow the code of conduct
+// inside the Word." The verse is quoted verbatim in every reading; the teaching
+// is attributed to Darrell, given after the class, never to the recording.
+describe('L202 reads Numbers 27:20 for its code: the purpose clause, kept by leaders', () => {
+  it('every reading quotes Numbers 27:20 verbatim and names the code', () => {
+    // The code is the verse's own purpose clause; the teen reading opens its
+    // quotation at "thou shalt", so the clause (verbatim) and the reference are
+    // what every reading must carry. scanQuotedVerses still checks each span.
+    const clause = verse('Numbers', 27, 20).split(', that ')[1].replace(/\.$/, '');
+    for (const t of [L().lesson, ...BANDS()]) {
+      expect(t).toContain('that ' + clause);
+      expect(t).toContain('(Numbers 27:20)');
+      expect(t).toMatch(/Darrell (calls|says) (that|this is) a code/);
+      expect(t).toMatch(/Leaders follow the code of conduct inside the (Word|Bible)/);
+    }
+  });
+  it('the adult and senior readings carry both of his reasons, public knowledge and obedience, in his order', () => {
+    for (const t of [L().lesson, L().levels.senior]) {
+      const a = t.indexOf('so that everyone would know Joshua was the next leader');
+      const b = t.indexOf('more importantly, the verse');
+      expect(a).toBeGreaterThan(0);
+      expect(b).toBeGreaterThan(a);
+    }
   });
 });

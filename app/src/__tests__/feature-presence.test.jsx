@@ -57,6 +57,7 @@ const { default: HeaderAuthButton } = await import('../components/HeaderAuthButt
 const { default: ReadingVoiceControl } = await import('../components/ReadingVoiceControl.jsx');
 const { default: HelpButton } = await import('../components/HelpButton.jsx');
 const { default: ArrivalsBell } = await import('../components/ArrivalsBell.jsx');
+const { default: ContactsImport } = await import('../components/ContactsImport.jsx');
 const { default: TopNavRow } = await import('../components/TopNavRow.jsx');
 const { ChurchGiveFloater, ChurchGiveHeaderButton } = await import('../components/ChurchGiving.jsx');
 const { BooksUploadButton, BooksUploadMount } = await import('../components/BooksUploadButton.jsx');
@@ -204,6 +205,19 @@ const WALKS = {
     click(host.querySelector('[data-testid="books-upload-button"]'));
     for (let i = 0; i < 80 && !document.querySelector('[data-testid="books-upload-panel"]'); i++) await settle(25);
     look(document.body);
+  },
+  messages: async (look) => {
+    // A phone that has the Contact Picker, so the pick button renders too; then
+    // a real .vcf goes through the file door so the preview's controls exist.
+    const nav = { contacts: { select: async () => [], getProperties: async () => ['name', 'tel', 'email'] } };
+    const { host } = mount(createElement(ContactsImport, { roster: [], nav }));
+    look(host);
+    const input = host.querySelector('[data-testid="contacts-upload-vcf"]');
+    const file = new File(['BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Sister Ann\r\nTEL;TYPE=CELL:217-555-0101\r\nEND:VCARD\r\n'], 'contacts.vcf', { type: 'text/vcard' });
+    Object.defineProperty(input, 'files', { value: [file], configurable: true });
+    act(() => { input.dispatchEvent(new Event('change', { bubbles: true })); });
+    for (let i = 0; i < 80 && !host.querySelector('[data-testid="contacts-import-preview"]'); i++) await settle(25);
+    look(host);
   },
 };
 
