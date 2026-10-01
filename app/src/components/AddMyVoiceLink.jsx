@@ -6,9 +6,10 @@
 // profile) in the quiet Modal, so a person can add their voice right where
 // they see S1, S2 in a transcript.
 // =============================================================================
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import Modal from './Modal.jsx';
-import AddMyVoice from './AddMyVoice.jsx';
+// Loaded only when the button is tapped (the recorder and Your lessons stay light).
+const AddMyVoice = lazy(() => import('./AddMyVoice.jsx'));
 
 export default function AddMyVoiceLink({ line = 'Recorded in a class? Add your voice so your name shows beside your words.' }) {
   const [open, setOpen] = useState(false);
@@ -25,7 +26,7 @@ export default function AddMyVoiceLink({ line = 'Recorded in a class? Add your v
       </button>
       <Modal open={open} onClose={() => setOpen(false)} label="Add my voice" maxWidthClass="max-w-md">
         <div className="p-4 bg-white text-[#1A1815]">
-          {open && <AddMyVoice />}
+          {open && <Suspense fallback={null}><AddMyVoice /></Suspense>}
         </div>
       </Modal>
     </div>

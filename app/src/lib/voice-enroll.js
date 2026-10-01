@@ -180,11 +180,15 @@ export async function removeMyVoice({ supabase }) {
   };
 }
 
-/** The Governor's label list (never a vector, never a path); [] for anyone else. */
+/**
+ * The Governor's label list (never a vector, never a path). The database
+ * decides who the Governor is: { governor: true, labels } when it answers,
+ * { governor: false, labels: [] } for anyone it refuses.
+ */
 export async function loadVoiceLabels({ supabase }) {
   try {
     const { data, error } = await supabase.rpc('voice_enrollment_labels');
-    if (error || !Array.isArray(data)) return [];
-    return data;
-  } catch (_) { return []; }
+    if (error || !Array.isArray(data)) return { governor: false, labels: [] };
+    return { governor: true, labels: data };
+  } catch (_) { return { governor: false, labels: [] }; }
 }

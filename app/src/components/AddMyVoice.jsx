@@ -23,7 +23,6 @@ import {
 import { useWorkflowScribe, buildConsent, takeVerdict, formatBytes } from '../lib/workflow-scribe.js';
 import { formatClock } from '../lib/lesson-voice.js';
 import { NOTE_RECORDING_AUDIO, NOTE_RECORDING_BITRATE } from '../lib/recorded-note.js';
-import { mayCompareVersions } from '../lib/lesson-versions.js';
 import { confirmThen } from '../lib/confirm-action.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -44,30 +43,25 @@ export default function AddMyVoice({ deps = null, recorder = null }) {
   const own = useWorkflowScribe();
   const rec = recorder || own;
   const [state, setState] = useState({ loading: true, ok: false, row: null, reason: '' });
-  const [who, setWho] = useState({ uid: '', email: '' });
   const [name, setName] = useState('');
   const [letters, setLetters] = useState('');
   const [keep, setKeep] = useState(false);
   const [take, setTake] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
-  const [labels, setLabels] = useState([]);
+  const [labels, setLabels] = useState({ governor: false, labels: [] });
   const startedRef = useRef(false);
   const handledRef = useRef(null);
 
   const load = useCallback(async () => {
     const r = await loadMyVoice({ supabase: db });
     setState({ loading: false, ...r });
-    try {
-      const { data } = await db.auth.getSession();
-      const u = data?.session?.user;
-      if (u) setWho({ uid: u.id || '', email: u.email || '' });
-    } catch (_) { /* signed out */ }
     if (r.ok) setLabels(await loadVoiceLabels({ supabase: db }));
   }, [db]);
   useEffect(() => { load(); }, [load]);
 
-  const isGovernor = mayCompareVersions(who);
+  // The database says who the Governor is (it answers the label list for him alone).
+  const isGovernor = labels.governor;
 
   // A sample stops itself at the ceiling.
   const { recording, seconds, stop } = rec;
@@ -194,11 +188,11 @@ export default function AddMyVoice({ deps = null, recorder = null }) {
 
       {msg && <p className="text-[0.75rem] text-[#1A1815]" style={SERIF} role="status" data-testid="voice-message">{msg}</p>}
 
-      {labels.length > 0 && (
+      {labels.labels.length > 0 && (
         <div data-testid="voice-labels">
           <p className={LABEL}>Voices added (labels only; the signatures stay on the NAS)</p>
           <ul className="text-[0.75rem] text-[#1A1815]" style={MONO}>
-            {labels.map((l) => <li key={l.label}>{l.label} · {l.display_name || '—'} · {l.enrolled_at ? 'added' : l.status}</li>)}
+            {labels.labels.map((l) => <li key={l.label}>{l.label} · {l.display_name || '—'} · {l.enrolled_at ? 'added' : l.status}</li>)}
           </ul>
         </div>
       )}

@@ -161,7 +161,9 @@ describe('the state is read from the row, never claimed', () => {
 
   it('the label list is empty for anyone the database refuses', async () => {
     const sb = fakeSupabase({ rpcErrors: { voice_enrollment_labels: 'only the Governor' } });
-    expect(await loadVoiceLabels({ supabase: sb })).toEqual([]);
+    expect(await loadVoiceLabels({ supabase: sb })).toEqual({ governor: false, labels: [] });
+    const gov = fakeSupabase({ rpcData: { voice_enrollment_labels: [{ label: 'DP', display_name: 'Darrell Poe', status: 'enrolled' }] } });
+    expect(await loadVoiceLabels({ supabase: gov })).toEqual({ governor: true, labels: [{ label: 'DP', display_name: 'Darrell Poe', status: 'enrolled' }] });
   });
 });
 
