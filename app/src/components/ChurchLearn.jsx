@@ -97,6 +97,9 @@ const AGEBAND_TO_LEVEL_KEY = { child: 'child', youth: 'teen', teen: 'teen', adul
 import SectionTabs from './SectionTabs.jsx';
 import { catalogMeta } from '../lib/learn-catalog.js';
 import { crossListingsFor, resolveCrossListed, crossListedCount, courseCrossListingsFor, resolveCourseCrossListed, courseCrossListedCount } from '../lib/learn-crosslist.js';
+// TALK ABOUT IT TOGETHER (DR-0733): every lesson sends you to someone, parents to
+// children, children to parents, friend to friend (lib/talk-together.js).
+import { talkTogetherFor } from '../lib/talk-together.js';
 // THE ETERNAL ALGORITHMS LIVE INSIDE LEARN (DR-0432; Darrell 2026-09-15: "put
 // the Eternal Algorithms inside learn... Moving current tabs around for
 // functionality and flow"). The study surface is unchanged; it is mounted
@@ -2699,6 +2702,39 @@ function CourseView({
                 </p>
                 <div className="ts-chrome-region flex justify-end mt-1">{sec(handsOnLabel, m.inApp || '')}</div>
               </div>
+              {/* TALK ABOUT IT TOGETHER (DR-0733). Darrell, 2026-10-01: "Always
+                  prompt the parents to have the kids discuss this and vice versa
+                  have the kids prompt the parents to have conversation about
+                  Yahweh... Friends to each other... so we can all get healthy
+                  together... We should be able to see Yahweh has been right."
+                  Measured first: of 593 lessons, 0 did both directions. Every
+                  lesson now carries three prompts; a lesson's own words are used
+                  where it wrote them, and the standing prompts stand elsewhere,
+                  never claiming to be the lesson's. */}
+              {(() => {
+                const talk = talkTogetherFor(m);
+                return (
+                  <div className="mt-2 border-l-4 border-[#B85838] bg-[#B85838]/[0.06] pl-3 py-2" data-testid="lesson-talk-together" data-own={talk.allOwn ? 'true' : 'false'}>
+                    <div className="ts-chrome-region flex items-center justify-between gap-2 mb-1">
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold">Talk about it together</div>
+                      {sec('Talk about it together', talk.prompts.map((p) => `${p.to}: ${p.text}`).join('\n'))}
+                    </div>
+                    <ul className="space-y-1">
+                      {talk.prompts.map((p) => (
+                        <li key={p.to} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }} data-talk-to={p.to.toLowerCase()} data-talk-own={p.own ? 'true' : 'false'}>
+                          <strong>{p.to}:</strong> {p.text}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-1 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }} data-testid="talk-together-method">
+                      <strong className="text-[#1A1815]">The way:</strong> {talk.method.skill} {talk.method.growth}
+                    </p>
+                    <p className="mt-1 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                      {talk.aim} <span className="italic">"{talk.verse.text}"</span> ({talk.verse.ref})
+                    </p>
+                  </div>
+                );
+              })()}
               {m.anchor?.ref && (
                 <div className="mt-2">
                   {/* THE REFERENCES HERE ARE TAPPABLE, BECAUSE THEY LOOK IT.
@@ -3349,6 +3385,7 @@ function CourseView({
             )}
             {m.lesson && <p><strong>Lesson.</strong> {m.lesson}</p>}
             <p><strong>{handsOnLabel}.</strong> {m.inApp}</p>
+            <p><strong>Talk about it together.</strong> {talkTogetherFor(m).prompts.map((p) => `${p.to}: ${p.text}`).join(' ')} {talkTogetherFor(m).aim}</p>
             {m.anchor?.ref && <p><strong>Anchor — {m.anchor.ref}.</strong> {m.anchor.theme}</p>}
             {/* The voices and the dated record print with the lesson (DR-0580):
                 a facilitator working from paper has the words and the years. */}
