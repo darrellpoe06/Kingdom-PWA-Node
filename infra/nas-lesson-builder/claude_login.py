@@ -60,6 +60,14 @@ def start():
         print("login started; run `status` for the sign-in URL")
         return 0
     os.setsid()
+    # Let go of the ssh session's pipes: the daemon inherited them, and ssh
+    # waits for every holder to close before it returns, so the workflow's
+    # `start` step hung for its whole timeout on the first run (2026-10-01).
+    devnull = os.open(os.devnull, os.O_RDWR)
+    for n in (0, 1, 2):
+        os.dup2(devnull, n)
+    if devnull > 2:
+        os.close(devnull)
     child, fd = pty.fork()
     if child == 0:
         os.environ["TERM"] = "dumb"
