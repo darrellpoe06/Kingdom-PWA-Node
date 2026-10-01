@@ -141,6 +141,7 @@ import { ChurchGiveFloater, ChurchGiveHeaderButton } from './components/ChurchGi
 import LiveWorshipBar from './components/LiveWorshipBar.jsx';
 import SectionBoundary from './components/SectionBoundary.jsx';
 import UiIcon from './components/UiIcon.jsx';
+import { BooksUploadButton, BooksUploadMount } from './components/BooksUploadButton.jsx';
 // Scroll-anchor primitive (same mechanism that powers reading-resume + the
 // font-size whiplash fix): capture the content element the reader is looking at,
 // let the sticky header change height, restore it to the same viewport spot — so
@@ -4366,15 +4367,14 @@ ${THEME_CSS}
               })}
         </TopNavRow>
         {view === 'books' && (
-          <div className="border-t border-[#E8E4DC] bg-white">
-            {/* Books sub-nav routes through the shared <TabScroll> primitive
-                (same fluid scroll as the main nav). `chrome` = .ts-chrome-region
-                caps the row via zoom while body text scales. */}
+          <div className="border-t border-[#E8E4DC] bg-white flex items-center">
+            {/* Books sub-nav: shared <TabScroll> (chrome caps the row via zoom); the ONE Upload sits top right on every sub-tab (DR-0709, components/BooksUploadButton.jsx). */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
                 {[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['owed','Owed'],['plan','Plan'],['transactions','Tx'],['imported','Imported'],['cart','Cart'],['k1099','1099s'],['taxes','Taxes'],['calendar','Calendar'],['legal', <><UiIcon name="lock" /> Legal</>]].filter(([id]) => !(id === 'imported' && !importedAllowed)).map(([id, label]) => (
                   <button key={id} onClick={() => setBooksView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${booksView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
             </TabScroll>
+            <BooksUploadButton />
           </div>
         )}
         {!authSession && churchBrandRoute && <PublicWelcome placement="top" />}{view === 'create' && <CreateSubNav viewer={surfaceViewer} surfaces={Object.values(surfaceById)} />}
@@ -4411,12 +4411,8 @@ ${THEME_CSS}
         {view === 'overview' && <SectionBoundary name="Overview"><Home setData={setData} setChurchView={setChurchView} data={data} addNote={addNote} snowballExtra={snowballExtra} totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} workerOps={workerOps} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} /></SectionBoundary>}
         {view === 'books' && (
           <PrivateGate area="Financial" onCancel={() => setView('overview')} onForgot={handleForgotPin}>
-          {/* Router-level backstop (2026-06-25): every Books sub-tab degrades to a
-              recoverable inline card instead of white-screening the whole app if it
-              throws on an unexpected data shape. Keyed by booksView so switching tabs
-              remounts a fresh boundary (a crash in one tab doesn't stick to the next).
-              Transactions keeps its own inner boundary too — defense in depth, and it
-              also catches that lazy chunk's load failures. */}
+          {/* Router-level backstop (2026-06-25): each Books sub-tab degrades to an inline card, keyed by booksView so a crash never sticks to the next tab. */}
+          <SectionBoundary name="Upload"><BooksUploadMount hint={booksView} data={data} debts={derivedDebts} demo={isAnyDemoMode || reviewerMode} commitImportedRows={commitImportedRows} addAccount={addAccount} updateAccount={updateAccount} /></SectionBoundary>
           <SectionBoundary key={booksView} name="Financial">
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} updateEntity={updateEntity} />}
             {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={visibleEntities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} setBufferTarget={setBufferTarget} totals={totals} ingestData={ingestData} accountReconciliation={accountReconciliation} transactions={data.transactions || []} categoryRules={data.categoryRules || {}} />}
