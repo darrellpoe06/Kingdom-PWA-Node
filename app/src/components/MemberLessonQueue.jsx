@@ -29,6 +29,9 @@ export const LIVE_MESSAGING = {
 };
 import { lessonNameOf } from '../lib/one-voice-surfaces.js';
 import { lessonsForSituation } from '../lib/lessons-for-situation.js';
+// DR-0728: opening the queue is looking; the waiting members' lessons stop
+// counting on the icon and the bell once the queue has been read here.
+import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 
@@ -99,6 +102,7 @@ export default function MemberLessonQueue({ signedIn = false, messaging = LIVE_M
     const res = await fetchMemberLessonQueue({ supabase });
     setState({ loading: false, ok: res.ok, rows: res.rows, reason: res.reason });
     if (!res.ok) return;
+    markArrivalsSeen(SCREEN_KINDS.decide);
     // Published lessons, and decisions whose Message could not be sent before.
     const out = await fetchMemberLessonOutbox({ supabase });
     if (!out.ok) return;

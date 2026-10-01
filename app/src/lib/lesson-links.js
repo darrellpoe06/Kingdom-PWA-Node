@@ -27,6 +27,7 @@
 // =============================================================================
 
 import { lessonShareText } from './lesson-format.js';
+import { SHARE_HOW_TO, lessonShareMessage, lessonSummary, withShareToken, isShareToken } from './lesson-share.js';
 
 export const LEARN_LINK_PARAMS = { course: 'course', lesson: 'lesson' };
 
@@ -167,19 +168,43 @@ export function canShare(nav = (typeof navigator !== 'undefined' ? navigator : n
 }
 
 /**
- * What gets handed to the share sheet for one lesson. Title and text are short
- * on purpose: most targets show the URL as a card, and a long body gets
- * truncated mid-sentence by the receiving app — which, on a Scripture-carrying
- * platform, is exactly the drift this codebase refuses (a half-quoted verse is
- * worse than none). The full text still travels by "Copy lesson".
+ * What gets handed to the share sheet for one lesson (DR-0698).
+ *
+ * Darrell 2026-09-30: "the shares should be a link with a short clarification
+ * of how to read the lessons like push play button to hear etc at the end and
+ * a note with title and a short summary of the lesson... not the full lesson."
+ *
+ * The TEXT is the whole message, in his order: the title and the course, a
+ * one-or-two-sentence summary cut at a sentence boundary (lib/lesson-share.js,
+ * never the body), the link, and the how-to LAST. The link is inside the text
+ * so the receiving app cannot move it below the how-to; `url` still rides on
+ * the payload for the record and for the clipboard fallback.
+ *
+ * `token` (optional) is the share's record key: it is put on the link as `s=`
+ * so an open of this exact link can be counted against this exact share.
+ * `courseKey` / `lessonId` travel with the payload so the record names them.
  */
-export function lessonSharePayload(module, { url = '', courseTitle = '' } = {}) {
+export function lessonSharePayload(module, {
+  url = '', courseTitle = '', token = '', courseKey = '', lessonId = '', kind = 'lesson',
+  door = 'church', brand = 'The Love Corner', howTo = SHARE_HOW_TO.church,
+} = {}) {
   const m = module || {};
   const title = String(m.title || courseTitle || 'A lesson worth reading').trim();
-  const idea = String(m.bigIdea || '').trim();
   const from = String(courseTitle || '').trim();
-  const text = [idea, from && `— ${from}, The Love Corner`].filter(Boolean).join('\n');
-  return { title, text: text || title, url: String(url || '') };
+  const link = token ? withShareToken(url, token) : String(url || '');
+  const text = lessonShareMessage({
+    title,
+    from: [from, brand].filter(Boolean).join(' · '),
+    summary: lessonSummary(m),
+    url: link,
+    howTo,
+  });
+  return {
+    title, text, url: link,
+    token: isShareToken(token) ? token : '',
+    courseKey: String(courseKey || ''), lessonId: String(lessonId || m.id || ''),
+    kind, door,
+  };
 }
 
 /**
@@ -231,14 +256,24 @@ export function sectionShareText(module, { label = '', text = '', url = '' } = {
 
 /**
  * What the share sheet gets for one section. The section text IS the message
- * body (the invitation), with the course named and the exact-lesson link.
+ * body (the invitation, Darrell 2026-08-15), with the course named, then the
+ * exact-lesson link, then the same how-to every lesson share ends with
+ * (DR-0698). `token` puts the record key on the link, as for a lesson.
  */
-export function sectionSharePayload(module, { label = '', text = '', url = '', courseTitle = '' } = {}) {
+export function sectionSharePayload(module, { label = '', text = '', url = '', courseTitle = '', token = '', courseKey = '' } = {}) {
   const m = module || {};
   const title = [line(label) || 'A word worth sharing', line(m.title)].filter(Boolean).join(' — ');
   const from = line(courseTitle);
+  const link = token ? withShareToken(url, token) : String(url || '');
   const body = [line(text), from && `— ${from}, The Love Corner`].filter(Boolean).join('\n');
-  return { title, text: body || title, url: String(url || '') };
+  const message = [title, '', body, link ? `\n${link}` : '', `\n${SHARE_HOW_TO.church}`]
+    .filter((x) => x !== '').join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  return {
+    title, text: message, url: link,
+    token: isShareToken(token) ? token : '',
+    courseKey: String(courseKey || ''), lessonId: String(m.id || ''),
+    kind: 'section', door: 'church',
+  };
 }
 
 /**
@@ -255,9 +290,15 @@ export function sectionSharePayload(module, { label = '', text = '', url = '', c
 export async function shareLink(payload, nav = (typeof navigator !== 'undefined' ? navigator : null)) {
   const p = payload || {};
   const url = String(p.url || '');
+  const text = String(p.text || '');
+  // When the message already carries the link (every lesson share since
+  // DR-0698), the link is NOT passed again as `url`: the receiving app would
+  // print it twice, and would put its copy after the how-to that must end the
+  // message. A payload whose text has no link keeps the old shape.
+  const carriesLink = !!url && text.includes(url);
   if (canShare(nav)) {
     try {
-      await nav.share({ title: p.title || '', text: p.text || '', url });
+      await nav.share(carriesLink ? { title: p.title || '', text } : { title: p.title || '', text, url });
       return 'shared';
     } catch (err) {
       // A cancelled sheet throws AbortError. Treating that as an error is the
@@ -267,5 +308,7 @@ export async function shareLink(payload, nav = (typeof navigator !== 'undefined'
       // about having share) falls through to the clipboard rather than dead-end.
     }
   }
-  return (await copyText(url || p.text || '', nav)) ? 'copied' : 'failed';
+  // The clipboard gets the whole message when it carries the link, so a pasted
+  // share reads exactly like a sent one; otherwise the link alone, as before.
+  return (await copyText(carriesLink ? text : (url || text || ''), nav)) ? 'copied' : 'failed';
 }

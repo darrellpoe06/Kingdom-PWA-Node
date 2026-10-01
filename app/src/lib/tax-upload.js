@@ -17,7 +17,16 @@
 
 import { TAX_DOC_KINDS } from './tax-documents.js';
 
-const MAX_BYTES = 25 * 1024 * 1024; // 25 MB — a scanned return is well under this.
+// 60 MB, the same cap the NAS service holds (tax_upload_server.py MAX_BYTES).
+// Raised from 25 MB (DR-0708): a full scanned return with its schedules runs
+// past 25 MB, and the road was measured carrying 60 MB in 27 s and 95 MB in
+// 48 s to the NAS (family-books-probe run 36787773243).
+export const MAX_UPLOAD_MB = 60;
+const MAX_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
+
+function mb(bytes) {
+  return (Math.round((bytes / (1024 * 1024)) * 10) / 10).toLocaleString();
+}
 
 function baseHref() {
   try {
@@ -44,7 +53,7 @@ export function validateUpload(req) {
   } else {
     const isPdf = /\.pdf$/i.test(f.name) || f.type === 'application/pdf';
     if (!isPdf) errors.push('The file must be a PDF.');
-    if (typeof f.size === 'number' && f.size > MAX_BYTES) errors.push('That file is larger than 25 MB.');
+    if (typeof f.size === 'number' && f.size > MAX_BYTES) errors.push(`That file is ${mb(f.size)} MB; one upload can carry up to ${MAX_UPLOAD_MB} MB. Split the PDF into parts (for example the 1040 and each schedule) and upload each part.`);
     if (typeof f.size === 'number' && f.size === 0) errors.push('That file is empty.');
   }
   const y = Number(r.year);
@@ -85,12 +94,36 @@ export async function uploadTaxDoc(req, opts = {}) {
 
   try {
     const res = await fetcher(`${baseHref()}taxes/upload`, { method: 'POST', headers, body: fd });
-    if (!res || !res.ok) return { ok: false, skipped: 'upload-error', status: res ? res.status : 0 };
+    if (!res || !res.ok) {
+      // Carry the NAS's own reason ("bad-entity-or-year", "too-large",
+      // "unauthorized") so the screen can say it in plain words.
+      let error = null;
+      try { const body = res && typeof res.json === 'function' ? await res.json() : null; error = (body && (body.error || body.code)) || null; } catch { /* not JSON */ }
+      return { ok: false, skipped: 'upload-error', status: res ? res.status : 0, error };
+    }
     const data = await res.json().catch(() => ({}));
     return { ok: true, archive: (data && data.archive) || null, record: (data && data.record) || null };
   } catch {
     return { ok: false, skipped: 'network-error' };
   }
+}
+
+/**
+ * Upload, and if the NAS refuses this device's family key (401/403), ask the
+ * family for the key once more and retry ONCE (DR-0708). A device can hold a
+ * key that no longer matches the NAS (an older key, or one typed by hand); the
+ * old flow said "this device holds the family key" and then failed the post
+ * with no second try. `refreshToken` returns the fresh key or '' (none).
+ * Never throws.
+ */
+export async function uploadTaxDocWithFreshKey(req, { token, refreshToken, formData, retryFormData } = {}) {
+  const first = await uploadTaxDoc(req, { token, formData });
+  if (first.ok || !(first.status === 401 || first.status === 403) || typeof refreshToken !== 'function') return first;
+  let fresh;
+  try { fresh = String((await refreshToken()) || '').trim(); } catch { fresh = ''; }
+  if (!fresh) return { ...first, keyRefreshed: false };
+  const second = await uploadTaxDoc(req, { token: fresh, formData: retryFormData });
+  return { ...second, keyRefreshed: true };
 }
 
 // Turn an uploadTaxDoc failure into a message that names the hop that broke.
@@ -101,14 +134,23 @@ export function uploadFailureMessage(res) {
   if (res && res.skipped === 'network-error') {
     return 'The upload never left this device — you appear to be offline. Nothing was sent; try again when you have signal.';
   }
+  if (res && res.error === 'bad-entity-or-year') {
+    return 'The NAS refused the entity or the year: the entity\u2019s id must be letters, numbers, dashes or underscores, and the year four digits. Nothing was stored.';
+  }
+  if (res && res.error === 'pdf-only') {
+    return 'The NAS stores PDFs only, and this file did not arrive as a PDF. Nothing was stored.';
+  }
   if (status === 401 || status === 403) {
+    if (res && res.keyRefreshed) {
+      return 'The NAS refused the upload even with the family key this device just fetched, so the key the family publishes and the key on the NAS differ. Nothing was stored. A steward can re-publish the key once from Real Estate \u2192 Photos.';
+    }
     return 'The NAS refused the upload as unauthorized: this device\u2019s family bridge token is missing or does not match the NAS. Sign in as a family member so the device can ask for the key; a steward publishes it once in Real Estate → Photos, and every family device picks it up.';
   }
   if (status === 404 || status === 502 || status === 503) {
     return `The NAS tax service did not answer (${status}). The PDF was not stored. The archive below will also read empty while this is true — it is the same hop.`;
   }
   if (status === 413) {
-    return 'The NAS rejected the file as too large (over 25 MB). Split a long scan and upload the parts.';
+    return `The file is larger than one upload can carry (${MAX_UPLOAD_MB} MB). Split the PDF into parts and upload each part.`;
   }
   if (status) {
     return `The NAS tax service answered ${status} and the PDF was not stored.`;

@@ -24,6 +24,7 @@ import { TLC_APP_PATH } from './tlc-onboarding.js';
 import { allTracks } from './tlc-lessons.js';
 import { allCourses } from './tlc-training-library.js';
 import { TLC_BRAND } from './tlc-practice.js';
+import { SHARE_HOW_TO, lessonShareMessage, lessonSummary, withShareToken, isShareToken } from './lesson-share.js';
 
 // `word=1` rides along when the sharer had the Word open (Darrell 2026-09-10,
 // sharing from his phone: "The link should be with or without the Word
@@ -111,14 +112,31 @@ export function everyTlcLessonId({ tracks = allTracks(), courses = allCourses() 
 
 const line = (s) => String(s == null ? '' : s).trim();
 
-/** What the share sheet gets for one lesson: short on purpose (a card, not a body). */
-export function tlcLessonSharePayload(module, { url = '', courseTitle = '' } = {}) {
+/**
+ * What the share sheet gets for one lesson (DR-0698, Darrell 2026-09-30): the
+ * title and the practice, a one-or-two-sentence summary (never the body), the
+ * link, and the how-to LAST. TLC's how-to promises only what the TLC visitor
+ * page does: free to read with no account. It does not promise Play (read
+ * aloud is off for guests on the TLC door) or a download (there is none).
+ */
+export function tlcLessonSharePayload(module, { url = '', courseTitle = '', token = '', courseKey = '' } = {}) {
   const m = module || {};
   const title = line(m.title) || line(courseTitle) || 'A lesson from TLC Therapy Solutions';
-  const idea = line(m.bigIdea);
   const from = line(courseTitle);
-  const text = [idea, `— ${from ? `${from}, ` : ''}${TLC_BRAND.name}`].filter(Boolean).join('\n');
-  return { title, text, url: String(url || '') };
+  const link = token ? withShareToken(url, token) : String(url || '');
+  const text = lessonShareMessage({
+    title,
+    from: `${from ? `${from}, ` : ''}${TLC_BRAND.name}`,
+    summary: lessonSummary(m),
+    url: link,
+    howTo: SHARE_HOW_TO.tlc,
+  });
+  return {
+    title, text, url: link,
+    token: isShareToken(token) ? token : '',
+    courseKey: String(courseKey || ''), lessonId: String(m.id || ''),
+    kind: 'lesson', door: 'tlc',
+  };
 }
 
 /** What the share sheet gets for a whole course or track (the series, not one sitting). */
