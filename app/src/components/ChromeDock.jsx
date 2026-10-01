@@ -38,6 +38,7 @@
 // =============================================================================
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import NetworkStatus from './NetworkStatus.jsx';
+import ArrivalsBell from './ArrivalsBell.jsx';
 import { ChurchGiveDockButton } from './ChurchGiving.jsx';
 import UiIcon from './UiIcon.jsx';
 import { useTextSize } from '../lib/text-size.js';
@@ -192,12 +193,18 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
         style={{ bottom: 'var(--ts-hatch-h, 0px)', boxShadow: '0 -1px 0 rgba(128, 128, 128, 0.6)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         <div className="chrome-dock-row flex flex-wrap items-center gap-[3px] px-[4px]" style={{ minHeight: `${DOCK_HEIGHT_PX}px` }}>
+          {/* WHAT ARRIVED, where it can always be seen (DR-0741). The header's
+              bell leaves with the collapsed header; this one stays: "N new",
+              what the N is made of in its name, the same list behind it, and
+              it opens that list itself once per launch when something is new.
+              Drawn only while N > 0, so the bar keeps its room otherwise. */}
+          <ArrivalsBell variant="dock" />
           {inReader && !oneRow && (
             <div className="flex items-center gap-[3px] shrink-0" data-testid="dock-reader-row" role="group" aria-label="Reading comfort">
               {comfortButtons}
             </div>
           )}
-          <div ref={moreRef} className="dock-more-wrap relative flex items-center gap-[3px] shrink-0">
+          <div ref={moreRef} className="dock-more-wrap flex items-center gap-[3px] shrink-0">
             {/* Below 640px: ONE button holds the rest, so a 360px phone keeps
                 the read-aloud mini-bar on the same line. A mark on it when the
                 network status folded inside is not healthy. */}
@@ -225,7 +232,7 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
               data-testid="dock-items"
               role="group"
               aria-label={oneRow ? 'Controls, text size, feedback, giving and status' : 'Feedback, giving and status'}
-              className={`${moreOpen ? 'flex' : 'hidden'} absolute bottom-full left-0 mb-[4px] flex-row flex-wrap items-center gap-[4px] p-[4px] bg-[#FAF8F4] border-2 border-[#1A1815] shadow-lg min-w-[144px] max-w-[calc(100vw-8px)] sm:static sm:flex sm:mb-0 sm:p-0 sm:border-0 sm:shadow-none sm:min-w-0 sm:bg-transparent`}
+              className={`${moreOpen ? 'flex' : 'hidden'} absolute bottom-full left-0 mb-[4px] flex-row flex-wrap items-center gap-[4px] p-[4px] bg-[#FAF8F4] border-2 border-[#1A1815] shadow-lg min-w-[144px] sm:static sm:flex sm:mb-0 sm:p-0 sm:border-0 sm:shadow-none sm:min-w-0 sm:bg-transparent`}
             >
               {oneRow && comfortButtons}
               {!inReader && feedbackBtn}

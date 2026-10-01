@@ -3,12 +3,13 @@
 // the reply that re-enters intake, and the steward's categorized queue with
 // each note's basis. Rendered, not read from source.
 // =============================================================================
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import IntakeOutcomeList, { senderFixOf, tallyText } from '../components/IntakeOutcomeList.jsx';
 import { FeedbackModal, FeedbackPromotePanel, mergeMine } from '../components/FeedbackCenter.jsx';
 import { receiptCode } from '../lib/feedback-receipt.js';
+import { shotsHeading } from '../components/FeedbackScreenshots.jsx';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -163,5 +164,55 @@ describe('the steward sees the categorized queue with each note’s basis', () =
     act(() => byTestId('intake-filter-decided')[0].click());
     expect(byTestId('intake-basis')[0].textContent).toMatch(/Matches DR-0900/);
     expect(byTestId('intake-basis')[0].textContent).toMatch(/The app does not send email about feedback/);
+  });
+});
+
+describe('the steward sees the pictures inside the app (DR-0742)', () => {
+  // Darrell 2026-10-01, on a focused note that read "5 SCREENSHOTS ATTACHED
+  // (OPEN ON THE SUBMITTER'S DEVICE OR IN SUPABASE)": "Can't see the
+  // information submitted?!!! Make it work so we can see inside the app!!!"
+  const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+  const withShots = [{ id: 'f9', createdAt: '2026-09-24T05:00:00Z', whatsNot: 'the give button is under the bar', area: 'church', hasScreenshot: true, screenshotCount: 2, screenshots: [] }];
+  const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+  it('a focused note with pictures the list did not carry fetches them once and shows each one, a tap from full size', async () => {
+    const fetchImages = vi.fn(async () => ({ screenshots: [PNG, PNG] }));
+    render(createElement(FeedbackPromotePanel, { feedback: withShots, ledger: LEDGER, addProject() {}, addIncident() {}, deleteFeedback() {}, fetchImages }));
+    await flush();
+    expect(fetchImages).toHaveBeenCalledTimes(1);
+    expect(fetchImages).toHaveBeenCalledWith('f9');
+    expect(byTestId('feedback-shots')[0].getAttribute('data-state')).toBe('ready');
+    expect(text()).not.toMatch(/submitter's device|in Supabase/i);
+    const thumbs = byTestId('feedback-shot');
+    expect(thumbs.length).toBe(2);
+    act(() => thumbs[1].click());
+    const open = document.querySelector('[data-testid="feedback-shot-open"]');
+    expect(open.textContent).toContain('Screenshot 2 of 2');
+    expect(open.querySelector('img').getAttribute('src')).toBe(PNG);
+    expect(document.querySelector('[data-testid="feedback-shot-save"]').getAttribute('download')).toBe('feedback-f9-2.jpg');
+  });
+  it('a failed fetch says so and Try again fetches again; it never reads as "no pictures"', async () => {
+    let calls = 0;
+    const fetchImages = vi.fn(async () => { calls += 1; return calls === 1 ? { screenshots: [] } : { screenshots: [PNG] }; });
+    render(createElement(FeedbackPromotePanel, { feedback: withShots, ledger: LEDGER, addProject() {}, addIncident() {}, deleteFeedback() {}, fetchImages }));
+    await flush();
+    expect(byTestId('feedback-shots-failed').length).toBe(1);
+    expect(byTestId('feedback-shots')[0].textContent).toContain('2 screenshots');
+    act(() => byTestId('feedback-shots-retry')[0].click());
+    await flush();
+    expect(fetchImages).toHaveBeenCalledTimes(2);
+    expect(byTestId('feedback-shot').length).toBe(1);
+  });
+  it('PROVEN-TO-CATCH: a note without pictures fetches nothing and draws nothing; a local row with bytes needs no fetch', async () => {
+    const fetchImages = vi.fn(async () => ({ screenshots: [PNG] }));
+    render(createElement(FeedbackPromotePanel, { feedback: [{ id: 'f1', createdAt: '2026-09-24T05:00:00Z', whatsNot: 'typo on the bus page title' }], ledger: LEDGER, addProject() {}, addIncident() {}, deleteFeedback() {}, fetchImages }));
+    await flush();
+    expect(fetchImages).not.toHaveBeenCalled();
+    expect(byTestId('feedback-shots').length).toBe(0);
+    render(createElement(FeedbackPromotePanel, { feedback: [{ id: 'f2', createdAt: '2026-09-24T05:00:00Z', whatsNot: 'the give button is under the bar', screenshots: [PNG] }], ledger: LEDGER, addProject() {}, addIncident() {}, deleteFeedback() {}, fetchImages }));
+    await flush();
+    expect(fetchImages).not.toHaveBeenCalled();
+    expect(byTestId('feedback-shot').length).toBe(1);
+    expect(shotsHeading(1)).toBe('Screenshot');
+    expect(shotsHeading(5)).toBe('5 screenshots');
   });
 });

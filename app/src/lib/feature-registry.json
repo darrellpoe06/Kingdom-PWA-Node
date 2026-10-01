@@ -10,7 +10,8 @@
   "app-footer": {"name": "footer bar", "where": "The floating bottom controls and the platform footer (poe-financial-mvp-v28.jsx; components/ChurchGiving.jsx)"},
   "books": {"name": "Books", "where": "The Books tab row and its one Upload (poe-financial-mvp-v28.jsx; components/BooksUploadButton.jsx)"},
   "messages": {"name": "Messages: bring your contacts", "where": "Messages > Add a contact, the panel that brings contacts from the phone: the picker, the .vcf upload, the preview and its Keep / Not now (components/ContactsImport.jsx)"},
-  "feedback": {"name": "Feedback form", "where": "The Feedback form from the bottom bar: the fold of your earlier notes and where each one stands, and the Show more under the list (components/FeedbackCenter.jsx, components/IntakeOutcomeList.jsx)"}
+  "feedback": {"name": "Feedback form", "where": "The Feedback form from the bottom bar: the fold of your earlier notes and where each one stands, and the Show more under the list (components/FeedbackCenter.jsx, components/IntakeOutcomeList.jsx)"},
+  "feedback-queue": {"name": "Feedback queue (stewards)", "where": "Projects > Feedback, the focused note: the sender's pictures, each a tap from full size (components/FeedbackCenter.jsx, components/FeedbackScreenshots.jsx)"}
  },
  "features": [
   {"id": "learn-dept-all", "name": "Courses tab (every department)", "surface": "learn-lists", "find": {"selector": "#learn-dept-tab-all"}},
@@ -158,6 +159,7 @@
   {"id": "ftr-dock-text-smaller", "name": "Smaller text (bottom bar)", "surface": "app-footer", "find": {"testid": "dock-text-smaller"}},
   {"id": "ftr-dock-text-bigger", "name": "Bigger text (bottom bar)", "surface": "app-footer", "find": {"testid": "dock-text-bigger"}},
   {"id": "ftr-dock-reader-slot", "name": "The reader's slot in the bottom bar", "surface": "app-footer", "find": {"testid": "chrome-dock-reader"}},
+  {"id": "ftr-dock-arrivals", "name": "What arrived: N new in the bottom bar, what it is made of, and the list (DR-0741)", "surface": "app-footer", "find": {"testid": "dock-arrivals"}, "note": "Drawn only while something is new; the presence walk supplies three arrivals before mounting the bar."},
   {"id": "ftr-comfort-toggle", "name": "Hide / Show controls toggle on the header's comfort row", "surface": "app-footer", "find": {"source": "<ComfortBarToggle "}},
   {"id": "books-upload", "name": "Upload (top right)", "surface": "books", "find": {"testid": "books-upload-button"}},
   {"id": "books-upload-panel", "name": "Upload: the one upload panel", "surface": "books", "find": {"testid": "books-upload-panel"}},
@@ -180,7 +182,8 @@
   {"id": "contacts-import-save", "name": "Keep the previewed contacts", "surface": "messages", "find": {"testid": "contacts-import-save"}, "note": "Exists once a file or a pick has been read into the preview (DR-0736)."},
   {"id": "contacts-import-clear", "name": "Not now (clear the preview)", "surface": "messages", "find": {"testid": "contacts-import-clear"}},
   {"id": "feedback-earlier-fold", "name": "Your earlier feedback: where each one stands (tap to open)", "surface": "feedback", "find": {"testid": "feedback-earlier-fold"}, "note": "Shown once the person has sent any feedback; the presence walk supplies notes (DR-0740)."},
-  {"id": "feedback-outcomes-more", "name": "Show more of your earlier feedback", "surface": "feedback", "find": {"testid": "intake-outcomes-more"}, "note": "Shown while notes remain below the first eight (DR-0740)."}
+  {"id": "feedback-outcomes-more", "name": "Show more of your earlier feedback", "surface": "feedback", "find": {"testid": "intake-outcomes-more"}, "note": "Shown while notes remain below the first eight (DR-0740)."},
+  {"id": "feedback-queue-shot", "name": "A sender's screenshot on the focused note, a tap from full size", "surface": "feedback-queue", "find": {"testid": "feedback-shot"}, "note": "Shown when the focused note carries pictures; the presence walk supplies one (DR-0742)."}
  ],
  "removed": [],
  "notPinned": [

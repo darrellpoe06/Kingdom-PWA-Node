@@ -58,6 +58,7 @@ const { default: ReadingVoiceControl } = await import('../components/ReadingVoic
 const { default: HelpButton } = await import('../components/HelpButton.jsx');
 const { default: ArrivalsBell } = await import('../components/ArrivalsBell.jsx');
 const { default: ContactsImport } = await import('../components/ContactsImport.jsx');
+const { FeedbackPromotePanel } = await import('../components/FeedbackCenter.jsx');
 const { FeedbackModal } = await import('../components/FeedbackCenter.jsx');
 const { default: TopNavRow } = await import('../components/TopNavRow.jsx');
 const { ChurchGiveHeaderButton } = await import('../components/ChurchGiving.jsx');
@@ -204,6 +205,13 @@ const WALKS = {
     const scrollWas = Object.getOwnPropertyDescriptor(window, 'scrollY');
     Object.defineProperty(window, 'scrollY', { configurable: true, value: 5000 });
     try {
+      // Something has arrived, so the bar's arrivals button is drawn (DR-0741);
+      // the launch-open mark is set so the walk does not open the list.
+      window.__ptArrivals = { count: 3, items: [
+        { kind: 'message', id: 'message:m1', at: '2026-10-01T12:00:00Z', title: 'New message', count: 2, screen: 'messages' },
+        { kind: 'lesson-published', id: 'lesson-published:r1', at: '2026-10-01T13:00:00Z', title: 'Your lesson is published', screen: 'your-lessons' },
+      ], all: [] };
+      try { sessionStorage.setItem('poetech:arrivals-opened-on-launch', '1'); } catch { /* no storage here */ }
       const dock = () => createElement(ChromeDock, { onFeedback: () => {}, feedbackOpen: false, church: {}, showGive: true });
       const a = mount(dock());
       await settle();
@@ -239,6 +247,14 @@ const WALKS = {
     Object.defineProperty(input, 'files', { value: [file], configurable: true });
     act(() => { input.dispatchEvent(new Event('change', { bubbles: true })); });
     for (let i = 0; i < 80 && !host.querySelector('[data-testid="contacts-import-preview"]'); i++) await settle(25);
+    look(host);
+  },
+  'feedback-queue': async (look) => {
+    // A steward's focused note that carries a picture (DR-0742).
+    const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+    const feedback = [{ id: 'fq1', createdAt: '2026-10-01T05:00:00Z', whatsNot: 'the give button is under the bar', area: 'church', screenshots: [png] }];
+    const { host } = mount(createElement(FeedbackPromotePanel, { feedback, addProject() {}, addIncident() {}, deleteFeedback() {} }));
+    await settle();
     look(host);
   },
   feedback: async (look) => {
