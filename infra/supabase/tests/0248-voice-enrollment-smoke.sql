@@ -1,9 +1,9 @@
 -- =============================================================================
--- 0246 VOICE ENROLLMENT SMOKE — consent first, own row only, removal is real,
+-- 0248 VOICE ENROLLMENT SMOKE — consent first, own row only, removal is real,
 -- the Governor sees labels and never more (DR-0720)
 -- =============================================================================
 -- Run as postgres AFTER 0237 (or scripts/curriculum-ci-bootstrap.sql) and
--- 0246, in a transaction that ROLLS BACK. The Governor's email list is swapped
+-- 0248, in a transaction that ROLLS BACK. The Governor's email list is swapped
 -- for a test address INSIDE the transaction only, so no real account is touched.
 -- PROVES:
 --   * no sample is filed without consent (send_voice_sample refuses);
@@ -19,13 +19,13 @@ BEGIN;
 
 INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, created_at, updated_at)
 VALUES
-  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-a000-000000000246', 'authenticated','authenticated','gov0246@test.local','', now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'b0000000-0000-4000-a000-000000000246', 'authenticated','authenticated','ma0246@test.local','',  now(), now()),
-  ('00000000-0000-0000-0000-000000000000', 'c0000000-0000-4000-a000-000000000246', 'authenticated','authenticated','mb0246@test.local','',  now(), now());
+  ('00000000-0000-0000-0000-000000000000', 'a0000000-0000-4000-a000-000000000248', 'authenticated','authenticated','gov0248@test.local','', now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'b0000000-0000-4000-a000-000000000248', 'authenticated','authenticated','ma0248@test.local','',  now(), now()),
+  ('00000000-0000-0000-0000-000000000000', 'c0000000-0000-4000-a000-000000000248', 'authenticated','authenticated','mb0248@test.local','',  now(), now());
 
 CREATE OR REPLACE FUNCTION public.lesson_governor_emails()
 RETURNS text[] LANGUAGE sql IMMUTABLE
-AS $$ SELECT ARRAY['gov0246@test.local']::text[] $$;
+AS $$ SELECT ARRAY['gov0248@test.local']::text[] $$;
 
 CREATE OR REPLACE FUNCTION pg_temp.as_user(_who uuid) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
@@ -41,9 +41,9 @@ GRANT EXECUTE ON FUNCTION pg_temp.as_postgres() TO authenticated;
 
 DO $$
 DECLARE
-  a uuid := 'b0000000-0000-4000-a000-000000000246';
-  b uuid := 'c0000000-0000-4000-a000-000000000246';
-  g uuid := 'a0000000-0000-4000-a000-000000000246';
+  a uuid := 'b0000000-0000-4000-a000-000000000248';
+  b uuid := 'c0000000-0000-4000-a000-000000000248';
+  g uuid := 'a0000000-0000-4000-a000-000000000248';
   n int;
   j jsonb;
 BEGIN

@@ -681,7 +681,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -q -f scripts/lesson-share-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'every wall held' "$RUNNER_TEMP/smoke.txt"
 
-  # ADD MY VOICE'S WALLS, ON A REAL POSTGRESQL (DR-0720). 0246 applies twice
+  # ADD MY VOICE'S WALLS, ON A REAL POSTGRESQL (DR-0720). 0248 applies twice
   # (idempotent), then the smoke proves: no sample without consent, a sample
   # only from the person's own folder, each person reads only their own row,
   # no client writes the table, BG held and DP the Governor's alone, removal
@@ -708,12 +708,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install postgresql-client
         run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
-      - name: 0246 applies, twice (idempotent), and every wall holds
+      - name: 0248 applies, twice (idempotent), and every wall holds
         run: |
           set -euo pipefail
           psql -v ON_ERROR_STOP=1 -q -f scripts/curriculum-ci-bootstrap.sql
-          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0246-a-person-adds-their-own-voice-and-can-take-it-back.sql; done
-          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0246-voice-enrollment-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0248-a-person-adds-their-own-voice-and-can-take-it-back.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0248-voice-enrollment-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'VOICE ENROLLMENT SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait

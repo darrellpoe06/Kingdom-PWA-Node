@@ -194,8 +194,8 @@ jobs:
           # writes it, BG held, DP the Governor's, removal deletes the consent,
           # the label list is the Governor's and carries no sample path.
           - feature: voice-enrollment
-            migrations: "0246-a-person-adds-their-own-voice-and-can-take-it-back.sql"
-            smokes: "0246-voice-enrollment-smoke.sql"
+            migrations: "0248-a-person-adds-their-own-voice-and-can-take-it-back.sql"
+            smokes: "0248-voice-enrollment-smoke.sql"
           # Added 2026-07-30 (REV-0216 access-evaluation carried item): the
           # core-books ROLE wall. 0082 (child walled / successor read-only) and
           # 0100 (assistant walled) both shipped their DB gate but had NO live

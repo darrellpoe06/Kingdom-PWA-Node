@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0246 — a person adds their own voice, with their own consent, and can take
+-- 0248 — a person adds their own voice, with their own consent, and can take
 -- it back (DR-0720)
 -- =============================================================================
 -- Darrell 2026-10-01: "can we somehow validate people using only their voice
@@ -35,7 +35,7 @@
 --     service role, which RLS does not restrict.
 -- No instance_id: this is the person's own consent, not household data.
 -- Proven by scripts/voice-enrollment-ci-smoke.sql on a real PostgreSQL (CI job
--- voice-enrollments) and infra/supabase/tests/0246-voice-enrollment-smoke.sql.
+-- voice-enrollments) and infra/supabase/tests/0248-voice-enrollment-smoke.sql.
 -- IDEMPOTENT: IF NOT EXISTS / CREATE OR REPLACE / DROP POLICY IF EXISTS.
 -- =============================================================================
 

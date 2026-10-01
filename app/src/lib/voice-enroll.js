@@ -8,7 +8,7 @@
 //
 // THE ROAD (every step the person's own; nothing reaches a cloud company):
 //   1. They read what is kept and tap to agree: give_voice_consent() writes
-//      their own voice_enrollments row with the time (migration 0246).
+//      their own voice_enrollments row with the time (migration 0248).
 //   2. They read Psalm 23 (KJV) aloud for about 25 seconds, on the same
 //      recorder the spoken lessons use (lib/workflow-scribe.js).
 //   3. sendVoiceSample() asks the database for their consent row FIRST and
