@@ -14,6 +14,7 @@ import AddDebt from './AddDebt.jsx';
 import EditDebtRow from './EditDebtRow.jsx';
 import DebtStatementUpload from './DebtStatementUpload.jsx';
 import SectionTabs from './SectionTabs.jsx';
+import LedgerEdit from './LedgerEdit.jsx';
 
 // Local helpers.
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -279,7 +280,7 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
               {debtSuggestions.slice(0, 8).map((s) => (
                 <div key={s.payeeKey} className="flex items-center justify-between gap-3 flex-wrap">
                   <span className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-                    <strong>{debtNameFromPayee(s.label)}</strong> <span className="text-[#5A5751]">· {fmt(s.monthlyPayment)}/mo · {s.cadenceLabel}</span>
+                    <LedgerEdit payee={s.label} className="font-semibold">{debtNameFromPayee(s.label)}</LedgerEdit> <span className="text-[#5A5751]">· {fmt(s.monthlyPayment)}/mo · {s.cadenceLabel}</span>
                   </span>
                   <button type="button" onClick={() => addSuggestedDebt(s)} className="text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] bg-[#B85838] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] whitespace-nowrap">Add as debt</button>
                 </div>
@@ -596,6 +597,14 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
     options: TX_CATEGORIES,
     value: (item) => item.category || 'other',
     onPick: (item, category) => recategorizePayee(item.label, category),
+    // The shared editor (DR-0710): rename or recategorize this purchase, or
+    // every one from its payee, through the same write paths as Tx.
+    render: (item) => (
+      <>
+        <LedgerEdit txn={item.id ? { id: item.id, description: item.label, category: item.category } : null} payee={item.id ? null : item.label}>{item.label}</LedgerEdit>{' '}
+        <LedgerEdit txn={item.id ? { id: item.id, description: item.label, category: item.category } : null} payee={item.id ? null : item.label} categoryKey={item.category} show="category" className="text-[0.6875rem] text-[#5A5751]" />
+      </>
+    ),
   } : null), [recategorizePayee]);
 
   const killSection = (
@@ -652,8 +661,8 @@ function Debts({ debts, entities, debtSnowballSort, setDebtSnowballSort, debtSno
                 <summary className="text-[0.6875rem] uppercase tracking-wider text-[#B85838] cursor-pointer hover:text-[#1A1815]">▸ The low-priority purchases, largest first</summary>
                 <ul className="mt-1 text-xs space-y-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
                   {spending.lowItems.slice(0, 12).map((it, i) => (
-                    <li key={i} className="flex justify-between gap-2 border-b border-[#E8E4DC] pb-0.5">
-                      <span className="truncate">{it.description}</span>
+                    <li key={it.id || i} className="flex items-center justify-between gap-2 border-b border-[#E8E4DC] pb-0.5">
+                      <LedgerEdit txn={it.id ? { id: it.id, description: it.description, category: it.category } : null} payee={it.id ? null : it.description} className="min-w-0">{it.description}</LedgerEdit>
                       <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(it.amount)}</span>
                     </li>
                   ))}
