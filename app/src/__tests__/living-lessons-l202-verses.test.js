@@ -450,3 +450,37 @@ describe('L202 tells the sound\'s steps: what the build does today, what we want
     for (const t of TEXTS()) expect(t).toContain(want);
   });
 });
+
+// THE LEARNING CENTER (Darrell, 2026-10-01: "explain I'm building a Word first
+// digit learn center... with all subjects... list the current ones... so it
+// sparks curiosity"). The numbers are a dated snapshot read from the live
+// registry on 2026-10-01 (learnDepartments(buildCatalogCourseDescriptors()):
+// 12 departments, 43 courses, 593 lessons), and every reading says "when this
+// was written", so a catalog that grows does not make the lesson lie.
+describe('L202 names the Word-first learning center and its departments, so a reader is drawn to look', () => {
+  const TEXTS = () => [L().lesson, ...BANDS()];
+  const DEPARTMENTS = ['Living Lessons', 'Real Estate', 'Stock Market', 'Project Management', 'Business', 'History', 'Mathematics', 'Development', 'A.I. The Way', 'Serve the House'];
+
+  it('every reading says what is being built and gives the dated count', () => {
+    for (const t of TEXTS()) {
+      expect(t).toMatch(/learning center/);
+      expect(t).toMatch(/twelve departments, 43 courses and 593 lessons/);
+      expect(t).toMatch(/When (this|we)( lesson)? (was|wrote)/);
+      expect(t).toMatch(/five (readings|ways)/);
+      expect(t).toMatch(/More is added/);
+    }
+  });
+
+  it('the adult, youth, teen and senior readings list the departments by name', () => {
+    for (const t of [L().lesson, L().levels.youth, L().levels.teen, L().levels.senior]) {
+      for (const d of DEPARTMENTS) expect(t, d).toContain(d);
+      expect(t).toContain('The Word & The Way');
+      expect(t).toContain('Kingdom Life & Stewardship');
+    }
+  });
+
+  it('the child reading names the subjects in a child\'s words', () => {
+    const c = L().levels.child;
+    for (const w of ['reading and counting', 'math', 'history', 'banks and stocks', 'houses and land', 'A.I.', 'sound and the cameras']) expect(c).toContain(w);
+  });
+});
