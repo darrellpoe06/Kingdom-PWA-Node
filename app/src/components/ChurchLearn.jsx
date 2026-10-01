@@ -97,6 +97,10 @@ const AGEBAND_TO_LEVEL_KEY = { child: 'child', youth: 'teen', teen: 'teen', adul
 import SectionTabs from './SectionTabs.jsx';
 import { catalogMeta } from '../lib/learn-catalog.js';
 import { crossListingsFor, resolveCrossListed, crossListedCount, courseCrossListingsFor, resolveCourseCrossListed, courseCrossListedCount } from '../lib/learn-crosslist.js';
+// TALK ABOUT IT TOGETHER (DR-0733): every lesson sends you to someone, parents to
+// children, children to parents, friend to friend (lib/talk-together.js).
+import { talkTogetherFor } from '../lib/talk-together.js';
+import { searchItOutFor } from '../lib/search-it-out.js';
 // THE ETERNAL ALGORITHMS LIVE INSIDE LEARN (DR-0432; Darrell 2026-09-15: "put
 // the Eternal Algorithms inside learn... Moving current tabs around for
 // functionality and flow"). The study surface is unchanged; it is mounted
@@ -104,6 +108,8 @@ import { crossListingsFor, resolveCrossListed, crossListedCount, courseCrossList
 const EternalAlgorithmsStudyLazy = React.lazy(() => import('./EternalAlgorithmsStudy.jsx'));
 import { organizeCourses, learnDepartments, courseLessonCount, courseSortsFor, DEFAULT_COURSE_SORT, rememberedCourseSort, rememberCourseSort, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey, catalogReadings, countWords } from '../lib/learn-organize.js';
 import { wantsSections, sectionLessons, divisionOf } from '../lib/lesson-sections.js';
+// MONTHS FOLD, AND THE MONTH YOU ARE IN STAYS AT THE TOP (DR-0732; lib/lesson-month-fold.js).
+import { rememberedFolds, rememberFolds, toggleFold, foldAll, openAll, visibleItems, foldAllOffer } from '../lib/lesson-month-fold.js';
 import { isNumberedCourse, ownNumber, inNumberOrder, numberLabel, lessonCountLabel, ordersFor, orderLessons, withMonthHeadings, formatAdded, datesFollowNumbers, DEFAULT_LESSON_ORDER, rememberedLessonOrder, rememberLessonOrder } from '../lib/lesson-order.js';
 import { subscribeTextSize } from '../lib/text-size.js';
 import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
@@ -2697,6 +2703,83 @@ function CourseView({
                 </p>
                 <div className="ts-chrome-region flex justify-end mt-1">{sec(handsOnLabel, m.inApp || '')}</div>
               </div>
+              {/* TALK ABOUT IT TOGETHER (DR-0733). Darrell, 2026-10-01: "Always
+                  prompt the parents to have the kids discuss this and vice versa
+                  have the kids prompt the parents to have conversation about
+                  Yahweh... Friends to each other... so we can all get healthy
+                  together... We should be able to see Yahweh has been right."
+                  Measured first: of 593 lessons, 0 did both directions. Every
+                  lesson now carries three prompts; a lesson's own words are used
+                  where it wrote them, and the standing prompts stand elsewhere,
+                  never claiming to be the lesson's. */}
+              {(() => {
+                const talk = talkTogetherFor(m);
+                return (
+                  <div className="mt-2 border-l-4 border-[#B85838] bg-[#B85838]/[0.06] pl-3 py-2" data-testid="lesson-talk-together" data-own={talk.allOwn ? 'true' : 'false'}>
+                    <div className="ts-chrome-region flex items-center justify-between gap-2 mb-1">
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold">Talk about it together</div>
+                      {sec('Talk about it together', talk.prompts.map((p) => `${p.to}: ${p.text}`).join('\n'))}
+                    </div>
+                    <ul className="space-y-1">
+                      {talk.prompts.map((p) => (
+                        <li key={p.to} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }} data-talk-to={p.to.toLowerCase()} data-talk-own={p.own ? 'true' : 'false'}>
+                          <strong>{p.to}:</strong> {p.text}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-1 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }} data-testid="talk-together-method">
+                      <strong className="text-[#1A1815]">The way:</strong> {talk.method.skill} {talk.method.growth}
+                    </p>
+                    <p className="mt-1 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                      {talk.aim} <span className="italic">"{talk.verse.text}"</span> ({talk.verse.ref})
+                    </p>
+                  </div>
+                );
+              })()}
+              {/* SEARCH IT OUT (DR-0734). Darrell, 2026-10-01: "Integrated lessons
+                  also so they make users want to learn more about Yahweh and the
+                  Word's mysteries... so we produce kings like the Word says." The
+                  honour of kings is to search out a matter (Proverbs 25:2), so
+                  every lesson ends by sending the reader deeper: the lessons in
+                  this course that stand on the same verses (derived from the
+                  anchors, never typed), three questions back into the text, and
+                  the verse. */}
+              {(() => {
+                const search = searchItOutFor(m, schedule);
+                return (
+                  <div className="mt-2 border-l-4 border-[#1A1815] bg-[#1A1815]/[0.04] pl-3 py-2" data-testid="lesson-search-it-out" data-ground={search.ground} data-next={search.next.length}>
+                    <div className="ts-chrome-region flex items-center justify-between gap-2 mb-1">
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#1A1815] font-semibold">Search it out</div>
+                      {sec('Search it out', [...search.questions, ...search.next.map((n) => `${n.title} (${n.shared.join('; ')})`)].join('\n'))}
+                    </div>
+                    <ol className="list-decimal pl-4 space-y-1">
+                      {search.questions.map((q, i) => (
+                        <li key={i} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }} data-search-question>{q}</li>
+                      ))}
+                    </ol>
+                    {search.next.length > 0 && (
+                      <ul className="mt-1 space-y-1" data-testid="search-it-out-next">
+                        {search.next.map((n) => (
+                          <li key={n.id} className="text-xs" style={{ fontFamily: '"Fraunces", serif' }} data-search-next={n.id}>
+                            <button
+                              type="button"
+                              onClick={() => openLesson(n.id)}
+                              className="text-left underline decoration-[#B85838] text-[#1A1815] min-h-[36px] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                              aria-label={`Open ${n.title}`}
+                            >
+                              {n.number ? `L${n.number} · ` : ''}{n.title}
+                            </button>
+                            <span className="text-[#5A5751]"> — same ground: {n.shared.join('; ')}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <p className="mt-1 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                      {search.aim} <span className="italic">"{search.verse.text}"</span> ({search.verse.ref})
+                    </p>
+                  </div>
+                );
+              })()}
               {m.anchor?.ref && (
                 <div className="mt-2">
                   {/* THE REFERENCES HERE ARE TAPPABLE, BECAUSE THEY LOOK IT.
@@ -3347,6 +3430,8 @@ function CourseView({
             )}
             {m.lesson && <p><strong>Lesson.</strong> {m.lesson}</p>}
             <p><strong>{handsOnLabel}.</strong> {m.inApp}</p>
+            <p><strong>Talk about it together.</strong> {talkTogetherFor(m).prompts.map((p) => `${p.to}: ${p.text}`).join(' ')} {talkTogetherFor(m).aim}</p>
+            <p><strong>Search it out.</strong> {searchItOutFor(m, schedule).questions.join(' ')} {searchItOutFor(m, schedule).next.map((n) => `${n.title} (${n.shared.join('; ')})`).join('; ')} {searchItOutFor(m, schedule).aim}</p>
             {m.anchor?.ref && <p><strong>Anchor — {m.anchor.ref}.</strong> {m.anchor.theme}</p>}
             {/* The voices and the dated record print with the lesson (DR-0580):
                 a facilitator working from paper has the words and the years. */}
@@ -3688,6 +3773,13 @@ export default function ChurchLearn({
   // numbered!!!!!!!"). By number, first to last, is the default; the pick is
   // kept per course on this device (lib/lesson-order.js, storage guarded).
   const [lessonOrderPick, setLessonOrderPick] = useState({});
+  // Which months are folded, per course; remembered on this device (DR-0732).
+  const [monthFoldPick, setMonthFoldPick] = useState({});
+  const foldsFor = (courseKey) => monthFoldPick[courseKey] || rememberedFolds(courseKey);
+  const setFoldsFor = (courseKey, next) => {
+    rememberFolds(courseKey, next);
+    setMonthFoldPick((m) => ({ ...m, [courseKey]: next }));
+  };
   const pickLessonOrder = (courseKey, order) => {
     setLessonOrderPick((p) => ({ ...p, [courseKey]: order }));
     rememberLessonOrder(courseKey, order);
@@ -4063,6 +4155,9 @@ export default function ChurchLearn({
             : (order === 'number' || order === 'newest')
               ? ((order === 'newest' ? dated : numberIsOldest) ? withMonthHeadings(orderLessons(shown, order)) : orderLessons(shown, order))
               : (order === 'title' || order === 'title-desc') ? orderLessons(shown, order) : shown;
+          const folded = foldsFor(active.key);
+          const rows = visibleItems(items, folded);
+          const foldOffer = foldAllOffer(items, folded);
           const showDivision = !!sections && order !== 'divisions' && shelf === 'all';
           const open = (id) => { setActiveKey(active.key); setResumeOpenGuide(false); setResumeLessonId(id); setResumeNonce((n) => n + 1); };
           return (
@@ -4181,16 +4276,72 @@ export default function ChurchLearn({
                   That is the "By the Word's divisions" order; in number order
                   the month each lesson was added heads its run instead (labels
                   too), and each row names its division in small type. */}
-              <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1" data-testid="course-lesson-list" data-shelf={shelf} data-order={order}>
-                {items.map((m) => (m.heading ? (
-                  <li
-                    key={`heading-${m.heading.key}`}
-                    {...(m.heading.lessons ? { 'data-shelf-heading': m.heading.key } : { 'data-month-heading': m.heading.key })}
-                    className="pt-2 pb-1 text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D] font-semibold border-t border-[#E8E4DC] flex items-center justify-between"
+              {/* THE MONTHS FOLD (DR-0732; Darrell 2026-10-01: "condensed to get
+                  to other months faster and to see the count of lessons each
+                  month if they are all collapsed... work independently"). Each
+                  month heading is its own fold; folded, it still shows its
+                  count, so the list reads as a table of contents. One control
+                  folds or opens them all. Division headings stay labels. */}
+              {foldOffer && (
+                <div className="ts-chrome-region flex justify-end mb-1">
+                  <button
+                    type="button"
+                    data-testid="months-fold-all"
+                    onClick={() => setFoldsFor(active.key, foldOffer.action === 'fold' ? foldAll(items) : openAll())}
+                    className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 min-h-[36px] border border-[#E8E4DC] text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
                   >
-                    <span>{m.heading.label}</span>
-                    <span className="text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.heading.lessons ? m.heading.lessons.length : m.heading.count}</span>
-                  </li>
+                    {foldOffer.label}
+                  </button>
+                </div>
+              )}
+              <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1" data-testid="course-lesson-list" data-shelf={shelf} data-order={order}>
+                {rows.map((m) => (m.heading ? (
+                  m.heading.lessons ? (
+                    <li
+                      key={`heading-${m.heading.key}`}
+                      data-shelf-heading={m.heading.key}
+                      className="pt-2 pb-1 text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D] font-semibold border-t border-[#E8E4DC] flex items-center justify-between"
+                    >
+                      <span>{m.heading.label}</span>
+                      <span className="text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.heading.lessons.length}</span>
+                    </li>
+                  ) : (
+                    /* THE MONTH YOU ARE IN STAYS AT THE TOP OF THE SCROLL (Darrell
+                       2026-10-01: "keep the date and the count at the top of the
+                       scroll until the month is out of the picture"). Sticky
+                       inside the scrolling list, with the list's own background,
+                       so the next month's heading pushes it off. */
+                    <li
+                      key={`heading-${m.heading.key}`}
+                      data-month-heading={m.heading.key}
+                      data-folded={m.heading.folded ? 'true' : 'false'}
+                      data-count={m.heading.count}
+                      data-aged={m.heading.aged || 0}
+                      className="sticky top-0 z-10 bg-[#FAF8F4] border-t border-[#E8E4DC]"
+                    >
+                      <button
+                        type="button"
+                        data-testid="month-fold"
+                        aria-expanded={!m.heading.folded}
+                        aria-label={`${m.heading.label}, ${m.heading.count} ${m.heading.count === 1 ? U.noun : `${U.noun}s`}${m.heading.aged ? `, ${m.heading.aged} written for every age` : ''} — ${m.heading.folded ? 'open this month' : 'fold this month'}`}
+                        title={m.heading.aged ? `${m.heading.aged} of these ${m.heading.count} are also written for children, youth, teens and seniors — have your kids review them in the Learn tab at their level` : undefined}
+                        onClick={() => setFoldsFor(active.key, toggleFold(folded, m.heading.key))}
+                        className="w-full min-h-[44px] pt-2 pb-1 text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D] font-semibold flex items-center justify-between gap-2 text-left focus:outline focus:outline-2 focus:outline-[#B85838]"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span aria-hidden="true" className="text-[#5A5751] text-xs">{m.heading.folded ? '▸' : '▾'}</span>
+                          <span>{m.heading.label}</span>
+                        </span>
+                        <span className="text-[#5A5751] whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                          {m.heading.count}
+                          {/* THE OTHER NUMBER, FOR PARENTS (DR-0732): how many of
+                              this month's lessons the children can read at their
+                              own level in the Learn tab. */}
+                          {m.heading.aged ? <span className="text-[#5A6E3D]">{` · ${m.heading.aged} for every age`}</span> : null}
+                        </span>
+                      </button>
+                    </li>
+                  )
                 ) : (
                   <li key={m.id} data-lesson-id={m.id} className="flex items-center gap-2">
                     <button
