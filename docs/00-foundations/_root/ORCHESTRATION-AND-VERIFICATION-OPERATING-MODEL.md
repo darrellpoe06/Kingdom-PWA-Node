@@ -87,6 +87,23 @@ The local-LLM orchestrator should:
 - **Memory is a cache only.** It speeds the agent up between context windows; it is
   never the system of record. If it and this doc disagree, this doc governs.
 
+## 7. Before you build: review the DRs, then keep the Don'ts (added 2026-09-30, DR-0697)
+
+Darrell, 2026-09-30: *"Review the DRs... make sure our previous failures are accounted and you understand what not to do"* and *"Add reviewing the DRs... so we don't repeat obvious failures."*
+
+**Before you build: review the DRs.** Every builder brief and every routine prompt names the DRs and the LESSONS-LEARNED principles for its area and has them read first. Start from `docs/templates/builder-brief.md` (one outcome, a done-condition, MUST NOT TOUCH, READ FIRST, brakes). The required-reading hook hands the same don't-repeat pointers at the moment of writing, for workflows and lesson catalogs on edits too, once per area per session.
+
+**The Don'ts, read before orchestrating** (each was paid for on 2026-09-30):
+- **Don't launch without a budget.** Before fanning out builders, run `node scripts/capacity-budget.mjs <n>`: it measures memory and disk now and says whether <n> more builders fit (measured cost 3.1 GB memory + 1.5 GB disk each). Over budget = launch what fits and queue the rest. Local test runs queue themselves through two slots (`app/vitest.local-slot.js`), so parallel builders wait instead of filling memory (Darrell 2026-09-30: "Make sure we have room for our max and we know our budget is good or not first").
+- **Don't throttle on an assumption.** Measure memory and disk first and quote the number; clean every artifact a job leaves, `/tmp` build folders as well as worktrees (P65).
+- **Don't run a standing lane on one chat connector.** Give it a sovereign road through the NAS, and diagnose your own side before asking Darrell to act (P61).
+- **Don't decide by list order.** Ask by exact identity (`head_sha=`); `workflow-list-order-guard` fails the build otherwise (P62).
+- **Don't burst dispatches into one concurrency group.** One pending run survives; dispatch one at a time and confirm each run (P64).
+- **Don't trust work to a session that can die.** Give it a durable, braked driver, and call the driver working only after its first run is seen doing real work (P66, P53).
+- **Don't send a spawned session with a wide brief.** One outcome, what it must not touch, watched; stop scope creep at once (P67).
+- **Don't cite what doesn't exist yet.** Reserve a DR number privately; cite a record only once its file exists (the cited-but-unread check, P41).
+- **Don't hold a requirement without a close.** It binds new work at once, and its backlog gets an owner, a schedule and a done-condition (P60, P29).
+
 ## 8. The delivery lane — work lands on green without a manual merge (DR-0103)
 
 The lanes in §2 describe how work is *built*; this is how it *lands*. The default

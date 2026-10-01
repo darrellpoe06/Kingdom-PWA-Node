@@ -22,13 +22,14 @@
     "lesson-dates:check": "vite-node ../scripts/derive-lesson-dates.mjs --check",
     "verify": "npm run lint && npm run verify:gates && vitest run",
     "ship": "node ../scripts/push-stranding-guard.mjs --stamp && npm run verify && node ../scripts/decision-record-guard.mjs && node ../scripts/push-stranding-guard.mjs && git push -u origin HEAD",
-    "verify:gates": "node ../scripts/module-boundary-guard.mjs && node ../scripts/monolith-budget-guard.mjs && node ../scripts/interconnect-guard.mjs && node ../scripts/source-adapter-guard.mjs && node ../scripts/business-systems-guard.mjs && node ../scripts/infra-transport-guard.mjs && node ../scripts/his-hand-guard.mjs && node ../scripts/lessons-gate-coverage.mjs && node ../scripts/rls-isolation-matrix-guard.mjs && node ../scripts/migration-replay-order-guard.mjs && node ../scripts/replay-completeness-guard.mjs && node ../scripts/migration-return-type-guard.mjs && node ../scripts/no-prompt-guard.mjs && node ../scripts/smoke-sql-language-guard.mjs && node ../scripts/surface-hollow-guard.mjs"
+    "verify:gates": "node ../scripts/module-boundary-guard.mjs && node ../scripts/workflow-list-order-guard.mjs && node ../scripts/monolith-budget-guard.mjs && node ../scripts/interconnect-guard.mjs && node ../scripts/source-adapter-guard.mjs && node ../scripts/business-systems-guard.mjs && node ../scripts/infra-transport-guard.mjs && node ../scripts/his-hand-guard.mjs && node ../scripts/lessons-gate-coverage.mjs && node ../scripts/rls-isolation-matrix-guard.mjs && node ../scripts/migration-replay-order-guard.mjs && node ../scripts/replay-completeness-guard.mjs && node ../scripts/migration-return-type-guard.mjs && node ../scripts/no-prompt-guard.mjs && node ../scripts/smoke-sql-language-guard.mjs && node ../scripts/surface-hollow-guard.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.1",
     "libsodium-wrappers": "^0.8.4",
     "node-forge": "^1.4.0",
     "onnxruntime-web": "1.30.0",
+    "pdfjs-dist": "^4.10.38",
     "phonemizer": "1.2.1",
     "qrcode.react": "^4.2.0",
     "react": "^18.3.1",

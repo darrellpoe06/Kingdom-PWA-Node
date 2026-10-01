@@ -142,6 +142,19 @@ export function stepFor(key) {
   return TEXT_SIZE_STEPS.find((s) => s.key === key) || TEXT_SIZE_STEPS[0];
 }
 
+/**
+ * The step `delta` places from `key` (-1 = smaller, +1 = bigger), clamped to the
+ * ends of TEXT_SIZE_STEPS. Unknown keys start from Normal. Pure; drives the
+ * A- / A+ quick control (TextSizeQuick) so it walks the SAME five steps the
+ * header row and the reader panel offer: one ladder, never a second scale.
+ */
+export function stepTextSizeKey(key, delta) {
+  const i = Math.max(0, TEXT_SIZE_STEPS.findIndex((s) => s.key === key));
+  const d = delta > 0 ? 1 : delta < 0 ? -1 : 0;
+  const j = Math.min(TEXT_SIZE_STEPS.length - 1, Math.max(0, i + d));
+  return TEXT_SIZE_STEPS[j].key;
+}
+
 /** True when key names a real step. */
 export function isValidTextSize(key) {
   return TEXT_SIZE_STEPS.some((s) => s.key === key);

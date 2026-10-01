@@ -128,6 +128,66 @@ export function scanCourseBands(catalog, ownedIds = new Set(), { ceiling = ADULT
   return { total, allFour, adultOnly, adultRegister, courses };
 }
 
+/**
+ * THE FOUR-BAND REQUIREMENT BINDS NEW WORK AT ONCE (DR-0697, LESSONS P60).
+ * Measured 2026-09-30: 376 of 398 recorded catalog lessons lacked all four
+ * bands, and new courses kept arriving with two (teen + senior) because the
+ * ratchet below watches only adult-only lessons and lost four-band lessons, so
+ * a lesson with two bands changed nothing it could see. Darrell: "why not when
+ * that has been requested and required?!"
+ *
+ * The gap is `lessons - allFour` per course. These ceilings are the gaps
+ * measured from the real catalog on 2026-09-30 (400 lessons, 22 with all
+ * four). They are FROZEN BY HAND and never regenerated from a scan, because a
+ * regenerated ceiling would re-license whatever the scan found: they may only
+ * be LOWERED as bands land. A course not listed has a ceiling of 0, so a new
+ * course arrives with all four bands on every lesson or the build fails, and
+ * a lesson added to a listed course without all four raises its gap and fails.
+ * sovereign-ai reads 31 where the baseline file recorded 29: two lessons were
+ * added below the standard before this gate existed; they are backlog like the
+ * rest, and nothing more joins them. property-principle and
+ * management-stewardship reached 0 the same afternoon (DR-0696).
+ *
+ * THE CEILING TIGHTENS ITSELF: the effective ceiling is the lower of this frozen
+ * number and the course's gap in the baseline file, which every band PR
+ * regenerates from a fresh scan. So a course that closes its gap is held at the
+ * new number without anyone editing this table, and a regenerated baseline can
+ * never raise a course above its frozen line.
+ */
+export const FOUR_BAND_GAP_CEILING = Object.freeze({
+  ai: 8, 'ai-legal-blueprint': 6, appraisal: 8, banking: 8, bonds: 8, broadcast: 9,
+  'business-research-wars': 9, 'buying-terms': 8, 'church-offices': 7, datasystems: 14,
+  development: 8, evictions: 8, 'financing-debt': 8, 'handed-forward': 5, 'healthy-living': 12,
+  'historical-research-1619': 0, 'history-truth': 8, infrastructure: 10, inspections: 8,
+  'insurance-risk': 8, investing: 8, 'kingdom-economics': 8, 'leasing-tenants': 8,
+  'legacy-provisions': 7, 'little-learners': 6, 'made-in-time': 18, 'maintenance-trades': 8,
+  'management-stewardship': 0, mathematics: 8, partnerships: 8, 'project-management': 12,
+  'property-principle': 0, 'prophetic-voices': 6, 'rent-to-own-business': 8,
+  'software-project-management': 10, 'sound-board': 8, 'sovereign-ai': 31, stocks: 8,
+  'taxes-records': 8, 'who-he-is': 0, 'word-out': 5, 'world-issues': 19, 'world-market': 8,
+});
+
+/**
+ * Courses whose four-band gap is above its ceiling: the frozen number (0 when
+ * unlisted), lowered to the baseline file's recorded gap when that is lower.
+ */
+export function fourBandGapFindings(scan, ceiling = FOUR_BAND_GAP_CEILING, baseline = null) {
+  const out = [];
+  const recorded = (baseline && baseline.courses) || {};
+  for (const [key, row] of Object.entries((scan && scan.courses) || {})) {
+    const listed = Object.prototype.hasOwnProperty.call(ceiling, key);
+    const was = recorded[key];
+    const wasGap = was && Number.isFinite(was.lessons) && Number.isFinite(was.allFour) ? was.lessons - was.allFour : Infinity;
+    const max = Math.min(listed ? ceiling[key] : 0, wasGap);
+    const gap = row.lessons - row.allFour;
+    if (gap <= max) continue;
+    out.push(listed
+      ? `${key}: ${gap} lessons without all four bands, ceiling ${max}: a lesson was added below the standard (DR-0697)`
+      : `${key}: a new course must carry child, youth, teen and senior on every lesson; ${gap} of ${row.lessons} lessons do not (DR-0697)`);
+  }
+  return out;
+}
+
 /** Which courses got WORSE than the baseline recorded? */
 export function ratchetCourseBands(scan, baseline) {
   const known = (baseline && baseline.courses) || {};
