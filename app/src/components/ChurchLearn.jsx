@@ -103,6 +103,7 @@ import { codesForLesson, codesSummary, CODE_FRAME } from '../lib/word-codes.js';
 // TALK ABOUT IT TOGETHER (DR-0733): every lesson sends you to someone, parents to
 // children, children to parents, friend to friend (lib/talk-together.js).
 import { talkTogetherFor } from '../lib/talk-together.js';
+import { searchItOutFor } from '../lib/search-it-out.js';
 // THE ETERNAL ALGORITHMS LIVE INSIDE LEARN (DR-0432; Darrell 2026-09-15: "put
 // the Eternal Algorithms inside learn... Moving current tabs around for
 // functionality and flow"). The study surface is unchanged; it is mounted
@@ -2767,6 +2768,50 @@ function CourseView({
                   </div>
                 );
               })()}
+              {/* SEARCH IT OUT (DR-0734). Darrell, 2026-10-01: "Integrated lessons
+                  also so they make users want to learn more about Yahweh and the
+                  Word's mysteries... so we produce kings like the Word says." The
+                  honour of kings is to search out a matter (Proverbs 25:2), so
+                  every lesson ends by sending the reader deeper: the lessons in
+                  this course that stand on the same verses (derived from the
+                  anchors, never typed), three questions back into the text, and
+                  the verse. */}
+              {(() => {
+                const search = searchItOutFor(m, schedule);
+                return (
+                  <div className="mt-2 border-l-4 border-[#1A1815] bg-[#1A1815]/[0.04] pl-3 py-2" data-testid="lesson-search-it-out" data-ground={search.ground} data-next={search.next.length}>
+                    <div className="ts-chrome-region flex items-center justify-between gap-2 mb-1">
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#1A1815] font-semibold">Search it out</div>
+                      {sec('Search it out', [...search.questions, ...search.next.map((n) => `${n.title} (${n.shared.join('; ')})`)].join('\n'))}
+                    </div>
+                    <ol className="list-decimal pl-4 space-y-1">
+                      {search.questions.map((q, i) => (
+                        <li key={i} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }} data-search-question>{q}</li>
+                      ))}
+                    </ol>
+                    {search.next.length > 0 && (
+                      <ul className="mt-1 space-y-1" data-testid="search-it-out-next">
+                        {search.next.map((n) => (
+                          <li key={n.id} className="text-xs" style={{ fontFamily: '"Fraunces", serif' }} data-search-next={n.id}>
+                            <button
+                              type="button"
+                              onClick={() => openLesson(n.id)}
+                              className="text-left underline decoration-[#B85838] text-[#1A1815] min-h-[36px] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                              aria-label={`Open ${n.title}`}
+                            >
+                              {n.number ? `L${n.number} · ` : ''}{n.title}
+                            </button>
+                            <span className="text-[#5A5751]"> — same ground: {n.shared.join('; ')}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <p className="mt-1 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                      {search.aim} <span className="italic">"{search.verse.text}"</span> ({search.verse.ref})
+                    </p>
+                  </div>
+                );
+              })()}
               {m.anchor?.ref && (
                 <div className="mt-2">
                   {/* THE REFERENCES HERE ARE TAPPABLE, BECAUSE THEY LOOK IT.
@@ -3422,6 +3467,7 @@ function CourseView({
             {m.lesson && <p><strong>Lesson.</strong> {m.lesson}</p>}
             <p><strong>{handsOnLabel}.</strong> {m.inApp}</p>
             <p><strong>Talk about it together.</strong> {talkTogetherFor(m).prompts.map((p) => `${p.to}: ${p.text}`).join(' ')} {talkTogetherFor(m).aim}</p>
+            <p><strong>Search it out.</strong> {searchItOutFor(m, schedule).questions.join(' ')} {searchItOutFor(m, schedule).next.map((n) => `${n.title} (${n.shared.join('; ')})`).join('; ')} {searchItOutFor(m, schedule).aim}</p>
             {m.anchor?.ref && <p><strong>Anchor — {m.anchor.ref}.</strong> {m.anchor.theme}</p>}
             {/* The voices and the dated record print with the lesson (DR-0580):
                 a facilitator working from paper has the words and the years. */}

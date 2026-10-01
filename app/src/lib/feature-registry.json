@@ -31,6 +31,7 @@
   {"id": "learn-latest-row", "name": "Open a lesson from Latest lessons", "surface": "learn-lists", "find": {"role": "button", "nameMatch": "^\\w{3} \\d{1,2}, \\d{4} · .+ · L\\d+"}},
   {"id": "card-codes", "name": "The code in this lesson (the purpose clauses of the verses it quotes)", "surface": "lesson-header", "find": {"testid": "lesson-codes"}},
   {"id": "card-talk-together", "name": "Talk about it together (parents to children, children to parents, friend to friend)", "surface": "lesson-header", "find": {"testid": "lesson-talk-together"}},
+  {"id": "card-search-it-out", "name": "Search it out (the lessons on the same ground, three questions, Proverbs 25:2)", "surface": "lesson-header", "find": {"testid": "lesson-search-it-out"}},
   {"id": "lesson-all-courses", "name": "All courses", "surface": "lesson-header", "find": {"testid": "lesson-bar-all-courses"}},
   {"id": "lesson-all-lessons", "name": "All lessons", "surface": "lesson-header", "find": {"testid": "lesson-bar-all"}},
   {"id": "lesson-prev", "name": "Previous lesson", "surface": "lesson-header", "find": {"role": "button", "name": "← Prev"}},
