@@ -275,7 +275,7 @@ elif [ "$MODE" = "instances" ]; then
   # slugs only -- no row contents, same withholding as tables mode.
   psql_q "SELECT coalesce(json_agg(s ORDER BY s.slug), '[]'::json)::text FROM (
             SELECT i.slug,
-                   i.name,
+                   i.display_name,
                    i.instance_type,
                    (SELECT count(*) FROM public.instance_members m WHERE m.instance_id = i.id) AS members,
                    (SELECT count(*) FROM public.rentals r      WHERE r.instance_id  = i.id) AS rentals,
