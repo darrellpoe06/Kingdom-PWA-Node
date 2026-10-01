@@ -401,3 +401,52 @@ describe('the register is ordered, and measured rather than asserted', () => {
     for (const b of FULL_BANDS) expect(namesItsLesson(m.title, m.levels[b]), b).toBe(true);
   });
 });
+
+// HOW THIS LESSON CAME TO YOU (DR-0727). Darrell, 2026-10-01: explain in the
+// lesson how the class is also captured on video, how the build takes the
+// channel's transcription and cross-references it with the in-app recording,
+// "to describe how Yahweh helps us help us", that it adds to The Love Corner on
+// its own, "the sound steps so it's known... so it can spark a person to get
+// involved and or help build", and "explain the build and what it does vs what
+// we want and we expect and will make sure it's accomplished and He is pleased".
+// The witness run for 2026-09-30 (church-video-witness, run 36798050879) found
+// 0 channel rows: the video was not posted when the lesson was built. The
+// lesson says exactly that, never that the check happened.
+describe('L202 tells the sound\'s steps: what the build does today, what we want, and that He is pleased', () => {
+  const TEXTS = () => [L().lesson, ...BANDS()];
+
+  it('every reading walks the steps: record in the app, our own machine, words, the Word checked, five readings, both apps', () => {
+    for (const t of TEXTS()) {
+      expect(t).toContain('HOW THIS LESSON CAME TO YOU');
+      expect(t).toMatch(/pressed record (in|inside) the PoeTech app/);
+      expect(t).toMatch(/our own (machine|computer) at (home|our own house)|a computer at our own house/);
+      expect(t).toMatch(/not to a (company's cloud|big company)|never to a company's cloud/i);
+      expect(t).toMatch(/five ways/);
+      expect(t).toContain('The Love Corner');
+    }
+  });
+
+  it('tells the truth about the video: the church posts it, the check is wanted, and it had not run yet for this class', () => {
+    for (const t of TEXTS()) {
+      expect(t).toMatch(/video channel/);
+      expect(t).toMatch(/(not been posted|not posted|not up) yet/);
+      expect(t).toMatch(/still wait/);
+      expect(t).not.toMatch(/the video (was|has been) (read|checked|compared)|we checked the video/i);
+    }
+  });
+
+  it('says what we want and expect, that it will be accomplished, and that He is pleased, in every reading', () => {
+    for (const t of TEXTS()) {
+      expect(t).toMatch(/[Ww]hat we want/);
+      expect(t).toMatch(/make sure it (is accomplished|is finished|gets done)/);
+      expect(t).toMatch(/pleases Him|Yahweh (to be|is) pleased/);
+      expect(t).toMatch(/Yahweh help(s|ing) us help (one another|each other)/);
+      expect(t).toMatch(/get involved|help build/);
+    }
+  });
+
+  it('grounds the help in Galatians 6:2, quoted from the King James text', () => {
+    const want = verse('Galatians', 6, 2).replace(/\s+/g, ' ').trim().replace(/\.$/, ''); // the house quotes drop the closing period before the reference
+    for (const t of TEXTS()) expect(t).toContain(want);
+  });
+});
