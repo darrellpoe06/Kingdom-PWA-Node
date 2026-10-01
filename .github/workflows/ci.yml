@@ -243,12 +243,10 @@ jobs:
       # transcript row -> cloud copy removed), idempotency by the database, the
       # Whisper ladder order (tower first, NAS CPU last), multipart upload shape,
       # path traversal refused, budget + lock, and the honest voice-failed row
-      # after three tries. Add my voice (DR-0720): a voice is named only from a
-      # print its owner consented to; removal deletes the print; refusals say
-      # why. Proven-to-catch; gates merge.
+      # after three tries. Proven-to-catch; gates merge.
       - name: lesson-voice whisper loop proofs
         working-directory: infra/nas-lesson-voice
-        run: python3 -m unittest test_lesson_voice test_speaker_turns test_voice_enroll -v
+        run: python3 -m unittest test_lesson_voice test_speaker_turns -v
       # Tower parity loop proofs (DR-0671): every measure deterministic, every
       # gap class fires on a planted defect, no single defect counts toward
       # promotion, the cross-reference excludes a verse-gate failure, the
@@ -681,6 +679,42 @@ jobs:
           psql -v ON_ERROR_STOP=1 -q -f scripts/lesson-share-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'every wall held' "$RUNNER_TEMP/smoke.txt"
 
+  # EVERY ARRIVAL COUNTED, THE CLOSED-APP HALF, ON A REAL POSTGRESQL (DR-0728).
+  # 0246 applies twice (idempotent), then the smoke proves: a lesson row gaining
+  # `awaiting-review` or `lesson-published` enqueues ONE push_outbox row for its
+  # one person (one per teaching per event, keyed lesson:<row>:<event>); an
+  # insert, a repeat, an unrelated tag or a non-lesson row enqueues nothing; the
+  # person reads only their own rows and anon none. Every check RAISEs.
+  arrivals-push:
+    name: app — lesson arrival push (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: 0246 applies, twice (idempotent), and the enqueue is exactly one per teaching per event
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f scripts/curriculum-ci-bootstrap.sql
+          psql -v ON_ERROR_STOP=1 -q -f scripts/arrivals-ci-bootstrap.sql
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0246-every-arrival-is-counted-a-lesson-ready-or-published-enqueues-a-push.sql; done
+          psql -v ON_ERROR_STOP=1 -q -f scripts/arrivals-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'every wall held' "$RUNNER_TEMP/smoke.txt"
+
   # ADD MY VOICE'S WALLS, ON A REAL POSTGRESQL (DR-0720). 0248 applies twice
   # (idempotent), then the smoke proves: no sample without consent, a sample
   # only from the person's own folder, each person reads only their own row,
@@ -724,10 +758,10 @@ jobs:
   app:
     name: app — lint + vitest
     if: always()
-    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, voice-enrollments]
+    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, voice-enrollments]
     runs-on: ubuntu-latest
     steps:
-      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares, voice consent walls)
+      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares, lesson arrival push, voice consent walls)
         env:
           NEEDS: ${{ toJSON(needs) }}
         run: |

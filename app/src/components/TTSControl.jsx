@@ -13,7 +13,8 @@
 // renders nothing — no crash (unbreakable). Status is announced for screen
 // readers; every control is keyboard reachable; the panel is a high-contrast
 // (WCAG AA) white card regardless of app theme.
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { newReaderId, registerReader, subscribeReaders, chosenReader } from '../lib/one-reader.js';
 import { RATE_STEPS } from '../lib/tts.js';
 import { useReadAloud } from '../lib/use-read-aloud.js';
 import {
@@ -72,6 +73,9 @@ const LEARN_OPEN = Object.values(import.meta.glob('../lib/learn-open.js', { eage
 // lesson, and it is where he went looking -- his second screenshot is it, open,
 // with speed and voice in it and no text size.
 import { useTextSize } from '../lib/text-size.js';
+// A- / A+ beside the read-aloud button on every screen, so text size no
+// longer needs the reader opened (DR-0724). Same store as the panel's row.
+import { TextSizeQuick } from './TextSizeControl.jsx';
 import { THEMES, useThemePref } from '../lib/theme-css.js';
 
 // After the page comes back from dark, the engine's own foreground recovery
@@ -160,14 +164,35 @@ export const BACKGROUND_LINES = {
   audio: 'This voice keeps playing when you switch apps — your phone’s own play/pause controls it.',
   device: 'This voice stops when you switch apps — the audio voice is offline.',
   idle: 'The audio voice keeps playing when you switch apps. If it is offline, the phone’s own voice reads instead, and that one stops when you switch apps.',
+  // SAID BEFORE HE PRESSES PLAY (DR-0718; Darrell 2026-10-01: "it stops each
+  // time on the downloaded version?!"). Which voice will read is known before
+  // the press, so the panel says it then, not after the reading has stopped.
+  saved: 'This lesson is saved on this phone. It plays as one recording and keeps playing when you switch apps or turn the screen off, with or without a connection.',
+  phone: 'The voice picked is this phone’s own voice, and Android stops it when you switch apps. Pick the System voice to keep listening with the screen off.',
 };
-export function backgroundLine({ isReading, audioVoice } = {}) {
+export function backgroundLine({ isReading, audioVoice, usesNasVoice = true, saved = false } = {}) {
   if (isReading && audioVoice === 'device') return BACKGROUND_LINES.device;
-  if (isReading && audioVoice === 'audio') return BACKGROUND_LINES.audio;
+  if (isReading && audioVoice === 'audio') return saved ? BACKGROUND_LINES.saved : BACKGROUND_LINES.audio;
+  if (!usesNasVoice) return BACKGROUND_LINES.phone;
+  if (saved) return BACKGROUND_LINES.saved;
   return BACKGROUND_LINES.idle;
 }
 
-export default function TTSControl({ isOwner = false, view, churchView, booksView, onOpenLearn = null }) {
+// ONE READER ON THE SCREEN (DR-0718; lib/one-reader.js). Two mounted readers
+// drew two panels in the same corner, stacked: the "sections drawn two and
+// three times" in Darrell's screenshot. Every reader registers; only the
+// chosen one renders. The app-level reader (handed the view) outranks one a
+// surface mounts for itself.
+export default function TTSControl(props) {
+  const [id] = useState(newReaderId);
+  const priority = props && (props.view !== undefined || typeof props.onOpenLearn === 'function') ? 1 : 0;
+  const chosen = useSyncExternalStore(subscribeReaders, chosenReader, chosenReader);
+  useEffect(() => registerReader(id, priority), [id, priority]);
+  if (chosen !== null && chosen !== id) return null;
+  return <ReaderInstance {...props} />;
+}
+
+function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLearn = null }) {
   const [isOpen, setIsOpen] = useState(false);
   // Same switch as the in-lesson bar: one module store, never two states.
   const showWord = useShowTheWord();
@@ -870,7 +895,8 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // offlineNote is read, not watched: a note for this lesson is kept as is.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, target, usesNasVoice, liteVoice]);
-  if (!supported && !scrollTopBtn) return null;
+  // No early return when speech is unsupported: the text-size pair (DR-0724)
+  // still belongs on the screen of a device that cannot speak.
 
   const start = async () => {
     // OPEN WHAT IS CLOSED FIRST (Darrell 2026-08-10: "deeper doesn't get read at
@@ -1869,7 +1895,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
             {target ? `Read ${target.label} opens every part of that one piece and reads it start to finish — nothing else on the page mixed in. ` : ''}Read this page opens what is collapsed on it and recites it from the top; Start where I tap begins at the word you touch; Talk about this has Ari explain what is on it — all in your chosen voice{currentItem && currentItem.ai ? ' (AI-generated)' : ''}, on every page.
           </p>
           <p className="text-[0.5625em] text-[#5A5751] leading-snug mt-[0.375em]" style={{ fontFamily: '"Fraunces", serif' }}>
-            Only <strong>Stop</strong> stops the voice. Close puts this panel away and keeps reading. <span data-testid="reader-background-line">{backgroundLine({ isReading, audioVoice })}</span>
+            Only <strong>Stop</strong> stops the voice. Close puts this panel away and keeps reading. <span data-testid="reader-background-line">{backgroundLine({ isReading, audioVoice, usesNasVoice, saved: !!(target && offlineNote && offlineNote.owner === target.owner && offlineNote.total > 0 && offlineNote.saved === offlineNote.total && !offlineNote.running) })}</span>
           </p>
         </div>
       ) : isReading ? (
@@ -1902,7 +1928,13 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           <button type="button" onClick={popOut} data-testid="reader-mini-pop-out" aria-label="Pop out — a reader window you can move" title="Pop out" className="hidden min-[400px]:flex h-10 w-10 rounded-full items-center justify-center text-[#1A1815] text-base font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">⧉</button>
           {fab}
         </div>
-      ) : fab)}
+      ) : (
+        <div className="flex items-end gap-2" data-testid="reader-idle-row">
+          <TextSizeQuick dim={!revealFab} />
+          {fab}
+        </div>
+      ))}
+      {!supported && !isOpen && <TextSizeQuick dim={!revealFab} />}
     </div>
   );
 }
