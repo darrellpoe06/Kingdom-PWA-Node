@@ -20,6 +20,7 @@ import { onAuthChange } from '../lib/supabase.js';
 import {
   subscribeDirectMessages, sendDirectMessage, markThreadRead,
   groupDmThreads, threadMessages, isSendableBody, markThreadReadLocal,
+  loadMyDmDevices, forgetDmDevice,
 } from '../lib/direct-messages-sync.js';
 import { receiptLabels } from '../lib/direct-messages.js';
 import { useProfiles, preferredName } from '../lib/use-profiles.js';
@@ -86,6 +87,13 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
   ));
   const endRef = useRef(null);
   const taRef = useRef(null);
+  // THE DEVICES MY SEALED MESSAGES OPEN ON (DR-0737). Each device I have
+  // opened Messages on holds its own key, and every message to me is sealed
+  // for all of them; the list says which, marks this one, and lets me forget
+  // a phone I no longer hold so nothing new is sealed for it.
+  const [devices, setDevices] = useState(null);
+  const refreshDevices = () => { loadMyDmDevices().then(setDevices).catch(() => setDevices(null)); };
+  useEffect(() => { if (signedIn && openWith) refreshDevices(); }, [signedIn, openWith]);
 
   // Speak instead of type (Darrell 2026-07-27) — the one shared dictation
   // primitive (lib/voice-dictation.js: push-to-end through pauses, 5-minute
@@ -330,9 +338,28 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
             <div ref={endRef} />
           </div>
           <p className="text-[0.625rem] text-[#5A5751]">
-            Sealed end-to-end once both of you have signed in on a device —
-            keys live on your devices, never on the server.
+            Sealed end-to-end for every device you and they have opened Messages on —
+            keys live on your devices, never on the server. A device that joins later
+            opens what is sent after it joined.
           </p>
+          {devices && devices.length > 0 && (
+            <div className="text-[0.625rem] text-[#5A5751] flex flex-wrap items-center gap-x-2 gap-y-1" data-testid="dm-devices">
+              <span>
+                Opens on {devices.length === 1 ? 'this device only' : `your ${devices.length} devices`}:{' '}
+                {devices.map((d) => (d.thisDevice ? `${d.label || 'this device'} (this one)` : (d.label || 'a device'))).join(' · ')}
+              </span>
+              {devices.filter((d) => !d.thisDevice).map((d) => (
+                <button
+                  key={d.deviceId} type="button" data-testid="dm-device-forget"
+                  onClick={async () => { await forgetDmDevice(d.deviceId); refreshDevices(); }}
+                  className="underline underline-offset-2 min-h-[36px] px-1 focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  title="New messages will no longer be sealed for this device"
+                >
+                  Forget {d.label || 'that device'}
+                </button>
+              ))}
+            </div>
+          )}
           <label className="block">
             <span className={LABEL}>Message {nameFor(openWith)}</span>
             <textarea

@@ -1111,6 +1111,22 @@ const NODES = [
     writes: [{ res: 'db:contacts', token: "from('contacts').upsert" }],
     seeds: [],
   }),
+  // A SEALED MESSAGE OPENS ON EVERY DEVICE (DR-0737). Each device publishes its
+  // own public key; a message is sealed once and wrapped for every device of
+  // both people. The private half never leaves the device that made it.
+  app('app/src/lib/direct-messages-sync.js', {
+    id: 'sealed-messages-for-every-device', name: 'Sealed messages, every device (Messages)',
+    purpose: 'A direct message is sealed end to end for every device of both people, so it opens on each phone and desktop they hold; the server stores only ciphertext.',
+    reads: [
+      { res: 'db:dm_device_keys', token: "from('dm_device_keys').select" },
+      { res: 'db:direct_messages', token: "from('direct_messages').select" },
+    ],
+    writes: [
+      { res: 'db:dm_device_keys', token: "from('dm_device_keys')" },
+      { res: 'db:direct_messages', token: "from('direct_messages').insert" },
+    ],
+    seeds: [],
+  }),
 ];
 
 // Every service rider and loop reads nas:services (the install services-sync
@@ -1253,6 +1269,7 @@ const RESOURCES = {
   'http:supabase': { label: 'the live database’s API', route: '/sb' },
   'http:funnel': { label: 'the NAS’s public routes' },
   'db:contacts': { label: 'a person\u2019s own address book (0247, DR-0736; read by its owner alone)' },
+  'db:dm_device_keys': { label: 'the public key of each device a person holds (0249, DR-0737; read by anyone signed in, written by its owner alone)' },
   'file:vcf': { label: 'a phone\u2019s exported contacts file', source: 'The phone\u2019s Contacts app or Google Contacts shares it; the person uploads it in Messages.' },
 };
 
