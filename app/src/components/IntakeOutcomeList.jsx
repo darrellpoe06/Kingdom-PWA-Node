@@ -56,14 +56,38 @@ export function outcomesOf(notes = [], { delivery = null, ledger = LEDGER, board
   }).filter((x) => x.out.key !== 'signal');
 }
 
-export default function IntakeOutcomeList({ notes = [], delivery = null, ledger = LEDGER, board = null, onReply = null, limit = 8 }) {
+/** Where every note stands, counted by outcome, most first: [{ key, label, count }]. Pure. */
+export function tallyOutcomes(notes = [], opts = {}) {
+  const counts = new Map();
+  for (const { out } of outcomesOf(notes, opts)) {
+    const cur = counts.get(out.key) || { key: out.key, label: out.label, count: 0 };
+    cur.count += 1;
+    counts.set(out.key, cur);
+  }
+  return [...counts.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+}
+
+/** The tally as one line: "3 fixed · 1 being worked on · 85 on the board". '' when nothing counts. */
+export function tallyText(notes = [], opts = {}) {
+  return tallyOutcomes(notes, opts).map((t) => `${t.count} ${t.label.toLowerCase()}`).join(' · ');
+}
+
+// Every note the person sent is reachable (DR-0740): the first `limit` show at
+// once, and Show more brings the next `step` each tap until all are on the
+// screen. Darrell had 89 notes and could reach 8.
+export const SHOW_MORE_STEP = 20;
+
+export default function IntakeOutcomeList({ notes = [], delivery = null, ledger = LEDGER, board = null, onReply = null, limit = 8, step = SHOW_MORE_STEP }) {
   const shown = outcomesOf(notes, { delivery, ledger, board });
+  const [extra, setExtra] = React.useState(0);
   if (!shown.length) return null;
+  const visible = Math.min(shown.length, limit + extra);
+  const left = shown.length - visible;
   return (
     <div data-testid="intake-outcomes">
       <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">Your feedback, and where each one stands</div>
       <ul className="divide-y divide-[#E8E4DC] border-t border-[#E8E4DC]">
-        {shown.slice(0, limit).map(({ n, cat, out }) => (
+        {shown.slice(0, visible).map(({ n, cat, out }) => (
           <li key={n.id} className="py-2.5" data-testid="intake-outcome">
             <div className="flex items-baseline justify-between gap-2 flex-wrap">
               <span className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] tabular-nums">{receiptCode(n.id)}</span>
@@ -85,6 +109,17 @@ export default function IntakeOutcomeList({ notes = [], delivery = null, ledger 
           </li>
         ))}
       </ul>
+      {shown.length > limit && (
+        <div className="mt-2 flex items-center justify-between gap-2 flex-wrap" data-testid="intake-outcomes-count">
+          <span className="text-[0.6875rem] text-[#5A5751] tabular-nums">Showing {visible} of {shown.length}</span>
+          {left > 0 && (
+            <button type="button" data-testid="intake-outcomes-more" onClick={() => setExtra((x) => x + step)}
+              className="min-h-[44px] px-3 text-xs uppercase tracking-wider border border-[#1A1815] text-[#1A1815] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">
+              Show {Math.min(step, left)} more
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

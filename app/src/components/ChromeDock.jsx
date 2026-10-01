@@ -38,6 +38,7 @@
 // =============================================================================
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import NetworkStatus from './NetworkStatus.jsx';
+import ArrivalsBell from './ArrivalsBell.jsx';
 import { ChurchGiveDockButton } from './ChurchGiving.jsx';
 import UiIcon from './UiIcon.jsx';
 import { useTextSize } from '../lib/text-size.js';
@@ -142,6 +143,12 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
         style={{ bottom: 'var(--ts-hatch-h, 0px)', boxShadow: '0 -1px 0 rgba(128, 128, 128, 0.6)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         <div className="chrome-dock-row flex flex-wrap items-center gap-[3px] px-[4px]" style={{ minHeight: `${DOCK_HEIGHT_PX}px` }}>
+          {/* WHAT ARRIVED, where it can always be seen (DR-0741). The header's
+              bell leaves with the collapsed header; this one stays: "N new",
+              what the N is made of in its name, the same list behind it, and
+              it opens that list itself once per launch when something is new.
+              Drawn only while N > 0, so the bar keeps its room otherwise. */}
+          <ArrivalsBell variant="dock" />
           {inReader && (
             <div className="flex items-center gap-[3px] shrink-0" data-testid="dock-reader-row" role="group" aria-label="Reading comfort">
               {/* Controls: open / fold the big-text block (account, Subscribe,

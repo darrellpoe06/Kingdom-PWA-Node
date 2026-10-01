@@ -3,12 +3,13 @@
 // the reply that re-enters intake, and the steward's categorized queue with
 // each note's basis. Rendered, not read from source.
 // =============================================================================
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import IntakeOutcomeList, { senderFixOf } from '../components/IntakeOutcomeList.jsx';
+import IntakeOutcomeList, { senderFixOf, tallyText } from '../components/IntakeOutcomeList.jsx';
 import { FeedbackModal, FeedbackPromotePanel, mergeMine } from '../components/FeedbackCenter.jsx';
 import { receiptCode } from '../lib/feedback-receipt.js';
+import { shotsHeading } from '../components/FeedbackScreenshots.jsx';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -88,6 +89,53 @@ describe('the modal: the sender’s notes come back live, and a reply re-enters 
   });
 });
 
+describe('your earlier feedback is easy to find: the fold says tap to open, tallies where each stands, and every note is reachable (DR-0740)', () => {
+  // Darrell, 2026-10-01, on the box that showed only a heading: "Can users see
+  // their feedback logs... can I see them?!!! Where are they and what's what?"
+  const many = Array.from({ length: 11 }, (_, i) => ({
+    id: `m${i}`, mine: true, createdAt: `2026-09-2${i % 9}T0${i % 9}:00:00Z`, text: `Not working: typo number ${i} on the bus page title`,
+    triageStatus: i < 3 ? 'fixed' : 'new', outcomeNote: i < 3 ? 'Spelled right.' : '',
+  }));
+  const deps = { fetchMine: async () => ({ ok: true, items: many }), fetchDelivery: async () => ({ ok: true, merges }) };
+  const openFold = () => {
+    const d = byTestId('feedback-earlier')[0];
+    act(() => { d.open = true; d.dispatchEvent(new Event('toggle', { bubbles: false })); });
+  };
+  it('closed, the fold carries the arrow, "tap to open", and the tally of where every note stands', async () => {
+    await act(async () => { root.render(createElement(FeedbackModal, { onClose() {}, onSubmit: () => ({ id: 'x' }), currentView: 'church', myFeedback: [], outcomeDeps: deps })); });
+    const fold = byTestId('feedback-earlier-fold')[0];
+    expect(fold.textContent).toContain('▸');
+    expect(fold.textContent).toContain('Your earlier feedback (11): where each one stands');
+    expect(fold.textContent).toContain('tap to open');
+    expect(fold.getAttribute('aria-expanded')).toBe('false');
+    // A typo note is the system's own small fix (lib/intake-outcome), so the eight new ones read as being fixed.
+    expect(byTestId('feedback-earlier-tally')[0].textContent).toBe('8 being fixed by the system · 3 fixed');
+  });
+  it('opened, it says tap to close, shows the first eight, and Show more brings the rest', async () => {
+    await act(async () => { root.render(createElement(FeedbackModal, { onClose() {}, onSubmit: () => ({ id: 'x' }), currentView: 'church', myFeedback: [], outcomeDeps: deps })); });
+    openFold();
+    const fold = byTestId('feedback-earlier-fold')[0];
+    expect(fold.textContent).toContain('▾');
+    expect(fold.textContent).toContain('tap to close');
+    expect(fold.getAttribute('aria-expanded')).toBe('true');
+    expect(byTestId('intake-outcome').length).toBe(8);
+    expect(byTestId('intake-outcomes-count')[0].textContent).toContain('Showing 8 of 11');
+    const more = byTestId('intake-outcomes-more')[0];
+    expect(more.textContent).toContain('Show 3 more');
+    act(() => more.click());
+    expect(byTestId('intake-outcome').length).toBe(11);
+    expect(byTestId('intake-outcomes-count')[0].textContent).toContain('Showing 11 of 11');
+    expect(byTestId('intake-outcomes-more').length).toBe(0);
+  });
+  it('PROVEN-TO-CATCH: with eight notes or fewer there is no Show more, and the tally reads only what the notes say', () => {
+    render(createElement(IntakeOutcomeList, { notes: many.slice(0, 8), ledger: LEDGER }));
+    expect(byTestId('intake-outcomes-more').length).toBe(0);
+    expect(byTestId('intake-outcomes-count').length).toBe(0);
+    expect(tallyText(many.slice(0, 2), { ledger: LEDGER })).toBe('2 fixed');
+    expect(tallyText([], { ledger: LEDGER })).toBe('');
+  });
+});
+
 describe('the steward sees the categorized queue with each note’s basis', () => {
   const feedback = [
     { id: 'f1', createdAt: '2026-09-24T05:00:00Z', whatsNot: 'typo on the bus page title', area: 'church-bus' },
@@ -116,5 +164,55 @@ describe('the steward sees the categorized queue with each note’s basis', () =
     act(() => byTestId('intake-filter-decided')[0].click());
     expect(byTestId('intake-basis')[0].textContent).toMatch(/Matches DR-0900/);
     expect(byTestId('intake-basis')[0].textContent).toMatch(/The app does not send email about feedback/);
+  });
+});
+
+describe('the steward sees the pictures inside the app (DR-0742)', () => {
+  // Darrell 2026-10-01, on a focused note that read "5 SCREENSHOTS ATTACHED
+  // (OPEN ON THE SUBMITTER'S DEVICE OR IN SUPABASE)": "Can't see the
+  // information submitted?!!! Make it work so we can see inside the app!!!"
+  const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+  const withShots = [{ id: 'f9', createdAt: '2026-09-24T05:00:00Z', whatsNot: 'the give button is under the bar', area: 'church', hasScreenshot: true, screenshotCount: 2, screenshots: [] }];
+  const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+  it('a focused note with pictures the list did not carry fetches them once and shows each one, a tap from full size', async () => {
+    const fetchImages = vi.fn(async () => ({ screenshots: [PNG, PNG] }));
+    render(createElement(FeedbackPromotePanel, { feedback: withShots, ledger: LEDGER, addProject() {}, addIncident() {}, deleteFeedback() {}, fetchImages }));
+    await flush();
+    expect(fetchImages).toHaveBeenCalledTimes(1);
+    expect(fetchImages).toHaveBeenCalledWith('f9');
+    expect(byTestId('feedback-shots')[0].getAttribute('data-state')).toBe('ready');
+    expect(text()).not.toMatch(/submitter's device|in Supabase/i);
+    const thumbs = byTestId('feedback-shot');
+    expect(thumbs.length).toBe(2);
+    act(() => thumbs[1].click());
+    const open = document.querySelector('[data-testid="feedback-shot-open"]');
+    expect(open.textContent).toContain('Screenshot 2 of 2');
+    expect(open.querySelector('img').getAttribute('src')).toBe(PNG);
+    expect(document.querySelector('[data-testid="feedback-shot-save"]').getAttribute('download')).toBe('feedback-f9-2.jpg');
+  });
+  it('a failed fetch says so and Try again fetches again; it never reads as "no pictures"', async () => {
+    let calls = 0;
+    const fetchImages = vi.fn(async () => { calls += 1; return calls === 1 ? { screenshots: [] } : { screenshots: [PNG] }; });
+    render(createElement(FeedbackPromotePanel, { feedback: withShots, ledger: LEDGER, addProject() {}, addIncident() {}, deleteFeedback() {}, fetchImages }));
+    await flush();
+    expect(byTestId('feedback-shots-failed').length).toBe(1);
+    expect(byTestId('feedback-shots')[0].textContent).toContain('2 screenshots');
+    act(() => byTestId('feedback-shots-retry')[0].click());
+    await flush();
+    expect(fetchImages).toHaveBeenCalledTimes(2);
+    expect(byTestId('feedback-shot').length).toBe(1);
+  });
+  it('PROVEN-TO-CATCH: a note without pictures fetches nothing and draws nothing; a local row with bytes needs no fetch', async () => {
+    const fetchImages = vi.fn(async () => ({ screenshots: [PNG] }));
+    render(createElement(FeedbackPromotePanel, { feedback: [{ id: 'f1', createdAt: '2026-09-24T05:00:00Z', whatsNot: 'typo on the bus page title' }], ledger: LEDGER, addProject() {}, addIncident() {}, deleteFeedback() {}, fetchImages }));
+    await flush();
+    expect(fetchImages).not.toHaveBeenCalled();
+    expect(byTestId('feedback-shots').length).toBe(0);
+    render(createElement(FeedbackPromotePanel, { feedback: [{ id: 'f2', createdAt: '2026-09-24T05:00:00Z', whatsNot: 'the give button is under the bar', screenshots: [PNG] }], ledger: LEDGER, addProject() {}, addIncident() {}, deleteFeedback() {}, fetchImages }));
+    await flush();
+    expect(fetchImages).not.toHaveBeenCalled();
+    expect(byTestId('feedback-shot').length).toBe(1);
+    expect(shotsHeading(1)).toBe('Screenshot');
+    expect(shotsHeading(5)).toBe('5 screenshots');
   });
 });
