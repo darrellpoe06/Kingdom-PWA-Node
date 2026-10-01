@@ -288,6 +288,30 @@ const NODES = [
     ],
     seeds: ['lesson-voice', 'lesson-inbox', 'member-lesson-queue'],
   }),
+  // DR-0698: a shared lesson is a note with a link; each share and each open
+  // of its link is recorded, so we know which links work and which do not.
+  app('app/src/lib/lesson-share-record.js', {
+    id: 'lesson-share', name: 'Lesson share + open record',
+    purpose: 'A lesson shared from the app goes out as a note (title, summary, link, how-to) with a token on its link; the share is recorded, and each open of that link records whether the lesson showed, with nothing about the person who opened it.',
+    reads: [
+      { res: 'code:lessons', file: 'app/src/lib/lesson-share.js', token: 'lessonSummary' },
+    ],
+    writes: [
+      { res: 'db:lesson_shares', token: "'lesson_share_record'" },
+      { res: 'db:lesson_share_opens', token: "'lesson_share_open'" },
+    ],
+    seeds: ['lesson-share-ledger'],
+  }),
+  app('app/src/components/LessonShareLedger.jsx', {
+    id: 'lesson-share-ledger', name: 'Lesson shares ledger (Learn → My shares, Admin → Lesson shares)',
+    purpose: 'Shows each share with how many times its link was opened, how many opens showed the lesson and how many failed, with the last reason; the sharer sees their own, the Governor sees all (DR-0698).',
+    reads: [
+      { res: 'db:lesson_shares', file: 'app/src/lib/lesson-share-record.js', token: "'lesson_share_ledger'" },
+      { res: 'db:lesson_share_opens', file: 'app/src/lib/lesson-share-record.js', token: "'lesson_share_ledger'" },
+    ],
+    writes: [],
+    seeds: [],
+  }),
   rider('service:lesson-voice', 'infra/nas-lesson-voice/lesson_voice_transcribe.py', {
     id: 'lesson-voice', name: 'Whisper + the lesson mirror',
     purpose: 'Transcribes each spoken lesson on our own machines, and carries every lesson row to where the cloud reader can see it.',
@@ -341,6 +365,12 @@ const NODES = [
     id: 'inbox-lesson-body', name: "The words of Darrell's own lesson row",
     purpose: "Reads the words of one lesson row created by Darrell's own accounts from the live database the app reads, so a lesson he sends is built without a chat connector; any member's row is refused and never read.",
     reads: [{ res: 'db:agent_inbox#lesson', token: 'FROM public.agent_inbox' }],
+    writes: [], seeds: [],
+  }),
+  wf('church-video-witness.yml', {
+    id: 'church-video-witness', name: 'The church video as a second witness',
+    purpose: "Reads, from the live database the app reads, whether a church class of a given date has reached the channel sync (choir_sermons) and the NAS transcript trickle (video_transcripts), with the sync's freshness, and on request prints that video's transcript encoded with an md5 round-trip, so a lesson built from an in-app recording is checked against the church's own video (DR-0712, DR-0333). Read-only; never fetches from YouTube.",
+    reads: [{ res: 'db:choir_sermons', token: 'FROM public.choir_sermons' }, { res: 'db:video_transcripts', token: 'public.video_transcripts' }],
     writes: [], seeds: [],
   }),
   wf('inbox-lessons-waiting.yml', {

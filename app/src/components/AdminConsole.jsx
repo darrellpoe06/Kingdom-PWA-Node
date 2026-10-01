@@ -57,6 +57,7 @@ import { listPendingClaims, confirmInvite } from '../lib/family-invite.js';
 import { contactOf, reachLabel, whenLabel, samePersonHints, contactCoverage } from '../lib/member-contact.js';
 import MemberInspect from './MemberInspect.jsx';
 import ChatPane from './ChatPane.jsx';
+import LessonShareLedger from './LessonShareLedger.jsx';
 
 const BUILD_SHA = (typeof __BUILD_SHA__ !== 'undefined') ? __BUILD_SHA__ : 'dev';
 const BUILD_TIME = (typeof __BUILD_TIME__ !== 'undefined') ? __BUILD_TIME__ : null;
@@ -647,6 +648,16 @@ export default function AdminConsole({
           </div>
         </section>
       ),
+    },
+    {
+      // EVERY LESSON LINK SHARED, AND WHETHER IT WORKED (DR-0698, Darrell
+      // 2026-09-30: "keep record of who does what send links etc... so we
+      // know they work and don't"). Reads lesson_share_ledger(p_all) live;
+      // the database gives all rows only to the Governor.
+      id: 'shares',
+      label: 'Lesson shares',
+      icon: 'users',
+      render: () => <LessonShareLedger all />,
     },
     {
       id: 'support',

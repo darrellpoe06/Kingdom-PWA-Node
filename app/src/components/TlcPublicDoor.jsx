@@ -35,6 +35,7 @@ import { TextSizeEscapeHatch } from './TextSizeControl.jsx';
 import UiIcon from './UiIcon.jsx';
 import { readOnboardTokenFromUrl } from '../lib/tlc-onboarding.js';
 import { parseTlcLessonLink, resolveTlcLesson } from '../lib/tlc-lesson-links.js';
+import { pendingShareToken, reportShareLanded } from '../lib/lesson-share-record.js';
 import { parseJobsLink } from '../lib/tlc-hiring.js';
 import { JoinTheTeam } from './TlcHiring.jsx';
 import TlcOnboardingForm from './TlcOnboardingForm.jsx';
@@ -166,6 +167,14 @@ export default function TlcPublicDoor() {
   const [deepLink] = useState(() => resolveTlcLesson(parseTlcLessonLink(
     (typeof window !== 'undefined' && window.location && window.location.search) || '',
   )));
+  // A SHARED link whose lesson no longer resolves says so now, with the
+  // reason, instead of waiting out the watchdog (DR-0698). A link that does
+  // resolve is reported by PracticeLearn once the lesson is on screen.
+  useEffect(() => {
+    if (deepLink || !pendingShareToken()) return;
+    const raw = parseTlcLessonLink((typeof window !== 'undefined' && window.location && window.location.search) || '');
+    if (raw.courseId || raw.lessonId) reportShareLanded({ ok: false, reason: `lesson not found: ${raw.lessonId || raw.courseId}` });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [activeTab, setActiveTab] = useState(deepLink ? 'training' : 'find'); // a jobs link lands a client on Join the team below, once the role is known
   // The website's careers link lands on Join the team (DR-0350).
   const [jobsLink] = useState(() => parseJobsLink((typeof window !== 'undefined' && window.location && window.location.search) || ''));
