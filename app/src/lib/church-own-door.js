@@ -65,33 +65,40 @@ export const LOVE_CORNER_BRAND = {
 // navigation.
 export const DOOR_PARAM = 'lovecorner';
 
-// Installed-app display detection (iOS exposes navigator.standalone; everything
-// else exposes the display-mode media query). Already-installed Love Corner
-// apps launched with the PRE-param start_url (?view=church) — they run
-// standalone, a browser tab never does, so this keeps every existing install
-// scoped to the church until their manifest refresh picks up the new start_url.
-function isStandaloneDisplay() {
-  try {
-    if (typeof window === 'undefined') return false;
-    if (window.navigator && window.navigator.standalone === true) return true;
-    return !!(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
-  } catch { return false; }
-}
+// THE DOOR IS THE PATH (DR-0731; Darrell 2026-10-01: "When I'm in the PoeTech
+// App and a new build comes it reopen me into the Love Corner App... instead
+// of the PoeTech App... I'm also working in other tabs"). The church app lives
+// at its own path, /lovecorner/app/ (DR-0258 scope split; DR-0584 one worker
+// per door), and PoeTech at /poetech-app/. A door is a page-load property --
+// where the page booted -- never a tab you are on and never how the window is
+// displayed. The rule below is therefore path first, then the door's own param
+// (the /lovecorner entry page and a printed QR carry ?lovecorner=1).
+//
+// REMOVED HERE: the 2026-07-30 "legacy install" clause that read
+// `?view=church` + standalone display as the church door. It was written for
+// Love Corner installs whose start URL was a bare ?view=church, "until their
+// manifest refresh"; two months on, the church app is at its own path, and the
+// clause misfired on the one thing it never meant: the INSTALLED PoeTech app
+// (also standalone) on its Church tab. An update's reload keeps the URL, so a
+// member working in the Church tab came back inside the Love Corner-only app.
+// Measured on origin/main before this change: isChurchDoorContext('?view=church',
+// { standalone: true }) === true. A pre-2026-09-23 Love Corner install that
+// still launches at /poetech-app/?view=church now boots as PoeTech; the way
+// back is poetech.us/lovecorner (re-install at the church's own path).
+export const CHURCH_DOOR_PATH = '/lovecorner/';
 
-// Is this load a real CHURCH-DOOR LAUNCH (the /lovecorner entry page or the
-// installed Love Corner app) — as opposed to a family member's Church-tab URL
-// inside full PoeTech? True when the door's own param is present, or (legacy
-// installs) when ?view=church is running as an installed standalone app.
-// Injectable search/standalone for tests.
+// Is this load a real CHURCH-DOOR LAUNCH: the church's own path, or the door's
+// own param on the entry page / a printed QR. Injectable for tests. `opts.standalone`
+// is accepted for callers that still pass it and is IGNORED on purpose.
 export function isChurchDoorContext(search, opts = {}) {
   const s = typeof search === 'string' ? search
     : (typeof window !== 'undefined' && window.location ? window.location.search : '');
+  const pathname = typeof opts.pathname === 'string' ? opts.pathname
+    : (typeof window !== 'undefined' && window.location ? String(window.location.pathname || '') : '');
+  if (pathname.indexOf(CHURCH_DOOR_PATH) === 0) return true;
   try {
     const sp = new URLSearchParams(s);
-    if (sp.get(DOOR_PARAM) === '1') return true;
-    if (sp.get('view') !== 'church') return false;
-    const standalone = opts.standalone !== undefined ? !!opts.standalone : isStandaloneDisplay();
-    return standalone;
+    return sp.get(DOOR_PARAM) === '1';
   } catch { return false; }
 }
 

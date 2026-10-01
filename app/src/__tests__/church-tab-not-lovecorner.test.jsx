@@ -8,8 +8,9 @@
 // any reload/restore of that tab booted church-door-only. Two halves, both
 // pinned here (proven-to-catch, DR-0076):
 //   1. lib/church-own-door.js — the reload-in-a-browser-tab case is asserted
-//      in lovecorner-door.test.js (the door needs ?lovecorner=1 or a
-//      standalone-display legacy install).
+//      in lovecorner-door.test.js (the door is the /lovecorner/ path or
+//      ?lovecorner=1; DR-0731 removed the standalone-display legacy clause
+//      after it flipped the INSTALLED PoeTech app's Church tab on an update).
 //   2. lib/nav-history.js — the REVERSE half: a real door visitor's param must
 //      SURVIVE in-app navigation, or their own next reload falls out of the
 //      church app the same way. This harness proves the pushed URLs keep it.
@@ -62,6 +63,16 @@ describe('a church-door visitor keeps the door through navigation', () => {
     expect(window.location.search).not.toContain(`${DOOR_PARAM}=`);
     // ...so a reload of this browser tab stays full PoeTech (THE reported bug).
     expect(isChurchDoorContext(window.location.search, { standalone: false })).toBe(false);
+  });
+
+  it('inside the INSTALLED PoeTech app, an update reload on the Church tab stays PoeTech (Darrell 2026-10-01; DR-0731)', () => {
+    window.history.replaceState(null, '', '/poetech-app/');
+    act(() => root.render(createElement(Harness)));
+    act(() => { api.setView('church'); });
+    act(() => { api.setChurchView('learn'); });
+    expect(window.location.search).toContain('view=church');
+    // location.reload() keeps this URL; the installed app runs standalone.
+    expect(isChurchDoorContext(window.location.search, { standalone: true, pathname: window.location.pathname })).toBe(false);
   });
 
   it('the door param roster covers every launch-scoped door (lovecorner joins moore/tlc/biz)', () => {
