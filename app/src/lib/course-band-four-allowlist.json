@@ -1,0 +1,321 @@
+{
+  "note": "DR-0692, pinned 2026-09-30. The catalog lessons that did not carry all four age bands (child, youth, teen, senior) on the day the per-lesson rule landed. SHRINK-ONLY: a lesson leaves this list in the same commit that gives it all four bands, and nothing is ever added. A lesson missing a band that is not listed here fails course-band-coverage.test.js by name. Regenerate with `cd app && npx vite-node ../scripts/course-band-baseline-write.mjs`; never hand-merge.",
+  "courses": {
+    "ai": [
+    ],
+    "ai-legal-blueprint": [
+    ],
+    "appraisal": [
+      "appr1-thy-estimation",
+      "appr2-whether-it-be-good-or-bad",
+      "appr3-according-to-the-years-that-remain",
+      "appr4-he-shall-add-the-fifth-part",
+      "appr5-twenty-gerahs-shall-be-the-shekel",
+      "appr6-the-balances-of-deceit",
+      "appr7-the-worth-of-it-in-money",
+      "appr8-what-profit-shall-this-birthright-do-to-me"
+    ],
+    "banking": [
+      "bank1-a-deposit-is-not-storage",
+      "bank2-the-one-rule-and-its-limit",
+      "bank3-the-cry-and-the-restitution",
+      "bank4-the-signature-for-somebody-else",
+      "bank5-saving-that-is-not-hoarding",
+      "bank6-the-measure-that-reports-wrong",
+      "bank7-the-chest-with-a-hole-in-the-lid",
+      "bank8-who-actually-holds-it"
+    ],
+    "bonds": [
+      "bnd1-a-bond-is-a-loan-with-a-receipt",
+      "bnd2-the-promise-is-fixed-so-the-price-moves",
+      "bnd3-can-they-actually-pay",
+      "bnd4-how-a-country-borrows",
+      "bnd5-when-a-country-cannot-pay",
+      "bnd6-the-curve-is-a-sentence-about-the-future",
+      "bnd7-inflation-is-the-quiet-default",
+      "bnd8-usury-the-brother-and-the-stranger"
+    ],
+    "broadcast": [
+      "bc1-the-whole-chain",
+      "bc2-camera-and-image",
+      "bc3-light",
+      "bc4-obs-switching",
+      "bc5-cpu-gpu-cuda",
+      "bc6-bandwidth-network",
+      "bc7-llms-for-broadcast",
+      "bc8-pov-sops",
+      "bc9-excellence-as-worship"
+    ],
+    "business-research-wars": [
+      "br1-count-the-cost",
+      "br2-go-to-the-filing",
+      "br3-two-or-three-witnesses",
+      "br4-a-dramatization-is-not-a-record",
+      "br5-just-weights",
+      "br6-the-correction",
+      "br7-what-the-word-settles",
+      "br8-write-it-in-order",
+      "br9-follow-the-oil"
+    ],
+    "buying-terms": [
+      "buy1-abraham-refused-the-gift-and-paid-in-public",
+      "buy2-two-sets-of-weights-in-one-bag",
+      "buy3-it-is-naught-it-is-naught-saith-the-buyer",
+      "buy4-surety-the-trap-you-talk-yourself-into",
+      "buy5-haste-is-the-most-expensive-thing-in-the-deal",
+      "buy6-what-borrowing-makes-you-and-what-it-does-not",
+      "buy7-give-a-portion-to-seven-and-also-to-eight",
+      "buy8-he-that-sweareth-to-his-own-hurt-and-changeth-not"
+    ],
+    "church-offices": [
+    ],
+    "datasystems": [
+      "dsi1-what-poetech-is",
+      "dsi10-running-a-service",
+      "dsi11-adding-content-no-json",
+      "dsi12-voice-and-help",
+      "dsi13-roles-and-permissions",
+      "dsi14-your-onboarding-path",
+      "dsi2-the-shared-data-layer",
+      "dsi3-the-loops",
+      "dsi4-how-modules-connect",
+      "dsi5-meet-ari",
+      "dsi6-the-nas",
+      "dsi7-the-gpu-node",
+      "dsi8-the-led-wall",
+      "dsi9-sunday-and-wednesday"
+    ],
+    "development": [
+      "dev1-except-the-lord-build-the-house-and-counting-the-cost",
+      "dev2-name-the-real-record-and-the-real-screen-before-you-code",
+      "dev3-the-plumbline-no-claim-without-evidence",
+      "dev4-a-gate-that-always-passes-is-itself-a-lie",
+      "dev5-the-battlement-and-the-open-pit-guards-on-anything-that-runs-itself",
+      "dev6-the-worker-that-broke-the-front-door",
+      "dev7-shrink-only-debt-telling-the-truth-about-what-is-not-fixed",
+      "dev8-write-the-vision-and-make-it-plain"
+    ],
+    "evictions": [
+      "evic1-they-turn-the-needy-out-of-the-way",
+      "evic2-cast-out-from-their-pleasant-houses",
+      "evic3-thou-shalt-stand-abroad",
+      "evic4-he-taketh-a-mans-life-to-pledge",
+      "evic5-the-year-to-redeem",
+      "evic6-took-him-by-the-throat",
+      "evic7-jobs-own-oath",
+      "evic8-restored-to-the-debtor-his-pledge"
+    ],
+    "financing-debt": [
+      "fin1-the-head-and-the-tail",
+      "fin2-when-the-money-failed",
+      "fin3-they-shall-rise-up-suddenly",
+      "fin4-the-wicked-borroweth-and-payeth-not-again",
+      "fin5-what-hast-thou-in-the-house",
+      "fin6-usury-and-who-your-brother-is",
+      "fin7-alas-for-it-was-borrowed",
+      "fin8-he-frankly-forgave-them-both"
+    ],
+    "handed-forward": [
+    ],
+    "healthy-living": [
+      "hl-w-haver-midlife-fasting",
+      "hl-w3-fasting-as-discipline",
+      "hl-w3-fasting-brain",
+      "hl-w3-fasting-timeline",
+      "hl-w3-learning-mastery",
+      "hl-w3-setback-neuroscience",
+      "hl-w3-sleep-memory",
+      "hl-w3-therapeutic-fasting",
+      "hl-w3-tre-circadian",
+      "hl-w3-water-fasting-supervised",
+      "hl-w3-women-fueling-counter",
+      "hl-w3-women-midlife-strength"
+    ],
+    "historical-research-1619": [
+    ],
+    "history-truth": [
+    ],
+    "infrastructure": [
+    ],
+    "inspections": [
+      "insp1-the-plague-in-the-walls",
+      "insp2-i-viewed-the-walls",
+      "insp3-see-the-land-what-it-is",
+      "insp4-two-reports-one-land",
+      "insp5-they-came-to-search-it-out",
+      "insp6-man-looketh-on-the-outward-appearance",
+      "insp7-he-digged-deep",
+      "insp8-prove-all-things"
+    ],
+    "insurance-risk": [
+      "ins1-the-pit-you-dug",
+      "ins2-i-bare-the-loss-of-it",
+      "ins3-into-two-bands",
+      "ins4-the-tower-in-siloam",
+      "ins5-four-messengers-one-day",
+      "ins6-provide-for-his-own",
+      "ins7-of-that-which-doth-cost-me-nothing",
+      "ins8-it-beat-upon-that-house"
+    ],
+    "investing": [
+    ],
+    "kingdom-economics": [
+      "econ1-soul-first",
+      "econ2-ownership-vs-consumption",
+      "econ3-circulation",
+      "econ4-group-economics",
+      "econ5-the-real-barriers",
+      "econ6-accountability-and-judgment",
+      "econ7-build-institutions",
+      "econ8-test-build-multiply"
+    ],
+    "leasing-tenants": [
+    ],
+    "legacy-provisions": [
+    ],
+    "little-learners": [
+    ],
+    "made-in-time": [
+      "mit1-the-design-in-time",
+      "mit10-wired-to-survive",
+      "mit11-the-attention-war",
+      "mit12-predictive-brain-body-budget",
+      "mit13-the-reward-is-in-the-race",
+      "mit14-the-mind-is-a-servant-not-a-god",
+      "mit15-hide-the-word-in-your-heart",
+      "mit16-doers-not-hearers-only",
+      "mit17-beholding-him-the-mind-rewired",
+      "mit18-think-about-your-thinking",
+      "mit2-the-young-he-called",
+      "mit3-how-the-enemy-imports-strategy",
+      "mit4-the-renewed-mind",
+      "mit5-those-who-know-their-god",
+      "mit6-effort-attention-and-rest",
+      "mit7-systems-over-willpower",
+      "mit8-deep-over-busy",
+      "mit9-power-into-knowledge"
+    ],
+    "maintenance-trades": [
+    ],
+    "management-stewardship": [
+    ],
+    "mathematics": [
+      "mat1-count-and-place-value-the-numbers-he-recorded",
+      "mat2-adding-and-taking-away-loaves-fishes-and-gideons-army",
+      "mat3-multiplying-and-sharing-thirtyfold-sixtyfold-hundredfold",
+      "mat4-parts-and-fractions-the-tenth-the-fifth-and-the-half",
+      "mat5-measure-cubits-spans-ephahs-and-just-weights",
+      "mat6-shapes-the-molten-sea-the-foursquare-altar-and-the-bow",
+      "mat7-time-and-cycles-sevens-forty-days-and-the-fiftieth-year",
+      "mat8-quality-and-quantity-gideons-three-hundred-and-the-widows-two-mites"
+    ],
+    "partnerships": [
+    ],
+    "project-management": [
+    ],
+    "property-principle": [
+    ],
+    "prophetic-voices": [
+      "pv-darby",
+      "pv-diop",
+      "pv-inventions",
+      "pv-obenga",
+      "pv-price",
+      "pv-williams"
+    ],
+    "rent-to-own-business": [
+      "rto1-the-seat-you-are-in-and-every-seat-above-it",
+      "rto2-what-rent-to-own-actually-is-and-the-just-weight",
+      "rto3-inventory-control-on-rent-versus-sitting-still",
+      "rto4-sales-the-delivery-is-the-close-the-renewal-is-the-business",
+      "rto5-collections-as-honor-not-pressure",
+      "rto6-customer-service-white-glove-in-someones-home",
+      "rto7-covenant-over-contract",
+      "rto8-marketing-vision-and-going-to-get-the-information"
+    ],
+    "software-project-management": [
+    ],
+    "sound-board": [
+      "snd1-the-board-and-the-signal-chain",
+      "snd2-gain-staging",
+      "snd3-eq-the-frequency-ranges",
+      "snd4-taming-feedback",
+      "snd5-monitors-vs-the-house",
+      "snd6-mixing-the-worship-team-and-choir",
+      "snd7-before-during-after",
+      "snd8-our-digital-console-yamaha-ql"
+    ],
+    "sovereign-ai": [
+      "sov1-generator-in-the-garage",
+      "sov10-the-settled-word",
+      "sov11-the-sealed-trace",
+      "sov12-the-engineering-disaster",
+      "sov13-the-whole-stack",
+      "sov14-the-doom-that-did-not-come",
+      "sov15-watch-brake-and-the-city-without-walls",
+      "sov16-trust-the-counsel-you-can-actually-trust",
+      "sov17-the-judge-and-the-just-weight",
+      "sov18-precept-upon-precept-the-voice-that-programs-the-world",
+      "sov19-the-servant-under-authority-who-keeps-the-guardrails",
+      "sov2-what-a-model-costs-to-run",
+      "sov20-the-book-of-remembrance-and-the-tool-that-forgets",
+      "sov21-the-whole-system-and-the-stone-cut-without-hands",
+      "sov22-the-needle-in-the-haystack-and-the-chunk-that-drops-its-condition",
+      "sov23-the-swarm-that-agreed-together-and-the-plumbline-held-from-outside",
+      "sov24-changing-the-engine-in-flight-and-the-word-that-is-not-a-schema",
+      "sov25-the-ten-day-test-and-the-one-hidden-in-the-ninety-and-nine",
+      "sov26-the-roll-the-king-burned-and-the-roll-written-again",
+      "sov27-the-seed-is-in-itself-and-every-workflow-seeds-the-next",
+      "sov28-holding-the-hand-of-the-process-until-it-is-finished",
+      "sov29-the-agent-that-went-past-the-bound",
+      "sov3-model-tier-landscape",
+      "sov30-the-watcher-the-agent-cannot-see-and-the-door-with-no-hidden-hatch",
+      "sov31-whose-errand-does-your-agent-carry",
+      "sov4-honest-ceiling",
+      "sov5-how-skos-runs-it",
+      "sov6-vendor-vs-local-tradeoffs",
+      "sov7-five-opportunities",
+      "sov8-build-sovereign-hand-it-on",
+      "sov9-verification-earns-trust"
+    ],
+    "stocks": [
+      "stk1-a-share-is-a-piece-of-a-company",
+      "stk2-when-you-buy-a-share-the-company-gets-nothing",
+      "stk3-between-buy-and-owned",
+      "stk4-price-is-not-value",
+      "stk5-how-a-share-actually-pays-you",
+      "stk6-the-index-is-a-weighting-choice",
+      "stk7-who-is-on-the-other-side",
+      "stk8-the-question-the-screen-never-asks"
+    ],
+    "taxes-records": [
+    ],
+    "who-he-is": [
+    ],
+    "word-out": [
+    ],
+    "world-issues": [
+      "wi-ai-empire",
+      "wi-apa-2021-apology-and-the-one-blood",
+      "wi-beauty-supply-boycott",
+      "wi-biology-walked-back-and-the-word-on-the-worlds",
+      "wi-epa-power-plant-carbon-rules-2026",
+      "wi-evanston-reparations-and-equal-protection",
+      "wi-game-changers-diet",
+      "wi-higher-ed-aid-2026-and-the-student-in-the-gap",
+      "wi-historical-trauma-two-aftermaths",
+      "wi-kennedy-center-bankruptcy-and-the-name",
+      "wi-law-of-assumption",
+      "wi-medical-establishment",
+      "wi-musk-creator-critique",
+      "wi-musk-prophetic-lens",
+      "wi-prison-industrial-complex",
+      "wi-scotus-mail-in-voting-2026",
+      "wi-the-trades-are-hiring-2026",
+      "wi-tuition-and-the-1965-act",
+      "wi-victorious-emotions"
+    ],
+    "world-market": [
+    ]
+  }
+}
