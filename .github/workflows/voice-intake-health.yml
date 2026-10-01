@@ -251,6 +251,18 @@ jobs:
             echo "$v exit $rc, stdout: ${out:-<empty>}; stderr: $(tail -1 /tmp/ytdlp.err | cut -c1-200)"
           done
           rm -f /tmp/ytdlp.err /tmp/undated.txt /tmp/undated.err
+          echo "--- the rider's exact call, in a cron-like environment (PATH as the installer sets it; read-only) ---"
+          ${SUDO} env -i HOME=/root PATH="$REPO/infra/church-media-golive/state:/usr/bin:/bin" python3 - <<'PYEOF'
+          import subprocess
+          a = ["--skip-download", "--no-warnings", "--ignore-errors", "--print", "%(id)s\t%(release_timestamp,upload_date)s",
+               "https://www.youtube.com/watch?v=UJTFeExcgEU", "https://www.youtube.com/watch?v=DlfJRko4Pzc"]
+          try:
+              r = subprocess.run(["yt-dlp"] + a, capture_output=True, text=True, timeout=200)
+              print("rider-context exit", r.returncode, "stdout:", (r.stdout or "<empty>").strip()[:200])
+              print("rider-context stderr:", " | ".join((r.stderr or "").strip().splitlines()[-3:])[:400])
+          except Exception as e:
+              print("rider-context raised:", type(e).__name__, str(e)[:200])
+          PYEOF
           echo "=== choir-dates' own last words ==="
           ${SUDO} grep -a "choir-dates\|choir_dates" "$LOOPS/events/cron-services-sync.log" 2>/dev/null | grep -v "loop_run_done\|\[done\]" | tail -8 || true
           ${SUDO} tail -3 "$REPO/infra/church-media-golive/events/events.jsonl" 2>/dev/null || echo "no choir events"
