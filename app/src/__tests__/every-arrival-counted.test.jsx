@@ -403,7 +403,7 @@ describe('the closed app: a one-person lesson topic, the drain, the enqueue', ()
     expect(ci).toMatch(/^\s{2}arrivals-push:\n/m);
     expect(ci).toMatch(new RegExp(`migrations-auto/${MIG.replace(/\./g, '\\.')}`));
     expect(ci).toMatch(/scripts\/arrivals-ci-smoke\.sql/);
-    expect(ci).toMatch(/needs: \[guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments\]/);
+    expect(ci).toMatch(/needs: \[guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys\]/);
     const smoke = read(ROOT, 'scripts', 'arrivals-ci-smoke.sql');
     expect(smoke).toMatch(/every wall held/);
     expect(smoke).toMatch(/did not enqueue exactly one row/);
