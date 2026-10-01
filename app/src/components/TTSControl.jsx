@@ -1067,7 +1067,10 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       }
       if (el) { await revealAllForReading(el); await settled(el); }
     }
-    const follow = el ? buildFollowMap(el) : null;
+    // A DOWNLOADED LESSON WITH NO CONNECTION (DR-0722) speaks the exact text
+    // whose voice pieces were saved (`preferText`), so every piece plays from
+    // the device; the page is still followed sentence by sentence below.
+    const follow = el && !t.preferText ? buildFollowMap(el) : null;
     if (follow && follow.text) {
       // BEGIN WHERE HE LEFT OFF. A CONTINUING piece is a different lesson the
       // run advanced into, so it starts at its top; only a read the listener

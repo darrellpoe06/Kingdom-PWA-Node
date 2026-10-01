@@ -37,6 +37,7 @@ import { hrefForView } from './nav-history.js';
 import { MY_VOICE, myVoiceLabel, myVoiceStatus, myVoiceLine } from './my-voice.js';
 import { hasBridgeToken } from './nas-photos.js';
 import { provisionBridgeToken } from './bridge-provision.js';
+import { setDownloadVoice } from './lesson-downloads.js';
 import { newReadingPin, deviceVoiceForPin, genderOfDeviceVoice } from './reading-voice-pin.js';
 
 /**
@@ -454,6 +455,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     }
     return SYSTEM_VOICE.gender === 'male' ? 'male' : 'female';
   }, [voiceId, personalVoices]);
+  // A download saves the pieces in the voice this reader reads in (DR-0722).
+  useEffect(() => { setDownloadVoice(liteVoiceFor()); }, [liteVoiceFor]);
 
   /** Play `clean` in the NAS audio voice. Resolves true once the first piece plays. */
   const playLiteVoice = useCallback(async (clean) => {
