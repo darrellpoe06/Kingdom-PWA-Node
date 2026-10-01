@@ -18,7 +18,7 @@
 //     redirect; it is shown separately and never counted killable.
 //   · 'other' (uncategorized) is UNKNOWN, not low — claiming it is killable
 //     would be a painted number. It is named so it can be categorized.
-import { categorize } from './categorize.js';
+import { categorize, TX_CATEGORIES } from './categorize.js';
 
 export const PRIORITY_TIERS = {
   essential: ['groceries', 'utilities', 'medical', 'insurance', 'fuel', 'vehicle', 'professional', 'business'],
@@ -55,13 +55,19 @@ export function spendingByPriority(transactions, { learned = {}, nowMs = null, d
     if (!isFinite(when)) continue;
     sawDated = true;
     if (when < since || when > now) continue;
-    const { category } = categorize(t.description || t.payee || '', { learned });
+    // A person's own label wins (Darrell 2026-09-30, "edit everywhere"): a row
+    // recategorized on any tab carries its stored category, so these tiers move
+    // with the edit. Blank, 'other' and raw bank codes fall back to the rules.
+    const stored = String(t.category || '').toLowerCase();
+    const category = stored && stored !== 'other' && TX_CATEGORIES.includes(stored)
+      ? stored
+      : categorize(t.description || t.payee || '', { learned }).category;
     const tier = tierOfCategory(category);
     if (!tier) continue; // movement, not spending
     const spend = Math.abs(amt);
     tiers[tier] += spend;
     counts[tier] += 1;
-    itemsByTier[tier].push({ description: t.description || t.payee || '', amount: spend, category });
+    itemsByTier[tier].push({ id: t.id ?? null, description: t.description || t.payee || '', amount: spend, category });
   }
   for (const k of Object.keys(itemsByTier)) itemsByTier[k].sort((a, b) => b.amount - a.amount);
   return {
@@ -146,6 +152,6 @@ export function traceSpendTier(tierKey, spending) {
     // `category` rides along so the drill-down can offer the same in-place
     // recategorize control the Tx tab has — all tabs work the same (Darrell
     // 2026-08-24: "don't want to need to go anywhere else").
-    sources: items.map((i) => ({ label: i.description, value: Math.round(i.amount), kind: 'money', op: '+', category: i.category })),
+    sources: items.map((i) => ({ id: i.id ?? null, label: i.description, value: Math.round(i.amount), kind: 'money', op: '+', category: i.category })),
   };
 }
