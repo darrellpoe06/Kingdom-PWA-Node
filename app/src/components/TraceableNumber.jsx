@@ -66,15 +66,15 @@ function TraceRow({ item, action = null }) {
       <div className="flex items-baseline gap-1 min-w-0">
         <OpBadge op={item.op} />
         <div className="min-w-0">
-          <div className="text-sm text-[#1A1815] truncate" style={{ fontFamily: '"Fraunces", serif' }}>
-            {item.label}
+          <div className={`text-sm text-[#1A1815] ${action && action.render ? '' : 'truncate'}`} style={{ fontFamily: '"Fraunces", serif' }}>
+            {action && action.render ? action.render(item) : item.label}
           </div>
           {item.meta && (
             <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{item.meta}</div>
           )}
           {/* Optional per-record action (e.g. recategorize a purchase in place —
               the same control the Tx tab has, so no drill-down is a dead end). */}
-          {action && (
+          {action && !action.render && (
             <div className="mt-1">
               <label htmlFor={selectId} className="sr-only">{`${action.label || 'Set'} for ${item.label}`}</label>
               <select

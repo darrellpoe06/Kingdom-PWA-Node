@@ -35,6 +35,7 @@ import base64
 import io
 import os
 import re
+import subprocess
 import tempfile
 
 from fastapi import FastAPI, Request
@@ -55,17 +56,55 @@ def get_tts():
     return _tts
 
 
+# THE BROWSER RECORDS WEBM, AND XTTS READS WAV (DR-0721). The in-app recorder
+# (MediaRecorder) produces audio/webm;codecs=opus on Android and Chrome and
+# audio/mp4 on iOS. XTTS loads its reference through torchaudio, which in this
+# image has no ffmpeg backend, so a webm reference would fail at inference with
+# "synthesis-failed" on the first real clone -- and audio/mp4 was written to a
+# ".wav" file by the old suffix map. Every reference that is not already a WAV
+# is turned into one here (mono, 22.05 kHz, the first REF_MAX_SECONDS), with
+# the ffmpeg the Dockerfile now installs. A missing ffmpeg is a named error,
+# never a silent bad read.
+REF_MAX_SECONDS = os.environ.get("VOICE_REF_MAX_SECONDS", "30")
+_SUFFIX = {"webm": ".webm", "ogg": ".ogg", "mp4": ".m4a", "x-m4a": ".m4a", "aac": ".aac", "mpeg": ".mp3", "mp3": ".mp3", "flac": ".flac"}
+
+
+def _to_wav(src: str) -> str:
+    """Transcode a reference sample to a mono 22.05 kHz WAV; return its path."""
+    out = src + ".ref.wav"
+    try:
+        subprocess.run(
+            ["ffmpeg", "-y", "-loglevel", "error", "-i", src, "-ac", "1", "-ar", "22050", "-t", str(REF_MAX_SECONDS), out],
+            check=True, timeout=60, capture_output=True,
+        )
+    except FileNotFoundError as e:
+        raise ValueError("reference-needs-ffmpeg: ffmpeg is not installed in the studio image") from e
+    except subprocess.CalledProcessError as e:
+        raise ValueError("reference-unreadable: " + (e.stderr or b"").decode("utf-8", "replace")[:200]) from e
+    return out
+
+
 def _decode_reference(data_uri: str) -> str:
-    """Write the base64 reference sample to a temp wav/webm file; return its path."""
-    m = re.match(r"data:(audio/[^;]+);base64,(.*)", data_uri or "", re.DOTALL)
+    """Write the base64 reference sample to a temp file, as WAV; return its path."""
+    m = re.match(r"data:(audio/[^;,]+)[^,]*;base64,(.*)", data_uri or "", re.DOTALL)
     if not m:
         raise ValueError("reference_audio must be a base64 audio data URI")
     raw = base64.b64decode(m.group(2))
-    suffix = ".webm" if "webm" in m.group(1) else (".ogg" if "ogg" in m.group(1) else ".wav")
+    sub = m.group(1).split("/", 1)[1].lower()
+    is_wav = sub in ("wav", "x-wav", "wave", "vnd.wave")
+    suffix = ".wav" if is_wav else _SUFFIX.get(sub, ".bin")
     fd, path = tempfile.mkstemp(suffix=suffix)
     with os.fdopen(fd, "wb") as f:
         f.write(raw)
-    return path
+    if is_wav:
+        return path
+    try:
+        return _to_wav(path)
+    finally:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
 
 
 # THE PREFIX IS SERVED BOTH WAYS, AND THE PLAIN ONE IS THE REAL PATH.
@@ -86,7 +125,10 @@ def _decode_reference(data_uri: str) -> str:
 @app.get("/voice/health")
 @app.get("/health")
 def health():
-    return {"ok": True}
+    # WHAT IT CAN DO, said by the studio itself (DR-0721): it clones from a
+    # recording (few-shot XTTS-v2), and which model is loaded. Cold: nothing
+    # here loads the model.
+    return {"ok": True, "clone": True, "model": os.environ.get("VOICE_MODEL", "tts_models/multilingual/multi-dataset/xtts_v2")}
 
 
 @app.post("/voice/speak")
