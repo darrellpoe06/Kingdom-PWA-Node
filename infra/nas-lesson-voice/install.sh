@@ -164,6 +164,22 @@ if [ "${LESSON_VOICE_SPEAKERS:-1}" != "0" ] && [ -f "$ENROLL_SPEC" ] && [ "$(cat
 fi
 
 cd "$SRC" || exit 1
+
+# ADD MY VOICE (DR-0720): a person adds their own voice in the app, with their
+# own consent, and can take it back. Each cycle, before the transcription pass:
+# every voiceprint whose owner removed it is deleted (always, even with the
+# stop-path set: taking a voice back is never stopped), then up to 3 waiting
+# samples become one voiceprint each, or a plain reason why not, written back
+# to the person's own row. Brakes: budget = timeout 150 s and 3 samples a pass,
+# at low priority; lock = voice-enroll.lock (a second pass skips); stop-path =
+# LESSON_VOICE_SELF_ENROLL=0 (or LESSON_VOICE_SPEAKERS=0) in lesson-voice.env.
+# Result: $DATA/voice-enroll-result.json and $DATA/voice-enroll.log.
+EPY=python3
+[ -x "$VENV/bin/python" ] && EPY="$VENV/bin/python"
+if ! LESSON_VOICE_DATA="$DATA" HF_HOME="$DATA/hf" nice -n 10 timeout 150 "$EPY" voice_enroll.py > "$DATA/voice-enroll.log" 2>&1; then
+  echo "lesson-voice: the voice enrollment pass ended early: $(tail -2 "$DATA/voice-enroll.log" | tr '\n' ' ' | cut -c1-200)"
+fi
+
 # The pip install above can spend most of a cycle; the transcription pass gets
 # what is left of services-sync's 480 s ceiling (440 s, a margin kept), never more.
 LEFT=$((440 - ($(date +%s) - T0)))

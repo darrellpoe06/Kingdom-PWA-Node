@@ -178,4 +178,8 @@ jobs:
           ${SUDO} cat /volume1/PoeTech/lesson-voice/.enroll-attempt 2>/dev/null | sed 's/^/last enroll attempt (epoch): /' || echo "no enroll attempt yet"
           ${SUDO} cat /volume1/PoeTech/lesson-voice/enroll-result.json 2>/dev/null || echo "no enroll-result.json yet"
           ${SUDO} tail -6 /volume1/PoeTech/lesson-voice/enroll.log 2>/dev/null || echo "no enroll.log yet"
+          echo "=== add my voice (DR-0720): self-enrollment by consent ==="
+          ${SUDO} cat /volume1/PoeTech/lesson-voice/voice-enroll-result.json 2>/dev/null || echo "no voice-enroll-result.json yet"
+          ${SUDO} tail -4 /volume1/PoeTech/lesson-voice/voice-enroll.log 2>/dev/null || echo "no voice-enroll.log yet"
+          ${SUDO} cat /volume1/PoeTech/lesson-voice/voiceprints/withdrawn.json 2>/dev/null | sed 's/^/withdrawn labels: /' || echo "no withdrawn labels"
           EOS

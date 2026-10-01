@@ -8,6 +8,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { loadMyProfile, saveMyProfile, photoThumbFromFile, validateProfileFields, VISIBILITY } from '../lib/profiles-sync.js';
 import { isLikelyImageFile } from '../lib/image.js';
 import { ProfileAvatar } from './ProfileCard.jsx';
+// DR-0720: Add my voice lives here, with the rest of who a person is in the app.
+import AddMyVoice from './AddMyVoice.jsx';
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -49,6 +51,7 @@ export default function MyProfile({ initialName = '' }) {
   }
 
   return (
+    <>
     <form onSubmit={onSave} className="space-y-3" aria-label="My profile">
       <div className="flex items-center gap-3">
         <ProfileAvatar profile={{ displayName: f.displayName, photoThumb: f.photoThumb }} size={64} />
@@ -80,5 +83,7 @@ export default function MyProfile({ initialName = '' }) {
       {status && <p className="text-xs text-[#5A5751]" role="status">{status}</p>}
       <button type="submit" disabled={busy} className={`${BTN} bg-[#1A1815] text-white hover:bg-[#B85838] disabled:opacity-50`}>{busy ? 'Saving…' : 'Save my profile'}</button>
     </form>
+    <div className="mt-4"><AddMyVoice /></div>
+    </>
   );
 }

@@ -243,10 +243,12 @@ jobs:
       # transcript row -> cloud copy removed), idempotency by the database, the
       # Whisper ladder order (tower first, NAS CPU last), multipart upload shape,
       # path traversal refused, budget + lock, and the honest voice-failed row
-      # after three tries. Proven-to-catch; gates merge.
+      # after three tries. Add my voice (DR-0720): a voice is named only from a
+      # print its owner consented to; removal deletes the print; refusals say
+      # why. Proven-to-catch; gates merge.
       - name: lesson-voice whisper loop proofs
         working-directory: infra/nas-lesson-voice
-        run: python3 -m unittest test_lesson_voice test_speaker_turns -v
+        run: python3 -m unittest test_lesson_voice test_speaker_turns test_voice_enroll -v
       # Tower parity loop proofs (DR-0671): every measure deterministic, every
       # gap class fires on a planted defect, no single defect counts toward
       # promotion, the cross-reference excludes a verse-gate failure, the
@@ -679,6 +681,41 @@ jobs:
           psql -v ON_ERROR_STOP=1 -q -f scripts/lesson-share-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'every wall held' "$RUNNER_TEMP/smoke.txt"
 
+  # ADD MY VOICE'S WALLS, ON A REAL POSTGRESQL (DR-0720). 0246 applies twice
+  # (idempotent), then the smoke proves: no sample without consent, a sample
+  # only from the person's own folder, each person reads only their own row,
+  # no client writes the table, BG held and DP the Governor's alone, removal
+  # deletes the consent, and the label list is the Governor's and carries no
+  # path. Every check RAISEs; the smoke was shown to fail with each wall open.
+  voice-enrollments:
+    name: app — add my voice consent walls (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: 0246 applies, twice (idempotent), and every wall holds
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f scripts/curriculum-ci-bootstrap.sql
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0246-a-person-adds-their-own-voice-and-can-take-it-back.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0246-voice-enrollment-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'VOICE ENROLLMENT SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
+
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.
   # It runs `if: always()` because a job whose `needs` failed is otherwise
@@ -687,10 +724,10 @@ jobs:
   app:
     name: app — lint + vitest
     if: always()
-    needs: [guards, vitest, probes, layout, curriculum, lesson-shares]
+    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, voice-enrollments]
     runs-on: ubuntu-latest
     steps:
-      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares)
+      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares, voice consent walls)
         env:
           NEEDS: ${{ toJSON(needs) }}
         run: |
