@@ -226,4 +226,5 @@ export const LIVING_LESSONS_ADDED = {
   'll200-how-did-they-know-the-record-they-read-the-son-of-david-the-colt-and-the-books-the-word-names': '2026-09-29', // added with the lesson (DR-0684); spoken into Thinking Space 2026-09-29 and authored the same day
   'll201-how-long-before-it-came-david-the-prophets-and-the-years-from-each-promise-to-jesus': '2026-09-30', // added with the lesson (DR-0689); spoken into Thinking Space 2026-09-30 and authored the same day
   'll202-prepared-before-the-position-homecoming-legacy-good-success-and-represent': '2026-09-30', // added with the lesson (DR-0690); a Bible study recorded by Darrell 2026-09-30 (named for Bishop Gwin) and authored the same day
+  'll204-the-word-checks-every-teller-many-counsellors-all-under-him': '2026-09-30', // added with the lesson (DR-0714); spoken by Darrell 2026-09-30 while L202 was being finished, and authored the same day
 };
