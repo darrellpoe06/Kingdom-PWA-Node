@@ -36,6 +36,8 @@ import { fetchPublishedAlgorithms } from '../lib/eternal-algorithms-sync.js';
 import { GODHEAD_ALGORITHMS, godheadBySection, godheadVerse, godheadToGameCards, BOOK_MASTERPIECES, booksInCatalog, algorithmsForBook, JUDGMENT_COVENANT_REVIEW, covenantAlgorithms } from '../lib/godhead-study.js';
 import { WITNESS_SOURCES, WITNESS_TAGLINE, witnessVerse, witnessScienceOnly } from '../lib/third-witness.js';
 import { witnessCopyBlock, lessonUrl, lessonSharePayload } from '../lib/lesson-links.js';
+import { newShareToken } from '../lib/lesson-share.js';
+import { recordLessonShare } from '../lib/lesson-share-record.js';
 import { HEALTHY_LIVING_CARE_NOTE, HEALTHY_LIVING_META } from '../lib/healthy-living-course.js';
 import CopyButton from './CopyButton.jsx';
 import ShareButton from './ShareButton.jsx';
@@ -487,8 +489,13 @@ function WitnessView() {
                   {
                     url: lessonUrl({ courseKey: HEALTHY_LIVING_META.key, lessonId: `hl-${src.id}` }),
                     courseTitle: HEALTHY_LIVING_META.title || '',
+                    // DR-0698: the record key on the link, and the share recorded.
+                    token: newShareToken(),
+                    courseKey: HEALTHY_LIVING_META.key,
+                    lessonId: `hl-${src.id}`,
                   },
                 )}
+                onShared={recordLessonShare}
               />
               <CopyButton
                 label="Copy this section"
