@@ -22,7 +22,7 @@ import {
 import { mergeVoiceCatalog, canCloneVoice, isVoiceEntitled, resolveVoiceProvider, KIND, SYSTEM_VOICE } from './voice-registry.js';
 import { buildStandInAssignments, resolveVoiceURIForId, standInPitch } from './voice-assignment.js';
 import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
-import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService, voiceErrorReason, speakTimeoutFor, mayAttemptStudio, isStudioRoadProblem, synthesizeLite, mayTryLiteVoice, markLiteVoiceMiss, isPlayRefusal, liteVoiceReasonText, LITE_FIRST_TIMEOUT_MS } from './voice-service.js';
+import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService, speakTimeoutFor, mayAttemptStudio, isStudioRoadProblem, synthesizeLite, mayTryLiteVoice, markLiteVoiceMiss, isPlayRefusal, liteVoiceReasonText, LITE_FIRST_TIMEOUT_MS, SPEAK_TIMEOUT_MS } from './voice-service.js';
 import { chunkForClips, createClipQueue } from './clip-queue.js';
 import { clipKey, createClipSource, deviceClipCache } from './clip-cache.js';
 import { joinClipBlobs } from './joined-clip.js';
@@ -34,6 +34,7 @@ import { clipFraction, estimateClipSeconds, seekableEndOf } from './clip-progres
 import { applyClipRate, clipRateNotice } from './clip-rate.js';
 import { supabase } from './supabase.js';
 import { hrefForView } from './nav-history.js';
+import { MY_VOICE, myVoiceLabel, myVoiceStatus, myVoiceLine } from './my-voice.js';
 import { hasBridgeToken } from './nas-photos.js';
 import { provisionBridgeToken } from './bridge-provision.js';
 import { newReadingPin, deviceVoiceForPin, genderOfDeviceVoice } from './reading-voice-pin.js';
@@ -168,6 +169,34 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
 
   const fullCatalog = useMemo(() => mergeVoiceCatalog(profiles), [profiles]);
   const personalVoices = useMemo(() => fullCatalog.filter((v) => v.kind === KIND.PERSONAL), [fullCatalog]);
+
+  // WHOSE RECORDING IS ON THIS DEVICE (DR-0721). The recording lives in this
+  // device's IndexedDB (voice-reference.js), keyed by person. A voice whose
+  // recording is here is the listener's own: the Voice tab records only under
+  // the signed-in person's own key, and recording is the consent gesture
+  // (voice-recording.js). It is offered as "My voice (Darrell)" even when the
+  // consent row did not load (nas-health logs "permission denied for table
+  // voice_profiles"), because the person picking it is the person who made it.
+  const [samplesHere, setSamplesHere] = useState(() => new Set());
+  // The last miss in my voice ('' after a read that played in it), so the
+  // panel can say why before the next press, not only during a reading.
+  const [myVoiceMiss, setMyVoiceMiss] = useState('');
+  const sampleKeys = useMemo(() => {
+    const keys = new Set(personalVoices.map((v) => v.personKey));
+    if (isPersonVoiceId(voiceId)) keys.add(personKeyOf(voiceId));
+    return [...keys].filter(Boolean);
+  }, [personalVoices, voiceId]);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const here = new Set();
+      for (const k of sampleKeys) {
+        try { if (await loadReference(k)) here.add(k); } catch (_) { /* no sample */ }
+      }
+      if (alive) setSamplesHere((prev) => (prev.size === here.size && [...here].every((k) => prev.has(k)) ? prev : here));
+    })();
+    return () => { alive = false; };
+  }, [sampleKeys]);
   const ctx = { isOwner, subscribed: isOwner };
 
   // Distinct, gender-correct device-voice assignment for System + each person, so a
@@ -196,12 +225,16 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     const sysDev = assignments[SYSTEM_VOICE.id];
     const out = [{ id: SYSTEM_VOICE_ID, label: 'System voice', group: 'Default', ai: false, entitled: true, usable: true, deviceVoice: sysDev ? sysDev.name : null }];
     for (const v of personalVoices) {
-      if (!canCloneVoice(v)) continue; // only consented personal voices are offerable
+      const mine = samplesHere.has(v.personKey);
+      // Only consented personal voices are offerable -- and the listener's
+      // own recorded voice, which they consented to by recording it (DR-0721).
+      if (!canCloneVoice(v) && !mine) continue;
       const dev = assignments[v.id];
+      const entitled = mine || isVoiceEntitled(v, ctx);
       out.push({
-        id: personVoiceId(v.personKey), label: v.name, group: 'Your voices', ai: true,
-        entitled: isVoiceEntitled(v, ctx), usable: isVoiceEntitled(v, ctx),
-        standIn: !resolveVoiceProvider(v, { sovereignVoiceReady }).real,
+        id: personVoiceId(v.personKey), label: mine ? myVoiceLabel(v.name) : v.name, group: 'Your voices', ai: true,
+        entitled, usable: entitled, mine,
+        standIn: !resolveVoiceProvider({ ...v, consentState: 'granted' }, { sovereignVoiceReady }).real,
         deviceVoice: dev ? dev.name : null,
       });
     }
@@ -212,9 +245,27 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     }
     return out;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [personalVoices, tts.voices, isOwner, sovereignVoiceReady, assignments]);
+  }, [personalVoices, tts.voices, isOwner, sovereignVoiceReady, assignments, samplesHere]);
 
   const currentItem = useMemo(() => catalog.find((c) => c.id === voiceId) || catalog[0], [catalog, voiceId]);
+
+  // MY VOICE, SAID PLAINLY (DR-0721): which person voice is picked (or is
+  // mine), whether it can read now, and one sentence saying why not. null
+  // when no person voice is picked and none is recorded on this device.
+  const myVoice = useMemo(() => {
+    const pickedKey = isPersonVoiceId(voiceId) ? personKeyOf(voiceId) : null;
+    const key = pickedKey || personalVoices.map((v) => v.personKey).find((k) => samplesHere.has(k)) || null;
+    if (!key) return null;
+    const v = personalVoices.find((x) => x.personKey === key);
+    const name = (v && v.name) || '';
+    const hasSample = samplesHere.has(key);
+    const status = myVoiceStatus({ hasSample, studio: studioHealth, miss: pickedKey ? myVoiceMiss : '' });
+    return {
+      personKey: key, picked: !!pickedKey, mine: hasSample, name,
+      label: myVoiceLabel(name), status, ready: status === MY_VOICE.READY,
+      line: myVoiceLine({ name, status, miss: myVoiceMiss }),
+    };
+  }, [voiceId, personalVoices, samplesHere, studioHealth, myVoiceMiss]);
 
   // Apply a chosen BROWSER voice to the engine so System/accent picks read in it.
   //
@@ -631,6 +682,57 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     } catch (_) { return false; }
   }, [liteVoiceFor]);
 
+  // MY VOICE AS REAL AUDIO, ONE PIECE AT A TIME (DR-0721). Each piece is a
+  // few-shot clone on the church's XTTS studio, conditioned on the listener's
+  // own recording (reference_audio) and naming the voice (voice, person_key).
+  // The pieces are the reading's own segments, so the highlight follows the
+  // piece that is playing, and they play through the element unlocked in the
+  // tap. A piece the studio cannot make hands the REST to the NAS stand-in,
+  // and the panel says so in one sentence. Resolves { ok } or { error }.
+  const playMyVoice = useCallback(async (clean, { voice, personKey, referenceDataUri }) => {
+    const chunks = chunkForClips(clean);
+    if (!chunks.length || typeof Audio === 'undefined') return { error: 'empty-text' };
+    const speakPiece = (t, timeoutMs) => synthesizeSpeech({
+      text: toSpokenForm(t), voiceId: voice.id, personKey, referenceDataUri, timeoutMs,
+    });
+    const first = await speakPiece(chunks[0].text, speakTimeoutFor(studioHealth));
+    if (!first || first.error || !first.url) return { error: (first && first.error) || 'voice-service-empty' };
+    const a = liteAudioRef.current || new Audio();
+    liteAudioRef.current = a;
+    let served = false;
+    const q = createClipQueue({
+      chunks,
+      audio: a,
+      rate: rateRef.current,
+      fetchClip: (t, i) => {
+        if (i === 0 && !served) { served = true; return Promise.resolve(first); }
+        return speakPiece(t, SPEAK_TIMEOUT_MS);
+      },
+      revoke: (u) => { try { URL.revokeObjectURL(u); } catch (_) { /* ignore */ } },
+      onProgress: (f) => setCloudProgress(f),
+      onPiece: (i) => { if (queueRef.current === q) setCloudPiece(i); },
+      onEnd: () => { if (queueRef.current === q) { queueRef.current = null; audioRef.current = null; setCloudPlaying(false); setCloudPaused(false); setCloudProgress(0); setCloudPiece(-1); } },
+      onFallback: (rest, _i, reason) => {
+        if (queueRef.current !== q) return;
+        queueRef.current = null; audioRef.current = null;
+        setCloudPiece(-1);
+        if (isPlayRefusal(reason)) { setCloudPlaying(false); setNotice(`${sentenceCase(liteVoiceReasonText(reason))}.`); return; }
+        const miss = reason || 'voice-service-error';
+        setMyVoiceMiss(miss);
+        if (isStudioRoadProblem(miss)) setStandInWhy('studio-offline');
+        setNotice(myVoiceLine({ name: voice.name, status: myVoiceStatus({ hasSample: true, miss }), miss }));
+        if (!rest) { setCloudPlaying(false); return; }
+        playLiteVoice(rest).then((played) => { if (!played) { setCloudPlaying(false); deviceRestRef.current(rest, miss); } });
+      },
+    });
+    queueRef.current = q;
+    audioRef.current = a;
+    setCloudPlaying(true); setCloudPaused(false); setCloudProgress(0);
+    setAudioVoice('audio');
+    const ok = await q.start();
+    return ok || queueRef.current === null ? { ok: true } : { error: 'play-refused' };
+  }, [studioHealth, setNotice, playLiteVoice]);
+
   const read = useCallback(async (text, { title } = {}) => {
     const clean = String(text || '').trim();
     if (!clean) return;
@@ -665,8 +767,12 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
 
     if (isPersonVoiceId(voiceId)) {
       const personKey = personKeyOf(voiceId);
-      const voice = personalVoices.find((v) => v.personKey === personKey);
-      if (voice && attemptStudio) {
+      // A recording keyed by the person's own auth id (user:<uuid>) has no
+      // seed entry, and its consent row may not have loaded: it is still
+      // their voice, and it is still tried (DR-0721), never skipped in silence.
+      const voice = personalVoices.find((v) => v.personKey === personKey)
+        || { id: `voice-${personKey}`, kind: KIND.PERSONAL, personKey, name: '', gender: 'unknown' };
+      if (attemptStudio) {
         // THE KEY PROVISIONS ITSELF BEFORE THE READ (DR-0574). /speak is gated
         // on the family bridge key, and the key already provisions itself on a
         // signed-in family device through the RLS-deny-all + SECURITY DEFINER
@@ -679,69 +785,39 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
         const refBlob = await loadReference(personKey);
         if (refBlob) {
           const referenceDataUri = await blobToDataUri(refBlob);
-          // The cloned voice gets the same spoken form the device voice does —
-          // "2nd Timothy", never "two Timothy" (lib/speech-text.js).
-          const { url, error } = await synthesizeSpeech({ text: toSpokenForm(clean), voiceId: voice.id, personKey, referenceDataUri, timeoutMs: speakTimeoutFor(studioHealth) });
-          if (!error && url) {
-            // Vendor use is never silent (DR-0138): when the bridge (not the
-            // sovereign studio) carried this voice, say so — it is a recorded
-            // sovereignty gap with a build path home.
+          // THE READING IN MY VOICE, PIECE BY PIECE (DR-0721). This sent the
+          // WHOLE lesson as one request, up to 32,000 characters, to a studio
+          // given 45 seconds to answer: an XTTS clone of a lesson takes
+          // minutes, so even an armed studio would have timed out and the
+          // stand-in would have read. Now the reading goes to the studio one
+          // breath-sized piece at a time (the NAS voice's own pieces), each
+          // carrying his recording as the reference, and plays as it comes.
+          const got = await playMyVoice(clean, { voice, personKey, referenceDataUri });
+          if (got.ok) {
+            setMyVoiceMiss('');
             const ep = activeVoiceEndpoint();
             if (ep && ep.kind === 'bridge') {
               setNotice('Read in your voice via the vendor bridge — a recorded gap; arming the church’s own voice studio closes it.');
             }
-            try {
-              const a = new Audio(url); audioRef.current = a; setCloudPlaying(true); setCloudProgress(0); setAudioVoice('audio');
-              // The chosen speed applies to the clip from its first second, and a
-              // device that refuses the rate says so instead of quietly reading slow.
-              const rateApplied = applyClipRate(a, rateRef.current);
-              if (!rateApplied.honored) setNotice(clipRateNotice(rateApplied));
-              // Follow-along for CLOUD audio (DR-0265): the clip carries no word
-              // timings, but its playback fraction maps to a text position well
-              // enough for sentence-level follow — the caller converts this
-              // 0..1 into the segment to highlight. Estimation, honestly named:
-              // exact per-word timing needs the voice service to return
-              // timestamps (its own carried item).
-              // A STREAMED CLIP NEVER REPORTS ITS LENGTH, AND THE HIGHLIGHT FROZE
-              // ON SENTENCE ONE BECAUSE OF IT (2026-09-18). This callback used to
-              // be `const d = a.duration; if (Number.isFinite(d) && d > 0)` and
-              // nothing else — so on a chunk-encoded body, where `duration` is
-              // Infinity for the whole of playback, it set nothing on every tick,
-              // cloudProgress stayed at its initial 0, and the follow highlight
-              // painted the first sentence once and never moved again while the
-              // lesson read on to the end. clipFraction takes a real duration when
-              // one exists and falls back through seekable to a named estimate, so
-              // the highlight keeps moving either way.
-              a.ontimeupdate = () => {
-                const f = clipFraction({
-                  currentTime: a.currentTime,
-                  duration: a.duration,
-                  seekableEnd: seekableEndOf(a),
-                  estimatedSeconds: estimateClipSeconds(clean),
-                });
-                if (f != null) setCloudProgress(f);
-              };
-              a.onended = () => { setCloudPlaying(false); setCloudProgress(0); try { URL.revokeObjectURL(url); } catch (_) {} };
-              a.onerror = () => { setCloudPlaying(false); setCloudProgress(0); deviceRestRef.current(clean, 'studio-clip-error'); };
-              await a.play();
-              return;
-            } catch (_) { setCloudPlaying(false); setCloudProgress(0); }
+            return;
           }
-          // THE ROAD IS THE HOUSE'S PROBLEM; THE DEVICE IS THE READER'S.
-          // A dark studio or an unmounted route (404, timeout, 5xx, no
-          // answer) raises NO message -- the person can do nothing about it
-          // and was shown "HTTP 404" over a lesson for it (2026-09-23). The
-          // read falls back and the status line says so. A refused key or a
-          // missing sample is the reader's, and keeps its sentence + door.
+          const error = got.error || 'voice-service-error';
+          // NEVER A SILENT FALLBACK (DR-0721). A dark studio used to raise no
+          // message at all (2026-09-23, "No headaches"), so the stand-in read
+          // and the only trace was a few words after "Reading…" in a panel
+          // that folds away while it reads. He picked his voice, heard another,
+          // and was told nothing. The one sentence below says whose voice is
+          // reading and why, in the panel and on the folded pill's mark.
+          setMyVoiceMiss(error);
           if (isStudioRoadProblem(error)) {
             setStandInWhy('studio-offline');
             try { console.warn('[read-aloud] studio road failed, stand-in voice used:', error); } catch (_) { /* no console */ }
-          } else {
-            setNotice(`${voiceErrorReason(error)} Using a stand-in voice.`);
           }
+          setNotice(myVoiceLine({ name: voice.name, status: myVoiceStatus({ hasSample: true, miss: error }), miss: error }));
         } else {
+          setMyVoiceMiss('no-voice-sample');
           setNotice(
-            'Record a voice sample first in the Voice tab, then this reads in that voice.',
+            myVoiceLine({ name: voice.name, status: MY_VOICE.SAMPLE_MISSING }),
             { href: hrefForView('voice'), label: 'Open the Voice tab' },
           );
         }
@@ -936,7 +1012,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       pin.gender = genderOfDeviceVoice(uri, deviceVoices) || pin.gender;
     }
     tts.speak(clean, uri, pitch);
-  }, [voiceId, personalVoices, sovereignVoiceReady, attemptStudio, studioHealth, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio, setNotice, playLiteVoice, liteVoiceFor, savedOnDevice]);
+  }, [voiceId, personalVoices, sovereignVoiceReady, attemptStudio, studioHealth, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio, setNotice, playLiteVoice, liteVoiceFor, playMyVoice, savedOnDevice]);
 
   // The OS media buttons drive the SAME controls the panel does — kept in a ref
   // so a lock-screen tap can never call a stale closure.
@@ -973,6 +1049,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     liteVoice: liteVoiceFor(),
     voiceId, setVoiceId, catalog, currentItem, notice,
     standInWhy,
+    // My voice, said plainly (DR-0721): { label, status, ready, line, ... } or null.
+    myVoice,
     audioVoice,
     // setNotice is exported so the panel can DISMISS a notice (2026-09-22).
     // Before this the only clear was at the start of the next read, so a

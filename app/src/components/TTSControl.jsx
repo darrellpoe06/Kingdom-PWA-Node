@@ -40,6 +40,7 @@ import { useIdleReveal } from '../lib/use-idle-reveal.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import { useScreenAwake, NO_WAKE_LOCK_HINT } from '../lib/screen-awake.js';
 import { mayTryLiteVoice } from '../lib/voice-service.js';
+import { standInWords } from '../lib/my-voice.js';
 import { openReadingSource, registerReadingOpener } from '../lib/reading-source.js';
 import FloatingReader from './FloatingReader.jsx';
 import { loadFloat, saveFloat, clampRect, avoidRects, defaultRect } from '../lib/float-geometry.js';
@@ -233,6 +234,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     setNotice,
     noticeAction,
     standInWhy,
+    myVoice,
   } = useReadAloud({ isOwner });
 
   // THE SCREEN STAYS ON WHILE IT READS (DR-0439; Darrell 2026-09-16: his phone
@@ -1415,9 +1417,9 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   // WHICH VOICE, AND WHY, on the status line (Darrell 2026-09-23: "No
   // headaches!!!!"). A dark studio is not a message to dismiss; it is a
   // word beside Reading.
-  const standInNote = standInWhy === 'studio-offline'
-    ? ' · stand-in voice, the studio is offline'
-    : standInWhy === 'studio-unarmed' ? ' · stand-in voice until the studio is armed' : '';
+  // When the voice picked is the listener's OWN and a stand-in is reading in
+  // its place, the words say so: "not your voice" (DR-0721).
+  const standInNote = standInWords(standInWhy, { mine: !!(myVoice && myVoice.picked) });
   const statusLabel = (isReading ? (isPaused ? 'Paused' : 'Reading…') : 'Ready') + standInNote;
 
   return (
@@ -1892,6 +1894,17 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
                   </optgroup>
                 ))}
               </select>
+              {/* MY VOICE, SAID BEFORE PLAY (DR-0721; Darrell 2026-10-01: "my
+                  recorded voice still will not work as my reader voice… why?").
+                  Whether his own voice can read now, and if not, why, in one
+                  sentence under the list he picks it from. */}
+              {myVoice && (myVoice.picked || myVoice.mine) && (
+                <p data-testid="my-voice-status" data-status={myVoice.status} role="status"
+                  className={`mt-[0.375em] text-[0.5625em] leading-snug ${myVoice.ready ? 'text-[#5A6E3D]' : 'text-[#1A1815]'}`}
+                  style={{ fontFamily: '"Fraunces", serif' }}>
+                  {myVoice.picked ? myVoice.line : `${myVoice.label} is in this list: pick it to hear lessons in your recorded voice.`}
+                </p>
+              )}
             </div>
           ) : null}
 
