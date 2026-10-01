@@ -117,21 +117,41 @@ def parse_print_lines(stdout):
 
 # --- yt-dlp page read (NAS residential IP) ------------------------------------
 
-def fetch_dates(video_ids, time_budget_s):
-    """One yt-dlp invocation over the chunk; bounded by time_budget_s."""
-    args = ["--skip-download", "--no-warnings", "--ignore-errors",
+def ytdlp_args(video_ids):
+    """The read-only metadata call. --ignore-no-formats-error (DR-0723): a
+    current yt-dlp without a JS runtime may be offered no playable format, and
+    we never want one -- only the stamp -- so that is not a reason to print
+    nothing."""
+    args = ["--skip-download", "--no-warnings", "--ignore-errors", "--ignore-no-formats-error",
             "--print", "%(id)s\t%(release_timestamp,upload_date)s"]
-    args += [f"https://www.youtube.com/watch?v={v}" for v in video_ids]
-    for cmd in (["yt-dlp"], [sys.executable, "-m", "yt_dlp"]):
+    return args + [f"https://www.youtube.com/watch?v={v}" for v in video_ids]
+
+
+def fetch_dates(video_ids, time_budget_s, commands=None):
+    """One yt-dlp invocation over the chunk; bounded by time_budget_s.
+
+    Two different failures, two different messages (DR-0723). "not available"
+    means no yt-dlp could be STARTED. A yt-dlp that ran and printed nothing was
+    refused or broken, and says so with its own last words -- the 2026-10-01
+    log said "not available" for both, which hid which one it was.
+    """
+    args = ytdlp_args(video_ids)
+    ran = []
+    for cmd in (commands or (["yt-dlp"], [sys.executable, "-m", "yt_dlp"])):
         try:
             r = subprocess.run(cmd + args, capture_output=True, text=True, timeout=time_budget_s)
         except FileNotFoundError:
             continue
         except subprocess.TimeoutExpired as e:
-            return parse_print_lines(e.stdout or "")
+            out = e.stdout or ""
+            return parse_print_lines(out.decode("utf-8", "replace") if isinstance(out, bytes) else out)
         if r.stdout.strip() or r.returncode == 0:
             return parse_print_lines(r.stdout)
-    raise RuntimeError("yt-dlp not available (pip install yt-dlp)")
+        tail = " | ".join(ln.strip() for ln in (r.stderr or "").strip().splitlines()[-2:] if ln.strip())
+        ran.append(f"{cmd[0]} exit {r.returncode}: {tail[:200] or '(no stderr)'}")
+    if ran:
+        raise RuntimeError("yt-dlp ran but printed nothing -- " + "; ".join(ran))
+    raise RuntimeError("yt-dlp not available (no yt-dlp could be started)")
 
 
 def emit(ok, processed, note):
@@ -162,6 +182,33 @@ def selftest():
     checks.append(("print-line parse keeps only dateable rows",
                    parse_print_lines("a1\t20231108\nb2\tNA\nnoise\nc3\t1702515600")
                    == {"a1": "2023-11-08", "c3": "2023-12-13"}))
+    checks.append(("metadata read never needs a playable format",
+                   "--ignore-no-formats-error" in ytdlp_args(["a1"]) and "--skip-download" in ytdlp_args(["a1"])))
+    import tempfile, os
+    with tempfile.TemporaryDirectory() as td:
+        refused = os.path.join(td, "yt-dlp")
+        with open(refused, "w") as fh:
+            fh.write("#!/bin/sh\necho 'ERROR: [youtube] a1: Sign in to confirm you are not a bot' >&2\nexit 1\n")
+        os.chmod(refused, 0o755)
+        try:
+            fetch_dates(["a1"], 30, commands=[[refused]])
+            msg = ""
+        except RuntimeError as e:
+            msg = str(e)
+        checks.append(("a refused yt-dlp is named refused, with its own words",
+                       "ran but printed nothing" in msg and "not a bot" in msg and "not available" not in msg))
+        try:
+            fetch_dates(["a1"], 30, commands=[[os.path.join(td, "absent")]])
+            msg = ""
+        except RuntimeError as e:
+            msg = str(e)
+        checks.append(("a missing yt-dlp is named not available", "not available" in msg))
+        answers = os.path.join(td, "yt-dlp-ok")
+        with open(answers, "w") as fh:
+            fh.write("#!/bin/sh\nprintf 'a1\\t20260930\\n'\n")
+        os.chmod(answers, 0o755)
+        checks.append(("an answering yt-dlp dates the row",
+                       fetch_dates(["a1"], 30, commands=[[answers]]) == {"a1": "2026-09-30"}))
     ok = all(passed for _, passed in checks)
     for name, passed in checks:
         print(("PASS" if passed else "FAIL"), "-", name)
