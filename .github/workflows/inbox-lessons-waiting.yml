@@ -12,8 +12,16 @@
 # a lesson holds a person's words, and this output is visible to the repo
 # (the rule voice-intake-health.yml keeps).
 #
-# BRAKES (deterministic class, DR-0248: budget + lock): dispatch only, one
-# query per run, 5 minutes; concurrency group `inbox-lessons-waiting`.
+# THE BUILDER'S PROGRESS (DR-0725). Darrell 2026-10-01, of a lesson showing
+# "building": "how long?" The second step prints the NAS lesson builder's
+# service status, its systemd state and status.json, and for every lesson row
+# in flight: its stage tags, start time, elapsed time, attempt number, the
+# writer(s), each writer's gate result, and the PR once shipped
+# (scripts/lesson-builder-status.sh + scripts/lesson-inbox-bell.mjs --status).
+# Read-only; never a body or a prompt.
+#
+# BRAKES (deterministic class, DR-0248: budget + lock): dispatch only, a few
+# read-only queries per run, 5 minutes; concurrency group `inbox-lessons-waiting`.
 
 name: inbox-lessons-waiting
 
@@ -26,6 +34,7 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   list:
@@ -42,9 +51,20 @@ jobs:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
         run: |
           set -uo pipefail
-          # One definition of "waiting", shared with the bell (DR-0701).
+          # One definition of "waiting", shared with the bell (DR-0725).
           out=$(bash scripts/live-sql.sh '|' < scripts/lesson-inbox-waiting.sql) || { echo "::error::could not read the live database"; exit 1; }
           n=$(printf '%s' "$out" | grep -c . || true)
           echo "waiting lesson rows: $n"
           printf '%s\n' "$out"
           { echo "### Waiting lesson rows: $n"; echo '```'; printf '%s\n' "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: The NAS lesson builder's progress (never a body)
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+          bash scripts/lesson-builder-status.sh status --nas || exit 1
+          node scripts/lesson-inbox-bell.mjs --status --rows status/rows.txt --versions status/versions.txt \
+            --prs status/prs.json --service status/service.json | tee status/print.txt
+          { echo "### The NAS lesson builder"; echo '```'; cat status/print.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

@@ -1,48 +1,62 @@
-# lesson-inbox-bell -- the lesson intake rings a bell instead of watching a clock
+# lesson-inbox-bell -- a saved lesson rings the bell; there is no timer
 #
-# WHY (2026-09-30, DR-0701). Darrell: "I don't like timers... they cost more
-# than we need... don't we have a better solution/s?" The in-app lesson intake
-# was a claude.ai Routine that woke an AI session every hour (24 turns a day)
-# to ask whether any lesson row was waiting. Most hours none was.
+# WHY (DR-0725). Darrell 2026-09-30: "I don't like timers... they cost more
+# than we need... don't we have a better solution/s?" and 2026-10-01, after
+# making a lesson and seeing nothing happen: "Why can't it just be triggered
+# by me doing the lesson so it's not a timer!!!!!" The lesson intake was a
+# claude.ai Routine waking an AI session every hour (24 turns a day) to ask
+# whether any lesson row was waiting.
 #
-# HOW IT RINGS (deterministic, no model):
-#   1. A lesson row lands in agent_inbox on the NAS database the app reads
+# HOW IT RINGS (deterministic, no model, no schedule):
+#   1. A lesson row lands in agent_inbox on the NAS database the app writes
 #      (typed in the app, a Whisper transcript, a Governor's approval).
-#   2. Migration 0243's trigger rings pg_notify('lesson_inbox', <id>).
+#   2. Migration 0243's trigger calls pg_notify('lesson_inbox', <row id>):
+#      the id only, never a word.
 #   3. The NAS lesson builder, already LISTENing, sends ONE repository_dispatch
-#      `lesson-saved` (no ids, no words) -- lesson_builder.py `Bell`.
-#   4. This job reads which rows wait (scripts/lesson-inbox-waiting.sql, the
-#      same query inbox-lessons-waiting.yml runs) and comments on the standing
-#      bell PR ONLY when that set changed since its own last comment
-#      (scripts/lesson-inbox-bell.mjs). The intake session subscribed to that
-#      PR wakes on the comment. Nothing waiting = no comment = no AI turn.
-#   5. One daily schedule is the safety net for a ring that never arrived.
+#      `lesson-waiting` per new row (deduped; a burst is one dispatch) with the
+#      push token it already holds (DR-0085) -- lesson_builder.py `Bell`.
+#   4. The builder's own milestones ring the same way (claimed -> building,
+#      gated, and every finish: shipped, awaiting-review, failed, deferred):
+#      the build sends pg_notify('lesson_inbox', 'stage:<row id>').
+#   5. This job reads the lesson rows in flight (scripts/lesson-builder-status.sh:
+#      scripts/lesson-inbox-progress.sql, each writer's gate result, the lesson
+#      PRs) and comments on the standing bell PR ONLY when a row reached a
+#      milestone its own last comment did not name (scripts/lesson-inbox-bell.mjs):
+#      waiting, building (start, elapsed, attempt, writers), gates passed or
+#      failed, awaiting review, shipped with its PR. The intake session
+#      subscribed to that PR wakes on the comment. Nothing new = no comment =
+#      no AI turn.
 #
-# NEVER A BODY: the query selects the body's length only; the comment carries
-# ids, created_by and tags.
+# NEVER A BODY: the queries select the body's length only, and never a prompt;
+# the comment carries ids, created_by, created_at and tag-derived progress.
+# The dispatch carries row ids only.
 #
-# BRAKES (DR-0248 deterministic class: budget + lock; plus a kill):
-#   budget  one query and at most one comment per run, 5-minute timeout
-#   lock    concurrency group `lesson-inbox-bell` (a burst of rings queues one run)
-#   kill    repository variable LESSON_BELL = off (every run skips), or delete
-#           this file; the NAS side stops with LESSON_BELL=off in
-#           /volume1/PoeTech/secrets/lesson-builder.env
+# BRAKES (DR-0248 deterministic class: budget + lock; plus the stop-paths):
+#   budget  one query and at most one comment per run, 5-minute timeout; at
+#           most LESSON_BELL_MAX_PER_DAY (default 24) comments a day -- never
+#           more AI wakes than the hourly Routine it replaces
+#   lock    concurrency group `lesson-inbox-bell` (single-flight: a burst of
+#           rings queues one run)
+#   stop    repository variable LESSON_BELL = off (every run skips), or delete
+#           this file; the NAS side stops with the builder's own stop-paths
+#           (ARMED-BY-RECORD, services.json enabled:false) or LESSON_BELL=off
+#           in /volume1/PoeTech/secrets/lesson-builder.env
 #
 # workflow_dispatch extras (for proof and diagnosis, never needed day to day):
 #   diagnose  also report the live database's extensions, the 0243 trigger,
 #             and the NAS lesson builder's state and last bell lines
 #   proof     insert | delete one clearly labelled test row (tags lesson,
 #             canary, bell-proof, mirrored: the builder skips canary rows and
-#             the mirror skips mirrored ones), to prove the database ring end
-#             to end; delete removes only rows tagged bell-proof
+#             the mirror skips mirrored ones). An insert ENDS its run there, so
+#             the comment that follows comes from the NAS's dispatch: the
+#             row's created_at to the comment's time is the measured
+#             insert-to-bell seconds. delete removes only rows tagged bell-proof
 
 name: lesson-inbox-bell
 
 on:
   repository_dispatch:
-    types: [lesson-saved]
-  schedule:
-    - cron: '17 14 * * *'   # daily safety net, 09:17 Central (CDT)
+    types: [lesson-waiting]
   workflow_dispatch:
     inputs:
       diagnose:
@@ -74,8 +88,11 @@ jobs:
       REPO: ${{ github.repository }}
       BELL_PR: ${{ vars.LESSON_BELL_PR || '1879' }}
       NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+      LESSON_BELL_MAX_PER_DAY: ${{ vars.LESSON_BELL_MAX_PER_DAY || '24' }}
       PROOF: ${{ inputs.proof || 'none' }}
       DIAGNOSE: ${{ inputs.diagnose || false }}
+      RANG_SOURCE: ${{ github.event.client_payload.source }}
+      RANG_IDS: ${{ toJSON(github.event.client_payload.ids) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -85,17 +102,18 @@ jobs:
         uses: tailscale/github-action@v3
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
-      - name: What rang
+      - name: What rang (row ids only)
         run: |
-          echo "event: ${{ github.event_name }} ${{ github.event.action }}"
-          echo "source: ${{ github.event.client_payload.source || 'n/a' }}"
+          echo "event: $GITHUB_EVENT_NAME at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          printf 'source: %s\n' "$RANG_SOURCE" | tr -cd 'A-Za-z0-9 :._\n-'
+          printf '%s' "${RANG_IDS:-null}" | jq -r '(. // [])[]? | select(test("^[0-9a-f-]{36}$"))' 2>/dev/null | sed 's/^/rang for: /' || true
       - name: Proof row (insert or delete; dispatch only)
         if: ${{ env.PROOF == 'insert' || env.PROOF == 'delete' }}
         run: |
           set -uo pipefail
           if [ "$PROOF" = "insert" ]; then
             SQL="INSERT INTO public.agent_inbox (instance_id, body, tags, source, created_by)
-                 SELECT instance_id, 'BELL PROOF (DR-0701): a test row that proves the lesson bell rings. Not a lesson. Deleted by lesson-inbox-bell.yml proof=delete.',
+                 SELECT instance_id, 'BELL PROOF (DR-0725): a test row that proves the lesson bell rings. Not a lesson. Deleted by lesson-inbox-bell.yml proof=delete.',
                         '[\"lesson\",\"canary\",\"bell-proof\",\"mirrored\"]'::jsonb, 'bell-proof', created_by
                  FROM public.agent_inbox WHERE created_by = 'f13843f2-742b-4f8a-82af-7ecfbdc536ec' AND instance_id IS NOT NULL
                  ORDER BY created_at DESC LIMIT 1 RETURNING id, created_at;"
@@ -103,27 +121,35 @@ jobs:
             SQL="DELETE FROM public.agent_inbox WHERE tags ? 'bell-proof' AND source = 'bell-proof' RETURNING id;"
           fi
           printf '%s' "$SQL" | bash scripts/live-sql.sh '|' || { echo "::error::proof $PROOF failed"; exit 1; }
-      - name: Which lesson rows wait (never a body)
+      - name: Which lesson rows are in flight, and how far (never a body)
+        if: ${{ env.PROOF != 'insert' }}
         run: |
           set -uo pipefail
-          bash scripts/live-sql.sh '|' < scripts/lesson-inbox-waiting.sql > rows.txt || { echo "::error::could not read the live database"; exit 1; }
-          echo "waiting rows: $(grep -c . rows.txt || true)"
-          cut -d'|' -f1,3,5 rows.txt
+          bash scripts/lesson-builder-status.sh bell || exit 1
+          cut -d'|' -f1,2,5 bell/rows.txt
       - name: The bell's own last comments
+        if: ${{ env.PROOF != 'insert' }}
         run: |
           set -uo pipefail
           gh api --paginate "repos/$REPO/issues/$BELL_PR/comments?per_page=100" \
-            --jq '[.[] | select(.user.login == "github-actions[bot]") | .body]' | jq -s 'add // []' > comments.json
+            --jq '[.[] | select(.user.login == "github-actions[bot]") | {body, created_at}]' | jq -s 'add // []' > comments.json
           echo "bell comments so far: $(jq length comments.json)"
-      - name: Ring only on change
+      - name: Ring only on change (and under the per-day cap)
+        if: ${{ env.PROOF != 'insert' }}
         run: |
           set -euo pipefail
-          D=$(node scripts/lesson-inbox-bell.mjs --rows rows.txt --comments comments.json --out body.md)
+          D=$(node scripts/lesson-inbox-bell.mjs --rows bell/rows.txt --versions bell/versions.txt --prs bell/prs.json \
+                --comments comments.json --out body.md)
           echo "$D"
           if [ "$(echo "$D" | jq -r .post)" = "true" ]; then
             gh api "repos/$REPO/issues/$BELL_PR/comments" -F body=@body.md --jq '.html_url'
           fi
           { echo "### Lesson inbox bell"; echo '```'; echo "$D"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: The builder's progress, printed (read-only)
+        if: ${{ env.PROOF != 'insert' }}
+        run: |
+          node scripts/lesson-inbox-bell.mjs --status --rows bell/rows.txt --versions bell/versions.txt \
+            --prs bell/prs.json --service bell/service.json
       - name: Diagnose (extensions, the trigger, the NAS bell)
         if: ${{ env.DIAGNOSE == 'true' }}
         run: |
@@ -135,5 +161,5 @@ jobs:
           echo "== the NAS lesson builder =="
           K=$(mktemp); printf '%s\n' "$NAS_SSH_KEY" > "$K"; chmod 600 "$K"
           ssh -i "$K" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes -o LogLevel=ERROR dpoe@poetech.tail5a2f35.ts.net \
-            'systemctl is-active poetech-lesson-builder; cat /volume1/PoeTech/lesson-builder/.code.sha 2>/dev/null; echo; grep -o "\"state\": *\"[^\"]*\"" /volume1/PoeTech/lesson-builder/status.json 2>/dev/null; cat /volume1/PoeTech/lesson-builder/bell.json 2>/dev/null' || true
+            'systemctl is-active poetech-lesson-builder; cat /volume1/PoeTech/lesson-builder/.code.sha 2>/dev/null; echo; grep -o "\"state\": *\"[^\"]*\"" /volume1/PoeTech/lesson-builder/status.json 2>/dev/null; python3 -c "import json; d=json.load(open(\"/volume1/PoeTech/lesson-builder/bell.json\")); print({k: d.get(k) for k in (\"at\", \"ok\", \"code\", \"rows\", \"rings_today\")}, len(d.get(\"rung\", [])), \"keys rung\")" 2>/dev/null; journalctl -u poetech-lesson-builder --since -2h --no-pager 2>/dev/null | grep lesson-bell | tail -5' || true
           rm -f "$K"

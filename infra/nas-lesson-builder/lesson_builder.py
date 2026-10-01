@@ -109,6 +109,8 @@ DUP_SOURCES_PREFIX = ("app/src/lib/", "docs/decisions/")
 STAGES = ("claimed", "grouped", "verses-fetched", "writing", "written", "gated", "selected", "numbered",
           "files-written", "test-generated", "reconciled", "tested", "committed", "pushed", "previewed", "published")
 OTHER_STAGES = ("failed", "released", "deferred", "duplicate", "skipped-test", "awaiting-review", "decided")
+# The mid-build stages that ring the bell (every finish rings too) -- DR-0725.
+BELL_MILESTONE_STAGES = ("gated",)
 
 
 # =============================================================================
@@ -853,11 +855,25 @@ class Build:
         self.report["stages"][name] = ts
         for rid in self.ids:
             self.db.add_tags(rid, [stage_tag(name, ts)] + list(extra))
+        if name in BELL_MILESTONE_STAGES:
+            self._milestone()
+
+    def _milestone(self):
+        """Tell the LISTENing service a row reached a milestone: 'stage:<id>' on
+        the lesson channel, the id only (DR-0725). Never stops the build."""
+        note = getattr(self.db, "notify_stage", None)
+        for rid in self.ids:
+            try:
+                if note:
+                    note(rid)
+            except Exception:  # noqa: BLE001
+                pass
 
     def finish(self, add, remove=("lesson-building",), companions_add=(), hosted_add=()):
         for rid in self.ids:
             self.db.add_tags(rid, list(add))
             self.db.remove_tags(rid, list(remove))
+        self._milestone()
         for cid in self.companions:
             if companions_add:
                 self.db.add_tags(cid, list(companions_add))
@@ -1308,6 +1324,25 @@ class Db:
             "WHERE tags @> '[\"lesson\"]'::jsonb AND NOT tags @> '[\"lesson-captured\"]'::jsonb ORDER BY created_at ASC")
         return [{"id": r[0], "instance_id": r[1], "created_by": r[2], "body": r[3],
                  "tags": r[4] if isinstance(r[4], list) else json.loads(r[4] or "[]"), "created_at": r[5]} for r in rows]
+
+    def notify_stage(self, rid):
+        """A build milestone on the lesson channel: 'stage:<id>', never a word."""
+        self.con.run("SELECT pg_notify(:c, :p)", c=CHANNEL, p=BELL_STAGE_PREFIX + rid)
+
+    def row_tags(self, rid):
+        """One row's tags (never its body), for the bell. None when gone."""
+        rows = self.con.run("SELECT tags FROM public.agent_inbox WHERE id = CAST(:id AS uuid)", id=rid)
+        if not rows:
+            return None
+        t = rows[0][0]
+        return t if isinstance(t, list) else json.loads(t or "[]")
+
+    def waiting_tags(self):
+        """Every waiting lesson row's id and tags (never a body), for the bell's sweep."""
+        rows = self.con.run(
+            "SELECT id::text, tags FROM public.agent_inbox WHERE tags ? 'lesson' AND NOT (tags ? 'lesson-captured') "
+            "AND NOT (tags ? 'lesson-building') AND NOT (tags ? 'awaiting-review') ORDER BY created_at ASC")
+        return [{"id": r[0], "tags": r[1] if isinstance(r[1], list) else json.loads(r[1] or "[]")} for r in rows]
 
     def claim(self, rid, ts):
         """Atomic: the row is ours only if no one holds it and it is not captured."""
@@ -1923,46 +1958,101 @@ def writer_paths(env):
 
 def job_of(payload):
     """What a notification asks for: ('sweep', None) | ('row', id) |
-    ('decision', id) | ('backfill', None)."""
+    ('decision', id) | ('backfill', None) | ('stage', id) -- a build milestone,
+    which only rings the bell (DR-0725)."""
     if not payload:
         return "sweep", None
     if payload.startswith("decision:"):
         return "decision", payload[len("decision:"):]
     if payload == "backfill":
         return "backfill", None
+    if payload.startswith(BELL_STAGE_PREFIX):
+        return "stage", payload[len(BELL_STAGE_PREFIX):]
     return "row", payload
 
 
 # =============================================================================
-# THE BELL (DR-0701) -- the notification that starts a build also wakes the
-# lesson intake session, instead of an hourly AI timer.
+# THE BELL (DR-0725) -- the notification that starts a build also wakes the
+# lesson intake session. No timer.
 # Darrell 2026-09-30: "I don't like timers... they cost more than we need...
-# don't we have a better solution/s?"
-# A row notification (0243's pg_notify) sends ONE repository_dispatch
-# `lesson-saved` -- no ids, no words -- and lesson-inbox-bell.yml reads which
-# rows wait and comments on the standing bell PR only when that set changed.
-# Brakes: spacing (a burst of notifications is one ring, flushed after the
-# spacing -- a trailing ring, so the last row of a burst is never missed); an
-# hourly ceiling (a ring past it waits for the window, never exceeds it); the
-# kill LESSON_BELL=off in lesson-builder.env. The token is read in place from
-# the NAS-resident secret the builder already pushes with; it is never logged.
-# The daily scheduled run of the bell is the net for a ring that never left.
+# don't we have a better solution/s?" and 2026-10-01: "Why can't it just be
+# triggered by me doing the lesson so it's not a timer!!!!!"
+# Migration 0243's pg_notify('lesson_inbox', <row id>) -- the id only, never a
+# word -- reaches this LISTENer when a lesson row lands. The builder's own
+# milestones ring the same channel with 'stage:<row id>' (claimed -> building,
+# gated, and every finish: shipped, awaiting-review, failed, deferred, captured).
+# Each NEW milestone of a row sends ONE repository_dispatch `lesson-waiting`,
+# carrying the row ids only; lesson-inbox-bell.yml reads the rows in flight and
+# comments on the standing bell PR only when a row reached a new milestone.
+# DEDUPED: one ring per row key (its id plus its milestone, bell_milestone),
+# kept in bell.json across restarts -- a re-notified row (a tag such as
+# `mirrored` added) never rings twice, while a row the builder tried and handed
+# back (a new `build:<stage>@` tag) is a new key and rings once more.
+# Darrell 2026-10-01 asked "how long?" of a lesson showing "building": the
+# milestones are how he and the intake session see progress as it happens.
+# BRAKES (DR-0248 deterministic class): spacing (a burst is one dispatch,
+# flushed after the spacing so the last row of a burst is never missed); a
+# per-day cap (a ring past it waits for the window, never exceeds it);
+# single-flight (one systemd service, one process, one bell); the stop-paths
+# are the builder's own (ARMED-BY-RECORD, services.json enabled:false) plus
+# LESSON_BELL=off in lesson-builder.env. The token is read in place from the
+# NAS-resident secret the builder already pushes with (DR-0085); never logged.
+# The services-sync sweep the builder already receives re-offers any waiting
+# row that never rang (the dedupe makes it free when nothing is new).
 # =============================================================================
-BELL_EVENT = "lesson-saved"
+BELL_EVENT = "lesson-waiting"
 BELL_REPO = os.environ.get("LESSON_BELL_REPO", "darrellpoe06/Kingdom-PWA-Node")
 BELL_SPACING = int(os.environ.get("LESSON_BELL_SPACING_SECONDS", "20"))
-BELL_MAX_PER_HOUR = int(os.environ.get("LESSON_BELL_MAX_PER_HOUR", "30"))
+BELL_MAX_PER_DAY = int(os.environ.get("LESSON_BELL_MAX_PER_DAY", "60"))
+BELL_STAGE_PREFIX = "stage:"
+BELL_KEEP = 2000
+_UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+_STAGE = re.compile(r"^build:[a-z-]+@")
 
 
-def bell_dispatch(token_file=TOKEN_FILE, repo=BELL_REPO, opener=None):
-    """POST one repository_dispatch. Returns (ok, http status or reason). Never raises."""
+def bell_waits(tags):
+    """The waiting rule of scripts/lesson-inbox-waiting.sql, on one row's tags."""
+    tags = tags or []
+    return ("lesson" in tags and "lesson-captured" not in tags and "lesson-building" not in tags
+            and "awaiting-review" not in tags)
+
+
+def bell_milestone(tags):
+    """Where a lesson row stands, from its tags alone (never its body). The same
+    rule as scripts/lesson-inbox-bell.mjs milestone(). None for a non-lesson row."""
+    tags = [str(t) for t in (tags or [])]
+    if "lesson" not in tags:
+        return None
+    times = stage_times(tags)
+    if "lesson-published" in tags or "published" in times:
+        return "shipped"
+    if "lesson-captured" in tags:
+        return "captured"
+    if "awaiting-review" in tags:
+        return "awaiting-review"
+    if "lesson-building" in tags:
+        return "gated" if times.get("gated", "") >= times.get("claimed", "~") else "building"
+    n = len([t for t in tags if _STAGE.match(t)])
+    return "waiting#b{}".format(n) if n else "waiting"
+
+
+def bell_key(row_id, tags):
+    """The same key scripts/lesson-inbox-bell.mjs rowKey() makes: id|milestone."""
+    return "{}|{}".format(row_id, bell_milestone(tags))
+
+
+def bell_dispatch(ids, token_file=TOKEN_FILE, repo=BELL_REPO, opener=None):
+    """POST one repository_dispatch naming the row ids (never a word).
+    Returns (ok, http status or reason). Never raises."""
     import urllib.request  # noqa: PLC0415
+    ids = [i for i in (ids or []) if isinstance(i, str) and _UUID.match(i)]
     try:
         with open(token_file) as f:
             token = f.read().strip()
     except OSError:
         return False, "no push credential at " + token_file
-    body = json.dumps({"event_type": BELL_EVENT, "client_payload": {"source": "nas-lesson-builder"}}).encode("utf-8")
+    body = json.dumps({"event_type": BELL_EVENT,
+                       "client_payload": {"source": "nas-lesson-builder", "ids": sorted(ids)}}).encode("utf-8")
     req = urllib.request.Request("https://api.github.com/repos/{}/dispatches".format(repo), data=body, method="POST")
     req.add_header("Authorization", "Bearer " + token)
     req.add_header("Accept", "application/vnd.github+json")
@@ -1976,18 +2066,46 @@ def bell_dispatch(token_file=TOKEN_FILE, repo=BELL_REPO, opener=None):
 
 
 class Bell:
-    def __init__(self, post=None, clock=time.monotonic, spacing=BELL_SPACING, max_per_hour=BELL_MAX_PER_HOUR,
+    def __init__(self, post=None, clock=time.time, spacing=BELL_SPACING, max_per_day=BELL_MAX_PER_DAY,
                  enabled=None, state_path=None, log=print):
         self.post = post or bell_dispatch
-        self.clock, self.spacing, self.max_per_hour = clock, spacing, max_per_hour
+        self.clock, self.spacing, self.max_per_day = clock, spacing, max_per_day
         self.enabled = (os.environ.get("LESSON_BELL", "on") != "off") if enabled is None else enabled
         self.state_path, self.log = state_path, log
-        self.pending = False
-        self.sent = []
+        self.pending = {}      # key -> row id, waiting to be sent
+        self.rung = []         # keys already sent (oldest first, bounded)
+        self.sent = []         # send times inside the last day
         self.last = {}
+        self._load()
 
-    def ring(self):
-        self.pending = True
+    def _load(self):
+        if not self.state_path:
+            return
+        try:
+            with open(self.state_path, encoding="utf-8") as f:
+                st = json.load(f)
+            self.rung = [k for k in st.get("rung", []) if isinstance(k, str)][-BELL_KEEP:]
+            self.sent = [t for t in st.get("sent", []) if isinstance(t, (int, float))]
+        except (OSError, ValueError, AttributeError):
+            pass
+
+    def _save(self):
+        if not self.state_path:
+            return
+        try:
+            with open(self.state_path, "w", encoding="utf-8") as f:
+                json.dump(dict(self.last, rung=self.rung[-BELL_KEEP:], sent=self.sent), f)
+        except OSError:
+            pass
+
+    def ring(self, row_id, tags):
+        """Offer one row. Rings only for a lesson row whose milestone never rang."""
+        if not isinstance(row_id, str) or not _UUID.match(row_id) or bell_milestone(tags) is None:
+            return "not a lesson"
+        key = bell_key(row_id, tags)
+        if key in self.rung or key in self.pending:
+            return "seen"
+        self.pending[key] = row_id
         return self.flush()
 
     def wait_seconds(self):
@@ -1995,34 +2113,33 @@ class Bell:
         if not self.pending or not self.enabled:
             return None
         now = self.clock()
-        self.sent = [t for t in self.sent if now - t < 3600]
+        self.sent = [t for t in self.sent if now - t < 86400]
         waits = [0.0]
         if self.sent:
             waits.append(self.sent[-1] + self.spacing - now)
-        if len(self.sent) >= self.max_per_hour:
-            waits.append(self.sent[0] + 3600 - now)
+        if len(self.sent) >= self.max_per_day:
+            waits.append(self.sent[0] + 86400 - now)
         return max(waits)
 
     def flush(self):
         if not self.pending:
             return "idle"
         if not self.enabled:
-            self.pending = False
+            self.pending = {}
             return "off"
         wait = self.wait_seconds()
         if wait > 0:
-            return "budget" if len(self.sent) >= self.max_per_hour else "wait"
-        self.pending = False
-        self.sent.append(self.clock())
-        ok, code = self.post()
-        self.last = {"at": utc_now(), "ok": ok, "code": code, "rings_this_hour": len(self.sent)}
-        self.log("lesson-bell: rang {} -> {}".format(BELL_EVENT, code))
-        if self.state_path:
-            try:
-                with open(self.state_path, "w", encoding="utf-8") as f:
-                    json.dump(self.last, f)
-            except OSError:
-                pass
+            return "cap" if len(self.sent) >= self.max_per_day else "wait"
+        batch = dict(self.pending)
+        self.sent.append(self.clock())     # a failed send counts too: it waits the spacing
+        ok, code = self.post(sorted(set(batch.values())))
+        if ok:
+            self.pending = {}
+            self.rung.extend(sorted(batch))
+            self.rung = self.rung[-BELL_KEEP:]
+        self.last = {"at": utc_now(), "ok": ok, "code": code, "rows": len(batch), "rings_today": len(self.sent)}
+        self.log("lesson-bell: {} {} row(s) -> {}".format(BELL_EVENT, len(batch), code))
+        self._save()
         return "sent" if ok else "failed"
 
 
@@ -2076,10 +2193,10 @@ class Service:
             if stopped:
                 self.write_status({"state": "stopped", "why": why})
                 return started
-            # The bell rings for every lesson row, ready writer or not: the
-            # bell run decides whether anything waits (DR-0701).
-            if self.bell is not None and job_of(payload)[0] == "row":
-                self.bell.ring()
+            # The bell (DR-0725): a waiting lesson row rings once, ready writer
+            # or not; the sweep re-offers every waiting row (deduped, so free).
+            if self.bell is not None and job_of(payload)[0] in ("row", "sweep", "stage"):
+                self._ring_bell(job_of(payload))
             ready, st = self._ready_cached()
             self.write_status(st)
             kind, ident = job_of(payload)
@@ -2127,11 +2244,28 @@ class Service:
                         continue
                     for r in claimed:
                         self.active.add(r["id"])
+                for r in claimed:  # the "building" milestone (DR-0725)
+                    self._ring_bell(("stage", r["id"]))
                 self._start(self._run_job, [r["id"] for r in claimed], {"mode": "build", "group": claimed})
                 started.append([r["id"] for r in claimed])
         except Exception as e:  # noqa: BLE001
             self.log("lesson-builder: consider failed: {}".format(e))
         return started
+
+    def _ring_bell(self, job):
+        kind, ident = job
+        if self.bell is None:
+            return
+        try:
+            if kind in ("row", "stage"):
+                tags = getattr(self.db, "row_tags", lambda _i: None)(ident)
+                if tags is not None:
+                    self.bell.ring(ident, tags)
+            else:
+                for r in getattr(self.db, "waiting_tags", lambda: [])():
+                    self.bell.ring(r["id"], r["tags"])
+        except Exception as e:  # noqa: BLE001 -- the bell never stops a build
+            self.log("lesson-bell: could not read the row: {}".format(type(e).__name__))
 
     def release_stale(self, pending):
         """A claim whose build is gone (the service restarted mid-build and
@@ -2168,6 +2302,7 @@ class Service:
                     for rid in keys:
                         self.db.add_tags(rid, [stage_tag("failed", ts), "build-failed", reason_tag(failed_why)])
                         self.db.remove_tags(rid, ["lesson-building"])
+                        self._ring_bell(("stage", rid))
                 elif failed_why and spec.get("mode") == "decide":
                     self.db.update_decision(spec["decision_id"], status="failed", gate_result={"passed": False, "why": failed_why})
                 self.log("lesson-builder: {} -> {}".format(keys, failed_why or (res.get("stdout") or "")[-300:]))

@@ -1,4 +1,4 @@
--- lesson-inbox-waiting.sql -- which lesson rows wait (DR-0701)
+-- lesson-inbox-waiting.sql -- which lesson rows wait (DR-0725)
 -- Shared by inbox-lessons-waiting.yml (the list for a person) and
 -- lesson-inbox-bell.yml (the bell). One query, one definition of "waiting".
 -- Columns: id | created_at | created_by | source | tags (json text) | body LENGTH.
