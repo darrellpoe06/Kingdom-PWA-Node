@@ -319,7 +319,7 @@ export function DownloadPanel({ items, scope, what, removeWhich, deps = null, on
             <span className="text-[0.6875rem] text-[#1A1815]" style={MONO} aria-live="polite" data-testid="download-progress-text">
               {run.saved + run.skipped} of {run.total} saved{run.failed && run.failed.length ? ` · ${run.failed.length} not saved` : ''}{paused ? ' · paused' : ''}
             </span>
-            {running && run.current && <span className="text-[0.6875rem] text-[#5A5751] truncate max-w-[50%]" style={SERIF}>{run.current}</span>}
+            {running && run.current && <span className="text-[0.6875rem] text-[#5A5751] truncate min-w-0 flex-1 text-right" style={SERIF}>{run.current}</span>}
           </div>
           <div className="h-2 bg-[#E8E4DC]" role="progressbar" data-testid="download-progress" aria-label="Download progress"
             aria-valuemin={0} aria-valuemax={run.total} aria-valuenow={run.saved + run.skipped}>
