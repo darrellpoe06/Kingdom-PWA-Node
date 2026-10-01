@@ -8,13 +8,19 @@
 - **Principles:** THE-APP-IS-THE-PRIMARY-ARTIFACT (DR-0065), REALITY-TRACE (DR-0061: observed on his screen), VERIFICATION-DOCTRINE (DR-0076), DR-0625 (every intake is carried to an outcome the sender can read), DR-0726 (every user-facing control is registered), DR-0075 (perpetual improvement: feel, flow, smoothness).
 - **Grounds:** Darrell, 2026-10-01, with a screenshot of the Feedback form on his phone showing a box that read only "YOUR EARLIER FEEDBACK (89): WHERE EACH ONE STANDS": *"Can users see their feedback logs... can I see them?!!! Where are they and whats what?"*
 
-## Context — SHOULD → ARE → GAPS (DR-0219)
+## Context
 
 **SHOULD.** DR-0625: every note a person sends comes back to them with its outcome, derived from the record, where they sent it. The sender's list is `IntakeOutcomeList` (each note's reference code, outcome, reason, change, owner, window, and Reply), shown on the receipt after a send and, under the form, for everything sent before.
+
+## What was measured (SHOULD → ARE → GAPS, DR-0219)
 
 **ARE (his screen, 2026-10-01).** The list under the form sits inside a `<details>` fold whose `<summary>` is laid out with `flex`. Chrome draws no disclosure triangle on a flex summary, so the fold rendered as a bordered box holding one heading and nothing else. Tapping the heading does open it, but nothing said so. Inside, the list showed the first 8 notes (`limit = 8`) with no way to the rest; he has 89.
 
 **GAPS.** (1) The door was there but unmarked. (2) 81 of his 89 notes were unreachable from the app. (3) While closed, the box said how many notes, not where any of them stood.
+
+## Impact
+
+Every note a person sent is reachable from the form, with where each stands said before the fold is opened. Stewards lose nothing; the sender gains the whole list and the tally.
 
 ## Decision
 
