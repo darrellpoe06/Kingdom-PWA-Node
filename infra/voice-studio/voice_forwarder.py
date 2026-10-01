@@ -44,7 +44,7 @@
 #   * MAX_INFLIGHT concurrent syntheses; the (N+1)th gets 503 immediately
 #     rather than queueing on the GPU.
 #   * MAX_BODY bytes of request (a cloned voice carries a base64 sample;
-#     2 MB is generous for a 10-second reference).
+#     16 MB carries an imported minute-long WAV sample; DR-0721).
 #   * UPSTREAM_TIMEOUT seconds per synthesis; a hung studio hangs nobody.
 #
 # Run:
@@ -65,7 +65,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 TOKEN_FILE_DEFAULT = "/volume1/PoeTech/secrets/chat-bridge-token.txt"
 UPSTREAM_DEFAULT = "http://tlcmediadpt:8770"
 MAX_INFLIGHT = int(os.environ.get("VOICE_MAX_INFLIGHT", "2"))
-MAX_BODY = int(os.environ.get("VOICE_MAX_BODY", str(2 * 1024 * 1024)))
+# 16 MB (DR-0721): a cloned piece carries the whole recording as base64, and an
+# imported WAV sample of a minute is ~5 MB raw, ~7 MB encoded; 2 MB refused it.
+MAX_BODY = int(os.environ.get("VOICE_MAX_BODY", str(16 * 1024 * 1024)))
 UPSTREAM_TIMEOUT = float(os.environ.get("VOICE_UPSTREAM_TIMEOUT", "300"))
 HEALTH_TIMEOUT = 5.0
 CHUNK = 64 * 1024

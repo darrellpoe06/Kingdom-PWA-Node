@@ -13,7 +13,9 @@
 // renders nothing — no crash (unbreakable). Status is announced for screen
 // readers; every control is keyboard reachable; the panel is a high-contrast
 // (WCAG AA) white card regardless of app theme.
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { tripSummary } from '../lib/reader-trip.js';
+import { newReaderId, registerReader, subscribeReaders, chosenReader } from '../lib/one-reader.js';
 import { RATE_STEPS } from '../lib/tts.js';
 import { useReadAloud } from '../lib/use-read-aloud.js';
 import {
@@ -24,9 +26,9 @@ import {
 } from '../lib/read-follow.js';
 import { segmentText } from '../lib/tts.js';
 import { readFromPoint } from '../lib/read-from-here.js';
-import { getReadTarget, subscribeReadTarget, pendingRead, takeRead, subscribeRead, requestRead } from '../lib/read-target.js';
+import { getReadTarget, subscribeReadTarget, pendingRead, takeRead, subscribeRead, requestRead, isReadDoor } from '../lib/read-target.js';
 import { useShowTheWord, toggleShowTheWord } from '../lib/show-the-word.js';
-import { getPlace, recordPlace, sentenceKeyOf, findSentence, finishPlace, placeIsFinished } from '../lib/learn-resume.js';
+import { getPlace, getPlaceFor, recordPlace, sentenceKeyOf, findSentence, finishPlace, placeIsFinished } from '../lib/learn-resume.js';
 import { IDLE as RETURN_IDLE, foldReturn, offersReturn, returnPlan, returnLabel } from '../lib/reader-return.js';
 import { getBookmark, saveBookmark, offersResume, resumeLabel, paragraphOf, paragraphLabels } from '../lib/reader-bookmarks.js';
 import { subscribeReadRequest } from '../lib/read-request.js';
@@ -37,8 +39,14 @@ import { buildSurfaceDigest } from '../lib/surface-digest.js';
 import { talkAboutSurface } from '../lib/talk-about.js';
 import { useIdleReveal } from '../lib/use-idle-reveal.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
+// THE BAR, NOT THE CORNER (DR-0716): when the app's bottom bar is mounted its
+// reader slot takes this control's button, mini-bar and pill (a portal); a
+// surface with no bar keeps the corner stack exactly as before.
+import { createPortal } from 'react-dom';
+import { useDockSlot, useScrolledDeep, DOCK_BTN, DOCK_BTN_ON, DOCK_LABEL, DOCK_ICON } from '../lib/chrome-dock.js';
 import { useScreenAwake, NO_WAKE_LOCK_HINT } from '../lib/screen-awake.js';
 import { mayTryLiteVoice } from '../lib/voice-service.js';
+import { standInWords } from '../lib/my-voice.js';
 import { openReadingSource, registerReadingOpener } from '../lib/reading-source.js';
 import FloatingReader from './FloatingReader.jsx';
 import { loadFloat, saveFloat, clampRect, avoidRects, defaultRect } from '../lib/float-geometry.js';
@@ -72,6 +80,9 @@ const LEARN_OPEN = Object.values(import.meta.glob('../lib/learn-open.js', { eage
 // lesson, and it is where he went looking -- his second screenshot is it, open,
 // with speed and voice in it and no text size.
 import { useTextSize } from '../lib/text-size.js';
+// A- / A+ beside the read-aloud button on every screen, so text size no
+// longer needs the reader opened (DR-0724). Same store as the panel's row.
+import { TextSizeQuick } from './TextSizeControl.jsx';
 import { THEMES, useThemePref } from '../lib/theme-css.js';
 
 // After the page comes back from dark, the engine's own foreground recovery
@@ -160,14 +171,35 @@ export const BACKGROUND_LINES = {
   audio: 'This voice keeps playing when you switch apps — your phone’s own play/pause controls it.',
   device: 'This voice stops when you switch apps — the audio voice is offline.',
   idle: 'The audio voice keeps playing when you switch apps. If it is offline, the phone’s own voice reads instead, and that one stops when you switch apps.',
+  // SAID BEFORE HE PRESSES PLAY (DR-0718; Darrell 2026-10-01: "it stops each
+  // time on the downloaded version?!"). Which voice will read is known before
+  // the press, so the panel says it then, not after the reading has stopped.
+  saved: 'This lesson is saved on this phone. It plays as one recording and keeps playing when you switch apps or turn the screen off, with or without a connection.',
+  phone: 'The voice picked is this phone’s own voice, and Android stops it when you switch apps. Pick the System voice to keep listening with the screen off.',
 };
-export function backgroundLine({ isReading, audioVoice } = {}) {
+export function backgroundLine({ isReading, audioVoice, usesNasVoice = true, saved = false } = {}) {
   if (isReading && audioVoice === 'device') return BACKGROUND_LINES.device;
-  if (isReading && audioVoice === 'audio') return BACKGROUND_LINES.audio;
+  if (isReading && audioVoice === 'audio') return saved ? BACKGROUND_LINES.saved : BACKGROUND_LINES.audio;
+  if (!usesNasVoice) return BACKGROUND_LINES.phone;
+  if (saved) return BACKGROUND_LINES.saved;
   return BACKGROUND_LINES.idle;
 }
 
-export default function TTSControl({ isOwner = false, view, churchView, booksView, onOpenLearn = null }) {
+// ONE READER ON THE SCREEN (DR-0718; lib/one-reader.js). Two mounted readers
+// drew two panels in the same corner, stacked: the "sections drawn two and
+// three times" in Darrell's screenshot. Every reader registers; only the
+// chosen one renders. The app-level reader (handed the view) outranks one a
+// surface mounts for itself.
+export default function TTSControl(props) {
+  const [id] = useState(newReaderId);
+  const priority = props && (props.view !== undefined || typeof props.onOpenLearn === 'function') ? 1 : 0;
+  const chosen = useSyncExternalStore(subscribeReaders, chosenReader, chosenReader);
+  useEffect(() => registerReader(id, priority), [id, priority]);
+  if (chosen !== null && chosen !== id) return null;
+  return <ReaderInstance {...props} />;
+}
+
+function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLearn = null }) {
   const [isOpen, setIsOpen] = useState(false);
   // Same switch as the in-lesson bar: one module store, never two states.
   const showWord = useShowTheWord();
@@ -203,11 +235,14 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // Kept on the device (DR-0659; optional in mocks).
     offline, saveForListening, usesNasVoice, liteVoice,
     audioVoice,
+    // The last reading's trip (DR-0738; optional in mocks).
+    lastTrip,
     // The OS skip buttons get the bar's paragraph step (optional in mocks).
     setSkipHandlers,
     setNotice,
     noticeAction,
     standInWhy,
+    myVoice,
   } = useReadAloud({ isOwner });
 
   // THE SCREEN STAYS ON WHILE IT READS (DR-0439; Darrell 2026-09-16: his phone
@@ -466,8 +501,10 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
       const t = getReadTarget();
       const w = pendingRead();
       if (!t || !w || t.owner !== w.owner) return;
+      if (isReadDoor(t)) return; // wait for the full lesson, never re-open a door (DR-0702)
+      const opts = w.opts || {};
       if (!takeRead(t.owner)) return;
-      if (readTargetRef.current) readTargetRef.current(t);
+      if (readTargetRef.current) readTargetRef.current(t, opts);
     };
     tryStart();
     const offWant = subscribeRead(tryStart);
@@ -761,22 +798,15 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // stacked above the read-aloud button so both thumbs find it in the same
   // corner. Rendered even on a device with no speech support — scrolling is
   // not a speech feature.
-  const [showTop, setShowTop] = useState(false);
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-    let raf = 0;
-    const onScroll = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-        setShowTop(window.scrollY > window.innerHeight * 1.25);
-      });
-    };
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => { window.removeEventListener('scroll', onScroll); if (raf) cancelAnimationFrame(raf); };
-  }, []);
-  const scrollTopBtn = showTop && !isOpen ? (
+  // The rule lives in lib/chrome-dock.js now, shared with the bottom bar's
+  // own Top (DR-0716), so the two can never disagree about "deep".
+  const showTop = useScrolledDeep();
+  // The bar's reader slot, or null on a surface with no bar.
+  const dockSlot = useDockSlot();
+  const docked = !!dockSlot;
+  // Docked, the bar carries Top itself (ChromeDock); this corner copy is for
+  // the surfaces with no bar.
+  const scrollTopBtn = showTop && !isOpen && !docked ? (
     <button
       type="button"
       onClick={() => { try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (_) { window.scrollTo(0, 0); } }}
@@ -868,7 +898,8 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // offlineNote is read, not watched: a note for this lesson is kept as is.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, target, usesNasVoice, liteVoice]);
-  if (!supported && !scrollTopBtn) return null;
+  // No early return when speech is unsupported: the text-size pair (DR-0724)
+  // still belongs on the screen of a device that cannot speak.
 
   const start = async () => {
     // OPEN WHAT IS CLOSED FIRST (Darrell 2026-08-10: "deeper doesn't get read at
@@ -976,8 +1007,23 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     deviceClipCache().evict().then((b) => setCacheUse(b));
   };
 
-  const readTargetNow = async (t, { continuing = false, startFraction = null, startSentence = null } = {}) => {
+  const readTargetNow = async (t, { continuing = false, startFraction = null, startSentence = null, resumePlace = null } = {}) => {
     if (!t) return;
+    // THE SPEAKER INSIDE AN OPEN LESSON (DR-0702; Darrell 2026-09-30: "the
+    // reader should be asking me to read it from the beginning because I
+    // pushed the speaker while inside the lesson... it only works after I hit
+    // play... it should be both"). A lesson open with its guide closed has not
+    // mounted its reading yet, so it registers a door. Opening it is exactly
+    // what the lesson's own Play does (guide open, then a want the reader
+    // answers when the full lesson registers); the audio session is claimed
+    // HERE, inside the tap, so the screen-off / background path (DR-0627,
+    // DR-0654) holds from the press, not from a frame later.
+    if (isReadDoor(t)) {
+      claimAudio(t.title || t.label);
+      const opts = startSentence != null ? { startSentence } : (resumePlace ? { resumePlace } : null);
+      try { t.open(opts); } catch (_) { /* a door that will not open reads nothing, and says nothing wrong */ }
+      return;
+    }
     // A target read is always a RUN: it keeps going to the next piece unless
     // the listener stops it.
     runRef.current = t;
@@ -1022,14 +1068,22 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
       }
       if (el) { await revealAllForReading(el); await settled(el); }
     }
-    const follow = el ? buildFollowMap(el) : null;
+    // A DOWNLOADED LESSON WITH NO CONNECTION (DR-0722) speaks the exact text
+    // whose voice pieces were saved (`preferText`), so every piece plays from
+    // the device; the page is still followed sentence by sentence below.
+    const follow = el && !t.preferText ? buildFollowMap(el) : null;
     if (follow && follow.text) {
       // BEGIN WHERE HE LEFT OFF. A CONTINUING piece is a different lesson the
       // run advanced into, so it starts at its top; only a read the listener
       // themselves started resumes. Unresolvable saved sentence -> the top,
       // never a guess.
+      const placed = resumePlace
+        ? findSentence(follow.segments.map((g) => (g && g.text) || ''), resumePlace)
+        : null;
       const at = startSentence != null
         ? Math.max(0, Math.min(follow.segments.length - 1, startSentence))
+        : placed
+          ? ((placed.how === 'exact' || placed.how === 'moved' || placed.how === 'index-only') ? placed.index : -1)
         : startFraction != null
           ? startIndexForFraction(startFraction, follow.segments.length)
           : (continuing ? -1 : savedStartIndex(follow.segments));
@@ -1164,6 +1218,21 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // bookmark is this reading's own (lib/reader-bookmarks.js); the paragraphs
   // come from the same follow map the paragraph steps use.
   const bookmarkNow = target ? getBookmark(target.owner) : null;
+  // RESUME IS OFFERED ONLY FOR A REAL PLACE (DR-0702). This reading's own
+  // bookmark first (the sentence the voice last reached); else, for a lesson,
+  // its saved place past the start (the sentence the reader's eye reached).
+  // Nothing saved, or saved at the very top, offers nothing: the primary
+  // button already starts at the beginning.
+  const resumeOffer = (() => {
+    if (!target) return null;
+    if (offersResume(bookmarkNow)) return { label: resumeLabel(bookmarkNow), opts: { startSentence: bookmarkNow.sentence } };
+    let p;
+    try { p = getPlaceFor(null, target.owner); } catch (_) { p = null; }
+    if (p && !p.done && p.sentence > 0) {
+      return { label: 'Resume where you left off', opts: { resumePlace: { sentence: p.sentence, sentenceKey: p.sentenceKey || '' } } };
+    }
+    return null;
+  })();
   const readingParagraphs = () => {
     const f = followRef.current;
     if (!isReading || !f || !f.follow || !f.follow.segments) return [];
@@ -1236,7 +1305,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // --- the floating reader ---------------------------------------------------
   const floatAvoid = () => {
     if (typeof document === 'undefined') return [];
-    return ['button[aria-label="Open feedback"]', '.church-give-floater'].map((sel) => {
+    return ['button[aria-label="Open feedback"]', '[data-testid="chrome-dock"]'].map((sel) => {
       const el = document.querySelector(sel);
       if (!el) return null;
       const b = el.getBoundingClientRect();
@@ -1309,7 +1378,30 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     />
   ) : null;
 
-  const fab = (
+  const fabLabel = notice ? `A message is waiting: ${notice} — open read-aloud controls` : isReading ? (isPaused ? 'Reading paused — open read-aloud controls' : 'Reading aloud — open read-aloud controls') : 'Open read-aloud controls';
+  // THE MARK ON THE BUTTON: a notice is waiting inside. One element for the
+  // docked and the corner button alike.
+  const fabMark = notice && !isReading ? (
+    <span aria-hidden="true" data-testid="read-aloud-notice-mark" className={`absolute bg-[#B85838] text-white -top-1 -right-1 px-1.5 py-1 text-[0.625rem] font-bold leading-none rounded-full border border-[#FAF8F4]`}>!</span>
+  ) : null;
+  const fabTitle = notice ? notice : isReading ? 'Reading aloud — tap for pause, speed and stop' : 'Read aloud';
+  // DOCKED (DR-0716): a square bar button in the text-size family, the
+  // speaker with "Read" under it. Filled while the Word is playing, so the
+  // state is still said; never dimmed, because a bar button covers nothing.
+  const fab = docked ? (
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          aria-label={fabLabel}
+          title={fabTitle}
+          data-testid="reader-dock-open"
+          className={isReading ? DOCK_BTN_ON : DOCK_BTN}
+        >
+          <span aria-hidden="true" className={DOCK_ICON}><UiIcon name="volume" /></span>
+          <span className={DOCK_LABEL}>Read</span>
+          {fabMark}
+        </button>
+  ) : (
         // .ts-chrome-region caps it so it does NOT grow with the text-size
         // control — chrome, not reading text (Pattern 2b/2d). Idle-reveal dims +
         // settles it when idle, springs it back on scroll/touch.
@@ -1323,8 +1415,8 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          aria-label={notice ? `A message is waiting: ${notice} — open read-aloud controls` : isReading ? (isPaused ? 'Reading paused — open read-aloud controls' : 'Reading aloud — open read-aloud controls') : 'Open read-aloud controls'}
-          title={notice ? notice : isReading ? 'Reading aloud — tap for pause, speed and stop' : 'Read aloud'}
+          aria-label={fabLabel}
+          title={fabTitle}
           className={`ts-chrome-region relative ${isReading ? 'bg-[#B85838]' : 'bg-[#1A1815]'} text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg hover:bg-[#B85838] flex items-center justify-center text-xl sm:text-2xl border-2 border-[#FAF8F4] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] transition-[opacity,transform] duration-500 hover:opacity-100 focus:opacity-100 ${(revealFab || isReading) ? 'opacity-100 translate-y-0' : 'opacity-40 translate-y-2'}`}
         >
           🔊
@@ -1332,9 +1424,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
               the mini-player, whose own ❚❚ / ▶ says the state. A ▶ badge on
               a PLAYING reader read as "press to play" (Darrell's Fold). */}
           {/* THE MARK ON THE BUTTON: a notice is waiting inside. */}
-          {notice && !isReading && (
-            <span aria-hidden="true" data-testid="read-aloud-notice-mark" className="absolute -top-1 -right-1 bg-[#B85838] text-white text-[0.625rem] font-bold leading-none px-1.5 py-1 rounded-full border border-[#FAF8F4]">!</span>
-          )}
+          {fabMark}
         </button>
   );
 
@@ -1352,10 +1442,121 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // WHICH VOICE, AND WHY, on the status line (Darrell 2026-09-23: "No
   // headaches!!!!"). A dark studio is not a message to dismiss; it is a
   // word beside Reading.
-  const standInNote = standInWhy === 'studio-offline'
-    ? ' · stand-in voice, the studio is offline'
-    : standInWhy === 'studio-unarmed' ? ' · stand-in voice until the studio is armed' : '';
+  // When the voice picked is the listener's OWN and a stand-in is reading in
+  // its place, the words say so: "not your voice" (DR-0721).
+  const standInNote = standInWords(standInWhy, { mine: !!(myVoice && myVoice.picked) });
   const statusLabel = (isReading ? (isPaused ? 'Paused' : 'Reading…') : 'Ready') + standInNote;
+
+  // Put back where the voice is (the page moved away while following). A
+  // pill over the words in the corner; a bar button when docked (DR-0716).
+  const backToVoice = isReading && userAway && followPrefs.follow ? (
+    <button type="button" onClick={showTheText} data-testid="reader-back-to-voice" className={docked ? DOCK_BTN : 'ts-chrome-region bg-white text-[#1A1815] border-2 border-[#1A1815] rounded-full shadow-lg px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]'}>
+      {docked ? (<><span aria-hidden="true" className={DOCK_ICON}>↧</span><span className={DOCK_LABEL}>To voice</span></>) : 'Back to the voice'}
+    </button>
+  ) : null;
+
+  const pillEl = (
+        /* THE READING PILL (DR-0265): while the voice is reading, the full card
+           would sit on top of the very words being read + highlighted — so it
+           collapses to this slim pill. Pause/resume, stop, and expand only;
+           everything else waits behind the ⌃.
+           EVERY SIZE INSIDE IS EM (Darrell 2026-09-15, Big Print on Lesson
+           127: the pill was huge). The pill's font-size is the capped chrome
+           size, but its buttons carried a 2.75rem min-height — a REM, which reads
+           the 2.75x root and escaped the cap: 44px tap floors became 121px.
+           2.75em is the same 44px at Normal and follows the cap above it. The
+           expanded panel's buttons had the same escape and the same fix. */
+        <div
+          className={docked ? 'flex flex-nowrap items-center gap-[0.375em]' : 'bg-white border-2 border-[#1A1815] shadow-lg px-[0.5em] py-[0.375em] flex flex-wrap justify-end items-center gap-[0.375em]'}
+          // KEPT ON THE SCREEN (DR-0659): at 412 px and A+++ the pill measured
+          // 462 px and ran 82 px off the left edge. It wraps inside the screen
+          // instead. A floating control's clamp to the viewport, not a
+          // surface width cap (the consistency guard's max-w rule).
+          // Docked (DR-0716) it is one line in the bottom bar (the bar is not
+          // zoomed, so the same capped em size holds), and scrolls sideways
+          // inside the bar on the narrowest phone.
+          style={docked ? { fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' } : { fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))', maxWidth: 'calc(100vw - 2rem)' }}
+          role="region"
+          aria-label="Reading controls (minimized)"
+        >
+          <span className="text-[0.6875em] uppercase tracking-wider text-[#B85838] font-semibold" aria-live="polite">{isPaused ? 'Paused' : 'Reading…'}{runInfo ? ' · keeps going' : ''}</span>
+          {/* THE MARK ON THE PILL: a notice is waiting in the panel. Tapping
+              it expands the panel where the words are; nothing floats. */}
+          {notice && (
+            <button type="button" onClick={() => setMinimized(false)} data-testid="read-aloud-notice-mark" aria-label={`A message is waiting: ${notice}`} title={notice} className="px-[0.5em] py-[0.375em] min-h-[2.75em] text-[0.75em] font-bold border-2 border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">!</button>
+          )}
+          {/* The level, one tap wide, on the pill too (DR-0426): the pill is
+              what a listener sees for the whole reading. */}
+          {target && target.setLevel && Array.isArray(target.levels) && target.levels.length > 0 && (
+            <select aria-label="Who is learning? Switch the level — the reading keeps its place" value={target.level || ''} onChange={(e) => pickLevel(e.target.value)}
+              className="min-h-[2.75em] text-[0.6875em] uppercase tracking-wider border-2 border-[#E8E4DC] bg-white text-[#1A1815] px-[0.25em] focus:outline focus:outline-2 focus:outline-[#B85838]" data-testid="reader-level-select">
+              {target.levels.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+            </select>
+          )}
+          {canJump && (
+            <>
+              <button type="button" onClick={() => jumpParagraph(-1)} aria-label="Back — re-listen this paragraph; tap again for the one before" title="Re-listen this paragraph (again = the one before)" className="px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
+                ↩¶
+              </button>
+              <button type="button" onClick={() => jumpParagraph(1)} aria-label="Forward — skip to the next paragraph" title="Skip to the next paragraph" className="px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
+                ↪¶
+              </button>
+            </>
+          )}
+          <button type="button" onClick={isPaused ? resume : pause} className="px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
+            {isPaused ? '▶' : '⏸'}
+          </button>
+          <button type="button" onClick={stopAll} aria-label="Stop reading" className="px-[0.625em] py-[0.375em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
+            ⏹
+          </button>
+          <button type="button" onClick={() => setMinimized(false)} aria-label="Expand reading controls" className="px-[0.5em] py-[0.375em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
+            ⌃
+          </button>
+          {/* Put the pill away without silencing the Word — the button it
+              collapses into keeps reading and keeps Stop one tap away. */}
+          <button type="button" onClick={close} aria-label="Hide reading controls — keeps reading" className="px-[0.5em] py-[0.375em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
+            ×
+          </button>
+        </div>
+  );
+
+  const miniBarEl = (
+        /* THE MINI-PLAYER (DR-0633; "It is like a radio in the background").
+           On every tab while the Word is playing: show the text, back a
+           paragraph, play / pause, forward a paragraph, and the full panel.
+           Icon-first so it fits at 320 px without reaching the Feedback
+           button on the left or the Give button above. */
+        <div data-testid="reader-mini-bar" role="group" aria-label="Now reading" className={docked ? 'flex items-center gap-[4px]' : 'ts-chrome-region flex items-center gap-[0.25rem] bg-white border-2 border-[#1A1815] rounded-full shadow-lg p-[0.125rem] pl-[0.25rem]'}>
+          {/* DOCKED (DR-0716): the same five controls as square bar buttons
+              in the text-size family, a word under each icon, 44px floors. */}
+          {/* FOLLOW, AS A WORD AND A FILL (DR-0659). Three states, each said:
+              "Following" (filled, pressed) — the page keeps the spoken
+              sentence in view; "Follow" (outlined) — the sentence is lit but
+              the page stays put, tap to follow again; "Text" — the words are
+              on another page, tap to open them. The orange ring is only the
+              focus ring (a remote's D-pad needs it), never the state. */}
+          <button type="button" onClick={onFollowButton} data-testid="reader-show-text" data-state={!textHere ? 'elsewhere' : following ? 'following' : 'not-following'}
+            aria-pressed={textHere ? following : undefined}
+            aria-label={!textHere ? 'Show the text being read' : following ? 'Following the voice — tap to stop the page moving' : 'Not following — tap to follow the voice'}
+            title={!textHere ? 'Show the text being read' : following ? 'Following the voice' : 'Follow the voice'}
+            className={docked ? (textHere && following ? DOCK_BTN_ON : DOCK_BTN) : `h-10 min-w-10 px-2 rounded-full flex items-center justify-center gap-1 text-xs uppercase tracking-wider font-semibold focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${textHere && following ? 'bg-[#1A1815] text-white hover:bg-[#B85838]' : 'text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}>
+            {docked ? (
+              <><span aria-hidden="true" className={DOCK_ICON}><UiIcon name="book" /></span><span className={DOCK_LABEL}>{!textHere ? 'Text' : following ? 'Following' : 'Follow'}</span></>
+            ) : (
+              <><UiIcon name="book" /><span className="hidden min-[360px]:inline">{!textHere ? 'Text' : following ? 'Following' : 'Follow'}</span></>
+            )}
+          </button>
+          {canJump && (
+            <button type="button" onClick={() => jumpParagraph(-1)} data-testid="reader-mini-back" aria-label="Back a paragraph" title="Back a paragraph" className={docked ? DOCK_BTN : 'h-10 w-10 rounded-full flex items-center justify-center text-[#1A1815] text-sm font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]'}>{docked ? <><span aria-hidden="true" className={DOCK_ICON}>↩¶</span><span className={DOCK_LABEL}>Back</span></> : '↩¶'}</button>
+          )}
+          <button type="button" onClick={isPaused ? resume : pause} data-testid="reader-mini-playpause" aria-label={isPaused ? 'Play' : 'Pause'} title={isPaused ? 'Play' : 'Pause'} className={docked ? DOCK_BTN : 'h-10 w-10 rounded-full flex items-center justify-center bg-[#1A1815] text-white text-sm font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]'}>{docked ? <><span aria-hidden="true" className={DOCK_ICON}>{isPaused ? '▶' : '❚❚'}</span><span className={DOCK_LABEL}>{isPaused ? 'Play' : 'Pause'}</span></> : (isPaused ? '▶' : '❚❚')}</button>
+          {canJump && (
+            <button type="button" onClick={() => jumpParagraph(1)} data-testid="reader-mini-forward" aria-label="Forward a paragraph" title="Forward a paragraph" className={docked ? DOCK_BTN : 'h-10 w-10 rounded-full flex items-center justify-center text-[#1A1815] text-sm font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]'}>{docked ? <><span aria-hidden="true" className={DOCK_ICON}>↪¶</span><span className={DOCK_LABEL}>Next</span></> : '↪¶'}</button>
+          )}
+          <button type="button" onClick={popOut} data-testid="reader-mini-pop-out" aria-label="Pop out — a reader window you can move" title="Pop out" className={docked ? `${DOCK_BTN} max-[399.98px]:!hidden` : 'hidden min-[400px]:flex h-10 w-10 rounded-full items-center justify-center text-[#1A1815] text-base font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]'}>{docked ? <><span aria-hidden="true" className={DOCK_ICON}>⧉</span><span className={DOCK_LABEL}>Window</span></> : '⧉'}</button>
+          {fab}
+        </div>
+  );
 
   return (
     // THE READER MUST OUTRANK A FULL-SCREEN PRESENTING SURFACE.
@@ -1407,71 +1608,10 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
         </div>
       )}
       {scrollTopBtn}
-      {isReading && userAway && followPrefs.follow && (
-        <button type="button" onClick={showTheText} data-testid="reader-back-to-voice" className="ts-chrome-region bg-white text-[#1A1815] border-2 border-[#1A1815] rounded-full shadow-lg px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Back to the voice</button>
-      )}
+      {!docked && backToVoice}
       {floatEl}
-      {supported && !floatState.floating && (isOpen && minimized && isReading ? (
-        /* THE READING PILL (DR-0265): while the voice is reading, the full card
-           would sit on top of the very words being read + highlighted — so it
-           collapses to this slim pill. Pause/resume, stop, and expand only;
-           everything else waits behind the ⌃.
-           EVERY SIZE INSIDE IS EM (Darrell 2026-09-15, Big Print on Lesson
-           127: the pill was huge). The pill's font-size is the capped chrome
-           size, but its buttons carried a 2.75rem min-height — a REM, which reads
-           the 2.75x root and escaped the cap: 44px tap floors became 121px.
-           2.75em is the same 44px at Normal and follows the cap above it. The
-           expanded panel's buttons had the same escape and the same fix. */
-        <div
-          className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.5em] py-[0.375em] flex flex-wrap justify-end items-center gap-[0.375em]"
-          // KEPT ON THE SCREEN (DR-0659): at 412 px and A+++ the pill measured
-          // 462 px and ran 82 px off the left edge. It wraps inside the screen
-          // instead. A floating control's clamp to the viewport, not a
-          // surface width cap (the consistency guard's max-w rule).
-          style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))', maxWidth: 'calc(100vw - 2rem)' }}
-          role="region"
-          aria-label="Reading controls (minimized)"
-        >
-          <span className="text-[0.6875em] uppercase tracking-wider text-[#B85838] font-semibold" aria-live="polite">{isPaused ? 'Paused' : 'Reading…'}{runInfo ? ' · keeps going' : ''}</span>
-          {/* THE MARK ON THE PILL: a notice is waiting in the panel. Tapping
-              it expands the panel where the words are; nothing floats. */}
-          {notice && (
-            <button type="button" onClick={() => setMinimized(false)} data-testid="read-aloud-notice-mark" aria-label={`A message is waiting: ${notice}`} title={notice} className="px-[0.5em] py-[0.375em] min-h-[2.75em] text-[0.75em] font-bold border-2 border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">!</button>
-          )}
-          {/* The level, one tap wide, on the pill too (DR-0426): the pill is
-              what a listener sees for the whole reading. */}
-          {target && target.setLevel && Array.isArray(target.levels) && target.levels.length > 0 && (
-            <select aria-label="Who is learning? Switch the level — the reading keeps its place" value={target.level || ''} onChange={(e) => pickLevel(e.target.value)}
-              className="min-h-[2.75em] text-[0.6875em] uppercase tracking-wider border-2 border-[#E8E4DC] bg-white text-[#1A1815] px-[0.25em] focus:outline focus:outline-2 focus:outline-[#B85838]" data-testid="reader-level-select">
-              {target.levels.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
-            </select>
-          )}
-          {canJump && (
-            <>
-              <button type="button" onClick={() => jumpParagraph(-1)} aria-label="Back — re-listen this paragraph; tap again for the one before" title="Re-listen this paragraph (again = the one before)" className="px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
-                ↩¶
-              </button>
-              <button type="button" onClick={() => jumpParagraph(1)} aria-label="Forward — skip to the next paragraph" title="Skip to the next paragraph" className="px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
-                ↪¶
-              </button>
-            </>
-          )}
-          <button type="button" onClick={isPaused ? resume : pause} className="px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
-            {isPaused ? '▶' : '⏸'}
-          </button>
-          <button type="button" onClick={stopAll} aria-label="Stop reading" className="px-[0.625em] py-[0.375em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
-            ⏹
-          </button>
-          <button type="button" onClick={() => setMinimized(false)} aria-label="Expand reading controls" className="px-[0.5em] py-[0.375em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
-            ⌃
-          </button>
-          {/* Put the pill away without silencing the Word — the button it
-              collapses into keeps reading and keeps Stop one tap away. */}
-          <button type="button" onClick={close} aria-label="Hide reading controls — keeps reading" className="px-[0.5em] py-[0.375em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
-            ×
-          </button>
-        </div>
-      ) : isOpen ? (
+      {supported && !floatState.floating && (isOpen && minimized && isReading ? (docked ? null : pillEl)
+      : isOpen ? (
         /* THE PANEL IS CHROME, NOT READING TEXT (Pattern 2b; Darrell 2026-07-27:
            "The sizes of text makes the talk section not useful" — at A+++/A44
            the rem-based labels ballooned inside the fixed 260px box: buttons
@@ -1544,6 +1684,30 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
               {BACKGROUND_LINES.device}
             </div>
           )}
+          {/* WHO IS LEARNING — the level, switchable from the reader (DR-0426).
+              Same row the lesson shows at every stage; a pick mid-read keeps
+              the place and resumes in the new words.
+              FIRST IN THE PANEL (DR-0717). Darrell 2026-10-01: "In the
+              reader.... at the beginning before the lesson starts". It sat
+              below Text size, Colors and Follow along, under everything a
+              reader scrolls past; it now comes before Keep screen on and the
+              Read buttons, so the level is picked and THEN the reading starts. */}
+          {target && target.setLevel && Array.isArray(target.levels) && target.levels.length > 0 && (
+            <div className="mb-[0.5em]" data-testid="reader-level-control">
+              <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Who is learning?{isReading ? ' — switch and it keeps your place' : ' — sets the words and the pace'}</div>
+              <div className="flex flex-wrap gap-[0.25em]" role="radiogroup" aria-label="Who is learning? Sets the words and the pace">
+                {target.levels.map((b) => {
+                  const on = b.id === target.level;
+                  return (
+                    <button key={b.id} type="button" role="radio" aria-checked={on} onClick={() => pickLevel(b.id)}
+                      className={`px-[0.5em] py-[0.5em] min-h-[2.25em] text-[0.625em] uppercase tracking-wider border focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>
+                      {b.label}{b.range ? <span className="opacity-70"> {b.range}</span> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {/* THE SCREEN STAYS ON WHILE IT READS (DR-0439) — the per-device switch,
               and the honest line where the browser has no wake lock. */}
           <div className="flex items-center justify-between gap-[0.5em] mb-[0.75em]" data-testid="screen-awake-row">
@@ -1557,16 +1721,19 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
               <>
                 {/* One full piece, start to finish — primary when a surface has
                     registered its reading (the open lesson). Never the page mix. */}
+                {/* FROM THE BEGINNING — the first choice, always (DR-0702):
+                    "start to finish" means the top. Where the reader left off
+                    is its own button just below, and only when there is one. */}
                 {target && (
-                  <button type="button" onClick={() => readTargetNow(target)} className="col-span-3 bg-[#5A6E3D] text-white px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read {target.label} — start to finish</button>
+                  <button type="button" data-testid="reader-read-target" onClick={() => readTargetNow(target, { startSentence: 0 })} className="col-span-3 bg-[#5A6E3D] text-white px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read {target.label} — start to finish</button>
                 )}
                 {/* RESUME — where this reading was left, said in paragraphs. */}
-                {target && offersResume(bookmarkNow) && (
-                  <button type="button" data-testid="reader-resume" onClick={() => readTargetNow(target, { startSentence: bookmarkNow.sentence })} className="col-span-3 border-2 border-[#5A6E3D] text-[#1A1815] px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ {resumeLabel(bookmarkNow)}</button>
+                {target && resumeOffer && (
+                  <button type="button" data-testid="reader-resume" onClick={() => readTargetNow(target, resumeOffer.opts)} className="col-span-3 border-2 border-[#5A6E3D] text-[#1A1815] px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ {resumeOffer.label}</button>
                 )}
                 {/* START AT ANY PARAGRAPH — listed on request, because listing
                     means laying the whole piece out first. */}
-                {target && (pickList && pickList.owner === target.owner && pickList.labels.length ? (
+                {target && !isReadDoor(target) && (pickList && pickList.owner === target.owner && pickList.labels.length ? (
                   <label className="col-span-3 block">
                     <span className="block text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Start at</span>
                     <select data-testid="reader-start-at" aria-label="Start reading at this paragraph" className={selectClass} value="" onChange={(e) => { const n = Number(e.target.value); if (Number.isFinite(n)) readTargetNow(target, { startSentence: n }); }}>
@@ -1742,26 +1909,6 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
             );
           })()}
 
-          {/* WHO IS LEARNING — the level, switchable from the reader (DR-0426).
-              Same row the lesson shows at every stage; a pick mid-read keeps
-              the place and resumes in the new words. */}
-          {target && target.setLevel && Array.isArray(target.levels) && target.levels.length > 0 && (
-            <div className="mb-[0.5em]" data-testid="reader-level-control">
-              <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Who is learning?{isReading ? ' — switch and it keeps your place' : ' — sets the words and the pace'}</div>
-              <div className="flex flex-wrap gap-[0.25em]" role="radiogroup" aria-label="Who is learning? Sets the words and the pace">
-                {target.levels.map((b) => {
-                  const on = b.id === target.level;
-                  return (
-                    <button key={b.id} type="button" role="radio" aria-checked={on} onClick={() => pickLevel(b.id)}
-                      className={`px-[0.5em] py-[0.5em] min-h-[2.25em] text-[0.625em] uppercase tracking-wider border focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>
-                      {b.label}{b.range ? <span className="opacity-70"> {b.range}</span> : null}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {/* SHOW / HIDE THE WORD LIVES WITH THE PLAY CONTROLS (Darrell
               2026-09-14, from the lesson with this panel open: "I want that bar
               to be where the play button is or have the same impact").
@@ -1822,6 +1969,17 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
                   </optgroup>
                 ))}
               </select>
+              {/* MY VOICE, SAID BEFORE PLAY (DR-0721; Darrell 2026-10-01: "my
+                  recorded voice still will not work as my reader voice… why?").
+                  Whether his own voice can read now, and if not, why, in one
+                  sentence under the list he picks it from. */}
+              {myVoice && (myVoice.picked || myVoice.mine) && (
+                <p data-testid="my-voice-status" data-status={myVoice.status} role="status"
+                  className={`mt-[0.375em] text-[0.5625em] leading-snug ${myVoice.ready ? 'text-[#5A6E3D]' : 'text-[#1A1815]'}`}
+                  style={{ fontFamily: '"Fraunces", serif' }}>
+                  {myVoice.picked ? myVoice.line : `${myVoice.label} is in this list: pick it to hear lessons in your recorded voice.`}
+                </p>
+              )}
             </div>
           ) : null}
 
@@ -1829,40 +1987,38 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
             {target ? `Read ${target.label} opens every part of that one piece and reads it start to finish — nothing else on the page mixed in. ` : ''}Read this page opens what is collapsed on it and recites it from the top; Start where I tap begins at the word you touch; Talk about this has Ari explain what is on it — all in your chosen voice{currentItem && currentItem.ai ? ' (AI-generated)' : ''}, on every page.
           </p>
           <p className="text-[0.5625em] text-[#5A5751] leading-snug mt-[0.375em]" style={{ fontFamily: '"Fraunces", serif' }}>
-            Only <strong>Stop</strong> stops the voice. Close puts this panel away and keeps reading. <span data-testid="reader-background-line">{backgroundLine({ isReading, audioVoice })}</span>
+            Only <strong>Stop</strong> stops the voice. Close puts this panel away and keeps reading. <span data-testid="reader-background-line">{backgroundLine({ isReading, audioVoice, usesNasVoice, saved: !!(target && offlineNote && offlineNote.owner === target.owner && offlineNote.total > 0 && offlineNote.saved === offlineNote.total && !offlineNote.running) })}</span>
           </p>
+          {/* WHAT THE LAST READING DID (DR-0738): one line from the device's
+              own trip log, so "it stopped" comes with which voice, which
+              sentence, the dark, and the reason — a screenshot is a report. */}
+          {!isReading && typeof lastTrip === 'function' && lastTrip() ? (
+            <p className="text-[0.5625em] text-[#5A5751] leading-snug mt-[0.375em]" data-testid="reader-last-trip" style={{ fontFamily: '"Fraunces", serif' }}>
+              {tripSummary(lastTrip())}
+            </p>
+          ) : null}
         </div>
-      ) : isReading ? (
-        /* THE MINI-PLAYER (DR-0633; "It is like a radio in the background").
-           On every tab while the Word is playing: show the text, back a
-           paragraph, play / pause, forward a paragraph, and the full panel.
-           Icon-first so it fits at 320 px without reaching the Feedback
-           button on the left or the Give button above. */
-        <div data-testid="reader-mini-bar" role="group" aria-label="Now reading" className="ts-chrome-region flex items-center gap-[0.25rem] bg-white border-2 border-[#1A1815] rounded-full shadow-lg p-[0.125rem] pl-[0.25rem]">
-          {/* FOLLOW, AS A WORD AND A FILL (DR-0659). Three states, each said:
-              "Following" (filled, pressed) — the page keeps the spoken
-              sentence in view; "Follow" (outlined) — the sentence is lit but
-              the page stays put, tap to follow again; "Text" — the words are
-              on another page, tap to open them. The orange ring is only the
-              focus ring (a remote's D-pad needs it), never the state. */}
-          <button type="button" onClick={onFollowButton} data-testid="reader-show-text" data-state={!textHere ? 'elsewhere' : following ? 'following' : 'not-following'}
-            aria-pressed={textHere ? following : undefined}
-            aria-label={!textHere ? 'Show the text being read' : following ? 'Following the voice — tap to stop the page moving' : 'Not following — tap to follow the voice'}
-            title={!textHere ? 'Show the text being read' : following ? 'Following the voice' : 'Follow the voice'}
-            className={`h-10 min-w-10 px-2 rounded-full flex items-center justify-center gap-1 text-xs uppercase tracking-wider font-semibold focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${textHere && following ? 'bg-[#1A1815] text-white hover:bg-[#B85838]' : 'text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}>
-            <UiIcon name="book" /><span className="hidden min-[360px]:inline">{!textHere ? 'Text' : following ? 'Following' : 'Follow'}</span>
-          </button>
-          {canJump && (
-            <button type="button" onClick={() => jumpParagraph(-1)} data-testid="reader-mini-back" aria-label="Back a paragraph" title="Back a paragraph" className="h-10 w-10 rounded-full flex items-center justify-center text-[#1A1815] text-sm font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">↩¶</button>
-          )}
-          <button type="button" onClick={isPaused ? resume : pause} data-testid="reader-mini-playpause" aria-label={isPaused ? 'Play' : 'Pause'} title={isPaused ? 'Play' : 'Pause'} className="h-10 w-10 rounded-full flex items-center justify-center bg-[#1A1815] text-white text-sm font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">{isPaused ? '▶' : '❚❚'}</button>
-          {canJump && (
-            <button type="button" onClick={() => jumpParagraph(1)} data-testid="reader-mini-forward" aria-label="Forward a paragraph" title="Forward a paragraph" className="h-10 w-10 rounded-full flex items-center justify-center text-[#1A1815] text-sm font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">↪¶</button>
-          )}
-          <button type="button" onClick={popOut} data-testid="reader-mini-pop-out" aria-label="Pop out — a reader window you can move" title="Pop out" className="hidden min-[400px]:flex h-10 w-10 rounded-full items-center justify-center text-[#1A1815] text-base font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">⧉</button>
+      ) : docked ? null : isReading ? miniBarEl : (
+        <div className="flex items-end gap-2" data-testid="reader-idle-row">
+          <TextSizeQuick dim={!revealFab} />
           {fab}
         </div>
-      ) : fab)}
+      ))}
+      {/* A- / A+ with the reader closed on a device that cannot speak (DR-0724).
+          In the bottom bar (DR-0716) the bar carries text size itself. */}
+      {!supported && !isOpen && !docked && <TextSizeQuick dim={!revealFab} />}
+      {/* THE BAR TAKES THE READER (DR-0716): the button, the mini-bar and
+          the pill render in the bottom bar's slot, where nothing covers
+          the Word. The open panel above stays a panel. The wrapper keeps
+          .tts-controls so the reading engine still counts it as the
+          reader's own chrome (never read aloud, never a tap-to-start). */}
+      {docked && createPortal(
+        <div className="tts-controls tts-docked flex items-center gap-[4px]" data-testid="reader-docked">
+          {backToVoice}
+          {supported && !floatState.floating && (isOpen && minimized && isReading ? pillEl : isOpen ? null : isReading ? miniBarEl : fab)}
+        </div>,
+        dockSlot,
+      )}
     </div>
   );
 }

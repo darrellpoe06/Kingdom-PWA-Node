@@ -67,6 +67,8 @@ import urllib.parse
 import urllib.request
 import uuid
 
+from speaker_turns import UNMARKED_HEADER  # noqa: E402  (stdlib-only module beside this one)
+
 # WHICH DATABASE IS LIVE (DR-0614): the app follows REPOINT-ARMED to the NAS's
 # own Supabase; so must this job. One resolver, shared by every NAS writer.
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -89,6 +91,9 @@ MAX_ITEMS_PER_RUN = int(os.environ.get("LESSON_VOICE_MAX_ITEMS", "3"))
 MAX_RUN_SECONDS = int(os.environ.get("LESSON_VOICE_MAX_SECONDS", "1500"))
 LOCK_MAX_AGE_SECONDS = int(os.environ.get("LESSON_VOICE_LOCK_MAX_AGE", "3600"))
 MAX_ATTEMPTS = int(os.environ.get("LESSON_VOICE_MAX_ATTEMPTS", "3"))
+# Seconds a pass must still have to mark speakers after the words are done; a
+# pass with less keeps the words and marks the speakers on the next pass.
+SPEAKERS_MIN_SECONDS = int(os.environ.get("LESSON_VOICE_SPEAKERS_MIN_SECONDS", "150"))
 
 
 # --- pure helpers --------------------------------------------------------------
@@ -175,11 +180,26 @@ def mmss(seconds):
     return ""
 
 
-def transcript_body(text, rung, model, seconds):
+def transcript_body(text, rung, model, seconds, speakers=None):
+    """The transcript row's words. WHO SPOKE (DR-0712): with `speakers` (from
+    speaker_turns.speaker_transcript) every line is 'LABEL: words' under a
+    Speakers header; without, the header says the speakers are not marked and
+    the words are exactly what Whisper heard. "the words", never "his words":
+    a recorded class has more than one voice."""
     dur = mmss(seconds)
     dur = f", {dur}" if dur else ""
-    return (f"Lesson. A spoken lesson, transcribed by Whisper ({model}) on {rung}{dur}. "
-            f"These are his words as Whisper heard them.\n\n{text.strip()}")
+    head = (f"Lesson. A spoken lesson, transcribed by Whisper ({model}) on {rung}{dur}. "
+            f"These are the words as Whisper heard them.")
+    if speakers:
+        return f"{head}\n{speakers['header']}\n\n{speakers['text'].strip()}"
+    return f"{head}\n{UNMARKED_HEADER}\n\n{text.strip()}"
+
+
+def speaker_tags(speakers):
+    """speakers:marked + one tag per known voice heard, or speakers:unmarked."""
+    if not speakers:
+        return ["speakers:unmarked"]
+    return ["speakers:marked"] + [f"voice:{k}" for k in speakers.get("known") or []]
 
 
 def note_transcript_body(text, rung, model, seconds):
@@ -282,11 +302,13 @@ def clear_partial(data_dir, rid):
 
 
 def merge_partial(prev, result):
-    """Join the words kept so far with this pass's words (prev may be None)."""
+    """Join the words kept so far with this pass's words (prev may be None);
+    the timed segments join too, so the speakers can be marked on the whole."""
     before = (prev or {}).get("text", "").strip()
     now = (result or {}).get("text", "").strip()
     text = (before + "\n" + now).strip() if before and now else (before or now)
-    return {**(result or {}), "text": text}
+    segments = list((prev or {}).get("segments") or []) + list((result or {}).get("segments") or [])
+    return {**(result or {}), "text": text, "segments": segments}
 
 
 # --- the run -------------------------------------------------------------------
@@ -350,14 +372,19 @@ def run_once(io, data_dir=DATA, env=None, clock=time.monotonic):
                 local = io.download(path)
                 prev = read_partial(data_dir, rid)
                 deadline = started + MAX_RUN_SECONDS - 20
-                result = io.transcribe_ladder(local, resume_at=float((prev or {}).get("resume_at", 0.0)), deadline=deadline) or {}
-                if (result.get("resumed_from") or 0) > 0:
-                    result = merge_partial(prev, result)
+                if (prev or {}).get("awaiting_speakers"):
+                    # The words were finished on an earlier pass; only the speakers are owed.
+                    result = {**prev, "done": True}
+                else:
+                    result = io.transcribe_ladder(local, resume_at=float((prev or {}).get("resume_at", 0.0)), deadline=deadline) or {}
+                    if (result.get("resumed_from") or 0) > 0:
+                        result = merge_partial(prev, result)
                 if result.get("done") is False:
                     # The CPU rung reached the pass's deadline mid-recording:
                     # keep the words so far and the second reached.
                     write_partial(data_dir, rid, {"text": result.get("text", ""), "resume_at": result.get("resume_at", 0.0),
-                                                  "model": result.get("model"), "rung": result.get("rung")})
+                                                  "model": result.get("model"), "rung": result.get("rung"),
+                                                  "segments": result.get("segments") or []})
                     report["in_progress"].append({"id": rid, "resume_at": result.get("resume_at"), "rung": result.get("rung")})
                     report["stopped"] = "time-budget"
                     break
@@ -366,6 +393,21 @@ def run_once(io, data_dir=DATA, env=None, clock=time.monotonic):
                     raise RuntimeError("empty-transcript: every Whisper rung returned no words")
                 rung, model, secs = result.get("rung", "?"), result.get("model", "?"), result.get("duration_sec")
                 rung_tag = f"whisper:{result.get('rung_key', 'unknown')}"
+                # WHO SPOKE (DR-0712): marked on our own machine when armed.
+                speakers = None
+                mark = getattr(io, "speaker_turns", None)
+                if mark is not None and getattr(io, "speakers_armed", lambda: False)():
+                    if clock() - started > MAX_RUN_SECONDS - SPEAKERS_MIN_SECONDS:
+                        write_partial(data_dir, rid, {**{k: result.get(k) for k in ("text", "model", "rung", "rung_key", "duration_sec")},
+                                                      "segments": result.get("segments") or [], "awaiting_speakers": True})
+                        report["in_progress"].append({"id": rid, "awaiting": "speakers", "rung": rung})
+                        report["stopped"] = "time-budget"
+                        break
+                    try:
+                        speakers = mark(local, result.get("segments") or [], rid)
+                    except Exception as e:  # the words are safe; unmarked is said, never hidden
+                        report["skipped"].append({"id": rid, "why": f"speakers-not-marked: {e}"})
+                        speakers = None
                 if kind == "note":
                     # The words go to the owner's own folder; the inbox row is the proof.
                     nid = note_id_of(row.get("tags"))
@@ -381,8 +423,8 @@ def run_once(io, data_dir=DATA, env=None, clock=time.monotonic):
                     io.insert_row({
                         "instance_id": row["instance_id"],
                         "created_by": row["created_by"],
-                        "body": transcript_body(text, rung, model, secs),
-                        "tags": ["lesson", "voice-transcript", f"of:{rid}", rung_tag] + naming_tags_of(row.get("tags")),
+                        "body": transcript_body(text, rung, model, secs, speakers),
+                        "tags": ["lesson", "voice-transcript", f"of:{rid}", rung_tag] + speaker_tags(speakers) + naming_tags_of(row.get("tags")),
                         "source": "lesson-voice-transcribe",
                     })
                 io.add_tags(row, ["voice-transcribed"])
@@ -692,6 +734,35 @@ class SupabaseIO:
     def delete_audio(self, path):
         self._req("DELETE", f"/storage/v1/object/{BUCKET}/" + urllib.parse.quote(path))
 
+    def speakers_armed(self):
+        import diarize_local
+        return diarize_local.speakers_enabled(self.data_dir, self.env)
+
+    def speaker_turns(self, local, segments, rid):
+        """Mark who spoke (DR-0712). The timed segments are kept on the NAS
+        (DATA/segments/<id>.json) so name_voice.py can show a voice's words."""
+        import diarize_local
+        import speaker_turns as st
+        d = os.path.join(self.data_dir, "segments")
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, f"{rid}.json"), "w", encoding="utf-8") as f:
+            json.dump(segments, f)
+        diarized = diarize_local.diarize(local, self.data_dir)
+        prints, names = self.consented_voiceprints()
+        return st.speaker_transcript(segments, diarized, prints, names)
+
+    def consented_voiceprints(self):
+        """Only the prints whose owner's consent stands at this moment (DR-0720),
+        read live from voice_enrollments. A failed read keeps only the two
+        word-attributed voices (BG, DP): it fails closed, never open."""
+        import speaker_turns as st
+        import voice_enroll as ve
+        try:
+            rows = json.loads(self._req("GET", "/rest/v1/voice_enrollments?select=user_id,label,display_name,enrolled_at&limit=500").decode("utf-8"))
+        except Exception:
+            rows = []
+        return ve.consented_prints(st.load_voiceprint_records(self.data_dir), rows)
+
 
 def post_whisper(url, local, timeout=900):
     with open(local, "rb") as f:
@@ -717,17 +788,19 @@ def local_whisper(local, model_size, resume_at=0.0, deadline=None, now=time.mono
 
 def consume_segments(segments, info, model_size, resume_at=0.0, deadline=None, now=time.monotonic):
     """Pure over the segment iterator (the tests feed it fakes)."""
-    words, reached = [], float(resume_at or 0.0)
+    words, timed, reached = [], [], float(resume_at or 0.0)
     for s in segments:
         t = (getattr(s, "text", "") or "").strip()
         if t:
             words.append(t)
+            timed.append({"start": round(float(getattr(s, "start", 0) or 0), 2),
+                          "end": round(float(getattr(s, "end", 0) or 0), 2), "text": t})
         reached = float(getattr(s, "end", reached) or reached)
         if deadline is not None and now() >= deadline:
             return {"text": "\n".join(words), "model": model_size, "duration_sec": round(getattr(info, "duration", 0) or 0, 2),
-                    "done": False, "resume_at": reached, "resumed_from": float(resume_at or 0.0)}
+                    "done": False, "resume_at": reached, "resumed_from": float(resume_at or 0.0), "segments": timed}
     return {"text": "\n".join(words), "model": model_size, "duration_sec": round(getattr(info, "duration", 0) or 0, 2),
-            "done": True, "resume_at": reached, "resumed_from": float(resume_at or 0.0)}
+            "done": True, "resume_at": reached, "resumed_from": float(resume_at or 0.0), "segments": timed}
 
 
 def health_ok(url, timeout=6):

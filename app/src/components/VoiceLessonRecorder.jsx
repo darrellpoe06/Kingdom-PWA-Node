@@ -27,6 +27,7 @@ import {
 import { formatClock, MAX_LESSON_SECONDS } from '../lib/lesson-voice.js';
 import { confirmThen } from '../lib/confirm-action.js';
 import { NOTE_RECORDING_AUDIO, NOTE_RECORDING_BITRATE } from '../lib/recorded-note.js';
+import AddMyVoiceLink from './AddMyVoiceLink.jsx';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const BTN = 'text-[0.75rem] uppercase tracking-wider px-3 py-2 min-h-[44px] border focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-40';
@@ -85,6 +86,8 @@ export default function VoiceLessonRecorder({
       <p className="text-[0.75rem] text-[#1A1815]" style={SERIF}>
         Speak the lesson instead of typing it. When you stop, tap Send below. Whisper on our own machines writes the words, and they come back to you under Your lessons.
       </p>
+      {/* DR-0720: a class recording names each voice its owner added. */}
+      <AddMyVoiceLink />
       <div className="flex items-center gap-2 flex-wrap">
         {!rec.recording && (
           <button type="button" data-testid="voice-lesson-record" onClick={begin} className={`${BTN} border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white`}>

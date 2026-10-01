@@ -45,6 +45,12 @@ def q(book, c, n, span=None):
     return '"{}" ({} {}:{})'.format(t, book, c, n)
 
 
+# Every lesson sends you to someone (DR-0733): its OWN prompts in all three
+# directions, on the lesson and on every band, or the talk-together gate refuses it.
+TALK = ("TALK ABOUT IT TOGETHER. Parents, ask your children what this lesson shows about Yahweh and listen to the end "
+        "before you teach. Children, ask your mom or dad what the Keeper has kept them from. Friends, tell each other "
+        "one verse from this lesson and ask what you did with it.")
+
 def make_lesson(drift=False, title="The Keeper Never Sleeps — the Watch, the Scale, and the Proof"):
     """A writer's draft built from real KJV text (so the gates pass unless we
     break it on purpose)."""
@@ -57,7 +63,7 @@ def make_lesson(drift=False, title="The Keeper Never Sleeps — the Watch, the S
 
     def band(label, extra):
         return ("The Keeper Never Sleeps: the watch, the scale, and the proof. {} Yahweh keeps His people: {}. "
-                "He weighs with one scale: {}. We test what we hear: {}. {} {}").format(label, keeper, scale, prove, extra, CLOSE)
+                "He weighs with one scale: {}. We test what we hear: {}. {} {} {}").format(label, keeper, scale, prove, extra, TALK, CLOSE)
     return {
         "verdict": "lesson", "placement": "living-lessons", "title": title,
         "slug": "the-keeper-never-sleeps-the-watch-the-scale-and-the-proof",
@@ -74,7 +80,7 @@ def make_lesson(drift=False, title="The Keeper Never Sleeps — the Watch, the S
         "movements": [{"title": "The Keeper", "text": "Yahweh keeps: " + keeper},
                       {"title": "The scale", "text": "One weight: " + scale},
                       {"title": "The proof", "text": "Test it: " + prove}],
-        "lesson_close": "He gave His Son: " + love + " " + CLOSE,
+        "lesson_close": "He gave His Son: " + love + " " + TALK + " " + CLOSE,
         "dr_summary": "A spoken teaching on the Keeper, the scale and the proof.",
     }
 
@@ -268,6 +274,38 @@ def build(db, git, writers, group=None, **kw):
 # =============================================================================
 # the writers
 # =============================================================================
+
+class WhoSpoke(unittest.TestCase):
+    """DR-0712: the writer is told who spoke, and never to guess (proven-to-catch)."""
+    OWNER = "f13843f2-742b-4f8a-82af-7ecfbdc536ec"
+
+    def rules(self, tags):
+        return lw.row_rules([{"created_by": self.OWNER, "tags": tags}], {self.OWNER})
+
+    def test_the_standard_carries_the_speaker_rules(self):
+        for must in ("DP is Darrell Poe", "BG is Bishop Gwin", "S1, S2", "Never guess",
+                     "the church posts publicly", "health and sick lists", "further witnesses",
+                     "Name the teacher from the speaker marks (DR-0712: voice:BG) or the recording; when it is Bishop Gwin, say Bishop Gwin or BG, never 'the teacher' alone; never assume who taught."):
+            self.assertIn(must, lw.STANDARD)
+
+    def test_marked_unmarked_and_public_session_rows(self):
+        marked = self.rules(["lesson", "voice-transcript", "speakers:marked", "voice:BG", "voice:DP"])
+        self.assertIn("known voices heard: BG, DP", marked)
+        self.assertNotIn("NOT marked", marked)
+        unmarked = self.rules(["lesson", "voice-transcript", "speakers:unmarked"])
+        self.assertIn("speakers are NOT marked", unmarked)
+        self.assertIn("say so where they do not", unmarked)
+        public = self.rules(["lesson", "voice-transcript", "speakers:marked", "church-session-public"])
+        self.assertIn("only as the teacher calls them", public)
+        # DR-0719: speaker marks carrying BG name him; a name tag alone is not evidence he taught.
+        self.assertIn("never 'the teacher' alone", marked)
+        named_only = self.rules(["lesson", "voice-transcript", "lesson-name-ok", "lesson-name:Bishop Gwin"])
+        self.assertNotIn("The speaker marks carry BG", named_only)
+        self.assertNotIn("The speaker marks carry BG", unmarked)
+        # PROVEN-TO-CATCH: a row that is not a public church session never gets the naming line.
+        self.assertNotIn("posts publicly", unmarked)
+        self.assertNotIn("posts publicly", marked)
+
 
 class Writers(unittest.TestCase):
     def test_extract_json_tolerates_a_fence_and_a_sentence(self):
@@ -649,6 +687,17 @@ class Gates(unittest.TestCase):
         self.assertEqual(g["verse"]["verbatim"], g["verse"]["spans"])
         self.assertGreater(g["verse"]["spans"], 10)
 
+    def test_PROVEN_TO_CATCH_a_lesson_that_sends_you_to_no_one_fails_the_talk_together_gate(self):
+        quiet = make_lesson()
+        quiet["lesson_close"] = quiet["lesson_close"].replace(TALK, "")
+        quiet["levels"] = {b: t.replace(TALK, "") for b, t in quiet["levels"].items()}
+        g = gates.gate_version(quiet, self.module(quiet), CORPUS, lw.schema_problems)
+        self.assertFalse(g["talk_together"]["passed"])
+        self.assertEqual(sorted(g["talk_together"]["missing"]), ["children", "friends", "parents"])
+        self.assertFalse(g["passed"])
+        full = gates.gate_version(make_lesson(), self.module(), CORPUS, lw.schema_problems)
+        self.assertTrue(full["talk_together"]["passed"], json.dumps(full["talk_together"]))
+
     def test_PROVEN_TO_CATCH_one_changed_word_fails_the_verse_gate(self):
         g = gates.gate_version(make_lesson(drift=True), self.module(make_lesson(drift=True)), CORPUS, lw.schema_problems)
         self.assertFalse(g["verse_passed"])
@@ -711,17 +760,21 @@ class Gates(unittest.TestCase):
 
     @unittest.skipIf(shutil.which("node") is None, "node not on this machine")
     def test_parity_the_repo_own_gates_agree_with_python_on_a_published_lesson(self):
-        # L195, exported by node from the real catalog, gated by both layers.
+        # L205 (the first lesson under the talk-together rule, DR-0733), exported
+        # by node from the real catalog, gated by both layers.
         script = ("import('{}/app/src/lib/living-lessons-class.js').then(m => process.stdout.write("
-                  "JSON.stringify(m.LIVING_LESSONS_MODULES.find(x => x.id.startsWith('ll195-')))))").format(REPO)
+                  "JSON.stringify(m.LIVING_LESSONS_MODULES.find(x => x.id.startsWith('ll205-')))))").format(REPO)
         mod = json.loads(subprocess.run(["node", "-e", script], capture_output=True, check=True).stdout)
         js = gates.node_band_gates(mod, repo=REPO)
         self.assertNotIn("skipped", js, js)
         py = gates.verse_gate(mod, CORPUS)
         self.assertEqual((py["spans"], py["verbatim"]), (js["verse"]["spans"], js["verse"]["verbatim"]))
         self.assertTrue(js["passed"], js)
+        self.assertEqual(js["talkTogether"]["passed"], gates.talk_together_gate(mod)[0])
+        self.assertTrue(js["talkTogether"]["passed"])
         drift = json.loads(json.dumps(mod))
-        drift["lesson"] = drift["lesson"].replace("shall stand for ever", "shall stand for all time")
+        self.assertIn("let God be true, but every man a liar", drift["lesson"])
+        drift["lesson"] = drift["lesson"].replace("let God be true, but every man a liar", "let God be true, but every man a fool")
         self.assertFalse(gates.node_band_gates(drift, repo=REPO)["verse"]["passed"])
         self.assertFalse(gates.verse_gate(drift, CORPUS)["passed"])
 
@@ -1221,6 +1274,203 @@ class BackfillTests(unittest.TestCase):
         self.assertEqual({x["lesson_id"] for x in db.versions_rows}, {"ll195-x"})
         self.assertEqual([x["gate_results"]["verse_passed"] for x in db.versions_rows], [True, False])
         self.assertFalse(hasattr(lb.Backfill, "ship"))
+
+
+class BellTests(unittest.TestCase):
+    """DR-0725: a waiting lesson row rings the bell ONCE (deduped by key), a
+    burst is one dispatch plus a trailing one, a per-day cap holds, and the
+    dispatch names row ids only -- never a word."""
+
+    A = "11111111-1111-4111-8111-111111111111"
+    B = "22222222-2222-4222-8222-222222222222"
+
+    def bell(self, sent, spacing=0, cap=24, enabled=True, state_path=None, ok=True):
+        t = {"now": 1000.0}
+
+        def post(ids):
+            sent.append(list(ids))
+            return (ok, 204 if ok else 401)
+        b = lb.Bell(post=post, clock=lambda: t["now"], spacing=spacing, max_per_day=cap, enabled=enabled,
+                    state_path=state_path, log=lambda *_: None)
+        return t, b
+
+    def test_PROVEN_TO_CATCH_one_dispatch_per_new_row_deduped(self):
+        sent = []
+        _, bell = self.bell(sent)
+        self.assertEqual(bell.ring(self.A, ["lesson"]), "sent")
+        self.assertEqual(bell.ring(self.A, ["lesson", "mirrored"]), "seen")   # a re-notify, same key
+        self.assertEqual(bell.ring(self.A, ["lesson", "build:abc1234"]), "seen")  # the app's build stamp is not a stage
+        self.assertEqual(bell.ring(self.B, ["lesson"]), "sent")
+        self.assertEqual(sent, [[self.A], [self.B]])
+        # handed back by the builder: a new stage tag is a new key, rung once more
+        back = ["lesson", "build:claimed@2026-10-01T10:00:00Z", "build:failed@2026-10-01T10:05:00Z"]
+        self.assertEqual(bell.ring(self.A, back), "sent")
+        self.assertEqual(bell.ring(self.A, back), "seen")
+        self.assertEqual(len(sent), 3)
+
+    def test_only_a_lesson_row_rings_and_each_milestone_rings_once(self):
+        sent = []
+        _, bell = self.bell(sent)
+        self.assertEqual(bell.ring(self.A, ["thought"]), "not a lesson")
+        self.assertEqual(bell.ring("not-a-uuid", ["lesson"]), "not a lesson")
+        self.assertEqual(sent, [])
+        c = "build:claimed@2026-10-01T01:00:10Z"
+        g = "build:gated@2026-10-01T01:20:00Z"
+        for tags in (["lesson"], ["lesson", "lesson-building", c], ["lesson", "lesson-building", c, g],
+                     ["lesson", "awaiting-review", c, g], ["lesson", "lesson-captured", "lesson-published", c, g,
+                                                          "build:published@2026-10-01T02:00:00Z"]):
+            self.assertEqual(bell.ring(self.A, tags), "sent")
+            self.assertEqual(bell.ring(self.A, tags + ["mirrored"]), "seen")
+        self.assertEqual(len(sent), 5)
+
+    def test_PROVEN_TO_CATCH_the_milestone_reads_the_tags(self):
+        c, g = "build:claimed@2026-10-01T01:00:10Z", "build:gated@2026-10-01T01:20:00Z"
+        old_g = "build:gated@2026-09-30T01:20:00Z"
+        m = lb.bell_milestone
+        self.assertIsNone(m(["thought"]))
+        self.assertEqual(m(["lesson"]), "waiting")
+        self.assertEqual(m(["lesson", "lesson-building", c]), "building")
+        self.assertEqual(m(["lesson", "lesson-building", old_g, c]), "building")   # an earlier attempt's gate is not this one
+        self.assertEqual(m(["lesson", "lesson-building", c, g]), "gated")
+        self.assertEqual(m(["lesson", "awaiting-review", c, g]), "awaiting-review")
+        self.assertEqual(m(["lesson", "lesson-captured", "build:duplicate@2026-10-01T01:01:00Z"]), "captured")
+        self.assertEqual(m(["lesson", "lesson-captured", "lesson-published"]), "shipped")
+        self.assertEqual(m(["lesson", c, "build:failed@2026-10-01T01:30:00Z", "build-failed"]), "waiting#b2")
+        self.assertEqual(lb.job_of("stage:" + self.A), ("stage", self.A))
+
+    def test_a_build_milestone_notifies_the_id_only(self):
+        notes = []
+
+        class Db(FakeDb):
+            def notify_stage(self, rid):
+                notes.append(rid)
+        db = Db([row(self.A, TEACHING)])
+        b = lb.Build([db.rows[self.A]], db, None, [], CORPUS, data_dir=tempfile.mkdtemp(), today="2026-10-01")
+        b.stage("verses-fetched")
+        self.assertEqual(notes, [])
+        b.stage("gated")
+        self.assertEqual(notes, [self.A])
+        b.finish([lb.stage_tag("awaiting-review", "2026-10-01T01:30:00Z"), "awaiting-review"])
+        self.assertEqual(notes, [self.A, self.A])
+        import inspect
+        self.assertIn('"SELECT pg_notify(:c, :p)", c=CHANNEL, p=BELL_STAGE_PREFIX + rid',
+                      inspect.getsource(lb.Db.notify_stage).replace("lb.", ""))
+
+    def test_the_dedupe_survives_a_restart(self):
+        path = os.path.join(tempfile.mkdtemp(), "bell.json")
+        sent = []
+        _, bell = self.bell(sent, state_path=path)
+        bell.ring(self.A, ["lesson"])
+        _, again = self.bell(sent, state_path=path)
+        self.assertEqual(again.ring(self.A, ["lesson"]), "seen")
+        self.assertEqual(len(sent), 1)
+
+    def test_a_burst_is_one_dispatch_plus_a_trailing_dispatch(self):
+        sent = []
+        t, bell = self.bell(sent, spacing=20)
+        self.assertEqual(bell.ring(self.A, ["lesson"]), "sent")
+        t["now"] += 1
+        self.assertEqual(bell.ring(self.B, ["lesson"]), "wait")   # held, not dropped
+        self.assertGreater(bell.wait_seconds(), 0)
+        t["now"] += 20
+        self.assertEqual(bell.flush(), "sent")
+        self.assertEqual(sent, [[self.A], [self.B]])
+        self.assertEqual(bell.flush(), "idle")
+        self.assertIsNone(bell.wait_seconds())
+
+    def test_PROVEN_TO_CATCH_the_per_day_cap_holds_and_a_failure_retries(self):
+        sent = []
+        t, bell = self.bell(sent, cap=1)
+        bell.ring(self.A, ["lesson"])
+        self.assertEqual(bell.ring(self.B, ["lesson"]), "cap")
+        self.assertEqual(len(sent), 1)
+        t["now"] += 86401
+        self.assertEqual(bell.flush(), "sent")   # the held ring goes once the day frees
+        self.assertEqual(len(sent), 2)
+        fail = []
+        _, bad = self.bell(fail, ok=False)
+        self.assertEqual(bad.ring(self.A, ["lesson"]), "failed")
+        self.assertIn(bell_key_of(self.A), bad.pending)     # kept for the retry, not marked rung
+        self.assertNotIn(self.A, bad.rung)
+        off_sent = []
+        _, off = self.bell(off_sent, enabled=False)
+        self.assertEqual(off.ring(self.A, ["lesson"]), "off")
+        self.assertEqual(off_sent, [])
+
+    def test_PROVEN_TO_CATCH_the_dispatch_names_ids_only_never_a_word(self):
+        tok = os.path.join(tempfile.mkdtemp(), "t")
+        with open(tok, "w") as f:
+            f.write("secret-token\n")
+        seen = []
+
+        def opener(req, timeout=None):
+            seen.append(req)
+
+            class R:
+                status = 204
+
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *a):
+                    return False
+            return R()
+        ok, code = lb.bell_dispatch([self.B, self.A, TEACHING], token_file=tok, repo="o/r", opener=opener)
+        self.assertTrue(ok)
+        self.assertEqual(code, 204)
+        body = json.loads(seen[0].data.decode("utf-8"))
+        self.assertEqual(body, {"event_type": "lesson-waiting",
+                                "client_payload": {"source": "nas-lesson-builder", "ids": [self.A, self.B]}})
+        self.assertNotIn("Yahweh", seen[0].data.decode("utf-8"))
+        self.assertTrue(seen[0].full_url.endswith("/repos/o/r/dispatches"))
+        self.assertFalse(lb.bell_dispatch([self.A], token_file=tok + "-missing")[0])
+
+    def test_the_listen_loop_flushes_the_trailing_ring_and_wakes_for_it(self):
+        import inspect
+        src = inspect.getsource(lb.Service.listen_forever)
+        self.assertIn("self.bell.flush()", src)
+        self.assertIn("self.bell.wait_seconds()", src)
+        self.assertIn("Service(None, bell=bell)", inspect.getsource(lb.main))
+
+    def test_the_service_rings_a_waiting_row_and_the_sweep_reoffers_never_when_stopped(self):
+        offered = []
+
+        class B:
+            def ring(self, rid, tags):
+                offered.append((rid, list(tags)))
+
+        class Db(FakeDb):
+            def row_tags(self, rid):
+                return list(self.rows[rid]["tags"]) if rid in self.rows else None
+
+            def waiting_tags(self):
+                return [{"id": r["id"], "tags": list(r["tags"])} for r in self.rows.values() if lb.bell_waits(r["tags"])]
+        A = self.A
+        db = Db([row(A, TEACHING)])
+        svc = lb.Service(db, data_dir=tempfile.mkdtemp(), ready=lambda: (False, {"state": "waiting on a writer"}),
+                         kill=lambda: (False, ""), log=lambda *_: None, bell=B())
+        svc.consider(A)
+        self.assertEqual(offered, [(A, ["lesson"])])     # rings even with no writer ready
+        svc.consider(None)                                # the sweep re-offers (the bell dedupes)
+        self.assertEqual(len(offered), 2)
+        svc.consider("decision:x")
+        self.assertEqual(len(offered), 2)
+        stopped = lb.Service(db, data_dir=tempfile.mkdtemp(), kill=lambda: (True, "enabled:false"),
+                             log=lambda *_: None, bell=B())
+        stopped.consider(A)
+        self.assertEqual(len(offered), 2)
+        svc.consider("stage:" + A)                        # a build milestone rings the bell only
+        self.assertEqual(len(offered), 3)
+        ready = lb.Service(db, data_dir=tempfile.mkdtemp(), ready=lambda: (True, {"state": "ready"}),
+                           kill=lambda: (False, ""), log=lambda *_: None, bell=B(), spawn=lambda spec: {"code": 0})
+        ready.consider(A)
+        for t in ready.threads:
+            t.join(5)
+        self.assertEqual([t for _, t in offered[3:]][-1][:2], ["lesson", "lesson-building"])  # the claim rang "building"
+
+
+def bell_key_of(rid, tags=("lesson",)):
+    return lb.bell_key(rid, list(tags))
 
 
 class Migration(unittest.TestCase):
