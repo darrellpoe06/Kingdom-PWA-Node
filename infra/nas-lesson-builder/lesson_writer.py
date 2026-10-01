@@ -117,6 +117,19 @@ OUR VOICE (outside quotations)
 - Render a transcript for MEANING, not its mishearings; never put Darrell's (or
   anyone's) words in quotation marks.
 
+TALK ABOUT IT TOGETHER (every lesson sends the reader to someone)
+- The full lesson ends with a short part headed TALK ABOUT IT TOGETHER that
+  speaks three ways, each in its own sentence: to PARENTS (ask your children
+  what this shows about Yahweh, listen before you teach); to CHILDREN (ask your
+  mom, dad or grandparent what it means to them; tell them one thing you saw);
+  to FRIENDS (tell a friend one thing it showed you and ask what they see).
+  Name the aim: so we all get healthy together, until we see that Yahweh has
+  been right. Ground it in the Word (Deuteronomy 6:7; Malachi 4:6; Proverbs
+  27:17; James 5:16, quoted verbatim).
+- Each band carries the same three sentences in its own register: the child,
+  youth and teen bands tell the young reader to ask a parent and tell a
+  friend; the senior band tells the elder to ask the children.
+
 PROVENANCE (honest)
 - Say where the lesson came from (spoken and transcribed by Whisper on our own
   machines, or typed) in the lesson body and in inApp. Say what was not
