@@ -8,7 +8,8 @@
   "read-aloud": {"name": "READ ALOUD panel", "where": "The read-aloud button, its open panel over a real lesson, the reading state, the minimized pill and the mini-player (components/TTSControl.jsx)"},
   "app-header": {"name": "header bar", "where": "The app header: Give, account, comfort row, the collapsed header's way back, and the inline shell controls (poe-financial-mvp-v28.jsx; header components)"},
   "app-footer": {"name": "footer bar", "where": "The floating bottom controls and the platform footer (poe-financial-mvp-v28.jsx; components/ChurchGiving.jsx)"},
-  "books": {"name": "Books", "where": "The Books tab row and its one Upload (poe-financial-mvp-v28.jsx; components/BooksUploadButton.jsx)"}
+  "books": {"name": "Books", "where": "The Books tab row and its one Upload (poe-financial-mvp-v28.jsx; components/BooksUploadButton.jsx)"},
+  "messages": {"name": "Messages: bring your contacts", "where": "Messages > Add a contact, the panel that brings contacts from the phone: the picker, the .vcf upload, the preview and its Keep / Not now (components/ContactsImport.jsx)"}
  },
  "features": [
   {"id": "learn-dept-all", "name": "Courses tab (every department)", "surface": "learn-lists", "find": {"selector": "#learn-dept-tab-all"}},
@@ -169,7 +170,11 @@
   {"id": "books-tab-k1099", "name": "Books tab: 1099s", "surface": "books", "find": {"source": "['k1099','1099s']"}},
   {"id": "books-tab-taxes", "name": "Books tab: Taxes", "surface": "books", "find": {"source": "['taxes','Taxes']"}},
   {"id": "books-tab-calendar", "name": "Books tab: Calendar", "surface": "books", "find": {"source": "['calendar','Calendar']"}},
-  {"id": "books-tab-legal", "name": "Books tab: Legal", "surface": "books", "find": {"source": "['legal', <><UiIcon name=\"lock\" /> Legal</>]"}}
+  {"id": "books-tab-legal", "name": "Books tab: Legal", "surface": "books", "find": {"source": "['legal', <><UiIcon name=\"lock\" /> Legal</>]"}},
+  {"id": "contacts-pick-from-phone", "name": "Pick from my phone", "surface": "messages", "find": {"testid": "contacts-pick-from-phone"}, "note": "Shown only on a phone whose browser has the Contact Picker; the presence walk supplies one (DR-0736)."},
+  {"id": "contacts-upload-vcf", "name": "Upload my contacts file (.vcf)", "surface": "messages", "find": {"testid": "contacts-upload-vcf"}},
+  {"id": "contacts-import-save", "name": "Keep the previewed contacts", "surface": "messages", "find": {"testid": "contacts-import-save"}, "note": "Exists once a file or a pick has been read into the preview (DR-0736)."},
+  {"id": "contacts-import-clear", "name": "Not now (clear the preview)", "surface": "messages", "find": {"testid": "contacts-import-clear"}}
  ],
  "removed": [],
  "notPinned": [
