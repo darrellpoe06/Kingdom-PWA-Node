@@ -595,8 +595,14 @@ try {
       // window; it is chrome over the first viewport like the header is.
       const liveBar = document.querySelector('[role="region"][aria-label^="Live worship"]');
       const floaters = [document.querySelector('.tts-controls'), document.querySelector('button[aria-label="Open feedback"]'), document.querySelector('.church-give-floater')].filter(Boolean);
+      // THE BOTTOM BAR (DR-0716) is chrome over the first viewport like the
+      // header: Feedback, Give, the dot, Top and the reader moved INTO it, so
+      // its whole band is counted (the controls inside it fall within it). It
+      // is a bar standing on the comfort bar, not a floater, so it is not in
+      // the on-the-bar list below.
+      const dockBar = document.querySelector('[data-testid="chrome-dock"]');
       const bands = [];
-      for (const el of [liveBar, hdr, bar, hatch, ...floaters]) {
+      for (const el of [liveBar, hdr, bar, hatch, dockBar, ...floaters]) {
         if (!el) continue;
         const r = el.getBoundingClientRect();
         if (r.height <= 0) continue;
@@ -608,10 +614,18 @@ try {
       if (cur) covered += cur[1] - cur[0];
       const hatchFixed = !!hatch && getComputedStyle(hatch).position === 'fixed';
       const hr = hatch ? hatch.getBoundingClientRect() : null;
-      const onTheBar = hatchFixed ? floaters.filter((f) => { const r = f.getBoundingClientRect(); return r.height > 0 && !(r.right <= hr.left || hr.right <= r.left || r.bottom <= hr.top || hr.bottom <= r.top); }).map((f) => (f.getAttribute('aria-label') || f.className || '?').toString().slice(0, 20)) : [];
+      const onTheBar = hatchFixed ? floaters.filter((f) => !(dockBar && dockBar.contains(f))).filter((f) => { const r = f.getBoundingClientRect(); return r.height > 0 && !(r.right <= hr.left || hr.right <= r.left || r.bottom <= hr.top || hr.bottom <= r.top); }).map((f) => (f.getAttribute('aria-label') || f.className || '?').toString().slice(0, 20)) : [];
       return {
         size: document.documentElement.getAttribute('data-text-size'),
         liveBarPx: liveBar ? Math.round(liveBar.getBoundingClientRect().height) : 0,
+        dockPx: dockBar ? Math.round(dockBar.getBoundingClientRect().height) : 0,
+        // The bar stands ON TOP of the fixed comfort bar, never over it: the
+        // vertical overlap of the two, in px (more than 1px is a bar on a bar).
+        dockOnHatch: (() => {
+          if (!hatchFixed || !dockBar) return 0;
+          const d = dockBar.getBoundingClientRect();
+          return Math.max(0, Math.round(Math.min(d.bottom, hr.bottom) - Math.max(d.top, hr.top)));
+        })(),
         vh,
         covered: Math.round(covered),
         onTheBar,
@@ -763,9 +777,136 @@ try {
         if (base == null) fail(`${where}: no Normal measurement in the same header state to compare against — the never-bigger invariant was not checked`);
         else if (m.covered > base + NEVER_BIGGER_ALLOWANCE_PX) fail(`${where}: chrome covers ${m.covered}px at Big Print vs ${base}px at Normal — the controls got bigger with the text`);
         if (m.onTheBar.length) fail(`${where}: ${m.onTheBar.length} floater(s) sit on the fixed comfort bar: ${m.onTheBar.join(', ')}`);
+        if (m.dockOnHatch > 1) fail(`${where}: the bottom bar sits ${m.dockOnHatch}px over the fixed comfort bar instead of standing on it (DR-0716)`);
       }
     }
-    if (failures === before) console.log(`lesson ok  ${where} — chrome covers ${m.covered}px of ${m.vh}px${m.liveBarPx ? ` (live bar ${m.liveBarPx}px)` : ''}, prose ${m.prose}px of ${m.content}px, ${m.strips} strips (max ${m.maxChips} chips, max ${m.maxBlockLines} lines/block)${size === 'bigprint' ? `, bar buttons ${m.barButtonPx}px, chips ${m.chipPx}px` : ''}, nothing boxed in a sentence; mid-lesson at y${comfort.scrollY}: ${closedSizeOnScreen} size with the reader closed, ${comfort.sizeReachable}/${comfort.sizeCount} size + ${comfort.themeReachable}/${comfort.themeCount} theme controls on screen`);
+    if (failures === before) console.log(`lesson ok  ${where} — chrome covers ${m.covered}px of ${m.vh}px${m.liveBarPx ? ` (live bar ${m.liveBarPx}px)` : ''}${m.dockPx ? ` (bottom bar ${m.dockPx}px)` : ''}, prose ${m.prose}px of ${m.content}px, ${m.strips} strips (max ${m.maxChips} chips, max ${m.maxBlockLines} lines/block)${size === 'bigprint' ? `, bar buttons ${m.barButtonPx}px, chips ${m.chipPx}px` : ''}, nothing boxed in a sentence; mid-lesson at y${comfort.scrollY}: ${closedSizeOnScreen} size with the reader closed, ${comfort.sizeReachable}/${comfort.sizeCount} size + ${comfort.themeReachable}/${comfort.themeCount} theme controls on screen`);
+  }
+  // ---------------------------------------------------------------------------
+  // COMFORT pass (DR-0716) — the big-text bottom block folds, and in the reader
+  // the whole bottom is ONE slim row.
+  // Darrell 2026-10-01, at A44 on his Fold 7: "How do I get rid of the below
+  // header?!!!!! I need a button!!!!" — then, the Fold folded, L202 at A+++:
+  // "Bottom tab is too much!!!!! We needed less room undermining the reader...."
+  //   READER (L1 at 360 / 412 / 900 = the Fold folded and open, A+++, first
+  //   visit, scrolled into the words): the bottom chrome (every fixed band in
+  //   the lower half) is at most READER_BOTTOM_MAX_PX, a text-size control is
+  //   on it, and Controls opens the block and folds it back to the same.
+  //   OUTSIDE the reader (the Church tab at 360, Big Print): Hide folds the
+  //   block to at most COMFORT_FOLDED_MAX_PX, the fold survives a reload, and
+  //   Show controls brings the whole block back.
+  // Selftest: the fold's CSS overridden (every item shown) MUST trip both.
+  // Before (main e17de76a, A+++, L1 scrolled): 238px at 360 and 412, 237px at
+  // 900 — the block plus the Feedback / Give / network / reader floaters.
+  // ---------------------------------------------------------------------------
+  const READER_BOTTOM_MAX_PX = 56;
+  const COMFORT_FOLDED_MAX_PX = 64;
+  const COMFORT_BREAK = ':root { --ts-hatch-h: 0px !important } html[data-text-size][data-comfort-bar] .ts-safe-sticky.ts-safe-sticky .ts-escape-hatch.ts-escape-hatch { display: flex !important } html[data-text-size][data-comfort-bar] .ts-safe-sticky.ts-safe-sticky .header-comfort-row.header-comfort-row > * { display: flex !important }';
+  const bottomChrome = (page) => page.evaluate(() => {
+    const vh = innerHeight; const bands = []; const names = [];
+    for (const el of document.querySelectorAll('body *')) {
+      const cs = getComputedStyle(el);
+      if (cs.position !== 'fixed' || cs.display === 'none' || cs.visibility === 'hidden') continue;
+      const r = el.getBoundingClientRect();
+      if (r.height < 2 || r.width < 2 || r.top < vh / 2) continue;
+      bands.push([Math.max(0, r.top), Math.min(vh, r.bottom)]);
+      names.push(`${(el.getAttribute('data-testid') || el.getAttribute('aria-label') || String(el.className || '').split(' ')[0] || el.tagName).slice(0, 24)}@${Math.round(r.top)}`);
+    }
+    bands.sort((x, y) => x[0] - y[0]);
+    let cov = 0; let cur = null;
+    for (const [t, bt] of bands) { if (!cur || t > cur[1]) { if (cur) cov += cur[1] - cur[0]; cur = [t, bt]; } else cur[1] = Math.max(cur[1], bt); }
+    if (cur) cov += cur[1] - cur[0];
+    const sizes = [...document.querySelectorAll('button, select')].filter((x) => /text size/i.test(x.getAttribute('aria-label') || '')).filter((x) => { const r = x.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= vh; }).length;
+    // The bar stands ON the opened block, never over it (DR-0716).
+    const dk = document.querySelector('[data-testid="chrome-dock"]');
+    const hatchEl = [...document.querySelectorAll('.ts-safe-sticky .ts-escape-hatch')].find((h) => getComputedStyle(h).position === 'fixed' && h.getBoundingClientRect().height > 0);
+    let onBlock = 0;
+    if (dk && hatchEl) { const d = dk.getBoundingClientRect(); const h = hatchEl.getBoundingClientRect(); onBlock = Math.max(0, Math.round(Math.min(d.bottom, h.bottom) - Math.max(d.top, h.top))); }
+    return { px: Math.round(cov), names, sizes, onBlock, attr: document.documentElement.getAttribute('data-comfort-bar'), sw: document.documentElement.scrollWidth, vw: innerWidth };
+  });
+  const READER_COMFORT_CASES = SELFTEST ? [360] : (SWEEP ? [360, 412, 900] : []);
+  for (const width of READER_COMFORT_CASES) {
+    const where = `reader-bottom@${width}px [A+++]`;
+    const page = await browser.newPage({ viewport: { width, height: 900 } });
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('poetech.help.tour.v1', 'seen');
+        localStorage.setItem('poe-text-size', 'largest');
+        localStorage.removeItem('poe-header-collapsed');
+        localStorage.removeItem('poe-comfort-bar-collapsed');
+      } catch { /* private mode */ }
+    });
+    await page.goto(LESSON_URL, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+    await page.waitForSelector('[data-testid="chrome-dock"]', { timeout: 20000 }).catch(() => {});
+    await page.evaluate(() => (document.fonts && document.fonts.ready ? document.fonts.ready : null)).catch(() => {});
+    if (SELFTEST) await page.addStyleTag({ content: COMFORT_BREAK });
+    await page.evaluate(() => window.scrollTo(0, Math.max(900, Math.round(document.documentElement.scrollHeight * 0.4))));
+    await page.waitForTimeout(500);
+    const folded = await bottomChrome(page);
+    await page.locator('[data-testid="dock-controls"]').click({ timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(400);
+    const opened = await bottomChrome(page);
+    await page.locator('[data-testid="dock-controls"]').click({ timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(400);
+    const refolded = await bottomChrome(page);
+    await page.close();
+    const before = failures;
+    if (folded.attr !== 'collapsed') fail(`${where}: the reader did not open with the bottom block folded (data-comfort-bar="${folded.attr}")`);
+    if (folded.px > READER_BOTTOM_MAX_PX) fail(`${where}: the bottom chrome is ${folded.px}px with the block folded — over ${READER_BOTTOM_MAX_PX}px (${folded.names.join(', ')})`);
+    if (!folded.sizes) fail(`${where}: folded, no text-size control is on screen — big text is not reversible`);
+    if (folded.sw > folded.vw + 1) fail(`${where}: the page is ${folded.sw}px wide in a ${folded.vw}px viewport`);
+    if (opened.attr !== 'open' || opened.px <= folded.px) fail(`${where}: Controls did not open the block (${opened.attr}, ${opened.px}px)`);
+    if (opened.onBlock > 1) fail(`${where}: with Controls open the bottom bar sits ${opened.onBlock}px over the block instead of standing on it`);
+    if (refolded.attr !== 'collapsed' || refolded.px > READER_BOTTOM_MAX_PX) fail(`${where}: Controls did not fold it back (${refolded.attr}, ${refolded.px}px)`);
+    if (failures === before) console.log(`comfort ok  ${where} — bottom chrome ${folded.px}px folded (${folded.names.join(', ')}), ${opened.px}px with Controls open, ${refolded.px}px folded again; ${folded.sizes} size controls on screen`);
+  }
+  const COMFORT_CASES = SELFTEST ? [360] : (SWEEP ? [360, 900] : []);
+  const CHURCH_URL = `${origin}${BASE}/?view=church`;
+  for (const width of COMFORT_CASES) {
+    const where = `comfort@${width}px [Big Print, outside the reader]`;
+    const page = await browser.newPage({ viewport: { width, height: 900 } });
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('poetech.help.tour.v1', 'seen');
+        localStorage.setItem('poe-text-size', 'bigprint');
+        localStorage.removeItem('poe-header-collapsed');
+        if (!sessionStorage.getItem('comfort-probe-seeded')) { localStorage.removeItem('poe-comfort-bar-collapsed'); sessionStorage.setItem('comfort-probe-seeded', '1'); }
+      } catch { /* private mode */ }
+    });
+    await page.goto(CHURCH_URL, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+    await page.waitForSelector('[data-testid="comfort-hide"]', { state: 'attached', timeout: 20000 }).catch(() => {});
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 300)));
+    if (SELFTEST) await page.addStyleTag({ content: COMFORT_BREAK });
+    const box = () => page.evaluate(() => {
+      const row = document.querySelector('.header-comfort-row');
+      if (!row) return null;
+      const r = row.getBoundingClientRect();
+      const sizes = [...row.querySelectorAll('button, select')].filter((x) => /text size/i.test(x.getAttribute('aria-label') || '') && x.getBoundingClientRect().height > 0).length;
+      return { h: Math.round(r.height), fixed: getComputedStyle(row).position === 'fixed', sizes, attr: document.documentElement.getAttribute('data-comfort-bar') };
+    });
+    const open = await box();
+    await page.locator('[data-testid="comfort-hide"]').click({ timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(250);
+    const folded = await box();
+    await page.reload({ waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+    await page.waitForSelector('[data-testid="comfort-show"]', { state: 'attached', timeout: 20000 }).catch(() => {});
+    await page.waitForTimeout(300);
+    if (SELFTEST) await page.addStyleTag({ content: COMFORT_BREAK });
+    const reloaded = await box();
+    await page.locator('[data-testid="comfort-show"]').click({ timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(250);
+    const restored = await box();
+    await page.close();
+    const before = failures;
+    if (!open || !folded || !reloaded || !restored) { fail(`${where}: the header controls row never rendered — nothing was measured`); continue; }
+    if (!open.fixed) fail(`${where}: the controls row is not the fixed bottom block at Big Print — the state was not measured`);
+    if (folded.attr !== 'collapsed') fail(`${where}: Hide did not fold the block (data-comfort-bar="${folded.attr}")`);
+    if (folded.h > COMFORT_FOLDED_MAX_PX) fail(`${where}: folded, the bottom block is ${folded.h}px — over ${COMFORT_FOLDED_MAX_PX}px (open: ${open.h}px)`);
+    if (folded.h >= open.h) fail(`${where}: folding did not make the block smaller (${open.h}px -> ${folded.h}px)`);
+    if (!folded.sizes) fail(`${where}: folded, no text-size control is left — big text is not reversible`);
+    if (reloaded.attr !== 'collapsed' || reloaded.h > COMFORT_FOLDED_MAX_PX) fail(`${where}: the fold did not survive a reload (${reloaded.attr}, ${reloaded.h}px)`);
+    if (restored.h < open.h - 2) fail(`${where}: Show controls did not bring the whole block back (${restored.h}px of ${open.h}px)`);
+    if (failures === before) console.log(`comfort ok  ${where} — bottom block ${open.h}px open, ${folded.h}px folded (${folded.sizes} size control), folded after reload ${reloaded.h}px, restored ${restored.h}px`);
   }
   // ---------------------------------------------------------------------------
   // TEXT-SCALE pass — the layout is measured AT Big Print, not assumed to hold.
