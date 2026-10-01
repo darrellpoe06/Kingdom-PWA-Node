@@ -12,11 +12,13 @@ import { notifyNewMessage } from './push-announce.js';
 import { toDmShape, toSecurityReportShape } from './direct-messages.js';
 import {
   ensureDmKeypair, deriveDmKey, encryptDmBody, decryptDmBody,
-  isEncryptedBody, LOCKED_PLACEHOLDER,
+  isEncryptedBody, isSealedV2, sealedEnvelope, sealedForDevice, sealForDevices, openSealed,
+  ensureDmDeviceId, LOCKED_PLACEHOLDER, LOCKED_BEFORE_THIS_DEVICE,
 } from './dm-encryption.js';
+import { deviceLabel } from './device-trust.js';
 
 export * from './direct-messages.js';
-export { isEncryptedBody, LOCKED_PLACEHOLDER } from './dm-encryption.js';
+export { isEncryptedBody, isSealedV2, LOCKED_PLACEHOLDER, LOCKED_BEFORE_THIS_DEVICE } from './dm-encryption.js';
 
 async function currentSession() {
   const { data } = await supabase.auth.getSession();
@@ -29,26 +31,62 @@ function resolveName(session, explicit) {
 }
 
 // --- End-to-end encryption (dm-encryption.js; keys live on the device) -------
-// My keypair is created on first use; my PUBLIC key is published to
-// dm_public_keys (0118) so others can encrypt TO me. Pair keys are derived
-// once per correspondent and cached for the session.
-const pairKeyCache = new Map(); // otherUserId -> Promise<CryptoKey|null>
+// My keypair is created on first use on THIS device. My public key is
+// published two ways: to dm_device_keys (0249, one row per user AND device,
+// DR-0737) so a sender can seal to every device I hold, and still to
+// dm_public_keys (0118, one row per user) so an app that has not updated yet
+// can seal v1 to my latest key. A message is sealed ONCE and its content key
+// is wrapped for every device of both people, so it opens on each of the
+// recipient's devices and on the sender's own other devices too.
+//
+// WHY (Darrell 2026-10-01: "sometimes I can see it and others not on the same
+// device... I actually want it to work on multiple devices"): with one key per
+// account, every device that opened Messages published over the last one, so
+// a message was sealed to whichever device had published most recently, and
+// which messages a phone could open flipped each time another device opened
+// Messages. Measured 2026-10-01 on the live database (sovereign-read dm_keys).
+const pairKeysCache = new Map();   // `${me}|${other}` -> Promise<CryptoKey[]> (v1: every key they ever published that we know)
+const deviceKeysCache = new Map(); // userId -> Promise<[{deviceId, publicJwk, label, lastSeenAt}]>
+const DEVICE_KEYS_TTL_MS = 60 * 1000;
+const deviceKeysAt = new Map();    // userId -> when fetched
+
+/** Tests and sign-out: every remembered key is forgotten. */
+export function resetDmKeyCaches() {
+  pairKeysCache.clear(); deviceKeysCache.clear(); deviceKeysAt.clear();
+}
 
 async function myKeypair(userId) {
   try { return await ensureDmKeypair(userId); } catch { return null; }
 }
+function myDeviceId() {
+  try { return ensureDmDeviceId(); } catch { return null; }
+}
+function myDeviceLabel() {
+  try { return String(deviceLabel() || '').slice(0, 80) || null; } catch { return null; }
+}
 
-// Publish (upsert) my public key so anyone allowed to DM me can encrypt to me.
-// Fire-and-forget from the surfaces; failures degrade to plaintext honestly.
+// Publish my public key for THIS device (and the v1 row), so anyone allowed
+// to DM me can seal to me here. Fire-and-forget from the surfaces; failures
+// degrade to plaintext honestly.
 export async function publishDmPublicKey() {
   const session = await currentSession();
   if (!session) return { skipped: 'signed-out' };
   const kp = await myKeypair(session.user.id);
   if (!kp) return { skipped: 'no-crypto' };
+  const deviceId = myDeviceId();
+  const out = { published: true, deviceId };
   const { error } = await supabase
     .from('dm_public_keys')
     .upsert({ user_id: session.user.id, public_jwk: kp.publicJwk }, { onConflict: 'user_id' });
-  return error ? { skipped: 'publish-error', error } : { published: true };
+  if (error) { out.published = false; out.skipped = 'publish-error'; out.error = error; }
+  if (deviceId) {
+    const r = await supabase
+      .from('dm_device_keys')
+      .upsert({ user_id: session.user.id, device_id: deviceId, public_jwk: kp.publicJwk, label: myDeviceLabel(), last_seen_at: new Date().toISOString() }, { onConflict: 'user_id,device_id' });
+    if (r && r.error) { out.deviceError = r.error; } else { out.devicePublished = true; }
+    deviceKeysCache.delete(session.user.id); deviceKeysAt.delete(session.user.id);
+  }
+  return out;
 }
 
 async function fetchPublicKey(userId) {
@@ -58,32 +96,113 @@ async function fetchPublicKey(userId) {
   return data?.public_jwk ?? null;
 }
 
-// The AES pair key I share with `otherUserId` (ECDH symmetry: both of us derive
-// the same key). Null when either side has no key — callers fall back.
-function sharedKeyWith(myUserId, otherUserId) {
-  if (!pairKeyCache.has(otherUserId)) {
-    pairKeyCache.set(otherUserId, (async () => {
-      const kp = await myKeypair(myUserId);
-      if (!kp) return null;
-      const theirs = await fetchPublicKey(otherUserId);
-      if (!theirs) return null;
-      return deriveDmKey(kp.privateJwk, theirs);
-    })().catch(() => null));
+// Every device a person has published a key for. Cached briefly; a decrypt
+// that meets an unknown sending device refreshes it (below).
+function deviceKeysOf(userId, { fresh = false } = {}) {
+  const at = deviceKeysAt.get(userId) || 0;
+  if (fresh || !deviceKeysCache.has(userId) || Date.now() - at > DEVICE_KEYS_TTL_MS) {
+    deviceKeysAt.set(userId, Date.now());
+    deviceKeysCache.set(userId, (async () => {
+      const { data, error } = await supabase
+        .from('dm_device_keys').select('device_id,public_jwk,label,last_seen_at').eq('user_id', userId);
+      if (error || !Array.isArray(data)) return [];
+      return data.filter((r) => r && r.device_id && r.public_jwk)
+        .map((r) => ({ deviceId: r.device_id, publicJwk: r.public_jwk, label: r.label || null, lastSeenAt: r.last_seen_at || null }));
+    })().catch(() => []));
   }
-  return pairKeyCache.get(otherUserId);
+  return deviceKeysCache.get(userId);
 }
 
-// Decrypt a shaped DM in place: encrypted bodies become plaintext when this
-// device can derive the pair key, and the honest LOCKED_PLACEHOLDER when not.
-async function decryptShape(m, myUserId) {
+/** The devices that can open MY sealed messages: mine, with this one marked. */
+export async function loadMyDmDevices() {
+  const session = await currentSession();
+  if (!session) return [];
+  const me = myDeviceId();
+  const rows = await deviceKeysOf(session.user.id, { fresh: true });
+  return rows.map((r) => ({ ...r, thisDevice: r.deviceId === me }))
+    .sort((a, b) => (a.thisDevice ? -1 : b.thisDevice ? 1 : String(b.lastSeenAt || '').localeCompare(String(a.lastSeenAt || ''))));
+}
+
+/** Forget one of my devices: new messages are no longer sealed for it. Never this one. */
+export async function forgetDmDevice(deviceId) {
+  const session = await currentSession();
+  if (!session) return { skipped: 'signed-out' };
+  if (!deviceId || deviceId === myDeviceId()) return { skipped: 'this-device' };
+  const { error } = await supabase.from('dm_device_keys').delete().eq('user_id', session.user.id).eq('device_id', deviceId);
+  deviceKeysCache.delete(session.user.id); deviceKeysAt.delete(session.user.id);
+  return error ? { skipped: 'delete-error', error } : { forgotten: true };
+}
+
+// v1: every AES pair key I may share with `otherUserId` — one per public key
+// of theirs we know (the v1 row first, then each device key). Symmetric, so a
+// v1 body opens if ANY of them was the key in force when it was sealed. Null
+// list when either side has no key — callers fall back.
+function pairKeysWith(myUserId, otherUserId) {
+  const slot = `${myUserId}|${otherUserId}`;
+  if (!pairKeysCache.has(slot)) {
+    pairKeysCache.set(slot, (async () => {
+      const kp = await myKeypair(myUserId);
+      if (!kp) return [];
+      const jwks = [];
+      const legacy = await fetchPublicKey(otherUserId);
+      if (legacy) jwks.push(legacy);
+      for (const d of await deviceKeysOf(otherUserId)) jwks.push(d.publicJwk);
+      const keys = [];
+      const seen = new Set();
+      for (const jwk of jwks) {
+        const id = JSON.stringify(jwk);
+        if (seen.has(id)) continue;
+        seen.add(id);
+        const k = await deriveDmKey(kp.privateJwk, jwk);
+        if (k) keys.push(k);
+      }
+      return keys;
+    })().catch(() => []));
+  }
+  return pairKeysCache.get(slot);
+}
+
+// The public key of the device that sealed a v2 message: my own when it was
+// this device, else fetched (and fetched again once if it is new to us).
+async function senderDevicePublic(from, myUserId, kp) {
+  const me = myDeviceId();
+  if (from.userId === myUserId && from.deviceId === me) return kp ? kp.publicJwk : null;
+  const find = (rows) => { const r = rows.find((d) => d.deviceId === from.deviceId); return r ? r.publicJwk : null; };
+  let jwk = find(await deviceKeysOf(from.userId));
+  if (!jwk) jwk = find(await deviceKeysOf(from.userId, { fresh: true }));
+  return jwk;
+}
+
+// Open a shaped DM in place: a sealed body becomes plaintext when this
+// device can open it, and an honest placeholder when not. v2 says WHY in its
+// own words: sealed for the other devices before this one joined. Exported so
+// the multi-device proof can run it per device without the stream.
+export async function openDmShape(m, myUserId) {
   if (!isEncryptedBody(m.body)) return { ...m, encrypted: false, locked: false };
-  const key = m.otherUserId ? await sharedKeyWith(myUserId, m.otherUserId) : null;
-  const text = key ? await decryptDmBody(m.body, key) : null;
+  let text = null;
+  let placeholder = LOCKED_PLACEHOLDER;
+  if (isSealedV2(m.body)) {
+    const env = sealedEnvelope(m.body);
+    const me = myDeviceId();
+    if (env && me && sealedForDevice(m.body, myUserId, me)) {
+      const kp = await myKeypair(myUserId);
+      const senderPub = kp ? await senderDevicePublic(env.from, myUserId, kp) : null;
+      text = senderPub ? await openSealed(m.body, { myPrivateJwk: kp.privateJwk, me: { userId: myUserId, deviceId: me }, senderPublicJwk: senderPub }) : null;
+    } else {
+      placeholder = LOCKED_BEFORE_THIS_DEVICE;
+    }
+  } else {
+    const keys = m.otherUserId ? await pairKeysWith(myUserId, m.otherUserId) : [];
+    for (const key of keys) {
+      text = await decryptDmBody(m.body, key);
+      if (text != null) break;
+    }
+  }
   return {
     ...m,
     encrypted: true,
     locked: text == null,
-    body: text ?? LOCKED_PLACEHOLDER,
+    body: text ?? placeholder,
   };
 }
 
@@ -115,7 +234,7 @@ export function subscribeDirectMessages(onChange) {
     const fetchAll = async () => {
       const { data, error } = await supabase.from('direct_messages').select('*').order('created_at', { ascending: true });
       if (error) { console.warn('[dm-sync] fetch failed:', error); return null; }
-      return Promise.all((data || []).map((r) => decryptShape(toDmShape(r, myUserId), myUserId)));
+      return Promise.all((data || []).map((r) => openDmShape(toDmShape(r, myUserId), myUserId)));
     };
     refresh = async () => {
       const rows = await fetchAll();
@@ -211,16 +330,39 @@ export async function sendDirectMessage(recipientUserId, body, displayName, cont
   const fallback = contactInstanceId ? null : await churchInstanceId(displayName);
   const tenantId = resolveDmInstance(contactInstanceId, fallback);
   if (!tenantId) return { skipped: 'no-instance' };
-  // Encrypt end-to-end whenever the recipient has published a key; otherwise
+  // Seal end-to-end whenever the recipient has published a key; otherwise
   // the body ships plaintext (still RLS-guarded) and the result says so — the
   // surface tells the truth instead of pretending (DR-0076).
+  // SEALED FOR EVERY DEVICE OF BOTH PEOPLE (DR-0737): every device key the
+  // recipient has published, and every one of mine (this device included,
+  // whether or not its row has landed yet), so my own words open on my other
+  // phone too. A recipient with only a v1 key gets a v1 body, as before.
   let wire = text;
   let encrypted = false;
+  let sealedFor = 0;
   try {
-    const key = await sharedKeyWith(session.user.id, recipientUserId);
-    if (key) {
-      const sealed = await encryptDmBody(text, key);
-      if (sealed) { wire = sealed; encrypted = true; }
+    const myId = session.user.id;
+    const kp = await myKeypair(myId);
+    const me = myDeviceId();
+    if (kp && me) {
+      const theirs = await deviceKeysOf(recipientUserId, { fresh: true });
+      if (theirs.length) {
+        const mine = await deviceKeysOf(myId, { fresh: true });
+        const devices = [
+          ...theirs.map((d) => ({ userId: recipientUserId, deviceId: d.deviceId, publicJwk: d.publicJwk })),
+          ...mine.filter((d) => d.deviceId !== me).map((d) => ({ userId: myId, deviceId: d.deviceId, publicJwk: d.publicJwk })),
+          { userId: myId, deviceId: me, publicJwk: kp.publicJwk },
+        ];
+        const sealed = await sealForDevices(text, { myPrivateJwk: kp.privateJwk, from: { userId: myId, deviceId: me }, devices });
+        if (sealed) { wire = sealed; encrypted = true; sealedFor = devices.length; }
+      }
+    }
+    if (!encrypted) {
+      const keys = await pairKeysWith(session.user.id, recipientUserId);
+      if (keys.length) {
+        const sealed = await encryptDmBody(text, keys[0]);
+        if (sealed) { wire = sealed; encrypted = true; }
+      }
     }
   } catch { /* plaintext fallback */ }
   if (opts && opts.requireEncryption && !encrypted) return { skipped: 'no-key' };
@@ -266,7 +408,7 @@ export async function sendDirectMessage(recipientUserId, body, displayName, cont
       }))
       .catch(() => ({ ok: false, reason: 'unreachable' }));
   }
-  return { sent: true, encrypted, push };
+  return { sent: true, encrypted, sealedFor, push };
 }
 
 // Pure dedupe for list_dm_contacts rows: one entry per user, preferring the
