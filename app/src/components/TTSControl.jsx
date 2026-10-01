@@ -40,6 +40,7 @@ import { useIdleReveal } from '../lib/use-idle-reveal.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import { useScreenAwake, NO_WAKE_LOCK_HINT } from '../lib/screen-awake.js';
 import { mayTryLiteVoice } from '../lib/voice-service.js';
+import { standInWords } from '../lib/my-voice.js';
 import { openReadingSource, registerReadingOpener } from '../lib/reading-source.js';
 import FloatingReader from './FloatingReader.jsx';
 import { loadFloat, saveFloat, clampRect, avoidRects, defaultRect } from '../lib/float-geometry.js';
@@ -233,6 +234,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     setNotice,
     noticeAction,
     standInWhy,
+    myVoice,
   } = useReadAloud({ isOwner });
 
   // THE SCREEN STAYS ON WHILE IT READS (DR-0439; Darrell 2026-09-16: his phone
@@ -1065,7 +1067,10 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       }
       if (el) { await revealAllForReading(el); await settled(el); }
     }
-    const follow = el ? buildFollowMap(el) : null;
+    // A DOWNLOADED LESSON WITH NO CONNECTION (DR-0722) speaks the exact text
+    // whose voice pieces were saved (`preferText`), so every piece plays from
+    // the device; the page is still followed sentence by sentence below.
+    const follow = el && !t.preferText ? buildFollowMap(el) : null;
     if (follow && follow.text) {
       // BEGIN WHERE HE LEFT OFF. A CONTINUING piece is a different lesson the
       // run advanced into, so it starts at its top; only a read the listener
@@ -1415,9 +1420,9 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   // WHICH VOICE, AND WHY, on the status line (Darrell 2026-09-23: "No
   // headaches!!!!"). A dark studio is not a message to dismiss; it is a
   // word beside Reading.
-  const standInNote = standInWhy === 'studio-offline'
-    ? ' · stand-in voice, the studio is offline'
-    : standInWhy === 'studio-unarmed' ? ' · stand-in voice until the studio is armed' : '';
+  // When the voice picked is the listener's OWN and a stand-in is reading in
+  // its place, the words say so: "not your voice" (DR-0721).
+  const standInNote = standInWords(standInWhy, { mine: !!(myVoice && myVoice.picked) });
   const statusLabel = (isReading ? (isPaused ? 'Paused' : 'Reading…') : 'Ready') + standInNote;
 
   return (
@@ -1605,6 +1610,30 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
           {isReading && audioVoice === 'device' && (
             <div data-testid="reader-device-voice-warning" className="text-[0.625em] text-[#1A1815] border-l-4 border-[#B85838] pl-[0.5em] mb-[0.75em]" style={{ fontFamily: '"Fraunces", serif' }}>
               {BACKGROUND_LINES.device}
+            </div>
+          )}
+          {/* WHO IS LEARNING — the level, switchable from the reader (DR-0426).
+              Same row the lesson shows at every stage; a pick mid-read keeps
+              the place and resumes in the new words.
+              FIRST IN THE PANEL (DR-0717). Darrell 2026-10-01: "In the
+              reader.... at the beginning before the lesson starts". It sat
+              below Text size, Colors and Follow along, under everything a
+              reader scrolls past; it now comes before Keep screen on and the
+              Read buttons, so the level is picked and THEN the reading starts. */}
+          {target && target.setLevel && Array.isArray(target.levels) && target.levels.length > 0 && (
+            <div className="mb-[0.5em]" data-testid="reader-level-control">
+              <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Who is learning?{isReading ? ' — switch and it keeps your place' : ' — sets the words and the pace'}</div>
+              <div className="flex flex-wrap gap-[0.25em]" role="radiogroup" aria-label="Who is learning? Sets the words and the pace">
+                {target.levels.map((b) => {
+                  const on = b.id === target.level;
+                  return (
+                    <button key={b.id} type="button" role="radio" aria-checked={on} onClick={() => pickLevel(b.id)}
+                      className={`px-[0.5em] py-[0.5em] min-h-[2.25em] text-[0.625em] uppercase tracking-wider border focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>
+                      {b.label}{b.range ? <span className="opacity-70"> {b.range}</span> : null}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
           {/* THE SCREEN STAYS ON WHILE IT READS (DR-0439) — the per-device switch,
@@ -1808,26 +1837,6 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
             );
           })()}
 
-          {/* WHO IS LEARNING — the level, switchable from the reader (DR-0426).
-              Same row the lesson shows at every stage; a pick mid-read keeps
-              the place and resumes in the new words. */}
-          {target && target.setLevel && Array.isArray(target.levels) && target.levels.length > 0 && (
-            <div className="mb-[0.5em]" data-testid="reader-level-control">
-              <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Who is learning?{isReading ? ' — switch and it keeps your place' : ' — sets the words and the pace'}</div>
-              <div className="flex flex-wrap gap-[0.25em]" role="radiogroup" aria-label="Who is learning? Sets the words and the pace">
-                {target.levels.map((b) => {
-                  const on = b.id === target.level;
-                  return (
-                    <button key={b.id} type="button" role="radio" aria-checked={on} onClick={() => pickLevel(b.id)}
-                      className={`px-[0.5em] py-[0.5em] min-h-[2.25em] text-[0.625em] uppercase tracking-wider border focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>
-                      {b.label}{b.range ? <span className="opacity-70"> {b.range}</span> : null}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {/* SHOW / HIDE THE WORD LIVES WITH THE PLAY CONTROLS (Darrell
               2026-09-14, from the lesson with this panel open: "I want that bar
               to be where the play button is or have the same impact").
@@ -1888,6 +1897,17 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
                   </optgroup>
                 ))}
               </select>
+              {/* MY VOICE, SAID BEFORE PLAY (DR-0721; Darrell 2026-10-01: "my
+                  recorded voice still will not work as my reader voice… why?").
+                  Whether his own voice can read now, and if not, why, in one
+                  sentence under the list he picks it from. */}
+              {myVoice && (myVoice.picked || myVoice.mine) && (
+                <p data-testid="my-voice-status" data-status={myVoice.status} role="status"
+                  className={`mt-[0.375em] text-[0.5625em] leading-snug ${myVoice.ready ? 'text-[#5A6E3D]' : 'text-[#1A1815]'}`}
+                  style={{ fontFamily: '"Fraunces", serif' }}>
+                  {myVoice.picked ? myVoice.line : `${myVoice.label} is in this list: pick it to hear lessons in your recorded voice.`}
+                </p>
+              )}
             </div>
           ) : null}
 

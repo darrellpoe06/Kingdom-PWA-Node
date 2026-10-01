@@ -75,8 +75,8 @@ describe('a lesson card s prose is never squeezed into a column by its Share con
     const capped = s.match(/ts-chrome-region flex (justify-end mt-1|items-center justify-between gap-2 mb-1)/g) || [];
     // Five, plus the two DR-0580 sections (voices, timeline): seven; plus the
     // DR-0601 worked case: eight; plus Talk about it together (DR-0733): nine;
-    // plus Search it out (DR-0734): ten.
-    expect(capped.length).toBe(10);
+    // plus Search it out (DR-0734): ten; plus The code in this lesson (DR-0729): eleven.
+    expect(capped.length).toBe(11);
   });
 
   it('the anchor line keeps its tappable references and its own reading shape', () => {

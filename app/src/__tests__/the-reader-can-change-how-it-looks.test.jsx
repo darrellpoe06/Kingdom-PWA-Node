@@ -223,10 +223,14 @@ describe('the controls are chrome, sized like the rest of this panel', () => {
     // controls inside this em-sized box balloon at A+++/A44 and clip off
     // screen. A raw rem/px class in this block is that defect returning.
     const panel = SRC('components/TTSControl.jsx');
-    const block = panel.slice(
-      panel.indexOf('data-testid="reader-look-and-feel"'),
-      panel.indexOf('WHO IS LEARNING'),
-    );
+    // The block runs from the look controls to the next section after them.
+    // It used to end at the "Who is learning?" row, which DR-0717 moved to the
+    // top of the panel; the Show-the-Word section is what follows them now.
+    const start = panel.indexOf('data-testid="reader-look-and-feel"');
+    const end = panel.indexOf('SHOW / HIDE THE WORD LIVES WITH THE PLAY CONTROLS', start);
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    const block = panel.slice(start, end);
     expect(block.length).toBeGreaterThan(400);
     expect(block).not.toMatch(/text-\[\d+(\.\d+)?rem\]/);
     expect(block).not.toMatch(/min-h-\[\d+(\.\d+)?rem\]/);

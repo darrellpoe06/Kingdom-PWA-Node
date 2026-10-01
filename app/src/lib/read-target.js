@@ -86,6 +86,9 @@ export function setReadTarget(owner, target) {
     levels: target && Array.isArray(target.levels) ? target.levels : null,
     setLevel: target && typeof target.setLevel === 'function' ? target.setLevel : null,
     open: text ? null : open,
+    // A DOWNLOADED LESSON WITH NO CONNECTION (DR-0722): speak `text` itself,
+    // the reading whose voice pieces were saved, not the page's mapped text.
+    preferText: !!(target && target.preferText && text),
   };
   notify();
 }
