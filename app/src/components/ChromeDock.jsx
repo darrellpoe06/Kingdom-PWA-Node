@@ -117,7 +117,7 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
               aria-haspopup="true"
               aria-label={netHealthy ? 'More: Feedback, Give, network status, back to top' : 'More: Feedback, Give, network status (a connection check is failing), back to top'}
               title="More"
-              className={`sm:hidden ${moreOpen ? DOCK_BTN_ON : DOCK_BTN}`}
+              className={`sm:hidden ${moreOpen ? DOCK_BTN_ON : DOCK_BTN} focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]`}
             >
               <span aria-hidden="true" className={DOCK_ICON}>⋯</span>
               <DockLabel>More</DockLabel>
@@ -139,7 +139,7 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
                 aria-pressed={feedbackOpen || undefined}
                 title="Tell us what's working / not working / missing"
                 data-testid="dock-feedback"
-                className={DOCK_BTN}
+                className={`${DOCK_BTN} focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]`}
               >
                 <span aria-hidden="true" className={`text-[#B85838] ${DOCK_ICON}`}><UiIcon name="chat" /></span>
                 <DockLabel>Feedback</DockLabel>
@@ -148,7 +148,7 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
               <NetworkStatus variant="dock" onHealthChange={onHealthChange} />
               {/* On a phone Top also rides in the menu, so it is reachable
                   even while the reader's mini-bar fills the line. */}
-              <button type="button" onClick={toTop} data-testid="dock-more-top" aria-label="Back to the top of the page" title="Back to top" className={`sm:hidden ${DOCK_BTN}`}>
+              <button type="button" onClick={toTop} data-testid="dock-more-top" aria-label="Back to the top of the page" title="Back to top" className={`sm:hidden ${DOCK_BTN} focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]`}>
                 <span aria-hidden="true" className={DOCK_ICON}><UiIcon name="chevronUp" /></span>
                 <DockLabel>Top</DockLabel>
               </button>
@@ -160,7 +160,7 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
               the bar, this inline copy steps aside (index.css) and the one in
               More carries it. */}
           {deep && (
-            <button type="button" onClick={toTop} data-testid="dock-top" aria-label="Back to the top of the page" title="Back to top" className={`dock-top-inline shrink-0 ${DOCK_BTN}`}>
+            <button type="button" onClick={toTop} data-testid="dock-top" aria-label="Back to the top of the page" title="Back to top" className={`dock-top-inline shrink-0 ${DOCK_BTN} focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]`}>
               <span aria-hidden="true" className={DOCK_ICON}><UiIcon name="chevronUp" /></span>
               <DockLabel>Top</DockLabel>
             </button>
