@@ -18,7 +18,10 @@
 // 'fault' added 2026-09-13 (DR-0378). A door that breaks now writes its own row
 // (0217), but a row still waits for somebody to open the board. This is the
 // topic that reaches the office when it does not.
-export const SENDABLE_TOPICS = ['live', 'message', 'fault'];
+// 'lesson' added 2026-10-01 (DR-0728). A person's own lesson finished building
+// or went live (migration 0246 enqueues it; the outbox drain sends it). Like
+// `fault` it is NEVER broadcast: an explicit one-person audience is required.
+export const SENDABLE_TOPICS = ['live', 'message', 'fault', 'lesson'];
 
 /** Titles/bodies are shown on a lock screen; keep them short and unsurprising. */
 export const MAX_TITLE = 80;
@@ -53,6 +56,9 @@ export function dedupeKeyFor({ topic, churchId, videoId, messageId, faultId, at 
   // office closed it -- earns a second buzz. The storm is already one row; this
   // makes it one notification.
   if (topic === 'fault') return `fault:${str(faultId)}`;
+  // A lesson notice is keyed by the TEACHING and the EVENT (`lesson:<row>:ready`,
+  // `lesson:<row>:published`), written by migration 0246 on the outbox row and
+  // carried through unchanged, so a drain that runs twice sends once.
   return `${topic}:${str(churchId) || 'x'}:${new Date(at || Date.now()).toISOString()}`;
 }
 
@@ -107,6 +113,19 @@ export function validateSendRequest(body) {
     const office = Array.isArray(b.userIds) ? b.userIds.filter((u) => typeof u === 'string' && u) : [];
     if (office.length === 0) {
       return { ok: false, error: 'a fault notification requires an explicit office audience — it is never broadcast to an instance' };
+    }
+  }
+
+  // A LESSON NOTICE IS FOR ITS ONE PERSON (DR-0728). The same wall as `fault`:
+  // an explicit audience is required, so no code path can tell a congregation
+  // that somebody's lesson is ready. Its dedupe key comes from the outbox row.
+  if (topic === 'lesson') {
+    const people = Array.isArray(b.userIds) ? b.userIds.filter((u) => typeof u === 'string' && u) : [];
+    if (people.length === 0) {
+      return { ok: false, error: 'a lesson notification requires the person it is for — it is never broadcast' };
+    }
+    if (!str(b.dedupeKey)) {
+      return { ok: false, error: 'a lesson notification carries its dedupe key from the outbox row (lesson:<row>:<event>)' };
     }
   }
 
@@ -202,6 +221,17 @@ export function faultAnnouncement({ brandLabel, occurrences } = {}) {
 }
 
 /**
+ * The words for a lesson arrival, by event. Plain, and nothing a lock screen
+ * should not show: no lesson text, no member's name.
+ */
+export function lessonAnnouncement({ event } = {}) {
+  if (event === 'published') {
+    return { title: 'Your lesson is published'.slice(0, MAX_TITLE), body: 'Open Your lessons to read it.'.slice(0, MAX_BODY) };
+  }
+  return { title: 'Your lesson is ready to review'.slice(0, MAX_TITLE), body: 'Every version is written. Open Your lessons to choose.'.slice(0, MAX_BODY) };
+}
+
+/**
  * WHO is read from `push_subscriptions` for this send — as PostgREST query
  * params, built in one tested place.
  *
@@ -221,7 +251,12 @@ export function faultAnnouncement({ brandLabel, occurrences } = {}) {
 export function audienceQuery({ topic, instanceId, userIds }) {
   const params = new URLSearchParams();
   params.set('select', 'id,endpoint,p256dh,auth,user_id,disabled_at');
-  params.set('topics', `cs.{${topic}}`);
+  // A lesson notice rides the person's own `message` opt-in (DR-0728): the one
+  // consent on a device that means "tell me when something is for me". Every
+  // device subscribed from the app's offer carries exactly that topic
+  // (AppAlerts -> PushNotifications topic="message"), so a new topic name on
+  // the row would reach no phone that already said yes.
+  params.set('topics', `cs.{${topic === 'lesson' ? 'message' : topic}}`);
   params.set('disabled_at', 'is.null');
   const people = Array.isArray(userIds) ? userIds.filter((u) => typeof u === 'string' && u) : [];
   if (people.length) {

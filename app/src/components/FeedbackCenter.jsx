@@ -26,6 +26,7 @@ import { saveExtraction } from '../lib/use-discovery.js';
 import { OPPORTUNITY_LIBRARY } from '../lib/opportunity-capacity.js';
 import UiIcon from './UiIcon.jsx';
 import { setFeedbackTriage, triageLabel } from '../lib/feedback-loop.js';
+import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
 import supabase from '../lib/supabase.js';
 
 // What a signed-out sender is told (DR-0629): the note is kept, where it is.
@@ -391,7 +392,9 @@ export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey =
   const [delivery, setDelivery] = useState(null);
   const [replyTo, setReplyTo] = useState(null);
   const refreshMine = React.useCallback(() => {
-    Promise.resolve(outcomeDeps.fetchMine()).then((r) => { if (r && r.ok) setMyRemote(r.items); }, () => {});
+    // DR-0728: reading the replies here is looking; the answered notes stop
+    // counting on the icon and the header bell.
+    Promise.resolve(outcomeDeps.fetchMine()).then((r) => { if (r && r.ok) { setMyRemote(r.items); markArrivalsSeen(SCREEN_KINDS.feedback); } }, () => {});
   }, [outcomeDeps]);
   React.useEffect(() => {
     refreshMine();

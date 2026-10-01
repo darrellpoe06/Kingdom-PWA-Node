@@ -266,7 +266,7 @@ describe('every fold that holds the Word follows the switch (source scan, proven
     'WordInline.jsx': ['isOpen(seg.value)'],    // same — the chip inline in prose
     'EternalAlgorithmsStudy.jsx': ['aboutOpen'], // "About this" holds no Word
     'PracticeLearn.jsx': ['open', 'mOpen'],     // navigation accordions: pick a lesson, not a fold of the Word
-    'ChurchLearn.jsx': ['tutorOpen', 'titleOpen'], // the tutor panel, and the sticky lesson TITLE's fold (DR-0605) — neither holds the Word
+    'ChurchLearn.jsx': ['tutorOpen', 'titleOpen', '!m.heading.folded'], // the tutor panel, the sticky lesson TITLE's fold (DR-0605), and a MONTH heading's fold in the lesson list (DR-0732): navigation, none holds the Word
     'ScriptureLibrary.jsx': ['open'],           // other translations / the check: per-verse tools, not hidden references
     'WhoHeIsRegister.jsx': ['timelineOpen'],    // opens the whole timeline surface: navigation, not a fold of this lesson's Word (DR-0675)
     'WhoHeIsTimeline.jsx': ['open', 'isOpen'],  // walking the line: pick an era, pick a passage; the switch opening all 669 at once would be unusable (DR-0675)

@@ -11,6 +11,7 @@ import { initTextSize } from './lib/text-size.js';
 import { wireDatePickerTap } from './lib/date-picker-tap.js';
 import { captureInstallPrompt } from './lib/install-app.js';
 import { startDmNotifications } from './lib/dm-notify.js';
+import { startArrivalsWatch } from './lib/arrivals-watch.js';
 import { captureDeepLink } from './lib/app-doors.js';
 import { captureShareOpen } from './lib/lesson-share-record.js';
 import { wireRemoteNavigation } from './lib/remote-navigation.js';
@@ -89,6 +90,14 @@ wireDatePickerTap();
 // off-screen. App-wide — it must work while the reader is on any tab, so it
 // mounts at boot, not inside the Messages surface. See lib/dm-notify.js.
 startDmNotifications(window);
+
+// EVERY ARRIVAL COUNTED (Darrell 2026-10-01: "the number of them if I haven't
+// checked them yet"). One watcher folds unread messages, a lesson that finished
+// building or went live, the Governor's member queue and a steward's answer on
+// a note into ONE count, sets the launcher and title badges to it, and feeds
+// the header bell. Started here, app-wide, right after the DM watcher it
+// listens to. See lib/arrivals-watch.js + lib/arrivals.js (DR-0728).
+startArrivalsWatch(window);
 
 // Catch the browser's one-shot PWA install event at boot so any surface (the
 // PwaPrompts banner, DownloadLatest's install offer) can fire the native

@@ -20,9 +20,16 @@
 // so they can get done."). A lesson with no recorded day is left out and
 // counted in the header with its reason, never dated by guess (DR-0076).
 // Tapping a row opens it in its HOME course.
+//
+// BOTH NUMBERS (DR-0715; Darrell 2026-09-30: "is the lesson count 349 or is
+// that with every variation based on the age number? I want both so it shows
+// the scale"). The lesson count is one per lesson; beside it stands every age
+// version those lessons really carry (child, youth, teen, adult, senior),
+// counted by lessonVersions in lib/learn-organize.js, never assumed. Each
+// month shows both too.
 // =============================================================================
 import React from 'react';
-import { latestLessons, latestCountLine } from '../lib/learn-organize.js';
+import { latestLessons, latestCountLine, catalogReadings, readingsLine, readingsMeaning, monthReadings, countWords } from '../lib/learn-organize.js';
 import { formatAdded, withMonthHeadings } from '../lib/lesson-order.js';
 import { undatedReason } from '../lib/lesson-dates.js';
 
@@ -31,6 +38,9 @@ export default function LatestLessons({ courses, onOpen }) {
   const { rows } = latest;
   if (!rows.length) return null;
   const items = withMonthHeadings(rows);
+  const scale = catalogReadings(courses);
+  const perMonth = monthReadings(items);
+  const meaning = readingsMeaning(scale);
   return (
     <nav aria-label="Latest lessons, every course" data-testid="learn-latest-lessons" className="mb-4 border border-[#E8E4DC] bg-[#FAF8F4] p-3">
       <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">
@@ -39,11 +49,19 @@ export default function LatestLessons({ courses, onOpen }) {
       <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
         <span data-testid="learn-latest-line">{latestCountLine(latest, undatedReason)}</span>
       </p>
+      <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }} data-testid="learn-latest-scale">
+        <span data-testid="learn-latest-readings" data-readings={scale.readings}>{readingsLine(scale)}.</span>
+        {meaning ? <>{' '}<span>{meaning}</span></> : null}
+      </p>
       <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1" data-testid="learn-latest-list">
         {items.map((r) => (r.heading ? (
-          <li key={`latest-${r.heading.key}`} data-month-heading={r.heading.key} className="pt-2 pb-1 text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D] font-semibold border-t border-[#E8E4DC] flex items-center justify-between">
+          <li key={`latest-${r.heading.key}`} data-month-heading={r.heading.key} className="pt-2 pb-1 text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D] font-semibold border-t border-[#E8E4DC] flex flex-wrap items-center justify-between gap-x-2">
             <span>{r.heading.label}</span>
-            <span className="text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.heading.count}</span>
+            <span className="text-[#5A5751] normal-case tracking-normal" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+              <span data-month-lessons>{r.heading.count} {r.heading.count === 1 ? 'lesson' : 'lessons'}</span>
+              {' · '}
+              <span data-month-readings={perMonth[r.heading.key] || 0}>{countWords(perMonth[r.heading.key] || 0)} readings</span>
+            </span>
           </li>
         ) : (
           <li key={`${r.courseKey}:${r.lessonId}`} data-lesson-id={r.lessonId} data-course-key={r.courseKey} data-added={r.added}>
