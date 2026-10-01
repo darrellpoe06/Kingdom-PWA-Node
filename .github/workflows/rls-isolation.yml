@@ -179,6 +179,13 @@ jobs:
           # by Darrell's two sign-ins and the Governor; only the service writes a
           # public row; no row without a passed gate over exactly its content.
           # The smoke opens the wall at the end and must SEE the leak it guards.
+          # Added 2026-09-30 (DR-0708): every table the app syncs is in the
+          # supabase_realtime publication, so an open screen hears a change made
+          # on another device. The NAS never received schema-v2.14's list; the
+          # ledger went unpublished and two family screens showed two ledgers.
+          - feature: realtime-publication
+            migrations: "0245-every-synced-table-tells-open-screens-when-it-changes.sql"
+            smokes: "0245-realtime-publication-smoke.sql"
           - feature: curriculum-preview
             migrations: "0242-the-lessons-have-a-home-on-the-nas-kept-in-step-with-the-code.sql"
             smokes: "0242-curriculum-preview-smoke.sql"
