@@ -47,6 +47,56 @@ export function useDockSlot() {
   return useSyncExternalStore(subscribe, getDockSlot, () => null);
 }
 
+// THE READER IS LIVE IN THE BAR (DR-0744; Darrell 2026-10-01, L206 on his
+// phone with two rows of buttons at the bottom: "the controls can't be further
+// condensed to fit one level together instead of two at the bottom?"). While
+// the Word plays, the slot holds the mini-bar (or the minimized pill); the bar
+// reads that from the slot itself, so the reader never has to tell it.
+export const READER_LIVE_SELECTOR = '[data-testid="reader-mini-bar"], [aria-label="Reading controls (minimized)"]';
+
+/** True while the reader's mini-bar or pill is inside this slot element. Pure. */
+export function readerLiveIn(el) {
+  if (!el || typeof el.querySelector !== 'function') return false;
+  try { return !!el.querySelector(READER_LIVE_SELECTOR); } catch (_) { return false; }
+}
+
+/** React hook: true while the reader's mini-bar or pill is in the given slot. */
+export function useReaderLive(el) {
+  const [live, setLive] = useState(() => readerLiveIn(el));
+  useEffect(() => {
+    setLive(readerLiveIn(el));
+    if (!el || typeof MutationObserver === 'undefined') return undefined;
+    const mo = new MutationObserver(() => setLive(readerLiveIn(el)));
+    mo.observe(el, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-testid', 'aria-label'] });
+    return () => mo.disconnect();
+  }, [el]);
+  return live;
+}
+
+/** The phone breakpoint the bar folds at: below Tailwind's sm (640px). */
+export const PHONE_QUERY = '(max-width: 639.98px)';
+
+/** React hook: true on a phone-width screen; false where matchMedia is missing. */
+export function usePhoneWidth() {
+  const get = () => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    try { return !!window.matchMedia(PHONE_QUERY).matches; } catch (_) { return false; }
+  };
+  const [phone, setPhone] = useState(get);
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    let mq = null;
+    try { mq = window.matchMedia(PHONE_QUERY); } catch (_) { return undefined; }
+    if (!mq) return undefined;
+    const sync = () => setPhone(!!mq.matches);
+    sync();
+    if (typeof mq.addEventListener === 'function') { mq.addEventListener('change', sync); return () => mq.removeEventListener('change', sync); }
+    if (typeof mq.addListener === 'function') { mq.addListener(sync); return () => mq.removeListener(sync); }
+    return undefined;
+  }, []);
+  return phone;
+}
+
 /** Where the page counts as "deep" enough to offer back-to-top: more than a
  *  screen and a quarter down (the rule TTSControl has used since 2026-08-15). */
 export const DEEP_FACTOR = 1.25;
