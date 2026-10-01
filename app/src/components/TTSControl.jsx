@@ -14,6 +14,7 @@
 // readers; every control is keyboard reachable; the panel is a high-contrast
 // (WCAG AA) white card regardless of app theme.
 import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { tripSummary } from '../lib/reader-trip.js';
 import { newReaderId, registerReader, subscribeReaders, chosenReader } from '../lib/one-reader.js';
 import { RATE_STEPS } from '../lib/tts.js';
 import { useReadAloud } from '../lib/use-read-aloud.js';
@@ -240,6 +241,8 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     noticeAction,
     standInWhy,
     myVoice,
+    // The last reading's trip (DR-0738; optional in mocks).
+    lastTrip,
   } = useReadAloud({ isOwner });
 
   // THE SCREEN STAYS ON WHILE IT READS (DR-0439; Darrell 2026-09-16: his phone
@@ -1986,6 +1989,14 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
           <p className="text-[0.5625em] text-[#5A5751] leading-snug mt-[0.375em]" style={{ fontFamily: '"Fraunces", serif' }}>
             Only <strong>Stop</strong> stops the voice. Close puts this panel away and keeps reading. <span data-testid="reader-background-line">{backgroundLine({ isReading, audioVoice, usesNasVoice, saved: !!(target && offlineNote && offlineNote.owner === target.owner && offlineNote.total > 0 && offlineNote.saved === offlineNote.total && !offlineNote.running) })}</span>
           </p>
+          {/* WHAT THE LAST READING DID (DR-0738): one line from the device's
+              own trip log, so "it stopped" comes with which voice, which
+              sentence, the dark, and the reason — a screenshot is a report. */}
+          {!isReading && typeof lastTrip === 'function' && lastTrip() ? (
+            <p className="text-[0.5625em] text-[#5A5751] leading-snug mt-[0.375em]" data-testid="reader-last-trip" style={{ fontFamily: '"Fraunces", serif' }}>
+              {tripSummary(lastTrip())}
+            </p>
+          ) : null}
         </div>
       ) : docked ? null : isReading ? miniBarEl : (
         <div className="flex items-end gap-2" data-testid="reader-idle-row">
