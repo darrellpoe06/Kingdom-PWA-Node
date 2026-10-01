@@ -27,6 +27,7 @@
   {"id": "learn-tab-shares", "name": "Course tab: My shares", "surface": "learn-lists", "find": {"selector": "#learn-living-lessons-tab-my-shares"}},
   {"id": "learn-latest", "name": "Latest lessons, every course", "surface": "learn-lists", "find": {"testid": "learn-latest-lessons"}},
   {"id": "learn-latest-row", "name": "Open a lesson from Latest lessons", "surface": "learn-lists", "find": {"role": "button", "nameMatch": "^\\w{3} \\d{1,2}, \\d{4} · .+ · L\\d+"}},
+  {"id": "card-talk-together", "name": "Talk about it together (parents to children, children to parents, friend to friend)", "surface": "lesson-header", "find": {"testid": "lesson-talk-together"}},
   {"id": "lesson-all-courses", "name": "All courses", "surface": "lesson-header", "find": {"testid": "lesson-bar-all-courses"}},
   {"id": "lesson-all-lessons", "name": "All lessons", "surface": "lesson-header", "find": {"testid": "lesson-bar-all"}},
   {"id": "lesson-prev", "name": "Previous lesson", "surface": "lesson-header", "find": {"role": "button", "name": "← Prev"}},
