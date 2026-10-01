@@ -34,24 +34,27 @@ describe('the KPI report names survive a narrow screen', () => {
     expect(hidden, `these classNames still hide content on a phone: ${hidden.join(' | ')}`).toEqual([]);
   });
 
-  it('every report renders its own always-visible chip, outside the collapse', () => {
+  // DR-0713 (2026-09-30) replaced the collapsible header + a second chip row
+  // with ONE labeled section and ONE tab row. The same promises, re-pinned.
+  it('every report renders its own always-visible tab, outside the collapse', () => {
     const kpi = src();
-    const row = kpi.slice(kpi.indexOf('Open a KPI report'), kpi.indexOf('{stdReportsOpen && ('));
-    expect(row).toMatch(/ranked\.map/);          // one chip per report
-    expect(row).toMatch(/pickStdReport\(r\.id\)/); // and it opens that report
+    const row = kpi.slice(kpi.indexOf('aria-label="Standard reports"'), kpi.indexOf('{stdReportsOpen && ('));
+    expect(row).toMatch(/ranked\.map/);        // one tab per report
+    expect(row).toMatch(/openReport\(r\.id\)/); // and it opens that report
   });
 
-  it('the chips are real tap targets, not 9px text', () => {
+  it('the tabs are real tap targets, not 9px text', () => {
     const kpi = src();
-    const row = kpi.slice(kpi.indexOf('Open a KPI report'), kpi.indexOf('{stdReportsOpen && ('));
+    const row = kpi.slice(kpi.indexOf('aria-label="Standard reports"'), kpi.indexOf('{stdReportsOpen && ('));
     expect(row).toMatch(/min-h-\[36px\]/);
     expect(row).not.toMatch(/text-\[0\.5625rem\]/);
   });
 
-  it('the section header is legible and its tap target is thumb-sized', () => {
+  it('the section header is legible and its show/hide is a labeled, thumb-sized button', () => {
     const kpi = src();
-    const header = kpi.slice(kpi.indexOf('onClick={openReports}'), kpi.indexOf('Open a KPI report'));
-    expect(header).toMatch(/min-h-\[48px\]/);
+    const header = kpi.slice(kpi.indexOf('id="kpi-reports-title"'), kpi.indexOf('aria-label="Standard reports"'));
     expect(header).toMatch(/text-\[0\.8125rem\]/);
+    expect(header).toMatch(/min-h-\[36px\]/);
+    expect(header).toMatch(/'Hide report' : 'Show report'/);
   });
 });
