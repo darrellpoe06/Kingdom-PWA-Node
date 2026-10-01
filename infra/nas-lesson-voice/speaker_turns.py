@@ -184,9 +184,20 @@ def called_on(turns, teacher=TEACHER):
 
 # --- the transcript --------------------------------------------------------------
 
-def header(labels_used, named=None):
+def voice_names(names=None):
+    """The labels a transcript may name: the two word-attributed voices
+    (KNOWN_VOICES) and every voice a person added with their own consent
+    (voice_enroll.py, DR-0720), label -> the name they chose."""
+    out = dict(KNOWN_VOICES)
+    for label, name in (names or {}).items():
+        out[label] = name or "a voice added by its owner"
+    return out
+
+
+def header(labels_used, named=None, names=None):
     used = [l for l in labels_used if l != "?"]
-    known = [f"{l} = {KNOWN_VOICES[l]}" for l in sorted(set(used)) if l in KNOWN_VOICES]
+    every = voice_names(names)
+    known = [f"{l} = {every[l]}" for l in sorted(set(used)) if l in every]
     unknown = sorted({l for l in used if re.match(r"^S\d+$", l)}, key=lambda x: int(x[1:]))
     parts = ["Speakers: marked by voice on our own machine."]
     if known:
@@ -205,9 +216,11 @@ def format_turns(turns):
     return "\n".join(f"{who}: {text}" for who, text in turns)
 
 
-def speaker_transcript(segments, diarized, voiceprints):
+def speaker_transcript(segments, diarized, voiceprints, names=None):
     """The labelled transcript, or None when there is nothing to label.
-    `diarized` = {"turns": [{start, end, speaker}], "centroids": {speaker: vector}}."""
+    `diarized` = {"turns": [{start, end, speaker}], "centroids": {speaker: vector}}.
+    `names` = {label: name} for voices people added themselves (DR-0720); the
+    voiceprints passed in are already only the consented ones."""
     if not diarized or not diarized.get("turns") or not segments:
         return None
     known = match_voices(diarized.get("centroids") or {}, voiceprints or {})
@@ -222,11 +235,11 @@ def speaker_transcript(segments, diarized, voiceprints):
         if who not in used:
             used.append(who)
     return {
-        "header": header(used, named),
+        "header": header(used, named, names),
         "text": format_turns(turns),
         "labels": used,
         "named": named,
-        "known": sorted({l for l in used if l in KNOWN_VOICES}),
+        "known": sorted({l for l in used if l in voice_names(names)}),
         "voices": len([l for l in used if l != "?"]),
     }
 
@@ -247,7 +260,13 @@ def parse_turns(text):
 
 # --- voiceprints on disk (the NAS keeps them; they never leave it) ---------------
 
-def load_voiceprints(data_dir):
+LABEL_FILE_RE = re.compile(r"^([A-Z]{2,3})\.json$")
+
+
+def load_voiceprint_records(data_dir):
+    """{label: {"vector", "name", "user_id"}} for every voiceprint on disk.
+    `user_id` is set only on a voice a person added themselves (DR-0720); the
+    word-attributed BG and DP (DR-0712) carry none."""
     d = os.path.join(data_dir, "voiceprints")
     out = {}
     try:
@@ -255,25 +274,36 @@ def load_voiceprints(data_dir):
     except OSError:
         return out
     for n in sorted(names):
-        m = re.match(r"^([A-Z]{2,3})\.json$", n)
+        m = LABEL_FILE_RE.match(n)
         if not m:
             continue
         try:
             with open(os.path.join(d, n), encoding="utf-8") as f:
-                v = json.load(f).get("vector") or []
+                rec = json.load(f)
+            v = rec.get("vector") or []
             if v:
-                out[m.group(1)] = [float(x) for x in v]
+                out[m.group(1)] = {"vector": [float(x) for x in v], "name": rec.get("name") or "",
+                                   "user_id": rec.get("user_id") or "", "source": rec.get("source") or ""}
         except (OSError, ValueError):
             continue
     return out
 
 
-def save_voiceprint(data_dir, initials, vector, source=""):
+def load_voiceprints(data_dir):
+    return {label: r["vector"] for label, r in load_voiceprint_records(data_dir).items()}
+
+
+def save_voiceprint(data_dir, initials, vector, source="", name=None, user_id=None):
     if not re.match(r"^[A-Z]{2,3}$", initials or ""):
         raise ValueError("initials are two or three capital letters, e.g. DP, BG")
     d = os.path.join(data_dir, "voiceprints")
     os.makedirs(d, exist_ok=True)
-    with open(os.path.join(d, initials + ".json"), "w", encoding="utf-8") as f:
-        json.dump({"initials": initials, "name": KNOWN_VOICES.get(initials, ""), "source": source,
-                   "vector": [round(float(x), 6) for x in vector]}, f)
+    rec = {"initials": initials, "name": name if name is not None else KNOWN_VOICES.get(initials, ""),
+           "source": source, "vector": [round(float(x), 6) for x in vector]}
+    if user_id:
+        rec["user_id"] = user_id
+    tmp = os.path.join(d, "." + initials + ".json.tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(rec, f)
+    os.replace(tmp, os.path.join(d, initials + ".json"))
     return os.path.join(d, initials + ".json")
