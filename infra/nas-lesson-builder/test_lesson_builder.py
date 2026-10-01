@@ -269,6 +269,32 @@ def build(db, git, writers, group=None, **kw):
 # the writers
 # =============================================================================
 
+class WhoSpoke(unittest.TestCase):
+    """DR-0712: the writer is told who spoke, and never to guess (proven-to-catch)."""
+    OWNER = "f13843f2-742b-4f8a-82af-7ecfbdc536ec"
+
+    def rules(self, tags):
+        return lw.row_rules([{"created_by": self.OWNER, "tags": tags}], {self.OWNER})
+
+    def test_the_standard_carries_the_speaker_rules(self):
+        for must in ("DP is Darrell Poe", "BG is Bishop Gwin", "S1, S2", "Never guess",
+                     "the church posts publicly", "health and sick lists", "further witnesses"):
+            self.assertIn(must, lw.STANDARD)
+
+    def test_marked_unmarked_and_public_session_rows(self):
+        marked = self.rules(["lesson", "voice-transcript", "speakers:marked", "voice:BG", "voice:DP"])
+        self.assertIn("known voices heard: BG, DP", marked)
+        self.assertNotIn("NOT marked", marked)
+        unmarked = self.rules(["lesson", "voice-transcript", "speakers:unmarked"])
+        self.assertIn("speakers are NOT marked", unmarked)
+        self.assertIn("say so where they do not", unmarked)
+        public = self.rules(["lesson", "voice-transcript", "speakers:marked", "church-session-public"])
+        self.assertIn("only as the teacher calls them", public)
+        # PROVEN-TO-CATCH: a row that is not a public church session never gets the naming line.
+        self.assertNotIn("posts publicly", unmarked)
+        self.assertNotIn("posts publicly", marked)
+
+
 class Writers(unittest.TestCase):
     def test_extract_json_tolerates_a_fence_and_a_sentence(self):
         self.assertEqual(lw.extract_json('Here:\n```json\n{"a": "b}"}\n```'), {"a": "b}"})

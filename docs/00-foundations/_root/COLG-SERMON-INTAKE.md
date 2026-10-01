@@ -68,6 +68,15 @@ Four things about these emails are not what a reasonable intake would assume. Ea
 
 ---
 
+## A CHURCH CLASS RECORDED IN THE APP — three witnesses, and who spoke (DR-0711, DR-0712)
+
+Darrell, 2026-09-30, on L202 (the weekly 1 p.m. Bible study, recorded inside the app): *"Differentiate between speakers... Bishop Gwin is BG... Darrell Poe is DP..."*, *"use the transcription from [the church's video] also to verify our lesson"*, and *"the recordings are online and members already know they are public"*.
+
+1. **Use every witness that exists.** The in-app recording (the words and the room's voices), the teacher's own notes (the Wednesday email: title, points, order, the Scripture he opened) and the church's posted video (a second recording of the same words, read through `church-video-witness.yml`, never from YouTube directly). The notes and the video correct the recording; the lesson says which witness carries each claim. Every quotation is still the KJV from `app/public/bible/kjv`, whatever translation the notes use.
+2. **Say who spoke.** A transcript marked on the NAS (`infra/nas-lesson-voice/speaker_turns.py`) reads `BG: …`, `DP: …`, `S1: …` under a `Speakers:` header: BG = Bishop Gwin, DP = Darrell Poe, S1, S2 = voices not yet named, `?` = words no voice could be placed on. Attribute each line to its label and to no one else. An unmarked transcript says so, and the lesson names a speaker only where the words or the sender's own account show who spoke; where they do not, the lesson says so. Never guess.
+3. **Members are named as the teacher calls them, in a session the church posts publicly** (DR-0711, an exception to §6 of DR-0333 for public church sessions only): only names the recording shows, attached to the words the recording attaches them to, never guessed onto a voice, and never with health, sick lists, giving, family trouble or a confidence. A session that is not posted publicly keeps DR-0333 §6 and DR-0639.
+4. **Voices are enrolled on the NAS from words someone who knows them attributed** (`enroll.json`, run once by `install.sh`; by hand, `name_voice.py --list` then `--name 0=BG --name 3=DP`). The voiceprints never leave the NAS.
+
 ## What this Way does not do
 
 - It does not authorise publishing anything COLG-facing without the normal tier gate (RELEASE-TIERS).
