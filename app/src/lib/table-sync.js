@@ -107,6 +107,33 @@ export async function getOfficeInstanceId() {
   return (data && data.instance_id) || null;
 }
 
+// THE DOORS' OWN INSTANCE (0207, DR-0365; the fix is DR-0743). On 2026-09-14
+// every rental and the tables that hang off it moved from `poe-family` into the
+// landlord instance `poe-properties`, and the resolver for it is
+// my_properties_instance_role(). The family app kept reading rentals through
+// getInstanceId(), which is the FAMILY instance, so Real Estate showed
+// "Properties · 0" over 13 real doors (Darrell, 2026-10-01: "Properties?!!!!!";
+// measured on the live database: rentals 13 rows, all under the landlord
+// instance). A door sync resolves the landlord membership first and falls back
+// to the family instance only for a person who has no landlord seat, so a
+// household that never moved its doors keeps working unchanged. Never joins or
+// creates anything.
+export async function getPropertiesInstanceId() {
+  const { data, error } = await supabase.rpc('my_properties_instance_role');
+  if (error) throw error;
+  return (data && data.instance_id) || null;
+}
+
+export async function getDoorsInstanceId() {
+  try {
+    const id = await getPropertiesInstanceId();
+    if (id) return id;
+  } catch (e) {
+    console.warn('[table-sync] landlord instance lookup failed; reading the family instance:', e);
+  }
+  return getTenantId();
+}
+
 export function createTableSync(spec) {
   const {
     localKey,
@@ -166,6 +193,11 @@ export function createTableSync(spec) {
     // on_conflict arbiter cannot target — a resolve+update sidesteps that and
     // is exact.
     conflictKey = null,
+    // instanceId — the resolver for the instance this table's rows live in.
+    // Every read, write, delete and the realtime channel go through it, so one
+    // table cannot read one instance and write another. The default is the
+    // family instance; a door sync passes getDoorsInstanceId (DR-0743).
+    instanceId = getTenantId,
   } = spec;
 
   async function upload(item) {
@@ -173,7 +205,7 @@ export function createTableSync(spec) {
     if (!session) return { skipped: 'signed-out' };
     let tenantId;
     try {
-      tenantId = await getTenantId();
+      tenantId = await instanceId();
     } catch (e) {
       console.warn(`[table-sync:${remoteTable}] tenant lookup failed:`, e);
       return { skipped: 'no-tenant', error: e };
@@ -206,7 +238,7 @@ export function createTableSync(spec) {
     if (!session) return { skipped: 'signed-out' };
     let tenantId;
     try {
-      tenantId = await getTenantId();
+      tenantId = await instanceId();
     } catch (e) {
       console.warn(`[table-sync:${remoteTable}] tenant lookup failed:`, e);
       return { skipped: 'no-tenant', error: e };
@@ -309,7 +341,7 @@ export function createTableSync(spec) {
   // doesn't change mid-session.
   let cachedTenantId = null;
   async function tenantIdCached() {
-    if (!cachedTenantId) cachedTenantId = await getTenantId();
+    if (!cachedTenantId) cachedTenantId = await instanceId();
     return cachedTenantId;
   }
 
