@@ -78,7 +78,6 @@ describe('a lesson card s prose is never squeezed into a column by its Share con
     // DR-0601 worked case: eight; plus Talk about it together (DR-0733): nine;
     // plus Search it out (DR-0734): ten; plus The code in this lesson (DR-0729): eleven.
     expect(capped.length).toBe(11);
-    expect(capped.length).toBe(10);
   });
 
   it('the anchor line keeps its tappable references and its own reading shape', () => {
