@@ -15,7 +15,7 @@ import { queueFreshness, QUEUE_STALE_DAYS } from '../lib/queue-freshness.js';
 import { compressImageFile, isLikelyImageFile } from '../lib/image.js';
 import { filesFromClipboardEvent } from '../lib/paste-input.js';
 import { receiptMessage, receiptCode } from '../lib/feedback-receipt.js';
-import IntakeOutcomeList from './IntakeOutcomeList.jsx';
+import IntakeOutcomeList, { tallyText } from './IntakeOutcomeList.jsx';
 import { fetchMyFeedback } from '../lib/feedback-sync.js';
 import { fetchDeliveryRecord } from '../lib/github-ops.js';
 import { categorizeIntake, basisLine, outcomeFor, INTAKE_CATEGORIES, CATEGORY_ORDER, categoryCounts } from '../lib/intake-outcome.js';
@@ -404,6 +404,10 @@ export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey =
   }, [outcomeDeps, refreshMine]);
   const myNotes = mergeMine(myRemote, myFeedback);
   const outcomeDelivery = delivery ? { ...delivery, outcomes: myRemote.filter((n) => n.outcomeAt).map((n) => ({ submittedAt: n.submittedAt, outcomeAt: n.outcomeAt, category: n.intakeCategory })) } : null;
+  // The fold of earlier notes (DR-0740): closed by default, and while closed
+  // it still says where every note stands, in one line.
+  const [earlierOpen, setEarlierOpen] = React.useState(false);
+  const earlierTally = tallyText(myNotes, { delivery: outcomeDelivery, board: myFeedback });
 
   const toggleCategory = (k) => setCategories(prev => prev.includes(k) ? prev.filter(c => c !== k) : [...prev, k]);
 
@@ -545,8 +549,20 @@ export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey =
             </div>
           )}
           {myNotes.length > 0 && !replyTo && (
-            <details className="mb-3 border border-[#E8E4DC] p-3">
-              <summary className="cursor-pointer text-xs uppercase tracking-wider text-[#1A1815] font-semibold min-h-[44px] flex items-center">Your earlier feedback ({myNotes.length}): where each one stands</summary>
+            // YOUR EARLIER FEEDBACK IS EASY TO FIND (DR-0740). Darrell 2026-10-01,
+            // on this box: "Can users see their feedback logs... can I see them?!!!
+            // Where are they and what's what?" The fold was here, but a flex
+            // summary draws no disclosure arrow, so it read as an empty box. Now
+            // it says tap to open, carries the arrow, and tallies where every
+            // note stands while it is still closed.
+            <details className="mb-3 border border-[#E8E4DC] p-3" open={earlierOpen} onToggle={(e) => setEarlierOpen(e.currentTarget.open)} data-testid="feedback-earlier">
+              <summary data-testid="feedback-earlier-fold" aria-expanded={earlierOpen} aria-label={`Your earlier feedback, ${myNotes.length} notes: ${earlierOpen ? 'tap to close the list' : 'tap to open the list'}`}
+                className="cursor-pointer list-none text-xs uppercase tracking-wider text-[#1A1815] font-semibold min-h-[44px] flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span aria-hidden="true">{earlierOpen ? '▾' : '▸'}</span>
+                <span>Your earlier feedback ({myNotes.length}): where each one stands</span>
+                <span className="normal-case tracking-normal font-normal text-[#5A5751]">{earlierOpen ? 'tap to close' : 'tap to open'}</span>
+                {earlierTally && <span className="w-full normal-case tracking-normal font-normal text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }} data-testid="feedback-earlier-tally">{earlierTally}</span>}
+              </summary>
               <div className="mt-2">
                 <IntakeOutcomeList notes={myNotes} board={myFeedback} delivery={outcomeDelivery} onReply={(n) => setReplyTo(n)} />
               </div>
