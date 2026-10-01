@@ -157,6 +157,7 @@
   {"id": "ftr-dock-text-smaller", "name": "Smaller text (bottom bar)", "surface": "app-footer", "find": {"testid": "dock-text-smaller"}},
   {"id": "ftr-dock-text-bigger", "name": "Bigger text (bottom bar)", "surface": "app-footer", "find": {"testid": "dock-text-bigger"}},
   {"id": "ftr-dock-reader-slot", "name": "The reader's slot in the bottom bar", "surface": "app-footer", "find": {"testid": "chrome-dock-reader"}},
+  {"id": "ftr-dock-arrivals", "name": "What arrived: N new in the bottom bar, what it is made of, and the list (DR-0741)", "surface": "app-footer", "find": {"testid": "dock-arrivals"}, "note": "Drawn only while something is new; the presence walk supplies three arrivals before mounting the bar."},
   {"id": "ftr-comfort-toggle", "name": "Hide / Show controls toggle on the header's comfort row", "surface": "app-footer", "find": {"source": "<ComfortBarToggle "}},
   {"id": "books-upload", "name": "Upload (top right)", "surface": "books", "find": {"testid": "books-upload-button"}},
   {"id": "books-upload-panel", "name": "Upload: the one upload panel", "surface": "books", "find": {"testid": "books-upload-panel"}},
