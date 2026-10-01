@@ -24,6 +24,7 @@ import { mayCompareVersions } from '../lib/lesson-versions.js';
 import { fetchReviewQueue } from '../lib/lesson-decisions.js';
 import LessonRoad from './LessonRoad.jsx';
 import LessonVersionsCompare from './LessonVersionsCompare.jsx';
+import AddMyVoiceLink from './AddMyVoiceLink.jsx';
 // DR-0728: opening this screen is looking. Every lesson arrival (ready, decided,
 // published) is marked seen here, so the icon and the bell drop their number.
 import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
@@ -105,6 +106,8 @@ export default function LessonInbox({ deps = LIVE, refreshKey = 0 }) {
       <p className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={SERIF}>
         Every lesson you sent from the app, from arrival to live: when it arrived, when its words came, when it was built, its PR, and when it went live, with how long each step took. A step nothing has reported yet says so.
       </p>
+      {/* DR-0720: S1, S2 in a transcript are voices not yet added. */}
+      <AddMyVoiceLink line="S1, S2 in a transcript are voices not yet added. Add yours so your name shows beside your words." />
       {!state.ok && state.reason !== 'loading' && (
         <p className="text-[0.6875rem] text-[#B85838] mt-2" style={SERIF} data-testid="lesson-inbox-unavailable">Your lessons could not be read ({state.reason}).</p>
       )}
