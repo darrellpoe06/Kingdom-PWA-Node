@@ -33,6 +33,8 @@ import SectionTabs from './SectionTabs.jsx';
 import ShareButton from './ShareButton.jsx';
 import { getTrack } from '../lib/tlc-lessons.js';
 import { tlcLessonUrl, tlcLessonSharePayload, tlcCourseSharePayload, TLC_TASTE_NOTE } from '../lib/tlc-lesson-links.js';
+import { newShareToken } from '../lib/lesson-share.js';
+import { recordLessonShare, pendingShareToken, reportShareLanded, waitForElement } from '../lib/lesson-share-record.js';
 import { TLC_BRAND } from '../lib/tlc-practice.js';
 import SectionBoundary from './SectionBoundary.jsx';
 import WordInline from './WordInline.jsx';
@@ -138,6 +140,15 @@ function PracticeLearn({ email = '', isStaff = false, deepLink = null, guest = f
   const [area, setArea] = useState(deepLink && deepLink.kind === 'library' ? 'courses' : 'lessons');
   // The lesson a link opened WITH the Word open (word=1): that one fold opens.
   const linkedWord = deepLink && deepLink.word && deepLink.module ? deepLink.module.id : null;
+  // A SHARED link reports whether its lesson is really on screen (DR-0698).
+  // The door resolved the link before mounting this; a stale link never
+  // mounts it with a deepLink, and the door reports that case itself.
+  useEffect(() => {
+    if (!deepLink || !deepLink.module || !pendingShareToken()) return;
+    waitForElement(`tlc-lesson-${deepLink.module.id}`).then((onScreen) => reportShareLanded(
+      onScreen ? { ok: true } : { ok: false, reason: 'lesson did not render' },
+    ));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Lessons a therapist assigned (staff) / lessons assigned to me (everyone
   // signed in). Read once per sign-in; refreshed after each write.
   const [assigned, setAssigned] = useState({ mine: [], forMe: [], loaded: false, message: '' });
@@ -583,7 +594,7 @@ function TrackCard({ track, level, progress, quizState, openModuleId, setOpenMod
                 <span className="text-[#5A5751] shrink-0">{open ? '−' : '+'}</span>
               </button>
               {open && (
-                <div className="p-3 pt-0 border-t border-[#E8E4DC]">
+                <div id={`tlc-lesson-${module.id}`} className="p-3 pt-0 border-t border-[#E8E4DC]">
                   <LessonRunner module={module} level={level} quizState={quizState} onRecordQuiz={onRecordQuiz} onMarkRead={onMarkRead} track={track.key} />
                 </div>
               )}
@@ -691,7 +702,11 @@ function LessonRunner({ module, level, quizState, onRecordQuiz, onMarkRead, cour
           payload={() => tlcLessonSharePayload(module, {
             url: tlcLessonUrl({ courseId: course ? course.id : track, lessonId: module.id, word: !!word && wordOpen }),
             courseTitle: course ? course.title : ((getTrack(track) || {}).title || ''),
+            // DR-0698: the record key on the link, and the share recorded.
+            token: newShareToken(),
+            courseKey: course ? course.id : track,
           })}
+          onShared={recordLessonShare}
         />
       </div>
       {isStaff && onAssign && <AssignLessonForm lesson={{ id: module.id, title: module.title }} track={track} onAssign={onAssign} />}
@@ -1515,7 +1530,7 @@ function CourseCard({
                     <span className="text-[#5A5751] shrink-0">{mOpen ? '−' : '+'}</span>
                   </button>
                   {mOpen && (
-                    <div className="p-2.5 pt-0 border-t border-[#E8E4DC]">
+                    <div id={`tlc-lesson-${module.id}`} className="p-2.5 pt-0 border-t border-[#E8E4DC]">
                       <LessonRunner module={module} level={level} quizState={quizState} onRecordQuiz={onRecordQuiz} onMarkRead={onMarkRead} course={course} track="library" />
                     </div>
                   )}
