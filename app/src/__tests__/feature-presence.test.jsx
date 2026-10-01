@@ -58,6 +58,7 @@ const { default: ReadingVoiceControl } = await import('../components/ReadingVoic
 const { default: HelpButton } = await import('../components/HelpButton.jsx');
 const { default: ArrivalsBell } = await import('../components/ArrivalsBell.jsx');
 const { default: ContactsImport } = await import('../components/ContactsImport.jsx');
+const { FeedbackModal } = await import('../components/FeedbackCenter.jsx');
 const { default: TopNavRow } = await import('../components/TopNavRow.jsx');
 const { ChurchGiveHeaderButton } = await import('../components/ChurchGiving.jsx');
 const { default: ChromeDock } = await import('../components/ChromeDock.jsx');
@@ -238,6 +239,19 @@ const WALKS = {
     Object.defineProperty(input, 'files', { value: [file], configurable: true });
     act(() => { input.dispatchEvent(new Event('change', { bubbles: true })); });
     for (let i = 0; i < 80 && !host.querySelector('[data-testid="contacts-import-preview"]'); i++) await settle(25);
+    look(host);
+  },
+  feedback: async (look) => {
+    // A person who has sent more than eight notes: the fold is shown closed,
+    // then opened, so Show more under the list exists (DR-0740).
+    const notes = Array.from({ length: 9 }, (_, i) => ({ id: `fb${i}`, mine: true, createdAt: `2026-09-2${i}T05:00:00Z`, text: `Not working: typo ${i} on the bus page title`, triageStatus: 'new' }));
+    const deps = { fetchMine: async () => ({ ok: true, items: notes }), fetchDelivery: async () => ({ ok: false, merges: [] }) };
+    const { host } = mount(createElement(FeedbackModal, { onClose() {}, onSubmit: () => ({ id: 'x' }), currentView: 'church', myFeedback: [], outcomeDeps: deps }));
+    await settle();
+    look(host);
+    const fold = host.querySelector('[data-testid="feedback-earlier"]');
+    act(() => { fold.open = true; fold.dispatchEvent(new Event('toggle')); });
+    await settle();
     look(host);
   },
 };
