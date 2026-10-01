@@ -25,6 +25,7 @@ import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
 import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService, voiceErrorReason, speakTimeoutFor, mayAttemptStudio, isStudioRoadProblem, synthesizeLite, mayTryLiteVoice, markLiteVoiceMiss, isPlayRefusal, liteVoiceReasonText, LITE_FIRST_TIMEOUT_MS } from './voice-service.js';
 import { chunkForClips, createClipQueue } from './clip-queue.js';
 import { clipKey, createClipSource, deviceClipCache } from './clip-cache.js';
+import { setDownloadVoice } from './lesson-downloads.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
 import { createBackgroundAudio, silentWavDataUri } from './background-audio.js';
@@ -402,6 +403,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     }
     return SYSTEM_VOICE.gender === 'male' ? 'male' : 'female';
   }, [voiceId, personalVoices]);
+  // A download saves the pieces in the voice this reader reads in (DR-0722).
+  useEffect(() => { setDownloadVoice(liteVoiceFor()); }, [liteVoiceFor]);
 
   /** Play `clean` in the NAS audio voice. Resolves true once the first piece plays. */
   const playLiteVoice = useCallback(async (clean) => {

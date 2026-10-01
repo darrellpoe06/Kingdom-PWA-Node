@@ -70,6 +70,8 @@ import { newShareToken } from '../lib/lesson-share.js';
 import { recordLessonShare, pendingShareToken, reportShareLanded, waitForElement } from '../lib/lesson-share-record.js';
 import DownloadNeedsAccount from './DownloadNeedsAccount.jsx';
 import LessonShareLedger from './LessonShareLedger.jsx';
+import { LessonDownloadButton, CourseDownloadButton, AllDownloadButton, SavedMark, OfflineLevelNote, useDownloads, useOnline } from './LessonDownloads.jsx';
+import { savedReadingFor } from '../lib/lesson-downloads.js';
 import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture-matrix.js';
 import CopyButton from './CopyButton.jsx';
 import ShareButton from './ShareButton.jsx';
@@ -1134,13 +1136,20 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   // is driving, cooking, or resting their eyes, which is exactly who this
   // feature is for. `next` advances to the following piece and opens its
   // guide, so the reader keeps going by itself to the end of the series.
+  // A DOWNLOADED LESSON, OFFLINE (DR-0722): the reader speaks the very text
+  // whose voice was saved, so every piece plays from the device.
+  const online = useOnline();
+  const downloads = useDownloads();
+  const savedSig = downloads.lessons[module.id] ? JSON.stringify(downloads.lessons[module.id].levels) : '';
   React.useEffect(() => {
-    const text = readAloudTextFromArc(buildLessonArc(module, { ageBand, levelOverride, sessionFlow, handsOnLabel }));
+    const savedText = !online && !levelOverride ? savedReadingFor(module, ageBand, { sessionFlow, handsOnLabel }) : null;
+    const text = savedText || readAloudTextFromArc(buildLessonArc(module, { ageBand, levelOverride, sessionFlow, handsOnLabel }));
     if (text) {
       setReadTarget(module.id, {
         label: `this ${unitNoun}`,
         title: module.title || '',
         text,
+        preferText: !!savedText,
         elementId: `learn-read-${module.id}`,
         prepare: (on) => setReadAll(!!on),
         next: onAdvance || null,
@@ -1157,7 +1166,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
       });
     }
     return () => clearReadTarget(module.id);
-  }, [module, ageBand, levelOverride, sessionFlow, handsOnLabel, unitNoun, onAdvance, setAgeBand, setLearnLevel]);
+  }, [module, ageBand, levelOverride, sessionFlow, handsOnLabel, unitNoun, onAdvance, setAgeBand, setLearnLevel, online, savedSig]);
 
   // THE LEVEL IS CHOSEN FROM THE BEGINNING AND AT EVERY STAGE (Darrell
   // 2026-09-15, DR-0426: "choose the level from the beginning and at each
@@ -1583,6 +1592,8 @@ function CourseView({
   // and only on a course whose lessons actually carry stories, so the realtime
   // subscription (story_library_submissions) never runs where it isn't used.
   const [storySubmissions, setStorySubmissions] = useState([]);
+  // What this device holds (DR-0722): the "Saved" mark on every lesson in the list.
+  const downloads = useDownloads();
 
   const {
     meta, schedule, cohortConfirmed, cohortStart, setCohortStart, confirmCohort,
@@ -2414,6 +2425,7 @@ function CourseView({
                 <span className="text-sm font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
                   {U.cap} {ownNumber(m, schedule)} · {m.title}
                 </span>
+                <SavedMark lessonId={m.id} reg={downloads} />
               </li>
             );
           }
@@ -2472,6 +2484,11 @@ function CourseView({
                   title="Copy a link that opens exactly this lesson"
                   text={() => lessonUrl({ courseKey: course.meta.key, lessonId: m.id })}
                 />
+                {/* DOWNLOAD THIS LESSON (DR-0722): its words and reading voice,
+                    at the levels chosen, for reading and listening offline.
+                    Needs an account (DR-0698). One button; its choices open
+                    under the row, so the row stays one control wider. */}
+                <LessonDownloadButton module={m} course={course} signedIn={signedIn} />
                 {/* START, OR CONTINUE (DR-0631). A lesson the reader has begun
                     says so on its own button, and the tap lands on their place
                     (the saved part, step and sentence) instead of part one. */}
@@ -2593,6 +2610,7 @@ function CourseView({
               <div className="flex items-baseline justify-between gap-3 flex-wrap">
                 <span className="text-sm font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
                   {U.cap} {ownNumber(m, schedule)} · {m.title}
+                  <SavedMark lessonId={m.id} reg={downloads} />
                 </span>
                 {!U.selfPaced && (
                   <span className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -2600,6 +2618,7 @@ function CourseView({
                   </span>
                 )}
               </div>
+              <OfflineLevelNote module={m} ageBand={ageBand} />
               {m.nasPreview && <LessonPreviewBadge prUrl={m.nasPreview.prUrl} />}
               {actionsRow}
               {/* Where this lesson sits on the biblical timeline (Darrell 2026-07-15:
@@ -4442,6 +4461,8 @@ export default function ChurchLearn({
                 unitPlural: `${unitLabels(active.meta).noun}s`,
               })}
             />
+            {/* DOWNLOAD THIS COURSE (DR-0722) — every lesson, at the levels chosen. */}
+            <CourseDownloadButton course={active} signedIn={signedIn} />
           </div>
         )}
 
@@ -4453,6 +4474,12 @@ export default function ChurchLearn({
           <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] mb-2">
             {courses.length} courses · {courses.reduce((t, c) => t + ((c.schedule && c.schedule.length) || 0), 0)} lessons — every finished lesson in the PoeTech App, in one place
           </p>
+        )}
+        {/* DOWNLOAD EVERY LESSON (DR-0722) — sized first, paused and resumed, skipping what is here. */}
+        {courses.length > 1 && !lessonFocus && (
+          <div className="mb-3 flex items-center gap-2 flex-wrap" data-testid="learn-download-all">
+            <AllDownloadButton courses={courses} signedIn={signedIn} />
+          </div>
         )}
 
 
