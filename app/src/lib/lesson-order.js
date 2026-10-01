@@ -216,15 +216,22 @@ export function withMonthHeadings(list) {
   const rows = Array.isArray(list) ? list : [];
   if (!rows.some((m) => monthOf(m && m.added))) return rows;
   const counts = new Map();
+  // FOR EVERY AGE (DR-0732; Darrell 2026-10-01: "Total number and the other
+  // number based of age of competence so parents remember to have their kids
+  // review the lessons in the Learn tab"): beside the month's total, how many
+  // of its lessons carry all four age readings (child, youth, teen, senior).
+  const aged = new Map();
+  const forEveryAge = (m) => !!(m && m.levels && ['child', 'youth', 'teen', 'senior'].every((b) => typeof m.levels[b] === 'string' && m.levels[b].trim()));
   for (const m of rows) {
     const k = (monthOf(m.added) || { key: 'undated' }).key;
     counts.set(k, (counts.get(k) || 0) + 1);
+    if (forEveryAge(m)) aged.set(k, (aged.get(k) || 0) + 1);
   }
   const out = [];
   let last = null;
   for (const m of rows) {
     const mo = monthOf(m.added) || { key: 'undated', label: 'No day recorded' };
-    if (mo.key !== last) { out.push({ heading: { key: `month-${mo.key}`, label: mo.label, count: counts.get(mo.key) } }); last = mo.key; }
+    if (mo.key !== last) { out.push({ heading: { key: `month-${mo.key}`, label: mo.label, count: counts.get(mo.key), aged: aged.get(mo.key) || 0 } }); last = mo.key; }
     out.push(m);
   }
   return out;
