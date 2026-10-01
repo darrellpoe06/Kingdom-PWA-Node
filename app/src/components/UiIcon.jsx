@@ -233,6 +233,15 @@ const ICONS = {
       <line x1="13" y1="7.5" x2="16.5" y2="11" />
     </>
   ),
+  // bell — the arrivals bell in the header (DR-0728): what came in that you
+  // have not looked at yet
+  bell: (
+    <>
+      <path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 2H5l1.5-2Z" />
+      <path d="M10 20a2 2 0 0 0 4 0" />
+      <line x1="12" y1="3.5" x2="12" y2="5.5" />
+    </>
+  ),
   // envelope — letters / mail links (was ✉️)
   mail: (
     <>
