@@ -109,7 +109,7 @@ import { searchItOutFor } from '../lib/search-it-out.js';
 // functionality and flow"). The study surface is unchanged; it is mounted
 // under its own department here, loaded only when that department opens.
 const EternalAlgorithmsStudyLazy = React.lazy(() => import('./EternalAlgorithmsStudy.jsx'));
-import { organizeCourses, learnDepartments, courseLessonCount, courseSortsFor, DEFAULT_COURSE_SORT, rememberedCourseSort, rememberCourseSort, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey } from '../lib/learn-organize.js';
+import { organizeCourses, learnDepartments, courseLessonCount, courseSortsFor, DEFAULT_COURSE_SORT, rememberedCourseSort, rememberCourseSort, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey, catalogReadings, countWords } from '../lib/learn-organize.js';
 import { wantsSections, sectionLessons, divisionOf } from '../lib/lesson-sections.js';
 // MONTHS FOLD, AND THE MONTH YOU ARE IN STAYS AT THE TOP (DR-0732; lib/lesson-month-fold.js).
 import { rememberedFolds, rememberFolds, toggleFold, foldAll, openAll, visibleItems, foldAllOffer } from '../lib/lesson-month-fold.js';
@@ -3749,6 +3749,10 @@ export default function ChurchLearn({
     ? chosenCourse
     : (dept ? (dept.courses[0] || defaultCourse) : defaultCourse);
   const totalLessons = courses.reduce((t, c) => t + courseLessonCount(c), 0);
+  // BOTH NUMBERS (DR-0715): one per lesson, and every age version those
+  // lessons really carry (lib/learn-organize.js lessonVersions), so the scale
+  // of what a family can read shows where the catalog is explained.
+  const totalReadings = catalogReadings(courses).readings;
 
   // Open what the link asked for, once, and only when it really exists.
   const linkAppliedRef = React.useRef(false);
@@ -3926,7 +3930,7 @@ export default function ChurchLearn({
                 setDeptId(id);
               }}
               sections={[
-                { id: 'all', label: 'Courses', explain: `Every course in one place · ${courses.length} courses · ${totalLessons} lessons. Pick a course and its lessons follow.`, render: () => null },
+                { id: 'all', label: 'Courses', explain: `Every course in one place · ${courses.length} courses · ${totalLessons} lessons · ${countWords(totalReadings)} readings counting every age version. Pick a course and its lessons follow.`, render: () => null },
                 ...departments.map((d) => ({
                   id: d.id, label: d.label,
                   explain: `${d.code} · ${d.courses.length} ${d.courses.length === 1 ? 'course' : 'courses'} · ${d.lessons} lessons${courseCrossListedCount(d.label) ? ` · ${courseCrossListedCount(d.label)} more courses serve it` : ''}${crossListedCount(d.label) ? ` · ${crossListedCount(d.label)} more lessons taught across the curriculum` : ''}`,
