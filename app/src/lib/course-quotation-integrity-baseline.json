@@ -4,11 +4,11 @@
   "lessonsElided": 153,
   "lessonsReciting": 80,
   "totals": {
-    "spans": 894,
-    "scripture": 794,
-    "ours": 37,
-    "undecidable": 63,
-    "contiguousAvailable": 764
+    "spans": 889,
+    "scripture": 793,
+    "ours": 35,
+    "undecidable": 61,
+    "contiguousAvailable": 763
   },
   "elided": {
     "sov9-verification-earns-trust": {
@@ -742,15 +742,13 @@
       "levels.senior": 1
     },
     "pv-price": {
-      "lesson": 2,
-      "levels.senior": 3
+      "lesson": 2
     },
     "pv-darby": {
       "lesson": 2
     },
     "pv-inventions": {
-      "lesson": 1,
-      "levels.senior": 2
+      "lesson": 1
     }
   },
   "recited": {
