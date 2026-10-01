@@ -34,6 +34,8 @@ vi.mock('../lib/supabase.js', () => ({
 }));
 vi.mock('../lib/direct-messages-sync.js', () => ({
   subscribeDirectMessages: (set) => { set([]); return () => {}; },
+  loadMyDmDevices: async () => [],
+  forgetDmDevice: async () => ({ forgotten: true }),
   sendDirectMessage: async () => ({ ok: true }),
   markThreadRead: async () => {},
   markThreadReadLocal: (rows) => rows,
