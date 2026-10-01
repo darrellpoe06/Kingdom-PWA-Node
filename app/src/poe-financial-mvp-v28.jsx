@@ -68,7 +68,6 @@ import { helperInterestText } from './lib/learn-framework.js';
 import { engagementFeedbackText, aggregateEngagementByAge } from './lib/learn-engagement.js';
 import { latestFinancialDocMs } from './lib/finance-activity.js';
 import PrivateGate from './components/PrivateGate.jsx';
-import NetworkStatus from './components/NetworkStatus.jsx';
 import TTSControl from './components/TTSControl.jsx';
 import FloatingPlayer from './components/FloatingPlayer.jsx';
 import TextSizeControl, { TextSizeEscapeHatch } from './components/TextSizeControl.jsx';
@@ -78,7 +77,6 @@ import HeaderAuthButton from './components/HeaderAuthButton.jsx';
 import PublicWelcome from './components/PublicWelcome.jsx';
 import Imported from './components/Imported.jsx';
 import { useBrowserHistoryNav, useHistoryToggle, initialBooksView, initialChurchView } from './lib/nav-history.js';
-import { useIdleReveal } from './lib/use-idle-reveal.js';
 import { isReviewerModeOn, ReviewerModeBanner } from './lib/reviewer-mode.jsx';
 import { onAuthChange, signOut } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback, newFeedbackId } from './lib/feedback-sync.js';
@@ -137,7 +135,9 @@ import VerifyBalances from './components/VerifyBalances.jsx';
 import { Home } from './components/BigPictureDashboard.jsx'; // the overview front door, or the Life Hub when the reader has chosen it
 import { dueDateFor, OPPORTUNITY_LIBRARY, matchOpportunities, capacityDecisionForNewProject } from './lib/opportunity-capacity.js';
 import { getAssignments, dispatchState, addAssignment, removeAssignment, markDone as markAssignmentDone, reopen as reopenAssignment, setPayout as setAssignmentPayout } from './lib/assignments.js';
-import { ChurchGiveFloater, ChurchGiveHeaderButton } from './components/ChurchGiving.jsx';
+import { ChurchGiveHeaderButton } from './components/ChurchGiving.jsx';
+import ChromeDock from './components/ChromeDock.jsx';
+import ComfortBarToggle from './components/ComfortBarToggle.jsx';
 import LiveWorshipBar from './components/LiveWorshipBar.jsx';
 import SectionBoundary from './components/SectionBoundary.jsx';
 import UiIcon from './components/UiIcon.jsx';
@@ -1034,7 +1034,6 @@ export default function PoeFinancialSystem() {
   // fail-soft, signed-out no-op, aggregate-only to the governor (usage-events).
   useEffect(() => { recordView(view); }, [view]);
   const [feedbackOpen, setFeedbackOpen] = useState(false); // false | true | an area key to pre-pick
-  const feedbackReveal = useIdleReveal(); // idle-dim + reveal-on-scroll (Pattern 2d)
   // DR-0059 Phase 2 — a NEW non-family signed-in user gets a named welcome once,
   // instead of falling through to the family persona picker. Presentational only.
   const [selfServeWelcomeDismissed, setSelfServeWelcomeDismissed] = useState(() => {
@@ -4154,7 +4153,9 @@ ${THEME_CSS}
               </h1>
               <div className="ts-chrome-region text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} <span className="text-[0.5rem] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end min-w-0 ts-chrome-region ts-escape-hatch bg-[#FAF8F4]">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end min-w-0 ts-chrome-region ts-escape-hatch header-comfort-row bg-[#FAF8F4]">
+              {/* "Hide ▾" / "Show controls ▴" when this row is the A44 bottom block (DR-0716; components/ComfortBarToggle.jsx). */}
+              <ComfortBarToggle />
               {/* GIVE, first in the row, on church surfaces only (rationale in components/ChurchGiving.jsx). */}
               {(churchBrand || view === 'church') && <ChurchGiveHeaderButton church={data.church} floaterPresent={view === 'church'} />}
               {/* Obvious top-right Log in / Log out box, like TLC, on every app (Darrell 2026-07-14). */}
@@ -5120,28 +5121,11 @@ ${THEME_CSS}
       <FloatingPlayer />
       <InstallPrompt />
       <UpdatePrompt />
-      <NetworkStatus />
-      {/* Round 15 — Persistent floating feedback button. Always reachable from
-          any tab; pre-fills the current view. Sits above TTS controls in the
-          stack. Hidden when the feedback modal is already open. */}
-      {!feedbackOpen && (
-        <button
-          type="button"
-          onClick={() => setFeedbackOpen(true)}
-          aria-label="Open feedback"
-          title="Tell us what's working / not working / missing"
-          // ts-chrome-region = no balloon; idle-reveal (2d). COMPACT WHEN IDLE (REV-0235): un-revealed = 48px circle so it stops occluding tappable content beneath; expands on reveal/hover/focus.
-          className={`ts-chrome-region fixed bottom-4 left-4 z-30 inline-flex items-center justify-center bg-[#B85838] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#B85838] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden transition-all duration-500 hover:opacity-100 focus:opacity-100 ${feedbackReveal ? 'px-4 py-3 opacity-100 translate-y-0' : 'p-0 w-12 h-12 opacity-40 translate-y-2'}`}
-          style={{ borderRadius: '999px' }}
-        >
-          💬{feedbackReveal ? ' Feedback' : ''}
-        </button>
-      )}
       {feedbackOpen && <FeedbackModal initialAreaKey={typeof feedbackOpen === 'string' ? feedbackOpen : null} onClose={closeFeedback} onSubmit={addFeedback} currentView={view} myFeedback={data.feedback || []} />}
-      {/* Give floater — Church surfaces only (bottom-right; Feedback owns
-          bottom-left). Links out to the congregation's own giving page + the
-          blessing of giving according to the Word. See components/ChurchGiving. */}
-      {view === 'church' && <ChurchGiveFloater church={data.church} />}
+      {/* THE BOTTOM BAR (DR-0716): Feedback, Give (Church only), the network
+          dot, Top and the read-aloud controls, in one bar; nothing floats over
+          the Word. See components/ChromeDock.jsx. */}
+      <ChromeDock onFeedback={() => setFeedbackOpen(true)} feedbackOpen={!!feedbackOpen} church={data.church} showGive={view === 'church'} />
     </div>
   );
 }
