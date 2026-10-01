@@ -16,6 +16,7 @@ import { compressImageFile, isLikelyImageFile } from '../lib/image.js';
 import { filesFromClipboardEvent } from '../lib/paste-input.js';
 import { receiptMessage, receiptCode } from '../lib/feedback-receipt.js';
 import IntakeOutcomeList from './IntakeOutcomeList.jsx';
+import FeedbackScreenshots from './FeedbackScreenshots.jsx';
 import { fetchMyFeedback } from '../lib/feedback-sync.js';
 import { fetchDeliveryRecord } from '../lib/github-ops.js';
 import { categorizeIntake, basisLine, outcomeFor, INTAKE_CATEGORIES, CATEGORY_ORDER, categoryCounts } from '../lib/intake-outcome.js';
@@ -699,7 +700,7 @@ export function categorizeBoard(feedback = [], ledger = PANEL_LEDGER) {
   return byId;
 }
 
-export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFeedback, triageDeps = null, ledger = PANEL_LEDGER }) {
+export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFeedback, triageDeps = null, ledger = PANEL_LEDGER, fetchImages = null }) {
   // THE LOOP CLOSES HERE (DR-0616): every move a steward makes is written to
   // the note's row, and the sender's receipt reads it. `triaged` shows the move
   // at once while the realtime refresh catches up.
@@ -883,30 +884,17 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
               </div>
             )}
             {(() => {
-              // Prefer the multi-image array; fall back to the legacy single
-              // `screenshot`, then to the marker for rows synced without images.
+              // THE PICTURES, INSIDE THE APP (DR-0742). A row from the list
+              // carries the count, not the bytes; a local row may carry both.
+              // Either way the steward sees them here, each a tap from full
+              // size, and never a line telling them to go find the sender's
+              // phone or the database.
               const imgs = Array.isArray(f.screenshots) && f.screenshots.length > 0
                 ? f.screenshots
                 : (f.screenshot ? [f.screenshot] : []);
-              if (imgs.length > 0) {
-                return (
-                  <div className="mb-2">
-                    <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">{imgs.length > 1 ? `${imgs.length} screenshots` : 'Screenshot'}</div>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {imgs.map((src, i) => (
-                        <a key={i} href={src} target="_blank" rel="noreferrer" title="Open full size">
-                          <img src={src} alt={`Feedback screenshot ${i + 1}`} className="max-h-48 border border-[#1A1815]" />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                );
-              }
-              if (f.hasScreenshot) {
-                const n = f.screenshotCount || 1;
-                return <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-2">{n > 1 ? `${n} screenshots` : 'Screenshot'} attached (open on the submitter's device or in Supabase)</div>;
-              }
-              return null;
+              const n = imgs.length > 0 ? imgs.length : (f.hasScreenshot ? (f.screenshotCount || 1) : 0);
+              if (n === 0) return null;
+              return <FeedbackScreenshots id={f.id} count={n} initial={imgs} {...(fetchImages ? { fetchImages } : {})} />;
             })()}
           </div>
         )}

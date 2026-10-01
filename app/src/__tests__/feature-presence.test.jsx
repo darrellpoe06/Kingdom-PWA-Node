@@ -58,6 +58,7 @@ const { default: ReadingVoiceControl } = await import('../components/ReadingVoic
 const { default: HelpButton } = await import('../components/HelpButton.jsx');
 const { default: ArrivalsBell } = await import('../components/ArrivalsBell.jsx');
 const { default: ContactsImport } = await import('../components/ContactsImport.jsx');
+const { FeedbackPromotePanel } = await import('../components/FeedbackCenter.jsx');
 const { default: TopNavRow } = await import('../components/TopNavRow.jsx');
 const { ChurchGiveHeaderButton } = await import('../components/ChurchGiving.jsx');
 const { default: ChromeDock } = await import('../components/ChromeDock.jsx');
@@ -238,6 +239,14 @@ const WALKS = {
     Object.defineProperty(input, 'files', { value: [file], configurable: true });
     act(() => { input.dispatchEvent(new Event('change', { bubbles: true })); });
     for (let i = 0; i < 80 && !host.querySelector('[data-testid="contacts-import-preview"]'); i++) await settle(25);
+    look(host);
+  },
+  'feedback-queue': async (look) => {
+    // A steward's focused note that carries a picture (DR-0742).
+    const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+    const feedback = [{ id: 'fq1', createdAt: '2026-10-01T05:00:00Z', whatsNot: 'the give button is under the bar', area: 'church', screenshots: [png] }];
+    const { host } = mount(createElement(FeedbackPromotePanel, { feedback, addProject() {}, addIncident() {}, deleteFeedback() {} }));
+    await settle();
     look(host);
   },
 };
