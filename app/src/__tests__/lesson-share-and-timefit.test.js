@@ -83,8 +83,11 @@ describe('sharing hands the lesson to whatever they already use', () => {
     expect(p.text).toContain('He gives His beloved sleep.');
     expect(p.text).toContain('Healthy Living');
     expect(p.url).toBe('https://poetech.us/x');
-    // A module with nothing but a title still shares something sayable.
-    expect(lessonSharePayload({ title: 'Only' }, {}).text).toBe('Only');
+    // A module with nothing but a title still shares something sayable: its
+    // title, and the how-to that ends every lesson share (DR-0698).
+    const only = lessonSharePayload({ title: 'Only' }, {}).text;
+    expect(only.startsWith('Only')).toBe(true);
+    expect(only).toMatch(/How to read it: open the link, no account needed\./);
     expect(lessonSharePayload(null, {}).title).toBeTruthy();
   });
 });

@@ -158,6 +158,10 @@ const ICONS = {
   check: (
     <path d="M5 12.5l4.5 4.5L19 6.5" />
   ),
+  // arrow rising out of a tray — the one Books upload (DR-0709)
+  upload: (
+    <path d="M12 15.5V4.5M7.5 9L12 4.5 16.5 9M4.5 14.5v4a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-4" />
+  ),
   // upward trend line over an axis — Forecast tab (financial projection)
   chart: (
     <>
@@ -227,6 +231,15 @@ const ICONS = {
     <>
       <path d="M14.5 5.5l4 4L8 20l-4.5 1L4.5 16.5 15 6Z" />
       <line x1="13" y1="7.5" x2="16.5" y2="11" />
+    </>
+  ),
+  // bell — the arrivals bell in the header (DR-0728): what came in that you
+  // have not looked at yet
+  bell: (
+    <>
+      <path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 2H5l1.5-2Z" />
+      <path d="M10 20a2 2 0 0 0 4 0" />
+      <line x1="12" y1="3.5" x2="12" y2="5.5" />
     </>
   ),
   // envelope — letters / mail links (was ✉️)

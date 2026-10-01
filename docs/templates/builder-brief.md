@@ -19,8 +19,29 @@ READ FIRST (before any edit):
 
 BRAKES: budget <wall-clock or item ceiling>; lock <what makes a second run skip>;
   stop <what ends the run early>.
+FEATURES: Moving or restyling a control: update its registry entry's locator; never drop it.
+  (app/src/lib/feature-registry.json, DR-0726. A new control gets an entry; a removal
+  moves its entry to "removed" with removedBecause and a DR. The vitest gate fails otherwise.)
+LESSONS (when the outcome is a lesson): all four age bands (P60); the lesson AND each band
+  end with TALK ABOUT IT TOGETHER in the lesson's OWN words, all three directions — parents
+  to children, children to parents, friend to friend — each with the skill (ask, listen to
+  the end, retell, teach one verse) and the rhythm (once today in one of Deuteronomy 6:7's
+  four places; one friend this week); the gate refuses a lesson added on or after
+  2026-10-01 without them (DR-0733, app/src/lib/talk-together.js). anchor.ref names every
+  verse the lesson stands on, because Search it out derives its links from those references
+  and never from typed lists (DR-0734); the close sends the reader back into the text.
+  Growth is measured the Word's way, qualitative (fruit, Galatians 5:22) and quantitative
+  (occasions and days, Deuteronomy 6:7; Hebrews 3:13), never imported.
 REPORT: what changed, the evidence, and anything left with its named blocker.
 ```
+
+## For a lesson builder, add this line
+
+```
+WHO TAUGHT (DR-0719): Name the teacher from the speaker marks (DR-0712: voice:BG) or the recording; when it is Bishop Gwin, say Bishop Gwin or BG, never 'the teacher' alone; never assume who taught.
+```
+
+Being at the weekly 1 p.m. Bible study at The Church of the Living God does not by itself mean Bishop Gwin taught. Where someone else taught, name them as the recording does; where no one is identified, say so.
 
 ## What the orchestrator does after sending it
 

@@ -60,7 +60,9 @@ describe('validateSendRequest — a send must say what it claims', () => {
     // so a new broadcast channel cannot be added without someone looking at it.
     // 'fault' was added deliberately (DR-0378) and is NOT a broadcast: it
     // refuses to send without an explicit office audience, asserted below.
-    expect(SENDABLE_TOPICS).toEqual(['live', 'message', 'fault']);
+    // 'lesson' was added deliberately too (DR-0728) and is NOT a broadcast: it
+    // refuses to send without the one person it is for (every-arrival-counted.test.jsx).
+    expect(SENDABLE_TOPICS).toEqual(['live', 'message', 'fault', 'lesson']);
   });
 
   it('refuses a send with no title — a push with no claim is just a buzz', () => {
