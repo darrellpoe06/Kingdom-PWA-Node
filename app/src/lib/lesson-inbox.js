@@ -147,5 +147,28 @@ export function transcriptWords(body) {
   const i = s.indexOf('\n\n');
   return i >= 0 ? s.slice(i + 2).trim() : s.trim();
 }
+// WHO SPOKE (DR-0712). A transcript the NAS marked by voice carries a
+// "Speakers:" header above the blank line and one "LABEL: words" line per
+// turn (infra/nas-lesson-voice/speaker_turns.py). DP = Darrell Poe, BG =
+// Bishop Gwin, S1, S2 = voices not yet named, ? = no voice placed.
+export const SPEAKER_LINE = /^(DP|BG|[A-Z]{2,3}|S\d+|\?): (.+)$/;
+export function speakerLines(words) {
+  const lines = String(words || '').split('\n').filter((l) => l.trim());
+  if (!lines.length) return null;
+  const out = [];
+  for (const l of lines) {
+    const m = SPEAKER_LINE.exec(l);
+    if (!m) return null; // not a marked transcript: shown as words, never half-parsed
+    out.push({ who: m[1], text: m[2] });
+  }
+  return out;
+}
+// The Speakers header lines (between the first line and the blank line), or ''.
+export function transcriptSpeakers(body) {
+  const s = String(body || '');
+  const i = s.indexOf('\n\n');
+  const head = i >= 0 ? s.slice(0, i) : '';
+  return head.split('\n').filter((l) => /^(Speakers:|S\d+ = )/.test(l)).join(' ');
+}
 // "voice-transcript" is the tag the NAS job writes on a transcript row.
 export const TRANSCRIPT_TAG = 'voice-transcript';
