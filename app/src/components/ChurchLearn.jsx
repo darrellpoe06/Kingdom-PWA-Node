@@ -65,6 +65,11 @@ import { usePrinting } from '../lib/use-printing.js';
 import { useCurriculumOverlay, PREVIEW_LABEL } from '../lib/lesson-store.js';
 import { takeOpenLessonRequest, subscribeOpenLesson } from '../lib/learn-open.js';
 import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload, courseSharePayload, sectionSharePayload } from '../lib/lesson-links.js';
+// DR-0698: every share carries a token, and the record says whether the link worked.
+import { newShareToken } from '../lib/lesson-share.js';
+import { recordLessonShare, pendingShareToken, reportShareLanded, waitForElement } from '../lib/lesson-share-record.js';
+import DownloadNeedsAccount from './DownloadNeedsAccount.jsx';
+import LessonShareLedger from './LessonShareLedger.jsx';
 import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture-matrix.js';
 import CopyButton from './CopyButton.jsx';
 import ShareButton from './ShareButton.jsx';
@@ -1506,6 +1511,7 @@ function lessonSequence(schedule, courseKey, picked) {
 
 function CourseView({
   course,
+  signedIn = true, // DR-0698: false for a signed-out visitor — reading and ▶ Play stay open, downloads ask for an account
   progress = {},
   toggleModule = null,
   isGovernor = false,
@@ -2431,20 +2437,35 @@ function CourseView({
                     not necessary... share and it will open whatever they
                     usually do"). One tap into their own share sheet; the copy
                     controls stay for anyone who wants the raw text or link. */}
+                {/* THE SHARE IS A NOTE, NOT THE LESSON (DR-0698, Darrell
+                    2026-09-30): the title, a short summary, the link, and at
+                    the end how to read it (no account, ▶ Play, download needs
+                    an account). A fresh token rides on the link and the share
+                    is recorded, so an open can be counted against it. */}
                 <ShareButton
                   label="Share"
                   title="Share this lesson using your usual apps"
                   payload={() => lessonSharePayload(m, {
                     url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id }),
                     courseTitle: course.meta.title || '',
+                    token: newShareToken(),
+                    courseKey: course.meta.key,
+                    lessonId: m.id,
                   })}
+                  onShared={recordLessonShare}
                 />
-                <CopyButton
-                  label="Copy lesson"
-                  copiedLabel="Lesson copied ✓"
-                  title="Copy this lesson's text, with its anchor and a link back to it"
-                  text={() => lessonCopyBlock(m, { url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id }), level: learnLevel === 'auto' ? 'standard' : learnLevel })}
-                />
+                {/* The lesson's FULL text is a download: it needs a free
+                    account (DR-0698). Reading and listening never do. */}
+                {signedIn ? (
+                  <CopyButton
+                    label="Copy lesson"
+                    copiedLabel="Lesson copied ✓"
+                    title="Copy this lesson's text, with its anchor and a link back to it"
+                    text={() => lessonCopyBlock(m, { url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id }), level: learnLevel === 'auto' ? 'standard' : learnLevel })}
+                  />
+                ) : (
+                  <DownloadNeedsAccount compact label="Copy lesson" />
+                )}
                 <CopyButton
                   label="Copy link"
                   copiedLabel="Link copied ✓"
@@ -2626,7 +2647,8 @@ function CourseView({
                     label="Share this part"
                     title={`Share "${label}" — the text plus a link to this ${U.noun}`}
                     className="text-[0.625rem] uppercase tracking-wider px-2.5 min-h-[2.75rem] border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-                    payload={() => sectionSharePayload(m, { label, text, url: secUrl, courseTitle: course.meta.title || '' })}
+                    payload={() => sectionSharePayload(m, { label, text, url: secUrl, courseTitle: course.meta.title || '', token: newShareToken(), courseKey: course.meta.key })}
+                    onShared={recordLessonShare}
                   />
                 );
                 return (<>
@@ -2865,7 +2887,10 @@ function CourseView({
                           text: kin.map((k) => `L${ownNumber(k, schedule)} ${k.title} — same Word: ${k.shared.join(', ')}`).join('\n'),
                           url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id }),
                           courseTitle: course.meta.title || '',
+                          token: newShareToken(),
+                          courseKey: course.meta.key,
                         })}
+                        onShared={recordLessonShare}
                       />
                     </div>
                     <ul className="space-y-1">
@@ -3140,6 +3165,15 @@ function CourseView({
         </div>
       ),
     } : null,
+    // WHAT I SHARED, AND WHETHER IT WORKED (DR-0698). Signed in only: the
+    // sharer's own links with how many times each was opened and whether the
+    // lesson showed. The Governor's full ledger lives in Admin → Lesson shares.
+    ...(signedIn ? [{
+      id: 'my-shares',
+      label: 'My shares',
+      icon: 'users',
+      render: () => <LessonShareLedger />,
+    }] : []),
     {
       id: 'paper',
       label: 'Paper & print',
@@ -3149,11 +3183,14 @@ function CourseView({
       {/* Export — Darrell trusts paper; same source as the screen */}
       <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3 mb-4">
         <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Teach from paper — export the whole curriculum</div>
+        {/* Downloading needs a free account (DR-0698); reading never does. */}
+        {!signedIn ? <DownloadNeedsAccount label="Download the curriculum" /> : (
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={copyCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Copy markdown</button>
           <button type="button" onClick={downloadCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Download .md</button>
           <button type="button" onClick={printCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Print</button>
         </div>
+        )}
         {exportNote && <p className="text-[0.6875rem] text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">{exportNote}</p>}
       </div>
         </div>
@@ -3401,6 +3438,7 @@ export default function ChurchLearn({
   submitHelper = null,        // (courseKey, courseTitle, who) => void — graduate → next-cohort helper
   initialDept = null,         // department id to open on (e.g. a deep link to the Eternal Algorithms); unknown → the whole catalog
   eternalStudyProps = null,   // { email, view, churchView, setView, setChurchView } for the study surface mounted under its department
+  signedIn = true,            // DR-0698: the shell passes !!authSession; a signed-out visitor reads and listens, and a download asks for an account
 }) {
   const [interestSent, setInterestSent] = useState({}); // keyed by course key
   const [helped, setHelped] = useState({}); // keyed by course key
@@ -3605,7 +3643,14 @@ export default function ChurchLearn({
   React.useEffect(() => {
     if (linkAppliedRef.current || !deepLink || !deepLink.courseKey) return;
     const target = coursesRef.current.find((c) => c.key === deepLink.courseKey);
-    if (!target) { linkAppliedRef.current = true; return; } // stale link: Learn opens normally
+    // A SHARED link reports what the reader actually got (DR-0698): the lesson
+    // card on screen, or the reason it is not. No-ops for any other link.
+    const shared = !!pendingShareToken();
+    if (!target) { // stale link: Learn opens normally
+      linkAppliedRef.current = true;
+      if (shared) reportShareLanded({ ok: false, reason: `course not found: ${deepLink.courseKey}` });
+      return;
+    }
     linkAppliedRef.current = true;
     setActiveKey(target.key);
     if (deepLink.lessonId && (target.schedule || []).some((m) => m.id === deepLink.lessonId)) {
@@ -3613,6 +3658,13 @@ export default function ChurchLearn({
       // guide open, scrolled to the top.
       setResumeOpenGuide(true);
       setResumeLessonId(deepLink.lessonId);
+      if (shared) {
+        waitForElement(`learn-lesson-${deepLink.lessonId}`).then((onScreen) => reportShareLanded(
+          onScreen ? { ok: true } : { ok: false, reason: 'lesson card did not render' },
+        ));
+      }
+    } else if (shared) {
+      reportShareLanded({ ok: false, reason: deepLink.lessonId ? `lesson not found: ${deepLink.lessonId}` : 'no lesson in link' });
     }
   }, [deepLink, setActiveKey]);
 
@@ -4491,6 +4543,7 @@ export default function ChurchLearn({
       <CourseView
         key={active.key}
         course={active}
+        signedIn={signedIn}
         progress={progress}
         toggleModule={toggleModule}
         isGovernor={isGovernor}
