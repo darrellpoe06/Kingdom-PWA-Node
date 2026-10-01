@@ -288,6 +288,30 @@ const NODES = [
     ],
     seeds: ['lesson-voice', 'lesson-inbox', 'member-lesson-queue'],
   }),
+  // DR-0698: a shared lesson is a note with a link; each share and each open
+  // of its link is recorded, so we know which links work and which do not.
+  app('app/src/lib/lesson-share-record.js', {
+    id: 'lesson-share', name: 'Lesson share + open record',
+    purpose: 'A lesson shared from the app goes out as a note (title, summary, link, how-to) with a token on its link; the share is recorded, and each open of that link records whether the lesson showed, with nothing about the person who opened it.',
+    reads: [
+      { res: 'code:lessons', file: 'app/src/lib/lesson-share.js', token: 'lessonSummary' },
+    ],
+    writes: [
+      { res: 'db:lesson_shares', token: "'lesson_share_record'" },
+      { res: 'db:lesson_share_opens', token: "'lesson_share_open'" },
+    ],
+    seeds: ['lesson-share-ledger'],
+  }),
+  app('app/src/components/LessonShareLedger.jsx', {
+    id: 'lesson-share-ledger', name: 'Lesson shares ledger (Learn → My shares, Admin → Lesson shares)',
+    purpose: 'Shows each share with how many times its link was opened, how many opens showed the lesson and how many failed, with the last reason; the sharer sees their own, the Governor sees all (DR-0698).',
+    reads: [
+      { res: 'db:lesson_shares', file: 'app/src/lib/lesson-share-record.js', token: "'lesson_share_ledger'" },
+      { res: 'db:lesson_share_opens', file: 'app/src/lib/lesson-share-record.js', token: "'lesson_share_ledger'" },
+    ],
+    writes: [],
+    seeds: [],
+  }),
   rider('service:lesson-voice', 'infra/nas-lesson-voice/lesson_voice_transcribe.py', {
     id: 'lesson-voice', name: 'Whisper + the lesson mirror',
     purpose: 'Transcribes each spoken lesson on our own machines, and carries every lesson row to where the cloud reader can see it.',
@@ -313,6 +337,7 @@ const NODES = [
     id: 'lesson-builder', name: 'The NAS lesson builder (the words land, the lesson starts)',
     purpose: 'Starts a lesson the moment a lesson row, a Whisper transcript or an approval is written (pg_notify, no polling): one teaching one lesson, the identical prompt to every configured writer, every version gated against the KJV corpus and kept, one version shipped through the lane or all of them held for Darrell\u2019s decision (DR-0669).',
     reads: [
+      { res: 'nas:claude-signin', token: 'signed-in Claude Code CLI' },
       { res: 'db:agent_inbox#lesson', token: 'def pending' },
       { res: 'db:agent_inbox#voice-transcript', token: '"voice-transcript"' },
       { res: 'db:agent_inbox#lesson-review', token: '"lesson-approved"' },
@@ -343,10 +368,25 @@ const NODES = [
     reads: [{ res: 'db:agent_inbox#lesson', token: 'FROM public.agent_inbox' }],
     writes: [], seeds: [],
   }),
+  wf('church-video-witness.yml', {
+    id: 'church-video-witness', name: 'The church video as a second witness',
+    purpose: "Reads, from the live database the app reads, whether a church class of a given date has reached the channel sync (choir_sermons) and the NAS transcript trickle (video_transcripts), with the sync's freshness, and on request prints that video's transcript encoded with an md5 round-trip, so a lesson built from an in-app recording is checked against the church's own video (DR-0712, DR-0333). Read-only; never fetches from YouTube.",
+    reads: [{ res: 'db:choir_sermons', token: 'FROM public.choir_sermons' }, { res: 'db:video_transcripts', token: 'public.video_transcripts' }],
+    writes: [], seeds: [],
+  }),
   wf('inbox-lessons-waiting.yml', {
     id: 'inbox-lessons-waiting', name: 'Which lesson rows wait',
     purpose: 'Lists the lesson rows not yet captured, building or awaiting review, from the live database the app reads (ids, tags and body length, never a body), so the hourly intake sees what waits without a chat connector.',
     reads: [{ res: 'db:agent_inbox#lesson', token: 'FROM public.agent_inbox' }],
+    writes: [], seeds: [],
+  }),
+  wf('family-books-probe.yml', {
+    id: 'family-books-probe', name: 'Family Books probe (ledger parity + tax road)',
+    purpose: 'Measures from a runner on the tailnet why two members of one household saw different ledgers (counts and ids per member, instance and account; never a row amount or description), and how far a tax PDF of each size gets on the /taxes road; an opt-in test upload removes itself.',
+    reads: [
+      { res: 'db:transactions', token: 'FROM transactions' },
+      { res: 'http:taxes-upload', token: '/taxes/upload' },
+    ],
     writes: [], seeds: [],
   }),
   wf('inbox-lesson-tag.yml', {
@@ -377,8 +417,13 @@ const NODES = [
       { res: 'db:agent_inbox#lesson-progress', file: 'app/src/lib/lesson-inbox.js', token: 'progressTags' },
       { res: 'gh:pr', file: 'app/src/lib/lesson-pipeline.js', token: 'fetchLessonPrs' },
     ],
-    writes: [{ res: 'event:use-prompt', file: 'app/src/components/LessonInbox.jsx', token: 'sendPromptToBox' }],
-    seeds: ['lesson-door'],
+    writes: [
+      { res: 'event:use-prompt', file: 'app/src/components/LessonInbox.jsx', token: 'sendPromptToBox' },
+      // DR-0728: a lesson row gaining awaiting-review or lesson-published
+      // enqueues a push to its one person; the drain delivers it (0246).
+      { res: 'db:push_outbox', file: 'infra/supabase/migrations-auto/0246-every-arrival-is-counted-a-lesson-ready-or-published-enqueues-a-push.sql', token: 'INSERT INTO public.push_outbox' },
+    ],
+    seeds: ['lesson-door', 'push-outbox-drain'],
   }),
   app('app/src/components/MemberLessonQueue.jsx', {
     id: 'member-lesson-queue', name: 'Members\u2019 lessons to review (the Governor)',
@@ -798,6 +843,11 @@ const NODES = [
     id: 'nas-email-door', name: 'Email door (sign-in mail from our own stack)', purpose: 'Wires the sovereign stack’s mail sender from the one secret only Darrell mints.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'nas:smtp', token: 'SMTP' }], seeds: ['supabase'],
   }),
+  wf('nas-claude-login.yml', {
+    id: 'nas-claude-login', name: 'Sign the Claude CLI in on the NAS (remote hands)',
+    purpose: 'Drives the CLI sign-in on the NAS under a pseudo-terminal from the runner, so the lesson builder’s primary writer is ready; only the sign-in URL and the one-time code pass through (DR-0669 writer; Darrell 2026-10-01 "You do it... cli... ssh").',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'nas:claude-signin', token: 'claude_login.py' }], seeds: ['lesson-builder'],
+  }),
   wf('nas-user-rescue.yml', {
     id: 'nas-user-rescue', name: 'Get a locked-out family member back in', purpose: 'Clears a PIN or resets a password on the live stack, by dispatch.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'auth:users', token: 'reset_password.sh' }], seeds: ['supabase'],
@@ -1078,6 +1128,7 @@ const RESOURCES = {
   'db:curriculum_lesson_verse_spans': { label: 'the NAS copy: every quotation and the verse it names', sink: 'Derived from the lessons for the verse gate and for looking a verse up across the school; rewritten whole on every sync (DR-0677).' },
   'db:curriculum_sync_runs': { label: 'the receipt of every lessons sync and its parity verdict', sink: 'A steward reads the verdict and the drifted lesson ids; the workflow summary carries the same (DR-0677).' },
   'file:audit-findings': { label: 'surface audit findings', source: 'Written by scripts/surface-audit.mjs, run on the NAS every 30 minutes and by an agent before a commit; the committed file is what the app reads.' },
+  'db:transactions': { label: 'the family ledger', source: 'Written by every family device through lib/transactions-sync.js (imports, edits, deletes); the family-books-probe counts it.' },
   'file:decision-ledger': { label: 'the decision ledger', source: 'The decision records in docs/decisions, written by the sessions that decide.' },
 
   'mail:lesson': { label: 'forwarded “Lesson.” mail', source: 'Darrell forwards a lesson from his own mailbox.' },
@@ -1111,6 +1162,7 @@ const RESOURCES = {
   'nas:smtp': { label: 'the sign-in mail sender' },
   'nas:storage': { label: 'the live file storage' },
   'nas:agent-credential': { label: 'the NAS agent’s credential' },
+  'nas:claude-signin': { label: 'the Claude CLI’s sign-in on the NAS (dpoe)' },
   'nas:scribe-queue': { label: 'Scribe recordings waiting' },
   'nas:scribe-minutes': { label: 'Scribe transcripts + minutes' },
   'http:scribe-results': { label: 'what each recording became, read back', route: '/scribe' },

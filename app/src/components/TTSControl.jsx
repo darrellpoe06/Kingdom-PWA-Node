@@ -13,7 +13,8 @@
 // renders nothing — no crash (unbreakable). Status is announced for screen
 // readers; every control is keyboard reachable; the panel is a high-contrast
 // (WCAG AA) white card regardless of app theme.
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { newReaderId, registerReader, subscribeReaders, chosenReader } from '../lib/one-reader.js';
 import { RATE_STEPS } from '../lib/tts.js';
 import { useReadAloud } from '../lib/use-read-aloud.js';
 import {
@@ -24,9 +25,9 @@ import {
 } from '../lib/read-follow.js';
 import { segmentText } from '../lib/tts.js';
 import { readFromPoint } from '../lib/read-from-here.js';
-import { getReadTarget, subscribeReadTarget, pendingRead, takeRead, subscribeRead, requestRead } from '../lib/read-target.js';
+import { getReadTarget, subscribeReadTarget, pendingRead, takeRead, subscribeRead, requestRead, isReadDoor } from '../lib/read-target.js';
 import { useShowTheWord, toggleShowTheWord } from '../lib/show-the-word.js';
-import { getPlace, recordPlace, sentenceKeyOf, findSentence, finishPlace, placeIsFinished } from '../lib/learn-resume.js';
+import { getPlace, getPlaceFor, recordPlace, sentenceKeyOf, findSentence, finishPlace, placeIsFinished } from '../lib/learn-resume.js';
 import { IDLE as RETURN_IDLE, foldReturn, offersReturn, returnPlan, returnLabel } from '../lib/reader-return.js';
 import { getBookmark, saveBookmark, offersResume, resumeLabel, paragraphOf, paragraphLabels } from '../lib/reader-bookmarks.js';
 import { subscribeReadRequest } from '../lib/read-request.js';
@@ -72,6 +73,9 @@ const LEARN_OPEN = Object.values(import.meta.glob('../lib/learn-open.js', { eage
 // lesson, and it is where he went looking -- his second screenshot is it, open,
 // with speed and voice in it and no text size.
 import { useTextSize } from '../lib/text-size.js';
+// A- / A+ beside the read-aloud button on every screen, so text size no
+// longer needs the reader opened (DR-0724). Same store as the panel's row.
+import { TextSizeQuick } from './TextSizeControl.jsx';
 import { THEMES, useThemePref } from '../lib/theme-css.js';
 
 // After the page comes back from dark, the engine's own foreground recovery
@@ -160,14 +164,35 @@ export const BACKGROUND_LINES = {
   audio: 'This voice keeps playing when you switch apps — your phone’s own play/pause controls it.',
   device: 'This voice stops when you switch apps — the audio voice is offline.',
   idle: 'The audio voice keeps playing when you switch apps. If it is offline, the phone’s own voice reads instead, and that one stops when you switch apps.',
+  // SAID BEFORE HE PRESSES PLAY (DR-0718; Darrell 2026-10-01: "it stops each
+  // time on the downloaded version?!"). Which voice will read is known before
+  // the press, so the panel says it then, not after the reading has stopped.
+  saved: 'This lesson is saved on this phone. It plays as one recording and keeps playing when you switch apps or turn the screen off, with or without a connection.',
+  phone: 'The voice picked is this phone’s own voice, and Android stops it when you switch apps. Pick the System voice to keep listening with the screen off.',
 };
-export function backgroundLine({ isReading, audioVoice } = {}) {
+export function backgroundLine({ isReading, audioVoice, usesNasVoice = true, saved = false } = {}) {
   if (isReading && audioVoice === 'device') return BACKGROUND_LINES.device;
-  if (isReading && audioVoice === 'audio') return BACKGROUND_LINES.audio;
+  if (isReading && audioVoice === 'audio') return saved ? BACKGROUND_LINES.saved : BACKGROUND_LINES.audio;
+  if (!usesNasVoice) return BACKGROUND_LINES.phone;
+  if (saved) return BACKGROUND_LINES.saved;
   return BACKGROUND_LINES.idle;
 }
 
-export default function TTSControl({ isOwner = false, view, churchView, booksView, onOpenLearn = null }) {
+// ONE READER ON THE SCREEN (DR-0718; lib/one-reader.js). Two mounted readers
+// drew two panels in the same corner, stacked: the "sections drawn two and
+// three times" in Darrell's screenshot. Every reader registers; only the
+// chosen one renders. The app-level reader (handed the view) outranks one a
+// surface mounts for itself.
+export default function TTSControl(props) {
+  const [id] = useState(newReaderId);
+  const priority = props && (props.view !== undefined || typeof props.onOpenLearn === 'function') ? 1 : 0;
+  const chosen = useSyncExternalStore(subscribeReaders, chosenReader, chosenReader);
+  useEffect(() => registerReader(id, priority), [id, priority]);
+  if (chosen !== null && chosen !== id) return null;
+  return <ReaderInstance {...props} />;
+}
+
+function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLearn = null }) {
   const [isOpen, setIsOpen] = useState(false);
   // Same switch as the in-lesson bar: one module store, never two states.
   const showWord = useShowTheWord();
@@ -466,8 +491,10 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
       const t = getReadTarget();
       const w = pendingRead();
       if (!t || !w || t.owner !== w.owner) return;
+      if (isReadDoor(t)) return; // wait for the full lesson, never re-open a door (DR-0702)
+      const opts = w.opts || {};
       if (!takeRead(t.owner)) return;
-      if (readTargetRef.current) readTargetRef.current(t);
+      if (readTargetRef.current) readTargetRef.current(t, opts);
     };
     tryStart();
     const offWant = subscribeRead(tryStart);
@@ -868,7 +895,8 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // offlineNote is read, not watched: a note for this lesson is kept as is.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, target, usesNasVoice, liteVoice]);
-  if (!supported && !scrollTopBtn) return null;
+  // No early return when speech is unsupported: the text-size pair (DR-0724)
+  // still belongs on the screen of a device that cannot speak.
 
   const start = async () => {
     // OPEN WHAT IS CLOSED FIRST (Darrell 2026-08-10: "deeper doesn't get read at
@@ -976,8 +1004,23 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     deviceClipCache().evict().then((b) => setCacheUse(b));
   };
 
-  const readTargetNow = async (t, { continuing = false, startFraction = null, startSentence = null } = {}) => {
+  const readTargetNow = async (t, { continuing = false, startFraction = null, startSentence = null, resumePlace = null } = {}) => {
     if (!t) return;
+    // THE SPEAKER INSIDE AN OPEN LESSON (DR-0702; Darrell 2026-09-30: "the
+    // reader should be asking me to read it from the beginning because I
+    // pushed the speaker while inside the lesson... it only works after I hit
+    // play... it should be both"). A lesson open with its guide closed has not
+    // mounted its reading yet, so it registers a door. Opening it is exactly
+    // what the lesson's own Play does (guide open, then a want the reader
+    // answers when the full lesson registers); the audio session is claimed
+    // HERE, inside the tap, so the screen-off / background path (DR-0627,
+    // DR-0654) holds from the press, not from a frame later.
+    if (isReadDoor(t)) {
+      claimAudio(t.title || t.label);
+      const opts = startSentence != null ? { startSentence } : (resumePlace ? { resumePlace } : null);
+      try { t.open(opts); } catch (_) { /* a door that will not open reads nothing, and says nothing wrong */ }
+      return;
+    }
     // A target read is always a RUN: it keeps going to the next piece unless
     // the listener stops it.
     runRef.current = t;
@@ -1028,8 +1071,13 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
       // run advanced into, so it starts at its top; only a read the listener
       // themselves started resumes. Unresolvable saved sentence -> the top,
       // never a guess.
+      const placed = resumePlace
+        ? findSentence(follow.segments.map((g) => (g && g.text) || ''), resumePlace)
+        : null;
       const at = startSentence != null
         ? Math.max(0, Math.min(follow.segments.length - 1, startSentence))
+        : placed
+          ? ((placed.how === 'exact' || placed.how === 'moved' || placed.how === 'index-only') ? placed.index : -1)
         : startFraction != null
           ? startIndexForFraction(startFraction, follow.segments.length)
           : (continuing ? -1 : savedStartIndex(follow.segments));
@@ -1164,6 +1212,21 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
   // bookmark is this reading's own (lib/reader-bookmarks.js); the paragraphs
   // come from the same follow map the paragraph steps use.
   const bookmarkNow = target ? getBookmark(target.owner) : null;
+  // RESUME IS OFFERED ONLY FOR A REAL PLACE (DR-0702). This reading's own
+  // bookmark first (the sentence the voice last reached); else, for a lesson,
+  // its saved place past the start (the sentence the reader's eye reached).
+  // Nothing saved, or saved at the very top, offers nothing: the primary
+  // button already starts at the beginning.
+  const resumeOffer = (() => {
+    if (!target) return null;
+    if (offersResume(bookmarkNow)) return { label: resumeLabel(bookmarkNow), opts: { startSentence: bookmarkNow.sentence } };
+    let p;
+    try { p = getPlaceFor(null, target.owner); } catch (_) { p = null; }
+    if (p && !p.done && p.sentence > 0) {
+      return { label: 'Resume where you left off', opts: { resumePlace: { sentence: p.sentence, sentenceKey: p.sentenceKey || '' } } };
+    }
+    return null;
+  })();
   const readingParagraphs = () => {
     const f = followRef.current;
     if (!isReading || !f || !f.follow || !f.follow.segments) return [];
@@ -1557,16 +1620,19 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
               <>
                 {/* One full piece, start to finish — primary when a surface has
                     registered its reading (the open lesson). Never the page mix. */}
+                {/* FROM THE BEGINNING — the first choice, always (DR-0702):
+                    "start to finish" means the top. Where the reader left off
+                    is its own button just below, and only when there is one. */}
                 {target && (
-                  <button type="button" onClick={() => readTargetNow(target)} className="col-span-3 bg-[#5A6E3D] text-white px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read {target.label} — start to finish</button>
+                  <button type="button" data-testid="reader-read-target" onClick={() => readTargetNow(target, { startSentence: 0 })} className="col-span-3 bg-[#5A6E3D] text-white px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read {target.label} — start to finish</button>
                 )}
                 {/* RESUME — where this reading was left, said in paragraphs. */}
-                {target && offersResume(bookmarkNow) && (
-                  <button type="button" data-testid="reader-resume" onClick={() => readTargetNow(target, { startSentence: bookmarkNow.sentence })} className="col-span-3 border-2 border-[#5A6E3D] text-[#1A1815] px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ {resumeLabel(bookmarkNow)}</button>
+                {target && resumeOffer && (
+                  <button type="button" data-testid="reader-resume" onClick={() => readTargetNow(target, resumeOffer.opts)} className="col-span-3 border-2 border-[#5A6E3D] text-[#1A1815] px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ {resumeOffer.label}</button>
                 )}
                 {/* START AT ANY PARAGRAPH — listed on request, because listing
                     means laying the whole piece out first. */}
-                {target && (pickList && pickList.owner === target.owner && pickList.labels.length ? (
+                {target && !isReadDoor(target) && (pickList && pickList.owner === target.owner && pickList.labels.length ? (
                   <label className="col-span-3 block">
                     <span className="block text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Start at</span>
                     <select data-testid="reader-start-at" aria-label="Start reading at this paragraph" className={selectClass} value="" onChange={(e) => { const n = Number(e.target.value); if (Number.isFinite(n)) readTargetNow(target, { startSentence: n }); }}>
@@ -1829,7 +1895,7 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
             {target ? `Read ${target.label} opens every part of that one piece and reads it start to finish — nothing else on the page mixed in. ` : ''}Read this page opens what is collapsed on it and recites it from the top; Start where I tap begins at the word you touch; Talk about this has Ari explain what is on it — all in your chosen voice{currentItem && currentItem.ai ? ' (AI-generated)' : ''}, on every page.
           </p>
           <p className="text-[0.5625em] text-[#5A5751] leading-snug mt-[0.375em]" style={{ fontFamily: '"Fraunces", serif' }}>
-            Only <strong>Stop</strong> stops the voice. Close puts this panel away and keeps reading. <span data-testid="reader-background-line">{backgroundLine({ isReading, audioVoice })}</span>
+            Only <strong>Stop</strong> stops the voice. Close puts this panel away and keeps reading. <span data-testid="reader-background-line">{backgroundLine({ isReading, audioVoice, usesNasVoice, saved: !!(target && offlineNote && offlineNote.owner === target.owner && offlineNote.total > 0 && offlineNote.saved === offlineNote.total && !offlineNote.running) })}</span>
           </p>
         </div>
       ) : isReading ? (
@@ -1862,7 +1928,13 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
           <button type="button" onClick={popOut} data-testid="reader-mini-pop-out" aria-label="Pop out — a reader window you can move" title="Pop out" className="hidden min-[400px]:flex h-10 w-10 rounded-full items-center justify-center text-[#1A1815] text-base font-semibold hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">⧉</button>
           {fab}
         </div>
-      ) : fab)}
+      ) : (
+        <div className="flex items-end gap-2" data-testid="reader-idle-row">
+          <TextSizeQuick dim={!revealFab} />
+          {fab}
+        </div>
+      ))}
+      {!supported && !isOpen && <TextSizeQuick dim={!revealFab} />}
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { SectionTitle, MetricCell, TabScroll, DmUnreadBadge } from './components
 // help registry every surface reads from. Small + always-present chrome, so it
 // rides the initial bundle rather than a lazy chunk.
 import LockedSurface from './components/LockedSurface.jsx'; import CreateSubNav from './components/CreateSubNav.jsx'; // Create's level-2 row (DR-0679)
-import HelpButton from './components/HelpButton.jsx';
+import HelpButton from './components/HelpButton.jsx'; import ArrivalsBell from './components/ArrivalsBell.jsx'; // every arrival counted (DR-0728)
 import HelpWalkthrough from './components/HelpWalkthrough.jsx';
 import { UpdatePrompt, InstallPrompt } from './components/PwaPrompts.jsx';
 import InstallAppButton from './components/InstallAppButton.jsx';
@@ -141,6 +141,7 @@ import { ChurchGiveFloater, ChurchGiveHeaderButton } from './components/ChurchGi
 import LiveWorshipBar from './components/LiveWorshipBar.jsx';
 import SectionBoundary from './components/SectionBoundary.jsx';
 import UiIcon from './components/UiIcon.jsx';
+import { BooksUploadButton, BooksUploadMount } from './components/BooksUploadButton.jsx';
 // Scroll-anchor primitive (same mechanism that powers reading-resume + the
 // font-size whiplash fix): capture the content element the reader is looking at,
 // let the sticky header change height, restore it to the same viewport spot — so
@@ -176,7 +177,7 @@ import { deriveAccountBalances, deriveEntityRollups, deriveDebts } from './lib/f
 import { createAccountsCrud } from './lib/books-accounts-crud.js';
 import { reconcileAccounts } from './lib/imported-view.js';
 import { TAX_CALENDAR_SEED } from './lib/tax-calendar-seed.js';
-import { payeeKey, applyCategoryToPayee } from './lib/categorize.js';
+import { payeeKey, applyCategoryToPayee, publishLedgerEditor } from './lib/ledger-edit.js';
 import { runVerifiedLedgerSync } from './lib/verified-ledger-sync.js';
 import { parseStatementText, isSpreadsheetFile, spreadsheetFileToCsv } from './lib/statement-import.js';
 import { matchServices } from './lib/matched-services.js';
@@ -3059,7 +3060,7 @@ export default function PoeFinancialSystem() {
       recordHistoryEvent({ recordKind: 'transaction', recordId: t.id, action: 'update', before: t, after: { ...t, category } });
     }
     return changed.length;
-  };
+  }; publishLedgerEditor({ updateTransaction, recategorizePayee, demo: isAnyDemoMode, transactions: data.transactions || [] }); // every surface edits through these two (lib/ledger-edit.js, DR-0710)
   const deleteTransaction = (idOrIds) => {
     // Accepts ONE id or an ARRAY. The dedupe removes THOUSANDS at once; firing that
     // many single cloud deletes floods the ~6-connection cap + rate limit so most
@@ -4199,6 +4200,7 @@ ${THEME_CSS}
                 setChurchView={setChurchView}
                 setBooksView={setBooksView}
               />
+              <ArrivalsBell />
               {/* Large-print control (WCAG 1.4.4). Sits beside the theme swatches —
                   the two "make this comfortable to look at" controls live together.
                   Scales the whole app from one place; choice saved per device. */}
@@ -4366,15 +4368,14 @@ ${THEME_CSS}
               })}
         </TopNavRow>
         {view === 'books' && (
-          <div className="border-t border-[#E8E4DC] bg-white">
-            {/* Books sub-nav routes through the shared <TabScroll> primitive
-                (same fluid scroll as the main nav). `chrome` = .ts-chrome-region
-                caps the row via zoom while body text scales. */}
+          <div className="border-t border-[#E8E4DC] bg-white flex items-center">
+            {/* Books sub-nav: shared <TabScroll> (chrome caps the row via zoom); the ONE Upload sits top right on every sub-tab (DR-0709, components/BooksUploadButton.jsx). */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
                 {[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['owed','Owed'],['plan','Plan'],['transactions','Tx'],['imported','Imported'],['cart','Cart'],['k1099','1099s'],['taxes','Taxes'],['calendar','Calendar'],['legal', <><UiIcon name="lock" /> Legal</>]].filter(([id]) => !(id === 'imported' && !importedAllowed)).map(([id, label]) => (
                   <button key={id} onClick={() => setBooksView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${booksView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
             </TabScroll>
+            <BooksUploadButton />
           </div>
         )}
         {!authSession && churchBrandRoute && <PublicWelcome placement="top" />}{view === 'create' && <CreateSubNav viewer={surfaceViewer} surfaces={Object.values(surfaceById)} />}
@@ -4411,12 +4412,8 @@ ${THEME_CSS}
         {view === 'overview' && <SectionBoundary name="Overview"><Home setData={setData} setChurchView={setChurchView} data={data} addNote={addNote} snowballExtra={snowballExtra} totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} workerOps={workerOps} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} /></SectionBoundary>}
         {view === 'books' && (
           <PrivateGate area="Financial" onCancel={() => setView('overview')} onForgot={handleForgotPin}>
-          {/* Router-level backstop (2026-06-25): every Books sub-tab degrades to a
-              recoverable inline card instead of white-screening the whole app if it
-              throws on an unexpected data shape. Keyed by booksView so switching tabs
-              remounts a fresh boundary (a crash in one tab doesn't stick to the next).
-              Transactions keeps its own inner boundary too — defense in depth, and it
-              also catches that lazy chunk's load failures. */}
+          {/* Router-level backstop (2026-06-25): each Books sub-tab degrades to an inline card, keyed by booksView so a crash never sticks to the next tab. */}
+          <SectionBoundary name="Upload"><BooksUploadMount hint={booksView} data={data} debts={derivedDebts} demo={isAnyDemoMode || reviewerMode} commitImportedRows={commitImportedRows} addAccount={addAccount} updateAccount={updateAccount} /></SectionBoundary>
           <SectionBoundary key={booksView} name="Financial">
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} updateEntity={updateEntity} />}
             {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={visibleEntities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} setBufferTarget={setBufferTarget} totals={totals} ingestData={ingestData} accountReconciliation={accountReconciliation} transactions={data.transactions || []} categoryRules={data.categoryRules || {}} />}
@@ -4732,7 +4729,7 @@ ${THEME_CSS}
             setAgeBand={setLearnAgeBand}
             onEngagement={onLearnEngagement}
             submitHelper={submitHelper}
-            initialDept={churchView === 'eternal-algorithms' ? 'the-eternal-algorithms' : null} /* the retired Church route opens Learn on its department (DR-0432) */ eternalStudyProps={{ email: authSession?.user?.email, view, churchView, setView, setChurchView }}
+            initialDept={churchView === 'eternal-algorithms' ? 'the-eternal-algorithms' : null} /* the retired Church route opens Learn on its department (DR-0432) */ eternalStudyProps={{ email: authSession?.user?.email, view, churchView, setView, setChurchView }} signedIn={!!authSession} /* DR-0698: downloads ask a signed-out reader for an account */
           />;
         })()}
         {view === 'church' && churchView === 'conference' && (
