@@ -36,7 +36,15 @@
 // actually is today. A new lesson with no bands where its course already has
 // some FAILS; the recorded numbers may only fall.
 
-import { fleschKincaidGrade, ourProseOnly } from './reading-level.mjs';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { fleschKincaidGrade, ourProseOnly, measureLesson, NEW_LESSON_CHILD_CEILING } from './reading-level.mjs';
+import { measureFullness, FULL_BANDS, FULL_FLOOR } from './full-levels.mjs';
+import { measureDifferentiation, DIFF_CEILING } from './band-differentiation.mjs';
+import { namesItsLesson } from './title-in-narrative.mjs';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
 
 export const BANDS = ['child', 'youth', 'teen', 'senior'];
 
@@ -100,6 +108,7 @@ export function lessonsOfCourse(course) {
  */
 export function scanCourseBands(catalog, ownedIds = new Set(), { ceiling = ADULT_REGISTER_CEILING } = {}) {
   const courses = {};
+  const missing = {};
   let total = 0; let allFour = 0; let adultOnly = 0; let adultRegister = 0;
   for (const c of Array.isArray(catalog) ? catalog : []) {
     if (!c || !c.key) continue;
@@ -109,7 +118,7 @@ export function scanCourseBands(catalog, ownedIds = new Set(), { ceiling = ADULT
       if (ownedIds.has(m.id)) continue;
       lessons += 1; total += 1;
       const n = bandsPresent(m).length;
-      if (n === 4) { four += 1; allFour += 1; }
+      if (n === 4) { four += 1; allFour += 1; } else (missing[c.key] = missing[c.key] || []).push(m.id);
       if (n === 0) {
         bare += 1; adultOnly += 1;
         const g = servedGrade(m);
@@ -125,7 +134,7 @@ export function scanCourseBands(catalog, ownedIds = new Set(), { ceiling = ADULT
       if (med !== null) courses[c.key].bandlessGrade = med;
     }
   }
-  return { total, allFour, adultOnly, adultRegister, courses };
+  return { total, allFour, adultOnly, adultRegister, courses, missing };
 }
 
 /**
@@ -219,4 +228,101 @@ export function buildCourseBandBaseline(scan) {
     adultRegister: scan.adultRegister,
     courses: Object.fromEntries(Object.entries(scan.courses).sort(([a], [b]) => a.localeCompare(b))),
   };
+}
+
+// =============================================================================
+// ALL FOUR, ON EVERY LESSON FROM HERE ON (DR-0692)
+// =============================================================================
+// Darrell 2026-09-30: "Do we have all the lessons for each lessons age groups
+// yet? If not, why not when that has been requested and required?!"
+//
+// Measured that day: 398 catalog-course lessons, 22 carrying all four bands.
+// The course-level ratchet above only ever said "no WORSE than the baseline":
+// it let a new course land carrying two bands (the teen+senior contract,
+// DR-0509) and still called it healthy, so the gap never closed. This is the
+// per-lesson rule that closes it. The lessons missing a band on 2026-09-30 are
+// pinned BY ID in course-band-four-allowlist.json; that list may only shrink.
+// A lesson that is not on it and does not carry child, youth, teen AND senior
+// fails, and the failure names the lesson and the bands it lacks.
+
+export const FOUR_BAND_ALLOWLIST_PATH = join(HERE, '..', 'app', 'src', 'lib', 'course-band-four-allowlist.json');
+
+export function loadFourBandAllowlist(path = FOUR_BAND_ALLOWLIST_PATH) {
+  const raw = JSON.parse(readFileSync(path, 'utf8'));
+  return raw && raw.courses ? raw : { courses: {} };
+}
+
+/**
+ * The per-lesson rule. `fresh`: a lesson missing a band that the pinned list
+ * does not excuse — the build fails and names it. `healed`: a pinned lesson
+ * that now carries all four (or is gone) — the list must drop it, so the
+ * excuse cannot outlive the debt.
+ */
+export function ratchetFourBands(scan, allowlist, catalogLessons = null) {
+  const pinned = (allowlist && allowlist.courses) || {};
+  const fresh = [];
+  const healed = [];
+  for (const [key, ids] of Object.entries(scan.missing || {})) {
+    const excused = new Set(pinned[key] || []);
+    for (const id of ids) {
+      if (excused.has(id)) continue;
+      const m = catalogLessons && catalogLessons[`${key}/${id}`];
+      const lacks = m ? BANDS.filter((b) => !bandsPresent(m).includes(b)) : null;
+      fresh.push(`${key}/${id}: missing ${lacks ? lacks.join(', ') : 'a band'} — every lesson added after DR-0692 carries child, youth, teen and senior`);
+    }
+  }
+  for (const [key, ids] of Object.entries(pinned)) {
+    const still = new Set((scan.missing || {})[key] || []);
+    for (const id of ids) if (!still.has(id)) healed.push(`${key}/${id}`);
+  }
+  return { fresh, healed };
+}
+
+/** Pinned list minus what has healed. Never adds: a fresh gap is not excusable. */
+export function shrinkFourBandAllowlist(scan, allowlist) {
+  const out = {};
+  for (const [key, ids] of Object.entries((allowlist && allowlist.courses) || {})) {
+    const still = new Set((scan.missing || {})[key] || []);
+    out[key] = ids.filter((id) => still.has(id));
+  }
+  return out;
+}
+
+/**
+ * One id per line, one course per block, and a course that is finished keeps
+ * its (empty) block. Five sessions shrink this file at once; with every block
+ * bounded by its own key line and closing line, two sessions removing ids from
+ * two courses never touch adjacent lines, so git merges them without a hand.
+ */
+export function serializeFourBandAllowlist(courses, note) {
+  const keys = Object.keys(courses).sort();
+  const lines = ['{', `  "note": ${JSON.stringify(note)},`, '  "courses": {'];
+  keys.forEach((k, i) => {
+    lines.push(`    ${JSON.stringify(k)}: [`);
+    const ids = [...courses[k]].sort();
+    ids.forEach((id, j) => lines.push(`      ${JSON.stringify(id)}${j < ids.length - 1 ? ',' : ''}`));
+    lines.push(`    ]${i < keys.length - 1 ? ',' : ''}`);
+  });
+  lines.push('  }', '}', '');
+  return lines.join('\n');
+}
+
+/**
+ * The house band gates on one four-band lesson, the ones Who He Is is held to:
+ * each band's share of the adult teaching (full-levels floor), a rising ladder
+ * child < youth < teen <= senior with the child band at or under the new-lesson
+ * ceiling, four genuinely different texts (eight-word shingles), and every
+ * band naming its lesson near its start. Returns the faults, [] when clean.
+ */
+export function fourBandGateFaults(m) {
+  const out = [];
+  const f = measureFullness(m);
+  for (const b of FULL_BANDS) if (!(f.bands[b].share >= FULL_FLOOR[b])) out.push(`${b} share ${f.bands[b].share} under ${FULL_FLOOR[b]}`);
+  const g = Object.fromEntries(Object.entries(measureLesson(m).bands).map(([k, v]) => [k, v.authored]));
+  if (!(g.child < g.youth && g.youth < g.teen && g.teen <= g.senior)) out.push(`ladder child ${g.child} < youth ${g.youth} < teen ${g.teen} <= senior ${g.senior} does not hold`);
+  if (!(g.child <= NEW_LESSON_CHILD_CEILING)) out.push(`child reads ${g.child}, over ${NEW_LESSON_CHILD_CEILING}`);
+  const d = measureDifferentiation(m);
+  if (!d || !(d.worst < DIFF_CEILING)) out.push(`bands overlap ${d ? d.worst : 'unmeasured'}, ceiling ${DIFF_CEILING}`);
+  for (const b of FULL_BANDS) if (!namesItsLesson(m.title, m.levels[b])) out.push(`${b} does not name its lesson near its start`);
+  return out;
 }
