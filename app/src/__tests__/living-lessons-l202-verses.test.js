@@ -110,7 +110,7 @@ describe('provenance is said plainly (DR-0331: render for meaning, never guess)'
     expect(l).toContain('the speakers were identified from the recording\'s context and Darrell\'s own account');
     expect(l).toContain('name the message Once a Christian, Always a Christian');
     expect(l).toContain('The recording opens inside the second.');
-    for (const b of BANDS()) expect(b).toMatch(/Once a Christian, Always a Christian|Bishop Gwin was the teacher/);
+    for (const b of BANDS()) expect(b).toMatch(/Once a Christian, Always a Christian|Bishop Gwin taught the class/);
     // The old line said the class stays unnamed; it must not come back beside the names.
     expect(ALL()).not.toMatch(/stay unnamed|kept unnamed|are not named because/);
   });
@@ -152,6 +152,11 @@ const SPEAKER_PINS = [
   ['child', 'Darrell said that long ago, people thought'],
   ['child', 'Janelle told about a school leader who wants to be a good ancestor.'],
   ['child', 'Darrell said we must check what a computer tells us'],
+  ['child', 'He told the class he used AI to build it: 50 courses and 750 lessons.'],
+  ['youth', 'DP told the class he used AI to build its 50 courses and 750 lessons.'],
+  ['teen', 'DP told the class he used AI to build the app\'s 50 courses and 750 lessons.'],
+  ['senior', 'DP told the class he used AI to build the app\'s 50 courses and 750 lessons.'],
+  ['lesson', 'DP told the class he used AI to build the app\'s 50 courses and 750 lessons; the recording carries the numbers'],
 ];
 const textOf = (m, where) => (where === 'lesson' ? m.lesson : m.levels[where]);
 function speakerFaults(m) {
@@ -164,12 +169,32 @@ function speakerFaults(m) {
     if (/\bChristina\b/.test(s) && !/University of Illinois|big school|who told about Christina|Christina's mother|his wife Christina|Darrell and Christina/.test(s)) faults.push(`Christina off her words: ${s.slice(0, 80)}`);
     if (/\bChristiana\b/.test(s) && !/the machine wrote Christiana/.test(s)) faults.push(`the machine's spelling used as a name: ${s.slice(0, 80)}`);
     if (/\bMosley\b/.test(s) && !/said (aloud|out loud)|named aloud|names were said/i.test(s)) faults.push(`a forebear's name off its line: ${s.slice(0, 80)}`);
+    if (/\b150\b/.test(s)) faults.push(`a count the recording does not carry: ${s.slice(0, 80)}`);
     if (/Evangelist Queen/.test(s) && !/the machine wrote Evangelist Queen/.test(s)) faults.push(`the machine's hearing used as a name: ${s.slice(0, 80)}`);
   }
   // The garbled third name is never guessed into a spelling.
   if (/Osia|Mama\b/.test(all)) faults.push('a garbled name was guessed');
   return faults;
 }
+
+describe('the teacher is named: Bishop Gwin or BG, never "the teacher" alone (Darrell, 2026-10-01)', () => {
+  const bareTeacher = (m) => {
+    const hits = [];
+    for (const [where, text] of quotedTexts(m)) {
+      for (const r of String(text).matchAll(/\b[Tt]he teacher(?:'s|’s)?,? ?(\S*(?: \S+)?)/g)) {
+        if (!/^(Bishop Gwin|BG)\b/.test(r[1])) hits.push(`${where}: ${String(text).slice(Math.max(0, r.index - 40), r.index + 40)}`);
+      }
+    }
+    return hits;
+  };
+  it('no field of L202 says "the teacher" unless "Bishop Gwin" or "BG" follows', () => {
+    expect(bareTeacher(L())).toEqual([]);
+  });
+  it('PROVEN-TO-CATCH: a planted bare "the teacher" fires, and "the teacher, Bishop Gwin" does not', () => {
+    expect(bareTeacher({ ...L(), lesson: `${L().lesson} The teacher said it again.` }).length).toBe(1);
+    expect(bareTeacher({ ...L(), lesson: `${L().lesson} The teacher, Bishop Gwin, said it again.` })).toEqual([]);
+  });
+});
 
 describe('the finder finds L202 by Mary Gwin (Darrell, 2026-09-30: "so people can find it easily")', () => {
   it('the title carries her name and the id never changed, so saved places, progress, shares and dates keep working', () => {
@@ -307,7 +332,7 @@ describe('the teaching is taught in the order it was given, and in our voice', (
 
   it('the teacher’s own numbering is kept: legacy was point three, success point four, represent the last', () => {
     const l = L().lesson;
-    expect(l).toContain('This was the teacher\'s third point');
+    expect(l).toContain("This was BG's third point");
     expect(l).toContain('SIX. YAHWEH DEFINES SUCCESS. This was the fourth point.');
     expect(l).toContain('The last point was one word: represent.');
   });
