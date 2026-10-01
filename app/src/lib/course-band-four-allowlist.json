@@ -26,14 +26,6 @@
       "bank8-who-actually-holds-it"
     ],
     "bonds": [
-      "bnd1-a-bond-is-a-loan-with-a-receipt",
-      "bnd2-the-promise-is-fixed-so-the-price-moves",
-      "bnd3-can-they-actually-pay",
-      "bnd4-how-a-country-borrows",
-      "bnd5-when-a-country-cannot-pay",
-      "bnd6-the-curve-is-a-sentence-about-the-future",
-      "bnd7-inflation-is-the-quiet-default",
-      "bnd8-usury-the-brother-and-the-stranger"
     ],
     "broadcast": [
       "bc1-the-whole-chain",
@@ -249,14 +241,6 @@
       "sov9-verification-earns-trust"
     ],
     "stocks": [
-      "stk1-a-share-is-a-piece-of-a-company",
-      "stk2-when-you-buy-a-share-the-company-gets-nothing",
-      "stk3-between-buy-and-owned",
-      "stk4-price-is-not-value",
-      "stk5-how-a-share-actually-pays-you",
-      "stk6-the-index-is-a-weighting-choice",
-      "stk7-who-is-on-the-other-side",
-      "stk8-the-question-the-screen-never-asks"
     ],
     "taxes-records": [
     ],
