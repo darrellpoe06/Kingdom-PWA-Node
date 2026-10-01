@@ -378,12 +378,16 @@ describe('share a lesson outside the app (Darrell 2026-09-10: "a link to serve t
       await settle();
       expect(shared.length).toBe(2);
       expect(shared[1].title).toBe('The three domains');
-      expect(shared[1].url).toContain('&lesson=');
-      expect(shared[1].url).toContain('course=tl-assessment-and-diagnosis-biopsychosocial-assessment-the-whole-person');
+      // A lesson share carries its link INSIDE the note, before the how-to
+      // that ends it (DR-0698), so the sheet gets no separate url.
+      const linkIn = (p) => p.url || (String(p.text).match(/https:\/\/\S+/) || [''])[0];
+      expect(linkIn(shared[1])).toContain('&lesson=');
+      expect(linkIn(shared[1])).toContain('course=tl-assessment-and-diagnosis-biopsychosocial-assessment-the-whole-person');
+      expect(linkIn(shared[1])).toMatch(/&s=[A-Za-z0-9]{12}/);
       expect(shared[1].text).toContain('Biopsychosocial Assessment — the whole person, TLC Therapy Solutions');
       expect(byText(/Shared ✓/)).toBeTruthy();
       // shared plain: no word flag; open the Word, share again: word=1 rides along
-      expect(shared[1].url).not.toContain('word=');
+      expect(linkIn(shared[1])).not.toContain('word=');
       await click(byText(/The Word on this lesson/));
       await settle();
       // the button reads "Shared ✓" for 1.6s after a share; let it settle back
@@ -391,7 +395,7 @@ describe('share a lesson outside the app (Darrell 2026-09-10: "a link to serve t
       await click(byText(/Share this lesson/));
       await settle();
       expect(shared.length).toBe(3);
-      expect(shared[2].url).toMatch(/&word=1$/);
+      expect(linkIn(shared[2])).toMatch(/&word=1(&|$)/);
     } finally {
       Object.defineProperty(navigator, 'share', { configurable: true, writable: true, value: orig });
     }
