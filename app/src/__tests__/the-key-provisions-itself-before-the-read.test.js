@@ -39,7 +39,9 @@ describe('REPRODUCES THE GAP: the machine path existed and only Real Estate ran 
 
   it('the read now asks for the key before its first studio attempt', () => {
     expect(HOOK).toMatch(/import \{ provisionBridgeToken \} from '\.\/bridge-provision\.js';/);
-    const attempt = HOOK.indexOf('if (voice && attemptStudio) {');
+    // DR-0721: a picked person voice is always tried, so the guard is the
+    // endpoint alone (the voice object is built when no row loaded).
+    const attempt = HOOK.indexOf('if (attemptStudio) {');
     const ask = HOOK.indexOf('if (!hasBridgeToken()) await provisionBridgeToken(supabase);');
     const speak = HOOK.indexOf('synthesizeSpeech({', attempt);
     expect(attempt).toBeGreaterThan(0);

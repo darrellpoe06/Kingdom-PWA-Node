@@ -188,5 +188,52 @@ class PaginationTest(unittest.TestCase):
 
 
 
+class DrainedIsNotAStallTest(unittest.TestCase):
+    """DR-0723. Measured 2026-10-01: 756/876 transcribed, all 120 others
+    no-caption VERDICTS (harvest-health: owed=0). The loader counted the
+    verdicts as owed and printed "STALL: 0 videos advanced while gaps remain"
+    on every fire, so the services-sync summary read DEGRADED all day while
+    the caption drain was finished. Owed is no text AND no verdict."""
+
+    def _state(self, text=0, verdict=0, unanswered=0):
+        st, ids = {}, []
+        for i in range(text):
+            st[f"t{i}"] = {"has_text": True, "has_verdict": False}; ids.append(f"t{i}")
+        for i in range(verdict):
+            st[f"v{i}"] = {"has_text": False, "has_verdict": True}; ids.append(f"v{i}")
+        for i in range(unanswered):
+            ids.append(f"u{i}")  # no row at all: never fetched
+        return st, ids
+
+    def test_the_measured_corpus_owes_nothing(self):
+        st, ids = self._state(text=756, verdict=120)
+        self.assertEqual(lt.coverage(st, ids), (756, 120, 0))
+
+    def test_a_drained_corpus_is_not_a_stall(self):
+        # The exact 2026-10-01 fire: nothing attempted, 120 verdicts, 0 owed.
+        self.assertEqual(lt.run_outcome(0, 0, 0, 0, owed=0), "drained")
+
+    def test_a_real_stall_still_reds(self):
+        # Videos with no text and no verdict, and nothing attempted: a fault.
+        st, ids = self._state(text=10, verdict=2, unanswered=3)
+        self.assertEqual(lt.coverage(st, ids), (10, 2, 3))
+        self.assertEqual(lt.run_outcome(0, 0, 0, 0, owed=3), "stall")
+
+    def test_refetch_never_reads_as_a_stall(self):
+        self.assertEqual(lt.run_outcome(0, 0, 0, 0, owed=3, refetch=True), "drained")
+
+    def test_all_blocked_is_still_blocked(self):
+        self.assertEqual(lt.run_outcome(0, 0, 4, 0, owed=4), "blocked")
+
+    def test_any_answer_is_progress(self):
+        self.assertEqual(lt.run_outcome(1, 0, 3, 0, owed=3), "ok")
+        self.assertEqual(lt.run_outcome(0, 0, 0, 1, owed=0), "ok")
+
+    def test_a_row_with_neither_text_nor_verdict_is_owed(self):
+        # A transient error row (RequestBlocked) is neither: owed, retried.
+        st = {"x": {"has_text": False, "has_verdict": False}}
+        self.assertEqual(lt.coverage(st, ["x"]), (0, 0, 1))
+
+
 if __name__ == "__main__":
     unittest.main()
