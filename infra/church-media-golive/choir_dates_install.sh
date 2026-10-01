@@ -54,7 +54,21 @@ YTDLP="$STATE/yt-dlp"
 # is rewritten when the check fails -- self-repairing rather than silently dead.
 ytdlp_ok() { [ -x "$YTDLP" ] && "$YTDLP" --version >/dev/null 2>&1; }
 
-if ! python3 -c "import yt_dlp" 2>/dev/null && ! ytdlp_ok; then
+# THE SOVEREIGN yt-dlp FIRST (DR-0723). Measured 2026-10-01: every cycle that
+# day ended "yt-dlp not available" -- the docker wrapper below was the only
+# tool and it did not answer. The NAS now installs yt-dlp's own standalone
+# Linux build, pinned and sha256-verified (infra/nas-yt-dlp/install.sh), with
+# no docker and no PyPI in the path. The docker wrapper stays as the fallback
+# for a box where the standalone build cannot run, never the first choice.
+SOVEREIGN_YTDLP_HOME="${YTDLP_HOME:-/volume1/PoeTech/yt-dlp}"
+SOVEREIGN_OK=0
+if sh "$REPO/infra/nas-yt-dlp/install.sh"; then
+  SOVEREIGN_OK=1
+else
+  echo "choir-dates: sovereign yt-dlp not ready (reason above); trying the docker wrapper"
+fi
+
+if [ "$SOVEREIGN_OK" = "0" ] && ! python3 -c "import yt_dlp" 2>/dev/null && ! ytdlp_ok; then
   echo "choir-dates: (re)writing docker-backed yt-dlp wrapper"
   # sudo -n first when the narrow grant covers it, plain docker otherwise. The
   # wrapper picks per invocation so it survives a change in the grant either way.
@@ -82,7 +96,13 @@ WRAPEOF
     exit 1
   fi
 fi
-PATH="$STATE:$PATH"; export PATH
+if [ "$SOVEREIGN_OK" = "1" ]; then
+  PATH="$SOVEREIGN_YTDLP_HOME:$STATE:$PATH"
+else
+  PATH="$STATE:$PATH"
+fi
+export PATH
+echo "choir-dates: yt-dlp is $(command -v yt-dlp 2>/dev/null || echo none)"
 
 python3 "$DIR/choir_dates_sync.py" --commit --chunk 90 --time-budget 300 \
   --done-marker "$STATE/choir-dates.DONE"
