@@ -35,6 +35,7 @@
 // =============================================================================
 import supabase from './supabase.js';
 import { withUploadRetry } from './upload-retry.js';
+import { markSynced, markSyncFailed, registerResync } from './sync-freshness.js';
 
 // -----------------------------------------------------------------------------
 // createDebouncer — coalesce a burst of calls into a single trailing run.
@@ -318,6 +319,7 @@ export function createTableSync(spec) {
       tenantId = await tenantIdCached();
     } catch (e) {
       console.warn(`[table-sync:${remoteTable}] tenant lookup failed:`, e);
+      markSyncFailed(remoteTable, 'tenant-lookup');
       return null;
     }
     // PAGINATE. Supabase/PostgREST caps a single response at 1,000 rows, so a
@@ -348,6 +350,7 @@ export function createTableSync(spec) {
         // only safe next refresh is another full read, not a delta on top of
         // a hole.
         updatedWatermark = null;
+        markSyncFailed(remoteTable, from === 0 ? 'read-failed' : 'partial-read');
         return from === 0 ? null : rows.map(fromRow);
       }
       const batch = data || [];
@@ -356,6 +359,8 @@ export function createTableSync(spec) {
     }
     advanceWatermark(rows);
     advanceUpdatedWatermark(rows);
+    // The database answered every page: this device now holds the whole table.
+    markSynced(remoteTable, { rows: rows.length, mode: 'full' });
     return rows.map(fromRow);
   }
 
@@ -504,6 +509,8 @@ export function createTableSync(spec) {
             onRemote(full);
             return;
           }
+          // Both legs answered: the cache now matches the database as of now.
+          markSynced(remoteTable, { rows: cache.size, mode: 'delta' });
           if (upserts.length === 0 && deletedIds.length === 0) return; // quiet
           for (const it of upserts) { const k = idOf(it); if (k != null) cache.set(k, it); }
           for (const id of deletedIds) cache.delete(id);
@@ -529,6 +536,39 @@ export function createTableSync(spec) {
     // refetch. A5: state for the reconnect-resync decision.
     const debouncedRefresh = createDebouncer(refresh, 400);
     const statusState = { everSubscribed: false };
+
+    // "Sync now": a FULL re-read on request (Books -> Imported's button). Full,
+    // not delta, so a device that doubts its picture gets the whole table.
+    const resyncNow = async () => {
+      const full = await fetchAll();
+      if (!full || cancelled) return;
+      if (mutableDelta) cacheReplaceAll(full);
+      onRemote(full);
+    };
+    const unregisterResync = registerResync(remoteTable, resyncNow);
+
+    // BACK TO THE FRONT, RE-READ (2026-09-30, DR-0708). Realtime is the fast
+    // path, but a screen must not depend on it alone: on the NAS the ledger was
+    // never in the realtime publication, and a desktop that loaded before
+    // Christina's import showed 75 fewer September rows for as long as it
+    // stayed open. For delta-capable tables (a cheap `updated_at > watermark`
+    // read), coming back to the screen or back online re-reads. Event-driven,
+    // no timer; at most once per 30 s so a flurry of focus events is one read.
+    let lastFrontRead = Date.now(); // the initial full read below is the first one
+    const onFront = () => {
+      if (cancelled || !(mutableDelta || appendOnly)) return;
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      const now = Date.now();
+      if (now - lastFrontRead < 30000) return;
+      lastFrontRead = now;
+      refresh();
+    };
+    const hasWindow = typeof window !== 'undefined' && typeof window.addEventListener === 'function';
+    if (hasWindow && (mutableDelta || appendOnly)) {
+      window.addEventListener('focus', onFront);
+      window.addEventListener('online', onFront);
+      if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onFront);
+    }
     (async () => {
       const session = await currentSession();
       if (!session || cancelled) return;
@@ -564,6 +604,12 @@ export function createTableSync(spec) {
     return function unsubscribe() {
       cancelled = true;
       debouncedRefresh.cancel();
+      unregisterResync();
+      if (hasWindow && (mutableDelta || appendOnly)) {
+        window.removeEventListener('focus', onFront);
+        window.removeEventListener('online', onFront);
+        if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onFront);
+      }
       if (channel) supabase.removeChannel(channel);
     };
   }
