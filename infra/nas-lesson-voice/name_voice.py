@@ -181,6 +181,14 @@ def main(argv=None):
 
     if a.name:
         names = parse_names(a.name)
+        # DR-0720: by hand, only the two voices named from attributed words.
+        # Everyone else adds their own voice, with their own consent, in the
+        # app ("Add my voice"); a print made here for them would name a voice
+        # nobody consented to, and the transcriber would never use it.
+        other = sorted(set(names.values()) - {"BG", "DP"})
+        if other:
+            print(f"--name is for BG and DP only; {', '.join(other)} must add their own voice in the app (Add my voice)", file=sys.stderr)
+            return 2
         with open(pending, encoding="utf-8") as f:
             p = json.load(f)
         for voice, initials in names.items():
@@ -203,9 +211,16 @@ def enroll(spec_path, data, whisper_model):
     with open(spec_path, encoding="utf-8") as f:
         spec = json.load(f)
     have = st.load_voiceprints(data)
-    result = {"enrolled": {}, "skipped": [], "why": []}
+    # A label its owner removed with "Remove my voice" (DR-0720) is never
+    # re-created from the old recording: the person's own word stands.
+    import voice_enroll as ve
+    withdrawn = set(ve.read_withdrawn(data))
+    result = {"enrolled": {}, "skipped": [], "withdrawn": [], "why": []}
     by_audio = {}
     for e in spec.get("entries") or []:
+        if (e.get("label") or "").upper() in withdrawn:
+            result["withdrawn"].append(e.get("label"))
+            continue
         if (e.get("label") or "").upper() in have:
             result["skipped"].append(e.get("label"))
             continue
@@ -234,7 +249,7 @@ def enroll(spec_path, data, whisper_model):
     with open(os.path.join(data, "enroll-result.json"), "w", encoding="utf-8") as f:
         json.dump(result, f)
     print(json.dumps(result))
-    return 0 if result["enrolled"] or result["skipped"] else 2
+    return 0 if result["enrolled"] or result["skipped"] or result["withdrawn"] else 2
 
 
 if __name__ == "__main__":
