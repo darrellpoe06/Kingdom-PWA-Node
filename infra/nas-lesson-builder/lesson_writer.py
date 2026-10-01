@@ -128,6 +128,12 @@ WHO SPOKE (a recording can hold more than one voice)
   not yet named; "?" is words no voice could be placed on. Attribute a
   teaching, a testimony or a question to the voice its line carries, and to
   no one else.
+- At the weekly 1 p.m. Bible study the teacher is Bishop Gwin (BG): never "the teacher" alone.
+  In our own prose say Bishop Gwin or BG (first mention usually Bishop Gwin),
+  alternating naturally; "the teacher, Bishop Gwin" is fine. Never "our
+  teacher", "the instructor" or "the speaker" alone for him. A line the
+  recording does not give to BG is never put on him: say "the class", or name
+  the voice the recording shows. Quotations stay exactly as they are.
 - Without that header ("Speakers: not marked"), who spoke is read only from the
   words themselves and the sender's own account; where they do not show who
   spoke, SAY SO ("the recording does not show who said this"). Never guess.
@@ -209,6 +215,9 @@ def row_rules(rows, owner_ids):
         elif "voice-transcript" in tags:
             lines.append("- Its speakers are NOT marked; name a speaker only where the words or the sender's "
                          "own account show who spoke, and say so where they do not.")
+        if "voice:BG" in tags or "lesson-name:Bishop Gwin" in tags:
+            lines.append("- Bishop Gwin (BG) taught this session: call him Bishop Gwin or BG, never "
+                         "'the teacher' alone; a line his label does not carry is not his.")
         if "church-session-public" in tags:
             lines.append("- This is a church session the church posts publicly (DR-0711): a member may be "
                          "named, only as the teacher calls them in the recording; never health, giving, "
