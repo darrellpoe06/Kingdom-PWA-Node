@@ -166,7 +166,7 @@ function speakerFaults(m) {
   const all = [m.lesson, ...FULL_BANDS.map((b) => m.levels[b])].join(' ');
   for (const s of all.split(/(?<=[.!?])\s+/)) {
     if (/\bJanelle\b/.test(s) && !/chancellor|school leader|good ancestor/.test(s)) faults.push(`Janelle off her words: ${s.slice(0, 80)}`);
-    if (/\bChristina\b/.test(s) && !/University of Illinois|big school|who told about Christina|Christina's mother|his wife Christina|Darrell and Christina/.test(s)) faults.push(`Christina off her words: ${s.slice(0, 80)}`);
+    if (/\bChristina\b/.test(s) && !/University of Illinois|big school|who told about Christina|Christina's mother|his wife Christina|Darrell and Christina|now directs the choir|had Christina (enroll|sign) him/.test(s)) faults.push(`Christina off her words: ${s.slice(0, 80)}`);
     if (/\bChristiana\b/.test(s) && !/the machine wrote Christiana/.test(s)) faults.push(`the machine's spelling used as a name: ${s.slice(0, 80)}`);
     if (/\bMosley\b/.test(s) && !/said (aloud|out loud)|named aloud|names were said/i.test(s)) faults.push(`a forebear's name off its line: ${s.slice(0, 80)}`);
     if (/\b150\b/.test(s)) faults.push(`a count the recording does not carry: ${s.slice(0, 80)}`);
@@ -219,6 +219,17 @@ describe('the finder finds L202 by Mary Gwin (Darrell, 2026-09-30: "so people ca
 describe('who said what: BG, DP, and the members as Bishop Gwin calls them (DR-0711)', () => {
   it('every speaker is pinned to the words the recording attaches to them', () => {
     expect(speakerFaults(L())).toEqual([]);
+  });
+
+  it('her service, by Darrell\'s own account (2026-10-01): the choir, adult education, Parkland College, the MBA', () => {
+    // Darrell: "Mary Gwin was also the choir director and taught Christina who is now the
+    // director... she was also an adult education teacher... had my wife enroll me into
+    // Parkland College to get my associates degree etc... I ended up getting my MBA-IT".
+    for (const t of [L().lesson, ...BANDS()]) {
+      for (const must of ['choir director', 'Christina, who now directs the choir', 'adult education', 'Parkland College', 'MBA', 'rent-to-own stores']) expect(t, must).toContain(must);
+      expect(t).toMatch(/Darrell( told us more about her after the class| added more|'s own account)/);
+      expect(t).toMatch(/thank(s)? (to )?Yahweh/);
+    }
   });
 
   it('Evangelist Mary E. Gwin is honored in every band and the full lesson (Darrell, 2026-09-30)', () => {
