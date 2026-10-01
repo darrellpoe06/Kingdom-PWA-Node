@@ -9,6 +9,7 @@
 import React, { useState, useMemo } from "react";
 import { fmt } from "../lib/format.js";
 import { cardPaymentSuggestions, debtNameFromPayee } from "../lib/debt-payments.js";
+import LedgerEdit from "./LedgerEdit.jsx";
 
 const ACCOUNT_TYPES = ['checking', 'savings', 'credit', 'loan', 'investment', 'cash', 'other'];
 
@@ -130,7 +131,7 @@ export default function BooksAccounts({ entityRollups, entities, addAccount, upd
           {debtSuggestions.slice(0, 6).map((s) => (
             <div key={s.payeeKey} className="flex items-center justify-between gap-3 flex-wrap">
               <span className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-                <strong>{debtNameFromPayee(s.label)}</strong> <span className="text-[#5A5751]">· {fmt(s.monthlyPayment)}/mo · {s.cadenceLabel}</span>
+                <LedgerEdit payee={s.label} className="font-semibold">{debtNameFromPayee(s.label)}</LedgerEdit> <span className="text-[#5A5751]">· {fmt(s.monthlyPayment)}/mo · {s.cadenceLabel}</span>
               </span>
               <button type="button" onClick={() => addSuggestedDebt(s)} className="text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] bg-[#B85838] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] whitespace-nowrap">Add as debt</button>
             </div>
