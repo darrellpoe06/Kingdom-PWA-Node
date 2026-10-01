@@ -19,6 +19,9 @@ READ FIRST (before any edit):
 
 BRAKES: budget <wall-clock or item ceiling>; lock <what makes a second run skip>;
   stop <what ends the run early>.
+FEATURES: Moving or restyling a control: update its registry entry's locator; never drop it.
+  (app/src/lib/feature-registry.json, DR-0726. A new control gets an entry; a removal
+  moves its entry to "removed" with removedBecause and a DR. The vitest gate fails otherwise.)
 REPORT: what changed, the evidence, and anything left with its named blocker.
 ```
 
