@@ -218,8 +218,60 @@ describe('on the real Learn tree', () => {
     expect(firstRow().textContent).toMatch(/^L1 · Jun 24, 2026 · /);
     expect(nav().textContent).toContain('L192 · Sep 24, 2026');
     expect(nav().querySelectorAll('li[data-shelf-heading]').length).toBe(0);
-    expect(nav().querySelector('li[data-month-heading="month-2026-06"]').textContent).toMatch(/^June 2026/);
+    expect(nav().querySelector('li[data-month-heading="month-2026-06"]').textContent).toMatch(/June 2026/);
     expect(nav().querySelector('details')).toBe(null);
+  });
+
+  // THE MONTHS FOLD AND STAY AT THE TOP (DR-0732; Darrell 2026-10-01).
+  it('a month heading folds its lessons on a tap, keeps its count, and stays sticky at the top of the scroll', () => {
+    mount();
+    pick(/Living Lessons from the Word/);
+    const list = () => nav().querySelector('[data-testid="course-lesson-list"]');
+    const july = () => list().querySelector('li[data-month-heading="month-2026-07"]');
+    expect(july().className).toMatch(/\bsticky\b/);
+    expect(july().className).toMatch(/\btop-0\b/);
+    const before = rowNums().length;
+    const julyBtn = july().querySelector('[data-testid="month-fold"]');
+    expect(julyBtn.getAttribute('aria-expanded')).toBe('true');
+    const julyCount = Number(july().getAttribute('data-count'));
+    act(() => julyBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(july().getAttribute('data-folded')).toBe('true');
+    expect(july().querySelector('[data-testid="month-fold"]').getAttribute('aria-expanded')).toBe('false');
+    expect(july().textContent).toMatch(/July 2026/);
+    expect(rowNums().length).toBe(before - julyCount);
+    // Other months are untouched: June's L1 still shows.
+    expect(firstRow().textContent).toMatch(/^L1 · Jun 24, 2026 · /);
+    // Open it again: every row is back.
+    act(() => july().querySelector('[data-testid="month-fold"]').dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(rowNums().length).toBe(before);
+  });
+
+  it('fold all months leaves a table of contents with counts; open all restores; the folds are kept on the device', () => {
+    mount();
+    pick(/Living Lessons from the Word/);
+    const all = () => nav().querySelector('[data-testid="months-fold-all"]');
+    expect(all().textContent).toMatch(/^Fold all \d+ months$/);
+    act(() => all().dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(rowNums().length).toBe(0);
+    const headings = [...nav().querySelectorAll('li[data-month-heading]')];
+    expect(headings.length).toBeGreaterThan(1);
+    expect(headings.every((h) => h.getAttribute('data-folded') === 'true')).toBe(true);
+    expect(headings.reduce((a, h) => a + Number(h.getAttribute('data-count')), 0)).toBe(LIVING_LESSONS_MODULES.length);
+    // THE OTHER NUMBER (Darrell 2026-10-01): how many of each month's lessons
+    // are written for every age — summed, it is the catalog's own count.
+    const forEveryAge = LIVING_LESSONS_MODULES.filter((m) => m.levels && ['child', 'youth', 'teen', 'senior'].every((b) => typeof m.levels[b] === 'string' && m.levels[b].trim())).length;
+    expect(forEveryAge).toBeGreaterThan(0);
+    expect(headings.reduce((a, h) => a + Number(h.getAttribute('data-aged')), 0)).toBe(forEveryAge);
+    expect(headings.find((h) => Number(h.getAttribute('data-aged')) > 0).textContent).toMatch(/\d+ for every age/);
+    expect(all().textContent).toMatch(/^Open all \d+ months$/);
+    // Leave and come back: still folded on this device.
+    act(() => root.unmount());
+    root = createRoot(container);
+    mount();
+    pick(/Living Lessons from the Word/);
+    expect(rowNums().length).toBe(0);
+    act(() => all().dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(rowNums().length).toBe(LIVING_LESSONS_MODULES.length);
   });
 
   it('Newest first puts the highest-numbered lesson on top, and the pick survives leaving and coming back (kept on the device)', () => {

@@ -108,6 +108,8 @@ import { searchItOutFor } from '../lib/search-it-out.js';
 const EternalAlgorithmsStudyLazy = React.lazy(() => import('./EternalAlgorithmsStudy.jsx'));
 import { organizeCourses, learnDepartments, courseLessonCount, courseSortsFor, DEFAULT_COURSE_SORT, rememberedCourseSort, rememberCourseSort, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey } from '../lib/learn-organize.js';
 import { wantsSections, sectionLessons, divisionOf } from '../lib/lesson-sections.js';
+// MONTHS FOLD, AND THE MONTH YOU ARE IN STAYS AT THE TOP (DR-0732; lib/lesson-month-fold.js).
+import { rememberedFolds, rememberFolds, toggleFold, foldAll, openAll, visibleItems, foldAllOffer } from '../lib/lesson-month-fold.js';
 import { isNumberedCourse, ownNumber, inNumberOrder, numberLabel, lessonCountLabel, ordersFor, orderLessons, withMonthHeadings, formatAdded, datesFollowNumbers, DEFAULT_LESSON_ORDER, rememberedLessonOrder, rememberLessonOrder } from '../lib/lesson-order.js';
 import { subscribeTextSize } from '../lib/text-size.js';
 import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
@@ -3767,6 +3769,13 @@ export default function ChurchLearn({
   // numbered!!!!!!!"). By number, first to last, is the default; the pick is
   // kept per course on this device (lib/lesson-order.js, storage guarded).
   const [lessonOrderPick, setLessonOrderPick] = useState({});
+  // Which months are folded, per course; remembered on this device (DR-0732).
+  const [monthFoldPick, setMonthFoldPick] = useState({});
+  const foldsFor = (courseKey) => monthFoldPick[courseKey] || rememberedFolds(courseKey);
+  const setFoldsFor = (courseKey, next) => {
+    rememberFolds(courseKey, next);
+    setMonthFoldPick((m) => ({ ...m, [courseKey]: next }));
+  };
   const pickLessonOrder = (courseKey, order) => {
     setLessonOrderPick((p) => ({ ...p, [courseKey]: order }));
     rememberLessonOrder(courseKey, order);
@@ -4142,6 +4151,9 @@ export default function ChurchLearn({
             : (order === 'number' || order === 'newest')
               ? ((order === 'newest' ? dated : numberIsOldest) ? withMonthHeadings(orderLessons(shown, order)) : orderLessons(shown, order))
               : (order === 'title' || order === 'title-desc') ? orderLessons(shown, order) : shown;
+          const folded = foldsFor(active.key);
+          const rows = visibleItems(items, folded);
+          const foldOffer = foldAllOffer(items, folded);
           const showDivision = !!sections && order !== 'divisions' && shelf === 'all';
           const open = (id) => { setActiveKey(active.key); setResumeOpenGuide(false); setResumeLessonId(id); setResumeNonce((n) => n + 1); };
           return (
@@ -4260,16 +4272,72 @@ export default function ChurchLearn({
                   That is the "By the Word's divisions" order; in number order
                   the month each lesson was added heads its run instead (labels
                   too), and each row names its division in small type. */}
-              <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1" data-testid="course-lesson-list" data-shelf={shelf} data-order={order}>
-                {items.map((m) => (m.heading ? (
-                  <li
-                    key={`heading-${m.heading.key}`}
-                    {...(m.heading.lessons ? { 'data-shelf-heading': m.heading.key } : { 'data-month-heading': m.heading.key })}
-                    className="pt-2 pb-1 text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D] font-semibold border-t border-[#E8E4DC] flex items-center justify-between"
+              {/* THE MONTHS FOLD (DR-0732; Darrell 2026-10-01: "condensed to get
+                  to other months faster and to see the count of lessons each
+                  month if they are all collapsed... work independently"). Each
+                  month heading is its own fold; folded, it still shows its
+                  count, so the list reads as a table of contents. One control
+                  folds or opens them all. Division headings stay labels. */}
+              {foldOffer && (
+                <div className="ts-chrome-region flex justify-end mb-1">
+                  <button
+                    type="button"
+                    data-testid="months-fold-all"
+                    onClick={() => setFoldsFor(active.key, foldOffer.action === 'fold' ? foldAll(items) : openAll())}
+                    className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 min-h-[36px] border border-[#E8E4DC] text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
                   >
-                    <span>{m.heading.label}</span>
-                    <span className="text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.heading.lessons ? m.heading.lessons.length : m.heading.count}</span>
-                  </li>
+                    {foldOffer.label}
+                  </button>
+                </div>
+              )}
+              <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1" data-testid="course-lesson-list" data-shelf={shelf} data-order={order}>
+                {rows.map((m) => (m.heading ? (
+                  m.heading.lessons ? (
+                    <li
+                      key={`heading-${m.heading.key}`}
+                      data-shelf-heading={m.heading.key}
+                      className="pt-2 pb-1 text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D] font-semibold border-t border-[#E8E4DC] flex items-center justify-between"
+                    >
+                      <span>{m.heading.label}</span>
+                      <span className="text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.heading.lessons.length}</span>
+                    </li>
+                  ) : (
+                    /* THE MONTH YOU ARE IN STAYS AT THE TOP OF THE SCROLL (Darrell
+                       2026-10-01: "keep the date and the count at the top of the
+                       scroll until the month is out of the picture"). Sticky
+                       inside the scrolling list, with the list's own background,
+                       so the next month's heading pushes it off. */
+                    <li
+                      key={`heading-${m.heading.key}`}
+                      data-month-heading={m.heading.key}
+                      data-folded={m.heading.folded ? 'true' : 'false'}
+                      data-count={m.heading.count}
+                      data-aged={m.heading.aged || 0}
+                      className="sticky top-0 z-10 bg-[#FAF8F4] border-t border-[#E8E4DC]"
+                    >
+                      <button
+                        type="button"
+                        data-testid="month-fold"
+                        aria-expanded={!m.heading.folded}
+                        aria-label={`${m.heading.label}, ${m.heading.count} ${m.heading.count === 1 ? U.noun : `${U.noun}s`}${m.heading.aged ? `, ${m.heading.aged} written for every age` : ''} — ${m.heading.folded ? 'open this month' : 'fold this month'}`}
+                        title={m.heading.aged ? `${m.heading.aged} of these ${m.heading.count} are also written for children, youth, teens and seniors — have your kids review them in the Learn tab at their level` : undefined}
+                        onClick={() => setFoldsFor(active.key, toggleFold(folded, m.heading.key))}
+                        className="w-full min-h-[44px] pt-2 pb-1 text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D] font-semibold flex items-center justify-between gap-2 text-left focus:outline focus:outline-2 focus:outline-[#B85838]"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span aria-hidden="true" className="text-[#5A5751] text-xs">{m.heading.folded ? '▸' : '▾'}</span>
+                          <span>{m.heading.label}</span>
+                        </span>
+                        <span className="text-[#5A5751] whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                          {m.heading.count}
+                          {/* THE OTHER NUMBER, FOR PARENTS (DR-0732): how many of
+                              this month's lessons the children can read at their
+                              own level in the Learn tab. */}
+                          {m.heading.aged ? <span className="text-[#5A6E3D]">{` · ${m.heading.aged} for every age`}</span> : null}
+                        </span>
+                      </button>
+                    </li>
+                  )
                 ) : (
                   <li key={m.id} data-lesson-id={m.id} className="flex items-center gap-2">
                     <button
