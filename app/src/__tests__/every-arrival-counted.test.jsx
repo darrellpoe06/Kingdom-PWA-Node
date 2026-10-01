@@ -36,7 +36,7 @@ import { DM_UNREAD_EVENT } from '../lib/notify-readiness.js';
 import { ARRIVALS_EVENT, ARRIVALS_SEEN_EVENT, SCREEN_KINDS, seenKey } from '../lib/arrivals.js';
 import { startArrivalsWatch, ringDecision, showArrivalNotification, currentArrivals } from '../lib/arrivals-watch.js';
 import { validateSendRequest, audienceQuery, lessonAnnouncement, SENDABLE_TOPICS } from '../lib/push-send-policy.js';
-import ArrivalsBell, { bellLabel } from '../components/ArrivalsBell.jsx';
+import ArrivalsBell, { bellLabel, breakdownText, dockLabel, LAUNCH_OPENED_KEY } from '../components/ArrivalsBell.jsx';
 import REGISTRY from '../lib/feature-registry.json';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -333,6 +333,83 @@ describe('the bell: the number, the list newest first, the tap', () => {
     expect(src).toMatch(/focus:outline focus:outline-2/);
     expect(src).toMatch(/min-h-\[36px\]/);
     expect(src).not.toMatch(/max-w-/);
+  });
+});
+
+// ── 3b. THE BOTTOM BAR: seen whatever the header is doing (DR-0741) ───────────
+// Darrell 2026-10-01, his icon reading 3 and the app open on Messages:
+// "Notifications 3... don't see anything... also didn't open to wherever they
+// are... why?" / "I like the indicators though... just want them to be clear
+// and show what's what".
+describe('the bottom bar: N new, what it is made of, and the list opens itself once per launch', () => {
+  let container; let root;
+  const mount = async (win, props = {}) => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    await act(async () => root.render(createElement(ArrivalsBell, { win, variant: 'dock', ...props })));
+  };
+  afterEach(async () => { if (root) await act(async () => root.unmount()); if (container) container.remove(); root = null; container = null; });
+  const q = (sel) => document.querySelector(sel);
+  const items = [
+    { kind: 'lesson-published', id: 'lesson-published:r1', at: '2026-10-01T13:00:00Z', title: 'Your lesson is published', detail: 'L202', screen: 'your-lessons' },
+    { kind: 'message', id: 'message:m1', at: '2026-10-01T12:00:00Z', title: 'New messages from Christina', count: 2, peerUserId: '11111111-2222-3333-4444-555555555555', screen: 'messages' },
+  ];
+  const storage = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
+
+  it('the header block leaves with the collapsed header, so the bar carries the count too', () => {
+    const shell = codeOnly(read(SRC, 'poe-financial-mvp-v28.jsx'));
+    expect(shell).toMatch(/\{!headerCollapsed && \(/);
+    const dock = codeOnly(read(SRC, 'components', 'ChromeDock.jsx'));
+    expect(dock).toMatch(/<ArrivalsBell variant="dock" \/>/);
+    expect(REGISTRY.features.some((f) => f.id === 'ftr-dock-arrivals' && f.surface === 'app-footer' && f.find.testid === 'dock-arrivals')).toBe(true);
+  });
+
+  it('says what the number is made of, in words, most first', () => {
+    expect(breakdownText(items)).toBe('2 messages · 1 lesson');
+    expect(breakdownText([items[0]])).toBe('1 lesson');
+    expect(breakdownText([])).toBe('');
+    expect(dockLabel(3, items)).toBe('3 new: 2 messages · 1 lesson. Open the list');
+  });
+
+  it('draws nothing at zero; "3 new" with the breakdown in its name once something is new; the tap opens the list with the breakdown', async () => {
+    const win = makeWin(); win.sessionStorage = storage(); win.sessionStorage.setItem(LAUNCH_OPENED_KEY, '1');
+    await mount(win);
+    expect(q('[data-testid="dock-arrivals"]')).toBeNull();
+    await act(async () => { fire(win, ARRIVALS_EVENT, { count: 3, items, all: items }); });
+    const btn = q('[data-testid="dock-arrivals"]');
+    expect(btn.textContent).toContain('3 new');
+    expect(btn.getAttribute('aria-label')).toBe('3 new: 2 messages · 1 lesson. Open the list');
+    expect(q('[data-testid="dock-arrivals-count"]').textContent).toBe('3');
+    await act(async () => { btn.click(); });
+    expect(q('[data-testid="arrivals-heading"]').textContent).toBe('3 new');
+    expect(q('[data-testid="arrivals-breakdown"]').textContent).toBe('2 messages · 1 lesson');
+    expect([...document.querySelectorAll('[data-testid="arrivals-row"]')].map((r) => r.getAttribute('data-kind'))).toEqual(['lesson-published', 'message']);
+  });
+
+  it('on a launch with something new, the bar opens the list by itself, once; the header instance never does', async () => {
+    const win = makeWin(); win.sessionStorage = storage();
+    win.__ptArrivals = { count: 3, items, all: items };
+    await mount(win);
+    expect(q('[data-testid="arrivals-heading"]').textContent).toBe('3 new');
+    expect(win.sessionStorage.getItem(LAUNCH_OPENED_KEY)).toBe('1');
+    await act(async () => root.unmount()); root = null; container.remove();
+    // The same launch, mounted again (a route change): it stays closed.
+    await mount(win);
+    expect(q('[data-testid="arrivals-heading"]')).toBeNull();
+    await act(async () => root.unmount()); root = null; container.remove();
+    // A header instance on a fresh launch: closed.
+    const win2 = makeWin(); win2.sessionStorage = storage(); win2.__ptArrivals = { count: 3, items, all: items };
+    await mount(win2, { variant: 'header' });
+    expect(q('[data-testid="arrivals-heading"]')).toBeNull();
+    expect(win2.sessionStorage.getItem(LAUNCH_OPENED_KEY)).toBeNull();
+  });
+
+  it('PROVEN-TO-CATCH: nothing new on launch opens nothing and marks nothing', async () => {
+    const win = makeWin(); win.sessionStorage = storage();
+    await mount(win);
+    expect(q('[data-testid="arrivals-heading"]')).toBeNull();
+    expect(win.sessionStorage.getItem(LAUNCH_OPENED_KEY)).toBeNull();
   });
 });
 
