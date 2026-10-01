@@ -97,6 +97,9 @@ const AGEBAND_TO_LEVEL_KEY = { child: 'child', youth: 'teen', teen: 'teen', adul
 import SectionTabs from './SectionTabs.jsx';
 import { catalogMeta } from '../lib/learn-catalog.js';
 import { crossListingsFor, resolveCrossListed, crossListedCount, courseCrossListingsFor, resolveCourseCrossListed, courseCrossListedCount } from '../lib/learn-crosslist.js';
+// THE CODE IN THE WORD (DR-0729): the verses a lesson quotes that say what a
+// command is for, shown on the lesson card (lib/word-codes.js).
+import { codesForLesson, codesSummary, CODE_FRAME } from '../lib/word-codes.js';
 // THE ETERNAL ALGORITHMS LIVE INSIDE LEARN (DR-0432; Darrell 2026-09-15: "put
 // the Eternal Algorithms inside learn... Moving current tabs around for
 // functionality and flow"). The study surface is unchanged; it is mounted
@@ -2691,6 +2694,35 @@ function CourseView({
                   </ul>
                 </div>
               )}
+              {/* THE CODE IN THIS LESSON (DR-0729). Darrell, 2026-10-01, on
+                  Numbers 27:20: the clause where the Word says what a command is
+                  FOR is a code, and "leaders need to follow the code of conduct
+                  inside the Word." Every line is a verse this lesson quotes
+                  verbatim (lib/word-codes.js finds the clause inside the quoted
+                  span the verse gate already checks); none is invented. Shown
+                  on every lesson, with the honest count, so a reader learns to
+                  look for the clause even where a lesson's verses carry none. */}
+              {(() => {
+                const codes = codesForLesson(m);
+                return (
+                  <div className="mt-2 border-l-4 border-[#2A5A8E] bg-[#2A5A8E]/[0.06] pl-3 py-2" data-testid="lesson-codes">
+                    <div className="ts-chrome-region flex items-center justify-between gap-2 mb-1">
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#2A5A8E] font-semibold">The code in this lesson</div>
+                      {codes.length > 0 && sec('The code in this lesson', codes.map((c) => `${c.clause} (${c.ref})`).join('\n'))}
+                    </div>
+                    <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{CODE_FRAME} {codesSummary(codes)}</p>
+                    {codes.length > 0 && (
+                      <ul className="list-disc pl-4 space-y-1 mt-1">
+                        {codes.map((c, i) => (
+                          <li key={`${c.ref}-${i}`} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                            <span className="italic">…{c.clause}</span> <span className="text-[#5A5751]">({c.ref})</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })()}
               <div className="mt-2">
                 <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
                   <strong className="text-[#1A1815]">{handsOnLabel}:</strong> {m.inApp}
@@ -3344,6 +3376,10 @@ function CourseView({
             {Array.isArray(m.benefits) && m.benefits.length > 0 && (
               <><p><strong>What this frees in you</strong></p>
               <ul>{m.benefits.map((b, i) => <li key={i}>{b}</li>)}</ul></>
+            )}
+            {codesForLesson(m).length > 0 && (
+              <><p><strong>The code in this lesson.</strong> {CODE_FRAME}</p>
+              <ul>{codesForLesson(m).map((c, i) => <li key={i}>…{c.clause} ({c.ref})</li>)}</ul></>
             )}
             {m.lesson && <p><strong>Lesson.</strong> {m.lesson}</p>}
             <p><strong>{handsOnLabel}.</strong> {m.inApp}</p>
