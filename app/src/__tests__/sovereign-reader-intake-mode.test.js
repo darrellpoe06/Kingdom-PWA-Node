@@ -17,8 +17,8 @@ const intakeQuery = code.slice(code.indexOf('---INTAKE-JSON-BEGIN---'), code.ind
 
 describe('what intake mode asks for', () => {
   it('is a mode the workflow offers and the script accepts', () => {
-    expect(readFileSync(join(ROOT, '.github/workflows/sovereign-read.yml'), 'utf8')).toMatch(/options: \[feedback, definitions, tables, instances, intake\]/);
-    expect(code).toMatch(/feedback\|definitions\|tables\|instances\|intake\) ;;/);
+    expect(readFileSync(join(ROOT, '.github/workflows/sovereign-read.yml'), 'utf8')).toMatch(/options: \[feedback, definitions, tables, instances, intake, dm_keys\]/);
+    expect(code).toMatch(/feedback\|definitions\|tables\|instances\|intake\|dm_keys\) ;;/);
   });
   it('never selects the screenshot bytes, and withholds confidential rows in the query', () => {
     expect(intakeQuery).not.toMatch(/\bscreenshots?\b(?!_count)/);
