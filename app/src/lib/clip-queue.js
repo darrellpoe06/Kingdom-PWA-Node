@@ -22,6 +22,7 @@
 // silent. Everything is injectable, so it is tested without a browser.
 // =============================================================================
 import { segmentText } from './tts.js';
+import { pieceAt, pieceFractionAt } from './joined-clip.js';
 
 /** Where the reading is cut (tts.js segmentText breathes at about this length). */
 export const PIECE_CUT = 180;
@@ -77,17 +78,41 @@ export function overallFraction(chunks, index, pieceFraction) {
  * @param {Function} [o.onPiece]    (index) when a piece starts playing
  * @param {Function} [o.onEnd]      () when the last piece finished
  * @param {Function} [o.onFallback] (restText, index) a piece could not be had
+ * @param {Function} [o.onPosition] ({duration, position, playbackRate}) while a joined reading plays
  * @param {Function} [o.revoke]     (url) release an object URL
+ *
+ * NOTHING WAITS BETWEEN PIECES (DR-0718; Darrell 2026-10-01: "it stops each
+ * time on the downloaded version"). A screen that is off or an app in front
+ * leaves this page running only while the phone thinks media is playing. The
+ * 'ended' handler used to `await` the next piece before swapping it in, so
+ * every sentence boundary was a stretch of no media at all. Now each piece is
+ * remembered the moment it arrives, and 'ended' swaps the next one in
+ * SYNCHRONOUSLY, inside the event, with no timer and no visibility check. Only
+ * a piece that has not arrived yet is waited for.
+ *
+ * ONE FILE WHEN THE WHOLE READING IS HERE (join): once every piece is on the
+ * device, the pieces are joined into one WAV (lib/joined-clip.js) and the
+ * element plays THAT from the next piece boundary to the end, so the phone
+ * holds one long, continuous play with nothing between sentences at all.
  */
-export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress, onPiece, onEnd, onFallback, revoke }) {
+export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress, onPiece, onEnd, onFallback, onPosition, revoke }) {
   const urls = new Map();       // index -> Promise<{url}|{error}>
+  const ready = new Map();      // index -> the settled answer, for a swap with no await
   let index = -1;
   let stopped = false;
+  let finished = false;
   let speed = rate;
+  let joined = null;            // { url, offsets, duration } now playing
+  let pendingJoin = null;       // takes over at the next piece boundary
 
   const want = (i) => {
     if (i < 0 || i >= chunks.length) return null;
-    if (!urls.has(i)) urls.set(i, Promise.resolve().then(() => fetchClip(chunks[i].text, i)).catch((e) => ({ error: (e && e.message) || 'fetch-failed' })));
+    if (!urls.has(i)) {
+      const p = Promise.resolve().then(() => fetchClip(chunks[i].text, i))
+        .catch((e) => ({ error: (e && e.message) || 'fetch-failed' }))
+        .then((r) => { if (urls.get(i) === p) ready.set(i, r); return r; });
+      urls.set(i, p);
+    }
     return urls.get(i);
   };
 
@@ -103,19 +128,40 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
     const p = urls.get(i);
     if (!p) return;
     urls.delete(i);
+    ready.delete(i);
     p.then((r) => { if (r && r.url && revoke) { try { revoke(r.url); } catch (_) { /* ignore */ } } });
   };
+  const releaseJoin = (j) => { if (j && j.url && revoke) { try { revoke(j.url); } catch (_) { /* ignore */ } } };
 
-  const playAt = async (i) => {
-    if (stopped) return false;
-    if (i >= chunks.length) { if (onEnd) onEnd(); return true; }
-    const got = await want(i);
-    if (stopped) return false;
-    if (!got || got.error || !got.url) {
-      const rest = chunks.slice(i).map((c) => c.text).join(' ');
-      if (onFallback) onFallback(rest, i, got && got.error);
-      return false;
-    }
+  const fallBack = (i, reason) => {
+    const rest = chunks.slice(i).map((c) => c.text).join(' ');
+    if (onFallback) onFallback(rest, i, reason);
+    return false;
+  };
+
+  const finish = () => {
+    if (finished) return true;
+    finished = true;
+    if (onEnd) onEnd();
+    return true;
+  };
+
+  // play() on the same element; a refusal hands the rest back.
+  const playNow = (i) => {
+    try {
+      const p = audio.play();
+      if (p && typeof p.then === 'function') {
+        return p.then(() => true, (e) => (stopped ? false : fallBack(i, (e && e.name) || 'play-refused')));
+      }
+    } catch (e) { return Promise.resolve(fallBack(i, (e && e.name) || 'play-refused')); }
+    return Promise.resolve(true);
+  };
+
+  // Swap a piece in. SYNCHRONOUS up to play(): called from 'ended' with the
+  // answer already in hand, the next sentence is on the element before the
+  // event returns.
+  const startPiece = (i, got) => {
+    if (!got || got.error || !got.url) return Promise.resolve(fallBack(i, got && got.error));
     index = i;
     if (i > 0) release(i - 1);
     for (let k = 1; k <= PREFETCH_AHEAD; k++) want(i + k); // prefetch while this one plays
@@ -123,32 +169,92 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
     applyRate();
     if (onPiece) onPiece(i);
     if (onProgress) onProgress(overallFraction(chunks, i, 0));
-    try { const p = audio.play(); if (p && typeof p.catch === 'function') await p; } catch (e) {
-      const rest = chunks.slice(i).map((c) => c.text).join(' ');
-      if (onFallback) onFallback(rest, i, (e && e.name) || 'play-refused');
-      return false;
-    }
-    return true;
+    return playNow(i);
   };
 
-  audio.onended = () => { if (!stopped) playAt(index + 1); };
+  // The joined file takes over from piece i to the end.
+  const startJoined = (i) => {
+    joined = pendingJoin; pendingJoin = null;
+    for (const k of [...urls.keys()]) release(k);
+    index = i;
+    const at = joined.offsets[i] || 0;
+    try { audio.src = joined.url; } catch (_) { /* fake */ }
+    try { audio.currentTime = at; } catch (_) { /* before metadata: re-applied below */ }
+    // A browser that dropped the start position before the file loaded gets
+    // it again once the length is known.
+    try {
+      if (at > 0 && typeof audio.addEventListener === 'function') {
+        const j = joined;
+        const again = () => {
+          try { audio.removeEventListener('loadedmetadata', again); } catch (_) { /* ignore */ }
+          if (joined === j && Number(audio.currentTime) + 0.25 < at) { try { audio.currentTime = at; } catch (_) { /* ignore */ } }
+        };
+        audio.addEventListener('loadedmetadata', again);
+      }
+    } catch (_) { /* ignore */ }
+    applyRate();
+    if (onPiece) onPiece(i);
+    if (onProgress) onProgress(overallFraction(chunks, i, 0));
+    return playNow(i);
+  };
+
+  const playAt = (i) => {
+    if (stopped) return Promise.resolve(false);
+    if (i >= chunks.length) return Promise.resolve(finish());
+    if (pendingJoin) return startJoined(i);
+    if (ready.has(i)) return startPiece(i, ready.get(i)); // in hand: no await at all
+    const p = want(i);
+    return p.then((got) => (stopped ? false : (pendingJoin ? startJoined(i) : startPiece(i, got))));
+  };
+
+  // No timer and no visibility gate: the next piece goes on the element
+  // inside this event whether the screen is on, off, or behind another app.
+  audio.onended = () => {
+    if (stopped) return;
+    if (joined) { finish(); return; }
+    playAt(index + 1);
+  };
   audio.ontimeupdate = () => {
-    if (stopped || index < 0 || !onProgress) return;
-    const d = Number(audio.duration);
+    if (stopped || index < 0) return;
     const t = Number(audio.currentTime);
+    if (joined) {
+      if (!Number.isFinite(t)) return;
+      const p = pieceAt(joined.offsets, t);
+      if (p !== index) { index = p; if (onPiece) onPiece(p); }
+      if (onProgress) onProgress(overallFraction(chunks, p, pieceFractionAt(joined.offsets, joined.duration, p, t)));
+      if (onPosition) onPosition({ duration: joined.duration, position: t, playbackRate: speed });
+      return;
+    }
+    if (!onProgress) return;
+    const d = Number(audio.duration);
     if (Number.isFinite(d) && d > 0 && Number.isFinite(t)) onProgress(overallFraction(chunks, index, t / d));
   };
 
   return {
     /** Start from piece 0. Resolves true when the first piece is playing. */
-    start() { want(0); return playAt(0); },
+    start() { if (!pendingJoin) want(0); return playAt(0); },
     stop() {
       stopped = true;
       try { audio.pause(); } catch (_) { /* ignore */ }
       for (const i of [...urls.keys()]) release(i);
+      releaseJoin(joined); releaseJoin(pendingJoin);
+      joined = null; pendingJoin = null;
+    },
+    /**
+     * Hand the queue the whole reading as one file. It takes over at the next
+     * piece boundary (or from the start, if nothing has played yet).
+     * @param {{url:string, offsets:number[], duration:number}} j
+     */
+    join(j) {
+      if (stopped || joined || !j || !j.url || !Array.isArray(j.offsets) || j.offsets.length !== chunks.length) return false;
+      releaseJoin(pendingJoin);
+      pendingJoin = { url: j.url, offsets: j.offsets, duration: Number(j.duration) || 0 };
+      return true;
     },
     setRate(r) { speed = r; applyRate(); },
     get index() { return index; },
     get stopped() { return stopped; },
+    /** True once the reading plays as one joined file. */
+    get joined() { return !!joined; },
   };
 }

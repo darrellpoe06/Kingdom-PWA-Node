@@ -9,7 +9,7 @@
 // row's own tags, nothing inferred (lib/lesson-inbox.js).
 // =============================================================================
 import React, { useCallback, useEffect, useState } from 'react';
-import { fetchMyLessons, transcriptWords } from '../lib/lesson-inbox.js';
+import { fetchMyLessons, transcriptWords, speakerLines, transcriptSpeakers } from '../lib/lesson-inbox.js';
 // The words go back to the box on the same road Your prompts uses
 // (USE_PROMPT_EVENT), to edit or send again: the loop closes (DR-0636).
 import { sendPromptToBox } from '../lib/saved-prompts.js';
@@ -24,6 +24,9 @@ import { mayCompareVersions } from '../lib/lesson-versions.js';
 import { fetchReviewQueue } from '../lib/lesson-decisions.js';
 import LessonRoad from './LessonRoad.jsx';
 import LessonVersionsCompare from './LessonVersionsCompare.jsx';
+// DR-0728: opening this screen is looking. Every lesson arrival (ready, decided,
+// published) is marked seen here, so the icon and the bell drop their number.
+import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
 
 // A decline points to the lessons that already speak to it; when none is close
 // enough, the pointer is dropped rather than said falsely.
@@ -46,6 +49,23 @@ const LIVE = {
   github: { fetchOps, fetchDeliveryRecord, getPull: (n) => fetchPull(n) },
 };
 
+// WHO SPOKE (DR-0712): a transcript marked by voice reads as turns, the
+// label in bold beside each; an unmarked one reads as the words, as before.
+export function TranscriptWords({ words, speakers }) {
+  const turns = speakerLines(words);
+  if (!turns) return <p className="text-sm text-[#1A1815] whitespace-pre-wrap break-words mt-1" style={SERIF} data-testid="lesson-words">{words}</p>;
+  return (
+    <div className="mt-1" data-testid="lesson-words">
+      {speakers && <p className="text-[0.625rem] text-[#5A5751]" style={MONO} data-testid="lesson-speakers">{speakers}</p>}
+      {turns.map((t, i) => (
+        <p key={i} className="text-sm text-[#1A1815] break-words mt-0.5" style={SERIF} data-testid="lesson-turn">
+          <b className="text-[#2A5A8E]" style={MONO}>{t.who}</b> {t.text}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 function when(iso) {
   const t = Date.parse(iso || '');
   return Number.isFinite(t) ? new Date(t).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '';
@@ -61,6 +81,7 @@ export default function LessonInbox({ deps = LIVE, refreshKey = 0 }) {
     fetchMyLessons(deps).then((res) => {
       setState(res);
       if (!res.ok) return;
+      markArrivalsSeen(SCREEN_KINDS['your-lessons']);
       // GitHub is read only when a lesson names its PR (the 60/hr budget).
       const numbers = res.items.map((it) => lessonPrOf(it.progressTags || [])).filter(Boolean);
       // The NAS builder names its lesson number; its branch is claude/lesson-l<n>-<slug> (DR-0669).
@@ -145,7 +166,7 @@ export default function LessonInbox({ deps = LIVE, refreshKey = 0 }) {
                   <button type="button" onClick={() => setOpen((o) => ({ ...o, [it.id]: o[it.id] === false }))} aria-expanded={open[it.id] !== false} className="text-[0.625rem] uppercase tracking-wider px-2 min-h-[44px] border border-[#1A1815] text-[#1A1815] mt-1 focus:outline focus:outline-2 focus:outline-[#B85838]">
                     {open[it.id] !== false ? 'Hide the words' : 'Read the words Whisper wrote'}
                   </button>
-                  {open[it.id] !== false && <p className="text-sm text-[#1A1815] whitespace-pre-wrap break-words mt-1" style={SERIF} data-testid="lesson-words">{words}</p>}
+                  {open[it.id] !== false && <TranscriptWords words={words} speakers={transcriptSpeakers(it.words)} />}
                   <button type="button" data-testid="lesson-words-to-box" onClick={() => sendPromptToBox(words)} className="text-[0.625rem] uppercase tracking-wider px-2 min-h-[44px] border border-[#5A6E3D] text-[#5A6E3D] mt-1 ml-1 focus:outline focus:outline-2 focus:outline-[#B85838]">Put these words in the box</button>
                 </>
               )}

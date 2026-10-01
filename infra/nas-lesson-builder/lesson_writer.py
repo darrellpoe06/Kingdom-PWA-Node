@@ -117,10 +117,47 @@ OUR VOICE (outside quotations)
 - Render a transcript for MEANING, not its mishearings; never put Darrell's (or
   anyone's) words in quotation marks.
 
+TALK ABOUT IT TOGETHER (every lesson sends the reader to someone)
+- The full lesson ends with a short part headed TALK ABOUT IT TOGETHER that
+  speaks three ways, each in its own sentence: to PARENTS (ask your children
+  what this shows about Yahweh, listen before you teach); to CHILDREN (ask your
+  mom, dad or grandparent what it means to them; tell them one thing you saw);
+  to FRIENDS (tell a friend one thing it showed you and ask what they see).
+  Name the aim: so we all get healthy together, until we see that Yahweh has
+  been right. Ground it in the Word (Deuteronomy 6:7; Malachi 4:6; Proverbs
+  27:17; James 5:16, quoted verbatim).
+- Each band carries the same three sentences in its own register: the child,
+  youth and teen bands tell the young reader to ask a parent and tell a
+  friend; the senior band tells the elder to ask the children.
+
 PROVENANCE (honest)
 - Say where the lesson came from (spoken and transcribed by Whisper on our own
   machines, or typed) in the lesson body and in inApp. Say what was not
   verified. Name no one except as the ROW RULES below allow.
+
+WHO SPOKE (a recording can hold more than one voice)
+- A transcript may open with a "Speakers:" header and lines "LABEL: words".
+  DP is Darrell Poe; BG is Bishop Gwin; S1, S2, ... are voices
+  not yet named; "?" is words no voice could be placed on. Attribute a
+  teaching, a testimony or a question to the voice its line carries, and to
+  no one else.
+- Name the teacher from the speaker marks (DR-0712: voice:BG) or the recording; when it is Bishop Gwin, say Bishop Gwin or BG, never 'the teacher' alone; never assume who taught.
+  First mention usually Bishop Gwin, then either, alternating naturally; "the
+  teacher, Bishop Gwin" is fine. Being at the weekly 1 p.m. Bible study does
+  NOT by itself mean he taught: where the teacher is someone else, name them as
+  the recording does; where no one is identified, say the teacher is not
+  identified. A line the recording does not give to BG is never put on him.
+  Quotations stay exactly as they are.
+- Without that header ("Speakers: not marked"), who spoke is read only from the
+  words themselves and the sender's own account; where they do not show who
+  spoke, SAY SO ("the recording does not show who said this"). Never guess.
+- A member (an S voice) is named ONLY when the ROW RULES say this is a church
+  session the church posts publicly, and only by the name the header shows the
+  teacher calling them. Even then leave out health and sick lists, giving
+  amounts, family trouble and anything said in confidence.
+- When a church class is also posted to the church's channel, or the teacher
+  sent notes for it, those are further witnesses: follow their title, points
+  and order, and say which witness carries each claim.
 
 SHAPE -- return ONE JSON object and nothing else (no prose, no code fence):
 {
@@ -184,6 +221,21 @@ def row_rules(rows, owner_ids):
                 lines.append("- A member sent this. NEVER use any name. Change every identifying detail "
                              "(places, employers, dates, ages, numbers, other people) and keep the "
                              "situation general: teach the Word to the kind of situation, not the person.")
+        if "speakers:marked" in tags:
+            heard = sorted(t[len("voice:"):] for t in tags if str(t).startswith("voice:"))
+            lines.append("- Its speakers were marked by voice on our own machine"
+                         + (" (known voices heard: {})".format(", ".join(heard)) if heard else "")
+                         + "; attribute each line to its label, and say plainly where a line is '?'.")
+        elif "voice-transcript" in tags:
+            lines.append("- Its speakers are NOT marked; name a speaker only where the words or the sender's "
+                         "own account show who spoke, and say so where they do not.")
+        if "voice:BG" in tags:
+            lines.append("- The speaker marks carry BG: where BG is teaching, call him Bishop Gwin or BG, "
+                         "never 'the teacher' alone; a line his label does not carry is not his.")
+        if "church-session-public" in tags:
+            lines.append("- This is a church session the church posts publicly (DR-0711): a member may be "
+                         "named, only as the teacher calls them in the recording; never health, giving, "
+                         "family trouble or a confidence.")
         if "voice-transcript" in tags:
             rung = next((t[len("whisper:"):] for t in tags if str(t).startswith("whisper:")), "")
             lines.append("- It was SPOKEN and transcribed by Whisper on our own machines"

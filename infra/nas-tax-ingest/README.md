@@ -107,7 +107,7 @@ handle /taxes/upload {
 ```
 
 The app posts multipart (`file`, `entityId`, `year`, `kind`) with the bearer;
-the endpoint is PDF-only, path-guarded (no traversal), size-capped (25 MB), and
+the endpoint is PDF-only, path-guarded (no traversal), size-capped (60 MB, matching the app; raised from 25 MB by DR-0708), and
 bearer-gated. Uploaded returns land at
 `/volume1/PoeTech/tax-documents/<entity>/<year>/<name>.pdf` — the same place the
 manual drop uses, so the two paths converge.
