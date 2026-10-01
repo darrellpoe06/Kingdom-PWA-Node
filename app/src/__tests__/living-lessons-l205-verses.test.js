@@ -199,7 +199,9 @@ describe('the measurement the lesson states is the measurement the catalog gives
     // 593 is the catalog as it stood when measured on 2026-10-01; lessons that
     // landed afterwards (L203, L204) raise the total, so the total is a floor
     // and the five direction counts are pinned exactly.
-    const before = catalog().filter((m) => m.id !== ID);
+    // ...and lessons bound by the rule (added on or after 2026-10-01, L206
+    // onward) each add their own three, so they are set aside here too.
+    const before = catalog().filter((m) => m.id !== ID && !mustCarryOwn(LIVING_LESSONS_ADDED[m.id]));
     const { lessons, ...directions } = talkTogetherCoverage(before);
     expect(lessons).toBeGreaterThanOrEqual(593);
     expect(directions).toEqual({ parents: 4, children: 20, friends: 23, all: 0, any: 42 });
@@ -215,11 +217,13 @@ describe('the measurement the lesson states is the measurement the catalog gives
     expect(q.options).toContain('Forty-two');
   });
 
-  it('with this lesson in the catalog, the count that carries all three is one: this lesson', () => {
+  it('with this lesson in the catalog, every lesson that carries all three is one bound by the rule, and this lesson is among them', () => {
     const c = talkTogetherCoverage(catalog());
     expect(c.lessons).toBeGreaterThanOrEqual(594);
-    expect(c.all).toBe(1);
-    expect(catalog().filter((m) => hasAllThree(m)).map((m) => m.id)).toEqual([ID]);
+    const all = catalog().filter((m) => hasAllThree(m)).map((m) => m.id);
+    expect(c.all).toBe(all.length);
+    expect(all).toContain(ID);
+    for (const id of all) expect(mustCarryOwn(LIVING_LESSONS_ADDED[id]), id).toBe(true);
   });
 
   it('PROVEN-TO-CATCH: a planted generic name, a misquote, a wrong reference, a dropped movement, and a stale count each fire', () => {
