@@ -56,6 +56,7 @@ const { default: TextSizeControl, TextSizeEscapeHatch } = await import('../compo
 const { default: HeaderAuthButton } = await import('../components/HeaderAuthButton.jsx');
 const { default: ReadingVoiceControl } = await import('../components/ReadingVoiceControl.jsx');
 const { default: HelpButton } = await import('../components/HelpButton.jsx');
+const { default: ArrivalsBell } = await import('../components/ArrivalsBell.jsx');
 const { default: TopNavRow } = await import('../components/TopNavRow.jsx');
 const { ChurchGiveFloater, ChurchGiveHeaderButton } = await import('../components/ChurchGiving.jsx');
 const { BooksUploadButton, BooksUploadMount } = await import('../components/BooksUploadButton.jsx');
@@ -177,6 +178,7 @@ const WALKS = {
       createElement(ChurchGiveHeaderButton, { church: {}, floaterPresent: true }),
       createElement(HeaderAuthButton),
       createElement(HelpButton, { variant: 'header', view: 'church', churchView: 'learn', booksView: 'accounts', setView: () => {}, setChurchView: () => {}, setBooksView: () => {} }),
+      createElement(ArrivalsBell),
       createElement(TextSizeControl, { variant: 'header' }),
       createElement(ReadingVoiceControl, { variant: 'header' }),
       // The header tucked away: the chevron, back / forward, and the way back out of big text.
