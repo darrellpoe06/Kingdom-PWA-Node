@@ -10,6 +10,7 @@
 #   rows.txt      the lesson rows in flight (scripts/lesson-inbox-progress.sql)
 #   versions.txt  each writer's gate result per build (lesson-builder-versions.sql)
 #   service.json  lesson_builder_settings.service_status (what the service saw)
+#   recent.txt    every lesson row made in the last day, any state
 #   prs.json      the lesson PRs (claude/lesson-l*), for "shipped with PR"
 # With --nas it also prints the service's systemd state and status.json.
 # The runner must already have joined the tailnet; NAS_SSH_KEY and GH_TOKEN set.
@@ -24,6 +25,8 @@ mkdir -p "$OUT"
 
 bash "$HERE/live-sql.sh" '|' < "$HERE/lesson-inbox-progress.sql" > "$OUT/rows.txt" \
   || { echo "::error::could not read the lesson rows from the live database"; exit 1; }
+bash "$HERE/live-sql.sh" '|' < "$HERE/lesson-inbox-recent.sql" > "$OUT/recent.txt" 2>/dev/null \
+  || { echo "recent: not read"; : > "$OUT/recent.txt"; }
 bash "$HERE/live-sql.sh" '|' < "$HERE/lesson-builder-versions.sql" > "$OUT/versions.txt" 2>/dev/null \
   || { echo "versions: not read (lesson_versions unreachable)"; : > "$OUT/versions.txt"; }
 printf '%s' "SELECT coalesce(service_status::text, 'null') FROM public.lesson_builder_settings WHERE id = 1;" \

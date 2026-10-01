@@ -31,7 +31,7 @@
 //     prints {"post":bool,"reason":"...","waiting":n,"keys":[...]} and writes
 //     the comment body to --out only when post is true.
 //   node scripts/lesson-inbox-bell.mjs --status --rows rows.txt
-//        [--versions versions.txt] [--prs prs.json] [--service service.json]
+//        [--versions versions.txt] [--prs prs.json] [--service service.json] [--recent recent.txt]
 //     prints the lesson builder's state and every row in flight (read-only).
 // =============================================================================
 import fs from 'node:fs';
@@ -287,6 +287,14 @@ export function formatStatus(rows, ctx = {}, service = null) {
     if (p.lesson) out.push(`  lesson: ${p.lesson}`);
     if (p.pr) out.push(`  PR: ${p.pr.url} (${p.pr.state})`);
   }
+  if (Array.isArray(ctx.recent)) {
+    out.push('', `== lesson rows made in the last day, any state: ${ctx.recent.length} ==`);
+    for (const r of ctx.recent) {
+      const p = progressOf(r, { ...ctx, now });
+      const marks = safeTags(r.tags).filter((t) => /^(lesson-[a-z-]+|awaiting-review|canary|voice[a-z-]*|mirrored|build-failed)$/.test(t));
+      out.push(`${r.id}  made ${r.created_at}  ${p.label}  [${marks.join(', ')}]${p.last_stage ? `  last stage ${p.last_stage}` : ''}`);
+    }
+  }
   return out.join('\n');
 }
 
@@ -305,6 +313,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   if (process.argv.includes('--status')) {
     let service = null;
     try { service = JSON.parse(readOr(arg('service'), 'null')); } catch { service = null; }
+    if (arg('recent')) ctx.recent = parseWaiting(readOr(arg('recent'), ''));
     process.stdout.write(`${formatStatus(rows, ctx, service)}\n`);
   } else {
     let bodies = [];

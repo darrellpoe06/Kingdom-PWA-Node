@@ -172,6 +172,12 @@ describe('the bell reports progress, milestone by milestone (DR-0725: "how long?
     expect(out).toContain('stages: claimed@2026-10-01T01:00:30Z');
     expect(formatStatus([], {}, null)).toContain('state: unknown');
     expect(humanSeconds(3725)).toBe('1 h 2 min');
+    const recent = parseWaiting(line(B, ['lesson', 'lesson-captured', 'build:abc1234', 'build-reason:words']));
+    const r = formatStatus([], { now: NOW, recent }, null);
+    expect(r).toContain('lesson rows made in the last day, any state: 1');
+    expect(r).toContain(`${B}  made 2026-09-30 12:00:00+00  captured  [lesson-captured]`);
+    const sql = read('scripts/lesson-inbox-recent.sql').replace(/^--.*$/gm, '');
+    expect(sql.replace(/length\(coalesce\(body,''\)\)/, '')).not.toMatch(/\bbody\b/);
   });
 });
 

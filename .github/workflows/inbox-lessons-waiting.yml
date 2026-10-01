@@ -66,5 +66,5 @@ jobs:
           set -uo pipefail
           bash scripts/lesson-builder-status.sh status --nas || exit 1
           node scripts/lesson-inbox-bell.mjs --status --rows status/rows.txt --versions status/versions.txt \
-            --prs status/prs.json --service status/service.json | tee status/print.txt
+            --prs status/prs.json --service status/service.json --recent status/recent.txt | tee status/print.txt
           { echo "### The NAS lesson builder"; echo '```'; cat status/print.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
