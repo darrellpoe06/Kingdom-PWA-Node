@@ -17,6 +17,8 @@
   {"id": "learn-course-sort", "name": "Course order (A to Z, most lessons, recently added, latest)", "surface": "learn-lists", "find": {"testid": "learn-course-sort"}},
   {"id": "learn-lesson-shelf", "name": "Lesson shelf (filter by part of the Word)", "surface": "learn-lists", "find": {"testid": "course-lesson-shelf"}},
   {"id": "learn-lesson-order", "name": "Lesson order", "surface": "learn-lists", "find": {"testid": "course-lesson-order"}},
+  {"id": "learn-month-fold", "name": "A month of lessons folds and opens (its heading, with its count)", "surface": "learn-lists", "find": {"testid": "month-fold"}},
+  {"id": "learn-months-fold-all", "name": "Fold or open all the months", "surface": "learn-lists", "find": {"testid": "months-fold-all"}},
   {"id": "learn-lesson-find", "name": "Find a lesson", "surface": "learn-lists", "find": {"selector": "#learn-lesson-find"}},
   {"id": "learn-row-open", "name": "Open a lesson from its row", "surface": "learn-lists", "find": {"role": "button", "nameMatch": "^L\\d+ · "}},
   {"id": "learn-row-play", "name": "Play a lesson from its row (big full-screen view)", "surface": "learn-lists", "find": {"role": "button", "nameMatch": "^Play .+ in the big full-screen view$"}},
