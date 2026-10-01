@@ -794,7 +794,7 @@ try {
     await page.goto(LESSON_URL, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
     await page.waitForSelector('[data-testid="comfort-hide"]', { state: 'attached', timeout: 20000 }).catch(() => {});
     await page.evaluate(() => new Promise((r) => setTimeout(r, 300)));
-    if (SELFTEST) await page.addStyleTag({ content: '.header-comfort-row > * { display: flex !important }' });
+    if (SELFTEST) await page.addStyleTag({ content: 'html[data-text-size][data-comfort-bar] .ts-safe-sticky.ts-safe-sticky .header-comfort-row.header-comfort-row > * { display: flex !important }' });
     const box = () => page.evaluate(() => {
       const row = document.querySelector('.header-comfort-row');
       if (!row) return null;
@@ -809,7 +809,7 @@ try {
     await page.reload({ waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
     await page.waitForSelector('[data-testid="comfort-show"]', { state: 'attached', timeout: 20000 }).catch(() => {});
     await page.waitForTimeout(300);
-    if (SELFTEST) await page.addStyleTag({ content: '.header-comfort-row > * { display: flex !important }' });
+    if (SELFTEST) await page.addStyleTag({ content: 'html[data-text-size][data-comfort-bar] .ts-safe-sticky.ts-safe-sticky .header-comfort-row.header-comfort-row > * { display: flex !important }' });
     const reloaded = await box();
     await page.locator('[data-testid="comfort-show"]').click({ timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(250);
