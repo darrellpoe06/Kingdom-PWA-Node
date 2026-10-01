@@ -41,6 +41,7 @@ async function commitBatch(rows, commitImportedRows, addTransaction) {
   return `Imported ${(rows || []).length} transaction(s).`;
 }
 import LedgerProof from './LedgerProof.jsx';
+import LedgerEdit from './LedgerEdit.jsx';
 import { motionBehavior } from '../lib/gentle-motion.js';
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
@@ -987,13 +988,14 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
       <tr className="border-b border-[#E8E4DC] align-top">
         <td className="p-2 text-xs whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{String(t.date || '').slice(5)}</td>
         <td className="p-2">
-          <div style={{ fontFamily: '"Fraunces", serif' }}>{t.description}</div>
+          {/* The shared editor (DR-0710) on ledger rows: rename or recategorize this one or every one from the payee; bank-ingest + recurring rows are not ledger rows yet. */}
+          <div style={{ fontFamily: '"Fraunces", serif' }}>{t._source === 'bank-ingest' || t._source === 'recurring' ? t.description : <LedgerEdit txn={t}>{t.description}</LedgerEdit>}</div>
           <div className="text-[0.625rem] text-[#5A5751] mt-0.5">
             <span>{accLabel}</span>
             {rowBal !== null
               ? <span className={`ml-1 ${rowBal < 0 ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }} title="Account balance as of this transaction (from the bank statement)">(bal {fmt(rowBal)})</span>
               : (currentBal !== null && <span className={`ml-1 ${currentBal < 0 ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }} title="Account's current balance">(now {fmt(currentBal)})</span>)}
-            {t.category && <span className="ml-2 uppercase tracking-wider">· {categoryLabel(t.category)}</span>}
+            {t.category && <span className="ml-2 uppercase tracking-wider">· {t._source === 'bank-ingest' || t._source === 'recurring' ? categoryLabel(t.category) : <LedgerEdit txn={t} show="category" />}</span>}
             {t._source === 'recurring' && <span className="ml-2 text-[#B85838] uppercase tracking-wider">· recurring · {t._frequency}</span>}
             {/* Phase 2A — ingest provenance + reconcile status pills. Stays
                 quiet on plain manual entries so the existing UX is unchanged. */}
