@@ -65,6 +65,11 @@ import { usePrinting } from '../lib/use-printing.js';
 import { useCurriculumOverlay, PREVIEW_LABEL } from '../lib/lesson-store.js';
 import { takeOpenLessonRequest, subscribeOpenLesson } from '../lib/learn-open.js';
 import { parseLessonLink, lessonUrl, lessonCopyBlock, lessonSharePayload, courseSharePayload, sectionSharePayload } from '../lib/lesson-links.js';
+// DR-0698: every share carries a token, and the record says whether the link worked.
+import { newShareToken } from '../lib/lesson-share.js';
+import { recordLessonShare, pendingShareToken, reportShareLanded, waitForElement } from '../lib/lesson-share-record.js';
+import DownloadNeedsAccount from './DownloadNeedsAccount.jsx';
+import LessonShareLedger from './LessonShareLedger.jsx';
 import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture-matrix.js';
 import CopyButton from './CopyButton.jsx';
 import ShareButton from './ShareButton.jsx';
@@ -92,13 +97,19 @@ const AGEBAND_TO_LEVEL_KEY = { child: 'child', youth: 'teen', teen: 'teen', adul
 import SectionTabs from './SectionTabs.jsx';
 import { catalogMeta } from '../lib/learn-catalog.js';
 import { crossListingsFor, resolveCrossListed, crossListedCount, courseCrossListingsFor, resolveCourseCrossListed, courseCrossListedCount } from '../lib/learn-crosslist.js';
+// TALK ABOUT IT TOGETHER (DR-0733): every lesson sends you to someone, parents to
+// children, children to parents, friend to friend (lib/talk-together.js).
+import { talkTogetherFor } from '../lib/talk-together.js';
+import { searchItOutFor } from '../lib/search-it-out.js';
 // THE ETERNAL ALGORITHMS LIVE INSIDE LEARN (DR-0432; Darrell 2026-09-15: "put
 // the Eternal Algorithms inside learn... Moving current tabs around for
 // functionality and flow"). The study surface is unchanged; it is mounted
 // under its own department here, loaded only when that department opens.
 const EternalAlgorithmsStudyLazy = React.lazy(() => import('./EternalAlgorithmsStudy.jsx'));
-import { organizeCourses, learnDepartments, courseLessonCount, courseSortsFor, DEFAULT_COURSE_SORT, rememberedCourseSort, rememberCourseSort, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey } from '../lib/learn-organize.js';
+import { organizeCourses, learnDepartments, courseLessonCount, courseSortsFor, DEFAULT_COURSE_SORT, rememberedCourseSort, rememberCourseSort, buildLessonIndex, searchLessons, browseLessons, browseCount, rememberedCourseKey, rememberCourseKey, catalogReadings, countWords } from '../lib/learn-organize.js';
 import { wantsSections, sectionLessons, divisionOf } from '../lib/lesson-sections.js';
+// MONTHS FOLD, AND THE MONTH YOU ARE IN STAYS AT THE TOP (DR-0732; lib/lesson-month-fold.js).
+import { rememberedFolds, rememberFolds, toggleFold, foldAll, openAll, visibleItems, foldAllOffer } from '../lib/lesson-month-fold.js';
 import { isNumberedCourse, ownNumber, inNumberOrder, numberLabel, lessonCountLabel, ordersFor, orderLessons, withMonthHeadings, formatAdded, datesFollowNumbers, DEFAULT_LESSON_ORDER, rememberedLessonOrder, rememberLessonOrder } from '../lib/lesson-order.js';
 import { subscribeTextSize } from '../lib/text-size.js';
 import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
@@ -1506,6 +1517,7 @@ function lessonSequence(schedule, courseKey, picked) {
 
 function CourseView({
   course,
+  signedIn = true, // DR-0698: false for a signed-out visitor — reading and ▶ Play stay open, downloads ask for an account
   progress = {},
   toggleModule = null,
   isGovernor = false,
@@ -1806,6 +1818,34 @@ function CourseView({
     recordUse(id);
     try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { /* no-op */ }
   };
+  // THE SPEAKER READS THE LESSON YOU ARE IN (DR-0702). Darrell 2026-09-30, on
+  // L202: "the reader should be asking me to read it from the beginning
+  // because I pushed the speaker while inside the lesson... it only works
+  // after I hit play... it should be both." The full reading registers only
+  // while the lesson's GUIDE is open (TutorPanel), so a lesson opened by its
+  // title showed the reader nothing to read but the page. While the lesson's
+  // own space is open and its guide is not, the lesson registers a DOOR: the
+  // reader's "Read this lesson" opens the guide and asks for the read, the
+  // exact path ▶ Play takes. Opening the guide replaces the door with the full
+  // reading; closing it brings the door back.
+  const readDoorRef = React.useRef(null);
+  readDoorRef.current = (id, opts) => {
+    recordUse(id);
+    savePlace({ lessonId: id, started: true });
+    setOpenTutorId(id);
+    requestRead(id, opts || null);
+  };
+  const doorId = focusModule && openTutorId !== focusModule.id ? focusModule.id : null;
+  const doorTitle = doorId ? (focusModule.title || '') : '';
+  React.useEffect(() => {
+    if (!doorId) return undefined;
+    setReadTarget(doorId, {
+      label: `this ${U.noun}`,
+      title: doorTitle,
+      open: (opts) => { if (readDoorRef.current) readDoorRef.current(doorId, opts); },
+    });
+    return () => clearReadTarget(doorId);
+  }, [doorId, doorTitle, U.noun]);
   // HANDS-FREE ADVANCE (Darrell 2026-08-10: "users should be able to listen to
   // the whole thing without needing to intervene"). Given a lesson, move to the
   // NEXT one in this course and open its guide — the same real path a Next tap
@@ -2403,20 +2443,35 @@ function CourseView({
                     not necessary... share and it will open whatever they
                     usually do"). One tap into their own share sheet; the copy
                     controls stay for anyone who wants the raw text or link. */}
+                {/* THE SHARE IS A NOTE, NOT THE LESSON (DR-0698, Darrell
+                    2026-09-30): the title, a short summary, the link, and at
+                    the end how to read it (no account, ▶ Play, download needs
+                    an account). A fresh token rides on the link and the share
+                    is recorded, so an open can be counted against it. */}
                 <ShareButton
                   label="Share"
                   title="Share this lesson using your usual apps"
                   payload={() => lessonSharePayload(m, {
                     url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id }),
                     courseTitle: course.meta.title || '',
+                    token: newShareToken(),
+                    courseKey: course.meta.key,
+                    lessonId: m.id,
                   })}
+                  onShared={recordLessonShare}
                 />
-                <CopyButton
-                  label="Copy lesson"
-                  copiedLabel="Lesson copied ✓"
-                  title="Copy this lesson's text, with its anchor and a link back to it"
-                  text={() => lessonCopyBlock(m, { url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id }), level: learnLevel === 'auto' ? 'standard' : learnLevel })}
-                />
+                {/* The lesson's FULL text is a download: it needs a free
+                    account (DR-0698). Reading and listening never do. */}
+                {signedIn ? (
+                  <CopyButton
+                    label="Copy lesson"
+                    copiedLabel="Lesson copied ✓"
+                    title="Copy this lesson's text, with its anchor and a link back to it"
+                    text={() => lessonCopyBlock(m, { url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id }), level: learnLevel === 'auto' ? 'standard' : learnLevel })}
+                  />
+                ) : (
+                  <DownloadNeedsAccount compact label="Copy lesson" />
+                )}
                 <CopyButton
                   label="Copy link"
                   copiedLabel="Link copied ✓"
@@ -2598,7 +2653,8 @@ function CourseView({
                     label="Share this part"
                     title={`Share "${label}" — the text plus a link to this ${U.noun}`}
                     className="text-[0.625rem] uppercase tracking-wider px-2.5 min-h-[2.75rem] border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-                    payload={() => sectionSharePayload(m, { label, text, url: secUrl, courseTitle: course.meta.title || '' })}
+                    payload={() => sectionSharePayload(m, { label, text, url: secUrl, courseTitle: course.meta.title || '', token: newShareToken(), courseKey: course.meta.key })}
+                    onShared={recordLessonShare}
                   />
                 );
                 return (<>
@@ -2647,6 +2703,83 @@ function CourseView({
                 </p>
                 <div className="ts-chrome-region flex justify-end mt-1">{sec(handsOnLabel, m.inApp || '')}</div>
               </div>
+              {/* TALK ABOUT IT TOGETHER (DR-0733). Darrell, 2026-10-01: "Always
+                  prompt the parents to have the kids discuss this and vice versa
+                  have the kids prompt the parents to have conversation about
+                  Yahweh... Friends to each other... so we can all get healthy
+                  together... We should be able to see Yahweh has been right."
+                  Measured first: of 593 lessons, 0 did both directions. Every
+                  lesson now carries three prompts; a lesson's own words are used
+                  where it wrote them, and the standing prompts stand elsewhere,
+                  never claiming to be the lesson's. */}
+              {(() => {
+                const talk = talkTogetherFor(m);
+                return (
+                  <div className="mt-2 border-l-4 border-[#B85838] bg-[#B85838]/[0.06] pl-3 py-2" data-testid="lesson-talk-together" data-own={talk.allOwn ? 'true' : 'false'}>
+                    <div className="ts-chrome-region flex items-center justify-between gap-2 mb-1">
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold">Talk about it together</div>
+                      {sec('Talk about it together', talk.prompts.map((p) => `${p.to}: ${p.text}`).join('\n'))}
+                    </div>
+                    <ul className="space-y-1">
+                      {talk.prompts.map((p) => (
+                        <li key={p.to} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }} data-talk-to={p.to.toLowerCase()} data-talk-own={p.own ? 'true' : 'false'}>
+                          <strong>{p.to}:</strong> {p.text}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-1 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }} data-testid="talk-together-method">
+                      <strong className="text-[#1A1815]">The way:</strong> {talk.method.skill} {talk.method.growth}
+                    </p>
+                    <p className="mt-1 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                      {talk.aim} <span className="italic">"{talk.verse.text}"</span> ({talk.verse.ref})
+                    </p>
+                  </div>
+                );
+              })()}
+              {/* SEARCH IT OUT (DR-0734). Darrell, 2026-10-01: "Integrated lessons
+                  also so they make users want to learn more about Yahweh and the
+                  Word's mysteries... so we produce kings like the Word says." The
+                  honour of kings is to search out a matter (Proverbs 25:2), so
+                  every lesson ends by sending the reader deeper: the lessons in
+                  this course that stand on the same verses (derived from the
+                  anchors, never typed), three questions back into the text, and
+                  the verse. */}
+              {(() => {
+                const search = searchItOutFor(m, schedule);
+                return (
+                  <div className="mt-2 border-l-4 border-[#1A1815] bg-[#1A1815]/[0.04] pl-3 py-2" data-testid="lesson-search-it-out" data-ground={search.ground} data-next={search.next.length}>
+                    <div className="ts-chrome-region flex items-center justify-between gap-2 mb-1">
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#1A1815] font-semibold">Search it out</div>
+                      {sec('Search it out', [...search.questions, ...search.next.map((n) => `${n.title} (${n.shared.join('; ')})`)].join('\n'))}
+                    </div>
+                    <ol className="list-decimal pl-4 space-y-1">
+                      {search.questions.map((q, i) => (
+                        <li key={i} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }} data-search-question>{q}</li>
+                      ))}
+                    </ol>
+                    {search.next.length > 0 && (
+                      <ul className="mt-1 space-y-1" data-testid="search-it-out-next">
+                        {search.next.map((n) => (
+                          <li key={n.id} className="text-xs" style={{ fontFamily: '"Fraunces", serif' }} data-search-next={n.id}>
+                            <button
+                              type="button"
+                              onClick={() => openLesson(n.id)}
+                              className="text-left underline decoration-[#B85838] text-[#1A1815] min-h-[36px] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                              aria-label={`Open ${n.title}`}
+                            >
+                              {n.number ? `L${n.number} · ` : ''}{n.title}
+                            </button>
+                            <span className="text-[#5A5751]"> — same ground: {n.shared.join('; ')}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <p className="mt-1 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                      {search.aim} <span className="italic">"{search.verse.text}"</span> ({search.verse.ref})
+                    </p>
+                  </div>
+                );
+              })()}
               {m.anchor?.ref && (
                 <div className="mt-2">
                   {/* THE REFERENCES HERE ARE TAPPABLE, BECAUSE THEY LOOK IT.
@@ -2837,7 +2970,10 @@ function CourseView({
                           text: kin.map((k) => `L${ownNumber(k, schedule)} ${k.title} — same Word: ${k.shared.join(', ')}`).join('\n'),
                           url: lessonUrl({ courseKey: course.meta.key, lessonId: m.id }),
                           courseTitle: course.meta.title || '',
+                          token: newShareToken(),
+                          courseKey: course.meta.key,
                         })}
+                        onShared={recordLessonShare}
                       />
                     </div>
                     <ul className="space-y-1">
@@ -3112,6 +3248,15 @@ function CourseView({
         </div>
       ),
     } : null,
+    // WHAT I SHARED, AND WHETHER IT WORKED (DR-0698). Signed in only: the
+    // sharer's own links with how many times each was opened and whether the
+    // lesson showed. The Governor's full ledger lives in Admin → Lesson shares.
+    ...(signedIn ? [{
+      id: 'my-shares',
+      label: 'My shares',
+      icon: 'users',
+      render: () => <LessonShareLedger />,
+    }] : []),
     {
       id: 'paper',
       label: 'Paper & print',
@@ -3121,11 +3266,14 @@ function CourseView({
       {/* Export — Darrell trusts paper; same source as the screen */}
       <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3 mb-4">
         <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-2">Teach from paper — export the whole curriculum</div>
+        {/* Downloading needs a free account (DR-0698); reading never does. */}
+        {!signedIn ? <DownloadNeedsAccount label="Download the curriculum" /> : (
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={copyCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Copy markdown</button>
           <button type="button" onClick={downloadCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Download .md</button>
           <button type="button" onClick={printCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Print</button>
         </div>
+        )}
         {exportNote && <p className="text-[0.6875rem] text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">{exportNote}</p>}
       </div>
         </div>
@@ -3282,6 +3430,8 @@ function CourseView({
             )}
             {m.lesson && <p><strong>Lesson.</strong> {m.lesson}</p>}
             <p><strong>{handsOnLabel}.</strong> {m.inApp}</p>
+            <p><strong>Talk about it together.</strong> {talkTogetherFor(m).prompts.map((p) => `${p.to}: ${p.text}`).join(' ')} {talkTogetherFor(m).aim}</p>
+            <p><strong>Search it out.</strong> {searchItOutFor(m, schedule).questions.join(' ')} {searchItOutFor(m, schedule).next.map((n) => `${n.title} (${n.shared.join('; ')})`).join('; ')} {searchItOutFor(m, schedule).aim}</p>
             {m.anchor?.ref && <p><strong>Anchor — {m.anchor.ref}.</strong> {m.anchor.theme}</p>}
             {/* The voices and the dated record print with the lesson (DR-0580):
                 a facilitator working from paper has the words and the years. */}
@@ -3373,6 +3523,7 @@ export default function ChurchLearn({
   submitHelper = null,        // (courseKey, courseTitle, who) => void — graduate → next-cohort helper
   initialDept = null,         // department id to open on (e.g. a deep link to the Eternal Algorithms); unknown → the whole catalog
   eternalStudyProps = null,   // { email, view, churchView, setView, setChurchView } for the study surface mounted under its department
+  signedIn = true,            // DR-0698: the shell passes !!authSession; a signed-out visitor reads and listens, and a download asks for an account
 }) {
   const [interestSent, setInterestSent] = useState({}); // keyed by course key
   const [helped, setHelped] = useState({}); // keyed by course key
@@ -3562,6 +3713,10 @@ export default function ChurchLearn({
     ? chosenCourse
     : (dept ? (dept.courses[0] || defaultCourse) : defaultCourse);
   const totalLessons = courses.reduce((t, c) => t + courseLessonCount(c), 0);
+  // BOTH NUMBERS (DR-0715): one per lesson, and every age version those
+  // lessons really carry (lib/learn-organize.js lessonVersions), so the scale
+  // of what a family can read shows where the catalog is explained.
+  const totalReadings = catalogReadings(courses).readings;
 
   // Open what the link asked for, once, and only when it really exists.
   const linkAppliedRef = React.useRef(false);
@@ -3573,7 +3728,14 @@ export default function ChurchLearn({
   React.useEffect(() => {
     if (linkAppliedRef.current || !deepLink || !deepLink.courseKey) return;
     const target = coursesRef.current.find((c) => c.key === deepLink.courseKey);
-    if (!target) { linkAppliedRef.current = true; return; } // stale link: Learn opens normally
+    // A SHARED link reports what the reader actually got (DR-0698): the lesson
+    // card on screen, or the reason it is not. No-ops for any other link.
+    const shared = !!pendingShareToken();
+    if (!target) { // stale link: Learn opens normally
+      linkAppliedRef.current = true;
+      if (shared) reportShareLanded({ ok: false, reason: `course not found: ${deepLink.courseKey}` });
+      return;
+    }
     linkAppliedRef.current = true;
     setActiveKey(target.key);
     if (deepLink.lessonId && (target.schedule || []).some((m) => m.id === deepLink.lessonId)) {
@@ -3581,6 +3743,13 @@ export default function ChurchLearn({
       // guide open, scrolled to the top.
       setResumeOpenGuide(true);
       setResumeLessonId(deepLink.lessonId);
+      if (shared) {
+        waitForElement(`learn-lesson-${deepLink.lessonId}`).then((onScreen) => reportShareLanded(
+          onScreen ? { ok: true } : { ok: false, reason: 'lesson card did not render' },
+        ));
+      }
+    } else if (shared) {
+      reportShareLanded({ ok: false, reason: deepLink.lessonId ? `lesson not found: ${deepLink.lessonId}` : 'no lesson in link' });
     }
   }, [deepLink, setActiveKey]);
 
@@ -3604,6 +3773,13 @@ export default function ChurchLearn({
   // numbered!!!!!!!"). By number, first to last, is the default; the pick is
   // kept per course on this device (lib/lesson-order.js, storage guarded).
   const [lessonOrderPick, setLessonOrderPick] = useState({});
+  // Which months are folded, per course; remembered on this device (DR-0732).
+  const [monthFoldPick, setMonthFoldPick] = useState({});
+  const foldsFor = (courseKey) => monthFoldPick[courseKey] || rememberedFolds(courseKey);
+  const setFoldsFor = (courseKey, next) => {
+    rememberFolds(courseKey, next);
+    setMonthFoldPick((m) => ({ ...m, [courseKey]: next }));
+  };
   const pickLessonOrder = (courseKey, order) => {
     setLessonOrderPick((p) => ({ ...p, [courseKey]: order }));
     rememberLessonOrder(courseKey, order);
@@ -3718,7 +3894,7 @@ export default function ChurchLearn({
                 setDeptId(id);
               }}
               sections={[
-                { id: 'all', label: 'Courses', explain: `Every course in one place · ${courses.length} courses · ${totalLessons} lessons. Pick a course and its lessons follow.`, render: () => null },
+                { id: 'all', label: 'Courses', explain: `Every course in one place · ${courses.length} courses · ${totalLessons} lessons · ${countWords(totalReadings)} readings counting every age version. Pick a course and its lessons follow.`, render: () => null },
                 ...departments.map((d) => ({
                   id: d.id, label: d.label,
                   explain: `${d.code} · ${d.courses.length} ${d.courses.length === 1 ? 'course' : 'courses'} · ${d.lessons} lessons${courseCrossListedCount(d.label) ? ` · ${courseCrossListedCount(d.label)} more courses serve it` : ''}${crossListedCount(d.label) ? ` · ${crossListedCount(d.label)} more lessons taught across the curriculum` : ''}`,
@@ -3979,6 +4155,9 @@ export default function ChurchLearn({
             : (order === 'number' || order === 'newest')
               ? ((order === 'newest' ? dated : numberIsOldest) ? withMonthHeadings(orderLessons(shown, order)) : orderLessons(shown, order))
               : (order === 'title' || order === 'title-desc') ? orderLessons(shown, order) : shown;
+          const folded = foldsFor(active.key);
+          const rows = visibleItems(items, folded);
+          const foldOffer = foldAllOffer(items, folded);
           const showDivision = !!sections && order !== 'divisions' && shelf === 'all';
           const open = (id) => { setActiveKey(active.key); setResumeOpenGuide(false); setResumeLessonId(id); setResumeNonce((n) => n + 1); };
           return (
@@ -4097,16 +4276,72 @@ export default function ChurchLearn({
                   That is the "By the Word's divisions" order; in number order
                   the month each lesson was added heads its run instead (labels
                   too), and each row names its division in small type. */}
-              <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1" data-testid="course-lesson-list" data-shelf={shelf} data-order={order}>
-                {items.map((m) => (m.heading ? (
-                  <li
-                    key={`heading-${m.heading.key}`}
-                    {...(m.heading.lessons ? { 'data-shelf-heading': m.heading.key } : { 'data-month-heading': m.heading.key })}
-                    className="pt-2 pb-1 text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D] font-semibold border-t border-[#E8E4DC] flex items-center justify-between"
+              {/* THE MONTHS FOLD (DR-0732; Darrell 2026-10-01: "condensed to get
+                  to other months faster and to see the count of lessons each
+                  month if they are all collapsed... work independently"). Each
+                  month heading is its own fold; folded, it still shows its
+                  count, so the list reads as a table of contents. One control
+                  folds or opens them all. Division headings stay labels. */}
+              {foldOffer && (
+                <div className="ts-chrome-region flex justify-end mb-1">
+                  <button
+                    type="button"
+                    data-testid="months-fold-all"
+                    onClick={() => setFoldsFor(active.key, foldOffer.action === 'fold' ? foldAll(items) : openAll())}
+                    className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 min-h-[36px] border border-[#E8E4DC] text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
                   >
-                    <span>{m.heading.label}</span>
-                    <span className="text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.heading.lessons ? m.heading.lessons.length : m.heading.count}</span>
-                  </li>
+                    {foldOffer.label}
+                  </button>
+                </div>
+              )}
+              <ol className="space-y-0.5 max-h-[45vh] overflow-y-auto pr-1" data-testid="course-lesson-list" data-shelf={shelf} data-order={order}>
+                {rows.map((m) => (m.heading ? (
+                  m.heading.lessons ? (
+                    <li
+                      key={`heading-${m.heading.key}`}
+                      data-shelf-heading={m.heading.key}
+                      className="pt-2 pb-1 text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D] font-semibold border-t border-[#E8E4DC] flex items-center justify-between"
+                    >
+                      <span>{m.heading.label}</span>
+                      <span className="text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.heading.lessons.length}</span>
+                    </li>
+                  ) : (
+                    /* THE MONTH YOU ARE IN STAYS AT THE TOP OF THE SCROLL (Darrell
+                       2026-10-01: "keep the date and the count at the top of the
+                       scroll until the month is out of the picture"). Sticky
+                       inside the scrolling list, with the list's own background,
+                       so the next month's heading pushes it off. */
+                    <li
+                      key={`heading-${m.heading.key}`}
+                      data-month-heading={m.heading.key}
+                      data-folded={m.heading.folded ? 'true' : 'false'}
+                      data-count={m.heading.count}
+                      data-aged={m.heading.aged || 0}
+                      className="sticky top-0 z-10 bg-[#FAF8F4] border-t border-[#E8E4DC]"
+                    >
+                      <button
+                        type="button"
+                        data-testid="month-fold"
+                        aria-expanded={!m.heading.folded}
+                        aria-label={`${m.heading.label}, ${m.heading.count} ${m.heading.count === 1 ? U.noun : `${U.noun}s`}${m.heading.aged ? `, ${m.heading.aged} written for every age` : ''} — ${m.heading.folded ? 'open this month' : 'fold this month'}`}
+                        title={m.heading.aged ? `${m.heading.aged} of these ${m.heading.count} are also written for children, youth, teens and seniors — have your kids review them in the Learn tab at their level` : undefined}
+                        onClick={() => setFoldsFor(active.key, toggleFold(folded, m.heading.key))}
+                        className="w-full min-h-[44px] pt-2 pb-1 text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D] font-semibold flex items-center justify-between gap-2 text-left focus:outline focus:outline-2 focus:outline-[#B85838]"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span aria-hidden="true" className="text-[#5A5751] text-xs">{m.heading.folded ? '▸' : '▾'}</span>
+                          <span>{m.heading.label}</span>
+                        </span>
+                        <span className="text-[#5A5751] whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                          {m.heading.count}
+                          {/* THE OTHER NUMBER, FOR PARENTS (DR-0732): how many of
+                              this month's lessons the children can read at their
+                              own level in the Learn tab. */}
+                          {m.heading.aged ? <span className="text-[#5A6E3D]">{` · ${m.heading.aged} for every age`}</span> : null}
+                        </span>
+                      </button>
+                    </li>
+                  )
                 ) : (
                   <li key={m.id} data-lesson-id={m.id} className="flex items-center gap-2">
                     <button
@@ -4459,6 +4694,7 @@ export default function ChurchLearn({
       <CourseView
         key={active.key}
         course={active}
+        signedIn={signedIn}
         progress={progress}
         toggleModule={toggleModule}
         isGovernor={isGovernor}

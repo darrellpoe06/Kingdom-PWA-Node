@@ -318,6 +318,33 @@ def depth_problems(module, spans, floors=None):
     return out
 
 
+# TALK ABOUT IT TOGETHER (DR-0733). Darrell 2026-10-01: every lesson prompts
+# parents toward their children, children toward their parents, and friend
+# toward friend. The JS layer (band_gates.mjs, app/src/lib/talk-together.js) is
+# the reference; this mirrors its three patterns so a NAS without node still
+# refuses a draft that sends the reader to no one.
+_TALK_PARENTS = re.compile(r"\b(parents?|mom|dad|mother|father|grown-?ups?|guardians?)\b[^.!?]{0,90}\b(ask|talk|discuss|read|share|sit|teach|listen)\b[^.!?]{0,80}\b(child|children|kids?|son|daughter|young|family)\b", re.I)
+_TALK_CHILDREN = re.compile(r"\b(ask|tell|talk (?:to|with)|share with|read (?:this |it )?(?:to|with)|discuss (?:this |it )?with|show)\b[^.!?]{0,50}\b(?:your|a) (?:parents?|mom|dad|mother|father|grown-?up|grandparents?|grandma|grandpa|family)\b", re.I)
+_TALK_FRIENDS = re.compile(r"\b(friends?|one another|each other|a brother or sister|someone you trust|relationship to relationship)\b[^.!?]{0,90}\b(ask|tell|talk|discuss|share|sharpen|pray|listen|read)\b|\b(ask|tell|talk (?:to|with)|share with|pray with|read (?:this |it )?with)\b[^.!?]{0,40}\b(?:a|your) (?:friend|brother or sister in Christ|neighbou?r)\b", re.I)
+
+
+def talk_together_gate(module):
+    """(passed, missing): which of the three directions the lesson's own words lack."""
+    m = module or {}
+    levels = m.get("levels") or {}
+    adult = " ".join(str(x) for x in [m.get("lesson", ""), m.get("bigIdea", ""), m.get("inApp", ""), levels.get("senior", "")] + list(((m.get("facilitator") or {}).get("talkingPoints")) or []) + list(m.get("benefits") or []))
+    young = " ".join(str(levels.get(b, "")) for b in ("child", "youth", "teen"))
+    everything = adult + " " + young
+    missing = []
+    if not _TALK_PARENTS.search(adult):
+        missing.append("parents")
+    if not _TALK_CHILDREN.search(young or everything):
+        missing.append("children")
+    if not _TALK_FRIENDS.search(everything):
+        missing.append("friends")
+    return (not missing, missing)
+
+
 def structure_gate(obj, schema_problems):
     problems = list(schema_problems(obj))
     counts = {}
@@ -369,6 +396,8 @@ def gate_version(obj, module, corpus, schema_problems, band_gates=None):
     res["depth"] = {"passed": not depth, "problems": depth}
     res["quotation"] = quotation_gate(module)
     res["voice"] = voice_gate(module)
+    talk_ok, talk_missing = talk_together_gate(module)
+    res["talk_together"] = {"passed": talk_ok, "missing": talk_missing}
     bg = band_gates(module) if band_gates else {"skipped": "not run"}
     res["repo_gates"] = bg
     ran = bg.get("skipped") is None
@@ -376,7 +405,7 @@ def gate_version(obj, module, corpus, schema_problems, band_gates=None):
     # Both verse scans must pass when both ran: ours, and the repo's own.
     res["verse_passed"] = bool(res["verse"]["passed"] and ((not ran) or (bg.get("verse") or {}).get("passed")))
     res["passed"] = bool(res["structure"]["passed"] and res["verse_passed"] and res["quotation"]["passed"]
-                         and res["voice"]["passed"] and res["depth"]["passed"] and repo_ok)
+                         and res["voice"]["passed"] and res["depth"]["passed"] and res["talk_together"]["passed"] and repo_ok)
     return res
 
 
