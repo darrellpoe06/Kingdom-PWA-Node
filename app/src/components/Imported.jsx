@@ -45,8 +45,9 @@ import { monthlyExternalTotals, baselineAnomalies } from '../lib/monthly-baselin
 import { findImportDuplicates } from '../lib/dedupe-imports.js';
 import { loadLearnedDedupe, saveLearnedDedupe, learnFromCombine, findExactDuplicates } from '../lib/learned-dedupe.js';
 import { detectRecurring } from '../lib/recurring-payments.js';
-import { categoryLabel, TX_CATEGORIES, autoCategorizeSuggestions } from '../lib/categorize.js';
+import { categoryLabel, autoCategorizeSuggestions } from '../lib/categorize.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
+import LedgerEdit from './LedgerEdit.jsx';
 
 // How the register is grouped: by month (the statement default) or rolled up by a
 // field so repeated payees/categories/accounts show a combined subtotal.
@@ -207,8 +208,6 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
   const sortArrow = (key) => (sortKey === key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '');
   // Which row is expanded to its detail drawer (receipt + full metadata).
   const [expandedId, setExpandedId] = useState(null);
-  const [newCatRow, setNewCatRow] = useState(null); // row awaiting an inline new-category name (PWA-safe, replaces prompt())
-  const [newCatVal, setNewCatVal] = useState('');
   // How the register is grouped, and which group headers are collapsed.
   const [groupMode, setGroupMode] = useState('month');
   const [collapsed, setCollapsed] = useState(() => new Set());
@@ -416,19 +415,12 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
     return s;
   }, [recurring]);
 
-  // Category editing (Darrell 2026-07-20: "Users need to be able to update the
-  // category and add more and the system should pull the ones it can determine
-  // based on the data" — on the Imported tab, "where the sorting system is").
-  // Editing reuses the SAME recategorizePayee the Tx tab uses, so one correction
-  // learns the payee rule and back-applies to every matching row (+ syncs).
+  // Category + payee editing (Darrell 2026-07-20, widened 2026-09-30: "we want
+  // to edit everywhere it makes sense"). Every payee and category on this tab —
+  // the register, the drawer, and the KPI reports — is a <LedgerEdit>, the one
+  // shared editor wired to the SAME updateTransaction / recategorizePayee the Tx
+  // tab uses (lib/ledger-edit.js, DR-0710). This prop still drives auto-categorize.
   const canEditCat = !!recategorizePayee;
-  // The pick-list: the canonical set PLUS any category already in the ledger (a
-  // raw import code or one the user CREATED earlier stays selectable).
-  const categoryOptions = useMemo(() => {
-    const seen = new Set(TX_CATEGORIES);
-    for (const t of (data.transactions || [])) { const c = t && t.category; if (c) seen.add(String(c).toLowerCase()); }
-    return [...seen];
-  }, [data.transactions]);
   // What the deterministic categorizer can CONFIDENTLY determine for the rows still
   // sitting on 'other'/blank — the one-tap "pull them from the data" (learned rules win).
   const suggestions = useMemo(
@@ -442,22 +434,6 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
     for (const s of suggestions) n += recategorizePayee(s.description, s.category) || 0;
     alert(`Auto-categorized ${n.toLocaleString()} transaction(s) the system could determine from the data. Every one is still editable if you want to change it.`);
   };
-  // Set a row's category. '__new__' reveals an inline input (PWA-safe — the old
-  // window.prompt() was blocked/no-op in the installed standalone PWA, so "+ New
-  // category" did nothing on a phone; Darrell 2026-07-30 class). A real category
-  // learns the payee rule and back-applies (recategorizePayee).
-  const setRowCategory = (row, value) => {
-    if (!canEditCat || !value) return;
-    if (value === '__new__') { setNewCatRow(row); setNewCatVal(''); return; }
-    recategorizePayee(row.name, value);
-  };
-  // Commit the inline new-category input to the row that opened it.
-  const applyNewCategory = () => {
-    const category = String(newCatVal || '').trim().toLowerCase().replace(/[^a-z0-9- ]/g, '').replace(/\s+/g, '-');
-    if (category && newCatRow && recategorizePayee) recategorizePayee(newCatRow.name, category);
-    setNewCatRow(null); setNewCatVal('');
-  };
-
   // Combine duplicates the family SPOTS themselves — "without needing to update the
   // app" (Darrell 2026-07-20). The auto-remover only clears specific hardcoded
   // patterns (generic-type twins, balance-anchored copies); it is conservative by
@@ -626,31 +602,12 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
 
   return (
     <div className="space-y-3" data-surface="imported">
-      {newCatRow && (
-        <div className="border border-[#B85838] bg-[#FAF8F4] p-3 flex flex-wrap items-center gap-2" role="group" aria-label="Add a new category">
-          <span className="text-[0.75rem] text-[#1A1815]">
-            New category for <strong>{newCatRow.name}</strong>:
-          </span>
-          <input
-            type="text"
-            autoFocus
-            value={newCatVal}
-            onChange={(e) => setNewCatVal(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') applyNewCategory(); if (e.key === 'Escape') { setNewCatRow(null); setNewCatVal(''); } }}
-            placeholder="e.g. tuition"
-            inputMode="text"
-            className="flex-1 min-w-[8rem] border border-[#E8E4DC] px-2 py-1.5 min-h-[36px] text-[0.875rem] text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]"
-          />
-          <button type="button" onClick={applyNewCategory} className="text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] bg-[#B85838] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815]">Add</button>
-          <button type="button" onClick={() => { setNewCatRow(null); setNewCatVal(''); }} className="text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A5751] text-[#5A5751] hover:bg-[#5A5751] hover:text-white focus:outline focus:outline-2 focus:outline-[#1A1815]">Cancel</button>
-        </div>
-      )}
       <div>
         <h2 className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontSize: '1.5rem', fontWeight: 600 }}>
           Imported transactions
         </h2>
         <p className="text-[0.75rem] text-[#5A5751] mt-1">
-          Read-only view of the bank data imported into your ledger. Source: your synced app database (the verified upload) — refreshed by a deterministic Python job on the NAS. No n8n.
+          The bank data imported into your ledger. Tap any payee or category to rename or recategorize it; the change shows on every tab at once. Source: your synced app database (the verified upload) — refreshed by a deterministic Python job on the NAS. No n8n.
         </p>
         {/* DR-0708: every household member reads the same ledger, and this line
             says when THIS screen last heard it. Unknown never reads as fresh. */}
@@ -812,21 +769,10 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                         {open && (
                           <ul className="ml-4 border-l border-[#166534] pl-2 mb-1 space-y-0.5">
                             {c.txns.map((t) => (
-                              <li key={t.id} className="flex items-baseline justify-between gap-2 text-[0.6875rem] text-[#5A5751]">
-                                <span className="truncate">
-                                  <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{formatDate(t.date || t.posted)}</span> · <span className="text-[#1A1815]">{t.name || t.description || '—'}</span>
-                                  {canEditCat && (
-                                    <select
-                                      aria-label={`Category for ${t.name || 'transaction'}`}
-                                      value={t.category || ''}
-                                      onChange={(e) => setRowCategory(t, e.target.value)}
-                                      className="ml-1 text-[0.625rem] bg-white border border-[#E8E4DC] text-[#1A1815] px-1 py-0.5 align-middle"
-                                    >
-                                      <option value="">— uncategorized —</option>
-                                      {categoryOptions.map((opt) => (<option key={opt} value={opt}>{categoryLabel(opt)}</option>))}
-                                      <option value="__new__">+ add category…</option>
-                                    </select>
-                                  )}
+                              <li key={t.id} className="flex items-center justify-between gap-2 text-[0.6875rem] text-[#5A5751]">
+                                <span className="min-w-0 flex flex-wrap items-center gap-x-1">
+                                  <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{formatDate(t.date || t.posted)}</span> · <LedgerEdit txn={t} className="text-[#1A1815]">{t.name || t.description || '—'}</LedgerEdit>
+                                  <LedgerEdit txn={t} show="category" className="ml-1" />
                                 </span>
                                 <span className="shrink-0 text-[#166534]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>+{fmtMoney(t.amount)}</span>
                               </li>
@@ -871,21 +817,10 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                         {open && (
                           <ul className="ml-4 border-l border-[#B85838] pl-2 mb-1 space-y-0.5">
                             {c.txns.map((t) => (
-                              <li key={t.id} className="flex items-baseline justify-between gap-2 text-[0.6875rem] text-[#5A5751]">
-                                <span className="truncate">
-                                  <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{formatDate(t.date || t.posted)}</span> · <span className="text-[#1A1815]">{t.name || t.description || '—'}</span>
-                                  {canEditCat && (
-                                    <select
-                                      aria-label={`Category for ${t.name || 'transaction'}`}
-                                      value={t.category || ''}
-                                      onChange={(e) => setRowCategory(t, e.target.value)}
-                                      className="ml-1 text-[0.625rem] bg-white border border-[#E8E4DC] text-[#1A1815] px-1 py-0.5 align-middle"
-                                    >
-                                      <option value="">— uncategorized —</option>
-                                      {categoryOptions.map((opt) => (<option key={opt} value={opt}>{categoryLabel(opt)}</option>))}
-                                      <option value="__new__">+ add category…</option>
-                                    </select>
-                                  )}
+                              <li key={t.id} className="flex items-center justify-between gap-2 text-[0.6875rem] text-[#5A5751]">
+                                <span className="min-w-0 flex flex-wrap items-center gap-x-1">
+                                  <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{formatDate(t.date || t.posted)}</span> · <LedgerEdit txn={t} className="text-[#1A1815]">{t.name || t.description || '—'}</LedgerEdit>
+                                  <LedgerEdit txn={t} show="category" className="ml-1" />
                                 </span>
                                 <span className="shrink-0 text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>−{fmtMoney(Math.abs(t.amount))}</span>
                               </li>
@@ -914,7 +849,7 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                       <span className="font-semibold">Overall (external): </span>
                       <span className={variance.overall.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{variance.overall.net < 0 ? '−' : '+'}{fmtMoney(Math.abs(variance.overall.net))}</span>
                       {variance.overall.drivers.length > 0 && (
-                        <span className="text-[#5A5751]"> — driven by {variance.overall.drivers.map((d) => `${d.label} ${d.amount < 0 ? '−' : '+'}${fmtMoney(Math.abs(d.amount))}`).join(', ')}</span>
+                        <span className="text-[#5A5751]"> — driven by {variance.overall.drivers.map((d, i) => <React.Fragment key={d.label}>{i > 0 ? ', ' : ''}<LedgerEdit payee={d.label}>{d.label}</LedgerEdit> {d.amount < 0 ? '−' : '+'}{fmtMoney(Math.abs(d.amount))}</React.Fragment>)}</span>
                       )}
                     </div>
                   )}
@@ -923,7 +858,7 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                       <span className="font-semibold">{a.name}: </span>
                       <span className={a.net < 0 ? 'text-[#B85838]' : 'text-[#166534]'} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{a.net < 0 ? '−' : '+'}{fmtMoney(Math.abs(a.net))}</span>
                       {a.drivers.length > 0 && (
-                        <span className="text-[#5A5751]"> — driven by {a.drivers.map((d) => `${d.label} ${d.amount < 0 ? '−' : '+'}${fmtMoney(Math.abs(d.amount))}`).join(', ')}</span>
+                        <span className="text-[#5A5751]"> — driven by {a.drivers.map((d, i) => <React.Fragment key={d.label}>{i > 0 ? ', ' : ''}<LedgerEdit payee={d.label}>{d.label}</LedgerEdit> {d.amount < 0 ? '−' : '+'}{fmtMoney(Math.abs(d.amount))}</React.Fragment>)}</span>
                       )}
                     </div>
                   ))}
@@ -968,7 +903,7 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                     return (
                       <div key={g.key} className="border-t border-[#E8E4DC] pt-1.5 first:border-t-0 first:pt-0">
                         <div className="flex items-baseline justify-between gap-2 text-[0.75rem]">
-                          <span className="truncate text-[#1A1815]"><span className="font-semibold">{g.label}</span> <span className="text-[#5A5751]">· {g.cadenceLabel} · {g.count}×{g.overdue ? ' · due' : ''}</span></span>
+                          <span className="min-w-0 text-[#1A1815]"><LedgerEdit payee={g.label} className="font-semibold">{g.label}</LedgerEdit> <span className="text-[#5A5751]">· {g.cadenceLabel} · {g.count}×{g.overdue ? ' · due' : ''}</span></span>
                           <span className="shrink-0" style={amtStyle}>{fmtMoney(g.amount)}</span>
                         </div>
                         <div className="flex items-center gap-1 mt-1">
@@ -1001,8 +936,8 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                     <div className="text-[0.5625rem] text-[#5A5751]">{topCategories.rows.length} categor{topCategories.rows.length === 1 ? 'y' : 'ies'} · {fmtMoney(topCategories.total)} out</div>
                   </div>
                   {topCategories.rows.map((c) => (
-                    <div key={c.key} className="flex items-baseline justify-between gap-2 text-[0.75rem] text-[#1A1815]">
-                      <span className="truncate"><span className="font-semibold">{c.label}</span> <span className="text-[#5A5751]">· {c.pct}% of spend</span></span>
+                    <div key={c.key} className="flex items-center justify-between gap-2 text-[0.75rem] text-[#1A1815]">
+                      <span className="min-w-0"><LedgerEdit categoryKey={c.key} show="category" className="font-semibold">{c.label}</LedgerEdit> <span className="text-[#5A5751]">· {c.pct}% of spend</span></span>
                       <span className="shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(c.amount)}</span>
                     </div>
                   ))}
@@ -1018,8 +953,8 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                     <div className="text-[0.5625rem] text-[#5A5751]">{topPayees.length} payee{topPayees.length === 1 ? '' : 's'}</div>
                   </div>
                   {topPayees.map((p) => (
-                    <div key={p.label} className="flex items-baseline justify-between gap-2 text-[0.75rem] text-[#1A1815]">
-                      <span className="truncate"><span className="font-semibold">{p.label}</span> <span className="text-[#5A5751]">· {p.count}×</span></span>
+                    <div key={p.label} className="flex items-center justify-between gap-2 text-[0.75rem] text-[#1A1815]">
+                      <span className="min-w-0"><LedgerEdit payee={p.label} className="font-semibold">{p.label}</LedgerEdit> <span className="text-[#5A5751]">· {p.count}×</span></span>
                       <span className="shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtMoney(p.amount)}</span>
                     </div>
                   ))}
@@ -1316,23 +1251,12 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                             </td>
                             <td className="px-2 py-1.5 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{t.institution}</td>
                             <td className={`px-2 py-1.5 ${selectedIds.has(t.id) ? 'whitespace-normal break-words' : 'truncate max-w-[16.25rem]'}`} title={t.name}>
-                              {t.name}
+                              <LedgerEdit txn={t}>{t.name}</LedgerEdit>
                               {recurringIds.has(t.id) && <span className="ml-1.5 text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] border border-[#5A6E3D] rounded-full px-1.5 py-0.5" title="Part of a repeating payment pattern">↻ recurring</span>}
                               {t.pending && <span className="ml-1.5 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] rounded-full px-1.5 py-0.5">pending</span>}
                             </td>
-                            <td className="px-2 py-1.5 text-[#5A5751]" onClick={(e) => { if (canEditCat) e.stopPropagation(); }}>
-                              {canEditCat ? (
-                                <select
-                                  value={(t.category || 'other').toLowerCase()}
-                                  onChange={(e) => setRowCategory(t, e.target.value)}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="max-w-[8.5rem] text-[0.6875rem] bg-white border border-[#E8E4DC] px-1 py-0.5 focus:outline focus:outline-2 focus:outline-[#B85838]"
-                                  aria-label={`Category for ${t.name}`}
-                                >
-                                  {categoryOptions.map((c) => <option key={c} value={c}>{categoryLabel(c)}</option>)}
-                                  <option value="__new__">+ New category…</option>
-                                </select>
-                              ) : (t.category ? categoryLabel(t.category) : '—')}
+                            <td className="px-2 py-1.5 text-[#5A5751]">
+                              <LedgerEdit txn={t} show="category" />
                             </td>
                             <td className={`px-2 py-1.5 text-right font-mono ${t.amount < 0 ? 'text-[#B85838]' : 'text-[#16A34A]'}`}>{formatAmount(t.amount)}</td>
                             {showBalance && (
@@ -1348,9 +1272,9 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[0.6875rem]">
                                   <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Date</div><div className="text-[#1A1815]">{formatDate(t.posted)}</div></div>
                                   <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Account</div><div className="text-[#1A1815]">{t.institution}</div></div>
-                                  <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</div><div className="text-[#1A1815]">{t.category ? categoryLabel(t.category) : '—'}</div></div>
+                                  <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</div><div className="text-[#1A1815]"><LedgerEdit txn={t} show="category" /></div></div>
                                   <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Amount</div><div className={`font-mono ${t.amount < 0 ? 'text-[#B85838]' : 'text-[#166534]'}`}>{formatAmount(t.amount)}</div></div>
-                                  <div className="col-span-2 sm:col-span-3"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Full description</div><div className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{t.name}</div></div>
+                                  <div className="col-span-2 sm:col-span-3"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Full description</div><div className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}><LedgerEdit txn={t}>{t.name}</LedgerEdit></div></div>
                                   <div><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Status</div><div className="text-[#1A1815]">{t.pending ? 'Pending' : 'Cleared'}</div></div>
                                   <div className="col-span-2 sm:col-span-4 border-t border-[#E8E4DC] pt-2"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Receipt</div><div className="text-[#5A5751] italic">No receipt on file — bank-imported rows carry no receipt image. Attach one from the Tx tab when receipt capture lands.</div></div>
                                 </div>
