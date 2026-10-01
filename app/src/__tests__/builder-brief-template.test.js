@@ -21,6 +21,8 @@ const REQUIRED = [
   ['LESSONS-LEARNED named', /LESSONS-LEARNED\.md/],
   ['decision records named', /docs\/decisions\//],
   ['brakes', /^BRAKES:/m],
+  // DR-0726: a moved control keeps its registry entry; nothing is dropped.
+  ['features never dropped', /^FEATURES: Moving or restyling a control: update its registry entry's locator; never drop it\./m],
 ];
 export const briefGaps = (text) => REQUIRED.filter(([, re]) => !re.test(text)).map(([name]) => name);
 
