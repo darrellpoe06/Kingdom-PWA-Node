@@ -337,6 +337,7 @@ const NODES = [
     id: 'lesson-builder', name: 'The NAS lesson builder (the words land, the lesson starts)',
     purpose: 'Starts a lesson the moment a lesson row, a Whisper transcript or an approval is written (pg_notify, no polling): one teaching one lesson, the identical prompt to every configured writer, every version gated against the KJV corpus and kept, one version shipped through the lane or all of them held for Darrell\u2019s decision (DR-0669).',
     reads: [
+      { res: 'nas:claude-signin', token: 'signed-in Claude Code CLI' },
       { res: 'db:agent_inbox#lesson', token: 'def pending' },
       { res: 'db:agent_inbox#voice-transcript', token: '"voice-transcript"' },
       { res: 'db:agent_inbox#lesson-review', token: '"lesson-approved"' },
