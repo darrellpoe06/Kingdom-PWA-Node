@@ -64,12 +64,22 @@ if [ ! -f "$UNIT" ] || ! grep -q "TAX_UPLOAD_TOKEN=$TOKEN" "$UNIT" 2>/dev/null; 
   systemctl daemon-reload
   NEED_RESTART=1
 fi
+# A CODE change restarts the service too (DR-0708). uvicorn loads the .py once;
+# a repo pull that changes tax_upload_server.py or tax_ingest.py (the 60 MB cap,
+# 2026-09-30) would otherwise run the old code until something else restarted it.
+CODE_STAMP=/volume1/PoeTech/venvs/tax-upload/.code-md5
+CODE_MD5="$(cat "$SRC/tax_upload_server.py" "$SRC/tax_ingest.py" | md5sum | cut -d' ' -f1)"
+if [ "$(cat "$CODE_STAMP" 2>/dev/null)" != "$CODE_MD5" ]; then
+  NEED_RESTART=1
+  echo "  service code changed -- restarting to load it"
+fi
 systemctl enable poetech-tax-upload >/dev/null 2>&1 || true
 if [ "$NEED_RESTART" = "1" ]; then
   systemctl restart poetech-tax-upload
 else
   systemctl is-active --quiet poetech-tax-upload || systemctl restart poetech-tax-upload
 fi
+printf '%s' "$CODE_MD5" > "$CODE_STAMP" 2>/dev/null || true
 
 echo "== tax-upload install: publish whatever is already dropped =="
 # Deterministic, idempotent, stdlib-only. A NAS that already holds returns

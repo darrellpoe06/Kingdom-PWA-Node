@@ -35,6 +35,7 @@ import {
   monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalances, periodLabel, isTransferTxn,
 } from '../lib/imported-view.js';
 import ReportActions from './ReportActions.jsx';
+import LedgerFreshness from './LedgerFreshness.jsx';
 import { currentViewModel, financePresets } from '../lib/finance-reports.js';
 import { loadReportUsage, bumpReportUsage, rankReports } from '../lib/report-usage.js';
 import { loadRecurringDecisions, setRecurringDecision, summarizeDecisions } from '../lib/recurring-decisions.js';
@@ -651,6 +652,9 @@ export default function Imported({ data = {}, deleteTransaction = null, recatego
         <p className="text-[0.75rem] text-[#5A5751] mt-1">
           Read-only view of the bank data imported into your ledger. Source: your synced app database (the verified upload) — refreshed by a deterministic Python job on the NAS. No n8n.
         </p>
+        {/* DR-0708: every household member reads the same ledger, and this line
+            says when THIS screen last heard it. Unknown never reads as fresh. */}
+        <div className="mt-2"><LedgerFreshness table="transactions" label="Ledger" /></div>
       </div>
 
       {view.total === 0 ? (

@@ -16,10 +16,10 @@
 import React, { useEffect, useState } from 'react';
 import { fetchTaxArchive, printableUrl } from '../lib/tax-archive.js';
 import { groupByYear, buildTaxHistory, hasFigures, TAX_FIGURE_KEYS, TAX_DOC_KINDS } from '../lib/tax-documents.js';
-import { uploadTaxDoc, uploadFailureMessage, validateUpload } from '../lib/tax-upload.js';
+import { uploadTaxDocWithFreshKey, uploadFailureMessage, validateUpload } from '../lib/tax-upload.js';
 import PaymentsLedgerPanel from './PaymentsLedgerPanel.jsx';
 import { resolveBridgeBearer } from '../lib/bridge-auth.js';
-import { hasBridgeToken } from '../lib/nas-photos.js';
+import { hasBridgeToken, setBridgeToken } from '../lib/nas-photos.js';
 import { provisionBridgeToken } from '../lib/bridge-provision.js';
 import { supabase } from '../lib/supabase.js';
 
@@ -71,6 +71,10 @@ export default function BooksTaxes({ entities = [] }) {
   const [form, setForm] = useState({ file: null, entityId: '', year: '', kind: 'return' });
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
+  // 'info' while working, 'ok' on success, 'error' on any refusal. An error is
+  // announced (role=alert) and never styled like success.
+  const [noticeTone, setNoticeTone] = useState('info');
+  const say = (text, tone) => { setNotice(text); setNoticeTone(tone); };
   const [keyState, setKeyState] = useState(() => (hasBridgeToken() ? 'present' : 'unknown'));
 
   useEffect(() => {
@@ -88,28 +92,44 @@ export default function BooksTaxes({ entities = [] }) {
     return () => { live = false; };
   }, []);
 
-  const setF = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const setF = (k, v) => { setForm((f) => ({ ...f, [k]: v })); if (noticeTone === 'error') say('', 'info'); };
   const uploadReq = { file: form.file, entityId: form.entityId, year: form.year, kind: form.kind };
   const gate = validateUpload(uploadReq);
 
+  // THE BUTTON NEVER GOES SILENTLY GREY (DR-0708, 2026-09-30). Christina filled
+  // every field on her phone and "Upload to my NAS" did nothing: the button was
+  // disabled whenever validateUpload failed, and a disabled button says no
+  // reason. Measured the same evening: the NAS road accepts a 1 MB and a 20 MB
+  // upload with the family key (family-books-probe run 36787773243), so the
+  // refusal was on the phone. Now the button stays pressable, and pressing it
+  // with anything wrong says exactly what, in words.
   const doUpload = async () => {
-    if (!gate.ok || busy) return;
-    setBusy(true); setNotice('Uploading to your NAS…');
+    if (busy) return;
+    if (!gate.ok) { say(gate.errors.join(' '), 'error'); return; }
+    setBusy(true); say('Uploading to your NAS…', 'info');
     // Ask for the key before the first post, never after a refusal.
     if (!hasBridgeToken()) {
       const r = await provisionBridgeToken(supabase);
       setKeyState(r || 'none');
     }
     const token = (() => { try { return resolveBridgeBearer(typeof window !== 'undefined' ? window : undefined); } catch { return null; } })();
-    const res = await uploadTaxDoc(uploadReq, { token });
+    // A refused key is fetched again from the family once, and the post retried
+    // once: a device can hold an older key than the one the NAS now checks.
+    const refreshToken = async () => {
+      try { setBridgeToken(''); } catch { /* storage blocked */ }
+      const r = await provisionBridgeToken(supabase);
+      setKeyState(r || 'none');
+      try { return resolveBridgeBearer(typeof window !== 'undefined' ? window : undefined); } catch { return ''; }
+    };
+    const res = await uploadTaxDocWithFreshKey(uploadReq, { token, refreshToken });
     setBusy(false);
     if (res && res.ok) {
-      setNotice('Uploaded. Your return is filed and printable below.');
+      say('Uploaded. Your return is filed and printable below.', 'ok');
       setForm({ file: null, entityId: form.entityId, year: '', kind: 'return' });
       if (res.archive && Array.isArray(res.archive.documents)) setArchive({ documents: res.archive.documents, served_at: res.archive.served_at || null, source: 'nas' });
       else refresh();
     } else if (res && res.skipped === 'invalid') {
-      setNotice(res.errors.join(' '));
+      say(res.errors.join(' '), 'error');
     } else {
       // Say WHICH failure it was. The 2026-09-06 defect (DR-0330) spent seven
       // weeks looking like one undifferentiated "could not reach": the real
@@ -117,7 +137,7 @@ export default function BooksTaxes({ entities = [] }) {
       // started, and a 502 vs a 401 vs a 404 each point at a different piece.
       // A message that names the hop is the difference between a diagnosis and
       // a shrug (DR-0076 §8 — provenance, and honest uncertainty when absent).
-      setNotice(uploadFailureMessage(res));
+      say(uploadFailureMessage(res), 'error');
     }
   };
 
@@ -164,12 +184,22 @@ export default function BooksTaxes({ entities = [] }) {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="submit" disabled={!gate.ok || busy}
-            className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${gate.ok && !busy ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white hover:bg-[#4A5D30]' : 'border-[#E8E4DC] text-[#5A5751] cursor-not-allowed'}`}>
+          <button type="submit" disabled={busy} aria-disabled={!gate.ok || busy}
+            className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${gate.ok && !busy ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white hover:bg-[#4A5D30]' : 'border-[#5A5751] bg-white text-[#1A1815]'}`}>
             {busy ? 'Uploading…' : 'Upload to my NAS'}
           </button>
-          {notice && <span className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>{notice}</span>}
+          {notice && (
+            <span data-testid="tax-upload-notice" data-tone={noticeTone} role={noticeTone === 'error' ? 'alert' : 'status'}
+              className={`text-[0.6875rem] ${noticeTone === 'error' ? 'text-[#B85838] font-semibold' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"Fraunces", serif' }}>{notice}</span>
+          )}
         </div>
+        {/* What is still missing, said before anyone presses: once a file is
+            picked, every reason the upload would be refused shows here. */}
+        {form.file && !gate.ok && !notice && (
+          <p data-testid="tax-upload-blockers" className="text-[0.6875rem] text-[#B85838] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+            Before this can upload: {gate.errors.join(' ')}
+          </p>
+        )}
         <p data-testid="tax-device-key" className={`text-[0.625rem] mt-2 ${keyState === 'none' ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"Fraunces", serif' }}>
           {KEY_STATE_WORDS[keyState] || KEY_STATE_WORDS.unknown}
         </p>
