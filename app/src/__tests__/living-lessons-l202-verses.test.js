@@ -484,3 +484,32 @@ describe('L202 names the Word-first learning center and its departments, so a re
     for (const w of ['reading and counting', 'math', 'history', 'banks and stocks', 'houses and land', 'A.I.', 'sound and the cameras']) expect(c).toContain(w);
   });
 });
+
+// THE CODE (Darrell, 2026-10-01, on Numbers 27:20): "Yahweh wanted it public,
+// before the priest and the whole congregation, so that everyone would know
+// Joshua was the next leader. More importantly... so the children of Israel may
+// be obedient... it's a code" and "Leaders need to follow the code of conduct
+// inside the Word." The verse is quoted verbatim in every reading; the teaching
+// is attributed to Darrell, given after the class, never to the recording.
+describe('L202 reads Numbers 27:20 for its code: the purpose clause, kept by leaders', () => {
+  it('every reading quotes Numbers 27:20 verbatim and names the code', () => {
+    // The code is the verse's own purpose clause; the teen reading opens its
+    // quotation at "thou shalt", so the clause (verbatim) and the reference are
+    // what every reading must carry. scanQuotedVerses still checks each span.
+    const clause = verse('Numbers', 27, 20).split(', that ')[1].replace(/\.$/, '');
+    for (const t of [L().lesson, ...BANDS()]) {
+      expect(t).toContain('that ' + clause);
+      expect(t).toContain('(Numbers 27:20)');
+      expect(t).toMatch(/Darrell (calls|says) (that|this is) a code/);
+      expect(t).toMatch(/Leaders follow the code of conduct inside the (Word|Bible)/);
+    }
+  });
+  it('the adult and senior readings carry both of his reasons, public knowledge and obedience, in his order', () => {
+    for (const t of [L().lesson, L().levels.senior]) {
+      const a = t.indexOf('so that everyone would know Joshua was the next leader');
+      const b = t.indexOf('more importantly, the verse');
+      expect(a).toBeGreaterThan(0);
+      expect(b).toBeGreaterThan(a);
+    }
+  });
+});
