@@ -316,7 +316,8 @@ jobs:
       # deleted and never run, a failed download retried at most every 6 h,
       # a binary answering another version refused. Offline (file:// release).
       - name: nas yt-dlp installer tests
-        run: sh infra/nas-yt-dlp/test_install.sh
+        working-directory: infra/nas-yt-dlp
+        run: sh test_install.sh
       # Blob-copy selftest (DR-0317): the pure URL/skip/parity logic behind the
       # hosted -> sovereign storage copy. The repoint moved the rows on
       # 2026-08-19 and left 455 objects behind, breaking Shay's gallery and
