@@ -117,21 +117,102 @@ def parse_print_lines(stdout):
 
 # --- yt-dlp page read (NAS residential IP) ------------------------------------
 
-def fetch_dates(video_ids, time_budget_s):
-    """One yt-dlp invocation over the chunk; bounded by time_budget_s."""
-    args = ["--skip-download", "--no-warnings", "--ignore-errors",
+def ytdlp_args(video_ids):
+    """The read-only metadata call. --ignore-no-formats-error (DR-0723): a
+    current yt-dlp without a JS runtime may be offered no playable format, and
+    we never want one -- only the stamp -- so that is not a reason to print
+    nothing."""
+    args = ["--skip-download", "--no-warnings", "--ignore-errors", "--ignore-no-formats-error",
             "--print", "%(id)s\t%(release_timestamp,upload_date)s"]
-    args += [f"https://www.youtube.com/watch?v={v}" for v in video_ids]
-    for cmd in (["yt-dlp"], [sys.executable, "-m", "yt_dlp"]):
+    return args + [f"https://www.youtube.com/watch?v={v}" for v in video_ids]
+
+
+# A video YouTube no longer serves can never be dated by reading its page.
+# These are yt-dlp's own words for that (stderr "ERROR: [youtube] <id>: ...").
+GONE_MARKERS = (
+    "Video unavailable", "Private video", "This video is private",
+    "This video has been removed", "This video is no longer available",
+    "account associated with this video has been terminated",
+)
+
+
+def gone_from_stderr(stderr):
+    """'ERROR: [youtube] <id>: <why>' lines -> {id: why} for DURABLE gone only.
+
+    A bot check, a rate limit or a network error is about this IP today, not
+    about the video, so it is never recorded (DR-0076: a refusal is a fact
+    about the runner)."""
+    out = {}
+    for line in (stderr or "").splitlines():
+        line = line.strip()
+        if not line.startswith("ERROR: [youtube] "):
+            continue
+        rest = line[len("ERROR: [youtube] "):]
+        vid, _, why = rest.partition(": ")
+        if vid and any(m in why for m in GONE_MARKERS):
+            out[vid] = why[:160]
+    return out
+
+
+def fetch_stamps(video_ids, time_budget_s, commands=None):
+    """One yt-dlp invocation over the chunk -> (dates, gone).
+
+    Two different failures, two different messages (DR-0723). "not available"
+    means no yt-dlp could be STARTED. A yt-dlp that ran and printed nothing,
+    and named no video as gone, was refused or broken, and says so with its own
+    last words -- the 2026-10-01 log said "not available" for both.
+    """
+    args = ytdlp_args(video_ids)
+    ran = []
+    for cmd in (commands or (["yt-dlp"], [sys.executable, "-m", "yt_dlp"])):
         try:
             r = subprocess.run(cmd + args, capture_output=True, text=True, timeout=time_budget_s)
+            out, err, rc = r.stdout or "", r.stderr or "", r.returncode
         except FileNotFoundError:
             continue
         except subprocess.TimeoutExpired as e:
-            return parse_print_lines(e.stdout or "")
-        if r.stdout.strip() or r.returncode == 0:
-            return parse_print_lines(r.stdout)
-    raise RuntimeError("yt-dlp not available (pip install yt-dlp)")
+            dec = lambda b: (b.decode("utf-8", "replace") if isinstance(b, bytes) else (b or ""))
+            return parse_print_lines(dec(e.stdout)), gone_from_stderr(dec(e.stderr))
+        dates, gone = parse_print_lines(out), gone_from_stderr(err)
+        if dates or gone or rc == 0:
+            return dates, gone
+        tail = " | ".join(ln.strip() for ln in err.strip().splitlines()[-2:] if ln.strip())
+        ran.append(f"{cmd[0]} exit {rc}: {tail[:200] or '(no stderr)'}")
+    if ran:
+        raise RuntimeError("yt-dlp ran but printed nothing -- " + "; ".join(ran))
+    raise RuntimeError("yt-dlp not available (no yt-dlp could be started)")
+
+
+def fetch_dates(video_ids, time_budget_s, commands=None):
+    """The dates only (see fetch_stamps)."""
+    return fetch_stamps(video_ids, time_budget_s, commands)[0]
+
+
+def load_undateable(path):
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def save_undateable(path, data):
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    tmp = str(path) + ".part"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, indent=1, sort_keys=True)
+    Path(tmp).replace(path)
+
+
+def plan_chunk(rows, undateable, chunk):
+    """The rows a cycle reads: undated, not already named gone, at most chunk.
+
+    Before DR-0723 every cycle read the same oldest `chunk` rows; when those
+    were videos YouTube no longer serves, the rider read them forever and never
+    reached a row it could date."""
+    pending = [r for r in rows if r.get("video_id") not in undateable]
+    return pending[:chunk], len(pending)
 
 
 def emit(ok, processed, note):
@@ -162,6 +243,53 @@ def selftest():
     checks.append(("print-line parse keeps only dateable rows",
                    parse_print_lines("a1\t20231108\nb2\tNA\nnoise\nc3\t1702515600")
                    == {"a1": "2023-11-08", "c3": "2023-12-13"}))
+    checks.append(("metadata read never needs a playable format",
+                   "--ignore-no-formats-error" in ytdlp_args(["a1"]) and "--skip-download" in ytdlp_args(["a1"])))
+    import tempfile, os
+    with tempfile.TemporaryDirectory() as td:
+        refused = os.path.join(td, "yt-dlp")
+        with open(refused, "w") as fh:
+            fh.write("#!/bin/sh\necho 'ERROR: [youtube] a1: Sign in to confirm you are not a bot' >&2\nexit 1\n")
+        os.chmod(refused, 0o755)
+        try:
+            fetch_dates(["a1"], 30, commands=[[refused]])
+            msg = ""
+        except RuntimeError as e:
+            msg = str(e)
+        checks.append(("a refused yt-dlp is named refused, with its own words",
+                       "ran but printed nothing" in msg and "not a bot" in msg and "not available" not in msg))
+        try:
+            fetch_dates(["a1"], 30, commands=[[os.path.join(td, "absent")]])
+            msg = ""
+        except RuntimeError as e:
+            msg = str(e)
+        checks.append(("a missing yt-dlp is named not available", "not available" in msg))
+        answers = os.path.join(td, "yt-dlp-ok")
+        with open(answers, "w") as fh:
+            fh.write("#!/bin/sh\nprintf 'a1\\t20260930\\n'\n")
+        os.chmod(answers, 0o755)
+        checks.append(("an answering yt-dlp dates the row",
+                       fetch_dates(["a1"], 30, commands=[[answers]]) == {"a1": "2026-09-30"}))
+    checks.append(("a gone video is named; a bot check never is",
+                   gone_from_stderr("ERROR: [youtube] g1: Video unavailable. This video has been removed by the uploader\n"
+                                    "ERROR: [youtube] p2: Private video. Sign in if you've been granted access\n"
+                                    "ERROR: [youtube] b3: Sign in to confirm you're not a bot\n"
+                                    "WARNING: [youtube] w4: Video unavailable\n")
+                   .keys() == {"g1", "p2"}))
+    rows = [{"video_id": v} for v in ("g1", "p2", "a1", "a2", "a3")]
+    picked, left = plan_chunk(rows, {"g1": "x", "p2": "y"}, 2)
+    checks.append(("a cycle never re-reads a row named gone, and reaches the next ones",
+                   [r["video_id"] for r in picked] == ["a1", "a2"] and left == 3))
+    with tempfile.TemporaryDirectory() as td:
+        mixed = os.path.join(td, "yt-dlp")
+        with open(mixed, "w") as fh:
+            fh.write("#!/bin/sh\necho 'ERROR: [youtube] g1: Video unavailable' >&2\nexit 1\n")
+        os.chmod(mixed, 0o755)
+        try:
+            got = fetch_stamps(["g1"], 30, commands=[[mixed]])
+        except RuntimeError:
+            got = None
+        checks.append(("a chunk of gone videos is an answer, not a failure", got == ({}, {"g1": "Video unavailable"})))
     ok = all(passed for _, passed in checks)
     for name, passed in checks:
         print(("PASS" if passed else "FAIL"), "-", name)
@@ -176,6 +304,8 @@ def main():
     ap.add_argument("--time-budget", type=int, default=300)
     ap.add_argument("--commit", action="store_true")
     ap.add_argument("--done-marker", default=None)
+    ap.add_argument("--undateable", default=str(HERE / "state" / "undateable.json"),
+                    help="videos yt-dlp names as gone (unavailable/private/removed): never dated, never re-read")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
@@ -195,8 +325,20 @@ def main():
     rows = _req(url, key, "GET", "choir_sermons", params={
         "instance_id": f"eq.{inst}", "service_date": "is.null",
         "video_id": "not.is.null", "select": "id,video_id,service_type",
-        "order": "created_at.asc", "limit": str(a.chunk),
-    })
+        "order": "created_at.asc", "limit": "5000",
+    }) or []
+    undateable = load_undateable(a.undateable)
+    rows, pending_n = plan_chunk(rows, undateable, a.chunk)
+    if not rows and undateable and pending_n == 0:
+        # Every undated row left is one YouTube no longer serves. Done, never
+        # guessed: they stay NULL and are named in the undateable file.
+        print(f"choir-dates: backlog drained — every undated row left ({len(undateable)}) is a video "
+              f"YouTube no longer serves; named in {a.undateable}, never given a date.")
+        if a.done_marker and a.commit:
+            Path(a.done_marker).parent.mkdir(parents=True, exist_ok=True)
+            Path(a.done_marker).write_text(datetime.now(timezone.utc).isoformat() + "\n")
+        emit(True, 0, f"drained; {len(undateable)} undateable")
+        return 0
     if not rows:
         print("choir-dates: backlog drained — nothing undated remains.")
         if a.done_marker and a.commit:
@@ -207,7 +349,7 @@ def main():
 
     t0 = time.monotonic()
     try:
-        dates = fetch_dates([r["video_id"] for r in rows], a.time_budget)
+        dates, gone = fetch_stamps([r["video_id"] for r in rows], a.time_budget)
     except RuntimeError as e:
         # The tool itself is absent or refused (the docker-backed wrapper could
         # not run). Degraded, not broken — see the exit-3 note below.
@@ -225,11 +367,20 @@ def main():
                  params={"id": f"eq.{r['id']}", "service_date": "is.null"},
                  body=patch_for(r, d))
         dated += 1
+    new_gone = {v: w for v, w in gone.items() if v not in undateable and v not in dates}
+    if new_gone and a.commit:
+        stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        for v, w in new_gone.items():
+            undateable[v] = f"{stamp} {w}"
+        save_undateable(a.undateable, undateable)
+    if new_gone:
+        print(f"choir-dates: {len(new_gone)} of {len(rows)} are videos YouTube no longer serves "
+              f"(e.g. {next(iter(new_gone))}: {next(iter(new_gone.values()))[:80]}); named, never dated.")
     took = round(time.monotonic() - t0, 1)
     mode = "committed" if a.commit else "DRY-RUN (no writes; pass --commit)"
     print(f"choir-dates: {mode} {dated} of {len(rows)} chunk rows in {took}s; backlog continues next cycle.")
     emit(dated > 0, dated, f"{mode}; chunk {len(rows)}; {took}s")
-    if dated == 0:
+    if dated == 0 and not new_gone:
         # A whole chunk yielding nothing means the page read is blocked or the
         # remainder is genuinely undateable — either way, say so loudly (DR-0076).
         # EXIT 3, NOT 1 (2026-09-23): this is DEGRADED, not broken. The loader

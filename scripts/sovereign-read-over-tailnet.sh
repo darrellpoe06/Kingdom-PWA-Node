@@ -86,8 +86,8 @@ DEFAULT_FUNCTIONS='list_instance_members,my_church_instance_id,church_member_rec
 DEFAULT_TABLES='board_tasks,rentals,rental_tenancies,property_rooms,feedback'
 
 case "$MODE" in
-  feedback|definitions|tables|instances|intake) ;;
-  *) echo "::error::unknown mode '$MODE' (feedback|definitions|tables|instances|intake)"; exit 2 ;;
+  feedback|definitions|tables|instances|intake|dm_keys) ;;
+  *) echo "::error::unknown mode '$MODE' (feedback|definitions|tables|instances|intake|dm_keys)"; exit 2 ;;
 esac
 case "$DAYS" in
   ''|*[!0-9]*) echo "::error::days must be a whole number, got '$DAYS'"; exit 2 ;;
@@ -234,6 +234,35 @@ elif [ "$MODE" = "intake" ]; then
                          ELSE (SELECT coalesce(json_agg(d), '[]'::json) FROM (SELECT id, body, status, created_at FROM public.door_feedback) d) END
           )::text"
   echo "---INTAKE-JSON-END---"
+elif [ "$MODE" = "dm_keys" ]; then
+  # WHICH DEVICE CAN READ A SEALED MESSAGE (2026-10-01). Darrell: "sometimes I
+  # can see it and others not on the same device... I actually want it to work
+  # on multiple devices." dm_public_keys (0118) holds ONE public key per
+  # account, and every device that opens Messages publishes its own freshly
+  # generated key over it -- so a message is sealed to whichever device
+  # published last, and the readable window flips with each device. This mode
+  # reads the evidence of that: per account, when its published key last
+  # changed, beside how many sealed messages each pair exchanged per day.
+  # Public keys are public and are still NOT printed (a fingerprint is enough
+  # to see a change); no message body is ever selected; accounts are shown as
+  # the first 8 characters of their id.
+  echo "---DM-KEYS---"
+  psql_q "SELECT coalesce(json_agg(k ORDER BY k.updated_at DESC), '[]'::json)::text FROM (
+            SELECT left(user_id::text, 8) AS who,
+                   updated_at,
+                   left(md5(public_jwk::text), 10) AS key_fp
+              FROM public.dm_public_keys) k"
+  echo "---DM-SEALED-BY-DAY---"
+  psql_q "SELECT coalesce(json_agg(d ORDER BY d.day DESC), '[]'::json)::text FROM (
+            SELECT date_trunc('day', created_at)::date AS day,
+                   left(sender_user_id::text, 8) AS from_who,
+                   left(recipient_user_id::text, 8) AS to_who,
+                   count(*) FILTER (WHERE body LIKE 'e2e:v1:%') AS sealed,
+                   count(*) FILTER (WHERE body NOT LIKE 'e2e:%') AS plain,
+                   max(created_at) AS last_at
+              FROM public.direct_messages
+             WHERE created_at >= now() - (${DAYS} || ' days')::interval
+             GROUP BY 1, 2, 3) d"
 elif [ "$MODE" = "instances" ]; then
   echo "---INSTANCES---"
   # Each instance, with how many rows of each asked-about table point at it.

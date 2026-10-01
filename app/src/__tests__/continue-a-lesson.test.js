@@ -66,16 +66,21 @@ describe('a second lesson never costs the first its place', () => {
 });
 
 describe('what counts as "in progress"', () => {
-  it('a glance at a card is not starting it; Start, a move, or a sentence is', () => {
+  it('a glance, a Start tap, or the first sentence is not progress; a move or a later sentence is (DR-0702)', () => {
     recordPlace({ courseKey: 'c', lessonId: 'browse' }, { storage, now: 1 });
     recordPlace({ courseKey: 'c', lessonId: 'started', started: true }, { storage, now: 2 });
     recordPlace({ courseKey: 'c', lessonId: 'moved', step: 1 }, { storage, now: 3 });
     recordPlace({ courseKey: 'c', lessonId: 'read', sentence: 2, sentenceKey: 'k' }, { storage, now: 4 });
     recordPlace({ courseKey: 'c', lessonId: 'over', stage: 3 }, { storage, now: 5 });
     finishPlace({ courseKey: 'c', lessonId: 'over' }, { storage, now: 6 });
+    // The eye-scroll writer saves the FIRST sentence the moment a finger drags
+    // at the top of a lesson never read; that is the start, not a place.
+    recordPlace({ courseKey: 'c', lessonId: 'top', sentence: 0, sentenceKey: 'first' }, { storage, now: 7 });
     const ids = listPlaces({ storage, inProgress: true }).map((p) => p.lessonId);
-    expect(ids).toEqual(['read', 'moved', 'started']); // newest first; browse and finished excluded
+    expect(ids).toEqual(['read', 'moved']); // newest first; browse, Start-only, the top and finished excluded
     expect(placeInProgress(getPlaceFor('c', 'browse', { storage }))).toBe(false);
+    expect(placeInProgress(getPlaceFor('c', 'started', { storage }))).toBe(false);
+    expect(placeInProgress(getPlaceFor('c', 'top', { storage }))).toBe(false);
     expect(getPlaceFor('c', 'over', { storage }).done).toBe(true);
   });
 

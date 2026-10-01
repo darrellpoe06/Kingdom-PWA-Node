@@ -47,60 +47,101 @@ describe('parseServiceTime', () => {
 describe('liveStatus — in-window auto-mount', () => {
   it('is live exactly at Sunday 11:00 AM service start', () => {
     // Sunday 2026-06-21, 11:00 local.
-    const now = new Date(2026, 5, 21, 11, 0, 0);
+    const now = new Date('2026-06-21T11:00:00-05:00');
     expect(liveStatus(COLG_SERVICES, now).live).toBe(true);
   });
   it('is live shortly before start (pre-roll window)', () => {
-    const now = new Date(2026, 5, 21, 10, 50, 0); // 10 min before
+    const now = new Date('2026-06-21T10:50:00-05:00'); // 10 min before
     expect(liveStatus(COLG_SERVICES, now).live).toBe(true);
   });
   it('is live well into the service (post-roll window)', () => {
-    const now = new Date(2026, 5, 21, 13, 0, 0); // 2h after
+    const now = new Date('2026-06-21T13:00:00-05:00'); // 2h after
     expect(liveStatus(COLG_SERVICES, now).live).toBe(true);
   });
   it('catches the Wednesday evening service', () => {
-    const now = new Date(2026, 5, 24, 18, 15, 0); // Wed 6:15 PM
+    const now = new Date('2026-06-24T18:15:00-05:00'); // Wed 6:15 PM
     expect(liveStatus(COLG_SERVICES, now).live).toBe(true);
   });
 });
 
 describe('liveStatus — off-window stays FALSE (the zombie-frame guard)', () => {
   it('is NOT live mid-week with no service', () => {
-    const now = new Date(2026, 5, 23, 9, 0, 0); // Tuesday 9 AM
+    const now = new Date('2026-06-23T09:00:00-05:00'); // Tuesday 9 AM
     expect(liveStatus(COLG_SERVICES, now).live).toBe(false);
   });
   it('is NOT live Sunday evening after worship has ended', () => {
-    const now = new Date(2026, 5, 21, 20, 0, 0); // Sunday 8 PM
+    const now = new Date('2026-06-21T20:00:00-05:00'); // Sunday 8 PM
     expect(liveStatus(COLG_SERVICES, now).live).toBe(false);
   });
   it('is NOT live just before the pre-roll window opens', () => {
-    const now = new Date(2026, 5, 21, 10, 30, 0); // 30 min before, outside 20-min pre-roll
+    const now = new Date('2026-06-21T10:30:00-05:00'); // 30 min before, outside 20-min pre-roll
     expect(liveStatus(COLG_SERVICES, now).live).toBe(false);
   });
   it('is NOT live for an in-person-only schedule, ever', () => {
     const inPersonOnly = [{ day: 'Sunday', time: '11:00 AM', online: false }];
-    const now = new Date(2026, 5, 21, 11, 0, 0);
+    const now = new Date('2026-06-21T11:00:00-05:00');
     expect(liveStatus(inPersonOnly, now).live).toBe(false);
   });
   it('is NOT live when there are no services', () => {
-    expect(liveStatus([], new Date(2026, 5, 21, 11, 0, 0)).live).toBe(false);
-    expect(liveStatus(undefined, new Date(2026, 5, 21, 11, 0, 0)).live).toBe(false);
+    expect(liveStatus([], new Date('2026-06-21T11:00:00-05:00')).live).toBe(false);
+    expect(liveStatus(undefined, new Date('2026-06-21T11:00:00-05:00')).live).toBe(false);
   });
 });
 
 describe('liveStatus — next-service hint for the offline card', () => {
   it('points to the soonest upcoming service from a quiet weekday', () => {
-    const now = new Date(2026, 5, 23, 9, 0, 0); // Tuesday 9 AM -> next is Wed 1 PM
+    const now = new Date('2026-06-23T09:00:00-05:00'); // Tuesday 9 AM -> next is Wed 1 PM
     const { next } = liveStatus(COLG_SERVICES, now);
     expect(next).toBeTruthy();
     expect(next.day).toBe('Wednesday');
     expect(next.time).toBe('1:00 PM');
   });
   it('rolls to next Sunday after the last Wednesday service', () => {
-    const now = new Date(2026, 5, 24, 23, 0, 0); // Wed 11 PM, both Wed services done
+    const now = new Date('2026-06-24T23:00:00-05:00'); // Wed 11 PM, both Wed services done
     const { next } = liveStatus(COLG_SERVICES, now);
     expect(next.day).toBe('Sunday');
     expect(next.time).toBe('11:00 AM');
+  });
+});
+
+// THE CHURCH'S CLOCK, NOT THE VIEWER'S (2026-09-30). The posted times are
+// Champaign wall-clock times. The device-local reading put the Wednesday 6 PM
+// window at 17:40–21:30 UTC on a UTC runner (12:40–4:30 PM in Champaign), which
+// flipped CI's layout probe at 21:30 UTC. These instants are absolute, so the
+// answers are the same on any machine, in any zone.
+describe('liveStatus — windows are read on the church clock (America/Chicago)', () => {
+  it('Wednesday 21:35 UTC is 4:35 PM in Champaign — between the Bible studies, not live', () => {
+    expect(liveStatus(COLG_SERVICES, new Date('2026-09-30T21:35:00Z')).live).toBe(false);
+  });
+  it('Wednesday 23:10 UTC is 6:10 PM in Champaign — the evening Bible study is live', () => {
+    const s = liveStatus(COLG_SERVICES, new Date('2026-09-30T23:10:00Z'));
+    expect(s.live).toBe(true);
+    expect(s.current.time).toBe('6:00 PM');
+  });
+  it('winter time is honoured too (CST, UTC-6): Sunday 17:00 UTC is 11:00 AM in Champaign', () => {
+    expect(liveStatus(COLG_SERVICES, new Date('2026-12-06T17:00:00Z')).live).toBe(true);
+    expect(liveStatus(COLG_SERVICES, new Date('2026-12-06T16:00:00Z')).live).toBe(false);
+  });
+  it('Wednesday 22:00 UTC is 5:00 PM in Champaign — before the 6 PM study\'s pre-roll, not live', () => {
+    expect(liveStatus(COLG_SERVICES, new Date('2026-09-30T22:00:00Z')).live).toBe(false);
+  });
+  it('the 6 PM study\'s pre-roll opens at 5:40 PM Champaign (22:40 UTC), not a minute before', () => {
+    expect(liveStatus(COLG_SERVICES, new Date('2026-09-30T22:39:00Z')).live).toBe(false);
+    const s = liveStatus(COLG_SERVICES, new Date('2026-09-30T22:40:00Z'));
+    expect(s.live).toBe(true);
+    expect(s.current.time).toBe('6:00 PM');
+  });
+  it('next.at is the real instant of the next start', () => {
+    const { next } = liveStatus(COLG_SERVICES, new Date('2026-09-30T21:35:00Z'));
+    expect(next.time).toBe('6:00 PM');
+    expect(next.at.toISOString()).toBe('2026-09-30T23:00:00.000Z');
+  });
+  it('proven to catch: reading the same instant on a UTC clock gives the wrong answer', () => {
+    // The pre-fix behaviour, reproduced by asking for UTC. At 23:10 UTC the
+    // evening study is live in Champaign (6:10 PM), but a UTC clock reads
+    // "11:10 PM", past both Wednesday windows, and keeps the player dark.
+    expect(liveStatus(COLG_SERVICES, new Date('2026-09-30T23:10:00Z'), { timeZone: 'UTC' }).live).toBe(false);
+    expect(liveStatus(COLG_SERVICES, new Date('2026-09-30T23:10:00Z')).live).toBe(true);
   });
 });
 
