@@ -55,7 +55,12 @@ describe('every Living Lesson, every band', () => {
   });
 
   it('pacing never drops or reorders a character', () => {
-    for (const m of LIVING_LESSONS_MODULES.filter((x) => /^ll(19[7-9]|20[0-2])-/.test(x.id))) {
+    // Every Living Lesson, every band. Before the chunker glued unspaced pieces
+    // (an "A.I." or "U.S." abbreviation, a decimal like 21.3, a "..." run-on, a
+    // quotation closing with ?" and running on in lowercase) this check held
+    // for L197-L202 only and 22 lesson bands elsewhere printed a space the
+    // author never wrote at a step's edge ("A. I. The Way"). Now it holds for all.
+    for (const m of LIVING_LESSONS_MODULES) {
       for (const band of BANDS) {
         const text = textFor(m, band);
         if (!text) continue;

@@ -342,7 +342,7 @@ export function chunkLessonForAge(text, ageBandId = DEFAULT_AGE_BAND) {
     const prev = sentences.length ? sentences[sentences.length - 1] : null;
     const tail = prev != null ? /^(["”’)\]]+)(\s*)([\s\S]*)$/.exec(piece) : null;
     if (tail && (!tail[3] || (tail[2] && /^[(,.;:)]/.test(tail[3])) || /^[,.;:)]/.test(tail[3]))) { sentences[sentences.length - 1] = prev + piece; continue; }
-    if (tail && tail[2] && /^[A-Z]/.test(tail[3])) {
+    if (tail && tail[2] && /^[A-Z"“]/.test(tail[3])) {
       // The quote closes the sentence before; what follows is a new sentence.
       sentences[sentences.length - 1] = prev + tail[1] + tail[2];
       if (SPELLED_MARKER.test(sentences[sentences.length - 1].trim())) { sentences[sentences.length - 1] += tail[3]; continue; }
@@ -350,6 +350,12 @@ export function chunkLessonForAge(text, ageBandId = DEFAULT_AGE_BAND) {
       continue;
     }
     if (prev != null && SPELLED_MARKER.test(prev.trim())) { sentences[sentences.length - 1] = prev + piece; continue; }
+    // No whitespace followed the terminator, so the author never ended a
+    // sentence there: "A.I. The Way", "U.S.", "21.3 per 100,000",
+    // "beginning...My counsel", or a quotation that closes with ?" and runs on
+    // in lowercase. Cutting a step between the pieces would print a space the
+    // author never wrote ("A. I."); glue them so every character survives.
+    if (prev != null && !/\s$/.test(prev)) { sentences[sentences.length - 1] = prev + piece; continue; }
     sentences.push(piece);
   }
   const segments = [];
