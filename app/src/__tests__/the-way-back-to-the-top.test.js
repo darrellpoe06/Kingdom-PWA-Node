@@ -82,7 +82,10 @@ describe('the panel always carries a way back to the top', () => {
     // If a future edit drops `!isOpen` without removing the shared flex column,
     // the ↑ gets pushed off-screen by a tall panel and the bug comes back
     // wearing a different shape.
-    expect(SRC).toContain('const scrollTopBtn = showTop && !isOpen ?');
+    // DR-0716: when the app's bottom bar is mounted it carries Top itself, so
+    // this corner copy also stands down while docked (\`!docked\`); the
+    // \`!isOpen\` reason above is unchanged for the surfaces with no bar.
+    expect(SRC).toContain('const scrollTopBtn = showTop && !isOpen && !docked ?');
     expect(SRC).toContain('fixed bottom-4 right-4 z-[80] print:hidden flex flex-col items-end');
   });
 
