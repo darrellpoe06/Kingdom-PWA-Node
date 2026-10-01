@@ -66,6 +66,30 @@ Darrell, 2026-10-01, a screenshot of the live L202 reader (build 35b3ffcc): *"Ho
 - The choice is kept per device (`poe-comfort-bar-collapsed`, every access wrapped in try/catch). It is published as the module loads, so a reader who folded it once opens every lesson folded, with no flash of the open block.
 - Gates: `comfort-bar-folds.test.jsx` checks that Hide folds, Show restores, the fold persists across a reload, and the family look and focus ring hold. The probe's new COMFORT pass, at 360px and at the Fold open (900px), at Big Print on the lesson, checks that the folded block is at most 64px, smaller than open, still fixed and still holding a text-size control, that it survives a reload, and that Show controls restores the whole block. Its selftest forces every item visible and must trip.
 
+## Addendum 2 (2026-10-01): in the reader, the whole bottom is one slim row
+
+Darrell, the same day, a screenshot of L202 on the Fold 7 folded (about 412px) at A+++: *"Bottom tab is too much!!!!! We needed less room undermining the reader...."* On a narrow phone the block ran to three rows (account; Subscribe, ?, the five sizes; voice and six swatches), about 15% of the screen. The reader's pill floated above it, and the Feedback and Give bubbles sat over the words behind the pill.
+
+- **The reader opens with the block folded, from the first visit.** `lib/comfort-bar.js` follows `<html data-lesson-space>`. While a lesson is open, the block is folded unless the person opens it, and every lesson opens folded. The stored per-device choice is untouched and still applies outside the reader, together with the Hide button (addendum 1).
+- **When folded in the reader, the block takes no row of its own.** At Largest and Big Print, both forms of the block (the header's controls row, and the collapsed header's own row) are hidden by CSS but stay mounted. **The bottom bar is the one 44px row.** Its buttons are: **Controls ▴** (shown only where the block is the bottom block; it opens the block and folds it again), **A− / A+** (the same five steps, through `useTextSize`), **Feedback** and **Give** as square chips, **More** (network status, Top), and the reader on the right. Below 400px, More waits until Controls is open, so the row fits 360px.
+- **The player docks.** When the Word plays on a phone, the mini-bar or pill takes its own line directly on top of the row (`order: -1; flex-basis: 100%`). It never floats over the text.
+- **The bar is 44px** (it was 48px) everywhere: one row of 44px chips, no padding.
+
+### Measured: the reader's bottom chrome, L1 scrolled into the words, A+++, a first visit
+
+| Width | Before (main e17de76a) | After, folded | After, Controls open |
+|---|---|---|---|
+| 360px | 238px (block 110px + reader stack, Feedback, Give, network) | **44px** (the bar alone) | 253px |
+| 412px (Fold folded) | 238px | **44px** | 169px |
+| 900px (Fold open) | 237px | **44px** | 149px |
+
+The lesson pass also improves: at 360px, 402px header open (was 406), 278px collapsed (was 282), and **236px at Big Print** (was 376 at the start of this PR).
+
+### Gates
+- The probe's COMFORT pass has two parts. The **reader** part runs at 360, 412 and 900, A+++, first visit, scrolled. It checks: the bottom chrome is at most 56px folded, a text-size control is on screen, there is no page overflow, Controls opens the block with the bar standing on it, and Controls folds it back to at most 56px. The **outside the reader** part (Hide folds and survives a reload) is unchanged. The selftest overrides the fold and zeroes `--ts-hatch-h`, and every check in both parts trips.
+- `floaters-live-in-the-bars.test.jsx` checks that the reader row holds Controls, A−/A+, Feedback and Give inline. It checks that Feedback is no longer under More in the reader, that Controls opens and folds the block, that A−/A+ walk the sizes, and that there is no reader row outside the reader.
+- `comfort-bar-folds.test.jsx` checks that a lesson opens folded even when the device choice is open, that the reader's choice never overwrites the device choice, and that every lesson opens folded.
+
 ## Coordination
 
 PR #1891 (DR-0698, `claude/text-size-everywhere`) adds `TextSizeQuick` (A- / A+) in the reader's idle row, next to the speaker button. In this design, that row is what ends the `TTSControl` chain (`... : fab`). Whichever PR merges second replaces the trailing `fab`, in both the corner chain and the docked chain, with the idle row. The A- / A+ pair then rides in the bottom bar too. Its `ts-chrome-region` pills fit beside the docked speaker at 360px (bar: More 48 + pair about 132 + Read 44).

@@ -96,3 +96,21 @@ describe('the fold is CSS over a mounted block, scoped to the A44 bottom block',
     expect(CSS).toMatch(/\.comfort-toggle-row \{\s*display: none;/);
   });
 });
+
+describe('in the lesson reader the block starts folded, from the first visit', () => {
+  it('folded on opening a lesson even with the stored choice open; Hide/Controls work; leaving restores the stored choice', async () => {
+    const { setInReader, isComfortCollapsed } = await import('../lib/comfort-bar.js');
+    act(() => { setComfortCollapsed(false); });
+    act(() => { setInReader(true); });
+    expect(isComfortCollapsed()).toBe(true);
+    expect(attr()).toBe('collapsed');
+    act(() => { setComfortCollapsed(false); }); // Controls opens it
+    expect(attr()).toBe('open');
+    expect(localStorage.getItem(COMFORT_BAR_KEY), 'the reader choice is not written over the device choice').toBe('0');
+    act(() => { setInReader(false); });
+    expect(attr()).toBe('open');
+    act(() => { setInReader(true); });
+    expect(attr(), 'every lesson opens folded').toBe('collapsed');
+    act(() => { setInReader(false); });
+  });
+});

@@ -261,3 +261,48 @@ describe('the shell mounts the bar and no longer mounts the floaters', () => {
     expect(isScrolledDeep(1126, 900)).toBe(true);
   });
 });
+
+describe('in the lesson reader the bottom is ONE slim row (Darrell 2026-10-01: "Bottom tab is too much!!!!!")', () => {
+  const openReader = () => act(() => { document.documentElement.setAttribute('data-lesson-space', 'open'); });
+  const closeReader = () => act(() => { document.documentElement.removeAttribute('data-lesson-space'); });
+  afterEach(() => { closeReader(); try { localStorage.removeItem('poe-text-size'); } catch { /* ignore */ } });
+
+  it('holds Controls, A- / A+, Feedback and Give inline, and the reader, all in the bar', async () => {
+    render();
+    openReader();
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    const row = q('dock-reader-row');
+    expect(row, 'no reader row in the bar').toBeTruthy();
+    for (const id of ['dock-controls', 'dock-text-smaller', 'dock-text-bigger', 'dock-feedback', 'dock-give']) {
+      expect(row.querySelector(`[data-testid="${id}"]`), `${id} is not on the slim row`).toBeTruthy();
+    }
+    expect(q('dock-items').querySelector('[data-testid="dock-feedback"]'), 'Feedback is still folded under More in the reader').toBeNull();
+    expect(dock().contains(container.querySelector('button[aria-label*="read-aloud controls"]'))).toBe(true);
+  });
+
+  it('the reader opens with the big-text block folded, and Controls opens and folds it', async () => {
+    render();
+    openReader();
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    expect(document.documentElement.getAttribute('data-comfort-bar')).toBe('collapsed');
+    act(() => { q('dock-controls').click(); });
+    expect(document.documentElement.getAttribute('data-comfort-bar')).toBe('open');
+    act(() => { q('dock-controls').click(); });
+    expect(document.documentElement.getAttribute('data-comfort-bar')).toBe('collapsed');
+  });
+
+  it('A- / A+ walk the same five text sizes', async () => {
+    render();
+    openReader();
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    act(() => { q('dock-text-bigger').click(); });
+    expect(document.documentElement.getAttribute('data-text-size')).toBe('large');
+    act(() => { q('dock-text-smaller').click(); });
+    expect(document.documentElement.getAttribute('data-text-size')).toBe('normal');
+  });
+
+  it('outside the reader there is no slim reader row', () => {
+    render();
+    expect(q('dock-reader-row')).toBeNull();
+  });
+});

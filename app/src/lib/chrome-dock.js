@@ -91,13 +91,13 @@ export function scrollPageToTop() {
 // same 48px at Normal and at A44 and the large-print guard's rem rule holds.
 // The bar itself is NOT a chrome region: a zoomed bar around the reader's
 // controls (which carry their own cap) would shrink them twice.
-const DOCK_BTN_BASE = 'ts-chrome-region relative inline-flex flex-col items-center justify-center gap-[0.125rem] min-h-[2.75rem] min-w-[2.75rem] px-[0.375rem] py-[0.1875rem] rounded-md border-2 font-semibold leading-none whitespace-nowrap focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]';
+const DOCK_BTN_BASE = 'ts-chrome-region relative inline-flex flex-col items-center justify-center gap-[0.125rem] min-h-[2.75rem] min-w-[2.75rem] px-[0.25rem] py-[0.125rem] rounded-md border-2 font-semibold leading-none whitespace-nowrap focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]';
 export const DOCK_BTN = `${DOCK_BTN_BASE} border-[#E8E4DC] bg-white text-[#1A1815] hover:border-[#1A1815]`;
 /** The pressed / "on" state, same as the selected text-size chip. */
 export const DOCK_BTN_ON = `${DOCK_BTN_BASE} border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] hover:border-[#B85838]`;
 /** The short word under each icon (9px at every size, inside the chip's cap). */
-export const DOCK_LABEL = 'text-[0.5625rem] uppercase tracking-[0.06em]';
+export const DOCK_LABEL = 'text-[0.5625rem] uppercase tracking-[0.02em]';
 /** The icon line (16px at every size, inside the chip's cap). */
 export const DOCK_ICON = 'text-[1rem] leading-none';
-/** The bar's own height (44px buttons + 2px above and below). */
-export const DOCK_HEIGHT_PX = 48;
+/** The bar's own height: one row of 44px buttons, nothing more (DR-0716). */
+export const DOCK_HEIGHT_PX = 44;

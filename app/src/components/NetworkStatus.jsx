@@ -260,7 +260,7 @@ export default function NetworkStatus({ variant = 'floating', onHealthChange = n
     <div
       data-read-skip
       data-testid={docked ? 'dock-network' : undefined}
-      className={docked ? 'relative print:hidden' : variant === 'inline' ? 'relative inline-block print:hidden' : 'fixed bottom-20 left-4 z-30 print:hidden'}
+      className={docked ? 'relative flex print:hidden' : variant === 'inline' ? 'relative inline-block print:hidden' : 'fixed bottom-20 left-4 z-30 print:hidden'}
       role="status"
       aria-label="Network status"
     >
