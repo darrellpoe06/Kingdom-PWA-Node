@@ -77,6 +77,9 @@ const LEARN_OPEN = Object.values(import.meta.glob('../lib/learn-open.js', { eage
 // lesson, and it is where he went looking -- his second screenshot is it, open,
 // with speed and voice in it and no text size.
 import { useTextSize } from '../lib/text-size.js';
+// A- / A+ beside the read-aloud button on every screen, so text size no
+// longer needs the reader opened (DR-0724). Same store as the panel's row.
+import { TextSizeQuick } from './TextSizeControl.jsx';
 import { THEMES, useThemePref } from '../lib/theme-css.js';
 
 // After the page comes back from dark, the engine's own foreground recovery
@@ -868,7 +871,8 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
     // offlineNote is read, not watched: a note for this lesson is kept as is.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, target, usesNasVoice, liteVoice]);
-  if (!supported && !scrollTopBtn) return null;
+  // No early return when speech is unsupported: the text-size pair (DR-0724)
+  // still belongs on the screen of a device that cannot speak.
 
   const start = async () => {
     // OPEN WHAT IS CLOSED FIRST (Darrell 2026-08-10: "deeper doesn't get read at
@@ -1941,7 +1945,15 @@ export default function TTSControl({ isOwner = false, view, churchView, booksVie
             Only <strong>Stop</strong> stops the voice. Close puts this panel away and keeps reading. <span data-testid="reader-background-line">{backgroundLine({ isReading, audioVoice })}</span>
           </p>
         </div>
-      ) : docked ? null : isReading ? miniBarEl : fab)}
+      ) : docked ? null : isReading ? miniBarEl : (
+        <div className="flex items-end gap-2" data-testid="reader-idle-row">
+          <TextSizeQuick dim={!revealFab} />
+          {fab}
+        </div>
+      ))}
+      {/* A- / A+ with the reader closed on a device that cannot speak (DR-0724).
+          In the bottom bar (DR-0716) the bar carries text size itself. */}
+      {!supported && !isOpen && !docked && <TextSizeQuick dim={!revealFab} />}
       {/* THE BAR TAKES THE READER (DR-0716): the button, the mini-bar and
           the pill render in the bottom bar's slot, where nothing covers
           the Word. The open panel above stays a panel. The wrapper keeps

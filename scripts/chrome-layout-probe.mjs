@@ -678,10 +678,24 @@ try {
       // The break: the reader's own comfort row removed, which is precisely
       // the state this pass exists to refuse. The header is already scrolled
       // away by the scroll below, so this leaves genuinely nothing reachable.
-      await page.addStyleTag({ content: '[data-testid="reader-look-and-feel"] { display: none !important }' });
+      // And the A- / A+ pair beside the read-aloud button (DR-0724), or the
+      // pair alone would keep this case green and the break would prove nothing.
+      await page.addStyleTag({ content: '[data-testid="reader-look-and-feel"], [data-testid="text-size-quick"] { display: none !important }' });
     }
     await page.evaluate(() => window.scrollTo(0, Math.max(900, Math.round(document.documentElement.scrollHeight * 0.4))));
     await page.evaluate(() => new Promise((r) => setTimeout(r, 200)));
+    // TEXT SIZE WITHOUT OPENING THE READER (DR-0724). Darrell 2026-09-30: "Text
+    // sizes are the main reason why I keep opening the reader... give an option
+    // for that on each screen even without the other controls." This pass used
+    // to count size controls only AFTER tapping the reader open, which is how
+    // the reader became the text-size button. Counted first, reader closed.
+    const closedSizeOnScreen = await page.evaluate(() => {
+      const vw = window.innerWidth, vh = window.innerHeight;
+      return [...document.querySelectorAll('button')]
+        .filter((b) => /text size/i.test(b.getAttribute('aria-label') || ''))
+        .filter((b) => { const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.top >= 0 && r.left >= 0 && r.bottom <= vh && r.right <= vw && getComputedStyle(b).visibility !== 'hidden'; })
+        .length;
+    });
     // Open the reading panel the way a reader does — by tapping the floater.
     await page.evaluate(() => {
       const fab = [...document.querySelectorAll('button')]
@@ -738,6 +752,7 @@ try {
     }
     // MID-LESSON COMFORT (DR-0524) — the reader is scrolled into the words and
     // the header is gone; the reading panel must carry the way to change both.
+    if (comfort.scrollY && !closedSizeOnScreen) fail(`${where}: scrolled into the lesson with the reader CLOSED, no text-size control is on screen — the reader has to be opened just to change the words' size (DR-0724)`);
     if (!comfort.scrollY) fail(`${where}: the page never scrolled — the mid-lesson state was not measured`);
     else if (!comfort.sizeCount) fail(`${where}: scrolled into the lesson, NO text-size control exists anywhere — the reader cannot change the words' size while reading (panel open: ${comfort.panelOpen})`);
     else if (!comfort.sizeReachable) fail(`${where}: scrolled into the lesson, ${comfort.sizeCount} text-size control(s) exist but none is on screen — viewport ${comfort.vh}px, controls: ${comfort.rects.join(' ')}`);
@@ -765,7 +780,7 @@ try {
         if (m.dockOnHatch > 1) fail(`${where}: the bottom bar sits ${m.dockOnHatch}px over the fixed comfort bar instead of standing on it (DR-0716)`);
       }
     }
-    if (failures === before) console.log(`lesson ok  ${where} — chrome covers ${m.covered}px of ${m.vh}px${m.liveBarPx ? ` (live bar ${m.liveBarPx}px)` : ''}${m.dockPx ? ` (bottom bar ${m.dockPx}px)` : ''}, prose ${m.prose}px of ${m.content}px, ${m.strips} strips (max ${m.maxChips} chips, max ${m.maxBlockLines} lines/block)${size === 'bigprint' ? `, bar buttons ${m.barButtonPx}px, chips ${m.chipPx}px` : ''}, nothing boxed in a sentence; mid-lesson at y${comfort.scrollY}: ${comfort.sizeReachable}/${comfort.sizeCount} size + ${comfort.themeReachable}/${comfort.themeCount} theme controls on screen`);
+    if (failures === before) console.log(`lesson ok  ${where} — chrome covers ${m.covered}px of ${m.vh}px${m.liveBarPx ? ` (live bar ${m.liveBarPx}px)` : ''}${m.dockPx ? ` (bottom bar ${m.dockPx}px)` : ''}, prose ${m.prose}px of ${m.content}px, ${m.strips} strips (max ${m.maxChips} chips, max ${m.maxBlockLines} lines/block)${size === 'bigprint' ? `, bar buttons ${m.barButtonPx}px, chips ${m.chipPx}px` : ''}, nothing boxed in a sentence; mid-lesson at y${comfort.scrollY}: ${closedSizeOnScreen} size with the reader closed, ${comfort.sizeReachable}/${comfort.sizeCount} size + ${comfort.themeReachable}/${comfort.themeCount} theme controls on screen`);
   }
   // ---------------------------------------------------------------------------
   // COMFORT pass (DR-0716) — the big-text bottom block folds, and in the reader
