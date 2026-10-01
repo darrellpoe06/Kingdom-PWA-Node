@@ -109,8 +109,8 @@ describe('the debt, recorded as it actually is', () => {
     // have, and the shape this pin exists to prove: the total may grow, the
     // DEBT may not.
     // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
-    expect(baseline.allFour).toBe(156); // 156 on 2026-10-01: partnerships and taxes-records join them (DR-0696), merged onto main's 62, merged onto main's 74, merged onto main's 81, merged onto main's 92, merged onto main's 108, merged onto main's 128, merged onto main's 140; 140 on 2026-10-01: project-management carries all four bands on all 12 lessons (DR-0693), merged onto main's 62, merged onto main's 74, merged onto main's 81, merged onto main's 92, merged onto main's 108, merged onto main's 128; 128 on 2026-10-01: group C (DR-0694) adds software-project-management and infrastructure, all four bands on all 20 lessons, merged onto main's 62, merged onto main's 74, merged onto main's 81, merged onto main's 92, merged onto main's 108; 108 on 2026-10-01: world-market and investing carry all four bands on all 16 lessons (DR-0695), merged onto main's 62, merged onto main's 74, merged onto main's 81, merged onto main's 92; 92 on 2026-10-01: ai-legal-blueprint and handed-forward carry all four bands on all 11 lessons (DR-0695), merged onto main's 62, merged onto main's 74, merged onto main's 81; 81 on 2026-10-01: legacy-provisions carries all four bands on all 7 lessons (DR-0695), merged onto main's 62, merged onto main's 74; 74 on 2026-10-01: church-offices and word-out carry all four bands on all 12 lessons (DR-0695), merged onto main's 62; 62 on 2026-09-30: history-truth carries all four bands on all 8 lessons (DR-0695); 54 on 2026-09-30: leasing-tenants and maintenance-trades join them (DR-0696); 38 on 2026-09-30: property-principle and management-stewardship carry child and youth beside teen and senior on all 16 lessons (DR-0696); 22 on 2026-09-29: Who He Is (DR-0675) carries all four bands on all 14 lessons; 8 on 2026-09-24: the rebuilt historical-research-1619 (DR-0597) carries child, youth, teen and senior on every lesson — the first catalog course with all four bands; a course may only add to this number
-    expect(baseline.adultOnly).toBe(37);
+    expect(baseline.allFour).toBe(176); // 176 on 2026-10-01: bands-e-prophetic-voices carries all four bands, regenerated from the real catalog after merging main (was 170); 170 on 2026-10-01: bands-ai-little-learners carries all four bands, regenerated from the real catalog after merging main (was 156); 156 on 2026-10-01: partnerships and taxes-records join them (DR-0696), merged onto main's 62, merged onto main's 74, merged onto main's 81, merged onto main's 92, merged onto main's 108, merged onto main's 128, merged onto main's 140; 140 on 2026-10-01: project-management carries all four bands on all 12 lessons (DR-0693), merged onto main's 62, merged onto main's 74, merged onto main's 81, merged onto main's 92, merged onto main's 108, merged onto main's 128; 128 on 2026-10-01: group C (DR-0694) adds software-project-management and infrastructure, all four bands on all 20 lessons, merged onto main's 62, merged onto main's 74, merged onto main's 81, merged onto main's 92, merged onto main's 108; 108 on 2026-10-01: world-market and investing carry all four bands on all 16 lessons (DR-0695), merged onto main's 62, merged onto main's 74, merged onto main's 81, merged onto main's 92; 92 on 2026-10-01: ai-legal-blueprint and handed-forward carry all four bands on all 11 lessons (DR-0695), merged onto main's 62, merged onto main's 74, merged onto main's 81; 81 on 2026-10-01: legacy-provisions carries all four bands on all 7 lessons (DR-0695), merged onto main's 62, merged onto main's 74; 74 on 2026-10-01: church-offices and word-out carry all four bands on all 12 lessons (DR-0695), merged onto main's 62; 62 on 2026-09-30: history-truth carries all four bands on all 8 lessons (DR-0695); 54 on 2026-09-30: leasing-tenants and maintenance-trades join them (DR-0696); 38 on 2026-09-30: property-principle and management-stewardship carry child and youth beside teen and senior on all 16 lessons (DR-0696); 22 on 2026-09-29: Who He Is (DR-0675) carries all four bands on all 14 lessons; 8 on 2026-09-24: the rebuilt historical-research-1619 (DR-0597) carries child, youth, teen and senior on every lesson — the first catalog course with all four bands; a course may only add to this number
+    expect(baseline.adultOnly).toBe(24);
   });
 
   it('matches the live catalog exactly', () => {
@@ -125,10 +125,14 @@ describe('the debt, recorded as it actually is', () => {
     // course written for the youngest readers, reading at grade 0.3, must
     // never be counted the same as one reading at 12.4, or the number stops
     // being information and starts being an impression with a digit on it.
-    expect(baseline.courses['little-learners'].bandlessGrade).toBeLessThan(3);
-    expect(baseline.courses['little-learners'].adultRegister).toBe(0);
-    expect(baseline.courses.mathematics.bandlessGrade).toBeLessThan(3);
-    expect(baseline.courses.mathematics.adultRegister).toBe(0);
+    // Once a course carries all four bands it has no bandless lessons and so
+    // no bandless grade (DR-0692): the distinction is then moot, not violated.
+    for (const key of ['little-learners', 'mathematics']) {
+      const row = baseline.courses[key];
+      if (row.bandlessGrade !== undefined) expect(row.bandlessGrade, key).toBeLessThan(3);
+      else expect(row.adultOnly, `${key} has bandless lessons but no bandless grade`).toBe(0);
+      expect(row.adultRegister, key).toBe(0);
+    }
   });
 
   it('holds the register defect at zero, everywhere, now that the five are authored', () => {
@@ -185,8 +189,11 @@ describe('proven-to-catch (DR-0076 §3)', () => {
 
   it('sees a course that LOSES an authored band', () => {
     // The direction nobody watches: bands can be deleted as easily as added.
-    const padded = { ...baseline, courses: { ...baseline.courses, ai: { lessons: 8, allFour: 3, adultOnly: 7 } } };
-    expect(ratchetCourseBands(scan, padded).worse.join(' ')).toMatch(/ai: 0 four-band/);
+    // Claim one more four-band lesson for ai than the catalog carries: the
+    // scan then reads as having LOST one, whatever ai carries today.
+    const claimed = (scan.courses.ai ? scan.courses.ai.allFour : 0) + 1;
+    const padded = { ...baseline, courses: { ...baseline.courses, ai: { ...(baseline.courses.ai || {}), lessons: 8, allFour: claimed, adultOnly: 8 - claimed } } };
+    expect(ratchetCourseBands(scan, padded).worse.join(' ')).toMatch(/ai: \d+ four-band/);
   });
 
   it('sees a WHOLE NEW COURSE that arrives unrecorded', () => {

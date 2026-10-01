@@ -59,6 +59,7 @@ const { default: HelpButton } = await import('../components/HelpButton.jsx');
 const { default: ArrivalsBell } = await import('../components/ArrivalsBell.jsx');
 const { default: ContactsImport } = await import('../components/ContactsImport.jsx');
 const { FeedbackPromotePanel } = await import('../components/FeedbackCenter.jsx');
+const { FeedbackModal } = await import('../components/FeedbackCenter.jsx');
 const { default: TopNavRow } = await import('../components/TopNavRow.jsx');
 const { ChurchGiveHeaderButton } = await import('../components/ChurchGiving.jsx');
 const { default: ChromeDock } = await import('../components/ChromeDock.jsx');
@@ -246,6 +247,19 @@ const WALKS = {
     const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
     const feedback = [{ id: 'fq1', createdAt: '2026-10-01T05:00:00Z', whatsNot: 'the give button is under the bar', area: 'church', screenshots: [png] }];
     const { host } = mount(createElement(FeedbackPromotePanel, { feedback, addProject() {}, addIncident() {}, deleteFeedback() {} }));
+    await settle();
+    look(host);
+  },
+  feedback: async (look) => {
+    // A person who has sent more than eight notes: the fold is shown closed,
+    // then opened, so Show more under the list exists (DR-0740).
+    const notes = Array.from({ length: 9 }, (_, i) => ({ id: `fb${i}`, mine: true, createdAt: `2026-09-2${i}T05:00:00Z`, text: `Not working: typo ${i} on the bus page title`, triageStatus: 'new' }));
+    const deps = { fetchMine: async () => ({ ok: true, items: notes }), fetchDelivery: async () => ({ ok: false, merges: [] }) };
+    const { host } = mount(createElement(FeedbackModal, { onClose() {}, onSubmit: () => ({ id: 'x' }), currentView: 'church', myFeedback: [], outcomeDeps: deps }));
+    await settle();
+    look(host);
+    const fold = host.querySelector('[data-testid="feedback-earlier"]');
+    act(() => { fold.open = true; fold.dispatchEvent(new Event('toggle')); });
     await settle();
     look(host);
   },

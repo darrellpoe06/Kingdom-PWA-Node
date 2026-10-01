@@ -2,9 +2,6 @@
   "note": "Shrink-only verse debt outside the zero-fault courses (DR-0677). Measured 2026-09-29 by scripts/quoted-verse-is-the-verse.mjs over every quoted surface (quotedTexts) of every course: these faults existed before the NAS copy did. A fault not listed here fails the publish gate and the CI snapshot job; entries may only be removed as lessons are repaired. living-lessons and little-learners may record nothing: they are held at zero, as their own test holds them.",
   "measured": "2026-09-29",
   "faults": {
-    "wk7-guard-heart-time": [
-      "not-the-verse | lesson | 1 Corinthians 6:12 | "
-    ],
     "bc3-light": [
       "not-the-verse | lesson | Genesis 1:3 | "
     ],
