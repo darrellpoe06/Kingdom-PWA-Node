@@ -276,7 +276,7 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
           </div>
           <div className="mt-4 pt-4 border-t border-[#E8E4DC]">
             <p className="text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
-              <strong>When something works, doesn't work, or could be better — tap the floating <button type="button" onClick={() => setFeedbackOpen(true)} className="text-[#B85838] underline font-semibold hover:text-[#1A1815]"><UiIcon name="chat" /> Feedback</button> button bottom-left of any page.</strong> We'll review your notes together. This is your home base — make it yours.
+              <strong>When something works, doesn't work, or could be better — tap the <button type="button" onClick={() => setFeedbackOpen(true)} className="text-[#B85838] underline font-semibold hover:text-[#1A1815]"><UiIcon name="chat" /> Feedback</button> button in the bar at the bottom of any page (on a phone, under More).</strong> We'll review your notes together. This is your home base — make it yours.
             </p>
             <div className="flex gap-2 mt-3 flex-wrap">
               <button type="button" onClick={dismissWelcome} className="bg-[#1A1815] text-[#FAF8F4] px-5 py-2 text-xs uppercase tracking-wider hover:bg-[#B85838]">Got it · Let's go</button>
