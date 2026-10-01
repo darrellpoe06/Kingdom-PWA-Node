@@ -50,7 +50,7 @@ REMOTE
 
 # Pending rows, each with the people it is for, as one JSON blob.
 #   kind door_fault  the instance's office (owner/admin), as DR-0400 built it;
-#   kind lesson      ONE person, the row's target_user (migration 0245, DR-0728):
+#   kind lesson      ONE person, the row's target_user (migration 0246, DR-0728):
 #                    the lesson is theirs and nobody else is told.
 PENDING="$(remote_psql "SELECT coalesce(json_agg(row_to_json(r)), '[]')::text FROM (
   SELECT o.id, o.instance_id, o.fault_id, o.kind, o.title, o.body, o.url, o.dedupe_key,

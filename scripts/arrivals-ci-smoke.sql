@@ -1,7 +1,7 @@
 -- =============================================================================
--- arrivals-ci-smoke.sql — 0245 proven on a real PostgreSQL (DR-0728)
+-- arrivals-ci-smoke.sql — 0246 proven on a real PostgreSQL (DR-0728)
 -- =============================================================================
--- Run by the CI `arrivals-push` job after the two bootstraps and 0245 applied
+-- Run by the CI `arrivals-push` job after the two bootstraps and 0246 applied
 -- twice. Every check RAISEs on a wrong answer, so a break is a red job, never a
 -- quiet pass. One transaction, rolled back: nothing is left behind.
 --

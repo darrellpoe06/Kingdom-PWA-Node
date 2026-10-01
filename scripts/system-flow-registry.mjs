@@ -419,8 +419,8 @@ const NODES = [
     writes: [
       { res: 'event:use-prompt', file: 'app/src/components/LessonInbox.jsx', token: 'sendPromptToBox' },
       // DR-0728: a lesson row gaining awaiting-review or lesson-published
-      // enqueues a push to its one person; the drain delivers it (0245).
-      { res: 'db:push_outbox', file: 'infra/supabase/migrations-auto/0245-every-arrival-is-counted-a-lesson-ready-or-published-enqueues-a-push.sql', token: 'INSERT INTO public.push_outbox' },
+      // enqueues a push to its one person; the drain delivers it (0246).
+      { res: 'db:push_outbox', file: 'infra/supabase/migrations-auto/0246-every-arrival-is-counted-a-lesson-ready-or-published-enqueues-a-push.sql', token: 'INSERT INTO public.push_outbox' },
     ],
     seeds: ['lesson-door', 'push-outbox-drain'],
   }),

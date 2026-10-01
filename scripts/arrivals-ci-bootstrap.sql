@@ -1,9 +1,9 @@
 -- =============================================================================
--- arrivals-ci-bootstrap.sql — the tables 0245 touches, in their migration
+-- arrivals-ci-bootstrap.sql — the tables 0246 touches, in their migration
 -- shapes, for the CI `arrivals-push` job (DR-0728)
 -- =============================================================================
 -- Runs after scripts/curriculum-ci-bootstrap.sql (roles, auth.users, auth.uid())
--- against a throwaway postgres:16. It supplies only what 0245 and its smoke
+-- against a throwaway postgres:16. It supplies only what 0246 and its smoke
 -- touch, copied from the migrations that define them: instances (0012 shape,
 -- the columns used), agent_inbox (0127), push_outbox (0220), and a
 -- user_role_in_instance() that answers "no role" so the office policy of 0220

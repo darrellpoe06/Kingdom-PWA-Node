@@ -15,7 +15,7 @@
 //      kind seen for this account, on this device.
 //
 // Occurrence first, clock as the net (the dm-notify rule): the agent_inbox
-// realtime stream is the trigger when healthy (migration 0245 adds the table
+// realtime stream is the trigger when healthy (migration 0246 adds the table
 // to the publication); a 60 s heartbeat and a refetch on becoming visible are
 // the net under a sick stream.
 //

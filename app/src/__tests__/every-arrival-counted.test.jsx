@@ -22,7 +22,7 @@
 //      the registration, and never while the person is watching.
 //   3. THE BELL — the number, the list newest first, the tap landing.
 //   4. THE CLOSED APP — the sender takes a one-person `lesson` topic, the
-//      drain sends it with the machine token, and migration 0245 enqueues on
+//      drain sends it with the machine token, and migration 0246 enqueues on
 //      the tag flip (the PostgreSQL job proves the enqueue itself).
 //   5. THE RECORD — the registry entries, the CI leg, the decision on file.
 import { describe, it, expect, vi, afterEach } from 'vitest';
@@ -46,7 +46,7 @@ const ROOT = join(SRC, '..', '..');
 const read = (...p) => readFileSync(join(...p), 'utf8');
 /** Source with its comments removed, for checks about what the code DOES. */
 const codeOnly = (src) => String(src).replace(/\/\*[\s\S]*?\*\//g, ' ').split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n');
-const MIG = '0245-every-arrival-is-counted-a-lesson-ready-or-published-enqueues-a-push.sql';
+const MIG = '0246-every-arrival-is-counted-a-lesson-ready-or-published-enqueues-a-push.sql';
 
 // ── 1. THE WIRING ───────────────────────────────────────────────────────────
 describe('the wiring: started at boot, mounted in the header, one badge writer', () => {
@@ -379,7 +379,7 @@ describe('the closed app: a one-person lesson topic, the drain, the enqueue', ()
     expect(drain).toMatch(/topic:"fault"/);
   });
 
-  it('migration 0245 enqueues on the tag FLIP only, one per teaching per event, to the row’s own person', () => {
+  it('migration 0246 enqueues on the tag FLIP only, one per teaching per event, to the row’s own person', () => {
     const mig = read(ROOT, 'infra', 'supabase', 'migrations-auto', MIG);
     expect(mig).toMatch(/AFTER UPDATE OF tags ON public\.agent_inbox/);
     expect(mig).toMatch(/IF TG_OP <> 'UPDATE' THEN RETURN NEW; END IF;/);

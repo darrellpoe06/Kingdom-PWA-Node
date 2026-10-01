@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0245 — Every arrival is counted: a lesson that finished building or went
+-- 0246 — Every arrival is counted: a lesson that finished building or went
 --        live enqueues a push to its one person (DR-0728)
 -- =============================================================================
 -- Darrell 2026-10-01, in the installed app, beside another app's launcher

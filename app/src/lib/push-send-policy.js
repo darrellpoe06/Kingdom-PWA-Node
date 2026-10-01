@@ -19,7 +19,7 @@
 // (0217), but a row still waits for somebody to open the board. This is the
 // topic that reaches the office when it does not.
 // 'lesson' added 2026-10-01 (DR-0728). A person's own lesson finished building
-// or went live (migration 0245 enqueues it; the outbox drain sends it). Like
+// or went live (migration 0246 enqueues it; the outbox drain sends it). Like
 // `fault` it is NEVER broadcast: an explicit one-person audience is required.
 export const SENDABLE_TOPICS = ['live', 'message', 'fault', 'lesson'];
 
@@ -57,7 +57,7 @@ export function dedupeKeyFor({ topic, churchId, videoId, messageId, faultId, at 
   // makes it one notification.
   if (topic === 'fault') return `fault:${str(faultId)}`;
   // A lesson notice is keyed by the TEACHING and the EVENT (`lesson:<row>:ready`,
-  // `lesson:<row>:published`), written by migration 0245 on the outbox row and
+  // `lesson:<row>:published`), written by migration 0246 on the outbox row and
   // carried through unchanged, so a drain that runs twice sends once.
   return `${topic}:${str(churchId) || 'x'}:${new Date(at || Date.now()).toISOString()}`;
 }
