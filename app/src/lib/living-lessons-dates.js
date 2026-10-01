@@ -226,6 +226,7 @@ export const LIVING_LESSONS_ADDED = {
   'll200-how-did-they-know-the-record-they-read-the-son-of-david-the-colt-and-the-books-the-word-names': '2026-09-29', // added with the lesson (DR-0684); spoken into Thinking Space 2026-09-29 and authored the same day
   'll201-how-long-before-it-came-david-the-prophets-and-the-years-from-each-promise-to-jesus': '2026-09-30', // added with the lesson (DR-0689); spoken into Thinking Space 2026-09-30 and authored the same day
   'll202-prepared-before-the-position-homecoming-legacy-good-success-and-represent': '2026-09-30', // added with the lesson (DR-0690); a Bible study recorded by Darrell 2026-09-30 (named for Bishop Gwin) and authored the same day
+  'll203-the-whole-line-of-promise-every-promise-from-eden-to-malachi-and-the-years-to-jesus': '2026-09-30', // added with the lesson (DR-0735); asked by Darrell 2026-09-30 after reading L201, and authored the same day
   'll204-the-word-checks-every-teller-many-counsellors-all-under-him': '2026-09-30', // added with the lesson (DR-0714); spoken by Darrell 2026-09-30 while L202 was being finished, and authored the same day
   'll205-talk-about-it-together-parents-children-friends-until-we-see-yahweh-has-been-right': '2026-10-01', // added with the lesson (DR-0733); typed by Darrell into the build 2026-10-01 and authored the same day; the first lesson under the talk-about-it-together rule
 };

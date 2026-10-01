@@ -17230,7 +17230,7 @@ export const LIVING_LESSONS_MODULES = [
         "record": "Pilate governed Judea AD 26 to 36; the Passover years that fit the Gospels are AD 30 and AD 33, so both are carried."
       }
     ],
-    "lesson": "HOW LONG BEFORE IT CAME? DAVID, THE PROPHETS, AND THE YEARS FROM EACH PROMISE TO JESUS. On 2026-09-30 Darrell spoke this lesson into the app from his phone, in Thinking Space. The dictation arrived with the same passage three times over, and the last few words were cut off, so we work from the passage once and do not guess at what was lost. Here is what he asked, rendered for its meaning. He wants to understand the timeline. When did David live, exactly? When did each of the prophets speak? How long was it from each prophecy to the day it was fulfilled? If David said a thing would happen a thousand years later, show it. If a prophet spoke five hundred years ahead, show that too. Connect the prophets on one line, and show where Jesus stands on it. His last readable words were about Jesus saying this now. This lesson answers with the numbers the Word itself gives, and with the calendar years that careful history attaches to them. Where the Word fixes a number, we give it as the Word states it. Where a year comes from history, we mark it approximate with c., and we name what it rests on. Where the records differ by a few years, we give the range. The years between each promise and its keeping are not typed from memory; each is worked out from the years on both ends, and a span is wide wherever the Word leaves it wide. This lesson stands beside L200, How Did They Know?, which showed what the first hearers had in hand, and beside L196, which gathers the promises themselves. Here the question is time. We begin in the Word. ONE. HE DECLARES THE END FROM THE BEGINNING. Before we count a single year, see who is counting. Yahweh says of Himself that He is \"Declaring the end from the beginning, and from ancient times the things that are not yet done\" (Isaiah 46:10). He is not guessing at the future from inside it. He framed the ages and stands outside them, and that is why a prophet could speak of a thing centuries away. The prophets did not invent their words: \"the prophecy came not in old time by the will of man: but holy men of God spake as they were moved by the Holy Ghost\" (2 Peter 1:21). And they wanted to know the time as much as Darrell does. Peter says they \"enquired and searched diligently\" (1 Peter 1:10), \"Searching what, or what manner of time the Spirit of Christ which was in them did signify\" (1 Peter 1:11). Darrell’s question is an old one; the prophets asked it first. The Word also gives a test that only time can run: \"When a prophet speaketh in the name of the LORD, if the thing follow not, nor come to pass, that is the thing which the LORD hath not spoken\" (Deuteronomy 18:22). A prophecy is checked by what comes after it. That is why the years matter. They are the distance across which Yahweh kept His word, and they show that the word came first. TWO. HOW WE KNOW WHEN DAVID LIVED. The Word gives the lengths itself. \"David was thirty years old when he began to reign, and he reigned forty years\" (2 Samuel 5:4). \"In Hebron he reigned over Judah seven years and six months: and in Jerusalem he reigned thirty and three years over all Israel and Judah\" (2 Samuel 5:5). Solomon his son reigned forty years as well (1 Kings 11:42). And the Word ties the temple to the exodus with an exact count: \"in the four hundred and eightieth year after the children of Israel were come out of the land of Egypt, in the fourth year of Solomon’s reign over Israel\" (1 Kings 6:1). After Solomon, Kings and Chronicles give every king of Judah and of Israel, how long each reigned, and in which year of the other king each began. That is a chain of years the Word keeps with care. What the Word does not do is print a BC date. A BC date comes from joining that chain to fixed points in the records of the nations around Israel, and those points are established. The Assyrian year list records an eclipse of the sun that astronomers date to June 15, 763 BC, and that fixes the Assyrian years. Kings of Israel and Judah are named in Assyrian inscriptions: Ahab on the monolith of Shalmaneser III, Jehu on his Black Obelisk, Hezekiah in the annals of Sennacherib. The Babylonian Chronicle dates Nebuchadnezzar’s capture of Jerusalem, which the Word places \"in the eighth year of his reign\" (2 Kings 24:12), to 597 BC, and Babylon fell to Persia in 539 BC. Join the Word’s chain to those points and the years line up. Solomon’s fourth year, when the temple was begun, falls about 967 to 966 BC. Solomon began to reign about 970 BC, and David, who reigned forty years before him, reigned about 1010 to 970 BC, about three thousand years ago and about a thousand years before Jesus. Careful reckonings of the kings differ by a year or two at points, so every calendar year before the exile in this lesson carries c., about. The lengths are the Word’s. The calendar years are history’s best fit to them, and the fit is close. THREE. THE PROPHETS DATED THEMSELVES. Most of the prophets open by telling us when they spoke. Isaiah saw his vision \"in the days of Uzziah, Jotham, Ahaz, and Hezekiah, kings of Judah\" (Isaiah 1:1), and he dates his call: \"In the year that king Uzziah died I saw also the Lord sitting upon a throne\" (Isaiah 6:1). Hosea spoke \"in the days of Uzziah, Jotham, Ahaz, and Hezekiah, kings of Judah, and in the days of Jeroboam the son of Joash, king of Israel\" (Hosea 1:1). Micah spoke \"in the days of Jotham, Ahaz, and Hezekiah, kings of Judah\" (Micah 1:1), and a century later the elders remembered that \"Micah the Morasthite prophesied in the days of Hezekiah king of Judah\" (Jeremiah 26:18). The word came to Jeremiah \"in the days of Josiah the son of Amon king of Judah, in the thirteenth year of his reign\" (Jeremiah 1:2), and it kept coming \"unto the carrying away of Jerusalem captive in the fifth month\" (Jeremiah 1:3). Daniel dates his prayer \"In the first year of Darius the son of Ahasuerus, of the seed of the Medes\" (Daniel 9:1). Zechariah’s first word came \"in the second year of Darius\" (Zechariah 1:1). Malachi names no king, but he speaks to a rebuilt temple and a people under a governor: \"offer it now unto thy governor\" (Malachi 1:8). So the rule this lesson follows is plain and stated. A prophet’s words are placed within the reigns his own book names, narrowed wherever a chapter gives its own date, and each reign takes its calendar years from the king lists. That gives these spans. David, c. 1010 to 970 BC. Hosea, c. 755 to 715 BC. Micah, c. 750 to 686 BC. Isaiah, c. 740 to 686 BC, with chapter 7 dated to the war of Rezin and Pekah, c. 735 to 732 BC. Jeremiah, c. 627 to 586 BC, with chapter 25 dated to c. 605 to 604 BC. Daniel 9, c. 539 to 538 BC. Zechariah, from 520 BC; his later chapters carry no date, so we carry c. 520 to 480 BC. Malachi, after the temple was finished in the sixth year of Darius (Ezra 6:15), in the Persian years, c. 460 to 430 BC. FOUR. DAVID, A THOUSAND YEARS AHEAD. Darrell asked about David first, and David is the right place to start. When David was settled in Jerusalem, Yahweh sent Nathan with a promise: \"I will set up thy seed after thee, which shall proceed out of thy bowels, and I will establish his kingdom\" (2 Samuel 7:12), and \"I will stablish the throne of his kingdom for ever\" (2 Samuel 7:13). The angel told Mary of her Son, \"the Lord God shall give unto him the throne of his father David\" (Luke 1:32), and Paul preached, \"Of this man’s seed hath God according to his promise raised unto Israel a Saviour, Jesus\" (Acts 13:23). From Nathan’s word, c. 1003 to 970 BC, to the birth of Jesus, c. 6 to 4 BC, is 964 to 999 years. David also wrote what he could not have seen. \"They part my garments among them, and cast lots upon my vesture\" (Psalms 22:18). He wrote that \"they pierced my hands and my feet\" (Psalms 22:16). At the cross the soldiers cast lots for His coat, \"that the scripture might be fulfilled, which saith, They parted my raiment among them, and for my vesture they did cast lots\" (John 19:24). From David’s reign to the cross is 999 to 1,042 years. And David wrote, \"The LORD said unto my Lord, Sit thou at my right hand, until I make thine enemies thy footstool\" (Psalms 110:1). Jesus asked the Pharisees, \"How then doth David in spirit call him Lord\" (Matthew 22:43), and at Pentecost Peter said that David \"is not ascended into the heavens\" (Acts 2:34), and then, \"Therefore let all the house of Israel know assuredly, that God hath made that same Jesus, whom ye have crucified, both Lord and Christ\" (Acts 2:36). Peter also said how David could write so far ahead: \"being a prophet, and knowing that God had sworn with an oath to him\" (Acts 2:30). From David’s psalm to Pentecost is 999 to 1,042 years. So when Darrell says David spoke of what would happen a thousand years later, the arithmetic agrees, worked out from the years on both ends. FIVE. A KING NAMED THREE HUNDRED YEARS AHEAD. The Word also shows a prophecy kept inside its own history, where both ends sit in the king lists. When the kingdom split, Jeroboam set up an altar at Bethel, and \"there came a man of God out of Judah by the word of the LORD unto Bethel: and Jeroboam stood by the altar to burn incense\" (1 Kings 13:1). He cried against the altar: \"Behold, a child shall be born unto the house of David, Josiah by name\" (1 Kings 13:2). Josiah would not be born for about three centuries. Then, \"in the eighteenth year of king Josiah\" (2 Kings 22:3), Josiah came to Bethel, took the bones out of the tombs, \"and burned them upon the altar, and polluted it, according to the word of the LORD which the man of God proclaimed\" (2 Kings 23:16). The Word itself says the word was kept. From Jeroboam’s reign, c. 931 to 910 BC, to Josiah’s eighteenth year, c. 622 to 621 BC, is 288 to 310 years. A name given three hundred years early and kept to the letter: that is the pattern the rest of this lesson follows toward Jesus. SIX. ISAIAH, HOSEA AND MICAH: THREE MEN, ONE CHILD. Three prophets spoke in the same years, and all three books name Hezekiah. In the days when Rezin and Pekah \"went up toward Jerusalem to war against it\" (Isaiah 7:1), Isaiah said to king Ahaz, \"Behold, a virgin shall conceive, and bear a son, and shall call his name Immanuel\" (Isaiah 7:14). Matthew writes of the birth of Jesus, \"Now all this was done, that it might be fulfilled which was spoken of the Lord by the prophet\" (Matthew 1:22). From Isaiah’s word to Ahaz, c. 735 to 732 BC, to the birth, c. 6 to 4 BC, is 726 to 731 years. Micah named the town: \"But thou, Bethlehem Ephratah, though thou be little among the thousands of Judah, yet out of thee shall he come forth unto me that is to be ruler in Israel\" (Micah 5:2). When Herod asked where the Christ should be born, the scribes answered from that page: \"In Bethlehem of Judaea: for thus it is written by the prophet\" (Matthew 2:5). From Micah, c. 750 to 686 BC, to the birth is 680 to 746 years. Hosea wrote, \"When Israel was a child, then I loved him, and called my son out of Egypt\" (Hosea 11:1). Joseph took the Child into Egypt, \"And was there until the death of Herod: that it might be fulfilled which was spoken of the Lord by the prophet, saying, Out of Egypt have I called my son\" (Matthew 2:15). From Hosea, c. 755 to 715 BC, to the return, c. 4 BC, is 711 to 751 years. Isaiah also saw the suffering. \"But he was wounded for our transgressions, he was bruised for our iniquities\" (Isaiah 53:5); \"he is brought as a lamb to the slaughter\" (Isaiah 53:7); \"and he was numbered with the transgressors\" (Isaiah 53:12). At the cross, \"the scripture was fulfilled, which saith, And he was numbered with the transgressors\" (Mark 15:28). From Isaiah’s years to the cross is 715 to 772 years. See how the line connects. Three men in one generation, about seven hundred years before, spoke of the virgin, the town and the return from Egypt, and all three were kept within a few years of one Child’s life. SEVEN. JEREMIAH: SEVENTY YEARS, A BRANCH, AND A NEW COVENANT. Jeremiah gives a prophecy with its length written into it. In \"the fourth year of Jehoiakim the son of Josiah king of Judah, that was the first year of Nebuchadrezzar king of Babylon\" (Jeremiah 25:1), he said, \"these nations shall serve the king of Babylon seventy years\" (Jeremiah 25:11), and \"when seventy years are accomplished, that I will punish the king of Babylon\" (Jeremiah 25:12). Babylon fell in 539 BC, and the Word marks the kept promise twice: \"Now in the first year of Cyrus king of Persia, that the word of the LORD by the mouth of Jeremiah might be fulfilled\" (Ezra 1:1), and \"to fulfil threescore and ten years\" (2 Chronicles 36:21). The calendar distance from the year Jeremiah spoke, c. 605 to 604 BC, to Cyrus’s first year, c. 539 to 538 BC, is 65 to 67 years. The seventy is the Word’s own number. The Word counts it as the years the land lay desolate and kept sabbath (2 Chronicles 36:21), and it does not name the day the count began, so we give both numbers and do not bend the calendar to meet it. Jeremiah also looked much further. \"Behold, the days come, saith the LORD, that I will raise unto David a righteous Branch, and a King shall reign and prosper\" (Jeremiah 23:5). That is the throne promised to Mary’s Son (Luke 1:32); from Jeremiah’s years, c. 627 to 586 BC, to the birth is 580 to 623 years. And: \"Behold, the days come, saith the LORD, that I will make a new covenant with the house of Israel, and with the house of Judah\" (Jeremiah 31:31). At the last supper Jesus took the cup, \"saying, This cup is the new testament in my blood, which is shed for you\" (Luke 22:20), and Hebrews sets Jeremiah’s promise word for word beside the covenant He brings (Hebrews 8:8). From Jeremiah to that night is 615 to 659 years. EIGHT. DANIEL READ JEREMIAH, AND WAS GIVEN A LONGER COUNT. Here the prophets connect in the open. In the year Babylon fell, Daniel was reading Jeremiah: \"I Daniel understood by books the number of the years, whereof the word of the LORD came to Jeremiah the prophet, that he would accomplish seventy years in the desolations of Jerusalem\" (Daniel 9:2). One prophet was counting another prophet’s years. He prayed, and Yahweh answered with a longer count: \"Seventy weeks are determined upon thy people and upon thy holy city\" (Daniel 9:24). Then the part that reaches Jesus: \"from the going forth of the commandment to restore and to build Jerusalem unto the Messiah the Prince shall be seven weeks, and threescore and two weeks\" (Daniel 9:25), and \"after threescore and two weeks shall Messiah be cut off, but not for himself\" (Daniel 9:26). The Word explains its own weeks. The law already counted time in sevens of years: \"thou shalt number seven sabbaths of years unto thee, seven times seven years\" (Leviticus 25:8). Daniel had been reading years, and the answer came in sevens of years. Seven weeks and sixty-two weeks are sixty-nine sevens, which is 483 years, from a commandment to rebuild Jerusalem to the Messiah the Prince. The Word fixes the length and the end. It does not print the calendar year of the commandment, and it records more than one royal word about Jerusalem under the Persian kings (Ezra 1:1; Ezra 7:13; Nehemiah 2:1), so we give what the arithmetic settles and no more. The earliest of them is Cyrus’s, in 538 BC. Counted even from that one, 483 years do not run out until 55 BC. So Daniel’s count told anyone who read it not to look for the Messiah the Prince before then, and He came after it: \"The time is fulfilled, and the kingdom of God is at hand\" (Mark 1:15), for \"when the fulness of the time was come, God sent forth his Son\" (Galatians 4:4). From Daniel’s prayer, c. 539 to 538 BC, to the ministry and the cross, AD 28 to 33, is 565 to 571 years. NINE. ZECHARIAH AND MALACHI, THE LAST VOICES BEFORE THE SILENCE. After the return, Zechariah wrote of the King’s arrival: \"Rejoice greatly, O daughter of Zion; shout, O daughter of Jerusalem: behold, thy King cometh unto thee: he is just, and having salvation; lowly, and riding upon an ass, and upon a colt the foal of an ass\" (Zechariah 9:9). When Jesus rode into Jerusalem, \"All this was done, that it might be fulfilled which was spoken by the prophet\" (Matthew 21:4), though \"These things understood not his disciples at the first\" (John 12:16). From Zechariah’s years, c. 520 to 480 BC, to that day, AD 30 to 33, is 509 to 552 years: about the five hundred years Darrell reached for in his question. L200 tells the colt in full. Then Malachi, the last of the prophets: \"Behold, I will send my messenger, and he shall prepare the way before me\" (Malachi 3:1). Jesus said of John the Baptist, \"For this is he, of whom it is written, Behold, I send my messenger before thy face\" (Matthew 11:10). And the Word dates John exactly: \"in the fifteenth year of the reign of Tiberius Caesar\" (Luke 3:1), \"the word of God came unto John the son of Zacharias in the wilderness\" (Luke 3:2). Tiberius became emperor in AD 14, so his fifteenth year is AD 28 to 29. From Malachi, c. 460 to 430 BC, to John, AD 28 to 29, is 457 to 488 years, and between them no prophet wrote in the Word. Jesus said, \"For all the prophets and the law prophesied until John\" (Matthew 11:13). TEN. THE WHOLE LINE ON ONE PAGE, AND THE DAY HE SAID THIS DAY. Here is every prophecy in this lesson in the order it was spoken, with the years on both ends and the years between, each worked out from the years stated. Psalms 22:18, David, c. 1010 to 970 BC; kept at the cross (John 19:24), AD 30 to 33; 999 to 1,042 years later. Psalms 110:1, David, c. 1010 to 970 BC; kept at Pentecost, when Peter preaches the risen Jesus seated at the right hand (Acts 2:34-36), AD 30 to 33; 999 to 1,042 years later. 2 Samuel 7:12-13, Nathan, c. 1003 to 970 BC; kept in the birth of the Son of David (Luke 1:32; Acts 13:23), c. 6 to 4 BC; 964 to 999 years later. 1 Kings 13:2, a prophet from Judah at Bethel, c. 931 to 910 BC; kept when Josiah burns bones on the altar at Bethel (2 Kings 23:16), c. 622 to 621 BC; 288 to 310 years later. Hosea 11:1, Hosea, c. 755 to 715 BC; kept when the Child is called back out of Egypt (Matthew 2:15), c. 4 BC; 711 to 751 years later. Micah 5:2, Micah, c. 750 to 686 BC; kept in the birth at Bethlehem (Matthew 2:5-6), c. 6 to 4 BC; 680 to 746 years later. Isaiah 53:12, Isaiah, c. 740 to 686 BC; kept at the cross, between two thieves (Mark 15:28), AD 30 to 33; 715 to 772 years later. Isaiah 61:1-2, Isaiah, c. 740 to 686 BC; kept when Jesus reads it at Nazareth and says, this day (Luke 4:21), AD 28 to 30; 713 to 769 years later. Isaiah 7:14, Isaiah, c. 735 to 732 BC; kept in the birth of Jesus to the virgin Mary (Matthew 1:22-23), c. 6 to 4 BC; 726 to 731 years later. Jeremiah 23:5, Jeremiah, c. 627 to 586 BC; kept when the throne of David is promised to Mary’s Son at His coming (Luke 1:32), c. 6 to 4 BC; 580 to 623 years later. Jeremiah 31:31, Jeremiah, c. 627 to 586 BC; kept at the last supper, the cup of the new testament in His blood (Luke 22:20; Hebrews 8:8), AD 30 to 33; 615 to 659 years later. Jeremiah 25:11-12, Jeremiah, c. 605 to 604 BC; kept in the first year of Cyrus, when Babylon has fallen (Ezra 1:1; 2 Chronicles 36:21-22), c. 539 to 538 BC; 65 to 67 years later. Daniel 9:25-26, Daniel, c. 539 to 538 BC; kept when the time is fulfilled, in the ministry and the cross of Jesus (Mark 1:15; Galatians 4:4), AD 28 to 33; 565 to 571 years later. Zechariah 9:9, Zechariah, c. 520 to 480 BC; kept when Jesus rides into Jerusalem (Matthew 21:4-5), AD 30 to 33; 509 to 552 years later. Malachi 3:1, Malachi, c. 460 to 430 BC; kept when John the Baptist prepares the way (Matthew 11:10; Mark 1:2), AD 28 to 29; 457 to 488 years later. Read down the list and see what it shows. The promises did not come from one man or one century. They came from a king, a court prophet, country prophets, a captive in Babylon and the priests of the rebuilt temple, across about 580 years of speaking, and every one of them that reaches the Messiah lands inside 38 years of one life. At Nazareth Jesus stood up and read Isaiah: \"The Spirit of the Lord is upon me, because he hath anointed me to preach the gospel to the poor\" (Luke 4:18). Isaiah had written, \"The Spirit of the Lord GOD is upon me; because the LORD hath anointed me to preach good tidings unto the meek\" (Isaiah 61:1). Jesus closed the book, sat down, and said, \"This day is this scripture fulfilled in your ears\" (Luke 4:21). Darrell’s last readable words were about Jesus saying this now, and this is that moment in the Word: after 713 to 769 years, the One the words were about stood up and said, today. After He rose He opened the whole line to His disciples: \"all things must be fulfilled, which were written in the law of Moses, and in the prophets, and in the psalms, concerning me\" (Luke 24:44). The Who He Is course walks the whole Word on its own timeline, from before time to for ever, and L127, The Firsts, places the exodus by the same 480 years; this lesson puts years on the promises and on their keeping. THE CLOSE. \"There failed not ought of any good thing which the LORD had spoken unto the house of Israel; all came to pass\" (Joshua 21:45). \"For the vision is yet for an appointed time, but at the end it shall speak, and not lie: though it tarry, wait for it\" (Habakkuk 2:3). The years in this lesson are how long He was waited for, and not one promise fell. The same Yahweh who kept those words across a thousand years keeps every word He has spoken to you. \"But these are written, that ye might believe that Jesus is the Christ, the Son of God; and that believing ye might have life through his name\" (John 20:31). Jesus is the Lamb of Yahweh and the Eternal Son of Yahweh."
+    "lesson": "HOW LONG BEFORE IT CAME? DAVID, THE PROPHETS, AND THE YEARS FROM EACH PROMISE TO JESUS. On 2026-09-30 Darrell spoke this lesson into the app from his phone, in Thinking Space. The dictation arrived with the same passage three times over, and the last few words were cut off, so we work from the passage once and do not guess at what was lost. Here is what he asked, rendered for its meaning. He wants to understand the timeline. When did David live, exactly? When did each of the prophets speak? How long was it from each prophecy to the day it was fulfilled? If David said a thing would happen a thousand years later, show it. If a prophet spoke five hundred years ahead, show that too. Connect the prophets on one line, and show where Jesus stands on it. His last readable words were about Jesus saying this now. This lesson answers with the numbers the Word itself gives, and with the calendar years that careful history attaches to them. Where the Word fixes a number, we give it as the Word states it. Where a year comes from history, we mark it approximate with c., and we name what it rests on. Where the records differ by a few years, we give the range. The years between each promise and its keeping are not typed from memory; each is worked out from the years on both ends, and a span is wide wherever the Word leaves it wide. This lesson stands beside L200, How Did They Know?, which showed what the first hearers had in hand, and beside L196, which gathers the promises themselves. Here the question is time. The promise itself is older than David: the whole line from Eden is in L203, The Whole Line of Promise. We begin in the Word. ONE. HE DECLARES THE END FROM THE BEGINNING. Before we count a single year, see who is counting. Yahweh says of Himself that He is \"Declaring the end from the beginning, and from ancient times the things that are not yet done\" (Isaiah 46:10). He is not guessing at the future from inside it. He framed the ages and stands outside them, and that is why a prophet could speak of a thing centuries away. The prophets did not invent their words: \"the prophecy came not in old time by the will of man: but holy men of God spake as they were moved by the Holy Ghost\" (2 Peter 1:21). And they wanted to know the time as much as Darrell does. Peter says they \"enquired and searched diligently\" (1 Peter 1:10), \"Searching what, or what manner of time the Spirit of Christ which was in them did signify\" (1 Peter 1:11). Darrell’s question is an old one; the prophets asked it first. The Word also gives a test that only time can run: \"When a prophet speaketh in the name of the LORD, if the thing follow not, nor come to pass, that is the thing which the LORD hath not spoken\" (Deuteronomy 18:22). A prophecy is checked by what comes after it. That is why the years matter. They are the distance across which Yahweh kept His word, and they show that the word came first. TWO. HOW WE KNOW WHEN DAVID LIVED. The Word gives the lengths itself. \"David was thirty years old when he began to reign, and he reigned forty years\" (2 Samuel 5:4). \"In Hebron he reigned over Judah seven years and six months: and in Jerusalem he reigned thirty and three years over all Israel and Judah\" (2 Samuel 5:5). Solomon his son reigned forty years as well (1 Kings 11:42). And the Word ties the temple to the exodus with an exact count: \"in the four hundred and eightieth year after the children of Israel were come out of the land of Egypt, in the fourth year of Solomon’s reign over Israel\" (1 Kings 6:1). After Solomon, Kings and Chronicles give every king of Judah and of Israel, how long each reigned, and in which year of the other king each began. That is a chain of years the Word keeps with care. What the Word does not do is print a BC date. A BC date comes from joining that chain to fixed points in the records of the nations around Israel, and those points are established. The Assyrian year list records an eclipse of the sun that astronomers date to June 15, 763 BC, and that fixes the Assyrian years. Kings of Israel and Judah are named in Assyrian inscriptions: Ahab on the monolith of Shalmaneser III, Jehu on his Black Obelisk, Hezekiah in the annals of Sennacherib. The Babylonian Chronicle dates Nebuchadnezzar’s capture of Jerusalem, which the Word places \"in the eighth year of his reign\" (2 Kings 24:12), to 597 BC, and Babylon fell to Persia in 539 BC. Join the Word’s chain to those points and the years line up. Solomon’s fourth year, when the temple was begun, falls about 967 to 966 BC. Solomon began to reign about 970 BC, and David, who reigned forty years before him, reigned about 1010 to 970 BC, about three thousand years ago and about a thousand years before Jesus. Careful reckonings of the kings differ by a year or two at points, so every calendar year before the exile in this lesson carries c., about. The lengths are the Word’s. The calendar years are history’s best fit to them, and the fit is close. THREE. THE PROPHETS DATED THEMSELVES. Most of the prophets open by telling us when they spoke. Isaiah saw his vision \"in the days of Uzziah, Jotham, Ahaz, and Hezekiah, kings of Judah\" (Isaiah 1:1), and he dates his call: \"In the year that king Uzziah died I saw also the Lord sitting upon a throne\" (Isaiah 6:1). Hosea spoke \"in the days of Uzziah, Jotham, Ahaz, and Hezekiah, kings of Judah, and in the days of Jeroboam the son of Joash, king of Israel\" (Hosea 1:1). Micah spoke \"in the days of Jotham, Ahaz, and Hezekiah, kings of Judah\" (Micah 1:1), and a century later the elders remembered that \"Micah the Morasthite prophesied in the days of Hezekiah king of Judah\" (Jeremiah 26:18). The word came to Jeremiah \"in the days of Josiah the son of Amon king of Judah, in the thirteenth year of his reign\" (Jeremiah 1:2), and it kept coming \"unto the carrying away of Jerusalem captive in the fifth month\" (Jeremiah 1:3). Daniel dates his prayer \"In the first year of Darius the son of Ahasuerus, of the seed of the Medes\" (Daniel 9:1). Zechariah’s first word came \"in the second year of Darius\" (Zechariah 1:1). Malachi names no king, but he speaks to a rebuilt temple and a people under a governor: \"offer it now unto thy governor\" (Malachi 1:8). So the rule this lesson follows is plain and stated. A prophet’s words are placed within the reigns his own book names, narrowed wherever a chapter gives its own date, and each reign takes its calendar years from the king lists. That gives these spans. David, c. 1010 to 970 BC. Hosea, c. 755 to 715 BC. Micah, c. 750 to 686 BC. Isaiah, c. 740 to 686 BC, with chapter 7 dated to the war of Rezin and Pekah, c. 735 to 732 BC. Jeremiah, c. 627 to 586 BC, with chapter 25 dated to c. 605 to 604 BC. Daniel 9, c. 539 to 538 BC. Zechariah, from 520 BC; his later chapters carry no date, so we carry c. 520 to 480 BC. Malachi, after the temple was finished in the sixth year of Darius (Ezra 6:15), in the Persian years, c. 460 to 430 BC. FOUR. DAVID, A THOUSAND YEARS AHEAD. Darrell asked about David first, and David is the right place to start. When David was settled in Jerusalem, Yahweh sent Nathan with a promise: \"I will set up thy seed after thee, which shall proceed out of thy bowels, and I will establish his kingdom\" (2 Samuel 7:12), and \"I will stablish the throne of his kingdom for ever\" (2 Samuel 7:13). The angel told Mary of her Son, \"the Lord God shall give unto him the throne of his father David\" (Luke 1:32), and Paul preached, \"Of this man’s seed hath God according to his promise raised unto Israel a Saviour, Jesus\" (Acts 13:23). From Nathan’s word, c. 1003 to 970 BC, to the birth of Jesus, c. 6 to 4 BC, is 964 to 999 years. David also wrote what he could not have seen. \"They part my garments among them, and cast lots upon my vesture\" (Psalms 22:18). He wrote that \"they pierced my hands and my feet\" (Psalms 22:16). At the cross the soldiers cast lots for His coat, \"that the scripture might be fulfilled, which saith, They parted my raiment among them, and for my vesture they did cast lots\" (John 19:24). From David’s reign to the cross is 999 to 1,042 years. And David wrote, \"The LORD said unto my Lord, Sit thou at my right hand, until I make thine enemies thy footstool\" (Psalms 110:1). Jesus asked the Pharisees, \"How then doth David in spirit call him Lord\" (Matthew 22:43), and at Pentecost Peter said that David \"is not ascended into the heavens\" (Acts 2:34), and then, \"Therefore let all the house of Israel know assuredly, that God hath made that same Jesus, whom ye have crucified, both Lord and Christ\" (Acts 2:36). Peter also said how David could write so far ahead: \"being a prophet, and knowing that God had sworn with an oath to him\" (Acts 2:30). From David’s psalm to Pentecost is 999 to 1,042 years. So when Darrell says David spoke of what would happen a thousand years later, the arithmetic agrees, worked out from the years on both ends. FIVE. A KING NAMED THREE HUNDRED YEARS AHEAD. The Word also shows a prophecy kept inside its own history, where both ends sit in the king lists. When the kingdom split, Jeroboam set up an altar at Bethel, and \"there came a man of God out of Judah by the word of the LORD unto Bethel: and Jeroboam stood by the altar to burn incense\" (1 Kings 13:1). He cried against the altar: \"Behold, a child shall be born unto the house of David, Josiah by name\" (1 Kings 13:2). Josiah would not be born for about three centuries. Then, \"in the eighteenth year of king Josiah\" (2 Kings 22:3), Josiah came to Bethel, took the bones out of the tombs, \"and burned them upon the altar, and polluted it, according to the word of the LORD which the man of God proclaimed\" (2 Kings 23:16). The Word itself says the word was kept. From Jeroboam’s reign, c. 931 to 910 BC, to Josiah’s eighteenth year, c. 622 to 621 BC, is 288 to 310 years. A name given three hundred years early and kept to the letter: that is the pattern the rest of this lesson follows toward Jesus. SIX. ISAIAH, HOSEA AND MICAH: THREE MEN, ONE CHILD. Three prophets spoke in the same years, and all three books name Hezekiah. In the days when Rezin and Pekah \"went up toward Jerusalem to war against it\" (Isaiah 7:1), Isaiah said to king Ahaz, \"Behold, a virgin shall conceive, and bear a son, and shall call his name Immanuel\" (Isaiah 7:14). Matthew writes of the birth of Jesus, \"Now all this was done, that it might be fulfilled which was spoken of the Lord by the prophet\" (Matthew 1:22). From Isaiah’s word to Ahaz, c. 735 to 732 BC, to the birth, c. 6 to 4 BC, is 726 to 731 years. Micah named the town: \"But thou, Bethlehem Ephratah, though thou be little among the thousands of Judah, yet out of thee shall he come forth unto me that is to be ruler in Israel\" (Micah 5:2). When Herod asked where the Christ should be born, the scribes answered from that page: \"In Bethlehem of Judaea: for thus it is written by the prophet\" (Matthew 2:5). From Micah, c. 750 to 686 BC, to the birth is 680 to 746 years. Hosea wrote, \"When Israel was a child, then I loved him, and called my son out of Egypt\" (Hosea 11:1). Joseph took the Child into Egypt, \"And was there until the death of Herod: that it might be fulfilled which was spoken of the Lord by the prophet, saying, Out of Egypt have I called my son\" (Matthew 2:15). From Hosea, c. 755 to 715 BC, to the return, c. 4 BC, is 711 to 751 years. Isaiah also saw the suffering. \"But he was wounded for our transgressions, he was bruised for our iniquities\" (Isaiah 53:5); \"he is brought as a lamb to the slaughter\" (Isaiah 53:7); \"and he was numbered with the transgressors\" (Isaiah 53:12). At the cross, \"the scripture was fulfilled, which saith, And he was numbered with the transgressors\" (Mark 15:28). From Isaiah’s years to the cross is 715 to 772 years. See how the line connects. Three men in one generation, about seven hundred years before, spoke of the virgin, the town and the return from Egypt, and all three were kept within a few years of one Child’s life. SEVEN. JEREMIAH: SEVENTY YEARS, A BRANCH, AND A NEW COVENANT. Jeremiah gives a prophecy with its length written into it. In \"the fourth year of Jehoiakim the son of Josiah king of Judah, that was the first year of Nebuchadrezzar king of Babylon\" (Jeremiah 25:1), he said, \"these nations shall serve the king of Babylon seventy years\" (Jeremiah 25:11), and \"when seventy years are accomplished, that I will punish the king of Babylon\" (Jeremiah 25:12). Babylon fell in 539 BC, and the Word marks the kept promise twice: \"Now in the first year of Cyrus king of Persia, that the word of the LORD by the mouth of Jeremiah might be fulfilled\" (Ezra 1:1), and \"to fulfil threescore and ten years\" (2 Chronicles 36:21). The calendar distance from the year Jeremiah spoke, c. 605 to 604 BC, to Cyrus’s first year, c. 539 to 538 BC, is 65 to 67 years. The seventy is the Word’s own number. The Word counts it as the years the land lay desolate and kept sabbath (2 Chronicles 36:21), and it does not name the day the count began, so we give both numbers and do not bend the calendar to meet it. Jeremiah also looked much further. \"Behold, the days come, saith the LORD, that I will raise unto David a righteous Branch, and a King shall reign and prosper\" (Jeremiah 23:5). That is the throne promised to Mary’s Son (Luke 1:32); from Jeremiah’s years, c. 627 to 586 BC, to the birth is 580 to 623 years. And: \"Behold, the days come, saith the LORD, that I will make a new covenant with the house of Israel, and with the house of Judah\" (Jeremiah 31:31). At the last supper Jesus took the cup, \"saying, This cup is the new testament in my blood, which is shed for you\" (Luke 22:20), and Hebrews sets Jeremiah’s promise word for word beside the covenant He brings (Hebrews 8:8). From Jeremiah to that night is 615 to 659 years. EIGHT. DANIEL READ JEREMIAH, AND WAS GIVEN A LONGER COUNT. Here the prophets connect in the open. In the year Babylon fell, Daniel was reading Jeremiah: \"I Daniel understood by books the number of the years, whereof the word of the LORD came to Jeremiah the prophet, that he would accomplish seventy years in the desolations of Jerusalem\" (Daniel 9:2). One prophet was counting another prophet’s years. He prayed, and Yahweh answered with a longer count: \"Seventy weeks are determined upon thy people and upon thy holy city\" (Daniel 9:24). Then the part that reaches Jesus: \"from the going forth of the commandment to restore and to build Jerusalem unto the Messiah the Prince shall be seven weeks, and threescore and two weeks\" (Daniel 9:25), and \"after threescore and two weeks shall Messiah be cut off, but not for himself\" (Daniel 9:26). The Word explains its own weeks. The law already counted time in sevens of years: \"thou shalt number seven sabbaths of years unto thee, seven times seven years\" (Leviticus 25:8). Daniel had been reading years, and the answer came in sevens of years. Seven weeks and sixty-two weeks are sixty-nine sevens, which is 483 years, from a commandment to rebuild Jerusalem to the Messiah the Prince. The Word fixes the length and the end. It does not print the calendar year of the commandment, and it records more than one royal word about Jerusalem under the Persian kings (Ezra 1:1; Ezra 7:13; Nehemiah 2:1), so we give what the arithmetic settles and no more. The earliest of them is Cyrus’s, in 538 BC. Counted even from that one, 483 years do not run out until 55 BC. So Daniel’s count told anyone who read it not to look for the Messiah the Prince before then, and He came after it: \"The time is fulfilled, and the kingdom of God is at hand\" (Mark 1:15), for \"when the fulness of the time was come, God sent forth his Son\" (Galatians 4:4). From Daniel’s prayer, c. 539 to 538 BC, to the ministry and the cross, AD 28 to 33, is 565 to 571 years. NINE. ZECHARIAH AND MALACHI, THE LAST VOICES BEFORE THE SILENCE. After the return, Zechariah wrote of the King’s arrival: \"Rejoice greatly, O daughter of Zion; shout, O daughter of Jerusalem: behold, thy King cometh unto thee: he is just, and having salvation; lowly, and riding upon an ass, and upon a colt the foal of an ass\" (Zechariah 9:9). When Jesus rode into Jerusalem, \"All this was done, that it might be fulfilled which was spoken by the prophet\" (Matthew 21:4), though \"These things understood not his disciples at the first\" (John 12:16). From Zechariah’s years, c. 520 to 480 BC, to that day, AD 30 to 33, is 509 to 552 years: about the five hundred years Darrell reached for in his question. L200 tells the colt in full. Then Malachi, the last of the prophets: \"Behold, I will send my messenger, and he shall prepare the way before me\" (Malachi 3:1). Jesus said of John the Baptist, \"For this is he, of whom it is written, Behold, I send my messenger before thy face\" (Matthew 11:10). And the Word dates John exactly: \"in the fifteenth year of the reign of Tiberius Caesar\" (Luke 3:1), \"the word of God came unto John the son of Zacharias in the wilderness\" (Luke 3:2). Tiberius became emperor in AD 14, so his fifteenth year is AD 28 to 29. From Malachi, c. 460 to 430 BC, to John, AD 28 to 29, is 457 to 488 years, and between them no prophet wrote in the Word. Jesus said, \"For all the prophets and the law prophesied until John\" (Matthew 11:13). TEN. THE WHOLE LINE ON ONE PAGE, AND THE DAY HE SAID THIS DAY. Here is every prophecy in this lesson in the order it was spoken, with the years on both ends and the years between, each worked out from the years stated. Psalms 22:18, David, c. 1010 to 970 BC; kept at the cross (John 19:24), AD 30 to 33; 999 to 1,042 years later. Psalms 110:1, David, c. 1010 to 970 BC; kept at Pentecost, when Peter preaches the risen Jesus seated at the right hand (Acts 2:34-36), AD 30 to 33; 999 to 1,042 years later. 2 Samuel 7:12-13, Nathan, c. 1003 to 970 BC; kept in the birth of the Son of David (Luke 1:32; Acts 13:23), c. 6 to 4 BC; 964 to 999 years later. 1 Kings 13:2, a prophet from Judah at Bethel, c. 931 to 910 BC; kept when Josiah burns bones on the altar at Bethel (2 Kings 23:16), c. 622 to 621 BC; 288 to 310 years later. Hosea 11:1, Hosea, c. 755 to 715 BC; kept when the Child is called back out of Egypt (Matthew 2:15), c. 4 BC; 711 to 751 years later. Micah 5:2, Micah, c. 750 to 686 BC; kept in the birth at Bethlehem (Matthew 2:5-6), c. 6 to 4 BC; 680 to 746 years later. Isaiah 53:12, Isaiah, c. 740 to 686 BC; kept at the cross, between two thieves (Mark 15:28), AD 30 to 33; 715 to 772 years later. Isaiah 61:1-2, Isaiah, c. 740 to 686 BC; kept when Jesus reads it at Nazareth and says, this day (Luke 4:21), AD 28 to 30; 713 to 769 years later. Isaiah 7:14, Isaiah, c. 735 to 732 BC; kept in the birth of Jesus to the virgin Mary (Matthew 1:22-23), c. 6 to 4 BC; 726 to 731 years later. Jeremiah 23:5, Jeremiah, c. 627 to 586 BC; kept when the throne of David is promised to Mary’s Son at His coming (Luke 1:32), c. 6 to 4 BC; 580 to 623 years later. Jeremiah 31:31, Jeremiah, c. 627 to 586 BC; kept at the last supper, the cup of the new testament in His blood (Luke 22:20; Hebrews 8:8), AD 30 to 33; 615 to 659 years later. Jeremiah 25:11-12, Jeremiah, c. 605 to 604 BC; kept in the first year of Cyrus, when Babylon has fallen (Ezra 1:1; 2 Chronicles 36:21-22), c. 539 to 538 BC; 65 to 67 years later. Daniel 9:25-26, Daniel, c. 539 to 538 BC; kept when the time is fulfilled, in the ministry and the cross of Jesus (Mark 1:15; Galatians 4:4), AD 28 to 33; 565 to 571 years later. Zechariah 9:9, Zechariah, c. 520 to 480 BC; kept when Jesus rides into Jerusalem (Matthew 21:4-5), AD 30 to 33; 509 to 552 years later. Malachi 3:1, Malachi, c. 460 to 430 BC; kept when John the Baptist prepares the way (Matthew 11:10; Mark 1:2), AD 28 to 29; 457 to 488 years later. Read down the list and see what it shows. The promises did not come from one man or one century. They came from a king, a court prophet, country prophets, a captive in Babylon and the priests of the rebuilt temple, across about 580 years of speaking, and every one of them that reaches the Messiah lands inside 38 years of one life. At Nazareth Jesus stood up and read Isaiah: \"The Spirit of the Lord is upon me, because he hath anointed me to preach the gospel to the poor\" (Luke 4:18). Isaiah had written, \"The Spirit of the Lord GOD is upon me; because the LORD hath anointed me to preach good tidings unto the meek\" (Isaiah 61:1). Jesus closed the book, sat down, and said, \"This day is this scripture fulfilled in your ears\" (Luke 4:21). Darrell’s last readable words were about Jesus saying this now, and this is that moment in the Word: after 713 to 769 years, the One the words were about stood up and said, today. After He rose He opened the whole line to His disciples: \"all things must be fulfilled, which were written in the law of Moses, and in the prophets, and in the psalms, concerning me\" (Luke 24:44). The Who He Is course walks the whole Word on its own timeline, from before time to for ever, and L127, The Firsts, places the exodus by the same 480 years; this lesson puts years on the promises and on their keeping. THE CLOSE. \"There failed not ought of any good thing which the LORD had spoken unto the house of Israel; all came to pass\" (Joshua 21:45). \"For the vision is yet for an appointed time, but at the end it shall speak, and not lie: though it tarry, wait for it\" (Habakkuk 2:3). The years in this lesson are how long He was waited for, and not one promise fell. The same Yahweh who kept those words across a thousand years keeps every word He has spoken to you. \"But these are written, that ye might believe that Jesus is the Christ, the Son of God; and that believing ye might have life through his name\" (John 20:31). Jesus is the Lamb of Yahweh and the Eternal Son of Yahweh."
   },
   {
     "id": "ll202-prepared-before-the-position-homecoming-legacy-good-success-and-represent",
@@ -17499,6 +17499,1330 @@ export const LIVING_LESSONS_MODULES = [
       ]
     },
     "lesson": "THE WORD CHECKS EVERY TELLER: MANY COUNSELLORS, ALL UNDER HIM. On 2026-09-30, while we were finishing L202, a Bible study from the weekly class at The Church of the Living God in Champaign, Illinois, Darrell set down a few quick lines about the work itself. We render them here for their meaning, in his order. He said we were also testing our system for creating a lesson, to make sure it works to our specifications. He named the specification: the Word, sourced and researched outside of the teller, so that it corrects the teller by what we all should use. He named a hope: that we create courses for the children in our communities to use without needing a specific teacher, that anyone can use Ari, and that in the near future our children could ask questions of our own local AI. And he closed with the Proverb, \"in the multitude of counsellors there is safety\" (Proverbs 11:14), adding that our counsellors are also corrected by the Word, so we all agree with Him first. That is the lesson. Every verse below is quoted from the King James text, word for word. ONE. TESTING HOW WE MAKE A LESSON. A lesson in this app begins with a teller: a bishop in a Bible class, a father at the table, a teacher, or Darrell himself speaking into the app. The teller is honored, and the teller is checked. The check is not suspicion; it is the standard. Every verse the teller names is found in the King James text and read in full; every quotation is compared to the verse it names; and where the teller's memory and the written verse differ, the verse stands. Nothing is quoted from memory, including ours. That is what Darrell means by sourced and researched outside of the teller: the authority does not sit in the one who tells it, but in the Word both of us answer to. TWO. THE WORD CHECKS EVERY TELLER. The Word shows this by its own practice. When Paul and Silas preached in Berea, the hearers \"received the word with all readiness of mind, and searched the scriptures daily, whether those things were so\" (Acts 17:11). The Word calls them more noble for it, and the fruit followed: \"Therefore many of them believed\" (Acts 17:12). Checking the teller was not unbelief; it was how their belief was grounded. Paul put himself under the same rule: \"But though we, or an angel from heaven, preach any other gospel unto you than that which we have preached unto you, let him be accursed\" (Galatians 1:8). The teller who wrote much of the New Testament did not exempt himself. The prophet had given the test centuries before: \"To the law and to the testimony: if they speak not according to this word, it is because there is no light in them\" (Isaiah 8:20). The whole church carries the same charge: \"Prove all things; hold fast that which is good\" (1 Thessalonians 5:21). And the Word warns every teller not to add: \"Every word of God is pure: he is a shield unto them that put their trust in him\" (Proverbs 30:5). \"Add thou not unto his words, lest he reprove thee, and thou be found a liar\" (Proverbs 30:6). Jesus Himself, tempted in the wilderness, answered every twisted word with the written Word: \"But he answered and said, It is written, Man shall not live by bread alone, but by every word that proceedeth out of the mouth of God\" (Matthew 4:4). He did not debate the tempter; He quoted what was written. If the Son of Yahweh stood on what is written, no teller of ours stands above it. THREE. L202, THE WORKED EXAMPLE. L202, Prepared Before the Position, shows the process from end to end. Darrell recorded the Bible study inside the PoeTech app, and the app did the rest. Our own server, running in our own house, turned the recording into text with a speech-to-text program called Whisper; no outside company heard the class. The machine heard poorly. It turned Exodus into a string of letters, the Jordan into a joint, conquerors into Congress, and Luke 6:46 into Luke 646. None of those was guessed at. Each reference was found in the King James text, each misheard word was corrected by the verse the class had open, and the lesson says plainly where the recording began partway through and where the transcript could not tell who was speaking. The teacher had read from a modern translation, and the lesson quotes the King James text and says so. Then the repository's own checks compared every quotation in the lesson to the verse it names, and they passed only when each one matched word for word. That is the specification Darrell named, running: the teller honored, the machine corrected, and the Word deciding. FOUR. IN THE MULTITUDE OF COUNSELLORS THERE IS SAFETY. The Word says it three times in Proverbs. \"Where no counsel is, the people fall: but in the multitude of counsellors there is safety\" (Proverbs 11:14). \"Without counsel purposes are disappointed: but in the multitude of counsellors they are established\" (Proverbs 15:22). \"For by wise counsel thou shalt make thy war: and in multitude of counsellors there is safety\" (Proverbs 24:6). It names the danger of going alone: \"The way of a fool is right in his own eyes: but he that hearkeneth unto counsel is wise\" (Proverbs 12:15). And it sets the rule for establishing a matter: \"In the mouth of two or three witnesses shall every word be established\" (2 Corinthians 13:1). But the Word also shows what makes the multitude safe. It is not the count of voices; a crowd can agree on a mistake. It is that every voice answers to one standard, and the Word takes the first chair at the table: \"Thy testimonies also are my delight and my counsellors\" (Psalms 119:24). FIVE. OUR COUNSELLORS ARE CORRECTED BY THE WORD. Darrell named our counsellors plainly: the teacher, the class, Ari, and our own local AI. Ari is the name of the helper in this app, and our own code describes Ari as a made tool that can be wrong, always pointing past himself to Yahweh, the Most High. The same is true of the teacher and the class in their own way: each can err, and each is corrected by the same Word. The early church shows how a multitude of counsellors works under the Word. When a hard question divided them, \"the apostles and elders came together for to consider of this matter\" (Acts 15:6). They heard what Yahweh had done among the Gentiles. Then James tested the testimony against Scripture: \"And to this agree the words of the prophets; as it is written\" (Acts 15:15). Only then did they write, \"For it seemed good to the Holy Ghost, and to us\" (Acts 15:28), the Holy Spirit first. Correction in love is part of it. Apollos was \"an eloquent man, and mighty in the scriptures\" (Acts 18:24), and still Aquila and Priscilla \"took him unto them, and expounded unto him the way of God more perfectly\" (Acts 18:26). That is what the Word is for: \"All scripture is given by inspiration of God, and is profitable for doctrine, for reproof, for correction, for instruction in righteousness\" (2 Timothy 3:16), \"That the man of God may be perfect, throughly furnished unto all good works\" (2 Timothy 3:17). It reaches past our words to our motives: it \"is a discerner of the thoughts and intents of the heart\" (Hebrews 4:12). SIX. SO WE ALL AGREE WITH HIM FIRST. This is Darrell's emphasis, and the order is the point. Agreement that starts with one another settles for compromise; agreement that starts with Yahweh arrives at unity. \"Can two walk together, except they be agreed?\" (Amos 3:3). When a man and the Word differ, the Word stands: \"let God be true, but every man a liar\" (Romans 3:4). Jesus prayed it for His own: \"Sanctify them through thy truth: thy word is truth\" (John 17:17). And the Word gives the posture for every one of us, teller and hearer alike: \"Trust in the LORD with all thine heart; and lean not unto thine own understanding\" (Proverbs 3:5). SEVEN. THE HOPE: COURSES FOR OUR CHILDREN. Darrell named a hope, and we state it as a hope and a direction. He hopes for courses the children in our communities can use without needing a specific teacher; anyone can use Ari; and in the near future our children could ask questions of our own local AI, running on our own computers, with every answer tied back to the Word. Here is where it stands today, said plainly. The guide inside a lesson in this app is written to ask a model on our own server, and when that server does not answer, the app shows the written lesson and does not invent a reply. A course our children use on their own, asking our own AI any question, is not yet the everyday; it is what we are building toward. The hope stands on the Word. The command to teach the children is old: \"And these words, which I command thee this day, shall be in thine heart\" (Deuteronomy 6:6), \"And thou shalt teach them diligently unto thy children, and shalt talk of them when thou sittest in thine house, and when thou walkest by the way, and when thou liest down, and when thou risest up\" (Deuteronomy 6:7). The promise is older still in its reach: \"And all thy children shall be taught of the LORD; and great shall be the peace of thy children\" (Isaiah 54:13). Timothy was grounded young: \"And that from a child thou hast known the holy scriptures, which are able to make thee wise unto salvation through faith which is in Christ Jesus\" (2 Timothy 3:15). A child grounded in the Word can see what a teacher missed: \"I have more understanding than all my teachers: for thy testimonies are my meditation\" (Psalms 119:99). And questions are welcome in the house of Yahweh. At twelve, Jesus sat \"in the midst of the doctors, both hearing them, and asking them questions\" (Luke 2:46). James gives every child and every grown one the same invitation: \"If any of you lack wisdom, let him ask of God, that giveth to all men liberally, and upbraideth not; and it shall be given him\" (James 1:5). A course without a particular teacher is never a course without the Teacher. Jesus said of the Holy Spirit, \"he shall teach you all things, and bring all things to your remembrance, whatsoever I have said unto you\" (John 14:26). So every tool we build, Ari and our own AI included, must answer to the Word the Holy Spirit gave, and point the child back to it. THE CLOSE. Honor every teller, and check every teller by the Word. Welcome many counsellors, and put them all under the Word, ourselves first. Agree with Yahweh first, and we will find we agree with one another. Build for the children, and tie every answer back to what is written. Jesus is the Lamb of Yahweh and the Eternal Son of Yahweh, the Living Word, and the written Word outlasts every voice that ever told it: \"The grass withereth, the flower fadeth: but the word of our God shall stand for ever\" (Isaiah 40:8)."
+  },
+  {
+    "id": "ll203-the-whole-line-of-promise-every-promise-from-eden-to-malachi-and-the-years-to-jesus",
+    "title": "The Whole Line of Promise — Every Promise from Eden to Malachi, and the Years to Jesus",
+    "bigIdea": "THE WHOLE LINE OF PROMISE. Darrell asked, reading L201: how is David first, and not Moses, or even Noah? He is not. L201 began with David because its question did; the promise began in Eden, the day sin came in (Genesis 3:15), and ran through Enoch, Noah, Abraham, Judah, Balaam, Moses, Hannah, David and the prophets to Malachi. This lesson puts all 49 promises the New Testament sets on Jesus on one line, by a rule taken from the New Testament’s own words, grouped by era, with the years from each to Him counted from the Word’s own numbers and marked c., and leaves undated what the Word leaves undated.",
+    "inApp": "THE WHOLE LINE OF PROMISE. Asked by Darrell on 2026-09-30, after reading L201, and taught Word first. Every promise from Eden to Malachi that the New Testament itself says was kept in Jesus, 49 in all, with who spoke it, when, where it was kept, and how many years it waited. The years before the kings come from the Word’s own numbers (1 Kings 6:1; Galatians 3:17; Genesis 11; Genesis 5) added to L201’s anchor. Job, Joel and four psalms carry no date in the Word, and none is given.",
+    "anchor": {
+      "ref": "Luke 24:27; Luke 1:70; Genesis 3:15; Jude 1:14; Genesis 9:26; Genesis 12:3; Genesis 22:18; Genesis 49:10; Exodus 12:46; Numbers 24:17; Deuteronomy 18:15; 1 Samuel 2:10; Psalms 2:7; Psalms 22:18; 2 Samuel 7:12; Jonah 1:17; Isaiah 9:6; Isaiah 53:4; Micah 5:2; Zechariah 9:9; Malachi 3:1; Job 19:25; Joel 2:28; Galatians 3:17; 1 Kings 6:1; Luke 24:44",
+      "theme": "The promise did not begin with a king. Yahweh spoke it in Eden the day sin came in, and added to it through Enoch, Noah, Abraham, Judah, Balaam, Moses, Hannah, David and the prophets, at sundry times and in divers manners, until the Son. The Word supplies the numbers that reach back from David, and added to L201’s anchor they show how long each promise waited, the first some four thousand years. Every promise the New Testament sets on Jesus meets in one life."
+    },
+    "benefits": [
+      "Answers Darrell’s question plainly: L201 began with David because its question did, and the promise itself runs from Eden (Luke 1:70; Luke 24:27).",
+      "Puts all 49 promises on one line, chosen by a stated rule taken from the New Testament’s own words, not by a favourite list.",
+      "Shows the rule’s work in the open: 69 New Testament verses, 34 naming a passage, 11 speaking of the Scriptures in general, 24 about other things, all named.",
+      "Dates the years before the kings from the Word’s own numbers: 480 (1 Kings 6:1), 430 (Galatians 3:17), 352 (Genesis 11), 1,656 (Genesis 5), added to L201’s anchor and marked c.",
+      "Works out every interval from the years on both ends, with no year zero, instead of typing round numbers.",
+      "Groups the line by era, from Before the Flood to After the Exile, so it reads on a phone.",
+      "Leaves undated what the Word leaves undated, Job, Joel and four psalms, and says so plainly.",
+      "Names honestly what the rule does not reach, Haggai 2:7 and Daniel’s weeks, and where to find the rest (L201, L200, L196, the Who He Is timeline).",
+      "Shows how many promises from many centuries land in one life and one week, and ends with Yahweh’s faithfulness to the reader (Joshua 21:45)."
+    ],
+    "levels": {
+      "child": "The whole line of promise: every promise from Eden to Malachi, and the years to Jesus. Darrell asked a good question. In the last lesson we started with King David. Darrell asked, why start with David? Why not Moses? Why not Noah? And what about Isaiah, and Job, and all the rest? Then he said, make a new lesson with all of them, from the very start. So here it is. Here is the answer first. We started with David last time because the question was about David. But the promise is much older than David. It is as old as the first garden. We call it the line of promise. It is like a long rope, and every person on it holds one part. The rope starts in Eden and ends at Jesus. Let us walk along it. We begin in the Word. ONE. THE PROMISE IS OLDER THAN A KING. When John the Baptist was born, his father Zacharias sang about Yahweh. He sang that Yahweh spoke \"by the mouth of his holy prophets, which have been since the world began\" (Luke 1:70). Since the world began! That is a long time. And after Jesus rose, He walked with two friends on a road. The Word says, \"And beginning at Moses and all the prophets, he expounded unto them in all the scriptures the things concerning himself\" (Luke 24:27). Jesus started with Moses, and Moses wrote about the very first days. So the line starts at the very start. The book of Hebrews says it in a short way. Long ago, Yahweh spoke to the fathers many times and in many ways. Now He \"Hath in these last days spoken unto us by his Son\" (Hebrews 1:2). Many voices, one Son. Every voice on the line was pointing at Him. Think of it like this. If a friend promises you a gift on your birthday, you wait. If he keeps his word, you trust him more. Now think of a promise that waited thousands of years, from grandpa to grandpa to grandpa, and still came true on time. That is the kind of promise keeper Yahweh is. The longer the wait, the bigger the proof. So when we count the years, we are really counting how faithful He is. TWO. HOW WE KNOW WHICH PROMISES ARE HIS. How can we tell which old promises are about Jesus? We do not guess. We let the Word tell us. The New Testament says it again and again. It says, this was done so the Word would come true. It says, this is what the prophet said. It says, as it is written. We read every one of those places. There are 69 of them. Some point to one old promise. Some just say all the Word came true in Him. Some are about other things, and we say so. Then we added the promises Darrell named, like Noah, Abraham and Job. That makes 49 promises on one line. Why does this matter? Because anyone can make a list of nice verses. We want the list the Word itself makes. When the Word says a promise came true in Jesus, it goes on the line. When the Word does not say so, we tell you plainly. That way you can check every one for yourself. THREE. HOW WE COUNT THE YEARS. Long ago there were no calendars like ours. So how do we know when things happened? The Word gives us numbers. It tells how old each father was when his son was born. It tells how many years Israel was in Egypt. It tells how many years it was from leaving Egypt to the temple. We add those numbers up. We start from a year we already know, the year Solomon began the temple, about 967 BC. Then we count back. We write c. in front of these years. That means about. We only add the numbers the Word gives. Here is one of the numbers. The Word says, \"Adam lived an hundred and thirty years, and begat a son\" (Genesis 5:3). So Adam was one hundred and thirty when his son Seth was born. Then Seth had a son, and so on, all the way to Noah. When you add them all up, it is one thousand, six hundred and fifty-six years from Adam to the flood. Then more numbers take us from the flood to Abraham, and from Abraham to Moses. It is like adding up the ages in a family photo album. The Word kept the album for us. FOUR. THE FIRST PROMISE, IN A GARDEN. Adam and Eve were in a garden called Eden. The serpent tricked them, and they did wrong. That same day, Yahweh made a promise. He told the serpent, \"it shall bruise thy head, and thou shalt bruise his heel\" (Genesis 3:15). What does that mean? One day a Child of the woman would crush the serpent’s head. The serpent would only hurt His heel. That Child is Jesus. The Word says, \"God sent forth his Son, made of a woman\" (Galatians 4:4). At the cross Jesus was hurt. But He won. He beat the one who had \"the power of death\" (Hebrews 2:14). How long ago was that first promise? Adding up the Word’s numbers, it was about 3,900 years before the cross. That is a long wait! But Yahweh did not forget. Later a man named Enoch walked with Yahweh. Enoch said, \"Behold, the Lord cometh with ten thousands of his saints\" (Jude 1:14). That promise is still ahead. Jesus will come again. Enoch did not die like other people. The Word says, \"he was not; for God took him\" (Genesis 5:24). Yahweh just took him home. So the second voice on the line was a man who walked with Yahweh every day. FIVE. NOAH, ABRAHAM AND JUDAH. After the big flood, Noah blessed his son Shem. He said, \"Blessed be the LORD God of Shem\" (Genesis 9:26). Jesus was born in Shem’s family. Luke writes down the whole family, all the way back, and Shem is there. Then Yahweh spoke to a man named Abram. He said, \"in thee shall all families of the earth be blessed\" (Genesis 12:3). Every family on earth! How? Through one Child in Abram’s family. Paul says that Child is Christ (Galatians 3:16). That was about 1,870 years before Jesus was born. Later Jacob was very old. He called his sons around his bed. He said a King would come from his son Judah: \"The sceptre shall not depart from Judah\" (Genesis 49:10). A sceptre is a king’s stick. Jesus came from Judah’s family (Hebrews 7:14). SIX. MOSES, THE LAMB AND THE STAR. When Israel left Egypt, each family ate a lamb. Moses said, \"neither shall ye break a bone thereof\" (Exodus 12:46). Not one bone could be broken. At the cross, the soldiers broke the legs of the two men beside Jesus. They did not break His. The Word says, \"A bone of him shall not be broken\" (John 19:36). Jesus is the Lamb. Then a man named Balaam was paid to curse Israel. But he could only bless. He said, \"there shall come a Star out of Jacob\" (Numbers 24:17). When Jesus was born, wise men saw His star. They asked, \"Where is he that is born King of the Jews?\" (Matthew 2:2). Moses said one more thing. A Prophet like him would come: \"unto him ye shall hearken\" (Deuteronomy 18:15). Peter said that Prophet is Jesus (Acts 3:22). Think about how long Israel waited for that Prophet. Moses spoke those words about 1,400 years before Jesus came. Year after year, family after family, they waited. And then Jesus came, and He taught like no one else. Moses had written, \"unto him ye shall hearken\" (Deuteronomy 18:15). Hearken means listen. Yahweh wanted them to listen to Jesus. SEVEN. HANNAH AND DAVID. Hannah was a mom who prayed for a baby. Yahweh gave her Samuel. Then she sang. She sang about Yahweh’s King, His \"anointed\" (1 Samuel 2:10). Anointed means chosen and set apart. That is what Messiah and Christ mean. Then came David, the shepherd king. David wrote many songs, called psalms, about the King to come. He wrote, \"Thou art my Son\" (Psalms 2:7). He wrote that they would cast lots for His clothes (Psalms 22:18). He wrote about a friend who ate his bread and then turned on him (Psalms 41:9). All of it came true in Jesus, about a thousand years later. David also wrote that the Holy One would not rot in the grave: \"neither wilt thou suffer thine Holy One to see corruption\" (Psalms 16:10). That is a promise about rising from the dead. Jesus did rise, on the third day. And David wrote, \"Sit thou at my right hand\" (Psalms 110:1). After Jesus rose, He went up to heaven and sat down at the right hand of the Father. Nathan the prophet told David that a Son from his family would be King for ever (2 Samuel 7:12). That Son is Jesus too. EIGHT. THE PROPHETS. Next came the prophets. Jonah was in a big fish three days and three nights (Jonah 1:17). Jesus said He would be in the grave three days and three nights too, and then He rose (Matthew 12:40). Micah named the town where the King would be born: Bethlehem (Micah 5:2). Isaiah said more than anyone. He said a virgin would have a Son (Isaiah 7:14). He said, \"For unto us a child is born, unto us a son is given\" (Isaiah 9:6). He said a voice would call out in the wilderness (Isaiah 40:3). That was John the Baptist. He said the Servant would carry our sorrows (Isaiah 53:4). Those promises waited about seven hundred years. Jeremiah wrote about moms crying for their children (Jeremiah 31:15). When Jesus was a baby, wicked King Herod tried to kill Him. Many moms in Bethlehem cried. It was very sad. The Word tells the truth even when it is sad. But Jesus was safe. Yahweh sent His family to Egypt, and later called Him back, just as Hosea wrote: \"called my son out of Egypt\" (Hosea 11:1). Isaiah also said the Servant would be counted with bad men (Isaiah 53:12). Jesus died between two thieves. NINE. AFTER THE EXILE. Yahweh’s people were taken far away to Babylon. Then they came home. A prophet named Zechariah said the King would come riding \"upon a colt the foal of an ass\" (Zechariah 9:9). That is a young donkey. Jesus rode a donkey into Jerusalem, about five hundred years later. Malachi was the last prophet of the Old Testament. He said Yahweh would send a messenger to get the way ready (Malachi 3:1). That messenger was John the Baptist. Then no prophet wrote in the Word for more than four hundred years. Zechariah said even more. He said the price would be thirty pieces of silver (Zechariah 11:12). Judas sold Jesus for thirty pieces of silver. And he said, \"they shall look upon me whom they have pierced\" (Zechariah 12:10). At the cross a soldier pierced the side of Jesus. Malachi also said Yahweh would send Elijah first (Malachi 4:5). Jesus said John the Baptist was the one who came in that way (Matthew 11:14). TEN. THE ONES WITH NO DATE. Some people on the line have no date in the Word. Job is one. The Word does not tell us when Job lived, so we do not make one up. Job lost almost everything. But he still said, \"For I know that my redeemer liveth\" (Job 19:25). A redeemer is someone who buys you back. Jesus is our Redeemer. Joel has no date too. He said Yahweh would pour out His Spirit (Joel 2:28). That came true at Pentecost, when Peter stood up and said, this is that. Some psalms have no date too. One says, \"The stone which the builders refused is become the head stone of the corner\" (Psalms 118:22). Builders pick good stones and throw away bad ones. People threw Jesus away. But Yahweh made Him the most important stone of all. Jesus read that verse out loud Himself (Matthew 21:42). ELEVEN. THE WHOLE LINE. Now look at the whole rope. It starts in a garden. It goes past Enoch and Noah. It goes past Abraham, Judah, Moses, Hannah and David. It goes past Isaiah, Jonah, Micah, Zechariah and Malachi. Every part of it ends in one Person. His name is Jesus. The first promise waited about 3,900 years. Some waited about a thousand. The last waited about four hundred. Not one promise was lost. Here are some to remember, and how long each one waited. The garden promise, Genesis 3:15: about 3,900 years. Abraham’s promise, Genesis 12:3: about 1,870 years. The Lamb’s bone, Exodus 12:46: about 1,475 years. David’s song of the lots, Psalms 22:18: about a thousand years. The Child of Isaiah 9:6: about seven hundred years. The donkey of Zechariah 9:9: about five hundred years. The messenger of Malachi 3:1: about four hundred and seventy years. Can you see it? Every person on the line was different. There was a man who walked with Yahweh, a boat builder, a traveler, a very old father, a man paid to curse, a leader, a mom, a shepherd king, and many prophets. They lived in many places, over thousands of years. But they all pointed to the same Person. Only Yahweh could make a line like that. People cannot plan something for thousands of years. Yahweh can, because He sees the end from the beginning. THE CLOSE. Yahweh made a promise in a garden, and He kept it. He kept every promise on the line. \"There failed not ought of any good thing which the LORD had spoken unto the house of Israel; all came to pass\" (Joshua 21:45). He keeps His promises to you too. Jesus is the Lamb of Yahweh and the Eternal Son of Yahweh.",
+      "youth": "The whole line of promise: every promise from Eden to Malachi, and the years to Jesus. Here is how this lesson started. Darrell read the lesson before this one, L201, which counts the years from David and the prophets to Jesus. And he asked a sharp question: how is David first, and not Moses, or even Noah? Then: what about Isaiah? What about Job? And the rest? Then he said, make a new lesson with all of them, from the beginning. That is what you are reading. We begin in the Word. ONE. SO WHY DID L201 START WITH DAVID? Simple. The question that made L201 asked about David first: when did David live, and how long until his words came true? So David was where the question began. But David is not where the promise began. The promise is way older. When John the Baptist was born, his dad Zacharias sang that Yahweh had spoken \"by the mouth of his holy prophets, which have been since the world began\" (Luke 1:70). Peter said the same thing in the temple (Acts 3:21). And Jesus, walking to Emmaus after He rose, did this: \"And beginning at Moses and all the prophets, he expounded unto them in all the scriptures the things concerning himself\" (Luke 24:27). Moses wrote Genesis. So Jesus started His own Bible study at the very beginning. That is where we start too. Hebrews puts the whole idea in two lines. Yahweh spoke \"at sundry times and in divers manners\" (Hebrews 1:1) to the fathers by the prophets, and then \"Hath in these last days spoken unto us by his Son\" (Hebrews 1:2). Sundry times means lots of different times. Divers manners means lots of different ways. A promise in a garden, a blessing at a deathbed, a song from a mom, a psalm from a king, a strange sign from a prophet in a fish. All of it was one message, aimed at one Son. TWO. THE RULE, SO NOBODY CHERRY-PICKS. Darrell asked for all of them. That means we need a rule, not a favourite list. The best rule is the one the Word itself uses. The New Testament keeps saying things like: that it might be fulfilled; this is that which was spoken; as it is written. We searched the whole New Testament for those words and found 69 verses. Of those, 34 point to a specific Old Testament promise about Jesus. 11 say the Scriptures came true in Him without naming one verse, like Luke 24:44. And 24 use the same words about something else, like Abraham’s faith in James 2:23. We name those too, so you can see nothing was hidden. Then we added the sermons in Acts 2, 3 and 13 and the first chapter of Hebrews, which set more promises on Jesus, and the promises Darrell named, like Noah, Job and Jonah, each with how the Word ties it to Jesus. Total: 49 promises. A few he asked about did not make it by the rule, and we say why. Haggai 2:7 is never quoted in the New Testament, so it is not on the line. Why go to all this trouble? Because anybody can grab a few verses and say they are about Jesus. That is easy, and it is also easy to get wrong. Following the New Testament’s own words keeps us honest. If the apostles said a verse came true in Jesus, we put it on the line. If they did not, we say so. You can check every single one of them yourself in your own Bible, and you should. THREE. COUNTING YEARS WITH NO CALENDAR. Before the kings, nobody wrote BC dates. So where do our years come from? From the Word’s own numbers, added to a year we already know. L201 placed Solomon’s fourth year, when the temple was started, around 967 BC. Then 1 Kings 6:1 says that was \"the four hundred and eightieth year\" (1 Kings 6:1) after Israel left Egypt. So the exodus was around 1446 BC. Galatians 3:17 says the law came \"four hundred and thirty years after\" (Galatians 3:17) the promise to Abraham. So Abraham’s promise was around 1876 BC. Genesis 11 gives the ages from the flood to Abram, 352 years. Genesis 5 gives the ages from Adam to the flood, 1,656 years. Add it all up and the beginning is around 3959 BC. We mark all of these c., which means about, and we only add what the Word gives. We are not picking a side in some argument. We are doing the Word’s own arithmetic. Here is a small example of how the counting works. The Word says Adam was a hundred and thirty when Seth was born (Genesis 5:3). Seth was a hundred and five when Enos was born (Genesis 5:6). Keep going, father to son, and you reach Noah, who was six hundred when the flood came (Genesis 7:6). It is like adding up the ages in a family tree. For Abram there is one extra step, and the Word explains it itself. Terah died at two hundred and five (Genesis 11:32), Abram left Haran after his father died (Acts 7:4), and Abram was seventy-five then (Genesis 12:4). So Abram was born when Terah was a hundred and thirty. The Word answers its own question if you read all of it. FOUR. THE GARDEN. The very first promise came on the very day of the very first sin. Yahweh told the serpent: \"it shall bruise thy head, and thou shalt bruise his heel\" (Genesis 3:15). A Son of the woman would crush the serpent’s head, and get a wounded heel doing it. Paul says Jesus was \"made of a woman\" (Galatians 4:4), and Hebrews says that through His death He destroyed the one who \"had the power of death\" (Hebrews 2:14). That was a wait of thousands of years. Then Enoch, who walked with Yahweh, spoke of the Lord coming \"with ten thousands of his saints\" (Jude 1:14). That one is still ahead. FIVE. NOAH, ABRAHAM, JUDAH. Noah said \"Blessed be the LORD God of Shem\" (Genesis 9:26), and Luke lists Shem in Jesus’ family tree (Luke 3:36). Yahweh told Abram \"in thee shall all families of the earth be blessed\" (Genesis 12:3), and Paul says the seed is \"Christ\" (Galatians 3:16). Jacob promised the sceptre to Judah \"until Shiloh come\" (Genesis 49:10), and Jesus came from Judah (Hebrews 7:14). Think about how Judah’s promise sounds. A sceptre is the rod a king holds. Jacob was saying that the kings would come from Judah, and the kingship would stay there until the One it belonged to arrived. Hundreds of years later David, from Judah, became king. About a thousand years after that, Jesus, the Son of David, was born in Bethlehem of Judah. And Revelation calls Him \"the Lion of the tribe of Juda\" (Revelation 5:5). SIX. MOSES. The passover lamb could not have a bone broken (Exodus 12:46). At the cross the soldiers broke the other men’s legs but not His, and John says it happened so the Word would come true (John 19:36). Balaam saw \"a Star out of Jacob\" (Numbers 24:17), and the wise men followed His star (Matthew 2:2). Moses promised \"a Prophet\" (Deuteronomy 18:15) like himself, and Peter said that Prophet is Jesus (Acts 3:22). SEVEN. HANNAH, DAVID, NATHAN. Hannah was the first to sing of the Lord’s \"anointed\" (1 Samuel 2:10), the word that means Messiah. David wrote the psalms that Jesus kept: the Son of Psalms 2:7, the Holy One who would not rot in Psalms 16:10, the lots in Psalms 22:18, the betrayer in Psalms 41:9, the hatred without a cause in Psalms 69:4, the vinegar in Psalms 69:21, and the right hand in Psalms 110:1. Nathan promised a Son of David on the throne for ever (2 Samuel 7:12). The psalms are worth slowing down for. David lived about a thousand years before Jesus. He had no idea what a Roman cross was. Crucifixion had not even been invented. Yet he wrote about pierced hands, about lots cast for clothes, about vinegar given to someone thirsty. When those exact things happened at the cross, the Gospel writers pointed straight back at David’s songs. David himself said, \"The Spirit of the LORD spake by me\" (2 Samuel 23:2). That is how he could write it. EIGHT. THE PROPHETS. Jonah spent three days in the fish (Jonah 1:17), and Jesus said that was His sign (Matthew 12:40). Amos promised David’s fallen tent rebuilt (Amos 9:11). Hosea: \"called my son out of Egypt\" (Hosea 11:1). Micah: Bethlehem (Micah 5:2). Isaiah had the most of all: the virgin (Isaiah 7:14), the Child (Isaiah 9:6), the voice in the wilderness (Isaiah 40:3), the Servant (Isaiah 42:1), the sufferer who \"hath borne our griefs\" (Isaiah 53:4), and the Spirit on Him to preach good news (Isaiah 61:1). Jeremiah wrote of Rahel weeping (Jeremiah 31:15), which Matthew connects to Herod’s cruelty at Bethlehem. Isaiah deserves a second look, because he lived about seven hundred years before Jesus and still described Him so clearly that people sometimes call Isaiah the fifth Gospel. He saw a Child born who would be called \"The mighty God\" (Isaiah 9:6). He saw a Servant who would not shout or break a bruised reed. He saw a man despised and rejected, carrying other people’s sorrows, silent like a lamb. Seven hundred years is longer than the whole history of most countries today. And every word landed on one Person. NINE. AFTER THE EXILE. Zechariah saw the King on a donkey (Zechariah 9:9), the thirty pieces of silver (Zechariah 11:12), and the One \"whom they have pierced\" (Zechariah 12:10). Malachi promised the messenger (Malachi 3:1) and Elijah (Malachi 4:5), and Jesus said both pointed to John. One of these needs a careful word. When Matthew tells about the thirty pieces of silver, he says it was spoken by \"Jeremy the prophet\" (Matthew 27:9), and the words about the silver and the potter are written in Zechariah 11:12-13. We tell you both, just as the Word gives them. And notice how many of these promises came true in one single week, the week of the cross: the donkey, the silver, the betrayer, the thieves, the lots, the vinegar, the unbroken bones, the pierced side. Hundreds of years of promises, kept in a few days. TEN. NO DATE, NO GUESS. Job has no date in the Word, so we give none. But his words are some of the boldest on the line: \"For I know that my redeemer liveth\" (Job 19:25). Joel has no date either, but Peter said \"this is that which was spoken by the prophet Joel\" (Acts 2:16). A few psalms have no date too, like the stone the builders threw away (Psalms 118:22). Being honest about what the Word does not say is part of trusting what it does say. ELEVEN. THE WHOLE LINE, BY ERA. Here is every promise, who spoke it, where it was kept, and how long it waited. Before the Flood: Yahweh, in Eden: Genesis 3:15, kept in Galatians 4:4; Hebrews 2:14, 3,857 to 3,991 years later. Enoch: Jude 1:14-15, kept in Jude 1:14, no span counted. The patriarchs: Noah: Genesis 9:26, kept in Luke 3:36, 1,946 to 2,298 years later. Yahweh, to Abram: Genesis 12:3, kept in Galatians 3:8, 16, 1,869 to 1,872 years later. Yahweh, to Abraham: Genesis 22:18, kept in Acts 3:25-26, 1,842 to 1,883 years later. Jacob: Genesis 49:10, kept in Hebrews 7:14, 1,637 to 1,640 years later. Moses and the law: Moses: Exodus 12:46, kept in John 19:36, 1,474 to 1,478 years later. Balaam: Numbers 24:17, kept in Matthew 2:2; Revelation 22:16, 1,400 to 1,403 years later. Moses: Deuteronomy 18:15, kept in Acts 3:22-26, 1,433 to 1,439 years later. Judges and kings: Hannah: 1 Samuel 2:10, kept in Luke 1:69, more than 1,064 years later. David: Psalms 2:7, kept in Acts 13:33; Hebrews 1:5, 999 to 1,042 years later. David: Psalms 16:10, kept in Acts 2:27, 31; Acts 13:35, 999 to 1,042 years later. David: Psalms 22:18, kept in Matthew 27:35; John 19:24, 999 to 1,042 years later. David: Psalms 41:9, kept in John 13:18, 999 to 1,042 years later. David: Psalms 69:4, kept in John 15:25, 999 to 1,042 years later. David: Psalms 69:9, kept in Romans 15:3, 997 to 1,042 years later. David: Psalms 69:21, kept in John 19:28-29, 999 to 1,042 years later. David: Psalms 110:1, kept in Acts 2:34-35; Hebrews 1:13, 999 to 1,042 years later. Nathan: 2 Samuel 7:12-14, kept in Acts 13:23; Hebrews 1:5, 964 to 999 years later. The prophets before the exile: Jonah: Jonah 1:17, kept in Matthew 12:40, 782 to 825 years later. Amos: Amos 9:11-12, kept in Acts 15:15-16, no span counted. Hosea: Hosea 11:1, kept in Matthew 2:15, 711 to 751 years later. Micah: Micah 5:2, kept in Matthew 2:5-6, 680 to 746 years later. Isaiah: Isaiah 6:9-10, kept in Matthew 13:14; John 12:40-41, 767 to 772 years later. Isaiah: Isaiah 7:14, kept in Matthew 1:22-23, 726 to 731 years later. Isaiah: Isaiah 9:1-2, kept in Matthew 4:13-16, 713 to 769 years later. Isaiah: Isaiah 9:6-7, kept in Luke 1:32-33, 680 to 736 years later. Isaiah: Isaiah 28:16, kept in Romans 9:33, no span counted. Isaiah: Isaiah 40:3, kept in Matthew 3:3; Luke 3:4, 713 to 768 years later. Isaiah: Isaiah 42:1-4, kept in Matthew 12:17-21, 713 to 772 years later. Isaiah: Isaiah 52:15, kept in Romans 15:20-21, no span counted. Isaiah: Isaiah 53:1, kept in John 12:37-38, 715 to 772 years later. Isaiah: Isaiah 53:4, kept in Matthew 8:16-17, 713 to 772 years later. Isaiah: Isaiah 53:12, kept in Mark 15:28, 715 to 772 years later. Isaiah: Isaiah 55:3, kept in Acts 13:34, 715 to 772 years later. Isaiah: Isaiah 59:20, kept in Romans 11:26, no span counted. Isaiah: Isaiah 61:1-2, kept in Luke 4:18-21, 713 to 769 years later. Jeremiah: Jeremiah 31:15, kept in Matthew 2:16-18, 580 to 623 years later. After the exile: Zechariah: Zechariah 9:9, kept in Matthew 21:4-5; John 12:14-15, 509 to 552 years later. Zechariah: Zechariah 11:12-13, kept in Matthew 27:9-10, 509 to 552 years later. Zechariah: Zechariah 12:10, kept in John 19:37, 509 to 552 years later. Malachi: Malachi 3:1, kept in Matthew 11:10; Mark 1:2; Luke 7:27, 457 to 488 years later. Malachi: Malachi 4:5, kept in Matthew 11:14; Mark 9:13, 457 to 488 years later. No date in the Word: Job: Job 19:25-26, kept in Galatians 3:13, no span counted. Joel: Joel 2:28-32, kept in Acts 2:16-21, no span counted. the sons of Korah: Psalms 45:6-7, kept in Hebrews 1:8-9, no span counted. Asaph: Psalms 78:2, kept in Matthew 13:34-35, no span counted. a psalmist the Word does not name: Psalms 102:25-27, kept in Hebrews 1:10-12, no span counted. a psalmist the Word does not name: Psalms 118:22, kept in Matthew 21:42; Acts 4:11, no span counted. Look at that. The longest wait is the first promise, and the shortest is still hundreds of years. Different people, different centuries, one Person at the end of every line. Jesus said it Himself: \"all things must be fulfilled, which were written in the law of Moses, and in the prophets, and in the psalms, concerning me\" (Luke 24:44). One more thing to notice: the people on this line did not all know each other, did not live in the same centuries, and could not have planned it together. That is what makes the line so strong. THE CLOSE. So David was not first. Yahweh started the promise in a garden, added to it through Noah, Abraham, Judah, Moses, Hannah, David and the prophets, and kept it in Jesus. \"There failed not ought of any good thing which the LORD had spoken unto the house of Israel; all came to pass\" (Joshua 21:45). If He kept a promise across four thousand years, He will keep His word to you. Jesus is the Lamb of Yahweh and the Eternal Son of Yahweh.",
+      "teen": "The whole line of promise: every promise from Eden to Malachi, and the years to Jesus. This lesson exists because Darrell pushed back on the one before it. L201 counted the years from David and the prophets to Jesus, and he asked the obvious question: how is David first, and not Moses, or even Noah? Then he widened it to Isaiah, to Job, to everyone, and asked for a new lesson with all of them from the beginning. He was right to ask, and the answer is worth getting exactly. We begin in the Word. ONE. DAVID WAS WHERE THE QUESTION STARTED, NOT WHERE THE PROMISE STARTED. L201 opened with David because the question that produced it named David first. That was a choice about the question, not a claim about the promise. The Word is explicit that the promise predates every king. Zacharias, at John’s birth, praised Yahweh who spoke \"by the mouth of his holy prophets, which have been since the world began\" (Luke 1:70). Peter said the same in Solomon’s porch (Acts 3:21), and added, \"all the prophets from Samuel and those that follow after\" (Acts 3:24). Most decisive of all, Jesus Himself, on the Emmaus road, taught the whole sweep: \"And beginning at Moses and all the prophets, he expounded unto them in all the scriptures the things concerning himself\" (Luke 24:27). If Jesus started His own exposition at Moses, who wrote the beginning, then a lesson on the promise has to start there too. Hebrews frames the whole project in its opening sentence. Yahweh spoke \"at sundry times and in divers manners\" (Hebrews 1:1), that is, at many different points in history and through many different kinds of speech: an oracle over a serpent, a blessing over a son, a law about a lamb, a psalm, a sign. Then He \"Hath in these last days spoken unto us by his Son\" (Hebrews 1:2). The point is not that the fathers heard fragments of a different message. It is that every fragment belonged to one message, and the Son is its completion. TWO. A RULE THE WORD SUPPLIES. A list of messianic prophecies can easily become a list of someone’s favourites, padded with verses that only sound right. To avoid that, the rule here is taken from the New Testament’s own language. An Old Testament passage counts when the New Testament says it was fulfilled, or says this is that which was spoken, or introduces it with as it is written or thus it is written. Applied to the whole New Testament, that search returns 69 verses. 34 of them name a specific passage kept in Jesus or applied to Him. 11 speak of the Scriptures fulfilled in Him in general, like Matthew 26:54 and Acts 13:29. 24 use the same formula for other things, such as the just living by faith (Romans 1:17) or Abraham’s faith counted as righteousness (James 2:23), and they are listed rather than hidden. The apostolic sermons of Acts 2, 3 and 13, together with Hebrews 1, add 8 more passages. Finally, 11 are promises Darrell named or that the Word ties to Jesus in other words, and each one states how. The line holds 49 promises. Haggai 2:7 does not qualify; the New Testament never quotes it. Neither does Daniel’s seventy weeks, which L201 already teaches in detail. Notice what the rule does and does not do. It does not decide in advance which verses are messianic and then look for support. It lets the apostles and Jesus Himself do the identifying, and then counts. That is what makes the list checkable. Anyone with a concordance can run the same search and get the same 69. It also means some familiar verses fall outside the line, and the lesson says so rather than stretching the rule to include them. A rule that bends whenever it is inconvenient is not a rule. THREE. DATES BEFORE THE KINGS, WORKED FROM THE TEXT. Outside records stop helping before the monarchy, but the Word does not stop giving numbers. The method is stated once and followed throughout: the calendar year comes from adding the Word’s own numbers to the fixed anchors already in L201, and every result is marked c. Solomon’s fourth year sits at c. 967 to 966 BC. First Kings calls it \"the four hundred and eightieth year\" (1 Kings 6:1) after the exodus, which puts the exodus at c. 1446 to 1445 BC. Exodus gives four hundred and thirty years (Exodus 12:40-41), and Galatians explains what they measure: the law came \"four hundred and thirty years after\" (Galatians 3:17) the covenant made with Abraham. So the promise of Genesis 12:3 stands at c. 1876 to 1875 BC. The patriarchs’ ages confirm the split: twenty-five years to Isaac, sixty to Jacob, a hundred and thirty to Jacob’s arrival in Egypt, which is 215 years, leaving 215 in Egypt. Genesis 11 supplies 222 years from the flood to Terah’s birth, and the Word resolves Abram’s own birth by comparing Genesis 11:32, Acts 7:4 and Genesis 12:4: Terah was a hundred and thirty, so the flood to Abram is 352 years and the flood falls c. 2303 to 2302 BC. Genesis 5 supplies 1,656 years from Adam to the flood, placing the beginning c. 3959 to 3958 BC. This is arithmetic on the Word’s numbers, not a verdict between chronology camps, and we leave it there. Why does any of this matter? Because distance is evidence. A prediction made a week before its fulfillment proves little. A prediction made centuries before, by someone who could not have arranged the outcome, recorded in a text that was already old and widely copied, is different. The intervals on this line are not decoration. They are the measure of how far ahead Yahweh spoke, and they are computed from both ends so that no one can accuse the lesson of rounding in its own favour. FOUR. EDEN AND ENOCH. The line opens with judgment on the serpent, which carries the first promise inside it: \"it shall bruise thy head, and thou shalt bruise his heel\" (Genesis 3:15). A singular Seed of the woman defeats the serpent at personal cost. The New Testament answers both halves. The Son came \"made of a woman\" (Galatians 4:4), and by His death destroyed \"him that had the power of death\" (Hebrews 2:14). The adversary gets a lowercase name and a crushed head. Enoch, seventh from Adam, prophesied the Lord’s coming \"with ten thousands of his saints\" (Jude 1:14), a promise still ahead, so no interval is computed for it. FIVE. THE PATRIARCHS. Noah’s blessing names Yahweh as \"the LORD God of Shem\" (Genesis 9:26), and Luke traces Jesus through \"Sem\" (Luke 3:36). The Word dates it only after the flood and within Noah’s remaining three hundred and fifty years, so its span is wide on purpose. To Abram, \"in thee shall all families of the earth be blessed\" (Genesis 12:3), and later, \"in thy seed shall all the nations of the earth be blessed\" (Genesis 22:18). Paul’s comment is precise: \"And to thy seed, which is Christ\" (Galatians 3:16). Jacob’s blessing on Judah promised the sceptre \"until Shiloh come\" (Genesis 49:10), and Hebrews notes \"that our Lord sprang out of Juda\" (Hebrews 7:14). SIX. MOSES AND THE LAW. The passover rule, \"neither shall ye break a bone thereof\" (Exodus 12:46), was kept at the cross, as John records (John 19:36). Balaam, an unwilling witness, saw \"a Star out of Jacob\" (Numbers 24:17). Moses promised \"a Prophet\" (Deuteronomy 18:15) like himself, and Peter identified Him as Jesus (Acts 3:22-23). SEVEN. JUDGES AND KINGS. Hannah’s song ends with \"the horn of his anointed\" (1 Samuel 2:10), the Word’s first use of the anointed for a king; Zacharias echoes the horn of salvation (Luke 1:69). The Word does not date her song, but it bounds it: Eli’s death preceded the ark’s twenty years at Kirjathjearim, which preceded Saul’s forty, so she sang before c. 1070 BC, and her interval is stated as a minimum. David’s psalms supply eight rows, from the begotten Son of Psalms 2:7 to the right hand of Psalms 110:1, and Nathan’s oracle of the eternal throne (2 Samuel 7:12-14) is set on Jesus in both Acts 13:23 and Hebrews 1:5. The psalms of David deserve a pause. David reigned about a thousand years before the cross, long before Roman crucifixion existed. Yet the Gospel writers repeatedly point back to his songs at the moment of the Passion: the lots for the garments, the friend who betrayed, the vinegar for thirst, the unbroken bones. David explained how he could write that way: \"The Spirit of the LORD spake by me, and his word was in my tongue\" (2 Samuel 23:2). Peter explained it the same way, calling David a prophet who \"spake of the resurrection of Christ\" (Acts 2:31). EIGHT. THE PROPHETS BEFORE THE EXILE. Jonah, placed by 2 Kings 14:25 in the reign of Jeroboam son of Joash, becomes the sign of the three days (Matthew 12:40). Amos’s rebuilt tabernacle of David (Amos 9:11) is applied by James to the Gentiles (Acts 15:16). Hosea 11:1 and Micah 5:2 point to Egypt and Bethlehem. Isaiah supplies fourteen rows by himself, from the hardened hearers of chapter 6, whom John says Isaiah saw when \"he saw his glory\" (John 12:41), through the Child of chapter 9 and the Servant of chapters 42 and 53, to the anointed Preacher of chapter 61. Jeremiah 31:15 is set beside Herod’s massacre at Bethlehem (Matthew 2:17-18). Isaiah alone accounts for more rows than any era outside his own. His prophecies cover the birth, the Galilean ministry, the forerunner, the healing, the rejection, the death among transgressors and the resurrection mercies, which is almost the whole shape of the Gospels written seven centuries early. Micah, his contemporary, supplies the town. Hosea, a little earlier, supplies the flight and return. Three men of one generation, each holding one piece, and the pieces fit one Child. NINE. AFTER THE EXILE. Zechariah gives the colt (Zechariah 9:9), the thirty pieces of silver (Zechariah 11:12-13), and the pierced One (Zechariah 12:10). Matthew attributes the silver saying to \"Jeremy the prophet\" (Matthew 27:9), while the words stand written in Zechariah 11; both facts are reported as the text gives them. Malachi promises the messenger (Malachi 3:1) and Elijah (Malachi 4:5), and Jesus identifies John as both (Matthew 11:10, 14). Consider the concentration at the end. Of the dated rows, a remarkable number are kept inside a single week in Jerusalem: the entry on the colt, the betrayal price, the betrayer at the table, the numbering with transgressors, the lots, the thirst, the unbroken bones, the pierced side. Promises spoken by Moses, David, Isaiah and Zechariah, across more than nine centuries, converge on a few days. Coincidence does not produce that pattern. A single Author does. TEN. WHAT THE WORD LEAVES UNDATED. Job has no king and no year. Ezekiel 14:14 and James 5:11 treat him as a real man, but the text never dates him, so neither do we. His confession, \"For I know that my redeemer liveth\" (Job 19:25), is not quoted in the New Testament; it stands here because Darrell asked for it and because the Word names Christ as the One who \"hath redeemed us\" (Galatians 3:13). Joel names no king, yet Pentecost is explicitly \"that which was spoken by the prophet Joel\" (Acts 2:16). Psalms 45, 78, 102 and 118 also carry no date. Refusing to invent dates is part of the same honesty that lets the dated rows be trusted. It is also worth saying what the undated rows do not mean. A missing date is not a weakness in the Word, and it is not an invitation to fill the gap with speculation. The Word gives what it intends to give, and a careful reader follows it that far and stops. The promises of Job and Joel are just as true without a year attached; they simply do not enter the arithmetic. ELEVEN. THE LINE, COUNTED. Each row gives the promise, where the New Testament keeps it, and the interval computed from both ends with no year zero. Era one, before the flood. Genesis 3:15 to Galatians 4:4; Hebrews 2:14: 3,857 to 3,991 years. Jude 1:14-15 to Jude 1:14: no span counted. Era two, the patriarchs. Genesis 9:26 to Luke 3:36: 1,946 to 2,298 years. Genesis 12:3 to Galatians 3:8, 16: 1,869 to 1,872 years. Genesis 22:18 to Acts 3:25-26: 1,842 to 1,883 years. Genesis 49:10 to Hebrews 7:14: 1,637 to 1,640 years. Era three, Moses and the law. Exodus 12:46 to John 19:36: 1,474 to 1,478 years. Numbers 24:17 to Matthew 2:2; Revelation 22:16: 1,400 to 1,403 years. Deuteronomy 18:15 to Acts 3:22-26: 1,433 to 1,439 years. Era four, judges and kings. 1 Samuel 2:10 to Luke 1:69: more than 1,064 years. Psalms 2:7 to Acts 13:33; Hebrews 1:5: 999 to 1,042 years. Psalms 16:10 to Acts 2:27, 31; Acts 13:35: 999 to 1,042 years. Psalms 22:18 to Matthew 27:35; John 19:24: 999 to 1,042 years. Psalms 41:9 to John 13:18: 999 to 1,042 years. Psalms 69:4 to John 15:25: 999 to 1,042 years. Psalms 69:9 to Romans 15:3: 997 to 1,042 years. Psalms 69:21 to John 19:28-29: 999 to 1,042 years. Psalms 110:1 to Acts 2:34-35; Hebrews 1:13: 999 to 1,042 years. 2 Samuel 7:12-14 to Acts 13:23; Hebrews 1:5: 964 to 999 years. Era five, the prophets before the exile. Jonah 1:17 to Matthew 12:40: 782 to 825 years. Amos 9:11-12 to Acts 15:15-16: no span counted. Hosea 11:1 to Matthew 2:15: 711 to 751 years. Micah 5:2 to Matthew 2:5-6: 680 to 746 years. Isaiah 6:9-10 to Matthew 13:14; John 12:40-41: 767 to 772 years. Isaiah 7:14 to Matthew 1:22-23: 726 to 731 years. Isaiah 9:1-2 to Matthew 4:13-16: 713 to 769 years. Isaiah 9:6-7 to Luke 1:32-33: 680 to 736 years. Isaiah 28:16 to Romans 9:33: no span counted. Isaiah 40:3 to Matthew 3:3; Luke 3:4: 713 to 768 years. Isaiah 42:1-4 to Matthew 12:17-21: 713 to 772 years. Isaiah 52:15 to Romans 15:20-21: no span counted. Isaiah 53:1 to John 12:37-38: 715 to 772 years. Isaiah 53:4 to Matthew 8:16-17: 713 to 772 years. Isaiah 53:12 to Mark 15:28: 715 to 772 years. Isaiah 55:3 to Acts 13:34: 715 to 772 years. Isaiah 59:20 to Romans 11:26: no span counted. Isaiah 61:1-2 to Luke 4:18-21: 713 to 769 years. Jeremiah 31:15 to Matthew 2:16-18: 580 to 623 years. Era six, after the exile. Zechariah 9:9 to Matthew 21:4-5; John 12:14-15: 509 to 552 years. Zechariah 11:12-13 to Matthew 27:9-10: 509 to 552 years. Zechariah 12:10 to John 19:37: 509 to 552 years. Malachi 3:1 to Matthew 11:10; Mark 1:2; Luke 7:27: 457 to 488 years. Malachi 4:5 to Matthew 11:14; Mark 9:13: 457 to 488 years. Era seven, the promises the Word leaves undated. Job 19:25-26 to Galatians 3:13: no span counted. Joel 2:28-32 to Acts 2:16-21: no span counted. Psalms 45:6-7 to Hebrews 1:8-9: no span counted. Psalms 78:2 to Matthew 13:34-35: no span counted. Psalms 102:25-27 to Hebrews 1:10-12: no span counted. Psalms 118:22 to Matthew 21:42; Acts 4:11: no span counted. A final observation on the numbers. The oldest promise waited the longest, and the youngest still waited centuries. None of them was hurried, and none of them was forgotten. Whatever else these intervals teach, they teach patience: Yahweh keeps time differently than we do, but He keeps it. THE CLOSE. So the answer to Darrell’s question is that David was never first. The promise began in Eden and was renewed across roughly four thousand years through very different people, and the New Testament records its keeping in one life. Jesus summed it up: \"all things must be fulfilled, which were written in the law of Moses, and in the prophets, and in the psalms, concerning me\" (Luke 24:44). And the Word’s own verdict on Yahweh’s promises is this: \"There failed not ought of any good thing which the LORD had spoken unto the house of Israel; all came to pass\" (Joshua 21:45). The same faithfulness is aimed at you. Jesus is the Lamb of Yahweh and the Eternal Son of Yahweh.",
+      "senior": "The whole line of promise: every promise from Eden to Malachi, and the years to Jesus. Darrell’s question, when he read L201, was a question an older believer would ask. He had just been shown the years from David and the prophets to Jesus, and he asked how David could come first, and not Moses, or even Noah. Then he named Isaiah and Job and the rest, and asked that all of them be set down together, from the beginning. This lesson is that answer, and it begins by owning what L201 did and why. We begin in the Word. ONE. THE QUESTION BEGAN WITH DAVID; THE PROMISE DID NOT. L201 began with David because the question behind it began with David. That was the shape of the question, not the age of the promise. Scripture is plain that the promise is older than the throne. Zacharias blessed Yahweh who spoke \"by the mouth of his holy prophets, which have been since the world began\" (Luke 1:70). Peter preached the same in the temple, speaking of all that Yahweh had spoken \"since the world began\" (Acts 3:21). And the risen Lord, walking to Emmaus with two grieving disciples, did not start with David at all: \"And beginning at Moses and all the prophets, he expounded unto them in all the scriptures the things concerning himself\" (Luke 24:27). Many of us have longed to have heard that conversation. In a sense, this lesson retraces its route. Hebrews opens with the same conviction, that Yahweh \"at sundry times and in divers manners spake in time past unto the fathers by the prophets\" (Hebrews 1:1), and has now spoken finally by His Son. The many times and many manners are the subject of this lesson. TWO. THE RULE, TAKEN FROM THE NEW TESTAMENT ITSELF. Lists of prophecies about Christ have been made for centuries, and some have grown by addition until they carry verses that only resemble their fulfilment. To answer Darrell’s request for all of them without that drift, the rule is the New Testament’s own vocabulary. A passage belongs on the line when the New Testament says it was fulfilled, says this is that which was spoken, or introduces it with as it is written or thus it is written; or when the sermons of Acts 2, 3 and 13, or the first chapter of Hebrews, set it on Jesus. Across the whole New Testament the formulas occur in 69 verses. 34 name a passage fulfilled in Jesus or applied to Him; 11 speak of the Scriptures fulfilled in Him without naming one; 24 apply the same words to other matters, and are named rather than quietly dropped. The sermons add 8 passages, and 11 are promises Darrell named or that the Word ties to Him in other words, each with its tie stated. So 49 promises stand on the line. Haggai 2:7 does not, since the New Testament does not quote it, and Daniel’s weeks are left to L201, which teaches them fully. THREE. THE YEARS BEFORE THE KINGS. Where the outside records fall silent, the Word keeps speaking in numbers, and the method here is simple and stated once: before the kings, the calendar year comes from adding the Word’s own numbers to the fixed anchors already in L201, and every such year is marked c. From Solomon’s fourth year, c. 967 to 966 BC, \"the four hundred and eightieth year\" (1 Kings 6:1) reaches back to the exodus, c. 1446 to 1445 BC. The four hundred and thirty years of Exodus 12:40-41 are explained by Paul, who says the law came \"four hundred and thirty years after\" (Galatians 3:17) the covenant with Abraham; so the promise of Genesis 12:3 falls c. 1876 to 1875 BC, and the ages of Isaac, Jacob and the descent into Egypt divide those years evenly, 215 and 215. The generations of Genesis 11 give 352 years from the flood to Abram, once Genesis 11:32, Acts 7:4 and Genesis 12:4 are read together to show that Terah was a hundred and thirty at Abram’s birth; and the generations of Genesis 5 give 1,656 years from Adam to the flood. The beginning therefore stands c. 3959 to 3958 BC. These are the Word’s numbers added up; nothing more is claimed, and no debate is staged. It is worth pausing over what that arithmetic does and does not claim. It does not claim that the Word was written as a chronicle for modern historians, nor that every reader in every generation has added the numbers identically. It claims only that the Word supplies the numbers, that the numbers can be added, and that when they are added from an anchor history has already fixed, they yield the years shown here, each marked approximate. That is a modest claim, and a sufficient one. The distances it reveals are so great that no plausible adjustment of a year or two anywhere in the chain alters the conclusion: these promises were spoken long before anyone could have arranged their keeping. FOUR. THE PROMISES, ERA BY ERA. In Eden, before any covenant or law, Yahweh told the serpent that the woman’s Seed \"shall bruise thy head, and thou shalt bruise his heel\" (Genesis 3:15). The Son came \"made of a woman\" (Galatians 4:4), and through death destroyed \"him that had the power of death, that is, the devil\" (Hebrews 2:14). Enoch walked with Yahweh three hundred years and prophesied the Lord’s coming with His saints (Jude 1:14), a promise still ahead. After the flood Noah blessed \"the LORD God of Shem\" (Genesis 9:26), and Shem stands in the Lord’s genealogy (Luke 3:36). Abram received the promise of blessing for \"all families of the earth\" (Genesis 12:3), renewed after Moriah to his seed (Genesis 22:18), and Paul reads the seed as \"Christ\" (Galatians 3:16). Dying Jacob gave Judah the sceptre \"until Shiloh come\" (Genesis 49:10). Moses fixed the passover rule that no bone be broken (Exodus 12:46), kept at the cross (John 19:36); Balaam saw \"a Star out of Jacob\" (Numbers 24:17); Moses promised \"a Prophet\" (Deuteronomy 18:15) like himself, whom Peter named as Jesus (Acts 3:22). Hannah first sang of \"his anointed\" (1 Samuel 2:10), and Zacharias sang its answer (Luke 1:69). David, who said \"The Spirit of the LORD spake by me\" (2 Samuel 23:2), gave eight psalms on the line, from the begotten Son to the right hand, and Nathan gave the everlasting throne (2 Samuel 7:12-14). The prophets before the exile gave the sign of Jonah, the tabernacle of Amos, the son out of Egypt of Hosea, the Bethlehem of Micah, fourteen passages of Isaiah, including \"For unto us a child is born\" (Isaiah 9:6) and \"Surely he hath borne our griefs\" (Isaiah 53:4), and the weeping of Jeremiah 31:15. After the exile, Zechariah gave the colt, the silver and the pierced One; Malachi gave the messenger (Malachi 3:1) and Elijah (Malachi 4:5). Consider, too, the variety of those whom Yahweh used. The line runs through a man who simply walked with Him, through a righteous man in a corrupt generation, through a childless wanderer, through a deceiver who became a prince with Yahweh, through a pagan diviner hired to curse, through a stammering lawgiver, through a barren woman, through an adulterous king who repented, and through prophets who were mocked, imprisoned and ignored. None of them could see the whole. Peter says the prophets themselves \"enquired and searched diligently\" (1 Peter 1:10) about the salvation they announced. They held their piece of the line faithfully without seeing its end, and that, for many of us in later life, is exactly the calling we recognise. FIVE. WHAT IS LEFT UNDATED, AND WHY. Job names no king and gives no year. The Word honours him as a real man (Ezekiel 14:14; James 5:11), and many of us have leaned on his words at a graveside: \"For I know that my redeemer liveth, and that he shall stand at the latter day upon the earth\" (Job 19:25). The New Testament does not quote them, but it names our Redeemer (Galatians 3:13), and Job is on the line because Darrell asked for him. Joel gives no reign, yet Peter’s \"this is that\" (Acts 2:16) stands on him. Four psalms, 45, 78, 102 and 118, carry no date. We leave all six without a year, because inventing one would dishonour the very Word we are counting from. One further honesty belongs here. When Matthew records the thirty pieces of silver, he attributes the saying to \"Jeremy the prophet\" (Matthew 27:9), while the words concerning the silver and the potter stand written in Zechariah 11:12-13. We report both, exactly as the Word gives them, and place the row under Zechariah, where the words are found. SIX. THE WHOLE LINE, WITH ITS YEARS. Every row below gives the speaker, the passage, the years of speaking, the New Testament keeping, and the interval computed from both ends with no year zero. Before the flood. Yahweh, in Eden spoke Genesis 3:15, and the New Testament records its keeping in Galatians 4:4; Hebrews 2:14, 3,857 to 3,991 years afterwards. Enoch spoke Jude 1:14-15, and the New Testament records its keeping in Jude 1:14, with no interval counted. The patriarchs. Noah spoke Genesis 9:26, and the New Testament records its keeping in Luke 3:36, 1,946 to 2,298 years afterwards. Yahweh, to Abram spoke Genesis 12:3, and the New Testament records its keeping in Galatians 3:8, 16, 1,869 to 1,872 years afterwards. Yahweh, to Abraham spoke Genesis 22:18, and the New Testament records its keeping in Acts 3:25-26, 1,842 to 1,883 years afterwards. Jacob spoke Genesis 49:10, and the New Testament records its keeping in Hebrews 7:14, 1,637 to 1,640 years afterwards. Moses and the law. Moses spoke Exodus 12:46, and the New Testament records its keeping in John 19:36, 1,474 to 1,478 years afterwards. Balaam spoke Numbers 24:17, and the New Testament records its keeping in Matthew 2:2; Revelation 22:16, 1,400 to 1,403 years afterwards. Moses spoke Deuteronomy 18:15, and the New Testament records its keeping in Acts 3:22-26, 1,433 to 1,439 years afterwards. The judges and the kings. Hannah spoke 1 Samuel 2:10, and the New Testament records its keeping in Luke 1:69, more than 1,064 years afterwards. David spoke Psalms 2:7, and the New Testament records its keeping in Acts 13:33; Hebrews 1:5, 999 to 1,042 years afterwards. David spoke Psalms 16:10, and the New Testament records its keeping in Acts 2:27, 31; Acts 13:35, 999 to 1,042 years afterwards. David spoke Psalms 22:18, and the New Testament records its keeping in Matthew 27:35; John 19:24, 999 to 1,042 years afterwards. David spoke Psalms 41:9, and the New Testament records its keeping in John 13:18, 999 to 1,042 years afterwards. David spoke Psalms 69:4, and the New Testament records its keeping in John 15:25, 999 to 1,042 years afterwards. David spoke Psalms 69:9, and the New Testament records its keeping in Romans 15:3, 997 to 1,042 years afterwards. David spoke Psalms 69:21, and the New Testament records its keeping in John 19:28-29, 999 to 1,042 years afterwards. David spoke Psalms 110:1, and the New Testament records its keeping in Acts 2:34-35; Hebrews 1:13, 999 to 1,042 years afterwards. Nathan spoke 2 Samuel 7:12-14, and the New Testament records its keeping in Acts 13:23; Hebrews 1:5, 964 to 999 years afterwards. The prophets before the exile. Jonah spoke Jonah 1:17, and the New Testament records its keeping in Matthew 12:40, 782 to 825 years afterwards. Amos spoke Amos 9:11-12, and the New Testament records its keeping in Acts 15:15-16, with no interval counted. Hosea spoke Hosea 11:1, and the New Testament records its keeping in Matthew 2:15, 711 to 751 years afterwards. Micah spoke Micah 5:2, and the New Testament records its keeping in Matthew 2:5-6, 680 to 746 years afterwards. Isaiah spoke Isaiah 6:9-10, and the New Testament records its keeping in Matthew 13:14; John 12:40-41, 767 to 772 years afterwards. Isaiah spoke Isaiah 7:14, and the New Testament records its keeping in Matthew 1:22-23, 726 to 731 years afterwards. Isaiah spoke Isaiah 9:1-2, and the New Testament records its keeping in Matthew 4:13-16, 713 to 769 years afterwards. Isaiah spoke Isaiah 9:6-7, and the New Testament records its keeping in Luke 1:32-33, 680 to 736 years afterwards. Isaiah spoke Isaiah 28:16, and the New Testament records its keeping in Romans 9:33, with no interval counted. Isaiah spoke Isaiah 40:3, and the New Testament records its keeping in Matthew 3:3; Luke 3:4, 713 to 768 years afterwards. Isaiah spoke Isaiah 42:1-4, and the New Testament records its keeping in Matthew 12:17-21, 713 to 772 years afterwards. Isaiah spoke Isaiah 52:15, and the New Testament records its keeping in Romans 15:20-21, with no interval counted. Isaiah spoke Isaiah 53:1, and the New Testament records its keeping in John 12:37-38, 715 to 772 years afterwards. Isaiah spoke Isaiah 53:4, and the New Testament records its keeping in Matthew 8:16-17, 713 to 772 years afterwards. Isaiah spoke Isaiah 53:12, and the New Testament records its keeping in Mark 15:28, 715 to 772 years afterwards. Isaiah spoke Isaiah 55:3, and the New Testament records its keeping in Acts 13:34, 715 to 772 years afterwards. Isaiah spoke Isaiah 59:20, and the New Testament records its keeping in Romans 11:26, with no interval counted. Isaiah spoke Isaiah 61:1-2, and the New Testament records its keeping in Luke 4:18-21, 713 to 769 years afterwards. Jeremiah spoke Jeremiah 31:15, and the New Testament records its keeping in Matthew 2:16-18, 580 to 623 years afterwards. After the exile. Zechariah spoke Zechariah 9:9, and the New Testament records its keeping in Matthew 21:4-5; John 12:14-15, 509 to 552 years afterwards. Zechariah spoke Zechariah 11:12-13, and the New Testament records its keeping in Matthew 27:9-10, 509 to 552 years afterwards. Zechariah spoke Zechariah 12:10, and the New Testament records its keeping in John 19:37, 509 to 552 years afterwards. Malachi spoke Malachi 3:1, and the New Testament records its keeping in Matthew 11:10; Mark 1:2; Luke 7:27, 457 to 488 years afterwards. Malachi spoke Malachi 4:5, and the New Testament records its keeping in Matthew 11:14; Mark 9:13, 457 to 488 years afterwards. Without a date in the Word. Job spoke Job 19:25-26, and the New Testament records its keeping in Galatians 3:13, with no interval counted. Joel spoke Joel 2:28-32, and the New Testament records its keeping in Acts 2:16-21, with no interval counted. the sons of Korah spoke Psalms 45:6-7, and the New Testament records its keeping in Hebrews 1:8-9, with no interval counted. Asaph spoke Psalms 78:2, and the New Testament records its keeping in Matthew 13:34-35, with no interval counted. a psalmist the Word does not name spoke Psalms 102:25-27, and the New Testament records its keeping in Hebrews 1:10-12, with no interval counted. a psalmist the Word does not name spoke Psalms 118:22, and the New Testament records its keeping in Matthew 21:42; Acts 4:11, with no interval counted. Read slowly, the list becomes a roll call of faithfulness, and it rewards being read aloud, one row at a time, with the intervals given their full weight. THE CLOSE. Darrell’s instinct was right: David was not first. The promise was spoken in a garden, kept alive through a man who walked with Yahweh, a shipbuilder, a wanderer, a dying father, a reluctant seer, a lawgiver, a praying mother, a shepherd king and the prophets, and kept in one life, as Jesus said: \"all things must be fulfilled, which were written in the law of Moses, and in the prophets, and in the psalms, concerning me\" (Luke 24:44). For those of us who have waited long on a promise ourselves, this line is a comfort. \"There failed not ought of any good thing which the LORD had spoken unto the house of Israel; all came to pass\" (Joshua 21:45). Jesus is the Lamb of Yahweh and the Eternal Son of Yahweh."
+    },
+    "quiz": {
+      "questions": [
+        {
+          "q": "Why did L201 begin with David, and not with Moses or Noah?",
+          "options": [
+            "Because the promise began with David",
+            "Because the question that made L201 named David first; the promise itself is older",
+            "Because Moses and Noah made no promises",
+            "Because the Word gives no dates before David"
+          ],
+          "answer": 1,
+          "explain": "L201 answered a question about David. The promise runs from Eden: Yahweh spoke \"by the mouth of his holy prophets, which have been since the world began\" (Luke 1:70)."
+        },
+        {
+          "q": "Where does the line of promise begin?",
+          "options": [
+            "At the call of Abraham",
+            "At Mount Sinai",
+            "In Eden, the day sin came in",
+            "At David’s anointing"
+          ],
+          "answer": 2,
+          "explain": "Yahweh told the serpent, \"it shall bruise thy head, and thou shalt bruise his heel\" (Genesis 3:15), and the Son came \"made of a woman\" (Galatians 4:4)."
+        },
+        {
+          "q": "How does this lesson decide which Old Testament passages are on the line?",
+          "options": [
+            "By a list of favourites",
+            "By the New Testament’s own words: fulfilled, this is that which was spoken, as it is written, and the apostles’ sermons",
+            "By how often a verse is quoted in sermons today",
+            "By whether the verse mentions a king"
+          ],
+          "answer": 1,
+          "explain": "The New Testament uses those formulas in 69 verses; 34 of them name a passage kept in Jesus or set on Him, and the rest are named too."
+        },
+        {
+          "q": "What does Galatians 3:17 say the four hundred and thirty years measure?",
+          "options": [
+            "From Jacob’s death to the exodus",
+            "From the covenant with Abraham to the law",
+            "From the flood to Abraham",
+            "From the exodus to the temple"
+          ],
+          "answer": 1,
+          "explain": "Paul writes that the covenant came first, and \"the law, which was four hundred and thirty years after\" (Galatians 3:17), cannot make the promise of none effect."
+        },
+        {
+          "q": "Adding the ages of Genesis 5, how many years from Adam to the flood?",
+          "options": [
+            "1,656 years",
+            "480 years",
+            "430 years",
+            "4,000 years"
+          ],
+          "answer": 0,
+          "explain": "From \"Adam lived an hundred and thirty years, and begat a son\" (Genesis 5:3) to Noah at six hundred when the flood came, the ages add to 1,656."
+        },
+        {
+          "q": "What did Moses’ passover law say that was kept at the cross?",
+          "options": [
+            "That the lamb be eaten standing",
+            "That not a bone of it be broken",
+            "That it be killed at noon",
+            "That it be a year old"
+          ],
+          "answer": 1,
+          "explain": "Moses said, \"neither shall ye break a bone thereof\" (Exodus 12:46), and John writes that it was done \"that the scripture should be fulfilled, A bone of him shall not be broken\" (John 19:36)."
+        },
+        {
+          "q": "Which promise on the line does the Word give no date for?",
+          "options": [
+            "Genesis 12:3, to Abram",
+            "Job 19:25, my redeemer liveth",
+            "Micah 5:2, Bethlehem",
+            "Malachi 3:1, the messenger"
+          ],
+          "answer": 1,
+          "explain": "Job names no king and gives no year, so we give none: \"For I know that my redeemer liveth\" (Job 19:25)."
+        },
+        {
+          "q": "Who saw a Star out of Jacob?",
+          "options": [
+            "Balaam",
+            "Isaac",
+            "Samuel",
+            "Nehemiah"
+          ],
+          "answer": 0,
+          "explain": "Balaam, hired to curse, said \"there shall come a Star out of Jacob\" (Numbers 24:17), and the wise men asked for the King whose star they had seen (Matthew 2:2)."
+        },
+        {
+          "q": "Why is Haggai 2:7 not on the line?",
+          "options": [
+            "Because Haggai was not a prophet",
+            "Because the New Testament does not quote that verse",
+            "Because it has no date",
+            "Because it was kept before Jesus"
+          ],
+          "answer": 1,
+          "explain": "The rule takes the line from the New Testament’s own words. Hebrews quotes the verse before it, \"Yet once more I shake not the earth only, but also heaven\" (Hebrews 12:26), not Haggai 2:7."
+        }
+      ]
+    },
+    "facilitator": {
+      "talkingPoints": [
+        "Open with provenance: on 2026-09-30 Darrell read L201 and asked how David could be first and not Moses or Noah, then asked about Isaiah and Job, then asked for a new lesson with all of them from the beginning. Answer his question first: L201 began with David because its question did; the promise is older.",
+        "Read Luke 1:70, Acts 3:21 and Luke 24:27. Ask: where did Jesus Himself begin when He taught the promise? Let the group see that the line starts where Moses starts.",
+        "Explain the rule in plain words: the New Testament’s own formulas decide the line. Read Matthew 1:22, Acts 2:16 and Mark 1:2 as one example of each formula, then name one verse the rule leaves out (James 2:23) and why.",
+        "Work the chronology on the board, one number at a time: 1 Kings 6:1, Exodus 12:40-41 with Galatians 3:17, Genesis 11 with Acts 7:4, Genesis 5. Stress that every year is the Word’s numbers added to L201’s anchor and marked c.",
+        "Read Genesis 3:14-15 with Galatians 4:4 and Hebrews 2:14. Ask: what did the first promise cost the Seed, and what did it cost the serpent?",
+        "Read Genesis 12:3 with Galatians 3:8 and 3:16, then Genesis 49:10 with Hebrews 7:14. Trace the narrowing: all families, one seed, one tribe.",
+        "Read Exodus 12:46 with John 19:36, Numbers 24:17 with Matthew 2:2, and Deuteronomy 18:15 with Acts 3:22. Ask who in the group has seen a small detail of the law kept in Jesus.",
+        "Read 1 Samuel 2:10, 2 Samuel 23:2 and Psalms 16:10 with Acts 2:31. Ask: how could David write of a resurrection a thousand years ahead?",
+        "Walk the prophets quickly with the table: Jonah, Amos, Hosea, Micah, Isaiah, Jeremiah, Zechariah, Malachi. Point to the week of the cross, where many promises land in a few days.",
+        "Read Job 19:25-26 and Acts 2:16-17. Talk about why the lesson refuses to invent a year for Job or Joel, and why that honesty makes the dated rows more trustworthy.",
+        "Close with Luke 24:44 and Joshua 21:45. Invite each person to name one promise of Yahweh they are still waiting on, and pray together."
+      ]
+    },
+    "timeline": [
+      {
+        "year": "c. 3959–2302 BC",
+        "event": "BEFORE THE FLOOD. From Adam to the flood, counted by the ages of Genesis 5.",
+        "record": "Genesis 5:3-28 with Genesis 7:6: 1,656 years from Adam to the flood."
+      },
+      {
+        "year": "c. 3959–3958 BC",
+        "event": "Adam is made; the beginning of the Word’s own count (Genesis 5:1-3).",
+        "record": "The Word’s numbers added back from L201’s anchor: 1,656 years to the flood."
+      },
+      {
+        "year": "c. 3959–3828 BC",
+        "event": "Yahweh, in Eden: the seed of the woman shall bruise the serpent’s head (Genesis 3:15). Kept in the Son made of a woman, who through death destroyed the devil’s power (Galatians 4:4; Hebrews 2:14), AD 30 to 33: 3,857 to 3,991 years later.",
+        "record": "On the line because the Word ties it to Him in other words; spoken c. 3959 to 3828 BC.",
+        "prophecy": {
+          "ref": "Genesis 3:15",
+          "speaker": "Yahweh, in Eden",
+          "era": "Before the Flood",
+          "basis": "other-words",
+          "spoken": [
+            -3959,
+            -3828
+          ],
+          "kept": [
+            30,
+            33
+          ],
+          "keptRef": "Galatians 4:4; Hebrews 2:14"
+        }
+      },
+      {
+        "year": "c. 3337–2971 BC",
+        "event": "Enoch: the Lord comes with ten thousands of His saints (Jude 1:14-15). Still ahead (Jude 1:14); no span is counted.",
+        "record": "On the line because the Word ties it to Him in other words; spoken c. 3337 to 2971 BC.",
+        "prophecy": {
+          "ref": "Jude 1:14-15",
+          "speaker": "Enoch",
+          "era": "Before the Flood",
+          "basis": "other-words",
+          "spoken": [
+            -3337,
+            -2971
+          ],
+          "kept": null,
+          "keptRef": "Jude 1:14",
+          "keptNote": "still ahead"
+        }
+      },
+      {
+        "year": "c. 2303–1643 BC",
+        "event": "THE PATRIARCHS. From the flood to Jacob’s blessing in Egypt, counted by Genesis 11 and the ages of Abraham, Isaac and Jacob.",
+        "record": "Genesis 11:10-32 with Acts 7:4 and Genesis 12:4: 352 years from the flood to Abram; Galatians 3:17: 430 years from the promise to the law."
+      },
+      {
+        "year": "c. 2303–2302 BC",
+        "event": "The flood, in the six hundredth year of Noah’s life (Genesis 7:6, 11).",
+        "record": "Genesis 11: 352 years from the flood to Abram’s birth."
+      },
+      {
+        "year": "c. 2302–1952 BC",
+        "event": "Noah: Yahweh is blessed as the Lord of Shem (Genesis 9:26). Kept in the Son born in Shem’s line (Luke 3:36), c. 6 to 4 BC: 1,946 to 2,298 years later.",
+        "record": "On the line because the Word ties it to Him in other words; spoken c. 2302 to 1952 BC.",
+        "prophecy": {
+          "ref": "Genesis 9:26",
+          "speaker": "Noah",
+          "era": "The Patriarchs",
+          "basis": "other-words",
+          "spoken": [
+            -2302,
+            -1952
+          ],
+          "kept": [
+            -6,
+            -4
+          ],
+          "keptRef": "Luke 3:36"
+        }
+      },
+      {
+        "year": "c. 1951–1950 BC",
+        "event": "Abram is born, in Terah’s hundred and thirtieth year (Genesis 11:32; 12:4; Acts 7:4).",
+        "record": "Terah died at 205; Abram left Haran at 75, after his father died."
+      },
+      {
+        "year": "c. 1876–1875 BC",
+        "event": "Yahweh, to Abram: in Abram all families of the earth are blessed (Genesis 12:3). Kept in the Seed, which is Christ (Galatians 3:8, 16), c. 6 to 4 BC: 1,869 to 1,872 years later.",
+        "record": "On the line because the Word ties it to Him in other words; spoken c. 1876 to 1875 BC.",
+        "prophecy": {
+          "ref": "Genesis 12:3",
+          "speaker": "Yahweh, to Abram",
+          "era": "The Patriarchs",
+          "basis": "other-words",
+          "spoken": [
+            -1876,
+            -1875
+          ],
+          "kept": [
+            -6,
+            -4
+          ],
+          "keptRef": "Galatians 3:8, 16"
+        }
+      },
+      {
+        "year": "c. 1851–1813 BC",
+        "event": "Yahweh, to Abraham: in his seed all nations are blessed (Genesis 22:18). Kept in Jesus raised up and sent to bless (Acts 3:25-26), AD 30 to 33: 1,842 to 1,883 years later.",
+        "record": "On the line because the apostles’ sermons (Acts 2, 3, 13; Hebrews 1) set it on Him (Acts 3:25); spoken c. 1851 to 1813 BC.",
+        "prophecy": {
+          "ref": "Genesis 22:18",
+          "speaker": "Yahweh, to Abraham",
+          "era": "The Patriarchs",
+          "basis": "sermon",
+          "spoken": [
+            -1851,
+            -1813
+          ],
+          "kept": [
+            30,
+            33
+          ],
+          "keptRef": "Acts 3:25-26",
+          "via": [
+            "Acts 3:25"
+          ],
+          "echo": "in thy seed shall all the"
+        }
+      },
+      {
+        "year": "c. 1661–1660 BC",
+        "event": "Jacob goes down into Egypt at a hundred and thirty (Genesis 47:9).",
+        "record": "215 years after the promise; 215 more to the exodus make the 430 (Galatians 3:17)."
+      },
+      {
+        "year": "c. 1644–1643 BC",
+        "event": "Jacob: the sceptre stays with Judah until Shiloh come (Genesis 49:10). Kept in our Lord, who sprang out of Juda (Hebrews 7:14), c. 6 to 4 BC: 1,637 to 1,640 years later.",
+        "record": "On the line because the Word ties it to Him in other words; spoken c. 1644 to 1643 BC.",
+        "prophecy": {
+          "ref": "Genesis 49:10",
+          "speaker": "Jacob",
+          "era": "The Patriarchs",
+          "basis": "other-words",
+          "spoken": [
+            -1644,
+            -1643
+          ],
+          "kept": [
+            -6,
+            -4
+          ],
+          "keptRef": "Hebrews 7:14"
+        }
+      },
+      {
+        "year": "c. 1446–1406 BC",
+        "event": "MOSES AND THE LAW. From the exodus to the fortieth year in the wilderness.",
+        "record": "1 Kings 6:1: the exodus in the 480th year before Solomon’s fourth; Deuteronomy 1:3: the fortieth year."
+      },
+      {
+        "year": "c. 1446–1445 BC",
+        "event": "Moses: not a bone of the passover lamb is broken (Exodus 12:46). Kept at the cross, when His legs were not broken (John 19:36), AD 30 to 33: 1,474 to 1,478 years later.",
+        "record": "On the line because the New Testament says it was fulfilled (John 19:36); spoken c. 1446 to 1445 BC.",
+        "prophecy": {
+          "ref": "Exodus 12:46",
+          "speaker": "Moses",
+          "era": "Moses and the Law",
+          "basis": "fulfilled",
+          "spoken": [
+            -1446,
+            -1445
+          ],
+          "kept": [
+            30,
+            33
+          ],
+          "keptRef": "John 19:36",
+          "via": [
+            "John 19:36"
+          ],
+          "echo": "bone"
+        }
+      },
+      {
+        "year": "c. 1407–1406 BC",
+        "event": "Balaam: a Star out of Jacob and a Sceptre out of Israel (Numbers 24:17). Kept in the King whose star was seen at His birth (Matthew 2:2; Revelation 22:16), c. 6 to 4 BC: 1,400 to 1,403 years later.",
+        "record": "On the line because the Word ties it to Him in other words; spoken c. 1407 to 1406 BC.",
+        "prophecy": {
+          "ref": "Numbers 24:17",
+          "speaker": "Balaam",
+          "era": "Moses and the Law",
+          "basis": "other-words",
+          "spoken": [
+            -1407,
+            -1406
+          ],
+          "kept": [
+            -6,
+            -4
+          ],
+          "keptRef": "Matthew 2:2; Revelation 22:16"
+        }
+      },
+      {
+        "year": "c. 1407–1406 BC",
+        "event": "Moses: a Prophet like Moses, raised up from the brethren (Deuteronomy 18:15). Kept in Jesus, the Prophet Peter names (Acts 3:22-26), AD 28 to 33: 1,433 to 1,439 years later.",
+        "record": "On the line because the apostles’ sermons (Acts 2, 3, 13; Hebrews 1) set it on Him (Acts 3:22); spoken c. 1407 to 1406 BC.",
+        "prophecy": {
+          "ref": "Deuteronomy 18:15",
+          "speaker": "Moses",
+          "era": "Moses and the Law",
+          "basis": "sermon",
+          "spoken": [
+            -1407,
+            -1406
+          ],
+          "kept": [
+            28,
+            33
+          ],
+          "keptRef": "Acts 3:22-26",
+          "via": [
+            "Acts 3:22"
+          ],
+          "echo": "like unto me"
+        }
+      },
+      {
+        "year": "before c. 1070 BC",
+        "event": "JUDGES AND KINGS. From Hannah in Eli’s days to David and Solomon.",
+        "record": "1 Samuel 7:2 and Acts 13:21 bound Hannah’s song; David’s forty years (2 Samuel 5:4) as placed in L201."
+      },
+      {
+        "year": "before c. 1070 BC",
+        "event": "Hannah: Yahweh will exalt the horn of His anointed (1 Samuel 2:10). Kept in the horn of salvation raised up in David’s house (Luke 1:69), c. 6 to 4 BC: more than 1,064 years later.",
+        "record": "On the line because the Word ties it to Him in other words; spoken before c. 1070 BC.",
+        "prophecy": {
+          "ref": "1 Samuel 2:10",
+          "speaker": "Hannah",
+          "era": "Judges and Kings",
+          "basis": "other-words",
+          "spoken": null,
+          "spokenBefore": -1070,
+          "kept": [
+            -6,
+            -4
+          ],
+          "keptRef": "Luke 1:69"
+        }
+      },
+      {
+        "year": "c. 1010–970 BC",
+        "event": "David: Thou art my Son; this day have I begotten thee (Psalms 2:7). Kept when Jesus was raised up again (Acts 13:33; Hebrews 1:5), AD 30 to 33: 999 to 1,042 years later.",
+        "record": "On the line because the New Testament says it was fulfilled (Acts 13:33); spoken c. 1010 to 970 BC.",
+        "prophecy": {
+          "ref": "Psalms 2:7",
+          "speaker": "David",
+          "era": "Judges and Kings",
+          "basis": "fulfilled",
+          "spoken": [
+            -1010,
+            -970
+          ],
+          "kept": [
+            30,
+            33
+          ],
+          "keptRef": "Acts 13:33; Hebrews 1:5",
+          "via": [
+            "Acts 13:33"
+          ],
+          "echo": "thou art my son this day have i begotten thee"
+        }
+      },
+      {
+        "year": "c. 1010–970 BC",
+        "event": "David: the Holy One shall not see corruption (Psalms 16:10). Kept in the resurrection (Acts 2:27, 31; Acts 13:35), AD 30 to 33: 999 to 1,042 years later.",
+        "record": "On the line because the apostles’ sermons (Acts 2, 3, 13; Hebrews 1) set it on Him (Acts 2:27); spoken c. 1010 to 970 BC.",
+        "prophecy": {
+          "ref": "Psalms 16:10",
+          "speaker": "David",
+          "era": "Judges and Kings",
+          "basis": "sermon",
+          "spoken": [
+            -1010,
+            -970
+          ],
+          "kept": [
+            30,
+            33
+          ],
+          "keptRef": "Acts 2:27, 31; Acts 13:35",
+          "via": [
+            "Acts 2:27"
+          ],
+          "echo": "thine holy one to see corruption"
+        }
+      },
+      {
+        "year": "c. 1010–970 BC",
+        "event": "David: lots cast for the vesture (Psalms 22:18). Kept at the cross (Matthew 27:35; John 19:24), AD 30 to 33: 999 to 1,042 years later.",
+        "record": "On the line because the New Testament says it was fulfilled (Matthew 27:35; John 19:24); spoken c. 1010 to 970 BC.",
+        "prophecy": {
+          "ref": "Psalms 22:18",
+          "speaker": "David",
+          "era": "Judges and Kings",
+          "basis": "fulfilled",
+          "spoken": [
+            -1010,
+            -970
+          ],
+          "kept": [
+            30,
+            33
+          ],
+          "keptRef": "Matthew 27:35; John 19:24",
+          "via": [
+            "Matthew 27:35",
+            "John 19:24"
+          ],
+          "echo": "my vesture"
+        }
+      },
+      {
+        "year": "c. 1010–970 BC",
+        "event": "David: the friend who ate his bread lifts up his heel (Psalms 41:9). Kept at the last supper, in Judas (John 13:18), AD 30 to 33: 999 to 1,042 years later.",
+        "record": "On the line because the New Testament says it was fulfilled (John 13:18); spoken c. 1010 to 970 BC.",
+        "prophecy": {
+          "ref": "Psalms 41:9",
+          "speaker": "David",
+          "era": "Judges and Kings",
+          "basis": "fulfilled",
+          "spoken": [
+            -1010,
+            -970
+          ],
+          "kept": [
+            30,
+            33
+          ],
+          "keptRef": "John 13:18",
+          "via": [
+            "John 13:18"
+          ],
+          "echo": "lifted up his heel against me"
+        }
+      },
+      {
+        "year": "c. 1010–970 BC",
+        "event": "David: hated without a cause (Psalms 69:4). Kept in the hatred of His own (John 15:25), AD 30 to 33: 999 to 1,042 years later.",
+        "record": "On the line because the New Testament says it was fulfilled (John 15:25); spoken c. 1010 to 970 BC.",
+        "prophecy": {
+          "ref": "Psalms 69:4",
+          "speaker": "David",
+          "era": "Judges and Kings",
+          "basis": "fulfilled",
+          "spoken": [
+            -1010,
+            -970
+          ],
+          "kept": [
+            30,
+            33
+          ],
+          "keptRef": "John 15:25",
+          "via": [
+            "John 15:25"
+          ],
+          "echo": "me without a cause"
+        }
+      },
+      {
+        "year": "c. 1010–970 BC",
+        "event": "David: the reproaches fall on him (Psalms 69:9). Kept in Christ, who pleased not Himself (Romans 15:3), AD 28 to 33: 997 to 1,042 years later.",
+        "record": "On the line because the New Testament introduces it with as it is written (Romans 15:3); spoken c. 1010 to 970 BC.",
+        "prophecy": {
+          "ref": "Psalms 69:9",
+          "speaker": "David",
+          "era": "Judges and Kings",
+          "basis": "written",
+          "spoken": [
+            -1010,
+            -970
+          ],
+          "kept": [
+            28,
+            33
+          ],
+          "keptRef": "Romans 15:3",
+          "via": [
+            "Romans 15:3"
+          ],
+          "echo": "the reproaches of them that reproached thee"
+        }
+      },
+      {
+        "year": "c. 1010–970 BC",
+        "event": "David: vinegar given in his thirst (Psalms 69:21). Kept on the cross (John 19:28-29), AD 30 to 33: 999 to 1,042 years later.",
+        "record": "On the line because the New Testament says it was fulfilled (John 19:28); spoken c. 1010 to 970 BC.",
+        "prophecy": {
+          "ref": "Psalms 69:21",
+          "speaker": "David",
+          "era": "Judges and Kings",
+          "basis": "fulfilled",
+          "spoken": [
+            -1010,
+            -970
+          ],
+          "kept": [
+            30,
+            33
+          ],
+          "keptRef": "John 19:28-29",
+          "via": [
+            "John 19:28"
+          ],
+          "echo": "thirst"
+        }
+      },
+      {
+        "year": "c. 1010–970 BC",
+        "event": "David: Sit thou at my right hand (Psalms 110:1). Kept when He was exalted to the right hand (Acts 2:34-35; Hebrews 1:13), AD 30 to 33: 999 to 1,042 years later.",
+        "record": "On the line because the apostles’ sermons (Acts 2, 3, 13; Hebrews 1) set it on Him (Acts 2:34; Hebrews 1:13); spoken c. 1010 to 970 BC.",
+        "prophecy": {
+          "ref": "Psalms 110:1",
+          "speaker": "David",
+          "era": "Judges and Kings",
+          "basis": "sermon",
+          "spoken": [
+            -1010,
+            -970
+          ],
+          "kept": [
+            30,
+            33
+          ],
+          "keptRef": "Acts 2:34-35; Hebrews 1:13",
+          "via": [
+            "Acts 2:34",
+            "Hebrews 1:13"
+          ],
+          "echo": "until i make thine enemies thy footstool"
+        }
+      },
+      {
+        "year": "c. 1003–970 BC",
+        "event": "Nathan: David’s seed on a throne for ever, and Yahweh his Father (2 Samuel 7:12-14). Kept in the Saviour raised up of David’s seed (Acts 13:23; Hebrews 1:5), c. 6 to 4 BC: 964 to 999 years later.",
+        "record": "On the line because the apostles’ sermons (Acts 2, 3, 13; Hebrews 1) set it on Him (Acts 13:23; Hebrews 1:5); spoken c. 1003 to 970 BC.",
+        "prophecy": {
+          "ref": "2 Samuel 7:12-14",
+          "speaker": "Nathan",
+          "era": "Judges and Kings",
+          "basis": "sermon",
+          "spoken": [
+            -1003,
+            -970
+          ],
+          "kept": [
+            -6,
+            -4
+          ],
+          "keptRef": "Acts 13:23; Hebrews 1:5",
+          "via": [
+            "Acts 13:23",
+            "Hebrews 1:5"
+          ],
+          "echo": "and he shall be"
+        }
+      },
+      {
+        "year": "c. 967–966 BC",
+        "event": "Solomon begins the temple in the four hundred and eightieth year after the exodus (1 Kings 6:1).",
+        "record": "The fixed anchor from L201: the king lists joined to the Assyrian and Babylonian records."
+      },
+      {
+        "year": "c. 793–586 BC",
+        "event": "THE PROPHETS BEFORE THE EXILE. From Jonah and Amos in Jeroboam’s days to Jeremiah.",
+        "record": "Each prophet placed by the reigns his own book names (Amos 1:1; Hosea 1:1; Micah 1:1; Isaiah 1:1; Jeremiah 1:2-3; 2 Kings 14:25), as in L201."
+      },
+      {
+        "year": "c. 793–753 BC",
+        "event": "Jonah: three days and three nights in the fish (Jonah 1:17). Kept in the three days before He rose (Matthew 12:40), AD 30 to 33: 782 to 825 years later.",
+        "record": "On the line because the Word ties it to Him in other words; spoken c. 793 to 753 BC.",
+        "prophecy": {
+          "ref": "Jonah 1:17",
+          "speaker": "Jonah",
+          "era": "The Prophets before the Exile",
+          "basis": "other-words",
+          "spoken": [
+            -793,
+            -753
+          ],
+          "kept": [
+            30,
+            33
+          ],
+          "keptRef": "Matthew 12:40"
+        }
+      },
+      {
+        "year": "c. 792–753 BC",
+        "event": "Amos: the fallen tabernacle of David raised up (Amos 9:11-12). Applied to the nations gathered in, a day the Word gives no year (Acts 15:15-16); no span is counted.",
+        "record": "On the line because the New Testament introduces it with as it is written (Acts 15:15); spoken c. 792 to 753 BC.",
+        "prophecy": {
+          "ref": "Amos 9:11-12",
+          "speaker": "Amos",
+          "era": "The Prophets before the Exile",
+          "basis": "written",
+          "spoken": [
+            -792,
+            -753
+          ],
+          "kept": null,
+          "keptRef": "Acts 15:15-16",
+          "keptNote": "applied to the nations gathered in, a day the Word gives no year",
+          "via": [
+            "Acts 15:15"
+          ],
+          "echo": "tabernacle of david"
+        }
+      },
+      {
+        "year": "c. 755–715 BC",
+        "event": "Hosea: called my son out of Egypt (Hosea 11:1). Kept when the Child came back out of Egypt (Matthew 2:15), c. 4 BC: 711 to 751 years later.",
+        "record": "On the line because the New Testament says it was fulfilled (Matthew 2:15); spoken c. 755 to 715 BC.",
+        "prophecy": {
+          "ref": "Hosea 11:1",
+          "speaker": "Hosea",
+          "era": "The Prophets before the Exile",
+          "basis": "fulfilled",
+          "spoken": [
+            -755,
+            -715
+          ],
+          "kept": [
+            -4,
+            -4
+          ],
+          "keptRef": "Matthew 2:15",
+          "via": [
+            "Matthew 2:15"
+          ],
+          "echo": "called my son"
+        }
+      },
+      {
+        "year": "c. 750–686 BC",
+        "event": "Micah: the Ruler out of Bethlehem (Micah 5:2). Kept in the birth at Bethlehem (Matthew 2:5-6), c. 6 to 4 BC: 680 to 746 years later.",
+        "record": "On the line because the New Testament introduces it with as it is written (Matthew 2:5); spoken c. 750 to 686 BC.",
+        "prophecy": {
+          "ref": "Micah 5:2",
+          "speaker": "Micah",
+          "era": "The Prophets before the Exile",
+          "basis": "written",
+          "spoken": [
+            -750,
+            -686
+          ],
+          "kept": [
+            -6,
+            -4
+          ],
+          "keptRef": "Matthew 2:5-6",
+          "via": [
+            "Matthew 2:5"
+          ],
+          "echo": "bethlehem"
+        }
+      },
+      {
+        "year": "c. 740 BC",
+        "event": "Isaiah: hearing, but not understanding (Isaiah 6:9-10). Kept in the hearers of His parables (Matthew 13:14; John 12:40-41), AD 28 to 33: 767 to 772 years later.",
+        "record": "On the line because the New Testament says it was fulfilled (Matthew 13:14); spoken c. 740 BC.",
+        "prophecy": {
+          "ref": "Isaiah 6:9-10",
+          "speaker": "Isaiah",
+          "era": "The Prophets before the Exile",
+          "basis": "fulfilled",
+          "spoken": [
+            -740,
+            -740
+          ],
+          "kept": [
+            28,
+            33
+          ],
+          "keptRef": "Matthew 13:14; John 12:40-41",
+          "via": [
+            "Matthew 13:14"
+          ],
+          "echo": "this people"
+        }
+      },
+      {
+        "year": "c. 740–686 BC",
+        "event": "Isaiah: a great light in Galilee (Isaiah 9:1-2). Kept when He came to dwell in Capernaum (Matthew 4:13-16), AD 28 to 30: 713 to 769 years later.",
+        "record": "On the line because the New Testament says it was fulfilled (Matthew 4:14); spoken c. 740 to 686 BC.",
+        "prophecy": {
+          "ref": "Isaiah 9:1-2",
+          "speaker": "Isaiah",
+          "era": "The Prophets before the Exile",
+          "basis": "fulfilled",
+          "spoken": [
+            -740,
+            -686
+          ],
+          "kept": [
+            28,
+            30
+          ],
+          "keptRef": "Matthew 4:13-16",
+          "via": [
+            "Matthew 4:14"
+          ],
+          "echo": "great light"
+        }
+      },
+      {
+        "year": "c. 740–686 BC",
+        "event": "Isaiah: the Child born, on David’s throne, of whose kingdom there is no end (Isaiah 9:6-7). Kept in the Son promised to Mary (Luke 1:32-33), c. 6 to 4 BC: 680 to 736 years later.",
+        "record": "On the line because the Word ties it to Him in other words; spoken c. 740 to 686 BC.",
+        "prophecy": {
+          "ref": "Isaiah 9:6-7",
+          "speaker": "Isaiah",
+          "era": "The Prophets before the Exile",
+          "basis": "other-words",
+          "spoken": [
+            -740,
+            -686
+          ],
+          "kept": [
+            -6,
+            -4
+          ],
+          "keptRef": "Luke 1:32-33"
+        }
+      },
+      {
+        "year": "c. 740–686 BC",
+        "event": "Isaiah: a tried stone laid in Zion (Isaiah 28:16). Kept in all who believe on Him, a keeping with no single year (Romans 9:33); no span is counted.",
+        "record": "On the line because the New Testament introduces it with as it is written (Romans 9:33); spoken c. 740 to 686 BC.",
+        "prophecy": {
+          "ref": "Isaiah 28:16",
+          "speaker": "Isaiah",
+          "era": "The Prophets before the Exile",
+          "basis": "written",
+          "spoken": [
+            -740,
+            -686
+          ],
+          "kept": null,
+          "keptRef": "Romans 9:33",
+          "keptNote": "kept in all who believe on Him, a keeping with no single year",
+          "via": [
+            "Romans 9:33"
+          ],
+          "echo": "i lay in"
+        }
+      },
+      {
+        "year": "c. 740–686 BC",
+        "event": "Isaiah: the voice in the wilderness (Isaiah 40:3). Kept in John the Baptist (Matthew 3:3; Luke 3:4), AD 28 to 29: 713 to 768 years later.",
+        "record": "On the line because the New Testament says this is that which was spoken (Matthew 3:3; Luke 3:4); spoken c. 740 to 686 BC.",
+        "prophecy": {
+          "ref": "Isaiah 40:3",
+          "speaker": "Isaiah",
+          "era": "The Prophets before the Exile",
+          "basis": "this-is",
+          "spoken": [
+            -740,
+            -686
+          ],
+          "kept": [
+            28,
+            29
+          ],
+          "keptRef": "Matthew 3:3; Luke 3:4",
+          "via": [
+            "Matthew 3:3",
+            "Luke 3:4"
+          ],
+          "echo": "prepare ye the way of the"
+        }
+      },
+      {
+        "year": "c. 740–686 BC",
+        "event": "Isaiah: the Servant with the Spirit upon Him (Isaiah 42:1-4). Kept in His quiet healing (Matthew 12:17-21), AD 28 to 33: 713 to 772 years later.",
+        "record": "On the line because the New Testament says it was fulfilled (Matthew 12:17); spoken c. 740 to 686 BC.",
+        "prophecy": {
+          "ref": "Isaiah 42:1-4",
+          "speaker": "Isaiah",
+          "era": "The Prophets before the Exile",
+          "basis": "fulfilled",
+          "spoken": [
+            -740,
+            -686
+          ],
+          "kept": [
+            28,
+            33
+          ],
+          "keptRef": "Matthew 12:17-21",
+          "via": [
+            "Matthew 12:17"
+          ],
+          "echo": "behold my servant"
+        }
+      },
+      {
+        "year": "c. 740–686 BC",
+        "event": "Isaiah: those not told shall see (Isaiah 52:15). Kept as the nations hear of Him, a keeping with no single year (Romans 15:20-21); no span is counted.",
+        "record": "On the line because the New Testament introduces it with as it is written (Romans 15:21); spoken c. 740 to 686 BC.",
+        "prophecy": {
+          "ref": "Isaiah 52:15",
+          "speaker": "Isaiah",
+          "era": "The Prophets before the Exile",
+          "basis": "written",
+          "spoken": [
+            -740,
+            -686
+          ],
+          "kept": null,
+          "keptRef": "Romans 15:20-21",
+          "keptNote": "kept as the nations hear of Him, a keeping with no single year",
+          "via": [
+            "Romans 15:21"
+          ],
+          "echo": "not heard"
+        }
+      },
+      {
+        "year": "c. 740–686 BC",
+        "event": "Isaiah: who hath believed our report (Isaiah 53:1). Kept in the unbelief before the cross (John 12:37-38), AD 30 to 33: 715 to 772 years later.",
+        "record": "On the line because the New Testament says it was fulfilled (John 12:38); spoken c. 740 to 686 BC.",
+        "prophecy": {
+          "ref": "Isaiah 53:1",
+          "speaker": "Isaiah",
+          "era": "The Prophets before the Exile",
+          "basis": "fulfilled",
+          "spoken": [
+            -740,
+            -686
+          ],
+          "kept": [
+            30,
+            33
+          ],
+          "keptRef": "John 12:37-38",
+          "via": [
+            "John 12:38"
+          ],
+          "echo": "who hath believed our report"
+        }
+      },
+      {
+        "year": "c. 740–686 BC",
+        "event": "Isaiah: He hath borne our griefs (Isaiah 53:4). Kept in His healing of the sick (Matthew 8:16-17), AD 28 to 33: 713 to 772 years later.",
+        "record": "On the line because the New Testament says it was fulfilled (Matthew 8:17); spoken c. 740 to 686 BC.",
+        "prophecy": {
+          "ref": "Isaiah 53:4",
+          "speaker": "Isaiah",
+          "era": "The Prophets before the Exile",
+          "basis": "fulfilled",
+          "spoken": [
+            -740,
+            -686
+          ],
+          "kept": [
+            28,
+            33
+          ],
+          "keptRef": "Matthew 8:16-17",
+          "via": [
+            "Matthew 8:17"
+          ]
+        }
+      },
+      {
+        "year": "c. 740–686 BC",
+        "event": "Isaiah: numbered with the transgressors (Isaiah 53:12). Kept at the cross, between two thieves (Mark 15:28), AD 30 to 33: 715 to 772 years later.",
+        "record": "On the line because the New Testament says it was fulfilled (Mark 15:28); spoken c. 740 to 686 BC.",
+        "prophecy": {
+          "ref": "Isaiah 53:12",
+          "speaker": "Isaiah",
+          "era": "The Prophets before the Exile",
+          "basis": "fulfilled",
+          "spoken": [
+            -740,
+            -686
+          ],
+          "kept": [
+            30,
+            33
+          ],
+          "keptRef": "Mark 15:28",
+          "via": [
+            "Mark 15:28"
+          ],
+          "echo": "numbered with the transgressors"
+        }
+      },
+      {
+        "year": "c. 740–686 BC",
+        "event": "Isaiah: the sure mercies of David (Isaiah 55:3). Kept when He was raised, no more to return to corruption (Acts 13:34), AD 30 to 33: 715 to 772 years later.",
+        "record": "On the line because the apostles’ sermons (Acts 2, 3, 13; Hebrews 1) set it on Him (Acts 13:34); spoken c. 740 to 686 BC.",
+        "prophecy": {
+          "ref": "Isaiah 55:3",
+          "speaker": "Isaiah",
+          "era": "The Prophets before the Exile",
+          "basis": "sermon",
+          "spoken": [
+            -740,
+            -686
+          ],
+          "kept": [
+            30,
+            33
+          ],
+          "keptRef": "Acts 13:34",
+          "via": [
+            "Acts 13:34"
+          ],
+          "echo": "the sure mercies of david"
+        }
+      },
+      {
+        "year": "c. 740–686 BC",
+        "event": "Isaiah: the Redeemer shall come to Zion (Isaiah 59:20). Still ahead in part, as Paul writes (Romans 11:26); no span is counted.",
+        "record": "On the line because the New Testament introduces it with as it is written (Romans 11:26); spoken c. 740 to 686 BC.",
+        "prophecy": {
+          "ref": "Isaiah 59:20",
+          "speaker": "Isaiah",
+          "era": "The Prophets before the Exile",
+          "basis": "written",
+          "spoken": [
+            -740,
+            -686
+          ],
+          "kept": null,
+          "keptRef": "Romans 11:26",
+          "keptNote": "still ahead in part, as Paul writes",
+          "via": [
+            "Romans 11:26"
+          ],
+          "echo": "jacob"
+        }
+      },
+      {
+        "year": "c. 740–686 BC",
+        "event": "Isaiah: the Spirit of the Lord upon me (Isaiah 61:1-2). Kept when He read it at Nazareth (Luke 4:18-21), AD 28 to 30: 713 to 769 years later.",
+        "record": "On the line because the New Testament says it was fulfilled (Luke 4:21); spoken c. 740 to 686 BC.",
+        "prophecy": {
+          "ref": "Isaiah 61:1-2",
+          "speaker": "Isaiah",
+          "era": "The Prophets before the Exile",
+          "basis": "fulfilled",
+          "spoken": [
+            -740,
+            -686
+          ],
+          "kept": [
+            28,
+            30
+          ],
+          "keptRef": "Luke 4:18-21",
+          "via": [
+            "Luke 4:21"
+          ],
+          "echo": "the spirit of the lord"
+        }
+      },
+      {
+        "year": "c. 735–732 BC",
+        "event": "Isaiah: the virgin’s Son, Immanuel (Isaiah 7:14). Kept in the birth to the virgin Mary (Matthew 1:22-23), c. 6 to 4 BC: 726 to 731 years later.",
+        "record": "On the line because the New Testament says it was fulfilled (Matthew 1:22); spoken c. 735 to 732 BC.",
+        "prophecy": {
+          "ref": "Isaiah 7:14",
+          "speaker": "Isaiah",
+          "era": "The Prophets before the Exile",
+          "basis": "fulfilled",
+          "spoken": [
+            -735,
+            -732
+          ],
+          "kept": [
+            -6,
+            -4
+          ],
+          "keptRef": "Matthew 1:22-23",
+          "via": [
+            "Matthew 1:22"
+          ],
+          "echo": "a virgin shall"
+        }
+      },
+      {
+        "year": "c. 627–586 BC",
+        "event": "Jeremiah: Rahel weeping for her children (Jeremiah 31:15). Kept when Herod slew the children of Bethlehem (Matthew 2:16-18), c. 6 to 4 BC: 580 to 623 years later.",
+        "record": "On the line because the New Testament says it was fulfilled (Matthew 2:17); spoken c. 627 to 586 BC.",
+        "prophecy": {
+          "ref": "Jeremiah 31:15",
+          "speaker": "Jeremiah",
+          "era": "The Prophets before the Exile",
+          "basis": "fulfilled",
+          "spoken": [
+            -627,
+            -586
+          ],
+          "kept": [
+            -6,
+            -4
+          ],
+          "keptRef": "Matthew 2:16-18",
+          "via": [
+            "Matthew 2:17"
+          ],
+          "echo": "weeping for her children"
+        }
+      },
+      {
+        "year": "c. 520–430 BC",
+        "event": "AFTER THE EXILE. Zechariah and Malachi, the last prophets before the silence.",
+        "record": "Zechariah 1:1; Malachi 1:8; Ezra 6:15, as in L201."
+      },
+      {
+        "year": "c. 520–480 BC",
+        "event": "Zechariah: the King lowly, upon a colt (Zechariah 9:9). Kept when He rode into Jerusalem (Matthew 21:4-5; John 12:14-15), AD 30 to 33: 509 to 552 years later.",
+        "record": "On the line because the New Testament says it was fulfilled (Matthew 21:4; John 12:14); spoken c. 520 to 480 BC.",
+        "prophecy": {
+          "ref": "Zechariah 9:9",
+          "speaker": "Zechariah",
+          "era": "After the Exile",
+          "basis": "fulfilled",
+          "spoken": [
+            -520,
+            -480
+          ],
+          "kept": [
+            30,
+            33
+          ],
+          "keptRef": "Matthew 21:4-5; John 12:14-15",
+          "via": [
+            "Matthew 21:4",
+            "John 12:14"
+          ],
+          "echo": "the foal of an ass"
+        }
+      },
+      {
+        "year": "c. 520–480 BC",
+        "event": "Zechariah: thirty pieces of silver cast to the potter (Zechariah 11:12-13). Kept in the price of the betrayal (Matthew 27:9-10), AD 30 to 33: 509 to 552 years later.",
+        "record": "On the line because the New Testament says it was fulfilled (Matthew 27:9); spoken c. 520 to 480 BC.",
+        "prophecy": {
+          "ref": "Zechariah 11:12-13",
+          "speaker": "Zechariah",
+          "era": "After the Exile",
+          "basis": "fulfilled",
+          "spoken": [
+            -520,
+            -480
+          ],
+          "kept": [
+            30,
+            33
+          ],
+          "keptRef": "Matthew 27:9-10",
+          "via": [
+            "Matthew 27:9"
+          ],
+          "echo": "thirty pieces of silver"
+        }
+      },
+      {
+        "year": "c. 520–480 BC",
+        "event": "Zechariah: they shall look upon Him whom they pierced (Zechariah 12:10). Kept at the cross, when His side was pierced (John 19:37), AD 30 to 33: 509 to 552 years later.",
+        "record": "On the line because the New Testament says it was fulfilled (John 19:36); spoken c. 520 to 480 BC.",
+        "prophecy": {
+          "ref": "Zechariah 12:10",
+          "speaker": "Zechariah",
+          "era": "After the Exile",
+          "basis": "fulfilled",
+          "spoken": [
+            -520,
+            -480
+          ],
+          "kept": [
+            30,
+            33
+          ],
+          "keptRef": "John 19:37",
+          "via": [
+            "John 19:36"
+          ],
+          "echo": "pierced"
+        }
+      },
+      {
+        "year": "c. 460–430 BC",
+        "event": "Malachi: the messenger sent before the Lord (Malachi 3:1). Kept in John the Baptist (Matthew 11:10; Mark 1:2; Luke 7:27), AD 28 to 29: 457 to 488 years later.",
+        "record": "On the line because the New Testament says this is that which was spoken (Matthew 11:10; Mark 1:2; Luke 7:27); spoken c. 460 to 430 BC.",
+        "prophecy": {
+          "ref": "Malachi 3:1",
+          "speaker": "Malachi",
+          "era": "After the Exile",
+          "basis": "this-is",
+          "spoken": [
+            -460,
+            -430
+          ],
+          "kept": [
+            28,
+            29
+          ],
+          "keptRef": "Matthew 11:10; Mark 1:2; Luke 7:27",
+          "via": [
+            "Matthew 11:10",
+            "Mark 1:2",
+            "Luke 7:27"
+          ],
+          "echo": "send my messenger"
+        }
+      },
+      {
+        "year": "c. 460–430 BC",
+        "event": "Malachi: Elijah sent before the great day (Malachi 4:5). Kept in John, who came in the spirit of Elias (Matthew 11:14; Mark 9:13), AD 28 to 29: 457 to 488 years later.",
+        "record": "On the line because the New Testament introduces it with as it is written (Mark 9:13); spoken c. 460 to 430 BC.",
+        "prophecy": {
+          "ref": "Malachi 4:5",
+          "speaker": "Malachi",
+          "era": "After the Exile",
+          "basis": "written",
+          "spoken": [
+            -460,
+            -430
+          ],
+          "kept": [
+            28,
+            29
+          ],
+          "keptRef": "Matthew 11:14; Mark 9:13",
+          "via": [
+            "Mark 9:13"
+          ]
+        }
+      },
+      {
+        "year": "c. 6–4 BC",
+        "event": "Jesus is born in Bethlehem of Judaea in the days of Herod the king (Matthew 2:1).",
+        "record": "Herod’s death is dated to 4 BC from Josephus; the birth came before it."
+      },
+      {
+        "year": "AD 28–29",
+        "event": "In the fifteenth year of Tiberius the word comes to John in the wilderness (Luke 3:1-2).",
+        "record": "Tiberius became emperor in AD 14."
+      },
+      {
+        "year": "AD 30–33",
+        "event": "Jesus is crucified under Pontius Pilate and rises the third day (Luke 24:44-46).",
+        "record": "Pilate governed Judea AD 26 to 36; the Passover years that fit the Gospels are AD 30 and AD 33, so both are carried."
+      },
+      {
+        "year": "No year in the Word",
+        "event": "NOT DATED BY THE WORD. Promises kept in Jesus whose speakers the Word does not date: Job, Joel, and four psalms.",
+        "record": "Job 1:1; Joel 1:1; Psalms 45, 78, 102 and 118 carry no reign; no year is invented."
+      },
+      {
+        "year": "No year in the Word",
+        "event": "Job: my redeemer liveth (Job 19:25-26). Not quoted in the New Testament; the Word names the One who redeemed us (Galatians 3:13); no span is counted.",
+        "record": "On the line because the Word ties it to Him in other words; the Word gives it no year.",
+        "prophecy": {
+          "ref": "Job 19:25-26",
+          "speaker": "Job",
+          "era": "Not dated by the Word",
+          "basis": "other-words",
+          "spoken": null,
+          "kept": null,
+          "keptRef": "Galatians 3:13",
+          "keptNote": "not quoted in the New Testament; the Word names the One who redeemed us"
+        }
+      },
+      {
+        "year": "No year in the Word",
+        "event": "Joel: the Spirit poured out upon all flesh (Joel 2:28-32). Kept at Pentecost (Acts 2:16-21), AD 30 to 33; the Word gives the promise no year, so no span is counted.",
+        "record": "On the line because the New Testament says this is that which was spoken (Acts 2:16); the Word gives it no year.",
+        "prophecy": {
+          "ref": "Joel 2:28-32",
+          "speaker": "Joel",
+          "era": "Not dated by the Word",
+          "basis": "this-is",
+          "spoken": null,
+          "kept": [
+            30,
+            33
+          ],
+          "keptRef": "Acts 2:16-21",
+          "via": [
+            "Acts 2:16"
+          ],
+          "echo": "upon all flesh"
+        }
+      },
+      {
+        "year": "No year in the Word",
+        "event": "The sons of Korah: the Son’s throne is for ever and ever (Psalms 45:6-7). Spoken to the Son, with no single year of keeping (Hebrews 1:8-9); no span is counted.",
+        "record": "On the line because the apostles’ sermons (Acts 2, 3, 13; Hebrews 1) set it on Him (Hebrews 1:8); the Word gives it no year.",
+        "prophecy": {
+          "ref": "Psalms 45:6-7",
+          "speaker": "the sons of Korah",
+          "era": "Not dated by the Word",
+          "basis": "sermon",
+          "spoken": null,
+          "kept": null,
+          "keptRef": "Hebrews 1:8-9",
+          "keptNote": "spoken to the Son, with no single year of keeping",
+          "via": [
+            "Hebrews 1:8"
+          ],
+          "echo": "thy throne o god is for ever and ever"
+        }
+      },
+      {
+        "year": "No year in the Word",
+        "event": "Asaph: I will open my mouth in a parable (Psalms 78:2). Kept in His parables (Matthew 13:34-35), AD 28 to 33; the Word gives the promise no year, so no span is counted.",
+        "record": "On the line because the New Testament says it was fulfilled (Matthew 13:35); the Word gives it no year.",
+        "prophecy": {
+          "ref": "Psalms 78:2",
+          "speaker": "Asaph",
+          "era": "Not dated by the Word",
+          "basis": "fulfilled",
+          "spoken": null,
+          "kept": [
+            28,
+            33
+          ],
+          "keptRef": "Matthew 13:34-35",
+          "via": [
+            "Matthew 13:35"
+          ],
+          "echo": "i will open my mouth in"
+        }
+      },
+      {
+        "year": "No year in the Word",
+        "event": "A psalmist the Word does not name: Thou hast laid the foundation of the earth (Psalms 102:25-27). Spoken to the Son, the Maker of the worlds, with no single year of keeping (Hebrews 1:10-12); no span is counted.",
+        "record": "On the line because the apostles’ sermons (Acts 2, 3, 13; Hebrews 1) set it on Him (Hebrews 1:10); the Word gives it no year.",
+        "prophecy": {
+          "ref": "Psalms 102:25-27",
+          "speaker": "a psalmist the Word does not name",
+          "era": "Not dated by the Word",
+          "basis": "sermon",
+          "spoken": null,
+          "kept": null,
+          "keptRef": "Hebrews 1:10-12",
+          "keptNote": "spoken to the Son, the Maker of the worlds, with no single year of keeping",
+          "via": [
+            "Hebrews 1:10"
+          ],
+          "echo": "the foundation of the earth"
+        }
+      },
+      {
+        "year": "No year in the Word",
+        "event": "A psalmist the Word does not name: the stone the builders refused (Psalms 118:22). Kept when He was rejected and raised (Matthew 21:42; Acts 4:11), AD 30 to 33; the Word gives the promise no year, so no span is counted.",
+        "record": "On the line because the Word ties it to Him in other words; the Word gives it no year.",
+        "prophecy": {
+          "ref": "Psalms 118:22",
+          "speaker": "a psalmist the Word does not name",
+          "era": "Not dated by the Word",
+          "basis": "other-words",
+          "spoken": null,
+          "kept": [
+            30,
+            33
+          ],
+          "keptRef": "Matthew 21:42; Acts 4:11"
+        }
+      }
+    ],
+    "lesson": "THE WHOLE LINE OF PROMISE: EVERY PROMISE FROM EDEN TO MALACHI, AND THE YEARS TO JESUS. On 2026-09-30 Darrell read L201, How Long Before It Came?, and spoke back into the app with a question, as a lesson. Rendered for its meaning, he asked: how is David first, and not Moses, or even Noah? Then he asked about Isaiah, and Job, and the rest. Then he said to make a new lesson with all of them, from the beginning. This is that lesson. It answers his question first, then walks the whole line of promise from Eden to Malachi, with every promise the New Testament itself says was kept in Jesus, and the years from each one to Him, counted from the Word’s own numbers. It stands beside L201, which counts the years from David and the prophets and teaches Daniel’s weeks, beside L200, How Did They Know?, which shows what the first hearers had in hand, and beside L196, which gathers the promises themselves, and the Who He Is course walks the whole Word on its own timeline. Here the question is the line itself, whole. We begin in the Word. ONE. WHY DAVID CAME FIRST, AND THE OLDER LINE. The plain answer to Darrell’s question is this. L201 began at David because the question that made it named David first: when did David live, and how long from his words to Jesus? David was where the question started, not where the promise started. The promise is far older. Zacharias said so when John was born: \"As he spake by the mouth of his holy prophets, which have been since the world began\" (Luke 1:70). Peter said the same at the temple: \"which God hath spoken by the mouth of all his holy prophets since the world began\" (Acts 3:21). And Jesus Himself taught it on the road to Emmaus: \"And beginning at Moses and all the prophets, he expounded unto them in all the scriptures the things concerning himself\" (Luke 24:27). He began at Moses, and Moses wrote the beginning. So the line does not start with a king. It starts in a garden, the day sin came in, and it runs through Noah, Abraham, Judah, Moses, Hannah and David, through the prophets, to the last word of Malachi. Hebrews gives the whole shape in two verses: \"God, who at sundry times and in divers manners spake in time past unto the fathers by the prophets\" (Hebrews 1:1), \"Hath in these last days spoken unto us by his Son\" (Hebrews 1:2). Many times, many ways, one Son. TWO. HOW WE KNOW WHICH PROMISES ARE HIS. Darrell asked for all of them, so this lesson needs a rule that does not depend on anyone’s favourite list. The Word explains the Word, so the rule comes from the New Testament itself. A passage of the Old Testament is on this line when the New Testament says of it, in so many words, that it was fulfilled, or that this is that which was spoken, or introduces it with as it is written or thus it is written; or when the sermons of Acts 2, 3 and 13, or the first chapter of Hebrews, set it on Jesus. Read the whole New Testament by that rule and it gives 69 verses. 34 of them point to a named Old Testament passage kept in Jesus or set on Him. 11 say that the Scriptures were fulfilled in Him without naming one passage. They are Matthew 2:23, 26:24, 26:54, 26:56; Mark 14:21, 14:49; Luke 24:44, 24:46; Acts 3:18, 13:27, 13:29. Matthew 2:23 is one of these; it says the prophets spoke of Him as a Nazarene, and no single verse carries those words, so we do not invent one. The other 24 use the same words for something else, and we name them so nothing is hidden. They are Mark 7:6; Luke 2:23, 21:22; John 6:31, 17:12; Acts 1:16, 7:42; Romans 1:17, 2:24, 3:4, 3:10, 4:17, 8:36, 9:13, 10:15, 11:8, 15:9; 1 Corinthians 1:31, 2:9, 10:7; 2 Corinthians 4:13, 8:15, 9:9; James 2:23. They speak of hypocrites, of the law of the firstborn kept for Him at the temple, of Jerusalem’s days of vengeance, of the manna, of Judas, of Abraham’s faith, and of the life of believers. True words, but not promises of the Messiah. The 34 verses name 30 distinct passages, the four sermons add 8 more, and 11 more are promises Darrell named or that the Word ties to Jesus in other words: Genesis 3:15, Enoch, Noah and Shem, Abraham, Judah, Balaam, Hannah, Job, Isaiah 9:6-7, Jonah, and the rejected stone. Each of those says how the Word ties it to Him. That makes 49 promises on one line. Haggai 2:7 is not on it: the New Testament does not quote that verse. Hebrews quotes the verse before it, of the kingdom that cannot be shaken (Hebrews 12:26), and we leave it there rather than stretch the rule. Daniel’s seventy weeks are not reached by the rule either; L201 teaches them in full. THREE. THE YEARS BEFORE THE KINGS. L201 fixed Solomon’s fourth year at c. 967 to 966 BC from the king lists and the outside records. Before the kings, there are no outside records to lean on, and we do not need them, because the Word gives the numbers. Here is the rule, stated plainly: before the kings, the calendar year comes from adding the Word’s own numbers to the fixed anchors already in L201. Where the Word gives a number, we give that number, and every calendar year that results is marked c. The first number: \"in the four hundred and eightieth year after the children of Israel were come out of the land of Egypt, in the fourth year of Solomon’s reign\" (1 Kings 6:1). So the exodus falls c. 1446 to 1445 BC. The second: \"at the end of the four hundred and thirty years, even the selfsame day it came to pass, that all the hosts of the LORD went out from the land of Egypt\" (Exodus 12:41). The Word explains its own four hundred and thirty: \"the covenant, that was confirmed before of God in Christ, the law, which was four hundred and thirty years after\" (Galatians 3:17). The law came in the same year as the exodus, in \"the third month\" (Exodus 19:1), so we count the four hundred and thirty back from the exodus to the first time the promise was spoken to Abram, when \"Abram was seventy and five years old\" (Genesis 12:4). That puts the promise of Genesis 12:3 c. 1876 to 1875 BC. The Word’s own ages then fill in the four hundred and thirty: Isaac was born when Abraham was a hundred (Genesis 21:5), Jacob when Isaac was sixty (Genesis 25:26), and Jacob told Pharaoh he was \"an hundred and thirty years\" (Genesis 47:9). That is 215 years from the promise to Egypt, and 215 more in Egypt, and the two add to the four hundred and thirty. Jacob lived there seventeen more years, \"so the whole age of Jacob was an hundred forty and seven years\" (Genesis 47:28), and he blessed Judah before he died. Going further back, Genesis 11 gives the ages from the flood. Shem \"begat Arphaxad two years after the flood\" (Genesis 11:10), and each father’s age at his son’s birth follows, to Terah: 222 years. For Abram the Word explains itself. Genesis 11:26 marks when Terah began to have sons. Terah died at two hundred and five (Genesis 11:32); Stephen says Abram left Haran \"when his father was dead\" (Acts 7:4); and Abram was seventy-five when he left. So Abram was born in Terah’s 130th year, and from the flood to Abram’s birth is 352 years. The flood falls c. 2303 to 2302 BC. Genesis 5 does the same from Adam: \"Adam lived an hundred and thirty years, and begat a son\" (Genesis 5:3), and so on through Seth, Enos, Cainan, Mahalaleel, Jared, Enoch, Methuselah and Lamech, to \"Noah was six hundred years old when the flood of waters was upon the earth\" (Genesis 7:6). Those numbers add to 1,656 years from Adam to the flood, which places the beginning c. 3959 to 3958 BC. We give these years as the Word’s numbers added up, marked c., and we do not stage a debate about them. The Word gives the numbers; we add them. FOUR. EDEN, THE SEED OF THE WOMAN, AND ENOCH. The first promise came the same day as the first sin. To the serpent, the adversary behind it, Yahweh said: \"And I will put enmity between thee and the woman, and between thy seed and her seed; it shall bruise thy head, and thou shalt bruise his heel\" (Genesis 3:15). One Seed of one woman would crush the serpent’s head and be wounded in the heel. Paul says when it came: \"But when the fulness of the time was come, God sent forth his Son, made of a woman\" (Galatians 4:4). Hebrews says how the head was crushed: \"that through death he might destroy him that had the power of death, that is, the devil\" (Hebrews 2:14). The Word does not give Adam’s age on the day of Genesis 3, but it was before Cain was born (Genesis 4:1), and Seth came when Adam was a hundred and thirty (Genesis 5:3). So the promise was spoken within the first hundred and thirty years, c. 3959 to 3828 BC, counted by the Word’s genealogies as far as they go, and it was kept at the cross. Enoch, the seventh from Adam, spoke next of the Lord’s coming: \"Behold, the Lord cometh with ten thousands of his saints\" (Jude 1:14). Enoch lived \"three hundred sixty and five years\" (Genesis 5:23) and then \"he was not; for God took him\" (Genesis 5:24). His words were kept for us only in Jude, and they look ahead to Jesus’ coming again, so no span is counted. FIVE. SHEM, ABRAHAM AND JUDAH. After the flood Noah blessed his son: \"Blessed be the LORD God of Shem\" (Genesis 9:26). Yahweh put His name on Shem’s line, and Luke’s genealogy of Jesus runs straight through it: \"which was the son of Sem, which was the son of Noe\" (Luke 3:36). The Word gives no year for Noah’s words beyond after the flood and before his death three hundred and fifty years later (Genesis 9:28), so that span is wide, as the Word leaves it. Then to Abram: \"in thee shall all families of the earth be blessed\" (Genesis 12:3), and after Moriah, \"And in thy seed shall all the nations of the earth be blessed\" (Genesis 22:18). Paul explains the seed: \"He saith not, And to seeds, as of many; but as of one, And to thy seed, which is Christ\" (Galatians 3:16), and says this was \"the gospel unto Abraham\" (Galatians 3:8). Jesus said, \"Your father Abraham rejoiced to see my day\" (John 8:56). Jacob, dying in Egypt, said of Judah: \"The sceptre shall not depart from Judah, nor a lawgiver from between his feet, until Shiloh come\" (Genesis 49:10). And the Word records where the King came from: \"For it is evident that our Lord sprang out of Juda\" (Hebrews 7:14), and He is \"the Lion of the tribe of Juda, the Root of David\" (Revelation 5:5). SIX. THE LAMB, THE STAR AND THE PROPHET. On the night of the first passover Moses gave the rule for the lamb: \"neither shall ye break a bone thereof\" (Exodus 12:46). At the cross the soldiers broke the legs of the two beside Him and not His, \"that the scripture should be fulfilled, A bone of him shall not be broken\" (John 19:36), and David had written of the righteous, \"not one of them is broken\" (Psalms 34:20). Jesus is the Lamb. In the fortieth year, in the plains of Moab, Balaam was hired to curse Israel and blessed instead: \"there shall come a Star out of Jacob, and a Sceptre shall rise out of Israel\" (Numbers 24:17). When the King was born, wise men came asking, \"Where is he that is born King of the Jews? for we have seen his star in the east\" (Matthew 2:2), and Jesus calls Himself \"the bright and morning star\" (Revelation 22:16). In that same year Moses told Israel: \"The LORD thy God will raise up unto thee a Prophet from the midst of thee, of thy brethren, like unto me; unto him ye shall hearken\" (Deuteronomy 18:15). Peter preached it of Jesus (Acts 3:22), and Jesus said of Moses, \"for he wrote of me\" (John 5:46). SEVEN. HANNAH, DAVID AND NATHAN. Hannah, praying in Eli’s days, is the first in the Word to speak of the Lord’s anointed king: \"he shall give strength unto his king, and exalt the horn of his anointed\" (1 Samuel 2:10). Zacharias sang its keeping: \"And hath raised up an horn of salvation for us in the house of his servant David\" (Luke 1:69). The Word gives her no year, but it gives enough to bound it: Eli died before the ark’s twenty years at Kirjathjearim (1 Samuel 7:2), which came before Saul’s forty years (Acts 13:21), so she sang before c. 1070 BC. Then David, who said of himself, \"The Spirit of the LORD spake by me, and his word was in my tongue\" (2 Samuel 23:2). Nathan brought the promise of the throne (2 Samuel 7:12), with \"I will be his father, and he shall be my son\" (2 Samuel 7:14), which Hebrews sets on Jesus (Hebrews 1:5). David wrote \"Thou art my Son; this day have I begotten thee\" (Psalms 2:7), kept when Yahweh \"hath raised up Jesus again\" (Acts 13:33). He wrote \"neither wilt thou suffer thine Holy One to see corruption\" (Psalms 16:10), and Peter says David \"spake of the resurrection of Christ\" (Acts 2:31). He wrote of the lots cast for the vesture (Psalms 22:18), kept at the cross (John 19:24). He wrote of the friend who \"hath lifted up his heel against me\" (Psalms 41:9), kept at the supper (John 13:18). He wrote \"They that hate me without a cause\" (Psalms 69:4), and Jesus said it was kept (John 15:25). He wrote \"the reproaches of them that reproached thee are fallen upon me\" (Psalms 69:9), and Paul says Christ bore them (Romans 15:3). He wrote \"in my thirst they gave me vinegar to drink\" (Psalms 69:21), kept on the cross (John 19:28). And he wrote \"Sit thou at my right hand\" (Psalms 110:1), which Hebrews sets on the Son (Hebrews 1:13). L201 counts David’s years; here they stand in the whole line. EIGHT. JONAH, AMOS, HOSEA, MICAH, ISAIAH AND JEREMIAH. Jonah spoke in the days of Jeroboam the son of Joash (2 Kings 14:25), and \"Jonah was in the belly of the fish three days and three nights\" (Jonah 1:17). Jesus made it His sign: \"so shall the Son of man be three days and three nights in the heart of the earth\" (Matthew 12:40). Amos, in the same reigns (Amos 1:1), wrote \"In that day will I raise up the tabernacle of David that is fallen\" (Amos 9:11), and James applied it at Jerusalem to the nations coming in (Acts 15:16). Hosea wrote \"called my son out of Egypt\" (Hosea 11:1), kept in Matthew 2:15, and Micah named Bethlehem (Micah 5:2), which the scribes read out to Herod (Matthew 2:5). Isaiah carries more of the line than any other prophet. In the year Uzziah died he was told of a people \"Hear ye indeed, but understand not\" (Isaiah 6:9), and John says \"These things said Esaias, when he saw his glory, and spake of him\" (John 12:41). Then the virgin’s Son (Isaiah 7:14), kept in Matthew 1:23. The great light in Galilee: \"The people that walked in darkness have seen a great light\" (Isaiah 9:2), kept in Matthew 4:16. The Child: \"For unto us a child is born, unto us a son is given\" (Isaiah 9:6), whose government shall have \"no end, upon the throne of David\" (Isaiah 9:7), as the angel told Mary (Luke 1:33). The stone laid in Zion (Isaiah 28:16), set on Him in Romans 9:33. The voice in the wilderness (Isaiah 40:3), which is John (Matthew 3:3). The Servant: \"Behold my servant, whom I uphold\" (Isaiah 42:1), kept in Matthew 12:18. The nations never told of Him: \"for that which had not been told them shall they see\" (Isaiah 52:15), as Paul preached (Romans 15:21). The report: \"Who hath believed our report?\" (Isaiah 53:1), kept in John 12:38. The griefs: \"Surely he hath borne our griefs, and carried our sorrows\" (Isaiah 53:4), kept in His healing (Matthew 8:17). The transgressors: \"and he was numbered with the transgressors\" (Isaiah 53:12), kept at the cross (Mark 15:28). The mercies: \"the sure mercies of David\" (Isaiah 55:3), kept in His rising (Acts 13:34). The Redeemer: \"And the Redeemer shall come to Zion\" (Isaiah 59:20), which Paul still looks toward (Romans 11:26). And the Spirit upon Him to preach good tidings (Isaiah 61:1), read out at Nazareth (Luke 4:21). Jeremiah wrote of \"Rahel weeping for her children\" (Jeremiah 31:15), and Matthew set it beside Herod’s slaughter at Bethlehem (Matthew 2:17-18). NINE. ZECHARIAH AND MALACHI, AFTER THE RETURN. Zechariah saw the King \"lowly, and riding upon an ass\" (Zechariah 9:9), kept in Matthew 21:5. He wrote \"And I took the thirty pieces of silver, and cast them to the potter\" (Zechariah 11:13), kept in Matthew 27:9-10. And he wrote \"they shall look upon me whom they have pierced\" (Zechariah 12:10), kept in John 19:37. Matthew names that word of the silver as spoken by Jeremy the prophet (Matthew 27:9); the thirty pieces and the potter are written in Zechariah 11:12-13, and we give both as the Word gives them. Malachi, the last, promised the messenger, \"Behold, I will send my messenger, and he shall prepare the way before me\" (Malachi 3:1), and \"Behold, I will send you Elijah the prophet before the coming of the great and dreadful day of the LORD\" (Malachi 4:5). Jesus said of John, \"this is Elias, which was for to come\" (Matthew 11:14). TEN. THE PROMISES THE WORD DOES NOT DATE. Some of the line has no year in the Word, and we do not give it one. Job names no king and no date. The Word says he was a real man, set beside Noah and Daniel (Ezekiel 14:14), and it tells of \"the patience of Job\" (James 5:11), but it gives no year, so we give none. Out of his suffering he said: \"For I know that my redeemer liveth, and that he shall stand at the latter day upon the earth\" (Job 19:25), and \"yet in my flesh shall I see God\" (Job 19:26). The New Testament does not quote those words; they are on this line because Darrell asked for Job, and because the Word names the Redeemer: \"Christ hath redeemed us from the curse of the law\" (Galatians 3:13). Joel names no king either (Joel 1:1), yet Peter stood up at Pentecost and said, \"this is that which was spoken by the prophet Joel\" (Acts 2:16): \"I will pour out my spirit upon all flesh\" (Joel 2:28). Four psalms on the line carry no date: Psalms 45:6-7, of the sons of Korah, which Hebrews speaks to the Son (Hebrews 1:8); Psalms 78:2, of Asaph, kept in His parables (Matthew 13:35); Psalms 102:25-27, which Hebrews also speaks to the Son (Hebrews 1:10); and \"The stone which the builders refused is become the head stone of the corner\" (Psalms 118:22), which Jesus read out to the chief priests (Matthew 21:42) and Peter preached (Acts 4:11). They are true promises kept in Jesus; the Word simply does not say when they were written, and we stay with what it says. ELEVEN. THE WHOLE LINE ON ONE PAGE. Here is every promise on the line, by era, in the order spoken, with the years on both ends and the years between, each worked out from the years stated, with no year zero between 1 BC and AD 1. BEFORE THE FLOOD. Genesis 3:15, Yahweh, in Eden, c. 3959 to 3828 BC; kept in the Son made of a woman, who through death destroyed the devil’s power (Galatians 4:4; Hebrews 2:14), AD 30 to 33; 3,857 to 3,991 years later. Jude 1:14-15, Enoch, c. 3337 to 2971 BC; kept at His coming (Jude 1:14), still ahead; no span counted. THE PATRIARCHS. Genesis 9:26, Noah, c. 2302 to 1952 BC; kept in the Son born in Shem’s line (Luke 3:36), c. 6 to 4 BC; 1,946 to 2,298 years later. Genesis 12:3, Yahweh, to Abram, c. 1876 to 1875 BC; kept in the Seed, which is Christ (Galatians 3:8, 16), c. 6 to 4 BC; 1,869 to 1,872 years later. Genesis 22:18, Yahweh, to Abraham, c. 1851 to 1813 BC; kept in Jesus raised up and sent to bless (Acts 3:25-26), AD 30 to 33; 1,842 to 1,883 years later. Genesis 49:10, Jacob, c. 1644 to 1643 BC; kept in our Lord, who sprang out of Juda (Hebrews 7:14), c. 6 to 4 BC; 1,637 to 1,640 years later. MOSES AND THE LAW. Exodus 12:46, Moses, c. 1446 to 1445 BC; kept at the cross, when His legs were not broken (John 19:36), AD 30 to 33; 1,474 to 1,478 years later. Numbers 24:17, Balaam, c. 1407 to 1406 BC; kept in the King whose star was seen at His birth (Matthew 2:2; Revelation 22:16), c. 6 to 4 BC; 1,400 to 1,403 years later. Deuteronomy 18:15, Moses, c. 1407 to 1406 BC; kept in Jesus, the Prophet Peter names (Acts 3:22-26), AD 28 to 33; 1,433 to 1,439 years later. JUDGES AND KINGS. 1 Samuel 2:10, Hannah, before c. 1070 BC; kept in the horn of salvation raised up in David’s house (Luke 1:69), c. 6 to 4 BC; more than 1,064 years later. Psalms 2:7, David, c. 1010 to 970 BC; kept when Jesus was raised up again (Acts 13:33; Hebrews 1:5), AD 30 to 33; 999 to 1,042 years later. Psalms 16:10, David, c. 1010 to 970 BC; kept in the resurrection (Acts 2:27, 31; Acts 13:35), AD 30 to 33; 999 to 1,042 years later. Psalms 22:18, David, c. 1010 to 970 BC; kept at the cross (Matthew 27:35; John 19:24), AD 30 to 33; 999 to 1,042 years later. Psalms 41:9, David, c. 1010 to 970 BC; kept at the last supper, in Judas (John 13:18), AD 30 to 33; 999 to 1,042 years later. Psalms 69:4, David, c. 1010 to 970 BC; kept in the hatred of His own (John 15:25), AD 30 to 33; 999 to 1,042 years later. Psalms 69:9, David, c. 1010 to 970 BC; kept in Christ, who pleased not Himself (Romans 15:3), AD 28 to 33; 997 to 1,042 years later. Psalms 69:21, David, c. 1010 to 970 BC; kept on the cross (John 19:28-29), AD 30 to 33; 999 to 1,042 years later. Psalms 110:1, David, c. 1010 to 970 BC; kept when He was exalted to the right hand (Acts 2:34-35; Hebrews 1:13), AD 30 to 33; 999 to 1,042 years later. 2 Samuel 7:12-14, Nathan, c. 1003 to 970 BC; kept in the Saviour raised up of David’s seed (Acts 13:23; Hebrews 1:5), c. 6 to 4 BC; 964 to 999 years later. THE PROPHETS BEFORE THE EXILE. Jonah 1:17, Jonah, c. 793 to 753 BC; kept in the three days before He rose (Matthew 12:40), AD 30 to 33; 782 to 825 years later. Amos 9:11-12, Amos, c. 792 to 753 BC; kept as James applied it (Acts 15:15-16), applied to the nations gathered in, a day the Word gives no year; no span counted. Hosea 11:1, Hosea, c. 755 to 715 BC; kept when the Child came back out of Egypt (Matthew 2:15), c. 4 BC; 711 to 751 years later. Micah 5:2, Micah, c. 750 to 686 BC; kept in the birth at Bethlehem (Matthew 2:5-6), c. 6 to 4 BC; 680 to 746 years later. Isaiah 6:9-10, Isaiah, c. 740 BC; kept in the hearers of His parables (Matthew 13:14; John 12:40-41), AD 28 to 33; 767 to 772 years later. Isaiah 7:14, Isaiah, c. 735 to 732 BC; kept in the birth to the virgin Mary (Matthew 1:22-23), c. 6 to 4 BC; 726 to 731 years later. Isaiah 9:1-2, Isaiah, c. 740 to 686 BC; kept when He came to dwell in Capernaum (Matthew 4:13-16), AD 28 to 30; 713 to 769 years later. Isaiah 9:6-7, Isaiah, c. 740 to 686 BC; kept in the Son promised to Mary (Luke 1:32-33), c. 6 to 4 BC; 680 to 736 years later. Isaiah 28:16, Isaiah, c. 740 to 686 BC; kept in the Stone believed on (Romans 9:33), kept in all who believe on Him, a keeping with no single year; no span counted. Isaiah 40:3, Isaiah, c. 740 to 686 BC; kept in John the Baptist (Matthew 3:3; Luke 3:4), AD 28 to 29; 713 to 768 years later. Isaiah 42:1-4, Isaiah, c. 740 to 686 BC; kept in His quiet healing (Matthew 12:17-21), AD 28 to 33; 713 to 772 years later. Isaiah 52:15, Isaiah, c. 740 to 686 BC; kept in the preaching to the nations (Romans 15:20-21), kept as the nations hear of Him, a keeping with no single year; no span counted. Isaiah 53:1, Isaiah, c. 740 to 686 BC; kept in the unbelief before the cross (John 12:37-38), AD 30 to 33; 715 to 772 years later. Isaiah 53:4, Isaiah, c. 740 to 686 BC; kept in His healing of the sick (Matthew 8:16-17), AD 28 to 33; 713 to 772 years later. Isaiah 53:12, Isaiah, c. 740 to 686 BC; kept at the cross, between two thieves (Mark 15:28), AD 30 to 33; 715 to 772 years later. Isaiah 55:3, Isaiah, c. 740 to 686 BC; kept when He was raised, no more to return to corruption (Acts 13:34), AD 30 to 33; 715 to 772 years later. Isaiah 59:20, Isaiah, c. 740 to 686 BC; kept as Paul writes of Israel (Romans 11:26), still ahead in part, as Paul writes; no span counted. Isaiah 61:1-2, Isaiah, c. 740 to 686 BC; kept when He read it at Nazareth (Luke 4:18-21), AD 28 to 30; 713 to 769 years later. Jeremiah 31:15, Jeremiah, c. 627 to 586 BC; kept when Herod slew the children of Bethlehem (Matthew 2:16-18), c. 6 to 4 BC; 580 to 623 years later. AFTER THE EXILE. Zechariah 9:9, Zechariah, c. 520 to 480 BC; kept when He rode into Jerusalem (Matthew 21:4-5; John 12:14-15), AD 30 to 33; 509 to 552 years later. Zechariah 11:12-13, Zechariah, c. 520 to 480 BC; kept in the price of the betrayal (Matthew 27:9-10), AD 30 to 33; 509 to 552 years later. Zechariah 12:10, Zechariah, c. 520 to 480 BC; kept at the cross, when His side was pierced (John 19:37), AD 30 to 33; 509 to 552 years later. Malachi 3:1, Malachi, c. 460 to 430 BC; kept in John the Baptist (Matthew 11:10; Mark 1:2; Luke 7:27), AD 28 to 29; 457 to 488 years later. Malachi 4:5, Malachi, c. 460 to 430 BC; kept in John, who came in the spirit of Elias (Matthew 11:14; Mark 9:13), AD 28 to 29; 457 to 488 years later. NOT DATED BY THE WORD. Job 19:25-26, Job, no year given by the Word; kept in Christ, who redeemed us (Galatians 3:13), not quoted in the New Testament; the Word names the One who redeemed us; no span counted. Joel 2:28-32, Joel, no year given by the Word; kept at Pentecost (Acts 2:16-21), AD 30 to 33; no span counted. Psalms 45:6-7, the sons of Korah, no year given by the Word; kept as spoken to the Son (Hebrews 1:8-9), spoken to the Son, with no single year of keeping; no span counted. Psalms 78:2, Asaph, no year given by the Word; kept in His parables (Matthew 13:34-35), AD 28 to 33; no span counted. Psalms 102:25-27, a psalmist the Word does not name, no year given by the Word; kept as spoken to the Son (Hebrews 1:10-12), spoken to the Son, the Maker of the worlds, with no single year of keeping; no span counted. Psalms 118:22, a psalmist the Word does not name, no year given by the Word; kept when He was rejected and raised (Matthew 21:42; Acts 4:11), AD 30 to 33; no span counted. Read down the line and see what it shows. It starts in a garden and ends in a temple. 38 of the 49 promises can be counted, and the oldest was kept 3,857 to 3,991 years after it was spoken. 6 carry no year in the Word, and we have left them without one. Every promise with a keeping in the Gospels lands inside one life: born in Bethlehem, called out of Egypt, baptized by the voice in the wilderness, rejected, pierced, raised and seated at the right hand. After He rose He told them: \"all things must be fulfilled, which were written in the law of Moses, and in the prophets, and in the psalms, concerning me\" (Luke 24:44). THE CLOSE. Darrell asked why David came first. He did not. The first promise was spoken the day the first sin came, and Yahweh kept adding to it for thousands of years, through a man who walked with Him, a shipbuilder, a wanderer, a dying father, a hired seer, a lawgiver, a mother, a shepherd king, and the prophets, until \"the fulness of the time was come\" (Galatians 4:4). \"There failed not ought of any good thing which the LORD had spoken unto the house of Israel; all came to pass\" (Joshua 21:45). The same Yahweh who kept every word on this line keeps every word He has spoken to you. \"But these are written, that ye might believe that Jesus is the Christ, the Son of God; and that believing ye might have life through his name\" (John 20:31). Jesus is the Lamb of Yahweh and the Eternal Son of Yahweh."
   },
   {
     "id": "ll205-talk-about-it-together-parents-children-friends-until-we-see-yahweh-has-been-right",
