@@ -44,6 +44,10 @@ describe('the real /speak handler, exercised', () => {
     expect(out).toContain('the built-in voice is served');
     expect(out).toContain("the probe's 'no' stays TRUE");
     expect(out).toContain('clone path untouched');
+    // DR-0721: the browser's webm recording reaches XTTS as WAV, and the
+    // studio says it clones.
+    expect(out).toContain('a webm recording reaches XTTS as WAV');
+    expect(out).toContain('the studio says it needs ffmpeg');
   });
 });
 

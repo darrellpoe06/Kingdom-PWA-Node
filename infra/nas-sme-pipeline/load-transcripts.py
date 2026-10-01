@@ -106,6 +106,49 @@ def is_verdict(err):
     return bool(err) and err.split(":", 1)[0].strip() in VERDICT_ERRORS
 
 
+def coverage(state, worklist):
+    """(with_text, verdicts, owed) over the worklist, from an existing_state map.
+
+    OWED means no text AND no durable no-caption verdict: the only videos a
+    caption fetch can still advance. A verdict is ANSWERED (the video has no
+    captions; it is Whisper's queue, not the trickle's), so it is never owed.
+    Counting verdicts as owed is the 2026-10-01 defect (DR-0723): 756/876 with
+    all 120 remaining being verdicts read as "120 still owe a transcript" and
+    "STALL: 0 videos advanced", every fire, while the drain was finished. It
+    matches harvest-health.yml's own owed = total - transcribed - verdicts.
+    """
+    with_text = verdicts = owed = 0
+    for vid in worklist:
+        st = state.get(vid) or {}
+        if st.get("has_text"):
+            with_text += 1
+        elif st.get("has_verdict"):
+            verdicts += 1
+        else:
+            owed += 1
+    return with_text, verdicts, owed
+
+
+def run_outcome(fetched, no_caption, blocked, pending, owed, refetch=False):
+    """What a finished run means, as one word the exit code follows.
+
+    'blocked' -- every attempt was refused (an IP block): exit 3, backoff.
+    'stall'   -- nothing attempted while videos are still OWED: exit 3. This is
+                 a real fault (the worklist and the state disagree).
+    'drained' -- nothing attempted and nothing owed: the caption drain is done;
+                 the rest are answered verdicts. Healthy, exit 0.
+    'ok'      -- the run did work. Exit 0.
+    """
+    attempted = fetched + no_caption + blocked + pending
+    if blocked > 0 and (fetched + no_caption + pending) == 0:
+        return "blocked"
+    if attempted == 0:
+        if owed > 0 and not refetch:
+            return "stall"
+        return "drained"
+    return "ok"
+
+
 def within_caption_grace(service_date, now_ms=None, grace_days=CAPTION_GRACE_DAYS):
     """True when a video is new enough that a missing caption track most likely
     just means YouTube has not finished processing it yet (retry later) rather
@@ -504,31 +547,34 @@ def main():
             if args.sleep_max > 0:
                 time.sleep(random.uniform(max(args.sleep_min, 0), max(args.sleep_max, args.sleep_min)))
 
-        # STALL-GUARD: coverage after this run. Non-zero exit if we advanced 0 while
-        # gaps remain, so a scheduler flags the stall instead of it hanging silent.
+        # STALL-GUARD: coverage after this run. Non-zero exit only for a REAL
+        # stall (videos still owed and nothing attempted) or an all-blocked run.
         after = existing_state(url, key, instance_id) if not args.dry_run else state
-        with_text = sum(1 for v in after.values() if v.get("has_text"))
-        gaps = total - with_text
+        with_text, verdicts, owed = coverage(after, ordered)
         log("")
         log(f"This run: {fetched} fetched, {no_caption} no-caption verdicts, "
             f"{pending} pending (too new; will retry), {blocked} blocked (will retry), "
             f"{skipped} already resolved.")
-        log(f"Coverage: {with_text}/{total} videos transcribed ({gaps} still owe a transcript).")
+        log(f"Coverage: {with_text}/{total} videos transcribed; {verdicts} have no captions "
+            f"(answered, Whisper's queue); {owed} still owe a caption fetch.")
         if fetched > 0:
             clear_blocked_runs()  # real progress resets the backoff counter
+        outcome = run_outcome(fetched, no_caption, blocked, pending, owed, args.refetch)
         # Only trip the IP-block backoff when EVERY attempt was refused -- a run
         # that got any real answer (a fetch, a verdict, or a still-processing
         # pending) proves the IP is reaching YouTube.
-        if blocked > 0 and (fetched + no_caption + pending) == 0:
+        if outcome == "blocked":
             log(f"BLOCKED: all {blocked} attempts were rejected (YouTube is blocking this IP). Nothing advanced.")
             if not args.dry_run:
                 record_blocked_run()
             sys.exit(3)
-        # A true STALL is nothing happening at all while gaps remain -- NOT the
-        # healthy case where the only work left is pending brand-new uploads.
-        if (fetched + no_caption + blocked + pending) == 0 and gaps > 0 and not args.refetch:
-            log("STALL: 0 videos advanced while gaps remain. Check credentials / caption availability.")
+        if outcome == "stall":
+            log(f"STALL: 0 videos attempted while {owed} still owe a caption fetch. "
+                "Check credentials / caption availability.")
             sys.exit(3)
+        if outcome == "drained":
+            log(f"DRAINED: every video is transcribed or answered; nothing owes a caption fetch. "
+                f"The {verdicts} without captions wait on Whisper, not on this trickle.")
         if fetched > 0:
             log("Done. The served Harvest ledger derives these transcripts live -- the % climbs.")
     finally:
