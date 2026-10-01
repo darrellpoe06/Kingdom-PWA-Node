@@ -106,8 +106,26 @@ async function mount(props) {
   return container;
 }
 
-const btn = () => container.querySelector('button');
+const btn = () => container.querySelector('[data-testid="push-action"]');
+const state = () => container.querySelector('[data-testid="push-state"]');
+const dot = () => container.querySelector('[data-testid="push-state-dot"]');
+const reason = () => container.querySelector('[data-testid="push-reason"]');
 const click = async () => { await act(async () => { btn().click(); }); };
+// The state is read at a glance (Darrell 2026-10-01): a GREEN dot and the words
+// "Notifications on" only when a real subscription exists; grey and "off"
+// otherwise; the action button says only what it does.
+const expectOn = () => {
+  expect(state().textContent).toMatch(/notifications on/i);
+  expect(dot().className).toMatch(/bg-\[#16A34A\]/);
+  expect(container.querySelector('[data-testid="push-control"]').getAttribute('data-on')).toBe('1');
+  expect(btn().textContent).toBe('Turn off');
+};
+const expectOff = () => {
+  expect(state().textContent).toMatch(/notifications off/i);
+  expect(dot().className).not.toMatch(/bg-\[#16A34A\]/);
+  expect(container.querySelector('[data-testid="push-control"]').getAttribute('data-on')).toBe('0');
+  expect(btn().textContent).toBe('Turn on');
+};
 
 describe('the control only appears when it can actually work', () => {
   it('renders NOTHING when push is not configured (no VAPID key)', async () => {
@@ -138,7 +156,8 @@ describe('it renders LIVE subscription state, never a saved preference', () => {
     await mount({
       topic: 'live', registration: fakeRegistration(), supabase: fakeSupabase(), win: fakeWin(),
     });
-    expect(btn().textContent).toMatch(/tell me when a service goes live/i);
+    expectOff();
+    expect(reason().textContent).toMatch(/tell me when a service goes live/i);
   });
 
   it('shows ON only when a real subscription exists', async () => {
@@ -146,7 +165,8 @@ describe('it renders LIVE subscription state, never a saved preference', () => {
       registration: fakeRegistration({ existing: fakeSubscription() }),
       supabase: fakeSupabase(), win: fakeWin({ permission: 'granted' }),
     });
-    expect(btn().textContent).toMatch(/notifications on/i);
+    expectOn();
+    expect(reason().textContent).toMatch(/your choice: this device is told when someone messages you/i);
   });
 
   it('permission GRANTED but no subscription still offers to turn on', async () => {
@@ -154,7 +174,8 @@ describe('it renders LIVE subscription state, never a saved preference', () => {
     await mount({
       registration: fakeRegistration(), supabase: fakeSupabase(), win: fakeWin({ permission: 'granted' }),
     });
-    expect(btn().textContent).toMatch(/tell me when someone messages me/i);
+    expectOff();
+    expect(reason().textContent).toMatch(/tell me when someone messages me/i);
   });
 });
 
@@ -184,7 +205,7 @@ describe('turning it on and off', () => {
       registration: fakeRegistration(), supabase, win: fakeWin({ permission: 'granted' }), onChange,
     });
     await click();
-    expect(btn().textContent).toMatch(/notifications on/i);
+    expectOn();
     expect(onChange).toHaveBeenCalled();
     // Duplicates would each buzz the same pocket.
     expect(supabase.ops[0].opts).toEqual({ onConflict: 'endpoint' });
@@ -197,7 +218,8 @@ describe('turning it on and off', () => {
       supabase, win: fakeWin({ permission: 'granted' }),
     });
     await click();
-    expect(btn().textContent).toMatch(/tell me when/i);
+    expectOff();
+    expect(reason().textContent).toMatch(/tell me when/i);
     expect(supabase.ops.some((o) => o.op === 'delete')).toBe(true);
   });
 
@@ -208,7 +230,7 @@ describe('turning it on and off', () => {
     });
     await click();
     expect(container.textContent).toContain(REFUSAL_TEXT.dismissed);
-    expect(btn().textContent).toMatch(/tell me when/i);
+    expectOff();
   });
 
   it('a save failure reports honestly instead of showing ON', async () => {
@@ -218,7 +240,7 @@ describe('turning it on and off', () => {
     });
     await click();
     expect(container.textContent).toContain(REFUSAL_TEXT['save-failed']);
-    expect(btn().textContent).not.toMatch(/notifications on/i);
+    expectOff();
   });
 
   it('a signed-out person is told to sign in, and nothing is written', async () => {
@@ -240,5 +262,17 @@ describe('UX-PATTERNS conformance (2g.1, 2g.2, 2g.3)', () => {
   it('the control carries words, never a bare glyph', async () => {
     await mount({ registration: fakeRegistration(), supabase: fakeSupabase(), win: fakeWin() });
     expect(btn().textContent.replace(/\s/g, '').length).toBeGreaterThan(5); // 2g.3
+  });
+
+  it('the state and the action are two things: the words name the state, the button names only the act', async () => {
+    await mount({
+      registration: fakeRegistration({ existing: fakeSubscription() }),
+      supabase: fakeSupabase(), win: fakeWin({ permission: 'granted' }),
+    });
+    // Before 2026-10-01 one button read "Notifications on — turn off" behind
+    // a warning glyph, and ON looked like a problem.
+    expect(btn().textContent).not.toMatch(/notifications/i);
+    expect(state().getAttribute('role')).toBe('status');
+    expect(container.querySelector('[data-testid="push-control"] svg')).toBeTruthy();
   });
 });
