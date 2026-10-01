@@ -279,7 +279,7 @@ class WhoSpoke(unittest.TestCase):
     def test_the_standard_carries_the_speaker_rules(self):
         for must in ("DP is Darrell Poe", "BG is Bishop Gwin", "S1, S2", "Never guess",
                      "the church posts publicly", "health and sick lists", "further witnesses",
-                     'At the weekly 1 p.m. Bible study the teacher is Bishop Gwin (BG): never "the teacher" alone.'):
+                     "Name the teacher from the speaker marks (DR-0712: voice:BG) or the recording; when it is Bishop Gwin, say Bishop Gwin or BG, never 'the teacher' alone; never assume who taught."):
             self.assertIn(must, lw.STANDARD)
 
     def test_marked_unmarked_and_public_session_rows(self):
@@ -291,11 +291,11 @@ class WhoSpoke(unittest.TestCase):
         self.assertIn("say so where they do not", unmarked)
         public = self.rules(["lesson", "voice-transcript", "speakers:marked", "church-session-public"])
         self.assertIn("only as the teacher calls them", public)
-        # DR-0719: a session BG taught names him, never "the teacher" alone.
+        # DR-0719: speaker marks carrying BG name him; a name tag alone is not evidence he taught.
         self.assertIn("never 'the teacher' alone", marked)
-        named = self.rules(["lesson", "voice-transcript", "lesson-name-ok", "lesson-name:Bishop Gwin"])
-        self.assertIn("call him Bishop Gwin or BG", named)
-        self.assertNotIn("Bishop Gwin (BG) taught", unmarked)
+        named_only = self.rules(["lesson", "voice-transcript", "lesson-name-ok", "lesson-name:Bishop Gwin"])
+        self.assertNotIn("The speaker marks carry BG", named_only)
+        self.assertNotIn("The speaker marks carry BG", unmarked)
         # PROVEN-TO-CATCH: a row that is not a public church session never gets the naming line.
         self.assertNotIn("posts publicly", unmarked)
         self.assertNotIn("posts publicly", marked)

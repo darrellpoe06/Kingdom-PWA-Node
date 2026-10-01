@@ -22,6 +22,14 @@ BRAKES: budget <wall-clock or item ceiling>; lock <what makes a second run skip>
 REPORT: what changed, the evidence, and anything left with its named blocker.
 ```
 
+## For a lesson builder, add this line
+
+```
+WHO TAUGHT (DR-0719): Name the teacher from the speaker marks (DR-0712: voice:BG) or the recording; when it is Bishop Gwin, say Bishop Gwin or BG, never 'the teacher' alone; never assume who taught.
+```
+
+Being at the weekly 1 p.m. Bible study at The Church of the Living God does not by itself mean Bishop Gwin taught. Where someone else taught, name them as the recording does; where no one is identified, say so.
+
 ## What the orchestrator does after sending it
 
 1. Watch the session's first real output (a commit, a PR, a comment) before calling it working (P66).
