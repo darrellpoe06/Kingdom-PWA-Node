@@ -13,6 +13,7 @@ import { createRoot } from 'react-dom/client';
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 import Imported from '../components/Imported.jsx';
+import { publishLedgerEditor } from '../lib/ledger-edit.js';
 
 const DATA = {
   accounts: [
@@ -64,11 +65,17 @@ describe('Imported — bank-convention view (real mount)', () => {
     };
     const container = document.createElement('div');
     document.body.appendChild(container);
+    // The category cell is the shared editor (DR-0710): with the shell's write
+    // paths published it opens a sheet whose pick-list offers "+ New category".
+    publishLedgerEditor({ updateTransaction: vi.fn(), recategorizePayee: recat, transactions: data.transactions });
     await act(async () => { createRoot(container).render(createElement(Imported, { data, recategorizePayee: recat })); });
-    // the category cell is now a real editable select
-    const select = container.querySelector('select[aria-label^="Category for"]');
-    expect(select).toBeTruthy();
-    expect(select.querySelector('option[value="__new__"]')).toBeTruthy(); // "+ New category" -> add more
+    const catBtn = container.querySelector('[data-ledger-edit="category"]');
+    expect(catBtn).toBeTruthy();
+    await act(async () => { catBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    const sheetSelect = document.querySelector('[role="dialog"] select');
+    expect(sheetSelect.querySelector('option[value="__new__"]')).toBeTruthy(); // "+ New category" -> add more
+    await act(async () => { [...document.querySelectorAll('[role="dialog"] button')].find((b) => b.textContent === 'Cancel').click(); });
+    publishLedgerEditor(null);
     // the system offers to categorize what it can determine (SHELL -> fuel)
     const autoBtn = [...container.querySelectorAll('button')].find((b) => /Auto-categorize/.test(b.textContent));
     expect(autoBtn).toBeTruthy();
