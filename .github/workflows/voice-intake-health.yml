@@ -179,3 +179,53 @@ jobs:
           ${SUDO} cat /volume1/PoeTech/lesson-voice/enroll-result.json 2>/dev/null || echo "no enroll-result.json yet"
           ${SUDO} tail -6 /volume1/PoeTech/lesson-voice/enroll.log 2>/dev/null || echo "no enroll.log yet"
           EOS
+      - name: The church video road on the NAS (read-only, DR-0723)
+        # The second witness for a church class (DR-0712) rides two NAS
+        # riders: transcript-trickle (captions -> video_transcripts) and
+        # choir-dates (yt-dlp -> service_date). This prints each one's own
+        # last words and the state of the yt-dlp it needs. Read-only: it
+        # never fetches from YouTube; `--version` makes no network call.
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS' || echo "::warning::NAS did not answer"
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          LOOPS=$REPO/infra/nas-loops
+          echo "=== the trickle's own last words (cycle log) ==="
+          ${SUDO} grep -a "transcript-trickle\|This run:\|Coverage:\|STALL\|owe\|BLOCKED\|BACKOFF\|fetching captions" "$LOOPS/events/cron-services-sync.log" 2>/dev/null | grep -v "loop_run_done\|\[done\]" | tail -15 || echo "no trickle lines in the cycle log"
+          echo "=== the trickle's state files ==="
+          ${SUDO} ls -la "$REPO/infra/nas-sme-pipeline/out/" 2>&1 | grep -i "trickle\|transcripts\|lock" || echo "no trickle state"
+          echo "=== yt-dlp for the road (DR-0723) ==="
+          ${SUDO} cat /volume1/PoeTech/yt-dlp/.recipe 2>/dev/null | sed 's/^/installed recipe: /' || echo "no sovereign yt-dlp recipe yet"
+          for y in /volume1/PoeTech/yt-dlp/yt-dlp "$REPO/infra/church-media-golive/state/yt-dlp"; do
+            if [ -e "$y" ]; then
+              ${SUDO} ls -la "$y"
+              out=$(${SUDO} timeout 120 "$y" --version 2>&1); rc=$?
+              echo "$y --version -> exit $rc: $(printf '%s' "$out" | tail -3 | tr '\n' ' ' | cut -c1-300)"
+            else
+              echo "$y absent"
+            fi
+          done
+          ${SUDO} tail -8 /volume1/PoeTech/yt-dlp/install.log 2>/dev/null || echo "no yt-dlp install.log yet"
+          echo "--- the docker the old wrapper needs ---"
+          D=$(command -v docker 2>/dev/null || ls /usr/local/bin/docker /usr/bin/docker 2>/dev/null | head -1)
+          echo "docker binary: ${D:-none}"
+          [ -n "$D" ] && { "$D" ps >/dev/null 2>&1 && echo "docker ps as $(id -un): ok" || echo "docker ps as $(id -un): refused"; }
+          [ -n "$D" ] && { sudo -n "$D" ps >/dev/null 2>&1 && echo "sudo -n docker ps: ok" || echo "sudo -n docker ps: refused"; }
+          echo "--- the box (what a standalone binary needs) ---"
+          getconf GNU_LIBC_VERSION 2>/dev/null || echo "getconf: no glibc version"
+          ls /lib/libc.so.6 /lib64/libc.so.6 2>/dev/null
+          ls /usr/local/bin/python3* /usr/bin/python3* /bin/python3* 2>/dev/null | tr '\n' ' '; echo
+          ls /volume1/PoeTech/venvs 2>/dev/null | sed 's/^/venv: /'
+          curl -sI --max-time 15 -o /dev/null -w "github releases reachable: HTTP %{http_code}\n" https://github.com/yt-dlp/yt-dlp/releases 2>&1 || echo "github releases unreachable"
+          echo "=== choir-dates' own last words ==="
+          ${SUDO} grep -a "choir-dates\|choir_dates" "$LOOPS/events/cron-services-sync.log" 2>/dev/null | grep -v "loop_run_done\|\[done\]" | tail -8 || true
+          ${SUDO} tail -3 "$REPO/infra/church-media-golive/events/events.jsonl" 2>/dev/null || echo "no choir events"
+          ${SUDO} ls -la "$REPO/infra/church-media-golive/state/" 2>&1 | head -12
+          EOS
