@@ -195,16 +195,28 @@ describe('the measurement the lesson states is the measurement the catalog gives
     .flatMap((c) => (c.schedule || []).map((s) => s.module || s))
     .filter((m) => m && (m.lesson || m.levels));
 
+  // What the lesson states is a DATED measurement: "the catalog was measured on
+  // our own machines on 2026-10-01". These are the numbers it read that day.
+  const MEASURED_2026_10_01 = { parents: 4, children: 20, friends: 23, all: 0, any: 42 };
+
   it('593 lessons before this one; 4 parents, 20 children, 23 friends, 0 all three, 42 any — as the lesson says', () => {
     // 593 is the catalog as it stood when measured on 2026-10-01; lessons that
-    // landed afterwards (L203, L204) raise the total, so the total is a floor
-    // and the five direction counts are pinned exactly.
-    // ...and lessons bound by the rule (added on or after 2026-10-01, L206
-    // onward) each add their own three, so they are set aside here too.
+    // landed afterwards (L203, L204) raise the total, so the total is a floor.
+    // The direction counts are floors too: the lesson's own ask is that every
+    // lesson grow such language, and the age-band passes that rewrite older
+    // lessons (the bands-* branches, 2026-10-01) add "children, ask your
+    // parents" and "friend to friend" prompts as they go, so the catalog can
+    // only read HIGHER than the dated measurement, never lower. A count that
+    // fell below the day's reading would mean a prompt was taken out of a
+    // lesson, and that still fires here.
+    // Lessons bound by the rule (added on or after 2026-10-01, L206 onward)
+    // each add their own three, so they are set aside here too.
     const before = catalog().filter((m) => m.id !== ID && !mustCarryOwn(LIVING_LESSONS_ADDED[m.id]));
     const { lessons, ...directions } = talkTogetherCoverage(before);
     expect(lessons).toBeGreaterThanOrEqual(593);
-    expect(directions).toEqual({ parents: 4, children: 20, friends: 23, all: 0, any: 42 });
+    for (const [k, floor] of Object.entries(MEASURED_2026_10_01)) expect(directions[k], `${k}: ${directions[k]} read today, ${floor} on 2026-10-01`).toBeGreaterThanOrEqual(floor);
+    // Together: a lesson counted in a direction is counted in "any".
+    expect(directions.any).toBeGreaterThanOrEqual(Math.max(directions.parents, directions.children, directions.friends));
     const l = L().lesson;
     expect(l).toContain('five hundred ninety-three lessons across every course');
     expect(l).toContain('Four of them prompted parents toward their children. Twenty prompted children toward their parents. Twenty-three sent friend to friend. None carried all three directions. Forty-two carried any such language at all.');
@@ -217,13 +229,18 @@ describe('the measurement the lesson states is the measurement the catalog gives
     expect(q.options).toContain('Forty-two');
   });
 
-  it('with this lesson in the catalog, every lesson that carries all three is one bound by the rule, and this lesson is among them', () => {
+  it('with this lesson in the catalog, every lesson bound by the rule carries all three, and this lesson is among them', () => {
     const c = talkTogetherCoverage(catalog());
     expect(c.lessons).toBeGreaterThanOrEqual(594);
     const all = catalog().filter((m) => hasAllThree(m)).map((m) => m.id);
     expect(c.all).toBe(all.length);
     expect(all).toContain(ID);
-    for (const id of all) expect(mustCarryOwn(LIVING_LESSONS_ADDED[id]), id).toBe(true);
+    // The rule binds the lessons added on or after its day; an older lesson
+    // that gains all three through a later pass is the ask being answered,
+    // not a fault, so the implication runs bound => all three, not the reverse.
+    const bound = catalog().filter((m) => mustCarryOwn(LIVING_LESSONS_ADDED[m.id])).map((m) => m.id);
+    expect(bound).toContain(ID);
+    for (const id of bound) expect(all, `${id} is bound by the rule and must carry all three`).toContain(id);
   });
 
   it('PROVEN-TO-CATCH: a planted generic name, a misquote, a wrong reference, a dropped movement, and a stale count each fire', () => {
