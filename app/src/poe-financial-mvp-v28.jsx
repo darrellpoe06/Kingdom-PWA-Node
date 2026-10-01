@@ -5100,12 +5100,12 @@ ${THEME_CSS}
           />
         )}
 
-        {/* PoeTech platform footer — hidden in the focused church app (DR-0174). Reset-to-seed is steward/demo-only: never offer to overwrite a user's books with seed (REV-0239). */}
+        {/* PoeTech platform footer — hidden in the focused church app (DR-0174). Reset-to-seed is DEMO-only (DR-0713): it replaced the signed-in family's loaded ledger with SEED_DATA and saved that over this device's copy, and it showed under the real books. The guarded Admin action remains for the steward. */}
         {!authSession && churchBrandRoute && <PublicWelcome placement="end" />}
         {!churchDoorOnly && (
         <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden" data-read-skip>
           <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
-          {(isFamilyMember || isAnyDemoMode) && (<button type="button" onClick={resetToSeed} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4">Reset to seed data</button>)}
+          {isAnyDemoMode && (<button type="button" onClick={resetToSeed} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4">Reset to seed data</button>)}
         </footer>
         )}
         {!churchDoorOnly && view !== 'overview' && !(view === 'books' && booksView === 'debts') && (data.userTier === 'foundation' || !data.userTier) && (
