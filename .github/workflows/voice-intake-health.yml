@@ -233,6 +233,24 @@ jobs:
             echo "[${extra:-default args}] exit $rc, stdout: ${out:-<empty>}; stderr: $(tail -2 /tmp/ytdlp.err | tr '\n' ' ' | cut -c1-300)"
           done
           rm -f /tmp/ytdlp.err
+          echo "--- the undated rows choir-dates reads: how many, and what yt-dlp says about five of them ---"
+          ${SUDO} python3 - "$REPO/infra/church-media-golive" > /tmp/undated.txt 2>/tmp/undated.err <<'PYEOF'
+          import sys
+          sys.path.insert(0, sys.argv[1])
+          from youtube_load import load_secrets, _req, resolve_instance
+          url, key = load_secrets("/volume1/PoeTech/secrets/supabase.json")
+          inst = resolve_instance(url, key, "colg")
+          rows = _req(url, key, "GET", "choir_sermons", params={"instance_id": f"eq.{inst}", "service_date": "is.null", "video_id": "not.is.null", "select": "video_id", "order": "created_at.asc", "limit": "1000"}) or []
+          print(len(rows))
+          for r in rows[:5]:
+              print(r["video_id"])
+          PYEOF
+          echo "undated rows: $(head -1 /tmp/undated.txt) $(tail -2 /tmp/undated.err | tr '\n' ' ' | cut -c1-200)"
+          for v in $(tail -n +2 /tmp/undated.txt); do
+            out=$(${SUDO} timeout 90 "$Y" --skip-download --no-warnings --ignore-errors --ignore-no-formats-error --print '%(id)s %(release_timestamp,upload_date)s' "https://www.youtube.com/watch?v=$v" 2>/tmp/ytdlp.err); rc=$?
+            echo "$v exit $rc, stdout: ${out:-<empty>}; stderr: $(tail -1 /tmp/ytdlp.err | cut -c1-200)"
+          done
+          rm -f /tmp/ytdlp.err /tmp/undated.txt /tmp/undated.err
           echo "=== choir-dates' own last words ==="
           ${SUDO} grep -a "choir-dates\|choir_dates" "$LOOPS/events/cron-services-sync.log" 2>/dev/null | grep -v "loop_run_done\|\[done\]" | tail -8 || true
           ${SUDO} tail -3 "$REPO/infra/church-media-golive/events/events.jsonl" 2>/dev/null || echo "no choir events"
