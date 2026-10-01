@@ -183,9 +183,9 @@ export default function PushNotifications({
 
   return (
     <div className="space-y-1" data-testid="push-control" data-on={on ? '1' : '0'}>
-      <div className={`flex items-center justify-between gap-2 border px-3 py-1.5 min-h-[36px] ${on ? 'border-[#5A6E3D] bg-[#F3F6EE]' : 'border-dashed border-[#C9BFA8]'}`}>
+      <div className={`flex items-center justify-between gap-2 border px-3 py-1.5 min-h-[36px] ${on ? 'border-[#5A6E3D]' : 'border-dashed border-[#C9BFA8]'}`}>
         <span className="flex items-center gap-2 text-xs uppercase tracking-wider" data-testid="push-state" role="status">
-          <span aria-hidden="true" data-testid="push-state-dot" className={`inline-block w-2.5 h-2.5 rounded-full ${on ? 'bg-[#16A34A]' : 'bg-[#C9BFA8]'}`} />
+          <span aria-hidden="true" data-testid="push-state-dot" className={`inline-block w-2.5 h-2.5 rounded-full ${on ? 'bg-[#16A34A]' : 'bg-[#8A857B]'}`} />
           <UiIcon name="bell" />
           <span className={on ? 'text-[#5A6E3D] font-semibold' : 'text-[#5A5751]'}>{stateText}</span>
         </span>
