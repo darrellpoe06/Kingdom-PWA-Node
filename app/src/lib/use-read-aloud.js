@@ -25,6 +25,7 @@ import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
 import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService, voiceErrorReason, speakTimeoutFor, mayAttemptStudio, isStudioRoadProblem, synthesizeLite, mayTryLiteVoice, markLiteVoiceMiss, isPlayRefusal, liteVoiceReasonText, LITE_FIRST_TIMEOUT_MS } from './voice-service.js';
 import { chunkForClips, createClipQueue } from './clip-queue.js';
 import { clipKey, createClipSource, deviceClipCache } from './clip-cache.js';
+import { joinClipBlobs } from './joined-clip.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
 import { createBackgroundAudio, silentWavDataUri } from './background-audio.js';
@@ -434,18 +435,34 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // nas?"). A piece played once is kept on the device (lib/clip-cache.js):
     // a replay, a resume, a jump or a dropped connection plays from here.
     const keys = chunks.map((c) => clipKey({ voice, text: toSpokenForm(c.text) }));
+    const cache = deviceClipCache();
     const source = createClipSource({
       keys,
-      cache: deviceClipCache(),
+      cache,
       fetchBlob: (i, timeoutMs) => speakPiece(chunks[i].text, timeoutMs),
       makeUrl: (b) => URL.createObjectURL(b),
     });
+    // A SAVED READING PLAYS AS ONE FILE (DR-0718; Darrell 2026-10-01: "it
+    // stops each time on the downloaded version"). When every piece is on
+    // the device, they are joined into one WAV and played start to finish
+    // with nothing between sentences: no fetch, no network, no swap. A join
+    // that cannot be made plays piece by piece as before.
+    const joinFromDevice = async () => {
+      // The first piece answers for a reading that is not saved, quickly.
+      const head = await cache.get(keys[0]).catch(() => null);
+      if (!head) return null;
+      const blobs = [head, ...await Promise.all(keys.slice(1).map((k) => cache.get(k).catch(() => null)))];
+      if (blobs.some((b) => !b)) return null;
+      const j = await joinClipBlobs(blobs);
+      return j ? { url: URL.createObjectURL(j.blob), offsets: j.offsets, duration: j.duration } : null;
+    };
+    const whole = await joinFromDevice();
     // The first piece decides: if the NAS voice cannot answer it in time, the
     // device voice speaks instead and the road is not asked again for a while.
     // From the device if it is kept there, else from the NAS (and then kept).
-    const first = await source.clip(0, LITE_FIRST_TIMEOUT_MS);
+    const first = whole ? null : await source.clip(0, LITE_FIRST_TIMEOUT_MS);
     // The reason is KEPT (DR-0654): the notice names what the NAS voice said.
-    if (first.error || !first.url) { liteMissRef.current = first.error || 'voice-lite-empty'; markLiteVoiceMiss(liteMissRef.current); return false; }
+    if (first && (first.error || !first.url)) { liteMissRef.current = first.error || 'voice-lite-empty'; markLiteVoiceMiss(liteMissRef.current); return false; }
     liteMissRef.current = '';
     const a = liteAudioRef.current || new Audio();
     liteAudioRef.current = a;
@@ -455,11 +472,13 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       audio: a,
       rate: rateRef.current,
       fetchClip: (t, i) => {
-        if (!served) { served = true; return Promise.resolve(first); }
+        if (i === 0 && first && !served) { served = true; return Promise.resolve(first); }
         return source.clip(i);
       },
       revoke: (u) => { try { URL.revokeObjectURL(u); } catch (_) { /* ignore */ } },
       onProgress: (f) => setCloudProgress(f),
+      // The lock screen and the car show where in the lesson the voice is.
+      onPosition: (pos) => { try { if (queueRef.current === q && bgRef.current) bgRef.current.setPosition(pos); } catch (_) { /* ignore */ } },
       onPiece: (i) => { if (queueRef.current === q) setCloudPiece(i); },
       onEnd: () => { if (queueRef.current === q) { queueRef.current = null; audioRef.current = null; setCloudPlaying(false); setCloudPaused(false); setCloudProgress(0); setCloudPiece(-1); } },
       // A piece that cannot be had: the rest of the reading continues in the
@@ -493,15 +512,24 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     audioRef.current = a;
     setCloudPlaying(true); setCloudPaused(false); setCloudProgress(0);
     setAudioVoice('audio');
+    if (whole) q.join(whole);
     const ok = await q.start();
     // CACHE-AHEAD: with the first piece playing, the rest of the reading comes
     // down three at a time (the NAS answers a piece in about a second), so the
     // whole reading is on the device within a minute or two and the rest of it
-    // no longer needs the NAS. Stopped with the reading.
-    if (ok && queueRef.current === q) {
+    // no longer needs the NAS. Stopped with the reading. Once all of it is
+    // here, the reading moves onto ONE joined file at the next sentence
+    // boundary (DR-0718), so the rest plays with no swap between sentences.
+    if (!whole && ok && queueRef.current === q) {
       const signal = { aborted: false };
       aheadRef.current = signal;
       source.ahead({ concurrency: 3, signal, onProgress: (p) => { if (aheadRef.current === signal) setOffline({ ...p, keys, voice }); } })
+        .then(async (res) => {
+          if (signal.aborted || queueRef.current !== q || !res || res.saved < res.total) return;
+          const j = await joinFromDevice();
+          if (!j) return;
+          if (queueRef.current !== q || !q.join(j)) { try { URL.revokeObjectURL(j.url); } catch (_) { /* ignore */ } }
+        })
         .catch(() => { /* a piece not kept is fetched when it is reached */ });
     }
     return ok || queueRef.current === null;
@@ -595,6 +623,16 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     const { keys } = liteKeysFor(text);
     return deviceClipCache().status(keys);
   }, [liteKeysFor]);
+  /** True when every piece of this reading, in the voice it will read in, is on the device. */
+  const savedOnDevice = useCallback(async (text) => {
+    try {
+      const voice = (readingPinRef.current && readingPinRef.current.gender) || liteVoiceFor();
+      const chunks = chunkForClips(String(text || '').trim());
+      if (!chunks.length) return false;
+      const s = await deviceClipCache().status(chunks.map((c) => clipKey({ voice, text: toSpokenForm(c.text) })));
+      return !!s && s.total > 0 && s.saved === s.total;
+    } catch (_) { return false; }
+  }, [liteVoiceFor]);
 
   const read = useCallback(async (text, { title } = {}) => {
     const clean = String(text || '').trim();
@@ -790,7 +828,12 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // the NAS's own voice (/voice-lite, Piper) for REAL AUDIO, played piece by
     // piece through one <audio> element: media, which the phone keeps playing.
     // A browser accent the listener picked on purpose is left as their choice.
-    if ((isSystemVoiceId(voiceId) || isPersonVoiceId(voiceId)) && mayTryLiteVoice()) {
+    // A READING SAVED ON THE DEVICE NEEDS NO ROAD (DR-0718). This gate used
+    // to be mayTryLiteVoice() alone: after any NAS miss (offline is a miss)
+    // the saved pieces were never even looked at, and the phone's own voice
+    // read instead, which Android stops the moment he leaves the app. A
+    // reading whose pieces are all on this device plays them, NAS or not.
+    if ((isSystemVoiceId(voiceId) || isPersonVoiceId(voiceId)) && (mayTryLiteVoice() || await savedOnDevice(clean))) {
       const played = await playLiteVoice(clean);
       if (played) return;
     }
@@ -896,7 +939,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       pin.gender = genderOfDeviceVoice(uri, deviceVoices) || pin.gender;
     }
     tts.speak(clean, uri, pitch);
-  }, [voiceId, personalVoices, sovereignVoiceReady, attemptStudio, studioHealth, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio, setNotice, playLiteVoice, liteVoiceFor]);
+  }, [voiceId, personalVoices, sovereignVoiceReady, attemptStudio, studioHealth, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio, setNotice, playLiteVoice, liteVoiceFor, savedOnDevice]);
 
   // The OS media buttons drive the SAME controls the panel does — kept in a ref
   // so a lock-screen tap can never call a stale closure.
@@ -926,7 +969,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // The NAS voice's piece IS the reading segment (-1 when not playing one).
     cloudPiece,
     // Kept on the device (DR-0659): the reading now playing, a save, a count.
-    offline, saveForListening, offlineStatus,
+    offline, saveForListening, offlineStatus, savedOnDevice,
     // The NAS voice reads for the System voice and a person's stand-in; a
     // browser accent picked on purpose is the device's own voice.
     usesNasVoice: isSystemVoiceId(voiceId) || isPersonVoiceId(voiceId),
