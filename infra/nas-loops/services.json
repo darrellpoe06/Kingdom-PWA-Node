@@ -85,7 +85,7 @@
       "name": "choir-dates",
       "install": "infra/church-media-golive/choir_dates_install.sh",
       "enabled": true,
-      "description": "Drain the undated choir_sermons backlog (2026-08-04): yt-dlp reads each video's own release/upload stamp from the NAS's residential IP (CI runners are bot-checked and the stored Data-API key is rejected), PATCHes service_date ONLY where NULL via the youtube_load.py REST helpers, ~90 videos per 15-min cycle until drained, then a DONE marker no-ops every later cycle. Budget in-script (chunk + time), lock/timeout in the runner (DR-0248). Selftest gates merge in ci.yml."
+      "description": "Drain the undated choir_sermons backlog (2026-08-04): yt-dlp reads each video's own release/upload stamp from the NAS's residential IP (CI runners are bot-checked and the stored Data-API key is rejected), PATCHes service_date ONLY where NULL via the youtube_load.py REST helpers, ~90 videos per 15-min cycle until drained, then a DONE marker no-ops every later cycle. Budget in-script (chunk + time), lock/timeout in the runner (DR-0248). Selftest gates merge in ci.yml. yt-dlp is the NAS's own (DR-0723): infra/nas-yt-dlp/install.sh installs the pinned, sha256-verified standalone build into /volume1/PoeTech/yt-dlp (no docker, no PyPI; the NAS python is 3.8 and current yt-dlp needs 3.10), retried at most every 6 h on failure; the docker wrapper is the fallback only."
     },
     {
       "name": "ytzero",

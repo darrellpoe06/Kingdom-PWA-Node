@@ -28,6 +28,7 @@ import { voiceErrorReason, isStudioRoadProblem } from '../lib/voice-service.js';
 
 const STUDIO = readFileSync(resolve(__dirname, '../components/VoiceStudio.jsx'), 'utf8');
 const TTS = readFileSync(resolve(__dirname, '../components/TTSControl.jsx'), 'utf8');
+const MYVOICE = readFileSync(resolve(__dirname, '../lib/my-voice.js'), 'utf8');
 
 // His phone, from the user agent Chrome sends for a Galaxy Z Fold.
 const FOLD = 'Mozilla/5.0 (Linux; Android 15; SM-F956U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36';
@@ -205,10 +206,17 @@ describe('a road problem is the house’s, not the reader’s — no message, a 
     }
   });
 
-  it('the read raises NO notice on a road problem — it sets the status and falls back', () => {
+  // SUPERSEDED FOR THE LISTENER'S OWN VOICE (DR-0721). Darrell 2026-10-01:
+  // "my recorded voice still will not work as my reader voice… why?" He had
+  // picked his own voice and heard another, and the only trace was a few
+  // words after "Reading…" in a panel that folds away while it reads. A
+  // person who PICKED a voice is told, in one sentence, when another one is
+  // reading and why: still no "HTTP 404" over the lesson, but never silence.
+  it('a road problem on the picked person voice sets the status AND says whose voice reads instead', () => {
     const block = HOOK.slice(HOOK.indexOf('if (isStudioRoadProblem(error)) {'), HOOK.indexOf('if (isStudioRoadProblem(error)) {') + 500);
     expect(block).toMatch(/setStandInWhy\('studio-offline'\)/);
-    expect(block).toMatch(/\} else \{\s*setNotice\(`\$\{voiceErrorReason\(error\)\} Using a stand-in voice\.`\);/);
+    expect(block).toMatch(/setNotice\(myVoiceLine\(/);
+    expect(block).not.toMatch(/HTTP 404/);
   });
 
   it('an unarmed studio is status too, not a message on every read', () => {
@@ -222,8 +230,12 @@ describe('a road problem is the house’s, not the reader’s — no message, a 
   });
 
   it('the panel prints which voice is speaking and why, beside Reading', () => {
-    expect(TTS).toMatch(/standInWhy === 'studio-offline'\s*\?\s*' · stand-in voice, the studio is offline'/);
-    expect(TTS).toMatch(/' · stand-in voice until the studio is armed'/);
+    // DR-0721: the words live in lib/my-voice.js (standInWords), which adds
+    // "not your voice" when the replaced voice is the listener's own.
+    expect(TTS).toMatch(/const standInNote = standInWords\(standInWhy, \{ mine: !!\(myVoice && myVoice\.picked\) \}\);/);
+    expect(MYVOICE).toMatch(/standInWhy === 'studio-offline'\s*\?\s*' · stand-in voice, the studio is offline'/);
+    expect(MYVOICE).toMatch(/' · stand-in voice until the studio is armed'/);
+    expect(MYVOICE).toMatch(/not your voice/);
     expect(TTS).toMatch(/const statusLabel = \(isReading \? \(isPaused \? 'Paused' : 'Reading…'\) : 'Ready'\) \+ standInNote;/);
   });
 

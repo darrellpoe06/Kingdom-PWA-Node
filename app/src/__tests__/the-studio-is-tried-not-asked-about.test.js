@@ -48,6 +48,7 @@ import { buildVoiceChecks, PASS, FAIL } from '../lib/voice-system-check.js';
 
 const HOOK = readFileSync(resolve(__dirname, '../lib/use-read-aloud.js'), 'utf8');
 const STUDIO = readFileSync(resolve(__dirname, '../components/VoiceStudio.jsx'), 'utf8');
+const MYVOICE = readFileSync(resolve(__dirname, '../lib/my-voice.js'), 'utf8');
 
 describe('the failure is named, not flattened to "unreachable"', () => {
   it('REPRODUCES HIS CASE: a 401 is a refusal, never an unreachable studio', () => {
@@ -93,7 +94,10 @@ describe('the failure is named, not flattened to "unreachable"', () => {
   });
 
   it('both call sites use it — the tag is no longer discarded', () => {
-    expect(HOOK).toMatch(/voiceErrorReason\(error\)/);
+    // DR-0721: the reader's tag rides into myVoiceLine (lib/my-voice.js),
+    // which hands an unnamed one to voiceErrorReason.
+    expect(HOOK).toMatch(/myVoiceStatus\(\{ hasSample: true, miss: error \}\), miss: error/);
+    expect(MYVOICE).toMatch(/voiceErrorReason\(miss\)/);
     expect(STUDIO).toMatch(/voiceErrorReason\(error\)/);
     expect(HOOK).not.toMatch(/Voice endpoint unreachable — using a stand-in voice/);
     expect(STUDIO).not.toMatch(/The voice studio was unreachable — using the stand-in voice for now/);
@@ -103,7 +107,7 @@ describe('the failure is named, not flattened to "unreachable"', () => {
 describe('the studio is TRIED, not asked about', () => {
   it('the attempt no longer consults the probe', () => {
     expect(HOOK).toMatch(/const attemptStudio = readyOverride !== undefined \? readyOverride : mayAttemptStudio\(\);/);
-    expect(HOOK).toMatch(/if \(voice && attemptStudio\) \{/);
+    expect(HOOK).toMatch(/if \(attemptStudio\) \{/);
   });
 
   it('REPRODUCES THE DEFECT: the old condition refused to try when the probe said down', () => {
@@ -130,7 +134,8 @@ describe('the studio is TRIED, not asked about', () => {
   });
 
   it('and the read actually passes that sized timeout through', () => {
-    expect(HOOK).toMatch(/timeoutMs: speakTimeoutFor\(studioHealth\)/);
+    // DR-0721: the first piece of a reading in my voice carries it.
+    expect(HOOK).toMatch(/speakPiece\(chunks\[0\]\.text, speakTimeoutFor\(studioHealth\)\)/);
   });
 });
 

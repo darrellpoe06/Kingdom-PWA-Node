@@ -1078,6 +1078,20 @@ const NODES = [
     writes: [{ res: 'auth:session#tv', token: '/auth/v1/verify' }],
     seeds: ['tv-signin'],
   }),
+  // DR-0736: a person's contacts come from the phone in their hand (the Contact
+  // Picker where the phone has it, a .vcf file everywhere) and are kept on their
+  // own server, read by them alone; the device list is the cache. Nothing is
+  // merged with anyone's account; a match is a hint with its reason.
+  app('app/src/lib/contacts-store.js', {
+    id: 'contacts-from-the-phone', name: 'Contacts from the phone (Messages \u2192 Add a contact)',
+    purpose: 'A person brings their phone\u2019s contacts into the app, sees the plan first (new, already saved, already on PoeTech), and keeps them on their own server, theirs alone.',
+    reads: [
+      { res: 'db:contacts', token: "from('contacts')" },
+      { res: 'file:vcf', file: 'app/src/lib/vcard-parse.js', token: 'parseVCardFile' },
+    ],
+    writes: [{ res: 'db:contacts', token: "from('contacts').upsert" }],
+    seeds: [],
+  }),
 ];
 
 // Every service rider and loop reads nas:services (the install services-sync
@@ -1217,6 +1231,8 @@ const RESOURCES = {
   'http:scribe-upload': { label: 'a Scribe recording uploaded', route: '/scribe' },
   'http:supabase': { label: 'the live database’s API', route: '/sb' },
   'http:funnel': { label: 'the NAS’s public routes' },
+  'db:contacts': { label: 'a person\u2019s own address book (0247, DR-0736; read by its owner alone)' },
+  'file:vcf': { label: 'a phone\u2019s exported contacts file', source: 'The phone\u2019s Contacts app or Google Contacts shares it; the person uploads it in Messages.' },
 };
 
 // ---------------------------------------------------------------------------

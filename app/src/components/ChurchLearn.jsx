@@ -70,6 +70,8 @@ import { newShareToken } from '../lib/lesson-share.js';
 import { recordLessonShare, pendingShareToken, reportShareLanded, waitForElement } from '../lib/lesson-share-record.js';
 import DownloadNeedsAccount from './DownloadNeedsAccount.jsx';
 import LessonShareLedger from './LessonShareLedger.jsx';
+import { LessonDownloadButton, CourseDownloadButton, AllDownloadButton, SavedMark, OfflineLevelNote, useDownloads, useOnline } from './LessonDownloads.jsx';
+import { savedReadingFor } from '../lib/lesson-downloads.js';
 import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture-matrix.js';
 import CopyButton from './CopyButton.jsx';
 import ShareButton from './ShareButton.jsx';
@@ -770,6 +772,16 @@ export function LessonProse({ text, plan = null, className = 'text-xs text-[#1A1
 const LEVEL_WORDS = { child: 'Child', teen: 'Teen', standard: 'Adult', senior: 'Senior' };
 function levelWords(id) { return LEVEL_WORDS[id] || id; }
 
+// How many written versions a lesson carries: its authored age levels plus the
+// top-level `lesson` (the adult version). More than one means the level choice
+// really changes the words (DR-0717).
+export function lessonVersionCount(m) {
+  if (!m) return 0;
+  const levels = m.levels && typeof m.levels === 'object' ? m.levels : {};
+  const authored = Object.values(levels).filter((v) => typeof v === 'string' && v.trim()).length;
+  return authored + (typeof m.lesson === 'string' && m.lesson.trim() ? 1 : 0);
+}
+
 export function LessonLevelControl({
   band, levelId, levelOverride = null, setAgeBand, setLearnLevel = null, branched = true,
 }) {
@@ -1140,13 +1152,20 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   // is driving, cooking, or resting their eyes, which is exactly who this
   // feature is for. `next` advances to the following piece and opens its
   // guide, so the reader keeps going by itself to the end of the series.
+  // A DOWNLOADED LESSON, OFFLINE (DR-0722): the reader speaks the very text
+  // whose voice was saved, so every piece plays from the device.
+  const online = useOnline();
+  const downloads = useDownloads();
+  const savedSig = downloads.lessons[module.id] ? JSON.stringify(downloads.lessons[module.id].levels) : '';
   React.useEffect(() => {
-    const text = readAloudTextFromArc(buildLessonArc(module, { ageBand, levelOverride, sessionFlow, handsOnLabel }));
+    const savedText = !online && !levelOverride ? savedReadingFor(module, ageBand, { sessionFlow, handsOnLabel }) : null;
+    const text = savedText || readAloudTextFromArc(buildLessonArc(module, { ageBand, levelOverride, sessionFlow, handsOnLabel }));
     if (text) {
       setReadTarget(module.id, {
         label: `this ${unitNoun}`,
         title: module.title || '',
         text,
+        preferText: !!savedText,
         elementId: `learn-read-${module.id}`,
         prepare: (on) => setReadAll(!!on),
         next: onAdvance || null,
@@ -1163,7 +1182,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
       });
     }
     return () => clearReadTarget(module.id);
-  }, [module, ageBand, levelOverride, sessionFlow, handsOnLabel, unitNoun, onAdvance, setAgeBand, setLearnLevel]);
+  }, [module, ageBand, levelOverride, sessionFlow, handsOnLabel, unitNoun, onAdvance, setAgeBand, setLearnLevel, online, savedSig]);
 
   // THE LEVEL IS CHOSEN FROM THE BEGINNING AND AT EVERY STAGE (Darrell
   // 2026-09-15, DR-0426: "choose the level from the beginning and at each
@@ -1589,6 +1608,8 @@ function CourseView({
   // and only on a course whose lessons actually carry stories, so the realtime
   // subscription (story_library_submissions) never runs where it isn't used.
   const [storySubmissions, setStorySubmissions] = useState([]);
+  // What this device holds (DR-0722): the "Saved" mark on every lesson in the list.
+  const downloads = useDownloads();
 
   const {
     meta, schedule, cohortConfirmed, cohortStart, setCohortStart, confirmCohort,
@@ -1837,15 +1858,32 @@ function CourseView({
   };
   const doorId = focusModule && openTutorId !== focusModule.id ? focusModule.id : null;
   const doorTitle = doorId ? (focusModule.title || '') : '';
+  // THE DOOR CARRIES THE LEVEL TOO (DR-0717). Darrell 2026-10-01, on L202
+  // with the reader open: "Didn't get the options to choose the lesson
+  // level?!!! Why not?" The panel shows "Who is learning?" only for a target
+  // that hands it level / levels / setLevel, and this door handed none, so a
+  // lesson opened by its title (Latest lessons, the course list, a shared
+  // link, Continue) met the reader with no level choice at all until the
+  // guide was open. The door now carries the same choice the full reading
+  // does, so the level is picked BEFORE the reading starts.
+  const doorSetLevel = typeof setAgeBand === 'function'
+    ? (id) => { setAgeBand(id); if (levelOverride && setLearnLevel) setLearnLevel('auto'); }
+    : null;
+  const doorSetLevelRef = React.useRef(doorSetLevel);
+  doorSetLevelRef.current = doorSetLevel;
+  const doorCanLevel = !!doorSetLevel;
   React.useEffect(() => {
     if (!doorId) return undefined;
     setReadTarget(doorId, {
       label: `this ${U.noun}`,
       title: doorTitle,
       open: (opts) => { if (readDoorRef.current) readDoorRef.current(doorId, opts); },
+      level: ageBand,
+      levels: AGE_BANDS.map((b) => ({ id: b.id, label: b.label, range: b.range })),
+      setLevel: doorCanLevel ? (id) => { if (doorSetLevelRef.current) doorSetLevelRef.current(id); } : null,
     });
     return () => clearReadTarget(doorId);
-  }, [doorId, doorTitle, U.noun]);
+  }, [doorId, doorTitle, U.noun, ageBand, doorCanLevel]);
   // HANDS-FREE ADVANCE (Darrell 2026-08-10: "users should be able to listen to
   // the whole thing without needing to intervene"). Given a lesson, move to the
   // NEXT one in this course and open its guide — the same real path a Next tap
@@ -2420,6 +2458,7 @@ function CourseView({
                 <span className="text-sm font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
                   {U.cap} {ownNumber(m, schedule)} · {m.title}
                 </span>
+                <SavedMark lessonId={m.id} reg={downloads} />
               </li>
             );
           }
@@ -2478,6 +2517,11 @@ function CourseView({
                   title="Copy a link that opens exactly this lesson"
                   text={() => lessonUrl({ courseKey: course.meta.key, lessonId: m.id })}
                 />
+                {/* DOWNLOAD THIS LESSON (DR-0722): its words and reading voice,
+                    at the levels chosen, for reading and listening offline.
+                    Needs an account (DR-0698). One button; its choices open
+                    under the row, so the row stays one control wider. */}
+                <LessonDownloadButton module={m} course={course} signedIn={signedIn} />
                 {/* START, OR CONTINUE (DR-0631). A lesson the reader has begun
                     says so on its own button, and the tap lands on their place
                     (the saved part, step and sentence) instead of part one. */}
@@ -2599,6 +2643,7 @@ function CourseView({
               <div className="flex items-baseline justify-between gap-3 flex-wrap">
                 <span className="text-sm font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
                   {U.cap} {ownNumber(m, schedule)} · {m.title}
+                  <SavedMark lessonId={m.id} reg={downloads} />
                 </span>
                 {!U.selfPaced && (
                   <span className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
@@ -2606,7 +2651,29 @@ function CourseView({
                   </span>
                 )}
               </div>
+              <OfflineLevelNote module={m} ageBand={ageBand} />
               {m.nasPreview && <LessonPreviewBadge prUrl={m.nasPreview.prUrl} />}
+              {/* PICK THE LEVEL FIRST, THEN THE LESSON STARTS (DR-0717).
+                  Darrell 2026-10-01, on L202 reached from Latest lessons:
+                  "Didn't get the options to choose the lesson level?!!! Why
+                  not?" and, placing it: "In the reader.... at the beginning
+                  before the lesson starts". The row rode only the open guide's
+                  stage headers, so a lesson opened by its title showed no
+                  level anywhere above its first words. In the one-lesson
+                  space, a lesson written in more than one version now offers
+                  "Who is learning?" here, under the title and before Start
+                  and the first paragraph; once the guide is open, its Open
+                  stage carries the same row, so it is never shown twice. */}
+              {focusModule && !tutorOpen && typeof setAgeBand === 'function' && lessonVersionCount(m) > 1 && (() => {
+                const band = AGE_BANDS.find((b) => b.id === ageBand) || AGE_BANDS.find((b) => b.id === DEFAULT_AGE_BAND) || AGE_BANDS[0];
+                const resolved = resolveForAge(m, ageBand, levelOverride);
+                return (
+                  <div className="mt-2" data-testid="lesson-level-first">
+                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">Who is learning? Pick first, then start</div>
+                    <LessonLevelControl band={band} levelId={resolved.levelId} levelOverride={levelOverride} setAgeBand={setAgeBand} setLearnLevel={setLearnLevel} branched={resolved.branched} />
+                  </div>
+                );
+              })()}
               {actionsRow}
               {/* Where this lesson sits on the biblical timeline (Darrell 2026-07-15:
                   "a lesson ... that connects the others ... on their respective
@@ -4597,6 +4664,8 @@ export default function ChurchLearn({
                 unitPlural: `${unitLabels(active.meta).noun}s`,
               })}
             />
+            {/* DOWNLOAD THIS COURSE (DR-0722) — every lesson, at the levels chosen. */}
+            <CourseDownloadButton course={active} signedIn={signedIn} />
           </div>
         )}
 
@@ -4608,6 +4677,12 @@ export default function ChurchLearn({
           <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] mb-2">
             {courses.length} courses · {courses.reduce((t, c) => t + ((c.schedule && c.schedule.length) || 0), 0)} lessons — every finished lesson in the PoeTech App, in one place
           </p>
+        )}
+        {/* DOWNLOAD EVERY LESSON (DR-0722) — sized first, paused and resumed, skipping what is here. */}
+        {courses.length > 1 && !lessonFocus && (
+          <div className="mb-3 flex items-center gap-2 flex-wrap" data-testid="learn-download-all">
+            <AllDownloadButton courses={courses} signedIn={signedIn} />
+          </div>
         )}
 
 
