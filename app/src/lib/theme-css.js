@@ -294,6 +294,42 @@ export const THEMES = [
 ];
 const THEME_KEYS = new Set(THEMES.map((t) => t.key));
 
+// THE PHONE'S OWN BARS WEAR THE THEME (DR-0744; Darrell 2026-10-01, Midnight
+// on his phone in the installed app, a white strip above the page and a white
+// strip below it: "why have the white bar at the top and another one at the
+// bottom so 3?!"). An installed app's status bar and, on Android, its
+// navigation bar take their color from <meta name="theme-color">; index.html
+// ships it cream for the first paint (the first-run theme) and nothing ever
+// moved it, so on Midnight the page went black and the two strips stayed
+// cream. The theme now writes its own color there, and on the document
+// element too, so the edge under the navigation bar and any overscroll are
+// the page's color, not the browser's.
+/** The page color of a theme key (cream for an unknown key). Pure. */
+export function themeColorFor(theme) {
+  const t = THEMES.find((x) => x.key === theme);
+  return (t || THEMES[0]).color;
+}
+/**
+ * Paint the browser's own chrome in the theme: the theme-color meta (the
+ * status bar, and the navigation bar in an installed app) and the document
+ * element's background. Returns the color written, or '' with no document.
+ */
+export function syncThemeChrome(theme, doc = (typeof document !== 'undefined' ? document : null)) {
+  if (!doc || typeof doc.querySelector !== 'function') return '';
+  const color = themeColorFor(theme);
+  try {
+    let meta = doc.querySelector('meta[name="theme-color"]');
+    if (!meta && doc.head && typeof doc.createElement === 'function') {
+      meta = doc.createElement('meta');
+      meta.setAttribute('name', 'theme-color');
+      doc.head.appendChild(meta);
+    }
+    if (meta) meta.setAttribute('content', color);
+  } catch { /* a document without a head */ }
+  try { if (doc.documentElement && doc.documentElement.style) doc.documentElement.style.backgroundColor = color; } catch { /* ignore */ }
+  return color;
+}
+
 // Per-device theme preference — the same fail-soft localStorage pattern as
 // text-size. Shared by every shell so the user's choice follows them between
 // the app and the business doors on this device. First-run default is the
@@ -339,6 +375,7 @@ export function subscribeThemePref(fn) {
 export function setThemePref(theme) {
   if (!THEME_KEYS.has(theme)) return readThemePref();
   saveThemePref(theme);
+  syncThemeChrome(theme);
   for (const fn of [...themeListeners]) { try { fn(theme); } catch (e) { /* a dead subscriber never blocks the rest */ } }
   return theme;
 }
@@ -358,5 +395,9 @@ export function useThemePref(fallback = 'cream') {
     if (typeof next === 'function') return;
     setTheme(setThemePref(next));
   }, []);
+  // The first paint too: the chosen theme is on this device before React
+  // runs, and the browser's bars should wear it from the first frame the app
+  // owns, not from the first time the person changes it.
+  useEffect(() => { syncThemeChrome(readThemePref(fallback)); }, [fallback]);
   return [theme, update];
 }

@@ -17,6 +17,7 @@ import { filesFromClipboardEvent } from '../lib/paste-input.js';
 import { receiptMessage, receiptCode } from '../lib/feedback-receipt.js';
 import IntakeOutcomeList, { tallyText } from './IntakeOutcomeList.jsx';
 import { fetchMyFeedback } from '../lib/feedback-sync.js';
+import { recentTripLine } from '../lib/reader-trip.js';
 import { fetchDeliveryRecord } from '../lib/github-ops.js';
 import { categorizeIntake, basisLine, outcomeFor, INTAKE_CATEGORIES, CATEGORY_ORDER, categoryCounts } from '../lib/intake-outcome.js';
 import { extractRequirementsFromThoughts } from '../lib/requirements-intake.js';
@@ -453,7 +454,10 @@ export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey =
       setFormError('Pick a rating, a category, jot a note, or attach an image — anything is helpful.');
       return;
     }
-    const saved = onSubmit({ rating, area, categories, whatsWorking, whatsNot, whatsMissing, screenshots, ...(replyTo ? { replyTo: replyTo.id } : {}) });
+    // The last reading's trip rides with the note (DR-0744): a recent one,
+    // in one line, so "it stopped" arrives with which voice and what happened.
+    const readerTrip = recentTripLine();
+    const saved = onSubmit({ rating, area, categories, whatsWorking, whatsNot, whatsMissing, screenshots, ...(readerTrip ? { readerTrip } : {}), ...(replyTo ? { replyTo: replyTo.id } : {}) });
     setReplyTo(null);
     setTimeout(refreshMine, 1500);
     // Hand the sender their reference instead of closing on them. If the host
