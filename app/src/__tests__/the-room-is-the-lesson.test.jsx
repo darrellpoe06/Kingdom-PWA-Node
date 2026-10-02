@@ -28,7 +28,7 @@ import { createRoot } from 'react-dom/client';
 import ChurchLearn from '../components/ChurchLearn.jsx';
 import { buildCatalogCourseDescriptors } from '../lib/learn-catalog.js';
 import {
-  nextChromeState, stepScrollTop, stepInView, readFlowMode, writeFlowMode, landStep, announceStep, chromeAfterLanding,
+  nextChromeState, stepScrollTop, stepInView, readFlowMode, writeFlowMode, landStep, announceStep, chromeAfterLanding, chromePinned,
   FLOW_KEY, FLOW_WORDS, CHROME_HIDE_AFTER, CHROME_DELTA, LANDED_EVENT,
 } from '../lib/lesson-room.js';
 
@@ -72,6 +72,15 @@ describe('a step lands under the chrome', () => {
     expect(chromeAfterLanding(CHROME_HIDE_AFTER)).toBe('shown');
     expect(chromeAfterLanding(CHROME_HIDE_AFTER + 1)).toBe('hidden');
     expect(landStep(null, { win })).toBe(false);
+  });
+  it('the chrome steps aside only once it is pinned at the top of the screen, never while it still stands in the page above the lesson', () => {
+    const at = (top, height) => ({ getBoundingClientRect: () => ({ top, height }) });
+    expect(chromePinned(at(0, 90), 'shown')).toBe(true);
+    expect(chromePinned(at(180, 210), 'shown'), 'standing 180px down the page: a slide up would cover the course header').toBe(false);
+    // Hidden, it is translated up by its own height: measured at -90 it is pinned at 0.
+    expect(chromePinned(at(-90, 90), 'hidden')).toBe(true);
+    expect(chromePinned(at(100, 90), 'hidden')).toBe(false);
+    expect(chromePinned(null, 'shown'), 'nothing to measure counts as pinned').toBe(true);
   });
   it('announceStep sends the step on the window and never throws without one', () => {
     const got = [];

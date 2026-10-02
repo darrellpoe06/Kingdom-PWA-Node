@@ -1814,16 +1814,18 @@ function CourseView({
   // the pagers send; landStep then says where it landed and the chrome
   // decides once from that, never from the landing's own scroll.
   const reading = !!(focusModule && openTutorId === focusModule.id);
-  const chromeState = useChromeAutoHide(reading);
   const stickyRef = React.useRef(null);
+  const chromeState = useChromeAutoHide(reading, undefined, () => stickyRef.current);
   React.useEffect(() => {
     if (!focusModule || typeof window === 'undefined') return undefined;
     const onStep = (e) => {
       const el = e && e.detail && e.detail.el;
       if (!el) return;
-      // Two frames: the new step has painted by then, so its top is real.
+      // Two frames: the new step has painted by then, so its top is real. The
+      // landing is a page turn, not a glide: the words changed, so the page
+      // moves at once (a glide over changed words is the disorienting kind).
       const raf = typeof window.requestAnimationFrame === 'function' ? window.requestAnimationFrame.bind(window) : (cb) => setTimeout(cb, 16);
-      raf(() => raf(() => landStep(el, { chromeEl: stickyRef.current, behavior: motionBehavior() })));
+      raf(() => raf(() => landStep(el, { chromeEl: stickyRef.current, behavior: 'auto' })));
     };
     window.addEventListener('poetech:lesson-step', onStep);
     return () => window.removeEventListener('poetech:lesson-step', onStep);

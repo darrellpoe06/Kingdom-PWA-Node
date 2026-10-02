@@ -132,25 +132,50 @@ export function chromeAfterLanding(top, { hideAfter = CHROME_HIDE_AFTER } = {}) 
 }
 
 /**
+ * Is the sticky chrome pinned at the top of the screen (so stepping it aside
+ * clears the words), or still standing in its own place in the page above
+ * the lesson? Hidden by a translate of its own height, its natural top is the
+ * measured top plus that height. No element to measure counts as pinned. Pure.
+ */
+export function chromePinned(el, state) {
+  try {
+    if (!el || typeof el.getBoundingClientRect !== 'function') return true;
+    const r = el.getBoundingClientRect();
+    const natural = (Number(r.top) || 0) + (state === 'hidden' ? (Number(r.height) || 0) : 0);
+    return natural <= 1;
+  } catch (_) { return true; }
+}
+
+/**
  * React: 'shown' | 'hidden' for the lesson chrome, following the reader's own
  * scrolling while `enabled`. A step or part the reader moved to (STEP_EVENT,
  * then LANDED_EVENT with where it landed) decides the state once from the
  * landing: aside, so the words have the screen, or shown near the page top.
- * The landing's own scroll is held still, never read as the reader's.
+ * The landing's own scroll is held still, never read as the reader's. The
+ * chrome steps aside only once it is pinned at the top of the screen
+ * (`getEl` measures it): standing in the page above the lesson, a slide up
+ * would carry it over the course header instead of clearing the words.
  */
-export function useChromeAutoHide(enabled, win = typeof window !== 'undefined' ? window : undefined) {
+export function useChromeAutoHide(enabled, win = typeof window !== 'undefined' ? window : undefined, getEl = null) {
   const [state, setState] = useState('shown');
   // The decision reads the last state from a ref, never from a lazy updater:
   // the anchor (lastY) moves right after the call, and an updater that ran
   // later would read the moved anchor and see no scroll at all.
   const stateRef = useRef('shown');
   const put = (next) => { stateRef.current = next; setState(next); };
+  // The measurer is read through a ref so a fresh arrow each render never
+  // re-binds the listeners.
+  const getElRef = useRef(getEl);
+  getElRef.current = getEl;
   useEffect(() => {
     if (!enabled || !win || typeof win.addEventListener !== 'function') { put('shown'); return undefined; }
     let lastY = win.scrollY || 0;
     let raf = null;
-    // While a landing is under way its scroll only moves the anchor.
-    let landing = null; // { top: number|null, until: number }
+    // While a landing is under way its scroll only moves the anchor; a hide
+    // the landing asked for waits until the chrome is pinned.
+    let landing = null; // { top: number|null, until: number, hide: boolean }
+    const pinned = () => chromePinned(typeof getElRef.current === 'function' ? getElRef.current() : null, stateRef.current);
+    const hide = () => { if (pinned()) { put('hidden'); return true; } return false; };
     const onScroll = () => {
       if (raf !== null) return;
       const schedule = typeof win.requestAnimationFrame === 'function' ? win.requestAnimationFrame.bind(win) : (cb) => setTimeout(cb, 16);
@@ -159,22 +184,25 @@ export function useChromeAutoHide(enabled, win = typeof window !== 'undefined' ?
         const y = win.scrollY || 0;
         if (landing) {
           lastY = y;
+          if (landing.hide && hide()) landing.hide = false;
           const arrived = landing.top !== null && Math.abs(y - landing.top) <= 2;
           if (arrived || Date.now() > landing.until) landing = null;
           return;
         }
-        put(nextChromeState(stateRef.current, lastY, y));
+        const next = nextChromeState(stateRef.current, lastY, y);
+        if (next === 'hidden') { if (stateRef.current !== 'hidden') hide(); } else put(next);
         // A small move keeps the last anchor so a slow drift still adds up.
         if (Math.abs(y - lastY) > CHROME_DELTA || y <= CHROME_HIDE_AFTER) lastY = y;
       });
     };
-    const onStep = () => { landing = { top: null, until: Date.now() + LANDING_SETTLE_MS }; };
+    const onStep = () => { landing = { top: null, until: Date.now() + LANDING_SETTLE_MS, hide: false }; };
     const onLanded = (e) => {
       const top = Number(e && e.detail && e.detail.top);
       if (!Number.isFinite(top)) { landing = null; return; }
-      put(chromeAfterLanding(top));
       lastY = top;
-      landing = { top, until: Date.now() + LANDING_SETTLE_MS };
+      const wanted = chromeAfterLanding(top);
+      if (wanted === 'shown') { put('shown'); landing = { top, until: Date.now() + LANDING_SETTLE_MS, hide: false }; return; }
+      landing = { top, until: Date.now() + LANDING_SETTLE_MS, hide: !hide() };
     };
     win.addEventListener('scroll', onScroll, { passive: true });
     win.addEventListener(STEP_EVENT, onStep);
