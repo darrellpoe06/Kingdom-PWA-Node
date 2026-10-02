@@ -1,0 +1,53 @@
+{
+  "ll207-the-worker-is-worthy-the-broken-deal-the-cry-yahweh-hears": [
+    {
+      "publisher": "Economic Policy Institute",
+      "title": "The Productivity–Pay Gap",
+      "url": "https://www.epi.org/productivity-pay-gap/",
+      "read": "2026-10-02",
+      "says": [
+        "86.5",
+        "31.7",
+        "1979",
+        "2024"
+      ],
+      "claim": "net productivity up 86.5 percent from 1979 to 2024; a typical worker’s hourly pay up 31.7 percent"
+    },
+    {
+      "publisher": "U.S. Bureau of Labor Statistics",
+      "title": "Defined benefit plans: frozen plans (Employee Benefits Survey fact sheet)",
+      "url": "https://www.bls.gov/ebs/factsheets/defined-benefit-frozen-plans.htm",
+      "read": "2026-10-02",
+      "says": [
+        "11 percent",
+        "2023"
+      ],
+      "claim": "11 percent of private industry workers participated in defined benefit plans in March 2023"
+    },
+    {
+      "publisher": "U.S. Bureau of Labor Statistics",
+      "title": "Monthly Labor Review, December 2012: the shift from defined benefit to defined contribution plans",
+      "url": "https://www.bls.gov/opub/mlr/2012/12/art1full.pdf",
+      "read": "2026-10-02",
+      "says": [
+        "38",
+        "1980"
+      ],
+      "claim": "38 percent of private wage and salary workers were in a defined benefit plan in 1980",
+      "format": "pdf"
+    },
+    {
+      "publisher": "Economic Policy Institute",
+      "title": "CEO pay declined in 2023 but they still made 290 times as much as the typical worker",
+      "url": "https://www.epi.org/press/ceo-pay-declined-in-2023-but-they-still-made-290-times-as-much-as-the-typical-worker-ceo-pay-has-soared-1085-since-1978/",
+      "read": "2026-10-02",
+      "says": [
+        "290",
+        "21-to-1",
+        "1,085%",
+        "24%"
+      ],
+      "claim": "CEO-to-worker pay 290-to-1 in 2023 against 21-to-1 in 1965; CEO pay up 1,085 percent since 1978, a typical worker’s up 24 percent"
+    }
+  ]
+}
