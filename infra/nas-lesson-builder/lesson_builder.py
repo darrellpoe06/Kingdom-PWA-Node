@@ -251,7 +251,11 @@ def already_built(fps, corpus_norm):
 # pure: numbers (taken atomically, never colliding with a parallel build)
 # =============================================================================
 
-LL_ID = re.compile(r"id: 'll(\d+)-")
+# Both spellings of an entry's id: the hand-written `id: 'll…'` and the
+# JSON-style `"id": "ll…"` that L199–L206 carry. The 2026-10-02 build read only
+# the first, saw 198 as the top, numbered a new lesson L199 and overwrote the
+# real L199's verse test (DR-0750 corrections).
+LL_ID = re.compile(r"""["']?id["']?\s*:\s*["']ll(\d+)-""")
 DR_NUM = re.compile(r"DR-(\d{4})")
 
 
@@ -1211,7 +1215,7 @@ class Git:
         ll, dr = 0, 0
         for ref in ["refs/remotes/origin/main"] + self.recent_refs():
             try:
-                hits = self.g("grep", "-h", "-E", "id: 'll[0-9]+-", ref, "--", LIVING, timeout=120)
+                hits = self.g("grep", "-h", "-E", "[\"']?id[\"']? *: *[\"']ll[0-9]+-", ref, "--", LIVING, timeout=120)
             except RuntimeError:
                 hits = ""
             ll = max(ll, max_ll([hits]))
