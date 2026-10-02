@@ -199,6 +199,34 @@ describe('a pick changes the words, is remembered, and the reading starts in tha
     expect(getReadTarget().text).toContain(childOnly.slice(0, 60));
   });
 
+  it('picking Child at the top changes the card\'s FIRST WORDS to the child opening, before Start (DR-0745)', () => {
+    mount();
+    choose(host.querySelector('#learn-course-sort'), 'latest');
+    act(() => { host.querySelector(`[data-testid="learn-latest-lessons"] li[data-lesson-id="${L202.id}"] button`).click(); });
+    // Adult first: the big idea, no band caption.
+    const opening = () => host.querySelector('[data-testid="lesson-opening"]');
+    expect(opening().getAttribute('data-band')).toBe('big-idea');
+    expect(opening().querySelector('p').textContent).toBe(L202.bigIdea);
+    expect(host.querySelector('[data-testid="lesson-opening-band"]')).toBeNull();
+    const top = host.querySelector('[data-testid="lesson-level-first"]');
+    const child = [...top.querySelectorAll('[role="radio"]')].find((b) => b.textContent.startsWith('Child'));
+    act(() => { child.click(); });
+    // Now the child's own first words, said as such, with Start still below.
+    expect(opening().getAttribute('data-band')).toBe('child');
+    const words = opening().querySelector('p').textContent;
+    expect(L202.levels.child.startsWith(words)).toBe(true);
+    expect(words).not.toBe(L202.bigIdea);
+    expect(host.querySelector('[data-testid="lesson-opening-band"]').textContent).toMatch(/Child 6–10/);
+    // The level row stays above the opening: pick first, then read.
+    expect(before(host.querySelector('[data-testid="lesson-level-first"]'), opening())).toBe(true);
+    // Senior next: different words again.
+    const senior = [...host.querySelectorAll('[data-testid="lesson-level-first"] [role="radio"]')].find((b) => b.textContent.startsWith('Senior'));
+    act(() => { senior.click(); });
+    expect(opening().getAttribute('data-band')).toBe('senior');
+    expect(L202.levels.senior.startsWith(opening().querySelector('p').textContent)).toBe(true);
+    expect(opening().querySelector('p').textContent).not.toBe(words);
+  });
+
   it('a pick in the READ ALOUD panel before reading reaches the same remembered band', () => {
     mount();
     choose(host.querySelector('#learn-course-sort'), 'latest');

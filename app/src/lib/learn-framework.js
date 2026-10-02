@@ -308,6 +308,59 @@ export function resolveForAge(module, ageBandId = DEFAULT_AGE_BAND, levelOverrid
   return { text: '', levelId: chain[0], branched: false, band };
 }
 
+// THE BAND YOU PICK IS WHAT YOU READ, FROM THE FIRST WORDS (DR-0745; Darrell
+// 2026-10-01, three screenshots of L206 on his Fold with Child, Senior and
+// Adult picked in turn and the same adult paragraph under all three: "What
+// keeps happening to the options for all ages?! The features keep coming and
+// going!"). The lesson card's first paragraph was always `bigIdea`, the adult
+// register, whatever band was picked; the band's own words began only after
+// Start this lesson opened the guide. So a pick looked like nothing.
+//
+// This is the card's opening for a band: the first movement of the band's
+// own authored text when the lesson carries one for that band, else the big
+// idea as before. Pure.
+const OPENING_MARKER = /\s(?:[A-Z]{3,} )?(?:ONE|TWO|FIRST)\.\s+[A-Z]/;
+const OPENING_MAX = 900;
+
+/** The first movement of a band's text: up to the first blank line or spelled
+ *  movement marker, else the leading sentences within OPENING_MAX. Pure. */
+export function openingOf(text, max = OPENING_MAX) {
+  const clean = typeof text === 'string' ? text.trim() : '';
+  if (!clean) return '';
+  const para = clean.split(/\n\s*\n/)[0].trim();
+  const mark = para.search(OPENING_MARKER);
+  let head = mark > 120 ? para.slice(0, mark).trim() : para;
+  if (head.length > max) {
+    const sentences = head.split(/(?<=[.!?])\s+/);
+    let out = '';
+    for (const s of sentences) {
+      if (out && (out.length + s.length + 1) > max) break;
+      out = out ? `${out} ${s}` : s;
+    }
+    head = out || head.slice(0, max);
+  }
+  return head;
+}
+
+/**
+ * What the lesson card shows first for this band: { text, levelId, own, band }.
+ * `own` is true when the words are the band's own authored opening; false when
+ * the card falls back to the adult big idea (the adult band, a band without
+ * its own text, or an explicit level override).
+ */
+export function bandOpening(module, ageBandId = DEFAULT_AGE_BAND, levelOverride = null) {
+  const m = module || {};
+  const big = typeof m.bigIdea === 'string' ? m.bigIdea : '';
+  const resolved = resolveForAge(m, ageBandId, levelOverride);
+  const levels = m.levels && typeof m.levels === 'object' ? m.levels : null;
+  const ownText = !levelOverride && resolved.branched && levels && resolved.levelId !== 'standard'
+    && typeof levels[resolved.levelId] === 'string' && levels[resolved.levelId] === resolved.text;
+  if (!ownText) return { text: big, levelId: resolved.levelId, own: false, band: resolved.band };
+  const text = openingOf(resolved.text);
+  if (!text) return { text: big, levelId: resolved.levelId, own: false, band: resolved.band };
+  return { text, levelId: resolved.levelId, own: true, band: resolved.band };
+}
+
 // Split a lesson into developmentally-sized segments. Younger bands get shorter
 // chunks (fewer words per on-screen step) so a child isn't handed a wall of text;
 // every band now chunks long prose into readable sections. Splits on sentence
