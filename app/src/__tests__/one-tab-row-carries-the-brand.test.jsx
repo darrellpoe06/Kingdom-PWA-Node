@@ -102,6 +102,24 @@ describe('one tab: the row becomes the brand row', () => {
   });
 });
 
+describe('the way home (Darrell 2026-10-02: "They only let me go back when I push a certain button... it wasn\'t obvious")', () => {
+  it('a family member on the church door sees the PoeTech app named in words, with its own door as the link', async () => {
+    const host = await mount(createElement(TopNavRow, { collapsed: false, onToggleHeader: () => {}, hatch: hatchFor(false), ...BRAND, home: { href: '/poetech-app/?view=overview', label: 'PoeTech app' } }, [tab('church', 'Church')]));
+    const a = host.querySelector('[data-testid="one-tab-way-home"]');
+    expect(a, 'the way home must be a real link in the brand row').toBeTruthy();
+    expect(a.getAttribute('href')).toBe('/poetech-app/?view=overview');
+    expect(a.textContent).toMatch(/PoeTech app/);
+  });
+  it('PROVEN-TO-CATCH: without `home` (a church member) the row carries no way to PoeTech', async () => {
+    const host = await mount(row(false, [tab('church', 'Church')]));
+    expect(host.querySelector('[data-testid="one-tab-way-home"]')).toBeNull();
+  });
+  it('the shell passes the way home only on the church door, only to a family member', () => {
+    const shell = readFileSync(join(HERE, '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
+    expect(shell).toMatch(/home=\{churchDoorOnly && isFamilyMember \? \{ href: '\/poetech-app\/\?view=overview', label: 'PoeTech app'/);
+  });
+});
+
 describe('many tabs: nothing changes', () => {
   it('renders the tab strip with every tab, and the collapsed row ABOVE the nav, not in it', async () => {
     const el = await mount(row(true, [tab('overview', 'Big Picture'), tab('books', 'Books'), sep(), tab('church', 'Church')]));
