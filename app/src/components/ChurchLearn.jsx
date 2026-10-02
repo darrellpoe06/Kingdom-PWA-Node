@@ -1806,7 +1806,7 @@ function CourseView({
   // the reading space smaller." `reading` is true while the open lesson's
   // guide is open — the lesson is under way. Then: the chrome hides while the
   // reader scrolls down and returns on the first flick up (lib/lesson-room.js);
-  // the sticky block folds to one title line; the card's head row keeps only
+  // the sticky block keeps its two-line title and fold (DR-0605); the card's head row keeps only
   // Close / Play and folds the rest under More; the timeline line waits for
   // the guide to close. A tapped step or part lands with its first line just
   // under the chrome (the 'poetech:lesson-step' event the pagers send).
@@ -2490,10 +2490,13 @@ function CourseView({
               (measured on the element, never guessed from its length), so a
               short title shows a plain line and a long one shows a handle
               rather than a silent "...". See titleOpen above. */}
-          {/* ONE LINE WHILE THE LESSON IS UNDER WAY (DR-0749). The two-line
-              ceiling is for a reader arriving; once the guide is open the
-              title rests on one line (the fold control still opens the whole
-              of it), so the block over the Word is as short as it can be. */}
+          {/* THE TITLE KEEPS ITS TWO LINES AND ITS FOLD, READING OR NOT (DR-0605,
+              re-affirmed by Darrell 2026-10-02 against a one-line cut of it:
+              "half is shown and the drop down if and when we need to see the
+              whole thing.... don't take away what I've already discussed and
+              firmed up!!!!!"). DR-0749 gives the reading its height back by
+              sliding the whole block away on a scroll down, not by shrinking
+              the title. */}
           <div className="border border-[#1A1815] border-b-0 px-2 sm:px-3 py-1.5 flex items-start gap-2" data-testid="lesson-space-title-row">
             <h2
               data-testid="lesson-space-title"
@@ -2501,13 +2504,13 @@ function CourseView({
               title={focusModule.title}
               data-open={titleOpen ? 'true' : 'false'}
               ref={titleRef}
-              className={`flex-1 min-w-0 ${reading ? 'text-[0.75rem]' : 'text-[0.875rem]'} font-semibold text-[#1A1815] leading-snug ${titleOpen ? '' : 'overflow-hidden'}`}
+              className={`flex-1 min-w-0 text-[0.875rem] font-semibold text-[#1A1815] leading-snug ${titleOpen ? '' : 'overflow-hidden'}`}
               style={titleOpen ? { fontFamily: '"Fraunces", serif' } : {
                 fontFamily: '"Fraunces", serif',
                 display: '-webkit-box',
                 WebkitBoxOrient: 'vertical',
-                WebkitLineClamp: reading ? 1 : 2,
-                maxHeight: reading ? '1.4em' : '2.8em',
+                WebkitLineClamp: 2,
+                maxHeight: '2.8em',
               }}
             >
               {focusModule.title}
@@ -4879,7 +4882,7 @@ export default function ChurchLearn({
           );
         })()}
 
-        <h2 id="learn-h" className={`${lessonFocus ? 'sr-only' : 'text-2xl sm:text-3xl mt-1 mb-3'}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
+        <h2 id="learn-h" className="text-2xl sm:text-3xl mt-1 mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
           {active.meta.title}
         </h2>
         {/* The catalog line a school prints under a course title: its code,
@@ -5020,10 +5023,13 @@ export default function ChurchLearn({
           knowledge/perspective when we have it — derived from the course's own
           declared lead or its first Scripture anchor, never invented. A course
           with neither renders nothing here and the census test reports it. */}
-      {/* ...AND NOT OVER AN OPEN LESSON (DR-0749): the course's lead and
-          title describe the course; inside one lesson the lesson's own bar
-          names where the reader is, and the Word of the lesson is what opens. */}
-      {!lessonFocus && (() => {
+      {/* THE COURSE HEADER STAYS, LESSON OPEN OR NOT (Darrell 2026-10-02, on
+          the first cut of DR-0749 that hid it: "I want the course header!!!").
+          The title above and this Word-first lead are the course's name and
+          its opening Word; what waits while a lesson is open is the course's
+          schedule furniture (the count of weeks, the cohort pill, the start
+          date), which is in the course view below. */}
+      {(() => {
         const lead = wordFirstLead(active);
         if (!lead) return null;
         return (

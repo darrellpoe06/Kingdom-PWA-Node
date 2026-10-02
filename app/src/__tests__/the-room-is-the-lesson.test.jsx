@@ -126,16 +126,19 @@ describe('inside a lesson, the room is the lesson', () => {
     .filter((b) => /Next\s*→/.test(b.textContent || ''))
     .find((b) => !b.closest('[data-testid="lesson-space-sticky"]'));
 
-  it('PROVEN-TO-CATCH: the course head is cleared the moment a lesson is open', () => {
+  it('PROVEN-TO-CATCH: the course\'s schedule furniture waits while a lesson is open; the course header stays', () => {
     mount(); openLivingLessons();
     expect(container.textContent).toMatch(/The \d+ lessons/);
     expect(container.textContent).toContain('Word-first');
     act(() => { byText('Bodybuilding Christ').click(); });
     expect(container.textContent).not.toMatch(/The \d+ lessons/);
-    expect(container.textContent).not.toContain('Word-first · Yahweh');
     expect(container.textContent).not.toMatch(/Cohort 1|Self-paced/);
+    // Darrell 2026-10-02: "I want the course header!!!" — the course's name
+    // and its opening Word stay above the lesson.
     const h2 = container.querySelector('#learn-h');
-    expect(h2.className).toContain('sr-only');
+    expect(h2.className).not.toContain('sr-only');
+    expect(h2.textContent.trim().length).toBeGreaterThan(0);
+    expect(container.textContent).toContain('Word-first');
   });
 
   it('PROVEN-TO-CATCH: with the guide open the head row keeps Close and Play, folds the rest under More, and the second row waits until after the guide', () => {
@@ -170,7 +173,7 @@ describe('inside a lesson, the room is the lesson', () => {
     expect(container.querySelector('[data-testid="lesson-head-row"]').textContent).toContain('Start this lesson');
   });
 
-  it('PROVEN-TO-CATCH: the sticky block knows it is reading, folds the title to one line, and hides on a scroll down', () => {
+  it('PROVEN-TO-CATCH: the sticky block knows it is reading, keeps its two-line title and fold, and hides on a scroll down', () => {
     openALesson();
     const sticky = () => container.querySelector('[data-testid="lesson-space-sticky"]');
     expect(sticky().getAttribute('data-reading')).toBe('false');
@@ -179,8 +182,12 @@ describe('inside a lesson, the room is the lesson', () => {
     expect(sticky().className).toContain('sticky');
     start();
     expect(sticky().getAttribute('data-reading')).toBe('true');
+    // The title is NOT shrunk while reading (Darrell 2026-10-02: "half is
+    // shown and the drop down... don't take away what I've already discussed
+    // and firmed up"): the two-line ceiling of DR-0605 stands.
     const title = container.querySelector('[data-testid="lesson-space-title"]');
-    expect(title.style.WebkitLineClamp || title.style.webkitLineClamp || title.getAttribute('style')).toMatch(/1/);
+    expect(title.getAttribute('style') || '').toMatch(/2\.8em/);
+    expect(title.className).toContain('text-[0.875rem]');
     // The reader scrolls down past the top: the chrome hides.
     const scrollTo = (y) => { Object.defineProperty(window, 'scrollY', { configurable: true, value: y }); act(() => { window.dispatchEvent(new Event('scroll')); }); };
     const rafs = [];
