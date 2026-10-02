@@ -134,6 +134,7 @@ import { useTextToSpeech } from '../lib/tts.js';
 import { anchorIsRun, referencesIn } from '../lib/verse-refs.js';
 import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 import { useScreenAwake } from '../lib/screen-awake.js';
+import { useFlowMode, useChromeAutoHide, announceStep, landStep, stepInView, FLOW_WORDS, STEP_LANDING_GAP } from '../lib/lesson-room.js';
 
 const fmtDate = formatClassDate;
 
@@ -885,6 +886,45 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
       return mapped;
     });
   }, [plan && plan.totalSegments]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A tapped step is announced once it has painted (see moveTo below).
+  const stepBoxRef = useRef(null);
+  const [landNonce, setLandNonce] = useState(0);
+  React.useEffect(() => {
+    if (!landNonce) return;
+    announceStep(stepBoxRef.current);
+  }, [landNonce]);
+  // SCROLLING IT ALL, THE PROGRESS FOLLOWS THE EYE (DR-0749). With every step
+  // on the page at once nothing is tapped, so the step under the reading line
+  // is reported as the reader scrolls — the same onStepChange a tap reports,
+  // never a second source of the place.
+  const allRef = useRef(null);
+  const lastReportedRef = useRef(-1);
+  const totalForReport = plan && plan.totalSegments ? plan.totalSegments : 0;
+  React.useEffect(() => {
+    if (!showAll || totalForReport <= 1 || typeof window === 'undefined' || !onStepChange) return undefined;
+    lastReportedRef.current = -1;
+    let raf = null;
+    const look = () => {
+      raf = null;
+      const root = allRef.current;
+      if (!root) return;
+      const chrome = document.querySelector('.lesson-space-sticky');
+      const line = (chrome ? chrome.getBoundingClientRect().bottom : 0) + STEP_LANDING_GAP + 24;
+      const tops = Array.from(root.querySelectorAll('[data-step-index]')).map((el) => el.getBoundingClientRect().top);
+      const at = stepInView(tops, line);
+      if (at >= 0 && at !== lastReportedRef.current) {
+        lastReportedRef.current = at;
+        onStepChange(at, totalForReport);
+      }
+    };
+    const onScroll = () => { if (raf === null) raf = window.requestAnimationFrame(look); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    look();
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (raf !== null) window.cancelAnimationFrame(raf);
+    };
+  }, [showAll, totalForReport]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!plan || !plan.segments || plan.segments.length === 0) return null;
   // `branched` rides the plan already (lessonPlanForAge passes resolveForAge's
   // own flag straight through) and was simply never read here -- which is the
@@ -925,10 +965,10 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
   // versa.
   if (showAll && totalSegments > 1) {
     return (
-      <div className={`${box} space-y-2`}>
+      <div className={`${box} space-y-2`} ref={allRef}>
         {control}
         {segments.map((s, i) => (
-          <div key={i}>
+          <div key={i} data-step-index={i}>
             <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
               Step {i + 1} of {totalSegments} · ~{segmentMinutes} min · {band.label} pace
             </span>
@@ -939,10 +979,14 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
     );
   }
   // Report a move so the host can persist the learner's place (resume-your-place).
+  // THE STEP LANDS UNDER THE CHROME (DR-0749): a tap on Next or Back says so,
+  // and the lesson space scrolls the new step's first line to just under its
+  // bar, so the starting point never has to be found.
   const moveTo = (i) => {
     const n = Math.max(0, Math.min(totalSegments - 1, i));
     setIdx(n);
     if (onStepChange) onStepChange(n, totalSegments);
+    setLandNonce((k) => k + 1);
   };
 
   // Adult/single-segment: just show the whole lesson, no stepper.
@@ -968,7 +1012,7 @@ export function AgePacedLesson({ plan, onSegmentComplete, initialIndex = 0, onSt
   const showCheckHint = (cur + 1) >= checkAfterSegments;
 
   return (
-    <div className={box}>
+    <div className={box} ref={stepBoxRef} data-testid="paced-step-box">
       {control}
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
@@ -1127,6 +1171,9 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
     if (!p) return null;
     return placeIsFinished(p) ? null : p;
   })();
+  // The pace controls start open on a fresh lesson and folded on a lesson
+  // picked up past its first step (DR-0749; see the fold below).
+  const [paceOpen, setPaceOpen] = useState(() => !(savedHere && ((Number(savedHere.step) || 0) > 0 || (Number(savedHere.stage) || 0) > 0)));
 
   // Real engagement: this learner started this week (once per open).
   React.useEffect(() => {
@@ -1147,6 +1194,15 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   // were never read at all. prepare(true) renders every stage; the reader then
   // maps this element and speaks its exact text — alignment by construction.
   const [readAll, setReadAll] = useState(false);
+  // STEP BY STEP, OR SCROLL IT ALL — BOTH, THE READER'S OWN CHOICE (DR-0749).
+  // Darrell 2026-10-02: "once inside the lessons we have the opportunity to
+  // scroll or click next... I like both... however not just one... sometimes
+  // I want to pause and next works... other times the next is annoying."
+  // `scroll` renders every part and every step in order (the same reveal the
+  // read-along uses) and the progress follows the eye; `steps` keeps the
+  // pager. Kept on the device, so the choice holds across lessons.
+  const [flowMode, setFlowMode] = useFlowMode();
+  const showEverything = readAll || flowMode === 'scroll';
   //
   // HANDS-FREE (Darrell 2026-08-10: "can't read the whole lesson... without a
   // human turning the page!!! users should be able to listen to the whole
@@ -1265,7 +1321,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
               onSegmentComplete={() => onEngagement && onEngagement('segment-complete', module.id)}
               initialIndex={savedHere ? savedHere.step : 0}
               onStepChange={onPlace ? (i, total) => onPlace({ lessonId: module.id, step: i, totalSteps: total }) : null}
-              showAll={readAll}
+              showAll={showEverything}
               flush={flush}
               // The row lives on the stage header now (stageLevelRow below);
               // the core keeps only the override for its proportional re-step.
@@ -1410,8 +1466,26 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
 
   return (
     <div className={flush ? 'mt-3 border-y border-[#E8E4DC] bg-[#FAF8F4] py-3' : 'mt-3 border border-[#E8E4DC] bg-[#FAF8F4] p-3'} id={`learn-read-${module.id}`}>
-      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2" data-read-skip>
-        🧭 {ARI.name} — your guide for this {unitNoun}
+      <div className="ts-chrome-region flex items-center justify-between gap-2 flex-wrap mb-2" data-read-skip>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
+          🧭 {ARI.name} — your guide for this {unitNoun}
+        </div>
+        {/* STEP BY STEP, OR SCROLL IT ALL (DR-0749): the reader's own switch,
+            beside the guide's name, remembered on the device. */}
+        <div className="flex items-center gap-1" role="group" aria-label="How to move through the lesson" data-testid="lesson-flow-mode">
+          {['steps', 'scroll'].map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setFlowMode(m)}
+              aria-pressed={flowMode === m}
+              data-flow={m}
+              className={`text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${flowMode === m ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`}
+            >
+              {FLOW_WORDS[m]}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* The lesson-flow STANDARD — one clean, paced stage at a time. Opens on
@@ -1422,18 +1496,41 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
           facilitator panel could actually do it). Nothing is cut at any length:
           the same authored arc is PACED, and anything longer than the slot flows
           across sittings. */}
-      <TimeFit
-        value={timeFit}
-        onChange={chooseTime}
-        label={`How much time do you have? (${arc.totalMinutes} min)`}
-        groupLabel="Fit this lesson to the time you have"
-        note={timeFit ? 'Nothing is cut — the lesson is paced to your time, and a longer one carries on next sitting.' : null}
-      />
+      {/* FOLDED ONCE THE LESSON IS UNDER WAY (DR-0749). Darrell 2026-10-02: "I
+          want to be less distracted with all the bells and whistles after
+          starting the lesson." A fresh open shows the time chips and the
+          teacher as before; a lesson picked up past its first step opens with
+          them folded under one line that says the pace it has, and a tap opens
+          them. Nothing is removed. */}
+      <div data-testid="lesson-pace-fold" data-open={paceOpen ? 'true' : 'false'}>
+        {!paceOpen && (
+          <button
+            type="button"
+            onClick={() => setPaceOpen(true)}
+            aria-expanded={false}
+            data-testid="lesson-pace-open"
+            className="ts-chrome-region mb-2 text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 min-h-[36px] border border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+          >
+            Pace · {arc.totalMinutes} min ▾
+          </button>
+        )}
+        {paceOpen && (
+          <>
+            <TimeFit
+              value={timeFit}
+              onChange={chooseTime}
+              label={`How much time do you have? (${arc.totalMinutes} min)`}
+              groupLabel="Fit this lesson to the time you have"
+              note={timeFit ? 'Nothing is cut — the lesson is paced to your time, and a longer one carries on next sitting.' : null}
+            />
 
-      {/* THE TEACHER (DR-0430): the AI version of Darrell — his cloned voice,
-          his enrolled portrait — beside the lesson, only once he has enrolled
-          his likeness himself; labelled AI-generated in every state. */}
-      <LessonTeacher module={module} className="mb-2" />
+            {/* THE TEACHER (DR-0430): the AI version of Darrell — his cloned voice,
+                his enrolled portrait — beside the lesson, only once he has enrolled
+                his likeness himself; labelled AI-generated in every state. */}
+            <LessonTeacher module={module} className="mb-2" />
+          </>
+        )}
+      </div>
 
       <LessonFlowAudience
         arc={arc}
@@ -1441,7 +1538,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
         unitNoun={unitNoun}
         initialIndex={savedHere ? savedHere.stage : 0}
         onStageChange={onPlace ? (i) => onPlace({ lessonId: module.id, stage: i }) : null}
-        showAll={readAll}
+        showAll={showEverything}
         flush={flush}
         stageExtra={stageLevelRow}
         onAllUnits={onAllUnits}
@@ -1591,6 +1688,9 @@ function CourseView({
 }) {
   const [showFacilitator, setShowFacilitator] = useState(false);
   const [openTutorId, setOpenTutorId] = useState(null);
+  // The head row's More (DR-0749): folded again whenever the guide opens on a lesson.
+  const [moreOpen, setMoreOpen] = useState(false);
+  React.useEffect(() => { setMoreOpen(false); }, [openTutorId]);
   const [exportNote, setExportNote] = useState('');
   const [teaching, setTeaching] = useState(false);
   // The ONE lesson the presenter is teaching (a schedule module), or null. Distinct
@@ -1700,6 +1800,31 @@ function CourseView({
   // own sentence anyway. A finished lesson is left finished: looking back
   // over it is not starting it again.
   const focusModule = focusId ? (schedule.find((m) => m.id === focusId) || null) : null;
+  // THE ROOM IS THE LESSON (DR-0749). Darrell 2026-10-02: "after the user
+  // chooses the lesson we want that space cleared from clutter... the top
+  // staying the same after we already read it while the bottom moves makes
+  // the reading space smaller." `reading` is true while the open lesson's
+  // guide is open — the lesson is under way. Then: the chrome hides while the
+  // reader scrolls down and returns on the first flick up (lib/lesson-room.js);
+  // the sticky block folds to one title line; the card's head row keeps only
+  // Close / Play and folds the rest under More; the timeline line waits for
+  // the guide to close. A tapped step or part lands with its first line just
+  // under the chrome (the 'poetech:lesson-step' event the pagers send).
+  const reading = !!(focusModule && openTutorId === focusModule.id);
+  const chromeState = useChromeAutoHide(reading);
+  const stickyRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!focusModule || typeof window === 'undefined') return undefined;
+    const onStep = (e) => {
+      const el = e && e.detail && e.detail.el;
+      if (!el) return;
+      // Two frames: the chrome has shown itself again by then, so its height is real.
+      const raf = typeof window.requestAnimationFrame === 'function' ? window.requestAnimationFrame.bind(window) : (cb) => setTimeout(cb, 16);
+      raf(() => raf(() => landStep(el, { chromeEl: stickyRef.current, behavior: motionBehavior() })));
+    };
+    window.addEventListener('poetech:lesson-step', onStep);
+    return () => window.removeEventListener('poetech:lesson-step', onStep);
+  }, [!!focusModule]); // eslint-disable-line react-hooks/exhaustive-deps
   // The order the reader picked in this course's list (see lessonSequence).
   const sequence = useMemo(() => lessonSequence(schedule, course.key, lessonOrder), [schedule, course.key, lessonOrder]);
   const sequenceRef = React.useRef(sequence);
@@ -2126,6 +2251,12 @@ function CourseView({
       render: () => (
         <div>
       {/* The timeline + curriculum */}
+      {/* THE COURSE'S OWN HEAD LIVES WITH THE COURSE, NOT OVER AN OPEN LESSON
+          (DR-0749, agreeing with DR-0688). The count of weeks, the cohort pill
+          and the start date describe the whole course; inside one lesson they
+          were the first thing on screen and said nothing about the lesson.
+          The Governor's facilitator switch rides the lesson's own More menu. */}
+      {!focusModule && (<>
       <div className="flex items-baseline justify-between gap-2 mb-1">
         <h3 className="text-lg font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{U.selfPaced && schedule.length === 1 ? `The ${U.noun}` : `The ${schedule.length} ${U.plural}`}</h3>
         <span className={`text-[0.625rem] uppercase tracking-wider px-2 py-0.5 border ${U.selfPaced ? 'text-[#5A6E3D] border-[#5A6E3D]' : cohortConfirmed ? 'text-[#5A6E3D] border-[#5A6E3D]' : 'text-[#B85838] border-[#B85838]'}`}>
@@ -2139,8 +2270,9 @@ function CourseView({
             ? <>Starts <strong>{fmtDate(schedule[0].date)}</strong>, then weekly. {cohortConfirmed ? '' : 'Dates are proposed until Darrell confirms.'}</>
             : 'A start date will be set soon.'}
       </p>
+      </>)}
       {/* Governor-only: set / confirm the real start date + reveal the facilitator guide */}
-      {isGovernor && (
+      {isGovernor && !focusModule && (
         <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3 mb-4">
           {/* The cohort date is COURSE-WIDE, so it lives with the course (the
               lesson list), never above an open lesson (DR-0688). The facilitator
@@ -2239,7 +2371,13 @@ function CourseView({
         const next = idx >= 0 && idx < sequence.length - 1 ? sequence[idx + 1] : null;
         const numbered = isNumberedCourse(schedule);
         return (
-          <div className="sticky top-0 z-30 mb-3 bg-[#FAF8F4]" data-testid="lesson-space-sticky">
+          <div
+            className="lesson-space-sticky sticky top-0 z-30 mb-3 bg-[#FAF8F4]"
+            data-testid="lesson-space-sticky"
+            data-reading={reading ? 'true' : 'false'}
+            data-chrome={chromeState}
+            ref={stickyRef}
+          >
           <div className="ts-chrome-region border border-[#1A1815] border-b-0 px-2 sm:px-3 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 flex-nowrap sm:flex-wrap" data-testid="lesson-space-bar">
             {onAllCourses && (
               <button
@@ -2352,6 +2490,10 @@ function CourseView({
               (measured on the element, never guessed from its length), so a
               short title shows a plain line and a long one shows a handle
               rather than a silent "...". See titleOpen above. */}
+          {/* ONE LINE WHILE THE LESSON IS UNDER WAY (DR-0749). The two-line
+              ceiling is for a reader arriving; once the guide is open the
+              title rests on one line (the fold control still opens the whole
+              of it), so the block over the Word is as short as it can be. */}
           <div className="border border-[#1A1815] border-b-0 px-2 sm:px-3 py-1.5 flex items-start gap-2" data-testid="lesson-space-title-row">
             <h2
               data-testid="lesson-space-title"
@@ -2359,13 +2501,13 @@ function CourseView({
               title={focusModule.title}
               data-open={titleOpen ? 'true' : 'false'}
               ref={titleRef}
-              className={`flex-1 min-w-0 text-[0.875rem] font-semibold text-[#1A1815] leading-snug ${titleOpen ? '' : 'overflow-hidden'}`}
+              className={`flex-1 min-w-0 ${reading ? 'text-[0.75rem]' : 'text-[0.875rem]'} font-semibold text-[#1A1815] leading-snug ${titleOpen ? '' : 'overflow-hidden'}`}
               style={titleOpen ? { fontFamily: '"Fraunces", serif' } : {
                 fontFamily: '"Fraunces", serif',
                 display: '-webkit-box',
                 WebkitBoxOrient: 'vertical',
-                WebkitLineClamp: 2,
-                maxHeight: '2.8em',
+                WebkitLineClamp: reading ? 1 : 2,
+                maxHeight: reading ? '1.4em' : '2.8em',
               }}
             >
               {focusModule.title}
@@ -2471,10 +2613,61 @@ function CourseView({
           // present... and done"). Defined ONCE, rendered twice: at the top of
           // the card where the reader decides, and again after the content so
           // a finished reader never scrolls back up to mark done.
-          const actionsRow = (
+          // THE HEAD ROW FOLDS WHILE THE LESSON IS UNDER WAY (DR-0749). Darrell
+          // 2026-10-02: "after the user chooses the lesson we want that space
+          // cleared from clutter... we just need to be focused." With the guide
+          // open, the head keeps Close the guide and ▶ Play, and the rest
+          // (Share, Copy, Download, Present, Mark done, the Governor's
+          // facilitator switch) wait under one More control. The row after the
+          // content stays whole, so a finished reader never scrolls back up.
+          const renderActions = ({ head }) => {
+          const headFolded = head && tutorOpen && !moreOpen;
+          return (
             <>
               {/* Actions: start the week (tutor + launch), and mark done */}
-              <div className="flex flex-wrap gap-2 mt-3 items-center">
+              <div className="flex flex-wrap gap-2 mt-3 items-center" data-testid={head ? 'lesson-head-row' : 'lesson-foot-row'} data-folded={headFolded ? 'true' : 'false'}>
+                {tutorOpen && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setOpenTutorId(null)}
+                      data-testid="lesson-close-guide"
+                      className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#B85838] text-[#B85838] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                    >
+                      Close the guide
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { recordUse(m.id); savePlace({ lessonId: m.id, started: true }); requestRead(m.id); }}
+                      title={`Read this ${U.noun} aloud, start to finish`}
+                      className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                    >
+                      ▶ Play
+                    </button>
+                    {head && (
+                    <button
+                      type="button"
+                      onClick={() => setMoreOpen((v) => !v)}
+                      aria-expanded={moreOpen}
+                      data-testid="lesson-head-more"
+                      className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A5751] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                    >
+                      {moreOpen ? 'Less ▴' : 'More ▾'}
+                    </button>
+                    )}
+                    {!headFolded && isGovernor && m.facilitator && (
+                      <button
+                        type="button"
+                        onClick={() => setShowFacilitator((v) => !v)}
+                        aria-pressed={showFacilitator}
+                        className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${showFacilitator ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white' : 'border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white'}`}
+                      >
+                        {showFacilitator ? '✓ Facilitator guide showing' : 'Show facilitator guide'}
+                      </button>
+                    )}
+                  </>
+                )}
+                {!headFolded && (<>
                 {/* TAKE IT WITH YOU (Darrell 2026-08-10: "copy paste options for
                     each section... links to the exact lessons"). The lesson's
                     own text — Word-first big idea, the body at the reader's
@@ -2527,7 +2720,10 @@ function CourseView({
                 <LessonDownloadButton module={m} course={course} signedIn={signedIn} />
                 {/* START, OR CONTINUE (DR-0631). A lesson the reader has begun
                     says so on its own button, and the tap lands on their place
-                    (the saved part, step and sentence) instead of part one. */}
+                    (the saved part, step and sentence) instead of part one.
+                    With the guide open the head row's own Close control stands
+                    first (DR-0749), so this one renders only while it is closed. */}
+                {!tutorOpen && (
                 <button
                   type="button"
                   onClick={() => {
@@ -2545,6 +2741,7 @@ function CourseView({
                 >
                   {tutorOpen ? 'Close the guide' : (placeInProgress(placeByLesson[m.id]) ? `Continue this ${U.noun} →` : `Start this ${U.noun} →`)}
                 </button>
+                )}
                 {/* ▶ PLAY THIS ONE — opens the big full-screen reader on this
                     {U.noun} alone (Read aloud · Full screen · Speaker view), timed
                     to itself, at the pace already set.
@@ -2565,6 +2762,7 @@ function CourseView({
                     records a want; the reader starts its full reading as soon
                     as the lesson registers it. The DECK still has its own
                     control (Present), so nothing is lost. */}
+                {!tutorOpen && (
                 <button
                   type="button"
                   onClick={() => {
@@ -2578,6 +2776,7 @@ function CourseView({
                 >
                   ▶ Play
                 </button>
+                )}
                 {/* PRESENT THIS ONE (DR-0451). Darrell 2026-09-17: "each Lesson
                     should be able to present just the one that we want without
                     having to scroll through the whole list to get to the one
@@ -2626,9 +2825,11 @@ function CourseView({
                     {done ? '✓ Done' : `Mark this ${U.noun} done`}
                   </button>
                 )}
+                </>)}
               </div>
             </>
           );
+          };
           return (
             // FULL WIDTH IN THE LESSON'S OWN SPACE (Darrell 2026-09-14: "The
             // width of the pages need the full width of the page to be
@@ -2648,7 +2849,7 @@ function CourseView({
                   {U.cap} {ownNumber(m, schedule)} · {m.title}
                   <SavedMark lessonId={m.id} reg={downloads} />
                 </span>
-                {!U.selfPaced && (
+                {!U.selfPaced && !tutorOpen && (
                   <span className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                     {m.date ? fmtDate(m.date) : 'date TBD'}
                   </span>
@@ -2677,7 +2878,7 @@ function CourseView({
                   </div>
                 );
               })()}
-              {actionsRow}
+              {renderActions({ head: true })}
               {/* Where this lesson sits on the biblical timeline (Darrell 2026-07-15:
                   "a lesson ... that connects the others ... on their respective
                   timelines"). Only Living Lessons are anchored on the spine, so this
@@ -2688,7 +2889,10 @@ function CourseView({
                   the Scripture a lesson already cites to its epoch(s), so every
                   lesson carries its era AND the years Scripture states there.
                   Curated placements still win and are kept first. */}
-              {(() => {
+              {/* ...AND WAITS WHILE THE LESSON IS UNDER WAY (DR-0749): it is
+                  context for choosing, not for reading; the guide's own stages
+                  carry the lesson's time where the Word names it. */}
+              {!tutorOpen && (() => {
                 const ctx = timelineContextFor(m, { limit: 2 });
                 if (ctx.length === 0) return null;
                 const years = ctx.flatMap((c) => c.years).slice(0, 2);
@@ -3141,7 +3345,12 @@ function CourseView({
                   no `issue`, so this is inert for them. */}
               {m.issue && <DiscernmentStages issue={m.issue} />}
 
-              {actionsRow}
+              {/* THE SECOND ROW SITS AFTER THE LESSON, NOT ABOVE IT (DR-0749).
+                  With the guide open this row rendered directly under the
+                  head row — two identical rows back to back over the guide
+                  (Darrell's screenshot of week 29). It now follows the guide,
+                  where a finished reader meets it. */}
+              {!tutorOpen && renderActions({ head: false })}
 
               {/* The solo tutor for this week */}
               {tutorOpen && (
@@ -3178,6 +3387,7 @@ function CourseView({
                     onAllUnits={focusModule ? () => { finishPlace({ courseKey: course.key, lessonId: m.id }); setFocusId(null); } : null}
                     onStartOver={() => { savePlace({ lessonId: m.id, stage: 0, step: 0 }); }}
                   />
+                  {renderActions({ head: false })}
                 </div>
               )}
 
@@ -4669,7 +4879,7 @@ export default function ChurchLearn({
           );
         })()}
 
-        <h2 id="learn-h" className="text-2xl sm:text-3xl mt-1 mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
+        <h2 id="learn-h" className={`${lessonFocus ? 'sr-only' : 'text-2xl sm:text-3xl mt-1 mb-3'}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
           {active.meta.title}
         </h2>
         {/* The catalog line a school prints under a course title: its code,
@@ -4810,7 +5020,10 @@ export default function ChurchLearn({
           knowledge/perspective when we have it — derived from the course's own
           declared lead or its first Scripture anchor, never invented. A course
           with neither renders nothing here and the census test reports it. */}
-      {(() => {
+      {/* ...AND NOT OVER AN OPEN LESSON (DR-0749): the course's lead and
+          title describe the course; inside one lesson the lesson's own bar
+          names where the reader is, and the Word of the lesson is what opens. */}
+      {!lessonFocus && (() => {
         const lead = wordFirstLead(active);
         if (!lead) return null;
         return (
