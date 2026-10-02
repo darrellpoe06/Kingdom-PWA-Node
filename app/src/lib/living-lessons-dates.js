@@ -230,4 +230,5 @@ export const LIVING_LESSONS_ADDED = {
   'll204-the-word-checks-every-teller-many-counsellors-all-under-him': '2026-09-30', // added with the lesson (DR-0714); spoken by Darrell 2026-09-30 while L202 was being finished, and authored the same day
   'll205-talk-about-it-together-parents-children-friends-until-we-see-yahweh-has-been-right': '2026-10-01', // added with the lesson (DR-0733); typed by Darrell into the build 2026-10-01 and authored the same day; the first lesson under the talk-about-it-together rule
   'll206-kings-who-search-it-out-the-word-sets-the-mind-for-eternal-growth-the-joy-of-the-lord-is-strength-the-godhead-all-agree': '2026-10-01', // added with the lesson (DR-0734); typed by Darrell into the build 2026-10-01 and authored the same day; the first lesson under the search-it-out rule
+  'll199-the-worker-is-worthy-the-broken-deal-the-cry-yahweh-hears': '2026-10-02', // added with the lesson on the NAS (DR-0750)
 };
