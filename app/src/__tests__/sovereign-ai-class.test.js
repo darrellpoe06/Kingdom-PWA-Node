@@ -40,6 +40,7 @@ describe('curriculum shape', () => {
     expect(ids).toContain('sov26-the-roll-the-king-burned-and-the-roll-written-again');
     expect(ids).toContain('sov27-the-seed-is-in-itself-and-every-workflow-seeds-the-next'); // every workflow seeds the next; the data is the proof of the whole (spoken 2026-09-24)
     expect(ids).toContain('sov29-the-agent-that-went-past-the-bound');
+    expect(ids).toContain('sov32-the-im-fine-problem-and-the-one-who-looketh-on-the-heart'); // the transcript hears the words, Yahweh hears the heart; Hannah and Eli; groanings the Spirit carries; our own voices marked on our own machine (forwarded 2026-10-01)
     expect(ids).toContain('sov31-whose-errand-does-your-agent-carry'); // one Mediator; Abraham's servant; no man can serve two masters; the owner answers for what he sets loose (forwarded 2026-09-29)
     expect(ids).toContain('sov30-the-watcher-the-agent-cannot-see-and-the-door-with-no-hidden-hatch'); // one door, the watcher out of reach, quarantine that looks again (forwarded 2026-09-29) // agents chase the goal, not your rules; Yahweh sets the bound; proved before trusted (forwarded 2026-09-28)
     expect(ids).toContain('sov28-holding-the-hand-of-the-process-until-it-is-finished'); // not just flagged - analyzed, fixed and done; nothing discarded (spoken 2026-09-24) // disaster recovery that has been restored; the Word is not our data (forwarded 2026-09-24)
