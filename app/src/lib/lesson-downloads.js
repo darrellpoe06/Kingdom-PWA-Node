@@ -41,6 +41,7 @@ import { synthesizeLite } from './voice-service.js';
 import { hasBridgeToken } from './nas-photos.js';
 import { provisionBridgeToken } from './bridge-provision.js';
 import { supabase } from './supabase.js';
+import { holdIntake } from './intake-guard.js';
 
 const MB = 1024 * 1024;
 
@@ -474,6 +475,17 @@ const isOffline = () => typeof navigator !== 'undefined' && navigator.onLine ===
  * @returns {Promise<{total, saved, skipped, failed:{lessonId,title,reason}[], voiceStopped:null|string, cancelled:boolean, bytes:number}>}
  */
 export async function runDownload({ plan, signal = {}, onProgress, deps = {} }) {
+  // NOTHING INTERRUPTS WORDS COMING IN (DR-0748): a running download holds
+  // the app still (no update reload under it), released however the run ends.
+  const releaseHold = holdIntake('download');
+  try {
+    return await runDownloadHeld({ plan, signal, onProgress, deps });
+  } finally {
+    releaseHold();
+  }
+}
+
+async function runDownloadHeld({ plan, signal, onProgress, deps }) {
   const cache = deps.cache || deviceClipCache();
   const words = deps.words || deviceWords();
   const fetchPiece = deps.fetchPiece || nasPiece;

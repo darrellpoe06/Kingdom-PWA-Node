@@ -30,6 +30,7 @@ import Modal from './Modal.jsx';
 import UiIcon from './UiIcon.jsx';
 import { ARRIVALS_EVENT, arrivalLanding } from '../lib/arrivals.js';
 import { DOCK_BTN, DOCK_ICON, DOCK_LABEL } from '../lib/chrome-dock.js';
+import { useIntakeHeld } from '../lib/intake-guard.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const MONO = { fontFamily: '"JetBrains Mono", monospace' };
@@ -122,11 +123,14 @@ export default function ArrivalsBell({ win = typeof window !== 'undefined' ? win
   // LANDS WHERE THEY ARE (DR-0741): the first time this launch learns that
   // something is new, the dock instance opens the list, once. The header
   // instance never does, so two instances never open two lists.
+  // NOTHING INTERRUPTS WORDS COMING IN (DR-0748): not while the person is
+  // recording, speaking or typing; the list opens once they are free.
+  const held = useIntakeHeld();
   useEffect(() => {
-    if (!dock || !win || count === 0 || launchOpened(win)) return;
+    if (!dock || !win || count === 0 || held || launchOpened(win)) return;
     rememberLaunchOpened(win);
     setOpen(true);
-  }, [dock, win, count]);
+  }, [dock, win, count, held]);
 
   const openItem = (item) => {
     setOpen(false);
