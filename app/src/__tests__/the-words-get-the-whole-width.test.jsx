@@ -53,7 +53,9 @@ describe('a lesson card s prose is never squeezed into a column by its Share con
     // without moving the pin.
     expect(beneath.length).toBe(6);
     // And each one holds a section share, not something else.
-    expect(s).toMatch(/flex justify-end mt-1">\{sec\('The big idea'/);
+    // The opening's share names the band when the words are the band's own
+    // (DR-0745), the big idea otherwise; either way it is a section share.
+    expect(s).toMatch(/flex justify-end mt-1">\{sec\(opening\.own \? `The opening, for \$\{opening\.band\.label\}[^`]*`\.trim\(\) : 'The big idea', text\)\}/);
     expect(s).toMatch(/flex justify-end mt-1">\{sec\(handsOnLabel/);
     expect(s).toMatch(/flex justify-end mt-1">\{sec\('Anchor'/);
     expect(s).toMatch(/flex justify-end mt-1">\{sec\('Voices of the time'/);
