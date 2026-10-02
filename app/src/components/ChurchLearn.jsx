@@ -50,7 +50,7 @@ import { askTutor } from '../lib/class-tutor.js';
 import { ARI } from '../lib/ari.js';
 import {
   LEARN_LEVELS, DEFAULT_LEVEL, normalizeMedia, gradeQuiz, courseAssessment,
-  AGE_BANDS, DEFAULT_AGE_BAND, ageBandProfile, resolveForAge,
+  AGE_BANDS, DEFAULT_AGE_BAND, ageBandProfile, resolveForAge, bandOpening,
 } from '../lib/learn-framework.js';
 import { GENERATIVE_VISUAL_PIPELINE } from '../lib/venue-cast.js';
 import { buildEternalProcessingCourses, wordFirstLead } from '../lib/eternal-algorithms-course.js';
@@ -2743,17 +2743,37 @@ function CourseView({
                   shape the green verse strips already use at the foot of a
                   section (DR-0410's refsBelow). The text dominates the phone,
                   which is the standing rule (DR-0438). */}
-              <div className="mt-2">
-                <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{m.bigIdea}</p>
-                {/* AND THE CONTROL IS PINNED, NOT GROWN (DR-0438 §1). Measured
-                    at Big Print 44 before this: the Share control rendered
-                    177x184px — a slab taller than six lines of the reading it
-                    belonged to, because its rem-sized box rode the root scale.
-                    Moving it below the prose alone would have left that slab
-                    full-width. .ts-chrome-region holds it at its Normal size at
-                    every text step: the words grow, the control does not. */}
-                <div className="ts-chrome-region flex justify-end mt-1">{sec('The big idea', m.bigIdea || '')}</div>
-              </div>
+              {/* THE BAND YOU PICK IS WHAT YOU READ, FROM THE FIRST WORDS
+                  (DR-0745). Darrell 2026-10-01, Child, Senior and Adult picked
+                  in turn on L206 with the same adult paragraph under all
+                  three: "What keeps happening to the options for all ages?!
+                  The features keep coming and going!" This paragraph was
+                  always the adult big idea; the band's own words began only
+                  after Start opened the guide. Now the card opens in the
+                  picked band's own first movement when the lesson carries
+                  one, and says whose words they are. */}
+              {(() => {
+                const opening = bandOpening(m, ageBand, levelOverride);
+                const text = opening.text || m.bigIdea || '';
+                return (
+                  <div className="mt-2" data-testid="lesson-opening" data-band={opening.own ? opening.levelId : 'big-idea'}>
+                    {opening.own && (
+                      <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1" data-testid="lesson-opening-band">
+                        In the words for {opening.band.label} {opening.band.range || ''}
+                      </div>
+                    )}
+                    <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{text}</p>
+                    {/* AND THE CONTROL IS PINNED, NOT GROWN (DR-0438 §1). Measured
+                        at Big Print 44 before this: the Share control rendered
+                        177x184px — a slab taller than six lines of the reading it
+                        belonged to, because its rem-sized box rode the root scale.
+                        Moving it below the prose alone would have left that slab
+                        full-width. .ts-chrome-region holds it at its Normal size at
+                        every text step: the words grow, the control does not. */}
+                    <div className="ts-chrome-region flex justify-end mt-1">{sec(opening.own ? `The opening, for ${opening.band.label} ${opening.band.range || ''}`.trim() : 'The big idea', text)}</div>
+                  </div>
+                );
+              })()}
               {Array.isArray(m.benefits) && m.benefits.length > 0 && (
                 <div className="mt-2 border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2">
                   <div className="ts-chrome-region flex items-center justify-between gap-2 mb-1">
