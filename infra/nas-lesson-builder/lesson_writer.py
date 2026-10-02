@@ -151,6 +151,12 @@ WHO SPOKE (a recording can hold more than one voice)
 - Without that header ("Speakers: not marked"), who spoke is read only from the
   words themselves and the sender's own account; where they do not show who
   spoke, SAY SO ("the recording does not show who said this"). Never guess.
+- SPOKEN FIGURES AND CLAIMS ABOUT THE WORLD (DR-0100): never write them off as
+  "not verified" or "not checked". You have no web here; the research pass on
+  the lane that follows this build checks them against the public record and
+  writes the sourced figures in. So name each figure the speaker gave and say
+  "checked in the research pass that follows" in its place, once, in the
+  provenance; established fact is then stated plainly, never hedged.
 - A member (an S voice) is named ONLY when the ROW RULES say this is a church
   session the church posts publicly, and only by the name the header shows the
   teacher calling them. Even then leave out health and sick lists, giving
