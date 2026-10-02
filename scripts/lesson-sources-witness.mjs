@@ -33,7 +33,11 @@ function normalize(t) {
 }
 
 async function pageText(entry) {
-  const res = await fetch(entry.url, { headers: HEADERS, redirect: 'follow' });
+  // Two knocks: a browser's headers first, then a plain named agent (bls.gov
+  // answered the plain agent and refused the browser string; epi.org refuses
+  // both — measured 2026-10-02, runs 37038614217 and 37038818613).
+  let res = await fetch(entry.url, { headers: HEADERS, redirect: 'follow' });
+  if (refusedByPublisher(res.status)) res = await fetch(entry.url, { headers: { 'User-Agent': 'PoeTech lesson-sources-witness (+https://poetech.us)', Accept: '*/*' }, redirect: 'follow' });
   if (!res.ok) { const e = new Error(`HTTP ${res.status}`); e.status = res.status; throw e; }
   if (entry.format === 'pdf') {
     const ctype = String(res.headers.get('content-type') || '');
@@ -55,6 +59,7 @@ async function witness(entries) {
   for (const [lesson, list] of Object.entries(entries)) {
     for (const e of list) {
       try {
+        if (!e.says || !e.says.length) { console.log(`witness by a person  ${lesson} — ${e.publisher}: ${e.url} — ${e.note || 'the figure is read from the page by a person'}`); continue; }
         const text = await pageText(e);
         const missing = missingSays(text, e.says);
         if (missing.length) { failures += 1; console.log(`WITNESS FAIL  ${lesson} — ${e.publisher}: ${e.url} does not say ${JSON.stringify(missing)}`); }

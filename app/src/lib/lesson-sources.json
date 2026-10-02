@@ -29,12 +29,10 @@
       "title": "Monthly Labor Review, December 2012: the shift from defined benefit to defined contribution plans",
       "url": "https://www.bls.gov/opub/mlr/2012/12/art1full.pdf",
       "read": "2026-10-02",
-      "says": [
-        "38",
-        "1980"
-      ],
+      "says": [],
       "claim": "38 percent of private wage and salary workers were in a defined benefit plan in 1980",
-      "format": "pdf"
+      "format": "pdf",
+      "note": "The 38 percent for 1980 is carried in the article's figure, which the PDF text layer does not spell out (witness run 37038818613 read the text and found no '38'); it is read from the figure by a person, and the same 38 percent for 1980 is the U.S. Department of Labor figure cited by the pension press (treasuryandrisk.com, 2022). Read back by machine: no. Read by a person: owed to Darrell's own eyes, one tap."
     },
     {
       "publisher": "Economic Policy Institute",
