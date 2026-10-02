@@ -24,7 +24,7 @@ import {
   LEVEL_BANDS, bandLabel, lessonVersions, normalizeChoice, choiceWords, loadChoice, saveChoice,
   planDownload, runDownload, removeDownloads, checkRoom, deviceSpace, askToKeep, heldVoiceBytes,
   formatBytes, reasonWords, readRegistry, subscribeDownloads, savedLevels, savedVoiceBand,
-  loadJob, saveJob, courseContext, SPACE_MARGIN,
+  loadJob, saveJob, courseContext, SPACE_MARGIN, paceWords,
 } from '../lib/lesson-downloads.js';
 import { loadCapMb, saveCapMb, deviceClipCache } from '../lib/clip-cache.js';
 import { useScreenAwake } from '../lib/screen-awake.js';
@@ -108,6 +108,47 @@ function ChoiceRow({ id, checked, onPick, title, sub, size, testid }) {
       </span>
     </label>
   );
+}
+
+// THE PROGRESS LINE SAYS THE PIECES AND THE PACE (DR-0746; Darrell
+// 2026-10-02: "Not downloading..." over "0 of 1 saved"). Lessons first, as
+// before; then the voice pieces made of the plan's pieces, the bytes on the
+// device, and the time left at the pace this run has measured for itself.
+export function progressText(run, { paused = false, running = true, now = Date.now() } = {}) {
+  if (!run) return '';
+  const parts = [`${run.saved + run.skipped} of ${run.total} ${run.total === 1 ? 'lesson' : 'lessons'} saved`];
+  const p = run.pieces;
+  if (p && p.total > 0) {
+    parts.push(`${p.done} of ${p.total} voice pieces`);
+    if (run.bytes) parts.push(formatBytes(run.bytes));
+    if (running && !paused && run.charsPerSecond > 0 && p.fetched > 0 && p.done < p.total) {
+      const elapsed = Math.max(1, (now - run.startedAt) / 1000);
+      const left = (p.total - p.done) * (elapsed / Math.max(1, p.fetched));
+      parts.push(`${paceWords(left)} more at this pace`);
+    }
+  }
+  if (run.failed && run.failed.length) parts.push(`${run.failed.length} not saved`);
+  if (paused) parts.push('paused');
+  return parts.join(' · ');
+}
+
+/** The bar: by the piece when the plan has pieces, by the lesson otherwise. */
+export function progressFraction(run) {
+  if (!run) return { now: 0, max: 1, fraction: 0 };
+  const p = run.pieces;
+  if (p && p.total > 0) return { now: p.done, max: p.total, fraction: Math.min(1, p.done / p.total) };
+  const done = run.saved + run.skipped + (run.failed ? run.failed.length : 0);
+  return { now: run.saved + run.skipped, max: run.total || 1, fraction: run.total ? Math.min(1, done / run.total) : 0 };
+}
+
+/** What to say when no piece has landed for a while: the last reason, or that the church computer is being waited on. */
+export const STALL_AFTER_MS = 45 * 1000;
+export function stallWords(run, now = Date.now()) {
+  if (!run || !run.pieces || !run.pieces.total || run.finished) return '';
+  const since = now - (run.lastPieceAt || run.startedAt || now);
+  if (run.lastError) return `The last piece did not come: ${reasonWords(run.lastError, { capMb: loadCapMb() })} Trying the next.`;
+  if (since < STALL_AFTER_MS) return '';
+  return `No piece has arrived for ${Math.round(since / 1000)} seconds. The church computer is making it; this waits, it does not give up.`;
 }
 
 const sizeLine = (p, withVoice) => {
@@ -312,19 +353,40 @@ export function DownloadPanel({ items, scope, what, removeWhich, deps = null, on
           )}
         </div>
       )}
+      {/* THE PACE, SAID BEFORE THE START (DR-0746). The reading voice is made
+          on the church computer as the download runs, about as fast as it is
+          spoken; a plan with every level and the voice is long, and "Not
+          downloading..." was a download that had no way to say so. */}
+      {!running && withVoice && current && current.toSave > 0 && current.paceSeconds > 0 && (
+        <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={SERIF} data-testid="download-pace">
+          The reading voice is made on the church computer as this runs, about as fast as it is spoken: {paceWords(current.paceSeconds)} for this choice.
+          {current.paceSeconds > 3 * 3600 ? ' Save the words only and the voice is kept as you listen, one lesson at a time.' : ''}
+        </p>
+      )}
 
       {run && (
         <div className="mt-2" data-testid="download-progress-box">
           <div className="flex items-baseline justify-between gap-2 mb-1">
             <span className="text-[0.6875rem] text-[#1A1815]" style={MONO} aria-live="polite" data-testid="download-progress-text">
-              {run.saved + run.skipped} of {run.total} saved{run.failed && run.failed.length ? ` · ${run.failed.length} not saved` : ''}{paused ? ' · paused' : ''}
+              {progressText(run, { paused, running, now: Date.now() })}
             </span>
             {running && run.current && <span className="text-[0.6875rem] text-[#5A5751] truncate min-w-0 flex-1 text-right" style={SERIF}>{run.current}</span>}
           </div>
-          <div className="h-2 bg-[#E8E4DC]" role="progressbar" data-testid="download-progress" aria-label="Download progress"
-            aria-valuemin={0} aria-valuemax={run.total} aria-valuenow={run.saved + run.skipped}>
-            <div className="h-full bg-[#5A6E3D]" style={{ width: `${run.total ? Math.round(((run.saved + run.skipped + (run.failed ? run.failed.length : 0)) / run.total) * 100) : 0}%` }} />
-          </div>
+          {/* THE BAR MOVES BY THE PIECE (DR-0746): a lesson with every level
+              and the voice is hundreds of pieces, and a bar that waits for the
+              whole lesson stays empty for an hour. */}
+          {(() => {
+            const bar = progressFraction(run);
+            return (
+              <div className="h-2 bg-[#E8E4DC]" role="progressbar" data-testid="download-progress" aria-label="Download progress"
+                aria-valuemin={0} aria-valuemax={bar.max} aria-valuenow={bar.now}>
+                <div className="h-full bg-[#5A6E3D]" style={{ width: `${Math.round(bar.fraction * 100)}%` }} />
+              </div>
+            );
+          })()}
+          {running && stallWords(run, Date.now()) && (
+            <p className="text-[0.6875rem] text-[#B85838] mt-1" style={SERIF} role="status" data-testid="download-stall">{stallWords(run, Date.now())}</p>
+          )}
           {running && (
             <div className="flex flex-wrap gap-2 mt-2">
               {paused

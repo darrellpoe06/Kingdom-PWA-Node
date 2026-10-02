@@ -77,6 +77,16 @@ describe('the last reading, said in one line', () => {
     const t = trip({ end: 'held', endDetail: { reason: 'fetch-failed' }, events: [{ at: 1000, kind: 'voice', kind2: 'audio' }, { at: 75_000, kind: 'hidden' }, { at: 80_000, kind: 'fallback', i: 13, reason: 'fetch-failed', hidden: true }, { at: 85_000, kind: 'retry', step: 1 }, { at: 95_000, kind: 'retry', step: 2 }] });
     expect(tripSummary(t)).toBe('Last reading at 8:05 AM (Kings Who Search It Out): the NAS voice · stopped at sentence 14 of 60 while the screen was off: the next piece could not be fetched (tried again 2 times in the dark) — it resumes when the app is seen again · screen went dark 1 min 15 s in.');
   });
+  it('a saved reading that played as ONE file says so (DR-0746)', () => {
+    const t = trip({ end: 'stopped', voice: 'saved', events: [{ at: 10, kind: 'join', pieces: 60, bytes: 41_000_000, seconds: 930 }] });
+    expect(tripSummary(t)).toBe('Last reading at 8:05 AM (Kings Who Search It Out): the saved recording · stopped by you at sentence 14 of 60 · played as one file (60 pieces, 15 min 30 s).');
+  });
+  it('a saved reading that played piece by piece says which piece was missing (DR-0746)', () => {
+    const t = trip({ end: 'held', endDetail: { reason: 'fetch-failed' }, events: [{ at: 10, kind: 'join-missed', reason: 'missing-piece', i: 11, of: 60 }, { at: 75_000, kind: 'hidden' }] });
+    expect(tripSummary(t)).toBe('Last reading at 8:05 AM (Kings Who Search It Out): the NAS voice · stopped at sentence 14 of 60 while the screen was off: the next piece could not be fetched — it resumes when the app is seen again · played piece by piece: piece 12 of 60 was not on the device · screen went dark 1 min 15 s in.');
+    expect(tripSummary(trip({ end: 'ended', events: [{ at: 1, kind: 'join-missed', reason: 'not-saved' }] }))).toMatch(/played piece by piece: the reading is not saved on this device\.$/);
+    expect(tripSummary(trip({ end: 'ended', events: [{ at: 1, kind: 'join-missed', reason: 'not-joinable', of: 60, bytes: 200_000_000 }] }))).toMatch(/played piece by piece: the 60 saved pieces could not be joined \(191 MB\)\.$/);
+  });
   it('picked up again in the dark is said too', () => {
     const t = trip({ end: 'ended', events: [{ at: 20_000, kind: 'hidden' }, { at: 30_000, kind: 'retry', step: 1 }, { at: 30_500, kind: 'resumed-in-the-dark' }] });
     expect(tripSummary(t)).toBe('Last reading at 8:05 AM (Kings Who Search It Out): the NAS voice · played to the end · screen went dark 20 s in · picked up again in the dark.');
