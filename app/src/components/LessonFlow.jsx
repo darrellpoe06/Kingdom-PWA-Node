@@ -31,6 +31,7 @@ import { anchorIsRun } from '../lib/verse-refs.js';
 import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 import React, { useState } from 'react';
 import { buildLessonArc } from '../lib/lesson-flow.js';
+import { announceStep } from '../lib/lesson-room.js';
 import { DEFAULT_AGE_BAND } from '../lib/learn-framework.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -131,6 +132,15 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
   const segments = (arc && arc.audienceSegments) || [];
   const [idx, setIdx] = useState(() => Math.max(0, initialIndex));
   const firedRef = React.useRef(false);
+  // THE PART LANDS UNDER THE CHROME (DR-0749): a move to another part is
+  // announced once it has painted, and the lesson space scrolls the part's
+  // first line to just under its bar — the reader never hunts for the start.
+  const stageBoxRef = React.useRef(null);
+  const [landNonce, setLandNonce] = useState(0);
+  React.useEffect(() => {
+    if (!landNonce) return;
+    announceStep(stageBoxRef.current);
+  }, [landNonce]);
   if (segments.length === 0) return null;
   const stageBox = flush ? 'border-y border-[#E8E4DC] bg-white py-3' : 'border border-[#E8E4DC] bg-white p-3';
 
@@ -171,6 +181,7 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
     setIdx(n);
     if (onStageChange) onStageChange(n);
     if (n === segments.length - 1 && !firedRef.current) { firedRef.current = true; if (onComplete) onComplete(); }
+    setLandNonce((k) => k + 1);
   };
 
   return (
@@ -178,7 +189,7 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
       <StageRail segments={segments} current={clamped} onJump={goTo} />
       <ShowTheWordToggle className="mb-2" />
 
-      <div className={stageBox} aria-live="polite">
+      <div className={stageBox} aria-live="polite" ref={stageBoxRef} data-testid="lesson-part-box">
         <div className="flex items-baseline justify-between gap-2 mb-1">
           <span className="text-sm font-semibold text-[#1A1815]" style={SERIF}>
             <span aria-hidden="true">{seg.icon}</span> {seg.title} <span className="text-[#5A5751] font-normal">· {seg.subtitle}</span>

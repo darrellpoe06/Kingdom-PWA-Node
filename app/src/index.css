@@ -121,6 +121,23 @@ html[data-lesson-space='open'] header.ts-safe-sticky {
   position: static;
 }
 
+/* THE CHROME GIVES THE READING ITS HEIGHT BACK (DR-0749; Darrell 2026-10-02:
+   "the top staying the same after we already read it while the bottom moves
+   makes the reading space smaller"). While a lesson is under way the pinned
+   block slides up out of view as the reader scrolls down and returns on the
+   first flick up or at the top (lib/lesson-room.js). It stays sticky; only
+   its transform moves. */
+.lesson-space-sticky {
+  transition: transform 0.22s ease;
+  will-change: transform;
+}
+.lesson-space-sticky[data-chrome='hidden'] {
+  transform: translateY(-100%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lesson-space-sticky { transition: none; }
+}
+
 /* .ts-escape-hatch — the comfort-controls row (text size, voice, theme) pins to
    the BOTTOM edge of the scrolling .ts-safe-sticky header at big sizes, so the
    escape hatch is on screen WITHOUT scrolling no matter how tall the header
