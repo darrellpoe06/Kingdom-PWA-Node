@@ -74,6 +74,39 @@ class TheRoad(unittest.TestCase):
         self.assertIn("lesson-name:Sister Mae", named["tags"])
         self.assertFalse(any(str(t).startswith("lesson-name") for t in plain["tags"]))
 
+    def test_an_unmarked_transcript_says_why(self):
+        """Darrell 2026-10-02, his own voice enrolled and the transcript back
+        unmarked: "Why don't it work". The reason rides the row, never only a
+        cycle log the next pass overwrites. PROVEN-TO-CATCH: the old tags were
+        speakers:unmarked alone."""
+        class Armed(FakeIO):
+            def speakers_armed(self):
+                return True
+
+            def speaker_turns(self, local, segments, rid):
+                raise RuntimeError("Decode failed: no PyAV for webm")
+        io = Armed([voice_row(7)])
+        lv.run_once(io, data_dir=self.dir)
+        tags = [r for r in io.inserted if "of:row-7" in r["tags"]][0]["tags"]
+        self.assertIn("speakers:unmarked", tags)
+        self.assertIn("speakers-why:decode-failed-no-pyav-for-webm", tags)
+        # Not armed at all: said as such.
+        io2 = FakeIO([voice_row(8)])
+        lv.run_once(io2, data_dir=self.dir)
+        tags2 = [r for r in io2.inserted if "of:row-8" in r["tags"]][0]["tags"]
+        self.assertIn("speakers:unmarked", tags2)
+        self.assertIn("speakers-why:not-armed", tags2)
+        # Armed, measured, nothing to label (a one-voice recording with no turns).
+        class Quiet(Armed):
+            def speaker_turns(self, local, segments, rid):
+                return None
+        io3 = Quiet([voice_row(9)])
+        lv.run_once(io3, data_dir=self.dir)
+        tags3 = [r for r in io3.inserted if "of:row-9" in r["tags"]][0]["tags"]
+        self.assertIn("speakers-why:nothing-to-label", tags3)
+        self.assertEqual(lv.speakers_why_slug("  Weird!! reason ** here " + "x" * 90)[:40], "weird-reason-here-" + "x" * 22)
+        self.assertEqual(lv.speaker_tags({"known": ["DP"]}), ["speakers:marked", "voice:DP"])
+
     def test_a_voice_row_becomes_a_transcript_row_and_the_cloud_copy_goes(self):
         io = FakeIO([voice_row(1)])
         r = lv.run_once(io, data_dir=self.dir)

@@ -61,6 +61,7 @@ load-transcripts.py has written 872 transcripts with.
 """
 import json
 import os
+import re
 import sys
 import time
 import urllib.parse
@@ -195,10 +196,20 @@ def transcript_body(text, rung, model, seconds, speakers=None):
     return f"{head}\n{UNMARKED_HEADER}\n\n{text.strip()}"
 
 
-def speaker_tags(speakers):
-    """speakers:marked + one tag per known voice heard, or speakers:unmarked."""
+def speakers_why_slug(why, limit=60):
+    """A short, tag-safe reason: lowercase letters, digits and hyphens only."""
+    s = re.sub(r"[^a-z0-9]+", "-", str(why or "").lower()).strip("-")
+    return (s[:limit].rstrip("-") or "unknown")
+
+
+def speaker_tags(speakers, why=None):
+    """speakers:marked + one tag per known voice heard, or speakers:unmarked
+    with the reason beside it (speakers-why:<slug>). Darrell 2026-10-02, after
+    a transcript came back unmarked with his own voice enrolled: "I've added
+    my voice multiple times... Why don't it work" -- the reason was in a cycle
+    log the next pass overwrote; now it rides the row the app reads."""
     if not speakers:
-        return ["speakers:unmarked"]
+        return ["speakers:unmarked"] + ([f"speakers-why:{speakers_why_slug(why)}"] if why else [])
     return ["speakers:marked"] + [f"voice:{k}" for k in speakers.get("known") or []]
 
 
@@ -395,6 +406,7 @@ def run_once(io, data_dir=DATA, env=None, clock=time.monotonic):
                 rung_tag = f"whisper:{result.get('rung_key', 'unknown')}"
                 # WHO SPOKE (DR-0712): marked on our own machine when armed.
                 speakers = None
+                speakers_why = "not-armed"
                 mark = getattr(io, "speaker_turns", None)
                 if mark is not None and getattr(io, "speakers_armed", lambda: False)():
                     if clock() - started > MAX_RUN_SECONDS - SPEAKERS_MIN_SECONDS:
@@ -405,9 +417,11 @@ def run_once(io, data_dir=DATA, env=None, clock=time.monotonic):
                         break
                     try:
                         speakers = mark(local, result.get("segments") or [], rid)
+                        speakers_why = None if speakers else "nothing-to-label"
                     except Exception as e:  # the words are safe; unmarked is said, never hidden
                         report["skipped"].append({"id": rid, "why": f"speakers-not-marked: {e}"})
                         speakers = None
+                        speakers_why = str(e)
                 if kind == "note":
                     # The words go to the owner's own folder; the inbox row is the proof.
                     nid = note_id_of(row.get("tags"))
@@ -424,7 +438,7 @@ def run_once(io, data_dir=DATA, env=None, clock=time.monotonic):
                         "instance_id": row["instance_id"],
                         "created_by": row["created_by"],
                         "body": transcript_body(text, rung, model, secs, speakers),
-                        "tags": ["lesson", "voice-transcript", f"of:{rid}", rung_tag] + speaker_tags(speakers) + naming_tags_of(row.get("tags")),
+                        "tags": ["lesson", "voice-transcript", f"of:{rid}", rung_tag] + speaker_tags(speakers, speakers_why) + naming_tags_of(row.get("tags")),
                         "source": "lesson-voice-transcribe",
                     })
                 io.add_tags(row, ["voice-transcribed"])
