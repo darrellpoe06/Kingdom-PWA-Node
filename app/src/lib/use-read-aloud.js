@@ -526,14 +526,23 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // the device, they are joined into one WAV and played start to finish
     // with nothing between sentences: no fetch, no network, no swap. A join
     // that cannot be made plays piece by piece as before.
+    // THE TRIP SAYS WHETHER IT PLAYED AS ONE FILE (DR-0746; Darrell 2026-10-02,
+    // a saved lesson: "Still turns off when in the background!!!"). Whether the
+    // join was made, and if not which piece was missing or why, is the one
+    // fact that tells a background stop apart from a piece-by-piece read; it
+    // was never written down. Now the trip carries it, and the trip rides
+    // with his feedback (DR-0744).
     const joinFromDevice = async () => {
       // The first piece answers for a reading that is not saved, quickly.
       const head = await cache.get(keys[0]).catch(() => null);
-      if (!head) return null;
+      if (!head) { trip().note('join-missed', { reason: 'not-saved' }); return null; }
       const blobs = [head, ...await Promise.all(keys.slice(1).map((k) => cache.get(k).catch(() => null)))];
-      if (blobs.some((b) => !b)) return null;
+      const missing = blobs.findIndex((b) => !b);
+      if (missing >= 0) { trip().note('join-missed', { reason: 'missing-piece', i: missing, of: keys.length }); return null; }
       const j = await joinClipBlobs(blobs);
-      return j ? { url: URL.createObjectURL(j.blob), offsets: j.offsets, duration: j.duration } : null;
+      if (!j) { trip().note('join-missed', { reason: 'not-joinable', of: keys.length, bytes: blobs.reduce((n, b) => n + (b.size || 0), 0) }); return null; }
+      trip().note('join', { pieces: keys.length, bytes: j.blob.size, seconds: Math.round(j.duration || 0) });
+      return { url: URL.createObjectURL(j.blob), offsets: j.offsets, duration: j.duration };
     };
     const whole = await joinFromDevice();
     // The first piece decides: if the NAS voice cannot answer it in time, the
