@@ -26,6 +26,7 @@
 // caller can fall back to the browser stand-in and NEVER fail silently.
 
 import { bridgeToken } from './nas-photos.js';
+import { preferredClipFormat, formatOfType } from './clip-format.js';
 
 const BRIDGE_PATH = '/api/voice-speak';
 
@@ -475,11 +476,15 @@ export async function synthesizeLite({ retries = LITE_RETRIES, retryDelayMs = LI
   return out;
 }
 
-async function synthesizeLiteOnce({ text, voice = 'male', timeoutMs = LITE_TIMEOUT_MS, fetchImpl, origin } = {}) {
+async function synthesizeLiteOnce({ text, voice = 'male', format, timeoutMs = LITE_TIMEOUT_MS, fetchImpl, origin } = {}) {
   const body = String(text || '').trim();
   if (!body) return { error: 'empty-text' };
   const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
   if (!f) return { error: 'no-fetch' };
+  // THE SHAPE ASKED FOR (DR-0747): Opus where this device plays and decodes
+  // it, WAV elsewhere; the NAS answers in the shape it can make and the
+  // clip's own type says which came (lib/clip-format.js).
+  const want = format === 'opus' || format === 'wav' ? format : preferredClipFormat();
   const base = origin != null ? origin : (typeof window !== 'undefined' && window.location ? window.location.origin : '');
   const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
   let timedOut = false;
@@ -489,7 +494,7 @@ async function synthesizeLiteOnce({ text, voice = 'male', timeoutMs = LITE_TIMEO
     const token = bridgeToken();
     if (token) headers.Authorization = `Bearer ${token}`;
     const res = await f(`${base}${LITE_VOICE_PATH}`, {
-      method: 'POST', headers, body: JSON.stringify({ text: body, voice }), signal: ctrl ? ctrl.signal : undefined,
+      method: 'POST', headers, body: JSON.stringify({ text: body, voice, format: want }), signal: ctrl ? ctrl.signal : undefined,
     });
     if (!res || !res.ok) return { error: `voice-lite-${res ? res.status : 'no-response'}` };
     const ctype = (res.headers && typeof res.headers.get === 'function' && res.headers.get('Content-Type')) || '';
@@ -499,8 +504,8 @@ async function synthesizeLiteOnce({ text, voice = 'male', timeoutMs = LITE_TIMEO
     const blob = await res.blob();
     if (!blob || !blob.size) return { error: 'voice-lite-empty' };
     // The blob rides along so the reader can keep the clip on the device
-    // (lib/clip-cache.js, DR-0659).
-    return { url: URL.createObjectURL(blob), blob };
+    // (lib/clip-cache.js, DR-0659), and says which shape it is.
+    return { url: URL.createObjectURL(blob), blob, format: formatOfType(ctype || (blob.type || '')) };
   } catch (e) {
     return { error: timedOut ? 'voice-lite-timeout' : ((e && e.message) || 'voice-lite-error') };
   } finally {

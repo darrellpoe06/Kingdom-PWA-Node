@@ -96,6 +96,52 @@ else
   exit 0
 fi
 
+echo "== voice-lite install: ffmpeg, for lighter clips (Opus, DR-0747) =="
+# A Piper clip is PCM WAV at 44,100 bytes a second; the same words in Opus at
+# 24 kbit/s are a fourteenth of that. The server encodes with any ffmpeg on
+# this box whose encoders include libopus; none found, a static build is
+# fetched once (one large download per cycle, like the voices). ffmpeg is
+# never a condition of mounting: without it the voice is WAV as before.
+FF=""
+for c in "$HOME_DIR/ffmpeg/ffmpeg" "$(command -v ffmpeg 2>/dev/null || true)" /usr/bin/ffmpeg /usr/local/bin/ffmpeg /var/packages/ffmpeg7/target/bin/ffmpeg /var/packages/ffmpeg6/target/bin/ffmpeg /var/packages/VideoStation/target/bin/ffmpeg; do
+  if [ -n "$c" ] && [ -x "$c" ] && "$c" -hide_banner -encoders 2>/dev/null | grep -q libopus; then FF="$c"; break; fi
+done
+if [ -z "$FF" ]; then
+  case "$(uname -m)" in
+    x86_64|amd64) FFARCH=amd64 ;;
+    aarch64|arm64) FFARCH=arm64 ;;
+    armv7l) FFARCH=armhf ;;
+    *) FFARCH="" ;;
+  esac
+  if [ -z "$FFARCH" ]; then
+    echo "  no ffmpeg with libopus and no static build for $(uname -m); clips stay WAV"
+  elif [ "$BIG_DONE" = "1" ]; then
+    echo "  ffmpeg waits for the next cycle (one large download per cycle); clips stay WAV until then"
+  else
+    TXZ="$HOME_DIR/ffmpeg-static.tar.xz"
+    if curl -fsSL -m 300 -o "$TXZ" "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-$FFARCH-static.tar.xz" \
+       && mkdir -p "$HOME_DIR/ffmpeg" && tar xJf "$TXZ" -C "$HOME_DIR/ffmpeg" --strip-components=1; then
+      rm -f "$TXZ"
+      BIG_DONE=1
+      echo "  downloaded static ffmpeg ($FFARCH)"
+      if "$HOME_DIR/ffmpeg/ffmpeg" -hide_banner -encoders 2>/dev/null | grep -q libopus; then FF="$HOME_DIR/ffmpeg/ffmpeg"; else echo "  the static ffmpeg does not run here or lacks libopus; clips stay WAV"; fi
+    else
+      rm -f "$TXZ"
+      echo "  ffmpeg download FAILED (retried next cycle); clips stay WAV"
+    fi
+  fi
+fi
+if [ -n "$FF" ]; then
+  PROBE_OPUS="$HOME_DIR/cache/.install-probe.opus"
+  rm -f "$PROBE_OPUS"
+  if "$FF" -y -loglevel error -i "$PROBE_WAV" -ac 1 -c:a libopus -b:a 24k -vbr on -application audio -f ogg "$PROBE_OPUS" >/dev/null 2>&1 && [ -s "$PROBE_OPUS" ]; then
+    echo "  $FF encodes Opus on this box: $(wc -c < "$PROBE_WAV") bytes WAV -> $(wc -c < "$PROBE_OPUS") bytes Opus"
+  else
+    echo "  $FF is present but the Opus encode FAILED; clips stay WAV"
+    FF=""
+  fi
+fi
+
 echo "== voice-lite install: systemd unit =="
 PY="$(command -v python3 || true)"
 [ -n "$PY" ] || { echo "  python3 not found -- nothing mounted"; exit 0; }
@@ -124,6 +170,15 @@ echo "  http://127.0.0.1:$PORT/health -> $HCODE"
 if [ "$HCODE" != "200" ]; then
   echo "  not answering 200 -- NOT mounting. See: journalctl -u poetech-voice-lite -n 50"
   exit 0
+fi
+# The server finds ffmpeg at start; a box that just gained one restarts once
+# so health lists "opus" and the lighter clips begin.
+if [ -n "$FF" ] && ! curl -s -m 8 "http://127.0.0.1:$PORT/health" 2>/dev/null | grep -q '"opus"'; then
+  systemctl restart poetech-voice-lite
+  sleep 2
+  curl -s -m 8 "http://127.0.0.1:$PORT/health" 2>/dev/null | grep -q '"opus"' \
+    && echo "  restarted: the server now makes Opus clips" \
+    || echo "  restarted, but health still lists no opus -- see: journalctl -u poetech-voice-lite -n 50"
 fi
 
 echo "== voice-lite install: funnel path mount (guarded, additive, reversible) =="

@@ -25,6 +25,8 @@
 // Pure functions on bytes, so it is tested in plain Node.
 // =============================================================================
 
+import { isWavBytes } from './clip-format.js';
+
 const ascii = (b, at, n) => String.fromCharCode(...b.subarray(at, at + n));
 const u32 = (b, at) => (b[at] | (b[at + 1] << 8) | (b[at + 2] << 16) | (b[at + 3] << 24)) >>> 0;
 const u16 = (b, at) => b[at] | (b[at + 1] << 8);
@@ -124,16 +126,78 @@ export function pieceFractionAt(offsets, duration, i, t) {
 /** A memory ceiling for one joined reading (about an hour of the NAS voice). */
 export const JOIN_MAX_BYTES = 160 * 1024 * 1024;
 
+// A LIGHTER PIECE IS DECODED BEFORE IT IS JOINED (DR-0747). An Opus clip is a
+// fourteenth of a WAV on the device, but the one file the phone keeps playing
+// off screen (DR-0718) is PCM, so each Opus piece is decoded here, at the
+// NAS voice's own rate, and joined like any WAV piece. The decoder is the
+// browser's own (an OfflineAudioContext at that rate resamples for free) and
+// is injectable, so the join is proven in plain Node with no browser.
+export const PIPER_RATE = 22050;
+
+/** 16-bit mono PCM WAV bytes from float samples. Pure. */
+export function pcmToWav({ sampleRate, samples }) {
+  const n = samples ? samples.length : 0;
+  const rate = Number(sampleRate) || PIPER_RATE;
+  const out = new Uint8Array(44 + n * 2);
+  const w32 = (at, v) => { out[at] = v & 255; out[at + 1] = (v >>> 8) & 255; out[at + 2] = (v >>> 16) & 255; out[at + 3] = (v >>> 24) & 255; };
+  const w16 = (at, v) => { out[at] = v & 255; out[at + 1] = (v >>> 8) & 255; };
+  const wStr = (at, s) => { for (let i = 0; i < s.length; i++) out[at + i] = s.charCodeAt(i); };
+  wStr(0, 'RIFF'); w32(4, out.length - 8); wStr(8, 'WAVE');
+  wStr(12, 'fmt '); w32(16, 16); w16(20, 1); w16(22, 1); w32(24, rate); w32(28, rate * 2); w16(32, 2); w16(34, 16);
+  wStr(36, 'data'); w32(40, n * 2);
+  let at = 44;
+  for (let i = 0; i < n; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i] || 0));
+    w16(at, s < 0 ? Math.round(s * 32768) & 0xffff : Math.round(s * 32767));
+    at += 2;
+  }
+  return out;
+}
+
 /**
- * Join Blobs (from the device cache) into one audio/wav Blob.
+ * Decode any clip the browser can play into mono float samples at `sampleRate`.
+ * Returns null where there is no decoder (plain Node, an old browser).
+ */
+export async function decodeToPcm(arrayBuffer, { sampleRate = PIPER_RATE, Ctx } = {}) {
+  const C = Ctx || (typeof OfflineAudioContext !== 'undefined' ? OfflineAudioContext
+    : (typeof globalThis !== 'undefined' && typeof globalThis.webkitOfflineAudioContext !== 'undefined' ? globalThis.webkitOfflineAudioContext : null));
+  if (!C) return null;
+  const ctx = new C(1, 1, sampleRate);
+  const buf = await ctx.decodeAudioData(arrayBuffer.slice(0));
+  if (!buf || !buf.length) return null;
+  const n = buf.length;
+  const channels = buf.numberOfChannels || 1;
+  const samples = new Float32Array(n);
+  for (let c = 0; c < channels; c++) {
+    const d = buf.getChannelData(c);
+    for (let i = 0; i < n; i++) samples[i] += d[i] / channels;
+  }
+  return { sampleRate: buf.sampleRate || sampleRate, samples };
+}
+
+/**
+ * Join Blobs (from the device cache) into one audio/wav Blob. WAV pieces are
+ * joined as they are; any other piece (Opus) is decoded to PCM first.
  * @returns {Promise<{blob:Blob, offsets:number[], duration:number}|null>}
  */
-export async function joinClipBlobs(blobs, { maxBytes = JOIN_MAX_BYTES } = {}) {
+export async function joinClipBlobs(blobs, { maxBytes = JOIN_MAX_BYTES, decode = decodeToPcm } = {}) {
   try {
     if (!Array.isArray(blobs) || !blobs.length || blobs.some((b) => !b)) return null;
     const total = blobs.reduce((n, b) => n + (Number(b.size) || 0), 0);
     if (total > maxBytes) return null;
-    const pieces = await Promise.all(blobs.map(async (b) => new Uint8Array(await b.arrayBuffer())));
+    const pieces = [];
+    let decoded = 0;
+    for (const b of blobs) {
+      let bytes = new Uint8Array(await b.arrayBuffer());
+      if (!isWavBytes(bytes)) {
+        const pcm = await decode(bytes.buffer, { sampleRate: PIPER_RATE });
+        if (!pcm) return null;
+        bytes = pcmToWav(pcm);
+      }
+      decoded += bytes.length;
+      if (decoded > maxBytes) return null;
+      pieces.push(bytes);
+    }
     const joined = joinWavs(pieces);
     if (!joined || typeof Blob === 'undefined') return null;
     return { blob: new Blob([joined.bytes], { type: 'audio/wav' }), offsets: joined.offsets, duration: joined.duration };
