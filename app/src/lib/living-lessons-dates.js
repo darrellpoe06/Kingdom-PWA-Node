@@ -231,4 +231,5 @@ export const LIVING_LESSONS_ADDED = {
   'll205-talk-about-it-together-parents-children-friends-until-we-see-yahweh-has-been-right': '2026-10-01', // added with the lesson (DR-0733); typed by Darrell into the build 2026-10-01 and authored the same day; the first lesson under the talk-about-it-together rule
   'll206-kings-who-search-it-out-the-word-sets-the-mind-for-eternal-growth-the-joy-of-the-lord-is-strength-the-godhead-all-agree': '2026-10-01', // added with the lesson (DR-0734); typed by Darrell into the build 2026-10-01 and authored the same day; the first lesson under the search-it-out rule
   'll207-the-worker-is-worthy-the-broken-deal-the-cry-yahweh-hears': '2026-10-02', // added with the lesson on the NAS (DR-0750)
+  'll208-the-gift-does-not-expire-the-skill-is-yahwehs-the-paper-is-a-witness': '2026-10-02', // added with the lesson (DR-0751)
 };
