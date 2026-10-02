@@ -19,6 +19,7 @@ import { markTvDevice } from './lib/tv-device.js';
 import { markDeviceClass } from './lib/device-roles.js';
 import { installNativeShell, isNativeShell } from './lib/native-shell.js';
 import { registerDoorWorker, rowMoverFor } from './lib/sw-door-scope.js';
+import { watchTypedIntake } from './lib/intake-guard.js';
 
 // The local app (the native shell, DR-0570) carries the house's address: the
 // same-origin NAS routes are re-homed to poetech.us before any module fetches.
@@ -66,6 +67,12 @@ markDeviceClass(window);
 // current shell instead of stranding the tab. No-op unless a chunk actually fails.
 // Wired before the dynamic imports below so the listener is live when they run.
 wireChunkHeal(window);
+
+// NOTHING INTERRUPTS WORDS COMING IN (DR-0748). Typing in any box holds the
+// app still: the update reload and the heal reload wait, banners stay away,
+// nothing opens itself. Recording, dictation, a reading and a download take
+// the same hold from their own hooks (lib/intake-guard.js).
+watchTypedIntake(document, { win: window });
 
 // Record every uncaught error + unhandled rejection to the device-local error
 // journal (DR-0092) — the failure stays visible to the steward on the Quality &
