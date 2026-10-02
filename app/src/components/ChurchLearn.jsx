@@ -1507,7 +1507,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
           <button
             type="button"
             onClick={() => setPaceOpen(true)}
-            aria-expanded={false}
+            aria-expanded={paceOpen}
             data-testid="lesson-pace-open"
             className="ts-chrome-region mb-2 text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 min-h-[36px] border border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
           >
@@ -1808,8 +1808,11 @@ function CourseView({
   // reader scrolls down and returns on the first flick up (lib/lesson-room.js);
   // the sticky block keeps its two-line title and fold (DR-0605); the card's head row keeps only
   // Close / Play and folds the rest under More; the timeline line waits for
-  // the guide to close. A tapped step or part lands with its first line just
-  // under the chrome (the 'poetech:lesson-step' event the pagers send).
+  // the guide to close. A tapped step or part lands with its first line at
+  // the top of the screen, the chrome stepped aside (or under the chrome near
+  // the page top, where it always shows) — the 'poetech:lesson-step' event
+  // the pagers send; landStep then says where it landed and the chrome
+  // decides once from that, never from the landing's own scroll.
   const reading = !!(focusModule && openTutorId === focusModule.id);
   const chromeState = useChromeAutoHide(reading);
   const stickyRef = React.useRef(null);
@@ -1818,7 +1821,7 @@ function CourseView({
     const onStep = (e) => {
       const el = e && e.detail && e.detail.el;
       if (!el) return;
-      // Two frames: the chrome has shown itself again by then, so its height is real.
+      // Two frames: the new step has painted by then, so its top is real.
       const raf = typeof window.requestAnimationFrame === 'function' ? window.requestAnimationFrame.bind(window) : (cb) => setTimeout(cb, 16);
       raf(() => raf(() => landStep(el, { chromeEl: stickyRef.current, behavior: motionBehavior() })));
     };
@@ -2374,7 +2377,7 @@ function CourseView({
           <div
             className="lesson-space-sticky sticky top-0 z-30 mb-3 bg-[#FAF8F4]"
             data-testid="lesson-space-sticky"
-            data-reading={reading ? 'true' : 'false'}
+            data-room={reading ? 'reading' : 'course'}
             data-chrome={chromeState}
             ref={stickyRef}
           >

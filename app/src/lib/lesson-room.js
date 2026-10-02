@@ -18,9 +18,13 @@
 //      (nextChromeState): the pinned bar over a lesson gives the reading its
 //      height back the moment the reader scrolls on, and comes back on the
 //      first flick up, or at the top of the page.
-//   2. A STEP LANDS UNDER THE CHROME (stepScrollTop): when the reader taps
-//      Next or Back, the new step's first line sits just under the bar, so the
-//      starting point never has to be found.
+//   2. A STEP LANDS WHERE THE EYE IS (stepScrollTop, landStep): when the
+//      reader taps Next or Back, the new step's first line sits at the top of
+//      the screen with the chrome stepped aside (it is one flick up away), or
+//      just under the chrome near the top of the page where the chrome always
+//      shows — so the starting point never has to be found, and the words keep
+//      the whole screen. The landing's own scroll is never read as the
+//      reader's: the chrome decides once, from where the step landed.
 //   3. STEP BY STEP, OR SCROLL IT ALL (readFlowMode / writeFlowMode): the
 //      reader's own choice, kept on the device; both ways stay available.
 //   4. WHICH STEP IS UNDER THE EYE while scrolling it all (stepInView): the
@@ -34,6 +38,13 @@ export const CHROME_HIDE_AFTER = 120;
 export const CHROME_DELTA = 24;
 /** The space kept between the chrome's bottom edge and a landed step. */
 export const STEP_LANDING_GAP = 8;
+
+/** A pager says the reader moved to a step or part (detail.el). */
+export const STEP_EVENT = 'poetech:lesson-step';
+/** The host says where that step landed (detail.top), so the chrome decides once. */
+export const LANDED_EVENT = 'poetech:lesson-landed';
+/** How long a landing's own scroll may still be settling before a scroll is the reader's again. */
+export const LANDING_SETTLE_MS = 1500;
 
 export const FLOW_KEY = 'poetech:lesson-flow';
 export const FLOW_MODES = Object.freeze(['steps', 'scroll']);
@@ -115,11 +126,17 @@ export function stepInView(tops, line) {
   return at;
 }
 
+/** The chrome's state once a step has landed at `top`: shown only near the page top. Pure. */
+export function chromeAfterLanding(top, { hideAfter = CHROME_HIDE_AFTER } = {}) {
+  return (Number(top) || 0) <= hideAfter ? 'shown' : 'hidden';
+}
+
 /**
  * React: 'shown' | 'hidden' for the lesson chrome, following the reader's own
- * scrolling while `enabled`. A 'poetech:lesson-step' event (a step or part the
- * reader moved to) shows it again, so a landed step is never under a bar that
- * then reappears over it.
+ * scrolling while `enabled`. A step or part the reader moved to (STEP_EVENT,
+ * then LANDED_EVENT with where it landed) decides the state once from the
+ * landing: aside, so the words have the screen, or shown near the page top.
+ * The landing's own scroll is held still, never read as the reader's.
  */
 export function useChromeAutoHide(enabled, win = typeof window !== 'undefined' ? window : undefined) {
   const [state, setState] = useState('shown');
@@ -132,51 +149,80 @@ export function useChromeAutoHide(enabled, win = typeof window !== 'undefined' ?
     if (!enabled || !win || typeof win.addEventListener !== 'function') { put('shown'); return undefined; }
     let lastY = win.scrollY || 0;
     let raf = null;
+    // While a landing is under way its scroll only moves the anchor.
+    let landing = null; // { top: number|null, until: number }
     const onScroll = () => {
       if (raf !== null) return;
       const schedule = typeof win.requestAnimationFrame === 'function' ? win.requestAnimationFrame.bind(win) : (cb) => setTimeout(cb, 16);
       raf = schedule(() => {
         raf = null;
         const y = win.scrollY || 0;
+        if (landing) {
+          lastY = y;
+          const arrived = landing.top !== null && Math.abs(y - landing.top) <= 2;
+          if (arrived || Date.now() > landing.until) landing = null;
+          return;
+        }
         put(nextChromeState(stateRef.current, lastY, y));
         // A small move keeps the last anchor so a slow drift still adds up.
         if (Math.abs(y - lastY) > CHROME_DELTA || y <= CHROME_HIDE_AFTER) lastY = y;
       });
     };
-    const onStep = () => { put('shown'); lastY = win.scrollY || 0; };
+    const onStep = () => { landing = { top: null, until: Date.now() + LANDING_SETTLE_MS }; };
+    const onLanded = (e) => {
+      const top = Number(e && e.detail && e.detail.top);
+      if (!Number.isFinite(top)) { landing = null; return; }
+      put(chromeAfterLanding(top));
+      lastY = top;
+      landing = { top, until: Date.now() + LANDING_SETTLE_MS };
+    };
     win.addEventListener('scroll', onScroll, { passive: true });
-    win.addEventListener('poetech:lesson-step', onStep);
+    win.addEventListener(STEP_EVENT, onStep);
+    win.addEventListener(LANDED_EVENT, onLanded);
     return () => {
       win.removeEventListener('scroll', onScroll);
-      win.removeEventListener('poetech:lesson-step', onStep);
+      win.removeEventListener(STEP_EVENT, onStep);
+      win.removeEventListener(LANDED_EVENT, onLanded);
     };
   }, [enabled, win]);
   return enabled ? state : 'shown';
 }
 
-/**
- * Say that the reader moved to a step or part: the chrome shows itself and
- * the host scrolls the element's first line to just under it. Never throws.
- */
-export function announceStep(el, win = typeof window !== 'undefined' ? window : undefined) {
+function sendOn(win, type, detail) {
   try {
     if (!win || typeof win.dispatchEvent !== 'function') return false;
-    const evt = typeof win.CustomEvent === 'function' ? new win.CustomEvent('poetech:lesson-step', { detail: { el } }) : { type: 'poetech:lesson-step', detail: { el } };
+    const evt = typeof win.CustomEvent === 'function' ? new win.CustomEvent(type, { detail }) : { type, detail };
     win.dispatchEvent(evt);
     return true;
   } catch (_) { return false; }
 }
 
 /**
- * Scroll a step's element to just under the chrome. `chromeEl` is measured
- * when given; a hidden or absent chrome counts as 0.
+ * Say that the reader moved to a step or part: the host lands the element's
+ * first line where the eye is (landStep). Never throws.
+ */
+export function announceStep(el, win = typeof window !== 'undefined' ? window : undefined) {
+  return sendOn(win, STEP_EVENT, { el });
+}
+
+/**
+ * Scroll a step's element to the top of the screen, the chrome stepped aside;
+ * near the top of the page, where the chrome always shows, its measured height
+ * is counted so the line sits under it. Then says where it landed
+ * (LANDED_EVENT) so the chrome decides once. Returns the top, or false.
  */
 export function landStep(el, { chromeEl = null, win = typeof window !== 'undefined' ? window : undefined, behavior = 'auto' } = {}) {
   try {
     if (!el || !win || typeof el.getBoundingClientRect !== 'function' || typeof win.scrollTo !== 'function') return false;
-    const chromeHeight = chromeEl && typeof chromeEl.getBoundingClientRect === 'function' ? chromeEl.getBoundingClientRect().height : 0;
-    const top = stepScrollTop({ elTop: el.getBoundingClientRect().top, scrollY: win.scrollY || 0, chromeHeight });
+    const elTop = el.getBoundingClientRect().top;
+    const scrollY = win.scrollY || 0;
+    let top = stepScrollTop({ elTop, scrollY, chromeHeight: 0 });
+    if (chromeAfterLanding(top) === 'shown') {
+      const chromeHeight = chromeEl && typeof chromeEl.getBoundingClientRect === 'function' ? chromeEl.getBoundingClientRect().height : 0;
+      top = stepScrollTop({ elTop, scrollY, chromeHeight });
+    }
     win.scrollTo({ top, behavior });
-    return true;
+    sendOn(win, LANDED_EVENT, { top });
+    return top;
   } catch (_) { return false; }
 }

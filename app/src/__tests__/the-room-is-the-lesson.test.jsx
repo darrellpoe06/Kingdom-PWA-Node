@@ -28,8 +28,8 @@ import { createRoot } from 'react-dom/client';
 import ChurchLearn from '../components/ChurchLearn.jsx';
 import { buildCatalogCourseDescriptors } from '../lib/learn-catalog.js';
 import {
-  nextChromeState, stepScrollTop, stepInView, readFlowMode, writeFlowMode, landStep, announceStep,
-  FLOW_KEY, FLOW_WORDS, CHROME_HIDE_AFTER, CHROME_DELTA,
+  nextChromeState, stepScrollTop, stepInView, readFlowMode, writeFlowMode, landStep, announceStep, chromeAfterLanding,
+  FLOW_KEY, FLOW_WORDS, CHROME_HIDE_AFTER, CHROME_DELTA, LANDED_EVENT,
 } from '../lib/lesson-room.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -53,13 +53,24 @@ describe('a step lands under the chrome', () => {
     expect(stepScrollTop({ elTop: 700, scrollY: 1000, chromeHeight: 120 })).toBe(1572);
     expect(stepScrollTop({ elTop: 10, scrollY: 0, chromeHeight: 200 })).toBe(0);
   });
-  it('landStep measures the chrome and scrolls the window', () => {
-    const calls = [];
-    const win = { scrollY: 500, scrollTo: (o) => calls.push(o) };
+  it('landStep puts the step at the top of the screen with the chrome aside, says where it landed, and counts the chrome only near the page top', () => {
+    const calls = []; const said = [];
+    const win = { scrollY: 500, scrollTo: (o) => calls.push(o), dispatchEvent: (e) => said.push(e) };
     const el = { getBoundingClientRect: () => ({ top: 300 }) };
     const chrome = { getBoundingClientRect: () => ({ height: 90 }) };
-    expect(landStep(el, { chromeEl: chrome, win })).toBe(true);
-    expect(calls).toEqual([{ top: 500 + 300 - 90 - 8, behavior: 'auto' }]);
+    // Deep in the page: the chrome steps aside, so its height is not counted.
+    expect(landStep(el, { chromeEl: chrome, win })).toBe(500 + 300 - 8);
+    expect(calls).toEqual([{ top: 792, behavior: 'auto' }]);
+    expect(said.length).toBe(1);
+    expect(said[0].type).toBe(LANDED_EVENT);
+    expect(said[0].detail).toEqual({ top: 792 });
+    expect(chromeAfterLanding(792)).toBe('hidden');
+    // Near the top of the page the chrome always shows: the line sits under it.
+    const nearTop = { scrollY: 0, scrollTo: (o) => calls.push(o), dispatchEvent: () => {} };
+    expect(landStep({ getBoundingClientRect: () => ({ top: 100 }) }, { chromeEl: chrome, win: nearTop })).toBe(2);
+    expect(chromeAfterLanding(2)).toBe('shown');
+    expect(chromeAfterLanding(CHROME_HIDE_AFTER)).toBe('shown');
+    expect(chromeAfterLanding(CHROME_HIDE_AFTER + 1)).toBe('hidden');
     expect(landStep(null, { win })).toBe(false);
   });
   it('announceStep sends the step on the window and never throws without one', () => {
@@ -176,12 +187,16 @@ describe('inside a lesson, the room is the lesson', () => {
   it('PROVEN-TO-CATCH: the sticky block knows it is reading, keeps its two-line title and fold, and hides on a scroll down', () => {
     openALesson();
     const sticky = () => container.querySelector('[data-testid="lesson-space-sticky"]');
-    expect(sticky().getAttribute('data-reading')).toBe('false');
+    expect(sticky().getAttribute('data-room')).toBe('course');
     expect(sticky().getAttribute('data-chrome')).toBe('shown');
     expect(sticky().className).toContain('lesson-space-sticky');
     expect(sticky().className).toContain('sticky');
+    // Never the Presenter's own marker: the idle lock and the ▶ Play tests read
+    // [data-reading="true"] as "the deck is open" (use-idle-lock.jsx).
+    expect(container.querySelector('[data-reading="true"]')).toBeNull();
     start();
-    expect(sticky().getAttribute('data-reading')).toBe('true');
+    expect(sticky().getAttribute('data-room')).toBe('reading');
+    expect(container.querySelector('[data-reading="true"]')).toBeNull();
     // The title is NOT shrunk while reading (Darrell 2026-10-02: "half is
     // shown and the drop down... don't take away what I've already discussed
     // and firmed up"): the two-line ceiling of DR-0605 stands.
@@ -201,10 +216,15 @@ describe('inside a lesson, the room is the lesson', () => {
       scrollTo(300);
       act(() => { rafs.splice(0).forEach((cb) => cb()); });
       expect(sticky().getAttribute('data-chrome')).toBe('shown');
-      // Down again, hidden; then a tapped step shows it and lands the step under it.
+      // Down again, hidden; a flick up, shown; then a tapped step deep in the
+      // page lands the words at the top of the screen and the chrome steps
+      // aside for them.
       scrollTo(900);
       act(() => { rafs.splice(0).forEach((cb) => cb()); });
       expect(sticky().getAttribute('data-chrome')).toBe('hidden');
+      scrollTo(860);
+      act(() => { rafs.splice(0).forEach((cb) => cb()); });
+      expect(sticky().getAttribute('data-chrome')).toBe('shown');
       act(() => { byText('Teach').click(); });
       const scrolls = [];
       window.scrollTo = (o) => scrolls.push(o);
@@ -213,9 +233,18 @@ describe('inside a lesson, the room is the lesson', () => {
       act(() => { next.click(); });
       act(() => { rafs.splice(0).forEach((cb) => cb()); });
       act(() => { rafs.splice(0).forEach((cb) => cb()); });
+      expect(scrolls.length, 'the step must be landed').toBeGreaterThan(0);
+      // jsdom measures every rect as 0: the step lands at scrollY - gap, deep in the page.
+      expect(scrolls[scrolls.length - 1].top).toBe(860 - 8);
+      expect(sticky().getAttribute('data-chrome'), 'the chrome steps aside for the landed words').toBe('hidden');
+      // The landing's own scroll is not the reader's: arriving changes nothing.
+      scrollTo(852);
+      act(() => { rafs.splice(0).forEach((cb) => cb()); });
+      expect(sticky().getAttribute('data-chrome')).toBe('hidden');
+      // The reader's next flick up brings the chrome back as before.
+      scrollTo(800);
+      act(() => { rafs.splice(0).forEach((cb) => cb()); });
       expect(sticky().getAttribute('data-chrome')).toBe('shown');
-      expect(scrolls.length, 'the step must be landed under the chrome').toBeGreaterThan(0);
-      expect(scrolls[scrolls.length - 1]).toHaveProperty('top');
     } finally {
       window.requestAnimationFrame = oldRaf;
       Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
