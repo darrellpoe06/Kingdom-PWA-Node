@@ -395,6 +395,12 @@ const NODES = [
     reads: [{ res: 'db:agent_inbox#voice', token: 'agent_inbox' }, { res: 'db:agent_inbox#voice-transcript', token: 'voice-transcript' }],
     writes: [], seeds: [],
   }),
+  wf('lesson-sources-witness.yml', {
+    id: 'lesson-sources-witness', name: 'Lesson sources witness',
+    purpose: "Reads every researched figure in a lesson back from its publisher's own page on a GitHub runner (the NAS writer has no web; the cloud sandbox cannot reach epi.org or bls.gov), so a real-world claim in a lesson stands on the record, never on memory (DR-0750, DR-0100). A publisher that refuses a machine is said; a readable page that does not say the figure fails, and the lesson is corrected.",
+    reads: [{ res: 'file:app/src/lib/lesson-sources.json', token: 'lesson-sources.json' }],
+    writes: [], seeds: [],
+  }),
   wf('inbox-lesson-body.yml', {
     id: 'inbox-lesson-body', name: "The words of Darrell's own lesson row",
     purpose: "Reads the words of one lesson row created by Darrell's own accounts from the live database the app reads, so a lesson he sends is built without a chat connector; any member's row is refused and never read.",
@@ -1209,6 +1215,7 @@ const RESOURCES = {
   'file:audit-findings': { label: 'surface audit findings', source: 'Written by scripts/surface-audit.mjs, run on the NAS every 30 minutes and by an agent before a commit; the committed file is what the app reads.' },
   'db:transactions': { label: 'the family ledger', source: 'Written by every family device through lib/transactions-sync.js (imports, edits, deletes); the family-books-probe counts it.' },
   'file:decision-ledger': { label: 'the decision ledger', source: 'The decision records in docs/decisions, written by the sessions that decide.' },
+  'file:app/src/lib/lesson-sources.json': { label: 'the sources behind a lesson’s researched figures', source: 'Written by the research pass that follows a NAS lesson build (the session that reads the public record and names each publisher, url and the strings its page must say; DR-0750); the witness reads it back from the publishers on a GitHub runner.' },
 
   'mail:lesson': { label: 'forwarded “Lesson.” mail', source: 'Darrell forwards a lesson from his own mailbox.' },
   'yt:channel': { label: 'the church’s YouTube channel', source: 'The church publishes each service on its channel.' },
