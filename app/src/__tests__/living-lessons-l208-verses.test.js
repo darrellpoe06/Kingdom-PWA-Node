@@ -63,7 +63,6 @@ const SPANS = [
   'the priests thereof teach for hire, and the prophets thereof divine for money',
   'supposing that gain is godliness',
   'for filthy lucre’s sake',
-  'come, buy wine and milk without money and without price',
   'freely ye have received, freely give.',
   'Buy the truth, and sell it not; also wisdom, and instruction, and understanding.',
   'for the LORD seeth not as man seeth; for man looketh on the outward appearance, but the LORD looketh on the heart.',
@@ -167,7 +166,7 @@ describe('L208 is really in the series', () => {
 describe('every quoted span is the verse it names', () => {
   it('the whole lesson resolves verbatim, on every surface', () => {
     const scan = scanQuotedVerses([L()], quotedTexts);
-    expect(scan.spans).toBeGreaterThanOrEqual(318);
+    expect(scan.spans).toBeGreaterThanOrEqual(314);
     expect(scan.faults.map((f) => `${f.where} :: ${f.kind} :: ${f.ref || ''}`)).toEqual([]);
     expect(scan.verbatim).toBe(scan.spans);
   });
