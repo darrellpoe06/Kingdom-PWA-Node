@@ -51,6 +51,7 @@
 // test" pattern (lib/multi-point-auth.js).
 
 import { recordError } from './error-journal.js';
+import { whenIntakeFree, intakeWords } from './intake-guard.js';
 
 export const UPDATE_EVENT = 'poetech:update-available';
 export const UPDATED_EVENT = 'poetech:updated';
@@ -211,7 +212,7 @@ export function applyUpdate(registration, win, opts = {}) {
 //   win:          window-like ({ location: { reload }, dispatchEvent, sessionStorage? })
 export function wireUpdates(registration, nav, win) {
   const sw = nav && nav.serviceWorker;
-  const state = { reloaded: 0, announced: 0, updatedShown: 0, autoApplied: 0 };
+  const state = { reloaded: 0, announced: 0, updatedShown: 0, autoApplied: 0, deferred: 0, deferredFor: '' };
   if (!registration || !sw || typeof sw.addEventListener !== 'function') {
     return { state, hadController: false, loopRisk: false };
   }
@@ -287,12 +288,25 @@ export function wireUpdates(registration, nav, win) {
   // swap (hadController), never on first-install claim, never twice in one page
   // life (in-memory guard). The sentinel is set BEFORE the reload so the next
   // page load detects the loop signature and the "updated" confirmation.
+  //
+  // NOTHING INTERRUPTS WORDS COMING IN (DR-0748). If a recording, a dictation,
+  // typing, a reading or a download is in progress, the reload WAITS for it
+  // (lib/intake-guard.js) and runs once the person has been free for a few
+  // seconds. The new worker already controls the page; the swap is not lost,
+  // only the moment of the reload moves. state.deferred counts the waits.
   sw.addEventListener('controllerchange', () => {
     if (!hadController) return;
     if (state.reloaded) return;
     state.reloaded += 1;
-    markReloading(win);
-    doReload(win);
+    const { deferred } = whenIntakeFree(() => {
+      markReloading(win);
+      doReload(win);
+    }, { setTimeout: win && typeof win.setTimeout === 'function' ? win.setTimeout.bind(win) : undefined });
+    if (deferred) {
+      state.deferred += 1;
+      state.deferredFor = intakeWords();
+      try { recordError({ source: 'sw-update', kind: 'heal', message: `update reload waited: ${state.deferredFor}` }, win); } catch (_) { /* watcher never throws */ }
+    }
   });
 
   return { state, hadController, loopRisk };
