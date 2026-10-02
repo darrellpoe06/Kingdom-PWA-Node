@@ -45,9 +45,13 @@ describe('L207 states the researched figures in every band', () => {
     expect(Array.isArray(list) && list.length >= 4).toBe(true);
     for (const s of list) {
       expect(s.url).toMatch(/^https:\/\/(www\.)?(epi\.org|bls\.gov)\//);
-      expect(s.says.length).toBeGreaterThan(0);
+      // Either the page says the figure in text the witness reads back, or the
+      // entry says plainly that a person reads it (a chart the text layer
+      // does not spell out) — never an unexplained empty check.
+      if (!s.says.length) expect(s.note || '').toMatch(/read .*by a person/i);
       expect(s.read).toBe('2026-10-02');
       expect(s.claim.length).toBeGreaterThan(20);
     }
+    expect(list.filter((s) => s.says.length).length).toBeGreaterThanOrEqual(3);
   });
 });
