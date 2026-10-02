@@ -38,7 +38,7 @@ export function loneTab(children) {
   return tabs.length === 1 ? tabs[0] : null;
 }
 
-export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = false, onToggleHeader, brandName = '', brandTagline = '', children }) {
+export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = false, onToggleHeader, brandName = '', brandTagline = '', home = null, children }) {
   const lone = loneTab(children);
   // ONE WAY BACK PER PHONE ROW (DR-0640). When the collapsed row sits inside
   // the one-tab row, its "Show header" button and this chevron do the same
@@ -111,6 +111,24 @@ export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = f
           <BrandLockup name={brandName} tagline={brandTagline} nameTestId="top-brand-name" taglineTestId="top-brand-tagline" />
         </div>
         {collapsed && hatch && React.isValidElement(hatch) ? React.cloneElement(hatch, { inline: true }) : null}
+        {/* THE WAY HOME (Darrell 2026-10-02, in the Love Corner door with his
+            tabs gone: "They only let me go back when I push a certain
+            button... it wasn't obvious!!!!!"). The church door is church-only
+            by design (DR-0640); a family member who lands here still owns the
+            whole PoeTech app, so the brand row names the way back to it in
+            words, not a chevron. Rendered only when the shell passes `home`
+            (a family member on the church door); a church member never sees
+            it. */}
+        {home && home.href ? (
+          <a
+            href={home.href}
+            data-testid="one-tab-way-home"
+            className="ts-chrome-region shrink-0 self-stretch px-3 flex items-center gap-1 border-l border-[#E8E4DC] text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#E8E4DC] focus:outline focus:outline-2 focus:outline-[#B85838] whitespace-nowrap"
+            title={home.title || `Open ${home.label}`}
+          >
+            {home.label} <span aria-hidden="true">→</span>
+          </a>
+        ) : null}
         {chevron}
       </div>
     </nav>
