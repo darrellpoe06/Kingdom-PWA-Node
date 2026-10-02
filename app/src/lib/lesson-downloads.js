@@ -53,6 +53,37 @@ const MB = 1024 * 1024;
 export const VOICE_BYTES_PER_CHAR = 4400;
 export const VOICE_BYTES_PER_PIECE = 44;
 
+// THE PACE IS SAID BEFORE THE DOWNLOAD STARTS (DR-0746; Darrell 2026-10-02,
+// L105 with every level and the voice: "Not downloading..." over "0 of 1
+// saved" and an empty bar). The reading voice is MADE on the church computer
+// as the download runs, one sentence at a time, at about the speed it is
+// spoken: measured 2026-10-01 (voice-lite-probe run 36926132891, outside-in
+// through poetech.us), six pieces of 861 characters took 43.7 s to make, 19.7
+// characters a second on one stream. The download runs two streams (the NAS
+// takes two at a time), so a plan's voice is sized in minutes here, from its
+// characters, and the run then says its own measured pace as it goes.
+export const SYNTH_CHARS_PER_SECOND = 19.7;
+export const DOWNLOAD_STREAMS = 2;
+
+/** Seconds the church computer needs to make a plan's voice, from its characters. Pure. */
+export function paceSeconds(voiceChars, { streams = DOWNLOAD_STREAMS, charsPerSecond = SYNTH_CHARS_PER_SECOND } = {}) {
+  const c = Math.max(0, Number(voiceChars) || 0);
+  if (!c) return 0;
+  return c / (charsPerSecond * Math.max(1, streams));
+}
+
+/** "about 40 seconds", "about 32 minutes", "about 3 hours", "about 2 days". Pure. */
+export function paceWords(seconds) {
+  const s = Math.max(0, Number(seconds) || 0);
+  if (!s) return '';
+  if (s < 90) return `about ${Math.max(10, Math.round(s / 10) * 10)} seconds`;
+  const min = s / 60;
+  if (min < 90) return `about ${Math.round(min)} minutes`;
+  const hours = min / 60;
+  if (hours < 36) return `about ${hours < 10 ? Math.round(hours * 2) / 2 : Math.round(hours)} hours`;
+  return `about ${Math.round(hours / 24)} days`;
+}
+
 export const REGISTRY_KEY = 'poe-lesson-downloads-v1';
 export const CHOICE_KEY = 'poe-lesson-download-choice';
 export const JOB_KEY = 'poe-lesson-download-job';
@@ -326,7 +357,7 @@ export function downloadVoice() { return currentVoice; }
  */
 export async function planDownload(items, { choice = 'adult', voice = downloadVoice(), storage, yieldEvery = 25, withVoice = true, format = preferredClipFormat() } = {}) {
   const seen = new Set();
-  let wordsBytes = 0; let voiceBytes = 0; let pieces = 0; let levels = 0; let already = 0;
+  let wordsBytes = 0; let voiceBytes = 0; let voiceChars = 0; let pieces = 0; let levels = 0; let already = 0;
   const work = [];
   const list = Array.isArray(items) ? items : [];
   for (let i = 0; i < list.length; i++) {
@@ -343,14 +374,14 @@ export async function planDownload(items, { choice = 'adult', voice = downloadVo
       const reading = lessonReading(m, b, ctx);
       if (!have) wordsBytes += utf8(reading) + utf8(lessonWords(m, b));
       if (withVoice) {
-        for (const p of readingPieces(reading, voice)) { if (seen.has(p.key)) continue; seen.add(p.key); pieces += 1; voiceBytes += pieceBytes(p.spoken, format); }
+        for (const p of readingPieces(reading, voice)) { if (seen.has(p.key)) continue; seen.add(p.key); pieces += 1; voiceBytes += pieceBytes(p.spoken, format); voiceChars += p.spoken.length; }
       }
       todo.push(b);
     }
     if (!todo.length) { already += 1; continue; }
     work.push({ module: m, ctx, todo });
   }
-  return { lessons: list.length, toSave: work.length, already, levels, wordsBytes, voiceBytes, pieces, work, withVoice, voice, format, choice: normalizeChoice(choice) };
+  return { lessons: list.length, toSave: work.length, already, levels, wordsBytes, voiceBytes, voiceChars, paceSeconds: paceSeconds(voiceChars), pieces, work, withVoice, voice, format, choice: normalizeChoice(choice) };
 }
 
 /** "1.2 MB", "340 KB", "3.4 GB" */
@@ -463,8 +494,31 @@ export async function runDownload({ plan, signal = {}, onProgress, deps = {} }) 
   let saved = 0; let bytes = 0; let voiceStopped = null;
   const skipped = plan.already;
   const failed = [];
-  const report = (current = null) => { if (onProgress) onProgress({ total, done: saved + skipped + failed.length, saved, skipped, failed: failed.slice(), bytes, voiceStopped, current }); };
-  report();
+  // THE PIECES ARE COUNTED TOO (DR-0746). A lesson with every level and the
+  // voice is hundreds of pieces made one by one on the church computer; a bar
+  // that moves only when a whole lesson lands reads as "not downloading".
+  // So the progress also carries the pieces done of the plan's pieces, the
+  // characters made (the pace is measured from them), when the last one
+  // landed, and the last thing the voice said when it would not answer.
+  const now = (deps.now || Date.now);
+  const startedAt = now();
+  const piecesTotal = plan.withVoice ? (Number(plan.pieces) || 0) : 0;
+  let piecesDone = 0; let piecesHeld = 0; let charsDone = 0; let lastPieceAt = startedAt; let lastError = null;
+  // A piece is counted once in a run, as the plan counts it: the same
+  // sentence in two levels is one piece, held or fetched, never two.
+  const counted = new Set();
+  let currentTitle = null;
+  const report = (current) => {
+    if (current !== undefined) currentTitle = current;
+    if (!onProgress) return;
+    const elapsed = Math.max(0.001, (now() - startedAt) / 1000);
+    onProgress({
+      total, done: saved + skipped + failed.length, saved, skipped, failed: failed.slice(), bytes, voiceStopped, current: currentTitle,
+      pieces: { done: piecesDone + piecesHeld, total: piecesTotal, fetched: piecesDone, held: piecesHeld },
+      charsDone, charsPerSecond: charsDone / elapsed, startedAt, lastPieceAt, lastError,
+    });
+  };
+  report(null);
   for (const job of plan.work) {
     while (signal.paused && !signal.aborted) await new Promise((r) => setTimeout(r, 200));
     if (signal.aborted) break;
@@ -484,9 +538,18 @@ export async function runDownload({ plan, signal = {}, onProgress, deps = {} }) 
       // The voice: each piece held by this lesson-level; a piece on the device is held, not fetched.
       let ok = true;
       const missing = [];
+      const seenHere = new Set();
       for (const p of t.pieces) {
-        if (await cache.has(p.key)) await cache.pin(p.key, owner); else missing.push(p);
+        // The same sentence twice in one level is one key: pinned once,
+        // fetched once (two workers used to fetch it twice, side by side).
+        if (seenHere.has(p.key)) continue;
+        seenHere.add(p.key);
+        if (await cache.has(p.key)) {
+          await cache.pin(p.key, owner);
+          if (!counted.has(p.key)) { counted.add(p.key); piecesHeld += 1; }
+        } else missing.push(p);
       }
+      if (piecesHeld) report();
       const need = missing.reduce((n, p) => n + pieceBytes(p.spoken, plan.format || 'wav'), 0);
       const short = need ? await roomFor(need) : null;
       if (short) { voiceStopped = short; reason = reason || short; ok = false; }
@@ -498,8 +561,14 @@ export async function runDownload({ plan, signal = {}, onProgress, deps = {} }) 
           const p = missing[next++];
           let got;
           try { got = await fetchPiece(p.spoken, voice, plan.format || 'wav'); } catch (e) { got = { error: (e && e.message) || 'fetch-failed' }; }
-          if (got && got.blob && got.blob.size && await cache.put(p.key, got.blob, { pin: owner })) { bytes += got.blob.size; continue; }
-          ok = false; reason = reason || (got && got.error) || 'fetch-failed';
+          if (got && got.blob && got.blob.size && await cache.put(p.key, got.blob, { pin: owner })) {
+            bytes += got.blob.size; lastPieceAt = now(); lastError = null;
+            if (!counted.has(p.key)) { counted.add(p.key); piecesDone += 1; charsDone += p.spoken.length; }
+            report();
+            continue;
+          }
+          ok = false; reason = reason || (got && got.error) || 'fetch-failed'; lastError = reason;
+          report();
         }
       };
       if (ok && missing.length) await Promise.all([worker(), worker()]);
@@ -511,7 +580,14 @@ export async function runDownload({ plan, signal = {}, onProgress, deps = {} }) 
     report();
   }
   const out = { total, saved, skipped, failed, voiceStopped, cancelled: !!signal.aborted, bytes };
-  if (onProgress) onProgress({ ...out, done: saved + skipped + failed.length, finished: true });
+  if (onProgress) {
+    const elapsed = Math.max(0.001, (now() - startedAt) / 1000);
+    onProgress({
+      ...out, done: saved + skipped + failed.length, finished: true, current: null,
+      pieces: { done: piecesDone + piecesHeld, total: piecesTotal, fetched: piecesDone, held: piecesHeld },
+      charsDone, charsPerSecond: charsDone / elapsed, startedAt, lastPieceAt, lastError,
+    });
+  }
   return out;
 }
 
