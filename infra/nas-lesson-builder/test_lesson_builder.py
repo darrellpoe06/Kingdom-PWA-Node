@@ -10,6 +10,7 @@ never-auto-replace rule for backfill and the decision stage are each FIRED by
 a test, and each has a proven-to-catch case (DR-0076 s3).
 """
 import json
+import re
 import os
 import shutil
 import subprocess
@@ -281,6 +282,19 @@ class WhoSpoke(unittest.TestCase):
 
     def rules(self, tags):
         return lw.row_rules([{"created_by": self.OWNER, "tags": tags}], {self.OWNER})
+
+    def test_max_ll_reads_both_spellings_of_an_entry_id(self):
+        """PROVEN-TO-CATCH (DR-0750 corrections): L199–L206 are written with
+        JSON-style double-quoted keys; a scan that reads only `id: 'll…'`
+        sees 198 as the top and numbers a new lesson L199 over the real one."""
+        single = "    id: 'll198-the-goldilocks-zone',\n"
+        double = '    "id": "ll206-kings-who-search-it-out",\n'
+        self.assertEqual(lb.max_ll([single]), 198)
+        self.assertEqual(lb.max_ll([double]), 206)
+        self.assertEqual(lb.max_ll([single + double]), 206)
+        self.assertEqual(lb.max_ll([single, double, None, ""]), 206)
+        # The old pattern, kept here as the break this proof catches.
+        self.assertEqual(max(int(m) for m in re.findall(r"id: 'll(\d+)-", single + double)), 198)
 
     def test_the_standard_carries_the_speaker_rules(self):
         for must in ("DP is Darrell Poe", "BG is Bishop Gwin", "S1, S2", "Never guess",
