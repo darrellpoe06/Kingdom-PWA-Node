@@ -26,8 +26,10 @@
 #        the piper binary and at least one voice model are really on disk;
 #        503 otherwise. Open (says nothing worth guarding).
 #   POST /speak,  /voice-lite/speak  -> Authorization: Bearer <family token>.
-#        Body {"text": "...", "voice": "male"|"female"}. Returns audio/wav.
-#        401 bad/missing bearer, 400 empty, 413 too long, 503 busy.
+#        Body {"text": "...", "voice": "male"|"female", "format": "wav"|"opus"}.
+#        Returns audio/wav, or audio/ogg; codecs=opus when "opus" was asked
+#        and ffmpeg with libopus is on this box (DR-0747; health lists
+#        "formats"). 401 bad/missing bearer, 400 empty, 413 too long, 503 busy.
 #
 # Cached by sha256(voice + text): a paragraph read twice is synthesized once.
 #
@@ -47,6 +49,7 @@ import hashlib
 import hmac
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -119,9 +122,58 @@ def cache_key(voice, text):
     return hashlib.sha256((voice + "\n" + text).encode("utf-8")).hexdigest()
 
 
+# LIGHTER CLIPS (DR-0747; Darrell 2026-10-02, "Download every lesson" reading
+# 31.3 GB with the voice: "Huge amount of data to download... can we make them
+# lighter?"). A Piper clip is PCM WAV at 44,100 bytes a second. The same words
+# in Opus at 24 kbit/s are 3,000 bytes a second: a fourteenth of the size, and
+# a phone plays it like any music. When ffmpeg with libopus is on this box the
+# server encodes each clip once and keeps both shapes in the cache; a device
+# that asks for "opus" gets Ogg Opus, any other asks (or a box without
+# ffmpeg) get WAV, and the Content-Type says which came. Never a refusal over
+# the shape: the words always come.
+OPUS_ARGS = ["-ac", "1", "-c:a", "libopus", "-b:a", "24k", "-vbr", "on", "-application", "audio", "-f", "ogg"]
+FORMATS = ("wav", "opus")
+AUDIO_TYPES = {"wav": "audio/wav", "opus": "audio/ogg; codecs=opus"}
+FFMPEG_CANDIDATES = (
+    "/usr/bin/ffmpeg", "/usr/local/bin/ffmpeg",
+    "/var/packages/ffmpeg7/target/bin/ffmpeg", "/var/packages/ffmpeg6/target/bin/ffmpeg",
+    "/var/packages/VideoStation/target/bin/ffmpeg",
+)
+
+
+def find_ffmpeg(home, env=None):
+    """The first ffmpeg on this box whose encoders include libopus, else None."""
+    env = os.environ if env is None else env
+    candidates = [env.get("VOICE_LITE_FFMPEG"), os.path.join(home, "ffmpeg", "ffmpeg"), shutil.which("ffmpeg")]
+    candidates.extend(FFMPEG_CANDIDATES)
+    for c in candidates:
+        if not c or not (os.path.isfile(c) and os.access(c, os.X_OK)):
+            continue
+        try:
+            out = subprocess.run([c, "-hide_banner", "-encoders"], capture_output=True, timeout=20, check=False)
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if b"libopus" in (out.stdout or b""):
+            return c
+    return None
+
+
+class OpusEncoder:
+    """ffmpeg: one WAV clip -> one Ogg Opus clip, 24 kbit/s mono."""
+
+    def __init__(self, binary):
+        self.binary = binary
+
+    def encode(self, wav_path, out_path):
+        subprocess.run(
+            [self.binary, "-y", "-loglevel", "error", "-i", wav_path] + OPUS_ARGS + [out_path],
+            check=True, timeout=SYNTH_TIMEOUT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+
+
 def prune_cache(cache_dir, max_bytes):
     try:
-        files = [os.path.join(cache_dir, f) for f in os.listdir(cache_dir) if f.endswith(".wav")]
+        files = [os.path.join(cache_dir, f) for f in os.listdir(cache_dir) if f.endswith((".wav", ".opus"))]
     except OSError:
         return 0
     files.sort(key=lambda p: os.path.getmtime(p))
@@ -138,9 +190,10 @@ def prune_cache(cache_dir, max_bytes):
     return removed
 
 
-def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT):
+def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT, encoder=None):
     gate = threading.BoundedSemaphore(max_inflight)
     os.makedirs(cache_dir, exist_ok=True)
+    formats = ["wav", "opus"] if encoder else ["wav"]
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "poetech-voice-lite/1"
@@ -158,15 +211,42 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT):
             self.end_headers()
             self.wfile.write(data)
 
-        def _wav(self, path):
+        def _audio(self, path, fmt="wav"):
             with open(path, "rb") as fh:
                 data = fh.read()
             self.send_response(200)
-            self.send_header("Content-Type", "audio/wav")
+            self.send_header("Content-Type", AUDIO_TYPES.get(fmt, AUDIO_TYPES["wav"]))
             self.send_header("Content-Length", str(len(data)))
             self.send_header("Cache-Control", "private, max-age=86400")
             self.end_headers()
             self.wfile.write(data)
+
+        def _wav(self, path):
+            return self._audio(path, "wav")
+
+        def _opus_or_wav(self, wav_path, key):
+            """Serve the Opus shape of a cached WAV, encoding it once; WAV when it cannot be made."""
+            out = os.path.join(cache_dir, key + ".opus")
+            if os.path.isfile(out) and os.path.getsize(out) > 0:
+                try:
+                    os.utime(out, None)
+                except OSError:
+                    pass
+                return self._audio(out, "opus")
+            fd, tmp = tempfile.mkstemp(suffix=".opus", dir=cache_dir)
+            os.close(fd)
+            try:
+                encoder.encode(wav_path, tmp)
+                if os.path.getsize(tmp) <= 0:
+                    raise RuntimeError("empty clip")
+                os.replace(tmp, out)
+            except Exception:  # noqa: BLE001 -- a failed encode is a WAV, never a refusal
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
+                return self._wav(wav_path)
+            return self._audio(out, "opus")
 
         def do_GET(self):
             path = self.path.split("?", 1)[0]
@@ -175,7 +255,7 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT):
             voices = engine.available_voices()
             if not voices:
                 return self._json(503, {"ok": False, "error": "piper-not-installed"})
-            return self._json(200, {"ok": True, "voices": voices})
+            return self._json(200, {"ok": True, "voices": voices, "formats": formats})
 
         def do_POST(self):
             path = self.path.split("?", 1)[0]
@@ -197,19 +277,25 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT):
                 return self._json(400, {"error": "bad-json"})
             text = " ".join(str(body.get("text") or "").split())
             voice = body.get("voice") if body.get("voice") in VOICES else DEFAULT_VOICE
+            # The shape asked for: "opus" is honoured only when this box can
+            # make it; anything else, or no encoder, is WAV as before.
+            want = body.get("format") if body.get("format") in FORMATS else "wav"
+            if want == "opus" and not encoder:
+                want = "wav"
             if not text:
                 return self._json(400, {"error": "text-required"})
             if len(text) > MAX_CHARS:
                 return self._json(413, {"error": "text-too-long", "max": MAX_CHARS})
             if not engine.available_voices():
                 return self._json(503, {"ok": False, "error": "piper-not-installed"})
-            out = os.path.join(cache_dir, cache_key(voice, text) + ".wav")
+            key = cache_key(voice, text)
+            out = os.path.join(cache_dir, key + ".wav")
             if os.path.isfile(out) and os.path.getsize(out) > 44:
                 try:
                     os.utime(out, None)  # recently used stays in the cache
                 except OSError:
                     pass
-                return self._wav(out)
+                return self._opus_or_wav(out, key) if want == "opus" else self._wav(out)
             if not gate.acquire(blocking=False):
                 return self._json(503, {"error": "busy", "max_inflight": max_inflight})
             try:
@@ -227,7 +313,7 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT):
                         pass
                     return self._json(502, {"error": "synthesis-failed"})
                 prune_cache(cache_dir, CACHE_MAX_BYTES)
-                return self._wav(out)
+                return self._opus_or_wav(out, key) if want == "opus" else self._wav(out)
             finally:
                 gate.release()
 
@@ -314,6 +400,59 @@ def _selftest():
     req("POST", "/speak", {"text": "Unknown voice.", "voice": "robot"})
     check(eng.voices_seen[-1] == DEFAULT_VOICE, "an unknown voice falls back to the default")
 
+    # LIGHTER CLIPS (DR-0747): without an encoder, "opus" is answered in WAV and
+    # health lists wav alone; with one, the same words come once as Ogg Opus,
+    # the second time from the cache, and a failed encode is a WAV, never a 5xx.
+    s, ctype, b = req("POST", "/speak", {"text": "Lighter please.", "format": "opus"})
+    check(s == 200 and ctype == "audio/wav" and b[:4] == b"RIFF", "asked for opus with no encoder on the box: WAV comes, honestly typed")
+    s, _, b = req("GET", "/health", auth=None)
+    check(s == 200 and json.loads(b).get("formats") == ["wav"], "health lists wav alone without an encoder")
+
+    class FakeEncoder:
+        def __init__(self):
+            self.calls = 0
+            self.fail = False
+
+        def encode(self, wav_path, out_path):
+            self.calls += 1
+            if self.fail:
+                raise RuntimeError("no libopus")
+            with open(out_path, "wb") as fh:
+                fh.write(b"OggS" + b"\x00" * 40)
+
+    enc = FakeEncoder()
+    tmpdir2 = tempfile.mkdtemp()
+    srv2 = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(eng, "sekret", tmpdir2, max_inflight=1, encoder=enc))
+    port2 = srv2.server_address[1]
+    threading.Thread(target=srv2.serve_forever, daemon=True).start()
+
+    def req2(method, path, body=None, auth="Bearer sekret"):
+        c = HTTPConnection("127.0.0.1", port2, timeout=10)
+        headers = {"Content-Type": "application/json"}
+        if auth:
+            headers["Authorization"] = auth
+        data = json.dumps(body).encode() if body is not None else None
+        c.request(method, path, body=data, headers=headers)
+        r = c.getresponse()
+        out = (r.status, r.getheader("Content-Type"), r.read())
+        c.close()
+        return out
+
+    s, _, b = req2("GET", "/health", auth=None)
+    check(s == 200 and json.loads(b).get("formats") == ["wav", "opus"], "health lists opus when an encoder is on the box")
+    s, ctype, b = req2("POST", "/speak", {"text": "Lighter please.", "format": "opus"})
+    check(s == 200 and ctype == "audio/ogg; codecs=opus" and b[:4] == b"OggS" and enc.calls == 1, "asked for opus with an encoder: an Ogg Opus clip, encoded once")
+    s, ctype, b = req2("POST", "/speak", {"text": "Lighter  please.", "format": "opus"})
+    check(s == 200 and ctype == "audio/ogg; codecs=opus" and enc.calls == 1, "the same words again come from the cache, not re-encoded")
+    s, ctype, b = req2("POST", "/speak", {"text": "Lighter please."})
+    check(s == 200 and ctype == "audio/wav" and b[:4] == b"RIFF", "the WAV shape of the same words is still served from the same synthesis")
+    kept = sorted(f.rsplit(".", 1)[1] for f in os.listdir(tmpdir2) if not f.startswith("."))
+    check(kept == ["opus", "wav"], "both shapes of one clip share the cache under one key")
+    enc.fail = True
+    s, ctype, b = req2("POST", "/speak", {"text": "A fresh sentence.", "format": "opus"})
+    check(s == 200 and ctype == "audio/wav" and b[:4] == b"RIFF", "a failed encode answers in WAV, never a refusal")
+    srv2.shutdown()
+
     # Busy: one slow synthesis holds the only slot; a second is refused at once.
     eng.slow = 1.0
     results = {}
@@ -334,13 +473,13 @@ def _selftest():
     # Cache pruning keeps the newest.
     d = tempfile.mkdtemp()
     for i in range(5):
-        p = os.path.join(d, f"{i}.wav")
+        p = os.path.join(d, f"{i}.wav" if i != 2 else f"{i}.opus")
         with open(p, "wb") as fh:
             fh.write(b"0" * 100)
         os.utime(p, (1000 + i, 1000 + i))
     removed = prune_cache(d, 250)
     left = sorted(os.listdir(d))
-    check(removed == 3 and left == ["3.wav", "4.wav"], "cache pruning removes the oldest clips first")
+    check(removed == 3 and left == ["3.wav", "4.wav"], "cache pruning removes the oldest clips first, in either shape")
 
     s, _, _ = req("GET", "/nope", auth=None)
     check(s == 404, "unknown path -> 404")
@@ -362,8 +501,10 @@ def main():
         print("voice-lite: no family bearer token -- refusing to start an unlocked door", file=sys.stderr)
         sys.exit(2)
     engine = Piper(a.home)
-    srv = ThreadingHTTPServer(("127.0.0.1", a.port), make_handler(engine, token, os.path.join(a.home, "cache")))
-    print(f"voice-lite on 127.0.0.1:{a.port}, voices: {engine.available_voices()}")
+    ffmpeg = find_ffmpeg(a.home)
+    encoder = OpusEncoder(ffmpeg) if ffmpeg else None
+    srv = ThreadingHTTPServer(("127.0.0.1", a.port), make_handler(engine, token, os.path.join(a.home, "cache"), encoder=encoder))
+    print(f"voice-lite on 127.0.0.1:{a.port}, voices: {engine.available_voices()}, opus: {ffmpeg or 'no ffmpeg with libopus (WAV only)'}")
     srv.serve_forever()
 
 
