@@ -120,6 +120,15 @@ export function createTripLog({ storage = defaultStorage(), now = () => Date.now
   };
 }
 
+/** Why a saved reading could not be played as one file, in words. */
+export function joinMissReason(e) {
+  const r = e && e.reason;
+  if (r === 'not-saved') return 'the reading is not saved on this device';
+  if (r === 'missing-piece') return `piece ${(Number(e.i) || 0) + 1} of ${e.of || '?'} was not on the device`;
+  if (r === 'not-joinable') return `the ${e.of || ''} saved pieces could not be joined${e.bytes ? ` (${Math.round(e.bytes / 1048576)} MB)` : ''}`;
+  return 'no reason was given';
+}
+
 /** One plain line about a trip, for the panel and for a screenshot. */
 export function tripSummary(trip) {
   if (!trip) return '';
@@ -130,6 +139,10 @@ export function tripSummary(trip) {
   const retries = events.filter((e) => e.kind === 'retry').length;
   const cameBack = events.find((e) => e.kind === 'resumed-in-the-dark');
   const handoff = events.find((e) => e.kind === 'handoff');
+  // Whether a saved reading played as ONE file (DR-0746): the fact that tells
+  // a background stop apart from a piece-by-piece read.
+  const joined = events.find((e) => e.kind === 'join');
+  const joinMissed = events.find((e) => e.kind === 'join-missed');
   const head = `Last reading${trip.startedAt ? ` at ${fmtTime(trip.startedAt)}` : ''}${trip.title ? ` (${trip.title})` : ''}: ${voice}`;
   let what;
   if (!trip.end) what = 'still reading';
@@ -139,6 +152,8 @@ export function tripSummary(trip) {
   else if (trip.end === 'left') what = `the page was left at ${where}`;
   else what = `${trip.end} at ${where}`;
   const parts = [head, what];
+  if (joined) parts.push(`played as one file (${joined.pieces} pieces${joined.seconds ? `, ${fmtSpan(joined.seconds * 1000)}` : ''})`);
+  else if (joinMissed) parts.push(`played piece by piece: ${joinMissReason(joinMissed)}`);
   if (dark) parts.push(`screen went dark ${fmtSpan(dark.at)} in`);
   if (cameBack) parts.push('picked up again in the dark');
   if (handoff) parts.push(`the phone’s voice took over: ${reasonText(handoff.reason)}`);
