@@ -81,8 +81,7 @@ import { isReviewerModeOn, ReviewerModeBanner } from './lib/reviewer-mode.jsx';
 import { onAuthChange, signOut } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback, newFeedbackId } from './lib/feedback-sync.js';
 import { reportPresence } from './lib/access-metrics-sync.js';
-import { saveLearnerRecord, subscribeLearnerRecords } from './lib/learner-records-sync.js';
-import { mergeRecordsIntoState } from './lib/learner-records.js';
+import { useLearnerRecords } from './lib/use-learner-records.js';
 import { entitiesSync } from './lib/entities-sync.js';
 import { accountsSync, accountsMerge } from './lib/accounts-sync.js';
 import { debtsSync } from './lib/debts-sync.js';
@@ -1156,9 +1155,6 @@ export default function PoeFinancialSystem() {
   // data.feedback because the storage save effect would then persist
   // them to localStorage too, duplicating data.
   const [remoteFeedback, setRemoteFeedback] = useState([]);
-  // DR-0754 — every learner record this account may read (his own, or every
-  // learner's when he is the Governor). The read wall decides the scope.
-  const [learnerRecords, setLearnerRecords] = useState([]);
   // 0077 — family-wide module-interest aggregate ({ [moduleKey]: { votes, points, latestAt } }).
   const [familyModuleInterest, setFamilyModuleInterest] = useState(null);
   const [authSession, setAuthSession] = useState(null);
@@ -1971,7 +1967,6 @@ export default function PoeFinancialSystem() {
   useEffect(() => {
     let unsubscribeFeedback = null;
     let unsubscribeEntities = null;
-    let unsubscribeLearnerRecords = null;
     const cleanupAuth = onAuthChange(async (session) => {
       if (unsubscribeFeedback) { unsubscribeFeedback(); unsubscribeFeedback = null; }
       if (unsubscribeEntities) { unsubscribeEntities(); unsubscribeEntities = null; }
@@ -2038,28 +2033,11 @@ export default function PoeFinancialSystem() {
         });
       }
 
-      // DR-0754 — a learner's own record comes back on whatever device he
-      // signs in on, and the Governor's copy arrives the same way (the read
-      // wall, not this code, decides whose rows these are). The device copy
-      // wins on a module it already knows; the rows fill in the rest.
-      if (!isAnyDemoMode) {
-        unsubscribeLearnerRecords = subscribeLearnerRecords((records) => {
-          setLearnerRecords(records || []);
-          setData(d => {
-            const merged = mergeRecordsIntoState(records || [], {
-              progress: d.classProgress || {},
-              quizState: d.classQuiz || {},
-            });
-            return { ...d, classProgress: merged.progress, classQuiz: merged.quizState };
-          });
-        });
-      }
     });
     return () => {
       cleanupAuth();
       if (unsubscribeFeedback) unsubscribeFeedback();
       if (unsubscribeEntities) unsubscribeEntities();
-      if (unsubscribeLearnerRecords) unsubscribeLearnerRecords();
     };
     // isAnyDemoMode is URL-derived and constant for the page load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -3317,24 +3295,11 @@ export default function PoeFinancialSystem() {
   // Church > Learn (Darrell 2026-06-15): the youth A.I. class. Progress is the
   // student's REAL record (per-module completedAt); cohort start + confirmed flag
   // are Governor-set real values that drive the computed timeline (no painted dates).
-  // DR-0754: the device copy below stays the fast path, and the same two facts
-  // ALSO become a real row in learner_lesson_records, so a learner's completion
-  // and his exam scores cross devices and reach the Governor. Demo writes none.
-  const keepLearnerRecord = (moduleId, courseKey, extra = {}) => {
-    if (!authSession || isAnyDemoMode || !moduleId) return;
-    Promise.resolve(saveLearnerRecord({
-      lessonId: moduleId,
-      courseKey: courseKey || null,
-      learnerLabel: authSession?.user?.email || null,
-      ageBand: data.learnAgeBand || 'adult',
-      ...extra,
-    })).catch(() => { /* a record that cannot be filed never breaks the read */ });
-  };
-  const toggleClassModule = (moduleId, courseKey) => setData(d => {
-    const p = { ...(d.classProgress || {}) };
-    if (p[moduleId]) delete p[moduleId]; else p[moduleId] = new Date().toISOString();
-    keepLearnerRecord(moduleId, courseKey, { completedAt: p[moduleId] || null });
-    return { ...d, classProgress: p };
+  // DR-0754 — the class record: his completion and his exam scores leave the
+  // device, so they cross his devices and reach the Governor. All of the wiring
+  // lives in lib/use-learner-records.js; this shell is frozen (DR-0078).
+  const { learnerRecords, toggleClassModule, recordClassQuiz } = useLearnerRecords({
+    authSession, demo: isAnyDemoMode, ageBand: data.learnAgeBand || 'adult', setData,
   });
   const setClassCohortStart = (date) => setData(d => ({ ...d, classCohort: { ...(d.classCohort || {}), startDate: date } }));
   const confirmClassCohort = (confirmed) => setData(d => ({ ...d, classCohort: { ...(d.classCohort || {}), confirmed: !!confirmed } }));
@@ -3353,17 +3318,6 @@ export default function PoeFinancialSystem() {
   // SHARED Learn-framework state (consumed by ALL three courses): quiz results keyed
   // by module id (real assessment record), the learner's depth override, and the
   // learner's AGE BAND (the master pacing control — one curriculum, age-right delivery).
-  const recordClassQuiz = (moduleId, result, courseKey) => setData(d => {
-    const prior = (d.classQuiz || {})[moduleId];
-    // Attempts are counted from the real record, not guessed: each answered
-    // exam adds one to whatever the device already knew (DR-0754).
-    const attempts = Number(prior?.attempts || 0) + 1;
-    const next = { ...(result || {}), attempts };
-    keepLearnerRecord(moduleId, courseKey, {
-      quiz: { pct: next.pct ?? null, passed: next.passed ?? null, at: next.at || new Date().toISOString(), attempts },
-    });
-    return { ...d, classQuiz: { ...(d.classQuiz || {}), [moduleId]: next } };
-  });
   const setLearnLevel = (level) => setData(d => ({ ...d, learnLevel: level }));
   const setLearnAgeBand = (band) => setData(d => ({ ...d, learnAgeBand: band }));
   // Thinking Space — sovereign private notes + the in-app "tell PoeTech"
