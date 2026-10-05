@@ -32,6 +32,17 @@ const PRECACHE = [BASE + '/', BASE + '/index.html', BASE + '/manifest.webmanifes
 //   * a navigation that fails offline falls back to ITS OWN face's shell.
 var DOOR_PATHS = ['/poetech-app/', '/lovecorner/app/', '/moore/app/', '/tlc/app/', '/properties/app/'];
 
+// EACH DOOR'S OWN FACE in the shade (Darrell 2026-10-02: "Why does it show up
+// as PoeTech App instead of the Love Corner App logo?"). Since DR-0584 this
+// worker is registered once PER DOOR, at the door's own scope, so the
+// registration that shows a notification knows which app it is. Before this
+// every notification wore PoeTech's "P" (one NOTIFY_DEFAULTS.icon for all) and
+// fell back to the church's name for every door. The icon is the same file the
+// door's manifest installs with. MUST stay in step with DOORS in
+// src/lib/app-doors.js (sw-push-handler.test.js derives both from source).
+var DOOR_ICONS = { '/poetech-app/': '/icon-192.png', '/lovecorner/app/': '/lovecorner-icon-192.png', '/moore/app/': '/moore-icon-192.png', '/tlc/app/': '/tlc-icon-192.png', '/properties/app/': '/properties-icon-192.png' };
+var DOOR_LABELS = { '/poetech-app/': 'PoeTech', '/lovecorner/app/': 'The Love Corner', '/moore/app/': 'Moore Divahs', '/tlc/app/': 'TLC Therapy Solutions', '/properties/app/': 'Poe Properties' };
+
 // The door a URL belongs to: the longest door path it starts with, or ''.
 function doorOf(pathname) {
   var best = '';
@@ -40,6 +51,19 @@ function doorOf(pathname) {
     if (pathname.indexOf(d) === 0 && d.length > best.length) best = d;
   }
   return best;
+}
+
+// The door THIS registration serves, read from its scope ('' when the worker
+// is the legacy root registration, or the scope cannot be read).
+function registrationDoor() {
+  try {
+    var scope = self.registration && self.registration.scope ? String(self.registration.scope) : '';
+    if (!scope) return '';
+    var path = scope.charAt(0) === '/' ? scope : new URL(scope).pathname;
+    return doorOf(path);
+  } catch (e) {
+    return '';
+  }
 }
 
 // SCOPE-AWARE OFFLINE SHELLS. Diagnosed in PR #1405 (Darrell, 2026-08-30): the
@@ -267,10 +291,21 @@ self.addEventListener('fetch', (event) => {
 // the seal SVG used to sit here and Android quietly substituted a generic bell
 // for it (Darrell's shade, 2026-09-09). badge-96.png is a white cross on
 // transparency, generated in-repo, so the church's own mark is what shows.
+// `icon` is the LARGE picture beside the words: the door's own icon when this
+// registration serves a door, PoeTech's when it is the legacy root worker.
 const NOTIFY_DEFAULTS = {
   icon: BASE + '/icon.svg',
   badge: BASE + '/badge-96.png',
 };
+function notifyIcon() {
+  var door = registrationDoor();
+  return (door && DOOR_ICONS[door]) || NOTIFY_DEFAULTS.icon;
+}
+// The name a push with no title is shown under: the door's own name.
+function notifyTitle() {
+  var door = registrationDoor();
+  return (door && DOOR_LABELS[door]) || 'PoeTech';
+}
 
 // THE APP-ICON BADGE (Darrell, 2026-09-09: notifications "on the app and in
 // the notification list"). The shade is one place; the number on the launcher
@@ -291,7 +326,7 @@ function syncAppBadge() {
 function parsePushPayload(raw) {
   // Returns a normalized notification, never throws, never invents a claim.
   var fallback = {
-    title: 'The Love Corner',
+    title: notifyTitle(),
     body: 'Open the app to see what is new.',
     url: BASE + '/',
     tag: 'poetech-generic',
@@ -303,7 +338,7 @@ function parsePushPayload(raw) {
     data = JSON.parse(raw);
   } catch (e) {
     // Not JSON — treat the text itself as the body rather than dropping it.
-    return { title: 'The Love Corner', body: String(raw).slice(0, 200), url: BASE + '/', tag: 'poetech-generic', renotify: false };
+    return { title: fallback.title, body: String(raw).slice(0, 200), url: BASE + '/', tag: 'poetech-generic', renotify: false };
   }
   if (!data || typeof data !== 'object') return fallback;
   // Same-origin ONLY. A leading '/' is not sufficient: '//evil.example/x' and
@@ -335,7 +370,7 @@ self.addEventListener('push', function (event) {
   event.waitUntil(
     self.registration.showNotification(n.title, {
       body: n.body,
-      icon: NOTIFY_DEFAULTS.icon,
+      icon: notifyIcon(),
       badge: NOTIFY_DEFAULTS.badge,
       tag: n.tag,
       renotify: n.renotify,

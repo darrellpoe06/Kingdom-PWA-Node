@@ -30,8 +30,11 @@ const SW_SRC = readFileSync(SW_PATH, 'utf8');
 const BASE = '/poetech-app';
 const ORIGIN = 'https://poetech.us';
 
-/** Load the real sw.js into a fake worker scope and hand back what it registered. */
-function loadServiceWorker() {
+/** Load the real sw.js into a fake worker scope and hand back what it registered.
+ *  `scope` is the registration's scope: since DR-0584 the worker is registered
+ *  once per door, and the push path reads which door it serves from it. The
+ *  default is the legacy ROOT registration (no door). */
+function loadServiceWorker({ scope = `${ORIGIN}/` } = {}) {
   const handlers = {};
   const shown = [];
   const opened = [];
@@ -51,6 +54,7 @@ function loadServiceWorker() {
       clearAppBadge() { badge.cleared += 1; return Promise.resolve(); },
     },
     registration: {
+      scope,
       showNotification(title, options) {
         shown.push({ title, options });
         return Promise.resolve();
@@ -154,15 +158,82 @@ describe('a live-service push becomes the right notification', () => {
     expect(sw.shown[0].options.renotify).toBe(true);
   });
 
-  it('carries an icon and a badge so the shade shows the church, not a blank dot', async () => {
+  it('carries an icon and a badge so the shade shows the app, not a blank dot', async () => {
     const ev = pushEvent(JSON.stringify({ title: 't' }));
     sw.handlers.push(ev);
     await Promise.all(ev.waited);
+    // The legacy root registration serves no door: PoeTech's own icon.
     expect(sw.shown[0].options.icon).toBe(`${BASE}/icon.svg`);
     // The status-bar glyph must be a monochrome RASTER: Android masks it to
     // white and cannot use the seal SVG (a generic bell showed instead,
     // Darrell's shade 2026-09-09). badge-96.png is the church's cross.
     expect(sw.shown[0].options.badge).toBe(`${BASE}/badge-96.png`);
+  });
+});
+
+// THE SHADE WEARS THE DOOR'S OWN FACE (Darrell 2026-10-02: "Why does it show up
+// as PoeTech App instead of the Love Corner App logo... why doesn't it have the
+// correct logo?"). Measured before the change: NOTIFY_DEFAULTS.icon was ONE
+// file, /poetech-app/icon.svg (the "P"), for every registration, so a push
+// shown by the Love Corner's own worker (registered at /lovecorner/app/,
+// DR-0584) wore PoeTech's mark; and a push with no title said "The Love Corner"
+// under every door, the family's included.
+describe('the notification wears the icon and name of the door its registration serves', () => {
+  it('the Love Corner worker shows the church’s own emblem and name', async () => {
+    const sw = loadServiceWorker({ scope: `${ORIGIN}/lovecorner/app/` });
+    const ev = pushEvent(JSON.stringify({ body: 'Bible study tonight' }));
+    sw.handlers.push(ev);
+    await Promise.all(ev.waited);
+    expect(sw.shown[0].options.icon).toBe('/lovecorner-icon-192.png');
+    expect(sw.shown[0].title).toBe('The Love Corner');
+    expect(sw.shown[0].options.badge).toBe(`${BASE}/badge-96.png`);
+  });
+
+  it('the PoeTech worker shows PoeTech’s icon and name — proven to catch', async () => {
+    const sw = loadServiceWorker({ scope: `${ORIGIN}/poetech-app/` });
+    const ev = pushEvent(null);
+    sw.handlers.push(ev);
+    await Promise.all(ev.waited);
+    expect(sw.shown[0].options.icon).toBe('/icon-192.png');
+    expect(sw.shown[0].title).toBe('PoeTech');
+  });
+
+  it('every door wears its own icon, and a scope given as a bare path is read too', async () => {
+    const expected = {
+      '/lovecorner/app/': '/lovecorner-icon-192.png', '/moore/app/': '/moore-icon-192.png',
+      '/tlc/app/': '/tlc-icon-192.png', '/properties/app/': '/properties-icon-192.png', '/poetech-app/': '/icon-192.png',
+    };
+    for (const [door, icon] of Object.entries(expected)) {
+      const sw = loadServiceWorker({ scope: door });
+      const ev = pushEvent(JSON.stringify({ title: 't' }));
+      sw.handlers.push(ev);
+      await Promise.all(ev.waited);
+      expect(sw.shown[0].options.icon, door).toBe(icon);
+    }
+  });
+
+  it('a registration whose scope cannot be read still notifies, with PoeTech’s icon', async () => {
+    const sw = loadServiceWorker({ scope: 'not a url' });
+    const ev = pushEvent(JSON.stringify({ title: 't' }));
+    expect(() => sw.handlers.push(ev)).not.toThrow();
+    await Promise.all(ev.waited);
+    expect(sw.shown[0].options.icon).toBe(`${BASE}/icon.svg`);
+  });
+
+  it('knows the SAME icons app-doors.js knows — drift here is the wrong face in the shade', () => {
+    const swIcons = (/var DOOR_ICONS = \{([^}]+)\}/.exec(SW_SRC) || [])[1];
+    expect(swIcons, 'sw.js has no DOOR_ICONS map').toBeTruthy();
+    const inSw = Object.fromEntries(swIcons.split(',').map((kv) => kv.split(':').map((x) => x.trim().replace(/^'|'$/g, ''))));
+    const libSrc = readFileSync(join(HERE, '..', 'lib', 'app-doors.js'), 'utf8');
+    const inLib = {};
+    const re = /^\s*path: (?:PERSONAL_DOOR|'([^']+)'),[\s\S]*?^\s*icon: '([^']+)',/gm;
+    for (const m of libSrc.matchAll(re)) inLib[m[1] || '/poetech-app/'] = m[2];
+    expect(inSw).toEqual(inLib);
+    const swLabels = (/var DOOR_LABELS = \{([^}]+)\}/.exec(SW_SRC) || [])[1];
+    const labels = Object.fromEntries(swLabels.split(',').map((kv) => kv.split(/:(.+)/).slice(0, 2).map((x) => x.trim().replace(/^'|'$/g, ''))));
+    const libLabels = {};
+    for (const m of libSrc.matchAll(/^\s*path: (?:PERSONAL_DOOR|'([^']+)'),\s*\n\s*key: '[^']+',\s*\n\s*label: '([^']+)',/gm)) libLabels[m[1] || '/poetech-app/'] = m[2];
+    expect(labels).toEqual(libLabels);
   });
 });
 
@@ -175,7 +246,8 @@ describe('malformed and hostile payloads still notify, and never throw', () => {
     expect(() => sw.handlers.push(ev)).not.toThrow();
     await Promise.all(ev.waited);
     expect(sw.shown).toHaveLength(1);
-    expect(sw.shown[0].title).toBe('The Love Corner');
+    // The root registration serves no door, so the platform's own name.
+    expect(sw.shown[0].title).toBe('PoeTech');
     // It must not invent a claim it was not given — no "we are live" here.
     expect(sw.shown[0].options.body).not.toMatch(/live/i);
   });
@@ -205,12 +277,13 @@ describe('malformed and hostile payloads still notify, and never throw', () => {
     }
   });
 
-  it('a payload with no title still gets one', async () => {
+  it('a payload with no title still gets one: the name of the door the worker serves', async () => {
+    const church = loadServiceWorker({ scope: `${ORIGIN}/lovecorner/app/` });
     const ev = pushEvent(JSON.stringify({ body: 'no title here' }));
-    sw.handlers.push(ev);
+    church.handlers.push(ev);
     await Promise.all(ev.waited);
-    expect(sw.shown[0].title).toBe('The Love Corner');
-    expect(sw.shown[0].options.body).toBe('no title here');
+    expect(church.shown[0].title).toBe('The Love Corner');
+    expect(church.shown[0].options.body).toBe('no title here');
   });
 
   it('does not throw when reading event.data itself fails', async () => {
