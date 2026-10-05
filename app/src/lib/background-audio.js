@@ -34,6 +34,7 @@
 // Everything is null-safe and injectable (win / makeAudio), so it unit-tests in
 // plain Node with no browser at all.
 // =============================================================================
+import { currentDoor, doorArtwork } from './app-doors.js';
 
 /** base64 for a byte array, in either a browser (btoa) or Node (Buffer). */
 function toBase64(bytes) {
@@ -82,11 +83,28 @@ export function silentWavDataUri(seconds = 0.5, sampleRate = 8000) {
 /** Every OS media action the reader answers, so release() can hand them all back. */
 export const MEDIA_ACTIONS = ['play', 'pause', 'stop', 'nexttrack', 'previoustrack', 'seekforward', 'seekbackward'];
 
-/** The app icon (app/public) for the car display and the lock-screen art. */
+/** PoeTech's icon (app/public): the card's art when the page is not inside any
+ *  door (the fallback; a door's own art comes from doorArtwork below). */
 export const DEFAULT_ARTWORK = [
   { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
   { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
 ];
+
+/**
+ * What the lock-screen / car card says made this reading, and whose icon it
+ * wears: THE DOOR THE PAGE BOOTED AS (Darrell 2026-10-02: "Why does it show up
+ * as PoeTech App instead of the Love Corner App logo?"). Before this the card
+ * said "PoeTech" with the "P" for every door, so a lesson read inside The Love
+ * Corner was credited to PoeTech on the member's own lock screen. The door is
+ * the same page-load fact app-doors.js answers for notifications and feedback.
+ * A window with no location (tests, a worker) is the PoeTech fallback.
+ */
+export function cardIdentity(w) {
+  const loc = w && w.location ? w.location : null;
+  if (!loc || typeof loc.pathname !== 'string') return { artist: 'PoeTech', artwork: DEFAULT_ARTWORK };
+  const door = currentDoor(loc.pathname, loc.search || '');
+  return { artist: door.label, artwork: doorArtwork(loc.pathname, loc.search || '') };
+}
 
 /**
  * How long the silent keep-alive file is, in seconds (DR-0718). It used to be
@@ -194,11 +212,13 @@ export function createBackgroundAudio({ win, makeAudio, uri } = {}) {
      * DISPLAY say is playing: title = the lesson, artist = PoeTech, album =
      * the course, artwork = the app icon.
      */
-    describe({ title, artist = 'PoeTech', album = '', artwork = DEFAULT_ARTWORK } = {}) {
+    describe({ title, artist, album = '', artwork } = {}) {
       const ms = mediaSession();
       if (!ms || !w || typeof w.MediaMetadata !== 'function') return false;
       try {
-        ms.metadata = new w.MediaMetadata({ title: String(title || 'Reading'), artist, album: String(album || ''), artwork });
+        // The door's own name and icon unless the caller names them (cardIdentity).
+        const who = cardIdentity(w);
+        ms.metadata = new w.MediaMetadata({ title: String(title || 'Reading'), artist: artist || who.artist, album: String(album || ''), artwork: artwork || who.artwork });
         return true;
       } catch (_) { return false; }
     },
