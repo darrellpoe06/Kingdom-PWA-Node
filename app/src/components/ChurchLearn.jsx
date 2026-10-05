@@ -135,6 +135,8 @@ import { anchorIsRun, referencesIn } from '../lib/verse-refs.js';
 import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 import { useScreenAwake } from '../lib/screen-awake.js';
 import { useFlowMode, useChromeAutoHide, announceStep, landStep, stepInView, FLOW_WORDS, STEP_LANDING_GAP } from '../lib/lesson-room.js';
+import LearnersPanel from './LearnersPanel.jsx';
+import { aggregateLearnerRecords } from '../lib/learner-records.js';
 
 const fmtDate = formatClassDate;
 
@@ -3866,6 +3868,8 @@ export default function ChurchLearn({
   initialDept = null,         // department id to open on (e.g. a deep link to the Eternal Algorithms); unknown → the whole catalog
   eternalStudyProps = null,   // { email, view, churchView, setView, setChurchView } for the study surface mounted under its department
   signedIn = true,            // DR-0698: the shell passes !!authSession; a signed-out visitor reads and listens, and a download asks for an account
+  learnerRecords = null,      // DR-0754: every learner record this account may read (his own, or every learner's for the Governor)
+  currentUserId = null,       // which of those records is mine
 }) {
   const [interestSent, setInterestSent] = useState({}); // keyed by course key
   const [helped, setHelped] = useState({}); // keyed by course key
@@ -4051,6 +4055,30 @@ export default function ChurchLearn({
     ? resolveCourseCrossListed(dept.label, courses)
     : [];
   const visibleCourses = dept ? dept.courses : courses;
+  // DR-0754 — the real lesson count of every mounted course, so the class
+  // record measures completion against the course instead of guessing from
+  // the rows a learner happens to have. Derived from the catalog, not typed.
+  const courseLessonTotals = React.useMemo(() => {
+    const out = {};
+    for (const c of (courses || [])) {
+      const n = Array.isArray(c?.schedule) ? c.schedule.length
+        : Array.isArray(c?.modules) ? c.modules.length
+        : null;
+      if (c?.key && n) out[c.key] = n;
+    }
+    return out;
+  }, [courses]);
+  // The fold's own summary is LIVE (DR-0381): it says what the record holds
+  // before anyone opens it, and says plainly when it holds nothing.
+  const classRecordSummary = React.useMemo(() => {
+    if (!signedIn) return 'sign in and your record is kept here';
+    const rows = Array.isArray(learnerRecords) ? learnerRecords : [];
+    if (!rows.length) return 'nothing read yet';
+    const { learners, totals } = aggregateLearnerRecords(rows, { courseTotals: courseLessonTotals });
+    const score = totals.examsTaken ? `, average ${totals.avgQuizPct}%` : ', no exam answered yet';
+    const who = isGovernor && learners.length > 1 ? `${learners.length} learners, ` : '';
+    return `${who}${totals.lessonsRead} lesson${totals.lessonsRead === 1 ? '' : 's'} read${score}`;
+  }, [signedIn, learnerRecords, courseLessonTotals, isGovernor]);
   const active = (chosenCourse && (!dept || dept.courses.some((c) => c.key === chosenCourse.key)))
     ? chosenCourse
     : (dept ? (dept.courses[0] || defaultCourse) : defaultCourse);
@@ -4186,6 +4214,15 @@ export default function ChurchLearn({
   // active course + the learner's age band before handing it to the host's pipe.
   const onCourseEngagement = onEngagement
     ? (signal, moduleId) => onEngagement({ courseKey: active.key, courseTitle: active.meta.title, moduleId, ageBand, signal })
+    : null;
+
+  // DR-0754 — the record needs to know WHICH course a lesson belongs to, so
+  // the active course rides along with every mark-read and every exam result.
+  const toggleModuleInCourse = toggleModule
+    ? (moduleId) => toggleModule(moduleId, active.key)
+    : null;
+  const recordQuizInCourse = recordQuiz
+    ? (moduleId, result) => recordQuiz(moduleId, result, active.key)
     : null;
 
   // Graduate → next-cohort helper for the active course (rides the same pipe).
@@ -5047,12 +5084,38 @@ export default function ChurchLearn({
         );
       })()}
 
+      {/* THE CLASS RECORD (DR-0754). A whole-class control, so it lives at
+          Learn level with the courses, never inside one open lesson (P68).
+          Real rows from learner_lesson_records: a learner's own, and every
+          learner's for the Governor, with completion measured against each
+          course's real lesson count. Folded, so it never pushes the lessons
+          down the page; it carries its own live summary on the summary line. */}
+      {!lessonFocus && (
+        <details className="mb-4 border border-[#E8E4DC] bg-white print:hidden" data-testid="learn-class-record">
+          <summary className="cursor-pointer px-3 py-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
+            Class record
+            <span className="normal-case tracking-normal text-[#1A1815]">
+              {' — '}{classRecordSummary}
+            </span>
+          </summary>
+          <div className="px-3 pb-3">
+            <LearnersPanel
+              records={learnerRecords}
+              currentUserId={currentUserId}
+              isGovernor={isGovernor}
+              signedIn={signedIn}
+              courseTotals={courseLessonTotals}
+            />
+          </div>
+        </details>
+      )}
+
       <CourseView
         key={active.key}
         course={active}
         signedIn={signedIn}
         progress={progress}
-        toggleModule={toggleModule}
+        toggleModule={toggleModuleInCourse}
         isGovernor={isGovernor}
         onLaunch={onLaunch}
         interestSent={!!interestSent[active.key]}
@@ -5063,7 +5126,7 @@ export default function ChurchLearn({
         setAgeBand={setAgeBand}
         onEngagement={onCourseEngagement}
         quizState={quizState}
-        recordQuiz={recordQuiz}
+        recordQuiz={recordQuizInCourse}
         onBecomeHelper={onBecomeHelper}
         helped={!!helped[active.key]}
         resumeLessonId={resumeLessonId}
