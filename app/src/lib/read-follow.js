@@ -118,7 +118,7 @@ export function buildFollowMap(root, doc = typeof document !== 'undefined' ? doc
   const chars = [];   // normalized characters
   const map = [];     // map[i] = { node, offset } for chars[i]
   // WHERE EACH BLOCK'S WORDS BEGIN, in normalized-character positions — the
-  // paragraph grid, recorded BY CONSTRUCTION (DR-0756). This walk already
+  // paragraph grid, recorded BY CONSTRUCTION (DR-0764). This walk already
   // knows every block boundary (it puts the separator in, just below); writing
   // those positions down costs nothing and gives paragraphStarts the one thing
   // it could not get from the DOM afterwards: a boundary for EVERY kind of
@@ -745,7 +745,7 @@ const BLOCK_TAGS = /^(P|LI|H[1-6]|BLOCKQUOTE|TD|TH|DT|DD|FIGCAPTION|PRE)$/;
  * The segment indexes where a new paragraph begins, read from the follow map's
  * OWN block grid (buildFollowMap records where each block's words start).
  *
- * THE BUG THIS REPLACES (DR-0756). Darrell 2026-10-06, from his phone, reading
+ * THE BUG THIS REPLACES (DR-0764). Darrell 2026-10-06, from his phone, reading
  * a lesson in the NAS voice: "The reader does not go to the next section or
  * paragraph... it goes to the beginning of the lessons."
  *

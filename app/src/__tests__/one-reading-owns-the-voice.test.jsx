@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // =============================================================================
-// One reading owns the voice element — the garble (DR-0756)
+// One reading owns the voice element — the garble (DR-0764)
 // =============================================================================
 // Darrell 2026-10-06, from his phone, a lesson whose every piece was on the
 // device ("169 of 169 pieces · 3.2 MB"): "it gets garbled words at times even

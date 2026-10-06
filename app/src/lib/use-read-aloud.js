@@ -152,7 +152,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const readingPinRef = useRef(null);
   const deviceRestRef = useRef(() => {});
   const readingNowRef = useRef(false);
-  // WHICH READ OWNS THE VOICE (DR-0756). Darrell 2026-10-06, from his phone,
+  // WHICH READ OWNS THE VOICE (DR-0764). Darrell 2026-10-06, from his phone,
   // a lesson whose 169 pieces were all on the device: "it gets garbled words
   // at times even with the storage increase for cache."
   //
@@ -386,7 +386,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
 
   const stop = useCallback(() => {
     // Stop supersedes a read still preparing, so one that was fetching when
-    // Stop was pressed cannot begin speaking a moment later (DR-0756).
+    // Stop was pressed cannot begin speaking a moment later (DR-0764).
     readGenRef.current += 1;
     clearDarkRetry();
     heldLiteRef.current = '';
@@ -868,7 +868,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const read = useCallback(async (text, { title } = {}) => {
     const clean = String(text || '').trim();
     if (!clean) return;
-    // THIS READ'S NUMBER (DR-0756). Taken before anything is awaited, so every
+    // THIS READ'S NUMBER (DR-0764). Taken before anything is awaited, so every
     // step below can ask whether it is still the reading that owns the voice.
     readGenRef.current += 1;
     const gen = readGenRef.current;

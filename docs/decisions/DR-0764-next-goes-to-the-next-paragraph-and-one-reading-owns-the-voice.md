@@ -1,5 +1,5 @@
 ---
-id: DR-0756
+id: DR-0764
 title: Next goes to the next paragraph, Back to the one before, and one reading owns the voice
 status: accepted
 date: 2026-10-06

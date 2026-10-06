@@ -345,7 +345,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   // mapping where the mode supports it), wordable }.
   const followRef = useRef(null);
   const lastCloudIdxRef = useRef(-1);
-  // HOW FAR INTO *THIS* RUN THE VOICE HAS REACHED (DR-0756).
+  // HOW FAR INTO *THIS* RUN THE VOICE HAS REACHED (DR-0764).
   //
   // The absolute place is `base + local`, and `local` used to be read live from
   // whichever of two counters the CURRENT mode pointed at —
