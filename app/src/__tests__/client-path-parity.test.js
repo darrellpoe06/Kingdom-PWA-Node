@@ -36,9 +36,21 @@ const repo = (rel) => fileURLToPath(new URL('../../' + rel, import.meta.url));
 //      '/yr', '/mo', regex-flag strings, and prose slugs without dropping
 //      real single-segment endpoints declared as consts (URL in the name).
 //  (b) base-relative template calls: `${baseHref()}seg/…` — the shape
-//      lib/tax-archive.js uses; recorded as '/poetech-app/seg/…' because the
-//      app's base scope is /poetech-app/ (manifest-pinned).
+//      lib/tax-archive.js uses. Recorded for EVERY door the app answers at,
+//      not just one. The web build is published at the SITE ROOT with
+//      /poetech-app/* rewritten onto it (public/_redirects) and index.html
+//      carries no <base href>, so document.baseURI — and therefore the path
+//      actually requested — is '/poetech-app/seg/…' through that door and
+//      '/seg/…' through the root. Recording only the first is what let
+//      /taxes/* ship with a road from one door and a silent SPA floor from the
+//      other (Darrell 2026-10-06: Christina's uploaded return was never
+//      processed, and no document was visible "either way").
 const TRANSPORT_CONTEXT = /fetch|url|endpoint|href|xhr|axios|request|upload/i;
+
+// EVERY DOOR THE SAME BUILD ANSWERS AT. A base-relative call resolves against
+// document.baseURI, so one line of client code becomes a different request at
+// each of these — and each one needs its own road on the production host.
+export const APP_BASES = ['/poetech-app/', '/'];
 
 export function extractClientPaths(source) {
   const out = new Set();
@@ -53,7 +65,10 @@ export function extractClientPaths(source) {
     }
     let b;
     const baseRe = /\$\{baseHref\(\)\}([a-z0-9][a-z0-9.-]*(?:\/[^'"`$\s?#]*)?)/g;
-    while ((b = baseRe.exec(line))) out.add('/poetech-app/' + b[1].replace(/\/+$/, ''));
+    while ((b = baseRe.exec(line))) {
+      const rel = b[1].replace(/\/+$/, '');
+      for (const base of APP_BASES) out.add(base + rel);
+    }
   }
   return out;
 }
@@ -139,12 +154,16 @@ describe('client-path parity — every same-origin path the app calls has a prov
     for (const p of ['/llm/chat', '/llm/health', '/ways/brain.json', '/scribe/session', '/review-feed', '/poetech-app/taxes/archive.json']) {
       expect([...got].includes(p), p).toBe(true);
     }
+    // A base-relative call is recorded at EVERY door, so the root road is
+    // checked too. Recording only /poetech-app/ is the hole that let the tax
+    // archive answer from one door and fall to the SPA from the other.
+    expect([...got].includes('/taxes/archive.json'), 'the root door of a base-relative call must be extracted').toBe(true);
     expect([...got].includes('/yr'), 'UI fragment /yr must not be extracted').toBe(false);
   });
 
   it('the scanner still SEES the 2026-07-30 incident paths (a green run cannot mean "scanned nothing")', () => {
     const scanned = [...scanSrc().keys()];
-    for (const p of ['/llm/chat', '/reviews/llm-review.json', '/poetech-app/taxes/archive.json', '/scribe/session', '/ways/brain.json', '/property-history', '/automation-status', '/wake-orchestrator', '/review-feed']) {
+    for (const p of ['/llm/chat', '/reviews/llm-review.json', '/poetech-app/taxes/archive.json', '/taxes/archive.json', '/taxes/upload', '/scribe/session', '/ways/brain.json', '/property-history', '/automation-status', '/wake-orchestrator', '/review-feed']) {
       expect(scanned.some((k) => k === p || k.startsWith(p + '/')), `scanner no longer sees ${p} — if the feature was removed, update this pin; if the extractor broke, fix it`).toBe(true);
     }
   });
