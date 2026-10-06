@@ -152,6 +152,30 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const readingPinRef = useRef(null);
   const deviceRestRef = useRef(() => {});
   const readingNowRef = useRef(false);
+  // WHICH READ OWNS THE VOICE (DR-0764). Darrell 2026-10-06, from his phone,
+  // a lesson whose 169 pieces were all on the device: "it gets garbled words
+  // at times even with the storage increase for cache."
+  //
+  // A read is asynchronous for seconds before it plays a note — the family
+  // key, the saved-on-device check, and, once a reading is fully saved,
+  // decoding and joining every piece into one file (DR-0718/DR-0747). A
+  // SECOND read started inside that window (a paragraph jump, a Continue, the
+  // headset's skip) called stopCloud() first, exactly as it should — and found
+  // NOTHING to stop, because the first read had not installed its queue yet.
+  // Both reads then went on to build a clip queue over the ONE shared <audio>
+  // element, and the superseded one put its own piece on that element
+  // mid-sentence. Measured against the real hook: with the first read's piece
+  // slower than the second's, the element took "Bravo one…" and then "Alpha
+  // one…" — the new reading cut off part-way and replaced by a sentence from
+  // where the listener no longer is. That is the garble, and nothing in the
+  // cache can cure it: a fully saved reading makes the window LONGER.
+  //
+  // So every read takes a number. Past each await, a read whose number is no
+  // longer the current one stops where it stands: it installs no queue, it
+  // touches no element, and it never falls through to the phone's own voice
+  // with text the listener has already moved on from.
+  const readGenRef = useRef(0);
+  const currentGen = (gen) => gen === readGenRef.current;
   // THE SPEED CHIP HAS TO REACH THE CLIP (2026-09-18). A cloud read is one
   // audio element, and playbackRate was never touched on it — so on the
   // sovereign/bridge path (which since DR-0382 carries the SYSTEM voice, the
@@ -361,6 +385,9 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   }, []);
 
   const stop = useCallback(() => {
+    // Stop supersedes a read still preparing, so one that was fetching when
+    // Stop was pressed cannot begin speaking a moment later (DR-0764).
+    readGenRef.current += 1;
     clearDarkRetry();
     heldLiteRef.current = '';
     silenceAudio();
@@ -491,7 +518,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   useEffect(() => { setDownloadVoice(liteVoiceFor()); }, [liteVoiceFor]);
 
   /** Play `clean` in the NAS audio voice. Resolves true once the first piece plays. */
-  const playLiteVoice = useCallback(async (clean) => {
+  const playLiteVoice = useCallback(async (clean, gen = readGenRef.current) => {
     // The reading's pinned gender (DR-0654), never a fresh choice mid-reading.
     const voice = (readingPinRef.current && readingPinRef.current.gender) || liteVoiceFor();
     // Pieces are cut from the text AS WRITTEN, so piece i is highlight segment
@@ -550,10 +577,16 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       return { url: URL.createObjectURL(j.blob), offsets: j.offsets, duration: j.duration };
     };
     const whole = await joinFromDevice();
+    // SUPERSEDED WHILE THE JOIN WAS BUILT: this read no longer owns the voice.
+    if (!currentGen(gen)) { if (whole) { try { URL.revokeObjectURL(whole.url); } catch (_) { /* ignore */ } } return false; }
     // The first piece decides: if the NAS voice cannot answer it in time, the
     // device voice speaks instead and the road is not asked again for a while.
     // From the device if it is kept there, else from the NAS (and then kept).
     const first = whole ? null : await source.clip(0, LITE_FIRST_TIMEOUT_MS);
+    if (!currentGen(gen)) {
+      for (const u of [whole && whole.url, first && first.url]) { if (u) { try { URL.revokeObjectURL(u); } catch (_) { /* ignore */ } } }
+      return false;
+    }
     // The reason is KEPT (DR-0654): the notice names what the NAS voice said.
     if (first && (first.error || !first.url)) { liteMissRef.current = first.error || 'voice-lite-empty'; markLiteVoiceMiss(liteMissRef.current); return false; }
     liteMissRef.current = '';
@@ -605,6 +638,14 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
         deviceRestRef.current(rest, reason);
       },
     });
+    // THE LAST GATE BEFORE THE ELEMENT. Everything above is preparation; from
+    // here the queue owns the one <audio> element, so a superseded read stops
+    // here and takes its clips with it.
+    if (!currentGen(gen)) {
+      q.stop();
+      if (whole) { try { URL.revokeObjectURL(whole.url); } catch (_) { /* ignore */ } }
+      return false;
+    }
     queueRef.current = q;
     audioRef.current = a;
     setCloudPlaying(true); setCloudPaused(false); setCloudProgress(0);
@@ -777,13 +818,15 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // piece that is playing, and they play through the element unlocked in the
   // tap. A piece the studio cannot make hands the REST to the NAS stand-in,
   // and the panel says so in one sentence. Resolves { ok } or { error }.
-  const playMyVoice = useCallback(async (clean, { voice, personKey, referenceDataUri }) => {
+  const playMyVoice = useCallback(async (clean, { voice, personKey, referenceDataUri, gen = readGenRef.current }) => {
     const chunks = chunkForClips(clean);
     if (!chunks.length || typeof Audio === 'undefined') return { error: 'empty-text' };
     const speakPiece = (t, timeoutMs) => synthesizeSpeech({
       text: toSpokenForm(t), voiceId: voice.id, personKey, referenceDataUri, timeoutMs,
     });
     const first = await speakPiece(chunks[0].text, speakTimeoutFor(studioHealth));
+    // An XTTS clone takes its time; a jump made while it worked owns the voice now.
+    if (!currentGen(gen)) return { error: 'superseded' };
     if (!first || first.error || !first.url) return { error: (first && first.error) || 'voice-service-empty' };
     const a = liteAudioRef.current || new Audio();
     liteAudioRef.current = a;
@@ -813,6 +856,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
         playLiteVoice(rest).then((played) => { if (!played) { setCloudPlaying(false); deviceRestRef.current(rest, miss); } });
       },
     });
+    if (!currentGen(gen)) { q.stop(); return { error: 'superseded' }; }
     queueRef.current = q;
     audioRef.current = a;
     setCloudPlaying(true); setCloudPaused(false); setCloudProgress(0);
@@ -824,6 +868,10 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const read = useCallback(async (text, { title } = {}) => {
     const clean = String(text || '').trim();
     if (!clean) return;
+    // THIS READ'S NUMBER (DR-0764). Taken before anything is awaited, so every
+    // step below can ask whether it is still the reading that owns the voice.
+    readGenRef.current += 1;
+    const gen = readGenRef.current;
     // ONE READING, ONE VOICE (DR-0654). A read called while a reading is live
     // (a paragraph jump, the hand-over into the dark, a pick-up) CONTINUES
     // that reading and keeps its pin; a read from rest starts a new one.
@@ -846,6 +894,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // heard. Asking here, once, costs one RPC on a device without the key.
     const nasRead = isSystemVoiceId(voiceId) || isPersonVoiceId(voiceId);
     if (nasRead && !hasBridgeToken()) await provisionBridgeToken(supabase);
+    if (!currentGen(gen)) return;
     // ONE VOICE AT A TIME (DR-0654). An audio voice is about to be tried, so
     // the phone's own voice stops first; before this, a hand-over or a jump
     // started the NAS clip while Web Speech was still mid-sentence, and the
@@ -872,6 +921,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
         // falls back honestly, exactly as before.
         if (!hasBridgeToken()) await provisionBridgeToken(supabase);
         const refBlob = await loadReference(personKey);
+        if (!currentGen(gen)) return;
         if (refBlob) {
           const referenceDataUri = await blobToDataUri(refBlob);
           // THE READING IN MY VOICE, PIECE BY PIECE (DR-0721). This sent the
@@ -881,7 +931,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
           // stand-in would have read. Now the reading goes to the studio one
           // breath-sized piece at a time (the NAS voice's own pieces), each
           // carrying his recording as the reference, and plays as it comes.
-          const got = await playMyVoice(clean, { voice, personKey, referenceDataUri });
+          const got = await playMyVoice(clean, { voice, personKey, referenceDataUri, gen });
+          if (!currentGen(gen)) return;
           if (got.ok) {
             setMyVoiceMiss('');
             const ep = activeVoiceEndpoint();
@@ -936,6 +987,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       const { url, error } = await synthesizeSpeech({
         text: toSpokenForm(clean), voiceId: SYSTEM_VOICE.id, allowBuiltIn: true,
       });
+      if (!currentGen(gen)) { if (url) { try { URL.revokeObjectURL(url); } catch (_) { /* ignore */ } } return; }
       if (!error && url) {
         const ep = activeVoiceEndpoint();
         if (ep && ep.kind === 'bridge') {
@@ -996,9 +1048,12 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // read instead, which Android stops the moment he leaves the app. A
     // reading whose pieces are all on this device plays them, NAS or not.
     if ((isSystemVoiceId(voiceId) || isPersonVoiceId(voiceId)) && (mayTryLiteVoice() || await savedOnDevice(clean))) {
-      const played = await playLiteVoice(clean);
+      const played = await playLiteVoice(clean, gen);
       if (played) return;
     }
+    // A read the listener has already moved past must NEVER reach the phone's
+    // own voice: that is how the superseded text got spoken over the new one.
+    if (!currentGen(gen)) return;
     markVoice('device');
     if (!tts.supported) { setNotice('This device can’t read aloud — try a different browser.'); return; }
     // Close the cold-start gap: on a fresh mobile load the device voice list can
@@ -1019,6 +1074,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     let deviceVoices = tts.voices || [];
     if (!(tts.voices || []).length && typeof window !== 'undefined' && window.speechSynthesis) {
       const fresh = await waitForVoices(window.speechSynthesis);
+      if (!currentGen(gen)) return;
       deviceVoices = fresh;
       if (fresh.length) {
         liveAssignments = buildStandInAssignments(fullCatalog, fresh);
