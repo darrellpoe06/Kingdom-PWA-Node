@@ -98,6 +98,9 @@ export const SURFACES = [
   // 'hide': the home's cameras are not a visitor's business, and there is no
   // version of asking that ends in yes for someone outside the family.
   { id: 'cameras',      label: 'Cameras',          nav: 'top', view: 'cameras',      sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor — the home is the family\'s business (DR-0756)', load: () => import('./components/Cameras.jsx') },
+  // Vault — a person's passwords, locked on their device, kept on their own
+  // server (DR-0762). 'lock': anyone could legitimately want it; signing in opens it.
+  { id: 'vault',        label: 'Vault',            nav: 'top', view: 'vault',        sub: null,          requires: 'signed-in', whenDenied: 'lock', gate: 'any signed-in person — the vault is theirs alone (0251 RLS, DR-0762)', load: () => import('./components/Vault.jsx') },
 
   // ── church sub-surfaces (view === 'church', churchView === sub) ──────────
   { id: 'church-home',      label: 'Church Home',   nav: 'church', view: 'church', sub: 'home',       load: pick(() => import('./components/ChurchHome.jsx'), 'ChurchHome') },
@@ -199,6 +202,7 @@ export const TVTime           = surfaceById['tvtime'].component;
 export const AdvocacyCases    = surfaceById['advocacy'].component;
 export const DataLiberation   = surfaceById['databack'].component;
 export const Cameras          = surfaceById['cameras'].component;
+export const Vault            = surfaceById['vault'].component;
 export const ChurchHome       = surfaceById['church-home'].component;
 export const Engagement       = surfaceById['engagement'].component;
 export const Choir            = surfaceById['choir'].component;
