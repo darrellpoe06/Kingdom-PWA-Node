@@ -480,7 +480,13 @@ describe('the closed app: a one-person lesson topic, the drain, the enqueue', ()
     expect(ci).toMatch(/^\s{2}arrivals-push:\n/m);
     expect(ci).toMatch(new RegExp(`migrations-auto/${MIG.replace(/\./g, '\\.')}`));
     expect(ci).toMatch(/scripts\/arrivals-ci-smoke\.sql/);
-    expect(ci).toMatch(/needs: \[guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys\]/);
+    // The required check WAITS ON THIS LEG. Asserted by membership, not by
+    // pinning the whole list: this test's job is that arrivals-push is wired
+    // into the aggregator, and a pinned list went red every time an unrelated
+    // leg was added (DR-0754 added learner-records and broke it). Still
+    // proven-to-catch — dropping arrivals-push from `needs:` fails here.
+    const needs = (ci.match(/^\s*needs: \[([^\]]+)\]/m) || [])[1] || '';
+    expect(needs.split(',').map((x) => x.trim())).toContain('arrivals-push');
     const smoke = read(ROOT, 'scripts', 'arrivals-ci-smoke.sql');
     expect(smoke).toMatch(/every wall held/);
     expect(smoke).toMatch(/did not enqueue exactly one row/);
