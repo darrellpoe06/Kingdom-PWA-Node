@@ -16,6 +16,7 @@
 import React, { useEffect, useState } from 'react';
 import { fetchTaxArchive, printableUrl } from '../lib/tax-archive.js';
 import { groupByYear, buildTaxHistory, hasFigures, TAX_FIGURE_KEYS, TAX_DOC_KINDS } from '../lib/tax-documents.js';
+import { ARCHIVE_REASON } from '../lib/tax-archive.js';
 import { uploadTaxDocWithFreshKey, uploadFailureMessage, validateUpload } from '../lib/tax-upload.js';
 import PaymentsLedgerPanel from './PaymentsLedgerPanel.jsx';
 import { resolveBridgeBearer } from '../lib/bridge-auth.js';
@@ -67,7 +68,7 @@ const fieldCls = 'text-sm border border-[#1A1815] px-2 py-1.5 min-h-[36px] bg-wh
 const labelCls = 'block text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1';
 
 export default function BooksTaxes({ entities = [] }) {
-  const [archive, setArchive] = useState({ documents: [], served_at: null, source: 'loading' });
+  const [archive, setArchive] = useState({ documents: [], served_at: null, source: 'loading', reason: null });
   const [form, setForm] = useState({ file: null, entityId: '', year: '', kind: 'return' });
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
@@ -126,7 +127,7 @@ export default function BooksTaxes({ entities = [] }) {
     if (res && res.ok) {
       say('Uploaded. Your return is filed and printable below.', 'ok');
       setForm({ file: null, entityId: form.entityId, year: '', kind: 'return' });
-      if (res.archive && Array.isArray(res.archive.documents)) setArchive({ documents: res.archive.documents, served_at: res.archive.served_at || null, source: 'nas' });
+      if (res.archive && Array.isArray(res.archive.documents)) setArchive({ documents: res.archive.documents, served_at: res.archive.served_at || null, source: 'nas', reason: ARCHIVE_REASON.OK });
       else refresh();
     } else if (res && res.skipped === 'invalid') {
       say(res.errors.join(' '), 'error');
@@ -208,8 +209,29 @@ export default function BooksTaxes({ entities = [] }) {
         </p>
       </form>
 
+      {/* THE ROAD IS MISSING, AND IT SAYS SO (Darrell 2026-10-06: "should be able
+          to see the documents either way... however it does not or didn't
+          process the uploaded taxes Christina uploaded"). An unreachable archive
+          used to render the same "No returns indexed yet" as a genuinely empty
+          one, so a family member whose upload never left the app was told to
+          upload again. A read that did not reach the NAS now says that plainly,
+          before any how-to, because the two are different problems. */}
+      {docs.length === 0 && archive.reason && archive.reason !== ARCHIVE_REASON.OK && archive.source !== 'loading' && (
+        <div className="border-2 border-[#B85838] bg-[#FAF8F4] p-4 mb-3" data-testid="tax-archive-unreachable">
+          <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-semibold mb-2">This screen could not reach your returns</div>
+          <p className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+            {archive.reason === ARCHIVE_REASON.NO_ROAD
+              ? 'The request for the index never reached your NAS — the app itself answered instead. Nothing here is missing from the NAS; this screen simply could not read it, and an upload from this screen would not arrive either. Open the app from your usual door and try again, or tell Darrell this page says the index road is missing.'
+              : 'Your NAS did not answer the request for the index. Your returns are untouched on it; this screen cannot read them right now. Try again when the NAS is awake.'}
+          </p>
+          <p className="text-[0.6875rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+            Nothing below is a statement about what you have filed — the list is empty because the read failed, not because the NAS is empty.
+          </p>
+        </div>
+      )}
+
       {/* Empty state — the real how-to, since the value is trust (no painted data) */}
-      {docs.length === 0 && (
+      {docs.length === 0 && (!archive.reason || archive.reason === ARCHIVE_REASON.OK) && (
         <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-4">
           <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-2">No returns indexed yet</div>
           <p className="text-xs text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
