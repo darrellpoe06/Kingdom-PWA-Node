@@ -218,6 +218,14 @@ jobs:
           PHOTO_CODE="$CODE"
           note "- \`GET /nas-photos/healthz\` -> **$CODE** (sovereign photo server, via Funnel)"
           [ "$PHOTO_CODE" = "200" ] || echo "::warning::photo path DOWN — /nas-photos/healthz returned HTTP $PHOTO_CODE (photo_server.py / Funnel / Pages Function hop)"
+          # The family camera road (DR-0756): /cams/health passes go2rtc's OWN
+          # answer through, so a 200 here proves Pages Function + Funnel +
+          # forwarder + go2rtc in one hop. Same v1 scope as the photo path: a
+          # loud warning, not the site-incident ledger (the NAS can be off).
+          fetch "https://poetech.us/cams/health"
+          CAMS_CODE="$CODE"
+          note "- \`GET /cams/health\` -> **$CODE** (family camera road: forwarder + go2rtc, via Funnel)"
+          [ "$CAMS_CODE" = "200" ] || echo "::warning::camera road DOWN — /cams/health returned HTTP $CAMS_CODE (cams_forwarder.py / go2rtc / Funnel / Pages Function hop)"
           fetch "https://poetech.us/property-history?channel=healthprobe"
           HIST_CODE="$CODE"
           note "- \`GET /property-history\` -> **$CODE** (401 = alive+gated; 000/5xx = down)"
