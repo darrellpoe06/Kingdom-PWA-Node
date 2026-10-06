@@ -56,17 +56,17 @@ const numbered = (mods) => mods.map((m) => {
 // 203 is held for L203 (a promise-line lesson another session is authoring in
 // parallel) while L204 (The Word Checks Every Teller, DR-0714) lands first, the
 // same way 193 was held. Delete the entry in the merge that brings L203 in.
-// 210 is held the same way (2026-10-06): its lesson is in flight on its own
-// branch while L213 (A Snag in the Theory, DR-0763) lands first. Delete the
-// entry in the merge that brings it in — the ratchet below fails if a held
-// number is quietly filled and left here.
+// 210 WAS held here (2026-10-06) while its lesson was in flight on its own
+// branch. It merged first, so the entry is deleted in this merge, which is the
+// convention working: the ratchet below fails if a held number is quietly
+// filled and left here, and it did.
 // 211 and 212 are PERMANENT gaps, not holds. Both were built the same day and
 // both landed in the Sovereign A.I. course, as sov34 (DR-0763) and sov33
 // (DR-0761), where the ids are `sov<number>`, so no `ll211` and no `ll212` will
 // ever exist. The two numbers were spent as build-sequence labels before the
 // course was settled. Their entries stay for the same reason 79 stays: the
 // number was passed over, and the header says so rather than hiding it.
-const KNOWN_MISSING = [79, 210, 211, 212];
+const KNOWN_MISSING = [79, 211, 212];
 
 describe('every lesson id is shaped ll<number>-<slug>', () => {
   it('no lesson carries an unparseable id', () => {

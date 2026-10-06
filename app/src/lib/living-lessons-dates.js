@@ -233,5 +233,6 @@ export const LIVING_LESSONS_ADDED = {
   'll207-the-worker-is-worthy-the-broken-deal-the-cry-yahweh-hears': '2026-10-02', // added with the lesson on the NAS (DR-0750)
   'll208-the-gift-does-not-expire-the-skill-is-yahwehs-the-paper-is-a-witness': '2026-10-02', // added with the lesson (DR-0751)
   'll209-the-step-and-the-wait-the-work-of-your-hands-yahweh-promotes-and-the-wait-is-his': '2026-10-06', // added with the lesson (DR-0755); sent into the app by email by Darrell 2026-10-06 marked Lesson, and authored the same day
+  'll210-what-really-drives-innovation-know-the-flock-and-build-what-edifies': '2026-10-06', // added with the lesson (DR-0759); forwarded into the app by email by Darrell 2026-10-06 marked Lesson/s, Word first, and authored the same day
   'll213-a-snag-in-the-theory-what-the-report-establishes-what-is-honestly-open-and-who-framed-the-worlds': '2026-10-06', // added with the lesson (DR-0763); forwarded into the app by email by Darrell 2026-10-06 marked Lesson, and authored the same day
 };
