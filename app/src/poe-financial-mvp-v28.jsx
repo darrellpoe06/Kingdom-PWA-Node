@@ -4306,9 +4306,6 @@ ${THEME_CSS}
                 // asks for help with the data already in hand (2026-08-04).
                 ['advocacy', <><UiIcon name="landmark" /> Advocacy</>],
                 ['databack', <><UiIcon name="landmark" /> Your Data</>],
-                // Cameras — the family's cameras from the family's own server
-                // (DR-0756). Family/Governor only; spread so the entry is absent
-                // from the DOM entirely for everyone else (no-leak), like Study.
                 ...(isFamilyMember ? [['cameras', <><UiIcon name="eye" /> Cameras</>]] : []),
                 // Darrell's Study — private to the circle (Darrell/Christina/BG).
                 // Spread so the entry is absent from the DOM entirely for everyone
@@ -4854,14 +4851,7 @@ ${THEME_CSS}
             <TVTime email={authSession?.user?.email || null} />
           </SectionBoundary>
         )}
-        {/* Cameras — the family's cameras from the family's own server (DR-0756).
-            Family-only (the nav entry is spread on isFamilyMember); a deep link by
-            anyone else meets the registry's 'family' requirement in the surface. */}
-        {view === 'cameras' && isFamilyMember && (
-          <SectionBoundary name="Cameras">
-            <Cameras />
-          </SectionBoundary>
-        )}
+        {view === 'cameras' && isFamilyMember && <SectionBoundary name="Cameras"><Cameras /></SectionBoundary>}
         {/* Advocacy — the Case File (pb-advocacy-outcomes, Darrell 2026-08-04):
             students and families document situations as they happen so the data
             supporting their perspective is in hand when they ask for help.
