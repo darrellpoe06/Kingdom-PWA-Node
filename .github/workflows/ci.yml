@@ -298,6 +298,16 @@ jobs:
       - name: voice-lite selftest
         working-directory: infra/nas-voice-lite
         run: python3 voice_lite_server.py --selftest
+      # Cams forwarder selftest (DR-0756): the locked door in front of go2rtc,
+      # the family camera road. Proven-to-catch: fails if /list or /ticket ever
+      # accept a missing or wrong bearer, if a source URL (credentials) leaks in
+      # /list, if a ticket opens another camera, if the live cap stops refusing
+      # at once, if the live time brake stops ending a stream (caught a real
+      # defect on its first run), if the HLS rewrite drops the ticket from a
+      # segment line, or if a dark go2rtc ever reads as this process's own 200.
+      - name: cams forwarder selftest
+        working-directory: infra/nas-cameras
+        run: python3 cams_forwarder.py --selftest
       # Sovereign review-queue server selftest (DR-0218 zero-n8n / DR-0076): the
       # byte-faithful port of wf-review-feed + wf-review-action. Proven-to-catch:
       # fails if the dismissed-filter, id path-containment, or status-write
@@ -824,6 +834,42 @@ jobs:
           psql -v ON_ERROR_STOP=1 -q -f scripts/dm-device-keys-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'every wall held' "$RUNNER_TEMP/smoke.txt"
 
+  # THE VAULT HOLDS ONLY WHAT THE OWNER CAN OPEN: 0251'S WALLS, ON A REAL
+  # POSTGRESQL (DR-0762). 0251 applies twice (idempotent), then the smoke
+  # proves: the owner reads and writes their own header and ciphertext rows,
+  # updated_at moves on update, a soft delete stays readable by the owner,
+  # another signed-in person reads NONE and cannot plant/alter/delete, anon
+  # reads none, and the table refuses a weak KDF, an oversized ciphertext and
+  # a short IV.
+  vault-walls:
+    name: app — password vault walls (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: 0251 applies, twice (idempotent), and every vault wall holds
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f scripts/curriculum-ci-bootstrap.sql
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0251-the-vault-holds-only-what-the-owner-can-open.sql; done
+          psql -v ON_ERROR_STOP=1 -q -f scripts/vault-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'every vault wall held' "$RUNNER_TEMP/smoke.txt"
+
   # A LEARNER'S RECORD: 0250'S WALLS, ON A REAL POSTGRESQL (DR-0754). 0250
   # applies twice (idempotent), then the smoke proves: a learner keeps and
   # reads his own record, the row lands under his own account even when the
@@ -868,7 +914,7 @@ jobs:
   app:
     name: app — lint + vitest
     if: always()
-    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records]
+    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, vault-walls]
     runs-on: ubuntu-latest
     steps:
       - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls)

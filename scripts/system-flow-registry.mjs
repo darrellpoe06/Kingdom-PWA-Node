@@ -619,6 +619,19 @@ const NODES = [
     reads: [{ res: 'device:family-key', token: 'bridgeToken' }, { res: 'http:nas-photos', token: '/nas-photos' }],
     seeds: [],
   }),
+  app('app/src/lib/vault-store.js', {
+    id: 'vault', name: 'Vault (passwords locked on the device, kept on our server)',
+    purpose: 'A person’s passwords, encrypted in the browser under their own passphrase; the server holds ciphertext only (0251, DR-0762).',
+    reads: [{ res: 'db:vault_header', token: "from('vault_header')" }, { res: 'db:vault_items', token: "from('vault_items')" }],
+    writes: [{ res: 'db:vault_header', token: "from('vault_header').upsert" }, { res: 'db:vault_items', token: "from('vault_items').upsert" }],
+    seeds: [],
+  }),
+  app('app/src/lib/cameras.js', {
+    id: 'cameras', name: 'Cameras (the family’s cameras in the app)',
+    purpose: 'Frames and live video from the family’s own cameras — Wyze, Ring, ONVIF, RTSP — through the NAS, behind the family key and short playback tickets (DR-0756).',
+    reads: [{ res: 'device:family-key', file: 'app/src/components/Cameras.jsx', token: 'bridgeToken' }, { res: 'http:cams', token: '/cams' }],
+    seeds: [],
+  }),
   app('app/src/lib/clip-queue.js', {
     id: 'reader-audio-voice', name: 'Reader audio voice (keeps playing when you switch apps)',
     purpose: 'The reading as real audio clips from the NAS voice, so a phone keeps playing it in the background (DR-0627).',
@@ -1066,6 +1079,10 @@ const NODES = [
     id: 'voice-lite-probe', name: 'Voice-lite probe (a real clip, end to end)', purpose: 'Asks /voice-lite for a paragraph the way the app does and keeps the clip.',
     reads: [{ res: 'http:voice-lite', token: 'voice-lite' }], writes: [], seeds: [],
   }),
+  rider('service:cameras', 'infra/nas-cameras/cams_forwarder.py', {
+    id: 'cameras-road', name: 'Camera road (go2rtc behind the locked door)', purpose: 'Restreams the family’s cameras from the NAS to the app as frames and live video; the forwarder is the lock on the public Funnel (DR-0756).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'cameras' }], writes: [{ res: 'http:cams', token: '/cams' }], seeds: ['cameras'],
+  }),
   rider('service:funnel', 'infra/nas-loops/loops/funnel_watchdog.py', {
     id: 'funnel', name: 'Public Funnel (the NAS’s front door)', purpose: 'Keeps the recorded sovereign routes served to the app’s proxy.',
     reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'funnel' }], writes: [{ res: 'http:funnel', token: 'funnel' }], seeds: ['transport'],
@@ -1263,6 +1280,9 @@ const RESOURCES = {
   'http:nas-photos': { label: 'photo server on the NAS', route: '/nas-photos' },
   'http:voice': { label: 'the reading voice studio', route: '/voice' },
   'http:voice-lite': { label: 'the NAS audio voice (Piper)', route: '/voice-lite' },
+  'http:cams': { label: 'the family camera road on the NAS (go2rtc)', route: '/cams' },
+  'db:vault_header': { label: 'a person’s vault header: KDF parameters, salt and a verifier, never a key (0251, DR-0762; owner only)' },
+  'db:vault_items': { label: 'a person’s vault records as ciphertext made in their browser (0251, DR-0762; owner only)' },
   'http:taxes': { label: 'the tax archive on the NAS', route: '/taxes' },
   'http:taxes-upload': { label: 'a tax document uploaded', route: '/taxes' },
   'nas:mirror': { label: 'the NAS repo mirror' },
