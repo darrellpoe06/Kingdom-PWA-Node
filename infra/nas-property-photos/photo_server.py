@@ -31,6 +31,16 @@
 #      so "+ Add photos" is Python end-to-end, off n8n. Magic-byte image check,
 #      dest/filename sanitized + path-contained, 8 MB cap. Writes to
 #      PHOTO_UPLOAD_ROOT/<dest>/<name>.)
+#   GET /property-uploads?dest=<channel>&limit=<n>  Authorization: Bearer <token>
+#   -> { count, total, photos:[...], hidden:[<chat post id>, ...] }
+#      The OTHER half of an address's photo story: the photos the app ADDED into
+#      <upload_root>/<dest>/, plus the ids hidden at this address.
+#   POST /property-photo-remove  Authorization: Bearer <token>
+#   { dest, id, kind:'added'|'archive' } -> { ok, kind, id, where }
+#      RECOVERABLE removal (Christina 2026-10-06). 'added' MOVES the file into
+#      <dest>/.trash/; 'archive' only records a chat post id in <dest>/.hidden.json
+#      so it stops showing AT THIS ADDRESS. No byte is ever unlinked, and the
+#      Synology Chat post and the phone-backup original are never touched.
 #   GET /healthz -> { ok: true }   (no auth; liveness only)
 #
 # The path is matched by SUFFIX (".../property-photos"), so it works whether the
@@ -130,6 +140,114 @@ MAX_UPLOAD_BYTES = 8 * 1024 * 1024            # decoded image cap (matches old b
 UPLOAD_LIST_MAX = 200                          # hard cap on a family-gallery page
 SAFE_DEST = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 DATA_URL_RE = re.compile(r"^data:image/[A-Za-z0-9.+-]+;base64,(.+)$", re.DOTALL)
+
+# --- Removal (RECOVERABLE, never an unlink) -----------------------------------
+# Christina 2026-10-06, relayed by Darrell: "I would like to be able to delete and
+# add photos to the different addresses in Real Estate." Two different stores sit
+# behind one property's photo strip, so "remove from this address" means two
+# different -- and both RECOVERABLE -- things:
+#
+#   kind="added"   a file THIS app wrote to <upload_root>/<dest>/. Removing it
+#                  MOVES it to <upload_root>/<dest>/.trash/ with os.replace (same
+#                  filesystem, atomic). The bytes are never unlinked; a steward
+#                  puts it back from File Station.
+#   kind="archive" a Synology Chat post in the property's channel, whose bytes are
+#                  the family's PHONE BACKUP. Those are two systems of record this
+#                  server must never destroy. Removing it records the post id in
+#                  <upload_root>/<dest>/.hidden.json, so every family device stops
+#                  showing it AT THIS ADDRESS while the post and the original are
+#                  untouched. Reversible by dropping the id from that list.
+#
+# Guarded EXACTLY like /upload -- same bearer token, same SAFE_DEST, same
+# safe_upload_path containment -- and it can only ever touch a name that already
+# resolves inside this property's own folder. Nothing here loosens a write guard.
+TRASH_DIR = ".trash"
+HIDDEN_FILE = ".hidden.json"
+MAX_HIDDEN_IDS = 5000                          # bound the per-property hidden list
+
+
+def _dest_dir(root, dest):
+    """Realpath of <root>/<dest>, contained under root, or None."""
+    if not SAFE_DEST.match(dest or "") or ".." in (dest or ""):
+        return None
+    base = os.path.realpath(root)
+    d = os.path.realpath(os.path.join(base, dest))
+    if d != base and not d.startswith(base + os.sep):
+        return None
+    return d
+
+
+def trash_path(root, dest, filename):
+    """Where a removed photo goes: <root>/<dest>/.trash/<name>. Containment is
+    asserted the same way the upload path asserts it -- the name must already be
+    a legal upload name inside this property's folder before a trash path exists."""
+    if safe_upload_path(root, dest, filename) is None:
+        return None
+    d = _dest_dir(root, dest)
+    if d is None:
+        return None
+    tdir = os.path.join(d, TRASH_DIR)
+    target = os.path.normpath(os.path.join(tdir, filename))
+    if not target.startswith(tdir + os.sep):
+        return None
+    return target
+
+
+def read_hidden(root, dest):
+    """The ids hidden at this address -- a list of strings. Honest-empty on a bad
+    dest, a missing file, or anything unreadable; never raises, never invents."""
+    d = _dest_dir(root, dest)
+    if d is None:
+        return []
+    try:
+        with open(os.path.join(d, HIDDEN_FILE), "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, ValueError):
+        return []
+    if not isinstance(data, list):
+        return []
+    return [str(x) for x in data if isinstance(x, (str, int)) and str(x)][:MAX_HIDDEN_IDS]
+
+
+def hide_id(root, dest, photo_id):
+    """Add one chat-archive post id to this address's hidden list. Returns True
+    when the list now holds it (already-hidden counts as held). The post and the
+    phone-backup original are NOT touched."""
+    d = _dest_dir(root, dest)
+    pid = str(photo_id or "").strip()
+    if d is None or not pid or len(pid) > 255 or "/" in pid or "\\" in pid:
+        return False
+    current = read_hidden(root, dest)
+    if pid in current:
+        return True
+    current.append(pid)
+    current = current[-MAX_HIDDEN_IDS:]
+    try:
+        os.makedirs(d, exist_ok=True)
+        tmp = os.path.join(d, HIDDEN_FILE + ".tmp")
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(current, fh)
+        os.replace(tmp, os.path.join(d, HIDDEN_FILE))
+    except OSError:
+        return False
+    return True
+
+
+def trash_uploaded(root, dest, filename):
+    """MOVE an uploaded photo into this address's .trash/. Returns 'moved',
+    'not-found', or None when the path is refused. Never unlinks."""
+    target = safe_upload_path(root, dest, filename)
+    tpath = trash_path(root, dest, filename)
+    if target is None or tpath is None:
+        return None
+    if not os.path.isfile(target):
+        return "not-found"
+    try:
+        os.makedirs(os.path.dirname(tpath), exist_ok=True)
+        os.replace(target, tpath)
+    except OSError:
+        return None
+    return "moved"
 
 
 def upload_root():
@@ -372,17 +490,18 @@ def list_uploaded(dest, limit=12):
     """{ photos:[{id,date,name,text,thumb}], total } for PHOTO_UPLOAD_ROOT/<dest>/,
     newest-first. Honest-empty ({photos:[], total:0}) on a bad dest, a contained-
     path failure, or a missing/empty folder -- never raises, never invents."""
-    if not SAFE_DEST.match(dest or "") or ".." in (dest or ""):
-        return {"photos": [], "total": 0}
-    base = os.path.realpath(upload_root())
-    d = os.path.realpath(os.path.join(base, dest))
-    if d != base and not d.startswith(base + os.sep):
+    d = _dest_dir(upload_root(), dest)
+    if d is None:
         return {"photos": [], "total": 0}
     entries = []
     try:
         with os.scandir(d) as it:
             for e in it:
                 try:
+                    # Dotfiles are this folder's own bookkeeping (.hidden.json),
+                    # never a photo; .trash/ is a directory and already excluded.
+                    if e.name.startswith("."):
+                        continue
                     if e.is_file() and SAFE_NAME.match(e.name):
                         entries.append((e.stat().st_mtime, e.name, e.path))
                 except OSError:
@@ -462,6 +581,32 @@ def make_handler(args):
                 except Exception as err:
                     self._send(500, {"error": "list failed: %s" % type(err).__name__, "photos": [], "count": 0})
                 return
+            # A PROPERTY'S OWN added photos + what has been hidden at this address
+            # (Christina 2026-10-06). The chat archive is read by /property-photos;
+            # this is the other half of the same address's story -- the photos the
+            # app added into <upload_root>/<dest>/ -- plus the hidden-id list the
+            # client uses to drop a removed archive photo from THIS address's grid.
+            if path.endswith("/property-uploads") or path == "/property-uploads":
+                if not bearer_ok(self.headers.get("Authorization"), token):
+                    self._send(401, {"error": "unauthorized", "photos": [], "count": 0, "hidden": []})
+                    return
+                q = parse_qs(parsed.query)
+                dest = (q.get("dest", [""])[0] or "").strip()
+                if not SAFE_DEST.match(dest):
+                    self._send(400, {"error": "bad dest", "photos": [], "count": 0, "hidden": []})
+                    return
+                try:
+                    limit = max(1, min(UPLOAD_LIST_MAX, int(q.get("limit", ["200"])[0])))
+                except ValueError:
+                    limit = 200
+                try:
+                    res = list_uploaded(dest, limit)
+                    self._send(200, {"count": len(res["photos"]), "total": res["total"],
+                                     "photos": res["photos"], "hidden": read_hidden(upload_root(), dest)})
+                except Exception as err:
+                    self._send(500, {"error": "list failed: %s" % type(err).__name__,
+                                     "photos": [], "count": 0, "hidden": []})
+                return
             # Curated Big-Picture album (Synology Photos). The read-only service-
             # account integration is a separate, still-pending NAS lane; until it
             # ships, answer HONESTLY-EMPTY so the client renders nothing (never a
@@ -506,6 +651,9 @@ def make_handler(args):
             #   { dest, filename, dataUrl } -> { ok, id, dest }
             parsed = urlparse(self.path)
             path = parsed.path.rstrip("/")
+            if path.endswith("/property-photo-remove") or path == "/property-photo-remove":
+                self._remove_property_photo()
+                return
             if not (path.endswith("/upload") or path == "/upload"):
                 self._send(404, {"ok": False, "error": "not found"})
                 return
@@ -555,6 +703,57 @@ def make_handler(args):
                 self._send(500, {"ok": False, "error": "write failed: %s" % type(err).__name__})
                 return
             self._send(200, {"ok": True, "id": name, "dest": dest})
+
+        def _remove_property_photo(self):
+            # POST .../property-photo-remove  Authorization: Bearer <token>
+            #   { dest, id, kind:'added'|'archive' } -> { ok, kind, id, where }
+            # RECOVERABLE BY CONSTRUCTION: 'added' MOVES the file to the address's
+            # .trash/, 'archive' only records the chat post id in .hidden.json.
+            # Nothing here deletes bytes; same bearer + same path containment as
+            # /upload, and it can only reach this property's own folder.
+            if not bearer_ok(self.headers.get("Authorization"), token):
+                self._send(401, {"ok": False, "error": "unauthorized"})
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                length = 0
+            if length <= 0 or length > 64 * 1024:
+                self._send(413, {"ok": False, "error": "too large"})
+                return
+            try:
+                body = json.loads(self.rfile.read(length).decode("utf-8", "replace"))
+            except (ValueError, OSError):
+                self._send(400, {"ok": False, "error": "bad json"})
+                return
+            dest = str(body.get("dest", "")).strip()
+            photo_id = str(body.get("id", "")).strip()
+            kind = str(body.get("kind", "")).strip()
+            if not SAFE_DEST.match(dest):
+                self._send(400, {"ok": False, "error": "bad dest"})
+                return
+            if not photo_id:
+                self._send(400, {"ok": False, "error": "bad id"})
+                return
+            if kind not in ("added", "archive"):
+                self._send(400, {"ok": False, "error": "bad kind"})
+                return
+            if kind == "archive":
+                if not hide_id(upload_root(), dest, photo_id):
+                    self._send(500, {"ok": False, "error": "hide failed"})
+                    return
+                self._send(200, {"ok": True, "kind": "archive", "id": photo_id,
+                                 "dest": dest, "where": "hidden-at-this-address"})
+                return
+            outcome = trash_uploaded(upload_root(), dest, photo_id)
+            if outcome is None:
+                self._send(400, {"ok": False, "error": "bad path"})
+                return
+            if outcome == "not-found":
+                self._send(404, {"ok": False, "error": "not-found"})
+                return
+            self._send(200, {"ok": True, "kind": "added", "id": photo_id,
+                             "dest": dest, "where": "%s/%s" % (dest, TRASH_DIR)})
 
     return Handler
 
@@ -700,6 +899,30 @@ def selftest():
            _res["total"] == 1 and _res["photos"][0]["id"] == "shot-abc.jpg")
         ok("list_uploaded contains the file under upload_root only",
            safe_upload_path(upload_root(), "family", "shot-abc.jpg") is not None)
+        # --- Removal is RECOVERABLE (Christina 2026-10-06) --------------------
+        ok("trash path refuses dest traversal", trash_path(_d, "../secrets", "a.jpg") is None)
+        ok("trash path refuses a slashy name", trash_path(_d, "family", "a/b.jpg") is None)
+        ok("trash path stays inside the address's own folder",
+           trash_path(_d, "family", "shot-abc.jpg").startswith(os.path.realpath(os.path.join(_d, "family", TRASH_DIR)) + os.sep)
+           or trash_path(_d, "family", "shot-abc.jpg").startswith(os.path.join(_d, "family", TRASH_DIR) + os.sep))
+        ok("removing an added photo MOVES it (bytes still on the NAS)",
+           trash_uploaded(_d, "family", "shot-abc.jpg") == "moved"
+           and os.path.isfile(os.path.join(_d, "family", TRASH_DIR, "shot-abc.jpg"))
+           and not os.path.exists(os.path.join(_d, "family", "shot-abc.jpg")))
+        ok("the removed photo is gone from the address's list",
+           list_uploaded("family", 12)["total"] == 0)
+        ok("removing a photo that is not there says not-found",
+           trash_uploaded(_d, "family", "never-here.jpg") == "not-found")
+        ok("hidden list starts empty", read_hidden(_d, "family") == [])
+        ok("hiding a chat-archive id records it", hide_id(_d, "family", "post-9001") is True
+           and read_hidden(_d, "family") == ["post-9001"])
+        ok("hiding the same id twice is idempotent", hide_id(_d, "family", "post-9001") is True
+           and read_hidden(_d, "family") == ["post-9001"])
+        ok("hiding refuses a slashy id", hide_id(_d, "family", "../x") is False)
+        ok("hiding refuses a bad dest", hide_id(_d, "../secrets", "post-1") is False)
+        ok("the hidden bookkeeping file is never listed as a photo",
+           all(not p["id"].startswith(".") for p in list_uploaded("family", 12)["photos"]))
+        ok("read_hidden on a bad dest is honest-empty", read_hidden(_d, "../secrets") == [])
     finally:
         os.environ.pop("PHOTO_UPLOAD_ROOT", None)
         import shutil as _sh

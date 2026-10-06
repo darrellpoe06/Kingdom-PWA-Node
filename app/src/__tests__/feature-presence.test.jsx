@@ -64,6 +64,7 @@ const { default: TopNavRow } = await import('../components/TopNavRow.jsx');
 const { ChurchGiveHeaderButton } = await import('../components/ChurchGiving.jsx');
 const { default: ChromeDock } = await import('../components/ChromeDock.jsx');
 const { BooksUploadButton, BooksUploadMount } = await import('../components/BooksUploadButton.jsx');
+const { default: PropertyPhotoActions, PhotoRemoveButton } = await import('../components/PropertyPhotoActions.jsx');
 const { buildCatalogCourseDescriptors } = await import('../lib/learn-catalog.js');
 const { _resetScreenAwakeForTests } = await import('../lib/screen-awake.js');
 
@@ -248,6 +249,22 @@ const WALKS = {
     act(() => { input.dispatchEvent(new Event('change', { bubbles: true })); });
     for (let i = 0; i < 80 && !host.querySelector('[data-testid="contacts-import-preview"]'); i++) await settle(25);
     look(host);
+  },
+  'property-photos': async (look) => {
+    // Real Estate → a property card → PHOTOS (DR-0758). The two controls that
+    // answer Christina: Add photos on the address, and Remove on a photo this
+    // address owns. They render standalone, which is why they live in their own
+    // file instead of inside the 2,900-line Rentals shell.
+    const { host: adder } = mount(createElement(PropertyPhotoActions, {
+      dest: '1508HH', addressLabel: '1508 Holly Hill',
+    }));
+    look(adder);
+    const { host: remover } = mount(createElement(PhotoRemoveButton, {
+      photo: { id: 'kitchen-abc.jpg', kind: 'added', name: 'kitchen.jpg', date: '2026-10-06' },
+      dest: '1508HH', addressLabel: '1508 Holly Hill',
+      deps: { confirm: () => false, remove: async () => ({ ok: true }) },
+    }));
+    look(remover);
   },
   'feedback-queue': async (look) => {
     // A steward's focused note that carries a picture (DR-0742).
