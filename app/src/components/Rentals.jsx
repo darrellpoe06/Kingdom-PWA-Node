@@ -11,6 +11,8 @@ import { compressImageFile } from '../lib/image.js';
 import { loadDoorPhotos as loadCloudDoorPhotos, loadPhotoImages as loadCloudPhotoImages } from '../modules/properties/cloud.js';
 import { listImage as cloudListImage } from '../modules/properties/photo-order.js';
 import { hasBridgeToken, chatChannelFor, fetchChannelPhotos, propertyPhotosUrl } from '../lib/nas-photos.js';
+import PropertyPhotoActions, { PhotoRemoveButton } from './PropertyPhotoActions.jsx';
+import { fetchPropertyUploads, applyPropertyPhotoEdits, destinationFor } from '../lib/property-photo-edit.js';
 import { provisionBridgeToken, publishBridgeToken } from '../lib/bridge-provision.js';
 import Lightbox from './Lightbox.jsx';
 import { summarizePhotoSource } from '../lib/photo-source-health.js';
@@ -198,6 +200,25 @@ function PropertyGallery({ rental, nasTotal = null }) {
     return () => { cancelled = true; };
   }, [rental.id, channel, nasLimit]);
 
+  // THE OTHER HALF OF THIS ADDRESS'S STORY (Christina 2026-10-06). The archive
+  // above is Synology Chat; this is the address's own folder on the NAS — the
+  // photos the family ADDED here — plus the ids they have taken OFF this address.
+  // `edits` bumps after an add or a removal so the strip reflects both at once,
+  // with no manual refresh. Honest-empty when the NAS is unreachable.
+  const dest = destinationFor(channel);
+  const [added, setAdded] = useState({ photos: [], hidden: [] });
+  const [edits, setEdits] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    if (!hasBridgeToken() || !dest) { setAdded({ photos: [], hidden: [] }); return undefined; }
+    (async () => {
+      const res = await fetchPropertyUploads(dest);
+      if (cancelled) return;
+      setAdded({ photos: (res && res.photos) || [], hidden: (res && res.hidden) || [] });
+    })();
+    return () => { cancelled = true; };
+  }, [rental.id, dest, edits]);
+
   // Combine the streams, de-duped (a chat photo already filed to a room keeps
   // its room copy), then sort oldest → latest — chronological up to the latest.
   const items = useMemo(() => {
@@ -212,11 +233,24 @@ function PropertyGallery({ rental, nasTotal = null }) {
         out.push({ id: `${e.id}-ph-${i}`, src, date: e.date || '', caption: e.description || '', source: 'maintenance' });
       });
     }
+    // Drop what the family has taken OFF this address, and bring in what they
+    // have added to it. Both decisions are made by the pure merge in
+    // lib/property-photo-edit.js so every branch is pinned by a test.
+    const edited = applyPropertyPhotoEdits({ archive: nas.photos || [], added: added.photos, hidden: added.hidden });
     const seen = new Set(out.map(x => x.id));
-    for (const p of (nas.photos || [])) {
+    for (const p of edited.archive) {
       if (!p || !p.thumb) continue;
       if (seen.has(`ph-chat-${p.id}`)) continue; // already filed to a room
-      out.push({ id: `nas-${p.id}`, src: p.thumb, date: p.date || '', caption: p.text || '', source: 'NAS archive' });
+      out.push({
+        id: `nas-${p.id}`, src: p.thumb, date: p.date || '', caption: p.text || '',
+        source: 'NAS archive', removeId: String(p.id), removeKind: 'archive', removeName: p.name || p.text || '',
+      });
+    }
+    for (const p of edited.added) {
+      out.push({
+        id: `added-${p.id}`, src: p.thumb, date: p.date || '', caption: p.text || '',
+        source: 'added here', removeId: String(p.id), removeKind: 'added', removeName: p.name || p.id,
+      });
     }
     for (const p of cloud) {
       const src = cloudFull[p.id] || cloudListImage(p);
@@ -229,7 +263,7 @@ function PropertyGallery({ rental, nasTotal = null }) {
       });
     }
     return out.sort((a, b) => (a.date || '').localeCompare(b.date || '') || String(a.id).localeCompare(String(b.id)));
-  }, [rental, nas.photos, cloud, cloudFull]);
+  }, [rental, nas.photos, added, cloud, cloudFull]);
 
   // Opening a Poe Properties picture fetches its full image once; the strip
   // and the lightbox re-render from `items` when it lands.
@@ -254,6 +288,11 @@ function PropertyGallery({ rental, nasTotal = null }) {
               ? 'No local photos yet, and the NAS archive is not reachable right now — it reconnects on its own next visit.'
               : 'No photos yet for this property. Room photos, maintenance shots, the pictures taken on its Poe Properties door, and the NAS chat archive all land here, oldest to latest.'}
         </p>
+        {/* An empty address is exactly where someone wants to add the first
+            picture, so the control is here too — not only once a strip exists. */}
+        {dest
+          ? <PropertyPhotoActions dest={dest} addressLabel={propertyLabel(rental)} onAdded={() => setEdits(k => k + 1)} />
+          : null}
       </div>
     );
   }
@@ -270,9 +309,22 @@ function PropertyGallery({ rental, nasTotal = null }) {
               <img src={p.src} alt={p.caption || 'Property photo'} loading="lazy" className="w-24 h-24 object-cover border border-[#E8E4DC] hover:border-[#1A1815] cursor-zoom-in" />
             </button>
             <div className="text-[0.5625rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date || 'undated'}</div>
+            {/* Removable only where the NAS can actually act: a photo this app
+                added here, or a chat-archive photo it can take off this address.
+                Room / maintenance / Poe Properties pictures are removed where
+                they live (P68 — a control lives where its scope lives). */}
+            {dest && p.removeId ? (
+              <PhotoRemoveButton
+                photo={{ id: p.removeId, kind: p.removeKind, name: p.removeName, date: p.date, caption: p.caption }}
+                dest={dest}
+                addressLabel={propertyLabel(rental)}
+                onRemoved={() => setEdits(k => k + 1)}
+              />
+            ) : null}
           </div>
         ))}
       </div>
+      {dest ? <PropertyPhotoActions dest={dest} addressLabel={propertyLabel(rental)} onAdded={() => setEdits(k => k + 1)} /> : null}
       {nasUnloaded > 0 && (
         <button type="button" onClick={() => setNasLimit(l => l + 48)} disabled={nas.status === 'loading'}
           className="mt-2 w-full text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]">
@@ -281,6 +333,7 @@ function PropertyGallery({ rental, nasTotal = null }) {
       )}
       <p className="text-[0.5625rem] text-[#5A5751] italic mt-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
         Room photos, maintenance shots, the pictures on this door in Poe Properties, and the live NAS chat archive, in time order — the property&apos;s transformation, ending at the latest picture. File any archive photo to a room in “Property Photos from Chat” below.
+        {' '}Remove sits on the pictures this address keeps on the NAS — one added here, or one from its chat archive. A room, maintenance or Poe Properties picture is removed where it was filed, so nothing is taken off twice.
       </p>
       <Lightbox items={lightbox ? lightboxItems : undefined} index={lightbox?.index || 0} onClose={() => setLightbox(null)} />
     </div>

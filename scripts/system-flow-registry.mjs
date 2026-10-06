@@ -1053,7 +1053,7 @@ const NODES = [
     reads: [{ res: 'nas:scribe-queue', token: 'whisper-queue.jsonl' }], writes: [{ res: 'nas:scribe-minutes', token: 'minutes.md' }], seeds: ['scribe'],
   }),
   rider('service:property-photos', 'infra/nas-property-photos/photo_server.py', {
-    id: 'property-photos', name: 'Photo server', purpose: 'Serves property, family and album photos from our own box.',
+    id: 'property-photos', name: 'Photo server', purpose: 'Serves property, family and album photos from our own box, takes new ones in, and takes one off an address without deleting it (DR-0758).',
     writes: [{ res: 'http:nas-photos', token: 'photo' }], seeds: ['nas-photos'],
   }),
   rider('service:tax-upload', 'infra/nas-tax-ingest/tax_upload_server.py', {

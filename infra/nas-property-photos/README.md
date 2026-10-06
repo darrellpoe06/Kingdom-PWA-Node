@@ -58,6 +58,36 @@ Authorization: Bearer <poetech-chat-bridge-token>
 GET /healthz -> { ok: true }   # no auth; liveness only
 ```
 
+### Adding to, and removing from, ONE address (DR-0758, 2026-10-06)
+
+Christina: *"I would like to be able to delete and add photos to the different
+addresses in Real Estate."* **Add** needs nothing new here — it is the existing
+`POST /upload` with the property's channel name as `dest`, so each address gets
+its own real folder under `PHOTO_UPLOAD_ROOT`. Two endpoints are new:
+
+```
+GET /property-uploads?dest=<channel>&limit=<n>
+Authorization: Bearer <poetech-chat-bridge-token>
+-> { count, total, photos: [...], hidden: [<chat post id>, ...] }
+
+POST /property-photo-remove
+Authorization: Bearer <poetech-chat-bridge-token>
+{ dest, id, kind: 'added' | 'archive' }  -> { ok, kind, id, dest, where }
+```
+
+**Nothing here deletes bytes.** `kind:'added'` **moves** the file into
+`<dest>/.trash/` (`os.replace`); `kind:'archive'` only appends the chat post id
+to `<dest>/.hidden.json` so the photo stops showing *at that address* — the
+Synology Chat post and the phone-backup original are never touched. Guarded
+exactly like `/upload`: same bearer (constant-time), same `SAFE_DEST`, same
+`safe_upload_path` containment, a 64 KiB request cap and a bounded hidden list.
+
+**This needs a redeploy** (the steps below) before removal works on the running
+service. Until then the app says so in plain words on the screen — it does not
+fail quietly — and adding photos keeps working, because it rides the unchanged
+`/upload`. Restore a removed photo from File Station: move it back out of
+`<dest>/.trash/`, or drop its id from `<dest>/.hidden.json`.
+
 Path is matched by **suffix**, so it works whether the fronting proxy strips its
 mount prefix or not.
 
