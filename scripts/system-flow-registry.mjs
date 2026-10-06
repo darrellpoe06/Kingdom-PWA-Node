@@ -314,6 +314,29 @@ const NODES = [
     writes: [],
     seeds: [],
   }),
+  // DR-0754: the class record. A learner marks a lesson read or answers its
+  // exam; the same two facts become a real row, and the Governor reads every
+  // learner's (the read wall decides the scope, never the screen).
+  app('app/src/lib/learner-records-sync.js', {
+    id: 'learner-record', name: 'A learner\u2019s record leaves the device (Church \u2192 Learn)',
+    purpose: 'Keeps one row per learner per lesson as he marks it read and answers its exam, so his completion and his scores cross devices instead of living on one phone.',
+    reads: [
+      { res: 'db:learner_lesson_records', token: 'from(TABLE)' },
+    ],
+    writes: [
+      { res: 'db:learner_lesson_records', token: "onConflict: 'user_id,lesson_id'" },
+    ],
+    seeds: ['class-record'],
+  }),
+  app('app/src/components/LearnersPanel.jsx', {
+    id: 'class-record', name: 'Class record (Learn \u2192 Class record)',
+    purpose: 'Shows completion against the course and the competency band from the real exam scores; a learner sees his own, the Governor sees every learner\u2019s, and an untested learner reads \u201cNot yet tested\u201d rather than a painted zero.',
+    reads: [
+      { res: 'db:learner_lesson_records', file: 'app/src/lib/learner-records.js', token: 'aggregateLearnerRecords' },
+    ],
+    writes: [],
+    seeds: [],
+  }),
   // DR-0720: Add my voice. A person agrees, reads Psalm 23, and the NAS makes
   // one voiceprint (kept only on the NAS) and writes back added or why not;
   // removal deletes the consent, and the print on the next pass.
