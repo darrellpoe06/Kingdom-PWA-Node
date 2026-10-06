@@ -177,7 +177,7 @@ export function PhotoRemoveButton({ photo, dest, addressLabel = 'this address', 
         onClick={click}
         disabled={busy}
         aria-label={`Remove ${label} from ${addressLabel}`}
-        className="mt-0.5 w-full text-[0.5rem] uppercase tracking-wider px-1 py-1 min-h-[28px] border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]"
+        className="mt-0.5 w-full text-[0.5rem] uppercase tracking-wider px-1 py-1 min-h-[36px] border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]"
       >
         {busy ? 'removing…' : 'Remove'}
       </button>
