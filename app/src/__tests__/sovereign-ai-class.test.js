@@ -26,12 +26,13 @@ describe('curriculum shape', () => {
     // by a lane still in flight: a dropped, doubled or misfiled week fails here.
     // The convention is the one living-lessons-id-collision.test.js documents —
     // the held number is named, dated and deleted in the merge that brings its
-    // week in, so the hold cannot quietly become a permanent gap. 33 is held for
-    // Sovereign A.I. week 33 (Peace, peace; when there is no peace, DR-0761),
-    // authored in parallel while week 34 (the bounded answer, DR-0760) was being
-    // written; delete the entry in the merge that brings week 33 in, which this
-    // assertion forces by failing once the number is no longer missing.
-    const HELD_IN_FLIGHT = [33];
+    // week in, so the hold cannot quietly become a permanent gap. 33 WAS held
+    // here for Sovereign A.I. week 33 (Peace, peace; when there is no peace,
+    // DR-0761) while week 34 (the bounded answer, DR-0760) was being written in
+    // parallel. Week 33 merged first, so the entry is deleted, which is exactly
+    // what this assertion forces: it fails once a held number is no longer
+    // missing. The list is empty, and a gap that is not recorded here fails.
+    const HELD_IN_FLIGHT = [];
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));
     // Strictly ascending: a doubled or misfiled week still fails.
     expect(weeks.every((n, i) => i === 0 || n > weeks[i - 1]), `weeks ascend: ${weeks.join(',')}`).toBe(true);
@@ -55,6 +56,7 @@ describe('curriculum shape', () => {
     expect(ids).toContain('sov26-the-roll-the-king-burned-and-the-roll-written-again');
     expect(ids).toContain('sov27-the-seed-is-in-itself-and-every-workflow-seeds-the-next'); // every workflow seeds the next; the data is the proof of the whole (spoken 2026-09-24)
     expect(ids).toContain('sov29-the-agent-that-went-past-the-bound');
+    expect(ids).toContain('sov33-peace-peace-when-there-is-no-peace-and-the-faithful-witness'); // a reward that blends being right with being liked; the hurt healed slightly; the audience that ordered smooth things; four hundred agreed and one told the truth; faithful wounds (forwarded 2026-10-06)
     expect(ids).toContain('sov34-the-bounded-answer-count-the-cost-before-you-build-and-except-yahweh-build-the-house'); // the bounded answer: declare the allowed answers before the model runs; count the cost first; rock against sand; the just weight; the judgment no tool may be handed (forwarded 2026-10-06)
     expect(ids).toContain('sov32-the-im-fine-problem-and-the-one-who-looketh-on-the-heart'); // the transcript hears the words, Yahweh hears the heart; Hannah and Eli; groanings the Spirit carries; our own voices marked on our own machine (forwarded 2026-10-01)
     expect(ids).toContain('sov31-whose-errand-does-your-agent-carry'); // one Mediator; Abraham's servant; no man can serve two masters; the owner answers for what he sets loose (forwarded 2026-09-29)
