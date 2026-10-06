@@ -94,7 +94,7 @@ export function assessNetworkSecurity(devices, topologyIn) {
         severity: 'critical',
         title: `Member/financial storage shares ${sub.cidr} with consumer cloud IoT`,
         evidence: `Storage: ${named(dataHosts.map((m) => m.node))}. Consumer IoT on the same segment: ${named(iotHosts.map((m) => m.node))}.`,
-        why: 'The church NAS carries Church Plus, member records and monthly financial reports (DR-0050). Cloud-tied consumer devices are the least patchable, least auditable class on the network and phone home by design. On one flat segment, any one of them that is compromised has an unfiltered L2 path to the storage front door — volume-level isolation never sees that traffic.',
+        why: 'The church NAS carries Church Plus, member records and monthly financial reports (DR-0050). Cloud-tied consumer devices are the least patchable, least auditable class on the network and phone home by design. And this is ONE flat network, not two segments that happen to share risk: the 2026-09-18 scan read a /23 off the DHCP lease, so 192.168.0.x and 192.168.1.x are a single broadcast domain with no firewall anywhere inside it. Any one of these devices that is compromised has an unfiltered layer-2 path to the storage front door, and volume-level isolation never sees that traffic.',
         fix: 'Put the data estate on its own VLAN and let nothing reach it but the hosts that must. IoT belongs on an isolated guest/IoT VLAN with no route to storage.',
         governs: 'DR-0003 (ISO-2) · DR-0050 (isolation decided at the volume, not the network)',
         established: true,

@@ -55,15 +55,41 @@ describe('the ordering rule - nothing that can darken the sanctuary runs first',
     expect(plan.steps[0].window).toBe('anytime');
     expect(plan.summary.startHere).toBe('identify-gear');
   });
-  it('PROVEN-TO-CATCH: closing the bridge comes BEFORE segmenting the network', () => {
-    // Building VLANs while a host still bridges both segments buys nothing - the
-    // host carries traffic across whatever the firewall enforces.
-    const ids = plan.steps.map((s) => s.id);
-    expect(ids.indexOf('close-bridge')).toBeGreaterThan(-1);
+  it('PROVEN-TO-CATCH: when a bridge EXISTS, closing it comes before segmenting', () => {
+    // Building VLANs while a host still bridges two networks buys nothing - the
+    // host carries traffic across whatever the firewall enforces. Tested on a
+    // register that genuinely has a bridge, because the church's own /23 has none.
+    const devices = [
+      makeDevice({ id: 'nas', name: 'NAS', deviceType: 'nas', ipAddress: '10.1.1.10' }),
+      makeDevice({ id: 'echo', name: 'Echo', deviceType: 'iot', ipAddress: '10.1.1.54' }),
+      makeDevice({ id: 'gear', name: 'Gear', deviceType: 'network', ipAddress: '10.1.1.136', smeNeeded: true, confirmed: false }),
+      makeDevice({ id: 'b', name: 'Bridge box', deviceType: 'server', ipAddress: '10.1.1.5', specs: { lanIpWifi: '10.2.2.5' } }),
+    ];
+    const p = buildRemediationPlan(devices);
+    const ids = p.steps.map((s) => s.id);
+    expect(ids).toContain('close-bridge');
     expect(ids.indexOf('segment-vlans')).toBeGreaterThan(ids.indexOf('close-bridge'));
-    const seg = plan.steps.find((s) => s.id === 'segment-vlans');
+    const seg = p.steps.find((s) => s.id === 'segment-vlans');
     expect(seg.dependsOn).toContain('close-bridge');
     expect(seg.dependsOn).toContain('identify-gear');
+  });
+  it('PROVEN-TO-CATCH: no bridge means no dangling dependency on one', () => {
+    // The defect the /23 correction exposed: segment-vlans named close-bridge
+    // unconditionally, so when that step stopped being generated the plan told an
+    // operator to wait for a step that was not in it. validatePlan now catches it.
+    const ids = plan.steps.map((s) => s.id);
+    expect(ids).not.toContain('close-bridge');
+    const seg = plan.steps.find((s) => s.id === 'segment-vlans');
+    expect(seg.dependsOn).not.toContain('close-bridge');
+    expect(validatePlan(plan).ok).toBe(true);
+  });
+  it('PROVEN-TO-CATCH: validatePlan rejects a dependency on a step not in the plan', () => {
+    const broken = {
+      steps: [{ id: 'a', dependsOn: ['ghost'], rollback: 'r', verifies: 'v', window: 'anytime', reversibility: 'instant' }],
+    };
+    const r = validatePlan(broken);
+    expect(r.ok).toBe(false);
+    expect(r.errors.join(' ')).toMatch(/not in this plan/);
   });
   it('PROVEN-TO-CATCH: the only maintenance-window step is last', () => {
     const maintenanceIdx = plan.steps
@@ -82,9 +108,14 @@ describe('the ordering rule - nothing that can darken the sanctuary runs first',
     expect(seg.rollback).toMatch(/[Rr]estore/);
     expect(seg.blastRadius).toMatch(/EVERYTHING/);
   });
-  it('the bridge step names the real host, not a generic placeholder', () => {
-    const bridge = plan.steps.find((s) => s.id === 'close-bridge');
-    expect(bridge.title).toMatch(/livestream-main-pc/);
+  it('the bridge step names the real host when there is one', () => {
+    const devices = [
+      makeDevice({ id: 'b', name: 'Bridge box', deviceType: 'server', ipAddress: '10.1.1.5', specs: { lanIpWifi: '10.2.2.5' } }),
+    ];
+    const p = buildRemediationPlan(devices);
+    const bridge = p.steps.find((s) => s.id === 'close-bridge');
+    expect(bridge).toBeTruthy();
+    expect(bridge.title).toMatch(/Bridge box/);
   });
 });
 

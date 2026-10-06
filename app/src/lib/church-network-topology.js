@@ -15,9 +15,13 @@
 //                rows. Every IP here was READ OFF the real 2026-07-08 church LAN
 //                scan (docs/99-session-notes/2026-07-08-church-lan-device-inventory.md).
 //   Real screen— Church > Devices (surfaces.js 'devices', staff-gated).
-//   Assumption — /24 masks: 192.168.0.0/24 and 192.168.1.0/24 are SCAN-RECORDED
-//                (RECORDED_SUBNETS below). Any other private address is grouped by
-//                /24 with maskAssumed:true, because no mask was ever read for it.
+//   Mask     — READ, never assumed. The 2026-09-18 scan captured the scanning
+//                host's own adapter: 192.168.1.73 with prefix /23, DHCP-assigned.
+//                A /23 there spans 192.168.0.0 - 192.168.1.255, so what earlier
+//                notes called "two /24 subnets" is ONE layer-2 network. Any address
+//                outside a network with a READ mask is grouped by /24 and flagged
+//                maskAssumed:true, so an assumption can never again be presented as
+//                a reading (see CORRECTION below).
 //
 // THE HONEST LIMIT, stated up front and carried in the returned object:
 //   This is a LAYER-3 ADDRESS MAP, not a LAYER-1 WIRING MAP. The register holds no
@@ -30,21 +34,33 @@
 
 // --- Recorded facts (never inferred) -----------------------------------------
 
-// The two church subnets the 2026-07-08 scan positively read, with their masks.
-export const RECORDED_SUBNETS = [
-  {
-    cidr: '192.168.0.0/24',
-    label: 'Church LAN — 0-subnet',
-    note: 'Gateway/DHCP subnet. Carries the pfSense, the ATEM, the RackStation, printers, and part of the AV/office estate.',
-    provenance: 'scan-confirmed 2026-07-08',
-  },
-  {
-    cidr: '192.168.1.0/24',
-    label: 'Church LAN — 1-subnet',
-    note: 'Carries the three NDI stage cameras, both CUDA/GPU towers (wired), and the graphics iMac.',
-    provenance: 'scan-confirmed 2026-07-08',
-  },
-];
+// CORRECTION, 2026-09-18. This module previously carried two /24 networks marked
+// maskAssumed:false — "scan-confirmed 2026-07-08". That was WRONG, and the error is
+// worth recording rather than quietly deleting: the 2026-07-08 note observed
+// addresses in two ranges and wrote "two subnets 192.168.0.0/24 and 192.168.1.0/24".
+// NO NETMASK WAS EVER READ. This module then inherited that assumption and stamped
+// it as a reading, which is exactly the failure DR-0076 exists to prevent — an
+// assumption wearing a measurement's provenance.
+//
+// The 2026-09-18 scan captured the scanning host's own adapter configuration:
+//   LIVESTREAM-MAIN, Ethernet, 192.168.1.73, prefix 23, origin DHCP
+// A /23 at that address is 192.168.0.0 - 192.168.1.255. Its route table carries a
+// single default route via 192.168.0.1 and NO inter-subnet route, which is what a
+// single flat network looks like from inside.
+//
+// So 192.168.0.x and 192.168.1.x are ONE broadcast domain, not two segments, and
+// the pfSense is NOT routing between them — there is nothing to route.
+export const CHURCH_NETWORK = {
+  cidr: '192.168.0.0/23',
+  label: 'Church LAN — one flat /23',
+  note: 'A single layer-2 broadcast domain spanning 192.168.0.0-192.168.1.255. Everything on it reaches everything else without crossing the firewall.',
+  provenance: 'dhcp-observed 2026-09-18 (192.168.1.73/23 on LIVESTREAM-MAIN, origin Dhcp) + a route table with one default route and no inter-subnet route',
+  maskObserved: true,
+};
+
+// Kept as a list so a future scan that finds a genuinely separate network can add
+// one without reshaping the module.
+export const RECORDED_SUBNETS = [CHURCH_NETWORK];
 
 // The Tailscale overlay. 100.64.0.0/10 is the CGNAT range Tailscale assigns; it is
 // NOT a church LAN segment — it is a WireGuard mesh riding on top of whatever the
@@ -93,12 +109,50 @@ export function isTailnetIp(ip) {
   return a === 100 && b >= 64 && b <= 127;
 }
 
-// subnetCidr — the /24 an address belongs to. /24 is the recorded mask for both
-// church subnets; for anything else the caller is told the mask was assumed.
-export function subnetCidr(ip) {
+// --- Network membership, from a READ mask where one exists --------------------
+
+export function ipToInt(ip) {
   const { ok, octets } = parseIpv4(ip);
   if (!ok) return null;
-  return `${octets[0]}.${octets[1]}.${octets[2]}.0/24`;
+  return ((octets[0] << 24) >>> 0) + (octets[1] << 16) + (octets[2] << 8) + octets[3];
+}
+
+// networkContains — is `ip` inside `cidr`? Pure integer math, no dependency.
+export function networkContains(cidr, ip) {
+  if (typeof cidr !== 'string') return false;
+  const [base, lenRaw] = cidr.split('/');
+  const len = Number(lenRaw);
+  if (!Number.isInteger(len) || len < 0 || len > 32) return false;
+  const baseInt = ipToInt(base);
+  const ipInt = ipToInt(ip);
+  if (baseInt === null || ipInt === null) return false;
+  // A /0 mask would shift by 32, which is a no-op in JS — handle it explicitly.
+  const mask = len === 0 ? 0 : (0xFFFFFFFF << (32 - len)) >>> 0;
+  return (baseInt & mask) === (ipInt & mask);
+}
+
+// networkForIp — the network an address belongs to, preferring a READ mask.
+// Returns { cidr, maskObserved }. An address inside a network whose mask was
+// actually read gets that network; anything else falls back to a /24 and is
+// HONESTLY FLAGGED as assumed, because no mask was ever read for it.
+export function networkForIp(ip) {
+  const { ok, octets } = parseIpv4(ip);
+  if (!ok) return null;
+  for (const net of RECORDED_SUBNETS) {
+    if (networkContains(net.cidr, ip)) {
+      return { cidr: net.cidr, maskObserved: net.maskObserved === true };
+    }
+  }
+  return { cidr: `${octets[0]}.${octets[1]}.${octets[2]}.0/24`, maskObserved: false };
+}
+
+// subnetCidr — the network an address belongs to, as a CIDR string.
+// Kept as the module's grouping key. It is NO LONGER "the /24": it resolves
+// through networkForIp so a read /23 keeps its hosts in ONE bucket instead of
+// splitting them into two segments that do not exist.
+export function subnetCidr(ip) {
+  const n = networkForIp(ip);
+  return n ? n.cidr : null;
 }
 
 export function hostOctet(ip) {
@@ -257,7 +311,10 @@ export function buildTopology(devices) {
         label: recorded ? recorded.label : `Segment ${cidr}`,
         note: recorded ? recorded.note : null,
         provenance: recorded ? recorded.provenance : 'derived from a recorded host address',
-        maskAssumed: !recorded, // /24 is READ for the two church subnets, assumed elsewhere
+        // maskAssumed is the inverse of an ACTUAL netmask reading — never merely
+        // "is this cidr in our list". That conflation is what let an assumed /24
+        // ship as a measurement (see CORRECTION at the top of this file).
+        maskAssumed: !(recorded && recorded.maskObserved === true),
         gateway: gateway ? gateway.node : null,
         members: memberList,
         deviceCount: memberList.length,

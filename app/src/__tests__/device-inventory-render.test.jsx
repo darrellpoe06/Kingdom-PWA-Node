@@ -76,9 +76,12 @@ describe('DeviceInventory — the register renders (no white screen)', () => {
     expect(topoBtn).toBeTruthy();
     await act(async () => { topoBtn.dispatchEvent(new globalThis.MouseEvent('click', { bubbles: true })); });
     const text = container.textContent;
-    // Both scan-recorded segments are drawn.
-    expect(text).toMatch(/192\.168\.0\.0\/24/);
-    expect(text).toMatch(/192\.168\.1\.0\/24/);
+    // The ONE network, drawn with the mask that was actually read (a /23).
+    expect(text).toMatch(/192\.168\.0\.0\/23/);
+    // And never the two /24s an earlier note assumed.
+    expect(text).not.toMatch(/192\.168\.1\.0\/24/);
+    // The corrected claim: switched, not routed.
+    expect(text).toMatch(/switched, never routed/i);
     // The routing spine names the real gateway device.
     expect(text).toMatch(/pfSense/);
     // The tailnet is shown as an OVERLAY, never as a church segment.
