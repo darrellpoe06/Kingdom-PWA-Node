@@ -27,7 +27,7 @@ import { createRoot } from 'react-dom/client';
 import ChurchLearn from '../components/ChurchLearn.jsx';
 import { buildCatalogCourseDescriptors } from '../lib/learn-catalog.js';
 import { LIVING_LESSONS_MODULES, LIVING_LESSONS_META } from '../lib/living-lessons-class.js';
-import { lessonNumber, lessonSpan, lessonCountLabel } from '../lib/lesson-order.js';
+import { lessonNumber, lessonSpan, lessonCountLabel, NAMED_GAPS } from '../lib/lesson-order.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -37,6 +37,15 @@ const COUNT = LIVING_LESSONS_MODULES.length;
 const HIGHEST = Math.max(...nums);
 const GAPS = [];
 for (let n = 1; n <= HIGHEST; n += 1) if (!nums.includes(n)) GAPS.push(n);
+// The gap clause, written here from the rule rather than read back from the
+// helper: name the unused numbers while the list is short, else report the
+// count. The real catalog's gap list grows and shrinks as lessons land out of
+// order on parallel branches, so a test that hard-codes one branch of the rule
+// goes red on an unrelated merge, which is what it did when L213 arrived and
+// made the fourth gap (DR-0762).
+const gapClause = (missing) => (missing.length <= NAMED_GAPS
+  ? `no ${missing.map((g) => `L${g}`).join(', ')}`
+  : `${missing.length} numbers unused`);
 
 describe('the facts (measured from the lessons, not assumed)', () => {
   it('every Living Lesson carries its own number; none is shared; L79 was never made', () => {
@@ -51,7 +60,8 @@ describe('lessonSpan / lessonCountLabel', () => {
     const s = lessonSpan(LIVING_LESSONS_MODULES);
     expect(s).toEqual({ count: COUNT, numbered: true, first: 1, last: HIGHEST, missing: GAPS });
     const label = lessonCountLabel(LIVING_LESSONS_MODULES, { noun: 'lesson', plural: 'lessons', cap: 'Lesson' });
-    expect(label.startsWith(`${COUNT} lessons · L1–L${HIGHEST}`)).toBe(true);
+    expect(label).toBe(`${COUNT} lessons · L1–L${HIGHEST} · ${gapClause(GAPS)}`);
+    expect(GAPS.length, 'the real catalog keeps few enough gaps to name them all').toBeLessThanOrEqual(NAMED_GAPS);
     for (const g of GAPS) expect(label).toContain(`L${g}`);
   });
 
@@ -59,7 +69,20 @@ describe('lessonSpan / lessonCountLabel', () => {
     const more = [...LIVING_LESSONS_MODULES,
       { id: `ll${HIGHEST + 1}-a` }, { id: `ll${HIGHEST + 2}-b` }, { id: `ll${HIGHEST + 3}-c` }];
     expect(lessonCountLabel(more, { noun: 'lesson', plural: 'lessons', cap: 'Lesson' }))
-      .toBe(`${COUNT + 3} lessons · L1–L${HIGHEST + 3} · no ${GAPS.map((g) => `L${g}`).join(', ')}`);
+      .toBe(`${COUNT + 3} lessons · L1–L${HIGHEST + 3} · ${gapClause(GAPS)}`);
+  });
+
+  it(`names the unused numbers up to ${NAMED_GAPS} of them, and reports the count past that`, () => {
+    // The bound is pinned, not derived, so lowering it is a decision someone
+    // makes on purpose rather than a quiet edit that empties the header.
+    expect(NAMED_GAPS).toBe(6);
+    // One lesson at L1, one at the top, so the gaps are exactly the numbers between.
+    const withGaps = (n) => [{ id: 'll1-a' }, { id: `ll${n + 2}-b` }];
+    const named = [...Array(NAMED_GAPS)].map((_, i) => `L${i + 2}`).join(', ');
+    expect(lessonCountLabel(withGaps(NAMED_GAPS)))
+      .toBe(`2 lessons · L1–L${NAMED_GAPS + 2} · no ${named}`);
+    expect(lessonCountLabel(withGaps(NAMED_GAPS + 1)))
+      .toBe(`2 lessons · L1–L${NAMED_GAPS + 3} · ${NAMED_GAPS + 1} numbers unused`);
   });
 
   it('says only the count when the numbers run 1..N with no gap, or the course is not numbered', () => {
@@ -104,7 +127,7 @@ describe('on the real Learn tree', () => {
     pickLiving();
     const count = nav().querySelector('[data-testid="course-lesson-count"]');
     expect(count, 'the header must carry the derived count label').toBeTruthy();
-    expect(count.textContent).toBe(`${COUNT} lessons · L1–L${HIGHEST} · no ${GAPS.map((g) => `L${g}`).join(', ')}`);
+    expect(count.textContent).toBe(`${COUNT} lessons · L1–L${HIGHEST} · ${gapClause(GAPS)}`);
     expect(rows().length).toBe(COUNT);
     expect(allOption().textContent).toBe(`All lessons · ${COUNT}`);
     expect(heading()).toBe(`The ${COUNT} lessons`);
@@ -124,6 +147,6 @@ describe('on the real Learn tree', () => {
     expect(container.textContent).toContain(`whole course overview (${COUNT + 1} lessons)`);
     expect(allOption().textContent).toBe(`All lessons · ${COUNT + 1}`);
     expect(nav().querySelector('[data-testid="course-lesson-count"]').textContent)
-      .toBe(`${COUNT + 1} lessons · L1–L${HIGHEST + 1} · no ${GAPS.map((g) => `L${g}`).join(', ')}`);
+      .toBe(`${COUNT + 1} lessons · L1–L${HIGHEST + 1} · ${gapClause(GAPS)}`);
   });
 });

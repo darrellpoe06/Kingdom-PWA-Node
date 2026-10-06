@@ -11,7 +11,8 @@
   "books": {"name": "Books", "where": "The Books tab row and its one Upload (poe-financial-mvp-v28.jsx; components/BooksUploadButton.jsx)"},
   "messages": {"name": "Messages: bring your contacts", "where": "Messages > Add a contact, the panel that brings contacts from the phone: the picker, the .vcf upload, the preview and its Keep / Not now (components/ContactsImport.jsx)"},
   "feedback": {"name": "Feedback form", "where": "The Feedback form from the bottom bar: the fold of your earlier notes and where each one stands, and the Show more under the list (components/FeedbackCenter.jsx, components/IntakeOutcomeList.jsx)"},
-  "feedback-queue": {"name": "Feedback queue (stewards)", "where": "Projects > Feedback, the focused note: the sender's pictures, each a tap from full size (components/FeedbackCenter.jsx, components/FeedbackScreenshots.jsx)"}
+  "feedback-queue": {"name": "Feedback queue (stewards)", "where": "Projects > Feedback, the focused note: the sender's pictures, each a tap from full size (components/FeedbackCenter.jsx, components/FeedbackScreenshots.jsx)"},
+  "property-photos": {"name": "Property photos (Real Estate)", "where": "Real Estate > a property card > PHOTOS, under the oldest-to-latest strip: Add photos to this address, and Remove on a photo this address owns (components/PropertyPhotoActions.jsx, mounted by PropertyGallery in components/Rentals.jsx)"}
  },
  "features": [
   {"id": "learn-dept-all", "name": "Courses tab (every department)", "surface": "learn-lists", "find": {"selector": "#learn-dept-tab-all"}},
@@ -184,7 +185,10 @@
   {"id": "contacts-import-clear", "name": "Not now (clear the preview)", "surface": "messages", "find": {"testid": "contacts-import-clear"}},
   {"id": "feedback-earlier-fold", "name": "Your earlier feedback: where each one stands (tap to open)", "surface": "feedback", "find": {"testid": "feedback-earlier-fold"}, "note": "Shown once the person has sent any feedback; the presence walk supplies notes (DR-0740)."},
   {"id": "feedback-outcomes-more", "name": "Show more of your earlier feedback", "surface": "feedback", "find": {"testid": "intake-outcomes-more"}, "note": "Shown while notes remain below the first eight (DR-0740)."},
-  {"id": "feedback-queue-shot", "name": "A sender's screenshot on the focused note, a tap from full size", "surface": "feedback-queue", "find": {"testid": "feedback-shot"}, "note": "Shown when the focused note carries pictures; the presence walk supplies one (DR-0742)."}
+  {"id": "feedback-queue-shot", "name": "A sender's screenshot on the focused note, a tap from full size", "surface": "feedback-queue", "find": {"testid": "feedback-shot"}, "note": "Shown when the focused note carries pictures; the presence walk supplies one (DR-0742)."},
+  {"id": "property-photo-add", "name": "Add photos to this address", "surface": "property-photos", "find": {"testid": "property-photo-add-button"}, "note": "On the PHOTOS tab whenever the property has a NAS folder name, including while the strip is still empty (DR-0758)."},
+  {"id": "property-photo-add-door", "name": "The photo picker the Add control opens (camera roll, several at once)", "surface": "property-photos", "find": {"testid": "property-photo-add-input"}, "note": "The real file door behind the Add button: images only, several at a time (DR-0758)."},
+  {"id": "property-photo-remove", "name": "Remove a photo from this address", "surface": "property-photos", "find": {"testid": "property-photo-remove-button"}, "note": "On each tile this address owns - a photo added here, or a chat-archive photo that can be taken off this address. Confirms by name first (DR-0758, DR-0691)."}
  ],
  "removed": [],
  "notPinned": [
