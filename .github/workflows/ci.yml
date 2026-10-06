@@ -298,6 +298,16 @@ jobs:
       - name: voice-lite selftest
         working-directory: infra/nas-voice-lite
         run: python3 voice_lite_server.py --selftest
+      # Cams forwarder selftest (DR-0756): the locked door in front of go2rtc,
+      # the family camera road. Proven-to-catch: fails if /list or /ticket ever
+      # accept a missing or wrong bearer, if a source URL (credentials) leaks in
+      # /list, if a ticket opens another camera, if the live cap stops refusing
+      # at once, if the live time brake stops ending a stream (caught a real
+      # defect on its first run), if the HLS rewrite drops the ticket from a
+      # segment line, or if a dark go2rtc ever reads as this process's own 200.
+      - name: cams forwarder selftest
+        working-directory: infra/nas-cameras
+        run: python3 cams_forwarder.py --selftest
       # Sovereign review-queue server selftest (DR-0218 zero-n8n / DR-0076): the
       # byte-faithful port of wf-review-feed + wf-review-action. Proven-to-catch:
       # fails if the dismissed-filter, id path-containment, or status-write

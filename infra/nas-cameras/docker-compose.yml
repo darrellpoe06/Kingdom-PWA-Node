@@ -1,0 +1,47 @@
+# =============================================================================
+# go2rtc -- the family's ONE camera restreamer on the DS1621xs (DR-0756)
+# =============================================================================
+# Darrell 2026-10-06: "I want to be able to see my wyze cam feeds inside my
+# PoeTech App... and any system I own..."
+#
+# go2rtc speaks the cameras' own protocols and gives the app ONE shape back:
+#   wyze://   native Wyze P2P (v1.9.14, 2026-01-19, no Wyze SDK, no bridge
+#             container) -- the primary fleet (NETWORK-SOVEREIGNTY-UCG-MAX.md)
+#   ring://   native Ring (v1.9.9) -- the doorbell
+#   onvif://  the sovereign ONVIF backbone DR-0050 decided on, and any
+#             UniFi Protect / 4K PoE camera that follows (rtsp/rtsps too)
+#   rtsp://   anything else that already streams
+# "Any system I own" is one more line in go2rtc.yaml, never a new program.
+#
+# Verified before pinning (DR-0076): tag 1.9.14 exists on Docker Hub
+# (2026-01-19, amd64 + arm64); v1.9.14 release notes carry "Native Wyze camera
+# support #2011". PINNED, not :latest -- a bump is a one-line PR through the
+# gates.
+#
+# Access: go2rtc itself is LOOPBACK ONLY (api/rtsp bound to 127.0.0.1 in
+# go2rtc.yaml, webrtc off). Nothing here is on the LAN or the Funnel. The app
+# reaches it ONLY through poetech-cams.service (cams_forwarder.py, 127.0.0.1:8773,
+# family bearer + short playback tickets), which the Funnel mounts at /cams.
+#
+# network_mode: host because Wyze P2P and ONVIF discovery need the cameras'
+# own LAN (the upstream README recommends host mode for exactly this). With
+# host mode the listen addresses in go2rtc.yaml ARE the exposure -- which is
+# why the seed config binds them to 127.0.0.1.
+#
+# Deploy: services-sync runs infra/nas-cameras/install.sh from the NAS repo
+# mirror -- merge to main IS the deploy (DR-0236). No Portainer, no hand.
+# Config + the Wyze stream URLs the WebUI generates live in /volume1/docker/go2rtc.
+# =============================================================================
+
+services:
+  go2rtc:
+    image: alexxit/go2rtc:1.9.14
+    container_name: poetech-go2rtc
+    network_mode: host
+    environment:
+      - TZ=America/Chicago
+    volumes:
+      - /volume1/docker/go2rtc:/config:rw
+    # unless-stopped (our NAS convention, boot-persistent): a reboot brings the
+    # cameras back by itself.
+    restart: unless-stopped
