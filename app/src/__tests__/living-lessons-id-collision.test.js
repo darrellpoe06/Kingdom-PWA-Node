@@ -57,7 +57,7 @@ const numbered = (mods) => mods.map((m) => {
 // parallel) while L204 (The Word Checks Every Teller, DR-0714) lands first, the
 // same way 193 was held. Delete the entry in the merge that brings L203 in.
 // 210 is held the same way (2026-10-06): its lesson is in flight on its own
-// branch while L213 (A Snag in the Theory, DR-0762) lands first. Delete the
+// branch while L213 (A Snag in the Theory, DR-0763) lands first. Delete the
 // entry in the merge that brings it in — the ratchet below fails if a held
 // number is quietly filled and left here.
 // 211 and 212 are PERMANENT gaps, not holds. Both were built the same day and

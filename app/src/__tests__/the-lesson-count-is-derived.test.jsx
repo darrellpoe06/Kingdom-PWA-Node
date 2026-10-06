@@ -42,7 +42,7 @@ for (let n = 1; n <= HIGHEST; n += 1) if (!nums.includes(n)) GAPS.push(n);
 // count. The real catalog's gap list grows and shrinks as lessons land out of
 // order on parallel branches, so a test that hard-codes one branch of the rule
 // goes red on an unrelated merge, which is what it did when L213 arrived and
-// made the fourth gap (DR-0762).
+// made the fourth gap (DR-0763).
 const gapClause = (missing) => (missing.length <= NAMED_GAPS
   ? `no ${missing.map((g) => `L${g}`).join(', ')}`
   : `${missing.length} numbers unused`);

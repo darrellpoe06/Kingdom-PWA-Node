@@ -4,7 +4,7 @@
 // Open, and Who Framed the Worlds
 // =============================================================================
 // Built from the report Darrell forwarded into the app by email on 2026-10-06
-// with one word above it, Lesson (DR-0762): a Big Think piece by Dirk
+// with one word above it, Lesson (DR-0763): a Big Think piece by Dirk
 // Schulze-Makuch and Tony Reichhardt on a new paper by Benjamin Tutolo that
 // puts a documented difficulty into the account of life's beginning that has
 // led the field for about a decade.
