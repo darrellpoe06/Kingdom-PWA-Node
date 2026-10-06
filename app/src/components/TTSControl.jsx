@@ -345,6 +345,30 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   // mapping where the mode supports it), wordable }.
   const followRef = useRef(null);
   const lastCloudIdxRef = useRef(-1);
+  // HOW FAR INTO *THIS* RUN THE VOICE HAS REACHED (DR-0756).
+  //
+  // The absolute place is `base + local`, and `local` used to be read live from
+  // whichever of two counters the CURRENT mode pointed at —
+  // `deviceRead ? segmentIndex : lastCloudIdxRef.current`. Neither belongs to
+  // the run whose `base` it is added to: a jump sets a new `base` at once,
+  // while the piece/segment counter still holds the position of the run that
+  // just ended, and `deviceRead` itself flips (it is `!cloudPlaying`) for the
+  // seconds the NAS voice takes to answer. So the jump AFTER a jump was
+  // computed from base-of-the-new-run + position-in-the-old-one. Measured in
+  // jsdom: reading at sentence 3 of a four-paragraph lesson, Forward landed
+  // correctly on paragraph 3, and Back then went FORWARD to paragraph 4.
+  //
+  // One counter, owned by the run: set by whichever follow effect is driving,
+  // and put back to 0 by beginRun() the moment a new base is set. It is NOT
+  // cleared when the voice stops — a stop is where Continue picks the place up.
+  const runLocalRef = useRef(0);
+  /** Start a run from a known base: the follow state and its local position move together. */
+  const beginRun = (next) => {
+    followRef.current = next;
+    runLocalRef.current = 0;
+    lastCloudIdxRef.current = -1;
+    return next;
+  };
   // FOLLOW ALONG, BUT NEVER YANK (DR-0633; Darrell: "need to be able to go
   // back to the reading page to see the text when I want"). The highlight
   // always follows the voice; the SCROLL follows only until the listener
@@ -453,6 +477,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       if (!isReading) { clearReadingHighlights(); highlightWord(null); lastCloudIdxRef.current = -1; }
       return;
     }
+    runLocalRef.current = Math.max(0, segmentIndex);
     const r = followRef.current.ranges[segmentIndex] || null;
     lightSentence(r);
     highlightWord(null); // a new sentence clears the previous word
@@ -476,6 +501,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       : segmentIndexAtFraction(followRef.current.lens, cloudProgress);
     if (idx < 0 || idx === lastCloudIdxRef.current) return;
     lastCloudIdxRef.current = idx;
+    runLocalRef.current = idx;
     const r = followRef.current.ranges[idx] || null;
     lightSentence(r);
     scrollToVoice(r);
@@ -844,7 +870,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       } catch (_) { caret = null; }
       const segIdx = follow && caret ? segmentIndexAtDomPoint(follow, caret.node, caret.offset) : -1;
       if (follow && segIdx >= 0) {
-        followRef.current = pageFollowState(follow, segIdx);
+        beginRun(pageFollowState(follow, segIdx));
         // Same law as Read-this-page: a tap-started read follows and highlights,
         // so the card must collapse to the pill or it covers the very words it
         // just lit up (reported 2026-08-06 — the panel sat over the read text).
@@ -854,7 +880,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       }
       const hit = readFromPoint(main, e.clientX, e.clientY);
       const text = (hit && hit.text) || readablePageText();
-      followRef.current = null; // unresolvable tap reads unmapped — no stale highlight
+      beginRun(null); // unresolvable tap reads unmapped — no stale highlight
       if (text) { setMinimized(true); read(text); }
     };
     const onKey = (e) => { if (e.key === 'Escape') setArmed(false); };
@@ -921,12 +947,12 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     // can't be built (empty page) — reading always still works.
     const follow = main ? buildFollowMap(main) : null;
     if (follow && follow.text) {
-      followRef.current = pageFollowState(follow);
+      beginRun(pageFollowState(follow));
       setMinimized(true);
       read(follow.text);
       return;
     }
-    followRef.current = null;
+    beginRun(null);
     const text = readablePageText();
     if (text) { setMinimized(true); read(text); }
   };
@@ -1088,12 +1114,12 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
           ? startIndexForFraction(startFraction, follow.segments.length)
           : (continuing ? -1 : savedStartIndex(follow.segments));
       if (at > 0 && follow.segments[at]) {
-        followRef.current = { ...pageFollowState(follow, at), owner: t.owner };
+        beginRun({ ...pageFollowState(follow, at), owner: t.owner });
         setMinimized(true);
         read(follow.text.slice(follow.segments[at].start));
         return;
       }
-      followRef.current = { ...pageFollowState(follow), owner: t.owner };
+      beginRun({ ...pageFollowState(follow), owner: t.owner });
       setMinimized(true);
       read(follow.text);
       return;
@@ -1103,13 +1129,13 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     const spoken = segmentText(t.text);
     const pageRoot = readingRoot();
     const pageFollow = pageRoot ? buildFollowMap(pageRoot) : null;
-    followRef.current = pageFollow ? {
+    beginRun(pageFollow ? {
       follow: pageFollow,
       base: 0,
       ranges: alignSegments(pageFollow, spoken),
       lens: spoken.map((s) => s.length),
       wordable: false,
-    } : null;
+    } : null);
     setMinimized(true);
     read(t.text);
   };
@@ -1133,7 +1159,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     const { text, source } = await talkAboutSurface(digest);
     setTalking(false);
     setTalkSource(source === 'live' ? 'Ari, live' : 'Ari, on-device');
-    followRef.current = null; // Ari's explanation isn't on-screen text — no highlight map
+    beginRun(null); // Ari's explanation isn't on-screen text — no highlight map
     if (text) read(text);
   };
 
@@ -1165,8 +1191,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   const currentGlobalSegment = () => {
     const f = followRef.current;
     if (!f) return -1;
-    const local = deviceRead ? segmentIndex : Math.max(0, lastCloudIdxRef.current);
-    return f.base + Math.max(0, local);
+    return f.base + Math.max(0, runLocalRef.current);
   };
   const jumpToSegment = (globalIdx) => {
     const f = followRef.current;
@@ -1179,7 +1204,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     // A jump can flicker the engine through a not-reading render; the guard
     // keeps the hands-free run from mistaking that for "the piece ended".
     jumpingRef.current = true;
-    followRef.current = { ...pageFollowState(f.follow, idx), paraStarts, owner: f.owner };
+    beginRun({ ...pageFollowState(f.follow, idx), paraStarts, owner: f.owner });
     read(f.follow.text.slice(seg.start));
   };
   const jumpParagraph = (dir) => {
@@ -1255,8 +1280,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   const spokenRange = () => {
     const f = followRef.current;
     if (!f || !f.ranges) return null;
-    const local = deviceRead ? segmentIndex : Math.max(0, lastCloudIdxRef.current);
-    return f.ranges[local] || null;
+    return f.ranges[Math.max(0, runLocalRef.current)] || null;
   };
   const showTheText = () => {
     awayRef.current = false;

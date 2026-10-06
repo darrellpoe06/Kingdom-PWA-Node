@@ -178,7 +178,9 @@ describe('the panel says honestly what happens when you switch apps', () => {
 
   it('the stand-in reaches for the NAS audio voice BEFORE the phone voice', () => {
     const hook = readFileSync(join(HERE, '..', 'lib', 'use-read-aloud.js'), 'utf8');
-    const lite = hook.indexOf('await playLiteVoice(clean)');
+    // Since DR-0756 the call carries this read's own number (a superseded read
+    // must never reach the voice), so match the call, not its argument list.
+    const lite = hook.indexOf('await playLiteVoice(clean');
     const device = hook.indexOf("setNotice('This device can’t read aloud");
     expect(lite).toBeGreaterThan(0);
     expect(device).toBeGreaterThan(lite);

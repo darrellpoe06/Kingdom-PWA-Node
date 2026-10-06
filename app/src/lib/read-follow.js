@@ -117,6 +117,14 @@ export function buildFollowMap(root, doc = typeof document !== 'undefined' ? doc
   if (!root || !doc) return null;
   const chars = [];   // normalized characters
   const map = [];     // map[i] = { node, offset } for chars[i]
+  // WHERE EACH BLOCK'S WORDS BEGIN, in normalized-character positions — the
+  // paragraph grid, recorded BY CONSTRUCTION (DR-0756). This walk already
+  // knows every block boundary (it puts the separator in, just below); writing
+  // those positions down costs nothing and gives paragraphStarts the one thing
+  // it could not get from the DOM afterwards: a boundary for EVERY kind of
+  // block, not only the handful of tags a second list happened to name.
+  const blocks = [];
+  let pendingBlock = true; // the next real character opens a block
   let lastWasSpace = true; // leading whitespace never lands
   let lastBlock = null;    // the block element the previous text node sat in
   const walker = doc.createTreeWalker(root, 4 /* NodeFilter.SHOW_TEXT */, null);
@@ -162,6 +170,7 @@ export function buildFollowMap(root, doc = typeof document !== 'undefined' ? doc
     // One space at the boundary restores both: real words for the engine, and a
     // segmentation that matches what the fallback path has always produced.
     const block = closestBlock(parent, root);
+    if (lastBlock && block !== lastBlock) pendingBlock = true;
     if (lastBlock && block !== lastBlock && !lastWasSpace) {
       // Anchor the separator to the END of the text we just left, so a range
       // that stops here stops at the real last character of that block.
@@ -204,6 +213,7 @@ export function buildFollowMap(root, doc = typeof document !== 'undefined' ? doc
         map.push({ node, offset: i });
         lastWasSpace = true;
       } else {
+        if (pendingBlock) { blocks.push(chars.length); pendingBlock = false; }
         chars.push(ch);
         map.push({ node, offset: i });
         lastWasSpace = false;
@@ -227,7 +237,7 @@ export function buildFollowMap(root, doc = typeof document !== 'undefined' ? doc
     located.push({ text: seg, start: at, end: at + seg.length });
     cursor = at + seg.length;
   }
-  return { text, map, segments: located };
+  return { text, map, segments: located, blocks };
 }
 
 /** The live DOM Range covering normalized positions [start, end). */
@@ -732,12 +742,51 @@ export function followRange(range, { place } = {}) {
 const BLOCK_TAGS = /^(P|LI|H[1-6]|BLOCKQUOTE|TD|TH|DT|DD|FIGCAPTION|PRE)$/;
 
 /**
- * The segment indexes where a new paragraph (block element) begins. A segment
- * whose range cannot be resolved keeps the running paragraph (never splits).
+ * The segment indexes where a new paragraph begins, read from the follow map's
+ * OWN block grid (buildFollowMap records where each block's words start).
+ *
+ * THE BUG THIS REPLACES (DR-0756). Darrell 2026-10-06, from his phone, reading
+ * a lesson in the NAS voice: "The reader does not go to the next section or
+ * paragraph... it goes to the beginning of the lessons."
+ *
+ * Both halves of that sentence came from one line — the BLOCK_TAGS whitelist
+ * below. It names P, LI, H1-6, BLOCKQUOTE, TD, TH, DT, DD, FIGCAPTION and PRE,
+ * and nothing else; `buildFollowMap`'s own BLOCK_BOUNDARY_TAGS names twenty
+ * more, DIV and SECTION among them. So on a surface whose prose renders in
+ * DIVs — which is most of this app — every sentence walked past every DIV and
+ * landed on the one element the whole lesson is wrapped in
+ * (`<li id="learn-lesson-…">`, ChurchLearn.jsx:2856). One block for the whole
+ * lesson, so `starts` came back `[0]`, and paragraphJumpTarget then answered
+ * `null` for Forward (nothing moved) and `starts[0]` — SEGMENT 0, THE TOP OF
+ * THE LESSON — for Back. Measured in jsdom over a DIV-rendered lesson: six
+ * sentences, `starts` `[0]`, Forward `null`, Back `0`.
+ *
+ * The two lists cannot be kept in step by hand, so the second list is gone:
+ * the map that decides where a block ENDS now also says where one BEGINS, and
+ * paragraphs are read from that. It is the same "alignment by construction"
+ * this file is built on, and it survives what the DOM walk could not — a
+ * lesson that re-rendered under the reading, where the ranges resolve to
+ * detached nodes.
+ *
+ * The DOM walk is kept for a follow map built by hand (tests, callers that
+ * assemble `{segments}` themselves) — those carry no `blocks`.
  */
 export function paragraphStarts(follow, doc = typeof document !== 'undefined' ? document : null) {
   const starts = [];
   if (!follow || !Array.isArray(follow.segments)) return starts;
+  if (Array.isArray(follow.blocks) && follow.blocks.length) {
+    // Both lists are in ascending order, so one moving cursor pins every one.
+    let b = 0;
+    let prev = -1;
+    follow.segments.forEach((s, i) => {
+      if (s) {
+        while (b + 1 < follow.blocks.length && follow.blocks[b + 1] <= s.start) b += 1;
+      }
+      if (i === 0 || b !== prev) starts.push(i);
+      prev = b;
+    });
+    return starts;
+  }
   let prevBlock;
   follow.segments.forEach((s, i) => {
     const r = s ? rangeFor(follow, s.start, s.end, doc) : null;
