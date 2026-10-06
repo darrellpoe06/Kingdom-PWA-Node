@@ -42,27 +42,34 @@ unreadable by the one tool whose whole job is to read it.
      the row is MANY lines, not one.
   3. `db_md5=$(printf '%s' "$out" | head -1 | cut -d'|' -f3)` is a **bare
      assignment**, so the pipeline's status is the command's status. `head -1`
-     exits after the first line; once the rest of the row no longer fits in the
-     64 KiB pipe buffer, `printf` takes SIGPIPE, the pipeline exits 141, and
-     `-e` kills the step before any message can be printed.
-- **Replayed, with the numbers.** A row of 204,000 body bytes (272,000 base64
-  characters, wrapped to 76) run under `bash -e` with `pipefail`: the old code
-  prints the tags line and **exits 141** before reaching the md5 line, which is
-  the failing run's exact shape. The same words as a single-line row through the
-  new code: `round-trip ok, b64 chars 272000`, exit 0.
-- **Why it had always worked before.** At 38,400 base64 characters the whole
-  remainder fits in the pipe buffer, `printf` finishes before `head` exits, no
-  SIGPIPE, exit 0. Every shorter teaching read fine, so the road looked sound
-  until a long one arrived. The earlier line survived for a different reason:
-  `echo "tags: $(…)"` hides the substitution's status behind `echo`'s own, and
-  `-e` only sees `echo`.
+     exits as soon as it has the first line, which on a wrapped row is after
+     about 1,500 of 34,530 bytes; `printf` then races to finish writing into a
+     pipe whose reader is leaving. When it loses, it takes SIGPIPE, the pipeline
+     exits 141, and `-e` kills the step before any message can be printed.
+- **It is a race, not a size threshold, and the real row was NOT reproduced
+  here.** Darrell's row is 24,467 body bytes, 32,624 base64 characters wrapped
+  into 430 lines, 34,530 bytes in all. Rebuilt to that exact shape and run under
+  `bash -e` with `pipefail` on this four-CPU sandbox, the old code **exits 0
+  twelve times out of twelve** — it wins the race here, while the runner lost
+  it. So the honest statement is that `printf` and `head` race, the outcome
+  depends on scheduling, and a bigger row loses more often: at 272,000 base64
+  characters the old code exits **141** here every time, before the md5 line,
+  which is the failing run's exact shape and is how the kill path was confirmed
+  end to end.
+- **Why it had always worked before.** Shorter teachings won the same race, so
+  the road looked sound until a long one arrived on a runner that lost it. The
+  earlier line survived for a different reason entirely: `echo "tags: $(…)"`
+  hides the substitution's status behind `echo`'s own, and `-e` only sees
+  `echo`. That is why the log shows a broken pipe at the tags line AND at the
+  md5 line, but died only at the second.
 
 ## Impact
 
 - **A long spoken teaching can be read again.** The failure was selective in the
-  worst way: short words worked, long words died silently. The longer the
-  teaching, the more certain the loss — and length is not a defect in a spoken
-  word, it is a fuller one.
+  worst way: short words worked, long words died silently, and because it is a
+  race the same row could read fine once and die the next time. The longer the
+  teaching the likelier the loss — and length is not a defect in a spoken word,
+  it is a fuller one. Removing the pipe removes the race rather than winning it.
 - **A silent death becomes a stated reason.** The step had three careful error
   messages and printed none of them, because it was killed between them. The
   round-trip check now reports both md5s and the base64 length when it fails, so
@@ -102,11 +109,23 @@ builds the lesson from the words meanwhile, which is what the hand-back is for.
 
 ## Verification
 
-- **Proven to catch (DR-0076 §3), reproduced rather than reasoned about:** on a
-  204,000-byte body wrapped to 76 characters, the old pipeline under `bash -e`
-  with `pipefail` prints the tags line and exits **141** before the md5 line —
-  the failing run's exact shape. The new parse on the same words returns
-  `round-trip ok, b64 chars 272000`, exit 0.
+- **The real read now works, which is the strongest evidence and it is not
+  synthetic.** `inbox-lesson-body.yml` re-dispatched on `main` after this merged
+  (run `37544218320`) read row `79c29dc9` end to end: `round-trip: the runner's
+  decode matches the database`, `bytes: 24467`, and the words printed. Decoding
+  that output independently here gives 24,467 bytes with md5
+  `8e228fdecdc97037f2609a32e5af0824`, matching the database's own md5 that the
+  run printed dotted. The teaching is readable.
+- **Proven to catch (DR-0076 §3), on an analogous row, NOT on Darrell's:** at
+  272,000 base64 characters the old pipeline under `bash -e` with `pipefail`
+  prints the tags line and exits **141** before the md5 line — the failing run's
+  exact shape. Rebuilt to Darrell's real shape (34,530 bytes, 430 lines) the old
+  code exits 0 twelve times out of twelve on this box, so the specific failing
+  run was **not** reproduced locally; the runner lost a race this sandbox wins.
+  The kill path is nevertheless established directly from the run's own log: its
+  shell line reads `/usr/bin/bash -e {0}`, the broken pipe is reported at the
+  tags line and again at the md5 line, and the step ends `exit code 1` with none
+  of its three `::error::` messages fired.
 - **The guard rail was checked too:** feeding the new parse a multi-line row, as
   if the single-line query had been regressed, fails with
   `round-trip failed: database md5 b0.66.09…, runner md5 76.31.e7…, base64
@@ -118,3 +137,20 @@ builds the lesson from the words meanwhile, which is what the hand-back is for.
   because this sandbox reaches the NAS only through the workflow and the
   workflow must be on `main` to dispatch. That is the first thing done after
   this merges, and it is how Christyn's Homework gets built.
+
+## Correction (2026-10-06, hours after this record was accepted)
+
+As first written, the **What was measured** and **Verification** sections said
+the step died "once the rest of the row no longer fits in the 64 KiB pipe
+buffer", and presented a 204,000-byte replay as the failing run's reproduction.
+Both overstated what had been measured.
+
+Rebuilding Darrell's row to its real shape — 24,467 body bytes, 32,624 base64
+characters, 430 lines, 34,530 bytes in all — the old code exits 0 twelve times
+out of twelve here. There is no 64 KiB threshold: `printf` and `head` race, and
+the outcome depends on scheduling. The large replay demonstrates the kill path,
+not this row's failure.
+
+The sections above now say that. The decision does not change: removing the pipe
+removes the race instead of relying on winning it, and the real read of
+`79c29dc9` on `main` afterwards is the proof that matters.
