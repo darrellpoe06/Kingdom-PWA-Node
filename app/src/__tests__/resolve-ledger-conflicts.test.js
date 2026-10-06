@@ -104,6 +104,27 @@ describe('resolve-ledger-conflicts — pure pieces, each proven to catch', () =>
     expect(rowIds(dup.text)).toEqual(['0100']);
   });
 
+  // 2026-10-06: two lanes each wrote DR-0762, and two others each wrote DR-0756.
+  // Folding by number alone kept the first row and deleted the other decision
+  // from the ledger; business-systems-guard then failed with "no row for
+  // DR-0762", after the damage was already in the file. The resolver refuses
+  // now, because a number claimed twice is a renumbering job, not a merge.
+  it('REFUSES two different decisions that claim one number, and names the free id', () => {
+    const collision = [
+      '| [DR-0100](a.md) | first |',
+      '| [DR-0101](b.md) | second |',
+      '| [DR-0101](the-other-lane.md) | a different decision, same number |',
+      '',
+      '**Next ID:** DR-0102.',
+    ].join('\n');
+    expect(() => normalizeLedger(collision)).toThrow(/two different decisions claim DR-0101/);
+    expect(() => normalizeLedger(collision)).toThrow(/b\.md and the-other-lane\.md/);
+    expect(() => normalizeLedger(collision)).toThrow(/Renumber the newer file to DR-0102/);
+    // The same rows with the same link are still an ordinary duplicate, kept once.
+    const same = collision.replace('(the-other-lane.md)', '(b.md)');
+    expect(normalizeLedger(same).removedRows).toEqual(['DR-0101']);
+  });
+
   it('CATCHES duplicate rows and a second pointer in the guard (the union shape)', () => {
     const naive = '| [DR-0100](a.md) | x |\n| [DR-0100](a.md) | y |\n\n**Next ID:** DR-0101.\n**Next ID:** DR-0099.';
     const f = drLedgerFindings({ indexText: naive, diskIds: [100] });
