@@ -4307,7 +4307,7 @@ ${THEME_CSS}
                 ['advocacy', <><UiIcon name="landmark" /> Advocacy</>],
                 ['databack', <><UiIcon name="landmark" /> Your Data</>],
                 ...(isFamilyMember ? [['cameras', <><UiIcon name="eye" /> Cameras</>]] : []),
-                ...(authSession ? [['vault', <><UiIcon name="lock" /> Vault</>]] : []),
+                ...(authSession?.user ? [['vault', <><UiIcon name="lock" /> Vault</>]] : []),
                 // Darrell's Study — private to the circle (Darrell/Christina/BG).
                 // Spread so the entry is absent from the DOM entirely for everyone
                 // else (no-leak); the feedback-area-guard still sees the literal
