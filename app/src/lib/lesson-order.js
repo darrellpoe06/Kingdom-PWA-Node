@@ -94,9 +94,22 @@ export function lessonSpan(schedule) {
 }
 
 /**
+ * How many unused numbers the header will NAME before it falls back to a bare
+ * count. Darrell's standing rule is that a surface says the truth, and "no L79,
+ * L210, L211, L212" is the truth while "4 numbers unused" only hints at it, so
+ * the header names them as long as the list stays short. Six is the bound: it
+ * covers every real gap this catalog has carried (one permanent gap at L79 plus
+ * the few numbers held open while lessons land out of order on parallel
+ * branches) and still fits the one-line header. Past six the list is longer than
+ * the header can carry, and the count is the honest summary.
+ */
+export const NAMED_GAPS = 6;
+
+/**
  * The count line for a course: "191 lessons · L1–L192 · no L79" when the
  * numbers run past the count, "12 lessons" otherwise. Unit words come from the
  * course (unitLabels: noun, plural, cap), so a weekly course reads "8 weeks".
+ * Up to NAMED_GAPS unused numbers are named; beyond that it reports the count.
  */
 export function lessonCountLabel(schedule, units = {}) {
   const { noun = 'lesson', plural = 'lessons', cap = 'Lesson' } = units;
@@ -106,7 +119,7 @@ export function lessonCountLabel(schedule, units = {}) {
   const L = (n) => numberLabel({ number: n }, true, cap);
   const span = `${L(s.first)}–${L(s.last)}`;
   if (!s.missing.length) return `${head} · ${span}`;
-  const gap = s.missing.length <= 3
+  const gap = s.missing.length <= NAMED_GAPS
     ? `no ${s.missing.map(L).join(', ')}`
     : `${s.missing.length} numbers unused`;
   return `${head} · ${span} · ${gap}`;
