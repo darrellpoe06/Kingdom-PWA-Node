@@ -38,6 +38,7 @@ Usage (NAS, via infra/church-media-golive/choir_dates_install.sh):
 """
 import argparse
 import json
+import os
 import subprocess
 import sys
 import time
@@ -154,6 +155,39 @@ def gone_from_stderr(stderr):
     return out
 
 
+# Where the NAS actually installs yt-dlp. infra/nas-yt-dlp/install.sh and
+# choir_dates_install.sh both write YTDLP_HOME, default /volume1/PoeTech/yt-dlp;
+# the older per-service copy sat beside this file in state/.
+#
+# Measured 2026-10-06 by voice-intake-health, on the NAS: that binary answers
+# (`/volume1/PoeTech/yt-dlp/yt-dlp --version -> exit 0: 2026.08.19`) and dated
+# two real videos in the same run. But the rider, called with the PATH the
+# installer sets (`.../church-media-golive/state:/usr/bin:/bin`), raised
+# `FileNotFoundError [Errno 2] No such file or directory: 'yt-dlp'`, because the
+# state copy is absent and the installed one is not on that PATH. So choir-dates
+# had been DEGRADED since 2026-10-02 over a name lookup, with a working tool on
+# the same disk the whole time.
+#
+# Absolute paths are tried first. The bare name still follows it, for a box that
+# does have it on PATH and for anyone running this by hand.
+YTDLP_PATHS = (
+    os.environ.get("YTDLP_BIN") or "",
+    os.path.join(os.environ.get("YTDLP_HOME") or "/volume1/PoeTech/yt-dlp", "yt-dlp"),
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "state", "yt-dlp"),
+)
+
+
+def ytdlp_commands(paths=None):
+    """The commands to try, in order: the binaries the NAS installs, then the
+    bare name, then the module. A path that is not an executable file is left
+    out, so a half-finished install never becomes a confusing exec failure."""
+    cmds = [[p] for p in (YTDLP_PATHS if paths is None else paths)
+            if p and os.path.isfile(p) and os.access(p, os.X_OK)]
+    cmds.append(["yt-dlp"])
+    cmds.append([sys.executable, "-m", "yt_dlp"])
+    return tuple(cmds)
+
+
 def fetch_stamps(video_ids, time_budget_s, commands=None):
     """One yt-dlp invocation over the chunk -> (dates, gone).
 
@@ -164,7 +198,7 @@ def fetch_stamps(video_ids, time_budget_s, commands=None):
     """
     args = ytdlp_args(video_ids)
     ran = []
-    for cmd in (commands or (["yt-dlp"], [sys.executable, "-m", "yt_dlp"])):
+    for cmd in (commands or ytdlp_commands()):
         try:
             r = subprocess.run(cmd + args, capture_output=True, text=True, timeout=time_budget_s)
             out, err, rc = r.stdout or "", r.stderr or "", r.returncode
@@ -270,6 +304,19 @@ def selftest():
         os.chmod(answers, 0o755)
         checks.append(("an answering yt-dlp dates the row",
                        fetch_dates(["a1"], 30, commands=[[answers]]) == {"a1": "2026-09-30"}))
+        # The 2026-10-06 failure, replayed: the installed binary is NOT on PATH,
+        # and the rider must still find it by its own path. PROVEN-TO-CATCH --
+        # with the old candidate list (bare name first and only), this is the
+        # exact FileNotFoundError the NAS raised.
+        checks.append(("the installed binary is tried before the bare name",
+                       ytdlp_commands([answers])[0] == [answers]
+                       and ["yt-dlp"] in ytdlp_commands([answers])))
+        checks.append(("a path that is not there is left out, not executed",
+                       [os.path.join(td, "absent")] not in ytdlp_commands([os.path.join(td, "absent")])))
+        checks.append(("a path that is not executable is left out",
+                       [__file__] not in ytdlp_commands([__file__])))
+        checks.append(("the bare name is still a candidate on a box that has it",
+                       ["yt-dlp"] in ytdlp_commands([])))
     checks.append(("a gone video is named; a bot check never is",
                    gone_from_stderr("ERROR: [youtube] g1: Video unavailable. This video has been removed by the uploader\n"
                                     "ERROR: [youtube] p2: Private video. Sign in if you've been granted access\n"
