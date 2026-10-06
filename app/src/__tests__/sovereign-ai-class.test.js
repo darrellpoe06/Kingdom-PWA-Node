@@ -22,8 +22,23 @@ describe('curriculum shape', () => {
     // Floor, never edited by a new week: the course may grow, not shrink.
     expect(SOVEREIGN_AI_MODULES.length).toBeGreaterThanOrEqual(30);
     expect(SOVEREIGN_AI_META.weeks).toBe(SOVEREIGN_AI_MODULES.length);
-    // Each week's number is its place: a dropped, doubled or misfiled week fails here.
-    expect(SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]))).toEqual(SOVEREIGN_AI_MODULES.map((_, i) => i + 1));
+    // Each week's number is its place, EXCEPT for a number recorded below as held
+    // by a lane still in flight: a dropped, doubled or misfiled week fails here.
+    // The convention is the one living-lessons-id-collision.test.js documents —
+    // the held number is named, dated and deleted in the merge that brings its
+    // week in, so the hold cannot quietly become a permanent gap. 33 is held for
+    // Sovereign A.I. week 33 (Peace, peace; when there is no peace, DR-0761),
+    // authored in parallel while week 34 (the bounded answer, DR-0760) was being
+    // written; delete the entry in the merge that brings week 33 in, which this
+    // assertion forces by failing once the number is no longer missing.
+    const HELD_IN_FLIGHT = [33];
+    const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));
+    // Strictly ascending: a doubled or misfiled week still fails.
+    expect(weeks.every((n, i) => i === 0 || n > weeks[i - 1]), `weeks ascend: ${weeks.join(',')}`).toBe(true);
+    // Every number from 1 to the highest week is present, apart from the holds.
+    const missing = [];
+    for (let n = 1; n <= weeks[weeks.length - 1]; n += 1) if (!weeks.includes(n)) missing.push(n);
+    expect(missing, 'a missing week number that is not recorded as held in flight').toEqual(HELD_IN_FLIGHT);
     expect(SOVEREIGN_AI_MODULES.every((m) => m.id && m.title && m.bigIdea && m.inApp && m.anchor?.ref)).toBe(true);
     const ids = SOVEREIGN_AI_MODULES.map((m) => m.id);
     expect(ids).toContain('sov1-generator-in-the-garage');     // the thesis
@@ -40,6 +55,7 @@ describe('curriculum shape', () => {
     expect(ids).toContain('sov26-the-roll-the-king-burned-and-the-roll-written-again');
     expect(ids).toContain('sov27-the-seed-is-in-itself-and-every-workflow-seeds-the-next'); // every workflow seeds the next; the data is the proof of the whole (spoken 2026-09-24)
     expect(ids).toContain('sov29-the-agent-that-went-past-the-bound');
+    expect(ids).toContain('sov34-the-bounded-answer-count-the-cost-before-you-build-and-except-yahweh-build-the-house'); // the bounded answer: declare the allowed answers before the model runs; count the cost first; rock against sand; the just weight; the judgment no tool may be handed (forwarded 2026-10-06)
     expect(ids).toContain('sov32-the-im-fine-problem-and-the-one-who-looketh-on-the-heart'); // the transcript hears the words, Yahweh hears the heart; Hannah and Eli; groanings the Spirit carries; our own voices marked on our own machine (forwarded 2026-10-01)
     expect(ids).toContain('sov31-whose-errand-does-your-agent-carry'); // one Mediator; Abraham's servant; no man can serve two masters; the owner answers for what he sets loose (forwarded 2026-09-29)
     expect(ids).toContain('sov30-the-watcher-the-agent-cannot-see-and-the-door-with-no-hidden-hatch'); // one door, the watcher out of reach, quarantine that looks again (forwarded 2026-09-29) // agents chase the goal, not your rules; Yahweh sets the bound; proved before trusted (forwarded 2026-09-28)
