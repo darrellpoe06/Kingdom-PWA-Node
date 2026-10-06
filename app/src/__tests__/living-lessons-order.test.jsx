@@ -112,8 +112,8 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     const back = byNum.filter((m, i) => i > 0 && m.added < byNum[i - 1].added).map((m) => m.id);
     expect(back).toEqual([]);
     expect(byNum[0].added).toBe('2026-06-24');
-    // The newest lesson's day: L208 joined on 2026-10-02 (DR-0751).
-    expect(byNum[byNum.length - 1].added).toBe('2026-10-02'); // L208 (DR-0751)
+    // The newest lesson's day: L209 joined on 2026-10-06 (DR-0755).
+    expect(byNum[byNum.length - 1].added).toBe('2026-10-06'); // L209 (DR-0755)
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {
